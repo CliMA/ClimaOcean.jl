@@ -1,51 +1,39 @@
 using Oceananigans
-
+using Oceananigans.Units
+using Oceananigans.Models.HydrostaticFreeSurfaceModels: VerticalVorticityField
 using ClimaOcean.NearGlobalSimulations: one_degree_near_global_simulation
 
+# Build the simulation
 simulation = one_degree_near_global_simulation()
 
-start_time = [time_ns()]
+# Define output
+fields_save_interval = 5days
+surface_fields_save_interval = 2hours
+Nx, Ny, Nz = size(simulation.model.grid)
+output_prefix = "near_global_$(Nx)_$(Ny)_$(Nz)"
 
-function progress(sim)
-    wall_time = (time_ns() - start_time[1]) * 1e-9
-
-    u = sim.model.velocities.u
-    w = sim.model.velocities.w
-
-    intw  = Array(interior(w))
-    max_w = findmax(intw)
-
-    mw = max_w[1]
-    iw = max_w[2]
-
-    @info @sprintf("Time: % 12s, iteration: %d, max(|u|): %.2e ms⁻¹, wmax: %.2e , loc: (%d, %d, %d), wall time: %s", 
-                    prettytime(sim.model.clock.time),
-                    sim.model.clock.iteration, maximum(abs, u), mw, iw[1], iw[2], iw[3], 
-                    prettytime(wall_time))
-
-    start_time[1] = time_ns()
-
-    return nothing
-end
-
-simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
-
-u, v, w = model.velocities
-T = model.tracers.T
-S = model.tracers.S
+model = simulation.model
+outputs = merge(model.velocities, model.tracers)
 
 simulation.output_writers[:fields] =
-    JLD2OutputWriter(model, (; u, v, w, T, S),
+    JLD2OutputWriter(model, outputs,
                      schedule = TimeInterval(save_interval),
-                     filename = output_prefix * "_snapshots",
+                     filename = output_prefix * "_fields",
                      with_halos = true,
                      overwrite_existing = true)
 
-# Let's goo!
+surface_outputs = Dict(name => Field(outputs[name], indices=(:, :, Nz)) for name in keys(outputs))
+surface_outputs[:η] = model.free_surface.η
+surface_outputs[:ζ] = VerticalVorticityField(model.grid, model.velocities; indices=(:, :, Nz))
+
+simulation.output_writers[:surface_fields] =
+    JLD2OutputWriter(model, surface_outputs,
+                     schedule = TimeInterval(surface_fields_save_interval),
+                     filename = output_prefix * "_surface_fields",
+                     with_halos = true,
+                     overwrite_existing = true)
+
 @info "Running a simulation with Δt = $(prettytime(simulation.Δt))"
-
 run!(simulation)
+@info "Simulation took $(prettytime(simulation.run_wall_time))."
 
-@info """
-    Simulation took $(prettytime(simulation.run_wall_time))
-"""

@@ -22,24 +22,24 @@ import ..VerticalGrids
 
 dir = @__DIR__
 
-struct PiecewiseConstantVerticalDiffusivity
+struct PiecewiseConstantVerticalDiffusivity <: Function
     z_transition :: Float64
     top_diffusivity :: Float64
     bottom_diffusivity :: Float64
 end
 
-struct PiecewiseConstantVerticalDiffusivity2 <: Function
-    z_transition :: Float64
-    top_diffusivity :: Float64
-    bottom_diffusivity :: Float64
-end
-
-@inline function (pcd::PiecewiseConstantVerticalDiffusivity2)(x, y, z, t)
+@inline function (pcd::PiecewiseConstantVerticalDiffusivity)(x, y, z, t)
     zᵗ = pcd.z_transition
     κᵗ = pcd.top_diffusivity
     κᵇ = pcd.bottom_diffusivity
     return ifelse(z > zᵗ, κᵗ, κᵇ)
 end
+
+Base.summary(pcd::PiecewiseConstantVerticalDiffusivity) =
+    string("PiecewiseConstantVerticalDiffusivity(",
+           pcd.z_transition, ", ",
+           pcd.top_diffusivity, ", ",
+           pcd.bottom_diffusivity, ")")
 
 const thirty_days = 30days
 
@@ -134,8 +134,6 @@ function one_degree_near_global_simulation(architecture = GPU();
     reference_heat_capacity                      = 3991.0,
     reference_salinity                           = 34.0,
     time_step                                    = 20minutes,
-    save_interval                                = 5days,
-    output_prefix                                = "near_global_$(size[1])_$(size[2])_$(size[3])",
     bathymetry_path                              = joinpath(dir, "bathymetry_360_150_75S_75N.jld2"),
     initial_conditions_path                      = joinpath(dir, "initial_conditions_360_150_48_75S_75N.jld2"),
     surface_boundary_conditions_path             = joinpath(dir, "surface_boundary_conditions_360_150_75S_75N.jld2"),
@@ -202,9 +200,9 @@ function one_degree_near_global_simulation(architecture = GPU();
     ##### Physics and model setup
     #####
 
-    νz = PiecewiseConstantVerticalDiffusivity2(-vertical_viscosity_transition_depth,
-                                               surface_vertical_viscosity,
-                                               interior_vertical_viscosity)
+    νz = PiecewiseConstantVerticalDiffusivity(-vertical_viscosity_transition_depth,
+                                              surface_vertical_viscosity,
+                                              interior_vertical_viscosity)
 
     vitd = VerticallyImplicitTimeDiscretization()
 
@@ -310,6 +308,34 @@ function one_degree_near_global_simulation(architecture = GPU();
     model.clock.time = 345days
 
     simulation = Simulation(model; Δt=time_step, stop_iteration=100)
+
+    start_time = [time_ns()]
+
+    function progress(sim)
+        wall_time = (time_ns() - start_time[1]) * 1e-9
+
+        u = sim.model.velocities.u
+        w = sim.model.velocities.w
+
+        intw  = Array(interior(w))
+        max_w = findmax(intw)
+
+        mw = max_w[1]
+        iw = max_w[2]
+
+        msg1 = @sprintf("Time: % 12s, iteration: %d, ", prettytime(sim), iteration(sim))
+        msg2 = @sprintf("max(|u|): %.2e ms⁻¹, wmax: %.2e , loc: (%d, %d, %d), ",
+                        maximum(abs, u), mw, iw[1], iw[2], iw[3])
+        msg3 = @sprintf("wall time: %s", prettytime(wall_time))
+
+        @info msg1 * msg2 * msg3
+
+        start_time[1] = time_ns()
+
+        return nothing
+    end
+
+    simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
 
     return simulation
 end
