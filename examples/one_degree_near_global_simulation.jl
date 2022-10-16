@@ -17,12 +17,13 @@ outputs = merge(model.velocities, model.tracers)
 
 simulation.output_writers[:fields] =
     JLD2OutputWriter(model, outputs,
-                     schedule = TimeInterval(save_interval),
+                     schedule = TimeInterval(fields_save_interval),
                      filename = output_prefix * "_fields",
                      with_halos = true,
                      overwrite_existing = true)
 
-surface_outputs = Dict(name => Field(outputs[name], indices=(:, :, Nz)) for name in keys(outputs))
+surface_outputs = Dict{Symbol, Any}(name => Field(outputs[name], indices=(:, :, Nz))
+                                    for name in keys(outputs))
 surface_outputs[:η] = model.free_surface.η
 surface_outputs[:ζ] = VerticalVorticityField(model.grid, model.velocities; indices=(:, :, Nz))
 
