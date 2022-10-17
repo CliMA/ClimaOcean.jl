@@ -24,6 +24,7 @@ end
 
 include("VerticalGrids.jl")
 include("NearGlobalSimulations.jl")
+include("Diagnostics.jl")
 
 end # module
 
