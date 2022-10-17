@@ -103,14 +103,14 @@ end
 end
 
 @inline ϕ²(i, j, k, grid, ϕ) = @inbounds ϕ[i, j, k]^2
-@inline speedᶠᶜᶜ(i, j, k, grid, fields) = @inbounds sqrt(fields.u[i, j, k]^2 + ℑxyᶠᶜᵃ(i, j, k, grid, ϕ², fields.v))
-@inline speedᶜᶠᶜ(i, j, k, grid, fields) = @inbounds sqrt(fields.v[i, j, k]^2 + ℑxyᶜᶠᵃ(i, j, k, grid, ϕ², fields.u))
+@inline spᶠᶜᶜ(i, j, k, grid, Φ) = @inbounds sqrt(Φ.u[i, j, k]^2 + ℑxyᶠᶜᵃ(i, j, k, grid, ϕ², Φ.v))
+@inline spᶜᶠᶜ(i, j, k, grid, Φ) = @inbounds sqrt(Φ.v[i, j, k]^2 + ℑxyᶜᶠᵃ(i, j, k, grid, ϕ², Φ.u))
 
-@inline u_bottom_drag(i, j, grid, clock, fields, μ) = @inbounds - μ * fields.u[i, j, 1] * speedᶠᶜᶜ(i, j, 1, grid, fields)
-@inline v_bottom_drag(i, j, grid, clock, fields, μ) = @inbounds - μ * fields.v[i, j, 1] * speedᶜᶠᶜ(i, j, 1, grid, fields)
+@inline u_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.u[i, j, 1] * spᶠᶜᶜ(i, j, 1, grid, Φ)
+@inline v_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, 1] * spᶜᶠᶜ(i, j, 1, grid, Φ)
 
-@inline u_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.u[i, j, k] * speedᶠᶜᶜ(i, j, k, grid, fields)
-@inline v_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.v[i, j, k] * speedᶜᶠᶜ(i, j, k, grid, fields)
+@inline u_immersed_bottom_drag(i, j, k, grid, c, Φ, μ) = @inbounds - μ * Φ.u[i, j, k] * spᶠᶜᶜ(i, j, k, grid, Φ)
+@inline v_immersed_bottom_drag(i, j, k, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, k] * spᶜᶠᶜ(i, j, k, grid, Φ)
 
 """
     one_degree_near_global_simulation(architecture = GPU(); kwargs...)
@@ -136,12 +136,15 @@ function one_degree_near_global_simulation(architecture = GPU();
     reference_heat_capacity                      = 3991.0,
     reference_salinity                           = 34.0,
     time_step                                    = 20minutes,
+    stop_iteration                               = Inf,
+    start_time                                   = 345days,
+    stop_time                                    = Inf,
     bathymetry_path                              = datadep"near_global_one_degree/bathymetry_lat_lon_360x150.jld2",
     initial_conditions_path                      = datadep"near_global_one_degree/initial_conditions_360x150x48.jld2",
     surface_boundary_conditions_path             = datadep"near_global_one_degree/surface_boundary_conditions_360x150.jld2",
     )
 
-    size == (360, 150, 48) || throw(ArgumentError("We only support size = (360, 150, 48) right now."))
+    size == (360, 150, 48) || throw(ArgumentError("Only size = (360, 150, 48) is supposed."))
 
     #####
     ##### Load surface boundary conditions and inital conditions
@@ -179,9 +182,9 @@ function one_degree_near_global_simulation(architecture = GPU();
     τˣ = arch_array(architecture, τˣ)
     τʸ = arch_array(architecture, τʸ)
     target_sea_surface_temperature = T★ = arch_array(architecture, T★)
-    target_sea_surface_salinity = S★ = arch_array(architecture, S★)
-    surface_temperature_flux = Q★ = arch_array(architecture, Q★)
-    surface_salt_flux = F★ = arch_array(architecture, F★)
+    target_sea_surface_salinity    = S★ = arch_array(architecture, S★)
+    surface_temperature_flux       = Q★ = arch_array(architecture, Q★)
+    surface_salt_flux              = F★ = arch_array(architecture, F★)
 
     # Stretched faces from ECCO Version 4 (49 levels in the vertical)
     z_faces = VerticalGrids.z_49_levels_10_to_400_meter_spacing
@@ -306,9 +309,9 @@ function one_degree_near_global_simulation(architecture = GPU();
     set!(model, T=T_init, S=S_init)
 
     # Because MITgcm forcing starts at Jan 15 (?)
-    model.clock.time = 345days
+    model.clock.time = start_time
 
-    simulation = Simulation(model; Δt=time_step, stop_iteration=100)
+    simulation = Simulation(model; Δt=time_step, stop_iteration, stop_time)
 
     start_time = [time_ns()]
 
