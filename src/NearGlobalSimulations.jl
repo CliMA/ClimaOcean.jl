@@ -12,15 +12,15 @@ using Oceananigans.TurbulenceClosures: RiBasedVerticalDiffusivity, FluxTapering
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities:
     CATKEVerticalDiffusivity, MixingLength
 
+using DataDeps
 using Statistics
 using JLD2
 using Printf
 using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 using CUDA: @allowscalar
 
+import Oceananigans.Utils: prettysummary
 import ..VerticalGrids
-
-dir = @__DIR__
 
 struct PiecewiseConstantVerticalDiffusivity <: Function
     z_transition :: Float64
@@ -35,11 +35,13 @@ end
     return ifelse(z > zᵗ, κᵗ, κᵇ)
 end
 
-Base.summary(pcd::PiecewiseConstantVerticalDiffusivity) =
+prettysummary(pcd::PiecewiseConstantVerticalDiffusivity) =
     string("PiecewiseConstantVerticalDiffusivity(",
            pcd.z_transition, ", ",
            pcd.top_diffusivity, ", ",
            pcd.bottom_diffusivity, ")")
+
+Base.summary(pcd::PiecewiseConstantVerticalDiffusivity) = prettysummary(pcd)
 
 const thirty_days = 30days
 
@@ -134,10 +136,9 @@ function one_degree_near_global_simulation(architecture = GPU();
     reference_heat_capacity                      = 3991.0,
     reference_salinity                           = 34.0,
     time_step                                    = 20minutes,
-    bathymetry_path                              = joinpath(dir, "bathymetry_360_150_75S_75N.jld2"),
-    initial_conditions_path                      = joinpath(dir, "initial_conditions_360_150_48_75S_75N.jld2"),
-    surface_boundary_conditions_path             = joinpath(dir, "surface_boundary_conditions_360_150_75S_75N.jld2"),
-
+    bathymetry_path                              = datadep"near_global_one_degree/bathymetry_lat_lon_360x150.jld2",
+    initial_conditions_path                      = datadep"near_global_one_degree/initial_conditions_360x150x48.jld2",
+    surface_boundary_conditions_path             = datadep"near_global_one_degree/surface_boundary_conditions_360x150.jld2",
     )
 
     size == (360, 150, 48) || throw(ArgumentError("We only support size = (360, 150, 48) right now."))
