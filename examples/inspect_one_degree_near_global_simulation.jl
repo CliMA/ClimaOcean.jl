@@ -5,19 +5,21 @@ using JLD2
 using GLMakie
 using Printf
 
+dir = "/storage1/greg"
 filename = "near_global_360_150_48_fields.jld2"
+filepath = joinpath(dir, filename)
 
-file = jldopen(filename)
+file = jldopen(filepath)
 reference_density = file["buoyancy/model/equation_of_state/reference_density"]
 close(file)
 
 equation_of_state = TEOS10EquationOfState(; reference_density)
 buoyancy = SeawaterBuoyancy(; equation_of_state)
 
-ut = FieldTimeSeries(filename, "u")
-vt = FieldTimeSeries(filename, "v")
-Tt = FieldTimeSeries(filename, "T")
-St = FieldTimeSeries(filename, "S")
+ut = FieldTimeSeries(filepath, "u")
+vt = FieldTimeSeries(filepath, "v")
+Tt = FieldTimeSeries(filepath, "T")
+St = FieldTimeSeries(filepath, "S")
 
 xu, yu, zu = nodes(ut)
 xv, yv, zv = nodes(vt)
