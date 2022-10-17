@@ -1,2 +1,3 @@
 # ClimaOcean.jl
-Ocean component of CliMa's Earth system model
+
+Ocean simulations for CliMa's Earth system model based on Oceananigans.
