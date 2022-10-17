@@ -24,3 +24,5 @@ docs/site/
 # Manifest.toml
 
 *.jld2
+*.mp4
+*.DS_Store
