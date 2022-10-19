@@ -11,11 +11,11 @@ using ParameterEstimocean.Parameters: closure_with_parameters
 
 prefix = "perfect_one_degree_calibration"
 start_time = 345days
+stop_iteration = 10
 
-simulation_kw = (; start_time,
+simulation_kw = (; start_time, stop_iteration,
                  isopycnal_κ_skew = 900.0,
-                 isopycnal_κ_symmetric = 900.0,
-                 stop_iteration = 10)
+                 isopycnal_κ_symmetric = 900.0)
 
 test_simulation = one_degree_near_global_simulation(; simulation_kw...)
 
@@ -28,13 +28,13 @@ test_simulation = one_degree_near_global_simulation(; simulation_kw...)
 model = test_simulation.model
 
 test_simulation.output_writers[:d3] = JLD2OutputWriter(model, model.tracers,
-                                                       schedule = IterationInterval(10),
+                                                       schedule = IterationInterval(stop_iteration),
                                                        filename = prefix * "_fields",
                                                        overwrite_existing = true)
 
 slice_indices = (11, :, :)
 test_simulation.output_writers[:d2] = JLD2OutputWriter(model, model.tracers,
-                                                       schedule = IterationInterval(10),
+                                                       schedule = IterationInterval(stop_iteration),
                                                        filename = prefix * "_slices",
                                                        indices = slice_indices,
                                                        overwrite_existing = true)
@@ -62,7 +62,7 @@ priors = (κ_skew = ScaledLogitNormal(bounds=(0.0, 2000.0)),
 free_parameters = FreeParameters(priors) 
 
 obspath = prefix * "_slices.jld2"
-@show times = [start_time, time(test_simulation)]
+times = [start_time, time(test_simulation)]
 observations = SyntheticObservations(obspath; field_names=(:T, :S), times)
  
 # Initial condition
@@ -79,7 +79,13 @@ function initialize_simulation!(sim, parameters)
     T, S = sim.model.tracers
     T .= T₀_GPU
     S .= S₀_GPU
+    @show T S
     return nothing
+end
+
+for sim in simulation_ensemble
+    initialize_simulation!(sim, nothing)
+    run!(sim)
 end
 
 function slice_collector(sim)
@@ -97,8 +103,8 @@ ip = InverseProblem(observations, simulation_ensemble, free_parameters;
                     initialize_with_observations = false,
                     initialize_simulation = initialize_simulation!)
 
-θ = [(κ_skew=900.0 + randn(), κ_symmetric=900.0+randn()) for sim in simulation_ensemble]
-forward_run!(ip, θ)
+#θ = [(κ_skew=900.0 + randn(), κ_symmetric=900.0+randn()) for sim in simulation_ensemble]
+#forward_run!(ip, θ)
 
 eki = EnsembleKalmanInversion(ip; pseudo_stepping=ConstantConvergence(0.2))
 iterate!(eki)
