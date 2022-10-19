@@ -79,7 +79,6 @@ function initialize_simulation!(sim, parameters)
     T, S = sim.model.tracers
     T .= T₀_GPU
     S .= S₀_GPU
-    @show T S
     return nothing
 end
 
@@ -107,7 +106,7 @@ ip = InverseProblem(observations, simulation_ensemble, free_parameters;
 #forward_run!(ip, θ)
 
 eki = EnsembleKalmanInversion(ip; pseudo_stepping=ConstantConvergence(0.2))
-iterate!(eki)
+iterate!(eki, iterations=10)
 
 #=
 fig = Figure()
