@@ -103,24 +103,6 @@ ip = InverseProblem(observations, simulation_ensemble, free_parameters;
                     initialize_with_observations = false,
                     initialize_simulation = initialize_simulation!)
 
-#θ = [(κ_skew=900.0 + randn(), κ_symmetric=900.0+randn()) for sim in simulation_ensemble]
-#forward_run!(ip, θ)
-
 eki = EnsembleKalmanInversion(ip; pseudo_stepping=ConstantConvergence(0.2))
 iterate!(eki)
 
-#=
-fig = Figure()
-ax = Axis(fig[1, 1])
-
-for iter in [0, 1, 4, 10]
-    summary = eki.iteration_summaries[iter]
-    κh = map(θ -> θ.κh, summary.parameters)
-    κz = map(θ -> θ.κz, summary.parameters)
-    scatter!(ax, κh, κz, label="Iteration $iter")
-end
-
-axislegend(ax)
-
-display(fig)
-=#
