@@ -123,7 +123,7 @@ ip = InverseProblem(observations, simulation_ensemble, free_parameters;
 
 dip = DistributedInverseProblems(ip)
 
-eki = EnsembleKalmanInversion(ip; pseudo_stepping=ConstantConvergence(0.2))
+eki = EnsembleKalmanInversion(dip; pseudo_stepping=ConstantConvergence(0.2))
 iterate!(eki, iterations=10)
 
 @info "final parameters: $(eki.iteration_summaries[end].ensemble_mean)"
