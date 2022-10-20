@@ -1,20 +1,59 @@
+using ClimaOcean.NearGlobalSimulations: one_degree_near_global_simulation
+
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.Utils: WallTimeInterval
 using Oceananigans.BuoyancyModels: buoyancy
 using Oceananigans.Models.HydrostaticFreeSurfaceModels: VerticalVorticityField
-using ClimaOcean.NearGlobalSimulations: one_degree_near_global_simulation
+using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities:
+    MixingLength, TurbulentKineticEnergyEquation, CATKEVerticalDiffusivity
 
-# Build the simulation
+using ParameterEstimocean.Parameters: closure_with_parameters
+using JLD2
+
+#####
+##### Boundary layer turbulence closure options
+#####
+
+# "Ri-based" --- uses calibrated defaults in Oceananigans
+ri_based = RiBasedVerticalDiffusivity() 
+
+# CATKE with calibrated parameters loaded from file
+neutral_default_mixing_length_parameters = (Cᵇu = Inf, Cᵇc = Inf, Cᵇe = Inf,
+                                            Cˢu = Inf, Cˢc = Inf, Cˢe = Inf,
+                                            CᴷRiᶜ = Inf, CᴷRiʷ = 0.0)
+
+neutral_default_tke_parameters = (CᵂwΔ = 0.0, Cᵂu★ = 0.0,
+                                  Cᴰ⁻ = 0.0, Cᴰ⁺ = 0.0, CᴰRiᶜ = Inf, CᴰRiʷ = 0.0)
+                                  
+mixing_length = MixingLength(; neutral_default_mixing_length_parameters...)
+turbulent_kinetic_energy_equation = TurbulentKineticEnergyEquation(; neutral_default_tke_parameters...)
+neutral_catke = CATKEVerticalDiffusivity(; mixing_length, turbulent_kinetic_energy_equation)
+
+catke_parameters_filename = joinpath("..", "parameters", "catke_goldilocks_with_conv_adj_parameters.jld2")
+catke_parameters = load(catke_parameters_filename, "mean") # load ensemble mean parameters from EKI calibration
+
+catke = closure_with_parameters(neutral_catke, catke_parameters)
+@show catke
+
+# Choose closure
+boundary_layer_turbulence_closure = ri_based # catke
+
+#####
+##### Build the simulation
+#####
+
 start_time = 345days
 stop_time = start_time + 2years
 with_isopycnal_skew_symmetric_diffusivity = true
 
 simulation = one_degree_near_global_simulation(; start_time, stop_time,
     with_isopycnal_skew_symmetric_diffusivity,
+    boundary_layer_turbulence_closure,
+    isopycnal_κ_skew = 900.0,
+    isopycnal_κ_symmetric = 900.0,
     interior_background_vertical_viscosity = 1e-4,
     surface_background_vertical_viscosity = 1e-4,
-    boundary_layer_turbulence_closure = RiBasedVerticalDiffusivity(),
 )
 
 # Define output
