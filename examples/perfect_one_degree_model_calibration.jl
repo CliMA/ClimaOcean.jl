@@ -9,54 +9,74 @@ using ParameterEstimocean
 using ParameterEstimocean.Observations: FieldTimeSeriesCollector
 using ParameterEstimocean.Parameters: closure_with_parameters
 
+using ParameterEstimocean: map_gpus_to_ranks!
+using MPI
+using CUDA
+
+MPI.Init()
+
+comm = MPI.COMM_WORLD
+
+rank  = MPI.Comm_rank(comm)
+nproc = MPI.Comm_size(comm)
+
+arch = GPU()
+
+if arch isa GPU
+    map_gpus_to_ranks!()
+end
+
 prefix = "perfect_one_degree_calibration"
 start_time = 345days
-stop_iteration = 10
+stop_iteration = 1000
 
 simulation_kw = (; start_time, stop_iteration,
                  isopycnal_κ_skew = 900.0,
                  isopycnal_κ_symmetric = 900.0)
 
-test_simulation = one_degree_near_global_simulation(; simulation_kw...)
-
-# Test...
-# new_parameters = (κ_skew = 900.0, κ_symmetric = 900.0, max_slope=1e-3)
-# new_closure = closure_with_parameters(test_simulation.model.closure, new_parameters)
-# @show new_closure
-# @show new_closure[4]
-
-model = test_simulation.model
-
-test_simulation.output_writers[:d3] = JLD2OutputWriter(model, model.tracers,
-                                                       schedule = IterationInterval(stop_iteration),
-                                                       filename = prefix * "_fields",
-                                                       overwrite_existing = true)
-
 slice_indices = (11, :, :)
-test_simulation.output_writers[:d2] = JLD2OutputWriter(model, model.tracers,
-                                                       schedule = IterationInterval(stop_iteration),
-                                                       filename = prefix * "_slices",
-                                                       indices = slice_indices,
-                                                       overwrite_existing = true)
+
+if rank == 0
+    test_simulation = one_degree_near_global_simulation(arch; simulation_kw...)
+
+    model = test_simulation.model
+
+    test_simulation.output_writers[:d3] = JLD2OutputWriter(model, model.tracers,
+                                                           schedule = IterationInterval(100),
+                                                           filename = prefix * "_fields",
+                                                           overwrite_existing = true)
+
+    slice_indices = (11, :, :)
+    test_simulation.output_writers[:d2] = JLD2OutputWriter(model, model.tracers,
+                                                           schedule = IterationInterval(100),
+                                                           filename = prefix * "_slices",
+                                                           indices = slice_indices,
+                                                           overwrite_existing = true)
 
 
-@info "Running simulation..."; timer = time_ns()
+    @info "Running simulation..."; timer = time_ns()
 
-run!(test_simulation)
+    run!(test_simulation)
 
-@info "... finished. (" * prettytime(1e-9 * (time_ns() - timer)) * ")"
+    @info "... finished. (" * prettytime(1e-9 * (time_ns() - timer)) * ")"
+end
 
-#=
-@show test_simulation.model.tracers.T
-@show test_simulation.model.tracers.S
+# Finished simulation, wait rank 0
+MPI.Barrier(comm)
 
-T_slices = FieldTimeSeries(prefix * "_slices.jld2", "T")
-S_slices = FieldTimeSeries(prefix * "_slices.jld2", "S")
-=#
+for r in 0:nproc
+    rank == r && @info "rank $rank on device $(CUDA.device())"
+    MPI.Barrier(comm)
+end
 
-simulation_ensemble = [one_degree_near_global_simulation(; simulation_kw...) for i = 1:5]
 
-priors = (κ_skew = ScaledLogitNormal(bounds=(0.0, 2000.0)),
+#####
+##### On all ranks
+#####
+          
+simulation = one_degree_near_global_simulation(arch; simulation_kw...) 
+
+priors = (κ_skew      = ScaledLogitNormal(bounds=(0.0, 2000.0)),
           κ_symmetric = ScaledLogitNormal(bounds=(0.0, 2000.0)))
 
 free_parameters = FreeParameters(priors) 
@@ -73,7 +93,6 @@ T₀_GPU = arch_array(GPU(), parent(T₀))
 S₀_GPU = arch_array(GPU(), parent(S₀))
 
 function initialize_simulation!(sim, parameters)
-    model = sim.model
     parent(sim.model.velocities.u) .= 0 
     parent(sim.model.velocities.v) .= 0 
     T, S = sim.model.tracers
@@ -102,11 +121,12 @@ ip = InverseProblem(observations, simulation_ensemble, free_parameters;
                     initialize_with_observations = false,
                     initialize_simulation = initialize_simulation!)
 
-#θ = [(κ_skew=900.0 + randn(), κ_symmetric=900.0+randn()) for sim in simulation_ensemble]
-#forward_run!(ip, θ)
+dip = DistributedInverseProblems(ip)
 
 eki = EnsembleKalmanInversion(ip; pseudo_stepping=ConstantConvergence(0.2))
 iterate!(eki, iterations=10)
+
+@info "final parameters: $(eki.iteration_summaries[end].ensemble_mean)"
 
 #=
 fig = Figure()
