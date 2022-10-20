@@ -76,7 +76,7 @@ end
 # Finished simulation, wait rank 0
 MPI.Barrier(comm)
 
-for r in 0:nproc
+for r in 0:nproc-1
     rank == r && @info "rank $rank on device $(CUDA.device())"
     MPI.Barrier(comm)
 end
@@ -93,15 +93,16 @@ priors = (κ_skew      = ScaledLogitNormal(bounds=(0.0, 2000.0)),
 free_parameters = FreeParameters(priors) 
 
 obspath = prefix * "_slices.jld2"
-times = [start_time, time(test_simulation)]
-observations = SyntheticObservations(obspath; field_names=(:T, :S), times)
  
-# Initial condition
-T₀ = FieldTimeSeries(prefix * "_fields.jld2", "T")[1]
-S₀ = FieldTimeSeries(prefix * "_fields.jld2", "S")[1]
+T₀ = FieldTimeSeries(prefix * "_fields.jld2", "T")
+S₀ = FieldTimeSeries(prefix * "_fields.jld2", "S")
 
-T₀_GPU = arch_array(GPU(), parent(T₀))
-S₀_GPU = arch_array(GPU(), parent(S₀))
+times = T₀.times
+observations = SyntheticObservations(obspath; field_names=(:T, :S), times)
+
+# Initial conditions
+T₀_GPU = arch_array(GPU(), parent(T₀[1]))
+S₀_GPU = arch_array(GPU(), parent(S₀[1]))
 
 function initialize_simulation!(sim, parameters)
     parent(sim.model.velocities.u) .= 0 
