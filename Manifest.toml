@@ -1,6 +1,6 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.8.2"
+julia_version = "1.8.0"
 manifest_format = "2.0"
 project_hash = "f0cc773d2f79ca10f8ed5a98b7b168ee5faba909"
 
@@ -742,9 +742,9 @@ uuid = "90014a1f-27ba-587c-ab20-58faa44d9150"
 version = "0.10.1"
 
 [[deps.ParameterEstimocean]]
-deps = ["BlockDiagonals", "DataDeps", "Distributions", "DocStringExtensions", "EnsembleKalmanProcesses", "FileIO", "GaussianProcesses", "JLD2", "LineSearches", "LinearAlgebra", "Oceananigans", "OffsetArrays", "OrderedCollections", "Printf", "ProgressBars", "Random", "SpecialFunctions", "Statistics", "Suppressor"]
-git-tree-sha1 = "d3815329aa1da5216eff576c0dc6825eea606e92"
-repo-rev = "ensemble-simulations"
+deps = ["BlockDiagonals", "CUDA", "DataDeps", "Distributions", "DocStringExtensions", "EnsembleKalmanProcesses", "FileIO", "GaussianProcesses", "JLD2", "LineSearches", "LinearAlgebra", "MPI", "Oceananigans", "OffsetArrays", "OrderedCollections", "Printf", "ProgressBars", "Random", "SpecialFunctions", "Statistics", "Suppressor"]
+git-tree-sha1 = "5ffd28a8518945417d80c1fee18e5e6b354e3a9c"
+repo-rev = "distributed-ensemble-simulations"
 repo-url = "https://github.com/CliMA/ParameterEstimocean.jl.git"
 uuid = "eca81dc5-87a6-4430-aec8-c76695404a43"
 version = "0.13.2"
@@ -1047,7 +1047,7 @@ version = "1.10.0"
 [[deps.Tar]]
 deps = ["ArgTools", "SHA"]
 uuid = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"
-version = "1.10.1"
+version = "1.10.0"
 
 [[deps.TaylorSeries]]
 deps = ["InteractiveUtils", "LinearAlgebra", "Markdown", "Requires", "SparseArrays"]
