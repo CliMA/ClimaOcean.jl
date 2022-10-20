@@ -15,6 +15,10 @@ using CUDA
 
 MPI.Init()
 
+#####
+##### Setting up multi architecture infrastructure
+#####
+
 comm = MPI.COMM_WORLD
 
 rank  = MPI.Comm_rank(comm)
@@ -26,6 +30,10 @@ if arch isa GPU
     map_gpus_to_ranks!()
 end
 
+#####
+##### Simulation parameters
+#####
+
 prefix = "perfect_one_degree_calibration"
 start_time = 345days
 stop_iteration = 1000
@@ -35,6 +43,10 @@ simulation_kw = (; start_time, stop_iteration,
                  isopycnal_κ_symmetric = 900.0)
 
 slice_indices = (11, :, :)
+
+#####
+##### Benchmark simulation only on rank (and GPU) 0
+#####
 
 if rank == 0
     test_simulation = one_degree_near_global_simulation(arch; simulation_kw...)
@@ -68,7 +80,6 @@ for r in 0:nproc
     rank == r && @info "rank $rank on device $(CUDA.device())"
     MPI.Barrier(comm)
 end
-
 
 #####
 ##### On all ranks
@@ -114,10 +125,10 @@ function slice_collector(sim)
     return FieldTimeSeriesCollector((T=T_slice, S=S_slice), times, architecture = CPU())
 end
 
-time_series_collector_ensemble = [slice_collector(sim) for sim in simulation_ensemble]
+time_series_collector = slice_collector(simulation) 
 
-ip = InverseProblem(observations, simulation_ensemble, free_parameters;
-                    time_series_collector = time_series_collector_ensemble,
+ip = InverseProblem(observations, simulation, free_parameters;
+                    time_series_collector,
                     initialize_with_observations = false,
                     initialize_simulation = initialize_simulation!)
 
@@ -127,19 +138,3 @@ eki = EnsembleKalmanInversion(dip; pseudo_stepping=ConstantConvergence(0.2))
 iterate!(eki, iterations=10)
 
 @info "final parameters: $(eki.iteration_summaries[end].ensemble_mean)"
-
-#=
-fig = Figure()
-ax = Axis(fig[1, 1])
-
-for iter in [0, 1, 4, 10]
-    summary = eki.iteration_summaries[iter]
-    κh = map(θ -> θ.κh, summary.parameters)
-    κz = map(θ -> θ.κz, summary.parameters)
-    scatter!(ax, κh, κz, label="Iteration $iter")
-end
-
-axislegend(ax)
-
-display(fig)
-=#
