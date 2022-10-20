@@ -6,10 +6,16 @@ using Oceananigans.Models.HydrostaticFreeSurfaceModels: VerticalVorticityField
 using ClimaOcean.NearGlobalSimulations: one_degree_near_global_simulation
 
 # Build the simulation
-with_isopycnal_skew_symmetric_diffusivity = true
 start_time = 345days
-simulation = one_degree_near_global_simulation(; start_time, with_isopycnal_skew_symmetric_diffusivity, 
-                                               stop_time = start_time+10years)
+stop_time = start_time + 2years
+with_isopycnal_skew_symmetric_diffusivity = true
+
+simulation = one_degree_near_global_simulation(; start_time, stop_time,
+    with_isopycnal_skew_symmetric_diffusivity,
+    interior_background_vertical_viscosity = 1e-4,
+    surface_background_vertical_viscosity = 1e-4,
+    boundary_layer_turbulence_closure = RiBasedVerticalDiffusivity(),
+)
 
 # Define output
 slices_save_interval = 5days
