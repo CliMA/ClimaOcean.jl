@@ -144,7 +144,7 @@ function one_degree_near_global_simulation(architecture = GPU();
     surface_boundary_conditions_path             = datadep"near_global_one_degree/surface_boundary_conditions_12_months_360_150.jld2",
     )
 
-    size == (360, 150, 48) || throw(ArgumentError("Only size = (360, 150, 48) is supposed."))
+    size == (360, 150, 48) || throw(ArgumentError("Only size = (360, 150, 48) is supported."))
 
     #####
     ##### Load surface boundary conditions and inital conditions
