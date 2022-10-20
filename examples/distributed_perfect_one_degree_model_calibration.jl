@@ -10,7 +10,25 @@ using ParameterEstimocean.Utils: map_gpus_to_ranks!
 using ParameterEstimocean.Observations: FieldTimeSeriesCollector
 using ParameterEstimocean.Parameters: closure_with_parameters
 
+using MPI
+using CUDA
+
+MPI.Init()
+
+#####
+##### Setting up multi architecture infrastructure
+#####
+
+comm = MPI.COMM_WORLD
+
+rank  = MPI.Comm_rank(comm)
+nproc = MPI.Comm_size(comm)
+
 arch = GPU()
+
+if arch isa GPU
+    map_gpus_to_ranks!()
+end
 
 #####
 ##### Simulation parameters
@@ -27,33 +45,47 @@ simulation_kw = (; start_time, stop_iteration,
 slice_indices = (11, :, :)
 
 #####
-##### Benchmark simulation
+##### Benchmark simulation only on rank (and GPU) 0
 #####
 
-test_simulation = one_degree_near_global_simulation(arch; simulation_kw...)
+if rank == 0
+    test_simulation = one_degree_near_global_simulation(arch; simulation_kw...)
 
-model = test_simulation.model
+    model = test_simulation.model
 
-test_simulation.output_writers[:d3] = JLD2OutputWriter(model, model.tracers,
-                                                        schedule = IterationInterval(100),
-                                                        filename = prefix * "_fields",
-                                                        overwrite_existing = true)
+    test_simulation.output_writers[:d3] = JLD2OutputWriter(model, model.tracers,
+                                                           schedule = IterationInterval(100),
+                                                           filename = prefix * "_fields",
+                                                           overwrite_existing = true)
 
-slice_indices = (11, :, :)
-test_simulation.output_writers[:d2] = JLD2OutputWriter(model, model.tracers,
-                                                        schedule = IterationInterval(100),
-                                                        filename = prefix * "_slices",
-                                                        indices = slice_indices,
-                                                        overwrite_existing = true)
+    slice_indices = (11, :, :)
+    test_simulation.output_writers[:d2] = JLD2OutputWriter(model, model.tracers,
+                                                           schedule = IterationInterval(100),
+                                                           filename = prefix * "_slices",
+                                                           indices = slice_indices,
+                                                           overwrite_existing = true)
 
 
-@info "Running simulation..."; timer = time_ns()
+    @info "Running simulation..."; timer = time_ns()
 
-run!(test_simulation)
+    run!(test_simulation)
 
-@info "... finished. (" * prettytime(1e-9 * (time_ns() - timer)) * ")"
+    @info "... finished. (" * prettytime(1e-9 * (time_ns() - timer)) * ")"
+end
+
+# Finished simulation, wait rank 0
+MPI.Barrier(comm)
+
+for r in 0:nproc-1
+    rank == r && @info "rank $rank on device $(CUDA.device())"
+    MPI.Barrier(comm)
+end
+
+#####
+##### On all ranks
+#####
           
-simulation_ensemble = [one_degree_near_global_simulation(arch; simulation_kw...) for _ in 1:4]
+simulation = one_degree_near_global_simulation(arch; simulation_kw...) 
 
 priors = (κ_skew      = ScaledLogitNormal(bounds=(0.0, 2000.0)),
           κ_symmetric = ScaledLogitNormal(bounds=(0.0, 2000.0)))
@@ -95,17 +127,19 @@ function slice_collector(sim)
 end
 
 ##### 
-##### Building the inverse problem
+##### Building the distributed inverse problem
 #####
 
-time_series_collector_ensemble = [slice_collector(sim) for sim in simulation_ensemble]
+time_series_collector = slice_collector(simulation) 
 
-ip = InverseProblem(observations, simulation_ensemble, free_parameters;
-                    time_series_collector = time_series_collector_ensemble,
+ip = InverseProblem(observations, simulation, free_parameters;
+                    time_series_collector,
                     initialize_with_observations = false,
                     initialize_simulation = initialize_simulation!)
 
-eki = EnsembleKalmanInversion(ip; pseudo_stepping=ConstantConvergence(0.2))
+dip = DistributedInverseProblems(ip)
+
+eki = EnsembleKalmanInversion(dip; pseudo_stepping=ConstantConvergence(0.2))
 
 ##### 
 ##### Let's run!
