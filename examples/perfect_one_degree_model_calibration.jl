@@ -6,10 +6,10 @@ using Oceananigans.BuoyancyModels: buoyancy
 using Oceananigans.Models.HydrostaticFreeSurfaceModels: VerticalVorticityField
 using ClimaOcean.NearGlobalSimulations: one_degree_near_global_simulation
 using ParameterEstimocean
+using ParameterEstimocean.Utils: map_gpus_to_ranks!
 using ParameterEstimocean.Observations: FieldTimeSeriesCollector
 using ParameterEstimocean.Parameters: closure_with_parameters
 
-using ParameterEstimocean: map_gpus_to_ranks!
 using MPI
 using CUDA
 
@@ -125,6 +125,10 @@ function slice_collector(sim)
     return FieldTimeSeriesCollector((T=T_slice, S=S_slice), times, architecture = CPU())
 end
 
+##### 
+##### Building the distributed inverse problem
+#####
+
 time_series_collector = slice_collector(simulation) 
 
 ip = InverseProblem(observations, simulation, free_parameters;
@@ -135,6 +139,11 @@ ip = InverseProblem(observations, simulation, free_parameters;
 dip = DistributedInverseProblems(ip)
 
 eki = EnsembleKalmanInversion(dip; pseudo_stepping=ConstantConvergence(0.2))
+
+##### 
+##### Let's run!
+#####
+
 iterate!(eki, iterations=10)
 
 @info "final parameters: $(eki.iteration_summaries[end].ensemble_mean)"

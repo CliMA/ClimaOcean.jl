@@ -139,9 +139,9 @@ function one_degree_near_global_simulation(architecture = GPU();
     stop_iteration                               = Inf,
     start_time                                   = 345days,
     stop_time                                    = Inf,
-    bathymetry_path                              = datadep"near_global_one_degree/bathymetry_lat_lon_360x150.jld2",
-    initial_conditions_path                      = datadep"near_global_one_degree/initial_conditions_360x150x48.jld2",
-    surface_boundary_conditions_path             = datadep"near_global_one_degree/surface_boundary_conditions_360x150.jld2",
+    bathymetry_path                              = datadep"near_global_one_degree/bathymetry_lat_lon_360_150.jld2",
+    initial_conditions_path                      = datadep"near_global_one_degree/initial_conditions_month_01_360_150_48.jld2",
+    surface_boundary_conditions_path             = datadep"near_global_one_degree/surface_boundary_conditions_12_months_360_150.jld2",
     )
 
     size == (360, 150, 48) || throw(ArgumentError("Only size = (360, 150, 48) is supposed."))
