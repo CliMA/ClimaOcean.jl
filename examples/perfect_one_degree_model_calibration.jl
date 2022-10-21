@@ -9,6 +9,7 @@ using ParameterEstimocean
 using ParameterEstimocean.Utils: map_gpus_to_ranks!
 using ParameterEstimocean.Observations: FieldTimeSeriesCollector
 using ParameterEstimocean.Parameters: closure_with_parameters
+using JLD2
 
 arch = GPU()
 
@@ -30,29 +31,33 @@ slice_indices = (11, :, :)
 ##### Benchmark simulation
 #####
 
-test_simulation = one_degree_near_global_simulation(arch; simulation_kw...)
+initialization = false
 
-model = test_simulation.model
+if initialization
+    test_simulation = one_degree_near_global_simulation(arch; simulation_kw...)
 
-test_simulation.output_writers[:d3] = JLD2OutputWriter(model, model.tracers,
-                                                        schedule = IterationInterval(100),
-                                                        filename = prefix * "_fields",
-                                                        overwrite_existing = true)
+    model = test_simulation.model
 
-slice_indices = (11, :, :)
-test_simulation.output_writers[:d2] = JLD2OutputWriter(model, model.tracers,
-                                                        schedule = IterationInterval(100),
-                                                        filename = prefix * "_slices",
-                                                        indices = slice_indices,
-                                                        overwrite_existing = true)
+    test_simulation.output_writers[:d3] = JLD2OutputWriter(model, model.tracers,
+                                                            schedule = IterationInterval(100),
+                                                            filename = prefix * "_fields",
+                                                            overwrite_existing = true)
+
+    slice_indices = (11, :, :)
+    test_simulation.output_writers[:d2] = JLD2OutputWriter(model, model.tracers,
+                                                            schedule = IterationInterval(100),
+                                                            filename = prefix * "_slices",
+                                                            indices = slice_indices,
+                                                            overwrite_existing = true)
 
 
-@info "Running simulation..."; timer = time_ns()
+    @info "Running simulation..."; timer = time_ns()
 
-run!(test_simulation)
+    run!(test_simulation)
 
-@info "... finished. (" * prettytime(1e-9 * (time_ns() - timer)) * ")"
-          
+    @info "... finished. (" * prettytime(1e-9 * (time_ns() - timer)) * ")"
+end
+
 simulation_ensemble = [one_degree_near_global_simulation(arch; simulation_kw...) for _ in 1:4]
 
 priors = (κ_skew      = ScaledLogitNormal(bounds=(0.0, 2000.0)),
@@ -69,15 +74,17 @@ times = T₀.times
 observations = SyntheticObservations(obspath; field_names=(:T, :S), times)
 
 # Initial conditions
-T₀_GPU = arch_array(GPU(), parent(T₀[1]))
-S₀_GPU = arch_array(GPU(), parent(S₀[1]))
+T_init = Array(interior(T₀[1]))
+S_init = Array(interior(S₀[1]))
 
 function initialize_simulation!(sim, parameters)
-    parent(sim.model.velocities.u) .= 0 
-    parent(sim.model.velocities.v) .= 0 
+    fill!(sim.model.velocities.u, 0.0)
+    fill!(sim.model.velocities.v, 0.0)
     T, S = sim.model.tracers
-    T .= T₀_GPU
-    S .= S₀_GPU
+    fill!(T, 0.0)
+    fill!(S, 0.0)
+    set!(T, T_init)
+    set!(S, S_init)
     return nothing
 end
 

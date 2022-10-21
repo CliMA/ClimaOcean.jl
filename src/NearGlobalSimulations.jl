@@ -139,6 +139,7 @@ function one_degree_near_global_simulation(architecture = GPU();
     stop_iteration                               = Inf,
     start_time                                   = 345days,
     stop_time                                    = Inf,
+    initial_condition_fields                     = nothing,
     bathymetry_path                              = datadep"near_global_one_degree/bathymetry_lat_lon_360_150.jld2",
     initial_conditions_path                      = datadep"near_global_one_degree/initial_conditions_month_01_360_150_48.jld2",
     surface_boundary_conditions_path             = datadep"near_global_one_degree/surface_boundary_conditions_12_months_360_150.jld2",
@@ -160,10 +161,14 @@ function one_degree_near_global_simulation(architecture = GPU();
     close(bathymetry_file)
 
     @info "Reading initial conditions..."; start=time_ns()
-    initial_conditions_file = jldopen(initial_conditions_path)
-    T_init = initial_conditions_file["T"]
-    S_init = initial_conditions_file["S"]
-    close(initial_conditions_file)
+    if isnothing(initial_condition_fields)
+        initial_conditions_file = jldopen(initial_conditions_path)
+        T_init = initial_conditions_file["T"]
+        S_init = initial_conditions_file["S"]
+        close(initial_conditions_file)
+    else
+        T_init, S_init = (initial_condition_fields.T, initial_condition_fields.S)
+    end
     @info "... read initial conditions (" * prettytime(1e-9 * (time_ns() - start)) * ")"
 
     # Files contain 12 arrays of monthly-averaged data from 1992

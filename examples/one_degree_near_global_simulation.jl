@@ -16,7 +16,7 @@ slices_save_interval = 5days
 fields_save_interval = 10days
 Nx, Ny, Nz = size(simulation.model.grid)
 
-dir = "/storage1/greg" 
+dir = "./" 
 output_prefix = "near_global_$(Nx)_$(Ny)_$(Nz)"
 with_isopycnal_skew_symmetric_diffusivity || (output_prefix *= "_no_gm")
 
@@ -33,7 +33,6 @@ simulation.output_writers[:fields] = JLD2OutputWriter(model, merge(model.velocit
                                                       filename = output_prefix * "_fields",
                                                       with_halos = true,
                                                       overwrite_existing = true)
-
 
 surface_outputs = Dict()
 indices = (:, :, Nz)
