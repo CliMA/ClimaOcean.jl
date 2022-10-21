@@ -34,6 +34,7 @@ end
 #####
 ##### Simulation parameters
 #####
+
 initial_conditions_path = datadep"near_global_one_degree/initial_conditions_month_01_360_150_48.jld2",
 
 prefix = "perfect_one_degree_calibration"
@@ -152,4 +153,4 @@ eki = EnsembleKalmanInversion(dip; pseudo_stepping=ConstantConvergence(0.2))
 
 iterate!(eki, iterations=10)
 
-@info "final parameters: $(eki.iteration_summaries[end].ensemble_mean)"
+@show eki.iteration_summaries[end]

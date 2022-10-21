@@ -1,6 +1,7 @@
 using Oceananigans
 using Oceananigans.Architectures: arch_array
 using Oceananigans.Units
+using Oceananigans.Grids: on_architecture
 using Oceananigans.Utils: WallTimeInterval
 using Oceananigans.BuoyancyModels: buoyancy
 using Oceananigans.Models.HydrostaticFreeSurfaceModels: VerticalVorticityField
@@ -9,6 +10,8 @@ using ParameterEstimocean
 using ParameterEstimocean.Utils: map_gpus_to_ranks!
 using ParameterEstimocean.Observations: FieldTimeSeriesCollector
 using ParameterEstimocean.Parameters: closure_with_parameters
+using DataDeps
+using JLD2 
 
 using MPI
 using CUDA
@@ -37,7 +40,7 @@ end
 prefix = "gm_one_degree_calibration"
 start_time = 0
 stop_time  = 45days
-slice_indices = (11, :, :)
+slice_indices = (UnitRange(11, 11), :, :)
 
 # Finished simulation, wait rank 0
 MPI.Barrier(comm)
@@ -74,13 +77,13 @@ free_parameters = FreeParameters(priors)
 
 times = [start_time, stop_time]
 
-Tfield = FieldTimeSeries(on_architecture(CPU(), simulation.model.grid), times; indices = slice_indices)
-Sfield = FieldTimeSeries(on_architecture(CPU(), simulation.model.grid), times; indices = slice_indices)
+Tfield = FieldTimeSeries{Center, Center, Center}(on_architecture(CPU(), simulation.model.grid), times; indices = slice_indices)
+Sfield = FieldTimeSeries{Center, Center, Center}(on_architecture(CPU(), simulation.model.grid), times; indices = slice_indices)
 
-set!(Tfield[1], T₀)
-set!(Sfield[1], S₀)
-set!(Tfield[2], T₁)
-set!(Sfield[2], S₁)
+interior(Tfield[1]) .= T₀[slice_indices...]
+interior(Sfield[1]) .= S₀[slice_indices...]
+interior(Tfield[2]) .= T₁[slice_indices...]
+interior(Sfield[2]) .= S₁[slice_indices...]
 
 observations = SyntheticObservations(; field_names=(:T, :S), field_time_serieses = (; T = Tfield, S = Sfield))
 
@@ -93,11 +96,6 @@ function initialize_simulation!(sim, parameters)
     set!(T, T₀)
     set!(S, S₀)
     return nothing
-end
-
-for sim in simulation_ensemble
-    initialize_simulation!(sim, nothing)
-    run!(sim)
 end
 
 function slice_collector(sim)
@@ -119,7 +117,7 @@ ip = InverseProblem(observations, simulation, free_parameters;
                     initialize_with_observations = false,
                     initialize_simulation = initialize_simulation!)
 
-dip = DistributedInverseProblems(ip)
+dip = DistributedInverseProblem(ip)
 
 eki = EnsembleKalmanInversion(dip; pseudo_stepping=ConstantConvergence(0.2))
 @info "finished setting up eki"
@@ -130,4 +128,4 @@ eki = EnsembleKalmanInversion(dip; pseudo_stepping=ConstantConvergence(0.2))
 
 iterate!(eki, iterations=10)
 
-@info "final parameters: $(eki.iteration_summaries[end].ensemble_mean)"
+@show eki.iteration_summaries[end]
