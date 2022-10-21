@@ -122,8 +122,8 @@ function one_degree_near_global_simulation(architecture = GPU();
     boundary_layer_turbulence_closure            = RiBasedVerticalDiffusivity(),
     background_vertical_diffusivity              = 1e-5,
     horizontal_viscosity                         = 5e4,
-    surface_vertical_viscosity                   = 1e-2,
-    interior_vertical_viscosity                  = 1e-4,
+    surface_background_vertical_viscosity        = 1e-2,
+    interior_background_vertical_viscosity       = 1e-4,
     vertical_viscosity_transition_depth          = 49.0,
     with_isopycnal_skew_symmetric_diffusivity    = true,
     surface_temperature_relaxation_time_scale    = 30days,
@@ -145,7 +145,7 @@ function one_degree_near_global_simulation(architecture = GPU();
     surface_boundary_conditions_path             = datadep"near_global_one_degree/surface_boundary_conditions_12_months_360_150.jld2",
     )
 
-    size == (360, 150, 48) || throw(ArgumentError("Only size = (360, 150, 48) is supposed."))
+    size == (360, 150, 48) || throw(ArgumentError("Only size = (360, 150, 48) is supported."))
 
     #####
     ##### Load surface boundary conditions and inital conditions
@@ -210,8 +210,8 @@ function one_degree_near_global_simulation(architecture = GPU();
     #####
 
     νz = PiecewiseConstantVerticalDiffusivity(-vertical_viscosity_transition_depth,
-                                              surface_vertical_viscosity,
-                                              interior_vertical_viscosity)
+                                              surface_background_vertical_viscosity,
+                                              interior_background_vertical_viscosity)
 
     vitd = VerticallyImplicitTimeDiscretization()
 
