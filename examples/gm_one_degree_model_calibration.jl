@@ -18,6 +18,9 @@ using CUDA
 
 MPI.Init()
 
+using Random
+Random.seed!(123)
+
 #####
 ##### Setting up multi architecture infrastructure
 #####
@@ -60,8 +63,14 @@ comparison_file   = datadep"near_global_one_degree/initial_conditions_month_02_3
 T₀ = jldopen(initial_condition)["T"]
 S₀ = jldopen(initial_condition)["S"]
  
+T₀[isnan.(T₀)] .= 0.0
+S₀[isnan.(S₀)] .= 0.0
+
 T₁ = jldopen(comparison_file)["T"]
 S₁ = jldopen(comparison_file)["S"]
+
+T₁[isnan.(T₁)] .= 0.0
+T₁[isnan.(S₁)] .= 0.0
 
 simulation_kw = (; start_time, stop_time, 
                    isopycnal_κ_skew = 900.0,
@@ -103,7 +112,7 @@ function slice_collector(sim)
     S = sim.model.tracers.S
     T_slice = Field(T; indices=slice_indices)
     S_slice = Field(S; indices=slice_indices)
-    return FieldTimeSeriesCollector((T=T_slice, S=S_slice), times, architecture = CPU(), averaging_window=30days)
+    return FieldTimeSeriesCollector((T=T_slice, S=S_slice), times, architecture = CPU(), averaging_window = 30days)
 end
 
 ##### 
@@ -126,6 +135,9 @@ eki = EnsembleKalmanInversion(dip; pseudo_stepping=ConstantConvergence(0.2))
 ##### Let's run!
 #####
 
-iterate!(eki, iterations=10)
+iterate!(eki, iterations=15)
+
+using JLD2
+jldsave("calibration-$rank.jld2", eki = eki)
 
 @show eki.iteration_summaries[end]
