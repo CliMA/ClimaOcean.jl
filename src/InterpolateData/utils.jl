@@ -114,6 +114,11 @@ horizontal box filter of vector `vec` from `iᵢ`, `iₑ` and `jᵢ`, `jₑ`.
     return vec2
 end
 
+"""
+    interpolate_one_level_in_passes(array_old, Nxₒ, Nyₒ, Nxₙ, Nyₙ, passes; interpolation_method = LinearInterpolation())
+
+applies passes to one_level interpolation
+""" 
 function interpolate_one_level_in_passes(array_old, Nxₒ, Nyₒ, Nxₙ, Nyₙ, passes; interpolation_method = LinearInterpolation())
 
     ΔNx = floor((Nxₒ - Nxₙ) / passes)
