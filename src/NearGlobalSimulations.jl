@@ -139,6 +139,7 @@ function one_degree_near_global_simulation(architecture = GPU();
     stop_iteration                               = Inf,
     start_time                                   = 345days,
     stop_time                                    = Inf,
+    tracers                                      = [:T, :S],
     bathymetry_path                              = datadep"near_global_one_degree/bathymetry_lat_lon_360_150.jld2",
     initial_conditions_path                      = datadep"near_global_one_degree/initial_conditions_month_01_360_150_48.jld2",
     surface_boundary_conditions_path             = datadep"near_global_one_degree/surface_boundary_conditions_12_months_360_150.jld2",
@@ -214,6 +215,9 @@ function one_degree_near_global_simulation(architecture = GPU();
     vertical_viscosity   = VerticalScalarDiffusivity(vitd, ν=νz, κ=background_vertical_diffusivity)
 
     closures = Any[horizontal_viscosity, boundary_layer_turbulence_closure, vertical_viscosity]
+
+    boundary_layer_turbulence_closure isa CATKEVerticalDiffusivity &&
+        push!(tracers, :e)
 
     if with_isopycnal_skew_symmetric_diffusivity
         issd = IsopycnalSkewSymmetricDiffusivity(κ_skew = isopycnal_κ_skew,
@@ -293,12 +297,12 @@ function one_degree_near_global_simulation(architecture = GPU();
 
     @info "Building a model..."; start=time_ns()
 
-    model = HydrostaticFreeSurfaceModel(; grid, free_surface, buoyancy, coriolis,
+    model = HydrostaticFreeSurfaceModel(; grid, free_surface, buoyancy, coriolis, tracers,
                                         momentum_advection = VectorInvariant(), 
                                         tracer_advection = WENO(underlying_grid),
                                         closure = closures,
-                                        boundary_conditions = (u=u_bcs, v=v_bcs, T=T_bcs, S=S_bcs),
-                                        tracers = (:T, :S))
+                                        boundary_conditions = (u=u_bcs, v=v_bcs, T=T_bcs, S=S_bcs))
+
     @info "... built $model."
     @info "Model building time: " * prettytime(1e-9 * (time_ns() - start))
 
