@@ -122,6 +122,7 @@ function one_degree_near_global_simulation(architecture = GPU();
     boundary_layer_turbulence_closure            = RiBasedVerticalDiffusivity(),
     background_vertical_diffusivity              = 1e-5,
     horizontal_viscosity                         = 5e4,
+    horizontal_tke_diffusivity                   = 5e4,
     surface_background_vertical_viscosity        = 1e-2,
     interior_background_vertical_viscosity       = 1e-4,
     vertical_viscosity_transition_depth          = 49.0,
@@ -210,19 +211,20 @@ function one_degree_near_global_simulation(architecture = GPU();
     ##### Physics and model setup
     #####
 
+    # Add TKE if using CATKE
+    boundary_layer_turbulence_closure isa CATKEVerticalDiffusivity && push!(tracers, :e)
+
     νz = PiecewiseConstantVerticalDiffusivity(-vertical_viscosity_transition_depth,
                                               surface_background_vertical_viscosity,
                                               interior_background_vertical_viscosity)
 
     vitd = VerticallyImplicitTimeDiscretization()
 
-    horizontal_viscosity = HorizontalScalarDiffusivity(ν=horizontal_viscosity)
+    horizontal_κ = (T=0, S=0, e=horizontal_tke_diffusivity)
+    horizontal_diffusivity = HorizontalScalarDiffusivity(ν=horizontal_viscosity, κ=horizontal_κ)
     vertical_viscosity   = VerticalScalarDiffusivity(vitd, ν=νz, κ=background_vertical_diffusivity)
 
-    closures = Any[horizontal_viscosity, boundary_layer_turbulence_closure, vertical_viscosity]
-
-    boundary_layer_turbulence_closure isa CATKEVerticalDiffusivity &&
-        push!(tracers, :e)
+    closures = Any[horizontal_diffusivity, boundary_layer_turbulence_closure, vertical_viscosity]
 
     if with_isopycnal_skew_symmetric_diffusivity
         issd = IsopycnalSkewSymmetricDiffusivity(κ_skew = isopycnal_κ_skew,
