@@ -5,8 +5,10 @@ using JLD2
 using GLMakie
 using Printf
 
-dir = "/storage1/greg"
-filename = "near_global_360_150_48_fields.jld2"
+dir = "../data" #/storage1/greg"
+# closure_name = "RiBasedVerticalDiffusivity"
+closure_name = "CATKEVerticalDiffusivity"
+filename = "near_global_360_150_48_$(closure_name)_fields.jld2"
 filepath = joinpath(dir, filename)
 
 file = jldopen(filepath)
@@ -124,7 +126,7 @@ Colorbar(fig[4, 4], hm_N2; vertical=true, tellheight=false, flipaxis=true, label
 
 display(fig)
 
-record(fig, "one_degree_near_global_simulation.mp4", 1:Nt, framerate=24) do nn
+record(fig, "one_degree_near_global_simulation_$(closure_name).mp4", 1:Nt, framerate=24) do nn
     n[] = nn
 end
 

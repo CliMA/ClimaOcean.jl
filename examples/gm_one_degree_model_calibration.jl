@@ -1,6 +1,7 @@
 using Oceananigans
 using Oceananigans.Architectures: arch_array
 using Oceananigans.Units
+using Oceananigans.Grids: on_architecture
 using Oceananigans.Utils: WallTimeInterval
 using Oceananigans.BuoyancyModels: buoyancy
 using Oceananigans.Models.HydrostaticFreeSurfaceModels: VerticalVorticityField
@@ -9,12 +10,16 @@ using ParameterEstimocean
 using ParameterEstimocean.Utils: map_gpus_to_ranks!
 using ParameterEstimocean.Observations: FieldTimeSeriesCollector
 using ParameterEstimocean.Parameters: closure_with_parameters
+using DataDeps
+using JLD2 
 
 using MPI
 using CUDA
-using JLD2
 
 MPI.Init()
+
+using Random
+Random.seed!(123)
 
 #####
 ##### Setting up multi architecture infrastructure
@@ -35,53 +40,10 @@ end
 ##### Simulation parameters
 #####
 
-initial_conditions_path = datadep"near_global_one_degree/initial_conditions_month_01_360_150_48.jld2",
-
-prefix = "perfect_one_degree_calibration"
-start_time = 345days
-stop_iteration = 100
-
-simulation_kw = (; start_time, stop_iteration,
-                 isopycnal_κ_skew = 900.0,
-                 isopycnal_κ_symmetric = 900.0,
-                 initial_conditions_path)
-
-slice_indices = (11, :, :)
-
-#####
-##### Benchmark simulation only on rank (and GPU) 0
-#####
-
-# Reinitialize the problem
-initialization = false
-
-if rank == 0 && initialization
-    test_simulation = one_degree_near_global_simulation(arch; simulation_kw...)
-
-    model = test_simulation.model
-
-    test_simulation.output_writers[:d3] = JLD2OutputWriter(model, model.tracers,
-                                                           schedule = IterationInterval(100),
-                                                           filename = prefix * "_fields",
-                                                           overwrite_existing = true)
-
-    slice_indices = (11, :, :)
-    test_simulation.output_writers[:d2] = JLD2OutputWriter(model, model.tracers,
-                                                           schedule = IterationInterval(100),
-                                                           filename = prefix * "_slices",
-                                                           indices = slice_indices,
-                                                           overwrite_existing = true)
-
-
-    @info "Running simulation..."; timer = time_ns()
-
-    run!(test_simulation)
-
-    @info "... finished. (" * prettytime(1e-9 * (time_ns() - timer)) * ")"
-    stop_time = [time(test_simulation)]
-else 
-    stop_time = stop_iteration * 20minutes + start_time
-end
+prefix = "gm_one_degree_calibration"
+start_time = 0
+stop_time  = 45days
+slice_indices = (UnitRange(11, 11), :, :)
 
 # Finished simulation, wait rank 0
 MPI.Barrier(comm)
@@ -94,7 +56,27 @@ end
 #####
 ##### On all ranks
 #####
-          
+ 
+initial_condition = datadep"near_global_one_degree/initial_conditions_month_01_360_150_48.jld2"
+comparison_file   = datadep"near_global_one_degree/initial_conditions_month_02_360_150_48.jld2"
+
+T₀ = jldopen(initial_condition)["T"]
+S₀ = jldopen(initial_condition)["S"]
+ 
+T₀[isnan.(T₀)] .= 0.0
+S₀[isnan.(S₀)] .= 0.0
+
+T₁ = jldopen(comparison_file)["T"]
+S₁ = jldopen(comparison_file)["S"]
+
+T₁[isnan.(T₁)] .= 0.0
+T₁[isnan.(S₁)] .= 0.0
+
+simulation_kw = (; start_time, stop_time, 
+                   isopycnal_κ_skew = 900.0,
+                   isopycnal_κ_symmetric = 900.0,
+                   initial_condition_fields = (T = T₀, S = S₀))
+
 simulation = one_degree_near_global_simulation(arch; simulation_kw...) 
 
 priors = (κ_skew      = ScaledLogitNormal(bounds=(0.0, 2000.0)),
@@ -102,24 +84,26 @@ priors = (κ_skew      = ScaledLogitNormal(bounds=(0.0, 2000.0)),
 
 free_parameters = FreeParameters(priors) 
 
-obspath = prefix * "_slices.jld2"
-
 times = [start_time, stop_time]
-observations = SyntheticObservations(obspath; field_names=(:T, :S), times)
 
-# Initial conditions
-T_init = jldopen(initial_conditions_path)["T"]
-S_init = jldopen(initial_conditions_path)["S"]
+Tfield = FieldTimeSeries{Center, Center, Center}(on_architecture(CPU(), simulation.model.grid), times; indices = slice_indices)
+Sfield = FieldTimeSeries{Center, Center, Center}(on_architecture(CPU(), simulation.model.grid), times; indices = slice_indices)
+
+interior(Tfield[1]) .= T₀[slice_indices...]
+interior(Sfield[1]) .= S₀[slice_indices...]
+interior(Tfield[2]) .= T₁[slice_indices...]
+interior(Sfield[2]) .= S₁[slice_indices...]
+
+observations = SyntheticObservations(; field_names=(:T, :S), field_time_serieses = (; T = Tfield, S = Sfield))
 
 function initialize_simulation!(sim, parameters)
-    @info "initializing model on rank $(MPI.Comm_rank(MPI.COMM_WORLD))"
     fill!(sim.model.velocities.u, 0.0)
     fill!(sim.model.velocities.v, 0.0)
     T, S = sim.model.tracers
     fill!(T, 0.0)
     fill!(S, 0.0)
-    set!(T, T_init)
-    set!(S, S_init)
+    set!(T, T₀)
+    set!(S, S₀)
     return nothing
 end
 
@@ -128,7 +112,7 @@ function slice_collector(sim)
     S = sim.model.tracers.S
     T_slice = Field(T; indices=slice_indices)
     S_slice = Field(S; indices=slice_indices)
-    return FieldTimeSeriesCollector((T=T_slice, S=S_slice), times, architecture = CPU())
+    return FieldTimeSeriesCollector((T=T_slice, S=S_slice), times, architecture = CPU(), averaging_window = 30days)
 end
 
 ##### 
@@ -151,6 +135,9 @@ eki = EnsembleKalmanInversion(dip; pseudo_stepping=ConstantConvergence(0.2))
 ##### Let's run!
 #####
 
-iterate!(eki, iterations=10)
+iterate!(eki, iterations=15)
+
+using JLD2
+jldsave("calibration-$rank.jld2", eki = eki)
 
 @show eki.iteration_summaries[end]

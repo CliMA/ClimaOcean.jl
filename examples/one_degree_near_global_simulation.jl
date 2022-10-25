@@ -82,7 +82,6 @@ simulation.output_writers[:fields] = JLD2OutputWriter(model, merge(model.velocit
                                                       with_halos = true,
                                                       overwrite_existing = true)
 
-
 slice_indices = [(:, :, Nz), (:, :, Nz-10)]
 output_names = [:surface, :near_surface]
 for n = 1:2

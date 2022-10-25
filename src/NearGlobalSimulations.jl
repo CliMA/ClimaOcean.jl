@@ -1,4 +1,4 @@
-module NearGlobalSimulations
+            module NearGlobalSimulations
 
 using Oceananigans
 using Oceananigans.Units
@@ -140,8 +140,8 @@ function one_degree_near_global_simulation(architecture = GPU();
     start_time                                   = 345days,
     stop_time                                    = Inf,
     tracers                                      = [:T, :S],
+    initial_conditions                           = datadep"near_global_one_degree/initial_conditions_month_01_360_150_48.jld2",
     bathymetry_path                              = datadep"near_global_one_degree/bathymetry_lat_lon_360_150.jld2",
-    initial_conditions_path                      = datadep"near_global_one_degree/initial_conditions_month_01_360_150_48.jld2",
     surface_boundary_conditions_path             = datadep"near_global_one_degree/surface_boundary_conditions_12_months_360_150.jld2",
     )
 
@@ -161,10 +161,15 @@ function one_degree_near_global_simulation(architecture = GPU();
     close(bathymetry_file)
 
     @info "Reading initial conditions..."; start=time_ns()
-    initial_conditions_file = jldopen(initial_conditions_path)
-    T_init = initial_conditions_file["T"]
-    S_init = initial_conditions_file["S"]
-    close(initial_conditions_file)
+    if initial_conditions isa String
+        initial_conditions_file = jldopen(initial_conditions)
+        T_init = initial_conditions_file["T"]
+        S_init = initial_conditions_file["S"]
+        close(initial_conditions_file)
+    else
+        T_init = initial_conditions[:T]
+        S_init = initial_conditions[:S]
+    end
     @info "... read initial conditions (" * prettytime(1e-9 * (time_ns() - start)) * ")"
 
     # Files contain 12 arrays of monthly-averaged data from 1992
