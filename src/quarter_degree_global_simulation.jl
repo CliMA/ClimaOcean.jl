@@ -2,7 +2,7 @@ using Oceananigans.TurbulenceClosures: HorizontalDivergenceFormulation
 using Oceananigans.Advection: VelocityStencil
 
 """
-quarter_degree_near_global_simulation(architecture = GPU(); kwargs...)
+    quarter_degree_near_global_simulation(architecture = GPU(); kwargs...)
 
 Return an Oceananigans.Simulation of Earth's ocean at 1/4 degree resolution.
 """
