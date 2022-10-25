@@ -3,7 +3,7 @@ module ClimaOcean
 using Oceananigans
 using DataDeps
 
-function __init__()
+function __init__(; remove_existing_data=false)
     branch_url = "https://github.com/CliMA/OceananigansArtifacts.jl/raw/glw/near-global-data"
     dir = "lat_lon_bathymetry_and_fluxes"
     bathymetry_name                  = "bathymetry_lat_lon_360_150.jld2"
@@ -22,6 +22,8 @@ function __init__()
                   [bathymetry_url, initial_conditions_1_url, initial_conditions_2_url, surface_boundary_conditions_url])
 
     DataDeps.register(dep)
+
+    remove_existing_data && rm(datadep"near_global_one_degree", recursive=true, force=true)
 end
 
 include("VerticalGrids.jl")
