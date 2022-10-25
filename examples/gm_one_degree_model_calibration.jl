@@ -79,8 +79,39 @@ simulation_kw = (; start_time, stop_time,
 
 simulation = one_degree_near_global_simulation(arch; simulation_kw...) 
 
-priors = (κ_skew      = ScaledLogitNormal(bounds=(0.0, 2000.0)),
-          κ_symmetric = ScaledLogitNormal(bounds=(0.0, 2000.0)))
+T, S = simulation.model.tracers
+
+dir = "./" 
+output_prefix = "near_global_$(Nx)_$(Ny)_$(Nz)"
+
+save_indices = Dict(
+    :depth_5_meters    => (:,   :, 48),
+    :depth_45_meters   => (:,   :, 44),
+    :depth_257_meters  => (:,   :, 30),
+    :depth_1007_meters => (:,   :, 20),
+    :pacific_transect  => (11,  :, :),
+    :atlantic_transect => (150, :, :),
+    :southern_ocean    => (:,  15, :)) 
+
+eki_iteration = 0
+
+function initialize_output_writers!(sim, save_indices, iteration, rank)
+    model = sim.model
+    T, S  = model.tracers
+    for (name, idx) in save_indices
+        delete!(sim.output_writers, name)
+
+        prefix = output_prefix * "_eki_iteration" * string(iteration) * "_rank$(rank)"
+        sim.output_writers[name] = JLD2OutputWriter(model, (; T, S); dir,
+                                                    schedule = TimeInterval(45days),
+                                                    filename = prefix,
+                                                    indices = idx,
+                                                    overwrite_existing = true)
+    end
+end
+
+priors = (κ_skew      = ScaledLogitNormal(bounds=(0.0, 4000.0)),
+          κ_symmetric = ScaledLogitNormal(bounds=(0.0, 4000.0)))
 
 free_parameters = FreeParameters(priors) 
 
@@ -104,6 +135,9 @@ function initialize_simulation!(sim, parameters)
     fill!(S, 0.0)
     set!(T, T₀)
     set!(S, S₀)
+    sim.model.clock.time = start_time
+    eki_iteration += 1
+    initialize_output_writers!(sim, save_indices, eki_iteration, rank)
     return nothing
 end
 
