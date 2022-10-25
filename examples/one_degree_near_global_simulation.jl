@@ -136,7 +136,7 @@ simulation.Δt = 1minute
 simulation.stop_time = time(simulation) + 2days
 run!(simulation)
 
-simulation.stop_time = start_time + 20years
+simulation.stop_time = start_time + 1.2years
 simulation.Δt = 20minutes
 run!(simulation)
 
