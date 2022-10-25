@@ -74,8 +74,7 @@ T₁[isnan.(S₁)] .= 0.0
 
 simulation_kw = (; start_time, stop_time, 
                    isopycnal_κ_skew = 900.0,
-                   isopycnal_κ_symmetric = 900.0,
-                   initial_condition_fields = (T = T₀, S = S₀))
+                   isopycnal_κ_symmetric = 900.0)
 
 simulation = one_degree_near_global_simulation(arch; simulation_kw...) 
 
