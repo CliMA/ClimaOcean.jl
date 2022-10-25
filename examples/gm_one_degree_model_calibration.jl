@@ -40,7 +40,7 @@ end
 ##### Simulation parameters
 #####
 
-prefix = "gm_one_degree_calibration"
+prefix = "gm_one_degree_calibration_"
 start_time = 0
 stop_time  = 45days
 slice_indices = (UnitRange(11, 11), :, :)
@@ -103,7 +103,7 @@ function initialize_output_writers!(sim, save_indices, iteration, rank)
 
         prefix = output_prefix * "_eki_iteration" * string(iteration) * "_rank$(rank)"
         sim.output_writers[name] = JLD2OutputWriter(model, (; T, S); dir,
-                                                    schedule = TimeInterval(45days),
+                                                    schedule = TimeInterval(44days),
                                                     filename = prefix,
                                                     indices = idx,
                                                     overwrite_existing = true)
