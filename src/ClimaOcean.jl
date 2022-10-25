@@ -4,6 +4,8 @@ using Oceananigans
 using DataDeps
 
 function __init__(; remove_existing_data=false)
+
+    ## Data for the one_degree_global_simulation
     branch_url = "https://github.com/CliMA/OceananigansArtifacts.jl/raw/glw/near-global-data"
     dir = "lat_lon_bathymetry_and_fluxes"
     bathymetry_name                  = "bathymetry_lat_lon_360_150.jld2"
@@ -23,7 +25,25 @@ function __init__(; remove_existing_data=false)
 
     DataDeps.register(dep)
 
-    remove_existing_data && rm(datadep"near_global_one_degree", recursive=true, force=true)
+    ## Data for the quarter_degree_global_simulation
+    path = "https://github.com/CliMA/OceananigansArtifacts.jl/raw/ss/new_hydrostatic_data_after_cleared_bugs/quarter_degree_near_global_input_data/"
+
+    datanames = ["bathymetry-1440x600",
+                "temp-1440x600-latitude-75",
+                "salt-1440x600-latitude-75",
+                "tau_x-1440x600-latitude-75",
+                "tau_y-1440x600-latitude-75",
+                "initial_conditions"]
+
+    dh_quarter = DataDep("near_global_quarter_degree",
+        "Forcing data for global latitude longitude simulation",
+        [path * data * ".jld2" for data in datanames]
+    )
+
+    DataDeps.register(dh_quarter)
+
+    remove_existing_data && rm(datadep"near_global_one_degree",     recursive=true, force=true)
+    remove_existing_data && rm(datadep"near_global_quarter_degree", recursive=true, force=true)
 end
 
 include("VerticalGrids.jl")

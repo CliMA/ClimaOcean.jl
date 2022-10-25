@@ -102,6 +102,17 @@ end
     return cyclic_interpolate(τ₁, τ₂, time)
 end
 
+using Oceananigans.TurbulenceClosures
+using Oceananigans.Grids: min_Δx, min_Δy
+using Oceananigans.Operators: Δx, Δy
+
+@inline νhb(i, j, k, grid, lx, ly, lz, clock, fields, λ) =
+                (1 / (1 / Δx(i, j, k, grid, lx, ly, lz)^2 + 1 / Δy(i, j, k, grid, lx, ly, lz)^2))^2 / λ
+
+geometric_viscosity(formulation, timescale) = ScalarBiharmonicDiffusivity(formulation, ν=νhb, 
+                                                                          discrete_form=true, 
+                                                                          parameters = timescale)
+
 @inline ϕ²(i, j, k, grid, ϕ) = @inbounds ϕ[i, j, k]^2
 @inline spᶠᶜᶜ(i, j, k, grid, Φ) = @inbounds sqrt(Φ.u[i, j, k]^2 + ℑxyᶠᶜᵃ(i, j, k, grid, ϕ², Φ.v))
 @inline spᶜᶠᶜ(i, j, k, grid, Φ) = @inbounds sqrt(Φ.v[i, j, k]^2 + ℑxyᶜᶠᵃ(i, j, k, grid, ϕ², Φ.u))
@@ -113,5 +124,6 @@ end
 @inline v_immersed_bottom_drag(i, j, k, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, k] * spᶜᶠᶜ(i, j, k, grid, Φ)
 
 include("one_degree_global_simulation.jl")
+include("quarter_degree_global_simulation.jl")
 
 end # module
