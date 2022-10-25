@@ -18,6 +18,9 @@ using CUDA
 
 MPI.Init()
 
+using Random
+Random.seed!(123)
+
 #####
 ##### Setting up multi architecture infrastructure
 #####
@@ -132,6 +135,9 @@ eki = EnsembleKalmanInversion(dip; pseudo_stepping=ConstantConvergence(0.2))
 ##### Let's run!
 #####
 
-iterate!(eki, iterations=10)
+iterate!(eki, iterations=15)
+
+using JLD2
+jldsave("calibration-$rank.jld2", eki = eki)
 
 @show eki.iteration_summaries[end]
