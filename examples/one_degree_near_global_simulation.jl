@@ -30,14 +30,16 @@ mixing_length = MixingLength(; neutral_default_mixing_length_parameters...)
 turbulent_kinetic_energy_equation = TurbulentKineticEnergyEquation(; neutral_default_tke_parameters...)
 neutral_catke = CATKEVerticalDiffusivity(; mixing_length, turbulent_kinetic_energy_equation)
 
-catke_parameters_filename = joinpath("..", "parameters", "catke_goldilocks_with_conv_adj_parameters.jld2")
+catke_parameters_name = "catke_basic_conv_adj_parameters.jld2"
+catke_parameters_filename = joinpath("..", "parameters", catke_parameters_name)
 catke_parameters = load(catke_parameters_filename, "mean") # load ensemble mean parameters from EKI calibration
 
 catke = closure_with_parameters(neutral_catke, catke_parameters)
-@show catke
 
 # Choose closure
-boundary_layer_turbulence_closure = ri_based # catke
+boundary_layer_turbulence_closure = catke
+
+@show boundary_layer_turbulence_closure
 
 #####
 ##### Build the simulation
@@ -57,12 +59,13 @@ simulation = one_degree_near_global_simulation(; start_time, stop_time,
 )
 
 # Define output
-slices_save_interval = 5days
+slices_save_interval = 2day
 fields_save_interval = 10days
 Nx, Ny, Nz = size(simulation.model.grid)
 
 dir = "/storage1/greg" 
-output_prefix = "near_global_$(Nx)_$(Ny)_$(Nz)"
+closure_name = typeof(boundary_layer_turbulence_closure).name.wrapper
+output_prefix = "near_global_$(Nx)_$(Ny)_$(Nz)_$closure_name"
 with_isopycnal_skew_symmetric_diffusivity || (output_prefix *= "_no_gm")
 
 simulation.output_writers[:checkpointer] = Checkpointer(simulation.model; dir,
@@ -80,21 +83,31 @@ simulation.output_writers[:fields] = JLD2OutputWriter(model, merge(model.velocit
                                                       overwrite_existing = true)
 
 
-surface_outputs = Dict()
-indices = (:, :, Nz)
-surface_outputs[:u] = Field(model.velocities.u; indices)
-surface_outputs[:v] = Field(model.velocities.v; indices)
-surface_outputs[:w] = Field(model.velocities.w; indices)
-surface_outputs[:T] = Field(model.tracers.T; indices)
-surface_outputs[:S] = Field(model.tracers.S; indices)
-surface_outputs[:η] = model.free_surface.η
-surface_outputs[:ζ] = VerticalVorticityField(model.grid, model.velocities; indices)
+slice_indices = [(:, :, Nz), (:, :, Nz-10)]
+output_names = [:surface, :near_surface]
+for n = 1:2
+    indices = slice_indices[n]
 
-simulation.output_writers[:surface] = JLD2OutputWriter(model, surface_outputs; dir,
+    outputs = Dict()
+
+    for name in keys(model.tracers)
+        c = model.tracers[name]
+        outputs[name] = Field(c; indices)
+    end
+
+    outputs[:u] = Field(model.velocities.u; indices)
+    outputs[:v] = Field(model.velocities.v; indices)
+    outputs[:w] = Field(model.velocities.w; indices)
+    outputs[:η] = model.free_surface.η
+    outputs[:ζ] = VerticalVorticityField(model.grid, model.velocities; indices)
+
+    name = output_names[n]
+    simulation.output_writers[name] = JLD2OutputWriter(model, outputs; dir,
                                                        schedule = TimeInterval(slices_save_interval),
-                                                       filename = output_prefix * "_surface_fields",
+                                                       filename = output_prefix * "_fields_$name",
                                                        with_halos = true,
                                                        overwrite_existing = true)
+end
 
 #=
 # Add vertical slices or "transects"
@@ -120,6 +133,12 @@ end
 
 @info "Running a simulation with Δt = $(prettytime(simulation.Δt))"
 
+simulation.Δt = 1minute
+simulation.stop_time = time(simulation) + 2days
+run!(simulation)
+
+simulation.stop_time = start_time + 20years
+simulation.Δt = 20minutes
 run!(simulation)
 
 @info "Simulation took $(prettytime(simulation.run_wall_time))."
