@@ -101,11 +101,12 @@ end
 
 @info "Running a simulation with Δt = $(prettytime(simulation.Δt))"
 
+spinup = 11days
 simulation.Δt = 1minute
-simulation.stop_time = time(simulation) + 2days
+simulation.stop_time = time(simulation) + spinup
 run!(simulation)
 
-simulation.stop_time = start_time + 2years
+simulation.stop_time = start_time + 2.2years - spinup
 simulation.Δt = 6minutes
 run!(simulation)
 
