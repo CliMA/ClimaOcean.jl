@@ -13,11 +13,28 @@ using ParameterEstimocean.Parameters: closure_with_parameters
 using DataDeps
 using JLD2 
 
+using MPI
+using CUDA
+
+MPI.Init()
+
+using Random
+Random.seed!(123)
+
 #####
 ##### Setting up multi architecture infrastructure
 #####
 
+comm = MPI.COMM_WORLD
+
+rank  = MPI.Comm_rank(comm)
+nproc = MPI.Comm_size(comm)
+
 arch = GPU()
+
+if arch isa GPU
+    map_gpus_to_ranks!()
+end
 
 #####
 ##### Simulation parameters
@@ -27,6 +44,14 @@ prefix = "gm_one_degree_calibration_"
 start_time = 0
 stop_time  = 45days
 slice_indices = (UnitRange(11, 11), :, :)
+
+# Finished simulation, wait rank 0
+MPI.Barrier(comm)
+
+for r in 0:nproc-1
+    rank == r && @info "rank $rank on device $(CUDA.device())"
+    MPI.Barrier(comm)
+end
 
 #####
 ##### On all ranks
@@ -51,7 +76,9 @@ simulation_kw = (; start_time, stop_time,
                    isopycnal_κ_skew = 900.0,
                    isopycnal_κ_symmetric = 900.0)
 
-simulation_ensemble = [one_degree_near_global_simulation(arch; simulation_kw...) for _ in 1:6]
+simulation = one_degree_near_global_simulation(arch; simulation_kw...) 
+
+T, S = simulation.model.tracers
 
 dir = "./" 
 
@@ -88,8 +115,8 @@ free_parameters = FreeParameters(priors)
 
 times = [start_time, stop_time]
 
-Tfield = FieldTimeSeries{Center, Center, Center}(on_architecture(CPU(), simulation_ensemble[1].model.grid), times; indices = slice_indices)
-Sfield = FieldTimeSeries{Center, Center, Center}(on_architecture(CPU(), simulation_ensemble[1].model.grid), times; indices = slice_indices)
+Tfield = FieldTimeSeries{Center, Center, Center}(on_architecture(CPU(), simulation.model.grid), times; indices = slice_indices)
+Sfield = FieldTimeSeries{Center, Center, Center}(on_architecture(CPU(), simulation.model.grid), times; indices = slice_indices)
 
 interior(Tfield[1]) .= T₀[slice_indices...]
 interior(Sfield[1]) .= S₀[slice_indices...]
@@ -97,17 +124,6 @@ interior(Tfield[2]) .= T₁[slice_indices...]
 interior(Sfield[2]) .= S₁[slice_indices...]
 
 observations = SyntheticObservations(; field_names=(:T, :S), field_time_serieses = (; T = Tfield, S = Sfield))
-
-eki_iteration = 0
-
-function fake_function(sim, p)
-    return nothing
-end
-
-for (idx, sim) in enumerate(simulation_ensemble)
-    initialize_output_writers!(sim, save_indices, eki_iteration, idx)
-    sim.callbacks[:name] = Callback(fake_function, TimeInterval(1000years); parameters = idx)
-end
 
 function initialize_simulation!(sim, parameters)
     fill!(sim.model.velocities.u, 0.0)
@@ -119,7 +135,7 @@ function initialize_simulation!(sim, parameters)
     set!(S, S₀)
     sim.model.clock.time = start_time
     global eki_iteration += 1
-    initialize_output_writers!(sim, save_indices, eki_iteration, sim.callbacks[:name].parameters)
+    initialize_output_writers!(sim, save_indices, eki_iteration, rank)
     return nothing
 end
 
@@ -135,14 +151,16 @@ end
 ##### Building the distributed inverse problem
 #####
 
-time_series_collector_ensemble = [slice_collector(sim) for sim in simulation_ensemble]
+time_series_collector = slice_collector(simulation) 
 
-ip = InverseProblem(observations, simulation_ensemble, free_parameters;
-                    time_series_collector = time_series_collector_ensemble,
+ip = InverseProblem(observations, simulation, free_parameters;
+                    time_series_collector,
                     initialize_with_observations = false,
                     initialize_simulation = initialize_simulation!)
 
-eki = EnsembleKalmanInversion(ip; pseudo_stepping=ConstantConvergence(0.2))
+dip = DistributedInverseProblem(ip)
+
+eki = EnsembleKalmanInversion(dip; pseudo_stepping=ConstantConvergence(0.2))
 @info "finished setting up eki"
 
 ##### 
