@@ -119,7 +119,7 @@ function initialize_simulation!(sim, parameters)
     set!(S, S₀)
     sim.model.clock.time = start_time
     global eki_iteration += 1
-    initialize_output_writers!(sim, save_indices, eki_iteration, sim.callbacks[:name].parameters)
+    initialize_output_writers!(sim, eki_iteration, sim.callbacks[:name].parameters)
     return nothing
 end
 
