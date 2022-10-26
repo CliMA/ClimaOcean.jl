@@ -106,7 +106,7 @@ using Oceananigans.TurbulenceClosures
 using Oceananigans.Grids: min_Δx, min_Δy
 using Oceananigans.Operators: Δx, Δy
 
-@inline Δ²(i, j, k, grid, lx, lx, ly)  = (1 / (1 / Δx(i, j, k, grid, lx, ly, lz)^2 + 1 / Δy(i, j, k, grid, lx, ly, lz)^2))
+@inline Δ²(i, j, k, grid, lx, ly, lz)  = (1 / (1 / Δx(i, j, k, grid, lx, ly, lz)^2 + 1 / Δy(i, j, k, grid, lx, ly, lz)^2))
 @inline grid_dependent_biharmonic_viscosity(i, j, k, grid, lx, ly, lz, clock, fields, λ) = Δ²(i, j, k, grid, lx, ly, lz)^2 / λ
 
 geometric_viscosity(formulation, timescale) = ScalarBiharmonicDiffusivity(formulation, ν = grid_dependent_biharmonic_viscosity, 

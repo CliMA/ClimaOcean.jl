@@ -51,7 +51,7 @@ stop_time = start_time + 2years
 simulation = quarter_degree_near_global_simulation(; start_time, stop_time, boundary_layer_turbulence_closure)
 
 # Define output
-slices_save_interval = 2day
+slices_save_interval = 1day
 fields_save_interval = 10days
 Nx, Ny, Nz = size(simulation.model.grid)
 
@@ -105,8 +105,8 @@ simulation.Δt = 1minute
 simulation.stop_time = time(simulation) + 2days
 run!(simulation)
 
-simulation.stop_time = start_time + 20years
-simulation.Δt = 20minutes
+simulation.stop_time = start_time + 2years
+simulation.Δt = 6minutes
 run!(simulation)
 
 @info "Simulation took $(prettytime(simulation.run_wall_time))."
