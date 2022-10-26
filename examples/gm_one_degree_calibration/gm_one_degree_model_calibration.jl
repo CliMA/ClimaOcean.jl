@@ -66,13 +66,13 @@ save_indices = Dict(
 
 eki_iteration = 0
 
-function initialize_output_writers!(sim, save_indices, iteration, rank)
+function initialize_output_writers!(sim, iteration, rank)
     model = sim.model
     T, S  = model.tracers
     for (name, idx) in save_indices
         delete!(sim.output_writers, name)
 
-        output_prefix = prefix * "_eki_iteration" * string(iteration) * "_rank$(rank)"
+        output_prefix = prefix * string(name) * "_eki_iteration" * string(iteration) * "_particle$(rank)"
         sim.output_writers[name] = JLD2OutputWriter(model, (; T, S); dir,
                                                     schedule = TimeInterval(44days),
                                                     filename = output_prefix,
@@ -105,7 +105,7 @@ function fake_function(sim, p)
 end
 
 for (idx, sim) in enumerate(simulation_ensemble)
-    initialize_output_writers!(sim, save_indices, eki_iteration, idx)
+    initialize_output_writers!(sim, eki_iteration, idx)
     sim.callbacks[:name] = Callback(fake_function, TimeInterval(1000years); parameters = idx)
 end
 
