@@ -24,15 +24,16 @@ function quarter_degree_near_global_simulation(architecture = GPU();
         stop_time                                    = Inf,
         equation_of_state                            = TEOS10EquationOfState(; reference_density),
         tracers                                      = [:T, :S],
-        initial_conditions                           = datadep"quarter_degree_near_global_lat_lon/initial_conditions.jld2",
-        bathymetry_path                              = datadep"quarter_degree_near_global_lat_lon/bathymetry-1440x600.jld2",
-        temp_surface_boundary_conditions_path        = datadep"quarter_degree_near_global_lat_lon/temp-1440x600-latitude-75.jld2",
-        salt_surface_boundary_conditions_path        = datadep"quarter_degree_near_global_lat_lon/salt-1440x600-latitude-75.jld2",
-        u_stress_surface_boundary_conditions_path    = datadep"quarter_degree_near_global_lat_lon/tau_x-1440x600-latitude-75.jld2",
-        v_stress_surface_boundary_conditions_path    = datadep"quarter_degree_near_global_lat_lon/tau_y-1440x600-latitude-75.jld2",
+        initial_conditions                           = datadep"near_global_quarter_degree/initial_conditions.jld2",
+        bathymetry_path                              = datadep"near_global_quarter_degree/bathymetry-1440x600.jld2",
+        temp_surface_boundary_conditions_path        = datadep"near_global_quarter_degree/temp-1440x600-latitude-75.jld2",
+        salt_surface_boundary_conditions_path        = datadep"near_global_quarter_degree/salt-1440x600-latitude-75.jld2",
+        u_stress_surface_boundary_conditions_path    = datadep"near_global_quarter_degree/tau_x-1440x600-latitude-75.jld2",
+        v_stress_surface_boundary_conditions_path    = datadep"near_global_quarter_degree/tau_y-1440x600-latitude-75.jld2",
 )
 
-    bathymetry = jldopen(bathymetry_path)["bathymetry"]
+    bathymetry_file = jldopen(bathymetry_path)
+    bathymetry = bathymetry_file["bathymetry"]
     close(bathymetry_file)
 
     @info "Reading initial conditions..."; start=time_ns()
@@ -49,15 +50,13 @@ function quarter_degree_near_global_simulation(architecture = GPU();
     τʸ =  - jldopen(v_stress_surface_boundary_conditions_path)["field"] ./ reference_density
     T★ =    jldopen(temp_surface_boundary_conditions_path)["field"] 
     S★ =    jldopen(salt_surface_boundary_conditions_path)["field"] 
-    F★ =    zeros(size(S★)...)
-    Q★ =    zeros(size(T★)...)
-    close(u_stress_surface_boundary_conditions_path)
-    close(v_stress_surface_boundary_conditions_path)
-    close(temp_surface_boundary_conditions_path)
-    close(salt_surface_boundary_conditions_path)
+    F★ =    zeros(Base.size(S★)...)
+    Q★ =    zeros(Base.size(T★)...)
+    # close(u_stress_surface_boundary_conditions_path)
+    # close(v_stress_surface_boundary_conditions_path)
+    # close(temp_surface_boundary_conditions_path)
+    # close(salt_surface_boundary_conditions_path)
     @info "... read boundary conditions (" * prettytime(1e-9 * (time_ns() - start)) * ")"
-
-    bathymetry = arch_array(arch, bathymetry)
 
     # Convert boundary conditions arrays to GPU
     τˣ = arch_array(architecture, τˣ)
