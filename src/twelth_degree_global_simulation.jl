@@ -1,334 +1,210 @@
-import Pkg
-Pkg.activate("/home/ssilvest/development/Oceananigans.jl")
+using Oceananigans.Utils 
+using Oceananigans.MultiRegion: reconstruct_global_field, multi_region_object_from_array
+using Oceananigans.TurbulenceClosures: HorizontalDivergenceFormulation
+using Oceananigans.Advection: VelocityStencil
 
-using Statistics
-using JLD2
-using Printf
-using Oceananigans
-using Oceananigans.Units
+"""
+    twelth_degree_near_global_simulation(architecture = GPU(); kwargs...)
 
-using Oceananigans.Operators
-using Oceananigans.MultiRegion
-using Oceananigans.MultiRegion: multi_region_object_from_array
-using Oceananigans.Fields: interpolate, Field
-using Oceananigans.Architectures: arch_array
-using Oceananigans.Coriolis: HydrostaticSphericalCoriolis, WetCellEnstrophyConservingScheme
-using Oceananigans.BoundaryConditions
-using Oceananigans.ImmersedBoundaries: ImmersedBoundaryGrid, GridFittedBottom, PartialCellBottom, inactive_node, peripheral_node
-using CUDA: @allowscalar, device!
-using Oceananigans.Operators
-using Oceananigans.Operators: Δzᵃᵃᶜ
-using Oceananigans: prognostic_fields
-using SeawaterPolynomials
-
-include("horizontal_visc.jl")
-
-@inline function visualize(field, lev, dims) 
-    (dims == 1) && (idx = (lev, :, :))
-    (dims == 2) && (idx = (:, lev, :))
-    (dims == 3) && (idx = (:, :, lev))
-
-    r = deepcopy(Array(interior(field)))[idx...]
-    r[ r.==0 ] .= NaN
-    return r
-end
-
-#####
-##### Grid
-#####
-
-arch = GPU();
-reference_density = 1029;
-
-latitude = (-75, 75);
-
-# 1/12 degree resolution
-Nx = 4320;
-Ny = 1800;
-Nz = 48;
-
-const Nyears  = 1;
-const Nmonths = 12;
-const thirty_days = 30days;
-
-output_prefix = "near_global_lat_lon_$(Nx)_$(Ny)_$(Nz)_fine"
-pickup_file   = false #"near_global_lat_lon_4320_1800_48_fine_checkpoint_iteration5000.jld2" 
-
-#####
-##### Load forcing files and inital conditions from ECCO version 4
-##### https://ecco.jpl.nasa.gov/drive/files
-##### Bathymetry is interpolated from ETOPO1 https://www.ngdc.noaa.gov/mgg/global/
-#####
-
-using DataDeps
-
-path = "https://github.com/CliMA/OceananigansArtifacts.jl/raw/ss/new_hydrostatic_data_after_cleared_bugs/quarter_degree_near_global_input_data/"
-
-dh = DataDep("quarter_degree_near_global_lat_lon",
-    "Forcing data for global latitude longitude simulation",
-    path * "z_faces-50-levels.jld2"
+Return an Oceananigans.Simulation of Earth's ocean at 1/12 degree resolution.
+The data for initial conditions, boundary conditions and bathymetry _MUST_ be locally available (momentarily too large for online storage)
+"""
+function twelth_degree_near_global_simulation(architecture = GPU();
+        size                                         = (4320, 1800, 48),
+        number_of_partions                           = 4,
+        boundary_layer_turbulence_closure            = RiBasedVerticalDiffusivity(),
+        background_vertical_diffusivity              = 1e-5,
+        background_vertical_viscosity                = 1e-4,
+        horizontal_viscosity                         = leith_viscosity(HorizontalDivergenceFormulation(), C_vort = 2.0, C_div = 3.0),
+        surface_temperature_relaxation_time_scale    = 7days,
+        surface_salinity_relaxation_time_scale       = 7days,
+        bottom_drag_coefficient                      = 3e-3,
+        reference_density                            = 1029.0,  
+        time_step                                    = 2minutes,
+        stop_iteration                               = Inf,
+        start_time                                   = 345days,
+        stop_time                                    = Inf,
+        equation_of_state                            = TEOS10EquationOfState(; reference_density),
+        tracers                                      = [:T, :S],
+        initial_conditions                           = "../data/evolved-initial-conditions-165days.jld2",
+        bathymetry_path                              = "../data/bathymetry-ad-hoc.jld2",
+        boundary_conditions_path                     = "../data/boundary_conditions_twelth_degree.jld2"
 )
 
-DataDeps.register(dh)
+    bathymetry_file = jldopen(bathymetry_path)
+    bathymetry = bathymetry_file["bathymetry"]
+    close(bathymetry_file)
 
-datadep"quarter_degree_near_global_lat_lon"
+    @info "Reading initial conditions..."; start=time_ns()
+    initial_conditions_file = jldopen(initial_conditions)
+    T_init = initial_conditions_file["T"]
+    S_init = initial_conditions_file["S"]
+    close(initial_conditions_file)
+    @info "... read initial conditions (" * prettytime(1e-9 * (time_ns() - start)) * ")"
 
-datadep_path = @datadep_str "quarter_degree_near_global_lat_lon/z_faces-50-levels.jld2"
-file_z_faces = jldopen(datadep_path)
+    # Files contain 12 arrays of monthly-averaged data from 1992
+    @info "Reading boundary conditions..."; start=time_ns()
+    # Files contain 1 year (1992) of 12 monthly averages
+    τˣ =  - jldopen(boundary_conditions_path)["τˣ"] ./ reference_density
+    τʸ =  - jldopen(boundary_conditions_path)["τʸ"] ./ reference_density
+    T★ =    jldopen(boundary_conditions_path)["Tₛ"] 
+    S★ =    jldopen(boundary_conditions_path)["Sₛ"] 
+    F★ =    zeros(Base.size(S★)...)
+    Q★ =    zeros(Base.size(T★)...)
+    close(boundary_conditions_path)
+    @info "... read boundary conditions (" * prettytime(1e-9 * (time_ns() - start)) * ")"
 
-bathy_path = "../data/bathymetry-ad-hoc.jld2" # "smooth-bathymetry.jld2" #
-bathymetry = jldopen(bathy_path)["bathymetry"]
+    # Stretched faces from ECCO Version 4 (49 levels in the vertical)
+    z_faces = VerticalGrids.z_49_levels_10_to_400_meter_spacing
 
-τˣ = zeros(Nx, Ny, Nmonths)
-τʸ = zeros(Nx, Ny, Nmonths)
-T★ = zeros(Nx, Ny, Nmonths)
-S★ = zeros(Nx, Ny, Nmonths)
+    # A spherical domain
+    underlying_grid = LatitudeLongitudeGrid(architecture; size,
+                                            longitude = (-180, 180),
+                                            latitude = (-75, 75),
+                                            halo = (5, 5, 5),
+                                            z = z_faces)
 
-path_bc = "../data/boundary_conditions_twelth_degree.jld2"
+    grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bathymetry))
 
-# Files contain 1 year (1992) of 12 monthly averages
-τˣ = jldopen(path_bc)["τˣ"] ./ reference_density;
-τʸ = jldopen(path_bc)["τʸ"] ./ reference_density;
-T★ = jldopen(path_bc)["Tₛ"];
-S★ = jldopen(path_bc)["Sₛ"];
+    underlying_mrg = MultiRegionGrid(underlying_grid, partition = XPartition(number_of_partions), devices = number_of_partitions);
+    mrg            = MultiRegionGrid(grid,            partition = XPartition(number_of_partions), devices = number_of_partitions);
+    
+    @info "Created $grid"
 
-T_bounds = extrema(T★)
-S_bounds = extrema(S★)
+    # Convert boundary conditions arrays to multi GPU
+    τˣ = multi_region_object_from_array(τˣ, mrg);
+    τʸ = multi_region_object_from_array(τʸ, mrg);
+    target_sea_surface_temperature = T★ = multi_region_object_from_array(T★, mrg);
+    target_sea_surface_salinity    = S★ = multi_region_object_from_array(S★, mrg);
+    surface_temperature_flux       = Q★ = multi_region_object_from_array(Q★, mrg);
+    surface_salt_flux              = F★ = multi_region_object_from_array(F★, mrg);
 
-# Remember the convention!! On the surface a negative flux increases a positive decreases
-bathymetry = arch_array(arch, bathymetry);
+    #####
+    ##### Physics and model setup
+    #####
 
-# Stretched faces taken from ECCO Version 4 (50 levels in the vertical)
-z_faces = file_z_faces["z_faces"][3:end];
+    vitd = VerticallyImplicitTimeDiscretization()
 
-# A spherical domain
-@show underlying_grid = LatitudeLongitudeGrid(arch,
-                                              size = (Nx, Ny, Nz),
-                                              longitude = (-180, 180),
-                                              latitude = latitude,
-                                              halo = (5, 5, 5),
-                                              z = z_faces,
-                                              precompute_metrics = true)
+    vertical_viscosity   = VerticalScalarDiffusivity(vitd, ν=background_vertical_viscosity, κ=background_vertical_diffusivity)
 
-grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bathymetry));
+    closures = Any[horizontal_viscosity, boundary_layer_turbulence_closure, vertical_viscosity]
 
-underlying_mrg = MultiRegionGrid(underlying_grid, partition = XPartition(4), devices = 4);
-mrg            = MultiRegionGrid(grid,            partition = XPartition(4), devices = 4);
+    boundary_layer_turbulence_closure isa CATKEVerticalDiffusivity &&
+        push!(tracers, :e)
 
-τˣ = multi_region_object_from_array(- τˣ, mrg);
-τʸ = multi_region_object_from_array(- τʸ, mrg);
+    # TODO: do this internally in model constructor
+    closures = tuple(closures...)
 
-target_sea_surface_temperature = T★ = multi_region_object_from_array(T★, mrg);
-target_sea_surface_salinity    = S★ = multi_region_object_from_array(S★, mrg);
+    #####
+    ##### Boundary conditions / time-dependent fluxes 
+    #####
 
-#####
-##### Physics and model setup
-#####
+    drag_u = FluxBoundaryCondition(u_immersed_bottom_drag, discrete_form=true, parameters = bottom_drag_coefficient)
+    drag_v = FluxBoundaryCondition(v_immersed_bottom_drag, discrete_form=true, parameters = bottom_drag_coefficient)
 
-using Oceananigans.Operators: Δx, Δy
-using Oceananigans.TurbulenceClosures
-using Oceananigans.TurbulenceClosures: HorizontalDivergenceFormulation, HorizontalFormulation, VerticallyImplicitTimeDiscretization
+    no_slip_bc = ValueBoundaryCondition(0)
 
-include("leith_viscosity.jl")
-include("horizontal_visc.jl")
-convective_adjustment = RiBasedVerticalDiffusivity()
-vertical_viscosity    = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), κ=1e-5, ν=1e-4)
-biharmonic_viscosity  = leith_viscosity(HorizontalDivergenceFormulation(), grid; C_vort = 2.0, C_div = 3.0)
-closures = (biharmonic_viscosity, convective_adjustment, vertical_viscosity)
+    u_immersed_bc = ImmersedBoundaryCondition(bottom = drag_u,
+                                              west = no_slip_bc,
+                                              east = no_slip_bc,
+                                              south = no_slip_bc,
+                                              north = no_slip_bc)
 
-#####
-##### Boundary conditions / time-dependent fluxes 
-#####
+    v_immersed_bc = ImmersedBoundaryCondition(bottom = drag_v,
+                                              west = no_slip_bc,
+                                              east = no_slip_bc,
+                                              south = no_slip_bc,
+                                              north = no_slip_bc)
 
-@inline current_time_index(time, tot_months)     = mod(unsafe_trunc(Int32, time / thirty_days), tot_months) + 1
-@inline next_time_index(time, tot_months)        = mod(unsafe_trunc(Int32, time / thirty_days) + 1, tot_months) + 1
-@inline cyclic_interpolate(u₁::Number, u₂, time) = u₁ + mod(time / thirty_days, 1) * (u₂ - u₁)
+    u_bottom_drag_bc = FluxBoundaryCondition(u_bottom_drag, discrete_form = true, parameters = bottom_drag_coefficient)
+    v_bottom_drag_bc = FluxBoundaryCondition(v_bottom_drag, discrete_form = true, parameters = bottom_drag_coefficient)
 
-@inline function surface_wind_stress(i, j, grid, clock, fields, τ)
-    time = clock.time
-    n₁ = current_time_index(time, Nmonths)
-    n₂ = next_time_index(time, Nmonths)
+    Nmonths = 12 # number of months in the forcing file
+    u_wind_stress_parameters = (; τ=τˣ, Nmonths)
+    v_wind_stress_parameters = (; τ=τʸ, Nmonths)
+    u_wind_stress_bc = FluxBoundaryCondition(surface_wind_stress, discrete_form=true, parameters=u_wind_stress_parameters)
+    v_wind_stress_bc = FluxBoundaryCondition(surface_wind_stress, discrete_form=true, parameters=v_wind_stress_parameters)
 
-    @inbounds begin
-        τ₁ = τ[i, j, n₁]
-        τ₂ = τ[i, j, n₂]
+    Δz_top = @allowscalar Δzᵃᵃᶜ(1, 1, grid.Nz, grid.underlying_grid)
+
+    T_relaxation_parameters = (; λ = Δz_top / surface_temperature_relaxation_time_scale,
+                                 Nmonths,
+                                 T★ = target_sea_surface_temperature,
+                                 Q★ = surface_temperature_flux)
+
+    S_relaxation_parameters = (; λ = Δz_top / surface_salinity_relaxation_time_scale,
+                                 Nmonths,
+                                 S★ = target_sea_surface_salinity,
+                                 F★ = surface_salt_flux)
+
+    T_surface_relaxation_bc = FluxBoundaryCondition(surface_temperature_relaxation,
+                                                    discrete_form = true,
+                                                    parameters = T_relaxation_parameters)
+
+    S_surface_relaxation_bc = FluxBoundaryCondition(surface_salinity_relaxation,
+                                                    discrete_form = true,
+                                                    parameters = S_relaxation_parameters)
+
+    u_bcs = FieldBoundaryConditions(top = u_wind_stress_bc,
+                                    bottom = u_bottom_drag_bc,
+                                    immersed = u_immersed_bc)
+
+    v_bcs = FieldBoundaryConditions(top = v_wind_stress_bc,
+                                    bottom = v_bottom_drag_bc,
+                                    immersed = v_immersed_bc)
+
+    T_bcs = FieldBoundaryConditions(top = T_surface_relaxation_bc)
+    S_bcs = FieldBoundaryConditions(top = S_surface_relaxation_bc)
+
+    buoyancy = SeawaterBuoyancy(; equation_of_state)
+    coriolis = HydrostaticSphericalCoriolis(scheme = WetCellEnstrophyConservingScheme())
+    free_surface = ImplicitFreeSurface()
+
+    model = HydrostaticFreeSurfaceModel(; grid = mrg, free_surface, coriolis, buoyancy, tracers,
+                                          momentum_advection = WENO(vector_invariant = VelocityStencil()),
+                                          closure = closures,
+                                          boundary_conditions = (u=u_bcs, v=v_bcs, T=T_bcs, S=S_bcs),
+                                          tracer_advection = WENO(underlying_mrg))
+
+    @info "... built $model."
+    @info "Model building time: " * prettytime(1e-9 * (time_ns() - start))
+
+    #####
+    ##### Initial condition:
+    #####
+
+    set!(model, T=T_init, S=S_init)
+
+    # Because MITgcm forcing starts at Jan 15 (?)
+    model.clock.time = start_time
+
+    simulation = Simulation(model; Δt=time_step, stop_iteration, stop_time)
+
+    start_time = [time_ns()]
+
+    function progress(sim)
+        wall_time = (time_ns() - start_time[1]) * 1e-9
+    
+        u = reconstruct_global_field(sim.model.velocities.u)
+        w = reconstruct_global_field(sim.model.velocities.w)
+    
+        intw  = Array(interior(w))
+        max_w = findmax(intw)
+    
+        mw = max_w[1]
+        iw = max_w[2]
+    
+        @info @sprintf("Time: % 12s, iteration: %d, max(|u|): %.2e ms⁻¹, wmax: %.2e , loc: (%d, %d, %d), wall time: %s", 
+                        prettytime(sim.model.clock.time),
+                        sim.model.clock.iteration, maximum(abs, u), mw, iw[1], iw[2], iw[3], 
+                        prettytime(wall_time))
+    
+        start_time[1] = time_ns()
+    
+        return nothing
     end
+    
+    simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
 
-    return cyclic_interpolate(τ₁, τ₂, time)
+    return simulation
 end
-
-Δz_top = @allowscalar grid.Δzᵃᵃᶜ[Nz]
-
-using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
-μ = 0.003 # ms⁻¹
-
-# Linear bottom drag:
-@inline ϕ²(i, j, k, grid, ϕ) = ϕ[i, j, k]^2
-
-@inline speedᶠᶜᶜ(i, j, k, grid, fields) = (fields.u[i, j, k]^2 + ℑxyᶠᶜᵃ(i, j, k, grid, ϕ², fields.v))^0.5
-@inline speedᶜᶠᶜ(i, j, k, grid, fields) = (fields.v[i, j, k]^2 + ℑxyᶜᶠᵃ(i, j, k, grid, ϕ², fields.u))^0.5
-
-@inline u_bottom_drag(i, j, grid, clock, fields, μ) = @inbounds - μ * fields.u[i, j, 1] * speedᶠᶜᶜ(i, j, 1, grid, fields)
-@inline v_bottom_drag(i, j, grid, clock, fields, μ) = @inbounds - μ * fields.v[i, j, 1] * speedᶜᶠᶜ(i, j, 1, grid, fields)
-
-@inline u_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.u[i, j, k] * speedᶠᶜᶜ(i, j, k, grid, fields) 
-@inline v_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.v[i, j, k] * speedᶜᶠᶜ(i, j, k, grid, fields) 
-
-drag_u = FluxBoundaryCondition(u_immersed_bottom_drag, discrete_form=true, parameters = μ)
-drag_v = FluxBoundaryCondition(v_immersed_bottom_drag, discrete_form=true, parameters = μ)
-
-u_immersed_bc = ImmersedBoundaryCondition(bottom = drag_u)
-v_immersed_bc = ImmersedBoundaryCondition(bottom = drag_v)
-
-u_bottom_drag_bc = FluxBoundaryCondition(u_bottom_drag, discrete_form = true, parameters = μ)
-v_bottom_drag_bc = FluxBoundaryCondition(v_bottom_drag, discrete_form = true, parameters = μ)
-
-u_wind_stress_bc = FluxBoundaryCondition(surface_wind_stress, discrete_form = true, parameters = τˣ);
-v_wind_stress_bc = FluxBoundaryCondition(surface_wind_stress, discrete_form = true, parameters = τʸ);
-
-@inline function surface_temperature_relaxation(i, j, grid, clock, fields, p)
-    time = clock.time
-
-    n₁ = current_time_index(time, Nmonths)
-    n₂ = next_time_index(time, Nmonths)
-
-    @inbounds begin
-        T★₁ = p.T★[i, j, n₁]
-        T★₂ = p.T★[i, j, n₂]
-        T_surface = fields.T[i, j, grid.Nz]
-    end
-
-    T★ = cyclic_interpolate(T★₁, T★₂, time)
-                                
-    return p.λ * (T_surface - T★)
-end
-
-@inline function surface_salinity_relaxation(i, j, grid, clock, fields, p)
-    time = clock.time
-
-    n₁ = current_time_index(time, Nmonths)
-    n₂ = next_time_index(time, Nmonths)
-
-    @inbounds begin
-        S★₁ = p.S★[i, j, n₁]
-        S★₂ = p.S★[i, j, n₂]
-        S_surface = fields.S[i, j, grid.Nz]
-    end
-
-    S★ = cyclic_interpolate(S★₁, S★₂, time)
-                                
-    return p.λ * (S_surface - S★)
-end
-
-T_surface_relaxation_bc = FluxBoundaryCondition(surface_temperature_relaxation,
-                                                discrete_form = true,
-                                                parameters = (λ = Δz_top/7days, T★ = target_sea_surface_temperature));
-
-S_surface_relaxation_bc = FluxBoundaryCondition(surface_salinity_relaxation,
-                                                discrete_form = true,
-                                                parameters = (λ = Δz_top/7days, S★ = target_sea_surface_salinity));
-
-u_bcs = FieldBoundaryConditions(top = u_wind_stress_bc, bottom = u_bottom_drag_bc, immersed = u_immersed_bc);
-v_bcs = FieldBoundaryConditions(top = v_wind_stress_bc, bottom = v_bottom_drag_bc, immersed = v_immersed_bc);
-T_bcs = FieldBoundaryConditions(top = T_surface_relaxation_bc);
-S_bcs = FieldBoundaryConditions(top = S_surface_relaxation_bc);
-
-free_surface = ImplicitFreeSurface(solver_method=:HeptadiagonalIterativeSolver);
-
-equation_of_state = SeawaterPolynomials.TEOS10EquationOfState(; reference_density)
-# equation_of_state = SeawaterPolynomials.SeawaterPolynomials.SecondOrderSeawaterPolynomials.RoquetEquationOfState(; reference_density)
-# equation_of_state = LinearEquationOfState()
-buoyancy = SeawaterBuoyancy(; equation_of_state)
-
-using Oceananigans.Advection: VelocityStencil, EnstrophyConservingScheme
-
-weno_order = 5
-
-model = HydrostaticFreeSurfaceModel(grid = mrg,
-                                    free_surface = free_surface,
-                                    momentum_advection = WENO(vector_invariant = VelocityStencil(), order = weno_order),
-                                    coriolis = HydrostaticSphericalCoriolis(scheme = WetCellEnstrophyConservingScheme()),
-                                    buoyancy = buoyancy,
-                                    tracers = (:T, :S),
-                                    closure = closures,
-                                    boundary_conditions = (u=u_bcs, v=v_bcs, T=T_bcs, S=S_bcs),
-                                    tracer_advection = WENO(underlying_mrg))
-
-#####
-##### Initial condition:
-#####
-
-u, v, w = model.velocities
-η = model.free_surface.η
-T = model.tracers.T
-S = model.tracers.S
-
-@info "Reading initial conditions"
-file_init = jldopen("../data/evolved-initial-conditions-165days.jld2")
-
-model.clock.time = 165 * days 
-
-@info "initializing model"
-T_init = multi_region_object_from_array(file_init["T"], mrg);
-S_init = multi_region_object_from_array(file_init["S"], mrg);
-u_init = multi_region_object_from_array(file_init["u"], mrg);
-v_init = multi_region_object_from_array(file_init["v"], mrg);
-η_init = multi_region_object_from_array(file_init["η"], mrg);
-set!(model, T=T_init, S=S_init, u=u_init, v=v_init, η=η_init)
-
-@info "model initialized"
-
-#####
-##### Simulation setup
-#####
-
-Δt = 120  # for initialization, then we can go up to 6 minutes?
-
-simulation = Simulation(model, Δt = Δt, stop_iteration = 28800)
-
-start_time = [time_ns()]
-
-using Oceananigans.Utils 
-using Oceananigans.MultiRegion: reconstruct_global_field
-
-function progress(sim)
-    wall_time = (time_ns() - start_time[1]) * 1e-9
-
-    u = reconstruct_global_field(sim.model.velocities.u)
-    w = reconstruct_global_field(sim.model.velocities.w)
-
-    intw  = Array(interior(w))
-    max_w = findmax(intw)
-
-    mw = max_w[1]
-    iw = max_w[2]
-
-    @info @sprintf("Time: % 12s, iteration: %d, max(|u|): %.2e ms⁻¹, wmax: %.2e , loc: (%d, %d, %d), wall time: %s", 
-                    prettytime(sim.model.clock.time),
-                    sim.model.clock.iteration, maximum(abs, u), mw, iw[1], iw[2], iw[3], 
-                    prettytime(wall_time))
-
-    start_time[1] = time_ns()
-
-    return nothing
-end
-
-simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
-
-simulation.output_writers[:checkpointer] = Checkpointer(model,
-                                                        schedule = IterationInterval(3600),
-                                                        prefix = output_prefix * "_checkpoint",
-                                                        overwrite_existing = true)
-
-@info "Running with Δt = $(prettytime(simulation.Δt))"
-
-run!(simulation, pickup = pickup_file)
-
-@info """
-
-    Simulation took $(prettytime(simulation.run_wall_time))
-    Free surface: $(typeof(model.free_surface).name.wrapper)
-    Time step: $(prettytime(Δt))
-"""
-
-

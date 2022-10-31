@@ -102,16 +102,44 @@ end
     return cyclic_interpolate(τ₁, τ₂, time)
 end
 
+using Oceananigans.Operators
 using Oceananigans.TurbulenceClosures
 using Oceananigans.Grids: min_Δx, min_Δy
-using Oceananigans.Operators: Δx, Δy
+using Oceananigans.Operators: Δx, Δy, ℑxyz
 
 @inline Δ²(i, j, k, grid, lx, ly, lz)  = (1 / (1 / Δx(i, j, k, grid, lx, ly, lz)^2 + 1 / Δy(i, j, k, grid, lx, ly, lz)^2))
 @inline grid_dependent_biharmonic_viscosity(i, j, k, grid, lx, ly, lz, clock, fields, λ) = Δ²(i, j, k, grid, lx, ly, lz)^2 / λ
 
+@inline function leith_dynamic_biharmonic_viscosity(i, j, k, grid, lx, ly, lz, clock, fields, p)
+    location = (lx, ly, lz)
+    from_∂xζ = (Center(), Face(), Center())
+    from_∂yζ = (Face(), Center(), Center())
+    from_∂xδ = (Face(), Center(), Center())
+    from_∂yδ = (Center(), Face(), Center())
+
+    ∂xζ = ℑxyz(i, j, k, grid, from_∂xζ, location, ∂xᶜᶠᶜ, ζ₃ᶠᶠᶜ, fields.u, fields.v)
+    ∂yζ = ℑxyz(i, j, k, grid, from_∂yζ, location, ∂yᶠᶜᶜ, ζ₃ᶠᶠᶜ, fields.u, fields.v)
+    ∂xδ = ℑxyz(i, j, k, grid, from_∂xδ, location, ∂xᶠᶜᶜ, div_xyᶜᶜᶜ, fields.u, fields.v)
+    ∂yδ = ℑxyz(i, j, k, grid, from_∂yδ, location, ∂yᶜᶠᶜ, div_xyᶜᶜᶜ, fields.u, fields.v)
+
+    dynamic_visc = sqrt( p.Cζ * (∂xζ^2 + ∂yζ^2) + p.Cδ * (∂xδ^2 + ∂yδ^2) )
+
+    return Δ²(i, j, k, grid, lx, ly, lz)^2.5 * dynamic_visc
+end
+
 geometric_viscosity(formulation, timescale) = ScalarBiharmonicDiffusivity(formulation, ν = grid_dependent_biharmonic_viscosity, 
                                                                           discrete_form = true, 
                                                                           parameters = timescale)
+
+function leith_viscosity(formulation; C_vort = 3.0, C_div = 3.0)
+
+    Cζ = (C_vort / π)^6 / 8
+    Cδ = (C_div  / π)^6 / 8
+
+    return ScalarBiharmonicDiffusivity(formulation, ν = leith_dynamic_biharmonic_viscosity,
+                                       discrete_form = true,
+                                       parameters = (; Cζ, Cδ))
+end
 
 @inline ϕ²(i, j, k, grid, ϕ) = @inbounds ϕ[i, j, k]^2
 @inline spᶠᶜᶜ(i, j, k, grid, Φ) = @inbounds sqrt(Φ.u[i, j, k]^2 + ℑxyᶠᶜᵃ(i, j, k, grid, ϕ², Φ.v))
