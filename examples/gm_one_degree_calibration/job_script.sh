@@ -12,6 +12,10 @@
 #SBATCH -e error.txt
 #SBATCH --mem=90GB
 
+#SBATCH --cpus-per-task=1
+#SBATCH --ntasks-per-core=1
+#SBATCH --threads-per-core=1
+
 MPIEXECJL="/home/ssilvest/.julia/bin/mpiexecjl"
 
 $MPIEXECJL --project -n 4 julia --check-bounds=no gm_one_degree_model_calibration.jl
