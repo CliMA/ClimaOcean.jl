@@ -1,6 +1,7 @@
 name = "ClimaOcean"
 uuid = "0376089a-ecfe-4b0e-a64f-9c555d74d754"
-authors = [" Gregory Wagner <wagner.greg@gmail.com>"]
+license = "MIT"
+authors = ["Climate Modeling Alliance and contributors"]
 version = "0.1.0"
 
 [deps]
