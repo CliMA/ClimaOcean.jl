@@ -52,10 +52,7 @@ function quarter_degree_near_global_simulation(architecture = GPU();
     S★ =    jldopen(salt_surface_boundary_conditions_path)["field"] 
     F★ =    zeros(Base.size(S★)...)
     Q★ =    zeros(Base.size(T★)...)
-    # close(u_stress_surface_boundary_conditions_path)
-    # close(v_stress_surface_boundary_conditions_path)
-    # close(temp_surface_boundary_conditions_path)
-    # close(salt_surface_boundary_conditions_path)
+    
     @info "... read boundary conditions (" * prettytime(1e-9 * (time_ns() - start)) * ")"
 
     # Convert boundary conditions arrays to GPU
@@ -88,7 +85,7 @@ function quarter_degree_near_global_simulation(architecture = GPU();
 
     vertical_viscosity   = VerticalScalarDiffusivity(vitd, ν=background_vertical_viscosity, κ=background_vertical_diffusivity)
 
-    closures = Any[horizontal_viscosity, boundary_layer_turbulence_closure, vertical_viscosity]
+    closures = Any[boundary_layer_turbulence_closure, vertical_viscosity]
 
     boundary_layer_turbulence_closure isa CATKEVerticalDiffusivity &&
         push!(tracers, :e)
@@ -157,12 +154,14 @@ function quarter_degree_near_global_simulation(architecture = GPU();
     T_bcs = FieldBoundaryConditions(top = T_surface_relaxation_bc)
     S_bcs = FieldBoundaryConditions(top = S_surface_relaxation_bc)
 
-    buoyancy = SeawaterBuoyancy(; equation_of_state)
-    coriolis = HydrostaticSphericalCoriolis(scheme = WetCellEnstrophyConservingScheme())
+    buoyancy     = SeawaterBuoyancy(; equation_of_state)
+    coriolis     = HydrostaticSphericalCoriolis(scheme = WetCellEnstrophyConservingScheme())
     free_surface = ImplicitFreeSurface()
 
     model = HydrostaticFreeSurfaceModel(; grid, free_surface, coriolis, buoyancy, tracers,
-                                          momentum_advection = WENO(vector_invariant = VelocityStencil()),
+                                          momentum_advection = VectorInvariant(vorticity_scheme  = WENO(),
+                                                                               divergence_schem  = WENO(),
+                                                                               vertical_scheme   = WENO()),
                                           closure = closures,
                                           boundary_conditions = (u=u_bcs, v=v_bcs, T=T_bcs, S=S_bcs),
                                           tracer_advection = WENO(underlying_grid))
