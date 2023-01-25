@@ -159,9 +159,9 @@ function quarter_degree_near_global_simulation(architecture = GPU();
     free_surface = ImplicitFreeSurface()
 
     model = HydrostaticFreeSurfaceModel(; grid, free_surface, coriolis, buoyancy, tracers,
-                                          momentum_advection = VectorInvariant(vorticity_scheme  = WENO(),
-                                                                               divergence_schem  = WENO(),
-                                                                               vertical_scheme   = WENO()),
+                                          momentum_advection = VectorInvariant(vorticity_scheme   = WENO(),
+                                                                               divergence_scheme  = WENO(),
+                                                                               vertical_scheme    = WENO()),
                                           closure = closures,
                                           boundary_conditions = (u=u_bcs, v=v_bcs, T=T_bcs, S=S_bcs),
                                           tracer_advection = WENO(underlying_grid))
