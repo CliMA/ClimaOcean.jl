@@ -5,11 +5,7 @@ using Oceananigans.Units
 using Oceananigans.Utils: WallTimeInterval
 using Oceananigans.BuoyancyModels: buoyancy
 using Oceananigans.Models.HydrostaticFreeSurfaceModels: VerticalVorticityField
-using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities:
-    MixingLength, TurbulentKineticEnergyEquation, CATKEVerticalDiffusivity
-
-using ParameterEstimocean.Parameters: closure_with_parameters
-using JLD2
+using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalDiffusivity
 
 #####
 ##### Boundary layer turbulence closure options
