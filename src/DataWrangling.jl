@@ -4,13 +4,13 @@ export continue_downwards!
 
 using Oceananigans.Grids: peripheral_node
 using Oceananigans.Utils: launch!
-using Oceananigans.Fields: instantiated_location
-using Oceananigans.Architectures: architecture, device_event, device
+using Oceananigans.Fields: instantiated_location, interior
+using Oceananigans.Architectures: architecture, device_event, device, GPU
 
 using KernelAbstractions: @kernel, @index
 using KernelAbstractions.Extras.LoopInfo: @unroll
 
-instantiate(X) = X()
+using ImageInpainting
 
 function continue_downards!(field)
     arch = architecture(field)
@@ -34,6 +34,23 @@ end
         fill_from_above = active_surface & peripheral_node(i, j, k, grid, LX, LY, LZ)
         @inbounds field[i, j, k] = ifelse(fill_from_above, field[i, j, k+1], field[i, j, k])
     end
+end
+
+function inpaint_horizontally!(field; algorithm=Criminisi(5, 5))
+    arch = architecture(field)
+    grid = field.grid
+    loc = instantiated_location(field)
+    Nx, Ny, Nz = size(grid)
+
+    # Could transfer to CPU, then transfer back.
+    arch isa GPU && error("Inpainting on the GPU is not supported yet!")
+
+    for k = 1:Nz
+        mask = [peripheral_node(i, j, k, grid, loc...) for i = 1:Nx, j = 1:Ny]
+        interior(field, :, :, k) .= inpaint(interior(field, :, :, k), mask, algorithm) 
+    end
+
+    return nothing
 end
 
 end # module

@@ -42,9 +42,12 @@ mask_immersed_field!(S, NaN)
 ClimaOcean.DataWrangling.continue_downards!(T)
 ClimaOcean.DataWrangling.continue_downards!(S)
 
-fig = Figure(resolution=(2400, 1800))
+Nx, Ny, Nz = size(one_degree_grid)
 
-Nz = one_degree_grid.Nz
+@time ClimaOcean.DataWrangling.inpaint_horizontally!(T)
+@time ClimaOcean.DataWrangling.inpaint_horizontally!(S)
+
+fig = Figure(resolution=(2400, 1800))
 
 axT = Axis(fig[1, 1], title="Temperature at k=Nz")
 heatmap!(axT, interior(T, :, :, Nz))
@@ -58,4 +61,4 @@ heatmap!(axT, interior(T, :, :, 1))
 axS = Axis(fig[2, 2], title="Salinityat k=1")
 heatmap!(axS, interior(S, :, :, 1))
 
-
+display(fig)
