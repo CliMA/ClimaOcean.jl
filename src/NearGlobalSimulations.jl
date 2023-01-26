@@ -148,8 +148,14 @@ end
 @inline u_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.u[i, j, 1] * spᶠᶜᶜ(i, j, 1, grid, Φ)
 @inline v_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, 1] * spᶜᶠᶜ(i, j, 1, grid, Φ)
 
+@inline u_bottom_linear_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.u[i, j, 1]
+@inline v_bottom_linear_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, 1]
+
 @inline u_immersed_bottom_drag(i, j, k, grid, c, Φ, μ) = @inbounds - μ * Φ.u[i, j, k] * spᶠᶜᶜ(i, j, k, grid, Φ)
 @inline v_immersed_bottom_drag(i, j, k, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, k] * spᶜᶠᶜ(i, j, k, grid, Φ)
+
+@inline u_immersed_bottom_linear_drag(i, j, k, grid, c, Φ, μ) = @inbounds - μ * Φ.u[i, j, k]
+@inline v_immersed_bottom_linear_drag(i, j, k, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, k]
 
 include("one_degree_global_simulation.jl")
 include("quarter_degree_global_simulation.jl")
