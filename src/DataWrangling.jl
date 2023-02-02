@@ -36,7 +36,7 @@ end
     end
 end
 
-function inpaint_horizontally!(field; algorithm=Criminisi(5, 5))
+function inpaint_horizontally!(field; algorithm=Criminisi(11, 11))
     arch = architecture(field)
     grid = field.grid
     loc = instantiated_location(field)
