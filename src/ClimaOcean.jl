@@ -5,42 +5,33 @@ using DataDeps
 
 function __init__(; remove_existing_data=false)
 
-    ## Data for the one_degree_global_simulation
-    branch_url = "https://github.com/CliMA/OceananigansArtifacts.jl/raw/glw/near-global-data"
-    dir = "lat_lon_bathymetry_and_fluxes"
-    bathymetry_name                  = "bathymetry_lat_lon_360_150.jld2"
-    initial_conditions_month_1       = "initial_conditions_month_01_360_150_48.jld2"
-    initial_conditions_month_2       = "initial_conditions_month_02_360_150_48.jld2"
-    surface_boundary_conditions_name = "surface_boundary_conditions_12_months_360_150.jld2"
+    # Data for one_degree_global_simulation
+    base_url            = "https://github.com/glwagner/ClimaOceanData/raw/main/near_global_simulation_data"
+    bathymetry_url                  = joinpath(base_url, "near_global_bathymetry_360_150.jld2")
+    initial_conditions_url          = joinpath(base_url, "near_global_initial_conditions_360_150_48.jld2")
+    surface_boundary_conditions_url = joinpath(base_url, "near_global_boundary_conditions_360_150.jld2")
 
-    bathymetry_url = joinpath(branch_url, dir, bathymetry_name)
-    initial_conditions_1_url = joinpath(branch_url, dir, initial_conditions_month_1)
-    initial_conditions_2_url = joinpath(branch_url, dir, initial_conditions_month_2)
-    surface_boundary_conditions_url = joinpath(branch_url, dir, surface_boundary_conditions_name)
+    one_degree_urls = [bathymetry_url, initial_conditions_url, surface_boundary_conditions_url]
+    one_degree_desc = "Bathymetry, initial conditions, and surface boundary conditions " *
+                      "for near-global one degree simulations"
 
-    dep = DataDep("near_global_one_degree",
-                  "Bathymetry, initial conditions, and surface boundary conditions for " *
-                  "near-global one degree simulations",
-                  [bathymetry_url, initial_conditions_1_url, initial_conditions_2_url, surface_boundary_conditions_url])
-
+    dep = DataDep("near_global_one_degree", one_degree_desc, one_degree_urls)
     DataDeps.register(dep)
 
-    ## Data for the quarter_degree_global_simulation
-    path = "https://github.com/CliMA/OceananigansArtifacts.jl/raw/ss/new_hydrostatic_data_after_cleared_bugs/quarter_degree_near_global_input_data/"
+    # Data for quarter_degree_global_simulation
+    bathymetry_url          = joinpath(base_url, "near_global_bathymetry_1440_600.jld2")
+    surface_salinity_url    = joinpath(base_url, "near_global_surface_salinity_1440_600.jld2")
+    surface_temperature_url = joinpath(base_url, "near_global_surface_temperature_1440_600.jld2")
+    east_momentum_flux_url  = joinpath(base_url, "near_global_east_momentum_flux_1440_600.jld2")
+    north_momentum_flux_url = joinpath(base_url, "near_global_north_momentum_flux_1440_600.jld2")
 
-    datanames = ["bathymetry-1440x600",
-                "temp-1440x600-latitude-75",
-                "salt-1440x600-latitude-75",
-                "tau_x-1440x600-latitude-75",
-                "tau_y-1440x600-latitude-75",
-                "initial_conditions"]
+    quarter_degree_urls = [bathymetry_url, surface_salinity_url, surface_temperature_url,
+                           east_momentum_flux_url, north_momentum_flux_url]
+    quarter_degree_desc =  "Bathymetry, initial conditions, and surface boundary conditions " * 
+                           "for near-global quarter degree degree simulations"
 
-    dh_quarter = DataDep("near_global_quarter_degree",
-        "Forcing data for global latitude longitude simulation",
-        [path * data * ".jld2" for data in datanames]
-    )
-
-    DataDeps.register(dh_quarter)
+    dep = DataDep("near_global_quarter_degree", quarter_degree_desc, quarter_degree_urls)
+    DataDeps.register(dep)
 
     remove_existing_data && rm(datadep"near_global_one_degree",     recursive=true, force=true)
     remove_existing_data && rm(datadep"near_global_quarter_degree", recursive=true, force=true)
