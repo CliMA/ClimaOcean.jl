@@ -7,7 +7,7 @@ using Oceananigans.Advection: VelocityStencil
 Return an Oceananigans.Simulation of Earth's ocean at 1/4 degree resolution.
 """
 function quarter_degree_near_global_simulation(architecture = GPU();
-        size                                         = (1440, 600, 48),
+        z                                            = stretched_vertical_cell_interfaces(), # vertical_cell_interfaces
         boundary_layer_turbulence_closure            = RiBasedVerticalDiffusivity(),
         background_vertical_diffusivity              = 1e-5,
         background_vertical_viscosity                = 1e-4,
@@ -24,34 +24,46 @@ function quarter_degree_near_global_simulation(architecture = GPU();
         stop_time                                    = Inf,
         equation_of_state                            = TEOS10EquationOfState(; reference_density),
         tracers                                      = [:T, :S],
-        initial_conditions                           = datadep"near_global_quarter_degree/initial_conditions.jld2",
-        bathymetry_path                              = datadep"near_global_quarter_degree/bathymetry-1440x600.jld2",
-        temp_surface_boundary_conditions_path        = datadep"near_global_quarter_degree/temp-1440x600-latitude-75.jld2",
-        salt_surface_boundary_conditions_path        = datadep"near_global_quarter_degree/salt-1440x600-latitude-75.jld2",
-        u_stress_surface_boundary_conditions_path    = datadep"near_global_quarter_degree/tau_x-1440x600-latitude-75.jld2",
-        v_stress_surface_boundary_conditions_path    = datadep"near_global_quarter_degree/tau_y-1440x600-latitude-75.jld2",
-)
+        initial_conditions                           = nothing,
+        bathymetry_path                              = datadep"near_global_quarter_degree/near_global_bathymetry_1440_600.jld2",
+        surface_temperature_boundary_conditions_path = datadep"near_global_quarter_degree/near_global_surface_temperature_1440_600.jld2",
+        surface_salinity_boundary_conditions_path    = datadep"near_global_quarter_degree/near_global_surface_salinity_1440_600.jld2",
+        east_momentum_flux_path                      = datadep"near_global_quarter_degree/near_global_east_momentum_flux_1440_600.jld2",
+        north_momentum_flux_path                     = datadep"near_global_quarter_degree/near_global_north_momentum_flux_1440_600.jld2",
+    )
 
     bathymetry_file = jldopen(bathymetry_path)
     bathymetry = bathymetry_file["bathymetry"]
     close(bathymetry_file)
 
-    @info "Reading initial conditions..."; start=time_ns()
-    initial_conditions_file = jldopen(initial_conditions)
-    T_init = initial_conditions_file["T"]
-    S_init = initial_conditions_file["S"]
-    close(initial_conditions_file)
-    @info "... read initial conditions (" * prettytime(1e-9 * (time_ns() - start)) * ")"
+    if isnothing(initial_conditions)
+        initial_conditions_path = datadep"near_global_one_degree/near_global_initial_conditions_360_150_48.jld2"
+        @info "Preparing initial conditions..."; start=time_ns()
+        initial_conditions_file = jldopen(initial_conditions_path)
+        T_one_degree_data = initial_conditions_file["T"]
+        S_one_degree_data = initial_conditions_file["S"]
+        one_degree_grid = initial_conditions_file["grid"]
+        close(initial_conditions_file)
+        @info "... read initial conditions (" * prettytime(1e-9 * (time_ns() - start)) * ")"
+    end
+
+    T_one_degree = CenterField(one_degree_grid)
+    S_one_degree = CenterField(one_degree_grid)
+
+    interior(T_one_degree) .= T_one_degree_data
+    interior(S_one_degree) .= S_one_degree_data
+
+    T_quarter, S_quarter = regrid_to_quarter_degree(T_one_degree, S_one_degree; z)
 
     # Files contain 12 arrays of monthly-averaged data from 1992
     @info "Reading boundary conditions..."; start=time_ns()
     # Files contain 1 year (1992) of 12 monthly averages
-    τˣ =  - jldopen(u_stress_surface_boundary_conditions_path)["field"] ./ reference_density
-    τʸ =  - jldopen(v_stress_surface_boundary_conditions_path)["field"] ./ reference_density
-    T★ =    jldopen(temp_surface_boundary_conditions_path)["field"] 
-    S★ =    jldopen(salt_surface_boundary_conditions_path)["field"] 
-    F★ =    zeros(Base.size(S★)...)
-    Q★ =    zeros(Base.size(T★)...)
+    τˣ =  jldopen(east_momentum_flux_path)["east_momentum_flux"] ./ reference_density
+    τʸ =  jldopen(north_momentum_flux_path)["north_momentum_flux"] ./ reference_density
+    T★ =  jldopen(surface_temperature_boundary_conditions_path)["surface_temperature"] 
+    S★ =  jldopen(surface_salinity_boundary_conditions_path)["surface_salinity"] 
+    Qˢ =  zeros(size(T★)...)
+    Qᵀ =  zeros(size(S★)...)
     
     @info "... read boundary conditions (" * prettytime(1e-9 * (time_ns() - start)) * ")"
 
@@ -60,18 +72,19 @@ function quarter_degree_near_global_simulation(architecture = GPU();
     τʸ = arch_array(architecture, τʸ)
     target_sea_surface_temperature = T★ = arch_array(architecture, T★)
     target_sea_surface_salinity    = S★ = arch_array(architecture, S★)
-    surface_temperature_flux       = Q★ = arch_array(architecture, Q★)
-    surface_salt_flux              = F★ = arch_array(architecture, F★)
+    surface_temperature_flux       = Qᵀ = arch_array(architecture, Qᵀ)
+    surface_salt_flux              = Qˢ = arch_array(architecture, Qˢ)
 
     # Stretched faces from ECCO Version 4 (49 levels in the vertical)
-    z_faces = VerticalGrids.z_49_levels_10_to_400_meter_spacing
+    cpu_grid = T_quarter.grid
+    Nx, Ny, Nz = size(cpu_grid)
 
-    # A spherical domain
-    underlying_grid = LatitudeLongitudeGrid(architecture; size,
+    # Remake quarter degree grid on `architecture`
+    underlying_grid = LatitudeLongitudeGrid(architecture; z,
+                                            size = (Nx, Ny, Nz),
                                             longitude = (-180, 180),
                                             latitude = (-75, 75),
-                                            halo = (5, 5, 5),
-                                            z = z_faces)
+                                            halo = (5, 5, 5))
 
     grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bathymetry))
 
@@ -82,16 +95,9 @@ function quarter_degree_near_global_simulation(architecture = GPU();
     #####
 
     vitd = VerticallyImplicitTimeDiscretization()
-
-    vertical_viscosity   = VerticalScalarDiffusivity(vitd, ν=background_vertical_viscosity, κ=background_vertical_diffusivity)
-
-    closures = Any[boundary_layer_turbulence_closure, vertical_viscosity]
-
-    boundary_layer_turbulence_closure isa CATKEVerticalDiffusivity &&
-        push!(tracers, :e)
-
-    # TODO: do this internally in model constructor
-    closures = tuple(closures...)
+    vertical_viscosity = VerticalScalarDiffusivity(vitd, ν=background_vertical_viscosity, κ=background_vertical_diffusivity)
+    closures = (boundary_layer_turbulence_closure, vertical_viscosity)
+    boundary_layer_turbulence_closure isa CATKEVerticalDiffusivity && push!(tracers, :e)
 
     #####
     ##### Boundary conditions / time-dependent fluxes 
@@ -173,7 +179,8 @@ function quarter_degree_near_global_simulation(architecture = GPU();
     ##### Initial condition:
     #####
 
-    set!(model, T=T_init, S=S_init)
+    set!(model, T=T_quarter, S=S_quarter)
+    boundary_layer_turbulence_closure isa CATKEVerticalDiffusivity && set!(model, e=1e-6)
 
     # Because MITgcm forcing starts at Jan 15 (?)
     model.clock.time = start_time
@@ -195,8 +202,16 @@ function quarter_degree_near_global_simulation(architecture = GPU();
         iw = max_w[2]
 
         msg1 = @sprintf("Time: % 12s, iteration: %d, ", prettytime(sim), iteration(sim))
+
         msg2 = @sprintf("max(|u|): %.2e ms⁻¹, wmax: %.2e, loc: (%d, %d, %d), ",
                         maximum(abs, u), mw, iw[1], iw[2], iw[3])
+
+        if boundary_layer_turbulence_closure isa CATKEVerticalDiffusivity
+            e = sim.model.tracers.e
+            msg2a = @sprintf("extrema(e): (%.2e, %.2e)  m² s⁻², ", maximum(e), minimum(e))
+            msg2 *= msg2a
+        end
+
         msg3 = @sprintf("wall time: %s", prettytime(wall_time))
 
         @info msg1 * msg2 * msg3
@@ -210,3 +225,91 @@ function quarter_degree_near_global_simulation(architecture = GPU();
 
     return simulation
 end
+
+function stretched_vertical_cell_interfaces(; surface_layer_Δz = 5.0,
+                                   surface_layer_height = 100.0,
+                                   stretching_parameter = 1.02,
+                                   minimum_depth = 5000)
+
+    Δz₀ = surface_layer_Δz
+    h₀ = surface_layer_height
+    
+    # Generate surface layer grid
+    z = [-Δz₀ * (k-1) for k = 1:ceil(h₀ / Δz₀)]
+    
+    # Generate stretched interior grid
+    γ = stretching_parameter
+    Lz₀ = minimum_depth
+    
+    while z[end] > - Lz₀
+        Δz = (z[end-1] - z[end])^γ
+        push!(z, round(z[end] - Δz, digits=1))
+    end
+    
+    # Reverse grid to be right-side-up
+    z = reverse(z)
+    
+    # Infer domain parameters
+    Lz = z[1]
+
+    return z
+end
+
+function regrid_to_quarter_degree(T, S; z=stretched_vertical_cell_interfaces())
+    Nz = length(z) - 1
+    vertically_refined_one_degree_grid = LatitudeLongitudeGrid(CPU(); z,
+                                                               size = (360, 150, Nz),
+                                                               longitude = (-180, 180),
+                                                               latitude = (-75, 75),
+                                                               halo = (5, 5, 5))
+
+    T_one = CenterField(vertically_refined_one_degree_grid)
+    S_one = CenterField(vertically_refined_one_degree_grid)
+
+    regrid!(T_one, T)
+    regrid!(S_one, S)
+
+    start_time = time_ns()
+    # T⁺ = T⁻ + κ * ∂z(∂z(T⁻))
+    for i = 1:10
+        T_one .= T_one .+ 0.1 * ∂z(∂z(T_one))
+        S_one .= S_one .+ 0.1 * ∂z(∂z(S_one))
+        elapsed = 1e-9 * (time_ns() - start_time)
+        elapsed_str = prettytime(elapsed)
+        @info "One degree diffusion step $i, $elapsed_str"
+        start_time = time_ns()
+    end
+
+    #####
+    ##### Regrid one degree initial condition to quarter degree grid with high vertical resolution
+    #####
+
+    # Intermediate grid: quarter degree in x, one degree in y
+    quarter_degree_x_grid = LatitudeLongitudeGrid(CPU(); z,
+                                                  size = (1440, 150, Nz),
+                                                  longitude = (-180, 180),
+                                                  latitude = (-75, 75),
+                                                  halo = (5, 5, 5))
+
+    T_quarter_x = CenterField(quarter_degree_x_grid)
+    S_quarter_x = CenterField(quarter_degree_x_grid)
+
+    regrid!(T_quarter_x, T_one)
+    regrid!(S_quarter_x, S_one)
+
+    # Quarter degree grid
+    quarter_degree_grid = LatitudeLongitudeGrid(CPU(); z,
+                                                size = (1440, 600, Nz),
+                                                longitude = (-180, 180),
+                                                latitude = (-75, 75),
+                                                halo = (5, 5, 5))
+
+    T_quarter = CenterField(quarter_degree_grid)
+    S_quarter = CenterField(quarter_degree_grid)
+
+    regrid!(T_quarter, T_quarter_x)
+    regrid!(S_quarter, S_quarter_x)
+
+    return T_quarter, S_quarter
+end
+

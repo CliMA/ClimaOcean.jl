@@ -13,9 +13,10 @@ using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalD
 
 # "Ri-based" --- uses calibrated defaults in Oceananigans
 ri_based = RiBasedVerticalDiffusivity() 
+catke = CATKEVerticalDiffusivity() 
 
 # Choose closure
-boundary_layer_turbulence_closure = ri_based
+boundary_layer_turbulence_closure = catke #ri_based
 
 @show boundary_layer_turbulence_closure
 
@@ -26,14 +27,14 @@ boundary_layer_turbulence_closure = ri_based
 start_time = 0days
 stop_time  = start_time + 10years
 
-simulation = quarter_degree_near_global_simulation(; start_time, stop_time, boundary_layer_turbulence_closure)
+simulation = quarter_degree_near_global_simulation(CPU(); start_time, stop_time, boundary_layer_turbulence_closure)
 
 # Define output
 slices_save_interval = 1day
 fields_save_interval = 30days
 Nx, Ny, Nz = size(simulation.model.grid)
 
-dir = "/storage2/simone/quarter-degree-data/" 
+dir = "."
 closure_name = typeof(boundary_layer_turbulence_closure).name.wrapper
 output_prefix = "near_global_$(Nx)_$(Ny)_$(Nz)_$closure_name"
 
@@ -51,7 +52,7 @@ simulation.output_writers[:fields] = JLD2OutputWriter(model, merge(model.velocit
                                                       with_halos = true,
                                                       overwrite_existing = true)
 
-slice_indices = [(:, :, Nz), (:, :, Nz-10)]
+slice_indices = [(:, :, Nz), (:, :, Nz-20)]
 output_names = [:surface, :near_surface]
 for n = 1:2
     indices = slice_indices[n]
