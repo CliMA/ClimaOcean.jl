@@ -16,7 +16,7 @@ ri_based = RiBasedVerticalDiffusivity()
 catke = CATKEVerticalDiffusivity() 
 
 # Choose closure
-boundary_layer_turbulence_closure = catke #ri_based
+boundary_layer_turbulence_closure = ri_based
 
 @show boundary_layer_turbulence_closure
 
@@ -27,14 +27,14 @@ boundary_layer_turbulence_closure = catke #ri_based
 start_time = 0days
 stop_time  = start_time + 10years
 
-simulation = quarter_degree_near_global_simulation(CPU(); start_time, stop_time, boundary_layer_turbulence_closure)
+simulation = quarter_degree_near_global_simulation(GPU(); start_time, stop_time, boundary_layer_turbulence_closure)
 
 # Define output
 slices_save_interval = 1day
 fields_save_interval = 30days
 Nx, Ny, Nz = size(simulation.model.grid)
 
-dir = "."
+dir = "/nobackup/users/glwagner/ClimaOcean"
 closure_name = typeof(boundary_layer_turbulence_closure).name.wrapper
 output_prefix = "near_global_$(Nx)_$(Ny)_$(Nz)_$closure_name"
 
@@ -80,12 +80,12 @@ end
 
 @info "Running a simulation with Δt = $(prettytime(simulation.Δt))"
 
-spinup = 11days
-simulation.Δt = 1minute
-simulation.stop_time = time(simulation) + spinup
+simulation.Δt = 1e-2
+simulation.stop_iteration = 100
+simulation.callbacks[:progress] = Callback(simulation.callbacks[:progress].func)
 run!(simulation)
 
-simulation.stop_time = start_time + 2.2years - spinup
+simulation.stop_iteration = Inf
 simulation.Δt = 10minutes
 run!(simulation)
 

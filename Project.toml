@@ -7,7 +7,6 @@ version = "0.1.0"
 [deps]
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 DataDeps = "124859b0-ceae-595e-8997-d05f6a7a8dfe"
-ImageInpainting = "2bcd8d84-2ef9-5317-bfa0-0ed5605635ad"
 JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
 KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
 Oceananigans = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
