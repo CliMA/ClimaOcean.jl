@@ -26,26 +26,9 @@ start_time = 0days
 stop_time  = start_time + 10years
 
 simulation = quarter_degree_near_global_simulation(GPU(); start_time, stop_time,
-                                                   boundary_layer_turbulence_closure = ri_based)
-
-#=
-spinup = simulation.model
-
-simulation = quarter_degree_near_global_simulation(GPU(); start_time, stop_time,
+                                                   background_vertical_viscosity = 1e-2,
+                                                   background_vertical_diffusivity = 1e-2,
                                                    boundary_layer_turbulence_closure = catke)
-
-u, v, w = simulation.model.velocities
-T, S, e = simulation.model.tracers
-
-parent(u) .= parent(spinup.velocities.u)
-parent(v) .= parent(spinup.velocities.v)
-parent(w) .= parent(spinup.velocities.w)
-
-parent(T) .= parent(spinup.tracers.T)
-parent(S) .= parent(spinup.tracers.S)
-
-@info "Starting CATKE simulation..."
-=#
 
 # Define output
 slices_save_interval = 1day
@@ -54,7 +37,7 @@ Nx, Ny, Nz = size(simulation.model.grid)
 
 dir = "/nobackup/users/glwagner/ClimaOcean"
 closure_name = typeof(boundary_layer_turbulence_closure).name.wrapper
-output_prefix = "near_global_$(Nx)_$(Ny)_$(Nz)_$closure_name"
+output_prefix = "catke_near_global_$(Nx)_$(Ny)_$(Nz)"
 
 simulation.output_writers[:checkpointer] = Checkpointer(simulation.model; dir,
                                                         prefix = output_prefix * "_checkpointer",

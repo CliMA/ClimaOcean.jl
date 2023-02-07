@@ -11,7 +11,6 @@ function quarter_degree_near_global_simulation(architecture = GPU();
         boundary_layer_turbulence_closure            = RiBasedVerticalDiffusivity(),
         background_vertical_diffusivity              = 1e-5,
         background_vertical_viscosity                = 1e-4,
-        horizontal_viscosity                         = geometric_viscosity(HorizontalDivergenceFormulation(), 5days),
         surface_temperature_relaxation_time_scale    = 7days,
         surface_salinity_relaxation_time_scale       = 7days,
         bottom_drag_coefficient                      = 3e-3,
@@ -203,7 +202,7 @@ function quarter_degree_near_global_simulation(architecture = GPU();
 
         msg1 = @sprintf("Time: % 12s, iteration: %d, ", prettytime(sim), iteration(sim))
 
-        msg2 = @sprintf("max(|u|): %.2e ms⁻¹, wmax: %.2e, loc: (%d, %d, %d), ",
+        msg2 = @sprintf("max(|u|): %.2e m s⁻¹, wmax: %.2e, loc: (%d, %d, %d), ",
                         maximum(abs, u), mw, iw[1], iw[2], iw[3])
 
         if boundary_layer_turbulence_closure isa CATKEVerticalDiffusivity
