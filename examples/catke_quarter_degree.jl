@@ -30,6 +30,9 @@ simulation = quarter_degree_near_global_simulation(GPU(); start_time, stop_time,
                                                    background_vertical_diffusivity = 1e-2,
                                                    boundary_layer_turbulence_closure = catke)
 
+eᵢ(x, y, z) = 1e-2 #* exp(z / 100) + 1e-4
+set!(simulation.model, e=eᵢ)
+
 # Define output
 slices_save_interval = 1day
 fields_save_interval = 30days
@@ -80,14 +83,15 @@ for n = 1:2
 end
 
 @info "Running a simulation with Δt = $(prettytime(simulation.Δt))"
-simulation.Δt = 1minute
-simulation.stop_iteration = 100
+
+simulation.Δt = 0.1
+simulation.stop_iteration = 1000
 simulation.callbacks[:progress] = Callback(simulation.callbacks[:progress].func)
 run!(simulation)
+#simulation.callbacks[:progress] = Callback(simulation.callbacks[:progress].func, IterationInterval(10))
 
-simulation.callbacks[:progress] = Callback(simulation.callbacks[:progress].func, IterationInterval(10))
 simulation.stop_iteration = Inf
-simulation.Δt = 10minutes
+simulation.Δt = 1minute
 run!(simulation)
 
 @info "Simulation took $(prettytime(simulation.run_wall_time))."

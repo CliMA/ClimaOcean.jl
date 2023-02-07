@@ -161,7 +161,7 @@ function quarter_degree_near_global_simulation(architecture = GPU();
 
     buoyancy     = SeawaterBuoyancy(; equation_of_state)
     coriolis     = HydrostaticSphericalCoriolis(scheme = WetCellEnstrophyConservingScheme())
-    free_surface = ImplicitFreeSurface()
+    free_surface = ImplicitFreeSurface(maximum_iterations=100)
 
     model = HydrostaticFreeSurfaceModel(; grid, free_surface, coriolis, buoyancy, tracers,
                                           momentum_advection = VectorInvariant(vorticity_scheme   = WENO(),
