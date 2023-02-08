@@ -7,36 +7,40 @@ using Dierckx
 function interpolate_bathymetry_from_file(degree, latitude; 
                                           filename = "data/bathymetry-ice-21600x10800.jld2", 
                                           interpolation_method = SplineInterpolation(), 
-                                          passes = 10,
+                                          passes = 5,
                                           filter_func = (l) -> exp(-l * (l+1)/ 180 / 240),
-                                          calc_coeff = nothing)
+                                          calc_coeff = nothing,
+                                          minimum_depth = 6)
 
     file = jldopen(filename)
-    bathy = Float64.(file["bathymetry"])
+    bathy_old = Float64.(file["bathymetry"])
 
-    Nxₒ  = size(bathy, 1)
-    Nyₒ  = size(bathy, 2)
+    Nxₒ  = size(bathy_old, 1)
+    Nyₒ  = size(bathy_old, 2)
     Nxₙ  = Int(360 / degree)
     Nyₙ  = Int(2latitude / degree)
 
-    if method isa SpectralInterpolation
+    if interpolation_method isa SpectralInterpolation
         if calc_coeff isa nothing
-            spectral_coeff = etopo1_to_spherical_harmonics(bathy, Nyₒ)
+            spectral_coeff = etopo1_to_spherical_harmonics(bathy_old, Nyₒ)
         else 
             spectral_coeff = calc_coeff
         end
 
         bathy = bathymetry_from_etopo1(Nxₙ, Nyₙ, spher_harm_coeff, filter_func)
     else 
-        bathy = interpolate_one_level_in_passes(array_old, Nxₒ, Nyₒ, Nxₙ, Nyₙ, passes; interpolation_method)
+        bathy = interpolate_one_level_in_passes(bathy_old, Nxₒ, Nyₒ, Nxₙ, Nyₙ, passes; interpolation_method)
     end
 
     # apparently bathymetry is reversed in the longitude direction, therefore we have to swap it
     bathy = reverse(bathy, dims = 2)
+    
     bathy[bathy .> 0] .= ABOVE_SEA_LEVEL
 
     fixed_bathymetry = remove_connected_regions(bathy)
 
+    bathy[bathy .> - minimum_depth] .= ABOVE_SEA_LEVEL
+    
     return fixed_bathymetry
 end
 
@@ -120,7 +124,6 @@ function remove_connected_regions(bat)
         end
 
         bathymetry .+= labels
-        bathymetry[bathymetry.>-5] .= -10
         bathymetry[isnan.(bathymetry)] .= ABOVE_SEA_LEVEL
     catch err
         println("this is the error $err")
