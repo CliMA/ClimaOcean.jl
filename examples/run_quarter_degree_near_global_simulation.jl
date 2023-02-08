@@ -26,26 +26,9 @@ start_time = 0days
 stop_time  = start_time + 10years
 
 simulation = quarter_degree_near_global_simulation(GPU(); start_time, stop_time,
+                                                   initial_vertical_diffusion_steps = 100,
+                                                   initial_horizontal_diffusion_steps = 10000,
                                                    boundary_layer_turbulence_closure = ri_based)
-
-#=
-spinup = simulation.model
-
-simulation = quarter_degree_near_global_simulation(GPU(); start_time, stop_time,
-                                                   boundary_layer_turbulence_closure = catke)
-
-u, v, w = simulation.model.velocities
-T, S, e = simulation.model.tracers
-
-parent(u) .= parent(spinup.velocities.u)
-parent(v) .= parent(spinup.velocities.v)
-parent(w) .= parent(spinup.velocities.w)
-
-parent(T) .= parent(spinup.tracers.T)
-parent(S) .= parent(spinup.tracers.S)
-
-@info "Starting CATKE simulation..."
-=#
 
 # Define output
 slices_save_interval = 1day
@@ -54,21 +37,23 @@ Nx, Ny, Nz = size(simulation.model.grid)
 
 dir = "/nobackup/users/glwagner/ClimaOcean"
 closure_name = typeof(boundary_layer_turbulence_closure).name.wrapper
-output_prefix = "near_global_$(Nx)_$(Ny)_$(Nz)_$closure_name"
+output_prefix = "smoothed_ic_near_global_$(Nx)_$(Ny)_$(Nz)_$closure_name"
+pickup = false
+overwrite_existing = !pickup
 
 simulation.output_writers[:checkpointer] = Checkpointer(simulation.model; dir,
                                                         prefix = output_prefix * "_checkpointer",
                                                         schedule = WallTimeInterval(10minutes),
                                                         cleanup = true,
-                                                        overwrite_existing = true)
+                                                        overwrite_existing)
 
 model = simulation.model
 
 simulation.output_writers[:fields] = JLD2OutputWriter(model, merge(model.velocities, model.tracers); dir,
-                                                      schedule = TimeInterval(slices_save_interval),
+                                                      schedule = TimeInterval(fields_save_interval),
                                                       filename = output_prefix * "_fields",
                                                       with_halos = true,
-                                                      overwrite_existing = true)
+                                                      overwrite_existing)
 
 slice_indices = [(:, :, Nz), (:, :, Nz-20)]
 output_names = [:surface, :near_surface]
@@ -93,19 +78,12 @@ for n = 1:2
                                                        schedule = TimeInterval(slices_save_interval),
                                                        filename = output_prefix * "_fields_$name",
                                                        with_halos = true,
-                                                       overwrite_existing = true)
+                                                       overwrite_existing)
 end
 
 @info "Running a simulation with Δt = $(prettytime(simulation.Δt))"
-simulation.Δt = 1minute
-simulation.stop_iteration = 100
-simulation.callbacks[:progress] = Callback(simulation.callbacks[:progress].func)
-run!(simulation)
-
-simulation.callbacks[:progress] = Callback(simulation.callbacks[:progress].func, IterationInterval(10))
-simulation.stop_iteration = Inf
-simulation.Δt = 10minutes
-run!(simulation)
+simulation.Δt = 5minute
+run!(simulation; pickup)
 
 @info "Simulation took $(prettytime(simulation.run_wall_time))."
 

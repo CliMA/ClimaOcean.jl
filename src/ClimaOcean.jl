@@ -1,6 +1,11 @@
 module ClimaOcean
 
 using Oceananigans
+using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities:
+    CATKEVerticalDiffusivity,
+    MixingLength,
+    TurbulentKineticEnergyEquation
+
 using DataDeps
 
 function __init__(; remove_existing_data=false)
@@ -36,6 +41,35 @@ function __init__(; remove_existing_data=false)
     remove_existing_data && rm(datadep"near_global_one_degree",     recursive=true, force=true)
     remove_existing_data && rm(datadep"near_global_quarter_degree", recursive=true, force=true)
 end
+
+turbulent_kinetic_energy_equation = TurbulentKineticEnergyEquation(
+    C⁻D   = 1.0,
+    C⁺D   = 1.0,
+    CᶜD   = 0.0,
+    CᵉD   = 0.0,
+    Cᵂu★  = 1.0,
+    CᵂwΔ  = 1.0,
+)
+
+mixing_length = MixingLength(
+    Cᵇ   = Inf,
+    Cˢ   = Inf,
+    Cᶜc  = 0.0,
+    Cᶜe  = 0.0,
+    Cᵉc  = 0.0,
+    Cᵉe  = 0.0,
+    Cˢᶜ  = 0.0,
+    C⁻u  = 1.0,
+    C⁺u  = 1.0,
+    C⁻c  = 1.0,
+    C⁺c  = 1.0,
+    C⁻e  = 1.0,
+    C⁺e  = 1.0,
+    CRiʷ = 1.0,
+    CRiᶜ = 0.0,
+)
+
+neutral_catke = CATKEVerticalDiffusivity(; mixing_length, turbulent_kinetic_energy_equation)
 
 include("VerticalGrids.jl")
 include("NearGlobalSimulations.jl")
