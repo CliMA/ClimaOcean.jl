@@ -30,11 +30,12 @@ boundary_layer_turbulence_closure = ri_based
 simulation = quarter_degree_near_global_simulation(GPU();
                                                    stop_time = 10years,
                                                    background_horizontal_viscosity = 1e2,
+                                                   background_horizontal_diffusivity = (T=0.0, S=0.0, e=1e2),
                                                    initial_vertical_diffusion_steps = 0,
                                                    initial_horizontal_diffusion_steps = 0,
                                                    background_vertical_viscosity = 1e-4,
                                                    background_vertical_diffusivity = 1e-5,
-                                                   boundary_layer_turbulence_closure = catke)
+                                                   boundary_layer_turbulence_closure = default_catke)
 
 #=
 vitd = VerticallyImplicitTimeDiscretization()
@@ -65,7 +66,6 @@ simulation.model.clock.iteration = 0
 simulation.model.closure = (default_catke, vertical_diffusivity, horizontal_viscosity)
 =#
 
-#=
 @info "Setting initial condition from file..."
 filepath = "/nobackup/users/glwagner/ClimaOcean/near_global_1440_600_87_RiBasedVerticalDiffusivity_checkpointer.jld2"
 file = jldopen(filepath)
@@ -83,9 +83,8 @@ parent(simulation.model.velocities.v) .= CuArray(v_data)
 parent(simulation.model.tracers.T) .= CuArray(T_data)
 parent(simulation.model.tracers.S) .= CuArray(S_data)
 parent(simulation.model.free_surface.η) .= CuArray(η_data)
-=#
 
-eᵢ(x, y, z) = 1.0
+eᵢ(x, y, z) = 1e-6
 set!(simulation.model, e=eᵢ)
 
 # Define output
@@ -95,7 +94,7 @@ Nx, Ny, Nz = size(simulation.model.grid)
 
 dir = "/nobackup/users/glwagner/ClimaOcean"
 closure_name = typeof(boundary_layer_turbulence_closure).name.wrapper
-output_prefix = "catke_near_global_$(Nx)_$(Ny)_$(Nz)"
+output_prefix = "checkpoint_test_near_global_$(Nx)_$(Ny)_$(Nz)"
 
 simulation.output_writers[:checkpointer] = Checkpointer(simulation.model; dir,
                                                         prefix = output_prefix * "_checkpointer",
