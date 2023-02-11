@@ -1,5 +1,6 @@
 using Oceananigans.TurbulenceClosures: HorizontalDivergenceFormulation
 using Oceananigans.Advection: VelocityStencil
+using Oceananigans.Grids: offset_data
 using CUDA
 
 prettyelapsedtime(start) = prettytime(1e-9 * (time_ns() - start)) * ")"
@@ -9,7 +10,8 @@ prettyelapsedtime(start) = prettytime(1e-9 * (time_ns() - start)) * ")"
 
 Return an Oceananigans.Simulation of Earth's ocean at 1/4 degree resolution.
 """
-function quarter_degree_near_global_simulation(architecture = GPU();
+function quarter_degree_near_global_simulation(
+        architecture                                 = GPU();
         z                                            = stretched_vertical_cell_interfaces(),
         boundary_layer_turbulence_closure            = RiBasedVerticalDiffusivity(),
         background_vertical_diffusivity              = 1e-5,
@@ -80,8 +82,7 @@ function quarter_degree_near_global_simulation(architecture = GPU();
     surface_salt_flux              = Qˢ = arch_array(architecture, Qˢ)
 
     # Stretched faces from ECCO Version 4 (49 levels in the vertical)
-    cpu_grid = T_quarter.grid
-    Nx, Ny, Nz = size(cpu_grid)
+    Nx, Ny, Nz = size(T_quarter.grid)
 
     @info "Creating quarter degree grid..."; start=time_ns()
     # Remake quarter degree grid on `architecture`
@@ -103,7 +104,17 @@ function quarter_degree_near_global_simulation(architecture = GPU();
     vitd = VerticallyImplicitTimeDiscretization()
     vertical_viscosity = VerticalScalarDiffusivity(vitd, ν=background_vertical_viscosity, κ=background_vertical_diffusivity)
     closures = (boundary_layer_turbulence_closure, vertical_viscosity)
-    boundary_layer_turbulence_closure isa CATKEVerticalDiffusivity && push!(tracers, :e)
+    # boundary_layer_turbulence_closure isa CATKEVerticalDiffusivity && push!(tracers, :e)
+
+    T = CenterField(grid, data=T_quarter.data)
+    S = CenterField(grid, data=S_quarter.data)
+
+    if boundary_layer_turbulence_closure isa CATKEVerticalDiffusivity
+        e = CenterField(grid)
+        tracers = (; T, S, e)
+    else
+        tracers = (; T, S)
+    end
 
     #####
     ##### Boundary conditions / time-dependent fluxes 
@@ -184,12 +195,11 @@ function quarter_degree_near_global_simulation(architecture = GPU();
     ##### Initial condition:
     #####
 
-    set!(model, T=T_quarter, S=S_quarter)
+    #set!(model, T=T_quarter, S=S_quarter)
     boundary_layer_turbulence_closure isa CATKEVerticalDiffusivity && set!(model, e=1e-6)
 
     # Because MITgcm forcing starts at Jan 15 (?)
     model.clock.time = start_time
-
     simulation = Simulation(model; Δt=time_step, stop_iteration, stop_time)
 
     start_time = [time_ns()]
@@ -281,21 +291,6 @@ function regrid_to_quarter_degree(T, S, bathymetry;
     regrid!(T_one, T)
     regrid!(S_one, S)
 
-    #=
-    start_time = time_ns()
-    # T⁺ = T⁻ + κ * ∂z(∂z(T⁻))
-    Δz = z[Nz] - z[Nz-1]
-    κz = Δz^2
-    for i = 1:initial_vertical_diffusion_steps
-        T_one .= T_one .+ 0.05 * κz * ∂z(∂z(T_one))
-        S_one .= S_one .+ 0.05 * κz * ∂z(∂z(S_one))
-        elapsed = 1e-9 * (time_ns() - start_time)
-        elapsed_str = prettytime(elapsed)
-        @info "Vertically diffusing one degree solution, step $i, $elapsed_str"
-        start_time = time_ns()
-    end
-    =#
-
     #####
     ##### Regrid one degree initial condition to quarter degree grid with high vertical resolution
     #####
@@ -337,29 +332,16 @@ function regrid_to_quarter_degree(T, S, bathymetry;
 
         quarter_degree_grid = ImmersedBoundaryGrid(quarter_degree_grid, GridFittedBottom(bathymetry)) 
 
-        T_quarter = CenterField(quarter_degree_grid)
-        S_quarter = CenterField(quarter_degree_grid)
+        T_quarter_data = arch_array(architecture, parent(T_quarter))
+        S_quarter_data = arch_array(architecture, parent(S_quarter))
+
+        loc = (Center, Center, Center)
+        T_quarter_data = offset_data(T_quarter_data, quarter_degree_grid, loc)
+        S_quarter_data = offset_data(T_quarter_data, quarter_degree_grid, loc)
+
+        T_quarter = CenterField(quarter_degree_grid, data=T_quarter_data)
+        S_quarter = CenterField(quarter_degree_grid, data=S_quarter_data)
     end
-
-    parent(T_quarter) .= arch_array(architecture, parent(T_quarter))
-    parent(S_quarter) .= arch_array(architecture, parent(S_quarter))
-
-    start = time_ns()
-    Δz = z[Nz] - z[Nz-1]
-    κz = Δz^2
-    Δh = 25kilometers
-    κh = Δh^2
-    for i = 1:initial_horizontal_diffusion_steps
-        T_quarter .= T_quarter .+ 0.05 * κh * ∂x(∂x(T_quarter))
-        S_quarter .= S_quarter .+ 0.05 * κh * ∂x(∂x(S_quarter))
-        T_quarter .= T_quarter .+ 0.05 * κh * ∂y(∂y(T_quarter))
-        S_quarter .= S_quarter .+ 0.05 * κh * ∂y(∂y(S_quarter))
-        T_quarter .= T_quarter .+ 0.05 * κz * ∂z(∂z(T_quarter))
-        S_quarter .= S_quarter .+ 0.05 * κz * ∂z(∂z(S_quarter))
-        @info "Horizontally diffusing quarter degree solution, step $i, " * prettyelapsedtime(start)
-        start = time_ns()
-    end
-
 
     return T_quarter, S_quarter
 end
