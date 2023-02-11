@@ -5,12 +5,7 @@ using JLD2
 using GLMakie
 using Printf
 
-dir = "../data" #/storage1/greg"
-# closure_name = "RiBasedVerticalDiffusivity"
-closure_name = "CATKEVerticalDiffusivity"
-#filename = "near_global_360_150_48_$(closure_name)_fields.jld2"
-filename = "near_global_1440_600_48_$(closure_name)_fields.jld2"
-filepath = joinpath(dir, filename)
+filepath = "near_global_1440_600_87_RiBasedVerticalDiffusivity_fields_surface.jld2"
 
 file = jldopen(filepath)
 reference_density = file["buoyancy/model/equation_of_state/reference_density"]
@@ -23,6 +18,7 @@ ut = FieldTimeSeries(filepath, "u")
 vt = FieldTimeSeries(filepath, "v")
 Tt = FieldTimeSeries(filepath, "T")
 St = FieldTimeSeries(filepath, "S")
+ζt = FieldTimeSeries(filepath, "ζ")
 
 xu, yu, zu = nodes(ut)
 xv, yv, zv = nodes(vt)

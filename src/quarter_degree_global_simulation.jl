@@ -14,8 +14,6 @@ function quarter_degree_near_global_simulation(architecture = GPU();
         boundary_layer_turbulence_closure            = RiBasedVerticalDiffusivity(),
         background_vertical_diffusivity              = 1e-5,
         background_vertical_viscosity                = 1e-4,
-        background_horizontal_diffusivity            = 0.0,
-        background_horizontal_viscosity              = 0.0,
         surface_temperature_relaxation_time_scale    = 7days,
         surface_salinity_relaxation_time_scale       = 7days,
         bottom_drag_coefficient                      = 3e-3,
@@ -29,8 +27,6 @@ function quarter_degree_near_global_simulation(architecture = GPU();
         equation_of_state                            = TEOS10EquationOfState(; reference_density),
         tracers                                      = [:T, :S],
         maximum_free_surface_iterations              = 200,
-        initial_vertical_diffusion_steps             = 10,
-        initial_horizontal_diffusion_steps           = 0,
         initial_conditions                           = nothing,
         bathymetry_path                              = datadep"near_global_quarter_degree/near_global_bathymetry_1440_600.jld2",
         surface_temperature_boundary_conditions_path = datadep"near_global_quarter_degree/near_global_surface_temperature_1440_600.jld2",
@@ -62,9 +58,7 @@ function quarter_degree_near_global_simulation(architecture = GPU();
     interior(T_one_degree) .= T_one_degree_data
     interior(S_one_degree) .= S_one_degree_data
 
-    T_quarter, S_quarter = regrid_to_quarter_degree(T_one_degree, S_one_degree, bathymetry; z,
-                                                    initial_vertical_diffusion_steps,
-                                                    initial_horizontal_diffusion_steps)
+    T_quarter, S_quarter = regrid_to_quarter_degree(T_one_degree, S_one_degree, bathymetry; z, architecture)
 
     # Files contain 12 arrays of monthly-averaged data from 1992
     @info "Reading boundary conditions..."; start=time_ns()
@@ -108,8 +102,7 @@ function quarter_degree_near_global_simulation(architecture = GPU();
 
     vitd = VerticallyImplicitTimeDiscretization()
     vertical_viscosity = VerticalScalarDiffusivity(vitd, ν=background_vertical_viscosity, κ=background_vertical_diffusivity)
-    horizontal_diffusivity = HorizontalScalarDiffusivity(ν=background_horizontal_viscosity, κ=background_horizontal_diffusivity)
-    closures = (boundary_layer_turbulence_closure, vertical_viscosity, horizontal_diffusivity)
+    closures = (boundary_layer_turbulence_closure, vertical_viscosity)
     boundary_layer_turbulence_closure isa CATKEVerticalDiffusivity && push!(tracers, :e)
 
     #####
@@ -270,8 +263,9 @@ function stretched_vertical_cell_interfaces(; surface_layer_Δz = 5.0,
 end
 
 function regrid_to_quarter_degree(T, S, bathymetry;
+                                  architecture = GPU(),
                                   z = stretched_vertical_cell_interfaces(),
-                                  initial_vertical_diffusion_steps=10,
+                                  initial_vertical_diffusion_steps=0,
                                   initial_horizontal_diffusion_steps=0)
 
     Nz = length(z) - 1
@@ -332,21 +326,23 @@ function regrid_to_quarter_degree(T, S, bathymetry;
     regrid!(T_quarter, T_quarter_x)
     regrid!(S_quarter, S_quarter_x)
 
-    # Quarter degree grid
-    quarter_degree_grid = LatitudeLongitudeGrid(GPU(); z,
-                                                size = (1440, 600, Nz),
-                                                longitude = (-180, 180),
-                                                latitude = (-75, 75),
-                                                halo = (5, 5, 5))
 
-    quarter_degree_grid = ImmersedBoundaryGrid(quarter_degree_grid, GridFittedBottom(bathymetry)) 
+    if architecture isa GPU
+        # Quarter degree grid
+        quarter_degree_grid = LatitudeLongitudeGrid(GPU(); z,
+                                                    size = (1440, 600, Nz),
+                                                    longitude = (-180, 180),
+                                                    latitude = (-75, 75),
+                                                    halo = (5, 5, 5))
 
-    T_quarter_data = CuArray(parent(T_quarter))
-    S_quarter_data = CuArray(parent(S_quarter))
-    T_quarter = CenterField(quarter_degree_grid)
-    S_quarter = CenterField(quarter_degree_grid)
-    parent(T_quarter) .= T_quarter_data
-    parent(S_quarter) .= S_quarter_data
+        quarter_degree_grid = ImmersedBoundaryGrid(quarter_degree_grid, GridFittedBottom(bathymetry)) 
+
+        T_quarter = CenterField(quarter_degree_grid)
+        S_quarter = CenterField(quarter_degree_grid)
+    end
+
+    parent(T_quarter) .= arch_array(architecture, parent(T_quarter))
+    parent(S_quarter) .= arch_array(architecture, parent(S_quarter))
 
     start = time_ns()
     Δz = z[Nz] - z[Nz-1]

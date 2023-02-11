@@ -23,67 +23,88 @@ neutral_catke = ClimaOcean.neutral_catke
 # Choose closure
 boundary_layer_turbulence_closure = ri_based
 
+arch = CPU()
+
 #####
 ##### Build the simulation
 #####
 
-simulation = quarter_degree_near_global_simulation(GPU();
+simulation = quarter_degree_near_global_simulation(arch;
                                                    stop_time = 10years,
-                                                   background_horizontal_viscosity = 1e2,
-                                                   background_horizontal_diffusivity = (T=0.0, S=0.0, e=1e2),
-                                                   initial_vertical_diffusion_steps = 0,
-                                                   initial_horizontal_diffusion_steps = 0,
                                                    background_vertical_viscosity = 1e-4,
                                                    background_vertical_diffusivity = 1e-5,
                                                    boundary_layer_turbulence_closure = default_catke)
 
-#=
+grid = simulation.model.grid
+Nx, Ny, Nz = size(grid)
+Δh = 200kilometers
+Az = minimum(grid.Azᶜᶜᵃ[1:Ny])
+Δz = 10meters
+ϵt = 5e-2
+@show Δt = ϵt * Az / Δh^2
+Nt = ceil(Int, Δh / sqrt(Az) / ϵt)
+
 vitd = VerticallyImplicitTimeDiscretization()
-vertical_diffusivity = VerticalScalarDiffusivity(vitd, ν=1e-4, κ=(T=1e-5, S=1e-5, e=1e-5))
-horizontal_viscosity = HorizontalScalarDiffusivity(κ=(T=0.0, S=0.0, e=0.0), ν=1e3)
-neutral_horizontal_diffusivity = HorizontalScalarDiffusivity(κ=(T=0.0, S=0.0, e=0.0), ν=0.0)
+vertical_smoothing = VerticalScalarDiffusivity(vitd, κ = Δz^2)
+horizontal_smoothing = HorizontalScalarDiffusivity(κ = Δh^2)
 
-@info "Diffusing tracers..."; start=time_ns()
-# Steps to diffuse tracer field
-u, v, w = simulation.model.velocities
-e = simulation.model.tracers.e
-η = simulation.model.free_surface.η
-simulation.Δt = 0.02
-for step = 1:1000
-    time_step!(simulation)
-    fill!(parent(u), 0)
-    fill!(parent(v), 0)
-    fill!(parent(w), 0)
-    fill!(parent(η), 0)
-    fill!(parent(e), 0)
-    @info "Step $step"
+smoothing_model = HydrostaticFreeSurfaceModel(grid = simulation.model.grid,
+                                              velocities = PrescribedVelocityFields(),
+                                              buoyancy = nothing,
+                                              tracers = simulation.model.tracers,
+                                              closure = (horizontal_smoothing, vertical_smoothing))
+
+T = simulation.model.tracers.T
+S = simulation.model.tracers.S
+
+@info "Smoothing initial condition..."
+for n = 1:Nt
+    start = time_ns()
+    time_step!(smoothing_model, Δt)
+    elapsed = 1e-9 * (time_ns() - start)
+    @info "Step $n of $Nt, " * prettytime(elapsed)
+
+    @info maximum(abs, ∂y(T))
 end
-@info "    ... done diffusing tracers (" * prettyelapsedtime(start) * ")"
 
-# Reset
-simulation.model.clock.time = 0.0
-simulation.model.clock.iteration = 0
-simulation.model.closure = (default_catke, vertical_diffusivity, horizontal_viscosity)
-=#
+Ty = compute!(Field(∂y(T)))
+Sy = compute!(Field(∂y(S)))
 
-@info "Setting initial condition from file..."
-filepath = "/nobackup/users/glwagner/ClimaOcean/near_global_1440_600_87_RiBasedVerticalDiffusivity_checkpointer.jld2"
-file = jldopen(filepath)
-u_data = file["u/data"]
-v_data = file["v/data"]
-T_data = file["T/data"]
-S_data = file["S/data"]
-η_data = file["η/data"]
-time = file["clock"].time
-close(file)
+Ty = compute!(Field(∂y(T)))
+Sy = compute!(Field(∂y(S)))
 
-simulation.model.clock.time = time
-parent(simulation.model.velocities.u) .= CuArray(u_data)
-parent(simulation.model.velocities.v) .= CuArray(v_data)
-parent(simulation.model.tracers.T) .= CuArray(T_data)
-parent(simulation.model.tracers.S) .= CuArray(S_data)
-parent(simulation.model.free_surface.η) .= CuArray(η_data)
+Nx, Ny, Nz = size(T)
 
+using Oceananigans.ImmersedBoundaries: mask_immersed_field!
+
+mask_immersed_field!(T, NaN)
+mask_immersed_field!(S, NaN)
+mask_immersed_field!(Ty, NaN)
+mask_immersed_field!(Sy, NaN)
+
+using GLMakie
+
+fig = Figure(resolution=(1800, 1200))
+axT = Axis(fig[1, 1])
+axS = Axis(fig[2, 1])
+
+axTy = Axis(fig[1, 2])
+axSy = Axis(fig[2, 2])
+
+heatmap!(axT, interior(T, :, :, Nz))
+heatmap!(axS, interior(S, :, :, Nz))
+
+mask_immersed_field!(Ty, 0)
+mask_immersed_field!(Sy, 0)
+Tylim = maximum(abs, Ty) / 100
+Sylim = maximum(abs, Sy) / 100
+
+heatmap!(axTy, interior(Ty, :, :, Nz), colorrange=(-Tylim, Tylim), colormap=:balance)
+heatmap!(axSy, interior(Sy, :, :, Nz), colorrange=(-Sylim, Sylim), colormap=:balance)
+
+display(fig)
+
+#=
 eᵢ(x, y, z) = 1e-6
 set!(simulation.model, e=eᵢ)
 
@@ -98,7 +119,7 @@ output_prefix = "checkpoint_test_near_global_$(Nx)_$(Ny)_$(Nz)"
 
 simulation.output_writers[:checkpointer] = Checkpointer(simulation.model; dir,
                                                         prefix = output_prefix * "_checkpointer",
-                                                        schedule = WallTimeInterval(10minutes),
+                                                        schedule = WallTimeInterval(20minutes),
                                                         cleanup = true,
                                                         overwrite_existing = true)
 
@@ -152,4 +173,4 @@ run!(simulation)
 # run!(simulation)
 
 @info "Simulation took $(prettytime(simulation.run_wall_time))."
-
+=#
