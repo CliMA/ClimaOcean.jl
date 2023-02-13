@@ -23,7 +23,7 @@ neutral_catke = ClimaOcean.neutral_catke
 # Choose closure
 boundary_layer_turbulence_closure = ri_based
 
-arch = CPU()
+arch = GPU()
 
 #####
 ##### Build the simulation
@@ -49,8 +49,11 @@ vertical_smoothing = VerticalScalarDiffusivity(vitd, κ = Δz^2)
 horizontal_smoothing = HorizontalScalarDiffusivity(κ = Δh^2)
 
 smoothing_model = HydrostaticFreeSurfaceModel(grid = simulation.model.grid,
-                                              velocities = PrescribedVelocityFields(),
+                                              #velocities = PrescribedVelocityFields(),
                                               buoyancy = nothing,
+                                              momentum_advection = nothing,
+                                              tracer_advection = nothing,
+                                              coriolis = nothing,
                                               tracers = simulation.model.tracers,
                                               closure = (horizontal_smoothing, vertical_smoothing))
 
@@ -82,6 +85,7 @@ mask_immersed_field!(S, NaN)
 mask_immersed_field!(Ty, NaN)
 mask_immersed_field!(Sy, NaN)
 
+#=
 using GLMakie
 
 fig = Figure(resolution=(1800, 1200))
@@ -103,8 +107,8 @@ heatmap!(axTy, interior(Ty, :, :, Nz), colorrange=(-Tylim, Tylim), colormap=:bal
 heatmap!(axSy, interior(Sy, :, :, Nz), colorrange=(-Sylim, Sylim), colormap=:balance)
 
 display(fig)
+=#
 
-#=
 eᵢ(x, y, z) = 1e-6
 set!(simulation.model, e=eᵢ)
 
@@ -115,7 +119,7 @@ Nx, Ny, Nz = size(simulation.model.grid)
 
 dir = "/nobackup/users/glwagner/ClimaOcean"
 closure_name = typeof(boundary_layer_turbulence_closure).name.wrapper
-output_prefix = "checkpoint_test_near_global_$(Nx)_$(Ny)_$(Nz)"
+output_prefix = "catke_test_near_global_$(Nx)_$(Ny)_$(Nz)"
 
 simulation.output_writers[:checkpointer] = Checkpointer(simulation.model; dir,
                                                         prefix = output_prefix * "_checkpointer",
