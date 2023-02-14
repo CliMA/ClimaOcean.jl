@@ -108,19 +108,8 @@ function quarter_degree_near_global_simulation(architecture = GPU();
     drag_u = FluxBoundaryCondition(u_immersed_bottom_drag, discrete_form=true, parameters = bottom_drag_coefficient)
     drag_v = FluxBoundaryCondition(v_immersed_bottom_drag, discrete_form=true, parameters = bottom_drag_coefficient)
 
-    no_slip_bc = ValueBoundaryCondition(0)
-
-    u_immersed_bc = ImmersedBoundaryCondition(bottom = drag_u,
-                                              west = no_slip_bc,
-                                              east = no_slip_bc,
-                                              south = no_slip_bc,
-                                              north = no_slip_bc)
-
-    v_immersed_bc = ImmersedBoundaryCondition(bottom = drag_v,
-                                              west = no_slip_bc,
-                                              east = no_slip_bc,
-                                              south = no_slip_bc,
-                                              north = no_slip_bc)
+    u_immersed_bc = ImmersedBoundaryCondition(bottom = drag_u)
+    v_immersed_bc = ImmersedBoundaryCondition(bottom = drag_v)
 
     u_bottom_drag_bc = FluxBoundaryCondition(u_bottom_drag, discrete_form = true, parameters = bottom_drag_coefficient)
     v_bottom_drag_bc = FluxBoundaryCondition(v_bottom_drag, discrete_form = true, parameters = bottom_drag_coefficient)
