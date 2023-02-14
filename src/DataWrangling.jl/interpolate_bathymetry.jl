@@ -4,21 +4,46 @@ using FFTW
 using FastSphericalHarmonics
 using Dierckx
 
-function interpolate_bathymetry_from_file(degree, latitude; 
+"""
+    interpolate_bathymetry_from_file(resolution, latitude; 
+                                     filename = "data/bathymetry-ice-21600x10800.jld2", 
+                                     interpolation_method = LinearInterpolation(), 
+                                     minimum_depth = 6)
+
+Generate a latitude longitude bathymetry array a
+
+"""
+abstract type AbstractInterpolation end 
+
+struct SplineInterpolation <: AbstractInterpolation end
+
+struct LinearInterpolation <: AbstractInterpolation 
+    passes :: Int
+end
+
+struct SpectralInterpolation{F, C} <: AbstractInterpolation 
+    filter_function :: F
+    spectral_coeff  :: C
+end 
+
+LinearInterpolation(; passes = 5) = LinearInterpolation(passes)
+SpectralInterpolation(; filter_func = (l) -> exp(-l * (l+1)/ 180 / 240), spectral_coeff = nothing) = 
+            SpectralInterpolation(filter_func, spectral_coeff)
+
+
+function interpolate_bathymetry_from_file(resolution, latitude; 
                                           filename = "data/bathymetry-ice-21600x10800.jld2", 
-                                          interpolation_method = SplineInterpolation(), 
-                                          passes = 5,
-                                          filter_func = (l) -> exp(-l * (l+1)/ 180 / 240),
-                                          calc_coeff = nothing,
+                                          interpolation_method = LinearInterpolation()
                                           minimum_depth = 6)
 
     file = jldopen(filename)
     bathy_old = Float64.(file["bathymetry"])
 
-    Nxₒ  = size(bathy_old, 1)
-    Nyₒ  = size(bathy_old, 2)
-    Nxₙ  = Int(360 / degree)
-    Nyₙ  = Int(2latitude / degree)
+    Nx  = Int(360 / resolution)
+    Ny  = Int(2latitude / resolution)
+
+    Nn = (Nx, Ny)  
+    bathy = twodimensional_interpolation(bathy_old, interpolation_method, Nn)
 
     if interpolation_method isa SpectralInterpolation
         if calc_coeff isa nothing
@@ -43,6 +68,14 @@ function interpolate_bathymetry_from_file(degree, latitude;
     
     return fixed_bathymetry
 end
+
+function two_dimensional_interpolation(array, method::LinearInterpolation, Nn)
+    Nxₒ  = size(bathy_old, 1)
+    Nyₒ  = size(bathy_old, 2)
+
+    
+
+
 
 function etopo1_to_spherical_harmonics(etopo1, Nmax)
 

@@ -6,17 +6,6 @@ struct SplineInterpolation end
 struct LinearInterpolation end
 struct SpectralInterpolation end 
 
-@inline function z_face_from_center(z_center)
-    z_faces = zeros(length(z_center) + 1)
-    for k = 2:length(z_center) + 1
-        z_faces[k] = z_faces[k-1] + 2*(z_center[k-1] - z_faces[k-1])
-    end
-    
-    return reverse(z_faces)
-end
-
-@inline z_center_from_face(z_faces) = 0.5 .* (z_faces[2:end] .+ z_faces[1:end-1])
-
 @inline function interpolate_one_level(old_array, old_grid, new_grid, loc; interpolation_method = LinearInterpolation())
     old_field = Field{Center, Center, Center}(old_grid)
     set!(old_field, old_array)

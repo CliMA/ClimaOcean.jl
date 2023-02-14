@@ -2,10 +2,7 @@ __precompile__()
 module Initialization
 
 using PyCall
-using Reexport
-@reexport using Oceananigans
 using JLD2
-using NetCDF
 using Oceananigans.Fields: interpolate, set!
 using Oceananigans.Architectures: device, arch_array, device_event
 using Oceananigans.Units
@@ -15,7 +12,9 @@ using Oceananigans.BoundaryConditions
 using Oceananigans.Fields
 using Oceananigans.Grids: architecture
 
-const ABOVE_SEA_LEVEL = 100
+# an small number larger than 0, 
+# to avoid finite precision errors
+const ABOVE_SEA_LEVEL = 0.001
 
 include("utils.jl")
 include("interpolate_bathymetry.jl")
