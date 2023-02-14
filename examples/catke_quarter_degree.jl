@@ -61,9 +61,6 @@ function diffuse_tracers!(grid;
     smoothing_model = HydrostaticFreeSurfaceModel(; grid, tracers,
                                                   velocities = PrescribedVelocityFields(),
                                                   buoyancy = nothing,
-                                                  momentum_advection = nothing,
-                                                  tracer_advection = nothing,
-                                                  coriolis = nothing,
                                                   closure = (horizontal_smoothing, vertical_smoothing))
 
     @info string("Smoothing tracers ", keys(tracers))
