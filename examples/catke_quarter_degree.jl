@@ -44,30 +44,33 @@ function diffuse_tracers!(grid;
                           vertical_scale = 0,
                           fractional_time_step = 1e-2)
 
-    ϵ = fractional_time_step
+    # Horizontal diffusivities that mix up to t ∼ ℓ² / κ ∼ 1
     κh = horizontal_scale^2
     κz = vertical_scale^2
 
+    # Determine stable time-step
     grid = simulation.model.grid
     Nx, Ny, Nz = size(grid)
+    ϵ = fractional_time_step
     Az = minimum(grid.Azᶜᶜᵃ[1:Ny])
     Δt = ϵ * Az / κh
     @show Nt = ceil(Int, 1 / Δt)
 
     vitd = VerticallyImplicitTimeDiscretization()
-    vertical_smoothing = VerticalScalarDiffusivity(vitd, κ = κz^2)
-    horizontal_smoothing = HorizontalScalarDiffusivity(κ = κh^2)
+    vertical_smoothing = VerticalScalarDiffusivity(vitd, κ=κz)
+    horizontal_smoothing = HorizontalScalarDiffusivity(κ=κh)
 
     smoothing_model = HydrostaticFreeSurfaceModel(; grid, tracers,
                                                   velocities = PrescribedVelocityFields(),
+                                                  tracer_advection = nothing,
                                                   buoyancy = nothing,
                                                   closure = (horizontal_smoothing, vertical_smoothing))
 
     @info string("Smoothing tracers ", keys(tracers))
 
-    for n = 1:Nt
-        time_step!(smoothing_model, Δt)
-    end
+    smoothing_simulation = Simulation(smoothing_model; Δt, stop_time=1.0)
+    pop!(smoothing_simulation.callbacks, :nan_checker) 
+    run!(smoothing_simulation)
 
     return nothing
 end
@@ -84,7 +87,7 @@ start = time_ns()
 
 diffuse_tracers!(simulation.model.grid;
                  tracers = (T=T_dummy, S=S_dummy),
-                 horizontal_scale = 100kilometers,
+                 horizontal_scale = 50kilometers,
                  vertical_scale = 10meters)
 
 elapsed = 1e-9 * (time_ns() - start)
