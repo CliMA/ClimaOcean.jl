@@ -20,8 +20,6 @@ function quarter_degree_near_global_simulation(
         surface_salinity_relaxation_time_scale       = 7days,
         bottom_drag_coefficient                      = 3e-3,
         reference_density                            = 1029.0,
-        reference_heat_capacity                      = 3991.0,
-        reference_salinity                           = 34.0,
         time_step                                    = 6minutes,
         stop_iteration                               = Inf,
         start_time                                   = 0.0,
@@ -42,6 +40,12 @@ function quarter_degree_near_global_simulation(
     bathymetry_file = jldopen(bathymetry_path)
     bathymetry = bathymetry_file["bathymetry"]
     close(bathymetry_file)
+
+    #ocean = findall(h -> h < 0, bathymetry)
+    #bathymetry[ocean] .= -6000 
+
+    shallow = findall(h -> h < 0 && h > -15, bathymetry)
+    bathymetry[shallow] .= -15
 
     if isnothing(initial_conditions)
         initial_conditions_path = datadep"near_global_one_degree/near_global_initial_conditions_360_150_48.jld2"
@@ -104,17 +108,12 @@ function quarter_degree_near_global_simulation(
     vitd = VerticallyImplicitTimeDiscretization()
     vertical_viscosity = VerticalScalarDiffusivity(vitd, ν=background_vertical_viscosity, κ=background_vertical_diffusivity)
     closures = (boundary_layer_turbulence_closure, vertical_viscosity)
-    # boundary_layer_turbulence_closure isa CATKEVerticalDiffusivity && push!(tracers, :e)
 
     T = CenterField(grid, data=T_quarter.data)
     S = CenterField(grid, data=S_quarter.data)
 
-    if boundary_layer_turbulence_closure isa CATKEVerticalDiffusivity
-        e = CenterField(grid)
-        tracers = (; T, S, e)
-    else
-        tracers = (; T, S)
-    end
+    e = CenterField(grid)
+    tracers = (; T, S, e)
 
     #####
     ##### Boundary conditions / time-dependent fluxes 

@@ -10,6 +10,7 @@ using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalD
 
 using JLD2
 using CUDA
+using Printf
 
 #####
 ##### Boundary layer turbulence closure options
@@ -29,85 +30,71 @@ arch = GPU()
 ##### Build the simulation
 #####
 
+linear_equation_of_state = LinearEquationOfState(thermal_expansion=2e-4, haline_contraction=8e-5)
+                                                                                             
 simulation = quarter_degree_near_global_simulation(arch;
                                                    stop_time = 10years,
                                                    background_vertical_viscosity = 1e-4,
                                                    background_vertical_diffusivity = 1e-5,
-                                                   boundary_layer_turbulence_closure = default_catke)
+                                                   boundary_layer_turbulence_closure = ri_based)
 
-grid = simulation.model.grid
-Nx, Ny, Nz = size(grid)
-Δh = 200kilometers
-Az = minimum(grid.Azᶜᶜᵃ[1:Ny])
-Δz = 10meters
-ϵt = 5e-2
-@show Δt = ϵt * Az / Δh^2
-Nt = ceil(Int, Δh / sqrt(Az) / ϵt)
+function diffuse_tracers!(grid;
+                          tracers,
+                          horizontal_scale = 0,
+                          vertical_scale = 0,
+                          fractional_time_step = 1e-2)
 
-vitd = VerticallyImplicitTimeDiscretization()
-vertical_smoothing = VerticalScalarDiffusivity(vitd, κ = Δz^2)
-horizontal_smoothing = HorizontalScalarDiffusivity(κ = Δh^2)
+    ϵ = fractional_time_step
+    κh = horizontal_scale^2
+    κz = vertical_scale^2
 
-smoothing_model = HydrostaticFreeSurfaceModel(grid = simulation.model.grid,
-                                              #velocities = PrescribedVelocityFields(),
-                                              buoyancy = nothing,
-                                              momentum_advection = nothing,
-                                              tracer_advection = nothing,
-                                              coriolis = nothing,
-                                              tracers = simulation.model.tracers,
-                                              closure = (horizontal_smoothing, vertical_smoothing))
+    grid = simulation.model.grid
+    Nx, Ny, Nz = size(grid)
+    Az = minimum(grid.Azᶜᶜᵃ[1:Ny])
+    Δt = ϵ * Az / κh
+    @show Nt = ceil(Int, 1 / Δt)
 
-T = simulation.model.tracers.T
-S = simulation.model.tracers.S
+    vitd = VerticallyImplicitTimeDiscretization()
+    vertical_smoothing = VerticalScalarDiffusivity(vitd, κ = κz^2)
+    horizontal_smoothing = HorizontalScalarDiffusivity(κ = κh^2)
 
-@info "Smoothing initial condition..."
-for n = 1:Nt
-    start = time_ns()
-    time_step!(smoothing_model, Δt)
-    elapsed = 1e-9 * (time_ns() - start)
-    @info "Step $n of $Nt, " * prettytime(elapsed)
+    smoothing_model = HydrostaticFreeSurfaceModel(; grid, tracers,
+                                                  velocities = PrescribedVelocityFields(),
+                                                  buoyancy = nothing,
+                                                  momentum_advection = nothing,
+                                                  tracer_advection = nothing,
+                                                  coriolis = nothing,
+                                                  closure = (horizontal_smoothing, vertical_smoothing))
 
-    @info maximum(abs, ∂y(T))
+    @info string("Smoothing tracers ", keys(tracers))
+
+    for n = 1:Nt
+        time_step!(smoothing_model, Δt)
+    end
+
+    return nothing
 end
 
-Ty = compute!(Field(∂y(T)))
-Sy = compute!(Field(∂y(S)))
+grid = simulation.model.grid
+T, S, e = simulation.model.tracers
+T_dummy = CenterField(grid, data=T.data)
+S_dummy = CenterField(grid, data=S.data)
 
 Ty = compute!(Field(∂y(T)))
-Sy = compute!(Field(∂y(S)))
+@info @sprintf("Starting max(∂y T) = %.2e", maximum(abs, Ty))
 
-Nx, Ny, Nz = size(T)
+start = time_ns()
 
-using Oceananigans.ImmersedBoundaries: mask_immersed_field!
+diffuse_tracers!(simulation.model.grid;
+                 tracers = (T=T_dummy, S=S_dummy),
+                 horizontal_scale = 100kilometers,
+                 vertical_scale = 10meters)
 
-mask_immersed_field!(T, NaN)
-mask_immersed_field!(S, NaN)
-mask_immersed_field!(Ty, NaN)
-mask_immersed_field!(Sy, NaN)
+elapsed = 1e-9 * (time_ns() - start)
+compute!(Ty)
 
-#=
-using GLMakie
-
-fig = Figure(resolution=(1800, 1200))
-axT = Axis(fig[1, 1])
-axS = Axis(fig[2, 1])
-
-axTy = Axis(fig[1, 2])
-axSy = Axis(fig[2, 2])
-
-heatmap!(axT, interior(T, :, :, Nz))
-heatmap!(axS, interior(S, :, :, Nz))
-
-mask_immersed_field!(Ty, 0)
-mask_immersed_field!(Sy, 0)
-Tylim = maximum(abs, Ty) / 100
-Sylim = maximum(abs, Sy) / 100
-
-heatmap!(axTy, interior(Ty, :, :, Nz), colorrange=(-Tylim, Tylim), colormap=:balance)
-heatmap!(axSy, interior(Sy, :, :, Nz), colorrange=(-Sylim, Sylim), colormap=:balance)
-
-display(fig)
-=#
+@info @sprintf("Finished diffusing tracers (%s), max(∂y T) = %.2e",
+               prettytime(elapsed), maximum(abs, Ty))
 
 eᵢ(x, y, z) = 1e-6
 set!(simulation.model, e=eᵢ)
@@ -119,7 +106,8 @@ Nx, Ny, Nz = size(simulation.model.grid)
 
 dir = "/nobackup/users/glwagner/ClimaOcean"
 closure_name = typeof(boundary_layer_turbulence_closure).name.wrapper
-output_prefix = "catke_test_near_global_$(Nx)_$(Ny)_$(Nz)"
+#output_prefix = "catke_test_near_global_$(Nx)_$(Ny)_$(Nz)"
+output_prefix = "ri_based_test_near_global_$(Nx)_$(Ny)_$(Nz)"
 
 simulation.output_writers[:checkpointer] = Checkpointer(simulation.model; dir,
                                                         prefix = output_prefix * "_checkpointer",
@@ -159,7 +147,8 @@ for n = 1:2
 
     name = output_names[n]
     simulation.output_writers[name] = JLD2OutputWriter(model, outputs; dir,
-                                                       schedule = TimeInterval(slices_save_interval),
+                                                       #schedule = TimeInterval(slices_save_interval),
+                                                       schedule = IterationInterval(1),
                                                        filename = output_prefix * "_fields_$name",
                                                        with_halos = true,
                                                        overwrite_existing = true)
@@ -167,7 +156,8 @@ end
 
 @info "Running a simulation with Δt = $(prettytime(simulation.Δt))"
 
-simulation.Δt = 1minute
+simulation.Δt = 10minutes
+simulation.stop_iteration = 100
 simulation.callbacks[:progress] = Callback(simulation.callbacks[:progress].func)
 run!(simulation)
 
@@ -177,4 +167,3 @@ run!(simulation)
 # run!(simulation)
 
 @info "Simulation took $(prettytime(simulation.run_wall_time))."
-=#
