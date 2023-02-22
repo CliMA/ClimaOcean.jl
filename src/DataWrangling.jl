@@ -57,7 +57,7 @@ function diffuse_tracers!(grid;
                           tracers,
                           horizontal_scale = 0,
                           vertical_scale = 0,
-                          fractional_time_step = 1e-2)
+                          fractional_time_step = 2e-2)
 
     # Horizontal diffusivities that mix up to t ∼ ℓ² / κ ∼ 1
     κh = horizontal_scale^2
@@ -69,6 +69,7 @@ function diffuse_tracers!(grid;
     ϵ = fractional_time_step
     Az = minimum(grid.Azᶜᶜᵃ[1:Ny])
     Δt = ϵ * Az / κh
+    @show Nt = ceil(Int, 1 / Δt)
 
     vitd = VerticallyImplicitTimeDiscretization()
     vertical_smoothing = VerticalScalarDiffusivity(vitd, κ=κz)
@@ -81,16 +82,13 @@ function diffuse_tracers!(grid;
                                                   closure = (horizontal_smoothing, vertical_smoothing))
 
     Nt = ceil(Int, 1 / Δt)
-    @info string("Smoothing tracers ", keys(tracers), " with ", Nt, "time steps")
-
-    smoothing_simulation = Simulation(smoothing_model; Δt, stop_time=1.0)
+    @info string("Smoothing tracers ", keys(tracers), " with ", Nt, " time steps")
+    smoothing_simulation = Simulation(smoothing_model; Δt, stop_time=1)
     pop!(smoothing_simulation.callbacks, :nan_checker) 
     run!(smoothing_simulation)
 
     return nothing
 end
-
-
 
 end # module
 

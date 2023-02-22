@@ -74,7 +74,7 @@ neutral_catke = CATKEVerticalDiffusivity(; mixing_length, turbulent_kinetic_ener
 include("VerticalGrids.jl")
 include("NearGlobalSimulations.jl")
 include("Diagnostics.jl")
-#include("DataWrangling.jl")
+include("DataWrangling.jl")
 
 end # module
 
