@@ -64,18 +64,10 @@ function interpolate_bathymetry_from_file(resolution, latitude;
 
     fixed_bathymetry = remove_connected_regions(bathy)
 
-    bathy[bathy .> - minimum_depth] .= ABOVE_SEA_LEVEL
+    fixed_bathymetry[bathy .> - minimum_depth] .= ABOVE_SEA_LEVEL
     
     return fixed_bathymetry
 end
-
-function two_dimensional_interpolation(array, method::LinearInterpolation, Nn)
-    Nxₒ  = size(bathy_old, 1)
-    Nyₒ  = size(bathy_old, 2)
-
-    
-
-
 
 function etopo1_to_spherical_harmonics(etopo1, Nmax)
 
