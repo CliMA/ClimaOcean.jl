@@ -10,8 +10,6 @@ using Oceananigans.Architectures: architecture, device_event, device, GPU
 using KernelAbstractions: @kernel, @index
 using KernelAbstractions.Extras.LoopInfo: @unroll
 
-using ImageInpainting
-
 function continue_downards!(field)
     arch = architecture(field)
     grid = field.grid
@@ -36,6 +34,9 @@ end
     end
 end
 
+#=
+using ImageInpainting
+
 function inpaint_horizontally!(field; algorithm=Criminisi(11, 11))
     arch = architecture(field)
     grid = field.grid
@@ -52,6 +53,7 @@ function inpaint_horizontally!(field; algorithm=Criminisi(11, 11))
 
     return nothing
 end
+=#
 
 function diffuse_tracers!(grid;
                           tracers,
