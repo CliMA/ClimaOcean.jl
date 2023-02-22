@@ -48,7 +48,7 @@ Keyword Arguments
 """
 function interpolate_bathymetry_from_file(resolution, maximum_latitude; 
                                           filename = "data/bathymetry-ice-21600x10800.jld2", 
-                                          interpolation_method = LinearInterpolation()
+                                          interpolation_method = LinearInterpolation(),
                                           minimum_depth = 6)
 
     file = jldopen(filename)
