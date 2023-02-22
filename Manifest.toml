@@ -659,9 +659,7 @@ version = "1.2.0"
 
 [[deps.Oceananigans]]
 deps = ["AMGX", "Adapt", "AlgebraicMultigrid", "CUDA", "CUDAKernels", "Crayons", "CubedSphere", "Dates", "DocStringExtensions", "FFTW", "Glob", "IncompleteLU", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "LinearAlgebra", "Logging", "MPI", "NCDatasets", "OffsetArrays", "OrderedCollections", "PencilArrays", "PencilFFTs", "Pkg", "Printf", "Random", "Rotations", "SeawaterPolynomials", "SparseArrays", "Statistics", "StructArrays", "Tullio"]
-git-tree-sha1 = "16c2f262172649be0bc4937b3896d5b2d6ab293f"
-repo-rev = "glw/more-general-regridding"
-repo-url = "https://github.com/CliMA/Oceananigans.jl.git"
+path = "/home/glwagner/Oceananigans.jl/"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
 version = "0.79.1"
 

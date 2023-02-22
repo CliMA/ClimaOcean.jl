@@ -32,8 +32,8 @@ close(file)
 
 temppath = "temp-1440x600-latitude-75.jld2"
 saltpath = "salt-1440x600-latitude-75.jld2"
-tauypath = "tau_y-1440x600-latitude-75.jld2"
 tauxpath = "tau_x-1440x600-latitude-75.jld2"
+tauypath = "tau_y-1440x600-latitude-75.jld2"
 
 file = jldopen(temppath)
 surface_temperature = file["field"]
@@ -63,24 +63,24 @@ close(file)
 path = "near_global_east_momentum_flux_1440_600.jld2"
 isfile(path) && rm(path)
 file = jldopen(path, "a+")
-file["east_momentum_flux"]  = east_momentum_flux  
+file["east_momentum_flux"] = east_momentum_flux  
 close(file)
 
 path = "near_global_north_momentum_flux_1440_600.jld2"
 isfile(path) && rm(path)
 file = jldopen(path, "a+")
-file["north_momentum_flux"]  = north_momentum_flux  
+file["north_momentum_flux"] = north_momentum_flux  
 close(file)
 
 path = "near_global_surface_temperature_1440_600.jld2"
 isfile(path) && rm(path)
 file = jldopen(path, "a+")
-file["surface_temperature"]  = surface_temperature  
+file["surface_temperature"] = surface_temperature  
 close(file)
 
 path = "near_global_surface_salinity_1440_600.jld2"
 isfile(path) && rm(path)
 file = jldopen(path, "a+")
-file["surface_salinity"]  = surface_salinity  
+file["surface_salinity"] = surface_salinity  
 close(file)
 
