@@ -47,15 +47,15 @@ function interpolate_bathymetry_from_file(resolution, latitude;
     bathy = twodimensional_interpolation(bathy_old, interpolation_method, Nn)
 
     if interpolation_method isa SpectralInterpolation
-        if calc_coeff isa nothing
-            spectral_coeff = etopo1_to_spherical_harmonics(bathy_old, Nyₒ)
+        if interpolation_method.spectral_coeff isa nothing
+            spectral_coeff = etopo1_to_spherical_harmonics(bathy_old, size(bathy_old, 2))
         else 
-            spectral_coeff = calc_coeff
+            spectral_coeff = interpolation_method.spectral_coeff
         end
 
-        bathy = bathymetry_from_etopo1(Nxₙ, Nyₙ, spher_harm_coeff, filter_func)
+        bathy = bathymetry_from_etopo1(Nx, Ny, spectral_coeff, interpolation_method.filter_func)
     else 
-        bathy = interpolate_one_level_in_passes(bathy_old, Nxₒ, Nyₒ, Nxₙ, Nyₙ, passes; interpolation_method)
+        bathy = interpolate_one_level_in_passes(bathy_old, size(bathy_old)..., Nx, Ny, passes; interpolation_method)
     end
 
     # apparently bathymetry is reversed in the longitude direction, therefore we have to swap it
