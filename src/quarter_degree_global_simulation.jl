@@ -5,6 +5,13 @@ using CUDA
 
 prettyelapsedtime(start) = prettytime(1e-9 * (time_ns() - start)) * ")"
 
+function materialize_bathymetry(bathymetry_path::String)
+    bathymetry_file = jldopen(bathymetry_path)
+    bathymetry = bathymetry_file["bathymetry"]
+    close(bathymetry_file)
+    return bathymetry
+end
+
 """
     quarter_degree_near_global_simulation(architecture = GPU(); kwargs...)
 
@@ -28,7 +35,7 @@ function quarter_degree_near_global_simulation(
         tracers                                      = [:T, :S],
         maximum_free_surface_iterations              = 200,
         initial_conditions                           = nothing,
-        bathymetry_path                              = datadep"near_global_quarter_degree/near_global_bathymetry_1440_600.jld2",
+        bathymetry                                   = datadep"near_global_quarter_degree/near_global_bathymetry_1440_600.jld2",
         surface_temperature_boundary_conditions_path = datadep"near_global_quarter_degree/near_global_surface_temperature_1440_600.jld2",
         surface_salinity_boundary_conditions_path    = datadep"near_global_quarter_degree/near_global_surface_salinity_1440_600.jld2",
         east_momentum_flux_path                      = datadep"near_global_quarter_degree/near_global_east_momentum_flux_1440_600.jld2",
@@ -36,10 +43,8 @@ function quarter_degree_near_global_simulation(
     )
 
     start_building_simulation = time_ns()
-
-    bathymetry_file = jldopen(bathymetry_path)
-    bathymetry = bathymetry_file["bathymetry"]
-    close(bathymetry_file)
+    
+    bathymetry = materialize_bathymetry(bathymetry)
 
     #ocean = findall(h -> h < 0, bathymetry)
     #bathymetry[ocean] .= -6000 
@@ -89,7 +94,6 @@ function quarter_degree_near_global_simulation(
     Nx, Ny, Nz = size(T_quarter.grid)
 
     @info "Creating quarter degree grid..."; start=time_ns()
-    # Remake quarter degree grid on `architecture`
     underlying_grid = LatitudeLongitudeGrid(architecture; z,
                                             size = (Nx, Ny, Nz),
                                             longitude = (-180, 180),
@@ -194,7 +198,6 @@ function quarter_degree_near_global_simulation(
     ##### Initial condition:
     #####
 
-    #set!(model, T=T_quarter, S=S_quarter)
     boundary_layer_turbulence_closure isa CATKEVerticalDiffusivity && set!(model, e=1e-6)
 
     # Because MITgcm forcing starts at Jan 15 (?)
@@ -207,18 +210,19 @@ function quarter_degree_near_global_simulation(
         wall_time = (time_ns() - start_time[1]) * 1e-9
 
         u = sim.model.velocities.u
+        v = sim.model.velocities.v
         w = sim.model.velocities.w
 
-        intw  = Array(interior(w))
-        max_w = findmax(intw)
-
-        mw = max_w[1]
-        iw = max_w[2]
+        u_interior = Array(interior(u))
+        w_interior = Array(interior(w))
+        max_w, i_max_w = findmax(w_interior)
+        max_u, i_max_u = findmax(u_interior)
 
         msg1 = @sprintf("Time: % 12s, iteration: %d, ", prettytime(sim), iteration(sim))
 
-        msg2 = @sprintf("max(|u|): %.2e m s⁻¹, wmax: %.2e, loc: (%d, %d, %d), ",
-                        maximum(abs, u), mw, iw[1], iw[2], iw[3])
+        msg2 = @sprintf("max(|u|): %.2e (%d, %d, %d) m s⁻¹, wmax: %.2e (%d, %d, %d) m s⁻¹, ",
+                        maximum(abs, u), i_max_u[1], i_max_u[2], i_max_u[3],
+                        max_w, i_max_w[1], i_max_w[2], i_max_w[3])
 
         if boundary_layer_turbulence_closure isa CATKEVerticalDiffusivity
             e = sim.model.tracers.e
