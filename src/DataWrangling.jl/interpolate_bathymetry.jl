@@ -4,15 +4,6 @@ using FFTW
 using FastSphericalHarmonics
 using Dierckx
 
-"""
-    interpolate_bathymetry_from_file(resolution, latitude; 
-                                     filename = "data/bathymetry-ice-21600x10800.jld2", 
-                                     interpolation_method = LinearInterpolation(), 
-                                     minimum_depth = 6)
-
-Generate a latitude longitude bathymetry array a
-
-"""
 abstract type AbstractInterpolation end 
 
 struct SplineInterpolation <: AbstractInterpolation end
@@ -31,6 +22,16 @@ SpectralInterpolation(; filter_func = (l) -> exp(-l * (l+1)/ 180 / 240), spectra
             SpectralInterpolation(filter_func, spectral_coeff)
 
 
+
+"""
+    interpolate_bathymetry_from_file(resolution, latitude; 
+                                     filename = "data/bathymetry-ice-21600x10800.jld2", 
+                                     interpolation_method = LinearInterpolation(), 
+                                     minimum_depth = 6)
+
+Generate a latitude longitude bathymetry array spanning `latitude = (-latitude, +latitude)`
+with size `(360 / resolution, 2latitude / resolution)`
+"""
 function interpolate_bathymetry_from_file(resolution, latitude; 
                                           filename = "data/bathymetry-ice-21600x10800.jld2", 
                                           interpolation_method = LinearInterpolation()
