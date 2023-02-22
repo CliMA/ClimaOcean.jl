@@ -24,15 +24,29 @@ SpectralInterpolation(; filter_func = (l) -> exp(-l * (l+1)/ 180 / 240), spectra
 
 
 """
-    interpolate_bathymetry_from_file(resolution, latitude; 
+    interpolate_bathymetry_from_file(resolution, maximum_latitude; 
                                      filename = "data/bathymetry-ice-21600x10800.jld2", 
                                      interpolation_method = LinearInterpolation(), 
                                      minimum_depth = 6)
 
-Generate a latitude longitude bathymetry array spanning `latitude = (-latitude, +latitude)`
-with size `(360 / resolution, 2latitude / resolution)`
+Generate a latitude-longitude bathymetry array that spans `latitude = (-maximum_latitude, +maximum_latitude)`
+with size `(360 / resolution, 2maximum_latitude / resolution)`.
+
+Arguments
+=========
+
+- `resolution :: Float`: The lateral resolution (in degrees) of the output bathymetry.
+- `maximum_latitude :: Float`: The north/south latitudinal extent of the domain.
+
+Keyword Arguments
+=================
+- `filename`: Where the bathymetry is located; default `"data/bathymetry-ice-21600x10800.jld2"`.
+- `interpolation_method`: Either `LinearInterpolation()` (default) or SpectralInterpolation().
+- `minimum_depth`: The minimum depth of the bathymetry in meters. Anything less than `minimum_depth` is
+                   considered land. Default `6` meters.
+```
 """
-function interpolate_bathymetry_from_file(resolution, latitude; 
+function interpolate_bathymetry_from_file(resolution, maximum_latitude; 
                                           filename = "data/bathymetry-ice-21600x10800.jld2", 
                                           interpolation_method = LinearInterpolation()
                                           minimum_depth = 6)
@@ -40,11 +54,10 @@ function interpolate_bathymetry_from_file(resolution, latitude;
     file = jldopen(filename)
     bathy_old = Float64.(file["bathymetry"])
 
-    Nx  = Int(360 / resolution)
-    Ny  = Int(2latitude / resolution)
+    Nx = Int(360 / resolution)
+    Ny = Int(2maximum_latitude / resolution)
 
-    Nn = (Nx, Ny)  
-    bathy = twodimensional_interpolation(bathy_old, interpolation_method, Nn)
+    bathy = twodimensional_interpolation(bathy_old, interpolation_method, (Nx, Ny))
 
     if interpolation_method isa SpectralInterpolation
         if interpolation_method.spectral_coeff isa nothing
@@ -86,7 +99,7 @@ function etopo1_to_spherical_harmonics(etopo1, Nmax)
     fft_etopo1_center = fft_etopo1_center[:, 1:end-1]
     etopo1_interp     = irfft(fft_etopo1_center, 2lmax +1, 2)
 
-    # Sperical harmonic filtering
+    # Spherical harmonic filtering
     return sph_transform(etopo1_interp)
 end
 
@@ -96,7 +109,7 @@ function bathymetry_from_etopo1(Nφ, Nλ, spher_harm_coeff, filter)
 
     spher_harm_coeff_filter = zeros(lmax_interp + 1, 2lmax_interp +1)
     for l = 0:lmax_interp, m = -l:l
-        spher_harm_coeff_filter[sph_mode(l,m)] = spher_harm_coeff[sph_mode(l, m)] * filter(l)
+        spher_harm_coeff_filter[sph_mode(l, m)] = spher_harm_coeff[sph_mode(l, m)] * filter(l)
     end
 
     etopo1_filter = sph_evaluate(spher_harm_coeff_filter) # dimensions are Nφ, 2Nφ - 1 
