@@ -2,6 +2,7 @@ module DataWrangling
 
 export continue_downwards!
 
+using Oceananigans
 using Oceananigans.Grids: peripheral_node
 using Oceananigans.Utils: launch!
 using Oceananigans.Fields: instantiated_location, interior
@@ -9,8 +10,6 @@ using Oceananigans.Architectures: architecture, device_event, device, GPU
 
 using KernelAbstractions: @kernel, @index
 using KernelAbstractions.Extras.LoopInfo: @unroll
-
-using ImageInpainting
 
 function continue_downards!(field)
     arch = architecture(field)
@@ -36,6 +35,9 @@ end
     end
 end
 
+#=
+using ImageInpainting
+
 function inpaint_horizontally!(field; algorithm=Criminisi(11, 11))
     arch = architecture(field)
     grid = field.grid
@@ -52,6 +54,7 @@ function inpaint_horizontally!(field; algorithm=Criminisi(11, 11))
 
     return nothing
 end
+=#
 
 function diffuse_tracers!(grid;
                           tracers,
@@ -64,7 +67,6 @@ function diffuse_tracers!(grid;
     κz = vertical_scale^2
 
     # Determine stable time-step
-    grid = simulation.model.grid
     Nx, Ny, Nz = size(grid)
     ϵ = fractional_time_step
     Az = minimum(grid.Azᶜᶜᵃ[1:Ny])

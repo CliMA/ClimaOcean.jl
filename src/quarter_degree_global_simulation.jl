@@ -2,8 +2,13 @@ using Oceananigans.TurbulenceClosures: HorizontalDivergenceFormulation
 using Oceananigans.Advection: VelocityStencil
 using Oceananigans.Grids: offset_data
 using CUDA
+using Statistics
 
 prettyelapsedtime(start) = prettytime(1e-9 * (time_ns() - start)) * ")"
+
+tupleit(a::Tuple) = a
+tupleit(a::AbstractArray) = Tuple(a)
+tupleit(a) = tuple(a)
 
 function materialize_bathymetry(bathymetry_path::String)
     bathymetry_file = jldopen(bathymetry_path)
@@ -20,7 +25,8 @@ Return an Oceananigans.Simulation of Earth's ocean at 1/4 degree resolution.
 function quarter_degree_near_global_simulation(
         architecture                                 = GPU();
         z                                            = stretched_vertical_cell_interfaces(),
-        boundary_layer_turbulence_closure            = RiBasedVerticalDiffusivity(),
+        vertical_mixing_closure                     = RiBasedVerticalDiffusivity(),
+        minimum_ocean_depth                          = 10.0,
         background_vertical_diffusivity              = 1e-5,
         background_vertical_viscosity                = 1e-4,
         surface_temperature_relaxation_time_scale    = 7days,
@@ -46,12 +52,21 @@ function quarter_degree_near_global_simulation(
     
     bathymetry = materialize_bathymetry(bathymetry)
 
-    #ocean = findall(h -> h < 0, bathymetry)
-    #bathymetry[ocean] .= -6000 
+    shallow = findall(h -> h < 0 && h > -minimum_ocean_depth, bathymetry)
+    bathymetry[shallow] .= -minimum_ocean_depth
 
-    shallow = findall(h -> h < 0 && h > -15, bathymetry)
-    bathymetry[shallow] .= -15
+    ocean = findall(h -> h < 0, bathymetry)
+    mean_height = mean(bathymetry[ocean])
+    min_height = minimum(bathymetry[ocean])
+    max_height = maximum(bathymetry[ocean])
+    med_height = median(bathymetry[ocean])
 
+    @info """Bathymetry loaded.
+                 - mean(h):   $mean_height
+                 - median(h): $med_height
+                 - min(h):    $min_height
+                 - max(h):    $max_height"""
+           
     if isnothing(initial_conditions)
         initial_conditions_path = datadep"near_global_one_degree/near_global_initial_conditions_360_150_48.jld2"
         @info "Preparing initial conditions..."; start=time_ns()
@@ -82,6 +97,9 @@ function quarter_degree_near_global_simulation(
     Qᵀ = zeros(size(S★)...)
     @info "... read boundary conditions (" * prettyelapsedtime(start) * ")"
 
+    @show extrema(τˣ)
+    @show extrema(τʸ)
+
     # Convert boundary conditions arrays to GPU
     τˣ = arch_array(architecture, τˣ)
     τʸ = arch_array(architecture, τʸ)
@@ -110,8 +128,9 @@ function quarter_degree_near_global_simulation(
     @info "Building quarter degree model..."; start=time_ns()
 
     vitd = VerticallyImplicitTimeDiscretization()
-    vertical_viscosity = VerticalScalarDiffusivity(vitd, ν=background_vertical_viscosity, κ=background_vertical_diffusivity)
-    closures = (boundary_layer_turbulence_closure, vertical_viscosity)
+    background_vertical_diffusivity = VerticalScalarDiffusivity(vitd, ν=background_vertical_viscosity, κ=background_vertical_diffusivity)
+    vertical_mixing_closure = tupleit(vertical_mixing_closure)
+    closures = (vertical_mixing_closure..., background_vertical_diffusivity)
 
     T = CenterField(grid, data=T_quarter.data)
     S = CenterField(grid, data=S_quarter.data)
@@ -198,7 +217,8 @@ function quarter_degree_near_global_simulation(
     ##### Initial condition:
     #####
 
-    boundary_layer_turbulence_closure isa CATKEVerticalDiffusivity && set!(model, e=1e-6)
+    using_CATKE = any(closure isa CATKEVerticalDiffusivity for closure in model.closure)
+    using_CATKE && set!(model, e=1e-6)
 
     # Because MITgcm forcing starts at Jan 15 (?)
     model.clock.time = start_time
@@ -224,9 +244,12 @@ function quarter_degree_near_global_simulation(
                         maximum(abs, u), i_max_u[1], i_max_u[2], i_max_u[3],
                         max_w, i_max_w[1], i_max_w[2], i_max_w[3])
 
-        if boundary_layer_turbulence_closure isa CATKEVerticalDiffusivity
+        if using_CATKE
             e = sim.model.tracers.e
-            msg2a = @sprintf("extrema(e): (%.2e, %.2e)  m² s⁻², ", maximum(e), minimum(e))
+            e_interior = Array(interior(e))
+            max_e, i_max_e = findmax(e_interior)
+            msg2a = @sprintf("extrema(e): (%.2e, %.2e)  m² s⁻², (%d, %d, %d), ",
+                             maximum(e), minimum(e), i_max_e[1], i_max_e[2], i_max_e[3])
             msg2 *= msg2a
         end
 
