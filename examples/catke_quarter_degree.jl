@@ -12,7 +12,7 @@ using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalD
 using JLD2
 using CUDA
 using Printf
-using SeawaterPolynomials
+using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 
 #####
 ##### Boundary layer turbulence closure options
@@ -21,17 +21,24 @@ using SeawaterPolynomials
 # "Ri-based" --- uses calibrated defaults in Oceananigans
 ri_based = RiBasedVerticalDiffusivity() 
 default_catke = CATKEVerticalDiffusivity() 
+clipped_catke = CATKEVerticalDiffusivity(maximum_diffusivity=1e-2) 
 neutral_catke = ClimaOcean.neutral_catke
+catke_and_convective_adj = (CATKEVerticalDiffusivity(), ConvectiveAdjustmentVerticalDiffusivity(convective_κz=1.0)) 
 linear_equation_of_state = LinearEquationOfState(thermal_expansion=2e-4, haline_contraction=8e-5)
-teos10 = TEOS10EquationOfState(; reference=density=1020)
+teos10 = TEOS10EquationOfState(; reference_density=1020)
 
 # Choose closure
-boundary_layer_turbulence_closure = ri_based
+#vertical_mixing_closure = clipped_catke
+vertical_mixing_closure = default_catke
+#vertical_mixing_closure = catke_and_convective_adj
 equation_of_state = teos10 #linear_equation_of_state
 arch = GPU()
 
 dir = "/nobackup/users/glwagner/ClimaOcean"
-output_prefix = "catke_limited_diffusivities"
+output_prefix = "default_catke"
+#output_prefix = "clipped_catke"
+#output_prefix = "catke_flat_bottom"
+#output_prefix = "catke_plus_conv_adj"
 
 #####
 ##### Build the simulation
@@ -39,12 +46,14 @@ output_prefix = "catke_limited_diffusivities"
                                                                                              
 simulation = quarter_degree_near_global_simulation(arch;
                                                    stop_time = 10years,
+                                                   minimum_ocean_depth = 15,
+                                                   #minimum_ocean_depth = 6000,
                                                    surface_temperature_relaxation_time_scale = 7days,
                                                    surface_salinity_relaxation_time_scale = 7days,
                                                    background_vertical_viscosity = 1e-4,
                                                    background_vertical_diffusivity = 1e-5,
                                                    equation_of_state,
-                                                   boundary_layer_turbulence_closure)
+                                                   vertical_mixing_closure)
 
 grid = simulation.model.grid
 T, S, e = simulation.model.tracers
@@ -112,17 +121,19 @@ for n = 1:2
 
     name = output_names[n]
     simulation.output_writers[name] = JLD2OutputWriter(model, outputs; dir,
-                                                       schedule = TimeInterval(slices_save_interval),
-                                                       #schedule = IterationInterval(20),
+                                                       #schedule = TimeInterval(slices_save_interval),
+                                                       schedule = IterationInterval(20),
                                                        filename = output_prefix * "_fields_$name",
                                                        with_halos = true,
                                                        overwrite_existing = true)
 end
 
-@info "Running a simulation with Δt = $(prettytime(simulation.Δt))"
+@info "Running a $output_prefix simulation with Δt = $(prettytime(simulation.Δt))"
 
-simulation.Δt = 2minutes
-simulation.stop_iteration = 10000
+simulation.Δt = 1.0
+simulation.stop_iteration = 1000
+progress = simluation.callbacks[:progress].func
+simluation.callbacks[:progress] = Callback(progress)
 run!(simulation)
 
 #=
