@@ -29,13 +29,15 @@ teos10 = TEOS10EquationOfState(; reference_density=1020)
 
 # Choose closure
 #vertical_mixing_closure = clipped_catke
-vertical_mixing_closure = default_catke
+#vertical_mixing_closure = default_catke
 #vertical_mixing_closure = catke_and_convective_adj
+vertical_mixing_closure = ri_based
 equation_of_state = teos10 #linear_equation_of_state
 arch = GPU()
 
 dir = "/nobackup/users/glwagner/ClimaOcean"
-output_prefix = "default_catke"
+#output_prefix = "default_catke"
+output_prefix = "ri_based"
 #output_prefix = "clipped_catke"
 #output_prefix = "catke_flat_bottom"
 #output_prefix = "catke_plus_conv_adj"
@@ -55,19 +57,18 @@ simulation = quarter_degree_near_global_simulation(arch;
                                                    equation_of_state,
                                                    vertical_mixing_closure)
 
-grid = simulation.model.grid
 T, S, e = simulation.model.tracers
-T_dummy = CenterField(grid, data=T.data)
-S_dummy = CenterField(grid, data=S.data)
-
 Ty = compute!(Field(∂y(T)))
 start = time_ns()
 @info @sprintf("Starting max(∂y T) = %.2e", maximum(abs, Ty))
 
+step(x, d, c) = 1/2 * (tanh((x - c) / d) + 1)
+vertical_scale(x, y, z, t) = 10 + 190 * step(abs(z), 200, 1000)
+
 diffuse_tracers!(simulation.model.grid;
-                 tracers = (T=T_dummy, S=S_dummy),
-                 horizontal_scale = 50kilometers,
-                 vertical_scale = 10meters)
+                 tracers = (; T, S),
+                 horizontal_scale = 100kilometers,
+                 vertical_scale)
 
 elapsed = 1e-9 * (time_ns() - start)
 compute!(Ty)
@@ -97,8 +98,8 @@ simulation.output_writers[:fields] = JLD2OutputWriter(model, merge(model.velocit
                                                       with_halos = true,
                                                       overwrite_existing = true)
 
-slice_indices = [(:, :, Nz), (:, :, Nz-20)]
-output_names = [:surface, :near_surface]
+slice_indices = [(:, :, Nz), (:, :, Nz-20), (:, 300, :), (600, :, :)]
+output_names = [:surface, :near_surface, :zonal, :meridional]
 for n = 1:2
     indices = slice_indices[n]
 
@@ -130,10 +131,10 @@ end
 
 @info "Running a $output_prefix simulation with Δt = $(prettytime(simulation.Δt))"
 
-simulation.Δt = 1.0
+simulation.Δt = 10.0
 simulation.stop_iteration = 1000
-progress = simluation.callbacks[:progress].func
-simluation.callbacks[:progress] = Callback(progress)
+#progress = simulation.callbacks[:progress].func
+#simulation.callbacks[:progress] = Callback(progress)
 run!(simulation)
 
 #=

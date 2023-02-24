@@ -25,7 +25,7 @@ Return an Oceananigans.Simulation of Earth's ocean at 1/4 degree resolution.
 function quarter_degree_near_global_simulation(
         architecture                                 = GPU();
         z                                            = stretched_vertical_cell_interfaces(),
-        vertical_mixing_closure                     = RiBasedVerticalDiffusivity(),
+        vertical_mixing_closure                      = RiBasedVerticalDiffusivity(),
         minimum_ocean_depth                          = 10.0,
         background_vertical_diffusivity              = 1e-5,
         background_vertical_viscosity                = 1e-4,
@@ -233,10 +233,15 @@ function quarter_degree_near_global_simulation(
         v = sim.model.velocities.v
         w = sim.model.velocities.w
 
+        T = sim.model.tracers.T
+        S = sim.model.tracers.S
+
         u_interior = Array(interior(u))
         w_interior = Array(interior(w))
+        T_interior = Array(interior(T))
         max_w, i_max_w = findmax(w_interior)
         max_u, i_max_u = findmax(u_interior)
+        max_T, i_max_T = findmax(T_interior)
 
         msg1 = @sprintf("Time: % 12s, iteration: %d, ", prettytime(sim), iteration(sim))
 
@@ -244,18 +249,21 @@ function quarter_degree_near_global_simulation(
                         maximum(abs, u), i_max_u[1], i_max_u[2], i_max_u[3],
                         max_w, i_max_w[1], i_max_w[2], i_max_w[3])
 
+        msg3 = @sprintf("max(T): %.2e (%d, %d, %d) ᵒC, ",
+                        max_T, i_max_T[1], i_max_T[2], i_max_T[3])
+
         if using_CATKE
             e = sim.model.tracers.e
             e_interior = Array(interior(e))
             max_e, i_max_e = findmax(e_interior)
-            msg2a = @sprintf("extrema(e): (%.2e, %.2e)  m² s⁻², (%d, %d, %d), ",
+            msg3a = @sprintf("extrema(e): (%.2e, %.2e)  m² s⁻², (%d, %d, %d), ",
                              maximum(e), minimum(e), i_max_e[1], i_max_e[2], i_max_e[3])
-            msg2 *= msg2a
+            msg3 *= msg3a
         end
 
-        msg3 = @sprintf("wall time: %s", prettytime(wall_time))
+        msg4 = @sprintf("wall time: %s", prettytime(wall_time))
 
-        @info msg1 * msg2 * msg3
+        @info msg1 * msg2 * msg3 * msg4
 
         start_time[1] = time_ns()
 

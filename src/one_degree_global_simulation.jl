@@ -28,9 +28,9 @@ function one_degree_near_global_simulation(architecture = GPU();
     start_time                                   = 345days,
     stop_time                                    = Inf,
     tracers                                      = [:T, :S],
-    initial_conditions                           = datadep"near_global_one_degree/initial_conditions_month_01_360_150_48.jld2",
-    bathymetry_path                              = datadep"near_global_one_degree/bathymetry_lat_lon_360_150.jld2",
-    surface_boundary_conditions_path             = datadep"near_global_one_degree/surface_boundary_conditions_12_months_360_150.jld2",
+    initial_conditions                           = datadep"near_global_one_degree/near_global_initial_conditions_360_150_48.jld2",
+    bathymetry_path                              = datadep"near_global_one_degree/near_global_bathymetry_360_150.jld2",
+    surface_boundary_conditions_path             = datadep"near_global_one_degree/near_global_boundary_conditions_360_150.jld2",
     )
 
     size == (360, 150, 48) || throw(ArgumentError("Only size = (360, 150, 48) is supported."))
@@ -63,12 +63,12 @@ function one_degree_near_global_simulation(architecture = GPU();
     # Files contain 12 arrays of monthly-averaged data from 1992
     @info "Reading boundary conditions..."; start=time_ns()
     boundary_conditions_file = jldopen(surface_boundary_conditions_path)
-    τˣ = - boundary_conditions_file["τˣ"] ./ reference_density
-    τʸ = - boundary_conditions_file["τʸ"] ./ reference_density
-    T★ = + boundary_conditions_file["Tₛ"]
-    S★ = + boundary_conditions_file["Sₛ"]
-    Q★ = - boundary_conditions_file["Qᶠ"] ./ reference_density ./ reference_heat_capacity
-    F★ = - boundary_conditions_file["Sᶠ"] ./ reference_density .* reference_salinity
+    τˣ = boundary_conditions_file["east_momentum_flux"] ./ reference_density
+    τʸ = boundary_conditions_file["north_momentum_flux"] ./ reference_density
+    T★ = boundary_conditions_file["surface_temperature"]
+    S★ = boundary_conditions_file["surface_salinity"]
+    Q★ = boundary_conditions_file["heat_flux"] ./ reference_density ./ reference_heat_capacity
+    F★ = boundary_conditions_file["salinity_flux"] ./ reference_density .* reference_salinity
     close(boundary_conditions_file)
     @info "... read boundary conditions (" * prettytime(1e-9 * (time_ns() - start)) * ")"
 

@@ -11,7 +11,7 @@ using DataDeps
 function __init__(; remove_existing_data=false)
 
     # Data for one_degree_global_simulation
-    base_url            = "https://github.com/glwagner/ClimaOceanData/raw/main/near_global_simulation_data"
+    base_url                        = "https://github.com/glwagner/ClimaOceanData/raw/main/near_global_simulation_data"
     bathymetry_url                  = joinpath(base_url, "near_global_bathymetry_360_150.jld2")
     initial_conditions_url          = joinpath(base_url, "near_global_initial_conditions_360_150_48.jld2")
     surface_boundary_conditions_url = joinpath(base_url, "near_global_boundary_conditions_360_150.jld2")

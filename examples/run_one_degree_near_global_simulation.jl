@@ -17,27 +17,10 @@ using JLD2
 
 # "Ri-based" --- uses calibrated defaults in Oceananigans
 ri_based = RiBasedVerticalDiffusivity() 
-
-# CATKE with calibrated parameters loaded from file
-neutral_default_mixing_length_parameters = (Cᵇu = Inf, Cᵇc = Inf, Cᵇe = Inf,
-                                            Cˢu = Inf, Cˢc = Inf, Cˢe = Inf,
-                                            CᴷRiᶜ = Inf, CᴷRiʷ = 0.0)
-
-neutral_default_tke_parameters = (CᵂwΔ = 0.0, Cᵂu★ = 0.0,
-                                  Cᴰ⁻ = 0.0, Cᴰ⁺ = 0.0, CᴰRiᶜ = Inf, CᴰRiʷ = 0.0)
-                                  
-mixing_length = MixingLength(; neutral_default_mixing_length_parameters...)
-turbulent_kinetic_energy_equation = TurbulentKineticEnergyEquation(; neutral_default_tke_parameters...)
-neutral_catke = CATKEVerticalDiffusivity(; mixing_length, turbulent_kinetic_energy_equation)
-
-catke_parameters_name = "catke_basic_conv_adj_parameters.jld2"
-catke_parameters_filename = joinpath("..", "parameters", catke_parameters_name)
-catke_parameters = load(catke_parameters_filename, "mean") # load ensemble mean parameters from EKI calibration
-
-catke = closure_with_parameters(neutral_catke, catke_parameters)
+default_catke = CATKEVerticalDiffusivity()
 
 # Choose closure
-boundary_layer_turbulence_closure = catke
+boundary_layer_turbulence_closure = ri_based
 
 @show boundary_layer_turbulence_closure
 
@@ -45,8 +28,8 @@ boundary_layer_turbulence_closure = catke
 ##### Build the simulation
 #####
 
-start_time = 345days
-stop_time = start_time + 2years
+start_time = 0days
+stop_time = start_time + 10years
 with_isopycnal_skew_symmetric_diffusivity = true
 
 simulation = one_degree_near_global_simulation(; start_time, stop_time,
@@ -63,7 +46,7 @@ slices_save_interval = 2day
 fields_save_interval = 10days
 Nx, Ny, Nz = size(simulation.model.grid)
 
-dir = "/storage1/greg" 
+dir = "/nobackup/users/glwagner/ClimaOcean"
 closure_name = typeof(boundary_layer_turbulence_closure).name.wrapper
 output_prefix = "near_global_$(Nx)_$(Ny)_$(Nz)_$closure_name"
 with_isopycnal_skew_symmetric_diffusivity || (output_prefix *= "_no_gm")
