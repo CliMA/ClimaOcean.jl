@@ -255,9 +255,9 @@ uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[deps.Distributions]]
 deps = ["ChainRulesCore", "DensityInterface", "FillArrays", "LinearAlgebra", "PDMats", "Printf", "QuadGK", "Random", "SparseArrays", "SpecialFunctions", "Statistics", "StatsBase", "StatsFuns", "Test"]
-git-tree-sha1 = "239fe7c3312050992dcc5d5a8d54abcf099c3ff2"
+git-tree-sha1 = "9a782b47da6ee4cb3d041764e0c6830469105984"
 uuid = "31c24e10-a181-5473-b8eb-7969acd0382f"
-version = "0.25.82"
+version = "0.25.83"
 
 [[deps.DocStringExtensions]]
 deps = ["LibGit2"]
@@ -730,11 +730,11 @@ version = "0.10.1"
 
 [[deps.ParameterEstimocean]]
 deps = ["BlockDiagonals", "CUDA", "DataDeps", "Distributions", "DocStringExtensions", "EnsembleKalmanProcesses", "GaussianProcesses", "JLD2", "LineSearches", "LinearAlgebra", "MPI", "Oceananigans", "OffsetArrays", "OrderedCollections", "Printf", "ProgressBars", "Random", "SpecialFunctions", "Statistics", "Suppressor"]
-git-tree-sha1 = "6dcc7600be9254c59b6ebfa46dd2333b6dd53c91"
+git-tree-sha1 = "5f26fbee9f11a60b2e4f6360604c001db2f51abc"
 repo-rev = "main"
 repo-url = "https://github.com/CliMA/ParameterEstimocean.jl.git"
 uuid = "eca81dc5-87a6-4430-aec8-c76695404a43"
-version = "0.14.2"
+version = "0.14.3"
 
 [[deps.Parameters]]
 deps = ["OrderedCollections", "UnPack"]
