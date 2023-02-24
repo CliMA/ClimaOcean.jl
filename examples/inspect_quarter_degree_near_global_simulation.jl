@@ -49,7 +49,7 @@ ax_z = Axis(fig[5, 3], xlabel="Longitude", ylabel="Latitude")
 slider = Slider(fig[2, 2:3], range=1:Nt, startvalue=1)
 n = slider.value
 
-title = @lift string("Near-global one degree ocean simulation after ",
+title = @lift string("Near-global quarter degree ocean simulation after ",
                      prettytime(times[$n] - times[1]))
 Label(fig[1, :], title)
 
