@@ -39,6 +39,12 @@ two_degree_grid = LatitudeLongitudeGrid(size = (180, 75, 1),
 bathymetry_two_degree = Field{Center, Center, Nothing}(two_degree_grid)
 regrid!(bathymetry_two_degree, bathymetry_12) 
 
+land = interior(bathymetry) .>= 0
+interior(bathymetry)[land] .= NaN
+
+land = interior(bathymetry_two_degree) .>= 0
+interior(bathymetry_two_degree)[land] .= NaN
+
 fig = Figure()
 ax1 = Axis(fig[1, 1])
 ax2 = Axis(fig[1, 2])

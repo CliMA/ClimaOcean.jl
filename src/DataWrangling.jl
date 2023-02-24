@@ -2,9 +2,10 @@ module DataWrangling
 
 export continue_downwards!
 
+using Oceananigans
 using Oceananigans.Grids: peripheral_node
 using Oceananigans.Utils: launch!
-using Oceananigans.Fields: instantiated_location, interior
+using Oceananigans.Fields: instantiated_location, interior, CenterField
 using Oceananigans.Architectures: architecture, device_event, device, GPU
 
 using KernelAbstractions: @kernel, @index
@@ -55,22 +56,32 @@ function inpaint_horizontally!(field; algorithm=Criminisi(11, 11))
 end
 =#
 
+scale_to_diffusivity(vertical_scale) = vertical_scale^2
+scale_to_diffusivity(vertical_scale::Function) = (x, y, z, t) -> vertical_scale(x, y, z, t)^2
+
 function diffuse_tracers!(grid;
                           tracers,
                           horizontal_scale = 0,
                           vertical_scale = 0,
                           fractional_time_step = 2e-2)
 
+    # Remake tracers without boundary conditions
+    tracers = NamedTuple(name => CenterField(grid; data=tracers[name].data) for name in keys(tracers))
+
     # Horizontal diffusivities that mix up to t ∼ ℓ² / κ ∼ 1
     κh = horizontal_scale^2
-    κz = vertical_scale^2
+    κz = scale_to_diffusivity(vertical_scale)
 
     # Determine stable time-step
-    grid = simulation.model.grid
     Nx, Ny, Nz = size(grid)
     ϵ = fractional_time_step
     Az = minimum(grid.Azᶜᶜᵃ[1:Ny])
-    Δt = ϵ * Az / κh
+
+    if κh == 0
+        Δt = fractional_time_step
+    else
+        Δt = ϵ * Az / κh
+    end
     @show Nt = ceil(Int, 1 / Δt)
 
     vitd = VerticallyImplicitTimeDiscretization()
@@ -79,6 +90,7 @@ function diffuse_tracers!(grid;
 
     smoothing_model = HydrostaticFreeSurfaceModel(; grid, tracers,
                                                   velocities = PrescribedVelocityFields(),
+                                                  momentum_advection = nothing,
                                                   tracer_advection = nothing,
                                                   buoyancy = nothing,
                                                   closure = (horizontal_smoothing, vertical_smoothing))

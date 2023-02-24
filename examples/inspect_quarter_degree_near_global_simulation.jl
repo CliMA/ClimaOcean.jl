@@ -8,7 +8,8 @@ using Printf
 
 #filepath = "near_global_1440_600_87_RiBasedVerticalDiffusivity_fields_surface.jld2"
 #filepath = "catke_test_near_global_1440_600_87_fields_surface.jld2"
-filepath = "ri_based_test_near_global_1440_600_87_fields_surface.jld2"
+#filepath = "catke_flat_bottom_fields_surface.jld2"
+filepath = "ri_based_fields_surface.jld2"
 
 file = jldopen(filepath)
 @show keys(file["buoyancy/model/equation_of_state"])
