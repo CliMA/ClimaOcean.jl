@@ -27,7 +27,7 @@ function one_degree_near_global_simulation(architecture = GPU();
     stop_iteration                               = Inf,
     start_time                                   = 345days,
     stop_time                                    = Inf,
-    tracers                                      = [:T, :S],
+    tracers                                      = [:T, :S, :e],
     initial_conditions                           = datadep"near_global_one_degree/near_global_initial_conditions_360_150_48.jld2",
     bathymetry_path                              = datadep"near_global_one_degree/near_global_bathymetry_360_150.jld2",
     surface_boundary_conditions_path             = datadep"near_global_one_degree/near_global_boundary_conditions_360_150.jld2",
@@ -104,14 +104,13 @@ function one_degree_near_global_simulation(architecture = GPU();
 
     vitd = VerticallyImplicitTimeDiscretization()
 
-    horizontal_κ = (T=0, S=0, e=horizontal_tke_diffusivity)
-    horizontal_diffusivity = HorizontalScalarDiffusivity(ν=horizontal_viscosity, κ=horizontal_κ)
-    vertical_viscosity   = VerticalScalarDiffusivity(vitd, ν=νz, κ=background_vertical_diffusivity)
+    horizontal_diffusivity = HorizontalScalarDiffusivity(ν=horizontal_viscosity)
+
+    vertical_viscosity   = VerticalScalarDiffusivity(vitd,
+                                                     ν=interior_background_vertical_viscosity,
+                                                     κ=background_vertical_diffusivity)
 
     closures = Any[horizontal_diffusivity, boundary_layer_turbulence_closure, vertical_viscosity]
-
-    boundary_layer_turbulence_closure isa CATKEVerticalDiffusivity &&
-        push!(tracers, :e)
 
     if with_isopycnal_skew_symmetric_diffusivity
         issd = IsopycnalSkewSymmetricDiffusivity(κ_skew = isopycnal_κ_skew,
@@ -204,7 +203,7 @@ function one_degree_near_global_simulation(architecture = GPU();
     ##### Initial condition:
     #####
 
-    set!(model, T=T_init, S=S_init)
+    set!(model, T=T_init, S=S_init, e=1e-6)
 
     # Because MITgcm forcing starts at Jan 15 (?)
     model.clock.time = start_time
@@ -217,20 +216,37 @@ function one_degree_near_global_simulation(architecture = GPU();
         wall_time = (time_ns() - start_time[1]) * 1e-9
 
         u = sim.model.velocities.u
+        v = sim.model.velocities.v
         w = sim.model.velocities.w
 
-        intw  = Array(interior(w))
-        max_w = findmax(intw)
+        T = sim.model.tracers.T
+        S = sim.model.tracers.S
 
-        mw = max_w[1]
-        iw = max_w[2]
+        u_interior = Array(interior(u))
+        w_interior = Array(interior(w))
+        T_interior = Array(interior(T))
+        max_w, i_max_w = findmax(w_interior)
+        max_u, i_max_u = findmax(u_interior)
+        max_T, i_max_T = findmax(T_interior)
 
         msg1 = @sprintf("Time: % 12s, iteration: %d, ", prettytime(sim), iteration(sim))
-        msg2 = @sprintf("max(|u|): %.2e ms⁻¹, wmax: %.2e, loc: (%d, %d, %d), ",
-                        maximum(abs, u), mw, iw[1], iw[2], iw[3])
-        msg3 = @sprintf("wall time: %s", prettytime(wall_time))
 
-        @info msg1 * msg2 * msg3
+        msg2 = @sprintf("max(|u|): %.2e (%d, %d, %d) m s⁻¹, wmax: %.2e (%d, %d, %d) m s⁻¹, ",
+                        maximum(abs, u), i_max_u[1], i_max_u[2], i_max_u[3],
+                        max_w, i_max_w[1], i_max_w[2], i_max_w[3])
+
+        msg3 = @sprintf("max(T): %.2e (%d, %d, %d) ᵒC, ",
+                        max_T, i_max_T[1], i_max_T[2], i_max_T[3])
+
+        e = sim.model.tracers.e
+        e_interior = Array(interior(e))
+        max_e, i_max_e = findmax(e_interior)
+        msg4 = @sprintf("extrema(e): (%.2e, %.2e)  m² s⁻², (%d, %d, %d), ",
+                        maximum(e), minimum(e), i_max_e[1], i_max_e[2], i_max_e[3])
+
+        msg5 = @sprintf("wall time: %s", prettytime(wall_time))
+
+        @info msg1 * msg2 * msg3 * msg4 * msg5
 
         start_time[1] = time_ns()
 

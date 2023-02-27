@@ -48,8 +48,7 @@ output_prefix = "ri_based"
                                                                                              
 simulation = quarter_degree_near_global_simulation(arch;
                                                    stop_time = 10years,
-                                                   minimum_ocean_depth = 15,
-                                                   #minimum_ocean_depth = 6000,
+                                                   minimum_ocean_depth = 10,
                                                    surface_temperature_relaxation_time_scale = 7days,
                                                    surface_salinity_relaxation_time_scale = 7days,
                                                    background_vertical_viscosity = 1e-4,
@@ -58,6 +57,10 @@ simulation = quarter_degree_near_global_simulation(arch;
                                                    vertical_mixing_closure)
 
 T, S, e = simulation.model.tracers
+
+@show T
+@show S
+
 Ty = compute!(Field(∂y(T)))
 start = time_ns()
 @info @sprintf("Starting max(∂y T) = %.2e", maximum(abs, Ty))
@@ -73,6 +76,9 @@ diffuse_tracers!(simulation.model.grid;
 elapsed = 1e-9 * (time_ns() - start)
 compute!(Ty)
 @info @sprintf("Finished diffusing tracers (%s), max(∂y T) = %.2e", prettytime(elapsed), maximum(abs, Ty))
+
+@show T
+@show S
 
 eᵢ(x, y, z) = 1e-6
 set!(simulation.model, e=eᵢ)
@@ -117,13 +123,13 @@ for n = 1:2
     outputs[:v] = Field(v; indices)
     outputs[:w] = Field(w; indices)
     outputs[:K] = Field(K; indices)
-    outputs[:η] = model.free_surface.η
+    outputs[:η] = Field(model.free_surface.η; indices)
     outputs[:ζ] = VerticalVorticityField(model.grid, model.velocities; indices)
 
     name = output_names[n]
     simulation.output_writers[name] = JLD2OutputWriter(model, outputs; dir,
                                                        #schedule = TimeInterval(slices_save_interval),
-                                                       schedule = IterationInterval(20),
+                                                       schedule = IterationInterval(10),
                                                        filename = output_prefix * "_fields_$name",
                                                        with_halos = true,
                                                        overwrite_existing = true)
@@ -131,10 +137,10 @@ end
 
 @info "Running a $output_prefix simulation with Δt = $(prettytime(simulation.Δt))"
 
-simulation.Δt = 10.0
+simulation.Δt = 1.0
 simulation.stop_iteration = 1000
-#progress = simulation.callbacks[:progress].func
-#simulation.callbacks[:progress] = Callback(progress)
+progress = simulation.callbacks[:progress].func
+simulation.callbacks[:progress] = Callback(progress)
 run!(simulation)
 
 #=
@@ -152,3 +158,4 @@ run!(simulation)
 =#
 
 @info "Simulation took $(prettytime(simulation.run_wall_time))."
+
