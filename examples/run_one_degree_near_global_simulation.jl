@@ -119,6 +119,7 @@ end
 
 @show simulation.model
 
+#=
 set!(simulation.model, e=0)
 simulation.Δt = 1e-16
 simulation.stop_iteration = 100
@@ -132,3 +133,4 @@ run!(simulation)
 
 @info "Simulation took $(prettytime(simulation.run_wall_time))."
 
+=#

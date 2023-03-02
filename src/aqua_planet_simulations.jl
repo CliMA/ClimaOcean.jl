@@ -1,6 +1,13 @@
 using Oceananigans.Grids: ynode
 using Oceananigans.Operators: Δzᵃᵃᶜ
 
+# Slightly off-center vortical perturbations
+ψ̃(x, y, ℓ, k) = exp(-(y + ℓ/10)^2 / 2ℓ^2) * cos(k * x) * cos(k * y)
+
+# Vortical velocity fields (ũ, ṽ) = (-∂_y, +∂_x) ψ̃
+ũ(x, y, ℓ, k) = + ψ̃(x, y, ℓ, k) * (k * tan(k * y) + y / ℓ^2)
+ṽ(x, y, ℓ, k) = - ψ̃(x, y, ℓ, k) * k * tan(k * x)
+
 @inline function aqua_planet_wind_stress(i, j, grid, clock, fields, parameters)
     φ = ynode(Center(), j, grid)
     τ₀ = parameters.maximum_wind_stress
@@ -55,14 +62,15 @@ function aqua_planet_simulation(architecture = GPU();
     closure                                      = RiBasedVerticalDiffusivity(),
     surface_temperature_relaxation_time_scale    = 10days,
     surface_salinity_relaxation_time_scale       = 90days,
-    maximum_wind_stress                          = 0.0, #1e-4,
+    maximum_wind_stress                          = 1e-4,
     equatorial_wind_extent                       = 10.0,  # degrees latitude
     temperature_asymmetry_factor                 = 0.1,
     temperature_asymmetry_latitude               = 60.0,  # degrees latitude
     equilibrium_equatorial_temperature           = 25.0,  # degrees Celsius
     equilibrium_polar_temperature                = 2.0,  # degrees Celsius
-    initial_condition_scale_height               = 1000.0,
-    initial_condition_bottom_temperature         = 0.0,
+    initial_temperature_scale_height             = 400.0,
+    initial_bottom_temperature                   = 0.0,
+    initial_velocity_noise_amplitude             = 1e-2,
     bottom_drag_coefficient                      = 3e-3,
     equation_of_state                            = LinearEquationOfState(thermal_expansion=2e-4, haline_contraction=8e-5),
     # equation_of_state                            = TEOS10EquationOfState(; reference_density)
@@ -131,7 +139,9 @@ function aqua_planet_simulation(architecture = GPU();
     @info "Building a model..."; start=time_ns()
 
     model = HydrostaticFreeSurfaceModel(; grid, free_surface, buoyancy, coriolis, tracers, closure,
-                                        momentum_advection = VectorInvariant(), 
+                                        momentum_advection = VectorInvariant(vorticity_scheme   = WENO(),
+                                                                             divergence_scheme  = WENO(),
+                                                                             vertical_scheme    = WENO()),
                                         tracer_advection = WENO(grid),
                                         boundary_conditions = (u=u_bcs, v=v_bcs, T=T_bcs))
 
@@ -142,11 +152,17 @@ function aqua_planet_simulation(architecture = GPU();
     ##### Initial condition
     #####
 
-    Tᵢ = AquaPlanetInitialCondition(initial_condition_scale_height,
-                                    initial_condition_bottom_temperature,
+    Tᵢ = AquaPlanetInitialCondition(initial_temperature_scale_height,
+                                    initial_bottom_temperature,
                                     T_relaxation_parameters)
 
-    set!(model, T=Tᵢ, e=1e-6, S=35.0)
+    ℓ = 10 # degrees
+    ϵ = 100.0 # m s⁻¹
+    k = 8 * π/planet_extent # degrees
+    uᵢ(x, y, z) = ϵ * ũ(x, y, ℓ, k) + initial_velocity_noise_amplitude * (2rand() - 1)
+    vᵢ(x, y, z) = ϵ * ṽ(x, y, ℓ, k) + initial_velocity_noise_amplitude * (2rand() - 1)
+
+    set!(model, u=uᵢ, v=vᵢ, T=Tᵢ, e=1e-6, S=35.0)
 
     simulation = Simulation(model; Δt=time_step, stop_iteration, stop_time)
 
@@ -164,6 +180,7 @@ function aqua_planet_simulation(architecture = GPU();
         e = sim.model.tracers.e
 
         u_interior = Array(interior(u))
+        v_interior = Array(interior(v))
         w_interior = Array(interior(w))
         T_interior = Array(interior(T))
         S_interior = Array(interior(S))
@@ -171,14 +188,16 @@ function aqua_planet_simulation(architecture = GPU();
 
         max_w, i_max_w = findmax(w_interior)
         max_u, i_max_u = findmax(u_interior)
+        max_v, i_max_v = findmax(v_interior)
         max_T, i_max_T = findmax(T_interior)
         max_S, i_max_S = findmax(S_interior)
         max_e, i_max_e = findmax(e_interior)
 
         msg1 = @sprintf("Time: % 12s, iteration: %d, ", prettytime(sim), iteration(sim))
 
-        msg2 = @sprintf("max(|u|): %.2e (%d, %d, %d) m s⁻¹, wmax: %.2e (%d, %d, %d) m s⁻¹, ",
-                        maximum(abs, u), i_max_u[1], i_max_u[2], i_max_u[3],
+        msg2 = @sprintf("max(u): %.2e (%d, %d, %d) m s⁻¹, max(v): %.2e (%d, %d, %d) m s⁻¹, max(w): %.2e (%d, %d, %d) m s⁻¹, ",
+                        max_u, i_max_u[1], i_max_u[2], i_max_u[3],
+                        max_v, i_max_v[1], i_max_v[2], i_max_v[3],
                         max_w, i_max_w[1], i_max_w[2], i_max_w[3])
 
         msg3 = @sprintf("max(T): %.2e (%d, %d, %d) ᵒC, ",
@@ -196,7 +215,7 @@ function aqua_planet_simulation(architecture = GPU();
         return nothing
     end
 
-    simulation.callbacks[:progress] = Callback(progress, IterationInterval(1))
+    simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
 
     return simulation
 end
