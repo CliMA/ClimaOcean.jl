@@ -153,5 +153,6 @@ end
 
 include("one_degree_global_simulation.jl")
 include("quarter_degree_global_simulation.jl")
+include("aqua_planet_simulations.jl")
 
 end # module
