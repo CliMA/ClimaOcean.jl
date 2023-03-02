@@ -18,9 +18,11 @@ using JLD2
 # "Ri-based" --- uses calibrated defaults in Oceananigans
 ri_based = RiBasedVerticalDiffusivity() 
 default_catke = CATKEVerticalDiffusivity()
+vitd = VerticallyImplicitTimeDiscretization()
+neutral_closure = VerticalScalarDiffusivity(vitd)
 
 # Choose closure
-boundary_layer_turbulence_closure = ri_based
+boundary_layer_turbulence_closure = neutral_closure #default_catke #ri_based
 
 @show boundary_layer_turbulence_closure
 
@@ -115,13 +117,18 @@ end
 
 @info "Running a simulation with Δt = $(prettytime(simulation.Δt))"
 
-simulation.Δt = 1minute
-simulation.stop_time = time(simulation) + 2days
+@show simulation.model
+
+set!(simulation.model, e=0)
+simulation.Δt = 1e-16
+simulation.stop_iteration = 100
+progress = simulation.callbacks[:progress].func
+simulation.callbacks[:progress] = Callback(progress)
 run!(simulation)
 
-simulation.stop_time = start_time + 1.2years
-simulation.Δt = 20minutes
-run!(simulation)
+# simulation.stop_time = start_time + 1.2years
+# simulation.Δt = 20minutes
+# run!(simulation)
 
 @info "Simulation took $(prettytime(simulation.run_wall_time))."
 

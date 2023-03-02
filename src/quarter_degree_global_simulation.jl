@@ -235,13 +235,17 @@ function quarter_degree_near_global_simulation(
 
         T = sim.model.tracers.T
         S = sim.model.tracers.S
+        e = sim.model.tracers.e
 
         u_interior = Array(interior(u))
         w_interior = Array(interior(w))
         T_interior = Array(interior(T))
+        e_interior = Array(interior(e))
+
         max_w, i_max_w = findmax(w_interior)
         max_u, i_max_u = findmax(u_interior)
         max_T, i_max_T = findmax(T_interior)
+        max_e, i_max_e = findmax(e_interior)
 
         msg1 = @sprintf("Time: % 12s, iteration: %d, ", prettytime(sim), iteration(sim))
 
@@ -249,21 +253,14 @@ function quarter_degree_near_global_simulation(
                         maximum(abs, u), i_max_u[1], i_max_u[2], i_max_u[3],
                         max_w, i_max_w[1], i_max_w[2], i_max_w[3])
 
-        msg3 = @sprintf("max(T): %.2e (%d, %d, %d) ᵒC, ",
-                        max_T, i_max_T[1], i_max_T[2], i_max_T[3])
+        msg3 = @sprintf("max(T): %.2e (%d, %d, %d) ᵒC, ", max_T, i_max_T[1], i_max_T[2], i_max_T[3])
 
-        if using_CATKE
-            e = sim.model.tracers.e
-            e_interior = Array(interior(e))
-            max_e, i_max_e = findmax(e_interior)
-            msg3a = @sprintf("extrema(e): (%.2e, %.2e)  m² s⁻², (%d, %d, %d), ",
-                             maximum(e), minimum(e), i_max_e[1], i_max_e[2], i_max_e[3])
-            msg3 *= msg3a
-        end
+        msg4 = @sprintf("extrema(e): (%.2e, %.2e)  m² s⁻², (%d, %d, %d), ",
+                        maximum(e), minimum(e), i_max_e[1], i_max_e[2], i_max_e[3])
 
-        msg4 = @sprintf("wall time: %s", prettytime(wall_time))
+        msg5 = @sprintf("wall time: %s", prettytime(wall_time))
 
-        @info msg1 * msg2 * msg3 * msg4
+        @info msg1 * msg2 * msg3 * msg4 * msg5
 
         start_time[1] = time_ns()
 
@@ -371,7 +368,7 @@ function regrid_to_quarter_degree(T, S, bathymetry;
 
         loc = (Center, Center, Center)
         T_quarter_data = offset_data(T_quarter_data, quarter_degree_grid, loc)
-        S_quarter_data = offset_data(T_quarter_data, quarter_degree_grid, loc)
+        S_quarter_data = offset_data(S_quarter_data, quarter_degree_grid, loc)
 
         T_quarter = CenterField(quarter_degree_grid, data=T_quarter_data)
         S_quarter = CenterField(quarter_degree_grid, data=S_quarter_data)
