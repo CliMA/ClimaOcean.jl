@@ -4,6 +4,7 @@ using
   Documenter,
   Literate,
   CairoMakie,  # so that Literate.jl does not capture precompilation output or warnings
+  Glob,
   ClimaOcean
 
 ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
