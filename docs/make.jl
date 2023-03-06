@@ -3,7 +3,7 @@ pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..")) # add ClimaOcean to environment 
 using
   Documenter,
   Literate,
-  CairoMakie,  # so that Literate.jl does not capture precompilation output or warnings
+  # CairoMakie,  # so that Literate.jl does not capture precompilation output or warnings
   Glob,
   ClimaOcean
 
