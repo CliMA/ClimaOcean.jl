@@ -75,9 +75,9 @@ Base.summary(op::MixedLayerDepthOperand) = "MixedLayerDepthOperand"
 const MixedLayerDepthField = Field{Center, Center, Nothing, <:MixedLayerDepthOperand}
 
 """
-    MixedLayerDepthField(model; Δb = 3e-4, field_kw...)
+    MixedLayerDepthField(grid, tracers, buoyancy_model; Δb = 3e-4, kw...)
 
-Returns a reduced `Field{Center, Center, Nothing}` that represents
+Return a reduced `Field{Center, Center, Nothing}` that represents
 mixed layer depth for `model`, based on a buoyancy differential criterion.
 The mixed layer depth is defined as the depth ``h`` for which
 
