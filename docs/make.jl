@@ -26,17 +26,21 @@ end
 ##### Build and deploy docs
 #####
 
-# Set up a timer to print a space ' ' every 240 seconds. This is to avoid CI
-# timing out when building demanding Literate.jl examples.
-Timer(t -> println(" "), 0, interval=240)
-
 format = Documenter.HTML(
   collapselevel = 2,
      prettyurls = get(ENV, "CI", nothing) == "true",
+      canonical = "https://clima.github.io/ClimaOceanDocumentation/dev/",
 )
 
 pages = [
     "Home" => "index.md",
+
+    "Library" => [ 
+        "Contents"       => "library/outline.md",
+        "Public"         => "library/public.md",
+        "Private"        => "library/internals.md",
+        "Function index" => "library/function_index.md",
+        ],
 ]
 
 makedocs(
@@ -50,10 +54,16 @@ makedocs(
   checkdocs = :exports
 )
 
-withenv("GITHUB_REPOSITORY" => "CliMA/ClimaOcean.jl") do
-    deploydocs(repo = "github.com/CliMA/ClimaOcean.jl.git",
-               versions = ["stable" => "v^", "v#.#.#", "dev" => "dev"],
-               forcepush = true,
-               devbranch = "main",
+@info "Cleaning up temporary .jld2 and .nc files created by doctests..."
+
+for file in vcat(glob("docs/*.jld2"), glob("docs/*.nc"))
+    rm(file)
+end
+
+withenv("GITHUB_REPOSITORY" => "CliMA/ClimaOceanDocumentation") do
+    deploydocs(        repo = "github.com/CliMA/ClimaOceanDocumentation.git",
+                   versions = ["stable" => "v^", "v#.#.#", "dev" => "dev"],
+                  forcepush = true,
+                  devbranch = "main",
                push_preview = true)
 end
