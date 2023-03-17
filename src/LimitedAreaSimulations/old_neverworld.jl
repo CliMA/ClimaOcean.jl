@@ -1,39 +1,6 @@
-# Neverworld
-#
-# Ingredients:
-#
-#   * Zonally-periodic domain with continental shelves on all boundaries except Southern Ocean
-#       * longitude = (0, 60)
-#       * 4 configurations in latitude
-#           - No Weddell Sea, half basin: latitude = (-60, 0)
-#           - No Weddell Sea, full basin: latitude = (-60, 60)
-#           - With Weddell Sea, half basin: latitude = (-70, 0)
-#           - With Weddell Sea, full basin: latitude = (-70, 70)
-#       * z to -4000m
-#       * Southern Ocean channel from -60 to -40 (with a ridge to -2000 m)
-#
-#   * Zonally-homogeneous wind stress with mid-latitude jet and trade winds
-#
-#   * Buoyancy 
-#       * restoring hot at the equator and cold at the poles (parabola, cosine, smooth step function)
-#       * equator-pole buoyancy differential: 0.06 (α * g * 30 ≈ 0.06 with α=2e-4, g=9.81)
-#       * exponential initial vertical stratification with N² = 6e-5 and decay scale h = 1000 m
-#           - eg bᵢ = N² * h * exp(z / h)
-#
-#   * Quadratic bottom drag with drag_coefficient = 1e-3
 
-using Oceananigans.Utils
-using Oceananigans.Grids: node, halo_size
-using Oceananigans.TurbulenceClosures: FluxTapering
-using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
-using Oceananigans.Operators: Δx, Δy, Az 
-using Oceananigans.TurbulenceClosures
-using Oceananigans.TurbulenceClosures: VerticallyImplicitTimeDiscretization, ExplicitTimeDiscretization
-using Oceananigans.Coriolis: ActiveCellEnstrophyConservingScheme
 
-using Oceananigans.Fields: interpolate
-using Oceananigans.Grids: xnode, ynode, halo_size
-
+#=
 """
     function z_faces_exp(; Nz = 69, Lz = 4000.0, e_folding = 0.06704463421863584)
 
@@ -259,7 +226,7 @@ end
 """ 
     function cubic_profile(x, x1, x2, y1, y2, d1, d2)
 
-returns a cubic function between points `(x1, y1)` and `(x2, y2)`
+Returns a cubic function between points `(x1, y1)` and `(x2, y2)`
 with derivative `d1` and `d2`
 """
 @inline function cubic_profile(x, x1, x2, y1, y2, d1, d2)
@@ -283,15 +250,6 @@ function coastal_ridge_x(x)
         return -200.0
     elseif x < 5.0
         return cubic_profile(x, 2.5, 5.0, -200.0, -4000, 0.0, 0.0)
-    else        
-        return -4000.0 
-    end
-end
-
-""" a sharp coast without a ridge """
-function sharp_coast_x(x) 
-    if x < 0.5
-        return 0.0
     else        
         return -4000.0 
     end
@@ -698,3 +656,4 @@ function run_simulation!(simulation; interp_init = false, init_file = nothing)
         Time step: $(prettytime(Δt))
     """
 end
+=#

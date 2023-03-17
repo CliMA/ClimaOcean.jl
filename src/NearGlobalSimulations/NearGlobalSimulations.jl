@@ -6,7 +6,7 @@ using Oceananigans.Units
 using Oceananigans.Operators: Δzᵃᵃᶜ, ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
 using Oceananigans.Architectures: arch_array
 using Oceananigans.Coriolis: HydrostaticSphericalCoriolis
-using Oceananigans.Coriolis: WetCellEnstrophyConservingScheme
+using Oceananigans.Coriolis: ActiveCellEnstrophyConservingScheme
 using Oceananigans.TurbulenceClosures: RiBasedVerticalDiffusivity, FluxTapering
 
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities:
@@ -20,6 +20,9 @@ using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 using CUDA: @allowscalar
 
 import Oceananigans.Utils: prettysummary
+
+using ClimaOcean: u_bottom_drag, v_bottom_drag, u_immersed_bottom_drag, v_immersed_bottom_drag
+
 import ..VerticalGrids
 
 struct PiecewiseConstantVerticalDiffusivity <: Function
@@ -140,16 +143,6 @@ function leith_viscosity(formulation; C_vort = 3.0, C_div = 3.0)
                                        discrete_form = true,
                                        parameters = (; Cζ, Cδ))
 end
-
-@inline ϕ²(i, j, k, grid, ϕ) = @inbounds ϕ[i, j, k]^2
-@inline spᶠᶜᶜ(i, j, k, grid, Φ) = @inbounds sqrt(Φ.u[i, j, k]^2 + ℑxyᶠᶜᵃ(i, j, k, grid, ϕ², Φ.v))
-@inline spᶜᶠᶜ(i, j, k, grid, Φ) = @inbounds sqrt(Φ.v[i, j, k]^2 + ℑxyᶜᶠᵃ(i, j, k, grid, ϕ², Φ.u))
-
-@inline u_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.u[i, j, 1] * spᶠᶜᶜ(i, j, 1, grid, Φ)
-@inline v_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, 1] * spᶜᶠᶜ(i, j, 1, grid, Φ)
-
-@inline u_immersed_bottom_drag(i, j, k, grid, c, Φ, μ) = @inbounds - μ * Φ.u[i, j, k] * spᶠᶜᶜ(i, j, k, grid, Φ)
-@inline v_immersed_bottom_drag(i, j, k, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, k] * spᶜᶠᶜ(i, j, k, grid, Φ)
 
 include("one_degree_global_simulation.jl")
 include("quarter_degree_global_simulation.jl")

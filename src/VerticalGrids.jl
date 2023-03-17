@@ -1,5 +1,42 @@
 module VerticalGrids
 
+"""
+    stretched_vertical_cell_interfaces(; surface_layer_Δz = 5.0,
+                                       surface_layer_height = 100.0,
+                                       stretching_exponent = 1.02,
+                                       minimum_depth = 5000)
+
+Return an array of cell interfaces with `surface_layer_Δz` spacing in
+a surface layer of height `surface_layer_height`, and stretched exponentially
+below the surface layer with `stretching_exponent` down to `minimum_depth`.
+The interfaces extends from `Lz = -z[1]` to `0 = z[end]`, where `Lz >= minimum_depth`.
+"""
+function stretched_vertical_cell_interfaces(; surface_layer_Δz = 5.0,
+                                            surface_layer_height = 100.0,
+                                            stretching_exponent = 1.02,
+                                            minimum_depth = 5000)
+
+    Δz₀ = surface_layer_Δz
+    h₀ = surface_layer_height
+
+    # Generate surface layer grid
+    z = [-Δz₀ * (k-1) for k = 1:ceil(h₀ / Δz₀)]
+
+    # Generate stretched interior grid
+    γ = stretching_exponent
+    Lz₀ = minimum_depth
+
+    while z[end] > - Lz₀
+        Δz = (z[end-1] - z[end])^γ
+        push!(z, round(z[end] - Δz, digits=1))
+    end
+
+    # Reverse grid to be right-side-up
+    z = reverse(z)
+
+    return z
+end
+
 # Vertical grid with 49 levels.
 # Stretched from 10 meters spacing at surface
 # to 400 meter at the bottom.
