@@ -66,6 +66,7 @@ function NeverworldBathymetry(grid;
     # to the edge of the Neverworld (with units of degrees).
     r_coast = Δ
     r_beach = Δ + rim_width
+    r_mid_shelf = Δ + rim_width + shelf_width/2
     r_shelf = Δ + rim_width + shelf_width
     r_abyss = Δ + rim_width + shelf_width + slope_width
 
@@ -74,8 +75,8 @@ function NeverworldBathymetry(grid;
     y_max = ynode(c, f, c, 1, Ny+1, 1, grid) - ynode(c, f, c, 1, 1, 1, grid)
     r_max = max(x_max, y_max)
 
-    basin_rim_distances = [0, r_coast,     r_beach,     r_shelf,       r_abyss,         r_max]
-    basin_depths        = [0, 0,       shelf_depth, shelf_depth, abyssal_depth, abyssal_depth]
+    basin_rim_distances = [0, r_coast,     r_beach,  r_mid_shelf,     r_shelf,       r_abyss,         r_max]
+    basin_depths        = [0, 0,       shelf_depth,  shelf_depth, shelf_depth, abyssal_depth, abyssal_depth]
     basin_depth_spline = CubicSplineFunction{:x}(basin_rim_distances, basin_depths)
 
     # Construct cubic spline for the channel component using the "channel coordinate" δ.
@@ -163,7 +164,8 @@ default_zonal_wind_stress = CubicSplineFunction{:y}(latitudes, zonal_stresses)
 end
 
 function neverworld_simulation(arch;
-                               horizontal_resolution = 1, # degree
+                               #horizontal_resolution = 1, # degree
+                               horizontal_size = (60, 70),
                                latitude = (-70, 0),
                                longitude = (0, 60),
                                z = default_z,
@@ -187,8 +189,9 @@ function neverworld_simulation(arch;
 
 
     if isnothing(grid)
-        Nλ = ceil(Int, longitude[2] - longitude[1] / horizontal_resolution)
-        Nφ = ceil(Int, latitude[2] - latitude[1] / horizontal_resolution)
+        Nλ, Nφ = horizontal_size
+        #Nλ = ceil(Int, longitude[2] - longitude[1] / horizontal_resolution)
+        #Nφ = ceil(Int, latitude[2] - latitude[1] / horizontal_resolution)
         size = (Nλ, Nφ, length(z)-1)
         underlying_grid = LatitudeLongitudeGrid(arch; size, latitude, longitude, z, halo=(5, 5, 5))
 
