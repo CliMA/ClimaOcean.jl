@@ -29,17 +29,73 @@ using Oceananigans.Operators: Δzᶜᶜᶜ
 using Oceananigans.Coriolis: ActiveCellEnstrophyConservingScheme
 using Oceananigans.TurbulenceClosures: CATKEVerticalDiffusivity
 
-using ClimaOcean: CubicSplineFunction, u_bottom_drag, v_bottom_drag, u_immersed_bottom_drag, v_immersed_bottom_drag
+using ClimaOcean: CubicSplineFunction,
+                  u_bottom_drag, u_immersed_bottom_drag,
+                  v_bottom_drag, v_immersed_bottom_drag
+                  
 using ..VerticalGrids: stretched_vertical_cell_interfaces
+
+const c = Center()
+const f = Face()
+
+#####
+##### Geometry
+#####
+
+struct Point{T}
+    x :: T
+    y :: T
+end
+
+struct LineSegment{T}
+    p₁ :: Point{T}
+    p₂ :: Point{T}
+end
+
+struct Line{T}
+    p₁ :: Point{T}
+    p₂ :: Point{T}
+end
+
+distance(p₁::Point, p₂::Point) = sqrt((p₁.x - p₂.x)^2 + (p₁.y - p₂.y)^2)
+
+# https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment
+function distance(point::Point, line::LineSegment)
+    x, y = point.x, point.y
+    x₁, y₁ = line.p₁.x, line.p₁.y
+    x₂, y₂ = line.p₂.x, line.p₂.y
+
+    # Line segment lengths
+    Δx = x₂ - x₁
+    Δy = y₂ - y₁
+
+    # Fractional increment to closest segment point
+    ϵ = ((x - x₁) * Δx + (y - y₁) * Δy) / (Δx^2 + Δy^2)
+    ϵ = clamp(ϵ, 0, 1)
+
+    # Closest segment point
+    x′ = x₁ + ϵ * Δx
+    y′ = y₁ + ϵ * Δy
+    
+    return sqrt((x′ - x)^2 + (y′ - y)^2)
+end
+
+function distance(point::Point, line::Line)
+    x, y = point.x, point.y
+    x₁, y₁ = line.p₁.x, line.p₁.y
+    x₂, y₂ = line.p₂.x, line.p₂.y
+    num = abs((x₂ - x₁) * (y₁ - y₀) - (y₂ - y₁) * (x₁ - x₀))
+    den = sqrt((x₂ - x₁)^2 + (y₂ - y₁)^2)
+    return num / den
+end
 
 #####
 ##### Bathymetry
 #####
 
-struct NeverworldBathymetry{G, B, C} <: Function
+struct NeverworldBathymetry{G, B} <: Function
     grid :: G
-    basin_depth_spline :: B
-    channel_depth_spline :: C
+    coastline_spline :: B
     rim_width :: Float64
     slope_width :: Float64
     shelf_width :: Float64
@@ -66,32 +122,21 @@ function NeverworldBathymetry(grid;
     # to the edge of the Neverworld (with units of degrees).
     r_coast = Δ
     r_beach = Δ + rim_width
-    r_mid_shelf = Δ + rim_width + shelf_width/2
+    r_mid_shelf = Δ + rim_width + shelf_width / 2
     r_shelf = Δ + rim_width + shelf_width
     r_abyss = Δ + rim_width + shelf_width + slope_width
 
     Nx, Ny, Nz = size(grid)
-    x_max = xnode(f, c, c, Nx+1, 1, 1, grid) - xnode(f, c, c, 1, 1, 1, grid)
-    y_max = ynode(c, f, c, 1, Ny+1, 1, grid) - ynode(c, f, c, 1, 1, 1, grid)
+    x_max = xnode(Nx+1, 1, 1, grid, f, c, c) - xnode(1, 1, 1, grid, f, c, c)
+    y_max = ynode(1, Ny+1, 1, grid, c, f, c) - ynode(1, 1, 1, grid, c, f, c)
     r_max = max(x_max, y_max)
 
     basin_rim_distances = [0, r_coast,     r_beach,  r_mid_shelf,     r_shelf,       r_abyss,         r_max]
     basin_depths        = [0, 0,       shelf_depth,  shelf_depth, shelf_depth, abyssal_depth, abyssal_depth]
-    basin_depth_spline = CubicSplineFunction{:x}(basin_rim_distances, basin_depths)
-
-    # Construct cubic spline for the channel component using the "channel coordinate" δ.
-    # Compared to the basin geometry, we omit the factor `Δ` representing the basin coastline.
-    δ_beach = rim_width
-    δ_shelf = rim_width + shelf_width
-    δ_abyss = rim_width + shelf_width + slope_width
-    δ_max = northern_channel_boundary - southern_channel_boundary
-    channel_edge_distances = [0, δ_beach,       δ_shelf,       δ_abyss,         δ_max]
-    channel_depths         = [0, rim_width, shelf_depth, abyssal_depth, abyssal_depth]
-    channel_depth_spline = CubicSplineFunction{:y}(channel_edge_distances, channel_depths)
+    coastline_spline = CubicSplineFunction{:x}(basin_rim_distances, basin_depths)
 
     return NeverworldBathymetry(grid,
-                                basin_depth_spline,
-                                channel_depth_spline,
+                                coastline_spline,
                                 Float64(rim_width),
                                 Float64(slope_width),
                                 Float64(shelf_width),
@@ -101,30 +146,39 @@ function NeverworldBathymetry(grid;
                                 Float64(northern_channel_boundary))
 end
 
-const c = Center()
-const f = Face()
-
 function (nb::NeverworldBathymetry)(λ, φ)
     grid = nb.grid
     Nx, Ny, Nz = size(grid)
 
     # Four corners of the Neverworld
-    λe = xnode(f, c, c, 1,       1, 1, grid)
-    λw = xnode(f, c, c, Nx+1,    1, 1, grid)
-    φs = ynode(c, f, c, 1,       1, 1, grid)
-    φn = ynode(c, f, c, 1,    Ny+1, 1, grid)
+    λw = xnode(1,       1, 1, grid, f, c, c)
+    λe = xnode(Nx+1,    1, 1, grid, f, c, c)
+    φs = ynode(1,       1, 1, grid, c, f, c)
+    φn = ynode(1,    Ny+1, 1, grid, c, f, c)
 
-    # Distance to the rim of the Neverworld
-    r = min(λ - λe, λw - λ, φ - φs, φn - φ)
-    basin_bottom_height = - nb.basin_depth_spline(r)
+    # Draw lines along the six coasts of the Neverworld
+    northern_vertices = (Point(λw, nb.northern_channel_boundary),
+                         Point(λw, φn),
+                         Point(λe, φn),
+                         Point(λe, nb.northern_channel_boundary))
 
-    # Channel coordinate: +0 inside, -0 outside
-    δ = min(φ - nb.southern_channel_boundary, nb.northern_channel_boundary - φ)
-    δ = max(0, δ)
-    channel_bottom_height = - nb.channel_depth_spline(δ)
+    southern_vertices = (Point(λe, nb.southern_channel_boundary),
+                         Point(λe, φs),
+                         Point(λw, φs),
+                         Point(λw, nb.southern_channel_boundary))
 
-    # Intersect basin and channel
-    bottom_height = min(basin_bottom_height, channel_bottom_height)
+    coastlines = [LineSegment(northern_vertices[1], northern_vertices[2]),
+                  LineSegment(northern_vertices[2], northern_vertices[3]),
+                  LineSegment(northern_vertices[3], northern_vertices[4]),
+                  LineSegment(southern_vertices[1], southern_vertices[2]),
+                  LineSegment(southern_vertices[2], southern_vertices[3]),
+                  LineSegment(southern_vertices[3], southern_vertices[4])]
+
+    # Minimum distance to the six rims of the Neverworld
+    p = Point(λ, φ)
+    r = minimum(distance(p, coastline) for coastline in coastlines)
+    
+    bottom_height = - nb.coastline_spline(r)
 
     return bottom_height
 end
@@ -153,7 +207,7 @@ default_zonal_wind_stress = CubicSplineFunction{:y}(latitudes, zonal_stresses)
     k = grid.Nz
 
     # Target buoyancy distribution
-    φ = ynode(c, c, c, i, j, k, grid)#, c, c, c)
+    φ = ynode(i, j, k, grid, c, c, c)
     b★ = parameters.b★(φ, parameters)
 
     Δz = Δzᶜᶜᶜ(i, j, k, grid)
@@ -190,8 +244,6 @@ function neverworld_simulation(arch;
 
     if isnothing(grid)
         Nλ, Nφ = horizontal_size
-        #Nλ = ceil(Int, longitude[2] - longitude[1] / horizontal_resolution)
-        #Nφ = ceil(Int, latitude[2] - latitude[1] / horizontal_resolution)
         size = (Nλ, Nφ, length(z)-1)
         underlying_grid = LatitudeLongitudeGrid(arch; size, latitude, longitude, z, halo=(5, 5, 5))
 
@@ -203,7 +255,7 @@ function neverworld_simulation(arch;
     h  = stratification_scale_height 
     Δb = equator_pole_buoyancy_difference 
     t★ = buoyancy_relaxation_time_scale 
-    Δφ = - latitude[1]
+    Δφ = abs(latitude[1])
     b★ = target_buoyancy_distribution 
     μ  = bottom_drag_coefficient
 
