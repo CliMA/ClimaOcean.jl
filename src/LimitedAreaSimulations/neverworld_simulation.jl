@@ -50,7 +50,7 @@ const c = Center()
     k = grid.Nz
 
     # Target buoyancy distribution
-    φ = ynode(i, j, k, grid, c, c, c)
+    φ = ynode(c, c, c, i, j, k, grid)#, c, c, c)
     b★ = parameters.b★(φ, parameters)
 
     Δz = Δzᶜᶜᶜ(i, j, k, grid)
@@ -92,7 +92,7 @@ function neverworld_simulation(arch;
     μ  = bottom_drag_coefficient
 
     # Buoyancy flux
-    parameters = (; Δφ, Δb, t★)
+    parameters = (; Δφ, Δb, t★, b★)
     b_top_bc = FluxBoundaryCondition(buoyancy_relaxation, discrete_form=true; parameters)
 
     # Wind stress

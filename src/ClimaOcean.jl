@@ -1,6 +1,7 @@
 module ClimaOcean
 
 using Oceananigans
+using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
 using DataDeps
 using CubicSplines
 
