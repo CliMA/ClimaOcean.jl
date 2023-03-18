@@ -1,8 +1,9 @@
 using Oceananigans
+using Oceananigans.Units
 using ClimaOcean.LimitedAreaSimulations: neverworld_simulation
 using GLMakie
+using Printf
 
-#=
 simulation = neverworld_simulation(GPU(), horizontal_size=(240, 280))
 
 model = simulation.model
@@ -23,14 +24,51 @@ heatmap!(ax, Array(interior(h, 1:Nx, 1:Ny, 1)))
 display(fig)
 =#
 
-simulation.stop_iteration = 100
+function progress(sim) 
+    b = sim.model.tracers.b
+    e = sim.model.tracers.e
+    u, v, w = sim.model.velocities
+
+    msg = @sprintf("Iter: %d, time: %s, extrema(b): (%6.2e, %6.2e)",
+                   iteration(sim), prettytime(sim), minimum(b), maximum(b))
+
+    msg *= @sprintf(", extrema(e): (%6.2e, %6.2e)", minimum(e), maximum(e))
+
+    msg *= @sprintf(", max|u|: %6.2e, max|w|: %6.2e",
+                    maximum(maximum(abs, q) for q in (u, v, w)), maximum(abs, w))
+
+    @info msg
+
+    return nothing
+end
+
+simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
+
+simulation.stop_time = 7days
 run!(simulation)
-=#
 
 fig = Figure()
-ax = Axis(fig[1, 1])
+axbxy = Axis(fig[1, 1])
+axzxy = Axis(fig[1, 2])
+axb = Axis(fig[2, 1])
+axe = Axis(fig[2, 2])
 
+u, v, w = model.velocities
+using Oceananigans.Operators: ζ₃ᶠᶠᶜ
+ζop = KernelFunctionOperation{Face, Face, Center}(ζ₃ᶠᶠᶜ, grid, u, v)
+
+
+ζ = compute!(Field(ζop))
 b = model.tracers.b
+e = model.tracers.e
 bⱼ = Array(interior(b, :, j, :))
-heatmap!(ax, bⱼ, colorrange=(0.05, 0.06))
+eⱼ = Array(interior(e, :, j, :))
+bₖ = Array(interior(b, :, :, Nz))
+ζₖ = Array(interior(ζ, :, :, Nz))
+
+heatmap!(axbxy, bₖ, colorrange=(0.05, 0.06))
+heatmap!(axzxy, ζₖ)
+
+heatmap!(axb, bⱼ, colorrange=(0.05, 0.06))
+heatmap!(axe, eⱼ)
 
