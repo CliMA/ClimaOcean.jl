@@ -214,7 +214,7 @@ default_zonal_wind_stress = CubicSplineFunction{:y}(latitudes, zonal_stresses)
     t★ = parameters.t★
     q★ = Δz / t★
 
-    return @inbounds q★ * (b★ - fields.b[i, j, k])
+    return @inbounds q★ * (fields.b[i, j, k] - b★)
 end
 
 function neverworld_simulation(arch;
