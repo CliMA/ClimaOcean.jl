@@ -47,6 +47,7 @@ function __init__(; remove_existing_data=false)
 end
 
 include("VerticalGrids.jl")
+include("DataWrangling.jl")
 include("NearGlobalSimulations.jl")
 include("Diagnostics.jl")
 
