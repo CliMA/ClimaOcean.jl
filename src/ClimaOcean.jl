@@ -101,6 +101,7 @@ end
 @inline v_immersed_bottom_drag(i, j, k, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, k] * spᶜᶠᶜ(i, j, k, grid, Φ)
 
 include("VerticalGrids.jl")
+include("DataWrangling.jl")
 include("Diagnostics.jl")
 include("NearGlobalSimulations/NearGlobalSimulations.jl")
 include("IdealizedSimulations/IdealizedSimulations.jl")
