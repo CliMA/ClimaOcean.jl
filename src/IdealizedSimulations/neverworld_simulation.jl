@@ -65,12 +65,12 @@ function distance(point::Point, line::LineSegment)
     x₁, y₁ = line.p₁.x, line.p₁.y
     x₂, y₂ = line.p₂.x, line.p₂.y
 
-    # Line segment lengths
-    Δx = x₂ - x₁
-    Δy = y₂ - y₁
+    # Line segment vector components
+    ℓˣ = x₂ - x₁
+    ℓʸ = y₂ - y₁
 
     # Fractional increment to closest segment point
-    ϵ = ((x - x₁) * Δx + (y - y₁) * Δy) / (Δx^2 + Δy^2)
+    ϵ = ((x - x₁) * ℓˣ + (y - y₁) * ℓʸ) / (ℓˣ^2 + ℓʸ^2)
     ϵ = clamp(ϵ, 0, 1)
 
     # Closest segment point
