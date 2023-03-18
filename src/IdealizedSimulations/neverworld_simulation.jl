@@ -74,8 +74,8 @@ function distance(point::Point, line::LineSegment)
     ϵ = clamp(ϵ, 0, 1)
 
     # Closest segment point
-    x′ = x₁ + ϵ * Δx
-    y′ = y₁ + ϵ * Δy
+    x′ = x₁ + ϵ * ℓˣ
+    y′ = y₁ + ϵ * ℓʸ
     
     return sqrt((x′ - x)^2 + (y′ - y)^2)
 end
