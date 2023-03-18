@@ -103,7 +103,6 @@ end
 include("VerticalGrids.jl")
 include("Diagnostics.jl")
 include("NearGlobalSimulations/NearGlobalSimulations.jl")
-include("LimitedAreaSimulations/LimitedAreaSimulations.jl")
+include("IdealizedSimulations/IdealizedSimulations.jl")
 
 end # module
-

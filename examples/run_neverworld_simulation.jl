@@ -1,5 +1,5 @@
 using Oceananigans
-using ClimaOcean.LimitedAreaSimulations: neverworld_simulation
+using ClimaOcean.IdealizedSimulations: neverworld_simulation
 using GLMakie
 
 #=
