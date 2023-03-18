@@ -1,6 +1,6 @@
 using Oceananigans
 using Oceananigans.Units
-using ClimaOcean.LimitedAreaSimulations: neverworld_simulation
+using ClimaOcean.IdealizedSimulations: neverworld_simulation
 using GLMakie
 using Printf
 

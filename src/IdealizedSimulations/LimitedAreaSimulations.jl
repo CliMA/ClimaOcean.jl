@@ -1,4 +1,4 @@
-module LimitedAreaSimulations
+module IdealizedSimulations
 
 include("neverworld_simulation.jl")
 
