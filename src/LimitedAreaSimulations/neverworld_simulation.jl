@@ -84,7 +84,7 @@ function distance(point::Point, line::Line)
     x, y = point.x, point.y
     x₁, y₁ = line.p₁.x, line.p₁.y
     x₂, y₂ = line.p₂.x, line.p₂.y
-    num = abs((x₂ - x₁) * (y₁ - y₀) - (y₂ - y₁) * (x₁ - x₀))
+    num = abs((x₂ - x₁) * (y₁ - y) - (y₂ - y₁) * (x₁ - x))
     den = sqrt((x₂ - x₁)^2 + (y₂ - y₁)^2)
     return num / den
 end
@@ -214,7 +214,7 @@ default_zonal_wind_stress = CubicSplineFunction{:y}(latitudes, zonal_stresses)
     t★ = parameters.t★
     q★ = Δz / t★
 
-    return @inbounds q★ * (fields.b[i, j, k] - b★)
+    return @inbounds q★ * (b★ - fields.b[i, j, k])
 end
 
 function neverworld_simulation(arch;
@@ -285,11 +285,11 @@ function neverworld_simulation(arch;
     coriolis = HydrostaticSphericalCoriolis(scheme = ActiveCellEnstrophyConservingScheme())
     free_surface = ImplicitFreeSurface()
     model = HydrostaticFreeSurfaceModel(; grid, tracers, buoyancy, coriolis, free_surface,
-                                        momentum_advection, tracer_advection,
+                                        momentum_advection, tracer_advection, closure,
                                         boundary_conditions = (b=b_bcs, u=u_bcs, v=v_bcs))
 
     bᵢ(x, y, z) = Δb + N² * h * (exp(z / h) - 1)
-    set!(model, b=bᵢ)
+    set!(model, b=bᵢ, e=1e-6)
 
     simulation = Simulation(model; Δt=time_step)
 
