@@ -82,7 +82,7 @@ function distance(point::Point, linesegment::LineSegment)
     x′ = x₁ + ϵ * ℓˣ
     y′ = y₁ + ϵ * ℓʸ
     
-    return sqrt((x′ - x)^2 + (y′ - y)^2)
+    return distance(Point(x, y), Point(x′, y′))
 end
 
 function distance(point::Point, line::Line)
