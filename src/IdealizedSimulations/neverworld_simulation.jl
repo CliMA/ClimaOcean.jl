@@ -63,7 +63,7 @@ distance(p₁::Point, p₂::Point) = sqrt((p₁.x - p₂.x)^2 + (p₁.y - p₂.y
    distance(point::Point, linesegment::LineSegment)
 
 Return the distance between a `point` and a `linesegment`, that is the shortest distance
- of the `point` with and of the points within the line segment.
+ of the `point` to any of the points within the line segment.
 """
 function distance(point::Point, linesegment::LineSegment)
     x, y = point.x, point.y
