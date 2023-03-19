@@ -59,11 +59,17 @@ end
 
 distance(p₁::Point, p₂::Point) = sqrt((p₁.x - p₂.x)^2 + (p₁.y - p₂.y)^2)
 
-# https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment
-function distance(point::Point, line::LineSegment)
+```suggestion
+"""
+   distance(point::Point, linesegment::LineSegment)
+
+Return the distance between a `point` and a `linesegment`, that is the shortest distance
+ of the `point` with and of the points within the line segment.
+"""
+function distance(point::Point, linesegment::LineSegment)
     x, y = point.x, point.y
-    x₁, y₁ = line.p₁.x, line.p₁.y
-    x₂, y₂ = line.p₂.x, line.p₂.y
+    x₁, y₁ = linesegment.p₁.x, linesegment.p₁.y
+    x₂, y₂ = linesegment.p₂.x, linesegment.p₂.y
 
     # Line segment vector components
     ℓˣ = x₂ - x₁
