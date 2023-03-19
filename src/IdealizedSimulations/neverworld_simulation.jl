@@ -59,7 +59,6 @@ end
 
 distance(p₁::Point, p₂::Point) = sqrt((p₁.x - p₂.x)^2 + (p₁.y - p₂.y)^2)
 
-```suggestion
 """
    distance(point::Point, linesegment::LineSegment)
 
