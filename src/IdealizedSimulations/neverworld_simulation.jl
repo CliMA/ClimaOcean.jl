@@ -25,6 +25,7 @@ using CubicSplines
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.Grids: xnode, ynode
+using Oceananigans.Operators: xspacing, yspacing
 using Oceananigans.Operators: Δzᶜᶜᶜ
 using Oceananigans.Coriolis: ActiveCellEnstrophyConservingScheme
 using Oceananigans.TurbulenceClosures: CATKEVerticalDiffusivity
@@ -37,6 +38,20 @@ using ..VerticalGrids: stretched_vertical_cell_interfaces
 
 const c = Center()
 const f = Face()
+
+#####
+##### Utility
+#####
+
+instantiate(T::DataType) = T()
+instantiate(t) = t
+
+function minimum_spacing(dir, (LX, LY, LZ), grid)
+    spacing = eval(Symbol(dir, :spacing))
+    loc = map(instantiate, (LX, LY, LZ))
+    Δ = KernelFunctionOperation{LX, LY, LZ}(spacing, grid, loc...)
+    return minimum(Δ)
+end
 
 #####
 ##### Geometry
@@ -187,8 +202,8 @@ end
 ##### Default vertical grid
 #####
 
-default_z = stretched_vertical_cell_interfaces(surface_layer_Δz = 5,
-                                               surface_layer_height = 100,
+default_z = stretched_vertical_cell_interfaces(surface_layer_Δz = 8,
+                                               surface_layer_height = 128,
                                                stretching_exponent = 1.02,
                                                minimum_depth = 4000)
 
@@ -217,38 +232,65 @@ default_zonal_wind_stress = CubicSplineFunction{:y}(latitudes, zonal_stresses)
     return @inbounds q★ * (fields.b[i, j, k] - b★)
 end
 
+function barotropic_substeps(Δt, grid, gravitational_acceleration; cfl = 0.7)
+    wave_speed = sqrt(gravitational_acceleration * grid.Lz)
+    min_Δx = minimum_spacing(:x, (Center, Center, Center), grid)
+    min_Δy = minimum_spacing(:y, (Center, Center, Center), grid)
+    Δ = 1 / sqrt(1 / min_Δx^2 + 1 / min_Δy^2)
+    return max(Int(ceil(2 * Δt / (cfl / wave_speed * Δ))), 10)
+end
+
+struct Default end
+
 function neverworld_simulation(arch;
-                               #horizontal_resolution = 1, # degree
                                horizontal_size = (60, 70),
                                latitude = (-70, 0),
                                longitude = (0, 60),
                                z = default_z,
                                grid = nothing,
-                               momentum_advection = VectorInvariant(vorticity_scheme   = WENO(),
-                                                                    divergence_scheme  = WENO(),
-                                                                    vertical_scheme    = WENO()),
-                               tracer_advection = WENO(),
+                               gravitational_acceleration = 9.81,
+                               momentum_advection = Default(),
+                               tracer_advection = Default(),
                                closure = CATKEVerticalDiffusivity(),
                                tracers = (:b, :e),
                                buoyancy = BuoyancyTracer(),
-                               buoyancy_relaxation_time_scale = 4days,
+                               buoyancy_relaxation_time_scale = 7days,
                                target_buoyancy_distribution = cosine_target_buoyancy_distribution,
                                bottom_drag_coefficient = 2e-3,
                                equator_pole_buoyancy_difference = 0.06,
-                               surface_buoyancy_gradient = 1e-5,
+                               surface_buoyancy_gradient = 1e-4,
                                stratification_scale_height = 1000, # meters
                                time_step = 5minutes,
+                               stop_time = 30days,
                                bathymetry = nothing,
+                               free_surface = nothing,
                                zonal_wind_stress = default_zonal_wind_stress)
 
 
     if isnothing(grid)
         Nλ, Nφ = horizontal_size
         size = (Nλ, Nφ, length(z)-1)
-        underlying_grid = LatitudeLongitudeGrid(arch; size, latitude, longitude, z, halo=(5, 5, 5))
+        underlying_grid = LatitudeLongitudeGrid(arch; size, latitude, longitude, z, halo=(5, 5, 5),
+                                                topology=(Periodic, Bounded, Bounded))
 
         bathymetry = NeverworldBathymetry(underlying_grid)
         grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bathymetry))
+    end
+
+    if momentum_advection isa Default
+        momentum_advection = VectorInvariant(vorticity_scheme   = WENO(grid.underlying_grid),
+                                             divergence_scheme  = WENO(grid.underlying_grid),
+                                             vertical_scheme    = WENO(grid.underlying_grid))
+    end
+
+    if tracer_advection isa Default
+        #tracer_advection = WENO(grid.underlying_grid)
+        tracer_advection = (b=WENO(grid.underlying_grid), e=nothing)
+    end
+
+    if isnothing(free_surface)
+        substeps = barotropic_substeps(time_step, grid, gravitational_acceleration)
+        free_surface = SplitExplicitFreeSurface(; gravitational_acceleration, substeps)
     end
 
     N² = surface_buoyancy_gradient
@@ -283,7 +325,6 @@ function neverworld_simulation(arch;
     b_bcs = FieldBoundaryConditions(top=b_top_bc)
 
     coriolis = HydrostaticSphericalCoriolis(scheme = ActiveCellEnstrophyConservingScheme())
-    free_surface = ImplicitFreeSurface()
     model = HydrostaticFreeSurfaceModel(; grid, tracers, buoyancy, coriolis, free_surface,
                                         momentum_advection, tracer_advection, closure,
                                         boundary_conditions = (b=b_bcs, u=u_bcs, v=v_bcs))
@@ -291,7 +332,7 @@ function neverworld_simulation(arch;
     bᵢ(x, y, z) = Δb + N² * h * (exp(z / h) - 1)
     set!(model, b=bᵢ, e=1e-6)
 
-    simulation = Simulation(model; Δt=time_step)
+    simulation = Simulation(model; Δt=time_step, stop_time)
 
     return simulation
 end

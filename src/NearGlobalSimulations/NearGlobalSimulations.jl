@@ -111,7 +111,8 @@ using Oceananigans.Grids: min_Δx, min_Δy
 using Oceananigans.Operators: Δx, Δy, ℑxyz
 
 @inline Δ²(i, j, k, grid, lx, ly, lz)  = (1 / (1 / Δx(i, j, k, grid, lx, ly, lz)^2 + 1 / Δy(i, j, k, grid, lx, ly, lz)^2))
-@inline grid_dependent_biharmonic_viscosity(i, j, k, grid, lx, ly, lz, clock, fields, λ) = Δ²(i, j, k, grid, lx, ly, lz)^2 / λ
+@inline grid_dependent_biharmonic_viscosity(i, j, k, grid, lx, ly, lz, clock, fields, τ) =
+    Δ²(i, j, k, grid, lx, ly, lz)^2 / τ
 
 @inline function leith_dynamic_biharmonic_viscosity(i, j, k, grid, lx, ly, lz, clock, fields, p)
     location = (lx, ly, lz)
