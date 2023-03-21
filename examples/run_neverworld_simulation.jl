@@ -13,7 +13,6 @@ maximum_diffusivity = 1.0
 negative_turbulent_kinetic_energy_damping_time_scale = 20minutes
 
 microscale_closure = CATKEVerticalDiffusivity(; minimum_turbulent_kinetic_energy,
-#                                              maximum_diffusivity,
                                               negative_turbulent_kinetic_energy_damping_time_scale)
 
 biharmonic_viscosity = geometric_viscosity(HorizontalFormulation(), 12hours)
@@ -27,7 +26,7 @@ simulation = neverworld_simulation(GPU();
                                    longitude = (0, 60),
                                    latitude = (-70, 0),
                                    time_step = 10minutes,
-                                   stop_time = 600days,
+                                   stop_time = 60days,
                                    closure)
                                    #tracer_advection)
 
@@ -87,11 +86,13 @@ u, v, w = model.velocities
 using Oceananigans.Operators: ζ₃ᶠᶠᶜ
 ζ = KernelFunctionOperation{Face, Face, Center}(ζ₃ᶠᶠᶜ, grid, u, v)
 
+α = @at (Center, Center, Face) ∂z(u)^2 + ∂z(v)^2
+
 diffusivity_fields = (κᵘ = model.diffusivity_fields.Kᵘ,
                       κᶜ = model.diffusivity_fields.Kᶜ,
                       κᵉ = model.diffusivity_fields.Kᵉ)
 
-outputs = merge(model.velocities, model.tracers, diffusivity_fields, (; ζ))
+outputs = merge(model.velocities, model.tracers, diffusivity_fields, (; ζ, α))
 
 simulation.output_writers[:yz] = JLD2OutputWriter(model, outputs;
                                                   schedule = TimeInterval(4hours),
@@ -117,6 +118,7 @@ exyt = FieldTimeSeries("neverworld_xy.jld2", "e")
 
 byzt = FieldTimeSeries("neverworld_yz.jld2", "b")
 uyzt = FieldTimeSeries("neverworld_yz.jld2", "u")
+αyzt = FieldTimeSeries("neverworld_yz.jld2", "α")
 ζyzt = FieldTimeSeries("neverworld_yz.jld2", "ζ")
 eyzt = FieldTimeSeries("neverworld_yz.jld2", "e")
 κyzt = FieldTimeSeries("neverworld_yz.jld2", "κᶜ")
@@ -145,7 +147,7 @@ axexy = Axis(fig[1, 4], title="e(x, y)")
 axκxy = Axis(fig[1, 5], title="κᶜ(x, y)")
 
 axbyz = Axis(fig[2, 1], title="b(y, z)")
-axuyz = Axis(fig[2, 2], title="u(y, z)")
+axuyz = Axis(fig[2, 2], title="| ∂z u |²(y, z)")
 axζyz = Axis(fig[2, 3], title="ζ(y, z)")
 axeyz = Axis(fig[2, 4], title="e(y, z)")
 axκyz = Axis(fig[2, 5], title="κᶜ(y, z)")
@@ -160,7 +162,7 @@ exyn = @lift interior(exyt[$n], :, :, 1)
 κxyn = @lift interior(κxyt[$n], :, :, 1)
 
 byzn = @lift interior(byzt[$n], 1, :, :)
-uyzn = @lift interior(uyzt[$n], 1, :, :)
+uyzn = @lift interior(αyzt[$n], 1, :, :)
 ζyzn = @lift interior(ζyzt[$n], 1, :, :)
 eyzn = @lift interior(eyzt[$n], 1, :, :)
 κyzn = @lift interior(κyzt[$n], 1, :, :)
