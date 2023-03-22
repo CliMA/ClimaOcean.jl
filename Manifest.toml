@@ -92,15 +92,15 @@ version = "0.4.7"
 
 [[deps.CUDA_Driver_jll]]
 deps = ["Artifacts", "JLLWrappers", "LazyArtifacts", "Libdl", "Pkg"]
-git-tree-sha1 = "8b912e69a6826d32eced5c4f9e2c50aff7100979"
+git-tree-sha1 = "a1efe2bfb96c10906dede10f1580aca0ae6d092f"
 uuid = "4ee394cb-3365-5eb0-8335-949819d2adfc"
-version = "0.4.0+0"
+version = "0.4.0+2"
 
 [[deps.CUDA_Runtime_jll]]
 deps = ["Artifacts", "CUDA_Driver_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "TOML"]
-git-tree-sha1 = "de2e366b4e66a8690567d12dec6f550da9addec7"
+git-tree-sha1 = "96e06a24c89a9945c57278fd09fb717f71476d87"
 uuid = "76a88914-d11a-5bdc-97e0-2f5a05c973a2"
-version = "0.4.0+0"
+version = "0.4.0+2"
 
 [[deps.ChainRulesCore]]
 deps = ["Compat", "LinearAlgebra", "SparseArrays"]
@@ -421,9 +421,9 @@ version = "0.20.8"
 
 [[deps.MPICH_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "MPIPreferences", "TOML"]
-git-tree-sha1 = "6494782a9930c138af5388e64b48f096d17b8edb"
+git-tree-sha1 = "d790fbd913f85e8865c55bf4725aff197c5155c8"
 uuid = "7cb0a576-ebde-5e09-9194-50597f1243b4"
-version = "4.1.1+0"
+version = "4.1.1+1"
 
 [[deps.MPIPreferences]]
 deps = ["Libdl", "Preferences"]
@@ -433,9 +433,9 @@ version = "0.1.7"
 
 [[deps.MPItrampoline_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "MPIPreferences", "TOML"]
-git-tree-sha1 = "e537a80351fe06f71299037781f3da7b648ecc47"
+git-tree-sha1 = "ad88f863a5a16b3e26d14446afd3cd746266281b"
 uuid = "f1f71cc9-e9ae-5b93-9b94-4fe0e1ad3748"
-version = "5.2.1+0"
+version = "5.2.1+3"
 
 [[deps.MacroTools]]
 deps = ["Markdown", "Random"]
@@ -495,7 +495,9 @@ version = "1.2.0"
 
 [[deps.Oceananigans]]
 deps = ["AMGX", "Adapt", "AlgebraicMultigrid", "CUDA", "CUDAKernels", "Crayons", "CubedSphere", "Dates", "DocStringExtensions", "FFTW", "Glob", "IncompleteLU", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "LinearAlgebra", "Logging", "MPI", "NCDatasets", "OffsetArrays", "OrderedCollections", "PencilArrays", "PencilFFTs", "Pkg", "Printf", "Random", "Rotations", "SeawaterPolynomials", "SparseArrays", "Statistics", "StructArrays", "Tullio"]
-path = "/home/greg/Projects/Oceananigans.jl"
+git-tree-sha1 = "5ebc7c3b03b0be5e857c219950bb8ee98e9cea2b"
+repo-rev = "main"
+repo-url = "https://github.com/CliMA/Oceananigans.jl.git"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
 version = "0.80.0"
 
