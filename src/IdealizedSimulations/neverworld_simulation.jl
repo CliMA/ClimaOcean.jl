@@ -113,9 +113,10 @@ end
 ##### Bathymetry
 #####
 
-struct NeverworldBathymetry{G, B} <: Function
+struct NeverworldBathymetry{G, B, P} <: Function
     grid :: G
     coastline_spline :: B
+    scotia_ridge :: P
     rim_width :: Float64
     slope_width :: Float64
     shelf_width :: Float64
@@ -123,6 +124,11 @@ struct NeverworldBathymetry{G, B} <: Function
     abyssal_depth :: Float64
     southern_channel_boundary :: Float64
     northern_channel_boundary :: Float64
+    scotia_ridge_height :: Float64
+    scotia_ridge_radius :: Float64
+    scotia_ridge_width :: Float64
+    scotia_ridge_center_longitude :: Float64
+    scotia_ridge_center_latitude :: Float64
 end
 
 function NeverworldBathymetry(grid;
@@ -132,7 +138,12 @@ function NeverworldBathymetry(grid;
                               rim_width = shelf_width / 8,
                               slope_width = shelf_width,
                               southern_channel_boundary = -60,
-                              northern_channel_boundary = -40)
+                              northern_channel_boundary = -40,
+                              scotia_ridge_height = 2000,
+                              scotia_ridge_radius = 10,
+                              scotia_ridge_width = 2,
+                              scotia_ridge_center_longitude = 0,
+                              scotia_ridge_center_latitude = (southern_channel_boundary + northern_channel_boundary) / 2)
 
     # Use grid spacing for "beach width"
     Δ = max(grid.Δλᶠᵃᵃ, grid.Δφᵃᶠᵃ)
@@ -155,15 +166,29 @@ function NeverworldBathymetry(grid;
     basin_depths        = [0, 0,       shelf_depth,  shelf_depth, shelf_depth, abyssal_depth, abyssal_depth]
     coastline_spline = CubicSplineFunction{:x}(basin_rim_distances, basin_depths)
 
+    R = scotia_ridge_radius 
+    w = scotia_ridge_width
+    H = abyssal_depth
+    h = H - scotia_ridge_height
+
+    # The so-called "clipped cone"
+    scotia_ridge(r) = max(h, H * min(1, abs(r - R) / w))
+
     return NeverworldBathymetry(grid,
                                 coastline_spline,
+                                scotia_ridge,
                                 Float64(rim_width),
                                 Float64(slope_width),
                                 Float64(shelf_width),
                                 Float64(shelf_depth),
                                 Float64(abyssal_depth),
                                 Float64(southern_channel_boundary),
-                                Float64(northern_channel_boundary))
+                                Float64(northern_channel_boundary),
+                                Float64(scotia_ridge_height),
+                                Float64(scotia_ridge_radius),
+                                Float64(scotia_ridge_width),
+                                Float64(scotia_ridge_center_longitude),
+                                Float64(scotia_ridge_center_latitude))
 end
 
 function (nb::NeverworldBathymetry)(λ, φ)
@@ -200,6 +225,15 @@ function (nb::NeverworldBathymetry)(λ, φ)
     
     bottom_height = - nb.coastline_spline(r)
 
+    # Scotia ridge
+    λₛ = nb.scotia_ridge_center_longitude
+    φₛ = nb.scotia_ridge_center_latitude
+    rₛ = sqrt((λ - λₛ)^2 + (φ - φₛ)^2)
+    ridge_height = - nb.scotia_ridge(rₛ)
+
+    # Limit to shallower depth
+    bottom_height = max(ridge_height, bottom_height)
+
     return bottom_height
 end
 
@@ -221,14 +255,23 @@ latitudes      = [-70,   -45,   -15,      0,    15,    45,  70]
 zonal_stresses = [ +0,  -0.2,  +0.1,  +0.02,  +0.1,  -0.1,  +0] .* 1e-3 # kinematic wind stress
 default_zonal_wind_stress = CubicSplineFunction{:y}(latitudes, zonal_stresses)
 
-@inline cosine_target_buoyancy_distribution(φ, p) = p.Δb * cos(π * φ / p.Δφ)
+@inline cosine_target_buoyancy_distribution(φ, t, p) = p.Δb * cos(π * φ / p.Δφ)
+
+@inline function seasonal_cosine_target_buoyancy_distribution(φ, t, p)
+    ω = 2π / 360days
+    ϵ = p.ϵ # amplitude of seasonal cycle
+
+    # t=0: heart of Southern ocean winter
+    return p.Δb * (cos(π * φ / p.Δφ) + ϵ * cos(ω * t) * sin(π * φ / p.Δφ))
+end
 
 @inline function buoyancy_relaxation(i, j, grid, clock, fields, parameters)
     k = grid.Nz
 
     # Target buoyancy distribution
     φ = ynode(i, j, k, grid, c, c, c)
-    b★ = parameters.b★(φ, parameters)
+    t = clock.time
+    b★ = parameters.b★(φ, t, parameters)
 
     Δz = Δzᶜᶜᶜ(i, j, k, grid)
     t★ = parameters.t★
@@ -259,12 +302,13 @@ function neverworld_simulation(arch;
                                closure = CATKEVerticalDiffusivity(),
                                tracers = (:b, :e),
                                buoyancy = BuoyancyTracer(),
-                               buoyancy_relaxation_time_scale = 7days,
-                               target_buoyancy_distribution = cosine_target_buoyancy_distribution,
+                               buoyancy_relaxation_time_scale = 14days,
+                               target_buoyancy_distribution = seasonal_cosine_target_buoyancy_distribution,
                                bottom_drag_coefficient = 2e-3,
                                equator_pole_buoyancy_difference = 0.06,
+                               seasonal_cycle_relative_amplitude = 0.8,
                                surface_buoyancy_gradient = 1e-4,
-                               stratification_scale_height = 1000, # meters
+                               stratification_scale_height = 500, # meters
                                time_step = 5minutes,
                                stop_time = 30days,
                                bathymetry = nothing,
@@ -289,7 +333,7 @@ function neverworld_simulation(arch;
     end
 
     if tracer_advection isa Default
-        #tracer_advection = WENO(grid.underlying_grid)
+        # Turn off advection of tke for efficiency
         tracer_advection = (b=WENO(grid.underlying_grid), e=nothing)
     end
 
@@ -305,9 +349,10 @@ function neverworld_simulation(arch;
     Δφ = abs(latitude[1])
     b★ = target_buoyancy_distribution 
     μ  = bottom_drag_coefficient
+    ϵ = seasonal_cycle_relative_amplitude 
 
     # Buoyancy flux
-    parameters = (; Δφ, Δb, t★, b★)
+    parameters = (; Δφ, Δb, t★, b★, ϵ)
     b_top_bc = FluxBoundaryCondition(buoyancy_relaxation, discrete_form=true; parameters)
 
     # Wind stress
@@ -330,6 +375,7 @@ function neverworld_simulation(arch;
     b_bcs = FieldBoundaryConditions(top=b_top_bc)
 
     coriolis = HydrostaticSphericalCoriolis(scheme = ActiveCellEnstrophyConservingScheme())
+
     model = HydrostaticFreeSurfaceModel(; grid, tracers, buoyancy, coriolis, free_surface,
                                         momentum_advection, tracer_advection, closure,
                                         boundary_conditions = (b=b_bcs, u=u_bcs, v=v_bcs))
