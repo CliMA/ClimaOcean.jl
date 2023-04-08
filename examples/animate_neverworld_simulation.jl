@@ -4,22 +4,28 @@ using Oceananigans.Units
 using GLMakie
 using Printf
 
-#=
-bxyt = FieldTimeSeries("neverworld_xy.jld2", "b")
-uxyt = FieldTimeSeries("neverworld_xy.jld2", "u")
-ζxyt = FieldTimeSeries("neverworld_xy.jld2", "ζ")
-exyt = FieldTimeSeries("neverworld_xy.jld2", "e")
-κxyt = FieldTimeSeries("neverworld_xy.jld2", "κᶜ")
-
-byzt = FieldTimeSeries("neverworld_yz.jld2", "b")
-uyzt = FieldTimeSeries("neverworld_yz.jld2", "u")
-ζyzt = FieldTimeSeries("neverworld_yz.jld2", "ζ")
-eyzt = FieldTimeSeries("neverworld_yz.jld2", "e")
-κyzt = FieldTimeSeries("neverworld_yz.jld2", "κᶜ")
+backend = OnDisk()
+bxyt = FieldTimeSeries("neverworld_xy.jld2", "b"; backend)
 
 t = bxyt.times
 Nt = length(t)
 
+t = times = t[Nt-500:Nt]
+Nt = length(t)
+
+bxyt = FieldTimeSeries("neverworld_xy.jld2", "b"; times)
+uxyt = FieldTimeSeries("neverworld_xy.jld2", "u"; times)
+ζxyt = FieldTimeSeries("neverworld_xy.jld2", "ζ"; times)
+exyt = FieldTimeSeries("neverworld_xy.jld2", "e"; times)
+κxyt = FieldTimeSeries("neverworld_xy.jld2", "κᶜ"; times)
+
+byzt = FieldTimeSeries("neverworld_yz.jld2", "b"; times)
+uyzt = FieldTimeSeries("neverworld_yz.jld2", "u"; times)
+ζyzt = FieldTimeSeries("neverworld_yz.jld2", "ζ"; times)
+eyzt = FieldTimeSeries("neverworld_yz.jld2", "e"; times)
+κyzt = FieldTimeSeries("neverworld_yz.jld2", "κᶜ"; times)
+
+#=
 for ft in (bxyt, uxyt, ζxyt, exyt, κxyt, byzt, uyzt, ζyzt, eyzt, κyzt)
     fp = parent(ft)
     fp[fp .== 0] .= NaN
@@ -93,6 +99,7 @@ hm = heatmap!(axκyz, y, z, κyzn, nan_color=:gray, colormap=:solar, colorrange=
 display(fig)
 
 record(fig, "catke_neverworld.mp4", 1:Nt, framerate=36) do nn
+    @info "Recording frame $nn of $Nt..."
     n[] = nn
 end
 
