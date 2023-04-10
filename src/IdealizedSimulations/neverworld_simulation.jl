@@ -334,7 +334,10 @@ function neverworld_simulation(arch;
 
     if tracer_advection isa Default
         # Turn off advection of tke for efficiency
-        tracer_advection = (b=WENO(grid.underlying_grid), e=nothing)
+        tracer_advection = Dict()
+        tracer_advection = Dict{Symbol, Any}(name => WENO(grid.underlying_grid) for name in tracers)
+        tracer_advection[:e] = nothing
+        tracer_advection = NamedTuple(name => tracer_advection[name] for name in tracers)
     end
 
     if isnothing(free_surface)
