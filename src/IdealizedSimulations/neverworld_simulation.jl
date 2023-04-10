@@ -308,13 +308,12 @@ function neverworld_simulation(arch;
                                equator_pole_buoyancy_difference = 0.06,
                                seasonal_cycle_relative_amplitude = 0.8,
                                surface_buoyancy_gradient = 1e-4,
-                               stratification_scale_height = 500, # meters
+                               stratification_scale_height = 1000, # meters
                                time_step = 5minutes,
                                stop_time = 30days,
                                bathymetry = nothing,
                                free_surface = nothing,
                                zonal_wind_stress = default_zonal_wind_stress)
-
 
     if isnothing(grid)
         Nλ, Nφ = horizontal_size
@@ -327,9 +326,9 @@ function neverworld_simulation(arch;
     end
 
     if momentum_advection isa Default
-        momentum_advection = VectorInvariant(vorticity_scheme   = WENO(grid.underlying_grid),
-                                             divergence_scheme  = WENO(grid.underlying_grid),
-                                             vertical_scheme    = WENO(grid.underlying_grid))
+        momentum_advection = VectorInvariant(vorticity_scheme  = WENO(grid.underlying_grid),
+                                             divergence_scheme = WENO(grid.underlying_grid),
+                                             vertical_scheme   = WENO(grid.underlying_grid))
     end
 
     if tracer_advection isa Default
@@ -352,7 +351,7 @@ function neverworld_simulation(arch;
     Δφ = abs(latitude[1])
     b★ = target_buoyancy_distribution 
     μ  = bottom_drag_coefficient
-    ϵ = seasonal_cycle_relative_amplitude 
+    ϵ  = seasonal_cycle_relative_amplitude 
 
     # Buoyancy flux
     parameters = (; Δφ, Δb, t★, b★, ϵ)
