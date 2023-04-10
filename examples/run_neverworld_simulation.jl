@@ -14,18 +14,13 @@ simulation = neverworld_simulation(GPU();
                                    longitude = (0, 60),
                                    latitude = (-70, 0),
                                    time_step = 10minutes,
-                                   stop_time = 200years,
+                                   stop_time = 200 * 360days,
                                    closure)
 
 model = simulation.model
 grid = model.grid
 
 @show grid
-
-Nx, Ny, Nz = size(grid)
-i = round(Int, Nx/10)
-j = round(Int, Ny/2)
-schedule = TimeInterval(4hours)
 
 start_time = Ref(time_ns())
 
@@ -59,12 +54,11 @@ end
 
 simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
 
-u, v, w = model.velocities
-using Oceananigans.Operators: ζ₃ᶠᶠᶜ
-ζ = KernelFunctionOperation{Face, Face, Center}(ζ₃ᶠᶠᶜ, grid, u, v)
+# Set up output
+Nx, Ny, Nz = size(grid)
+i = round(Int, Nx/10) # index for yz-sliced output
 
 diffusivity_fields = (; κᶜ = model.diffusivity_fields.κᶜ)
-
 outputs = merge(model.velocities, model.tracers, diffusivity_fields)
 zonally_averaged_outputs = NamedTuple(n => Average(outputs[n], dims=1) for n in keys(outputs))
 
@@ -72,23 +66,32 @@ simulation.output_writers[:yz] = JLD2OutputWriter(model, outputs;
                                                   schedule = TimeInterval(6days),
                                                   filename = "neverworld_yz.jld2",
                                                   indices = (i, :, :),
+                                                  with_halos = true,
                                                   overwrite_existing = true)
 
 simulation.output_writers[:zonal] = JLD2OutputWriter(model, zonally_averaged_outputs;
                                                      schedule = TimeInterval(6days),
                                                      filename = "neverworld_zonal_average.jld2",
+                                                     with_halos = true,
                                                      overwrite_existing = true)
 
 simulation.output_writers[:xy] = JLD2OutputWriter(model, outputs;
                                                   schedule = TimeInterval(6days),
                                                   filename = "neverworld_xy.jld2",
                                                   indices = (:, :, Nz),
+                                                  with_halos = true,
                                                   overwrite_existing = true)
 
 simulation.output_writers[:xyz] = JLD2OutputWriter(model, outputs;
                                                    schedule = TimeInterval(90days),
                                                    filename = "neverworld_xyz.jld2",
+                                                   with_halos = true,
                                                    overwrite_existing = true)
+
+simulation.output_writers[:checkpointer] = Checkpointer(model,
+                                                        schedule = TimeInterval(360days),
+                                                        prefix = "neverworld_checkpoint",
+                                                        cleanup = true)
 
 run!(simulation)
 
