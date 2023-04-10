@@ -1,7 +1,6 @@
 using Oceananigans
 using Oceananigans.ImmersedBoundaries: mask_immersed_field!
 using Oceananigans.Units
-#using GLMakie
 using Printf
 using JLD2
 
