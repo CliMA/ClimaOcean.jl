@@ -290,8 +290,12 @@ end
 
 struct Default end
 
+horizontal_resolution_tuple(n::Number) = (n, n)
+horizontal_resolution_tuple(t::Tuple{Number, Number}) = t
+horizontal_resolution_tuple(anything_else) = throw(ArgumentError("$anything_else is not a valid horizontal_resolution!"))
+
 function neverworld_simulation(arch;
-                               horizontal_size = (60, 70),
+                               horizontal_resolution = 1/4, # degrees
                                latitude = (-70, 0),
                                longitude = (0, 60),
                                z = default_z,
@@ -311,17 +315,23 @@ function neverworld_simulation(arch;
                                stratification_scale_height = 500, # meters
                                time_step = 5minutes,
                                stop_time = 30days,
-                               bathymetry = nothing,
                                free_surface = nothing,
                                zonal_wind_stress = default_zonal_wind_stress)
 
 
     if isnothing(grid)
-        Nλ, Nφ = horizontal_size
-        size = (Nλ, Nφ, length(z)-1)
-        underlying_grid = LatitudeLongitudeGrid(arch; size, latitude, longitude, z, halo=(5, 5, 5),
-                                                topology=(Periodic, Bounded, Bounded))
+        # Build horizontal size
+        Δλ, Δφ = horizontal_resolution_tuple(horizontal_resolution)
+        Lλ = longitude[2] - longitude[1]
+        Lφ = latitude[2] - latitude[1]
+        Nλ = ceil(Int, Lλ / Δλ)
+        Nφ = ceil(Int, Lφ / Δφ)
 
+        size = (Nλ, Nφ, length(z)-1)
+        halo = (5, 5, 5)
+        topology = (Periodic, Bounded, Bounded)
+
+        underlying_grid = LatitudeLongitudeGrid(arch; size, latitude, longitude, z, halo, topology)
         bathymetry = NeverworldBathymetry(underlying_grid)
         grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bathymetry))
     end
