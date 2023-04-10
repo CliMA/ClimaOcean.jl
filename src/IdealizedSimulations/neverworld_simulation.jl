@@ -100,6 +100,13 @@ function distance(point::Point, linesegment::LineSegment)
     return distance(Point(x, y), Point(x′, y′))
 end
 
+"""
+    distance(point::Point, line::Line)
+
+Return the distance of a `point` to a `line`, i.e., the shortest distance from the `point` to a point on the `line`.
+
+If ``𝐭`` is a unit vector parallel to the line and ``Δ𝐱`` any vector connecting the `point` with any point on the line, then the shortest distance between the line is ``|𝐭 x Δ𝐱| = |Δ𝐱| |sinθ|``, where ``θ`` is the angle formed by vector ``Δ𝐱`` and the line.
+"""
 function distance(point::Point, line::Line)
     x, y = point.x, point.y
     x₁, y₁ = line.p₁.x, line.p₁.y
