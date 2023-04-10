@@ -1,10 +1,7 @@
 using Oceananigans
 using Oceananigans.Units
-using Oceananigans.Grids: min_Δx, min_Δy
 using Oceananigans.TurbulenceClosures: CATKEVerticalDiffusivity
-using Oceananigans.TurbulenceClosures: HorizontalFormulation
 using ClimaOcean.IdealizedSimulations: neverworld_simulation
-using ClimaOcean.NearGlobalSimulations: geometric_viscosity
 using Printf
 
 minimum_turbulent_kinetic_energy = 1e-6
@@ -95,75 +92,3 @@ simulation.output_writers[:xyz] = JLD2OutputWriter(model, outputs;
 
 run!(simulation)
 
-#=
-using GLMakie
-
-bxyt = FieldTimeSeries("neverworld_xy.jld2", "b")
-uxyt = FieldTimeSeries("neverworld_xy.jld2", "u")
-ζxyt = FieldTimeSeries("neverworld_xy.jld2", "ζ")
-exyt = FieldTimeSeries("neverworld_xy.jld2", "e")
-κxyt = FieldTimeSeries("neverworld_xy.jld2", "κᶜ")
-
-byzt = FieldTimeSeries("neverworld_yz.jld2", "b")
-uyzt = FieldTimeSeries("neverworld_yz.jld2", "u")
-αyzt = FieldTimeSeries("neverworld_yz.jld2", "α")
-ζyzt = FieldTimeSeries("neverworld_yz.jld2", "ζ")
-eyzt = FieldTimeSeries("neverworld_yz.jld2", "e")
-κyzt = FieldTimeSeries("neverworld_yz.jld2", "κᶜ")
-
-t = bxyt.times
-Nt = length(t)
-
-fig = Figure(resolution=(1800, 600))
-
-axbxy = Axis(fig[1, 1], title="b(x, y)")
-axuxy = Axis(fig[1, 2], title="u(x, y)")
-axζxy = Axis(fig[1, 3], title="ζ(x, y)")
-axexy = Axis(fig[1, 4], title="e(x, y)")
-axκxy = Axis(fig[1, 5], title="κᶜ(x, y)")
-
-axbyz = Axis(fig[2, 1], title="b(y, z)")
-axuyz = Axis(fig[2, 2], title="| ∂z u |²(y, z)")
-axζyz = Axis(fig[2, 3], title="ζ(y, z)")
-axeyz = Axis(fig[2, 4], title="e(y, z)")
-axκyz = Axis(fig[2, 5], title="κᶜ(y, z)")
-
-slider = Slider(fig[2, 1:5], range=1:Nt, startvalue=Nt)
-n = slider.value
-
-bxyn = @lift interior(bxyt[$n], :, :, 1)
-uxyn = @lift interior(uxyt[$n], :, :, 1)
-ζxyn = @lift interior(ζxyt[$n], :, :, 1)
-exyn = @lift interior(exyt[$n], :, :, 1)
-κxyn = @lift interior(κxyt[$n], :, :, 1)
-
-byzn = @lift interior(byzt[$n], 1, :, :)
-uyzn = @lift interior(αyzt[$n], 1, :, :)
-ζyzn = @lift interior(ζyzt[$n], 1, :, :)
-eyzn = @lift interior(eyzt[$n], 1, :, :)
-κyzn = @lift interior(κyzt[$n], 1, :, :)
-
-ulim = 1.0
-ζlim = 5e-5
-κlim = 100
-x, y, z = nodes(bxyt)
-
-heatmap!(axbxy, bxyn, colorrange=(-0.06, 0.06))
-heatmap!(axuxy, uxyn, colormap=:balance, colorrange=(-ulim, ulim))
-heatmap!(axζxy, ζxyn, colormap=:balance, colorrange=(-ζlim, ζlim))
-heatmap!(axexy, exyn, colormap=:solar, colorrange=(1e-6, 1e-2))
-heatmap!(axκxy, κxyn, colormap=:solar, colorrange=(0, κlim))
-
-heatmap!(axbyz, y, z, byzn, colorrange=(0.0, 0.06))
-heatmap!(axuyz, y, z, uyzn, colormap=:balance, colorrange=(-ulim, ulim))
-heatmap!(axζyz, y, z, ζyzn, colormap=:balance, colorrange=(-ζlim, ζlim))
-heatmap!(axeyz, y, z, eyzn, colormap=:solar, colorrange=(1e-6, 1e-2))
-heatmap!(axκyz, y, z, κyzn, colormap=:solar, colorrange=(0, κlim))
-
-# display(fig)
-
-record(fig, "catke_neverworld.mp4", 1:Nt, framerate=48) do nn
-    @info "Plotting frame $nn of $Nt..."
-    n[] = nn
-end
-=#
