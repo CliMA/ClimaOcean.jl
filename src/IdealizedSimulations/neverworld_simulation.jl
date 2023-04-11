@@ -24,7 +24,8 @@ using CubicSplines
 
 using Oceananigans
 using Oceananigans.Units
-using Oceananigans.Grids: xnode, ynode
+using Oceananigans.Grids: xnode, ynode, minimum_xspacing, minimum_yspacing
+using Oceananigans.ImmersedBoundaries: PartialCellBottom
 using Oceananigans.Operators: xspacing, yspacing
 using Oceananigans.Operators: Δzᶜᶜᶜ
 using Oceananigans.Coriolis: ActiveCellEnstrophyConservingScheme
@@ -45,13 +46,6 @@ const f = Face()
 
 instantiate(T::DataType) = T()
 instantiate(t) = t
-
-function minimum_spacing(dir, (LX, LY, LZ), grid)
-    spacing = eval(Symbol(dir, :spacing))
-    loc = map(instantiate, (LX, LY, LZ))
-    Δ = KernelFunctionOperation{LX, LY, LZ}(spacing, grid, loc...)
-    return minimum(Δ)
-end
 
 #####
 ##### Geometry
@@ -249,9 +243,9 @@ end
 #####
 
 default_z = stretched_vertical_faces(surface_layer_Δz = 8,
-                                               surface_layer_height = 128,
-                                               stretching = PowerLawStretching(1.02),
-                                               minimum_depth = 4000)
+                                     surface_layer_height = 128,
+                                     stretching = PowerLawStretching(1.02),
+                                     minimum_depth = 4000)
 
 #####
 ##### Boundary conditions
@@ -269,7 +263,7 @@ default_zonal_wind_stress = CubicSplineFunction{:y}(latitudes, zonal_stresses)
     ϵ = p.ϵ # amplitude of seasonal cycle
 
     # t=0: heart of Southern ocean winter
-    return p.Δb * (cos(π * φ / p.Δφ) + ϵ * cos(ω * t) * sin(π * φ / p.Δφ))
+    return p.Δb * (cos(π * φ / p.Δφ) + ϵ * cos(ω * t) * sin(π/2 * φ / p.Δφ))
 end
 
 @inline function buoyancy_relaxation(i, j, grid, clock, fields, parameters)
@@ -287,10 +281,12 @@ end
     return @inbounds q★ * (fields.b[i, j, k] - b★)
 end
 
+const c = Center()
+
 function barotropic_substeps(Δt, grid, gravitational_acceleration; cfl = 0.7)
     wave_speed = sqrt(gravitational_acceleration * grid.Lz)
-    min_Δx = minimum_spacing(:x, (Center, Center, Center), grid)
-    min_Δy = minimum_spacing(:y, (Center, Center, Center), grid)
+    min_Δx = minimum_xspacing(grid, c, c, c)
+    min_Δy = minimum_yspacing(grid, c, c, c)
     Δ = 1 / sqrt(1 / min_Δx^2 + 1 / min_Δy^2)
     return max(Int(ceil(2 * Δt / (cfl / wave_speed * Δ))), 10)
 end
@@ -313,7 +309,7 @@ function neverworld_simulation(arch;
                                closure = CATKEVerticalDiffusivity(),
                                tracers = (:b, :e),
                                buoyancy = BuoyancyTracer(),
-                               buoyancy_relaxation_time_scale = 14days,
+                               buoyancy_relaxation_time_scale = 30days,
                                target_buoyancy_distribution = seasonal_cosine_target_buoyancy_distribution,
                                bottom_drag_coefficient = 2e-3,
                                equator_pole_buoyancy_difference = 0.06,
@@ -339,7 +335,8 @@ function neverworld_simulation(arch;
 
         underlying_grid = LatitudeLongitudeGrid(arch; size, latitude, longitude, z, halo, topology)
         bathymetry = NeverworldBathymetry(underlying_grid)
-        grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bathymetry))
+        grid = ImmersedBoundaryGrid(underlying_grid, PartialCellBottom(bathymetry))
+        #grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bathymetry))
     end
 
     if momentum_advection isa Default

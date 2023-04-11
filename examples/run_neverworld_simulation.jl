@@ -2,25 +2,25 @@ using Oceananigans
 using Oceananigans.Units
 using Oceananigans.TurbulenceClosures: CATKEVerticalDiffusivity
 using ClimaOcean.IdealizedSimulations: neverworld_simulation
-using ClimaOcean.VerticalGrids: stretched_vertical_faces, LinearStretching
+using ClimaOcean.VerticalGrids: stretched_vertical_faces, PowerLawStretching
 using Printf
 
 closure = CATKEVerticalDiffusivity(minimum_turbulent_kinetic_energy = 1e-6,
-                                   maximum_diffusivity = 100.0,
+                                   #maximum_diffusivity = 100.0,
                                    minimum_convective_buoyancy_flux = 1e-11)
 
 z = stretched_vertical_faces(surface_layer_Δz = 8,
-                             surface_layer_height = 256,
-                             stretching = LinearStretching(0.2),
+                             surface_layer_height = 32,
+                             stretching = PowerLawStretching(1.02),
                              maximum_Δz = 400.0,
                              minimum_depth = 4000)
 
 simulation = neverworld_simulation(GPU(); z,
-                                   horizontal_resolution = 1/4,
+                                   horizontal_resolution = 1/2,
                                    longitude = (0, 60),
                                    latitude = (-70, 0),
-                                   time_step = 20minutes,
-                                   stop_time = 20 * 360days,
+                                   time_step = 10minutes,
+                                   stop_time = 4 * 360days,
                                    closure)
 
 model = simulation.model
@@ -58,12 +58,14 @@ function progress(sim)
     return nothing
 end
 
-simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
+simulation.callbacks[:progress] = Callback(progress, IterationInterval(20))
 
 # Set up output
 Nx, Ny, Nz = size(grid)
+Δt = simulation.Δt
+Δt_minutes = round(Int, Δt / minutes) 
 i = round(Int, Nx/10) # index for yz-sliced output
-output_suffix = "$(Nx)_$(Ny)_$(Nz).jld2"
+output_suffix = "$(Nx)_$(Ny)_$(Nz)_dt$(Δt_minutes).jld2"
 fine_output_frequency = 1day
 
 diffusivity_fields = (; κᶜ = model.diffusivity_fields.κᶜ)
@@ -100,6 +102,9 @@ simulation.output_writers[:checkpointer] = Checkpointer(model,
                                                         schedule = TimeInterval(360days),
                                                         prefix = "neverworld_$(Nx)_$(Ny)_$(Nz)_checkpoint",
                                                         cleanup = true)
+
+@info "Running..."
+@show simulation
 
 run!(simulation)
 
