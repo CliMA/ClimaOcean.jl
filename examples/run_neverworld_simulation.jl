@@ -2,19 +2,25 @@ using Oceananigans
 using Oceananigans.Units
 using Oceananigans.TurbulenceClosures: CATKEVerticalDiffusivity
 using ClimaOcean.IdealizedSimulations: neverworld_simulation
+using ClimaOcean.VerticalGrids: stretched_vertical_faces, LinearStretching
 using Printf
 
-minimum_turbulent_kinetic_energy = 1e-6
-minimum_convective_buoyancy_flux = 1e-11
-closure = CATKEVerticalDiffusivity(; minimum_turbulent_kinetic_energy,
-                                   minimum_convective_buoyancy_flux)
+closure = CATKEVerticalDiffusivity(minimum_turbulent_kinetic_energy = 1e-6,
+                                   maximum_diffusivity = 100.0,
+                                   minimum_convective_buoyancy_flux = 1e-11)
 
-simulation = neverworld_simulation(GPU();
-                                   horizontal_size = (240, 280),
+z = stretched_vertical_faces(surface_layer_Δz = 8,
+                             surface_layer_height = 256,
+                             stretching = LinearStretching(0.2),
+                             maximum_Δz = 400.0,
+                             minimum_depth = 4000)
+
+simulation = neverworld_simulation(GPU(); z,
+                                   horizontal_resolution = 1/4,
                                    longitude = (0, 60),
                                    latitude = (-70, 0),
-                                   time_step = 10minutes,
-                                   stop_time = 200 * 360days,
+                                   time_step = 20minutes,
+                                   stop_time = 20 * 360days,
                                    closure)
 
 model = simulation.model
@@ -38,7 +44,7 @@ function progress(sim)
                     maximum(maximum(abs, q) for q in (u, v, w)), maximum(abs, w))
 
     try 
-        κᶜ = sim.model.diffusivity_fields.Kᶜ
+        κᶜ = sim.model.diffusivity_fields.κᶜ
         msg *= @sprintf(", extrema(κᶜ): (%6.2e, %6.2e)", minimum(κᶜ), maximum(κᶜ))
     catch
     end
@@ -57,40 +63,42 @@ simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
 # Set up output
 Nx, Ny, Nz = size(grid)
 i = round(Int, Nx/10) # index for yz-sliced output
+output_suffix = "$(Nx)_$(Ny)_$(Nz).jld2"
+fine_output_frequency = 1day
 
 diffusivity_fields = (; κᶜ = model.diffusivity_fields.κᶜ)
 outputs = merge(model.velocities, model.tracers, diffusivity_fields)
 zonally_averaged_outputs = NamedTuple(n => Average(outputs[n], dims=1) for n in keys(outputs))
 
 simulation.output_writers[:yz] = JLD2OutputWriter(model, outputs;
-                                                  schedule = TimeInterval(6days),
-                                                  filename = "neverworld_yz.jld2",
+                                                  schedule = TimeInterval(fine_output_frequency),
+                                                  filename = "neverworld_yz_" * output_suffix,
                                                   indices = (i, :, :),
                                                   with_halos = true,
                                                   overwrite_existing = true)
 
 simulation.output_writers[:zonal] = JLD2OutputWriter(model, zonally_averaged_outputs;
-                                                     schedule = TimeInterval(6days),
-                                                     filename = "neverworld_zonal_average.jld2",
+                                                     schedule = TimeInterval(fine_output_frequency),
+                                                     filename = "neverworld_zonal_average_" * output_suffix,
                                                      with_halos = true,
                                                      overwrite_existing = true)
 
 simulation.output_writers[:xy] = JLD2OutputWriter(model, outputs;
-                                                  schedule = TimeInterval(6days),
-                                                  filename = "neverworld_xy.jld2",
+                                                  schedule = TimeInterval(fine_output_frequency),
+                                                  filename = "neverworld_xy_" * output_suffix,
                                                   indices = (:, :, Nz),
                                                   with_halos = true,
                                                   overwrite_existing = true)
 
 simulation.output_writers[:xyz] = JLD2OutputWriter(model, outputs;
                                                    schedule = TimeInterval(90days),
-                                                   filename = "neverworld_xyz.jld2",
+                                                   filename = "neverworld_xyz_" * output_suffix,
                                                    with_halos = true,
                                                    overwrite_existing = true)
 
 simulation.output_writers[:checkpointer] = Checkpointer(model,
                                                         schedule = TimeInterval(360days),
-                                                        prefix = "neverworld_checkpoint",
+                                                        prefix = "neverworld_$(Nx)_$(Ny)_$(Nz)_checkpoint",
                                                         cleanup = true)
 
 run!(simulation)

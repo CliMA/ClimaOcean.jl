@@ -1,20 +1,46 @@
 module VerticalGrids
 
+struct PowerLawStretching{T}
+    power :: T
+end
+
+function (stretching::PowerLawStretching)(Δz, z)
+    γ = stretching.power
+    return Δz^γ
+end
+
+struct LinearStretching{T}
+    coefficient :: T
+end
+
+function (stretching::LinearStretching)(Δz, z)
+    c = stretching.coefficient
+    return (1 + c) * Δz
+end
+
 """
-    stretched_vertical_cell_interfaces(; surface_layer_Δz = 5.0,
-                                       surface_layer_height = 100.0,
-                                       stretching_exponent = 1.02,
-                                       minimum_depth = 5000)
+    stretched_vertical_faces(; surface_layer_Δz = 5.0,
+                             surface_layer_height = 100.0,
+                             constant_bottom_spacing_depth = Inf,
+                             maximum_Δz = Inf,
+                             stretching = PowerLawStretching(1.02),
+                             minimum_depth = 5000)
 
 Return an array of cell interfaces with `surface_layer_Δz` spacing in
-a surface layer of height `surface_layer_height`, and stretched exponentially
-below the surface layer with `stretching_exponent` down to `minimum_depth`.
+a surface layer of height `surface_layer_height`, and stretched according to
+the function `stretching(Δz_above, z_above)` down to `minimum_depth`.
 The interfaces extends from `Lz = -z[1]` to `0 = z[end]`, where `Lz >= minimum_depth`.
+
+The grid spacing `Δz` is limited to be less than `maximum_Δz`.
+The grid is also uniformly-spaced below `constant_bottom_spacing_depth`.
 """
-function stretched_vertical_cell_interfaces(; surface_layer_Δz = 5.0,
-                                            surface_layer_height = 100.0,
-                                            stretching_exponent = 1.02,
-                                            minimum_depth = 5000)
+function stretched_vertical_faces(; surface_layer_Δz = 5.0,
+                                  surface_layer_height = 100.0,
+                                  constant_bottom_spacing_depth = Inf,
+                                  maximum_Δz = Inf,
+                                  stretching = PowerLawStretching(1.02),
+                                  rounding_digits = 1,
+                                  minimum_depth = 5000)
 
     Δz₀ = surface_layer_Δz
     h₀ = surface_layer_height
@@ -23,12 +49,19 @@ function stretched_vertical_cell_interfaces(; surface_layer_Δz = 5.0,
     z = [-Δz₀ * (k-1) for k = 1:ceil(h₀ / Δz₀)]
 
     # Generate stretched interior grid
-    γ = stretching_exponent
     Lz₀ = minimum_depth
 
     while z[end] > - Lz₀
-        Δz = (z[end-1] - z[end])^γ
-        push!(z, round(z[end] - Δz, digits=1))
+        Δz_above = z[end-1] - z[end]
+
+        if z[end] > - constant_bottom_spacing_depth
+            Δz = stretching(Δz_above, z[end])
+            Δz = min(maximum_Δz, Δz)
+        else
+            Δz = Δz_above
+        end
+
+        push!(z, round(z[end] - Δz, digits=rounding_digits))
     end
 
     # Reverse grid to be right-side-up

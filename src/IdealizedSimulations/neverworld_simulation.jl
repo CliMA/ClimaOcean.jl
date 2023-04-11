@@ -34,7 +34,7 @@ using ClimaOcean: CubicSplineFunction,
                   u_bottom_drag, u_immersed_bottom_drag,
                   v_bottom_drag, v_immersed_bottom_drag
                   
-using ..VerticalGrids: stretched_vertical_cell_interfaces
+using ..VerticalGrids: stretched_vertical_faces, PowerLawStretching
 
 const c = Center()
 const f = Face()
@@ -248,9 +248,9 @@ end
 ##### Default vertical grid
 #####
 
-default_z = stretched_vertical_cell_interfaces(surface_layer_Δz = 8,
+default_z = stretched_vertical_faces(surface_layer_Δz = 8,
                                                surface_layer_height = 128,
-                                               stretching_exponent = 1.02,
+                                               stretching = PowerLawStretching(1.02),
                                                minimum_depth = 4000)
 
 #####
