@@ -1,75 +1,58 @@
+using Oceananigans.TurbulenceClosures: HorizontalDivergenceFormulation
+using Oceananigans.Advection: VelocityStencil
 
 """
-    one_degree_near_global_simulation(architecture = GPU(); kwargs...)
+    quarter_degree_near_global_simulation(architecture = GPU(); kwargs...)
 
-Return an Oceananigans.Simulation of Earth's ocean at 1 degree resolution.
+Return an Oceananigans.Simulation of Earth's ocean at 1/4 degree resolution.
 """
-function one_degree_near_global_simulation(architecture = GPU();
-    size                                         = (360, 150, 48),
-    boundary_layer_turbulence_closure            = RiBasedVerticalDiffusivity(),
-    background_vertical_diffusivity              = 1e-5,
-    horizontal_viscosity                         = 5e4,
-    horizontal_tke_diffusivity                   = 5e4,
-    surface_background_vertical_viscosity        = 1e-2,
-    interior_background_vertical_viscosity       = 1e-4,
-    vertical_viscosity_transition_depth          = 49.0,
-    with_isopycnal_skew_symmetric_diffusivity    = true,
-    surface_temperature_relaxation_time_scale    = 30days,
-    surface_salinity_relaxation_time_scale       = 90days,
-    isopycnal_κ_skew                             = 900.0,
-    isopycnal_κ_symmetric                        = 900.0,
-    max_isopycnal_slope                          = 1e-2,
-    bottom_drag_coefficient                      = 3e-3,
-    reference_density                            = 1029.0,
-    reference_heat_capacity                      = 3991.0,
-    reference_salinity                           = 34.0,
-    time_step                                    = 20minutes,
-    stop_iteration                               = Inf,
-    start_time                                   = 345days,
-    stop_time                                    = Inf,
-    tracers                                      = [:T, :S],
-    initial_conditions                           = datadep"near_global_one_degree/initial_conditions_month_01_360_150_48.jld2",
-    bathymetry_path                              = datadep"near_global_one_degree/bathymetry_lat_lon_360_150.jld2",
-    surface_boundary_conditions_path             = datadep"near_global_one_degree/surface_boundary_conditions_12_months_360_150.jld2",
-    )
-
-    size == (360, 150, 48) || throw(ArgumentError("Only size = (360, 150, 48) is supported."))
-
-    #####
-    ##### Load surface boundary conditions and inital conditions
-    ##### from ECCO version 4:
-    ##### https://ecco.jpl.nasa.gov/drive/files
-    #####
-    ##### Bathymetry is interpolated from ETOPO1:
-    ##### https://www.ngdc.noaa.gov/mgg/global/
-    #####
+function quarter_degree_near_global_simulation(architecture = GPU();
+        size                                         = (1440, 600, 48),
+        boundary_layer_turbulence_closure            = RiBasedVerticalDiffusivity(),
+        background_vertical_diffusivity              = 1e-5,
+        background_vertical_viscosity                = 1e-4,
+        horizontal_viscosity                         = geometric_viscosity(HorizontalDivergenceFormulation(), 5days),
+        surface_temperature_relaxation_time_scale    = 7days,
+        surface_salinity_relaxation_time_scale       = 7days,
+        bottom_drag_coefficient                      = 3e-3,
+        reference_density                            = 1029.0,
+        reference_heat_capacity                      = 3991.0,
+        reference_salinity                           = 34.0,
+        time_step                                    = 6minutes,
+        stop_iteration                               = Inf,
+        start_time                                   = 345days,
+        stop_time                                    = Inf,
+        equation_of_state                            = TEOS10EquationOfState(; reference_density),
+        tracers                                      = [:T, :S],
+        initial_conditions                           = datadep"near_global_quarter_degree/initial_conditions.jld2",
+        bathymetry_path                              = datadep"near_global_quarter_degree/bathymetry-1440x600.jld2",
+        temp_surface_boundary_conditions_path        = datadep"near_global_quarter_degree/temp-1440x600-latitude-75.jld2",
+        salt_surface_boundary_conditions_path        = datadep"near_global_quarter_degree/salt-1440x600-latitude-75.jld2",
+        u_stress_surface_boundary_conditions_path    = datadep"near_global_quarter_degree/tau_x-1440x600-latitude-75.jld2",
+        v_stress_surface_boundary_conditions_path    = datadep"near_global_quarter_degree/tau_y-1440x600-latitude-75.jld2",
+)
 
     bathymetry_file = jldopen(bathymetry_path)
     bathymetry = bathymetry_file["bathymetry"]
     close(bathymetry_file)
 
     @info "Reading initial conditions..."; start=time_ns()
-    if initial_conditions isa String
-        initial_conditions_file = jldopen(initial_conditions)
-        T_init = initial_conditions_file["T"]
-        S_init = initial_conditions_file["S"]
-        close(initial_conditions_file)
-    else
-        T_init = initial_conditions[:T]
-        S_init = initial_conditions[:S]
-    end
+    initial_conditions_file = jldopen(initial_conditions)
+    T_init = initial_conditions_file["T"]
+    S_init = initial_conditions_file["S"]
+    close(initial_conditions_file)
     @info "... read initial conditions (" * prettytime(1e-9 * (time_ns() - start)) * ")"
 
     # Files contain 12 arrays of monthly-averaged data from 1992
     @info "Reading boundary conditions..."; start=time_ns()
-    boundary_conditions_file = jldopen(surface_boundary_conditions_path)
-    τˣ = - boundary_conditions_file["τˣ"] ./ reference_density
-    τʸ = - boundary_conditions_file["τʸ"] ./ reference_density
-    T★ = + boundary_conditions_file["Tₛ"]
-    S★ = + boundary_conditions_file["Sₛ"]
-    Q★ = - boundary_conditions_file["Qᶠ"] ./ reference_density ./ reference_heat_capacity
-    F★ = - boundary_conditions_file["Sᶠ"] ./ reference_density .* reference_salinity
-    close(boundary_conditions_file)
+    # Files contain 1 year (1992) of 12 monthly averages
+    τˣ =  - jldopen(u_stress_surface_boundary_conditions_path)["field"] ./ reference_density
+    τʸ =  - jldopen(v_stress_surface_boundary_conditions_path)["field"] ./ reference_density
+    T★ =    jldopen(temp_surface_boundary_conditions_path)["field"] 
+    S★ =    jldopen(salt_surface_boundary_conditions_path)["field"] 
+    F★ =    zeros(Base.size(S★)...)
+    Q★ =    zeros(Base.size(T★)...)
+    
     @info "... read boundary conditions (" * prettytime(1e-9 * (time_ns() - start)) * ")"
 
     # Convert boundary conditions arrays to GPU
@@ -98,27 +81,14 @@ function one_degree_near_global_simulation(architecture = GPU();
     ##### Physics and model setup
     #####
 
-    νz = PiecewiseConstantVerticalDiffusivity(-vertical_viscosity_transition_depth,
-                                              surface_background_vertical_viscosity,
-                                              interior_background_vertical_viscosity)
-
     vitd = VerticallyImplicitTimeDiscretization()
 
-    horizontal_κ = (T=0, S=0, e=horizontal_tke_diffusivity)
-    horizontal_diffusivity = HorizontalScalarDiffusivity(ν=horizontal_viscosity, κ=horizontal_κ)
-    vertical_viscosity   = VerticalScalarDiffusivity(vitd, ν=νz, κ=background_vertical_diffusivity)
+    vertical_viscosity   = VerticalScalarDiffusivity(vitd, ν=background_vertical_viscosity, κ=background_vertical_diffusivity)
 
-    closures = Any[horizontal_diffusivity, boundary_layer_turbulence_closure, vertical_viscosity]
+    closures = Any[boundary_layer_turbulence_closure, vertical_viscosity]
 
     boundary_layer_turbulence_closure isa CATKEVerticalDiffusivity &&
         push!(tracers, :e)
-
-    if with_isopycnal_skew_symmetric_diffusivity
-        issd = IsopycnalSkewSymmetricDiffusivity(κ_skew = isopycnal_κ_skew,
-                                                 κ_symmetric = isopycnal_κ_symmetric,
-                                                 slope_limiter = FluxTapering(max_isopycnal_slope))
-        push!(closures, issd)
-    end
 
     # TODO: do this internally in model constructor
     closures = tuple(closures...)
@@ -184,18 +154,17 @@ function one_degree_near_global_simulation(architecture = GPU();
     T_bcs = FieldBoundaryConditions(top = T_surface_relaxation_bc)
     S_bcs = FieldBoundaryConditions(top = S_surface_relaxation_bc)
 
-    equation_of_state = TEOS10EquationOfState(; reference_density)
-    buoyancy = SeawaterBuoyancy(; equation_of_state)
-    coriolis = HydrostaticSphericalCoriolis(scheme = WetCellEnstrophyConservingScheme())
+    buoyancy     = SeawaterBuoyancy(; equation_of_state)
+    coriolis     = HydrostaticSphericalCoriolis(scheme = ActiveCellEnstrophyConservingScheme())
     free_surface = ImplicitFreeSurface()
 
-    @info "Building a model..."; start=time_ns()
-
-    model = HydrostaticFreeSurfaceModel(; grid, free_surface, buoyancy, coriolis, tracers,
-                                        momentum_advection = VectorInvariant(), 
-                                        tracer_advection = WENO(underlying_grid),
-                                        closure = closures,
-                                        boundary_conditions = (u=u_bcs, v=v_bcs, T=T_bcs, S=S_bcs))
+    model = HydrostaticFreeSurfaceModel(; grid, free_surface, coriolis, buoyancy, tracers,
+                                          momentum_advection = VectorInvariant(vorticity_scheme   = WENO(),
+                                                                               divergence_scheme  = WENO(),
+                                                                               vertical_scheme    = WENO()),
+                                          closure = closures,
+                                          boundary_conditions = (u=u_bcs, v=v_bcs, T=T_bcs, S=S_bcs),
+                                          tracer_advection = WENO(underlying_grid))
 
     @info "... built $model."
     @info "Model building time: " * prettytime(1e-9 * (time_ns() - start))
@@ -241,4 +210,3 @@ function one_degree_near_global_simulation(architecture = GPU();
 
     return simulation
 end
-

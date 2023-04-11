@@ -157,7 +157,7 @@ function twelth_degree_near_global_simulation(architecture = GPU();
     S_bcs = FieldBoundaryConditions(top = S_surface_relaxation_bc)
 
     buoyancy = SeawaterBuoyancy(; equation_of_state)
-    coriolis = HydrostaticSphericalCoriolis(scheme = WetCellEnstrophyConservingScheme())
+    coriolis = HydrostaticSphericalCoriolis(scheme = ActiveCellEnstrophyConservingScheme())
     free_surface = ImplicitFreeSurface()
 
     model = HydrostaticFreeSurfaceModel(; grid = mrg, free_surface, coriolis, buoyancy, tracers,
