@@ -307,6 +307,7 @@ horizontal_resolution_tuple(t::Tuple{Number, Number}) = t
 horizontal_resolution_tuple(anything_else) = throw(ArgumentError("$anything_else is not a valid horizontal_resolution!"))
 
 function neverworld_simulation(arch;
+                               ImmersedBoundaryType = PartialCellBottom
                                horizontal_resolution = 1/4, # degrees
                                latitude = (-70, 0),
                                longitude = (0, 60),
@@ -344,8 +345,7 @@ function neverworld_simulation(arch;
 
         underlying_grid = LatitudeLongitudeGrid(arch; size, latitude, longitude, z, halo, topology)
         bathymetry = NeverworldBathymetry(underlying_grid)
-        grid = ImmersedBoundaryGrid(underlying_grid, PartialCellBottom(bathymetry))
-        #grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bathymetry))
+        grid = ImmersedBoundaryGrid(underlying_grid, ImmersedBoundaryType(bathymetry))
     end
 
     if momentum_advection isa Default
