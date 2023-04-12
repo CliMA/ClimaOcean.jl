@@ -107,7 +107,6 @@ end
 
 using Oceananigans.Operators
 using Oceananigans.TurbulenceClosures
-using Oceananigans.Grids: min_Δx, min_Δy
 using Oceananigans.Operators: Δx, Δy, ℑxyz
 
 @inline Δ²(i, j, k, grid, lx, ly, lz)  = (1 / (1 / Δx(i, j, k, grid, lx, ly, lz)^2 + 1 / Δy(i, j, k, grid, lx, ly, lz)^2))

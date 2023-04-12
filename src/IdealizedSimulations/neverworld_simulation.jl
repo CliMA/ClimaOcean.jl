@@ -97,9 +97,18 @@ end
 """
     distance(point::Point, line::Line)
 
-Return the distance of a `point` to a `line`, i.e., the shortest distance from the `point` to a point on the `line`.
+Return the distance of a `point` to a `line`,
+ie the shortest distance from the `point` to a point on the `line`.
 
-If ``𝐭`` is a unit vector parallel to the line and ``Δ𝐱`` any vector connecting the `point` with any point on the line, then the shortest distance between the line is ``|𝐭 x Δ𝐱| = |Δ𝐱| |sinθ|``, where ``θ`` is the angle formed by vector ``Δ𝐱`` and the line.
+If ``𝐭`` is a unit vector parallel to the line and ``Δ𝐱``
+any vector connecting the `point` with any point on the line,
+then the shortest distance between the line is
+
+```math
+|𝐭 x Δ𝐱| = |Δ𝐱| |sinθ|
+```
+
+where ``θ`` is the angle formed by vector ``Δ𝐱`` and the line.
 """
 function distance(point::Point, line::Line)
     x, y = point.x, point.y
@@ -336,7 +345,6 @@ function neverworld_simulation(arch;
         underlying_grid = LatitudeLongitudeGrid(arch; size, latitude, longitude, z, halo, topology)
         bathymetry = NeverworldBathymetry(underlying_grid)
         grid = ImmersedBoundaryGrid(underlying_grid, PartialCellBottom(bathymetry))
-        #grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bathymetry))
     end
 
     if momentum_advection isa Default

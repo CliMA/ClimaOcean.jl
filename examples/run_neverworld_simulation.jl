@@ -16,7 +16,7 @@ z = stretched_vertical_faces(surface_layer_Δz = 8,
                              minimum_depth = 4000)
 
 simulation = neverworld_simulation(GPU(); z,
-                                   horizontal_resolution = 1/2,
+                                   horizontal_resolution = 1/4,
                                    longitude = (0, 60),
                                    latitude = (-70, 0),
                                    time_step = 10minutes,
@@ -29,6 +29,7 @@ grid = model.grid
 @show grid
 
 start_time = Ref(time_ns())
+previous_model_time = Ref(time(simulation))
 
 function progress(sim) 
     b = sim.model.tracers.b
@@ -38,27 +39,31 @@ function progress(sim)
     msg = @sprintf("Iter: %d, time: %s, extrema(b): (%6.2e, %6.2e)",
                    iteration(sim), prettytime(sim), minimum(b), maximum(b))
 
-    msg *= @sprintf(", extrema(e): (%6.2e, %6.2e)", minimum(e), maximum(e))
+    msg *= @sprintf(", max(e): %6.2e", maximum(e))
 
     msg *= @sprintf(", max|u|: %6.2e, max|w|: %6.2e",
                     maximum(maximum(abs, q) for q in (u, v, w)), maximum(abs, w))
 
     try 
         κᶜ = sim.model.diffusivity_fields.κᶜ
-        msg *= @sprintf(", extrema(κᶜ): (%6.2e, %6.2e)", minimum(κᶜ), maximum(κᶜ))
+        msg *= @sprintf(", max(κᶜ): %6.2e", maximum(κᶜ))
     catch
     end
 
     elapsed = 1e-9 * (time_ns() - start_time[])
-    msg *= @sprintf(", wall time: %s", prettytime(elapsed))
+    elapsed_model_time = time(sim) - previous_model_time[]
+    SYPD = (elapsed_model_time/360days) / (elapsed/day)
+
+    msg *= @sprintf(", wall time: %s, SYPD: %.1f", prettytime(elapsed), SYPD)
     start_time[] = time_ns()
+    previous_model_time[] = time(sim)
 
     @info msg
 
     return nothing
 end
 
-simulation.callbacks[:progress] = Callback(progress, IterationInterval(20))
+simulation.callbacks[:progress] = Callback(progress, IterationInterval(100))
 
 # Set up output
 Nx, Ny, Nz = size(grid)
