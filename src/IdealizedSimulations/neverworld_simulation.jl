@@ -345,6 +345,7 @@ function neverworld_simulation(arch;
         underlying_grid = LatitudeLongitudeGrid(arch; size, latitude, longitude, z, halo, topology)
         bathymetry = NeverworldBathymetry(underlying_grid)
         grid = ImmersedBoundaryGrid(underlying_grid, PartialCellBottom(bathymetry))
+        #grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bathymetry))
     end
 
     if momentum_advection isa Default

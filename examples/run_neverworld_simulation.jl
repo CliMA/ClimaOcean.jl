@@ -1,12 +1,13 @@
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.TurbulenceClosures: CATKEVerticalDiffusivity
+using Oceananigans.ImmersedBoundaries: PartialCellBottom, GridFittedBottom
 using ClimaOcean.IdealizedSimulations: neverworld_simulation
 using ClimaOcean.VerticalGrids: stretched_vertical_faces, PowerLawStretching
 using Printf
+using CUDA
 
 closure = CATKEVerticalDiffusivity(minimum_turbulent_kinetic_energy = 1e-6,
-                                   #maximum_diffusivity = 100.0,
                                    minimum_convective_buoyancy_flux = 1e-11)
 
 z = stretched_vertical_faces(surface_layer_Δz = 8,
@@ -16,10 +17,10 @@ z = stretched_vertical_faces(surface_layer_Δz = 8,
                              minimum_depth = 4000)
 
 simulation = neverworld_simulation(GPU(); z,
-                                   horizontal_resolution = 1/4,
+                                   horizontal_resolution = 1/8,
                                    longitude = (0, 60),
                                    latitude = (-70, 0),
-                                   time_step = 10minutes,
+                                   time_step = 5minutes,
                                    stop_time = 4 * 360days,
                                    closure)
 
@@ -69,9 +70,18 @@ simulation.callbacks[:progress] = Callback(progress, IterationInterval(100))
 Nx, Ny, Nz = size(grid)
 Δt = simulation.Δt
 Δt_minutes = round(Int, Δt / minutes) 
-i = round(Int, Nx/10) # index for yz-sliced output
-output_suffix = "$(Nx)_$(Ny)_$(Nz)_dt$(Δt_minutes).jld2"
+ib_str = grid.immersed_boundary isa PartialCellBottom ? "partial_cells" : "full_cells"
+output_suffix = "$(Nx)_$(Ny)_$(Nz)_dt$(Δt_minutes)_$(ib_str).jld2"
 fine_output_frequency = 1day
+i = round(Int, Nx/10) # index for yz-sliced output
+
+z = znodes(grid, Face(), with_halos=true)
+
+K = CUDA.@allowscalar [Nz,
+                       searchsortedfirst(z, -100),
+                       searchsortedfirst(z, -400)]
+
+i = round(Int, Nx/10) # index for yz-sliced output
 
 diffusivity_fields = (; κᶜ = model.diffusivity_fields.κᶜ)
 outputs = merge(model.velocities, model.tracers, diffusivity_fields)
@@ -90,12 +100,15 @@ simulation.output_writers[:zonal] = JLD2OutputWriter(model, zonally_averaged_out
                                                      with_halos = true,
                                                      overwrite_existing = true)
 
-simulation.output_writers[:xy] = JLD2OutputWriter(model, outputs;
-                                                  schedule = TimeInterval(fine_output_frequency),
-                                                  filename = "neverworld_xy_" * output_suffix,
-                                                  indices = (:, :, Nz),
-                                                  with_halos = true,
-                                                  overwrite_existing = true)
+for (n, k) in enumerate(K)
+    name = Symbol(:xy, n)
+    simulation.output_writers[name] = JLD2OutputWriter(model, outputs;
+                                                       schedule = TimeInterval(fine_output_frequency),
+                                                       filename = "neverworld_xy$(n)_" * output_suffix,
+                                                       indices = (:, :, Nz),
+                                                       with_halos = true,
+                                                       overwrite_existing = true)
+end
 
 simulation.output_writers[:xyz] = JLD2OutputWriter(model, outputs;
                                                    schedule = TimeInterval(90days),
