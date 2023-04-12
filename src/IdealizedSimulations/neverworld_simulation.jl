@@ -307,7 +307,7 @@ horizontal_resolution_tuple(t::Tuple{Number, Number}) = t
 horizontal_resolution_tuple(anything_else) = throw(ArgumentError("$anything_else is not a valid horizontal_resolution!"))
 
 function neverworld_simulation(arch;
-                               ImmersedBoundaryType = PartialCellBottom
+                               ImmersedBoundaryType = PartialCellBottom,
                                horizontal_resolution = 1/4, # degrees
                                latitude = (-70, 0),
                                longitude = (0, 60),

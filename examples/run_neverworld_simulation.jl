@@ -17,6 +17,8 @@ z = stretched_vertical_faces(surface_layer_Δz = 8,
                              minimum_depth = 4000)
 
 simulation = neverworld_simulation(GPU(); z,
+                                   #ImmersedBoundaryType = GridFittedBottom,
+                                   ImmersedBoundaryType = PartialCellBottom,
                                    horizontal_resolution = 1/8,
                                    longitude = (0, 60),
                                    latitude = (-70, 0),
