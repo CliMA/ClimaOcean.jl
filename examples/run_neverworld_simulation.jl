@@ -24,7 +24,7 @@ simulation = neverworld_simulation(GPU(); z,
                                    horizontal_resolution = 1/8,
                                    longitude = (0, 60),
                                    latitude = (-70, 0),
-                                   time_step = 5minutes,
+                                   time_step = 2minutes,
                                    stop_time = 10 * 360days,
                                    closure)
 
@@ -77,6 +77,7 @@ Nx, Ny, Nz = size(grid)
 Δt_minutes = round(Int, Δt / minutes) 
 ib_str = grid.immersed_boundary isa PartialCellBottom ? "partial_cells" : "full_cells"
 output_suffix = "$(Nx)_$(Ny)_$(Nz)_dt$(Δt_minutes)_$(ib_str).jld2"
+output_dir = "/nobackup1/glwagner/"
 fine_output_frequency = 1day
 i = round(Int, Nx/10) # index for yz-sliced output
 
@@ -94,14 +95,14 @@ zonally_averaged_outputs = NamedTuple(n => Average(outputs[n], dims=1) for n in 
 
 simulation.output_writers[:yz] = JLD2OutputWriter(model, outputs;
                                                   schedule = TimeInterval(fine_output_frequency),
-                                                  filename = "neverworld_yz_" * output_suffix,
+                                                  filename = joinpath(output_dir, "neverworld_yz_" * output_suffix),
                                                   indices = (i, :, :),
                                                   with_halos = true,
                                                   overwrite_existing = true)
 
 simulation.output_writers[:zonal] = JLD2OutputWriter(model, zonally_averaged_outputs;
                                                      schedule = TimeInterval(fine_output_frequency),
-                                                     filename = "neverworld_zonal_average_" * output_suffix,
+                                                     filename = joinpath(output_dir, "neverworld_zonal_average_" * output_suffix),
                                                      with_halos = true,
                                                      overwrite_existing = true)
 
@@ -109,7 +110,7 @@ for (n, k) in enumerate(K)
     name = Symbol(:xy, n)
     simulation.output_writers[name] = JLD2OutputWriter(model, outputs;
                                                        schedule = TimeInterval(fine_output_frequency),
-                                                       filename = "neverworld_xy$(n)_" * output_suffix,
+                                                       filename = joinpath(output_dir, "neverworld_xy$(n)_" * output_suffix),
                                                        indices = (:, :, Nz),
                                                        with_halos = true,
                                                        overwrite_existing = true)
@@ -117,12 +118,13 @@ end
 
 simulation.output_writers[:xyz] = JLD2OutputWriter(model, outputs;
                                                    schedule = TimeInterval(90days),
-                                                   filename = "neverworld_xyz_" * output_suffix,
+                                                   filename = joinpath(output_dir, "neverworld_xyz_" * output_suffix),
                                                    with_halos = true,
                                                    overwrite_existing = true)
 
 simulation.output_writers[:checkpointer] = Checkpointer(model,
                                                         schedule = TimeInterval(360days),
+                                                        dir = output_dir,
                                                         prefix = "neverworld_$(Nx)_$(Ny)_$(Nz)_checkpoint",
                                                         cleanup = true)
 
