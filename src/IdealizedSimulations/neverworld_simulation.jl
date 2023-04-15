@@ -323,10 +323,10 @@ function neverworld_simulation(arch;
                                buoyancy = BuoyancyTracer(),
                                buoyancy_relaxation_time_scale = 30days,
                                target_buoyancy_distribution = seasonal_cosine_target_buoyancy_distribution,
-                               bottom_drag_coefficient = 1e-3,
-                               equator_pole_buoyancy_difference = 0.06,
-                               seasonal_cycle_relative_amplitude = 0.8,
-                               surface_buoyancy_gradient = 1e-5, # s⁻¹
+                               bottom_drag_coefficient = 2e-3,
+                               equator_pole_buoyancy_difference = 0.08,
+                               seasonal_cycle_relative_amplitude = 1.0,
+                               surface_buoyancy_gradient = 1e-4, # s⁻¹
                                stratification_scale_height = 1000, # meters
                                time_step = 5minutes,
                                stop_time = 30days,
