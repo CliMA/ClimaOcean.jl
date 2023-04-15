@@ -10,26 +10,29 @@ using CUDA
 closure = CATKEVerticalDiffusivity(minimum_turbulent_kinetic_energy = 1e-6,
                                    minimum_convective_buoyancy_flux = 1e-11)
 
+# closure = RiBasedVerticalDiffusivity()
+
 z = stretched_vertical_faces(surface_layer_Δz = 8,
-                             surface_layer_height = 32,
+                             surface_layer_height = 64,
                              stretching = PowerLawStretching(1.02),
                              maximum_Δz = 400.0,
                              minimum_depth = 4000)
 
 simulation = neverworld_simulation(GPU(); z,
-                                   #ImmersedBoundaryType = GridFittedBottom,
-                                   ImmersedBoundaryType = PartialCellBottom,
+                                   ImmersedBoundaryType = GridFittedBottom,
+                                   #ImmersedBoundaryType = PartialCellBottom,
                                    horizontal_resolution = 1/8,
                                    longitude = (0, 60),
                                    latitude = (-70, 0),
                                    time_step = 5minutes,
-                                   stop_time = 4 * 360days,
+                                   stop_time = 10 * 360days,
                                    closure)
 
 model = simulation.model
 grid = model.grid
 
 @show grid
+@show model
 
 start_time = Ref(time_ns())
 previous_model_time = Ref(time(simulation))
@@ -66,7 +69,7 @@ function progress(sim)
     return nothing
 end
 
-simulation.callbacks[:progress] = Callback(progress, IterationInterval(100))
+simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
 
 # Set up output
 Nx, Ny, Nz = size(grid)

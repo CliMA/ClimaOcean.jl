@@ -153,7 +153,8 @@ function NeverworldBathymetry(grid;
                               scotia_ridge_radius = 10,
                               scotia_ridge_width = 2,
                               scotia_ridge_center_longitude = 0,
-                              scotia_ridge_center_latitude = (southern_channel_boundary + northern_channel_boundary) / 2)
+                              scotia_ridge_center_latitude = (southern_channel_boundary +
+                                                              northern_channel_boundary) / 2)
 
     # Use grid spacing for "beach width"
     Δ = max(grid.Δλᶠᵃᵃ, grid.Δφᵃᶠᵃ)
@@ -304,7 +305,8 @@ struct Default end
 
 horizontal_resolution_tuple(n::Number) = (n, n)
 horizontal_resolution_tuple(t::Tuple{Number, Number}) = t
-horizontal_resolution_tuple(anything_else) = throw(ArgumentError("$anything_else is not a valid horizontal_resolution!"))
+horizontal_resolution_tuple(anything_else) =
+    throw(ArgumentError("$anything_else is not a valid horizontal_resolution!"))
 
 function neverworld_simulation(arch;
                                ImmersedBoundaryType = PartialCellBottom,
@@ -321,10 +323,10 @@ function neverworld_simulation(arch;
                                buoyancy = BuoyancyTracer(),
                                buoyancy_relaxation_time_scale = 30days,
                                target_buoyancy_distribution = seasonal_cosine_target_buoyancy_distribution,
-                               bottom_drag_coefficient = 2e-3,
+                               bottom_drag_coefficient = 1e-3,
                                equator_pole_buoyancy_difference = 0.06,
                                seasonal_cycle_relative_amplitude = 0.8,
-                               surface_buoyancy_gradient = 1e-4,
+                               surface_buoyancy_gradient = 1e-5, # s⁻¹
                                stratification_scale_height = 1000, # meters
                                time_step = 5minutes,
                                stop_time = 30days,
