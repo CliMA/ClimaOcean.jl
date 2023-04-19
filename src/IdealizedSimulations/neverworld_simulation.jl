@@ -24,7 +24,7 @@ using CubicSplines
 
 using Oceananigans
 using Oceananigans.Units
-using Oceananigans.Grids: xnode, ynode, minimum_xspacing, minimum_yspacing
+using Oceananigans.Grids: λnode, φnode, minimum_xspacing, minimum_yspacing
 using Oceananigans.ImmersedBoundaries: PartialCellBottom
 using Oceananigans.Operators: xspacing, yspacing
 using Oceananigans.Operators: Δzᶜᶜᶜ
@@ -169,9 +169,9 @@ function NeverworldBathymetry(grid;
     r_abyss = Δ + rim_width + shelf_width + slope_width
 
     Nx, Ny, Nz = size(grid)
-    x_max = xnode(Nx+1, 1, 1, grid, f, c, c) - xnode(1, 1, 1, grid, f, c, c)
-    y_max = ynode(1, Ny+1, 1, grid, c, f, c) - ynode(1, 1, 1, grid, c, f, c)
-    r_max = max(x_max, y_max)
+    λ_max = λnode(Nx+1, 1, 1, grid, f, c, c) - λnode(1, 1, 1, grid, f, c, c)
+    φ_max = φnode(1, Ny+1, 1, grid, c, f, c) - φnode(1, 1, 1, grid, c, f, c)
+    r_max = max(λ_max, φ_max)
 
     basin_rim_distances = [0, r_coast,     r_beach,  r_mid_shelf,     r_shelf,       r_abyss,         r_max]
     basin_depths        = [0, 0,       shelf_depth,  shelf_depth, shelf_depth, abyssal_depth, abyssal_depth]
@@ -207,10 +207,10 @@ function (nb::NeverworldBathymetry)(λ, φ)
     Nx, Ny, Nz = size(grid)
 
     # Four corners of the Neverworld
-    λw = xnode(1,       1, 1, grid, f, c, c)
-    λe = xnode(Nx+1,    1, 1, grid, f, c, c)
-    φs = ynode(1,       1, 1, grid, c, f, c)
-    φn = ynode(1,    Ny+1, 1, grid, c, f, c)
+    λw = λnode(1,       1, 1, grid, f, c, c)
+    λe = λnode(Nx+1,    1, 1, grid, f, c, c)
+    φs = φnode(1,       1, 1, grid, c, f, c)
+    φn = φnode(1,    Ny+1, 1, grid, c, f, c)
 
     # Draw lines along the six coasts of the Neverworld
     northern_vertices = (Point(λw, nb.northern_channel_boundary),
@@ -280,7 +280,7 @@ end
     k = grid.Nz
 
     # Target buoyancy distribution
-    φ = ynode(i, j, k, grid, c, c, c)
+    φ = φnode(i, j, k, grid, c, c, c)
     t = clock.time
     b★ = parameters.b★(φ, t, parameters)
 
@@ -298,7 +298,10 @@ function barotropic_substeps(Δt, grid, gravitational_acceleration; cfl = 0.7)
     min_Δx = minimum_xspacing(grid, c, c, c)
     min_Δy = minimum_yspacing(grid, c, c, c)
     Δ = 1 / sqrt(1 / min_Δx^2 + 1 / min_Δy^2)
-    return max(Int(ceil(2 * Δt / (cfl / wave_speed * Δ))), 10)
+    minimum_substeps = ceil(Int, 2Δt / (cfl * Δ / wave_speed))
+
+    # Limit arbitrarily by 10
+    return max(minimum_substeps, 10)
 end
 
 struct Default end
