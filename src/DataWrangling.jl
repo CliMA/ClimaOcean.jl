@@ -6,7 +6,7 @@ using Oceananigans
 using Oceananigans.Grids: peripheral_node
 using Oceananigans.Utils: launch!
 using Oceananigans.Fields: instantiated_location, interior, CenterField
-using Oceananigans.Architectures: architecture, device_event, device, GPU
+using Oceananigans.Architectures: architecture, device, GPU
 
 using KernelAbstractions: @kernel, @index
 using KernelAbstractions.Extras.LoopInfo: @unroll
@@ -15,11 +15,7 @@ function continue_downards!(field)
     arch = architecture(field)
     grid = field.grid
     loc = instantiated_location(field)
-
-    event = launch!(arch, grid, :xy, _continue_downwards!, field, loc, grid; dependencies=device_event(arch))
-
-    wait(device(arch), event)
-
+    launch!(arch, grid, :xy, _continue_downwards!, field, loc, grid)
     return nothing
 end
 
