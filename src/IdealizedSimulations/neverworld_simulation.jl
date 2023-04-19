@@ -272,8 +272,8 @@ default_zonal_wind_stress = CubicSplineFunction{:y}(latitudes, zonal_stresses)
     ω = 2π / 360days
     ϵ = p.ϵ # amplitude of seasonal cycle
 
-    # t=0: heart of Southern ocean winter
-    return p.Δb * (cos(π * φ / p.Δφ) + ϵ * cos(ω * t) * sin(π/2 * φ / p.Δφ))
+    # t=0: heart of Southern ocean summer
+    return p.Δb * (cos(π * φ / p.Δφ) - ϵ * cos(ω * t) * sin(π/2 * φ / p.Δφ))
 end
 
 @inline function buoyancy_relaxation(i, j, grid, clock, fields, parameters)
@@ -324,8 +324,8 @@ function neverworld_simulation(arch;
                                buoyancy_relaxation_time_scale = 30days,
                                target_buoyancy_distribution = seasonal_cosine_target_buoyancy_distribution,
                                bottom_drag_coefficient = 2e-3,
-                               equator_pole_buoyancy_difference = 0.08,
-                               seasonal_cycle_relative_amplitude = 1.0,
+                               equator_pole_buoyancy_difference = 0.06,
+                               seasonal_cycle_relative_amplitude = 0.8,
                                surface_buoyancy_gradient = 1e-4, # s⁻¹
                                stratification_scale_height = 1000, # meters
                                time_step = 5minutes,
