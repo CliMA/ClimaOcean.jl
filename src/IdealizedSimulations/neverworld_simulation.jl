@@ -24,7 +24,8 @@ using CubicSplines
 
 using Oceananigans
 using Oceananigans.Units
-using Oceananigans.Grids: xnode, ynode
+using Oceananigans.Grids: λnode, φnode, minimum_xspacing, minimum_yspacing
+using Oceananigans.ImmersedBoundaries: PartialCellBottom
 using Oceananigans.Operators: xspacing, yspacing
 using Oceananigans.Operators: Δzᶜᶜᶜ
 using Oceananigans.Coriolis: ActiveCellEnstrophyConservingScheme
@@ -45,13 +46,6 @@ const f = Face()
 
 instantiate(T::DataType) = T()
 instantiate(t) = t
-
-function minimum_spacing(dir, (LX, LY, LZ), grid)
-    spacing = eval(Symbol(dir, :spacing))
-    loc = map(instantiate, (LX, LY, LZ))
-    Δ = KernelFunctionOperation{LX, LY, LZ}(spacing, grid, loc...)
-    return minimum(Δ)
-end
 
 #####
 ##### Geometry
@@ -103,9 +97,18 @@ end
 """
     distance(point::Point, line::Line)
 
-Return the distance of a `point` to a `line`, i.e., the shortest distance from the `point` to a point on the `line`.
+Return the distance of a `point` to a `line`,
+ie the shortest distance from the `point` to a point on the `line`.
 
-If ``𝐭`` is a unit vector parallel to the line and ``Δ𝐱`` any vector connecting the `point` with any point on the line, then the shortest distance between the line is ``|𝐭 x Δ𝐱| = |Δ𝐱| |sinθ|``, where ``θ`` is the angle formed by vector ``Δ𝐱`` and the line.
+If ``𝐭`` is a unit vector parallel to the line and ``Δ𝐱``
+any vector connecting the `point` with any point on the line,
+then the shortest distance between the line is
+
+```math
+|𝐭 x Δ𝐱| = |Δ𝐱| |sinθ|
+```
+
+where ``θ`` is the angle formed by vector ``Δ𝐱`` and the line.
 """
 function distance(point::Point, line::Line)
     x, y = point.x, point.y
@@ -150,7 +153,8 @@ function NeverworldBathymetry(grid;
                               scotia_ridge_radius = 10,
                               scotia_ridge_width = 2,
                               scotia_ridge_center_longitude = 0,
-                              scotia_ridge_center_latitude = (southern_channel_boundary + northern_channel_boundary) / 2)
+                              scotia_ridge_center_latitude = (southern_channel_boundary +
+                                                              northern_channel_boundary) / 2)
 
     # Use grid spacing for "beach width"
     Δ = max(grid.Δλᶠᵃᵃ, grid.Δφᵃᶠᵃ)
@@ -165,9 +169,9 @@ function NeverworldBathymetry(grid;
     r_abyss = Δ + rim_width + shelf_width + slope_width
 
     Nx, Ny, Nz = size(grid)
-    x_max = xnode(Nx+1, 1, 1, grid, f, c, c) - xnode(1, 1, 1, grid, f, c, c)
-    y_max = ynode(1, Ny+1, 1, grid, c, f, c) - ynode(1, 1, 1, grid, c, f, c)
-    r_max = max(x_max, y_max)
+    λ_max = λnode(Nx+1, 1, 1, grid, f, c, c) - λnode(1, 1, 1, grid, f, c, c)
+    φ_max = φnode(1, Ny+1, 1, grid, c, f, c) - φnode(1, 1, 1, grid, c, f, c)
+    r_max = max(λ_max, φ_max)
 
     basin_rim_distances = [0, r_coast,     r_beach,  r_mid_shelf,     r_shelf,       r_abyss,         r_max]
     basin_depths        = [0, 0,       shelf_depth,  shelf_depth, shelf_depth, abyssal_depth, abyssal_depth]
@@ -203,10 +207,10 @@ function (nb::NeverworldBathymetry)(λ, φ)
     Nx, Ny, Nz = size(grid)
 
     # Four corners of the Neverworld
-    λw = xnode(1,       1, 1, grid, f, c, c)
-    λe = xnode(Nx+1,    1, 1, grid, f, c, c)
-    φs = ynode(1,       1, 1, grid, c, f, c)
-    φn = ynode(1,    Ny+1, 1, grid, c, f, c)
+    λw = λnode(1,       1, 1, grid, f, c, c)
+    λe = λnode(Nx+1,    1, 1, grid, f, c, c)
+    φs = φnode(1,       1, 1, grid, c, f, c)
+    φn = φnode(1,    Ny+1, 1, grid, c, f, c)
 
     # Draw lines along the six coasts of the Neverworld
     northern_vertices = (Point(λw, nb.northern_channel_boundary),
@@ -249,9 +253,9 @@ end
 #####
 
 default_z = stretched_vertical_faces(surface_layer_Δz = 8,
-                                               surface_layer_height = 128,
-                                               stretching = PowerLawStretching(1.02),
-                                               minimum_depth = 4000)
+                                     surface_layer_height = 128,
+                                     stretching = PowerLawStretching(1.02),
+                                     minimum_depth = 4000)
 
 #####
 ##### Boundary conditions
@@ -268,15 +272,15 @@ default_zonal_wind_stress = CubicSplineFunction{:y}(latitudes, zonal_stresses)
     ω = 2π / 360days
     ϵ = p.ϵ # amplitude of seasonal cycle
 
-    # t=0: heart of Southern ocean winter
-    return p.Δb * (cos(π * φ / p.Δφ) + ϵ * cos(ω * t) * sin(π * φ / p.Δφ))
+    # t=0: heart of Southern ocean summer
+    return p.Δb * (cos(π * φ / p.Δφ) - ϵ * cos(ω * t) * sin(π/2 * φ / p.Δφ))
 end
 
 @inline function buoyancy_relaxation(i, j, grid, clock, fields, parameters)
     k = grid.Nz
 
     # Target buoyancy distribution
-    φ = ynode(i, j, k, grid, c, c, c)
+    φ = φnode(i, j, k, grid, c, c, c)
     t = clock.time
     b★ = parameters.b★(φ, t, parameters)
 
@@ -287,21 +291,28 @@ end
     return @inbounds q★ * (fields.b[i, j, k] - b★)
 end
 
+const c = Center()
+
 function barotropic_substeps(Δt, grid, gravitational_acceleration; cfl = 0.7)
     wave_speed = sqrt(gravitational_acceleration * grid.Lz)
-    min_Δx = minimum_spacing(:x, (Center, Center, Center), grid)
-    min_Δy = minimum_spacing(:y, (Center, Center, Center), grid)
+    min_Δx = minimum_xspacing(grid, c, c, c)
+    min_Δy = minimum_yspacing(grid, c, c, c)
     Δ = 1 / sqrt(1 / min_Δx^2 + 1 / min_Δy^2)
-    return max(Int(ceil(2 * Δt / (cfl / wave_speed * Δ))), 10)
+    minimum_substeps = ceil(Int, 2Δt / (cfl * Δ / wave_speed))
+
+    # Limit arbitrarily by 10
+    return max(minimum_substeps, 10)
 end
 
 struct Default end
 
 horizontal_resolution_tuple(n::Number) = (n, n)
 horizontal_resolution_tuple(t::Tuple{Number, Number}) = t
-horizontal_resolution_tuple(anything_else) = throw(ArgumentError("$anything_else is not a valid horizontal_resolution!"))
+horizontal_resolution_tuple(anything_else) =
+    throw(ArgumentError("$anything_else is not a valid horizontal_resolution!"))
 
 function neverworld_simulation(arch;
+                               ImmersedBoundaryType = PartialCellBottom,
                                horizontal_resolution = 1/4, # degrees
                                latitude = (-70, 0),
                                longitude = (0, 60),
@@ -313,12 +324,12 @@ function neverworld_simulation(arch;
                                closure = CATKEVerticalDiffusivity(),
                                tracers = (:b, :e),
                                buoyancy = BuoyancyTracer(),
-                               buoyancy_relaxation_time_scale = 14days,
+                               buoyancy_relaxation_time_scale = 30days,
                                target_buoyancy_distribution = seasonal_cosine_target_buoyancy_distribution,
                                bottom_drag_coefficient = 2e-3,
                                equator_pole_buoyancy_difference = 0.06,
                                seasonal_cycle_relative_amplitude = 0.8,
-                               surface_buoyancy_gradient = 1e-4,
+                               surface_buoyancy_gradient = 1e-4, # s⁻¹
                                stratification_scale_height = 1000, # meters
                                time_step = 5minutes,
                                stop_time = 30days,
@@ -339,7 +350,7 @@ function neverworld_simulation(arch;
 
         underlying_grid = LatitudeLongitudeGrid(arch; size, latitude, longitude, z, halo, topology)
         bathymetry = NeverworldBathymetry(underlying_grid)
-        grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bathymetry))
+        grid = ImmersedBoundaryGrid(underlying_grid, ImmersedBoundaryType(bathymetry))
     end
 
     if momentum_advection isa Default

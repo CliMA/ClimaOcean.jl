@@ -37,3 +37,4 @@ function download_progress(total, now)
 end
 
 end # module
+

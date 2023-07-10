@@ -7,10 +7,10 @@ using ClimaOcean.VerticalGrids: stretched_vertical_faces, PowerLawStretching
 using Printf
 using CUDA
 
-closure = CATKEVerticalDiffusivity(minimum_turbulent_kinetic_energy = 1e-6,
-                                   minimum_convective_buoyancy_flux = 1e-11)
-
-# closure = RiBasedVerticalDiffusivity()
+# closure = CATKEVerticalDiffusivity(minimum_turbulent_kinetic_energy = 1e-6,
+#                                    minimum_convective_buoyancy_flux = 1e-11)
+ 
+closure = RiBasedVerticalDiffusivity()
 
 z = stretched_vertical_faces(surface_layer_Δz = 8,
                              surface_layer_height = 64,
