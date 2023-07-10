@@ -2,7 +2,7 @@
 
 julia_version = "1.9.2"
 manifest_format = "2.0"
-project_hash = "4e5792676b4940d427d969bed5418ed52413bcf3"
+project_hash = "9cc5ac312a5cc4241027487576573b3512faf430"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -511,7 +511,7 @@ version = "1.2.0"
 deps = ["Adapt", "CUDA", "Crayons", "CubedSphere", "Dates", "DocStringExtensions", "FFTW", "Glob", "IncompleteLU", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "LinearAlgebra", "Logging", "MPI", "NCDatasets", "OffsetArrays", "OrderedCollections", "PencilArrays", "PencilFFTs", "Pkg", "Printf", "Random", "Rotations", "SeawaterPolynomials", "SparseArrays", "Statistics", "StructArrays"]
 git-tree-sha1 = "ad5a51649546df9c8f7bd7f4a583b43fdff6bd11"
 repo-rev = "glw/catke-parameter-refactor"
-repo-url = "/home/greg/Projects/Oceananigans.jl"
+repo-url = "https://github.com/CliMA/Oceananigans.jl.git"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
 version = "0.84.0"
 
