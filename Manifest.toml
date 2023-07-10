@@ -509,9 +509,11 @@ version = "1.2.0"
 
 [[deps.Oceananigans]]
 deps = ["Adapt", "CUDA", "Crayons", "CubedSphere", "Dates", "DocStringExtensions", "FFTW", "Glob", "IncompleteLU", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "LinearAlgebra", "Logging", "MPI", "NCDatasets", "OffsetArrays", "OrderedCollections", "PencilArrays", "PencilFFTs", "Pkg", "Printf", "Random", "Rotations", "SeawaterPolynomials", "SparseArrays", "Statistics", "StructArrays"]
-git-tree-sha1 = "4776d2514d39fef01942b7add669d69ffcbe81e1"
+git-tree-sha1 = "ad5a51649546df9c8f7bd7f4a583b43fdff6bd11"
+repo-rev = "glw/catke-parameter-refactor"
+repo-url = "/home/greg/Projects/Oceananigans.jl"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
-version = "0.84.1"
+version = "0.84.0"
 
 [[deps.OffsetArrays]]
 deps = ["Adapt"]
