@@ -6,7 +6,7 @@ using Oceananigans
 using Oceananigans.BuoyancyModels: buoyancy
 using Oceananigans.BoundaryConditions: fill_halo_regions!
 using Oceananigans.ImmersedBoundaries: ImmersedBoundaryGrid
-using Oceananigans.Architectures: device, device_event, architecture
+using Oceananigans.Architectures: device, architecture
 using Oceananigans.Utils: launch!
 using Oceananigans.Grids: Center, Face, inactive_node, znode
 using Oceananigans.Operators: Δzᶜᶜᶠ
@@ -116,12 +116,8 @@ function compute!(h::MixedLayerDepthField, time=nothing)
     arch = architecture(h)
     b = h.operand.buoyancy_operation
     Δb = h.operand.mixed_layer_buoyancy_differential
-    event = launch!(arch, h.grid, :xy, compute_mld!, h, h.grid, b, Δb,
-                    dependencies = device_event(arch))
-
-    wait(device(arch), event)
+    launch!(arch, h.grid, :xy, compute_mld!, h, h.grid, b, Δb)
     fill_halo_regions!(h)
-
     return h
 end
 
