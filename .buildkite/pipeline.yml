@@ -1,0 +1,32 @@
+agents:
+  queue: central
+  slurm_mem: 8G
+  modules: julia/1.8.5 cuda/11.8 ucx/1.14.1_cuda-11.8 openmpi/4.1.5_cuda-11.8 hdf5/1.12.2-ompi415 nsight-systems/2022.2.1
+
+env:
+  JULIA_LOAD_PATH: "${JULIA_LOAD_PATH}:${BUILDKITE_BUILD_CHECKOUT_PATH}/.buildkite"
+  OPENBLAS_NUM_THREADS: 1
+  JULIA_NVTX_CALLBACKS: gc
+  OMPI_MCA_opal_warn_on_missing_libcuda: 0
+
+steps:
+  - label: "initialize"
+    key: "init"
+    command:
+      - echo "--- Instantiate project"
+      - julia --project -e 'using Pkg; Pkg.instantiate(;verbose=true); Pkg.precompile(;strict=true)'
+      # force the initialization of the CUDA runtime as it is lazily loaded by default
+      # - "julia --project -e 'using CUDA; CUDA.precompile_runtime()'"
+
+    agents:
+      slurm_mem: 32G
+      slurm_cpus_per_task: 8
+    env:
+      JULIA_NUM_PRECOMPILE_TASKS: 8
+  
+  - wait
+
+  - label: "Run tests"
+    key: "tests"
+    command:
+      - julia --project -e 'using Pkg; Pkg.test()'
