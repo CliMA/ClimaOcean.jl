@@ -2,7 +2,7 @@
 
 julia_version = "1.9.2"
 manifest_format = "2.0"
-project_hash = "4e5792676b4940d427d969bed5418ed52413bcf3"
+project_hash = "fa00248e6adcad05196663f50c055df92ac20d71"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -145,9 +145,9 @@ version = "1.0.5+0"
 
 [[deps.ConcurrentUtilities]]
 deps = ["Serialization", "Sockets"]
-git-tree-sha1 = "96d823b94ba8d187a6d8f0826e731195a74b90e9"
+git-tree-sha1 = "5372dbbf8f0bdb8c700db5367132925c0771ef7e"
 uuid = "f0e56b4a-5159-44fe-b623-3e5288b988bb"
-version = "2.2.0"
+version = "2.2.1"
 
 [[deps.Crayons]]
 git-tree-sha1 = "249fe38abf76d48563e2f4556bebd215aa317e15"
@@ -258,9 +258,9 @@ version = "0.1.5"
 
 [[deps.GPUCompiler]]
 deps = ["ExprTools", "InteractiveUtils", "LLVM", "Libdl", "Logging", "Scratch", "TimerOutputs", "UUIDs"]
-git-tree-sha1 = "d60b5fe7333b5fa41a0378ead6614f1ab51cf6d0"
+git-tree-sha1 = "72b2e3c2ba583d1a7aa35129e56cf92e07c083e3"
 uuid = "61eb1bfa-7361-4325-ad38-22787b887f55"
-version = "0.21.3"
+version = "0.21.4"
 
 [[deps.Glob]]
 git-tree-sha1 = "97285bbd5230dd766e9ef6749b80fc617126d496"
@@ -275,9 +275,9 @@ version = "1.14.0+0"
 
 [[deps.HTTP]]
 deps = ["Base64", "CodecZlib", "ConcurrentUtilities", "Dates", "ExceptionUnwrapping", "Logging", "LoggingExtras", "MbedTLS", "NetworkOptions", "OpenSSL", "Random", "SimpleBufferStream", "Sockets", "URIs", "UUIDs"]
-git-tree-sha1 = "2ee0eb8746650f498ed9a109383aa399b2a0c515"
+git-tree-sha1 = "cb56ccdd481c0dd7f975ad2b3b62d9eda088f7e2"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
-version = "1.9.10"
+version = "1.9.14"
 
 [[deps.IfElse]]
 git-tree-sha1 = "debdd00ffef04665ccbb3e150747a77560e8fad1"
@@ -335,10 +335,16 @@ uuid = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
 version = "1.13.1"
 
 [[deps.KernelAbstractions]]
-deps = ["Adapt", "Atomix", "InteractiveUtils", "LinearAlgebra", "MacroTools", "PrecompileTools", "SparseArrays", "StaticArrays", "UUIDs", "UnsafeAtomics", "UnsafeAtomicsLLVM"]
-git-tree-sha1 = "b48617c5d764908b5fac493cd907cf33cc11eec1"
+deps = ["Adapt", "Atomix", "InteractiveUtils", "LinearAlgebra", "MacroTools", "PrecompileTools", "Requires", "SparseArrays", "StaticArrays", "UUIDs", "UnsafeAtomics", "UnsafeAtomicsLLVM"]
+git-tree-sha1 = "6d08ca80b621635fed9cdfeb9a4280a574020bf3"
 uuid = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
-version = "0.9.6"
+version = "0.9.7"
+
+    [deps.KernelAbstractions.extensions]
+    EnzymeExt = "EnzymeCore"
+
+    [deps.KernelAbstractions.weakdeps]
+    EnzymeCore = "f151be2c-9106-41f4-ab19-57ee4f262869"
 
 [[deps.LLVM]]
 deps = ["CEnum", "LLVMExtra_jll", "Libdl", "Printf", "Unicode"]
@@ -509,11 +515,11 @@ version = "1.2.0"
 
 [[deps.Oceananigans]]
 deps = ["Adapt", "CUDA", "Crayons", "CubedSphere", "Dates", "DocStringExtensions", "FFTW", "Glob", "IncompleteLU", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "LinearAlgebra", "Logging", "MPI", "NCDatasets", "OffsetArrays", "OrderedCollections", "PencilArrays", "PencilFFTs", "Pkg", "Printf", "Random", "Rotations", "SeawaterPolynomials", "SparseArrays", "Statistics", "StructArrays"]
-git-tree-sha1 = "ad5a51649546df9c8f7bd7f4a583b43fdff6bd11"
+git-tree-sha1 = "21653109691956b252ded2aaf0d6e1a8710abc36"
 repo-rev = "glw/catke-parameter-refactor"
 repo-url = "https://github.com/CliMA/Oceananigans.jl.git"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
-version = "0.84.0"
+version = "0.85.0"
 
 [[deps.OffsetArrays]]
 deps = ["Adapt"]
@@ -750,9 +756,9 @@ weakdeps = ["Statistics"]
     StaticArraysStatisticsExt = "Statistics"
 
 [[deps.StaticArraysCore]]
-git-tree-sha1 = "6b7ba252635a5eff6a0b0664a41ee140a1c9e72a"
+git-tree-sha1 = "1d5708d926c76a505052d0d24a846d5da08bc3a4"
 uuid = "1e83bf80-4336-4d27-bf5d-d5a4f845583c"
-version = "1.4.0"
+version = "1.4.1"
 
 [[deps.StaticPermutations]]
 git-tree-sha1 = "193c3daa18ff3e55c1dae66acb6a762c4a3bdb0b"
