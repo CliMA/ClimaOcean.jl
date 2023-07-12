@@ -20,7 +20,7 @@ CUDA = "4"
 CubicSplines = "0.2"
 DataDeps = "0.7"
 JLD2 = "0.4"
-Oceananigans = "0.84"
+Oceananigans = "0.81"
 SeawaterPolynomials = "0.3"
 julia = "1.8"
 
