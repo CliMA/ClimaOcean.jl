@@ -12,7 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.8'
+          - '1.9'
           # We don't want to test on Julia versions more recent than 1.6 until we
           # figure out a robust solution for serializing / deserializing Oceananigans Grids.
           # - '1'   # automatically expands to the latest stable 1.x release of Julia
@@ -26,13 +26,13 @@ jobs:
           # test macOS and Windows with latest Julia only
           - os: macOS-latest
             arch: x64
-            version: 1.8
+            version: 1.9
           - os: windows-latest
             arch: x64
-            version: 1.8
+            version: 1.9
           - os: windows-latest
             arch: x86
-            version: 1.8
+            version: 1.9
     steps:
       - uses: actions/checkout@v3
       - uses: julia-actions/setup-julia@latest
