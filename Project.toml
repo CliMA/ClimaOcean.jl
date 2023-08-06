@@ -21,7 +21,7 @@ CubicSplines = "0.2"
 DataDeps = "0.7"
 JLD2 = "0.4"
 SeawaterPolynomials = "0.3"
-Oceananigans = "0.86"
+Oceananigans = "0.85, 0.86"
 
 [extras]
 Coverage = "a2441757-f6aa-5fb2-8edb-039e3f45d037"
