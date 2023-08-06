@@ -106,7 +106,7 @@ function one_degree_near_global_simulation(architecture = GPU();
 
     vitd = VerticallyImplicitTimeDiscretization()
 
-    horizontal_κ = (T=0, S=0, e=horizontal_tke_diffusivity)
+    horizontal_κ = merge(NamedTuple{tracers}([0 for tracer in tracers]), (e = horizontal_tke_diffusivity, ))
     horizontal_diffusivity = HorizontalScalarDiffusivity(ν=horizontal_viscosity, κ=horizontal_κ)
     vertical_viscosity   = VerticalScalarDiffusivity(vitd, ν=νz, κ=background_vertical_diffusivity)
 
