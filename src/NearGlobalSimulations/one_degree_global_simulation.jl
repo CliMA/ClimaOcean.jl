@@ -31,6 +31,8 @@ function one_degree_near_global_simulation(architecture = GPU();
     initial_conditions                           = datadep"near_global_one_degree/initial_conditions_month_01_360_150_48.jld2",
     bathymetry_path                              = datadep"near_global_one_degree/bathymetry_lat_lon_360_150.jld2",
     surface_boundary_conditions_path             = datadep"near_global_one_degree/surface_boundary_conditions_12_months_360_150.jld2",
+    biogeochemistry = NoBiogeochemistry,
+    biogeochemistry_kwargs = ()
     )
 
     size == (360, 150, 48) || throw(ArgumentError("Only size = (360, 150, 48) is supported."))
@@ -195,7 +197,8 @@ function one_degree_near_global_simulation(architecture = GPU();
                                         momentum_advection = VectorInvariant(), 
                                         tracer_advection = WENO(underlying_grid),
                                         closure = closures,
-                                        boundary_conditions = (u=u_bcs, v=v_bcs, T=T_bcs, S=S_bcs))
+                                        boundary_conditions = (u=u_bcs, v=v_bcs, T=T_bcs, S=S_bcs),
+                                        biogeochemistry = biogeochemistry(; grid, biogeochemistry_kwargs...))
 
     @info "... built $model."
     @info "Model building time: " * prettytime(1e-9 * (time_ns() - start))
