@@ -13,7 +13,6 @@ function tracer_convective_length_scale_operation(model, closure=model.closure)
     buoyancy = model.buoyancy
     clock = model.clock
     Qᵇ = model.diffusivity_fields.Qᵇ
-    # h = model.diffusivity_fields.h
     top_tracer_bcs = NamedTuple(c => tracers[c].boundary_conditions.top for c in propertynames(tracers))
 
     Cᶜ = closure.mixing_length.Cᶜc
@@ -25,8 +24,6 @@ function tracer_convective_length_scale_operation(model, closure=model.closure)
                                     tracers,
                                     buoyancy,
                                     Qᵇ)
-                                    #Qᵇ, h)
-                                    #clock, top_tracer_bcs)
 
     ℓᶜconv = KernelFunctionOperation{Center, Center, Face}(convective_length_scaleᶜᶜᶠ, grid, convective_length_scale_args...)
 
