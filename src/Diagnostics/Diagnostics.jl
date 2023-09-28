@@ -21,8 +21,10 @@ const f = Face()
 
 @inline z_bottom(i, j, grid) = znode(c, c, f, i, j, 1, grid)
 @inline z_bottom(i, j, grid::ImmersedBoundaryGrid) = @inbounds grid.immersed_boundary.bottom_height[i, j]
-
 @inline bottom(i, j, grid) = znode(c, c, f, i, j, 1, grid)
+
+include("catke_diagnostics.jl")
+
 #####
 ##### MixedLayerDepthField
 #####
