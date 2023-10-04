@@ -29,3 +29,7 @@ docs/site/
 *.swp
 *.svg
 *.gif
+*.tif
+*.zip
+*.nc
+*.mat
