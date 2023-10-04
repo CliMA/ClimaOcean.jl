@@ -1,4 +1,6 @@
+using Oceananigans
 using NCDatasets
+using JLD2
 
 # Initial condition
 dir = "/storage2/alir/bsose_i122"
@@ -22,5 +24,35 @@ longitude = (0, 360)
 Δφ = φ[end] - φ[end-1]
 push!(φ, φ[end] + Δφ)
 
-# Tᵢ = T_ds["THETA"][:, :, :, 1]
-# Sᵢ = S_ds["SALT"][:, :, :, 1]
+Nx = 6 * 360
+Ny = length(φ) - 1
+Nz = length(z) - 1
+
+grid = LatitudeLongitudeGrid(CPU(); z,
+                             latitude = φ,
+                             longitude = (0, 360),
+                             size = (Nx, Ny, Nz),
+                             halo = (7, 7, 7),
+                             topology = (Periodic, Bounded, Bounded))
+
+grid = ImmersedBoundaryGrid(grid, GridFittedBottom(zb))
+
+time = T_ds["time"][:]
+T = T_ds["THETA"][:, :, :, 1]
+S = S_ds["SALT"][:, :, :, 1]
+
+ic_filename = "sose_grid_initial_conditions.jld2"
+file = jldopen(ic_filename, "a+")
+
+file["T"] = T
+file["S"] = S
+file["time"] = time
+
+file["longitude"] = longitude
+file["latitude"] = φ
+file["z"] = z
+file["bottom_height"] = zb
+
+file["grid"] = grid
+
+close(file)
