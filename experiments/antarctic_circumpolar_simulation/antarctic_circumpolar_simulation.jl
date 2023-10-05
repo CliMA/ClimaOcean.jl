@@ -22,10 +22,10 @@ arch = GPU()
 Nx = 6 * 360
 Ny = length(latitude) - 1
 Nz = length(z) - 1
+halo = (5, 5, 5)
 
-grid = LatitudeLongitudeGrid(arch; longitude, latitude, z,
+grid = LatitudeLongitudeGrid(arch; longitude, latitude, z, halo,
                              size = (Nx, Ny, Nz),
-                             halo = (7, 7, 7),
                              topology = (Periodic, Bounded, Bounded))
 
 @show grid
@@ -38,14 +38,11 @@ model = HydrostaticFreeSurfaceModel(; grid,
                                     tracers = (:T, :S, :e),
                                     buoyancy = SeawaterBuoyancy(; equation_of_state),
                                     coriolis = HydrostaticSphericalCoriolis(scheme = ActiveCellEnstrophyConservingScheme()),
-                                    #coriolis = HydrostaticSphericalCoriolis(),
                                     free_surface = SplitExplicitFreeSurface(; grid, cfl=0.5),
-                                    #momentum_advection = VectorInvariant(),
-                                    momentum_advection = VectorInvariant(vorticity_scheme = WENO(order=9),
-                                                                         divergence_scheme = WENO(order=9),
-                                                                         vertical_scheme = WENO(order=9)),
-                                    tracer_advection = WENO(order=7),
-                                    #tracer_advection = WENO(),
+                                    momentum_advection = VectorInvariant(vorticity_scheme = WENO(),
+                                                                         divergence_scheme = WENO(),
+                                                                         vertical_scheme = WENO()),
+                                    tracer_advection = WENO(),
                                     closure = CATKEVerticalDiffusivity())
 
 @show model
@@ -58,19 +55,20 @@ start_time = Ref(time_ns())
 
 function progress(sim)
     elapsed = 1e-9 * (time_ns() - start_time[])
+    start_time[] = time_ns()
 
     msg1 = string("Iter: ", iteration(sim),
                   ", time: ", prettytime(sim),
                   ", wall time: ", prettytime(elapsed))
 
     u, v, w = sim.model.velocities
-    msg2 = @sprintf(", max|u|: (%.2e, %.2e, %.2e) m s⁻¹",
-                    maximum(abs, u),
-                    maximum(abs, v),
-                    maximum(abs, w))
-    @info msg1 * msg2
 
-    start_time[] = time_ns()
+    msg2 = @sprintf(", max|u|: (%.2e, %.2e, %.2e) m s⁻¹",
+                    maximum(abs, parent(u)),
+                    maximum(abs, parent(v)),
+                    maximum(abs, parent(w)))
+
+    @info msg1 * msg2
 
     return nothing
 end
