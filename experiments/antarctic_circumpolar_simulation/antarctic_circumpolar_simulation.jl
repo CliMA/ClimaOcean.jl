@@ -38,18 +38,21 @@ model = HydrostaticFreeSurfaceModel(; grid,
                                     tracers = (:T, :S, :e),
                                     buoyancy = SeawaterBuoyancy(; equation_of_state),
                                     coriolis = HydrostaticSphericalCoriolis(scheme = ActiveCellEnstrophyConservingScheme()),
-                                    free_surface = SplitExplicitFreeSurface(; grid, cfl=0.2),
-                                    momentum_advection = VectorInvariant(vorticity_scheme = WENO(),
-                                                                         divergence_scheme = WENO(),
-                                                                         vertical_scheme = WENO()),
-                                    tracer_advection = WENO(),
+                                    #coriolis = HydrostaticSphericalCoriolis(),
+                                    free_surface = SplitExplicitFreeSurface(; grid, cfl=0.5),
+                                    #momentum_advection = VectorInvariant(),
+                                    momentum_advection = VectorInvariant(vorticity_scheme = WENO(order=9),
+                                                                         divergence_scheme = WENO(order=9),
+                                                                         vertical_scheme = WENO(order=9)),
+                                    tracer_advection = WENO(order=7),
+                                    #tracer_advection = WENO(),
                                     closure = CATKEVerticalDiffusivity())
 
 @show model
 
 set!(model, T=Tᵢ, S=Sᵢ)
 
-simulation = Simulation(model, Δt=5minutes, stop_time=30days)
+simulation = Simulation(model, Δt=1minutes, stop_time=30days)
 
 start_time = Ref(time_ns())
 
