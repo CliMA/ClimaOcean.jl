@@ -35,9 +35,6 @@ struct IceOceanModel{FT, I, C, G, O, S, PI, PC} <: AbstractModel{Nothing}
     reference_temperature :: FT
 end
 
-const IOM = IceOceanModel
-const OceanOnlyModel = IceOceanModel{<:Any, Nothing}
-
 Base.summary(::IOM) = "IceOceanModel"
 prettytime(model::IOM) = prettytime(model.clock.time)
 iteration(model::IOM) = model.clock.iteration
@@ -49,7 +46,16 @@ update_state!(::IOM) = nothing
 prognostic_fields(cm::IOM) = nothing
 fields(::IOM) = NamedTuple()
 
-function IceOceanModel(ice, ocean; clock = Clock{Float64}(0, 0, 1))
+
+default_clock(FT) = Clock{FT}(0, 0, 1)
+
+const IOM = IceOceanModel
+
+# "Ocean only"
+const OceanOnlyModel = IceOceanModel{<:Any, Nothing}
+OceanOnlyModel(ocean; clock=default_clock(eltype(ocean.model))) = IceOceanModel(nothing, ocean; clock)
+    
+function IceOceanModel(ice, ocean; clock = default_clock(eltype(ocean.model)))
     
     previous_ice_thickness = deepcopy(ice.model.ice_thickness)
     previous_ice_concentration = deepcopy(ice.model.ice_concentration)
