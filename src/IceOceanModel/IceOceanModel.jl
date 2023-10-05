@@ -20,7 +20,7 @@ import Oceananigans.Simulations: reset!, initialize!, iteration
 import Oceananigans.TimeSteppers: time_step!, update_state!, time
 import Oceananigans.Utils: prettytime
 
-struct IceOceanModel{FT, C, G, I, O, S, PI, PC} <: AbstractModel{Nothing}
+struct IceOceanModel{FT, I, C, G, O, S, PI, PC} <: AbstractModel{Nothing}
     clock :: C
     grid :: G # TODO: make it so simulation does not require this
     ice :: I
@@ -36,6 +36,7 @@ struct IceOceanModel{FT, C, G, I, O, S, PI, PC} <: AbstractModel{Nothing}
 end
 
 const IOM = IceOceanModel
+const OceanOnlyModel = IceOceanModel{<:Any, Nothing}
 
 Base.summary(::IOM) = "IceOceanModel"
 prettytime(model::IOM) = prettytime(model.clock.time)
