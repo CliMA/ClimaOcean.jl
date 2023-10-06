@@ -116,19 +116,16 @@ Adapt.adapt_structure(to, f::PrescribedAtmosphere) =
     h  = getflux(ice_thickness, i, j, grid, clock, fields)
     ice_cell = (h == nothing) | (h > 0)
 
-    I₀ = solar_insolation[i, j, 1]
+    @inbounds I₀ = solar_insolation[i, j, 1]
+    
+    FT = eltype(grid)
 
-    s = sqrt(uₐ^2 + vₐ^2) # speed m / s
+    speed = sqrt(uₐ^2 + vₐ^2) # speed m / s
     γ = f.gamma_air
     
     # Physical constants
     σ = convert(FT, σᴮ) # W/m²/K⁴ Stefan-Boltzmann constant
     ℒ = convert(FT, ℒₑ) # J/kg Latent heat of evaporation
-    
-    FT = eltype(grid)
-
-    # latent heat of evaporation
-    ℒ = convert(FT, ℒₑ)
 
     Tₛ = fields.T[i, j, grid.Nz]
     T₀ = Tₐ*(1 - γ * qₐ)
@@ -149,10 +146,10 @@ Adapt.adapt_structure(to, f::PrescribedAtmosphere) =
     Cᵀ, Cᵁ, Cq = turbulent_heat_transfer_coefficients(FT, f, T₀, qₐ, uₛ, ΔT, Δq)
 
     # sensible heat flux (W/m²)
-    H = ρₐ * uₛ * Cᵀ * Cᵁ * ΔT
+    H = ρₐ * speed * Cᵀ * Cᵁ * ΔT
 
     # latent heat flux (W/m²)
-    L = ρₐ * uₛ * Cq * Cᵁ * Δq * ℒ
+    L = ρₐ * speed * Cq * Cᵁ * Δq * ℒ
 
     # net longwave radiation (W/m²)
     Rₙ = ε * σ * (Tₛ + convert(FT, 273.15))^4 * (1 - f.cloud_cover_feedback)
@@ -160,20 +157,21 @@ Adapt.adapt_structure(to, f::PrescribedAtmosphere) =
     @inbounds begin
         Qˢ[i, j, 1] = ifelse(ice_cell, zero(grid), (H + L + Rₙ + I₀ * ε) / (ρₒ * cₒ))
         # Fˢ[i, j, 1] = L / ℒ
-        τˣ[i, j, 1] = ifelse(ice_cell, zero(grid), ρₐ * uₛ * Cᵁ * uₐ / ρₒ)
-        τʸ[i, j, 1] = ifelse(ice_cell, zero(grid), ρₐ * uₛ * Cᵁ * vₐ / ρₒ)
+        τˣ[i, j, 1] = ifelse(ice_cell, zero(grid), ρₐ * speed * Cᵁ * uₐ / ρₒ)
+        τʸ[i, j, 1] = ifelse(ice_cell, zero(grid), ρₐ * speed * Cᵁ * vₐ / ρₒ)
     end
 
     return nothing
 end
 
-# Follows MITgcm 
+# Follows MITgcm (https://mitgcm.readthedocs.io/en/latest/phys_pkgs/bulk_force.html)
 @inline function turbulent_heat_transfer_coefficients(FT, f, T₀, qₐ, uₛ, ΔT, Δq)
     hᵀ = f.atmosphere_state_height
     zᴿ = f.reference_height
     λ  = log(hᵀ / zᴿ)
+    κ  = convert(FT, 0.4) # von Karman constant
 
-    Cᵀ = Cᵁ = Cq = convert(FT, 0.41) / log(zᴿ * 2)
+    Cᵀ = Cᵁ = Cq = κ / log(zᴿ * 2)
     u★ = Cᵁ * uₛ
     T★ = Cᵀ * ΔT
     q★ = Cq * Δq
@@ -185,8 +183,8 @@ end
         ψˢ = ifelse(G > 0, -5G, 2 * log((1 + χ^2) / 2))
         ψᵐ = ifelse(G > 0, -5G, 2 * log((1 + χ) / 2) + ψˢ / 2 - 2 * atan(χ) + convert(FT, π/2))
 
-        Cᵁ = Cᵁ / (1 + Cᵁ * (λ - ψᵐ) / convert(FT, 0.41))
-        Cᵀ = Cᵀ / (1 + Cᵀ * (λ - ψˢ) / convert(FT, 0.41))
+        Cᵁ = Cᵁ / (1 + Cᵁ * (λ - ψᵐ) / κ)
+        Cᵀ = Cᵀ / (1 + Cᵀ * (λ - ψˢ) / κ)
         u★ = Cᵁ * uₛ
         T★ = Cᵀ * ΔT
         q★ = Cq * Δq    
