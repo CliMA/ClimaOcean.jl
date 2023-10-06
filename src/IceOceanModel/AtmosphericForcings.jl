@@ -59,6 +59,7 @@ struct PrescribedAtmosphere{R, H, P, W, T, Q, D, C, G} <: AbstractAtmospericForc
     gamma_air :: C               # -
 end
 
+# The atmospheric state (T, u, v, q, ρ and p) can all be Values, Arrays, Functions, Fields or FieldTimeSerieses
 function PrescribedAtmosphere(; 
                      adiabatic_lapse_rate    = 0.08,  
                      atmosphere_state_height = 10,       # m 
@@ -104,7 +105,6 @@ Adapt.adapt_structure(to, f::PrescribedAtmosphere) =
     α    = f.adiabatic_lapse_rate
     uˢ, vˢ = f.atmosphere_velocities
 
-    # The atmospheric state (T, u, v, q, ρ and p) can all be Values, Arrays, Functions, Fields or FieldTimeSerieses
     Tₐ = getflux(f.air_temperature,  i, j, grid, clock, fields)
     uₐ = getflux(uˢ,                 i, j, grid, clock, fields)
     vₐ = getflux(vˢ,                 i, j, grid, clock, fields)
