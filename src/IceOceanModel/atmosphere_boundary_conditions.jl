@@ -1,24 +1,65 @@
 module AtmosphericForcings
 
-# We generally have 2 types of atmospheric forcing: Prescribed fluxes and
-# Prescribed atmospheric state (to treat with bulk formulae)
-
 export PrescribedAtmosphere, PrescribedFluxes
+
+using Adapt
+using Oceananigans
+using Oceananigans.Utils
+using Oceananigans.BoundaryConditions: getbc
+using KernelAbstractions: @kernel, @index
+
+import IceOceanModel: compute_air_sea_fluxes!
 
 abstract type AbstractAtmospericForcing end
 
-struct PrescribedAtmosphere{} <: AbstractAtmospericForcing
+# We generally have 2 types of atmospheric forcing: Prescribed fluxes and
+# Prescribed atmospheric state (to treat with bulk formulae)
+
+# Prescribed fluxes can be arrays, fields, of functions. 
+# When functions, the signature should be 
+# `f(i, j, grid, clock, fields)` where `fields` are the ocean model's prognostic fields
+# in case of OnyOceanModel and the coupled model's prognostic fields in case of an `IceOceanModel`
+# Parameters can be implemented using callable structs that subtype `Function`
+struct PrescribedFluxes{T, S, U, V} <: AbstractAtmospericForcing
+    heat_flux          :: T # heat flux
+    freshwater_flux    :: S # freshwater flux
+    zonal_stress       :: U # zonal stress
+    meriodional_stress :: V # meriodional stress
+end
+
+Adapt.adapt_structure(to, f::PrescribedFluxes) = 
+    PrescribedFluxes(Adapt.adapt(to, f.heat_flux),
+                     Adapt.adapt(to, f.freshwater_flux),
+                     Adapt.adapt(to, f.zonal_stress),
+                     Adapt.adapt(to, f.meriodional_stress))
+
+# Here we leverage a `getflux` function similar to the `getbc` from Oceananigans.jl to extract the fluxes,
+# In this way we allow prescribed fluxes as well as relaxation fluxes
+@kernel function _calculate_prescribed_fluxes!(Qˢ, Fˢ, τˣ, τʸ, fields, f::PrescribedFluxes)
+    i, j = @index(Global, NTuple)
+    @inbounds begin
+        Qˢ[i, j] = getflux(f.heat_flux,          i, j, grid, clock, fields)
+        Fˢ[i, j] = getflux(f.freshwater_fluxes,  i, j, grid, clock, fields)
+        τˣ[i, j] = getflux(f.zonal_stress,       i, j, grid, clock, fields)
+        τʸ[i, j] = getflux(f.meriodional_stress, i, j, grid, clock, fields)
+    end
+end
+
+
+struct PrescribedAtmosphere{R, H, P, W, T, Q, D, C, G} <: AbstractAtmospericForcing
     adiabatic_lapse_rate :: R    # -
     atmosphere_state_height :: H # m
     reference_height :: H        # m 
     surface_pressure :: P        # Pa
-    wind_speed :: W              # m/s
+    atmosphere_velocity :: W     # (m/s, m/s)
     air_temperature :: T         # deg ᵒC
     air_humidity :: Q            # kg/m³
     air_density :: D             # kg/m³
     cloud_cover_feedback :: C    # - 
     gamma_air :: C               # -
 end
+
+const PrescribedAtmosphereModel = IceOceanModel{<:Any, <:Any, PrescribedAtmosphere}
 
 # To put in ClimaOcean.jl integrating with ClimaSeaIce.jl (To modify)
 #=

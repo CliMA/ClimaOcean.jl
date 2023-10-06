@@ -111,6 +111,7 @@ time(coupled_model::IceOceanModel) = coupled_model.clock.time
 function compute_air_sea_flux!(coupled_model)
     ocean = coupled_model.ocean
     ice = coupled_model.ice
+    atmosphere = coupled_model.atmospheric_forcing
 
     T = ocean.model.tracers.T
     Nx, Ny, Nz = size(ocean.model.grid)
@@ -128,7 +129,7 @@ function compute_air_sea_flux!(coupled_model)
     ℵᵢ = ice.model.ice_concentration
     I₀ = coupled_model.solar_insolation
 
-    launch!(arch, grid, :xy, _compute_air_sea_flux!,
+    launch!(ocean, :xy, _compute_air_sea_flux!,
             Qᵀ, grid, Tₒ, hᵢ, ℵᵢ, I₀,
             σ, ρₒ, cₒ, Tᵣ)
 end
@@ -159,7 +160,7 @@ end
     # Also add solar insolation
     ΣQᵀ += I₀ / (ρₒ * cₒ)
 
-    # Set the surface flux only if ice-free
+    # Set the surface flux only if ice-free or the moment
     Qᵀ = temperature_flux
 
     # @inbounds Qᵀ[i, j, 1] = 0 #(1 - ℵ) * ΣQᵀ
@@ -168,9 +169,7 @@ end
 function time_step!(coupled_model::IceOceanModel, Δt; callbacks=nothing)
     ocean = coupled_model.ocean
     ice = coupled_model.ice
-    liquidus = ice.model.phase_transitions.liquidus
-    grid = ocean.model.grid
-    ice.Δt = Δt
+    ice.Δt   = Δt
     ocean.Δt = Δt
 
     fill_halo_regions!(h)
@@ -185,10 +184,11 @@ function time_step!(coupled_model::IceOceanModel, Δt; callbacks=nothing)
     time_step!(ice)
 
     # TODO: put this in update_state!
-    compute_ice_ocean_salinity_flux!(coupled_model)
-    ice_ocean_latent_heat!(coupled_model)
+    # Air-sea and Air-ice fluxes substitute the previous values
+    # while ice-ocean fluxes are additive
+    compute_air_sea_flux!(coupled_model) 
+    compute_ice_ocean_flux!(coupled_model)
     #compute_solar_insolation!(coupled_model)
-    #compute_air_sea_flux!(coupled_model)
 
     time_step!(ocean)
 
@@ -205,6 +205,12 @@ function time_step!(coupled_model::IceOceanModel, Δt; callbacks=nothing)
     
     return nothing
 end
+
+function compute_ice_ocean_flux!(coupled_model)
+    compute_ice_ocean_salinity_flux!(coupled_model)
+    ice_ocean_latent_heat!(coupled_model)
+end
+
 
 function compute_ice_ocean_salinity_flux!(coupled_model)
     # Compute salinity increment due to changes in ice thickness
@@ -251,7 +257,7 @@ end
         # Update surface salinity flux.
         # Note: the Δt below is the ocean time-step, eg.
         # ΔS = ⋯ - ∮ Qˢ dt ≈ ⋯ - Δtₒ * Qˢ 
-        Qˢ[i, j, 1] = Δh / Δt * (Sᵢ[i, j, 1] - Sₒ[i, j, Nz])
+        Qˢ[i, j, 1] += Δh / Δt * (Sᵢ[i, j, 1] - Sₒ[i, j, Nz])
 
         # Update previous ice thickness
         h⁻[i, j, 1] = hⁿ[i, j, 1]
@@ -273,6 +279,8 @@ function ice_ocean_latent_heat!(coupled_model)
     grid = ocean.model.grid
     arch = architecture(grid)
 
+    # What about the latent heat removed from the ocean when ice forms?
+    # Is it immediately removed from the ocean? Or is it stored in the ice?
     launch!(arch, grid, :xy, _compute_ice_ocean_latent_heat!,
             Qₒ, grid, hᵢ, Tₒ, Sₒ, liquidus, ρₒ, cₒ, Δt)
 
