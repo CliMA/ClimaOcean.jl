@@ -99,7 +99,7 @@ Adapt.adapt_structure(to, f::PrescribedAtmosphere) =
 
 @inline clausius_clapeyron(FT, Tₛ) = convert(FT, 611.2) * exp(convert(FT, 17.67) * Tₛ / (Tₛ + convert(FT, 243.5)))
 
-# Follows MITgcm
+# Follows MITgcm, this is kind of a Placeholder for now. I ll check the literature for a correct parameterization
 @kernel function _calculate_air_sea_fluxes!(Qˢ, Fˢ, τˣ, τʸ, ε, ρₒ, cₒ, grid, clock, fields, ice_thickness, f::PrescribedAtmosphere)
     
     hᵀ   = f.atmosphere_state_height
