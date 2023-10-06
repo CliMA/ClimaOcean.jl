@@ -1,3 +1,5 @@
+using Oceananigans.OutputReaders: update_model_field_time_series!
+
 struct IceOceanModel{FT, I, O, F, C, G, S, PI, PC} <: AbstractModel{Nothing}
     clock :: C
     grid :: G # TODO: make it so simulation does not require this
@@ -104,6 +106,7 @@ function time_step!(coupled_model::IceOceanModel, Δt; callbacks=nothing)
     # TODO: put this in update_state!
     # Air-sea and Air-ice fluxes substitute the previous values
     # while ice-ocean fluxes are additive
+    update_model_field_time_series!(coupled_model.atmospheric_forcing) 
     compute_air_sea_flux!(coupled_model) 
     compute_air_ice_flux!(coupled_model) # TODO: we need to implement this, not sure how
     compute_ice_ocean_flux!(coupled_model)
