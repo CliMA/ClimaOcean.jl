@@ -206,10 +206,13 @@ function time_step!(coupled_model::IceOceanModel, Δt; callbacks=nothing)
 end
 
 function compute_ice_ocean_flux!(coupled_model)
+
+    # probably need to expand this
     compute_ice_ocean_salinity_flux!(coupled_model)
     ice_ocean_latent_heat!(coupled_model)
-end
 
+    return nothing
+end
 
 function compute_ice_ocean_salinity_flux!(coupled_model)
     # Compute salinity increment due to changes in ice thickness
@@ -230,7 +233,6 @@ function compute_ice_ocean_salinity_flux!(coupled_model)
 
     return nothing
 end
-
 
 @kernel function _compute_ice_ocean_salinity_flux!(ice_ocean_salinity_flux,
                                                    grid,
@@ -364,5 +366,10 @@ function default_nan_checker(model::IceOceanModel)
     nan_checker = NaNChecker((; u_ocean))
     return nan_checker
 end
+
+include("AtmosphericForcings.jl")
+
+using .AtmosphericForcings
+
 
 end # module
