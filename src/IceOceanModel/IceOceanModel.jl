@@ -20,6 +20,9 @@ import Oceananigans.Simulations: reset!, initialize!, iteration
 import Oceananigans.TimeSteppers: time_step!, update_state!, time
 import Oceananigans.Utils: prettytime
 
+const ℒₑ = 2.5e6 # J/kg Latent heat of evaporation
+const σᴮ = 5.67e-8 # W/m²/K⁴ Stefan-Boltzmann constant
+
 struct IceOceanModel{FT, I, O, F, C, G, S, PI, PC} <: AbstractModel{Nothing}
     clock :: C
     grid :: G # TODO: make it so simulation does not require this
@@ -32,7 +35,6 @@ struct IceOceanModel{FT, I, O, F, C, G, S, PI, PC} <: AbstractModel{Nothing}
     ocean_density :: FT
     ocean_heat_capacity :: FT
     ocean_emissivity :: FT
-    stefan_boltzmann_constant :: FT
     reference_temperature :: FT
 end
 
@@ -74,7 +76,6 @@ function IceOceanModel(ice, ocean;
     ocean_heat_capacity = 3991
     ocean_emissivity = 1
     reference_temperature = 273.15
-    stefan_boltzmann_constant = 5.67e-8
 
     # How would we ensure consistency?
     try
@@ -84,7 +85,6 @@ function IceOceanModel(ice, ocean;
             radiation = filter(flux isa RadiativeEmission, ice.model.external_thermal_fluxes.top) |> first
         end
 
-        stefan_boltzmann_constant = radiation.stefan_boltzmann_constant
         reference_temperature = radiation.reference_temperature
     catch
     end
@@ -111,7 +111,6 @@ time(coupled_model::IceOceanModel) = coupled_model.clock.time
 function compute_air_sea_flux!(coupled_model)
     ocean = coupled_model.ocean
     ice = coupled_model.ice
-    atmosphere = coupled_model.atmospheric_forcing
 
     T = ocean.model.tracers.T
     Nx, Ny, Nz = size(ocean.model.grid)
