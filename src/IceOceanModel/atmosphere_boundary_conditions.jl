@@ -14,6 +14,7 @@ abstract type AbstractAtmospericForcing end
 
 # We generally have 2 types of atmospheric forcing: Prescribed fluxes and
 # Prescribed atmospheric state (to treat with bulk formulae)
+# This implementation also allows to have a future prognostic atmospheric model
 
 # Prescribed fluxes can be arrays, fields, of functions. 
 # When functions, the signature should be 
