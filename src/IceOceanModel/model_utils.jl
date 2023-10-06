@@ -6,6 +6,7 @@ import Oceananigans.Grids: launch!
 
 launch!(model::AbstractModel, args...; kwargs...) = launch!(architecture(model.grid), model.grid, args...; kwargs...) 
 
+@inline getflux(f::Nothing,                 i::Int, j::Int, grid::AbstractGrid, clock, fields)  = nothing 
 @inline getflux(f::Number,                  i::Int, j::Int, grid::AbstractGrid, clock, fields)  = f
 @inline getflux(f::Function,                i::Int, j::Int, grid::AbstractGrid, clock, fields)  = f(i, j, grid, clock, fields)
 @inline getflux(f::AbstractArray{<:Any, 2}, i::Int, j::Int, grid::AbstractGrid, args...)        = @inbounds f[i, j]

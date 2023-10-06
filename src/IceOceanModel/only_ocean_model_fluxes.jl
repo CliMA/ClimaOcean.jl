@@ -33,9 +33,13 @@ function compute_air_sea_fluxes!(coupled_model::OnlyOceanModel)
     τˣ = u.boundary_conditions.top.condition
     τʸ = v.boundary_conditions.top.condition
 
-    ε = coupled_model.ocean_emissivity
-    
-    launch!(ocean, :xy, _calculate_air_sea_fluxes!, Qˢ, Fˢ, τˣ, τʸ, ε, grid, clock, fields, forcing, nothing)
+    ε  = coupled_model.ocean_emissivity
+    ρₒ = coupled_model.ocean_density
+    cₒ = coupled_model.ocean_heat_capacity
+    I₀ = coupled_model.solar_insolation
+
+    launch!(ocean, :xy, _calculate_air_sea_fluxes!, Qˢ, Fˢ, τˣ, τʸ, ρₒ, cₒ, ε, Iₒ, 
+            grid, clock, fields, forcing, nothing)
 
     return nothing
 end

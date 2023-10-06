@@ -36,10 +36,11 @@ Adapt.adapt_structure(to, f::PrescribedFluxes) =
 
 # Here we leverage a `getflux` function similar to the `getbc` from Oceananigans.jl to extract the fluxes,
 # In this way we allow prescribed fluxes as well as relaxation fluxes
-@kernel function _calculate_air_sea_fluxes!(Qˢ, Fˢ, τˣ, τʸ, ε, grid, clock, fields, ice_thickness, f::PrescribedFluxes)
+@kernel function _calculate_air_sea_fluxes!(Qˢ, Fˢ, τˣ, τʸ, ρₒ, cₒ, ε, grid, clock, fields, ice_thickness, solar_insolation, f::PrescribedFluxes)
     i, j = @index(Global, NTuple)
     @inbounds begin
-        Qˢ[i, j] = getflux(ice_thickness, f.heat_flux,          i, j, grid, clock, fields)
+        I₀ = solar_insolation[i, j, 1]
+        Qˢ[i, j] = getflux(ice_thickness, f.heat_flux,          i, j, grid, clock, fields) + ε * I₀ / (ρₒ * cₒ)
         Fˢ[i, j] = getflux(ice_thickness, f.freshwater_fluxes,  i, j, grid, clock, fields)
         τˣ[i, j] = getflux(ice_thickness, f.zonal_stress,       i, j, grid, clock, fields)
         τʸ[i, j] = getflux(ice_thickness, f.meriodional_stress, i, j, grid, clock, fields)
@@ -99,7 +100,7 @@ Adapt.adapt_structure(to, f::PrescribedAtmosphere) =
 @inline clausius_clapeyron(FT, Tₛ) = convert(FT, 611.2) * exp(convert(FT, 17.67) * Tₛ / (Tₛ + convert(FT, 243.5)))
 
 # Follows MITgcm
-@kernel function _calculate_air_sea_fluxes!(Qˢ, Fˢ, τˣ, τʸ, ε, grid, clock, fields, ice_thickness, f::PrescribedAtmosphere)
+@kernel function _calculate_air_sea_fluxes!(Qˢ, Fˢ, τˣ, τʸ, ε, ρₒ, cₒ, grid, clock, fields, ice_thickness, f::PrescribedAtmosphere)
     
     hᵀ   = f.atmosphere_state_height
     α    = f.adiabatic_lapse_rate
@@ -111,6 +112,9 @@ Adapt.adapt_structure(to, f::PrescribedAtmosphere) =
     qₐ = getflux(f.air_humidity,     i, j, grid, clock, fields)
     ρₐ = getflux(f.air_density,      i, j, grid, clock, fields)
     p₀ = getflux(f.surface_pressure, i, j, grid, clock, fields)
+    
+    h  = getflux(ice_thickness, i, j, grid, clock, fields)
+    I₀ = solar_insolation[i, j, 1]
 
     s = sqrt(uₐ^2 + vₐ^2) # speed m / s
     γ = f.gamma_air
@@ -150,12 +154,12 @@ Adapt.adapt_structure(to, f::PrescribedAtmosphere) =
 
     # net longwave radiation (W/m²)
     Rₙ = ε * σ * (Tₛ + convert(FT, 273.15))^4 * (1 - f.cloud_cover_feedback)
-
+    
     @inbounds begin
-        Qˢ[i, j, 1] = H + L + Rₙ
-        Fˢ[i, j, 1] = L / ℒ
-        τˣ[i, j, 1] = ρₐ * uₛ * Cᵁ * uₛ
-        τʸ[i, j, 1] = ρₐ * uₛ * Cᵁ * vₛ
+        Qˢ[i, j, 1] = ifelse(ice_thickness(H + L + Rₙ + I₀ * ε) / (ρₒ * cₒ)
+        # Fˢ[i, j, 1] = L / ℒ
+        τˣ[i, j, 1] = ρₐ * uₛ * Cᵁ * uₐ / ρₒ 
+        τʸ[i, j, 1] = ρₐ * uₛ * Cᵁ * vₐ / ρₒ 
     end
 
     return nothing
@@ -166,7 +170,6 @@ end
     hᵀ = f.atmosphere_state_height
     zᴿ = f.reference_height
     λ  = log(hᵀ / zᴿ)
-    γ  = f.gamma_air
 
     Cᵀ = Cᵁ = Cq = convert(FT, 0.41) / log(zᴿ * 2)
     u★ = Cᵁ * uₛ
