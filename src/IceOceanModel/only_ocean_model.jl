@@ -32,8 +32,10 @@ function compute_air_sea_fluxes!(coupled_model::OnlyOceanModel)
     Fˢ = S.boundary_conditions.top.condition
     τˣ = u.boundary_conditions.top.condition
     τʸ = v.boundary_conditions.top.condition
+
+    ε = coupled_model.ocean_emissivity
     
-    launch!(ocean, :xy, _calculate_air_sea_fluxes!, Qˢ, Fˢ, τˣ, τʸ, grid, clock, fields, forcing)
+    launch!(ocean, :xy, _calculate_air_sea_fluxes!, Qˢ, Fˢ, τˣ, τʸ, ε, grid, clock, fields, forcing, nothing)
 
     return nothing
 end
