@@ -105,8 +105,8 @@ function time_step!(coupled_model::IceOceanModel, Δt; callbacks=nothing)
     # Air-sea and Air-ice fluxes substitute the previous values
     # while ice-ocean fluxes are additive
     compute_air_sea_flux!(coupled_model) 
+    compute_air_ice_flux!(coupled_model) # TODO: we need to implement this, not sure how
     compute_ice_ocean_flux!(coupled_model)
-    #compute_solar_insolation!(coupled_model)
 
     time_step!(ocean)
 

@@ -3,6 +3,9 @@
 # will handle the top boundary_conditions, for example if we want to impose a value BC)
 compute_air_sea_flux!(coupled_model::NoAtmosphereModel) = nothing
 
+# Is this taken care of inside the ice model? Probably not because it is better to couple here than inside
+compute_air_ice_flux!(coupled_model) = nothing
+
 function compute_air_sea_flux!(coupled_model)
     ocean   = coupled_model.ocean
     forcing = coupled_model.atmospheric_forcing
