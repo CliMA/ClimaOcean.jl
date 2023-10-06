@@ -20,13 +20,14 @@ import Oceananigans.Simulations: reset!, initialize!, iteration
 import Oceananigans.TimeSteppers: time_step!, update_state!, time
 import Oceananigans.Utils: prettytime
 
-struct IceOceanModel{FT, I, C, G, O, S, PI, PC} <: AbstractModel{Nothing}
+struct IceOceanModel{FT, I, O, F, C, G, S, PI, PC} <: AbstractModel{Nothing}
     clock :: C
     grid :: G # TODO: make it so simulation does not require this
     ice :: I
     previous_ice_thickness :: PI
     previous_ice_concentration :: PC
     ocean :: O
+    atmospheric_forcing :: F
     solar_insolation :: S
     ocean_density :: FT
     ocean_heat_capacity :: FT
@@ -53,9 +54,13 @@ const IOM = IceOceanModel
 
 # "Ocean only"
 const OceanOnlyModel = IceOceanModel{<:Any, Nothing}
-OceanOnlyModel(ocean; clock=default_clock(eltype(ocean.model))) = IceOceanModel(nothing, ocean; clock)
-    
-function IceOceanModel(ice, ocean; clock = default_clock(eltype(ocean.model)))
+
+OceanOnlyModel(ocean; atmospheric_forcing = nothing, clock = default_clock(eltype(ocean.model))) = 
+        IceOceanModel(nothing, ocean; atmospheric_forcing, clock)
+
+function IceOceanModel(ice, ocean; 
+                       atmospheric_forcing = nothing,
+                       clock = default_clock(eltype(ocean.model)))
     
     previous_ice_thickness = deepcopy(ice.model.ice_thickness)
     previous_ice_concentration = deepcopy(ice.model.ice_concentration)
@@ -93,6 +98,7 @@ function IceOceanModel(ice, ocean; clock = default_clock(eltype(ocean.model)))
                          previous_ice_concentration,
                          ocean,
                          solar_insolation,
+                         atmospheric_forcing,
                          convert(FT, ocean_density),
                          convert(FT, ocean_heat_capacity),
                          convert(FT, ocean_emissivity),
