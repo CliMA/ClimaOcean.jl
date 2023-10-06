@@ -164,6 +164,9 @@ Adapt.adapt_structure(to, f::PrescribedAtmosphere) =
     return nothing
 end
 
+@inline turbulent_heat_transfer_coefficients(FT, f, T₀, qₐ, uₛ, ΔT, Δq) = (1e-3, 1e-3, 1e-3)
+
+#=
 # Follows MITgcm (https://mitgcm.readthedocs.io/en/latest/phys_pkgs/bulk_force.html)
 @inline function turbulent_heat_transfer_coefficients(FT, f, T₀, qₐ, uₛ, ΔT, Δq)
     hᵀ = f.atmosphere_state_height
@@ -192,6 +195,7 @@ end
 
     return Cᵀ, Cᵁ, Cq
 end
+=#
 
 @inline Γ(FT, u★, T★, q★, T₀, qₐ, f) = convert(FT, 0.41) * convert(FT, 9.80655) * f.reference_height / u★^2 * 
                                        (T★ / T₀ - q★ / (1/f.gamma_air - qₐ))
