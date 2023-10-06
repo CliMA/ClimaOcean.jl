@@ -8,8 +8,16 @@ export PrescribedAtmosphere, PrescribedFluxes
 abstract type AbstractAtmospericForcing end
 
 struct PrescribedAtmosphere{} <: AbstractAtmospericForcing
-
-
+    adiabatic_lapse_rate :: R    # -
+    atmosphere_state_height :: H # m
+    reference_height :: H        # m 
+    surface_pressure :: P        # Pa
+    wind_speed :: W              # m/s
+    air_temperature :: T         # deg ᵒC
+    air_humidity :: Q            # kg/m³
+    air_density :: D             # kg/m³
+    cloud_cover_feedback :: C    # - 
+    gamma_air :: C               # -
 end
 
 # To put in ClimaOcean.jl integrating with ClimaSeaIce.jl (To modify)
