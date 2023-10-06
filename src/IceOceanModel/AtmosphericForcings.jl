@@ -60,7 +60,7 @@ struct PrescribedAtmosphere{R, H, P, W, T, Q, D, C, G} <: AbstractAtmospericForc
     gamma_air :: C               # -
 end
 
-# The atmospheric state (T, u, v, q, ρ and p) can all be Values, Arrays, Functions, Fields or FieldTimeSerieses
+# The atmospheric state (T, u, v, q, ρ and p) can be composed of Values, Arrays, Functions, Fields or FieldTimeSerieses
 function PrescribedAtmosphere(; 
                      adiabatic_lapse_rate    = 0.08,  
                      atmosphere_state_height = 10,       # m 
@@ -114,6 +114,8 @@ Adapt.adapt_structure(to, f::PrescribedAtmosphere) =
     p₀ = getflux(f.surface_pressure, i, j, grid, clock, fields)
     
     h  = getflux(ice_thickness, i, j, grid, clock, fields)
+    ice_cell = (h == nothing) | (h > 0)
+
     I₀ = solar_insolation[i, j, 1]
 
     s = sqrt(uₐ^2 + vₐ^2) # speed m / s
@@ -156,10 +158,10 @@ Adapt.adapt_structure(to, f::PrescribedAtmosphere) =
     Rₙ = ε * σ * (Tₛ + convert(FT, 273.15))^4 * (1 - f.cloud_cover_feedback)
     
     @inbounds begin
-        Qˢ[i, j, 1] = ifelse(ice_thickness(H + L + Rₙ + I₀ * ε) / (ρₒ * cₒ)
+        Qˢ[i, j, 1] = ifelse(ice_cell, zero(grid), (H + L + Rₙ + I₀ * ε) / (ρₒ * cₒ))
         # Fˢ[i, j, 1] = L / ℒ
-        τˣ[i, j, 1] = ρₐ * uₛ * Cᵁ * uₐ / ρₒ 
-        τʸ[i, j, 1] = ρₐ * uₛ * Cᵁ * vₐ / ρₒ 
+        τˣ[i, j, 1] = ifelse(ice_cell, zero(grid), ρₐ * uₛ * Cᵁ * uₐ / ρₒ)
+        τʸ[i, j, 1] = ifelse(ice_cell, zero(grid), ρₐ * uₛ * Cᵁ * vₐ / ρₒ)
     end
 
     return nothing
