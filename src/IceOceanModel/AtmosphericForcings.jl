@@ -104,7 +104,7 @@ Adapt.adapt_structure(to, f::PrescribedAtmosphere) =
     α    = f.adiabatic_lapse_rate
     uˢ, vˢ = f.atmosphere_velocities
 
-    # These can be Values, Arrays, Functions, Fields or FieldTimeSerieses
+    # The atmospheric state (T, u, v, q, ρ and p) can all be Values, Arrays, Functions, Fields or FieldTimeSerieses
     Tₐ = getflux(f.air_temperature,  i, j, grid, clock, fields)
     uₐ = getflux(uˢ,                 i, j, grid, clock, fields)
     vₐ = getflux(vˢ,                 i, j, grid, clock, fields)
