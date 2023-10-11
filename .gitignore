@@ -23,6 +23,7 @@ docs/site/
 # environment.
 # Manifest.toml
 
+*.nc
 *.jld2
 *.mp4
 *.DS_Store
