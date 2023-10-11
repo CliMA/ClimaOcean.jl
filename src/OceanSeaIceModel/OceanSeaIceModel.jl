@@ -1,4 +1,4 @@
-module IceOceanModel
+module OceanSeaIceModel
 
 using Oceananigans.Operators
 
@@ -23,15 +23,15 @@ import Oceananigans.Utils: prettytime
 const ℒₑ = 2.5e6 # J/kg Latent heat of evaporation
 const σᴮ = 5.67e-8 # W/m²/K⁴ Stefan-Boltzmann constant
 
-include("ice_ocean_model.jl")
-include("ice_ocean_atmosphere_fluxes.jl")
-include("only_ocean_model_fluxes.jl")
+include("ocean_sea_ice_model.jl")
+include("ocean_sea_ice_atmosphere_fluxes.jl")
+include("ocean_only_model_fluxes.jl")
 include("AtmosphericForcings.jl")
 
 using .AtmosphericForcings
 
 # Check for NaNs in the first prognostic field (generalizes to prescribed velocitries).
-function default_nan_checker(model::IceOceanModel)
+function default_nan_checker(model::OceanSeaIceModel)
     u_ocean = model.ocean.model.velocities.u
     nan_checker = NaNChecker((; u_ocean))
     return nan_checker

@@ -105,6 +105,6 @@ include("DataWrangling.jl")
 include("Diagnostics.jl")
 include("NearGlobalSimulations/NearGlobalSimulations.jl")
 include("IdealizedSimulations/IdealizedSimulations.jl")
-include("IceOceanModel/IceOceanModel.jl")
+include("OceanSeaIceModel/OceanSeaIceModel.jl")
 
 end # module
