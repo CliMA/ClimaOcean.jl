@@ -102,6 +102,8 @@ end
 
 include("VerticalGrids.jl")
 include("DataWrangling.jl")
+include("Bathymetry.jl")
+include("InitialConditions.jl")
 include("Diagnostics.jl")
 include("NearGlobalSimulations/NearGlobalSimulations.jl")
 include("IdealizedSimulations/IdealizedSimulations.jl")

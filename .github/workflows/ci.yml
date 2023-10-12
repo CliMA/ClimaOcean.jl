@@ -13,10 +13,6 @@ jobs:
       matrix:
         version:
           - '1.9'
-          # We don't want to test on Julia versions more recent than 1.6 until we
-          # figure out a robust solution for serializing / deserializing Oceananigans Grids.
-          # - '1'   # automatically expands to the latest stable 1.x release of Julia
-          # - nightly
         os:
           - ubuntu-latest
         arch:
