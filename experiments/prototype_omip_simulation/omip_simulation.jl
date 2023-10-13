@@ -35,24 +35,24 @@ push!(zf, 0)
 Δz = zc[2] - zc[1]
 pushfirst!(zf, zf[1] - Δz)
 
-T = temperature_ds["THETA"][:, :, :, 1]
-S = salinity_ds["SALT"][:, :, :, 1]
+Tᵢ = temperature_ds["THETA"][:, :, :, 1]
+Sᵢ = salinity_ds["SALT"][:, :, :, 1]
 
-T = convert(Array{Float32, 3}, T)
-S = convert(Array{Float32, 3}, S)
+Tᵢ = convert(Array{Float32, 3}, Tᵢ)
+Sᵢ = convert(Array{Float32, 3}, Sᵢ)
 
-T = reverse(T, dims=3)
-S = reverse(S, dims=3)
+Tᵢ = reverse(Tᵢ, dims=3)
+Sᵢ = reverse(Sᵢ, dims=3)
 
 missing_value = Float32(-9.9e22)
 
 # Construct bottom_height depth by analyzing T
-Nx, Ny′, Nz = size(T)
+Nx, Ny′, Nz = size(Tᵢ)
 bottom_height = ones(Nx, Ny′) .* (zf[1] - Δz)
 
 for i = 1:Nx, j = 1:Ny′
     @inbounds for k = Nz:-1:1
-        if T[i, j, k] < -10
+        if Tᵢ[i, j, k] < -10
             bottom_height[i, j] = zf[k+1]
             break
         end
@@ -67,8 +67,8 @@ j₁ = 4 * (90 + southern_limit)
 j₂ = 720 - 4 * (90 - northern_limit) + 1
 Ny = j₂ - j₁ + 1
 
-T = T[:, j₁:j₂, :]
-S = S[:, j₁:j₂, :]
+Tᵢ = Tᵢ[:, j₁:j₂, :]
+Sᵢ = Sᵢ[:, j₁:j₂, :]
 bottom_height = bottom_height[:, j₁:j₂]
 
 grid = LatitudeLongitudeGrid(arch,
@@ -97,4 +97,23 @@ model = HydrostaticFreeSurfaceModel(; grid, buoyancy,
                                     tracers = (:T, :S, :e),
                                     coriolis = HydrostaticSphericalCoriolis(),
                                     closure = CATKEVerticalDiffusivity())
+
+set!(model, T=Tᵢ, S=Sᵢ)
+
+simulation = Simulation(model, Δt=5minutes, stop_iteration=10)
+
+run!(simulation)
+
+T, S, e = model.tracers
+Tn = interior(T, :, :, Nz)
+Sn = interior(S, :, :, Nz)
+
+fig = Figure()
+axT = Axis(fig[1, 1])
+axS = Axis(fig[2, 1])
+
+heatmap!(axT, λ, φ, Tn)
+heatmap!(axS, λ, φ, Sn)
+
+display(fig)
 
