@@ -67,10 +67,10 @@ struct CubicSplineFunction{d, FT, S} <: Function
 
         ΔR = coordinates[end] - coordinates[end-1]
         push!(coordinates, coordinates[end] + ΔR)
-    
+
         pushfirst!(nodes, nodes[1])
         push!(nodes, nodes[end])
-    
+
         coordinates = Vector{FT}(coordinates)
         nodes = Vector{FT}(nodes)
 
