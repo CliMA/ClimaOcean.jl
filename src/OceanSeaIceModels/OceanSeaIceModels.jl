@@ -26,9 +26,8 @@ const σᴮ = 5.67e-8 # W/m²/K⁴ Stefan-Boltzmann constant
 include("ocean_sea_ice_model.jl")
 include("ocean_sea_ice_atmosphere_fluxes.jl")
 include("ocean_only_model_fluxes.jl")
-include("AtmosphericForcings.jl")
-
-using .AtmosphericForcings
+# include("AtmosphericForcings.jl")
+# using .AtmosphericForcings
 
 # Check for NaNs in the first prognostic field (generalizes to prescribed velocitries).
 function default_nan_checker(model::OceanSeaIceModel)
