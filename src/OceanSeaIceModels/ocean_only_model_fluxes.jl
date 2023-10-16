@@ -3,21 +3,21 @@
 ##### No ice-ocean fluxes in this model!!
 #####
 
-compute_ice_ocean_salinity_flux!(::OnlyOceanModel) = nothing
-ice_ocean_latent_heat!(::OnlyOceanModel) = nothing
+compute_ice_ocean_salinity_flux!(::OceanOnlyModel) = nothing
+ice_ocean_latent_heat!(::OceanOnlyModel) = nothing
 
 #####
 ##### Air-sea fluxes
 #####
 
-function time_step!(coupled_model::OnlyOceanModel, Δt; callbacks=nothing)
+function time_step!(coupled_model::OceanOnlyModel, Δt; callbacks=nothing)
     compute_air_sea_flux!(coupled_model)
     time_step!(ocean)
     tick!(coupled_model.clock, Δt)
     return nothing
 end
 
-function compute_air_sea_fluxes!(coupled_model::OnlyOceanModel) 
+function compute_air_sea_fluxes!(coupled_model::OceanOnlyModel) 
     ocean   = coupled_model.ocean
     forcing = coupled_model.atmospheric_forcing
 
