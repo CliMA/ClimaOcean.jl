@@ -107,6 +107,6 @@ include("InitialConditions.jl")
 include("Diagnostics.jl")
 include("NearGlobalSimulations/NearGlobalSimulations.jl")
 include("IdealizedSimulations/IdealizedSimulations.jl")
-include("OceanSeaIceModel/OceanSeaIceModel.jl")
+include("OceanSeaIceModels/OceanSeaIceModels.jl")
 
 end # module
