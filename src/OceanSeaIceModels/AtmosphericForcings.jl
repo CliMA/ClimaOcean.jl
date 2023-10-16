@@ -36,7 +36,8 @@ Adapt.adapt_structure(to, f::PrescribedFluxes) =
 
 # Here we leverage a `getflux` function similar to the `getbc` from Oceananigans.jl to extract the fluxes,
 # In this way we allow prescribed fluxes as well as relaxation fluxes
-@kernel function _calculate_air_sea_fluxes!(Qˢ, Fˢ, τˣ, τʸ, ρₒ, cₒ, ε, grid, clock, fields, ice_thickness, solar_insolation, f::PrescribedFluxes)
+@kernel function _calculate_air_sea_fluxes!(Qˢ, Fˢ, τˣ, τʸ, ρₒ, cₒ, ε,
+                                            grid, clock, fields, ice_thickness, solar_insolation, f::PrescribedFluxes)
     i, j = @index(Global, NTuple)
     @inbounds begin
         I₀ = solar_insolation[i, j, 1]
@@ -100,7 +101,8 @@ Adapt.adapt_structure(to, f::PrescribedAtmosphere) =
 @inline clausius_clapeyron(FT, Tₛ) = convert(FT, 611.2) * exp(convert(FT, 17.67) * Tₛ / (Tₛ + convert(FT, 243.5)))
 
 # Follows MITgcm, this is kind of a Placeholder for now. I ll check the literature for a correct parameterization
-@kernel function _calculate_air_sea_fluxes!(Qˢ, Fˢ, τˣ, τʸ, ε, ρₒ, cₒ, grid, clock, fields, ice_thickness, f::PrescribedAtmosphere)
+@kernel function _calculate_air_sea_fluxes!(Qˢ, Fˢ, τˣ, τʸ, ε, ρₒ, cₒ,
+                                            grid, clock, fields, ice_thickness, f::PrescribedAtmosphere)
     
     hᵀ   = f.atmosphere_state_height
     α    = f.adiabatic_lapse_rate
@@ -128,7 +130,7 @@ Adapt.adapt_structure(to, f::PrescribedAtmosphere) =
     ℒ = convert(FT, ℒₑ) # J/kg Latent heat of evaporation
 
     Tₛ = fields.T[i, j, grid.Nz]
-    T₀ = Tₐ*(1 - γ * qₐ)
+    T₀ = Tₐ * (1 - γ * qₐ)
 
     # sea-air temperature difference
     ΔT = T₀ - Tₛ + α*hᵀ
