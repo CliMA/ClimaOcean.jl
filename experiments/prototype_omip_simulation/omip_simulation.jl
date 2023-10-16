@@ -70,7 +70,7 @@ end
 # Grid construction
 arch = GPU()
 southern_limit = -79
-northern_limit = -50
+northern_limit = 85
 j₁ = 4 * (90 + southern_limit)
 j₂ = 720 - 4 * (90 - northern_limit) + 1
 Ny = j₂ - j₁ + 1
@@ -105,7 +105,7 @@ buoyancy = SeawaterBuoyancy(equation_of_state=teos10)
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: MixingLength
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: TurbulentKineticEnergyEquation
 
-mixing_length = MixingLength(Cᵇ=0.1)
+mixing_length = MixingLength(Cᵇ=0.01)
 turbulent_kinetic_energy_equation = TurbulentKineticEnergyEquation(Cᵂϵ=1.0)
 closure = CATKEVerticalDiffusivity(; mixing_length, turbulent_kinetic_energy_equation)
 
@@ -122,7 +122,7 @@ model = HydrostaticFreeSurfaceModel(; grid, buoyancy, closure,
 
 set!(model, T=Tᵢ, S=Sᵢ)
 
-simulation = Simulation(model, Δt=5minutes, stop_time=10days)
+simulation = Simulation(model, Δt=5minutes, stop_time=360days)
 
 wall_clock = Ref(time_ns())
 
