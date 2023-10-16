@@ -1,9 +1,11 @@
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.TurbulenceClosures: CATKEVerticalDiffusivity
+using ClimaOcean
+using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
+
 using NCDatasets
 using GLMakie
-using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 using Printf
 
 using Downloads: download
@@ -67,7 +69,10 @@ for i = 1:Nx, j = 1:Ny′
     end
 end
 
-# Grid construction
+#####
+##### Construct the grid
+#####
+
 arch = GPU()
 southern_limit = -79
 northern_limit = 85
@@ -79,6 +84,7 @@ Tᵢ = Tᵢ[:, j₁:j₂, :]
 Sᵢ = Sᵢ[:, j₁:j₂, :]
 bottom_height = bottom_height[:, j₁:j₂]
 
+
 grid = LatitudeLongitudeGrid(arch,
                              size = (Nx, Ny, Nz),
                              longitude = (0, 360),
@@ -89,6 +95,18 @@ grid = LatitudeLongitudeGrid(arch,
 
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
+#####
+##### Setup ice model
+#####
+
+ice_ocean_heat_flux      = Field{Center, Center, Nothing}(grid)
+top_ocean_heat_flux = Qᵀ = Field{Center, Center, Nothing}(grid)
+top_salt_flux       = Qˢ = Field{Center, Center, Nothing}(grid)
+
+ocean_boundary_conditions = (T = FieldBoundaryConditions(top=FluxBoundaryCondition(Qᵀ)),
+                             S = FieldBoundaryConditions(top=FluxBoundaryCondition(Qˢ)))
+
+#=
 using Oceananigans.Grids: φnodes, λnodes
 
 λ = λnodes(grid, Center())
@@ -97,6 +115,7 @@ using Oceananigans.Grids: φnodes, λnodes
 fig = Figure()
 ax = Axis(fig[1, 1])
 heatmap!(ax, λ, φ, bottom_height)
+=#
 
 # Model construction
 teos10 = TEOS10EquationOfState()
@@ -114,15 +133,47 @@ momentum_advection = VectorInvariant(vorticity_scheme = WENO(),
                                      divergence_scheme = WENO(),
                                      vertical_scheme = WENO())
 
-model = HydrostaticFreeSurfaceModel(; grid, buoyancy, closure,
-                                    tracer_advection, momentum_advection,
-                                    tracers = (:T, :S, :e),
-                                    free_surface = SplitExplicitFreeSurface(cfl=0.2; grid),
-                                    coriolis = HydrostaticSphericalCoriolis())
+ocean_model = HydrostaticFreeSurfaceModel(; grid, buoyancy, closure,
+                                          tracer_advection, momentum_advection,
+                                          tracers = (:T, :S, :e),
+                                          free_surface = SplitExplicitFreeSurface(cfl=0.2; grid),
+                                          boundary_conditions = ocean_boundary_conditions,
+                                          coriolis = HydrostaticSphericalCoriolis())
 
-set!(model, T=Tᵢ, S=Sᵢ)
+set!(ocean_model, T=Tᵢ, S=Sᵢ)
 
-simulation = Simulation(model, Δt=5minutes, stop_time=360days)
+#####
+##### Setup ice model
+#####
+
+Nz = size(grid, 3)
+So = ocean_model.tracers.S
+ocean_surface_salinity = view(So, :, :, Nz)
+bottom_bc = IceWaterThermalEquilibrium(ConstantField(30)) #ocean_surface_salinity)
+
+u, v, w = ocean_model.velocities
+ocean_surface_velocities = (u = view(u, :, :, Nz), #interior(u, :, :, Nz),
+                            v = view(v, :, :, Nz), #interior(v, :, :, Nz),
+                            w = ZeroField())
+
+ice_model = SlabSeaIceModel(ice_grid;
+                            velocities = ocean_surface_velocities,
+                            advection = WENO(),
+                            ice_consolidation_thickness = 0.05,
+                            ice_salinity = 4,
+                            internal_thermal_flux = ConductiveFlux(conductivity=2),
+                            top_thermal_flux = ConstantField(0), # W m⁻²
+                            top_thermal_boundary_condition = PrescribedTemperature(-2),
+                            bottom_thermal_boundary_condition = bottom_bc,
+                            bottom_thermal_flux = ice_ocean_heat_flux)
+
+set!(ice_model, h=hᵢ) 
+
+#simulation = Simulation(model, Δt=5minutes, stop_time=360days)
+ocean_simulation = Simulation(ocean_model; Δt=5minutes, verbose=false)
+ice_simulation = Simulation(ice_model, Δt=5minutes, verbose=false)
+coupled_model = IceOceanModel(ice_simulation, ocean_simulation)
+coupled_simulation = Simulation(coupled_model, Δt=5minutes, stop_time=5days)
 
 wall_clock = Ref(time_ns())
 
@@ -134,7 +185,7 @@ function progress(sim)
     msg2 = string(", wall time: ", prettytime(elapsed))
     wall_clock[] = time_ns()
 
-    u, v, w = sim.model.velocities
+    u, v, w = sim.model.ocean.model.velocities
     msg3 = @sprintf(", max|u|: (%.2e, %.2e, %.2e)", 
                     maximum(abs, u),
                     maximum(abs, v),
@@ -146,21 +197,23 @@ end
 simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
 
 using Oceananigans.Operators: ζ₃ᶠᶠᶜ
-u, v, w = model.velocities
+u, v, w = ocean_model.velocities
 ζ = KernelFunctionOperation{Face, Face, Center}(ζ₃ᶠᶠᶜ, grid, u, v)
 
-outputs = merge(model.velocities, model.tracers, (; ζ))
+outputs = merge(ocean_model.velocities, ocean_model.tracers, (; ζ))
 filename = "omip_surface_fields.jld2"
 
-simulation.output_writers[:surface] = JLD2OutputWriter(model, outputs; filename,
-                                                       schedule = TimeInterval(12hour),
-                                                       indices = (:, :, Nz),
-                                                       overwrite_existing = true)
+ocean_simulation.output_writers[:surface] = JLD2OutputWriter(ocean_model, outputs; filename,
+                                                             schedule = TimeInterval(12hour),
+                                                             indices = (:, :, Nz),
+                                                             overwrite_existing = true)
 
-run!(simulation)
+run!(coupled_simulation)
 
-#Tt = FieldTimeSeries(filename, "T")
-#St = FieldTimeSeries(filename, "S")
+#####
+##### Visualize
+#####
+
 et = FieldTimeSeries(filename, "e")
 ζt = FieldTimeSeries(filename, "ζ")
 times = et.times

@@ -1,4 +1,6 @@
 [deps]
+ClimaOcean = "0376089a-ecfe-4b0e-a64f-9c555d74d754"
+ClimaSeaIce = "6ba0ff68-24e6-4315-936c-2e99227c95a4"
 Downloads = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
 NCDatasets = "85f8d34a-cbdd-5861-8df4-14fed0d494ab"
