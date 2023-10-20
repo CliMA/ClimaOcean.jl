@@ -20,14 +20,22 @@ import Oceananigans.Simulations: reset!, initialize!, iteration
 import Oceananigans.TimeSteppers: time_step!, update_state!, time
 import Oceananigans.Utils: prettytime
 
-const ℒₑ = 2.5e6 # J/kg Latent heat of evaporation
-const σᴮ = 5.67e-8 # W/m²/K⁴ Stefan-Boltzmann constant
+# We should not declare these; they need to be settable.
+# const ℒₑ = 2.5e6 # J/kg Latent heat of evaporation
+# const σᴮ = 5.67e-8 # W/m²/K⁴ Stefan-Boltzmann constant
 
+using Oceananigans
+using Oceananigans.Utils: Time
+using Oceananigans.Grids: architecture
+using Oceananigans.Models: AbstractModel
+
+include("sea_ice_ocean_fluxes.jl")
 include("ocean_sea_ice_model.jl")
-include("ocean_sea_ice_atmosphere_fluxes.jl")
-include("ocean_only_model_fluxes.jl")
-# include("AtmosphericForcings.jl")
-# using .AtmosphericForcings
+include("ocean_only_model.jl")
+
+# Or "AtmosphereModels"
+# include("Atmospheres.jl")
+# using .Atmospheres
 
 # Check for NaNs in the first prognostic field (generalizes to prescribed velocitries).
 function default_nan_checker(model::OceanSeaIceModel)

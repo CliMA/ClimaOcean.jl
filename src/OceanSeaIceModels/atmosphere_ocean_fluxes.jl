@@ -1,23 +1,8 @@
+# If there is no atmosphere, do not compute fluxes! (this model has the ocean component which 
+# will handle the top boundary_conditions, for example if we want to impose a value BC)
+compute_air_sea_flux!(coupled_model::NoAtmosphereModel) = nothing
 
-#####
-##### No ice-ocean fluxes in this model!!
-#####
-
-compute_ice_ocean_salinity_flux!(::OceanOnlyModel) = nothing
-ice_ocean_latent_heat!(::OceanOnlyModel) = nothing
-
-#####
-##### Air-sea fluxes
-#####
-
-function time_step!(coupled_model::OceanOnlyModel, Δt; callbacks=nothing)
-    compute_air_sea_flux!(coupled_model)
-    time_step!(ocean)
-    tick!(coupled_model.clock, Δt)
-    return nothing
-end
-
-function compute_air_sea_fluxes!(coupled_model::OceanOnlyModel) 
+function compute_air_sea_flux!(coupled_model)
     ocean   = coupled_model.ocean
     forcing = coupled_model.atmospheric_forcing
 
@@ -38,8 +23,12 @@ function compute_air_sea_fluxes!(coupled_model::OceanOnlyModel)
     cₒ = coupled_model.ocean_heat_capacity
     I₀ = coupled_model.solar_insolation
 
-    launch!(ocean, :xy, _calculate_air_sea_fluxes!, Qˢ, Fˢ, τˣ, τʸ, ρₒ, cₒ, ε, Iₒ, 
-            grid, clock, fields, forcing, nothing)
+    ice_thickness = coupled_model.ice.model.ice_thickness
+
+    launch!(ocean, :xy, _calculate_air_sea_fluxes!, Qˢ, Fˢ, τˣ, τʸ, ρₒ, cₒ, ε, I₀, 
+            grid, clock, fields, forcing, ice_thickness)
 
     return nothing
 end
+
+

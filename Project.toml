@@ -7,6 +7,7 @@ version = "0.1.0"
 [deps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+ClimaSeaIce = "6ba0ff68-24e6-4315-936c-2e99227c95a4"
 CubicSplines = "9c784101-8907-5a6d-9be6-98f00873c89b"
 DataDeps = "124859b0-ceae-595e-8997-d05f6a7a8dfe"
 Downloads = "f43a241f-c20a-4ad4-852c-f6b1247861c6"

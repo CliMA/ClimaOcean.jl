@@ -1,135 +1,105 @@
+using ClimaSeaIce: melting_temperature
 
-# If there is no atmosphere, do not compute fluxes! (this model has the ocean component which 
-# will handle the top boundary_conditions, for example if we want to impose a value BC)
-compute_air_sea_flux!(coupled_model::NoAtmosphereModel) = nothing
-
-# Is this taken care of inside the ice model? Probably not because it is better to couple here than inside
-compute_air_ice_flux!(coupled_model) = nothing
-
-function compute_air_sea_flux!(coupled_model)
-    ocean   = coupled_model.ocean
-    forcing = coupled_model.atmospheric_forcing
-
-    (; T, S) = ocean.model.tracers
-    (; u, v) = ocean.model.velocities
-
-    grid   = ocean.model.grid
-    clock  = ocean.model.clock
-    fields = prognostic_fields(ocean.model)
-
-    Qˢ = T.boundary_conditions.top.condition
-    Fˢ = S.boundary_conditions.top.condition
-    τˣ = u.boundary_conditions.top.condition
-    τʸ = v.boundary_conditions.top.condition
-
-    ε  = coupled_model.ocean_emissivity
-    ρₒ = coupled_model.ocean_density
-    cₒ = coupled_model.ocean_heat_capacity
-    I₀ = coupled_model.solar_insolation
-
-    ice_thickness = coupled_model.ice.model.ice_thickness
-
-    launch!(ocean, :xy, _calculate_air_sea_fluxes!, Qˢ, Fˢ, τˣ, τʸ, ρₒ, cₒ, ε, I₀, 
-            grid, clock, fields, forcing, ice_thickness)
-
+function compute_sea_ice_ocean_fluxes!(coupled_model)
+    compute_sea_ice_ocean_salinity_flux!(coupled_model)
+    sea_ice_ocean_latent_heat_flux!(coupled_model)
     return nothing
 end
 
-function compute_ice_ocean_flux!(coupled_model)
-
-    # probably need to expand this
-    compute_ice_ocean_salinity_flux!(coupled_model)
-    ice_ocean_latent_heat!(coupled_model)
-
-    return nothing
-end
-
-function compute_ice_ocean_salinity_flux!(coupled_model)
+function compute_sea_ice_ocean_salinity_flux!(coupled_model)
     # Compute salinity increment due to changes in ice thickness
 
-    ice = coupled_model.ice
+    sea_ice = coupled_model.sea_ice
     ocean = coupled_model.ocean
     grid = ocean.model.grid
     arch = architecture(grid)
     Qˢ = ocean.model.tracers.S.boundary_conditions.top.condition
     Sₒ = ocean.model.tracers.S
-    Sᵢ = ice.model.ice_salinity
+    Sᵢ = sea_ice.model.ice_salinity
     Δt = ocean.Δt
-    hⁿ = ice.model.ice_thickness
+    hⁿ = sea_ice.model.ice_thickness
     h⁻ = coupled_model.previous_ice_thickness
 
-    launch!(arch, grid, :xy, _compute_ice_ocean_salinity_flux!,
+    launch!(arch, grid, :xy, _compute_sea_ice_ocean_salinity_flux!,
             Qˢ, grid, hⁿ, h⁻, Sᵢ, Sₒ, Δt)
 
     return nothing
 end
 
-@kernel function _compute_ice_ocean_salinity_flux!(ice_ocean_salinity_flux,
-                                                   grid,
-                                                   ice_thickness,
-                                                   previous_ice_thickness,
-                                                   ice_salinity,
-                                                   ocean_salinity,
-                                                   Δt)
+@kernel function _compute_sea_ice_ocean_salinity_flux!(sea_ice_ocean_salinity_flux,
+                                                       grid,
+                                                       ice_thickness,
+                                                       previous_ice_thickness,
+                                                       ice_salinity,
+                                                       ocean_salinity,
+                                                       Δt)
     i, j = @index(Global, NTuple)
 
     Nz = size(grid, 3)
 
     hⁿ = ice_thickness
     h⁻ = previous_ice_thickness
-    Qˢ = ice_ocean_salinity_flux
+    Qˢ = sea_ice_ocean_salinity_flux
     Sᵢ = ice_salinity
     Sₒ = ocean_salinity
 
     @inbounds begin
-        # Thickness of surface grid cell
+        # Change in thickness
         Δh = hⁿ[i, j, 1] - h⁻[i, j, 1]
 
         # Update surface salinity flux.
         # Note: the Δt below is the ocean time-step, eg.
         # ΔS = ⋯ - ∮ Qˢ dt ≈ ⋯ - Δtₒ * Qˢ 
-        Qˢ[i, j, 1] += Δh / Δt * (Sᵢ[i, j, 1] - Sₒ[i, j, Nz])
+        Qˢ[i, j, 1] = Δh / Δt * (Sᵢ[i, j, 1] - Sₒ[i, j, Nz])
 
         # Update previous ice thickness
         h⁻[i, j, 1] = hⁿ[i, j, 1]
     end
 end
 
-function ice_ocean_latent_heat!(coupled_model)
+function sea_ice_ocean_latent_heat_flux!(coupled_model)
     ocean = coupled_model.ocean
-    ice = coupled_model.ice
+    sea_ice = coupled_model.sea_ice
     ρₒ = coupled_model.ocean_density
     cₒ = coupled_model.ocean_heat_capacity
-    Qₒ = ice.model.external_thermal_fluxes.bottom
+    Qₒ = sea_ice.model.external_thermal_fluxes.bottom
     Tₒ = ocean.model.tracers.T
     Sₒ = ocean.model.tracers.S
     Δt = ocean.Δt
-    hᵢ = ice.model.ice_thickness
+    hᵢ = sea_ice.model.ice_thickness
 
-    liquidus = ice.model.phase_transitions.liquidus
+    liquidus = sea_ice.model.phase_transitions.liquidus
     grid = ocean.model.grid
     arch = architecture(grid)
 
     # What about the latent heat removed from the ocean when ice forms?
     # Is it immediately removed from the ocean? Or is it stored in the ice?
-    launch!(arch, grid, :xy, _compute_ice_ocean_latent_heat!,
+    launch!(arch, grid, :xy, _compute_sea_ice_ocean_latent_heat_flux!,
             Qₒ, grid, hᵢ, Tₒ, Sₒ, liquidus, ρₒ, cₒ, Δt)
 
     return nothing
 end
 
-@kernel function _compute_ice_ocean_latent_heat!(latent_heat,
-                                                 grid,
-                                                 ice_thickness,
-                                                 ocean_temperature,
-                                                 ocean_salinity,
-                                                 liquidus,
-                                                 ρₒ, cₒ, Δt)
+function adjust_ice_covered_ocean_temperature!(coupled_model)
+    sea_ice_ocean_latent_heat_flux!(coupled_model)
+    sea_ice = coupled_model.sea_ice
+    Qₒ = sea_ice.model.external_thermal_fluxes.bottom
+    parent(Qₒ) .= 0
+    return nothing
+end
+
+@kernel function _compute_sea_ice_ocean_latent_heat_flux!(latent_heat_flux,
+                                                          grid,
+                                                          ice_thickness,
+                                                          ocean_temperature,
+                                                          ocean_salinity,
+                                                          liquidus,
+                                                          ρₒ, cₒ, Δt)
 
     i, j = @index(Global, NTuple)
 
     Nz = size(grid, 3)
-    Qₒ = latent_heat
+    Qₒ = latent_heat_flux
     hᵢ = ice_thickness
     Tₒ = ocean_temperature
     Sₒ = ocean_salinity
@@ -189,3 +159,4 @@ end
     # Store ice-ocean flux
     @inbounds Qₒ[i, j, 1] = δQ
 end
+
