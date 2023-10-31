@@ -1,6 +1,6 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.9.3"
+julia_version = "1.9.2"
 manifest_format = "2.0"
 project_hash = "6ae9d8f2589a4337697d36d7d9cdb4d6864a7bba"
 
@@ -545,9 +545,17 @@ version = "1.2.0"
 
 [[deps.Oceananigans]]
 deps = ["Adapt", "CUDA", "Crayons", "CubedSphere", "Dates", "Distances", "DocStringExtensions", "FFTW", "Glob", "IncompleteLU", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "LinearAlgebra", "Logging", "MPI", "NCDatasets", "OffsetArrays", "OrderedCollections", "PencilArrays", "PencilFFTs", "Pkg", "Printf", "Random", "Rotations", "SeawaterPolynomials", "SparseArrays", "Statistics", "StructArrays"]
-git-tree-sha1 = "e8caa94d03ec34434abc0fb036d43d34d1903411"
+git-tree-sha1 = "b93f7efa74e58af8b9592eedcec9168d6ffc10b0"
+repo-rev = "glw/better-simulation-interface"
+repo-url = "https://github.com/CliMA/Oceananigans.jl.git"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
-version = "0.89.2"
+version = "0.89.3"
+
+    [deps.Oceananigans.extensions]
+    OceananigansEnzymeCoreExt = "EnzymeCore"
+
+    [deps.Oceananigans.weakdeps]
+    EnzymeCore = "f151be2c-9106-41f4-ab19-57ee4f262869"
 
 [[deps.OffsetArrays]]
 deps = ["Adapt"]
