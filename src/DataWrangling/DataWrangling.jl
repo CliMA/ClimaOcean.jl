@@ -6,6 +6,7 @@ using Printf
 
 using Oceananigans.Architectures: architecture
 using Oceananigans.Grids: node
+using Oceananigans.BoundaryConditions: fill_halo_regions!
 using Oceananigans.Fields: interpolate
 using Oceananigans.Utils: launch!
 using KernelAbstractions: @kernel, @index
@@ -81,13 +82,18 @@ function interpolate_field_time_series!(target_fts, source_fts)
 
     launch!(arch, target_grid, size(target_fts),
             _interpolate_field_time_series!,
-            target_fts, target_grid, target_location,
-            source_fts, source_grid, source_location)
+            target_fts.data, target_grid, target_location,
+            source_fts.data, source_grid, source_location)
+
+    for n = 1:Nt
+        fill_halo_regions!(target_fts[n])
+    end
 
     return nothing
 end
 
-function save_field_time_series!(fts; path, name)
+function save_field_time_series!(fts; path, name, overwrite_existing=false)
+    overwrite_existing && rm(path; force=true)
     times = fts.times
     grid = fts.grid
     LX, LY, LZ = location(fts)
@@ -96,6 +102,7 @@ function save_field_time_series!(fts; path, name)
 
     Nt = length(times)
     for n = 1:Nt
+        fill_halo_regions!(fts[n])
         set!(ondisk_fts, fts[n], n) 
     end
 

@@ -1,6 +1,7 @@
 module JRA55
 
 using Oceananigans
+using Oceananigans.BoundaryConditions: fill_halo_regions!
 using NCDatasets
 
 filenames = Dict(
@@ -46,19 +47,24 @@ function jra55_field_time_series(name, arch=CPU();
     push!(φ, 90)
     push!(λ, λ[1] + 360)
 
-    Nxs = length(λ) - 1
-    Nys = length(φ) - 1
+    Nx = length(λ) - 1
+    Ny = length(φ) - 1
 
     grid = LatitudeLongitudeGrid(arch,
-                                 size = (Nxs, Nys);
+                                 size = (Nx, Ny);
                                  longitude = λ,
                                  latitude = φ,
                                  topology = (Periodic, Bounded, Flat))
 
-    fts = FieldTimeSeries{Center, Center, Nothing}(grid, times)
+    boundary_conditions = FieldBoundaryConditions(grid, (Center, Center, Nothing))
+    fts = FieldTimeSeries{Center, Center, Nothing}(grid, times; boundary_conditions)
 
-    # JRA55 fields have 1 grid point in the z-direction
     interior(fts, :, :, 1, :) .= data[:, :, :]
+
+    Nt = length(times)
+    for n = 1:Nt
+        fill_halo_regions!(fts[n])
+    end
 
     return fts
 end
