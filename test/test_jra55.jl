@@ -1,76 +1,68 @@
-using Oceananigans
-using Oceananigans.Fields: xnode, ynode, znode, interpolate
-using NCDatasets
-using Downloads: download
+include("runtests_setup.jl")
 
-shortwave_radiation_filename = "RYF.rsds.1990_1991.nc"
-shortwave_radiation_url = "https://www.dropbox.com/scl/fi/z6fkvmd9oe3ycmaxta131/" *
-                          "RYF.rsds.1990_1991.nc?rlkey=r7q6zcbj6a4fxsq0f8th7c4tc&dl=0"
+@testset "JRA55 and data wrangling utilities" begin
+    for arch in test_architectures
 
-isfile(shortwave_radiation_filename) || download(shortwave_radiation_url, shortwave_radiation_filename)
+        A = typeof(arch)
+        @info "Testing jra55_field_time_series on $A..."
 
-shortwave_radiation_ds = Dataset(shortwave_radiation_filename)
-shortwave_radiation = shortwave_radiation_ds["rsds"][:, :, :]
+        # This should download a file called "RYF.rsds.1990_1991.nc"
+        time_indices = 1:3
+        source_fts = ClimaOcean.JRA55.jra55_field_time_series(:shortwave_radiation, arch; time_indices)
 
-# Make source field
-λ = shortwave_radiation_ds["lon_bnds"][1, :]
-φ = shortwave_radiation_ds["lat_bnds"][1, :]
-close(shortwave_radiation_ds)
+        shortwave_radiation_filename = "RYF.rsds.1990_1991.nc"
+        @test isfile(shortwave_radiation_filename)
+        rm(shortwave_radiation_filename)
 
-push!(φ, 90)
-push!(λ, λ[1] + 360)
+        @test source_fts isa FieldTimeSeries
+        @test source_fts.grid isa LatitudeLongitudeGrid
 
-Nxs = length(λ) - 1
-Nys = length(φ) - 1
+        Nx, Ny, Nz, Nt = size(source_fts)
+        @test Nx == 640
+        @test Ny == 320
+        @test Nz == 1
+        @test Nt == length(time_indices)
 
-source_grid = LatitudeLongitudeGrid(size = (Nxs, Nys, 1);
-                                    longitude = λ,
-                                    latitude = φ,
-                                    z = (0, 1),
-                                    topology = (Periodic, Bounded, Bounded))
+        @info "Testing interpolate_field_time_series! on $A..."
+        # Make target grid and field
+        resolution = 1 # degree, eg 1/4
+        Nxt = Int(360 / resolution)
 
-source_field = Field{Center, Center, Center}(source_grid)
-set!(source_field, shortwave_radiation[:, :, 1])
+        southern_limit = -79
+        northern_limit = -30
+        j₁ = (90 + southern_limit) / resolution
+        j₂ = (90 + northern_limit) / resolution + 1
+        Nyt = Int(j₂ - j₁ + 1)
 
-# Make target grid and field
-# Quarter degree target grid with some latitude bounds
-Nxt = 1440
+        target_grid = LatitudeLongitudeGrid(arch,
+                                            size = (Nxt, Nyt, 1);
+                                            longitude = (0, 360),
+                                            latitude = (southern_limit, northern_limit),
+                                            z = (0, 1),
+                                            topology = (Periodic, Bounded, Bounded))
 
-southern_limit = -79
-northern_limit = -30
-j₁ = 4 * (90 + southern_limit)
-j₂ = 720 - 4 * (90 - northern_limit) + 1
-Nyt = j₂ - j₁ + 1
+        times = source_fts.times
+        target_fts = FieldTimeSeries{Center, Center, Nothing}(target_grid, times)
 
-target_grid = LatitudeLongitudeGrid(size = (Nxt, Nyt, 1);
-                                    longitude = (0, 360),
-                                    latitude = (southern_limit, northern_limit),
-                                    z = (0, 1),
-                                    topology = (Periodic, Bounded, Bounded))
+        ClimaOcean.DataWrangling.interpolate_field_time_series!(target_fts, source_fts)
+        # Random regression test
+        CUDA.@allowscalar begin
+            @test target_fts[1, 1, 1, 1] == 222.24310434509874    
+        end
 
-Qˢʷ = target_field = Field{Center, Center, Center}(target_grid)
+        @test target_fts.times == source_fts.times
 
-# Make target grid and field
-source_location = Tuple(L() for L in location(source_field))
-target_location = Tuple(L() for L in location(target_field))
+        # What else might we test?
 
-for i = 1:Nxt, j = 1:Nyt
-    k = 1
-    x = xnode(i, j, k, target_grid, target_location...)
-    y = ynode(i, j, k, target_grid, target_location...)
-    z = 0.5 #znode(i, j, k, grid, target_location...)
-    @inbounds target_field[i, j, k] = interpolate(source_field, source_location..., source_grid, x, y, z)
+        @info "Testing save_field_time_series! on $A..."
+        filepath = "JRA55_shortwave_radiation_test.jld2"
+        ClimaOcean.DataWrangling.save_field_time_series!(target_fts, path=filepath, name="Qsw")
+        @test isfile(filepath)
+
+        # Test that we can load the data back
+        Qswt = FieldTimeSeries(filepath, "Qsw")
+        @test parent(Qswt) == parent(target_fts)    
+        @test Qswt.times == target_fts.times
+    end 
 end
-
-source_grid = RectilinearGrid(size=(2, 2), x=(0, 1), y=(0, 1), topology=(Periodic, Periodic, Flat))
-
-s = Field{Center, Center, Nothing}(source_grid)
-set!(s, (x, y) -> x + y)
-
-loc = Tuple(L() for L in location(s))
-
-x = y = 0.67
-z = 0
-
-interpolate(s, loc..., source_grid, x, y, z)
 
