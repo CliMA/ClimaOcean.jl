@@ -27,7 +27,7 @@ steps:
   - wait
 
   - label: "Run all the tests"
-    key: "all the tests"
+    key: "tests"
     env:
       CUDA_VISIBLE_DEVICES: "-1"
       TEST_GROUP: "jra55"
