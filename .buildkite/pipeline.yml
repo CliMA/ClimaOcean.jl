@@ -23,11 +23,13 @@ steps:
       slurm_cpus_per_task: 8
     env:
       JULIA_NUM_PRECOMPILE_TASKS: 8
-  
+
   - wait
 
   - label: "Run all the tests"
     key: "all the tests"
+    env:
+      CUDA_VISIBLE_DEVICES: "-1"
+      TEST_GROUP: "jra55"
     command:
       - julia --project -e 'using Pkg; Pkg.test()'
-
