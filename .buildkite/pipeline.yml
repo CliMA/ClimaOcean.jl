@@ -13,10 +13,10 @@ steps:
   - label: "initialize"
     key: "init"
     command:
-      - echo "--- Instantiate project"
-      - julia --project -e 'using Pkg; Pkg.instantiate(; verbose=true); Pkg.precompile(; strict=true)'
+      - "echo '--- Instantiate project'"
+      - "julia --project -e 'using Pkg; Pkg.instantiate(; verbose=true); Pkg.precompile(; strict=true)'"
       # force the initialization of the CUDA runtime as it is lazily loaded by default
-      - julia --project -e 'using CUDA; CUDA.precompile_runtime()'
+      - "julia --project -e 'using CUDA; CUDA.precompile_runtime()'"
 
     agents:
       slurm_mem: 32G
@@ -31,5 +31,6 @@ steps:
     env:
       CUDA_VISIBLE_DEVICES: "-1"
       TEST_GROUP: "jra55"
-    command:
-      - julia --project -e 'using Pkg; Pkg.test()'
+    commands:
+      - "julia --project -e 'using Pkg; Pkg.test()'"
+
