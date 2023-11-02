@@ -5,8 +5,21 @@ using Oceananigans.Units
 using Oceananigans.BoundaryConditions: fill_halo_regions!
 using NCDatasets
 
+# A list of all variables provided in the JRA55 dataset:
+jra55_variable_names = (:freshwater_river_flux,
+                        :freshwater_rain_flux,
+                        :freshwater_snow_flux,
+                        :freshwater_iceberg_flux,
+                        :specific_humidity,
+                        :sea_level_pressure,
+                        :relative_humidity,
+                        :downwelling_longwave_radiation,
+                        :downwelling_shortwave_radiation,
+                        :atmospheric_temperature,
+                        :atmospheric_eastward_velocity,
+                        :atmospheric_westward_velocity)
+
 filenames = Dict(
-    :shortwave_radiation             => "RYF.rsds.1990_1991.nc",
     :freshwater_river_flux           => "RYF.friver.1990_1991.nc",   # Freshwater fluxes from rivers
     :freshwater_rain_flux            => "RYF.prra.1990_1991.nc",     # Freshwater flux from rainfall
     :freshwater_snow_flux            => "RYF.prsn.1990_1991.nc",     # Freshwater flux from snowfall
@@ -21,8 +34,7 @@ filenames = Dict(
     :atmospheric_westward_velocity   => "RYF.vas.1990_1991.nc",      # Northward near-surface wind
 )
 
-variable_names = Dict(
-    :shortwave_radiation             => "rsds",
+jra55_short_names = Dict(
     :freshwater_river_flux           => "friver",   # Freshwater fluxes from rivers
     :freshwater_rain_flux            => "prra",     # Freshwater flux from rainfall
     :freshwater_snow_flux            => "prsn",     # Freshwater flux from snowfall
@@ -82,7 +94,7 @@ urls = Dict(
     jra55_field_time_series(name, architecture=CPU();
                             time_indices = :,    
                             url = urls[name],
-                            variable_name = variable_names[name])
+                            variable_name = jra55_short_names[name])
 
 Return a FieldTimeSeries representing JRA55 data at the interface between the
 atmosphere and ocean.
@@ -91,7 +103,7 @@ function jra55_field_time_series(name, arch=CPU();
                                  time_indices = :,    
                                  url = urls[name],
                                  filename = filenames[name],
-                                 variable_name = variable_names[name])
+                                 variable_name = jra55_short_names[name])
 
     isfile(filename) || download(url, filename)
 
