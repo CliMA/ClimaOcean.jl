@@ -32,4 +32,3 @@ jobs:
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }} # For authentication with SSH deploy key
           JULIA_DEBUG: Documenter
         run: julia --color=yes --project=docs/ docs/make.jl
-
