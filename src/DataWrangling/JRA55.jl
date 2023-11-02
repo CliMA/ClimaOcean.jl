@@ -1,6 +1,7 @@
 module JRA55
 
 using Oceananigans
+using Oceananigans.Units
 using Oceananigans.BoundaryConditions: fill_halo_regions!
 using NCDatasets
 
@@ -56,15 +57,22 @@ function jra55_field_time_series(name, arch=CPU();
                                  latitude = φ,
                                  topology = (Periodic, Bounded, Flat))
 
+    # Hack together the `times` for the JRA55 dataset we are currently using.
+    # In the future, when we have the "real" (total) JRA55 dataset, we'll have to
+    # use the built-in dates.
+    Δt = 3hours
+    Nt = length(times)
+    start_time = 0
+    stop_time = Δt * (Nt - 1)
+    times = start_time:Δt:stop_time
+
     boundary_conditions = FieldBoundaryConditions(grid, (Center, Center, Nothing))
     fts = FieldTimeSeries{Center, Center, Nothing}(grid, times; boundary_conditions)
 
     interior(fts, :, :, 1, :) .= data[:, :, :]
 
     Nt = length(times)
-    for n = 1:Nt
-        fill_halo_regions!(fts[n])
-    end
+    fill_halo_regions!(fts)
 
     return fts
 end

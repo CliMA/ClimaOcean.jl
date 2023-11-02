@@ -26,7 +26,8 @@ steps:
   
   - wait
 
-  - label: "Run tests"
-    key: "tests"
+  - label: "Run all the tests"
+    key: "all the tests"
     command:
       - julia --project -e 'using Pkg; Pkg.test()'
+

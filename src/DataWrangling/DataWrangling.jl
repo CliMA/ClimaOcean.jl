@@ -85,9 +85,7 @@ function interpolate_field_time_series!(target_fts, source_fts)
             target_fts.data, target_grid, target_location,
             source_fts.data, source_grid, source_location)
 
-    for n = 1:Nt
-        fill_halo_regions!(target_fts[n])
-    end
+    fill_halo_regions!(target_fts)
 
     return nothing
 end
