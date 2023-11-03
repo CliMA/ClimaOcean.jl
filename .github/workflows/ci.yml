@@ -55,7 +55,6 @@ jobs:
           julia --color=yes --project -e 'using Pkg; Pkg.test()'
         env:
           TEST_GROUP: "downloading"
-
         with:
           file: lcov.info
           
