@@ -48,48 +48,6 @@ function __init__(; remove_existing_data=false)
     remove_existing_data && rm(datadep"near_global_quarter_degree", recursive=true, force=true)
 end
 
-struct CubicSplineFunction{d, FT, S} <: Function
-    coordinates :: Vector{FT}
-    nodes :: Vector{FT}
-    spline :: S
-    
-    @doc """
-        CubicSplineFunction{d}(coordinates, nodes, FT=Float64)
-
-    Return a function-like object that interpolates `nodes` between the `coordinates`
-    in dimension `d` using cubic splines. `d` can be either `x`, `y`, or `z`.
-    """
-    function CubicSplineFunction{d}(coordinates, nodes, FT=Float64) where d
-        # Hack to enforce no-gradient boundary conditions,
-        # since CubicSplines doesn't support natively
-        ΔL = coordinates[2] - coordinates[1]
-        pushfirst!(coordinates, coordinates[1] - ΔL)
-
-        ΔR = coordinates[end] - coordinates[end-1]
-        push!(coordinates, coordinates[end] + ΔR)
-
-        pushfirst!(nodes, nodes[1])
-        push!(nodes, nodes[end])
-
-        coordinates = Vector{FT}(coordinates)
-        nodes = Vector{FT}(nodes)
-
-        # Now we can build the spline
-        spline = CubicSpline(coordinates, nodes)
-        S = typeof(spline)
-
-        d == :x || d == :y || d == :z || error("Dimension 'd' must be :x or :y or :z")
-    
-        return new{d, FT, S}(coordinates, nodes, spline)
-    end
-end
-
-(csf::CubicSplineFunction{:x})(x, y=nothing, z=nothing) = csf.spline[x]
-(csf::CubicSplineFunction{:y})(x, y, z=nothing)         = csf.spline[y]
-(csf::CubicSplineFunction{:y})(y)                       = csf.spline[y]
-(csf::CubicSplineFunction{:z})(x, y, z)                 = csf.spline[z]
-(csf::CubicSplineFunction{:z})(z)                       = csf.spline[z]
-
 @inline ϕ²(i, j, k, grid, ϕ) = @inbounds ϕ[i, j, k]^2
 @inline spᶠᶜᶜ(i, j, k, grid, Φ) = @inbounds sqrt(Φ.u[i, j, k]^2 + ℑxyᶠᶜᵃ(i, j, k, grid, ϕ², Φ.v))
 @inline spᶜᶠᶜ(i, j, k, grid, Φ) = @inbounds sqrt(Φ.v[i, j, k]^2 + ℑxyᶜᶠᵃ(i, j, k, grid, ϕ², Φ.u))
@@ -101,11 +59,12 @@ end
 @inline v_immersed_bottom_drag(i, j, k, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, k] * spᶜᶠᶜ(i, j, k, grid, Φ)
 
 include("VerticalGrids.jl")
-include("DataWrangling.jl")
+include("DataWrangling/DataWrangling.jl")
 include("Bathymetry.jl")
 include("InitialConditions.jl")
 include("Diagnostics.jl")
 include("NearGlobalSimulations/NearGlobalSimulations.jl")
-include("IdealizedSimulations/IdealizedSimulations.jl")
+
+using .DataWrangling: JRA55
 
 end # module

@@ -13,20 +13,24 @@ steps:
   - label: "initialize"
     key: "init"
     command:
-      - echo "--- Instantiate project"
-      - julia --project -e 'using Pkg; Pkg.instantiate(; verbose=true); Pkg.precompile(; strict=true)'
+      - "echo '--- Instantiate project'"
+      - "julia --project -e 'using Pkg; Pkg.instantiate(; verbose=true); Pkg.precompile(; strict=true)'"
       # force the initialization of the CUDA runtime as it is lazily loaded by default
-      - julia --project -e 'using CUDA; CUDA.precompile_runtime()'
+      - "julia --project -e 'using CUDA; CUDA.precompile_runtime()'"
 
     agents:
       slurm_mem: 32G
       slurm_cpus_per_task: 8
     env:
       JULIA_NUM_PRECOMPILE_TASKS: 8
-  
+
   - wait
 
-  - label: "Run tests"
+  - label: "Run all the tests"
     key: "tests"
-    command:
-      - julia --project -e 'using Pkg; Pkg.test()'
+    env:
+      CUDA_VISIBLE_DEVICES: "-1"
+      TEST_GROUP: "jra55"
+    commands:
+      - "julia --project -e 'using Pkg; Pkg.test()'"
+
