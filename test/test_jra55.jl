@@ -10,7 +10,7 @@ include("runtests_setup.jl")
         time_indices = 1:3
 
         # This should download a file called "RYF.rsds.1990_1991.nc"
-        jra55_fts = ClimaOcean.JRA55.jra55_field_time_series(test_name, arch; time_indices)
+        jra55_fts = ClimaOcean.JRA55.jra55_field_time_series(test_name; architecture=arch, time_indices)
 
         @test isfile(test_filename)
         rm(test_filename)

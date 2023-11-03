@@ -6,7 +6,7 @@ using Oceananigans.BoundaryConditions: fill_halo_regions!
 using NCDatasets
 
 # A list of all variables provided in the JRA55 dataset:
-jra55_variable_names = (:freshwater_river_flux,
+jra55_short_names = (:freshwater_river_flux,
                         :freshwater_rain_flux,
                         :freshwater_snow_flux,
                         :freshwater_iceberg_flux,
@@ -19,7 +19,7 @@ jra55_variable_names = (:freshwater_river_flux,
                         :atmospheric_eastward_velocity,
                         :atmospheric_westward_velocity)
 
-filenames = Dict(
+file_names = Dict(
     :freshwater_river_flux           => "RYF.friver.1990_1991.nc",   # Freshwater fluxes from rivers
     :freshwater_rain_flux            => "RYF.prra.1990_1991.nc",     # Freshwater flux from rainfall
     :freshwater_snow_flux            => "RYF.prsn.1990_1991.nc",     # Freshwater flux from snowfall
@@ -34,7 +34,7 @@ filenames = Dict(
     :atmospheric_westward_velocity   => "RYF.vas.1990_1991.nc",      # Northward near-surface wind
 )
 
-jra55_short_names = Dict(
+short_names = Dict(
     :freshwater_river_flux           => "friver",   # Freshwater fluxes from rivers
     :freshwater_rain_flux            => "prra",     # Freshwater flux from rainfall
     :freshwater_snow_flux            => "prsn",     # Freshwater flux from snowfall
@@ -91,31 +91,84 @@ urls = Dict(
 )
 
 """
-    jra55_field_time_series(name, architecture=CPU();
+    jra55_field_time_series(variable_name;
+                            architecture = CPU(),
                             time_indices = :,    
                             url = urls[name],
-                            variable_name = jra55_short_names[name])
+                            filename = file_names[variable_name],
+                            short_name = short_names[variable_name])
 
-Return a FieldTimeSeries representing JRA55 data at the interface between the
-atmosphere and ocean.
+Return a `FieldTimeSeries` containing atmospheric reanalysis data for `variable_name`,
+which describes one of the variables in the "repeat year forcing" dataset derived
+from the Japanese 55-year atmospheric reanalysis for driving ocean-sea-ice models (JRA55-do).
+For more information about the derivation of the repeat year forcing dataset, see
+
+"Stewart et al., JRA55-do-based repeat year forcing datasets for driving ocean–sea-ice models",
+Ocean Modelling, 2020, https://doi.org/10.1016/j.ocemod.2019.101557.
+
+The `variable_name`s (and their `short_name`s used in NetCDF files)
+available from the JRA55-do are:
+
+    - `:freshwater_river_flux`              ("friver")
+    - `:freshwater_rain_flux`               ("prra")
+    - `:freshwater_snow_flux`               ("prsn")
+    - `:freshwater_iceberg_flux`            ("licalvf")
+    - `:specific_humidity`                  ("huss")
+    - `:sea_level_pressure`                 ("psl")
+    - `:relative_humidity`                  ("rhuss")
+    - `:downwelling_longwave_radiation`     ("rlds")
+    - `:downwelling_shortwave_radiation`    ("rsds")
+    - `:atmospheric_temperature`            ("ras")
+    - `:atmospheric_eastward_velocity`      ("uas")
+    - `:atmospheric_westward_velocity`      ("vas")
+
+Keyword arguments
+=================
+
+    - `architecture`: Architecture for the `FieldTimeSeries`.
+                      Default: CPU()
+
+    - `time_indices`: Indices of the timeseries to extract from file. 
+                      For example, `time_indices=1:3` returns a 
+                      `FieldTimeSeries` with the first three time snapshots
+                      of `variable_name`.
+
+    - `url`: The url accessed to download the data for `variable_name`.
+             Default: `ClimaOcean.JRA55.urls[variable_name]`.
+
+    - `filename`: The name of the downloaded file.
+                  Default: `ClimaOcean.JRA55.filenames[variable_name]`.
+
+    - `short_name`: The "short name" of `variable_name` inside its NetCDF file.
+                    Default: `ClimaOcean.JRA55.short_names[variable_name]`.
 """
-function jra55_field_time_series(name, arch=CPU();
+function jra55_field_time_series(variable_name;
+                                 architecture = CPU(),
                                  time_indices = :,    
-                                 url = urls[name],
-                                 filename = filenames[name],
-                                 variable_name = jra55_short_names[name])
+                                 url = urls[variable_name],
+                                 filename = file_names[variable_name],
+                                 short_name = short_names[variable_name])
 
     isfile(filename) || download(url, filename)
 
     ds = Dataset(filename)
 
+    # Note that each file should have the variables
+    # ds["time"]:     time coordinate 
+    # ds["lon"]:      longitude at the location of the variable
+    # ds["lat"]:      latitude at the location of the variable
+    # ds["lon_bnds"]: bounding longitudes between which variables are averaged
+    # ds["lat_bnds"]: bounding latitudes between which variables are averaged
+    # ds[short_name]: the variable data
+
     # Extract variable data
-    data = ds[variable_name][:, :, time_indices]
+    data = ds[short_name][:, :, time_indices]
 
     # Make the JRA55 grid
     λ = ds["lon_bnds"][1, :]
     φ = ds["lat_bnds"][1, :]
     times = ds["time"][time_indices]
+
     close(ds)
 
     # The .nc coordinates lon_bnds and lat_bnds do not include
@@ -126,18 +179,18 @@ function jra55_field_time_series(name, arch=CPU();
     Nx = length(λ) - 1
     Ny = length(φ) - 1
 
-    grid = LatitudeLongitudeGrid(arch,
+    grid = LatitudeLongitudeGrid(architecture,
                                  size = (Nx, Ny);
                                  longitude = λ,
                                  latitude = φ,
                                  topology = (Periodic, Bounded, Flat))
 
     # Hack together the `times` for the JRA55 dataset we are currently using.
-    # In the future, when we have the "real" (total) JRA55 dataset, we'll have to
-    # use the built-in dates.
-    Δt = 3hours
+    # We might want to use the acutal dates instead though.
+    # So the following code maybe should change.
+    Δt = 3hours # just what it is
     Nt = length(times)
-    start_time = 0
+    start_time = 0 # Note: the forcing start at Jan 1 of the repeat year.
     stop_time = Δt * (Nt - 1)
     times = start_time:Δt:stop_time
 
