@@ -17,7 +17,7 @@ jra55_short_names = (:freshwater_river_flux,
                         :downwelling_shortwave_radiation,
                         :atmospheric_temperature,
                         :atmospheric_eastward_velocity,
-                        :atmospheric_westward_velocity)
+                        :atmospheric_northward_velocity)
 
 file_names = Dict(
     :freshwater_river_flux           => "RYF.friver.1990_1991.nc",   # Freshwater fluxes from rivers
@@ -31,7 +31,7 @@ file_names = Dict(
     :downwelling_shortwave_radiation => "RYF.rsds.1990_1991.nc",     # Downwelling shortwave radiation
     :atmospheric_temperature         => "RYF.tas.1990_1991.nc",      # Near-surface air temperature
     :atmospheric_eastward_velocity   => "RYF.uas.1990_1991.nc",      # Eastward near-surface wind
-    :atmospheric_westward_velocity   => "RYF.vas.1990_1991.nc",      # Northward near-surface wind
+    :atmospheric_northward_velocity  => "RYF.vas.1990_1991.nc",      # Northward near-surface wind
 )
 
 short_names = Dict(
@@ -46,7 +46,7 @@ short_names = Dict(
     :downwelling_shortwave_radiation => "rsds",     # Downwelling shortwave radiation
     :atmospheric_temperature         => "tas",      # Near-surface air temperature
     :atmospheric_eastward_velocity   => "uas",      # Eastward near-surface wind
-    :atmospheric_westward_velocity   => "vas",      # Northward near-surface wind
+    :atmospheric_northward_velocity  => "vas",      # Northward near-surface wind
 )
 
 urls = Dict(
@@ -86,8 +86,8 @@ urls = Dict(
     :atmospheric_eastward_velocity => "https://www.dropbox.com/scl/fi/86wetpqla2x97isp8092g/" *
                                       "RYF.uas.1990_1991.nc?rlkey=rcaf18sh1yz0v9g4hjm1249j0&dl=0",
 
-    :atmospheric_westward_velocity => "https://www.dropbox.com/scl/fi/d38sflo9ddljstd5jwgml/" *
-                                      "RYF.vas.1990_1991.nc?rlkey=f9y3e57kx8xrb40gbstarf0x6&dl=0",
+    :atmospheric_northward_velocity => "https://www.dropbox.com/scl/fi/d38sflo9ddljstd5jwgml/" *
+                                       "RYF.vas.1990_1991.nc?rlkey=f9y3e57kx8xrb40gbstarf0x6&dl=0",
 )
 
 """
@@ -120,7 +120,7 @@ available from the JRA55-do are:
     - `:downwelling_shortwave_radiation`    ("rsds")
     - `:atmospheric_temperature`            ("ras")
     - `:atmospheric_eastward_velocity`      ("uas")
-    - `:atmospheric_westward_velocity`      ("vas")
+    - `:atmospheric_northward_velocity`     ("vas")
 
 Keyword arguments
 =================
