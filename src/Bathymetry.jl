@@ -22,11 +22,7 @@ using Printf
 Regrid bathymetry associated with the NetCDF file at `path = joinpath(dir, filename)` to `target_grid`.
 If `path` does not exist, then a download is attempted from `joinpath(url, filename)`.
 
-Arguments
-=========
-
-Keyword arguments
-=================
+TODO: describe keyword arguments.
 """
 function regrid_bathymetry(target_grid;
                            height_above_water = nothing,
@@ -149,10 +145,10 @@ function regrid_bathymetry(target_grid;
     intermediate_h =  Field{Center, Center, Nothing}(intermediate_grid)
     regrid!(intermediate_h, native_h)
 
-    one_degree_h = Field{Center, Center, Nothing}(target_grid)
-    regrid!(one_degree_h, intermediate_h)
+    target_h = Field{Center, Center, Nothing}(target_grid)
+    regrid!(target_h, intermediate_h)
 
-    return one_degree_h
+    return target_h
 end
 
 end # module
