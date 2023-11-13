@@ -1,5 +1,6 @@
 using ClimaOcean
 using GLMakie
+using Oceananigans
 using Oceananigans.Units
 using Printf
 
@@ -15,9 +16,9 @@ function lonlat2xyz(lons::AbstractVector, lats::AbstractVector)
 end
 
 function lonlat2xyz(lons::AbstractMatrix, lats::AbstractMatrix)
-    x = cosd.(lats).*cosd.(lons)
-    y = cosd.(lats).*sind.(lons)
-    z = sind.(lats)
+    x = @. cosd(lats) * cosd(lons)
+    y = @. cosd(lats) * sind(lons)
+    z = @. sind(lats)
     return (x, y, z)
 end
 
@@ -36,10 +37,10 @@ fig = Figure(resolution=(1400, 700))
 axsw = Axis3(fig[1, 1], aspect=(1, 1, 1))
 axrh = Axis3(fig[1, 2], aspect=(1, 1, 1))
 
-label = @lift string("Repeat-year JRA55 forcing on year-day",
+label = @lift string("Repeat-year JRA55 forcing on year-day ",
                      @sprintf("%.1f", times[$n] / days))
 
-Label(fig[0, 1:2], label)
+Label(fig[0, 1:2], label, fontsize=24)
 
 sf = surface!(axsw, x, y, z, color=Qswn, colorrange=(0, 1200))
 Colorbar(fig[2, 1], sf,
@@ -62,11 +63,20 @@ rowgap!(fig.layout, 2, Relative(-0.2))
 for ax in (axsw, axrh)
     hidedecorations!(ax)
     hidespines!(ax)
+    ax.viewmode = :fit # so that the sphere does not zoom in and out while rotating
 end
 
 display(fig)
 
-record(fig, "JRA55_data.mp4", 1:Nt, framerate=24) do nn
-    n[] = nn
-end
+snapshot_interval = 3hours
+rotation_rate = 2π / 60days
 
+record(fig, "JRA55_data.mp4", 1:Nt, framerate=16) do nn
+    @info nn/Nt
+
+    n[] = nn
+
+    for ax in (axsw, axrh)
+        ax.azimuth = nn * snapshot_interval * rotation_rate
+    end
+end
