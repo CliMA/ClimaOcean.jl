@@ -1,5 +1,9 @@
 module ECCO2
 
+using Oceananigans
+using Oceananigans.BoundaryConditions
+using NCDatasets
+
 temperature_filename = "THETA.1440x720x50.19920102.nc"
 salinity_filename = "SALT.1440x720x50.19920102.nc"
 effective_ice_thickness_filename = "SIheff.1440x720.19920102.nc"
@@ -74,18 +78,18 @@ function ecco2_field(variable_name;
         data = ds[short_name][:, :, :, 1]
         depth_name = ecco2_depth_names[variable_name]
         z = construct_vertical_interfaces(ds, depth_name)
-        Nx, Ny, Nz = size(data)
+        N = size(data)
         LZ = Center
     else
         data = ds[short_name][:, :, 1]
-        Nx, Ny = size(data)
+        N = size(data)
         z = nothing
         LZ = Nothing
     end
 
     close(ds)
 
-    grid = LatitudeLongitudeGrid(architecture; halo, size, topology,
+    grid = LatitudeLongitudeGrid(architecture; halo, size = N, topology,
                                  longitude, latitude, z)
 
     field = Field{Center, Center, LZ}(grid)
