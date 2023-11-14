@@ -26,11 +26,19 @@ steps:
 
   - wait
 
-  - label: "Run all the tests"
-    key: "tests"
+  - label: "Run JRA55 tests"
+    key: "tests jra55"
+    env:
+      CUDA_VISIBLE_DEVICES: "-1" 
+      TEST_GROUP: "jra55"
+    commands:
+      - "julia --project -e 'using Pkg; Pkg.test()'"
+
+  - label: "Run ECCO2 tests"
+    key: "tests ecco2"
     env:
       CUDA_VISIBLE_DEVICES: "-1"
-      TEST_GROUP: "jra55"
+      TEST_GROUP: "ecco2"
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
 

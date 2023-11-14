@@ -84,7 +84,7 @@ function ecco2_field(variable_name;
         z    = construct_vertical_interfaces(ds, depth_name)
         N    = size(data)
 
-        # add the vertical halo for 3D fields
+        # add vertical halo for 3D fields
         halo = (horizontal_halo..., 1)
 
         LZ   = Center

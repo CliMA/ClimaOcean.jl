@@ -9,6 +9,10 @@ if test_group == :jra55 || test_group == :all
     include("test_jra55.jl")
 end
 
+if test_group == :ecco2 || test_group == :all
+    include("test_ecco2.jl")
+end
+
 # Tests that we can download JRA55 utilities
 if test_group == :downloading || test_group == :all
     include("test_downloading.jl")
