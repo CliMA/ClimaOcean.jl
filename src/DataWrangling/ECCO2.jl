@@ -59,8 +59,7 @@ function construct_vertical_interfaces(ds, depth_name)
     return zf
 end
 
-function ecco2_field(variable_name;
-                     architecture = CPU(),
+function ecco2_field(variable_name, architecture = CPU();
                      halo = (1, 1, 1),
                      url = ecco2_urls[variable_name],
                      filename = ecco2_file_names[variable_name],
@@ -72,27 +71,35 @@ function ecco2_field(variable_name;
 
     longitude = (0, 360)
     latitude = (-90, 90)
-    topology = (Periodic, Bounded, Bounded)
+    TX, TY = (Periodic, Bounded)
 
     if variable_is_three_dimensional[variable_name] 
         data = ds[short_name][:, :, :, 1]
         depth_name = ecco2_depth_names[variable_name]
+        
+        # three-dimensional ECCO fields have the surface at `k = 1`
+        data = reverse(data, dims = 3)
+        
         z = construct_vertical_interfaces(ds, depth_name)
         N = size(data)
         LZ = Center
+        TZ = Bounded
     else
         data = ds[short_name][:, :, 1]
         N = size(data)
         z = nothing
         LZ = Nothing
+        TZ = Flat
     end
 
     close(ds)
 
-    grid = LatitudeLongitudeGrid(architecture; halo, size = N, topology,
+    # Flat in z if the variable is two-dimensional
+    grid = LatitudeLongitudeGrid(architecture; halo, size = N, topology = (TX, TY, TZ),
                                  longitude, latitude, z)
 
     field = Field{Center, Center, LZ}(grid)
+    
     set!(field, data)
     fill_halo_regions!(field)
 
