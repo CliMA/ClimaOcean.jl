@@ -66,5 +66,6 @@ include("Diagnostics.jl")
 include("NearGlobalSimulations/NearGlobalSimulations.jl")
 
 using .DataWrangling: JRA55
+using .DataWrangling: ECCO2
 
 end # module

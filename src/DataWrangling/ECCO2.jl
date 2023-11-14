@@ -59,8 +59,9 @@ function construct_vertical_interfaces(ds, depth_name)
     return zf
 end
 
-function ecco2_field(variable_name, architecture = CPU();
-                     halo = (1, 1, 1),
+function ecco2_field(variable_name;
+                     architecture = CPU(),
+                     horizontal_halo = (1, 1),
                      url = ecco2_urls[variable_name],
                      filename = ecco2_file_names[variable_name],
                      short_name = ecco2_short_names[variable_name])
@@ -80,16 +81,21 @@ function ecco2_field(variable_name, architecture = CPU();
         # The surface layer in three-dimensional ECCO fields is at `k = 1`
         data = reverse(data, dims = 3)
         
-        z = construct_vertical_interfaces(ds, depth_name)
-        N = size(data)
-        LZ = Center
-        TZ = Bounded
+        z    = construct_vertical_interfaces(ds, depth_name)
+        N    = size(data)
+
+        # add the vertical halo for 3D fields
+        halo = (horizontal_halo..., 1)
+
+        LZ   = Center
+        TZ   = Bounded
     else
         data = ds[short_name][:, :, 1]
-        N = size(data)
-        z = nothing
-        LZ = Nothing
-        TZ = Flat
+        N    = size(data)
+        z    = nothing
+        halo = horizontal_halo
+        LZ   = Nothing
+        TZ   = Flat
     end
 
     close(ds)
@@ -107,7 +113,7 @@ function ecco2_field(variable_name, architecture = CPU();
 end
 
 function ecco2_bottom_height_from_temperature()
-    Tᵢ = ecco2_field(:temperature, CPU())
+    Tᵢ = ecco2_field(:temperature)
 
     missing_value = Float32(-9.9e22)
 
