@@ -22,9 +22,9 @@ variable_is_three_dimensional = Dict(
 )
 
 ecco2_file_names = Dict(
-    :temperature             => "ecco2_temperature_19920112.nc",
-    :salinity                => "ecco2_salinity_19920112.nc",
-    :effective_ice_thickness => "ecco2_effective_ice_thickness_19920112.nc",
+    :temperature             => "ecco2_temperature_19920102.nc",
+    :salinity                => "ecco2_salinity_19920102.nc",
+    :effective_ice_thickness => "ecco2_effective_ice_thickness_19920102.nc",
 )
 
 # Downloaded from https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N
