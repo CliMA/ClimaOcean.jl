@@ -41,4 +41,3 @@ steps:
       TEST_GROUP: "ecco2"
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
-

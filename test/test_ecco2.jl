@@ -6,7 +6,7 @@ include("runtests_setup.jl")
         @info "Testing ecco2_field on $A..."
 
         # This should download a file called "RYF.rsds.1990_1991.nc"
-        ecco2_temperature = ClimaOcean.ECCO2.temperature(:temperature; architecture=arch)
+        ecco2_temperature = ClimaOcean.ECCO2.ecco2_field(:temperature; architecture=arch)
 
         @test isfile(ClimaOcean.ECCO2.temperature_filename)
         rm(ClimaOcean.ECCO2.temperature_filename)
@@ -21,7 +21,7 @@ include("runtests_setup.jl")
 
 
         # This should download a file called "RYF.rsds.1990_1991.nc"
-        ecco2_ice_thickness = ClimaOcean.ECCO2.temperature(:effective_ice_thickness; architecture=arch)
+        ecco2_ice_thickness = ClimaOcean.ECCO2.ecco2_field(:effective_ice_thickness; architecture=arch)
 
         @test isfile(ClimaOcean.ECCO2.effective_ice_thickness_filename)
         rm(ClimaOcean.ECCO2.effective_ice_thickness_filename)
