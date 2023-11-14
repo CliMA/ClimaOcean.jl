@@ -29,7 +29,7 @@ steps:
   - label: "Run JRA55 tests"
     key: "tests_jra55"
     env:
-      CUDA_VISIBLE_DEVICES: "-1" 
+      CUDA_VISIBLE_DEVICES: "-1"
       TEST_GROUP: "jra55"
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
