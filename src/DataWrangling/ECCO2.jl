@@ -77,7 +77,7 @@ function ecco2_field(variable_name, architecture = CPU();
         data = ds[short_name][:, :, :, 1]
         depth_name = ecco2_depth_names[variable_name]
         
-        # three-dimensional ECCO fields have the surface at `k = 1`
+        # The surface layer in three-dimensional ECCO fields is at `k = 1`
         data = reverse(data, dims = 3)
         
         z = construct_vertical_interfaces(ds, depth_name)
