@@ -8,8 +8,8 @@ include("runtests_setup.jl")
         # This should download a file called "RYF.rsds.1990_1991.nc"
         ecco2_temperature = ClimaOcean.ECCO2.ecco2_field(:temperature; architecture=arch)
 
-        @test isfile(ClimaOcean.ECCO2.temperature_filename)
-        rm(ClimaOcean.ECCO2.temperature_filename)
+        @test isfile(ClimaOcean.ECCO2.ecco2_file_names[:temperature])
+        rm(ClimaOcean.ECCO2.ecco2_file_names[:temperature])
 
         @test ecco2_temperature isa Field
         @test ecco2_temperature.grid isa LatitudeLongitudeGrid
@@ -23,8 +23,8 @@ include("runtests_setup.jl")
         # This should download a file called "RYF.rsds.1990_1991.nc"
         ecco2_ice_thickness = ClimaOcean.ECCO2.ecco2_field(:effective_ice_thickness; architecture=arch)
 
-        @test isfile(ClimaOcean.ECCO2.effective_ice_thickness_filename)
-        rm(ClimaOcean.ECCO2.effective_ice_thickness_filename)
+        @test isfile(ClimaOcean.ECCO2.ecco2_file_names[:effective_ice_thickness])
+        rm(ClimaOcean.ECCO2.ecco2_file_names[:effective_ice_thickness])
 
         @test effective_ice_thickness isa Field
         @test effective_ice_thickness.grid isa LatitudeLongitudeGrid
