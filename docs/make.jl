@@ -15,7 +15,7 @@ const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
 const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
 
 to_be_literated = [
-    "examples/inspect_ecco2_data.jl",
+    "inspect_ecco2_data.jl",
 ]
 
 for file in to_be_literated
