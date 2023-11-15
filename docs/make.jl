@@ -14,7 +14,9 @@ ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
 const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
 const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
 
-to_be_literated = []
+to_be_literated = [
+    "examples/inspect_ecco2_data.jl",
+]
 
 for file in to_be_literated
     filepath = joinpath(EXAMPLES_DIR, file)
