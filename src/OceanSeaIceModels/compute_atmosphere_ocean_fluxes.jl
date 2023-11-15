@@ -2,9 +2,6 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     ocean = coupled_model.ocean
     atmosphere = coupled_model.atmosphere
 
-    momentum_fluxes = (u = surface_flux(ocean.model.velocities.u),
-                       v = surface_flux(ocean.model.velocities.v))
-
     tracers = ocean.model.tracers
     tracer_fluxes = NamedTuple(name => surface_flux(tracers[name]) for name in keys(tracers))
 
@@ -15,6 +12,8 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     ocean_reference_density = coupled_model.ocean_reference_density
     atmosphere_velocities = surface_velocities(atmosphere)
     ice_thickness = coupled_model.sea_ice.model.ice_thickness
+
+    Jₐₒ = coupled_model.atmosphere_ocean_fluxes
 
     launch!(arch, grid, :xy, _compute_atmosphere_ocean_fluxes!,
             grid, clock, momentum_fluxes, tracer_fluxes,
@@ -45,10 +44,15 @@ end
     cᴰ = 1e-3
     ρₐ = 1.2
     ρₒ = ocean_reference_density
+    time = Time(clock.time)
+
+    # Compute transfer velocity scale
+    Utᶠᶜᶜ = transfer_velocityᶠᶜᶜ(i, j, grid, time, Uₒ, Uₐ)
+    Utᶜᶠᶜ = transfer_velocityᶜᶠᶜ(i, j, grid, time, Uₒ, Uₐ)
 
     @inbounds begin
-        τˣ[i, j, 1] = x_atmosphere_ocean_momentum_flux(i, j, grid, cᴰ, ρₒ, ρₐ, Uₒ, Uₐ)
-        τʸ[i, j, 1] = y_atmosphere_ocean_momentum_flux(i, j, grid, cᴰ, ρₒ, ρₐ, Uₒ, Uₐ)
+        τˣ[i, j, 1] = x_atmosphere_ocean_momentum_flux(i, j, grid, clock, cᴰ, ρₒ, ρₐ, Uₒ, Uₐ)
+        τʸ[i, j, 1] = y_atmosphere_ocean_momentum_flux(i, j, grid, clock, cᴰ, ρₒ, ρₐ, Uₒ, Uₐ)
     end
 end
 

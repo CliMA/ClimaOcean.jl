@@ -61,7 +61,7 @@ Nx, Ny′, Nz = size(Tᵢ)
 
 arch =CPU()
 southern_limit = -79
-northern_limit = -50
+northern_limit = -75
 j₁ = 4 * (90 + southern_limit)
 j₂ = 720 - 4 * (90 - northern_limit) + 1
 Ny = j₂ - j₁ + 1
@@ -204,6 +204,7 @@ atmosphere = PrescribedAtmosphere(velocities, times)
 coupled_model = OceanSeaIceModel(ice, ocean, atmosphere)
 coupled_simulation = Simulation(coupled_model, Δt=5minutes, stop_iteration=1) #stop_time=30days)
 
+#=
 adjust_ice_covered_ocean_temperature!(coupled_model)
 
 wall_clock = Ref(time_ns())
@@ -318,3 +319,4 @@ record(fig, "omip_simulation.mp4", 1:Nt, framerate=24) do nn
 end
 =#
 
+=#

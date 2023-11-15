@@ -60,7 +60,7 @@ end
 function sea_ice_ocean_latent_heat_flux!(coupled_model)
     ocean = coupled_model.ocean
     sea_ice = coupled_model.sea_ice
-    ρₒ = coupled_model.ocean_density
+    ρₒ = coupled_model.ocean_reference_density
     cₒ = coupled_model.ocean_heat_capacity
     Qₒ = sea_ice.model.external_heat_fluxes.bottom
     Tₒ = ocean.model.tracers.T

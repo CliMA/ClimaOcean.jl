@@ -1,7 +1,4 @@
-struct AtmosphereOceanMomentumFlux{F, CD}
-    formulation :: F
-    drag_coefficient :: CD
-end
+using Oceananigans.Operators: ℑxᶜᵃᵃ, ℑyᵃᶜᵃ
 
 #####
 ##### Relative velocities
@@ -13,37 +10,47 @@ end
 const ThreeDArray = AbstractArray{<:Any, 3}
 const FourDArray = AbstractArray{<:Any, 4}
 
-@inline function Δu_mod_ΔU(i, j, grid, time::Time,
-                           uₒ::ThreeDArray,
-                           vₒ::ThreeDArray,
-                           uₐ::FourDArray,
-                           vₐ::FourDArray)
+@inline transfer_velocityᶠᶜᶜ(i, j, grid, time, Uₒ, Uₐ) = transfer_velocityᶠᶜᶜ(i, j, grid, time, Uₒ.u, Uₒ.v, Uₐ.u, Uₐ.v)
+@inline transfer_velocityᶜᶠᶜ(i, j, grid, time, Uₒ, Uₐ) = transfer_velocityᶜᶠᶜ(i, j, grid, time, Uₒ.u, Uₒ.v, Uₐ.u, Uₐ.v)
+
+@inline function transfer_velocityᶠᶜᶜ(i, j, grid, time::Time, uₒ, vₒ,
+                       uₐ::FourDArray, vₐ::FourDArray)
 
     Δu = @inbounds uₐ[i, j, 1, time] - uₒ[i, j, 1]
-    Δv² = ℑyᶠᶜᶜ(i, j, 1, grid, Δϕt², vₐ, vₒ, time)
-    return Δu * sqrt(Δu^2 + Δv²)
+    Δv² = ℑyᵃᶜᵃ(i, j, 1, grid, Δϕt², vₐ, vₒ, time)
+    return sqrt(Δu^2 + Δv²)
 end
 
-@inline function Δv_mod_ΔU(i, j, grid, time::Time,
-                           uₒ::ThreeDArray,
-                           vₒ::ThreeDArray,
-                           uₐ::FourDArray,
-                           vₐ::FourDArray)
+@inline function transfer_velocityᶜᶠᶜ(i, j, grid, time::Time, uₒ, vₒ,
+                       uₐ::FourDArray, vₐ::FourDArray)
 
-    Δu² = ℑxᶜᶠᶜ(i, j, 1, grid, Δϕt², uₐ, uₒ, time)
+    Δu² = ℑxᶜᵃᵃ(i, j, 1, grid, Δϕt², uₐ, uₒ, time)
     Δv = @inbounds vₐ[i, j, 1, time] - vₒ[i, j, 1]
-    return Δv * sqrt(Δu² + Δv^2)
+    return sqrt(Δu² + Δv^2)
 end
 
-@inline function x_atmopsphere_ocean_momentum_flux(i, j, grid, clock, cᴰ, ρₒ, ρₐ, Uₒ, Uₐ)
-    time = Time(clock.time)
-    x_ΔU_ΔU = Δu_mod_ΔU(i, j, grid, time, Uₒ.u, Uₒ.v, Uₐ.u, Uₐ.v)
-    return ρₐ / ρₒ * cᴰ * x_ΔU_ΔU
+@inline function Δu_transfer_velocity(i, j, grid, time::Time, uₒ, vₒ,
+                       uₐ::FourDArray, vₐ::FourDArray)
+    transfer_velocity = transfer_velocityᶠᶜᶜ(i, j, grid, time, uₒ, vₒ, uₐ, vₐ)
+    Δu = @inbounds uₐ[i, j, 1, time] - uₒ[i, j, 1]
+    return Δu * transfer_velocity
+end
+
+@inline function Δv_transfer_velocity(i, j, grid, time::Time, uₒ, vₒ,
+                       uₐ::FourDArray, vₐ::FourDArray)
+    transfer_velocity = transfer_velocityᶠᶜᶜ(i, j, grid, time, uₒ, vₒ, uₐ, vₐ)
+    Δv = @inbounds vₐ[i, j, 1, time] - vₒ[i, j, 1]
+    return Δv * transfer_velocity
+end
+
+@inline function x_atmosphere_ocean_momentum_flux(i, j, grid, clock, cᴰ, ρₒ, ρₐ, Uₒ, Uₐ)
+    x_transfer_velocity_transfer_velocity = Δu_transfer_velocity(i, j, grid, time, Uₒ.u, Uₒ.v, Uₐ.u, Uₐ.v)
+    return ρₐ / ρₒ * cᴰ * x_transfer_velocity_transfer_velocity
 end 
 
-@inline function y_atmopsphere_ocean_momentum_flux(i, j, grid, clock, cᴰ, ρₒ, ρₐ, Uₒ, Uₐ)
+@inline function y_atmosphere_ocean_momentum_flux(i, j, grid, clock, cᴰ, ρₒ, ρₐ, Uₒ, Uₐ)
     time = Time(clock.time)
-    y_ΔU_ΔU = Δv_mod_ΔU(i, j, grid, time, Uₒ.u, Uₒ.v, Uₐ.u, Uₐ.v)
-    return ρₐ / ρₒ * cᴰ * y_ΔU_ΔU
+    y_transfer_velocity_transfer_velocity = Δv_transfer_velocity(i, j, grid, time, Uₒ.u, Uₒ.v, Uₐ.u, Uₐ.v)
+    return ρₐ / ρₒ * cᴰ * y_transfer_velocity_transfer_velocity
 end
 

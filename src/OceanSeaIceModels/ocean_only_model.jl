@@ -6,6 +6,7 @@ OceanOnlyModel(ocean; kw...) = OceanSeaIceModel(nothing, ocean; kw...)
 ##### No ice-ocean fluxes in this model!!
 #####
 
+#=
 compute_ice_ocean_salinity_flux!(::OceanOnlyModel) = nothing
 ice_ocean_latent_heat!(::OceanOnlyModel) = nothing
 
@@ -14,9 +15,13 @@ ice_ocean_latent_heat!(::OceanOnlyModel) = nothing
 #####
 
 function time_step!(coupled_model::OceanOnlyModel, Δt; callbacks=nothing)
-    compute_air_sea_flux!(coupled_model)
     time_step!(ocean)
     tick!(coupled_model.clock, Δt)
+    return nothing
+end
+
+function update_state!(coupled_model::OceanOnlyModel; callbacks=nothing)
+    compute_air_sea_flux!(coupled_model)
     return nothing
 end
 
@@ -37,7 +42,7 @@ function compute_air_sea_fluxes!(coupled_model::OceanOnlyModel)
     τʸ = v.boundary_conditions.top.condition
 
     ε  = coupled_model.ocean_emissivity
-    ρₒ = coupled_model.ocean_density
+    ρₒ = coupled_model.ocean_reference_density
     cₒ = coupled_model.ocean_heat_capacity
     I₀ = coupled_model.solar_insolation
 
@@ -46,3 +51,4 @@ function compute_air_sea_fluxes!(coupled_model::OceanOnlyModel)
 
     return nothing
 end
+=#

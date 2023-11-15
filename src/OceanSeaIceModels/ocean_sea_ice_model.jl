@@ -2,23 +2,28 @@ using Oceananigans.Models: update_model_field_time_series!
 using Oceananigans.TimeSteppers: Clock
 using Oceananigans
 
-struct Radiation{FT, S}
-    solar_insolation :: S
+struct Radiation{FT, SW, LW}
+    downwelling_shortwave_radiation :: SW
+    downwelling_longwave_radiation :: LW
     ocean_emissivity :: FT
     stefan_boltzmann_constant :: FT
     reference_temperature :: FT
 end
 
-struct OceanSeaIceModel{FT, I, A, O, C, G, R, PI, PC} <: AbstractModel{Nothing}
+struct OceanSeaIceModel{FT, I, A, O, C, AO, AI, IO, G, R, PI, PC} <: AbstractModel{Nothing}
     clock :: C
     grid :: G # TODO: make it so simulation does not require this
     atmosphere :: A
     sea_ice :: I
     ocean :: O
+    atmosphere_ocean_fluxes :: AO
+    atmosphere_sea_ice_fluxes :: AI
+    sea_ice_ocean_fluxes :: IO
     radiation :: R
     previous_ice_thickness :: PI
     previous_ice_concentration :: PC
-    ocean_density :: FT
+    # The ocean is Boussinesq, so these are _only_ coupled properties:
+    ocean_reference_density :: FT
     ocean_heat_capacity :: FT
 end
 
@@ -44,9 +49,8 @@ function OceanSeaIceModel(ice, ocean, atmosphere=nothing;
     grid = ocean.model.grid
     ice_ocean_heat_flux = Field{Center, Center, Nothing}(grid)
     ice_ocean_salt_flux = Field{Center, Center, Nothing}(grid)
-    solar_insolation = Field{Center, Center, Nothing}(grid)
 
-    ocean_density = 1024
+    ocean_reference_density = 1024
     ocean_heat_capacity = 3991
     reference_temperature = 273.15
 
@@ -66,20 +70,35 @@ function OceanSeaIceModel(ice, ocean, atmosphere=nothing;
     ocean_emissivity = 1
     stefan_boltzmann_constant = 5.67e-8
 
-    radiation = Radiation(solar_insolation,
+    radiation = Radiation(nothing, nothing,
                           convert(FT, ocean_emissivity),
                           convert(FT, stefan_boltzmann_constant),
                           convert(FT, reference_temperature))
+
+    # Set up fluxes
+    momentum_fluxes = (u = surface_flux(ocean.model.velocities.u),
+                       v = surface_flux(ocean.model.velocities.v))
+
+    @show momentum_fluxes
+    @show momentum_fluxes.u
+    @show momentum_fluxes.v
+
+    atmosphere_ocean_fluxes = AtmosphereOceanMomentumFlux()
+    atmosphere_sea_ice_fluxes = nothing
+    sea_ice_ocean_fluxes = nothing
 
     return OceanSeaIceModel(clock,
                             ocean.model.grid,
                             atmosphere,
                             ice,
                             ocean,
+                            atmosphere_ocean_fluxes,
+                            atmosphere_sea_ice_fluxes,
+                            sea_ice_ocean_fluxes,
                             radiation,
                             previous_ice_thickness,
                             previous_ice_concentration,
-                            convert(FT, ocean_density),
+                            convert(FT, ocean_reference_density),
                             convert(FT, ocean_heat_capacity))
 end
 

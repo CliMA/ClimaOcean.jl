@@ -44,19 +44,25 @@ end
 
 function surface_flux(f::Field)
     top_bc = f.boundary_conditions.top
+    return top_bc.condition
+
+    #=
     if top_bc isa BoundaryCondition{<:Oceananigans.BoundaryConditions.Flux}
         return top_bc.condition
     else
         return nothing
     end
+    =#
 end
 
 #####
 ##### Some implementation
 #####
 
+include("cross_realm_fluxes.jl")
 include("atmosphere_sea_ice_fluxes.jl")
-include("atmosphere_ocean_fluxes.jl")
+include("atmosphere_ocean_momentum_flux.jl")
+include("compute_atmosphere_ocean_fluxes.jl")
 include("sea_ice_ocean_fluxes.jl")
 include("ocean_sea_ice_model.jl")
 include("ocean_only_model.jl")
