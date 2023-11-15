@@ -6,7 +6,7 @@ using Oceananigans.BoundaryConditions: fill_halo_regions!
 using NCDatasets
 
 # A list of all variables provided in the JRA55 dataset:
-jra55_short_names = (:freshwater_river_flux,
+jra55_variable_names = (:freshwater_river_flux,
                         :freshwater_rain_flux,
                         :freshwater_snow_flux,
                         :freshwater_iceberg_flux,
@@ -15,9 +15,9 @@ jra55_short_names = (:freshwater_river_flux,
                         :relative_humidity,
                         :downwelling_longwave_radiation,
                         :downwelling_shortwave_radiation,
-                        :atmospheric_temperature,
-                        :atmospheric_eastward_velocity,
-                        :atmospheric_northward_velocity)
+                        :temperature,
+                        :eastward_velocity,
+                        :northward_velocity)
 
 file_names = Dict(
     :freshwater_river_flux           => "RYF.friver.1990_1991.nc",   # Freshwater fluxes from rivers
@@ -29,9 +29,9 @@ file_names = Dict(
     :relative_humidity               => "RYF.rhuss.1990_1991.nc",    # Surface relative humidity
     :downwelling_longwave_radiation  => "RYF.rlds.1990_1991.nc",     # Downwelling longwave radiation
     :downwelling_shortwave_radiation => "RYF.rsds.1990_1991.nc",     # Downwelling shortwave radiation
-    :atmospheric_temperature         => "RYF.tas.1990_1991.nc",      # Near-surface air temperature
-    :atmospheric_eastward_velocity   => "RYF.uas.1990_1991.nc",      # Eastward near-surface wind
-    :atmospheric_northward_velocity  => "RYF.vas.1990_1991.nc",      # Northward near-surface wind
+    :temperature                     => "RYF.tas.1990_1991.nc",      # Near-surface air temperature
+    :eastward_velocity               => "RYF.uas.1990_1991.nc",      # Eastward near-surface wind
+    :northward_velocity              => "RYF.vas.1990_1991.nc",      # Northward near-surface wind
 )
 
 short_names = Dict(
@@ -44,9 +44,9 @@ short_names = Dict(
     :relative_humidity               => "rhuss",    # Surface relative humidity
     :downwelling_longwave_radiation  => "rlds",     # Downwelling longwave radiation
     :downwelling_shortwave_radiation => "rsds",     # Downwelling shortwave radiation
-    :atmospheric_temperature         => "tas",      # Near-surface air temperature
-    :atmospheric_eastward_velocity   => "uas",      # Eastward near-surface wind
-    :atmospheric_northward_velocity  => "vas",      # Northward near-surface wind
+    :temperature                     => "tas",      # Near-surface air temperature
+    :eastward_velocity               => "uas",      # Eastward near-surface wind
+    :northward_velocity              => "vas",      # Northward near-surface wind
 )
 
 urls = Dict(
@@ -80,14 +80,14 @@ urls = Dict(
     :downwelling_shortwave_radiation => "https://www.dropbox.com/scl/fi/z6fkvmd9oe3ycmaxta131/" *
                                         "RYF.rsds.1990_1991.nc?rlkey=r7q6zcbj6a4fxsq0f8th7c4tc&dl=0",
 
-    :atmospheric_temperature => "https://www.dropbox.com/scl/fi/fpl0npwi476w635g6lke9/" *
-                                "RYF.tas.1990_1991.nc?rlkey=0skb9pe6lgbfbiaoybe7m945s&dl=0",
+    :temperature => "https://www.dropbox.com/scl/fi/fpl0npwi476w635g6lke9/" *
+                    "RYF.tas.1990_1991.nc?rlkey=0skb9pe6lgbfbiaoybe7m945s&dl=0",
 
-    :atmospheric_eastward_velocity => "https://www.dropbox.com/scl/fi/86wetpqla2x97isp8092g/" *
-                                      "RYF.uas.1990_1991.nc?rlkey=rcaf18sh1yz0v9g4hjm1249j0&dl=0",
+    :eastward_velocity => "https://www.dropbox.com/scl/fi/86wetpqla2x97isp8092g/" *
+                          "RYF.uas.1990_1991.nc?rlkey=rcaf18sh1yz0v9g4hjm1249j0&dl=0",
 
-    :atmospheric_northward_velocity => "https://www.dropbox.com/scl/fi/d38sflo9ddljstd5jwgml/" *
-                                       "RYF.vas.1990_1991.nc?rlkey=f9y3e57kx8xrb40gbstarf0x6&dl=0",
+    :northward_velocity => "https://www.dropbox.com/scl/fi/d38sflo9ddljstd5jwgml/" *
+                           "RYF.vas.1990_1991.nc?rlkey=f9y3e57kx8xrb40gbstarf0x6&dl=0",
 )
 
 """
@@ -118,9 +118,9 @@ available from the JRA55-do are:
     - `:relative_humidity`                  ("rhuss")
     - `:downwelling_longwave_radiation`     ("rlds")
     - `:downwelling_shortwave_radiation`    ("rsds")
-    - `:atmospheric_temperature`            ("ras")
-    - `:atmospheric_eastward_velocity`      ("uas")
-    - `:atmospheric_northward_velocity`     ("vas")
+    - `:temperature`                        ("ras")
+    - `:eastward_velocity`                  ("uas")
+    - `:northward_velocity`                 ("vas")
 
 Keyword arguments
 =================

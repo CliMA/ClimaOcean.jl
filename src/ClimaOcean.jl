@@ -1,5 +1,7 @@
 module ClimaOcean
 
+export OceanSeaIceModel
+
 using Oceananigans
 using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
 using DataDeps
@@ -67,6 +69,7 @@ include("NearGlobalSimulations/NearGlobalSimulations.jl")
 include("OceanSeaIceModels/OceanSeaIceModels.jl")
 
 using .DataWrangling: JRA55
+using .OceanSeaIceModels: OceanSeaIceModel
 
 end # module
 

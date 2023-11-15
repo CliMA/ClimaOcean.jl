@@ -62,7 +62,7 @@ function sea_ice_ocean_latent_heat_flux!(coupled_model)
     sea_ice = coupled_model.sea_ice
     ρₒ = coupled_model.ocean_density
     cₒ = coupled_model.ocean_heat_capacity
-    Qₒ = sea_ice.model.external_thermal_fluxes.bottom
+    Qₒ = sea_ice.model.external_heat_fluxes.bottom
     Tₒ = ocean.model.tracers.T
     Sₒ = ocean.model.tracers.S
     Δt = ocean.Δt
@@ -83,7 +83,7 @@ end
 function adjust_ice_covered_ocean_temperature!(coupled_model)
     sea_ice_ocean_latent_heat_flux!(coupled_model)
     sea_ice = coupled_model.sea_ice
-    Qₒ = sea_ice.model.external_thermal_fluxes.bottom
+    Qₒ = sea_ice.model.external_heat_fluxes.bottom
     parent(Qₒ) .= 0
     return nothing
 end
@@ -129,7 +129,7 @@ end
         # temperature of the grid cells accordingly.
         adjust_temperature = freezing | icy_surface_cell
 
-        # Compute change in ocean thermal energy.
+        # Compute change in ocean heat energy.
         #
         #   - When Tᴺ < Tₘ, we heat the ocean back to melting temperature by extracting heat from the ice,
         #     assuming that the heat flux (which is carried by nascent ice crystals called frazil ice) floats

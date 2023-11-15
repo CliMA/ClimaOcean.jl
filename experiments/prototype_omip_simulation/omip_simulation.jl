@@ -3,8 +3,8 @@ using Oceananigans.Units
 using Oceananigans.TurbulenceClosures: CATKEVerticalDiffusivity
 using Oceananigans.Fields: ConstantField, ZeroField
 using ClimaOcean
-using ClimaOcean.OceanSeaIceModels: OceanSeaIceModel
-using ClimaOcean.OceanSeaIceModels: adjust_ice_covered_ocean_temperature!
+using ClimaOcean.OceanSeaIceModels: adjust_ice_covered_ocean_temperature!, PrescribedAtmosphere
+using ClimaOcean.JRA55: jra55_field_time_series
 using ClimaSeaIce
 using ClimaSeaIce: IceWaterThermalEquilibrium
 using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
@@ -59,9 +59,9 @@ Nx, Ny′, Nz = size(Tᵢ)
 ##### Construct the grid
 #####
 
-arch = GPU()
+arch =CPU()
 southern_limit = -79
-northern_limit = -30
+northern_limit = -50
 j₁ = 4 * (90 + southern_limit)
 j₂ = 720 - 4 * (90 - northern_limit) + 1
 Ny = j₂ - j₁ + 1
@@ -177,19 +177,32 @@ ice_model = SlabSeaIceModel(ice_grid;
                             advection = nothing,
                             ice_consolidation_thickness = 0.05,
                             ice_salinity = 4,
-                            internal_thermal_flux = ConductiveFlux(conductivity=2),
-                            top_thermal_flux = ConstantField(0), # W m⁻²
-                            top_thermal_boundary_condition = PrescribedTemperature(0),
-                            bottom_thermal_boundary_condition = bottom_bc,
-                            bottom_thermal_flux = ice_ocean_heat_flux)
+                            internal_heat_flux = ConductiveFlux(conductivity=2),
+                            top_heat_flux = ConstantField(0), # W m⁻²
+                            top_heat_boundary_condition = PrescribedTemperature(0),
+                            bottom_heat_boundary_condition = bottom_bc,
+                            bottom_heat_flux = ice_ocean_heat_flux)
 
 set!(ice_model, h=ℋᵢ) 
 
-ocean_simulation = Simulation(ocean_model; Δt=5minutes, verbose=false)
-ice_simulation = Simulation(ice_model, Δt=5minutes, verbose=false)
+ocean = Simulation(ocean_model; Δt=5minutes, verbose=false)
+ice = Simulation(ice_model, Δt=5minutes, verbose=false)
 
-coupled_model = OceanSeaIceModel(ice_simulation, ocean_simulation)
-coupled_simulation = Simulation(coupled_model, Δt=5minutes, stop_time=30days)
+
+time_indices = 1:10
+u_jra55_native = jra55_field_time_series(:eastward_velocity;  time_indices, architecture=arch)
+v_jra55_native = jra55_field_time_series(:northward_velocity; time_indices, architecture=arch)
+                                                          
+times = u_jra55_native.times
+u_bcs = u_jra55_native.boundary_conditions
+v_bcs = v_jra55_native.boundary_conditions
+u_jra55 = FieldTimeSeries{Face, Center, Nothing}(grid, times; boundary_conditions=u_bcs)
+v_jra55 = FieldTimeSeries{Center, Face, Nothing}(grid, times; boundary_conditions=v_bcs)
+velocities = (u=u_jra55, v=v_jra55)
+atmosphere = PrescribedAtmosphere(velocities, times)
+
+coupled_model = OceanSeaIceModel(ice, ocean, atmosphere)
+coupled_simulation = Simulation(coupled_model, Δt=5minutes, stop_iteration=1) #stop_time=30days)
 
 adjust_ice_covered_ocean_temperature!(coupled_model)
 

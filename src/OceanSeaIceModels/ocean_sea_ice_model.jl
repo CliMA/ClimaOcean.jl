@@ -42,7 +42,7 @@ function OceanSeaIceModel(ice, ocean, atmosphere=nothing;
     previous_ice_concentration = deepcopy(ice.model.ice_concentration)
 
     grid = ocean.model.grid
-    ice_ocean_thermal_flux = Field{Center, Center, Nothing}(grid)
+    ice_ocean_heat_flux = Field{Center, Center, Nothing}(grid)
     ice_ocean_salt_flux = Field{Center, Center, Nothing}(grid)
     solar_insolation = Field{Center, Center, Nothing}(grid)
 
@@ -52,10 +52,10 @@ function OceanSeaIceModel(ice, ocean, atmosphere=nothing;
 
     # How would we ensure consistency?
     try
-        if ice.model.external_thermal_fluxes.top isa RadiativeEmission
-            ice_radiation = ice.model.external_thermal_fluxes.top
+        if ice.model.external_heat_fluxes.top isa RadiativeEmission
+            ice_radiation = ice.model.external_heat_fluxes.top
         else
-            ice_radiation = filter(flux isa RadiativeEmission, ice.model.external_thermal_fluxes.top) |> first
+            ice_radiation = filter(flux isa RadiativeEmission, ice.model.external_heat_fluxes.top) |> first
         end
 
         reference_temperature = ice_radiation.reference_temperature
@@ -121,7 +121,7 @@ end
 
 function update_state!(coupled_model::OceanSeaIceModel, callbacks=nothing)
     # update_model_field_time_series!(coupled_model.atmosphere.model) 
-    # compute_atmosphere_ocean_fluxes!(coupled_model) 
+    compute_atmosphere_ocean_fluxes!(coupled_model) 
     # compute_atmosphere_sea_ice_fluxes!(coupled_model)
     compute_sea_ice_ocean_fluxes!(coupled_model)
     return nothing
