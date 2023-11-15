@@ -1,6 +1,7 @@
 include("runtests_setup.jl")
 
 using ClimaOcean: ECCO2
+using Oceananigans.Grids: topology
 
 @testset "ECCO2 fields utilities" begin
     for arch in test_architectures
