@@ -16,7 +16,7 @@ ecco2_short_names = Dict(
 
 ecco2_depth_names = Dict(
     :temperature   => "DEPTH_T",
-    :salinity      => "DEPTH_S",
+    :salinity      => "DEPTH_T",
 )
 
 variable_is_three_dimensional = Dict(
