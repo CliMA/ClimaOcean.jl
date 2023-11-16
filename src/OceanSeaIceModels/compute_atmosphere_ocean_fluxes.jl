@@ -37,6 +37,9 @@ end
 
     τˣ = momentum_fluxes.u
     τʸ = momentum_fluxes.v
+    Q = tracer_fluxes.T
+    F = tracer_fluxes.S
+
     time = Time(clock.time)
 
     Uₒ = ocean_velocities
@@ -47,12 +50,14 @@ end
     time = Time(clock.time)
 
     # Compute transfer velocity scale
-    Utᶠᶜᶜ = transfer_velocityᶠᶜᶜ(i, j, grid, time, Uₒ, Uₐ)
-    Utᶜᶠᶜ = transfer_velocityᶜᶠᶜ(i, j, grid, time, Uₒ, Uₐ)
+    Vᶠᶜᶜ = transfer_velocityᶠᶜᶜ(i, j, grid, time, Uₒ, Uₐ)
+    Vᶜᶠᶜ = transfer_velocityᶜᶠᶜ(i, j, grid, time, Uₒ, Uₐ)
 
     @inbounds begin
         τˣ[i, j, 1] = x_atmosphere_ocean_momentum_flux(i, j, grid, clock, cᴰ, ρₒ, ρₐ, Uₒ, Uₐ)
         τʸ[i, j, 1] = y_atmosphere_ocean_momentum_flux(i, j, grid, clock, cᴰ, ρₒ, ρₐ, Uₒ, Uₐ)
+
+        # Q[i, j, 1] = ρₐ
     end
 end
 

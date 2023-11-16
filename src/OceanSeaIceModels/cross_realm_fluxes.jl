@@ -1,22 +1,42 @@
-struct CrossRealmFluxes{EQ, F}
-    formula :: EQ
-    fluxes :: F
-end
+struct RelativeAtmosphereOceanVelocity end
+struct AtmosphereVelocity end
 
-struct RelativeSpeed end
-struct AtmosphereOnlySpeed end
+#####
+##### Bulk formula
+#####
 
-struct FluxFormula{T, CD}
-    transfer_velocity_scale :: T
+struct BulkFormula{T, CD}
+    transfer_velocity :: T
     transfer_coefficient :: CD
 end
 
-function AtmosphereOceanMomentumFlux(; transfer_velocity_scale = RelativeSpeed(),
-                                     drag_coefficient = 1e-3)
+function BulkFormula(FT=Float64;
+                     transfer_velocity = RelativeAtmosphereOceanVelocity(),
+                     transfer_coefficient = convert(FT, 1e-3))
 
-    return AtmosphereOceanMomentumFlux(transfer_velocity_scale,
-                                       drag_coefficient)
+    return BulkFormula(transfer_velocity, transfer_coefficient)
 end
 
+#####
+##### Abstraction for fluxes across the realms
+#####
 
+struct CrossRealmFlux{EQ, F}
+    formula :: EQ
+    flux :: F
+end
+
+"""
+    CrossRealmFlux(flux_field; formula = nothing)
+
+May the realms communicate.
+"""
+function CrossRealmFlux(flux_field; formula = nothing)
+
+    if isnothing(formula) # constant coefficient then
+        formula = BulkFormula(eltype(flux_field))
+    end
+                        
+    return CrossRealmFlux(formula, flux_field)
+end
 

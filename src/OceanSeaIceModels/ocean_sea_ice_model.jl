@@ -2,14 +2,6 @@ using Oceananigans.Models: update_model_field_time_series!
 using Oceananigans.TimeSteppers: Clock
 using Oceananigans
 
-struct Radiation{FT, SW, LW}
-    downwelling_shortwave_radiation :: SW
-    downwelling_longwave_radiation :: LW
-    ocean_emissivity :: FT
-    stefan_boltzmann_constant :: FT
-    reference_temperature :: FT
-end
-
 struct OceanSeaIceModel{FT, I, A, O, C, AO, AI, IO, G, R, PI, PC} <: AbstractModel{Nothing}
     clock :: C
     grid :: G # TODO: make it so simulation does not require this
@@ -41,6 +33,7 @@ fields(::OSIM) = NamedTuple()
 default_clock(TT) = Oceananigans.TimeSteppers.Clock{TT}(0, 0, 1)
 
 function OceanSeaIceModel(ice, ocean, atmosphere=nothing; 
+                          radiation = nothing,
                           clock = default_clock(eltype(ocean.model)))
     
     previous_ice_thickness = deepcopy(ice.model.ice_thickness)
@@ -65,27 +58,20 @@ function OceanSeaIceModel(ice, ocean, atmosphere=nothing;
         reference_temperature = ice_radiation.reference_temperature
     catch
     end
+    
+    u_flux_field = surface_flux(ocean.model.velocities.u)
+    v_flux_field = surface_flux(ocean.model.velocities.v)
 
-    FT = eltype(ocean.model.grid)
-    ocean_emissivity = 1
-    stefan_boltzmann_constant = 5.67e-8
+    momentum_flux = (u = CrossRealmFlux(u_flux_field),
+                     v = CrossRealmFlux(v_flux_field))
 
-    radiation = Radiation(nothing, nothing,
-                          convert(FT, ocean_emissivity),
-                          convert(FT, stefan_boltzmann_constant),
-                          convert(FT, reference_temperature))
+    tracer_fluxes = (T = nothing, S = nothing)
 
-    # Set up fluxes
-    momentum_fluxes = (u = surface_flux(ocean.model.velocities.u),
-                       v = surface_flux(ocean.model.velocities.v))
+    atmosphere_ocean_fluxes = (momentum = momentum_flux,
+                               tracers = tracer_fluxes)
 
-    @show momentum_fluxes
-    @show momentum_fluxes.u
-    @show momentum_fluxes.v
-
-    atmosphere_ocean_fluxes = AtmosphereOceanMomentumFlux()
-    atmosphere_sea_ice_fluxes = nothing
-    sea_ice_ocean_fluxes = nothing
+    atmosphere_sea_ice_fluxes = NamedTuple()
+    sea_ice_ocean_fluxes = NamedTuple()
 
     return OceanSeaIceModel(clock,
                             ocean.model.grid,
