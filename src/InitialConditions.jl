@@ -112,13 +112,13 @@ function adjust_tracers!(tracers; mask = nothing, max_iter = Inf)
     end
 
     # Do we need this? Probably on the final grid
-    # diffuse_tracers(initial_tracers;
-    #                 horizontal_scale,
-    #                 vertical_scale,
-    #                 fractional_time_step,
-    #                 mask)
+    # tracers = diffuse_tracers(tracers;
+    #                           horizontal_scale,
+    #                           vertical_scale,
+    #                           fractional_time_step,
+    #                           mask)
 
-    return nothing
+    return tracers
 end
 
 @inline not_an_immersed_cell(i, j, k, grid) = !immersed_cell(i, j, k, grid)
