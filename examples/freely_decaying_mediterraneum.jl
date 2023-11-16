@@ -36,14 +36,14 @@ z = stretched_vertical_faces(minimum_depth = 5000,
                              stretching = PowerLawStretching(1.070), 
                              surface_layer_height = 50)
 
-Nx = 20 * 55 # 1 / 20th of a degree
-Ny = 20 * 25
+Nx = 20 * 42 # 1 / 20th of a degree
+Ny = 20 * 15 # 1 / 20th of a degree
 Nz = length(z) - 1
 
-grid = LatitudeLongitudeGrid(GPU();
+grid = LatitudeLongitudeGrid(CPU();
                              size = (Nx, Ny, Nz),
-                             latitude = (25, 50),
-                             longitude = (0, 45),
+                             latitude = (30, 45),
+                             longitude = (0, 42),
                              z,
                              halo = (7, 7, 7))
 
