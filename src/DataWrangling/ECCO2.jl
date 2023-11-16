@@ -112,14 +112,23 @@ function ecco2_field(variable_name;
     return field
 end
 
-function ecco2_bottom_height_from_temperature()
-    Tᵢ = ecco2_field(:temperature)
+function ecco2_center_mask(architecture = CPU(); missing_value = Float32(-1e23))
+    Tᵢ   = ecco2_field(:temperature; architecture)
+    mask = CenterField(Tᵢ.grid)
 
-    missing_value = Float32(-9.9e22)
+    # Set the mask with ones where T is defined
+    set!(mask, (!).(Tᵢ .== missing_value))
+
+    return mask
+end
+
+function ecco2_bottom_height_from_temperature()
+    Tᵢ   = ecco2_field(:temperature)
+    grid = Tᵢ.grid 
 
     # Construct bottom_height depth by analyzing T
     Nx, Ny, Nz = size(Tᵢ)
-    bottom_height = ones(Nx, Ny) .* (zf[1] - Δz)
+    bottom_height = ones(Nx, Ny) .* grid.Lz
     zf = znodes(Tᵢ.grid, Face())
     
     for i = 1:Nx, j = 1:Ny
