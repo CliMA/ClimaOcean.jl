@@ -108,7 +108,9 @@ function save_field_time_series!(fts; path, name, overwrite_existing=false)
 end
 
 include("JRA55.jl")
+include("ECCO2.jl")
 
 using .JRA55
+using .ECCO2
 
 end # module
