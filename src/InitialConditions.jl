@@ -13,6 +13,8 @@ using Oceananigans.Architectures: architecture, device, GPU
 using KernelAbstractions: @kernel, @index
 using KernelAbstractions.Extras.LoopInfo: @unroll
 
+# Maybe we can remove this propagate field in lieu of a diffusion, 
+# Still we'll need to do this a couple of steps on the original grid
 @kernel function _propagate_field!(field, tmp_field)
     i, j, k = @index(Global, NTuple)
 
@@ -109,7 +111,7 @@ function adjust_tracers!(tracers; mask = nothing, max_iter = Inf)
         propagate_horizontally!(tracer, mask; max_iter)
     end
 
-    # Do we need this?
+    # Do we need this? Probably on the final grid
     # diffuse_tracers(initial_tracers;
     #                 horizontal_scale,
     #                 vertical_scale,
@@ -186,7 +188,7 @@ function diffuse_tracers(initial_tracers;
     return smoothing_model.tracers
 end
 
-# TODO: move all this to Oceananigans!
+# TODO: move all the folowing to Oceananigans!
 
 using Oceananigans.Fields: regrid!
 using Oceananigans.Grids: cpu_face_constructor_x, 
@@ -225,7 +227,7 @@ function three_dimensional_regrid!(a, b)
     field_z = Field(location(b), zgrid)
     regrid!(field_z, zgrid, source_grid, b)
 
-    # regrid in y next
+    # regrid in y 
     @info "Regridding in y"
     ygrid   = construct_grid(typeof(target_grid), arch, (Ns[1], Nt[2], Nt[3]), (xs, yt, zt), topo)
     field_y = Field(location(b), ygrid);
