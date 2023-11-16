@@ -13,7 +13,7 @@ using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 ##### Regional Mediterranean grid 
 #####
 
-function regrid_ecco_tracers_to_grid(grid)
+function regrid_ecco_tracers(grid)
     Tecco = ecco2_field(:temperature)
     Secco = ecco2_field(:salinity)
     
@@ -25,6 +25,7 @@ function regrid_ecco_tracers_to_grid(grid)
     T = CenterField(grid)
     S = CenterField(grid)
     
+    # Regrid to our grid!
     three_dimensional_regrid!(T, Tecco)
     three_dimensional_regrid!(S, Secco)
     
@@ -52,7 +53,7 @@ h = regrid_bathymetry(grid, height_above_water=1)
 
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(h))
 
-T, S = regrid_ecco_tracers_to_grid(grid)
+T, S = regrid_ecco_tracers(grid)
 
 mask_immersed_field!(T)
 mask_immersed_field!(S)

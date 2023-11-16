@@ -112,12 +112,17 @@ function ecco2_field(variable_name;
     return field
 end
 
+@kernel function _set_ecco2_mask!(mask, Tᵢ, minimum_value)
+    i, j, k = @index(Global, NTuple)
+    @inbounds mask[i, j, k] = ifelse(Tᵢ[i, j, k] < minimum_value, 0, 1)
+end
+
 function ecco2_center_mask(architecture = CPU(); minimum_value = Float32(-1e5))
     Tᵢ   = ecco2_field(:temperature; architecture)
     mask = CenterField(Tᵢ.grid)
 
     # Set the mask with ones where T is defined
-    set!(mask, (!).(Tᵢ .< minimum_value))
+    launch!(architecture, Tᵢ.grid, _set_ecco2_mask!, mask, Tᵢ, minimum_value)
 
     return mask
 end
