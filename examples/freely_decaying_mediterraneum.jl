@@ -1,5 +1,6 @@
 using GLMakie
 using Oceananigans
+using Oceananigans: architecture
 using Oceananigans.Utils: prettytime
 using ClimaOcean.Bathymetry: regrid_bathymetry
 using ClimaOcean.ECCO2: ecco2_field, ecco2_center_mask
@@ -19,7 +20,7 @@ function regrid_ecco_tracers_to_grid(grid)
     ecco_tracers = (; Tecco, Secco)
     
     # Make sure all values are extended properly before regridding
-    adjust_tracers!(ecco_tracers; mask = ecco2_center_mask())
+    adjust_tracers!(ecco_tracers; mask = ecco2_center_mask(architecture(grid)))
     
     T = CenterField(grid)
     S = CenterField(grid)
@@ -40,7 +41,7 @@ Nx = 20 * 42 # 1 / 20th of a degree
 Ny = 20 * 15 # 1 / 20th of a degree
 Nz = length(z) - 1
 
-grid = LatitudeLongitudeGrid(CPU();
+grid = LatitudeLongitudeGrid(GPU();
                              size = (Nx, Ny, Nz),
                              latitude = (30, 45),
                              longitude = (0, 42),
@@ -56,11 +57,11 @@ T, S = regrid_ecco_tracers_to_grid(grid)
 mask_immersed_field!(T)
 mask_immersed_field!(S)
 
-fig = Figure()
-ax  = Axis(fig[1, 1])
-heatmap!(ax, interior(T, :, :, Nz), colorrange = (10, 20), colormap = :thermal)
-ax  = Axis(fig[1, 2])
-heatmap!(ax, interior(S, :, :, Nz), colorrange = (35, 40), colormap = :haline)
+# fig = Figure()
+# ax  = Axis(fig[1, 1])
+# heatmap!(ax, interior(T, :, :, Nz), colorrange = (10, 20), colormap = :thermal)
+# ax  = Axis(fig[1, 2])
+# heatmap!(ax, interior(S, :, :, Nz), colorrange = (35, 40), colormap = :haline)
 
 # Correct oceananigans
 import Oceananigans.Advection: nothing_to_default
@@ -72,9 +73,9 @@ model = HydrostaticFreeSurfaceModel(; grid,
                                       momentum_advection = WENOVectorInvariant(),
                                       tracer_advection = WENO(grid; order = 7),
                                       free_surface = SplitExplicitFreeSurface(; cfl = 0.75, grid),
-                                      closure = CATKEVerticalDiffusivity(),
+                                      closure  = CATKEVerticalDiffusivity(),
                                       buoyancy = SeawaterBuoyancy(),
-                                      tracers = (:T, :S, :e),
+                                      tracers  = (:T, :S, :e),
                                       coriolis = HydrostaticSphericalCoriolis(scheme = ActiveCellEnstrophyConserving()))
 
 set!(model, T = T, S = S)
@@ -84,7 +85,7 @@ set!(model, T = T, S = S)
 simulation = Simulation(model, Δt = 20, stop_time = 2days)
 
 function progress(sim) 
-    u, v, w = sim.model.velocities
+    u, v, w = sim.model.velocities  
     T, S = sim.model.tracers
 
     @info @sprintf("Time: %s, Iteration %d, Δt %s, max(vel): (%.2e, %.2e, %.2e), max(T, S): %.2f, %.2f\n",
@@ -105,6 +106,12 @@ simulation.stop_time = 10*365days
 wizard = TimeStepWizard(; cfl = 0.2, max_Δt = 2minutes, max_change = 1.1)
 
 simulation.callbacks = Callback(wizard, IterationInterval(10))
+
+simulation.output_writers[:surface_fields] = JLD2OutputWriter(model, merge(model.velocities, model.tracers);
+                                                              indices = (:, :, Nz),
+                                                              schedule = TimeInterval(1day),
+                                                              overwrite_existing = true,
+                                                              filename = "med_surface_field")
 
 run!(simulation)
 
