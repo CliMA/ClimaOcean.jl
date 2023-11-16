@@ -3,6 +3,7 @@ module InitialConditions
 export continue_downwards!
 
 using Oceananigans
+using Oceananigans.BoundaryConditions
 using Oceananigans.Fields: OneField
 using Oceananigans.Grids: peripheral_node
 using Oceananigans.Utils: launch!
@@ -12,7 +13,7 @@ using Oceananigans.Architectures: architecture, device, GPU
 using KernelAbstractions: @kernel, @index
 using KernelAbstractions.Extras.LoopInfo: @unroll
 
-@kernel function _propagate_field!(field, tmp_field, Nx, Ny)
+@kernel function _propagate_field!(field, tmp_field)
     i, j, k = @index(Global, NTuple)
 
     @inbounds begin
@@ -34,35 +35,40 @@ using KernelAbstractions.Extras.LoopInfo: @unroll
     end
 end
 
-@kernel function _substitute_nans!(field, tmp_field)
+@kernel function _substitute_values!(field, tmp_field)
     i, j, k = @index(Global, NTuple)
     @inbounds substitute = isnan(field[i, j, k])
     @inbounds field[i, j, k] = ifelse(substitute, tmp_field[i, j, k], field[i, j, k])
 end
 
-@kernel function _nans_in_mask!(field, mask)
+@kernel function _nans_outside_mask!(field, mask)
     i, j, k = @index(Global, NTuple)
     @inbounds field[i, j, k] = ifelse(mask[i, j, k] == 0, NaN, field[i, j, k])
 end
 
-function propagate_horizontally!(field, mask) 
-    passes = Ref(0)
-    grid   = field.grid
-    arch   = architecture(grid)
-    
-    tmp_field = deepcopy(field)
-    
-    launch!(arch, grid, :xyz, _nans_in_mask!, field, mask)
+propagate_horizontally!(field, ::Nothing; kw...) = nothing
 
-    while isnan(sum(parent(field)))
-        launch!(arch, grid, :xyz, _propagate_field!, field, tmp_field, grid.Nx, grid.Ny)
-        launch!(arch, grid, :xyz, _substitute_nans!, field, tmp_field)
-        passes[] += 1
-        @debug "propagate pass $(passes[]) with sum $(sum(parent(field)))"
+function propagate_horizontally!(field, mask; max_iter = Inf) 
+    iter  = 0
+    grid  = field.grid
+    arch  = architecture(grid)
+    
+    launch!(arch, grid, :xyz, _nans_outside_mask!, field, mask)
+    fill_halo_regions!(field)
+
+    tmp_field = deepcopy(field)
+
+    while isnan(sum(interior(field))) && iter < max_iter
+        launch!(arch, grid, :xyz, _propagate_field!,   field, tmp_field)
+        launch!(arch, grid, :xyz, _substitute_values!, field, tmp_field)
+        iter += 1
+        @debug "propagate pass $iter with sum $(sum(parent(field)))"
     end
 
     return nothing
 end
+
+continue_downwards!(field, ::Nothing) = nothing
 
 function continue_downwards!(field, mask)
     arch = architecture(field)
@@ -77,7 +83,7 @@ end
     Nz = grid.Nz
 
     @unroll for k = Nz-1 : -1 : 1
-        fill_from_above = mask[i, j, k] == 0
+        @inbounds fill_from_above = mask[i, j, k] == 0
         @inbounds field[i, j, k] = ifelse(fill_from_above, field[i, j, k+1], field[i, j, k])
     end
 end
@@ -95,13 +101,12 @@ end
     @inbounds tracer[i, j, k] = ifelse(mask(i, j, k, grid) == 1, initial_tracer[i, j, k], tracer[i, j, k])
 end
 
-function adjust_tracers!(tracers;
-                         mask = OneField(grid))
+function adjust_tracers!(tracers; mask = nothing, max_iter = Inf)
 
     for (name, tracer) in zip(keys(tracers), tracers)
         @info "extending tracer $name"
         continue_downwards!(tracer, mask)
-        propagate_horizontally!(tracer, mask)
+        propagate_horizontally!(tracer, mask; max_iter)
     end
 
     # Do we need this?
@@ -181,20 +186,25 @@ function diffuse_tracers(initial_tracers;
     return smoothing_model.tracers
 end
 
+# TODO: move all this to Oceananigans!
+
 using Oceananigans.Fields: regrid!
-using Oceananigans.Grids: cpu_face_constructor_x, cpu_face_constructor_y, cpu_face_constructor_z
+using Oceananigans.Grids: cpu_face_constructor_x, 
+                          cpu_face_constructor_y, 
+                          cpu_face_constructor_z,
+                          topology
 
 # Should we move this to grids??
-construct_grid(::Type{RectilinearGrid}, arch, size, extent, topology) = 
+construct_grid(::Type{<:RectilinearGrid}, arch, size, extent, topology) = 
     RectilinearGrid(arch; size, x = extent[1], y = extent[2], z = extent[2], topology)
 
-construct_grid(::Type{LatitudeLongitudeGrid}, arch, size, extent, topology) = 
-    LatitudeLongitudeGrid(arch; size, longitude = extent[1], latitude = extent[2], z = extent[2], topology)
+construct_grid(::Type{<:LatitudeLongitudeGrid}, arch, size, extent, topology) = 
+    LatitudeLongitudeGrid(arch; size, longitude = extent[1], latitude = extent[2], z = extent[3], topology)
 
 # Extend this to regrid automatically
 function three_dimensional_regrid!(a, b)
-    target_grid = a.grid
-    source_grid = b.grid 
+    target_grid = a.grid isa ImmersedBoundaryGrid ? a.grid.underlying_grid : a.grid
+    source_grid = b.grid isa ImmersedBoundaryGrid ? b.grid.underlying_grid : b.grid 
 
     topo = topology(target_grid)
     arch = architecture(target_grid)
@@ -207,22 +217,24 @@ function three_dimensional_regrid!(a, b)
     source_x = xs = cpu_face_constructor_x(source_grid)
     source_y = ys = cpu_face_constructor_y(source_grid)
 
-    source_size = Ns = size(source_size)
+    source_size = Ns = size(source_grid)
 
     # Start by regridding in z
+    @info "Regridding in z"
     zgrid   = construct_grid(typeof(target_grid), arch, (Ns[1], Ns[2], Nt[3]), (xs, ys, zt), topo)
     field_z = Field(location(b), zgrid)
-    regrid!(field_z, b)
+    regrid!(field_z, zgrid, source_grid, b)
 
     # regrid in y next
-    zgrid   = construct_grid(typeof(target_grid), arch, (Ns[1], Nt[2], Nt[3]), (xs, yt, zt), topo)
-    field_y = Field(location(b), zgrid)
-    regrid!(field_y, field_z)
+    @info "Regridding in y"
+    ygrid   = construct_grid(typeof(target_grid), arch, (Ns[1], Nt[2], Nt[3]), (xs, yt, zt), topo)
+    field_y = Field(location(b), ygrid);
+    regrid!(field_y, ygrid, zgrid, field_z);
 
     # Finally regrid in x
-    regrid!(a, field_y)
+    @info "Regridding in x"
+    regrid!(a, target_grid, ygrid, field_y)
 end
-
 
 end # module
 

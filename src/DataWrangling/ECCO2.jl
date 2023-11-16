@@ -112,12 +112,12 @@ function ecco2_field(variable_name;
     return field
 end
 
-function ecco2_center_mask(architecture = CPU(); missing_value = Float32(-1e23))
+function ecco2_center_mask(architecture = CPU(); minimum_value = Float32(-1e5))
     Tᵢ   = ecco2_field(:temperature; architecture)
     mask = CenterField(Tᵢ.grid)
 
     # Set the mask with ones where T is defined
-    set!(mask, (!).(Tᵢ .== missing_value))
+    set!(mask, (!).(Tᵢ .< minimum_value))
 
     return mask
 end
