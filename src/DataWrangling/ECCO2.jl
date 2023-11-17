@@ -2,6 +2,7 @@ module ECCO2
 
 using Oceananigans
 using Oceananigans.BoundaryConditions
+using KernelAbstractions: @kernel, @index
 using NCDatasets
 
 temperature_filename = "THETA.1440x720x50.19920102.nc"

@@ -8,6 +8,7 @@ using ClimaOcean.VerticalGrids: stretched_vertical_faces, PowerLawStretching
 using ClimaOcean.InitialConditions: three_dimensional_regrid!, adjust_tracers!
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalDiffusivity
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
+using Oceananigans.Units
 
 #####
 ##### Regional Mediterranean grid 
@@ -42,7 +43,7 @@ Nx = 20 * 42 # 1 / 20th of a degree
 Ny = 20 * 15 # 1 / 20th of a degree
 Nz = length(z) - 1
 
-grid = LatitudeLongitudeGrid(GPU();
+grid = LatitudeLongitudeGrid(CPU();
                              size = (Nx, Ny, Nz),
                              latitude = (30, 45),
                              longitude = (0, 42),

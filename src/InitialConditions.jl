@@ -50,6 +50,11 @@ end
 
 propagate_horizontally!(field, ::Nothing; kw...) = nothing
 
+""" 
+    propagate_horizontally!(field, mask; max_iter = Inf)
+
+propagate horizontally 
+"""
 function propagate_horizontally!(field, mask; max_iter = Inf) 
     iter  = 0
     grid  = field.grid

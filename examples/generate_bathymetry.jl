@@ -35,8 +35,12 @@ display(fig)
 ##### Regional Mediterranean grid 
 #####
 
+# 1/25th degree resolution
+Nλ = 25 * 55
+Nφ = 25 * 25
+
 grid = LatitudeLongitudeGrid(CPU();
-                             size = (25 * 50, 55 * 50, 1),
+                             size = (Nλ, Nφ, 1),
                              latitude = (25, 50),
                              longitude = (-10, 45),
                              z = (0, 1),
