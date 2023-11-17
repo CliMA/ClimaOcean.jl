@@ -1,5 +1,7 @@
 module VerticalGrids
 
+export stretched_vertical_faces, PowerLawStretching, LinearStretching
+
 struct PowerLawStretching{T}
     power :: T
 end

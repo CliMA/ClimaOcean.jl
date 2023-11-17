@@ -1,5 +1,7 @@
 module ECCO2
 
+export ecco2_field, ecco2_center_mask
+
 using Oceananigans
 using Oceananigans.BoundaryConditions
 using KernelAbstractions: @kernel, @index

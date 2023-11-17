@@ -1,5 +1,7 @@
 module Bathymetry
 
+export regrid_bathymetry
+
 using ..DataWrangling: download_progress
 
 using Oceananigans

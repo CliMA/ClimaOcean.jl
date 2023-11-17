@@ -1,10 +1,8 @@
 using GLMakie
 using Oceananigans
 using Oceananigans: architecture
-using Oceananigans.Utils: prettytime
-using ClimaOcean.Bathymetry: regrid_bathymetry
-using ClimaOcean.ECCO2: ecco2_field, ecco2_center_mask
-using ClimaOcean.VerticalGrids: stretched_vertical_faces, PowerLawStretching
+using ClimaOcean
+using ClimaOcean.ECCO2
 using ClimaOcean.InitialConditions: three_dimensional_regrid!, adjust_tracers!
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalDiffusivity
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
