@@ -4,6 +4,7 @@ export ecco2_field, ecco2_center_mask
 
 using Oceananigans
 using Oceananigans.BoundaryConditions
+using Oceananigans.Utils
 using KernelAbstractions: @kernel, @index
 using NCDatasets
 
@@ -125,7 +126,7 @@ function ecco2_center_mask(architecture = CPU(); minimum_value = Float32(-1e5))
     mask = CenterField(Tᵢ.grid)
 
     # Set the mask with ones where T is defined
-    launch!(architecture, Tᵢ.grid, _set_ecco2_mask!, mask, Tᵢ, minimum_value)
+    launch!(architecture, Tᵢ.grid, :xyz, _set_ecco2_mask!, mask, Tᵢ, minimum_value)
 
     return mask
 end

@@ -71,6 +71,9 @@ include("InitialConditions.jl")
 include("Diagnostics.jl")
 include("NearGlobalSimulations/NearGlobalSimulations.jl")
 
+using .VerticalGrids
+using .InitialConditions
+using .Bathymetry
 using .DataWrangling: JRA55
 using .DataWrangling: ECCO2
 
