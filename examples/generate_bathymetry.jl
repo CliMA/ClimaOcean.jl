@@ -46,16 +46,21 @@ grid = LatitudeLongitudeGrid(CPU();
                              z = (0, 1),
                              halo = (4, 4, 4))
 
-h = regrid_bathymetry(grid, height_above_water=1)
+h_smooth = regrid_bathymetry(grid, height_above_water=1, interpolation_passes = 10)
+h_rough  = regrid_bathymetry(grid, height_above_water=1, interpolation_passes = 1)
 
-λ, φ, z = nodes(h)
+λ, φ, z = nodes(h_smooth)
 
-land = interior(h) .> 0
-interior(h)[land] .= NaN
+land_smooth = interior(h_smooth) .> 0
+interior(h_smooth)[land_smooth] .= NaN
+land_rough = interior(h_rough) .> 0
+interior(h_rough)[land_rough] .= NaN
 
-fig = Figure(resolution=(2400, 1200))
+fig = Figure(resolution=(2400, 800))
 ax = Axis(fig[1, 1])
-heatmap!(ax, λ, φ, interior(h, :, :, 1), nan_color=:white) #, colorrange=(-5000, 0))
+heatmap!(ax, λ, φ, interior(h_smooth, :, :, 1), nan_color=:white) #, colorrange=(-5000, 0))
+ax = Axis(fig[1, 2])
+heatmap!(ax, λ, φ, interior(h_rough, :, :, 1), nan_color=:white) #, colorrange=(-5000, 0))
 
 display(fig)
 
