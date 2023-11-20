@@ -30,32 +30,6 @@ using Oceananigans.Grids: architecture
 using Oceananigans.Models: AbstractModel
 
 #####
-##### Interface
-#####
-
-function surface_velocities(ocean::Simulation{<:HydrostaticFreeSurfaceModel})
-    grid = ocean.model.grid
-    Nz = size(grid, 3)
-    u = interior(ocean.model.velocities.u, :, :, Nz)
-    v = interior(ocean.model.velocities.v, :, :, Nz)
-    w = interior(ocean.model.velocities.w, :, :, Nz+1)
-    return (; u, v, w)
-end
-
-function surface_flux(f::Field)
-    top_bc = f.boundary_conditions.top
-    return top_bc.condition
-
-    #=
-    if top_bc isa BoundaryCondition{<:Oceananigans.BoundaryConditions.Flux}
-        return top_bc.condition
-    else
-        return nothing
-    end
-    =#
-end
-
-#####
 ##### Some implementation
 #####
 

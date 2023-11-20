@@ -2,16 +2,13 @@ using Oceananigans.Models: update_model_field_time_series!
 using Oceananigans.TimeSteppers: Clock
 using Oceananigans
 
-struct OceanSeaIceModel{FT, I, A, O, C, AO, AI, IO, G, R, PI, PC} <: AbstractModel{Nothing}
+struct OceanSeaIceModel{FT, I, A, O, F, PI, PC, C, G} <: AbstractModel{Nothing}
     clock :: C
     grid :: G # TODO: make it so simulation does not require this
     atmosphere :: A
     sea_ice :: I
     ocean :: O
-    atmosphere_ocean_fluxes :: AO
-    atmosphere_sea_ice_fluxes :: AI
-    sea_ice_ocean_fluxes :: IO
-    radiation :: R
+    fluxes :: F
     previous_ice_thickness :: PI
     previous_ice_concentration :: PC
     # The ocean is Boussinesq, so these are _only_ coupled properties:
@@ -45,42 +42,13 @@ function OceanSeaIceModel(ice, ocean, atmosphere=nothing;
 
     ocean_reference_density = 1024
     ocean_heat_capacity = 3991
-    reference_temperature = 273.15
-
-    # How would we ensure consistency?
-    try
-        if ice.model.external_heat_fluxes.top isa RadiativeEmission
-            ice_radiation = ice.model.external_heat_fluxes.top
-        else
-            ice_radiation = filter(flux isa RadiativeEmission, ice.model.external_heat_fluxes.top) |> first
-        end
-
-        reference_temperature = ice_radiation.reference_temperature
-    catch
-    end
-    
-    u_flux_field = surface_flux(ocean.model.velocities.u)
-    v_flux_field = surface_flux(ocean.model.velocities.v)
-
-    momentum_flux = (u = CrossRealmFlux(u_flux_field),
-                     v = CrossRealmFlux(v_flux_field))
-
-    tracer_fluxes = (T = nothing, S = nothing)
-
-    atmosphere_ocean_fluxes = (momentum = momentum_flux,
-                               tracers = tracer_fluxes)
-
-    atmosphere_sea_ice_fluxes = NamedTuple()
-    sea_ice_ocean_fluxes = NamedTuple()
+    # reference_temperature = 273.15 # for radiation?
 
     return OceanSeaIceModel(clock,
                             ocean.model.grid,
                             atmosphere,
                             ice,
                             ocean,
-                            atmosphere_ocean_fluxes,
-                            atmosphere_sea_ice_fluxes,
-                            sea_ice_ocean_fluxes,
                             radiation,
                             previous_ice_thickness,
                             previous_ice_concentration,
@@ -105,7 +73,7 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=nothing)
         parent(h⁻) .= parent(hⁿ)
     end
 
-    sea_ice.Δt   = Δt
+    sea_ice.Δt = Δt
     ocean.Δt = Δt
 
     time_step!(sea_ice)
