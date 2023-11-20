@@ -33,7 +33,7 @@ using Oceananigans.Models: AbstractModel
 ##### Some implementation
 #####
 
-include("cross_realm_fluxes.jl")
+include("ocean_sea_ice_model_fluxes.jl")
 include("radiation.jl")
 include("atmosphere_sea_ice_fluxes.jl")
 include("atmosphere_ocean_momentum_flux.jl")

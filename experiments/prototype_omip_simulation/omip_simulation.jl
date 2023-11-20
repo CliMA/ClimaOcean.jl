@@ -128,13 +128,8 @@ v_jra55 = FieldTimeSeries{Center, Face, Nothing}(grid, times; boundary_condition
 velocities = (u=u_jra55, v=v_jra55)
 atmosphere = PrescribedAtmosphere(velocities, times)
 
-coupled_model = OceanSeaIceModel(ice, ocean, atmosphere)
+coupled_model = OceanSeaIceModel(ocean, ice, atmosphere)
 coupled_simulation = Simulation(coupled_model, Δt=5minutes, stop_iteration=1) #stop_time=30days)
-
-@show coupled_model.atmosphere_ocean_fluxes.momentum.flux.u
-@show coupled_model.atmosphere_ocean_fluxes.momentum.formula
-@show coupled_model.atmosphere_ocean_fluxes.tracers.T.formula
-@show coupled_model.atmosphere_ocean_fluxes.tracers.T.flux
 
 #=
 adjust_ice_covered_ocean_temperature!(coupled_model)

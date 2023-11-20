@@ -29,7 +29,7 @@ prognostic_fields(cm::OSIM) = nothing
 fields(::OSIM) = NamedTuple()
 default_clock(TT) = Oceananigans.TimeSteppers.Clock{TT}(0, 0, 1)
 
-function OceanSeaIceModel(ice, ocean, atmosphere=nothing; 
+function OceanSeaIceModel(ocean, ice=nothing, atmosphere=nothing; 
                           radiation = nothing,
                           clock = default_clock(eltype(ocean.model)))
     
@@ -43,13 +43,17 @@ function OceanSeaIceModel(ice, ocean, atmosphere=nothing;
     ocean_reference_density = 1024
     ocean_heat_capacity = 3991
     # reference_temperature = 273.15 # for radiation?
+    
+    fluxes = CrossRealmFluxes(ocean, ice; radiation)
+
+    FT = eltype(ocean.model.grid)
 
     return OceanSeaIceModel(clock,
                             ocean.model.grid,
                             atmosphere,
                             ice,
                             ocean,
-                            radiation,
+                            fluxes,
                             previous_ice_thickness,
                             previous_ice_concentration,
                             convert(FT, ocean_reference_density),
