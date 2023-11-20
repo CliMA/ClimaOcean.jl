@@ -44,7 +44,7 @@ function OceanSeaIceModel(ocean, ice=nothing, atmosphere=nothing;
     ocean_heat_capacity = 3991
     # reference_temperature = 273.15 # for radiation?
     
-    fluxes = CrossRealmFluxes(ocean, ice; radiation)
+    fluxes = OceanSeaIceModelFluxes(ocean, ice; radiation)
 
     FT = eltype(ocean.model.grid)
 

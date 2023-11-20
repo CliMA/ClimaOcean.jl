@@ -29,6 +29,11 @@ using Oceananigans.Utils: Time
 using Oceananigans.Grids: architecture
 using Oceananigans.Models: AbstractModel
 
+using Oceananigans.OutputReaders: FieldTimeSeries, GPUAdaptedFieldTimeSeries
+
+const SomeKindOfFieldTimeSeries = Union{FieldTimeSeries,
+                                        GPUAdaptedFieldTimeSeries}
+
 #####
 ##### Some implementation
 #####

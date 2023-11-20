@@ -131,7 +131,6 @@ atmosphere = PrescribedAtmosphere(velocities, times)
 coupled_model = OceanSeaIceModel(ocean, ice, atmosphere)
 coupled_simulation = Simulation(coupled_model, Δt=5minutes, stop_iteration=1) #stop_time=30days)
 
-#=
 adjust_ice_covered_ocean_temperature!(coupled_model)
 
 wall_clock = Ref(time_ns())
@@ -170,6 +169,22 @@ coupled_simulation.output_writers[:surface] = JLD2OutputWriter(ocean_model, outp
 
 run!(coupled_simulation)
 
+using GLMakie
+
+fig = Figure(resolution=(2400, 1200))
+
+axx = Axis(fig[1, 1])
+axy = Axis(fig[1, 2])
+
+τˣ = coupled_model.fluxes.surfaces.ocean.momentum.u
+τʸ = coupled_model.fluxes.surfaces.ocean.momentum.v
+τˣ = interior(τˣ, :, :, 1)
+τʸ = interior(τˣ, :, :, 1)
+
+heatmap!(axx, λ, φ, τˣ)
+heatmap!(axy, λ, φ, τʸ)
+
+#=
 #####
 ##### Visualize
 #####

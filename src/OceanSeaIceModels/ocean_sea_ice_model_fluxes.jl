@@ -25,23 +25,26 @@ end
 
 #####
 ##### Convenience containers for surface fluxes
+##### 
+##### "Cross realm fluxes" can refer to the flux _data_ (ie, fields representing
+##### the total flux for a given variable), or to the flux _components_ / formula.
 #####
 
-struct OceanSurfaceFluxes{M, T}
+struct CrossRealmFluxes{M, H, T}
     momentum :: M
+    heat :: H
     tracers :: T
 end
 
-Base.summary(osf::OceanSurfaceFluxes) = "OceanSurfaceFluxes"
-Base.show(io::IO, osf::OceanSurfaceFluxes) = print(io, summary(osf))
+CrossRealmFluxes(; momentum=nothing, heat=nothing, tracers=nothing) =
+    CrossRealmFluxes(momentum, heat, tracers)
 
-struct SeaIceSurfaceFluxes{M, T}
-    momentum :: M
-    tracers :: T
-end
+Base.summary(osf::CrossRealmFluxes) = "CrossRealmFluxes"
+Base.show(io::IO, osf::CrossRealmFluxes) = print(io, summary(osf))
 
-Base.summary(sisf::SeaIceSurfaceFluxes) = "SeaIceSurfaceFluxes"
-Base.show(io::IO, sisf::SeaIceSurfaceFluxes) = print(io, summary(sisf))
+#####
+##### Extractors for differnet models (maybe this belongs in the model repo's)
+#####
 
 function extract_top_surface_fluxes(model::HydrostaticFreeSurfaceModel)
     u_flux = surface_flux(model.velocities.u)
@@ -55,8 +58,8 @@ function extract_top_surface_fluxes(model::HydrostaticFreeSurfaceModel)
                                      for name in keys(ocean_tracers)
                                      if surface_flux(ocean_tracers[name]) isa AbstractArray)
 
-    ocean_fluxes = OceanSurfaceFluxes(ocean_momentum_fluxes,
-                                      ocean_tracer_fluxes)
+    ocean_fluxes = CrossRealmFluxes(momentum = ocean_momentum_fluxes,
+                                    tracers = ocean_tracer_fluxes)
 
     return ocean_fluxes
 end
@@ -94,10 +97,10 @@ function OceanSeaIceSurfaces(ocean, sea_ice=nothing)
 end
 
 #####
-##### Cross-realm fluxes
+##### Container for organizing information related to fluxes
 #####
 
-struct CrossRealmFluxes{S, R, AO, AI, IO}
+struct OceanSeaIceModelFluxes{S, R, AO, AI, IO}
     surfaces :: S
     radiation :: R
     atmosphere_ocean :: AO
@@ -105,23 +108,31 @@ struct CrossRealmFluxes{S, R, AO, AI, IO}
     sea_ice_ocean :: IO
 end
 
-function CrossRealmFluxes(ocean_simulation, sea_ice_simulation=nothing;
-                          radiation = nothing,
-                          atmosphere_ocean = nothing,
-                          atmosphere_sea_ice = nothing,
-                          sea_ice_ocean = nothing)
+function OceanSeaIceModelFluxes(ocean, sea_ice=nothing;
+                                radiation = nothing,
+                                atmosphere_ocean = nothing,
+                                atmosphere_sea_ice = nothing,
+                                sea_ice_ocean = nothing)
 
-    surfaces = OceanSeaIceSurfaces(ocean_simulation, sea_ice_simulation)
+    surfaces = OceanSeaIceSurfaces(ocean, sea_ice)
 
-    return CrossRealmFluxes(surfaces,
-                            radiation,
-                            atmosphere_ocean,
-                            atmosphere_sea_ice,
-                            sea_ice_ocean)
+    if isnothing(atmosphere_ocean) # defaults
+        FT = eltype(ocean.model.grid)
+        τˣ = BulkFormula(FT, transfer_coefficient=1e-3)
+        τʸ = BulkFormula(FT, transfer_coefficient=1e-3)
+        momentum_flux_formulae = (u=τˣ, v=τʸ)
+        atmosphere_ocean = CrossRealmFluxes(momentum = momentum_flux_formulae)
+    end
+
+    return OceanSeaIceModelFluxes(surfaces,
+                                  radiation,
+                                  atmosphere_ocean,
+                                  atmosphere_sea_ice,
+                                  sea_ice_ocean)
 end
 
-Base.summary(crf::CrossRealmFluxes) = "CrossRealmFluxes"
-Base.show(io::IO, crf::CrossRealmFluxes) = print(io, summary(crf))
+Base.summary(crf::OceanSeaIceModelFluxes) = "OceanSeaIceModelFluxes"
+Base.show(io::IO, crf::OceanSeaIceModelFluxes) = print(io, summary(crf))
 
 #####
 ##### CrossRealmFlux
@@ -141,31 +152,31 @@ end
 
 function BulkFormula(FT=Float64;
                      transfer_velocity = RelativeAtmosphereOceanVelocity(),
-                     transfer_coefficient = convert(FT, 1e-3))
+                     transfer_coefficient = 1e-3)
 
-    return BulkFormula(transfer_velocity, transfer_coefficient)
+    return BulkFormula(transfer_velocity,
+                       convert(FT, transfer_coefficient))
 end
 
-#####
-##### Abstraction for fluxes across the realms
-#####
+@inline Δϕt²(i, j, k, grid, ϕ1t, ϕ2, time) = @inbounds (ϕ1t[i, j, k, time] - ϕ2[i, j, k])^2
 
-struct CrossRealmFlux{EQ, F}
-    formula :: EQ
-    flux :: F
+@inline function transfer_velocityᶠᶜᶜ(i, j, grid, time, ::RelativeAtmosphereOceanVelocity, Uₐ, Uₒ)
+    uₐ = Uₐ.u
+    vₐ = Uₐ.v
+    uₒ = Uₒ.u
+    vₒ = Uₒ.v
+
+    Δu = @inbounds uₐ[i, j, 1, time] - uₒ[i, j, 1]
+    Δv² = ℑyᵃᶜᵃ(i, j, 1, grid, Δϕt², vₐ, vₒ, time)
+    return sqrt(Δu^2 + Δv²)
 end
 
-"""
-    CrossRealmFlux(flux_field; formula = nothing)
-
-May the realms communicate.
-"""
-function CrossRealmFlux(flux_field; formula = nothing)
-
-    if isnothing(formula) # constant coefficient then
-        formula = BulkFormula(eltype(flux_field))
-    end
-                        
-    return CrossRealmFlux(formula, flux_field)
+@inline function transfer_velocityᶜᶠᶜ(i, j, grid, time, ::RelativeAtmosphereOceanVelocity, Uₐ, Uₒ)
+    uₐ = Uₐ.u
+    vₐ = Uₐ.v
+    uₒ = Uₒ.u
+    vₒ = Uₒ.v
+    Δu² = ℑxᶜᵃᵃ(i, j, 1, grid, Δϕt², uₐ, uₒ, time)
+    Δv = @inbounds vₐ[i, j, 1, time] - vₒ[i, j, 1]
+    return sqrt(Δu² + Δv^2)
 end
-
