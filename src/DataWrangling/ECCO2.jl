@@ -210,7 +210,7 @@ Keyword Arguments:
 function adjusted_ecco_field(variable_name; 
                              architecture = CPU(),
                              overwrite_existing = false, 
-                             filename = "./data/initial_ecco_tracers.nc",
+                             filename = "./data/adjusted_ecco_tracers.nc",
                              mask = ecco2_center_mask(architecture))
     
     if overwrite_existing || !isfile(filename)
@@ -245,7 +245,7 @@ end
 
 function initialize!(model;
                      overwrite_existing = false,
-                     filename = "./data/initial_ecco_tracers.nc", 
+                     filename = "./data/adjusted_ecco_tracers.nc", 
                      kwargs...)
     
     grid = model.grid
