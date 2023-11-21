@@ -12,39 +12,56 @@ using Printf
 ##### Regional Mediterranean grid 
 #####
 
+# Domain and Grid size
+#
+# We construct a grid that represents the Mediterranean sea, 
+# with a resolution of 1/10th of a degree (roughly 10 km resolution)
+λ₁, λ₂ = ( 0, 42) # domain in longitude
+φ₂, φ₂ = (30, 45) # domain in latitude
 # A stretched vertical grid with a Δz of 1.5 meters in the first 50 meters
-z = stretched_vertical_faces(depth = 5000, 
+z_face = stretched_vertical_faces(depth = 5000, 
                              surface_layer_Δz = 2.5, 
                              stretching = PowerLawStretching(1.070), 
                              surface_layer_height = 50)
 
-Nx = 4 * 42 # 1 / 4th of a degree
-Ny = 4 * 15 # 1 / 4th of a degree
+Nx = 4 * 42 # 1 / 4th of a degree resolution
+Ny = 4 * 15 # 1 / 4th of a degree resolution
 Nz = length(z) - 1
-
-@info "grid size: ($Nx, $Ny, $Nz)"
 
 grid = LatitudeLongitudeGrid(CPU();
                              size = (Nx, Ny, Nz),
-                             latitude = (30, 45),
-                             longitude = (0, 42),
-                             z,
+                             latitude  = (φ₁, φ₂),
+                             longitude = (λ₁, λ₂),
+                             z = z_face,
                              halo = (7, 7, 7))
 
-h = regrid_bathymetry(grid, height_above_water=1)
-
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(h))
+# Interpolating the bathymetry onto the grid
+#
+# We regrid the bathymetry onto the grid we constructed.
+# we allow a minimum depth of 10 meters (all shallower regions are 
+# considered land) and we use 5 intermediate grids (interpolation_passes = 5)
+# Note that more interpolation passes will smooth the bathymetry
+heigth = regrid_bathymetry(grid, 
+                           height_above_water = 1,
+                           minimum_depth = 10,
+                           interpolation_passes = 5)
+grid = ImmersedBoundaryGrid(grid, GridFittedBottom(height))
 
 # Correct oceananigans
 import Oceananigans.Advection: nothing_to_default
 
 nothing_to_default(user_value; default) = isnothing(user_value) ? default : user_value
 
-# Construct the model and run it
+# Constructing the model
+#
+# We construct the model with three tracers, temperature (:T), salinity (:S) and TKE (:e).
+# The latter is used as a prognostic variable for the micro-scale turbulence closure: `CATKEVerticalDiffusivity`
+# We select a linear equation of state for buoyancy calculation, and WENO schemes for both tracer and momentum advection.
+# The free surface utilizes a split-explicit formulation with a barotropic CFL of 0.75 based on wave speed.
 model = HydrostaticFreeSurfaceModel(; grid,
-                                      momentum_advection = WENOVectorInvariant(),
-                                      tracer_advection = WENO(grid; order = 7),
-                                      free_surface = SplitExplicitFreeSurface(; cfl = 0.75, grid),
+                            momentum_advection = WENOVectorInvariant(),
+                              tracer_advection = WENO(grid; order = 7),
+                                  free_surface = SplitExplicitFreeSurface(; cfl = 0.75, grid),
                                       closure  = CATKEVerticalDiffusivity(),
                                       buoyancy = SeawaterBuoyancy(),
                                       tracers  = (:T, :S, :e),
@@ -56,6 +73,7 @@ model = HydrostaticFreeSurfaceModel(; grid,
 # In this case, our ECCO2 dataset has access to a temperature and a salinity
 # field, so we initialize T and S from ECCO2. We initialize TKE (:e) with a 
 # constant value of 1e-6 m²/s² throughout the domain
+@info "initializing model from ECCO2 fields"
 initialize!(model, T = :ecco2_temperature, S = :ecco2_salinity, e = 1e-6)
 
 fig = Figure()

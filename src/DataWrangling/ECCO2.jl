@@ -181,10 +181,9 @@ end
 
 """
     adjusted_ecco_field(variable_name; 
-                             architecture = CPU(),
-                             filename = "./data/initial_ecco_tracers.nc",
-                             overwrite_existing = false, 
-                             mask = ecco2_center_mask(architecture))
+                        architecture = CPU(),
+                        filename = "./data/initial_ecco_tracers.nc",
+                        mask = ecco2_center_mask(architecture))
     
 Retrieve the ECCO2 field corresponding to `variable_name` adjusted to fill all the
 missing values in the original dataset
@@ -203,24 +202,22 @@ Keyword Arguments:
               the data will be retrived from the ECCO2 dataset, it will be adjusted and
               saved down in `filename`
 
-- `overwrite_existing`: If true, even if data exists in `filename`, the file will we overwritten
-
 - `mask`: the mask used to extend the field (see `adjust_tracer!`)
 """
 function adjusted_ecco_field(variable_name; 
                              architecture = CPU(),
-                             overwrite_existing = false, 
                              filename = "./data/adjusted_ecco_tracers.nc",
                              mask = ecco2_center_mask(architecture))
     
-    if overwrite_existing || !isfile(filename)
+    if !isfile(filename)
         f = ecco2_field(variable_name; architecture)
         
         # Make sure all values are extended properly
+        @info "in-painting ecco field $variable_name and saving it in $filename"
         adjust_tracer!(f; mask)
 
         ds = Dataset(filename, "c")
-        defVar(ds, string(variable_name), f, ("lat", "lon", "z"))
+        defVar(ds, string(variable_name), Array(interior(f)), ("lat", "lon", "z"))
 
         close(ds)
     else
@@ -232,9 +229,10 @@ function adjusted_ecco_field(variable_name;
         else
             f = ecco2_field(variable_name; architecture)
             # Make sure all values are extended properly
+            @info "in-painting ecco field $variable_name and saving it in $filename"
             adjust_tracer!(f; mask)
 
-            defVar(ds, string(variable_name), f, ("lat", "lon", "z"))
+            defVar(ds, string(variable_name), Array(interior(f)), ("lat", "lon", "z"))
         end
 
         close(ds)
@@ -245,7 +243,6 @@ end
 
 """
     initialize!(model;
-                overwrite_existing = false,
                 filename = "./data/adjusted_ecco_tracers.nc", 
                 kwargs...)
 
@@ -255,9 +252,11 @@ and the `data` may be
  (1) an array
  (2) a function with arguments `(x, y, z)` for 3D fields, `(x, y)` for 2D fields and `(x)` for 1D fields
  (3) a symbol corresponding to a fldname of `ecco2_tracer_fields`
+
+The keyword argument `filename` is the path to a netcdf file containing the adjusted ecco fields.
+If the file does not exist it will be created
 """
 function initialize!(model;
-                     overwrite_existing = false,
                      filename = "./data/adjusted_ecco_tracers.nc", 
                      kwargs...)
     
