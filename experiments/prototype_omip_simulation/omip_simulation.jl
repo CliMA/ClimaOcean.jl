@@ -1,3 +1,4 @@
+#=
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.TurbulenceClosures: CATKEVerticalDiffusivity
@@ -121,15 +122,17 @@ u_jra55_native = jra55_field_time_series(:eastward_velocity;  time_indices, arch
 v_jra55_native = jra55_field_time_series(:northward_velocity; time_indices, architecture=arch)
                                                           
 times = u_jra55_native.times
-u_bcs = u_jra55_native.boundary_conditions
-v_bcs = v_jra55_native.boundary_conditions
+u_bcs = FieldBoundaryConditions(grid, (Face, Center, Nothing))
+v_bcs = FieldBoundaryConditions(grid, (Center, Face, Nothing))
 u_jra55 = FieldTimeSeries{Face, Center, Nothing}(grid, times; boundary_conditions=u_bcs)
 v_jra55 = FieldTimeSeries{Center, Face, Nothing}(grid, times; boundary_conditions=v_bcs)
+interpolate!(u_jra55, u_jra55_native)
+interpolate!(v_jra55, v_jra55_native)
 velocities = (u=u_jra55, v=v_jra55)
 atmosphere = PrescribedAtmosphere(velocities, times)
 
 coupled_model = OceanSeaIceModel(ocean, ice, atmosphere)
-coupled_simulation = Simulation(coupled_model, Δt=5minutes, stop_iteration=1) #stop_time=30days)
+coupled_simulation = Simulation(coupled_model, Δt=5minutes, stop_iteration=2) #stop_time=30days)
 
 adjust_ice_covered_ocean_temperature!(coupled_model)
 
@@ -168,8 +171,11 @@ coupled_simulation.output_writers[:surface] = JLD2OutputWriter(ocean_model, outp
                                                                overwrite_existing = true)
 
 run!(coupled_simulation)
+=#
 
-using GLMakie
+using ClimaOcean.OceanSeaIceModels: compute_atmosphere_ocean_fluxes!
+
+compute_atmosphere_ocean_fluxes!(coupled_model)
 
 fig = Figure(resolution=(2400, 1200))
 
@@ -178,11 +184,17 @@ axy = Axis(fig[1, 2])
 
 τˣ = coupled_model.fluxes.surfaces.ocean.momentum.u
 τʸ = coupled_model.fluxes.surfaces.ocean.momentum.v
-τˣ = interior(τˣ, :, :, 1)
-τʸ = interior(τˣ, :, :, 1)
 
-heatmap!(axx, λ, φ, τˣ)
-heatmap!(axy, λ, φ, τʸ)
+λf, φc, zc = nodes(τˣ)
+λc, φf, zc = nodes(τʸ)
+
+τˣ = interior(τˣ, :, :, 1)
+τʸ = interior(τʸ, :, :, 1)
+
+heatmap!(axx, λf, φc, τˣ)
+heatmap!(axy, λc, φf, τʸ)
+
+display(fig)
 
 #=
 #####

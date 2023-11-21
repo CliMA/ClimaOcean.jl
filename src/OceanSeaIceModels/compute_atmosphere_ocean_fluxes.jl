@@ -30,7 +30,9 @@ end
 @inline function air_sea_difference(i, j, grid, time, ::RelativeAtmosphereOceanVelocity,
                                     air::SomeKindOfFieldTimeSeries, sea::AbstractArray)
 
-    return @inbounds air[i, j, 1, time] - sea[i, j, 1]
+    δ = @inbounds air[i, j, 1, time] - sea[i, j, 1]
+    @show air[i, j, 1, time] time δ
+    return δ
 end
 
 @kernel function _compute_atmosphere_ocean_fluxes!(grid,
@@ -74,9 +76,19 @@ end
     Δu = air_sea_difference(i, j, grid, time, u_formula, uₐ, uₒ)
     Δv = air_sea_difference(i, j, grid, time, v_formula, vₐ, vₒ)
 
+    @show uₒ[i, j, 1]
+    @show vₒ[i, j, 1]
+    @show Vᶠᶜᶜ
+    @show Vᶜᶠᶜ
+    @show Δu
+    @show Δv
+
     @inbounds begin
         τˣ[i, j, 1] = - ρₐ / ρₒ * cᴰ * Δu * Vᶠᶜᶜ
         τʸ[i, j, 1] = - ρₐ / ρₒ * cᴰ * Δv * Vᶜᶠᶜ
+
+        @show τˣ[i, j, 1] 
+        @show τʸ[i, j, 1]
 
         # Q[i, j, 1] = ρₐ
     end
