@@ -1,6 +1,6 @@
 module InitialConditions
 
-export continue_downwards!
+export initialize!
 
 using Oceananigans
 using Oceananigans.BoundaryConditions

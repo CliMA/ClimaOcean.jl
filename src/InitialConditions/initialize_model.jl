@@ -1,4 +1,5 @@
-using ClimaOcean.ECCO2: ecco2_tracer_fields, adjusted_ecco_field, ecco2_location
+using ClimaOcean.DataWrangling.ECCO2: ecco2_tracer_fields, adjusted_ecco_field, ecco2_location
+using ClimaOcean.DataWrangling.ECCO2: ecco2_center_mask
 
 """
     initialize!(model;
@@ -10,7 +11,7 @@ where `name` refers to one of the fields of `model.velocities` or `model.tracers
 and the `data` may be
  (1) an array
  (2) a function with arguments `(x, y, z)` for 3D fields, `(x, y)` for 2D fields and `(x)` for 1D fields
- (3) a symbol corresponding to a fldname of `ecco2_tracer_fields`
+ (3) a symbol corresponding to a fldname contained in `ecco2_tracer_fields`
  (4) a checkpoint path containing the checkpointed field
 The keyword argument `filename` is the path to a netcdf file containing the adjusted ecco fields.
 If the file does not exist it will be created

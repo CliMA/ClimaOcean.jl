@@ -5,6 +5,7 @@ export stretched_vertical_faces
 export PowerLawStretching, LinearStretching
 export jra55_field_time_series
 export ecco2_field
+export initialize!
 
 using Oceananigans
 using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ

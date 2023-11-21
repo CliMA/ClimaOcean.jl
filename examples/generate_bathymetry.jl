@@ -46,7 +46,7 @@ grid = LatitudeLongitudeGrid(CPU();
                              z = (0, 1),
                              halo = (4, 4, 4))
 
-h_smooth = regrid_bathymetry(grid, height_above_water=1, interpolation_passes = 10)
+h_smooth = regrid_bathymetry(grid, height_above_water=1, interpolation_passes = 40)
 h_rough  = regrid_bathymetry(grid, height_above_water=1, interpolation_passes = 1)
 
 λ, φ, z = nodes(h_smooth)
