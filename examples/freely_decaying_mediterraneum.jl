@@ -38,24 +38,6 @@ h = regrid_bathymetry(grid, height_above_water=1)
 
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(h))
 
-Tecco, Secco = initial_ecco_tracers(architecture(grid))
-
-T = CenterField(grid)
-S = CenterField(grid)
-
-# Regrid to our grid!
-three_dimensional_regrid!(T, Tecco)
-three_dimensional_regrid!(S, Secco)
-
-mask_immersed_field!(T)
-mask_immersed_field!(S)
-
-fig = Figure()
-ax  = Axis(fig[1, 1])
-heatmap!(ax, interior(T, :, :, Nz), colorrange = (10, 20), colormap = :thermal)
-ax  = Axis(fig[1, 2])
-heatmap!(ax, interior(S, :, :, Nz), colorrange = (35, 40), colormap = :haline)
-
 # Correct oceananigans
 import Oceananigans.Advection: nothing_to_default
 
@@ -71,7 +53,13 @@ model = HydrostaticFreeSurfaceModel(; grid,
                                       tracers  = (:T, :S, :e),
                                       coriolis = HydrostaticSphericalCoriolis(scheme = ActiveCellEnstrophyConserving()))
 
-set!(model, T = T, S = S, e = 1e-6)
+initialize!(model, T = :ecco2_temperature, S = :ecco2_salinity, e = 1e-6)
+
+fig = Figure()
+ax  = Axis(fig[1, 1])
+heatmap!(ax, interior(model.tracers.T, :, :, Nz), colorrange = (10, 20), colormap = :thermal)
+ax  = Axis(fig[1, 2])
+heatmap!(ax, interior(model.tracers.S, :, :, Nz), colorrange = (35, 40), colormap = :haline)
 
 simulation = Simulation(model, Δt = 20, stop_iteration = 100)
 

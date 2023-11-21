@@ -1,8 +1,8 @@
 module ECCO2
 
-export ecco2_field, ecco2_center_mask, initial_ecco_tracers
+export ecco2_field, ecco2_center_mask, adjusted_ecco_tracers, initialize!
 
-using ClimaOcean.InitialConditions: adjust_tracers!
+using ClimaOcean.InitialConditions: adjust_tracer!, three_dimensional_regrid
 
 using Oceananigans
 using Oceananigans.BoundaryConditions
@@ -13,6 +13,12 @@ using NCDatasets
 temperature_filename = "THETA.1440x720x50.19920102.nc"
 salinity_filename = "SALT.1440x720x50.19920102.nc"
 effective_ice_thickness_filename = "SIheff.1440x720.19920102.nc"
+
+ecco2_tracer_fields = Dict(
+    :ecco2_temperature => :temperature,
+    :ecco2_salinity => :salinity,
+    :ecco_2_effective_ice_thickness => :effective_ice_thickness
+)
 
 ecco2_short_names = Dict(
     :temperature   => "THETA",
@@ -110,8 +116,10 @@ function ecco2_field(variable_name;
     grid = LatitudeLongitudeGrid(architecture; halo, size = N, topology = (TX, TY, TZ),
                                  longitude, latitude, z)
 
+    FT    = eltype(grid)
     field = Field{Center, Center, LZ}(grid)
-    
+    data  = convert.(FT, data)
+
     set!(field, data)
     fill_halo_regions!(field)
 
@@ -133,48 +141,66 @@ function ecco2_center_mask(architecture = CPU(); minimum_value = Float32(-1e5))
     return mask
 end
 
-function ecco2_bottom_height_from_temperature()
-    Tᵢ   = ecco2_field(:temperature)
-    grid = Tᵢ.grid 
-
-    # Construct bottom_height depth by analyzing T
-    Nx, Ny, Nz = size(Tᵢ)
-    bottom_height = ones(Nx, Ny) .* grid.Lz
-    zf = znodes(Tᵢ.grid, Face())
+function adjusted_ecco_field(variable_name; 
+                             architecture = CPU(),
+                             overwrite_existing = true, 
+                             filename = "./data/initial_ecco_tracers.nc")
     
-    for i = 1:Nx, j = 1:Ny
-        @inbounds for k = Nz:-1:1
-            if Tᵢ[i, j, k] < -10
-                bottom_height[i, j] = zf[k+1]
-                break
-            end
+    if overwrite_existing || !isfile(filename)
+        f = ecco2_field(variable_name; architecture)
+        
+        # Make sure all values are extended properly
+        adjust_tracer!(f; mask = ecco2_center_mask(architecture))
+
+        ds = Dataset(filename, "c")
+        defVar(ds, string(variable_name), f, ("lat", "lon", "z"))
+    else
+        ds = Dataset(filename)
+
+        if haskey(ds, string(variable_name))
+            f = ds[variable_name][:, :, :]
+        else
+            f = ecco2_field(variable_name; architecture)
+            # Make sure all values are extended properly
+            adjust_tracer!(f; mask = ecco2_center_mask(architecture))
+
+            defVar(ds, string(variable_name), f, ("lat", "lon", "z"))
         end
     end
 
-    return bottom_height
+    return f
 end
 
-function initial_ecco_tracers(architecture; 
-                              overwrite_existing = true, 
-                              initial_condition_file = "../data/initial_ecco_tracers.nc")
+function initialize!(model;
+                     overwrite_existing = true,
+                     filename = "./data/initial_ecco_tracers.nc", 
+                     kwargs...)
     
-    if overwrite_existing || !isfile(initial_condition_file)
-        T = ecco2_field(:temperature; architecture)
-        S = ecco2_field(:salinity; architecture)
-        
-        # Make sure all values are extended properly before regridding
-        adjust_tracers!((; T, S); mask = ecco2_center_mask(architecture))
-    
-        nc = Dataset(initial_condition_file, "w")
-        nc["T"] = interior(Tecco)
-        nc["S"] = interior(Tecco)
-    else 
-        nc = Dataset(initial_condition_file)
-        T = nc["T"]
-        S = nc["S"]
+    arch = architecture(model)
+
+    ordinary_fields = Dict()
+    ecco2_fields    = Dict()
+
+    for (fldname, value) in kwargs
+        if value ∈ keys(ecco2_tracer_fields)
+            ecco2_fields[fldname] = value
+        else
+            ordinary_fields[fldname] = value
+        end
     end
 
-    return T, S
+    # Additional tracers not present in the ECCO dataset
+    set!(model; ordinary_fields...)
+
+    # Set tracers from ecco2
+    for fldname in keys(ecco2_fields)
+        f = adjusted_ecco_field(fldname; 
+                                architecture = arch,
+                                overwrite_existing, 
+                                filename)
+
+        set!(model; variable_name => f)
+    end
 end
 
 end # module

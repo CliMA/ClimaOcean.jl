@@ -108,15 +108,22 @@ end
     @inbounds tracer[i, j, k] = ifelse(mask(i, j, k, grid) == 1, initial_tracer[i, j, k], tracer[i, j, k])
 end
 
-function adjust_tracers!(tracers; mask = nothing, max_iter = Inf)
+function adjust_tracer!(tracers::NamedTuple; mask = nothing, max_iter = Inf)
 
     for (name, tracer) in zip(keys(tracers), tracers)
         @info "extending tracer $name"
-        continue_downwards!(tracer, mask)
-        propagate_horizontally!(tracer, mask; max_iter)
+        adjust_tracer!(tracer; mask, max_iter)
     end
 
     return tracers
+end
+
+function adjust_tracer!(tracer; mask = nothing, max_iter = Inf)
+
+    continue_downwards!(tracer, mask)
+    propagate_horizontally!(tracer, mask; max_iter)
+    
+    return tracer
 end
 
 @inline not_an_immersed_cell(i, j, k, grid) = !immersed_cell(i, j, k, grid)
