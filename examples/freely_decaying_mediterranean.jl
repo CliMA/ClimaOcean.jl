@@ -64,7 +64,7 @@ heatmap!(ax, interior(model.tracers.T, :, :, Nz), colorrange = (10, 20), colorma
 ax  = Axis(fig[1, 2])
 heatmap!(ax, interior(model.tracers.S, :, :, Nz), colorrange = (35, 40), colormap = :haline)
 
-simulation = Simulation(model, Δt = 20, stop_iteration = 100)
+simulation = Simulation(model, Δt = 20, stop_iteration = 100, stop_time = 10*365days)
 
 function progress(sim) 
     u, v, w = sim.model.velocities  
@@ -83,7 +83,7 @@ simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
 # warm up for 100 iterations!
 run!(simulation)
 
-simulation.stop_time = 10*365days
+simulation.stop_iteration = Inf
 
 wizard = TimeStepWizard(; cfl = 0.2, max_Δt = 10minutes, max_change = 1.1)
 

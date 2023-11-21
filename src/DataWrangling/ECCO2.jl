@@ -243,6 +243,19 @@ function adjusted_ecco_field(variable_name;
     return f
 end
 
+"""
+    initialize!(model;
+                overwrite_existing = false,
+                filename = "./data/adjusted_ecco_tracers.nc", 
+                kwargs...)
+
+Initialize `model`. The keyword arguments `kwargs...` take the form `name=data`,
+where `name` refers to one of the fields of `model.velocities` or `model.tracers`, 
+and the `data` may be
+ (1) an array
+ (2) a function with arguments `(x, y, z)` for 3D fields, `(x, y)` for 2D fields and `(x)` for 1D fields
+ (3) a symbol corresponding to a fldname of `ecco2_tracer_fields`
+"""
 function initialize!(model;
                      overwrite_existing = false,
                      filename = "./data/adjusted_ecco_tracers.nc", 
