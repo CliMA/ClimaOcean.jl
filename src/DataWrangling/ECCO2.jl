@@ -113,16 +113,17 @@ function empty_ecco2_field(variable_name; architecture = CPU(), horizontal_halo 
 end
 
 """
-        ecco2_field(variable_name;
-                    architecture = CPU(),
-                    horizontal_halo = (1, 1),
-                    user_data = nothing,
-                    url = ecco2_urls[variable_name],
-                    filename = ecco2_file_names[variable_name],
-                    short_name = ecco2_short_names[variable_name])
+    ecco2_field(variable_name;
+                architecture = CPU(),
+                horizontal_halo = (1, 1),
+                user_data = nothing,
+                url = ecco2_urls[variable_name],
+                filename = ecco2_file_names[variable_name],
+                short_name = ecco2_short_names[variable_name])
 
 Retrieve the ecco2 field corresponding the `variable_name`, stored in 
-`filename` or dowloaded from `url`
+`filename` or dowloaded from `url`. If `user_data` is provided, the 
+field is set with `user_data`
 """
 function ecco2_field(variable_name;
                      architecture = CPU(),
@@ -287,7 +288,6 @@ function initialize!(model;
         for (fldname, variable_name) in ecco2_fields
             f = adjusted_ecco_field(variable_name; 
                                     architecture = arch,
-                                    overwrite_existing, 
                                     filename,
                                     mask)
 
