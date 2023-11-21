@@ -2,7 +2,7 @@ module ECCO2
 
 export ecco2_field, ecco2_center_mask, adjusted_ecco_tracers, initialize!
 
-using ClimaOcean.InitialConditions: adjust_tracer!, three_dimensional_regrid
+using ClimaOcean.InitialConditions: adjust_tracer!, three_dimensional_regrid!
 
 using Oceananigans
 using Oceananigans.BoundaryConditions
@@ -24,6 +24,12 @@ ecco2_short_names = Dict(
     :temperature   => "THETA",
     :salinity      => "SALT",
     :effective_ice_thickness => "SIheff"
+)
+
+ecco2_location = Dict(
+    :temperature   => (Center, Center, Center),
+    :salinity      => (Center, Center, Center),
+    :effective_ice_thickness => (Center, Center, Nothing)
 )
 
 ecco2_depth_names = Dict(
@@ -198,8 +204,11 @@ function initialize!(model;
                                 architecture = arch,
                                 overwrite_existing, 
                                 filename)
+                            
+        f_grid = Field(ecco2_location[variable_name], model.grid)     
+        three_dimensional_regrid!(f_grid, f)
 
-        set!(model; variable_name => f)
+        set!(model; variable_name => f_grid)
     end
 end
 
