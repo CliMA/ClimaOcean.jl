@@ -17,7 +17,7 @@ using Printf
 # We construct a grid that represents the Mediterranean sea, 
 # with a resolution of 1/10th of a degree (roughly 10 km resolution)
 λ₁, λ₂ = ( 0, 42) # domain in longitude
-φ₂, φ₂ = (30, 45) # domain in latitude
+φ₁, φ₂ = (30, 45) # domain in latitude
 # A stretched vertical grid with a Δz of 1.5 meters in the first 50 meters
 z_face = stretched_vertical_faces(depth = 5000, 
                              surface_layer_Δz = 2.5, 
