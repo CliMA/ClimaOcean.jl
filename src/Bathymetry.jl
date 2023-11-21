@@ -86,15 +86,9 @@ function regrid_bathymetry(target_grid;
     close(dataset)
 
     # Diagnose target grid information
-    Nxt, Nyt, Nzt = size(target_grid)
     arch = architecture(target_grid)
-    λt, φt, zt = nodes(target_grid, Face(), Face(), Face())
-
-    λ₁ = λt[1]
-    λ₂ = λt[Nxt]
-
-    φ₁ = φt[1]
-    φ₂ = φt[Nyt]
+    φ₁, φ₂ = y_domain(target_grid)
+    λ₁, λ₂ = x_domain(target_grid)
 
     # Calculate limiting indices on the bathymetry grid
     i₁ = searchsortedfirst(λ_data, λ₁)
@@ -151,12 +145,11 @@ function regrid_bathymetry(target_grid;
                                         latitude = (φ₁, φ₂),
                                         longitude = (λ₁, λ₂),
                                         z = (0, 1),
-                                        halo = halo_size(target_grid))
+                                        halo = (10, 10, 1))
 
     native_h = Field{Center, Center, Nothing}(native_grid)
     set!(native_h, h_data)
 
-    # 
     target_h = interpolate_bathymetry_in_passes(native_h, target_grid; passes = interpolation_passes)
 
     return target_h
@@ -164,11 +157,10 @@ end
 
 # Here we can either use `regrid!` (three dimensional version) or `interpolate`
 function interpolate_bathymetry_in_passes(native_h, target_grid; passes = 10)
-
     Nλt, Nφt = Nt = size(target_grid)
     Nλn, Nφn = Nn = size(native_h)
     
-    if any(Nt .> Nn) # We are refining the grid (at least in one direction), more passes will not help!
+    if any(Nt[1:2] .> Nn[1:2]) # We are refining the grid (at least in one direction), more passes will not help!
         new_h = Field{Center, Center, Nothing}(target_grid)
         interpolate!(new_h, native_h)
         return new_h
@@ -176,6 +168,9 @@ function interpolate_bathymetry_in_passes(native_h, target_grid; passes = 10)
  
     latitude  = y_domain(target_grid)
     longitude = x_domain(target_grid)
+
+    @show latitude, longitude
+    @show x_domain(native_h.grid), y_domain(native_h.grid)
 
     ΔNλ = floor((Nλn - Nλt) / passes)
     ΔNφ = floor((Nφn - Nφt) / passes)
@@ -191,6 +186,7 @@ function interpolate_bathymetry_in_passes(native_h, target_grid; passes = 10)
 
     for pass = 1:passes - 1
         new_size = (Nλ[pass], Nφ[pass], 1)
+        @show Nt, Nn, new_size
 
         @info "pass number $pass with size $new_size"
         new_grid = LatitudeLongitudeGrid(size = new_size, 

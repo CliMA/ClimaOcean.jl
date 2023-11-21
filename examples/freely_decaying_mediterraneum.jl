@@ -1,45 +1,31 @@
 using GLMakie
 using Oceananigans
 using Oceananigans: architecture
+using Oceananigans.Fields: interpolate!
 using ClimaOcean
 using ClimaOcean.ECCO2
 using ClimaOcean.InitialConditions: three_dimensional_regrid!, adjust_tracers!
+using Oceananigans.ImmersedBoundaries: mask_immersed_field!
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalDiffusivity
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.Units
+using Printf
 
 #####
 ##### Regional Mediterranean grid 
 #####
 
-function regrid_ecco_tracers(grid)
-    Tecco = ecco2_field(:temperature)
-    Secco = ecco2_field(:salinity)
-    
-    ecco_tracers = (; Tecco, Secco)
-    
-    # Make sure all values are extended properly before regridding
-    adjust_tracers!(ecco_tracers; mask = ecco2_center_mask(architecture(grid)))
-    
-    T = CenterField(grid)
-    S = CenterField(grid)
-    
-    # Regrid to our grid!
-    three_dimensional_regrid!(T, Tecco)
-    three_dimensional_regrid!(S, Secco)
-    
-    return T, S
-end
-
 # A stretched vertical grid with a Δz of 1.5 meters in the first 50 meters
-z = stretched_vertical_faces(minimum_depth = 5000, 
-                             surface_layer_Δz = 1.75, 
+z = stretched_vertical_faces(depth = 5000, 
+                             surface_layer_Δz = 2.5, 
                              stretching = PowerLawStretching(1.070), 
                              surface_layer_height = 50)
 
-Nx = 20 * 42 # 1 / 20th of a degree
-Ny = 20 * 15 # 1 / 20th of a degree
+Nx = 4 * 42 # 1 / 4th of a degree
+Ny = 4 * 15 # 1 / 4th of a degree
 Nz = length(z) - 1
+
+@info "grid size: ($Nx, $Ny, $Nz)"
 
 grid = LatitudeLongitudeGrid(CPU();
                              size = (Nx, Ny, Nz),
@@ -52,16 +38,23 @@ h = regrid_bathymetry(grid, height_above_water=1)
 
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(h))
 
-T, S = regrid_ecco_tracers(grid)
+Tecco, Secco = initial_ecco_tracers(architecture(grid))
+
+T = CenterField(grid)
+S = CenterField(grid)
+
+# Regrid to our grid!
+three_dimensional_regrid!(T, Tecco)
+three_dimensional_regrid!(S, Secco)
 
 mask_immersed_field!(T)
 mask_immersed_field!(S)
 
-# fig = Figure()
-# ax  = Axis(fig[1, 1])
-# heatmap!(ax, interior(T, :, :, Nz), colorrange = (10, 20), colormap = :thermal)
-# ax  = Axis(fig[1, 2])
-# heatmap!(ax, interior(S, :, :, Nz), colorrange = (35, 40), colormap = :haline)
+fig = Figure()
+ax  = Axis(fig[1, 1])
+heatmap!(ax, interior(T, :, :, Nz), colorrange = (10, 20), colormap = :thermal)
+ax  = Axis(fig[1, 2])
+heatmap!(ax, interior(S, :, :, Nz), colorrange = (35, 40), colormap = :haline)
 
 # Correct oceananigans
 import Oceananigans.Advection: nothing_to_default
@@ -78,11 +71,9 @@ model = HydrostaticFreeSurfaceModel(; grid,
                                       tracers  = (:T, :S, :e),
                                       coriolis = HydrostaticSphericalCoriolis(scheme = ActiveCellEnstrophyConserving()))
 
-set!(model, T = T, S = S)
+set!(model, T = T, S = S, e = 1e-6)
 
-# Probably we'll need to diffuse? Probably not let's see now
-
-simulation = Simulation(model, Δt = 20, stop_time = 2days)
+simulation = Simulation(model, Δt = 20, stop_iteration = 100)
 
 function progress(sim) 
     u, v, w = sim.model.velocities  
@@ -96,16 +87,16 @@ function progress(sim)
                    maximum(abs, T), maximum(abs, S))
 end
 
-simulation.callbacks[:progress] = Callback(progress, IterationInterval(100))
+simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
 
-# warm up!
+# warm up for 100 iterations!
 run!(simulation)
 
 simulation.stop_time = 10*365days
 
-wizard = TimeStepWizard(; cfl = 0.2, max_Δt = 2minutes, max_change = 1.1)
+wizard = TimeStepWizard(; cfl = 0.2, max_Δt = 10minutes, max_change = 1.1)
 
-simulation.callbacks = Callback(wizard, IterationInterval(10))
+simulation.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 
 simulation.output_writers[:surface_fields] = JLD2OutputWriter(model, merge(model.velocities, model.tracers);
                                                               indices = (:, :, Nz),

@@ -227,19 +227,19 @@ function three_dimensional_regrid!(a, b)
     source_size = Ns = size(source_grid)
 
     # Start by regridding in z
-    @info "Regridding in z"
+    @debug "Regridding in z"
     zgrid   = construct_grid(typeof(target_grid), arch, (Ns[1], Ns[2], Nt[3]), (xs, ys, zt), topo)
     field_z = Field(location(b), zgrid)
     regrid!(field_z, zgrid, source_grid, b)
 
     # regrid in y 
-    @info "Regridding in y"
+    @debug "Regridding in y"
     ygrid   = construct_grid(typeof(target_grid), arch, (Ns[1], Nt[2], Nt[3]), (xs, yt, zt), topo)
     field_y = Field(location(b), ygrid);
     regrid!(field_y, ygrid, zgrid, field_z);
 
     # Finally regrid in x
-    @info "Regridding in x"
+    @debug "Regridding in x"
     regrid!(a, target_grid, ygrid, field_y)
 end
 

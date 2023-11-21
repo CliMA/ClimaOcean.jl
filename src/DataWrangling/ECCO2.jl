@@ -1,6 +1,8 @@
 module ECCO2
 
-export ecco2_field, ecco2_center_mask
+export ecco2_field, ecco2_center_mask, initial_ecco_tracers
+
+using ClimaOcean.InitialConditions: adjust_tracers!
 
 using Oceananigans
 using Oceananigans.BoundaryConditions
@@ -150,6 +152,29 @@ function ecco2_bottom_height_from_temperature()
     end
 
     return bottom_height
+end
+
+function initial_ecco_tracers(architecture; 
+                              overwrite_existing = true, 
+                              initial_condition_file = "../data/initial_ecco_tracers.nc")
+    
+    if overwrite_existing || !isfile(initial_condition_file)
+        T = ecco2_field(:temperature; architecture)
+        S = ecco2_field(:salinity; architecture)
+        
+        # Make sure all values are extended properly before regridding
+        adjust_tracers!((; T, S); mask = ecco2_center_mask(architecture))
+    
+        nc = Dataset(initial_condition_file, "w")
+        nc["T"] = interior(Tecco)
+        nc["S"] = interior(Tecco)
+    else 
+        nc = Dataset(initial_condition_file)
+        T = nc["T"]
+        S = nc["S"]
+    end
+
+    return T, S
 end
 
 end # module
