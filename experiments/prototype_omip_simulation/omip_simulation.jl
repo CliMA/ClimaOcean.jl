@@ -1,3 +1,4 @@
+#=
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.TurbulenceClosures: CATKEVerticalDiffusivity
@@ -66,9 +67,9 @@ Nx, Ny′, Nz = size(Tᵢ)
 ##### Construct the grid
 #####
 
-arch =CPU()
+arch = CPU()
 southern_limit = -79
-northern_limit = -50
+northern_limit = -30
 j₁ = 4 * (90 + southern_limit)
 j₂ = 720 - 4 * (90 - northern_limit) + 1
 Ny = j₂ - j₁ + 1
@@ -109,38 +110,15 @@ grid = LatitudeLongitudeGrid(arch,
 
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
+# Defines `ocean`, an `Oceananigans.Simulation`
 include("omip_ocean_component.jl")
+
+# Defines `sea_ice`, an `Oceananigans.Simulation`
 include("omip_sea_ice_component.jl")
 
-#####
-##### Setup JRA55 atmosphere
-#####
-
-time_indices = 1:10
-u_jra55_native = jra55_field_time_series(:eastward_velocity;  time_indices, architecture=arch)
-v_jra55_native = jra55_field_time_series(:northward_velocity; time_indices, architecture=arch)
-                                                          
-times = u_jra55_native.times
-u_bcs = FieldBoundaryConditions(grid, (Face, Center, Nothing))
-v_bcs = FieldBoundaryConditions(grid, (Center, Face, Nothing))
-u_jra55 = FieldTimeSeries{Face, Center, Nothing}(grid, times; boundary_conditions=u_bcs)
-v_jra55 = FieldTimeSeries{Center, Face, Nothing}(grid, times; boundary_conditions=v_bcs)
-interpolate!(u_jra55, u_jra55_native)
-interpolate!(v_jra55, v_jra55_native)
-velocities = (u=u_jra55, v=v_jra55)
-atmosphere = PrescribedAtmosphere(velocities, times)
-
-tracer_flux_bcs = FieldBoundaryConditions(grid, (Center, Center, Nothing))
-Qlw_jra55_native = jra55_field_time_series(:downwelling_longwave_radiation;  time_indices, architecture=arch)
-Qsw_jra55_native = jra55_field_time_series(:downwelling_shortwave_radiation; time_indices, architecture=arch)
-
-Qlw_jra55 = FieldTimeSeries{Center, Center, Nothing}(grid, times; boundary_conditions=tracer_flux_bcs)
-Qsw_jra55 = FieldTimeSeries{Center, Center, Nothing}(grid, times; boundary_conditions=tracer_flux_bcs)
-interpolate!(Qlw_jra55, Qlw_jra55_native)
-interpolate!(Qsw_jra55, Qsw_jra55_native)
-
-radiation = Radiation(downwelling_shortwave_radiation = Qsw_jra55,
-                       downwelling_longwave_radiation = Qlw_jra55)
+# Defines `atmosphere`, a `ClimaOcean.OceanSeaIceModels.PrescribedAtmosphere`
+# also defines `radiation`, a `ClimaOcean.OceanSeaIceModels.Radiation`
+include("omip_atmosphere_and_radiation.jl")
 
 coupled_model = OceanSeaIceModel(ocean, ice, atmosphere; radiation)
 coupled_simulation = Simulation(coupled_model, Δt=5minutes, stop_iteration=2) #stop_time=30days)
@@ -182,6 +160,7 @@ coupled_simulation.output_writers[:surface] = JLD2OutputWriter(ocean_model, outp
                                                                overwrite_existing = true)
 
 run!(coupled_simulation)
+=#
 
 # using ClimaOcean.OceanSeaIceModels: compute_atmosphere_ocean_fluxes!
 # compute_atmosphere_ocean_fluxes!(coupled_model)
@@ -189,19 +168,57 @@ run!(coupled_simulation)
 fig = Figure(resolution=(2400, 1200))
 
 axx = Axis(fig[1, 1])
-axy = Axis(fig[1, 2])
+axy = Axis(fig[2, 1])
+axQ = Axis(fig[3, 1])
 
 τˣ = coupled_model.fluxes.surfaces.ocean.momentum.u
 τʸ = coupled_model.fluxes.surfaces.ocean.momentum.v
+Jᵀ = coupled_model.fluxes.surfaces.ocean.tracers.T
+
+ρₒ = coupled_model.ocean_reference_density
+cₚ = coupled_model.ocean_heat_capacity
+Q = Field(ρₒ * cₚ * Jᵀ)
+compute!(Q)
 
 λf, φc, zc = nodes(τˣ)
 λc, φf, zc = nodes(τʸ)
+λc, φc, zc = nodes(Q)
 
 τˣ = interior(τˣ, :, :, 1)
 τʸ = interior(τʸ, :, :, 1)
+Q = interior(Q, :, :, 1)
 
-heatmap!(axx, λf, φc, τˣ)
-heatmap!(axy, λc, φf, τʸ)
+# τˣ ./= ρₒ
+# τʸ ./= ρₒ
+
+land = τˣ .== NaN
+τˣ[land] .= 0
+
+land = τʸ .== NaN
+τʸ[land] .= 0
+
+Qmax = maximum(abs, Q)
+τmax = 1.0 #max(maximum(abs, τˣ), maximum(abs, τʸ))
+
+Qlim = 3Qmax / 4
+τlim = 3τmax / 4
+
+land = Q .== 0
+Q[land] .= NaN
+
+land = τˣ .== 0
+τˣ[land] .= NaN
+
+land = τʸ .== 0
+τʸ[land] .= NaN
+
+hmx = heatmap!(axx, λf, φc, τˣ, colorrange=(-τlim, τlim), colormap=:balance, nan_color=:gray)
+hmy = heatmap!(axy, λc, φf, τʸ, colorrange=(-τlim, τlim), colormap=:balance, nan_color=:gray)
+hmQ = heatmap!(axQ, λc, φc, Q, colorrange=(-Qlim, Qlim), colormap=:balance, nan_color=:gray)
+
+Colorbar(fig[1, 2], hmx, label="Eastward momentum flux (N m⁻²)")
+Colorbar(fig[2, 2], hmy, label="Northward momentum flux (N m⁻²)")
+Colorbar(fig[3, 2], hmQ, label="Heat flux (W m⁻²)")
 
 display(fig)
 

@@ -34,6 +34,9 @@ using Oceananigans.OutputReaders: FieldTimeSeries, GPUAdaptedFieldTimeSeries
 const SomeKindOfFieldTimeSeries = Union{FieldTimeSeries,
                                         GPUAdaptedFieldTimeSeries}
 
+function surface_velocities end
+function surface_tracers end
+
 #####
 ##### Some implementation
 #####

@@ -2,8 +2,10 @@ module PrescribedAtmospheres
 
 import ..OceanSeaIceModels: surface_velocities
 
-struct PrescribedAtmosphere{U, T}
+struct PrescribedAtmosphere{U, F, T}
     velocities :: U
+    freshwater_fluxes :: F
+    tracers :: F
     times :: T
 end
 

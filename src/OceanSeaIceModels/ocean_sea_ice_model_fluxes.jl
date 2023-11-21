@@ -5,15 +5,6 @@ using ClimaSeaIce.SlabSeaIceModels: SlabSeaIceModel
 ##### Utilities
 #####
 
-function surface_velocities(ocean::Simulation{<:HydrostaticFreeSurfaceModel})
-    grid = ocean.model.grid
-    Nz = size(grid, 3)
-    u = interior(ocean.model.velocities.u, :, :, Nz)
-    v = interior(ocean.model.velocities.v, :, :, Nz)
-    w = interior(ocean.model.velocities.w, :, :, Nz+1)
-    return (; u, v, w)
-end
-
 function surface_flux(f::Field)
     top_bc = f.boundary_conditions.top
     if top_bc isa BoundaryCondition{<:Oceananigans.BoundaryConditions.Flux}
@@ -108,7 +99,7 @@ struct OceanSeaIceModelFluxes{S, R, AO, AI, IO}
     sea_ice_ocean :: IO
 end
 
-function OceanSeaIceModelFluxes(ocean, sea_ice=nothing;
+function OceanSeaIceModelFluxes(ocean, sea_ice=nothing, atmosphere=nothing;
                                 radiation = nothing,
                                 atmosphere_ocean = nothing,
                                 atmosphere_sea_ice = nothing,
@@ -135,48 +126,22 @@ Base.summary(crf::OceanSeaIceModelFluxes) = "OceanSeaIceModelFluxes"
 Base.show(io::IO, crf::OceanSeaIceModelFluxes) = print(io, summary(crf))
 
 #####
-##### CrossRealmFlux
-#####
-
-struct RelativeAtmosphereOceanVelocity end
-struct AtmosphereVelocity end
-
-#####
 ##### Bulk formula
 #####
 
+struct RelativeVelocityScale end
+struct AtmosphereOnlyVelocityVelocityScale end
+
 struct BulkFormula{T, CD}
-    transfer_velocity :: T
+    velocity_scale :: T
     transfer_coefficient :: CD
 end
 
 function BulkFormula(FT=Float64;
-                     transfer_velocity = RelativeAtmosphereOceanVelocity(),
+                     velocity_scale = RelativeVelocityScale(),
                      transfer_coefficient = 1e-3)
 
-    return BulkFormula(transfer_velocity,
+    return BulkFormula(velocity_scale,
                        convert(FT, transfer_coefficient))
 end
 
-@inline Δϕt²(i, j, k, grid, ϕ1t, ϕ2, time) = @inbounds (ϕ1t[i, j, k, time] - ϕ2[i, j, k])^2
-
-@inline function transfer_velocityᶠᶜᶜ(i, j, grid, time, ::RelativeAtmosphereOceanVelocity, Uₐ, Uₒ)
-    uₐ = Uₐ.u
-    vₐ = Uₐ.v
-    uₒ = Uₒ.u
-    vₒ = Uₒ.v
-
-    Δu = @inbounds uₐ[i, j, 1, time] - uₒ[i, j, 1]
-    Δv² = ℑyᵃᶜᵃ(i, j, 1, grid, Δϕt², vₐ, vₒ, time)
-    return sqrt(Δu^2 + Δv²)
-end
-
-@inline function transfer_velocityᶜᶠᶜ(i, j, grid, time, ::RelativeAtmosphereOceanVelocity, Uₐ, Uₒ)
-    uₐ = Uₐ.u
-    vₐ = Uₐ.v
-    uₒ = Uₒ.u
-    vₒ = Uₒ.v
-    Δu² = ℑxᶜᵃᵃ(i, j, 1, grid, Δϕt², uₐ, uₒ, time)
-    Δv = @inbounds vₐ[i, j, 1, time] - vₒ[i, j, 1]
-    return sqrt(Δu² + Δv^2)
-end
