@@ -16,6 +16,7 @@ function Radiation(FT=Float64;
                    ice_emissivity = 1.0,
                    ocean_albedo = 0.3,
                    ice_albedo = 0.7,
+                   reference_temperature = 273.15,
                    stefan_boltzmann_constant = 5.67e-8)
 
     if downwelling_shortwave_radiation isa AbstractArray
@@ -36,6 +37,10 @@ function Radiation(FT=Float64;
                      ice_emissivity,
                      ocean_albedo,
                      ice_albedo,
-                     stefan_boltzmann_constant)
+                     stefan_boltzmann_constant,
+                     reference_temperature)
 end
+
+Base.summary(r::Radiation) = "Radiation"
+Base.show(io::IO, r::Radiation) = print(io, summary(osf))
 

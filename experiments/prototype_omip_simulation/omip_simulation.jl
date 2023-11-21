@@ -1,8 +1,7 @@
-#=
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.TurbulenceClosures: CATKEVerticalDiffusivity
-using Oceananigans.Fields: ConstantField, ZeroField
+using Oceananigans.Fields: ConstantField, ZeroField, interpolate!
 
 using ClimaOcean
 using ClimaOcean.OceanSeaIceModels:
@@ -69,7 +68,7 @@ Nx, Ny′, Nz = size(Tᵢ)
 
 arch =CPU()
 southern_limit = -79
-northern_limit = -75
+northern_limit = -50
 j₁ = 4 * (90 + southern_limit)
 j₂ = 720 - 4 * (90 - northern_limit) + 1
 Ny = j₂ - j₁ + 1
@@ -131,7 +130,19 @@ interpolate!(v_jra55, v_jra55_native)
 velocities = (u=u_jra55, v=v_jra55)
 atmosphere = PrescribedAtmosphere(velocities, times)
 
-coupled_model = OceanSeaIceModel(ocean, ice, atmosphere)
+tracer_flux_bcs = FieldBoundaryConditions(grid, (Center, Center, Nothing))
+Qlw_jra55_native = jra55_field_time_series(:downwelling_longwave_radiation;  time_indices, architecture=arch)
+Qsw_jra55_native = jra55_field_time_series(:downwelling_shortwave_radiation; time_indices, architecture=arch)
+
+Qlw_jra55 = FieldTimeSeries{Center, Center, Nothing}(grid, times; boundary_conditions=tracer_flux_bcs)
+Qsw_jra55 = FieldTimeSeries{Center, Center, Nothing}(grid, times; boundary_conditions=tracer_flux_bcs)
+interpolate!(Qlw_jra55, Qlw_jra55_native)
+interpolate!(Qsw_jra55, Qsw_jra55_native)
+
+radiation = Radiation(downwelling_shortwave_radiation = Qsw_jra55,
+                       downwelling_longwave_radiation = Qlw_jra55)
+
+coupled_model = OceanSeaIceModel(ocean, ice, atmosphere; radiation)
 coupled_simulation = Simulation(coupled_model, Δt=5minutes, stop_iteration=2) #stop_time=30days)
 
 adjust_ice_covered_ocean_temperature!(coupled_model)
@@ -171,11 +182,9 @@ coupled_simulation.output_writers[:surface] = JLD2OutputWriter(ocean_model, outp
                                                                overwrite_existing = true)
 
 run!(coupled_simulation)
-=#
 
-using ClimaOcean.OceanSeaIceModels: compute_atmosphere_ocean_fluxes!
-
-compute_atmosphere_ocean_fluxes!(coupled_model)
+# using ClimaOcean.OceanSeaIceModels: compute_atmosphere_ocean_fluxes!
+# compute_atmosphere_ocean_fluxes!(coupled_model)
 
 fig = Figure(resolution=(2400, 1200))
 

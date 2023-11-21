@@ -14,14 +14,26 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     ice_thickness = coupled_model.sea_ice.model.ice_thickness
 
     momentum_flux_fields = coupled_model.fluxes.surfaces.ocean.momentum
-    momentum_flux_formulae = coupled_model.fluxes.atmosphere_ocean.momentum
+    tracer_flux_fields = coupled_model.fluxes.surfaces.ocean.tracers
+    momentum_flux_contributions = coupled_model.fluxes.atmosphere_ocean.momentum
+    heat_flux_contributions = coupled_model.fluxes.atmosphere_ocean.heat
+    tracer_flux_contributions = coupled_model.fluxes.atmosphere_ocean.heat
+
+    atmosphere_ocean_parameters = (
+        ρₐ = 1.2,
+        ρₒ = 1024,,
+        cₚ = 3991.0,
+    )
 
     launch!(arch, grid, :xy, _compute_atmosphere_ocean_fluxes!,
             grid, clock,
             momentum_flux_fields,
-            momentum_flux_formulae,
+            tracer_flux_fields,
+            momentum_flux_contributions,
+            heat_flux_contributions
             ocean_velocities,
             atmosphere_velocities,
+            atmosphere_ocean_parameters,
             ice_thickness)
 
     return nothing
@@ -31,16 +43,21 @@ end
                                     air::SomeKindOfFieldTimeSeries, sea::AbstractArray)
 
     δ = @inbounds air[i, j, 1, time] - sea[i, j, 1]
-    @show air[i, j, 1, time] time δ
+    #@show air[i, j, 1, time] time δ
     return δ
 end
 
 @kernel function _compute_atmosphere_ocean_fluxes!(grid,
                                                    clock,
                                                    momentum_flux_fields,
-                                                   momentum_flux_formula,
+                                                   tracer_flux_fields,
+                                                   momentum_flux_contributions,
+                                                   heat_flux_contributions,
+                                                   tracer_flux_contributions,
                                                    ocean_velocities,
                                                    atmosphere_velocities,
+                                                   radiation,
+                                                   atmosphere_ocean_parameters,
                                                    ice_thickness)
 
     i, j = @index(Global, NTuple)
@@ -59,15 +76,15 @@ end
     uₒ = Uₒ.u
     vₒ = Uₒ.v
 
-    cᴰ = 1e-3
-    ρₐ = 1.2
-    ρₒ = 1024
+    ρₐ = atmosphere_ocean_parameters.ρₐ
+    ρₒ = atmosphere_ocean_parameters.ρₒ
+    cₚ = atmosphere_ocean_parameters.cₚ
     time = Time(clock.time)
 
-    u_formula = momentum_flux_formula.u.transfer_velocity
-    v_formula = momentum_flux_formula.v.transfer_velocity
+    u_formula = momentum_flux_contributions.u.transfer_velocity
+    v_formula = momentum_flux_contributions.v.transfer_velocity
 
-    cᴰ = momentum_flux_formula.u.transfer_coefficient
+    cᴰ = momentum_flux_contributions.u.transfer_coefficient
 
     # Compute transfer velocity scale
     Vᶠᶜᶜ = transfer_velocityᶠᶜᶜ(i, j, grid, time, u_formula, Uₐ, Uₒ)
@@ -76,21 +93,21 @@ end
     Δu = air_sea_difference(i, j, grid, time, u_formula, uₐ, uₒ)
     Δv = air_sea_difference(i, j, grid, time, v_formula, vₐ, vₒ)
 
-    @show uₒ[i, j, 1]
-    @show vₒ[i, j, 1]
-    @show Vᶠᶜᶜ
-    @show Vᶜᶠᶜ
-    @show Δu
-    @show Δv
-
     @inbounds begin
         τˣ[i, j, 1] = - ρₐ / ρₒ * cᴰ * Δu * Vᶠᶜᶜ
         τʸ[i, j, 1] = - ρₐ / ρₒ * cᴰ * Δv * Vᶜᶠᶜ
 
-        @show τˣ[i, j, 1] 
-        @show τʸ[i, j, 1]
+        # @show τˣ[i, j, 1] 
+        # @show τʸ[i, j, 1]
 
-        # Q[i, j, 1] = ρₐ
+        Q[i, j, 1] = radiative_fluxes(i, j, grid, time, radiation)
     end
+end
+
+@inline function radiative_fluxes(i, j, grid, time, radiation)
+    Qˢʷ = radiation.downwelling_shortwave_radiation
+    Qˡʷ = radiation.downwelling_longwave_radiation
+    α = radiation.ocean_albedo
+    return @inbounds (1 - α) * Qˢʷ[i, j, 1, time] + Qˡʷ[i, j, 1, time]
 end
 
