@@ -1,11 +1,8 @@
 using GLMakie
 using Oceananigans
 using Oceananigans: architecture
-using Oceananigans.Fields: interpolate!
 using ClimaOcean
 using ClimaOcean.ECCO2
-using ClimaOcean.InitialConditions: three_dimensional_regrid!, adjust_tracers!
-using Oceananigans.ImmersedBoundaries: mask_immersed_field!
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalDiffusivity
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.Units
@@ -43,7 +40,7 @@ import Oceananigans.Advection: nothing_to_default
 
 nothing_to_default(user_value; default) = isnothing(user_value) ? default : user_value
 
-# Construct the model and run it, will it run or we have to diffuse?
+# Construct the model and run it
 model = HydrostaticFreeSurfaceModel(; grid,
                                       momentum_advection = WENOVectorInvariant(),
                                       tracer_advection = WENO(grid; order = 7),
@@ -53,6 +50,12 @@ model = HydrostaticFreeSurfaceModel(; grid,
                                       tracers  = (:T, :S, :e),
                                       coriolis = HydrostaticSphericalCoriolis(scheme = ActiveCellEnstrophyConserving()))
 
+# Initializing the model
+#
+# the model can be initialized with custom values or with ecco2 fields.
+# In this case, our ECCO2 dataset has access to a temperature and a salinity
+# field, so we initialize T and S from ECCO2. We initialize TKE (:e) with a 
+# constant value of 1e-6 m²/s² throughout the domain
 initialize!(model, T = :ecco2_temperature, S = :ecco2_salinity, e = 1e-6)
 
 fig = Figure()

@@ -5,6 +5,7 @@ export ecco2_field, ecco2_center_mask, adjusted_ecco_tracers, initialize!
 using ClimaOcean.InitialConditions: adjust_tracer!, three_dimensional_regrid!
 
 using Oceananigans
+using Oceananigans: architecture
 using Oceananigans.BoundaryConditions
 using Oceananigans.Utils
 using KernelAbstractions: @kernel, @index
@@ -150,13 +151,14 @@ end
 function adjusted_ecco_field(variable_name; 
                              architecture = CPU(),
                              overwrite_existing = true, 
-                             filename = "./data/initial_ecco_tracers.nc")
+                             filename = "./data/initial_ecco_tracers.nc",
+                             mask = ecco2_center_mask(architecture))
     
     if overwrite_existing || !isfile(filename)
         f = ecco2_field(variable_name; architecture)
         
         # Make sure all values are extended properly
-        adjust_tracer!(f; mask = ecco2_center_mask(architecture))
+        adjust_tracer!(f; mask)
 
         ds = Dataset(filename, "c")
         defVar(ds, string(variable_name), f, ("lat", "lon", "z"))
@@ -168,7 +170,7 @@ function adjusted_ecco_field(variable_name;
         else
             f = ecco2_field(variable_name; architecture)
             # Make sure all values are extended properly
-            adjust_tracer!(f; mask = ecco2_center_mask(architecture))
+            adjust_tracer!(f; mask)
 
             defVar(ds, string(variable_name), f, ("lat", "lon", "z"))
         end
@@ -182,34 +184,45 @@ function initialize!(model;
                      filename = "./data/initial_ecco_tracers.nc", 
                      kwargs...)
     
-    arch = architecture(model)
-
+    grid = model.grid
+    arch = architecture(grid)
+    
     ordinary_fields = Dict()
     ecco2_fields    = Dict()
 
+    # Differentiate between custom initialization and ECCO2 initialization
     for (fldname, value) in kwargs
         if value ∈ keys(ecco2_tracer_fields)
-            ecco2_fields[fldname] = value
+            ecco2_fields[fldname] = ecco2_tracer_fields[value]
         else
             ordinary_fields[fldname] = value
         end
     end
 
     # Additional tracers not present in the ECCO dataset
-    set!(model; ordinary_fields...)
+    if !isempty(ordinary_fields)
+        set!(model; ordinary_fields...)
+    end
 
     # Set tracers from ecco2
-    for fldname in keys(ecco2_fields)
-        f = adjusted_ecco_field(fldname; 
-                                architecture = arch,
-                                overwrite_existing, 
-                                filename)
-                            
-        f_grid = Field(ecco2_location[variable_name], model.grid)     
-        three_dimensional_regrid!(f_grid, f)
+    if !isempty(ecco2_fields)
+        mask = ecco2_center_mask(architecture(grid))
+    
+        for (fldname, variable_name) in ecco2_fields
+            f = adjusted_ecco_field(variable_name; 
+                                    architecture = arch,
+                                    overwrite_existing, 
+                                    filename,
+                                    mask)
 
-        set!(model; variable_name => f_grid)
+            f_grid = Field(ecco2_location[variable_name], grid)     
+            three_dimensional_regrid!(f_grid, f)
+
+            set!(model; fldname => f_grid)
+        end
     end
+
+    return nothing
 end
 
 end # module
