@@ -44,7 +44,7 @@ function initialize!(model;
     end
 
     # Fields initialized from checkpointer
-    if isempty!(checkpoint_fields)
+    if !isempty(checkpoint_fields)
         for (fldname, path) in checkpoint_fields
             data = jldopen(path)[string(fldname) * "/data"]
             set!(model, fldname => data)
