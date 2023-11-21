@@ -41,11 +41,11 @@ grid = LatitudeLongitudeGrid(CPU();
 # we allow a minimum depth of 10 meters (all shallower regions are 
 # considered land) and we use 5 intermediate grids (interpolation_passes = 5)
 # Note that more interpolation passes will smooth the bathymetry
-heigth = regrid_bathymetry(grid, 
-                           height_above_water = 1,
-                           minimum_depth = 10,
-                           interpolation_passes = 5)
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(height))
+bottom_height = regrid_bathymetry(grid, 
+                                  height_above_water = 1,
+                                  minimum_depth = 10,
+                                  interpolation_passes = 5)
+grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
 # Correct oceananigans
 import Oceananigans.Advection: nothing_to_default

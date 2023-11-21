@@ -2,7 +2,7 @@ module ECCO2
 
 export ecco2_field, ecco2_center_mask, adjusted_ecco_tracers, initialize!
 
-using ClimaOcean.InitialConditions: adjust_tracer!, three_dimensional_regrid!
+using ClimaOcean.DataWrangling: fill_missing_values!
 
 using Oceananigans
 using Oceananigans: architecture
@@ -216,7 +216,7 @@ function adjusted_ecco_field(variable_name;
         
         # Make sure all values are extended properly
         @info "in-painting ecco field $variable_name and saving it in $filename"
-        adjust_tracer!(f; mask)
+        fill_missing_values!(f; mask)
 
         ds = Dataset(filename, "c")
         defVar(ds, string(variable_name), Array(interior(f)), ("lat", "lon", "z"))
@@ -232,7 +232,7 @@ function adjusted_ecco_field(variable_name;
             f = ecco2_field(variable_name; architecture)
             # Make sure all values are extended properly
             @info "in-painting ecco field $variable_name and saving it in $filename"
-            adjust_tracer!(f; mask)
+            fill_missing_values!(f; mask)
 
             defVar(ds, string(variable_name), Array(interior(f)), ("lat", "lon", "z"))
         end
@@ -241,66 +241,6 @@ function adjusted_ecco_field(variable_name;
     end
 
     return f
-end
-
-"""
-    initialize!(model;
-                filename = "./data/adjusted_ecco_tracers.nc", 
-                kwargs...)
-
-Initialize `model`. The keyword arguments `kwargs...` take the form `name=data`,
-where `name` refers to one of the fields of `model.velocities` or `model.tracers`, 
-and the `data` may be
- (1) an array
- (2) a function with arguments `(x, y, z)` for 3D fields, `(x, y)` for 2D fields and `(x)` for 1D fields
- (3) a symbol corresponding to a fldname of `ecco2_tracer_fields`
-
-The keyword argument `filename` is the path to a netcdf file containing the adjusted ecco fields.
-If the file does not exist it will be created
-"""
-function initialize!(model;
-                     filename = "./data/adjusted_ecco_tracers.nc", 
-                     kwargs...)
-    
-    grid = model.grid
-    arch = architecture(grid)
-    
-    custom_fields = Dict()
-    ecco2_fields  = Dict()
-
-    # Differentiate between custom initialization and ECCO2 initialization
-    for (fldname, value) in kwargs
-        if value ∈ keys(ecco2_tracer_fields)
-            ecco2_fields[fldname] = ecco2_tracer_fields[value]
-        else
-            custom_fields[fldname] = value
-        end
-    end
-
-    # Additional tracers not present in the ECCO dataset
-    if !isempty(custom_fields)
-        set!(model; custom_fields...)
-    end
-
-    # Set tracers from ECCO2
-    if !isempty(ecco2_fields)
-        mask = ecco2_center_mask(architecture(grid))
-    
-        for (fldname, variable_name) in ecco2_fields
-            f = adjusted_ecco_field(variable_name; 
-                                    architecture = arch,
-                                    filename,
-                                    mask)
-
-            f_grid = Field(ecco2_location[variable_name], grid)   
-
-            three_dimensional_regrid!(f_grid, f)
-
-            set!(model; fldname => f_grid)
-        end
-    end
-
-    return nothing
 end
 
 end # module
