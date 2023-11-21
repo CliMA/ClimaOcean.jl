@@ -150,7 +150,7 @@ end
 
 function adjusted_ecco_field(variable_name; 
                              architecture = CPU(),
-                             overwrite_existing = true, 
+                             overwrite_existing = false, 
                              filename = "./data/initial_ecco_tracers.nc",
                              mask = ecco2_center_mask(architecture))
     
@@ -162,6 +162,8 @@ function adjusted_ecco_field(variable_name;
 
         ds = Dataset(filename, "c")
         defVar(ds, string(variable_name), f, ("lat", "lon", "z"))
+
+        close(ds)
     else
         ds = Dataset(filename)
 
@@ -174,37 +176,39 @@ function adjusted_ecco_field(variable_name;
 
             defVar(ds, string(variable_name), f, ("lat", "lon", "z"))
         end
+
+        close(ds)
     end
 
     return f
 end
 
 function initialize!(model;
-                     overwrite_existing = true,
+                     overwrite_existing = false,
                      filename = "./data/initial_ecco_tracers.nc", 
                      kwargs...)
     
     grid = model.grid
     arch = architecture(grid)
     
-    ordinary_fields = Dict()
-    ecco2_fields    = Dict()
+    custom_fields = Dict()
+    ecco2_fields  = Dict()
 
     # Differentiate between custom initialization and ECCO2 initialization
     for (fldname, value) in kwargs
         if value ∈ keys(ecco2_tracer_fields)
             ecco2_fields[fldname] = ecco2_tracer_fields[value]
         else
-            ordinary_fields[fldname] = value
+            custom_fields[fldname] = value
         end
     end
 
     # Additional tracers not present in the ECCO dataset
-    if !isempty(ordinary_fields)
-        set!(model; ordinary_fields...)
+    if !isempty(custom_fields)
+        set!(model; custom_fields...)
     end
 
-    # Set tracers from ecco2
+    # Set tracers from ECCO2
     if !isempty(ecco2_fields)
         mask = ecco2_center_mask(architecture(grid))
     
