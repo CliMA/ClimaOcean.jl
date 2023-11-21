@@ -121,9 +121,10 @@ end
                 filename = ecco2_file_names[variable_name],
                 short_name = ecco2_short_names[variable_name])
 
-Retrieve the ecco2 field corresponding the `variable_name`, stored in 
-`filename` or dowloaded from `url`. If `user_data` is provided, the 
-field is set with `user_data`
+Retrieve the ecco2 field corresponding to `variable_name`. The data is either:
+(1) retrieved from `filename` 
+(2) dowloaded from `url` if `filename` does not exists
+(3) filled from `user_data` if `user_data` is provided
 """
 function ecco2_field(variable_name;
                      architecture = CPU(),
