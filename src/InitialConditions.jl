@@ -116,13 +116,6 @@ function adjust_tracers!(tracers; mask = nothing, max_iter = Inf)
         propagate_horizontally!(tracer, mask; max_iter)
     end
 
-    # Do we need this? Probably on the final grid
-    # tracers = diffuse_tracers(tracers;
-    #                           horizontal_scale,
-    #                           vertical_scale,
-    #                           fractional_time_step,
-    #                           mask)
-
     return tracers
 end
 

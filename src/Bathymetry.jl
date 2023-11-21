@@ -79,9 +79,11 @@ function regrid_bathymetry(target_grid;
 
     dataset = Dataset(filepath)
 
+    FT = eltype(target_grid)
+
     φ_data = dataset["lat"][:]
     λ_data = dataset["lon"][:]
-    h_data = dataset["z"][:, :]
+    h_data = convert.(FT, dataset["z"][:, :])
 
     close(dataset)
 
