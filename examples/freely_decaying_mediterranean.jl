@@ -56,7 +56,7 @@ nothing_to_default(user_value; default) = isnothing(user_value) ? default : user
 
 # Constructing the model
 #
-# We construct the model with three tracers, temperature (:T), salinity (:S)
+# We construct a model that evolves two tracers, temperature (:T), salinity (:S)
 # We do not have convection since the simulation is just slumping to equilibrium so we do not need a turbulence closure
 # We select a linear equation of state for buoyancy calculation, and WENO schemes for both tracer and momentum advection.
 # The free surface utilizes a split-explicit formulation with a barotropic CFL of 0.75 based on wave speed.
