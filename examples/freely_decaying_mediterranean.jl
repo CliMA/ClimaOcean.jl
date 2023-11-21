@@ -128,7 +128,51 @@ simulation.output_writers[:surface_fields] = JLD2OutputWriter(model, merge(model
 
 run!(simulation)
 
+# Record a video
+#
+# Let's read the data and record a video of the Mediterranean Sea's surface
+# (1) Zonal velocity (u)
+# (2) Meridional velocity (v)
+# (3) Temperature (T)
+# (4) Salinity (S)
+u_series = FieldTimeSeries("med_surface_field.jld2", "u")
+v_series = FieldTimeSeries("med_surface_field.jld2", "v")
+T_series = FieldTimeSeries("med_surface_field.jld2", "T")
+S_series = FieldTimeSeries("med_surface_field.jld2", "S")
+iter = Observable(1)
 
+u = @lift begin
+    f = interior(u_series[$iter], :, :, 1)
+    f[f .== 0] .= NaN
+    f
+end
+v = @lift begin
+    f = interior(v_series[$iter], :, :, 1)
+    f[f .== 0] .= NaN
+    f
+end
+T = @lift begin
+    f = interior(T_series[$iter], :, :, 1)
+    f[f .== 0] .= NaN
+    f
+end
+S = @lift begin
+    f = interior(S_series[$iter], :, :, 1)
+    f[f .== 0] .= NaN
+    f
+end
 
+fig = Figure()
+ax  = Axis(fig[1, 1], title = "surface zonal velocity ms⁻¹")
+heatmap!(u)
+ax  = Axis(fig[1, 2], title = "surface meridional velocity ms⁻¹")
+heatmap!(v)
+ax  = Axis(fig[2, 1], title = "surface temperature ᵒC")
+heatmap!(T)
+ax  = Axis(fig[2, 2], title = "surface salinity psu")
+heatmap!(S)
 
-
+GLMakie.record(fig, "mediterranean_video.mp4", 1:length(u_series.times); framerate = 5) do i
+    @info "recording iteration $i"
+    iter[] = i    
+end
