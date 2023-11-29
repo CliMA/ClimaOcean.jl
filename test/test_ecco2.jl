@@ -39,3 +39,12 @@ using Oceananigans.Grids: topology
         @test Nz == 1
     end
 end
+
+@testset "setting a field with ECCO2" begin
+    for arch in test_architectures
+        grid  = LatitudeLongitudeGrid(size = (10, 10, 10), latitude = (-60, -40), longitude = (-5, 5), z = (-200, 0))
+        field = CenterField(grid)
+        set!(field, ECCO2Field(:temperature)) 
+        set!(field, ECCO2Field(:salinity))
+    end 
+end

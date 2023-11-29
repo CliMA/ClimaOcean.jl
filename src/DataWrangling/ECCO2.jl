@@ -1,6 +1,6 @@
 module ECCO2
 
-export ECCO2Field, ecco2_field, ecco2_center_mask, adjusted_ecco_tracers, initialize!
+export ECCO2Data, ecco2_field, ecco2_center_mask, adjusted_ecco_tracers, initialize!
 
 using ClimaOcean.DataWrangling: fill_missing_values!
 
@@ -13,12 +13,8 @@ using NCDatasets
 
 import Oceananigans.Fields: set!
 
-temperature_filename = "THETA.1440x720x50.19920102.nc"
-salinity_filename = "SALT.1440x720x50.19920102.nc"
-effective_ice_thickness_filename = "SIheff.1440x720.19920102.nc"
-
 # Ecco field used to set model's initial conditions
-struct ECCO2Field
+struct ECCO2Data
     name  :: Symbol
     year  :: Int
     month :: Int
@@ -26,7 +22,9 @@ struct ECCO2Field
 end
 
 # We only have 1992 at the moment
-ECCO2Field(name::Symbol) = ECCO2Field(name, 1992, 1, 2)
+ECCO2Data(name::Symbol) = ECCO2Data(name, 1992, 1, 2)
+
+filename(data::ECCO2Data) = "ecco2_" * string(data.name) * "_$(data.year)$(data.month)$(data.day).nc"
 
 ecco2_tracer_fields = Dict(
     :ecco2_temperature => :temperature,
@@ -91,7 +89,11 @@ function construct_vertical_interfaces(ds, depth_name)
     return zf
 end
 
-function empty_ecco2_field(variable_name; architecture = CPU(), horizontal_halo = (1, 1))
+function empty_ecco2_field(data::ECCO2Data; architecture = CPU(), 
+                                            horizontal_halo = (1, 1))
+
+    variable_name = data.name
+
     location = ecco2_location[variable_name]
 
     longitude = (0, 360)
@@ -143,9 +145,14 @@ function ecco2_field(variable_name;
                      architecture = CPU(),
                      horizontal_halo = (1, 1),
                      user_data = nothing,
-                     url = ecco2_urls[variable_name],
+                     year = 1992,
+                     month = 1,
+                     day  = 2, 
+                     url  = ecco2_urls[variable_name],
                      filename = ecco2_file_names[variable_name],
                      short_name = ecco2_short_names[variable_name])
+
+    ecco2_data = ECCO2Data(variable_name, year, month, day)
 
     isfile(filename) || download(url, filename)
 
@@ -163,7 +170,7 @@ function ecco2_field(variable_name;
         data = user_data
     end
 
-    field = empty_ecco2_field(variable_name; architecture, horizontal_halo)
+    field = empty_ecco2_field(ecco2_data; architecture, horizontal_halo)
     FT    = eltype(field)
     data  = convert.(FT, data)
 
@@ -256,14 +263,14 @@ function adjusted_ecco2_field(variable_name;
     return f
 end
 
-function set!(field, ecco2::ECCO2Field; filename = "./data/adjusted_ecco_tracers.nc")
+function set!(field::Field, ecco2::ECCO2Data; filename = "./data/adjusted_ecco_tracers.nc")
     # Fields initialized from ECCO2
     grid = field.grid
 
     mask = ecco2_center_mask(architecture(grid))
     
     f = adjusted_ecco2_field(ecco2.name; 
-                             architecture = arch,
+                             architecture = architecture(grid),
                              filename,
                              mask)
 
