@@ -77,7 +77,7 @@ model = HydrostaticFreeSurfaceModel(; grid,
 @info "initializing model"
 libia_blob(x, y, z) = z > -20 || (x - 15)^2 + (y - 34)^2 < 1.5 ? 1 : 0
 
-set!(model, T = ECCO2Field(:temperature), S = ECCO2Field(:salinity), c = libia_blob)
+set!(model, T = ECCO2Data(:temperature), S = ECCO2Data(:salinity), c = libia_blob)
 
 fig = Figure()
 ax  = Axis(fig[1, 1])
@@ -142,6 +142,7 @@ u_series = FieldTimeSeries("med_surface_field.jld2", "u")
 v_series = FieldTimeSeries("med_surface_field.jld2", "v")
 T_series = FieldTimeSeries("med_surface_field.jld2", "T")
 S_series = FieldTimeSeries("med_surface_field.jld2", "S")
+c_series = FieldTimeSeries("med_surface_field.jld2", "c")
 iter = Observable(1)
 
 u = @lift begin
@@ -164,6 +165,11 @@ S = @lift begin
     f[f .== 0] .= NaN
     f
 end
+c = @lift begin
+    f = interior(c_series[$iter], :, :, 1)
+    f[f .== 0] .= NaN
+    f
+end
 
 fig = Figure()
 ax  = Axis(fig[1, 1], title = "surface zonal velocity ms⁻¹")
@@ -174,6 +180,8 @@ ax  = Axis(fig[2, 1], title = "surface temperature ᵒC")
 heatmap!(T)
 ax  = Axis(fig[2, 2], title = "surface salinity psu")
 heatmap!(S)
+ax  = Axis(fig[2, 3], title = "passive tracer -")
+heatmap!(c)
 
 GLMakie.record(fig, "mediterranean_video.mp4", 1:length(u_series.times); framerate = 5) do i
     @info "recording iteration $i"
