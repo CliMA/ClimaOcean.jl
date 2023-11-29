@@ -65,7 +65,6 @@ function three_dimensional_regrid!(a, b)
 end
 
 include("diffuse_tracers.jl")
-include("initialize_model.jl")
 
 end # module
 
