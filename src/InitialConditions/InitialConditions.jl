@@ -62,6 +62,8 @@ function three_dimensional_regrid!(a, b)
     # Finally regrid in x
     @debug "Regridding in x"
     regrid!(a, target_grid, ygrid, field_y)
+
+    return a
 end
 
 include("diffuse_tracers.jl")
