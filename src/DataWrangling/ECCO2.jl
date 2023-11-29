@@ -1,6 +1,6 @@
 module ECCO2
 
-export ecco2_field, ecco2_center_mask, adjusted_ecco_tracers, initialize!
+export ECCO2Field, ecco2_field, ecco2_center_mask, adjusted_ecco_tracers, initialize!
 
 using ClimaOcean.DataWrangling: fill_missing_values!
 
@@ -11,9 +11,22 @@ using Oceananigans.Utils
 using KernelAbstractions: @kernel, @index
 using NCDatasets
 
+import Oceananigans.Fields: set!
+
 temperature_filename = "THETA.1440x720x50.19920102.nc"
 salinity_filename = "SALT.1440x720x50.19920102.nc"
 effective_ice_thickness_filename = "SIheff.1440x720.19920102.nc"
+
+# Ecco field used to set model's initial conditions
+struct ECCO2Field
+    name  :: Symbol
+    year  :: Int
+    month :: Int
+    day   :: Int
+end
+
+# We only have 1992 at the moment
+ECCO2Field(name::Symbol) = ECCO2Field(name, 1992, 1, 2)
 
 ecco2_tracer_fields = Dict(
     :ecco2_temperature => :temperature,
@@ -206,10 +219,10 @@ Keyword Arguments:
 
 - `mask`: the mask used to extend the field (see `adjust_tracer!`)
 """
-function adjusted_ecco_field(variable_name; 
-                             architecture = CPU(),
-                             filename = "./data/adjusted_ecco_tracers.nc",
-                             mask = ecco2_center_mask(architecture))
+function adjusted_ecco2_field(variable_name; 
+                              architecture = CPU(),
+                              filename = "./data/adjusted_ecco_tracers.nc",
+                              mask = ecco2_center_mask(architecture))
     
     if !isfile(filename)
         f = ecco2_field(variable_name; architecture)
@@ -241,6 +254,26 @@ function adjusted_ecco_field(variable_name;
     end
 
     return f
+end
+
+function set!(field, ecco2::ECCO2Field; filename = "./data/adjusted_ecco_tracers.nc")
+    # Fields initialized from ECCO2
+    grid = field.grid
+
+    mask = ecco2_center_mask(architecture(grid))
+    
+    f = adjusted_ecco2_field(ecco2.name; 
+                             architecture = arch,
+                             filename,
+                             mask)
+
+    f_grid = Field(ecco2_location[ecco2.name], grid)   
+
+    three_dimensional_regrid!(f_grid, f)
+
+    set!(field, f_grid)
+
+    return field
 end
 
 end # module

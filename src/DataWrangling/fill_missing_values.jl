@@ -49,7 +49,8 @@ propagate_horizontally!(field, ::Nothing; kw...) = nothing
 """ 
     propagate_horizontally!(field, mask; max_iter = Inf)
 
-propagate horizontally 
+propagate horizontally a field with missing values outside of a `mask`.
+Grid cells where `mask == 1` will be preserved
 """
 function propagate_horizontally!(field, mask; max_iter = Inf) 
     iter  = 0
@@ -73,7 +74,13 @@ end
 
 continue_downwards!(field, ::Nothing) = nothing
 
-function continue_downwards!(field, mask)
+""" 
+    continue_downwards!(field, mask)
+
+continue downwards a field with missing values outside of a `mask`.
+Grid cells where `mask == 1` will be preserved
+"""
+function (field, mask)
     arch = architecture(field)
     grid = field.grid
     launch!(arch, grid, :xy, _continue_downwards!, field, grid, mask)

@@ -65,7 +65,7 @@ model = HydrostaticFreeSurfaceModel(; grid,
                               tracer_advection = WENO(grid; order = 7),
                                   free_surface = SplitExplicitFreeSurface(; cfl = 0.75, grid),
                                       buoyancy = SeawaterBuoyancy(),
-                                      tracers  = (:T, :S),
+                                      tracers  = (:T, :S, :c),
                                       coriolis = HydrostaticSphericalCoriolis(scheme = ActiveCellEnstrophyConserving()))
 
 # Initializing the model
@@ -73,8 +73,11 @@ model = HydrostaticFreeSurfaceModel(; grid,
 # the model can be initialized with custom values or with ecco2 fields.
 # In this case, our ECCO2 dataset has access to a temperature and a salinity
 # field, so we initialize T and S from ECCO2. 
-@info "initializing model from ECCO2 fields"
-initialize!(model, T = :ecco2_temperature, S = :ecco2_salinity)
+# We initialize our passive tracer with a surface blob near to the coasts of Libia
+@info "initializing model"
+libia_blob(x, y, z) = z > -20 || (x - 15)^2 + (y - 34)^2 < 1.5 ? 1 : 0
+
+set!(model, T = ECCO2Field(:temperature), S = ECCO2Field(:salinity), c = libia_blob)
 
 fig = Figure()
 ax  = Axis(fig[1, 1])
