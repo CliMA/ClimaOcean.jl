@@ -3,6 +3,7 @@ module ECCO2
 export ECCO2Data, ecco2_field, ecco2_center_mask, adjusted_ecco_tracers, initialize!
 
 using ClimaOcean.DataWrangling: fill_missing_values!
+using ClimaOcean.InitialConditions: three_dimensional_regrid!
 
 using Oceananigans
 using Oceananigans: architecture
