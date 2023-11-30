@@ -42,7 +42,7 @@ struct AtmosphereOnlyVelocityScale end
 
 struct OceanSeaIceModelFluxes{U, R, AO, ASI, SIO}
     bulk_velocity_scale :: U
-    surface_radiation :: R
+    downwelling_radiation :: R
     atmosphere_ocean :: AO
     atmosphere_sea_ice :: ASI
     sea_ice_ocean :: SIO
@@ -50,7 +50,7 @@ end
 
 function OceanSeaIceModelFluxes(FT=Float64;
                                 bulk_velocity_scale = RelativeVelocityScale(),
-                                surface_radiation = nothing,
+                                downwelling_radiation = nothing,
                                 atmosphere_ocean = nothing,
                                 atmosphere_sea_ice = nothing,
                                 sea_ice_ocean = nothing)
@@ -67,7 +67,7 @@ function OceanSeaIceModelFluxes(FT=Float64;
     end
 
     return OceanSeaIceModelFluxes(bulk_velocity_scale,
-                                  surface_radiation,
+                                  downwelling_radiation,
                                   atmosphere_ocean,
                                   atmosphere_sea_ice,
                                   sea_ice_ocean)

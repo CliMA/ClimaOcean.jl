@@ -120,7 +120,7 @@ include("omip_sea_ice_component.jl")
 # also defines `radiation`, a `ClimaOcean.OceanSeaIceModels.Radiation`
 include("omip_atmosphere_and_radiation.jl")
 
-coupled_model = OceanSeaIceModel(ocean, ice, atmosphere; surface_radiation)
+coupled_model = OceanSeaIceModel(ocean, ice, atmosphere; downwelling_radiation)
 coupled_simulation = Simulation(coupled_model, Δt=5minutes, stop_iteration=2) #stop_time=30days)
 
 adjust_ice_covered_ocean_temperature!(coupled_model)

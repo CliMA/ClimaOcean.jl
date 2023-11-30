@@ -31,7 +31,7 @@ fields(::OSIM) = NamedTuple()
 default_clock(TT) = Oceananigans.TimeSteppers.Clock{TT}(0, 0, 1)
 
 function OceanSeaIceModel(ocean, sea_ice=nothing, atmosphere=nothing; 
-                          surface_radiation = nothing,
+                          downwelling_radiation = nothing,
                           clock = default_clock(eltype(ocean.model)))
     
     previous_ice_thickness = deepcopy(sea_ice.model.ice_thickness)
@@ -46,7 +46,7 @@ function OceanSeaIceModel(ocean, sea_ice=nothing, atmosphere=nothing;
     
     # Contains information about flux contributions: bulk formula, prescribed
     # fluxes, etc.
-    fluxes = OceanSeaIceModelFluxes(eltype(grid); surface_radiation)
+    fluxes = OceanSeaIceModelFluxes(eltype(grid); downwelling_radiation)
 
     # Contains a reference to the Fields holding net surface fluxes:
     # ocean top surface, and both top and bottom sea ice surfaces
