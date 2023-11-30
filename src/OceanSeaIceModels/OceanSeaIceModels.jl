@@ -34,15 +34,20 @@ using Oceananigans.OutputReaders: FieldTimeSeries, GPUAdaptedFieldTimeSeries
 const SomeKindOfFieldTimeSeries = Union{FieldTimeSeries,
                                         GPUAdaptedFieldTimeSeries}
 
+const SKOFTS = SomeKindOfFieldTimeSeries
+
 function surface_velocities end
 function surface_tracers end
+
+function sea_ice_thickness end
 
 #####
 ##### Some implementation
 #####
 
 include("ocean_sea_ice_model_fluxes.jl")
-include("radiation.jl")
+include("ocean_sea_ice_surfaces.jl")
+include("surface_radiation.jl")
 include("atmosphere_sea_ice_fluxes.jl")
 include("atmosphere_ocean_momentum_flux.jl")
 include("compute_atmosphere_ocean_fluxes.jl")
@@ -56,7 +61,7 @@ compute_atmosphere_ocean_fluxes!(coupled_model::NoAtmosphereModel) = nothing
 
 include("PrescribedAtmospheres.jl")
 
-using .PrescribedAtmospheres: PrescribedAtmosphere
+using .PrescribedAtmospheres: PrescribedAtmosphere, TwoStreamDownwellingRadiation
 
 # Or "AtmosphereModels"
 # include("Atmospheres.jl")

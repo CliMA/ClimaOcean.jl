@@ -34,89 +34,40 @@ Base.summary(osf::CrossRealmFluxes) = "CrossRealmFluxes"
 Base.show(io::IO, osf::CrossRealmFluxes) = print(io, summary(osf))
 
 #####
-##### Extractors for differnet models (maybe this belongs in the model repo's)
-#####
-
-function extract_top_surface_fluxes(model::HydrostaticFreeSurfaceModel)
-    u_flux = surface_flux(model.velocities.u)
-    v_flux = surface_flux(model.velocities.v)
-
-    ocean_momentum_fluxes = (u = u_flux, v = v_flux)
-
-    ocean_tracers = model.tracers
-
-    ocean_tracer_fluxes = NamedTuple(name => surface_flux(ocean_tracers[name])
-                                     for name in keys(ocean_tracers)
-                                     if surface_flux(ocean_tracers[name]) isa AbstractArray)
-
-    ocean_fluxes = CrossRealmFluxes(momentum = ocean_momentum_fluxes,
-                                    tracers = ocean_tracer_fluxes)
-
-    return ocean_fluxes
-end
-
-extract_top_surface_fluxes(model::SlabSeaIceModel) = nothing
-extract_bottom_surface_fluxes(model::SlabSeaIceModel) = nothing
-
-#####
-##### Total flux across each surface
-#####
-
-struct OceanSeaIceSurfaces{O, IT, IB}
-    ocean :: O
-    sea_ice_top :: IT
-    sea_ice_bottom :: IB
-end
-
-Base.summary(osis::OceanSeaIceSurfaces) = "OceanSeaIceSurfaces"
-Base.show(io::IO, osis::OceanSeaIceSurfaces) = print(io, summary(osis))
-
-function OceanSeaIceSurfaces(ocean, sea_ice=nothing)
-    ocean_fluxes = extract_top_surface_fluxes(ocean.model)
-            
-    if isnothing(sea_ice)
-        sea_ice_top_fluxes = nothing
-        sea_ice_bottom_fluxes = nothing
-    else
-        sea_ice_top_fluxes = extract_top_surface_fluxes(sea_ice.model)
-        sea_ice_bottom_fluxes = extract_bottom_surface_fluxes(sea_ice.model)
-    end
-
-    return OceanSeaIceSurfaces(ocean_fluxes,
-                               sea_ice_top_fluxes,  
-                               sea_ice_bottom_fluxes)
-end
-
-#####
 ##### Container for organizing information related to fluxes
 #####
 
-struct OceanSeaIceModelFluxes{S, R, AO, AI, IO}
-    surfaces :: S
-    radiation :: R
+struct RelativeVelocityScale end
+struct AtmosphereOnlyVelocityScale end
+
+struct OceanSeaIceModelFluxes{U, R, AO, ASI, SIO}
+    bulk_velocity_scale :: U
+    surface_radiation :: R
     atmosphere_ocean :: AO
-    atmosphere_sea_ice :: AI
-    sea_ice_ocean :: IO
+    atmosphere_sea_ice :: ASI
+    sea_ice_ocean :: SIO
 end
 
-function OceanSeaIceModelFluxes(ocean, sea_ice=nothing, atmosphere=nothing;
-                                radiation = nothing,
+function OceanSeaIceModelFluxes(FT=Float64;
+                                bulk_velocity_scale = RelativeVelocityScale(),
+                                surface_radiation = nothing,
                                 atmosphere_ocean = nothing,
                                 atmosphere_sea_ice = nothing,
                                 sea_ice_ocean = nothing)
 
-    surfaces = OceanSeaIceSurfaces(ocean, sea_ice)
-
     if isnothing(atmosphere_ocean) # defaults
-        FT = eltype(ocean.model.grid)
-        τˣ = BulkFormula(FT, transfer_coefficient=1e-3)
-        τʸ = BulkFormula(FT, transfer_coefficient=1e-3)
+        τˣ = BulkFormula(RelativeVelocity(), 1e-3)
+        τʸ = BulkFormula(RelativeVelocity(), 1e-3)
         momentum_flux_formulae = (u=τˣ, v=τʸ)
+
+        evaporation = BulkFormula(SpecificHumidity, 1e-3)
+                
+
         atmosphere_ocean = CrossRealmFluxes(momentum = momentum_flux_formulae)
     end
 
-    return OceanSeaIceModelFluxes(surfaces,
-                                  radiation,
+    return OceanSeaIceModelFluxes(bulk_velocity_scale,
+                                  surface_radiation,
                                   atmosphere_ocean,
                                   atmosphere_sea_ice,
                                   sea_ice_ocean)
@@ -129,19 +80,121 @@ Base.show(io::IO, crf::OceanSeaIceModelFluxes) = print(io, summary(crf))
 ##### Bulk formula
 #####
 
-struct RelativeVelocityScale end
-struct AtmosphereOnlyVelocityVelocityScale end
+"""
+    BulkFormula(air_sea_difference, transfer_coefficient)
 
-struct BulkFormula{T, CD}
-    velocity_scale :: T
+The basic structure of a flux `J` computed by a bulk formula is:
+
+```math
+J = ρₐ * C * Δc * ΔU
+```
+
+where `ρₐ` is the density of air, `C` is the `transfer_coefficient`,
+`Δc` is the air_sea_difference, and `ΔU` is the bulk velocity scale.
+"""
+struct BulkFormula{F, CD}
+    air_sea_difference :: F
     transfer_coefficient :: CD
 end
 
-function BulkFormula(FT=Float64;
-                     velocity_scale = RelativeVelocityScale(),
-                     transfer_coefficient = 1e-3)
+@inline function tracer_flux(i, j, grid, time, formula::BulkFormula, ΔU, atmosphere_state, ocean_state)
+    ρₐ = atmosphere_state.density
+    C = formula.transfer_coefficient
+    Δc = air_sea_difference(i, j, grid, time, formula.air_sea_difference, atmosphere_state, ocean_state)
+    return ρₐ * C * Δc * ΔU
+end
 
-    return BulkFormula(velocity_scale,
-                       convert(FT, transfer_coefficient))
+@inline tracer_flux(i, j, grid, time, flux::NamedTuple, args...) =
+    tracer_flux(i, j, grid, time, values(flux))
+
+@inline tracer_flux(i, j, grid, time, flux::Tuple{<:Any, <:Any}, args...) =
+    tracer_flux(i, j, grid, time, flux[1], args...) +
+    tracer_flux(i, j, grid, time, flux[2], args...)
+
+@inline tracer_flux(i, j, grid, time, fts::SKOFTS, args...) =
+    @inbounds fts[i, j, 1, time]
+
+#####
+##### Air-sea differences
+#####
+
+struct RelativeVelocity end
+
+struct MassSpecificHumidity{S}
+    saturation :: S
+end
+
+struct LargeYeagerSaturation{FT}
+    c1 :: FT
+    c2 :: FT
+    reference_temperature:: FT
+end
+
+function LargeYeagerSaturation(FT=Float64;
+                               c1 = 0.98 * 640380,
+                               c2 = -5107.4,
+                               reference_temperature = 273.15)
+    return LargeYeagerSaturation(convert(FT, c1),
+                                 convert(FT, c2),
+                                 convert(FT, reference_temperature))
+end
+
+#=
+MassSpecificHumidity(FT=Float64; saturation = LargeYeagerSaturation(FT)) =
+    MassSpecificHumidity(saturation)
+                              
+struct InternalEnergy{C}
+    atmosphere_specific_heat :: C
+end
+
+InternalEnergy(FT::DataType; atmosphere_specific_heat=1000.5) =
+    InternalEnergy(convert(FT,  atmosphere_specific_heat))
+=#
+
+@inline function air_sea_difference(i, j, grid, time, ::MassSpecificHumidity, atmos, ocean)
+    return air_sea_difference(i, j, grid, time, atmos, ocean)
+end
+
+@inline air_sea_difference(i, j, grid, time, air::SKOFTS, sea::AbstractArray) =
+    @inbounds air[i, j, 1, time] - sea[i, j, 1]
+
+#####
+##### Bulk velocity scales
+#####
+
+@inline function bulk_velocity_scaleᶠᶜᶜ(i, j, grid, time, ::RelativeVelocityScale, Uₐ, Uₒ)
+    uₐ = Uₐ.u
+    vₐ = Uₐ.v
+    uₒ = Uₒ.u
+    vₒ = Uₒ.v
+
+    Δu = @inbounds uₐ[i, j, 1, time] - uₒ[i, j, 1]
+    Δv² = ℑxyᶠᶜᵃ(i, j, 1, grid, Δϕt², vₐ, vₒ, time)
+
+    return sqrt(Δu^2 + Δv²)
+end
+
+@inline function bulk_velocity_scaleᶜᶠᶜ(i, j, grid, time, ::RelativeVelocityScale, Uₐ, Uₒ)
+    uₐ = Uₐ.u
+    vₐ = Uₐ.v
+    uₒ = Uₒ.u
+    vₒ = Uₒ.v
+
+    Δu² = ℑxyᶜᶠᵃ(i, j, 1, grid, Δϕt², uₐ, uₒ, time)
+    Δv = @inbounds vₐ[i, j, 1, time] - vₒ[i, j, 1]
+
+    return sqrt(Δu² + Δv^2)
+end
+
+@inline function bulk_velocity_scaleᶜᶜᶜ(i, j, grid, time, ::RelativeVelocityScale, Uₐ, Uₒ)
+    uₐ = Uₐ.u
+    vₐ = Uₐ.v
+    uₒ = Uₒ.u
+    vₒ = Uₒ.v
+
+    Δu² = ℑxᶜᵃᵃ(i, j, 1, grid, Δϕt², uₐ, uₒ, time)
+    Δv² = ℑyᵃᶜᵃ(i, j, 1, grid, Δϕt², vₐ, vₒ, time)
+
+    return sqrt(Δu² + Δv²)
 end
 

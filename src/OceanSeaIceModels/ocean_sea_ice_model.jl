@@ -2,12 +2,13 @@ using Oceananigans.Models: update_model_field_time_series!
 using Oceananigans.TimeSteppers: Clock
 using Oceananigans
 
-struct OceanSeaIceModel{FT, I, A, O, F, PI, PC, C, G} <: AbstractModel{Nothing}
+struct OceanSeaIceModel{FT, I, A, O, S, F, PI, PC, C, G} <: AbstractModel{Nothing}
     clock :: C
-    grid :: G # TODO: make it so simulation does not require this
+    grid :: G # TODO: make it so Oceananigans.Ssimulation does not require this
     atmosphere :: A
     sea_ice :: I
     ocean :: O
+    surfaces :: S
     fluxes :: F
     previous_ice_thickness :: PI
     previous_ice_concentration :: PC
@@ -29,12 +30,12 @@ prognostic_fields(cm::OSIM) = nothing
 fields(::OSIM) = NamedTuple()
 default_clock(TT) = Oceananigans.TimeSteppers.Clock{TT}(0, 0, 1)
 
-function OceanSeaIceModel(ocean, ice=nothing, atmosphere=nothing; 
-                          radiation = nothing,
+function OceanSeaIceModel(ocean, sea_ice=nothing, atmosphere=nothing; 
+                          surface_radiation = nothing,
                           clock = default_clock(eltype(ocean.model)))
     
-    previous_ice_thickness = deepcopy(ice.model.ice_thickness)
-    previous_ice_concentration = deepcopy(ice.model.ice_concentration)
+    previous_ice_thickness = deepcopy(sea_ice.model.ice_thickness)
+    previous_ice_concentration = deepcopy(sea_ice.model.ice_concentration)
 
     grid = ocean.model.grid
     ice_ocean_heat_flux = Field{Center, Center, Nothing}(grid)
@@ -42,9 +43,14 @@ function OceanSeaIceModel(ocean, ice=nothing, atmosphere=nothing;
 
     ocean_reference_density = 1024
     ocean_heat_capacity = 3991
-    # reference_temperature = 273.15 # for radiation?
     
-    fluxes = OceanSeaIceModelFluxes(ocean, ice; radiation)
+    # Contains information about flux contributions: bulk formula, prescribed
+    # fluxes, etc.
+    fluxes = OceanSeaIceModelFluxes(eltype(grid); surface_radiation)
+
+    # Contains a reference to the Fields holding net surface fluxes:
+    # ocean top surface, and both top and bottom sea ice surfaces
+    surfaces = OceanSeaIceSurfaces(ocean, sea_ice)
 
     FT = eltype(ocean.model.grid)
 
@@ -53,6 +59,7 @@ function OceanSeaIceModel(ocean, ice=nothing, atmosphere=nothing;
                             atmosphere,
                             ice,
                             ocean,
+                            surfaces,
                             fluxes,
                             previous_ice_thickness,
                             previous_ice_concentration,

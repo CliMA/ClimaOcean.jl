@@ -4,8 +4,6 @@ using Oceananigans.Grids: inactive_node
 ##### Utilities
 #####
 
-# surface_velocities(ocean::Simulation{<:HydrostaticFreeSurfaceModel}) = _surface_velocities(ocean)
-
 function surface_velocities(ocean::Simulation{<:HydrostaticFreeSurfaceModel})
     grid = ocean.model.grid
     Nz = size(grid, 3)
@@ -45,25 +43,28 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     ocean_velocities = surface_velocities(ocean)
     ocean_tracers    = surface_tracers(ocean)
 
-    atmosphere_velocities = surface_velocities(atmosphere)
-    atmosphere_tracers    = nothing
+    atmosphere_velocities            = surface_velocities(atmosphere)
+    atmosphere_tracers               = surface_tracers(atmosphere)
+    atmosphere_downwelling_radiation = downwelling_radiation(atmosphere)
+    atmosphere_freshwater_flux       = freshwater_flux(atmosphere)
 
-    ice_thickness = coupled_model.sea_ice.model.ice_thickness
+    ice_thickness = sea_ice_thickness(sea_ice)
 
     # Fluxes, and flux contributors
-    net_momentum_fluxes         = coupled_model.fluxes.surfaces.ocean.momentum
-    net_tracer_fluxes           = coupled_model.fluxes.surfaces.ocean.tracers
-    radiation                   = coupled_model.fluxes.radiation
+    net_momentum_fluxes         = coupled_model.surfaces.ocean.momentum
+    net_tracer_fluxes           = coupled_model.surfaces.ocean.tracers
     momentum_flux_contributions = coupled_model.fluxes.atmosphere_ocean.momentum
     heat_flux_contributions     = coupled_model.fluxes.atmosphere_ocean.heat
-    tracer_flux_contributions   = coupled_model.fluxes.atmosphere_ocean.heat
+    tracer_flux_contributions   = coupled_model.fluxes.atmosphere_ocean.tracers
 
     # Parameters?
     atmosphere_ocean_parameters = (
-        ρₐ = 1.2,
+        ρₐ = 1.2, # ?
         ρₒ = coupled_model.ocean_reference_density,
-        cₚ = 3991.0,
+        cₚ = coupled_model.ocean_heat_capacity,
     )
+
+    surface_radiation = coupled_model.fluxes.surface_radiation
 
     launch!(arch, grid, :xy, _compute_atmosphere_ocean_fluxes!,
             grid, clock,
@@ -76,18 +77,13 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             atmosphere_velocities,
             ocean_tracers,
             atmosphere_tracers,
-            radiation,
+            atmosphere_downwelling_radiation,
+            surface_radiation,
+            atmosphere_freshwater_flux,
             atmosphere_ocean_parameters,
             ice_thickness)
 
     return nothing
-end
-
-@inline function air_sea_difference(i, j, grid, time, ::RelativeVelocityScale,
-                                    air::SomeKindOfFieldTimeSeries, sea::AbstractArray)
-
-    δ = @inbounds air[i, j, 1, time] - sea[i, j, 1]
-    return δ
 end
 
 @kernel function _compute_atmosphere_ocean_fluxes!(grid,
@@ -101,7 +97,9 @@ end
                                                    atmosphere_velocities,
                                                    ocean_tracers,
                                                    atmosphere_tracers,
-                                                   radiation,
+                                                   downwelling_radiation,
+                                                   surface_radiation,
+                                                   freshwater_flux,
                                                    atmosphere_ocean_parameters,
                                                    ice_thickness)
 
@@ -133,69 +131,59 @@ end
     cᴰ = momentum_flux_contributions.u.transfer_coefficient
 
     # Compute transfer velocity scale
-    Vᶠᶜᶜ = bulk_velocity_scaleᶠᶜᶜ(i, j, grid, time, u_formula, Uₐ, Uₒ)
-    Vᶜᶠᶜ = bulk_velocity_scaleᶜᶠᶜ(i, j, grid, time, v_formula, Uₐ, Uₒ)
+    ΔUᶠᶜᶜ = bulk_velocity_scaleᶠᶜᶜ(i, j, grid, time, u_formula, Uₐ, Uₒ)
+    ΔUᶜᶠᶜ = bulk_velocity_scaleᶜᶠᶜ(i, j, grid, time, v_formula, Uₐ, Uₒ)
+    ΔUᶜᶜᶜ = bulk_velocity_scaleᶜᶜᶜ(i, j, grid, time, v_formula, Uₐ, Uₒ)
 
+    # Compute momentum fluxes
     Δu = air_sea_difference(i, j, grid, time, u_formula, uₐ, uₒ)
     Δv = air_sea_difference(i, j, grid, time, v_formula, vₐ, vₒ)
 
-    @inbounds begin
-        atmos_ocean_τˣ = - ρₐ / ρₒ * cᴰ * Δu * Vᶠᶜᶜ
-        atmos_ocean_τʸ = - ρₐ / ρₒ * cᴰ * Δv * Vᶜᶠᶜ
+    atmos_ocean_τˣ = - ρₐ / ρₒ * cᴰ * Δu * ΔUᶠᶜᶜ
+    atmos_ocean_τʸ = - ρₐ / ρₒ * cᴰ * Δv * ΔUᶜᶠᶜ
 
+    # Compute heat fluxes
+    # Radiation first
+    Q  = net_downwelling_radiation(i, j, grid, time, downwelling_radiation, surface_radiation)
+    Q += net_upwelling_radiation(i, j, grid, time, surface_radiation, Tₒ)
+
+    # Then the rest of the heat fluxes
+    atmos_ocean_Jᵀ = Q / (ρₒ * cₚ)
+
+    # Compute salinity fluxes
+    F = tracer_flux(i, j, grid, time, freshwater_flux)
+    atmos_ocean_Jˢ = F
+
+    @inbounds begin
+        # Set fluxes
         # TODO: should this be peripheral_node?
         τˣ[i, j, 1] = ifelse(inactive_node(i, j, kᴺ, grid, f, c, c), zero(grid), atmos_ocean_τˣ)
         τʸ[i, j, 1] = ifelse(inactive_node(i, j, kᴺ, grid, c, f, c), zero(grid), atmos_ocean_τʸ)
-
-        # Radiation first
-        Q  = downwelling_radiation(i, j, grid, time, radiation)
-        Q += upwelling_radiation(i, j, grid, time, radiation, Tₒ)
-
-        # Then the rest of the heat fluxes
-        atmos_ocean_Jᵀ = Q / (ρₒ * cₚ)
         Jᵀ[i, j, 1] = ifelse(inactive_node(i, j, kᴺ, grid, c, c, c), zero(grid), atmos_ocean_Jᵀ)
+        Jˢ[i, j, 1] = ifelse(inactive_node(i, j, kᴺ, grid, c, c, c), zero(grid), atmos_ocean_Jˢ)
     end
 end
 
 @inline Δϕt²(i, j, k, grid, ϕ1t, ϕ2, time) = @inbounds (ϕ1t[i, j, k, time] - ϕ2[i, j, k])^2
 
-@inline function downwelling_radiation(i, j, grid, time, radiation)
-    Qˢʷ = radiation.downwelling_shortwave_radiation
-    Qˡʷ = radiation.downwelling_longwave_radiation
-    α = radiation.ocean_albedo
+@inline function net_downwelling_radiation(i, j, grid, time, downwelling_radiation, surface_radiation)
+    Qˢʷ = downwelling_radiation.shortwave
+    Qˡʷ = downwelling_radiation.longwave
+
+    # Assumes albedo is a constant
+    α = surface_radiation.reflection.ocean
+
     return @inbounds - (1 - α) * Qˢʷ[i, j, 1, time] - Qˡʷ[i, j, 1, time]
 end
 
-@inline function upwelling_radiation(i, j, grid, time, radiation, Tₒ)
-    σ = radiation.stefan_boltzmann_constant
-    ϵ = radiation.ocean_emissivity
-    Tᵣ = radiation.reference_temperature
+@inline function upwelling_radiation(i, j, grid, time, surface_radiation, Tₒ)
+    σ = surface_radiation.stefan_boltzmann_constant
+    Tᵣ = surface_radiation.reference_temperature
+
+    # Assumes emissivity is a constant
+    ϵ = surface_radiation.emission.ocean
 
     # Note: positive implies _upward_ heat flux, and therefore cooling.
     return @inbounds σ * ϵ * (Tₒ[i, j, 1] + Tᵣ)^4
-end
-
-@inline function bulk_velocity_scaleᶠᶜᶜ(i, j, grid, time, ::RelativeVelocityScale, Uₐ, Uₒ)
-    uₐ = Uₐ.u
-    vₐ = Uₐ.v
-    uₒ = Uₒ.u
-    vₒ = Uₒ.v
-
-    Δu = @inbounds uₐ[i, j, 1, time] - uₒ[i, j, 1]
-    Δv² = ℑyᵃᶜᵃ(i, j, 1, grid, Δϕt², vₐ, vₒ, time)
-
-    return sqrt(Δu^2 + Δv²)
-end
-
-@inline function bulk_velocity_scaleᶜᶠᶜ(i, j, grid, time, ::RelativeVelocityScale, Uₐ, Uₒ)
-    uₐ = Uₐ.u
-    vₐ = Uₐ.v
-    uₒ = Uₒ.u
-    vₒ = Uₒ.v
-
-    Δu² = ℑxᶜᵃᵃ(i, j, 1, grid, Δϕt², uₐ, uₒ, time)
-    Δv = @inbounds vₐ[i, j, 1, time] - vₒ[i, j, 1]
-
-    return sqrt(Δu² + Δv^2)
 end
 

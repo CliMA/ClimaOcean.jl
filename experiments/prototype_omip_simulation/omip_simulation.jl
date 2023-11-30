@@ -1,4 +1,3 @@
-#=
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.TurbulenceClosures: CATKEVerticalDiffusivity
@@ -7,8 +6,9 @@ using Oceananigans.Fields: ConstantField, ZeroField, interpolate!
 using ClimaOcean
 using ClimaOcean.OceanSeaIceModels:
     adjust_ice_covered_ocean_temperature!,
+    TwoStreamDownwellingRadiation,
     PrescribedAtmosphere,
-    Radiation
+    SurfaceRadiation
 
 using ClimaOcean.JRA55: jra55_field_time_series
 
@@ -120,7 +120,7 @@ include("omip_sea_ice_component.jl")
 # also defines `radiation`, a `ClimaOcean.OceanSeaIceModels.Radiation`
 include("omip_atmosphere_and_radiation.jl")
 
-coupled_model = OceanSeaIceModel(ocean, ice, atmosphere; radiation)
+coupled_model = OceanSeaIceModel(ocean, ice, atmosphere; surface_radiation)
 coupled_simulation = Simulation(coupled_model, Δt=5minutes, stop_iteration=2) #stop_time=30days)
 
 adjust_ice_covered_ocean_temperature!(coupled_model)
@@ -160,7 +160,6 @@ coupled_simulation.output_writers[:surface] = JLD2OutputWriter(ocean_model, outp
                                                                overwrite_existing = true)
 
 run!(coupled_simulation)
-=#
 
 # using ClimaOcean.OceanSeaIceModels: compute_atmosphere_ocean_fluxes!
 # compute_atmosphere_ocean_fluxes!(coupled_model)
