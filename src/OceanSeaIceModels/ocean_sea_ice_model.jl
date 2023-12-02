@@ -1,6 +1,9 @@
+using Oceananigans
 using Oceananigans.Models: update_model_field_time_series!
 using Oceananigans.TimeSteppers: Clock
-using Oceananigans
+using Oceananigans.BuoyancyModels: SeawaterBuoyancy
+
+using SeawaterPolynomials: TEOS10EquationOfState
 
 struct OceanSeaIceModel{FT, I, A, O, S, F, PI, PC, C, G} <: AbstractModel{Nothing}
     clock :: C
@@ -30,9 +33,24 @@ prognostic_fields(cm::OSIM) = nothing
 fields(::OSIM) = NamedTuple()
 default_clock(TT) = Oceananigans.TimeSteppers.Clock{TT}(0, 0, 1)
 
-function OceanSeaIceModel(ocean, sea_ice=nothing, atmosphere=nothing; 
-                          downwelling_radiation = nothing,
-                          clock = default_clock(eltype(ocean.model)))
+reference_density(ocean::Simulation) = reference_density(ocean.model.buoyancy.model)
+reference_density(buoyancy_model::SeawaterBuoyancy) = reference_density(buoyancy_model.equation_of_state)
+#reference_density(unsupported) = throw(ArgumentError("Cannot extract reference density from $(typeof(unsupported))"))
+#reference_density(eos::TEOS10EquationOfState) = eos.reference_density
+reference_density(eos) = eos.reference_density
+
+heat_capacity(ocean::Simulation) = heat_capacity(ocean.model.buoyancy.model)
+heat_capacity(buoyancy_model::SeawaterBuoyancy) = heat_capacity(buoyancy_model.equation_of_state)
+#heat_capacity(unsupported) = throw(ArgumentError("Cannot deduce the heat capacity from $(typeof(unsupported))"))
+#heat_capacity(eos::TEOS10EquationOfState) = 3991 # get the right value in here eventually
+heat_capacity(eos) = 3991 # get the right value in here eventually
+
+function OceanSeaIceModel(ocean, sea_ice=nothing;
+                          atmosphere = nothing,
+                          surface_radiation = nothing,
+                          ocean_reference_density = reference_density(ocean),
+                          ocean_heat_capacity = heat_capacity(ocean),
+                          clock = deepcopy(ocean.model.clock))
     
     previous_ice_thickness = deepcopy(sea_ice.model.ice_thickness)
     previous_ice_concentration = deepcopy(sea_ice.model.ice_concentration)
@@ -40,13 +58,10 @@ function OceanSeaIceModel(ocean, sea_ice=nothing, atmosphere=nothing;
     grid = ocean.model.grid
     ice_ocean_heat_flux = Field{Center, Center, Nothing}(grid)
     ice_ocean_salt_flux = Field{Center, Center, Nothing}(grid)
-
-    ocean_reference_density = 1024
-    ocean_heat_capacity = 3991
     
     # Contains information about flux contributions: bulk formula, prescribed
     # fluxes, etc.
-    fluxes = OceanSeaIceModelFluxes(eltype(grid); downwelling_radiation)
+    fluxes = OceanSeaIceModelFluxes(eltype(grid); surface_radiation)
 
     # Contains a reference to the Fields holding net surface fluxes:
     # ocean top surface, and both top and bottom sea ice surfaces
@@ -57,7 +72,7 @@ function OceanSeaIceModel(ocean, sea_ice=nothing, atmosphere=nothing;
     return OceanSeaIceModel(clock,
                             ocean.model.grid,
                             atmosphere,
-                            ice,
+                            sea_ice,
                             ocean,
                             surfaces,
                             fluxes,
@@ -73,21 +88,24 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=nothing)
     ocean = coupled_model.ocean
     sea_ice = coupled_model.sea_ice
 
-    h = sea_ice.model.ice_thickness
-    fill_halo_regions!(h)
+    # Eventually, split out into OceanOnlyModel
+    if !isnothing(sea_ice)
+        h = sea_ice.model.ice_thickness
+        fill_halo_regions!(h)
 
-    # Initialization
-    if coupled_model.clock.iteration == 0
-        @info "Initializing coupled model ice thickness..."
-        h⁻ = coupled_model.previous_ice_thickness
-        hⁿ = coupled_model.sea_ice.model.ice_thickness
-        parent(h⁻) .= parent(hⁿ)
+        # Initialization
+        if coupled_model.clock.iteration == 0
+            @info "Initializing coupled model ice thickness..."
+            h⁻ = coupled_model.previous_ice_thickness
+            hⁿ = coupled_model.sea_ice.model.ice_thickness
+            parent(h⁻) .= parent(hⁿ)
+        end
+
+        sea_ice.Δt = Δt
+        time_step!(sea_ice)
     end
 
-    sea_ice.Δt = Δt
     ocean.Δt = Δt
-
-    time_step!(sea_ice)
 
     # TODO after ice time-step:
     #   - Adjust ocean heat flux if the ice completely melts?
@@ -104,10 +122,10 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=nothing)
 end
 
 function update_state!(coupled_model::OceanSeaIceModel, callbacks=nothing)
-    # update_model_field_time_series!(coupled_model.atmosphere.model) 
+    # update_model_field_time_series!(coupled_model.atmosphere) 
     compute_atmosphere_ocean_fluxes!(coupled_model) 
     # compute_atmosphere_sea_ice_fluxes!(coupled_model)
-    compute_sea_ice_ocean_fluxes!(coupled_model)
+    # compute_sea_ice_ocean_fluxes!(coupled_model)
     return nothing
 end
 

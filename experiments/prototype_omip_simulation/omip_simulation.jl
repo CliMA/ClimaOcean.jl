@@ -118,9 +118,12 @@ include("omip_sea_ice_component.jl")
 
 # Defines `atmosphere`, a `ClimaOcean.OceanSeaIceModels.PrescribedAtmosphere`
 # also defines `radiation`, a `ClimaOcean.OceanSeaIceModels.Radiation`
-include("omip_atmosphere_and_radiation.jl")
+include("omip_atmosphere.jl")
 
-coupled_model = OceanSeaIceModel(ocean, ice, atmosphere; downwelling_radiation)
+set!(ocean_model, T=Tᵢ, S=Sᵢ)
+
+surface_radiation = SurfaceRadiation()
+coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, surface_radiation)
 coupled_simulation = Simulation(coupled_model, Δt=5minutes, stop_iteration=2) #stop_time=30days)
 
 adjust_ice_covered_ocean_temperature!(coupled_model)
@@ -149,7 +152,7 @@ coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(1
 using Oceananigans.Operators: ζ₃ᶠᶠᶜ
 u, v, w = ocean_model.velocities
 ζ = KernelFunctionOperation{Face, Face, Center}(ζ₃ᶠᶠᶜ, grid, u, v)
-ℋ = ice_model.ice_thickness
+ℋ = sea_ice_model.ice_thickness
 
 outputs = merge(ocean_model.velocities, ocean_model.tracers, (; ζ, ℋ))
 filename = "omip_surface_fields.jld2"
@@ -170,9 +173,10 @@ axx = Axis(fig[1, 1])
 axy = Axis(fig[2, 1])
 axQ = Axis(fig[3, 1])
 
-τˣ = coupled_model.fluxes.surfaces.ocean.momentum.u
-τʸ = coupled_model.fluxes.surfaces.ocean.momentum.v
-Jᵀ = coupled_model.fluxes.surfaces.ocean.tracers.T
+τˣ = coupled_model.surfaces.ocean.momentum.u
+τʸ = coupled_model.surfaces.ocean.momentum.v
+Jᵀ = coupled_model.surfaces.ocean.tracers.T
+F = coupled_model.surfaces.ocean.tracers.S
 
 ρₒ = coupled_model.ocean_reference_density
 cₚ = coupled_model.ocean_heat_capacity
@@ -187,23 +191,17 @@ compute!(Q)
 τʸ = interior(τʸ, :, :, 1)
 Q = interior(Q, :, :, 1)
 
-# τˣ ./= ρₒ
-# τʸ ./= ρₒ
-
-land = τˣ .== NaN
-τˣ[land] .= 0
-
-land = τʸ .== NaN
-τʸ[land] .= 0
-
 Qmax = maximum(abs, Q)
 τmax = 1.0 #max(maximum(abs, τˣ), maximum(abs, τʸ))
+Fmax = maximum(abs, F)
 
-Qlim = 3Qmax / 4
 τlim = 3τmax / 4
+Qlim = 3Qmax / 4
+Flim = 3Fmax / 4
 
 land = Q .== 0
 Q[land] .= NaN
+F[land] .= NaN
 
 land = τˣ .== 0
 τˣ[land] .= NaN
@@ -211,13 +209,15 @@ land = τˣ .== 0
 land = τʸ .== 0
 τʸ[land] .= NaN
 
-hmx = heatmap!(axx, λf, φc, τˣ, colorrange=(-τlim, τlim), colormap=:balance, nan_color=:gray)
-hmy = heatmap!(axy, λc, φf, τʸ, colorrange=(-τlim, τlim), colormap=:balance, nan_color=:gray)
+hmx = heatmap!(axx, λf, φc, ρₒ .* τˣ, colorrange=(-τlim, τlim), colormap=:balance, nan_color=:gray)
+hmy = heatmap!(axy, λc, φf, ρₒ .* τʸ, colorrange=(-τlim, τlim), colormap=:balance, nan_color=:gray)
 hmQ = heatmap!(axQ, λc, φc, Q, colorrange=(-Qlim, Qlim), colormap=:balance, nan_color=:gray)
+hmF = heatmap!(axF, λc, φc, F, colorrange=(-Flim, Flim), colormap=:balance, nan_color=:gray)
 
 Colorbar(fig[1, 2], hmx, label="Eastward momentum flux (N m⁻²)")
 Colorbar(fig[2, 2], hmy, label="Northward momentum flux (N m⁻²)")
 Colorbar(fig[3, 2], hmQ, label="Heat flux (W m⁻²)")
+Colorbar(fig[3, 2], hmF, label="Salt flux (m s⁻¹ psu)")
 
 display(fig)
 

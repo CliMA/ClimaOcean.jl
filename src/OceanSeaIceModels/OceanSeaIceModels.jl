@@ -38,8 +38,11 @@ const SKOFTS = SomeKindOfFieldTimeSeries
 
 function surface_velocities end
 function surface_tracers end
-
 function sea_ice_thickness end
+function downwelling_radiation end
+function freshwater_flux end
+function specific_heat end
+function density end
 
 #####
 ##### Some implementation

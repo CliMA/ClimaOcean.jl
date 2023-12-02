@@ -1,4 +1,3 @@
-ice_ocean_heat_flux               = Field{Center, Center, Nothing}(grid)
 top_ocean_heat_flux          = Qᵀ = Field{Center, Center, Nothing}(grid)
 top_salt_flux                = Fˢ = Field{Center, Center, Nothing}(grid)
 top_zonal_momentum_flux      = τˣ = Field{Face, Center, Nothing}(grid)
@@ -28,10 +27,9 @@ momentum_advection = VectorInvariant(vorticity_scheme = WENO(),
 ocean_model = HydrostaticFreeSurfaceModel(; grid, buoyancy, closure,
                                           tracer_advection, momentum_advection,
                                           tracers = (:T, :S, :e),
-                                          free_surface = SplitExplicitFreeSurface(cfl=0.2; grid),
+                                          free_surface = SplitExplicitFreeSurface(cfl=0.7; grid),
                                           boundary_conditions = ocean_boundary_conditions,
                                           coriolis = HydrostaticSphericalCoriolis())
 
-set!(ocean_model, T=Tᵢ, S=Sᵢ)
-
+#set!(ocean_model, T=Tᵢ, S=Sᵢ)
 ocean = Simulation(ocean_model; Δt=5minutes, verbose=false)
