@@ -67,18 +67,23 @@ function default_atmosphere_ocean_fluxes(FT=Float64, tracers=tuple(:S))
     momentum_transfer_coefficient = 1e-3
     evaporation_transfer_coefficient = 1e-3
     sensible_heat_transfer_coefficient = 1e-3
+    vaporization_enthalpy  = 2.5e-3
+
+    momentum_transfer_coefficient      = convert(FT, momentum_transfer_coefficient)
+    evaporation_transfer_coefficient   = convert(FT, evaporation_transfer_coefficient)
+    sensible_heat_transfer_coefficient = convert(FT, sensible_heat_transfer_coefficient)
+    vaporization_enthalpy              = convert(FT, vaporization_enthalpy)
 
     τˣ = BulkFormula(RelativeUVelocity(), momentum_transfer_coefficient)
     τʸ = BulkFormula(RelativeVVelocity(), momentum_transfer_coefficient)
     momentum_flux_formulae = (u=τˣ, v=τʸ)
 
-    water_vapor_difference = WaterVaporFraction(FT)
-    evaporation = BulkFormula(WaterVaporFraction(FT), evaporation_transfer_coefficient)
+    water_specific_humidity_difference = SpecificHumidity(FT)
+    evaporation = nothing #BulkFormula(SpecificHumidity(FT), evaporation_transfer_coefficient)
     tracer_flux_formulae = (; S = evaporation)
 
-    vaporization_enthalpy  = convert(FT, 2.5e-3)
-    latent_heat_difference = LatentHeat(vapor_difference = water_vapor_difference; vaporization_enthalpy)
-    latent_heat_formula    = BulkFormula(latent_heat_difference,  evaporation_transfer_coefficient)
+    latent_heat_difference = LatentHeat(specific_humidity_difference = water_specific_humidity_difference; vaporization_enthalpy)
+    latent_heat_formula    = nothing #BulkFormula(latent_heat_difference,  evaporation_transfer_coefficient)
     sensible_heat_formula  = BulkFormula(SensibleHeat(), sensible_heat_transfer_coefficient)
 
     heat_flux_formulae = (sensible_heat_formula, latent_heat_formula)
@@ -191,18 +196,18 @@ struct SensibleHeat end
     return @inbounds cₚ[i, j, 1] * ΔT
 end
 
-struct WaterVaporFraction{S}
-    saturation_vapor_fraction :: S
+struct SpecificHumidity{S}
+    saturation_specific_humidity :: S
 
     @doc """
-        WaterVaporFraction(FT = Float64;
-                               saturation_vapor_fraction = LargeYeagerSaturationVaporFraction(FT))
+        SpecificHumidity(FT = Float64;
+                               saturation_specific_humidity = LargeYeagerSaturationVaporFraction(FT))
 
     """
-    function WaterVaporFraction(FT = Float64;
-                                    saturation_vapor_fraction = LargeYeagerSaturationVaporFraction(FT))
-        S = typeof(saturation_vapor_fraction)
-        return new{S}(saturation_vapor_fraction)
+    function SpecificHumidity(FT = Float64;
+                                saturation_specific_humidity = LargeYeagerSaturationVaporFraction(FT))
+        S = typeof(saturation_specific_humidity)
+        return new{S}(saturation_specific_humidity)
     end
 end
 
@@ -222,18 +227,18 @@ end
 
 """
 function LargeYeagerSaturationVaporFraction(FT = Float64;
-                                         q₀ = 0.98,
-                                         c₁ = 640380,
-                                         c₂ = -5107.4,
-                                         reference_temperature = 273.15)
+                                            q₀ = 0.98,
+                                            c₁ = 640380,
+                                            c₂ = -5107.4,
+                                            reference_temperature = 273.15)
 
     return LargeYeagerSaturationVaporFraction(convert(FT, q₀),
-                                           convert(FT, c₁),
-                                           convert(FT, c₂),
-                                           convert(FT, reference_temperature))
+                                              convert(FT, c₁),
+                                              convert(FT, c₂),
+                                              convert(FT, reference_temperature))
 end
 
-@inline function saturation_vapor_fraction(i, j, grid, time,
+@inline function saturation_specific_humidity(i, j, grid, time,
                                            ratio::LargeYeagerSaturationVaporFraction,
                                            atmos_state, ocean_state)
 
@@ -247,34 +252,34 @@ end
     return q₀ * c₁ * exp(-c₂ / (Tₒ + Tᵣ))
 end
 
-@inline function air_sea_difference(i, j, grid, time, diff::WaterVaporFraction, atmos_state, ocean_state)
-    vapor_fraction = diff.saturation_vapor_fraction 
+@inline function air_sea_difference(i, j, grid, time, diff::SpecificHumidity, atmos_state, ocean_state)
+    vapor_fraction = diff.saturation_specific_humidity 
     qₐ = stateindex(atmos_state.q, i, j, 1, time)
-    qₛ = saturation_vapor_fraction(i, j, grid, time, vapor_fraction, atmos_state, ocean_state)
+    qₛ = saturation_specific_humidity(i, j, grid, time, vapor_fraction, atmos_state, ocean_state)
     return qₐ - qₛ
 end
 
 struct LatentHeat{Q, FT}
-    vapor_difference :: Q
+    specific_humidity_difference :: Q
     vaporization_enthalpy :: FT
 end
 
 """
     LatentHeat(FT = Float64;
                vaporization_enthalpy = 2.5e3 # J / g
-               vapor_difference = WaterVaporFraction(FT))
+               specific_humidity_difference = SpecificHumidity(FT))
 
 """
 function LatentHeat(FT = Float64;
                     vaporization_enthalpy = 2.5e3, # J / g
-                    vapor_difference = WaterVaporFraction(FT))
+                    specific_humidity_difference = SpecificHumidity(FT))
 
     vaporization_enthalpy = convert(FT, vaporization_enthalpy)
-    return LatentHeat(vapor_difference, vaporization_enthalpy)
+    return LatentHeat(specific_humidity_difference, vaporization_enthalpy)
 end
 
 @inline function air_sea_difference(i, j, grid, time, diff::LatentHeat, atmos, ocean)
-    Δq = air_sea_difference(i, j, grid, time, diff.vapor_difference, atmos, ocean)
+    Δq = air_sea_difference(i, j, grid, time, diff.specific_humidity_difference, atmos, ocean)
     Λᵥ = diff.vaporization_enthalpy
     return Λᵥ * Δq
 end

@@ -124,7 +124,7 @@ set!(ocean_model, T=Tᵢ, S=Sᵢ)
 
 surface_radiation = SurfaceRadiation()
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, surface_radiation)
-coupled_simulation = Simulation(coupled_model, Δt=5minutes, stop_iteration=2) #stop_time=30days)
+coupled_simulation = Simulation(coupled_model, Δt=5minutes, stop_iteration=20)
 
 adjust_ice_covered_ocean_temperature!(coupled_model)
 
@@ -154,7 +154,12 @@ u, v, w = ocean_model.velocities
 ζ = KernelFunctionOperation{Face, Face, Center}(ζ₃ᶠᶠᶜ, grid, u, v)
 ℋ = sea_ice_model.ice_thickness
 
-outputs = merge(ocean_model.velocities, ocean_model.tracers, (; ζ, ℋ))
+τˣ = coupled_model.surfaces.ocean.momentum.u
+τʸ = coupled_model.surfaces.ocean.momentum.v
+Jᵀ = coupled_model.surfaces.ocean.tracers.T
+F = coupled_model.surfaces.ocean.tracers.S
+fluxes = (; τˣ, τʸ, Jᵀ, F)
+outputs = merge(ocean_model.velocities, ocean_model.tracers, fluxes, (; ζ, ℋ))
 filename = "omip_surface_fields.jld2"
 
 coupled_simulation.output_writers[:surface] = JLD2OutputWriter(ocean_model, outputs; filename,
@@ -164,14 +169,12 @@ coupled_simulation.output_writers[:surface] = JLD2OutputWriter(ocean_model, outp
 
 run!(coupled_simulation)
 
-# using ClimaOcean.OceanSeaIceModels: compute_atmosphere_ocean_fluxes!
-# compute_atmosphere_ocean_fluxes!(coupled_model)
-
 fig = Figure(resolution=(2400, 1200))
 
 axx = Axis(fig[1, 1])
 axy = Axis(fig[2, 1])
 axQ = Axis(fig[3, 1])
+axF = Axis(fig[4, 1])
 
 τˣ = coupled_model.surfaces.ocean.momentum.u
 τʸ = coupled_model.surfaces.ocean.momentum.v
@@ -190,10 +193,11 @@ compute!(Q)
 τˣ = interior(τˣ, :, :, 1)
 τʸ = interior(τʸ, :, :, 1)
 Q = interior(Q, :, :, 1)
+F = interior(F, :, :, 1)
 
 Qmax = maximum(abs, Q)
 τmax = 1.0 #max(maximum(abs, τˣ), maximum(abs, τʸ))
-Fmax = maximum(abs, F)
+Fmax = 1e-4 #maximum(abs, F)
 
 τlim = 3τmax / 4
 Qlim = 3Qmax / 4
@@ -217,7 +221,7 @@ hmF = heatmap!(axF, λc, φc, F, colorrange=(-Flim, Flim), colormap=:balance, na
 Colorbar(fig[1, 2], hmx, label="Eastward momentum flux (N m⁻²)")
 Colorbar(fig[2, 2], hmy, label="Northward momentum flux (N m⁻²)")
 Colorbar(fig[3, 2], hmQ, label="Heat flux (W m⁻²)")
-Colorbar(fig[3, 2], hmF, label="Salt flux (m s⁻¹ psu)")
+Colorbar(fig[4, 2], hmF, label="Salt flux (m s⁻¹ psu)")
 
 display(fig)
 
