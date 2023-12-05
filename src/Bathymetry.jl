@@ -82,7 +82,7 @@ function regrid_bathymetry(target_grid;
     FT = eltype(target_grid)
 
     φ_data = dataset["lat"][:]
-    λ_data = dataset["lon"][:]
+    λ_data = dataset["lon"][:] .+ 180
     h_data = convert.(FT, dataset["z"][:, :])
 
     close(dataset)
@@ -168,8 +168,10 @@ function interpolate_bathymetry_in_passes(native_h, target_grid; passes = 10)
         return new_h
     end
  
-    latitude  = y_domain(target_grid)
-    longitude = x_domain(target_grid)
+    latitude  = extrema(φnodes(target_grid, Face(), Face(), Center()))
+    longitude = extrema(λnodes(target_grid, Face(), Face(), Center()))
+
+    @show latitude, longitude
 
     ΔNλ = floor((Nλn - Nλt) / passes)
     ΔNφ = floor((Nφn - Nφt) / passes)
@@ -186,7 +188,7 @@ function interpolate_bathymetry_in_passes(native_h, target_grid; passes = 10)
     for pass = 1:passes - 1
         new_size = (Nλ[pass], Nφ[pass], 1)
 
-        @debug "pass number $pass with size $new_size"
+        @info "pass number $pass with size $new_size"
         new_grid = LatitudeLongitudeGrid(architecture(target_grid),
                                          size = new_size, 
                                      latitude = (latitude[1],  latitude[2]), 

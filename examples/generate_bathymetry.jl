@@ -43,7 +43,7 @@ display(fig)
 grid = WarpedLatitudeLongitudeGrid(CPU();
                                    size = (4 * 360, 4 * 170, 1),
                                    southermost_latitude = -80,
-                                   singularity_longitude = 230,
+                                   singularity_longitude = 90,
                                    z = (0, 1),
                                    halo = (4, 4, 4))
 
@@ -56,11 +56,6 @@ interior(h)[land] .= NaN
 
 fig = Figure(resolution=(2400, 1200))
 ax = Axis(fig[1, 1])
-heatmap!(ax, λ, φ, interior(h, :, :, 1), nan_color=:white, colorrange=(-5000, 0))
-
-λp = 360-112.45
-φp = 42.86
-text = "😻"
-text!(ax, λp, φp; text, fontsize=30)
+heatmap!(ax, interior(h, :, :, 1), nan_color=:white, colorrange=(-5000, 0))
 
 display(fig)
