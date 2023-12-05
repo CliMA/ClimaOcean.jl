@@ -1,17 +1,48 @@
 module ECCO2
 
+export ECCO2Data, ecco2_field, ecco2_center_mask, adjusted_ecco_tracers, initialize!
+
+using ClimaOcean.DataWrangling: fill_missing_values!
+using ClimaOcean.InitialConditions: three_dimensional_regrid!
+
 using Oceananigans
+using Oceananigans: architecture
 using Oceananigans.BoundaryConditions
+using Oceananigans.Utils
+using KernelAbstractions: @kernel, @index
 using NCDatasets
 
-temperature_filename = "THETA.1440x720x50.19920102.nc"
-salinity_filename = "SALT.1440x720x50.19920102.nc"
-effective_ice_thickness_filename = "SIheff.1440x720.19920102.nc"
+import Oceananigans.Fields: set!
+
+# Ecco field used to set model's initial conditions
+struct ECCO2Data
+    name  :: Symbol
+    year  :: Int
+    month :: Int
+    day   :: Int
+end
+
+# We only have 1992 at the moment
+ECCO2Data(name::Symbol) = ECCO2Data(name, 1992, 1, 2)
+
+filename(data::ECCO2Data) = "ecco2_" * string(data.name) * "_$(data.year)$(data.month)$(data.day).nc"
+
+ecco2_tracer_fields = Dict(
+    :ecco2_temperature => :temperature,
+    :ecco2_salinity => :salinity,
+    :ecco_2_effective_ice_thickness => :effective_ice_thickness
+)
 
 ecco2_short_names = Dict(
     :temperature   => "THETA",
     :salinity      => "SALT",
     :effective_ice_thickness => "SIheff"
+)
+
+ecco2_location = Dict(
+    :temperature   => (Center, Center, Center),
+    :salinity      => (Center, Center, Center),
+    :effective_ice_thickness => (Center, Center, Nothing)
 )
 
 ecco2_depth_names = Dict(
@@ -59,79 +90,198 @@ function construct_vertical_interfaces(ds, depth_name)
     return zf
 end
 
-function ecco2_field(variable_name;
-                     architecture = CPU(),
-                     horizontal_halo = (1, 1),
-                     url = ecco2_urls[variable_name],
-                     filename = ecco2_file_names[variable_name],
-                     short_name = ecco2_short_names[variable_name])
+function empty_ecco2_field(data::ECCO2Data; architecture = CPU(), 
+                                            horizontal_halo = (1, 1))
 
-    isfile(filename) || download(url, filename)
+    variable_name = data.name
 
-    ds = Dataset(filename)
+    location = ecco2_location[variable_name]
 
     longitude = (0, 360)
     latitude = (-90, 90)
     TX, TY = (Periodic, Bounded)
 
-    if variable_is_three_dimensional[variable_name] 
-        data = ds[short_name][:, :, :, 1]
-        depth_name = ecco2_depth_names[variable_name]
-        
-        # The surface layer in three-dimensional ECCO fields is at `k = 1`
-        data = reverse(data, dims = 3)
-        
-        z    = construct_vertical_interfaces(ds, depth_name)
-        N    = size(data)
+    filename = ecco2_file_names[variable_name]
+    
+    ds = Dataset(filename)
 
+    if variable_is_three_dimensional[variable_name] 
+        depth_name = ecco2_depth_names[variable_name]
+        z    = construct_vertical_interfaces(ds, depth_name)
         # add vertical halo for 3D fields
         halo = (horizontal_halo..., 1)
-
         LZ   = Center
         TZ   = Bounded
+        N    = (1440, 720, 50)
     else
-        data = ds[short_name][:, :, 1]
-        N    = size(data)
         z    = nothing
         halo = horizontal_halo
         LZ   = Nothing
         TZ   = Flat
+        N    = (1440, 720)
     end
-
-    close(ds)
 
     # Flat in z if the variable is two-dimensional
     grid = LatitudeLongitudeGrid(architecture; halo, size = N, topology = (TX, TY, TZ),
                                  longitude, latitude, z)
 
-    field = Field{Center, Center, LZ}(grid)
-    
+    return Field{location...}(grid)
+end
+
+"""
+    ecco2_field(variable_name;
+                architecture = CPU(),
+                horizontal_halo = (1, 1),
+                user_data = nothing,
+                url = ecco2_urls[variable_name],
+                filename = ecco2_file_names[variable_name],
+                short_name = ecco2_short_names[variable_name])
+
+Retrieve the ecco2 field corresponding to `variable_name`. The data is either:
+(1) retrieved from `filename` 
+(2) dowloaded from `url` if `filename` does not exists
+(3) filled from `user_data` if `user_data` is provided
+"""
+function ecco2_field(variable_name;
+                     architecture = CPU(),
+                     horizontal_halo = (1, 1),
+                     user_data = nothing,
+                     year = 1992,
+                     month = 1,
+                     day  = 2, 
+                     url  = ecco2_urls[variable_name],
+                     filename = ecco2_file_names[variable_name],
+                     short_name = ecco2_short_names[variable_name])
+
+    ecco2_data = ECCO2Data(variable_name, year, month, day)
+
+    isfile(filename) || download(url, filename)
+
+    if user_data isa Nothing
+        ds = Dataset(filename)
+        
+        if variable_is_three_dimensional[variable_name] 
+            data = ds[short_name][:, :, :, 1]
+            # The surface layer in three-dimensional ECCO fields is at `k = 1`
+            data = reverse(data, dims = 3)
+        else
+            data = ds[short_name][:, :, 1]
+        end        
+    else
+        data = user_data
+    end
+
+    field = empty_ecco2_field(ecco2_data; architecture, horizontal_halo)
+    FT    = eltype(field)
+    data  = convert.(FT, data)
+
     set!(field, data)
     fill_halo_regions!(field)
 
     return field
 end
 
-function ecco2_bottom_height_from_temperature()
-    Tᵢ = ecco2_field(:temperature)
+@kernel function _set_ecco2_mask!(mask, Tᵢ, minimum_value)
+    i, j, k = @index(Global, NTuple)
+    @inbounds mask[i, j, k] = ifelse(Tᵢ[i, j, k] < minimum_value, 0, 1)
+end
 
-    missing_value = Float32(-9.9e22)
+"""
+    ecco2_center_mask(architecture = CPU(); minimum_value = Float32(-1e5))
 
-    # Construct bottom_height depth by analyzing T
-    Nx, Ny, Nz = size(Tᵢ)
-    bottom_height = ones(Nx, Ny) .* (zf[1] - Δz)
-    zf = znodes(Tᵢ.grid, Face())
+An integer field where 0 represents a missing value in the ECCO2 :temperature
+dataset and 1 represents a valid value
+"""
+function ecco2_center_mask(architecture = CPU(); minimum_value = Float32(-1e5))
+    Tᵢ   = ecco2_field(:temperature; architecture)
+    mask = CenterField(Tᵢ.grid)
+
+    # Set the mask with ones where T is defined
+    launch!(architecture, Tᵢ.grid, :xyz, _set_ecco2_mask!, mask, Tᵢ, minimum_value)
+
+    return mask
+end
+
+"""
+    adjusted_ecco_field(variable_name; 
+                        architecture = CPU(),
+                        filename = "./data/initial_ecco_tracers.nc",
+                        mask = ecco2_center_mask(architecture))
     
-    for i = 1:Nx, j = 1:Ny
-        @inbounds for k = Nz:-1:1
-            if Tᵢ[i, j, k] < -10
-                bottom_height[i, j] = zf[k+1]
-                break
-            end
+Retrieve the ECCO2 field corresponding to `variable_name` adjusted to fill all the
+missing values in the original dataset
+
+Arguments:
+==========
+
+- `variable_name`: the variable name corresponding to the Dataset
+
+Keyword Arguments:
+==================
+
+- `architecture`: either `CPU()` or `GPU()`
+
+- `filename`: the path where to retrieve the data from. If the file does not exist,
+              the data will be retrived from the ECCO2 dataset, it will be adjusted and
+              saved down in `filename`
+
+- `mask`: the mask used to extend the field (see `adjust_tracer!`)
+"""
+function adjusted_ecco2_field(variable_name; 
+                              architecture = CPU(),
+                              filename = "./data/adjusted_ecco_tracers.nc",
+                              mask = ecco2_center_mask(architecture))
+    
+    if !isfile(filename)
+        f = ecco2_field(variable_name; architecture)
+        
+        # Make sure all values are extended properly
+        @info "in-painting ecco field $variable_name and saving it in $filename"
+        fill_missing_values!(f; mask)
+
+        ds = Dataset(filename, "c")
+        defVar(ds, string(variable_name), Array(interior(f)), ("lat", "lon", "z"))
+
+        close(ds)
+    else
+        ds = Dataset(filename, "a")
+
+        if haskey(ds, string(variable_name))
+            data = ds[variable_name][:, :, :]
+            f = ecco2_field(variable_name; architecture, user_data = data)
+        else
+            f = ecco2_field(variable_name; architecture)
+            # Make sure all values are extended properly
+            @info "in-painting ecco field $variable_name and saving it in $filename"
+            fill_missing_values!(f; mask)
+
+            defVar(ds, string(variable_name), Array(interior(f)), ("lat", "lon", "z"))
         end
+
+        close(ds)
     end
 
-    return bottom_height
+    return f
+end
+
+function set!(field::Field, ecco2::ECCO2Data; filename = "./data/adjusted_ecco_tracers.nc")
+    # Fields initialized from ECCO2
+    grid = field.grid
+
+    mask = ecco2_center_mask(architecture(grid))
+    
+    f = adjusted_ecco2_field(ecco2.name; 
+                             architecture = architecture(grid),
+                             filename,
+                             mask)
+
+    f_grid = Field(ecco2_location[ecco2.name], grid)   
+
+    three_dimensional_regrid!(f_grid, f)
+
+    set!(field, f_grid)
+
+    return field
 end
 
 end # module
