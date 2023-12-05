@@ -1,35 +1,7 @@
 using GLMakie
 using Oceananigans
 using ClimaOcean.Bathymetry: regrid_bathymetry
-
-#####
-##### Quarter degree near-global grid
-#####
-
-grid = LatitudeLongitudeGrid(CPU();
-                             size = (4 * 360, 4 * 160, 1),
-                             latitude = (-80, 80),
-                             longitude = (-180, 180),
-                             z = (0, 1),
-                             halo = (4, 4, 4))
-
-h = regrid_bathymetry(grid, height_above_water=1, minimum_depth=5)
-
-λ, φ, z = nodes(h)
-
-land = interior(h) .> 0
-interior(h)[land] .= NaN
-
-fig = Figure(resolution=(2400, 1200))
-ax = Axis(fig[1, 1])
-heatmap!(ax, λ, φ, interior(h, :, :, 1), nan_color=:white, colorrange=(-5000, 0))
-
-λp = -112.45
-φp = 42.86
-text = "😻"
-text!(ax, λp, φp; text, fontsize=30)
-
-display(fig)
+using OrthogonalSphericalShellGrids
 
 #####
 ##### Regional Mediterranean grid 
@@ -64,3 +36,31 @@ heatmap!(ax, λ, φ, interior(h_rough, :, :, 1), nan_color=:white) #, colorrange
 
 display(fig)
 
+#####
+##### Quarter degree Global ocean grid with the north-pole singularity in Russia at λ = 230
+#####
+
+grid = WarpedLatitudeLongitudeGrid(CPU();
+                                   size = (4 * 360, 4 * 170, 1),
+                                   southermost_latitude = -80,
+                                   singularity_longitude = 230,
+                                   z = (0, 1),
+                                   halo = (4, 4, 4))
+
+h = regrid_bathymetry(grid, height_above_water=1, minimum_depth=5)
+
+λ, φ, z = nodes(h)
+
+land = interior(h) .> 0
+interior(h)[land] .= NaN
+
+fig = Figure(resolution=(2400, 1200))
+ax = Axis(fig[1, 1])
+heatmap!(ax, λ, φ, interior(h, :, :, 1), nan_color=:white, colorrange=(-5000, 0))
+
+λp = 360-112.45
+φp = 42.86
+text = "😻"
+text!(ax, λp, φp; text, fontsize=30)
+
+display(fig)
