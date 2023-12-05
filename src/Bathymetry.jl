@@ -89,8 +89,8 @@ function regrid_bathymetry(target_grid;
 
     # Diagnose target grid information
     arch = architecture(target_grid)
-    φ₁, φ₂ = y_domain(target_grid)
-    λ₁, λ₂ = x_domain(target_grid)
+    φ₁, φ₂ = extrema(φnodes(target_grid, Face(), Face(), Center()))
+    λ₁, λ₂ = extrema(λnodes(target_grid, Face(), Face(), Center()))
 
     # Calculate limiting indices on the bathymetry grid
     i₁ = searchsortedfirst(λ_data, λ₁)
