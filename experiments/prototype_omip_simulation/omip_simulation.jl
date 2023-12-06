@@ -23,6 +23,8 @@ using Printf
 
 using Downloads: download
 
+start_time = time_ns()
+
 temperature_filename = "THETA.1440x720x50.19920102.nc"
 salinity_filename = "SALT.1440x720x50.19920102.nc"
 ice_thickness_filename = "SIheff.1440x720.19920102.nc"
@@ -62,6 +64,10 @@ Sᵢ = salinity_ds["SALT"][:, :, :, 1]
 ℋᵢ = ice_thickness_ds["SIheff"][:, :, 1]
 
 Nx, Ny′, Nz = size(Tᵢ)
+
+elapsed = time_ns() - start_time
+@info "Initial condition built. " * prettytime(elapsed * 1e-9)
+start_time = time_ns()
 
 #####
 ##### Construct the grid
@@ -110,21 +116,44 @@ grid = LatitudeLongitudeGrid(arch,
 
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
+elapsed = time_ns() - start_time
+@info "Grid constructed including evaluation of bottom height from initial condition data. " *
+      prettytime(elapsed * 1e-9)
+start_time = time_ns()
+
 # Defines `ocean`, an `Oceananigans.Simulation`
 include("omip_ocean_component.jl")
 
+elapsed = time_ns() - start_time
+@info "Ocean component built. " * prettytime(elapsed * 1e-9)
+start_time = time_ns()
+
+ocean_model.clock.time = 0
+ocean_model.clock.iteration = 0
+set!(ocean_model, T=Tᵢ, S=Sᵢ, e=1e-6)
+
 # Defines `sea_ice`, an `Oceananigans.Simulation`
 include("omip_sea_ice_component.jl")
+
+elapsed = time_ns() - start_time
+@info "Sea ice component built. " * prettytime(elapsed * 1e-9)
+start_time = time_ns()
 
 # Defines `atmosphere`, a `ClimaOcean.OceanSeaIceModels.PrescribedAtmosphere`
 # also defines `radiation`, a `ClimaOcean.OceanSeaIceModels.Radiation`
 include("omip_atmosphere.jl")
 
-set!(ocean_model, T=Tᵢ, S=Sᵢ)
+elapsed = time_ns() - start_time
+@info "Atmosphere built. " * prettytime(elapsed * 1e-9)
+start_time = time_ns()
 
 surface_radiation = SurfaceRadiation()
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, surface_radiation)
-coupled_simulation = Simulation(coupled_model, Δt=5minutes, stop_iteration=20)
+coupled_simulation = Simulation(coupled_model, Δt=5minutes, stop_iteration=2)
+
+elapsed = time_ns() - start_time
+@info "Coupled simulation built. " * prettytime(elapsed * 1e-9)
+start_time = time_ns()
 
 adjust_ice_covered_ocean_temperature!(coupled_model)
 
@@ -147,159 +176,134 @@ function progress(sim)
     @info msg1 * msg2 * msg3
 end
 
-coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
+coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(1))
 
 using Oceananigans.Operators: ζ₃ᶠᶠᶜ
 u, v, w = ocean_model.velocities
 ζ = KernelFunctionOperation{Face, Face, Center}(ζ₃ᶠᶠᶜ, grid, u, v)
+a = @at (Center, Center, Center) (u^2 + v^2) / 2
 ℋ = sea_ice_model.ice_thickness
 
-τˣ = coupled_model.surfaces.ocean.momentum.u
-τʸ = coupled_model.surfaces.ocean.momentum.v
+# Build flux outputs
+Jᵘ = coupled_model.surfaces.ocean.momentum.u
+Jᵛ = coupled_model.surfaces.ocean.momentum.v
 Jᵀ = coupled_model.surfaces.ocean.tracers.T
-F = coupled_model.surfaces.ocean.tracers.S
-fluxes = (; τˣ, τʸ, Jᵀ, F)
-outputs = merge(ocean_model.velocities, ocean_model.tracers, fluxes, (; ζ, ℋ))
+F  = coupled_model.surfaces.ocean.tracers.S
+ρₒ = coupled_model.ocean_reference_density
+cₚ = coupled_model.ocean_heat_capacity
+
+Q = ρₒ * cₚ * Jᵀ
+τˣ = ρₒ * Jᵘ
+τʸ = ρₒ * Jᵛ
+
+fluxes = (; τˣ, τʸ, Q, F)
+
+fields = merge(ocean_model.velocities, ocean_model.tracers,
+               (; ζ = Field(ζ), ℋ ))
+
+# Slice fields at the surface
+#fields = NamedTuple(name => view(fields[name], :, :, Nz) for name in keys(fields))
+outputs = merge(fields, fluxes)
+
 filename = "omip_surface_fields.jld2"
 
 coupled_simulation.output_writers[:surface] = JLD2OutputWriter(ocean_model, outputs; filename,
-                                                               schedule = TimeInterval(1day),
+                                                               #schedule = TimeInterval(1day),
+                                                               schedule = IterationInterval(1),
                                                                indices = (:, :, Nz),
                                                                overwrite_existing = true)
 
 run!(coupled_simulation)
 
+τˣt = FieldTimeSeries(filename, "τˣ")
+τʸt = FieldTimeSeries(filename, "τʸ")
+Qt  = FieldTimeSeries(filename, "Q")
+Ft  = FieldTimeSeries(filename, "F")
+
+Tt = FieldTimeSeries(filename, "T")
+St = FieldTimeSeries(filename, "S")
+et = FieldTimeSeries(filename, "e")
+ζt = FieldTimeSeries(filename, "ζ")
+
+function nan_land!(ψt)
+    Nt = length(ψt.times)
+    land = interior(ψt[1], :, :, 1) .== 0
+    for n = 2:Nt
+        ψn = interior(ψt[n], :, :, 1)
+        ψn[land] .= NaN
+    end
+    return nothing
+end
+
+for ψt in (τˣt, τʸt, Qt, Ft, Tt, St, et, ζt)
+    nan_land!(ψt)
+end
+
+λf, φc, zc = nodes(τˣt)
+λc, φf, zc = nodes(τʸt)
+λc, φc, zc = nodes(Qt)
+λf, φf, zc = nodes(ζt)
+
 fig = Figure(resolution=(2400, 1200))
 
-axx = Axis(fig[1, 1])
-axy = Axis(fig[2, 1])
-axQ = Axis(fig[3, 1])
-axF = Axis(fig[4, 1])
+Nt = length(Tt.times)
+slider = Slider(fig[5, 2:3], range=1:Nt, startvalue=1)
+n = slider.value #Observable(1)
 
-τˣ = coupled_model.surfaces.ocean.momentum.u
-τʸ = coupled_model.surfaces.ocean.momentum.v
-Jᵀ = coupled_model.surfaces.ocean.tracers.T
-F = coupled_model.surfaces.ocean.tracers.S
+τˣn = @lift interior(τˣt[$n], :, :, 1)
+τʸn = @lift interior(τʸt[$n], :, :, 1)
+Qn  = @lift interior(Qt[$n], :, :, 1)
+Fn  = @lift interior(Ft[$n], :, :, 1)
 
-ρₒ = coupled_model.ocean_reference_density
-cₚ = coupled_model.ocean_heat_capacity
-Q = Field(ρₒ * cₚ * Jᵀ)
-compute!(Q)
+Tn  = @lift interior(Tt[$n], :, :, 1)
+Sn  = @lift interior(St[$n], :, :, 1)
+en  = @lift interior(et[$n], :, :, 1)
+ζn  = @lift interior(ζt[$n], :, :, 1)
 
-λf, φc, zc = nodes(τˣ)
-λc, φf, zc = nodes(τʸ)
-λc, φc, zc = nodes(Q)
+Qmax = 1000
+τmax = 1.0
+Fmax = 1e-4
 
-τˣ = interior(τˣ, :, :, 1)
-τʸ = interior(τʸ, :, :, 1)
-Q = interior(Q, :, :, 1)
-F = interior(F, :, :, 1)
-
-Qmax = maximum(abs, Q)
-τmax = 1.0 #max(maximum(abs, τˣ), maximum(abs, τʸ))
-Fmax = 1e-4 #maximum(abs, F)
+Tmax = 32
+Tmin = -2
+Smax = 35
+Smin = 20
+elim = 1e-2
+ζlim = 1e-4
 
 τlim = 3τmax / 4
 Qlim = 3Qmax / 4
 Flim = 3Fmax / 4
 
-land = Q .== 0
-Q[land] .= NaN
-F[land] .= NaN
+axx = Axis(fig[1, 2])
+axy = Axis(fig[2, 2])
+axQ = Axis(fig[3, 2])
+axF = Axis(fig[4, 2])
 
-land = τˣ .== 0
-τˣ[land] .= NaN
+axT = Axis(fig[1, 3])
+axS = Axis(fig[2, 3])
+axe = Axis(fig[3, 3])
+axz = Axis(fig[4, 3])
 
-land = τʸ .== 0
-τʸ[land] .= NaN
+hmx = heatmap!(axx, λf, φc, τˣn, colorrange=(-τlim, τlim), colormap=:balance, nan_color=:gray)
+hmy = heatmap!(axy, λc, φf, τʸn, colorrange=(-τlim, τlim), colormap=:balance, nan_color=:gray)
+hmQ = heatmap!(axQ, λc, φc, Qn,  colorrange=(-Qlim, Qlim), colormap=:balance, nan_color=:gray)
+hmF = heatmap!(axF, λc, φc, Fn,  colorrange=(-Flim, Flim), colormap=:balance, nan_color=:gray)
 
-hmx = heatmap!(axx, λf, φc, ρₒ .* τˣ, colorrange=(-τlim, τlim), colormap=:balance, nan_color=:gray)
-hmy = heatmap!(axy, λc, φf, ρₒ .* τʸ, colorrange=(-τlim, τlim), colormap=:balance, nan_color=:gray)
-hmQ = heatmap!(axQ, λc, φc, Q, colorrange=(-Qlim, Qlim), colormap=:balance, nan_color=:gray)
-hmF = heatmap!(axF, λc, φc, F, colorrange=(-Flim, Flim), colormap=:balance, nan_color=:gray)
+Colorbar(fig[1, 1], hmx, flipaxis=false, label="Eastward momentum flux (N m⁻²)")
+Colorbar(fig[2, 1], hmy, flipaxis=false, label="Northward momentum flux (N m⁻²)")
+Colorbar(fig[3, 1], hmQ, flipaxis=false, label="Heat flux (W m⁻²)")
+Colorbar(fig[4, 1], hmF, flipaxis=false, label="Salt flux (m s⁻¹ psu)")
 
-Colorbar(fig[1, 2], hmx, label="Eastward momentum flux (N m⁻²)")
-Colorbar(fig[2, 2], hmy, label="Northward momentum flux (N m⁻²)")
-Colorbar(fig[3, 2], hmQ, label="Heat flux (W m⁻²)")
-Colorbar(fig[4, 2], hmF, label="Salt flux (m s⁻¹ psu)")
+hmT = heatmap!(axT, λf, φc, Tn, colorrange=(Tmin, Tmax), colormap=:thermal,  nan_color=:gray)
+hmS = heatmap!(axS, λc, φf, Sn, colorrange=(Smin, Smax), colormap=:haline,   nan_color=:gray)
+hme = heatmap!(axe, λc, φc, en, colorrange=(0, elim),    colormap=:solar,    nan_color=:gray)
+hmz = heatmap!(axz, λf, φf, ζn, colorrange=(-ζlim, ζlim), colormap=:balance, nan_color=:gray)
 
-display(fig)
-
-#=
-#####
-##### Visualize
-#####
-
-using Oceananigans
-using GLMakie
-filename = "omip_surface_fields.jld2"
-
-Tt = FieldTimeSeries(filename, "T")
-St = FieldTimeSeries(filename, "S")
-et = FieldTimeSeries(filename, "e")
-ℋt = FieldTimeSeries(filename, "ℋ")
-ζt = FieldTimeSeries(filename, "ζ")
-
-land = interior(Tt[1], :, :, 1) .== 0
-mask = [1 + ℓ * NaN for ℓ in land]
-
-grid = Tt.grid
-λ, φ, z = nodes(Tt)
-h = interior(grid.immersed_boundary.bottom_height, :, :, 1)
-h .*= mask
-times = Tt.times
-Nt = length(times)
-
-fig = Figure(resolution=(2400, 1200))
-
-axT = Axis(fig[1, 2], title="Temperature")
-axS = Axis(fig[2, 2], title="Salinity")
-axh = Axis(fig[3, 2], title="Bottom height")
-axe = Axis(fig[1, 3], title="Turbulent kinetic energy")
-axZ = Axis(fig[2, 3], title="Vorticity")
-axℋ = Axis(fig[3, 3], title="Ice thickness")
-
-slider = Slider(fig[4, 2:3], range=1:Nt, startvalue=1)
-n = slider.value
-
-title = @lift string("OMIP simulation ", prettytime(times[$n]), " after Jan 1 1992")
-Label(fig[0, 2:3], title)
-
-Tn = @lift mask .* interior(Tt[$n], :, :, 1)
-Sn = @lift mask .* interior(St[$n], :, :, 1)
-en = @lift mask .* interior(et[$n], :, :, 1)
-ζn = @lift interior(ζt[$n], :, :, 1)
-ℋn = @lift mask .* interior(ℋt[$n], :, :, 1)
-Δℋn = @lift mask .* (interior(ℋt[$n], :, :, 1) .- interior(ℋt[1], :, :, 1))
-
-hm = heatmap!(axT, λ, φ, Tn, nan_color=:gray, colorrange=(-1, 25), colormap=:thermal)
-Colorbar(fig[1, 1], hm, flipaxis=false)
-
-hm = heatmap!(axS, λ, φ, Sn, nan_color=:gray, colorrange=(28, 35), colormap=:haline)
-Colorbar(fig[2, 1], hm, flipaxis=false)
-
-hm = heatmap!(axh, λ, φ, h,  nan_color=:gray, colormap=:viridis)
-Colorbar(fig[3, 1], hm, flipaxis=false)
-
-hm = heatmap!(axe, λ, φ, en, nan_color=:gray, colorrange=(0, 2e-6), colormap=:solar)
-Colorbar(fig[1, 4], hm)
-
-hm = heatmap!(axZ, λ, φ, ζn, nan_color=:gray, colorrange=(-2e-5, 2e-5), colormap=:redblue)
-Colorbar(fig[2, 4], hm)
-
-hm = heatmap!(axℋ, λ, φ, ℋn, nan_color=:gray, colorrange=(0, 1), colormap=:blues)
-Colorbar(fig[3, 4], hm)
-
-# hm = heatmap!(axℋ, λ, φ, Δℋn, nan_color=:gray, colorrange=(-0.5, 0.5), colormap=:balance)
-# Colorbar(fig[3, 4], hm)
+Colorbar(fig[1, 4], hmx, label="Temperature (ᵒC)")
+Colorbar(fig[2, 4], hmy, label="Salinity (psu)")
+Colorbar(fig[3, 4], hmQ, label="Turbulent kinetic energy (m² s⁻²)")
+Colorbar(fig[4, 4], hmF, label="Vorticity (s⁻¹)")
 
 display(fig)
 
-#=
-record(fig, "omip_simulation.mp4", 1:Nt, framerate=24) do nn
-    @info "Drawing frame $nn of $Nt..."
-    n[] = nn
-end
-=#
-
-=#

@@ -19,7 +19,7 @@ jra55_variable_names = (:freshwater_river_flux,
                         :eastward_velocity,
                         :northward_velocity)
 
-file_names = Dict(
+filenames = Dict(
     :freshwater_river_flux           => "RYF.friver.1990_1991.nc",   # Freshwater fluxes from rivers
     :freshwater_rain_flux            => "RYF.prra.1990_1991.nc",     # Freshwater flux from rainfall
     :freshwater_snow_flux            => "RYF.prsn.1990_1991.nc",     # Freshwater flux from snowfall
@@ -95,7 +95,7 @@ urls = Dict(
                             architecture = CPU(),
                             time_indices = :,    
                             url = urls[name],
-                            filename = file_names[variable_name],
+                            filename = filenames[variable_name],
                             short_name = short_names[variable_name])
 
 Return a `FieldTimeSeries` containing atmospheric reanalysis data for `variable_name`,
@@ -145,9 +145,24 @@ Keyword arguments
 function jra55_field_time_series(variable_name;
                                  architecture = CPU(),
                                  time_indices = :,    
-                                 url = urls[variable_name],
-                                 filename = file_names[variable_name],
-                                 short_name = short_names[variable_name])
+                                 url = nothing,
+                                 filename = nothing,
+                                 short_name = nothing)
+
+    if isnothing(filename) && !(variable_name ∈ jra55_variable_names)
+        variable_strs = Tuple("  - :$name \n" for name in jra55_variable_names)
+        variables_msg = prod(variable_strs)
+
+        msg = string("The variable :$variable_name is not provided by the JRA55-do dataset!", '\n',
+                     "The variables provided by the JRA55-do dataset are:", '\n',
+                     variables_msg)
+
+        throw(ArgumentError(msg))
+    end
+
+    isnothing(url)        && (url        = urls[variable_name])
+    isnothing(filename)   && (filename   = filenames[variable_name])
+    isnothing(short_name) && (short_name = short_names[variable_name])
 
     isfile(filename) || download(url, filename)
 

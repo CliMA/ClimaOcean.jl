@@ -31,5 +31,5 @@ ocean_model = HydrostaticFreeSurfaceModel(; grid, buoyancy, closure,
                                           boundary_conditions = ocean_boundary_conditions,
                                           coriolis = HydrostaticSphericalCoriolis())
 
-#set!(ocean_model, T=Tᵢ, S=Sᵢ)
 ocean = Simulation(ocean_model; Δt=5minutes, verbose=false)
+
