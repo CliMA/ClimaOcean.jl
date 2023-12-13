@@ -61,6 +61,6 @@ or sea ice.
 """
 TwoStreamDownwellingRadiation(; shortwave=nothing, longwave=nothing) =
     TwoStreamDownwellingRadiation(shortwave, longwave)
- 
+
 end # module
 

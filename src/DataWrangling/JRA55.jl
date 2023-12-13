@@ -2,7 +2,15 @@ module JRA55
 
 using Oceananigans
 using Oceananigans.Units
+
 using Oceananigans.BoundaryConditions: fill_halo_regions!
+using Oceananigans.Grids: λnodes, φnodes
+using Oceananigans.Fields: interpolate!
+
+using ClimaOcean.OceanSeaIceModels:
+    PrescribedAtmosphere,
+    TwoStreamDownwellingRadiation
+
 using NCDatasets
 
 # A list of all variables provided in the JRA55 dataset:
@@ -34,7 +42,7 @@ filenames = Dict(
     :northward_velocity              => "RYF.vas.1990_1991.nc",      # Northward near-surface wind
 )
 
-short_names = Dict(
+shortnames = Dict(
     :freshwater_river_flux           => "friver",   # Freshwater fluxes from rivers
     :freshwater_rain_flux            => "prra",     # Freshwater flux from rainfall
     :freshwater_snow_flux            => "prsn",     # Freshwater flux from snowfall
@@ -96,7 +104,7 @@ urls = Dict(
                             time_indices = :,    
                             url = urls[name],
                             filename = filenames[variable_name],
-                            short_name = short_names[variable_name])
+                            shortname = shortnames[variable_name])
 
 Return a `FieldTimeSeries` containing atmospheric reanalysis data for `variable_name`,
 which describes one of the variables in the "repeat year forcing" dataset derived
@@ -106,7 +114,7 @@ For more information about the derivation of the repeat year forcing dataset, se
 "Stewart et al., JRA55-do-based repeat year forcing datasets for driving ocean–sea-ice models",
 Ocean Modelling, 2020, https://doi.org/10.1016/j.ocemod.2019.101557.
 
-The `variable_name`s (and their `short_name`s used in NetCDF files)
+The `variable_name`s (and their `shortname`s used in NetCDF files)
 available from the JRA55-do are:
 
     - `:freshwater_river_flux`              ("friver")
@@ -139,15 +147,16 @@ Keyword arguments
     - `filename`: The name of the downloaded file.
                   Default: `ClimaOcean.JRA55.filenames[variable_name]`.
 
-    - `short_name`: The "short name" of `variable_name` inside its NetCDF file.
-                    Default: `ClimaOcean.JRA55.short_names[variable_name]`.
+    - `shortname`: The "short name" of `variable_name` inside its NetCDF file.
+                    Default: `ClimaOcean.JRA55.shortnames[variable_name]`.
 """
-function jra55_field_time_series(variable_name;
+function jra55_field_time_series(variable_name, grid=nothing;
                                  architecture = CPU(),
+                                 location = nothing,
                                  time_indices = :,    
                                  url = nothing,
                                  filename = nothing,
-                                 short_name = nothing)
+                                 shortname = nothing)
 
     if isnothing(filename) && !(variable_name ∈ jra55_variable_names)
         variable_strs = Tuple("  - :$name \n" for name in jra55_variable_names)
@@ -160,11 +169,18 @@ function jra55_field_time_series(variable_name;
         throw(ArgumentError(msg))
     end
 
-    isnothing(url)        && (url        = urls[variable_name])
-    isnothing(filename)   && (filename   = filenames[variable_name])
-    isnothing(short_name) && (short_name = short_names[variable_name])
+    isnothing(url)       && (url       = urls[variable_name])
+    isnothing(filename)  && (filename  = filenames[variable_name])
+    isnothing(shortname) && (shortname = shortnames[variable_name])
 
     isfile(filename) || download(url, filename)
+
+    # Get location
+    if isnothing(location)
+        LX = LY = Center
+    else
+        LX, LY = location
+    end
 
     ds = Dataset(filename)
 
@@ -174,53 +190,148 @@ function jra55_field_time_series(variable_name;
     # ds["lat"]:      latitude at the location of the variable
     # ds["lon_bnds"]: bounding longitudes between which variables are averaged
     # ds["lat_bnds"]: bounding latitudes between which variables are averaged
-    # ds[short_name]: the variable data
+    # ds[shortname]: the variable data
 
-    # Extract variable data
-    data = ds[short_name][:, :, time_indices]
+    # Nodes at the variable location
+    λc = ds["lon"][:]
+    φc = ds["lat"][:]
 
-    # Make the JRA55 grid
-    λ = ds["lon_bnds"][1, :]
-    φ = ds["lat_bnds"][1, :]
-    times = ds["time"][time_indices]
-
-    close(ds)
+    # Interfaces for the "native" JRA55 grid
+    λn = ds["lon_bnds"][1, :]
+    φn = ds["lat_bnds"][1, :]
 
     # The .nc coordinates lon_bnds and lat_bnds do not include
     # the last interface, so we push them here.
-    push!(φ, 90)
-    push!(λ, λ[1] + 360)
+    push!(φn, 90)
+    push!(λn, λn[1] + 360)
 
-    Nx = length(λ) - 1
-    Ny = length(φ) - 1
+    times = ds["time"][time_indices]
 
-    grid = LatitudeLongitudeGrid(architecture,
-                                 size = (Nx, Ny);
-                                 longitude = λ,
-                                 latitude = φ,
-                                 topology = (Periodic, Bounded, Flat))
+    Nx = length(λc)
+    Ny = length(φc)
+
+    if isnothing(grid)
+        i₁, i₂ = (1, Nx)
+        j₁, j₂ = (1, Ny)
+        TX = Periodic
+    else # only load the data we need
+        # Nodes where we need to find data
+        λg = λnodes(grid, LX())
+        φg = φnodes(grid, LY())
+
+        λ₁, λ₂ = extrema(λg)
+        φ₁, φ₂ = extrema(φg)
+
+        # The following should work. If ᵒ are the extrema of nodes we want to
+        # interpolate to, and the following is a sketch of the JRA55 native grid,
+        #
+        #      1         2         3         4         5
+        # |         |         |         |         |         |
+        # |    x  ᵒ |    x    |    x    |    x  ᵒ |    x    |
+        # |         |         |         |         |         |
+        # 1         2         3         4         5         6 
+        #
+        # then for example, we should find that (iᵢ, i₂) = (1, 5).
+        # So we want to reduce the first index by one, and limit them
+        # both by the available data. There could be some mismatch due
+        # to the use of different coordinate systems (ie whether λ ∈ (0, 360)
+        # which we may also need to handle separately.
+        
+        i₁ = searchsortedfirst(λc, λ₁)
+        j₁ = searchsortedfirst(φc, φ₁)
+
+        i₂ = searchsortedfirst(λc, λ₂)
+        j₂ = searchsortedfirst(φc, φ₂)
+
+        i₁ = max(1, i₁ - 1)
+        j₁ = max(1, j₁ - 1)
+
+        i₂ = min(Nx, i₂)
+        j₂ = min(Ny, j₂)
+
+        TX = λ₂ - λ₁ ≈ 360 ? Periodic : Bounded
+    end
+
+    # Extract variable data
+    data = ds[shortname][i₁:i₂, j₁:j₂, time_indices]
+    λr = λn[i₁:i₂+1]
+    φr = φn[j₁:j₂+1]
+    Nrx, Nry, Nt = size(data)
+
+    close(ds)
 
     # Hack together the `times` for the JRA55 dataset we are currently using.
     # We might want to use the acutal dates instead though.
-    # So the following code maybe should change.
+    # So the following code might need to change.
     Δt = 3hours # just what it is
     Nt = length(times)
     start_time = 0 # Note: the forcing start at Jan 1 of the repeat year.
     stop_time = Δt * (Nt - 1)
     times = start_time:Δt:stop_time
 
-    boundary_conditions = FieldBoundaryConditions(grid, (Center, Center, Nothing))
-    fts = FieldTimeSeries{Center, Center, Nothing}(grid, times; boundary_conditions)
+    jra55_native_grid = LatitudeLongitudeGrid(architecture,
+                                              size = (Nrx, Nry);
+                                              longitude = λr,
+                                              latitude = φr,
+                                              topology = (TX, Bounded, Flat))
+
+    boundary_conditions = FieldBoundaryConditions(jra55_native_grid, (Center, Center, Nothing))
+    native_fts = FieldTimeSeries{Center, Center, Nothing}(jra55_native_grid, times; boundary_conditions)
 
     # Fill the data
-    interior(fts, :, :, 1, :) .= data[:, :, :]
+    copyto!(interior(native_fts, :, :, 1, :), data[:, :, :])
 
     # Fill halo regions so we can interpolate to finer grids
     Nt = length(times)
-    fill_halo_regions!(fts)
+    fill_halo_regions!(native_fts)
 
-    return fts
+    if isnothing(grid)
+        return native_fts
+    else # make a new FieldTimeSeries and interpolate native data onto it.
+
+        boundary_conditions = FieldBoundaryConditions(grid, (LX, LY, Nothing))
+        fts = FieldTimeSeries{LX, LY, Nothing}(grid, times; boundary_conditions)
+
+        interpolate!(fts, native_fts)
+
+        return fts
+    end
 end
+
+# TODO: allow the user to pass dates
+function jra55_prescribed_atmosphere(grid, time_indices=:)
+    architecture = Oceananigans.architecture(grid)
+
+    u_jra55   = jra55_field_time_series(:eastward_velocity,               grid; time_indices, architecture, location=(Face, Center))
+    v_jra55   = jra55_field_time_series(:northward_velocity,              grid; time_indices, architecture, location=(Center, Face)) 
+    T_jra55   = jra55_field_time_series(:temperature,                     grid; time_indices, architecture)
+    q_jra55   = jra55_field_time_series(:specific_humidity,               grid; time_indices, architecture)
+    Fr_jra55  = jra55_field_time_series(:freshwater_rain_flux,            grid; time_indices, architecture)
+    Fs_jra55  = jra55_field_time_series(:freshwater_snow_flux,            grid; time_indices, architecture)
+    Fv_jra55  = jra55_field_time_series(:freshwater_river_flux,           grid; time_indices, architecture)
+    Fi_jra55  = jra55_field_time_series(:freshwater_iceberg_flux,         grid; time_indices, architecture)
+    Qlw_jra55 = jra55_field_time_series(:downwelling_longwave_radiation,  grid; time_indices, architecture)
+    Qsw_jra55 = jra55_field_time_series(:downwelling_shortwave_radiation, grid; time_indices, architecture)
+
+    times = u_jra55.times
+
+    velocities = (u = u_jra55,
+                  v = v_jra55)
+
+    tracers = (T = T_jra55,
+               q = q_jra55)
+
+    freshwater_flux = (rain     = Fr_jra55,
+                       snow     = Fs_jra55,
+                       rivers   = Fv_jra55,
+                       icebergs = Fi_jra55)
+
+    downwelling_radiation = TwoStreamDownwellingRadiation(shortwave=Qsw_jra55, longwave=Qsw_jra55)
+    atmosphere = PrescribedAtmosphere(times; velocities, freshwater_flux, tracers, downwelling_radiation)
+
+    return atmosphere
+end
+ 
 
 end # module
 

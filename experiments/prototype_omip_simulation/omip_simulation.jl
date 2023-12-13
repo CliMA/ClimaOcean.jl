@@ -28,6 +28,7 @@ start_time = time_ns()
 temperature_filename = "THETA.1440x720x50.19920102.nc"
 salinity_filename = "SALT.1440x720x50.19920102.nc"
 ice_thickness_filename = "SIheff.1440x720.19920102.nc"
+#=
 
 # Downloaded from https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N
 
@@ -214,6 +215,9 @@ coupled_simulation.output_writers[:surface] = JLD2OutputWriter(ocean_model, outp
                                                                overwrite_existing = true)
 
 run!(coupled_simulation)
+=#
+
+filename = "omip_surface_fields.jld2"
 
 τˣt = FieldTimeSeries(filename, "τˣ")
 τʸt = FieldTimeSeries(filename, "τʸ")

@@ -52,8 +52,13 @@ function OceanSeaIceModel(ocean, sea_ice=nothing;
                           ocean_heat_capacity = heat_capacity(ocean),
                           clock = deepcopy(ocean.model.clock))
     
-    previous_ice_thickness = deepcopy(sea_ice.model.ice_thickness)
-    previous_ice_concentration = deepcopy(sea_ice.model.ice_concentration)
+    if isnothing(sea_ice)
+        previous_ice_thickness = nothing
+        previous_ice_concentration = nothing
+    else
+        previous_ice_thickness = deepcopy(sea_ice.model.ice_thickness)
+        previous_ice_concentration = deepcopy(sea_ice.model.ice_concentration)
+    end
 
     grid = ocean.model.grid
     ice_ocean_heat_flux = Field{Center, Center, Nothing}(grid)

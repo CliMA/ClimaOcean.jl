@@ -60,13 +60,13 @@ end
 @inline u_immersed_bottom_drag(i, j, k, grid, c, Φ, μ) = @inbounds - μ * Φ.u[i, j, k] * spᶠᶜᶜ(i, j, k, grid, Φ)
 @inline v_immersed_bottom_drag(i, j, k, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, k] * spᶜᶠᶜ(i, j, k, grid, Φ)
 
+include("OceanSeaIceModels/OceanSeaIceModels.jl")
 include("VerticalGrids.jl")
 include("DataWrangling/DataWrangling.jl")
 include("Bathymetry.jl")
 include("InitialConditions.jl")
 include("Diagnostics.jl")
 include("NearGlobalSimulations/NearGlobalSimulations.jl")
-include("OceanSeaIceModels/OceanSeaIceModels.jl")
 
 using .DataWrangling: JRA55
 using .OceanSeaIceModels: OceanSeaIceModel
