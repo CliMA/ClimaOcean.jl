@@ -5,6 +5,12 @@ using Oceananigans.BoundaryConditions: fill_halo_regions!
 
 using NCDatasets
 
+# Data from
+#
+# https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N
+#
+# These files are just for Jan 2, 1992.
+
 const ECCO2_Nx = 1440
 const ECCO2_Ny = 720
 const ECCO2_Nz = 50
@@ -82,8 +88,6 @@ depthnames = Dict(
     :sea_ice_thickness => nothing,
 )
 
-# Downloaded from https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N
-# These files are just for Jan 2, 1992.
 urls = Dict(
     :temperature => "https://www.dropbox.com/scl/fi/01h96yo2fhnnvt2zkmu0d/" *
                     "THETA.1440x720x50.19920102.nc?rlkey=ycso2v09gc6v2qb5j0lff0tjs&dl=0",

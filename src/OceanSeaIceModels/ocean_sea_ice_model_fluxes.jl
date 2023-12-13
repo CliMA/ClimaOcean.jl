@@ -64,6 +64,8 @@ struct OceanSeaIceModelFluxes{U, R, AO, ASI, SIO}
 end
 
 function default_atmosphere_ocean_fluxes(FT=Float64, tracers=tuple(:S))
+    # Note: we are constantly coping with the fact that the ocean is ᵒC.
+    ocean_reference_temperature = 273.15
     momentum_transfer_coefficient = 1e-3
     evaporation_transfer_coefficient = 1e-3
     sensible_heat_transfer_coefficient = 1e-3
@@ -78,13 +80,16 @@ function default_atmosphere_ocean_fluxes(FT=Float64, tracers=tuple(:S))
     τʸ = BulkFormula(RelativeVVelocity(), momentum_transfer_coefficient)
     momentum_flux_formulae = (u=τˣ, v=τʸ)
 
+    # Note: reference temperature comes in here
     water_specific_humidity_difference = SpecificHumidity(FT)
     evaporation = nothing #BulkFormula(SpecificHumidity(FT), evaporation_transfer_coefficient)
     tracer_flux_formulae = (; S = evaporation)
 
     latent_heat_difference = LatentHeat(specific_humidity_difference = water_specific_humidity_difference; vaporization_enthalpy)
     latent_heat_formula    = nothing #BulkFormula(latent_heat_difference,  evaporation_transfer_coefficient)
-    sensible_heat_formula  = BulkFormula(SensibleHeat(), sensible_heat_transfer_coefficient)
+
+    sensible_heat_difference = SensibleHeat(FT; ocean_reference_temperature)
+    sensible_heat_formula = BulkFormula(sensible_heat_difference, sensible_heat_transfer_coefficient)
 
     heat_flux_formulae = (sensible_heat_formula, latent_heat_formula)
 
@@ -185,12 +190,22 @@ end
     return air_sea_difference(i, j, grid, time, vₐ, vₒ)
 end
 
-struct SensibleHeat end
+struct SensibleHeat{FT}
+    ocean_reference_temperature :: FT
+end
 
-@inline function air_sea_difference(i, j, grid, time, ::SensibleHeat, atmos_state, ocean_state)
+SensibleHeat(FT::DataType=Float64; ocean_reference_temperature=273.15) =
+    SensibleHeat(convert(FT, ocean_reference_temperature))
+
+@inline function air_sea_difference(i, j, grid, time, Qs::SensibleHeat, atmos_state, ocean_state)
     cₚ = stateindex(atmos_state.cₚ, i, j, 1, time)
     Tₐ = atmos_state.T
-    Tₒ = ocean_state.T
+
+    # Compute ocean temperature in degrees K
+    Tᵣ = Qs.ocean_reference_temperature 
+    Tₒᵢ = stateindex(ocean_state.T, i, j, 1, time)
+    Tₒ = Tₒᵢ + Tᵣ
+    
     ΔT = air_sea_difference(i, j, grid, time, Tₐ, Tₒ)
 
     return @inbounds cₚ[i, j, 1] * ΔT
@@ -205,7 +220,7 @@ struct SpecificHumidity{S}
 
     """
     function SpecificHumidity(FT = Float64;
-                                saturation_specific_humidity = LargeYeagerSaturationVaporFraction(FT))
+                              saturation_specific_humidity = LargeYeagerSaturationVaporFraction(FT))
         S = typeof(saturation_specific_humidity)
         return new{S}(saturation_specific_humidity)
     end
@@ -215,15 +230,15 @@ struct LargeYeagerSaturationVaporFraction{FT}
     q₀ :: FT
     c₁ :: FT
     c₂ :: FT
-    reference_temperature:: FT
+    reference_temperature :: FT
 end
 
 """
     LargeYeagerSaturationVaporFraction(FT = Float64;
-                                    q₀ = 0.98,
-                                    c₁ = 640380,
-                                    c₂ = -5107.4,
-                                    reference_temperature = 273.15)
+                                       q₀ = 0.98,
+                                       c₁ = 640380,
+                                       c₂ = -5107.4,
+                                       reference_temperature = 273.15)
 
 """
 function LargeYeagerSaturationVaporFraction(FT = Float64;
