@@ -1,6 +1,6 @@
 module ECCO2
 
-export ECCO2Data, ecco2_field, ecco2_center_mask, adjusted_ecco_tracers, initialize!
+export ECCO2Metadata, ecco2_field, ecco2_center_mask, adjusted_ecco_tracers, initialize!
 
 using ClimaOcean.DataWrangling: fill_missing_values!
 using ClimaOcean.InitialConditions: three_dimensional_regrid!
@@ -15,7 +15,7 @@ using NCDatasets
 import Oceananigans.Fields: set!
 
 # Ecco field used to set model's initial conditions
-struct ECCO2Data
+struct ECCO2Metadata
     name  :: Symbol
     year  :: Int
     month :: Int
@@ -23,9 +23,9 @@ struct ECCO2Data
 end
 
 # We only have 1992 at the moment
-ECCO2Data(name::Symbol) = ECCO2Data(name, 1992, 1, 2)
+ECCO2Metadata(name::Symbol) = ECCO2Metadata(name, 1992, 1, 2)
 
-filename(data::ECCO2Data) = "ecco2_" * string(data.name) * "_$(data.year)$(data.month)$(data.day).nc"
+filename(data::ECCO2Metadata) = "ecco2_" * string(data.name) * "_$(data.year)$(data.month)$(data.day).nc"
 
 ecco2_tracer_fields = Dict(
     :ecco2_temperature => :temperature,
@@ -90,7 +90,7 @@ function construct_vertical_interfaces(ds, depth_name)
     return zf
 end
 
-function empty_ecco2_field(data::ECCO2Data; architecture = CPU(), 
+function empty_ecco2_field(data::ECCO2Metadata; architecture = CPU(), 
                                             horizontal_halo = (1, 1))
 
     variable_name = data.name
@@ -153,7 +153,7 @@ function ecco2_field(variable_name;
                      filename = ecco2_file_names[variable_name],
                      short_name = ecco2_short_names[variable_name])
 
-    ecco2_data = ECCO2Data(variable_name, year, month, day)
+    ecco2_data = ECCO2Metadata(variable_name, year, month, day)
 
     isfile(filename) || download(url, filename)
 
@@ -264,7 +264,7 @@ function adjusted_ecco2_field(variable_name;
     return f
 end
 
-function set!(field::Field, ecco2::ECCO2Data; filename = "./data/adjusted_ecco_tracers.nc")
+function set!(field::Field, ecco2::ECCO2Metadata; filename = "./data/adjusted_ecco_tracers.nc")
     # Fields initialized from ECCO2
     grid = field.grid
 

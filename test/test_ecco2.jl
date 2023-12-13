@@ -44,7 +44,7 @@ end
     for arch in test_architectures
         grid  = LatitudeLongitudeGrid(size = (10, 10, 10), latitude = (-60, -40), longitude = (-5, 5), z = (-200, 0))
         field = CenterField(grid)
-        set!(field, ECCO2Data(:temperature)) 
-        set!(field, ECCO2Data(:salinity))
+        set!(field, ECCO2Metadata(:temperature)) 
+        set!(field, ECCO2Metadata(:salinity))
     end 
 end

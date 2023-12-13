@@ -77,7 +77,7 @@ model = HydrostaticFreeSurfaceModel(; grid,
 @info "initializing model"
 libia_blob(x, y, z) = z > -20 || (x - 15)^2 + (y - 34)^2 < 1.5 ? 1 : 0
 
-set!(model, T = ECCO2Data(:temperature), S = ECCO2Data(:salinity), c = libia_blob)
+set!(model, T = ECCO2Metadata(:temperature), S = ECCO2Metadata(:salinity), c = libia_blob)
 
 fig = Figure()
 ax  = Axis(fig[1, 1])
