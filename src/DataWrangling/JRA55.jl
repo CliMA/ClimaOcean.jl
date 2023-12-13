@@ -278,7 +278,7 @@ function jra55_field_time_series(variable_name, grid=nothing;
     boundary_conditions = FieldBoundaryConditions(jra55_native_grid, (Center, Center, Nothing))
     native_fts = FieldTimeSeries{Center, Center, Nothing}(jra55_native_grid, times; boundary_conditions)
 
-    # Fill the data
+    # Fill the data in a GPU-friendly manner
     copyto!(interior(native_fts, :, :, 1, :), data[:, :, :])
 
     # Fill halo regions so we can interpolate to finer grids
