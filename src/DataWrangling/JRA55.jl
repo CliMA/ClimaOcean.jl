@@ -7,17 +7,17 @@ using NCDatasets
 
 # A list of all variables provided in the JRA55 dataset:
 jra55_short_names = (:freshwater_river_flux,
-                        :freshwater_rain_flux,
-                        :freshwater_snow_flux,
-                        :freshwater_iceberg_flux,
-                        :specific_humidity,
-                        :sea_level_pressure,
-                        :relative_humidity,
-                        :downwelling_longwave_radiation,
-                        :downwelling_shortwave_radiation,
-                        :atmospheric_temperature,
-                        :atmospheric_eastward_velocity,
-                        :atmospheric_northward_velocity)
+                     :freshwater_rain_flux,
+                     :freshwater_snow_flux,
+                     :freshwater_iceberg_flux,
+                     :specific_humidity,
+                     :sea_level_pressure,
+                     :relative_humidity,
+                     :downwelling_longwave_radiation,
+                     :downwelling_shortwave_radiation,
+                     :atmospheric_temperature,
+                     :atmospheric_eastward_velocity,
+                     :atmospheric_northward_velocity)
 
 file_names = Dict(
     :freshwater_river_flux           => "RYF.friver.1990_1991.nc",   # Freshwater fluxes from rivers
