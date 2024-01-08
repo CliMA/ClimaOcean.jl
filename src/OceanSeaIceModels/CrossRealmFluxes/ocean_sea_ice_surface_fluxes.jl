@@ -2,73 +2,40 @@ using Oceananigans.Models.HydrostaticFreeSurfaceModels: HydrostaticFreeSurfaceMo
 using ClimaSeaIce.SlabSeaIceModels: SlabSeaIceModel
 
 #####
-##### Utilities
-#####
-
-@inline stateindex(a::Number, i, j, k, time) = a
-@inline stateindex(a::SKOFTS, i, j, k, time) = a[i, j, k, time]
-@inline stateindex(a::AbstractArray, i, j, k, time) = a[i, j, k]
-@inline Δϕt²(i, j, k, grid, ϕ1, ϕ2, time) = (stateindex(ϕ1, i, j, k, time) - stateindex(ϕ2, i, j, k, time))^2
-
-@inline function stateindex(a::Tuple, i, j, k, time)
-    N = length(a)
-    ntuple(Val(N)) do n
-        stateindex(a[n], i, j, k, time)
-    end
-end
-
-@inline function stateindex(a::NamedTuple, i, j, k, time)
-    vals = stateindex(values(a), i, j, k, time)
-    names = keys(a)
-    return NamedTuple{names}(vals)
-end
-
-function surface_flux(f::Field)
-    top_bc = f.boundary_conditions.top
-    if top_bc isa BoundaryCondition{<:Oceananigans.BoundaryConditions.Flux}
-        return top_bc.condition
-    else
-        return nothing
-    end
-end
-
-#####
-##### Convenience containers for surface fluxes
-##### 
-##### "Cross realm fluxes" can refer to the flux _data_ (ie, fields representing
-##### the total flux for a given variable), or to the flux _components_ / formula.
-#####
-
-struct CrossRealmFluxes{M, H, T}
-    momentum :: M
-    heat :: H
-    tracers :: T
-end
-
-CrossRealmFluxes(; momentum=nothing, heat=nothing, tracers=nothing) =
-    CrossRealmFluxes(momentum, heat, tracers)
-
-Base.summary(osf::CrossRealmFluxes) = "CrossRealmFluxes"
-Base.show(io::IO, osf::CrossRealmFluxes) = print(io, summary(osf))
-
-#####
 ##### Container for organizing information related to fluxes
 #####
 
-struct OceanSeaIceModelFluxes{U, R, AO, ASI, SIO}
-    bulk_velocity_scale :: U
-    surface_radiation :: R
-    atmosphere_ocean :: AO
-    atmosphere_sea_ice :: ASI
-    sea_ice_ocean :: SIO
+struct OceanSeaIceSurfaceFluxes{C, R, T, P}
+    total :: C
+    emitted_radiation :: R
+    turbulent :: T
+    prescribed :: P
 end
 
+Base.summary(crf::OceanSeaIceSurfaceFluxes) = "OceanSeaIceSurfaceFluxes"
+Base.show(io::IO, crf::OceanSeaIceSurfaceFluxes) = print(io, summary(crf))
+
+function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
+                                  atmosphere = nothing,
+                                  surface_radiation = nothing)
+
+    FT = eltype(ocean.model.grid)
+    turbulent_fluxes = SimilarityTheoryTurbulentFluxes(FT)
+    prescribed_fluxes = nothing
+
+    return OceanSeaIceSurfaceFluxes(nothing,
+                                    surface_radiation,
+                                    turbulent_fluxes,
+                                    prescribed_fluxes)
+end
+
+#=
 function default_atmosphere_ocean_fluxes(FT=Float64, tracers=tuple(:S))
     # Note: we are constantly coping with the fact that the ocean is ᵒC.
     ocean_reference_temperature = 273.15
-    momentum_transfer_coefficient = 1e-3
+    momentum_transfer_coefficient = 5e-3
     evaporation_transfer_coefficient = 1e-3
-    sensible_heat_transfer_coefficient = 1e-3
+    sensible_heat_transfer_coefficient = 2e-3
     vaporization_enthalpy  = 2.5e-3
 
     momentum_transfer_coefficient      = convert(FT, momentum_transfer_coefficient)
@@ -97,28 +64,9 @@ function default_atmosphere_ocean_fluxes(FT=Float64, tracers=tuple(:S))
                             heat = heat_flux_formulae,
                             tracers = tracer_flux_formulae)
 end
+=#
 
-function OceanSeaIceModelFluxes(FT=Float64;
-                                bulk_velocity_scale = RelativeVelocityScale(),
-                                surface_radiation = nothing,
-                                atmosphere_ocean = nothing,
-                                atmosphere_sea_ice = nothing,
-                                sea_ice_ocean = nothing)
-
-    if isnothing(atmosphere_ocean) # defaults
-        atmosphere_ocean = default_atmosphere_ocean_fluxes(FT)
-    end
-
-    return OceanSeaIceModelFluxes(bulk_velocity_scale,
-                                  surface_radiation,
-                                  atmosphere_ocean,
-                                  atmosphere_sea_ice,
-                                  sea_ice_ocean)
-end
-
-Base.summary(crf::OceanSeaIceModelFluxes) = "OceanSeaIceModelFluxes"
-Base.show(io::IO, crf::OceanSeaIceModelFluxes) = print(io, summary(crf))
-
+#=
 #####
 ##### Bulk formula
 #####
@@ -335,4 +283,25 @@ end
     Δv² = ℑyᵃᶜᵃ(i, j, 1, grid, Δϕt², vₐ, vₒ, time)
     return sqrt(Δu² + Δv²)
 end
+
+#####
+##### Convenience containers for surface fluxes
+##### 
+##### "Cross realm fluxes" can refer to the flux _data_ (ie, fields representing
+##### the total flux for a given variable), or to the flux _components_ / formula.
+#####
+
+struct CrossRealmFluxes{M, H, T}
+    momentum :: M
+    heat :: H
+    tracers :: T
+end
+
+CrossRealmFluxes(; momentum=nothing, heat=nothing, tracers=nothing) =
+    CrossRealmFluxes(momentum, heat, tracers)
+
+Base.summary(osf::CrossRealmFluxes) = "CrossRealmFluxes"
+Base.show(io::IO, osf::CrossRealmFluxes) = print(io, summary(osf))
+
+=#
 

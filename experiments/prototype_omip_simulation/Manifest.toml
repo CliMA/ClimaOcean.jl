@@ -2,7 +2,7 @@
 
 julia_version = "1.10.0-beta3"
 manifest_format = "2.0"
-project_hash = "883b87502c4a6df1ec75ae2bd27194c9ff4c7796"
+project_hash = "7c534a264b9c4e557224dee6d48b112d23aa3745"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -125,6 +125,12 @@ git-tree-sha1 = "ed2e76c1c3c43fd9d0cb9248674620b29d71f2d1"
 uuid = "179af706-886a-5703-950a-314cd64e0468"
 version = "0.1.2"
 
+[[deps.CLIMAParameters]]
+deps = ["DocStringExtensions", "TOML", "Test"]
+git-tree-sha1 = "a085251dfe4b0f732fe2b65d5354e6af91a8e931"
+uuid = "6eacf6c3-8458-43b9-ae03-caf5306d3d53"
+version = "0.7.26"
+
 [[deps.CRC32c]]
 uuid = "8bf52ea8-c179-5cab-976a-9e18b702a9bc"
 
@@ -192,14 +198,16 @@ weakdeps = ["SparseArrays"]
     ChainRulesCoreSparseArraysExt = "SparseArrays"
 
 [[deps.ClimaOcean]]
-deps = ["Adapt", "CUDA", "ClimaSeaIce", "CubicSplines", "DataDeps", "Downloads", "JLD2", "KernelAbstractions", "NCDatasets", "Oceananigans", "Printf", "SeawaterPolynomials", "Statistics"]
+deps = ["Adapt", "CLIMAParameters", "CUDA", "ClimaSeaIce", "CubicSplines", "DataDeps", "Dates", "Downloads", "JLD2", "KernelAbstractions", "NCDatasets", "Oceananigans", "Printf", "SeawaterPolynomials", "StaticArrays", "Statistics", "SurfaceFluxes", "Thermodynamics"]
 path = "../.."
 uuid = "0376089a-ecfe-4b0e-a64f-9c555d74d754"
 version = "0.1.0"
 
 [[deps.ClimaSeaIce]]
 deps = ["Adapt", "KernelAbstractions", "Oceananigans", "RootSolvers", "Roots", "SeawaterPolynomials"]
-path = "/Users/gregorywagner/Projects/ClimaSeaIce.jl"
+git-tree-sha1 = "5e34d4ba5c3ff017de4cafa5b16945b0a65f7884"
+repo-rev = "main"
+repo-url = "https://github.com/CliMA/ClimaSeaIce.jl.git"
 uuid = "6ba0ff68-24e6-4315-936c-2e99227c95a4"
 version = "0.1.0"
 
@@ -1247,7 +1255,7 @@ version = "0.5.5"
 deps = ["Adapt", "CUDA", "Crayons", "CubedSphere", "Dates", "Distances", "DocStringExtensions", "FFTW", "Glob", "IncompleteLU", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "LinearAlgebra", "Logging", "MPI", "NCDatasets", "OffsetArrays", "OrderedCollections", "PencilArrays", "PencilFFTs", "Pkg", "Printf", "Random", "Rotations", "SeawaterPolynomials", "SparseArrays", "Statistics", "StructArrays"]
 path = "/Users/gregorywagner/Projects/Oceananigans.jl"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
-version = "0.90.2"
+version = "0.90.4"
 
     [deps.Oceananigans.extensions]
     OceananigansEnzymeCoreExt = "EnzymeCore"
@@ -1653,9 +1661,11 @@ uuid = "6c6a2e73-6563-6170-7368-637461726353"
 version = "1.2.1"
 
 [[deps.SeawaterPolynomials]]
-git-tree-sha1 = "958ba75b90c7c8a117d041d33184134201cf8c0f"
+git-tree-sha1 = "6d85acd6de472f8e6da81c61c7c5b6280a55e0bc"
+repo-rev = "glw/heat-capacity"
+repo-url = "https://github.com/CliMA/SeawaterPolynomials.jl.git"
 uuid = "d496a93d-167e-4197-9f49-d3af4ff8fe40"
-version = "0.3.2"
+version = "0.3.4"
 
 [[deps.SentinelArrays]]
 deps = ["Dates", "Random"]
@@ -1887,6 +1897,12 @@ deps = ["Artifacts", "Libdl", "Pkg", "libblastrampoline_jll"]
 uuid = "bea87d4a-7f5b-5778-9afe-8cc45184846c"
 version = "7.2.0+1"
 
+[[deps.SurfaceFluxes]]
+deps = ["CLIMAParameters", "DocStringExtensions", "RootSolvers", "Thermodynamics"]
+path = "../../../SurfaceFluxes.jl"
+uuid = "49b00bb7-8bd4-4f2b-b78c-51cd0450215f"
+version = "0.8.0"
+
 [[deps.TOML]]
 deps = ["Dates"]
 uuid = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
@@ -1928,6 +1944,12 @@ version = "0.1.1"
 [[deps.Test]]
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[[deps.Thermodynamics]]
+deps = ["DocStringExtensions", "KernelAbstractions", "Printf", "Random", "RootSolvers"]
+path = "../../../Thermodynamics.jl"
+uuid = "b60c26fb-14c3-4610-9d3e-2d17fe7ff00c"
+version = "0.11.2"
 
 [[deps.TiffImages]]
 deps = ["ColorTypes", "DataStructures", "DocStringExtensions", "FileIO", "FixedPointNumbers", "IndirectArrays", "Inflate", "Mmap", "OffsetArrays", "PkgVersion", "ProgressMeter", "UUIDs"]

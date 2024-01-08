@@ -5,13 +5,12 @@ using Oceananigans.BuoyancyModels: SeawaterBuoyancy
 
 using SeawaterPolynomials: TEOS10EquationOfState
 
-struct OceanSeaIceModel{FT, I, A, O, S, F, PI, PC, C, G} <: AbstractModel{Nothing}
+struct OceanSeaIceModel{FT, I, A, O, F, PI, PC, C, G} <: AbstractModel{Nothing}
     clock :: C
-    grid :: G # TODO: make it so Oceananigans.Ssimulation does not require this
+    grid :: G # TODO: make it so Oceananigans.Simulation does not require this
     atmosphere :: A
     sea_ice :: I
     ocean :: O
-    surfaces :: S
     fluxes :: F
     previous_ice_thickness :: PI
     previous_ice_concentration :: PC
@@ -22,28 +21,31 @@ end
 
 const OSIM = OceanSeaIceModel
 
-Base.summary(::OSIM) = "OceanSeaIceModel"
-prettytime(model::OSIM) = prettytime(model.clock.time)
-iteration(model::OSIM) = model.clock.iteration
-timestepper(::OSIM) = nothing
-reset!(::OSIM) = nothing
-initialize!(::OSIM) = nothing
+Base.summary(::OSIM)                = "OceanSeaIceModel"
+prettytime(model::OSIM)             = prettytime(model.clock.time)
+iteration(model::OSIM)              = model.clock.iteration
+timestepper(::OSIM)                 = nothing
+reset!(::OSIM)                      = nothing
+initialize!(::OSIM)                 = nothing
 default_included_properties(::OSIM) = tuple()
-prognostic_fields(cm::OSIM) = nothing
-fields(::OSIM) = NamedTuple()
-default_clock(TT) = Oceananigans.TimeSteppers.Clock{TT}(0, 0, 1)
+prognostic_fields(cm::OSIM)         = nothing
+fields(::OSIM)                      = NamedTuple()
+default_clock(TT)                   = Oceananigans.TimeSteppers.Clock{TT}(0, 0, 1)
+
+reference_density(unsupported) = throw(ArgumentError("Cannot extract reference density from $(typeof(unsupported))"))
+heat_capacity(unsupported) = throw(ArgumentError("Cannot deduce the heat capacity from $(typeof(unsupported))"))
 
 reference_density(ocean::Simulation) = reference_density(ocean.model.buoyancy.model)
 reference_density(buoyancy_model::SeawaterBuoyancy) = reference_density(buoyancy_model.equation_of_state)
-#reference_density(unsupported) = throw(ArgumentError("Cannot extract reference density from $(typeof(unsupported))"))
-#reference_density(eos::TEOS10EquationOfState) = eos.reference_density
-reference_density(eos) = eos.reference_density
+reference_density(eos::TEOS10EquationOfState) = eos.reference_density
 
 heat_capacity(ocean::Simulation) = heat_capacity(ocean.model.buoyancy.model)
 heat_capacity(buoyancy_model::SeawaterBuoyancy) = heat_capacity(buoyancy_model.equation_of_state)
-#heat_capacity(unsupported) = throw(ArgumentError("Cannot deduce the heat capacity from $(typeof(unsupported))"))
-#heat_capacity(eos::TEOS10EquationOfState) = 3991 # get the right value in here eventually
-heat_capacity(eos) = 3991 # get the right value in here eventually
+
+function heat_capacity(eos::TEOS10EquationOfState{FT}) where FT
+    cₚ⁰ = SeawaterPolynomials.TEOS10.teos10_reference_heat_capacity
+    return convert(FT, cₚ⁰)
+end
 
 function OceanSeaIceModel(ocean, sea_ice=nothing;
                           atmosphere = nothing,
@@ -60,17 +62,11 @@ function OceanSeaIceModel(ocean, sea_ice=nothing;
         previous_ice_concentration = deepcopy(sea_ice.model.ice_concentration)
     end
 
-    grid = ocean.model.grid
-    ice_ocean_heat_flux = Field{Center, Center, Nothing}(grid)
-    ice_ocean_salt_flux = Field{Center, Center, Nothing}(grid)
-    
     # Contains information about flux contributions: bulk formula, prescribed
     # fluxes, etc.
-    fluxes = OceanSeaIceModelFluxes(eltype(grid); surface_radiation)
-
-    # Contains a reference to the Fields holding net surface fluxes:
-    # ocean top surface, and both top and bottom sea ice surfaces
-    surfaces = OceanSeaIceSurfaces(ocean, sea_ice)
+    fluxes = OceanSeaIceSurfaceFluxes(ocean, sea_ice;
+                                      atmosphere,
+                                      surface_radiation)
 
     FT = eltype(ocean.model.grid)
 
@@ -79,7 +75,6 @@ function OceanSeaIceModel(ocean, sea_ice=nothing;
                             atmosphere,
                             sea_ice,
                             ocean,
-                            surfaces,
                             fluxes,
                             previous_ice_thickness,
                             previous_ice_concentration,

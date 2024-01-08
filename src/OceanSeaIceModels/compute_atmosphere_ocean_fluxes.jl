@@ -143,12 +143,11 @@ end
     Qu = net_upwelling_radiation(i, j, grid, time, surface_radiation, ocean_state)
     Q★ = cross_realm_flux(i, j, grid, time, Q_formula, ΔUᶜᶜᶜ, atmos_state_ij, ocean_state_ij)
     Q = Q★ + Qd + Qu
-    #Q = Qd + Qu
 
     # Compute salinity fluxes, bulk flux first
     Fp = cross_realm_flux(i, j, grid, time, prescribed_freshwater_flux)
     F★ = cross_realm_flux(i, j, grid, time, F_formula, ΔUᶜᶜᶜ, atmos_state_ij, ocean_state_ij)
-    F = 0 #F★ + Fp
+    F = F★ + Fp
 
     # Then the rest of the heat fluxes
     ρₒ = ocean_reference_density
@@ -157,7 +156,9 @@ end
     atmos_ocean_Jᵘ = τˣ / ρₒ
     atmos_ocean_Jᵛ = τʸ / ρₒ
     atmos_ocean_Jᵀ = Q / (ρₒ * cₚ)
-    atmos_ocean_Jˢ = F
+
+    S = ocean_state_ij.S
+    atmos_ocean_Jˢ = S * F
 
     @inbounds begin
         # Set fluxes

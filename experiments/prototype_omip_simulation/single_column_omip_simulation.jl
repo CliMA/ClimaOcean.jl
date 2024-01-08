@@ -1,29 +1,32 @@
 using Oceananigans
 using Oceananigans.Units
+using Oceananigans.BuoyancyModels: buoyancy_frequency
 
 using ClimaOcean
 using ClimaOcean.OceanSeaIceModels: SurfaceRadiation
 using ClimaOcean.DataWrangling.JRA55: jra55_prescribed_atmosphere
 using ClimaOcean.DataWrangling.ECCO2: ecco2_field
 
-using NCDatasets
 using GLMakie
 using Printf
-
-using Downloads: download
+using Dates
 
 start_time = time_ns()
 
 include("single_column_omip_ocean_component.jl")
 
-Tᵢ = ecco2_field(:temperature)
-Sᵢ = ecco2_field(:salinity)
+epoch = Date(1992, 1, 1)
+date = Date(1992, 10, 01)
+start_seconds = Second(date - epoch).value
+uᵢ = ecco2_field(:u_velocity, date)
+vᵢ = ecco2_field(:v_velocity, date)
+Tᵢ = ecco2_field(:temperature, date)
+Sᵢ = ecco2_field(:salinity, date)
 
 land = interior(Tᵢ) .< -10
 interior(Tᵢ)[land] .= NaN
 interior(Sᵢ)[land] .= NaN
 
-using Oceananigans.BuoyancyModels: buoyancy_frequency
 teos10 = TEOS10EquationOfState()
 buoyancy = SeawaterBuoyancy(equation_of_state=teos10)
 tracers = (T=Tᵢ, S=Sᵢ)
@@ -52,57 +55,6 @@ arch = CPU()
 φe = φ₁:Δ:φ₂
 λe = λ₁:Δ:λ₂
 
-Nz = size(Tᵢ, 3)
-fig = Figure(resolution=(1200, 1200))
-map = Axis(fig[1, 1:3], xlabel="λ (degrees)", ylabel="φ (degrees)")
-hm = heatmap!(map, λe, φe, interior(Tᵢ, :, :, Nz), colorrange=(0, 30), nan_color=:gray)
-Colorbar(fig[1, 4], hm, label="Surface temperature (ᵒC)")
-
-axT = Axis(fig[2, 1], ylabel="z (m)", xlabel="Temperature (ᵒC)")
-axS = Axis(fig[2, 2], ylabel="z (m)", xlabel="Salinity (psu)")
-axN = Axis(fig[2, 3], ylabel="z (m)", xlabel="Buoyancy frequency (s⁻²)")
-
-φs = [50,   55, 0,   -30, -65, 34]
-λs = [215, 310, 210, 160, 160, 34]
-
-λs = [34, 33, 5, 20, 30]
-φs = [34, 32, 38, 35, 33]
-
-#φs = [-30]
-#s = [160]
-
-Nc = length(φs)
-
-for n = 1:Nc
-    local φ★
-    local λ★
-    local i★
-    local j★
-
-    φ★ = φs[n]
-    λ★ = λs[n]
-
-    i★ = searchsortedfirst(λe, λ★)
-    j★ = searchsortedfirst(φe, φ★)
-
-    scatter!(map, λ★, φ★, strokewidth=4, strokecolor=:black,
-             color=:pink, markersize=20)
-
-    label = string("λ = ", λ★, ", φ = ", φ★)
-    scatterlines!(axT, interior(Tᵢ, i★, j★, :), zc; label)
-    scatterlines!(axS, interior(Sᵢ, i★, j★, :), zc; label)
-    scatterlines!(axN, interior(N², i★, j★, :), zf; label)
-end
-
-xlims!(axT, -2, 30)
-xlims!(axS, 32, 40)
-ylims!(axT, -2000, 30)
-ylims!(axS, -2000, 30)
-axislegend(axT, position=:rb)
-
-display(fig)
-
-#=
 φ★ = 50 # degrees latitude
 λ★ = 180 + 35 # degrees longitude (?)
 
@@ -113,19 +65,24 @@ longitude = (λe[i★] - Δ/2, λe[i★] + Δ/2)
 latitude  = (φe[j★] - Δ/2, φe[j★] + Δ/2)
 
 # Column
+uc = interior(uᵢ, i★:i★, j★:j★, :)
+vc = interior(vᵢ, i★:i★, j★:j★, :)
 Tc = interior(Tᵢ, i★:i★, j★:j★, :)
 Sc = interior(Sᵢ, i★:i★, j★:j★, :)
 
 # Find bottom
+zm = -400
 zf = znodes(Tᵢ.grid, Face())
 kb = findlast(T -> T < -20, Tc[1, 1, :])
-km = findlast(z -> z < -2000, zf)
+km = findlast(z -> z < zm, zf)
 k★ = isnothing(kb) ? km : max(kb, km)
 
 Nz = size(Tc, 3)
 kf = k★:Nz+1
 kc = k★:Nz
 zf = zf[kf]
+uc = uc[:, :, kc]
+vc = vc[:, :, kc]
 Tc = Tc[:, :, kc]
 Sc = Sc[:, :, kc]
 Nz′ = length(kc)
@@ -144,14 +101,14 @@ elapsed = time_ns() - start_time
 @info "Ocean component built. " * prettytime(elapsed * 1e-9)
 start_time = time_ns()
 
-Ndays = 90
+Ndays = 365
 Nt = 8 * Ndays
 atmosphere = jra55_prescribed_atmosphere(grid, 1:Nt) #, 1:21)
 elapsed = time_ns() - start_time
 @info "Atmosphere built. " * prettytime(elapsed * 1e-9)
 start_time = time_ns()
 
-ocean.model.clock.time = 0
+ocean.model.clock.time = start_seconds
 ocean.model.clock.iteration = 0
 set!(ocean.model, T=Tc, S=Sc, e=1e-6)
 
@@ -161,22 +118,26 @@ Ta = atmosphere.tracers.T
 qa = atmosphere.tracers.q
 times = ua.times
 
+#=
 fig = Figure(resolution=(1200, 1800))
 axu = Axis(fig[1, 1])
 axT = Axis(fig[2, 1])
 axq = Axis(fig[3, 1])
 
-lines!(axu, times ./ day, interior(ua, 1, 1, 1, :))
-lines!(axu, times ./ day, interior(va, 1, 1, 1, :))
-lines!(axT, times ./ day, interior(Ta, 1, 1, 1, :))
-lines!(axq, times ./ day, interior(qa, 1, 1, 1, :))
+lines!(axu, times ./ days, interior(ua, 1, 1, 1, :))
+lines!(axu, times ./ days, interior(va, 1, 1, 1, :))
+lines!(axT, times ./ days, interior(Ta, 1, 1, 1, :))
+lines!(axq, times ./ days, interior(qa, 1, 1, 1, :))
 
 display(fig)
+=#
 
 sea_ice = nothing
 surface_radiation = SurfaceRadiation()
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, surface_radiation)
-coupled_simulation = Simulation(coupled_model, Δt=10minutes, stop_time=30day)
+
+#=
+coupled_simulation = Simulation(coupled_model, Δt=10minutes, stop_time=start_seconds + 90days)
 
 elapsed = time_ns() - start_time
 @info "Coupled simulation built. " * prettytime(elapsed * 1e-9)
@@ -199,13 +160,13 @@ function progress(sim)
     e = sim.model.ocean.model.tracers.e
     Nz = size(T, 3)
     msg4 = @sprintf(", T₀: %.2f ᵒC",     first(interior(T, 1, 1, Nz)))
-    msg5 = @sprintf(", S₀: %.2f psu",    first(interior(S, 1, 1, Nz)))
+    msg5 = @sprintf(", S₀: %.2f g/kg",   first(interior(S, 1, 1, Nz)))
     msg6 = @sprintf(", e₀: %.2e m² s⁻²", first(interior(e, 1, 1, Nz)))
 
     @info msg1 * msg2 * msg3 * msg4 * msg5 * msg6
 end
 
-coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
+coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(100))
 
 # Build flux outputs
 Jᵘ = coupled_model.surfaces.ocean.momentum.u
@@ -228,16 +189,16 @@ outputs = merge(fields, fluxes)
 filename = "single_column_omip_surface_fields.jld2"
 
 coupled_simulation.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs; filename,
-                                                               schedule = TimeInterval(1hour),
+                                                               schedule = TimeInterval(1hours),
                                                                overwrite_existing = true)
 
-@show coupled_simulation.stop_time
 run!(coupled_simulation)
 
-Tt = FieldTimeSeries(filename, "T")
 ut = FieldTimeSeries(filename, "u")
 vt = FieldTimeSeries(filename, "v")
+Tt = FieldTimeSeries(filename, "T")
 St = FieldTimeSeries(filename, "S")
+et = FieldTimeSeries(filename, "e")
 Qt = FieldTimeSeries(filename, "Q")
 Ft = FieldTimeSeries(filename, "F")
 τˣt = FieldTimeSeries(filename, "τˣ")
@@ -275,48 +236,59 @@ end
 
 fig = Figure(resolution=(2400, 1800))
 
-axu = Axis(fig[1, 1], xlabel="Time (days)", ylabel="Velocities (m s⁻¹)")
-axτ = Axis(fig[2, 1], xlabel="Time (days)", ylabel="Wind stress (N m⁻²)")
-axT = Axis(fig[3, 1], xlabel="Time (days)", ylabel="Temperature (K)")
-axQ = Axis(fig[4, 1], xlabel="Time (days)", ylabel="Heat flux (W m⁻²)")
-axF = Axis(fig[5, 1], xlabel="Time (days)", ylabel="Salt flux (...)")
+axu = Axis(fig[1, 1:4], xlabel="Time (days)", ylabel="Velocities (m s⁻¹)")
+axτ = Axis(fig[2, 1:4], xlabel="Time (days)", ylabel="Wind stress (N m⁻²)")
+axT = Axis(fig[3, 1:4], xlabel="Time (days)", ylabel="Temperature (K)")
+axQ = Axis(fig[4, 1:4], xlabel="Time (days)", ylabel="Heat flux (W m⁻²)")
+axF = Axis(fig[5, 1:4], xlabel="Time (days)", ylabel="Salt flux (...)")
 
-axTz = Axis(fig[1:5, 2], xlabel="Temperature (K)", ylabel="z (m)")
-axSz = Axis(fig[1:5, 3], xlabel="Salinity (psu)", ylabel="z (m)")
+axuz = Axis(fig[6, 1], xlabel="Velocities (m s⁻¹)", ylabel="z (m)")
+axTz = Axis(fig[6, 2], xlabel="Temperature (K)", ylabel="z (m)")
+axSz = Axis(fig[6, 3], xlabel="Salinity (g/kg)", ylabel="z (m)")
+axez = Axis(fig[6, 4], xlabel="Turbulent kinetic energy (m² s⁻²)", ylabel="z (m)")
 
-slider = Slider(fig[6, 1:3], range=1:Nt, startvalue=1)
+slider = Slider(fig[7, 1:4], range=1:Nt, startvalue=1)
 n = slider.value
 
+times ./= days
 tn = @lift times[$n]
 
-lines!(axu, times, uat, color=:royalblue)
-lines!(axu, times, interior(ut, 1, 1, Nz, :), color=:royalblue, linestyle=:dash)
+colors = Makie.wong_colors()
+
+lines!(axu, times, uat, color=colors[1])
+lines!(axu, times, interior(ut, 1, 1, Nz, :), color=colors[1], linestyle=:dash)
 vlines!(axu, tn)
 
-lines!(axu, times, vat, color=:seagreen)
-lines!(axu, times, interior(vt, 1, 1, Nz, :), color=:seagreen, linestyle=:dash)
+lines!(axu, times, vat, color=colors[2])
+lines!(axu, times, interior(vt, 1, 1, Nz, :), color=colors[2], linestyle=:dash)
 
 lines!(axτ, times, interior(τˣt, 1, 1, 1, :))
 lines!(axτ, times, interior(τʸt, 1, 1, 1, :))
 vlines!(axτ, tn)
 
-lines!(axT, times, Tat, color=:royalblue)
-lines!(axT, times, interior(Tt, 1, 1, Nz, :) .+ 273.15, color=:royalblue, linestyle=:dash)
+lines!(axT, times, Tat, color=colors[1])
+lines!(axT, times, interior(Tt, 1, 1, Nz, :) .+ 273.15, color=colors[1], linestyle=:dash)
 vlines!(axT, tn)
 
-lines!(axQ, times, interior(Qt, 1, 1, 1, :), linestyle=:dash)
-lines!(axQ, times, - Qswt, color=:seagreen, linewidth=3)
-lines!(axQ, times, - Qlwt, color=:royalblue, linewidth=3)
+lines!(axQ, times, interior(Qt, 1, 1, 1, :), color=colors[1], linestyle=:dash)
+lines!(axQ, times, - Qswt, color=colors[2], linewidth=3)
+lines!(axQ, times, - Qlwt, color=colors[3], linewidth=3)
 vlines!(axQ, tn)
 
 lines!(axF, times, interior(Ft, 1, 1, 1, :))
 vlines!(axF, tn)
 
 z = znodes(Tt)
+un = @lift interior(ut[$n], 1, 1, :)
+vn = @lift interior(vt[$n], 1, 1, :)
 Tn = @lift interior(Tt[$n], 1, 1, :)
 Sn = @lift interior(St[$n], 1, 1, :)
+en = @lift interior(et[$n], 1, 1, :)
+lines!(axuz, un, z) 
+lines!(axuz, vn, z) 
 lines!(axTz, Tn, z) 
 lines!(axSz, Sn, z) 
+lines!(axez, en, z) 
 
 display(fig)
 =#

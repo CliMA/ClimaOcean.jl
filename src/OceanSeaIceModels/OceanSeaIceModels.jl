@@ -1,12 +1,17 @@
 module OceanSeaIceModels
 
+using Oceananigans
+using SeawaterPolynomials
+
 using Oceananigans.Operators
 
+using Oceananigans.Utils: launch!, Time
 using Oceananigans.Architectures: architecture
 using Oceananigans.BoundaryConditions: fill_halo_regions!, BoundaryCondition
-using Oceananigans.Models: AbstractModel
+using Oceananigans.Grids: architecture
 using Oceananigans.TimeSteppers: tick!
-using Oceananigans.Utils: launch!
+using Oceananigans.Models: AbstractModel
+using Oceananigans.OutputReaders: FieldTimeSeries, GPUAdaptedFieldTimeSeries
 
 using KernelAbstractions: @kernel, @index
 using KernelAbstractions.Extras.LoopInfo: @unroll
@@ -20,17 +25,6 @@ import Oceananigans.Simulations: reset!, initialize!, iteration
 import Oceananigans.TimeSteppers: time_step!, update_state!, time
 import Oceananigans.Utils: prettytime
 
-# We should not declare these; they need to be settable.
-# const ℒₑ = 2.5e6 # J/kg Latent heat of evaporation
-# const σᴮ = 5.67e-8 # W/m²/K⁴ Stefan-Boltzmann constant
-
-using Oceananigans
-using Oceananigans.Utils: Time
-using Oceananigans.Grids: architecture
-using Oceananigans.Models: AbstractModel
-
-using Oceananigans.OutputReaders: FieldTimeSeries, GPUAdaptedFieldTimeSeries
-
 const SomeKindOfFieldTimeSeries = Union{FieldTimeSeries,
                                         GPUAdaptedFieldTimeSeries}
 
@@ -41,20 +35,18 @@ function surface_tracers end
 function sea_ice_thickness end
 function downwelling_radiation end
 function freshwater_flux end
-function specific_heat end
+function heat_capacity end
 function density end
 
 #####
 ##### Some implementation
 #####
 
-include("ocean_sea_ice_model_fluxes.jl")
-include("ocean_sea_ice_surfaces.jl")
-include("surface_radiation.jl")
-include("atmosphere_sea_ice_fluxes.jl")
-include("atmosphere_ocean_momentum_flux.jl")
+include("CrossRealmFluxes/CrossRealmFluxes.jl")
+
+using .CrossRealmFluxes
+
 include("compute_atmosphere_ocean_fluxes.jl")
-include("sea_ice_ocean_fluxes.jl")
 include("ocean_sea_ice_model.jl")
 include("ocean_only_model.jl")
 
