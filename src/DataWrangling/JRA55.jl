@@ -299,13 +299,14 @@ function jra55_field_time_series(variable_name, grid=nothing;
 end
 
 # TODO: allow the user to pass dates
-function jra55_prescribed_atmosphere(grid, time_indices=:)
+function jra55_prescribed_atmosphere(grid, time_indices=:; reference_height=2) # meters
     architecture = Oceananigans.architecture(grid)
 
     u_jra55   = jra55_field_time_series(:eastward_velocity,               grid; time_indices, architecture, location=(Face, Center))
     v_jra55   = jra55_field_time_series(:northward_velocity,              grid; time_indices, architecture, location=(Center, Face)) 
     T_jra55   = jra55_field_time_series(:temperature,                     grid; time_indices, architecture)
     q_jra55   = jra55_field_time_series(:specific_humidity,               grid; time_indices, architecture)
+    p_jra55   = jra55_field_time_series(:sea_level_pressure,              grid; time_indices, architecture)
     Fr_jra55  = jra55_field_time_series(:freshwater_rain_flux,            grid; time_indices, architecture)
     Fs_jra55  = jra55_field_time_series(:freshwater_snow_flux,            grid; time_indices, architecture)
     Qlw_jra55 = jra55_field_time_series(:downwelling_longwave_radiation,  grid; time_indices, architecture)
@@ -326,12 +327,20 @@ function jra55_prescribed_atmosphere(grid, time_indices=:)
 
     freshwater_flux = (rain     = Fr_jra55,
                        snow     = Fs_jra55)
-
                        # rivers   = Fv_jra55,
                        # icebergs = Fi_jra55)
+                       
+    pressure = p_jra55
 
     downwelling_radiation = TwoStreamDownwellingRadiation(shortwave=Qsw_jra55, longwave=Qlw_jra55)
-    atmosphere = PrescribedAtmosphere(times; velocities, freshwater_flux, tracers, downwelling_radiation)
+
+    atmosphere = PrescribedAtmosphere(times, eltype(grid);
+                                      velocities,
+                                      freshwater_flux,
+                                      tracers,
+                                      downwelling_radiation,
+                                      reference_height,
+                                      pressure)
 
     return atmosphere
 end

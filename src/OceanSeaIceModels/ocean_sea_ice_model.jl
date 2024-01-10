@@ -5,23 +5,29 @@ using Oceananigans.BuoyancyModels: SeawaterBuoyancy
 
 using SeawaterPolynomials: TEOS10EquationOfState
 
-struct OceanSeaIceModel{FT, I, A, O, F, PI, PC, C, G} <: AbstractModel{Nothing}
+# Simulations interface
+import Oceananigans: fields, prognostic_fields
+import Oceananigans.Fields: set!
+import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker
+import Oceananigans.OutputWriters: default_included_properties
+import Oceananigans.Simulations: reset!, initialize!, iteration
+import Oceananigans.TimeSteppers: time_step!, update_state!, time
+import Oceananigans.Utils: prettytime
+import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker
+
+struct OceanSeaIceModel{I, A, O, F, C, G} <: AbstractModel{Nothing}
     clock :: C
     grid :: G # TODO: make it so Oceananigans.Simulation does not require this
     atmosphere :: A
     sea_ice :: I
     ocean :: O
     fluxes :: F
-    previous_ice_thickness :: PI
-    previous_ice_concentration :: PC
-    # The ocean is Boussinesq, so these are _only_ coupled properties:
-    ocean_reference_density :: FT
-    ocean_heat_capacity :: FT
 end
 
 const OSIM = OceanSeaIceModel
 
 Base.summary(::OSIM)                = "OceanSeaIceModel"
+Base.show(io::IO, cm::OSIM)         = print(io, summary(cm))
 prettytime(model::OSIM)             = prettytime(model.clock.time)
 iteration(model::OSIM)              = model.clock.iteration
 timestepper(::OSIM)                 = nothing
@@ -32,8 +38,11 @@ prognostic_fields(cm::OSIM)         = nothing
 fields(::OSIM)                      = NamedTuple()
 default_clock(TT)                   = Oceananigans.TimeSteppers.Clock{TT}(0, 0, 1)
 
-reference_density(unsupported) = throw(ArgumentError("Cannot extract reference density from $(typeof(unsupported))"))
-heat_capacity(unsupported) = throw(ArgumentError("Cannot deduce the heat capacity from $(typeof(unsupported))"))
+reference_density(unsupported) =
+    throw(ArgumentError("Cannot extract reference density from $(typeof(unsupported))"))
+
+heat_capacity(unsupported) =
+    throw(ArgumentError("Cannot deduce the heat capacity from $(typeof(unsupported))"))
 
 reference_density(ocean::Simulation) = reference_density(ocean.model.buoyancy.model)
 reference_density(buoyancy_model::SeawaterBuoyancy) = reference_density(buoyancy_model.equation_of_state)
@@ -49,86 +58,33 @@ end
 
 function OceanSeaIceModel(ocean, sea_ice=nothing;
                           atmosphere = nothing,
-                          surface_radiation = nothing,
+                          radiation = nothing,
                           ocean_reference_density = reference_density(ocean),
                           ocean_heat_capacity = heat_capacity(ocean),
                           clock = deepcopy(ocean.model.clock))
     
-    if isnothing(sea_ice)
-        previous_ice_thickness = nothing
-        previous_ice_concentration = nothing
-    else
-        previous_ice_thickness = deepcopy(sea_ice.model.ice_thickness)
-        previous_ice_concentration = deepcopy(sea_ice.model.ice_concentration)
-    end
+    # Contains information about flux contributions: bulk formula, prescribed fluxes, etc.
+    fluxes = OceanSeaIceSurfaceFluxes(ocean, sea_ice; atmosphere, radiation)
 
-    # Contains information about flux contributions: bulk formula, prescribed
-    # fluxes, etc.
-    fluxes = OceanSeaIceSurfaceFluxes(ocean, sea_ice;
-                                      atmosphere,
-                                      surface_radiation)
+    ocean_sea_ice_model = OceanSeaIceModel(clock,
+                                           ocean.model.grid,
+                                           atmosphere,
+                                           sea_ice,
+                                           ocean,
+                                           fluxes)
 
-    FT = eltype(ocean.model.grid)
+    update_state!(ocean_sea_ice_model)
 
-    return OceanSeaIceModel(clock,
-                            ocean.model.grid,
-                            atmosphere,
-                            sea_ice,
-                            ocean,
-                            fluxes,
-                            previous_ice_thickness,
-                            previous_ice_concentration,
-                            convert(FT, ocean_reference_density),
-                            convert(FT, ocean_heat_capacity))
+    return ocean_sea_ice_model
 end
 
 time(coupled_model::OceanSeaIceModel) = coupled_model.clock.time
 
-function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_tendencies=true)
-    ocean = coupled_model.ocean
-    sea_ice = coupled_model.sea_ice
-
-    # Be paranoid and update state at iteration 0
-    coupled_model.clock.iteration == 0 && update_state!(coupled_model, callbacks)
-
-    # Eventually, split out into OceanOnlyModel
-    if !isnothing(sea_ice)
-        h = sea_ice.model.ice_thickness
-        fill_halo_regions!(h)
-
-        # Initialization
-        if coupled_model.clock.iteration == 0
-            @info "Initializing coupled model ice thickness..."
-            h⁻ = coupled_model.previous_ice_thickness
-            hⁿ = coupled_model.sea_ice.model.ice_thickness
-            parent(h⁻) .= parent(hⁿ)
-        end
-
-        sea_ice.Δt = Δt
-        time_step!(sea_ice)
-    end
-
-    ocean.Δt = Δt
-
-    # TODO after ice time-step:
-    #   - Adjust ocean heat flux if the ice completely melts?
-
-    time_step!(ocean)
-
-    # TODO:
-    # - Store fractional ice-free / ice-covered _time_ for more
-    #   accurate flux computation?
-    tick!(coupled_model.clock, Δt)
-    update_state!(coupled_model, callbacks; compute_tendencies)
-    
-    return nothing
+# Check for NaNs in the first prognostic field (generalizes to prescribed velocitries).
+function default_nan_checker(model::OceanSeaIceModel)
+    u_ocean = model.ocean.model.velocities.u
+    nan_checker = NaNChecker((; u_ocean))
+    return nan_checker
 end
 
-function update_state!(coupled_model::OceanSeaIceModel, callbacks=[]; compute_tendencies=false)
-    # update_model_field_time_series!(coupled_model.atmosphere) 
-    compute_atmosphere_ocean_fluxes!(coupled_model) 
-    # compute_atmosphere_sea_ice_fluxes!(coupled_model)
-    # compute_sea_ice_ocean_fluxes!(coupled_model)
-    return nothing
-end
 

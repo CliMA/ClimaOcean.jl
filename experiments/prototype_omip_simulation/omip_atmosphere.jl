@@ -6,12 +6,15 @@ using ClimaOcean.OceanSeaIceModels:
     PrescribedAtmosphere,
     TwoStreamDownwellingRadiation
 
-function prescribed_jra55_atmosphere(grid, time_indices=:)
+function prescribed_jra55_atmosphere(grid, time_indices=:;
+                                     reference_height = 2) # meters
+
     architecture = Oceananigans.architecture(grid)
 
-    u_jra55   = jra55_field_time_series(:eastward_velocity,               grid; time_indices, architecture, location=(Face, Center))
-    v_jra55   = jra55_field_time_series(:northward_velocity,              grid; time_indices, architecture, location=(Center, Face)) 
+    u_jra55   = jra55_field_time_series(:eastward_velocity,               grid; time_indices, architecture)
+    v_jra55   = jra55_field_time_series(:northward_velocity,              grid; time_indices, architecture)
     T_jra55   = jra55_field_time_series(:temperature,                     grid; time_indices, architecture)
+    p_jra55   = jra55_field_time_series(:surface_pressure,                grid; time_indices, architecture)
     q_jra55   = jra55_field_time_series(:specific_humidity,               grid; time_indices, architecture)
     Fr_jra55  = jra55_field_time_series(:freshwater_rain_flux,            grid; time_indices, architecture)
     Fs_jra55  = jra55_field_time_series(:freshwater_snow_flux,            grid; time_indices, architecture)
@@ -34,7 +37,13 @@ function prescribed_jra55_atmosphere(grid, time_indices=:)
                        icebergs = Fi_jra55)
 
     downwelling_radiation = TwoStreamDownwellingRadiation(shortwave=Qsw_jra55, longwave=Qsw_jra55)
-    atmosphere = PrescribedAtmosphere(times; velocities, freshwater_flux, tracers, downwelling_radiation)
+
+    atmosphere = PrescribedAtmosphere(times; velocities,
+                                      freshwater_flux,
+                                      tracers,
+                                      downwelling_radiation,
+                                      reference_height,
+                                      pressure = p_jra55)
 
     return atmosphere
 end

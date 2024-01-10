@@ -1,4 +1,4 @@
-const OceanOnlyModel = OceanSeaIceModel{<:Any, Nothing}
+const OceanOnlyModel = OceanSeaIceModel{Nothing}
 
 OceanOnlyModel(ocean; kw...) = OceanSeaIceModel(nothing, ocean; kw...)
 

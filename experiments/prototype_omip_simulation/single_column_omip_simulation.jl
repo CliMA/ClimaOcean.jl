@@ -3,7 +3,7 @@ using Oceananigans.Units
 using Oceananigans.BuoyancyModels: buoyancy_frequency
 
 using ClimaOcean
-using ClimaOcean.OceanSeaIceModels: SurfaceRadiation
+using ClimaOcean.OceanSeaIceModels: Radiation
 using ClimaOcean.DataWrangling.JRA55: jra55_prescribed_atmosphere
 using ClimaOcean.DataWrangling.ECCO2: ecco2_field
 
@@ -133,8 +133,8 @@ display(fig)
 =#
 
 sea_ice = nothing
-surface_radiation = SurfaceRadiation()
-coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, surface_radiation)
+radiation = Radiation()
+coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 
 #=
 coupled_simulation = Simulation(coupled_model, Δt=10minutes, stop_time=start_seconds + 90days)
