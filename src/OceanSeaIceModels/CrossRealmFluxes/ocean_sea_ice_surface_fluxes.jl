@@ -16,7 +16,7 @@ using Oceananigans.BoundaryConditions: fill_halo_regions!
 using Oceananigans.Fields: ConstantField
 using Oceananigans.Utils: launch!, Time
 
-using Oceananigans.Operators: ℑxᶜᵃᵃ, ℑyᵃᶜᵃ
+using Oceananigans.Operators: ℑxᶜᵃᵃ, ℑyᵃᶜᵃ, ℑxᶠᵃᵃ, ℑyᵃᶠᵃ
 
 using KernelAbstractions: @kernel, @index
 
@@ -34,7 +34,17 @@ struct OceanSeaIceSurfaceFluxes{T, P, C, R, PI, PC, FT}
     # The ocean is Boussinesq, so these are _only_ coupled properties:
     ocean_reference_density :: FT
     ocean_heat_capacity :: FT
+    # ocean_temperature_units
+    # freshwater_density ?
 end
+
+# Possible units for temperature and salinity
+struct DegreesCelsius end
+struct DegreesKelvin end
+
+const celsius_to_kelvin = 273.15
+@inline convert_to_kelvin(::DegreesCelsius, T::FT) where FT = T + convert(FT, celsius_to_kelvin)
+@inline convert_to_kelvin(::DegreesKelvin, T) = T
 
 Base.summary(crf::OceanSeaIceSurfaceFluxes) = "OceanSeaIceSurfaceFluxes"
 Base.show(io::IO, crf::OceanSeaIceSurfaceFluxes) = print(io, summary(crf))
@@ -45,15 +55,16 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
                                   ocean_reference_density = reference_density(ocean),
                                   ocean_heat_capacity = heat_capacity(ocean))
 
-    FT = eltype(ocean.model.grid)
+    grid = ocean.model.grid
+    FT = eltype(grid)
 
     ocean_reference_density = convert(FT, ocean_reference_density)
     ocean_heat_capacity = convert(FT, ocean_heat_capacity)
 
     # It's the "thermodynamics gravitational acceleration"
     # (as opposed to the one used for the free surface)
-    g = ocean.model.buoyancy.model.gravitational_acceleration
-    turbulent_fluxes = SimilarityTheoryTurbulentFluxes(FT, gravitational_acceleration=g)
+    gravitational_acceleration = ocean.model.buoyancy.model.gravitational_acceleration
+    turbulent_fluxes = SimilarityTheoryTurbulentFluxes(grid; gravitational_acceleration)
 
     prescribed_fluxes = nothing
 
@@ -165,20 +176,8 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     # to compute from 0:Nx+1, ie in halo regions
     fill_halo_regions!(centered_velocity_fluxes)
 
-    launch!(arch, grid, :xy, accumulate_atmosphere_ocean_fluxes!,
-            grid, clock,
-            staggered_velocity_fluxes,
-            net_tracer_fluxes,
-            centered_velocity_fluxes,
-            prescribed_fluxes,
-            ocean_state,
-            atmosphere_state,
-            atmosphere_downwelling_radiation,
-            radiation_properties,
-            atmosphere_freshwater_flux,
-            coupled_model.fluxes.ocean_reference_density,
-            coupled_model.fluxes.ocean_heat_capacity,
-            ice_thickness)
+    launch!(arch, grid, :xy, reconstruct_momentum_fluxes!,
+            grid, staggered_velocity_fluxes, centered_velocity_fluxes)
 
     return nothing
 end
@@ -209,7 +208,7 @@ end
         uₒ = ℑxᶜᵃᵃ(i, j, 1, grid, ocean_state.u)
         vₒ = ℑyᵃᶜᵃ(i, j, 1, grid, ocean_state.v)
         Uₒ = SVector(uₒ, vₒ)
-        Tₒ = ocean_state.T[i, j, 1]
+        Tₒ = ocean_state.T[i, j, 1] + 273.15 # K
         Sₒ = ocean_state.S[i, j, 1]
 
         # Atmos state
@@ -228,7 +227,12 @@ end
 
     # Build surface state with saturated specific humidity
     surface_type = AtmosphericThermodynamics.Liquid()
-    q★ = surface_saturation_specific_humidity(ℂ, Tₒ, ψₐ, surface_type)
+    water_mole_fraction = turbulent_fluxes.water_mole_fraction
+    water_vapor_saturation = turbulent_fluxes.water_vapor_saturation
+    q★ = seawater_saturation_specific_humidity(ℂ, Tₒ, Sₒ, ψₐ,
+                                               water_mole_fraction,
+                                               water_vapor_saturation,
+                                               surface_type)
     
     # Thermodynamic and dynamic state at the surface
     ψ₀ = thermodynamic_surface_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂ, pₐ, Tₒ, q★)
@@ -242,21 +246,33 @@ end
     zᵐ = convert(eltype(grid), 1e-2)
     zʰ = convert(eltype(grid), 1e-2)
 
-    values = SurfaceFluxes.ValuesOnly(Ψₐ, Ψ₀, zᵐ, zʰ)
+    Uᵍ = zero(grid) # gustiness
+    β = one(grid)   # surface "resistance"
+    values = SurfaceFluxes.ValuesOnly(Ψₐ, Ψ₀, zᵐ, zʰ, Uᵍ, β)
     conditions = SurfaceFluxes.surface_conditions(turbulent_fluxes, values)
+    update_turbulent_flux_fields!(turbulent_fluxes.fields, i, j, grid, conditions)
     
     # Compute heat fluxes, bulk flux first
     Qd = net_downwelling_radiation(i, j, grid, time, downwelling_radiation, radiation_properties)
     Qu = net_upwelling_radiation(i, j, grid, time, radiation_properties, ocean_state)
-    Qs = conditions.shf
-    Qℓ = conditions.lhf
-    ΣQ = Qu + Qs + Qℓ
+    Qs = conditions.shf # sensible heat flux
+    Qℓ = conditions.lhf # latent heat flux
+    ΣQ = Qd + Qu + Qs + Qℓ
 
-    E  = conditions.evaporation
-    F  = cross_realm_flux(i, j, grid, time, prescribed_freshwater_flux)
+    # Accumulate freshwater fluxes. Rain, snow, runoff -- all freshwater.
+    M = cross_realm_flux(i, j, grid, time, prescribed_freshwater_flux) # mass fluxes apparently?
+    ρᶠ = 1000 # density of freshwater?
+    ΣF = M / ρᶠ # convert from a mass flux to a volume flux / velocity
 
-    @show conditions
+    # Apparently, conditions.evaporation is a mass flux of water.
+    # So, we divide by the density of freshwater.
+    E = - conditions.evaporation / ρᶠ # ?
 
+    # Clip evaporation. TODO: figure out why this is needed.
+    E = min(zero(E), E) # why does this happen?
+    ΣF += E
+
+    # Compute fluxes for u, v, T, S from momentum, heat, and freshwater fluxes
     Jᵘ = centered_velocity_fluxes.u
     Jᵛ = centered_velocity_fluxes.v
     Jᵀ = net_tracer_fluxes.T
@@ -268,8 +284,9 @@ end
     atmos_ocean_Jᵘ = conditions.ρτxz / ρₒ
     atmos_ocean_Jᵛ = conditions.ρτyz / ρₒ
     atmos_ocean_Jᵀ = ΣQ / (ρₒ * cₒ)
-    atmos_ocean_Jˢ = Sₒ * (E + F)
+    atmos_ocean_Jˢ = Sₒ * ΣF
 
+    # Mask fluxes over land for convenience
     kᴺ = size(grid, 3) # index of the top ocean cell
     inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
 
@@ -281,78 +298,13 @@ end
     end
 end
 
-@kernel function accumulate_atmosphere_ocean_fluxes!(grid,
-                                                     clock,
-                                                     staggered_velocity_fluxes,
-                                                     centered_velocity_fluxes)
-
+@kernel function reconstruct_momentum_fluxes!(grid, J, Jᶜᶜᶜ)
     i, j = @index(Global, NTuple)
-    kᴺ = size(grid, 3) # index of the top ocean cell
-
-    time = Time(clock.time)
-
-    Jᵘ = staggered_velocity_fluxes.u
-    Jᵛ = staggered_velocity_fluxes.v
 
     @inbounds begin
-        Jᵘ[i, j, 1] = ℑxᶠᵃᵃ(i, j, k, grid, centered_velocity_fluxes.u)
-        Jᵛ[i, j, 1] = ℑyᵃᶠᵃ(i, j, k, grid, centered_velocity_fluxes.v)
+        J.u[i, j, 1] = ℑxᶠᵃᵃ(i, j, 1, grid, Jᶜᶜᶜ.u)
+        J.v[i, j, 1] = ℑyᵃᶠᵃ(i, j, 1, grid, Jᶜᶜᶜ.v)
     end
-
-    #=
-    # Note: there could one or more formula(e)
-    τˣ_formula = bulk_momentum_flux_formulae.u
-    τʸ_formula = bulk_momentum_flux_formulae.v
-    Q_formula = bulk_heat_flux_formulae
-    F_formula = bulk_tracer_flux_formulae.S
-
-    atmos_state_names = keys(atmos_state)
-    ocean_state_names = keys(atmos_state)
-
-    atmos_state_ij = stateindex(atmos_state, i, j, 1, time)
-    ocean_state_ij = stateindex(ocean_state, i, j, 1, time)
-
-    # Compute transfer velocity scale
-    ΔUᶠᶜᶜ = bulk_velocity_scaleᶠᶜᶜ(i, j, grid, time, bulk_velocity, atmos_state, ocean_state)
-    ΔUᶜᶠᶜ = bulk_velocity_scaleᶜᶠᶜ(i, j, grid, time, bulk_velocity, atmos_state, ocean_state)
-    ΔUᶜᶜᶜ = bulk_velocity_scaleᶜᶜᶜ(i, j, grid, time, bulk_velocity, atmos_state, ocean_state)
-
-    # Compute momentum fluxes
-    τˣ = cross_realm_flux(i, j, grid, time, τˣ_formula, ΔUᶠᶜᶜ, atmos_state, ocean_state)
-    τʸ = cross_realm_flux(i, j, grid, time, τʸ_formula, ΔUᶜᶠᶜ, atmos_state, ocean_state)
-
-    # Compute heat fluxes, bulk flux first
-    Qd = net_downwelling_radiation(i, j, grid, time, downwelling_radiation, radiation)
-     
-    Qu = net_upwelling_radiation(i, j, grid, time, radiation, ocean_state)
-    Q★ = cross_realm_flux(i, j, grid, time, Q_formula, ΔUᶜᶜᶜ, atmos_state_ij, ocean_state_ij)
-    Q = Q★ + Qd + Qu
-
-    # Compute salinity fluxes, bulk flux first
-    Fp = cross_realm_flux(i, j, grid, time, prescribed_freshwater_flux)
-    F★ = cross_realm_flux(i, j, grid, time, F_formula, ΔUᶜᶜᶜ, atmos_state_ij, ocean_state_ij)
-    F = F★ + Fp
-
-    # Then the rest of the heat fluxes
-    ρₒ = ocean_reference_density
-    cₚ = ocean_heat_capacity
-
-    atmos_ocean_Jᵘ = τˣ / ρₒ
-    atmos_ocean_Jᵛ = τʸ / ρₒ
-    atmos_ocean_Jᵀ = Q / (ρₒ * cₚ)
-
-    S = ocean_state_ij.S
-    atmos_ocean_Jˢ = S * F
-
-    @inbounds begin
-        # Set fluxes
-        # TODO: should this be peripheral_node?
-        Jᵘ[i, j, 1] = ifelse(inactive_node(i, j, kᴺ, grid, f, c, c), zero(grid), atmos_ocean_Jᵘ)
-        Jᵛ[i, j, 1] = ifelse(inactive_node(i, j, kᴺ, grid, c, f, c), zero(grid), atmos_ocean_Jᵛ)
-        Jᵀ[i, j, 1] = ifelse(inactive_node(i, j, kᴺ, grid, c, c, c), zero(grid), atmos_ocean_Jᵀ)
-        Jˢ[i, j, 1] = ifelse(inactive_node(i, j, kᴺ, grid, c, c, c), zero(grid), atmos_ocean_Jˢ)
-    end
-    =#
 end
 
 @inline function net_downwelling_radiation(i, j, grid, time, downwelling_radiation, radiation)
@@ -369,10 +321,10 @@ end
     ϵ = stateindex(radiation.emission.ocean, i, j, 1, time)
 
     # Ocean surface temperature (departure from reference, typically in ᵒC)
-    Tₒ = @inbounds ocean_state.T[i, j, 1]
+    Tₒ = @inbounds ocean_state.T[i, j, 1] + 273.15 # K
 
     # Note: positive implies _upward_ heat flux, and therefore cooling.
-    return σ * ϵ * (Tₒ + Tᵣ)^4
+    return σ * ϵ * Tₒ^4
 end
 
 @inline cross_realm_flux(i, j, grid, time, ::Nothing,        args...) = zero(grid)
@@ -393,262 +345,4 @@ end
     cross_realm_flux(i, j, grid, time, flux_tuple[2], args...) +
     cross_realm_flux(i, j, grid, time, flux_tuple[3], args...) +
     cross_realm_flux(i, j, grid, time, flux_tuple[4], args...)
-
-#=
-function default_atmosphere_ocean_fluxes(FT=Float64, tracers=tuple(:S))
-    # Note: we are constantly coping with the fact that the ocean is ᵒC.
-    ocean_reference_temperature = 273.15
-    momentum_transfer_coefficient = 5e-3
-    evaporation_transfer_coefficient = 1e-3
-    sensible_heat_transfer_coefficient = 2e-3
-    vaporization_enthalpy  = 2.5e-3
-
-    momentum_transfer_coefficient      = convert(FT, momentum_transfer_coefficient)
-    evaporation_transfer_coefficient   = convert(FT, evaporation_transfer_coefficient)
-    sensible_heat_transfer_coefficient = convert(FT, sensible_heat_transfer_coefficient)
-    vaporization_enthalpy              = convert(FT, vaporization_enthalpy)
-
-    τˣ = BulkFormula(RelativeUVelocity(), momentum_transfer_coefficient)
-    τʸ = BulkFormula(RelativeVVelocity(), momentum_transfer_coefficient)
-    momentum_flux_formulae = (u=τˣ, v=τʸ)
-
-    # Note: reference temperature comes in here
-    water_specific_humidity_difference = SpecificHumidity(FT)
-    evaporation = nothing #BulkFormula(SpecificHumidity(FT), evaporation_transfer_coefficient)
-    tracer_flux_formulae = (; S = evaporation)
-
-    latent_heat_difference = LatentHeat(specific_humidity_difference = water_specific_humidity_difference; vaporization_enthalpy)
-    latent_heat_formula    = nothing #BulkFormula(latent_heat_difference,  evaporation_transfer_coefficient)
-
-    sensible_heat_difference = SensibleHeat(FT; ocean_reference_temperature)
-    sensible_heat_formula = BulkFormula(sensible_heat_difference, sensible_heat_transfer_coefficient)
-
-    heat_flux_formulae = (sensible_heat_formula, latent_heat_formula)
-
-    return CrossRealmFluxes(momentum = momentum_flux_formulae,
-                            heat = heat_flux_formulae,
-                            tracers = tracer_flux_formulae)
-end
-=#
-
-#=
-#####
-##### Bulk formula
-#####
-
-"""
-    BulkFormula(air_sea_difference, transfer_coefficient)
-
-The basic structure of a flux `J` computed by a bulk formula is:
-
-```math
-J = - ρₐ * C * Δc * ΔU
-```
-
-where `ρₐ` is the density of air, `C` is the `transfer_coefficient`,
-`Δc` is the air_sea_difference, and `ΔU` is the bulk velocity scale.
-"""
-struct BulkFormula{F, CD}
-    air_sea_difference :: F
-    transfer_coefficient :: CD
-end
-
-@inline function cross_realm_flux(i, j, grid, time, formula::BulkFormula, ΔU, atmos_state, ocean_state)
-    ρₐ = stateindex(atmos_state.ρ, i, j, 1, time)
-    C = formula.transfer_coefficient
-    Δc = air_sea_difference(i, j, grid, time, formula.air_sea_difference, atmos_state, ocean_state)
-
-    # Note the sign convention, which corresponds to positive upward fluxes:
-    return - ρₐ * C * Δc * ΔU
-end
-
-#####
-##### Air-sea differences
-#####
-
-@inline air_sea_difference(i, j, grid, time, air, sea) = stateindex(air, i, j, 1, time) -
-                                                         stateindex(sea, i, j, 1, time)
-
-struct RelativeUVelocity end
-struct RelativeVVelocity end
-
-@inline function air_sea_difference(i, j, grid, time, ::RelativeUVelocity, atmos_state, ocean_state)
-    uₐ = atmos_state.u
-    uₒ = ocean_state.u
-    return air_sea_difference(i, j, grid, time, uₐ, uₒ)
-end
-
-@inline function air_sea_difference(i, j, grid, time, ::RelativeVVelocity, atmos_state, ocean_state)
-    vₐ = atmos_state.v
-    vₒ = ocean_state.v
-    return air_sea_difference(i, j, grid, time, vₐ, vₒ)
-end
-
-struct SensibleHeat{FT}
-    ocean_reference_temperature :: FT
-end
-
-SensibleHeat(FT::DataType=Float64; ocean_reference_temperature=273.15) =
-    SensibleHeat(convert(FT, ocean_reference_temperature))
-
-@inline function air_sea_difference(i, j, grid, time, Qs::SensibleHeat, atmos_state, ocean_state)
-    cₚ = stateindex(atmos_state.cₚ, i, j, 1, time)
-    Tₐ = atmos_state.T
-
-    # Compute ocean temperature in degrees K
-    Tᵣ = Qs.ocean_reference_temperature 
-    Tₒᵢ = stateindex(ocean_state.T, i, j, 1, time)
-    Tₒ = Tₒᵢ + Tᵣ
-    
-    ΔT = air_sea_difference(i, j, grid, time, Tₐ, Tₒ)
-
-    return @inbounds cₚ[i, j, 1] * ΔT
-end
-
-struct SpecificHumidity{S}
-    saturation_specific_humidity :: S
-
-    @doc """
-        SpecificHumidity(FT = Float64;
-                               saturation_specific_humidity = LargeYeagerSaturationVaporFraction(FT))
-
-    """
-    function SpecificHumidity(FT = Float64;
-                              saturation_specific_humidity = LargeYeagerSaturationVaporFraction(FT))
-        S = typeof(saturation_specific_humidity)
-        return new{S}(saturation_specific_humidity)
-    end
-end
-
-struct LargeYeagerSaturationVaporFraction{FT}
-    q₀ :: FT
-    c₁ :: FT
-    c₂ :: FT
-    reference_temperature :: FT
-end
-
-"""
-    LargeYeagerSaturationVaporFraction(FT = Float64;
-                                       q₀ = 0.98,
-                                       c₁ = 640380,
-                                       c₂ = -5107.4,
-                                       reference_temperature = 273.15)
-
-"""
-function LargeYeagerSaturationVaporFraction(FT = Float64;
-                                            q₀ = 0.98,
-                                            c₁ = 640380,
-                                            c₂ = -5107.4,
-                                            reference_temperature = 273.15)
-
-    return LargeYeagerSaturationVaporFraction(convert(FT, q₀),
-                                              convert(FT, c₁),
-                                              convert(FT, c₂),
-                                              convert(FT, reference_temperature))
-end
-
-@inline function saturation_specific_humidity(i, j, grid, time,
-                                           ratio::LargeYeagerSaturationVaporFraction,
-                                           atmos_state, ocean_state)
-
-    Tₒ = stateindex(ocean_state.T, i, j, 1, time)
-    ρₐ = stateindex(atmos_state.ρ, i, j, 1, time)
-    Tᵣ = ratio.reference_temperature
-    q₀ = ratio.q₀
-    c₁ = ratio.c₁
-    c₂ = ratio.c₂
-
-    return q₀ * c₁ * exp(-c₂ / (Tₒ + Tᵣ))
-end
-
-@inline function air_sea_difference(i, j, grid, time, diff::SpecificHumidity, atmos_state, ocean_state)
-    vapor_fraction = diff.saturation_specific_humidity 
-    qₐ = stateindex(atmos_state.q, i, j, 1, time)
-    qₛ = saturation_specific_humidity(i, j, grid, time, vapor_fraction, atmos_state, ocean_state)
-    return qₐ - qₛ
-end
-
-struct LatentHeat{Q, FT}
-    specific_humidity_difference :: Q
-    vaporization_enthalpy :: FT
-end
-
-"""
-    LatentHeat(FT = Float64;
-               vaporization_enthalpy = 2.5e3 # J / g
-               specific_humidity_difference = SpecificHumidity(FT))
-
-"""
-function LatentHeat(FT = Float64;
-                    vaporization_enthalpy = 2.5e3, # J / g
-                    specific_humidity_difference = SpecificHumidity(FT))
-
-    vaporization_enthalpy = convert(FT, vaporization_enthalpy)
-    return LatentHeat(specific_humidity_difference, vaporization_enthalpy)
-end
-
-@inline function air_sea_difference(i, j, grid, time, diff::LatentHeat, atmos, ocean)
-    Δq = air_sea_difference(i, j, grid, time, diff.specific_humidity_difference, atmos, ocean)
-    Λᵥ = diff.vaporization_enthalpy
-    return Λᵥ * Δq
-end
-
-#####
-##### Bulk velocity scales
-#####
-
-#####
-##### Convenience containers for surface fluxes
-##### 
-##### "Cross realm fluxes" can refer to the flux _data_ (ie, fields representing
-##### the total flux for a given variable), or to the flux _components_ / formula.
-#####
-
-struct CrossRealmFluxes{M, H, T}
-    momentum :: M
-    heat :: H
-    tracers :: T
-end
-
-CrossRealmFluxes(; momentum=nothing, heat=nothing, tracers=nothing) =
-    CrossRealmFluxes(momentum, heat, tracers)
-
-Base.summary(osf::CrossRealmFluxes) = "CrossRealmFluxes"
-Base.show(io::IO, osf::CrossRealmFluxes) = print(io, summary(osf))
-
-# struct AtmosphereOnlyVelocityScale end
-struct RelativeVelocityScale end
-
-@inline function bulk_velocity_scaleᶠᶜᶜ(i, j, grid, time, ::RelativeVelocityScale, atmos_state, ocean_state)
-    uₐ = atmos_state.u
-    vₐ = atmos_state.v
-    uₒ = ocean_state.u
-    vₒ = ocean_state.v
-    Δu = stateindex(uₐ, i, j, 1, time) - stateindex(uₒ, i, j, 1, time)
-    Δv² = ℑxyᶠᶜᵃ(i, j, 1, grid, Δϕt², vₐ, vₒ, time)
-    return sqrt(Δu^2 + Δv²)
-end
-
-@inline function bulk_velocity_scaleᶜᶠᶜ(i, j, grid, time, ::RelativeVelocityScale, atmos_state, ocean_state)
-    uₐ = atmos_state.u
-    vₐ = atmos_state.v
-    uₒ = ocean_state.u
-    vₒ = ocean_state.v
-    Δu² = ℑxyᶜᶠᵃ(i, j, 1, grid, Δϕt², uₐ, uₒ, time)
-    Δv = stateindex(vₐ, i, j, 1, time) - stateindex(vₒ, i, j, 1, time)
-    return sqrt(Δu² + Δv^2)
-end
-
-@inline function bulk_velocity_scaleᶜᶜᶜ(i, j, grid, time, ::RelativeVelocityScale, atmos_state, ocean_state)
-    uₐ = atmos_state.u
-    vₐ = atmos_state.v
-    uₒ = ocean_state.u
-    vₒ = ocean_state.v
-    Δu² = ℑxᶜᵃᵃ(i, j, 1, grid, Δϕt², uₐ, uₒ, time)
-    Δv² = ℑyᵃᶜᵃ(i, j, 1, grid, Δϕt², vₐ, vₒ, time)
-    return sqrt(Δu² + Δv²)
-end
-
-
-=#
 

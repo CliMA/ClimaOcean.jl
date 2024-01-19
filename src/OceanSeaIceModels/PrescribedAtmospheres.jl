@@ -4,7 +4,6 @@ using Oceananigans.Utils: prettysummary
 
 using Thermodynamics.Parameters: AbstractThermodynamicsParameters
 
-# TODO: write parameter meaning here
 import Thermodynamics.Parameters:
     gas_constant,   #
     molmass_dryair, # Molar mass of dry air (without moisture)
@@ -13,14 +12,16 @@ import Thermodynamics.Parameters:
     T_0,            # Enthalpy reference temperature
     LH_v0,          # Vaporization enthalpy at the reference temperature
     LH_s0,          # Sublimation enthalpy at the reference temperature
-    cp_d,           # Isobaric specific heat capacity of dry air
     cp_v,           # Isobaric specific heat capacity of gaseous water vapor
     cp_l,           # Isobaric specific heat capacity of liquid water
     cp_i,           # Isobaric specific heat capacity of water ice
     T_freeze,       # Freezing temperature of _pure_ water
     T_triple,       # Triple point temperature of _pure_ water
     press_triple,   # Triple point pressure of pure water
-    T_icenuc        # Temperature of ice nucleation of pure water
+    T_icenuc,       # Lower temperature limit for the presence of liquid condensate
+                    # (below which homogeneous ice nucleation occurs)
+    pow_icenuc      # "Power parameter" that controls liquid/ice condensate partitioning
+                    # during partial ice nucleation
 
 import ..OceanSeaIceModels:
     surface_velocities,
@@ -82,9 +83,9 @@ end
 
 const CP = ConstitutiveParameters
 
-gas_constant(p::CP)   = p.gas_constant
-molmass_dryair(p::CP) = p.dry_air_molar_mass
-molmass_water(p::CP)  = p.water_molar_mass
+@inline gas_constant(p::CP)   = p.gas_constant
+@inline molmass_dryair(p::CP) = p.dry_air_molar_mass
+@inline molmass_water(p::CP)  = p.water_molar_mass
 
 struct HeatCapacityParameters{FT} <: AbstractThermodynamicsParameters{FT}
     dry_air_adiabatic_exponent :: FT
@@ -103,6 +104,15 @@ end
 
 Base.show(io::IO, p::HeatCapacityParameters) = print(io, summary(p))
 
+"""
+    HeatCapacityParameters(FT = Float64,
+                           dry_air_adiabatic_exponent = 2/7,
+                           water_vapor_heat_capacity = 1859,
+                           liquid_water_heat_capacity = 4181,
+                           water_ice_heat_capacity = 2100)
+
+Isobaric heat capacities.
+"""
 function HeatCapacityParameters(FT = Float64;
                                 dry_air_adiabatic_exponent = 2/7,
                                 water_vapor_heat_capacity = 1859,
@@ -116,19 +126,19 @@ function HeatCapacityParameters(FT = Float64;
 end
 
 const HCP = HeatCapacityParameters
-cp_v(p::HCP)    = p.water_vapor_heat_capacity
-cp_l(p::HCP)    = p.liquid_water_heat_capacity
-cp_i(p::HCP)    = p.water_ice_heat_capacity
-kappa_d(p::HCP) = p.dry_air_adiabatic_exponent
+@inline cp_v(p::HCP)    = p.water_vapor_heat_capacity
+@inline cp_l(p::HCP)    = p.liquid_water_heat_capacity
+@inline cp_i(p::HCP)    = p.water_ice_heat_capacity
+@inline kappa_d(p::HCP) = p.dry_air_adiabatic_exponent
 
 struct PhaseTransitionParameters{FT} <: AbstractThermodynamicsParameters{FT}
-    reference_vaporization_enthalpy :: FT
-    reference_sublimation_enthalpy  :: FT
-    reference_temperature           :: FT
-    triple_point_temperature        :: FT
-    triple_point_pressure           :: FT
-    water_freezing_temperature      :: FT
-    ice_nucleation_temperature      :: FT
+    reference_vaporization_enthalpy  :: FT
+    reference_sublimation_enthalpy   :: FT
+    reference_temperature            :: FT
+    triple_point_temperature         :: FT
+    triple_point_pressure            :: FT
+    water_freezing_temperature       :: FT
+    total_ice_nucleation_temperature :: FT
 end
 
 function Base.summary(p::PhaseTransitionParameters{FT}) where FT
@@ -139,7 +149,7 @@ function Base.summary(p::PhaseTransitionParameters{FT}) where FT
                   ", Tᵗʳ=", prettysummary(p.triple_point_temperature),
                   ", pᵗʳ=", prettysummary(p.triple_point_pressure),
                   ", Tᶠ=", prettysummary(p.water_freezing_temperature),
-                  ", Tⁱⁿ=", prettysummary(p.ice_nucleation_temperature), ')')
+                  ", Tⁱⁿ=", prettysummary(p.total_ice_nucleation_temperature), ')')
 end
 
 Base.show(io::IO, p::PhaseTransitionParameters) = print(io, summary(p))
@@ -150,8 +160,8 @@ function PhaseTransitionParameters(FT = Float64;
                                    reference_temperature = 273.16,
                                    triple_point_temperature = 273.16,
                                    triple_point_pressure = 611.657,
-                                   water_freezing_temperature = 273.16,
-                                   ice_nucleation_temperature = 233)
+                                   water_freezing_temperature = 273.15,
+                                   total_ice_nucleation_temperature = 233)
 
    return PhaseTransitionParameters(convert(FT, reference_vaporization_enthalpy),
                                     convert(FT, reference_sublimation_enthalpy),
@@ -159,17 +169,18 @@ function PhaseTransitionParameters(FT = Float64;
                                     convert(FT, triple_point_temperature),
                                     convert(FT, triple_point_pressure),
                                     convert(FT, water_freezing_temperature),
-                                    convert(FT, ice_nucleation_temperature))
+                                    convert(FT, total_ice_nucleation_temperature))
 end
 
 const PTP = PhaseTransitionParameters
-LH_v0(p::PTP)        = p.reference_vaporization_enthalpy
-LH_s0(p::PTP)        = p.reference_sublimation_enthalpy
-T_freeze(p::PTP)     = p.water_freezing_temperature
-T_triple(p::PTP)     = p.triple_point_temperature
-T_icenuc(p::PTP)     = p.ice_nucleation_temperature
-press_triple(p::PTP) = p.triple_point_pressure
-T_0(p::PTP)          = p.reference_temperature
+@inline LH_v0(p::PTP)        = p.reference_vaporization_enthalpy
+@inline LH_s0(p::PTP)        = p.reference_sublimation_enthalpy
+@inline T_freeze(p::PTP)     = p.water_freezing_temperature
+@inline T_triple(p::PTP)     = p.triple_point_temperature
+@inline T_icenuc(p::PTP)     = p.total_ice_nucleation_temperature
+@inline pow_icenuc(p::PTP)   = convert(eltype(p), 1) # we shouldn't have the need to set this
+@inline press_triple(p::PTP) = p.triple_point_pressure
+@inline T_0(p::PTP)          = p.reference_temperature
 
 struct PrescribedAtmosphereThermodynamicsParameters{FT} <: AbstractThermodynamicsParameters{FT}
     constitutive      :: ConstitutiveParameters{FT}
@@ -205,33 +216,34 @@ function Base.show(io::IO, p::PrescribedAtmosphereThermodynamicsParameters)
         "    ├── triple_point_temperature (Tᵗʳ):        ", prettysummary(pt.triple_point_temperature), '\n',
         "    ├── triple_point_pressure (pᵗʳ):           ", prettysummary(pt.triple_point_pressure), '\n',   
         "    ├── water_freezing_temperature (Tᶠ):       ", prettysummary(pt.water_freezing_temperature), '\n',
-        "    └── ice_nucleation_temperature (Tⁱⁿ):      ", prettysummary(pt.ice_nucleation_temperature))
+        "    └── total_ice_nucleation_temperature (Tⁱ): ", prettysummary(pt.total_ice_nucleation_temperature))
 end
 
 function PrescribedAtmosphereThermodynamicsParameters(FT = Float64;
-                                              constitutive = ConstitutiveParameters(FT),
-                                              phase_transitions = PhaseTransitionParameters(FT),
-                                              heat_capacity = HeatCapacityParameters(FT))
+                                                      constitutive = ConstitutiveParameters(FT),
+                                                      phase_transitions = PhaseTransitionParameters(FT),
+                                                      heat_capacity = HeatCapacityParameters(FT))
 
     return PrescribedAtmosphereThermodynamicsParameters(constitutive, heat_capacity, phase_transitions)
 end
 
 const HTP = PrescribedAtmosphereThermodynamicsParameters
 
-gas_constant(p::HTP)   = gas_constant(p.constitutive)
-molmass_dryair(p::HTP) = molmass_dryair(p.constitutive)
-molmass_water(p::HTP)  = molmass_water(p.constitutive)
-kappa_d(p::HTP)        = kappa_d(p.heat_capacity)
-LH_v0(p::HTP)          = LH_v0(p.phase_transitions)
-LH_s0(p::HTP)          = LH_s0(p.phase_transitions)
-cp_v(p::HTP)           = cp_v(p.heat_capacity)
-cp_l(p::HTP)           = cp_l(p.heat_capacity)
-cp_i(p::HTP)           = cp_i(p.heat_capacity)
-T_freeze(p::HTP)       = T_freeze(p.phase_transitions)
-T_triple(p::HTP)       = T_triple(p.phase_transitions)
-T_icenuc(p::HTP)       = T_icenuc(p.phase_transitions)
-press_triple(p::HTP)   = press_triple(p.phase_transitions)
-T_0(p::HTP)            = T_0(p.phase_transitions)
+@inline gas_constant(p::HTP)   = gas_constant(p.constitutive)
+@inline molmass_dryair(p::HTP) = molmass_dryair(p.constitutive)
+@inline molmass_water(p::HTP)  = molmass_water(p.constitutive)
+@inline kappa_d(p::HTP)        = kappa_d(p.heat_capacity)
+@inline LH_v0(p::HTP)          = LH_v0(p.phase_transitions)
+@inline LH_s0(p::HTP)          = LH_s0(p.phase_transitions)
+@inline cp_v(p::HTP)           = cp_v(p.heat_capacity)
+@inline cp_l(p::HTP)           = cp_l(p.heat_capacity)
+@inline cp_i(p::HTP)           = cp_i(p.heat_capacity)
+@inline T_freeze(p::HTP)       = T_freeze(p.phase_transitions)
+@inline T_triple(p::HTP)       = T_triple(p.phase_transitions)
+@inline T_icenuc(p::HTP)       = T_icenuc(p.phase_transitions)
+@inline pow_icenuc(p::HTP)     = pow_icenuc(p.phase_transitions)
+@inline press_triple(p::HTP)   = press_triple(p.phase_transitions)
+@inline T_0(p::HTP)            = T_0(p.phase_transitions)
 
 #####
 ##### Prescribed atmosphere (as opposed to dynamically evolving / prognostic)

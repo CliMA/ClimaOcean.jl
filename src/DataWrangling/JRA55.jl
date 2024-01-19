@@ -15,8 +15,8 @@ using NCDatasets
 
 # A list of all variables provided in the JRA55 dataset:
 jra55_variable_names = (:freshwater_river_flux,
-                        :freshwater_rain_flux,
-                        :freshwater_snow_flux,
+                        :rain_freshwater_flux,
+                        :snow_freshwater_flux,
                         :freshwater_iceberg_flux,
                         :specific_humidity,
                         :sea_level_pressure,
@@ -29,8 +29,8 @@ jra55_variable_names = (:freshwater_river_flux,
 
 filenames = Dict(
     :freshwater_river_flux           => "RYF.friver.1990_1991.nc",   # Freshwater fluxes from rivers
-    :freshwater_rain_flux            => "RYF.prra.1990_1991.nc",     # Freshwater flux from rainfall
-    :freshwater_snow_flux            => "RYF.prsn.1990_1991.nc",     # Freshwater flux from snowfall
+    :rain_freshwater_flux            => "RYF.prra.1990_1991.nc",     # Freshwater flux from rainfall
+    :snow_freshwater_flux            => "RYF.prsn.1990_1991.nc",     # Freshwater flux from snowfall
     :freshwater_iceberg_flux         => "RYF.licalvf.1990_1991.nc",  # Freshwater flux from calving icebergs
     :specific_humidity               => "RYF.huss.1990_1991.nc",     # Surface specific humidity
     :sea_level_pressure              => "RYF.psl.1990_1991.nc",      # Sea level pressure
@@ -44,8 +44,8 @@ filenames = Dict(
 
 shortnames = Dict(
     :freshwater_river_flux           => "friver",   # Freshwater fluxes from rivers
-    :freshwater_rain_flux            => "prra",     # Freshwater flux from rainfall
-    :freshwater_snow_flux            => "prsn",     # Freshwater flux from snowfall
+    :rain_freshwater_flux            => "prra",     # Freshwater flux from rainfall
+    :snow_freshwater_flux            => "prsn",     # Freshwater flux from snowfall
     :freshwater_iceberg_flux         => "licalvf",  # Freshwater flux from calving icebergs
     :specific_humidity               => "huss",     # Surface specific humidity
     :sea_level_pressure              => "psl",      # Sea level pressure
@@ -64,10 +64,10 @@ urls = Dict(
     :freshwater_river_flux => "https://www.dropbox.com/scl/fi/21ggl4p74k4zvbf04nb67/" * 
                               "RYF.friver.1990_1991.nc?rlkey=ny2qcjkk1cfijmwyqxsfm68fz&dl=0",
 
-    :freshwater_rain_flux => "https://www.dropbox.com/scl/fi/5icl1gbd7f5hvyn656kjq/" *
+    :rain_freshwater_flux => "https://www.dropbox.com/scl/fi/5icl1gbd7f5hvyn656kjq/" *
                              "RYF.prra.1990_1991.nc?rlkey=iifyjm4ppwyd8ztcek4dtx0k8&dl=0",
 
-    :freshwater_snow_flux => "https://www.dropbox.com/scl/fi/1r4ajjzb3643z93ads4x4/" *
+    :snow_freshwater_flux => "https://www.dropbox.com/scl/fi/1r4ajjzb3643z93ads4x4/" *
                              "RYF.prsn.1990_1991.nc?rlkey=auyqpwn060cvy4w01a2yskfah&dl=0",
 
     :freshwater_iceberg_flux => "https://www.dropbox.com/scl/fi/44nc5y27ohvif7lkvpyv0/" *
@@ -118,8 +118,8 @@ The `variable_name`s (and their `shortname`s used in NetCDF files)
 available from the JRA55-do are:
 
     - `:freshwater_river_flux`              ("friver")
-    - `:freshwater_rain_flux`               ("prra")
-    - `:freshwater_snow_flux`               ("prsn")
+    - `:rain_freshwater_flux`               ("prra")
+    - `:snow_freshwater_flux`               ("prsn")
     - `:freshwater_iceberg_flux`            ("licalvf")
     - `:specific_humidity`                  ("huss")
     - `:sea_level_pressure`                 ("psl")
@@ -191,6 +191,10 @@ function jra55_field_time_series(variable_name, grid=nothing;
     # ds["lon_bnds"]: bounding longitudes between which variables are averaged
     # ds["lat_bnds"]: bounding latitudes between which variables are averaged
     # ds[shortname]: the variable data
+
+    if variable_name == :rain_freshwater_flux
+        @show ds
+    end
 
     # Nodes at the variable location
     λc = ds["lon"][:]
@@ -288,7 +292,6 @@ function jra55_field_time_series(variable_name, grid=nothing;
     if isnothing(grid)
         return native_fts
     else # make a new FieldTimeSeries and interpolate native data onto it.
-
         boundary_conditions = FieldBoundaryConditions(grid, (LX, LY, Nothing))
         fts = FieldTimeSeries{LX, LY, Nothing}(grid, times; boundary_conditions)
 
@@ -307,8 +310,8 @@ function jra55_prescribed_atmosphere(grid, time_indices=:; reference_height=2) #
     T_jra55   = jra55_field_time_series(:temperature,                     grid; time_indices, architecture)
     q_jra55   = jra55_field_time_series(:specific_humidity,               grid; time_indices, architecture)
     p_jra55   = jra55_field_time_series(:sea_level_pressure,              grid; time_indices, architecture)
-    Fr_jra55  = jra55_field_time_series(:freshwater_rain_flux,            grid; time_indices, architecture)
-    Fs_jra55  = jra55_field_time_series(:freshwater_snow_flux,            grid; time_indices, architecture)
+    Fr_jra55  = jra55_field_time_series(:rain_freshwater_flux,            grid; time_indices, architecture)
+    Fs_jra55  = jra55_field_time_series(:snow_freshwater_flux,            grid; time_indices, architecture)
     Qlw_jra55 = jra55_field_time_series(:downwelling_longwave_radiation,  grid; time_indices, architecture)
     Qsw_jra55 = jra55_field_time_series(:downwelling_shortwave_radiation, grid; time_indices, architecture)
 
