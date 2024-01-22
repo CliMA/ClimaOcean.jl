@@ -118,8 +118,7 @@ start_time = time_ns()
 wall_clock = Ref(time_ns())
 
 function progress(sim)
-    msg = string("(", location, ")")
-    msg *= string(", iter: ", iteration(sim), ", time: ", prettytime(sim))
+    msg = string("Iter: ", iteration(sim), ", time: ", prettytime(sim))
 
     elapsed = 1e-9 * (time_ns() - wall_clock[])
     msg *= string(", wall time: ", prettytime(elapsed))
@@ -175,7 +174,7 @@ fields = merge(ocean.model.velocities, ocean.model.tracers, auxiliary_fields)
 # Slice fields at the surface
 outputs = merge(fields, fluxes)
 
-filename = "single_column_omip_$location"
+filename = "regional_omip_simulation"
 
 coupled_simulation.output_writers[:jld2] = JLD2OutputWriter(ocean.model, outputs; filename,
                                                             schedule = TimeInterval(3hours),
