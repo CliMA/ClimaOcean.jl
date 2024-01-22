@@ -214,6 +214,18 @@ for location in keys(locations)
     # Slice fields at the surface
     outputs = merge(fields, fluxes)
 
+    output_attributes = Dict(
+        "κᶜ"  => Dict("long_name" => "Tracer diffusivity",          "units" => "m^2 / s"),
+        "Q"   => Dict("long_name" => "Net heat flux",               "units" => "W / m^2", "convention" => "positive upwards"),
+        "Qla" => Dict("long_name" => "Latent heat flux",            "units" => "W / m^2", "convention" => "positive upwards"),
+        "Qse" => Dict("long_name" => "Sensible heat flux",          "units" => "W / m^2", "convention" => "positive upwards"),
+        "F"   => Dict("long_name" => "Salt flux",                   "units" => "g kg⁻¹ m s⁻¹", "convention" => "positive upwards"),
+        "E"   => Dict("long_name" => "Freshwater evaporation flux", "units" => "m s⁻¹", "convention" => "positive upwards"),
+        "e"   => Dict("long_name" => "Turbulent kinetic energy",    "units" => "m^2 / s^2"),
+        "τˣ"  => Dict("long_name" => "Zonal momentum flux",         "units" => "m^2 / s^2"),
+        "τʸ"  => Dict("long_name" => "Meridional momentum flux",    "units" => "m^2 / s^2"),
+    )
+
     filename = "single_column_omip_$location"
 
     coupled_simulation.output_writers[:jld2] = JLD2OutputWriter(ocean.model, outputs; filename,
@@ -221,10 +233,13 @@ for location in keys(locations)
                                                                 overwrite_existing = true)
 
     coupled_simulation.output_writers[:nc] = NetCDFOutputWriter(ocean.model, outputs; filename,
-                                                                schedule = AveragedTimeInterval(1day),
+                                                                schedule = AveragedTimeInterval(1days),
+                                                                output_attributes,
                                                                 overwrite_existing = true)
 
     run!(coupled_simulation)
+
+    filename *= ".jld2"
 
     ut = FieldTimeSeries(filename, "u")
     vt = FieldTimeSeries(filename, "v")

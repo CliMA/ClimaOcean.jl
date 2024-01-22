@@ -169,12 +169,17 @@ function jra55_field_time_series(variable_name, grid=nothing;
         throw(ArgumentError(msg))
     end
 
-    isnothing(url)       && (url       = urls[variable_name])
-    isnothing(filename)  && (filename  = filenames[variable_name])
     isnothing(shortname) && (shortname = shortnames[variable_name])
 
-    isfile(filename) || download(url, filename)
+    !isnothing(filename) && !isfile(filename) && isnothing(url) &&
+        throw(ArgumentError("A filename was provided without a url, but the file does not exist.\n \
+                            If intended, please provide both the filename and url that should be used \n \
+                            to download the new file."))
 
+    isnothing(filename) && (filename = filenames[variable_name])
+    isnothing(url) && (url = urls[variable_name])
+    isfile(filename) || download(url, filename)
+        
     # Get location
     if isnothing(location)
         LX = LY = Center
@@ -191,10 +196,6 @@ function jra55_field_time_series(variable_name, grid=nothing;
     # ds["lon_bnds"]: bounding longitudes between which variables are averaged
     # ds["lat_bnds"]: bounding latitudes between which variables are averaged
     # ds[shortname]: the variable data
-
-    if variable_name == :rain_freshwater_flux
-        @show ds
-    end
 
     # Nodes at the variable location
     λc = ds["lon"][:]
