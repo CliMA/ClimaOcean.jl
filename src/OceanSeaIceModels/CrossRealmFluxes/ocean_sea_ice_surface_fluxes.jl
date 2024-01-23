@@ -277,12 +277,17 @@ end
     Qe = clip(conditions.lhf) # latent or "evaporative" heat flux
     ΣQ = Qd + Qu + Qc + Qe
 
+    if i == j == 1
+        @show conditions
+        @show propertynames(conditions)
+    end
+
     # Accumulate freshwater fluxes. Rain, snow, runoff -- all freshwater.
     # Note these are mass fluxes, hence the "M".
     M = cross_realm_flux(i, j, grid, time, prescribed_freshwater_flux)
 
     # Convert from a mass flux to a volume flux / velocity?
-    # Also switch the sign, for some reason we are given freshwater as positive down.
+    # Also switch the sign, for some reason we are given freshwater flux as positive down.
     ρᶠ = freshwater_density
     ΣF = - M / ρᶠ
 
@@ -313,11 +318,10 @@ end
     inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
 
     @inbounds begin
-        nan = convert(FT, NaN)
-        Jᵘ[i, j, 1] = ifelse(inactive, nan, atmos_ocean_Jᵘ)
-        Jᵛ[i, j, 1] = ifelse(inactive, nan, atmos_ocean_Jᵛ)
-        Jᵀ[i, j, 1] = ifelse(inactive, nan, atmos_ocean_Jᵀ)
-        Jˢ[i, j, 1] = ifelse(inactive, nan, atmos_ocean_Jˢ)
+        Jᵘ[i, j, 1] = ifelse(inactive, 0, atmos_ocean_Jᵘ)
+        Jᵛ[i, j, 1] = ifelse(inactive, 0, atmos_ocean_Jᵛ)
+        Jᵀ[i, j, 1] = ifelse(inactive, 0, atmos_ocean_Jᵀ)
+        Jˢ[i, j, 1] = ifelse(inactive, 0, atmos_ocean_Jˢ)
     end
 end
 
