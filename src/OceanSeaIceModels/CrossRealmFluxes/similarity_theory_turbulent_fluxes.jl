@@ -48,9 +48,13 @@ struct ClasiusClapyeronSaturation end
     return q★
 end
 
-Base.@kwdef struct LargeYeagerSaturation{FT}
-    c₁ :: FT = 640380.0 # kg m⁻³
-    c₂ :: FT = 5107.4   # K
+struct LargeYeagerSaturation{FT}
+    c₁ :: FT
+    c₂ :: FT
+end
+
+function LargeYeagerSaturation(FT=Float64; c₁ = 640380, c₂ = 5107.4)
+    return LargeYeagerSaturation(convert(FT, c₁), convert(FT, c₂))
 end
 
 const LYS = LargeYeagerSaturation
@@ -101,8 +105,6 @@ end
 
 @inline update_turbulent_flux_fields!(::Nothing, args...) = nothing
 
-@inline clip(x::FT) where FT = max(zero(FT), x)
-
 @inline function update_turbulent_flux_fields!(fields, i, j, grid, conditions, ρᶠ)
     Qᵉ = fields.latent_heat_flux
     Qᶜ = fields.sensible_heat_flux
@@ -111,12 +113,12 @@ end
     inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
     @inbounds begin
         # +0: cooling, -0: heating
-        Qᵉ[i, j, 1] = ifelse(inactive, 0, clip(conditions.lhf))
+        Qᵉ[i, j, 1] = ifelse(inactive, 0, conditions.lhf)
         Qᶜ[i, j, 1] = ifelse(inactive, 0, conditions.shf)
 
         # "Salt flux" has the opposite sign of "freshwater flux".
         # E > 0 implies that freshwater is fluxing upwards.
-        Eᵢ = clip(conditions.evaporation) / ρᶠ # convert to volume flux
+        Eᵢ = conditions.evaporation / ρᶠ # convert to volume flux
         E[i, j, 1] = ifelse(inactive, Eᵢ, 0)
     end
     return nothing

@@ -228,7 +228,7 @@ end
 
         Tₐ = atmos_state.T[i, j, 1, time]
         pₐ = atmos_state.p[i, j, 1, time]
-        qᵗₐ = atmos_state.q[i, j, 1] # total specific humidity
+        qₐ = atmos_state.q[i, j, 1, time] # total specific humidity
     end
 
     # Build thermodynamic and dynamic states in the atmosphere and surface.
@@ -237,7 +237,7 @@ end
     #   ⋅ Φ ≡ "dynamic" state vector (thermodynamics + reference height + velocity)
     ℂ = atmosphere_thermodynamics_parameters
     hₐ = atmosphere_reference_height # elevation of atmos variables relative to surface
-    ϕₐ = thermodynamic_atmospheric_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂ, pₐ, Tₐ, qᵗₐ)
+    ϕₐ = thermodynamic_atmospheric_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂ, pₐ, Tₐ, qₐ)
     Φₐ = dynamic_atmos_state = SurfaceFluxes.StateValues(hₐ, Uₐ, ϕₐ)
 
     # Build surface state with saturated specific humidity
@@ -273,14 +273,9 @@ end
     # Compute heat fluxes, bulk flux first
     Qd = net_downwelling_radiation(i, j, grid, time, downwelling_radiation, radiation_properties)
     Qu = net_upwelling_radiation(i, j, grid, time, radiation_properties, ocean_state, ocean_temperature_units)
-    Qc = conditions.shf       # sensible or "conductive" heat flux
-    Qe = clip(conditions.lhf) # latent or "evaporative" heat flux
+    Qc = conditions.shf # sensible or "conductive" heat flux
+    Qe = conditions.lhf # latent or "evaporative" heat flux
     ΣQ = Qd + Qu + Qc + Qe
-
-    if i == j == 1
-        @show conditions
-        @show propertynames(conditions)
-    end
 
     # Accumulate freshwater fluxes. Rain, snow, runoff -- all freshwater.
     # Note these are mass fluxes, hence the "M".
@@ -293,8 +288,7 @@ end
 
     # Apparently, conditions.evaporation is a mass flux of water.
     # So, we divide by the density of freshwater.
-    # But why do we need to clip evaporation rate?
-    E = clip(conditions.evaporation) / ρᶠ
+    E = conditions.evaporation / ρᶠ
     ΣF += E
 
     update_turbulent_flux_fields!(turbulent_fluxes.fields, i, j, grid, conditions, ρᶠ)
