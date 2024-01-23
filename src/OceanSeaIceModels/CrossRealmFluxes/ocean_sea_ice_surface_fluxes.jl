@@ -243,21 +243,30 @@ end
     Ψₐ = dynamic_atmos_state = SurfaceFluxes.StateValues(h, Uₐ, ψₐ)
 
     # Roughness lengths...
-    zᵐ = convert(eltype(grid), 1e-2)
-    zʰ = convert(eltype(grid), 1e-2)
+    FT = eltype(grid)
+    zᵐ = zʰ = convert(FT, 1e-2)
 
     Uᵍ = zero(grid) # gustiness
     β = one(grid)   # surface "resistance"
     values = SurfaceFluxes.ValuesOnly(Ψₐ, Ψ₀, zᵐ, zʰ, Uᵍ, β)
     conditions = SurfaceFluxes.surface_conditions(turbulent_fluxes, values)
+
+    # It's like a fixed point iteration
+    g = turbulent_fluxes.gravitational_acceleration
+    α = convert(FT, 0.011) # Charnock parameter
+    u★ = conditions.ustar
+    zᵐ = zʰ = α * u★^2 / g
+    values = SurfaceFluxes.ValuesOnly(Ψₐ, Ψ₀, zᵐ, zʰ, Uᵍ, β)
+    conditions = SurfaceFluxes.surface_conditions(turbulent_fluxes, values)
+
     update_turbulent_flux_fields!(turbulent_fluxes.fields, i, j, grid, conditions)
     
     # Compute heat fluxes, bulk flux first
     Qd = net_downwelling_radiation(i, j, grid, time, downwelling_radiation, radiation_properties)
     Qu = net_upwelling_radiation(i, j, grid, time, radiation_properties, ocean_state)
-    Qs = conditions.shf # sensible heat flux
-    Qℓ = conditions.lhf # latent heat flux
-    ΣQ = Qd + Qu + Qs + Qℓ
+    Qc = conditions.shf                  # sensible or "conductive" heat flux
+    Qe = max(zero(grid), conditions.lhf) # latent or "evaporative" heat flux
+    ΣQ = Qd + Qu + Qc + Qe
 
     # Accumulate freshwater fluxes. Rain, snow, runoff -- all freshwater.
     M = cross_realm_flux(i, j, grid, time, prescribed_freshwater_flux) # mass fluxes apparently?

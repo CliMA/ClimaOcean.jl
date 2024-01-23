@@ -103,11 +103,17 @@ end
 
 @inline function update_turbulent_flux_fields!(fields, i, j, grid, conditions)
     ρᶠ = 1000 # density of freshwater?
+    Qᵉ = fields.latent_heat_flux
+    Qᶜ = fields.sensible_heat_flux
+    E = fields.evaporation
     @inbounds begin
-        fields.latent_heat_flux[i, j, 1]   = conditions.lhf
-        fields.sensible_heat_flux[i, j, 1] = conditions.shf
+        # +0: cooling, -0: heating
+        Qᵉ[i, j, 1] = max(zero(grid), conditions.lhf)
+        Qᶜ[i, j, 1] = conditions.shf
+
         # "Salt flux" has the opposite sign of "freshwater flux"
-        fields.evaporation[i, j, 1]        = - conditions.evaporation / ρᶠ
+        Eᵢ = - conditions.evaporation / ρᶠ # convert to volume flux
+        E[i, j, 1] = max(zero(grid), Eᵢ)
     end
     return nothing
 end
@@ -136,7 +142,8 @@ function seawater_saturation_specific_humidity(atmosphere_thermodynamics_paramet
     x_H₂O  = compute_water_mole_fraction(water_mole_fraction, Sₛ)
 
     # Return saturation specific humidity for salty seawater
-    return q★_H₂O * x_H₂O
+    #return q★_H₂O * x_H₂O
+    return 0.98 * q★_H₂O
 end
 
 struct SalinityConstituent{FT}
