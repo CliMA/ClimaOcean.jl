@@ -2,7 +2,7 @@
 
 julia_version = "1.10.0-beta3"
 manifest_format = "2.0"
-project_hash = "5d2ac82a7066017c63d34437c6eed8b514474918"
+project_hash = "bcfc95e502c18276c6e7315f722ad6f48d7698c2"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -112,9 +112,9 @@ version = "0.1.2"
 
 [[deps.CLIMAParameters]]
 deps = ["DocStringExtensions", "TOML", "Test"]
-git-tree-sha1 = "a085251dfe4b0f732fe2b65d5354e6af91a8e931"
+git-tree-sha1 = "0c8c49ca2b7992490ab2a5292ed23aeae8b0768f"
 uuid = "6eacf6c3-8458-43b9-ae03-caf5306d3d53"
-version = "0.7.26"
+version = "0.8.2"
 
 [[deps.CUDA]]
 deps = ["AbstractFFTs", "Adapt", "BFloat16s", "CEnum", "CUDA_Driver_jll", "CUDA_Runtime_Discovery", "CUDA_Runtime_jll", "Crayons", "DataFrames", "ExprTools", "GPUArrays", "GPUCompiler", "KernelAbstractions", "LLVM", "LLVMLoopInfo", "LazyArtifacts", "Libdl", "LinearAlgebra", "Logging", "NVTX", "Preferences", "PrettyTables", "Printf", "Random", "Random123", "RandomNumbers", "Reexport", "Requires", "SparseArrays", "Statistics", "UnsafeAtomicsLLVM"]
@@ -1112,7 +1112,7 @@ version = "7.2.0+1"
 
 [[deps.SurfaceFluxes]]
 deps = ["CLIMAParameters", "DocStringExtensions", "RootSolvers", "Thermodynamics"]
-git-tree-sha1 = "dac64dc26093ed511d9f11d82fde437acdc540a4"
+git-tree-sha1 = "3b54de787d5f07b56a34578174174c99dc30beda"
 repo-rev = "glw/generalize-parameters"
 repo-url = "https://github.com/glwagner/SurfaceFluxes.jl.git"
 uuid = "49b00bb7-8bd4-4f2b-b78c-51cd0450215f"
@@ -1157,12 +1157,16 @@ deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[deps.Thermodynamics]]
-deps = ["DocStringExtensions", "KernelAbstractions", "Printf", "Random", "RootSolvers"]
-git-tree-sha1 = "c951709d33e7d530241501de56cb87c7d8861dac"
-repo-rev = "glw/hierarchical-params-example"
-repo-url = "https://github.com/CliMA/Thermodynamics.jl.git"
+deps = ["DocStringExtensions", "KernelAbstractions", "Random", "RootSolvers"]
+git-tree-sha1 = "e5f6bf517ab1d28af577ac2acf42f24020c7d086"
+repo-rev = "glw/density-example"
+repo-url = "https://github.com/glwagner/Thermodynamics.jl.git"
 uuid = "b60c26fb-14c3-4610-9d3e-2d17fe7ff00c"
-version = "0.11.2"
+version = "0.11.4"
+weakdeps = ["CLIMAParameters"]
+
+    [deps.Thermodynamics.extensions]
+    CreateParametersExt = "CLIMAParameters"
 
 [[deps.TimerOutputs]]
 deps = ["ExprTools", "Printf"]
