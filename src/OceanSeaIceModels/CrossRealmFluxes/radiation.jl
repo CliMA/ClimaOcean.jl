@@ -2,7 +2,6 @@ struct Radiation{FT, E, R}
     emission :: E
     reflection :: R
     stefan_boltzmann_constant :: FT
-    reference_temperature :: FT
 end
 
 function Radiation(FT=Float64;
@@ -10,7 +9,6 @@ function Radiation(FT=Float64;
                    sea_ice_emissivity = 1.0,
                    ocean_albedo = 0.3,
                    sea_ice_albedo = 0.7,
-                   reference_temperature = 273.15,
                    stefan_boltzmann_constant = 5.67e-8)
 
     ocean_emissivity   isa Number && (ocean_emissivity   = convert(FT, ocean_emissivity))
@@ -23,8 +21,7 @@ function Radiation(FT=Float64;
 
     return Radiation(emission,
                      reflection,
-                     convert(FT, stefan_boltzmann_constant),
-                     convert(FT, reference_temperature))
+                     convert(FT, stefan_boltzmann_constant))
 end
 
 Base.summary(r::Radiation) = "Radiation"

@@ -24,7 +24,7 @@ using KernelAbstractions: @kernel, @index
 ##### Container for organizing information related to fluxes
 #####
 
-struct OceanSeaIceSurfaceFluxes{T, P, C, R, PI, PC, FT}
+struct OceanSeaIceSurfaceFluxes{T, P, C, R, PI, PC, FT, UN}
     turbulent :: T
     prescribed :: P
     total :: C
@@ -34,8 +34,8 @@ struct OceanSeaIceSurfaceFluxes{T, P, C, R, PI, PC, FT}
     # The ocean is Boussinesq, so these are _only_ coupled properties:
     ocean_reference_density :: FT
     ocean_heat_capacity :: FT
-    # ocean_temperature_units
-    # freshwater_density ?
+    freshwater_density :: FT
+    ocean_temperature_units :: UN
 end
 
 # Possible units for temperature and salinity
@@ -52,6 +52,8 @@ Base.show(io::IO, crf::OceanSeaIceSurfaceFluxes) = print(io, summary(crf))
 function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
                                   atmosphere = nothing,
                                   radiation = nothing,
+                                  freshwater_density = 1000,
+                                  ocean_temperature_units = DegreesCelsius(),
                                   ocean_reference_density = reference_density(ocean),
                                   ocean_heat_capacity = heat_capacity(ocean))
 
@@ -109,7 +111,9 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
                                     previous_ice_thickness,
                                     previous_ice_concentration,
                                     ocean_reference_density,
-                                    ocean_heat_capacity)
+                                    ocean_heat_capacity,
+                                    freshwater_density,
+                                    ocean_temperature_units)
 end
 
 #####
@@ -170,6 +174,8 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             atmosphere.thermodynamics_parameters,
             coupled_model.fluxes.ocean_reference_density,
             coupled_model.fluxes.ocean_heat_capacity,
+            coupled_model.fluxes.freshwater_density,
+            coupled_model.fluxes.ocean_temperature_units,
             ice_thickness)
 
     # Note: I think this can be avoided if we modify the preceding kernel
@@ -196,6 +202,8 @@ end
                                                             atmosphere_thermodynamics_parameters,
                                                             ocean_reference_density,
                                                             ocean_heat_capacity,
+                                                            freshwater_density,
+                                                            ocean_temperature_units,
                                                             ice_thickness)
 
     i, j = @index(Global, NTuple)
@@ -208,7 +216,8 @@ end
         uₒ = ℑxᶜᵃᵃ(i, j, 1, grid, ocean_state.u)
         vₒ = ℑyᵃᶜᵃ(i, j, 1, grid, ocean_state.v)
         Uₒ = SVector(uₒ, vₒ)
-        Tₒ = ocean_state.T[i, j, 1] + 273.15 # K
+        Tₒ = ocean_state.T[i, j, 1]
+        Tₒ = convert_to_kelvin(ocean_temperature_units, Tₒ)
         Sₒ = ocean_state.S[i, j, 1]
 
         # Atmos state
@@ -221,34 +230,35 @@ end
         qᵗₐ = atmos_state.q[i, j, 1] # total specific humidity
     end
 
-    # Build atmospheric state
+    # Build thermodynamic and dynamic states in the atmosphere and surface.
+    # Notation:
+    #   ⋅ ϕ ≡ thermodynamic state vector
+    #   ⋅ Φ ≡ "dynamic" state vector (thermodynamics + reference height + velocity)
     ℂ = atmosphere_thermodynamics_parameters
-    ψₐ = thermodynamic_atmospheric_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂ, pₐ, Tₐ, qᵗₐ)
+    hₐ = atmosphere_reference_height # elevation of atmos variables relative to surface
+    ϕₐ = thermodynamic_atmospheric_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂ, pₐ, Tₐ, qᵗₐ)
+    Φₐ = dynamic_atmos_state = SurfaceFluxes.StateValues(hₐ, Uₐ, ϕₐ)
 
     # Build surface state with saturated specific humidity
     surface_type = AtmosphericThermodynamics.Liquid()
-    water_mole_fraction = turbulent_fluxes.water_mole_fraction
-    water_vapor_saturation = turbulent_fluxes.water_vapor_saturation
-    q★ = seawater_saturation_specific_humidity(ℂ, Tₒ, Sₒ, ψₐ,
-                                               water_mole_fraction,
-                                               water_vapor_saturation,
+    q★ = seawater_saturation_specific_humidity(ℂ, Tₒ, Sₒ, ϕₐ,
+                                               turbulent_fluxes.water_mole_fraction,
+                                               turbulent_fluxes.water_vapor_saturation
                                                surface_type)
     
-    # Thermodynamic and dynamic state at the surface
-    ψ₀ = thermodynamic_surface_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂ, pₐ, Tₒ, q★)
-    Ψ₀ = dynamic_surface_state = SurfaceFluxes.StateValues(zero(grid), Uₒ, ψ₀)
+    # Thermodynamic and dynamic surface state
+    h₀ = zero(grid) # surface height
+    ϕ₀ = thermodynamic_surface_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂ, pₐ, Tₒ, q★)
+    Φ₀ = dynamic_surface_state = SurfaceFluxes.StateValues(h₀, Uₒ, ϕ₀)
 
-    # Thermodynamic and dynamic state at reference level h above the surface
-    h = atmosphere_reference_height # elevation of atmos variables relative to surface
-    Ψₐ = dynamic_atmos_state = SurfaceFluxes.StateValues(h, Uₐ, ψₐ)
-
-    # Roughness lengths...
+    # Initial guess for the roughness length.
     FT = eltype(grid)
-    zᵐ = zʰ = convert(FT, 1e-2)
+    zᵐ = zʰ = convert(FT, 5e-4) # τ = 0.3 => u★ = sqrt(τ / ρₐ) ~ z₀ ~ 5e-4
 
+    # Solve for the surface fluxes with initial roughness length guess
     Uᵍ = zero(grid) # gustiness
     β = one(grid)   # surface "resistance"
-    values = SurfaceFluxes.ValuesOnly(Ψₐ, Ψ₀, zᵐ, zʰ, Uᵍ, β)
+    values = SurfaceFluxes.ValuesOnly(Φₐ, Φ₀, zᵐ, zʰ, Uᵍ, β)
     conditions = SurfaceFluxes.surface_conditions(turbulent_fluxes, values)
 
     # It's like a fixed point iteration
@@ -256,30 +266,31 @@ end
     α = convert(FT, 0.011) # Charnock parameter
     u★ = conditions.ustar
     zᵐ = zʰ = α * u★^2 / g
-    values = SurfaceFluxes.ValuesOnly(Ψₐ, Ψ₀, zᵐ, zʰ, Uᵍ, β)
+    values = SurfaceFluxes.ValuesOnly(Φₐ, Φ₀, zᵐ, zʰ, Uᵍ, β)
     conditions = SurfaceFluxes.surface_conditions(turbulent_fluxes, values)
-
-    update_turbulent_flux_fields!(turbulent_fluxes.fields, i, j, grid, conditions)
     
     # Compute heat fluxes, bulk flux first
     Qd = net_downwelling_radiation(i, j, grid, time, downwelling_radiation, radiation_properties)
-    Qu = net_upwelling_radiation(i, j, grid, time, radiation_properties, ocean_state)
-    Qc = conditions.shf                  # sensible or "conductive" heat flux
-    Qe = max(zero(grid), conditions.lhf) # latent or "evaporative" heat flux
+    Qu = net_upwelling_radiation(i, j, grid, time, radiation_properties, ocean_state, ocean_temperature_units)
+    Qc = conditions.shf       # sensible or "conductive" heat flux
+    Qe = clip(conditions.lhf) # latent or "evaporative" heat flux
     ΣQ = Qd + Qu + Qc + Qe
 
     # Accumulate freshwater fluxes. Rain, snow, runoff -- all freshwater.
-    M = cross_realm_flux(i, j, grid, time, prescribed_freshwater_flux) # mass fluxes apparently?
-    ρᶠ = 1000 # density of freshwater?
-    ΣF = M / ρᶠ # convert from a mass flux to a volume flux / velocity
+    # Note these are mass fluxes, hence the "M".
+    M = cross_realm_flux(i, j, grid, time, prescribed_freshwater_flux)
+
+    # Convert from a mass flux to a volume flux / velocity?
+    ρᶠ = freshwater_density
+    ΣF = M / ρᶠ
 
     # Apparently, conditions.evaporation is a mass flux of water.
     # So, we divide by the density of freshwater.
-    E = - conditions.evaporation / ρᶠ # ?
-
-    # Clip evaporation. TODO: figure out why this is needed.
-    E = min(zero(E), E) # why does this happen?
+    # But why do we need to clip evaporation rate?
+    E = - clip(conditions.evaporation) / ρᶠ
     ΣF += E
+
+    update_turbulent_flux_fields!(turbulent_fluxes.fields, i, j, grid, conditions, ρᶠ)
 
     # Compute fluxes for u, v, T, S from momentum, heat, and freshwater fluxes
     Jᵘ = centered_velocity_fluxes.u
@@ -300,10 +311,11 @@ end
     inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
 
     @inbounds begin
-        Jᵘ[i, j, 1] = ifelse(inactive, zero(grid), atmos_ocean_Jᵘ)
-        Jᵛ[i, j, 1] = ifelse(inactive, zero(grid), atmos_ocean_Jᵛ)
-        Jᵀ[i, j, 1] = ifelse(inactive, zero(grid), atmos_ocean_Jᵀ)
-        Jˢ[i, j, 1] = ifelse(inactive, zero(grid), atmos_ocean_Jˢ)
+        nan = convert(FT, NaN)
+        Jᵘ[i, j, 1] = ifelse(inactive, nan, atmos_ocean_Jᵘ)
+        Jᵛ[i, j, 1] = ifelse(inactive, nan, atmos_ocean_Jᵛ)
+        Jᵀ[i, j, 1] = ifelse(inactive, nan, atmos_ocean_Jᵀ)
+        Jˢ[i, j, 1] = ifelse(inactive, nan, atmos_ocean_Jˢ)
     end
 end
 
@@ -324,16 +336,16 @@ end
     return @inbounds - (1 - α) * Qˢʷ[i, j, 1, time] - Qˡʷ[i, j, 1, time]
 end
 
-@inline function net_upwelling_radiation(i, j, grid, time, radiation, ocean_state)
+@inline function net_upwelling_radiation(i, j, grid, time, radiation, surface_temperature)
     σ = radiation.stefan_boltzmann_constant
-    Tᵣ = radiation.reference_temperature
     ϵ = stateindex(radiation.emission.ocean, i, j, 1, time)
 
     # Ocean surface temperature (departure from reference, typically in ᵒC)
-    Tₒ = @inbounds ocean_state.T[i, j, 1] + 273.15 # K
+    Tₒ = @inbounds ocean_state.T[i, j, 1]
+    Tₒ = convert_to_kelvin(ocean_temperature_units, Tₒ)
 
     # Note: positive implies _upward_ heat flux, and therefore cooling.
-    return σ * ϵ * Tₒ^4
+    return ϵ * σ * Tₒ^4
 end
 
 @inline cross_realm_flux(i, j, grid, time, ::Nothing,        args...) = zero(grid)

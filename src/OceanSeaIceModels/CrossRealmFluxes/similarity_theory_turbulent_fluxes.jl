@@ -101,19 +101,20 @@ end
 
 @inline update_turbulent_flux_fields!(::Nothing, args...) = nothing
 
-@inline function update_turbulent_flux_fields!(fields, i, j, grid, conditions)
-    ρᶠ = 1000 # density of freshwater?
+@inline clip(x::FT) = max(zero(FT), x)
+
+@inline function update_turbulent_flux_fields!(fields, i, j, grid, conditions, ρᶠ)
     Qᵉ = fields.latent_heat_flux
     Qᶜ = fields.sensible_heat_flux
     E = fields.evaporation
     @inbounds begin
         # +0: cooling, -0: heating
-        Qᵉ[i, j, 1] = max(zero(grid), conditions.lhf)
+        Qᵉ[i, j, 1] = clip(conditions.lhf)
         Qᶜ[i, j, 1] = conditions.shf
 
         # "Salt flux" has the opposite sign of "freshwater flux"
         Eᵢ = - conditions.evaporation / ρᶠ # convert to volume flux
-        E[i, j, 1] = max(zero(grid), Eᵢ)
+        E[i, j, 1] = clip(Eᵢ)
     end
     return nothing
 end
@@ -126,12 +127,12 @@ default_universal_function_parameters(FT=Float64) = BusingerParams{FT}(Pr_0 = co
                                                                        γ    = convert(FT, 4.42))
 
 function seawater_saturation_specific_humidity(atmosphere_thermodynamics_parameters,
-                                              surface_temperature,
-                                              surface_salinity,
-                                              atmos_state,
-                                              water_mole_fraction,
-                                              water_vapor_saturation,
-                                              ::Liquid)
+                                               surface_temperature,
+                                               surface_salinity,
+                                               atmos_state,
+                                               water_mole_fraction,
+                                               water_vapor_saturation,
+                                               ::Liquid)
 
     ℂₐ = atmosphere_thermodynamics_parameters
     Tₛ = surface_temperature
@@ -142,8 +143,7 @@ function seawater_saturation_specific_humidity(atmosphere_thermodynamics_paramet
     x_H₂O  = compute_water_mole_fraction(water_mole_fraction, Sₛ)
 
     # Return saturation specific humidity for salty seawater
-    #return q★_H₂O * x_H₂O
-    return 0.98 * q★_H₂O
+    return q★_H₂O * x_H₂O
 end
 
 struct SalinityConstituent{FT}
@@ -173,7 +173,8 @@ end
 @inline compute_water_mole_fraction(x_H₂O::Number, S) = x_H₂O
 
 @inline function compute_water_mole_fraction(wmf::WaterMoleFraction, S)
-    s = S / 1000 # concentration
+    # TODO: express the concept of "ocean_salinity_units"?
+    s = S / 1000 # convert g/kg to concentration
 
     # Molecular weights
     μ_H₂O = wmf.water_molar_mass
