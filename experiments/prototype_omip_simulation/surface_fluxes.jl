@@ -38,7 +38,7 @@ start_time = time_ns()
 
 arch = CPU()
 
-latitude = (-70, -30)
+latitude = (-75, +65)
 longitude = (0, 360)
 
 i₁ = 4 * first(longitude) + 1
@@ -121,7 +121,7 @@ Qˢ = atmosphere.downwelling_radiation.shortwave
 ρₒ = coupled_model.fluxes.ocean_reference_density
 cₚ = coupled_model.fluxes.ocean_heat_capacity
 
-P = Field(Fʳ[1] + Fˢ[1])
+P = Field(- Fʳ[1] - Fˢ[1])
 ΣQ = Field(ρₒ * cₚ * Jᵀ)
 u★ = Field(sqrt(sqrt(Jᵘ^2 + Jᵛ^2)))
 
@@ -148,11 +148,24 @@ axQs = Axis(fig[3, 2], title="Shortwave / solar heat flux")
 axQe = Axis(fig[4, 2], title="Evaporative heat flux")
 axQc = Axis(fig[5, 2], title="Conductive / sensible heat flux")
 
-heatmap!(axτ, interior(u★, :, :, 1), colorrange=(0, 1e-1))
-heatmap!(axT, interior(To, :, :, 1), colorrange=(0, 10))
-heatmap!(axq, interior(qa, :, :, 1, 1))
-heatmap!(axE, interior(E, :, :, 1))
-heatmap!(axP, interior(P, :, :, 1))
+u★i = interior(u★, :, :, 1) 
+Toi = interior(To, :, :, 1)
+qai = interior(qa, :, :, 1, 1)
+Ei  = interior(E,  :, :, 1)
+Pi  = interior(P,  :, :, 1)
+
+Flim = 1e-6
+hmτ = heatmap!(axτ, u★i, colormap=:solar, colorrange=(0, 1e-1))
+hmT = heatmap!(axT, Toi, colormap=:thermal, colorrange=(0, 10))
+hmq = heatmap!(axq, qai, colormap=:grays)
+hmE = heatmap!(axE, Ei, colormap=:balance, colorrange=(-Flim, Flim))
+hmP = heatmap!(axP, Pi, colormap=:balance, colorrange=(-Flim, Flim))
+
+Colorbar(fig[1, 0], hmτ, label="Friction velocity (m s⁻¹)")
+Colorbar(fig[2, 0], hmT, label="Ocean surface temperature (ᵒC)")
+Colorbar(fig[3, 0], hmq, label="Atmosphere specific humidity")
+Colorbar(fig[4, 0], hmE, label="Evaporation freshwater flux (m s⁻¹)")
+Colorbar(fig[5, 0], hmP, label="Precipitation freshwater flux (m s⁻¹)")
 
 ΣQi = interior(ΣQ, :, :, 1)
 Qˢi = - interior(Qˢ, :, :, 1, 1)
@@ -160,12 +173,18 @@ Qˡi = - interior(Qˡ, :, :, 1, 1)
 Qᵉi = interior(Qᵉ, :, :, 1)
 Qᶜi = interior(Qᶜ, :, :, 1)
 
-Qlim = 600
-heatmap!(axQt, ΣQi, colormap=:balance, colorrange=(-Qlim, Qlim)) 
-heatmap!(axQs, Qˢi, colormap=:balance, colorrange=(-Qlim, Qlim)) 
-heatmap!(axQl, Qˡi, colormap=:balance, colorrange=(-Qlim, Qlim)) 
-heatmap!(axQe, Qᵉi, colormap=:balance, colorrange=(-Qlim, Qlim)) 
-heatmap!(axQc, Qᶜi, colormap=:balance, colorrange=(-Qlim, Qlim)) 
+Qlim = 1000
+hmt = heatmap!(axQt, ΣQi, colormap=:balance, colorrange=(-Qlim, Qlim)) 
+hms = heatmap!(axQs, Qˢi, colormap=:balance, colorrange=(-Qlim, Qlim)) 
+hml = heatmap!(axQl, Qˡi, colormap=:balance, colorrange=(-Qlim, Qlim)) 
+hme = heatmap!(axQe, Qᵉi, colormap=:balance, colorrange=(-Qlim, Qlim)) 
+hmc = heatmap!(axQc, Qᶜi, colormap=:balance, colorrange=(-Qlim, Qlim)) 
+
+Colorbar(fig[1, 3], hmt, label="Net heat flux")
+Colorbar(fig[2, 3], hml, label="Incoming longwave heat flux")
+Colorbar(fig[3, 3], hms, label="Shortwave / solar heat flux")
+Colorbar(fig[4, 3], hme, label="Evaporative heat flux")
+Colorbar(fig[5, 3], hmc, label="Conductive / sensible heat flux")
 
 display(fig)
 

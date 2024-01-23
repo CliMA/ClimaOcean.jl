@@ -101,20 +101,23 @@ end
 
 @inline update_turbulent_flux_fields!(::Nothing, args...) = nothing
 
-@inline clip(x::FT) = max(zero(FT), x)
+@inline clip(x::FT) where FT = max(zero(FT), x)
 
 @inline function update_turbulent_flux_fields!(fields, i, j, grid, conditions, ρᶠ)
     Qᵉ = fields.latent_heat_flux
     Qᶜ = fields.sensible_heat_flux
     E = fields.evaporation
+    kᴺ = size(grid, 3) # index of the top ocean cell
+    inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
     @inbounds begin
         # +0: cooling, -0: heating
-        Qᵉ[i, j, 1] = clip(conditions.lhf)
-        Qᶜ[i, j, 1] = conditions.shf
+        Qᵉ[i, j, 1] = ifelse(inactive, 0, clip(conditions.lhf))
+        Qᶜ[i, j, 1] = ifelse(inactive, 0, conditions.shf)
 
-        # "Salt flux" has the opposite sign of "freshwater flux"
-        Eᵢ = - conditions.evaporation / ρᶠ # convert to volume flux
-        E[i, j, 1] = clip(Eᵢ)
+        # "Salt flux" has the opposite sign of "freshwater flux".
+        # E > 0 implies that freshwater is fluxing upwards.
+        Eᵢ = clip(conditions.evaporation) / ρᶠ # convert to volume flux
+        E[i, j, 1] = ifelse(inactive, Eᵢ, 0)
     end
     return nothing
 end

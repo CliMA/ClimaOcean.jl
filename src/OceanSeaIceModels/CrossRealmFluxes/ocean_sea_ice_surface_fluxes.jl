@@ -62,6 +62,7 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
 
     ocean_reference_density = convert(FT, ocean_reference_density)
     ocean_heat_capacity = convert(FT, ocean_heat_capacity)
+    freshwater_density = convert(FT, freshwater_density)
 
     # It's the "thermodynamics gravitational acceleration"
     # (as opposed to the one used for the free surface)
@@ -243,7 +244,7 @@ end
     surface_type = AtmosphericThermodynamics.Liquid()
     q★ = seawater_saturation_specific_humidity(ℂ, Tₒ, Sₒ, ϕₐ,
                                                turbulent_fluxes.water_mole_fraction,
-                                               turbulent_fluxes.water_vapor_saturation
+                                               turbulent_fluxes.water_vapor_saturation,
                                                surface_type)
     
     # Thermodynamic and dynamic surface state
@@ -281,13 +282,14 @@ end
     M = cross_realm_flux(i, j, grid, time, prescribed_freshwater_flux)
 
     # Convert from a mass flux to a volume flux / velocity?
+    # Also switch the sign, for some reason we are given freshwater as positive down.
     ρᶠ = freshwater_density
-    ΣF = M / ρᶠ
+    ΣF = - M / ρᶠ
 
     # Apparently, conditions.evaporation is a mass flux of water.
     # So, we divide by the density of freshwater.
     # But why do we need to clip evaporation rate?
-    E = - clip(conditions.evaporation) / ρᶠ
+    E = clip(conditions.evaporation) / ρᶠ
     ΣF += E
 
     update_turbulent_flux_fields!(turbulent_fluxes.fields, i, j, grid, conditions, ρᶠ)
@@ -304,7 +306,7 @@ end
     atmos_ocean_Jᵘ = conditions.ρτxz / ρₒ
     atmos_ocean_Jᵛ = conditions.ρτyz / ρₒ
     atmos_ocean_Jᵀ = ΣQ / (ρₒ * cₒ)
-    atmos_ocean_Jˢ = Sₒ * ΣF
+    atmos_ocean_Jˢ = - Sₒ * ΣF
 
     # Mask fluxes over land for convenience
     kᴺ = size(grid, 3) # index of the top ocean cell
@@ -336,7 +338,7 @@ end
     return @inbounds - (1 - α) * Qˢʷ[i, j, 1, time] - Qˡʷ[i, j, 1, time]
 end
 
-@inline function net_upwelling_radiation(i, j, grid, time, radiation, surface_temperature)
+@inline function net_upwelling_radiation(i, j, grid, time, radiation, ocean_state, ocean_temperature_units)
     σ = radiation.stefan_boltzmann_constant
     ϵ = stateindex(radiation.emission.ocean, i, j, 1, time)
 
