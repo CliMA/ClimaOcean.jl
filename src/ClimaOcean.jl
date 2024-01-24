@@ -6,6 +6,7 @@ export PowerLawStretching, LinearStretching
 export jra55_field_time_series
 export ecco2_field, ECCO2Metadata
 export initialize!
+export OceanSeaIceModel
 
 using Oceananigans
 using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
@@ -65,6 +66,7 @@ end
 @inline u_immersed_bottom_drag(i, j, k, grid, c, Φ, μ) = @inbounds - μ * Φ.u[i, j, k] * spᶠᶜᶜ(i, j, k, grid, Φ)
 @inline v_immersed_bottom_drag(i, j, k, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, k] * spᶜᶠᶜ(i, j, k, grid, Φ)
 
+include("OceanSeaIceModels/OceanSeaIceModels.jl")
 include("VerticalGrids.jl")
 include("InitialConditions/InitialConditions.jl")
 include("DataWrangling/DataWrangling.jl")
@@ -77,5 +79,7 @@ using .Bathymetry
 using .DataWrangling: JRA55
 using .DataWrangling: ECCO2
 using .InitialConditions
+using .OceanSeaIceModels: OceanSeaIceModel
 
 end # module
+
