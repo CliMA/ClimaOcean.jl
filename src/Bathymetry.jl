@@ -171,9 +171,9 @@ function interpolate_bathymetry_in_passes(native_h, target_grid; passes = 10)
     Nλn, Nφn = Nn = size(native_h)
     
     if any(Nt[1:2] .> Nn[1:2]) # We are refining the grid (at least in one direction), more passes will not help!
-        new_h = Field{Center, Center, Nothing}(target_grid)
-        interpolate!(new_h, native_h)
-        return new_h
+        target_h = Field{Center, Center, Nothing}(target_grid)
+        interpolate!(target_h, native_h)
+        return target_h
     end
  
     latitude  = y_domain(target_grid)
