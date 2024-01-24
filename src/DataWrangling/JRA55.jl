@@ -283,7 +283,7 @@ function jra55_field_time_series(variable_name, grid=nothing;
 
     boundary_conditions = FieldBoundaryConditions(jra55_native_grid, (Center, Center, Nothing))
 
-    if time_chunks_in_memory isa Nothing
+    if time_chunks_in_memory isa Nothing # Everything in memory, it works only for single columns
         native_fts = FieldTimeSeries{Center, Center, Nothing}(jra55_native_grid, times; boundary_conditions)
 
         # Fill the data in a GPU-friendly manner
@@ -303,26 +303,13 @@ function jra55_field_time_series(variable_name, grid=nothing;
 
             return fts
         end
-    else # We need to write down the new interpolated jld2 file
-        grid = isnothing(grid) ? jra55_native_grid : grid
-        if isfile("jra55_boundary_conditions.jld2") && jldopen("jra55_boundary_conditions.jld2")["grid"] == grid
-            fts = FieldTimeSeries(boundary_file, short_name; backend = InMemory(; chunk_size = time_chunks_in_memory))
-        else
-            f_tmp = Field{LX, LY, Nothing}(grid)
-            fts_tmp = FieldTimeSeries((LX, LY, Nothing), grid, times; 
-                                       backend = OnDisk(),
-                                       path = "jra55_boundary_conditions.jld2",
-                                       name = short_name)
-
-            for t in eachindex(times)
-                set!(f_tmp, data[:, :, t])                           
-                set!(fts_tmp, f_tmp, t)
-            end
-
-            fts = FieldTimeSeries(boundary_file, short_name; backend = InMemory(; chunk_size = time_chunks_in_memory))
-
-            return fts
+    else 
+        if !isfile("jra55_boundary_conditions.jld2") 
+            grid = isnothing(grid) ? jra55_native_grid : grid
+            write_timeseries!(data, loc, grid, times, "jra55_boundary_conditions.jld2", short_name)
         end
+        fts = FieldTimeSeries(boundary_file, short_name; backend = InMemory(; chunk_size = time_chunks_in_memory))
+        return fts
     end
 end
 
