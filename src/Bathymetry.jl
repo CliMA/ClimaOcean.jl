@@ -52,7 +52,14 @@ Keyword Arguments:
 - interpolation_passes: regridding/interpolation passes. The bathymetry is interpolated in
                         `interpolation_passes - 1` intermediate steps. With more steps the 
                         final bathymetry will be smoother.
-
+                        Example: interpolating from a 400x200 grid to a 100x100 grid in 4 passes will involve
+                        - 400x200 -> 325x175
+                        - 325x175 -> 250x150
+                        - 250x150 -> 175x125
+                        - 175x125 -> 100x100
+                        If _coarsening_ the original grid, linear interpolation in passes is equivalent to a
+                        smoothing gaussian filter, with more passes increasing the strength of the filter.
+                        If _refining_ the original grid, additional passes will not help smoothing.
 """
 function regrid_bathymetry(target_grid;
                            height_above_water = nothing,
@@ -60,7 +67,7 @@ function regrid_bathymetry(target_grid;
                            dir = joinpath(@__DIR__, "..", "data"),
                            url = "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_surface_elev_netcdf", 
                            filename = "ETOPO_2022_v1_60s_N90W180_surface.nc",
-                           interpolation_passes = 10)
+                           interpolation_passes = 1)
 
     filepath = joinpath(dir, filename)
 
