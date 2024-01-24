@@ -2,11 +2,7 @@
 
 julia_version = "1.10.0"
 manifest_format = "2.0"
-<<<<<<< HEAD
-project_hash = "b0de2c0b9b63c5f2aa2406aac544be6c8761c819"
-=======
 project_hash = "bcfc95e502c18276c6e7315f722ad6f48d7698c2"
->>>>>>> origin/glw-ss/ice-ocean-model
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]

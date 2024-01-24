@@ -156,7 +156,8 @@ function jra55_field_time_series(variable_name, grid=nothing;
                                  time_indices = :,    
                                  url = nothing,
                                  filename = nothing,
-                                 shortname = nothing)
+                                 shortname = nothing,
+                                 time_chunks_in_memory = nothing)
 
     if isnothing(filename) && !(variable_name ∈ jra55_variable_names)
         variable_strs = Tuple("  - :$name \n" for name in jra55_variable_names)
@@ -281,24 +282,47 @@ function jra55_field_time_series(variable_name, grid=nothing;
                                               topology = (TX, Bounded, Flat))
 
     boundary_conditions = FieldBoundaryConditions(jra55_native_grid, (Center, Center, Nothing))
-    native_fts = FieldTimeSeries{Center, Center, Nothing}(jra55_native_grid, times; boundary_conditions)
 
-    # Fill the data in a GPU-friendly manner
-    copyto!(interior(native_fts, :, :, 1, :), data[:, :, :])
+    if time_chunks_in_memory isa Nothing
+        native_fts = FieldTimeSeries{Center, Center, Nothing}(jra55_native_grid, times; boundary_conditions)
 
-    # Fill halo regions so we can interpolate to finer grids
-    Nt = length(times)
-    fill_halo_regions!(native_fts)
+        # Fill the data in a GPU-friendly manner
+        copyto!(interior(native_fts, :, :, 1, :), data[:, :, :])
 
-    if isnothing(grid)
-        return native_fts
-    else # make a new FieldTimeSeries and interpolate native data onto it.
-        boundary_conditions = FieldBoundaryConditions(grid, (LX, LY, Nothing))
-        fts = FieldTimeSeries{LX, LY, Nothing}(grid, times; boundary_conditions)
+        # Fill halo regions so we can interpolate to finer grids
+        Nt = length(times)
+        fill_halo_regions!(native_fts)
 
-        interpolate!(fts, native_fts)
+        if isnothing(grid)
+            return native_fts
+        else # make a new FieldTimeSeries and interpolate native data onto it.
+            boundary_conditions = FieldBoundaryConditions(grid, (LX, LY, Nothing))
+            fts = FieldTimeSeries{LX, LY, Nothing}(grid, times; boundary_conditions)
 
-        return fts
+            interpolate!(fts, native_fts)
+
+            return fts
+        end
+    else # We need to write down the new interpolated jld2 file
+        grid = isnothing(grid) ? jra55_native_grid : grid
+        if isfile("jra55_boundary_conditions.jld2") && jldopen("jra55_boundary_conditions.jld2")["grid"] == grid
+            fts = FieldTimeSeries(boundary_file, short_name; backend = InMemory(; chunk_size = time_chunks_in_memory))
+        else
+            f_tmp = Field{LX, LY, Nothing}(grid)
+            fts_tmp = FieldTimeSeries((LX, LY, Nothing), grid, times; 
+                                       backend = OnDisk(),
+                                       path = "jra55_boundary_conditions.jld2",
+                                       name = short_name)
+
+            for t in eachindex(times)
+                set!(f_tmp, data[:, :, t])                           
+                set!(fts_tmp, f_tmp, t)
+            end
+
+            fts = FieldTimeSeries(boundary_file, short_name; backend = InMemory(; chunk_size = time_chunks_in_memory))
+
+            return fts
+        end
     end
 end
 
