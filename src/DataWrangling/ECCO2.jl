@@ -1,5 +1,6 @@
 module ECCO2
 
+using Dates
 using Oceananigans
 using Oceananigans.BoundaryConditions
 using NCDatasets
@@ -132,6 +133,38 @@ function ecco2_bottom_height_from_temperature()
     end
 
     return bottom_height
+end
+
+# Compute the dates that are available
+first_date = Date(1992, 1, 2)
+last_date = Date(2023, 4, 28)
+data_frequency = 3
+days_available = Day(last_date - first_date)
+Ndates = Int(days_available.value / 3)
+available_dates = [first_date + Day(3n) for n = 0:Ndates]
+
+function wget_ecco2_data(variable_name, user_name, password;
+                         url = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N"
+                         date = first_date)
+
+    # Try to be helpful
+    warnmsg = string(date,
+                     " may not be available! As far as we know, data is available", '\n',
+                     " every 3 days starting from 1992-01-02".)
+
+
+    date ∈ available_dates || @warn(warnmsg)
+
+    date_str = Dates.format(date, "yyyymmdd")
+    field_name = ecco2_short_names[variable_name]
+    filename = string(field_name, ".1440x720.", date_str, ".nc")
+
+    dirname = string(field_name, ".nc")
+    fileurl = joinpath(url, dirname, filename)
+    cmd = `wget --http-user=$(user_name) --http-passwd=$(password) $(fileurl)`
+    run(cmd)
+
+    return filename
 end
 
 end # module
