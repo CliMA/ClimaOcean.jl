@@ -68,7 +68,7 @@ include("InitialConditions.jl")
 include("Diagnostics.jl")
 include("NearGlobalSimulations/NearGlobalSimulations.jl")
 
-using .DataWrangling: JRA55
+using .DataWrangling: JRA55, ECCO2
 using .OceanSeaIceModels: OceanSeaIceModel
 
 end # module

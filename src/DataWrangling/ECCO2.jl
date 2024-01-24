@@ -174,5 +174,27 @@ function ecco2_field(variable_name, date=Date(1992, 01, 01);
     return field
 end
 
+function ecco2_bottom_height_from_temperature()
+    Tᵢ = ecco2_field(:temperature)
+
+    missing_value = Float32(-9.9e22)
+
+    # Construct bottom_height depth by analyzing T
+    Nx, Ny, Nz = size(Tᵢ)
+    bottom_height = ones(Nx, Ny) .* (zf[1] - Δz)
+    zf = znodes(Tᵢ.grid, Face())
+    
+    for i = 1:Nx, j = 1:Ny
+        @inbounds for k = Nz:-1:1
+            if Tᵢ[i, j, k] < -10
+                bottom_height[i, j] = zf[k+1]
+                break
+            end
+        end
+    end
+
+    return bottom_height
+end
+
 end # module
 

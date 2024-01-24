@@ -288,7 +288,18 @@ function jra55_field_time_series(variable_name, grid=nothing;
 
     # Fill halo regions so we can interpolate to finer grids
     Nt = length(times)
-    fill_halo_regions!(native_fts)
+    chunk_size = 100
+    if Nt <= chunk_size # one chunk will do
+        fill_halo_regions!(fts)
+    else # need multiple chunks
+        start = 1
+        while start < Nt
+            stop = min(Nt, start + chunk_size - 1)
+            fts_chunk = Tuple(fts[n] for n = start:stop)
+            fill_halo_regions!(fts_chunk)
+            start += chunk_size
+        end
+    end
 
     if isnothing(grid)
         return native_fts
