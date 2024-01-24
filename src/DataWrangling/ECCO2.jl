@@ -132,7 +132,7 @@ shortnames = Dict(
 
 surface_variable(variable_name) = variable_name == :sea_ice_thickness
 
-function ecco2_field(variable_name, date=Date(1992, 01, 01);
+function ecco2_field(variable_name, date=Date(1992, 01, 02);
                      architecture = CPU(),
                      filename  = filenames[string(date)][variable_name],
                      url       =      urls[string(date)][variable_name],
