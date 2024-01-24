@@ -80,7 +80,7 @@ continue_downwards!(field, ::Nothing) = nothing
 continue downwards a field with missing values outside of a `mask`.
 Grid cells where `mask == 1` will be preserved
 """
-function (field, mask)
+function continue_downwards!(field, mask)
     arch = architecture(field)
     grid = field.grid
     launch!(arch, grid, :xy, _continue_downwards!, field, grid, mask)

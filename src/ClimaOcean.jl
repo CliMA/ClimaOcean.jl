@@ -4,7 +4,7 @@ export regrid_bathymetry
 export stretched_vertical_faces
 export PowerLawStretching, LinearStretching
 export jra55_field_time_series
-export ecco2_field
+export ecco2_field, ECCO2Metadata
 export initialize!
 
 using Oceananigans
