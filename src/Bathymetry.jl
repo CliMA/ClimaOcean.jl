@@ -59,7 +59,8 @@ Keyword Arguments:
                         - 175x125 -> 100x100
                         If _coarsening_ the original grid, linear interpolation in passes is equivalent to 
                         applying a smoothing filter, with more passes increasing the strength of the filter.
-                        If _refining_ the original grid, additional passes will not help smoothing.
+                        If _refining_ the original grid, additional passes will not help and no intermediate
+                        steps will be performed.
 """
 function regrid_bathymetry(target_grid;
                            height_above_water = nothing,
