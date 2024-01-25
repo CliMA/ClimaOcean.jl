@@ -290,12 +290,12 @@ function jra55_field_time_series(variable_name, grid=nothing;
     Nt = length(times)
     chunk_size = 100
     if Nt <= chunk_size # one chunk will do
-        fill_halo_regions!(fts)
+        fill_halo_regions!(native_fts)
     else # need multiple chunks
         start = 1
         while start < Nt
             stop = min(Nt, start + chunk_size - 1)
-            fts_chunk = Tuple(fts[n] for n = start:stop)
+            fts_chunk = Tuple(native_fts[n] for n = start:stop)
             fill_halo_regions!(fts_chunk)
             start += chunk_size
         end
@@ -306,9 +306,7 @@ function jra55_field_time_series(variable_name, grid=nothing;
     else # make a new FieldTimeSeries and interpolate native data onto it.
         boundary_conditions = FieldBoundaryConditions(grid, (LX, LY, Nothing))
         fts = FieldTimeSeries{LX, LY, Nothing}(grid, times; boundary_conditions)
-
         interpolate!(fts, native_fts)
-
         return fts
     end
 end
