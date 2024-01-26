@@ -10,6 +10,7 @@ import Thermodynamics.Parameters:
     molmass_dryair, # Molar mass of dry air (without moisture)
     molmass_water,  # Molar mass of gaseous water vapor
     R_v,            # Specific gas constant for water vapor
+    R_d,            # Specific gas constant for dry air
     kappa_d,        # Ideal gas adiabatic exponent for dry air
     T_0,            # Enthalpy reference temperature
     LH_v0,          # Vaporization enthalpy at the reference temperature
@@ -89,6 +90,7 @@ const CP = ConstitutiveParameters
 @inline molmass_dryair(p::CP) = p.dry_air_molar_mass
 @inline molmass_water(p::CP)  = p.water_molar_mass
 @inline R_v(p::CP)            = gas_constant(p) / molmass_water(p)
+@inline R_d(p::CP)            = gas_constant(p) / molmass_dryair(p)
 
 struct HeatCapacityParameters{FT} <: AbstractThermodynamicsParameters{FT}
     dry_air_adiabatic_exponent :: FT
@@ -232,6 +234,7 @@ end
 
 const HTP = PrescribedAtmosphereThermodynamicsParameters
 
+@inline R_d(p::HTP)            = R_d(p.constitutive)
 @inline R_v(p::HTP)            = R_v(p.constitutive)
 @inline gas_constant(p::HTP)   = gas_constant(p.constitutive)
 @inline molmass_dryair(p::HTP) = molmass_dryair(p.constitutive)
