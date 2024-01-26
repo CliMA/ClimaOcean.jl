@@ -372,6 +372,8 @@ function retrieve_and_maybe_write_jra55_data(chunks, grid, times, loc, boundary_
 
         if shortname ∈ keys(file["timeseries"]) # `shortname` is not in the file
             close(file)
+
+            @info "rewriting the jra55 data into an Oceananigans compatible format"
             interpolate_and_write_timeseries!(data, loc, grid, times, interpolated_file, shortname, boundary_conditions, jra55_native_grid)
         end
 
@@ -380,7 +382,7 @@ function retrieve_and_maybe_write_jra55_data(chunks, grid, times, loc, boundary_
     end
 
     fts = FieldTimeSeries(interpolated_file, shortname; backend = InMemory(; chunk_size = chunks))
-    
+
     return fts
 end
 
