@@ -404,7 +404,6 @@ function write_jra55_timeseries!(data, loc, grid, times, path, name, bcs, jra55_
     return nothing
 end
 
-
 # TODO: allow the user to pass dates
 function jra55_prescribed_atmosphere(grid, time_indices=:; reference_height=2) # meters
     architecture = Oceananigans.architecture(grid)
