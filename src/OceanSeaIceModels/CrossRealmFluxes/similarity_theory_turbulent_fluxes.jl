@@ -1,6 +1,7 @@
 using Oceananigans.Utils: prettysummary
 using Oceananigans.Grids: AbstractGrid
 
+using Adapt
 using Thermodynamics: Liquid
 using SurfaceFluxes.Parameters: SurfaceFluxesParameters, AbstractSurfaceFluxesParameters
 using SurfaceFluxes.UniversalFunctions: BusingerParams
@@ -37,6 +38,15 @@ universal_func_type(fluxes::STTF)   = universal_func_type(typeof(fluxes.universa
 uf_params(fluxes::STTF)             = fluxes.universal_function
 von_karman_const(fluxes::STTF)      = fluxes.von_karman_constant
 grav(fluxes::STTF)                  = fluxes.gravitational_acceleration
+
+Adapt.adapt_structure(to, fluxes::STTF) = SimilarityTheoryTurbulentFluxes(adapt(to, fluxes.gravitational_acceleration),
+                                                                          adapt(to, fluxes.von_karman_constant),
+                                                                          adapt(to, fluxes.bulk_velocity_scale),
+                                                                          adapt(to, fluxes.universal_function),
+                                                                          adapt(to, fluxes.thermodynamics_parameters),
+                                                                          adapt(to, fluxes.water_vapor_saturation),
+                                                                          adapt(to, fluxes.water_mole_fraction),
+                                                                          adapt(to, fluxes.fields))
 
 Base.summary(::SimilarityTheoryTurbulentFluxes{FT}) where FT = "SimilarityTheoryTurbulentFluxes{$FT}"
 

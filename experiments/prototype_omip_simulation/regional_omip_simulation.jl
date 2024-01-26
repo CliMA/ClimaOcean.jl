@@ -1,4 +1,5 @@
 using Oceananigans
+using Oceananigans.Architectures: arch_array
 using Oceananigans.Units
 using Oceananigans.BuoyancyModels: buoyancy_frequency
 using Oceananigans.Units: Time
@@ -8,7 +9,7 @@ using ClimaOcean.OceanSeaIceModels: Radiation
 using ClimaOcean.DataWrangling.JRA55: jra55_prescribed_atmosphere
 using ClimaOcean.DataWrangling.ECCO2: ecco2_field
 
-using GLMakie
+# using GLMakie
 using Printf
 using Dates
 
@@ -38,7 +39,7 @@ start_time = time_ns()
 
 arch = GPU()
 
-latitude = (-75, -75)
+latitude = (-30, +30)
 longitude = (0, 360)
 
 i₁ = 4 * first(longitude) + 1
@@ -69,6 +70,9 @@ for i = 1:Nx, j = 1:Ny
     end
 end
 
+Tᵢ = arch_array(arch, Tᵢ)
+Sᵢ = arch_array(arch, Sᵢ)
+
 @show Nx Ny Nz zf
 
 grid = LatitudeLongitudeGrid(arch; latitude, longitude,
@@ -88,7 +92,7 @@ elapsed = time_ns() - start_time
 @info "Ocean component built. " * prettytime(elapsed * 1e-9)
 start_time = time_ns()
 
-Ndays = 365
+Ndays = 3
 Nt = 8 * Ndays
 atmosphere = jra55_prescribed_atmosphere(grid, 1:Nt) #, 1:21)
 elapsed = time_ns() - start_time
