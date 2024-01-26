@@ -377,7 +377,8 @@ function retrieve_and_maybe_write_jra55_data(chunks, grid, times, loc, boundary_
             interpolate_and_write_timeseries!(data, loc, grid, times, interpolated_file, shortname, boundary_conditions, jra55_native_grid)
         end
 
-        # File is there and `shortname` is in the file (probably the time indices are not there)
+        # File is there and `shortname` is in the file (probably the time indices are not correct)
+        # TODO: check the time range includes the time range of the simulation
         # check_time_indices!(args...)
     end
 
