@@ -9,6 +9,7 @@ import Thermodynamics.Parameters:
     gas_constant,   #
     molmass_dryair, # Molar mass of dry air (without moisture)
     molmass_water,  # Molar mass of gaseous water vapor
+    molmass_ratio,  # Ratio of the molar masses of dry air to water vapor
     R_v,            # Specific gas constant for water vapor
     R_d,            # Specific gas constant for dry air
     kappa_d,        # Ideal gas adiabatic exponent for dry air
@@ -86,11 +87,12 @@ end
 
 const CP = ConstitutiveParameters
 
-@inline gas_constant(p::CP)   = p.gas_constant
-@inline molmass_dryair(p::CP) = p.dry_air_molar_mass
-@inline molmass_water(p::CP)  = p.water_molar_mass
-@inline R_v(p::CP)            = gas_constant(p) / molmass_water(p)
-@inline R_d(p::CP)            = gas_constant(p) / molmass_dryair(p)
+@inline gas_constant(p::CP)     = p.gas_constant
+@inline molmass_dryair(p::CP)   = p.dry_air_molar_mass
+@inline molmass_water(p::CP)    = p.water_molar_mass
+@inline molmass_ratio(p::CP)    = molmass_dryair(p) / molmass_water(p)
+@inline R_v(p::CP)              = gas_constant(p) / molmass_water(p)
+@inline R_d(p::CP)              = gas_constant(p) / molmass_dryair(p)
 
 struct HeatCapacityParameters{FT} <: AbstractThermodynamicsParameters{FT}
     dry_air_adiabatic_exponent :: FT
@@ -239,6 +241,7 @@ const HTP = PrescribedAtmosphereThermodynamicsParameters
 @inline gas_constant(p::HTP)   = gas_constant(p.constitutive)
 @inline molmass_dryair(p::HTP) = molmass_dryair(p.constitutive)
 @inline molmass_water(p::HTP)  = molmass_water(p.constitutive)
+@inline molmass_ratio(p::HTP)  = molmass_ratio(p.constitutive)
 @inline kappa_d(p::HTP)        = kappa_d(p.heat_capacity)
 @inline LH_v0(p::HTP)          = LH_v0(p.phase_transitions)
 @inline LH_s0(p::HTP)          = LH_s0(p.phase_transitions)
