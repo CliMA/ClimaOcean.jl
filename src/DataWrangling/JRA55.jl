@@ -157,14 +157,14 @@ Keyword arguments
                                 loaded (not recommended).
 """
 function jra55_field_time_series(variable_name, grid=nothing;
-                                    architecture = CPU(),
-                                    location = nothing,
-                                    time_indices = :,    
-                                    url = nothing,
-                                    filename = nothing,
-                                    shortname = nothing,
-                                    interpolated_file = "jra55_boundary_conditions.jld2",
-                                    time_chunks_in_memory = nothing)
+                                 architecture = CPU(),
+                                 location = nothing,
+                                 time_indices = :,    
+                                 url = nothing,
+                                 filename = nothing,
+                                 shortname = nothing,
+                                 interpolated_file = "jra55_boundary_conditions.jld2",
+                                 time_chunks_in_memory = nothing)
 
     if isnothing(filename) && !(variable_name ∈ jra55_variable_names)
         variable_strs = Tuple("  - :$name \n" for name in jra55_variable_names)
