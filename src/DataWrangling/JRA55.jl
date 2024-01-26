@@ -357,8 +357,7 @@ function retrieve_and_maybe_write_jra55_data(chunks, grid, times, loc, boundary_
     elseif jldopen(interpolated_file)["serialized/grid"] != grid # File is there but on another grid, remove it and rewrite it
 
         @info "the saved boundary data is on another grid, deleting the old boundary file"
-        cmd = `rm $(interpolated_file)`
-        run(cmd)
+        rm(interpolated_file; force=true)
         
         @info "rewriting the jra55 data into an Oceananigans compatible format"
         write_jra55_timeseries!(data, loc, grid, times, interpolated_file, shortname, boundary_conditions, jra55_native_grid)
@@ -384,7 +383,6 @@ function write_jra55_timeseries!(data, loc, grid, times, path, name, bcs, jra55_
 
     dims = length(size(data)) - 1
     spatial_indices = Tuple(Colon() for i in 1:dims)
-
 
     native_field = Field{Center, Center, Nothing}(jra55_native_grid)
 
