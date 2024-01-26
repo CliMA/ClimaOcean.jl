@@ -281,34 +281,119 @@ function jra55_field_time_series(variable_name, grid=nothing;
                                               topology = (TX, Bounded, Flat))
 
     boundary_conditions = FieldBoundaryConditions(jra55_native_grid, (Center, Center, Nothing))
+
+    grid = isnothing(grid) ? jra55_native_grid : grid
+    loc  = (LX, LY, Nothing)
+
+    fts = retrieve_and_maybe_write_jra55_data(time_chunks_in_memory, grid, times, loc, boundary_conditions, data, jra55_native_grid; 
+                                              interpolated_file, shortname)
+
+    return fts
+end
+
+"""
+    retrieve_and_maybe_write_jra55_data(chunks, grid, times, loc, boundary_conditions, data, jra55_native_grid; 
+                                        interpolated_file = nothing, shortname = nothing)
+
+Retrieve JRA55 data and optionally write it to a file in an Oceananigans compatible format.
+
+## Arguments
+- `chunks`: Chunk size for the in-memory backend of the `FieldTimeSeries`.
+- `grid`: Grid for the `FieldTimeSeries`.
+- `times`: Time values for the `FieldTimeSeries`.
+- `loc`: Location of the JRA55 data.
+- `boundary_conditions`: Boundary conditions for the `FieldTimeSeries`.
+- `data`: JRA55 data to be retrieved.
+- `jra55_native_grid`: Native grid of the JRA55 data.
+- `interpolated_file`: Optional. Path to the file where the interpolated data will be written.
+- `shortname`: Optional. Shortname for the interpolated data.
+
+## Returns
+- `fts`: `FieldTimeSeries` object containing the retrieved or interpolated data.
+
+If `interpolated_file` is not a `Nothing`:
+(1) If the `interpolated_file` does not exist, the JRA55 data will be written to the file in an Oceananigans compatible format. 
+(2) If the `interpolated_file` exists but is on a different grid, the file will be deleted and rewritten.
+(3) If the `shortname` is already present in the file, the data will not be written again.
+"""
+function retrieve_and_maybe_write_jra55_data(::Nothing, grid, times, loc, boundary_conditions, data, jra55_native_grid; kwargs...)
     native_fts = FieldTimeSeries{Center, Center, Nothing}(jra55_native_grid, times; boundary_conditions)
 
     # Fill the data in a GPU-friendly manner
     copyto!(interior(native_fts, :, :, 1, :), data[:, :, :])
 
     # Fill halo regions so we can interpolate to finer grids
-    Nt = length(times)
-    chunk_size = 100
-    if Nt <= chunk_size # one chunk will do
-        fill_halo_regions!(native_fts)
-    else # need multiple chunks
-        start = 1
-        while start < Nt
-            stop = min(Nt, start + chunk_size - 1)
-            fts_chunk = Tuple(native_fts[n] for n = start:stop)
-            fill_halo_regions!(fts_chunk)
-            start += chunk_size
-        end
-    end
+    fill_halo_regions!(native_fts)
 
     if isnothing(grid)
         return native_fts
     else # make a new FieldTimeSeries and interpolate native data onto it.
         boundary_conditions = FieldBoundaryConditions(grid, (LX, LY, Nothing))
         fts = FieldTimeSeries{LX, LY, Nothing}(grid, times; boundary_conditions)
+
         interpolate!(fts, native_fts)
+
         return fts
     end
+end
+
+function retrieve_and_maybe_write_jra55_data(chunks, grid, times, loc, boundary_conditions, data, jra55_native_grid; 
+                                             interpolated_file = nothing, 
+                                             shortname = nothing)
+
+    if !isfile(interpolated_file) # File does not exist, let's rewrite it
+        
+        @info "rewriting the jra55 data into an Oceananigans compatible format"
+        write_jra55_timeseries!(data, loc, grid, times, interpolated_file, shortname, boundary_conditions, jra55_native_grid)
+
+    elseif jldopen(interpolated_file)["serialized/grid"] != grid # File is there but on another grid, remove it and rewrite it
+
+        @info "the saved boundary data is on another grid, deleting the old boundary file"
+        rm(interpolated_file; force=true)
+        
+        @info "rewriting the jra55 data into an Oceananigans compatible format"
+        write_jra55_timeseries!(data, loc, grid, times, interpolated_file, shortname, boundary_conditions, jra55_native_grid)
+
+    else # File is there and on the correct grid
+        if shortname ∈ keys(interpolated_file["timeseries"]) # `shortname` is not in the file
+            write_jra55_timeseries!(data, loc, grid, times, interpolated_file, shortname, boundary_conditions, jra55_native_grid)
+        end
+
+        # File is there and `shortname` is in the file
+    end
+
+    fts = FieldTimeSeries(interpolated_file, shortname; backend = InMemory(; chunk_size = chunks))
+    return fts
+end
+
+"""
+    write_jra55_timeseries!(data, loc, grid, times, path, name, bcs, jra55_native_grid)
+
+Write JRA55 timeseries `data` to disk in `path` under `name`
+"""
+function write_jra55_timeseries!(data, loc, grid, times, path, name, bcs, jra55_native_grid)
+
+    dims = length(size(data)) - 1
+    spatial_indices = Tuple(Colon() for i in 1:dims)
+
+    native_field = Field{Center, Center, Nothing}(jra55_native_grid)
+
+    f_tmp = Field{loc...}(grid)
+    fts_tmp = FieldTimeSeries(loc, grid, times; 
+                              backend = OnDisk(),
+                              path,
+                              name,
+                              boundary_conditions = bcs)
+
+    for t in eachindex(times)
+        set!(native_field, data[spatial_indices..., t])   
+        fill_halo_regions!(native_field)
+        interpolate!(f_tmp, native_field)
+        fill_halo_regions!(f_tmp)
+        set!(fts_tmp, f_tmp, t)
+    end
+
+    return nothing
 end
 
 # TODO: allow the user to pass dates
