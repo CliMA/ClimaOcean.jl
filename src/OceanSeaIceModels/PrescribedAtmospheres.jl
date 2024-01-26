@@ -2,6 +2,7 @@ module PrescribedAtmospheres
 
 using Oceananigans.Utils: prettysummary
 
+using Adapt
 using Thermodynamics.Parameters: AbstractThermodynamicsParameters
 
 import Thermodynamics.Parameters:
@@ -308,6 +309,10 @@ or sea ice.
 """
 TwoStreamDownwellingRadiation(; shortwave=nothing, longwave=nothing) =
     TwoStreamDownwellingRadiation(shortwave, longwave)
+
+Adapt.adapt_structure(to, tsdr::TwoStreamDownwellingRadiation) =
+    TwoStreamDownwellingRadiation(adapt(to, tsdr.shortwave),
+                                  adapt(to, tsdr.longwave))
 
 end # module
 
