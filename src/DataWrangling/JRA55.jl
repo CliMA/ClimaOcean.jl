@@ -344,7 +344,7 @@ function retrieve_and_maybe_write_jra55_data(chunks, grid, times, loc, boundary_
     if !isfile(interpolated_file) # File does not exist, let's rewrite it
         
         @info "rewriting the jra55 data into an Oceananigans compatible format"
-        write_jra55_timeseries!(data, loc, grid, times, interpolated_file, shortname, boundary_conditions, jra55_native_grid)
+        interpolate_and_write_timeseries!(data, loc, grid, times, interpolated_file, shortname, boundary_conditions, jra55_native_grid)
 
     elseif jldopen(interpolated_file)["serialized/grid"] != grid # File is there but on another grid, remove it and rewrite it
 
@@ -352,11 +352,11 @@ function retrieve_and_maybe_write_jra55_data(chunks, grid, times, loc, boundary_
         rm(interpolated_file; force=true)
         
         @info "rewriting the jra55 data into an Oceananigans compatible format"
-        write_jra55_timeseries!(data, loc, grid, times, interpolated_file, shortname, boundary_conditions, jra55_native_grid)
+        interpolate_and_write_timeseries!(data, loc, grid, times, interpolated_file, shortname, boundary_conditions, jra55_native_grid)
 
     else # File is there and on the correct grid
         if shortname ∈ keys(interpolated_file["timeseries"]) # `shortname` is not in the file
-            write_jra55_timeseries!(data, loc, grid, times, interpolated_file, shortname, boundary_conditions, jra55_native_grid)
+            interpolate_and_write_timeseries!(data, loc, grid, times, interpolated_file, shortname, boundary_conditions, jra55_native_grid)
         end
 
         # File is there and `shortname` is in the file
@@ -367,16 +367,16 @@ function retrieve_and_maybe_write_jra55_data(chunks, grid, times, loc, boundary_
 end
 
 """
-    write_jra55_timeseries!(data, loc, grid, times, path, name, bcs, jra55_native_grid)
+    interpolate_and_write_timeseries!(data, loc, grid, times, path, name, bcs, native_grid)
 
-Write JRA55 timeseries `data` to disk in `path` under `name`
+Interpolates and writes a time series of `data` at `times` onto disk in an Oceananigans compatible format.
 """
-function write_jra55_timeseries!(data, loc, grid, times, path, name, bcs, jra55_native_grid)
+function interpolate_and_write_timeseries!(data, loc, grid, times, path, name, bcs, native_grid)
 
     dims = length(size(data)) - 1
     spatial_indices = Tuple(Colon() for i in 1:dims)
 
-    native_field = Field{Center, Center, Nothing}(jra55_native_grid)
+    native_field = Field{Center, Center, Nothing}(native_grid)
 
     f_tmp = Field{loc...}(grid)
     fts_tmp = FieldTimeSeries(loc, grid, times; 
