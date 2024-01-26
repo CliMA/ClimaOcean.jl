@@ -12,6 +12,7 @@ using ClimaOcean.OceanSeaIceModels:
     TwoStreamDownwellingRadiation
 
 using NCDatasets
+using JLD2 
 
 # A list of all variables provided in the JRA55 dataset:
 jra55_variable_names = (:freshwater_river_flux,
@@ -345,6 +346,7 @@ function retrieve_and_maybe_write_jra55_data(::Nothing, grid, times, loc, bounda
     end
 end
 
+# TODO: check also the time indices
 function retrieve_and_maybe_write_jra55_data(chunks, grid, times, loc, boundary_conditions, data, jra55_native_grid; 
                                              interpolated_file = nothing, 
                                              shortname = nothing)
@@ -353,24 +355,32 @@ function retrieve_and_maybe_write_jra55_data(chunks, grid, times, loc, boundary_
         
         @info "rewriting the jra55 data into an Oceananigans compatible format"
         interpolate_and_write_timeseries!(data, loc, grid, times, interpolated_file, shortname, boundary_conditions, jra55_native_grid)
+    end
 
-    elseif jldopen(interpolated_file)["serialized/grid"] != grid # File is there but on another grid, remove it and rewrite it
+    file = jldopen(interpolated_file)
 
+    if file["serialized/grid"] != grid # File exists but the data is on another grid, remove it and rewrite it
+
+        close(file)
         @info "the saved boundary data is on another grid, deleting the old boundary file"
         rm(interpolated_file; force=true)
         
         @info "rewriting the jra55 data into an Oceananigans compatible format"
         interpolate_and_write_timeseries!(data, loc, grid, times, interpolated_file, shortname, boundary_conditions, jra55_native_grid)
 
-    else # File is there and on the correct grid
-        if shortname ∈ keys(interpolated_file["timeseries"]) # `shortname` is not in the file
+    else # File exists and the data is on the correct grid
+
+        if shortname ∈ keys(file["timeseries"]) # `shortname` is not in the file
+            close(file)
             interpolate_and_write_timeseries!(data, loc, grid, times, interpolated_file, shortname, boundary_conditions, jra55_native_grid)
         end
 
-        # File is there and `shortname` is in the file
+        # File is there and `shortname` is in the file (probably the time indices are not there)
+        # check_time_indices!(args...)
     end
 
     fts = FieldTimeSeries(interpolated_file, shortname; backend = InMemory(; chunk_size = chunks))
+    
     return fts
 end
 
