@@ -149,6 +149,12 @@ Keyword arguments
 
     - `shortname`: The "short name" of `variable_name` inside its NetCDF file.
                     Default: `ClimaOcean.JRA55.shortnames[variable_name]`.
+
+    - `interpolated_file`: file holding an Oceananigans compatible version of the JRA55 data.
+                           If it does not exist it will be generated.
+
+    - `time_chunks_in_memory`: number of fields held in memory. If `nothing` the whole timeseries is 
+                               loaded (not recommended).
 """
 function jra55_field_time_series(variable_name, grid=nothing;
                                  architecture = CPU(),
@@ -157,6 +163,7 @@ function jra55_field_time_series(variable_name, grid=nothing;
                                  url = nothing,
                                  filename = nothing,
                                  shortname = nothing,
+                                 interpolated_file = "jra55_boundary_conditions.jld2",
                                  time_chunks_in_memory = nothing)
 
     if isnothing(filename) && !(variable_name ∈ jra55_variable_names)
@@ -283,7 +290,7 @@ function jra55_field_time_series(variable_name, grid=nothing;
 
     boundary_conditions = FieldBoundaryConditions(jra55_native_grid, (Center, Center, Nothing))
 
-    if time_chunks_in_memory isa Nothing # Everything in memory, it works only for single columns
+    if time_chunks_in_memory isa Nothing # Everything in memory
         native_fts = FieldTimeSeries{Center, Center, Nothing}(jra55_native_grid, times; boundary_conditions)
 
         # Fill the data in a GPU-friendly manner
@@ -304,12 +311,23 @@ function jra55_field_time_series(variable_name, grid=nothing;
             return fts
         end
     else 
-        if !isfile("jra55_boundary_conditions.jld2") 
-            grid = isnothing(grid) ? jra55_native_grid : grid
-            write_timeseries!(data, loc, grid, times, "jra55_boundary_conditions.jld2", short_name)
+        grid = isnothing(grid) ? jra55_native_grid : grid
+        if !isfile(interpolated_file) 
+            @info "rewriting the jra55 data into an Oceananigans compatible format"
+            write_timeseries!(data, loc, grid, times, interpolated_file, short_name)
+        else 
+            fts = FieldTimeSeries(interpolated_file, short_name; backend = InMemory(; chunk_size = time_chunks_in_memory))
+            if fts.grid == grid
+                return fts
+            else
+                @info "the saved boundary data is on another grid, rewriting the boundary file"
+                cmd = `rm $(interpolated_file)`
+                run(cmd)
+                write_timeseries!(data, loc, grid, times, interpolated_file, short_name)
+                fts = FieldTimeSeries(interpolated_file, short_name; backend = InMemory(; chunk_size = time_chunks_in_memory))
+                return fts        
+            end
         end
-        fts = FieldTimeSeries(boundary_file, short_name; backend = InMemory(; chunk_size = time_chunks_in_memory))
-        return fts
     end
 end
 
