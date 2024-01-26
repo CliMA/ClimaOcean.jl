@@ -87,6 +87,7 @@ const CP = ConstitutiveParameters
 @inline gas_constant(p::CP)   = p.gas_constant
 @inline molmass_dryair(p::CP) = p.dry_air_molar_mass
 @inline molmass_water(p::CP)  = p.water_molar_mass
+@inline R_v(p::CP)            = gas_constant(p) / molmass_water(p)
 
 struct HeatCapacityParameters{FT} <: AbstractThermodynamicsParameters{FT}
     dry_air_adiabatic_exponent :: FT
@@ -230,6 +231,7 @@ end
 
 const HTP = PrescribedAtmosphereThermodynamicsParameters
 
+@inline R_v(p::HTP)            = R_v(p.constitutive)
 @inline gas_constant(p::HTP)   = gas_constant(p.constitutive)
 @inline molmass_dryair(p::HTP) = molmass_dryair(p.constitutive)
 @inline molmass_water(p::HTP)  = molmass_water(p.constitutive)
