@@ -149,14 +149,22 @@ Keyword arguments
 
     - `shortname`: The "short name" of `variable_name` inside its NetCDF file.
                     Default: `ClimaOcean.JRA55.shortnames[variable_name]`.
+
+    - `interpolated_file`: file holding an Oceananigans compatible version of the JRA55 data.
+                            If it does not exist it will be generated.
+
+    - `time_chunks_in_memory`: number of fields held in memory. If `nothing` the whole timeseries is 
+                                loaded (not recommended).
 """
 function jra55_field_time_series(variable_name, grid=nothing;
-                                 architecture = CPU(),
-                                 location = nothing,
-                                 time_indices = :,    
-                                 url = nothing,
-                                 filename = nothing,
-                                 shortname = nothing)
+                                    architecture = CPU(),
+                                    location = nothing,
+                                    time_indices = :,    
+                                    url = nothing,
+                                    filename = nothing,
+                                    shortname = nothing,
+                                    interpolated_file = "jra55_boundary_conditions.jld2",
+                                    time_chunks_in_memory = nothing)
 
     if isnothing(filename) && !(variable_name ∈ jra55_variable_names)
         variable_strs = Tuple("  - :$name \n" for name in jra55_variable_names)
