@@ -370,7 +370,7 @@ function retrieve_and_maybe_write_jra55_data(chunks, grid, times, loc, boundary_
 
     else # File exists and the data is on the correct grid
 
-        if shortname ∈ keys(file["timeseries"]) # `shortname` is not in the file
+        if !(shortname ∈ keys(file["timeseries"])) # `shortname` is not in the file
             close(file)
 
             @info "rewriting the jra55 data into an Oceananigans compatible format"
