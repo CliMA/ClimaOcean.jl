@@ -9,6 +9,7 @@ import Thermodynamics.Parameters:
     gas_constant,   #
     molmass_dryair, # Molar mass of dry air (without moisture)
     molmass_water,  # Molar mass of gaseous water vapor
+    R_v,            # Specific gas constant for water vapor
     kappa_d,        # Ideal gas adiabatic exponent for dry air
     T_0,            # Enthalpy reference temperature
     LH_v0,          # Vaporization enthalpy at the reference temperature
