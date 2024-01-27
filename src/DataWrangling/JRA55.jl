@@ -294,12 +294,32 @@ function jra55_field_time_series(variable_name, grid=nothing;
     grid = isnothing(grid) ? jra55_native_grid : grid
     loc  = (LX, LY, Nothing)
 
+    #=
     fts = retrieve_and_maybe_write_jra55_data(time_chunks_in_memory, grid, times, loc, boundary_conditions, data, jra55_native_grid; 
                                               interpolated_file, shortname)
+    =#
+
+    native_fts = FieldTimeSeries{Center, Center, Nothing}(jra55_native_grid, times; boundary_conditions)
+
+    # Fill the data in a GPU-friendly manner
+    copyto!(interior(native_fts, :, :, 1, :), data[:, :, :])
+
+    # Fill halo regions so we can interpolate to finer grids
+    fill_halo_regions!(native_fts)
+
+    if isnothing(grid)
+        return native_fts
+    else # make a new FieldTimeSeries and interpolate native data onto it.
+        boundary_conditions = FieldBoundaryConditions(grid, (LX, LY, Nothing))
+        fts = FieldTimeSeries{LX, LY, Nothing}(grid, times; boundary_conditions)
+        interpolate!(fts, native_fts)
+        return fts
+    end
 
     return fts
 end
 
+#=
 """
     retrieve_and_maybe_write_jra55_data(chunks, grid, times, loc, boundary_conditions, data, jra55_native_grid; 
                                         interpolated_file = nothing, shortname = nothing)
@@ -416,6 +436,7 @@ function interpolate_and_write_timeseries!(data, loc, grid, times, path, name, b
 
     return nothing
 end
+=#
 
 # TODO: allow the user to pass dates
 function jra55_prescribed_atmosphere(grid, time_indices=:; reference_height=2) # meters
