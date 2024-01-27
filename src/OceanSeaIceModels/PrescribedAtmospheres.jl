@@ -13,6 +13,7 @@ import Thermodynamics.Parameters:
     R_v,            # Specific gas constant for water vapor
     R_d,            # Specific gas constant for dry air
     cp_d,           # Heat capacity of dry air at constant pressure
+    cv_v,           # Heat capacity of dry air at constant volume
     kappa_d,        # Ideal gas adiabatic exponent for dry air
     T_0,            # Enthalpy reference temperature
     LH_v0,          # Vaporization enthalpy at the reference temperature
@@ -246,7 +247,6 @@ const PATP = PrescribedAtmosphereThermodynamicsParameters
 @inline molmass_ratio(p::PATP)  = molmass_ratio(p.constitutive)
 @inline LH_v0(p::PATP)          = LH_v0(p.phase_transitions)
 @inline LH_s0(p::PATP)          = LH_s0(p.phase_transitions)
-@inline cp_d(p::PATP)           = R_d(p) / kappa_d(p)
 @inline cp_v(p::PATP)           = cp_v(p.heat_capacity)
 @inline cp_l(p::PATP)           = cp_l(p.heat_capacity)
 @inline cp_i(p::PATP)           = cp_i(p.heat_capacity)
@@ -256,6 +256,9 @@ const PATP = PrescribedAtmosphereThermodynamicsParameters
 @inline pow_icenuc(p::PATP)     = pow_icenuc(p.phase_transitions)
 @inline press_triple(p::PATP)   = press_triple(p.phase_transitions)
 @inline T_0(p::PATP)            = T_0(p.phase_transitions)
+
+@inline cp_d(p::PATP)           = R_d(p) / kappa_d(p)
+@inline cv_v(p::PATP)           = cp_v(p) - R_v(p)
 
 #####
 ##### Prescribed atmosphere (as opposed to dynamically evolving / prognostic)
