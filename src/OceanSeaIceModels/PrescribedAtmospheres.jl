@@ -140,8 +140,8 @@ const HCP = HeatCapacityParameters
 @inline cp_v(p::HCP)    = p.water_vapor_heat_capacity
 @inline cp_l(p::HCP)    = p.liquid_water_heat_capacity
 @inline cp_i(p::HCP)    = p.water_ice_heat_capacity
-@inline cv_l(p::PATP)   = cp_l(p)
-@inline cv_i(p::PATP)   = cp_i(p)
+@inline cv_l(p::HCP)    = cp_l(p)
+@inline cv_i(p::HCP)    = cp_i(p)
 @inline kappa_d(p::HCP) = p.dry_air_adiabatic_exponent
 
 struct PhaseTransitionParameters{FT} <: AbstractThermodynamicsParameters{FT}
