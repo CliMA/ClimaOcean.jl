@@ -12,6 +12,7 @@ import Thermodynamics.Parameters:
     molmass_ratio,  # Ratio of the molar masses of dry air to water vapor
     R_v,            # Specific gas constant for water vapor
     R_d,            # Specific gas constant for dry air
+    cp_d,           # Heat capacity of dry air at constant pressure
     kappa_d,        # Ideal gas adiabatic exponent for dry air
     T_0,            # Enthalpy reference temperature
     LH_v0,          # Vaporization enthalpy at the reference temperature
@@ -234,26 +235,27 @@ function PrescribedAtmosphereThermodynamicsParameters(FT = Float64;
     return PrescribedAtmosphereThermodynamicsParameters(constitutive, heat_capacity, phase_transitions)
 end
 
-const HTP = PrescribedAtmosphereThermodynamicsParameters
+const PATP = PrescribedAtmosphereThermodynamicsParameters
 
-@inline R_d(p::HTP)            = R_d(p.constitutive)
-@inline R_v(p::HTP)            = R_v(p.constitutive)
-@inline gas_constant(p::HTP)   = gas_constant(p.constitutive)
-@inline molmass_dryair(p::HTP) = molmass_dryair(p.constitutive)
-@inline molmass_water(p::HTP)  = molmass_water(p.constitutive)
-@inline molmass_ratio(p::HTP)  = molmass_ratio(p.constitutive)
-@inline kappa_d(p::HTP)        = kappa_d(p.heat_capacity)
-@inline LH_v0(p::HTP)          = LH_v0(p.phase_transitions)
-@inline LH_s0(p::HTP)          = LH_s0(p.phase_transitions)
-@inline cp_v(p::HTP)           = cp_v(p.heat_capacity)
-@inline cp_l(p::HTP)           = cp_l(p.heat_capacity)
-@inline cp_i(p::HTP)           = cp_i(p.heat_capacity)
-@inline T_freeze(p::HTP)       = T_freeze(p.phase_transitions)
-@inline T_triple(p::HTP)       = T_triple(p.phase_transitions)
-@inline T_icenuc(p::HTP)       = T_icenuc(p.phase_transitions)
-@inline pow_icenuc(p::HTP)     = pow_icenuc(p.phase_transitions)
-@inline press_triple(p::HTP)   = press_triple(p.phase_transitions)
-@inline T_0(p::HTP)            = T_0(p.phase_transitions)
+@inline R_d(p::PATP)            = R_d(p.constitutive)
+@inline R_v(p::PATP)            = R_v(p.constitutive)
+@inline kappa_d(p::PATP)        = kappa_d(p.heat_capacity)
+@inline gas_constant(p::PATP)   = gas_constant(p.constitutive)
+@inline molmass_dryair(p::PATP) = molmass_dryair(p.constitutive)
+@inline molmass_water(p::PATP)  = molmass_water(p.constitutive)
+@inline molmass_ratio(p::PATP)  = molmass_ratio(p.constitutive)
+@inline LH_v0(p::PATP)          = LH_v0(p.phase_transitions)
+@inline LH_s0(p::PATP)          = LH_s0(p.phase_transitions)
+@inline cp_d(p::PATP)           = R_d(p) / kappa_d(p)
+@inline cp_v(p::PATP)           = cp_v(p.heat_capacity)
+@inline cp_l(p::PATP)           = cp_l(p.heat_capacity)
+@inline cp_i(p::PATP)           = cp_i(p.heat_capacity)
+@inline T_freeze(p::PATP)       = T_freeze(p.phase_transitions)
+@inline T_triple(p::PATP)       = T_triple(p.phase_transitions)
+@inline T_icenuc(p::PATP)       = T_icenuc(p.phase_transitions)
+@inline pow_icenuc(p::PATP)     = pow_icenuc(p.phase_transitions)
+@inline press_triple(p::PATP)   = press_triple(p.phase_transitions)
+@inline T_0(p::PATP)            = T_0(p.phase_transitions)
 
 #####
 ##### Prescribed atmosphere (as opposed to dynamically evolving / prognostic)
