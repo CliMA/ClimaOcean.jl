@@ -12,15 +12,17 @@ import Thermodynamics.Parameters:
     molmass_ratio,  # Ratio of the molar masses of dry air to water vapor
     R_v,            # Specific gas constant for water vapor
     R_d,            # Specific gas constant for dry air
-    cp_d,           # Heat capacity of dry air at constant pressure
-    cv_v,           # Heat capacity of dry air at constant volume
     kappa_d,        # Ideal gas adiabatic exponent for dry air
     T_0,            # Enthalpy reference temperature
     LH_v0,          # Vaporization enthalpy at the reference temperature
     LH_s0,          # Sublimation enthalpy at the reference temperature
+    cp_d,           # Heat capacity of dry air at constant pressure
     cp_v,           # Isobaric specific heat capacity of gaseous water vapor
     cp_l,           # Isobaric specific heat capacity of liquid water
     cp_i,           # Isobaric specific heat capacity of water ice
+    cv_v,           # Heat capacity of dry air at constant volume
+    cv_l,           # Isobaric specific heat capacity of liquid water
+    cv_i,           # Isobaric specific heat capacity of liquid water
     T_freeze,       # Freezing temperature of _pure_ water
     T_triple,       # Triple point temperature of _pure_ water
     press_triple,   # Triple point pressure of pure water
@@ -138,6 +140,8 @@ const HCP = HeatCapacityParameters
 @inline cp_v(p::HCP)    = p.water_vapor_heat_capacity
 @inline cp_l(p::HCP)    = p.liquid_water_heat_capacity
 @inline cp_i(p::HCP)    = p.water_ice_heat_capacity
+@inline cv_l(p::PATP)   = cp_l(p)
+@inline cv_i(p::PATP)   = cp_i(p)
 @inline kappa_d(p::HCP) = p.dry_air_adiabatic_exponent
 
 struct PhaseTransitionParameters{FT} <: AbstractThermodynamicsParameters{FT}
@@ -240,16 +244,12 @@ const PATP = PrescribedAtmosphereThermodynamicsParameters
 
 @inline R_d(p::PATP)            = R_d(p.constitutive)
 @inline R_v(p::PATP)            = R_v(p.constitutive)
-@inline kappa_d(p::PATP)        = kappa_d(p.heat_capacity)
 @inline gas_constant(p::PATP)   = gas_constant(p.constitutive)
 @inline molmass_dryair(p::PATP) = molmass_dryair(p.constitutive)
 @inline molmass_water(p::PATP)  = molmass_water(p.constitutive)
 @inline molmass_ratio(p::PATP)  = molmass_ratio(p.constitutive)
 @inline LH_v0(p::PATP)          = LH_v0(p.phase_transitions)
 @inline LH_s0(p::PATP)          = LH_s0(p.phase_transitions)
-@inline cp_v(p::PATP)           = cp_v(p.heat_capacity)
-@inline cp_l(p::PATP)           = cp_l(p.heat_capacity)
-@inline cp_i(p::PATP)           = cp_i(p.heat_capacity)
 @inline T_freeze(p::PATP)       = T_freeze(p.phase_transitions)
 @inline T_triple(p::PATP)       = T_triple(p.phase_transitions)
 @inline T_icenuc(p::PATP)       = T_icenuc(p.phase_transitions)
@@ -257,7 +257,17 @@ const PATP = PrescribedAtmosphereThermodynamicsParameters
 @inline press_triple(p::PATP)   = press_triple(p.phase_transitions)
 @inline T_0(p::PATP)            = T_0(p.phase_transitions)
 
+
+@inline cp_v(p::PATP)           = cp_v(p.heat_capacity)
+@inline cp_l(p::PATP)           = cp_l(p.heat_capacity)
+@inline cp_i(p::PATP)           = cp_i(p.heat_capacity)
+
+@inline cv_l(p::PATP)           = cv_l(p.heat_capacity)
+@inline cv_i(p::PATP)           = cv_i(p.heat_capacity)
+
+@inline kappa_d(p::PATP)        = kappa_d(p.heat_capacity)
 @inline cp_d(p::PATP)           = R_d(p) / kappa_d(p)
+@inline cv_d(p::PATP)           = cp_d(p) - R_d(p)
 @inline cv_v(p::PATP)           = cp_v(p) - R_v(p)
 
 #####
