@@ -23,6 +23,7 @@ import Thermodynamics.Parameters:
     cv_v,           # Heat capacity of dry air at constant volume
     cv_l,           # Isobaric specific heat capacity of liquid water
     cv_i,           # Isobaric specific heat capacity of liquid water
+    e_int_v0,       # what? someting about reference internal energy of water vapor
     T_freeze,       # Freezing temperature of _pure_ water
     T_triple,       # Triple point temperature of _pure_ water
     press_triple,   # Triple point pressure of pure water
@@ -257,6 +258,7 @@ const PATP = PrescribedAtmosphereThermodynamicsParameters
 @inline press_triple(p::PATP)   = press_triple(p.phase_transitions)
 @inline T_0(p::PATP)            = T_0(p.phase_transitions)
 
+@inline e_int_v0(p::PATP)       = LH_v0(p) - R_v(p) * T_0(p)
 
 @inline cp_v(p::PATP)           = cp_v(p.heat_capacity)
 @inline cp_l(p::PATP)           = cp_l(p.heat_capacity)
