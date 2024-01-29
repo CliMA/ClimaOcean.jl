@@ -248,7 +248,7 @@ end
 λc, φc, zc = nodes(Qt)
 λf, φf, zc = nodes(ζt)
 
-fig = Figure(resolution=(2400, 1200))
+fig = Figure(size=(2400, 1200))
 
 Nt = length(Tt.times)
 slider = Slider(fig[5, 2:3], range=1:Nt, startvalue=1)

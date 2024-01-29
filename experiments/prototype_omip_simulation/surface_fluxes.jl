@@ -134,7 +134,7 @@ compute!(ΣQ)
 compute!(P)
 compute!(u★)
 
-fig = Figure(resolution=(1200, 1800))
+fig = Figure(size=(1200, 1800))
 
 axτ = Axis(fig[1, 1], title="u★")
 axT = Axis(fig[2, 1], title="T")

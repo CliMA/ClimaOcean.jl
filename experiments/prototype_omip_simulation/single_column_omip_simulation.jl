@@ -131,7 +131,7 @@ for location in keys(locations)
     times = ua.times
 
     #=
-    fig = Figure(resolution=(1200, 1800))
+    fig = Figure(size=(1200, 1800))
     axu = Axis(fig[1, 1])
     axT = Axis(fig[2, 1])
     axq = Axis(fig[3, 1])
@@ -193,10 +193,10 @@ for location in keys(locations)
     Jᵘ  = coupled_model.fluxes.total.ocean.momentum.u
     Jᵛ  = coupled_model.fluxes.total.ocean.momentum.v
     Jᵀ  = coupled_model.fluxes.total.ocean.tracers.T
-    F   = coupled_model.fluxes.total.ocean.tracers.S
-    E   = coupled_model.fluxes.turbulent.fields.evaporation
-    Qse = coupled_model.fluxes.turbulent.fields.sensible_heat_flux
-    Qla = coupled_model.fluxes.turbulent.fields.latent_heat_flux
+    Jˢ  = coupled_model.fluxes.total.ocean.tracers.S
+    E   = coupled_model.fluxes.turbulent.fields.freshwater
+    Qse = coupled_model.fluxes.turbulent.fields.sensible_heat
+    Qla = coupled_model.fluxes.turbulent.fields.latent_heat
     ρₒ  = coupled_model.fluxes.ocean_reference_density
     cₚ  = coupled_model.fluxes.ocean_heat_capacity
 
@@ -206,7 +206,7 @@ for location in keys(locations)
     N² = buoyancy_frequency(ocean.model)
     κᶜ = ocean.model.diffusivity_fields.κᶜ
 
-    fluxes = (; τˣ, τʸ, E, F, Q, Qse, Qla)
+    fluxes = (; τˣ, τʸ, E, Jˢ, Q, Qse, Qla)
 
     auxiliary_fields = (; N², κᶜ)
     fields = merge(ocean.model.velocities, ocean.model.tracers, auxiliary_fields)
@@ -214,12 +214,12 @@ for location in keys(locations)
     # Slice fields at the surface
     outputs = merge(fields, fluxes)
 
-    output_attributes = Dict(
+    output_attributes = Dict{String, Any}(
         "κᶜ"  => Dict("long_name" => "Tracer diffusivity",          "units" => "m^2 / s"),
         "Q"   => Dict("long_name" => "Net heat flux",               "units" => "W / m^2", "convention" => "positive upwards"),
         "Qla" => Dict("long_name" => "Latent heat flux",            "units" => "W / m^2", "convention" => "positive upwards"),
         "Qse" => Dict("long_name" => "Sensible heat flux",          "units" => "W / m^2", "convention" => "positive upwards"),
-        "F"   => Dict("long_name" => "Salt flux",                   "units" => "g kg⁻¹ m s⁻¹", "convention" => "positive upwards"),
+        "Jˢ"  => Dict("long_name" => "Salt flux",                   "units" => "g kg⁻¹ m s⁻¹", "convention" => "positive upwards"),
         "E"   => Dict("long_name" => "Freshwater evaporation flux", "units" => "m s⁻¹", "convention" => "positive upwards"),
         "e"   => Dict("long_name" => "Turbulent kinetic energy",    "units" => "m^2 / s^2"),
         "τˣ"  => Dict("long_name" => "Zonal momentum flux",         "units" => "m^2 / s^2"),
@@ -252,7 +252,7 @@ for location in keys(locations)
     Qt = FieldTimeSeries(filename, "Q")
     Qset = FieldTimeSeries(filename, "Qse")
     Qlat = FieldTimeSeries(filename, "Qla")
-    Ft = FieldTimeSeries(filename, "F")
+    Jˢt = FieldTimeSeries(filename, "Jˢ")
     Et = FieldTimeSeries(filename, "E")
     τˣt = FieldTimeSeries(filename, "τˣ")
     τʸt = FieldTimeSeries(filename, "τʸ")
@@ -280,10 +280,10 @@ for location in keys(locations)
 
     for n = 1:Nt
         t = times[n]
-        uat[n]  = ua[1, 1, 1, Time(t)]
-        vat[n]  = va[1, 1, 1, Time(t)]
-        Tat[n]  = Ta[1, 1, 1, Time(t)]
-        qat[n]  = qa[1, 1, 1, Time(t)]
+        uat[n] = ua[1, 1, 1, Time(t)]
+        vat[n] = va[1, 1, 1, Time(t)]
+        Tat[n] = Ta[1, 1, 1, Time(t)]
+        qat[n] = qa[1, 1, 1, Time(t)]
         Qswt[n] = Qsw[1, 1, 1, Time(t)]
         Qlwt[n] = Qlw[1, 1, 1, Time(t)]
         Pt[n] = Pr[1, 1, 1, Time(t)] + Ps[1, 1, 1, Time(t)]
@@ -291,7 +291,7 @@ for location in keys(locations)
 
     set_theme!(Theme(linewidth=3))
 
-    fig = Figure(resolution=(2400, 1800))
+    fig = Figure(size=(2400, 1800))
 
     axτ = Axis(fig[1, 1:2], xlabel="Days since Oct 1 1992", ylabel="Wind stress (N m⁻²)")
     axu = Axis(fig[2, 1:2], xlabel="Days since Oct 1 1992", ylabel="Velocities (m s⁻¹)")
@@ -350,7 +350,7 @@ for location in keys(locations)
     vlines!(axQ, tn, linewidth=4, color=(:black, 0.5))
     axislegend(axQ)
 
-    #lines!(axF, times, interior(Ft, 1, 1, 1, :), label="Net freshwater flux")
+    #lines!(axF, times, interior(Jˢt, 1, 1, 1, :), label="Net freshwater flux")
     lines!(axF, times, Pt, label="Prescribed freshwater flux")
     lines!(axF, times, - interior(Et, 1, 1, 1, :), label="Evaporation")
     vlines!(axF, tn, linewidth=4, color=(:black, 0.5))

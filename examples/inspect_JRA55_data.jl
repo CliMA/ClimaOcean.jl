@@ -32,7 +32,7 @@ n = Observable(1)
 Qswn = @lift interior(Qswt[$n], :, :, 1)
 rhn = @lift interior(rht[$n], :, :, 1)
 
-fig = Figure(resolution=(1400, 700))
+fig = Figure(size=(1400, 700))
 
 axsw = Axis3(fig[1, 1], aspect=(1, 1, 1))
 axrh = Axis3(fig[1, 2], aspect=(1, 1, 1))
