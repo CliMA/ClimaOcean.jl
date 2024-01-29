@@ -194,9 +194,9 @@ for location in keys(locations)
     Jᵛ  = coupled_model.fluxes.total.ocean.momentum.v
     Jᵀ  = coupled_model.fluxes.total.ocean.tracers.T
     F   = coupled_model.fluxes.total.ocean.tracers.S
-    E   = coupled_model.fluxes.turbulent.fields.evaporation
-    Qse = coupled_model.fluxes.turbulent.fields.sensible_heat_flux
-    Qla = coupled_model.fluxes.turbulent.fields.latent_heat_flux
+    E   = coupled_model.fluxes.turbulent.fields.freshwater
+    Qse = coupled_model.fluxes.turbulent.fields.sensible_heat
+    Qla = coupled_model.fluxes.turbulent.fields.latent_heat
     ρₒ  = coupled_model.fluxes.ocean_reference_density
     cₚ  = coupled_model.fluxes.ocean_heat_capacity
 
