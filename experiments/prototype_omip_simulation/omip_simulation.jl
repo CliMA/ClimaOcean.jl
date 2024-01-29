@@ -10,8 +10,6 @@ using ClimaOcean.OceanSeaIceModels:
     PrescribedAtmosphere,
     SurfaceRadiation
 
-using ClimaOcean.JRA55: jra55_field_time_series
-
 using ClimaSeaIce
 using ClimaSeaIce: IceWaterThermalEquilibrium
 

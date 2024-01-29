@@ -6,7 +6,7 @@ using Oceananigans.Units: Time
 
 using ClimaOcean
 using ClimaOcean.OceanSeaIceModels: Radiation
-using ClimaOcean.DataWrangling.JRA55: jra55_prescribed_atmosphere
+using ClimaOcean.DataWrangling.JRA55: JRA55_prescribed_atmosphere
 using ClimaOcean.DataWrangling.ECCO2: ecco2_field
 
 # using GLMakie
@@ -94,7 +94,7 @@ start_time = time_ns()
 
 Ndays = 3
 Nt = 8 * Ndays
-atmosphere = jra55_prescribed_atmosphere(grid, 1:Nt) #, 1:21)
+atmosphere = JRA55_prescribed_atmosphere(grid, 1:Nt) #, 1:21)
 elapsed = time_ns() - start_time
 @info "Atmosphere built. " * prettytime(elapsed * 1e-9)
 start_time = time_ns()
