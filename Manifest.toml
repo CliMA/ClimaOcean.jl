@@ -1,6 +1,6 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.10.0-rc1"
+julia_version = "1.10.0-beta3"
 manifest_format = "2.0"
 project_hash = "bcfc95e502c18276c6e7315f722ad6f48d7698c2"
 
@@ -573,7 +573,7 @@ version = "0.6.4"
 [[deps.LibCURL_jll]]
 deps = ["Artifacts", "LibSSH2_jll", "Libdl", "MbedTLS_jll", "Zlib_jll", "nghttp2_jll"]
 uuid = "deac9b47-8bc7-5906-a0fe-35ac56dc84c0"
-version = "8.4.0+0"
+version = "8.0.1+1"
 
 [[deps.LibGit2]]
 deps = ["Base64", "LibGit2_jll", "NetworkOptions", "Printf", "SHA"]
@@ -741,11 +741,9 @@ version = "1.2.0"
 
 [[deps.Oceananigans]]
 deps = ["Adapt", "CUDA", "Crayons", "CubedSphere", "Dates", "Distances", "DocStringExtensions", "FFTW", "Glob", "IncompleteLU", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "LinearAlgebra", "Logging", "MPI", "NCDatasets", "OffsetArrays", "OrderedCollections", "PencilArrays", "PencilFFTs", "Pkg", "Printf", "Random", "Rotations", "SeawaterPolynomials", "SparseArrays", "Statistics", "StructArrays"]
-git-tree-sha1 = "117d0d9331a738ded226eb702a7d30e3ab348dc6"
-repo-rev = "glw/better-interpolate2"
-repo-url = "https://github.com/CliMA/Oceananigans.jl.git"
+git-tree-sha1 = "ead1d8ec6911ff84ef52c387c827553bbc859c1b"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
-version = "0.90.5"
+version = "0.90.6"
 
     [deps.Oceananigans.extensions]
     OceananigansEnzymeCoreExt = "EnzymeCore"
@@ -975,8 +973,6 @@ version = "1.2.1"
 
 [[deps.SeawaterPolynomials]]
 git-tree-sha1 = "6d85acd6de472f8e6da81c61c7c5b6280a55e0bc"
-repo-rev = "main"
-repo-url = "https://github.com/CliMA/SeawaterPolynomials.jl.git"
 uuid = "d496a93d-167e-4197-9f49-d3af4ff8fe40"
 version = "0.3.4"
 
@@ -1114,7 +1110,7 @@ uuid = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
 [[deps.SuiteSparse_jll]]
 deps = ["Artifacts", "Libdl", "Pkg", "libblastrampoline_jll"]
 uuid = "bea87d4a-7f5b-5778-9afe-8cc45184846c"
-version = "7.2.1+1"
+version = "7.2.0+1"
 
 [[deps.SurfaceFluxes]]
 deps = ["CLIMAParameters", "DocStringExtensions", "RootSolvers", "Thermodynamics"]

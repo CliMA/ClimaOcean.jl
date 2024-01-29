@@ -39,7 +39,7 @@ start_time = time_ns()
 
 arch = GPU()
 
-latitude = (-30, +30)
+latitude = (-60, +60)
 longitude = (0, 360)
 
 i₁ = 4 * first(longitude) + 1
@@ -121,6 +121,11 @@ start_time = time_ns()
 
 wall_clock = Ref(time_ns())
 
+Nz = size(grid, 3)
+Ts = view(ocean.model.tracers.T, :, :, Nz) 
+Ss = view(ocean.model.tracers.S, :, :, Nz)
+es = view(ocean.model.tracers.e, :, :, Nz)
+
 function progress(sim)
     msg = string("Iter: ", iteration(sim), ", time: ", prettytime(sim))
 
@@ -131,14 +136,10 @@ function progress(sim)
     u, v, w = sim.model.ocean.model.velocities
     msg *= @sprintf(", max|u|: (%.2e, %.2e)", maximum(abs, u), maximum(abs, v))
 
+    #=
     T = sim.model.ocean.model.tracers.T
     S = sim.model.ocean.model.tracers.S
     e = sim.model.ocean.model.tracers.e
-
-    τˣ = first(sim.model.fluxes.total.ocean.momentum.τˣ)
-    τʸ = first(sim.model.fluxes.total.ocean.momentum.τʸ)
-    u★ = (τˣ^2 + τʸ^2)^(1/4)
-    Q = first(sim.model.fluxes.total.ocean.heat)
 
     Nz = size(T, 3)
     msg *= @sprintf(", u★: %.2f m s⁻¹", u★)
@@ -147,6 +148,7 @@ function progress(sim)
     msg *= @sprintf(", extrema(T): (%.2f, %.2f) ᵒC", minimum(T), maximum(T))
     msg *= @sprintf(", S₀: %.2f g/kg",   first(interior(S, 1, 1, Nz)))
     msg *= @sprintf(", e₀: %.2e m² s⁻²", first(interior(e, 1, 1, Nz)))
+    =#
 
     @info msg
 end
@@ -154,35 +156,41 @@ end
 coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(100))
 
 # Build flux outputs
-Jᵘ  = coupled_model.fluxes.total.ocean.momentum.u
-Jᵛ  = coupled_model.fluxes.total.ocean.momentum.v
-Jᵀ  = coupled_model.fluxes.total.ocean.tracers.T
-F   = coupled_model.fluxes.total.ocean.tracers.S
-E   = coupled_model.fluxes.turbulent.fields.evaporation
-Qse = coupled_model.fluxes.turbulent.fields.sensible_heat_flux
-Qla = coupled_model.fluxes.turbulent.fields.latent_heat_flux
-ρₒ  = coupled_model.fluxes.ocean_reference_density
-cₚ  = coupled_model.fluxes.ocean_heat_capacity
+Jᵘ = coupled_model.fluxes.total.ocean.momentum.u
+Jᵛ = coupled_model.fluxes.total.ocean.momentum.v
+Jᵀ = coupled_model.fluxes.total.ocean.tracers.T
+Jˢ = coupled_model.fluxes.total.ocean.tracers.S
+Fv = coupled_model.fluxes.turbulent.fields.freshwater
+Qc = coupled_model.fluxes.turbulent.fields.sensible_heat
+Qv = coupled_model.fluxes.turbulent.fields.latent_heat
+ρₒ = coupled_model.fluxes.ocean_reference_density
+cₚ = coupled_model.fluxes.ocean_heat_capacity
 
-Q = ρₒ * cₚ * Jᵀ
+ΣQ = ρₒ * cₚ * Jᵀ
 τˣ = ρₒ * Jᵘ
 τʸ = ρₒ * Jᵛ
 N² = buoyancy_frequency(ocean.model)
 κᶜ = ocean.model.diffusivity_fields.κᶜ
 
-fluxes = (; τˣ, τʸ, E, F, Q, Qse, Qla)
+fluxes = (; τˣ, τʸ, Fv, Jˢ, ΣQ, Qc, Qv)
 
 auxiliary_fields = (; N², κᶜ)
 fields = merge(ocean.model.velocities, ocean.model.tracers, auxiliary_fields)
 
 # Slice fields at the surface
+#outputs = merge(fields, fluxes)
 outputs = merge(fields, fluxes)
 
 filename = "regional_omip_simulation"
 
-coupled_simulation.output_writers[:jld2] = JLD2OutputWriter(ocean.model, outputs; filename,
-                                                            schedule = TimeInterval(3hours),
-                                                            overwrite_existing = true)
+coupled_simulation.output_writers[:fluxes] = JLD2OutputWriter(ocean.model, fluxes; filename * "_fluxes",
+                                                              schedule = TimeInterval(1day),
+                                                              overwrite_existing = true)
+
+coupled_simulation.output_writers[:fields] = JLD2OutputWriter(ocean.model, fields; filename * "_fields",
+                                                              indices = (:, :, Nz),
+                                                              schedule = TimeInterval(1day),
+                                                              overwrite_existing = true)
 
 #=
 coupled_simulation.output_writers[:nc] = NetCDFOutputWriter(ocean.model, outputs; filename,
@@ -190,5 +198,6 @@ coupled_simulation.output_writers[:nc] = NetCDFOutputWriter(ocean.model, outputs
                                                             overwrite_existing = true)
 =#
 
-# run!(coupled_simulation)
+run!(coupled_simulation)
+
 

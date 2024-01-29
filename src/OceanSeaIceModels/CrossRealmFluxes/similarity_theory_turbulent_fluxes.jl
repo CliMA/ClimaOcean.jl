@@ -105,11 +105,11 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
 end
 
 function SimilarityTheoryTurbulentFluxes(grid::AbstractGrid; kw...)
-    evaporation = Field{Center, Center, Nothing}(grid)
-    latent_heat_flux = Field{Center, Center, Nothing}(grid)
-    sensible_heat_flux = Field{Center, Center, Nothing}(grid)
+    freshwater = Field{Center, Center, Nothing}(grid)
+    latent_heat = Field{Center, Center, Nothing}(grid)
+    sensible_heat = Field{Center, Center, Nothing}(grid)
 
-    fields = (; latent_heat_flux, sensible_heat_flux, evaporation)
+    fields = (; latent_heat, sensible_heat, freshwater)
 
     return SimilarityTheoryTurbulentFluxes(eltype(grid); kw..., fields)
 end
@@ -117,20 +117,20 @@ end
 @inline update_turbulent_flux_fields!(::Nothing, args...) = nothing
 
 @inline function update_turbulent_flux_fields!(fields, i, j, grid, conditions, ρᶠ)
-    Qᵉ = fields.latent_heat_flux
-    Qᶜ = fields.sensible_heat_flux
-    E = fields.evaporation
+    Qv = fields.latent_heat
+    Qc = fields.sensible_heat
+    Fv = fields.freshwater
     kᴺ = size(grid, 3) # index of the top ocean cell
     inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
     @inbounds begin
         # +0: cooling, -0: heating
-        Qᵉ[i, j, 1] = ifelse(inactive, 0, conditions.lhf)
-        Qᶜ[i, j, 1] = ifelse(inactive, 0, conditions.shf)
+        Qv[i, j, 1] = ifelse(inactive, 0, conditions.lhf)
+        Qc[i, j, 1] = ifelse(inactive, 0, conditions.shf)
 
         # "Salt flux" has the opposite sign of "freshwater flux".
         # E > 0 implies that freshwater is fluxing upwards.
-        Eᵢ = conditions.evaporation / ρᶠ # convert to volume flux
-        E[i, j, 1] = ifelse(inactive, Eᵢ, 0)
+        Fvᵢ = conditions.evaporation / ρᶠ # convert to volume flux
+        Fv[i, j, 1] = ifelse(inactive, Fvᵢ, 0)
     end
     return nothing
 end
