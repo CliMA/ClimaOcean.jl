@@ -131,7 +131,7 @@ for location in keys(locations)
     times = ua.times
 
     #=
-    fig = Figure(resolution=(1200, 1800))
+    fig = Figure(size=(1200, 1800))
     axu = Axis(fig[1, 1])
     axT = Axis(fig[2, 1])
     axq = Axis(fig[3, 1])
@@ -291,7 +291,7 @@ for location in keys(locations)
 
     set_theme!(Theme(linewidth=3))
 
-    fig = Figure(resolution=(2400, 1800))
+    fig = Figure(size=(2400, 1800))
 
     axτ = Axis(fig[1, 1:2], xlabel="Days since Oct 1 1992", ylabel="Wind stress (N m⁻²)")
     axu = Axis(fig[2, 1:2], xlabel="Days since Oct 1 1992", ylabel="Velocities (m s⁻¹)")
