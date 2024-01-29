@@ -193,7 +193,7 @@ for location in keys(locations)
     Jᵘ  = coupled_model.fluxes.total.ocean.momentum.u
     Jᵛ  = coupled_model.fluxes.total.ocean.momentum.v
     Jᵀ  = coupled_model.fluxes.total.ocean.tracers.T
-    F   = coupled_model.fluxes.total.ocean.tracers.S
+    Jˢ  = coupled_model.fluxes.total.ocean.tracers.S
     E   = coupled_model.fluxes.turbulent.fields.freshwater
     Qse = coupled_model.fluxes.turbulent.fields.sensible_heat
     Qla = coupled_model.fluxes.turbulent.fields.latent_heat
@@ -219,7 +219,7 @@ for location in keys(locations)
         "Q"   => Dict("long_name" => "Net heat flux",               "units" => "W / m^2", "convention" => "positive upwards"),
         "Qla" => Dict("long_name" => "Latent heat flux",            "units" => "W / m^2", "convention" => "positive upwards"),
         "Qse" => Dict("long_name" => "Sensible heat flux",          "units" => "W / m^2", "convention" => "positive upwards"),
-        "F"   => Dict("long_name" => "Salt flux",                   "units" => "g kg⁻¹ m s⁻¹", "convention" => "positive upwards"),
+        "Jˢ"  => Dict("long_name" => "Salt flux",                   "units" => "g kg⁻¹ m s⁻¹", "convention" => "positive upwards"),
         "E"   => Dict("long_name" => "Freshwater evaporation flux", "units" => "m s⁻¹", "convention" => "positive upwards"),
         "e"   => Dict("long_name" => "Turbulent kinetic energy",    "units" => "m^2 / s^2"),
         "τˣ"  => Dict("long_name" => "Zonal momentum flux",         "units" => "m^2 / s^2"),
@@ -252,7 +252,7 @@ for location in keys(locations)
     Qt = FieldTimeSeries(filename, "Q")
     Qset = FieldTimeSeries(filename, "Qse")
     Qlat = FieldTimeSeries(filename, "Qla")
-    Ft = FieldTimeSeries(filename, "F")
+    Ft = FieldTimeSeries(filename, "Jˢ")
     Et = FieldTimeSeries(filename, "E")
     τˣt = FieldTimeSeries(filename, "τˣ")
     τʸt = FieldTimeSeries(filename, "τʸ")
@@ -280,10 +280,10 @@ for location in keys(locations)
 
     for n = 1:Nt
         t = times[n]
-        uat[n]  = ua[1, 1, 1, Time(t)]
-        vat[n]  = va[1, 1, 1, Time(t)]
-        Tat[n]  = Ta[1, 1, 1, Time(t)]
-        qat[n]  = qa[1, 1, 1, Time(t)]
+        uat[n] = ua[1, 1, 1, Time(t)]
+        vat[n] = va[1, 1, 1, Time(t)]
+        Tat[n] = Ta[1, 1, 1, Time(t)]
+        qat[n] = qa[1, 1, 1, Time(t)]
         Qswt[n] = Qsw[1, 1, 1, Time(t)]
         Qlwt[n] = Qlw[1, 1, 1, Time(t)]
         Pt[n] = Pr[1, 1, 1, Time(t)] + Ps[1, 1, 1, Time(t)]
