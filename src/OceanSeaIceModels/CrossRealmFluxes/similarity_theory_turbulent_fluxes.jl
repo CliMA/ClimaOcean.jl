@@ -4,7 +4,7 @@ using Oceananigans.Grids: AbstractGrid
 using Adapt
 using Thermodynamics: Liquid
 using SurfaceFluxes.Parameters: SurfaceFluxesParameters, AbstractSurfaceFluxesParameters
-using SurfaceFluxes.UniversalFunctions: BusingerParams
+using SurfaceFluxes.UniversalFunctions: BusingerParams, BusingerType
 
 using ..PrescribedAtmospheres: PrescribedAtmosphereThermodynamicsParameters
 
@@ -38,7 +38,7 @@ const STTF = SimilarityTheoryTurbulentFluxes
 @inline von_karman_const(fluxes::STTF)      = fluxes.von_karman_constant
 @inline grav(fluxes::STTF)                  = fluxes.gravitational_acceleration
 
-@inline universal_func_type(fluxes::STTF{<:Any, <:Any, UF}) where UF = universal_func_type(UF)
+@inline universal_func_type(fluxes::STTF{<:Any, <:Any, <:BusingerParams}) = BusingerType()
 
 Adapt.adapt_structure(to, fluxes::STTF) = SimilarityTheoryTurbulentFluxes(adapt(to, fluxes.gravitational_acceleration),
                                                                           adapt(to, fluxes.von_karman_constant),
