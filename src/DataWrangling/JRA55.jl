@@ -59,18 +59,18 @@ jra55_short_names = Dict(
 )
 
 field_time_series_short_names = Dict(
-    :freshwater_river_flux           => :Fri, # Freshwater fluxes from rivers
-    :rain_freshwater_flux            => :Fra, # Freshwater flux from rainfall
-    :snow_freshwater_flux            => :Fsn, # Freshwater flux from snowfall
-    :freshwater_iceberg_flux         => :Fic, # Freshwater flux from calving icebergs
-    :specific_humidity               => :qa,  # Surface specific humidity
-    :sea_level_pressure              => :pa,  # Sea level pressure
-    :relative_humidity               => :rh,  # Surface relative humidity
-    :downwelling_longwave_radiation  => :Ql,  # Downwelling longwave radiation
-    :downwelling_shortwave_radiation => :Qs,  # Downwelling shortwave radiation
-    :temperature                     => :Ta,  # Near-surface air temperature
-    :eastward_velocity               => :ua,  # Eastward near-surface wind
-    :northward_velocity              => :va,  # Northward near-surface wind
+    :freshwater_river_flux           => "Fri", # Freshwater fluxes from rivers
+    :rain_freshwater_flux            => "Fra", # Freshwater flux from rainfall
+    :snow_freshwater_flux            => "Fsn", # Freshwater flux from snowfall
+    :freshwater_iceberg_flux         => "Fic", # Freshwater flux from calving icebergs
+    :specific_humidity               => "qa",  # Surface specific humidity
+    :sea_level_pressure              => "pa",  # Sea level pressure
+    :relative_humidity               => "rh",  # Surface relative humidity
+    :downwelling_longwave_radiation  => "Ql",  # Downwelling longwave radiation
+    :downwelling_shortwave_radiation => "Qs",  # Downwelling shortwave radiation
+    :temperature                     => "Ta",  # Near-surface air temperature
+    :eastward_velocity               => "ua",  # Eastward near-surface wind
+    :northward_velocity              => "va",  # Northward near-surface wind
 )
 
 urls = Dict(
@@ -231,7 +231,7 @@ function JRA55_field_time_series(variable_name; #, grid=nothing;
                                  url = nothing,
                                  filename = nothing,
                                  shortname = nothing,
-                                 backend = InMemory()
+                                 backend = InMemory(),
                                  preprocess_chunk_size = 10,
                                  preprocess_architecture = CPU(),
                                  time_indices = nothing)
@@ -256,7 +256,50 @@ function JRA55_field_time_series(variable_name; #, grid=nothing;
 
     isnothing(filename) && (filename = filenames[variable_name])
     isnothing(url) && (url = urls[variable_name])
-    isfile(filename) || download(url, filename)
+
+    # Decision tree:
+    #   1. jld2 file exists?
+    #       - yes -> load and return FieldTimeSeries
+    #                check time_indices and all that?
+    #       - no -> download .nc data if not available
+
+    jld2_filename = string("JRA55_repeat_year_", variable_name, ".jld2")
+    fts_name = field_time_series_short_names[variable_name]
+
+    totally_in_memory = backend isa InMemory{Nothing}
+
+    if isfile(jld2_filename)
+        if totally_in_memory && !isnothing(time_indices)
+            # Correct interpretation of user input?
+            backend = InMemory(time_indices)
+        end
+
+        fts = FieldTimeSeries(jld2_filename, fts_name; backend, architecture)
+
+        # TODO: improve this.
+        Nt = length(fts.times)
+        if !isnothing(time_indices) && (Nt != length(time_indices))
+            @warn string("The FieldTimeSeries found at $jld2_filename has $Nt time indices, but", '\n',
+                         " length(time_indices) = ", length(time_indices), ". Delete or move", '\n',
+                         " the existing file to regenerate the `FieldTimeSeries`.")
+        end
+        
+        return fts
+    else
+        isfile(filename) || download(url, filename)
+    end
+
+    # Extract variable data
+    if totally_in_memory
+        # Set a sensible default
+        isnothing(time_indices) && (time_indices = 1:1)
+        time_indices_in_memory = time_indices
+        native_fts_architecture = architecture
+    else
+        isnothing(time_indices) && (time_indices = :)
+        time_indices_in_memory = 1:preprocess_chunk_size
+        native_fts_architecture = preprocess_architecture
+    end
 
     # Get location
     if isnothing(location)
@@ -265,17 +308,15 @@ function JRA55_field_time_series(variable_name; #, grid=nothing;
         LX, LY = location
     end
 
-    totally_in_memory = backend isa InMemory{Nothing}
-
     ds = Dataset(filename)
 
     # Note that each file should have the variables
-    # ds["time"]:     time coordinate 
-    # ds["lon"]:      longitude at the location of the variable
-    # ds["lat"]:      latitude at the location of the variable
-    # ds["lon_bnds"]: bounding longitudes between which variables are averaged
-    # ds["lat_bnds"]: bounding latitudes between which variables are averaged
-    # ds[shortname]: the variable data
+    #   - ds["time"]:     time coordinate 
+    #   - ds["lon"]:      longitude at the location of the variable
+    #   - ds["lat"]:      latitude at the location of the variable
+    #   - ds["lon_bnds"]: bounding longitudes between which variables are averaged
+    #   - ds["lat_bnds"]: bounding latitudes between which variables are averaged
+    #   - ds[shortname]: the variable data
 
     # Nodes at the variable location
     λc = ds["lon"][:]
@@ -290,19 +331,14 @@ function JRA55_field_time_series(variable_name; #, grid=nothing;
     push!(φn, 90)
     push!(λn, λn[1] + 360)
 
-    i₁, i₂, j₁, j₂, TX = compute_bounding_indices(grid, LX, LY, λc, φc)
-
-    # Extract variable data
-    if totally_in_memory
-        # Set a sensible default
-        isnothing(time_indices) && (time_indices = 1:1)
-        time_indices_in_memory = time_indices
-        native_fts_architecture = architecture
-    else
-        isnothing(time_indices) && (time_indices = :)
-        time_indices_in_memory = 1:preprocess_chunk_size
-        native_fts_architecture = preprocess_architecture
-    end
+    # TODO: support loading just part of the JRA55 data.
+    # Probably with arguments that take latitude, longitude bounds.
+    # i₁, i₂, j₁, j₂, TX = compute_bounding_indices(grid, LX, LY, λc, φc)
+    Nx = length(λc)
+    Ny = length(φc)
+    i₁, i₂ = (1, Nx)
+    j₁, j₂ = (1, Ny)
+    TX = Periodic
 
     times = ds["time"][time_indices_in_memory]
     data = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
@@ -311,6 +347,15 @@ function JRA55_field_time_series(variable_name; #, grid=nothing;
     Nrx, Nry, Nt = size(data)
 
     close(ds)
+
+    JRA55_native_grid = LatitudeLongitudeGrid(native_fts_architecture;
+                                              halo = (1, 1),
+                                              size = (Nrx, Nry),
+                                              longitude = λr,
+                                              latitude = φr,
+                                              topology = (TX, Bounded, Flat))
+
+    boundary_conditions = FieldBoundaryConditions(JRA55_native_grid, (Center, Center, Nothing))
 
     # Hack together the `times` for the JRA55 dataset we are currently using.
     # We might want to use the acutal dates instead though.
@@ -321,14 +366,8 @@ function JRA55_field_time_series(variable_name; #, grid=nothing;
     stop_time = Δt * (Nt - 1)
     times = start_time:Δt:stop_time
 
-    JRA55_native_grid = LatitudeLongitudeGrid(native_fts_architecture;
-                                              halo = (1, 1),
-                                              size = (Nrx, Nry),
-                                              longitude = λr,
-                                              latitude = φr,
-                                              topology = (TX, Bounded, Flat))
-
-    boundary_conditions = FieldBoundaryConditions(JRA55_native_grid, (Center, Center, Nothing))
+    # Make times into an array for later preprocessing
+    !totally_in_memory && (times = collect(times))
 
     native_fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times; boundary_conditions)
 
@@ -346,33 +385,39 @@ function JRA55_field_time_series(variable_name; #, grid=nothing;
     end
     =#
 
-    if backend isa InMemory{Nothing}
+    if totally_in_memory
         return native_fts
     else # we're gonna save to disk!
-        @info "Processing JRA55 data and saving to disk..."
+        @info "Pre-processing JRA55 data into a JLD2 file to be used with FieldTimeSeries..."
 
-        fts_name = field_time_series_short_names[variable_name]
-        jld2_filename = string("JRA55_repeat_year_", variable_name, ".jld2")
-
-        ondisk_fts = FieldTimeSeries{LX, LY, LZ}(native_fts.grid;
-                                                 backend = OnDisk(),
-                                                 path = jld2_filename,
-                                                 name = fts_name)
+        on_disk_fts = FieldTimeSeries{LX, LY, Nothing}(native_fts.grid;
+                                                       backend = OnDisk(),
+                                                       path = jld2_filename,
+                                                       name = fts_name)
 
         # Re-open the dataset!
         ds = Dataset(filename)
-        all_times = ds["time"][time_indices]
-        all_Nt = length(all_times)
+        all_datetimes = ds["time"][time_indices]
+        all_Nt = length(all_datetimes)
         chunk = last(preprocess_chunk_size)
 
+        Δt = 3hours # just what it is
+        start_time = 0 # Note: the forcing starts at Jan 1 of the repeat year.
+        stop_time = Δt * (all_Nt - 1)
+        all_times = start_time:Δt:stop_time
+
+        # Save data to disk, one field at a time
+        start_clock = time_ns()
         n = 1 # on disk
-        m = 1 # in memory
+        m = 0 # in memory
         while n <= all_Nt
-            if n ∈ time_indices
+            print("        ... processing time index $n of $all_Nt \r")
+
+            if time_indices_in_memory isa Colon || n ∈ time_indices_in_memory
                 m += 1
             else
                 # Update time_indices
-                time_indices_in_memory .+= preprocess_chunk_size
+                time_indices_in_memory = time_indices_in_memory .+ preprocess_chunk_size
 
                 # Clip time_indices if they extend past the end of the dataset
                 if last(time_indices_in_memory) > all_Nt
@@ -381,8 +426,8 @@ function JRA55_field_time_series(variable_name; #, grid=nothing;
                 end
 
                 # Re-load .nc times and data
-                new_times = ds["time"][time_indices_in_memory]
-                native_fts.times .= new_times
+                # new_times = ds["time"][time_indices_in_memory]
+                # native_fts.times .= new_times
 
                 new_data = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
                 copyto!(interior(native_fts, :, :, 1, :), new_data[:, :, :])
@@ -391,8 +436,15 @@ function JRA55_field_time_series(variable_name; #, grid=nothing;
                 m = 1 # reset
             end
 
-            set!(ondisk_fts, native_fts[m], n, native_fts.times[m])
+            set!(on_disk_fts, native_fts[m], n, all_times[n])
+            n += 1
         end
+
+        elapsed = 1e-9 * (time_ns() - start_clock)
+        elapsed_str = prettytime(elapsed)
+        @info "    ... done ($elapsed_str)" * repeat(" ", 20)
+
+        close(ds)
 
         grid = on_architecture(architecture, JRA55_native_grid)
 
@@ -571,7 +623,6 @@ function JRA55_prescribed_atmosphere(grid, time_indices=:; reference_height=2) #
 
     return atmosphere
 end
- 
 
 end # module
 
