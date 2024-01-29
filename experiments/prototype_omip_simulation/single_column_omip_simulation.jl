@@ -206,7 +206,7 @@ for location in keys(locations)
     N² = buoyancy_frequency(ocean.model)
     κᶜ = ocean.model.diffusivity_fields.κᶜ
 
-    fluxes = (; τˣ, τʸ, E, F, Q, Qse, Qla)
+    fluxes = (; τˣ, τʸ, E, Jˢ, Q, Qse, Qla)
 
     auxiliary_fields = (; N², κᶜ)
     fields = merge(ocean.model.velocities, ocean.model.tracers, auxiliary_fields)
@@ -214,7 +214,7 @@ for location in keys(locations)
     # Slice fields at the surface
     outputs = merge(fields, fluxes)
 
-    output_attributes = Dict(
+    output_attributes = Dict{String, Any}(
         "κᶜ"  => Dict("long_name" => "Tracer diffusivity",          "units" => "m^2 / s"),
         "Q"   => Dict("long_name" => "Net heat flux",               "units" => "W / m^2", "convention" => "positive upwards"),
         "Qla" => Dict("long_name" => "Latent heat flux",            "units" => "W / m^2", "convention" => "positive upwards"),
@@ -252,7 +252,7 @@ for location in keys(locations)
     Qt = FieldTimeSeries(filename, "Q")
     Qset = FieldTimeSeries(filename, "Qse")
     Qlat = FieldTimeSeries(filename, "Qla")
-    Ft = FieldTimeSeries(filename, "Jˢ")
+    Jˢt = FieldTimeSeries(filename, "Jˢ")
     Et = FieldTimeSeries(filename, "E")
     τˣt = FieldTimeSeries(filename, "τˣ")
     τʸt = FieldTimeSeries(filename, "τʸ")
@@ -350,7 +350,7 @@ for location in keys(locations)
     vlines!(axQ, tn, linewidth=4, color=(:black, 0.5))
     axislegend(axQ)
 
-    #lines!(axF, times, interior(Ft, 1, 1, 1, :), label="Net freshwater flux")
+    #lines!(axF, times, interior(Jˢt, 1, 1, 1, :), label="Net freshwater flux")
     lines!(axF, times, Pt, label="Prescribed freshwater flux")
     lines!(axF, times, - interior(Et, 1, 1, 1, :), label="Evaporation")
     vlines!(axF, tn, linewidth=4, color=(:black, 0.5))
