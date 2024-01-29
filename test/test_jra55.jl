@@ -1,48 +1,22 @@
 include("runtests_setup.jl")
 
-using Oceananigans.Units
-
-arch = CPU()
-longname = :downwelling_shortwave_radiation
-time_indices = 1:3
-jra55_fts = ClimaOcean.JRA55.jra55_field_time_series(longname; architecture=arch, time_indices)
-
-jld2_filename = string("JRA55_repeat_year_", longname, ".jld2")
-shortname = :Qs
-backend = OnDisk()
-LX, LY, LZ = location(jra55_fts)
-
-Δt = 3hours # just what it is
-Nt = 2920   # just what it is
-start_time = 0 # Note: the forcing start at Jan 1 of the repeat year.
-stop_time = Δt * (Nt - 1)
-jra55_times = start_time:Δt:stop_time
-
-ondisk_fts = FieldTimeSeries{LX, LY, LZ}(jra55_fts.grid; backend,
-                                         path = jld2_filename,
-                                         name = shortname)
-
-set!(ondisk_fts, jra55_fts[1], 1, jra55_fts.times[1])
-
-#=
 @testset "JRA55 and data wrangling utilities" begin
     for arch in test_architectures
         A = typeof(arch)
-        @info "Testing jra55_field_time_series on $A..."
+        @info "Testing JRA55_field_time_series on $A..."
 
         test_name = :downwelling_shortwave_radiation
         test_filename = "RYF.rsds.1990_1991.nc"
+        test_jld2_filename = "JRA55_repeat_year_downwelling_shortwave_radiation.jld2"
         time_indices = 1:3
 
         # This should download a file called "RYF.rsds.1990_1991.nc"
-        jra55_fts = ClimaOcean.JRA55.jra55_field_time_series(test_name; architecture=arch, time_indices)
+        jra55_fts = ClimaOcean.JRA55.JRA55_field_time_series(test_name; architecture=arch, time_indices)
 
         @test isfile(test_filename)
-        rm(test_filename)
-
         @test jra55_fts isa FieldTimeSeries
         @test jra55_fts.grid isa LatitudeLongitudeGrid
-
+        
         Nx, Ny, Nz, Nt = size(jra55_fts)
         @test Nx == 640
         @test Ny == 320
@@ -53,6 +27,29 @@ set!(ondisk_fts, jra55_fts[1], 1, jra55_fts.times[1])
         CUDA.@allowscalar begin
             @test view(jra55_fts.data, 1, :, 1, :) == view(jra55_fts.data, Nx+1, :, 1, :)
         end
+
+        @info "Testing preprocessing JRA55 data on $A..."
+        rm(test_jld2_filename, force=true)
+
+        on_disk_jra55_fts = ClimaOcean.JRA55.JRA55_field_time_series(test_name;
+                                                                     architecture = arch,
+                                                                     backend = OnDisk(),
+                                                                     time_indices)
+
+        @test on_disk_jra55_fts isa FieldTimeSeries
+        @test parent(on_disk_jra55_fts[1]) == parent(jra55_fts[1])
+
+        @info "Testing loading preprocessed JRA55 data on $A..."
+        in_memory_jra55_fts = ClimaOcean.JRA55.JRA55_field_time_series(test_name;
+                                                                       architecture = arch,
+                                                                       backend = InMemory(2))
+
+        @test in_memory_jra55_fts isa FieldTimeSeries
+        @test parent(in_memory_jra55_fts[1]) == parent(jra55_fts[1])
+
+        # Clean up
+        rm(test_filename)
+        rm(on_disk_jra55_fts.path)
 
         @info "Testing interpolate_field_time_series! on $A..."
         # Make target grid and field
@@ -75,7 +72,6 @@ set!(ondisk_fts, jra55_fts[1], 1, jra55_fts.times[1])
         times = jra55_fts.times
         boundary_conditions = jra55_fts.boundary_conditions
         target_fts = FieldTimeSeries{Center, Center, Nothing}(target_grid, times; boundary_conditions)
-
         ClimaOcean.DataWrangling.interpolate_field_time_series!(target_fts, jra55_fts)
 
         # Random regression test
@@ -84,6 +80,7 @@ set!(ondisk_fts, jra55_fts[1], 1, jra55_fts.times[1])
 
             # Only include this if we are filling halo regions within
             # interpolate_field_time_series
+            @test jra55_fts[641, 1, 1, 1]     == 222.24310434509874
             @test target_fts[Nx + 1, 1, 1, 1] == 222.24310434509874
         end
 
@@ -104,4 +101,4 @@ set!(ondisk_fts, jra55_fts[1], 1, jra55_fts.times[1])
         rm(filepath)
     end 
 end
-=#
+
