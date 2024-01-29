@@ -16,6 +16,7 @@ import Thermodynamics.Parameters:
     T_0,            # Enthalpy reference temperature
     LH_v0,          # Vaporization enthalpy at the reference temperature
     LH_s0,          # Sublimation enthalpy at the reference temperature
+    LH_f0,          # Fusionn enthalpy at the reference temperature
     cp_d,           # Heat capacity of dry air at constant pressure
     cp_v,           # Isobaric specific heat capacity of gaseous water vapor
     cp_l,           # Isobaric specific heat capacity of liquid water
@@ -189,6 +190,7 @@ end
 const PTP = PhaseTransitionParameters
 @inline LH_v0(p::PTP)        = p.reference_vaporization_enthalpy
 @inline LH_s0(p::PTP)        = p.reference_sublimation_enthalpy
+@inline LH_f0(p::PTP)        = LH_s0(p) - p.LH_v0
 @inline T_freeze(p::PTP)     = p.water_freezing_temperature
 @inline T_triple(p::PTP)     = p.triple_point_temperature
 @inline T_icenuc(p::PTP)     = p.total_ice_nucleation_temperature
@@ -251,6 +253,7 @@ const PATP = PrescribedAtmosphereThermodynamicsParameters
 @inline molmass_ratio(p::PATP)  = molmass_ratio(p.constitutive)
 @inline LH_v0(p::PATP)          = LH_v0(p.phase_transitions)
 @inline LH_s0(p::PATP)          = LH_s0(p.phase_transitions)
+@inline LH_f0(p::PATP)          = LH_f0(p.phase_transitions)
 @inline T_freeze(p::PATP)       = T_freeze(p.phase_transitions)
 @inline T_triple(p::PATP)       = T_triple(p.phase_transitions)
 @inline T_icenuc(p::PATP)       = T_icenuc(p.phase_transitions)
