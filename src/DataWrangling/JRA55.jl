@@ -280,7 +280,7 @@ function JRA55_field_time_series(variable_name; #, grid=nothing;
         Nt = length(fts.times)
         if !isnothing(time_indices) && (Nt != length(time_indices))
             @warn string("The FieldTimeSeries found at $jld2_filename has $Nt time indices, but", '\n',
-                         " length(time_indices) = ", length(time_indices), ". Delete or move", '\n',
+                         " length(time_indices) = ", length(time_indices), ". Delete or move",
                          " the existing file to regenerate the `FieldTimeSeries`.")
         end
         
