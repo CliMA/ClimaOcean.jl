@@ -155,17 +155,15 @@ Keyword arguments
                             If it does not exist it will be generated.
 
     - `time_chunks_in_memory`: number of fields held in memory. If `nothing` the whole timeseries is 
-                                loaded (not recommended).
+                               loaded (not recommended).
 """
 function jra55_field_time_series(variable_name, grid=nothing;
                                  architecture = CPU(),
                                  location = nothing,
-                                 time_indices = :,    
                                  url = nothing,
                                  filename = nothing,
                                  shortname = nothing,
-                                 interpolated_file = "jra55_boundary_conditions.jld2",
-                                 time_chunks_in_memory = nothing)
+                                 time_indices = 1:1)
 
     if isnothing(filename) && !(variable_name ∈ jra55_variable_names)
         variable_strs = Tuple("  - :$name \n" for name in jra55_variable_names)
@@ -283,21 +281,14 @@ function jra55_field_time_series(variable_name, grid=nothing;
     stop_time = Δt * (Nt - 1)
     times = start_time:Δt:stop_time
 
-    jra55_native_grid = LatitudeLongitudeGrid(architecture,
-                                              size = (Nrx, Nry);
+    jra55_native_grid = LatitudeLongitudeGrid(architecture;
+                                              halo = (1, 1),
+                                              size = (Nrx, Nry),
                                               longitude = λr,
                                               latitude = φr,
                                               topology = (TX, Bounded, Flat))
 
     boundary_conditions = FieldBoundaryConditions(jra55_native_grid, (Center, Center, Nothing))
-
-    grid = isnothing(grid) ? jra55_native_grid : grid
-    loc  = (LX, LY, Nothing)
-
-    #=
-    fts = retrieve_and_maybe_write_jra55_data(time_chunks_in_memory, grid, times, loc, boundary_conditions, data, jra55_native_grid; 
-                                              interpolated_file, shortname)
-    =#
 
     native_fts = FieldTimeSeries{Center, Center, Nothing}(jra55_native_grid, times; boundary_conditions)
 
@@ -316,8 +307,35 @@ function jra55_field_time_series(variable_name, grid=nothing;
         return fts
     end
 
+    #=
+    if backend isa OnDisk
+arch = CPU()
+longname = :downwelling_shortwave_radiation
+time_indices = 1:3
+jra55_fts = ClimaOcean.JRA55.jra55_field_time_series(longname; architecture=arch, time_indices)
+
+jld2_filename = string("JRA55_repeat_year_", longname, ".jld2")
+shortname = :Qs
+backend = OnDisk()
+LX, LY, LZ = location(jra55_fts)
+
+Δt = 3hours # just what it is
+Nt = 2920   # just what it is
+start_time = 0 # Note: the forcing start at Jan 1 of the repeat year.
+stop_time = Δt * (Nt - 1)
+jra55_times = start_time:Δt:stop_time
+
+ondisk_fts = FieldTimeSeries{LX, LY, LZ}(jra55_fts.grid; backend,
+                                         path = jld2_filename,
+                                         name = shortname)
+
+set!(ondisk_fts, jra55_fts[1], 1, jra55_fts.times[1])
+=#
+
+
     return fts
 end
+
 
 #=
 """
@@ -442,8 +460,8 @@ end
 function jra55_prescribed_atmosphere(grid, time_indices=:; reference_height=2) # meters
     architecture = Oceananigans.architecture(grid)
 
-    u_jra55   = jra55_field_time_series(:eastward_velocity,               grid; time_indices, architecture, location=(Face, Center))
-    v_jra55   = jra55_field_time_series(:northward_velocity,              grid; time_indices, architecture, location=(Center, Face)) 
+    u_jra55   = jra55_field_time_series(:eastward_velocity,               grid; time_indices, architecture)
+    v_jra55   = jra55_field_time_series(:northward_velocity,              grid; time_indices, architecture)
     T_jra55   = jra55_field_time_series(:temperature,                     grid; time_indices, architecture)
     q_jra55   = jra55_field_time_series(:specific_humidity,               grid; time_indices, architecture)
     p_jra55   = jra55_field_time_series(:sea_level_pressure,              grid; time_indices, architecture)

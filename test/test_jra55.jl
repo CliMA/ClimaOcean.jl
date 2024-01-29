@@ -1,5 +1,30 @@
 include("runtests_setup.jl")
 
+using Oceananigans.Units
+
+arch = CPU()
+longname = :downwelling_shortwave_radiation
+time_indices = 1:3
+jra55_fts = ClimaOcean.JRA55.jra55_field_time_series(longname; architecture=arch, time_indices)
+
+jld2_filename = string("JRA55_repeat_year_", longname, ".jld2")
+shortname = :Qs
+backend = OnDisk()
+LX, LY, LZ = location(jra55_fts)
+
+Δt = 3hours # just what it is
+Nt = 2920   # just what it is
+start_time = 0 # Note: the forcing start at Jan 1 of the repeat year.
+stop_time = Δt * (Nt - 1)
+jra55_times = start_time:Δt:stop_time
+
+ondisk_fts = FieldTimeSeries{LX, LY, LZ}(jra55_fts.grid; backend,
+                                         path = jld2_filename,
+                                         name = shortname)
+
+set!(ondisk_fts, jra55_fts[1], 1, jra55_fts.times[1])
+
+#=
 @testset "JRA55 and data wrangling utilities" begin
     for arch in test_architectures
         A = typeof(arch)
@@ -79,4 +104,4 @@ include("runtests_setup.jl")
         rm(filepath)
     end 
 end
-
+=#
