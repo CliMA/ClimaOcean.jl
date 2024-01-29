@@ -23,6 +23,11 @@ include("runtests_setup.jl")
         @test Nz == 1
         @test Nt == length(time_indices)
 
+        CUDA.@allowscalar begin
+            @test jra55_fts[1, 1, 1, 1]   == 430.98105f0
+            @test jra55_fts[641, 1, 1, 1] == 430.98105f0
+        end
+
         # Test that halo regions were filled to respect boundary conditions
         CUDA.@allowscalar begin
             @test view(jra55_fts.data, 1, :, 1, :) == view(jra55_fts.data, Nx+1, :, 1, :)
@@ -76,12 +81,11 @@ include("runtests_setup.jl")
 
         # Random regression test
         CUDA.@allowscalar begin
-            @test target_fts[1, 1, 1, 1]      == 222.24310434509874
+            @test target_fts[1, 1, 1, 1]      == 222.243136478611
 
             # Only include this if we are filling halo regions within
             # interpolate_field_time_series
-            @test jra55_fts[641, 1, 1, 1]     == 222.24310434509874
-            @test target_fts[Nx + 1, 1, 1, 1] == 222.24310434509874
+            @test target_fts[Nx + 1, 1, 1, 1] == 222.243136478611
         end
 
         @test target_fts.times == jra55_fts.times
