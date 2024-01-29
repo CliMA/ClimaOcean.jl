@@ -33,11 +33,11 @@ struct SimilarityTheoryTurbulentFluxes{FT, ΔU, UF, TP, S, W, F} <: AbstractSurf
 end
 
 const STTF = SimilarityTheoryTurbulentFluxes
-thermodynamics_params(fluxes::STTF) = fluxes.thermodynamics_parameters
-universal_func_type(fluxes::STTF)   = universal_func_type(typeof(fluxes.universal_function))
-uf_params(fluxes::STTF)             = fluxes.universal_function
-von_karman_const(fluxes::STTF)      = fluxes.von_karman_constant
-grav(fluxes::STTF)                  = fluxes.gravitational_acceleration
+@inline thermodynamics_params(fluxes::STTF) = fluxes.thermodynamics_parameters
+@inline universal_func_type(fluxes::STTF)   = universal_func_type(typeof(fluxes.universal_function))
+@inline uf_params(fluxes::STTF)             = fluxes.universal_function
+@inline von_karman_const(fluxes::STTF)      = fluxes.von_karman_constant
+@inline grav(fluxes::STTF)                  = fluxes.gravitational_acceleration
 
 Adapt.adapt_structure(to, fluxes::STTF) = SimilarityTheoryTurbulentFluxes(adapt(to, fluxes.gravitational_acceleration),
                                                                           adapt(to, fluxes.von_karman_constant),
