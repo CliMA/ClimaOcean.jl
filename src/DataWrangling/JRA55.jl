@@ -266,7 +266,7 @@ function JRA55_field_time_series(variable_name; #, grid=nothing;
     jld2_filename = string("JRA55_repeat_year_", variable_name, ".jld2")
     fts_name = field_time_series_short_names[variable_name]
 
-    totally_in_memory = backend isa InMemory{Nothing}
+    totally_in_memory = backend isa InMemory{Colon}
 
     if isfile(jld2_filename)
         if totally_in_memory && !isnothing(time_indices)
@@ -345,10 +345,9 @@ function JRA55_field_time_series(variable_name; #, grid=nothing;
     λr = λn[i₁:i₂+1]
     φr = φn[j₁:j₂+1]
     Nrx, Nry, Nt = size(data)
-
     close(ds)
 
-    JRA55_native_grid = LatitudeLongitudeGrid(native_fts_architecture;
+    JRA55_native_grid = LatitudeLongitudeGrid(native_fts_architecture, Float32;
                                               halo = (1, 1),
                                               size = (Nrx, Nry),
                                               longitude = λr,
@@ -372,7 +371,7 @@ function JRA55_field_time_series(variable_name; #, grid=nothing;
     native_fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times; boundary_conditions)
 
     # Fill the data in a GPU-friendly manner
-    copyto!(interior(native_fts, :, :, 1, :), data[:, :, :])
+    copyto!(interior(native_fts, :, :, 1, :), data)
     fill_halo_regions!(native_fts)
 
     #=
