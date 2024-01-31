@@ -92,9 +92,9 @@ elapsed = time_ns() - start_time
 @info "Ocean component built. " * prettytime(elapsed * 1e-9)
 start_time = time_ns()
 
-Ndays = 3
+Ndays = 30
 Nt = 8 * Ndays
-atmosphere = JRA55_prescribed_atmosphere(grid, 1:Nt) #, 1:21)
+atmosphere = JRA55_prescribed_atmosphere(arch, 1:Nt; backend=InMemory(8))
 elapsed = time_ns() - start_time
 @info "Atmosphere built. " * prettytime(elapsed * 1e-9)
 start_time = time_ns()
@@ -199,5 +199,3 @@ coupled_simulation.output_writers[:nc] = NetCDFOutputWriter(ocean.model, outputs
 =#
 
 run!(coupled_simulation)
-
-
