@@ -169,11 +169,14 @@ end
 """
     JRA55_field_time_series(variable_name;
                             architecture = CPU(),
+                            location = nothing,
+                            url = nothing,
+                            filename = nothing,
+                            shortname = nothing,
                             backend = InMemory(),
-                            time_indices = nothing,
-                            url = urls[name],
-                            filename = filenames[variable_name],
-                            shortname = jra55_short_names[variable_name])
+                            preprocess_chunk_size = 10,
+                            preprocess_architecture = CPU(),
+                            time_indices = nothing)
 
 Return a `FieldTimeSeries` containing atmospheric reanalysis data for `variable_name`,
 which describes one of the variables in the "repeat year forcing" dataset derived
@@ -580,15 +583,15 @@ end
 function JRA55_prescribed_atmosphere(grid, time_indices=:; reference_height=2) # meters
     architecture = Oceananigans.architecture(grid)
 
-    u_JRA55   = JRA55_field_time_series(:eastward_velocity,               grid; time_indices, architecture)
-    v_JRA55   = JRA55_field_time_series(:northward_velocity,              grid; time_indices, architecture)
-    T_JRA55   = JRA55_field_time_series(:temperature,                     grid; time_indices, architecture)
-    q_JRA55   = JRA55_field_time_series(:specific_humidity,               grid; time_indices, architecture)
-    p_JRA55   = JRA55_field_time_series(:sea_level_pressure,              grid; time_indices, architecture)
-    Fr_JRA55  = JRA55_field_time_series(:rain_freshwater_flux,            grid; time_indices, architecture)
-    Fs_JRA55  = JRA55_field_time_series(:snow_freshwater_flux,            grid; time_indices, architecture)
-    Qlw_JRA55 = JRA55_field_time_series(:downwelling_longwave_radiation,  grid; time_indices, architecture)
-    Qsw_JRA55 = JRA55_field_time_series(:downwelling_shortwave_radiation, grid; time_indices, architecture)
+    u_JRA55   = JRA55_field_time_series(:eastward_velocity              ; time_indices, architecture)
+    v_JRA55   = JRA55_field_time_series(:northward_velocity             ; time_indices, architecture)
+    T_JRA55   = JRA55_field_time_series(:temperature                    ; time_indices, architecture)
+    q_JRA55   = JRA55_field_time_series(:specific_humidity              ; time_indices, architecture)
+    p_JRA55   = JRA55_field_time_series(:sea_level_pressure             ; time_indices, architecture)
+    Fr_JRA55  = JRA55_field_time_series(:rain_freshwater_flux           ; time_indices, architecture)
+    Fs_JRA55  = JRA55_field_time_series(:snow_freshwater_flux           ; time_indices, architecture)
+    Qlw_JRA55 = JRA55_field_time_series(:downwelling_longwave_radiation ; time_indices, architecture)
+    Qsw_JRA55 = JRA55_field_time_series(:downwelling_shortwave_radiation; time_indices, architecture)
 
     # NOTE: these have a different frequency than 3 hours so some changes are needed to 
     # JRA55_field_time_series to support them.
