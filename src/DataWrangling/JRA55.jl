@@ -169,11 +169,14 @@ end
 """
     JRA55_field_time_series(variable_name;
                             architecture = CPU(),
+                            location = nothing,
+                            url = nothing,
+                            filename = nothing,
+                            shortname = nothing,
                             backend = InMemory(),
-                            time_indices = nothing,
-                            url = urls[name],
-                            filename = filenames[variable_name],
-                            shortname = jra55_short_names[variable_name])
+                            preprocess_chunk_size = 10,
+                            preprocess_architecture = CPU(),
+                            time_indices = nothing)
 
 Return a `FieldTimeSeries` containing atmospheric reanalysis data for `variable_name`,
 which describes one of the variables in the "repeat year forcing" dataset derived
@@ -464,6 +467,7 @@ JRA55_prescribed_atmosphere(time_indices=Colon(); kw...) =
     JRA55_prescribed_atmosphere(CPU(), time_indices; kw...)
 
 # TODO: allow the user to pass dates
+<<<<<<< HEAD
 function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
                                      backend = InMemory(24), # 3 days of data
                                      reference_height = 2,  # meters
