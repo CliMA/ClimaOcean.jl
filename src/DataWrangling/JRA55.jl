@@ -467,7 +467,6 @@ JRA55_prescribed_atmosphere(time_indices=Colon(); kw...) =
     JRA55_prescribed_atmosphere(CPU(), time_indices; kw...)
 
 # TODO: allow the user to pass dates
-<<<<<<< HEAD
 function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
                                      backend = InMemory(24), # 3 days of data
                                      reference_height = 2,  # meters
