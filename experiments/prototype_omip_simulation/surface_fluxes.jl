@@ -129,12 +129,12 @@ Jᵛ = coupled_model.fluxes.total.ocean.momentum.v
 Jᵀ = coupled_model.fluxes.total.ocean.tracers.T
 Jˢ = coupled_model.fluxes.total.ocean.tracers.S
 
-E  = coupled_model.fluxes.turbulent.fields.evaporation
+E  = coupled_model.fluxes.turbulent.fields.freshwater
 Fʳ = atmosphere.freshwater_flux.rain
 Fˢ = atmosphere.freshwater_flux.snow
 
-Qᶜ = coupled_model.fluxes.turbulent.fields.sensible_heat_flux
-Qᵉ = coupled_model.fluxes.turbulent.fields.latent_heat_flux
+Qᶜ = coupled_model.fluxes.turbulent.fields.sensible_heat
+Qᵉ = coupled_model.fluxes.turbulent.fields.latent_heat
 Qˡ = atmosphere.downwelling_radiation.longwave
 Qˢ = atmosphere.downwelling_radiation.shortwave
 
