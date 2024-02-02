@@ -86,9 +86,9 @@ function ConstitutiveParameters(FT = Float64;
                                 dry_air_molar_mass = 0.02897,
                                 water_molar_mass   = 0.018015)
 
-    return ConstitutiveParameters(convert(FT, gas_constant),
-                                  convert(FT, dry_air_molar_mass),
-                                  convert(FT, water_molar_mass))
+    return ConstitutiveParameters{FT}(convert(FT, gas_constant),
+                                      convert(FT, dry_air_molar_mass),
+                                      convert(FT, water_molar_mass))
 end
 
 const CP = ConstitutiveParameters
@@ -132,10 +132,10 @@ function HeatCapacityParameters(FT = Float64;
                                 liquid_water_heat_capacity = 4181,
                                 water_ice_heat_capacity = 2100)
 
-    return HeatCapacityParameters(convert(FT, dry_air_adiabatic_exponent),
-                                  convert(FT, water_vapor_heat_capacity),
-                                  convert(FT, liquid_water_heat_capacity),
-                                  convert(FT, water_ice_heat_capacity))
+    return HeatCapacityParameters{FT}(convert(FT, dry_air_adiabatic_exponent),
+                                      convert(FT, water_vapor_heat_capacity),
+                                      convert(FT, liquid_water_heat_capacity),
+                                      convert(FT, water_ice_heat_capacity))
 end
 
 const HCP = HeatCapacityParameters
@@ -178,13 +178,13 @@ function PhaseTransitionParameters(FT = Float64;
                                    water_freezing_temperature = 273.15,
                                    total_ice_nucleation_temperature = 233)
 
-   return PhaseTransitionParameters(convert(FT, reference_vaporization_enthalpy),
-                                    convert(FT, reference_sublimation_enthalpy),
-                                    convert(FT, reference_temperature),
-                                    convert(FT, triple_point_temperature),
-                                    convert(FT, triple_point_pressure),
-                                    convert(FT, water_freezing_temperature),
-                                    convert(FT, total_ice_nucleation_temperature))
+    return PhaseTransitionParameters{FT}(convert(FT, reference_vaporization_enthalpy),
+                                         convert(FT, reference_sublimation_enthalpy),
+                                         convert(FT, reference_temperature),
+                                         convert(FT, triple_point_temperature),
+                                         convert(FT, triple_point_pressure),
+                                         convert(FT, water_freezing_temperature),
+                                         convert(FT, total_ice_nucleation_temperature))
 end
 
 const PTP = PhaseTransitionParameters
@@ -279,7 +279,8 @@ const PATP = PrescribedAtmosphereThermodynamicsParameters
 ##### Prescribed atmosphere (as opposed to dynamically evolving / prognostic)
 #####
 
-struct PrescribedAtmosphere{U, P, C, F, R, TP, TI, FT}
+struct PrescribedAtmosphere{G, U, P, C, F, R, TP, TI, FT}
+    grid :: G
     velocities :: U
     pressure :: P
     tracers :: C
@@ -312,9 +313,16 @@ function PrescribedAtmosphere(times, FT=Float64;
                               freshwater_flux = nothing,
                               downwelling_radiation = nothing,
                               thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT),
+                              grid = nothing,
                               tracers = nothing)
 
-    return PrescribedAtmosphere(velocities,
+    if isnothing(grid) # try to find it
+        u = first(velocities)
+        grid = u.grid
+    end
+
+    return PrescribedAtmosphere(grid,
+                                velocities,
                                 pressure,
                                 tracers,
                                 freshwater_flux,

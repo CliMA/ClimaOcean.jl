@@ -87,4 +87,3 @@ function default_nan_checker(model::OceanSeaIceModel)
     return nan_checker
 end
 
-

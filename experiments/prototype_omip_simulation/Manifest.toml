@@ -1,6 +1,6 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.10.0"
+julia_version = "1.10.0-rc1"
 manifest_format = "2.0"
 project_hash = "672cbef2c7d6776d40e6432e74f2ade4088e87e6"
 
@@ -1304,9 +1304,9 @@ version = "0.5.5"
 
 [[deps.Oceananigans]]
 deps = ["Adapt", "CUDA", "Crayons", "CubedSphere", "Dates", "Distances", "DocStringExtensions", "FFTW", "Glob", "IncompleteLU", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "LinearAlgebra", "Logging", "MPI", "NCDatasets", "OffsetArrays", "OrderedCollections", "PencilArrays", "PencilFFTs", "Pkg", "Printf", "Random", "Rotations", "SeawaterPolynomials", "SparseArrays", "Statistics", "StructArrays"]
-git-tree-sha1 = "ead1d8ec6911ff84ef52c387c827553bbc859c1b"
+path = "/Users/gregorywagner/Projects/Oceananigans.jl"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
-version = "0.90.6"
+version = "0.90.7"
 
     [deps.Oceananigans.extensions]
     OceananigansEnzymeCoreExt = "EnzymeCore"
@@ -1951,7 +1951,7 @@ deps = ["Libdl", "LinearAlgebra", "Serialization", "SparseArrays"]
 uuid = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
 
 [[deps.SuiteSparse_jll]]
-deps = ["Artifacts", "Libdl", "libblastrampoline_jll"]
+deps = ["Artifacts", "Libdl", "Pkg", "libblastrampoline_jll"]
 uuid = "bea87d4a-7f5b-5778-9afe-8cc45184846c"
 version = "7.2.1+1"
 

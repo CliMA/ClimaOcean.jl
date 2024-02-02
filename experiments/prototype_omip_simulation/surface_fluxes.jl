@@ -81,10 +81,29 @@ elapsed = time_ns() - start_time
 @info "Ocean component built. " * prettytime(elapsed * 1e-9)
 start_time = time_ns()
 
-atmosphere = JRA55_prescribed_atmosphere(grid, 1:1)
+atmosphere = JRA55_prescribed_atmosphere(1:2, backend=InMemory())
 elapsed = time_ns() - start_time
 @info "Atmosphere built. " * prettytime(elapsed * 1e-9)
 start_time = time_ns()
+
+#=
+fig = Figure()
+axu = Axis(fig[1, 1])
+axv = Axis(fig[1, 2])
+axT = Axis(fig[1, 3])
+axq = Axis(fig[1, 4])
+
+ua = atmosphere.velocities.u
+va = atmosphere.velocities.v
+Ta = atmosphere.tracers.T
+qa = atmosphere.tracers.q
+
+heatmap!(axu, interior(ua, :, :, 1, 1))
+heatmap!(axv, interior(va, :, :, 1, 1))
+heatmap!(axT, interior(Ta, :, :, 1, 1))
+heatmap!(axq, interior(qa, :, :, 1, 1))
+
+display(fig)
 
 ocean.model.clock.time = start_seconds
 ocean.model.clock.iteration = 0
@@ -95,6 +114,7 @@ va = atmosphere.velocities.v
 Ta = atmosphere.tracers.T
 qa = atmosphere.tracers.q
 times = ua.times
+=#
 
 sea_ice = nothing
 radiation = Radiation()

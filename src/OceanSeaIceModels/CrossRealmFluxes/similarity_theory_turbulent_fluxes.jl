@@ -142,18 +142,20 @@ default_universal_function_parameters(FT=Float64) = BusingerParams{FT}(Pr_0 = co
                                                                        ζ_a  = convert(FT, 2.5),
                                                                        γ    = convert(FT, 4.42))
 
-function seawater_saturation_specific_humidity(atmosphere_thermodynamics_parameters,
-                                               surface_temperature,
-                                               surface_salinity,
-                                               atmos_state,
-                                               water_mole_fraction,
-                                               water_vapor_saturation,
-                                               ::Liquid)
+@inline function seawater_saturation_specific_humidity(atmosphere_thermodynamics_parameters,
+                                                       surface_temperature,
+                                                       surface_salinity,
+                                                       atmos_state,
+                                                       water_mole_fraction,
+                                                       water_vapor_saturation,
+                                                       ::Liquid)
 
     ℂₐ = atmosphere_thermodynamics_parameters
+    FT = eltype(ℂₐ)
     Tₛ = surface_temperature
     Sₛ = surface_salinity
     ρₛ = atmos_state.ρ # surface density -- should we extrapolate to obtain this?
+    ρₛ = convert(FT, ρₛ)
 
     q★_H₂O = water_saturation_specific_humidity(water_vapor_saturation, ℂₐ, ρₛ, Tₛ)
     x_H₂O  = compute_water_mole_fraction(water_mole_fraction, Sₛ)

@@ -4,16 +4,16 @@ using SurfaceFluxes
 
 using ..OceanSeaIceModels: reference_density,
                            heat_capacity,
-                           sea_ice_thickness,
+                           sea_ice_concentration,
                            downwelling_radiation,
                            freshwater_flux
 
 using ClimaSeaIce: SlabSeaIceModel
 
 using Oceananigans: HydrostaticFreeSurfaceModel, architecture
-using Oceananigans.Grids: inactive_node
+using Oceananigans.Grids: inactive_node, node
 using Oceananigans.BoundaryConditions: fill_halo_regions!
-using Oceananigans.Fields: ConstantField
+using Oceananigans.Fields: ConstantField, interpolate
 using Oceananigans.Utils: launch!, Time
 
 using Oceananigans.Operators: ℑxᶜᵃᵃ, ℑyᵃᶜᵃ, ℑxᶠᵃᵃ, ℑyᵃᶠᵃ
@@ -128,6 +128,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     ocean = coupled_model.ocean
     sea_ice = coupled_model.sea_ice
     atmosphere = coupled_model.atmosphere
+    atmosphere_grid = atmosphere.grid
 
     # Basic model properties
     grid = ocean.model.grid
@@ -135,16 +136,9 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     clock = ocean.model.clock
 
     # Ocean, atmosphere, and sea ice state
-    ocean_velocities = surface_velocities(ocean)
-    ocean_tracers    = surface_tracers(ocean)
-
-    atmosphere_velocities            = atmosphere.velocities
-    atmosphere_tracers               = atmosphere.tracers
-    atmosphere_pressure              = atmosphere.pressure
-    atmosphere_downwelling_radiation = atmosphere.downwelling_radiation
-    atmosphere_freshwater_flux       = atmosphere.freshwater_flux
-
-    ice_thickness = sea_ice_thickness(sea_ice)
+    ocean_velocities  = surface_velocities(ocean)
+    ocean_tracers     = surface_tracers(ocean)
+    ice_concentration = sea_ice_concentration(sea_ice)
 
     # Fluxes, and flux contributors
     centered_velocity_fluxes = (u = coupled_model.fluxes.total.ocean.momentum.uᶜᶜᶜ,
@@ -159,25 +153,26 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     radiation_properties = coupled_model.fluxes.radiation
 
     ocean_state = merge(ocean_velocities, ocean_tracers)
-    atmosphere_state = merge(atmosphere_velocities, atmosphere_tracers, (; p=atmosphere_pressure))
+    atmosphere_state = merge(atmosphere.velocities, atmosphere.tracers, (; p=atmosphere.pressure))
 
     launch!(arch, grid, :xy, compute_atmosphere_ocean_turbulent_fluxes!,
             grid, clock,
             centered_velocity_fluxes,
             net_tracer_fluxes,
             turbulent_fluxes,
-            atmosphere_freshwater_flux,
-            atmosphere_downwelling_radiation,
+            atmosphere.freshwater_flux,
+            atmosphere.downwelling_radiation,
             radiation_properties,
             ocean_state,
             atmosphere_state,
+            atmosphere_grid,
             atmosphere.reference_height, # height at which the state is known
             atmosphere.thermodynamics_parameters,
             coupled_model.fluxes.ocean_reference_density,
             coupled_model.fluxes.ocean_heat_capacity,
             coupled_model.fluxes.freshwater_density,
             coupled_model.fluxes.ocean_temperature_units,
-            ice_thickness)
+            ice_concentration)
 
     # Note: I think this can be avoided if we modify the preceding kernel
     # to compute from 0:Nx+1, ie in halo regions
@@ -189,6 +184,8 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     return nothing
 end
 
+const c = Center()
+
 @kernel function compute_atmosphere_ocean_turbulent_fluxes!(grid,
                                                             clock,
                                                             centered_velocity_fluxes,
@@ -199,13 +196,14 @@ end
                                                             radiation_properties,
                                                             ocean_state,
                                                             atmos_state,
+                                                            atmos_grid,
                                                             atmosphere_reference_height,
                                                             atmosphere_thermodynamics_parameters,
                                                             ocean_reference_density,
                                                             ocean_heat_capacity,
                                                             freshwater_density,
                                                             ocean_temperature_units,
-                                                            ice_thickness)
+                                                            ice_concentration)
 
     i, j = @index(Global, NTuple)
 
@@ -216,40 +214,50 @@ end
         # Ocean state
         uₒ = ℑxᶜᵃᵃ(i, j, 1, grid, ocean_state.u)
         vₒ = ℑyᵃᶜᵃ(i, j, 1, grid, ocean_state.v)
-        Uₒ = SVector(uₒ, vₒ)
         Tₒ = ocean_state.T[i, j, 1]
         Tₒ = convert_to_kelvin(ocean_temperature_units, Tₒ)
         Sₒ = ocean_state.S[i, j, 1]
 
         # Atmos state
-        uₐ = atmos_state.u[i, j, 1, time]
-        vₐ = atmos_state.v[i, j, 1, time]
-        Uₐ = SVector(uₐ, vₐ)
+        X = node(i, j, 1, grid, c, c, c)
 
-        Tₐ = atmos_state.T[i, j, 1, time]
-        pₐ = atmos_state.p[i, j, 1, time]
-        qₐ = atmos_state.q[i, j, 1, time] # total specific humidity
+        uₐ = interpolate_field_time_series(atmos_state.u, X, time, atmos_grid)
+        vₐ = interpolate_field_time_series(atmos_state.v, X, time, atmos_grid)
+
+        Tₐ = interpolate_field_time_series(atmos_state.T, X, time, atmos_grid)
+        pₐ = interpolate_field_time_series(atmos_state.p, X, time, atmos_grid)
+        qₐ = interpolate_field_time_series(atmos_state.q, X, time, atmos_grid)
+
+        Qs = interpolate_field_time_series(downwelling_radiation.shortwave, X, time, atmos_grid)
+        Qℓ = interpolate_field_time_series(downwelling_radiation.longwave,  X, time, atmos_grid)
+
+        # Accumulate freshwater mass fluxes. Rain, snow, runoff -- all freshwater.
+        M = interpolate_field_time_series(prescribed_freshwater_flux, X, time, atmos_grid)
     end
 
     # Build thermodynamic and dynamic states in the atmosphere and surface.
     # Notation:
     #   ⋅ ϕ ≡ thermodynamic state vector
     #   ⋅ Φ ≡ "dynamic" state vector (thermodynamics + reference height + velocity)
-    ℂ = atmosphere_thermodynamics_parameters
+    ℂₐ = atmosphere_thermodynamics_parameters
+    ϕₐ = thermodynamic_atmospheric_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₐ, qₐ)
+
     hₐ = atmosphere_reference_height # elevation of atmos variables relative to surface
-    ϕₐ = thermodynamic_atmospheric_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂ, pₐ, Tₐ, qₐ)
+    Uₐ = SVector(uₐ, vₐ)
     Φₐ = dynamic_atmos_state = SurfaceFluxes.StateValues(hₐ, Uₐ, ϕₐ)
 
     # Build surface state with saturated specific humidity
     surface_type = AtmosphericThermodynamics.Liquid()
-    q★ = seawater_saturation_specific_humidity(ℂ, Tₒ, Sₒ, ϕₐ,
+    qₒ = seawater_saturation_specific_humidity(ℂₐ, Tₒ, Sₒ, ϕₐ,
                                                turbulent_fluxes.water_mole_fraction,
                                                turbulent_fluxes.water_vapor_saturation,
                                                surface_type)
     
     # Thermodynamic and dynamic surface state
+    ϕ₀ = thermodynamic_surface_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₒ, qₒ)
+
     h₀ = zero(grid) # surface height
-    ϕ₀ = thermodynamic_surface_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂ, pₐ, Tₒ, q★)
+    Uₒ = SVector(uₒ, vₒ)
     Φ₀ = dynamic_surface_state = SurfaceFluxes.StateValues(h₀, Uₒ, ϕ₀)
 
     # Initial guess for the roughness length.
@@ -271,17 +279,13 @@ end
     conditions = SurfaceFluxes.surface_conditions(turbulent_fluxes, values)
     
     # Compute heat fluxes, bulk flux first
-    Qd = net_downwelling_radiation(i, j, grid, time, downwelling_radiation, radiation_properties)
+    Qd = net_downwelling_radiation(i, j, grid, time, Qs, Qℓ, radiation_properties)
     Qu = net_upwelling_radiation(i, j, grid, time, radiation_properties, ocean_state, ocean_temperature_units)
     Qc = conditions.shf # sensible or "conductive" heat flux
     Qe = conditions.lhf # latent or "evaporative" heat flux
     ΣQ = Qd + Qu + Qc + Qe
 
-    # Accumulate freshwater fluxes. Rain, snow, runoff -- all freshwater.
-    # Note these are mass fluxes, hence the "M".
-    M = cross_realm_flux(i, j, grid, time, prescribed_freshwater_flux)
-
-    # Convert from a mass flux to a volume flux / velocity?
+    # Convert from a mass flux to a volume flux (aka velocity).
     # Also switch the sign, for some reason we are given freshwater flux as positive down.
     ρᶠ = freshwater_density
     ΣF = - M / ρᶠ
@@ -328,12 +332,10 @@ end
     end
 end
 
-@inline function net_downwelling_radiation(i, j, grid, time, downwelling_radiation, radiation)
-    Qˢʷ = downwelling_radiation.shortwave
-    Qˡʷ = downwelling_radiation.longwave
+@inline function net_downwelling_radiation(i, j, grid, time, Qs, Qℓ, radiation)
     α = stateindex(radiation.reflection.ocean, i, j, 1, time)
 
-    return @inbounds - (1 - α) * Qˢʷ[i, j, 1, time] - Qˡʷ[i, j, 1, time]
+    return @inbounds - (1 - α) * Qs - Qℓ
 end
 
 @inline function net_upwelling_radiation(i, j, grid, time, radiation, ocean_state, ocean_temperature_units)
@@ -348,22 +350,28 @@ end
     return ϵ * σ * Tₒ^4
 end
 
-@inline cross_realm_flux(i, j, grid, time, ::Nothing,        args...) = zero(grid)
-@inline cross_realm_flux(i, j, grid, time, a::AbstractArray, args...) = stateindex(a, i, j, 1, time)
-@inline cross_realm_flux(i, j, grid, time, nt::NamedTuple,   args...) = cross_realm_flux(i, j, grid, time, values(nt), args...)
+@inline interpolate_field_time_series(J, x, t, grid) =
+    interpolate(x, t, J, (c, c, c), grid)
 
-@inline cross_realm_flux(i, j, grid, time, flux_tuple::Tuple{<:Any, <:Any}, args...) =
-    cross_realm_flux(i, j, grid, time, flux_tuple[1], args...) +
-    cross_realm_flux(i, j, grid, time, flux_tuple[2], args...)
+@inline interpolate_field_time_series(ΣJ::NamedTuple, args...) =
+    interpolate_field_time_series(values(ΣJ), args...)
 
-@inline cross_realm_flux(i, j, grid, time, flux_tuple::Tuple{<:Any, <:Any, <:Any}, args...) =
-    cross_realm_flux(i, j, grid, time, flux_tuple[1], args...) +
-    cross_realm_flux(i, j, grid, time, flux_tuple[2], args...) +
-    cross_realm_flux(i, j, grid, time, flux_tuple[3], args...)
+@inline interpolate_field_time_series(ΣJ::Tuple{<:Any}, args...) =
+    interpolate_field_time_series(ΣJ[1], args...) +
+    interpolate_field_time_series(ΣJ[2], args...)
 
-@inline cross_realm_flux(i, j, grid, time, flux_tuple::Tuple{<:Any, <:Any, <:Any, <:Any}, args...) =
-    cross_realm_flux(i, j, grid, time, flux_tuple[1], args...) +
-    cross_realm_flux(i, j, grid, time, flux_tuple[2], args...) +
-    cross_realm_flux(i, j, grid, time, flux_tuple[3], args...) +
-    cross_realm_flux(i, j, grid, time, flux_tuple[4], args...)
+@inline interpolate_field_time_series(ΣJ::Tuple{<:Any, <:Any}, args...) =
+    interpolate_field_time_series(ΣJ[1], args...) +
+    interpolate_field_time_series(ΣJ[2], args...)
+
+@inline interpolate_field_time_series(ΣJ::Tuple{<:Any, <:Any, <:Any}, args...) =
+    interpolate_field_time_series(ΣJ[1], args...) +
+    interpolate_field_time_series(ΣJ[2], args...) +
+    interpolate_field_time_series(ΣJ[3], args...)
+
+@inline interpolate_field_time_series(ΣJ::Tuple{<:Any, <:Any, <:Any, <:Any}, args...) =
+    interpolate_field_time_series(ΣJ[1], args...) +
+    interpolate_field_time_series(ΣJ[2], args...) +
+    interpolate_field_time_series(ΣJ[3], args...) +
+    interpolate_field_time_series(ΣJ[4], args...)
 

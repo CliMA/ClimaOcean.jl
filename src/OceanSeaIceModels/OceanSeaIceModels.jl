@@ -29,6 +29,7 @@ function reference_density end
 function heat_capacity end
 
 sea_ice_thickness(::Nothing) = nothing
+sea_ice_concentration(::Nothing) = nothing
 
 #####
 ##### Some implementation

@@ -6,6 +6,7 @@ using Oceananigans.Units
 using Oceananigans.BoundaryConditions: fill_halo_regions!
 using Oceananigans.Grids: λnodes, φnodes, on_architecture
 using Oceananigans.Fields: interpolate!
+using Oceananigans.OutputReaders: Cyclical
 
 using ClimaOcean.OceanSeaIceModels:
     PrescribedAtmosphere,
@@ -235,6 +236,7 @@ function JRA55_field_time_series(variable_name; #, grid=nothing;
                                  filename = nothing,
                                  shortname = nothing,
                                  backend = InMemory(),
+                                 time_extrapolation = Cyclical(),
                                  preprocess_chunk_size = 10,
                                  preprocess_architecture = CPU(),
                                  time_indices = nothing)
@@ -270,6 +272,8 @@ function JRA55_field_time_series(variable_name; #, grid=nothing;
     fts_name = field_time_series_short_names[variable_name]
     totally_in_memory = backend isa InMemory{Colon}
 
+    isfile(jld2_filename) && rm(jld2_filename)
+    #=
     if isfile(jld2_filename)
         isnothing(time_indices) && (time_indices = Colon())
 
@@ -290,6 +294,7 @@ function JRA55_field_time_series(variable_name; #, grid=nothing;
         #    end
         #end
     end
+    =#
 
     isfile(filename) || download(url, filename)
 
@@ -352,7 +357,7 @@ function JRA55_field_time_series(variable_name; #, grid=nothing;
     close(ds)
 
     JRA55_native_grid = LatitudeLongitudeGrid(native_fts_architecture, Float32;
-                                              halo = (1, 1),
+                                              halo = (3, 3),
                                               size = (Nrx, Nry),
                                               longitude = λr,
                                               latitude = φr,
@@ -453,6 +458,7 @@ function JRA55_field_time_series(variable_name; #, grid=nothing;
 
         backend_fts = FieldTimeSeries{LX, LY, Nothing}(grid, all_times;
                                                        backend,
+                                                       time_extrapolation,
                                                        boundary_conditions,
                                                        path = jld2_filename,
                                                        name = fts_name)
@@ -468,9 +474,22 @@ JRA55_prescribed_atmosphere(time_indices=Colon(); kw...) =
 
 # TODO: allow the user to pass dates
 function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
-                                     backend = InMemory(24), # 3 days of data
+                                     backend = nothing,
                                      reference_height = 2,  # meters
                                      other_kw...)
+
+    if isnothing(backend) # apply a default
+        Ni = try
+            length(time_indices)
+        catch
+            Inf
+        end
+
+        # Manufacture a default for the number of fields to keep InMemory
+        Nf = min(24, Ni)
+
+        backend = InMemory(Nf)
+    end
 
     ua  = JRA55_field_time_series(:eastward_velocity;               time_indices, backend, architecture, other_kw...)
     va  = JRA55_field_time_series(:northward_velocity;              time_indices, backend, architecture, other_kw...)
