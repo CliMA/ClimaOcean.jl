@@ -36,7 +36,7 @@ start_time = time_ns()
 ##### Construct the grid
 #####
 
-arch = CPU()
+arch = GPU()
 
 latitude = (-75, +65)
 longitude = (0, 360)
@@ -81,7 +81,7 @@ elapsed = time_ns() - start_time
 @info "Ocean component built. " * prettytime(elapsed * 1e-9)
 start_time = time_ns()
 
-atmosphere = JRA55_prescribed_atmosphere(1:2, backend=InMemory())
+atmosphere = JRA55_prescribed_atmosphere(1:2, backend=InMemory(), architecture=arch)
 elapsed = time_ns() - start_time
 @info "Atmosphere built. " * prettytime(elapsed * 1e-9)
 start_time = time_ns()

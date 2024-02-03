@@ -221,18 +221,18 @@ const c = Center()
         # Atmos state
         X = node(i, j, 1, grid, c, c, c)
 
-        uₐ = interpolate_field_time_series(atmos_state.u, X, time, atmos_grid)
-        vₐ = interpolate_field_time_series(atmos_state.v, X, time, atmos_grid)
+        uₐ = interpolate_atmos_field_time_series(atmos_state.u, X, time, atmos_grid)
+        vₐ = interpolate_atmos_field_time_series(atmos_state.v, X, time, atmos_grid)
 
-        Tₐ = interpolate_field_time_series(atmos_state.T, X, time, atmos_grid)
-        pₐ = interpolate_field_time_series(atmos_state.p, X, time, atmos_grid)
-        qₐ = interpolate_field_time_series(atmos_state.q, X, time, atmos_grid)
+        Tₐ = interpolate_atmos_field_time_series(atmos_state.T, X, time, atmos_grid)
+        pₐ = interpolate_atmos_field_time_series(atmos_state.p, X, time, atmos_grid)
+        qₐ = interpolate_atmos_field_time_series(atmos_state.q, X, time, atmos_grid)
 
-        Qs = interpolate_field_time_series(downwelling_radiation.shortwave, X, time, atmos_grid)
-        Qℓ = interpolate_field_time_series(downwelling_radiation.longwave,  X, time, atmos_grid)
+        Qs = interpolate_atmos_field_time_series(downwelling_radiation.shortwave, X, time, atmos_grid)
+        Qℓ = interpolate_atmos_field_time_series(downwelling_radiation.longwave,  X, time, atmos_grid)
 
         # Accumulate freshwater mass fluxes. Rain, snow, runoff -- all freshwater.
-        M = interpolate_field_time_series(prescribed_freshwater_flux, X, time, atmos_grid)
+        M = interpolate_atmos_field_time_series(prescribed_freshwater_flux, X, time, atmos_grid)
     end
 
     # Build thermodynamic and dynamic states in the atmosphere and surface.
@@ -350,28 +350,33 @@ end
     return ϵ * σ * Tₒ^4
 end
 
-@inline interpolate_field_time_series(J, x, t, grid) =
+#####
+##### Utility for interpolating tuples of fields
+#####
+
+# Note: assumes loc = (c, c, c)
+@inline interpolate_atmos_field_time_series(J, x, t, grid) =
     interpolate(x, t, J, (c, c, c), grid)
 
-@inline interpolate_field_time_series(ΣJ::NamedTuple, args...) =
-    interpolate_field_time_series(values(ΣJ), args...)
+@inline interpolate_atmos_field_time_series(ΣJ::NamedTuple, args...) =
+    interpolate_atmos_field_time_series(values(ΣJ), args...)
 
-@inline interpolate_field_time_series(ΣJ::Tuple{<:Any}, args...) =
-    interpolate_field_time_series(ΣJ[1], args...) +
-    interpolate_field_time_series(ΣJ[2], args...)
+@inline interpolate_atmos_field_time_series(ΣJ::Tuple{<:Any}, args...) =
+    interpolate_atmos_field_time_series(ΣJ[1], args...) +
+    interpolate_atmos_field_time_series(ΣJ[2], args...)
 
-@inline interpolate_field_time_series(ΣJ::Tuple{<:Any, <:Any}, args...) =
-    interpolate_field_time_series(ΣJ[1], args...) +
-    interpolate_field_time_series(ΣJ[2], args...)
+@inline interpolate_atmos_field_time_series(ΣJ::Tuple{<:Any, <:Any}, args...) =
+    interpolate_atmos_field_time_series(ΣJ[1], args...) +
+    interpolate_atmos_field_time_series(ΣJ[2], args...)
 
-@inline interpolate_field_time_series(ΣJ::Tuple{<:Any, <:Any, <:Any}, args...) =
-    interpolate_field_time_series(ΣJ[1], args...) +
-    interpolate_field_time_series(ΣJ[2], args...) +
-    interpolate_field_time_series(ΣJ[3], args...)
+@inline interpolate_atmos_field_time_series(ΣJ::Tuple{<:Any, <:Any, <:Any}, args...) =
+    interpolate_atmos_field_time_series(ΣJ[1], args...) +
+    interpolate_atmos_field_time_series(ΣJ[2], args...) +
+    interpolate_atmos_field_time_series(ΣJ[3], args...)
 
-@inline interpolate_field_time_series(ΣJ::Tuple{<:Any, <:Any, <:Any, <:Any}, args...) =
-    interpolate_field_time_series(ΣJ[1], args...) +
-    interpolate_field_time_series(ΣJ[2], args...) +
-    interpolate_field_time_series(ΣJ[3], args...) +
-    interpolate_field_time_series(ΣJ[4], args...)
+@inline interpolate_atmos_field_time_series(ΣJ::Tuple{<:Any, <:Any, <:Any, <:Any}, args...) =
+    interpolate_atmos_field_time_series(ΣJ[1], args...) +
+    interpolate_atmos_field_time_series(ΣJ[2], args...) +
+    interpolate_atmos_field_time_series(ΣJ[3], args...) +
+    interpolate_atmos_field_time_series(ΣJ[4], args...)
 

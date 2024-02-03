@@ -21,7 +21,7 @@ import SurfaceFluxes.Parameters:
 ##### Bulk turbulent fluxes based on similarity theory
 #####
 
-struct SimilarityTheoryTurbulentFluxes{FT, ΔU, UF, TP, S, W, F} <: AbstractSurfaceFluxesParameters
+struct SimilarityTheoryTurbulentFluxes{FT, ΔU, UF, TP, S, W, R, F} <: AbstractSurfaceFluxesParameters
     gravitational_acceleration :: FT
     von_karman_constant :: FT
     bulk_velocity_scale :: ΔU
@@ -29,6 +29,7 @@ struct SimilarityTheoryTurbulentFluxes{FT, ΔU, UF, TP, S, W, F} <: AbstractSurf
     thermodynamics_parameters :: TP
     water_vapor_saturation :: S
     water_mole_fraction :: W
+    roughness_lengths :: R
     fields :: F
 end
 
@@ -101,6 +102,7 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                            thermodynamics_parameters,
                                            water_vapor_saturation,
                                            water_mole_fraction,
+                                           nothing,
                                            fields)
 end
 
@@ -214,3 +216,75 @@ end
     return (1 - s) / (1 - s + α * s)
 end
 
+#=
+struct GravityWaveRoughnessLengths{FT}
+    gravity_wave_parameter :: FT
+    laminar_parameter :: FT
+    air_kinematic_viscosity :: FT
+end
+
+function GravityWaveRoughnessLengths(FT=Float64;
+                                     gravity_wave_parameter = 0.011,
+                                     laminar_parameter = 0.11,
+                                     air_kinematic_viscosity=1.5e-5)
+
+    return GravityWaveRoughnessLengths(convert(FT, gravity_wave_parameter),
+                                       convert(FT, laminar_parameter),
+                                       convert(FT, air_kinematic_viscosity))
+end
+
+@inline function compute_turbulent_surface_fluxes(roughness_lengths::SimplifiedRoughnessLengths,
+                                                  atmos_state,
+                                                  ocean_state)
+
+    # Solve for the surface fluxes with initial roughness length guess
+    Uᵍ = zero(grid) # gustiness
+    β = one(grid)   # surface "resistance"
+    values = SurfaceFluxes.ValuesOnly(atmos_state, ocean_State,
+                                      roughness_lengths.momentum,
+                                      roughness_lengths.heat
+                                      Uᵍ, β)
+    conditions = SurfaceFluxes.surface_conditions(turbulent_fluxes, values)
+
+    fluxes = (;
+        latent_heat_flux         = conditions.lhf,
+        sensible_heat_flux       = conditions.shf,
+        freshwater_flux          = conditions.evaporation,
+        zonal_momentum_flux      = conditions.ρτxz,
+        meridional_momentum_flux = conditions.ρτyz,
+    )
+
+    return fluxes
+end
+
+
+@inline function compute_turbulent_surface_fluxes(roughness_lengths::GravityWaveRoughnessLengths,
+                                                  atmos_state,
+                                                  ocean_state)
+
+    # Solve for the surface fluxes with initial roughness length guess
+    Uᵍ = zero(grid) # gustiness
+    β = one(grid)   # surface "resistance"
+    values = SurfaceFluxes.ValuesOnly(atmos_state, ocean_State,
+                                      roughness_lengths.momentum,
+                                      roughness_lengths.heat
+                                      Uᵍ, β)
+
+    conditions = SurfaceFluxes.surface_conditions(turbulent_fluxes, values)
+
+    fluxes = (;
+        latent_heat_flux         = conditions.lhf,
+        sensible_heat_flux       = conditions.shf,
+        freshwater_flux          = conditions.evaporation,
+        zonal_momentum_flux      = conditions.ρτxz,
+        meridional_momentum_flux = conditions.ρτyz,
+    )
+
+    return fluxes
+end
+
+
+=#
+
+
+=#
