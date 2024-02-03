@@ -25,7 +25,7 @@ struct SimilarityTheoryTurbulentFluxes{FT, ΔU, UF, TP, S, W, R, F} <: AbstractS
     gravitational_acceleration :: FT
     von_karman_constant :: FT
     bulk_velocity_scale :: ΔU
-    universal_function :: UF
+    similarity_function :: UF
     thermodynamics_parameters :: TP
     water_vapor_saturation :: S
     water_mole_fraction :: W
@@ -35,7 +35,7 @@ end
 
 const STTF = SimilarityTheoryTurbulentFluxes
 @inline thermodynamics_params(fluxes::STTF) = fluxes.thermodynamics_parameters
-@inline uf_params(fluxes::STTF)             = fluxes.universal_function
+@inline uf_params(fluxes::STTF)             = fluxes.similarity_function
 @inline von_karman_const(fluxes::STTF)      = fluxes.von_karman_constant
 @inline grav(fluxes::STTF)                  = fluxes.gravitational_acceleration
 
@@ -44,10 +44,11 @@ const STTF = SimilarityTheoryTurbulentFluxes
 Adapt.adapt_structure(to, fluxes::STTF) = SimilarityTheoryTurbulentFluxes(adapt(to, fluxes.gravitational_acceleration),
                                                                           adapt(to, fluxes.von_karman_constant),
                                                                           adapt(to, fluxes.bulk_velocity_scale),
-                                                                          adapt(to, fluxes.universal_function),
+                                                                          adapt(to, fluxes.similarity_function),
                                                                           adapt(to, fluxes.thermodynamics_parameters),
                                                                           adapt(to, fluxes.water_vapor_saturation),
                                                                           adapt(to, fluxes.water_mole_fraction),
+                                                                          adapt(to, fluxes.roughness_lengths),
                                                                           adapt(to, fluxes.fields))
 
 Base.summary(::SimilarityTheoryTurbulentFluxes{FT}) where FT = "SimilarityTheoryTurbulentFluxes{$FT}"
@@ -77,7 +78,7 @@ function Base.show(io::IO, fluxes::SimilarityTheoryTurbulentFluxes)
           "├── gravitational_acceleration: ",   prettysummary(fluxes.gravitational_acceleration), '\n',
           "├── von_karman_constant: ",          prettysummary(fluxes.von_karman_constant), '\n',
           "├── bulk_velocity_scale: ",          summary(fluxes.bulk_velocity_scale), '\n',
-          "├── universal_function: ",           summary(fluxes.universal_function), '\n',
+          "├── similarity_function: ",          summary(fluxes.similarity_function), '\n',
           "├── water_mole_fraction: ",          summary(fluxes.water_mole_fraction), '\n',
           "├── water_vapor_saturation: ",       summary(fluxes.water_vapor_saturation), '\n',
           "└── thermodynamics_parameters: ",    summary(fluxes.thermodynamics_parameters))
@@ -89,7 +90,7 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                          gravitational_acceleration = convert(FT, 9.80665),
                                          bulk_velocity_scale = nothing,
                                          von_karman_constant = convert(FT, 0.4),
-                                         universal_function = default_universal_function_parameters(FT),
+                                         similarity_function = default_similarity_function_parameters(FT),
                                          thermodynamics_parameters = PATP(FT),
                                          water_vapor_saturation = ClasiusClapyeronSaturation(),
                                          water_mole_fraction = convert(FT, 0.98),
@@ -98,7 +99,7 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
     return SimilarityTheoryTurbulentFluxes(gravitational_acceleration,
                                            von_karman_constant,
                                            bulk_velocity_scale,
-                                           universal_function,
+                                           similarity_function,
                                            thermodynamics_parameters,
                                            water_vapor_saturation,
                                            water_mole_fraction,
@@ -138,11 +139,11 @@ end
 end
 
 # See SurfaceFluxes.jl for other parameter set options.
-default_universal_function_parameters(FT=Float64) = BusingerParams{FT}(Pr_0 = convert(FT, 0.74),
-                                                                       a_m  = convert(FT, 4.7),
-                                                                       a_h  = convert(FT, 4.7),
-                                                                       ζ_a  = convert(FT, 2.5),
-                                                                       γ    = convert(FT, 4.42))
+default_businger_parameters(FT=Float64) = BusingerParams{FT}(Pr_0 = convert(FT, 0.74),
+                                                             a_m  = convert(FT, 4.7),
+                                                             a_h  = convert(FT, 4.7),
+                                                             ζ_a  = convert(FT, 2.5),
+                                                             γ    = convert(FT, 4.42))
 
 @inline function seawater_saturation_specific_humidity(atmosphere_thermodynamics_parameters,
                                                        surface_temperature,
@@ -217,10 +218,83 @@ end
 end
 
 #=
-struct GravityWaveRoughnessLengths{FT}
+struct SimilarityFunction{FT}
+    a :: FT
+    b :: FT
+    c :: FT
+end
+
+struct GravityWaveRoughnessLength{FT}
     gravity_wave_parameter :: FT
     laminar_parameter :: FT
     air_kinematic_viscosity :: FT
+end
+
+struct AtmosphericState{Q, T, U, V}
+    q :: Q
+    θ :: T
+    u :: U
+    v :: V
+end
+
+AtmosphericState(q, θ, u) = AtmosphericState(q, θ, u, nothing)
+
+@inline function (ψ::SimilarityFunction)(Ri)
+    a = ψ.a
+    b = ψ.b
+    c = ψ.c
+
+    ϕ⁻¹ = (1 - b * Ri)^c
+    ψ_unstable = log((1 + ϕ⁻¹)^2 * (1 + ϕ⁻¹^2) / 8) - 2 * atan(ϕ⁻¹) + π/2
+    ψ_stable = - a * Ri
+    return ifelse(Ri < 0, ψ_unstable, ψ_stable)
+end
+
+@inline similarity_scale(ψ, h, ℓ, Ri) = 1 / (log(h/ℓ) - ψ(Ri) + ψ(ℓ * Ri / h))
+
+function buoyancy_scale(θ★, q★, surface_state, parameters)
+    θ★ = fluxes.θ
+    q★ = fluxes.q
+    𝒯₀ = virtual_temperature(parameters, surface_state)
+    q₀ = surface_state.q
+    θ₀ = surface_state.θ
+    r = parameters.molar_mass_ratio
+    g = parameters.gravitational_acceleration
+    δ = r - 1
+    b★ = g / 𝒯₀ * (θ★ * (1 + δ * q₀) + δ * θ₀ * q★)
+    return b★
+end
+
+function fixed_point_fluxes(u★, θ★, q★,
+                            surface_state,
+                            inner_length_scales,
+                            universal_function,
+                            parameters)
+
+    Δu = differences.u
+    Δv = differences.v
+    Δθ = differences.θ
+    Δq = differences.q
+
+    ϰ = parameters.von_karman_constant
+    f = universal_function
+
+    b★ = buoyancy_scale(θ★, q★, surface_state, parameters)
+    Riₕ = - ϰ * h * b★ / u★^2
+
+    ℓu = inner_length_scales.u(u★)
+    ℓθ = inner_length_scales.θ(u★)
+    ℓq = inner_length_scales.q(u★)
+
+    χu = momentum_flux_scale(f, h, ℓu, Riₕ)
+    χθ =   tracer_flux_scale(f, h, ℓθ, Riₕ)
+    χq =   tracer_flux_scale(f, h, ℓq, Riₕ)
+
+    u★ = ϰ * χu * sqrt(Δu^2 + Δv^2)
+    θ★ = ϰ * χθ * Δθ
+    q★ = ϰ * χq * Δq
+
+    return u★, θ★, q★
 end
 
 function GravityWaveRoughnessLengths(FT=Float64;
@@ -233,7 +307,26 @@ function GravityWaveRoughnessLengths(FT=Float64;
                                        convert(FT, air_kinematic_viscosity))
 end
 
-@inline function compute_turbulent_surface_fluxes(roughness_lengths::SimplifiedRoughnessLengths,
+@inline function compute_turbulent_surface_fluxes(similarity_function::BusingerParams,
+                                                  roughness_lengths,
+                                                  atmos_state,
+                                                  ocean_state)
+
+    ℓu = roughness_lengths.momentum
+    ℓθ = roughness_lengths.heat
+    ℓq = roughness_lengths.moisture
+                                                    
+
+    fluxes = (;
+        latent_heat_flux         = conditions.lhf,
+        sensible_heat_flux       = conditions.shf,
+        freshwater_flux          = conditions.evaporation,
+        zonal_momentum_flux      = conditions.ρτxz,
+        meridional_momentum_flux = conditions.ρτyz,
+    )
+
+@inline function compute_turbulent_surface_fluxes(similarity_function::BusingerParams,
+                                                  roughness_lengths::SimplifiedRoughnessLengths,
                                                   atmos_state,
                                                   ocean_state)
 
@@ -283,8 +376,5 @@ end
     return fluxes
 end
 
-
 =#
 
-
-=#
