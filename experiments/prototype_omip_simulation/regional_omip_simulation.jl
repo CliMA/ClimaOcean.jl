@@ -15,7 +15,7 @@ using Dates
 
 start_time = time_ns()
 
-include("omip_ocean_component.jl")
+include("omip_components.jl")
 
 epoch = Date(1992, 1, 1)
 date = Date(1992, 10, 1)
