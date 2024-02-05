@@ -64,10 +64,14 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
     ocean_heat_capacity = convert(FT, ocean_heat_capacity)
     freshwater_density = convert(FT, freshwater_density)
 
-    # It's the "thermodynamics gravitational acceleration"
-    # (as opposed to the one used for the free surface)
-    gravitational_acceleration = ocean.model.buoyancy.model.gravitational_acceleration
-    turbulent_fluxes = SimilarityTheoryTurbulentFluxes(grid; gravitational_acceleration)
+    if isnothing(atmosphere)
+        # It's the "thermodynamics gravitational acceleration"
+        # (as opposed to the one used for the free surface)
+        gravitational_acceleration = ocean.model.buoyancy.model.gravitational_acceleration
+        turbulent_fluxes = SimilarityTheoryTurbulentFluxes(grid; gravitational_acceleration)
+    else
+        turbulent_fluxes = nothing
+    end
 
     prescribed_fluxes = nothing
 

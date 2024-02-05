@@ -92,12 +92,14 @@ elapsed = time_ns() - start_time
 @info "Ocean component built. " * prettytime(elapsed * 1e-9)
 start_time = time_ns()
 
+#=
 Ndays = 30
 Nt = 8 * Ndays
 atmosphere = JRA55_prescribed_atmosphere(arch, 1:Nt; backend=InMemory(8))
 elapsed = time_ns() - start_time
 @info "Atmosphere built. " * prettytime(elapsed * 1e-9)
 start_time = time_ns()
+=#
 
 ocean.model.clock.time = start_seconds
 ocean.model.clock.iteration = 0
@@ -113,7 +115,7 @@ sea_ice = nothing
 radiation = Radiation()
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 
-coupled_simulation = Simulation(coupled_model, Δt=10minutes, stop_time=start_seconds + 60days)
+coupled_simulation = Simulation(coupled_model, Δt=10minutes, stop_iteration=200)
 
 elapsed = time_ns() - start_time
 @info "Coupled simulation built. " * prettytime(elapsed * 1e-9)
@@ -153,7 +155,7 @@ function progress(sim)
     @info msg
 end
 
-coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(100))
+coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
 
 # Build flux outputs
 Jᵘ = coupled_model.fluxes.total.ocean.momentum.u
