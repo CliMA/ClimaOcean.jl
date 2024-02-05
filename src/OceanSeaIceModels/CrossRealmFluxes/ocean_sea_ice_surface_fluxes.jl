@@ -260,6 +260,11 @@ const c = Center()
     Uₒ = SVector(uₒ, vₒ)
     Φ₀ = dynamic_surface_state = SurfaceFluxes.StateValues(h₀, Uₒ, ϕ₀)
 
+    f = turbulent_fluxes.similarity_function
+    ℓ = turbulent_fluxes.roughness_lengths
+    fluxes = compute_turbulent_surface_fluxes(f, ℓ, turbulent_fluxes, Φₐ, Φ₀)
+
+    #=
     # Initial guess for the roughness length.
     FT = eltype(grid)
     zᵐ = zʰ = convert(FT, 5e-4) # τ = 0.3 => u★ = sqrt(τ / ρₐ) ~ z₀ ~ 5e-4
@@ -277,12 +282,19 @@ const c = Center()
     zᵐ = zʰ = α * u★^2 / g
     values = SurfaceFluxes.ValuesOnly(Φₐ, Φ₀, zᵐ, zʰ, Uᵍ, β)
     conditions = SurfaceFluxes.surface_conditions(turbulent_fluxes, values)
+    Qc = conditions.shf # sensible or "conductive" heat flux
+    Qe = conditions.lhf # latent or "evaporative" heat flux
+    =#
+
+    Qc = fluxes.sensible_heat
+    Qe = fluxes.latent_heat
+    Mt = fluxes.freshwater
+    τˣ = fluxes.zonal_momentum
+    τʸ = fluxes.meridional_momentum
     
     # Compute heat fluxes, bulk flux first
     Qd = net_downwelling_radiation(i, j, grid, time, Qs, Qℓ, radiation_properties)
     Qu = net_upwelling_radiation(i, j, grid, time, radiation_properties, ocean_state, ocean_temperature_units)
-    Qc = conditions.shf # sensible or "conductive" heat flux
-    Qe = conditions.lhf # latent or "evaporative" heat flux
     ΣQ = Qd + Qu + Qc + Qe
 
     # Convert from a mass flux to a volume flux (aka velocity).
@@ -290,12 +302,12 @@ const c = Center()
     ρᶠ = freshwater_density
     ΣF = - M / ρᶠ
 
-    # Apparently, conditions.evaporation is a mass flux of water.
-    # So, we divide by the density of freshwater.
-    E = conditions.evaporation / ρᶠ
-    ΣF += E
+    # Mt is the turbulent freshwater (moisture) flux, which we convert here
+    # to a volume flux by dividing by the density of freshwater.
+    Ft = Mt / ρᶠ
+    ΣF += Ft
 
-    update_turbulent_flux_fields!(turbulent_fluxes.fields, i, j, grid, conditions, ρᶠ)
+    update_turbulent_flux_fields!(turbulent_fluxes.fields, i, j, grid, fluxes, ρᶠ)
 
     # Compute fluxes for u, v, T, S from momentum, heat, and freshwater fluxes
     Jᵘ = centered_velocity_fluxes.u
@@ -306,8 +318,10 @@ const c = Center()
     ρₒ = ocean_reference_density
     cₒ = ocean_heat_capacity
 
-    atmos_ocean_Jᵘ = conditions.ρτxz / ρₒ
-    atmos_ocean_Jᵛ = conditions.ρτyz / ρₒ
+    #atmos_ocean_Jᵘ = conditions.ρτxz / ρₒ
+    #atmos_ocean_Jᵛ = conditions.ρτyz / ρₒ
+    atmos_ocean_Jᵘ = τˣ / ρₒ
+    atmos_ocean_Jᵛ = τʸ / ρₒ
     atmos_ocean_Jᵀ = ΣQ / (ρₒ * cₒ)
     atmos_ocean_Jˢ = - Sₒ * ΣF
 

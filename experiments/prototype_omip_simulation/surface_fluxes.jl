@@ -36,7 +36,7 @@ start_time = time_ns()
 ##### Construct the grid
 #####
 
-arch = GPU()
+arch = CPU()
 
 latitude = (-75, +65)
 longitude = (0, 360)
