@@ -73,7 +73,7 @@ function omip_sea_ice_component(ocean_model)
 
     if ocean_grid isa ImmersedBoundaryGrid
         h = ocean_grid.immersed_boundary.bottom_height
-        land = h .>= 0
+        land = interior(h) .>= 0
         sea_ice_grid = ImmersedBoundaryGrid(sea_ice_grid, GridFittedBoundary(land))
     end
 

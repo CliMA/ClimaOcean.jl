@@ -1,4 +1,3 @@
-#=
 using Oceananigans
 using Oceananigans.Architectures: arch_array
 using Oceananigans.Units
@@ -18,7 +17,7 @@ start_time = time_ns()
 
 include("omip_components.jl")
 
-arch = CPU()
+arch = GPU()
 epoch = Date(1992, 1, 1)
 date = Date(1992, 10, 1)
 start_seconds = Second(date - epoch).value
@@ -40,9 +39,8 @@ start_time = time_ns()
 ##### Construct the grid
 #####
 
-latitude = (-75, -45)
-#longitude = (0, 360)
-longitude = (0, 90)
+latitude = (-75, -30)
+longitude = (0, 360)
 
 i₁ = 4 * first(longitude) + 1
 i₂ = 1440 - 4 * (360 - last(longitude))
@@ -75,6 +73,7 @@ end
 
 Tᵢ = arch_array(arch, Tᵢ)
 Sᵢ = arch_array(arch, Sᵢ)
+ℋᵢ = arch_array(arch, ℋᵢ)
 
 if longitude[2] - longitude[1] == 360
     TX = Periodic
@@ -116,23 +115,18 @@ set!(ocean.model, T=Tᵢ, S=Sᵢ, e=1e-6)
 
 sea_ice = omip_sea_ice_component(ocean.model) #nothing
 set!(sea_ice.model, h=ℋᵢ)
-=#
 
 radiation = nothing # Radiation()
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 
-coupled_simulation = Simulation(coupled_model, Δt=10minutes, stop_iteration=3)
+stop_time = start_seconds + 90days
+coupled_simulation = Simulation(coupled_model, Δt=10minutes, stop_time=stop_time)
 
 elapsed = time_ns() - start_time
 @info "Coupled simulation built. " * prettytime(elapsed * 1e-9)
 start_time = time_ns()
 
 wall_clock = Ref(time_ns())
-
-Nz = size(grid, 3)
-Ts = view(ocean.model.tracers.T, :, :, Nz) 
-Ss = view(ocean.model.tracers.S, :, :, Nz)
-es = view(ocean.model.tracers.e, :, :, Nz)
 
 function progress(sim)
     msg = string("Iter: ", iteration(sim), ", time: ", prettytime(sim))
@@ -144,24 +138,18 @@ function progress(sim)
     u, v, w = sim.model.ocean.model.velocities
     msg *= @sprintf(", max|u|: (%.2e, %.2e)", maximum(abs, u), maximum(abs, v))
 
-    #=
     T = sim.model.ocean.model.tracers.T
     S = sim.model.ocean.model.tracers.S
     e = sim.model.ocean.model.tracers.e
 
-    Nz = size(T, 3)
-    msg *= @sprintf(", u★: %.2f m s⁻¹", u★)
-    msg *= @sprintf(", Q: %.2f W m⁻²", Q)
-    msg *= @sprintf(", T₀: %.2f ᵒC",     first(interior(T, 1, 1, Nz)))
-    msg *= @sprintf(", extrema(T): (%.2f, %.2f) ᵒC", minimum(T), maximum(T))
-    msg *= @sprintf(", S₀: %.2f g/kg",   first(interior(S, 1, 1, Nz)))
-    msg *= @sprintf(", e₀: %.2e m² s⁻²", first(interior(e, 1, 1, Nz)))
-    =#
+    msg *= @sprintf(", extrema(T): (%.2f, %.2f) ᵒC", maximum(T), minimum(T))
+    msg *= @sprintf(", extrema(S): (%.2f, %.2f) g kg⁻¹", minimum(S), maximum(S))
+    msg *= @sprintf(", extrema(e): (%.2f, %.2f) m² s⁻²", minimum(e), maximum(e))
 
     @info msg
 end
 
-coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(1))
+coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
 
 # Build flux outputs
 Jᵘ = coupled_model.fluxes.total.ocean.momentum.u
@@ -186,20 +174,26 @@ auxiliary_fields = (; N², κᶜ)
 fields = merge(ocean.model.velocities, ocean.model.tracers, auxiliary_fields)
 
 # Slice fields at the surface
-#outputs = merge(fields, fluxes)
 outputs = merge(fields, fluxes)
 
 filename = "regional_omip_simulation"
 
+#=
 coupled_simulation.output_writers[:fluxes] = JLD2OutputWriter(ocean.model, fluxes;
                                                               filename = filename * "_fluxes",
-                                                              schedule = TimeInterval(Oceananigans.Units.day),
+                                                              schedule = TimeInterval(1days),
                                                               overwrite_existing = true)
+=#
 
 coupled_simulation.output_writers[:fields] = JLD2OutputWriter(ocean.model, fields;
                                                               filename = filename * "_fields",
                                                               indices = (:, :, Nz),
-                                                              schedule = TimeInterval(Oceananigans.Units.day),
+                                                              schedule = TimeInterval(1days),
+                                                              overwrite_existing = true)
+
+coupled_simulation.output_writers[:seaice] = JLD2OutputWriter(sea_ice.model, (; h = sea_ice.model.ice_thickness);
+                                                              filename = filename * "_sea_ice_thickness",
+                                                              schedule = TimeInterval(1days),
                                                               overwrite_existing = true)
 
 run!(coupled_simulation)
