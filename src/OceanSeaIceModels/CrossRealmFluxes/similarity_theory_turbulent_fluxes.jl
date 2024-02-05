@@ -9,6 +9,7 @@ using SurfaceFluxes.UniversalFunctions: BusingerParams, BusingerType
 using ..PrescribedAtmospheres: PrescribedAtmosphereThermodynamicsParameters
 
 import Thermodynamics as AtmosphericThermodynamics
+import Thermodynamics.Parameters: molmass_ratio
 
 import SurfaceFluxes.Parameters:
     thermodynamics_params,
@@ -25,7 +26,7 @@ struct SimilarityTheoryTurbulentFluxes{FT, ΔU, UF, TP, S, W, R, F} <: AbstractS
     gravitational_acceleration :: FT
     von_karman_constant :: FT
     bulk_velocity_scale :: ΔU
-    similarity_function :: UF
+    similarity_functions :: UF
     thermodynamics_parameters :: TP
     water_vapor_saturation :: S
     water_mole_fraction :: W
@@ -35,9 +36,10 @@ end
 
 const STTF = SimilarityTheoryTurbulentFluxes
 @inline thermodynamics_params(fluxes::STTF) = fluxes.thermodynamics_parameters
-@inline uf_params(fluxes::STTF)             = fluxes.similarity_function
+@inline uf_params(fluxes::STTF)             = fluxes.similarity_functions
 @inline von_karman_const(fluxes::STTF)      = fluxes.von_karman_constant
 @inline grav(fluxes::STTF)                  = fluxes.gravitational_acceleration
+@inline molmass_ratio(fluxes::STTF)         = molmass_ratio(fluxes.thermodynamics_parameters)
 
 @inline universal_func_type(fluxes::STTF{<:Any, <:Any, <:BusingerParams}) = BusingerType()
 
@@ -84,58 +86,47 @@ function Base.show(io::IO, fluxes::SimilarityTheoryTurbulentFluxes)
           "└── thermodynamics_parameters: ",    summary(fluxes.thermodynamics_parameters))
 end
 
+function default_roughness_lengths(FT=Float64)
+    momentum = convert(FT, 1e-4)
+    heat     = convert(FT, 1e-4)
+    return SimilarityScales(momentum, heat)
+end
+
 const PATP = PrescribedAtmosphereThermodynamicsParameters
 
 function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
-                                         gravitational_acceleration = convert(FT, 9.80665),
+                                         gravitational_acceleration = default_gravitational_acceleration,
                                          bulk_velocity_scale = nothing,
                                          von_karman_constant = convert(FT, 0.4),
-                                         similarity_function = default_businger_parameters(FT),
+                                         similarity_functions = businger_similarity_functions(FT),
                                          thermodynamics_parameters = PATP(FT),
                                          water_vapor_saturation = ClasiusClapyeronSaturation(),
                                          water_mole_fraction = convert(FT, 0.98),
+                                         # roughness_lengths = default_roughness_lengths(FT),
+                                         roughness_lengths = SimilarityScales(1e-3, 1e-3, 1e-3),
                                          fields = nothing)
 
-    return SimilarityTheoryTurbulentFluxes(gravitational_acceleration,
-                                           von_karman_constant,
+    return SimilarityTheoryTurbulentFluxes(convert(FT, gravitational_acceleration),
+                                           convert(FT, von_karman_constant),
                                            bulk_velocity_scale,
-                                           similarity_function,
+                                           similarity_functions,
                                            thermodynamics_parameters,
                                            water_vapor_saturation,
                                            water_mole_fraction,
-                                           nothing,
+                                           roughness_lengths,
                                            fields)
 end
 
 function SimilarityTheoryTurbulentFluxes(grid::AbstractGrid; kw...)
-    freshwater = Field{Center, Center, Nothing}(grid)
-    latent_heat = Field{Center, Center, Nothing}(grid)
+    water_vapor   = Field{Center, Center, Nothing}(grid)
+    latent_heat   = Field{Center, Center, Nothing}(grid)
     sensible_heat = Field{Center, Center, Nothing}(grid)
+    x_momentum    = Field{Center, Center, Nothing}(grid)
+    y_momentum    = Field{Center, Center, Nothing}(grid)
 
-    fields = (; latent_heat, sensible_heat, freshwater)
+    fields = (; latent_heat, sensible_heat, water_vapor, x_momentum, y_momentum)
 
     return SimilarityTheoryTurbulentFluxes(eltype(grid); kw..., fields)
-end
-
-@inline update_turbulent_flux_fields!(::Nothing, args...) = nothing
-
-@inline function update_turbulent_flux_fields!(fields, i, j, grid, conditions, ρᶠ)
-    Qv = fields.latent_heat
-    Qc = fields.sensible_heat
-    Fv = fields.freshwater
-    kᴺ = size(grid, 3) # index of the top ocean cell
-    inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
-    @inbounds begin
-        # +0: cooling, -0: heating
-        Qv[i, j, 1] = ifelse(inactive, 0, conditions.lhf)
-        Qc[i, j, 1] = ifelse(inactive, 0, conditions.shf)
-
-        # "Salt flux" has the opposite sign of "freshwater flux".
-        # E > 0 implies that freshwater is fluxing upwards.
-        Fvᵢ = conditions.evaporation / ρᶠ # convert to volume flux
-        Fv[i, j, 1] = ifelse(inactive, Fvᵢ, 0)
-    end
-    return nothing
 end
 
 # See SurfaceFluxes.jl for other parameter set options.
@@ -314,7 +305,7 @@ end
 
     ℓu = roughness_lengths.momentum
     ℓθ = roughness_lengths.heat
-    ℓq = roughness_lengths.moisture
+    ℓq = roughness_lengths.water_vapor
                                                     
 
     fluxes = (;

@@ -64,7 +64,7 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
     ocean_heat_capacity = convert(FT, ocean_heat_capacity)
     freshwater_density = convert(FT, freshwater_density)
 
-    if isnothing(atmosphere)
+    if !isnothing(atmosphere)
         # It's the "thermodynamics gravitational acceleration"
         # (as opposed to the one used for the free surface)
         gravitational_acceleration = ocean.model.buoyancy.model.gravitational_acceleration
@@ -241,52 +241,39 @@ const c = Center()
 
     # Build thermodynamic and dynamic states in the atmosphere and surface.
     # Notation:
-    #   ⋅ ϕ ≡ thermodynamic state vector
-    #   ⋅ Φ ≡ "dynamic" state vector (thermodynamics + reference height + velocity)
+    #   ⋅ 𝒬 ≡ thermodynamic state vector
+    #   ⋅ 𝒰 ≡ "dynamic" state vector (thermodynamics + reference height + velocity)
     ℂₐ = atmosphere_thermodynamics_parameters
-    ϕₐ = thermodynamic_atmospheric_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₐ, qₐ)
+    𝒬ₐ = thermodynamic_atmospheric_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₐ, qₐ)
 
     hₐ = atmosphere_reference_height # elevation of atmos variables relative to surface
     Uₐ = SVector(uₐ, vₐ)
-    Φₐ = dynamic_atmos_state = SurfaceFluxes.StateValues(hₐ, Uₐ, ϕₐ)
+    𝒰ₐ = dynamic_atmos_state = SurfaceFluxes.StateValues(hₐ, Uₐ, 𝒬ₐ)
 
     # Build surface state with saturated specific humidity
     surface_type = AtmosphericThermodynamics.Liquid()
-    qₒ = seawater_saturation_specific_humidity(ℂₐ, Tₒ, Sₒ, ϕₐ,
+    qₒ = seawater_saturation_specific_humidity(ℂₐ, Tₒ, Sₒ, 𝒬ₐ,
                                                turbulent_fluxes.water_mole_fraction,
                                                turbulent_fluxes.water_vapor_saturation,
                                                surface_type)
     
     # Thermodynamic and dynamic surface state
-    ϕ₀ = thermodynamic_surface_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₒ, qₒ)
+    𝒬₀ = thermodynamic_surface_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₒ, qₒ)
 
     h₀ = zero(grid) # surface height
     Uₒ = SVector(uₒ, vₒ)
-    Φ₀ = dynamic_surface_state = SurfaceFluxes.StateValues(h₀, Uₒ, ϕ₀)
+    𝒰₀ = dynamic_ocean_state = SurfaceFluxes.StateValues(h₀, Uₒ, 𝒬₀)
 
-    # Initial guess for the roughness length.
-    FT = eltype(grid)
-    zᵐ = zʰ = convert(FT, 5e-4) # τ = 0.3 => u★ = sqrt(τ / ρₐ) ~ z₀ ~ 5e-4
-
-    # Solve for the surface fluxes with initial roughness length guess
-    Uᵍ = zero(grid) # gustiness
-    β = one(grid)   # surface "resistance"
-    values = SurfaceFluxes.ValuesOnly(Φₐ, Φ₀, zᵐ, zʰ, Uᵍ, β)
-    conditions = SurfaceFluxes.surface_conditions(turbulent_fluxes, values)
-
-    # It's like a fixed point iteration
-    g = turbulent_fluxes.gravitational_acceleration
-    α = convert(FT, 0.011) # Charnock parameter
-    u★ = conditions.ustar
-    zᵐ = zʰ = α * u★^2 / g
-    values = SurfaceFluxes.ValuesOnly(Φₐ, Φ₀, zᵐ, zʰ, Uᵍ, β)
-    conditions = SurfaceFluxes.surface_conditions(turbulent_fluxes, values)
-    
+    fluxes = compute_turbulent_fluxes(turbulent_fluxes.roughness_lengths,
+                                      turbulent_fluxes,
+                                      dynamic_atmos_state,
+                                      dynamic_ocean_state)
+        
     # Compute heat fluxes, bulk flux first
+    Qc = fluxes.sensible_heat # sensible or "conductive" heat flux
+    Qe = fluxes.latent_heat   # latent or "evaporative" heat flux
     Qd = net_downwelling_radiation(i, j, grid, time, Qs, Qℓ, radiation_properties)
     Qu = net_upwelling_radiation(i, j, grid, time, radiation_properties, ocean_state, ocean_temperature_units)
-    Qc = conditions.shf # sensible or "conductive" heat flux
-    Qe = conditions.lhf # latent or "evaporative" heat flux
     ΣQ = Qd + Qu + Qc + Qe
 
     # Convert from a mass flux to a volume flux (aka velocity).
@@ -294,12 +281,11 @@ const c = Center()
     ρᶠ = freshwater_density
     ΣF = - M / ρᶠ
 
-    # Apparently, conditions.evaporation is a mass flux of water.
     # So, we divide by the density of freshwater.
-    E = conditions.evaporation / ρᶠ
+    E = fluxes.water_vapor / ρᶠ
     ΣF += E
 
-    update_turbulent_flux_fields!(turbulent_fluxes.fields, i, j, grid, conditions, ρᶠ)
+    update_turbulent_flux_fields!(turbulent_fluxes.fields, i, j, grid, fluxes)
 
     # Compute fluxes for u, v, T, S from momentum, heat, and freshwater fluxes
     Jᵘ = centered_velocity_fluxes.u
@@ -310,8 +296,8 @@ const c = Center()
     ρₒ = ocean_reference_density
     cₒ = ocean_heat_capacity
 
-    atmos_ocean_Jᵘ = conditions.ρτxz / ρₒ
-    atmos_ocean_Jᵛ = conditions.ρτyz / ρₒ
+    atmos_ocean_Jᵘ = fluxes.x_momentum / ρₒ
+    atmos_ocean_Jᵛ = fluxes.y_momentum / ρₒ
     atmos_ocean_Jᵀ = ΣQ / (ρₒ * cₒ)
     atmos_ocean_Jˢ = - Sₒ * ΣF
 

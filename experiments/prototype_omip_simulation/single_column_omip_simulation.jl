@@ -12,6 +12,8 @@ using GLMakie
 using Printf
 using Dates
 
+include("omip_components.jl")
+
 locations = (
     #eastern_mediterranean = (λ =  30, φ = 32), 
     ocean_station_papa = (λ = 215, φ = 50), 
@@ -21,12 +23,10 @@ locations = (
     tasman_southern_ocean = (λ = 145, φ = -55), 
 )
 
-for location in keys(locations)
+#for location in keys(locations)
+location = :ocean_station_papa
 
-#location = :ocean_station_papa
     start_time = time_ns()
-
-    include("omip_ocean_component.jl")
 
     epoch = Date(1992, 1, 1)
     date = Date(1992, 10, 1)
@@ -115,7 +115,7 @@ for location in keys(locations)
 
     Ndays = 365
     Nt = 8 * Ndays
-    atmosphere = JRA55_prescribed_atmosphere(grid, 1:Nt) #, 1:21)
+    atmosphere = JRA55_prescribed_atmosphere(1:2, backend=InMemory()) #, 1:21)
     elapsed = time_ns() - start_time
     @info "Atmosphere built. " * prettytime(elapsed * 1e-9)
     start_time = time_ns()
@@ -148,6 +148,7 @@ for location in keys(locations)
     radiation = Radiation()
     coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 
+    #=
     coupled_simulation = Simulation(coupled_model, Δt=10minutes, stop_time=start_seconds + 60days)
 
     elapsed = time_ns() - start_time
@@ -400,5 +401,6 @@ for location in keys(locations)
     record(fig, "$(location)_single_column_simulation.mp4", 1:Nt, framerate=24) do nn
         @info "Drawing frame $nn of $Nt..."
         n[] = nn
-    end
+#    end
 end
+=#

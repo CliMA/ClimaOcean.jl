@@ -16,6 +16,7 @@ start_time = time_ns()
 
 include("omip_components.jl")
 
+arch = CPU()
 epoch = Date(1992, 1, 1)
 date = Date(1992, 10, 1)
 start_seconds = Second(date - epoch).value
@@ -35,8 +36,6 @@ start_time = time_ns()
 #####
 ##### Construct the grid
 #####
-
-arch = GPU()
 
 latitude = (-75, +65)
 longitude = (0, 360)
@@ -129,7 +128,7 @@ Jᵛ = coupled_model.fluxes.total.ocean.momentum.v
 Jᵀ = coupled_model.fluxes.total.ocean.tracers.T
 Jˢ = coupled_model.fluxes.total.ocean.tracers.S
 
-E  = coupled_model.fluxes.turbulent.fields.freshwater
+E  = coupled_model.fluxes.turbulent.fields.water_vapor
 Fʳ = atmosphere.freshwater_flux.rain
 Fˢ = atmosphere.freshwater_flux.snow
 
