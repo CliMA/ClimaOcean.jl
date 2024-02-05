@@ -1,3 +1,4 @@
+#=
 using Oceananigans
 using Oceananigans.Architectures: arch_array
 using Oceananigans.Units
@@ -17,6 +18,7 @@ start_time = time_ns()
 
 include("omip_components.jl")
 
+arch = CPU()
 epoch = Date(1992, 1, 1)
 date = Date(1992, 10, 1)
 start_seconds = Second(date - epoch).value
@@ -24,6 +26,7 @@ start_seconds = Second(date - epoch).value
 # vᵢ = ecco2_field(:v_velocity, date)
 Te = ecco2_field(:temperature, date)
 Se = ecco2_field(:salinity, date)
+ℋe = ecco2_field(:sea_ice_thickness, date)
 
 land = interior(Te) .< -10
 interior(Te)[land] .= NaN
@@ -37,10 +40,9 @@ start_time = time_ns()
 ##### Construct the grid
 #####
 
-arch = GPU()
-
-latitude = (-60, +60)
-longitude = (0, 360)
+latitude = (-75, -45)
+#longitude = (0, 360)
+longitude = (0, 90)
 
 i₁ = 4 * first(longitude) + 1
 i₂ = 1440 - 4 * (360 - last(longitude))
@@ -56,6 +58,7 @@ zf = znodes(Te.grid, Face())
 
 Tᵢ = interior(Te, i₁:i₂, j₁:j₂, :)
 Sᵢ = interior(Se, i₁:i₂, j₁:j₂, :)
+ℋᵢ = interior(ℋe, i₁:i₂, j₁:j₂, :)
 
 # Construct bottom_height depth by analyzing T
 Nx, Ny, Nz = size(Tᵢ)
@@ -73,7 +76,11 @@ end
 Tᵢ = arch_array(arch, Tᵢ)
 Sᵢ = arch_array(arch, Sᵢ)
 
-@show Nx Ny Nz zf
+if longitude[2] - longitude[1] == 360
+    TX = Periodic
+else
+    TX = Bounded
+end
 
 grid = LatitudeLongitudeGrid(arch; latitude, longitude,
                              size = (Nx, Ny, Nz),
@@ -101,21 +108,20 @@ elapsed = time_ns() - start_time
 start_time = time_ns()
 =#
 
+atmosphere = nothing
+
 ocean.model.clock.time = start_seconds
 ocean.model.clock.iteration = 0
 set!(ocean.model, T=Tᵢ, S=Sᵢ, e=1e-6)
 
-ua = atmosphere.velocities.u
-va = atmosphere.velocities.v
-Ta = atmosphere.tracers.T
-qa = atmosphere.tracers.q
-times = ua.times
+sea_ice = omip_sea_ice_component(ocean.model) #nothing
+set!(sea_ice.model, h=ℋᵢ)
+=#
 
-sea_ice = nothing
-radiation = Radiation()
+radiation = nothing # Radiation()
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 
-coupled_simulation = Simulation(coupled_model, Δt=10minutes, stop_iteration=200)
+coupled_simulation = Simulation(coupled_model, Δt=10minutes, stop_iteration=3)
 
 elapsed = time_ns() - start_time
 @info "Coupled simulation built. " * prettytime(elapsed * 1e-9)
@@ -155,7 +161,7 @@ function progress(sim)
     @info msg
 end
 
-coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
+coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(1))
 
 # Build flux outputs
 Jᵘ = coupled_model.fluxes.total.ocean.momentum.u
@@ -185,19 +191,15 @@ outputs = merge(fields, fluxes)
 
 filename = "regional_omip_simulation"
 
-coupled_simulation.output_writers[:fluxes] = JLD2OutputWriter(ocean.model, fluxes; filename * "_fluxes",
-                                                              schedule = TimeInterval(1day),
+coupled_simulation.output_writers[:fluxes] = JLD2OutputWriter(ocean.model, fluxes;
+                                                              filename = filename * "_fluxes",
+                                                              schedule = TimeInterval(Oceananigans.Units.day),
                                                               overwrite_existing = true)
 
-coupled_simulation.output_writers[:fields] = JLD2OutputWriter(ocean.model, fields; filename * "_fields",
+coupled_simulation.output_writers[:fields] = JLD2OutputWriter(ocean.model, fields;
+                                                              filename = filename * "_fields",
                                                               indices = (:, :, Nz),
-                                                              schedule = TimeInterval(1day),
+                                                              schedule = TimeInterval(Oceananigans.Units.day),
                                                               overwrite_existing = true)
-
-#=
-coupled_simulation.output_writers[:nc] = NetCDFOutputWriter(ocean.model, outputs; filename,
-                                                            schedule = AveragedTimeInterval(1days),
-                                                            overwrite_existing = true)
-=#
 
 run!(coupled_simulation)

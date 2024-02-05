@@ -3,6 +3,12 @@ using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities:
     MixingLength,
     TurbulentKineticEnergyEquation
 
+using Oceananigans.Grids: halo_size, topology, φnodes, λnodes
+using Oceananigans.Fields: ConstantField, ZeroField
+
+using ClimaSeaIce
+using ClimaSeaIce.HeatBoundaryConditions: IceWaterThermalEquilibrium
+
 using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 
 function omip_ocean_component(grid)
@@ -49,21 +55,31 @@ function omip_ocean_component(grid)
     return ocean
 end
 
+function omip_sea_ice_component(ocean_model)
+    ocean_grid = ocean_model.grid
+    Nx, Ny, Nz = size(ocean_grid)
+    Hx, Hy, Hz = halo_size(ocean_grid)
+    TX, TY, TZ = topology(ocean_grid)
 
-function omip_sea_ice_component(grid)
-    Nx, Ny, Nz = size(grid)
-    sea_ice_grid = LatitudeLongitudeGrid(arch,
+    λ = λnodes(ocean_grid, Face())
+    φ = φnodes(ocean_grid, Face())
+    longitude = (λ[1], λ[end])
+    latitude  = (φ[1], φ[end])
+
+    sea_ice_grid = LatitudeLongitudeGrid(arch; longitude, latitude,
                                          size = (Nx, Ny),
-                                         longitude = (0, 360),
-                                         halo = (7, 7),
-                                         latitude = (southern_limit, northern_limit),
-                                         topology = (Periodic, Bounded, Flat))
-     
-    sea_ice_grid = ImmersedBoundaryGrid(sea_ice_grid, GridFittedBottom(bottom_height))
+                                         halo = (Hx, Hy),
+                                         topology = (TX, TY, Flat))
 
-    sea_ice_ocean_heat_flux = Field{Center, Center, Nothing}(grid)
+    if ocean_grid isa ImmersedBoundaryGrid
+        h = ocean_grid.immersed_boundary.bottom_height
+        land = h .>= 0
+        sea_ice_grid = ImmersedBoundaryGrid(sea_ice_grid, GridFittedBoundary(land))
+    end
 
-    Nz = size(grid, 3)
+    sea_ice_ocean_heat_flux = Field{Center, Center, Nothing}(ocean_grid)
+
+    Nz = size(ocean_grid, 3)
     So = ocean_model.tracers.S
     ocean_surface_salinity = view(So, :, :, Nz)
     bottom_bc = IceWaterThermalEquilibrium(ocean_surface_salinity)
@@ -84,11 +100,8 @@ function omip_sea_ice_component(grid)
                                     bottom_heat_boundary_condition = bottom_bc,
                                     bottom_heat_flux = sea_ice_ocean_heat_flux)
 
-    s# et!(sea_ice_model, h=ℋᵢ) 
-
     sea_ice = Simulation(sea_ice_model, Δt=5minutes, verbose=false)
 
     return sea_ice
 end
-
 

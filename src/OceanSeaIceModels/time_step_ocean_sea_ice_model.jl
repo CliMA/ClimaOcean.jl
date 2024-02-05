@@ -15,7 +15,7 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
         # Initialization
         if coupled_model.clock.iteration == 0
             @info "Initializing coupled model ice thickness..."
-            h⁻ = coupled_model.previous_ice_thickness
+            h⁻ = coupled_model.fluxes.previous_ice_thickness
             hⁿ = coupled_model.sea_ice.model.ice_thickness
             parent(h⁻) .= parent(hⁿ)
         end
