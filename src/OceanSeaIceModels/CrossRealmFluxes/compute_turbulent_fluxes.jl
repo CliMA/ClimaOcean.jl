@@ -3,6 +3,7 @@ using Printf
 import Thermodynamics as AtmosphericThermodynamics
 
 using Thermodynamics: PhasePartition
+using KernelAbstractions.Extras.LoopInfo: @unroll
 
 @inline update_turbulent_flux_fields!(::Nothing, args...) = nothing
 
@@ -91,8 +92,10 @@ end
     b = ψ.b
     c = ψ.c
 
-    ϕ⁻¹ = (1 - b * Ri)^c
+    Ri⁻ = min(zero(Ri), Ri)
+    ϕ⁻¹ = (1 - b * Ri⁻)^c
     ψ_unstable = log((1 + ϕ⁻¹)^2 * (1 + ϕ⁻¹^2) / 8) - (4 * atan(ϕ⁻¹) + π) / 2
+
     ψ_stable = - a * Ri
 
     return ifelse(Ri < 0, ψ_unstable, ψ_stable)
@@ -180,13 +183,12 @@ end
     # Prescribed difference between two states
     ℂₐ = thermodynamics_params(turbulent_fluxes)
     Δh, Δu, Δv, Δθ, Δq = state_differences(ℂₐ, atmos_state, ocean_state)
-    #differences = (; u=Δu, v=Δv, θ=Δθ, q=Δq, h=Δh)
-    differences = (; u=Δu, v=Δv, θ=zero(Δθ), q=zero(Δq), h=Δh)
+    differences = (; u=Δu, v=Δv, θ=Δθ, q=Δq, h=Δh)
 
     # Solve for the characteristic scales u★, θ★, q★, and thus for fluxes.
-    Γ₀ = Γ★ = SimilarityScales(1e-6, 1e-6, 1e-6)
+    Γ₀ = Γ★ = SimilarityScales(1e-3, 1e-3, 1e-3)
 
-    for iter = 1:10
+    @unroll for iter = 1:10
         Γ★ = refine_characteristic_scales(Γ★,
                                           roughness_lengths, 
                                           turbulent_fluxes.similarity_functions,
@@ -194,8 +196,14 @@ end
                                           ocean_state,
                                           turbulent_fluxes)
 
-        msg = @sprintf("Iter: %d, u★: %.4e, θ★: %.4e, q★: %.4e", iter, u★ , θ★, q★)
-        @info msg
+        @debug begin
+            u★ = Γ★.momentum
+            θ★ = Γ★.temperature
+            q★ = Γ★.water_vapor
+            # u★² = Cᴰ * (Δu² + Δv²)
+            Cᴰ = u★^2 / (Δu^2 + Δv^2)
+            @sprintf("Iter: %d, Cᴰ: %.4e, u★: %.4e, θ★: %.4e, q★: %.4e", iter, Cᴰ, u★ , θ★, q★)
+        end
     end
 
     u★ = Γ★.momentum
@@ -222,12 +230,12 @@ end
     return fluxes
 end
 
-function refine_characteristic_scales(estimated_characteristic_scales,
-                                      roughness_lengths,
-                                      similarity_functions,
-                                      differences,
-                                      ocean_state,
-                                      similarity_parameters)
+@inline function refine_characteristic_scales(estimated_characteristic_scales,
+                                              roughness_lengths,
+                                              similarity_functions,
+                                              differences,
+                                              ocean_state,
+                                              similarity_parameters)
 
     # "initial" scales because we will recompute them
     u★ = estimated_characteristic_scales.momentum

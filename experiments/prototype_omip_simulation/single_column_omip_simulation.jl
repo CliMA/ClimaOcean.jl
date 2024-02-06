@@ -120,7 +120,7 @@ location = :ocean_station_papa
     @info "Atmosphere built. " * prettytime(elapsed * 1e-9)
     start_time = time_ns()
 
-    ocean.model.clock.time = start_seconds
+    # ocean.model.clock.time = start_seconds
     ocean.model.clock.iteration = 0
     set!(ocean.model, T=Tc, S=Sc, e=1e-6)
 
@@ -148,7 +148,6 @@ location = :ocean_station_papa
     radiation = Radiation()
     coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 
-    #=
     coupled_simulation = Simulation(coupled_model, Δt=10minutes, stop_time=start_seconds + 60days)
 
     elapsed = time_ns() - start_time
@@ -195,7 +194,7 @@ location = :ocean_station_papa
     Jᵛ  = coupled_model.fluxes.total.ocean.momentum.v
     Jᵀ  = coupled_model.fluxes.total.ocean.tracers.T
     Jˢ  = coupled_model.fluxes.total.ocean.tracers.S
-    E   = coupled_model.fluxes.turbulent.fields.freshwater
+    E   = coupled_model.fluxes.turbulent.fields.water_vapor
     Qse = coupled_model.fluxes.turbulent.fields.sensible_heat
     Qla = coupled_model.fluxes.turbulent.fields.latent_heat
     ρₒ  = coupled_model.fluxes.ocean_reference_density
@@ -240,6 +239,7 @@ location = :ocean_station_papa
 
     run!(coupled_simulation)
 
+    #=
     filename *= ".jld2"
 
     ut = FieldTimeSeries(filename, "u")

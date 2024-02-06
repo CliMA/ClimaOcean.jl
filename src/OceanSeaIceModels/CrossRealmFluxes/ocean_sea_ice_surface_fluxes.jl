@@ -68,9 +68,9 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
         # It's the "thermodynamics gravitational acceleration"
         # (as opposed to the one used for the free surface)
         gravitational_acceleration = ocean.model.buoyancy.model.gravitational_acceleration
-        turbulent_fluxes = SimilarityTheoryTurbulentFluxes(grid; gravitational_acceleration)
+        similarity_theory = SimilarityTheoryTurbulentFluxes(grid; gravitational_acceleration)
     else
-        turbulent_fluxes = nothing
+        similarity_theory = nothing
     end
 
     prescribed_fluxes = nothing
@@ -109,7 +109,7 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
 
     total_fluxes = (; ocean=total_ocean_fluxes)
 
-    return OceanSeaIceSurfaceFluxes(turbulent_fluxes,
+    return OceanSeaIceSurfaceFluxes(similarity_theory,
                                     prescribed_fluxes,
                                     total_fluxes,
                                     radiation,
@@ -152,7 +152,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
                                  v = coupled_model.fluxes.total.ocean.momentum.v)
 
     net_tracer_fluxes    = coupled_model.fluxes.total.ocean.tracers
-    turbulent_fluxes     = coupled_model.fluxes.turbulent
+    similarity_theory    = coupled_model.fluxes.turbulent
     prescribed_fluxes    = coupled_model.fluxes.prescribed
     radiation_properties = coupled_model.fluxes.radiation
 
@@ -163,7 +163,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             grid, clock,
             centered_velocity_fluxes,
             net_tracer_fluxes,
-            turbulent_fluxes,
+            similarity_theory,
             atmosphere.freshwater_flux,
             atmosphere.downwelling_radiation,
             radiation_properties,
@@ -189,12 +189,13 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
 end
 
 const c = Center()
+const f = Face()
 
 @kernel function compute_atmosphere_ocean_turbulent_fluxes!(grid,
                                                             clock,
                                                             centered_velocity_fluxes,
                                                             net_tracer_fluxes,
-                                                            turbulent_fluxes,
+                                                            similarity_theory,
                                                             prescribed_freshwater_flux,
                                                             downwelling_radiation,
                                                             radiation_properties,
@@ -210,6 +211,7 @@ const c = Center()
                                                             ice_concentration)
 
     i, j = @index(Global, NTuple)
+    kᴺ = size(grid, 3)
 
     time = Time(clock.time)
 
@@ -222,21 +224,24 @@ const c = Center()
         Tₒ = convert_to_kelvin(ocean_temperature_units, Tₒ)
         Sₒ = ocean_state.S[i, j, 1]
 
-        # Atmos state
-        X = node(i, j, 1, grid, c, c, c)
+        # Atmos state, which is _assumed_ to exist at location = (c, c, nothing)
+        # The third index "k" should not matter but we put the correct index to get
+        # a surface node anyways.
+        X = node(i, j, kᴺ + 1, grid, c, c, f)
 
-        uₐ = interpolate_atmos_field_time_series(atmos_state.u, X, time, atmos_grid)
-        vₐ = interpolate_atmos_field_time_series(atmos_state.v, X, time, atmos_grid)
+        uₐ = interp_atmos_time_series(atmos_state.u, X, time, atmos_grid)
+        vₐ = interp_atmos_time_series(atmos_state.v, X, time, atmos_grid)
 
-        Tₐ = interpolate_atmos_field_time_series(atmos_state.T, X, time, atmos_grid)
-        pₐ = interpolate_atmos_field_time_series(atmos_state.p, X, time, atmos_grid)
-        qₐ = interpolate_atmos_field_time_series(atmos_state.q, X, time, atmos_grid)
+        Tₐ = interp_atmos_time_series(atmos_state.T, X, time, atmos_grid)
+        pₐ = interp_atmos_time_series(atmos_state.p, X, time, atmos_grid)
+        qₐ = interp_atmos_time_series(atmos_state.q, X, time, atmos_grid)
 
-        Qs = interpolate_atmos_field_time_series(downwelling_radiation.shortwave, X, time, atmos_grid)
-        Qℓ = interpolate_atmos_field_time_series(downwelling_radiation.longwave,  X, time, atmos_grid)
+        Qs = interp_atmos_time_series(downwelling_radiation.shortwave, X, time, atmos_grid)
+        Qℓ = interp_atmos_time_series(downwelling_radiation.longwave,  X, time, atmos_grid)
 
-        # Accumulate freshwater mass fluxes. Rain, snow, runoff -- all freshwater.
-        M = interpolate_atmos_field_time_series(prescribed_freshwater_flux, X, time, atmos_grid)
+        # Accumulate mass fluxes of freshwater due to rain, snow, rivers,
+        # icebergs, and whatever else.
+        M = interp_atmos_time_series(prescribed_freshwater_flux, X, time, atmos_grid)
     end
 
     # Build thermodynamic and dynamic states in the atmosphere and surface.
@@ -253,8 +258,8 @@ const c = Center()
     # Build surface state with saturated specific humidity
     surface_type = AtmosphericThermodynamics.Liquid()
     qₒ = seawater_saturation_specific_humidity(ℂₐ, Tₒ, Sₒ, 𝒬ₐ,
-                                               turbulent_fluxes.water_mole_fraction,
-                                               turbulent_fluxes.water_vapor_saturation,
+                                               similarity_theory.water_mole_fraction,
+                                               similarity_theory.water_vapor_saturation,
                                                surface_type)
     
     # Thermodynamic and dynamic surface state
@@ -264,28 +269,29 @@ const c = Center()
     Uₒ = SVector(uₒ, vₒ)
     𝒰₀ = dynamic_ocean_state = SurfaceFluxes.StateValues(h₀, Uₒ, 𝒬₀)
 
-    fluxes = compute_turbulent_fluxes(turbulent_fluxes.roughness_lengths,
-                                      turbulent_fluxes,
-                                      dynamic_atmos_state,
-                                      dynamic_ocean_state)
+    turbulent_fluxes = compute_turbulent_fluxes(similarity_theory.roughness_lengths,
+                                                similarity_theory,
+                                                dynamic_atmos_state,
+                                                dynamic_ocean_state)
         
     # Compute heat fluxes, bulk flux first
-    Qc = fluxes.sensible_heat # sensible or "conductive" heat flux
-    Qe = fluxes.latent_heat   # latent or "evaporative" heat flux
+    Qc = turbulent_fluxes.sensible_heat # sensible or "conductive" heat flux
+    Qv = turbulent_fluxes.latent_heat   # latent heat flux associated with vapor tranpsort
     Qd = net_downwelling_radiation(i, j, grid, time, Qs, Qℓ, radiation_properties)
     Qu = net_upwelling_radiation(i, j, grid, time, radiation_properties, ocean_state, ocean_temperature_units)
-    ΣQ = Qd + Qu + Qc + Qe
+    ΣQ = Qd + Qu + Qc + Qv
 
-    # Convert from a mass flux to a volume flux (aka velocity).
+    # Convert from a mass flux to a volume flux (aka velocity)
+    # by dividing by the density of freshwater.
     # Also switch the sign, for some reason we are given freshwater flux as positive down.
     ρᶠ = freshwater_density
     ΣF = - M / ρᶠ
 
-    # So, we divide by the density of freshwater.
-    E = fluxes.water_vapor / ρᶠ
-    ΣF += E
+    # Add the contribution from the turbulent water vapor flux
+    Fv = turbulent_fluxes.water_vapor / ρᶠ
+    ΣF += Fv
 
-    update_turbulent_flux_fields!(turbulent_fluxes.fields, i, j, grid, fluxes)
+    update_turbulent_flux_fields!(similarity_theory.fields, i, j, grid, turbulent_fluxes)
 
     # Compute fluxes for u, v, T, S from momentum, heat, and freshwater fluxes
     Jᵘ = centered_velocity_fluxes.u
@@ -296,13 +302,12 @@ const c = Center()
     ρₒ = ocean_reference_density
     cₒ = ocean_heat_capacity
 
-    atmos_ocean_Jᵘ = fluxes.x_momentum / ρₒ
-    atmos_ocean_Jᵛ = fluxes.y_momentum / ρₒ
+    atmos_ocean_Jᵘ = turbulent_fluxes.x_momentum / ρₒ
+    atmos_ocean_Jᵛ = turbulent_fluxes.y_momentum / ρₒ
     atmos_ocean_Jᵀ = ΣQ / (ρₒ * cₒ)
     atmos_ocean_Jˢ = - Sₒ * ΣF
 
     # Mask fluxes over land for convenience
-    kᴺ = size(grid, 3) # index of the top ocean cell
     inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
 
     @inbounds begin
@@ -324,7 +329,6 @@ end
 
 @inline function net_downwelling_radiation(i, j, grid, time, Qs, Qℓ, radiation)
     α = stateindex(radiation.reflection.ocean, i, j, 1, time)
-
     return @inbounds - (1 - α) * Qs - Qℓ
 end
 
@@ -344,29 +348,30 @@ end
 ##### Utility for interpolating tuples of fields
 #####
 
-# Note: assumes loc = (c, c, c)
-@inline interpolate_atmos_field_time_series(J, x, t, grid) =
-    interpolate(x, t, J, (c, c, c), grid)
+# Note: assumes loc = (c, c, c) (and the third location should
+# not matter.)
+@inline interp_atmos_time_series(J, X, time, grid) =
+    interpolate(X, time, J, (c, c, c), grid)
 
-@inline interpolate_atmos_field_time_series(ΣJ::NamedTuple, args...) =
-    interpolate_atmos_field_time_series(values(ΣJ), args...)
+@inline interp_atmos_time_series(ΣJ::NamedTuple, args...) =
+    interp_atmos_time_series(values(ΣJ), args...)
 
-@inline interpolate_atmos_field_time_series(ΣJ::Tuple{<:Any}, args...) =
-    interpolate_atmos_field_time_series(ΣJ[1], args...) +
-    interpolate_atmos_field_time_series(ΣJ[2], args...)
+@inline interp_atmos_time_series(ΣJ::Tuple{<:Any}, args...) =
+    interp_atmos_time_series(ΣJ[1], args...) +
+    interp_atmos_time_series(ΣJ[2], args...)
 
-@inline interpolate_atmos_field_time_series(ΣJ::Tuple{<:Any, <:Any}, args...) =
-    interpolate_atmos_field_time_series(ΣJ[1], args...) +
-    interpolate_atmos_field_time_series(ΣJ[2], args...)
+@inline interp_atmos_time_series(ΣJ::Tuple{<:Any, <:Any}, args...) =
+    interp_atmos_time_series(ΣJ[1], args...) +
+    interp_atmos_time_series(ΣJ[2], args...)
 
-@inline interpolate_atmos_field_time_series(ΣJ::Tuple{<:Any, <:Any, <:Any}, args...) =
-    interpolate_atmos_field_time_series(ΣJ[1], args...) +
-    interpolate_atmos_field_time_series(ΣJ[2], args...) +
-    interpolate_atmos_field_time_series(ΣJ[3], args...)
+@inline interp_atmos_time_series(ΣJ::Tuple{<:Any, <:Any, <:Any}, args...) =
+    interp_atmos_time_series(ΣJ[1], args...) +
+    interp_atmos_time_series(ΣJ[2], args...) +
+    interp_atmos_time_series(ΣJ[3], args...)
 
-@inline interpolate_atmos_field_time_series(ΣJ::Tuple{<:Any, <:Any, <:Any, <:Any}, args...) =
-    interpolate_atmos_field_time_series(ΣJ[1], args...) +
-    interpolate_atmos_field_time_series(ΣJ[2], args...) +
-    interpolate_atmos_field_time_series(ΣJ[3], args...) +
-    interpolate_atmos_field_time_series(ΣJ[4], args...)
+@inline interp_atmos_time_series(ΣJ::Tuple{<:Any, <:Any, <:Any, <:Any}, args...) =
+    interp_atmos_time_series(ΣJ[1], args...) +
+    interp_atmos_time_series(ΣJ[2], args...) +
+    interp_atmos_time_series(ΣJ[3], args...) +
+    interp_atmos_time_series(ΣJ[4], args...)
 

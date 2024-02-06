@@ -273,7 +273,9 @@ function JRA55_field_time_series(variable_name; #, grid=nothing;
     totally_in_memory = backend isa InMemory{Colon}
 
     isfile(jld2_filename) && rm(jld2_filename)
+
     #=
+    # TODO: figure out how to use existing jld2 files
     if isfile(jld2_filename)
         isnothing(time_indices) && (time_indices = Colon())
 
@@ -377,7 +379,9 @@ function JRA55_field_time_series(variable_name; #, grid=nothing;
     # Make times into an array for later preprocessing
     !totally_in_memory && (times = collect(times))
 
-    native_fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times; boundary_conditions)
+    native_fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times;
+                                                          time_extrapolation,
+                                                          boundary_conditions)
 
     # Fill the data in a GPU-friendly manner
     copyto!(interior(native_fts, :, :, 1, :), data)
@@ -475,6 +479,7 @@ JRA55_prescribed_atmosphere(time_indices=Colon(); kw...) =
 # TODO: allow the user to pass dates
 function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
                                      backend = nothing,
+                                     time_extrapolation = Cyclical(),
                                      reference_height = 2,  # meters
                                      other_kw...)
 
@@ -491,15 +496,20 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
         backend = InMemory(Nf)
     end
 
-    ua  = JRA55_field_time_series(:eastward_velocity;               time_indices, backend, architecture, other_kw...)
-    va  = JRA55_field_time_series(:northward_velocity;              time_indices, backend, architecture, other_kw...)
-    Ta  = JRA55_field_time_series(:temperature;                     time_indices, backend, architecture, other_kw...)
-    qa  = JRA55_field_time_series(:specific_humidity;               time_indices, backend, architecture, other_kw...)
-    pa  = JRA55_field_time_series(:sea_level_pressure;              time_indices, backend, architecture, other_kw...)
-    Fra = JRA55_field_time_series(:rain_freshwater_flux;            time_indices, backend, architecture, other_kw...)
-    Fsn = JRA55_field_time_series(:snow_freshwater_flux;            time_indices, backend, architecture, other_kw...)
-    Ql  = JRA55_field_time_series(:downwelling_longwave_radiation;  time_indices, backend, architecture, other_kw...)
-    Qs  = JRA55_field_time_series(:downwelling_shortwave_radiation; time_indices, backend, architecture, other_kw...)
+    kw = (; time_indices, time_extrapolation, backend, architecture)
+    kw = merge(kw, other_kw) 
+
+    @show kw
+
+    ua  = JRA55_field_time_series(:eastward_velocity;               kw...)
+    va  = JRA55_field_time_series(:northward_velocity;              kw...)
+    Ta  = JRA55_field_time_series(:temperature;                     kw...)
+    qa  = JRA55_field_time_series(:specific_humidity;               kw...)
+    pa  = JRA55_field_time_series(:sea_level_pressure;              kw...)
+    Fra = JRA55_field_time_series(:rain_freshwater_flux;            kw...)
+    Fsn = JRA55_field_time_series(:snow_freshwater_flux;            kw...)
+    Ql  = JRA55_field_time_series(:downwelling_longwave_radiation;  kw...)
+    Qs  = JRA55_field_time_series(:downwelling_shortwave_radiation; kw...)
 
     # NOTE: these have a different frequency than 3 hours so some changes are needed to 
     # JRA55_field_time_series to support them.
@@ -514,8 +524,8 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
     tracers = (T = Ta,
                q = qa)
 
-    freshwater_flux = (rain     = Fra,
-                       snow     = Fsn)
+    freshwater_flux = (rain = Fra,
+                       snow = Fsn)
                        # rivers   = Fv_JRA55,
                        # icebergs = Fi_JRA55)
                        
