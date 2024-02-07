@@ -159,19 +159,37 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     radiation_properties = coupled_model.fluxes.radiation
 
     ocean_state = merge(ocean_velocities, ocean_tracers)
-    atmosphere_state = merge(atmosphere.velocities, atmosphere.tracers, (; p=atmosphere.pressure))
+
+    atmosphere_velocities = map(u -> u.data, atmosphere.velocities)
+    atmosphere_tracers    = map(c -> c.data, atmosphere.tracers)
+    atmosphere_pressure   = atmosphere.pressure.data
+
+    atmosphere_state = merge(atmosphere_velocities, atmosphere_tracers, (; p=atmosphere_pressure))
+    freshwater_flux  = map(ϕ -> ϕ.data, atmosphere.freshwater_flux)
+
+    u = atmosphere.velocities.u # for example 
+    atmosphere_times = u.times
+    atmosphere_backend = u.backend
+    atmosphere_time_indexing = u.time_indexing
+
+    Qs = atmosphere.downwelling_radiation.shortwave
+    Ql = atmosphere.downwelling_radiation.longwave
+    downwelling_radiation = (shortwave=Qs.data, longwave=Ql.data)
 
     launch!(arch, grid, :xy, compute_atmosphere_ocean_turbulent_fluxes!,
             grid, clock,
             centered_velocity_fluxes,
             net_tracer_fluxes,
             similarity_theory,
-            atmosphere.freshwater_flux,
-            atmosphere.downwelling_radiation,
+            freshwater_flux,
+            downwelling_radiation,
             radiation_properties,
             ocean_state,
             atmosphere_state,
             atmosphere_grid,
+            atmosphere_times,
+            atmosphere_backend,
+            atmosphere_time_indexing,
             atmosphere.reference_height, # height at which the state is known
             atmosphere.thermodynamics_parameters,
             coupled_model.fluxes.ocean_reference_density,
@@ -204,6 +222,9 @@ const f = Face()
                                                             ocean_state,
                                                             atmos_state,
                                                             atmos_grid,
+                                                            atmos_times,
+                                                            atmos_backend,
+                                                            atmos_time_indexing,
                                                             atmosphere_reference_height,
                                                             atmosphere_thermodynamics_parameters,
                                                             ocean_reference_density,
@@ -231,19 +252,20 @@ const f = Face()
         # a surface node anyways.
         X = node(i, j, kᴺ + 1, grid, c, c, f)
 
-        uₐ = interp_atmos_time_series(atmos_state.u, X, time, atmos_grid)
-        vₐ = interp_atmos_time_series(atmos_state.v, X, time, atmos_grid)
+        atmos_args = (atmos_grid, atmos_times, atmos_backend, atmos_time_indexing)
+        uₐ = interp_atmos_time_series(atmos_state.u, X, time, atmos_args...)
+        vₐ = interp_atmos_time_series(atmos_state.v, X, time, atmos_args...)
 
-        Tₐ = interp_atmos_time_series(atmos_state.T, X, time, atmos_grid)
-        pₐ = interp_atmos_time_series(atmos_state.p, X, time, atmos_grid)
-        qₐ = interp_atmos_time_series(atmos_state.q, X, time, atmos_grid)
+        Tₐ = interp_atmos_time_series(atmos_state.T, X, time, atmos_args...)
+        pₐ = interp_atmos_time_series(atmos_state.p, X, time, atmos_args...)
+        qₐ = interp_atmos_time_series(atmos_state.q, X, time, atmos_args...)
 
-        Qs = interp_atmos_time_series(downwelling_radiation.shortwave, X, time, atmos_grid)
-        Qℓ = interp_atmos_time_series(downwelling_radiation.longwave,  X, time, atmos_grid)
+        Qs = interp_atmos_time_series(downwelling_radiation.shortwave, X, time, atmos_args...)
+        Qℓ = interp_atmos_time_series(downwelling_radiation.longwave,  X, time, atmos_args...)
 
         # Accumulate mass fluxes of freshwater due to rain, snow, rivers,
         # icebergs, and whatever else.
-        M = interp_atmos_time_series(prescribed_freshwater_flux, X, time, atmos_grid)
+        M = interp_atmos_time_series(prescribed_freshwater_flux, X, time, atmos_args...)
     end
 
     # Build thermodynamic and dynamic states in the atmosphere and surface.
@@ -350,10 +372,10 @@ end
 ##### Utility for interpolating tuples of fields
 #####
 
-# Note: assumes loc = (c, c, c) (and the third location should
+# Note: assumes loc = (c, c, nothing) (and the third location should
 # not matter.)
-@inline interp_atmos_time_series(J, X, time, grid) =
-    interpolate(X, time, J, (c, c, c), grid)
+@inline interp_atmos_time_series(J, X, time, grid, args...) =
+    interpolate(X, time, J, (c, c, nothing), grid, args...)
 
 @inline interp_atmos_time_series(ΣJ::NamedTuple, args...) =
     interp_atmos_time_series(values(ΣJ), args...)
