@@ -196,6 +196,7 @@ end
                                           ocean_state,
                                           turbulent_fluxes)
 
+        #=
         @debug begin
             u★ = Γ★.momentum
             θ★ = Γ★.temperature
@@ -204,6 +205,7 @@ end
             Cᴰ = u★^2 / (Δu^2 + Δv^2)
             @sprintf("Iter: %d, Cᴰ: %.4e, u★: %.4e, θ★: %.4e, q★: %.4e", iter, Cᴰ, u★ , θ★, q★)
         end
+        =#
     end
 
     u★ = Γ★.momentum

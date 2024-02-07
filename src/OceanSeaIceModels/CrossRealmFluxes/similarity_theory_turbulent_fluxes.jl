@@ -46,7 +46,7 @@ const STTF = SimilarityTheoryTurbulentFluxes
 Adapt.adapt_structure(to, fluxes::STTF) = SimilarityTheoryTurbulentFluxes(adapt(to, fluxes.gravitational_acceleration),
                                                                           adapt(to, fluxes.von_karman_constant),
                                                                           adapt(to, fluxes.bulk_velocity_scale),
-                                                                          adapt(to, fluxes.similarity_function),
+                                                                          adapt(to, fluxes.similarity_functions),
                                                                           adapt(to, fluxes.thermodynamics_parameters),
                                                                           adapt(to, fluxes.water_vapor_saturation),
                                                                           adapt(to, fluxes.water_mole_fraction),

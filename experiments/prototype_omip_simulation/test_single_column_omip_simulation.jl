@@ -10,7 +10,6 @@ using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: interp_atmos_time_series
 using ClimaOcean.DataWrangling.JRA55: JRA55_prescribed_atmosphere
 using ClimaOcean.DataWrangling.ECCO2: ecco2_field
 
-using GLMakie
 using Printf
 using Dates
 
@@ -25,6 +24,7 @@ locations = (
     tasman_southern_ocean = (λ = 145, φ = -55), 
 )
 
+arch = GPU()
 location = :ocean_station_papa
 
 start_time = time_ns()
@@ -46,8 +46,6 @@ start_time = time_ns()
 #####
 ##### Construct the grid
 #####
-
-arch = CPU()
 
 Δ = 1/4 # resolution in degrees
 φ₁ = -90 + Δ/2
@@ -95,8 +93,8 @@ set!(ocean.model, T=Tc, S=Sc, e=1e-6)
 start_time = time_ns()
 Ndays = 2
 Nt = 8 * Ndays
-atmosphere = JRA55_prescribed_atmosphere(1:Nt, backend=InMemory(8)) #, 1:21)
-#atmosphere = JRA55_prescribed_atmosphere(1:Nt, backend=InMemory()) #, 1:21)
+# atmosphere = JRA55_prescribed_atmosphere(1:Nt, backend=InMemory(8), architecture=GPU()) #, 1:21)
+atmosphere = JRA55_prescribed_atmosphere(1:Nt, backend=InMemory(), architecture=arch)
 @info "Atmosphere built. " * prettytime((time_ns() - start_time) * 1e-9)
 
 # Build coupled simulation
