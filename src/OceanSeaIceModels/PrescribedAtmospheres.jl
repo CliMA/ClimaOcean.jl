@@ -1,9 +1,13 @@
 module PrescribedAtmospheres
 
 using Oceananigans.Utils: prettysummary
+using Oceananigans.OutputReaders: update_field_time_series!, extract_field_time_series, time_indices_in_memory
+using Oceananigans.OutputReaders: FieldTimeSeries, interpolating_time_indices
 
 using Adapt
 using Thermodynamics.Parameters: AbstractThermodynamicsParameters
+
+import Oceananigans.Models: update_model_field_time_series!
 
 import Thermodynamics.Parameters:
     gas_constant,   #
@@ -330,6 +334,21 @@ function PrescribedAtmosphere(times, FT=Float64;
                                 thermodynamics_parameters,
                                 times,
                                 convert(FT, reference_height))
+end
+
+function update_model_field_time_series!(atmos::PrescribedAtmosphere, time)
+    ftses = extract_field_time_series(atmos)
+    for fts in ftses
+        update_field_time_series!(fts, time)
+        if fts isa FieldTimeSeries
+            times = fts.times
+            idx = time_indices_in_memory(fts)
+            ñ, n₁, n₂ = interpolating_time_indices(fts, time.time)
+            @show time, idx, Tuple(times[n] for n in idx), ñ, n₁, n₂
+        end
+    end
+
+    return nothing
 end
 
 struct TwoStreamDownwellingRadiation{SW, LW}

@@ -16,6 +16,8 @@ using Oceananigans.BoundaryConditions: fill_halo_regions!
 using Oceananigans.Fields: ConstantField, interpolate
 using Oceananigans.Utils: launch!, Time
 
+# using Oceananigans.OutputReaders: extract_field_time_series, update_field_time_series!
+
 using Oceananigans.Operators: ℑxᶜᵃᵃ, ℑyᵃᶜᵃ, ℑxᶠᵃᵃ, ℑyᵃᶠᵃ
 
 using KernelAbstractions: @kernel, @index
@@ -159,6 +161,19 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
 
     ocean_state = merge(ocean_velocities, ocean_tracers)
     atmosphere_state = merge(atmosphere.velocities, atmosphere.tracers, (; p=atmosphere.pressure))
+
+    #=
+    time = Time(clock.time)
+    possible_ftses = tuple(atmosphere_state..., prescribed_fluxes...)
+    @show possible_ftses
+
+    ftses = extract_field_time_series(atmosphere_state..., prescribed_fluxes...)
+    @show ftses
+
+    for fts in ftses
+        update_field_time_series!(fts, time)
+    end
+    =#
 
     launch!(arch, grid, :xy, compute_atmosphere_ocean_turbulent_fluxes!,
             grid, clock,
