@@ -13,6 +13,8 @@ using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 
 function omip_ocean_component(grid)
 
+    start_time = time_ns()
+
     top_ocean_heat_flux          = Qᵀ = Field{Center, Center, Nothing}(grid)
     top_salt_flux                = Fˢ = Field{Center, Center, Nothing}(grid)
     top_zonal_momentum_flux      = τˣ = Field{Face, Center, Nothing}(grid)
@@ -52,10 +54,16 @@ function omip_ocean_component(grid)
 
     ocean = Simulation(ocean_model; Δt=5minutes, verbose=false)
 
+    elapsed = time_ns() - start_time
+    msg = string("Finished building ocean component. (" * prettytime(elapsed * 1e-9), ")")
+    @info msg
+
     return ocean
 end
 
 function omip_sea_ice_component(ocean_model)
+    start_time = time_ns()
+
     ocean_grid = ocean_model.grid
     Nx, Ny, Nz = size(ocean_grid)
     Hx, Hy, Hz = halo_size(ocean_grid)
@@ -101,6 +109,10 @@ function omip_sea_ice_component(ocean_model)
                                     bottom_heat_flux = sea_ice_ocean_heat_flux)
 
     sea_ice = Simulation(sea_ice_model, Δt=5minutes, verbose=false)
+
+    elapsed = time_ns() - start_time
+    msg = string("Finished building sea ice component. (" * prettytime(elapsed * 1e-9), ")")
+    @info msg
 
     return sea_ice
 end

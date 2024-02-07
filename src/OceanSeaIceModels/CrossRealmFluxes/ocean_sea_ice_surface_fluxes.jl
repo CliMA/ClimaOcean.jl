@@ -139,7 +139,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     # Basic model properties
     grid = ocean.model.grid
     arch = architecture(grid)
-    clock = ocean.model.clock
+    clock = coupled_model.clock
 
     # Ocean, atmosphere, and sea ice state
     ocean_velocities  = surface_velocities(ocean)
@@ -160,19 +160,6 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
 
     ocean_state = merge(ocean_velocities, ocean_tracers)
     atmosphere_state = merge(atmosphere.velocities, atmosphere.tracers, (; p=atmosphere.pressure))
-
-    #=
-    time = Time(clock.time)
-    possible_ftses = tuple(atmosphere_state..., prescribed_fluxes...)
-    @show possible_ftses
-
-    ftses = extract_field_time_series(atmosphere_state..., prescribed_fluxes...)
-    @show ftses
-
-    for fts in ftses
-        update_field_time_series!(fts, time)
-    end
-    =#
 
     launch!(arch, grid, :xy, compute_atmosphere_ocean_turbulent_fluxes!,
             grid, clock,

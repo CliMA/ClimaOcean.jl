@@ -32,8 +32,6 @@ start_time = time_ns()
 epoch = Date(1992, 1, 1)
 date = Date(1992, 10, 1)
 start_seconds = Second(date - epoch).value
-uᵢ = ecco2_field(:u_velocity, date)
-vᵢ = ecco2_field(:v_velocity, date)
 Tᵢ = ecco2_field(:temperature, date)
 Sᵢ = ecco2_field(:salinity, date)
 
@@ -68,8 +66,6 @@ longitude = (λe[i★] - Δ/2, λe[i★] + Δ/2)
 latitude  = (φe[j★] - Δ/2, φe[j★] + Δ/2)
 
 # Column
-uc = interior(uᵢ, i★:i★, j★:j★, :)
-vc = interior(vᵢ, i★:i★, j★:j★, :)
 Tc = interior(Tᵢ, i★:i★, j★:j★, :)
 Sc = interior(Sᵢ, i★:i★, j★:j★, :)
 
@@ -84,8 +80,6 @@ Nz = size(Tc, 3)
 kf = k★:Nz+1
 kc = k★:Nz
 zf = zf[kf]
-uc = uc[:, :, kc]
-vc = vc[:, :, kc]
 Tc = Tc[:, :, kc]
 Sc = Sc[:, :, kc]
 Nz′ = length(kc)
@@ -95,48 +89,33 @@ grid = LatitudeLongitudeGrid(arch; longitude, latitude,
                              z = zf,
                              topology = (Periodic, Periodic, Bounded))
 
-elapsed = time_ns() - start_time
-@info "Grid constructed. " * prettytime(elapsed * 1e-9)
-start_time = time_ns()
-
 ocean = omip_ocean_component(grid)
-elapsed = time_ns() - start_time
-@info "Ocean component built. " * prettytime(elapsed * 1e-9)
-start_time = time_ns()
-
-Ndays = 7
-Nt = 8 * Ndays
-atmosphere = JRA55_prescribed_atmosphere(1:Nt, backend=InMemory(8)) #, 1:21)
-elapsed = time_ns() - start_time
-@info "Atmosphere built. " * prettytime(elapsed * 1e-9)
-start_time = time_ns()
-
-# ocean.model.clock.time = start_seconds
-ocean.model.clock.iteration = 0
 set!(ocean.model, T=Tc, S=Sc, e=1e-6)
 
+start_time = time_ns()
+Ndays = 2
+Nt = 8 * Ndays
+atmosphere = JRA55_prescribed_atmosphere(1:Nt, backend=InMemory(8)) #, 1:21)
+#atmosphere = JRA55_prescribed_atmosphere(1:Nt, backend=InMemory()) #, 1:21)
+@info "Atmosphere built. " * prettytime((time_ns() - start_time) * 1e-9)
+
+# Build coupled simulation
+start_time = time_ns()
+sea_ice = nothing
+radiation = Radiation()
+coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+coupled_simulation = Simulation(coupled_model, Δt=10minutes, stop_time=14days)
+@info "Coupled simulation built. " * prettytime((time_ns() - start_time) * 1e-9)
+
+wall_clock = Ref(time_ns())
+
+atmos_grid = atmosphere.grid
 ua = atmosphere.velocities.u
 va = atmosphere.velocities.v
 Ta = atmosphere.tracers.T
 qa = atmosphere.tracers.q
 times = ua.times
 
-sea_ice = nothing
-radiation = Radiation()
-coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-
-coupled_model.clock.iteration = 0
-coupled_model.clock.time = 0
-set!(coupled_model.ocean.model, u=0, v=0, T=Tc, S=Sc, e=1e-6)
-coupled_simulation = Simulation(coupled_model, Δt=10minutes, stop_time=14days)
-
-elapsed = time_ns() - start_time
-@info "Coupled simulation built. " * prettytime(elapsed * 1e-9)
-start_time = time_ns()
-
-wall_clock = Ref(time_ns())
-
-atmos_grid = atmosphere.grid
 const c = Center()
 
 function progress(sim)
@@ -167,16 +146,16 @@ function progress(sim)
     τˣ = first(sim.model.fluxes.total.ocean.momentum.τˣ)
     τʸ = first(sim.model.fluxes.total.ocean.momentum.τʸ)
     u★ = (τˣ^2 + τʸ^2)^(1/4)
+    msg *= @sprintf(", τˣ: %.2f m² s⁻²", τˣ)
+    msg *= @sprintf(", τʸ: %.2f m² s⁻²", τʸ)
+    msg *= @sprintf(", u★: %.2f m s⁻¹", u★)
 
     Q = first(sim.model.fluxes.total.ocean.heat)
-
-    t = time(sim)
-
-    Nz = size(T, 3)
-    msg *= @sprintf(", u★: %.2f m s⁻¹", u★)
     msg *= @sprintf(", Q: %.2f W m⁻²", Q)
 
+
     #=
+    Nz = size(T, 3)
     msg *= @sprintf(", T₀: %.2f ᵒC",     first(interior(T, 1, 1, Nz)))
     msg *= @sprintf(", extrema(T): (%.2f, %.2f) ᵒC", minimum(T), maximum(T))
     msg *= @sprintf(", S₀: %.2f g/kg",   first(interior(S, 1, 1, Nz)))
@@ -186,7 +165,7 @@ function progress(sim)
     @info msg
 end
 
-coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(1))
+coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
 
 run!(coupled_simulation)
 
