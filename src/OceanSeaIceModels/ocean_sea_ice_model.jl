@@ -61,10 +61,11 @@ function OceanSeaIceModel(ocean, sea_ice=nothing;
                           radiation = nothing,
                           ocean_reference_density = reference_density(ocean),
                           ocean_heat_capacity = heat_capacity(ocean),
-                          clock = deepcopy(ocean.model.clock))
+                          clock = deepcopy(ocean.model.clock),
+                          fluxes_kwargs...)
     
     # Contains information about flux contributions: bulk formula, prescribed fluxes, etc.
-    fluxes = OceanSeaIceSurfaceFluxes(ocean, sea_ice; atmosphere, radiation)
+    fluxes = OceanSeaIceSurfaceFluxes(ocean, sea_ice; atmosphere, radiation, fluxes_kwargs...)
 
     ocean_sea_ice_model = OceanSeaIceModel(clock,
                                            ocean.model.grid,
