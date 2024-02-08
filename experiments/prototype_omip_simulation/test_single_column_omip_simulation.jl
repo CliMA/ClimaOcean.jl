@@ -102,7 +102,7 @@ start_time = time_ns()
 sea_ice = nothing
 radiation = Radiation()
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-coupled_simulation = Simulation(coupled_model, Δt=10minutes, stop_time=14days)
+coupled_simulation = Simulation(coupled_model, Δt=10minutes, stop_iteration=10)#stop_time=14days)
 @info "Coupled simulation built. " * prettytime((time_ns() - start_time) * 1e-9)
 
 wall_clock = Ref(time_ns())
@@ -119,12 +119,14 @@ const c = Center()
 function progress(sim)
     msg = string("Iter: ", iteration(sim), ", time: ", prettytime(sim))
 
-    #=
     elapsed = 1e-9 * (time_ns() - wall_clock[])
     msg *= string(", wall time: ", prettytime(elapsed))
     wall_clock[] = time_ns()
-    =#
 
+    u, v, w = sim.model.ocean.model.velocities
+    msg *= @sprintf(", max|u|: (%.2e, %.2e)", maximum(abs, u), maximum(abs, v))
+
+    #=
     t = time(sim)
     X = node(1, 1, 1, sim.model.ocean.model.grid, c, c, c)
     uai = interp_atmos_time_series(ua, X, Time(t), atmos_grid) 
@@ -133,9 +135,6 @@ function progress(sim)
     qai = interp_atmos_time_series(qa, X, Time(t), atmos_grid) 
 
     msg *= @sprintf(", ua: %.2e, va: %.2e, Ta: %.2f, qa: %.2e", uai, vai, Tai, qai)
-
-    u, v, w = sim.model.ocean.model.velocities
-    msg *= @sprintf(", max|u|: (%.2e, %.2e)", maximum(abs, u), maximum(abs, v))
 
     T = sim.model.ocean.model.tracers.T
     S = sim.model.ocean.model.tracers.S
@@ -151,8 +150,6 @@ function progress(sim)
     Q = first(sim.model.fluxes.total.ocean.heat)
     msg *= @sprintf(", Q: %.2f W m⁻²", Q)
 
-
-    #=
     Nz = size(T, 3)
     msg *= @sprintf(", T₀: %.2f ᵒC",     first(interior(T, 1, 1, Nz)))
     msg *= @sprintf(", extrema(T): (%.2f, %.2f) ᵒC", minimum(T), maximum(T))
@@ -163,7 +160,7 @@ function progress(sim)
     @info msg
 end
 
-coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
+coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(1))
 
 run!(coupled_simulation)
 

@@ -177,26 +177,27 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     downwelling_radiation = (shortwave=Qs.data, longwave=Ql.data)
 
     launch!(arch, grid, :xy, compute_atmosphere_ocean_turbulent_fluxes!,
-            grid, clock,
-            centered_velocity_fluxes,
-            net_tracer_fluxes,
-            similarity_theory,
-            freshwater_flux,
-            downwelling_radiation,
-            radiation_properties,
+            grid,
+            clock,
             ocean_state,
+            coupled_model.fluxes.ocean_temperature_units,
             atmosphere_state,
+            downwelling_radiation,
+            freshwater_flux,
             atmosphere_grid,
             atmosphere_times,
             atmosphere_backend,
             atmosphere_time_indexing,
             atmosphere.reference_height, # height at which the state is known
-            atmosphere.thermodynamics_parameters,
-            coupled_model.fluxes.ocean_reference_density,
-            coupled_model.fluxes.ocean_heat_capacity,
-            coupled_model.fluxes.freshwater_density,
-            coupled_model.fluxes.ocean_temperature_units,
-            ice_concentration)
+            atmosphere.thermodynamics_parameters)
+            #similarity_theory)
+            # centered_velocity_fluxes,
+            # net_tracer_fluxes,
+            # radiation_properties,
+            # coupled_model.fluxes.ocean_reference_density,
+            # coupled_model.fluxes.ocean_heat_capacity,
+            # coupled_model.fluxes.freshwater_density,
+            # ice_concentration)
 
     # Note: I think this can be avoided if we modify the preceding kernel
     # to compute from 0:Nx+1, ie in halo regions
@@ -213,25 +214,25 @@ const f = Face()
 
 @kernel function compute_atmosphere_ocean_turbulent_fluxes!(grid,
                                                             clock,
-                                                            centered_velocity_fluxes,
-                                                            net_tracer_fluxes,
-                                                            similarity_theory,
-                                                            prescribed_freshwater_flux,
-                                                            downwelling_radiation,
-                                                            radiation_properties,
                                                             ocean_state,
+                                                            ocean_temperature_units,
                                                             atmos_state,
+                                                            downwelling_radiation,
+                                                            prescribed_freshwater_flux,
                                                             atmos_grid,
                                                             atmos_times,
                                                             atmos_backend,
                                                             atmos_time_indexing,
                                                             atmosphere_reference_height,
-                                                            atmosphere_thermodynamics_parameters,
-                                                            ocean_reference_density,
-                                                            ocean_heat_capacity,
-                                                            freshwater_density,
-                                                            ocean_temperature_units,
-                                                            ice_concentration)
+                                                            atmos_thermodynamics_parameters)
+                                                            #similarity_theory)
+                                                            # centered_velocity_fluxes,
+                                                            # net_tracer_fluxes,
+                                                            # radiation_properties,
+                                                            # ocean_reference_density,
+                                                            # ocean_heat_capacity,
+                                                            # freshwater_density,
+                                                            # ice_concentration)
 
     i, j = @index(Global, NTuple)
     kᴺ = size(grid, 3)
@@ -246,7 +247,9 @@ const f = Face()
         Tₒ = ocean_state.T[i, j, 1]
         Tₒ = convert_to_kelvin(ocean_temperature_units, Tₒ)
         Sₒ = ocean_state.S[i, j, 1]
+    end
 
+    @inbounds begin
         # Atmos state, which is _assumed_ to exist at location = (c, c, nothing)
         # The third index "k" should not matter but we put the correct index to get
         # a surface node anyways.
@@ -272,7 +275,7 @@ const f = Face()
     # Notation:
     #   ⋅ 𝒬 ≡ thermodynamic state vector
     #   ⋅ 𝒰 ≡ "dynamic" state vector (thermodynamics + reference height + velocity)
-    ℂₐ = atmosphere_thermodynamics_parameters
+    ℂₐ = atmos_thermodynamics_parameters
     𝒬ₐ = thermodynamic_atmospheric_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₐ, qₐ)
 
     hₐ = atmosphere_reference_height # elevation of atmos variables relative to surface
@@ -282,8 +285,8 @@ const f = Face()
     # Build surface state with saturated specific humidity
     surface_type = AtmosphericThermodynamics.Liquid()
     qₒ = seawater_saturation_specific_humidity(ℂₐ, Tₒ, Sₒ, 𝒬ₐ,
-                                               similarity_theory.water_mole_fraction,
-                                               similarity_theory.water_vapor_saturation,
+                                               0.98, #similarity_theory.water_mole_fraction,
+                                               ClasiusClapyeronSaturation(), #similarity_theory.water_vapor_saturation,
                                                surface_type)
     
     # Thermodynamic and dynamic surface state
@@ -293,6 +296,7 @@ const f = Face()
     Uₒ = SVector(uₒ, vₒ)
     𝒰₀ = dynamic_ocean_state = SurfaceFluxes.StateValues(h₀, Uₒ, 𝒬₀)
 
+    #=
     turbulent_fluxes = compute_turbulent_fluxes(similarity_theory.roughness_lengths,
                                                 similarity_theory,
                                                 dynamic_atmos_state,
@@ -340,6 +344,7 @@ const f = Face()
         Jᵀ[i, j, 1] = ifelse(inactive, 0, atmos_ocean_Jᵀ)
         Jˢ[i, j, 1] = ifelse(inactive, 0, atmos_ocean_Jˢ)
     end
+    =#
 end
 
 @kernel function reconstruct_momentum_fluxes!(grid, J, Jᶜᶜᶜ)
