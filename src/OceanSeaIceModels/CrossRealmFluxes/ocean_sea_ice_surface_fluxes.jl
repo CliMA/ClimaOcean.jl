@@ -190,13 +190,14 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             atmosphere_time_indexing,
             atmosphere.reference_height, # height at which the state is known
             atmosphere.thermodynamics_parameters,
-            similarity_theory.roughness_lengths)
+            similarity_theory.roughness_lengths,
+            similarity_theory.fields)
             # centered_velocity_fluxes,
             # net_tracer_fluxes,
             # radiation_properties,
             # coupled_model.fluxes.ocean_reference_density,
             # coupled_model.fluxes.ocean_heat_capacity,
-            # coupled_model.fluxes.freshwater_density,
+            # coupled_model.fluxes.freshwater_density)
             # ice_concentration)
 
     # Note: I think this can be avoided if we modify the preceding kernel
@@ -225,13 +226,14 @@ const f = Face()
                                                             atmos_time_indexing,
                                                             atmosphere_reference_height,
                                                             atmos_thermodynamics_parameters,
-                                                            roughness_lengths)
-                                                            # centered_velocity_fluxes,
-                                                            # net_tracer_fluxes,
-                                                            # radiation_properties,
-                                                            # ocean_reference_density,
-                                                            # ocean_heat_capacity,
-                                                            # freshwater_density,
+                                                            roughness_lengths,
+                                                            similarity_theory_fields)
+                                                            #centered_velocity_fluxes,
+                                                            #net_tracer_fluxes,
+                                                            #radiation_properties,
+                                                            #ocean_reference_density,
+                                                            #ocean_heat_capacity,
+                                                            #freshwater_density)
                                                             # ice_concentration)
 
     i, j = @index(Global, NTuple)
@@ -303,6 +305,8 @@ const f = Face()
                                                         dynamic_atmos_state,
                                                         ℂₐ, g, ϰ)
         
+    update_turbulent_flux_fields!(similarity_theory_fields, i, j, grid, turbulent_fluxes)
+
     #=
     # Compute heat fluxes, bulk flux first
     Qc = turbulent_fluxes.sensible_heat # sensible or "conductive" heat flux
@@ -320,9 +324,9 @@ const f = Face()
     # Add the contribution from the turbulent water vapor flux
     Fv = turbulent_fluxes.water_vapor / ρᶠ
     ΣF += Fv
+    =#
 
-    update_turbulent_flux_fields!(similarity_theory.fields, i, j, grid, turbulent_fluxes)
-
+    #=
     # Compute fluxes for u, v, T, S from momentum, heat, and freshwater fluxes
     Jᵘ = centered_velocity_fluxes.u
     Jᵛ = centered_velocity_fluxes.v
