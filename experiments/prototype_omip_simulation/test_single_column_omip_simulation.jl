@@ -24,7 +24,7 @@ locations = (
     tasman_southern_ocean = (λ = 145, φ = -55), 
 )
 
-arch = GPU()
+arch = CPU()
 location = :ocean_station_papa
 
 start_time = time_ns()

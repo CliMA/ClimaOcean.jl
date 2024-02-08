@@ -189,8 +189,8 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             atmosphere_backend,
             atmosphere_time_indexing,
             atmosphere.reference_height, # height at which the state is known
-            atmosphere.thermodynamics_parameters)
-            #similarity_theory)
+            atmosphere.thermodynamics_parameters,
+            similarity_theory.roughness_lengths)
             # centered_velocity_fluxes,
             # net_tracer_fluxes,
             # radiation_properties,
@@ -224,8 +224,8 @@ const f = Face()
                                                             atmos_backend,
                                                             atmos_time_indexing,
                                                             atmosphere_reference_height,
-                                                            atmos_thermodynamics_parameters)
-                                                            #similarity_theory)
+                                                            atmos_thermodynamics_parameters,
+                                                            roughness_lengths)
                                                             # centered_velocity_fluxes,
                                                             # net_tracer_fluxes,
                                                             # radiation_properties,
@@ -296,12 +296,14 @@ const f = Face()
     Uₒ = SVector(uₒ, vₒ)
     𝒰₀ = dynamic_ocean_state = SurfaceFluxes.StateValues(h₀, Uₒ, 𝒬₀)
 
-    #=
-    turbulent_fluxes = compute_turbulent_fluxes(similarity_theory.roughness_lengths,
-                                                similarity_theory,
-                                                dynamic_atmos_state,
-                                                dynamic_ocean_state)
+    g = 9.81
+    ϰ = 0.4
+    turbulent_fluxes = compute_similarity_theory_fluxes(roughness_lengths,
+                                                        dynamic_ocean_state,
+                                                        dynamic_atmos_state,
+                                                        ℂₐ, g, ϰ)
         
+    #=
     # Compute heat fluxes, bulk flux first
     Qc = turbulent_fluxes.sensible_heat # sensible or "conductive" heat flux
     Qv = turbulent_fluxes.latent_heat   # latent heat flux associated with vapor tranpsort
