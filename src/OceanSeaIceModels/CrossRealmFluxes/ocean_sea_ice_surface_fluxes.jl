@@ -176,29 +176,40 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     Ql = atmosphere.downwelling_radiation.longwave
     downwelling_radiation = (shortwave=Qs.data, longwave=Ql.data)
 
-    launch!(arch, grid, :xy, compute_atmosphere_ocean_turbulent_fluxes!,
+    launch!(arch, grid, :xy, compute_atmosphere_ocean_similarity_theory_fluxes!,
+            similarity_theory.fields,
             grid,
             clock,
             ocean_state,
             coupled_model.fluxes.ocean_temperature_units,
             atmosphere_state,
-            downwelling_radiation,
-            freshwater_flux,
             atmosphere_grid,
             atmosphere_times,
             atmosphere_backend,
             atmosphere_time_indexing,
             atmosphere.reference_height, # height at which the state is known
             atmosphere.thermodynamics_parameters,
-            similarity_theory.roughness_lengths,
-            similarity_theory.fields)
-            # centered_velocity_fluxes,
-            # net_tracer_fluxes,
-            # radiation_properties,
-            # coupled_model.fluxes.ocean_reference_density,
-            # coupled_model.fluxes.ocean_heat_capacity,
-            # coupled_model.fluxes.freshwater_density)
-            # ice_concentration)
+            similarity_theory.roughness_lengths)
+
+    launch!(arch, grid, :xy, assemble_atmosphere_ocean_fluxes!,
+            centered_velocity_fluxes,
+            net_tracer_fluxes,
+            grid,
+            clock,
+            ocean_state.T,
+            ocean_state.S,
+            coupled_model.fluxes.ocean_temperature_units,
+            similarity_theory.fields,
+            downwelling_radiation,
+            freshwater_flux,
+            atmosphere_grid,
+            atmosphere_times,
+            atmosphere_backend,
+            atmosphere_time_indexing,
+            radiation_properties,
+            coupled_model.fluxes.ocean_reference_density,
+            coupled_model.fluxes.ocean_heat_capacity,
+            coupled_model.fluxes.freshwater_density)
 
     # Note: I think this can be avoided if we modify the preceding kernel
     # to compute from 0:Nx+1, ie in halo regions
@@ -213,29 +224,20 @@ end
 const c = Center()
 const f = Face()
 
-@kernel function compute_atmosphere_ocean_turbulent_fluxes!(grid,
-                                                            clock,
-                                                            ocean_state,
-                                                            ocean_temperature_units,
-                                                            atmos_state,
-                                                            downwelling_radiation,
-                                                            prescribed_freshwater_flux,
-                                                            atmos_grid,
-                                                            atmos_times,
-                                                            atmos_backend,
-                                                            atmos_time_indexing,
-                                                            atmosphere_reference_height,
-                                                            atmos_thermodynamics_parameters,
-                                                            roughness_lengths,
-                                                            similarity_theory_fields)
-                                                            #centered_velocity_fluxes,
-                                                            #net_tracer_fluxes,
-                                                            #radiation_properties,
-                                                            #ocean_reference_density,
-                                                            #ocean_heat_capacity,
-                                                            #freshwater_density)
-                                                            # ice_concentration)
-
+@kernel function compute_atmosphere_ocean_similarity_theory_fluxes!(similarity_theory_fields,
+                                                                    grid,
+                                                                    clock,
+                                                                    ocean_state,
+                                                                    ocean_temperature_units,
+                                                                    atmos_state,
+                                                                    atmos_grid,
+                                                                    atmos_times,
+                                                                    atmos_backend,
+                                                                    atmos_time_indexing,
+                                                                    atmosphere_reference_height,
+                                                                    atmos_thermodynamics_parameters,
+                                                                    roughness_lengths)
+                                                            
     i, j = @index(Global, NTuple)
     kᴺ = size(grid, 3)
 
@@ -256,21 +258,14 @@ const f = Face()
         # The third index "k" should not matter but we put the correct index to get
         # a surface node anyways.
         X = node(i, j, kᴺ + 1, grid, c, c, f)
-
         atmos_args = (atmos_grid, atmos_times, atmos_backend, atmos_time_indexing)
+
         uₐ = interp_atmos_time_series(atmos_state.u, X, time, atmos_args...)
         vₐ = interp_atmos_time_series(atmos_state.v, X, time, atmos_args...)
 
         Tₐ = interp_atmos_time_series(atmos_state.T, X, time, atmos_args...)
         pₐ = interp_atmos_time_series(atmos_state.p, X, time, atmos_args...)
         qₐ = interp_atmos_time_series(atmos_state.q, X, time, atmos_args...)
-
-        Qs = interp_atmos_time_series(downwelling_radiation.shortwave, X, time, atmos_args...)
-        Qℓ = interp_atmos_time_series(downwelling_radiation.longwave,  X, time, atmos_args...)
-
-        # Accumulate mass fluxes of freshwater due to rain, snow, rivers,
-        # icebergs, and whatever else.
-        M = interp_atmos_time_series(prescribed_freshwater_flux, X, time, atmos_args...)
     end
 
     # Build thermodynamic and dynamic states in the atmosphere and surface.
@@ -305,28 +300,85 @@ const f = Face()
                                                         dynamic_atmos_state,
                                                         ℂₐ, g, ϰ)
         
-    update_turbulent_flux_fields!(similarity_theory_fields, i, j, grid, turbulent_fluxes)
+    Qv = similarity_theory_fields.latent_heat
+    Qc = similarity_theory_fields.sensible_heat
+    Fv = similarity_theory_fields.water_vapor
+    τx = similarity_theory_fields.x_momentum
+    τy = similarity_theory_fields.y_momentum
+    kᴺ = size(grid, 3) # index of the top ocean cell
 
-    #=
+    inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
+
+    @inbounds begin
+        # +0: cooling, -0: heating
+        Qv[i, j, 1] = ifelse(inactive, 0, turbulent_fluxes.latent_heat)
+        Qc[i, j, 1] = ifelse(inactive, 0, turbulent_fluxes.sensible_heat)
+        Fv[i, j, 1] = ifelse(inactive, 0, turbulent_fluxes.water_vapor)
+        τx[i, j, 1] = ifelse(inactive, 0, turbulent_fluxes.x_momentum)
+        τy[i, j, 1] = ifelse(inactive, 0, turbulent_fluxes.y_momentum)
+    end
+end
+
+@kernel function assemble_atmosphere_ocean_fluxes!(centered_velocity_fluxes,
+                                                   net_tracer_fluxes,
+                                                   grid,
+                                                   clock,
+                                                   ocean_temperature,
+                                                   ocean_salinity,
+                                                   ocean_temperature_units,
+                                                   similarity_theory_fields,
+                                                   downwelling_radiation,
+                                                   prescribed_freshwater_flux,
+                                                   atmos_grid,
+                                                   atmos_times,
+                                                   atmos_backend,
+                                                   atmos_time_indexing,
+                                                   radiation_properties,
+                                                   ocean_reference_density,
+                                                   ocean_heat_capacity,
+                                                   freshwater_density)
+
+    i, j = @index(Global, NTuple)
+    kᴺ = size(grid, 3)
+    time = Time(clock.time)
+
+    @inbounds begin
+        Tₒ = ocean_temperature[i, j, 1]
+        Tₒ = convert_to_kelvin(ocean_temperature_units, Tₒ)
+        Sₒ = ocean_salinity[i, j, 1]
+
+        X = node(i, j, kᴺ + 1, grid, c, c, f)
+        atmos_args = (atmos_grid, atmos_times, atmos_backend, atmos_time_indexing)
+
+        Qs = interp_atmos_time_series(downwelling_radiation.shortwave, X, time, atmos_args...)
+        Qℓ = interp_atmos_time_series(downwelling_radiation.longwave,  X, time, atmos_args...)
+
+        # Accumulate mass fluxes of freshwater due to rain, snow, rivers,
+        # icebergs, and whatever else.
+        Mp = interp_atmos_time_series(prescribed_freshwater_flux, X, time, atmos_args...)
+
+        Qc = similarity_theory_fields.sensible_heat[i, j, 1] # sensible or "conductive" heat flux
+        Qv = similarity_theory_fields.latent_heat[i, j, 1] # sensible or "conductive" heat flux
+        Mv = similarity_theory_fields.water_vapor[i, j, 1] # sensible or "conductive" heat flux
+        τx = similarity_theory_fields.x_momentum[i, j, 1] # sensible or "conductive" heat flux
+        τy = similarity_theory_fields.y_momentum[i, j, 1] # sensible or "conductive" heat flux
+    end
+
     # Compute heat fluxes, bulk flux first
-    Qc = turbulent_fluxes.sensible_heat # sensible or "conductive" heat flux
-    Qv = turbulent_fluxes.latent_heat   # latent heat flux associated with vapor tranpsort
     Qd = net_downwelling_radiation(i, j, grid, time, Qs, Qℓ, radiation_properties)
-    Qu = net_upwelling_radiation(i, j, grid, time, radiation_properties, ocean_state, ocean_temperature_units)
+    Qu = net_upwelling_radiation(i, j, grid, time, radiation_properties, Tₒ)
     ΣQ = Qd + Qu + Qc + Qv
 
     # Convert from a mass flux to a volume flux (aka velocity)
     # by dividing by the density of freshwater.
     # Also switch the sign, for some reason we are given freshwater flux as positive down.
     ρᶠ = freshwater_density
-    ΣF = - M / ρᶠ
+    ΣF = - Mp / ρᶠ
 
     # Add the contribution from the turbulent water vapor flux
-    Fv = turbulent_fluxes.water_vapor / ρᶠ
+    Fv = Mv / ρᶠ
     ΣF += Fv
-    =#
 
-    #=
     # Compute fluxes for u, v, T, S from momentum, heat, and freshwater fluxes
     Jᵘ = centered_velocity_fluxes.u
     Jᵛ = centered_velocity_fluxes.v
@@ -336,8 +388,8 @@ const f = Face()
     ρₒ = ocean_reference_density
     cₒ = ocean_heat_capacity
 
-    atmos_ocean_Jᵘ = turbulent_fluxes.x_momentum / ρₒ
-    atmos_ocean_Jᵛ = turbulent_fluxes.y_momentum / ρₒ
+    atmos_ocean_Jᵘ = τx / ρₒ
+    atmos_ocean_Jᵛ = τy / ρₒ
     atmos_ocean_Jᵀ = ΣQ / (ρₒ * cₒ)
     atmos_ocean_Jˢ = - Sₒ * ΣF
 
@@ -350,7 +402,6 @@ const f = Face()
         Jᵀ[i, j, 1] = ifelse(inactive, 0, atmos_ocean_Jᵀ)
         Jˢ[i, j, 1] = ifelse(inactive, 0, atmos_ocean_Jˢ)
     end
-    =#
 end
 
 @kernel function reconstruct_momentum_fluxes!(grid, J, Jᶜᶜᶜ)
@@ -367,13 +418,9 @@ end
     return @inbounds - (1 - α) * Qs - Qℓ
 end
 
-@inline function net_upwelling_radiation(i, j, grid, time, radiation, ocean_state, ocean_temperature_units)
+@inline function net_upwelling_radiation(i, j, grid, time, radiation, Tₒ)
     σ = radiation.stefan_boltzmann_constant
     ϵ = stateindex(radiation.emission.ocean, i, j, 1, time)
-
-    # Ocean surface temperature (departure from reference, typically in ᵒC)
-    Tₒ = @inbounds ocean_state.T[i, j, 1]
-    Tₒ = convert_to_kelvin(ocean_temperature_units, Tₒ)
 
     # Note: positive implies _upward_ heat flux, and therefore cooling.
     return ϵ * σ * Tₒ^4

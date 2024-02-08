@@ -217,22 +217,7 @@ end
 @inline update_turbulent_flux_fields!(::Nothing, args...) = nothing
 
 @inline function update_turbulent_flux_fields!(fields, i, j, grid, fluxes)
-    Qv = fields.latent_heat
-    Qc = fields.sensible_heat
-    Fv = fields.water_vapor
-    τx = fields.x_momentum
-    τy = fields.y_momentum
-    kᴺ = size(grid, 3) # index of the top ocean cell
-    inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
-    @inbounds begin
-        # +0: cooling, -0: heating
-        Qv[i, j, 1] = ifelse(inactive, 0, fluxes.latent_heat)
-        Qc[i, j, 1] = ifelse(inactive, 0, fluxes.sensible_heat)
-        Fv[i, j, 1] = ifelse(inactive, 0, fluxes.water_vapor)
-        τx[i, j, 1] = ifelse(inactive, 0, fluxes.x_momentum)
-        τy[i, j, 1] = ifelse(inactive, 0, fluxes.y_momentum)
-    end
-    return nothing
+        return nothing
 end
 
 @inline compute_similarity_theory_fluxes(turbulent_fluxes, atmos_state, surface_state) =
