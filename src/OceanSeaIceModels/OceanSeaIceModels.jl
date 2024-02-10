@@ -56,7 +56,9 @@ import .CrossRealmFluxes: compute_atmosphere_ocean_fluxes!
 
 # "No atmosphere" implementation
 const NoAtmosphereModel = OceanSeaIceModel{<:Any, Nothing}
+const NoSeaIceModel = OceanSeaIceModel{Nothing}
 compute_atmosphere_ocean_fluxes!(coupled_model::NoAtmosphereModel) = nothing
+compute_sea_ice_ocean_fluxes!(coupled_model::NoSeaIceModel) = nothing
 
 end # module
 

@@ -11,7 +11,73 @@ using ClimaSeaIce.HeatBoundaryConditions: IceWaterThermalEquilibrium
 
 using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 
-function omip_ocean_component(grid)
+function regional_ecco2_grid(arch, Te, other_fields...; latitude, longitude)
+
+    i₁ = 4 * first(longitude) + 1
+    i₂ = 1440 - 4 * (360 - last(longitude))
+    i₂ > i₁ || error("longitude $longitude is invalid.")
+    Nx = i₂ - i₁ + 1
+
+    j₁ = 4 * (90 + first(latitude)) + 1
+    j₂ = 720 - 4 * (90 - last(latitude))
+    j₂ > j₁ || error("latitude $latitude is invalid.")
+    Ny = j₂ - j₁ + 1
+
+    zc = znodes(Te)
+    zf = znodes(Te.grid, Face())
+    Δz = first(zspacings(Te.grid, Center()))
+
+    Tᵢ = interior(Te, i₁:i₂, j₁:j₂, :)
+
+    # Construct bottom_height depth by analyzing T
+    Nx, Ny, Nz = size(Tᵢ)
+    bottom_height = ones(Nx, Ny) .* (zf[1] - Δz)
+
+    land = Tᵢ .< -10
+    Tᵢ[land] .= NaN
+
+    for i = 1:Nx, j = 1:Ny
+        @inbounds for k = Nz:-1:1
+            if isnan(Tᵢ[i, j, k])
+                bottom_height[i, j] = zf[k+1]
+                break
+            end
+        end
+    end
+
+    Tᵢ = arch_array(arch, Tᵢ)
+
+    Tx = if longitude[2] - longitude[1] == 360
+        Periodic
+    else
+        Bounded
+    end
+
+    grid = LatitudeLongitudeGrid(arch; latitude, longitude,
+                                 size = (Nx, Ny, Nz),
+                                 halo = (7, 7, 7),
+                                 z = zf,
+                                 topology = (Periodic, Bounded, Bounded))
+
+    grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
+
+    Nf = length(other_fields)
+
+    ft = ntuple(Nf) do n
+        fe = other_fields[n]
+        fᵢ = interior(fe, i₁:i₂, j₁:j₂, :)
+        fᵢ[land] .= NaN
+        fᵢ = arch_array(arch, fᵢ)
+    end
+
+    all_fields = tuple(Tᵢ, ft...)
+
+    return grid, all_fields
+end
+
+function omip_ocean_component(grid;
+                              closure = :default,
+                              passive_tracers = tuple())
 
     start_time = time_ns()
 
@@ -41,13 +107,18 @@ function omip_ocean_component(grid)
                                              vertical_scheme = WENO())
     end
 
-    mixing_length = MixingLength(Cᵇ=0.01)
-    turbulent_kinetic_energy_equation = TurbulentKineticEnergyEquation(Cᵂϵ=1.0)
-    closure = CATKEVerticalDiffusivity(; mixing_length, turbulent_kinetic_energy_equation)
+    tracers = tuple(:T, :S, passive_tracers...)
+
+    if closure == :default
+        mixing_length = MixingLength(Cᵇ=0.01)
+        turbulent_kinetic_energy_equation = TurbulentKineticEnergyEquation(Cᵂϵ=1.0)
+        closure = CATKEVerticalDiffusivity(; mixing_length, turbulent_kinetic_energy_equation)
+        tracers = tuple(:e, tracers...)
+    end
     
     ocean_model = HydrostaticFreeSurfaceModel(; grid, buoyancy, closure,
                                               tracer_advection, momentum_advection,
-                                              tracers = (:T, :S, :e),
+                                              tracers = (:T, :S), #, :e),
                                               free_surface = SplitExplicitFreeSurface(cfl=0.7; grid),
                                               boundary_conditions = ocean_boundary_conditions,
                                               coriolis = HydrostaticSphericalCoriolis())
@@ -99,12 +170,12 @@ function omip_sea_ice_component(ocean_model)
 
     sea_ice_model = SlabSeaIceModel(sea_ice_grid;
                                     velocities = ocean_surface_velocities,
-                                    advection = nothing,
+                                    advection = WENO(),
                                     ice_consolidation_thickness = 0.05,
                                     ice_salinity = 4,
                                     internal_heat_flux = ConductiveFlux(conductivity=2),
                                     top_heat_flux = ConstantField(0), # W m⁻²
-                                    top_heat_boundary_condition = PrescribedTemperature(0),
+                                    top_heat_boundary_condition = PrescribedTemperature(-10),
                                     bottom_heat_boundary_condition = bottom_bc,
                                     bottom_heat_flux = sea_ice_ocean_heat_flux)
 

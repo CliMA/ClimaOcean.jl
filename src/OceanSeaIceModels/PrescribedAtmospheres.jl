@@ -335,6 +335,8 @@ function PrescribedAtmosphere(times, FT=Float64;
                                 convert(FT, reference_height))
 end
 
+update_model_field_time_series!(::Nothing, time) = nothing
+
 function update_model_field_time_series!(atmos::PrescribedAtmosphere, time)
     ftses = extract_field_time_series(atmos)
     for fts in ftses

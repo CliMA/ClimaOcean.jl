@@ -94,7 +94,7 @@ start_time = time_ns()
 Ndays = 2
 Nt = 8 * Ndays
 # atmosphere = JRA55_prescribed_atmosphere(1:Nt, backend=InMemory(8), architecture=GPU()) #, 1:21)
-atmosphere = JRA55_prescribed_atmosphere(1:Nt, backend=InMemory(), architecture=arch)
+atmosphere = JRA55_prescribed_atmosphere(1:Nt, backend=InMemory(8), architecture=arch)
 @info "Atmosphere built. " * prettytime((time_ns() - start_time) * 1e-9)
 
 # Build coupled simulation
@@ -102,7 +102,7 @@ start_time = time_ns()
 sea_ice = nothing
 radiation = Radiation()
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-coupled_simulation = Simulation(coupled_model, Δt=10minutes, stop_iteration=10)#stop_time=14days)
+coupled_simulation = Simulation(coupled_model, Δt=10minutes, stop_time=14days)
 @info "Coupled simulation built. " * prettytime((time_ns() - start_time) * 1e-9)
 
 wall_clock = Ref(time_ns())

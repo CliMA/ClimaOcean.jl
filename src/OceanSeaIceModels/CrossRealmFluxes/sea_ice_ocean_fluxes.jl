@@ -1,7 +1,8 @@
 using ClimaSeaIce: melting_temperature
+using Oceananigans.Operators: Δzᶜᶜᶜ
 
 function compute_sea_ice_ocean_fluxes!(coupled_model)
-    compute_sea_ice_ocean_salinity_flux!(coupled_model)
+    #compute_sea_ice_ocean_salinity_flux!(coupled_model)
     sea_ice_ocean_latent_heat_flux!(coupled_model)
     return nothing
 end
@@ -18,7 +19,7 @@ function compute_sea_ice_ocean_salinity_flux!(coupled_model)
     Sᵢ = sea_ice.model.ice_salinity
     Δt = ocean.Δt
     hⁿ = sea_ice.model.ice_thickness
-    h⁻ = coupled_model.previous_ice_thickness
+    h⁻ = coupled_model.fluxes.previous_ice_thickness
 
     launch!(arch, grid, :xy, _compute_sea_ice_ocean_salinity_flux!,
             Qˢ, grid, hⁿ, h⁻, Sᵢ, Sₒ, Δt)
@@ -60,8 +61,8 @@ end
 function sea_ice_ocean_latent_heat_flux!(coupled_model)
     ocean = coupled_model.ocean
     sea_ice = coupled_model.sea_ice
-    ρₒ = coupled_model.ocean_reference_density
-    cₒ = coupled_model.ocean_heat_capacity
+    ρₒ = coupled_model.fluxes.ocean_reference_density
+    cₒ = coupled_model.fluxes.ocean_heat_capacity
     Qₒ = sea_ice.model.external_heat_fluxes.bottom
     Tₒ = ocean.model.tracers.T
     Sₒ = ocean.model.tracers.S
@@ -80,6 +81,7 @@ function sea_ice_ocean_latent_heat_flux!(coupled_model)
     return nothing
 end
 
+#=
 function adjust_ice_covered_ocean_temperature!(coupled_model)
     sea_ice_ocean_latent_heat_flux!(coupled_model)
     sea_ice = coupled_model.sea_ice
@@ -87,6 +89,7 @@ function adjust_ice_covered_ocean_temperature!(coupled_model)
     parent(Qₒ) .= 0
     return nothing
 end
+=#
 
 @kernel function _compute_sea_ice_ocean_latent_heat_flux!(latent_heat_flux,
                                                           grid,
@@ -107,7 +110,7 @@ end
     δQ = zero(grid)
     icy_cell = @inbounds hᵢ[i, j, 1] > 0 # make ice bath approximation then
 
-    @unroll for k = Nz:-1:1
+    for k = Nz:-1:1
         @inbounds begin
             # Various quantities
             Δz = Δzᶜᶜᶜ(i, j, k, grid)

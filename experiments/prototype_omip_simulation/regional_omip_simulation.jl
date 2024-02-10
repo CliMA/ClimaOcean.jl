@@ -18,108 +18,36 @@ start_time = time_ns()
 include("omip_components.jl")
 
 arch = GPU()
+
+#####
+##### Construct initial conditions + grid
+#####
+
 epoch = Date(1992, 1, 1)
-date = Date(1992, 10, 1)
+date = Date(1992, 1, 2)
 start_seconds = Second(date - epoch).value
-# uᵢ = ecco2_field(:u_velocity, date)
-# vᵢ = ecco2_field(:v_velocity, date)
 Te = ecco2_field(:temperature, date)
 Se = ecco2_field(:salinity, date)
-ℋe = ecco2_field(:sea_ice_thickness, date)
 
-land = interior(Te) .< -10
-interior(Te)[land] .= NaN
-interior(Se)[land] .= NaN
-
-elapsed = time_ns() - start_time
-@info "Initial condition built. " * prettytime(elapsed * 1e-9)
-start_time = time_ns()
-
-#####
-##### Construct the grid
-#####
-
-latitude = (-75, -30)
+latitude = (-45, +45)
 longitude = (0, 360)
+grid, (Tᵢ, Sᵢ) = regional_ecco2_grid(arch, Te, Se; latitude, longitude)
 
-i₁ = 4 * first(longitude) + 1
-i₂ = 1440 - 4 * (360 - last(longitude))
-Nx = i₂ - i₁ + 1
-
-j₁ = 4 * (90 + first(latitude)) + 1
-j₂ = 720 - 4 * (90 - last(latitude))
-Ny = j₂ - j₁ + 1
-
-zc = znodes(Te)
-zf = znodes(Te.grid, Face())
-Δz = first(zspacings(Te.grid, Center()))
-
-Tᵢ = interior(Te, i₁:i₂, j₁:j₂, :)
-Sᵢ = interior(Se, i₁:i₂, j₁:j₂, :)
-ℋᵢ = interior(ℋe, i₁:i₂, j₁:j₂, :)
-
-# Construct bottom_height depth by analyzing T
-Nx, Ny, Nz = size(Tᵢ)
-bottom_height = ones(Nx, Ny) .* (zf[1] - Δz)
-
-for i = 1:Nx, j = 1:Ny
-    @inbounds for k = Nz:-1:1
-        if isnan(Tᵢ[i, j, k])
-            bottom_height[i, j] = zf[k+1]
-            break
-        end
-    end
-end
-
-Tᵢ = arch_array(arch, Tᵢ)
-Sᵢ = arch_array(arch, Sᵢ)
-ℋᵢ = arch_array(arch, ℋᵢ)
-
-if longitude[2] - longitude[1] == 360
-    TX = Periodic
-else
-    TX = Bounded
-end
-
-grid = LatitudeLongitudeGrid(arch; latitude, longitude,
-                             size = (Nx, Ny, Nz),
-                             halo = (7, 7, 7),
-                             z = zf,
-                             topology = (Periodic, Bounded, Bounded))
-
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
-
-elapsed = time_ns() - start_time
-@info "Grid constructed. " * prettytime(elapsed * 1e-9)
-start_time = time_ns()
-
-ocean = omip_ocean_component(grid)
-elapsed = time_ns() - start_time
-@info "Ocean component built. " * prettytime(elapsed * 1e-9)
-start_time = time_ns()
-
-#=
-Ndays = 30
-Nt = 8 * Ndays
+Nt = 8 * 30
 atmosphere = JRA55_prescribed_atmosphere(arch, 1:Nt; backend=InMemory(8))
-elapsed = time_ns() - start_time
-@info "Atmosphere built. " * prettytime(elapsed * 1e-9)
-start_time = time_ns()
-=#
+radiation = Radiation()
+sea_ice = nothing
 
-atmosphere = nothing
+ocean = omip_ocean_component(grid, closure=RiBasedVerticalDiffusivity())
+set!(ocean.model, T=Tᵢ, S=Sᵢ)
 
-ocean.model.clock.time = start_seconds
-ocean.model.clock.iteration = 0
-set!(ocean.model, T=Tᵢ, S=Sᵢ, e=1e-6)
+if :e ∈ keys(ocean.model.tracers)
+    set!(ocean.model, e=1e-6)
+end
 
-sea_ice = omip_sea_ice_component(ocean.model) #nothing
-set!(sea_ice.model, h=ℋᵢ)
-
-radiation = nothing # Radiation()
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-
-stop_time = start_seconds + 90days
+coupled_model.clock.time = start_seconds
+stop_time = start_seconds + 30days
 coupled_simulation = Simulation(coupled_model, Δt=10minutes, stop_time=stop_time)
 
 elapsed = time_ns() - start_time
@@ -140,17 +68,21 @@ function progress(sim)
 
     T = sim.model.ocean.model.tracers.T
     S = sim.model.ocean.model.tracers.S
-    e = sim.model.ocean.model.tracers.e
 
     msg *= @sprintf(", extrema(T): (%.2f, %.2f) ᵒC", maximum(T), minimum(T))
     msg *= @sprintf(", extrema(S): (%.2f, %.2f) g kg⁻¹", minimum(S), maximum(S))
-    msg *= @sprintf(", extrema(e): (%.2f, %.2f) m² s⁻²", minimum(e), maximum(e))
+
+    #e = sim.model.ocean.model.tracers.e
+    #msg *= @sprintf(", extrema(e): (%.2f, %.2f) m² s⁻²", minimum(e), maximum(e))
 
     @info msg
 end
 
 coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
 
+run!(coupled_simulation)
+
+#=
 # Build flux outputs
 Jᵘ = coupled_model.fluxes.total.ocean.momentum.u
 Jᵛ = coupled_model.fluxes.total.ocean.momentum.v
@@ -191,9 +123,3 @@ coupled_simulation.output_writers[:fields] = JLD2OutputWriter(ocean.model, field
                                                               schedule = TimeInterval(1days),
                                                               overwrite_existing = true)
 
-coupled_simulation.output_writers[:seaice] = JLD2OutputWriter(sea_ice.model, (; h = sea_ice.model.ice_thickness);
-                                                              filename = filename * "_sea_ice_thickness",
-                                                              schedule = TimeInterval(1days),
-                                                              overwrite_existing = true)
-
-run!(coupled_simulation)
