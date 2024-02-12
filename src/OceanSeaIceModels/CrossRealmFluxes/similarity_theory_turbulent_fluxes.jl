@@ -387,7 +387,8 @@ end
                                                   atmos_state,
                                                   thermodynamics_parameters,
                                                   gravitational_acceleration,
-                                                  von_karman_constant)
+                                                  von_karman_constant,
+                                                  Σ₀ = SimilarityScales(1e-3, 1e-3, 1e-3))
 
     # Prescribed difference between two states
     ℂₐ = thermodynamics_parameters
@@ -395,8 +396,8 @@ end
     differences = (; u=Δu, v=Δv, θ=Δθ, q=Δq, h=Δh)
 
     # Solve for the characteristic scales u★, θ★, q★, and thus for fluxes.
-    Σ₀ = Σ★ = SimilarityScales(1e-3, 1e-3, 1e-3)
-
+    Σ★ = Σ₀
+ 
     @unroll for iter = 1:10
         Σ★ = refine_characteristic_scales(Σ★,
                                           roughness_lengths, 
@@ -465,6 +466,7 @@ end
     𝒬ₒ = surface_state.ts # thermodyanmic state
     b★ = buoyancy_scale(θ★, q★, 𝒬ₒ, ℂ, g)
     Riₕ = - ϰ * h * b★ / u★^2
+    Riₕ = ifelse(isnan(Riₕ), zero(Riₕ), Riₕ) 
 
     # Compute similarity functions
     ψu = SimilarityFunction(4.7, 15.0, OneQuarter())

@@ -293,12 +293,29 @@ const f = Face()
     Uₒ = SVector(uₒ, vₒ)
     𝒰₀ = dynamic_ocean_state = SurfaceFluxes.StateValues(h₀, Uₒ, 𝒬₀)
 
-    g = 9.81
+    @inbounds begin
+        Qcᵢ = Qc[i, j, 1]
+        Fvᵢ = Fv[i, j, 1]
+        τxᵢ = τx[i, j, 1]
+        τyᵢ = τy[i, j, 1]
+    end
+
+    # Compute initial guess based on previous fluxes
+    𝒬ₐ = atmos_state.ts
+    ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
+    cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
+
+    u★ = sqrt(sqrt(τxᵢ^2 + τyᵢ^2))
+    θ★ = - Qcᵢ / (ρₐ * cₚ * u★)
+    q★ = - Fvᵢ / (ρₐ * u★)
+    Σ★ = SimilarityScales(u★, θ★, q★)
+
+    g = default_gravitational_acceleration
     ϰ = 0.4
     turbulent_fluxes = compute_similarity_theory_fluxes(roughness_lengths,
                                                         dynamic_ocean_state,
                                                         dynamic_atmos_state,
-                                                        ℂₐ, g, ϰ)
+                                                        ℂₐ, g, ϰ, Σ★)
 
     Qv = similarity_theory_fields.latent_heat
     Qc = similarity_theory_fields.sensible_heat
