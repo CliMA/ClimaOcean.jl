@@ -741,17 +741,17 @@ version = "1.2.0"
 
 [[deps.Oceananigans]]
 deps = ["Adapt", "CUDA", "Crayons", "CubedSphere", "Dates", "Distances", "DocStringExtensions", "FFTW", "Glob", "IncompleteLU", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "LinearAlgebra", "Logging", "MPI", "NCDatasets", "OffsetArrays", "OrderedCollections", "PencilArrays", "PencilFFTs", "Pkg", "Printf", "Random", "Rotations", "SeawaterPolynomials", "SparseArrays", "Statistics", "StructArrays"]
-git-tree-sha1 = "85b0b81c4f6d542ab79b095d98de4e2773e03d65"
+git-tree-sha1 = "f6e83dea28d816e28b1765b84503815c43ebf697"
 repo-rev = "ss-glw/time-bcs"
 repo-url = "https://github.com/CliMA/Oceananigans.jl.git"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
 version = "0.90.7"
 
     [deps.Oceananigans.extensions]
-    OceananigansEnzymeCoreExt = "EnzymeCore"
+    OceananigansEnzymeExt = "Enzyme"
 
     [deps.Oceananigans.weakdeps]
-    EnzymeCore = "f151be2c-9106-41f4-ab19-57ee4f262869"
+    Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
 
 [[deps.OffsetArrays]]
 git-tree-sha1 = "6a731f2b5c03157418a20c12195eb4b74c8f8621"

@@ -237,7 +237,7 @@ const f = Face()
                                                                     atmosphere_reference_height,
                                                                     atmos_thermodynamics_parameters,
                                                                     roughness_lengths)
-                                                            
+
     i, j = @index(Global, NTuple)
     kᴺ = size(grid, 3)
 
@@ -299,7 +299,7 @@ const f = Face()
                                                         dynamic_ocean_state,
                                                         dynamic_atmos_state,
                                                         ℂₐ, g, ϰ)
-        
+
     Qv = similarity_theory_fields.latent_heat
     Qc = similarity_theory_fields.sensible_heat
     Fv = similarity_theory_fields.water_vapor
@@ -456,4 +456,3 @@ end
     interp_atmos_time_series(ΣJ[2], args...) +
     interp_atmos_time_series(ΣJ[3], args...) +
     interp_atmos_time_series(ΣJ[4], args...)
-
