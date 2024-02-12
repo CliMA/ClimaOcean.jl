@@ -50,11 +50,11 @@ const STTF = SimilarityTheoryTurbulentFluxes
 
 Adapt.adapt_structure(to, fluxes::STTF) = SimilarityTheoryTurbulentFluxes(adapt(to, fluxes.gravitational_acceleration),
                                                                           adapt(to, fluxes.von_karman_constant),
-                                                                          adapt(to, fluxes.bulk_velocity_scale),
+                                                                          nothing, # adapt(to, fluxes.bulk_velocity_scale),
                                                                           adapt(to, fluxes.similarity_functions),
                                                                           adapt(to, fluxes.thermodynamics_parameters),
-                                                                          adapt(to, fluxes.water_vapor_saturation),
-                                                                          adapt(to, fluxes.water_mole_fraction),
+                                                                          nothing, #adapt(to, fluxes.water_vapor_saturation),
+                                                                          nothing, #adapt(to, fluxes.water_mole_fraction),
                                                                           adapt(to, fluxes.roughness_lengths),
                                                                           adapt(to, fluxes.fields))
 
@@ -107,8 +107,8 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                          thermodynamics_parameters = PATP(FT),
                                          water_vapor_saturation = ClasiusClapyeronSaturation(),
                                          water_mole_fraction = convert(FT, 0.98),
-                                         # roughness_lengths = default_roughness_lengths(FT),
-                                         roughness_lengths = SimilarityScales(1e-3, 1e-3, 1e-3),
+                                         #roughness_lengths = default_roughness_lengths(FT),
+                                         roughness_lengths = SimilarityScales(1e-4, 1e-4, 1e-4),
                                          fields = nothing)
 
     return SimilarityTheoryTurbulentFluxes(convert(FT, gravitational_acceleration),
@@ -244,17 +244,40 @@ SimilarityScales(momentum, temperature) = SimilarityScales(momentum, temperature
 const NothingVaporRoughnessLength = SimilarityScales{<:Number, <:Number, Nothing}
 
 @inline function compute_similarity_theory_fluxes(roughness_lengths::NothingVaporRoughnessLength,
-                                          turbulent_fluxes,
-                                          atmos_state,
-                                          surface_state)
+                                                  surface_state,
+                                                  atmos_state,
+                                                  thermodynamics_parameters,
+                                                  gravitational_acceleration,
+                                                  von_karman_constant)
+
+                                                  # turbulent_fluxes,
+                                                  # atmos_state,
+                                                  # surface_state)
+                                                  
+    FT = Float64
+    similarity_functions = BusingerParams{FT}(Pr_0 = convert(FT, 0.74),
+                                              a_m  = convert(FT, 4.7),
+                                              a_h  = convert(FT, 4.7),
+                                              ζ_a  = convert(FT, 2.5),
+                                              γ    = convert(FT, 4.42))
+
+    turbulent_fluxes = SimilarityTheoryTurbulentFluxes(gravitational_acceleration,
+                                                       von_karman_constant,
+                                                       nothing,
+                                                       similarity_functions,
+                                                       thermodynamics_parameters,
+                                                       nothing,
+                                                       nothing,
+                                                       nothing,
+                                                       nothing)
 
     # Constant roughness lengths
     ℓu = roughness_lengths.momentum
     ℓθ = roughness_lengths.temperature
 
     # Solve for the surface fluxes with initial roughness length guess
-    Uᵍ = zero(zm) # gustiness
-    β = one(zm)   # surface "resistance"
+    Uᵍ = zero(ℓu) # gustiness
+    β = one(ℓu)   # surface "resistance"
     values = SurfaceFluxes.ValuesOnly(atmos_state, surface_state, ℓu, ℓθ, Uᵍ, β)
     conditions = SurfaceFluxes.surface_conditions(turbulent_fluxes, values)
 
@@ -405,11 +428,11 @@ end
     ℰv = AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
 
     fluxes = (;
-        water_vapor   = ρₐ * u★ * q★,
-        sensible_heat = ρₐ * cₚ * u★ * θ★,
-        latent_heat   = ρₐ * u★ * q★ * ℰv,
-        x_momentum    = ρₐ * τx,
-        y_momentum    = ρₐ * τy,
+        water_vapor   = + ρₐ * u★ * q★,
+        sensible_heat = + ρₐ * cₚ * u★ * θ★,
+        latent_heat   = - ρₐ * u★ * q★ * ℰv,
+        x_momentum    = + ρₐ * τx,
+        y_momentum    = + ρₐ * τy,
     )
 
     return fluxes

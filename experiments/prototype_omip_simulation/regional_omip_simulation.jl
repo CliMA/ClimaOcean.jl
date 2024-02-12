@@ -29,16 +29,18 @@ start_seconds = Second(date - epoch).value
 Te = ecco2_field(:temperature, date)
 Se = ecco2_field(:salinity, date)
 
-latitude = (-45, +45)
-longitude = (0, 360)
-grid, (Tᵢ, Sᵢ) = regional_ecco2_grid(arch, Te, Se; latitude, longitude)
+latitude = (-30, 30)
+grid, (Tᵢ, Sᵢ) = regional_ecco2_grid(arch, Te, Se; latitude)
 
 Nt = 8 * 30
 atmosphere = JRA55_prescribed_atmosphere(arch, 1:Nt; backend=InMemory(8))
 radiation = Radiation()
 sea_ice = nothing
 
-ocean = omip_ocean_component(grid, closure=RiBasedVerticalDiffusivity())
+#closure = RiBasedVerticalDiffusivity(maximum_diffusivity=1e2, maximum_viscosity=1e2)
+#closure = RiBasedVerticalDiffusivity()
+closure = :default
+ocean = omip_ocean_component(grid; closure)
 set!(ocean.model, T=Tᵢ, S=Sᵢ)
 
 if :e ∈ keys(ocean.model.tracers)
@@ -48,13 +50,49 @@ end
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 coupled_model.clock.time = start_seconds
 stop_time = start_seconds + 30days
-coupled_simulation = Simulation(coupled_model, Δt=10minutes, stop_time=stop_time)
+coupled_simulation = Simulation(coupled_model, Δt=5minutes, stop_time=stop_time)
 
-elapsed = time_ns() - start_time
-@info "Coupled simulation built. " * prettytime(elapsed * 1e-9)
+elapsed = 1e-9 * (time_ns() - start_time)
+@info string("Coupled simulation built ", prettytime(elapsed), ".")
 start_time = time_ns()
 
 wall_clock = Ref(time_ns())
+
+# Hm...
+
+function clip_diffusivity(coupled_simulation)
+    ocean_model = coupled_simulation.model.ocean.model
+    κᶜ = parent(ocean_model.diffusivity_fields.κᶜ)
+    κᵘ = parent(ocean_model.diffusivity_fields.κᵘ)
+    @. κᶜ = min(κᶜ, 100)
+    @. κᵘ = min(κᵘ, 100)
+    return nothing
+end
+
+coupled_simulation.callbacks[:clip] = Callback(clip_diffusivity)
+
+#####
+##### Progress
+#####
+
+Jᵘ = coupled_model.fluxes.total.ocean.momentum.u
+Jᵛ = coupled_model.fluxes.total.ocean.momentum.v
+Jᵀ = coupled_model.fluxes.total.ocean.tracers.T
+Jˢ = coupled_model.fluxes.total.ocean.tracers.S
+Fv = coupled_model.fluxes.turbulent.fields.water_vapor
+Qc = coupled_model.fluxes.turbulent.fields.sensible_heat
+Qv = coupled_model.fluxes.turbulent.fields.latent_heat
+ρₒ = coupled_model.fluxes.ocean_reference_density
+cₚ = coupled_model.fluxes.ocean_heat_capacity
+
+import Oceananigans.Fields: reduced_dimensions
+reduced_dimensions(::Oceananigans.AbstractOperations.BinaryOperation) = tuple(3)
+
+ΣQ = ρₒ * cₚ * Jᵀ
+τˣ = ρₒ * Jᵘ
+τʸ = ρₒ * Jᵛ
+N² = buoyancy_frequency(ocean.model)
+κᶜ = ocean.model.diffusivity_fields.κᶜ
 
 function progress(sim)
     msg = string("Iter: ", iteration(sim), ", time: ", prettytime(sim))
@@ -69,8 +107,14 @@ function progress(sim)
     T = sim.model.ocean.model.tracers.T
     S = sim.model.ocean.model.tracers.S
 
-    msg *= @sprintf(", extrema(T): (%.2f, %.2f) ᵒC", maximum(T), minimum(T))
-    msg *= @sprintf(", extrema(S): (%.2f, %.2f) g kg⁻¹", minimum(S), maximum(S))
+    msg *= @sprintf(", extrema(T): (%.2f, %.2f) ᵒC",          minimum(T),  maximum(T))
+    msg *= @sprintf(", extrema(S): (%.2f, %.2f) g kg⁻¹",      minimum(S),  maximum(S))
+    msg *= @sprintf(", max|τ|: (%.2e, %.2e) N m⁻²",           maximum(τˣ), maximum(τʸ))
+    msg *= @sprintf(", max|Qv|: %.2e W m⁻²",                  maximum(Qv))
+    msg *= @sprintf(", max|Qc|: %.2e W m⁻²",                  maximum(Qc))
+    msg *= @sprintf(", extrema(ΣQ): (%.2e, %.2e) W m⁻²",      minimum(ΣQ), maximum(ΣQ))
+    msg *= @sprintf(", extrema(Fv): (%.2e, %.2e) kg s⁻¹ m⁻²", minimum(Fv), maximum(Fv))
+    msg *= @sprintf(", extrema(κᶜ): (%.2e, %.2e) m² s⁻¹",     minimum(κᶜ), maximum(κᶜ))
 
     #e = sim.model.ocean.model.tracers.e
     #msg *= @sprintf(", extrema(e): (%.2f, %.2f) m² s⁻²", minimum(e), maximum(e))
@@ -78,7 +122,7 @@ function progress(sim)
     @info msg
 end
 
-coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
+coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(1))
 
 run!(coupled_simulation)
 
@@ -110,12 +154,10 @@ outputs = merge(fields, fluxes)
 
 filename = "regional_omip_simulation"
 
-#=
 coupled_simulation.output_writers[:fluxes] = JLD2OutputWriter(ocean.model, fluxes;
                                                               filename = filename * "_fluxes",
                                                               schedule = TimeInterval(1days),
                                                               overwrite_existing = true)
-=#
 
 coupled_simulation.output_writers[:fields] = JLD2OutputWriter(ocean.model, fields;
                                                               filename = filename * "_fields",
@@ -123,3 +165,4 @@ coupled_simulation.output_writers[:fields] = JLD2OutputWriter(ocean.model, field
                                                               schedule = TimeInterval(1days),
                                                               overwrite_existing = true)
 
+=#

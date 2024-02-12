@@ -17,13 +17,13 @@ start_time = time_ns()
 
 include("omip_components.jl")
 
-arch = GPU()
+arch = CPU()
 epoch = Date(1992, 1, 1)
 date = Date(1992, 10, 1)
 start_seconds = Second(date - epoch).value
 Te = ecco2_field(:temperature, date)
 Se = ecco2_field(:salinity, date)
-ℋe = ecco2_field(:sea_ice_thickness, date)
+# ℋe = ecco2_field(:sea_ice_thickness, date)
 
 land = interior(Te) .< -10
 interior(Te)[land] .= NaN
@@ -54,7 +54,7 @@ zf = znodes(Te.grid, Face())
 
 Tᵢ = interior(Te, i₁:i₂, j₁:j₂, :)
 Sᵢ = interior(Se, i₁:i₂, j₁:j₂, :)
-ℋᵢ = interior(ℋe, i₁:i₂, j₁:j₂, :)
+# ℋᵢ = interior(ℋe, i₁:i₂, j₁:j₂, :)
 
 # Construct bottom_height depth by analyzing T
 Nx, Ny, Nz = size(Tᵢ)
@@ -71,7 +71,7 @@ end
 
 Tᵢ = arch_array(arch, Tᵢ)
 Sᵢ = arch_array(arch, Sᵢ)
-ℋᵢ = arch_array(arch, ℋᵢ)
+# ℋᵢ = arch_array(arch, ℋᵢ)
 
 if longitude[2] - longitude[1] == 360
     TX = Periodic
@@ -86,6 +86,8 @@ grid = LatitudeLongitudeGrid(arch; latitude, longitude,
                              topology = (Periodic, Bounded, Bounded))
 
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
+
+#=
 ocean = omip_ocean_component(grid)
 sea_ice = omip_sea_ice_component(ocean.model)
 
@@ -142,3 +144,4 @@ coupled_simulation.output_writers[:seaice] = JLD2OutputWriter(sea_ice.model, (; 
                                                               overwrite_existing = true)
 
 run!(coupled_simulation)
+=#

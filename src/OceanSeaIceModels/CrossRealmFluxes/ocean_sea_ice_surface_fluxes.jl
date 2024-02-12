@@ -358,10 +358,10 @@ end
         Mp = interp_atmos_time_series(prescribed_freshwater_flux, X, time, atmos_args...)
 
         Qc = similarity_theory_fields.sensible_heat[i, j, 1] # sensible or "conductive" heat flux
-        Qv = similarity_theory_fields.latent_heat[i, j, 1] # sensible or "conductive" heat flux
-        Mv = similarity_theory_fields.water_vapor[i, j, 1] # sensible or "conductive" heat flux
-        τx = similarity_theory_fields.x_momentum[i, j, 1] # sensible or "conductive" heat flux
-        τy = similarity_theory_fields.y_momentum[i, j, 1] # sensible or "conductive" heat flux
+        Qv = similarity_theory_fields.latent_heat[i, j, 1]   # latent heat flux
+        Mv = similarity_theory_fields.water_vapor[i, j, 1]   # mass flux of water vapor
+        τx = similarity_theory_fields.x_momentum[i, j, 1]    # zonal momentum flux
+        τy = similarity_theory_fields.y_momentum[i, j, 1]    # meridional momentum flux
     end
 
     # Compute heat fluxes, bulk flux first

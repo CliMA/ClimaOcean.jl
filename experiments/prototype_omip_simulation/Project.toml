@@ -1,4 +1,5 @@
 [deps]
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 ClimaOcean = "0376089a-ecfe-4b0e-a64f-9c555d74d754"
 ClimaSeaIce = "6ba0ff68-24e6-4315-936c-2e99227c95a4"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"

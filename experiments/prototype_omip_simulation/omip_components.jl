@@ -11,7 +11,22 @@ using ClimaSeaIce.HeatBoundaryConditions: IceWaterThermalEquilibrium
 
 using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 
-function regional_ecco2_grid(arch, Te, other_fields...; latitude, longitude)
+function regional_ecco2_grid(arch, Te, other_fields...;
+                             latitude,
+                             longitude = (0, 360),
+                             halo = (3, 3, 3))
+
+    start_time = time_ns()
+
+    land = interior(Te) .< -10
+    interior(Te)[land] .= NaN
+
+    Nf = length(other_fields)
+
+    ft = ntuple(Nf) do n
+        fe = other_fields[n]
+        interior(fe)[land] .= NaN
+    end
 
     i₁ = 4 * first(longitude) + 1
     i₂ = 1440 - 4 * (360 - last(longitude))
@@ -23,21 +38,22 @@ function regional_ecco2_grid(arch, Te, other_fields...; latitude, longitude)
     j₂ > j₁ || error("latitude $latitude is invalid.")
     Ny = j₂ - j₁ + 1
 
-    zc = znodes(Te)
     zf = znodes(Te.grid, Face())
+    Nz = length(zf) - 1
+
+    grid = LatitudeLongitudeGrid(arch; latitude, longitude,
+                                 size = (Nx, Ny, Nz),
+                                 halo = (7, 7, 7),
+                                 z = zf)
+
+    # Construct bottom_height depth by analyzing T
     Δz = first(zspacings(Te.grid, Center()))
+    bottom_height = ones(Nx, Ny) .* (zf[1] - Δz)
 
     Tᵢ = interior(Te, i₁:i₂, j₁:j₂, :)
 
-    # Construct bottom_height depth by analyzing T
-    Nx, Ny, Nz = size(Tᵢ)
-    bottom_height = ones(Nx, Ny) .* (zf[1] - Δz)
-
-    land = Tᵢ .< -10
-    Tᵢ[land] .= NaN
-
     for i = 1:Nx, j = 1:Ny
-        @inbounds for k = Nz:-1:1
+        for k = Nz:-1:1
             if isnan(Tᵢ[i, j, k])
                 bottom_height[i, j] = zf[k+1]
                 break
@@ -45,32 +61,23 @@ function regional_ecco2_grid(arch, Te, other_fields...; latitude, longitude)
         end
     end
 
-    Tᵢ = arch_array(arch, Tᵢ)
-
-    Tx = if longitude[2] - longitude[1] == 360
-        Periodic
-    else
-        Bounded
-    end
-
-    grid = LatitudeLongitudeGrid(arch; latitude, longitude,
-                                 size = (Nx, Ny, Nz),
-                                 halo = (7, 7, 7),
-                                 z = zf,
-                                 topology = (Periodic, Bounded, Bounded))
-
     grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
+
+    Tᵢ = arch_array(arch, Tᵢ)
 
     Nf = length(other_fields)
 
     ft = ntuple(Nf) do n
         fe = other_fields[n]
         fᵢ = interior(fe, i₁:i₂, j₁:j₂, :)
-        fᵢ[land] .= NaN
         fᵢ = arch_array(arch, fᵢ)
     end
 
     all_fields = tuple(Tᵢ, ft...)
+
+    elapsed = 1e-9 * (time_ns() - start_time)
+    @info string("Grid for regional omip simulation generated in ", prettytime(elapsed), ".")
+    @show grid
 
     return grid, all_fields
 end
@@ -116,9 +123,8 @@ function omip_ocean_component(grid;
         tracers = tuple(:e, tracers...)
     end
     
-    ocean_model = HydrostaticFreeSurfaceModel(; grid, buoyancy, closure,
+    ocean_model = HydrostaticFreeSurfaceModel(; grid, buoyancy, closure, tracers,
                                               tracer_advection, momentum_advection,
-                                              tracers = (:T, :S), #, :e),
                                               free_surface = SplitExplicitFreeSurface(cfl=0.7; grid),
                                               boundary_conditions = ocean_boundary_conditions,
                                               coriolis = HydrostaticSphericalCoriolis())
@@ -126,7 +132,7 @@ function omip_ocean_component(grid;
     ocean = Simulation(ocean_model; Δt=5minutes, verbose=false)
 
     elapsed = time_ns() - start_time
-    msg = string("Finished building ocean component. (" * prettytime(elapsed * 1e-9), ")")
+    msg = string("Finished building ocean component (" * prettytime(elapsed * 1e-9), ").")
     @info msg
 
     return ocean
@@ -182,7 +188,7 @@ function omip_sea_ice_component(ocean_model)
     sea_ice = Simulation(sea_ice_model, Δt=5minutes, verbose=false)
 
     elapsed = time_ns() - start_time
-    msg = string("Finished building sea ice component. (" * prettytime(elapsed * 1e-9), ")")
+    msg = string("Finished building sea ice component (" * prettytime(elapsed * 1e-9), ").")
     @info msg
 
     return sea_ice

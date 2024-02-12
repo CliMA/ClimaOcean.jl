@@ -52,11 +52,14 @@ include("ocean_sea_ice_model.jl")
 include("ocean_only_model.jl")
 include("time_step_ocean_sea_ice_model.jl")
 
-import .CrossRealmFluxes: compute_atmosphere_ocean_fluxes!
+import .CrossRealmFluxes:
+    compute_atmosphere_ocean_fluxes!,
+    compute_sea_ice_ocean_fluxes!
 
 # "No atmosphere" implementation
 const NoAtmosphereModel = OceanSeaIceModel{<:Any, Nothing}
 const NoSeaIceModel = OceanSeaIceModel{Nothing}
+
 compute_atmosphere_ocean_fluxes!(coupled_model::NoAtmosphereModel) = nothing
 compute_sea_ice_ocean_fluxes!(coupled_model::NoSeaIceModel) = nothing
 
