@@ -395,10 +395,10 @@ end
     differences = (; u=Δu, v=Δv, θ=Δθ, q=Δq, h=Δh)
 
     # Solve for the characteristic scales u★, θ★, q★, and thus for fluxes.
-    Γ₀ = Γ★ = SimilarityScales(1e-3, 1e-3, 1e-3)
+    Σ₀ = Σ★ = SimilarityScales(1e-3, 1e-3, 1e-3)
 
     @unroll for iter = 1:10
-        Γ★ = refine_characteristic_scales(Γ★,
+        Σ★ = refine_characteristic_scales(Σ★,
                                           roughness_lengths, 
                                           surface_state,
                                           differences,
@@ -407,9 +407,9 @@ end
                                           von_karman_constant)
     end
 
-    u★ = Γ★.momentum
-    θ★ = Γ★.temperature
-    q★ = Γ★.water_vapor
+    u★ = Σ★.momentum
+    θ★ = Σ★.temperature
+    q★ = Σ★.water_vapor
 
     # u★² ≡ sqrt(τx² + τy²)
     τx = - u★^2 * Δu / sqrt(Δu^2 + Δv^2)
@@ -431,7 +431,7 @@ end
     return fluxes
 end
 
-@inline compute_roughness_length(ℓ::Number, Γ★)
+@inline compute_roughness_length(ℓ::Number, Σ★)
 
 @inline function refine_characteristic_scales(estimated_characteristic_scales,
                                               roughness_lengths,
@@ -445,16 +445,16 @@ end
     u★ = estimated_characteristic_scales.momentum
     θ★ = estimated_characteristic_scales.temperature
     q★ = estimated_characteristic_scales.water_vapor
-    Γ★ = estimated_characteristic_scales
+    Σ★ = estimated_characteristic_scales
 
     # Extract roughness lengths
     ℓu = roughness_lengths.momentum
     ℓθ = roughness_lengths.temperature
     ℓq = roughness_lengths.water_vapor
 
-    ℓu₀ = compute_roughness_length(ℓu₀, Γ★)
-    ℓθ₀ = compute_roughness_length(ℓθ₀, Γ★)
-    ℓq₀ = compute_roughness_length(ℓq₀, Γ★)
+    ℓu₀ = compute_roughness_length(ℓu, Σ★)
+    ℓθ₀ = compute_roughness_length(ℓθ, Σ★)
+    ℓq₀ = compute_roughness_length(ℓq, Σ★)
 
     # Compute flux Richardson number
     h = differences.h
@@ -505,8 +505,8 @@ function GravityWaveRoughnessLength(FT=Float64;
                                       convert(FT, laminar_parameter))
 end
 
-@inline function compute_roughness_length(ℓ::GravityWaveRoughnessLength, Γ★)
-    u★ = Γ★.momentum
+@inline function compute_roughness_length(ℓ::GravityWaveRoughnessLength, Σ★)
+    u★ = Σ★.momentum
     g = ℓ.gravitational_acceleration
     ν = ℓ.air_kinematic_viscosity
     α = ℓ.gravity_wave_parameter
