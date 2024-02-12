@@ -91,12 +91,6 @@ function Base.show(io::IO, fluxes::SimilarityTheoryTurbulentFluxes)
           "└── thermodynamics_parameters: ",    summary(fluxes.thermodynamics_parameters))
 end
 
-function default_roughness_lengths(FT=Float64)
-    momentum = convert(FT, 1e-4)
-    heat     = convert(FT, 1e-4)
-    return SimilarityScales(momentum, heat)
-end
-
 const PATP = PrescribedAtmosphereThermodynamicsParameters
 
 function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
@@ -107,8 +101,7 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                          thermodynamics_parameters = PATP(FT),
                                          water_vapor_saturation = ClasiusClapyeronSaturation(),
                                          water_mole_fraction = convert(FT, 0.98),
-                                         #roughness_lengths = default_roughness_lengths(FT),
-                                         roughness_lengths = SimilarityScales(1e-4, 1e-4, 1e-4),
+                                         roughness_lengths = default_roughness_lengths(FT),
                                          fields = nothing)
 
     return SimilarityTheoryTurbulentFluxes(convert(FT, gravitational_acceleration),
@@ -428,7 +421,7 @@ end
     ℰv = AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
 
     fluxes = (;
-        water_vapor   = + ρₐ * u★ * q★,
+        water_vapor   = - ρₐ * u★ * q★,
         sensible_heat = + ρₐ * cₚ * u★ * θ★,
         latent_heat   = - ρₐ * u★ * q★ * ℰv,
         x_momentum    = + ρₐ * τx,
@@ -437,6 +430,8 @@ end
 
     return fluxes
 end
+
+@inline compute_roughness_length(ℓ::Number, Γ★)
 
 @inline function refine_characteristic_scales(estimated_characteristic_scales,
                                               roughness_lengths,
@@ -450,11 +445,16 @@ end
     u★ = estimated_characteristic_scales.momentum
     θ★ = estimated_characteristic_scales.temperature
     q★ = estimated_characteristic_scales.water_vapor
+    Γ★ = estimated_characteristic_scales
 
     # Extract roughness lengths
     ℓu = roughness_lengths.momentum
     ℓθ = roughness_lengths.temperature
     ℓq = roughness_lengths.water_vapor
+
+    ℓu₀ = compute_roughness_length(ℓu₀, Γ★)
+    ℓθ₀ = compute_roughness_length(ℓθ₀, Γ★)
+    ℓq₀ = compute_roughness_length(ℓq₀, Γ★)
 
     # Compute flux Richardson number
     h = differences.h
@@ -486,10 +486,40 @@ end
     return SimilarityScales(u★, θ★, q★)
 end
 
-#=
 struct GravityWaveRoughnessLength{FT}
     gravitational_acceleration :: FT
+    air_kinematic_viscosity :: FT
     gravity_wave_parameter :: FT
     laminar_parameter :: FT
 end
-=#
+
+function GravityWaveRoughnessLength(FT=Float64;
+                                    gravitational_acceleration = default_gravitational_acceleration,
+                                    air_kinematic_viscosity = 1.5e-5,
+                                    gravity_wave_parameter = 0.011,
+                                    laminar_parameter = 0.11)
+
+    return GravityWaveRoughnessLength(convert(FT, gravitational_acceleration),
+                                      convert(FT, air_kinematic_viscosity),
+                                      convert(FT, gravity_wave_parameter),
+                                      convert(FT, laminar_parameter))
+end
+
+@inline function compute_roughness_length(ℓ::GravityWaveRoughnessLength, Γ★)
+    u★ = Γ★.momentum
+    g = ℓ.gravitational_acceleration
+    ν = ℓ.air_kinematic_viscosity
+    α = ℓ.gravity_wave_parameter
+    β = ℓ.laminar_parameter
+
+    return α * u★^2 / g + β * ν / u★
+end
+
+function default_roughness_lengths(FT=Float64)
+    momentum    = GravityWaveRoughnessLength(FT)
+    temperature = convert(FT, 1e-4)
+    water_vapor = convert(FT, 1e-4)
+    return SimilarityScales(momentum, temperature, water_vapor)
+end
+
+
