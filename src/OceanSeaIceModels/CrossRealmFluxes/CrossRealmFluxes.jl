@@ -5,7 +5,7 @@ using Oceananigans
 export Radiation,
        OceanSeaIceSurfaceFluxes
 
-using ..OceanSeaIceModels: SKOFTS
+using ..OceanSeaIceModels: SKOFTS, default_gravitational_acceleration
 
 import ..OceanSeaIceModels: surface_velocities,
                             surface_tracers

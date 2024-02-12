@@ -51,6 +51,8 @@ const celsius_to_kelvin = 273.15
 Base.summary(crf::OceanSeaIceSurfaceFluxes) = "OceanSeaIceSurfaceFluxes"
 Base.show(io::IO, crf::OceanSeaIceSurfaceFluxes) = print(io, summary(crf))
 
+const SlabSeaIceSimulation = Simulation{<:SlabSeaIceModel}
+
 function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
                                   atmosphere = nothing,
                                   radiation = nothing,
@@ -77,12 +79,12 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
 
     prescribed_fluxes = nothing
 
-    if isnothing(sea_ice)
-        previous_ice_thickness = nothing
-        previous_ice_concentration = nothing
-    else
+    if sea_ice isa SlabSeaIceSimulation
         previous_ice_thickness = deepcopy(sea_ice.model.ice_thickness)
         previous_ice_concentration = deepcopy(sea_ice.model.ice_concentration)
+    else
+        previous_ice_thickness = nothing
+        previous_ice_concentration = nothing
     end
 
     ocean_grid = ocean.model.grid
@@ -293,6 +295,12 @@ const f = Face()
     Uₒ = SVector(uₒ, vₒ)
     𝒰₀ = dynamic_ocean_state = SurfaceFluxes.StateValues(h₀, Uₒ, 𝒬₀)
 
+    Qv = similarity_theory_fields.latent_heat
+    Qc = similarity_theory_fields.sensible_heat
+    Fv = similarity_theory_fields.water_vapor
+    τx = similarity_theory_fields.x_momentum
+    τy = similarity_theory_fields.y_momentum
+
     @inbounds begin
         Qcᵢ = Qc[i, j, 1]
         Fvᵢ = Fv[i, j, 1]
@@ -301,7 +309,6 @@ const f = Face()
     end
 
     # Compute initial guess based on previous fluxes
-    𝒬ₐ = atmos_state.ts
     ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
     cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
 
@@ -317,11 +324,6 @@ const f = Face()
                                                         dynamic_atmos_state,
                                                         ℂₐ, g, ϰ, Σ★)
 
-    Qv = similarity_theory_fields.latent_heat
-    Qc = similarity_theory_fields.sensible_heat
-    Fv = similarity_theory_fields.water_vapor
-    τx = similarity_theory_fields.x_momentum
-    τy = similarity_theory_fields.y_momentum
     kᴺ = size(grid, 3) # index of the top ocean cell
 
     inactive = inactive_node(i, j, kᴺ, grid, c, c, c)

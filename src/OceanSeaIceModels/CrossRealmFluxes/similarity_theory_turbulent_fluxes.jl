@@ -432,7 +432,8 @@ end
     return fluxes
 end
 
-@inline compute_roughness_length(ℓ::Number, Σ★)
+@inline compute_roughness_length(ℓ::Number, Σ★) = ℓ
+@inline compute_roughness_length(ℓ, Σ★) = ℓ(Σ★)
 
 @inline function refine_characteristic_scales(estimated_characteristic_scales,
                                               roughness_lengths,
@@ -472,9 +473,9 @@ end
     ψu = SimilarityFunction(4.7, 15.0, OneQuarter())
     ψc = SimilarityFunction(6.35, 9.0, OneHalf())
 
-    χu = bulk_factor(ψu, h, ℓu, Riₕ)
-    χθ = bulk_factor(ψc, h, ℓθ, Riₕ)
-    χq = bulk_factor(ψc, h, ℓq, Riₕ)
+    χu = bulk_factor(ψu, h, ℓu₀, Riₕ)
+    χθ = bulk_factor(ψc, h, ℓθ₀, Riₕ)
+    χq = bulk_factor(ψc, h, ℓq₀, Riₕ)
 
     Δu = differences.u
     Δv = differences.v
@@ -518,7 +519,7 @@ end
 end
 
 function default_roughness_lengths(FT=Float64)
-    momentum    = GravityWaveRoughnessLength(FT)
+    momentum    = 1e-4 #GravityWaveRoughnessLength(FT)
     temperature = convert(FT, 1e-4)
     water_vapor = convert(FT, 1e-4)
     return SimilarityScales(momentum, temperature, water_vapor)

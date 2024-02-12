@@ -13,6 +13,8 @@ using Oceananigans.TimeSteppers: tick!
 using Oceananigans.Models: AbstractModel
 using Oceananigans.OutputReaders: FieldTimeSeries, GPUAdaptedFieldTimeSeries
 
+using ClimaSeaIce: melting_temperature
+
 using KernelAbstractions: @kernel, @index
 using KernelAbstractions.Extras.LoopInfo: @unroll
 
@@ -62,6 +64,44 @@ const NoSeaIceModel = OceanSeaIceModel{Nothing}
 
 compute_atmosphere_ocean_fluxes!(coupled_model::NoAtmosphereModel) = nothing
 compute_sea_ice_ocean_fluxes!(coupled_model::NoSeaIceModel) = nothing
+
+#####
+##### A fairly dumb, but nevertheless effective "sea ice model"
+#####
+
+struct FreezingLimitedOceanTemperature{L}
+    liquidus :: L
+end
+
+const FreezingLimitedCoupledModel = OceanSeaIceModel{<:FreezingLimitedOceanTemperature}
+
+sea_ice_concentration(::FreezingLimitedOceanTemperature) = nothing
+
+function compute_sea_ice_ocean_fluxes!(cm::FreezingLimitedCoupledModel)
+    ocean = cm.ocean
+    liquidus = cm.sea_ice.liquidus
+    grid = ocean.model.grid
+    arch = architecture(grid)
+    Sₒ = ocean.model.tracers.S
+    Tₒ = ocean.model.tracers.T
+
+    launch!(arch, grid, :xyz,  above_freezing_ocean_temperature!, Tₒ, Sₒ, liquidus)
+
+    return nothing
+end
+
+@kernel function above_freezing_ocean_temperature!(Tₒ, Sₒ, liquidus)
+
+    i, j, k = @index(Global, NTuple)
+
+    @inbounds begin
+        Sᵢ = Sₒ[i, j, k]
+        Tᵢ = Tₒ[i, j, k]
+    end
+
+    Tₘ = melting_temperature(liquidus, Sᵢ)
+    Tₒ = ifelse(Tᵢ < Tₘ, Tₘ, Tᵢ)
+end
 
 end # module
 
