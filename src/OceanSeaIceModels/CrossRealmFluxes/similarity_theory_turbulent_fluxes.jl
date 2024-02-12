@@ -412,8 +412,8 @@ end
     q★ = Γ★.water_vapor
 
     # u★² ≡ sqrt(τx² + τy²)
-    τx = u★^2 * Δu / sqrt(Δu^2 + Δv^2)
-    τy = u★^2 * Δv / sqrt(Δu^2 + Δv^2)
+    τx = - u★^2 * Δu / sqrt(Δu^2 + Δv^2)
+    τy = - u★^2 * Δv / sqrt(Δu^2 + Δv^2)
 
     𝒬ₐ = atmos_state.ts
     ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
@@ -422,7 +422,7 @@ end
 
     fluxes = (;
         water_vapor   = - ρₐ * u★ * q★,
-        sensible_heat = + ρₐ * cₚ * u★ * θ★,
+        sensible_heat = - ρₐ * cₚ * u★ * θ★,
         latent_heat   = - ρₐ * u★ * q★ * ℰv,
         x_momentum    = + ρₐ * τx,
         y_momentum    = + ρₐ * τy,
