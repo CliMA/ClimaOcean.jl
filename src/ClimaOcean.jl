@@ -1,6 +1,6 @@
 module ClimaOcean
 
-export OceanSeaIceModel
+export OceanSeaIceModel, FreezingLimitedOceanTemperature
 
 using Oceananigans
 using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
