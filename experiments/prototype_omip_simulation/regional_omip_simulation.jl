@@ -29,7 +29,7 @@ start_seconds = Second(date - epoch).value
 Te = ecco2_field(:temperature, date)
 Se = ecco2_field(:salinity, date)
 
-latitude = (-30, 30)
+latitude = (-75, 75)
 grid, (Tᵢ, Sᵢ) = regional_ecco2_grid(arch, Te, Se; latitude)
 
 Nt = 8 * 30
@@ -122,7 +122,7 @@ function progress(sim)
     @info msg
 end
 
-coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(1))
+coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
 
 run!(coupled_simulation)
 
