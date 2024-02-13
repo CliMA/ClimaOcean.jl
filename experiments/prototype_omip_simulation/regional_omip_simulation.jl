@@ -6,7 +6,7 @@ using Oceananigans.Units: Time
 
 using ClimaOcean
 using ClimaOcean.OceanSeaIceModels: Radiation, FreezingLimitedOceanTemperature
-using ClimaOcean.DataWrangling.JRA55: JRA55_prescribed_atmosphere
+using ClimaOcean.DataWrangling.JRA55: JRA55_prescribed_atmosphere, JRA55NetCDFBackend
 using ClimaOcean.DataWrangling.ECCO2: ecco2_field
 
 using ClimaSeaIce: LinearLiquidus
@@ -19,7 +19,7 @@ start_time = time_ns()
 
 include("omip_components.jl")
 
-arch = GPU()
+arch = CPU()
 
 #####
 ##### Construct initial conditions + grid
@@ -31,10 +31,11 @@ start_seconds = Second(date - epoch).value
 Te = ecco2_field(:temperature, date)
 Se = ecco2_field(:salinity, date)
 
-latitude = (-75, -30)
+latitude = (-75, -70)
 grid, (Tᵢ, Sᵢ) = regional_ecco2_grid(arch, Te, Se; latitude)
 
-atmosphere = JRA55_prescribed_atmosphere(arch, 1:56; backend=InMemory(8))
+backend = JRA55NetCDFBackend(8) # InMemory(8)
+atmosphere = JRA55_prescribed_atmosphere(arch, 1:56; backend)
 radiation = Radiation()
 
 #closure = RiBasedVerticalDiffusivity(maximum_diffusivity=1e2, maximum_viscosity=1e2)

@@ -2,7 +2,7 @@
 
 julia_version = "1.10.0-rc1"
 manifest_format = "2.0"
-project_hash = "0892c27a537f93187841c13e787e804f45c1eef4"
+project_hash = "0204d58122a575f7f52ca1de92995a3fd07761d1"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -1304,7 +1304,7 @@ version = "0.5.5"
 
 [[deps.Oceananigans]]
 deps = ["Adapt", "CUDA", "Crayons", "CubedSphere", "Dates", "Distances", "DocStringExtensions", "FFTW", "Glob", "IncompleteLU", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "LinearAlgebra", "Logging", "MPI", "NCDatasets", "OffsetArrays", "OrderedCollections", "PencilArrays", "PencilFFTs", "Pkg", "Printf", "Random", "Rotations", "SeawaterPolynomials", "SparseArrays", "Statistics", "StructArrays"]
-git-tree-sha1 = "a086be6e839305355aa0c9cb373fa03d83561ef4"
+git-tree-sha1 = "049eaac46129363e968e01388345a8fce8e9badb"
 repo-rev = "ss-glw/time-bcs"
 repo-url = "https://github.com/CliMA/Oceananigans.jl.git"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
