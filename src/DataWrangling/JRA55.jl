@@ -6,7 +6,7 @@ using Oceananigans.Units
 using Oceananigans.BoundaryConditions: fill_halo_regions!
 using Oceananigans.Grids: λnodes, φnodes, on_architecture
 using Oceananigans.Fields: interpolate!
-using Oceananigans.OutputReaders: Cyclical, TotallyInMemory
+using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBackend, FlavorOfFTS
 
 using ClimaOcean.OceanSeaIceModels:
     PrescribedAtmosphere,
@@ -14,6 +14,10 @@ using ClimaOcean.OceanSeaIceModels:
 
 using NCDatasets
 using JLD2 
+using Dates
+
+import Oceananigans.Fields: set!
+import Oceananigans.OutputReaders: new_backend
 
 # A list of all variables provided in the JRA55 dataset:
 JRA55_variable_names = (:freshwater_river_flux,
@@ -165,12 +169,69 @@ function compute_bounding_indices(grid, LX, LY, λc, φc)
     return i₁, i₂, j₁, j₂, TX
 end
 
-function jra55_times(Nt, start_time=0)
-    Δt = 3hours # just what it is
+# Convert dates to range until Oceananigans supports dates natively
+function jra55_times(native_times, start_time=DateTimeNoLeap(1900, 01, 01))
+    Nt = length(native_times)
+    Δt = native_times[2] - native_times[1] # assume all times are equispaced
+    Δt = Second(Δt).value
+
+    start_time = native_times[1] - start_time
+    start_time = Second(start_time).value
+
     stop_time = start_time + Δt * (Nt - 1)
     times = start_time:Δt:stop_time
+
     return times
 end
+
+struct JRA55NetCDFBackend <: AbstractInMemoryBackend{Int}
+    start :: Int
+    length :: Int
+end
+
+"""
+    JRA55NetCDFBackend(length)
+
+Represents a JRA55 FieldTimeSeries backed by JRA55 native .nc files.
+"""
+JRA55NetCDFBackend(length) = JRA55NetCDFBackend(1, length)
+
+Base.length(backend::JRA55NetCDFBackend) = backend.length
+Base.summary(backend::JRA55NetCDFBackend) = string("JRA55NetCDFBackend(", backend.start, ", ", backend.length, ")")
+
+const JRA55NetCDFFTS = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend}
+
+function set!(fts::JRA55NetCDFFTS, path::String=fts.path, name::String=fts.name) 
+
+    ds = Dataset(path)
+
+    # Note that each file should have the variables
+    #   - ds["time"]:     time coordinate 
+    #   - ds["lon"]:      longitude at the location of the variable
+    #   - ds["lat"]:      latitude at the location of the variable
+    #   - ds["lon_bnds"]: bounding longitudes between which variables are averaged
+    #   - ds["lat_bnds"]: bounding latitudes between which variables are averaged
+    #   - ds[shortname]:  the variable data
+
+    # Nodes at the variable location
+    λc = ds["lon"][:]
+    φc = ds["lat"][:]
+    LX, LY, LZ = location(fts)
+    i₁, i₂, j₁, j₂, TX = compute_bounding_indices(fts.grid, LX, LY, λc, φc)
+
+    ti = time_indices(fts)
+    native_times = ds["time"][ti]
+    times = jra55_times(native_times)
+    data = ds[name][i₁:i₂, j₁:j₂, ti]
+    close(ds)
+
+    interior(fts) .= data
+    fill_halo_regions!(fts)
+
+    return nothing
+end
+
+new_backend(::JRA55NetCDFBackend, start, length) = JRA55NetCDFBackend(start, length)
 
 """
     JRA55_field_time_series(variable_name;
@@ -271,6 +332,7 @@ function JRA55_field_time_series(variable_name;
     # Record some important user decisions
     totally_in_memory = backend isa TotallyInMemory
     on_native_grid = isnothing(grid)
+    !on_native_grid && backend isa JRA55NetCDFBackend && error("Can't use custom grid with JRA55NetCDFBackend.")
 
     jld2_filename = string("JRA55_repeat_year_", variable_name, ".jld2")
     fts_name = field_time_series_short_names[variable_name]
@@ -373,7 +435,7 @@ function JRA55_field_time_series(variable_name;
     TX = Periodic
     =#
 
-    times = ds["time"][time_indices_in_memory]
+    native_times = ds["time"][time_indices_in_memory]
     data = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
     λr = λn[i₁:i₂+1]
     φr = φn[j₁:j₂+1]
@@ -393,20 +455,29 @@ function JRA55_field_time_series(variable_name;
     # Hack together the `times` for the JRA55 dataset we are currently using.
     # We might want to use the acutal dates instead though.
     # So the following code might need to change.
-    times = jra55_times(length(times))
+    times = jra55_times(native_times)
 
     # Make times into an array for later preprocessing
     if !totally_in_memory
         times = collect(times)
     end
 
-    native_fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times;
-                                                          time_indexing,
-                                                          boundary_conditions)
-
-    # Fill the data in a GPU-friendly manner
-    copyto!(interior(native_fts, :, :, 1, :), data)
-    fill_halo_regions!(native_fts)
+    if backend isa JRA55NetCDFBackend
+        fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times;
+                                                       backend,
+                                                       time_indexing,
+                                                       boundary_conditions,
+                                                       path = filename,
+                                                       name = shortname)
+        return fts
+    else
+        native_fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times;
+                                                              time_indexing,
+                                                              boundary_conditions)
+        # Fill the data in a GPU-friendly manner
+        copyto!(interior(native_fts, :, :, 1, :), data)
+        fill_halo_regions!(native_fts)
+    end
 
     if on_native_grid
         fts = native_fts
