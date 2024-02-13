@@ -100,7 +100,7 @@ end
     end
 
     Tₘ = melting_temperature(liquidus, Sᵢ)
-    Tₒ = ifelse(Tᵢ < Tₘ, Tₘ, Tᵢ)
+    @inbounds Tₒ[i, j, k] = ifelse(Tᵢ < Tₘ, Tₘ, Tᵢ)
 end
 
 end # module
