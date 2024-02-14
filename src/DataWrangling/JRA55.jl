@@ -6,7 +6,7 @@ using Oceananigans.Units
 using Oceananigans.BoundaryConditions: fill_halo_regions!
 using Oceananigans.Grids: λnodes, φnodes, on_architecture
 using Oceananigans.Fields: interpolate!
-using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBackend, FlavorOfFTS
+using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBackend, FlavorOfFTS, time_indices
 
 using ClimaOcean.OceanSeaIceModels:
     PrescribedAtmosphere,
@@ -220,12 +220,13 @@ function set!(fts::JRA55NetCDFFTS, path::String=fts.path, name::String=fts.name)
     i₁, i₂, j₁, j₂, TX = compute_bounding_indices(fts.grid, LX, LY, λc, φc)
 
     ti = time_indices(fts)
+    ti = collect(ti)
     native_times = ds["time"][ti]
     times = jra55_times(native_times)
     data = ds[name][i₁:i₂, j₁:j₂, ti]
     close(ds)
 
-    interior(fts) .= data
+    copyto!(interior(fts, :, :, 1, :), data)
     fill_halo_regions!(fts)
 
     return nothing
@@ -426,14 +427,6 @@ function JRA55_field_time_series(variable_name;
     # TODO: support loading just part of the JRA55 data.
     # Probably with arguments that take latitude, longitude bounds.
     i₁, i₂, j₁, j₂, TX = compute_bounding_indices(grid, LX, LY, λc, φc)
-
-    #=
-    Nx = length(λc)
-    Ny = length(φc)
-    i₁, i₂ = (1, Nx)
-    j₁, j₂ = (1, Ny)
-    TX = Periodic
-    =#
 
     native_times = ds["time"][time_indices_in_memory]
     data = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
