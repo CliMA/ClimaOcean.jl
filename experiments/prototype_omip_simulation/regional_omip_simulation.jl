@@ -28,11 +28,10 @@ arch = CPU()
 epoch = Date(1992, 1, 1)
 date = Date(1992, 1, 2)
 start_seconds = Second(date - epoch).value
-Te = ecco2_field(:temperature, date)
-Se = ecco2_field(:salinity, date)
+Te = ecco2_field(:temperature, date, architecture=arch)
 
 latitude = (-75, -70)
-grid, (Tᵢ, Sᵢ) = regional_ecco2_grid(arch, Te, Se; latitude)
+grid, Tᵢ = regional_omip_grid(arch, Te; latitude)
 
 backend = JRA55NetCDFBackend(8) # InMemory(8)
 atmosphere = JRA55_prescribed_atmosphere(arch, 1:56; backend)
@@ -42,7 +41,11 @@ radiation = Radiation()
 #closure = RiBasedVerticalDiffusivity()
 closure = :default
 ocean = omip_ocean_component(grid; closure)
-set!(ocean.model, T=Tᵢ, S=Sᵢ)
+@show size(Tᵢ) ocean.model.grid
+set!(ocean.model, T=Tᵢ) #, S=Sᵢ)
+
+Se = ecco2_field(:salinity, date, architecture=arch)
+interpolate!(ocean.model.tracers.S, Se)
 
 if :e ∈ keys(ocean.model.tracers)
     set!(ocean.model, e=1e-6)

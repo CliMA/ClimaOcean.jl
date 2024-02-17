@@ -1,85 +1,101 @@
-using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities:
+ using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities:
     CATKEVerticalDiffusivity,
     MixingLength,
     TurbulentKineticEnergyEquation
 
-using Oceananigans.Grids: halo_size, topology, φnodes, λnodes
-using Oceananigans.Fields: ConstantField, ZeroField
+using Oceananigans.Architectures: architecture
+using Oceananigans.Grids: halo_size, topology, φnodes, λnodes, znode
+using Oceananigans.Fields: ConstantField, ZeroField, interpolate!
+using Oceananigans.Utils: launch!
 
 using ClimaSeaIce
 using ClimaSeaIce.HeatBoundaryConditions: IceWaterThermalEquilibrium
 
+using KernelAbstractions: @kernel, @index
+
 using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 
-function regional_ecco2_grid(arch, Te, other_fields...;
-                             latitude,
-                             longitude = (0, 360),
-                             halo = (3, 3, 3))
+#=
+Nf = length(other_fields)
+ft = ntuple(Nf) do n
+    fe = other_fields[n]
+    interior(fe)[land] .= NaN
+end
+=#
+
+#=
+i₁ = 4 * first(longitude) + 1
+i₂ = 1440 - 4 * (360 - last(longitude))
+i₂ > i₁ || error("longitude $longitude is invalid.")
+Nx = i₂ - i₁ + 1
+
+j₁ = 4 * (90 + first(latitude)) + 1
+j₂ = 720 - 4 * (90 - last(latitude))
+j₂ > j₁ || error("latitude $latitude is invalid.")
+Ny = j₂ - j₁ + 1
+=#
+#=
+Tᵢ = interior(Te, i₁:i₂, j₁:j₂, :)
+bottom_height = - Inf .* ones(Nx, Ny)
+for i = 1:Nx, j = 1:Ny
+    for k = Nz:-1:1
+        if isnan(Tᵢ[i, j, k])
+            bottom_height[i, j] = znode(i, j, k+1, grid, c, c, f)
+            break
+        end
+    end
+end
+Tᵢ = arch_array(arch, Tᵢ)
+=#
+
+function regional_omip_grid(arch, ecco_2_temperature_field;
+                            latitude,
+                            longitude = (0, 360),
+                            z = znodes(ecco_2_temperature_field.grid, Face()),
+                            resolution = 1/4, # degree
+                            halo = (7, 7, 7))
 
     start_time = time_ns()
 
-    land = interior(Te) .< -10
-    interior(Te)[land] .= NaN
+    Te = ecco_2_temperature_field
+    launch!(architecture(Te), Te.grid, :xyz, nan_land!, Te)
+    
+    ΔΛ = last(longitude) - first(longitude)
+    ΔΦ = last(latitude) - first(latitude)
+    Nx = Int(ΔΛ / resolution)
+    Ny = Int(ΔΦ / resolution)
 
-    Nf = length(other_fields)
-
-    ft = ntuple(Nf) do n
-        fe = other_fields[n]
-        interior(fe)[land] .= NaN
-    end
-
-    i₁ = 4 * first(longitude) + 1
-    i₂ = 1440 - 4 * (360 - last(longitude))
-    i₂ > i₁ || error("longitude $longitude is invalid.")
-    Nx = i₂ - i₁ + 1
-
-    j₁ = 4 * (90 + first(latitude)) + 1
-    j₂ = 720 - 4 * (90 - last(latitude))
-    j₂ > j₁ || error("latitude $latitude is invalid.")
-    Ny = j₂ - j₁ + 1
-
-    zf = znodes(Te.grid, Face())
-    Nz = length(zf) - 1
-
-    grid = LatitudeLongitudeGrid(arch; latitude, longitude,
+    Nz = length(z) - 1
+    grid = LatitudeLongitudeGrid(arch; latitude, longitude, halo,
                                  size = (Nx, Ny, Nz),
-                                 halo = (7, 7, 7),
-                                 z = zf)
+                                 z = z)
+    
+    Tᵢ = CenterField(grid)
+    interpolate!(Tᵢ, Te)
+
+    bottom_height = Field{Center, Center, Nothing}(grid)
+    set!(bottom_height, -Inf)
 
     # Construct bottom_height depth by analyzing T
-    Δz = first(zspacings(Te.grid, Center()))
-    bottom_height = ones(Nx, Ny) .* (zf[1] - Δz)
-
-    Tᵢ = interior(Te, i₁:i₂, j₁:j₂, :)
-
-    for i = 1:Nx, j = 1:Ny
-        for k = Nz:-1:1
-            if isnan(Tᵢ[i, j, k])
-                bottom_height[i, j] = zf[k+1]
-                break
-            end
-        end
-    end
-
+    launch!(arch, grid, :xy, infer_bottom_height!, bottom_height, Tᵢ, grid)
+   
     grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
-    Tᵢ = arch_array(arch, Tᵢ)
-
+    #=
     Nf = length(other_fields)
-
     ft = ntuple(Nf) do n
         fe = other_fields[n]
         fᵢ = interior(fe, i₁:i₂, j₁:j₂, :)
         fᵢ = arch_array(arch, fᵢ)
     end
-
     all_fields = tuple(Tᵢ, ft...)
+    =#
 
     elapsed = 1e-9 * (time_ns() - start_time)
     @info string("Grid for regional omip simulation generated in ", prettytime(elapsed), ".")
     @show grid
 
-    return grid, all_fields
+    return grid, Tᵢ
 end
 
 function omip_ocean_component(grid;
@@ -117,8 +133,33 @@ function omip_ocean_component(grid;
     tracers = tuple(:T, :S, passive_tracers...)
 
     if closure == :default
-        mixing_length = MixingLength(Cᵇ=0.01)
-        turbulent_kinetic_energy_equation = TurbulentKineticEnergyEquation(Cᵂϵ=1.0)
+        CᵂwΔ = 1.154
+        Cᵂu★ = 0.382
+        CˡᵒD = 0.378
+        CʰⁱD = 0.938
+        CᶜD  = 1.428
+        Cᵂϵ  = 1.0
+        turbulent_kinetic_energy_equation =
+            TurbulentKineticEnergyEquation(; Cᵂϵ, CᵂwΔ, Cᵂu★, CˡᵒD, CʰⁱD, CᶜD)
+
+        Cʰⁱc = 0.273
+        Cʰⁱu = 0.489
+        Cʰⁱe = 1.908
+        Cˡᵒc = 0.915
+        Cˡᵒu = 0.661
+        Cˡᵒe = 1.635
+        CRi⁰ = 0.151
+        CRiᵟ = 0.113
+        Cᶜc  = 0.738
+        Cᶜe  = 0.310
+        Cᵉc  = 0.392
+        Cˢᵖ  = 0.517
+        Cˢ   = 0.746
+        Cᵇ   = 0.01
+
+        mixing_length = MixingLength(; Cʰⁱc, Cʰⁱu, Cʰⁱe, Cˢ, Cᵇ, Cˡᵒc,
+                                     Cˡᵒu, Cˡᵒe, CRi⁰, CRiᵟ, Cᶜc, Cᶜe, Cᵉc, Cˢᵖ)
+
         closure = CATKEVerticalDiffusivity(; mixing_length, turbulent_kinetic_energy_equation)
         tracers = tuple(:e, tracers...)
     end
@@ -194,3 +235,28 @@ function omip_sea_ice_component(ocean_model)
     return sea_ice
 end
 
+const c = Center()
+const f = Face()
+
+@kernel function infer_bottom_height!(bottom_height, T, grid)
+    i, j = @index(Global, NTuple)
+
+    Nz = size(grid, 3)
+
+    @inbounds for k = Nz:-1:1
+        if isnan(T[i, j, k])
+            bottom_height[i, j] = znode(i, j, k+1, grid, c, c, f)
+            break
+        end
+    end
+end
+
+@kernel function nan_land!(T)
+    i, j, k = @index(Global, NTuple)
+
+    @inbounds begin
+        Tᵢ = T[i, j, k]
+        land = Tᵢ < -10
+        T[i, j, k] = ifelse(land, NaN, Tᵢ)
+    end
+end
