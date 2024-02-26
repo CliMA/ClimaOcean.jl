@@ -75,6 +75,21 @@ function stretched_vertical_faces(; surface_layer_Δz = 5.0,
     return z
 end
 
+@inline exponential_profile(z; Lz, h) = (exp(z / h) - exp( - Lz / h)) / (1 - exp( - Lz / h)) 
+
+function exponential_z_faces(Nz, Depth; h = Nz / 4.5)
+
+    z_faces = exponential_profile.((1:Nz+1); Lz = Nz, h)
+
+    # Normalize
+    z_faces .-= z_faces[1]
+    z_faces .*= - Depth / z_faces[end]
+    
+    z_faces[1] = 0.0
+
+    return reverse(z_faces)
+end
+
 # Vertical grid with 49 levels.
 # Stretched from 10 meters spacing at surface
 # to 400 meter at the bottom.

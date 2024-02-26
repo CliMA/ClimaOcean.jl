@@ -5,86 +5,51 @@ using ClimaOcean.ECCO2
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalDiffusivity
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.Units
+using ClimaOcean.OceanSimulations
+using ClimaOcean.VerticalGrids: exponential_z_faces
+using ClimaOcean.JRA55
 using Printf
 
 #####
-##### Regional Mediterranean grid 
+##### Global Ocean at 1/12th of a degree
 #####
 
-# Domain and Grid size
-#
-# We construct a grid that represents the Mediterranean sea, 
-# with a resolution of 1/10th of a degree (roughly 10 km resolution)
-λ₁, λ₂  = ( 0, 42) # domain in longitude
-φ₁, φ₂  = (30, 45) # domain in latitude
-# A stretched vertical grid with a Δz of 1.5 meters in the first 50 meters
-z_faces = stretched_vertical_faces(depth = 5000, 
-                             surface_layer_Δz = 2.5, 
-                             stretching = PowerLawStretching(1.070), 
-                             surface_layer_height = 50)
+# 100 vertical levels
+z_faces = exponential_z_faces(100, 6000)
 
-Nx = 15 * 42 # 1 / 15th of a degree resolution
-Ny = 15 * 15 # 1 / 15th of a degree resolution
+Nx = 4320
+Ny = 1800
 Nz = length(z_faces) - 1
 
-grid = LatitudeLongitudeGrid(CPU();
-                             size = (Nx, Ny, Nz),
-                             latitude  = (φ₁, φ₂),
-                             longitude = (λ₁, λ₂),
-                             z = z_faces,
+arch = Distributed(GPU(), partition = Partition(8))
+
+grid = LoadBalancedOceanGrid(arch; 
+                             size = (Nx, Ny, Nz), 
+                             z = z_faces, 
+                             latitude  = (-75, 75),
+                             longitude = (0, 360),
                              halo = (7, 7, 7))
+          
+#####
+##### The Ocean component
+#####                             
 
-# Interpolating the bathymetry onto the grid
-#
-# We regrid the bathymetry onto the grid.
-# we allow a minimum depth of 10 meters (all shallower regions are 
-# considered land) and we use 25 intermediate grids (interpolation_passes = 25)
-# Note that more interpolation passes will smooth the bathymetry
-bottom_height = regrid_bathymetry(grid, 
-                                  height_above_water = 1,
-                                  minimum_depth = 10,
-                                  interpolation_passes = 25)
+simulation = ocean_simulation(grid)
 
-# Let's use an active cell map to elide computation in inactive cells
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true)
-
-# Correct oceananigans
-import Oceananigans.Advection: nothing_to_default
-
-nothing_to_default(user_value; default) = isnothing(user_value) ? default : user_value
-
-# Constructing the model
-#
-# We construct a model that evolves two tracers, temperature (:T), salinity (:S)
-# We do not have convection since the simulation is just slumping to equilibrium so we do not need a turbulence closure
-# We select a linear equation of state for buoyancy calculation, and WENO schemes for both tracer and momentum advection.
-# The free surface utilizes a split-explicit formulation with a barotropic CFL of 0.75 based on wave speed.
-model = HydrostaticFreeSurfaceModel(; grid,
-                            momentum_advection = WENOVectorInvariant(),
-                              tracer_advection = WENO(grid; order = 7),
-                                  free_surface = SplitExplicitFreeSurface(; cfl = 0.75, grid),
-                                      buoyancy = SeawaterBuoyancy(),
-                                      tracers  = (:T, :S, :c),
-                                      coriolis = HydrostaticSphericalCoriolis(scheme = ActiveCellEnstrophyConserving()))
+model = simulation.model
 
 # Initializing the model
-#
-# the model can be initialized with custom values or with ecco2 fields.
-# In this case, our ECCO2 dataset has access to a temperature and a salinity
-# field, so we initialize T and S from ECCO2. 
-# We initialize our passive tracer with a surface blob near to the coasts of Libia
-@info "initializing model"
-libia_blob(x, y, z) = z > -20 || (x - 15)^2 + (y - 34)^2 < 1.5 ? 1 : 0
+set!(model, T = ECCO2Metadata(:temperature), S = ECCO2Metadata(:salinity), e = 1e-6)
 
-set!(model, T = ECCO2Metadata(:temperature), S = ECCO2Metadata(:salinity), c = libia_blob)
+#####
+##### The atmosphere
+#####
 
-fig = Figure()
-ax  = Axis(fig[1, 1])
-heatmap!(ax, interior(model.tracers.T, :, :, Nz), colorrange = (10, 20), colormap = :thermal)
-ax  = Axis(fig[1, 2])
-heatmap!(ax, interior(model.tracers.S, :, :, Nz), colorrange = (35, 40), colormap = :haline)
+backend    = JRA55NetCDFBackend(8) # InMemory(8)
+atmosphere = JRA55_prescribed_atmosphere(arch, 1:56; backend)
+radiation  = Radiation()
 
-simulation = Simulation(model, Δt = 10minutes, stop_time = 10*365days)
+coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 
 function progress(sim) 
     u, v, w = sim.model.velocities  

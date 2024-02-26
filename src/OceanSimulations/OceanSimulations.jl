@@ -1,5 +1,9 @@
 module OceanSimulations
 
+export LoadBalancedOceanGrid, ocean_simulation
+
+using Oceananigans.Advection: TracerAdvection
+
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities:
     CATKEVerticalDiffusivity,
     MixingLength,
@@ -10,6 +14,8 @@ using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 using Oceananigans.BuoyancyModels: g_Earth
 using Oceananigans.Coriolis: Ω_Earth
 
+include("load_balanced_ocean_grid.jl")
+
 # Some defualts
 default_free_surface(grid) = SplitExplicitFreeSurface(cfl=0.7; grid)
 
@@ -19,6 +25,14 @@ function default_ocean_closure()
     return CATKEVerticalDiffusivity(; mixing_length, turbulent_kinetic_energy_equation)
 end
 
+default_momentum_advection() = VectorInvariant(; vorticity_scheme = WENO(; order = 9),
+                                                  vertical_scheme = Centered(),
+                                                divergence_scheme = WENO())
+
+default_tracer_advection() = TracerAdvection(; x = WENO(; order = 7),
+                                               y = WENO(; order = 7),
+                                               z = Centered())
+
 # TODO: Specify the grid to a grid on the sphere; otherwise we can provide a different
 # function that requires latitude and longitude etc for computing coriolis=FPlane...
 function ocean_simulation(grid;
@@ -26,7 +40,9 @@ function ocean_simulation(grid;
                           free_surface = default_free_surface(grid),
                           reference_density = 1020,
                           rotation_rate = Ω_Earth,
-                          gravitational_acceleration = g_Earth)
+                          gravitational_acceleration = g_Earth,
+                          momentum_advection = default_momentum_advection(),
+                          tracer_advection = default_tracer_advection())
 
     # Set up boundary conditions using Field
     top_zonal_momentum_flux      = Jᵘ = Field{Face, Center, Nothing}(grid)
@@ -44,21 +60,16 @@ function ocean_simulation(grid;
     buoyancy = SeawaterBuoyancy(; gravitational_acceleration, equation_of_state=teos10)
 
     # Minor simplifications for single column grids
-    Nx, Ny, Nz = size(grid)
+    Nx, Ny, _ = size(grid)
     if Nx == Ny == 1 # single column grid
         tracer_advection = nothing
         momentum_advection = nothing
-    else
-        # TODO: better advection scheme
-        tracer_advection = WENO()
-        momentum_advection = VectorInvariant(vorticity_scheme = WENO(),
-                                             divergence_scheme = WENO(),
-                                             vertical_scheme = WENO())
     end
 
     tracers = (:T, :S)
     if closure isa CATKEVerticalDiffusivity
         tracers = tuple(tracers..., :e)
+        tracer_advection = (; T = tracer_advection, S = tracer_advection, e = nothing)
     end
 
     coriolis = HydrostaticSphericalCoriolis(; rotation_rate)
