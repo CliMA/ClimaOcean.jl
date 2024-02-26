@@ -1,6 +1,12 @@
 module ClimaOcean
 
-export OceanSeaIceModel, FreezingLimitedOceanTemperature
+export
+    OceanSeaIceModel,
+    FreezingLimitedOceanTemperature,
+    Radiation,
+    JRA55_prescribed_atmosphere,
+    JRA55NetCDFBackend,
+    ecco2_field
 
 using Oceananigans
 using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
@@ -69,7 +75,10 @@ include("Diagnostics.jl")
 include("NearGlobalSimulations/NearGlobalSimulations.jl")
 
 using .DataWrangling: JRA55, ECCO2
-using .OceanSeaIceModels: OceanSeaIceModel
+using ClimaOcean.DataWrangling.JRA55: JRA55_prescribed_atmosphere, JRA55NetCDFBackend
+using ClimaOcean.DataWrangling.ECCO2: ecco2_field
+
+using .OceanSeaIceModels: OceanSeaIceModel, Radiation
 
 end # module
 

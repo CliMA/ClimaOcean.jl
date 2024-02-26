@@ -128,8 +128,6 @@ shortnames = Dict(
     :v_velocity            => "VVEL",
 )
 
-
-
 surface_variable(variable_name) = variable_name == :sea_ice_thickness
 
 function ecco2_field(variable_name, date=Date(1992, 01, 02);
@@ -194,6 +192,24 @@ function ecco2_bottom_height_from_temperature()
     end
 
     return bottom_height
+end
+
+function ecco2_column(λ★, φ★)
+    Δ = 1/4 # resolution in degrees
+    φ₁ = -90 + Δ/2
+    φ₂ = +90 - Δ/2
+    λ₁ = 0   + Δ/2
+    λ₂ = 360 - Δ/2
+    φe = φ₁:Δ:φ₂
+    λe = λ₁:Δ:λ₂
+    
+    i★ = searchsortedfirst(λe, λ★)
+    j★ = searchsortedfirst(φe, φ★)
+    
+    longitude = (λe[i★] - Δ/2, λe[i★] + Δ/2)
+    latitude  = (φe[j★] - Δ/2, φe[j★] + Δ/2)
+
+    return i★, j★, longitude, latitude
 end
 
 end # module
