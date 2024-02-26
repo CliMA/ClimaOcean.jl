@@ -3,13 +3,42 @@ using Oceananigans.DistributedComputations: Sizes
 using Oceananigans.ImmersedBoundaries: immersed_cell
 using KernelAbstractions: @index, @kernel
 
-function LoadBalancedOceanGrid(arch; 
-                               size, 
-                               latitude, 
-                               longitude, 
-                               z,
-                               halo = (3, 3, 3),
-                               kw...)
+"""
+    LoadBalancedOceanGrid(arch; size, latitude, longitude, z, halo, maximum_size, height_above_water, minimum_depth, interpolation_passes)
+
+Constructs a LatitudeLongitudeGrid with an ocean bathymetry interpolated from ETOPO1.
+If the architecture is `Distributed` and the partition is only in one direction, the partition will be
+calculated to maintain an equal number of active cells across different workers.
+
+# Positional Arguments
+======================
+- `arch`: The architecture of the ocean grid.
+
+# Keyword Arguments
+===================
+- `size`: The size of the grid.
+- `latitude`: The latitude of the grid.
+- `longitude`: The longitude of the grid.
+- `z`: The z-faces of the grid.
+- `halo`: The halo size of the grid. Default is `(3, 3, 3)`.
+- `maximum_size`: The maximum size in the partitioned direction. Default is `1150`.
+- `height_above_water`: The height above water level. Default is `1`.
+- `minimum_depth`: The minimum depth of the bathymetry. Default is `10`.
+- `interpolation_passes`: The number of interpolation passes. Default is `1`.
+
+# Returns
+- `grid`: The load-balanced ocean grid.
+"""
+function load_balanced_regional_grid(arch; 
+                                     size, 
+                                     latitude, 
+                                     longitude, 
+                                     z,
+                                     halo = (3, 3, 3)
+                                     maximum_size = 1150,
+                                     height_above_water = 1,
+                                     minimum_depth = 10,
+                                     interpolation_passes = 1)
 
     child_arch = child_architecture(arch)
     
@@ -21,38 +50,44 @@ function LoadBalancedOceanGrid(arch;
                                  halo)
 
     bottom_height = regrid_bathymetry(grid, 
-                                      height_above_water = 1,
-                                      minimum_depth = 10,
-                                      interpolation_passes = 25)
+                                      height_above_water,
+                                      minimum_depth,
+                                      interpolation_passes)
 
     return ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true) 
 end
 
-function LoadBalancedOceanGrid(arch::Distributed; 
-                               size, 
-                               latitude, 
-                               longitude, 
-                               z,
-                               halo = (3, 3, 3),
-                               maximum_Nx = 1150)
+XPartition = Partition{<:}
 
+# Load balancing works only for 1D partitions!
+function load_balanced_regional_grid(arch::Distributed; 
+                                     size, 
+                                     latitude, 
+                                     longitude, 
+                                     z,
+                                     halo = (3, 3, 3),
+                                     maximum_size = 1150,
+                                     height_above_water = 1,
+                                     minimum_depth = 10,
+                                     interpolation_passes = 1)
+        
     child_arch = child_architecture(arch)
 
     # Global grid
-    grid = LatitudeLongitudeGrid(child_arch;
-                                 size,
-                                 longitude,
-                                 latitude,
-                                 z,
-                                 halo)
+    grid = load_balanced_regional_grid(child_arch;
+                                       size,
+                                       longitude,
+                                       latitude,
+                                       z,
+                                       halo,
+                                       maximum_size,
+                                       height_above_water,
+                                       minimum_depth,
+                                       interpolation_passes)
 
-    bottom_height = regrid_bathymetry(grid, 
-                                      height_above_water = 1,
-                                      minimum_depth = 10,
-                                      interpolation_passes = 25)
+    bottom_height = grid.immersed_boundary.bottom_height
 
-    grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
-
+    if arch.partition
     # Starting with the load balancing
     load_per_x_slab = arch_array(child_arch, zeros(Int, size[1]))
     loop! = assess_x_load(device(child_arch), 512, size[1])
@@ -63,7 +98,7 @@ function LoadBalancedOceanGrid(arch::Distributed;
 
     # We cannot have Nx > 650 if Nranks = 32 otherwise we incur in memory limitations,
     # so for a small number of GPUs we are limited in the load balancing
-    redistribute_size_to_fulfill_memory_limitation!(local_Nx, maximum_Nx)
+    redistribute_size_to_fulfill_memory_limitation!(local_Nx, maximum_size)
 
     arch = Distributed(child_arch, partition = Partition(x = Sizes(local_Nx...)))
     zonal_rank = arch.local_index[1]
