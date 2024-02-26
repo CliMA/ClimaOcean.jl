@@ -2,51 +2,80 @@ module JRA55
 
 using Oceananigans
 using Oceananigans.Units
+ 
 using Oceananigans.BoundaryConditions: fill_halo_regions!
+using Oceananigans.Grids: λnodes, φnodes, on_architecture
+using Oceananigans.Fields: interpolate!
+using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBackend, FlavorOfFTS, time_indices
+
+using ClimaOcean.OceanSeaIceModels:
+    PrescribedAtmosphere,
+    TwoStreamDownwellingRadiation
+
 using NCDatasets
+using JLD2 
+using Dates
+
+import Oceananigans.Fields: set!
+import Oceananigans.OutputReaders: new_backend
 
 # A list of all variables provided in the JRA55 dataset:
-jra55_short_names = (:freshwater_river_flux,
-                     :freshwater_rain_flux,
-                     :freshwater_snow_flux,
-                     :freshwater_iceberg_flux,
-                     :specific_humidity,
-                     :sea_level_pressure,
-                     :relative_humidity,
-                     :downwelling_longwave_radiation,
-                     :downwelling_shortwave_radiation,
-                     :atmospheric_temperature,
-                     :atmospheric_eastward_velocity,
-                     :atmospheric_northward_velocity)
+JRA55_variable_names = (:freshwater_river_flux,
+                        :rain_freshwater_flux,
+                        :snow_freshwater_flux,
+                        :freshwater_iceberg_flux,
+                        :specific_humidity,
+                        :sea_level_pressure,
+                        :relative_humidity,
+                        :downwelling_longwave_radiation,
+                        :downwelling_shortwave_radiation,
+                        :temperature,
+                        :eastward_velocity,
+                        :northward_velocity)
 
-file_names = Dict(
+filenames = Dict(
     :freshwater_river_flux           => "RYF.friver.1990_1991.nc",   # Freshwater fluxes from rivers
-    :freshwater_rain_flux            => "RYF.prra.1990_1991.nc",     # Freshwater flux from rainfall
-    :freshwater_snow_flux            => "RYF.prsn.1990_1991.nc",     # Freshwater flux from snowfall
+    :rain_freshwater_flux            => "RYF.prra.1990_1991.nc",     # Freshwater flux from rainfall
+    :snow_freshwater_flux            => "RYF.prsn.1990_1991.nc",     # Freshwater flux from snowfall
     :freshwater_iceberg_flux         => "RYF.licalvf.1990_1991.nc",  # Freshwater flux from calving icebergs
     :specific_humidity               => "RYF.huss.1990_1991.nc",     # Surface specific humidity
     :sea_level_pressure              => "RYF.psl.1990_1991.nc",      # Sea level pressure
     :relative_humidity               => "RYF.rhuss.1990_1991.nc",    # Surface relative humidity
     :downwelling_longwave_radiation  => "RYF.rlds.1990_1991.nc",     # Downwelling longwave radiation
     :downwelling_shortwave_radiation => "RYF.rsds.1990_1991.nc",     # Downwelling shortwave radiation
-    :atmospheric_temperature         => "RYF.tas.1990_1991.nc",      # Near-surface air temperature
-    :atmospheric_eastward_velocity   => "RYF.uas.1990_1991.nc",      # Eastward near-surface wind
-    :atmospheric_northward_velocity  => "RYF.vas.1990_1991.nc",      # Northward near-surface wind
+    :temperature                     => "RYF.tas.1990_1991.nc",      # Near-surface air temperature
+    :eastward_velocity               => "RYF.uas.1990_1991.nc",      # Eastward near-surface wind
+    :northward_velocity              => "RYF.vas.1990_1991.nc",      # Northward near-surface wind
 )
 
-short_names = Dict(
+jra55_short_names = Dict(
     :freshwater_river_flux           => "friver",   # Freshwater fluxes from rivers
-    :freshwater_rain_flux            => "prra",     # Freshwater flux from rainfall
-    :freshwater_snow_flux            => "prsn",     # Freshwater flux from snowfall
+    :rain_freshwater_flux            => "prra",     # Freshwater flux from rainfall
+    :snow_freshwater_flux            => "prsn",     # Freshwater flux from snowfall
     :freshwater_iceberg_flux         => "licalvf",  # Freshwater flux from calving icebergs
     :specific_humidity               => "huss",     # Surface specific humidity
     :sea_level_pressure              => "psl",      # Sea level pressure
     :relative_humidity               => "rhuss",    # Surface relative humidity
     :downwelling_longwave_radiation  => "rlds",     # Downwelling longwave radiation
     :downwelling_shortwave_radiation => "rsds",     # Downwelling shortwave radiation
-    :atmospheric_temperature         => "tas",      # Near-surface air temperature
-    :atmospheric_eastward_velocity   => "uas",      # Eastward near-surface wind
-    :atmospheric_northward_velocity  => "vas",      # Northward near-surface wind
+    :temperature                     => "tas",      # Near-surface air temperature
+    :eastward_velocity               => "uas",      # Eastward near-surface wind
+    :northward_velocity              => "vas",      # Northward near-surface wind
+)
+
+field_time_series_short_names = Dict(
+    :freshwater_river_flux           => "Fri", # Freshwater fluxes from rivers
+    :rain_freshwater_flux            => "Fra", # Freshwater flux from rainfall
+    :snow_freshwater_flux            => "Fsn", # Freshwater flux from snowfall
+    :freshwater_iceberg_flux         => "Fic", # Freshwater flux from calving icebergs
+    :specific_humidity               => "qa",  # Surface specific humidity
+    :sea_level_pressure              => "pa",  # Sea level pressure
+    :relative_humidity               => "rh",  # Surface relative humidity
+    :downwelling_longwave_radiation  => "Ql",  # Downwelling longwave radiation
+    :downwelling_shortwave_radiation => "Qs",  # Downwelling shortwave radiation
+    :temperature                     => "Ta",  # Near-surface air temperature
+    :eastward_velocity               => "ua",  # Eastward near-surface wind
+    :northward_velocity              => "va",  # Northward near-surface wind
 )
 
 urls = Dict(
@@ -56,10 +85,10 @@ urls = Dict(
     :freshwater_river_flux => "https://www.dropbox.com/scl/fi/21ggl4p74k4zvbf04nb67/" * 
                               "RYF.friver.1990_1991.nc?rlkey=ny2qcjkk1cfijmwyqxsfm68fz&dl=0",
 
-    :freshwater_rain_flux => "https://www.dropbox.com/scl/fi/5icl1gbd7f5hvyn656kjq/" *
+    :rain_freshwater_flux => "https://www.dropbox.com/scl/fi/5icl1gbd7f5hvyn656kjq/" *
                              "RYF.prra.1990_1991.nc?rlkey=iifyjm4ppwyd8ztcek4dtx0k8&dl=0",
 
-    :freshwater_snow_flux => "https://www.dropbox.com/scl/fi/1r4ajjzb3643z93ads4x4/" *
+    :snow_freshwater_flux => "https://www.dropbox.com/scl/fi/1r4ajjzb3643z93ads4x4/" *
                              "RYF.prsn.1990_1991.nc?rlkey=auyqpwn060cvy4w01a2yskfah&dl=0",
 
     :freshwater_iceberg_flux => "https://www.dropbox.com/scl/fi/44nc5y27ohvif7lkvpyv0/" *
@@ -80,23 +109,142 @@ urls = Dict(
     :downwelling_shortwave_radiation => "https://www.dropbox.com/scl/fi/z6fkvmd9oe3ycmaxta131/" *
                                         "RYF.rsds.1990_1991.nc?rlkey=r7q6zcbj6a4fxsq0f8th7c4tc&dl=0",
 
-    :atmospheric_temperature => "https://www.dropbox.com/scl/fi/fpl0npwi476w635g6lke9/" *
-                                "RYF.tas.1990_1991.nc?rlkey=0skb9pe6lgbfbiaoybe7m945s&dl=0",
+    :temperature => "https://www.dropbox.com/scl/fi/fpl0npwi476w635g6lke9/" *
+                    "RYF.tas.1990_1991.nc?rlkey=0skb9pe6lgbfbiaoybe7m945s&dl=0",
 
-    :atmospheric_eastward_velocity => "https://www.dropbox.com/scl/fi/86wetpqla2x97isp8092g/" *
-                                      "RYF.uas.1990_1991.nc?rlkey=rcaf18sh1yz0v9g4hjm1249j0&dl=0",
+    :eastward_velocity => "https://www.dropbox.com/scl/fi/86wetpqla2x97isp8092g/" *
+                          "RYF.uas.1990_1991.nc?rlkey=rcaf18sh1yz0v9g4hjm1249j0&dl=0",
 
-    :atmospheric_northward_velocity => "https://www.dropbox.com/scl/fi/d38sflo9ddljstd5jwgml/" *
-                                       "RYF.vas.1990_1991.nc?rlkey=f9y3e57kx8xrb40gbstarf0x6&dl=0",
+    :northward_velocity => "https://www.dropbox.com/scl/fi/d38sflo9ddljstd5jwgml/" *
+                           "RYF.vas.1990_1991.nc?rlkey=f9y3e57kx8xrb40gbstarf0x6&dl=0",
 )
 
+function compute_bounding_indices(grid, LX, LY, λc, φc)
+
+    Nx = length(λc)
+    Ny = length(φc)
+
+    if isnothing(grid)
+        i₁, i₂ = (1, Nx)
+        j₁, j₂ = (1, Ny)
+        TX = Periodic
+    else # only load the data we need
+        # Nodes where we need to find data
+        λg = λnodes(grid, LX())
+        φg = φnodes(grid, LY())
+
+        λ₁, λ₂ = extrema(λg)
+        φ₁, φ₂ = extrema(φg)
+
+        # The following should work. If ᵒ are the extrema of nodes we want to
+        # interpolate to, and the following is a sketch of the JRA55 native grid,
+        #
+        #      1         2         3         4         5
+        # |         |         |         |         |         |
+        # |    x  ᵒ |    x    |    x    |    x  ᵒ |    x    |
+        # |         |         |         |         |         |
+        # 1         2         3         4         5         6 
+        #
+        # then for example, we should find that (iᵢ, i₂) = (1, 5).
+        # So we want to reduce the first index by one, and limit them
+        # both by the available data. There could be some mismatch due
+        # to the use of different coordinate systems (ie whether λ ∈ (0, 360)
+        # which we may also need to handle separately.
+        
+        i₁ = searchsortedfirst(λc, λ₁)
+        j₁ = searchsortedfirst(φc, φ₁)
+
+        i₂ = searchsortedfirst(λc, λ₂)
+        j₂ = searchsortedfirst(φc, φ₂)
+
+        i₁ = max(1, i₁ - 1)
+        j₁ = max(1, j₁ - 1)
+
+        i₂ = min(Nx, i₂)
+        j₂ = min(Ny, j₂)
+
+        TX = λ₂ - λ₁ ≈ 360 ? Periodic : Bounded
+    end
+
+    return i₁, i₂, j₁, j₂, TX
+end
+
+# Convert dates to range until Oceananigans supports dates natively
+function jra55_times(native_times, start_time=DateTimeNoLeap(1900, 01, 01))
+    Nt = length(native_times)
+    Δt = native_times[2] - native_times[1] # assume all times are equispaced
+    Δt = Second(Δt).value
+
+    start_time = native_times[1] - start_time
+    start_time = Second(start_time).value
+
+    stop_time = start_time + Δt * (Nt - 1)
+    times = start_time:Δt:stop_time
+
+    return times
+end
+
+struct JRA55NetCDFBackend <: AbstractInMemoryBackend{Int}
+    start :: Int
+    length :: Int
+end
+
 """
-    jra55_field_time_series(variable_name;
+    JRA55NetCDFBackend(length)
+
+Represents a JRA55 FieldTimeSeries backed by JRA55 native .nc files.
+"""
+JRA55NetCDFBackend(length) = JRA55NetCDFBackend(1, length)
+
+Base.length(backend::JRA55NetCDFBackend) = backend.length
+Base.summary(backend::JRA55NetCDFBackend) = string("JRA55NetCDFBackend(", backend.start, ", ", backend.length, ")")
+
+const JRA55NetCDFFTS = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend}
+
+function set!(fts::JRA55NetCDFFTS, path::String=fts.path, name::String=fts.name) 
+
+    ds = Dataset(path)
+
+    # Note that each file should have the variables
+    #   - ds["time"]:     time coordinate 
+    #   - ds["lon"]:      longitude at the location of the variable
+    #   - ds["lat"]:      latitude at the location of the variable
+    #   - ds["lon_bnds"]: bounding longitudes between which variables are averaged
+    #   - ds["lat_bnds"]: bounding latitudes between which variables are averaged
+    #   - ds[shortname]:  the variable data
+
+    # Nodes at the variable location
+    λc = ds["lon"][:]
+    φc = ds["lat"][:]
+    LX, LY, LZ = location(fts)
+    i₁, i₂, j₁, j₂, TX = compute_bounding_indices(fts.grid, LX, LY, λc, φc)
+
+    ti = time_indices(fts)
+    ti = collect(ti)
+    native_times = ds["time"][ti]
+    times = jra55_times(native_times)
+    data = ds[name][i₁:i₂, j₁:j₂, ti]
+    close(ds)
+
+    copyto!(interior(fts, :, :, 1, :), data)
+    fill_halo_regions!(fts)
+
+    return nothing
+end
+
+new_backend(::JRA55NetCDFBackend, start, length) = JRA55NetCDFBackend(start, length)
+
+"""
+    JRA55_field_time_series(variable_name;
                             architecture = CPU(),
-                            time_indices = :,    
-                            url = urls[name],
-                            filename = file_names[variable_name],
-                            short_name = short_names[variable_name])
+                            location = nothing,
+                            url = nothing,
+                            filename = nothing,
+                            shortname = nothing,
+                            backend = InMemory(),
+                            preprocess_chunk_size = 10,
+                            preprocess_architecture = CPU(),
+                            time_indices = nothing)
 
 Return a `FieldTimeSeries` containing atmospheric reanalysis data for `variable_name`,
 which describes one of the variables in the "repeat year forcing" dataset derived
@@ -106,21 +254,21 @@ For more information about the derivation of the repeat year forcing dataset, se
 "Stewart et al., JRA55-do-based repeat year forcing datasets for driving ocean–sea-ice models",
 Ocean Modelling, 2020, https://doi.org/10.1016/j.ocemod.2019.101557.
 
-The `variable_name`s (and their `short_name`s used in NetCDF files)
+The `variable_name`s (and their `shortname`s used in NetCDF files)
 available from the JRA55-do are:
 
     - `:freshwater_river_flux`              ("friver")
-    - `:freshwater_rain_flux`               ("prra")
-    - `:freshwater_snow_flux`               ("prsn")
+    - `:rain_freshwater_flux`               ("prra")
+    - `:snow_freshwater_flux`               ("prsn")
     - `:freshwater_iceberg_flux`            ("licalvf")
     - `:specific_humidity`                  ("huss")
     - `:sea_level_pressure`                 ("psl")
     - `:relative_humidity`                  ("rhuss")
     - `:downwelling_longwave_radiation`     ("rlds")
     - `:downwelling_shortwave_radiation`    ("rsds")
-    - `:atmospheric_temperature`            ("ras")
-    - `:atmospheric_eastward_velocity`      ("uas")
-    - `:atmospheric_northward_velocity`     ("vas")
+    - `:temperature`                        ("ras")
+    - `:eastward_velocity`                  ("uas")
+    - `:northward_velocity`                 ("vas")
 
 Keyword arguments
 =================
@@ -139,83 +287,341 @@ Keyword arguments
     - `filename`: The name of the downloaded file.
                   Default: `ClimaOcean.JRA55.filenames[variable_name]`.
 
-    - `short_name`: The "short name" of `variable_name` inside its NetCDF file.
-                    Default: `ClimaOcean.JRA55.short_names[variable_name]`.
-"""
-function jra55_field_time_series(variable_name;
-                                 architecture = CPU(),
-                                 time_indices = :,    
-                                 url = urls[variable_name],
-                                 filename = file_names[variable_name],
-                                 short_name = short_names[variable_name])
+    - `shortname`: The "short name" of `variable_name` inside its NetCDF file.
+                    Default: `ClimaOcean.JRA55.jra55_short_names[variable_name]`.
 
+    - `interpolated_file`: file holding an Oceananigans compatible version of the JRA55 data.
+                            If it does not exist it will be generated.
+
+    - `time_chunks_in_memory`: number of fields held in memory. If `nothing` the whole timeseries is 
+                               loaded (not recommended).
+"""
+function JRA55_field_time_series(variable_name;
+                                 architecture = CPU(),
+                                 grid = nothing,
+                                 location = nothing,
+                                 url = nothing,
+                                 filename = nothing,
+                                 shortname = nothing,
+                                 backend = InMemory(),
+                                 time_indexing = Cyclical(),
+                                 preprocess_chunk_size = 10,
+                                 preprocess_architecture = CPU(),
+                                 time_indices = nothing)
+
+    if isnothing(filename) && !(variable_name ∈ JRA55_variable_names)
+        variable_strs = Tuple("  - :$name \n" for name in JRA55_variable_names)
+        variables_msg = prod(variable_strs)
+
+        msg = string("The variable :$variable_name is not provided by the JRA55-do dataset!", '\n',
+                     "The variables provided by the JRA55-do dataset are:", '\n',
+                     variables_msg)
+
+        throw(ArgumentError(msg))
+    end
+
+    if !isnothing(filename) && !isfile(filename) && isnothing(url)
+        throw(ArgumentError("A filename was provided without a url, but the file does not exist.\n \
+                            If intended, please provide both the filename and url that should be used \n \
+                            to download the new file."))
+    end
+
+    isnothing(shortname) && (shortname = jra55_short_names[variable_name])
+    isnothing(filename)  && (filename  = filenames[variable_name])
+    isnothing(url)       && (url       = urls[variable_name])
+
+    # Record some important user decisions
+    totally_in_memory = backend isa TotallyInMemory
+    on_native_grid = isnothing(grid)
+    !on_native_grid && backend isa JRA55NetCDFBackend && error("Can't use custom grid with JRA55NetCDFBackend.")
+
+    jld2_filename = string("JRA55_repeat_year_", variable_name, ".jld2")
+    fts_name = field_time_series_short_names[variable_name]
+
+    # TODO: figure out how to use existing jld2 files
+    # Eg we have to check correctness, etc
     isfile(filename) || download(url, filename)
+    isfile(jld2_filename) && rm(jld2_filename)
+
+    #=
+    # Decision tree:
+    #   1. jld2 file exists?
+    #       - yes -> load and return FieldTimeSeries
+    #                check time_indices and all that?
+    #       - no -> download .nc data if not available
+    if isfile(jld2_filename)
+        isnothing(time_indices) && (time_indices = Colon())
+
+        # Infer the `times` before loading data
+        temporary_fts = FieldTimeSeries(jld2_filename, fts_name; backend=OnDisk())
+
+        #try
+            times = temporary_fts.times[time_indices]
+            fts = FieldTimeSeries(jld2_filename, fts_name; backend, architecture, times)
+            return fts
+        #catch 
+        #    if !totally_in_memory # will need to overwrite
+        #        msg = string("Cannot use backend=$backend with time_indices=$time_indices", '\n',
+        #                     " and the existing $jld2_filename, which does not", '\n',
+        #                     " have enough `times`. Delete $jld2_filename in order", '\n',
+        #                     " to re-generate it.")
+        #        error(msg)
+        #    end
+        #end
+    end
+    =#
+
+    if totally_in_memory
+        # In this case, the whole time series is in memory.
+        # Either the time series is short, or we are doing a limited-area
+        # simulation, like in a single column. In this case we conservatively
+        # set a default time_indices = 1:1.
+        isnothing(time_indices) && (time_indices = 1:1)
+        time_indices_in_memory = time_indices
+        native_fts_architecture = architecture
+    else
+        # In this case, part or all of the time series will be stored in a file.
+        # If we've gotten this far, it means that a suitable existing .jld2 file
+        # was not found and we need to preprocess data from the native .nc files.
+        # Now, time_indices refers to the time_indices that we will preprocess;
+        # by default we choose all of them. The architecture is only the
+        # architecture used for preprocessing, which typically will be CPU()
+        # even if we would like the final FieldTimeSeries on the GPU.
+        # Finally, `time_indices_in_memory` only refers to preprocessing,
+        # and we determine it using the kwarg `preprocess_chunk_size`.
+        isnothing(time_indices) && (time_indices = :)
+        time_indices_in_memory = 1:preprocess_chunk_size
+        native_fts_architecture = preprocess_architecture
+    end
+
+    # Set a default location.
+    if isnothing(location)
+        LX = LY = Center
+    else
+        LX, LY = location
+    end
 
     ds = Dataset(filename)
 
     # Note that each file should have the variables
-    # ds["time"]:     time coordinate 
-    # ds["lon"]:      longitude at the location of the variable
-    # ds["lat"]:      latitude at the location of the variable
-    # ds["lon_bnds"]: bounding longitudes between which variables are averaged
-    # ds["lat_bnds"]: bounding latitudes between which variables are averaged
-    # ds[short_name]: the variable data
+    #   - ds["time"]:     time coordinate 
+    #   - ds["lon"]:      longitude at the location of the variable
+    #   - ds["lat"]:      latitude at the location of the variable
+    #   - ds["lon_bnds"]: bounding longitudes between which variables are averaged
+    #   - ds["lat_bnds"]: bounding latitudes between which variables are averaged
+    #   - ds[shortname]: the variable data
 
-    # Extract variable data
-    data = ds[short_name][:, :, time_indices]
+    # Nodes at the variable location
+    λc = ds["lon"][:]
+    φc = ds["lat"][:]
 
-    # Make the JRA55 grid
-    λ = ds["lon_bnds"][1, :]
-    φ = ds["lat_bnds"][1, :]
-    times = ds["time"][time_indices]
-
-    close(ds)
+    # Interfaces for the "native" JRA55 grid
+    λn = ds["lon_bnds"][1, :]
+    φn = ds["lat_bnds"][1, :]
 
     # The .nc coordinates lon_bnds and lat_bnds do not include
     # the last interface, so we push them here.
-    push!(φ, 90)
-    push!(λ, λ[1] + 360)
+    push!(φn, 90)
+    push!(λn, λn[1] + 360)
 
-    Nx = length(λ) - 1
-    Ny = length(φ) - 1
+    # TODO: support loading just part of the JRA55 data.
+    # Probably with arguments that take latitude, longitude bounds.
+    i₁, i₂, j₁, j₂, TX = compute_bounding_indices(grid, LX, LY, λc, φc)
 
-    grid = LatitudeLongitudeGrid(architecture,
-                                 size = (Nx, Ny);
-                                 longitude = λ,
-                                 latitude = φ,
-                                 topology = (Periodic, Bounded, Flat))
+    native_times = ds["time"][time_indices_in_memory]
+    data = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
+    λr = λn[i₁:i₂+1]
+    φr = φn[j₁:j₂+1]
+    Nrx, Nry, Nt = size(data)
+    close(ds)
 
+    JRA55_native_grid = LatitudeLongitudeGrid(native_fts_architecture, Float32;
+                                              halo = (3, 3),
+                                              size = (Nrx, Nry),
+                                              longitude = λr,
+                                              latitude = φr,
+                                              topology = (TX, Bounded, Flat))
+
+    boundary_conditions = FieldBoundaryConditions(JRA55_native_grid, (Center, Center, Nothing))
+
+    # TODO: fix this and use dates?
     # Hack together the `times` for the JRA55 dataset we are currently using.
     # We might want to use the acutal dates instead though.
-    # So the following code maybe should change.
-    Δt = 3hours # just what it is
-    Nt = length(times)
-    start_time = 0 # Note: the forcing start at Jan 1 of the repeat year.
-    stop_time = Δt * (Nt - 1)
-    times = start_time:Δt:stop_time
+    # So the following code might need to change.
+    times = jra55_times(native_times)
 
-    boundary_conditions = FieldBoundaryConditions(grid, (Center, Center, Nothing))
-    fts = FieldTimeSeries{Center, Center, Nothing}(grid, times; boundary_conditions)
-
-    # Fill the data
-    interior(fts, :, :, 1, :) .= data[:, :, :]
-
-    # Fill halo regions so we can interpolate to finer grids
-    Nt = length(times)
-    chunk_size = 100
-    if Nt <= chunk_size # one chunk will do
-        fill_halo_regions!(fts)
-    else # need multiple chunks
-        start = 1
-        while start < Nt
-            stop = min(Nt, start + chunk_size - 1)
-            fts_chunk = Tuple(fts[n] for n = start:stop)
-            fill_halo_regions!(fts_chunk)
-            start += chunk_size
-        end
+    # Make times into an array for later preprocessing
+    if !totally_in_memory
+        times = collect(times)
     end
 
-    return fts
+    if backend isa JRA55NetCDFBackend
+        fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times;
+                                                       backend,
+                                                       time_indexing,
+                                                       boundary_conditions,
+                                                       path = filename,
+                                                       name = shortname)
+        return fts
+    else
+        native_fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times;
+                                                              time_indexing,
+                                                              boundary_conditions)
+        # Fill the data in a GPU-friendly manner
+        copyto!(interior(native_fts, :, :, 1, :), data)
+        fill_halo_regions!(native_fts)
+    end
+
+    if on_native_grid
+        fts = native_fts
+    else # make a new FieldTimeSeries and interpolate native data onto it.
+        boundary_conditions = FieldBoundaryConditions(grid, (LX, LY, Nothing))
+        fts = FieldTimeSeries{LX, LY, Nothing}(grid, times; time_indexing, boundary_conditions)
+        interpolate!(fts, native_fts)
+    end
+
+    if totally_in_memory
+        return fts
+    else # we're gonna save to disk!
+        # TODO: something's wrong here
+        @info "Pre-processing JRA55 $variable_name data into a JLD2 file..."
+
+        on_disk_fts = FieldTimeSeries{LX, LY, Nothing}(fts.grid;
+                                                       # time_indexing,
+                                                       boundary_conditions,
+                                                       backend = OnDisk(),
+                                                       path = jld2_filename,
+                                                       name = fts_name)
+
+        # Re-open the dataset!
+        ds = Dataset(filename)
+        all_datetimes = ds["time"][time_indices]
+        all_Nt = length(all_datetimes)
+        chunk = last(preprocess_chunk_size)
+        all_times = jra55_times(all_Nt)
+
+        # Save data to disk, one field at a time
+        start_clock = time_ns()
+        n = 1 # on disk
+        m = 0 # in memory
+        while n <= all_Nt
+            print("        ... processing time index $n of $all_Nt \r")
+
+            if time_indices_in_memory isa Colon || n ∈ time_indices_in_memory
+                m += 1
+            else # load new data
+                # Update time_indices
+                time_indices_in_memory = time_indices_in_memory .+ preprocess_chunk_size
+                n₁ = first(time_indices_in_memory)
+
+                # Clip time_indices if they extend past the end of the dataset
+                if last(time_indices_in_memory) > all_Nt
+                    time_indices_in_memory = UnitRange(n₁, all_Nt)
+                end
+
+                # Re-compute times
+                Nt = length(time_indices_in_memory)
+                new_times = jra55_times(Nt, all_times[n₁])
+                native_fts.times = new_times
+
+                # Re-compute data
+                new_data = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
+                copyto!(interior(native_fts, :, :, 1, :), new_data[:, :, :])
+                fill_halo_regions!(native_fts)
+
+                if !on_native_grid
+                    fts.times = new_times
+                    interpolate!(fts, native_fts)
+                end
+
+                m = 1 # reset
+            end
+
+            set!(on_disk_fts, fts[m], n, all_times[n])
+
+            n += 1
+        end
+
+        elapsed = 1e-9 * (time_ns() - start_clock)
+        elapsed_str = prettytime(elapsed)
+        @info "    ... done ($elapsed_str)" * repeat(" ", 20)
+
+        close(ds)
+
+        user_fts = FieldTimeSeries(jld2_filename, fts_name; architecture, backend, time_indexing)
+        return user_fts
+    end
+end
+
+const AA = Oceananigans.Architectures.AbstractArchitecture
+
+JRA55_prescribed_atmosphere(time_indices=Colon(); kw...) =
+    JRA55_prescribed_atmosphere(CPU(), time_indices; kw...)
+
+# TODO: allow the user to pass dates
+function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
+                                     backend = nothing,
+                                     time_indexing = Cyclical(),
+                                     reference_height = 2,  # meters
+                                     other_kw...)
+
+    if isnothing(backend) # apply a default
+        Ni = try
+            length(time_indices)
+        catch
+            Inf
+        end
+
+        # Manufacture a default for the number of fields to keep InMemory
+        Nf = min(24, Ni)
+
+        backend = InMemory(Nf)
+    end
+
+    kw = (; time_indices, time_indexing, backend, architecture)
+    kw = merge(kw, other_kw) 
+
+    ua  = JRA55_field_time_series(:eastward_velocity;               kw...)
+    va  = JRA55_field_time_series(:northward_velocity;              kw...)
+    Ta  = JRA55_field_time_series(:temperature;                     kw...)
+    qa  = JRA55_field_time_series(:specific_humidity;               kw...)
+    pa  = JRA55_field_time_series(:sea_level_pressure;              kw...)
+    Fra = JRA55_field_time_series(:rain_freshwater_flux;            kw...)
+    Fsn = JRA55_field_time_series(:snow_freshwater_flux;            kw...)
+    Ql  = JRA55_field_time_series(:downwelling_longwave_radiation;  kw...)
+    Qs  = JRA55_field_time_series(:downwelling_shortwave_radiation; kw...)
+
+    # NOTE: these have a different frequency than 3 hours so some changes are needed to 
+    # JRA55_field_time_series to support them.
+    # Fv_JRA55  = JRA55_field_time_series(:freshwater_river_flux,           grid; time_indices, architecture)
+    # Fi_JRA55  = JRA55_field_time_series(:freshwater_iceberg_flux,         grid; time_indices, architecture)
+
+    times = ua.times
+
+    velocities = (u = ua,
+                  v = va)
+
+    tracers = (T = Ta,
+               q = qa)
+
+    freshwater_flux = (rain = Fra,
+                       snow = Fsn)
+                       # rivers   = Fv_JRA55,
+                       # icebergs = Fi_JRA55)
+                       
+    pressure = pa
+
+    downwelling_radiation = TwoStreamDownwellingRadiation(shortwave=Qs, longwave=Ql)
+
+    atmosphere = PrescribedAtmosphere(times, eltype(ua);
+                                      velocities,
+                                      freshwater_flux,
+                                      tracers,
+                                      downwelling_radiation,
+                                      reference_height,
+                                      pressure)
+
+    return atmosphere
 end
 
 end # module

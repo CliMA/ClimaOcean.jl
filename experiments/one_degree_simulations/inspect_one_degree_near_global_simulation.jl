@@ -33,7 +33,7 @@ grid = Tt.grid
 Nx, Ny, Nz = size(grid)
 Nt = length(times)
 
-fig = Figure(resolution=(2400, 1800))
+fig = Figure(size=(2400, 1800))
 
 ax_T = Axis(fig[2, 2], xlabel="Longitude", ylabel="Latitude")
 ax_S = Axis(fig[3, 2], xlabel="Longitude", ylabel="Latitude")
