@@ -92,15 +92,6 @@ const ECCO2_z = [
       0.0,
 ]
 
-filenames_19920102 = Dict(
-    :temperature           => "THETA.1440x720x50.19920102.nc",
-    :salinity              => "SALT.1440x720x50.19920102.nc",
-    :sea_ice_thickness     => "SIheff.1440x720.19920102.nc",
-    :sea_ice_area_fraction => "SIarea.1440x720.19920102.nc",
-    :u_velocity            => "UVEL.1440x720.19920102.nc",
-    :v_velocity            => "VVEL.1440x720.19920102.nc",
-)
-
 ecco2_location = Dict(
     :temperature   => (Center, Center, Center),
     :salinity      => (Center, Center, Center),
@@ -110,35 +101,6 @@ ecco2_location = Dict(
 ecco2_depth_names = Dict(
     :temperature   => "DEPTH_T",
     :salinity      => "DEPTH_T",
-)
-
-urls_19920102 = Dict(
-    :temperature           => "https://www.dropbox.com/scl/fi/01h96yo2fhnnvt2zkmu0d/THETA.1440x720x50.19920102.nc?rlkey=ycso2v09gc6v2qb5j0lff0tjs",
-    :salinity              => "https://www.dropbox.com/scl/fi/t068we10j5skphd461zg8/SALT.1440x720x50.19920102.nc?rlkey=r5each0ytdtzh5icedvzpe7bw",
-    :sea_ice_thickness     => "https://www.dropbox.com/scl/fi/x0v9gjrfebwsef4tv1dvn/SIheff.1440x720.19920102.nc?rlkey=2uel3jtzbsplr28ejcnx3u6am",
-    :sea_ice_area_fraction => "https://www.dropbox.com/scl/fi/q14moq3201zicppu8ff8h/SIarea.1440x720.19920102.nc?rlkey=pt7pt80gr7r6mmjm9e0u4f5n1",
-    :u_velocity            => "https://www.dropbox.com/scl/fi/myur9kpanc5mprrf5ge32/UVEL.1440x720x50.19920102.nc?rlkey=7a5dpvfgoc87yr6q5ktrqwndu",
-    :v_velocity            => "https://www.dropbox.com/scl/fi/buic35gssyeyfqohenkeo/VVEL.1440x720x50.19920102.nc?rlkey=fau48w4t5ruop4s6gm8t7z0a0",
-)
-
-urls_19921001 = Dict(
-    :temperature           => "https://www.dropbox.com/scl/fi/169f3981460uhk9h69k0f/THETA.1440x720x50.19921001.nc?rlkey=mgal3xt0qy2c59y395ybio11v",
-    :salinity              => "https://www.dropbox.com/scl/fi/f9zfm34vqz732jrrhjrg3/SALT.1440x720x50.19921001.nc?rlkey=y5dv0s41gb6f9guvu0iorw28p",
-    :sea_ice_thickness     => "https://www.dropbox.com/scl/fi/mtmziurepom8kpjn82d07/SIheff.1440x720.19921001.nc?rlkey=9uhuxg2n9iw6894afj4t53drv",
-    :sea_ice_area_fraction => "https://www.dropbox.com/scl/fi/ntflhyrmsnit9vco402co/SIarea.1440x720.19921001.nc?rlkey=eakzc788btql1q6ndj9l8cr2q",
-    #:u_velocity            => "https://www.dropbox.com/scl/fi/e6s9c013r2ddift4f8ugi/UVEL.1440x720x50.19921001.nc?rlkey=fpd7mv1zv3fkmyg8w11b94sbp&dl=0",
-    :u_velocity            => "https://www.dropbox.com/scl/fi/e6s9c013r2ddift4f8ugi/UVEL.1440x720x50.19921001.nc?rlkey=fpd7mv1zv3fkmyg8w11b94sbp&dl=0",
-    :v_velocity            => "https://www.dropbox.com/scl/fi/nxuohvhvdu0ig552osf1d/VVEL.1440x720x50.19921001.nc?rlkey=vz4ttp3myxhertdxvt1lyjp1d",
-)
-
-filenames = Dict(
-    "1992-01-02" => filenames_19920102,
-    "1992-10-01" => filenames_19921001,
-)
-
-urls = Dict(
-    "1992-01-02" => urls_19920102,
-    "1992-10-01" => urls_19921001,
 )
 
 shortnames = Dict(
