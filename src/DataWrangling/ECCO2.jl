@@ -33,64 +33,11 @@ ecco2_tracer_fields = Dict(
     :ecco_2_effective_ice_thickness => :effective_ice_thickness
 )
 
-const ECCO2_Nx = 1440
-const ECCO2_Ny = 720
-const ECCO2_Nz = 50
-
-# Vertical coordinate
-const ECCO2_z = [
-    -6128.75,
-    -5683.75,
-    -5250.25,
-    -4839.75,
-    -4452.25,
-    -4087.75,
-    -3746.25,
-    -3427.75,
-    -3132.25,
-    -2859.75,
-    -2610.25,
-    -2383.74,
-    -2180.13,
-    -1999.09,
-    -1839.64,
-    -1699.66,
-    -1575.64,
-    -1463.12,
-    -1357.68,
-    -1255.87,
-    -1155.72,
-    -1056.53,
-    -958.45,
-    -862.10,
-    -768.43,
-    -678.57,
-    -593.72,
-    -515.09,
-    -443.70,
-    -380.30,
-    -325.30,
-    -278.70,
-    -240.09,
-    -208.72,
-    -183.57,
-    -163.43,
-    -147.11,
-    -133.45,
-    -121.51,
-    -110.59,
-    -100.20,
-    -90.06,
-    -80.01,
-    -70.0,
-    -60.0,
-    -50.0,
-    -40.0,
-    -30.0,
-    -20.0,
-    -10.0,
-      0.0,
-]
+ecco2_short_names = Dict(
+    :temperature   => "THETA",
+    :salinity      => "SALT",
+    :effective_ice_thickness => "SIheff"
+)
 
 ecco2_location = Dict(
     :temperature   => (Center, Center, Center),
@@ -103,15 +50,45 @@ ecco2_depth_names = Dict(
     :salinity      => "DEPTH_T",
 )
 
-shortnames = Dict(
-    :temperature           => "THETA",
-    :salinity              => "SALT",
-    :sea_ice_thickness     => "SIheff",
-    :sea_ice_area_fraction => "SIarea",
-    :u_velocity            => "UVEL",
-    :v_velocity            => "VVEL",
+variable_is_three_dimensional = Dict(
+    :temperature             => true,
+    :salinity                => true,
+    :effective_ice_thickness => false,
 )
 
+ecco2_file_names = Dict(
+    :temperature             => "ecco2_temperature_19920102.nc",
+    :salinity                => "ecco2_salinity_19920102.nc",
+    :effective_ice_thickness => "ecco2_effective_ice_thickness_19920102.nc",
+)
+
+# Downloaded from https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N
+
+ecco2_urls = Dict(
+    :temperature => "https://www.dropbox.com/scl/fi/01h96yo2fhnnvt2zkmu0d/" *
+                    "THETA.1440x720x50.19920102.nc?rlkey=ycso2v09gc6v2qb5j0lff0tjs&dl=0",
+
+    :salinity => "https://www.dropbox.com/scl/fi/t068we10j5skphd461zg8/" *
+                 "SALT.1440x720x50.19920102.nc?rlkey=r5each0ytdtzh5icedvzpe7bw&dl=0",
+
+    :effective_ice_thickness => "https://www.dropbox.com/scl/fi/x0v9gjrfebwsef4tv1dvn/" *
+                                "SIheff.1440x720.19920102.nc?rlkey=2uel3jtzbsplr28ejcnx3u6am&dl=0"
+)
+
+function construct_vertical_interfaces(ds, depth_name)
+    # Construct vertical coordinate
+    depth = ds[depth_name][:]
+    zc = -reverse(depth)
+
+    # Interface depths from cell center depths
+    zf = (zc[1:end-1] .+ zc[2:end]) ./ 2
+    push!(zf, 0)
+    
+    Δz = zc[2] - zc[1]
+    pushfirst!(zf, zf[1] - Δz)
+
+    return zf
+end
 
 function empty_ecco2_field(data::ECCO2Metadata; architecture = CPU(), 
                                             horizontal_halo = (1, 1))
@@ -120,13 +97,9 @@ function empty_ecco2_field(data::ECCO2Metadata; architecture = CPU(),
 
     location = ecco2_location[variable_name]
 
-    grid = LatitudeLongitudeGrid(architecture,
-                                 size = (ECCO2_Nx, ECCO2_Ny, ECCO2_Nz),
-                                 longitude = (0, 360),
-                                 latitude = (-90, 90),
-                                 z = ECCO2_z,
-                                 halo = (1, 1, 1),
-                                 topology = (Periodic, Bounded, Bounded))
+    longitude = (0, 360)
+    latitude = (-90, 90)
+    TX, TY = (Periodic, Bounded)
 
     filename = ecco2_file_names[variable_name]
     
@@ -312,4 +285,6 @@ function set!(field::Field, ecco2::ECCO2Metadata; filename = "./data/adjusted_ec
 end
 
 end # module
+
+
 
