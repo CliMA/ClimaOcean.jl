@@ -132,10 +132,11 @@ end
                 filename = ecco2_file_names[variable_name],
                 short_name = ecco2_short_names[variable_name])
 
-Retrieve the ecco2 field corresponding to `variable_name`. The data is either:
-(1) retrieved from `filename` 
-(2) dowloaded from `url` if `filename` does not exists
-(3) filled from `user_data` if `user_data` is provided
+Retrieve the ecco2 field corresponding to `variable_name`. 
+The data is either:
+(1) retrieved from `filename`,
+(2) dowloaded from `url` if `filename` does not exists,
+(3) filled from `user_data` if `user_data` is provided.
 """
 function ecco2_field(variable_name;
                      architecture = CPU(),
@@ -184,8 +185,7 @@ end
 """
     ecco2_center_mask(architecture = CPU(); minimum_value = Float32(-1e5))
 
-An integer field where 0 represents a missing value in the ECCO2 :temperature
-dataset and 1 represents a valid value
+A boolean field where `false` represents a missing value in the ECCO2 :temperature dataset.
 """
 function ecco2_center_mask(architecture = CPU(); minimum_value = Float32(-1e5))
     Tᵢ   = ecco2_field(:temperature; architecture)
@@ -220,7 +220,7 @@ Keyword Arguments:
               the data will be retrived from the ECCO2 dataset, inpainted, and
               saved to `filename`.
 
-- `mask`: the mask used to extend the field (see `adjust_tracer!`).
+- `mask`: the mask used to inpaint the field (see `inpaint_mask!`).
 """
 function inpainted_ecco2_field(variable_name; 
                                architecture = CPU(),
