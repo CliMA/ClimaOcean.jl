@@ -264,14 +264,15 @@ function set!(field::Field, ecco2_metadata::ECCO2Metadata; filename="./inpainted
 
     # Fields initialized from ECCO2
     grid = field.grid
+    name = ecco2_metadata.name
 
     mask = ecco2_center_mask(architecture(grid))
     
-    f = inpainted_ecco2_field(ecco2.name; filename, mask,
+    f = inpainted_ecco2_field(name; filename, mask,
                               architecture = architecture(grid),
                               kw...)
 
-    f_grid = Field(ecco2_location[ecco2.name], grid)   
+    f_grid = Field(ecco2_location[name], grid)   
     three_dimensional_regrid!(f_grid, f)
     set!(field, f_grid)
 
