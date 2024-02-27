@@ -17,3 +17,32 @@ Private = false
 Modules = [ClimaOcean.Diagnostics]
 Private = false
 ```
+
+## InitialConditions
+
+```@autodocs
+Modules = [ClimaOcean.InitialConditions]
+Private = false
+```
+
+## DataWrangling
+
+```@autodocs
+Modules = [ClimaOcean.DataWrangling]
+Private = false
+```
+
+## ECCO2
+
+```@autodocs
+Modules = [ClimaOcean.ECCO2]
+Private = false
+```
+
+## Bathymetry
+
+```@autodocs
+Modules = [ClimaOcean.Bathymetry]
+Private = false
+```
+
