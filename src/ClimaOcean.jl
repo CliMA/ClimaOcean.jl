@@ -11,7 +11,6 @@ export OceanSeaIceModel, FreezingLimitedOceanTemperature
 using Oceananigans
 using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
 using DataDeps
-using CubicSplines
 
 function __init__(; remove_existing_data=false)
 

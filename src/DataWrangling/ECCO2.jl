@@ -2,7 +2,7 @@ module ECCO2
 
 export ECCO2Metadata, ecco2_field, ecco2_center_mask, adjusted_ecco_tracers, initialize!
 
-using ClimaOcean.DataWrangling: fill_missing_values!
+using ClimaOcean.DataWrangling: inpaint_mask!
 using ClimaOcean.InitialConditions: three_dimensional_regrid!
 
 using Oceananigans
@@ -26,12 +26,6 @@ end
 ECCO2Metadata(name::Symbol) = ECCO2Metadata(name, 1992, 1, 2)
 
 filename(data::ECCO2Metadata) = "ecco2_" * string(data.name) * "_$(data.year)$(data.month)$(data.day).nc"
-
-ecco2_tracer_fields = Dict(
-    :ecco2_temperature => :temperature,
-    :ecco2_salinity => :salinity,
-    :ecco_2_effective_ice_thickness => :effective_ice_thickness
-)
 
 ecco2_short_names = Dict(
     :temperature   => "THETA",
@@ -90,8 +84,9 @@ function construct_vertical_interfaces(ds, depth_name)
     return zf
 end
 
-function empty_ecco2_field(data::ECCO2Metadata; architecture = CPU(), 
-                                            horizontal_halo = (1, 1))
+function empty_ecco2_field(data::ECCO2Metadata;
+                           architecture = CPU(), 
+                           horizontal_halo = (1, 1))
 
     variable_name = data.name
 
@@ -137,10 +132,11 @@ end
                 filename = ecco2_file_names[variable_name],
                 short_name = ecco2_short_names[variable_name])
 
-Retrieve the ecco2 field corresponding to `variable_name`. The data is either:
-(1) retrieved from `filename` 
-(2) dowloaded from `url` if `filename` does not exists
-(3) filled from `user_data` if `user_data` is provided
+Retrieve the ecco2 field corresponding to `variable_name`. 
+The data is either:
+(1) retrieved from `filename`,
+(2) dowloaded from `url` if `filename` does not exists,
+(3) filled from `user_data` if `user_data` is provided.
 """
 function ecco2_field(variable_name;
                      architecture = CPU(),
@@ -183,18 +179,17 @@ end
 
 @kernel function _set_ecco2_mask!(mask, Tᵢ, minimum_value)
     i, j, k = @index(Global, NTuple)
-    @inbounds mask[i, j, k] = ifelse(Tᵢ[i, j, k] < minimum_value, 0, 1)
+    @inbounds mask[i, j, k] = Tᵢ[i, j, k] < minimum_value
 end
 
 """
     ecco2_center_mask(architecture = CPU(); minimum_value = Float32(-1e5))
 
-An integer field where 0 represents a missing value in the ECCO2 :temperature
-dataset and 1 represents a valid value
+A boolean field where `false` represents a missing value in the ECCO2 :temperature dataset.
 """
 function ecco2_center_mask(architecture = CPU(); minimum_value = Float32(-1e5))
     Tᵢ   = ecco2_field(:temperature; architecture)
-    mask = CenterField(Tᵢ.grid)
+    mask = CenterField(Tᵢ.grid, Bool)
 
     # Set the mask with ones where T is defined
     launch!(architecture, Tᵢ.grid, :xyz, _set_ecco2_mask!, mask, Tᵢ, minimum_value)
@@ -203,41 +198,42 @@ function ecco2_center_mask(architecture = CPU(); minimum_value = Float32(-1e5))
 end
 
 """
-    adjusted_ecco_field(variable_name; 
-                        architecture = CPU(),
-                        filename = "./data/initial_ecco_tracers.nc",
-                        mask = ecco2_center_mask(architecture))
+    inpainted_ecco2_field(variable_name; 
+                          architecture = CPU(),
+                          filename = "./inpainted_ecco2_fields.nc",
+                          mask = ecco2_center_mask(architecture))
     
-Retrieve the ECCO2 field corresponding to `variable_name` adjusted to fill all the
-missing values in the original dataset
+Retrieve the ECCO2 field corresponding to `variable_name` inpainted to fill all the
+missing values in the original dataset.
 
 Arguments:
 ==========
 
-- `variable_name`: the variable name corresponding to the Dataset
+- `variable_name`: the variable name corresponding to the Dataset.
 
 Keyword Arguments:
 ==================
 
-- `architecture`: either `CPU()` or `GPU()`
+- `architecture`: either `CPU()` or `GPU()`.
 
 - `filename`: the path where to retrieve the data from. If the file does not exist,
-              the data will be retrived from the ECCO2 dataset, it will be adjusted and
-              saved down in `filename`
+              the data will be retrived from the ECCO2 dataset, inpainted, and
+              saved to `filename`.
 
-- `mask`: the mask used to extend the field (see `adjust_tracer!`)
+- `mask`: the mask used to inpaint the field (see `inpaint_mask!`).
 """
-function adjusted_ecco2_field(variable_name; 
-                              architecture = CPU(),
-                              filename = "./data/adjusted_ecco_tracers.nc",
-                              mask = ecco2_center_mask(architecture))
+function inpainted_ecco2_field(variable_name; 
+                               architecture = CPU(),
+                               filename = "./inpainted_ecco2_fields.nc",
+                               mask = ecco2_center_mask(architecture),
+                               kw...)
     
     if !isfile(filename)
         f = ecco2_field(variable_name; architecture)
         
         # Make sure all values are extended properly
-        @info "in-painting ecco field $variable_name and saving it in $filename"
-        fill_missing_values!(f; mask)
+        @info "In-painting ecco field $variable_name and saving it in $filename"
+        inpaint_mask!(f, mask; kw...)
 
         ds = Dataset(filename, "c")
         defVar(ds, string(variable_name), Array(interior(f)), ("lat", "lon", "z"))
@@ -251,9 +247,9 @@ function adjusted_ecco2_field(variable_name;
             f = ecco2_field(variable_name; architecture, user_data = data)
         else
             f = ecco2_field(variable_name; architecture)
-            # Make sure all values are extended properly
-            @info "in-painting ecco field $variable_name and saving it in $filename"
-            fill_missing_values!(f; mask)
+            # Make sure all values are inpainted properly
+            @info "In-painting ecco field $variable_name and saving it in $filename"
+            inpaint_mask!(f, mask; kw...)
 
             defVar(ds, string(variable_name), Array(interior(f)), ("lat", "lon", "z"))
         end
@@ -264,21 +260,20 @@ function adjusted_ecco2_field(variable_name;
     return f
 end
 
-function set!(field::Field, ecco2::ECCO2Metadata; filename = "./data/adjusted_ecco_tracers.nc")
+function set!(field::Field, ecco2_metadata::ECCO2Metadata; filename="./inpainted_ecco2_fields.nc", kw...)
+
     # Fields initialized from ECCO2
     grid = field.grid
+    name = ecco2_metadata.name
 
     mask = ecco2_center_mask(architecture(grid))
     
-    f = adjusted_ecco2_field(ecco2.name; 
-                             architecture = architecture(grid),
-                             filename,
-                             mask)
+    f = inpainted_ecco2_field(name; filename, mask,
+                              architecture = architecture(grid),
+                              kw...)
 
-    f_grid = Field(ecco2_location[ecco2.name], grid)   
-
+    f_grid = Field(ecco2_location[name], grid)   
     three_dimensional_regrid!(f_grid, f)
-
     set!(field, f_grid)
 
     return field
