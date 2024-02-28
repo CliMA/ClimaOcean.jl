@@ -24,7 +24,7 @@ Nx = 4320
 Ny = 1800
 Nz = length(z_faces) - 1
 
-arch = CPU() #Distributed(GPU(), partition = Partition(8))
+arch = Distributed(GPU(), partition = Partition(8))
 
 @show grid = load_balanced_regional_grid(arch; 
                                          size = (Nx, Ny, Nz), 
