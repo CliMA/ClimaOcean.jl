@@ -93,6 +93,11 @@ function regrid_bathymetry(target_grid;
     λ_data = dataset["lon"][:]
     h_data = convert.(FT, dataset["z"][:, :])
 
+    # Convert longitude to 0 - 360?
+    λ_data .+= 180
+    nhx      = size(h_data, 1)
+    h_data   = circshift(h_data, (nhx ÷ 2, 1))
+
     close(dataset)
 
     # Diagnose target grid information

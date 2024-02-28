@@ -1,6 +1,6 @@
 module OceanSimulations
 
-export LoadBalancedOceanGrid, ocean_simulation
+export load_balanced_regional_grid, ocean_simulation
 
 using Oceananigans.Advection: TracerAdvection
 

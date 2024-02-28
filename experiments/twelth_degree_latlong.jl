@@ -15,20 +15,21 @@ using Printf
 #####
 
 # 100 vertical levels
-z_faces = exponential_z_faces(100, 6000)
+z_faces = exponential_z_faces(10, 6000)
 
 Nx = 360
 Ny = 150
 Nz = length(z_faces) - 1
 
-arch = Distributed(CPU(), partition = Partition(8))
+arch = Distributed(CPU(), partition = Partition(1))
 
 @show grid = load_balanced_regional_grid(arch; 
                                          size = (Nx, Ny, Nz), 
                                          z = z_faces, 
                                          latitude  = (-75, 75),
                                          longitude = (0, 360),
-                                         halo = (7, 7, 7))
+                                         halo = (7, 7, 7),
+                                         interpolation_passes = 25)
           
 #####
 ##### The Ocean component

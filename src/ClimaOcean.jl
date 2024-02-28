@@ -72,6 +72,7 @@ include("DataWrangling/DataWrangling.jl")
 include("Bathymetry.jl")
 include("Diagnostics.jl")
 include("NearGlobalSimulations/NearGlobalSimulations.jl")
+include("OceanSimulations/OceanSimulations.jl")
 
 using .VerticalGrids
 using .Bathymetry
@@ -79,6 +80,7 @@ using .DataWrangling: JRA55
 using .DataWrangling: ECCO2
 using .InitialConditions
 using .OceanSeaIceModels: OceanSeaIceModel
+using .OceanSimulations
 
 end # module
 
