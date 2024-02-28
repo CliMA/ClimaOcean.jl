@@ -12,7 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.9'
+          - '1.10'
         os:
           - ubuntu-latest
         arch:
@@ -22,20 +22,20 @@ jobs:
           # test macOS and Windows with latest Julia only
           - os: macOS-latest
             arch: x64
-            version: 1.9
+            version: '1.10'
           - os: windows-latest
             arch: x64
-            version: 1.9
+            version: '1.10'
           - os: windows-latest
             arch: x86
-            version: 1.9
+            version: '1.10'
     steps:
       - uses: actions/checkout@v3
       - uses: julia-actions/setup-julia@latest
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         env:
           cache-name: cache-artifacts
         with:
