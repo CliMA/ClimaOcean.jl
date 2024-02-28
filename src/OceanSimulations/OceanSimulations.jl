@@ -2,6 +2,7 @@ module OceanSimulations
 
 export load_balanced_regional_grid, ocean_simulation
 
+using Oceananigans.Units
 using Oceananigans.Advection: TracerAdvection
 
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities:
@@ -29,9 +30,9 @@ default_momentum_advection() = VectorInvariant(; vorticity_scheme = WENO(; order
                                                   vertical_scheme = Centered(),
                                                 divergence_scheme = WENO())
 
-default_tracer_advection() = TracerAdvection(; x = WENO(; order = 7),
-                                               y = WENO(; order = 7),
-                                               z = Centered())
+default_tracer_advection() = TracerAdvection(WENO(; order = 7),
+                                             WENO(; order = 7),
+                                             Centered())
 
 # TODO: Specify the grid to a grid on the sphere; otherwise we can provide a different
 # function that requires latitude and longitude etc for computing coriolis=FPlane...

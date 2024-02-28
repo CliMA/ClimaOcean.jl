@@ -47,7 +47,7 @@ end
 propagate_horizontally!(field, ::Nothing, tmp_field=deepcopy(field); kw...) = field
 
 function propagating(field, mask, iter, max_iter)
-    mask_sum = sum(field; condition=mask)
+    mask_sum = sum(field; condition=interior(mask))
     return isnan(mask_sum) && iter < max_iter
 end
 

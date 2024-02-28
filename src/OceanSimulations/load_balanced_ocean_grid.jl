@@ -1,7 +1,8 @@
 using ClimaOcean.Bathymetry
 using Oceananigans
+using Oceananigans.Architectures: arch_array, device
 using Oceananigans.DistributedComputations
-using Oceananigans.DistributedComputations: Sizes
+using Oceananigans.DistributedComputations: Sizes, child_architecture
 using Oceananigans.ImmersedBoundaries: immersed_cell
 using KernelAbstractions: @index, @kernel
 

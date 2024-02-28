@@ -21,7 +21,7 @@ Nx = 360
 Ny = 150
 Nz = length(z_faces) - 1
 
-arch = Distributed(CPU(), partition = Partition(1))
+arch = CPU() #Distributed(CPU(), partition = Partition(1))
 
 @show grid = load_balanced_regional_grid(arch; 
                                          size = (Nx, Ny, Nz), 
@@ -55,7 +55,8 @@ radiation  = Radiation()
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 
-function progress(sim) 
+function progress(coupled_sim) 
+    sim = coupled_sim.ocean
     u, v, w = sim.model.velocities  
     T, S = sim.model.tracers
 
@@ -67,35 +68,23 @@ function progress(sim)
                    maximum(abs, T), maximum(abs, S))
 end
 
-simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
+coupled_model.callbacks[:progress] = Callback(progress, IterationInterval(10))
 
 # Simulation warm up!
-#
-# We have regridded from a coarse solution (1/4er of a degree) to a
-# fine grid (1/15th of a degree). Also, the bathymetry has little mismatches 
-# that might crash our simulation. We warm up the simulation with a little 
-# time step for few iterations to allow the solution to adjust to the new_grid
-# bathymetry
-simulation.Δt = 10
-simulation.stop_iteration = 1000
-run!(simulation)
+coupled_model.Δt = 10
+coupled_model.stop_iteration = 1000
+run!(coupled_model)
 
 # Run the real simulation
 #
 # Now that the solution has adjusted to the bathymetry we can ramp up the time
 # step size. We use a `TimeStepWizard` to automatically adapt to a cfl of 0.2
-wizard = TimeStepWizard(; cfl = 0.2, max_Δt = 10minutes, max_change = 1.1)
+wizard = TimeStepWizard(; cfl = 0.35, max_Δt = 10minutes, max_change = 1.1)
 
-simulation.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
+coupled_model.ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 
 # Let's reset the maximum number of iterations
-simulation.stop_iteration = Inf
-
-simulation.output_writers[:surface_fields] = JLD2OutputWriter(model, merge(model.velocities, model.tracers);
-                                                              indices = (:, :, Nz),
-                                                              schedule = TimeInterval(1day),
-                                                              overwrite_existing = true,
-                                                              filename = "med_surface_field")
+coupled_model.stop_iteration = Inf
 
 run!(simulation)
 

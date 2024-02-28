@@ -232,7 +232,7 @@ function inpainted_ecco2_field(variable_name;
         f = ecco2_field(variable_name; architecture)
         
         # Make sure all values are extended properly
-        @info "In-painting ecco field $variable_name and saving it in $filename"
+        @info "In-painting ecco $variable_name and saving it in $filename"
         inpaint_mask!(f, mask; kw...)
 
         ds = Dataset(filename, "c")
@@ -248,7 +248,7 @@ function inpainted_ecco2_field(variable_name;
         else
             f = ecco2_field(variable_name; architecture)
             # Make sure all values are inpainted properly
-            @info "In-painting ecco field $variable_name and saving it in $filename"
+            @info "In-painting ecco $variable_name and saving it in $filename"
             inpaint_mask!(f, mask; kw...)
 
             defVar(ds, string(variable_name), Array(interior(f)), ("lat", "lon", "z"))
