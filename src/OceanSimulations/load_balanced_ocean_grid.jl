@@ -5,6 +5,7 @@ using Oceananigans.DistributedComputations
 using Oceananigans.DistributedComputations: Sizes, child_architecture
 using Oceananigans.ImmersedBoundaries: immersed_cell
 using KernelAbstractions: @index, @kernel
+using JLD2
 
 """
     load_balanced_regional_grid(arch; size, 
@@ -50,7 +51,8 @@ function load_balanced_regional_grid(arch;
                                      maximum_size = nothing,
                                      height_above_water = 1,
                                      minimum_depth = 10,
-                                     interpolation_passes = 1)
+                                     interpolation_passes = 1,
+                                     bathymetry_file = nothing)
     
     grid = LatitudeLongitudeGrid(arch;
                                  size,
@@ -59,10 +61,23 @@ function load_balanced_regional_grid(arch;
                                  z,
                                  halo)
 
-    bottom_height = regrid_bathymetry(grid;
-                                      height_above_water,
-                                      minimum_depth,
-                                      interpolation_passes)
+    if !isnothing(bathymetry_file)
+        if isfile(bathymetry_file)
+            bottom_height = jldopen(bathymetry_file)["bathymetry"]
+        else
+            bottom_height = regrid_bathymetry(grid;
+                                              height_above_water,
+                                              minimum_depth,
+                                              interpolation_passes)
+            
+            jldsave(bathymetry_file, bathymetry = bottom_height)
+        end
+    else
+        bottom_height = regrid_bathymetry(grid;
+                                          height_above_water,
+                                          minimum_depth,
+                                          interpolation_passes)
+    end
 
     return ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true) 
 end
@@ -82,7 +97,8 @@ function load_balanced_regional_grid(arch::SlabDistributed;
                                      maximum_size = nothing,
                                      height_above_water = 1,
                                      minimum_depth = 10,
-                                     interpolation_passes = 1)
+                                     interpolation_passes = 1,
+                                     bathymetry_file = nothing)
         
     child_arch = child_architecture(arch)
 
@@ -96,7 +112,8 @@ function load_balanced_regional_grid(arch::SlabDistributed;
                                        maximum_size,
                                        height_above_water,
                                        minimum_depth,
-                                       interpolation_passes)
+                                       interpolation_passes,
+                                       bathymetry_file)
 
     bottom_height = grid.immersed_boundary.bottom_height
 
