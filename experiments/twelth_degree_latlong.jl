@@ -17,18 +17,18 @@ using Printf
 # 100 vertical levels
 z_faces = exponential_z_faces(100, 6000)
 
-Nx = 4320
-Ny = 1800
+Nx = 360
+Ny = 150
 Nz = length(z_faces) - 1
 
-arch = Distributed(GPU(), partition = Partition(8))
+arch = Distributed(CPU(), partition = Partition(8))
 
-grid = LoadBalancedOceanGrid(arch; 
-                             size = (Nx, Ny, Nz), 
-                             z = z_faces, 
-                             latitude  = (-75, 75),
-                             longitude = (0, 360),
-                             halo = (7, 7, 7))
+@show grid = load_balanced_regional_grid(arch; 
+                                         size = (Nx, Ny, Nz), 
+                                         z = z_faces, 
+                                         latitude  = (-75, 75),
+                                         longitude = (0, 360),
+                                         halo = (7, 7, 7))
           
 #####
 ##### The Ocean component
@@ -39,17 +39,20 @@ simulation = ocean_simulation(grid)
 model = simulation.model
 
 # Initializing the model
-set!(model, T = ECCO2Metadata(:temperature), S = ECCO2Metadata(:salinity), e = 1e-6)
+set!(model, 
+     T = ECCO2Metadata(:temperature), 
+     S = ECCO2Metadata(:salinity),
+     e = 1e-6)
 
 #####
 ##### The atmosphere
 #####
 
-backend    = JRA55NetCDFBackend(8) # InMemory(8)
-atmosphere = JRA55_prescribed_atmosphere(arch, 1:56; backend)
+backend    = JRA55NetCDFBackend(10) # InMemory(8)
+atmosphere = JRA55_prescribed_atmosphere(arch; backend)
 radiation  = Radiation()
 
-coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 
 function progress(sim) 
     u, v, w = sim.model.velocities  
