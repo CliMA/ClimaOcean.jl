@@ -1,111 +1,171 @@
 module ECCO2
 
+using Dates
+
 using Oceananigans
-using Oceananigans.BoundaryConditions
+using Oceananigans.BoundaryConditions: fill_halo_regions!
+
 using NCDatasets
 
-temperature_filename = "THETA.1440x720x50.19920102.nc"
-salinity_filename = "SALT.1440x720x50.19920102.nc"
-effective_ice_thickness_filename = "SIheff.1440x720.19920102.nc"
+# Data from
+#
+# https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N
+#
+# These files are just for Jan 2, 1992.
 
-ecco2_short_names = Dict(
-    :temperature   => "THETA",
-    :salinity      => "SALT",
-    :effective_ice_thickness => "SIheff"
+const ECCO2_Nx = 1440
+const ECCO2_Ny = 720
+const ECCO2_Nz = 50
+
+# Vertical coordinate
+const ECCO2_z = [
+    -6128.75,
+    -5683.75,
+    -5250.25,
+    -4839.75,
+    -4452.25,
+    -4087.75,
+    -3746.25,
+    -3427.75,
+    -3132.25,
+    -2859.75,
+    -2610.25,
+    -2383.74,
+    -2180.13,
+    -1999.09,
+    -1839.64,
+    -1699.66,
+    -1575.64,
+    -1463.12,
+    -1357.68,
+    -1255.87,
+    -1155.72,
+    -1056.53,
+    -958.45,
+    -862.10,
+    -768.43,
+    -678.57,
+    -593.72,
+    -515.09,
+    -443.70,
+    -380.30,
+    -325.30,
+    -278.70,
+    -240.09,
+    -208.72,
+    -183.57,
+    -163.43,
+    -147.11,
+    -133.45,
+    -121.51,
+    -110.59,
+    -100.20,
+    -90.06,
+    -80.01,
+    -70.0,
+    -60.0,
+    -50.0,
+    -40.0,
+    -30.0,
+    -20.0,
+    -10.0,
+      0.0,
+]
+
+filenames_19920102 = Dict(
+    :temperature           => "THETA.1440x720x50.19920102.nc",
+    :salinity              => "SALT.1440x720x50.19920102.nc",
+    :sea_ice_thickness     => "SIheff.1440x720.19920102.nc",
+    :sea_ice_area_fraction => "SIarea.1440x720.19920102.nc",
+    :u_velocity            => "UVEL.1440x720.19920102.nc",
+    :v_velocity            => "VVEL.1440x720.19920102.nc",
 )
 
-ecco2_depth_names = Dict(
-    :temperature   => "DEPTH_T",
-    :salinity      => "DEPTH_T",
+filenames_19921001 = Dict(
+    :temperature           => "THETA.1440x720x50.19921001.nc",
+    :salinity              => "SALT.1440x720x50.19921001.nc",
+    :sea_ice_thickness     => "SIheff.1440x720.19921001.nc",
+    :sea_ice_area_fraction => "SIarea.1440x720.19921001.nc",
+    :u_velocity            => "UVEL.1440x720.19921001.nc",
+    :v_velocity            => "VVEL.1440x720.19921001.nc",
 )
 
-variable_is_three_dimensional = Dict(
-    :temperature             => true,
-    :salinity                => true,
-    :effective_ice_thickness => false,
+urls_19920102 = Dict(
+    :temperature           => "https://www.dropbox.com/scl/fi/01h96yo2fhnnvt2zkmu0d/THETA.1440x720x50.19920102.nc?rlkey=ycso2v09gc6v2qb5j0lff0tjs",
+    :salinity              => "https://www.dropbox.com/scl/fi/t068we10j5skphd461zg8/SALT.1440x720x50.19920102.nc?rlkey=r5each0ytdtzh5icedvzpe7bw",
+    :sea_ice_thickness     => "https://www.dropbox.com/scl/fi/x0v9gjrfebwsef4tv1dvn/SIheff.1440x720.19920102.nc?rlkey=2uel3jtzbsplr28ejcnx3u6am",
+    :sea_ice_area_fraction => "https://www.dropbox.com/scl/fi/q14moq3201zicppu8ff8h/SIarea.1440x720.19920102.nc?rlkey=pt7pt80gr7r6mmjm9e0u4f5n1",
+    :u_velocity            => "https://www.dropbox.com/scl/fi/myur9kpanc5mprrf5ge32/UVEL.1440x720x50.19920102.nc?rlkey=7a5dpvfgoc87yr6q5ktrqwndu",
+    :v_velocity            => "https://www.dropbox.com/scl/fi/buic35gssyeyfqohenkeo/VVEL.1440x720x50.19920102.nc?rlkey=fau48w4t5ruop4s6gm8t7z0a0",
 )
 
-ecco2_file_names = Dict(
-    :temperature             => "ecco2_temperature_19920102.nc",
-    :salinity                => "ecco2_salinity_19920102.nc",
-    :effective_ice_thickness => "ecco2_effective_ice_thickness_19920102.nc",
+urls_19921001 = Dict(
+    :temperature           => "https://www.dropbox.com/scl/fi/169f3981460uhk9h69k0f/THETA.1440x720x50.19921001.nc?rlkey=mgal3xt0qy2c59y395ybio11v",
+    :salinity              => "https://www.dropbox.com/scl/fi/f9zfm34vqz732jrrhjrg3/SALT.1440x720x50.19921001.nc?rlkey=y5dv0s41gb6f9guvu0iorw28p",
+    :sea_ice_thickness     => "https://www.dropbox.com/scl/fi/mtmziurepom8kpjn82d07/SIheff.1440x720.19921001.nc?rlkey=9uhuxg2n9iw6894afj4t53drv",
+    :sea_ice_area_fraction => "https://www.dropbox.com/scl/fi/ntflhyrmsnit9vco402co/SIarea.1440x720.19921001.nc?rlkey=eakzc788btql1q6ndj9l8cr2q",
+    #:u_velocity            => "https://www.dropbox.com/scl/fi/e6s9c013r2ddift4f8ugi/UVEL.1440x720x50.19921001.nc?rlkey=fpd7mv1zv3fkmyg8w11b94sbp&dl=0",
+    :u_velocity            => "https://www.dropbox.com/scl/fi/e6s9c013r2ddift4f8ugi/UVEL.1440x720x50.19921001.nc?rlkey=fpd7mv1zv3fkmyg8w11b94sbp&dl=0",
+    :v_velocity            => "https://www.dropbox.com/scl/fi/nxuohvhvdu0ig552osf1d/VVEL.1440x720x50.19921001.nc?rlkey=vz4ttp3myxhertdxvt1lyjp1d",
 )
 
-# Downloaded from https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N
-
-ecco2_urls = Dict(
-    :temperature => "https://www.dropbox.com/scl/fi/01h96yo2fhnnvt2zkmu0d/" *
-                    "THETA.1440x720x50.19920102.nc?rlkey=ycso2v09gc6v2qb5j0lff0tjs&dl=0",
-
-    :salinity => "https://www.dropbox.com/scl/fi/t068we10j5skphd461zg8/" *
-                 "SALT.1440x720x50.19920102.nc?rlkey=r5each0ytdtzh5icedvzpe7bw&dl=0",
-
-    :effective_ice_thickness => "https://www.dropbox.com/scl/fi/x0v9gjrfebwsef4tv1dvn/" *
-                                "SIheff.1440x720.19920102.nc?rlkey=2uel3jtzbsplr28ejcnx3u6am&dl=0"
+filenames = Dict(
+    "1992-01-02" => filenames_19920102,
+    "1992-10-01" => filenames_19921001,
 )
 
-function construct_vertical_interfaces(ds, depth_name)
-    # Construct vertical coordinate
-    depth = ds[depth_name][:]
-    zc = -reverse(depth)
+urls = Dict(
+    "1992-01-02" => urls_19920102,
+    "1992-10-01" => urls_19921001,
+)
 
-    # Interface depths from cell center depths
-    zf = (zc[1:end-1] .+ zc[2:end]) ./ 2
-    push!(zf, 0)
-    
-    Δz = zc[2] - zc[1]
-    pushfirst!(zf, zf[1] - Δz)
+shortnames = Dict(
+    :temperature           => "THETA",
+    :salinity              => "SALT",
+    :sea_ice_thickness     => "SIheff",
+    :sea_ice_area_fraction => "SIarea",
+    :u_velocity            => "UVEL",
+    :v_velocity            => "VVEL",
+)
 
-    return zf
-end
+surface_variable(variable_name) = variable_name == :sea_ice_thickness
 
-function ecco2_field(variable_name;
+function ecco2_field(variable_name, date=Date(1992, 01, 02);
                      architecture = CPU(),
-                     horizontal_halo = (1, 1),
-                     url = ecco2_urls[variable_name],
-                     filename = ecco2_file_names[variable_name],
-                     short_name = ecco2_short_names[variable_name])
-
-    isfile(filename) || download(url, filename)
+                     filename  = filenames[string(date)][variable_name],
+                     url       =      urls[string(date)][variable_name],
+                     shortname = shortnames[variable_name])
+                     
+    if !isfile(filename)
+        print("Downloading $filename...")
+        start_time = time_ns()
+        download(url, filename)
+        elapsed = time_ns() - start_time
+        print(" done (", prettytime(elapsed * 1e-9), ").", '\n')
+    end
 
     ds = Dataset(filename)
 
-    longitude = (0, 360)
-    latitude = (-90, 90)
-    TX, TY = (Periodic, Bounded)
+    grid = LatitudeLongitudeGrid(architecture,
+                                 size = (ECCO2_Nx, ECCO2_Ny, ECCO2_Nz),
+                                 longitude = (0, 360),
+                                 latitude = (-90, 90),
+                                 z = ECCO2_z,
+                                 halo = (1, 1, 1),
+                                 topology = (Periodic, Bounded, Bounded))
 
-    if variable_is_three_dimensional[variable_name] 
-        data = ds[short_name][:, :, :, 1]
-        depth_name = ecco2_depth_names[variable_name]
-        
-        # The surface layer in three-dimensional ECCO fields is at `k = 1`
-        data = reverse(data, dims = 3)
-        
-        z    = construct_vertical_interfaces(ds, depth_name)
-        N    = size(data)
-
-        # add vertical halo for 3D fields
-        halo = (horizontal_halo..., 1)
-
-        LZ   = Center
-        TZ   = Bounded
+    # TODO: figure out what's going on with the locations
+    if surface_variable(variable_name)
+        field = Field{Center, Center, Nothing}(grid)
+        data = ds[shortname][:, :, 1]
+        data = convert(Array{Float32, 2}, data)
     else
-        data = ds[short_name][:, :, 1]
-        N    = size(data)
-        z    = nothing
-        halo = horizontal_halo
-        LZ   = Nothing
-        TZ   = Flat
+        field = CenterField(grid)
+        data = ds[shortname][:, :, :, 1]
+        data = convert(Array{Float32, 3}, data)
+        data = reverse(data, dims=3)
     end
 
-    close(ds)
-
-    # Flat in z if the variable is two-dimensional
-    grid = LatitudeLongitudeGrid(architecture; halo, size = N, topology = (TX, TY, TZ),
-                                 longitude, latitude, z)
-
-    field = Field{Center, Center, LZ}(grid)
-    
     set!(field, data)
     fill_halo_regions!(field)
 
@@ -132,6 +192,24 @@ function ecco2_bottom_height_from_temperature()
     end
 
     return bottom_height
+end
+
+function ecco2_column(λ★, φ★)
+    Δ = 1/4 # resolution in degrees
+    φ₁ = -90 + Δ/2
+    φ₂ = +90 - Δ/2
+    λ₁ = 0   + Δ/2
+    λ₂ = 360 - Δ/2
+    φe = φ₁:Δ:φ₂
+    λe = λ₁:Δ:λ₂
+    
+    i★ = searchsortedfirst(λe, λ★)
+    j★ = searchsortedfirst(φe, φ★)
+    
+    longitude = (λe[i★] - Δ/2, λe[i★] + Δ/2)
+    latitude  = (φe[j★] - Δ/2, φe[j★] + Δ/2)
+
+    return i★, j★, longitude, latitude
 end
 
 end # module

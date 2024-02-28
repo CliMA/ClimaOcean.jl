@@ -1,5 +1,13 @@
 module ClimaOcean
 
+export
+    OceanSeaIceModel,
+    FreezingLimitedOceanTemperature,
+    Radiation,
+    JRA55_prescribed_atmosphere,
+    JRA55NetCDFBackend,
+    ecco2_field
+
 using Oceananigans
 using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
 using DataDeps
@@ -58,6 +66,7 @@ end
 @inline u_immersed_bottom_drag(i, j, k, grid, c, Φ, μ) = @inbounds - μ * Φ.u[i, j, k] * spᶠᶜᶜ(i, j, k, grid, Φ)
 @inline v_immersed_bottom_drag(i, j, k, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, k] * spᶜᶠᶜ(i, j, k, grid, Φ)
 
+include("OceanSeaIceModels/OceanSeaIceModels.jl")
 include("VerticalGrids.jl")
 include("DataWrangling/DataWrangling.jl")
 include("Bathymetry.jl")
@@ -65,7 +74,11 @@ include("InitialConditions.jl")
 include("Diagnostics.jl")
 include("NearGlobalSimulations/NearGlobalSimulations.jl")
 
-using .DataWrangling: JRA55
-using .DataWrangling: ECCO2
+using .DataWrangling: JRA55, ECCO2
+using ClimaOcean.DataWrangling.JRA55: JRA55_prescribed_atmosphere, JRA55NetCDFBackend
+using ClimaOcean.DataWrangling.ECCO2: ecco2_field
+
+using .OceanSeaIceModels: OceanSeaIceModel, Radiation
 
 end # module
+
