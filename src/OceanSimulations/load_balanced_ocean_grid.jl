@@ -70,7 +70,7 @@ function load_balanced_regional_grid(arch;
                                               minimum_depth,
                                               interpolation_passes)
             
-            jldsave(bathymetry_file, bathymetry = bottom_height)
+            jldsave(bathymetry_file, bathymetry = Array(interior(bottom_height)))
         end
     else
         bottom_height = regrid_bathymetry(grid;
