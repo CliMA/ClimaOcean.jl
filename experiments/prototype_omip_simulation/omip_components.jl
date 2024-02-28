@@ -15,39 +15,6 @@ using KernelAbstractions: @kernel, @index
 
 using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 
-#=
-Nf = length(other_fields)
-ft = ntuple(Nf) do n
-    fe = other_fields[n]
-    interior(fe)[land] .= NaN
-end
-=#
-
-#=
-i₁ = 4 * first(longitude) + 1
-i₂ = 1440 - 4 * (360 - last(longitude))
-i₂ > i₁ || error("longitude $longitude is invalid.")
-Nx = i₂ - i₁ + 1
-
-j₁ = 4 * (90 + first(latitude)) + 1
-j₂ = 720 - 4 * (90 - last(latitude))
-j₂ > j₁ || error("latitude $latitude is invalid.")
-Ny = j₂ - j₁ + 1
-=#
-#=
-Tᵢ = interior(Te, i₁:i₂, j₁:j₂, :)
-bottom_height = - Inf .* ones(Nx, Ny)
-for i = 1:Nx, j = 1:Ny
-    for k = Nz:-1:1
-        if isnan(Tᵢ[i, j, k])
-            bottom_height[i, j] = znode(i, j, k+1, grid, c, c, f)
-            break
-        end
-    end
-end
-Tᵢ = arch_array(arch, Tᵢ)
-=#
-
 function regional_omip_grid(arch, ecco_2_temperature_field;
                             latitude,
                             longitude = (0, 360),
@@ -80,16 +47,6 @@ function regional_omip_grid(arch, ecco_2_temperature_field;
     launch!(arch, grid, :xy, infer_bottom_height!, bottom_height, Tᵢ, grid)
    
     grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
-
-    #=
-    Nf = length(other_fields)
-    ft = ntuple(Nf) do n
-        fe = other_fields[n]
-        fᵢ = interior(fe, i₁:i₂, j₁:j₂, :)
-        fᵢ = arch_array(arch, fᵢ)
-    end
-    all_fields = tuple(Tᵢ, ft...)
-    =#
 
     elapsed = 1e-9 * (time_ns() - start_time)
     @info string("Grid for regional omip simulation generated in ", prettytime(elapsed), ".")
@@ -134,33 +91,8 @@ function omip_ocean_component(grid;
 
     if closure == :default
 
-        CᵂwΔ = 0.42488
-        Cᵂu★ = 0.77035
-        CʰⁱD = 1.32927
-        CˡᵒD = 1.78434
-         CᶜD = 1.77713
-        Cᵂϵ  = 1.0
-        
-        turbulent_kinetic_energy_equation =
-            TurbulentKineticEnergyEquation(; Cᵂϵ, CᵂwΔ, Cᵂu★, CˡᵒD, CʰⁱD, CᶜD)
-
-        Cʰⁱc = 0.35506
-        Cʰⁱu = 0.73705
-        Cʰⁱe = 2.95645
-          Cˢ = 1.51574
-        Cˡᵒc = 0.70216
-        Cˡᵒu = 0.41751
-        Cˡᵒe = 2.12289
-        CRi⁰ = 0.31406
-        CRiᵟ = 0.31180
-         Cᶜc = 1.42944
-         Cᶜe = 0.52468
-         Cᵉc = 0.84486
-         Cˢᵖ = 0.46480
-        Cᵇ   = 0.01
-
-        mixing_length = MixingLength(; Cʰⁱc, Cʰⁱu, Cʰⁱe, Cˢ, Cᵇ, Cˡᵒc,
-                                     Cˡᵒu, Cˡᵒe, CRi⁰, CRiᵟ, Cᶜc, Cᶜe, Cᵉc, Cˢᵖ)
+        turbulent_kinetic_energy_equation = TurbulentKineticEnergyEquation(Cᵂϵ=1.0)
+        mixing_length = MixingLength(Cᵇ=0.01)
 
         closure = CATKEVerticalDiffusivity(; mixing_length,
                                            turbulent_kinetic_energy_equation,
@@ -270,3 +202,4 @@ end
         T[i, j, k] = ifelse(land, NaN, Tᵢ)
     end
 end
+
