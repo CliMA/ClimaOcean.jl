@@ -73,8 +73,10 @@ end
 ocean.callbacks[:progress] = Callback(progress, IterationInterval(10))
 
 # Simulation warm up!
-coupled_model.Δt = 10
-coupled_model.stop_iteration = 1000
+ocean.Δt = 10
+ocean.stop_iteration = 10000
+wizard = TimeStepWizard(; cfl = 0.35, max_Δt = 90, max_change = 1.1)
+ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 run!(coupled_model)
 
 # Run the real simulation
@@ -82,11 +84,10 @@ run!(coupled_model)
 # Now that the solution has adjusted to the bathymetry we can ramp up the time
 # step size. We use a `TimeStepWizard` to automatically adapt to a cfl of 0.35
 wizard = TimeStepWizard(; cfl = 0.35, max_Δt = 10minutes, max_change = 1.1)
-
-coupled_model.ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
+ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 
 # Let's reset the maximum number of iterations
-coupled_model.stop_iteration = Inf
+coupled_model.ocean.stop_iteration = Inf
 
-run!(simulation)
+run!(coupled_model)
 
