@@ -3,6 +3,7 @@ module ECCO2
 using Oceananigans
 using Oceananigans.BoundaryConditions
 using NCDatasets
+using Downloads: download
 
 temperature_filename = "THETA.1440x720x50.19920102.nc"
 salinity_filename = "SALT.1440x720x50.19920102.nc"
