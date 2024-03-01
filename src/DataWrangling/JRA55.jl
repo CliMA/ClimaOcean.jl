@@ -4,6 +4,7 @@ using Oceananigans
 using Oceananigans.Units
 using Oceananigans.BoundaryConditions: fill_halo_regions!
 using NCDatasets
+using Downloads: download
 
 # A list of all variables provided in the JRA55 dataset:
 jra55_short_names = (:freshwater_river_flux,
