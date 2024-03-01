@@ -18,6 +18,7 @@ using Dates
 
 import Oceananigans.Fields: set!
 import Oceananigans.OutputReaders: new_backend
+using Downloads: download
 
 # A list of all variables provided in the JRA55 dataset:
 JRA55_variable_names = (:freshwater_river_flux,

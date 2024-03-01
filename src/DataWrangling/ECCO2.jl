@@ -11,6 +11,7 @@ using Oceananigans.BoundaryConditions
 using Oceananigans.Utils
 using KernelAbstractions: @kernel, @index
 using NCDatasets
+using Downloads: download
 
 import Oceananigans.Fields: set!
 
