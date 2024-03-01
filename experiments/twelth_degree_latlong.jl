@@ -18,7 +18,7 @@ using Printf
 #####
 
 # 100 vertical levels
-z_faces = exponential_z_faces(100, 6000)
+z_faces = exponential_z_faces(Nz=100, depth=6000)
 
 Nx = 4320
 Ny = 1800
