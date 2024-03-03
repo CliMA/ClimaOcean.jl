@@ -1410,15 +1410,17 @@ version = "7.2.1+1"
 
 [[deps.SurfaceFluxes]]
 deps = ["DocStringExtensions", "RootSolvers", "Thermodynamics"]
-git-tree-sha1 = "24086f7e46de40dbd32a49d3fd51a534a5a9bcb0"
+git-tree-sha1 = "c2c43206af0d861e018f746286d1af036aa7bc3a"
+repo-rev = "glw/generalize-parameters"
+repo-url = "https://github.com/glwagner/SurfaceFluxes.jl.git"
 uuid = "49b00bb7-8bd4-4f2b-b78c-51cd0450215f"
-version = "0.10.0"
+version = "0.9.2"
 
     [deps.SurfaceFluxes.extensions]
-    CreateParametersExt = "ClimaParams"
+    CreateParametersExt = "CLIMAParameters"
 
     [deps.SurfaceFluxes.weakdeps]
-    ClimaParams = "5c42b081-d73a-476f-9059-fd94b934656c"
+    CLIMAParameters = "6eacf6c3-8458-43b9-ae03-caf5306d3d53"
 
 [[deps.TOML]]
 deps = ["Dates"]
@@ -1466,7 +1468,9 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[deps.Thermodynamics]]
 deps = ["DocStringExtensions", "KernelAbstractions", "Random", "RootSolvers"]
-git-tree-sha1 = "a539e258008ed9275a91e0a374aa1d073e80e2bf"
+git-tree-sha1 = "8254d615b8489fb0b9de960c9fae695538802834"
+repo-rev = "glw/density-example"
+repo-url = "https://github.com/glwagner/Thermodynamics.jl.git"
 uuid = "b60c26fb-14c3-4610-9d3e-2d17fe7ff00c"
 version = "0.12.4"
 
