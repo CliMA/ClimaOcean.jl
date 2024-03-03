@@ -51,6 +51,7 @@ function load_balanced_regional_grid(arch;
                                      maximum_size = nothing,
                                      height_above_water = 1,
                                      minimum_depth = 10,
+                                     connected_regions_allowed = Inf, 
                                      interpolation_passes = 1,
                                      bathymetry_file = nothing)
     
@@ -68,7 +69,8 @@ function load_balanced_regional_grid(arch;
             bottom_height = regrid_bathymetry(grid;
                                               height_above_water,
                                               minimum_depth,
-                                              interpolation_passes)
+                                              interpolation_passes,
+                                              connected_regions_allowed)
             
             jldsave(bathymetry_file, bathymetry = Array(interior(bottom_height)))
         end
@@ -98,6 +100,7 @@ function load_balanced_regional_grid(arch::SlabDistributed;
                                      height_above_water = 1,
                                      minimum_depth = 10,
                                      interpolation_passes = 1,
+                                     connected_regions_allowed = Inf, 
                                      bathymetry_file = nothing)
         
     child_arch = child_architecture(arch)
@@ -113,7 +116,8 @@ function load_balanced_regional_grid(arch::SlabDistributed;
                                        height_above_water,
                                        minimum_depth,
                                        interpolation_passes,
-                                       bathymetry_file)
+                                       bathymetry_file,
+                                       connected_regions_allowed)
 
     bottom_height = grid.immersed_boundary.bottom_height
 

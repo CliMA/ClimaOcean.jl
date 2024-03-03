@@ -2,6 +2,8 @@ module Bathymetry
 
 export regrid_bathymetry
 
+
+
 using ..DataWrangling: download_progress
 
 using Oceananigans
@@ -68,7 +70,8 @@ function regrid_bathymetry(target_grid;
                            dir = joinpath(@__DIR__, "..", "data"),
                            url = "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_surface_elev_netcdf", 
                            filename = "ETOPO_2022_v1_60s_N90W180_surface.nc",
-                           interpolation_passes = 1)
+                           interpolation_passes = 1,
+                           connected_regions_allowed = Inf) # Allow an `Inf` number of ``lakes''
 
     filepath = joinpath(dir, filename)
 
@@ -145,11 +148,6 @@ function regrid_bathymetry(target_grid;
         h_data[land] .= height_above_water
     end
 
-    if minimum_depth > 0
-        shallow_ocean = h_data .> minimum_depth
-        h_data[shallow_ocean] .= height_above_water
-    end
-
     # Build the "native" grid of the bathymetry and make a bathymetry field.
     Nxn = length(λ_data)
     Nyn = length(φ_data)
@@ -165,13 +163,21 @@ function regrid_bathymetry(target_grid;
     native_h = Field{Center, Center, Nothing}(native_grid)
     set!(native_h, h_data)
 
-    target_h = interpolate_bathymetry_in_passes(native_h, target_grid; passes = interpolation_passes)
+    target_h = interpolate_bathymetry_in_passes(native_h, target_grid; 
+                                                passes = interpolation_passes,
+                                                connected_regions_allowed,
+                                                minimum_depth,
+                                                height_above_water)
 
     return target_h
 end
 
 # Here we can either use `regrid!` (three dimensional version) or `interpolate`
-function interpolate_bathymetry_in_passes(native_h, target_grid; passes = 10)
+function interpolate_bathymetry_in_passes(native_h, target_grid; 
+                                          passes = 10,
+                                          connected_regions_allowed = Inf,
+                                          minimum_depth = 0,
+                                          height_above_water = nothing)
     Nλt, Nφt = Nt = size(target_grid)
     Nλn, Nφn = Nn = size(native_h)
     
@@ -216,7 +222,70 @@ function interpolate_bathymetry_in_passes(native_h, target_grid; passes = 10)
     target_h = Field{Center, Center, Nothing}(target_grid)
     interpolate!(target_h, old_h)
 
+    h_data = Array(interior(target_h, :, :, 1))
+
+    if minimum_depth > 0
+        shallow_ocean = h_data .> minimum_depth
+        h_data[shallow_ocean] .= height_above_water
+    end
+
+    remove_lakes!(h_data; connected_regions_allowed)
+
+    set!(target_h, h_data)
+    fill_halo_regions!(target_h)
+
     return target_h
+end
+
+function remove_lakes!(h_data; connected_regions_allowed = Inf)
+
+    if connected_regions_allowed == Inf
+        return h_data
+    end
+
+    bathtmp = deepcopy(h_data)
+    batneg  = zeros(Bool, size(bathtmp)...)
+    
+    batneg[bathtmp.<0] .= true
+
+    labels = ImageMorphology.label_components(batneg) #, connectivity = 1)
+    try
+        total_elements = zeros(maximum(labels))
+
+        for i in 1:lastindex(total_elements)
+            total_elements[i] = sum(labels[labels .== i])
+        end
+            
+        all_idx = []
+        ocean_idx = findfirst(x -> x == maximum(x), total_elements)
+        push!(all_idx, ocean_idx)
+        total_elements = filter((x) -> x != total_elements[ocean_idx], total_elements)
+
+        for _ in 1:connected_regions_allowed
+            next_maximum = maximum(total_elements)
+            push!(all_idx, next_maximum)
+            total_elements = filter((x) -> x != total_elements[next_maximum], total_elements)
+        end
+            
+        labels = Float64.(labels)
+        labels[labels.==0] .= NaN
+
+        for i in 1:length(total_elements)
+            remove_lake = (&).(Tuple(i != idx for idx in all_idx)...)
+            if remove_lake
+                labels[labels .== i] .= NaN
+            end
+        end
+
+        bathtmp .+= labels
+        bathtmp[isnan.(bathtmp)] .= ABOVE_SEA_LEVEL
+    catch err
+        println("this is the error $err")
+    end
+
+    h_data .= bathtmp
+
+    return h_data
 end
 
 end # module
