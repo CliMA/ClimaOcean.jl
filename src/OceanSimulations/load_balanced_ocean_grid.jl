@@ -38,6 +38,7 @@ calculated to maintain an equal number of active cells across different workers.
 - `height_above_water`: The height above water level. Default is `1`.
 - `minimum_depth`: The minimum depth of the bathymetry. Default is `10`.
 - `interpolation_passes`: The number of interpolation passes. Default is `1`.
+- `connected_regions_allowed`: The number of connected regions allowed in the bathymetry
 
 # Returns
 - `grid`: The load-balanced ocean grid.
@@ -78,7 +79,8 @@ function load_balanced_regional_grid(arch;
         bottom_height = regrid_bathymetry(grid;
                                           height_above_water,
                                           minimum_depth,
-                                          interpolation_passes)
+                                          interpolation_passes,
+                                          connected_regions_allowed)
     end
 
     return ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true) 
