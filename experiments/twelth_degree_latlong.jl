@@ -24,7 +24,7 @@ Nx = 4320
 Ny = 1800
 Nz = length(z_faces) - 1
 
-arch = CPU() #Distributed(GPU(), partition = Partition(8))
+arch = Distributed(GPU(), partition = Partition(8))
 
 @show grid = load_balanced_regional_grid(arch; 
                                          size = (Nx, Ny, Nz), 
@@ -35,8 +35,8 @@ arch = CPU() #Distributed(GPU(), partition = Partition(8))
                                          interpolation_passes = 10,
                                          minimum_depth = 10,
                                          height_above_water = 1,
-                                         connected_regions_allowed = 3)
-                                         # bathymetry_file = "bathymetry1.jld2")
+                                         connected_regions_allowed = 3, # We allow the oceans, the med, the bering sea
+                                         bathymetry_file = "bathymetry1.jld2")
           
 #####
 ##### The Ocean component
