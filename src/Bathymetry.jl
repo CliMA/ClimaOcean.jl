@@ -2,8 +2,7 @@ module Bathymetry
 
 export regrid_bathymetry
 
-
-
+using ImageMorphology
 using ..DataWrangling: download_progress
 
 using Oceananigans
@@ -267,23 +266,27 @@ function remove_lakes!(h_data; connected_regions_allowed = Inf)
     
     batneg[bathtmp.<0] .= true
 
-    labels = ImageMorphology.label_components(batneg) #, connectivity = 1)
+    labels = ImageMorphology.label_components(batneg)
     try
         total_elements = zeros(maximum(labels))
+        label_elements = zeros(maximum(labels))
 
         for i in 1:lastindex(total_elements)
             total_elements[i] = sum(labels[labels .== i])
+            label_elements[i] = i
         end
             
         all_idx = []
-        ocean_idx = findfirst(x -> x == maximum(x), total_elements)
-        push!(all_idx, ocean_idx)
+        ocean_idx = findfirst(x -> x == maximum(total_elements), total_elements)
+        push!(all_idx, label_elements[ocean_idx])
         total_elements = filter((x) -> x != total_elements[ocean_idx], total_elements)
+        label_elements = filter((x) -> x != label_elements[ocean_idx], label_elements)
 
         for _ in 1:connected_regions_allowed
-            next_maximum = maximum(total_elements)
-            push!(all_idx, next_maximum)
+            next_maximum = findfirst(x -> x == maximum(total_elements), total_elements)
+            push!(all_idx, label_elements[next_maximum])
             total_elements = filter((x) -> x != total_elements[next_maximum], total_elements)
+            label_elements = filter((x) -> x != label_elements[next_maximum], label_elements)
         end
             
         labels = Float64.(labels)
