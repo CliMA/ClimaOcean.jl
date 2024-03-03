@@ -237,6 +237,25 @@ function interpolate_bathymetry_in_passes(native_h, target_grid;
     return target_h
 end
 
+"""
+    remove_lakes!(h_data; connected_regions_allowed = Inf)
+
+Remove lakes from the bathymetric data stored in `h_data`.
+
+# Arguments
+============
+
+- `h_data`: A 2D array representing the bathymetry data.
+- `connected_regions_allowed`: The maximum number of connected regions to keep. 
+                               Default is `Inf`, which means all connected regions are kept.
+
+# Returns
+=========
+
+The function removes lakes from the bathymetry data by identifying connected regions below sea level 
+and removing all but the specified number of largest connected regions (which represent the ocean and 
+other possibly disconnected regions like the Mediterranean and the Bering sea).
+"""
 function remove_lakes!(h_data; connected_regions_allowed = Inf)
 
     if connected_regions_allowed == Inf
