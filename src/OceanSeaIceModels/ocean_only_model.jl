@@ -6,6 +6,20 @@ OceanOnlyModel(ocean; kw...) = OceanSeaIceModel(nothing, ocean; kw...)
 ##### No ice-ocean fluxes in this model!!
 #####
 
+function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_tendencies=true)
+    ocean = coupled_model.ocean
+
+    # Be paranoid and update state at iteration 0
+    coupled_model.clock.iteration == 0 && update_state!(coupled_model, callbacks)
+
+    time_step!(ocean)
+
+    tick!(coupled_model.clock, Δt)
+    update_state!(coupled_model, callbacks; compute_tendencies)
+    
+    return nothing
+end
+
 #=
 compute_ice_ocean_salinity_flux!(::OceanOnlyModel) = nothing
 ice_ocean_latent_heat!(::OceanOnlyModel) = nothing
