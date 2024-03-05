@@ -123,7 +123,7 @@ function load_balanced_regional_grid(arch::SlabDistributed;
                                        bathymetry_file,
                                        connected_regions_allowed)
 
-    bottom_height = grid.immersed_boundary.bottom_height
+    bottom_height = interior(grid.immersed_boundary.bottom_height)
 
     # index of the partitioned direction
     idx = arch.ranks[1] == 1 ? 2 : 1
@@ -147,7 +147,7 @@ function load_balanced_regional_grid(arch::SlabDistributed;
     @info "slab decomposition with " zonal_rank local_N[zonal_rank]
 
     grid = LatitudeLongitudeGrid(arch;
-                                 size = N,
+                                 size,
                                  longitude,
                                  latitude,
                                  z,
