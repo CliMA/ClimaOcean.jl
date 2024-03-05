@@ -8,7 +8,7 @@ using ClimaOcean.InitialConditions: three_dimensional_regrid!
 using Oceananigans
 using Oceananigans: architecture
 using Oceananigans.BoundaryConditions
-using Oceananigans.DistributedComputations: DistributedField
+using Oceananigans.DistributedComputations: DistributedField, child_architecture
 using Oceananigans.Utils
 using KernelAbstractions: @kernel, @index
 using NCDatasets

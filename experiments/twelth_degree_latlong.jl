@@ -26,17 +26,19 @@ Nz = length(z_faces) - 1
 
 arch = Distributed(CPU(), partition = Partition(4))
 
-@show grid = load_balanced_regional_grid(arch; 
-                                         size = (Nx, Ny, Nz), 
-                                         z = z_faces, 
-                                         latitude  = (-75, 75),
-                                         longitude = (0, 360),
-                                         halo = (7, 7, 7),
-                                         interpolation_passes = 10,
-                                         minimum_depth = 10,
-                                         connected_regions_allowed = 3, # We allow the oceans, the med, the bering sea
-                                         bathymetry_file = "tmp.jld2")
-          
+grid = load_balanced_regional_grid(arch; 
+                                   size = (Nx, Ny, Nz), 
+                                   z = z_faces, 
+                                   latitude  = (-75, 75),
+                                   longitude = (0, 360),
+                                   halo = (7, 7, 7),
+                                   interpolation_passes = 10,
+                                   minimum_depth = 10,
+                                   connected_regions_allowed = 3, # We allow the oceans, the med, the bering sea
+                                   bathymetry_file = "tmp.jld2")
+ 
+@show grid                                   
+                              
 #####
 ##### The Ocean component
 #####                             
