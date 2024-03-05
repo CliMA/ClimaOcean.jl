@@ -6,9 +6,9 @@ using ClimaOcean.DataWrangling: inpaint_mask!
 using ClimaOcean.InitialConditions: three_dimensional_regrid!
 
 using Oceananigans
-using Oceananigans: architecture
+using Oceananigans.Architectures: architecture, child_architecture
 using Oceananigans.BoundaryConditions
-using Oceananigans.DistributedComputations: DistributedField, child_architecture
+using Oceananigans.DistributedComputations: DistributedField, all_reduce
 using Oceananigans.Utils
 using KernelAbstractions: @kernel, @index
 using NCDatasets
@@ -272,12 +272,18 @@ function set!(field::DistributedField, ecco2_metadata::ECCO2Metadata; filename="
     name = ecco2_metadata.name
 
     mask = ecco2_center_mask(child_arch)
-    
-    f = inpainted_ecco2_field(name; filename, mask,
-                              architecture = child_arch,
-                              kw...)
 
-    
+    f_ecco = if arch.local_rank == 0 # NCDatasets does not work in distributed mode??
+            inpainted_ecco2_field(name; filename, mask,
+                                  architecture = child_arch,
+                                  kw...)
+    else
+        empty_ecco2_field(ecco2_metadata; architecture = child_arch)
+    end
+
+    # Distribute ecco field to all workers
+    parent(f_ecco) .= all_reduce(+, parent(f_ecco), arch)
+
     f_grid = Field(ecco2_location[name], grid)   
     three_dimensional_regrid!(f_grid, f)
     set!(field, f_grid)
