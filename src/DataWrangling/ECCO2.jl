@@ -239,6 +239,8 @@ function inpainted_ecco2_field(variable_name;
         @info "In-painting ecco $variable_name and saving it in $filename"
         inpaint_mask!(f, mask; kw...)
 
+        fill_halo_regions!(f)
+
         ds = Dataset(filename, "c")
         defVar(ds, string(variable_name), Array(interior(f)), ("lat", "lon", "z"))
 
@@ -249,11 +251,13 @@ function inpainted_ecco2_field(variable_name;
         if haskey(ds, string(variable_name))
             data = ds[variable_name][:, :, :]
             f = ecco2_field(variable_name; architecture, user_data = data)
+            fill_halo_regions!(f)
         else
             f = ecco2_field(variable_name; architecture)
             # Make sure all values are inpainted properly
             @info "In-painting ecco $variable_name and saving it in $filename"
             inpaint_mask!(f, mask; kw...)
+            fill_halo_regions!(f)
 
             defVar(ds, string(variable_name), Array(interior(f)), ("lat", "lon", "z"))
         end
