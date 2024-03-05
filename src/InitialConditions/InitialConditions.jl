@@ -8,7 +8,7 @@ using Oceananigans.Fields: OneField
 using Oceananigans.Grids: peripheral_node
 using Oceananigans.Utils: launch!
 using Oceananigans.Fields: instantiated_location, interior, CenterField
-using Oceananigans.Architectures: architecture, device, GPU
+using Oceananigans.Architectures: architecture, device, GPU, child_architecture
 
 using KernelAbstractions: @kernel, @index
 using KernelAbstractions.Extras.LoopInfo: @unroll
@@ -30,13 +30,12 @@ construct_grid(::Type{<:RectilinearGrid}, arch, size, extent, topology) =
 construct_grid(::Type{<:LatitudeLongitudeGrid}, arch, size, extent, topology) = 
     LatitudeLongitudeGrid(arch; size, longitude = extent[1], latitude = extent[2], z = extent[3], topology)
 
-# Regrid a field in three dimensions
 function three_dimensional_regrid!(a, b)
     target_grid = a.grid isa ImmersedBoundaryGrid ? a.grid.underlying_grid : a.grid
     source_grid = b.grid isa ImmersedBoundaryGrid ? b.grid.underlying_grid : b.grid 
 
     topo = topology(target_grid)
-    arch = architecture(target_grid)
+    arch = child_architecture(target_grid)
     
     target_y = yt = cpu_face_constructor_y(target_grid)
     target_z = zt = cpu_face_constructor_z(target_grid)

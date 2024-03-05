@@ -235,7 +235,6 @@ function set!(fts::JRA55NetCDFFTS, path::String=fts.path, name::String=fts.name)
     ti = time_indices(fts)
     ti = collect(ti)
     native_times = ds["time"][ti]
-    times = jra55_times(native_times)
     data = ds[name][i₁:i₂, j₁:j₂, ti]
     close(ds)
 
@@ -545,7 +544,6 @@ const AA = Oceananigans.Architectures.AbstractArchitecture
 
 JRA55_prescribed_atmosphere(time_indices=Colon(); kw...) =
     JRA55_prescribed_atmosphere(CPU(), time_indices; kw...)
-
 
 JRA55_prescribed_atmosphere(arch::Distributed, time_indices=Colon(); kw...) =
     JRA55_prescribed_atmosphere(child_architecture(arch), time_indices; kw...)

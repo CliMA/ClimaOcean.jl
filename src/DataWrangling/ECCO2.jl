@@ -273,7 +273,7 @@ function set!(field::DistributedField, ecco2_metadata::ECCO2Metadata; filename="
 
     mask = ecco2_center_mask(child_arch)
 
-    f_ecco = if arch.local_rank == 0 # NCDatasets does not work in distributed mode??
+    f_ecco = if arch.local_rank == 0 # Make sure we read/write the file using only one core
             inpainted_ecco2_field(name; filename, mask,
                                   architecture = child_arch,
                                   kw...)
@@ -285,7 +285,7 @@ function set!(field::DistributedField, ecco2_metadata::ECCO2Metadata; filename="
     parent(f_ecco) .= all_reduce(+, parent(f_ecco), arch)
 
     f_grid = Field(ecco2_location[name], grid)   
-    three_dimensional_regrid!(f_grid, f)
+    three_dimensional_regrid!(f_grid, f_ecco)
     set!(field, f_grid)
     
     return field
