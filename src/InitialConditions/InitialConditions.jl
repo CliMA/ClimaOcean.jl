@@ -35,7 +35,8 @@ function three_dimensional_regrid!(a, b)
     source_grid = b.grid isa ImmersedBoundaryGrid ? b.grid.underlying_grid : b.grid 
 
     topo = topology(target_grid)
-    arch = child_architecture(target_grid)
+    arch = architecture(target_grid)
+    arch = child_architecture(arch)
     
     target_y = yt = cpu_face_constructor_y(target_grid)
     target_z = zt = cpu_face_constructor_z(target_grid)

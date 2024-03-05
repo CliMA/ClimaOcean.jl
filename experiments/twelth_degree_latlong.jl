@@ -22,11 +22,11 @@ bathymetry_file = "bathymetry_quarter.jld2"
 # 100 vertical levels
 z_faces = exponential_z_faces(Nz=50, depth=6000)
 
-Nx = 1440
-Ny = 600
+Nx = 360
+Ny = 150
 Nz = length(z_faces) - 1
 
-arch = GPU() #Distributed(CPU(), partition = Partition(4))
+arch = Distributed(CPU(), partition = Partition(4))
 
 grid = load_balanced_regional_grid(arch; 
                                    size = (Nx, Ny, Nz), 
@@ -85,10 +85,17 @@ function progress(sim)
 end
 
 ocean.callbacks[:progress] = Callback(progress, IterationInterval(1))
+
 ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, model.velocities),
                                                   schedule = TimeInterval(30days),
                                                   overwrite_existing = true,
-                                                  filename = "test_out")
+                                                  array_type = Array{Float32},
+                                                  filename = "snapshots_$(arch.local_rank)")
+
+ocean.output_writers[:checkpoint] = Checkpointer(model, 
+                                                 schedule = TimeInterval(60days),
+                                                 overwrite_existing = true,
+                                                 prefix = "checkpoint_$(arch.local_rank)")
 
 # Simulation warm up!
 ocean.Δt = 10
@@ -100,18 +107,9 @@ stop_time = 5days
 
 coupled_simulation = Simulation(coupled_model, Δt=1, stop_time=stop_time)
 
-# time_step!(coupled_simulation)
-# time_step!(coupled_simulation)
-
-# jldsave("test_$(arch.local_rank).jld2", T = ocean.model.tracers.T, S = ocean.model.tracers.S)
-
 run!(coupled_simulation)
 
-# Run the real simulation
-#
-# Now that the solution has adjusted to the bathymetry we can ramp up the time
-# step size. We use a `TimeStepWizard` to automatically adapt to a cfl of 0.35
-wizard = TimeStepWizard(; cfl = 0.3, max_Δt = 10minutes, max_change = 1.1)
+wizard = TimeStepWizard(; cfl = 0.35, max_Δt = 270, max_change = 1.1)
 ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 
 # Let's reset the maximum number of iterations
