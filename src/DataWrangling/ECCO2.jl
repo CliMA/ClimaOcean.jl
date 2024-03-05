@@ -70,6 +70,8 @@ ecco2_urls = Dict(
                                 "SIheff.1440x720.19920102.nc?rlkey=2uel3jtzbsplr28ejcnx3u6am&dl=0"
 )
 
+surface_variable(variable_name) = variable_name == :sea_ice_thickness
+
 function construct_vertical_interfaces(ds, depth_name)
     # Construct vertical coordinate
     depth = ds[depth_name][:]
@@ -278,6 +280,24 @@ function set!(field::Field, ecco2_metadata::ECCO2Metadata; filename="./inpainted
     set!(field, f_grid)
 
     return field
+end
+
+function ecco2_column(λ★, φ★)
+    Δ = 1/4 # resolution in degrees
+    φ₁ = -90 + Δ/2
+    φ₂ = +90 - Δ/2
+    λ₁ = 0   + Δ/2
+    λ₂ = 360 - Δ/2
+    φe = φ₁:Δ:φ₂
+    λe = λ₁:Δ:λ₂
+    
+    i★ = searchsortedfirst(λe, λ★)
+    j★ = searchsortedfirst(φe, φ★)
+    
+    longitude = (λe[i★] - Δ/2, λe[i★] + Δ/2)
+    latitude  = (φe[j★] - Δ/2, φe[j★] + Δ/2)
+
+    return i★, j★, longitude, latitude
 end
 
 end # module

@@ -133,34 +133,44 @@ function omip_ocean_component(grid;
     tracers = tuple(:T, :S, passive_tracers...)
 
     if closure == :default
-        CᵂwΔ = 1.154
-        Cᵂu★ = 0.382
-        CˡᵒD = 0.378
-        CʰⁱD = 0.938
-        CᶜD  = 1.428
+
+        CᵂwΔ = 0.42488
+        Cᵂu★ = 0.77035
+        CʰⁱD = 1.32927
+        CˡᵒD = 1.78434
+         CᶜD = 1.77713
         Cᵂϵ  = 1.0
+        
         turbulent_kinetic_energy_equation =
             TurbulentKineticEnergyEquation(; Cᵂϵ, CᵂwΔ, Cᵂu★, CˡᵒD, CʰⁱD, CᶜD)
 
-        Cʰⁱc = 0.273
-        Cʰⁱu = 0.489
-        Cʰⁱe = 1.908
-        Cˡᵒc = 0.915
-        Cˡᵒu = 0.661
-        Cˡᵒe = 1.635
-        CRi⁰ = 0.151
-        CRiᵟ = 0.113
-        Cᶜc  = 0.738
-        Cᶜe  = 0.310
-        Cᵉc  = 0.392
-        Cˢᵖ  = 0.517
-        Cˢ   = 0.746
+        Cʰⁱc = 0.35506
+        Cʰⁱu = 0.73705
+        Cʰⁱe = 2.95645
+          Cˢ = 1.51574
+        Cˡᵒc = 0.70216
+        Cˡᵒu = 0.41751
+        Cˡᵒe = 2.12289
+        CRi⁰ = 0.31406
+        CRiᵟ = 0.31180
+         Cᶜc = 1.42944
+         Cᶜe = 0.52468
+         Cᵉc = 0.84486
+         Cˢᵖ = 0.46480
         Cᵇ   = 0.01
 
         mixing_length = MixingLength(; Cʰⁱc, Cʰⁱu, Cʰⁱe, Cˢ, Cᵇ, Cˡᵒc,
                                      Cˡᵒu, Cˡᵒe, CRi⁰, CRiᵟ, Cᶜc, Cᶜe, Cᵉc, Cˢᵖ)
 
-        closure = CATKEVerticalDiffusivity(; mixing_length, turbulent_kinetic_energy_equation)
+        closure = CATKEVerticalDiffusivity(; mixing_length,
+                                           turbulent_kinetic_energy_equation,
+                                           maximum_tracer_diffusivity = 1e-1,
+                                           maximum_tke_diffusivity    = 1e-1,
+                                           maximum_viscosity          = 1e-1,
+                                           negative_turbulent_kinetic_energy_damping_time_scale = 30,
+                                           minimum_turbulent_kinetic_energy = 1e-6,
+                                           minimum_convective_buoyancy_flux = 1e-11)
+
         tracers = tuple(:e, tracers...)
     end
     
