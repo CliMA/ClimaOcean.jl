@@ -8,7 +8,7 @@ using ClimaOcean.InitialConditions: three_dimensional_regrid!
 using Oceananigans
 using Oceananigans.Architectures: architecture, child_architecture
 using Oceananigans.BoundaryConditions
-using Oceananigans.DistributedComputations: DistributedField, all_reduce
+using Oceananigans.DistributedComputations: DistributedField, all_reduce, barrier!
 using Oceananigans.Utils
 using KernelAbstractions: @kernel, @index
 using NCDatasets
@@ -280,6 +280,8 @@ function set!(field::DistributedField, ecco2_metadata::ECCO2Metadata; filename="
     else
         empty_ecco2_field(ecco2_metadata; architecture = child_arch)
     end
+
+    barrier!(arch)
 
     # Distribute ecco field to all workers
     parent(f_ecco) .= all_reduce(+, parent(f_ecco), arch)
