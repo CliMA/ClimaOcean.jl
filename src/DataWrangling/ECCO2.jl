@@ -8,6 +8,7 @@ using ClimaOcean.InitialConditions: three_dimensional_regrid!
 using Oceananigans
 using Oceananigans: architecture
 using Oceananigans.BoundaryConditions
+using Oceananigans.DistributedComputations: DistributedField
 using Oceananigans.Utils
 using KernelAbstractions: @kernel, @index
 using NCDatasets
@@ -263,6 +264,27 @@ function inpainted_ecco2_field(variable_name;
     return f
 end
 
+function set!(field::DistributedField, ecco2_metadata::ECCO2Metadata; filename="./inpainted_ecco2_fields.nc", kw...)
+    # Fields initialized from ECCO2
+    grid = field.grid
+    arch = architecture(grid)
+    child_arch = child_architecture(arch)
+    name = ecco2_metadata.name
+
+    mask = ecco2_center_mask(child_arch)
+    
+    f = inpainted_ecco2_field(name; filename, mask,
+                              architecture = child_arch,
+                              kw...)
+
+    
+    f_grid = Field(ecco2_location[name], grid)   
+    three_dimensional_regrid!(f_grid, f)
+    set!(field, f_grid)
+    
+    return field
+end
+
 function set!(field::Field, ecco2_metadata::ECCO2Metadata; filename="./inpainted_ecco2_fields.nc", kw...)
 
     # Fields initialized from ECCO2
@@ -280,24 +302,6 @@ function set!(field::Field, ecco2_metadata::ECCO2Metadata; filename="./inpainted
     set!(field, f_grid)
 
     return field
-end
-
-function ecco2_column(λ★, φ★)
-    Δ = 1/4 # resolution in degrees
-    φ₁ = -90 + Δ/2
-    φ₂ = +90 - Δ/2
-    λ₁ = 0   + Δ/2
-    λ₂ = 360 - Δ/2
-    φe = φ₁:Δ:φ₂
-    λe = λ₁:Δ:λ₂
-    
-    i★ = searchsortedfirst(λe, λ★)
-    j★ = searchsortedfirst(φe, φ★)
-    
-    longitude = (λe[i★] - Δ/2, λe[i★] + Δ/2)
-    latitude  = (φe[j★] - Δ/2, φe[j★] + Δ/2)
-
-    return i★, j★, longitude, latitude
 end
 
 end # module
