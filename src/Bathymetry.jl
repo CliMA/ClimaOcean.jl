@@ -266,8 +266,6 @@ function remove_lakes!(h_data; connected_regions_allowed = Inf)
         return h_data
     end
 
-    @show connected_regions_allowed
-
     bathtmp = deepcopy(h_data)
     batneg  = zeros(Bool, size(bathtmp)...)
     
