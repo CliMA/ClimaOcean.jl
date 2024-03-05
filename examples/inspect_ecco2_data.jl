@@ -35,7 +35,7 @@ Tp[Tp .< -10] .= NaN
 # We're ready to plot. We'll make an animation
 # that depicts how the ECCO2 data changes with depth.
 
-fig = Figure(resolution=(1200, 1400))
+fig = Figure(size=(1200, 1400))
 
 axT = Axis(fig[1, 1])
 axS = Axis(fig[2, 1])

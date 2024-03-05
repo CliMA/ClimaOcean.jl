@@ -1,6 +1,7 @@
 include("runtests_setup.jl")
 
-using ClimaOcean: ECCO2
+using ClimaOcean
+using ClimaOcean.ECCO2
 using Oceananigans.Grids: topology
 
 @testset "ECCO2 fields utilities" begin
@@ -38,4 +39,13 @@ using Oceananigans.Grids: topology
         @test Ny == 720
         @test Nz == 1
     end
+end
+
+@testset "setting a field with ECCO2" begin
+    for arch in test_architectures
+        grid  = LatitudeLongitudeGrid(size = (10, 10, 10), latitude = (-60, -40), longitude = (-5, 5), z = (-200, 0))
+        field = CenterField(grid)
+        set!(field, ECCO2Metadata(:temperature)) 
+        set!(field, ECCO2Metadata(:salinity))
+    end 
 end
