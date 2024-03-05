@@ -66,16 +66,22 @@ radiation  = Radiation()
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 
+wall_time = [time_ns()]
+
 function progress(sim) 
     u, v, w = sim.model.velocities  
     T, S = sim.model.tracers
 
-    @info @sprintf("Time: %s, Iteration %d, Δt %s, max(vel): (%.2e, %.2e, %.2e), max(T, S): %.2f, %.2f\n",
+    step_time = 1e-9 * (time_ns() - wall_time[1])
+
+    @info @sprintf("Time: %s, Iteration %d, Δt %s, max(vel): (%.2e, %.2e, %.2e), max(trac): %.2f, %.2f, wtime: %s \n",
                    prettytime(sim.model.clock.time),
                    sim.model.clock.iteration,
                    prettytime(sim.Δt),
                    maximum(abs, u), maximum(abs, v), maximum(abs, w),
-                   maximum(abs, T), maximum(abs, S))
+                   maximum(abs, T), maximum(abs, S), step_time)
+
+     wall_time[1] = time_ns()
 end
 
 ocean.callbacks[:progress] = Callback(progress, IterationInterval(1))
