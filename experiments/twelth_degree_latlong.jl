@@ -17,14 +17,16 @@ using Printf
 ##### Global Ocean at 1/12th of a degree
 #####
 
-# 100 vertical levels
-z_faces = exponential_z_faces(Nz=40, depth=6000)
+bathymetry_file = "bathymetry_quarter.jld2"
 
-Nx = 360
-Ny = 150
+# 100 vertical levels
+z_faces = exponential_z_faces(Nz=50, depth=6000)
+
+Nx = 1440
+Ny = 600
 Nz = length(z_faces) - 1
 
-arch = Distributed(CPU(), partition = Partition(4))
+arch = GPU() #Distributed(CPU(), partition = Partition(4))
 
 grid = load_balanced_regional_grid(arch; 
                                    size = (Nx, Ny, Nz), 
@@ -32,10 +34,10 @@ grid = load_balanced_regional_grid(arch;
                                    latitude  = (-75, 75),
                                    longitude = (0, 360),
                                    halo = (7, 7, 7),
-                                   interpolation_passes = 10,
+                                   interpolation_passes = 20,
                                    minimum_depth = 10,
                                    connected_regions_allowed = 3, # We allow the oceans, the med, the bering sea
-                                   bathymetry_file = "tmp.jld2")
+                                   bathymetry_file)
  
 @show grid                                   
                               
@@ -77,6 +79,10 @@ function progress(sim)
 end
 
 ocean.callbacks[:progress] = Callback(progress, IterationInterval(1))
+ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, model.velocities),
+                                                  schedule = TimeInterval(30days),
+                                                  overwrite_existing = true,
+                                                  filename = "test_out")
 
 # Simulation warm up!
 ocean.Δt = 10
@@ -84,26 +90,26 @@ ocean.stop_iteration = 1
 wizard = TimeStepWizard(; cfl = 0.3, max_Δt = 90, max_change = 1.1)
 ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(1))
 
-stop_time = 365days
+stop_time = 5days
 
 coupled_simulation = Simulation(coupled_model, Δt=1, stop_time=stop_time)
 
-time_step!(coupled_simulation)
-time_step!(coupled_simulation)
+# time_step!(coupled_simulation)
+# time_step!(coupled_simulation)
 
-jldsave("test_$(arch.local_rank).jld2", T = ocean.model.tracers.T, S = ocean.model.tracers.S)
+# jldsave("test_$(arch.local_rank).jld2", T = ocean.model.tracers.T, S = ocean.model.tracers.S)
 
-# run!(coupled_simulation)
+run!(coupled_simulation)
 
-# # Run the real simulation
-# #
-# # Now that the solution has adjusted to the bathymetry we can ramp up the time
-# # step size. We use a `TimeStepWizard` to automatically adapt to a cfl of 0.35
-# wizard = TimeStepWizard(; cfl = 0.35, max_Δt = 10minutes, max_change = 1.1)
-# ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
+# Run the real simulation
+#
+# Now that the solution has adjusted to the bathymetry we can ramp up the time
+# step size. We use a `TimeStepWizard` to automatically adapt to a cfl of 0.35
+wizard = TimeStepWizard(; cfl = 0.3, max_Δt = 10minutes, max_change = 1.1)
+ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 
-# # Let's reset the maximum number of iterations
-# coupled_model.ocean.stop_iteration = Inf
+# Let's reset the maximum number of iterations
+coupled_model.ocean.stop_time = 7200days
 
-# run!(coupled_simulation)
+run!(coupled_simulation)
 
