@@ -1,8 +1,8 @@
 using ClimaOcean.Bathymetry
 using Oceananigans
-using Oceananigans.Architectures: arch_array, device
+using Oceananigans.Architectures: arch_array, device, architecture
 using Oceananigans.DistributedComputations
-using Oceananigans.DistributedComputations: Sizes, child_architecture
+using Oceananigans.DistributedComputations: Sizes, child_architecture, barrier!, all_reduce
 using Oceananigans.ImmersedBoundaries: immersed_cell
 using KernelAbstractions: @index, @kernel
 using JLD2
@@ -109,35 +109,47 @@ function load_balanced_regional_grid(arch::SlabDistributed;
         
     child_arch = child_architecture(arch)
 
-    # Global grid
-    grid = load_balanced_regional_grid(child_arch;
-                                       size,
-                                       longitude,
-                                       latitude,
-                                       z,
-                                       halo,
-                                       maximum_size,
-                                       height_above_water,
-                                       minimum_depth,
-                                       interpolation_passes,
-                                       bathymetry_file,
-                                       connected_regions_allowed)
-
-    bottom_height = interior(grid.immersed_boundary.bottom_height)
-
     # index of the partitioned direction
     idx = arch.ranks[1] == 1 ? 2 : 1
 
-    # Starting with the load balancing
-    load_per_slab = arch_array(child_arch, zeros(Int, size[idx]))
-    loop! = assess_load(device(child_arch), 512, size[idx])
-    loop!(load_per_slab, grid, idx)
+    local_N = zeros(Int, arch.ranks[idx]) 
+    bottom_height = zeros(size[1], size[2], 1)
 
-    load_per_slab = arch_array(CPU(), load_per_slab)
-    local_N       = calculate_local_size(load_per_slab, size[idx], arch.ranks[idx])
+    # Calculating the local halos on the global grid on rank 0
+    # so that we can write to file the bathymetry in case `!isnothing(bathymetry_file)`
+    if arch.local_rank == 1
+        grid = load_balanced_regional_grid(child_arch;
+                                        size,
+                                        longitude,
+                                        latitude,
+                                        z,
+                                        halo,
+                                        maximum_size,
+                                        height_above_water,
+                                        minimum_depth,
+                                        interpolation_passes,
+                                        bathymetry_file,
+                                        connected_regions_allowed)
 
-    # Limit the maximum size such that we do not have memory issues
-    redistribute_size_to_fulfill_memory_limitation!(local_N, maximum_size)
+        # TODO: fix the set! function for DistributedFields in Oceananigans
+        # to work with non-distributed fields and Subarrays
+        bottom_height .= arch_array(CPU(), interior(grid.immersed_boundary.bottom_height))
+
+        # Starting with the load balancing
+        load_per_slab = arch_array(child_arch, zeros(Int, size[idx]))
+        loop! = assess_load(device(child_arch), 512, size[idx])
+        loop!(load_per_slab, grid, idx)
+
+        load_per_slab = arch_array(CPU(), load_per_slab)
+        local_N       = calculate_local_size(load_per_slab, size[idx], arch.ranks[idx])
+
+        # Limit the maximum size such that we do not have memory issues
+        redistribute_size_to_fulfill_memory_limitation!(local_N, maximum_size)
+    end
+    
+    barrier!(arch)
+    bottom_height = all_reduce(+, bottom_height, arch)    
+    local_N = all_reduce(+, local_N, arch)    
 
     partition = idx == 1 ? Partition(x = Sizes(local_N...)) : Partition(y = Sizes(local_N...))
 

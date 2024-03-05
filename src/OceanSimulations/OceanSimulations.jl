@@ -18,7 +18,7 @@ using Oceananigans.Coriolis: Ω_Earth
 include("load_balanced_ocean_grid.jl")
 
 # Some defualts
-default_free_surface(grid) = SplitExplicitFreeSurface(cfl=0.7; grid)
+default_free_surface(grid) = SplitExplicitFreeSurface(; cfl=0.7, grid)
 
 function default_ocean_closure()
     mixing_length = MixingLength(Cᵇ=0.01)

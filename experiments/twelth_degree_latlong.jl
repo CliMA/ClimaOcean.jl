@@ -35,13 +35,15 @@ arch = Distributed(CPU(), partition = Partition(4))
                                          interpolation_passes = 10,
                                          minimum_depth = 10,
                                          connected_regions_allowed = 3, # We allow the oceans, the med, the bering sea
-                                         )
+                                         bathymetry_file = "tmp.jld2")
           
 #####
 ##### The Ocean component
 #####                             
 
-ocean = ocean_simulation(grid)
+free_surface = SplitExplicitFreeSurface(; grid, cfl=0.7, fixed_Δt=270)
+
+ocean = ocean_simulation(grid; free_surface)
 model = ocean.model
 
 # Initializing the model
