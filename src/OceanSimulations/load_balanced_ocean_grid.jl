@@ -50,7 +50,7 @@ function load_balanced_regional_grid(arch;
                                      z,
                                      halo = (3, 3, 3),
                                      maximum_size = nothing,
-                                     height_above_water = 1,
+                                     height_above_water = nothing,
                                      minimum_depth = 10,
                                      connected_regions_allowed = 3, 
                                      interpolation_passes = 1,
@@ -119,17 +119,17 @@ function load_balanced_regional_grid(arch::SlabDistributed;
     # so that we can write to file the bathymetry in case `!isnothing(bathymetry_file)`
     if arch.local_rank == 1
         grid = load_balanced_regional_grid(child_arch;
-                                        size,
-                                        longitude,
-                                        latitude,
-                                        z,
-                                        halo,
-                                        maximum_size,
-                                        height_above_water,
-                                        minimum_depth,
-                                        interpolation_passes,
-                                        bathymetry_file,
-                                        connected_regions_allowed)
+                                           size,
+                                           longitude,
+                                           latitude,
+                                           z,
+                                           halo,
+                                           maximum_size,
+                                           height_above_water,
+                                           minimum_depth,
+                                           interpolation_passes,
+                                           bathymetry_file,
+                                           connected_regions_allowed)
 
         # TODO: fix the set! function for DistributedFields in Oceananigans
         # to work with non-distributed fields and Subarrays

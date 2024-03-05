@@ -146,7 +146,6 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     # Ocean, atmosphere, and sea ice state
     ocean_velocities  = surface_velocities(ocean)
     ocean_tracers     = surface_tracers(ocean)
-    ice_concentration = sea_ice_concentration(sea_ice)
 
     # Fluxes, and flux contributors
     centered_velocity_fluxes = (u = coupled_model.fluxes.total.ocean.momentum.uᶜᶜᶜ,
