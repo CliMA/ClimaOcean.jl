@@ -6,7 +6,7 @@ OceanOnlyModel(ocean; kw...) = OceanSeaIceModel(nothing, ocean; kw...)
 ##### No ice-ocean fluxes in this model!!
 #####
 
-function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_tendencies=true)
+function time_step!(coupled_model::OceanOnlyModel, Δt; callbacks=[], compute_tendencies=true)
     ocean = coupled_model.ocean
 
     # Be paranoid and update state at iteration 0
