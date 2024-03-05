@@ -1,6 +1,6 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.10.1"
+julia_version = "1.10.2"
 manifest_format = "2.0"
 project_hash = "eef01b615158af2777b0945e4cc529fabc90261f"
 
@@ -1468,7 +1468,7 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[deps.Thermodynamics]]
 deps = ["DocStringExtensions", "KernelAbstractions", "Random", "RootSolvers"]
-git-tree-sha1 = "8254d615b8489fb0b9de960c9fae695538802834"
+git-tree-sha1 = "ed1a35a4b608024f60b71f92930ca9e64d55068c"
 repo-rev = "glw/density-example"
 repo-url = "https://github.com/glwagner/Thermodynamics.jl.git"
 uuid = "b60c26fb-14c3-4610-9d3e-2d17fe7ff00c"

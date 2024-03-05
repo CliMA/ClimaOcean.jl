@@ -52,7 +52,7 @@ function load_balanced_regional_grid(arch;
                                      maximum_size = nothing,
                                      height_above_water = 1,
                                      minimum_depth = 10,
-                                     connected_regions_allowed = Inf, 
+                                     connected_regions_allowed = 3, 
                                      interpolation_passes = 1,
                                      bathymetry_file = nothing)
     
@@ -66,6 +66,7 @@ function load_balanced_regional_grid(arch;
     if !isnothing(bathymetry_file)
         if isfile(bathymetry_file)
             bottom_height = jldopen(bathymetry_file)["bathymetry"]
+            return ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true) 
         else
             bottom_height = regrid_bathymetry(grid;
                                               height_above_water,
@@ -74,6 +75,7 @@ function load_balanced_regional_grid(arch;
                                               connected_regions_allowed)
             
             jldsave(bathymetry_file, bathymetry = Array(interior(bottom_height)))
+            return ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true) 
         end
     else
         bottom_height = regrid_bathymetry(grid;
@@ -81,9 +83,9 @@ function load_balanced_regional_grid(arch;
                                           minimum_depth,
                                           interpolation_passes,
                                           connected_regions_allowed)
+    
+        return ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true) 
     end
-
-    return ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true) 
 end
 
 const SlabPartition = Union{Partition{<:Any, <:Nothing, <:Nothing},
@@ -102,7 +104,7 @@ function load_balanced_regional_grid(arch::SlabDistributed;
                                      height_above_water = 1,
                                      minimum_depth = 10,
                                      interpolation_passes = 1,
-                                     connected_regions_allowed = Inf, 
+                                     connected_regions_allowed = 3, 
                                      bathymetry_file = nothing)
         
     child_arch = child_architecture(arch)
@@ -132,7 +134,7 @@ function load_balanced_regional_grid(arch::SlabDistributed;
     loop!(load_per_slab, grid, idx)
 
     load_per_slab = arch_array(CPU(), load_per_slab)
-    local_N       = calculate_local_size(load_per_slab, N[idx], arch.ranks[idx])
+    local_N       = calculate_local_size(load_per_slab, size[idx], arch.ranks[idx])
 
     # Limit the maximum size such that we do not have memory issues
     redistribute_size_to_fulfill_memory_limitation!(local_N, maximum_size)
@@ -160,7 +162,7 @@ end
     for i2 in 1:size(grid, idx)
         for k in 1:size(grid, 3)
             i = ifelse(idx == 1, (i1, i2), (i2, i1))
-            @inbounds load_per_slab[i] += ifelse(immersed_cell(i..., k, grid), 0, 1)
+            @inbounds load_per_slab[i1] += ifelse(immersed_cell(i..., k, grid), 0, 1)
         end
     end
 end

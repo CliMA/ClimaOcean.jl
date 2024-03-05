@@ -62,6 +62,11 @@ Keyword Arguments:
                         applying a smoothing filter, with more passes increasing the strength of the filter.
                         If _refining_ the original grid, additional passes will not help and no intermediate
                         steps will be performed.
+
+- connected_regions_allowed: number of ``connected regions'' allowed in the bathymetry. Connected regions are fluid 
+                             regions that are fully encompassed by land (for example the ocean is one connected region).
+                             Default is `Inf`. If a value < `Inf` is specified, connected regions will be preserved in order
+                             of how many active cells they contain.
 """
 function regrid_bathymetry(target_grid;
                            height_above_water = nothing,
@@ -70,7 +75,7 @@ function regrid_bathymetry(target_grid;
                            url = "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_surface_elev_netcdf", 
                            filename = "ETOPO_2022_v1_60s_N90W180_surface.nc",
                            interpolation_passes = 1,
-                           connected_regions_allowed = Inf) # Allow an `Inf` number of ``lakes''
+                           connected_regions_allowed = 3) # Allow an `Inf` number of ``lakes''
 
     filepath = joinpath(dir, filename)
 
@@ -174,7 +179,7 @@ end
 # Here we can either use `regrid!` (three dimensional version) or `interpolate`
 function interpolate_bathymetry_in_passes(native_h, target_grid; 
                                           passes = 10,
-                                          connected_regions_allowed = Inf,
+                                          connected_regions_allowed = 3,
                                           minimum_depth = 0,
                                           height_above_water = nothing)
     Nλt, Nφt = Nt = size(target_grid)
@@ -228,8 +233,7 @@ function interpolate_bathymetry_in_passes(native_h, target_grid;
         h_data[shallow_ocean] .= height_above_water
     end
 
-    remove_lakes!(h_data; connected_regions_allowed)
-
+    h_data = remove_lakes!(h_data; connected_regions_allowed)
     set!(target_h, h_data)
     fill_halo_regions!(target_h)
 
@@ -258,8 +262,11 @@ other possibly disconnected regions like the Mediterranean and the Bering sea).
 function remove_lakes!(h_data; connected_regions_allowed = Inf)
 
     if connected_regions_allowed == Inf
+        @info "we are not removing lakes"
         return h_data
     end
+
+    @show connected_regions_allowed
 
     bathtmp = deepcopy(h_data)
     batneg  = zeros(Bool, size(bathtmp)...)
@@ -267,47 +274,44 @@ function remove_lakes!(h_data; connected_regions_allowed = Inf)
     batneg[bathtmp.<0] .= true
 
     labels = ImageMorphology.label_components(batneg)
-    try
-        total_elements = zeros(maximum(labels))
-        label_elements = zeros(maximum(labels))
+    
+    total_elements = zeros(maximum(labels))
+    label_elements = zeros(maximum(labels))
 
-        for i in 1:lastindex(total_elements)
-            total_elements[i] = sum(labels[labels .== i])
-            label_elements[i] = i
+    for i in 1:lastindex(total_elements)
+        total_elements[i] = sum(labels[labels .== i])
+        label_elements[i] = i
+    end
+        
+    all_idx = []
+    ocean_idx = findfirst(x -> x == maximum(total_elements), total_elements)
+    push!(all_idx, label_elements[ocean_idx])
+    total_elements = filter((x) -> x != total_elements[ocean_idx], total_elements)
+    label_elements = filter((x) -> x != label_elements[ocean_idx], label_elements)
+
+    for _ in 1:connected_regions_allowed
+        next_maximum = findfirst(x -> x == maximum(total_elements), total_elements)
+        push!(all_idx, label_elements[next_maximum])
+        total_elements = filter((x) -> x != total_elements[next_maximum], total_elements)
+        label_elements = filter((x) -> x != label_elements[next_maximum], label_elements)
+    end
+        
+    labels = Float64.(labels)
+
+    for i in 1:maximum(labels)
+        remove_lake = (&).(Tuple(i != idx for idx in all_idx)...)
+        if remove_lake
+            labels[labels .== i] .= NaN
         end
-            
-        all_idx = []
-        ocean_idx = findfirst(x -> x == maximum(total_elements), total_elements)
-        push!(all_idx, label_elements[ocean_idx])
-        total_elements = filter((x) -> x != total_elements[ocean_idx], total_elements)
-        label_elements = filter((x) -> x != label_elements[ocean_idx], label_elements)
-
-        for _ in 1:connected_regions_allowed
-            next_maximum = findfirst(x -> x == maximum(total_elements), total_elements)
-            push!(all_idx, label_elements[next_maximum])
-            total_elements = filter((x) -> x != total_elements[next_maximum], total_elements)
-            label_elements = filter((x) -> x != label_elements[next_maximum], label_elements)
-        end
-            
-        labels = Float64.(labels)
-        labels[labels.==0] .= NaN
-
-        for i in 1:length(total_elements)
-            remove_lake = (&).(Tuple(i != idx for idx in all_idx)...)
-            if remove_lake
-                labels[labels .== i] .= NaN
-            end
-        end
-
-        bathtmp .+= labels
-        bathtmp[isnan.(bathtmp)] .= ABOVE_SEA_LEVEL
-    catch err
-        println("this is the error $err")
     end
 
-    h_data .= bathtmp
+    # Removing land?
+    labels[labels.==0] .= NaN
 
-    return h_data
+    bathtmp .+= labels
+    bathtmp[isnan.(bathtmp)] .= 0
+
+    return bathtmp
 end
 
 end # module

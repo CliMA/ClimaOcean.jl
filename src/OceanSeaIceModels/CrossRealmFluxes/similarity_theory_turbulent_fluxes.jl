@@ -63,8 +63,9 @@ Base.summary(::SimilarityTheoryTurbulentFluxes{FT}) where FT = "SimilarityTheory
 struct ClasiusClapyeronSaturation end
  
 @inline function water_saturation_specific_humidity(::ClasiusClapyeronSaturation, ℂₐ, ρₛ, Tₛ)
-    p★ = AtmosphericThermodynamics.saturation_vapor_pressure(ℂₐ, Tₛ, Liquid())
-    q★ = AtmosphericThermodynamics.q_vap_saturation_from_density(ℂₐ, Tₛ, ρₛ, p★)
+    FT = eltype(ℂₐ)
+    p★ = AtmosphericThermodynamics.saturation_vapor_pressure(ℂₐ, convert(FT, Tₛ), Liquid())
+    q★ = AtmosphericThermodynamics.q_vap_saturation_from_density(ℂₐ, convert(FT, Tₛ), ρₛ, p★)
     return q★
 end
 

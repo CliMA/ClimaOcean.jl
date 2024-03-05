@@ -14,7 +14,7 @@ using Oceananigans: HydrostaticFreeSurfaceModel, architecture
 using Oceananigans.Grids: inactive_node, node
 using Oceananigans.BoundaryConditions: fill_halo_regions!
 using Oceananigans.Fields: ConstantField, interpolate
-using Oceananigans.Utils: launch!, Time
+using Oceananigans.Utils: launch!, Time, KernelParameters
 
 # using Oceananigans.OutputReaders: extract_field_time_series, update_field_time_series!
 
@@ -178,7 +178,12 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     Ql = atmosphere.downwelling_radiation.longwave
     downwelling_radiation = (shortwave=Qs.data, longwave=Ql.data)
 
-    launch!(arch, grid, :xy, compute_atmosphere_ocean_similarity_theory_fluxes!,
+    kernel_size = (size(grid, 1) + 2, size(grid, 2) + 2)
+
+    # kernel parameters that compute fluxes in 0:Nx+1 and 0:Ny+1
+    kernel_parameters = KernelParameters(kernel_size, (-1, -1))
+
+    launch!(arch, grid, kernel_parameters, compute_atmosphere_ocean_similarity_theory_fluxes!,
             similarity_theory.fields,
             grid,
             clock,
@@ -193,7 +198,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             atmosphere.thermodynamics_parameters,
             similarity_theory.roughness_lengths)
 
-    launch!(arch, grid, :xy, assemble_atmosphere_ocean_fluxes!,
+    launch!(arch, grid, kernel_parameters, assemble_atmosphere_ocean_fluxes!,
             centered_velocity_fluxes,
             net_tracer_fluxes,
             grid,
@@ -212,11 +217,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             coupled_model.fluxes.ocean_reference_density,
             coupled_model.fluxes.ocean_heat_capacity,
             coupled_model.fluxes.freshwater_density)
-
-    # Note: I think this can be avoided if we modify the preceding kernel
-    # to compute from 0:Nx+1, ie in halo regions
-    fill_halo_regions!(centered_velocity_fluxes)
-
+            
     launch!(arch, grid, :xy, reconstruct_momentum_fluxes!,
             grid, staggered_velocity_fluxes, centered_velocity_fluxes)
 

@@ -94,7 +94,7 @@ function ConstitutiveParameters(FT = Float64;
                                       convert(FT, water_molar_mass))
 end
 
-const CP = ConstitutiveParameters
+const CP{FT} = ConstitutiveParameters{FT} where FT
 
 @inline gas_constant(p::CP)     = p.gas_constant
 @inline molmass_dryair(p::CP)   = p.dry_air_molar_mass
@@ -141,7 +141,7 @@ function HeatCapacityParameters(FT = Float64;
                                       convert(FT, water_ice_heat_capacity))
 end
 
-const HCP = HeatCapacityParameters
+const HCP{FT} = HeatCapacityParameters{FT} where FT
 @inline cp_v(p::HCP)    = p.water_vapor_heat_capacity
 @inline cp_l(p::HCP)    = p.liquid_water_heat_capacity
 @inline cp_i(p::HCP)    = p.water_ice_heat_capacity
@@ -190,7 +190,7 @@ function PhaseTransitionParameters(FT = Float64;
                                          convert(FT, total_ice_nucleation_temperature))
 end
 
-const PTP = PhaseTransitionParameters
+const PTP{FT} = PhaseTransitionParameters{FT} where FT
 @inline LH_v0(p::PTP)        = p.reference_vaporization_enthalpy
 @inline LH_s0(p::PTP)        = p.reference_sublimation_enthalpy
 @inline LH_f0(p::PTP)        = LH_s0(p) - LH_v0(p)
@@ -208,6 +208,11 @@ struct PrescribedAtmosphereThermodynamicsParameters{FT} <: AbstractThermodynamic
 end
 
 const PATP{FT} = PrescribedAtmosphereThermodynamicsParameters{FT} where FT
+
+Base.eltype(::PATP{FT}) where FT = FT
+Base.eltype(::CP{FT}) where FT   = FT
+Base.eltype(::HCP{FT}) where FT  = FT
+Base.eltype(::PTP{FT}) where FT  = FT
 
 Base.summary(::PATP{FT}) where FT = "PrescribedAtmosphereThermodynamicsParameters{$FT}"
 

@@ -3,6 +3,8 @@ module JRA55
 using Oceananigans
 using Oceananigans.Units
  
+using Oceananigans.DistributedComputations
+using Oceananigans.DistributedComputations: child_architecture
 using Oceananigans.BoundaryConditions: fill_halo_regions!
 using Oceananigans.Grids: λnodes, φnodes, on_architecture
 using Oceananigans.Fields: interpolate!
@@ -543,6 +545,10 @@ const AA = Oceananigans.Architectures.AbstractArchitecture
 
 JRA55_prescribed_atmosphere(time_indices=Colon(); kw...) =
     JRA55_prescribed_atmosphere(CPU(), time_indices; kw...)
+
+
+JRA55_prescribed_atmosphere(arch::Distributed, time_indices=Colon(); kw...) =
+    JRA55_prescribed_atmosphere(child_architecture(arch), time_indices; kw...)
 
 # TODO: allow the user to pass dates
 function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();

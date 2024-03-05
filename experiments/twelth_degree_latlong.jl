@@ -18,13 +18,13 @@ using Printf
 #####
 
 # 100 vertical levels
-z_faces = exponential_z_faces(Nz=100, depth=6000)
+z_faces = exponential_z_faces(Nz=40, depth=6000)
 
-Nx = 4320
-Ny = 1800
+Nx = 360
+Ny = 150
 Nz = length(z_faces) - 1
 
-arch = Distributed(GPU(), partition = Partition(8))
+arch = Distributed(CPU(), partition = Partition(4))
 
 @show grid = load_balanced_regional_grid(arch; 
                                          size = (Nx, Ny, Nz), 
@@ -34,9 +34,8 @@ arch = Distributed(GPU(), partition = Partition(8))
                                          halo = (7, 7, 7),
                                          interpolation_passes = 10,
                                          minimum_depth = 10,
-                                         height_above_water = 1,
                                          connected_regions_allowed = 3, # We allow the oceans, the med, the bering sea
-                                         bathymetry_file = "bathymetry1.jld2")
+                                         )
           
 #####
 ##### The Ocean component
@@ -55,7 +54,7 @@ set!(model,
 ##### The atmosphere
 #####
 
-backend    = JRA55NetCDFBackend(10) # InMemory(8)
+backend    = JRA55NetCDFBackend(10) 
 atmosphere = JRA55_prescribed_atmosphere(arch; backend)
 radiation  = Radiation()
 
@@ -75,15 +74,20 @@ end
 
 ocean.callbacks[:progress] = Callback(progress, IterationInterval(1))
 
-# # Simulation warm up!
-# ocean.Δt = 10
-# ocean.stop_iteration = 1
-# wizard = TimeStepWizard(; cfl = 0.35, max_Δt = 90, max_change = 1.1)
-# ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(1))
+# Simulation warm up!
+ocean.Δt = 10
+ocean.stop_iteration = 1
+wizard = TimeStepWizard(; cfl = 0.3, max_Δt = 90, max_change = 1.1)
+ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(1))
 
-# stop_time = 365days
+stop_time = 365days
 
-# coupled_simulation = Simulation(coupled_model, Δt=1, stop_time=stop_time)
+coupled_simulation = Simulation(coupled_model, Δt=1, stop_time=stop_time)
+
+time_step!(coupled_simulation)
+time_step!(coupled_simulation)
+
+jldsave("test_$(arch.local_rank).jld2", T = ocean.model.tracers.T, S = ocean.model.tracers.S)
 
 # run!(coupled_simulation)
 
