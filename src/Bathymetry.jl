@@ -170,8 +170,7 @@ function regrid_bathymetry(target_grid;
     target_h = interpolate_bathymetry_in_passes(native_h, target_grid; 
                                                 passes = interpolation_passes,
                                                 connected_regions_allowed,
-                                                minimum_depth,
-                                                height_above_water)
+                                                minimum_depth)
 
     return target_h
 end
@@ -180,8 +179,7 @@ end
 function interpolate_bathymetry_in_passes(native_h, target_grid; 
                                           passes = 10,
                                           connected_regions_allowed = 3,
-                                          minimum_depth = 0,
-                                          height_above_water = nothing)
+                                          minimum_depth = 0)
     Nλt, Nφt = Nt = size(target_grid)
     Nλn, Nφn = Nn = size(native_h)
     
@@ -230,7 +228,7 @@ function interpolate_bathymetry_in_passes(native_h, target_grid;
 
     if minimum_depth > 0
         shallow_ocean = h_data .> minimum_depth
-        h_data[shallow_ocean] .= height_above_water
+        h_data[shallow_ocean] .= 0
     end
 
     h_data = remove_lakes!(h_data; connected_regions_allowed)
