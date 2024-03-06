@@ -105,34 +105,39 @@ function load_balanced_regional_grid(arch::SlabDistributed;
 
     # Calculating the global bottom on the global grid on rank 0
     # so that we can write to file the bathymetry in case `!isnothing(bathymetry_file)`
-    bottom_height = if arch.local_rank == 0
-        bathymetry = retrieve_bathymetry(grid, bathymetry_file; 
-                                         height_above_water, 
-                                         minimum_depth,
-                                         interpolation_passes,
-                                         connected_regions_allowed)
-        arch_array(CPU(), interior(bathymetry))
-    else
-        zeros(size[1], size[2], 1)
-    end
+    bottom_height = retrieve_bathymetry(grid, bathymetry_file; 
+                                        height_above_water, 
+                                        minimum_depth,
+                                        interpolation_passes,
+                                        connected_regions_allowed)
 
     barrier!(arch)
-    bottom_height .= all_reduce(+, bottom_height, arch)    
 
     grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
-    # Starting with the load balancing
+    # Calculating the load for each i slab if XPartition or j slab if YPartition
     load_per_slab = arch_array(child_arch, zeros(Int, size[idx]))
     loop! = assess_load(device(child_arch), 512, size[idx])
     loop!(load_per_slab, grid, idx)
 
-    load_per_slab  = arch_array(CPU(), load_per_slab)
-    local_N       .= calculate_local_size(load_per_slab, size[idx], arch.ranks[idx])
+    load_per_slab = arch_array(CPU(), load_per_slab)
 
-    local_N = all_reduce(+, local_N, arch)    
+    # Redistribute the load to have the same number of
+    # immersed cells in each core
+    local_N = if ifelse arch.local_rank == 0
+        calculate_local_size(load_per_slab, size[idx], arch.ranks[idx])
+    else
+        zeros(Int, arch.ranks[idx])
+    end
+
+    barrier!(arch)
+    local_N = all_reduce(+, local_N, arch)
+
+    @show local_N
 
     redistribute_size_to_fulfill_memory_limitation!(local_N, maximum_size)
 
+    # Partition either x or y depending on the original partition direction
     partition = idx == 1 ? Partition(x = Sizes(local_N...)) : Partition(y = Sizes(local_N...))
 
     arch = Distributed(child_arch; partition)

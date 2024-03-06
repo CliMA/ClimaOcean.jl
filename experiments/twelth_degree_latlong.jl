@@ -58,7 +58,7 @@ Nz = length(z_faces) - 1
 
 bottom = zeros(Nx, Ny, 1)
 
-arch = Distributed(CPU(), partition = Partition(8))
+arch = Distributed(GPU(), partition = Partition(8))
 
 grid = LatitudeLongitudeGrid(arch; 
 			     size = (Nx, Ny, Nz),
