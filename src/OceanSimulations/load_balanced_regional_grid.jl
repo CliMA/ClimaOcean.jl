@@ -2,7 +2,7 @@ using ClimaOcean.Bathymetry
 using Oceananigans
 using Oceananigans.Architectures: arch_array, device, architecture
 using Oceananigans.DistributedComputations
-using Oceananigans.DistributedComputations: Sizes, child_architecture, barrier!, all_reduce
+using Oceananigans.DistributedComputations: Sizes, child_architecture, barrier!, all_reduce, partition_global_array
 using Oceananigans.ImmersedBoundaries: immersed_cell
 using KernelAbstractions: @index, @kernel
 using JLD2
