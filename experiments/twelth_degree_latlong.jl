@@ -60,17 +60,6 @@ bottom = zeros(Nx, Ny, 1)
 
 arch = Distributed(GPU(), partition = Partition(8))
 
-# grid = LatitudeLongitudeGrid(arch; 
-# 			     size = (Nx, Ny, Nz),
-#                              z = z_faces,
-#                              latitude  = (-75, 75),
-#                              longitude = (0, 360),
-#                              halo = (7, 7, 7))
-
-# bottom .= jldopen(bathymetry_file)["bathymetry"]
-
-# grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom); active_cells_map = true)
-
 grid = load_balanced_regional_grid(arch; 
                                    size = (Nx, Ny, Nz), 
                                    z = z_faces, 
@@ -90,14 +79,13 @@ grid = load_balanced_regional_grid(arch;
 
 free_surface = SplitExplicitFreeSurface(; grid, cfl=0.7, fixed_Δt=270)
 
-ocean = ocean_simulation(grid; Δt = 10, free_surface)
+ocean = ocean_simulation(grid; Δt = 10, free_surface, closure = RiBasedVerticalDiffusivity())
 model = ocean.model
 
 # Initializing the model
 set!(model, 
      T = ECCO2Metadata(:temperature), 
-     S = ECCO2Metadata(:salinity),
-     e = 1e-6)
+     S = ECCO2Metadata(:salinity))
 
 #####
 ##### The atmosphere
