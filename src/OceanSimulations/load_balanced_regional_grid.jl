@@ -155,6 +155,32 @@ end
 import Oceananigans.ImmersedBoundaries: ImmersedBoundaryGrid
 using Oceananigans.ImmersedBoundaries: map_interior_active_cells, architecture, topology, map_active_z_columns
 
+function ImmersedBoundaryGrid(grid, ib::GridFittedBottom)
+    
+    arch = architecture(grid)
+
+    @show "before setting field"
+    barrier!(arch)
+
+    bottom_field = Field{Center, Center, Nothing}(grid)
+    set!(bottom_field, ib.bottom_height)
+
+    @show "after setting field"
+    barrier!(arch)
+
+    fill_halo_regions!(bottom_field)
+
+    @show "after fill halo"
+    barrier!(arch)
+    new_ib = GridFittedBottom(bottom_field, ib.immersed_condition)
+
+    @show "after new_ib"
+    barrier!(arch)
+    
+    TX, TY, TZ = topology(grid)
+    return ImmersedBoundaryGrid{TX, TY, TZ}(grid, new_ib)
+end
+
 function ImmersedBoundaryGrid(grid, ib; active_cells_map::Bool = true) 
 
     arch = architecture(grid)
