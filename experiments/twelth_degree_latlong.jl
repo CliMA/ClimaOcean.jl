@@ -21,31 +21,31 @@ using JLD2
 ##### Global Ocean at 1/12th of a degree
 #####
 
-import Oceananigans.Fields: set!
-using Oceananigans.Grids: on_architecture
-using Oceananigans.DistributedComputations: DistributedField, global_size, partition_global_array
-using Oceananigans.Architectures: architecture
+# import Oceananigans.Fields: set!
+# using Oceananigans.Grids: on_architecture
+# using Oceananigans.DistributedComputations: DistributedField, global_size, partition_global_array
+# using Oceananigans.Architectures: architecture
 
-# Automatically partition under the hood if sizes are compatible
-function set!(u::DistributedField, v::Array)
-     gsize = global_size(architecture(u), size(u))
+# # Automatically partition under the hood if sizes are compatible
+# function set!(u::DistributedField, v::Array)
+#      gsize = global_size(architecture(u), size(u))
  
-     @show gsize, size(v)
-     if size(v) == gsize
-         f = partition_global_array(architecture(u), v, size(u))
-         u .= f
-         return u
-     else
-         try
-             f = on_architecture(architecture(u), v)
-             u .= f
-             return u
+#      @show gsize, size(v)
+#      if size(v) == gsize
+#          f = partition_global_array(architecture(u), v, size(u))
+#          u .= f
+#          return u
+#      else
+#          try
+#              f = on_architecture(architecture(u), v)
+#              u .= f
+#              return u
      
-         catch
-             throw(ArgumentError("ERROR: DimensionMismatch: array could not be set to match destination field"))
-         end
-     end
- end
+#          catch
+#              throw(ArgumentError("ERROR: DimensionMismatch: array could not be set to match destination field"))
+#          end
+#      end
+#  end
  
 bathymetry_file = "bathymetry12.jld2"
 
@@ -56,6 +56,8 @@ Nx = 4320
 Ny = 1800
 Nz = length(z_faces) - 1
 
+bottom = zeros(Nx, Ny, 1)
+
 arch = Distributed(GPU(), partition = Partition(8))
 
 grid = LatitudeLongitudeGrid(arch; 
@@ -65,10 +67,9 @@ grid = LatitudeLongitudeGrid(arch;
                              longitude = (0, 360),
                              halo = (7, 7, 7))
 
-bathymetry = jldopen(bathymetry_file)["bathymetry"]
+bottom .= jldopen(bathymetry_file)["bathymetry"]
 
-@show size(bathymetry)
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bathymetry); active_cells_map = true)
+grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom); active_cells_map = true)
 
 # grid = load_balanced_regional_grid(arch; 
 #                                    size = (Nx, Ny, Nz), 
