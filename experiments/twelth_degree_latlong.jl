@@ -21,6 +21,30 @@ using JLD2
 ##### Global Ocean at 1/12th of a degree
 #####
 
+import Oceananigans.Fields: set!
+using Oceananigans.DistributedComputations: DistributedField
+
+# Automatically partition under the hood if sizes are compatible
+function set!(u::DistributedField, v::Array)
+     gsize = global_size(architecture(u), size(u))
+ 
+     @show gsize, size(v)
+     if size(v) == gsize
+         f = partition_global_array(architecture(u), v, size(u))
+         u .= f
+         return u
+     else
+         try
+             f = on_architecture(architecture(u), v)
+             u .= f
+             return u
+     
+         catch
+             throw(ArgumentError("ERROR: DimensionMismatch: array could not be set to match destination field"))
+         end
+     end
+ end
+ 
 bathymetry_file = "bathymetry12.jld2"
 
 # 100 vertical levels
