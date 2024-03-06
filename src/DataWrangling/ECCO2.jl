@@ -3,7 +3,7 @@ module ECCO2
 export ECCO2Metadata, ecco2_field, ecco2_center_mask, adjusted_ecco_tracers, initialize!
 
 using ClimaOcean.DataWrangling: inpaint_mask!
-using ClimaOcean.InitialConditions: three_dimensional_regrid!
+using ClimaOcean.InitialConditions: three_dimensional_regrid!, three_dimensional_interpolate!
 
 using Oceananigans
 using Oceananigans.Architectures: architecture, child_architecture
@@ -291,7 +291,7 @@ function set!(field::DistributedField, ecco2_metadata::ECCO2Metadata; filename="
     parent(f_ecco) .= all_reduce(+, parent(f_ecco), arch)
 
     f_grid = Field(ecco2_location[name], grid)   
-    three_dimensional_regrid!(f_grid, f_ecco)
+    three_dimensional_interpolate!(f_grid, f_ecco)
     set!(field, f_grid)
     
     return field
@@ -310,7 +310,7 @@ function set!(field::Field, ecco2_metadata::ECCO2Metadata; filename="./inpainted
                               kw...)
 
     f_grid = Field(ecco2_location[name], grid)   
-    three_dimensional_regrid!(f_grid, f)
+    three_dimensional_interpolate!(f_grid, f)
     set!(field, f_grid)
 
     return field
