@@ -121,6 +121,7 @@ function load_balanced_regional_grid(arch::SlabDistributed;
     loop!(load_per_slab, grid, idx)
 
     @show load_per_slab
+    barrier!(arch)
     
     load_per_slab = arch_array(CPU(), load_per_slab)
 
