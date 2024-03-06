@@ -114,6 +114,11 @@ function load_balanced_regional_grid(arch::SlabDistributed;
 
     grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
+    if size(bottom_height) == 2
+        bottom_height = arch_array(child_arch, zeros(size[1], size[2], 1))
+        bottom_height .= grid.immersed_boundary.bottom_height
+    end
+
     # Calculate the load for each i-slab if the partition is in x,
     # calculate the load for eahc j-slab if the partition is in y.
     load_per_slab = arch_array(child_arch, zeros(Int, size[idx]))
