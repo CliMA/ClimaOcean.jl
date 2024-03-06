@@ -334,7 +334,7 @@ Otherwise, it generates the bathymetry data using the provided grid and saves it
 function retrieve_bathymetry(grid, filename; kw...) 
     
     if isfile(filename)
-        bottom_height = jldopen(bathymetry_file)["bathymetry"]
+        bottom_height = jldopen(filename)["bathymetry"]
     else
         bottom_height = regrid_bathymetry(grid; kw...)
         jldsave(filename, bathymetry = Array(interior(bottom_height)))
