@@ -118,7 +118,7 @@ function load_balanced_regional_grid(arch::SlabDistributed;
     # calculate the load for eahc j-slab if the partition is in y.
     load_per_slab = arch_array(child_arch, zeros(Int, size[idx]))
 
-    loop! = assess_load!(device(chil_arch), 512, size[idx])
+    loop! = assess_load!(device(child_arch), 512, size[idx])
     loop!(load_per_slab, grid, idx)
     load_per_slab = arch_array(CPU(), load_per_slab)
 
