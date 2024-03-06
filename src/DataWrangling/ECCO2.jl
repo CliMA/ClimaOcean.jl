@@ -275,10 +275,10 @@ function set!(field::DistributedField, ecco2_metadata::ECCO2Metadata; filename="
     child_arch = child_architecture(arch)
     name = ecco2_metadata.name
 
-    mask = ecco2_center_mask(child_arch)
-
     f_ecco = if arch.local_rank == 0 # Make sure we read/write the file using only one core
-            inpainted_ecco2_field(name; filename, mask,
+        mask = ecco2_center_mask(child_arch)
+        
+        inpainted_ecco2_field(name; filename, mask,
                                   architecture = child_arch,
                                   kw...)
     else
