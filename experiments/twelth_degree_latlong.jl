@@ -60,27 +60,27 @@ bottom = zeros(Nx, Ny, 1)
 
 arch = Distributed(GPU(), partition = Partition(8))
 
-grid = LatitudeLongitudeGrid(arch; 
-			     size = (Nx, Ny, Nz),
-                             z = z_faces,
-                             latitude  = (-75, 75),
-                             longitude = (0, 360),
-                             halo = (7, 7, 7))
+# grid = LatitudeLongitudeGrid(arch; 
+# 			     size = (Nx, Ny, Nz),
+#                              z = z_faces,
+#                              latitude  = (-75, 75),
+#                              longitude = (0, 360),
+#                              halo = (7, 7, 7))
 
-bottom .= jldopen(bathymetry_file)["bathymetry"]
+# bottom .= jldopen(bathymetry_file)["bathymetry"]
 
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom); active_cells_map = true)
+# grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom); active_cells_map = true)
 
-# grid = load_balanced_regional_grid(arch; 
-#                                    size = (Nx, Ny, Nz), 
-#                                    z = z_faces, 
-#                                    latitude  = (-75, 75),
-#                                    longitude = (0, 360),
-#                                    halo = (7, 7, 7),
-#                                    interpolation_passes = 20,
-#                                    minimum_depth = 10,
-#                                    connected_regions_allowed = 3, # We allow the oceans, the med, the bering sea
-#                                    bathymetry_file)
+grid = load_balanced_regional_grid(arch; 
+                                   size = (Nx, Ny, Nz), 
+                                   z = z_faces, 
+                                   latitude  = (-75, 75),
+                                   longitude = (0, 360),
+                                   halo = (7, 7, 7),
+                                   interpolation_passes = 20,
+                                   minimum_depth = 10,
+                                   connected_regions_allowed = 3, # We allow the oceans, the med, the bering sea
+                                   bathymetry_file)
  
 @show grid                                   
                               
