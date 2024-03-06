@@ -42,6 +42,7 @@ grid = load_balanced_regional_grid(arch;
                                    longitude = (0, 360),
                                    halo = (7, 7, 7),
                                    interpolation_passes = 20,
+                                   maximum_size = 650,
                                    minimum_depth = 10,
                                    connected_regions_allowed = 3, # We allow the oceans, the med, the bering sea
                                    bathymetry_file)
