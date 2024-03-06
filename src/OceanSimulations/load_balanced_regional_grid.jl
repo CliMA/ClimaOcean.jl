@@ -96,7 +96,8 @@ function load_balanced_regional_grid(arch::SlabDistributed;
     # index of the partitioned direction
     idx = arch.ranks[1] == 1 ? 2 : 1
 
-    grid = LatitudeLongitudeGrid(child_arch;
+    # Calculate the load balancing on the CPU
+    grid = LatitudeLongitudeGrid(CPU();
                                  size,
                                  longitude,
                                  latitude,
