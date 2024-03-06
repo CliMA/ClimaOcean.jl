@@ -22,7 +22,8 @@ using JLD2
 #####
 
 import Oceananigans.Fields: set!
-using Oceananigans.DistributedComputations: DistributedField
+using Oceananigans.DistributedComputations: DistributedField, global_size, partition_global_array
+using Oceananigans.Architectures: on_architecture, architecture
 
 # Automatically partition under the hood if sizes are compatible
 function set!(u::DistributedField, v::Array)
