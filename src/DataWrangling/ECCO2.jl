@@ -90,7 +90,7 @@ end
 
 function empty_ecco2_field(data::ECCO2Metadata;
                            architecture = CPU(), 
-                           horizontal_halo = (1, 1))
+                           horizontal_halo = (5, 5))
 
     variable_name = data.name
 
@@ -144,7 +144,7 @@ The data is either:
 """
 function ecco2_field(variable_name;
                      architecture = CPU(),
-                     horizontal_halo = (1, 1),
+                     horizontal_halo = (5, 5),
                      user_data = nothing,
                      year = 1992,
                      month = 1,
