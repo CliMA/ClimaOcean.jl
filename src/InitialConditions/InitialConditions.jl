@@ -71,7 +71,7 @@ function three_dimensional_interpolate!(a, b)
     target_grid = a.grid isa ImmersedBoundaryGrid ? a.grid.underlying_grid : a.grid
     source_grid = b.grid isa ImmersedBoundaryGrid ? b.grid.underlying_grid : b.grid 
 
-    topo = topology(target_grid)
+    topo = topology(source_grid)
     arch = architecture(target_grid)
     arch = child_architecture(arch)
     
