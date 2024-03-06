@@ -97,7 +97,7 @@ function load_balanced_regional_grid(arch::SlabDistributed;
     idx = arch.ranks[1] == 1 ? 2 : 1
 
     # Calculate the load balancing on the CPU
-    grid = LatitudeLongitudeGrid(CPU();
+    grid = LatitudeLongitudeGrid(child_arch;
                                  size,
                                  longitude,
                                  latitude,
@@ -116,30 +116,16 @@ function load_balanced_regional_grid(arch::SlabDistributed;
 
     # Calculate the load for each i-slab if the partition is in x,
     # calculate the load for eahc j-slab if the partition is in y.
-    load_per_slab = zeros(Int, size[idx])
+    load_per_slab = arch_array(child_arch, zeros(Int, size[idx]))
 
-    loop! = assess_load!(device(CPU()), 512, size[idx])
+    loop! = assess_load!(device(chil_arch), 512, size[idx])
     loop!(load_per_slab, grid, idx)
-
-    @show "after assess_load"
-    barrier!(arch)
+    load_per_slab = arch_array(CPU(), load_per_slab)
 
     # Redistribute the load to have the same number of
     # immersed cells in each core
-    local_N = if ifelse arch.local_rank == 0
-        calculate_local_size(load_per_slab, size[idx], arch.ranks[idx])
-    else
-        zeros(Int, arch.ranks[idx])
-    end
-
-    @show "after local_N"
-    barrier!(arch)
-
-    local_N = all_reduce(+, local_N, arch)
-
-    @show "local_N"
-    @show local_N
-
+    local_N = calculate_local_size(load_per_slab, size[idx], arch.ranks[idx])
+    
     redistribute_size_to_fulfill_memory_limitation!(local_N, maximum_size)
 
     # Partition either x or y depending on the original partition direction
@@ -148,7 +134,7 @@ function load_balanced_regional_grid(arch::SlabDistributed;
     arch = Distributed(child_arch; partition)
     zonal_rank = arch.local_index[idx]
 
-    @info "slab decomposition with " zonal_rank local_N[zonal_rank]
+    @info "slab decomposition with " zonal_rank local_N
 
     grid = LatitudeLongitudeGrid(arch;
                                  size,
@@ -162,12 +148,11 @@ end
 
 @kernel function assess_load!(load_per_slab, grid, idx)
     i1 = @index(Global, Linear)
+    sz = ifelse(idx == 1, size(grid, 2), size(grid, 1))
 
-    for i2 in 1:size(grid, idx)
-        @show size(grid, idx)
+    for i2 in 1:sz
         for k in 1:size(grid, 3)
             i = ifelse(idx == 1, (i1, i2), (i2, i1))
-            @show i
             @inbounds load_per_slab[i1] += ifelse(immersed_cell(i..., k, grid), 0, 1)
         end
     end
@@ -195,7 +180,10 @@ end
 redistribute_size_to_fulfill_memory_limitation!(l, ::Nothing) = nothing
 
 function redistribute_size_to_fulfill_memory_limitation!(l, m)
+
     n = length(l)
+    
+    # Reduce large sizes
     while any(l .> m)
         x⁺, i⁺ = findmax(l)
         x⁻, i⁻ = findmin(l)
@@ -210,6 +198,8 @@ function redistribute_size_to_fulfill_memory_limitation!(l, m)
             l[i⁻] += mod(Δ, n)
         end
     end
+
+    # Increase small sizes
     while any(l .< 20)
         x⁺, i⁺ = findmax(l)
         x⁻, i⁻ = findmin(l)
