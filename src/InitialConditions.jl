@@ -1,4 +1,4 @@
-module DataWrangling
+module InitialConditions
 
 export continue_downwards!
 
@@ -30,27 +30,6 @@ end
         @inbounds field[i, j, k] = ifelse(fill_from_above, field[i, j, k+1], field[i, j, k])
     end
 end
-
-#=
-using ImageInpainting
-
-function inpaint_horizontally!(field; algorithm=Criminisi(11, 11))
-    arch = architecture(field)
-    grid = field.grid
-    loc = instantiated_location(field)
-    Nx, Ny, Nz = size(grid)
-
-    # Could transfer to CPU, then transfer back.
-    arch isa GPU && error("Inpainting on the GPU is not supported yet!")
-
-    for k = 1:Nz
-        mask = [peripheral_node(i, j, k, grid, loc...) for i = 1:Nx, j = 1:Ny]
-        interior(field, :, :, k) .= inpaint(interior(field, :, :, k), mask, algorithm) 
-    end
-
-    return nothing
-end
-=#
 
 scale_to_diffusivity(vertical_scale) = vertical_scale^2
 scale_to_diffusivity(vertical_scale::Function) = (x, y, z, t) -> vertical_scale(x, y, z, t)^2

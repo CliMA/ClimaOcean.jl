@@ -12,11 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.8'
-          # We don't want to test on Julia versions more recent than 1.6 until we
-          # figure out a robust solution for serializing / deserializing Oceananigans Grids.
-          # - '1'   # automatically expands to the latest stable 1.x release of Julia
-          # - nightly
+          - '1.10'
         os:
           - ubuntu-latest
         arch:
@@ -26,20 +22,20 @@ jobs:
           # test macOS and Windows with latest Julia only
           - os: macOS-latest
             arch: x64
-            version: 1.8
+            version: '1.10'
           - os: windows-latest
             arch: x64
-            version: 1.8
+            version: '1.10'
           - os: windows-latest
             arch: x86
-            version: 1.8
+            version: '1.10'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@latest
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         env:
           cache-name: cache-artifacts
         with:
@@ -50,8 +46,15 @@ jobs:
             ${{ runner.os }}-test-
             ${{ runner.os }}-
       - uses: julia-actions/julia-buildpkg@v1
-      - uses: julia-actions/julia-runtest@v1
+      - name: Install dependencies
+        run: |
+          julia --color=yes --project -e 'using Pkg; Pkg.instantiate()'
+          julia --color=yes --project -e 'using Pkg; Pkg.precompile()'
+          julia --color=yes --project -e 'using Pkg; Pkg.test()'
+        env:
+          TEST_GROUP: "downloading"
       - uses: julia-actions/julia-processcoverage@v1
-      - uses: codecov/codecov-action@v2
+      - uses: codecov/codecov-action@v3
         with:
           file: lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}

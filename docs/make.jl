@@ -3,8 +3,6 @@ pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..")) # add ClimaOcean to environment 
 using
   Documenter,
   Literate,
-  # CairoMakie,  # so that Literate.jl does not capture precompilation output or warnings
-  Glob,
   ClimaOcean
 
 ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
@@ -16,7 +14,9 @@ ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
 const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
 const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
 
-to_be_literated = []
+to_be_literated = [
+    "inspect_ecco2_data.jl",
+]
 
 for file in to_be_literated
     filepath = joinpath(EXAMPLES_DIR, file)
@@ -50,14 +50,28 @@ makedocs(
      format = format,
       pages = pages,
     doctest = true,
-     strict = true,
       clean = true,
   checkdocs = :exports
 )
 
-@info "Cleaning up temporary .jld2 and .nc files created by doctests..."
+@info "Clean up temporary .jld2 and .nc output created by doctests or literated examples..."
 
-for file in vcat(glob("docs/*.jld2"), glob("docs/*.nc"))
+"""
+    recursive_find(directory, pattern)
+
+Return list of filepaths within `directory` that contains the `pattern::Regex`.
+"""
+recursive_find(directory, pattern) =
+    mapreduce(vcat, walkdir(directory)) do (root, dirs, files)
+        joinpath.(root, filter(contains(pattern), files))
+    end
+
+files = []
+for pattern in [r"\.jld2", r"\.nc"]
+    global files = vcat(files, recursive_find(@__DIR__, pattern))
+end
+
+for file in files
     rm(file)
 end
 
