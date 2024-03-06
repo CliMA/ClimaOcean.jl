@@ -116,13 +116,11 @@ function load_balanced_regional_grid(arch::SlabDistributed;
     grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
     # Calculating the load for each i slab if XPartition or j slab if YPartition
-    load_per_slab = arch_array(CPU(), zeros(Int, size[idx]))
+    load_per_slab = zeros(Int, size[idx])
     loop! = assess_load!(device(CPU()), 512, size[idx])
     loop!(load_per_slab, grid, idx)
 
     barrier!(arch)
-
-    load_per_slab = arch_array(CPU(), load_per_slab)
 
     # Redistribute the load to have the same number of
     # immersed cells in each core
