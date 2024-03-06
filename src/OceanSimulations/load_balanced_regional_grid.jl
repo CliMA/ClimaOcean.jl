@@ -124,14 +124,26 @@ function load_balanced_regional_grid(arch::SlabDistributed;
     # calculate the load for eahc j-slab if the partition is in y.
     load_per_slab = arch_array(child_arch, zeros(Int, size[idx]))
 
+    @show "before load per slab"
+    @show load_per_slab
+    barrier!(arch)
+
     loop! = assess_load!(device(child_arch), 512, size[idx])
     loop!(load_per_slab, grid, idx)
     load_per_slab = arch_array(CPU(), load_per_slab)
+
+    @show "after load per slab"
+    @show load_per_slab
+    barrier!(arch)
 
     # Redistribute the load to have the same number of
     # immersed cells in each core
     local_N = calculate_local_size(load_per_slab, size[idx], arch.ranks[idx])
     
+    @show "after local N"
+    @show local_N
+    barrier!(arch)
+
     redistribute_size_to_fulfill_memory_limitation!(local_N, maximum_size)
 
     # Partition either x or y depending on the original partition direction
