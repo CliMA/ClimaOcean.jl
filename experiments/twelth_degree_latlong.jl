@@ -12,12 +12,13 @@ using ClimaOcean.VerticalGrids: exponential_z_faces
 using ClimaOcean.JRA55
 using ClimaOcean.JRA55: JRA55NetCDFBackend, JRA55_prescribed_atmosphere
 using Printf
+using JLD2
 
 #####
 ##### Global Ocean at 1/12th of a degree
 #####
 
-bathymetry_file = "bathymetry_quarter.jld2"
+bathymetry_file = nothing # "bathymetry_quarter.jld2"
 
 # 100 vertical levels
 z_faces = exponential_z_faces(Nz=50, depth=6000)
@@ -45,7 +46,7 @@ grid = load_balanced_regional_grid(arch;
 ##### The Ocean component
 #####                             
 
-free_surface = SplitExplicitFreeSurface(; grid, cfl=0.7, fixed_Δt=270)
+free_surface = SplitExplicitFreeSurface(; grid, cfl=0.7, fixed_Δt=10minutes)
 
 ocean = ocean_simulation(grid; free_surface)
 model = ocean.model
@@ -86,11 +87,18 @@ end
 
 ocean.callbacks[:progress] = Callback(progress, IterationInterval(1))
 
+ocean.output_writers[:snapshots] = JLD2OutputWriter(model, merge(model.tracers, model.velocities),
+                                                    schedule = TimeInterval(30days),
+                                                    overwrite_existing = true,
+                                                    array_type = Array{Float32},
+                                                    filename = "snapshots_$(arch.local_rank)")
+
 ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, model.velocities),
-                                                  schedule = TimeInterval(30days),
+                                                  schedule = TimeInterval(1days),
                                                   overwrite_existing = true,
+                                                  indices = (:, :, grid.Nz),
                                                   array_type = Array{Float32},
-                                                  filename = "snapshots_$(arch.local_rank)")
+                                                  filename = "surface_$(arch.local_rank)")
 
 ocean.output_writers[:checkpoint] = Checkpointer(model, 
                                                  schedule = TimeInterval(60days),
