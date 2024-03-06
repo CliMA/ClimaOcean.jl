@@ -59,10 +59,10 @@ function surface_tracers(ocean::Simulation{<:HydrostaticFreeSurfaceModel})
     return sfc_tracers
 end
 
+include("three_dimensional_operators.jl")
 include("radiation.jl")
 include("similarity_theory_turbulent_fluxes.jl")
 include("ocean_sea_ice_surface_fluxes.jl")
 include("sea_ice_ocean_fluxes.jl")
-# include("atmosphere_sea_ice_fluxes.jl")
 
 end # module

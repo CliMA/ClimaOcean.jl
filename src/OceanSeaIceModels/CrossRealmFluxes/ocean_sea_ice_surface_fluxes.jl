@@ -248,8 +248,8 @@ const f = Face()
     # Extract state variables at cell centers
     @inbounds begin
         # Ocean state
-        uₒ = ℑxᶜᵃᵃ(i, j, 1, grid, ocean_state.u)
-        vₒ = ℑyᵃᶜᵃ(i, j, 1, grid, ocean_state.v)
+        uₒ = ℑxᶜᶜᶜ(i, j, 1, grid, ocean_state.u)
+        vₒ = ℑyᶜᶜᶜ(i, j, 1, grid, ocean_state.v)
         Tₒ = ocean_state.T[i, j, 1]
         Tₒ = convert_to_kelvin(ocean_temperature_units, Tₒ)
         Sₒ = ocean_state.S[i, j, 1]
@@ -422,8 +422,6 @@ end
         Jˢ[i, j, 1] = ifelse(inactive, 0, atmos_ocean_Jˢ)
     end
 end
-
-include("three_dimensional_operators.jl")
 
 @kernel function reconstruct_momentum_fluxes!(grid, J, Jᶜᶜᶜ)
     i, j = @index(Global, NTuple)
