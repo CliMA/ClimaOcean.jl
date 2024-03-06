@@ -76,6 +76,8 @@ function propagate_horizontally!(field, mask, tmp_field=deepcopy(field); max_ite
         @debug "Propagate pass $iter with sum $(sum(parent(field)))"
     end
 
+    fill_halo_regions!(field)
+
     return field
 end
 
