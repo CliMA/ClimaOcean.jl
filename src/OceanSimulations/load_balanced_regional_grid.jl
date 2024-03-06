@@ -96,6 +96,9 @@ function load_balanced_regional_grid(arch::SlabDistributed;
     # index of the partitioned direction
     idx = arch.ranks[1] == 1 ? 2 : 1
 
+    @show "before grid"
+    barrier!(arch)
+
     # Calculate the load balancing on the CPU
     grid = LatitudeLongitudeGrid(CPU();
                                  size,
@@ -103,6 +106,10 @@ function load_balanced_regional_grid(arch::SlabDistributed;
                                  latitude,
                                  z,
                                  halo)
+
+
+    @show "after grid"
+    barrier!(arch)
 
     # Calculating the global bottom on the global grid on rank 0
     # so that we can write to file the bathymetry in case `!isnothing(bathymetry_file)`
@@ -112,15 +119,20 @@ function load_balanced_regional_grid(arch::SlabDistributed;
                                         interpolation_passes,
                                         connected_regions_allowed)
 
+    @show "after bottom_height"
     barrier!(arch)
 
     grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
+
+    @show "after immersed"
+    barrier!(arch)
 
     # Calculating the load for each i slab if XPartition or j slab if YPartition
     load_per_slab = zeros(Int, size[idx])
     loop! = assess_load!(device(CPU()), 512, size[idx])
     loop!(load_per_slab, grid, idx)
 
+    @show "after load_per_slab"
     barrier!(arch)
 
     # Redistribute the load to have the same number of
@@ -131,9 +143,12 @@ function load_balanced_regional_grid(arch::SlabDistributed;
         zeros(Int, arch.ranks[idx])
     end
 
+    @show "after local_N"
     barrier!(arch)
+
     local_N = all_reduce(+, local_N, arch)
 
+    @show "local_N"
     @show local_N
 
     redistribute_size_to_fulfill_memory_limitation!(local_N, maximum_size)
