@@ -63,29 +63,13 @@ function load_balanced_regional_grid(arch;
                                  z,
                                  halo)
 
-    if !isnothing(bathymetry_file)
-        if isfile(bathymetry_file)
-            bottom_height = jldopen(bathymetry_file)["bathymetry"]
-            return ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true) 
-        else
-            bottom_height = regrid_bathymetry(grid;
-                                              height_above_water,
-                                              minimum_depth,
-                                              interpolation_passes,
-                                              connected_regions_allowed)
-            
-            jldsave(bathymetry_file, bathymetry = Array(interior(bottom_height)))
-            return ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true) 
-        end
-    else
-        bottom_height = regrid_bathymetry(grid;
-                                          height_above_water,
-                                          minimum_depth,
-                                          interpolation_passes,
-                                          connected_regions_allowed)
-    
-        return ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true) 
-    end
+    bottom_height = retrieve_bathymetry(grid, bathymetry_file; 
+                                        height_above_water, 
+                                        minimum_depth,
+                                        interpolation_passes,
+                                        connected_regions_allowed)
+ 
+    return ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true) 
 end
 
 const SlabPartition = Union{Partition{<:Any, <:Nothing, <:Nothing},
@@ -112,27 +96,30 @@ function load_balanced_regional_grid(arch::SlabDistributed;
     # index of the partitioned direction
     idx = arch.ranks[1] == 1 ? 2 : 1
 
-    local_N = zeros(Int, arch.ranks[idx]) 
-    bottom_height = zeros(size[1], size[2], 1)
+    grid = LatitudeLongitudeGrid(child_arch;
+                                 size,
+                                 longitude,
+                                 latitude,
+                                 z,
+                                 halo)
 
-    # Calculating the local halos on the global grid on rank 0
+    # Calculating the global bottom on the global grid on rank 0
     # so that we can write to file the bathymetry in case `!isnothing(bathymetry_file)`
-    grid = load_balanced_regional_grid(child_arch;
-                                       size,
-                                       longitude,
-                                       latitude,
-                                       z,
-                                       halo,
-                                       maximum_size,
-                                       height_above_water,
-                                       minimum_depth,
-                                       interpolation_passes,
-                                       bathymetry_file,
-                                       connected_regions_allowed)
+    bottom_height = if arch.local_rank == 0
+        bathymetry = retrieve_bathymetry(grid, bathymetry_file; 
+                                         height_above_water, 
+                                         minimum_depth,
+                                         interpolation_passes,
+                                         connected_regions_allowed)
+        arch_array(CPU(), interior(bathymetry))
+    else
+        zeros(size[1], size[2], 1)
+    end
 
-    # TODO: fix the set! function for DistributedFields in Oceananigans
-    # to work with non-distributed fields and Subarrays
-    bottom_height .= arch_array(CPU(), interior(grid.immersed_boundary.bottom_height))
+    barrier!(arch)
+    bottom_height .= all_reduce(+, bottom_height, arch)    
+
+    grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
     # Starting with the load balancing
     load_per_slab = arch_array(child_arch, zeros(Int, size[idx]))
@@ -142,8 +129,6 @@ function load_balanced_regional_grid(arch::SlabDistributed;
     load_per_slab  = arch_array(CPU(), load_per_slab)
     local_N       .= calculate_local_size(load_per_slab, size[idx], arch.ranks[idx])
 
-    barrier!(arch)
-    bottom_height = all_reduce(+, bottom_height, arch)    
     local_N = all_reduce(+, local_N, arch)    
 
     redistribute_size_to_fulfill_memory_limitation!(local_N, maximum_size)

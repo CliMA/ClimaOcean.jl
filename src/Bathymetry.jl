@@ -1,6 +1,6 @@
 module Bathymetry
 
-export regrid_bathymetry
+export regrid_bathymetry, retrieve_bathymetry
 
 using ImageMorphology
 using ..DataWrangling: download_progress
@@ -309,6 +309,40 @@ function remove_lakes!(h_data; connected_regions_allowed = Inf)
 
     return bathtmp
 end
+
+
+"""
+    retrieve_bathymetry(grid, filename; kw...)
+
+Retrieve the bathymetry data from a file or generate it using a grid and save it to a file.
+
+# Arguments
+============
+
+- `grid`: The grid used to generate the bathymetry data.
+- `filename`: The name of the file to read or save the bathymetry data.
+- `kw...`: Additional keyword arguments.
+
+# Returns
+===========
+- `bottom_height`: The retrieved or generated bathymetry data.
+
+If the specified file exists, the function reads the bathymetry data from the file. 
+Otherwise, it generates the bathymetry data using the provided grid and saves it to the file before returning it.
+"""
+function retrieve_bathymetry(grid, filename; kw...) 
+    
+    if isfile(filename)
+        bottom_height = jldopen(bathymetry_file)["bathymetry"]
+    else
+        bottom_height = regrid_bathymetry(grid; kw...)
+        jldsave(filename, bathymetry = Array(interior(bottom_height)))
+    end
+
+    return bottom_height
+end
+
+retrieve_bathymetry(grid, ::Nothing; kw...) = regrid_bathymetry(grid; kw...)
 
 end # module
 
