@@ -15,7 +15,19 @@ using ClimaOcean.VerticalGrids: exponential_z_faces
 using ClimaOcean.JRA55
 using ClimaOcean.JRA55: JRA55NetCDFBackend, JRA55_prescribed_atmosphere
 using Printf
+using CUDA: @allowscalar
 using JLD2
+
+# Calculate barotropic substeps based on barotropic CFL number and wave speed
+function barotropic_substeps(Δt, grid;
+                             g = Oceananigans.BuoyancyModels.g_Earth,
+                             CFL = 0.75)
+    wave_speed = sqrt(g * grid.Lz)
+    local_Δ    = @allowscalar 1 / sqrt(1 / grid.Δxᶜᶜᵃ[1]^2 + 1 / grid.Δyᶠᶜᵃ^2)
+    global_Δ   = MPI.Allreduce(local_Δ, min, grid.architecture.communicator)
+
+    return max(Int(ceil(2 * Δt / (CFL / wave_speed * global_Δ))), 10)
+end
 
 #####
 ##### Global Ocean at 1/12th of a degree
@@ -46,14 +58,14 @@ grid = load_balanced_regional_grid(arch;
                                    minimum_depth = 10,
                                    connected_regions_allowed = 3, # We allow the oceans, the med, the bering sea
                                    bathymetry_file)
- 
-@show grid                                   
-                              
+                               
 #####
 ##### The Ocean component
 #####                             
 
-free_surface = SplitExplicitFreeSurface(; grid, cfl=0.7, fixed_Δt=270)
+substeps = barotropic_substeps(270, grid)
+
+free_surface = SplitExplicitFreeSurface(; substeps)
 
 ocean = ocean_simulation(grid; Δt = 10, free_surface, closure = RiBasedVerticalDiffusivity())
 model = ocean.model
