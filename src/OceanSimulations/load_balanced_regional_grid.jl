@@ -164,6 +164,7 @@ end
     i1 = @index(Global, Linear)
 
     for i2 in 1:size(grid, idx)
+        @show size(grid, idx)
         for k in 1:size(grid, 3)
             i = ifelse(idx == 1, (i1, i2), (i2, i1))
             @show i
