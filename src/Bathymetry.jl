@@ -307,7 +307,6 @@ function remove_lakes!(h_data; connected_regions_allowed = Inf)
     return bathtmp
 end
 
-
 """
     retrieve_bathymetry(grid, filename; kw...)
 
