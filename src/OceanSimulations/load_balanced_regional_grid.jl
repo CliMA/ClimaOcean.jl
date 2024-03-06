@@ -154,6 +154,7 @@ end
 
 import Oceananigans.ImmersedBoundaries: ImmersedBoundaryGrid
 using Oceananigans.ImmersedBoundaries: map_interior_active_cells, architecture, topology, map_active_z_columns
+using Oceananigans.BoundaryConditions
 
 function ImmersedBoundaryGrid(grid, ib::GridFittedBottom)
     
@@ -176,7 +177,7 @@ function ImmersedBoundaryGrid(grid, ib::GridFittedBottom)
 
     @show "after new_ib"
     barrier!(arch)
-    
+
     TX, TY, TZ = topology(grid)
     return ImmersedBoundaryGrid{TX, TY, TZ}(grid, new_ib)
 end
