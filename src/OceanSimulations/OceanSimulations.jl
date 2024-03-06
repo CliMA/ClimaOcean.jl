@@ -36,7 +36,7 @@ default_tracer_advection() = TracerAdvection(WENO(; order = 7),
 
 # TODO: Specify the grid to a grid on the sphere; otherwise we can provide a different
 # function that requires latitude and longitude etc for computing coriolis=FPlane...
-function ocean_simulation(grid;
+function ocean_simulation(grid; Δt = 5minutes,
                           closure = default_ocean_closure(),
                           free_surface = default_free_surface(grid),
                           reference_density = 1020,
@@ -85,7 +85,7 @@ function ocean_simulation(grid;
                                               coriolis,
                                               boundary_conditions = ocean_boundary_conditions)
 
-    ocean = Simulation(ocean_model; Δt=5minutes, verbose=false)
+    ocean = Simulation(ocean_model; Δt, verbose=false)
 
     return ocean
 end

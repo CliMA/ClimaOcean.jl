@@ -90,7 +90,7 @@ grid = load_balanced_regional_grid(arch;
 
 free_surface = SplitExplicitFreeSurface(; grid, cfl=0.7, fixed_Δt=270)
 
-ocean = ocean_simulation(grid; free_surface)
+ocean = ocean_simulation(grid; Δt = 10, free_surface)
 model = ocean.model
 
 # Initializing the model
