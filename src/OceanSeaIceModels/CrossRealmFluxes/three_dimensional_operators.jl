@@ -1,4 +1,5 @@
 using Oceananigans.Operators
+using Oceananigans.Grids: peripheral_node
 
 @inline ı(i, j, k, grid, f::Function, args...) = f(i, j, k, grid, args...)
 @inline ı(i, j, k, grid, ϕ)                    = ϕ[i, j, k]
