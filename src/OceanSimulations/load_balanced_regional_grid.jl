@@ -149,6 +149,10 @@ function load_balanced_regional_grid(arch::SlabDistributed;
                                  z,
                                  halo)
 
+    nx, ny, _ = Base.size(grid)
+
+    bottom_height = partition_global_array(arch, bottom_height, (nx, ny, 1))
+
     return ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true)
 end
 
