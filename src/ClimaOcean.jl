@@ -1,17 +1,17 @@
 module ClimaOcean
 
-export
-    OceanSeaIceModel,
-    FreezingLimitedOceanTemperature,
-    Radiation,
-    JRA55_prescribed_atmosphere,
-    JRA55NetCDFBackend,
-    ecco2_field
+export regrid_bathymetry
+export stretched_vertical_faces
+export PowerLawStretching, LinearStretching
+export jra55_field_time_series
+export ecco2_field, ECCO2Metadata
+export initialize!
+export OceanSeaIceModel, FreezingLimitedOceanTemperature
+export Radiation, JRA55_prescribed_atmosphere, JRA55NetCDFBackend
 
 using Oceananigans
 using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
 using DataDeps
-using CubicSplines
 
 function __init__(; remove_existing_data=false)
 
@@ -68,12 +68,20 @@ end
 
 include("OceanSeaIceModels/OceanSeaIceModels.jl")
 include("VerticalGrids.jl")
+include("InitialConditions/InitialConditions.jl")
 include("DataWrangling/DataWrangling.jl")
 include("Bathymetry.jl")
-include("InitialConditions.jl")
 include("Diagnostics.jl")
 include("NearGlobalSimulations/NearGlobalSimulations.jl")
+include("OceanSimulations/OceanSimulations.jl")
 
+using .VerticalGrids
+using .Bathymetry
+using .DataWrangling: JRA55
+using .DataWrangling: ECCO2
+using .InitialConditions
+using .OceanSeaIceModels: OceanSeaIceModel
+using .OceanSimulations
 using .DataWrangling: JRA55, ECCO2
 using ClimaOcean.DataWrangling.JRA55: JRA55_prescribed_atmosphere, JRA55NetCDFBackend
 using ClimaOcean.DataWrangling.ECCO2: ecco2_field

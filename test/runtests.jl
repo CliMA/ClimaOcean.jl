@@ -17,4 +17,3 @@ end
 if test_group == :downloading || test_group == :all
     include("test_downloading.jl")
 end
-

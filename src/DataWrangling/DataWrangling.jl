@@ -8,6 +8,7 @@ using Oceananigans.Architectures: architecture
 using Oceananigans.Grids: node
 using Oceananigans.BoundaryConditions: fill_halo_regions!
 using Oceananigans.Fields: interpolate
+using Oceananigans: pretty_filesize
 using Oceananigans.Utils: launch!
 using KernelAbstractions: @kernel, @index
 
@@ -107,6 +108,7 @@ function save_field_time_series!(fts; path, name, overwrite_existing=false)
     return nothing
 end
 
+include("inpaint_mask.jl")
 include("JRA55.jl")
 include("ECCO2.jl")
 
