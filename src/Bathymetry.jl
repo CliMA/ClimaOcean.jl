@@ -14,6 +14,7 @@ using Oceananigans.Utils: pretty_filesize, launch!
 using Oceananigans.Fields: interpolate!
 using Oceananigans.BoundaryConditions
 using KernelAbstractions: @kernel, @index
+using JLD2
 
 using NCDatasets
 using Downloads
