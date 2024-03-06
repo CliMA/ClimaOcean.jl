@@ -123,7 +123,7 @@ function load_balanced_regional_grid(arch::SlabDistributed;
 
     grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
-    @show "after immersed" size(idx)
+    @show "after immersed" size[idx] idx
     barrier!(arch)
 
     # Calculate the load for each i-slab if the partition is in x,
