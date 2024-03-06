@@ -114,9 +114,10 @@ function load_balanced_regional_grid(arch::SlabDistributed;
 
     grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
-    if size(bottom_height) == 2
-        bottom_height = arch_array(child_arch, zeros(size[1], size[2], 1))
-        bottom_height .= grid.immersed_boundary.bottom_height
+    # Cannot have two dimensional vectors 
+    # set! a field on `Distributed`. TODO: fix in Oceananigans
+    if ndims(bottom_height) == 2
+        bottom_height = reshape(bottom_height, Base.size(bottom_height)..., 1)
     end
 
     # Calculate the load for each i-slab if the partition is in x,
