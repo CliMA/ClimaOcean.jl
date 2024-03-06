@@ -152,6 +152,44 @@ function load_balanced_regional_grid(arch::SlabDistributed;
     return ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true)
 end
 
+import Oceananigans.ImmersedBoundaries: ImmersedBoundaryGrid
+using Oceananigans.ImmersedBoundaries: map_interior_active_cells, architecture, topology, map_active_z_columns
+
+function ImmersedBoundaryGrid(grid, ib; active_cells_map::Bool = true) 
+
+    arch = architecture(grid)
+
+    @show "before immersed boundary"
+    barrier(arch)
+
+    ibg = ImmersedBoundaryGrid(grid, ib)
+    TX, TY, TZ = topology(ibg)
+    
+    @show "I am here!"
+    barrier(arch)
+
+    # Create the cells map on the CPU, then switch it to the GPU
+    if active_cells_map 
+        interior_map = map_interior_active_cells(ibg)
+        
+        @show "after interior map"
+        barrier(arch)
+    
+        column_map   = map_active_z_columns(ibg)
+
+        @show "after column map"
+        barrier(arch)
+    else
+        interior_map = nothing
+        column_map  = nothing
+    end
+
+    return ImmersedBoundaryGrid{TX, TY, TZ}(ibg.underlying_grid, 
+                                            ibg.immersed_boundary, 
+                                            interior_map,
+                                            column_map)
+end
+
 @kernel function assess_load!(load_per_slab, grid, idx)
     i1 = @index(Global, Linear)
     sz = ifelse(idx == 1, size(grid, 2), size(grid, 1))
