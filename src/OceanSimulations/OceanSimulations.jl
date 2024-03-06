@@ -15,7 +15,7 @@ using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 using Oceananigans.BuoyancyModels: g_Earth
 using Oceananigans.Coriolis: Ω_Earth
 
-include("load_balanced_ocean_grid.jl")
+include("load_balanced_regional_grid.jl")
 
 # Some defualts
 default_free_surface(grid) = SplitExplicitFreeSurface(; cfl=0.7, grid)
