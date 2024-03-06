@@ -115,7 +115,8 @@ function load_balanced_regional_grid(arch::SlabDistributed;
     grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
     # Cannot have two dimensional vectors 
-    # set! a field on `Distributed`. TODO: fix in Oceananigans
+    # set! a field on `Distributed`. 
+    # TODO: fix in Oceananigans
     if ndims(bottom_height) == 2
         bottom_height = reshape(bottom_height, Base.size(bottom_height)..., 1)
     end
@@ -154,71 +155,6 @@ function load_balanced_regional_grid(arch::SlabDistributed;
     bottom_height = partition_global_array(arch, bottom_height, (nx, ny, 1))
 
     return ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true)
-end
-
-import Oceananigans.ImmersedBoundaries: ImmersedBoundaryGrid
-using Oceananigans.ImmersedBoundaries: map_interior_active_cells, architecture, topology, map_active_z_columns
-using Oceananigans.BoundaryConditions
-
-function ImmersedBoundaryGrid(grid, ib::GridFittedBottom)
-    
-    arch = architecture(grid)
-
-    @show "before setting field"
-    barrier!(arch)
-
-    bottom_field = Field{Center, Center, Nothing}(grid)
-    set!(bottom_field, ib.bottom_height)
-
-    @show "after setting field"
-    barrier!(arch)
-
-    fill_halo_regions!(bottom_field)
-
-    @show "after fill halo"
-    barrier!(arch)
-    new_ib = GridFittedBottom(bottom_field, ib.immersed_condition)
-
-    @show "after new_ib"
-    barrier!(arch)
-
-    TX, TY, TZ = topology(grid)
-    return ImmersedBoundaryGrid{TX, TY, TZ}(grid, new_ib)
-end
-
-function ImmersedBoundaryGrid(grid, ib; active_cells_map::Bool = true) 
-
-    arch = architecture(grid)
-
-    @show "before immersed boundary"
-    barrier!(arch)
-
-    ibg = ImmersedBoundaryGrid(grid, ib)
-    TX, TY, TZ = topology(ibg)
-    
-    @show "I am here!"
-    barrier!(arch)
-
-    # Create the cells map on the CPU, then switch it to the GPU
-    if active_cells_map 
-        interior_map = map_interior_active_cells(ibg)
-        
-        @show "after interior map"
-        barrier!(arch)
-    
-        column_map   = map_active_z_columns(ibg)
-
-        @show "after column map"
-        barrier!(arch)
-    else
-        interior_map = nothing
-        column_map  = nothing
-    end
-
-    return ImmersedBoundaryGrid{TX, TY, TZ}(ibg.underlying_grid, 
-                                            ibg.immersed_boundary, 
-                                            interior_map,
-                                            column_map)
 end
 
 @kernel function assess_load!(load_per_slab, grid, idx)
