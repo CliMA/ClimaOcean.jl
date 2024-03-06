@@ -107,7 +107,6 @@ function load_balanced_regional_grid(arch::SlabDistributed;
                                  z,
                                  halo)
 
-
     @show "after grid"
     barrier!(arch)
 
@@ -124,15 +123,20 @@ function load_balanced_regional_grid(arch::SlabDistributed;
 
     grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
-    @show "after immersed"
+    @show "after immersed" size(idx)
     barrier!(arch)
 
-    # Calculating the load for each i slab if XPartition or j slab if YPartition
+    # Calculate the load for each i-slab if the partition is in x,
+    # calculate the load for eahc j-slab if the partition is in y.
     load_per_slab = zeros(Int, size[idx])
+
+    @show "after load per slab" size(idx) idx
+    barrier!(arch)
+
     loop! = assess_load!(device(CPU()), 512, size[idx])
     loop!(load_per_slab, grid, idx)
 
-    @show "after load_per_slab"
+    @show "after assess_load"
     barrier!(arch)
 
     # Redistribute the load to have the same number of
