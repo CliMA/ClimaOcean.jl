@@ -19,12 +19,10 @@ import Oceananigans.TurbulenceClosures: _compute_ri_based_diffusivities!
     ν₀  = closure_ij.ν₀
     κ₀  = closure_ij.κ₀
     κᶜᵃ = closure_ij.κᶜᵃ
-    Cᵉⁿ = closure_ij.Cᵉⁿ
     Cᵃᵛ = closure_ij.Cᵃᵛ
     Ri₀ = closure_ij.Ri₀
     Riᵟ = closure_ij.Riᵟ
     tapering = closure_ij.Ri_dependent_tapering
-    Qᵇ = top_buoyancy_flux(i, j, grid, buoyancy, tracer_bcs, clock, merge(velocities, tracers))
 
     # Convection and entrainment
     N² = ∂z_b(i, j, k, grid, buoyancy, tracers)
