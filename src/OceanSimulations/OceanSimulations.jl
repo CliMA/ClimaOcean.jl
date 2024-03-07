@@ -34,6 +34,16 @@ default_tracer_advection() = TracerAdvection(WENO(; order = 7),
                                              WENO(; order = 7),
                                              Centered())
 
+@inline ϕ²(i, j, k, grid, ϕ)    = @inbounds ϕ[i, j, k]^2
+@inline speedᶠᶜᶜ(i, j, k, grid, Φ) = @inbounds sqrt(Φ.u[i, j, k]^2 + ℑxyᶠᶜᵃ(i, j, k, grid, ϕ², Φ.v))
+@inline speedᶜᶠᶜ(i, j, k, grid, Φ) = @inbounds sqrt(Φ.v[i, j, k]^2 + ℑxyᶜᶠᵃ(i, j, k, grid, ϕ², Φ.u))
+
+@inline u_drag_bc(i, j, grid, Φ, μ) = @inbounds - μ * Φ.u[i, j, 1] * speedᶠᶜᶜ(i, j, 1, grid, Φ)
+@inline v_drag_bc(i, j, grid, Φ, μ) = @inbounds - μ * Φ.v[i, j, 1] * speedᶜᶠᶜ(i, j, 1, grid, Φ)
+
+@inline u_immersed_drag_bc(i, j, k, grid, Φ, μ) = @inbounds - μ * Φ.u[i, j, k] * speedᶠᶜᶜ(i, j, k, grid, Φ)
+@inline v_immersed_drag_bc(i, j, k, grid, Φ, μ) = @inbounds - μ * Φ.v[i, j, k] * speedᶜᶠᶜ(i, j, k, grid, Φ)
+
 # TODO: Specify the grid to a grid on the sphere; otherwise we can provide a different
 # function that requires latitude and longitude etc for computing coriolis=FPlane...
 function ocean_simulation(grid; Δt = 5minutes,
@@ -42,6 +52,7 @@ function ocean_simulation(grid; Δt = 5minutes,
                           reference_density = 1020,
                           rotation_rate = Ω_Earth,
                           gravitational_acceleration = g_Earth,
+                          drag_coefficient = 0.003,
                           momentum_advection = default_momentum_advection(),
                           tracer_advection = default_tracer_advection())
 
@@ -51,8 +62,13 @@ function ocean_simulation(grid; Δt = 5minutes,
     top_ocean_heat_flux          = Jᵀ = Field{Center, Center, Nothing}(grid)
     top_salt_flux                = Jˢ = Field{Center, Center, Nothing}(grid)
 
-    ocean_boundary_conditions = (u = FieldBoundaryConditions(top=FluxBoundaryCondition(Jᵘ)),
-                                 v = FieldBoundaryConditions(top=FluxBoundaryCondition(Jᵛ)),
+    u_bottom_drag = FluxBoundaryCondition(u_drag_bc, discrete_form=true, parameters=drag_coefficient)
+    v_bottom_drag = FluxBoundaryCondition(v_drag_bc, discrete_form=true, parameters=drag_coefficient)
+    u_immersed_drag = FluxBoundaryCondition(u_immmersed_drag_bc, discrete_form=true, parameters=drag_coefficient)
+    v_immersed_drag = FluxBoundaryCondition(v_immmersed_drag_bc, discrete_form=true, parameters=drag_coefficient)
+
+    ocean_boundary_conditions = (u = FieldBoundaryConditions(top=FluxBoundaryCondition(Jᵘ), bottom = u_bottom_drag, immersed = u_immersed_drag),
+                                 v = FieldBoundaryConditions(top=FluxBoundaryCondition(Jᵛ), bottom = v_bottom_drag, immersed = v_immersed_drag),
                                  T = FieldBoundaryConditions(top=FluxBoundaryCondition(Jᵀ)),
                                  S = FieldBoundaryConditions(top=FluxBoundaryCondition(Jˢ)))
 
