@@ -62,8 +62,8 @@ function ocean_simulation(grid; Δt = 5minutes,
     top_ocean_heat_flux          = Jᵀ = Field{Center, Center, Nothing}(grid)
     top_salt_flux                = Jˢ = Field{Center, Center, Nothing}(grid)
 
-    u_bottom_drag = FluxBoundaryCondition(u_drag_bc, discrete_form=true, parameters=drag_coefficient)
-    v_bottom_drag = FluxBoundaryCondition(v_drag_bc, discrete_form=true, parameters=drag_coefficient)
+    u_bottom_drag   = FluxBoundaryCondition(u_drag_bc, discrete_form=true, parameters=drag_coefficient)
+    v_bottom_drag   = FluxBoundaryCondition(v_drag_bc, discrete_form=true, parameters=drag_coefficient)
     u_immersed_drag = FluxBoundaryCondition(u_immmersed_drag_bc, discrete_form=true, parameters=drag_coefficient)
     v_immersed_drag = FluxBoundaryCondition(v_immmersed_drag_bc, discrete_form=true, parameters=drag_coefficient)
 
