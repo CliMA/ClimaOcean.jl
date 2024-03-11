@@ -67,8 +67,11 @@ function ocean_simulation(grid; Δt = 5minutes,
     u_immersed_drag = FluxBoundaryCondition(u_immmersed_drag_bc, discrete_form=true, parameters=drag_coefficient)
     v_immersed_drag = FluxBoundaryCondition(v_immmersed_drag_bc, discrete_form=true, parameters=drag_coefficient)
 
-    ocean_boundary_conditions = (u = FieldBoundaryConditions(top=FluxBoundaryCondition(Jᵘ), bottom = u_bottom_drag, immersed = u_immersed_drag),
-                                 v = FieldBoundaryConditions(top=FluxBoundaryCondition(Jᵛ), bottom = v_bottom_drag, immersed = v_immersed_drag),
+    u_immersed_bc = ImmersedBoundaryCondition(bottom=u_immersed_drag)
+    v_immersed_bc = ImmersedBoundaryCondition(bottom=v_immersed_drag)
+
+    ocean_boundary_conditions = (u = FieldBoundaryConditions(top=FluxBoundaryCondition(Jᵘ), bottom = u_bottom_drag, immersed = u_immersed_bc),
+                                 v = FieldBoundaryConditions(top=FluxBoundaryCondition(Jᵛ), bottom = v_bottom_drag, immersed = v_immersed_bc),
                                  T = FieldBoundaryConditions(top=FluxBoundaryCondition(Jᵀ)),
                                  S = FieldBoundaryConditions(top=FluxBoundaryCondition(Jˢ)))
 
