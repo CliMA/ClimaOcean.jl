@@ -188,7 +188,7 @@ function one_degree_near_global_simulation(architecture = GPU();
 
     equation_of_state = TEOS10EquationOfState(; reference_density)
     buoyancy = SeawaterBuoyancy(; equation_of_state)
-    coriolis = HydrostaticSphericalCoriolis(scheme = ActiveCellEnstrophyConservingScheme())
+    coriolis = HydrostaticSphericalCoriolis()
     free_surface = ImplicitFreeSurface()
 
     @info "Building a model..."; start=time_ns()
