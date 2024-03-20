@@ -32,7 +32,7 @@ function one_degree_near_global_simulation(architecture = GPU();
     bathymetry_path                              = datadep"near_global_one_degree/bathymetry_lat_lon_360_150.jld2",
     surface_boundary_conditions_path             = datadep"near_global_one_degree/surface_boundary_conditions_12_months_360_150.jld2",
     biogeochemistry = NoBiogeochemistry,
-    biogeochemistry_kwargs = ()
+    biogeochemistry_kwargs = (),
     progress = false,
     )
 
