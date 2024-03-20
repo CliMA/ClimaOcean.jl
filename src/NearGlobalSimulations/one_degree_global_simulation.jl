@@ -241,7 +241,7 @@ function one_degree_near_global_simulation(architecture = GPU();
         return nothing
     end
 
-    progress && simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
+    progress && (simulation.callbacks[:progress] = Callback(progress, IterationInterval(10)))
 
     return simulation
 end
