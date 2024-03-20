@@ -33,7 +33,7 @@ function one_degree_near_global_simulation(architecture = GPU();
     surface_boundary_conditions_path             = datadep"near_global_one_degree/surface_boundary_conditions_12_months_360_150.jld2",
     biogeochemistry = NoBiogeochemistry,
     biogeochemistry_kwargs = (),
-    progress = false,
+    progress_callback = false,
     )
 
     size == (360, 150, 48) || throw(ArgumentError("Only size = (360, 150, 48) is supported."))
@@ -241,7 +241,7 @@ function one_degree_near_global_simulation(architecture = GPU();
         return nothing
     end
 
-    progress && (simulation.callbacks[:progress] = Callback(progress, IterationInterval(10)))
+    progress_callback && (simulation.callbacks[:progress] = Callback(progress, IterationInterval(10)))
 
     return simulation
 end
