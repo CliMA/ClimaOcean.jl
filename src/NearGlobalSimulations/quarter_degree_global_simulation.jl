@@ -30,6 +30,8 @@ function quarter_degree_near_global_simulation(architecture = GPU();
         salt_surface_boundary_conditions_path        = datadep"near_global_quarter_degree/salt-1440x600-latitude-75.jld2",
         u_stress_surface_boundary_conditions_path    = datadep"near_global_quarter_degree/tau_x-1440x600-latitude-75.jld2",
         v_stress_surface_boundary_conditions_path    = datadep"near_global_quarter_degree/tau_y-1440x600-latitude-75.jld2",
+        biogeochemistry = NoBiogeochemistry,
+        biogeochemistry_kwargs = ()
 )
 
     bathymetry_file = jldopen(bathymetry_path)
@@ -164,7 +166,8 @@ function quarter_degree_near_global_simulation(architecture = GPU();
                                                                                vertical_scheme    = WENO()),
                                           closure = closures,
                                           boundary_conditions = (u=u_bcs, v=v_bcs, T=T_bcs, S=S_bcs),
-                                          tracer_advection = WENO(underlying_grid))
+                                          tracer_advection = WENO(underlying_grid),
+                                          biogeochemistry = biogeochemistry(; grid, biogeochemistry_kwargs...))
 
     @info "... built $model."
     @info "Model building time: " * prettytime(1e-9 * (time_ns() - start))

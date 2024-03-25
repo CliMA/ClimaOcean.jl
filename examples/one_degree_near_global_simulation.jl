@@ -8,8 +8,12 @@ using Oceananigans.Models.HydrostaticFreeSurfaceModels: VerticalVorticityField
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities:
     MixingLength, TurbulentKineticEnergyEquation, CATKEVerticalDiffusivity
 
-using ParameterEstimocean.Parameters: closure_with_parameters
+#using ParameterEstimocean.Parameters: closure_with_parameters
 using JLD2
+
+const years = 365days
+
+architecuture = GPU()
 
 #####
 ##### Boundary layer turbulence closure options
@@ -17,7 +21,7 @@ using JLD2
 
 # "Ri-based" --- uses calibrated defaults in Oceananigans
 ri_based = RiBasedVerticalDiffusivity() 
-
+#=
 # CATKE with calibrated parameters loaded from file
 neutral_default_mixing_length_parameters = (Cᵇu = Inf, Cᵇc = Inf, Cᵇe = Inf,
                                             Cˢu = Inf, Cˢc = Inf, Cˢe = Inf,
@@ -36,8 +40,9 @@ catke_parameters = load(catke_parameters_filename, "mean") # load ensemble mean 
 
 catke = closure_with_parameters(neutral_catke, catke_parameters)
 
+=#
 # Choose closure
-boundary_layer_turbulence_closure = catke
+boundary_layer_turbulence_closure = ri_based#catke
 
 @show boundary_layer_turbulence_closure
 
@@ -49,7 +54,8 @@ start_time = 345days
 stop_time = start_time + 2years
 with_isopycnal_skew_symmetric_diffusivity = true
 
-simulation = one_degree_near_global_simulation(; start_time, stop_time,
+simulation = one_degree_near_global_simulation(architecure;
+    start_time, stop_time,
     with_isopycnal_skew_symmetric_diffusivity,
     boundary_layer_turbulence_closure,
     isopycnal_κ_skew = 900.0,
@@ -63,7 +69,7 @@ slices_save_interval = 2day
 fields_save_interval = 10days
 Nx, Ny, Nz = size(simulation.model.grid)
 
-dir = "/storage1/greg" 
+dir = "." 
 closure_name = typeof(boundary_layer_turbulence_closure).name.wrapper
 output_prefix = "near_global_$(Nx)_$(Ny)_$(Nz)_$closure_name"
 with_isopycnal_skew_symmetric_diffusivity || (output_prefix *= "_no_gm")

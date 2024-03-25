@@ -144,6 +144,8 @@ function leith_viscosity(formulation; C_vort = 3.0, C_div = 3.0)
                                        parameters = (; Cζ, Cδ))
 end
 
+NoBiogeochemistry(args...; kwargs...) = nothing
+
 include("one_degree_global_simulation.jl")
 include("quarter_degree_global_simulation.jl")
 

@@ -31,6 +31,9 @@ function one_degree_near_global_simulation(architecture = GPU();
     initial_conditions                           = datadep"near_global_one_degree/initial_conditions_month_01_360_150_48.jld2",
     bathymetry_path                              = datadep"near_global_one_degree/bathymetry_lat_lon_360_150.jld2",
     surface_boundary_conditions_path             = datadep"near_global_one_degree/surface_boundary_conditions_12_months_360_150.jld2",
+    biogeochemistry = NoBiogeochemistry,
+    biogeochemistry_kwargs = (),
+    progress_callback = false,
     )
 
     size == (360, 150, 48) || throw(ArgumentError("Only size = (360, 150, 48) is supported."))
@@ -104,7 +107,7 @@ function one_degree_near_global_simulation(architecture = GPU();
 
     vitd = VerticallyImplicitTimeDiscretization()
 
-    horizontal_κ = (T=0, S=0, e=horizontal_tke_diffusivity)
+    horizontal_κ = merge(NamedTuple{tracers}([0 for tracer in tracers]), (e = horizontal_tke_diffusivity, ))
     horizontal_diffusivity = HorizontalScalarDiffusivity(ν=horizontal_viscosity, κ=horizontal_κ)
     vertical_viscosity   = VerticalScalarDiffusivity(vitd, ν=νz, κ=background_vertical_diffusivity)
 
@@ -186,7 +189,7 @@ function one_degree_near_global_simulation(architecture = GPU();
 
     equation_of_state = TEOS10EquationOfState(; reference_density)
     buoyancy = SeawaterBuoyancy(; equation_of_state)
-    coriolis = HydrostaticSphericalCoriolis(scheme = ActiveCellEnstrophyConservingScheme())
+    coriolis = HydrostaticSphericalCoriolis()
     free_surface = ImplicitFreeSurface()
 
     @info "Building a model..."; start=time_ns()
@@ -195,7 +198,8 @@ function one_degree_near_global_simulation(architecture = GPU();
                                         momentum_advection = VectorInvariant(), 
                                         tracer_advection = WENO(underlying_grid),
                                         closure = closures,
-                                        boundary_conditions = (u=u_bcs, v=v_bcs, T=T_bcs, S=S_bcs))
+                                        boundary_conditions = (u=u_bcs, v=v_bcs, T=T_bcs, S=S_bcs),
+                                        biogeochemistry = biogeochemistry(; grid, biogeochemistry_kwargs...))
 
     @info "... built $model."
     @info "Model building time: " * prettytime(1e-9 * (time_ns() - start))
@@ -237,7 +241,7 @@ function one_degree_near_global_simulation(architecture = GPU();
         return nothing
     end
 
-    simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
+    progress_callback && (simulation.callbacks[:progress] = Callback(progress, IterationInterval(10)))
 
     return simulation
 end
