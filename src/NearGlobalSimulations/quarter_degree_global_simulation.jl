@@ -58,12 +58,12 @@ function quarter_degree_near_global_simulation(architecture = GPU();
     @info "... read boundary conditions (" * prettytime(1e-9 * (time_ns() - start)) * ")"
 
     # Convert boundary conditions arrays to GPU
-    τˣ = arch_array(architecture, τˣ)
-    τʸ = arch_array(architecture, τʸ)
-    target_sea_surface_temperature = T★ = arch_array(architecture, T★)
-    target_sea_surface_salinity    = S★ = arch_array(architecture, S★)
-    surface_temperature_flux       = Q★ = arch_array(architecture, Q★)
-    surface_salt_flux              = F★ = arch_array(architecture, F★)
+    τˣ = on_architecture(architecture, τˣ)
+    τʸ = on_architecture(architecture, τʸ)
+    target_sea_surface_temperature = T★ = on_architecture(architecture, T★)
+    target_sea_surface_salinity    = S★ = on_architecture(architecture, S★)
+    surface_temperature_flux       = Q★ = on_architecture(architecture, Q★)
+    surface_salt_flux              = F★ = on_architecture(architecture, F★)
 
     # Stretched faces from ECCO Version 4 (49 levels in the vertical)
     z_faces = VerticalGrids.z_49_levels_10_to_400_meter_spacing
