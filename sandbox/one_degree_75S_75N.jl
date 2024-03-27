@@ -4,7 +4,7 @@ using Oceananigans
 using Oceananigans.Units
 
 using Oceananigans.Operators: Δzᵃᵃᶜ
-using Oceananigans.Architectures: arch_array
+using Oceananigans.Architectures: on_architecture
 using Oceananigans.Coriolis: HydrostaticSphericalCoriolis
 using Oceananigans.Coriolis: WetCellEnstrophyConservingScheme
 using Oceananigans.TurbulenceClosures: RiBasedVerticalDiffusivity, FluxTapering
@@ -65,12 +65,12 @@ close(boundary_conditions_file)
 @info "... read boundary conditions (" * prettytime(1e-9 * (time_ns() - start)) * ")"
 
 # Convert boundary conditions arrays to GPU
-τˣ = arch_array(arch, τˣ)
-τʸ = arch_array(arch, τʸ)
-target_sea_surface_temperature = T★ = arch_array(arch, T★)
-target_sea_surface_salinity = S★ = arch_array(arch, S★)
-surface_temperature_flux = Q★ = arch_array(arch, Q★)
-surface_salt_flux = F★ = arch_array(arch, F★)
+τˣ = on_architecture(arch, τˣ)
+τʸ = on_architecture(arch, τʸ)
+target_sea_surface_temperature = T★ = on_architecture(arch, T★)
+target_sea_surface_salinity = S★ = on_architecture(arch, S★)
+surface_temperature_flux = Q★ = on_architecture(arch, Q★)
+surface_salt_flux = F★ = on_architecture(arch, F★)
 
 # Stretched faces from ECCO Version 4 (49 levels in the vertical)
 z_faces = ClimaOcean.VerticalGrids.z_49_levels_10_to_400_meter_spacing

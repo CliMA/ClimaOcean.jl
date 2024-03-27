@@ -1,8 +1,8 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.10.1"
+julia_version = "1.10.2"
 manifest_format = "2.0"
-project_hash = "be26e3b3cc0e1adafed5689990fb4477fcf7580d"
+project_hash = "8b7f9f42e5e87056d8c4e8c3f7c0d180e1eaa34b"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -691,9 +691,9 @@ version = "1.2.0"
 
 [[deps.Oceananigans]]
 deps = ["Adapt", "CUDA", "Crayons", "CubedSphere", "Dates", "Distances", "DocStringExtensions", "FFTW", "Glob", "IncompleteLU", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "LinearAlgebra", "Logging", "MPI", "NCDatasets", "OffsetArrays", "OrderedCollections", "PencilArrays", "PencilFFTs", "Pkg", "Printf", "Random", "Rotations", "SeawaterPolynomials", "SparseArrays", "Statistics", "StructArrays"]
-git-tree-sha1 = "1910b8553f78cdd9a8496f51ea693b3adbd6b984"
+git-tree-sha1 = "4672af7242405313743af45168bfce3d87b84b2c"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
-version = "0.90.9"
+version = "0.90.11"
 
     [deps.Oceananigans.extensions]
     OceananigansEnzymeExt = "Enzyme"
