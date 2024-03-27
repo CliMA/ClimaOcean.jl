@@ -21,11 +21,7 @@ jobs:
           version: '1.10'
           show-versioninfo: true
       - name: Install dependencies
-        run: |
-          julia --color=yes --project -e 'using Pkg; Pkg.instantiate()'
-          julia --color=yes --project -e 'using Pkg; Pkg.precompile()'
-          julia --color=yes --project=docs/ -e 'using Pkg; Pkg.instantiate()'
-          julia --color=yes --project=docs/ -e 'using Pkg; Pkg.precompile()'
+        run: julia --color=yes --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
       - name: Build and deploy
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For authentication with GitHub Actions token
