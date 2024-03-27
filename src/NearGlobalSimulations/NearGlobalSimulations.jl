@@ -4,7 +4,7 @@ using Oceananigans
 using Oceananigans.Units
 
 using Oceananigans.Operators: Δzᵃᵃᶜ, ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
-using Oceananigans.Architectures: arch_array
+using Oceananigans.Architectures: on_architecture
 using Oceananigans.Coriolis: HydrostaticSphericalCoriolis
 # using Oceananigans.Coriolis: ActiveCellEnstrophyConservingScheme
 using Oceananigans.TurbulenceClosures: RiBasedVerticalDiffusivity, FluxTapering
