@@ -1,9 +1,15 @@
 module ClimaOcean
 
+export regrid_bathymetry
+export stretched_vertical_faces
+export PowerLawStretching, LinearStretching
+export jra55_field_time_series
+export ecco2_field, ECCO2Metadata
+export initialize!
+
 using Oceananigans
 using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
 using DataDeps
-using CubicSplines
 
 function __init__(; remove_existing_data=false)
 
@@ -59,13 +65,16 @@ end
 @inline v_immersed_bottom_drag(i, j, k, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, k] * spᶜᶠᶜ(i, j, k, grid, Φ)
 
 include("VerticalGrids.jl")
+include("InitialConditions/InitialConditions.jl")
 include("DataWrangling/DataWrangling.jl")
 include("Bathymetry.jl")
-include("InitialConditions.jl")
 include("Diagnostics.jl")
 include("NearGlobalSimulations/NearGlobalSimulations.jl")
 
+using .VerticalGrids
+using .Bathymetry
 using .DataWrangling: JRA55
 using .DataWrangling: ECCO2
+using .InitialConditions
 
 end # module

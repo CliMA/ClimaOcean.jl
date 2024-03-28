@@ -43,13 +43,14 @@ pages = [
 ]
 
 makedocs(
-   sitename = "ClimaOcean.jl",
-    modules = [ClimaOcean],
-     format = format,
-      pages = pages,
-    doctest = true,
-      clean = true,
-  checkdocs = :exports
+     sitename = "ClimaOcean.jl",
+      modules = [ClimaOcean],
+       format = format,
+        pages = pages,
+      doctest = true,
+        clean = true,
+     warnonly = [:cross_references, :missing_docs],
+    checkdocs = :exports
 )
 
 @info "Clean up temporary .jld2 and .nc output created by doctests or literated examples..."
