@@ -26,7 +26,6 @@ include("InitialConditions/InitialConditions.jl")
 include("DataWrangling/DataWrangling.jl")
 include("Bathymetry.jl")
 include("Diagnostics.jl")
-include("NearGlobalSimulations/NearGlobalSimulations.jl")
 
 using .VerticalGrids
 using .Bathymetry
