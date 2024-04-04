@@ -15,6 +15,7 @@ using ClimaOcean.OceanSeaIceModels:
 using NCDatasets
 using JLD2 
 using Dates
+using Downloads: download
 
 import Oceananigans.Fields: set!
 import Oceananigans.OutputReaders: new_backend

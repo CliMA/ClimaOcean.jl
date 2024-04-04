@@ -1,11 +1,18 @@
 module Bathymetry
 
+export regrid_bathymetry
+
 using ..DataWrangling: download_progress
 
 using Oceananigans
 using Oceananigans.Architectures: architecture
-using Oceananigans.Grids: halo_size, λnodes
-using Oceananigans.Utils: pretty_filesize
+using Oceananigans.Grids: halo_size, λnodes, φnodes
+using Oceananigans.Grids: x_domain, y_domain
+using Oceananigans.Grids: topology
+using Oceananigans.Utils: pretty_filesize, launch!
+using Oceananigans.Fields: interpolate!
+using Oceananigans.BoundaryConditions
+using KernelAbstractions: @kernel, @index
 
 using NCDatasets
 using Downloads
@@ -22,14 +29,46 @@ using Printf
 Regrid bathymetry associated with the NetCDF file at `path = joinpath(dir, filename)` to `target_grid`.
 If `path` does not exist, then a download is attempted from `joinpath(url, filename)`.
 
-TODO: describe keyword arguments.
+Arguments:
+==========
+
+- target_grid: grid to interpolate onto
+
+Keyword Arguments:
+==================
+
+- height_above_water: limits the maximum height of above-water topography (where h > 0). If
+                      `nothing` the original topography is retained
+
+- minimum_depth: minimum depth for the shallow regions. `h > minimum_depth` will be considered land
+
+- dir: directory of the bathymetry-containing file
+
+- filename: file containing bathymetric data. Must be netcdf with fields:
+            (1) `lat` vector of latitude nodes
+            (2) `lon` vector of longitude nodes
+            (3) `z` matrix of depth values
+
+- interpolation_passes: regridding/interpolation passes. The bathymetry is interpolated in
+                        `interpolation_passes - 1` intermediate steps. With more steps the 
+                        final bathymetry will be smoother.
+                        Example: interpolating from a 400x200 grid to a 100x100 grid in 4 passes will involve
+                        - 400x200 -> 325x175
+                        - 325x175 -> 250x150
+                        - 250x150 -> 175x125
+                        - 175x125 -> 100x100
+                        If _coarsening_ the original grid, linear interpolation in passes is equivalent to 
+                        applying a smoothing filter, with more passes increasing the strength of the filter.
+                        If _refining_ the original grid, additional passes will not help and no intermediate
+                        steps will be performed.
 """
 function regrid_bathymetry(target_grid;
                            height_above_water = nothing,
                            minimum_depth = 0,
                            dir = joinpath(@__DIR__, "..", "data"),
                            url = "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_surface_elev_netcdf", 
-                           filename = "ETOPO_2022_v1_60s_N90W180_surface.nc")
+                           filename = "ETOPO_2022_v1_60s_N90W180_surface.nc",
+                           interpolation_passes = 1)
 
     filepath = joinpath(dir, filename)
 
@@ -48,22 +87,18 @@ function regrid_bathymetry(target_grid;
 
     dataset = Dataset(filepath)
 
+    FT = eltype(target_grid)
+
     φ_data = dataset["lat"][:]
     λ_data = dataset["lon"][:]
-    h_data = dataset["z"][:, :]
+    h_data = convert.(FT, dataset["z"][:, :])
 
     close(dataset)
 
     # Diagnose target grid information
-    Nxt, Nyt, Nzt = size(target_grid)
     arch = architecture(target_grid)
-    λt, φt, zt = nodes(target_grid, Face(), Face(), Face())
-
-    λ₁ = λt[1]
-    λ₂ = λt[Nxt]
-
-    φ₁ = φt[1]
-    φ₂ = φt[Nyt]
+    φ₁, φ₂ = y_domain(target_grid)
+    λ₁, λ₂ = x_domain(target_grid)
 
     # Calculate limiting indices on the bathymetry grid
     i₁ = searchsortedfirst(λ_data, λ₁)
@@ -106,8 +141,8 @@ function regrid_bathymetry(target_grid;
     end
 
     if minimum_depth > 0
-        ocean = h_data .<= 0
-        h_data[ocean] .= min.(-minimum_depth, h_data[ocean])
+        shallow_ocean = h_data .> minimum_depth
+        h_data[shallow_ocean] .= height_above_water
     end
 
     # Build the "native" grid of the bathymetry and make a bathymetry field.
@@ -120,33 +155,61 @@ function regrid_bathymetry(target_grid;
                                         latitude = (φ₁, φ₂),
                                         longitude = (λ₁, λ₂),
                                         z = (0, 1),
-                                        halo = halo_size(target_grid))
+                                        halo = (10, 10, 1))
 
     native_h = Field{Center, Center, Nothing}(native_grid)
     set!(native_h, h_data)
 
-    Nxi = Nxt
-    Nyi = Nyn
-    Nzi = Nzn
+    target_h = interpolate_bathymetry_in_passes(native_h, target_grid; passes = interpolation_passes)
 
-    if parent(parent(λt)) isa StepRangeLen # longitude is equispaced
-        longitude = (λ₁, λ₂)
-    else
-        longitude = λnodes(target_grid, Face(), Center(), Center())
+    return target_h
+end
+
+# Here we can either use `regrid!` (three dimensional version) or `interpolate`
+function interpolate_bathymetry_in_passes(native_h, target_grid; passes = 10)
+    Nλt, Nφt = Nt = size(target_grid)
+    Nλn, Nφn = Nn = size(native_h)
+    
+    if any(Nt[1:2] .> Nn[1:2]) # We are refining the grid (at least in one direction), more passes will not help!
+        target_h = Field{Center, Center, Nothing}(target_grid)
+        interpolate!(target_h, native_h)
+        return target_h
+    end
+ 
+    latitude  = y_domain(target_grid)
+    longitude = x_domain(target_grid)
+
+    ΔNλ = floor((Nλn - Nλt) / passes)
+    ΔNφ = floor((Nφn - Nφt) / passes)
+
+    Nλ = [Nλn - ΔNλ * pass for pass in 1:passes-1]
+    Nφ = [Nφn - ΔNφ * pass for pass in 1:passes-1]
+
+    Nλ = Int[Nλ..., Nλt]
+    Nφ = Int[Nφ..., Nφt]
+
+    old_h     = native_h
+    TX, TY, _ = topology(target_grid)
+
+    for pass = 1:passes - 1
+        new_size = (Nλ[pass], Nφ[pass], 1)
+
+        @debug "pass number $pass with size $new_size"
+        new_grid = LatitudeLongitudeGrid(architecture(target_grid),
+                                         size = new_size, 
+                                     latitude = (latitude[1],  latitude[2]), 
+                                    longitude = (longitude[1], longitude[2]), 
+                                            z = (0, 1),
+                                     topology = (TX, TY, Bounded))
+
+        new_h = Field{Center, Center, Nothing}(new_grid)
+
+        interpolate!(new_h, old_h)
+        old_h = new_h
     end
 
-    intermediate_grid = LatitudeLongitudeGrid(arch;
-                                              size = (Nxi, Nyi, Nzi),
-                                              latitude = (φ₁, φ₂),
-                                              longitude,
-                                              z = (0, 1),
-                                              halo = halo_size(target_grid))
-
-    intermediate_h =  Field{Center, Center, Nothing}(intermediate_grid)
-    regrid!(intermediate_h, native_h)
-
     target_h = Field{Center, Center, Nothing}(target_grid)
-    regrid!(target_h, intermediate_h)
+    interpolate!(target_h, old_h)
 
     return target_h
 end
