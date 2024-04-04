@@ -268,18 +268,18 @@ Ocean Modelling, 2020, https://doi.org/10.1016/j.ocemod.2019.101557.
 The `variable_name`s (and their `shortname`s used in NetCDF files)
 available from the JRA55-do are:
 
-    - `:freshwater_river_flux`              ("friver")
-    - `:rain_freshwater_flux`               ("prra")
-    - `:snow_freshwater_flux`               ("prsn")
-    - `:freshwater_iceberg_flux`            ("licalvf")
-    - `:specific_humidity`                  ("huss")
-    - `:sea_level_pressure`                 ("psl")
-    - `:relative_humidity`                  ("rhuss")
-    - `:downwelling_longwave_radiation`     ("rlds")
-    - `:downwelling_shortwave_radiation`    ("rsds")
-    - `:temperature`                        ("ras")
-    - `:eastward_velocity`                  ("uas")
-    - `:northward_velocity`                 ("vas")
+  - `:freshwater_river_flux`              ("friver")
+  - `:rain_freshwater_flux`               ("prra")
+  - `:snow_freshwater_flux`               ("prsn")
+  - `:freshwater_iceberg_flux`            ("licalvf")
+  - `:specific_humidity`                  ("huss")
+  - `:sea_level_pressure`                 ("psl")
+  - `:relative_humidity`                  ("rhuss")
+  - `:downwelling_longwave_radiation`     ("rlds")
+  - `:downwelling_shortwave_radiation`    ("rsds")
+  - `:temperature`                        ("ras")
+  - `:eastward_velocity`                  ("uas")
+  - `:northward_velocity`                 ("vas")
 
 Keyword arguments
 =================

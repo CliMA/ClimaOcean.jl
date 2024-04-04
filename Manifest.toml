@@ -163,7 +163,7 @@ weakdeps = ["SparseArrays"]
 
 [[deps.ClimaSeaIce]]
 deps = ["Adapt", "KernelAbstractions", "Oceananigans", "RootSolvers", "Roots", "SeawaterPolynomials"]
-git-tree-sha1 = "6afd99a2cb2495792aaed92dc895ba78a3b82870"
+git-tree-sha1 = "e25e43451edd449c3dcc899bd447983d7b76a59f"
 repo-rev = "main"
 repo-url = "https://github.com/CliMA/ClimaSeaIce.jl.git"
 uuid = "6ba0ff68-24e6-4315-936c-2e99227c95a4"
