@@ -14,4 +14,6 @@ Thermodynamics = "b60c26fb-14c3-4610-9d3e-2d17fe7ff00c"
 
 [compat]
 GLMakie = "0.9"
-Oceananigans = "0.90.6"
+Oceananigans = "0.90.10"
+SeawaterPolynomials = "0.3.4"
+Thermodynamics = "0.12.6"
