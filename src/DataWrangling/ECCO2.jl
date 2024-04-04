@@ -96,13 +96,22 @@ filenames_19920102 = Dict(
     :v_velocity            => "VVEL.1440x720.19920102.nc",
 )
 
+filenames_19921001 = Dict(
+    :temperature           => "THETA.1440x720x50.19921001.nc",
+    :salinity              => "SALT.1440x720x50.19921001.nc",
+    :sea_ice_thickness     => "SIheff.1440x720.19921001.nc",
+    :sea_ice_area_fraction => "SIarea.1440x720.19921001.nc",
+    :u_velocity            => "UVEL.1440x720.19921001.nc",
+    :v_velocity            => "VVEL.1440x720.19921001.nc",
+)
+
 ecco2_location = Dict(
-    :temperature   => (Center, Center, Center),
-    :salinity      => (Center, Center, Center),
-    :u_velocity    => (Face, Center, Center),
-    :v_velocity    => (Center, Face, Center),
-    :sea_ice_thickness => (Center, Center, Nothing)
-    :sea_ice_fraction  => (Center, Center, Nothing)
+    :temperature           => (Center, Center, Center),
+    :salinity              => (Center, Center, Center),
+    :sea_ice_thickness     => (Center, Center, Nothing),
+    :sea_ice_area_fraction => (Center, Center, Nothing),
+    :u_velocity            => (Face,   Center, Center),
+    :v_velocity            => (Center, Face,   Center),
 )
 
 ecco2_depth_names = Dict(
