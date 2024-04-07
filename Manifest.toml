@@ -2,7 +2,7 @@
 
 julia_version = "1.10.2"
 manifest_format = "2.0"
-project_hash = "64b3862ff4f09c6ae71318d88c2bbc084ba4e0f1"
+project_hash = "b77431445966c6920fb04c6ab1b5a7dbdaa668aa"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -164,8 +164,6 @@ weakdeps = ["SparseArrays"]
 [[deps.ClimaSeaIce]]
 deps = ["Adapt", "KernelAbstractions", "Oceananigans", "RootSolvers", "Roots", "SeawaterPolynomials"]
 git-tree-sha1 = "e25e43451edd449c3dcc899bd447983d7b76a59f"
-repo-rev = "main"
-repo-url = "https://github.com/CliMA/ClimaSeaIce.jl.git"
 uuid = "6ba0ff68-24e6-4315-936c-2e99227c95a4"
 version = "0.1.0"
 

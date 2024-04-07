@@ -25,6 +25,7 @@ Thermodynamics = "b60c26fb-14c3-4610-9d3e-2d17fe7ff00c"
 
 [compat]
 CUDA = "4, 5"
+ClimaSeaIce = "0.1"
 CubicSplines = "0.2"
 DataDeps = "0.7"
 Downloads = "1.6"
