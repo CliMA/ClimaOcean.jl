@@ -461,6 +461,9 @@ function JRA55_field_time_series(variable_name;
         copyto!(interior(native_fts, :, :, 1, :), data)
         fill_halo_regions!(native_fts)
 
+        @show on_native_grid
+        @show totally_in_memory
+
         if on_native_grid && totally_in_memory
             return native_fts
 
@@ -472,6 +475,7 @@ function JRA55_field_time_series(variable_name;
         end
     end
 
+    @show totally_in_memory
     @info "Pre-processing JRA55 $variable_name data into a JLD2 file..."
 
     on_disk_fts = FieldTimeSeries{LX, LY, Nothing}(fts.grid;

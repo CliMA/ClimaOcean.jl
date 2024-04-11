@@ -99,4 +99,3 @@ values = SurfaceFluxes.ValuesOnly(atmos_dynamic_state,
                                   buoyancy_roughness_length)
 
 conditions = SurfaceFluxes.surface_conditions(surface_flux_parameters, values)
-
