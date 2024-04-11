@@ -477,12 +477,13 @@ function JRA55_field_time_series(variable_name;
 
     @show totally_in_memory
     @info "Pre-processing JRA55 $variable_name data into a JLD2 file..."
+    preprocessing_grid = on_native_grid ? JRA55_native_grid : grid
 
-    on_disk_fts = FieldTimeSeries{LX, LY, Nothing}(fts.grid;
-                                                   boundary_conditions,
-                                                   backend = OnDisk(),
-                                                   path = jld2_filename,
-                                                   name = fts_name)
+    on_disk_fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid;
+                                                                                     boundary_conditions,
+                                                                                     backend = OnDisk(),
+                                                                                     path = jld2_filename,
+                                                                                     name = fts_name)
 
     # Re-open the dataset!
     ds = Dataset(filename)
