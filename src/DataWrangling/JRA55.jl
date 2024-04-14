@@ -19,7 +19,7 @@ using JLD2
 using Dates
 
 import Oceananigans.Fields: set!
-import Oceananigans.OutputReaders: new_backend
+import Oceananigans.OutputReaders: new_backend, update_field_time_series!
 using Downloads: download
 
 # A list of all variables provided in the JRA55 dataset:
@@ -169,7 +169,6 @@ function infer_longitudinal_topology(λbounds)
     TX = λ₂ - λ₁ ≈ 360 ? Periodic : Bounded
     return TX
 end
-
 
 function compute_bounding_indices(longitude, latitude, grid, LX, LY, λc, φc)
     λbounds = compute_bounding_nodes(longitude, grid, LX, λnodes)
@@ -418,7 +417,7 @@ function JRA55_field_time_series(variable_name;
     # Probably with arguments that take latitude, longitude bounds.
     i₁, i₂, j₁, j₂, TX = compute_bounding_indices(longitude, latitude, grid, LX, LY, λc, φc)
 
-    native_times = ds["time"][time_indices_in_memory]
+    native_times = ds["time"][time_indices]
     data = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
     λr = λn[i₁:i₂+1]
     φr = φn[j₁:j₂+1]
