@@ -1,7 +1,5 @@
 const OceanOnlyModel = OceanSeaIceModel{Nothing}
 
-OceanOnlyModel(ocean; kw...) = OceanSeaIceModel(nothing, ocean; kw...)
-
 #####
 ##### No ice-ocean fluxes in this model!!
 #####
