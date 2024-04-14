@@ -3,6 +3,7 @@ module JRA55
 using Oceananigans
 using Oceananigans.Units
  
+using Oceananigans.Architectures: arch_array
 using Oceananigans.DistributedComputations
 using Oceananigans.DistributedComputations: child_architecture
 using Oceananigans.BoundaryConditions: fill_halo_regions!
@@ -13,6 +14,8 @@ using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBac
 using ClimaOcean.OceanSeaIceModels:
     PrescribedAtmosphere,
     TwoStreamDownwellingRadiation
+
+using CUDA: @allowscalar
 
 using NCDatasets
 using JLD2 
@@ -125,9 +128,11 @@ urls = Dict(
 compute_bounding_nodes(::Nothing, ::Nothing, LH, hnodes) = nothing
 compute_bounding_nodes(bounds, ::Nothing, LH, hnodes) = bounds
 
+# TODO: remove the allowscalar
 function compute_bounding_nodes(::Nothing, grid, LH, hnodes)
     hg = hnodes(grid, LH())
-    h₁, h₂ = extrema(hg)
+    h₁ = @allowscalar minimum(hg)
+    h₂ = @allowscalar maximum(hg)
     return h₁, h₂
 end
 
@@ -474,7 +479,9 @@ function JRA55_field_time_series(variable_name;
 
     @info "Pre-processing JRA55 $variable_name data into a JLD2 file..."
 
-    on_disk_fts = FieldTimeSeries{LX, LY, Nothing}(fts.grid;
+    preprocessing_grid = on_native_grid ? JRA55_native_grid : grid
+
+    on_disk_fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid;
                                                    boundary_conditions,
                                                    backend = OnDisk(),
                                                    path = jld2_filename,
@@ -485,7 +492,8 @@ function JRA55_field_time_series(variable_name;
     all_datetimes = ds["time"][time_indices]
     all_Nt = length(all_datetimes)
     chunk = last(preprocess_chunk_size)
-    all_times = jra55_times(all_Nt)
+
+    all_times = jra55_times(all_datetimes)
 
     # Save data to disk, one field at a time
     start_clock = time_ns()

@@ -134,7 +134,6 @@ const f = Face()
 
 function compute_atmosphere_ocean_fluxes!(coupled_model)
     ocean = coupled_model.ocean
-    sea_ice = coupled_model.sea_ice
     atmosphere = coupled_model.atmosphere
     atmosphere_grid = atmosphere.grid
 
@@ -156,7 +155,6 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
 
     net_tracer_fluxes    = coupled_model.fluxes.total.ocean.tracers
     similarity_theory    = coupled_model.fluxes.turbulent
-    prescribed_fluxes    = coupled_model.fluxes.prescribed
     radiation_properties = coupled_model.fluxes.radiation
 
     ocean_state = merge(ocean_velocities, ocean_tracers)
@@ -448,6 +446,39 @@ end
 #####
 ##### Utility for interpolating tuples of fields
 #####
+
+# import Oceananigans.Fields: interpolate
+# using Oceananigans: OffsetArray
+# using Oceananigans.Grids: AbstractGrid
+
+# using Oceananigans.OutputReaders: fractional_indices, interpolator, interpolating_time_indices, memory_index, _interpolate
+
+# @inline function interpolate(at_node, at_time_index::Time, data::OffsetArray,
+#                              from_loc, from_grid::AbstractGrid, times, backend, time_indexing)
+
+#     at_time = at_time_index.time
+
+#     # Build space interpolators
+#     ii, jj, kk = fractional_indices(at_node, from_grid, from_loc...)
+
+#     ix = interpolator(ii)
+#     iy = interpolator(jj)
+#     iz = interpolator(kk)
+
+#     ñ, n₁, n₂ = interpolating_time_indices(time_indexing, times, at_time)
+
+#     Nt = length(times)
+#     m₁ = memory_index(backend, time_indexing, Nt, n₁)
+#     m₂ = memory_index(backend, time_indexing, Nt, n₂)
+    
+#     @show m₁, m₂, ñ, at_time, times
+#     ψ₁ = _interpolate(data, ix, iy, iz, m₁)
+#     ψ₂ = _interpolate(data, ix, iy, iz, m₂)
+#     ψ̃ = ψ₂ * ñ + ψ₁ * (1 - ñ)
+
+#     # Don't interpolate if n₁ == n₂
+#     return ifelse(n₁ == n₂, ψ₁, ψ̃)
+# end
 
 # Note: assumes loc = (c, c, nothing) (and the third location should
 # not matter.)
