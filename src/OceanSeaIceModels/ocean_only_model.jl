@@ -14,7 +14,7 @@ function time_step!(coupled_model::OceanOnlyModel, Δt; callbacks=[], compute_te
 
     time_step!(ocean)
 
-    tick!(coupled_model.clock, ocean.Δt)
+    tick!(coupled_model.clock, ocean.Δt) # An Ocean-only model advances with the ocean time-step!
     update_state!(coupled_model, callbacks; compute_tendencies)
     
     return nothing
