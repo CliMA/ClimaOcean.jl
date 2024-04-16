@@ -1,6 +1,6 @@
 using ClimaOcean.Bathymetry
 using Oceananigans
-using Oceananigans.Architectures: arch_array, device, architecture, on_architecture
+using Oceananigans.Architectures: arch_array, device, architecture
 using Oceananigans.DistributedComputations
 using Oceananigans.DistributedComputations: Sizes, child_architecture, barrier!, all_reduce, partition_global_array
 using Oceananigans.ImmersedBoundaries: immersed_cell
@@ -123,11 +123,11 @@ function load_balanced_regional_grid(arch::SlabDistributed;
 
     # Calculate the load for each i-slab if the partition is in x,
     # calculate the load for eahc j-slab if the partition is in y.
-    load_per_slab = on_architecture(child_arch, zeros(Int, size[idx]))
+    load_per_slab = arch_array(child_arch, zeros(Int, size[idx]))
 
     loop! = assess_load!(device(child_arch), 512, size[idx])
     loop!(load_per_slab, grid, idx)
-    load_per_slab = on_architecture(CPU(), load_per_slab)
+    load_per_slab = arch_array(CPU(), load_per_slab)
 
     # Redistribute the load to have the same number of
     # immersed cells in each core
