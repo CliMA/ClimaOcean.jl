@@ -1,3 +1,5 @@
+using Oceananigans.Architectures: architecture
+
 import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: limit_fluxes_over_sea_ice!
 
 """
@@ -20,7 +22,7 @@ function limit_fluxes_over_sea_ice!(grid, kernel_parameters, sea_ice::MinimumTem
                                     ocean_temperature,
                                     ocean_salinity)
 
-    launch!(grid, kernel_parameters, _cap_fluxes_on_sea_ice!,
+    launch!(architecture(grid), grid, kernel_parameters, _cap_fluxes_on_sea_ice!,
             similarity_theory_fields,
             grid, 
             sea_ice.minimum_temperature,
