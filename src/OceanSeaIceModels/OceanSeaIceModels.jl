@@ -50,6 +50,7 @@ include("CrossRealmFluxes/CrossRealmFluxes.jl")
 
 using .CrossRealmFluxes
 
+include("minimum_temperature_sea_ice.jl")
 include("ocean_sea_ice_model.jl")
 include("ocean_only_model.jl")
 include("time_step_ocean_sea_ice_model.jl")

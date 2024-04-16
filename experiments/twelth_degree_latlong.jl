@@ -26,10 +26,10 @@ include("correct_oceananigans.jl")
 bathymetry_file = nothing # "bathymetry_tmp.jld2"
 
 # 100 vertical levels
-z_faces = exponential_z_faces(Nz=50, depth=6500)
+z_faces = exponential_z_faces(Nz=60, depth=6500)
 
 Nx = 720
-Ny = 360
+Ny = 300
 Nz = length(z_faces) - 1
 
 arch = GPU() #Distributed(GPU(), partition = Partition(2))
@@ -51,9 +51,12 @@ grid = load_balanced_regional_grid(arch;
 ##### The Ocean component
 #####                             
 
-free_surface = SplitExplicitFreeSurface(; grid, cfl=0.75, fixed_Δt = 15minutes)
+free_surface = SplitExplicitFreeSurface(; grid, cfl=0.7, fixed_Δt = 20minutes)
+vertical_diffusivity  = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), κ = 5e-5, ν = 5e-4)
 
-ocean = ocean_simulation(grid; free_surface) 
+closure = (RiBasedVerticalDiffusivity(), vertical_diffusivity)
+
+ocean = ocean_simulation(grid; free_surface, closure) 
 model = ocean.model
 
 # Initializing the model
@@ -69,7 +72,9 @@ backend    = JRA55NetCDFBackend(10)
 atmosphere = JRA55_prescribed_atmosphere(arch; backend)
 radiation  = Radiation()
 
-coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
+sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
+
+coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 
 wall_time = [time_ns()]
 
@@ -105,20 +110,29 @@ ocean.output_writers[:checkpoint] = Checkpointer(model,
 # Simulation warm up!
 ocean.Δt = 10
 ocean.stop_iteration = 1
-wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 20, max_change = 1.1)
+wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 90, max_change = 1.1)
 ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(1))
 
-stop_time = 1days
+stop_time = 10days
 
 coupled_simulation = Simulation(coupled_model, Δt=1, stop_time=stop_time)
 
-run!(coupled_simulation)
+try 
+   run!(coupled_simulation)
+catch 
 
-wizard = TimeStepWizard(; cfl = 0.35, max_Δt = 20minutes, max_change = 1.1)
+end
+
+wizard = TimeStepWizard(; cfl = 0.35, max_Δt = 15minutes, max_change = 1.1)
 ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 
 # Let's reset the maximum number of iterations
 coupled_model.ocean.stop_time = 7200days
+coupled_simulation.stop_time = 7200days
 
-run!(coupled_simulation)
+try 
+    run!(coupled_simulation)
+catch 
+
+end
 

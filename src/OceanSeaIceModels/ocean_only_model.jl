@@ -1,10 +1,11 @@
 const OceanOnlyModel = OceanSeaIceModel{Nothing}
+const OceanCappedSeaIceModel = OceanSeaIceModel{MinimumTemperatureSeaIce}
 
 #####
-##### No ice-ocean fluxes in this model!!
+##### No ice-ocean fluxes in this models!!
 #####
 
-function time_step!(coupled_model::OceanOnlyModel, Δt; callbacks=[], compute_tendencies=true)
+function time_step!(coupled_model::Union{OceanOnlyModel, OceanCappedSeaIceModel}, Δt; callbacks=[], compute_tendencies=true)
     ocean = coupled_model.ocean
 
     # Be paranoid and update state at iteration 0

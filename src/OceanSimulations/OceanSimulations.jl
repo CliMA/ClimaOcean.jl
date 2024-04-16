@@ -4,6 +4,7 @@ export load_balanced_regional_grid, ocean_simulation
 
 using Oceananigans.Units
 using Oceananigans.Advection: TracerAdvection
+using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities:
     CATKEVerticalDiffusivity,
@@ -93,7 +94,7 @@ function ocean_simulation(grid; Δt = 5minutes,
         tracer_advection = (; T = tracer_advection, S = tracer_advection, e = nothing)
     end
 
-    coriolis = HydrostaticSphericalCoriolis(; rotation_rate)
+    coriolis = HydrostaticSphericalCoriolis(; rotation_rate, scheme = ActiveCellEnstrophyConserving())
 
     ocean_model = HydrostaticFreeSurfaceModel(; grid,
                                               buoyancy,

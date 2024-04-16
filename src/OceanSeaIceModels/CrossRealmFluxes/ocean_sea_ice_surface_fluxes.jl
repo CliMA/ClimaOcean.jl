@@ -136,6 +136,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     ocean = coupled_model.ocean
     atmosphere = coupled_model.atmosphere
     atmosphere_grid = atmosphere.grid
+    sea_ice = coupled_model.sea_ice
 
     # Basic model properties
     grid = ocean.model.grid
@@ -180,7 +181,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     # kernel parameters that compute fluxes in 0:Nx+1 and 0:Ny+1
     kernel_parameters = KernelParameters(kernel_size, (-1, -1))
 
-    launch!(arch, grid, kernel_parameters, compute_atmosphere_ocean_similarity_theory_fluxes!,
+    launch!(arch, grid, kernel_parameters, _compute_atmosphere_ocean_similarity_theory_fluxes!,
             similarity_theory.fields,
             grid,
             clock,
@@ -195,7 +196,12 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             atmosphere.thermodynamics_parameters,
             similarity_theory.roughness_lengths)
 
-    launch!(arch, grid, kernel_parameters, assemble_atmosphere_ocean_fluxes!,
+    limit_fluxes_over_sea_ice!(grid, kernel_parameters, sea_ice,
+                               similarity_theory.fields,
+                               ocean_state.T,
+                               ocean_state.S)
+    
+    launch!(arch, grid, kernel_parameters, _assemble_atmosphere_ocean_fluxes!,
             centered_velocity_fluxes,
             net_tracer_fluxes,
             grid,
@@ -213,7 +219,8 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             radiation_properties,
             coupled_model.fluxes.ocean_reference_density,
             coupled_model.fluxes.ocean_heat_capacity,
-            coupled_model.fluxes.freshwater_density)
+            coupled_model.fluxes.freshwater_density,
+            sea_ice)
             
     launch!(arch, grid, :xy, reconstruct_momentum_fluxes!,
             grid, staggered_velocity_fluxes, centered_velocity_fluxes)
@@ -224,7 +231,10 @@ end
 const c = Center()
 const f = Face()
 
-@kernel function compute_atmosphere_ocean_similarity_theory_fluxes!(similarity_theory_fields,
+# Fallback!
+limit_fluxes_over_sea_ice!(args...) = nothing
+
+@kernel function _compute_atmosphere_ocean_similarity_theory_fluxes!(similarity_theory_fields,
                                                                     grid,
                                                                     clock,
                                                                     ocean_state,
@@ -336,24 +346,24 @@ const f = Face()
     end
 end
 
-@kernel function assemble_atmosphere_ocean_fluxes!(centered_velocity_fluxes,
-                                                   net_tracer_fluxes,
-                                                   grid,
-                                                   clock,
-                                                   ocean_temperature,
-                                                   ocean_salinity,
-                                                   ocean_temperature_units,
-                                                   similarity_theory_fields,
-                                                   downwelling_radiation,
-                                                   prescribed_freshwater_flux,
-                                                   atmos_grid,
-                                                   atmos_times,
-                                                   atmos_backend,
-                                                   atmos_time_indexing,
-                                                   radiation_properties,
-                                                   ocean_reference_density,
-                                                   ocean_heat_capacity,
-                                                   freshwater_density)
+@kernel function _assemble_atmosphere_ocean_fluxes!(centered_velocity_fluxes,
+                                                    net_tracer_fluxes,
+                                                    grid,
+                                                    clock,
+                                                    ocean_temperature,
+                                                    ocean_salinity,
+                                                    ocean_temperature_units,
+                                                    similarity_theory_fields,
+                                                    downwelling_radiation,
+                                                    prescribed_freshwater_flux,
+                                                    atmos_grid,
+                                                    atmos_times,
+                                                    atmos_backend,
+                                                    atmos_time_indexing,
+                                                    radiation_properties,
+                                                    ocean_reference_density,
+                                                    ocean_heat_capacity,
+                                                    freshwater_density)
 
     i, j = @index(Global, NTuple)
     kᴺ = size(grid, 3)
