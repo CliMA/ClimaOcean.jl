@@ -123,11 +123,11 @@ function load_balanced_regional_grid(arch::SlabDistributed;
 
     # Calculate the load for each i-slab if the partition is in x,
     # calculate the load for eahc j-slab if the partition is in y.
-    load_per_slab = arch_array(child_arch, zeros(Int, size[idx]))
+    load_per_slab = on_architecture(child_arch, zeros(Int, size[idx]))
 
     loop! = assess_load!(device(child_arch), 512, size[idx])
     loop!(load_per_slab, grid, idx)
-    load_per_slab = arch_array(CPU(), load_per_slab)
+    load_per_slab = on_architecture(CPU(), load_per_slab)
 
     # Redistribute the load to have the same number of
     # immersed cells in each core
@@ -149,10 +149,6 @@ function load_balanced_regional_grid(arch::SlabDistributed;
                                  latitude,
                                  z,
                                  halo)
-
-    nx, ny, _ = Base.size(grid)
-
-    bottom_height = partition_global_array(arch, bottom_height, (nx, ny, 1))
 
     return ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true)
 end
