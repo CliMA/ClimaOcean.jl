@@ -41,9 +41,11 @@ end
         cooling_sea_ice = sea_ice & (Qc > 0)
         evaporating_sea_ice = sea_ice & (Qv > 0)
 
+        # Don't allow the ocean to cool below the minimum temperature!
         fields.sensible_heat[i, j, 1] = ifelse(cooling_sea_ice, zero(grid), Qc) # sensible or "conductive" heat flux
         fields.latent_heat[i, j, 1]   = ifelse(evaporating_sea_ice, zero(grid), Qv) # latent heat flux
 
+        # If we are in a "sea ice" region we remove all fluxes
         fields.water_vapor[i, j, 1]   = ifelse(sea_ice, zero(grid), Mv) # mass flux of water vapor
         fields.x_momentum[i, j, 1]    = ifelse(sea_ice, zero(grid), τx) # zonal momentum flux
         fields.y_momentum[i, j, 1]    = ifelse(sea_ice, zero(grid), τy) # meridional momentum flux
