@@ -37,10 +37,15 @@ end
         τx = fields.x_momentum[i, j, 1]    # zonal momentum flux
         τy = fields.y_momentum[i, j, 1]    # meridional momentum flux
 
-        fields.sensible_heat[i, j, 1] = ifelse(Tₒ < minimum_temperature, zero(grid), Qc) # sensible or "conductive" heat flux
-        fields.latent_heat[i, j, 1]   = ifelse(Tₒ < minimum_temperature, zero(grid), Qv) # latent heat flux
-        fields.water_vapor[i, j, 1]   = ifelse(Tₒ < minimum_temperature, zero(grid), Mv) # mass flux of water vapor
-        fields.x_momentum[i, j, 1]    = ifelse(Tₒ < minimum_temperature, zero(grid), τx) # zonal momentum flux
-        fields.y_momentum[i, j, 1]    = ifelse(Tₒ < minimum_temperature, zero(grid), τy) # meridional momentum flux
+        sea_ice = Tₒ < minimum_temperature
+        cooling_sea_ice = sea_ice & (Qc > 0)
+        evaporating_sea_ice = sea_ice & (Qv > 0)
+
+        fields.sensible_heat[i, j, 1] = ifelse(cooling_sea_ice, zero(grid), Qc) # sensible or "conductive" heat flux
+        fields.latent_heat[i, j, 1]   = ifelse(evaporating_sea_ice, zero(grid), Qv) # latent heat flux
+
+        fields.water_vapor[i, j, 1]   = ifelse(sea_ice, zero(grid), Mv) # mass flux of water vapor
+        fields.x_momentum[i, j, 1]    = ifelse(sea_ice, zero(grid), τx) # zonal momentum flux
+        fields.y_momentum[i, j, 1]    = ifelse(sea_ice, zero(grid), τy) # meridional momentum flux
     end
 end
