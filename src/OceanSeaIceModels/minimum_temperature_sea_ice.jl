@@ -1,5 +1,13 @@
 import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: limit_fluxes_over_sea_ice!
 
+"""
+    struct MinimumTemperatureSeaIce{T}
+
+A struct representing the minimum temperature of sea ice.
+
+# Fields
+- `minimum_temperature`: The minimum temperature of sea ice.
+"""
 struct MinimumTemperatureSeaIce{T}
     minimum_temperature :: T
 end
