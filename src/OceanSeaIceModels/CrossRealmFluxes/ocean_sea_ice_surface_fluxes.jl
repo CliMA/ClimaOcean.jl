@@ -195,11 +195,6 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             atmosphere.reference_height, # height at which the state is known
             atmosphere.thermodynamics_parameters,
             similarity_theory.roughness_lengths)
-
-    limit_fluxes_over_sea_ice!(grid, kernel_parameters, sea_ice,
-                               similarity_theory.fields,
-                               ocean_state.T,
-                               ocean_state.S)
     
     launch!(arch, grid, kernel_parameters, _assemble_atmosphere_ocean_fluxes!,
             centered_velocity_fluxes,
@@ -221,6 +216,12 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             coupled_model.fluxes.ocean_heat_capacity,
             coupled_model.fluxes.freshwater_density)
             
+    limit_fluxes_over_sea_ice!(grid, kernel_parameters, sea_ice,
+                               centered_velocity_fluxes,
+                               net_tracer_fluxes,
+                               ocean_state.T,
+                               ocean_state.S)
+
     launch!(arch, grid, :xy, reconstruct_momentum_fluxes!,
             grid, staggered_velocity_fluxes, centered_velocity_fluxes)
 

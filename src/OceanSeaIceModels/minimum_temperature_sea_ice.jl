@@ -5,11 +5,13 @@ import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: limit_fluxes_over_sea_ice!
 """
     struct MinimumTemperatureSeaIce{T}
 
-The most simple sea ice model that shuts down cooling and momentum fluxes
-when the temperature of the ocean is below minimum_temperature
+Despite the name, this is not really a sea ice model! 
+However, it is the most simple way to make sure that temperature does not dip below
+freezing temperature, by shutting down cooling temperature fluxes (and momentum fluxes)
+when the temperature of the surface is below a `minimum_temperature`
 
 # Fields
-- `minimum_temperature`: The minimum temperature of sea ice.
+- `minimum_temperature`: The minimum temperature of water.
 """
 struct MinimumTemperatureSeaIce{T}
     minimum_temperature :: T
@@ -18,12 +20,14 @@ end
 MinimumTemperatureSeaIce() = MinimumTemperatureSeaIce(-1.8)
 
 function limit_fluxes_over_sea_ice!(grid, kernel_parameters, sea_ice::MinimumTemperatureSeaIce,
-                                    similarity_theory_fields,
+                                    centered_velocity_fluxes,
+                                    net_tracer_fluxes,
                                     ocean_temperature,
                                     ocean_salinity)
 
     launch!(architecture(grid), grid, kernel_parameters, _cap_fluxes_on_sea_ice!,
-            similarity_theory_fields,
+            centered_velocity_fluxes,
+            net_tracer_fluxes,
             grid, 
             sea_ice.minimum_temperature,
             ocean_temperature)
@@ -31,34 +35,31 @@ function limit_fluxes_over_sea_ice!(grid, kernel_parameters, sea_ice::MinimumTem
     return nothing
 end
 
-@kernel function _cap_fluxes_on_sea_ice!(similarity_theory_fields,
+@kernel function _cap_fluxes_on_sea_ice!(centered_velocity_fluxes,
+                                         net_tracer_fluxes,
                                          grid, 
                                          minimum_temperature,
                                          ocean_temperature)    
 
     i, j = @index(Global, NTuple)
-    fields = similarity_theory_fields
 
     @inbounds begin
         Tₒ = ocean_temperature[i, j, 1]
 
-        Qc = fields.sensible_heat[i, j, 1] # sensible or "conductive" heat flux
-        Qv = fields.latent_heat[i, j, 1]   # latent heat flux
-        Mv = fields.water_vapor[i, j, 1]   # mass flux of water vapor
-        τx = fields.x_momentum[i, j, 1]    # zonal momentum flux
-        τy = fields.y_momentum[i, j, 1]    # meridional momentum flux
-
+        Jᵘ = centered_velocity_fluxes.u
+        Jᵛ = centered_velocity_fluxes.v
+        Jᵀ = net_tracer_fluxes.T
+        Jˢ = net_tracer_fluxes.S
+    
         sea_ice = Tₒ < minimum_temperature
-        cooling_sea_ice = sea_ice & (Qc > 0)
-        evaporating_sea_ice = sea_ice & (Qv > 0)
+        cooling_sea_ice = sea_ice & (Jᵀ[i, j, 1] > 0)
 
-        # Don't allow the ocean to cool below the minimum temperature!
-        fields.sensible_heat[i, j, 1] = ifelse(cooling_sea_ice, zero(grid), Qc) # sensible or "conductive" heat flux
-        fields.latent_heat[i, j, 1]   = ifelse(evaporating_sea_ice, zero(grid), Qv) # latent heat flux
-
+        # Don't allow the ocean to cool below the minimum temperature! (make sure it heats up though!)
+        Jᵀ[i, j, 1] = ifelse(cooling_sea_ice, zero(grid), Jᵀ[i, j, 1]) 
+        
         # If we are in a "sea ice" region we remove all fluxes
-        fields.water_vapor[i, j, 1]   = ifelse(sea_ice, zero(grid), Mv) # mass flux of water vapor
-        fields.x_momentum[i, j, 1]    = ifelse(sea_ice, zero(grid), τx) # zonal momentum flux
-        fields.y_momentum[i, j, 1]    = ifelse(sea_ice, zero(grid), τy) # meridional momentum flux
+        Jˢ[i, j, 1] = ifelse(sea_ice, zero(grid), Jˢ[i, j, 1])
+        Jᵘ[i, j, 1] = ifelse(sea_ice, zero(grid), Jᵘ[i, j, 1]) 
+        Jᵛ[i, j, 1] = ifelse(sea_ice, zero(grid), Jᵛ[i, j, 1]) 
     end
 end
