@@ -7,8 +7,8 @@ const OceanCappedSeaIceModel = OceanSeaIceModel{MinimumTemperatureSeaIce}
 
 import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: compute_sea_ice_ocean_fluxes!
 
-compute_sea_ice_ocean_fluxes!(coupled_model::OnlyOceanModel) = nothing
-compute_sea_ice_ocean_fluxes!(coupled_model::OceanCappedSeaIceModel) = nothing
+compute_sea_ice_ocean_fluxes!(::OceanOnlyModel) = nothing
+compute_sea_ice_ocean_fluxes!(::OceanCappedSeaIceModel) = nothing
 
 function time_step!(coupled_model::Union{OceanOnlyModel, OceanCappedSeaIceModel}, Δt; callbacks=[], compute_tendencies=true)
     ocean = coupled_model.ocean
