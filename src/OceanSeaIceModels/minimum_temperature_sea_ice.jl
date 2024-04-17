@@ -5,10 +5,10 @@ import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: limit_fluxes_over_sea_ice!
 """
     struct MinimumTemperatureSeaIce{T}
 
-Despite the name, this is not really a sea ice model! 
-However, it is the most simple way to make sure that temperature does not dip below
-freezing temperature, by shutting down cooling temperature fluxes (and momentum fluxes)
-when the temperature of the surface is below a `minimum_temperature`
+The minimal possible sea ice representation, providing an "Insulating layer" on the surface.
+Not really a ``model'' per se, however, it is the most simple way to make sure that temperature 
+does not dip below freezing temperature.
+All fluxes are shut down when the surface is below the `minimum_temperature` except for heating.
 
 # Fields
 - `minimum_temperature`: The minimum temperature of water.
