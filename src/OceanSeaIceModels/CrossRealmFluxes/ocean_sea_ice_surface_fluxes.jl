@@ -327,6 +327,7 @@ limit_fluxes_over_sea_ice!(args...) = nothing
 
     g = default_gravitational_acceleration
     ϰ = 0.4
+
     turbulent_fluxes = compute_similarity_theory_fluxes(roughness_lengths,
                                                         dynamic_ocean_state,
                                                         dynamic_atmos_state,
@@ -435,14 +436,16 @@ end
     i, j = @index(Global, NTuple)
 
     @inbounds begin
-        J.u[i, j, 1] = ℑxᶠᶜᶜ(i, j, 1, grid, Jᶜᶜᶜ.u)
-        J.v[i, j, 1] = ℑyᶜᶠᶜ(i, j, 1, grid, Jᶜᶜᶜ.v)
+        J.u[i, j, 1] = ℑxᶠᶜᶜ(i, j, 1, grid, Jᶜᶜᶜ.u) 
+        J.v[i, j, 1] = ℑyᶜᶠᶜ(i, j, 1, grid, Jᶜᶜᶜ.v) 
     end
 end
 
 @inline function net_downwelling_radiation(i, j, grid, time, Qs, Qℓ, radiation)
     α = stateindex(radiation.reflection.ocean, i, j, 1, time)
-    return @inbounds - (1 - α) * Qs - Qℓ
+    ϵ = stateindex(radiation.emission.ocean, i, j, 1, time)
+    
+    return @inbounds - (1 - α) * Qs - ϵ * Qℓ
 end
 
 @inline function net_upwelling_radiation(i, j, grid, time, radiation, Tₒ)

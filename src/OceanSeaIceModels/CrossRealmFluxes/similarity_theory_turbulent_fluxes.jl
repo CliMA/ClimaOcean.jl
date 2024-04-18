@@ -92,6 +92,13 @@ function Base.show(io::IO, fluxes::SimilarityTheoryTurbulentFluxes)
           "└── thermodynamics_parameters: ",    summary(fluxes.thermodynamics_parameters))
 end
 
+function default_roughness_lengths(FT=Float64)
+    momentum    = 1e-4 #GravityWaveRoughnessLength(FT)
+    temperature = convert(FT, 1e-4)
+    water_vapor = nothing
+    return SimilarityScales(momentum, temperature, water_vapor)
+end
+
 const PATP = PrescribedAtmosphereThermodynamicsParameters
 
 function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
@@ -207,15 +214,11 @@ end
     return (1 - s) / (1 - s + α * s)
 end
 
-
 @inline update_turbulent_flux_fields!(::Nothing, args...) = nothing
 
 @inline function update_turbulent_flux_fields!(fields, i, j, grid, fluxes)
         return nothing
 end
-
-@inline compute_similarity_theory_fluxes(turbulent_fluxes, atmos_state, surface_state) =
-    compute_similarity_theory_fluxes(turbulent_fluxes.roughness_lengths, turbulent_fluxes, atmos_state, surface_state)
 
 #####
 ##### Struct that represents a 3-tuple of momentum, heat, and water vapor
@@ -242,11 +245,8 @@ const NothingVaporRoughnessLength = SimilarityScales{<:Number, <:Number, Nothing
                                                   atmos_state,
                                                   thermodynamics_parameters,
                                                   gravitational_acceleration,
-                                                  von_karman_constant)
-
-                                                  # turbulent_fluxes,
-                                                  # atmos_state,
-                                                  # surface_state)
+                                                  von_karman_constant,
+                                                  turbulent_fluxes)
                                                   
     FT = Float64
     similarity_functions = BusingerParams{FT}(Pr_0 = convert(FT, 0.74),
@@ -422,6 +422,7 @@ end
     cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
     ℰv = AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
 
+    
     fluxes = (;
         water_vapor   = - ρₐ * u★ * q★,
         sensible_heat = - ρₐ * cₚ * u★ * θ★,
@@ -518,12 +519,3 @@ end
 
     return α * u★^2 / g + β * ν / u★
 end
-
-function default_roughness_lengths(FT=Float64)
-    momentum    = 1e-4 #GravityWaveRoughnessLength(FT)
-    temperature = convert(FT, 1e-4)
-    water_vapor = convert(FT, 1e-4)
-    return SimilarityScales(momentum, temperature, water_vapor)
-end
-
-
