@@ -72,10 +72,10 @@ function ocean_simulation(grid; Δt = 5minutes,
     u_immersed_bc = ImmersedBoundaryCondition(bottom=u_immersed_drag)
     v_immersed_bc = ImmersedBoundaryCondition(bottom=v_immersed_drag)
 
-    ocean_boundary_conditions = (u = FieldBoundaryConditions(top=FluxBoundaryCondition(Jᵘ), bottom = u_bottom_drag, immersed = u_immersed_bc),
-                                 v = FieldBoundaryConditions(top=FluxBoundaryCondition(Jᵛ), bottom = v_bottom_drag, immersed = v_immersed_bc),
-                                 T = FieldBoundaryConditions(top=FluxBoundaryCondition(Jᵀ)),
-                                 S = FieldBoundaryConditions(top=FluxBoundaryCondition(Jˢ)))
+    ocean_boundary_conditions = (u = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵘ), bottom = u_bottom_drag, immersed = u_immersed_bc),
+                                 v = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵛ), bottom = v_bottom_drag, immersed = v_immersed_bc),
+                                 T = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵀ)),
+                                 S = FieldBoundaryConditions(top = FluxBoundaryCondition(Jˢ)))
 
     # Use the TEOS10 equation of state
     teos10 = TEOS10EquationOfState(; reference_density)

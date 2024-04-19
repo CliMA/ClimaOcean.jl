@@ -15,7 +15,7 @@ using Printf
 using CUDA
 using CairoMakie
 using SixelTerm
-# CUDA.device!(2)
+CUDA.device!(1)
 
 include("correct_oceananigans.jl")
 
@@ -52,7 +52,7 @@ grid = load_balanced_regional_grid(arch;
 #####                             
 
 free_surface = SplitExplicitFreeSurface(; grid, cfl=0.7, fixed_Δt = 20minutes)
-vertical_diffusivity  = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), κ = 5e-5, ν = 5e-4)
+vertical_diffusivity = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), κ = 5e-5, ν = 5e-3)
 
 closure = (RiBasedVerticalDiffusivity(), vertical_diffusivity)
 
@@ -60,9 +60,7 @@ ocean = ocean_simulation(grid; free_surface, closure)
 model = ocean.model
 
 # Initializing the model
-set!(model, 
-     T = ECCO2Metadata(:temperature), 
-     S = ECCO2Metadata(:salinity))
+set!(model, "checkpoint_iteration497897.jld2")
 
 #####
 ##### The atmosphere
@@ -82,19 +80,21 @@ function progress(sim)
     u, v, w = sim.model.velocities  
     T, S = sim.model.tracers
 
+    Tmax = maximum(abs, T)
+    Tmin = minimum(T)
+    umax = maximum(abs, u), maximum(abs, v), maximum(abs, w)
     step_time = 1e-9 * (time_ns() - wall_time[1])
 
     @info @sprintf("Time: %s, Iteration %d, Δt %s, max(vel): (%.2e, %.2e, %.2e), max(trac): %.2f, %.2f, wtime: %s \n",
                    prettytime(sim.model.clock.time),
                    sim.model.clock.iteration,
                    prettytime(sim.Δt),
-                   maximum(abs, u), maximum(abs, v), maximum(abs, w),
-                   maximum(abs, T), maximum(abs, S), prettytime(step_time))
+                   umax..., Tmax, Tmin, prettytime(step_time))
 
      wall_time[1] = time_ns()
 end
 
-ocean.callbacks[:progress] = Callback(progress, IterationInterval(10))
+ocean.callbacks[:progress] = Callback(progress, IterationInterval(100))
 
 ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, model.velocities),
                                                   schedule = TimeInterval(30days),
@@ -129,6 +129,8 @@ ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 # Let's reset the maximum number of iterations
 coupled_model.ocean.stop_time = 7200days
 coupled_simulation.stop_time = 7200days
+coupled_model.ocean.stop_iteration = Inf
+coupled_simulation.stop_iteration = Inf
 
 try 
     run!(coupled_simulation)

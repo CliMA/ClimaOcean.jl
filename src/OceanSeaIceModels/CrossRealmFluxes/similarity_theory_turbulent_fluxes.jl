@@ -354,7 +354,6 @@ end
     return b★
 end
 
-
 @inline function state_differences(ℂ, 𝒰₁, 𝒰₀)
     z₁ = 𝒰₁.z
     z₀ = 𝒰₀.z
