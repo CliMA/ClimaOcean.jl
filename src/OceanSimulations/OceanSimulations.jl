@@ -46,6 +46,12 @@ default_tracer_advection() = TracerAdvection(WENO(; order = 7),
 @inline u_immersed_drag_bc(i, j, k, grid, clock, Φ, μ) = @inbounds - μ * Φ.u[i, j, k] * speedᶠᶜᶜ(i, j, k, grid, Φ)
 @inline v_immersed_drag_bc(i, j, k, grid, clock, Φ, μ) = @inbounds - μ * Φ.v[i, j, k] * speedᶜᶠᶜ(i, j, k, grid, Φ)
 
+default_boundary_conditions(grid; Jᵘ, Jᵛ, Jᵀ, Jˢ, u_bottom_drag, v_bottom_drag, u_immersed_bc, v_immersed_bc) = 
+                            (u = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵘ), bottom = u_bottom_drag, immersed = u_immersed_bc),
+                             v = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵛ), bottom = v_bottom_drag, immersed = v_immersed_bc),
+                             T = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵀ)),
+                             S = FieldBoundaryConditions(top = FluxBoundaryCondition(Jˢ)))
+
 # TODO: Specify the grid to a grid on the sphere; otherwise we can provide a different
 # function that requires latitude and longitude etc for computing coriolis=FPlane...
 function ocean_simulation(grid; Δt = 5minutes,
@@ -72,10 +78,11 @@ function ocean_simulation(grid; Δt = 5minutes,
     u_immersed_bc = ImmersedBoundaryCondition(bottom=u_immersed_drag)
     v_immersed_bc = ImmersedBoundaryCondition(bottom=v_immersed_drag)
 
-    ocean_boundary_conditions = (u = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵘ), bottom = u_bottom_drag, immersed = u_immersed_bc),
-                                 v = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵛ), bottom = v_bottom_drag, immersed = v_immersed_bc),
-                                 T = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵀ)),
-                                 S = FieldBoundaryConditions(top = FluxBoundaryCondition(Jˢ)))
+    ocean_boundary_conditions = default_boundary_conditions(grid; Jᵘ, Jᵛ, Jᵀ, Jˢ, 
+                                                                  u_bottom_drag, 
+                                                                  v_bottom_drag, 
+                                                                  u_immersed_bc, 
+                                                                  v_immersed_bc)
 
     # Use the TEOS10 equation of state
     teos10 = TEOS10EquationOfState(; reference_density)
