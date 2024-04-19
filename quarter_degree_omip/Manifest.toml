@@ -1114,8 +1114,8 @@ uuid = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 version = "1.6.3"
 
 [[deps.OrthogonalSphericalShellGrids]]
-deps = ["Documenter", "DocumenterTools", "JLD2", "KernelAbstractions", "Oceananigans", "OffsetArrays"]
-git-tree-sha1 = "2a6ca475836fcd46d986e34bf490da394a44bfb9"
+deps = ["CUDA", "Documenter", "DocumenterTools", "FFMPEG", "JLD2", "JSON3", "KernelAbstractions", "Oceananigans", "OffsetArrays"]
+git-tree-sha1 = "60438101099daae28a1bba9135ac0b56d7493243"
 repo-rev = "main"
 repo-url = "https://github.com/simone-silvestri/OrthogonalSphericalShellGrids.jl"
 uuid = "c2be9673-fb75-4747-82dc-aa2bb9f4aed0"
