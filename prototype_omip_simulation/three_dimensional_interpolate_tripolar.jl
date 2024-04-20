@@ -20,7 +20,8 @@ using Oceananigans.Fields: regrid!, interpolate!
 using Oceananigans.Grids: cpu_face_constructor_x, 
                           cpu_face_constructor_y, 
                           cpu_face_constructor_z,
-                          topology
+                          topology,
+                          λnode
 
 using OrthogonalSphericalShellGrids: TRG
 import OrthogonalSphericalShellGrids: sign
@@ -46,7 +47,7 @@ import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: convert_to_latlong, conver
      
     θ = λ₂ - λ₁
     
-    return uₒ * cos(θ) + vₒ * sin(θ), uₒ * sin(θ) + vₒ * cos(θ)
+    return uₒ * cosd(θ) + vₒ * sind(θ), uₒ * sind(θ) + vₒ * cosd(θ)
 end
 
 @inline function convert_to_native_grid(i, j, grid::TRG, uₒ, vₒ) 
@@ -55,5 +56,5 @@ end
      
     θ = λ₂ - λ₁
     
-    return uₒ * cos(θ) + vₒ * sin(θ), uₒ * sin(θ) + vₒ * cos(θ)
+    return uₒ * cosd(θ) + vₒ * sind(θ), uₒ * sind(θ) + vₒ * cosd(θ)
 end

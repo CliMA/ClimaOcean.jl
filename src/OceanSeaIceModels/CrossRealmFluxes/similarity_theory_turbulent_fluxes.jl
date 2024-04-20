@@ -421,11 +421,10 @@ end
     cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
     ℰv = AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
 
-    
     fluxes = (;
-        water_vapor   = - ρₐ * u★ * q★,
         sensible_heat = - ρₐ * cₚ * u★ * θ★,
         latent_heat   = - ρₐ * u★ * q★ * ℰv,
+        water_vapor   = - ρₐ * u★ * q★,
         x_momentum    = + ρₐ * τx,
         y_momentum    = + ρₐ * τy,
     )
