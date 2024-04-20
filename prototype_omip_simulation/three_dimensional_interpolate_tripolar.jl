@@ -9,10 +9,6 @@ using Oceananigans.Utils: launch!
 using Oceananigans.Fields: instantiated_location, interior, CenterField
 using Oceananigans.Architectures: architecture, device, GPU, child_architecture
 
-using KernelAbstractions: @kernel, @index
-using KernelAbstractions.Extras.LoopInfo: @unroll
-using JLD2
-
 # Implementation of 3-dimensional regridding
 # TODO: move all the following to Oceananigans! 
 
