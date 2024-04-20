@@ -2,7 +2,7 @@
 
 julia_version = "1.10.2"
 manifest_format = "2.0"
-project_hash = "d412c6cb49202ad61a9e28c0d7d4a3658d51067c"
+project_hash = "2b8dc0157e67ed69c1dbe71ccf1e8d7dd3d38b48"
 
 [[deps.ANSIColoredPrinters]]
 git-tree-sha1 = "574baf8110975760d391c710b6341da1afa48d8c"
@@ -193,9 +193,7 @@ weakdeps = ["SparseArrays"]
 
 [[deps.ClimaOcean]]
 deps = ["Adapt", "CUDA", "ClimaSeaIce", "CubicSplines", "DataDeps", "Dates", "Downloads", "FFMPEG", "ImageMorphology", "JLD2", "KernelAbstractions", "NCDatasets", "Oceananigans", "Printf", "SeawaterPolynomials", "StaticArrays", "Statistics", "SurfaceFluxes", "Thermodynamics"]
-git-tree-sha1 = "a28b7f70177dab671632e2c26ecc462fa8ea4fa9"
-repo-rev = "ss/omip-simulation"
-repo-url = ".."
+path = ".."
 uuid = "0376089a-ecfe-4b0e-a64f-9c555d74d754"
 version = "0.1.0"
 
@@ -696,15 +694,9 @@ version = "0.21.4"
 
 [[deps.JSON3]]
 deps = ["Dates", "Mmap", "Parsers", "PrecompileTools", "StructTypes", "UUIDs"]
-git-tree-sha1 = "eb3edce0ed4fa32f75a0a11217433c31d56bd48b"
+git-tree-sha1 = "95220473901735a0f4df9d1ca5b171b568b2daa3"
 uuid = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
-version = "1.14.0"
-
-    [deps.JSON3.extensions]
-    JSON3ArrowExt = ["ArrowTypes"]
-
-    [deps.JSON3.weakdeps]
-    ArrowTypes = "31f734f8-188a-4ce0-8406-c8a06bd891cd"
+version = "1.13.2"
 
 [[deps.JuliaNVTXCallbacks_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -1115,7 +1107,7 @@ version = "1.6.3"
 
 [[deps.OrthogonalSphericalShellGrids]]
 deps = ["CUDA", "Documenter", "DocumenterTools", "FFMPEG", "JLD2", "JSON3", "KernelAbstractions", "Oceananigans", "OffsetArrays"]
-git-tree-sha1 = "ec6d87313f42d0c17e63f2dfd91b482f430ac57f"
+git-tree-sha1 = "92f20b520de33f41a53efe943c5143924bf768b0"
 repo-rev = "main"
 repo-url = "https://github.com/simone-silvestri/OrthogonalSphericalShellGrids.jl"
 uuid = "c2be9673-fb75-4747-82dc-aa2bb9f4aed0"

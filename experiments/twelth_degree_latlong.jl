@@ -51,6 +51,12 @@ grid = load_balanced_regional_grid(arch;
 ##### The Ocean component
 #####                             
 
+const Lz = grid.Lz
+const  h = Nz / 4.5
+
+@inline exponential_profile(z; Lz, h) = (exp(z / h) - exp( - Lz / h)) / (1 - exp( - Lz / h))
+@inline νz(x, y, z, t) = 1e-4 + (5e-3 - 1e-4) * exponential_profile(z; Lz, h)
+
 free_surface = SplitExplicitFreeSurface(; grid, cfl=0.7, fixed_Δt = 20minutes)
 vertical_diffusivity = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), κ = 5e-5, ν = 5e-3)
 
@@ -60,7 +66,9 @@ ocean = ocean_simulation(grid; free_surface, closure)
 model = ocean.model
 
 # Initializing the model
-set!(model, "checkpoint_iteration497897.jld2")
+set!(model,
+     T = ECCOMetadata(:temperature),
+     S = ECCOMetadata(:salinity))
 
 #####
 ##### The atmosphere

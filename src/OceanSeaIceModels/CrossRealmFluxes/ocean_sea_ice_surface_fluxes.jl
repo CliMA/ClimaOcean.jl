@@ -231,6 +231,10 @@ end
 const c = Center()
 const f = Face()
 
+# Fallback
+@inline convert_to_latlong(i, j, grid, uₒ, vₒ) = uₒ, vₒ
+@inline convert_to_native_grid(i, j, grid, uₒ, vₒ) = uₒ, vₒ
+
 # Fallback!
 limit_fluxes_over_sea_ice!(args...) = nothing
 
@@ -263,6 +267,8 @@ limit_fluxes_over_sea_ice!(args...) = nothing
         Sₒ = ocean_state.S[i, j, 1]
     end
 
+    uₒ, vₒ = convert_to_latlong(i, j, grid, uₒ, vₒ)
+        
     @inbounds begin
         # Atmos state, which is _assumed_ to exist at location = (c, c, nothing)
         # The third index "k" should not matter but we put the correct index to get
@@ -335,6 +341,9 @@ limit_fluxes_over_sea_ice!(args...) = nothing
 
     kᴺ = size(grid, 3) # index of the top ocean cell
 
+    τˣ, τʸ = convert_to_native_grid(i, j, grid, turbulent_fluxes.x_momentum, 
+                                                turbulent_fluxes.y_momentum)
+
     inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
 
     @inbounds begin
@@ -342,8 +351,8 @@ limit_fluxes_over_sea_ice!(args...) = nothing
         Qv[i, j, 1] = ifelse(inactive, 0, turbulent_fluxes.latent_heat)
         Qc[i, j, 1] = ifelse(inactive, 0, turbulent_fluxes.sensible_heat)
         Fv[i, j, 1] = ifelse(inactive, 0, turbulent_fluxes.water_vapor)
-        τx[i, j, 1] = ifelse(inactive, 0, turbulent_fluxes.x_momentum)
-        τy[i, j, 1] = ifelse(inactive, 0, turbulent_fluxes.y_momentum)
+        τx[i, j, 1] = ifelse(inactive, 0, τˣ)
+        τy[i, j, 1] = ifelse(inactive, 0, τʸ)
     end
 end
 
@@ -459,39 +468,6 @@ end
 #####
 ##### Utility for interpolating tuples of fields
 #####
-
-# import Oceananigans.Fields: interpolate
-# using Oceananigans: OffsetArray
-# using Oceananigans.Grids: AbstractGrid
-
-# using Oceananigans.OutputReaders: fractional_indices, interpolator, interpolating_time_indices, memory_index, _interpolate
-
-# @inline function interpolate(at_node, at_time_index::Time, data::OffsetArray,
-#                              from_loc, from_grid::AbstractGrid, times, backend, time_indexing)
-
-#     at_time = at_time_index.time
-
-#     # Build space interpolators
-#     ii, jj, kk = fractional_indices(at_node, from_grid, from_loc...)
-
-#     ix = interpolator(ii)
-#     iy = interpolator(jj)
-#     iz = interpolator(kk)
-
-#     ñ, n₁, n₂ = interpolating_time_indices(time_indexing, times, at_time)
-
-#     Nt = length(times)
-#     m₁ = memory_index(backend, time_indexing, Nt, n₁)
-#     m₂ = memory_index(backend, time_indexing, Nt, n₂)
-    
-#     @show m₁, m₂, ñ, at_time, times
-#     ψ₁ = _interpolate(data, ix, iy, iz, m₁)
-#     ψ₂ = _interpolate(data, ix, iy, iz, m₂)
-#     ψ̃ = ψ₂ * ñ + ψ₁ * (1 - ñ)
-
-#     # Don't interpolate if n₁ == n₂
-#     return ifelse(n₁ == n₂, ψ₁, ψ̃)
-# end
 
 # Note: assumes loc = (c, c, nothing) (and the third location should
 # not matter.)
