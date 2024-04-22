@@ -19,15 +19,12 @@ using Oceananigans.Grids: cpu_face_constructor_x,
                           topology,
                           λnode
 
-using OrthogonalSphericalShellGrids: TRG
-import OrthogonalSphericalShellGrids: sign
+using OrthogonalSphericalShellGrids: TRG, WRG, WarpedLatitude
 
-sign(LX, LY) = 1
+const TField = Field{<:Any, <:Any, <:Any, <:Any, <:TRG}
+const WField = Field{<:Any, <:Any, <:Any, <:Any, <:WRG}
 
-TField = Union{<:Field{<:Any, <:Any, <:Any, <:Any, <:TripolarGrid}, 
-               <:Field{<:Any, <:Any, <:Any, <:Any, <:ImmersedBoundaryGrid{<:Any, <:Any, <:Any, <:Any, <:TripolarGrid}}}
-
-function three_dimensional_interpolate!(a::TField, b)
+function three_dimensional_interpolate!(a::Union{<:TField, <:WField}, b)
 
     interpolate!(a, b)
 
@@ -35,6 +32,25 @@ function three_dimensional_interpolate!(a::TField, b)
 end
 
 import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: convert_to_latlong, convert_to_native_grid
+
+# Here we assume that the tripolar grid is locally orthogonal
+@inline function convert_to_latlong(i, j, grid::WRG, uₒ, vₒ)
+    λ₁ = λnode(i, j,   1, grid, Center(), Face(), Center())
+    λ₂ = λnode(i, j+1, 1, grid, Center(), Face(), Center())
+     
+    θ = λ₂ - λ₁
+    
+    return uₒ * cosd(θ) + vₒ * sind(θ), uₒ * sind(θ) + vₒ * cosd(θ)
+end
+
+@inline function convert_to_native_grid(i, j, grid::WRG, uₒ, vₒ) 
+    λ₁ = λnode(i, j,   1, grid, Center(), Face(), Center())
+    λ₂ = λnode(i, j+1, 1, grid, Center(), Face(), Center())
+     
+    θ = λ₂ - λ₁
+    
+    return uₒ * cosd(θ) + vₒ * sind(θ), uₒ * sind(θ) + vₒ * cosd(θ)
+end
 
 # Here we assume that the tripolar grid is locally orthogonal
 @inline function convert_to_latlong(i, j, grid::TRG, uₒ, vₒ)
