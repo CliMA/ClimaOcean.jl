@@ -19,7 +19,7 @@ using Oceananigans.Grids: cpu_face_constructor_x,
                           topology,
                           λnode
 
-using OrthogonalSphericalShellGrids: TRG, WRG, WarpedLatitude
+using OrthogonalSphericalShellGrids: TRG, WRG
 
 const TField = Field{<:Any, <:Any, <:Any, <:Any, <:TRG}
 const WField = Field{<:Any, <:Any, <:Any, <:Any, <:WRG}
