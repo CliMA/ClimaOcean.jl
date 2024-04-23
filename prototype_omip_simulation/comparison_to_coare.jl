@@ -7,51 +7,6 @@ using ClimaOcean.ECCO2
 using ClimaOcean.OceanSimulations
 using Oceananigans.Units
 using ClimaOcean.JRA55: JRA55_prescribed_atmosphere
-using KernelAbstractions: @index, @kernel
-using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
-
-import Oceananigans.OutputReaders: interpolate!, FieldTimeSeries
-using Oceananigans.Grids: architecture, location, node, with_halo
-using Oceananigans.BoundaryConditions
-using Oceananigans.Utils: launch!, Time
-using Oceananigans.Fields: interpolate, instantiate
-
-@kernel function _interpolate_field_time_series_new!(target_fts, target_grid, target_location, target_times,
-                                                     source_fts, source_grid, source_location)
-
-    # 4D index, cool!
-    i, j, k, n = @index(Global, NTuple)
-
-    target_node = node(i, j, k, target_grid, target_location...)
-    at_time     = @inbounds target_times[n]
-
-    @inbounds target_fts[i, j, k, n] = interpolate(target_node, at_time,
-                                                   source_fts, source_location, source_grid)
-end
-
-function interpolate!(target_fts::FieldTimeSeries, source_fts::FieldTimeSeries)
-
-    target_grid = target_fts.grid
-    source_grid = source_fts.grid
-
-    @assert architecture(target_grid) == architecture(source_grid)
-    arch = architecture(target_grid)
-
-    # Make locations
-    source_location = map(instantiate, location(source_fts))
-    target_location = map(instantiate, location(target_fts))
-
-    target_times = target_fts.times
-
-    launch!(arch, target_grid, size(target_fts),
-            _interpolate_field_time_series_new!,
-            target_fts.data, target_grid, target_location, Time.(target_times),
-            source_fts, source_grid, source_location)
-
-    fill_halo_regions!(target_fts)
-
-    return nothing
-end
 
 # Upload ECCO2 fields
 T = ECCO2.ecco2_field(:temperature)

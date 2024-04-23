@@ -1,3 +1,5 @@
+using Oceananigans.Grids: architecture, location, node, with_halo
+
 function ecco2_immersed_grid()
     mask = ecco2_center_mask()
     grid = with_halo((3, 3, 3), mask.grid)
