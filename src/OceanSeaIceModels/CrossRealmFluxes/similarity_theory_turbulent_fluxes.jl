@@ -93,9 +93,9 @@ function Base.show(io::IO, fluxes::SimilarityTheoryTurbulentFluxes)
 end
 
 function default_roughness_lengths(FT=Float64)
-    momentum    = 1e-4 #GravityWaveRoughnessLength(FT)
+    momentum    = convert(FT, 1e-4) #GravityWaveRoughnessLength(FT)
     temperature = convert(FT, 1e-4)
-    water_vapor = nothing
+    water_vapor = convert(FT, 1e-4)
     return SimilarityScales(momentum, temperature, water_vapor)
 end
 

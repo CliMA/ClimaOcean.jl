@@ -174,6 +174,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
 
     Qs = atmosphere.downwelling_radiation.shortwave
     Ql = atmosphere.downwelling_radiation.longwave
+
     downwelling_radiation = (shortwave=Qs.data, longwave=Ql.data)
 
     kernel_size = (size(grid, 1) + 2, size(grid, 2) + 2)
@@ -227,9 +228,6 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
 
     return nothing
 end
-
-const c = Center()
-const f = Face()
 
 # Fallback
 @inline convert_to_latlong(i, j, grid, uₒ, vₒ) = uₒ, vₒ
@@ -450,6 +448,10 @@ end
     end
 end
 
+# Fallback for a `Nothing` radiation scheme
+@inline   net_upwelling_radiation(i, j, grid, time, ::Nothing, Tₒ)     = zero(0)
+@inline net_downwelling_radiation(i, j, grid, time, Qs, Qℓ, ::Nothing) = zero(0)
+
 @inline function net_downwelling_radiation(i, j, grid, time, Qs, Qℓ, radiation)
     α = stateindex(radiation.reflection.ocean, i, j, 1, time)
     ϵ = stateindex(radiation.emission.ocean, i, j, 1, time)
@@ -464,7 +466,7 @@ end
     # Note: positive implies _upward_ heat flux, and therefore cooling.
     return ϵ * σ * Tₒ^4
 end
-
+    
 #####
 ##### Utility for interpolating tuples of fields
 #####

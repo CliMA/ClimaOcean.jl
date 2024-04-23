@@ -138,7 +138,7 @@ wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 90, max_change = 1.1)
 ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(1))
 
 stop_time = 20days
-\\
+
 coupled_simulation = Simulation(coupled_model; Δt=1, stop_time)
 
 run!(coupled_simulation)
