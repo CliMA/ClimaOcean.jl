@@ -87,7 +87,7 @@ const ECCO2_z = [
       0.0,
 ]
 
-filenames_19920102 = Dict(
+ecco2_file_names = Dict(
     :temperature           => "THETA.1440x720x50.19920102.nc",
     :salinity              => "SALT.1440x720x50.19920102.nc",
     :sea_ice_thickness     => "SIheff.1440x720.19920102.nc",
@@ -96,13 +96,22 @@ filenames_19920102 = Dict(
     :v_velocity            => "VVEL.1440x720.19920102.nc",
 )
 
-filenames_19921001 = Dict(
-    :temperature           => "THETA.1440x720x50.19921001.nc",
-    :salinity              => "SALT.1440x720x50.19921001.nc",
-    :sea_ice_thickness     => "SIheff.1440x720.19921001.nc",
-    :sea_ice_area_fraction => "SIarea.1440x720.19921001.nc",
-    :u_velocity            => "UVEL.1440x720.19921001.nc",
-    :v_velocity            => "VVEL.1440x720.19921001.nc",
+variable_is_three_dimensional = Dict(
+    :temperature             => true,
+    :salinity                => true,
+    :u_velocity              => true,
+    :v_velocity              => true,
+    :sea_ice_thickness       => false,
+    :sea_ice_area_fraction   => false,
+)
+
+ecco2_short_names = Dict(
+    :temperature           => "THETA",
+    :salinity              => "SALT",
+    :u_velocity            => "UVEL",
+    :v_velocity            => "VVEL",
+    :sea_ice_thickness     => "SIheff",
+    :sea_ice_area_fraction => "SIarea"
 )
 
 ecco2_location = Dict(
@@ -119,7 +128,7 @@ ecco2_depth_names = Dict(
     :salinity      => "DEPTH_T",
 )
 
-urls_19920102 = Dict(
+ecco2_urls = Dict(
     :temperature           => "https://www.dropbox.com/scl/fi/01h96yo2fhnnvt2zkmu0d/THETA.1440x720x50.19920102.nc?rlkey=ycso2v09gc6v2qb5j0lff0tjs",
     :salinity              => "https://www.dropbox.com/scl/fi/t068we10j5skphd461zg8/SALT.1440x720x50.19920102.nc?rlkey=r5each0ytdtzh5icedvzpe7bw",
     :sea_ice_thickness     => "https://www.dropbox.com/scl/fi/x0v9gjrfebwsef4tv1dvn/SIheff.1440x720.19920102.nc?rlkey=2uel3jtzbsplr28ejcnx3u6am",
@@ -128,25 +137,6 @@ urls_19920102 = Dict(
     :v_velocity            => "https://www.dropbox.com/scl/fi/buic35gssyeyfqohenkeo/VVEL.1440x720x50.19920102.nc?rlkey=fau48w4t5ruop4s6gm8t7z0a0",
 )
 
-urls_19921001 = Dict(
-    :temperature           => "https://www.dropbox.com/scl/fi/169f3981460uhk9h69k0f/THETA.1440x720x50.19921001.nc?rlkey=mgal3xt0qy2c59y395ybio11v",
-    :salinity              => "https://www.dropbox.com/scl/fi/f9zfm34vqz732jrrhjrg3/SALT.1440x720x50.19921001.nc?rlkey=y5dv0s41gb6f9guvu0iorw28p",
-    :sea_ice_thickness     => "https://www.dropbox.com/scl/fi/mtmziurepom8kpjn82d07/SIheff.1440x720.19921001.nc?rlkey=9uhuxg2n9iw6894afj4t53drv",
-    :sea_ice_area_fraction => "https://www.dropbox.com/scl/fi/ntflhyrmsnit9vco402co/SIarea.1440x720.19921001.nc?rlkey=eakzc788btql1q6ndj9l8cr2q",
-    #:u_velocity            => "https://www.dropbox.com/scl/fi/e6s9c013r2ddift4f8ugi/UVEL.1440x720x50.19921001.nc?rlkey=fpd7mv1zv3fkmyg8w11b94sbp&dl=0",
-    :u_velocity            => "https://www.dropbox.com/scl/fi/e6s9c013r2ddift4f8ugi/UVEL.1440x720x50.19921001.nc?rlkey=fpd7mv1zv3fkmyg8w11b94sbp&dl=0",
-    :v_velocity            => "https://www.dropbox.com/scl/fi/nxuohvhvdu0ig552osf1d/VVEL.1440x720x50.19921001.nc?rlkey=vz4ttp3myxhertdxvt1lyjp1d",
-)
-
-filenames = Dict(
-    "1992-01-02" => filenames_19920102,
-    "1992-10-01" => filenames_19921001,
-)
-
-urls = Dict(
-    "1992-01-02" => urls_19920102,
-    "1992-10-01" => urls_19921001,
-)
 
 shortnames = Dict(
     :temperature           => "THETA",
@@ -159,6 +149,33 @@ shortnames = Dict(
 
 surface_variable(variable_name) = variable_name == :sea_ice_thickness
 
+"""
+    construct_vertical_interfaces(ds, depth_name)
+
+Constructs vertical interfaces for a given dataset `ds` and depth variable `depth_name`.
+
+# Arguments
+- `ds`: The dataset containing the depth variable.
+- `depth_name`: The name of the depth variable in the dataset.
+
+# Returns
+- `zf`: An array of interface depths.
+"""
+function construct_vertical_interfaces(ds, depth_name)
+    # Construct vertical coordinate
+    depth = ds[depth_name][:]
+    zc = -reverse(depth)
+
+    # Interface depths from cell center depths
+    zf = (zc[1:end-1] .+ zc[2:end]) ./ 2
+    push!(zf, 0)
+    
+    Δz = zc[2] - zc[1]
+    pushfirst!(zf, zf[1] - Δz)
+
+    return zf
+end
+
 function empty_ecco2_field(data::ECCO2Metadata;
                            architecture = CPU(), 
                            horizontal_halo = (1, 1))
@@ -167,13 +184,9 @@ function empty_ecco2_field(data::ECCO2Metadata;
 
     location = ecco2_location[variable_name]
 
-    grid = LatitudeLongitudeGrid(architecture,
-                                 size = (ECCO2_Nx, ECCO2_Ny, ECCO2_Nz),
-                                 longitude = (0, 360),
-                                 latitude = (-90, 90),
-                                 z = ECCO2_z,
-                                 halo = (1, 1, 1),
-                                 topology = (Periodic, Bounded, Bounded))
+    longitude = (0, 360)
+    latitude = (-90, 90)
+    TX, TY = (Periodic, Bounded)
 
     filename = ecco2_file_names[variable_name]
     
