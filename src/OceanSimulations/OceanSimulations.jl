@@ -20,7 +20,7 @@ using Oceananigans.Operators
 include("load_balanced_regional_grid.jl")
 
 # Some defaults
-default_free_surface(grid) = SplitExplicitFreeSurface(; cfl=0.7, grid)
+default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
 
 function default_ocean_closure()
     mixing_length = MixingLength(Cᵇ=0.01)
