@@ -115,10 +115,12 @@ ua = Array(interior(atmosphere.velocities.u[1], :, :, 1))
 va = Array(interior(atmosphere.velocities.v[1], :, :, 1))
 Ta = Array(interior(atmosphere.tracers.T[1], :, :, 1))
 qa = Array(interior(atmosphere.tracers.q[1], :, :, 1))
+pa = Array(interior(atmosphere.pressure[1], :, :, 1))
 write(matfile, "ua", ua)
 write(matfile, "va", va)
 write(matfile, "Ta", Ta)
 write(matfile, "qa", qa)
+write(matfile, "pa", pa)
 
 # Turbulent fluxes
 Ql = Array(interior(coupled_model.fluxes.turbulent.fields.latent_heat,   :, :, 1))
@@ -131,3 +133,5 @@ write(matfile, "Qs", Qs)
 write(matfile, "Mv", Mv)
 write(matfile, "tx", tx)
 write(matfile, "ty", ty)
+
+close(matfile)
