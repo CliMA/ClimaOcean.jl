@@ -62,7 +62,8 @@ function ocean_simulation(grid; Δt = 5minutes,
                           gravitational_acceleration = g_Earth,
                           drag_coefficient = 0.003,
                           momentum_advection = default_momentum_advection(),
-                          tracer_advection = default_tracer_advection())
+                          tracer_advection = default_tracer_advection(),
+                          verbose = false)
 
     # Set up boundary conditions using Field
     top_zonal_momentum_flux      = Jᵘ = Field{Face, Center, Nothing}(grid)
@@ -113,7 +114,7 @@ function ocean_simulation(grid; Δt = 5minutes,
                                               coriolis,
                                               boundary_conditions = ocean_boundary_conditions)
 
-    ocean = Simulation(ocean_model; Δt, verbose=false)
+    ocean = Simulation(ocean_model; Δt, verbose)
 
     return ocean
 end
