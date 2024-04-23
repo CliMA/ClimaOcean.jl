@@ -17,7 +17,7 @@ using Oceananigans.Grids: cpu_face_constructor_x,
                           cpu_face_constructor_y, 
                           cpu_face_constructor_z,
                           topology,
-                          λnode
+                          λnode, φnode
 
 using OrthogonalSphericalShellGrids: TRG, WRG
 
@@ -34,39 +34,20 @@ end
 import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: convert_to_latlong, convert_to_native_grid
 
 # Here we assume that the tripolar grid is locally orthogonal
-@inline function convert_to_latlong(i, j, grid::WRG, uₒ, vₒ)
-    λ₁ = λnode(i, j,   1, grid, Center(), Face(), Center())
-    λ₂ = λnode(i, j+1, 1, grid, Center(), Face(), Center())
-     
-    θ = λ₂ - λ₁
-    
-    return uₒ * cosd(θ) + vₒ * sind(θ), uₒ * sind(θ) + vₒ * cosd(θ)
-end
-
-@inline function convert_to_native_grid(i, j, grid::WRG, uₒ, vₒ) 
-    λ₁ = λnode(i, j,   1, grid, Center(), Face(), Center())
-    λ₂ = λnode(i, j+1, 1, grid, Center(), Face(), Center())
-     
-    θ = λ₂ - λ₁
-    
-    return uₒ * cosd(θ) + vₒ * sind(θ), uₒ * sind(θ) + vₒ * cosd(θ)
-end
-
-# Here we assume that the tripolar grid is locally orthogonal
 @inline function convert_to_latlong(i, j, grid::TRG, uₒ, vₒ)
-    λ₁ = λnode(i, j,   1, grid, Center(), Face(), Center())
-    λ₂ = λnode(i, j+1, 1, grid, Center(), Face(), Center())
+    φ₁ = φnode(i,   j, 1, grid, Face(), Center(), Center())
+    φ₂ = φnode(i+1, j, 1, grid, Face(), Center(), Center())
      
-    θ = λ₂ - λ₁
+    θ = φ₂ - φ₁
     
     return uₒ * cosd(θ) + vₒ * sind(θ), uₒ * sind(θ) + vₒ * cosd(θ)
 end
 
 @inline function convert_to_native_grid(i, j, grid::TRG, uₒ, vₒ) 
-    λ₁ = λnode(i, j,   1, grid, Center(), Face(), Center())
-    λ₂ = λnode(i, j+1, 1, grid, Center(), Face(), Center())
+    φ₁ = φnode(i, j,   1, grid, Face(), Center(), Center())
+    φ₂ = φnode(i, j+1, 1, grid, Face(), Center(), Center())
      
-    θ = λ₂ - λ₁
+    θ = φ₂ - φ₁
     
     return uₒ * cosd(θ) + vₒ * sind(θ), uₒ * sind(θ) + vₒ * cosd(θ)
 end
