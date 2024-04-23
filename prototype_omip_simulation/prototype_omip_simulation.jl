@@ -18,6 +18,7 @@ using ClimaOcean.JRA55
 using ClimaOcean.JRA55: JRA55NetCDFBackend, JRA55_prescribed_atmosphere
 using ClimaOcean.Bathymetry
 
+include("correct_oceananigans.jl")
 include("three_dimensional_interpolate_tripolar.jl")
 
 #####
@@ -98,3 +99,58 @@ function progress(sim)
 
      wall_time[1] = time_ns()
 end
+
+ocean.callbacks[:progress] = Callback(progress, IterationInterval(1))
+
+# fluxes = (u = model.velocities.u.boundary_conditions.top.condition,
+#           v = model.velocities.v.boundary_conditions.top.condition,
+#           T = model.tracers.T.boundary_conditions.top.condition,
+#           S = model.tracers.S.boundary_conditions.top.condition)
+
+# ocean.output_writers[:fluxes] = JLD2OutputWriter(model, fluxes,
+#                                                   schedule = TimeInterval(0.5days),
+#                                                   overwrite_existing = true,
+#                                                   array_type = Array{Float32},
+#                                                   filename = "surface_fluxes")
+
+# ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, model.velocities),
+#                                                   schedule = TimeInterval(0.5days),
+#                                                   overwrite_existing = true,
+#                                                   array_type = Array{Float32},
+#                                                   filename = "surface",
+#                                                   indices = (:, :, grid.Nz))
+
+# ocean.output_writers[:snapshots] = JLD2OutputWriter(model, merge(model.tracers, model.velocities),
+#                                                     schedule = TimeInterval(10days),
+#                                                     overwrite_existing = true,
+#                                                     array_type = Array{Float32},
+#                                                     filename = "snapshots")
+
+# ocean.output_writers[:checkpoint] = Checkpointer(model, 
+#                                                  schedule = TimeInterval(60days),
+#                                                  overwrite_existing = true,
+#                                                  prefix = "checkpoint")
+
+# Simulation warm up!
+ocean.Δt = 10
+ocean.stop_iteration = 1
+wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 90, max_change = 1.1)
+ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(1))
+
+stop_time = 20days
+stop_iteration = 1
+
+coupled_simulation = Simulation(coupled_model; Δt=1, stop_time, stop_iteration)
+
+run!(coupled_simulation)
+
+# wizard = TimeStepWizard(; cfl = 0.4, max_Δt = 540, max_change = 1.1)
+# ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
+
+# # Let's reset the maximum number of iterations
+# coupled_model.ocean.stop_time = 7200days
+# coupled_simulation.stop_time = 7200days
+# coupled_model.ocean.stop_iteration = Inf
+# coupled_simulation.stop_iteration = Inf
+
+# run!(coupled_simulation)
