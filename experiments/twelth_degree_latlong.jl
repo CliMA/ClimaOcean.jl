@@ -121,28 +121,28 @@ ocean.stop_iteration = 1
 wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 90, max_change = 1.1)
 ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(1))
 
-stop_time = 10days
+# stop_time = 10days
 
-coupled_simulation = Simulation(coupled_model, Δt=1, stop_time=stop_time)
+# coupled_simulation = Simulation(coupled_model, Δt=1, stop_time=stop_time)
 
-try 
-   run!(coupled_simulation)
-catch 
+# try 
+#    run!(coupled_simulation)
+# catch 
 
-end
+# end
 
-wizard = TimeStepWizard(; cfl = 0.35, max_Δt = 15minutes, max_change = 1.1)
-ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
+# wizard = TimeStepWizard(; cfl = 0.35, max_Δt = 15minutes, max_change = 1.1)
+# ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 
-# Let's reset the maximum number of iterations
-coupled_model.ocean.stop_time = 7200days
-coupled_simulation.stop_time = 7200days
-coupled_model.ocean.stop_iteration = Inf
-coupled_simulation.stop_iteration = Inf
+# # Let's reset the maximum number of iterations
+# coupled_model.ocean.stop_time = 7200days
+# coupled_simulation.stop_time = 7200days
+# coupled_model.ocean.stop_iteration = Inf
+# coupled_simulation.stop_iteration = Inf
 
-try 
-    run!(coupled_simulation)
-catch 
+# try 
+#     run!(coupled_simulation)
+# catch 
 
-end
+# end
 
