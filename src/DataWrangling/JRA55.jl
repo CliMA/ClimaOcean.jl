@@ -3,6 +3,9 @@ module JRA55
 using Oceananigans
 using Oceananigans.Units
  
+using Oceananigans.Architectures: arch_array
+using Oceananigans.DistributedComputations
+using Oceananigans.DistributedComputations: child_architecture
 using Oceananigans.BoundaryConditions: fill_halo_regions!
 using Oceananigans.Grids: λnodes, φnodes, on_architecture
 using Oceananigans.Fields: interpolate!
@@ -12,19 +15,21 @@ using ClimaOcean.OceanSeaIceModels:
     PrescribedAtmosphere,
     TwoStreamDownwellingRadiation
 
+using CUDA: @allowscalar
+
 using NCDatasets
 using JLD2 
 using Dates
-using Downloads: download
 
 import Oceananigans.Fields: set!
-import Oceananigans.OutputReaders: new_backend
+import Oceananigans.OutputReaders: new_backend, update_field_time_series!
+using Downloads: download
 
 # A list of all variables provided in the JRA55 dataset:
-JRA55_variable_names = (:freshwater_river_flux,
+JRA55_variable_names = (:river_freshwater_flux,
                         :rain_freshwater_flux,
                         :snow_freshwater_flux,
-                        :freshwater_iceberg_flux,
+                        :iceberg_freshwater_flux,
                         :specific_humidity,
                         :sea_level_pressure,
                         :relative_humidity,
@@ -35,10 +40,10 @@ JRA55_variable_names = (:freshwater_river_flux,
                         :northward_velocity)
 
 filenames = Dict(
-    :freshwater_river_flux           => "RYF.friver.1990_1991.nc",   # Freshwater fluxes from rivers
+    :river_freshwater_flux           => "RYF.friver.1990_1991.nc",   # Freshwater fluxes from rivers
     :rain_freshwater_flux            => "RYF.prra.1990_1991.nc",     # Freshwater flux from rainfall
     :snow_freshwater_flux            => "RYF.prsn.1990_1991.nc",     # Freshwater flux from snowfall
-    :freshwater_iceberg_flux         => "RYF.licalvf.1990_1991.nc",  # Freshwater flux from calving icebergs
+    :iceberg_freshwater_flux         => "RYF.licalvf.1990_1991.nc",  # Freshwater flux from calving icebergs
     :specific_humidity               => "RYF.huss.1990_1991.nc",     # Surface specific humidity
     :sea_level_pressure              => "RYF.psl.1990_1991.nc",      # Sea level pressure
     :relative_humidity               => "RYF.rhuss.1990_1991.nc",    # Surface relative humidity
@@ -50,10 +55,10 @@ filenames = Dict(
 )
 
 jra55_short_names = Dict(
-    :freshwater_river_flux           => "friver",   # Freshwater fluxes from rivers
+    :river_freshwater_flux           => "friver",   # Freshwater fluxes from rivers
     :rain_freshwater_flux            => "prra",     # Freshwater flux from rainfall
     :snow_freshwater_flux            => "prsn",     # Freshwater flux from snowfall
-    :freshwater_iceberg_flux         => "licalvf",  # Freshwater flux from calving icebergs
+    :iceberg_freshwater_flux         => "licalvf",  # Freshwater flux from calving icebergs
     :specific_humidity               => "huss",     # Surface specific humidity
     :sea_level_pressure              => "psl",      # Sea level pressure
     :relative_humidity               => "rhuss",    # Surface relative humidity
@@ -65,10 +70,10 @@ jra55_short_names = Dict(
 )
 
 field_time_series_short_names = Dict(
-    :freshwater_river_flux           => "Fri", # Freshwater fluxes from rivers
+    :river_freshwater_flux           => "Fri", # Freshwater fluxes from rivers
     :rain_freshwater_flux            => "Fra", # Freshwater flux from rainfall
     :snow_freshwater_flux            => "Fsn", # Freshwater flux from snowfall
-    :freshwater_iceberg_flux         => "Fic", # Freshwater flux from calving icebergs
+    :iceberg_freshwater_flux         => "Fic", # Freshwater flux from calving icebergs
     :specific_humidity               => "qa",  # Surface specific humidity
     :sea_level_pressure              => "pa",  # Sea level pressure
     :relative_humidity               => "rh",  # Surface relative humidity
@@ -83,7 +88,7 @@ urls = Dict(
     :shortwave_radiation => "https://www.dropbox.com/scl/fi/z6fkvmd9oe3ycmaxta131/" *
                             "RYF.rsds.1990_1991.nc?rlkey=r7q6zcbj6a4fxsq0f8th7c4tc&dl=0",
 
-    :freshwater_river_flux => "https://www.dropbox.com/scl/fi/21ggl4p74k4zvbf04nb67/" * 
+    :river_freshwater_flux => "https://www.dropbox.com/scl/fi/21ggl4p74k4zvbf04nb67/" * 
                               "RYF.friver.1990_1991.nc?rlkey=ny2qcjkk1cfijmwyqxsfm68fz&dl=0",
 
     :rain_freshwater_flux => "https://www.dropbox.com/scl/fi/5icl1gbd7f5hvyn656kjq/" *
@@ -92,7 +97,7 @@ urls = Dict(
     :snow_freshwater_flux => "https://www.dropbox.com/scl/fi/1r4ajjzb3643z93ads4x4/" *
                              "RYF.prsn.1990_1991.nc?rlkey=auyqpwn060cvy4w01a2yskfah&dl=0",
 
-    :freshwater_iceberg_flux => "https://www.dropbox.com/scl/fi/44nc5y27ohvif7lkvpyv0/" *
+    :iceberg_freshwater_flux => "https://www.dropbox.com/scl/fi/44nc5y27ohvif7lkvpyv0/" *
                                 "RYF.licalvf.1990_1991.nc?rlkey=w7rqu48y2baw1efmgrnmym0jk&dl=0",
 
     :specific_humidity => "https://www.dropbox.com/scl/fi/66z6ymfr4ghkynizydc29/" *
@@ -123,9 +128,11 @@ urls = Dict(
 compute_bounding_nodes(::Nothing, ::Nothing, LH, hnodes) = nothing
 compute_bounding_nodes(bounds, ::Nothing, LH, hnodes) = bounds
 
+# TODO: remove the allowscalar
 function compute_bounding_nodes(::Nothing, grid, LH, hnodes)
     hg = hnodes(grid, LH())
-    h₁, h₂ = extrema(hg)
+    h₁ = @allowscalar minimum(hg)
+    h₂ = @allowscalar maximum(hg)
     return h₁, h₂
 end
 
@@ -167,7 +174,6 @@ function infer_longitudinal_topology(λbounds)
     TX = λ₂ - λ₁ ≈ 360 ? Periodic : Bounded
     return TX
 end
-
 
 function compute_bounding_indices(longitude, latitude, grid, LX, LY, λc, φc)
     λbounds = compute_bounding_nodes(longitude, grid, LX, λnodes)
@@ -232,8 +238,6 @@ function set!(fts::JRA55NetCDFFTS, path::String=fts.path, name::String=fts.name)
 
     ti = time_indices(fts)
     ti = collect(ti)
-    native_times = ds["time"][ti]
-    times = jra55_times(native_times)
     data = ds[name][i₁:i₂, j₁:j₂, ti]
     close(ds)
 
@@ -268,18 +272,18 @@ Ocean Modelling, 2020, https://doi.org/10.1016/j.ocemod.2019.101557.
 The `variable_name`s (and their `shortname`s used in NetCDF files)
 available from the JRA55-do are:
 
-  - `:freshwater_river_flux`              ("friver")
-  - `:rain_freshwater_flux`               ("prra")
-  - `:snow_freshwater_flux`               ("prsn")
-  - `:freshwater_iceberg_flux`            ("licalvf")
-  - `:specific_humidity`                  ("huss")
-  - `:sea_level_pressure`                 ("psl")
-  - `:relative_humidity`                  ("rhuss")
-  - `:downwelling_longwave_radiation`     ("rlds")
-  - `:downwelling_shortwave_radiation`    ("rsds")
-  - `:temperature`                        ("ras")
-  - `:eastward_velocity`                  ("uas")
-  - `:northward_velocity`                 ("vas")
+    - `:river_freshwater_flux`              ("friver")
+    - `:rain_freshwater_flux`               ("prra")
+    - `:snow_freshwater_flux`               ("prsn")
+    - `:iceberg_freshwater_flux`            ("licalvf")
+    - `:specific_humidity`                  ("huss")
+    - `:sea_level_pressure`                 ("psl")
+    - `:relative_humidity`                  ("rhuss")
+    - `:downwelling_longwave_radiation`     ("rlds")
+    - `:downwelling_shortwave_radiation`    ("rsds")
+    - `:temperature`                        ("ras")
+    - `:eastward_velocity`                  ("uas")
+    - `:northward_velocity`                 ("vas")
 
 Keyword arguments
 =================
@@ -326,7 +330,7 @@ function JRA55_field_time_series(variable_name;
         msg = string("We cannot load the JRA55 dataset with an `OnDisk` backend")
         throw(ArgumentError(msg))
     end
-
+                                 
     if isnothing(filename) && !(variable_name ∈ JRA55_variable_names)
         variable_strs = Tuple("  - :$name \n" for name in JRA55_variable_names)
         variables_msg = prod(variable_strs)
@@ -422,7 +426,7 @@ function JRA55_field_time_series(variable_name;
     # Probably with arguments that take latitude, longitude bounds.
     i₁, i₂, j₁, j₂, TX = compute_bounding_indices(longitude, latitude, grid, LX, LY, λc, φc)
 
-    native_times = ds["time"][time_indices_in_memory]
+    native_times = ds["time"][time_indices]
     data = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
     λr = λn[i₁:i₂+1]
     φr = φn[j₁:j₂+1]
@@ -466,9 +470,6 @@ function JRA55_field_time_series(variable_name;
         copyto!(interior(native_fts, :, :, 1, :), data)
         fill_halo_regions!(native_fts)
 
-        @show on_native_grid
-        @show totally_in_memory
-
         if on_native_grid && totally_in_memory
             return native_fts
 
@@ -480,27 +481,33 @@ function JRA55_field_time_series(variable_name;
         end
     end
 
-    @show totally_in_memory
     @info "Pre-processing JRA55 $variable_name data into a JLD2 file..."
+
     preprocessing_grid = on_native_grid ? JRA55_native_grid : grid
 
     on_disk_fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid;
-                                                                                     boundary_conditions,
-                                                                                     backend = OnDisk(),
-                                                                                     path = jld2_filename,
-                                                                                     name = fts_name)
+                                                   boundary_conditions,
+                                                   backend = OnDisk(),
+                                                   path = jld2_filename,
+                                                   name = fts_name)
 
     # Re-open the dataset!
     ds = Dataset(filename)
     all_datetimes = ds["time"][time_indices]
     all_Nt = length(all_datetimes)
-    chunk = last(preprocess_chunk_size)
-    all_times = jra55_times(all_Nt)
+
+    all_times = jra55_times(all_datetimes)
 
     # Save data to disk, one field at a time
     start_clock = time_ns()
     n = 1 # on disk
     m = 0 # in memory
+
+    fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid;
+                                           backend,
+                                           path = jld2_filename,
+                                           name = fts_name)
+
     while n <= all_Nt
         print("        ... processing time index $n of $all_Nt \r")
 
@@ -528,7 +535,7 @@ function JRA55_field_time_series(variable_name;
 
             if !on_native_grid
                 fts.times = new_times
-                interpolate!(fts, native_fts)
+                interpolate!(tmp_field, native_fts)
             end
 
             m = 1 # reset
@@ -553,6 +560,9 @@ const AA = Oceananigans.Architectures.AbstractArchitecture
 
 JRA55_prescribed_atmosphere(time_indices=Colon(); kw...) =
     JRA55_prescribed_atmosphere(CPU(), time_indices; kw...)
+
+JRA55_prescribed_atmosphere(arch::Distributed, time_indices=Colon(); kw...) =
+    JRA55_prescribed_atmosphere(child_architecture(arch), time_indices; kw...)
 
 # TODO: allow the user to pass dates
 function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
@@ -580,16 +590,14 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
     va  = JRA55_field_time_series(:northward_velocity;              kw...)
     Ta  = JRA55_field_time_series(:temperature;                     kw...)
     qa  = JRA55_field_time_series(:specific_humidity;               kw...)
+    ra  = JRA55_field_time_series(:relative_humidity;               kw...)
     pa  = JRA55_field_time_series(:sea_level_pressure;              kw...)
     Fra = JRA55_field_time_series(:rain_freshwater_flux;            kw...)
     Fsn = JRA55_field_time_series(:snow_freshwater_flux;            kw...)
+    Fri = JRA55_field_time_series(:river_freshwater_flux;           kw...)
+    Fic = JRA55_field_time_series(:iceberg_freshwater_flux;         kw...)
     Ql  = JRA55_field_time_series(:downwelling_longwave_radiation;  kw...)
     Qs  = JRA55_field_time_series(:downwelling_shortwave_radiation; kw...)
-
-    # NOTE: these have a different frequency than 3 hours so some changes are needed to 
-    # JRA55_field_time_series to support them.
-    # Fv_JRA55  = JRA55_field_time_series(:freshwater_river_flux,           grid; time_indices, architecture)
-    # Fi_JRA55  = JRA55_field_time_series(:freshwater_iceberg_flux,         grid; time_indices, architecture)
 
     times = ua.times
 
@@ -597,12 +605,13 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
                   v = va)
 
     tracers = (T = Ta,
-               q = qa)
+               q = qa,
+               r = ra)
 
     freshwater_flux = (rain = Fra,
-                       snow = Fsn)
-                       # rivers   = Fv_JRA55,
-                       # icebergs = Fi_JRA55)
+                       snow = Fsn,
+                       rivers = Fri,
+                       icebergs = Fic)
                        
     pressure = pa
 
