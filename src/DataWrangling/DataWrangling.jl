@@ -52,45 +52,6 @@ end
 ##### FieldTimeSeries utilities
 #####
 
-# TODO: move this to Oceananigans
-
-@kernel function _interpolate_field_time_series!(target_fts, target_grid, target_location,
-                                                 source_fts, source_grid, source_location)
-
-    # 4D index, cool!
-    i, j, k, n = @index(Global, NTuple)
-
-    source_field = view(source_fts, :, :, :, n)
-    target_node = node(i, j, k, target_grid, target_location...)
-
-    @inbounds target_fts[i, j, k, n] = interpolate(target_node, source_field, source_location, source_grid)
-end
-
-function interpolate_field_time_series!(target_fts, source_fts)
-    @assert target_fts.times == source_fts.times
-    times = target_fts.times
-    Nt = length(times)
-
-    target_grid = target_fts.grid
-    source_grid = source_fts.grid
-
-    @assert architecture(target_grid) == architecture(source_grid)
-    arch = architecture(target_grid)
-
-    # Make locations
-    source_location = Tuple(L() for L in location(source_fts))
-    target_location = Tuple(L() for L in location(target_fts))
-
-    launch!(arch, target_grid, size(target_fts),
-            _interpolate_field_time_series!,
-            target_fts.data, target_grid, target_location,
-            source_fts.data, source_grid, source_location)
-
-    fill_halo_regions!(target_fts)
-
-    return nothing
-end
-
 function save_field_time_series!(fts; path, name, overwrite_existing=false)
     overwrite_existing && rm(path; force=true)
     times = fts.times
