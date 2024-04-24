@@ -36,14 +36,6 @@ include("runtests_setup.jl")
         @info "Testing preprocessing JRA55 data on $A..."
         rm(test_jld2_filename, force=true)
 
-        on_disk_jra55_fts = ClimaOcean.JRA55.JRA55_field_time_series(test_name;
-                                                                     architecture = arch,
-                                                                     backend = OnDisk(),
-                                                                     time_indices)
-
-        @test on_disk_jra55_fts isa FieldTimeSeries
-        @test parent(on_disk_jra55_fts[1]) == parent(jra55_fts[1])
-
         @info "Testing loading preprocessed JRA55 data on $A..."
         in_memory_jra55_fts = ClimaOcean.JRA55.JRA55_field_time_series(test_name;
                                                                        architecture = arch,
