@@ -326,11 +326,6 @@ function JRA55_field_time_series(variable_name;
                                  preprocess_architecture = CPU(),
                                  time_indices = nothing)
 
-    if backend isa OnDisk
-        msg = string("We cannot load the JRA55 dataset with an `OnDisk` backend")
-        throw(ArgumentError(msg))
-    end
-                                 
     if isnothing(filename) && !(variable_name ∈ JRA55_variable_names)
         variable_strs = Tuple("  - :$name \n" for name in JRA55_variable_names)
         variables_msg = prod(variable_strs)
@@ -369,9 +364,9 @@ function JRA55_field_time_series(variable_name;
         # In this case, the whole time series is in memory.
         # Either the time series is short, or we are doing a limited-area
         # simulation, like in a single column. So, we conservatively
-        # set a default `time_indices = 1:1`.
-        isnothing(time_indices) && (time_indices = 1:1)
-        time_indices_in_memory = time_indices
+        # set a default `time_indices = 1:2`.
+        isnothing(time_indices) && (time_indices = 1:2)
+        time_indices_in_memory  = time_indices
         native_fts_architecture = architecture
     else
         # In this case, part or all of the time series will be stored in a file.
@@ -485,12 +480,6 @@ function JRA55_field_time_series(variable_name;
 
     preprocessing_grid = on_native_grid ? JRA55_native_grid : grid
 
-    on_disk_fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid;
-                                                   boundary_conditions,
-                                                   backend = OnDisk(),
-                                                   path = jld2_filename,
-                                                   name = fts_name)
-
     # Re-open the dataset!
     ds = Dataset(filename)
     all_datetimes = ds["time"][time_indices]
@@ -498,15 +487,24 @@ function JRA55_field_time_series(variable_name;
 
     all_times = jra55_times(all_datetimes)
 
+    on_disk_fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid;
+                                                   boundary_conditions,
+                                                   times = all_times,
+                                                   backend = OnDisk(),
+                                                   path = jld2_filename,
+                                                   name = fts_name)
+
     # Save data to disk, one field at a time
     start_clock = time_ns()
     n = 1 # on disk
     m = 0 # in memory
 
     fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid;
+                                           boundary_conditions,
                                            backend,
-                                           path = jld2_filename,
-                                           name = fts_name)
+                                           times = all_times,
+                                           path  = jld2_filename,
+                                           name  = fts_name)
 
     while n <= all_Nt
         print("        ... processing time index $n of $all_Nt \r")
