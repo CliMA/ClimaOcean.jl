@@ -230,25 +230,25 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
 end
 
 # Fallback
-@inline convert_to_latlong(i, j, grid, uₒ, vₒ) = uₒ, vₒ
+@inline convert_to_latlon_grid(i, j, grid, uₒ, vₒ) = uₒ, vₒ
 @inline convert_to_native_grid(i, j, grid, uₒ, vₒ) = uₒ, vₒ
 
 # Fallback!
 limit_fluxes_over_sea_ice!(args...) = nothing
 
 @kernel function _compute_atmosphere_ocean_similarity_theory_fluxes!(similarity_theory_fields,
-                                                                    grid,
-                                                                    clock,
-                                                                    ocean_state,
-                                                                    ocean_temperature_units,
-                                                                    atmos_state,
-                                                                    atmos_grid,
-                                                                    atmos_times,
-                                                                    atmos_backend,
-                                                                    atmos_time_indexing,
-                                                                    atmosphere_reference_height,
-                                                                    atmos_thermodynamics_parameters,
-                                                                    roughness_lengths)
+                                                                     grid,
+                                                                     clock,
+                                                                     ocean_state,
+                                                                     ocean_temperature_units,
+                                                                     atmos_state,
+                                                                     atmos_grid,
+                                                                     atmos_times,
+                                                                     atmos_backend,
+                                                                     atmos_time_indexing,
+                                                                     atmosphere_reference_height,
+                                                                     atmos_thermodynamics_parameters,
+                                                                     roughness_lengths)
 
     i, j = @index(Global, NTuple)
     kᴺ = size(grid, 3)
@@ -265,7 +265,7 @@ limit_fluxes_over_sea_ice!(args...) = nothing
         Sₒ = ocean_state.S[i, j, 1]
     end
 
-    uₒ, vₒ = convert_to_latlong(i, j, grid, uₒ, vₒ)
+    uₒ, vₒ = convert_to_latlon_grid(i, j, grid, uₒ, vₒ)
         
     @inbounds begin
         # Atmos state, which is _assumed_ to exist at location = (c, c, nothing)
@@ -321,12 +321,12 @@ limit_fluxes_over_sea_ice!(args...) = nothing
     end
 
     # Compute initial guess based on previous fluxes
-    ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
-    cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
+    # ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
+    # cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
 
-    u★ = sqrt(sqrt(τxᵢ^2 + τyᵢ^2))
-    θ★ = - Qcᵢ / (ρₐ * cₚ * u★)
-    q★ = - Fvᵢ / (ρₐ * u★)
+    u★ = 0 # sqrt(sqrt(τxᵢ^2 + τyᵢ^2))
+    θ★ = 0 # - Qcᵢ / (ρₐ * cₚ * u★)
+    q★ = 0 # - Fvᵢ / (ρₐ * u★)
     Σ★ = SimilarityScales(u★, θ★, q★)
 
     g = default_gravitational_acceleration

@@ -214,12 +214,6 @@ end
     return (1 - s) / (1 - s + α * s)
 end
 
-@inline update_turbulent_flux_fields!(::Nothing, args...) = nothing
-
-@inline function update_turbulent_flux_fields!(fields, i, j, grid, fluxes)
-        return nothing
-end
-
 #####
 ##### Struct that represents a 3-tuple of momentum, heat, and water vapor
 #####
@@ -232,59 +226,6 @@ end
 
 # Convenience default with water_vapor component = nothing
 SimilarityScales(momentum, temperature) = SimilarityScales(momentum, temperature, nothing)
-
-#####
-##### Interface into SurfaceFluxes.jl
-#####
-
-# This is the case that SurfaceFluxes.jl can do
-const NothingVaporRoughnessLength = SimilarityScales{<:Number, <:Number, Nothing}
-
-@inline function compute_similarity_theory_fluxes(roughness_lengths::NothingVaporRoughnessLength,
-                                                  surface_state,
-                                                  atmos_state,
-                                                  thermodynamics_parameters,
-                                                  gravitational_acceleration,
-                                                  von_karman_constant,
-                                                  turbulent_fluxes)
-                                                  
-    FT = Float64
-    similarity_functions = BusingerParams{FT}(Pr_0 = convert(FT, 0.74),
-                                              a_m  = convert(FT, 4.7),
-                                              a_h  = convert(FT, 4.7),
-                                              ζ_a  = convert(FT, 2.5),
-                                              γ    = convert(FT, 4.42))
-
-    turbulent_fluxes = SimilarityTheoryTurbulentFluxes(gravitational_acceleration,
-                                                       von_karman_constant,
-                                                       nothing,
-                                                       similarity_functions,
-                                                       thermodynamics_parameters,
-                                                       nothing,
-                                                       nothing,
-                                                       nothing,
-                                                       nothing)
-
-    # Constant roughness lengths
-    ℓu = roughness_lengths.momentum
-    ℓθ = roughness_lengths.temperature
-
-    # Solve for the surface fluxes with initial roughness length guess
-    Uᵍ = zero(ℓu) # gustiness
-    β = one(ℓu)   # surface "resistance"
-    values = SurfaceFluxes.ValuesOnly(atmos_state, surface_state, ℓu, ℓθ, Uᵍ, β)
-    conditions = SurfaceFluxes.surface_conditions(turbulent_fluxes, values)
-
-    fluxes = (;
-        sensible_heat = conditions.shf,
-        latent_heat = conditions.lhf,
-        water_vapor = conditions.evaporation,
-        x_momentum = conditions.ρτxz,
-        y_momentum = conditions.ρτyz,
-    )
-
-    return fluxes
-end
 
 #####
 ##### Fixed-point iteration for roughness length
