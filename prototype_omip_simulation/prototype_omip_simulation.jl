@@ -30,11 +30,11 @@ bathymetry_file = nothing # "bathymetry_tmp.jld2"
 # 60 vertical levels
 z_faces = exponential_z_faces(Nz=60, depth=6500)
 
-Nx = 720
-Ny = 300
+Nx = 2160
+Ny = 1100
 Nz = length(z_faces) - 1
 
-arch = CPU() #Distributed(GPU(), partition = Partition(2))
+arch = GPU() #Distributed(GPU(), partition = Partition(2))
 
 grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (7, 7, 7), z = z_faces)
 
@@ -57,7 +57,7 @@ const  h = Nz / 4.5
 @inline νz(x, y, z, t) = 1e-4 + (5e-3 - 1e-4) * exponential_profile(z; Lz, h)
 
 free_surface = SplitExplicitFreeSurface(grid; cfl=0.7, fixed_Δt = 20minutes)
-vertical_diffusivity = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), κ = 5e-5, ν = 5e-3)
+vertical_diffusivity = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), κ = 5e-5, ν = νz)
 
 closure = (RiBasedVerticalDiffusivity(), vertical_diffusivity)
 
@@ -72,7 +72,7 @@ set!(model,
 ##### The atmosphere
 #####
 
-backend    = JRA55NetCDFBackend(10) 
+backend    = JRA55NetCDFBackend(4) 
 atmosphere = JRA55_prescribed_atmosphere(arch; backend)
 radiation  = Radiation()
 
@@ -137,7 +137,7 @@ ocean.stop_iteration = 1
 wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 90, max_change = 1.1)
 ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(1))
 
-stop_time = 20days
+stop_time = 30days
 
 coupled_simulation = Simulation(coupled_model; Δt=1, stop_time)
 
