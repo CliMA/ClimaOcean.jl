@@ -487,9 +487,8 @@ function JRA55_field_time_series(variable_name;
 
     all_times = jra55_times(all_datetimes)
 
-    on_disk_fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid;
+    on_disk_fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid, all_times;
                                                    boundary_conditions,
-                                                   times = all_times,
                                                    backend = OnDisk(),
                                                    path = jld2_filename,
                                                    name = fts_name)
@@ -499,12 +498,11 @@ function JRA55_field_time_series(variable_name;
     n = 1 # on disk
     m = 0 # in memory
 
-    fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid;
+    fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid, all_times;
                                            boundary_conditions,
                                            backend,
-                                           times = all_times,
-                                           path  = jld2_filename,
-                                           name  = fts_name)
+                                           path = jld2_filename,
+                                           name = fts_name)
 
     while n <= all_Nt
         print("        ... processing time index $n of $all_Nt \r")
