@@ -326,7 +326,9 @@ function JRA55_field_time_series(variable_name;
                                  preprocess_architecture = CPU(),
                                  time_indices = nothing)
 
-    if backend isa OnDisk
+    # OnDisk backends do not support time interpolation!
+    # Disallow OnDisk for JRA55 dataset loading 
+    if backend isa OnDisk 
         msg = string("We cannot load the JRA55 dataset with an `OnDisk` backend")
         throw(ArgumentError(msg))
     end
