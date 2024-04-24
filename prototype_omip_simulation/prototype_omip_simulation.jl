@@ -86,9 +86,9 @@ function progress(sim)
     u, v, w = sim.model.velocities  
     T, S = sim.model.tracers
 
-    Tmax = maximum(abs, T)
-    Tmin = minimum(T)
-    umax = maximum(abs, u), maximum(abs, v), maximum(abs, w)
+    Tmax = maximum(interior(T))
+    Tmin = minimum(interior(T))
+    umax = maximum(interior(u)), maximum(interior(v)), maximum(interior(w))
     step_time = 1e-9 * (time_ns() - wall_time[1])
 
     @info @sprintf("Time: %s, Iteration %d, Δt %s, max(vel): (%.2e, %.2e, %.2e), max(trac): %.2f, %.2f, wtime: %s \n",
@@ -100,7 +100,7 @@ function progress(sim)
      wall_time[1] = time_ns()
 end
 
-ocean.callbacks[:progress] = Callback(progress, IterationInterval(1))
+ocean.callbacks[:progress] = Callback(progress, IterationInterval(10))
 
 fluxes = (u = model.velocities.u.boundary_conditions.top.condition,
           v = model.velocities.v.boundary_conditions.top.condition,
