@@ -326,6 +326,11 @@ function JRA55_field_time_series(variable_name;
                                  preprocess_architecture = CPU(),
                                  time_indices = nothing)
 
+    if backend isa OnDisk
+        msg = string("We cannot load the JRA55 dataset with an `OnDisk` backend")
+        throw(ArgumentError(msg))
+    end
+
     if isnothing(filename) && !(variable_name ∈ JRA55_variable_names)
         variable_strs = Tuple("  - :$name \n" for name in JRA55_variable_names)
         variables_msg = prod(variable_strs)
