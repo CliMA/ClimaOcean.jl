@@ -534,7 +534,7 @@ function JRA55_field_time_series(variable_name;
             native_fts.times = new_times
 
             # Re-compute data
-            new_data = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
+            new_data  = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
             fts.times = new_times
 
             if !on_native_grid
@@ -548,7 +548,7 @@ function JRA55_field_time_series(variable_name;
             m = 1 # reset
         end
 
-        set!(on_disk_fts, fts[m], n, on_disk_fts.times[m])
+        set!(on_disk_fts, fts[m], n, fts.times[m])
 
         n += 1
     end
