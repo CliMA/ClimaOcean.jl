@@ -364,9 +364,9 @@ function JRA55_field_time_series(variable_name;
         # In this case, the whole time series is in memory.
         # Either the time series is short, or we are doing a limited-area
         # simulation, like in a single column. So, we conservatively
-        # set a default `time_indices = 1:1`.
-        isnothing(time_indices) && (time_indices = 1:1)
-        time_indices_in_memory = time_indices
+        # set a default `time_indices = 1:2`.
+        isnothing(time_indices) && (time_indices = 1:2)
+        time_indices_in_memory  = time_indices
         native_fts_architecture = architecture
     else
         # In this case, part or all of the time series will be stored in a file.
@@ -480,24 +480,32 @@ function JRA55_field_time_series(variable_name;
 
     preprocessing_grid = on_native_grid ? JRA55_native_grid : grid
 
-    on_disk_fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid;
-                                                   boundary_conditions,
-                                                   backend = OnDisk(),
-                                                   path = jld2_filename,
-                                                   name = fts_name)
-
     # Re-open the dataset!
     ds = Dataset(filename)
     all_datetimes = ds["time"][time_indices]
     all_Nt = length(all_datetimes)
-    chunk = last(preprocess_chunk_size)
 
     all_times = jra55_times(all_datetimes)
+
+    on_disk_fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid;
+                                                   boundary_conditions,
+                                                   times = all_times,
+                                                   backend = OnDisk(),
+                                                   path = jld2_filename,
+                                                   name = fts_name)
 
     # Save data to disk, one field at a time
     start_clock = time_ns()
     n = 1 # on disk
     m = 0 # in memory
+
+    fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid;
+                                           boundary_conditions,
+                                           backend,
+                                           times = all_times,
+                                           path  = jld2_filename,
+                                           name  = fts_name)
+
     while n <= all_Nt
         print("        ... processing time index $n of $all_Nt \r")
 
@@ -525,7 +533,7 @@ function JRA55_field_time_series(variable_name;
 
             if !on_native_grid
                 fts.times = new_times
-                interpolate!(fts, native_fts)
+                interpolate!(tmp_field, native_fts)
             end
 
             m = 1 # reset
