@@ -538,7 +538,7 @@ function JRA55_field_time_series(variable_name;
 
             if !on_native_grid
                 fts.times = new_times
-                interpolate!(tmp_field, native_fts)
+                interpolate!(fts, native_fts)
             end
 
             m = 1 # reset
