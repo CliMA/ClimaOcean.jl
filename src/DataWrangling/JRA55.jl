@@ -389,7 +389,8 @@ function JRA55_field_time_series(variable_name;
             time_indices_in_memory = 1:length(backend)
             native_fts_architecture = architecture
         else # then `time_indices_in_memory` refers to preprocessing
-            time_indices_in_memory = 1:preprocess_chunk_size
+            maximum_index = min(preprocess_chunk_size, length(time_indices))
+            time_indices_in_memory = 1:maximum_index
             native_fts_architecture = preprocess_architecture
         end
     end
@@ -505,9 +506,11 @@ function JRA55_field_time_series(variable_name;
     n = 1 # on disk
     m = 0 # in memory
 
-    fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid, all_times;
+    times_in_memory = all_times[time_indices_in_memory]
+
+    fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid, times_in_memory;
                                            boundary_conditions,
-                                           backend,
+                                           backend = InMemory(),
                                            path = jld2_filename,
                                            name = fts_name)
 
@@ -527,24 +530,25 @@ function JRA55_field_time_series(variable_name;
             end
 
             # Re-compute times
-            Nt = length(time_indices_in_memory)
-            new_times = jra55_times(Nt, all_times[n₁])
+            new_times = jra55_times(all_times[time_indices_in_memory], all_times[n₁])
             native_fts.times = new_times
 
             # Re-compute data
             new_data = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
-            copyto!(interior(native_fts, :, :, 1, :), new_data[:, :, :])
-            fill_halo_regions!(native_fts)
+            fts.times = new_times
 
             if !on_native_grid
-                fts.times = new_times
+                copyto!(interior(native_fts, :, :, 1, :), new_data[:, :, :])
+                fill_halo_regions!(native_fts)    
                 interpolate!(fts, native_fts)
+            else
+                copyto!(interior(fts, :, :, 1, :), new_data[:, :, :])
             end
 
             m = 1 # reset
         end
 
-        set!(on_disk_fts, fts[m], n, all_times[n])
+        set!(on_disk_fts, fts[m], n, on_disk_fts.times[m])
 
         n += 1
     end

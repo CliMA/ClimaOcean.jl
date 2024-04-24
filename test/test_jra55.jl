@@ -38,15 +38,18 @@ include("runtests_setup.jl")
 
         @info "Testing loading preprocessed JRA55 data on $A..."
         in_memory_jra55_fts = ClimaOcean.JRA55.JRA55_field_time_series(test_name;
+                                                                       time_indices,
                                                                        architecture = arch,
                                                                        backend = InMemory(2))
 
         @test in_memory_jra55_fts isa FieldTimeSeries
+
+        @show in_memory_jra55_fts[1], jra55_fts[1]
         @test parent(in_memory_jra55_fts[1]) == parent(jra55_fts[1])
 
         # Clean up
         rm(test_filename)
-        rm(on_disk_jra55_fts.path)
+        rm(in_memory_jra55_fts.path)
 
         @info "Testing interpolate_field_time_series! on $A..."
         # Make target grid and field
@@ -69,7 +72,7 @@ include("runtests_setup.jl")
         times = jra55_fts.times
         boundary_conditions = jra55_fts.boundary_conditions
         target_fts = FieldTimeSeries{Center, Center, Nothing}(target_grid, times; boundary_conditions)
-        ClimaOcean.DataWrangling.interpolate_field_time_series!(target_fts, jra55_fts)
+        interpolate!(target_fts, jra55_fts)
 
         # Random regression test
         CUDA.@allowscalar begin
@@ -92,6 +95,7 @@ include("runtests_setup.jl")
 
         # Test that we can load the data back
         Qswt = FieldTimeSeries(filepath, "Qsw")
+        @show size(Qswt.data), size(target_fts)
         @test parent(Qswt) == parent(target_fts)    
         @test Qswt.times == target_fts.times
         rm(filepath)
