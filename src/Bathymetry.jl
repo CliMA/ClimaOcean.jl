@@ -265,9 +265,9 @@ function remove_lakes!(h_data; connected_regions_allowed = Inf)
     batneg  = zeros(Bool, size(bathtmp)...)
     
     batneg[bathtmp.<0] .= true
-    connectivity = ImageMorphology.strel_box((3, 3))
-
-    labels = ImageMorphology.label_components(batneg, connectivity)
+    
+    connectivity = ImageMorphology.strel(batneg)
+    labels = ImageMorphology.label_components(connectivity)
     
     total_elements = zeros(maximum(labels))
     label_elements = zeros(maximum(labels))
@@ -304,6 +304,10 @@ function remove_lakes!(h_data; connected_regions_allowed = Inf)
 
     bathtmp .+= labels
     bathtmp[isnan.(bathtmp)] .= 0
+
+    batneg  = zeros(Bool, size(bathtmp)...)
+
+    batneg[bathtmp.<0] .= true
 
     return bathtmp
 end
