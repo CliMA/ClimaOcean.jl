@@ -254,6 +254,15 @@ other possibly disconnected regions like the Mediterranean and the Bering sea).
                                Default is `Inf`, which means all connected regions are kept.
 
 """
+function remove_lakes!(h_data::Field; kw...)
+    data = Array(interior(h_data, :, :, 1))
+    data = remove_lakes!(data; kw...)
+
+    set!(h_data, data)
+
+    return h_data
+end
+
 function remove_lakes!(h_data; connected_regions_allowed = Inf)
 
     if connected_regions_allowed == Inf
@@ -273,7 +282,7 @@ function remove_lakes!(h_data; connected_regions_allowed = Inf)
     label_elements = zeros(maximum(labels))
 
     for i in 1:lastindex(total_elements)
-        total_elements[i] = sum(labels[labels .== i])
+        total_elements[i] = length(labels[labels .== i])
         label_elements[i] = i
     end
         
@@ -295,19 +304,16 @@ function remove_lakes!(h_data; connected_regions_allowed = Inf)
     for i in 1:maximum(labels)
         remove_lake = (&).(Tuple(i != idx for idx in all_idx)...)
         if remove_lake
-            labels[labels .== i] .= NaN
+            labels[labels .== i] .= 1e10 # Fictitious super large number
         end
     end
 
     # Removing land?
-    labels[labels.==0] .= NaN
+    labels[labels .<  1e10] .= 0 
+    labels[labels .== 1e10] .= NaN
 
     bathtmp .+= labels
     bathtmp[isnan.(bathtmp)] .= 0
-
-    batneg  = zeros(Bool, size(bathtmp)...)
-
-    batneg[bathtmp.<0] .= true
 
     return bathtmp
 end
