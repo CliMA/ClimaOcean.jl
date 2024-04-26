@@ -382,7 +382,7 @@ end
     return Δh, Δu, Δv, Δθ, Δq
 end
 
-@inline function compute_similarity_theory_fluxes(roughness_lengths::ConstantRoughnessLength,
+@inline function compute_similarity_theory_fluxes(roughness_lengths,
                                                   surface_state,
                                                   atmos_state,
                                                   thermodynamics_parameters,
