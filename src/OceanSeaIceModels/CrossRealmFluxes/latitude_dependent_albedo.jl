@@ -7,10 +7,10 @@ using ClimaOcean.OceanSeaIceModels:
 
 # Bilinear interpolation of the albedo α in α_table based on a 
 # transmissivity value (𝓉_values) and latitude (φ_values)
-struct TabulatedAlbedo{M, A, FT}
+struct TabulatedAlbedo{M, P, T, FT}
     α_table :: M
-    φ_values :: A
-    𝓉_values :: A
+    φ_values :: P
+    𝓉_values :: T
     S₀ :: FT # Solar constant W / m^2
 end
 
