@@ -397,13 +397,8 @@ end
     return Δh, Δu, Δv, Δθ, Δq
 end
 
-@inline momentum_roughness_length(ℓ, Σ★) = ℓ(Σ★)
-@inline water_vapor_roughness_length(ℓ, ℓu, Σ★) = ℓ(Σ★)
-@inline temperature_roughness_length(ℓ, ℓq, Σ★) = ℓ(Σ★)
-
-@inline momentum_roughness_length(ℓ::Number, Σ★) = ℓ
-@inline water_vapor_roughness_length(ℓ::Number, ℓu, Σ★) = ℓ
-@inline temperature_roughness_length(ℓ::Number, ℓq, Σ★) = ℓ
+@inline roughness_length(ℓ, Σ★) = ℓ(Σ★)
+@inline roughness_length(ℓ::Number, Σ★) = ℓ
 
 @inline function refine_characteristic_scales(estimated_characteristic_scales,
                                               roughness_lengths,
@@ -434,9 +429,9 @@ end
     h = differences.h
     ϰ = von_karman_constant
 
-    ℓu₀ = momentum_roughness_length(ℓu, Σ★)
-    ℓq₀ = water_vapor_roughness_length(ℓq, h, Σ★)
-    ℓθ₀ = temperature_roughness_length(ℓθ, h, Σ★)
+    ℓu₀ = roughness_length(ℓu, Σ★)
+    ℓq₀ = roughness_length(ℓq, Σ★)
+    ℓθ₀ = roughness_length(ℓθ, Σ★)
 
     ℂ = thermodynamics_parameters
     g = gravitational_acceleration
@@ -477,7 +472,7 @@ struct GravityScalarRoughnessLength{FT, R}
     maximum_roughness_length :: FT
 end
 
-@inline liu_katsaros_businger_scaling_function(Rr :: FT) where FT = ifelse(Rr == 0, FT(0), covert(FT, 5.8e-5 / Rr^0.72))
+@inline liu_katsaros_businger_scaling_function(Rr :: FT) where FT = ifelse(Rr == 0, FT(0), convert(FT, 5.8e-5 / Rr^0.72))
 
 function GravityScalarRoughnessLength(FT=Float64;
                                       air_kinematic_viscosity = 1.5e-5,
@@ -505,7 +500,7 @@ end
 
 # Momentum roughness length should be different from scalar roughness length.
 # Apparently temperature and water vapor can be considered the same (Edison et al 2013)
-@inline function momentum_roughness_length(ℓ::GravityMomentumRoughnessLength{FT}, Σ★) where FT
+@inline function roughness_length(ℓ::GravityMomentumRoughnessLength{FT}, Σ★) where FT
     u★ = Σ★.momentum
     g  = ℓ.gravitational_acceleration
     ν  = ℓ.air_kinematic_viscosity
@@ -522,7 +517,7 @@ end
 end
 
 # This, for example is what is implemented in COARE 3.6
-@inline function water_vapor_roughness_length(ℓ::GravityScalarRoughnessLength{FT}, ℓu, Σ★) where FT
+@inline function roughness_length(ℓ::GravityScalarRoughnessLength{FT}, Σ★) where FT
     u★ = Σ★.momentum
     ν  = ℓ.air_kinematic_viscosity
     ℓm = ℓ.maximum_roughness_length
@@ -537,6 +532,3 @@ end
 
     return min(ℓq, ℓm);  
 end
-
-@inline temperature_roughness_length(ℓ::GravityScalarRoughnessLength, ℓq, Σ★) = ℓq
-
