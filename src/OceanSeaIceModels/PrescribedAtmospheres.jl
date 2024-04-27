@@ -210,9 +210,9 @@ end
 const PATP{FT} = PrescribedAtmosphereThermodynamicsParameters{FT} where FT
 
 Base.eltype(::PATP{FT}) where FT = FT
-Base.eltype(::CP{FT}) where FT   = FT
-Base.eltype(::HCP{FT}) where FT  = FT
-Base.eltype(::PTP{FT}) where FT  = FT
+Base.eltype(::CP{FT})   where FT = FT
+Base.eltype(::HCP{FT})  where FT = FT
+Base.eltype(::PTP{FT})  where FT = FT
 
 Base.summary(::PATP{FT}) where FT = "PrescribedAtmosphereThermodynamicsParameters{$FT}"
 

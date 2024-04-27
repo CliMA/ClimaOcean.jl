@@ -14,20 +14,20 @@ import ..OceanSeaIceModels: surface_velocities,
 ##### Utilities
 #####
 
-@inline stateindex(a::Number, i, j, k, time) = a
-@inline stateindex(a::SKOFTS, i, j, k, time) = @inbounds a[i, j, k, time]
-@inline stateindex(a::AbstractArray, i, j, k, time) = @inbounds a[i, j, k]
-@inline Δϕt²(i, j, k, grid, ϕ1, ϕ2, time) = (stateindex(ϕ1, i, j, k, time) - stateindex(ϕ2, i, j, k, time))^2
+@inline stateindex(a::Number, i, j, k, grid, time) = a
+@inline stateindex(a::SKOFTS, i, j, k, grid, time) = @inbounds a[i, j, k, time]
+@inline stateindex(a::AbstractArray, i, j, k, grid, time) = @inbounds a[i, j, k]
+@inline Δϕt²(i, j, k, grid, ϕ1, ϕ2, time) = (stateindex(ϕ1, i, j, k, grid, time) - stateindex(ϕ2, i, j, k, grid, time))^2
 
-@inline function stateindex(a::Tuple, i, j, k, time)
+@inline function stateindex(a::Tuple, i, j, k, grid, time)
     N = length(a)
     ntuple(Val(N)) do n
-        stateindex(a[n], i, j, k, time)
+        stateindex(a[n], i, j, k, grid, time)
     end
 end
 
-@inline function stateindex(a::NamedTuple, i, j, k, time)
-    vals = stateindex(values(a), i, j, k, time)
+@inline function stateindex(a::NamedTuple, i, j, k, grid, time)
+    vals = stateindex(values(a), i, j, k, grid, time)
     names = keys(a)
     return NamedTuple{names}(vals)
 end
@@ -61,6 +61,7 @@ end
 
 include("three_dimensional_operators.jl")
 include("radiation.jl")
+include("latitude_dependent_albedo.jl")
 include("similarity_theory_turbulent_fluxes.jl")
 include("ocean_sea_ice_surface_fluxes.jl")
 include("sea_ice_ocean_fluxes.jl")

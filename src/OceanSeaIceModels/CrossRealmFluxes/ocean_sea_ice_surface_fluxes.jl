@@ -195,7 +195,8 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             atmosphere_time_indexing,
             atmosphere.reference_height, # height at which the state is known
             atmosphere.thermodynamics_parameters,
-            similarity_theory.roughness_lengths)
+            similarity_theory.roughness_lengths,
+            similarity_theory.similarity_functions)
     
     launch!(arch, grid, kernel_parameters, _assemble_atmosphere_ocean_fluxes!,
             centered_velocity_fluxes,
@@ -248,7 +249,8 @@ limit_fluxes_over_sea_ice!(args...) = nothing
                                                                      atmos_time_indexing,
                                                                      atmosphere_reference_height,
                                                                      atmos_thermodynamics_parameters,
-                                                                     roughness_lengths)
+                                                                     roughness_lengths,
+                                                                     similarity_functions)
 
     i, j = @index(Global, NTuple)
     kᴺ = size(grid, 3)
@@ -265,6 +267,9 @@ limit_fluxes_over_sea_ice!(args...) = nothing
         Sₒ = ocean_state.S[i, j, 1]
     end
 
+    # Convert the native grid velocities to a zonal - meridional 
+    # frame of reference (assuming the frame of reference is 
+    # latitude - longitude here, we might want to change it)
     uₒ, vₒ = convert_to_latlon_grid(i, j, grid, uₒ, vₒ)
         
     @inbounds begin
@@ -321,24 +326,28 @@ limit_fluxes_over_sea_ice!(args...) = nothing
     end
 
     # Compute initial guess based on previous fluxes
-    # ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
-    # cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
+    ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
+    cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
 
-    u★ = 0 # sqrt(sqrt(τxᵢ^2 + τyᵢ^2))
-    θ★ = 0 # - Qcᵢ / (ρₐ * cₚ * u★)
-    q★ = 0 # - Fvᵢ / (ρₐ * u★)
+    u★ = sqrt(sqrt(τxᵢ^2 + τyᵢ^2))
+    u★ = ifelse(u★ == 0, 1e-2, u★)
+    θ★ = - Qcᵢ / (ρₐ * cₚ * u★)
+    q★ = - Fvᵢ / (ρₐ * u★)
     Σ★ = SimilarityScales(u★, θ★, q★)
 
     g = default_gravitational_acceleration
     ϰ = 0.4
-
+    
     turbulent_fluxes = compute_similarity_theory_fluxes(roughness_lengths,
+                                                        similarity_functions,
                                                         dynamic_ocean_state,
                                                         dynamic_atmos_state,
                                                         ℂₐ, g, ϰ, Σ★)
 
     kᴺ = size(grid, 3) # index of the top ocean cell
 
+    # Convert back from a zonal - meridional flux to the frame of 
+    # reference of the native ocean grid
     τˣ, τʸ = convert_to_native_grid(i, j, grid, turbulent_fluxes.x_momentum, 
                                                 turbulent_fluxes.y_momentum)
 
@@ -453,15 +462,15 @@ end
 @inline net_downwelling_radiation(i, j, grid, time, Qs, Qℓ, ::Nothing) = zero(0)
 
 @inline function net_downwelling_radiation(i, j, grid, time, Qs, Qℓ, radiation)
-    α = stateindex(radiation.reflection.ocean, i, j, 1, time)
-    ϵ = stateindex(radiation.emission.ocean, i, j, 1, time)
+    α = stateindex(radiation.reflection.ocean, i, j, 1, grid, time)
+    ϵ = stateindex(radiation.emission.ocean, i, j, 1, grid, time)
     
     return @inbounds - (1 - α) * Qs - ϵ * Qℓ
 end
 
 @inline function net_upwelling_radiation(i, j, grid, time, radiation, Tₒ)
     σ = radiation.stefan_boltzmann_constant
-    ϵ = stateindex(radiation.emission.ocean, i, j, 1, time)
+    ϵ = stateindex(radiation.emission.ocean, i, j, 1, grid, time)
 
     # Note: positive implies _upward_ heat flux, and therefore cooling.
     return ϵ * σ * Tₒ^4
