@@ -1,6 +1,7 @@
 module CrossRealmFluxes
 
 using Oceananigans
+using Adapt 
 
 export Radiation,
        OceanSeaIceSurfaceFluxes
