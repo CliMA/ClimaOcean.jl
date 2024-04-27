@@ -7,6 +7,7 @@ using ClimaOcean.ECCO2
 using ClimaOcean.OceanSimulations
 using Oceananigans.Units
 using ClimaOcean.JRA55: JRA55_prescribed_atmosphere
+using ClimaOcean.OceanSeaIceModels: Radiation
 
 # Upload ECCO2 fields
 T = ECCO2.ecco2_field(:temperature)
@@ -28,7 +29,7 @@ ocean_model = ocean.model
 # setting ecco variables in the model
 set!(ocean_model, T = T, S = S, u = u, v = v)
 
-coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation = nothing)
+coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation = Radiation())
 
 function centered_surface_u_velocity(u)
     𝒰ᶜᶜᶜ = KernelFunctionOperation{Center, Center, Center}(ℑxᶜᵃᵃ, grid, u)

@@ -114,5 +114,5 @@ end
 
     ϵ = stateindex(radiation.emission.ocean, i, j, 1, grid, time)
 
-    return - (1 - α) * Qs - ε * Qℓ
+    return - (1 - α) * Qs - ϵ * Qℓ
 end

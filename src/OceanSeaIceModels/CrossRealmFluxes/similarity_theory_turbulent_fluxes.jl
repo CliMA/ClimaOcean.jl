@@ -479,7 +479,7 @@ end
 # Empirical fit of the scalar roughness length with roughness Reynolds number `R★ = u★ / ν`
 # Edson et al. (2013), equation (28)
 @inline empirical_scaling_function(R★ :: FT, args...) where FT = 
-        ifelse(R★ == 0, FT(0), convert(FT, 5.5e-5 / R★ ^ 0.6))
+        ifelse(R★ == 0, FT(0), convert(FT, 5.85e-5 / R★ ^ 0.76))
 
 # Brusser - Garrat scaling of the scalar roughness length with roughness number 
 # Edson et al. (2013), equation (29)
@@ -490,7 +490,7 @@ end
 function GravityScalarRoughnessLength(FT=Float64;
                                       air_kinematic_viscosity = 1.5e-5,
                                       reynolds_number_scaling_function = brusser_garrat_scaling_function,
-                                      maximum_roughness_length = 1.1e-4) # Values from COARE3.6
+                                      maximum_roughness_length = 1.6e-4) # Values from COARE3.6
 
     return GravityScalarRoughnessLength(convert(FT, air_kinematic_viscosity),
                                         reynolds_number_scaling_function,
