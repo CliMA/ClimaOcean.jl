@@ -3,10 +3,9 @@ module OceanSimulations
 export load_balanced_regional_grid, ocean_simulation
 
 using Oceananigans.Units
-using Oceananigans.Operators
 using Oceananigans.Advection: TracerAdvection
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
-using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node, c, f
+using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node
 
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities:
     CATKEVerticalDiffusivity,
@@ -37,6 +36,9 @@ default_momentum_advection() = VectorInvariant(; vorticity_scheme = WENO(; order
 default_tracer_advection() = TracerAdvection(WENO(; order = 7),
                                              WENO(; order = 7),
                                              Centered())
+
+const c = Center()
+const f = Face()
 
 @inline ϕ²(i, j, k, grid, ϕ)    = @inbounds ϕ[i, j, k]^2
 @inline spᶠᶜᶜ(i, j, k, grid, Φ) = @inbounds sqrt(Φ.u[i, j, k]^2 + ℑxyᶠᶜᵃ(i, j, k, grid, ϕ², Φ.v))
