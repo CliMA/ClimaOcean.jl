@@ -476,11 +476,14 @@ struct GravityScalarRoughnessLength{FT, R}
     maximum_roughness_length :: FT
 end
 
-@inline liu_katsaros_businger_scaling_function(Rr :: FT) where FT = ifelse(Rr == 0, FT(0), convert(FT, 5.8e-5 / Rr^0.72))
+# Empirical fit of the scalar roughness length with the roughness reynolds number `R★ = u★ / ν`
+# Found in Edson et al. (2013), equation (28)
+@inline empirical_scaling_function(R★ :: FT, args...) where FT = 
+        ifelse(R★ == 0, FT(0), convert(FT, 5.8e-5 / R★ ^ 0.72))
 
 function GravityScalarRoughnessLength(FT=Float64;
                                       air_kinematic_viscosity = 1.5e-5,
-                                      reynolds_number_scaling_function = liu_katsaros_businger_scaling_function,
+                                      reynolds_number_scaling_function = empirical_scaling_function,
                                       maximum_roughness_length = 1.6e-4) # Values from COARE3.6
 
     return GravityScalarRoughnessLength(convert(FT, air_kinematic_viscosity),
@@ -525,14 +528,14 @@ end
     u★ = Σ★.momentum
     ν  = ℓ.air_kinematic_viscosity
     ℓm = ℓ.maximum_roughness_length
-    R  = ℓ.reynolds_number_scaling_function
+    
+    scaling_function = ℓ.reynolds_number_scaling_function
 
-    # Roughness Reynolds number based
-    # on momentum roughness length
-    ℓᴿ = R(ℓu * u★ / ν)
+    # Roughness Reynolds number
+    R★ = ℓu * u★ / ν
 
-    # If u★ is small we cap the scalar roughness length
-    ℓq = ifelse(u★ == 0, ℓm, ν / u★ * ℓᴿ) 
+    # implementation of scalar roughness length
+    ℓq = scaling_function(R★, ℓu, u★, ν)
 
-    return min(ℓᴿ, ℓm);  
+    return min(ℓᴿ, ℓm) 
 end
