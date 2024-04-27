@@ -400,6 +400,9 @@ end
 @inline roughness_length(ℓ, Σ★) = ℓ(Σ★)
 @inline roughness_length(ℓ::Number, Σ★) = ℓ
 
+@inline roughness_length(ℓ, ℓu, Σ★) = ℓ(Σ★)
+@inline roughness_length(ℓ::Number, ℓu, Σ★) = ℓ
+
 @inline function refine_characteristic_scales(estimated_characteristic_scales,
                                               roughness_lengths,
                                               similarity_functions,
@@ -425,20 +428,21 @@ end
     ℓθ = roughness_lengths.temperature
     ℓq = roughness_lengths.water_vapor
 
-    # Compute Monin-Obukhov length scale
     h = differences.h
     ϰ = von_karman_constant
-
+    
+    # Compute roughness length scales
     ℓu₀ = roughness_length(ℓu, Σ★)
-    ℓq₀ = roughness_length(ℓq, Σ★)
-    ℓθ₀ = roughness_length(ℓθ, Σ★)
+    ℓq₀ = roughness_length(ℓq, ℓu₀, Σ★)
+    ℓθ₀ = roughness_length(ℓθ, ℓu₀, Σ★)
 
+    # Compute Monin-Obukhov length scale depending on a `buoyancy flux`
     ℂ = thermodynamics_parameters
     g = gravitational_acceleration
     𝒬ₒ = surface_state.ts # thermodynamic state
     b★ = buoyancy_scale(θ★, q★, 𝒬ₒ, ℂ, g)
 
-    # Monin-Obhukov characteristic length
+    # Monin-Obhukov characteristic length scale
     L★ = ifelse(b★ == 0, zero(b★), - u★^2 / (ϰ * b★))
 
     χu = bulk_factor(ψu, h, ℓu₀, L★)
@@ -477,7 +481,7 @@ end
 function GravityScalarRoughnessLength(FT=Float64;
                                       air_kinematic_viscosity = 1.5e-5,
                                       reynolds_number_scaling_function = liu_katsaros_businger_scaling_function,
-                                      maximum_roughness_length = 1.64e-4) # Values from COARE3.6
+                                      maximum_roughness_length = 1.6e-4) # Values from COARE3.6
 
     return GravityScalarRoughnessLength(convert(FT, air_kinematic_viscosity),
                                         reynolds_number_scaling_function,
@@ -486,7 +490,7 @@ end
 
 function GravityMomentumRoughnessLength(FT=Float64;
                                     gravitational_acceleration = default_gravitational_acceleration,
-                                    maximum_roughness_length = 1,
+                                    maximum_roughness_length = 5e-3, # An estimate?
                                     air_kinematic_viscosity = 1.5e-5,
                                     gravity_wave_parameter = 0.011,
                                     laminar_parameter = 0.11)
@@ -517,7 +521,7 @@ end
 end
 
 # This, for example is what is implemented in COARE 3.6
-@inline function roughness_length(ℓ::GravityScalarRoughnessLength{FT}, Σ★) where FT
+@inline function roughness_length(ℓ::GravityScalarRoughnessLength{FT}, ℓu, Σ★) where FT
     u★ = Σ★.momentum
     ν  = ℓ.air_kinematic_viscosity
     ℓm = ℓ.maximum_roughness_length
@@ -530,5 +534,5 @@ end
     # If u★ is small we cap the scalar roughness length
     ℓq = ifelse(u★ == 0, ℓm, ν / u★ * ℓᴿ) 
 
-    return min(ℓq, ℓm);  
+    return min(ℓᴿ, ℓm);  
 end
