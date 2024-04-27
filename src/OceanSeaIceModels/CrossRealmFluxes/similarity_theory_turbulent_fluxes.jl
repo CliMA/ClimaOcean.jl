@@ -95,9 +95,9 @@ function Base.show(io::IO, fluxes::SimilarityTheoryTurbulentFluxes)
 end
 
 function default_roughness_lengths(FT=Float64)
-    momentum    = GravityWaveRoughnessLength(FT)
-    temperature = GravityWaveRoughnessLength(FT)
-    water_vapor = GravityWaveRoughnessLength(FT)
+    momentum    = GravityMomentumRoughnessLength(FT)
+    temperature = GravityScalarRoughnessLength(FT)
+    water_vapor = GravityScalarRoughnessLength(FT)
     return SimilarityScales(momentum, temperature, water_vapor)
 end
 
@@ -434,7 +434,7 @@ end
     h = differences.h
     ϰ = von_karman_constant
 
-    ℓu₀ = momentum_roughness_length(ℓu, h, Σ★)
+    ℓu₀ = momentum_roughness_length(ℓu, Σ★)
     ℓq₀ = water_vapor_roughness_length(ℓq, h, Σ★)
     ℓθ₀ = temperature_roughness_length(ℓθ, h, Σ★)
 
@@ -463,15 +463,35 @@ end
     return SimilarityScales(u★, θ★, q★)
 end
 
-struct GravityWaveRoughnessLength{FT}
+struct GravityMomentumRoughnessLength{FT}
     gravitational_acceleration :: FT
     air_kinematic_viscosity :: FT
     gravity_wave_parameter :: FT
     laminar_parameter :: FT
+    maximum_roughness_length :: FT
 end
 
-function GravityWaveRoughnessLength(FT=Float64;
+struct GravityScalarRoughnessLength{FT, R}
+    air_kinematic_viscosity :: FT
+    reynolds_number_scaling_function :: R
+    maximum_roughness_length :: FT
+end
+
+@inline liu_katsaros_businger_scaling_function(Rr) = ifelse(Rr == 0, 0, 5.8e-5 / Rr^0.72)
+
+function GravityScalarRoughnessLength(FT=Float64;
+                                      air_kinematic_viscosity = 1.5e-5,
+                                      reynolds_number_scaling_function = liu_katsaros_businger_scaling_function,
+                                      maximum_roughness_length = 1.64e-4) # Values from COARE3.6
+
+    return GravityScalarRoughnessLength(convert(FT, air_kinematic_viscosity),
+                                        reynolds_number_scaling_function,
+                                        convert(FT, maximum_roughness_length))
+end
+
+function GravityMomentumRoughnessLength(FT=Float64;
                                     gravitational_acceleration = default_gravitational_acceleration,
+                                    maximum_roughness_length = 1,
                                     air_kinematic_viscosity = 1.5e-5,
                                     gravity_wave_parameter = 0.011,
                                     laminar_parameter = 0.11)
@@ -479,40 +499,44 @@ function GravityWaveRoughnessLength(FT=Float64;
     return GravityWaveRoughnessLength(convert(FT, gravitational_acceleration),
                                       convert(FT, air_kinematic_viscosity),
                                       convert(FT, gravity_wave_parameter),
-                                      convert(FT, laminar_parameter))
+                                      convert(FT, laminar_parameter),
+                                      convert(FT, maximum_roughness_length))
 end
 
 # Momentum roughness length should be different from scalar roughness length.
 # Apparently temperature and water vapor can be considered the same (Edison et al 2013)
-@inline function momentum_roughness_length(ℓ::GravityWaveRoughnessLength{FT}, h, Σ★) where FT
+@inline function momentum_roughness_length(ℓ::GravityMomentumRoughnessLength{FT}, Σ★) where FT
     u★ = Σ★.momentum
-    g = ℓ.gravitational_acceleration
-    ν = ℓ.air_kinematic_viscosity
-    α = ℓ.gravity_wave_parameter
-    β = ℓ.laminar_parameter
+    g  = ℓ.gravitational_acceleration
+    ν  = ℓ.air_kinematic_viscosity
+    α  = ℓ.gravity_wave_parameter
+    β  = ℓ.laminar_parameter
+    ℓm = ℓ.maximum_roughness_length
 
     # We need to prevent `Inf` that pops up when `u★ == 0`.
-    # However, if we leave `z₀ᴿ == 0` we will have a non-ending zero loop
     # For this reason, if `u★ == 0` we prescribe the roughness length to be
-    # equal to `1e-4` as an initial guess
-    z₀ᴿ = ifelse(u★ == 0, convert(FT, 1.5e-4), β * ν / u★) 
+    # equal to a `maximum` roughness length
+    ℓᴿ = ifelse(u★ == 0, ℓm, β * ν / u★) 
     
-    return min(α * u★^2 / g + z₀ᴿ, h / 2)
+    return min(α * u★^2 / g + ℓᴿ, ℓm)
 end
 
-@inline water_vapor_roughness_length(ℓ, h, Σ★) = momentum_roughness_length(ℓ, h, Σ★)
-@inline temperature_roughness_length(ℓ, h, Σ★) = momentum_roughness_length(ℓ, h, Σ★)
-
 # This, for example is what is implemented in COARE 3.6
-# @inline function water_vapor_roughness_length(ℓ::GravityWaveRoughnessLength{FT}, ℓu, Σ★) where FT
-#     u★ = Σ★.momentum
-#     ν = ℓ.air_kinematic_viscosity
-    
-#     r  = ℓu * u★ / ν
-#     ℓq = ifelse(r == 0, 1e-4, 5.8e-5 / r ^ 0.72)
+@inline function water_vapor_roughness_length(ℓ::GravityScalarRoughnessLength{FT}, ℓu, Σ★) where FT
+    u★ = Σ★.momentum
+    ν  = ℓ.air_kinematic_viscosity
+    ℓm = ℓ.maximum_roughness_length
+    R  = ℓ.reynolds_number_scaling_function
 
-#     return min(1.6e-4, ℓq);  
-# end
+    # Roughness Reynolds number based
+    # on momentum roughness length
+    ℓᴿ = R(ℓu * u★ / ν)
 
-# @inline temperature_roughness_length(ℓ::GravityWaveRoughnessLength, ℓq, Σ★) = ℓq
+    # If u★ is small we cap the scalar roughness length
+    ℓq = ifelse(u★ == 0, ℓm, ν / u★ * ℓᴿ) 
+
+    return min(ℓq, ℓm);  
+end
+
+@inline temperature_roughness_length(ℓ::GravityScalarRoughnessLength, ℓq, Σ★) = ℓq
 

@@ -56,25 +56,6 @@ end
 @inline ϕ₃(ξ, η) =      ξ  * (1 - η)
 @inline ϕ₄(ξ, η) =      ξ  *      η 
 
-# To allow the use with KernelFunctionOperation
-@inline function net_downwelling_radiation(i, j, k, grid, time, 
-                                           atmos_radiation::TwoStreamDownwellingRadiation,
-                                           atmos_grid,
-                                           atmos_times, 
-                                           atmos_backend, 
-                                           atmos_time_indexing,
-                                           radiative_properties) 
-    
-    X = node(i, j, 1, grid, c, c, f)
-    
-    atmos_args = (atmos_grid, atmos_times, atmos_backend, atmos_time_indexing)
-    
-    Qs = interp_atmos_time_series(atmos_radiation.shortwave, X, time, atmos_args...)
-    Qℓ = interp_atmos_time_series(atmos_radiation.longwave,  X, time, atmos_args...)
-
-    return net_downwelling_radiation(i, j, grid, time, Qs, Qℓ, radiative_properties)
-end
-
 @inline function net_downwelling_radiation(i, j, grid, time, Qs, Qℓ, radiation::Radiation{<:Any, <:Any, <:SurfaceProperties{<:TabulatedAlbedo}})
     α = radiation.reflection.ocean
 
@@ -127,5 +108,5 @@ end
 
     ϵ = stateindex(radiation.emission.ocean, i, j, 1, grid, time)
 
-    return α
+    return - (1 - α) * Qs - ε * Qℓ
 end
