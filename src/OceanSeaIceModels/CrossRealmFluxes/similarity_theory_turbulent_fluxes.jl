@@ -477,7 +477,7 @@ struct GravityScalarRoughnessLength{FT, R}
     maximum_roughness_length :: FT
 end
 
-@inline liu_katsaros_businger_scaling_function(Rr) = ifelse(Rr == 0, 0, 5.8e-5 / Rr^0.72)
+@inline liu_katsaros_businger_scaling_function(Rr :: FT) where FT = ifelse(Rr == 0, FT(0), covert(FT, 5.8e-5 / Rr^0.72))
 
 function GravityScalarRoughnessLength(FT=Float64;
                                       air_kinematic_viscosity = 1.5e-5,
@@ -496,11 +496,11 @@ function GravityMomentumRoughnessLength(FT=Float64;
                                     gravity_wave_parameter = 0.011,
                                     laminar_parameter = 0.11)
 
-    return GravityWaveRoughnessLength(convert(FT, gravitational_acceleration),
-                                      convert(FT, air_kinematic_viscosity),
-                                      convert(FT, gravity_wave_parameter),
-                                      convert(FT, laminar_parameter),
-                                      convert(FT, maximum_roughness_length))
+    return GravityMomentumRoughnessLength(convert(FT, gravitational_acceleration),
+                                          convert(FT, air_kinematic_viscosity),
+                                          convert(FT, gravity_wave_parameter),
+                                          convert(FT, laminar_parameter),
+                                          convert(FT, maximum_roughness_length))
 end
 
 # Momentum roughness length should be different from scalar roughness length.

@@ -4,6 +4,11 @@ struct Radiation{FT, E, R}
     stefan_boltzmann_constant :: FT
 end
 
+Adapt.adapt_structure(to, r :: Radiation) = 
+            Radiation(Adapt.adapt(to, r.emission),
+                      Adapt.adapt(to, r.reflection),
+                      Adapt.adapt(to, r.stefan_boltzmann_constant))
+
 function Radiation(arch = CPU(), FT=Float64;
                    ocean_emissivity = 0.97,
                    sea_ice_emissivity = 1.0,
@@ -51,3 +56,6 @@ struct SurfaceProperties{O, I}
     sea_ice :: I
 end
 
+Adapt.adapt_structure(to, s :: SurfaceProperties) = 
+    SurfaceProperties(Adapt.adapt(to, s.ocean),
+                      Adapt.adapt(to, s.sea_ice))
