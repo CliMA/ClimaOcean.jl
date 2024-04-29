@@ -437,8 +437,8 @@ end
 end
 
 # Fallback for a `Nothing` radiation scheme
-@inline   net_upwelling_radiation(i, j, grid, time, ::Nothing, Tₒ)     = zero(0)
-@inline net_downwelling_radiation(i, j, grid, time, Qs, Qℓ, ::Nothing) = zero(0)
+@inline   net_upwelling_radiation(i, j, grid, time, ::Nothing, Tₒ)     = zero(grid)
+@inline net_downwelling_radiation(i, j, grid, time, Qs, Qℓ, ::Nothing) = zero(grid)
 
 @inline function net_downwelling_radiation(i, j, grid, time, Qs, Qℓ, radiation)
     α = stateindex(radiation.reflection.ocean, i, j, 1, grid, time)

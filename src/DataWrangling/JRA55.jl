@@ -566,7 +566,7 @@ JRA55_prescribed_atmosphere(arch::Distributed, time_indices=Colon(); kw...) =
 function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
                                      backend = nothing,
                                      time_indexing = Cyclical(),
-                                     measurement_height = 2,  # meters
+                                     measurement_height = 10,  # meters
                                      other_kw...)
 
     if isnothing(backend) # apply a default
@@ -615,12 +615,14 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
 
     downwelling_radiation = TwoStreamDownwellingRadiation(shortwave=Qs, longwave=Ql)
 
-    atmosphere = PrescribedAtmosphere(times, eltype(ua);
+    FT = eltype(ua)
+
+    atmosphere = PrescribedAtmosphere(times, FT;
                                       velocities,
                                       freshwater_flux,
                                       tracers,
                                       downwelling_radiation,
-                                      measurement_height,
+                                      convert(FT, measurement_height),
                                       pressure)
 
     return atmosphere
