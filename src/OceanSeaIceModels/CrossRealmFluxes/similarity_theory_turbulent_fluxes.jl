@@ -512,16 +512,20 @@ end
 
     # Monin-Obhukov characteristic length scale and non-dimensional height
     L★ = ifelse(b★ == 0, zero(b★), - u★^2 / (ϰ * b★))
-
+    
     # Compute roughness length scales
     ℓu₀ = roughness_length(ℓu, u★, 𝒬ₒ, ℂ)
     ℓq₀ = roughness_length(ℓq, ℓu₀, u★, 𝒬ₒ, ℂ)
     ℓθ₀ = roughness_length(ℓθ, ℓu₀, u★, 𝒬ₒ, ℂ)
 
     # Transfer coefficients at height `h`
-    Cu = ϰ / (log(h / ℓu₀) - ψu(h / L★) + ψu(ℓu₀ / L★))
-    Cθ = ϰ / (log(h / ℓq₀) - ψθ(h / L★) + ψθ(ℓq₀ / L★))
-    Cq = ϰ / (log(h / ℓθ₀) - ψq(h / L★) + ψq(ℓθ₀ / L★))
+    χu = ϰ / (log(h / ℓu₀) - ψu(h / L★) + ψu(ℓu₀ / L★))
+    χθ = ϰ / (log(h / ℓq₀) - ψθ(h / L★) + ψθ(ℓq₀ / L★))
+    χq = ϰ / (log(h / ℓθ₀) - ψq(h / L★) + ψq(ℓθ₀ / L★))
+
+    if χu < 0
+        @show h, χu, u★, h, ℓu₀, L★
+    end
 
     Δu = differences.u
     Δv = differences.v
@@ -529,9 +533,9 @@ end
     Δq = differences.q
 
     # u★ including gustiness
-    u★ = Cu * uτ
-    θ★ = Cθ * Δθ
-    q★ = Cq * Δq
+    u★ = χu * uτ
+    θ★ = χθ * Δθ
+    q★ = χq * Δq
 
     # Dissipation characteristic scale for gustiness
     ε★ = - u★ * b★
@@ -582,7 +586,7 @@ end
 
 function GravityMomentumRoughnessLength(FT=Float64;
                                         gravitational_acceleration = default_gravitational_acceleration,
-                                        maximum_roughness_length = Inf, # An estimate?
+                                        maximum_roughness_length = 1.0, # An estimate?
                                         air_kinematic_viscosity = temperature_dependent_viscosity,
                                         gravity_wave_parameter = 0.011,
                                         laminar_parameter = 0.11)
