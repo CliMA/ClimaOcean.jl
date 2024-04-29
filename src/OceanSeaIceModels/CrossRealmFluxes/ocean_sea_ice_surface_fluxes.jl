@@ -58,6 +58,7 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
                                   radiation = nothing,
                                   freshwater_density = 1000,
                                   ocean_temperature_units = DegreesCelsius(),
+                                  similarity_theory = nothing,
                                   ocean_reference_density = reference_density(ocean),
                                   ocean_heat_capacity = heat_capacity(ocean))
 
@@ -72,9 +73,9 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
         # It's the "thermodynamics gravitational acceleration"
         # (as opposed to the one used for the free surface)
         gravitational_acceleration = ocean.model.buoyancy.model.gravitational_acceleration
-        similarity_theory = SimilarityTheoryTurbulentFluxes(grid; gravitational_acceleration)
-    else
-        similarity_theory = nothing
+        if isnothing(similarity_theory)
+            similarity_theory = SimilarityTheoryTurbulentFluxes(grid; gravitational_acceleration)
+        end
     end
 
     prescribed_fluxes = nothing
@@ -183,7 +184,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     kernel_parameters = KernelParameters(kernel_size, (-1, -1))
 
     launch!(arch, grid, kernel_parameters, _compute_atmosphere_ocean_similarity_theory_fluxes!,
-            similarity_theory.fields,
+            similarity_theory,
             grid,
             clock,
             ocean_state,
@@ -194,9 +195,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             atmosphere_backend,
             atmosphere_time_indexing,
             atmosphere.measurement_height, # height at which the state is known
-            atmosphere.thermodynamics_parameters,
-            similarity_theory.roughness_lengths,
-            similarity_theory.similarity_functions)
+            atmosphere.thermodynamics_parameters)
     
     launch!(arch, grid, kernel_parameters, _assemble_atmosphere_ocean_fluxes!,
             centered_velocity_fluxes,
@@ -237,7 +236,7 @@ end
 # Fallback!
 limit_fluxes_over_sea_ice!(args...) = nothing
 
-@kernel function _compute_atmosphere_ocean_similarity_theory_fluxes!(similarity_theory_fields,
+@kernel function _compute_atmosphere_ocean_similarity_theory_fluxes!(similarity_theory,
                                                                      grid,
                                                                      clock,
                                                                      ocean_state,
@@ -248,9 +247,7 @@ limit_fluxes_over_sea_ice!(args...) = nothing
                                                                      atmos_backend,
                                                                      atmos_time_indexing,
                                                                      atmosphere_measurement_height,
-                                                                     atmos_thermodynamics_parameters,
-                                                                     roughness_lengths,
-                                                                     similarity_functions)
+                                                                     atmos_thermodynamics_parameters)
 
     i, j = @index(Global, NTuple)
     kᴺ = size(grid, 3)
@@ -312,17 +309,16 @@ limit_fluxes_over_sea_ice!(args...) = nothing
     Uₒ = SVector(uₒ, vₒ)
     𝒰₀ = dynamic_ocean_state = SurfaceFluxes.StateValues(h₀, Uₒ, 𝒬₀)
 
-    Qv = similarity_theory_fields.latent_heat
-    Qc = similarity_theory_fields.sensible_heat
-    Fv = similarity_theory_fields.water_vapor
-    τx = similarity_theory_fields.x_momentum
-    τy = similarity_theory_fields.y_momentum
+    Qv = similarity_theory.fields.latent_heat
+    Qc = similarity_theory.fields.sensible_heat
+    Fv = similarity_theory.fields.water_vapor
+    τx = similarity_theory.fields.x_momentum
+    τy = similarity_theory.fields.y_momentum
 
     g = default_gravitational_acceleration
-    ϰ = 0.4
+    ϰ = similarity_theory.von_karman_constant
     
-    turbulent_fluxes = compute_similarity_theory_fluxes(roughness_lengths,
-                                                        similarity_functions,
+    turbulent_fluxes = compute_similarity_theory_fluxes(similarity_theory,
                                                         dynamic_ocean_state,
                                                         dynamic_atmos_state,
                                                         ℂₐ, g, ϰ)
