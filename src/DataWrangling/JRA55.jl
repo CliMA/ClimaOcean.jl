@@ -616,13 +616,14 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
     downwelling_radiation = TwoStreamDownwellingRadiation(shortwave=Qs, longwave=Ql)
 
     FT = eltype(ua)
+    measurement_height = convert(FT, measurement_height)
 
     atmosphere = PrescribedAtmosphere(times, FT;
                                       velocities,
                                       freshwater_flux,
                                       tracers,
                                       downwelling_radiation,
-                                      convert(FT, measurement_height),
+                                      measurement_height,
                                       pressure)
 
     return atmosphere
