@@ -582,7 +582,7 @@ end
 
 function GravityMomentumRoughnessLength(FT=Float64;
                                         gravitational_acceleration = default_gravitational_acceleration,
-                                        maximum_roughness_length = 5e-3, # An estimate?
+                                        maximum_roughness_length = Inf, # An estimate?
                                         air_kinematic_viscosity = temperature_dependent_viscosity,
                                         gravity_wave_parameter = 0.011,
                                         laminar_parameter = 0.11)
