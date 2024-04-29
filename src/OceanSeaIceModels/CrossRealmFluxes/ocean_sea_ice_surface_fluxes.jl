@@ -193,7 +193,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             atmosphere_times,
             atmosphere_backend,
             atmosphere_time_indexing,
-            atmosphere.reference_height, # height at which the state is known
+            atmosphere.measurement_height, # height at which the state is known
             atmosphere.thermodynamics_parameters,
             similarity_theory.roughness_lengths,
             similarity_theory.similarity_functions)
@@ -247,7 +247,7 @@ limit_fluxes_over_sea_ice!(args...) = nothing
                                                                      atmos_times,
                                                                      atmos_backend,
                                                                      atmos_time_indexing,
-                                                                     atmosphere_reference_height,
+                                                                     atmosphere_measurement_height,
                                                                      atmos_thermodynamics_parameters,
                                                                      roughness_lengths,
                                                                      similarity_functions)
@@ -294,7 +294,7 @@ limit_fluxes_over_sea_ice!(args...) = nothing
     ℂₐ = atmos_thermodynamics_parameters
     𝒬ₐ = thermodynamic_atmospheric_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₐ, qₐ)
 
-    hₐ = atmosphere_reference_height # elevation of atmos variables relative to surface
+    hₐ = atmosphere_measurement_height # elevation of atmos variables relative to surface
     Uₐ = SVector(uₐ, vₐ)
     𝒰ₐ = dynamic_atmos_state = SurfaceFluxes.StateValues(hₐ, Uₐ, 𝒬ₐ)
 
@@ -318,23 +318,6 @@ limit_fluxes_over_sea_ice!(args...) = nothing
     τx = similarity_theory_fields.x_momentum
     τy = similarity_theory_fields.y_momentum
 
-    @inbounds begin
-        Qcᵢ = Qc[i, j, 1]
-        Fvᵢ = Fv[i, j, 1]
-        τxᵢ = τx[i, j, 1]
-        τyᵢ = τy[i, j, 1]
-    end
-
-    # Compute initial guess based on previous fluxes
-    ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
-    cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
-
-    u★ = sqrt(sqrt(τxᵢ^2 + τyᵢ^2))
-    u★ = ifelse(u★ == 0, 1e-2, u★)
-    θ★ = - Qcᵢ / (ρₐ * cₚ * u★)
-    q★ = - Fvᵢ / (ρₐ * u★)
-    Σ★ = SimilarityScales(u★, θ★, q★)
-
     g = default_gravitational_acceleration
     ϰ = 0.4
     
@@ -342,7 +325,7 @@ limit_fluxes_over_sea_ice!(args...) = nothing
                                                         similarity_functions,
                                                         dynamic_ocean_state,
                                                         dynamic_atmos_state,
-                                                        ℂₐ, g, ϰ, Σ★)
+                                                        ℂₐ, g, ϰ)
 
     kᴺ = size(grid, 3) # index of the top ocean cell
 

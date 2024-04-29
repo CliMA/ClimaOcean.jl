@@ -566,7 +566,7 @@ JRA55_prescribed_atmosphere(arch::Distributed, time_indices=Colon(); kw...) =
 function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
                                      backend = nothing,
                                      time_indexing = Cyclical(),
-                                     reference_height = 2,  # meters
+                                     measurement_height = 2,  # meters
                                      other_kw...)
 
     if isnothing(backend) # apply a default
@@ -620,7 +620,7 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
                                       freshwater_flux,
                                       tracers,
                                       downwelling_radiation,
-                                      reference_height,
+                                      measurement_height,
                                       pressure)
 
     return atmosphere
