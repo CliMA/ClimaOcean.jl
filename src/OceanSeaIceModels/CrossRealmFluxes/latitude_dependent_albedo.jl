@@ -100,7 +100,7 @@ end
     Δ𝓉 = @inbounds α.𝓉_values[2] - 𝓉₁
     i⁻, i⁺, ξ = interpolator((𝓉 - 𝓉₁) / Δ𝓉)
 
-    # finding the i-index in the table (depending on latitude)
+    # finding the j-index in the table (depending on latitude)
     # assuming the transmissivity is tabulated with constant values
     φ₁ = @inbounds α.φ_values[1]
     Δφ = @inbounds α.φ_values[2] - φ₁
