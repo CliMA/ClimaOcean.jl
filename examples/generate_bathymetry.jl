@@ -63,4 +63,3 @@ ax = Axis(fig[1, 2])
 heatmap!(ax, λ, φ, interior(h_rough, :, :, 1), nan_color=:white) #, colorrange=(-5000, 0))
 
 display(fig)
-

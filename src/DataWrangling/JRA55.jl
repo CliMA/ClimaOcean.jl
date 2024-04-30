@@ -326,6 +326,13 @@ function JRA55_field_time_series(variable_name;
                                  preprocess_architecture = CPU(),
                                  time_indices = nothing)
 
+    # OnDisk backends do not support time interpolation!
+    # Disallow OnDisk for JRA55 dataset loading 
+    if backend isa OnDisk 
+        msg = string("We cannot load the JRA55 dataset with an `OnDisk` backend")
+        throw(ArgumentError(msg))
+    end
+
     if isnothing(filename) && !(variable_name ∈ JRA55_variable_names)
         variable_strs = Tuple("  - :$name \n" for name in JRA55_variable_names)
         variables_msg = prod(variable_strs)
@@ -382,7 +389,8 @@ function JRA55_field_time_series(variable_name;
             time_indices_in_memory = 1:length(backend)
             native_fts_architecture = architecture
         else # then `time_indices_in_memory` refers to preprocessing
-            time_indices_in_memory = 1:preprocess_chunk_size
+            maximum_index = min(preprocess_chunk_size, length(time_indices))
+            time_indices_in_memory = 1:maximum_index
             native_fts_architecture = preprocess_architecture
         end
     end
@@ -487,9 +495,8 @@ function JRA55_field_time_series(variable_name;
 
     all_times = jra55_times(all_datetimes)
 
-    on_disk_fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid;
+    on_disk_fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid, all_times;
                                                    boundary_conditions,
-                                                   times = all_times,
                                                    backend = OnDisk(),
                                                    path = jld2_filename,
                                                    name = fts_name)
@@ -499,13 +506,25 @@ function JRA55_field_time_series(variable_name;
     n = 1 # on disk
     m = 0 # in memory
 
-    fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid;
-                                           boundary_conditions,
-                                           backend,
-                                           times = all_times,
-                                           path  = jld2_filename,
-                                           name  = fts_name)
+    times_in_memory = all_times[time_indices_in_memory]
 
+    fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid, times_in_memory;
+                                           boundary_conditions,
+                                           backend = InMemory(),
+                                           path = jld2_filename,
+                                           name = fts_name)
+
+    # Re-compute data
+    new_data  = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
+
+    if !on_native_grid
+        copyto!(interior(native_fts, :, :, 1, :), new_data[:, :, :])
+        fill_halo_regions!(native_fts)    
+        interpolate!(fts, native_fts)
+    else
+        copyto!(interior(fts, :, :, 1, :), new_data[:, :, :])
+    end
+                     
     while n <= all_Nt
         print("        ... processing time index $n of $all_Nt \r")
 
@@ -522,24 +541,25 @@ function JRA55_field_time_series(variable_name;
             end
 
             # Re-compute times
-            Nt = length(time_indices_in_memory)
-            new_times = jra55_times(Nt, all_times[n₁])
+            new_times = jra55_times(all_times[time_indices_in_memory], all_times[n₁])
             native_fts.times = new_times
 
             # Re-compute data
-            new_data = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
-            copyto!(interior(native_fts, :, :, 1, :), new_data[:, :, :])
-            fill_halo_regions!(native_fts)
+            new_data  = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
+            fts.times = new_times
 
             if !on_native_grid
-                fts.times = new_times
-                interpolate!(tmp_field, native_fts)
+                copyto!(interior(native_fts, :, :, 1, :), new_data[:, :, :])
+                fill_halo_regions!(native_fts)    
+                interpolate!(fts, native_fts)
+            else
+                copyto!(interior(fts, :, :, 1, :), new_data[:, :, :])
             end
 
             m = 1 # reset
         end
 
-        set!(on_disk_fts, fts[m], n, all_times[n])
+        set!(on_disk_fts, fts[m], n, fts.times[m])
 
         n += 1
     end
@@ -551,6 +571,8 @@ function JRA55_field_time_series(variable_name;
     close(ds)
 
     user_fts = FieldTimeSeries(jld2_filename, fts_name; architecture, backend, time_indexing)
+    fill_halo_regions!(user_fts)
+
     return user_fts
 end
 

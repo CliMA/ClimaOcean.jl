@@ -1,13 +1,18 @@
 module ClimaOcean
 
-export regrid_bathymetry
-export stretched_vertical_faces
-export PowerLawStretching, LinearStretching
-export jra55_field_time_series
-export ecco2_field, ECCO2Metadata
-export initialize!
-export OceanSeaIceModel, FreezingLimitedOceanTemperature
-export Radiation, JRA55_prescribed_atmosphere, JRA55NetCDFBackend
+export
+    OceanSeaIceModel,
+    MinimumTemperatureSeaIce,
+    Radiation,
+    JRA55_prescribed_atmosphere,
+    JRA55NetCDFBackend,
+    ecco2_field,
+    regrid_bathymetry,
+    stretched_vertical_faces,
+    PowerLawStretching, LinearStretching,
+    jra55_field_time_series,
+    ecco2_field, ECCO2Metadata,
+    initialize!
 
 using Oceananigans
 using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
