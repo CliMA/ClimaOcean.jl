@@ -44,8 +44,7 @@ include("runtests_setup.jl")
 
         @test in_memory_jra55_fts isa FieldTimeSeries
 
-        @show in_memory_jra55_fts[1], jra55_fts[1]
-        @test parent(in_memory_jra55_fts[1]) == parent(jra55_fts[1])
+        @test interior(in_memory_jra55_fts[1]) == interior(jra55_fts[1])
 
         # Clean up
         rm(test_filename)

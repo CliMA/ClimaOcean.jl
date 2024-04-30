@@ -514,6 +514,17 @@ function JRA55_field_time_series(variable_name;
                                            path = jld2_filename,
                                            name = fts_name)
 
+    # Re-compute data
+    new_data  = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
+
+    if !on_native_grid
+        copyto!(interior(native_fts, :, :, 1, :), new_data[:, :, :])
+        fill_halo_regions!(native_fts)    
+        interpolate!(fts, native_fts)
+    else
+        copyto!(interior(fts, :, :, 1, :), new_data[:, :, :])
+    end
+                     
     while n <= all_Nt
         print("        ... processing time index $n of $all_Nt \r")
 
@@ -548,6 +559,8 @@ function JRA55_field_time_series(variable_name;
             m = 1 # reset
         end
 
+        @show fts[m]
+
         set!(on_disk_fts, fts[m], n, fts.times[m])
 
         n += 1
@@ -560,6 +573,8 @@ function JRA55_field_time_series(variable_name;
     close(ds)
 
     user_fts = FieldTimeSeries(jld2_filename, fts_name; architecture, backend, time_indexing)
+    fill_halo_regions!(user_fts)
+
     return user_fts
 end
 
