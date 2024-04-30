@@ -523,10 +523,6 @@ end
     χθ = ϰ / (log(h / ℓq₀) - ψθ(h / L★) + ψθ(ℓq₀ / L★))
     χq = ϰ / (log(h / ℓθ₀) - ψq(h / L★) + ψq(ℓθ₀ / L★))
 
-    if χu < 0
-        @show h, χu, u★, h, ℓu₀, L★
-    end
-
     Δu = differences.u
     Δv = differences.v
     Δθ = differences.θ
