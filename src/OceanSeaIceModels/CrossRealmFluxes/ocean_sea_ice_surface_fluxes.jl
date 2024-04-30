@@ -195,6 +195,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             atmosphere_backend,
             atmosphere_time_indexing,
             atmosphere.measurement_height, # height at which the state is known
+            atmosphere.boundary_layer_height,
             atmosphere.thermodynamics_parameters)
     
     launch!(arch, grid, kernel_parameters, _assemble_atmosphere_ocean_fluxes!,
@@ -247,6 +248,7 @@ limit_fluxes_over_sea_ice!(args...) = nothing
                                                                      atmos_backend,
                                                                      atmos_time_indexing,
                                                                      atmosphere_measurement_height,
+                                                                     atmosphere_boundary_layer_height,
                                                                      atmos_thermodynamics_parameters)
 
     i, j = @index(Global, NTuple)
@@ -321,6 +323,7 @@ limit_fluxes_over_sea_ice!(args...) = nothing
     turbulent_fluxes = compute_similarity_theory_fluxes(similarity_theory,
                                                         dynamic_ocean_state,
                                                         dynamic_atmos_state,
+                                                        atmosphere_boundary_layer_height,
                                                         ℂₐ, g, ϰ)
 
     kᴺ = size(grid, 3) # index of the top ocean cell

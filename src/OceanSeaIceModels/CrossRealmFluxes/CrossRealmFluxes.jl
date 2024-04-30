@@ -63,6 +63,7 @@ end
 include("three_dimensional_operators.jl")
 include("radiation.jl")
 include("latitude_dependent_albedo.jl")
+include("stability_functions.jl")
 include("similarity_theory_turbulent_fluxes.jl")
 include("ocean_sea_ice_surface_fluxes.jl")
 include("sea_ice_ocean_fluxes.jl")

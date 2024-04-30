@@ -297,6 +297,7 @@ struct PrescribedAtmosphere{G, U, P, C, F, R, TP, TI, FT}
     thermodynamics_parameters :: TP
     times :: TI
     measurement_height :: FT
+    boundary_layer_height :: FT
 end
 
 Base.summary(::PrescribedAtmosphere) = "PrescribedAtmosphere"
@@ -317,6 +318,7 @@ state with data given at `times`.
 function PrescribedAtmosphere(times, FT=Float64;
                               measurement_height,
                               velocities = nothing,
+                              boundary_layer_height = convert(FT, 600),
                               pressure = nothing,
                               freshwater_flux = nothing,
                               downwelling_radiation = nothing,
@@ -337,7 +339,8 @@ function PrescribedAtmosphere(times, FT=Float64;
                                 downwelling_radiation,
                                 thermodynamics_parameters,
                                 times,
-                                convert(FT, measurement_height))
+                                convert(FT, measurement_height),
+                                convert(FT, boundary_layer_height))
 end
 
 update_model_field_time_series!(::Nothing, time) = nothing
