@@ -1,11 +1,18 @@
 module ClimaOcean
 
-export regrid_bathymetry
-export stretched_vertical_faces
-export PowerLawStretching, LinearStretching
-export jra55_field_time_series
-export ecco2_field, ECCO2Metadata
-export initialize!
+export
+    OceanSeaIceModel,
+    FreezingLimitedOceanTemperature,
+    Radiation,
+    JRA55_prescribed_atmosphere,
+    JRA55NetCDFBackend,
+    ecco2_field,
+    regrid_bathymetry,
+    stretched_vertical_faces,
+    PowerLawStretching, LinearStretching,
+    jra55_field_time_series,
+    ecco2_field, ECCO2Metadata,
+    initialize!
 
 using Oceananigans
 using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
@@ -21,6 +28,7 @@ using DataDeps
 @inline u_immersed_bottom_drag(i, j, k, grid, c, Φ, μ) = @inbounds - μ * Φ.u[i, j, k] * spᶠᶜᶜ(i, j, k, grid, Φ)
 @inline v_immersed_bottom_drag(i, j, k, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, k] * spᶜᶠᶜ(i, j, k, grid, Φ)
 
+include("OceanSeaIceModels/OceanSeaIceModels.jl")
 include("VerticalGrids.jl")
 include("InitialConditions/InitialConditions.jl")
 include("DataWrangling/DataWrangling.jl")
@@ -32,5 +40,8 @@ using .Bathymetry
 using .DataWrangling: JRA55
 using .DataWrangling: ECCO2
 using .InitialConditions
+using .DataWrangling: JRA55, ECCO2
+using .OceanSeaIceModels: OceanSeaIceModel, Radiation
 
 end # module
+

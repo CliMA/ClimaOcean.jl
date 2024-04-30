@@ -20,7 +20,7 @@ h = regrid_bathymetry(grid, height_above_water=1, minimum_depth=5)
 land = interior(h) .> 0
 interior(h)[land] .= NaN
 
-fig = Figure(resolution=(2400, 1200))
+fig = Figure(size=(2400, 1200))
 ax = Axis(fig[1, 1])
 heatmap!(ax, λ, φ, interior(h, :, :, 1), nan_color=:white, colorrange=(-5000, 0))
 
@@ -56,11 +56,10 @@ interior(h_smooth)[land_smooth] .= NaN
 land_rough = interior(h_rough) .> 0
 interior(h_rough)[land_rough] .= NaN
 
-fig = Figure(resolution=(2400, 800))
+fig = Figure(size=(2400, 1200))
 ax = Axis(fig[1, 1])
 heatmap!(ax, λ, φ, interior(h_smooth, :, :, 1), nan_color=:white) #, colorrange=(-5000, 0))
 ax = Axis(fig[1, 2])
 heatmap!(ax, λ, φ, interior(h_rough, :, :, 1), nan_color=:white) #, colorrange=(-5000, 0))
 
 display(fig)
-

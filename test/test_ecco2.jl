@@ -24,8 +24,8 @@ using Oceananigans.Grids: topology
         @test Ny == 720
         @test Nz == 50
 
-        ice_thickness_filename = ECCO2.ecco2_file_names[:effective_ice_thickness]
-        ecco2_ice_thickness    = ECCO2.ecco2_field(:effective_ice_thickness; architecture=arch)
+        ice_thickness_filename = ECCO2.ecco2_file_names[:sea_ice_thickness]
+        ecco2_ice_thickness    = ECCO2.ecco2_field(:sea_ice_thickness; architecture=arch)
 
         @test isfile(ice_thickness_filename)
         rm(ice_thickness_filename)

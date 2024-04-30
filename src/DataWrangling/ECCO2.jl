@@ -28,16 +28,99 @@ ECCO2Metadata(name::Symbol) = ECCO2Metadata(name, 1992, 1, 2)
 
 filename(data::ECCO2Metadata) = "ecco2_" * string(data.name) * "_$(data.year)$(data.month)$(data.day).nc"
 
+const ECCO2_Nx = 1440
+const ECCO2_Ny = 720
+const ECCO2_Nz = 50
+
+# Vertical coordinate
+const ECCO2_z = [
+    -6128.75,
+    -5683.75,
+    -5250.25,
+    -4839.75,
+    -4452.25,
+    -4087.75,
+    -3746.25,
+    -3427.75,
+    -3132.25,
+    -2859.75,
+    -2610.25,
+    -2383.74,
+    -2180.13,
+    -1999.09,
+    -1839.64,
+    -1699.66,
+    -1575.64,
+    -1463.12,
+    -1357.68,
+    -1255.87,
+    -1155.72,
+    -1056.53,
+    -958.45,
+    -862.10,
+    -768.43,
+    -678.57,
+    -593.72,
+    -515.09,
+    -443.70,
+    -380.30,
+    -325.30,
+    -278.70,
+    -240.09,
+    -208.72,
+    -183.57,
+    -163.43,
+    -147.11,
+    -133.45,
+    -121.51,
+    -110.59,
+    -100.20,
+    -90.06,
+    -80.01,
+    -70.0,
+    -60.0,
+    -50.0,
+    -40.0,
+    -30.0,
+    -20.0,
+    -10.0,
+      0.0,
+]
+
+ecco2_file_names = Dict(
+    :temperature           => "THETA.1440x720x50.19920102.nc",
+    :salinity              => "SALT.1440x720x50.19920102.nc",
+    :sea_ice_thickness     => "SIheff.1440x720.19920102.nc",
+    :sea_ice_area_fraction => "SIarea.1440x720.19920102.nc",
+    :u_velocity            => "UVEL.1440x720.19920102.nc",
+    :v_velocity            => "VVEL.1440x720.19920102.nc",
+)
+
+variable_is_three_dimensional = Dict(
+    :temperature             => true,
+    :salinity                => true,
+    :u_velocity              => true,
+    :v_velocity              => true,
+    :sea_ice_thickness       => false,
+    :sea_ice_area_fraction   => false,
+)
+
 ecco2_short_names = Dict(
-    :temperature   => "THETA",
-    :salinity      => "SALT",
-    :effective_ice_thickness => "SIheff"
+    :temperature           => "THETA",
+    :salinity              => "SALT",
+    :u_velocity            => "UVEL",
+    :v_velocity            => "VVEL",
+    :sea_ice_thickness     => "SIheff",
+    :sea_ice_area_fraction => "SIarea"
 )
 
 ecco2_location = Dict(
-    :temperature   => (Center, Center, Center),
-    :salinity      => (Center, Center, Center),
-    :effective_ice_thickness => (Center, Center, Nothing)
+    :temperature           => (Center, Center, Center),
+    :salinity              => (Center, Center, Center),
+    :sea_ice_thickness     => (Center, Center, Nothing),
+    :sea_ice_area_fraction => (Center, Center, Nothing),
+    :u_velocity            => (Face,   Center, Center),
+    :v_velocity            => (Center, Face,   Center),
 )
 
 ecco2_depth_names = Dict(
@@ -45,31 +128,39 @@ ecco2_depth_names = Dict(
     :salinity      => "DEPTH_T",
 )
 
-variable_is_three_dimensional = Dict(
-    :temperature             => true,
-    :salinity                => true,
-    :effective_ice_thickness => false,
-)
-
-ecco2_file_names = Dict(
-    :temperature             => "ecco2_temperature_19920102.nc",
-    :salinity                => "ecco2_salinity_19920102.nc",
-    :effective_ice_thickness => "ecco2_effective_ice_thickness_19920102.nc",
-)
-
-# Downloaded from https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N
-
 ecco2_urls = Dict(
-    :temperature => "https://www.dropbox.com/scl/fi/01h96yo2fhnnvt2zkmu0d/" *
-                    "THETA.1440x720x50.19920102.nc?rlkey=ycso2v09gc6v2qb5j0lff0tjs&dl=0",
-
-    :salinity => "https://www.dropbox.com/scl/fi/t068we10j5skphd461zg8/" *
-                 "SALT.1440x720x50.19920102.nc?rlkey=r5each0ytdtzh5icedvzpe7bw&dl=0",
-
-    :effective_ice_thickness => "https://www.dropbox.com/scl/fi/x0v9gjrfebwsef4tv1dvn/" *
-                                "SIheff.1440x720.19920102.nc?rlkey=2uel3jtzbsplr28ejcnx3u6am&dl=0"
+    :temperature           => "https://www.dropbox.com/scl/fi/01h96yo2fhnnvt2zkmu0d/THETA.1440x720x50.19920102.nc?rlkey=ycso2v09gc6v2qb5j0lff0tjs",
+    :salinity              => "https://www.dropbox.com/scl/fi/t068we10j5skphd461zg8/SALT.1440x720x50.19920102.nc?rlkey=r5each0ytdtzh5icedvzpe7bw",
+    :sea_ice_thickness     => "https://www.dropbox.com/scl/fi/x0v9gjrfebwsef4tv1dvn/SIheff.1440x720.19920102.nc?rlkey=2uel3jtzbsplr28ejcnx3u6am",
+    :sea_ice_area_fraction => "https://www.dropbox.com/scl/fi/q14moq3201zicppu8ff8h/SIarea.1440x720.19920102.nc?rlkey=pt7pt80gr7r6mmjm9e0u4f5n1",
+    :u_velocity            => "https://www.dropbox.com/scl/fi/myur9kpanc5mprrf5ge32/UVEL.1440x720x50.19920102.nc?rlkey=7a5dpvfgoc87yr6q5ktrqwndu",
+    :v_velocity            => "https://www.dropbox.com/scl/fi/buic35gssyeyfqohenkeo/VVEL.1440x720x50.19920102.nc?rlkey=fau48w4t5ruop4s6gm8t7z0a0",
 )
 
+
+shortnames = Dict(
+    :temperature           => "THETA",
+    :salinity              => "SALT",
+    :sea_ice_thickness     => "SIheff",
+    :sea_ice_area_fraction => "SIarea",
+    :u_velocity            => "UVEL",
+    :v_velocity            => "VVEL",
+)
+
+surface_variable(variable_name) = variable_name == :sea_ice_thickness
+
+"""
+    construct_vertical_interfaces(ds, depth_name)
+
+Constructs vertical interfaces for a given dataset `ds` and depth variable `depth_name`.
+
+# Arguments
+- `ds`: The dataset containing the depth variable.
+- `depth_name`: The name of the depth variable in the dataset.
+
+# Returns
+- `zf`: An array of interface depths.
+"""
 function construct_vertical_interfaces(ds, depth_name)
     # Construct vertical coordinate
     depth = ds[depth_name][:]
@@ -278,6 +369,24 @@ function set!(field::Field, ecco2_metadata::ECCO2Metadata; filename="./inpainted
     set!(field, f_grid)
 
     return field
+end
+
+function ecco2_column(λ★, φ★)
+    Δ = 1/4 # resolution in degrees
+    φ₁ = -90 + Δ/2
+    φ₂ = +90 - Δ/2
+    λ₁ = 0   + Δ/2
+    λ₂ = 360 - Δ/2
+    φe = φ₁:Δ:φ₂
+    λe = λ₁:Δ:λ₂
+    
+    i★ = searchsortedfirst(λe, λ★)
+    j★ = searchsortedfirst(φe, φ★)
+    
+    longitude = (λe[i★] - Δ/2, λe[i★] + Δ/2)
+    latitude  = (φe[j★] - Δ/2, φe[j★] + Δ/2)
+
+    return i★, j★, longitude, latitude
 end
 
 end # module
