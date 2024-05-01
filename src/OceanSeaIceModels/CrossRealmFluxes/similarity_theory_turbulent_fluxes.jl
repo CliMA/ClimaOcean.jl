@@ -91,13 +91,15 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                          gravitational_acceleration = default_gravitational_acceleration,
                                          von_karman_constant = convert(FT, 0.4),
                                          turbulent_prandtl_number = convert(FT, 1),
-                                         gustiness_parameter = convert(FT, 1.2),
+                                         gustiness_parameter = convert(FT, 6.5),
                                          stability_functions = default_stability_functions(FT),
                                          thermodynamics_parameters = PATP(FT),
                                          water_vapor_saturation = ClasiusClapyeronSaturation(),
                                          water_mole_fraction = convert(FT, 0.98),
                                          roughness_lengths = default_roughness_lengths(FT),
                                          fields = nothing)
+
+    @show gustiness_parameter
 
     return SimilarityTheoryTurbulentFluxes(convert(FT, gravitational_acceleration),
                                            convert(FT, von_karman_constant),
@@ -209,16 +211,6 @@ end
     ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
     cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
     ℰv = AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
-
-    # qₐ = AtmosphericThermodynamics.vapor_specific_humidity(ℂₐ, 𝒬ₐ)
-
-    # fluxes = (;
-    #     sensible_heat = θ★,
-    #     latent_heat   = u★,
-    #     water_vapor   = q★,
-    #     x_momentum    = lu,
-    #     y_momentum    = qₐ,
-    # )
 
     fluxes = (;
         sensible_heat = - ρₐ * cₚ * u★ * θ★,
