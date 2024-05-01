@@ -1,3 +1,5 @@
+using Oceananigans.Coriolis: hack_cosd
+
 struct Radiation{FT, E, R}
     emission :: E
     reflection :: R
@@ -31,6 +33,19 @@ end
 
 Base.summary(r::Radiation) = "Radiation"
 Base.show(io::IO, r::Radiation) = print(io, summary(r))
+
+struct LatitudeDependentAlbedo{FT}
+    direct :: FT
+    diffuse :: FT
+end
+
+@inline function stateindex(α::LatitudeDependentAlbedo, i, j, 1, grid, time) 
+    φ = φnode(i, j, k, grid, Center(), Center(), Center())
+    α_diffuse = α.diffuse
+    direct_correction = α.direct * hack_cosd(2φ)
+
+    return α_diffuse - direct_correction
+end
 
 # To allow the use with KernelFunctionOperation
 @inline function net_downwelling_radiation(i, j, k, grid, time, 

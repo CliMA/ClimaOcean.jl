@@ -19,12 +19,12 @@ function default_roughness_lengths(FT=Float64)
     return SimilarityScales(momentum, temperature, water_vapor)
 end
 
-# Empirical fit of the scalar roughness length with roughness Reynolds number `R★ = u★ / ν`
+# Empirical fit of the scalar roughness length with roughness Reynolds number `R★ = u★ ℓu / ν`
 # Edson et al. (2013), equation (28)
 @inline empirical_scaling_function(R★ :: FT, args...) where FT = 
         ifelse(R★ == 0, FT(0), convert(FT, 5.85e-5 / R★ ^ 0.72))
 
-# Assumes that θ comes in in Kelvin
+# Temeprature-dependent viscosity law: assumes that θ comes in Kelvin
 @inline function temperature_dependent_viscosity(θ :: FT) where FT 
     T = convert(FT, θ - celsius_to_kelvin)
     ν = convert(FT, 1.326e-5 * (1 + 6.542e-3 * T + 8.301e-6 * T^2 - 4.84e-9 * T^3))
@@ -61,7 +61,7 @@ function GravityMomentumRoughnessLength(FT=Float64;
 end
 
 # Momentum roughness length should be different from scalar roughness length.
-# Apparently temperature and water vapor can be considered the same (Edison et al 2013)
+# Temperature and water vapor can be considered the same (Edison et al 2013)
 @inline function roughness_length(ℓ::GravityMomentumRoughnessLength{FT}, u★, 𝒬, ℂ) where FT
     g  = ℓ.gravitational_acceleration
     α  = ℓ.gravity_wave_parameter
@@ -79,7 +79,7 @@ end
     return min(α * u★^2 / g + ℓᴿ, ℓm)
 end
 
-# This, for example is what is implemented in COARE 3.6
+# Edison 2013 formulation of scalar roughness length
 @inline function roughness_length(ℓ::GravityScalarRoughnessLength{FT}, ℓu, u★, 𝒬, ℂ) where FT
     ℓm = ℓ.maximum_roughness_length
     
