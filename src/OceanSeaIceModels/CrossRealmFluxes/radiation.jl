@@ -1,4 +1,5 @@
-using Oceananigans.Coriolis: hack_cosd
+@inline hack_cosd(φ) = cos(π * φ / 180)
+@inline hack_sind(φ) = sin(π * φ / 180)
 
 struct Radiation{FT, E, R}
     emission :: E

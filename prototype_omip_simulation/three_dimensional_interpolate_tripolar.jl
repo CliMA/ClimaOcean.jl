@@ -24,6 +24,9 @@ using OrthogonalSphericalShellGrids: TRG, WRG
 const TField = Field{<:Any, <:Any, <:Any, <:Any, <:TRG}
 const WField = Field{<:Any, <:Any, <:Any, <:Any, <:WRG}
 
+@inline hack_cosd(φ) = cos(π * φ / 180)
+@inline hack_sind(φ) = sin(π * φ / 180)
+
 function three_dimensional_interpolate!(a::Union{<:TField, <:WField}, b)
 
     interpolate!(a, b)
@@ -40,7 +43,7 @@ import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: convert_to_latlong, conver
      
     θ = φ₂ - φ₁
     
-    return uₒ * cosd(θ) + vₒ * sind(θ), uₒ * sind(θ) + vₒ * cosd(θ)
+    return uₒ * hack_cosd(θ) + vₒ * hack_sind(θ), uₒ * hack_sind(θ) + vₒ * hack_cosd(θ)
 end
 
 @inline function convert_to_native_grid(i, j, grid::TRG, uₒ, vₒ) 
@@ -49,5 +52,5 @@ end
      
     θ = φ₂ - φ₁
     
-    return uₒ * cosd(θ) + vₒ * sind(θ), uₒ * sind(θ) + vₒ * cosd(θ)
+    return uₒ * hack_cosd(θ) + vₒ * hack_sind(θ), uₒ * hack_sind(θ) + vₒ * hack_cosd(θ)
 end
