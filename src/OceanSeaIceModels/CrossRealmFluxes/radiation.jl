@@ -40,7 +40,7 @@ struct LatitudeDependentAlbedo{FT}
     diffuse :: FT
 end
 
-@inline function stateindex(α::LatitudeDependentAlbedo, i, j, 1, grid, time) 
+@inline function stateindex(α::LatitudeDependentAlbedo, i, j, k, grid, time) 
     φ = φnode(i, j, k, grid, Center(), Center(), Center())
     α_diffuse = α.diffuse
     direct_correction = α.direct * hack_cosd(2φ)
