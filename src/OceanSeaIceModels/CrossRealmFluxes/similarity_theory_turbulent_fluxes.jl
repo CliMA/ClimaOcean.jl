@@ -29,7 +29,7 @@ import SurfaceFluxes.Parameters:
 ##### Bulk turbulent fluxes based on similarity theory
 #####
 
-struct SimilarityTheoryTurbulentFluxes{FT, UF, TP, S, W, R, F} <: AbstractSurfaceFluxesParameters
+struct SimilarityTheoryTurbulentFluxes{FT, UF, TP, S, W, R, B, F} <: AbstractSurfaceFluxesParameters
     gravitational_acceleration :: FT
     von_karman_constant :: FT
     turbulent_prandtl_number :: FT
@@ -39,6 +39,7 @@ struct SimilarityTheoryTurbulentFluxes{FT, UF, TP, S, W, R, F} <: AbstractSurfac
     water_vapor_saturation :: S
     water_mole_fraction :: W
     roughness_lengths :: R
+    bulk_coefficients :: B
     tolerance :: FT
     maxiter :: Int
     iteration :: Int
@@ -63,6 +64,7 @@ Adapt.adapt_structure(to, fluxes::STTF) = SimilarityTheoryTurbulentFluxes(adapt(
                                                                           adapt(to, fluxes.water_vapor_saturation),
                                                                           adapt(to, fluxes.water_mole_fraction),
                                                                           adapt(to, fluxes.roughness_lengths),
+                                                                          adapt(to, fluxes.bulk_coefficients),
                                                                           fluxes.iteration,
                                                                           fluxes.tolerance,
                                                                           fluxes.maxiter,
@@ -104,6 +106,7 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                          water_vapor_saturation = ClasiusClapyeronSaturation(),
                                          water_mole_fraction = convert(FT, 0.98),
                                          roughness_lengths = default_roughness_lengths(FT),
+                                         bulk_coefficients = simplified_bulk_coefficients,
                                          tolerance = 1e-8,
                                          maxiter = Inf,
                                          fields = nothing)
@@ -117,6 +120,7 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                            water_vapor_saturation,
                                            water_mole_fraction,
                                            roughness_lengths,
+                                           bulk_coefficients,
                                            tolerance, 
                                            maxiter,
                                            0,
@@ -134,6 +138,10 @@ function SimilarityTheoryTurbulentFluxes(grid::AbstractGrid; kw...)
 
     return SimilarityTheoryTurbulentFluxes(eltype(grid); kw..., fields)
 end
+
+# The complete bulk coefficient should include also `ψ(ℓ / L)`, but the 
+# JRA55 atmosphere is adjusted to formulae without this last term so we exclude it
+@inline simplified_bulk_coefficient(ψ, h, ℓ, L) = log(h / ℓ) - ψ(h / L) # + ψ(ℓ / L)
 
 #####
 ##### Fixed-point iteration for roughness length
@@ -212,10 +220,6 @@ end
     norm(Σ★) <= solver.tolerance && return false
     return true
 end
-
-# The complete bulk coefficient should include also `ψ(ℓ / L)`, but the 
-# JRA55 atmosphere is adjusted to formulae without this last term so we exclude it
-@inline bulk_coefficient(ψ, h, ℓ, L) = log(h / ℓ) - ψ(h / L) # + ψ(ℓ / L)
 
 @inline function initial_guess(differences, 
                                similarity_theory,
@@ -322,7 +326,7 @@ end
     θ₀ = AtmosphericThermodynamics.air_temperature(ℂ, 𝒬₀)
     cₚ = AtmosphericThermodynamics.cp_m(ℂ, 𝒬₁) # moist heat capacity
 
-    # The temperature difference includes the ``lapse rate'' α = g / h
+    # Temperature difference including the ``lapse rate'' `α = g / cₚ`
     Δθ = θ₁ - θ₀ + g / cₚ * Δh
 
     q₁ = AtmosphericThermodynamics.vapor_specific_humidity(ℂ, 𝒬₁)
