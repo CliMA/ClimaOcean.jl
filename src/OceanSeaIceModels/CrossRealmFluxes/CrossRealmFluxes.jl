@@ -60,7 +60,6 @@ function surface_tracers(ocean::Simulation{<:HydrostaticFreeSurfaceModel})
     return sfc_tracers
 end
 
-include("three_dimensional_operators.jl")
 include("radiation.jl")
 include("latitude_dependent_albedo.jl")
 include("roughness_lengths.jl")
