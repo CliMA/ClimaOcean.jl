@@ -101,7 +101,7 @@ function ocean_simulation(grid; Δt = 5minutes,
         tracer_advection = (; T = tracer_advection, S = tracer_advection, e = nothing)
     end
 
-    coriolis = HydrostaticSphericalCoriolis(; rotation_rate, scheme = ActiveCellEnstrophyConserving())
+    coriolis = HydrostaticSphericalCoriolis(; rotation_rate)
 
     ocean_model = HydrostaticFreeSurfaceModel(; grid,
                                               buoyancy,
