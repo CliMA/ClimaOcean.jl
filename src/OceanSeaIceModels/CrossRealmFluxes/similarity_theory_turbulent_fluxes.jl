@@ -39,6 +39,9 @@ struct SimilarityTheoryTurbulentFluxes{FT, UF, TP, S, W, R, F} <: AbstractSurfac
     water_vapor_saturation :: S
     water_mole_fraction :: W
     roughness_lengths :: R
+    tolerance :: FT
+    maxiter :: Int
+    iteration :: Int
     fields :: F
 end
 
@@ -57,9 +60,12 @@ Adapt.adapt_structure(to, fluxes::STTF) = SimilarityTheoryTurbulentFluxes(adapt(
                                                                           adapt(to, fluxes.gustiness_parameter),
                                                                           adapt(to, fluxes.stability_functions),
                                                                           adapt(to, fluxes.thermodynamics_parameters),
-                                                                          nothing, #adapt(to, fluxes.water_vapor_saturation),
-                                                                          nothing, #adapt(to, fluxes.water_mole_fraction),
+                                                                          adapt(to, fluxes.water_vapor_saturation),
+                                                                          adapt(to, fluxes.water_mole_fraction),
                                                                           adapt(to, fluxes.roughness_lengths),
+                                                                          fluxes.iteration,
+                                                                          fluxes.tolerance,
+                                                                          fluxes.maxiter,
                                                                           adapt(to, fluxes.fields))
 
 Base.summary(::SimilarityTheoryTurbulentFluxes{FT}) where FT = "SimilarityTheoryTurbulentFluxes{$FT}"
@@ -77,11 +83,12 @@ function Base.show(io::IO, fluxes::SimilarityTheoryTurbulentFluxes)
     print(io, summary(fluxes), '\n',
           "├── gravitational_acceleration: ",      prettysummary(fluxes.gravitational_acceleration), '\n',
           "├── von_karman_constant: ",             prettysummary(fluxes.von_karman_constant), '\n',
-          "├── planetary_boundary_layer_height: ", prettysummary(fluxes.planetary_boundary_layer_height), '\n',
           "├── turbulent_prandtl_number: ",        prettysummary(fluxes.turbulent_prandtl_number), '\n',
-          "├── similarity_function: ",             summary(fluxes.similarity_function), '\n',
+          "├── gustiness_parameter: ",             prettysummary(fluxes.gustiness_parameter), '\n',
+          "├── stability_functions: ",             summary(fluxes.stability_functions), '\n',
           "├── water_mole_fraction: ",             summary(fluxes.water_mole_fraction), '\n',
           "├── water_vapor_saturation: ",          summary(fluxes.water_vapor_saturation), '\n',
+          "├── roughness_lengths: ",               summary(fluxes.roughness_lengths), '\n',
           "└── thermodynamics_parameters: ",       summary(fluxes.thermodynamics_parameters))
 end
 
@@ -97,9 +104,9 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                          water_vapor_saturation = ClasiusClapyeronSaturation(),
                                          water_mole_fraction = convert(FT, 0.98),
                                          roughness_lengths = default_roughness_lengths(FT),
+                                         tolerance = 1e-8,
+                                         maxiter = Inf,
                                          fields = nothing)
-
-    @show gustiness_parameter
 
     return SimilarityTheoryTurbulentFluxes(convert(FT, gravitational_acceleration),
                                            convert(FT, von_karman_constant),
@@ -110,6 +117,9 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                            water_vapor_saturation,
                                            water_mole_fraction,
                                            roughness_lengths,
+                                           tolerance, 
+                                           maxiter,
+                                           0,
                                            fields)
 end
 
@@ -123,28 +133,6 @@ function SimilarityTheoryTurbulentFluxes(grid::AbstractGrid; kw...)
     fields = (; latent_heat, sensible_heat, water_vapor, x_momentum, y_momentum)
 
     return SimilarityTheoryTurbulentFluxes(eltype(grid); kw..., fields)
-end
-
-@inline function seawater_saturation_specific_humidity(atmosphere_thermodynamics_parameters,
-                                                       surface_temperature,
-                                                       surface_salinity,
-                                                       atmos_state,
-                                                       water_mole_fraction,
-                                                       water_vapor_saturation,
-                                                       ::Liquid)
-
-    ℂₐ = atmosphere_thermodynamics_parameters
-    FT = eltype(ℂₐ)
-    Tₛ = surface_temperature
-    Sₛ = surface_salinity
-    ρₛ = atmos_state.ρ # surface density -- should we extrapolate to obtain this?
-    ρₛ = convert(FT, ρₛ)
-
-    q★_H₂O = water_saturation_specific_humidity(water_vapor_saturation, ℂₐ, ρₛ, Tₛ)
-    x_H₂O  = compute_water_mole_fraction(water_mole_fraction, Sₛ)
-
-    # Return saturation specific humidity for salty seawater
-    return q★_H₂O * x_H₂O
 end
 
 #####
@@ -164,6 +152,8 @@ end
     Δh, Δu, Δv, Δθ, Δq = state_differences(ℂₐ, atmos_state, surface_state, gravitational_acceleration)
     differences = (; u=Δu, v=Δv, θ=Δθ, q=Δq, h=Δh)
     
+    Σ₀ = SimilarityScales(0, 0, 0)
+
     # Initial guess for the characteristic scales u★, θ★, q★.
     Σ★ = initial_guess(differences, 
                        similarity_theory,
@@ -177,25 +167,19 @@ end
     # The inital velocity scale assumes that
     # the gustiness velocity `uᴳ` is equal to 0.5 ms⁻¹. 
     # That will be refined later on.
-    uτ = sqrt(Δu^2 + Δv^2 + 0.25)
+    uτ = sqrt(Δu^2 + Δv^2 + convert(FT, 0.25))
 
-    # In case ζ₀ > 50 we have a very stable boundary layer with a MO length
-    # extremely thin with respect to `h`. In this case we use the first iteration
-
-    lu = 0
-    lt = 0
-    lq = 0
-
-    for _ in 1:30
-        Σ★, uτ, lu, lt, lq = refine_characteristic_scales(Σ★, uτ, 
-                                                          similarity_theory,
-                                                          surface_state,
-                                                          atmos_state,
-                                                          differences,
-                                                          atmos_boundary_layer_height,
-                                                          thermodynamics_parameters,
-                                                          gravitational_acceleration,
-                                                          von_karman_constant)
+    while iterating(Σ★ - Σ₀, similarity_theory)
+        Σ₀ = Σ★
+        similarity_theory.iteration += 1
+        Σ★, uτ, = refine_characteristic_scales(Σ★, uτ, 
+                                               similarity_theory,
+                                               surface_state,
+                                               differences,
+                                               atmos_boundary_layer_height,
+                                               thermodynamics_parameters,
+                                               gravitational_acceleration,
+                                               von_karman_constant)
     end
 
     u★ = Σ★.momentum
@@ -223,6 +207,17 @@ end
     return fluxes
 end
 
+# Iterating condition for the characteristic scales solvers
+@inline function iterating(Σ★, solver)
+    solver.iteration >= solver.maxiter && return false
+    norm(Σ★) <= solver.tolerance && return false
+    return true
+end
+
+# The complete bulk coefficient should include also `ψ(ℓ / L)`, but the 
+# JRA55 atmosphere is adjusted to formulae without this last term so we exclude it
+@inline bulk_coefficient(ψ, h, ℓ, L) = log(h / ℓ) - ψ(h / L) # + ψ(ℓ / L)
+
 @inline function initial_guess(differences, 
                                similarity_theory,
                                atmos_boundary_layer_height,
@@ -238,27 +233,27 @@ end
 
     g  = gravitational_acceleration
     ϰ  = von_karman_constant
+
     # Extract roughness lengths
     ℓu  = similarity_theory.roughness_lengths.momentum
     β   = similarity_theory.gustiness_parameter
     zᵢ  = atmos_boundary_layer_height
 
-    hᵢ  = convert(eltype(h), 10)    # Reference height of 10 meters
-    ℓuᵢ = convert(eltype(h), 1e-4)  # Initial roughness length == 1e-4
+    hᵢ  = convert(eltype(h), 10)    # Reference Initial height == 10 meters
+    ℓuᵢ = convert(eltype(h), 1e-4)  # Initial roughness length == 1e-4 meters
 
     # assuming the initial gustiness is `0.5` ms⁻¹
-    uᴳ = 0.5
-    uτ = sqrt(Δu^2 + Δv^2 + uᴳ^2)
+    uτ = sqrt(Δu^2 + Δv^2 + convert(FT, 0.25))
 
     # u10 at the reference ten meter height, assuming the initial roughness length is `1e-4` m
     u10 = uτ / log(h / ℓuᵢ) * 11.5129 # log(10 / 1e-4) == 11.5129
-    u★  = 0.035 * u10
+    u★  = convert(FT, 0.035) * u10
 
     ℓu₀ = roughness_length(ℓu, u★, 𝒬ₐ, ℂₐ)
 
     # Initial neutral coefficients at 10 meter height
     χuₙ  = (ϰ / log(hᵢ / ℓu₀))^2
-    χcₙ  = 0.00115 / sqrt(χuₙ)
+    χcₙ  = convert(FT, 0.00115) / sqrt(χuₙ)
 
     # Initial scalar roughness length
     ℓθ₀ = hᵢ / exp(ϰ / χcₙ)
@@ -274,30 +269,34 @@ end
     ψq = similarity_theory.stability_functions.water_vapor
 
     # Bulk Flux Richardson number
+    # TODO: find out what 0.004 refers to
     b★  = buoyancy_scale(Δθ, Δq, 𝒬ₒ, ℂₐ, g)
     Ri  = - ifelse(b★ == 0, zero(b★), h / b★ / uτ^2)
-    Riᶜ = - h / zᵢ / 0.004 / β^3 # - h / zi / 0.004 / β^3
+    Riᶜ = - h / zᵢ / convert(FT, 0.004) / β^3 # - h / zi / 0.004 / β^3
     
     # Calculating the first stability coefficient and the MO length
+    # TODO: explain this formulation of the stability function. Is it empirical?
+    # Found in COARE3.6
     ζ10 = ifelse(Ri < 0, χc * Ri / (1 + Ri / Riᶜ), χc * Ri * (1 + 27 / 9 * Ri / χc))
+    L10 = h / ζ10
 
-    u★ = uτ * ϰ / (log(h / ℓu₀) - ψu(ζ10)) # + ψu(ℓu₀ / L10))
-    θ★ = Δθ * ϰ / (log(h / ℓθ₀) - ψθ(ζ10)) # + ψθ(ℓθ₀ / L10))
-    q★ = Δq * ϰ / (log(h / ℓθ₀) - ψq(ζ10)) # + ψq(ℓθ₀ / L10))
+    u★ = uτ * ϰ / bulk_coefficient(ψu, h, ℓu₀, L10) 
+    θ★ = Δθ * ϰ / bulk_coefficient(ψθ, h, ℓθ₀, L10) 
+    q★ = Δq * ϰ / bulk_coefficient(ψq, h, ℓθ₀, L10) 
     
     return SimilarityScales(u★, θ★, q★)
 end
 
 # The M-O characteristic length is calculated as
 #  L★ = - u★² / (κ ⋅ b★)
-# where b★ is the characteristic buoyancy scale calculated from this function
+# where b★ is the characteristic buoyancy scale calculated from:
 @inline function buoyancy_scale(θ★, q★, 𝒬, ℂ, g)
     𝒯ₐ = AtmosphericThermodynamics.virtual_temperature(ℂ, 𝒬)
     qₐ = AtmosphericThermodynamics.vapor_specific_humidity(ℂ, 𝒬)
     ε  = AtmosphericThermodynamics.Parameters.molmass_ratio(ℂ)
     δ  = ε - 1 # typically equal to 0.608
 
-    # Where does this come from? Probably Fairell et al. 1996, 
+    # Fairell et al. 1996, 
     b★ = g / 𝒯ₐ * (θ★ * (1 + δ * qₐ) + δ * 𝒯ₐ * q★)
 
     return b★
@@ -338,7 +337,6 @@ end
                                               velocity_scale,
                                               similarity_theory,
                                               surface_state,
-                                              atmos_state,
                                               differences,
                                               atmos_boundary_layer_height,
                                               thermodynamics_parameters,
@@ -351,7 +349,7 @@ end
     q★ = estimated_characteristic_scales.water_vapor
     uτ = velocity_scale
 
-    # Similarity functions from Businger et al. (1971)
+    # Similarity functions from Edison et al. (2013)
     ψu = similarity_theory.stability_functions.momentum
     ψθ = similarity_theory.stability_functions.temperature
     ψq = similarity_theory.stability_functions.water_vapor
@@ -367,7 +365,6 @@ end
     ℂ  = thermodynamics_parameters
     g  = gravitational_acceleration
     𝒬ₒ = surface_state.ts # thermodynamic state
-    𝒬ₐ = atmos_state.ts # thermodynamic state
     zᵢ = atmos_boundary_layer_height
 
     # Compute Monin-Obukhov length scale depending on a `buoyancy flux`
@@ -382,9 +379,9 @@ end
     ℓθ₀ = roughness_length(ℓθ, ℓu₀, u★, 𝒬ₒ, ℂ)
 
     # Transfer coefficients at height `h`
-    χu = ϰ / (log(h / ℓu₀) - ψu(h / L★)) # + ψu(ℓu₀ / L★))
-    χθ = ϰ / (log(h / ℓθ₀) - ψθ(h / L★)) # + ψθ(ℓq₀ / L★))
-    χq = ϰ / (log(h / ℓq₀) - ψq(h / L★)) # + ψq(ℓθ₀ / L★))
+    χu = ϰ / bulk_coefficient(ψu, h, ℓu₀, L★) 
+    χθ = ϰ / bulk_coefficient(ψθ, h, ℓθ₀, L★) 
+    χq = ϰ / bulk_coefficient(ψq, h, ℓq₀, L★) 
 
     Δu = differences.u
     Δv = differences.v
@@ -396,12 +393,12 @@ end
     θ★ = χθ * Δθ
     q★ = χq * Δq
 
-    # Buoyancy flux characteristic scale for gustiness
+    # Buoyancy flux characteristic scale for gustiness (Edison 2013)
     ε★ = - u★ * b★
     uᴳ = β * cbrt(ε★ * zᵢ)
 
     # New velocity difference accounting for gustiness
     uτ = sqrt(Δu^2 + Δv^2 + uᴳ^2)
 
-    return SimilarityScales(u★, θ★, q★), uτ, ℓu₀, ℓθ₀, ℓq₀
+    return SimilarityScales(u★, θ★, q★), uτ
 end

@@ -18,8 +18,6 @@ using Oceananigans.BuoyancyModels: g_Earth
 using Oceananigans.Coriolis: Ω_Earth
 using Oceananigans.Operators
 
-include("load_balanced_regional_grid.jl")
-
 # Some defaults
 default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
 

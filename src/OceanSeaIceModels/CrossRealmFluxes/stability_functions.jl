@@ -1,3 +1,6 @@
+import Base
+import Statistics
+
 #####
 ##### Struct that represents a 3-tuple of momentum, heat, and water vapor
 #####
@@ -7,6 +10,12 @@ struct SimilarityScales{U, T, Q}
     temperature :: T
     water_vapor :: Q
 end
+
+Base.(-)(a::SimilarityScales, b::SimilarityScales) = SimilarityScales(a.momentum - b.momentum, 
+                                                                      a.temperature - b.temperature,
+                                                                      a.water_vapor - b.water_vapor)
+
+Statistic.norm(a::SimilarityScales) = norm(a.momentum) + norm(a.temperature) + norm(a.water_vapor)
 
 struct MomentumStabilityFunction end
 struct ScalarStabilityFunction end

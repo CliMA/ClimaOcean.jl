@@ -1,21 +1,21 @@
-struct GravityMomentumRoughnessLength{FT, V}
+struct MomentumRoughnessLength{FT, V}
     gravitational_acceleration :: FT
     air_kinematic_viscosity :: V
-    gravity_wave_parameter :: FT
+    _wave_parameter :: FT
     laminar_parameter :: FT
     maximum_roughness_length :: FT
 end
 
-struct GravityScalarRoughnessLength{FT, V, R}
+struct ScalarRoughnessLength{FT, V, R}
     air_kinematic_viscosity :: V
     reynolds_number_scaling_function :: R
     maximum_roughness_length :: FT
 end
 
 function default_roughness_lengths(FT=Float64)
-    momentum    = GravityMomentumRoughnessLength(FT)
-    temperature = GravityScalarRoughnessLength(FT)
-    water_vapor = GravityScalarRoughnessLength(FT)
+    momentum    = MomentumRoughnessLength(FT)
+    temperature = ScalarRoughnessLength(FT)
+    water_vapor = ScalarRoughnessLength(FT)
     return SimilarityScales(momentum, temperature, water_vapor)
 end
 
@@ -36,35 +36,35 @@ end
 @inline roughness_length(ℓ, u★, args...)     = ℓ(u★, args...)
 @inline roughness_length(ℓ::Number, args...) = ℓ
 
-function GravityScalarRoughnessLength(FT=Float64;
+function ScalarRoughnessLength(FT=Float64;
                                       air_kinematic_viscosity = temperature_dependent_viscosity,
                                       reynolds_number_scaling_function = empirical_scaling_function,
                                       maximum_roughness_length = 1.6e-4) # Values from COARE3.6
 
-    return GravityScalarRoughnessLength(air_kinematic_viscosity,
+    return ScalarRoughnessLength(air_kinematic_viscosity,
                                         reynolds_number_scaling_function,
                                         convert(FT, maximum_roughness_length))
 end
 
-function GravityMomentumRoughnessLength(FT=Float64;
+function MomentumRoughnessLength(FT=Float64;
                                         gravitational_acceleration = default_gravitational_acceleration,
                                         maximum_roughness_length = 1.0, # An estimate?
                                         air_kinematic_viscosity = temperature_dependent_viscosity,
-                                        gravity_wave_parameter = 0.011,
+                                        _wave_parameter = 0.011,
                                         laminar_parameter = 0.11)
 
-    return GravityMomentumRoughnessLength(convert(FT, gravitational_acceleration),
+    return MomentumRoughnessLength(convert(FT, gravitational_acceleration),
                                           air_kinematic_viscosity,
-                                          convert(FT, gravity_wave_parameter),
+                                          convert(FT, _wave_parameter),
                                           convert(FT, laminar_parameter),
                                           convert(FT, maximum_roughness_length))
 end
 
 # Momentum roughness length should be different from scalar roughness length.
 # Temperature and water vapor can be considered the same (Edison et al 2013)
-@inline function roughness_length(ℓ::GravityMomentumRoughnessLength{FT}, u★, 𝒬, ℂ) where FT
+@inline function roughness_length(ℓ::MomentumRoughnessLength{FT}, u★, 𝒬, ℂ) where FT
     g  = ℓ.gravitational_acceleration
-    α  = ℓ.gravity_wave_parameter
+    α  = ℓ._wave_parameter
     β  = ℓ.laminar_parameter
     ℓm = ℓ.maximum_roughness_length
 
@@ -80,7 +80,7 @@ end
 end
 
 # Edison 2013 formulation of scalar roughness length
-@inline function roughness_length(ℓ::GravityScalarRoughnessLength{FT}, ℓu, u★, 𝒬, ℂ) where FT
+@inline function roughness_length(ℓ::ScalarRoughnessLength{FT}, ℓu, u★, 𝒬, ℂ) where FT
     ℓm = ℓ.maximum_roughness_length
     
     scaling_function = ℓ.reynolds_number_scaling_function
