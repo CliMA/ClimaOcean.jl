@@ -283,9 +283,9 @@ end
     ζ10 = ifelse(Ri < 0, χc * Ri / (1 + Ri / Riᶜ), χc * Ri * (1 + 27 / 9 * Ri / χc))
     L10 = h / ζ10
 
-    u★ = uτ * ϰ / bulk_coefficient(ψu, h, ℓu₀, L10) 
-    θ★ = Δθ * ϰ / bulk_coefficient(ψθ, h, ℓθ₀, L10) 
-    q★ = Δq * ϰ / bulk_coefficient(ψq, h, ℓθ₀, L10) 
+    u★ = uτ * ϰ / similarity_theory.bulk_coefficients(ψu, h, ℓu₀, L10) 
+    θ★ = Δθ * ϰ / similarity_theory.bulk_coefficients(ψθ, h, ℓθ₀, L10) 
+    q★ = Δq * ϰ / similarity_theory.bulk_coefficients(ψq, h, ℓθ₀, L10) 
     
     return SimilarityScales(u★, θ★, q★)
 end
@@ -382,9 +382,9 @@ end
     ℓθ₀ = roughness_length(ℓθ, ℓu₀, u★, 𝒬ₒ, ℂ)
 
     # Transfer coefficients at height `h`
-    χu = ϰ / bulk_coefficient(ψu, h, ℓu₀, L★) 
-    χθ = ϰ / bulk_coefficient(ψθ, h, ℓθ₀, L★) 
-    χq = ϰ / bulk_coefficient(ψq, h, ℓq₀, L★) 
+    χu = ϰ / similarity_theory.bulk_coefficients(ψu, h, ℓu₀, L★) 
+    χθ = ϰ / similarity_theory.bulk_coefficients(ψθ, h, ℓθ₀, L★) 
+    χq = ϰ / similarity_theory.bulk_coefficients(ψq, h, ℓq₀, L★) 
 
     Δu = differences.u
     Δv = differences.v
