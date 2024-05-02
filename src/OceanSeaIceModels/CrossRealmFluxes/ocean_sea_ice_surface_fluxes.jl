@@ -259,8 +259,8 @@ limit_fluxes_over_sea_ice!(args...) = nothing
     # Extract state variables at cell centers
     @inbounds begin
         # Ocean state
-        uₒ = ℑxᶜᶜᶜ(i, j, 1, grid, ocean_state.u)
-        vₒ = ℑyᶜᶜᶜ(i, j, 1, grid, ocean_state.v)
+        uₒ = ℑxᶜᵃᵃ(i, j, 1, grid, ocean_state.u)
+        vₒ = ℑyᵃᶜᵃ(i, j, 1, grid, ocean_state.v)
         Tₒ = ocean_state.T[i, j, 1]
         Tₒ = convert_to_kelvin(ocean_temperature_units, Tₒ)
         Sₒ = ocean_state.S[i, j, 1]

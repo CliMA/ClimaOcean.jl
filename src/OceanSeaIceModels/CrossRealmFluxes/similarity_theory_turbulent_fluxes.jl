@@ -161,7 +161,6 @@ end
                        gravitational_acceleration,
                        von_karman_constant, 
                        ℂₐ, 
-                       atmos_state.ts, 
                        surface_state.ts)
 
     # The inital velocity scale assumes that
@@ -223,7 +222,7 @@ end
                                atmos_boundary_layer_height,
                                gravitational_acceleration,
                                von_karman_constant, 
-                               ℂₐ, 𝒬ₐ, 𝒬ₒ)
+                               ℂₐ, 𝒬ₒ)
 
     Δu = differences.u
     Δv = differences.v

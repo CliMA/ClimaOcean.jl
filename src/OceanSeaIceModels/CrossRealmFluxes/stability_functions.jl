@@ -18,12 +18,13 @@ end
 Statistics.norm(a::SimilarityScales) = norm(a.momentum) + norm(a.temperature) + norm(a.water_vapor)
 
 struct MomentumStabilityFunction end
+
 struct ScalarStabilityFunction end
 struct InitialMomentumStabilityFunction end
 
 function default_stability_functions(FT = Float64)
 
-    # Computed from Edisen et al. (2013)
+    # Edison et al. (2013)
     ψu = MomentumStabilityFunction()
     ψc = ScalarStabilityFunction()
 
@@ -31,17 +32,22 @@ function default_stability_functions(FT = Float64)
 end
 
 @inline function (ψ::InitialMomentumStabilityFunction)(ζ)
+    FT = elype(ζ)
+
+    # Parameters
+    p₁ = convert(FT, 0.35)
+    
     ζ⁻ = min(zero(ζ), ζ)
     ζ⁺ = max(zero(ζ), ζ)
-    dζ = min(50, 0.35 * ζ⁺)
+    dζ = min(50, p₁ * ζ⁺)
 
-    ψ_stable = - ζ⁺ - 3 / 4 * (ζ⁺ - 5 / 0.35) * exp(-dζ) - 3 / 4 * 5 / 0.35
+    ψ_stable = - ζ⁺ - 3 / 4 * (ζ⁺ - 5 / p₁) * exp(-dζ) - 3 / 4 * 5 / p₁
     
     fₘ = sqrt(sqrt(1 - 18 * ζ⁻))
     ψ_unstable_1 = log((1 + fₘ)^2 * (1 + fₘ^2) / 8) - 2 * atan(fₘ) + π / 2;
 
     fₘ = cbrt(1 - 10 * ζ⁻)
-    ψ_unstable_2 = 1.5 * log((1 + fₘ + fₘ^2) / 3) - sqrt(3) * atan((1 + 2fₘ) / sqrt(3))+ π / sqrt(3)
+    ψ_unstable_2 = 3 / 2 * log((1 + fₘ + fₘ^2) / 3) - sqrt(3) * atan((1 + 2fₘ) / sqrt(3)) + π / sqrt(3)
     
     f⁻ = ζ⁻^2 / (1 + ζ⁻^2)
     ψ_unstable = (1 - f⁻) * ψ_unstable_1 + f⁻ * ψ_unstable_2
@@ -50,17 +56,23 @@ end
 end
 
 @inline function (ψ::MomentumStabilityFunction)(ζ)
+    FT = elype(ζ)
+
+    # Parameters
+    p₁ = convert(FT, 0.35)
+    p₂ = convert(FT, 0.7)
+    p₃ = convert(FT, 10.15)
 
     ζ⁻ = min(zero(ζ), ζ)
     ζ⁺ = max(zero(ζ), ζ)
-    dζ = min(50, 0.35 * ζ⁺)
+    dζ = min(50, p₁ * ζ⁺)
 
-    ψ_stable = - 0.7 * ζ⁺ - 3 / 4 * (ζ⁺ - 5 / 0.35) * exp(-dζ) - 3 / 4 * 5 / 0.35
+    ψ_stable = - p₂ * ζ⁺ - 3 / 4 * (ζ⁺ - 5 / p₁) * exp(-dζ) - 3 / 4 * 5 / p₁
     
     fₘ = sqrt(sqrt(1 - 15 * ζ⁻))
     ψ_unstable_1 = log((1 + fₘ)^2 * (1 + fₘ^2) / 8) - 2 * atan(fₘ) + π / 2;
 
-    fₘ = cbrt(1 - 10.15 * ζ⁻)
+    fₘ = cbrt(1 - p₃ * ζ⁻)
     ψ_unstable_2 = 1.5 * log((1 + fₘ + fₘ^2) / 3) - sqrt(3) * atan((1 + 2fₘ) / sqrt(3))+ π / sqrt(3)
     
     f⁻ = ζ⁻^2 / (1 + ζ⁻^2)
@@ -70,17 +82,24 @@ end
 end
 
 @inline function (ψ::ScalarStabilityFunction)(ζ)
+    FT = elype(ζ)
+
+    # Parameters
+    p₁ = convert(FT, 0.35)
+    p₂ = convert(FT, 14.28)
+    p₃ = convert(FT, 8.525)
+    p₄ = convert(FT, 34.15)
 
     ζ⁻ = min(zero(ζ), ζ)
     ζ⁺ = max(zero(ζ), ζ)
-    dζ = min(50, 0.35 * ζ⁺)
+    dζ = min(50, p₁ * ζ⁺)
 
-    ψ_stable = - (4 * ζ⁺ / 3)^(3 / 2) - 2 / 3 * (ζ⁺ - 14.28) * exp(-dζ) - 8.525
+    ψ_stable = - (4 * ζ⁺ / 3)^(3 / 2) - 2 / 3 * (ζ⁺ - p₂) * exp(-dζ) - p₃
     
     fₕ = sqrt(1 - 15 * ζ⁻)
     ψ_unstable_1 = 2 * log((1 + fₕ) / 2) 
 
-    fₕ = cbrt(1 - 34.15 * ζ⁻)
+    fₕ = cbrt(1 - p₄ * ζ⁻)
     ψ_unstable_2 = 1.5 * log((1 + fₕ + fₕ^2) / 3) - sqrt(3) * atan((1 + 2fₕ) / sqrt(3))+ π / sqrt(3)
     
     f⁻ = ζ⁻^2 / (1 + ζ⁻^2)

@@ -12,30 +12,6 @@ struct ScalarRoughnessLength{FT, V, R}
     maximum_roughness_length :: FT
 end
 
-function default_roughness_lengths(FT=Float64)
-    momentum    = MomentumRoughnessLength(FT)
-    temperature = ScalarRoughnessLength(FT)
-    water_vapor = ScalarRoughnessLength(FT)
-    return SimilarityScales(momentum, temperature, water_vapor)
-end
-
-# Empirical fit of the scalar roughness length with roughness Reynolds number `R★ = u★ ℓu / ν`
-# Edson et al. (2013), equation (28)
-@inline empirical_scaling_function(R★ :: FT, args...) where FT = 
-        ifelse(R★ == 0, FT(0), convert(FT, 5.85e-5 / R★ ^ 0.72))
-
-# Temeprature-dependent viscosity law: assumes that θ comes in Kelvin
-@inline function temperature_dependent_viscosity(θ :: FT) where FT 
-    T = convert(FT, θ - celsius_to_kelvin)
-    ν = convert(FT, 1.326e-5 * (1 + 6.542e-3 * T + 8.301e-6 * T^2 - 4.84e-9 * T^3))
-    
-    return ν
-end
-
-# Fallbacks for constant roughness length!
-@inline roughness_length(ℓ, u★, args...)     = ℓ(u★, args...)
-@inline roughness_length(ℓ::Number, args...) = ℓ
-
 function ScalarRoughnessLength(FT=Float64;
                                       air_kinematic_viscosity = temperature_dependent_viscosity,
                                       reynolds_number_scaling_function = empirical_scaling_function,
@@ -59,6 +35,30 @@ function MomentumRoughnessLength(FT=Float64;
                                           convert(FT, laminar_parameter),
                                           convert(FT, maximum_roughness_length))
 end
+
+function default_roughness_lengths(FT=Float64)
+    momentum    = MomentumRoughnessLength(FT)
+    temperature = ScalarRoughnessLength(FT)
+    water_vapor = ScalarRoughnessLength(FT)
+    return SimilarityScales(momentum, temperature, water_vapor)
+end
+
+# Empirical fit of the scalar roughness length with roughness Reynolds number `R★ = u★ ℓu / ν`
+# Edson et al. (2013), equation (28)
+@inline empirical_scaling_function(R★ :: FT, args...) where FT = 
+        ifelse(R★ == 0, FT(0), convert(FT, 5.85e-5 / R★ ^ 0.72))
+
+# Temeprature-dependent viscosity law: assumes that θ comes in Kelvin
+@inline function temperature_dependent_viscosity(θ :: FT) where FT 
+    T = convert(FT, θ - celsius_to_kelvin)
+    ν = convert(FT, 1.326e-5 * (1 + 6.542e-3 * T + 8.301e-6 * T^2 - 4.84e-9 * T^3))
+    
+    return ν
+end
+
+# Fallbacks for constant roughness length!
+@inline roughness_length(ℓ, u★, args...)     = ℓ(u★, args...)
+@inline roughness_length(ℓ::Number, args...) = ℓ
 
 # Momentum roughness length should be different from scalar roughness length.
 # Temperature and water vapor can be considered the same (Edison et al 2013)
