@@ -278,8 +278,8 @@ end
     Riᶜ = - h / zᵢ / convert(FT, 0.004) / β^3 # - h / zi / 0.004 / β^3
     
     # Calculating the first stability coefficient and the MO length
-    # TODO: explain this formulation of the stability function. Is it empirical?
-    # Found in COARE3.6
+    # TODO: explain this formulation of the stability function. 
+    # Is it empirical? (Found in COARE3.6)
     ζ10 = ifelse(Ri < 0, χc * Ri / (1 + Ri / Riᶜ), χc * Ri * (1 + 27 / 9 * Ri / χc))
     L10 = h / ζ10
 
