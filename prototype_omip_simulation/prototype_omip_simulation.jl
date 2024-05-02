@@ -18,7 +18,6 @@ using ClimaOcean.JRA55
 using ClimaOcean.JRA55: JRA55NetCDFBackend, JRA55_prescribed_atmosphere
 using ClimaOcean.Bathymetry
 
-include("correct_oceananigans.jl")
 include("three_dimensional_interpolate_tripolar.jl")
 
 #####
@@ -74,7 +73,7 @@ set!(model,
 
 backend    = JRA55NetCDFBackend(4) 
 atmosphere = JRA55_prescribed_atmosphere(arch; backend)
-radiation  = Radiation()
+radiation  = Radiation(arch)
 
 sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
 
