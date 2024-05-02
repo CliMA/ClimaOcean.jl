@@ -232,7 +232,7 @@ end
 
 # Fallback
 @inline convert_to_latlon_grid(i, j, grid, uₒ, vₒ) = uₒ, vₒ
-@inline convert_to_native_frame_grid(i, j, grid, uₒ, vₒ) = uₒ, vₒ
+@inline convert_to_native_frame(i, j, grid, uₒ, vₒ) = uₒ, vₒ
 
 # Fallback!
 limit_fluxes_over_sea_ice!(args...) = nothing
@@ -330,7 +330,7 @@ limit_fluxes_over_sea_ice!(args...) = nothing
 
     # Convert back from a zonal - meridional flux to the frame of 
     # reference of the native ocean grid
-    τˣ, τʸ = convert_to_native_frame_grid(i, j, grid, turbulent_fluxes.x_momentum, 
+    τˣ, τʸ = convert_to_native_frame(i, j, grid, turbulent_fluxes.x_momentum, 
                                                 turbulent_fluxes.y_momentum)
 
     inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
