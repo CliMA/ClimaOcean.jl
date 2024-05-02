@@ -1,4 +1,4 @@
-import Base
+import Base: -
 import Statistics
 
 #####
@@ -11,11 +11,11 @@ struct SimilarityScales{U, T, Q}
     water_vapor :: Q
 end
 
-Base.(-)(a::SimilarityScales, b::SimilarityScales) = SimilarityScales(a.momentum - b.momentum, 
+-(a::SimilarityScales, b::SimilarityScales) = SimilarityScales(a.momentum - b.momentum, 
                                                                       a.temperature - b.temperature,
                                                                       a.water_vapor - b.water_vapor)
 
-Statistic.norm(a::SimilarityScales) = norm(a.momentum) + norm(a.temperature) + norm(a.water_vapor)
+Statistics.norm(a::SimilarityScales) = norm(a.momentum) + norm(a.temperature) + norm(a.water_vapor)
 
 struct MomentumStabilityFunction end
 struct ScalarStabilityFunction end
