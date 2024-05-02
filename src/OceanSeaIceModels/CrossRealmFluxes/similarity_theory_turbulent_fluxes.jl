@@ -249,10 +249,10 @@ end
     uτ = sqrt(Δu^2 + Δv^2 + convert(FT, 0.25))
 
     # u10 at the reference ten meter height, assuming the initial roughness length is `1e-4` m
-    u10 = uτ / log(h / ℓuᵢ) * 11.5129 # log(10 / 1e-4) == 11.5129
+    u10 = uτ / log(h / ℓuᵢ) * convert(FT, 11.5129) # log(10 / 1e-4) == 11.5129
     u★  = convert(FT, 0.035) * u10
 
-    ℓu₀ = roughness_length(ℓu, u★, 𝒬ₐ, ℂₐ)
+    ℓu₀ = roughness_length(ℓu, u★, 𝒬ₒ, ℂₐ)
 
     # Initial neutral coefficients at 10 meter height
     χuₙ  = (ϰ / log(hᵢ / ℓu₀))^2
