@@ -17,8 +17,9 @@ end
 
 Statistics.norm(a::SimilarityScales) = norm(a.momentum) + norm(a.temperature) + norm(a.water_vapor)
 
+# Implementation of stability functions that follow Edison et al (2013)
+# We can swap them out easily if we define new types `NewStability` with a method `(f::NewStability)(ζ)`
 struct MomentumStabilityFunction end
-
 struct ScalarStabilityFunction end
 struct InitialMomentumStabilityFunction end
 
@@ -36,7 +37,7 @@ end
 
     # Parameters
     p₁ = convert(FT, 0.35)
-    
+
     ζ⁻ = min(zero(ζ), ζ)
     ζ⁺ = max(zero(ζ), ζ)
     dζ = min(50, p₁ * ζ⁺)
