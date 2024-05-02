@@ -1,5 +1,5 @@
 using ClimaOcean
-import ClimaOcean.InitialConditions: three_dimensional_interpolate!
+import ClimaOcean.InitialConditions: interpolate!
 
 using Oceananigans
 using Oceananigans.BoundaryConditions
@@ -27,17 +27,10 @@ const WField = Field{<:Any, <:Any, <:Any, <:Any, <:WRG}
 @inline hack_cosd(φ) = cos(π * φ / 180)
 @inline hack_sind(φ) = sin(π * φ / 180)
 
-function three_dimensional_interpolate!(a::Union{<:TField, <:WField}, b)
-
-    interpolate!(a, b)
-
-    return a
-end
-
 import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: convert_to_latlong, convert_to_native_grid
 
 # Here we assume that the tripolar grid is locally orthogonal
-@inline function convert_to_latlong(i, j, grid::TRG, uₒ, vₒ)
+@inline function convert_to_latlong(i, j, grid::Union{<:TRG, <:WRG}, uₒ, vₒ)
     φ₁ = φnode(i,   j, 1, grid, Face(), Center(), Center())
     φ₂ = φnode(i+1, j, 1, grid, Face(), Center(), Center())
      
@@ -46,7 +39,7 @@ import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: convert_to_latlong, conver
     return uₒ * hack_cosd(θ) + vₒ * hack_sind(θ), uₒ * hack_sind(θ) + vₒ * hack_cosd(θ)
 end
 
-@inline function convert_to_native_grid(i, j, grid::TRG, uₒ, vₒ) 
+@inline function convert_to_native_grid(i, j, grid::Union{<:TRG, <:WRG}, uₒ, vₒ) 
     φ₁ = φnode(i, j,   1, grid, Face(), Center(), Center())
     φ₂ = φnode(i, j+1, 1, grid, Face(), Center(), Center())
      

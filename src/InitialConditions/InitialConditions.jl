@@ -103,43 +103,6 @@ function interpolate!(to_field::Field, from_field::AbstractField)
     return nothing
 end
 
-function three_dimensional_interpolate!(a, b)
-    target_grid = a.grid isa ImmersedBoundaryGrid ? a.grid.underlying_grid : a.grid
-    source_grid = b.grid isa ImmersedBoundaryGrid ? b.grid.underlying_grid : b.grid 
-
-    topo = topology(source_grid)
-    arch = architecture(target_grid)
-    arch = child_architecture(arch)
-    
-    target_y = yt = cpu_face_constructor_y(target_grid)
-    target_z = zt = cpu_face_constructor_z(target_grid)
-
-    target_size = Nt = size(target_grid)
-
-    source_x = xs = cpu_face_constructor_x(source_grid)
-    source_y = ys = cpu_face_constructor_y(source_grid)
-
-    source_size = Ns = size(source_grid)
-
-    # Start by regridding in z
-    @debug "Interpolating in z"
-    zgrid   = construct_grid(typeof(target_grid), arch, (Ns[1], Ns[2], Nt[3]), (xs, ys, zt), topo)
-    field_z = Field(location(b), zgrid)
-    interpolate!(field_z, b)
-
-    # regrid in y 
-    @debug "Interpolating in y"
-    ygrid   = construct_grid(typeof(target_grid), arch, (Ns[1], Nt[2], Nt[3]), (xs, yt, zt), topo)
-    field_y = Field(location(b), ygrid);
-    interpolate!(field_y, field_z)
-
-    # Finally regrid in x
-    @debug "Interpolating in x"
-    interpolate!(a, field_y)
-
-    return a
-end
-
 include("diffuse_tracers.jl")
 
 end # module

@@ -18,10 +18,10 @@ using ClimaOcean.JRA55
 using ClimaOcean.JRA55: JRA55NetCDFBackend, JRA55_prescribed_atmosphere
 using ClimaOcean.Bathymetry
 
-include("three_dimensional_interpolate_tripolar.jl")
+include("tripolar_specific_methods.jl")
 
 #####
-##### Global Ocean at 1/4th of a degree
+##### Global Ocean at 1/6th of a degree
 #####
 
 bathymetry_file = nothing # "bathymetry_tmp.jld2"
