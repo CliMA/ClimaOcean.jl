@@ -76,7 +76,7 @@ function regrid_bathymetry(target_grid;
                            url = "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_surface_elev_netcdf", 
                            filename = "ETOPO_2022_v1_60s_N90W180_surface.nc",
                            interpolation_passes = 1,
-                           connected_regions_allowed = 3) # Allow an `Inf` number of ``lakes''
+                           connected_regions_allowed = Inf) # Allow an `Inf` number of ``lakes''
 
     filepath = joinpath(dir, filename)
 
