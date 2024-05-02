@@ -1,3 +1,5 @@
+using Thermodynamics: Liquid
+
 struct SalinityConstituent{FT}
     molar_mass :: FT
     mass_fraction :: FT
