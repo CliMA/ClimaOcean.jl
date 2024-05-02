@@ -61,7 +61,7 @@ end
 @inline roughness_length(ℓ::Number, args...) = ℓ
 
 # Momentum roughness length should be different from scalar roughness length.
-# Temperature and water vapor can be considered the same (Edison et al 2013)
+# Temperature and water vapor can be considered the same (Edson et al 2013)
 @inline function roughness_length(ℓ::MomentumRoughnessLength{FT}, u★, 𝒬, ℂ) where FT
     g  = ℓ.gravitational_acceleration
     α  = ℓ._wave_parameter
@@ -79,7 +79,7 @@ end
     return min(α * u★^2 / g + ℓᴿ, ℓm)
 end
 
-# Edison 2013 formulation of scalar roughness length
+# Edson 2013 formulation of scalar roughness length
 @inline function roughness_length(ℓ::ScalarRoughnessLength{FT}, ℓu, u★, 𝒬, ℂ) where FT
     ℓm = ℓ.maximum_roughness_length
     

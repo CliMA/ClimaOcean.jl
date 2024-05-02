@@ -352,7 +352,7 @@ end
     q★ = estimated_characteristic_scales.water_vapor
     uτ = velocity_scale
 
-    # Similarity functions from Edison et al. (2013)
+    # Similarity functions from Edson et al. (2013)
     ψu = similarity_theory.stability_functions.momentum
     ψθ = similarity_theory.stability_functions.temperature
     ψq = similarity_theory.stability_functions.water_vapor
@@ -396,7 +396,7 @@ end
     θ★ = χθ * Δθ
     q★ = χq * Δq
 
-    # Buoyancy flux characteristic scale for gustiness (Edison 2013)
+    # Buoyancy flux characteristic scale for gustiness (Edson 2013)
     ε★ = - u★ * b★
     uᴳ = β * cbrt(ε★ * zᵢ)
 
