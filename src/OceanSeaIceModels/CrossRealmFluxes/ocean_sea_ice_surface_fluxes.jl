@@ -434,8 +434,8 @@ end
     i, j = @index(Global, NTuple)
 
     @inbounds begin
-        J.u[i, j, 1] = ℑxᶠᶜᶜ(i, j, 1, grid, Jᶜᶜᶜ.u) 
-        J.v[i, j, 1] = ℑyᶜᶠᶜ(i, j, 1, grid, Jᶜᶜᶜ.v) 
+        J.u[i, j, 1] = ℑxᶠᵃᵃ(i, j, 1, grid, Jᶜᶜᶜ.u) 
+        J.v[i, j, 1] = ℑyᵃᶠᵃ(i, j, 1, grid, Jᶜᶜᶜ.v) 
     end
 end
 
