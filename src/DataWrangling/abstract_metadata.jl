@@ -95,9 +95,10 @@ JRA55_variable_names = (:river_freshwater_flux,
 
 extract_time_indices(metadata::JRA55Metadata) = metadata.time_indices
 
-file_name(metadata::JRA55Metadata)   = filenames[metadata.name]
+file_name(metadata::JRA55Metadata)  = filenames[metadata.name]
 short_name(metadata::JRA55Metadata) = jra55_short_names[metadata.name]
 variable_is_three_dimensional(metadata::JRA55Metadata) = false
+field_location(::JRA55Metadata)     = (Center, Center, Nothing)
 
 function download_dataset!(metadata::JRA55Metadata)
     filename = file_name(metadata)

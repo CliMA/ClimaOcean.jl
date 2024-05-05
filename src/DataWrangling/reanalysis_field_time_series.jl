@@ -279,12 +279,10 @@ function field_time_series_from_metadata(metadata::AbstractMetadata;
         end
     end
 
-    # Set a default location.
     if isnothing(location)
-        LX = LY = Center
-        location = tridimensional_data ? (LX, LY, Center) : (LX, LY, Nothing)
+        location = field_location(metadata)
     end
-
+    
     ds = Dataset(filename)
 
     # Note that each file should have the variables
