@@ -3,20 +3,20 @@ using Oceananigans.Units
 using ClimaOcean
 using Oceananigans
 using Oceananigans.Operators
-using ClimaOcean.ECCO2
+using ClimaOcean.ECCO4
 using ClimaOcean.OceanSimulations
 using Oceananigans.Units
 using ClimaOcean.JRA55: JRA55_prescribed_atmosphere
 using ClimaOcean.OceanSeaIceModels: Radiation
 
-# Upload ECCO2 fields
-T = ECCO2.ecco2_field(:temperature)
-S = ECCO2.ecco2_field(:salinity)
-u = ECCO2.ecco2_field(:u_velocity)
-v = ECCO2.ecco2_field(:v_velocity)
+# Upload ECCO4 fields
+T = ECCO4.ecco4_field(:temperature)
+S = ECCO4.ecco4_field(:salinity)
+u = ECCO4.ecco4_field(:u_velocity)
+v = ECCO4.ecco4_field(:v_velocity)
 
-include("ecco2_immersed_grid.jl")
-grid = ecco2_immersed_grid()
+include("ecco4_immersed_grid.jl")
+grid = ecco4_immersed_grid()
 
 # Let's leave out the radiation for the moment (too simple to test)
 atmosphere  = JRA55_prescribed_atmosphere(1:2; backend = InMemory(), grid = grid.underlying_grid)

@@ -46,9 +46,9 @@ end
 
 propagate_horizontally!(field, ::Nothing, tmp_field=deepcopy(field); kw...) = field
 
-function propagating(field, mask, iter, max_iter)
+function propagating(field, mask, iter, maxiter)
     mask_sum = sum(field; condition=interior(mask))
-    return isnan(mask_sum) && iter < max_iter
+    return isnan(mask_sum) && iter < maxiter
 end
 
 """ 
@@ -58,7 +58,7 @@ Horizontally propagate the values of `field` into the `mask`.
 In other words, cells where `mask[i, j, k] == false` are preserved,
 and cells where `mask[i, j, k] == true` are painted over.
 """
-function propagate_horizontally!(field, mask, tmp_field=deepcopy(field); max_iter = Inf) 
+function propagate_horizontally!(field, mask, tmp_field=deepcopy(field); maxiter = Inf) 
     iter  = 0
     grid  = field.grid
     arch  = architecture(grid)
@@ -69,7 +69,7 @@ function propagate_horizontally!(field, mask, tmp_field=deepcopy(field); max_ite
     # Need temporary field to avoid a race condition
     parent(tmp_field) .= parent(field)
 
-    while propagating(field, mask, iter, max_iter)
+    while propagating(field, mask, iter, maxiter)
         launch!(arch, grid, :xyz, _propagate_field!,   field, tmp_field)
         launch!(arch, grid, :xyz, _substitute_values!, field, tmp_field)
         iter += 1
@@ -120,9 +120,9 @@ Arguments
     - `max_iter`: Maximum iterations for inpainting. Non-Inf values mean that
                   NaN's can occur within the mask.
 """
-function inpaint_mask!(field, mask; max_iter = Inf)
+function inpaint_mask!(field, mask; maxiter = Inf)
     continue_downwards!(field, mask)
-    propagate_horizontally!(field, mask; max_iter)
+    propagate_horizontally!(field, mask; maxiter)
     return field
 end
 

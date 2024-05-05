@@ -1,28 +1,28 @@
-# # A quick look at ECCO2 data
+# # A quick look at ECCO4 data
 #
-# ClimaOcean can download and utilize data from the "ECCO2" state estimate,
+# ClimaOcean can download and utilize data from the "ECCO4" state estimate,
 # which stands for "Estimating the Circulation and Climate of the Ocean" --- two!
 #
 # This script shows how to download three-dimensional temperature and salinity fields
-# from ECCO2, and makes a short animation to showcase the fields' content.
+# from ECCO4, and makes a short animation to showcase the fields' content.
 #
 # For this example we need Oceananigans for Field utilities, CairoMakie for plotting
 # Printf for nice labeling, and of course ClimaOcean to actually download and construct
-# the ECCO2 fields.
+# the ECCO4 fields.
 
 using Oceananigans
 using CairoMakie
 using Printf
 
-using ClimaOcean: ECCO2
+using ClimaOcean: ECCO4
 
-# The function `ecco2_field` provided by `ClimaOcean.DataWrangling.ECCO2` will automatically
-# download ECCO2 data if it doesn't already exist at the default location.
+# The function `ecco4_field` provided by `ClimaOcean.DataWrangling.ECCO4` will automatically
+# download ECCO4 data if it doesn't already exist at the default location.
 
-T = ECCO2.ecco2_field(:temperature)
-S = ECCO2.ecco2_field(:salinity)
+T = ECCO4.ecco4_field(:temperature)
+S = ECCO4.ecco4_field(:salinity)
 
-# Next, we massage the ECCO2 data by inserting NaNs in "land cells", which
+# Next, we massage the ECCO4 data by inserting NaNs in "land cells", which
 # are diagnosed by having an unphysically low temperature.
 
 Tp = parent(T)
@@ -30,10 +30,10 @@ Sp = parent(S)
 Sp[Tp .< -10] .= NaN
 Tp[Tp .< -10] .= NaN
 
-# # Plotting ECCO2 data
+# # Plotting ECCO4 data
 #
 # We're ready to plot. We'll make an animation
-# that depicts how the ECCO2 data changes with depth.
+# that depicts how the ECCO4 data changes with depth.
 
 fig = Figure(size=(1200, 1400))
 
@@ -76,7 +76,7 @@ text!(axS, 50, 50, text=depth_str, justification=:center, fontsize=24)
 stillframes = 10
 movingframes = Nz
 
-record(fig, "ECCO2_temperature_salinity.gif", framerate=4) do io
+record(fig, "ECCO4_temperature_salinity.gif", framerate=4) do io
 
     [recordframe!(io) for _ = 1:stillframes]
 

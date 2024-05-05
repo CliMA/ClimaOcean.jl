@@ -6,7 +6,7 @@ using OrthogonalSphericalShellGrids
 using Oceananigans
 using Oceananigans: architecture
 using ClimaOcean
-using ClimaOcean.ECCO2
+using ClimaOcean.ECCO4
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalDiffusivity
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.Units
@@ -15,7 +15,7 @@ using ClimaOcean.OceanSeaIceModels
 using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: Radiation
 using ClimaOcean.VerticalGrids: exponential_z_faces
 using ClimaOcean.JRA55
-using ClimaOcean.JRA55: JRA55NetCDFBackend, JRA55_prescribed_atmosphere
+using ClimaOcean.JRA55: NetCDFBackend, JRA55_prescribed_atmosphere
 using ClimaOcean.Bathymetry
 
 include("tripolar_specific_methods.jl")
@@ -64,14 +64,14 @@ ocean = ocean_simulation(grid; free_surface, closure)
 model = ocean.model
 
 set!(model, 
-     T = ECCO2Metadata(:temperature),
-     S = ECCO2Metadata(:salinity))
+     T = ECCOMetadata(:temperature),
+     S = ECCOMetadata(:salinity))
 
 #####
 ##### The atmosphere
 #####
 
-backend    = JRA55NetCDFBackend(4) 
+backend    = NetCDFBackend(4) 
 atmosphere = JRA55_prescribed_atmosphere(arch; backend)
 radiation  = Radiation(arch)
 

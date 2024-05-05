@@ -70,10 +70,11 @@ function save_field_time_series!(fts; path, name, overwrite_existing=false)
 end
 
 include("inpaint_mask.jl")
+include("reanalysis_field_time_series.jl")
 include("JRA55.jl")
-include("ECCO2.jl")
+include("ECCO4.jl")
 
 using .JRA55
-using .ECCO2
+using .ECCO4
 
 end # module

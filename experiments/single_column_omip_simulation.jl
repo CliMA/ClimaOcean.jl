@@ -4,7 +4,7 @@ using Oceananigans.BuoyancyModels: buoyancy_frequency
 using Oceananigans.Units: Time
 
 using ClimaOcean
-using ClimaOcean.DataWrangling.ECCO2: ecco2_column
+using ClimaOcean.DataWrangling.ECCO4: ecco4_column
 
 using GLMakie
 using Printf
@@ -28,8 +28,8 @@ start_time = time_ns()
 epoch = Date(1992, 1, 1)
 date = Date(1992, 10, 1)
 start_seconds = Second(date - epoch).value
-Tᵢ = ecco2_field(:temperature, date)
-Sᵢ = ecco2_field(:salinity, date)
+Tᵢ = ecco4_field(:temperature, date)
+Sᵢ = ecco4_field(:salinity, date)
 
 elapsed = time_ns() - start_time
 @info "Initial condition built. " * prettytime(elapsed * 1e-9)
@@ -43,7 +43,7 @@ Nz = 80
 H = 400
 arch = CPU()
 λ★, φ★ = locations[location]
-i★, j★, longitude, latitude = ecco2_column(λ★, φ★)
+i★, j★, longitude, latitude = ecco4_column(λ★, φ★)
 
 grid = LatitudeLongitudeGrid(arch; longitude, latitude,
                              size = (1, 1, Nz),
@@ -52,7 +52,7 @@ grid = LatitudeLongitudeGrid(arch; longitude, latitude,
 
 ocean = omip_ocean_component(grid)
 
-backend = JRA55NetCDFBackend(8 * 60)
+backend = NetCDFBackend(8 * 60)
 atmosphere = JRA55_prescribed_atmosphere(:; longitude, latitude, backend)
 
 ocean.model.clock.time = start_seconds

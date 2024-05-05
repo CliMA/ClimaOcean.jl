@@ -3,7 +3,7 @@ include("runtests_setup.jl")
 @testset "JRA55 and data wrangling utilities" begin
     for arch in test_architectures
         A = typeof(arch)
-        @info "Testing JRA55_field_time_series on $A..."
+        @info "Testing reanalysis_field_time_series on $A..."
 
         test_name = :downwelling_shortwave_radiation
         test_filename = "RYF.rsds.1990_1991.nc"
@@ -11,7 +11,7 @@ include("runtests_setup.jl")
         time_indices = 1:3
 
         # This should download a file called "RYF.rsds.1990_1991.nc"
-        jra55_fts = ClimaOcean.JRA55.JRA55_field_time_series(test_name; architecture=arch, time_indices)
+        jra55_fts = ClimaOcean.DataWrangling.reanalysis_field_time_series(test_name; architecture=arch, time_indices)
 
         @test isfile(test_filename)
         @test jra55_fts isa FieldTimeSeries
@@ -37,10 +37,10 @@ include("runtests_setup.jl")
         rm(test_jld2_filename, force=true)
 
         @info "Testing loading preprocessed JRA55 data on $A..."
-        in_memory_jra55_fts = ClimaOcean.JRA55.JRA55_field_time_series(test_name;
-                                                                       time_indices,
-                                                                       architecture = arch,
-                                                                       backend = InMemory(2))
+        in_memory_jra55_fts = ClimaOcean.DataWrangling.reanalysis_field_time_series(test_name;
+                                                                                    time_indices,
+                                                                                    architecture = arch,
+                                                                                    backend = InMemory(2))
 
         @test in_memory_jra55_fts isa FieldTimeSeries
 
