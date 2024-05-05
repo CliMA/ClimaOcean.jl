@@ -102,17 +102,18 @@ end
 
 date(data::ECCOMetadata) = DateTimeAllLeap(data.year, data.month, data.day)
 
+function date_string(metadata::ECCOMetadata)
+    yearstr  = string(metadata.year)
+    monthstr = string(metadata.month, pad=2)
+    daystr   = string(metadata.day, pad=2) 
+    return "$(yearstr)-$(monthstr)-$(daystr)"
+end
+
 function ecco4_filename(metadata::ECCOMetadata)
     variable_name = metadata.name
     prefix, postfix = unprocessed_ecco4_file_prefix[variable_name]
-
-    yearstr  = string(year)
-    monthstr = string(month, pad=2)
-    daystr   = string(day, pad=2) 
-    datestr  = "$(yearstr)-$(monthstr)-$(daystr)"
-    filename = prefix * datestr * postfix
-
-    return filename
+    datestr = date_string(metadata)
+    return prefix * datestr * postfix
 end
 
 filename(data::ECCOMetadata) = "ecco4_" * string(data.name) * "_$(data.year)$(data.month)$(data.day).nc"
@@ -145,12 +146,8 @@ ecco4_location = Dict(
 )
 
 ecco4_remote_folder = Dict(
-    :temperature           => "ECCO_L4_TEMP_SALINITY_05DEG_DAILY_V4R4"
-    :salinity              => "ECCO_L4_TEMP_SALINITY_05DEG_DAILY_V4R4"
-    :sea_ice_thickness     => (Center, Center, Nothing),
-    :sea_ice_area_fraction => (Center, Center, Nothing),
-    :u_velocity            => (Face,   Center, Center),
-    :v_velocity            => (Center, Face,   Center),
+    :temperature           => "ECCO_L4_TEMP_SALINITY_05DEG_DAILY_V4R4",
+    :salinity              => "ECCO_L4_TEMP_SALINITY_05DEG_DAILY_V4R4",
 )
 
 surface_variable(variable_name) = variable_name == :sea_ice_thickness
@@ -221,6 +218,7 @@ function ecco4_field(metadata::ECCOMetadata;
 
     variable_name = metadata.name
     short_name = ecco4_short_names[variable_name]
+    datestr = date_string(metadata)
     
     if !isfile(filename) 
         cmd = `podaac-data-downloader -c $(remote_folder) -d ./ --start-date $(datestr)T00:00:00Z --end-date $(datestr)T00:00:00Z -e .nc`
@@ -272,13 +270,14 @@ A boolean field where `false` represents a missing value in the ECCO :temperatur
 function ecco4_center_mask(architecture = CPU(); 
                            minimum_value = Float32(-1e5),
                            maximum_value = Float32(1e5),
-                           filename = ecco4_file_names[:temperature])
+                           metadata = ECCOMetadata(:temperature, 1992, 1, 1),
+                           filename = ecco4_filename(metadata))
 
-    Tᵢ   = ecco4_field(:temperature; architecture, filename)
-    mask = CenterField(Tᵢ.grid, Bool)
+    field = ecco4_field(metadata; architecture, filename)
+    mask  = CenterField(field.grid, Bool)
 
     # Set the mask with ones where T is defined
-    launch!(architecture, Tᵢ.grid, :xyz, _set_ecco4_mask!, mask, Tᵢ, minimum_value, maximum_value)
+    launch!(architecture, field.grid, :xyz, _set_ecco4_mask!, mask, field, minimum_value, maximum_value)
 
     return mask
 end
@@ -311,7 +310,7 @@ Keyword Arguments:
 function inpainted_ecco4_field(metadata::ECCOMetadata; 
                                architecture = CPU(),
                                inpainted_filename = nothing,
-                               filename =  ecco4_file_names[metadata.name],
+                               filename =  ecco4_filename(metadata),
                                mask = ecco4_center_mask(architecture; filename),
                                maxiter = Inf,
                                kw...)

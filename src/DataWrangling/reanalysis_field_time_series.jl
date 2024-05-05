@@ -316,6 +316,7 @@ function reanalysis_field_time_series(variable_name;
     # Interfaces for the "native" JRA55 grid
     λn = ds["lon_bnds"][1, :]
     φn = ds["lat_bnds"][1, :]
+    zr = tridimensional_data ? ds["z_bnds"][:] : nothing
 
     # The .nc coordinates lon_bnds and lat_bnds do not include
     # the last interface, so we push them here.
@@ -330,7 +331,7 @@ function reanalysis_field_time_series(variable_name;
     data = tridimensional_data ? ds[shortname][i₁:i₂, j₁:j₂, :, time_indices_in_memory] : ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory] 
     λr = λn[i₁:i₂+1]
     φr = φn[j₁:j₂+1]
-
+    
     Nrx, Nry, Nz = size(data) # Nz is the time index if the variable is twodimensional
     close(ds)
 
@@ -340,8 +341,8 @@ function reanalysis_field_time_series(variable_name;
                               size = (Nrx, Nry, Nz),
                               longitude = λr,
                               latitude = φr,
-                              z = zc,
-                              topology = (TX, Bounded, Flat))
+                              z = zr,
+                              topology = (TX, Bounded, Bounded))
     else
         LatitudeLongitudeGrid(native_fts_architecture, Float32;
                               halo = (3, 3),
