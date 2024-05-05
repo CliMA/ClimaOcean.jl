@@ -29,7 +29,7 @@ import SurfaceFluxes.Parameters:
 ##### Bulk turbulent fluxes based on similarity theory
 #####
 
-struct SimilarityTheoryTurbulentFluxes{FT, UF, TP, S, W, R, B, F} <: AbstractSurfaceFluxesParameters
+struct SimilarityTheoryTurbulentFluxes{FT, UF, TP, S, W, R, B, V, F} <: AbstractSurfaceFluxesParameters
     gravitational_acceleration :: FT
     von_karman_constant :: FT
     turbulent_prandtl_number :: FT
@@ -40,6 +40,7 @@ struct SimilarityTheoryTurbulentFluxes{FT, UF, TP, S, W, R, B, F} <: AbstractSur
     water_mole_fraction :: W
     roughness_lengths :: R
     bulk_coefficients :: B
+    bulk_velocity :: V
     tolerance :: FT
     maxiter :: Int
     iteration :: Int
@@ -65,6 +66,7 @@ Adapt.adapt_structure(to, fluxes::STTF) = SimilarityTheoryTurbulentFluxes(adapt(
                                                                           adapt(to, fluxes.water_mole_fraction),
                                                                           adapt(to, fluxes.roughness_lengths),
                                                                           adapt(to, fluxes.bulk_coefficients),
+                                                                          adapt(to, fluxes.bulk_velocity),
                                                                           fluxes.iteration,
                                                                           fluxes.tolerance,
                                                                           fluxes.maxiter,
@@ -96,6 +98,12 @@ end
 
 const PATP = PrescribedAtmosphereThermodynamicsParameters
 
+""" only the atmosphere velocity is used in flux calculations """
+struct WindVelocity end
+
+""" the atmosphere - ocean velocity difference is used in flux calculations """
+struct RelativeVelocity end
+
 function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                          gravitational_acceleration = default_gravitational_acceleration,
                                          von_karman_constant = convert(FT, 0.4),
@@ -107,6 +115,7 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                          water_mole_fraction = convert(FT, 0.98),
                                          roughness_lengths = default_roughness_lengths(FT),
                                          bulk_coefficients = simplified_bulk_coefficients,
+                                         bulk_velocity = RelativeVelocity(),
                                          tolerance = 1e-8,
                                          maxiter = Inf,
                                          fields = nothing)
@@ -121,6 +130,7 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                            water_mole_fraction,
                                            roughness_lengths,
                                            bulk_coefficients,
+                                           bulk_velocity,
                                            tolerance, 
                                            maxiter,
                                            0,
@@ -157,7 +167,12 @@ end
 
     # Prescribed difference between two states
     ℂₐ = thermodynamics_parameters
-    Δh, Δu, Δv, Δθ, Δq = state_differences(ℂₐ, atmos_state, surface_state, gravitational_acceleration)
+    Δh, Δu, Δv, Δθ, Δq = state_differences(ℂₐ, 
+                                           atmos_state, 
+                                           surface_state, 
+                                           gravitational_acceleration,
+                                           similarity_theory.bulk_velocity)
+
     differences = (; u=Δu, v=Δv, θ=Δθ, q=Δq, h=Δh)
     
     Σ₀ = SimilarityScales(0, 0, 0)
@@ -305,18 +320,14 @@ end
     return b★
 end
 
-@inline function state_differences(ℂ, 𝒰₁, 𝒰₀, g)
+@inline characteristic_velocities(𝒰₁, 𝒰₀, ::WindVelocity)     = @inbounds 𝒰₁.u[1] - 𝒰₀.u[1], 𝒰₁.u[2] - 𝒰₀.u[2]
+@inline characteristic_velocities(𝒰₁, 𝒰₀, ::RelativeVelocity) = @inbounds 𝒰₁.u[1], 𝒰₁.u[2] 
+
+@inline function state_differences(ℂ, 𝒰₁, 𝒰₀, g, bulk_velocity)
     z₁ = 𝒰₁.z
     z₀ = 𝒰₀.z
     Δh = z₁ - z₀
-
-    U₁ = 𝒰₁.u
-    U₀ = 𝒰₀.u
-
-    @inbounds begin
-        Δu = U₁[1] - U₀[1]
-        Δv = U₁[2] - U₀[2]
-    end
+    Δu, Δv = characteristic_velocities(𝒰₁, 𝒰₀, bulk_velocity)
 
     # Thermodynamic state
     𝒬₁ = 𝒰₁.ts
