@@ -311,7 +311,6 @@ function reanalysis_field_time_series(variable_name;
     # Nodes at the variable location
     λc = ds["lon"][:]
     φc = ds["lat"][:]
-    zc = tridimensional_data ? ds["z"][:] : nothing
 
     # Interfaces for the "native" JRA55 grid
     λn = ds["lon_bnds"][1, :]
