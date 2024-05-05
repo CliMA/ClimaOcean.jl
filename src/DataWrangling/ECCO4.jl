@@ -1,5 +1,3 @@
-module ECCO4
-
 export ECCOMetadata, ecco4_field, ecco4_center_mask, adjusted_ecco_tracers, initialize!
 
 using ClimaOcean.DataWrangling: inpaint_mask!
@@ -14,16 +12,6 @@ using KernelAbstractions: @kernel, @index
 using NCDatasets
 using Downloads: download
 using Dates
-
-import Oceananigans.Fields: set!
-
-# Ecco field used to set model's initial conditions
-struct ECCOMetadata
-    name  :: Symbol
-    year  :: Int
-    month :: Int
-    day   :: Int
-end
 
 const ECCO_Nx = 720
 const ECCO_Ny = 360
@@ -84,80 +72,9 @@ const ECCO_z = [
       0.0,
 ]
 
-unprocessed_ecco4_file_prefix = Dict(
-    :temperature           => ("OCEAN_TEMPERATURE_SALINITY_day_mean_", "_ECCO_V4r4_latlon_0p50deg.nc"),
-    :salinity              => ("OCEAN_TEMPERATURE_SALINITY_day_mean_", "_ECCO_V4r4_latlon_0p50deg.nc"),
-)
+empty_ecco4_field(variable_name::Symbol; kw...) = empty_ecco4_field(ECCOMetadata(variable_name); kw...)
 
-# We only have 1992 at the moment
-ECCOMetadata(name::Symbol) = ECCOMetadata(name, 1992, 1, 2)
-
-function ECCOMetadata(name::Symbol, date::DateTimeAllLeap) 
-    year  = Dates.year(date)
-    month = Dates.month(date)
-    day   = Dates.day(date)
-
-    return ECCOMetadata(name, year, month, day)
-end
-
-date(data::ECCOMetadata) = DateTimeAllLeap(data.year, data.month, data.day)
-
-function date_string(metadata::ECCOMetadata)
-    yearstr  = string(metadata.year)
-    monthstr = string(metadata.month, pad=2)
-    daystr   = string(metadata.day, pad=2) 
-    return "$(yearstr)-$(monthstr)-$(daystr)"
-end
-
-function ecco4_filename(metadata::ECCOMetadata)
-    variable_name = metadata.name
-    prefix, postfix = unprocessed_ecco4_file_prefix[variable_name]
-    datestr = date_string(metadata)
-    return prefix * datestr * postfix
-end
-
-filename(data::ECCOMetadata) = "ecco4_" * string(data.name) * "_$(data.year)$(data.month)$(data.day).nc"
-
-variable_is_three_dimensional = Dict(
-    :temperature             => true,
-    :salinity                => true,
-    :u_velocity              => true,
-    :v_velocity              => true,
-    :sea_ice_thickness       => false,
-    :sea_ice_area_fraction   => false,
-)
-
-ecco4_short_names = Dict(
-    :temperature           => "THETA",
-    :salinity              => "SALT",
-    :u_velocity            => "UVEL",
-    :v_velocity            => "VVEL",
-    :sea_ice_thickness     => "SIheff",
-    :sea_ice_area_fraction => "SIarea"
-)
-
-ecco4_location = Dict(
-    :temperature           => (Center, Center, Center),
-    :salinity              => (Center, Center, Center),
-    :sea_ice_thickness     => (Center, Center, Nothing),
-    :sea_ice_area_fraction => (Center, Center, Nothing),
-    :u_velocity            => (Face,   Center, Center),
-    :v_velocity            => (Center, Face,   Center),
-)
-
-ecco4_remote_folder = Dict(
-    :temperature           => "ECCO_L4_TEMP_SALINITY_05DEG_DAILY_V4R4",
-    :salinity              => "ECCO_L4_TEMP_SALINITY_05DEG_DAILY_V4R4",
-)
-
-surface_variable(variable_name) = variable_name == :sea_ice_thickness
-
-function empty_ecco4_field(metadata::ECCOMetadata; kw...)
-    variable_name = metadata.name
-    return empty_ecco4_field(variable_name; kw...)
-end
-
-function empty_ecco4_field(variable_name::Symbol;
+function empty_ecco4_field(metadata::ECCOMetadata;
                            Nx = ECCO_Nx,
                            Ny = ECCO_Ny,
                            Nz = ECCO_Nz,
@@ -165,14 +82,16 @@ function empty_ecco4_field(variable_name::Symbol;
                            architecture = CPU(), 
                            horizontal_halo = (3, 3))
 
-
+    variable_name = metadata.name
+    location = field_location(metadata)
+    
     location = ecco4_location[variable_name]
 
     longitude = (0, 360)
     latitude = (-90, 90)
     TX, TY = (Periodic, Bounded)
 
-    if variable_is_three_dimensional[variable_name] 
+    if variable_is_three_dimensional(metadata)
         z    = z_faces
         # add vertical halo for 3D fields
         halo = (horizontal_halo..., 3)
@@ -213,7 +132,7 @@ function ecco4_field(metadata::ECCOMetadata;
                      architecture = CPU(),
                      horizontal_halo = (3, 3),
                      user_data = nothing,
-                     filename = ecco4_filename(metadata),
+                     filename = file_name(metadata),
                      remote_folder = ecco4_remote_folder[metadata.name])
 
     variable_name = metadata.name
@@ -223,12 +142,19 @@ function ecco4_field(metadata::ECCOMetadata;
     if !isfile(filename) 
         cmd = `podaac-data-downloader -c $(remote_folder) -d ./ --start-date $(datestr)T00:00:00Z --end-date $(datestr)T00:00:00Z -e .nc`
         @info "downloading $(filename) from $(remote_folder)"
-        run(cmd)
+        try
+            run(cmd)
+        catch error
+            @info "Note: to download ECCO4 data please install podaac-data-downloader using \\ 
+                   `pip install podaac`. Provide a username and password to the python environment. \\
+                   For details about the installation refer to "
+            throw(ArgumentError("The error is $error"))
+        end
     end
 
     if user_data isa Nothing
         ds = Dataset(filename)
-        if variable_is_three_dimensional[variable_name] 
+        if variable_is_three_dimensional(metadata)
             data = ds[short_name][:, :, :, 1]
             # The surface layer in three-dimensional ECCO fields is at `k = 1`
             data = reverse(data, dims = 3)
@@ -270,8 +196,8 @@ A boolean field where `false` represents a missing value in the ECCO :temperatur
 function ecco4_center_mask(architecture = CPU(); 
                            minimum_value = Float32(-1e5),
                            maximum_value = Float32(1e5),
-                           metadata = ECCOMetadata(:temperature, 1992, 1, 1),
-                           filename = ecco4_filename(metadata))
+                           metadata = ECCOMetadata(:temperature),
+                           filename = file_name(metadata))
 
     field = ecco4_field(metadata; architecture, filename)
     mask  = CenterField(field.grid, Bool)
@@ -310,7 +236,7 @@ Keyword Arguments:
 function inpainted_ecco4_field(metadata::ECCOMetadata; 
                                architecture = CPU(),
                                inpainted_filename = nothing,
-                               filename =  ecco4_filename(metadata),
+                               filename = file_name(metadata),
                                mask = ecco4_center_mask(architecture; filename),
                                maxiter = Inf,
                                kw...)
@@ -408,10 +334,3 @@ function set!(field::Field, ecco4_metadata::ECCOMetadata; filename="./inpainted_
 
     return field
 end
-
-include("ECCO4_climatology.jl")
-
-end # module
-
-
-

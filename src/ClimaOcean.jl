@@ -28,15 +28,13 @@ include("OceanSimulations/OceanSimulations.jl")
 
 using .VerticalGrids
 using .Bathymetry
-using .DataWrangling: JRA55
-using .DataWrangling: ECCO4
 using .InitialConditions
 using .OceanSeaIceModels: OceanSeaIceModel
 using .OceanSimulations
-using .DataWrangling: JRA55, ECCO4
+using .DataWrangling
 using ClimaOcean.DataWrangling: NetCDFBackend
-using ClimaOcean.DataWrangling.JRA55: JRA55_prescribed_atmosphere
-using ClimaOcean.DataWrangling.ECCO4: ecco4_field
+using ClimaOcean.DataWrangling: JRA55_prescribed_atmosphere
+using ClimaOcean.DataWrangling: ecco4_field
 
 using .OceanSeaIceModels: OceanSeaIceModel, Radiation
 

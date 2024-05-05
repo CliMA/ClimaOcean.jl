@@ -81,7 +81,7 @@ function compute_bounding_indices(longitude, latitude, grid, LX, LY, λc, φc)
 end
 
 # Convert dates to range until Oceananigans supports dates natively
-function fts_times(native_times, start_time=DateTimeNoLeap(1900, 01, 01))
+function fts_times(native_times, start_time=native_times[1])
     Nt = length(native_times)
     Δt = native_times[2] - native_times[1] # assume all times are equispaced
     Δt = Second(Δt).value
@@ -207,37 +207,26 @@ Keyword arguments
     - `time_chunks_in_memory`: number of fields held in memory. If `nothing` the whole timeseries is 
                                loaded (not recommended).
 """
-function reanalysis_field_time_series(variable_name;
-                                      architecture = CPU(),
-                                      grid = nothing,
-                                      location = nothing,
-                                      url = nothing,
-                                      filename = nothing,
-                                      shortname = nothing,
-                                      latitude = nothing,
-                                      longitude = nothing,
-                                      tridimensional_data = false,
-                                      backend = InMemory(),
-                                      time_indexing = Cyclical(),
-                                      preprocess_chunk_size = 10,
-                                      preprocess_architecture = CPU(),
-                                      time_indices = nothing)
+function field_time_series_from_metadata(metadata::AbstractMetadata;
+                                         architecture = CPU(),
+                                         grid = nothing,
+                                         location = nothing,
+                                         latitude = nothing,
+                                         longitude = nothing,
+                                         filename = nothing,
+                                         backend = InMemory(),
+                                         time_indexing = Cyclical(),
+                                         preprocess_chunk_size = 10,
+                                         preprocess_architecture = CPU())
+
+    tridimensional_data = variable_is_three_dimensional(metadata)
+    time_indices        = extract_time_indices(metadata)
+    shortname           = short_name(metadata)
 
     # OnDisk backends do not support time interpolation!
     # Disallow OnDisk for JRA55 dataset loading 
     if backend isa OnDisk 
         msg = string("We cannot load the JRA55 dataset with an `OnDisk` backend")
-        throw(ArgumentError(msg))
-    end
-
-    if isnothing(filename) && !(variable_name ∈ JRA55_variable_names)
-        variable_strs = Tuple("  - :$name \n" for name in JRA55_variable_names)
-        variables_msg = prod(variable_strs)
-
-        msg = string("The variable :$variable_name is not provided by the JRA55-do dataset!", '\n',
-                     "The variables provided by the JRA55-do dataset are:", '\n',
-                     variables_msg)
-
         throw(ArgumentError(msg))
     end
 
@@ -247,21 +236,19 @@ function reanalysis_field_time_series(variable_name;
                             to download the new file."))
     end
 
-    isnothing(shortname) && (shortname = jra55_short_names[variable_name])
-    isnothing(filename)  && (filename  = filenames[variable_name])
-    isnothing(url)       && (url       = urls[variable_name])
+    isnothing(filename) && (filename  = file_name(metadata))
 
     # Record some important user decisions
     totally_in_memory = backend isa TotallyInMemory
     on_native_grid = isnothing(grid)
     !on_native_grid && backend isa NetCDFBackend && error("Can't use custom grid with NetCDFBackend.")
 
-    jld2_filename = string("JRA55_repeat_year_", variable_name, ".jld2")
-    fts_name = field_time_series_short_names[variable_name]
+    # Download the necessary data
+    download_dataset!(metadata)
 
     # Note, we don't re-use existing jld2 files.
-    isfile(filename) || download(url, filename)
-    isfile(jld2_filename) && rm(jld2_filename)
+    output_filename = "ciao123.jld2"
+    isfile(output_filename) && rm(output_filename)
 
     # Determine default time indices
     if totally_in_memory
@@ -313,9 +300,9 @@ function reanalysis_field_time_series(variable_name;
     φc = ds["lat"][:]
 
     # Interfaces for the "native" JRA55 grid
-    λn = ds["lon_bnds"][1, :]
-    φn = ds["lat_bnds"][1, :]
-    zr = tridimensional_data ? ds["z_bnds"][:] : nothing
+    λn = tridimensional_data ? ds["lon_bnds"][:] : ds["lon_bnds"][1, :] 
+    φn = tridimensional_data ? ds["lat_bnds"][:] : ds["lat_bnds"][1, :] 
+    zr = tridimensional_data ? ds["z_bnds"][:]   : nothing
 
     # The .nc coordinates lon_bnds and lat_bnds do not include
     # the last interface, so we push them here.
@@ -327,6 +314,7 @@ function reanalysis_field_time_series(variable_name;
     i₁, i₂, j₁, j₂, TX = compute_bounding_indices(longitude, latitude, grid, location[1], location[2], λc, φc)
 
     native_times = ds["time"][time_indices]
+
     data = tridimensional_data ? ds[shortname][i₁:i₂, j₁:j₂, :, time_indices_in_memory] : ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory] 
     λr = λn[i₁:i₂+1]
     φr = φn[j₁:j₂+1]
