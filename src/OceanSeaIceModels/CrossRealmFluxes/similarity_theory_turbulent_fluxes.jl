@@ -151,7 +151,7 @@ end
 
 # The complete bulk coefficient should include also `ψ(ℓ / L)`, but the 
 # JRA55 atmosphere is adjusted to formulae without this last term so we exclude it
-@inline simplified_bulk_coefficient(ψ, h, ℓ, L) = log(h / ℓ) - ψ(h / L) # + ψ(ℓ / L)
+@inline simplified_bulk_coefficients(ψ, h, ℓ, L) = log(h / ℓ) - ψ(h / L) # + ψ(ℓ / L)
 
 #####
 ##### Fixed-point iteration for roughness length
