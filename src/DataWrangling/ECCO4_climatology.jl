@@ -3,9 +3,9 @@ using Dates
 
 function generate_ECCO_restoring_dataset(variable_name; 
                                          architecture = CPU(),
-                                         dataset_filename = "ciao.nc",
                                          start_date = DateTimeAllLeap(1992, 1, 2),
-                                         end_date = DateTimeAllLeap(2017, 12, 31))
+                                         end_date = DateTimeAllLeap(2017, 12, 31),
+                                         dataset_filename = "ciao.nc")
 
     Nt = 0
     date = start_date                                     
@@ -44,7 +44,8 @@ function generate_ECCO_restoring_dataset(variable_name;
     date = start_date                                     
     while date <= end_date
         metadata = ECCOMetadata(variable_name, date)
-
+        filename = ecco4_filename(metadata)
+        
         @info "retrieving inpainted $(variable_name) at $(date)"
         field = inpainted_ecco4_field(metadata; architecture, filename)
         copyto!(data[:, :, :, n], interior(field))
