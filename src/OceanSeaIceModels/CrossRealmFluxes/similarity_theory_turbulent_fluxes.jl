@@ -67,9 +67,9 @@ Adapt.adapt_structure(to, fluxes::STTF) = SimilarityTheoryTurbulentFluxes(adapt(
                                                                           adapt(to, fluxes.roughness_lengths),
                                                                           adapt(to, fluxes.bulk_coefficients),
                                                                           adapt(to, fluxes.bulk_velocity),
-                                                                          fluxes.iteration,
                                                                           fluxes.tolerance,
                                                                           fluxes.maxiter,
+                                                                          fluxes.iteration,
                                                                           adapt(to, fluxes.fields))
 
 Base.summary(::SimilarityTheoryTurbulentFluxes{FT}) where FT = "SimilarityTheoryTurbulentFluxes{$FT}"
@@ -114,10 +114,10 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                          water_vapor_saturation = ClasiusClapyeronSaturation(),
                                          water_mole_fraction = convert(FT, 0.98),
                                          roughness_lengths = default_roughness_lengths(FT),
-                                         bulk_coefficients = simplified_bulk_coefficients,
+                                         bulk_coefficients = bulk_coefficients,
                                          bulk_velocity = RelativeVelocity(),
                                          tolerance = 1e-8,
-                                         maxiter = Inf,
+                                         maxiter = 100,
                                          fields = nothing)
 
     return SimilarityTheoryTurbulentFluxes(convert(FT, gravitational_acceleration),
@@ -131,7 +131,7 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                            roughness_lengths,
                                            bulk_coefficients,
                                            bulk_velocity,
-                                           tolerance, 
+                                           convert(FT, tolerance), 
                                            maxiter,
                                            0,
                                            fields)
@@ -149,9 +149,12 @@ function SimilarityTheoryTurbulentFluxes(grid::AbstractGrid; kw...)
     return SimilarityTheoryTurbulentFluxes(eltype(grid); kw..., fields)
 end
 
-# The complete bulk coefficient should include also `ψ(ℓ / L)`, but the 
-# JRA55 atmosphere is adjusted to formulae without this last term so we exclude it
+# The complete bulk coefficient should include also `ψ(ℓ / L)`, 
+# All this part is pretty
 @inline simplified_bulk_coefficients(ψ, h, ℓ, L) = log(h / ℓ) - ψ(h / L) # + ψ(ℓ / L)
+
+# The complete bulk coefficient
+@inline bulk_coefficients(ψ, h, ℓ, L) = log(h / ℓ) - ψ(h / L) + ψ(ℓ / L)
 
 #####
 ##### Fixed-point iteration for roughness length
