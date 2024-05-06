@@ -23,7 +23,7 @@ const all_ecco_4_dates = DateTimeAllLeap(1992, 1, 2) : Day(1) : DateTimeAllLeap(
 function generate_ECCO_restoring_dataset!(variable_name; 
                                           architecture = CPU(),
                                           dates = all_ecco_4_dates,
-                                          output_filename = "ecco4_$(metadata.name).nc")
+                                          output_filename = "ecco4_$(variable_name).nc")
 
     Nt    = length(dates)
     field = empty_ecco4_field(variable_name)

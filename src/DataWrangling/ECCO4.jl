@@ -292,12 +292,11 @@ function set!(field::DistributedField, ecco4_metadata::ECCOMetadata; filename=".
     grid = field.grid
     arch = architecture(grid)
     child_arch = child_architecture(arch)
-    name = ecco4_metadata.name
 
     f_ecco = if arch.local_rank == 0 # Make sure we read/write the file using only one core
         mask = ecco4_center_mask(child_arch)
         
-        inpainted_ecco4_field(name; filename, mask,
+        inpainted_ecco4_field(ecco4_metadata; inpainted_filename = filename, mask,
                                   architecture = child_arch,
                                   kw...)
     else
@@ -309,7 +308,7 @@ function set!(field::DistributedField, ecco4_metadata::ECCOMetadata; filename=".
     # Distribute ecco field to all workers
     parent(f_ecco) .= all_reduce(+, parent(f_ecco), arch)
 
-    f_grid = Field(ecco4_location[name], grid)   
+    f_grid = Field(field_location(ecco4_metadata), grid)   
     interpolate!(f_grid, f_ecco)
     set!(field, f_grid)
     
@@ -320,15 +319,13 @@ function set!(field::Field, ecco4_metadata::ECCOMetadata; filename="./inpainted_
 
     # Fields initialized from ECCO
     grid = field.grid
-    name = ecco4_metadata.name
-
     mask = ecco4_center_mask(architecture(grid))
     
-    f = inpainted_ecco4_field(name; filename, mask,
+    f = inpainted_ecco4_field(ecco4_metadata; inpainted_filename = filename, mask,
                               architecture = architecture(grid),
                               kw...)
 
-    f_grid = Field(ecco4_location[name], grid)   
+    f_grid = Field(field_location(ecco4_metadata), grid)   
     interpolate!(f_grid, f)
     set!(field, f_grid)
 
