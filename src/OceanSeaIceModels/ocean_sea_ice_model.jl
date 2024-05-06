@@ -59,6 +59,7 @@ end
 function OceanSeaIceModel(ocean, sea_ice=nothing;
                           atmosphere = nothing,
                           radiation = nothing,
+                          similarity_theory = nothing,
                           ocean_reference_density = reference_density(ocean),
                           ocean_heat_capacity = heat_capacity(ocean),
                           clock = deepcopy(ocean.model.clock))
@@ -67,6 +68,7 @@ function OceanSeaIceModel(ocean, sea_ice=nothing;
     fluxes = OceanSeaIceSurfaceFluxes(ocean, sea_ice; 
                                       atmosphere, 
                                       ocean_reference_density, 
+                                      similarity_theory,
                                       ocean_heat_capacity, 
                                       radiation)
 
