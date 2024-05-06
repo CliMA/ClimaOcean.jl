@@ -149,8 +149,7 @@ function SimilarityTheoryTurbulentFluxes(grid::AbstractGrid; kw...)
     return SimilarityTheoryTurbulentFluxes(eltype(grid); kw..., fields)
 end
 
-# The complete bulk coefficient should include also `ψ(ℓ / L)`, 
-# All this part is pretty
+# Simplified coefficient a la COARE 
 @inline simplified_bulk_coefficients(ψ, h, ℓ, L) = log(h / ℓ) - ψ(h / L) # + ψ(ℓ / L)
 
 # The complete bulk coefficient
