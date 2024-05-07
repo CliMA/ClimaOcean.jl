@@ -23,6 +23,7 @@ end
     ECCONetCDFBackend(length)
 
 Represents an ECCO FieldTimeSeries backed by ECCO native .nc files.
+Each time instance is stored in an individual file.
 """
 ECCONetCDFBackend(length) = ECCONetCDFBackend(1, length)
 
@@ -66,7 +67,7 @@ from the start time.
 # Returns
 An array of time differences in seconds.
 """
-function ecco_times(metadata; start_time = metadata.dates[1])
+function ecco_times(metadata; start_time = first(metadata).dates)
     times = []
     for data in metadata
         date = data.dates
@@ -79,56 +80,30 @@ function ecco_times(metadata; start_time = metadata.dates[1])
 end
 
 """
-    ECCO_field_time_series(variable_name;
+        ECCO_field_time_series(metadata::ECCOMetadata;
                             architecture = CPU(),
-                            location = nothing,
-                            url = nothing,
-                            filename = nothing,
-                            shortname = nothing,
-                            backend = InMemory(),
-                            preprocess_chunk_size = 10,
-                            preprocess_architecture = CPU(),
-                            time_indices = nothing)
+                            time_indices_in_memory = 2,
+                            time_indexing = Cyclical())
 
-Return a `FieldTimeSeries` containing oceanic reanalysis data for `variable_name`,
-which describes one of the variables in the "ECCO" dataset.
+Create a field time series object for ECCO data.
+
+Args:
+- metadata: An ECCOMetadata object containing information about the ECCO dataset.
+- architecture: The architecture to use for computations (default: CPU()).
+- time_indices_in_memory: The number of time indices to keep in memory (default: 2).
+- time_indexing: The time indexing scheme to use (default: Cyclical()).
+
+Returns:
+- fts: A FieldTimeSeries object representing the ECCO field time series.
+
+Example:
+```
+metadata = ECCOMetadata(...)
+fts = ECCO_field_time_series(metadata)
+```
 """
-function ECCO_field_time_series(metadata::ECCOMetadata;
-                                 architecture = CPU(),
-                                 backend = ECCONetCDFBackend(2),
-                                 time_indexing = Cyclical())
 
-    # ECCO data is too chunky to allow other backends
-    if !(backend isa ECCONetCDFBackend) 
-        msg = string("We cannot load the ECCO dataset with an $(backend) backend, only ECCONetCDFBackend is allowed!")
-        throw(ArgumentError(msg))
-    end
-
-    # Making sure all the required individual files are downloaded
-    download_dataset!(metadata)
-
-    location = field_location(metadata)
-    ftmp = empty_ecco_field(first(metadata); architecture)
-    shortname = short_name(metadata)
-
-    ECCO_native_grid = ftmp.grid
-    boundary_conditions = FieldBoundaryConditions(ECCO_native_grid, location)
-    times = ecco_times(metadata)
-    
-    fts = FieldTimeSeries{location...}(ECCO_native_grid, times;
-                                       backend,
-                                       time_indexing,
-                                       boundary_conditions,
-                                       path = metadata,
-                                       name = shortname)
-            
-    # Let's set the data
-    set!(fts)
-
-    return fts
-end
-
-@inline variable_name(i) = ifelse(i == 1, :T, ifelse(i == 2, :S, ifelse(i == 3, :u, :v)))
+@inline variable_name_from_index(i) = ifelse(i == 1, :T, ifelse(i == 2, :S, ifelse(i == 3, :u, :v)))
 
 oceananigans_fieldindex = Dict(
     :temperature => 1,
@@ -165,12 +140,12 @@ Adapt.adapt_structure(to, p::ECCORestoring) =
 @inline function (p::ECCORestoring)(i, j, k, grid, clock, fields)
     
     # Figure out all the inputs: variable name, time, location, and node
-    var_name  = variable_name(p.field_idx)
+    var_name  = variable_name_from_index(p.field_idx)
     time      = Time(clock.time)
     loc       = location(p.ecco_fts)
     X         = node(i, j, k, grid, loc)
 
-    # Extracting the ECCO field time series data
+    # Extracting the ECCO field time series data and parameters
     ecco_grid          = p.ecco_fts.grid
     ecco_data          = p.ecco_fts.data
     ecco_backend       = p.ecco_fts.backend
@@ -179,7 +154,7 @@ Adapt.adapt_structure(to, p::ECCORestoring) =
     # Extracting the field value at the current node
     @inbounds var = getproperty(fields, var_name)[i, j, k]
     
-    # Interpolating the ECCO field time series data
+    # Interpolating the ECCO field time series data ont the current node and time
     ecco_var = interpolate(X, time, ecco_data, loc, grid, ecco_grid, ecco_backend, ecco_time_indexing)
     
     # Extracting the mask value at the current node
@@ -211,12 +186,12 @@ Create a restoring forcing term for ECCO field time series.
 """
 function ECCO_restoring_forcing(metadata::ECCOMetadata;
                                 architecture = CPU(), 
-                                backend = ECCONetCDFBackend(2),
+                                time_indices_in_memory = 2,
                                 time_indexing = Cyclical(),
                                 mask = 1,
                                 timescale = 5days)
 
-    ecco_fts = ECCO_field_time_series(metadata; architecture, backend, time_indexing)                  
+    ecco_fts = ECCO_field_time_series(metadata; architecture, time_indices_in_memory, time_indexing)                  
 
     variable_name = metadata.name
     field_idx = oceananigans_fieldindex[variable_name]

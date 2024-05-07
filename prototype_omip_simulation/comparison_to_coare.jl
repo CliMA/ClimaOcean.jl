@@ -6,28 +6,21 @@ using Oceananigans.Operators
 using ClimaOcean.DataWrangling
 using ClimaOcean.OceanSimulations
 using Oceananigans.Units
-using ClimaOcean.DataWrangling: JRA55_prescribed_atmosphere
+using ClimaOcean.DataWrangling.ECCO: inpainted_ecco_field
+using ClimaOcean.DataWrangling.JRA55: JRA55_prescribed_atmosphere
 using ClimaOcean.OceanSeaIceModels: Radiation
 
 # Upload ECCO fields
-# T = DataWrangling.inpainted_ecco_field(:temperature)
-# S = DataWrangling.inpainted_ecco_field(:salinity)
-# u = DataWrangling.inpainted_ecco_field(:u_velocity)
-# v = DataWrangling.inpainted_ecco_field(:v_velocity)
+T = inpainted_ecco_field(:temperature; maxiter = Inf)
+S = inpainted_ecco_field(:salinity;    maxiter = Inf)
+u = inpainted_ecco_field(:u_velocity;  maxiter = Inf)
+v = inpainted_ecco_field(:v_velocity;  maxiter = Inf)
 
-# include("ecco_immersed_grid.jl")
-# grid = ecco_immersed_grid()
-
+include("ecco_immersed_grid.jl")
+grid = ecco_immersed_grid()
 
 # Let's leave out the radiation for the moment (too simple to test)
-atmosphere  = JRA55_prescribed_atmosphere(1:2; backend = InMemory()) #, grid = grid.underlying_grid)
-
-grid = atmosphere.fields.velocities.u.grid
-
-T = CenterField(grid)
-S = CenterField(grid)
-u = XFaceField(grid)
-v = YFaceField(grid)
+atmosphere  = JRA55_prescribed_atmosphere(1:2; backend = InMemory(), grid = grid.underlying_grid)
 
 ocean = ocean_simulation(grid; momentum_advection = nothing,
                                  tracer_advection = nothing)

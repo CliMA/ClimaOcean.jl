@@ -2,6 +2,7 @@ module OceanSimulations
 
 export load_balanced_regional_grid, ocean_simulation
 
+using Oceananigans
 using Oceananigans.Units
 using Oceananigans.Advection: TracerAdvection
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
@@ -61,6 +62,7 @@ function ocean_simulation(grid; Δt = 5minutes,
                           rotation_rate = Ω_Earth,
                           gravitational_acceleration = g_Earth,
                           drag_coefficient = 0.003,
+                          forcing = NamedTuple(),
                           momentum_advection = default_momentum_advection(),
                           tracer_advection = default_tracer_advection(),
                           verbose = false)

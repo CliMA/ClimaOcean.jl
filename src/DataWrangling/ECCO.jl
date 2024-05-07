@@ -173,13 +173,13 @@ end
 """
     ecco_center_mask(architecture = CPU(); minimum_value = Float32(-1e5))
 
-A boolean field where `false` represents a missing value in the ECCO :temperature dataset.
+A boolean field where `false` represents a missing value in the ECCO dataset.
 """
 function ecco_center_mask(architecture = CPU(); 
-                           minimum_value = Float32(-1e5),
-                           maximum_value = Float32(1e5),
-                           metadata = ECCOMetadata(:temperature),
-                           filename = file_name(metadata))
+                          minimum_value = Float32(-1e5),
+                          maximum_value = Float32(1e5),
+                          metadata = ECCOMetadata(:temperature),
+                          filename = file_name(metadata))
 
     field = ecco_field(metadata; architecture, filename)
     mask  = CenterField(field.grid, Bool)
@@ -210,16 +210,18 @@ Keyword Arguments:
 - `architecture`: either `CPU()` or `GPU()`.
 
 - `filename`: the path where to retrieve the data from. If the file does not exist,
-              the data will be retrived from the ECCO dataset, inpainted, and
-              saved to `filename`.
+              the data will be downloaded from the ECCO dataset.
 
 - `mask`: the mask used to inpaint the field (see `inpaint_mask!`).
+
+- `maxiter`: the maximum number of iterations to inpaint the field (see `inpaint_mask!`).
+
 """
 function inpainted_ecco_field(metadata::ECCOMetadata; 
                               architecture = CPU(),
                               filename = file_name(metadata),
-                              mask = ecco_center_mask(architecture; filename),
-                              maxiter = Inf,
+                              mask = ecco_center_mask(architecture),
+                              maxiter = 10,
                               kw...)
     
     f = ecco_field(metadata; architecture, filename, kw...)
@@ -280,6 +282,6 @@ function set!(field::Field, ecco_metadata::ECCOMetadata; kw...)
     return field
 end
 
-include("ecco_field_time_series.jl")
+include("ecco_restoring.jl")
 
 end # Module 

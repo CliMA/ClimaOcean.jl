@@ -6,7 +6,6 @@ using OrthogonalSphericalShellGrids
 using Oceananigans
 using Oceananigans: architecture
 using ClimaOcean
-using ClimaOcean.ECCO
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalDiffusivity
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.Units
@@ -15,7 +14,9 @@ using ClimaOcean.OceanSeaIceModels
 using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: Radiation
 using ClimaOcean.VerticalGrids: exponential_z_faces
 using ClimaOcean.JRA55
+using ClimaOcean.ECCO
 using ClimaOcean.JRA55: NetCDFBackend, JRA55_prescribed_atmosphere
+using ClimaOcean.ECCO: ECCO_restoring_forcing
 using ClimaOcean.Bathymetry
 
 include("tripolar_specific_methods.jl")
@@ -59,6 +60,15 @@ free_surface = SplitExplicitFreeSurface(grid; cfl=0.7, fixed_Δt = 20minutes)
 vertical_diffusivity = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), κ = 5e-5, ν = νz)
 
 closure = (RiBasedVerticalDiffusivity(), vertical_diffusivity)
+
+#####
+##### Add restoring to ECCO fields for temperature and salinity in the artic and antarctic
+#####
+
+@inline mask(λ, φ, z, t) = φ > 75 | φ < 75
+
+FT = ECCO_restoring_forcing
+
 
 ocean = ocean_simulation(grid; free_surface, closure) 
 model = ocean.model

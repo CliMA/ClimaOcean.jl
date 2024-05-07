@@ -251,6 +251,8 @@ end
     Δq = differences.q
     h  = differences.h
 
+    FT = eltype(h)
+
     g  = gravitational_acceleration
     ϰ  = von_karman_constant
 
@@ -259,8 +261,8 @@ end
     β   = similarity_theory.gustiness_parameter
     zᵢ  = atmos_boundary_layer_height
 
-    hᵢ  = convert(eltype(h), 10)    # Reference Initial height == 10 meters
-    ℓuᵢ = convert(eltype(h), 1e-4)  # Initial roughness length == 1e-4 meters
+    hᵢ  = convert(FT, 10)    # Reference Initial height == 10 meters
+    ℓuᵢ = convert(FT, 1e-4)  # Initial roughness length == 1e-4 meters
 
     # assuming the initial gustiness is `0.5` ms⁻¹
     uτ = sqrt(Δu^2 + Δv^2 + convert(FT, 0.25))
