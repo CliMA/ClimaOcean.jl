@@ -17,12 +17,10 @@ end
 # We always start from 1992
 ECCOMetadata(name::Symbol) = ECCOMetadata(name, DateTimeProlepticGregorian(1992, 1, 1), ECCO4())
 
-# Treat Metadata as an array
+# Treat ECCOMetadata as an array
 Base.getindex(metadata::ECCOMetadata, i::Int) = @inbounds ECCOMetadata(metadata.name, metadata.dates[i], metdata.version)
 Base.length(metadata::ECCOMetadata)       = length(metadata.dates)
-Base.size(metadata::ECCOMetadata)         = size(metadata.dates)
 Base.eltype(metadata::ECCOMetadata)       = Base.eltype(metadata.dates)
-Base.axes(metadata::ECCOMetadata)         = Base.axes(metadata.dates)
 Base.first(metadata::ECCOMetadata)        = @inbounds ECCOMetadata(metadata.name, metadata.dates[1], metadata.version)
 Base.last(metadata::ECCOMetadata)         = @inbounds ECCOMetadata(metadata.name, metadata.dates[end], metadata.version)
 Base.iterate(metadata::ECCOMetadata, i=1) = (@inline; (i % UInt) - 1 < length(metadata) ? (@inbounds ECCOMetadata(metadata.name, metadata.dates[i], metadata.version), i + 1) : nothing)
@@ -32,6 +30,9 @@ Base.first(metadata::ECCOMetadata{<:AbstractCFDateTime})   = metadata
 Base.last(metadata::ECCOMetadata{<:AbstractCFDateTime})    = metadata
 Base.iterate(metadata::ECCOMetadata{<:AbstractCFDateTime}) = (metadata, nothing)
 Base.iterate(::ECCOMetadata{<:AbstractCFDateTime}, ::Any)  = nothing
+
+Base.size(data::ECCOMetadata{<:Any, <:ECCO2}) = (1440, 720, 50, length(data.dates))
+Base.size(data::ECCOMetadata{<:Any, <:ECCO4}) = (720,  360, 50, length(data.dates))
 
 function date_string(metadata::ECCOMetadata{<:AbstractCFDateTime})
     yearstr  = string(Dates.year(metadata.dates))
@@ -48,7 +49,8 @@ end
 function file_name(metadata::ECCOMetadata{<:AbstractCFDateTime, <:ECCO2})
     shortname   = short_name(metadata)
     year, month = date_string(metadata)
-    return shortname * "1440x720x50." * year * month * ".nc"
+    postfix = variable_is_three_dimensional(metadata) ? ".1440x720x50." : ".1440x720."
+    return shortname * postfix * year * month * ".nc"
 end
 
 # Convenience functions
@@ -106,7 +108,7 @@ function download_dataset!(metadata::ECCOMetadata;
  
         if !isfile(filename)
 
-            # Version specific dowloand file
+            # Version specific download file url
             if data.version isa ECCO2
                 fileurl = joinpath(url, shortname, filename)
             elseif data.version isa ECCO4

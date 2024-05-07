@@ -17,11 +17,6 @@ using Dates
 
 include("ecco_metadata.jl")
 
-import Base
-
-Base.size(data::ECCOMetadata{<:Any, <:ECCO2}) = (1440, 720, 50, length(data.dates))
-Base.size(data::ECCOMetadata{<:Any, <:ECCO4}) = (720,  360, 50, length(data.dates))
-
 # Vertical coordinate
 const ECCO_z = [
     -6128.75,
