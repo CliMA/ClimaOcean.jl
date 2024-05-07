@@ -156,6 +156,12 @@ struct ECCORestoring{FTS, I, M, N}
     λ         :: N
 end
 
+Adapt.adapt_structure(to, p::ECCORestoring) = 
+        ECCORestoring(Adapt.adapt(to, p.ecco_fts), 
+                      Adapt.adapt(to, p.field_idx),
+                      Adapt.adapt(to, p.mask),
+                      Adapt.adapt(to, p.λ))
+
 @inline function (p::ECCORestoring)(i, j, k, grid, clock, fields)
     
     # Figure out all the inputs: variable name, time, location, and node
@@ -202,14 +208,13 @@ Create a restoring forcing term for ECCO field time series.
 
 ## Returns
 - The restoring forcing term.
-
 """
 function ECCO_restoring_forcing(metadata::ECCOMetadata;
-                                 architecture = CPU(), 
-                                 backend = ECCONetCDFBackend(2),
-                                 time_indexing = Cyclical(),
-                                 mask = 1,
-                                 timescale = 5days)
+                                architecture = CPU(), 
+                                backend = ECCONetCDFBackend(2),
+                                time_indexing = Cyclical(),
+                                mask = 1,
+                                timescale = 5days)
 
     ecco_fts = ECCO_field_time_series(metadata; architecture, backend, time_indexing)                  
 

@@ -4,8 +4,9 @@ import Dates: year, month, day
 import Oceananigans.Fields: set!
 import Base
 
-struct ECCO2 end
-struct ECCO4 end
+struct ECCO2Monthly end
+struct ECCO2Daily end
+struct ECCO4Monthly end
 
 # Metadata that holds all the ECCO information
 struct ECCOMetadata{D, V} 
@@ -34,23 +35,25 @@ Base.iterate(::ECCOMetadata{<:AbstractCFDateTime}, ::Any)  = nothing
 Base.size(data::ECCOMetadata{<:Any, <:ECCO2}) = (1440, 720, 50, length(data.dates))
 Base.size(data::ECCOMetadata{<:Any, <:ECCO4}) = (720,  360, 50, length(data.dates))
 
-function date_string(metadata::ECCOMetadata{<:AbstractCFDateTime})
+function file_name(metadata::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4Monthly})
+    shortname   = short_name(metadata)
     yearstr  = string(Dates.year(metadata.dates))
     monthstr = string(Dates.month(metadata.dates), pad=2)
-    return yearstr, monthstr
+    return shortname * "_" * yearstr * "_" * monthstr * ".nc"
 end
 
-function file_name(metadata::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4})
+function file_name(metadata::ECCOMetadata{<:AbstractCFDateTime})
     shortname   = short_name(metadata)
-    year, month = date_string(metadata)
-    return shortname * "_" * year * "_" * month * ".nc"
-end
-
-function file_name(metadata::ECCOMetadata{<:AbstractCFDateTime, <:ECCO2})
-    shortname   = short_name(metadata)
-    year, month = date_string(metadata)
+    yearstr  = string(Dates.year(metadata.dates))
+    monthstr = string(Dates.month(metadata.dates), pad=2)
     postfix = variable_is_three_dimensional(metadata) ? ".1440x720x50." : ".1440x720."
-    return shortname * postfix * year * month * ".nc"
+    
+    if metadata.version isa ECCO2Monthly 
+        return shortname * postfix * yearstr * monthstr * ".nc"
+    elseif metadata.version isa ECCO2Daily
+        daystr = string(Dates.day(metadata.dates), pad=2)
+        return shortname * postfix * yearstr * monthstr * daystr * ".nc"
+    end
 end
 
 # Convenience functions
@@ -81,8 +84,9 @@ ecco_location = Dict(
     :v_velocity            => (Center, Face,   Center),
 )
 
-urls(::ECCOMetadata{<:Any, <:ECCO2}) = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/monthly/"
-urls(::ECCOMetadata{<:Any, <:ECCO4}) = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly/"
+urls(::ECCOMetadata{<:Any, <:ECCO2Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/monthly/"
+urls(::ECCOMetadata{<:Any, <:ECCO2Daily})   = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/daily/"
+urls(::ECCOMetadata{<:Any, <:ECCO4Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly/"
 
 """
     download_dataset!(metadata::ECCOMetadata)
@@ -109,9 +113,9 @@ function download_dataset!(metadata::ECCOMetadata;
         if !isfile(filename)
 
             # Version specific download file url
-            if data.version isa ECCO2
+            if data.version isa ECCO2Monthly || data.version isa ECCO2Daily
                 fileurl = joinpath(url, shortname, filename)
-            elseif data.version isa ECCO4
+            elseif data.version isa ECCO4Monthly
                 year    = string(Dates.year(data.dates))
                 fileurl = joinpath(url, shortname, year, filename)
             end
