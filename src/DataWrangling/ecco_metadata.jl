@@ -16,7 +16,7 @@ struct ECCOMetadata{D, V}
 end
 
 # We always start from 1992
-ECCOMetadata(name::Symbol) = ECCOMetadata(name, DateTimeProlepticGregorian(1992, 1, 1), ECCO4())
+ECCOMetadata(name::Symbol) = ECCOMetadata(name, DateTimeProlepticGregorian(1992, 1, 1), ECCO4Monthly())
 
 # Treat ECCOMetadata as an array
 Base.getindex(metadata::ECCOMetadata, i::Int) = @inbounds ECCOMetadata(metadata.name, metadata.dates[i], metdata.version)
@@ -32,8 +32,9 @@ Base.last(metadata::ECCOMetadata{<:AbstractCFDateTime})    = metadata
 Base.iterate(metadata::ECCOMetadata{<:AbstractCFDateTime}) = (metadata, nothing)
 Base.iterate(::ECCOMetadata{<:AbstractCFDateTime}, ::Any)  = nothing
 
-Base.size(data::ECCOMetadata{<:Any, <:ECCO2}) = (1440, 720, 50, length(data.dates))
-Base.size(data::ECCOMetadata{<:Any, <:ECCO4}) = (720,  360, 50, length(data.dates))
+Base.size(data::ECCOMetadata{<:Any, <:ECCO2Daily})   = (1440, 720, 50, length(data.dates))
+Base.size(data::ECCOMetadata{<:Any, <:ECCO2Monthly}) = (1440, 720, 50, length(data.dates))
+Base.size(data::ECCOMetadata{<:Any, <:ECCO4Monthly}) = (720,  360, 50, length(data.dates))
 
 function file_name(metadata::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4Monthly})
     shortname   = short_name(metadata)
@@ -47,7 +48,7 @@ function file_name(metadata::ECCOMetadata{<:AbstractCFDateTime})
     yearstr  = string(Dates.year(metadata.dates))
     monthstr = string(Dates.month(metadata.dates), pad=2)
     postfix = variable_is_three_dimensional(metadata) ? ".1440x720x50." : ".1440x720."
-    
+
     if metadata.version isa ECCO2Monthly 
         return shortname * postfix * yearstr * monthstr * ".nc"
     elseif metadata.version isa ECCO2Daily
