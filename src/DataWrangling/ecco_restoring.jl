@@ -184,6 +184,11 @@ Create a restoring forcing term for ECCO field time series.
 ## Returns
 - The restoring forcing term.
 """
+function ECCO_restoring_forcing(variable_name::Symbol, version=ECCO4Monthly(); kw...) 
+     metadata = ECCOMetadata(variable_name, all_ecco_dates(version), version)
+    return ECCO_restoring_forcing(metadata; kw...)
+end
+
 function ECCO_restoring_forcing(metadata::ECCOMetadata;
                                 architecture = CPU(), 
                                 time_indices_in_memory = 2,
