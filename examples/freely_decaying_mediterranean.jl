@@ -2,7 +2,7 @@ using GLMakie
 using Oceananigans
 using Oceananigans: architecture
 using ClimaOcean
-using ClimaOcean.ECCO4
+using ClimaOcean.ECCO
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalDiffusivity
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.Units
@@ -70,9 +70,9 @@ model = HydrostaticFreeSurfaceModel(; grid,
 
 # Initializing the model
 #
-# the model can be initialized with custom values or with ecco4 fields.
-# In this case, our ECCO4 dataset has access to a temperature and a salinity
-# field, so we initialize T and S from ECCO4. 
+# the model can be initialized with custom values or with ecco fields.
+# In this case, our ECCO dataset has access to a temperature and a salinity
+# field, so we initialize T and S from ECCO. 
 # We initialize our passive tracer with a surface blob near to the coasts of Libia
 @info "initializing model"
 libia_blob(x, y, z) = z > -20 || (x - 15)^2 + (y - 34)^2 < 1.5 ? 1 : 0

@@ -32,10 +32,10 @@ Modules = [ClimaOcean.DataWrangling]
 Private = false
 ```
 
-## ECCO4
+## ECCO
 
 ```@autodocs
-Modules = [ClimaOcean.ECCO4]
+Modules = [ClimaOcean.ECCO]
 Private = false
 ```
 

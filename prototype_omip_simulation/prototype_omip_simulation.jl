@@ -6,7 +6,7 @@ using OrthogonalSphericalShellGrids
 using Oceananigans
 using Oceananigans: architecture
 using ClimaOcean
-using ClimaOcean.ECCO4
+using ClimaOcean.ECCO
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalDiffusivity
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.Units

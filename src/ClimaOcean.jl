@@ -11,12 +11,43 @@ export
     stretched_vertical_faces,
     PowerLawStretching, LinearStretching,
     jra55_field_time_series,
-    ecco4_field, ECCOMetadata,
+    ecco_field, ECCOMetadata,
     initialize!
 
 using Oceananigans
 using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
 using DataDeps
+
+using Oceananigans.OutputReaders: GPUAdaptedFieldTimeSeries, FieldTimeSeries
+
+const SomeKindOfFieldTimeSeries = Union{FieldTimeSeries,
+                                        GPUAdaptedFieldTimeSeries}
+
+const SKOFTS = SomeKindOfFieldTimeSeries
+
+@inline stateindex(a::Number, i, j, k, args...) = a
+@inline stateindex(a::AbstractArray, i, j, k, args...) = @inbounds a[i, j, k]
+@inline stateindex(a::SKOFTS, i, j, k, grid, time, args...) = @inbounds a[i, j, k, time]
+
+@inline function stateindex(a::Function, i, j, k, grid, time, loc)
+    LX, LY, LZ = loc 
+    λ, φ, z = node(i, j, k, grid, LX(), LY(), LZ())
+
+    return a(λ, φ, z, time)
+end
+
+@inline function stateindex(a::Tuple, i, j, k, grid, time)
+    N = length(a)
+    ntuple(Val(N)) do n
+        stateindex(a[n], i, j, k, grid, time)
+    end
+end
+
+@inline function stateindex(a::NamedTuple, i, j, k, grid, time)
+    vals = stateindex(values(a), i, j, k, grid, time)
+    names = keys(a)
+    return NamedTuple{names}(vals)
+end
 
 include("OceanSeaIceModels/OceanSeaIceModels.jl")
 include("VerticalGrids.jl")
@@ -29,13 +60,13 @@ include("OceanSimulations/OceanSimulations.jl")
 using .VerticalGrids
 using .Bathymetry
 using .DataWrangling: JRA55
-using .DataWrangling: ECCO4
+using .DataWrangling: ECCO
 using .InitialConditions
 using .OceanSeaIceModels: OceanSeaIceModel
 using .OceanSimulations
-using .DataWrangling: JRA55, ECCO4
+using .DataWrangling: JRA55, ECCO
 using ClimaOcean.DataWrangling.JRA55: JRA55_prescribed_atmosphere, JRA55NetCDFBackend
-using ClimaOcean.DataWrangling.ECCO4: ecco4_field
+using ClimaOcean.DataWrangling.ECCO: ecco_field
 
 using .OceanSeaIceModels: OceanSeaIceModel, Radiation
 

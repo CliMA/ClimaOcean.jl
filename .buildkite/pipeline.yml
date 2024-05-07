@@ -31,10 +31,10 @@ steps:
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
 
-  - label: "Run ECCO4 tests"
-    key: "tests_ecco4"
+  - label: "Run ECCO tests"
+    key: "tests_ecco"
     env:
       CUDA_VISIBLE_DEVICES: "-1"
-      TEST_GROUP: "ecco4"
+      TEST_GROUP: "ecco"
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"

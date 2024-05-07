@@ -9,14 +9,14 @@ using Oceananigans.Units
 using ClimaOcean.DataWrangling: JRA55_prescribed_atmosphere
 using ClimaOcean.OceanSeaIceModels: Radiation
 
-# Upload ECCO4 fields
-# T = DataWrangling.inpainted_ecco4_field(:temperature)
-# S = DataWrangling.inpainted_ecco4_field(:salinity)
-# u = DataWrangling.inpainted_ecco4_field(:u_velocity)
-# v = DataWrangling.inpainted_ecco4_field(:v_velocity)
+# Upload ECCO fields
+# T = DataWrangling.inpainted_ecco_field(:temperature)
+# S = DataWrangling.inpainted_ecco_field(:salinity)
+# u = DataWrangling.inpainted_ecco_field(:u_velocity)
+# v = DataWrangling.inpainted_ecco_field(:v_velocity)
 
-# include("ecco4_immersed_grid.jl")
-# grid = ecco4_immersed_grid()
+# include("ecco_immersed_grid.jl")
+# grid = ecco_immersed_grid()
 
 
 # Let's leave out the radiation for the moment (too simple to test)

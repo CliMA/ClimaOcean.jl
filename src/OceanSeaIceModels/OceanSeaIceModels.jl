@@ -15,13 +15,10 @@ using Oceananigans.OutputReaders: FieldTimeSeries, GPUAdaptedFieldTimeSeries
 
 using ClimaSeaIce: melting_temperature
 
+using ClimaOcean: stateindex
+
 using KernelAbstractions: @kernel, @index
 using KernelAbstractions.Extras.LoopInfo: @unroll
-
-const SomeKindOfFieldTimeSeries = Union{FieldTimeSeries,
-                                        GPUAdaptedFieldTimeSeries}
-
-const SKOFTS = SomeKindOfFieldTimeSeries
 
 function surface_velocities end
 function surface_tracers end

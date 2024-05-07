@@ -127,7 +127,7 @@ Arguments
     - `max_iter`: Maximum iterations for inpainting. Non-Inf values mean that
                   NaN's can occur within the mask.
 """
-function inpaint_mask!(field, mask; maxiter = Inf)
+function inpaint_mask!(field, mask; maxiter = 10)
     continue_downwards!(field, mask)
     propagate_horizontally!(field, mask; maxiter)
     return field

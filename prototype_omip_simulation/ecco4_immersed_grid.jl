@@ -1,7 +1,7 @@
 using Oceananigans.Grids: architecture, location, node, with_halo
 
-function ecco4_immersed_grid()
-    mask = ecco4_center_mask()
+function ecco_immersed_grid()
+    mask = ecco_center_mask()
     grid = with_halo((3, 3, 3), mask.grid)
     
     Nx, Ny, Nz = size(grid)
