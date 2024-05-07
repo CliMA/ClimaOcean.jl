@@ -11,7 +11,7 @@ using ..OceanSeaIceModels: default_gravitational_acceleration
 import ..OceanSeaIceModels: surface_velocities,
                             surface_tracers
 
-using ClimaOcean: stateindex
+import ClimaOcean: stateindex
 
 #####
 ##### Utilities
