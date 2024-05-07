@@ -29,7 +29,7 @@ import SurfaceFluxes.Parameters:
 ##### Bulk turbulent fluxes based on similarity theory
 #####
 
-struct SimilarityTheoryTurbulentFluxes{FT, UF, TP, S, W, R, B, V, F} <: AbstractSurfaceFluxesParameters
+struct SimilarityTheoryTurbulentFluxes{FT, UF, TP, S, W, R, B, V, I, F} <: AbstractSurfaceFluxesParameters
     gravitational_acceleration :: FT
     von_karman_constant :: FT
     turbulent_prandtl_number :: FT
@@ -43,7 +43,7 @@ struct SimilarityTheoryTurbulentFluxes{FT, UF, TP, S, W, R, B, V, F} <: Abstract
     bulk_velocity :: V
     tolerance :: FT
     maxiter :: Int
-    iteration :: Int
+    iteration :: I
     fields :: F
 end
 
@@ -133,7 +133,7 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                            bulk_velocity,
                                            convert(FT, tolerance), 
                                            maxiter,
-                                           0,
+                                           Ref(0),
                                            fields)
 end
 
@@ -191,11 +191,11 @@ end
     # The inital velocity scale assumes that
     # the gustiness velocity `uᴳ` is equal to 0.5 ms⁻¹. 
     # That will be refined later on.
-    uτ = sqrt(Δu^2 + Δv^2 + convert(FT, 0.25))
+    uτ = sqrt(Δu^2 + Δv^2 + convert(eltype(Δh), 0.25))
 
     while iterating(Σ★ - Σ₀, similarity_theory)
         Σ₀ = Σ★
-        similarity_theory.iteration += 1
+        similarity_theory.iteration[] += 1
         Σ★, uτ, = refine_characteristic_scales(Σ★, uτ, 
                                                similarity_theory,
                                                surface_state,
@@ -209,6 +209,8 @@ end
     u★ = Σ★.momentum
     θ★ = Σ★.temperature
     q★ = Σ★.water_vapor
+
+    similarity_theory.iteration[] = 0
 
     # `u★² ≡ sqrt(τx² + τy²)`
     # We remove the gustiness by dividing by `uτ`
