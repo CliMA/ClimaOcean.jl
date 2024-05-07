@@ -235,7 +235,7 @@ end
 
 # Iterating condition for the characteristic scales solvers
 @inline function iterating(Σ★, solver)
-    solver.iteration >= solver.maxiter && return false
+    solver.iteration[] >= solver.maxiter && return false
     norm(Σ★) <= solver.tolerance && return false
     return true
 end
