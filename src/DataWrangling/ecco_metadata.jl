@@ -22,7 +22,7 @@ end
 ECCOMetadata(name::Symbol; version = ECCO4Monthly()) = ECCOMetadata(name, DateTimeProlepticGregorian(1992, 1, 1), version) 
 
 # Treat ECCOMetadata as an array to allow iteration over the dates.
-Base.getindex(metadata::ECCOMetadata, i::Int) = @inbounds ECCOMetadata(metadata.name, metadata.dates[i], metdata.version)
+Base.getindex(metadata::ECCOMetadata, i::Int) = @inbounds ECCOMetadata(metadata.name, metadata.dates[i], metadata.version)
 Base.length(metadata::ECCOMetadata)       = length(metadata.dates)
 Base.eltype(metadata::ECCOMetadata)       = Base.eltype(metadata.dates)
 Base.first(metadata::ECCOMetadata)        = @inbounds ECCOMetadata(metadata.name, metadata.dates[1], metadata.version)

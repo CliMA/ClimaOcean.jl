@@ -102,6 +102,40 @@ metadata = ECCOMetadata(...)
 fts = ECCO_field_time_series(metadata)
 ```
 """
+function ECCO_field_time_series(metadata::ECCOMetadata;	
+                                 architecture = CPU(),	
+                                 time_indices_in_memory = 2,	
+                                 time_indexing = Cyclical())	
+
+    # ECCO data is too chunky to allow other backends	
+    backend = ECCONetCDFBackend(time_indices_in_memory)
+
+    # Making sure all the required individual files are downloaded
+    download_dataset!(metadata)
+
+    location = field_location(metadata)
+    ftmp = empty_ecco_field(first(metadata); architecture)
+    shortname = short_name(metadata)
+
+    ECCO_native_grid = ftmp.grid
+    boundary_conditions = FieldBoundaryConditions(ECCO_native_grid, location)
+    times = ecco_times(metadata)
+
+    fts = FieldTimeSeries{location...}(ECCO_native_grid, times;	
+                                       backend,	
+                                       time_indexing,	
+                                       boundary_conditions,	
+                                       path = metadata,	
+                                       name = shortname)
+
+    # Let's set the data	
+    set!(fts)	
+
+    return fts	
+end
+
+ECCO_field_time_series(variable_name::Symbol, version=ECCO4Monthly(); kw...) = 
+    ECCO_field_time_series(ECCOMetadata(variable_name, all_ecco_dates(version), version); kw...)
 
 @inline variable_name_from_index(i) = ifelse(i == 1, :T, ifelse(i == 2, :S, ifelse(i == 3, :u, :v)))
 
@@ -203,8 +237,7 @@ function ECCO_restoring_forcing(metadata::ECCOMetadata;
     ecco_restoring = ECCORestoring(ecco_fts, field_idx, mask, timescale)
 
     restoring_forcing = Forcing(ecco_restoring; 
-                                discrete_form=true, 
-                                parameters=(; ecco_fts, field_idx, mask, λ=timescale))
+                                discrete_form=true)
 
     return restoring_forcing
 end
