@@ -244,8 +244,6 @@ function inpainted_ecco_field(metadata::ECCOMetadata;
                               kw...)
     
     f = ecco_field(metadata; architecture, filename, kw...)
-    
-    @show maxiter
 
     # Make sure all values are extended properly
     @info "In-painting ecco $(metadata.name)"
