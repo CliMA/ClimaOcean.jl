@@ -1,3 +1,5 @@
+module ECCO4
+
 export ECCOMetadata, ecco4_field, ecco4_center_mask, adjusted_ecco_tracers, initialize!
 
 using ClimaOcean.DataWrangling: inpaint_mask!
@@ -12,6 +14,8 @@ using KernelAbstractions: @kernel, @index
 using NCDatasets
 using Downloads: download
 using Dates
+
+include("ecco4_metadata.jl")
 
 const ECCO_Nx = 720
 const ECCO_Ny = 360
@@ -287,6 +291,8 @@ function inpainted_ecco4_field(metadata::ECCOMetadata;
     return f
 end
 
+inpainted_ecco4_field(variable_name::Symbol; kw...) = inpainted_ecco4_field(ECCOMetadata(variable_name); kw...)
+    
 function set!(field::DistributedField, ecco4_metadata::ECCOMetadata; filename="./inpainted_ecco4_fields.nc", kw...)
     # Fields initialized from ECCO
     grid = field.grid
@@ -331,3 +337,7 @@ function set!(field::Field, ecco4_metadata::ECCOMetadata; filename="./inpainted_
 
     return field
 end
+
+include("ecco4_field_time_series.jl")
+
+end # Module 

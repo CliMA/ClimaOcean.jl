@@ -3,23 +3,31 @@ using Oceananigans.Units
 using ClimaOcean
 using Oceananigans
 using Oceananigans.Operators
-using ClimaOcean.ECCO4
+using ClimaOcean.DataWrangling
 using ClimaOcean.OceanSimulations
 using Oceananigans.Units
-using ClimaOcean.JRA55: JRA55_prescribed_atmosphere
+using ClimaOcean.DataWrangling: JRA55_prescribed_atmosphere
 using ClimaOcean.OceanSeaIceModels: Radiation
 
 # Upload ECCO4 fields
-T = ECCO4.ecco4_field(:temperature)
-S = ECCO4.ecco4_field(:salinity)
-u = ECCO4.ecco4_field(:u_velocity)
-v = ECCO4.ecco4_field(:v_velocity)
+# T = DataWrangling.inpainted_ecco4_field(:temperature)
+# S = DataWrangling.inpainted_ecco4_field(:salinity)
+# u = DataWrangling.inpainted_ecco4_field(:u_velocity)
+# v = DataWrangling.inpainted_ecco4_field(:v_velocity)
 
-include("ecco4_immersed_grid.jl")
-grid = ecco4_immersed_grid()
+# include("ecco4_immersed_grid.jl")
+# grid = ecco4_immersed_grid()
+
 
 # Let's leave out the radiation for the moment (too simple to test)
-atmosphere  = JRA55_prescribed_atmosphere(1:2; backend = InMemory(), grid = grid.underlying_grid)
+atmosphere  = JRA55_prescribed_atmosphere(1:2; backend = InMemory()) #, grid = grid.underlying_grid)
+
+grid = atmosphere.fields.velocities.u.grid
+
+T = CenterField(grid)
+S = CenterField(grid)
+u = XFaceField(grid)
+v = YFaceField(grid)
 
 ocean = ocean_simulation(grid; momentum_advection = nothing,
                                  tracer_advection = nothing)

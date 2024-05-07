@@ -51,6 +51,11 @@ function propagating(field, mask, iter, maxiter)
     return isnan(mask_sum) && iter < maxiter
 end
 
+@kernel function _fill_nans!(field)
+    i, j, k = @index(Global, NTuple)
+    @inbounds field[i, j, k] = ifelse(isnan(field[i, j, k]), 0, field[i, j, k])
+end
+
 """ 
     propagate_horizontally!(field, mask [, tmp_field=deepcopy(field)]; max_iter = Inf)
 
@@ -75,6 +80,8 @@ function propagate_horizontally!(field, mask, tmp_field=deepcopy(field); maxiter
         iter += 1
         @debug "Propagate pass $iter with sum $(sum(parent(field)))"
     end
+
+    launch!(arch, grid, :xyz, _fill_nans!, field)
 
     fill_halo_regions!(field)
 

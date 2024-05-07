@@ -5,8 +5,8 @@ export
     MinimumTemperatureSeaIce,
     Radiation,
     JRA55_prescribed_atmosphere,
-    NetCDFBackend,
-    ecco4_field,
+    JRA55NetCDFBackend,
+    ecco2_field,
     regrid_bathymetry,
     stretched_vertical_faces,
     PowerLawStretching, LinearStretching,
@@ -28,13 +28,14 @@ include("OceanSimulations/OceanSimulations.jl")
 
 using .VerticalGrids
 using .Bathymetry
+using .DataWrangling: JRA55
+using .DataWrangling: ECCO4
 using .InitialConditions
 using .OceanSeaIceModels: OceanSeaIceModel
 using .OceanSimulations
-using .DataWrangling
-using ClimaOcean.DataWrangling: NetCDFBackend
-using ClimaOcean.DataWrangling: JRA55_prescribed_atmosphere
-using ClimaOcean.DataWrangling: ecco4_field
+using .DataWrangling: JRA55, ECCO4
+using ClimaOcean.DataWrangling.JRA55: JRA55_prescribed_atmosphere, JRA55NetCDFBackend
+using ClimaOcean.DataWrangling.ECCO4: ecco4_field
 
 using .OceanSeaIceModels: OceanSeaIceModel, Radiation
 
