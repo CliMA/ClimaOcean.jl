@@ -15,6 +15,8 @@ using NCDatasets
 using Downloads: download
 using Dates
 
+using Adapt
+
 include("ecco_metadata.jl")
 
 # Vertical coordinate
