@@ -141,20 +141,8 @@ function ecco4_field(metadata::ECCOMetadata;
 
     variable_name = metadata.name
     short_name = ecco4_short_names[variable_name]
-    datestr = date_string(metadata)
     
-    if !isfile(filename) 
-        cmd = `podaac-data-downloader -c $(remote_folder) -d ./ --start-date $(datestr)T00:00:00Z --end-date $(datestr)T00:00:00Z -e .nc`
-        @info "downloading $(filename) from $(remote_folder)"
-        try
-            run(cmd)
-        catch error
-            @info "Note: to download ECCO4 data please install podaac-data-downloader using \\ 
-                   `pip install podaac`. Provide a username and password to the python environment. \\
-                   For details about the installation refer to "
-            throw(ArgumentError("The error is $error"))
-        end
-    end
+    download_dataset!(metadata)
 
     if user_data isa Nothing
         ds = Dataset(filename)

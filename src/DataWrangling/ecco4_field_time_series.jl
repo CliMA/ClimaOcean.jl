@@ -40,45 +40,11 @@ function set!(fts::ECCO4NetCDFFTS, path::ECCOMetadata=fts.path, name::String=fts
         metadata = @inbounds path[t] 
 
         arch = architecture(fts)
-        f = inpainted_ecco4_field(metadata; architecture = arch, maxiter = 10)
+        f = inpainted_ecco4_field(metadata; architecture = arch, maxiter = 5)
         set!(fts[t], f)
     end
 
     fill_halo_regions!(fts)
-
-    return nothing
-end
-
-"""
-    download_dataset!(metadata::ECCOMetadata)
-
-Download the dataset specified by the given metadata. If the metadata contains a single date, 
-the dataset is downloaded directly. If the metadata contains multiple dates, the dataset is 
-downloaded for each date individually.
-
-# Arguments
-- `metadata::ECCOMetadata`: The metadata specifying the dataset to be downloaded.
-"""
-function download_dataset!(metadata::ECCOMetadata)
-    
-    for data in metadata
-        filename = file_name(data)
-
-        if !isfile(filename) 
-            cmd = `podaac-data-downloader -c $(remote_folder) -d ./ --start-date $(datestr)T00:00:00Z --end-date $(datestr)T00:00:00Z -e .nc`
-            @info "downloading $(filename) from $(remote_folder)"
-            try
-                run(cmd)
-            catch error
-                @info "Note: to download ECCO4 data please install podaac-data-downloader using \\ 
-                    `pip install podaac`. Provide a username and password to the python environment. \\
-                    For details about the installation refer to "
-                throw(ArgumentError("The error is $error"))
-            end
-        else
-            @info "File $(filename) already exists"
-        end
-    end
 
     return nothing
 end

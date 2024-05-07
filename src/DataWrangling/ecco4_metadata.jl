@@ -4,7 +4,7 @@ import Dates: year, month, day
 import Oceananigans.Fields: set!
 import Base
 
-# Ecco field used to set model's initial conditions
+# Metadata that holds all the ECCO4 information
 struct ECCOMetadata{D} 
     name  :: Symbol
     dates :: D
@@ -28,9 +28,11 @@ Base.first(metadata::ECCOMetadata)        = @inbounds ECCOMetadata(metadata.name
 Base.last(metadata::ECCOMetadata)         = @inbounds ECCOMetadata(metadata.name, metadata.dates[end])
 Base.iterate(metadata::ECCOMetadata, i=1) = (@inline; (i % UInt) - 1 < length(metadata) ? (@inbounds ECCOMetadata(metadata.name, metadata.dates[i]), i + 1) : nothing)
 
-Base.axes(metadata::ECCOMetadata{<:AbstractCFDateTime})  = 1
-Base.first(metadata::ECCOMetadata{<:AbstractCFDateTime}) = metadata
-Base.last(metadata::ECCOMetadata{<:AbstractCFDateTime})  = metadata
+Base.axes(metadata::ECCOMetadata{<:AbstractCFDateTime})    = 1
+Base.first(metadata::ECCOMetadata{<:AbstractCFDateTime})   = metadata
+Base.last(metadata::ECCOMetadata{<:AbstractCFDateTime})    = metadata
+Base.iterate(metadata::ECCOMetadata{<:AbstractCFDateTime}) = (metadata, nothing)
+Base.iterate(::ECCOMetadata{<:AbstractCFDateTime}, ::Any)  = nothing
 
 function date_string(metadata::ECCOMetadata{<:AbstractCFDateTime})
     yearstr  = string(Dates.year(metadata.dates))
@@ -79,3 +81,38 @@ ecco4_remote_folder = Dict(
     :temperature           => "ECCO_L4_TEMP_SALINITY_05DEG_DAILY_V4R4",
     :salinity              => "ECCO_L4_TEMP_SALINITY_05DEG_DAILY_V4R4",
 )
+
+"""
+    download_dataset!(metadata::ECCOMetadata)
+
+Download the dataset specified by the given metadata. If the metadata contains a single date, 
+the dataset is downloaded directly. If the metadata contains multiple dates, the dataset is 
+downloaded for each date individually.
+
+# Arguments
+- `metadata::ECCOMetadata`: The metadata specifying the dataset to be downloaded.
+"""
+function download_dataset!(metadata::ECCOMetadata)
+    
+    remote_folder = ecco4_remote_folder[metadata.name]
+    
+    for data in metadata
+        datestr  = date_string(data)
+        filename = file_name(data)
+
+        if !isfile(filename) 
+            cmd = `podaac-data-downloader -c $(remote_folder) -d ./ --start-date $(datestr)T00:00:00Z --end-date $(datestr)T00:00:00Z -e .nc`
+            @info "downloading $(filename) from $(remote_folder)"
+            try
+                run(cmd)
+            catch error
+                @info "Note: to download ECCO4 data please install podaac-data-downloader using \\ 
+                    `pip install podaac`. Provide a username and password to the python environment. \\
+                    For details about the installation refer to "
+                throw(ArgumentError("The error is $error"))
+            end
+        end
+    end
+
+    return nothing
+end
