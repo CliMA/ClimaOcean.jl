@@ -6,9 +6,11 @@ using Oceananigans.Operators
 using ClimaOcean.DataWrangling
 using ClimaOcean.OceanSimulations
 using Oceananigans.Units
-using ClimaOcean.DataWrangling.ECCO: inpainted_ecco_field
+using ClimaOcean.DataWrangling.ECCO
+using ClimaOcean.DataWrangling.ECCO: inpainted_ecco_field, ECCO2Daily, ECCO4Monthly
 using ClimaOcean.DataWrangling.JRA55: JRA55_prescribed_atmosphere
 using ClimaOcean.OceanSeaIceModels: Radiation
+using CFTime
 
 # Upload ECCO fields
 T = inpainted_ecco_field(:temperature; maxiter = Inf)
@@ -17,7 +19,7 @@ u = inpainted_ecco_field(:u_velocity;  maxiter = Inf)
 v = inpainted_ecco_field(:v_velocity;  maxiter = Inf)
 
 include("ecco_immersed_grid.jl")
-grid = ecco_immersed_grid()
+grid = ecco_immersed_grid(metadata)
 
 # Let's leave out the radiation for the moment (too simple to test)
 atmosphere  = JRA55_prescribed_atmosphere(1:2; backend = InMemory(), grid = grid.underlying_grid)
