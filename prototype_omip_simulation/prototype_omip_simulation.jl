@@ -65,12 +65,14 @@ closure = (RiBasedVerticalDiffusivity(), vertical_diffusivity)
 ##### Add restoring to ECCO fields for temperature and salinity in the artic and antarctic
 #####
 
-@inline mask(λ, φ, z, t) = φ > 75 | φ < 75
+@inline mask(λ, φ, z, t) = Int(φ > 75 | φ < -75)
 
-FT = ECCO_restoring_forcing
+FT = ECCO_restoring_forcing(:temperature; mask, architecture = arch)
+FS = ECCO_restoring_forcing(:salinity; mask, architecture = arch)
 
+forcing = (; T = FT, S = FS)
 
-ocean = ocean_simulation(grid; free_surface, closure) 
+ocean = ocean_simulation(grid; free_surface, forcing, closure) 
 model = ocean.model
 
 set!(model, 
