@@ -67,8 +67,8 @@ closure = (RiBasedVerticalDiffusivity(), vertical_diffusivity)
 
 @inline mask(λ, φ, z, t) = Int(φ > 75 | φ < -75)
 
-FT = ECCO_restoring_forcing(:temperature; mask, architecture = arch)
-FS = ECCO_restoring_forcing(:salinity; mask, architecture = arch)
+FT = ECCO_restoring_forcing(:temperature; mask, architecture = arch, timescale = 20days)
+FS = ECCO_restoring_forcing(:salinity;    mask, architecture = arch, timescale = 20days)
 
 forcing = (; T = FT, S = FS)
 
