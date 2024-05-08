@@ -15,7 +15,7 @@ using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: Radiation
 using ClimaOcean.VerticalGrids: exponential_z_faces
 using ClimaOcean.JRA55
 using ClimaOcean.ECCO
-using ClimaOcean.JRA55: NetCDFBackend, JRA55_prescribed_atmosphere
+using ClimaOcean.JRA55: JRA55NetCDFBackend, JRA55_prescribed_atmosphere
 using ClimaOcean.ECCO: ECCO_restoring_forcing
 using ClimaOcean.Bathymetry
 
@@ -83,7 +83,7 @@ set!(model,
 ##### The atmosphere
 #####
 
-backend    = NetCDFBackend(4) 
+backend    = JRA55NetCDFBackend(4) 
 atmosphere = JRA55_prescribed_atmosphere(arch; backend)
 radiation  = Radiation(arch)
 
