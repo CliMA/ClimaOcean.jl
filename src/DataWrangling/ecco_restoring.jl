@@ -1,5 +1,6 @@
 using Oceananigans.Units
-using Oceananigans.Fields: interpolate!
+using Oceananigans.Grids: node
+using Oceananigans.Fields: interpolate!, interpolate, instantiated_location
 using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBackend, FlavorOfFTS, time_indices
 using Oceananigans.Utils: Time
 
@@ -75,6 +76,8 @@ function ecco_times(metadata; start_time = first(metadata).dates)
         time = Second(time).value
         push!(times, time)
     end
+
+    times = tuple(times...)
 
     return times
 end
@@ -176,10 +179,11 @@ Adapt.adapt_structure(to, p::ECCORestoring) =
     # Figure out all the inputs: variable name, time, location, and node
     var_name  = variable_name_from_index(p.field_idx)
     time      = Time(clock.time)
-    loc       = location(p.ecco_fts)
-    X         = node(i, j, k, grid, loc)
+    loc       = instantiated_location(p.ecco_fts)
+    X         = node(i, j, k, grid, loc...)
 
     # Extracting the ECCO field time series data and parameters
+    ecco_times         = p.ecco_fts.times
     ecco_grid          = p.ecco_fts.grid
     ecco_data          = p.ecco_fts.data
     ecco_backend       = p.ecco_fts.backend
@@ -189,7 +193,7 @@ Adapt.adapt_structure(to, p::ECCORestoring) =
     @inbounds var = getproperty(fields, var_name)[i, j, k]
     
     # Interpolating the ECCO field time series data ont the current node and time
-    ecco_var = interpolate(X, time, ecco_data, loc, grid, ecco_grid, ecco_backend, ecco_time_indexing)
+    ecco_var = interpolate(X, time, ecco_data, loc, ecco_grid, ecco_times, ecco_backend, ecco_time_indexing)
     
     # Extracting the mask value at the current node
     mask = stateindex(p.mask, i, j, k, grid, clock.time, loc)
