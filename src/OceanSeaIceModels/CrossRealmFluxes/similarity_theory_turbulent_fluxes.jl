@@ -29,7 +29,7 @@ import SurfaceFluxes.Parameters:
 ##### Bulk turbulent fluxes based on similarity theory
 #####
 
-struct SimilarityTheoryTurbulentFluxes{FT, UF, TP, S, W, R, B, V, I, F} <: AbstractSurfaceFluxesParameters
+struct SimilarityTheoryTurbulentFluxes{FT, UF, TP, S, W, R, B, V, F} <: AbstractSurfaceFluxesParameters
     gravitational_acceleration :: FT
     von_karman_constant :: FT
     turbulent_prandtl_number :: FT
@@ -43,7 +43,6 @@ struct SimilarityTheoryTurbulentFluxes{FT, UF, TP, S, W, R, B, V, I, F} <: Abstr
     bulk_velocity :: V
     tolerance :: FT
     maxiter :: Int
-    iteration :: I
     fields :: F
 end
 
@@ -69,7 +68,6 @@ Adapt.adapt_structure(to, fluxes::STTF) = SimilarityTheoryTurbulentFluxes(adapt(
                                                                           adapt(to, fluxes.bulk_velocity),
                                                                           fluxes.tolerance,
                                                                           fluxes.maxiter,
-                                                                          fluxes.iteration,
                                                                           adapt(to, fluxes.fields))
 
 Base.summary(::SimilarityTheoryTurbulentFluxes{FT}) where FT = "SimilarityTheoryTurbulentFluxes{$FT}"
@@ -133,7 +131,6 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                            bulk_velocity,
                                            convert(FT, tolerance), 
                                            maxiter,
-                                           Ref(0),
                                            fields)
 end
 
@@ -193,9 +190,11 @@ end
     # That will be refined later on.
     uτ = sqrt(Δu^2 + Δv^2 + convert(eltype(Δh), 0.25))
 
-    while iterating(Σ★ - Σ₀, similarity_theory)
+    # Initialize the solver
+    iteration = 0
+
+    while iterating(Σ★ - Σ₀, iteration, similarity_theory)
         Σ₀ = Σ★
-        similarity_theory.iteration[] += 1
         Σ★, uτ, = refine_characteristic_scales(Σ★, uτ, 
                                                similarity_theory,
                                                surface_state,
@@ -204,13 +203,12 @@ end
                                                thermodynamics_parameters,
                                                gravitational_acceleration,
                                                von_karman_constant)
+        iteration += 1
     end
 
     u★ = Σ★.momentum
     θ★ = Σ★.temperature
     q★ = Σ★.water_vapor
-
-    similarity_theory.iteration[] = 0
 
     # `u★² ≡ sqrt(τx² + τy²)`
     # We remove the gustiness by dividing by `uτ`
@@ -234,10 +232,9 @@ end
 end
 
 # Iterating condition for the characteristic scales solvers
-@inline function iterating(Σ★, solver)
-    solver.iteration[] >= solver.maxiter && return false
-    norm(Σ★) <= solver.tolerance && return false
-    return true
+@inline function iterating(Σ★, iteration, solver)
+    iteration_complete = (iteration < solver.maxiter) & (norm(Σ★) <= solver.tolerance) 
+    return iteration_complete
 end
 
 @inline function initial_guess(differences, 
