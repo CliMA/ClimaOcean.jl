@@ -292,10 +292,10 @@ end
     ψq = similarity_theory.stability_functions.water_vapor
 
     # Bulk Flux Richardson number
-    # TODO: find out what 0.004 refers to
     b★  = buoyancy_scale(Δθ, Δq, 𝒬ₒ, ℂₐ, g)
     Ri  = - ifelse(b★ == 0, zero(b★), h / b★ / uτ^2)
 
+    # Critical Richardson number, TODO: find out what 0.004 refers to
     # https://github.com/NOAA-PSL/COARE-algorithm/blob/5b144cf6376a98b42200196d57ae40d791494abe/Matlab/COARE3.6/coare36vn_zrf_et.m#L373
     Riᶜ = - h / zᵢ / convert(FT, 0.004) / β^3 # - h / zi / 0.004 / β^3
     
