@@ -296,13 +296,13 @@ end
     b★  = buoyancy_scale(Δθ, Δq, 𝒬ₒ, ℂₐ, g)
     Ri  = - ifelse(b★ == 0, zero(b★), h / b★ / uτ^2)
 
-    # https://github.com/NOAA-PSL/COARE-algorithm/blob/5b144cf6376a98b42200196d57ae40d791494abe/Matlab/COARE3.6/coare36vn_zrf_et.m#L372
+    # https://github.com/NOAA-PSL/COARE-algorithm/blob/5b144cf6376a98b42200196d57ae40d791494abe/Matlab/COARE3.6/coare36vn_zrf_et.m#L373
     Riᶜ = - h / zᵢ / convert(FT, 0.004) / β^3 # - h / zi / 0.004 / β^3
     
     # Calculating the first stability coefficient and the MO length
     # TODO: explain this formulation of the stability function. 
     # Is it empirical? Found in COARE3.6
-    # https://github.com/NOAA-PSL/COARE-algorithm/blob/5b144cf6376a98b42200196d57ae40d791494abe/Matlab/COARE3.6/coare36vn_zrf_et.m#L373
+    # https://github.com/NOAA-PSL/COARE-algorithm/blob/5b144cf6376a98b42200196d57ae40d791494abe/Matlab/COARE3.6/coare36vn_zrf_et.m#L375
     ζ10 = ifelse(Ri < 0, χc * Ri / (1 + Ri / Riᶜ), χc * Ri * (1 + 27 / 9 * Ri / χc))
     L10 = h / ζ10
 
