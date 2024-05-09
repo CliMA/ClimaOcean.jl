@@ -286,8 +286,8 @@ end
     χq =  ϰ / log(h / ℓθ₀)
     χc =  ϰ * χq / χu
     
-    # Similarity functions from Businger et al. (1971)
-    ψu = InitialMomentumStabilityFunction()
+    # Similarity functions from Edson et al. (2013)
+    ψu = InitialMomentumStabilityFunction() 
     ψθ = similarity_theory.stability_functions.temperature
     ψq = similarity_theory.stability_functions.water_vapor
 
