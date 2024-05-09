@@ -43,7 +43,6 @@ struct SimilarityTheoryTurbulentFluxes{FT, UF, TP, S, W, R, B, V, F} <: Abstract
     bulk_velocity :: V
     tolerance :: FT
     maxiter :: Int
-    iteration :: Int
     fields :: F
 end
 
@@ -69,7 +68,6 @@ Adapt.adapt_structure(to, fluxes::STTF) = SimilarityTheoryTurbulentFluxes(adapt(
                                                                           adapt(to, fluxes.bulk_velocity),
                                                                           fluxes.tolerance,
                                                                           fluxes.maxiter,
-                                                                          fluxes.iteration,
                                                                           adapt(to, fluxes.fields))
 
 Base.summary(::SimilarityTheoryTurbulentFluxes{FT}) where FT = "SimilarityTheoryTurbulentFluxes{$FT}"
@@ -133,7 +131,6 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                            bulk_velocity,
                                            convert(FT, tolerance), 
                                            maxiter,
-                                           0,
                                            fields)
 end
 
@@ -191,9 +188,12 @@ end
     # The inital velocity scale assumes that
     # the gustiness velocity `uᴳ` is equal to 0.5 ms⁻¹. 
     # That will be refined later on.
-    uτ = sqrt(Δu^2 + Δv^2 + convert(FT, 0.25))
+    uτ = sqrt(Δu^2 + Δv^2 + convert(eltype(Δh), 0.25))
 
-    while iterating(Σ★ - Σ₀, similarity_theory)
+    # Initialize the solver
+    iteration = 0
+
+    while iterating(Σ★ - Σ₀, iteration, similarity_theory)
         Σ₀ = Σ★
         similarity_theory.iteration += 1
         Σ★, uτ, = refine_characteristic_scales(Σ★, uτ, 
@@ -204,6 +204,7 @@ end
                                                thermodynamics_parameters,
                                                gravitational_acceleration,
                                                von_karman_constant)
+        iteration += 1
     end
 
     u★ = Σ★.momentum
@@ -232,10 +233,10 @@ end
 end
 
 # Iterating condition for the characteristic scales solvers
-@inline function iterating(Σ★, solver)
-    solver.iteration >= solver.maxiter && return false
-    norm(Σ★) <= solver.tolerance && return false
-    return true
+@inline function iterating(Σ★, iteration, solver)
+    converged = norm(Σ★) <= solver.tolerance
+    reached_maxiter = iteration >= solver.maxiter 
+    return converged | reached_maxiter
 end
 
 @inline function initial_guess(differences, 
@@ -251,6 +252,8 @@ end
     Δq = differences.q
     h  = differences.h
 
+    FT = eltype(h)
+
     g  = gravitational_acceleration
     ϰ  = von_karman_constant
 
@@ -259,8 +262,8 @@ end
     β   = similarity_theory.gustiness_parameter
     zᵢ  = atmos_boundary_layer_height
 
-    hᵢ  = convert(eltype(h), 10)    # Reference Initial height == 10 meters
-    ℓuᵢ = convert(eltype(h), 1e-4)  # Initial roughness length == 1e-4 meters
+    hᵢ  = convert(FT, 10)    # Reference Initial height == 10 meters
+    ℓuᵢ = convert(FT, 1e-4)  # Initial roughness length == 1e-4 meters
 
     # assuming the initial gustiness is `0.5` ms⁻¹
     uτ = sqrt(Δu^2 + Δv^2 + convert(FT, 0.25))
@@ -295,8 +298,8 @@ end
     Riᶜ = - h / zᵢ / convert(FT, 0.004) / β^3 # - h / zi / 0.004 / β^3
     
     # Calculating the first stability coefficient and the MO length
-    # TODO: explain this formulation of the stability function. Is it empirical?
-    # Found in COARE3.6
+    # TODO: explain this formulation of the stability function. 
+    # Is it empirical? Found in COARE3.6
     ζ10 = ifelse(Ri < 0, χc * Ri / (1 + Ri / Riᶜ), χc * Ri * (1 + 27 / 9 * Ri / χc))
     L10 = h / ζ10
 

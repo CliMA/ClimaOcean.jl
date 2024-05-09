@@ -33,7 +33,7 @@ function default_stability_functions(FT = Float64)
 end
 
 @inline function (ψ::InitialMomentumStabilityFunction)(ζ)
-    FT = elype(ζ)
+    FT = eltype(ζ)
 
     # Parameters
     p₁ = convert(FT, 0.35)
@@ -57,7 +57,7 @@ end
 end
 
 @inline function (ψ::MomentumStabilityFunction)(ζ)
-    FT = elype(ζ)
+    FT = eltype(ζ)
 
     # Parameters
     p₁ = convert(FT, 0.35)
@@ -83,7 +83,7 @@ end
 end
 
 @inline function (ψ::ScalarStabilityFunction)(ζ)
-    FT = elype(ζ)
+    FT = eltype(ζ)
 
     # Parameters
     p₁ = convert(FT, 0.35)
