@@ -8,7 +8,7 @@ using CubicSplines
 function __init__(; remove_existing_data=false)
 
     ## Data for the one_degree_global_simulation
-    branch_url = "https://github.com/CliMA/OceananigansArtifacts.jl/raw/glw/near-global-data"
+    branch_url = "https://github.com/glwagner/OceananigansArtifacts.jl/raw/glw/near-global-data"
     dir = "lat_lon_bathymetry_and_fluxes"
     bathymetry_name                  = "bathymetry_lat_lon_360_150.jld2"
     initial_conditions_month_1       = "initial_conditions_month_01_360_150_48.jld2"
