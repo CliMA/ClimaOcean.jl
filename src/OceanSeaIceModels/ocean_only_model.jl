@@ -28,6 +28,15 @@ end
 function update_state!(coupled_model::NoSeaIceModel, callbacks=[]; compute_tendencies=false)
     time = Time(coupled_model.clock.time)
     update_model_field_time_series!(coupled_model.atmosphere, time)
+    
+    ocean_model = coupled_model.ocean.model
+
+    # Do we really have to do this?
+    if !isempty(ocean_model.forcing)
+        field_time_series = extract_field_time_series(ocean_model.forcing)
+        update_field_time_series!(field_time_series, time)
+    end
+
     compute_atmosphere_ocean_fluxes!(coupled_model) 
     return nothing
 end
