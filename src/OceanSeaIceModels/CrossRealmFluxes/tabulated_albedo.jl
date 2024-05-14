@@ -43,6 +43,35 @@ const α_payne = [ 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0
                   0.453 0.398 0.342 0.301 0.266 0.226 0.205 0.180 0.157 0.140 0.125 0.109 0.095 0.083 0.074 0.065 0.061 0.057 0.052 0.048 0.044 0.040 0.038 0.033 0.032 0.031 0.030 0.029 0.028 0.027 0.027 0.026 0.026 0.026 0.025 0.025 0.025 0.025 0.025 0.025 0.025 0.025 0.025 0.025 0.025 0.02
                   0.425 0.370 0.325 0.290 0.255 0.220 0.200 0.178 0.157 0.140 0.122 0.108 0.095 0.083 0.074 0.065 0.061 0.056 0.052 0.048 0.044 0.040 0.038 0.033 0.032 0.031 0.030 0.029 0.028 0.027 0.026 0.026 0.026 0.026 0.025 0.025 0.025 0.025 0.025 0.025 0.025 0.025 0.025 0.025 0.025 0.02]
 
+"""
+    TabulatedAlbedo(arch = CPU(), FT = Float64;
+                   S₀ = convert(FT, 1365),
+                   α_table  = α_payne,
+                   φ_values = (0:2:90) ./ 180 * π,
+                   𝓉_values = 0:0.05:1)
+
+Constructs a `TabulatedAlbedo` object that interpolated the albedo from a value table `α_table` that
+is function of latitude `φ` and atmospheric transimissivity `𝓉`.
+
+Note: `TabulatedAlbedo` assumes that the latitude and the transissivity in the table are uniformly spaced. 
+
+The transmissivity of the atmosphere is calculated as the ratio of the downwelling solar radiation to the
+maximum possible downwelling solar radiation for a transparent atmosphere, function of hour of the day, latitude,
+and day in the year.
+
+# Arguments
+============
+
+- `arch`: The architecture to use (default: `CPU()`).
+- `FT`: The floating-point type to use (default: `Float64`).
+
+# Keyword Arguments
+===================
+- `S₀`: The solar constant (default: `convert(FT, 1365)`).
+- `α_table`: The table of albedo values (default: `α_payne`).
+- `φ_values`: The latitude values for the table (default: `(0:2:90) ./ 180 * π`).
+- `𝓉_values`: The transmissivity values for the table (default: `0:0.05:1`).
+"""
 function TabulatedAlbedo(arch = CPU(), FT = Float64;
                          S₀ = convert(FT, 1365),
                          α_table  = α_payne,
@@ -56,11 +85,6 @@ function TabulatedAlbedo(arch = CPU(), FT = Float64;
 
     return TabulatedAlbedo(α_table, φ_values, 𝓉_values, S₀)
 end
-
-@inline ϕ₁(ξ, η) = (1 - ξ) * (1 - η)
-@inline ϕ₂(ξ, η) = (1 - ξ) *      η 
-@inline ϕ₃(ξ, η) =      ξ  * (1 - η)
-@inline ϕ₄(ξ, η) =      ξ  *      η 
 
 @inline function net_downwelling_radiation(i, j, grid, time, Qs, Qℓ, radiation::Radiation{<:Any, <:Any, <:SurfaceProperties{<:TabulatedAlbedo}})
     α = radiation.reflection.ocean
@@ -95,13 +119,13 @@ end
     𝓉 = ifelse(Qmax > 0, min(1, Qs / Qmax), 0)
     
     # finding the i-index in the table (depending on transmissivity)
-    # assuming the transmissivity is tabulated with constant values
+    # we assume that the transmissivity is tabulated with a constant spacing
     𝓉₁ = @inbounds α.𝓉_values[1]
     Δ𝓉 = @inbounds α.𝓉_values[2] - 𝓉₁
     i⁻, i⁺, ξ = interpolator((𝓉 - 𝓉₁) / Δ𝓉)
 
     # finding the j-index in the table (depending on latitude)
-    # assuming the transmissivity is tabulated with constant values
+    # we assume that the transmissivity is tabulated with a constant spacing
     φ₁ = @inbounds α.φ_values[1]
     Δφ = @inbounds α.φ_values[2] - φ₁
     j⁻, j⁺, η = interpolator((abs(φ) - φ₁) / Δφ)

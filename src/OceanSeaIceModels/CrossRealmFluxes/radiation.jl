@@ -1,3 +1,5 @@
+using Oceananigans.Grids: φnode
+
 @inline hack_cosd(φ) = cos(π * φ / 180)
 @inline hack_sind(φ) = sin(π * φ / 180)
 
@@ -12,10 +14,35 @@ Adapt.adapt_structure(to, r :: Radiation) =
                       Adapt.adapt(to, r.reflection),
                       Adapt.adapt(to, r.stefan_boltzmann_constant))
 
+"""
+    Radiation(arch = CPU(), FT=Float64;
+              ocean_emissivity = 0.97,
+              sea_ice_emissivity = 1.0,
+              ocean_albedo = LatitudeDependentAlbedo(FT),
+              sea_ice_albedo = 0.7,
+              stefan_boltzmann_constant = 5.67e-8)
+
+Constructs a `Radiation` object that represents the radiation properties of the ocean and sea ice.
+
+# Arguments
+===========
+
+- `arch`: The architecture of the system (default: `CPU()`).
+- `FT`: The floating-point type to use (default: `Float64`).
+
+# Keyword Arguments
+===================
+
+- `ocean_emissivity`: The emissivity of the ocean surface (default: `0.97`).
+- `sea_ice_emissivity`: The emissivity of the sea ice surface (default: `1.0`).
+- `ocean_albedo`: The albedo of the ocean surface (default: `LatitudeDependentAlbedo(FT)`).
+- `sea_ice_albedo`: The albedo of the sea ice surface (default: `0.7`).
+- `stefan_boltzmann_constant`: The Stefan-Boltzmann constant (default: `5.67e-8`).
+"""
 function Radiation(arch = CPU(), FT=Float64;
                    ocean_emissivity = 0.97,
                    sea_ice_emissivity = 1.0,
-                   ocean_albedo = TabulatedAlbedo(arch, FT),
+                   ocean_albedo = LatitudeDependentAlbedo(FT),
                    sea_ice_albedo = 0.7,
                    stefan_boltzmann_constant = 5.67e-8)
 
@@ -40,31 +67,44 @@ struct LatitudeDependentAlbedo{FT}
     diffuse :: FT
 end
 
+"""
+    LatitudeDependentAlbedo([FT::DataType=Float64]; diffuse = 0.069, direct = 0.011)
+
+Constructs a `LatitudeDependentAlbedo` object. The albedo of the ocean surface is assumed to be a function of the latitude,
+obeying the following formula (Large and Yeager, 2009):
+
+    α(φ) = α.diffuse - α.direct * cos(2φ)
+
+where `φ` is the latitude, `α_diffuse` is the diffuse albedo, and `α_direct` is the direct albedo.
+
+# Arguments
+===========
+
+- `FT::DataType`: The data type of the albedo values. Default is `Float64`.
+
+# Keyword Arguments
+===================
+- `diffuse`: The diffuse albedo value. Default is `0.069`.
+- `direct`: The direct albedo value. Default is `0.011`.
+"""
+function LatitudeDependentAlbedo(FT::DataType=Float64; 
+                                 diffuse = 0.069, 
+                                 direct = 0.011) 
+    
+    return LatitudeDependentAlbedo(convert(FT, direct),
+                                   convert(FT, diffuse))
+end
+
+Adapt.adapt_structure(to, α::LatitudeDependentAlbedo) = 
+    LatitudeDependentAlbedo(Adapt.adapt(to, α.direct),                       
+                            Adapt.adapt(to, α.diffuse))
+
 @inline function stateindex(α::LatitudeDependentAlbedo, i, j, k, grid, time) 
     φ = φnode(i, j, k, grid, Center(), Center(), Center())
     α_diffuse = α.diffuse
     direct_correction = α.direct * hack_cosd(2φ)
 
     return α_diffuse - direct_correction
-end
-
-# To allow the use with KernelFunctionOperation
-@inline function net_downwelling_radiation(i, j, k, grid, time, 
-                                           atmos_radiation,
-                                           atmos_grid,
-                                           atmos_times, 
-                                           atmos_backend, 
-                                           atmos_time_indexing,
-                                           radiative_properties) 
-    
-    X = node(i, j, 1, grid, c, c, f)
-    
-    atmos_args = (atmos_grid, atmos_times, atmos_backend, atmos_time_indexing)
-    
-    Qs = interp_atmos_time_series(atmos_radiation.shortwave, X, time, atmos_args...)
-    Qℓ = interp_atmos_time_series(atmos_radiation.longwave,  X, time, atmos_args...)
-
-    return net_downwelling_radiation(i, j, grid, time, Qs, Qℓ, radiative_properties)
 end
 
 struct SurfaceProperties{O, I}
