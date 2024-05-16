@@ -96,10 +96,10 @@ end
 
 const PATP = PrescribedAtmosphereThermodynamicsParameters
 
-""" only the atmosphere velocity is used in flux calculations """
+""" The exchange fluxes depend on the atmosphere velocity but not the ocean velocity """
 struct WindVelocity end
 
-""" the atmosphere - ocean velocity difference is used in flux calculations """
+""" The exchange fluxes depend on the relative velocity between the atmosphere and the ocean """
 struct RelativeVelocity end
 
 function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
@@ -114,7 +114,7 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                          roughness_lengths = default_roughness_lengths(FT),
                                          bulk_coefficients = bulk_coefficients,
                                          bulk_velocity = RelativeVelocity(),
-                                         tolerance = 1e-12,
+                                         tolerance = 1e-8,
                                          maxiter = 100,
                                          fields = nothing)
 
@@ -162,7 +162,8 @@ end
                                                   atmos_boundary_layer_height,
                                                   thermodynamics_parameters,
                                                   gravitational_acceleration,
-                                                  von_karman_constant)
+                                                  von_karman_constant,
+                                                  maxiter)
 
     # Prescribed difference between two states
     ℂₐ = thermodynamics_parameters
@@ -174,16 +175,13 @@ end
 
     differences = (; u=Δu, v=Δv, θ=Δθ, q=Δq, h=Δh)
     
-    Σ₀ = SimilarityScales(0, 0, 0)
+    u★ = convert(eltype(Δh), 1e-4)
 
     # Initial guess for the characteristic scales u★, θ★, q★.
-    Σ★ = initial_guess(differences, 
-                       similarity_theory,
-                       atmos_boundary_layer_height,
-                       gravitational_acceleration,
-                       von_karman_constant, 
-                       ℂₐ, 
-                       surface_state.ts)
+    # Does not really matter if we are sophisticated or not, it converges 
+    # in about 10 iterations no matter what...
+    Σ₀ = SimilarityScales(1, 1, 1)
+    Σ★ = SimilarityScales(u★, u★, u★) 
 
     # The inital velocity scale assumes that
     # the gustiness velocity `uᴳ` is equal to 0.5 ms⁻¹. 
@@ -193,7 +191,7 @@ end
     # Initialize the solver
     iteration = 0
 
-    while iterating(Σ★ - Σ₀, iteration, similarity_theory)
+    while iterating(Σ★ - Σ₀, iteration, maxiter, similarity_theory)
         Σ₀ = Σ★
         Σ★, uτ, = refine_characteristic_scales(Σ★, uτ, 
                                                similarity_theory,
@@ -235,84 +233,10 @@ end
 end
 
 # Iterating condition for the characteristic scales solvers
-@inline function iterating(Σ★, iteration, solver)
+@inline function iterating(Σ★, iteration, maxiter, solver)
     converged = norm(Σ★) <= solver.tolerance
-    reached_maxiter = iteration >= solver.maxiter 
+    reached_maxiter = iteration >= maxiter 
     return !(converged | reached_maxiter)
-end
-
-@inline function initial_guess(differences, 
-                               similarity_theory,
-                               atmos_boundary_layer_height,
-                               gravitational_acceleration,
-                               von_karman_constant, 
-                               ℂₐ, 𝒬ₒ)
-
-    Δu = differences.u
-    Δv = differences.v
-    Δθ = differences.θ
-    Δq = differences.q
-    h  = differences.h
-
-    FT = eltype(h)
-
-    g  = gravitational_acceleration
-    ϰ  = von_karman_constant
-
-    # Extract roughness lengths
-    ℓu  = similarity_theory.roughness_lengths.momentum
-    β   = similarity_theory.gustiness_parameter
-    zᵢ  = atmos_boundary_layer_height
-
-    hᵢ  = convert(FT, 10)    # Reference Initial height == 10 meters
-    ℓuᵢ = convert(FT, 1e-4)  # Initial roughness length == 1e-4 meters
-
-    # assuming the initial gustiness is `0.5` ms⁻¹
-    uτ = sqrt(Δu^2 + Δv^2 + convert(FT, 0.25))
-
-    # u10 at the reference ten meter height, assuming the initial roughness length is `1e-4` m
-    u10 = uτ / log(h / ℓuᵢ) * convert(FT, 11.5129) # log(10 / 1e-4) == 11.5129
-    u★  = convert(FT, 0.035) * u10
-
-    ℓu₀ = roughness_length(ℓu, u★, 𝒬ₒ, ℂₐ)
-
-    # Initial neutral coefficients at 10 meter height
-    χuₙ  = (ϰ / log(hᵢ / ℓu₀))^2
-    χcₙ  = convert(FT, 0.00115) / sqrt(χuₙ)
-
-    # Initial scalar roughness length
-    ℓθ₀ = hᵢ / exp(ϰ / χcₙ)
-
-    # Neutral transfer coefficients at height `h`
-    χu = (ϰ / log(h / ℓu₀))^2
-    χq =  ϰ / log(h / ℓθ₀)
-    χc =  ϰ * χq / χu
-    
-    # Similarity functions from Edson et al. (2013)
-    ψu = InitialMomentumStabilityFunction() 
-    ψθ = similarity_theory.stability_functions.temperature
-    ψq = similarity_theory.stability_functions.water_vapor
-
-    # Bulk Flux Richardson number
-    b★  = buoyancy_scale(Δθ, Δq, 𝒬ₒ, ℂₐ, g)
-    Ri  = - ifelse(b★ == 0, zero(b★), h / b★ / uτ^2)
-
-    # Critical Richardson number, TODO: find out what 0.004 refers to
-    # https://github.com/NOAA-PSL/COARE-algorithm/blob/5b144cf6376a98b42200196d57ae40d791494abe/Matlab/COARE3.6/coare36vn_zrf_et.m#L373
-    Riᶜ = - h / zᵢ / convert(FT, 0.004) / β^3 # - h / zi / 0.004 / β^3
-    
-    # Calculating the first stability coefficient and the MO length
-    # TODO: explain this formulation of the stability function. 
-    # Is it empirical? Found in COARE3.6
-    # https://github.com/NOAA-PSL/COARE-algorithm/blob/5b144cf6376a98b42200196d57ae40d791494abe/Matlab/COARE3.6/coare36vn_zrf_et.m#L375
-    ζ10 = ifelse(Ri < 0, χc * Ri / (1 + Ri / Riᶜ), χc * Ri * (1 + 27 / 9 * Ri / χc))
-    L10 = h / ζ10
-
-    u★ = uτ * ϰ / similarity_theory.bulk_coefficients(ψu, h, ℓu₀, L10) 
-    θ★ = Δθ * ϰ / similarity_theory.bulk_coefficients(ψθ, h, ℓθ₀, L10) 
-    q★ = Δq * ϰ / similarity_theory.bulk_coefficients(ψq, h, ℓθ₀, L10) 
-    
-    return SimilarityScales(u★, θ★, q★)
 end
 
 # The M-O characteristic length is calculated as
@@ -330,8 +254,8 @@ end
     return b★
 end
 
-@inline characteristic_velocities(𝒰₁, 𝒰₀, ::WindVelocity)     = @inbounds 𝒰₁.u[1] - 𝒰₀.u[1], 𝒰₁.u[2] - 𝒰₀.u[2]
-@inline characteristic_velocities(𝒰₁, 𝒰₀, ::RelativeVelocity) = @inbounds 𝒰₁.u[1], 𝒰₁.u[2] 
+@inline characteristic_velocities(𝒰₁, 𝒰₀, ::RelativeVelocity) = @inbounds 𝒰₁.u[1] - 𝒰₀.u[1], 𝒰₁.u[2] - 𝒰₀.u[2]
+@inline characteristic_velocities(𝒰₁, 𝒰₀, ::WindVelocity)     = @inbounds 𝒰₁.u[1], 𝒰₁.u[2] 
 
 @inline function state_differences(ℂ, 𝒰₁, 𝒰₀, g, bulk_velocity)
     z₁ = 𝒰₁.z

@@ -196,7 +196,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             atmosphere_time_indexing,
             atmosphere.measurement_height, # height at which the state is known
             atmosphere.boundary_layer_height,
-            atmosphere.thermodynamics_parameters)
+            atmosphere.thermodynamics_parameters)   
     
     launch!(arch, grid, kernel_parameters, _assemble_atmosphere_ocean_fluxes!,
             centered_velocity_fluxes,
@@ -231,7 +231,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
 end
 
 # Fallback
-@inline convert_to_latlon_grid(i, j, grid, uₒ, vₒ) = uₒ, vₒ
+@inline convert_to_latlon_frame(i, j, grid, uₒ, vₒ) = uₒ, vₒ
 @inline convert_to_native_frame(i, j, grid, uₒ, vₒ) = uₒ, vₒ
 
 # Fallback!
@@ -269,7 +269,7 @@ limit_fluxes_over_sea_ice!(args...) = nothing
     # Convert the native grid velocities to a zonal - meridional 
     # frame of reference (assuming the frame of reference is 
     # latitude - longitude here, we might want to change it)
-    uₒ, vₒ = convert_to_latlon_grid(i, j, grid, uₒ, vₒ)
+    uₒ, vₒ = convert_to_latlon_frame(i, j, grid, uₒ, vₒ)
         
     @inbounds begin
         # Atmos state, which is _assumed_ to exist at location = (c, c, nothing)
@@ -320,11 +320,14 @@ limit_fluxes_over_sea_ice!(args...) = nothing
     g = default_gravitational_acceleration
     ϰ = similarity_theory.von_karman_constant
     
+    inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
+    maxiter  = ifelse(inactive, 1, similarity_theory.maxiter)
+
     turbulent_fluxes = compute_similarity_theory_fluxes(similarity_theory,
                                                         dynamic_ocean_state,
                                                         dynamic_atmos_state,
                                                         atmosphere_boundary_layer_height,
-                                                        ℂₐ, g, ϰ)
+                                                        ℂₐ, g, ϰ, maxiter)
 
     kᴺ = size(grid, 3) # index of the top ocean cell
 
@@ -332,8 +335,6 @@ limit_fluxes_over_sea_ice!(args...) = nothing
     # reference of the native ocean grid
     τˣ, τʸ = convert_to_native_frame(i, j, grid, turbulent_fluxes.x_momentum, 
                                                 turbulent_fluxes.y_momentum)
-
-    inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
 
     @inbounds begin
         # +0: cooling, -0: heating
