@@ -112,7 +112,7 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                          water_vapor_saturation = ClasiusClapyeronSaturation(),
                                          water_mole_fraction = convert(FT, 0.98),
                                          roughness_lengths = default_roughness_lengths(FT),
-                                         bulk_coefficients = bulk_coefficients,
+                                         bulk_coefficients = simplified_bulk_coefficients,
                                          bulk_velocity = RelativeVelocity(),
                                          tolerance = 1e-8,
                                          maxiter = 100,
@@ -150,7 +150,7 @@ end
 @inline simplified_bulk_coefficients(ψ, h, ℓ, L) = log(h / ℓ) - ψ(h / L) # + ψ(ℓ / L)
 
 # The complete bulk coefficient
-@inline bulk_coefficients(ψ, h, ℓ, L) = log(h / ℓ) - ψ(h / L) + ψ(ℓ / L)
+# @inline bulk_coefficients(ψ, h, ℓ, L) = log(h / ℓ) - ψ(h / L) + ψ(ℓ / L)
 
 #####
 ##### Fixed-point iteration for roughness length

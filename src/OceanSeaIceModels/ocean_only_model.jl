@@ -1,3 +1,5 @@
+using Oceananigans.OutputReaders: extract_field_time_series, update_field_time_series!
+
 const OceanOnlyModel = OceanSeaIceModel{Nothing}
 const OceanSimplifiedSeaIceModel = OceanSeaIceModel{<:MinimumTemperatureSeaIce}
 

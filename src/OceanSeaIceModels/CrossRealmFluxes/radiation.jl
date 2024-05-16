@@ -1,3 +1,5 @@
+using Oceananigans.Grids: φnode
+
 @inline hack_cosd(φ) = cos(π * φ / 180)
 @inline hack_sind(φ) = sin(π * φ / 180)
 
@@ -15,7 +17,7 @@ Adapt.adapt_structure(to, r :: Radiation) =
 function Radiation(arch = CPU(), FT=Float64;
                    ocean_emissivity = 0.97,
                    sea_ice_emissivity = 1.0,
-                   ocean_albedo = TabulatedAlbedo(arch, FT),
+                   ocean_albedo = LatitudeDependentAlbedo(FT),
                    sea_ice_albedo = 0.7,
                    stefan_boltzmann_constant = 5.67e-8)
 
@@ -39,6 +41,13 @@ struct LatitudeDependentAlbedo{FT}
     direct :: FT
     diffuse :: FT
 end
+
+LatitudeDependentAlbedo(FT::DataType=Float64; diffuse = 0.069, direct = 0.011) = 
+		LatitudeDependentAlbedo(convert(FT, direct),
+					convert(FT, diffuse))
+
+Adapt.adapt_structure(to, α::LatitudeDependentAlbedo) = LatitudeDependentAlbedo(Adapt.adapt(to, α.direct), 
+										Adapt.adapt(to, α.diffuse))
 
 @inline function stateindex(α::LatitudeDependentAlbedo, i, j, k, grid, time) 
     φ = φnode(i, j, k, grid, Center(), Center(), Center())

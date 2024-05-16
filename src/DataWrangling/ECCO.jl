@@ -240,7 +240,7 @@ function inpainted_ecco_field(metadata::ECCOMetadata;
                               architecture = CPU(),
                               filename = file_name(metadata),
                               mask = ecco_mask(metadata, architecture),
-                              maxiter = 20,
+                              maxiter = Inf,
                               kw...)
     
     f = ecco_field(metadata; architecture, filename, kw...)
