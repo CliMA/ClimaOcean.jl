@@ -11,15 +11,19 @@ using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.Units
 using ClimaOcean.OceanSimulations
 using ClimaOcean.OceanSeaIceModels
-using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: Radiation
+using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: Radiation, SimilarityTheoryTurbulentFluxes
 using ClimaOcean.VerticalGrids: exponential_z_faces
 using ClimaOcean.JRA55
 using ClimaOcean.ECCO
 using ClimaOcean.JRA55: JRA55NetCDFBackend, JRA55_prescribed_atmosphere
-using ClimaOcean.ECCO: ECCO_restoring_forcing
+using ClimaOcean.ECCO: ECCO_restoring_forcing, ECCO4Monthly, ECCO2Daily, ECCOMetadata
 using ClimaOcean.Bathymetry
 
+using CFTime
+using Dates
+
 include("tripolar_specific_methods.jl")
+include("xin_kai_vertical_diffusivity.jl")
 
 #####
 ##### Global Ocean at 1/6th of a degree
@@ -28,19 +32,19 @@ include("tripolar_specific_methods.jl")
 bathymetry_file = nothing # "bathymetry_tmp.jld2"
 
 # 60 vertical levels
-z_faces = exponential_z_faces(Nz=60, depth=6500)
+z_faces = exponential_z_faces(Nz=60, depth=6000)
 
 Nx = 2160
 Ny = 1100
 Nz = length(z_faces) - 1
 
-arch = CPU() #Distributed(GPU(), partition = Partition(2))
+arch = GPU() #Distributed(GPU(), partition = Partition(2))
 
 grid = TripolarGrid(arch; 
                     size = (Nx, Ny, Nz), 
                     halo = (7, 7, 7), 
                     z = z_faces, 
-                    north_poles_latitude = 60,
+                    north_poles_latitude = 55,
                     first_pole_longitude = 75)
 
 bottom_height = retrieve_bathymetry(grid, bathymetry_file; 
@@ -49,7 +53,7 @@ bottom_height = retrieve_bathymetry(grid, bathymetry_file;
                                     interpolation_passes = 20,
                                     connected_regions_allowed = 0)
  
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height)) #; active_cells_map = true) 
+grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true) 
 
 #####
 ##### The Ocean component
@@ -61,10 +65,10 @@ const  h = Nz / 4.5
 @inline exponential_profile(z; Lz, h) = (exp(z / h) - exp( - Lz / h)) / (1 - exp( - Lz / h))
 @inline νz(x, y, z, t) = 1e-4 + (5e-3 - 1e-4) * exponential_profile(z; Lz, h)
 
-free_surface = SplitExplicitFreeSurface(grid; cfl=0.7, fixed_Δt = 20minutes)
+free_surface = SplitExplicitFreeSurface(grid; substeps = 75)
 vertical_diffusivity = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), κ = 5e-5, ν = νz)
 
-closure = (RiBasedVerticalDiffusivity(), vertical_diffusivity)
+closure = XinKaiVerticalDiffusivity() # (RiBasedVerticalDiffusivity(), vertical_diffusivity) # 
 
 #####
 ##### Add restoring to ECCO fields for temperature and salinity in the artic and antarctic
@@ -72,17 +76,24 @@ closure = (RiBasedVerticalDiffusivity(), vertical_diffusivity)
 
 @inline mask(λ, φ, z, t) = Int(φ > 75 | φ < -75)
 
-FT = ECCO_restoring_forcing(:temperature; mask, architecture = arch, timescale = 20days)
-FS = ECCO_restoring_forcing(:salinity;    mask, architecture = arch, timescale = 20days)
+dates = DateTimeProlepticGregorian(1992, 1, 4) : Month(1) : DateTimeProlepticGregorian(2017, 12, 1)
+
+temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
+salinity    = ECCOMetadata(:salinity,    dates, ECCO4Monthly())
+
+FT = ECCO_restoring_forcing(temperature; mask, architecture = arch, timescale = 20days)
+FS = ECCO_restoring_forcing(salinity;    mask, architecture = arch, timescale = 20days)
 
 forcing = (; T = FT, S = FS)
 
-ocean = ocean_simulation(grid; free_surface, forcing, closure) 
+ocean = ocean_simulation(grid; free_surface, closure, forcing) 
 model = ocean.model
 
+initial_date = dates[1]
+
 set!(model, 
-     T = ECCOMetadata(:temperature),
-     S = ECCOMetadata(:salinity))
+     T = ECCOMetadata(:temperature, initial_date, ECCO2Daily()),
+     S = ECCOMetadata(:salinity,    initial_date, ECCO2Daily()))
 
 #####
 ##### The atmosphere
@@ -94,7 +105,9 @@ radiation  = Radiation(arch)
 
 sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
 
-coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+similarity_theory = SimilarityTheoryTurbulentFluxes(grid; bulk_coefficients = simplified_bulk_coefficients)
+
+coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, similarity_theory, radiation)
 
 wall_time = [time_ns()]
 
@@ -159,7 +172,7 @@ coupled_simulation = Simulation(coupled_model; Δt=1, stop_time)
 
 run!(coupled_simulation)
 
-wizard = TimeStepWizard(; cfl = 0.4, max_Δt = 540, max_change = 1.1)
+wizard = TimeStepWizard(; cfl = 0.4, max_Δt = 800, max_change = 1.1)
 ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 
 # Let's reset the maximum number of iterations
