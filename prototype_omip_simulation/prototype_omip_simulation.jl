@@ -11,7 +11,7 @@ using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.Units
 using ClimaOcean.OceanSimulations
 using ClimaOcean.OceanSeaIceModels
-using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: Radiation, SimilarityTheoryTurbulentFluxes
+using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: Radiation, SimilarityTheoryTurbulentFluxes, simplified_bulk_coefficients
 using ClimaOcean.VerticalGrids: exponential_z_faces
 using ClimaOcean.JRA55
 using ClimaOcean.ECCO
@@ -23,7 +23,7 @@ using CFTime
 using Dates
 
 include("tripolar_specific_methods.jl")
-include("xin_kai_vertical_diffusivity.jl")
+# include("xin_kai_vertical_diffusivity.jl")
 
 #####
 ##### Global Ocean at 1/6th of a degree
@@ -38,7 +38,7 @@ Nx = 2160
 Ny = 1100
 Nz = length(z_faces) - 1
 
-arch = GPU() #Distributed(GPU(), partition = Partition(2))
+arch = CPU() #Distributed(GPU(), partition = Partition(2))
 
 grid = TripolarGrid(arch; 
                     size = (Nx, Ny, Nz), 
@@ -68,7 +68,7 @@ const  h = Nz / 4.5
 free_surface = SplitExplicitFreeSurface(grid; substeps = 75)
 vertical_diffusivity = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), κ = 5e-5, ν = νz)
 
-closure = XinKaiVerticalDiffusivity() # (RiBasedVerticalDiffusivity(), vertical_diffusivity) # 
+closure = (RiBasedVerticalDiffusivity(), vertical_diffusivity) # 
 
 #####
 ##### Add restoring to ECCO fields for temperature and salinity in the artic and antarctic
@@ -76,7 +76,7 @@ closure = XinKaiVerticalDiffusivity() # (RiBasedVerticalDiffusivity(), vertical_
 
 @inline mask(λ, φ, z, t) = Int(φ > 75 | φ < -75)
 
-dates = DateTimeProlepticGregorian(1992, 1, 4) : Month(1) : DateTimeProlepticGregorian(2017, 12, 1)
+dates = DateTimeProlepticGregorian(1992, 1, 4) : Month(1) : DateTimeProlepticGregorian(1992, 4, 1)
 
 temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
 salinity    = ECCOMetadata(:salinity,    dates, ECCO4Monthly())

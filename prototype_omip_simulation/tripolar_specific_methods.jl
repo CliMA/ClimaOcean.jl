@@ -20,11 +20,10 @@ using Oceananigans.Grids: cpu_face_constructor_x,
                           λnode, φnode
 
 using OrthogonalSphericalShellGrids: TRG
+import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: convert_to_latlon_frame, convert_to_native_frame
 
 @inline hack_cosd(φ) = cos(π * φ / 180)
 @inline hack_sind(φ) = sin(π * φ / 180)
-
-import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: convert_to_latlon_frame, convert_to_native_frame
 
 # Here we assume that the tripolar grid is locally orthogonal
 @inline function convert_to_latlong_frame(i, j, grid::TRG, uₒ, vₒ)
