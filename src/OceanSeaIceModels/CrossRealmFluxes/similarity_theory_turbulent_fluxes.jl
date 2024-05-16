@@ -53,7 +53,7 @@ const STTF = SimilarityTheoryTurbulentFluxes
 @inline grav(fluxes::STTF)                  = fluxes.gravitational_acceleration
 @inline molmass_ratio(fluxes::STTF)         = molmass_ratio(fluxes.thermodynamics_parameters)
 
-@inline universal_func_type(fluxes::STTF{<:Any, <:Any, <:BusingerParams}) = BusingerType()
+@inline universal_func_type(::STTF{<:Any, <:Any, <:BusingerParams}) = BusingerType()
 
 Adapt.adapt_structure(to, fluxes::STTF) = SimilarityTheoryTurbulentFluxes(adapt(to, fluxes.gravitational_acceleration),
                                                                           adapt(to, fluxes.von_karman_constant),
@@ -112,9 +112,9 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                          water_vapor_saturation = ClasiusClapyeronSaturation(),
                                          water_mole_fraction = convert(FT, 0.98),
                                          roughness_lengths = default_roughness_lengths(FT),
-                                         bulk_coefficients = simplified_bulk_coefficients,
+                                         bulk_coefficients = bulk_coefficients,
                                          bulk_velocity = RelativeVelocity(),
-                                         tolerance = 1e-8,
+                                         tolerance = 1e-12,
                                          maxiter = 100,
                                          fields = nothing)
 
@@ -150,7 +150,7 @@ end
 @inline simplified_bulk_coefficients(ψ, h, ℓ, L) = log(h / ℓ) - ψ(h / L) # + ψ(ℓ / L)
 
 # The complete bulk coefficient
-# @inline bulk_coefficients(ψ, h, ℓ, L) = log(h / ℓ) - ψ(h / L) + ψ(ℓ / L)
+@inline bulk_coefficients(ψ, h, ℓ, L) = log(h / ℓ) - ψ(h / L) + ψ(ℓ / L)
 
 #####
 ##### Fixed-point iteration for roughness length
@@ -210,6 +210,9 @@ end
     θ★ = Σ★.temperature
     q★ = Σ★.water_vapor
 
+    θ★ = θ★ / similarity_theory.turbulent_prandtl_number
+    q★ = q★ / similarity_theory.turbulent_prandtl_number
+
     # `u★² ≡ sqrt(τx² + τy²)`
     # We remove the gustiness by dividing by `uτ`
     τx = - u★^2 * Δu / uτ
@@ -233,8 +236,9 @@ end
 
 # Iterating condition for the characteristic scales solvers
 @inline function iterating(Σ★, iteration, solver)
-    iteration_complete = (iteration < solver.maxiter) & (norm(Σ★) <= solver.tolerance) 
-    return iteration_complete
+    converged = norm(Σ★) <= solver.tolerance
+    reached_maxiter = iteration >= solver.maxiter 
+    return !(converged | reached_maxiter)
 end
 
 @inline function initial_guess(differences, 
@@ -284,20 +288,23 @@ end
     χq =  ϰ / log(h / ℓθ₀)
     χc =  ϰ * χq / χu
     
-    # Similarity functions from Businger et al. (1971)
-    ψu = InitialMomentumStabilityFunction()
+    # Similarity functions from Edson et al. (2013)
+    ψu = InitialMomentumStabilityFunction() 
     ψθ = similarity_theory.stability_functions.temperature
     ψq = similarity_theory.stability_functions.water_vapor
 
     # Bulk Flux Richardson number
-    # TODO: find out what 0.004 refers to
     b★  = buoyancy_scale(Δθ, Δq, 𝒬ₒ, ℂₐ, g)
     Ri  = - ifelse(b★ == 0, zero(b★), h / b★ / uτ^2)
+
+    # Critical Richardson number, TODO: find out what 0.004 refers to
+    # https://github.com/NOAA-PSL/COARE-algorithm/blob/5b144cf6376a98b42200196d57ae40d791494abe/Matlab/COARE3.6/coare36vn_zrf_et.m#L373
     Riᶜ = - h / zᵢ / convert(FT, 0.004) / β^3 # - h / zi / 0.004 / β^3
     
     # Calculating the first stability coefficient and the MO length
     # TODO: explain this formulation of the stability function. 
-    # Is it empirical? (Found in COARE3.6)
+    # Is it empirical? Found in COARE3.6
+    # https://github.com/NOAA-PSL/COARE-algorithm/blob/5b144cf6376a98b42200196d57ae40d791494abe/Matlab/COARE3.6/coare36vn_zrf_et.m#L375
     ζ10 = ifelse(Ri < 0, χc * Ri / (1 + Ri / Riᶜ), χc * Ri * (1 + 27 / 9 * Ri / χc))
     L10 = h / ζ10
 

@@ -47,7 +47,7 @@ function surface_tracers(ocean::Simulation{<:HydrostaticFreeSurfaceModel})
 end
 
 include("radiation.jl")
-include("latitude_dependent_albedo.jl")
+include("tabulated_albedo.jl")
 include("roughness_lengths.jl")
 include("stability_functions.jl")
 include("seawater_saturation_specific_humidity.jl")

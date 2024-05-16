@@ -76,23 +76,47 @@ Ta = Array(interior(atmosphere.tracers.T[1], :, :, 1))
 qa = Array(interior(atmosphere.tracers.q[1], :, :, 1))
 ra = Array(interior(atmosphere.tracers.r[1], :, :, 1))
 pa = Array(interior(atmosphere.pressure[1], :, :, 1))
+Rs = Array(interior(atmosphere.downwelling_radiation.shortwave[1], :, :, 1))
+Rl = Array(interior(atmosphere.downwelling_radiation.longwave[1], :, :, 1))
 write(matfile, "ua", ua)
 write(matfile, "va", va)
 write(matfile, "Ta", Ta)
 write(matfile, "qa", qa)
 write(matfile, "ra", ra)
 write(matfile, "pa", pa)
+write(matfile, "Rs", Rs)
+write(matfile, "Rl", Rl)
+
+import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: net_downwelling_radiation
+
+@inline net_downwelling_radiation(i::Int, j::Int, k::Int, grid, time, Qs::Field, Ql::Field, args...) = 
+        net_downwelling_radiation(i, j,  grid, time, Qs[i, j, k], Ql[i, j, k], args...)
+
+Rad = KernelFunctionOperation{Center, Center, Center}(net_downwelling_radiation, 
+                                                      grid, 
+                                                      Time(0),
+                                                      atmosphere.downwelling_radiation.shortwave[1], 
+                                                      atmosphere.downwelling_radiation.longwave[1],
+                                                      coupled_model.fluxes.radiation)
+
+Rin = compute!(Field(Rad))
+Rin = Array(interior(Rin, :, :, 1))
+Rou = 0.97 * 5.67e-8 .* (Array(interior(ocean.model.tracers.T, :, :, 50)) .+ 273.15) .^ 4
 
 # Turbulent fluxes
-Ql = Array(interior(coupled_model.fluxes.turbulent.fields.latent_heat,   :, :, 1))
-Qs = Array(interior(coupled_model.fluxes.turbulent.fields.sensible_heat, :, :, 1))
-Mv = Array(interior(coupled_model.fluxes.turbulent.fields.water_vapor,   :, :, 1))
-tx = Array(interior(coupled_model.fluxes.turbulent.fields.x_momentum,    :, :, 1))
-ty = Array(interior(coupled_model.fluxes.turbulent.fields.y_momentum,    :, :, 1))
+Ql = Array(interior(coupled_model.fluxes.turbulent.fields.latent_heat,       :, :, 1))
+Qs = Array(interior(coupled_model.fluxes.turbulent.fields.sensible_heat,     :, :, 1))
+Mv = Array(interior(coupled_model.fluxes.turbulent.fields.water_vapor,       :, :, 1))
+tx = Array(interior(coupled_model.fluxes.turbulent.fields.x_momentum,        :, :, 1))
+ty = Array(interior(coupled_model.fluxes.turbulent.fields.y_momentum,        :, :, 1))
+Tf = Array(interior(ocean.model.tracers.T.boundary_conditions.top.condition, :, :, 1))
 write(matfile, "Ql", Ql)
 write(matfile, "Qs", Qs)
 write(matfile, "Mv", Mv)
 write(matfile, "tx", tx)
 write(matfile, "ty", ty)
+write(matfile, "Tf", Tf)
+write(matfile, "Ri", Rin)
+write(matfile, "Ro", Rou)
 
 close(matfile)
