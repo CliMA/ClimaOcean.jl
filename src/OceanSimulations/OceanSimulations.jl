@@ -2,6 +2,7 @@ module OceanSimulations
 
 export load_balanced_regional_grid, ocean_simulation
 
+using Oceananigans
 using Oceananigans.Units
 using Oceananigans.Advection: TracerAdvection
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving

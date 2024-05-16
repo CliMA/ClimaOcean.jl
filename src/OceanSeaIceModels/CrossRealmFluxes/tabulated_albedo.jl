@@ -86,6 +86,11 @@ function TabulatedAlbedo(arch = CPU(), FT = Float64;
     return TabulatedAlbedo(α_table, φ_values, 𝓉_values, S₀)
 end
 
+@inline ϕ₁(ξ, η) = (1 - ξ) * (1 - η)
+@inline ϕ₂(ξ, η) = (1 - ξ) *      η 
+@inline ϕ₃(ξ, η) =      ξ  * (1 - η)
+@inline ϕ₄(ξ, η) =      ξ  *      η 
+
 @inline function net_downwelling_radiation(i, j, grid, time, Qs, Qℓ, radiation::Radiation{<:Any, <:Any, <:SurfaceProperties{<:TabulatedAlbedo}})
     α = radiation.reflection.ocean
 

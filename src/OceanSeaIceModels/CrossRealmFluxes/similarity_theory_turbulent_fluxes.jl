@@ -53,7 +53,7 @@ const STTF = SimilarityTheoryTurbulentFluxes
 @inline grav(fluxes::STTF)                  = fluxes.gravitational_acceleration
 @inline molmass_ratio(fluxes::STTF)         = molmass_ratio(fluxes.thermodynamics_parameters)
 
-@inline universal_func_type(fluxes::STTF{<:Any, <:Any, <:BusingerParams}) = BusingerType()
+@inline universal_func_type(::STTF{<:Any, <:Any, <:BusingerParams}) = BusingerType()
 
 Adapt.adapt_structure(to, fluxes::STTF) = SimilarityTheoryTurbulentFluxes(adapt(to, fluxes.gravitational_acceleration),
                                                                           adapt(to, fluxes.von_karman_constant),
@@ -114,7 +114,7 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                          roughness_lengths = default_roughness_lengths(FT),
                                          bulk_coefficients = bulk_coefficients,
                                          bulk_velocity = RelativeVelocity(),
-                                         tolerance = 1e-8,
+                                         tolerance = 1e-12,
                                          maxiter = 100,
                                          fields = nothing)
 
@@ -195,7 +195,6 @@ end
 
     while iterating(Σ★ - Σ₀, iteration, similarity_theory)
         Σ₀ = Σ★
-        similarity_theory.iteration += 1
         Σ★, uτ, = refine_characteristic_scales(Σ★, uτ, 
                                                similarity_theory,
                                                surface_state,
@@ -210,6 +209,9 @@ end
     u★ = Σ★.momentum
     θ★ = Σ★.temperature
     q★ = Σ★.water_vapor
+
+    θ★ = θ★ / similarity_theory.turbulent_prandtl_number
+    q★ = q★ / similarity_theory.turbulent_prandtl_number
 
     # `u★² ≡ sqrt(τx² + τy²)`
     # We remove the gustiness by dividing by `uτ`
@@ -236,7 +238,7 @@ end
 @inline function iterating(Σ★, iteration, solver)
     converged = norm(Σ★) <= solver.tolerance
     reached_maxiter = iteration >= solver.maxiter 
-    return converged | reached_maxiter
+    return !(converged | reached_maxiter)
 end
 
 @inline function initial_guess(differences, 

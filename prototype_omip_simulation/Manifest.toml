@@ -1,8 +1,8 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.10.2"
+julia_version = "1.10.3"
 manifest_format = "2.0"
-project_hash = "2b8dc0157e67ed69c1dbe71ccf1e8d7dd3d38b48"
+project_hash = "ad94f0873a50599743724c16c7dfb94779a2964d"
 
 [[deps.ANSIColoredPrinters]]
 git-tree-sha1 = "574baf8110975760d391c710b6341da1afa48d8c"
@@ -192,10 +192,10 @@ weakdeps = ["SparseArrays"]
     ChainRulesCoreSparseArraysExt = "SparseArrays"
 
 [[deps.ClimaOcean]]
-deps = ["Adapt", "CUDA", "ClimaSeaIce", "CubicSplines", "DataDeps", "Dates", "Downloads", "FFMPEG", "ImageMorphology", "JLD2", "KernelAbstractions", "NCDatasets", "Oceananigans", "Printf", "SeawaterPolynomials", "StaticArrays", "Statistics", "SurfaceFluxes", "Thermodynamics"]
+deps = ["Adapt", "CUDA", "ClimaSeaIce", "CubicSplines", "DataDeps", "Dates", "Downloads", "FFMPEG", "ImageMorphology", "JLD2", "JSON3", "KernelAbstractions", "NCDatasets", "Oceananigans", "Printf", "SeawaterPolynomials", "StaticArrays", "Statistics", "SurfaceFluxes", "Thermodynamics"]
 path = ".."
 uuid = "0376089a-ecfe-4b0e-a64f-9c555d74d754"
-version = "0.1.0"
+version = "0.2.0"
 
 [[deps.ClimaSeaIce]]
 deps = ["Adapt", "KernelAbstractions", "Oceananigans", "RootSolvers", "Roots", "SeawaterPolynomials"]
@@ -269,7 +269,7 @@ weakdeps = ["Dates", "LinearAlgebra"]
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-version = "1.1.0+0"
+version = "1.1.1+0"
 
 [[deps.CompositionsBase]]
 git-tree-sha1 = "802bb88cd69dfd1509f6670416bd4434015693ad"
@@ -1108,8 +1108,8 @@ uuid = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 version = "1.6.3"
 
 [[deps.OrthogonalSphericalShellGrids]]
-deps = ["CUDA", "Documenter", "DocumenterTools", "FFMPEG", "JLD2", "JSON3", "KernelAbstractions", "Oceananigans", "OffsetArrays"]
-git-tree-sha1 = "9f55479bbaa571762ac02f7664125d342022d5d1"
+deps = ["CUDA", "Documenter", "DocumenterTools", "FFMPEG", "JLD2", "JSON3", "KernelAbstractions", "Oceananigans", "OffsetArrays", "Printf"]
+git-tree-sha1 = "ad2ad883a638e387818d0e2b270c67fd4dcea89f"
 repo-rev = "main"
 repo-url = "https://github.com/simone-silvestri/OrthogonalSphericalShellGrids.jl"
 uuid = "c2be9673-fb75-4747-82dc-aa2bb9f4aed0"

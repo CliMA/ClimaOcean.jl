@@ -33,9 +33,14 @@ Nx = 2160
 Ny = 1100
 Nz = length(z_faces) - 1
 
-arch = GPU() #Distributed(GPU(), partition = Partition(2))
+arch = CPU() #Distributed(GPU(), partition = Partition(2))
 
-grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (7, 7, 7), z = z_faces)
+grid = TripolarGrid(arch; 
+                    size = (Nx, Ny, Nz), 
+                    halo = (7, 7, 7), 
+                    z = z_faces, 
+                    north_poles_latitude = 60,
+                    first_pole_longitude = 75)
 
 bottom_height = retrieve_bathymetry(grid, bathymetry_file; 
                                     minimum_depth = 10,
@@ -43,7 +48,7 @@ bottom_height = retrieve_bathymetry(grid, bathymetry_file;
                                     interpolation_passes = 20,
                                     connected_regions_allowed = 0)
  
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true) 
+grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height)) #; active_cells_map = true) 
 
 #####
 ##### The Ocean component

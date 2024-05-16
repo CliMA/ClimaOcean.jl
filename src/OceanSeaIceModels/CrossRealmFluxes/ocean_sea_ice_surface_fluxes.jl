@@ -393,6 +393,7 @@ end
     # Compute heat fluxes, bulk flux first
     Qd = net_downwelling_radiation(i, j, grid, time, Qs, Qℓ, radiation_properties)
     Qu = net_upwelling_radiation(i, j, grid, time, radiation_properties, Tₒ)
+
     ΣQ = Qd + Qu + Qc + Qv
 
     # Convert from a mass flux to a volume flux (aka velocity)

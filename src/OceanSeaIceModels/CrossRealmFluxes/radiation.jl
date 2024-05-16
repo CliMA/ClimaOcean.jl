@@ -15,10 +15,10 @@ Adapt.adapt_structure(to, r :: Radiation) =
                       Adapt.adapt(to, r.stefan_boltzmann_constant))
 
 """
-    Radiation(arch = CPU(), FT=Float64;
+    Radiation([arch = CPU(), FT=Float64];
               ocean_emissivity = 0.97,
               sea_ice_emissivity = 1.0,
-              ocean_albedo = LatitudeDependentAlbedo(FT),
+              ocean_albedo = TabulatedAlbedo(arch, FT),
               sea_ice_albedo = 0.7,
               stefan_boltzmann_constant = 5.67e-8)
 
@@ -42,7 +42,7 @@ Constructs a `Radiation` object that represents the radiation properties of the 
 function Radiation(arch = CPU(), FT=Float64;
                    ocean_emissivity = 0.97,
                    sea_ice_emissivity = 1.0,
-                   ocean_albedo = LatitudeDependentAlbedo(FT),
+                   ocean_albedo = TabulatedAlbedo(arch, FT),
                    sea_ice_albedo = 0.7,
                    stefan_boltzmann_constant = 5.67e-8)
 
@@ -75,7 +75,7 @@ obeying the following formula (Large and Yeager, 2009):
 
     α(φ) = α.diffuse - α.direct * cos(2φ)
 
-where `φ` is the latitude, `α_diffuse` is the diffuse albedo, and `α_direct` is the direct albedo.
+where `φ` is the latitude, `α.diffuse` is the diffuse albedo, and `α_.irect` is the direct albedo.
 
 # Arguments
 ===========
