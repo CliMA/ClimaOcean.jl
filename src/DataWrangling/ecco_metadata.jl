@@ -135,15 +135,15 @@ function download_dataset!(metadata::ECCOMetadata;
                            password = get(ENV, "ECCO_PASSWORD", nothing),
                            url = urls(metadata))
 
-    isnothing(username) && throw(ArgumentError("Please provide a username in the ECCO_USERNAME environment variable!"))
-    isnothing(password) && throw(ArgumentError("Please provide a password in the ECCO_PASSWORD environment variable!"))
-
     for data in metadata
         filename  = file_name(data)
         shortname = short_name(data)
  
         if !isfile(filename)
 
+            isnothing(username) && throw(ArgumentError("Please provide a username in the ECCO_USERNAME environment variable!"))
+            isnothing(password) && throw(ArgumentError("Please provide a password in the ECCO_PASSWORD environment variable!"))
+        
             # Version specific download file url
             if data.version isa ECCO2Monthly || data.version isa ECCO2Daily
                 fileurl = joinpath(url, shortname, filename)
