@@ -46,7 +46,7 @@ function set!(fts::ECCONetCDFFTS, path::ECCOMetadata=fts.path, name::String=fts.
         metadata = @inbounds path[t] 
 
         arch = architecture(fts)
-        f = inpainted_ecco_field(metadata; architecture = arch, maxiter = 5)
+        f = inpainted_ecco_field(metadata; architecture = arch)
         set!(fts[t], f)
     end
 
@@ -166,7 +166,6 @@ end
 
 Adapt.adapt_structure(to, p::ECCORestoring) = 
         ECCORestoring(Adapt.adapt(to, p.ecco_fts), 
-                      Adapt.adapt(to, p.field_idx),
                       Adapt.adapt(to, p.mask),
                       Adapt.adapt(to, p.λ))
 
