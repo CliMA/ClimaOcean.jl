@@ -140,14 +140,11 @@ end
 ECCO_field_time_series(variable_name::Symbol, version=ECCO4Monthly(); kw...) = 
     ECCO_field_time_series(ECCOMetadata(variable_name, all_ecco_dates(version), version); kw...)
 
-@inline variable_name_from_index(i) = ifelse(i == 1, :T, ifelse(i == 2, :S, ifelse(i == 3, :u, :v)))
-
-oceananigans_fieldindex = Dict(
-    :temperature => 1,
-    :salinity    => 2,
-    :u_velocity  => 3,
-    :v_velocity  => 4
-)
+oceananigans_fieldname = Dict(
+    :temperature => :T, 
+    :salinity    => :S, 
+    :u_velocity  => :u, 
+    :v_velocity  => :v)
 
 """
     struct ECCORestoring{FTS, I, M, N}
@@ -161,9 +158,8 @@ A struct representing the ECCO forcing function for a specific field.
 - `λ`: The timescale.
 
 """
-struct ECCORestoring{FTS, I, M, N}
+struct ECCORestoring{FTS, M, N}
     ecco_fts  :: FTS
-    field_idx :: I
     mask      :: M
     λ         :: N
 end
@@ -174,29 +170,27 @@ Adapt.adapt_structure(to, p::ECCORestoring) =
                       Adapt.adapt(to, p.mask),
                       Adapt.adapt(to, p.λ))
 
-@inline function (p::ECCORestoring)(i, j, k, grid, clock, fields)
+@inline function (p::ECCORestoring)(x, y, z, t, var)
     
-    # Figure out all the inputs: variable name, time, location, and node
-    var_name  = variable_name_from_index(p.field_idx)
-    time      = Time(clock.time)
+    # Figure out all the inputs: time, location, and node
+    time      = Time(t)
     loc       = instantiated_location(p.ecco_fts)
-    X         = node(i, j, k, grid, loc...)
+    X         = (x, y, z)
 
     # Extracting the ECCO field time series data and parameters
-    ecco_times         = p.ecco_fts.times
-    ecco_grid          = p.ecco_fts.grid
-    ecco_data          = p.ecco_fts.data
-    ecco_backend       = p.ecco_fts.backend
-    ecco_time_indexing = p.ecco_fts.time_indexing
+    ecco_times         = p.ecco_times
+    ecco_grid          = p.ecco_grid
+    ecco_data          = p.ecco_data
+    ecco_backend       = p.ecco_backend
+    ecco_time_indexing = p.ecco_time_indexing
 
-    # Extracting the field value at the current node
-    @inbounds var = getproperty(fields, var_name)[i, j, k]
-    
     # Interpolating the ECCO field time series data ont the current node and time
     ecco_var = interpolate(X, time, ecco_data, loc, ecco_grid, ecco_times, ecco_backend, ecco_time_indexing)
     
     # Extracting the mask value at the current node
-    mask = stateindex(p.mask, i, j, k, grid, clock.time, loc)
+    # TODO: make this work with numbers, arrays, or functions
+    # (something like the reverse of `stateindex`)
+    mask = p.mask(X...)
 
     return 1 / p.λ * mask * (ecco_var - var)
 end
@@ -237,11 +231,10 @@ function ECCO_restoring_forcing(metadata::ECCOMetadata;
     ecco_fts = ECCO_field_time_series(metadata; architecture, time_indices_in_memory, time_indexing)                  
 
     variable_name = metadata.name
-    field_idx = oceananigans_fieldindex[variable_name]
-    ecco_restoring = ECCORestoring(ecco_fts, field_idx, mask, timescale)
+    field_name = oceananigans_fieldname[variable_name]
+    ecco_restoring = ECCORestoring(ecco_fts, mask, timescale)
 
-    restoring_forcing = Forcing(ecco_restoring; 
-                                discrete_form=true)
+    restoring_forcing = Forcing(ecco_restoring; field_dependencies = field_name)
 
     return restoring_forcing
 end
