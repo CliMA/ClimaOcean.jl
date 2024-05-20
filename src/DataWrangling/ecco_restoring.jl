@@ -223,7 +223,7 @@ end
 
 function ECCO_restoring_forcing(metadata::ECCOMetadata;
                                 architecture = CPU(), 
-                                time_indices_in_memory = 2,
+                                time_indices_in_memory = 2, # Not more than this if we want to use GPU!
                                 time_indexing = Cyclical(),
                                 mask = 1,
                                 timescale = 5days)
@@ -234,6 +234,7 @@ function ECCO_restoring_forcing(metadata::ECCOMetadata;
     field_name = oceananigans_fieldname[variable_name]
     ecco_restoring = ECCORestoring(ecco_fts, mask, timescale)
 
+    # Defining the forcing that depends on the restoring field.
     restoring_forcing = Forcing(ecco_restoring; field_dependencies = field_name)
 
     return restoring_forcing
