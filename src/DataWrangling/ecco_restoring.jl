@@ -178,11 +178,11 @@ Adapt.adapt_structure(to, p::ECCORestoring) =
     X         = (x, y, z)
 
     # Extracting the ECCO field time series data and parameters
-    ecco_times         = p.ecco_times
-    ecco_grid          = p.ecco_grid
-    ecco_data          = p.ecco_data
-    ecco_backend       = p.ecco_backend
-    ecco_time_indexing = p.ecco_time_indexing
+    ecco_times         = p.ecco_fts.times
+    ecco_grid          = p.ecco_fts.grid
+    ecco_data          = p.ecco_fts.data
+    ecco_backend       = p.ecco_fts.backend
+    ecco_time_indexing = p.ecco_fts.time_indexing
 
     # Interpolating the ECCO field time series data ont the current node and time
     ecco_var = interpolate(X, time, ecco_data, loc, ecco_grid, ecco_times, ecco_backend, ecco_time_indexing)

@@ -84,7 +84,7 @@ function ocean_simulation(grid; Δt = 5minutes,
     Fu = Forcing(u_immersed_bottom_drag, discrete_form=true, parameters=drag_coefficient)
     Fv = Forcing(v_immersed_bottom_drag, discrete_form=true, parameters=drag_coefficient)
 
-    forcing = (; u = Fu, v = Fv)
+    forcing = merge(forcing, (; u = Fu, v = Fv))
 
     # Use the TEOS10 equation of state
     teos10 = TEOS10EquationOfState(; reference_density)
