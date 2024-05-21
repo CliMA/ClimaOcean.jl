@@ -271,12 +271,10 @@ function ECCO_restoring_forcing(metadata::ECCOMetadata;
 
     ecco_fts = ECCO_field_time_series(metadata; architecture, time_indices_in_memory, time_indexing)                  
 
-    LX, LY, LZ = location(ecco_fts)
-    loc        = (LX(), LY(), LZ())
     variable_name = metadata.name
     field_name = oceananigans_fieldname[variable_name]
     
-    ecco_restoring = ECCORestoring(ecco_fts, loc, mask, timescale)
+    ecco_restoring = ECCORestoring(ecco_fts, mask, timescale)
     # Defining the forcing that depends on the restoring field.
     restoring_forcing = Forcing(ecco_restoring; field_dependencies = field_name)
 
