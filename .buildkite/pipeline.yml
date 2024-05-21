@@ -38,3 +38,15 @@ steps:
       TEST_GROUP: "ecco2"
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
+
+  - label: "documentation"
+    env:
+      CUDA_VISIBLE_DEVICES: "-1"
+      JULIA_DEBUG: "Documenter"
+      # TMPDIR: "$TARTARUS_HOME/tmp"
+    commands:
+      - "julia --color=yes --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'"
+      - "julia --color=yes --project=docs/ docs/make.jl"
+      
+  - wait: ~
+    continue_on_failure: true
