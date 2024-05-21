@@ -1,6 +1,6 @@
 using Oceananigans.Units
 using Oceananigans.Grids: node
-using Oceananigans.Fields: interpolate!, interpolate, instantiated_location
+using Oceananigans.Fields: interpolate!, interpolate, location
 using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBackend, FlavorOfFTS, time_indices
 using Oceananigans.Utils: Time
 
@@ -158,23 +158,25 @@ A struct representing the ECCO forcing function for a specific field.
 - `λ`: The timescale.
 
 """
-struct ECCORestoring{FTS, M, N}
+struct ECCORestoring{FTS, L, M, N}
     ecco_fts  :: FTS
+    location  :: L
     mask      :: M
     λ         :: N
 end
 
 Adapt.adapt_structure(to, p::ECCORestoring) = 
         ECCORestoring(Adapt.adapt(to, p.ecco_fts), 
+                      Adapt.adapt(to, p.location),
                       Adapt.adapt(to, p.mask),
                       Adapt.adapt(to, p.λ))
 
 @inline function (p::ECCORestoring)(x, y, z, t, var)
     
     # Figure out all the inputs: time, location, and node
-    time      = Time(t)
-    loc       = instantiated_location(p.ecco_fts)
-    X         = (x, y, z)
+    time = Time(t)
+    loc  = p.location
+    X    = (x, y, z)
 
     # Extracting the ECCO field time series data and parameters
     ecco_times         = p.ecco_fts.times
@@ -229,10 +231,12 @@ function ECCO_restoring_forcing(metadata::ECCOMetadata;
 
     ecco_fts = ECCO_field_time_series(metadata; architecture, time_indices_in_memory, time_indexing)                  
 
+    LX, LY, LZ = location(ecco_fts)
+    loc        = (LX(), LY(), LZ())
     variable_name = metadata.name
     field_name = oceananigans_fieldname[variable_name]
-    ecco_restoring = ECCORestoring(ecco_fts, mask, timescale)
-
+    
+    ecco_restoring = ECCORestoring(ecco_fts, loc, mask, timescale)
     # Defining the forcing that depends on the restoring field.
     restoring_forcing = Forcing(ecco_restoring; field_dependencies = field_name)
 
