@@ -30,9 +30,11 @@ import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: convert_to_latlon_frame, c
     φ₁ = φnode(i,   j, 1, grid, Face(), Center(), Center())
     φ₂ = φnode(i+1, j, 1, grid, Face(), Center(), Center())
      
-    θ = φ₂ - φ₁
+    θ  = φ₂ - φ₁
+    d₁ = hack_cosd(θ)
+    d₂ = hack_sind(θ)
     
-    return uₒ * hack_cosd(θ) + vₒ * hack_sind(θ), uₒ * hack_sind(θ) + vₒ * hack_cosd(θ)
+    return uₒ * d₁ - vₒ * d₂, uₒ * d₂ + vₒ * d₁
 end
 
 @inline function convert_to_native_frame(i, j, grid::TRG, uₒ, vₒ) 
@@ -40,6 +42,8 @@ end
     φ₂ = φnode(i, j+1, 1, grid, Face(), Center(), Center())
      
     θ = φ₂ - φ₁
+    d₁ = hack_cosd(θ)
+    d₂ = hack_sind(θ)
     
-    return uₒ * hack_cosd(θ) + vₒ * hack_sind(θ), uₒ * hack_sind(θ) + vₒ * hack_cosd(θ)
+    return uₒ * d₁ + vₒ * d₂, uₒ * d₂ - vₒ * d₁
 end
