@@ -1,6 +1,6 @@
 using Oceananigans.Units
 using Oceananigans.Grids: node
-using Oceananigans.Fields: interpolate!, interpolate, location
+using Oceananigans.Fields: interpolate!, interpolate, location, instantiated_location
 using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBackend, FlavorOfFTS, time_indices
 using Oceananigans.Utils: Time
 
