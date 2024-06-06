@@ -158,32 +158,18 @@ A struct representing the ECCO forcing function for a specific field.
 - `λ`: The timescale.
 
 """
-struct ECCORestoring{FTS, M, N}
-    ecco_fts :: FTS
-    mask     :: M
-    λ        :: N
-end
-
-struct ECCOGPURestoring{D, L, T, G, B, I, M, N}
-    ecco_data           :: D
-    location            :: L
-    ecco_times          :: T
-    ecco_grid           :: G
-    ecco_backend        :: B
-    ecco_time_indexing  :: I
-    mask                :: M
-    λ                   :: N
+struct ECCORestoring{FTS, G, M, N}
+    ecco_fts  :: FTS
+    ecco_grid :: G
+    mask      :: M
+    λ         :: N
 end
 
 Adapt.adapt_structure(to, p::ECCORestoring) = 
-    ECCOGPURestoring(Adapt.adapt(to, p.ecco_fts.data), 
-                     Adapt.adapt(to, instantiated_location(p.ecco_fts)),
-                     Adapt.adapt(to, p.ecco_fts.times),
-                     Adapt.adapt(to, p.ecco_fts.grid),
-                     Adapt.adapt(to, p.ecco_fts.backend),
-                     Adapt.adapt(to, p.ecco_fts.time_indexing),
-                     Adapt.adapt(to, p.mask),
-                     Adapt.adapt(to, p.λ))
+    ECCORestoring(Adapt.adapt(to, p.ecco_fts), 
+                  Adapt.adapt(to, p.grid),
+                  Adapt.adapt(to, p.mask),
+                  Adapt.adapt(to, p.λ))
 
 @inline function (p::ECCORestoring)(x, y, z, t, var)
     
@@ -194,7 +180,7 @@ Adapt.adapt_structure(to, p::ECCORestoring) =
 
     # Extracting the ECCO field time series data and parameters
     ecco_times         = p.ecco_fts.times
-    ecco_grid          = p.ecco_fts.grid
+    ecco_grid          = p.ecco_grid
     ecco_data          = p.ecco_fts.data
     ecco_backend       = p.ecco_fts.backend
     ecco_time_indexing = p.ecco_fts.time_indexing
@@ -209,32 +195,6 @@ Adapt.adapt_structure(to, p::ECCORestoring) =
 
     return 1 / p.λ * mask * (ecco_var - var)
 end
-
-@inline function (p::ECCOGPURestoring)(x, y, z, t, var)
-    
-    # Figure out all the inputs: time, location, and node
-    time = Time(t)
-    loc  = p.location
-    X    = (x, y, z)
-
-    # Extracting the ECCO field time series data and parameters
-    ecco_times         = p.ecco_times
-    ecco_grid          = p.ecco_grid
-    ecco_data          = p.ecco_data
-    ecco_backend       = p.ecco_backend
-    ecco_time_indexing = p.ecco_time_indexing
-
-    # Interpolating the ECCO field time series data ont the current node and time
-    ecco_var = interpolate(X, time, ecco_data, loc, ecco_grid, ecco_times, ecco_backend, ecco_time_indexing)
-    
-    # Extracting the mask value at the current node
-    # TODO: make this work with numbers, arrays, or functions
-    # (something like the reverse of `stateindex`)
-    mask = p.mask(X...)
-
-    return 1 / p.λ * mask * (ecco_var - var)
-end
-
 
 """
     ECCO_restoring_forcing(metadata::ECCOMetadata;
