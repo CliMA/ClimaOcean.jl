@@ -222,11 +222,13 @@ function ECCO_restoring_forcing(variable_name::Symbol, version=ECCO4Monthly(); k
     return ECCO_restoring_forcing(metadata; kw...)
 end
 
+@inline onefunction(args...) = 1
+
 function ECCO_restoring_forcing(metadata::ECCOMetadata;
                                 architecture = CPU(), 
                                 time_indices_in_memory = 2, # Not more than this if we want to use GPU!
                                 time_indexing = Cyclical(),
-                                mask = 1,
+                                mask = onefunction,
                                 timescale = 5days)
 
     ecco_fts  = ECCO_field_time_series(metadata; architecture, time_indices_in_memory, time_indexing)                  

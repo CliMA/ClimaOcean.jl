@@ -112,7 +112,7 @@ end
     ψ_unstable_1 = 2 * log((1 + fₕ) / 2) 
 
     fₕ = cbrt(1 - p₅ * ζ⁻)
-    ψ_unstable_2 = 1.5 * log((1 + fₕ + fₕ^2) / 3) - sqrt(3) * atan((1 + 2fₕ) / sqrt(3))+ π / sqrt(3)
+    ψ_unstable_2 = 3 / 2 * log((1 + fₕ + fₕ^2) / 3) - sqrt(3) * atan((1 + 2fₕ) / sqrt(3))+ π / sqrt(3)
     
     f⁻ = ζ⁻^2 / (1 + ζ⁻^2)
     ψ_unstable = (1 - f⁻) * ψ_unstable_1 + f⁻ * ψ_unstable_2

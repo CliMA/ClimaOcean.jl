@@ -1,6 +1,8 @@
 module ECCO
 
 export ECCOMetadata, ecco_field, ecco_mask, adjusted_ecco_tracers, initialize!
+export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
+export ECCO_restoring_forcing
 
 using ClimaOcean.DataWrangling: inpaint_mask!
 using ClimaOcean.InitialConditions: three_dimensional_regrid!, interpolate!
