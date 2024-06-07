@@ -19,6 +19,7 @@ using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
 using DataDeps
 
 using Oceananigans.OutputReaders: GPUAdaptedFieldTimeSeries, FieldTimeSeries
+using Oceananigans.Grids: node
 
 const SomeKindOfFieldTimeSeries = Union{FieldTimeSeries,
                                         GPUAdaptedFieldTimeSeries}

@@ -193,14 +193,14 @@ end
 
     while iterating(Σ★ - Σ₀, iteration, maxiter, similarity_theory)
         Σ₀ = Σ★
-        Σ★, uτ, = refine_characteristic_scales(Σ★, uτ, 
-                                               similarity_theory,
-                                               surface_state,
-                                               differences,
-                                               atmos_boundary_layer_height,
-                                               thermodynamics_parameters,
-                                               gravitational_acceleration,
-                                               von_karman_constant)
+        Σ★, uτ = refine_characteristic_scales(Σ★, uτ, 
+                                              similarity_theory,
+                                              surface_state,
+                                              differences,
+                                              atmos_boundary_layer_height,
+                                              thermodynamics_parameters,
+                                              gravitational_acceleration,
+                                              von_karman_constant)
         iteration += 1
     end
 

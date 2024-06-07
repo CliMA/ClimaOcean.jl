@@ -18,6 +18,12 @@ struct ECCOMetadata{D, V}
     version :: V
 end
 
+Base.show(io::IO, metadata::ECCOMetadata) = 
+    print(io, "ECCOMetadata:", '\n',
+    "├── field: $(metadata.name)", '\n',
+    "├── dates: $(metadata.dates)", '\n',
+    "└── data version: $(metadata.version)")
+
 # The default is the ECCO4Monthly dataset at 1992-01-01.
 ECCOMetadata(name::Symbol; version = ECCO4Monthly()) = ECCOMetadata(name, DateTimeProlepticGregorian(1992, 1, 1), version) 
 
@@ -138,7 +144,7 @@ function download_dataset!(metadata::ECCOMetadata;
     for data in metadata
         filename  = file_name(data)
         shortname = short_name(data)
- 
+
         if !isfile(filename)
 
             isnothing(username) && throw(ArgumentError("Please provide a username in the ECCO_USERNAME environment variable!"))
