@@ -102,6 +102,50 @@ struct WindVelocity end
 """ The exchange fluxes depend on the relative velocity between the atmosphere and the ocean """
 struct RelativeVelocity end
 
+"""
+    SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
+                                    gravitational_acceleration = default_gravitational_acceleration,
+                                    von_karman_constant = convert(FT, 0.4),
+                                    turbulent_prandtl_number = convert(FT, 1),
+                                    gustiness_parameter = convert(FT, 6.5),
+                                    stability_functions = default_stability_functions(FT),
+                                    thermodynamics_parameters = PATP(FT),
+                                    water_vapor_saturation = ClasiusClapyeronSaturation(),
+                                    water_mole_fraction = convert(FT, 0.98),
+                                    roughness_lengths = default_roughness_lengths(FT),
+                                    bulk_coefficients = bulk_coefficients,
+                                    bulk_velocity = RelativeVelocity(),
+                                    tolerance = 1e-8,
+                                    maxiter = 100,
+                                    fields = nothing)
+
+`SimilarityTheoryTurbulentFluxes` contains parameters and settings to calculate
+sea-air turbulent fluxes using Monin-Obukhov similarity theory.
+
+Keyword Arguments
+==================
+
+- `gravitational_acceleration`: The gravitational acceleration (default: default_gravitational_acceleration).
+- `von_karman_constant`: The von Karman constant (default: 0.4).
+- `turbulent_prandtl_number`: The turbulent Prandtl number (default: 1).
+- `gustiness_parameter`: The gustiness parameter that accounts for low wind speed areas (default: 6.5).
+- `stability_functions`: The stability functions. Default: default_stability_functions(FT) that follow the 
+                         formulation of Edson et al (2013).
+- `thermodynamics_parameters`: The thermodynamics parameters used to calculate atmospheric stability and
+                               saturation pressure. Default: `PATP`, alias for `PrescribedAtmosphereThermodynamicsParameters`.
+- `water_vapor_saturation`: The water vapor saturation law. Default: ClasiusClapyeronSaturation() that follows the 
+                            Clasius Clapyeron pressure formulation.
+- `water_mole_fraction`: The water mole fraction used to calculate the seawater_saturation_specific_humidity. 
+                         Default: 0.98, the rest is assumed to be other substances such as chlorine, sodium sulfide and magnesium.
+- `roughness_lengths`: The roughness lengths used to calculate the characteristic scales for momentum, temperature and 
+                       water vapor. Default: default_roughness_lengths(FT), formulation taken from Edson et al (2013).
+- `bulk_coefficients`: The bulk coefficients.
+- `bulk_velocity`: The velocity used to calculate the characteristic scales. Default: RelativeVelocity() (difference between
+                   atmospheric and oceanic speed).
+- `tolerance`: The tolerance for convergence (default: 1e-8).
+- `maxiter`: The maximum number of iterations (default: 100).
+- `fields`: The fields to calculate (default: nothing).
+"""
 function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                          gravitational_acceleration = default_gravitational_acceleration,
                                          von_karman_constant = convert(FT, 0.4),

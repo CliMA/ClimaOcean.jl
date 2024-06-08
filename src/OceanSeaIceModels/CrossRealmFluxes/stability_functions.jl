@@ -80,6 +80,7 @@ end
     ζ⁺ = max(zero(ζ), ζ)
     dζ = min(50, p₁ * ζ⁺)
 
+    # stability function for stable atmospheric conditions 
     ψ_stable = - p₂ * ζ⁺ - 3 / 4 * (ζ⁺ - 5 / p₁) * exp(-dζ) - 3 / 4 * 5 / p₁
     
     fₘ = sqrt(sqrt(1 - p₃ * ζ⁻))
@@ -89,6 +90,8 @@ end
     ψ_unstable_2 = 1.5 * log((1 + fₘ + fₘ^2) / 3) - sqrt(3) * atan((1 + 2fₘ) / sqrt(3))+ π / sqrt(3)
     
     f⁻ = ζ⁻^2 / (1 + ζ⁻^2)
+    
+    # stability function for unstable atmospheric conditions
     ψ_unstable = (1 - f⁻) * ψ_unstable_1 + f⁻ * ψ_unstable_2
 
     return ifelse(ζ < 0, ψ_unstable, ψ_stable)
@@ -106,6 +109,7 @@ end
     ζ⁺ = max(zero(ζ), ζ)
     dζ = min(50, p₁ * ζ⁺)
 
+    # stability function for stable atmospheric conditions 
     ψ_stable = - (4 * ζ⁺ / 3)^(3 / 2) - 2 / 3 * (ζ⁺ - p₂) * exp(-dζ) - p₃
     
     fₕ = sqrt(1 - p₄ * ζ⁻)
@@ -115,6 +119,8 @@ end
     ψ_unstable_2 = 1.5 * log((1 + fₕ + fₕ^2) / 3) - sqrt(3) * atan((1 + 2fₕ) / sqrt(3))+ π / sqrt(3)
     
     f⁻ = ζ⁻^2 / (1 + ζ⁻^2)
+    
+    # stability function for unstable atmospheric conditions
     ψ_unstable = (1 - f⁻) * ψ_unstable_1 + f⁻ * ψ_unstable_2
 
     return ifelse(ζ < 0, ψ_unstable, ψ_stable)
