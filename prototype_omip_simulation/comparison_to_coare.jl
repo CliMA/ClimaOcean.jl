@@ -18,7 +18,6 @@ v = ECCO2.ecco2_field(:v_velocity)
 include("ecco2_immersed_grid.jl")
 grid = ecco2_immersed_grid()
 
-# Let's leave out the radiation for the moment (too simple to test)
 atmosphere  = JRA55_prescribed_atmosphere(1:2; backend = InMemory(), grid = grid.underlying_grid)
 
 ocean = ocean_simulation(grid; momentum_advection = nothing,
