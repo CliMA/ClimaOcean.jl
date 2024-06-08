@@ -11,7 +11,7 @@ using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.Units
 using ClimaOcean.OceanSimulations
 using ClimaOcean.OceanSeaIceModels
-using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: Radiation, SimilarityTheoryTurbulentFluxes, simplified_bulk_coefficients
+using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: Radiation, SimilarityTheoryTurbulentFluxes
 using ClimaOcean.VerticalGrids: exponential_z_faces
 using ClimaOcean.JRA55
 using ClimaOcean.ECCO
@@ -23,7 +23,7 @@ using CFTime
 using Dates
 
 include("tripolar_specific_methods.jl")
-# include("xin_kai_vertical_diffusivity.jl")
+include("xin_kai_vertical_diffusivity.jl")
 
 #####
 ##### Global Ocean at 1/6th of a degree
@@ -34,11 +34,11 @@ bathymetry_file = nothing # "bathymetry_tmp.jld2"
 # 60 vertical levels
 z_faces = exponential_z_faces(Nz=60, depth=6000)
 
-Nx = 2160
-Ny = 1100
+Nx = 1440
+Ny = 720
 Nz = length(z_faces) - 1
 
-arch = CPU() #Distributed(GPU(), partition = Partition(2))
+arch = GPU() #Distributed(GPU(), partition = Partition(2))
 
 grid = TripolarGrid(arch; 
                     size = (Nx, Ny, Nz), 
@@ -68,21 +68,70 @@ const  h = Nz / 4.5
 free_surface = SplitExplicitFreeSurface(grid; substeps = 75)
 vertical_diffusivity = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), κ = 5e-5, ν = νz)
 
-closure = (RiBasedVerticalDiffusivity(), vertical_diffusivity) # 
+closure = XinKaiVerticalDiffusivity() # (RiBasedVerticalDiffusivity(), vertical_diffusivity) # 
 
 #####
 ##### Add restoring to ECCO fields for temperature and salinity in the artic and antarctic
 #####
 
-@inline mask(λ, φ, z, t) = Int(φ > 75 | φ < -75)
+# Build a mask that goes from 0 to 1 as a cubic function of φ between
+# 70 degrees and 90 degrees and zero derivatives at 70 and 90.
+x₁ = 70
+x₂ = 90
+y₁ = 0
+y₂ = 1
 
-dates = DateTimeProlepticGregorian(1992, 1, 4) : Month(1) : DateTimeProlepticGregorian(1992, 4, 1)
+A⁺ = [ x₁^3   x₁^2  x₁ 1
+       x₂^3   x₂^2  x₂ 1
+       3*x₁^2 2*x₁  1  0
+       3*x₂^2 2*x₂  1  0]
+           
+b⁺ = [y₁, y₂, 0, 0]
+ 
+const c⁺ = A⁺ \ b⁺
+
+x₁ = - 70
+x₂ = - 90
+y₁ = 0
+y₂ = 1
+
+A⁻ = [ x₁^3   x₁^2  x₁ 1
+       x₂^3   x₂^2  x₂ 1
+       3*x₁^2 2*x₁  1  0
+       3*x₂^2 2*x₂  1  0]
+           
+b⁻ = [y₁, y₂, 0, 0]
+ 
+const c⁻ = A⁻ \ b⁻
+
+struct CubicECCOMask <: Function
+   c⁺ :: Tuple
+   c⁻ :: Tuple
+end
+
+using Adapt 
+
+Adapt.adapt_structure(to, m :: CubicECCOMask) = CubicECCOMask(Adapt.adapt(to, m.c⁺), Adapt.adapt(to, m.c⁻))
+
+@inline function (m :: CubicECCOMask)(λ, φ, z, t)
+   c⁺ = m.c⁺
+   c⁻ = m.c⁻
+
+   mask = @inbounds ifelse(φ >=  70, c⁺[1] * φ^3 + c⁺[2] * φ^2 + c⁺[3] * φ + c⁺[4],
+                    ifelse(φ <= -70, c⁻[1] * φ^3 + c⁻[2] * φ^2 + c⁻[3] * φ + c⁻[4], 0))
+
+   return mask
+end
+
+mask = CubicECCOMask(tuple(c⁺...), tuple(c⁻...))
+
+dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 12, 1)
 
 temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
 salinity    = ECCOMetadata(:salinity,    dates, ECCO4Monthly())
 
-FT = ECCO_restoring_forcing(temperature; mask, architecture = arch, timescale = 20days)
-FS = ECCO_restoring_forcing(salinity;    mask, architecture = arch, timescale = 20days)
+FT = ECCO_restoring_forcing(temperature; mask, grid, architecture = arch, timescale = 30days)
+FS = ECCO_restoring_forcing(salinity;    mask, grid, architecture = arch, timescale = 30days)
 
 forcing = (; T = FT, S = FS)
 
@@ -105,9 +154,7 @@ radiation  = Radiation(arch)
 
 sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
 
-similarity_theory = SimilarityTheoryTurbulentFluxes(grid; bulk_coefficients = simplified_bulk_coefficients)
-
-coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, similarity_theory, radiation)
+coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 
 wall_time = [time_ns()]
 
@@ -166,7 +213,7 @@ ocean.stop_iteration = 1
 wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 90, max_change = 1.1)
 ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(1))
 
-stop_time = 30days
+stop_time = 15days
 
 coupled_simulation = Simulation(coupled_model; Δt=1, stop_time)
 
