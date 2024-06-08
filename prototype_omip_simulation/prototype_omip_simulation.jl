@@ -59,16 +59,8 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_
 ##### The Ocean component
 #####                             
 
-const Lz = grid.Lz
-const  h = Nz / 4.5
-
-@inline exponential_profile(z; Lz, h) = (exp(z / h) - exp( - Lz / h)) / (1 - exp( - Lz / h))
-@inline νz(x, y, z, t) = 1e-4 + (5e-3 - 1e-4) * exponential_profile(z; Lz, h)
-
 free_surface = SplitExplicitFreeSurface(grid; substeps = 75)
-vertical_diffusivity = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), κ = 5e-5, ν = νz)
-
-closure = XinKaiVerticalDiffusivity() # (RiBasedVerticalDiffusivity(), vertical_diffusivity) # 
+closure      = XinKaiVerticalDiffusivity()
 
 #####
 ##### Add restoring to ECCO fields for temperature and salinity in the artic and antarctic
@@ -87,8 +79,7 @@ A⁺ = [ x₁^3   x₁^2  x₁ 1
        3*x₂^2 2*x₂  1  0]
            
 b⁺ = [y₁, y₂, 0, 0]
- 
-const c⁺ = A⁺ \ b⁺
+c⁺ = A⁺ \ b⁺
 
 x₁ = - 70
 x₂ = - 90
@@ -100,13 +91,12 @@ A⁻ = [ x₁^3   x₁^2  x₁ 1
        3*x₁^2 2*x₁  1  0
        3*x₂^2 2*x₂  1  0]
            
-b⁻ = [y₁, y₂, 0, 0]
- 
-const c⁻ = A⁻ \ b⁻
+b⁻ = [y₁, y₂, 0, 0] 
+c⁻ = A⁻ \ b⁻
 
-struct CubicECCOMask <: Function
-   c⁺ :: Tuple
-   c⁻ :: Tuple
+struct CubicECCOMask{T1, T2} <: Function
+   c⁺ :: T1
+   c⁻ :: T2
 end
 
 using Adapt 
@@ -123,7 +113,7 @@ Adapt.adapt_structure(to, m::CubicECCOMask) = CubicECCOMask(Adapt.adapt(to, m.c�
    return mask
 end
 
-mask = CubicECCOMask(tuple(c⁺...), tuple(c⁻...))
+mask = CubicECCOMask(on_architecture(arch, c⁺), on_architecture(arch, c⁻))
 
 dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 12, 1)
 
