@@ -111,9 +111,9 @@ end
 
 using Adapt 
 
-Adapt.adapt_structure(to, m :: CubicECCOMask) = CubicECCOMask(Adapt.adapt(to, m.c⁺), Adapt.adapt(to, m.c⁻))
+Adapt.adapt_structure(to, m::CubicECCOMask) = CubicECCOMask(Adapt.adapt(to, m.c⁺), Adapt.adapt(to, m.c⁻))
 
-@inline function (m :: CubicECCOMask)(λ, φ, z, t)
+@inline function (m::CubicECCOMask)(λ, φ, z, t)
    c⁺ = m.c⁺
    c⁻ = m.c⁻
 
