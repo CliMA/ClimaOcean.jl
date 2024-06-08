@@ -2,7 +2,7 @@ using Oceananigans.Grids: architecture, location, node, with_halo
 using ClimaOcean.DataWrangling.ECCO: ecco_mask
 
 function ecco_immersed_grid(metadata)
-    mask = ecco_mask(; metadata)
+    mask = ecco_mask(metadata)
     grid = with_halo((3, 3, 3), mask.grid)
     
     Nx, Ny, Nz = size(grid)
