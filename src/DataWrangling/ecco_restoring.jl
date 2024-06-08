@@ -18,9 +18,11 @@ import Oceananigans.OutputReaders: new_backend, update_field_time_series!
 @inline instantiate(T::DataType) = T()
 @inline instantiate(T) = T
 
-struct ECCONetCDFBackend <: AbstractInMemoryBackend{Int}
+struct ECCONetCDFBackend{N} <: AbstractInMemoryBackend{Int}
     start :: Int
     length :: Int
+
+    ECCONetCDFBackend{N}(start::Int, length::Int) where N = new{N}(start, length)
 end
 
 """
@@ -29,14 +31,17 @@ end
 Represents an ECCO FieldTimeSeries backed by ECCO native .nc files.
 Each time instance is stored in an individual file.
 """
-ECCONetCDFBackend(length) = ECCONetCDFBackend(1, length)
+ECCONetCDFBackend(length; on_native_grid = false) = ECCONetCDFBackend{on_native_grid}(1, length)
 
-Base.length(backend::ECCONetCDFBackend) = backend.length
+Base.length(backend::ECCONetCDFBackend)  = backend.length
 Base.summary(backend::ECCONetCDFBackend) = string("ECCONetCDFBackend(", backend.start, ", ", backend.length, ")")
 
-const ECCONetCDFFTS = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:ECCONetCDFBackend}
+const ECCONetCDFFTS{N} = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:ECCONetCDFBackend{N}} where N
 
-new_backend(::ECCONetCDFBackend, start, length) = ECCONetCDFBackend(start, length)
+new_backend(::ECCONetCDFBackend{N}, start, length) where N = ECCONetCDFBackend{N}(start, length)
+
+on_native_grid(::ECCONetCDFBackend{N}) where N = N
+on_native_grid(::ECCONetCDFBackend{N}) where N = N
 
 function set!(fts::ECCONetCDFFTS, path::ECCOMetadata=fts.path, name::String=fts.name) 
 
@@ -50,7 +55,11 @@ function set!(fts::ECCONetCDFFTS, path::ECCOMetadata=fts.path, name::String=fts.
 
         arch = architecture(fts)
         f = inpainted_ecco_field(metadata; architecture = arch)
-        set!(fts[t], f)
+        if on_native_grid(backend)
+            set!(fts[t], f)
+        else
+            interpolate!(fts[t], f)
+        end
     end
 
     fill_halo_regions!(fts)
@@ -102,9 +111,10 @@ Create a field time series object for ECCO data.
 - time_indexing: The time indexing scheme to use (default: Cyclical()).
 """
 function ECCO_field_time_series(metadata::ECCOMetadata;	
-                                 architecture = CPU(),	
-                                 time_indices_in_memory = 2,	
-                                 time_indexing = Cyclical())	
+                                architecture = CPU(),	
+                                time_indices_in_memory = 2,	
+                                time_indexing = Cyclical(),
+                                grid = nothing)	
 
     # ECCO data is too chunky to allow other backends	
     backend = ECCONetCDFBackend(time_indices_in_memory)
@@ -120,7 +130,9 @@ function ECCO_field_time_series(metadata::ECCOMetadata;
     boundary_conditions = FieldBoundaryConditions(ECCO_native_grid, location)
     times = ecco_times(metadata)
 
-    fts = FieldTimeSeries{location...}(ECCO_native_grid, times;	
+    fts_grid = isnothing(grid) ? ECCO_native_grid : grid
+
+    fts = FieldTimeSeries{location...}(fts_grid, times;	
                                        backend,	
                                        time_indexing,	
                                        boundary_conditions,	
@@ -172,6 +184,7 @@ struct ECCORestoring{FTS, G, M, V, N} <: Function
     varname   :: V
     λ         :: N
 end
+
 Adapt.adapt_structure(to, p::ECCORestoring) = 
     ECCORestoring(Adapt.adapt(to, p.ecco_fts), 
                   Adapt.adapt(to, p.ecco_grid),
@@ -184,26 +197,41 @@ Adapt.adapt_structure(to, p::ECCORestoring) =
     # Figure out all the inputs: time, location, and node
     time = Time(clock.time)
     loc  = location(p.ecco_fts)
-    X    = node(i, j, k, grid, instantiate.(loc)...)
 
     # Retrieve the variable to force
     @inbounds var = fields[i, j, k, p.varname]
 
-    # Extracting the ECCO field time series data and parameters
-    ecco_times         = p.ecco_fts.times
-    ecco_grid          = p.ecco_grid
-    ecco_data          = p.ecco_fts.data
-    ecco_backend       = p.ecco_fts.backend
-    ecco_time_indexing = p.ecco_fts.time_indexing
+    ecco_backend = p.ecco_fts.backend
+    native_grid = on_native_grid(ecco_backend) 
 
-    # Interpolating the ECCO field time series data onto the current node and time
-    ecco_var = interpolate(X, time, ecco_data, instantiate.(loc), ecco_grid, ecco_times, ecco_backend, ecco_time_indexing)
-    
+    ecco_var = get_ecco_variable(Val(native_grid), p.ecco_fts, i, j, k, p.ecco_grid, grid, time)
+
     # Extracting the mask value at the current node
     mask = stateindex(p.mask, i, j, k, grid, time, loc)
 
     return 1 / p.λ * mask * (ecco_var - var)
 end
+
+# Differentiating between restoring done with an ECCO FTS
+# that lives on the native ecco grid, that requires interpolation in space
+# _inside_ the restoring function and restoring based on an ECCO 
+# FTS defined on the model grid that requires only time interpolation
+@inline function get_ecco_variable(::Val{true}, ecco_fts, i, j, k, ecco_grid, grid, time)
+    # Extracting the ECCO field time series data and parameters
+    ecco_times         = ecco_fts.times
+    ecco_data          = ecco_fts.data
+    ecco_time_indexing = ecco_fts.time_indexing
+    ecco_backend       = ecco_fts.backend
+    ecco_location      = instantiated_location(ecco_fts)
+
+    X = node(i, j, k, grid, ecco_location...)
+
+    # Interpolating the ECCO field time series data onto the current node and time
+    return interpolate(X, time, ecco_data, ecco_location, ecco_grid, ecco_times, ecco_backend, ecco_time_indexing)
+end    
+
+# Interpolating the ecco_variable in time
+@inline get_ecco_variable(::Val{false}, ecco_fts, i, j, k, ecco_grid, grid, time) = @inbounds ecco_fts[i, j, k, time]
 
 """
     ECCO_restoring_forcing(metadata::ECCOMetadata;
@@ -235,9 +263,10 @@ function ECCO_restoring_forcing(metadata::ECCOMetadata;
                                 time_indices_in_memory = 2, # Not more than this if we want to use GPU!
                                 time_indexing = Cyclical(),
                                 mask = 1,
-                                timescale = 20days)
+                                timescale = 20days,
+                                grid = nothing)
 
-    ecco_fts  = ECCO_field_time_series(metadata; architecture, time_indices_in_memory, time_indexing)                  
+    ecco_fts  = ECCO_field_time_series(metadata; grid, architecture, time_indices_in_memory, time_indexing)                  
     ecco_grid = ecco_fts.grid
 
     # Grab the correct Oceananigans field to restore
