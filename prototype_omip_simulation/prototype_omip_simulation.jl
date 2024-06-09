@@ -85,6 +85,7 @@ A⁺ = [ x₁^3   x₁^2  x₁ 1
 b⁺ = [y₁, y₂, 0, 0]
 c⁺ = A⁺ \ b⁺
 
+# Coefficients for the cubic mask
 const c₁⁺ = c⁺[1]
 const c₂⁺ = c⁺[2]
 const c₃⁺ = c⁺[3]
