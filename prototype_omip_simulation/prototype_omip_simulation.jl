@@ -85,46 +85,18 @@ A⁺ = [ x₁^3   x₁^2  x₁ 1
 b⁺ = [y₁, y₂, 0, 0]
 c⁺ = A⁺ \ b⁺
 
-x₁ = - 70
-x₂ = - 90
-y₁ = 0
-y₂ = 1
+const c₁⁺ = c⁺[1]
+const c₂⁺ = c⁺[2]
+const c₃⁺ = c⁺[3]
+const c₄⁺ = c⁺[4]
 
-A⁻ = [ x₁^3   x₁^2  x₁ 1
-       x₂^3   x₂^2  x₂ 1
-       3*x₁^2 2*x₁  1  0
-       3*x₂^2 2*x₂  1  0]
-           
-b⁻ = [y₁, y₂, 0, 0] 
-c⁻ = A⁻ \ b⁻
+const c₁⁻ = - c⁺[1]
+const c₂⁻ = c⁺[2]
+const c₃⁻ = - c⁺[3]
+const c₄⁻ = c⁺[4]
 
-struct CubicECCOMask{T1, T2} <: Function
-   c⁺ :: T1
-   c⁻ :: T2
-end
-
-using Adapt 
-
-Adapt.adapt_structure(to, m::CubicECCOMask) = CubicECCOMask(Adapt.adapt(to, m.c⁺), Adapt.adapt(to, m.c⁻))
-
-@inline function (m::CubicECCOMask)(λ, φ, z)
-   c⁺ = m.c⁺
-   c⁻ = m.c⁻
-
-   mask = @inbounds ifelse(φ >=  70, c⁺[1] * φ^3 + c⁺[2] * φ^2 + c⁺[3] * φ + c⁺[4],
-                    ifelse(φ <= -70, c⁻[1] * φ^3 + c⁻[2] * φ^2 + c⁻[3] * φ + c⁻[4], 0))
-
-   return mask
-end
-
-@inline function stateindex(m::CubicECCOMask, i, j, k, grid, args...)
-   λ, φ, z = node(i, j, k, grid, Center(), Center(), Center())
-   return m(λ, φ, z)
-end
-
-mask = CubicECCOMask(on_architecture(arch, c⁺), on_architecture(arch, c⁻))
-
-@show mask
+@inline mask(λ, φ, z, t) = ifelse(φ >=  70, c₁⁺ * φ^3 + c₂⁺ * φ^2 + c₃⁺ * φ + c₄⁺,
+                           ifelse(φ <= -70, c₁⁻ * φ^3 + c₂⁻ * φ^2 + c₃⁻ * φ + c₄⁻, 0))
 
 dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 12, 1)
 
