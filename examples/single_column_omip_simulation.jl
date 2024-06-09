@@ -1,3 +1,17 @@
+# # Single column ocean simulation forced by JRA55 Reananlysis
+#
+# In this example, we simulate the evolution of an ocean water column 
+# forced by an atmosphere prescribed by the JRA55 Reananlysis data
+#
+# ## Install dependencies
+#
+# First let's make sure we have all required packages installed.
+
+# ```julia
+# using Pkg
+# pkg"add Oceananigans, ClimaOcean, CairoMakie"
+# ```
+
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.BuoyancyModels: buoyancy_frequency
@@ -11,34 +25,26 @@ using CairoMakie
 using Printf
 using Dates
 
-locations = (
-    eastern_mediterranean = (λ =  30, φ = 32), 
-    ocean_station_papa = (λ = 35.1, φ = 50.1), 
-    north_atlantic = (λ = 325, φ = 50), 
-    drake_passage = (λ = 300, φ = -60), 
-    weddell_sea = (λ = 325, φ = -70), 
-    tasman_southern_ocean = (λ = 145, φ = -55), 
-)
-
 #####
 ##### Construct the grid
 #####
 
+# Since it is a single column, and therefore computationally
+# inexpensive, we can run the simulation entirely on the CPU
 arch = CPU()
 
 Nz = 80
 H  = 400
 
-location = :ocean_station_papa
-
-λ★, φ★ = locations[location] # Ocean station papa location
+λ★, φ★ = 35.1, 50.1 # Ocean station papa location
 longitude = λ★ .+ (-0.25, 0.25)
 latitude  = φ★ .+ (-0.25, 0.25)
 
-grid = RectilinearGrid(arch; x = longitude, y = latitude,
-                             size = (3, 3, Nz),
-                             z = (-H, 0),
-                             topology = (Periodic, Periodic, Bounded))
+grid = RectilinearGrid(size = (3, 3, Nz),
+                       x = longitude,
+                       y = latitude,
+                       z = (-H, 0),
+                       topology = (Periodic, Periodic, Bounded))
 
 # Building the ocean simulation
 momentum_advection = nothing
@@ -64,8 +70,10 @@ elapsed = time_ns() - start_time
 start_time = time_ns()
             
 # Retrieving the atmosphere
-backend = NetCDFBackend(8 * 60)
-atmosphere = JRA55_prescribed_atmosphere(; longitude, latitude, backend)
+backend = InMemory()
+atmosphere = JRA55_prescribed_atmosphere(time_indices = 1:480; 
+                                         longitude, latitude, backend,
+                                         with_rivers_and_icebergs = false)
 
 ocean.model.clock.time = start_seconds
 ocean.model.clock.iteration = 0
@@ -88,10 +96,9 @@ lines!(axq, times ./ days, interior(qa, 1, 1, 1, :))
 
 display(fig)
 
-sea_ice = nothing
 radiation = Radiation()
-coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-coupled_simulation = Simulation(coupled_model, Δt=10minutes, stop_time=start_seconds + 30days)
+coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
+coupled_simulation = Simulation(coupled_model, Δt=10minutes, stop_time=30days)
 
 elapsed = time_ns() - start_time
 @info "Coupled simulation built. " * prettytime(elapsed * 1e-9)
@@ -143,13 +150,13 @@ Qv = coupled_model.fluxes.turbulent.fields.latent_heat
 ρₒ = coupled_model.fluxes.ocean_reference_density
 cₚ = coupled_model.fluxes.ocean_heat_capacity
 
-Q  = ρₒ * cₚ * Jᵀ
-τx = ρₒ * Jᵘ
-τy = ρₒ * Jᵛ
+Q  = ρₒ * cₚ * JT
+τx = ρₒ * Ju
+τy = ρₒ * Jv
 N² = buoyancy_frequency(ocean.model)
 κc = ocean.model.diffusivity_fields.κᶜ
 
-fluxes = (; τx, τy, E, Js, Q, Qc, Qc)
+fluxes = (; τx, τy, E, Js, Qv, Qc)
 
 auxiliary_fields = (; N², κc)
 fields = merge(ocean.model.velocities, ocean.model.tracers, auxiliary_fields)

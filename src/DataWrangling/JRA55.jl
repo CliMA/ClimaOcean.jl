@@ -589,6 +589,7 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
                                      backend = nothing,
                                      time_indexing = Cyclical(),
                                      measurement_height = 10,  # meters
+                                     with_rivers_and_icebergs = true,
                                      other_kw...)
 
     if isnothing(backend) # apply a default
@@ -614,10 +615,20 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
     pa  = JRA55_field_time_series(:sea_level_pressure;              kw...)
     Fra = JRA55_field_time_series(:rain_freshwater_flux;            kw...)
     Fsn = JRA55_field_time_series(:snow_freshwater_flux;            kw...)
-    Fri = JRA55_field_time_series(:river_freshwater_flux;           kw...)
-    Fic = JRA55_field_time_series(:iceberg_freshwater_flux;         kw...)
     Ql  = JRA55_field_time_series(:downwelling_longwave_radiation;  kw...)
     Qs  = JRA55_field_time_series(:downwelling_shortwave_radiation; kw...)
+
+    if with_rivers_and_icebergs
+        Fri = JRA55_field_time_series(:river_freshwater_flux;   kw...)
+        Fic = JRA55_field_time_series(:iceberg_freshwater_flux; kw...)
+        freshwater_flux = (rain = Fra,
+                           snow = Fsn,
+                           rivers = Fri,
+                           icebergs = Fic)
+    else
+        freshwater_flux = (rain = Fra,
+                           snow = Fsn)
+    end
 
     times = ua.times
 
@@ -628,10 +639,6 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
                q = qa,
                r = ra)
 
-    freshwater_flux = (rain = Fra,
-                       snow = Fsn,
-                       rivers = Fri,
-                       icebergs = Fic)
                        
     pressure = pa
 
