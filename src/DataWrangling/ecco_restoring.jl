@@ -207,7 +207,7 @@ Adapt.adapt_structure(to, p::ECCORestoring) =
     ecco_var = get_ecco_variable(Val(native_grid), p.ecco_fts, i, j, k, p.ecco_grid, grid, time)
 
     # Extracting the mask value at the current node
-    mask = stateindex(p.mask, i, j, k, grid, time, loc)
+    mask = stateindex(p.mask, i, j, k, grid, clock.time, loc)
 
     return 1 / p.λ * mask * (ecco_var - var)
 end
