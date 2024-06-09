@@ -2,6 +2,8 @@
 #
 # In this example, we simulate the evolution of an ocean water column 
 # forced by an atmosphere prescribed by the JRA55 Reananlysis data
+# Specifically, the column is positioned at the location of the Ocean station
+# Papa measurements (144.9ᵒ W and 50.1ᵒ N)
 #
 # ## Install dependencies
 #
@@ -36,7 +38,8 @@ arch = CPU()
 Nz = 80
 H  = 400
 
-λ★, φ★ = 35.1, 50.1 # Ocean station papa location
+# Ocean station papa location
+λ★, φ★ = 35.1, 50.1 
 longitude = λ★ .+ (-0.25, 0.25)
 latitude  = φ★ .+ (-0.25, 0.25)
 
@@ -107,7 +110,7 @@ start_time = time_ns()
 wall_clock = Ref(time_ns())
 
 function progress(sim)
-    msg = string("(", location, ")")
+    msg = "Ocean Station Papa"
     msg *= string(", iter: ", iteration(sim), ", time: ", prettytime(sim))
 
     elapsed = 1e-9 * (time_ns() - wall_clock[])
@@ -123,8 +126,9 @@ function progress(sim)
 
     τˣ = first(sim.model.fluxes.total.ocean.momentum.τˣ)
     τʸ = first(sim.model.fluxes.total.ocean.momentum.τʸ)
-    u★ = sqrt(sqrt(τˣ^2 + τʸ^2))
     Q = first(sim.model.fluxes.total.ocean.heat)
+
+    u★ = sqrt(sqrt(τˣ^2 + τʸ^2))
 
     Nz = size(T, 3)
     msg *= @sprintf(", u★: %.2f m s⁻¹", u★)
