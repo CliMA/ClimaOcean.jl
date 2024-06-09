@@ -4,62 +4,71 @@ using Oceananigans.BuoyancyModels: buoyancy_frequency
 using Oceananigans.Units: Time
 
 using ClimaOcean
-using ClimaOcean.DataWrangling.ECCO2: ecco2_column
+using ClimaOcean.ECCO2: ECCO2Metadata
+using ClimaOcean.OceanSimulations
 
-using GLMakie
+using CairoMakie
 using Printf
 using Dates
 
-include("omip_components.jl")
-
 locations = (
     eastern_mediterranean = (λ =  30, φ = 32), 
-    ocean_station_papa = (λ = 215, φ = 50), 
+    ocean_station_papa = (λ = 35.1, φ = 50.1), 
     north_atlantic = (λ = 325, φ = 50), 
     drake_passage = (λ = 300, φ = -60), 
     weddell_sea = (λ = 325, φ = -70), 
     tasman_southern_ocean = (λ = 145, φ = -55), 
 )
 
-location = :ocean_station_papa
-
-start_time = time_ns()
-
-epoch = Date(1992, 1, 1)
-date = Date(1992, 10, 1)
-start_seconds = Second(date - epoch).value
-Tᵢ = ecco2_field(:temperature, date)
-Sᵢ = ecco2_field(:salinity, date)
-
-elapsed = time_ns() - start_time
-@info "Initial condition built. " * prettytime(elapsed * 1e-9)
-start_time = time_ns()
-
 #####
 ##### Construct the grid
 #####
 
-Nz = 80
-H = 400
 arch = CPU()
-λ★, φ★ = locations[location]
-i★, j★, longitude, latitude = ecco2_column(λ★, φ★)
 
-grid = LatitudeLongitudeGrid(arch; longitude, latitude,
-                             size = (1, 1, Nz),
+Nz = 80
+H  = 400
+
+location = :ocean_station_papa
+
+λ★, φ★ = locations[location] # Ocean station papa location
+longitude = λ★ .+ (-0.25, 0.25)
+latitude  = φ★ .+ (-0.25, 0.25)
+
+grid = RectilinearGrid(arch; x = longitude, y = latitude,
+                             size = (3, 3, Nz),
                              z = (-H, 0),
                              topology = (Periodic, Periodic, Bounded))
 
-ocean = omip_ocean_component(grid)
+# Building the ocean simulation
+momentum_advection = nothing
+tracer_advection = nothing
+coriolis = FPlane(latitude = φ★)
 
-backend = JRA55NetCDFBackend(8 * 60)
-atmosphere = JRA55_prescribed_atmosphere(:; longitude, latitude, backend)
+ocean = ocean_simulation(grid; 
+                         drag_coefficient = 0, 
+                         coriolis,
+                         tracer_advection,
+                         momentum_advection)
+model = ocean.model
+
+start_time = time_ns()
+
+# Initial conditions
+set!(model, T = ECCO2Metadata(:temperature),
+            S = ECCO2Metadata(:salinity),
+            e = 1e-6)
+
+elapsed = time_ns() - start_time
+@info "Initial condition built. " * prettytime(elapsed * 1e-9)
+start_time = time_ns()
+            
+# Retrieving the atmosphere
+backend = NetCDFBackend(8 * 60)
+atmosphere = JRA55_prescribed_atmosphere(; longitude, latitude, backend)
 
 ocean.model.clock.time = start_seconds
 ocean.model.clock.iteration = 0
-interpolate!(ocean.model.tracers.T, Tᵢ)
-interpolate!(ocean.model.tracers.S, Sᵢ)
-set!(ocean.model, e=1e-6)
 
 ua = atmosphere.velocities.u
 va = atmosphere.velocities.v
@@ -134,7 +143,7 @@ Qv = coupled_model.fluxes.turbulent.fields.latent_heat
 ρₒ = coupled_model.fluxes.ocean_reference_density
 cₚ = coupled_model.fluxes.ocean_heat_capacity
 
-Q = ρₒ * cₚ * Jᵀ
+Q  = ρₒ * cₚ * Jᵀ
 τx = ρₒ * Jᵘ
 τy = ρₒ * Jᵛ
 N² = buoyancy_frequency(ocean.model)
@@ -148,30 +157,11 @@ fields = merge(ocean.model.velocities, ocean.model.tracers, auxiliary_fields)
 # Slice fields at the surface
 outputs = merge(fields, fluxes)
 
-output_attributes = Dict{String, Any}(
-    "κc"  => Dict("long_name" => "Tracer diffusivity",          "units" => "m^2 / s"),
-    "Q"   => Dict("long_name" => "Net heat flux",               "units" => "W / m^2", "convention" => "positive upwards"),
-    "Qv"  => Dict("long_name" => "Latent heat flux",            "units" => "W / m^2", "convention" => "positive upwards"),
-    "Qc"  => Dict("long_name" => "Sensible heat flux",          "units" => "W / m^2", "convention" => "positive upwards"),
-    "Js"  => Dict("long_name" => "Salt flux",                   "units" => "g kg⁻¹ m s⁻¹", "convention" => "positive upwards"),
-    "E"   => Dict("long_name" => "Freshwater evaporation flux", "units" => "m s⁻¹", "convention" => "positive upwards"),
-    "e"   => Dict("long_name" => "Turbulent kinetic energy",    "units" => "m^2 / s^2"),
-    "τx"  => Dict("long_name" => "Zonal momentum flux",         "units" => "m^2 / s^2"),
-    "τx"  => Dict("long_name" => "Meridional momentum flux",    "units" => "m^2 / s^2"),
-)
-
 filename = "single_column_omip_$location"
 
 coupled_simulation.output_writers[:jld2] = JLD2OutputWriter(ocean.model, outputs; filename,
                                                             schedule = TimeInterval(3hours),
                                                             overwrite_existing = true)
-
-#=
-coupled_simulation.output_writers[:nc] = NetCDFOutputWriter(ocean.model, outputs; filename,
-                                                            schedule = AveragedTimeInterval(1days),
-                                                            output_attributes,
-                                                            overwrite_existing = true)
-=#
 
 run!(coupled_simulation)
 

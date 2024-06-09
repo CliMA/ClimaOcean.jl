@@ -32,7 +32,7 @@ grid = LatitudeLongitudeGrid(arch;
 # We retrieve the bathymetry from the ETOPO1 data by ensuring a 
 # minimum depth of 10 meters (everyhting shallower is considered land)
 # and removing all connected regions (inland lakes)
-bottom_height = retrieve_bathymetry(grid, bathymetry_file; 
+bottom_height = retrieve_bathymetry(grid; 
                                     minimum_depth = 10,
                                     dir = "./",
                                     interpolation_passes = 20,
