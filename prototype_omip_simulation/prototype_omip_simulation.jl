@@ -5,10 +5,11 @@ using ClimaOcean
 using OrthogonalSphericalShellGrids
 using Oceananigans
 using Oceananigans: architecture
-using ClimaOcean
+using Oceananigans.Grids: on_architecture
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalDiffusivity
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.Units
+using ClimaOcean
 using ClimaOcean.OceanSimulations
 using ClimaOcean.OceanSeaIceModels
 using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: Radiation, SimilarityTheoryTurbulentFluxes
@@ -140,7 +141,7 @@ set!(model,
 
 backend    = JRA55NetCDFBackend(4) 
 atmosphere = JRA55_prescribed_atmosphere(arch; backend)
-radiation  = Radiation(arch)
+radiation  = Radiation(arch; ocean_albedo = ClimaOcean.OceanSeaIceModels.CrossRealmFluxes.LatitudeDependentAlbedo())
 
 sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
 
