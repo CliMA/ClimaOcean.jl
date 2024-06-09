@@ -1,7 +1,7 @@
 agents:
   queue: new-central
   slurm_mem: 8G
-  modules: climacommon/2024_04_30
+  modules: climacommon/2024_05_27
 
 env:
   JULIA_LOAD_PATH: "${JULIA_LOAD_PATH}:${BUILDKITE_BUILD_CHECKOUT_PATH}/.buildkite"
@@ -38,3 +38,15 @@ steps:
       TEST_GROUP: "ecco"
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
+
+  - label: "documentation"
+    env:
+      CUDA_VISIBLE_DEVICES: "-1"
+      JULIA_DEBUG: "Documenter"
+      # TMPDIR: "$TARTARUS_HOME/tmp"
+    commands:
+      - "julia --color=yes --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'"
+      - "julia --color=yes --project=docs/ docs/make.jl"
+      
+  - wait: ~
+    continue_on_failure: true
