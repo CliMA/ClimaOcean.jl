@@ -107,6 +107,10 @@ salinity    = ECCOMetadata(:salinity,    dates, ECCO4Monthly())
 FT = ECCO_restoring_forcing(temperature; mask, grid, architecture = arch, timescale = 30days)
 FS = ECCO_restoring_forcing(salinity;    mask, grid, architecture = arch, timescale = 30days)
 
+using ClimaOcean.ECCO: on_native_grid
+
+@show on_native_grid(FT.func.ecco_fts.backend)
+
 forcing = (; T = FT, S = FS)
 
 ocean = ocean_simulation(grid; free_surface, closure, forcing) 
