@@ -11,13 +11,14 @@ using ClimaOcean.OceanSeaIceModels
 ##### Near - Global Ocean at 1/4th of a degree
 #####
 
-# 60 vertical levels
-z_faces = exponential_z_faces(Nz=60, depth=6500)
+# 40 vertical levels
+z_faces = exponential_z_faces(Nz=40, depth=6000)
 
 Nx = 1440
 Ny = 600
 Nz = length(z_faces) - 1
 
+# Running on a GPU
 arch = GPU() 
 
 # A near-global grid from 75ᵒ S to 75ᵒ N
@@ -148,20 +149,42 @@ wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 90, max_change = 1.1)
 ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(1))
 
 # Finally, the coupled simulation!
-coupled_simulation = Simulation(coupled_model; Δt=1, stop_time = 30days)
+coupled_simulation = Simulation(coupled_model; Δt=1, stop_time = 20days)
 
 run!(coupled_simulation)
 
-# Now that the initial conditions and the initialization shocks have been smoothen out by 
-# the initial transient, it is time to start the actual simulation!
-wizard = TimeStepWizard(; cfl = 0.35, max_Δt = 540, max_change = 1.1)
-ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
+#####
+##### Visualization
+#####
 
-# Let's reset the maximum number of iterations and specify a 20years stop time
-coupled_model.ocean.stop_time = 7200days
-coupled_simulation.stop_time = 7200days
-coupled_model.ocean.stop_iteration = Inf
-coupled_simulation.stop_iteration = Inf
+using CairoMakie
 
-# Let's run it!
-run!(coupled_simulation)
+u, v, w = model.velocities
+T, S, e = model.tracers
+
+using Oceananigans.Models.HydrostaticFreeSurfaceModel: VerticalVorticityField
+
+ζ = VerticalVorticityField(model)
+s = Field(sqrt(u^2 + v^2))
+
+compute!(ζ)
+compute!(s)
+
+ζ = on_architecture(CPU(), ζ)
+s = on_architecture(CPU(), s)
+T = on_architecture(CPU(), T)
+e = on_architecture(CPU(), e)
+
+fig = Figure(size = (1000, 800))
+
+ax = Axis(fig[1, 1], title = "Vertical vorticity [s⁻¹]")
+heatmap!(ax, interior(ζ, :, :, grid.Nz), colorrange = (-4e-5, 4e-5), colormap = :bwr)
+
+ax = Axis(fig[1, 2], title = "Surface speed [ms⁻¹]")
+heatmap!(ax, interior(s, :, :, grid.Nz), colorrange = (0, 0.5), colormap = :deep)
+
+ax = Axis(fig[2, 1], title = "Surface Temperature [Cᵒ]")
+heatmap!(ax, interior(T, :, :, grid.Nz), colorrange = (-1, 30), colormap = :magma)
+
+ax = Axis(fig[2, 1], title = "Turbulent Kinetic Energy [m²s⁻²]")
+heatmap!(ax, interior(e, :, :, grid.Nz), colorrange = (0, 1e-3), colormap = :solar)
