@@ -19,6 +19,9 @@ using ClimaOcean.ECCO
 using ClimaOcean.JRA55: JRA55NetCDFBackend, JRA55_prescribed_atmosphere
 using ClimaOcean.ECCO: ECCO_restoring_forcing, ECCO4Monthly, ECCO2Daily, ECCOMetadata
 using ClimaOcean.Bathymetry
+using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: LatitudeDependentAlbedo
+
+import ClimaOcean: stateindex
 
 using CFTime
 using Dates
@@ -104,7 +107,7 @@ using Adapt
 
 Adapt.adapt_structure(to, m::CubicECCOMask) = CubicECCOMask(Adapt.adapt(to, m.c⁺), Adapt.adapt(to, m.c⁻))
 
-@inline function (m::CubicECCOMask)(λ, φ, z, t)
+@inline function (m::CubicECCOMask)(λ, φ, z)
    c⁺ = m.c⁺
    c⁻ = m.c⁻
 
@@ -114,7 +117,14 @@ Adapt.adapt_structure(to, m::CubicECCOMask) = CubicECCOMask(Adapt.adapt(to, m.c�
    return mask
 end
 
+@inline function stateindex(m::CubicECCOMask, i, j, k, grid, args...)
+   λ, φ, z = node(i, j, k, grid, Center(), Center(), Center())
+   return m(λ, φ, z)
+end
+
 mask = CubicECCOMask(on_architecture(arch, c⁺), on_architecture(arch, c⁻))
+
+@show mask
 
 dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 12, 1)
 
@@ -141,7 +151,7 @@ set!(model,
 
 backend    = JRA55NetCDFBackend(4) 
 atmosphere = JRA55_prescribed_atmosphere(arch; backend)
-radiation  = Radiation(arch; ocean_albedo = ClimaOcean.OceanSeaIceModels.CrossRealmFluxes.LatitudeDependentAlbedo())
+radiation  = Radiation(arch; ocean_albedo = LatitudeDependentAlbedo())
 
 sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
 
