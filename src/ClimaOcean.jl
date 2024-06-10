@@ -8,8 +8,10 @@ export
     JRA55NetCDFBackend,
     ecco2_field,
     regrid_bathymetry,
+    retrieve_bathymetry,
     stretched_vertical_faces,
     PowerLawStretching, LinearStretching,
+    exponential_z_faces,
     jra55_field_time_series,
     ecco_field, ECCOMetadata,
     initialize!
