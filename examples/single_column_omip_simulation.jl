@@ -25,7 +25,6 @@ using ClimaOcean.OceanSimulations
 
 using CairoMakie
 using Printf
-using Dates
 
 #####
 ##### Construct the grid
@@ -43,6 +42,7 @@ H  = 400
 longitude = λ★ .+ (-0.25, 0.25)
 latitude  = φ★ .+ (-0.25, 0.25)
 
+# We use a SingleColumnGrid
 grid = RectilinearGrid(size = (3, 3, Nz),
                        x = longitude,
                        y = latitude,
@@ -80,6 +80,7 @@ atmosphere = JRA55_prescribed_atmosphere(time_indices = 1:480;
 
 ocean.model.clock.time = start_seconds
 ocean.model.clock.iteration = 0
+ocean.Δt = 10minutes
 
 ua = atmosphere.velocities.u
 va = atmosphere.velocities.v

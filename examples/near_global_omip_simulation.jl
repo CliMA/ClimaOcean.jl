@@ -127,7 +127,7 @@ ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, mo
                                                   output_kwargs...)
 
 ocean.output_writers[:snapshots] = JLD2OutputWriter(model, merge(model.tracers, model.velocities);
-                                                    schedule = TimeInterval(10days)
+                                                    schedule = TimeInterval(10days),
                                                     filename = "snapshots",
                                                     output_kwargs...)
 
