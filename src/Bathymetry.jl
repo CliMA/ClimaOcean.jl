@@ -350,6 +350,7 @@ function retrieve_bathymetry(grid, filename; kw...)
 end
 
 retrieve_bathymetry(grid, ::Nothing; kw...) = regrid_bathymetry(grid; kw...)
+retrieve_bathymetry(grid; kw...)            = regrid_bathymetry(grid; kw...)
 
 end # module
 
