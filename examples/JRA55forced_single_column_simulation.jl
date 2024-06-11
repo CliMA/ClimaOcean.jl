@@ -195,7 +195,7 @@ Ev = FieldTimeSeries(filename, "E")
 τˣ = FieldTimeSeries(filename, "τx")
 τʸ = FieldTimeSeries(filename, "τy")
 
-Nz = size(Tt, 3)
+Nz = size(T, 3)
 times = Qc.times
 
 ua  = atmosphere.velocities.u
