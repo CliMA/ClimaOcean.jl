@@ -17,7 +17,7 @@ const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
 to_be_literated = [
     "inspect_ecco2_data.jl",
     "JRA55forced_single_column_simulation.jl",
-    "near_global_omip_simulation.jl"
+    # "near_global_omip_simulation.jl"
 ]
 
 for file in to_be_literated
