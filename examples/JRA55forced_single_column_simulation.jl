@@ -78,7 +78,7 @@ atmosphere = JRA55_prescribed_atmosphere(time_indices = 1:480;
                                          longitude, latitude, backend,
                                          with_rivers_and_icebergs = false)
 
-ocean.model.clock.time = start_seconds
+ocean.model.clock.time = 0
 ocean.model.clock.iteration = 0
 ocean.Δt = 10minutes
 
