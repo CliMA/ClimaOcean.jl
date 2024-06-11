@@ -73,8 +73,9 @@ elapsed = time_ns() - start_time
 start_time = time_ns()
             
 # Retrieving the atmosphere
+last_time = floor(Int, 31 * 24 / 3) # 31 days in hours divided by JRA55's frequency in hours
 backend = InMemory()
-atmosphere = JRA55_prescribed_atmosphere(time_indices = 1:480; 
+atmosphere = JRA55_prescribed_atmosphere(time_indices = 1:last_time; 
                                          longitude, latitude, backend,
                                          with_rivers_and_icebergs = false)
 
@@ -159,7 +160,7 @@ Q  = ρₒ * cₚ * JT
 τx = ρₒ * Ju
 τy = ρₒ * Jv
 N² = buoyancy_frequency(ocean.model)
-κc = ocean.model.diffusivity_fields.κᶜ
+κc = ocean.model.diffusivity_fields.κc
 
 fluxes = (; τx, τy, E, Js, Qv, Qc)
 
@@ -179,51 +180,51 @@ run!(coupled_simulation)
 
 filename *= ".jld2"
 
-ut = FieldTimeSeries(filename, "u")
-vt = FieldTimeSeries(filename, "v")
-Tt = FieldTimeSeries(filename, "T")
-St = FieldTimeSeries(filename, "S")
-et = FieldTimeSeries(filename, "e")
-N²t = FieldTimeSeries(filename, "N²")
-κt = FieldTimeSeries(filename, "κᶜ")
+u  = FieldTimeSeries(filename, "u")
+v  = FieldTimeSeries(filename, "v")
+T  = FieldTimeSeries(filename, "T")
+S  = FieldTimeSeries(filename, "S")
+e  = FieldTimeSeries(filename, "e")
+N² = FieldTimeSeries(filename, "N²")
+κ  = FieldTimeSeries(filename, "κc")
 
 Qv = FieldTimeSeries(filename, "Qv")
 Qc = FieldTimeSeries(filename, "Qc")
 Js = FieldTimeSeries(filename, "Js")
-Et = FieldTimeSeries(filename, "E")
+Ev = FieldTimeSeries(filename, "E")
 τˣ = FieldTimeSeries(filename, "τx")
 τʸ = FieldTimeSeries(filename, "τy")
 
 Nz = size(Tt, 3)
 times = Qc.times
 
-ua = atmosphere.velocities.u
-va = atmosphere.velocities.v
-Ta = atmosphere.tracers.T
-qa = atmosphere.tracers.q
+ua  = atmosphere.velocities.u
+va  = atmosphere.velocities.v
+Ta  = atmosphere.tracers.T
+qa  = atmosphere.tracers.q
 Qlw = atmosphere.downwelling_radiation.longwave
 Qsw = atmosphere.downwelling_radiation.shortwave
-Pr = atmosphere.freshwater_flux.rain
-Ps = atmosphere.freshwater_flux.snow
+Pr  = atmosphere.freshwater_flux.rain
+Ps  = atmosphere.freshwater_flux.snow
 
-Nt = length(times)
-uat = zeros(Nt)
-vat = zeros(Nt)
-Tat = zeros(Nt)
-qat = zeros(Nt)
+Nt   = length(times)
+uat  = zeros(Nt)
+vat  = zeros(Nt)
+Tat  = zeros(Nt)
+qat  = zeros(Nt)
 Qswt = zeros(Nt)
 Qlwt = zeros(Nt)
-Pt = zeros(Nt)
+Pt   = zeros(Nt)
 
 for n = 1:Nt
     t = times[n]
-    uat[n] = ua[1, 1, 1, Time(t)]
-    vat[n] = va[1, 1, 1, Time(t)]
-    Tat[n] = Ta[1, 1, 1, Time(t)]
-    qat[n] = qa[1, 1, 1, Time(t)]
+    uat[n]  =  ua[1, 1, 1, Time(t)]
+    vat[n]  =  va[1, 1, 1, Time(t)]
+    Tat[n]  =  Ta[1, 1, 1, Time(t)]
+    qat[n]  =  qa[1, 1, 1, Time(t)]
     Qswt[n] = Qsw[1, 1, 1, Time(t)]
     Qlwt[n] = Qlw[1, 1, 1, Time(t)]
-    Pt[n] = Pr[1, 1, 1, Time(t)] + Ps[1, 1, 1, Time(t)]
+    Pt[n]   =  Pr[1, 1, 1, Time(t)] + Ps[1, 1, 1, Time(t)]
 end
 
 set_theme!(Theme(linewidth=3))
@@ -256,17 +257,13 @@ tn = @lift times[$n]
 
 colors = Makie.wong_colors()
 
-#lines!(axu, times, uat, color=colors[1])
-#lines!(axu, times, vat, color=colors[2])
-
-
 ρₒ = coupled_model.fluxes.ocean_reference_density
 Jᵘ = interior(τˣ, 1, 1, 1, :) ./ ρₒ
 Jᵛ = interior(τʸ, 1, 1, 1, :) ./ ρₒ
 u★ = @. (Jᵘ^2 + Jᵛ^2)^(1/4)
 
-lines!(axu, times, interior(ut, 1, 1, Nz, :), color=colors[1], label="Zonal")
-lines!(axu, times, interior(vt, 1, 1, Nz, :), color=colors[2], label="Meridional")
+lines!(axu, times, interior(u, 1, 1, Nz, :), color=colors[1], label="Zonal")
+lines!(axu, times, interior(v, 1, 1, Nz, :), color=colors[2], label="Meridional")
 lines!(axu, times, u★, color=colors[3], label="Ocean-side u★") 
 vlines!(axu, tn, linewidth=4, color=(:black, 0.5))
 axislegend(axu)
@@ -277,35 +274,35 @@ vlines!(axτ, tn, linewidth=4, color=(:black, 0.5))
 axislegend(axτ)
 
 lines!(axT, times, Tat[1:Nt] .- 273.15,             color=colors[1], linewidth=2, linestyle=:dash, label="Atmosphere temperature")
-lines!(axT, times, interior(Tt, 1, 1, Nz, :), color=colors[2], linewidth=4, label="Ocean surface temperature")
+lines!(axT, times, interior(T, 1, 1, Nz, :), color=colors[2], linewidth=4, label="Ocean surface temperature")
 vlines!(axT, tn, linewidth=4, color=(:black, 0.5))
 axislegend(axT)
 
-lines!(axQ, times, interior(Qv, 1, 1, 1, 1:Nt), color=colors[2], label="Sensible",  linewidth=2)
-lines!(axQ, times, interior(Qc, 1, 1, 1, 1:Nt), color=colors[3], label="Latent",    linewidth=2)
-lines!(axQ, times, - Qswt[1:1:Nt],                     color=colors[4], label="Shortwave", linewidth=2)
-lines!(axQ, times, - Qlwt[1:1:Nt],                     color=colors[5], label="Longwave",  linewidth=2)
+lines!(axQ, times, interior(Qv, 1, 1, 1, 1:Nt),    color=colors[2], label="Sensible",  linewidth=2)
+lines!(axQ, times, interior(Qc, 1, 1, 1, 1:Nt),    color=colors[3], label="Latent",    linewidth=2)
+lines!(axQ, times, - interior(Qsw, 1, 1, 1, 1:Nt), color=colors[4], label="Shortwave", linewidth=2)
+lines!(axQ, times, - interior(Qlw, 1, 1, 1, 1:Nt), color=colors[5], label="Longwave",  linewidth=2)
 vlines!(axQ, tn, linewidth=4, color=(:black, 0.5))
 axislegend(axQ)
 
 #lines!(axF, times, interior(Jˢt, 1, 1, 1, :), label="Net freshwater flux")
 lines!(axF, times, Pt[1:Nt], label="Prescribed freshwater flux")
-lines!(axF, times, - interior(Et, 1, 1, 1, 1:Nt), label="Evaporation")
+lines!(axF, times, - interior(Ev, 1, 1, 1, 1:Nt), label="Evaporation")
 vlines!(axF, tn, linewidth=4, color=(:black, 0.5))
 axislegend(axF)
 
-lines!(axS, times, interior(St, 1, 1, Nz, :))
+lines!(axS, times, interior(S, 1, 1, Nz, :))
 vlines!(axS, tn, linewidth=4, color=(:black, 0.5))
 
 zc = znodes(Tt)
 zf = znodes(κc)
-un = @lift interior(ut[$n], 1, 1, :)
-vn = @lift interior(vt[$n], 1, 1, :)
-Tn = @lift interior(Tt[$n], 1, 1, :)
-Sn = @lift interior(St[$n], 1, 1, :)
-κn = @lift κc[$n]
-en = @lift max.(1e-6, interior(et[$n], 1, 1, :))
-N²n = @lift interior(N²t[$n], 1, 1, :)
+un  = @lift interior(u[$n],  1, 1, :)
+vn  = @lift interior(v[$n],  1, 1, :)
+Tn  = @lift interior(T[$n],  1, 1, :)
+Sn  = @lift interior(S[$n],  1, 1, :)
+κn  = @lift interior(κ[$n],  1, 1, :)
+en  = @lift interior(e[$n],  1, 1, :)
+N²n = @lift interior(N²[$n], 1, 1, :)
 
 scatterlines!(axuz, un,  zc, label="u") 
 scatterlines!(axuz, vn,  zc, label="v") 
@@ -317,20 +314,20 @@ scatterlines!(axκz, κn,  zf)
 
 axislegend(axuz)
 
-Tmax = maximum(interior(Tt))
-Tmin = minimum(interior(Tt))
+Tmax = maximum(interior(T))
+Tmin = minimum(interior(T))
 xlims!(axTz, Tmin - 0.1, Tmax + 0.1)
 
-Nmax = maximum(interior(N²t))
-Nmin = minimum(interior(N²t))
+Nmax = maximum(interior(N²))
+Nmin = minimum(interior(N²))
 xlims!(axNz, Nmin / 2, Nmin * 1.1)
 
-emax = maximum(interior(et))
+emax = maximum(interior(e))
 xlims!(axez, 8e-7, emax * 1.1)
 xlims!(axκz, 1e-7, 10)
 
-Smax = maximum(interior(St))
-Smin = minimum(interior(St))
+Smax = maximum(interior(S))
+Smin = minimum(interior(S))
 xlims!(axSz, Smin - 0.2, Smax + 0.2)
 
 display(fig)

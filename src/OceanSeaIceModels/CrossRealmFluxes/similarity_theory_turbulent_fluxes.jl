@@ -3,7 +3,7 @@ using Oceananigans.Grids: AbstractGrid
 
 using Adapt
 using Thermodynamics: Liquid
-using SurfaceFluxes.Parameters: SurfaceFluxesParameters, AbstractSurfaceFluxesParameters
+using SurfaceFluxes.Parameters: SurfaceFluxesParameters
 using SurfaceFluxes.UniversalFunctions: BusingerParams, BusingerType
 
 using Printf
@@ -29,7 +29,7 @@ import SurfaceFluxes.Parameters:
 ##### Bulk turbulent fluxes based on similarity theory
 #####
 
-struct SimilarityTheoryTurbulentFluxes{FT, UF, TP, S, W, R, B, V, F} <: AbstractSurfaceFluxesParameters
+struct SimilarityTheoryTurbulentFluxes{FT, UF, TP, S, W, R, B, V, F}
     gravitational_acceleration :: FT
     von_karman_constant :: FT
     turbulent_prandtl_number :: FT

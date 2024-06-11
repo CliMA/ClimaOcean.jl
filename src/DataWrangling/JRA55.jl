@@ -589,7 +589,7 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
                                      backend = nothing,
                                      time_indexing = Cyclical(),
                                      measurement_height = 10,  # meters
-                                     with_rivers_and_icebergs = true,
+                                     include_rivers_and_icebergs = true, # rivers and icebergs are not needed in single column simulations
                                      other_kw...)
 
     if isnothing(backend) # apply a default
@@ -618,7 +618,7 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
     Ql  = JRA55_field_time_series(:downwelling_longwave_radiation;  kw...)
     Qs  = JRA55_field_time_series(:downwelling_shortwave_radiation; kw...)
 
-    if with_rivers_and_icebergs
+    if include_rivers_and_icebergs
         Fri = JRA55_field_time_series(:river_freshwater_flux;   kw...)
         Fic = JRA55_field_time_series(:iceberg_freshwater_flux; kw...)
         freshwater_flux = (rain = Fra,
