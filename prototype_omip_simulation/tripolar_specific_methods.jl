@@ -2,6 +2,7 @@ using ClimaOcean
 import ClimaOcean.InitialConditions: interpolate!
 
 using Oceananigans
+using Oceananigans.Operators
 using Oceananigans.BoundaryConditions
 using Oceananigans.Fields: OneField
 using Oceananigans.Grids: peripheral_node
@@ -27,23 +28,45 @@ import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: convert_to_latlon_frame, c
 
 # Here we assume that the tripolar grid is locally orthogonal
 @inline function convert_to_latlong_frame(i, j, grid::TRG, uₒ, vₒ)
-    φ₁ = φnode(i,   j, 1, grid, Face(), Center(), Center())
-    φ₂ = φnode(i+1, j, 1, grid, Face(), Center(), Center())
-     
-    θ  = φ₂ - φ₁
-    d₁ = hack_cosd(θ)
-    d₂ = hack_sind(θ)
-    
+
+    φᶜᶠᵃ₊ = φnode(i, j+1, 1, grid, Center(), Face(), Center())
+    φᶜᶠᵃ₋ = φnode(i,   j, 1, grid, Center(), Face(), Center())
+    Δyᶜᶜᵃ = Δyᶜᶜᶜ(i,   j, 1, grid)
+
+    ũ = deg2rad(φᶜᶠᵃ₊ - φᶜᶠᵃ₋) / Δyᶜᶜᵃ
+
+    φᶠᶜᵃ₊ = φnode(i+1, j, 1, grid, Face(), Center(), Center())
+    φᶠᶜᵃ₋ = φnode(i,   j, 1, grid, Face(), Center(), Center())
+    Δxᶜᶜᵃ = Δxᶜᶜᶜ(i,   j, 1, grid)
+
+    ṽ = - deg2rad(φᶠᶜᵃ₊ - φᶠᶜᵃ₋) / Δxᶜᶜᵃ
+
+    𝒰 = sqrt(ũ^2 + ṽ^2)
+
+    d₁ = ũ / 𝒰
+    d₂ = ṽ / 𝒰
+
     return uₒ * d₁ - vₒ * d₂, uₒ * d₂ + vₒ * d₁
 end
 
 @inline function convert_to_native_frame(i, j, grid::TRG, uₒ, vₒ) 
-    φ₁ = φnode(i, j,   1, grid, Face(), Center(), Center())
-    φ₂ = φnode(i, j+1, 1, grid, Face(), Center(), Center())
-     
-    θ = φ₂ - φ₁
-    d₁ = hack_cosd(θ)
-    d₂ = hack_sind(θ)
-    
+
+    φᶜᶠᵃ₊ = φnode(i, j+1, 1, grid, Center(), Face(), Center())
+    φᶜᶠᵃ₋ = φnode(i,   j, 1, grid, Center(), Face(), Center())
+    Δyᶜᶜᵃ = Δyᶜᶜᶜ(i,   j, 1, grid)
+
+    ũ = deg2rad(φᶜᶠᵃ₊ - φᶜᶠᵃ₋) / Δyᶜᶜᵃ
+
+    φᶠᶜᵃ₊ = φnode(i+1, j, 1, grid, Face(), Center(), Center())
+    φᶠᶜᵃ₋ = φnode(i,   j, 1, grid, Face(), Center(), Center())
+    Δxᶜᶜᵃ = Δxᶜᶜᶜ(i,   j, 1, grid)
+
+    ṽ = - deg2rad(φᶠᶜᵃ₊ - φᶠᶜᵃ₋) / Δxᶜᶜᵃ
+
+    𝒰 = sqrt(ũ^2 + ṽ^2)
+
+    d₁ = ũ / 𝒰
+    d₂ = ṽ / 𝒰
+
     return uₒ * d₁ + vₒ * d₂, uₒ * d₂ - vₒ * d₁
 end
