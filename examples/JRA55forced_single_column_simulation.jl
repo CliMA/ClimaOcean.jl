@@ -43,11 +43,11 @@ longitude = λ★ .+ (-0.25, 0.25)
 latitude  = φ★ .+ (-0.25, 0.25)
 
 # We use a SingleColumnGrid
-grid = RectilinearGrid(size = (3, 3, Nz),
-                       x = longitude,
-                       y = latitude,
-                       z = (-H, 0),
-                       topology = (Periodic, Periodic, Bounded))
+grid = LatitudeLongitudeGrid(; size = (3, 3, Nz),
+                               longitude,
+                               latitude,
+                               z = (-H, 0),
+                               topology = (Periodic, Periodic, Bounded))
 
 # Building the ocean simulation
 momentum_advection = nothing
@@ -177,7 +177,6 @@ coupled_simulation.output_writers[:jld2] = JLD2OutputWriter(ocean.model, outputs
 
 run!(coupled_simulation)
 
-#=
 filename *= ".jld2"
 
 ut = FieldTimeSeries(filename, "u")
@@ -188,16 +187,15 @@ et = FieldTimeSeries(filename, "e")
 N²t = FieldTimeSeries(filename, "N²")
 κt = FieldTimeSeries(filename, "κᶜ")
 
-Qt = FieldTimeSeries(filename, "Q")
-Qset = FieldTimeSeries(filename, "Qse")
-Qlat = FieldTimeSeries(filename, "Qla")
-Jˢt = FieldTimeSeries(filename, "Jˢ")
+Qv = FieldTimeSeries(filename, "Qv")
+Qc = FieldTimeSeries(filename, "Qc")
+Js = FieldTimeSeries(filename, "Js")
 Et = FieldTimeSeries(filename, "E")
-τˣt = FieldTimeSeries(filename, "τˣ")
-τʸt = FieldTimeSeries(filename, "τʸ")
+τˣ = FieldTimeSeries(filename, "τx")
+τʸ = FieldTimeSeries(filename, "τy")
 
 Nz = size(Tt, 3)
-times = Qt.times
+times = Qc.times
 
 ua = atmosphere.velocities.u
 va = atmosphere.velocities.v
@@ -253,6 +251,7 @@ slider = Slider(fig[4, 1:6], range=1:Nt, startvalue=1)
 n = slider.value
 
 times = (times .- times[1]) ./days
+Nt = length(times)
 tn = @lift times[$n]
 
 colors = Makie.wong_colors()
@@ -260,10 +259,11 @@ colors = Makie.wong_colors()
 #lines!(axu, times, uat, color=colors[1])
 #lines!(axu, times, vat, color=colors[2])
 
+
 ρₒ = coupled_model.fluxes.ocean_reference_density
-Jᵘt = interior(τˣt, 1, 1, 1, :) ./ ρₒ
-Jᵛt = interior(τʸt, 1, 1, 1, :) ./ ρₒ
-u★ = @. (Jᵘt^2 + Jᵛt^2)^(1/4)
+Jᵘ = interior(τˣ, 1, 1, 1, :) ./ ρₒ
+Jᵛ = interior(τʸ, 1, 1, 1, :) ./ ρₒ
+u★ = @. (Jᵘ^2 + Jᵛ^2)^(1/4)
 
 lines!(axu, times, interior(ut, 1, 1, Nz, :), color=colors[1], label="Zonal")
 lines!(axu, times, interior(vt, 1, 1, Nz, :), color=colors[2], label="Meridional")
@@ -271,27 +271,26 @@ lines!(axu, times, u★, color=colors[3], label="Ocean-side u★")
 vlines!(axu, tn, linewidth=4, color=(:black, 0.5))
 axislegend(axu)
 
-lines!(axτ, times, interior(τˣt, 1, 1, 1, :), label="Zonal")
-lines!(axτ, times, interior(τʸt, 1, 1, 1, :), label="Meridional")
+lines!(axτ, times, interior(τˣ, 1, 1, 1, :), label="Zonal")
+lines!(axτ, times, interior(τʸ, 1, 1, 1, :), label="Meridional")
 vlines!(axτ, tn, linewidth=4, color=(:black, 0.5))
 axislegend(axτ)
 
-lines!(axT, times, Tat .- 273.15,             color=colors[1], linewidth=2, linestyle=:dash, label="Atmosphere temperature")
+lines!(axT, times, Tat[1:Nt] .- 273.15,             color=colors[1], linewidth=2, linestyle=:dash, label="Atmosphere temperature")
 lines!(axT, times, interior(Tt, 1, 1, Nz, :), color=colors[2], linewidth=4, label="Ocean surface temperature")
 vlines!(axT, tn, linewidth=4, color=(:black, 0.5))
 axislegend(axT)
 
-lines!(axQ, times, interior(Qt, 1, 1, 1, :),   color=colors[1], label="Total",     linewidth=6)
-lines!(axQ, times, interior(Qset, 1, 1, 1, :), color=colors[2], label="Sensible",  linewidth=2)
-lines!(axQ, times, interior(Qlat, 1, 1, 1, :), color=colors[3], label="Latent",    linewidth=2)
-lines!(axQ, times, - Qswt,                     color=colors[4], label="Shortwave", linewidth=2)
-lines!(axQ, times, - Qlwt,                     color=colors[5], label="Longwave",  linewidth=2)
+lines!(axQ, times, interior(Qv, 1, 1, 1, 1:Nt), color=colors[2], label="Sensible",  linewidth=2)
+lines!(axQ, times, interior(Qc, 1, 1, 1, 1:Nt), color=colors[3], label="Latent",    linewidth=2)
+lines!(axQ, times, - Qswt[1:1:Nt],                     color=colors[4], label="Shortwave", linewidth=2)
+lines!(axQ, times, - Qlwt[1:1:Nt],                     color=colors[5], label="Longwave",  linewidth=2)
 vlines!(axQ, tn, linewidth=4, color=(:black, 0.5))
 axislegend(axQ)
 
 #lines!(axF, times, interior(Jˢt, 1, 1, 1, :), label="Net freshwater flux")
-lines!(axF, times, Pt, label="Prescribed freshwater flux")
-lines!(axF, times, - interior(Et, 1, 1, 1, :), label="Evaporation")
+lines!(axF, times, Pt[1:Nt], label="Prescribed freshwater flux")
+lines!(axF, times, - interior(Et, 1, 1, 1, 1:Nt), label="Evaporation")
 vlines!(axF, tn, linewidth=4, color=(:black, 0.5))
 axislegend(axF)
 
@@ -299,12 +298,12 @@ lines!(axS, times, interior(St, 1, 1, Nz, :))
 vlines!(axS, tn, linewidth=4, color=(:black, 0.5))
 
 zc = znodes(Tt)
-zf = znodes(κt)
+zf = znodes(κc)
 un = @lift interior(ut[$n], 1, 1, :)
 vn = @lift interior(vt[$n], 1, 1, :)
 Tn = @lift interior(Tt[$n], 1, 1, :)
 Sn = @lift interior(St[$n], 1, 1, :)
-κn = @lift interior(κt[$n], 1, 1, :)
+κn = @lift κc[$n]
 en = @lift max.(1e-6, interior(et[$n], 1, 1, :))
 N²n = @lift interior(N²t[$n], 1, 1, :)
 
@@ -339,6 +338,4 @@ display(fig)
 record(fig, "$(location)_single_column_simulation.mp4", 1:Nt, framerate=24) do nn
     @info "Drawing frame $nn of $Nt..."
     n[] = nn
-#    end
 end
-=#
