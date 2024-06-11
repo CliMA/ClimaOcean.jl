@@ -77,7 +77,7 @@ last_time = floor(Int, 31 * 24 / 3) # 31 days in hours divided by JRA55's freque
 backend = InMemory()
 atmosphere = JRA55_prescribed_atmosphere(time_indices = 1:last_time; 
                                          longitude, latitude, backend,
-                                         with_rivers_and_icebergs = false)
+                                         include_rivers_and_icebergs = false)
 
 ocean.model.clock.time = 0
 ocean.model.clock.iteration = 0
