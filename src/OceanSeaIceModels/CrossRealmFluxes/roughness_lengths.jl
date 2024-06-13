@@ -1,7 +1,7 @@
 struct MomentumRoughnessLength{FT, V}
     gravitational_acceleration :: FT
     air_kinematic_viscosity :: V
-    _wave_parameter :: FT
+    gravity_wave_parameter :: FT
     laminar_parameter :: FT
     maximum_roughness_length :: FT
 end
@@ -65,7 +65,7 @@ function MomentumRoughnessLength(FT=Float64;
 
     return MomentumRoughnessLength(convert(FT, gravitational_acceleration),
                                           air_kinematic_viscosity,
-                                          convert(FT, _wave_parameter),
+                                          convert(FT, gravity_wave_parameter),
                                           convert(FT, laminar_parameter),
                                           convert(FT, maximum_roughness_length))
 end
@@ -98,7 +98,7 @@ end
 # Temperature and water vapor can be considered the same (Edson et al 2013)
 @inline function roughness_length(ℓ::MomentumRoughnessLength{FT}, u★, 𝒬, ℂ) where FT
     g  = ℓ.gravitational_acceleration
-    α  = ℓ._wave_parameter
+    α  = ℓ.gravity_wave_parameter
     β  = ℓ.laminar_parameter
     ℓm = ℓ.maximum_roughness_length
 
