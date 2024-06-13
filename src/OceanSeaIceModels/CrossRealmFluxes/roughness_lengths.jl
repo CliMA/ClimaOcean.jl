@@ -111,7 +111,7 @@ function TemperatureDependentAirViscosity(FT = Float64;
 end   
 
 """ Calculate the air viscosity based on the temperature θ in Celsius. """
-@inline function (ν::TemperatureDependentViscosity)(θ)
+@inline function (ν::TemperatureDependentAirViscosity)(θ)
     T = convert(FT, θ - celsius_to_kelvin)
     return C₀ + C₁ * T + C₂ * T^2 + C₃ * T^3
 end
