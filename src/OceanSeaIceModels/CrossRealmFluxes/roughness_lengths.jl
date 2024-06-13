@@ -59,7 +59,7 @@ Keyword Arguments
 function MomentumRoughnessLength(FT=Float64;
                                  gravitational_acceleration = default_gravitational_acceleration,
                                  maximum_roughness_length = 1.0, # An estimate?
-                                 air_kinematic_viscosity = temperature_dependent_viscosity,
+                                 air_kinematic_viscosity = TemperatureDependentViscosity(FT),
                                  gravity_wave_parameter = 0.011,
                                  laminar_parameter = 0.11)
 
@@ -77,17 +77,43 @@ function default_roughness_lengths(FT=Float64)
     return SimilarityScales(momentum, temperature, water_vapor)
 end
 
-# Empirical fit of the scalar roughness length with roughness Reynolds number `R★ = u★ ℓu / ν`
-# Edson et al. (2013), equation (28)
-@inline empirical_scaling_function(R★ :: FT, args...) where FT = 
-        ifelse(R★ == 0, FT(0), convert(FT, 5.85e-5 / R★ ^ 0.72))
+# Temperature-dependent viscosity law
+struct TemperatureDependentAirViscosity{FT}
+    C₀ :: FT
+    C₁ :: FT
+    C₂ :: FT
+    C₃ :: FT
+end
 
-# Temeprature-dependent viscosity law: assumes that θ comes in Kelvin
-@inline function temperature_dependent_viscosity(θ :: FT) where FT 
+"""
+    TemperatureDependentAirViscosity([FT = Float64;
+                                      C₀ = 1.326e-5,
+                                      C₁ = C₀ * 6.542e-3,
+                                      C₂ = C₀ * 8.301e-6,
+                                      C₃ = - C₀ * 4.84e-9])
+
+Constructs a `TemperatureDependentAirViscosity` object that calculates the kinematic
+viscosity of air as 
+```math
+C₀ + C₁ T + C₂ T^2 + C₃ T^3.
+```
+"""
+function TemperatureDependentAirViscosity(FT = Float64;
+                                          C₀ = 1.326e-5,
+                                          C₁ = C₀ * 6.542e-3,
+                                          C₂ = C₀ * 8.301e-6,
+                                          C₃ = - C₀ * 4.84e-9)
+
+        return TemperatureDependentAirViscosity(convert(FT, C₀),
+                                                convert(FT, C₁),
+                                                convert(FT, C₂),
+                                                convert(FT, C₃))
+end   
+
+""" Calculate the air viscosity based on the temperature θ in Celsius. """
+@inline function (ν::TemperatureDependentViscosity)(θ)
     T = convert(FT, θ - celsius_to_kelvin)
-    ν = convert(FT, 1.326e-5 * (1 + 6.542e-3 * T + 8.301e-6 * T^2 - 4.84e-9 * T^3))
-    
-    return ν
+    return C₀ + C₁ * T + C₂ * T^2 + C₃ * T^3
 end
 
 # Fallbacks for constant roughness length!
@@ -112,6 +138,25 @@ end
     
     return min(α * u★^2 / g + ℓᴿ, ℓm)
 end
+
+struct ReynoldsScalingFunction{FT}
+    A :: FT
+    b :: FT
+end
+
+"""
+    ReynoldsScalingFunction(FT = Float64; A = 5.85e-5, b = 0.72)
+
+Empirical fit of the scalar roughness length with roughness Reynolds number `R★ = u★ ℓu / ν`.
+Edson et al. (2013), equation (28).
+```math
+    ℓs = A / R★ ^ b
+```
+"""
+ReynoldsScalingFunction(FT = Float64; A = 5.85e-5, b = 0.72) = 
+        ReynoldsScalingFunction(convert(FT, A), convert(FT, b))
+
+@inline (s::ReynoldsScalingFunction)(R★, args...) = ifelse(R★ == 0, FT(0), s.A / R★ ^ s.b)
 
 # Edson 2013 formulation of scalar roughness length
 @inline function roughness_length(ℓ::ScalarRoughnessLength{FT}, ℓu, u★, 𝒬, ℂ) where FT
