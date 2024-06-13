@@ -60,7 +60,7 @@ function MomentumRoughnessLength(FT=Float64;
                                  gravitational_acceleration = default_gravitational_acceleration,
                                  maximum_roughness_length = 1.0, # An estimate?
                                  air_kinematic_viscosity = temperature_dependent_viscosity,
-                                 _wave_parameter = 0.011,
+                                 gravity_wave_parameter = 0.011,
                                  laminar_parameter = 0.11)
 
     return MomentumRoughnessLength(convert(FT, gravitational_acceleration),
