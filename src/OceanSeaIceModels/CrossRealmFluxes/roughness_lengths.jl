@@ -30,7 +30,7 @@ Keyword Arguments
 """
 function ScalarRoughnessLength(FT=Float64;
                                air_kinematic_viscosity = temperature_dependent_viscosity,
-                               reynolds_number_scaling_function = empirical_scaling_function,
+                               reynolds_number_scaling_function = ReynoldsScalingFunction(FT),
                                maximum_roughness_length = 1.6e-4) # Values from COARE3.6
 
     return ScalarRoughnessLength(air_kinematic_viscosity,
