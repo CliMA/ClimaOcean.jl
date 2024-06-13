@@ -61,7 +61,6 @@ and day in the year.
 
 # Arguments
 ============
-
 - `arch`: The architecture to use (default: `CPU()`).
 - `FT`: The floating-point type to use (default: `Float64`).
 
