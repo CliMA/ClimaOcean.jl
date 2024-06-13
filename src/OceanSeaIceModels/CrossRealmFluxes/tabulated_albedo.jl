@@ -78,9 +78,9 @@ function TabulatedAlbedo(arch = CPU(), FT = Float64;
                          𝓉_values = 0:0.05:1)
 
     # Make everything GPU - ready
-    α_table  = on_architecture(arch, α_table)
-    φ_values = on_architecture(arch, φ_values) 
-    𝓉_values = on_architecture(arch, 𝓉_values) 
+    α_table  = on_architecture(arch, convert.(FT, α_table))
+    φ_values = on_architecture(arch, convert.(FT, φ_values)) 
+    𝓉_values = on_architecture(arch, convert.(FT, 𝓉_values))
 
     return TabulatedAlbedo(α_table, φ_values, 𝓉_values, S₀)
 end
