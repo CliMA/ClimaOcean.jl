@@ -25,7 +25,12 @@ Base.show(io::IO, metadata::ECCOMetadata) =
     "└── data version: $(metadata.version)")
 
 # The default is the ECCO4Monthly dataset at 1992-01-01.
-ECCOMetadata(name::Symbol; version = ECCO4Monthly()) = ECCOMetadata(name, DateTimeProlepticGregorian(1992, 1, 1), version) 
+function ECCOMetadata(name::Symbol; 
+                      date = DateTimeProlepticGregorian(1992, 1, 1),
+                   version = ECCO4Monthly()) 
+             
+    return ECCOMetadata(name, date, version) 
+end
 
 # Treat ECCOMetadata as an array to allow iteration over the dates.
 Base.getindex(metadata::ECCOMetadata, i::Int) = @inbounds ECCOMetadata(metadata.name, metadata.dates[i], metadata.version)
