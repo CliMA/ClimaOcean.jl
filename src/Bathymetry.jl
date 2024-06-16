@@ -7,6 +7,7 @@ using ..DataWrangling: download_progress
 
 using Oceananigans
 using Oceananigans.Architectures: architecture
+using Oceananigans.Distributed: child_architecture
 using Oceananigans.Grids: halo_size, λnodes, φnodes
 using Oceananigans.Grids: x_domain, y_domain
 using Oceananigans.Grids: topology
@@ -109,7 +110,7 @@ function regrid_bathymetry(target_grid;
     close(dataset)
 
     # Diagnose target grid information
-    arch = architecture(target_grid)
+    arch = child_architecture(target_grid)
     φ₁, φ₂ = y_domain(target_grid)
     λ₁, λ₂ = x_domain(target_grid)
 
