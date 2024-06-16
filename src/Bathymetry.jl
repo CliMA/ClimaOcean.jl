@@ -110,7 +110,7 @@ function regrid_bathymetry(target_grid;
     close(dataset)
 
     # Diagnose target grid information
-    arch = child_architecture(target_grid)
+    arch = child_architecture(architecture(target_grid))
     φ₁, φ₂ = y_domain(target_grid)
     λ₁, λ₂ = x_domain(target_grid)
 
