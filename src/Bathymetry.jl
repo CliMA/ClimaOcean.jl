@@ -7,7 +7,7 @@ using ..DataWrangling: download_progress
 
 using Oceananigans
 using Oceananigans.Architectures: architecture
-using Oceananigans.Distributed: child_architecture
+using Oceananigans.DistributedComputations: child_architecture
 using Oceananigans.Grids: halo_size, λnodes, φnodes
 using Oceananigans.Grids: x_domain, y_domain
 using Oceananigans.Grids: topology
