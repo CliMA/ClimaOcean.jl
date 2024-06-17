@@ -112,8 +112,9 @@ end
 
 """ Calculate the air viscosity based on the temperature θ in Celsius. """
 @inline function (ν::TemperatureDependentAirViscosity)(θ)
-    T = convert(FT, θ - celsius_to_kelvin)
-    return C₀ + C₁ * T + C₂ * T^2 + C₃ * T^3
+    FT = eltype(ν.C₀)
+    T  = convert(FT, θ - celsius_to_kelvin)
+    return ν.C₀ + ν.C₁ * T + ν.C₂ * T^2 + ν.C₃ * T^3
 end
 
 # Fallbacks for constant roughness length!
@@ -156,7 +157,7 @@ Edson et al. (2013), equation (28).
 ReynoldsScalingFunction(FT = Float64; A = 5.85e-5, b = 0.72) = 
         ReynoldsScalingFunction(convert(FT, A), convert(FT, b))
 
-@inline (s::ReynoldsScalingFunction)(R★, args...) = ifelse(R★ == 0, FT(0), s.A / R★ ^ s.b)
+@inline (s::ReynoldsScalingFunction)(R★, args...) = ifelse(R★ == 0, convert(eltype(R★), 0), s.A / R★ ^ s.b)
 
 # Edson 2013 formulation of scalar roughness length
 @inline function roughness_length(ℓ::ScalarRoughnessLength{FT}, ℓu, u★, 𝒬, ℂ) where FT

@@ -93,9 +93,9 @@ end
         
     # Stability parameter for _unstable_ atmospheric conditions
     fᵤ₁ = sqrt(sqrt(1 - Aᵘ * ζ⁻))
-    ψᵤ₁ = Bᵘ * log((1 + fᵤ₁) / Bᵤ) + log((1 + fᵤ₁^2) / Bᵘ) - Bᵘ * atan(fᵤ₁) + Cᵘ
+    ψᵤ₁ = Bᵘ * log((1 + fᵤ₁) / Bᵘ) + log((1 + fᵤ₁^2) / Bᵘ) - Bᵘ * atan(fᵤ₁) + Cᵘ
         
-    fᵤ₂ = cqrt(1 - Dᵘ * ζ⁻)
+    fᵤ₂ = cbrt(1 - Dᵘ * ζ⁻)
     ψᵤ₂ = Eᵘ / 2 * log((1 + fᵤ₂ + fᵤ₂^2) / Eᵘ) - sqrt(Eᵘ) * atan( (1 + 2fᵤ₂) / sqrt(Eᵘ)) + Fᵘ
         
     f  = ζ⁻^2 / (1 + ζ⁻^2)
@@ -173,9 +173,9 @@ end
     
     # Stability parameter for _unstable_ atmospheric conditions
     fᵤ₁ = sqrt(1 - Aᵘ * ζ⁻)
-    ψᵤ₁ = Bᵘ * log((1 + fᵤ₁) / Bᵤ) + Cᵘ
+    ψᵤ₁ = Bᵘ * log((1 + fᵤ₁) / Bᵘ) + Cᵘ
         
-    fᵤ₂ = cqrt(1 - Dᵘ * ζ⁻)
+    fᵤ₂ = cbrt(1 - Dᵘ * ζ⁻)
     ψᵤ₂ = Eᵘ / 2 * log((1 + fᵤ₂ + fᵤ₂^2) / Eᵘ) - sqrt(Eᵘ) * atan( (1 + 2fᵤ₂) / sqrt(Eᵘ)) + Fᵘ
         
     f  = ζ⁻^2 / (1 + ζ⁻^2)
