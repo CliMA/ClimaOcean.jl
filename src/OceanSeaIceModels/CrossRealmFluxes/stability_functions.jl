@@ -169,7 +169,7 @@ end
     dζ = min(ζmax, Aˢ * ζ⁺)
 
     # stability function for stable atmospheric conditions 
-    ψ_stable = - (1 + Bˢ * ζ⁺) ^ Cˢ - Bˢ * (ζ⁺ - Dˢ) * exp(-dζ) - Eˢ
+    ψₛ = - (1 + Bˢ * ζ⁺) ^ Cˢ - Bˢ * (ζ⁺ - Dˢ) * exp(-dζ) - Eˢ
     
     # Stability parameter for _unstable_ atmospheric conditions
     fᵤ₁ = sqrt(1 - Aᵘ * ζ⁻)
@@ -181,5 +181,5 @@ end
     f  = ζ⁻^2 / (1 + ζ⁻^2)
     ψᵤ = (1 - f) * ψᵤ₁ + f * ψᵤ₂  
 
-    return ifelse(ζ < 0, ψ_unstable, ψ_stable)
+    return ifelse(ζ < 0, ψᵤ, ψₛ)
 end

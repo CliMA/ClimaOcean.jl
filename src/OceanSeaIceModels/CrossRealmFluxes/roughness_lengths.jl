@@ -29,7 +29,7 @@ Keyword Arguments
 - `maximum_roughness_length::Float`: The maximum roughness length value. Defaults to `1.6e-4`.
 """
 function ScalarRoughnessLength(FT=Float64;
-                               air_kinematic_viscosity = temperature_dependent_viscosity,
+                               air_kinematic_viscosity = TemperatureDependentAirViscosity(FT),
                                reynolds_number_scaling_function = ReynoldsScalingFunction(FT),
                                maximum_roughness_length = 1.6e-4) # Values from COARE3.6
 
