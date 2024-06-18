@@ -46,7 +46,7 @@ steps:
       JULIA_DEBUG: "Documenter"
     commands:
       - "julia --color=yes --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'"
-      - "julia --color=yes --project=docs/ docs/make_examples.jl"
+      - "julia --color=yes --project=docs/ docs/make.jl"
     agents:
       slurm_mem: 120G
       slurm_ntasks: 1
