@@ -93,6 +93,12 @@ Base.eltype(α::TabulatedAlbedo) = Base.eltype(α.S₀)
 @inline ϕ₃(ξ, η) =      ξ  * (1 - η)
 @inline ϕ₄(ξ, η) =      ξ  *      η 
 
+# Assumption: if the time is represented by a number it is defined in seconds. 
+# TODO: extend these functions for `DateTime` times when these are supported in
+# Oceananigans.
+@inline simulation_day(time::Time{<:Number})      = time.time ÷ 86400
+@inline seconds_in_day(time::Time{<:Number}, day) = time.time - day * 86400
+
 @inline function net_downwelling_radiation(i, j, grid, time, radiation::Radiation{<:Any, <:Any, <:SurfaceProperties{<:TabulatedAlbedo}}, Qs, Qℓ) 
     α = radiation.reflection.ocean
 
@@ -102,13 +108,12 @@ Base.eltype(α::TabulatedAlbedo) = Base.eltype(α.S₀)
 
     φ = deg2rad(φ)
     λ = deg2rad(λ)
-    time = time.time
 
-    day     = time ÷ 86400
+    day     = simulation_day(time)
     day2rad = convert(FT, 2π / 86400)
 
     noon_in_sec = 86400 ÷ 2
-    sec_of_day  = time - day * 86400
+    sec_of_day  = seconds_in_day(time, day)
 
     # Hour angle h
     h = (sec_of_day - noon_in_sec) * day2rad + λ
