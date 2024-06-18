@@ -6,7 +6,7 @@ const OceanSimplifiedSeaIceModel = OceanSeaIceModel{<:MinimumTemperatureSeaIce}
 const NoSeaIceModel = Union{OceanOnlyModel, OceanSimplifiedSeaIceModel}
 
 #####
-##### No ice-ocean fluxes in this models!!
+##### No ice-ocean fluxes in these models!!
 #####
 
 import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: compute_sea_ice_ocean_fluxes!

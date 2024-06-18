@@ -5,6 +5,8 @@ agents:
 
 env:
   JULIA_LOAD_PATH: "${JULIA_LOAD_PATH}:${BUILDKITE_BUILD_CHECKOUT_PATH}/.buildkite"
+  OPENBLAS_NUM_THREADS: 1
+  OMPI_MCA_opal_warn_on_missing_libcuda: 0
 
 steps:
   - label: "initialize"
@@ -41,12 +43,14 @@ steps:
 
   - label: "documentation"
     env:
-      CUDA_VISIBLE_DEVICES: "-1"
       JULIA_DEBUG: "Documenter"
-      # TMPDIR: "$TARTARUS_HOME/tmp"
     commands:
       - "julia --color=yes --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'"
-      - "julia --color=yes --project=docs/ docs/make.jl"
-      
+      - "julia --color=yes --project=docs/ docs/make_examples.jl"
+    agents:
+      slurm_mem: 120G
+      slurm_ntasks: 1
+      slurm_gpus_per_task: 1
+
   - wait: ~
     continue_on_failure: true

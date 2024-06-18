@@ -354,23 +354,23 @@ function update_model_field_time_series!(atmos::PrescribedAtmosphere, time)
     return nothing
 end
 
-struct TwoStreamDownwellingRadiation{SW, LW}
+struct TwoBandDownwellingRadiation{SW, LW}
     shortwave :: SW
     longwave :: LW
 end
 
 """
-    TwoStreamDownwellingRadiation(shortwave=nothing, longwave=nothing)
+    TwoBandDownwellingRadiation(shortwave=nothing, longwave=nothing)
 
-Return a two-stream model for downwelling radiation that
-passes through he atmosphere and arrives at the surface of ocean
+Return a two-band model for downwelling radiation (split in a shortwave band
+and a longwave band) that passes through the atmosphere and arrives at the surface of ocean
 or sea ice.
 """
-TwoStreamDownwellingRadiation(; shortwave=nothing, longwave=nothing) =
-    TwoStreamDownwellingRadiation(shortwave, longwave)
+TwoBandDownwellingRadiation(; shortwave=nothing, longwave=nothing) =
+    TwoBandDownwellingRadiation(shortwave, longwave)
 
-Adapt.adapt_structure(to, tsdr::TwoStreamDownwellingRadiation) =
-    TwoStreamDownwellingRadiation(adapt(to, tsdr.shortwave),
+Adapt.adapt_structure(to, tsdr::TwoBandDownwellingRadiation) =
+    TwoBandDownwellingRadiation(adapt(to, tsdr.shortwave),
                                   adapt(to, tsdr.longwave))
 
 end # module

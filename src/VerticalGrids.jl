@@ -1,6 +1,9 @@
 module VerticalGrids
 
-export stretched_vertical_faces, PowerLawStretching, LinearStretching, exponential_z_faces
+export stretched_vertical_faces, 
+       exponential_z_faces,
+       PowerLawStretching, 
+       LinearStretching
 
 struct PowerLawStretching{T}
     power :: T

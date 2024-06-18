@@ -21,8 +21,7 @@ v = inpainted_ecco_field(:v_velocity;  maxiter = Inf)
 include("ecco_immersed_grid.jl")
 grid = ecco_immersed_grid(metadata)
 
-# Let's leave out the radiation for the moment (too simple to test)
-atmosphere  = JRA55_prescribed_atmosphere(1:2; backend = InMemory(), grid = grid.underlying_grid)
+atmosphere  = JRA55_prescribed_atmosphere(1:2; grid = grid.underlying_grid)
 
 ocean = ocean_simulation(grid; momentum_advection = nothing,
                                  tracer_advection = nothing)

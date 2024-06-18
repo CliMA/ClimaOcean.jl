@@ -41,7 +41,7 @@ include("PrescribedAtmospheres.jl")
 
 using .PrescribedAtmospheres:
     PrescribedAtmosphere,
-    TwoStreamDownwellingRadiation
+    TwoBandDownwellingRadiation
 
 include("CrossRealmFluxes/CrossRealmFluxes.jl")
 

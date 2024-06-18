@@ -17,105 +17,169 @@ end
 
 Statistics.norm(a::SimilarityScales) = norm(a.momentum) + norm(a.temperature) + norm(a.water_vapor)
 
-function default_stability_functions(FT = Float64)
+function edson_stability_functions(FT = Float64)
 
     # Edson et al. (2013)
-    ψu = MomentumStabilityFunction(FT)
-    ψc = ScalarStabilityFunction(FT)
+    ψu = MomentumStabilityFunction()
+    ψc = ScalarStabilityFunction()
 
     return SimilarityScales(ψu, ψc, ψc)
 end
 
-# Implementation of stability functions that follow Edson et al (2013)
-# We can swap them out easily if we define new types `NewStability` with a method `(f::NewStability)(ζ)`
-struct MomentumStabilityFunction{FT}
-    p₁ :: FT
-    p₂ :: FT
-    p₃ :: FT
-    p₄ :: FT
-end
+"""
+    MomentumStabilityFunction{FT}
 
-struct ScalarStabilityFunction{FT}
-    p₁ :: FT
-    p₂ :: FT
-    p₃ :: FT
-    p₄ :: FT
-    p₅ :: FT
-end
+A struct representing the momentum stability function detailed in Edson et al (2013).
+The formulation hinges on the definition of three different functions:
+one for stable atmospheric conditions ``(ζ > 0)``, named ``ψₛ`` and two for unstable conditions,
+named ``ψᵤ₁`` and ``ψᵤ₂``.
+These stability functions are obtained by regression to experimental data.
 
-function MomentumStabilityFunction(FT = Float64;
-                                   p₁ = convert(FT, 0.35),
-                                   p₂ = convert(FT, 0.7),
-                                   p₃ = convert(FT, 15),
-                                   p₄ = convert(FT, 10.15))
+The stability parameter for stable atmospheric conditions is defined as
+```math
+dζ = min(ζmax, Aˢζ)
+ψₛ = - (Bˢ ζ + Cˢ ( ζ - Dˢ ) ) exp( - dζ) - Cˢ Dˢ 
+```
 
-    return MomentumStabilityFunction{FT}(convert(FT, p₁), 
-                                         convert(FT, p₂), 
-                                         convert(FT, p₃), 
-                                         convert(FT, p₄))
-end
+While the stability parameter for unstable atmospheric conditions is calculated
+as a function of the two individual stability functions as follows
+```math
+fᵤ₁ = √√(1 - Aᵘζ)
+ψᵤ₁ = Bᵘ / 2 ⋅ log((1 + fᵤ₁ + fᵤ₁² + fᵤ₁³) / Bᵘ) - √Bᵘ atan(fᵤ₁) - Cᵘ
 
-function ScalarStabilityFunction(FT = Float64;
-                                 p₁ = convert(FT, 0.35),
-                                 p₂ = convert(FT, 14.28),
-                                 p₃ = convert(FT, 8.525),
-                                 p₄ = convert(FT, 15),
-                                 p₅ = convert(FT, 34.15))
+fᵤ₂ = ∛(1 - Dᵘζ)
+ψᵤ₂ = Eᵘ / 2 ⋅ log((1 + fᵤ₂ + fᵤ₂²) / Eᵘ) - √Eᵘ atan( (1 + 2fᵤ₂) / √Eᵘ) + Fᵘ
 
-    return ScalarStabilityFunction{FT}(convert(FT, p₁), 
-                                       convert(FT, p₂), 
-                                       convert(FT, p₃), 
-                                       convert(FT, p₄), 
-                                       convert(FT, p₅))
+f  = ζ² / (1 + ζ²)
+ψᵤ = (1 - f) ψᵤ₁ + f ψᵤ₂  
+```
+
+The superscripts ``ˢ`` and ``ᵘ`` indicate if the parameter applies to the 
+stability function for _stable_ or _unstable_ atmospheric conditions, respectively.
+"""
+@kwdef struct MomentumStabilityFunction{FT}
+    ζmax :: FT = 50.0
+    Aˢ   :: FT = 0.35
+    Bˢ   :: FT = 0.7
+    Cˢ   :: FT = 0.75
+    Dˢ   :: FT = 5/0.35
+    Aᵘ   :: FT = 15.0
+    Bᵘ   :: FT = 2.0
+    Cᵘ   :: FT = π/2
+    Dᵘ   :: FT = 10.15
+    Eᵘ   :: FT = 3.0
+    Fᵘ   :: FT = π / sqrt(3)
 end
 
 @inline function (ψ::MomentumStabilityFunction)(ζ)
-    # Parameters
-    p₁ = ψ.p₁
-    p₂ = ψ.p₂
-    p₃ = ψ.p₃
-    p₄ = ψ.p₄
+    ζmax = ψ.ζmax
+    Aˢ   = ψ.Aˢ  
+    Bˢ   = ψ.Bˢ  
+    Cˢ   = ψ.Cˢ  
+    Dˢ   = ψ.Dˢ  
+    Aᵘ   = ψ.Aᵘ  
+    Bᵘ   = ψ.Bᵘ  
+    Cᵘ   = ψ.Cᵘ  
+    Dᵘ   = ψ.Dᵘ  
+    Eᵘ   = ψ.Eᵘ  
+    Fᵘ   = ψ.Fᵘ  
 
     ζ⁻ = min(zero(ζ), ζ)
     ζ⁺ = max(zero(ζ), ζ)
-    dζ = min(50, p₁ * ζ⁺)
+    dζ = min(ζmax, Aˢ * ζ⁺)
 
-    ψ_stable = - p₂ * ζ⁺ - 3 / 4 * (ζ⁺ - 5 / p₁) * exp(-dζ) - 3 / 4 * 5 / p₁
-    
-    fₘ = sqrt(sqrt(1 - p₃ * ζ⁻))
-    ψ_unstable_1 = log((1 + fₘ)^2 * (1 + fₘ^2) / 8) - 2 * atan(fₘ) + π / 2;
+    # Stability parameter for _stable_ atmospheric conditions
+    ψₛ = - (Bˢ * ζ⁺ + Cˢ * (ζ⁺ - Dˢ)) * exp(- dζ) - Cˢ * Dˢ
+        
+    # Stability parameter for _unstable_ atmospheric conditions
+    fᵤ₁ = sqrt(sqrt(1 - Aᵘ * ζ⁻))
+    ψᵤ₁ = Bᵘ * log((1 + fᵤ₁) / Bᵘ) + log((1 + fᵤ₁^2) / Bᵘ) - Bᵘ * atan(fᵤ₁) + Cᵘ
+        
+    fᵤ₂ = cbrt(1 - Dᵘ * ζ⁻)
+    ψᵤ₂ = Eᵘ / 2 * log((1 + fᵤ₂ + fᵤ₂^2) / Eᵘ) - sqrt(Eᵘ) * atan( (1 + 2fᵤ₂) / sqrt(Eᵘ)) + Fᵘ
+        
+    f  = ζ⁻^2 / (1 + ζ⁻^2)
+    ψᵤ = (1 - f) * ψᵤ₁ + f * ψᵤ₂  
+        
+    return ifelse(ζ < 0, ψᵤ, ψₛ)
+end
 
-    fₘ = cbrt(1 - p₄ * ζ⁻)
-    ψ_unstable_2 = 1.5 * log((1 + fₘ + fₘ^2) / 3) - sqrt(3) * atan((1 + 2fₘ) / sqrt(3))+ π / sqrt(3)
-    
-    f⁻ = ζ⁻^2 / (1 + ζ⁻^2)
-    ψ_unstable = (1 - f⁻) * ψ_unstable_1 + f⁻ * ψ_unstable_2
+"""
+    ScalarStabilityFunction{FT}
 
-    return ifelse(ζ < 0, ψ_unstable, ψ_stable)
+A struct representing the scalar stability function detailed in Edson et al (2013).
+The formulation hinges on the definition of three different functions:
+one for stable atmospheric conditions ``(ζ > 0)``, named ``ψₛ`` and two for unstable conditions,
+named ``ψᵤ₁`` and ``ψᵤ₂``.
+These stability functions are obtained by regression to experimental data.
+
+The stability parameter for stable atmospheric conditions is defined as
+```math
+dζ = min(ζmax, Aˢζ)
+ψₛ = - (1 + Bˢ ζ) ^ Cₛ - Bˢ ( ζ - Dˢ ) * exp( - dζ) - Eˢ
+```
+
+While the stability parameter for unstable atmospheric conditions is calculated
+as a function of the two individual stability functions as follows
+```math
+fᵤ₁ = √(1 - Aᵘζ)
+ψᵤ₁ = Bᵘ ⋅ log((1 + fᵤ₁) / Bᵘ) + Cᵤ
+
+fᵤ₂ = ∛(1 - Dᵘζ)
+ψᵤ₂ = Eᵘ / 2 ⋅ log((1 + fᵤ₂ + fᵤ₂²) / Eᵘ) - √Eᵘ atan( (1 + 2fᵤ₂) / √Eᵘ) + Fᵘ
+
+f  = ζ² / (1 + ζ²)
+ψᵤ = (1 - f) ψᵤ₁ + f ψᵤ₂  
+```
+
+The superscripts ``ˢ`` and ``ᵘ`` indicate if the parameter applies to the 
+stability function for _stable_ or _unstable_ atmospheric conditions, respectively.
+"""
+@kwdef struct ScalarStabilityFunction{FT}
+    ζmax :: FT = 50.0
+    Aˢ   :: FT = 0.35
+    Bˢ   :: FT = 2/3
+    Cˢ   :: FT = 3/2
+    Dˢ   :: FT = 14.28
+    Eˢ   :: FT = 8.525
+    Aᵘ   :: FT = 15.0
+    Bᵘ   :: FT = 2.0
+    Cᵘ   :: FT = 0.0
+    Dᵘ   :: FT = 34.15
+    Eᵘ   :: FT = 3.0
+    Fᵘ   :: FT = π / sqrt(3)
 end
 
 @inline function (ψ::ScalarStabilityFunction)(ζ)
-    # Parameters
-    p₁ = ψ.p₁
-    p₂ = ψ.p₂
-    p₃ = ψ.p₃
-    p₄ = ψ.p₄
-    p₅ = ψ.p₅
+    ζmax = ψ.ζmax
+    Aˢ   = ψ.Aˢ  
+    Bˢ   = ψ.Bˢ  
+    Cˢ   = ψ.Cˢ  
+    Dˢ   = ψ.Dˢ  
+    Eˢ   = ψ.Eˢ  
+    Aᵘ   = ψ.Aᵘ  
+    Bᵘ   = ψ.Bᵘ  
+    Cᵘ   = ψ.Cᵘ  
+    Dᵘ   = ψ.Dᵘ  
+    Eᵘ   = ψ.Eᵘ  
+    Fᵘ   = ψ.Fᵘ  
 
     ζ⁻ = min(zero(ζ), ζ)
     ζ⁺ = max(zero(ζ), ζ)
-    dζ = min(50, p₁ * ζ⁺)
+    dζ = min(ζmax, Aˢ * ζ⁺)
 
-    ψ_stable = - (4 * ζ⁺ / 3)^(3 / 2) - 2 / 3 * (ζ⁺ - p₂) * exp(-dζ) - p₃
+    # stability function for stable atmospheric conditions 
+    ψₛ = - (1 + Bˢ * ζ⁺) ^ Cˢ - Bˢ * (ζ⁺ - Dˢ) * exp(-dζ) - Eˢ
     
-    fₕ = sqrt(1 - p₄ * ζ⁻)
-    ψ_unstable_1 = 2 * log((1 + fₕ) / 2) 
+    # Stability parameter for _unstable_ atmospheric conditions
+    fᵤ₁ = sqrt(1 - Aᵘ * ζ⁻)
+    ψᵤ₁ = Bᵘ * log((1 + fᵤ₁) / Bᵘ) + Cᵘ
+        
+    fᵤ₂ = cbrt(1 - Dᵘ * ζ⁻)
+    ψᵤ₂ = Eᵘ / 2 * log((1 + fᵤ₂ + fᵤ₂^2) / Eᵘ) - sqrt(Eᵘ) * atan( (1 + 2fᵤ₂) / sqrt(Eᵘ)) + Fᵘ
+        
+    f  = ζ⁻^2 / (1 + ζ⁻^2)
+    ψᵤ = (1 - f) * ψᵤ₁ + f * ψᵤ₂  
 
-    fₕ = cbrt(1 - p₅ * ζ⁻)
-    ψ_unstable_2 = 3 / 2 * log((1 + fₕ + fₕ^2) / 3) - sqrt(3) * atan((1 + 2fₕ) / sqrt(3))+ π / sqrt(3)
-    
-    f⁻ = ζ⁻^2 / (1 + ζ⁻^2)
-    ψ_unstable = (1 - f⁻) * ψ_unstable_1 + f⁻ * ψ_unstable_2
-
-    return ifelse(ζ < 0, ψ_unstable, ψ_stable)
+    return ifelse(ζ < 0, ψᵤ, ψₛ)
 end

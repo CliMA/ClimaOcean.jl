@@ -158,13 +158,38 @@ coupled_simulation = Simulation(coupled_model; Δt=1, stop_time = 20days)
 
 run!(coupled_simulation)
 
-wizard = TimeStepWizard(; cfl = 0.4, max_Δt = 800, max_change = 1.1)
-ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
+#####
+##### Visualization
+#####
 
-# Let's reset the maximum number of iterations
-coupled_model.ocean.stop_time = 7200days
-coupled_simulation.stop_time = 7200days
-coupled_model.ocean.stop_iteration = Inf
-coupled_simulation.stop_iteration = Inf
+using CairoMakie
 
-run!(coupled_simulation)
+u, v, w = model.velocities
+T, S, e = model.tracers
+
+using Oceananigans.Models.HydrostaticFreeSurfaceModel: VerticalVorticityField
+
+ζ = VerticalVorticityField(model)
+s = Field(sqrt(u^2 + v^2))
+
+compute!(ζ)
+compute!(s)
+
+ζ = on_architecture(CPU(), ζ)
+s = on_architecture(CPU(), s)
+T = on_architecture(CPU(), T)
+e = on_architecture(CPU(), e)
+
+fig = Figure(size = (1000, 800))
+
+ax = Axis(fig[1, 1], title = "Vertical vorticity [s⁻¹]")
+heatmap!(ax, interior(ζ, :, :, grid.Nz), colorrange = (-4e-5, 4e-5), colormap = :bwr)
+
+ax = Axis(fig[1, 2], title = "Surface speed [ms⁻¹]")
+heatmap!(ax, interior(s, :, :, grid.Nz), colorrange = (0, 0.5), colormap = :deep)
+
+ax = Axis(fig[2, 1], title = "Surface Temperature [Cᵒ]")
+heatmap!(ax, interior(T, :, :, grid.Nz), colorrange = (-1, 30), colormap = :magma)
+
+ax = Axis(fig[2, 1], title = "Turbulent Kinetic Energy [m²s⁻²]")
+heatmap!(ax, interior(e, :, :, grid.Nz), colorrange = (0, 1e-3), colormap = :solar)

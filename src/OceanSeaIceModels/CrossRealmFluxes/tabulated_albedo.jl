@@ -1,9 +1,10 @@
 using Oceananigans.Fields: interpolator
 using Oceananigans.Grids: on_architecture
+using Base
 
 using ClimaOcean.OceanSeaIceModels:
     PrescribedAtmosphere,
-    TwoStreamDownwellingRadiation
+    TwoBandDownwellingRadiation
 
 # Bilinear interpolation of the albedo α in α_table based on a 
 # transmissivity value (𝓉_values) and latitude (φ_values)
@@ -45,10 +46,10 @@ const α_payne = [ 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0
 
 """
     TabulatedAlbedo(arch = CPU(), FT = Float64;
-                   S₀ = convert(FT, 1365),
-                   α_table  = α_payne,
-                   φ_values = (0:2:90) ./ 180 * π,
-                   𝓉_values = 0:0.05:1)
+                    S₀ = convert(FT, 1365),
+                    α_table  = α_payne,
+                    φ_values = (0:2:90) ./ 180 * π,
+                    𝓉_values = 0:0.05:1)
 
 Constructs a `TabulatedAlbedo` object that interpolated the albedo from a value table `α_table` that
 is function of latitude `φ` and atmospheric transimissivity `𝓉`.
@@ -61,7 +62,6 @@ and day in the year.
 
 # Arguments
 ============
-
 - `arch`: The architecture to use (default: `CPU()`).
 - `FT`: The floating-point type to use (default: `Float64`).
 
@@ -79,20 +79,24 @@ function TabulatedAlbedo(arch = CPU(), FT = Float64;
                          𝓉_values = 0:0.05:1)
 
     # Make everything GPU - ready
-    α_table  = on_architecture(arch, α_table)
-    φ_values = on_architecture(arch, φ_values) 
-    𝓉_values = on_architecture(arch, 𝓉_values) 
+    α_table  = on_architecture(arch, convert.(FT, α_table))
+    φ_values = on_architecture(arch, convert.(FT, φ_values)) 
+    𝓉_values = on_architecture(arch, convert.(FT, 𝓉_values))
 
-    return TabulatedAlbedo(α_table, φ_values, 𝓉_values, S₀)
+    return TabulatedAlbedo(α_table, φ_values, 𝓉_values, convert(FT, S₀))
 end
+
+Base.eltype(α::TabulatedAlbedo) = Base.eltype(α.S₀)
 
 @inline ϕ₁(ξ, η) = (1 - ξ) * (1 - η)
 @inline ϕ₂(ξ, η) = (1 - ξ) *      η 
 @inline ϕ₃(ξ, η) =      ξ  * (1 - η)
 @inline ϕ₄(ξ, η) =      ξ  *      η 
 
-@inline function net_downwelling_radiation(i, j, grid, time, Qs, Qℓ, radiation::Radiation{<:Any, <:Any, <:SurfaceProperties{<:TabulatedAlbedo}})
+@inline function net_downwelling_radiation(i, j, grid, time, radiation::Radiation{<:Any, <:Any, <:SurfaceProperties{<:TabulatedAlbedo}}, Qs, Qℓ) 
     α = radiation.reflection.ocean
+
+    FT = eltype(α)
 
     λ, φ, z = node(i, j, 1, grid, Center(), Center(), Center())
 
@@ -101,7 +105,7 @@ end
     time = time.time
 
     day     = time ÷ 86400
-    day2rad = 2π / 86400
+    day2rad = convert(FT, 2π / 86400)
 
     noon_in_sec = 86400 ÷ 2
     sec_of_day  = time - day * 86400
@@ -110,8 +114,9 @@ end
     h = (sec_of_day - noon_in_sec) * day2rad + λ
 
     # Declination angle δ
-	march_first = 80.0
+	march_first = 80
 	δ = deg2rad((23 + 27/60) * sind(360 * (day - march_first) / 365.25))
+    δ = convert(FT, δ)
 
 	# Zenith angle of the sun (if smaller than 0 we are in the dark)
 	cosθₛ = max(0, sin(φ) * sin(δ) + cos(h) * cos(δ) * cos(φ))

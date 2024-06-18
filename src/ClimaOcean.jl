@@ -10,6 +10,7 @@ export
     regrid_bathymetry,
     retrieve_bathymetry,
     stretched_vertical_faces,
+    exponential_z_faces,
     PowerLawStretching, LinearStretching,
     exponential_z_faces,
     jra55_field_time_series,

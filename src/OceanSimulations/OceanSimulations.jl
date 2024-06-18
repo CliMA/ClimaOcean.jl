@@ -63,6 +63,7 @@ function ocean_simulation(grid; Δt = 5minutes,
                           gravitational_acceleration = g_Earth,
                           drag_coefficient = 0.003,
                           forcing = NamedTuple(),
+                          coriolis = HydrostaticSphericalCoriolis(; rotation_rate),
                           momentum_advection = default_momentum_advection(),
                           tracer_advection = default_tracer_advection(),
                           verbose = false)
@@ -86,6 +87,12 @@ function ocean_simulation(grid; Δt = 5minutes,
 
     forcing = merge(forcing, (; u = Fu, v = Fv))
 
+    if grid isa ImmersedBoundaryGrid
+        Fu = Forcing(u_immersed_bottom_drag, discrete_form=true, parameters=drag_coefficient)
+        Fv = Forcing(v_immersed_bottom_drag, discrete_form=true, parameters=drag_coefficient)
+        forcing = merge(forcing, (; u = Fu, v = Fv))
+    end
+    
     # Use the TEOS10 equation of state
     teos10 = TEOS10EquationOfState(; reference_density)
     buoyancy = SeawaterBuoyancy(; gravitational_acceleration, equation_of_state=teos10)
@@ -102,8 +109,6 @@ function ocean_simulation(grid; Δt = 5minutes,
         tracers = tuple(tracers..., :e)
         tracer_advection = (; T = tracer_advection, S = tracer_advection, e = nothing)
     end
-
-    coriolis = HydrostaticSphericalCoriolis(; rotation_rate)
 
     ocean_model = HydrostaticFreeSurfaceModel(; grid,
                                               buoyancy,
