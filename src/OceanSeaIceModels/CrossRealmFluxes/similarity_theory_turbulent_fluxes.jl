@@ -298,14 +298,14 @@ end
     return b★
 end
 
-@inline characteristic_velocities(𝒰₁, 𝒰₀, ::RelativeVelocity) = @inbounds 𝒰₁.u[1] - 𝒰₀.u[1], 𝒰₁.u[2] - 𝒰₀.u[2]
-@inline characteristic_velocities(𝒰₁, 𝒰₀, ::WindVelocity)     = @inbounds 𝒰₁.u[1], 𝒰₁.u[2] 
+@inline velocity_differences(𝒰₁, 𝒰₀, ::RelativeVelocity) = @inbounds 𝒰₁.u[1] - 𝒰₀.u[1], 𝒰₁.u[2] - 𝒰₀.u[2]
+@inline velocity_differences(𝒰₁, 𝒰₀, ::WindVelocity)     = @inbounds 𝒰₁.u[1], 𝒰₁.u[2] 
 
 @inline function state_differences(ℂ, 𝒰₁, 𝒰₀, g, bulk_velocity)
     z₁ = 𝒰₁.z
     z₀ = 𝒰₀.z
     Δh = z₁ - z₀
-    Δu, Δv = characteristic_velocities(𝒰₁, 𝒰₀, bulk_velocity)
+    Δu, Δv = velocity_differences(𝒰₁, 𝒰₀, bulk_velocity)
 
     # Thermodynamic state
     𝒬₁ = 𝒰₁.ts
