@@ -70,7 +70,7 @@ stability function for _stable_ or _unstable_ atmospheric conditions, respective
     Eᵘ   :: FT = 3.0
     Fᵘ   :: FT = π / sqrt(3)
 end
-
+    
 @inline function (ψ::MomentumStabilityFunction)(ζ)
     ζmax = ψ.ζmax
     Aˢ   = ψ.Aˢ  

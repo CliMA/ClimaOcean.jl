@@ -13,13 +13,17 @@ struct TabulatedAlbedo{M, P, T, FT}
     φ_values :: P
     𝓉_values :: T
     S₀ :: FT # Solar constant W / m^2
+    day_to_radians :: FT
+    noon_in_seconds :: Int
 end
 
 Adapt.adapt_structure(to, α :: TabulatedAlbedo) = 
     TabulatedAlbedo(Adapt.adapt(to, α.α_table),
                     Adapt.adapt(to, α.φ_values),
                     Adapt.adapt(to, α.𝓉_values),
-                    Adapt.adapt(to, α.S₀))
+                    Adapt.adapt(to, α.S₀),
+                    Adapt.adapt(to, α.day_to_radians),
+                    Adapt.adapt(to, α.noon_in_seconds))
 
 # Tabulated from Payne (1972) https://doi.org/10.1175/1520-0469(1972)029<0959:AOTSS>2.0.CO;2
 const α_payne = [ 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.06
@@ -76,14 +80,17 @@ function TabulatedAlbedo(arch = CPU(), FT = Float64;
                          S₀ = convert(FT, 1365),
                          α_table  = α_payne,
                          φ_values = (0:2:90) ./ 180 * π,
-                         𝓉_values = 0:0.05:1)
+                         𝓉_values = 0:0.05:1,
+                         day_to_radians  = convert(FT, 2π / 86400), 
+                         noon_in_seconds = 86400 ÷ 2 # assumes that midnight is at t = 0 seconds
+                         )
 
     # Make everything GPU - ready
     α_table  = on_architecture(arch, convert.(FT, α_table))
     φ_values = on_architecture(arch, convert.(FT, φ_values)) 
     𝓉_values = on_architecture(arch, convert.(FT, 𝓉_values))
 
-    return TabulatedAlbedo(α_table, φ_values, 𝓉_values, convert(FT, S₀))
+    return TabulatedAlbedo(α_table, φ_values, 𝓉_values, convert(FT, S₀), convert(FT, day_to_radians), noon_in_seconds)
 end
 
 Base.eltype(α::TabulatedAlbedo) = Base.eltype(α.S₀)
@@ -92,6 +99,12 @@ Base.eltype(α::TabulatedAlbedo) = Base.eltype(α.S₀)
 @inline ϕ₂(ξ, η) = (1 - ξ) *      η 
 @inline ϕ₃(ξ, η) =      ξ  * (1 - η)
 @inline ϕ₄(ξ, η) =      ξ  *      η 
+
+# Assumption: if the time is represented by a number it is defined in seconds. 
+# TODO: extend these functions for `DateTime` times when these are supported in
+# Oceananigans.
+@inline simulation_day(time::Time{<:Number})      = time.time ÷ 86400
+@inline seconds_in_day(time::Time{<:Number}, day) = time.time - day * 86400
 
 @inline function net_downwelling_radiation(i, j, grid, time, radiation::Radiation{<:Any, <:Any, <:SurfaceProperties{<:TabulatedAlbedo}}, Qs, Qℓ) 
     α = radiation.reflection.ocean
@@ -102,14 +115,12 @@ Base.eltype(α::TabulatedAlbedo) = Base.eltype(α.S₀)
 
     φ = deg2rad(φ)
     λ = deg2rad(λ)
-    time = time.time
 
-    day     = time ÷ 86400
-    day2rad = convert(FT, 2π / 86400)
-
-    noon_in_sec = 86400 ÷ 2
-    sec_of_day  = time - day * 86400
-
+    day     = simulation_day(time)
+    day2rad = α.day2rad     
+    noon_in_sec = α.noon_in_seconds    
+    sec_of_day  = seconds_in_day(time, day)
+    
     # Hour angle h
     h = (sec_of_day - noon_in_sec) * day2rad + λ
 
