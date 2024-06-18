@@ -173,8 +173,8 @@ limit_fluxes_over_sea_ice!(args...) = nothing
     # Build surface state with saturated specific humidity
     surface_type = AtmosphericThermodynamics.Liquid()
     qₒ = seawater_saturation_specific_humidity(ℂₐ, Tₒ, Sₒ, 𝒬ₐ,
-                                               0.98, #similarity_theory.water_mole_fraction,
-                                               ClasiusClapyeronSaturation(), #similarity_theory.water_vapor_saturation,
+                                               similarity_theory.water_mole_fraction,
+                                               similarity_theory.water_vapor_saturation,
                                                surface_type)
     
     # Thermodynamic and dynamic surface state
