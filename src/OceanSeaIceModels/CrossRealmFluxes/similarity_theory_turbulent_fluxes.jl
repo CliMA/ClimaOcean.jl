@@ -386,8 +386,8 @@ end
     q★ = χq * Δq
 
     # Buoyancy flux characteristic scale for gustiness (Edson 2013)
-    ε★ = - u★ * b★
-    uᴳ = β * cbrt(ε★ * zᵢ)
+    Jᵇ = - u★ * b★
+    uᴳ = β * cbrt(Jᵇ * zᵢ)
 
     # New velocity difference accounting for gustiness
     uτ = sqrt(Δu^2 + Δv^2 + uᴳ^2)
