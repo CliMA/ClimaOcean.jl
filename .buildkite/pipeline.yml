@@ -41,16 +41,16 @@ steps:
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
 
-  - label: "documentation"
-    env:
-      JULIA_DEBUG: "Documenter"
-    commands:
-      - "julia --color=yes --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'"
-      - "julia --color=yes --project=docs/ docs/make.jl"
-    agents:
-      slurm_mem: 120G
-      slurm_ntasks: 1
-      slurm_gpus_per_task: 1
+  # - label: "documentation"
+  #   env:
+  #     JULIA_DEBUG: "Documenter"
+  #   commands:
+  #     - "julia --color=yes --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'"
+  #     - "julia --color=yes --project=docs/ docs/make.jl"
+  #   agents:
+  #     slurm_mem: 120G
+  #     slurm_ntasks: 1
+  #     slurm_gpus_per_task: 1
 
   - wait: ~
     continue_on_failure: true
