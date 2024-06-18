@@ -165,7 +165,7 @@ function empty_ecco2_field(data::ECCO2Metadata;
     if variable_is_three_dimensional[variable_name] 
         z    = ECCO2_z
         # add vertical halo for 3D fields
-        halo = (horizontal_halo..., 1)
+        halo = (horizontal_halo..., 3)
         LZ   = Center
         TZ   = Bounded
         N    = (ECCO2_Nx, ECCO2_Ny, ECCO2_Nz)
@@ -251,13 +251,13 @@ end
 """
     ecco2_center_mask(architecture = CPU(); minimum_value = Float32(-1e5))
 
-A boolean field where `false` represents a missing value in the ECCO2 :temperature dataset.
+A boolean field where `true` represents a missing value in the ECCO2 :temperature dataset.
 """
 function ecco2_center_mask(architecture = CPU(); minimum_value = Float32(-1e5))
     Tᵢ   = ecco2_field(:temperature; architecture)
     mask = CenterField(Tᵢ.grid, Bool)
 
-    # Set the mask with ones where T is defined
+    # Set the mask with ones where T is missing
     launch!(architecture, Tᵢ.grid, :xyz, _set_ecco2_mask!, mask, Tᵢ, minimum_value)
 
     return mask
@@ -290,7 +290,7 @@ Keyword Arguments:
 """
 function inpainted_ecco2_field(variable_name; 
                                architecture = CPU(),
-                               filename = "./inpainted_ecco2_fields.nc",
+                               filename = "./inpainted_ecco2_$(variable_name).nc",
                                mask = ecco2_center_mask(architecture),
                                kw...)
     
@@ -330,7 +330,9 @@ function inpainted_ecco2_field(variable_name;
     return f
 end
 
-function set!(field::DistributedField, ecco2_metadata::ECCO2Metadata; filename="./inpainted_ecco2_fields.nc", kw...)
+function set!(field::DistributedField, ecco2_metadata::ECCO2Metadata; 
+              filename="./inpainted_ecco2_$(ecco2_metadata.name).nc", kw...)
+              
     # Fields initialized from ECCO2
     grid = field.grid
     arch = architecture(grid)
@@ -359,7 +361,8 @@ function set!(field::DistributedField, ecco2_metadata::ECCO2Metadata; filename="
     return field
 end
 
-function set!(field::Field, ecco2_metadata::ECCO2Metadata; filename="./inpainted_ecco2_fields.nc", kw...)
+function set!(field::Field, ecco2_metadata::ECCO2Metadata; 
+              filename="./inpainted_ecco2_$(ecco2_metadata.name).nc", kw...)
 
     # Fields initialized from ECCO2
     grid = field.grid

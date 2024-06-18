@@ -265,7 +265,7 @@ end
     end
 
     # Compute heat fluxes, bulk flux first
-    Qd = net_downwelling_radiation(i, j, grid, time, Qs, Qℓ, radiation_properties)
+    Qd = net_downwelling_radiation(i, j, grid, time, radiation_properties, Qs, Qℓ)
     Qu = net_upwelling_radiation(i, j, grid, time, radiation_properties, Tₒ)
 
     ΣQ = Qd + Qu + Qc + Qv
@@ -316,9 +316,9 @@ end
 
 # Fallback for a `Nothing` radiation scheme
 @inline   net_upwelling_radiation(i, j, grid, time, ::Nothing, Tₒ)     = zero(grid)
-@inline net_downwelling_radiation(i, j, grid, time, Qs, Qℓ, ::Nothing) = zero(grid)
+@inline net_downwelling_radiation(i, j, grid, time, ::Nothing, Qs, Qℓ) = zero(grid)
 
-@inline function net_downwelling_radiation(i, j, grid, time, Qs, Qℓ, radiation)
+@inline function net_downwelling_radiation(i, j, grid, time, radiation, Qs, Qℓ)
     α = stateindex(radiation.reflection.ocean, i, j, 1, grid, time)
     ϵ = stateindex(radiation.emission.ocean, i, j, 1, grid, time)
     

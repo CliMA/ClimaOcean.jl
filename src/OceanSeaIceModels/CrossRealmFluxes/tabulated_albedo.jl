@@ -4,7 +4,7 @@ using Base
 
 using ClimaOcean.OceanSeaIceModels:
     PrescribedAtmosphere,
-    TwoStreamDownwellingRadiation
+    TwoBandDownwellingRadiation
 
 # Bilinear interpolation of the albedo α in α_table based on a 
 # transmissivity value (𝓉_values) and latitude (φ_values)
@@ -93,7 +93,7 @@ Base.eltype(α::TabulatedAlbedo) = Base.eltype(α.S₀)
 @inline ϕ₃(ξ, η) =      ξ  * (1 - η)
 @inline ϕ₄(ξ, η) =      ξ  *      η 
 
-@inline function net_downwelling_radiation(i, j, grid, time, Qs, Qℓ, radiation::Radiation{<:Any, <:Any, <:SurfaceProperties{<:TabulatedAlbedo}}) 
+@inline function net_downwelling_radiation(i, j, grid, time, radiation::Radiation{<:Any, <:Any, <:SurfaceProperties{<:TabulatedAlbedo}}, Qs, Qℓ) 
     α = radiation.reflection.ocean
 
     FT = eltype(α)

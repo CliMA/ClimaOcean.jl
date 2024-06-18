@@ -13,7 +13,7 @@ using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBac
 
 using ClimaOcean.OceanSeaIceModels:
     PrescribedAtmosphere,
-    TwoStreamDownwellingRadiation
+    TwoBandDownwellingRadiation
 
 using CUDA: @allowscalar
 
@@ -642,7 +642,7 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
                        
     pressure = pa
 
-    downwelling_radiation = TwoStreamDownwellingRadiation(shortwave=Qs, longwave=Ql)
+    downwelling_radiation = TwoBandDownwellingRadiation(shortwave=Qs, longwave=Ql)
 
     FT = eltype(ua)
     measurement_height = convert(FT, measurement_height)
