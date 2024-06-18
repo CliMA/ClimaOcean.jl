@@ -67,7 +67,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             atmosphere_times,
             atmosphere_backend,
             atmosphere_time_indexing,
-            atmosphere.measurement_height, # height at which the state is known
+            atmosphere.reference_height, # height at which the state is known
             atmosphere.boundary_layer_height,
             atmosphere.thermodynamics_parameters)   
     
@@ -120,7 +120,7 @@ limit_fluxes_over_sea_ice!(args...) = nothing
                                                                      atmos_times,
                                                                      atmos_backend,
                                                                      atmos_time_indexing,
-                                                                     atmosphere_measurement_height,
+                                                                     atmosphere_reference_height,
                                                                      atmosphere_boundary_layer_height,
                                                                      atmos_thermodynamics_parameters)
 
@@ -166,7 +166,7 @@ limit_fluxes_over_sea_ice!(args...) = nothing
     ℂₐ = atmos_thermodynamics_parameters
     𝒬ₐ = thermodynamic_atmospheric_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₐ, qₐ)
 
-    hₐ = atmosphere_measurement_height # elevation of atmos variables relative to surface
+    hₐ = atmosphere_reference_height # elevation of atmos variables relative to surface
     Uₐ = SVector(uₐ, vₐ)
     𝒰ₐ = dynamic_atmos_state = SurfaceFluxes.StateValues(hₐ, Uₐ, 𝒬ₐ)
 

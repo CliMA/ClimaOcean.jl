@@ -588,7 +588,7 @@ JRA55_prescribed_atmosphere(arch::Distributed, time_indices=Colon(); kw...) =
 function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
                                      backend = nothing,
                                      time_indexing = Cyclical(),
-                                     measurement_height = 10,  # meters
+                                     reference_height = 10,  # meters
                                      include_rivers_and_icebergs = true, # rivers and icebergs are not needed in single column simulations
                                      other_kw...)
 
@@ -645,14 +645,14 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
     downwelling_radiation = TwoBandDownwellingRadiation(shortwave=Qs, longwave=Ql)
 
     FT = eltype(ua)
-    measurement_height = convert(FT, measurement_height)
+    reference_height = convert(FT, reference_height)
 
     atmosphere = PrescribedAtmosphere(times, FT;
                                       velocities,
                                       freshwater_flux,
                                       tracers,
                                       downwelling_radiation,
-                                      measurement_height,
+                                      reference_height,
                                       pressure)
 
     return atmosphere
