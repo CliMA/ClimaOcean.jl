@@ -61,7 +61,7 @@ function ocean_simulation(grid; Δt = 5minutes,
                           reference_density = 1020,
                           rotation_rate = Ω_Earth,
                           gravitational_acceleration = g_Earth,
-                          drag_coefficient = 0.003,
+                          bottom_drag_coefficient = 0.003,
                           forcing = NamedTuple(),
                           coriolis = HydrostaticSphericalCoriolis(; rotation_rate),
                           momentum_advection = default_momentum_advection(),
@@ -74,8 +74,8 @@ function ocean_simulation(grid; Δt = 5minutes,
     top_ocean_heat_flux          = Jᵀ = Field{Center, Center, Nothing}(grid)
     top_salt_flux                = Jˢ = Field{Center, Center, Nothing}(grid)
 
-    u_bot_bc = FluxBoundaryCondition(u_quadratic_bottom_drag, discrete_form=true, parameters=drag_coefficient)
-    v_bot_bc = FluxBoundaryCondition(v_quadratic_bottom_drag, discrete_form=true, parameters=drag_coefficient)
+    u_bot_bc = FluxBoundaryCondition(u_quadratic_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
+    v_bot_bc = FluxBoundaryCondition(v_quadratic_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
 
     ocean_boundary_conditions = (u = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵘ), bottom = u_bot_bc),
                                  v = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵛ), bottom = v_bot_bc),
@@ -83,8 +83,8 @@ function ocean_simulation(grid; Δt = 5minutes,
                                  S = FieldBoundaryConditions(top = FluxBoundaryCondition(Jˢ)))
 
     if grid isa ImmersedBoundaryGrid
-        Fu = Forcing(u_immersed_bottom_drag, discrete_form=true, parameters=drag_coefficient)
-        Fv = Forcing(v_immersed_bottom_drag, discrete_form=true, parameters=drag_coefficient)
+        Fu = Forcing(u_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
+        Fv = Forcing(v_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
         forcing = merge(forcing, (; u = Fu, v = Fv))
     end
     
