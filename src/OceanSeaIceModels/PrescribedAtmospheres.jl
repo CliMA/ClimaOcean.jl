@@ -296,7 +296,7 @@ struct PrescribedAtmosphere{G, U, P, C, F, R, TP, TI, FT}
     downwelling_radiation :: R
     thermodynamics_parameters :: TP
     times :: TI
-    measurement_height :: FT
+    reference_height :: FT
     boundary_layer_height :: FT
 end
 
@@ -305,7 +305,7 @@ Base.show(io::IO, pa::PrescribedAtmosphere) = print(io, summary(pa))
 
 """
     PrescribedAtmosphere(times;
-                         measurement_height,
+                         reference_height,
                          velocities = nothing,
                          pressure = nothing,
                          freshwater_flux = nothing,
@@ -316,7 +316,7 @@ Return a representation of a prescribed time-evolving atmospheric
 state with data given at `times`.
 """
 function PrescribedAtmosphere(times, FT=Float64;
-                              measurement_height,
+                              reference_height,
                               velocities = nothing,
                               boundary_layer_height = convert(FT, 600),
                               pressure = nothing,
@@ -339,7 +339,7 @@ function PrescribedAtmosphere(times, FT=Float64;
                                 downwelling_radiation,
                                 thermodynamics_parameters,
                                 times,
-                                convert(FT, measurement_height),
+                                convert(FT, reference_height),
                                 convert(FT, boundary_layer_height))
 end
 
