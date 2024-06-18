@@ -82,11 +82,6 @@ function ocean_simulation(grid; Δt = 5minutes,
                                  T = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵀ)),
                                  S = FieldBoundaryConditions(top = FluxBoundaryCondition(Jˢ)))
 
-    Fu = Forcing(u_immersed_bottom_drag, discrete_form=true, parameters=drag_coefficient)
-    Fv = Forcing(v_immersed_bottom_drag, discrete_form=true, parameters=drag_coefficient)
-
-    forcing = merge(forcing, (; u = Fu, v = Fv))
-
     if grid isa ImmersedBoundaryGrid
         Fu = Forcing(u_immersed_bottom_drag, discrete_form=true, parameters=drag_coefficient)
         Fv = Forcing(v_immersed_bottom_drag, discrete_form=true, parameters=drag_coefficient)
