@@ -117,8 +117,8 @@ Base.eltype(α::TabulatedAlbedo) = Base.eltype(α.S₀)
     φ = deg2rad(φ)
     λ = deg2rad(λ)
 
-    day     = simulation_day(time)
-    day2rad = α.day2rad     
+    day         = simulation_day(time)
+    day2rad     = α.day_to_radians     
     noon_in_sec = α.noon_in_seconds    
     sec_of_day  = seconds_in_day(time, day)
     
