@@ -287,12 +287,13 @@ const PATP = PrescribedAtmosphereThermodynamicsParameters
 ##### Prescribed atmosphere (as opposed to dynamically evolving / prognostic)
 #####
 
-struct PrescribedAtmosphere{G, U, P, C, F, R, TP, TI, FT}
+struct PrescribedAtmosphere{G, U, P, C, F, I, R, TP, TI, FT}
     grid :: G
     velocities :: U
     pressure :: P
     tracers :: C
     freshwater_flux :: F
+    runoff_flux :: I
     downwelling_radiation :: R
     thermodynamics_parameters :: TP
     times :: TI
@@ -321,6 +322,7 @@ function PrescribedAtmosphere(times, FT=Float64;
                               boundary_layer_height = convert(FT, 600),
                               pressure = nothing,
                               freshwater_flux = nothing,
+                              runoff_flux = nothing,
                               downwelling_radiation = nothing,
                               thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT),
                               grid = nothing,
@@ -336,6 +338,7 @@ function PrescribedAtmosphere(times, FT=Float64;
                                 pressure,
                                 tracers,
                                 freshwater_flux,
+                                runoff_flux,
                                 downwelling_radiation,
                                 thermodynamics_parameters,
                                 times,

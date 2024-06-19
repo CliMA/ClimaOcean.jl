@@ -34,8 +34,8 @@ function ScalarRoughnessLength(FT=Float64;
                                maximum_roughness_length = 1.6e-4) # Values from COARE3.6
 
     return ScalarRoughnessLength(air_kinematic_viscosity,
-                                        reynolds_number_scaling_function,
-                                        convert(FT, maximum_roughness_length))
+                                 reynolds_number_scaling_function,
+                                 convert(FT, maximum_roughness_length))
 end
 
 """
@@ -104,10 +104,10 @@ function TemperatureDependentAirViscosity(FT = Float64;
                                           C₂ = C₀ * 8.301e-6,
                                           C₃ = - C₀ * 4.84e-9)
 
-        return TemperatureDependentAirViscosity(convert(FT, C₀),
-                                                convert(FT, C₁),
-                                                convert(FT, C₂),
-                                                convert(FT, C₃))
+    return TemperatureDependentAirViscosity(convert(FT, C₀),
+                                            convert(FT, C₁),
+                                            convert(FT, C₂),
+                                            convert(FT, C₃))
 end   
 
 """ Calculate the air viscosity based on the temperature θ in Celsius. """
@@ -155,7 +155,7 @@ Edson et al. (2013), equation (28).
 ```
 """
 ReynoldsScalingFunction(FT = Float64; A = 5.85e-5, b = 0.72) = 
-        ReynoldsScalingFunction(convert(FT, A), convert(FT, b))
+    ReynoldsScalingFunction(convert(FT, A), convert(FT, b))
 
 @inline (s::ReynoldsScalingFunction)(R★, args...) = ifelse(R★ == 0, convert(eltype(R★), 0), s.A / R★ ^ s.b)
 

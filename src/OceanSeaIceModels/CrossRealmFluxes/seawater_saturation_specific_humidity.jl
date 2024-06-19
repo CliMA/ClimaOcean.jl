@@ -15,7 +15,7 @@ function WaterMoleFraction(FT=Float64)
 
     # TODO: find reference for these
     salinity_constituents = (
-        chlorine  = SalinityConstituent{FT}(35.45, 0.56),
+        chloride  = SalinityConstituent{FT}(35.45, 0.56),
         sodium    = SalinityConstituent{FT}(22.99, 0.31),
         sulfate   = SalinityConstituent{FT}(96.06, 0.08),
         magnesium = SalinityConstituent{FT}(24.31, 0.05),
@@ -33,14 +33,14 @@ end
     # Molecular weights
     μ_H₂O = wmf.water_molar_mass
 
-    # Salinity constituents: Cl, Na, SO₄, Mg
-    μ_Cl  = wmf.salinity_constituents.chlorine.molar_mass
+    # Salinity constituents: Cl⁻, Na, SO₄, Mg
+    μ_Cl  = wmf.salinity_constituents.chloride.molar_mass
     μ_Na  = wmf.salinity_constituents.sodium.molar_mass
     μ_SO₄ = wmf.salinity_constituents.sulfate.molar_mass
     μ_Mg  = wmf.salinity_constituents.magnesium.molar_mass
 
     # Salinity constituent fractions
-    ϵ_Cl  = wmf.salinity_constituents.chlorine.mass_fraction
+    ϵ_Cl  = wmf.salinity_constituents.chloride.mass_fraction
     ϵ_Na  = wmf.salinity_constituents.sodium.mass_fraction
     ϵ_SO₄ = wmf.salinity_constituents.sulfate.mass_fraction
     ϵ_Mg  = wmf.salinity_constituents.magnesium.mass_fraction

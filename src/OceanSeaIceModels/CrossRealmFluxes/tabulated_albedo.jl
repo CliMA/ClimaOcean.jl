@@ -1,5 +1,6 @@
 using Oceananigans.Fields: interpolator
 using Oceananigans.Grids: on_architecture
+using Oceananigans.Utils: Time
 using Base
 
 using ClimaOcean.OceanSeaIceModels:
@@ -13,13 +14,17 @@ struct TabulatedAlbedo{M, P, T, FT}
     φ_values :: P
     𝓉_values :: T
     S₀ :: FT # Solar constant W / m^2
+    day_to_radians :: FT
+    noon_in_seconds :: Int
 end
 
 Adapt.adapt_structure(to, α :: TabulatedAlbedo) = 
     TabulatedAlbedo(Adapt.adapt(to, α.α_table),
                     Adapt.adapt(to, α.φ_values),
                     Adapt.adapt(to, α.𝓉_values),
-                    Adapt.adapt(to, α.S₀))
+                    Adapt.adapt(to, α.S₀),
+                    Adapt.adapt(to, α.day_to_radians),
+                    Adapt.adapt(to, α.noon_in_seconds))
 
 # Tabulated from Payne (1972) https://doi.org/10.1175/1520-0469(1972)029<0959:AOTSS>2.0.CO;2
 const α_payne = [ 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.06
@@ -76,14 +81,17 @@ function TabulatedAlbedo(arch = CPU(), FT = Float64;
                          S₀ = convert(FT, 1365),
                          α_table  = α_payne,
                          φ_values = (0:2:90) ./ 180 * π,
-                         𝓉_values = 0:0.05:1)
+                         𝓉_values = 0:0.05:1,
+                         day_to_radians  = convert(FT, 2π / 86400), 
+                         noon_in_seconds = 86400 ÷ 2 # assumes that midnight is at t = 0 seconds
+                         )
 
     # Make everything GPU - ready
     α_table  = on_architecture(arch, convert.(FT, α_table))
     φ_values = on_architecture(arch, convert.(FT, φ_values)) 
     𝓉_values = on_architecture(arch, convert.(FT, 𝓉_values))
 
-    return TabulatedAlbedo(α_table, φ_values, 𝓉_values, convert(FT, S₀))
+    return TabulatedAlbedo(α_table, φ_values, 𝓉_values, convert(FT, S₀), convert(FT, day_to_radians), noon_in_seconds)
 end
 
 Base.eltype(α::TabulatedAlbedo) = Base.eltype(α.S₀)
@@ -109,12 +117,11 @@ Base.eltype(α::TabulatedAlbedo) = Base.eltype(α.S₀)
     φ = deg2rad(φ)
     λ = deg2rad(λ)
 
-    day     = simulation_day(time)
-    day2rad = convert(FT, 2π / 86400)
-
-    noon_in_sec = 86400 ÷ 2
+    day         = simulation_day(time)
+    day2rad     = α.day_to_radians     
+    noon_in_sec = α.noon_in_seconds    
     sec_of_day  = seconds_in_day(time, day)
-
+    
     # Hour angle h
     h = (sec_of_day - noon_in_sec) * day2rad + λ
 

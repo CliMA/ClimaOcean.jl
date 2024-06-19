@@ -55,18 +55,18 @@ tracer_advection = nothing
 coriolis = FPlane(latitude = φ★)
 
 ocean = ocean_simulation(grid; 
-                         drag_coefficient = 0, 
                          coriolis,
                          tracer_advection,
-                         momentum_advection)
+                         momentum_advection,
+                         bottom_drag_coefficient = 0)
 model = ocean.model
 
 start_time = time_ns()
 
 # Initial conditions
-set!(model, T = ECCO2Metadata(:temperature),
-            S = ECCO2Metadata(:salinity),
-            e = 1e-6)
+set!(ocean.model, T = ECCO2Metadata(:temperature),
+                  S = ECCO2Metadata(:salinity),
+                  e = 1e-6)
 
 elapsed = time_ns() - start_time
 @info "Initial condition built. " * prettytime(elapsed * 1e-9)

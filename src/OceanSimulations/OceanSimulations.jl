@@ -1,6 +1,6 @@
 module OceanSimulations
 
-export load_balanced_regional_grid, ocean_simulation
+export ocean_simulation
 
 using Oceananigans
 using Oceananigans.Units
@@ -42,9 +42,6 @@ default_tracer_advection() = TracerAdvection(WENO(; order = 7),
 
 @inline u_quadratic_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.u[i, j, 1] * spᶠᶜᶜ(i, j, 1, grid, Φ)
 @inline v_quadratic_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, 1] * spᶜᶠᶜ(i, j, 1, grid, Φ)
-
-@inline u_immersed_quadratic_bottom_drag(i, j, k, grid, c, Φ, μ) = @inbounds - μ * Φ.u[i, j, k] * spᶠᶜᶜ(i, j, k, grid, Φ)
-@inline v_immersed_quadratic_bottom_drag(i, j, k, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, k] * spᶜᶠᶜ(i, j, k, grid, Φ)
 
 @inline is_immersed_drag_u(i, j, k, grid) = Int(immersed_peripheral_node(i, j, k-1, grid, Face(), Center(), Center()) & !inactive_node(i, j, k, grid, Face(), Center(), Center()))
 @inline is_immersed_drag_v(i, j, k, grid) = Int(immersed_peripheral_node(i, j, k-1, grid, Center(), Face(), Center()) & !inactive_node(i, j, k, grid, Center(), Face(), Center()))

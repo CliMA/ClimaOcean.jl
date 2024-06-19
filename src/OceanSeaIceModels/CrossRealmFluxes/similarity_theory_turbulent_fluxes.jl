@@ -91,6 +91,7 @@ function Base.show(io::IO, fluxes::SimilarityTheoryTurbulentFluxes)
           "├── water_mole_fraction: ",             summary(fluxes.water_mole_fraction), '\n',
           "├── water_vapor_saturation: ",          summary(fluxes.water_vapor_saturation), '\n',
           "├── roughness_lengths: ",               summary(fluxes.roughness_lengths), '\n',
+          "├── bulk_coefficients: ",               summary(fluxes.bulk_coefficients), '\n',
           "└── thermodynamics_parameters: ",       summary(fluxes.thermodynamics_parameters))
 end
 
@@ -230,21 +231,21 @@ end
     # The inital velocity scale assumes that
     # the gustiness velocity `uᴳ` is equal to 0.5 ms⁻¹. 
     # That will be refined later on.
-    uτ = sqrt(Δu^2 + Δv^2 + convert(eltype(Δh), 0.25))
+    ΔUᴳ = sqrt(Δu^2 + Δv^2 + convert(eltype(Δh), 0.25))
 
     # Initialize the solver
     iteration = 0
 
     while iterating(Σ★ - Σ₀, iteration, maxiter, similarity_theory)
         Σ₀ = Σ★
-        Σ★, uτ = refine_characteristic_scales(Σ★, uτ, 
-                                              similarity_theory,
-                                              surface_state,
-                                              differences,
-                                              atmos_boundary_layer_height,
-                                              thermodynamics_parameters,
-                                              gravitational_acceleration,
-                                              von_karman_constant)
+        Σ★, ΔUᴳ = refine_characteristic_scales(Σ★, ΔUᴳ, 
+                                               similarity_theory,
+                                               surface_state,
+                                               differences,
+                                               atmos_boundary_layer_height,
+                                               thermodynamics_parameters,
+                                               gravitational_acceleration,
+                                               von_karman_constant)
         iteration += 1
     end
 
@@ -256,9 +257,9 @@ end
     q★ = q★ / similarity_theory.turbulent_prandtl_number
 
     # `u★² ≡ sqrt(τx² + τy²)`
-    # We remove the gustiness by dividing by `uτ`
-    τx = - u★^2 * Δu / uτ
-    τy = - u★^2 * Δv / uτ
+    # We remove the gustiness by dividing by `ΔUᴳ`
+    τx = - u★^2 * Δu / ΔUᴳ
+    τy = - u★^2 * Δv / ΔUᴳ
 
     𝒬ₐ = atmos_state.ts
     ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
@@ -298,14 +299,14 @@ end
     return b★
 end
 
-@inline characteristic_velocities(𝒰₁, 𝒰₀, ::RelativeVelocity) = @inbounds 𝒰₁.u[1] - 𝒰₀.u[1], 𝒰₁.u[2] - 𝒰₀.u[2]
-@inline characteristic_velocities(𝒰₁, 𝒰₀, ::WindVelocity)     = @inbounds 𝒰₁.u[1], 𝒰₁.u[2] 
+@inline velocity_differences(𝒰₁, 𝒰₀, ::RelativeVelocity) = @inbounds 𝒰₁.u[1] - 𝒰₀.u[1], 𝒰₁.u[2] - 𝒰₀.u[2]
+@inline velocity_differences(𝒰₁, 𝒰₀, ::WindVelocity)     = @inbounds 𝒰₁.u[1], 𝒰₁.u[2] 
 
 @inline function state_differences(ℂ, 𝒰₁, 𝒰₀, g, bulk_velocity)
     z₁ = 𝒰₁.z
     z₀ = 𝒰₀.z
     Δh = z₁ - z₀
-    Δu, Δv = characteristic_velocities(𝒰₁, 𝒰₀, bulk_velocity)
+    Δu, Δv = velocity_differences(𝒰₁, 𝒰₀, bulk_velocity)
 
     # Thermodynamic state
     𝒬₁ = 𝒰₁.ts
@@ -386,11 +387,11 @@ end
     q★ = χq * Δq
 
     # Buoyancy flux characteristic scale for gustiness (Edson 2013)
-    ε★ = - u★ * b★
-    uᴳ = β * cbrt(ε★ * zᵢ)
+    Jᵇ = - u★ * b★
+    uᴳ = β * cbrt(Jᵇ * zᵢ)
 
     # New velocity difference accounting for gustiness
-    uτ = sqrt(Δu^2 + Δv^2 + uᴳ^2)
+    ΔUᴳ = sqrt(Δu^2 + Δv^2 + uᴳ^2)
 
-    return SimilarityScales(u★, θ★, q★), uτ
+    return SimilarityScales(u★, θ★, q★), ΔUᴳ
 end

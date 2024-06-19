@@ -41,16 +41,24 @@ steps:
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
 
-  - label: "documentation"
+  - label: "Run surface flux tests"
+    key: "tests_fluxes"
     env:
-      JULIA_DEBUG: "Documenter"
+      CUDA_VISIBLE_DEVICES: "-1"
+      TEST_GROUP: "fluxes"
     commands:
-      - "julia --color=yes --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'"
-      - "julia --color=yes --project=docs/ docs/make_examples.jl"
-    agents:
-      slurm_mem: 120G
-      slurm_ntasks: 1
-      slurm_gpus_per_task: 1
+      - "julia --project -e 'using Pkg; Pkg.test()'"
+
+  # - label: "documentation"
+  #   env:
+  #     JULIA_DEBUG: "Documenter"
+  #   commands:
+  #     - "julia --color=yes --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'"
+  #     - "julia --color=yes --project=docs/ docs/make.jl"
+  #   agents:
+  #     slurm_mem: 120G
+  #     slurm_ntasks: 1
+  #     slurm_gpus_per_task: 1
 
   - wait: ~
     continue_on_failure: true

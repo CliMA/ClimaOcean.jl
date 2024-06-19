@@ -4,7 +4,8 @@ using Oceananigans
 using Adapt 
 
 export Radiation,
-       OceanSeaIceSurfaceFluxes
+       OceanSeaIceSurfaceFluxes,
+       SimilarityTheoryTurbulentFluxes
 
 using ..OceanSeaIceModels: default_gravitational_acceleration
 

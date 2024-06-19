@@ -72,9 +72,7 @@ ocean = ocean_simulation(grid; momentum_advection = nothing,
 
 set!(ocean.model;
       T = ECCO2Metadata(:temperature), 
-      S = ECCO2Metadata(:salinity), 
-      u = ECCO2Metadata(:u_velocity), 
-      v = ECCO2Metadata(:v_velocity))
+      S = ECCO2Metadata(:salinity))
 
 # The final step is to construct a coupled model.
 # The coupled model requires an ocean, which we have just constructed and initialized,
