@@ -42,7 +42,8 @@ Keyword Arguments:
 - height_above_water: limits the maximum height of above-water topography (where h > 0). If
                       `nothing` the original topography is retained
 
-- minimum_depth: minimum depth for the shallow regions. `h > minimum_depth` will be considered land
+- minimum_depth: minimum depth for the shallow regions, defined as a positive value. 
+                 `h > - minimum_depth` will be considered land
 
 - dir: directory of the bathymetry-containing file
 
@@ -228,7 +229,7 @@ function interpolate_bathymetry_in_passes(native_h, target_grid;
     h_data = Array(interior(target_h, :, :, 1))
 
     if minimum_depth > 0
-        shallow_ocean = h_data .> minimum_depth
+        shallow_ocean = h_data .> - minimum_depth
         h_data[shallow_ocean] .= 0
     end
 
