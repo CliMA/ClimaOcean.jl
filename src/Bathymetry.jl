@@ -229,7 +229,7 @@ function interpolate_bathymetry_in_passes(native_h, target_grid;
     h_data = Array(interior(target_h, :, :, 1))
 
     if minimum_depth > 0
-        shallow_ocean = h_data .> minimum_depth
+        shallow_ocean = h_data .> - minimum_depth
         h_data[shallow_ocean] .= 0
     end
 
