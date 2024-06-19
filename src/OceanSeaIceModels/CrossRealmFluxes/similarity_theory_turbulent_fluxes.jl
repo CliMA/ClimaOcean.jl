@@ -231,14 +231,14 @@ end
     # The inital velocity scale assumes that
     # the gustiness velocity `uᴳ` is equal to 0.5 ms⁻¹. 
     # That will be refined later on.
-    uτ = sqrt(Δu^2 + Δv^2 + convert(eltype(Δh), 0.25))
+    ΔUᴳ = sqrt(Δu^2 + Δv^2 + convert(eltype(Δh), 0.25))
 
     # Initialize the solver
     iteration = 0
 
     while iterating(Σ★ - Σ₀, iteration, maxiter, similarity_theory)
         Σ₀ = Σ★
-        Σ★, uτ, = refine_characteristic_scales(Σ★, uτ, 
+        Σ★, ΔUᴳ, = refine_characteristic_scales(Σ★, uτ, 
                                                similarity_theory,
                                                surface_state,
                                                differences,
@@ -257,9 +257,9 @@ end
     q★ = q★ / similarity_theory.turbulent_prandtl_number
 
     # `u★² ≡ sqrt(τx² + τy²)`
-    # We remove the gustiness by dividing by `uτ`
-    τx = - u★^2 * Δu / uτ
-    τy = - u★^2 * Δv / uτ
+    # We remove the gustiness by dividing by `ΔUᴳ`
+    τx = - u★^2 * Δu / ΔUᴳ
+    τy = - u★^2 * Δv / ΔUᴳ
 
     𝒬ₐ = atmos_state.ts
     ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
@@ -391,7 +391,7 @@ end
     uᴳ = β * cbrt(Jᵇ * zᵢ)
 
     # New velocity difference accounting for gustiness
-    uτ = sqrt(Δu^2 + Δv^2 + uᴳ^2)
+    ΔUᴳ = sqrt(Δu^2 + Δv^2 + uᴳ^2)
 
-    return SimilarityScales(u★, θ★, q★), uτ
+    return SimilarityScales(u★, θ★, q★), ΔUᴳ
 end
