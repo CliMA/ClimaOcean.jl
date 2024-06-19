@@ -55,10 +55,10 @@ tracer_advection = nothing
 coriolis = FPlane(latitude = φ★)
 
 ocean = ocean_simulation(grid; 
-                         drag_coefficient = 0, 
                          coriolis,
                          tracer_advection,
-                         momentum_advection)
+                         momentum_advection,
+                         bottom_drag_coefficient = 0)
 model = ocean.model
 
 start_time = time_ns()
