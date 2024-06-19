@@ -4,6 +4,7 @@ export
     OceanSeaIceModel,
     MinimumTemperatureSeaIce,
     Radiation,
+    SimilarityTheoryTurbulentFluxes,
     JRA55_prescribed_atmosphere,
     JRA55NetCDFBackend,
     ecco2_field,
@@ -13,6 +14,7 @@ export
     exponential_z_faces,
     PowerLawStretching, LinearStretching,
     jra55_field_time_series,
+    ocean_simulation,
     ecco2_field, ECCO2Metadata,
     initialize!
 

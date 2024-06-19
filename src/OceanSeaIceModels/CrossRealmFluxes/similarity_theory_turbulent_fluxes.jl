@@ -91,6 +91,7 @@ function Base.show(io::IO, fluxes::SimilarityTheoryTurbulentFluxes)
           "├── water_mole_fraction: ",             summary(fluxes.water_mole_fraction), '\n',
           "├── water_vapor_saturation: ",          summary(fluxes.water_vapor_saturation), '\n',
           "├── roughness_lengths: ",               summary(fluxes.roughness_lengths), '\n',
+          "├── bulk_coefficients: ",               summary(fluxes.bulk_coefficients), '\n',
           "└── thermodynamics_parameters: ",       summary(fluxes.thermodynamics_parameters))
 end
 

@@ -1,5 +1,7 @@
 module OceanSeaIceModels
 
+export OceanSeaIceModel, SimilarityTheoryTurbulentFluxes
+
 using Oceananigans
 using SeawaterPolynomials
 

@@ -1,6 +1,6 @@
 module OceanSimulations
 
-export load_balanced_regional_grid, ocean_simulation
+export ocean_simulation
 
 using Oceananigans
 using Oceananigans.Units
@@ -43,9 +43,6 @@ default_tracer_advection() = TracerAdvection(WENO(; order = 7),
 @inline u_quadratic_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.u[i, j, 1] * spᶠᶜᶜ(i, j, 1, grid, Φ)
 @inline v_quadratic_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, 1] * spᶜᶠᶜ(i, j, 1, grid, Φ)
 
-@inline u_immersed_quadratic_bottom_drag(i, j, k, grid, c, Φ, μ) = @inbounds - μ * Φ.u[i, j, k] * spᶠᶜᶜ(i, j, k, grid, Φ)
-@inline v_immersed_quadratic_bottom_drag(i, j, k, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, k] * spᶜᶠᶜ(i, j, k, grid, Φ)
-
 @inline is_immersed_drag_u(i, j, k, grid) = Int(immersed_peripheral_node(i, j, k-1, grid, Face(), Center(), Center()) & !inactive_node(i, j, k, grid, Face(), Center(), Center()))
 @inline is_immersed_drag_v(i, j, k, grid) = Int(immersed_peripheral_node(i, j, k-1, grid, Center(), Face(), Center()) & !inactive_node(i, j, k, grid, Center(), Face(), Center()))
 
@@ -61,7 +58,7 @@ function ocean_simulation(grid; Δt = 5minutes,
                           reference_density = 1020,
                           rotation_rate = Ω_Earth,
                           gravitational_acceleration = g_Earth,
-                          drag_coefficient = 0.003,
+                          bottom_drag_coefficient = 0.003,
                           coriolis = HydrostaticSphericalCoriolis(; rotation_rate),
                           momentum_advection = default_momentum_advection(),
                           tracer_advection = default_tracer_advection(),
@@ -73,8 +70,8 @@ function ocean_simulation(grid; Δt = 5minutes,
     top_ocean_heat_flux          = Jᵀ = Field{Center, Center, Nothing}(grid)
     top_salt_flux                = Jˢ = Field{Center, Center, Nothing}(grid)
 
-    u_bot_bc = FluxBoundaryCondition(u_quadratic_bottom_drag, discrete_form=true, parameters=drag_coefficient)
-    v_bot_bc = FluxBoundaryCondition(v_quadratic_bottom_drag, discrete_form=true, parameters=drag_coefficient)
+    u_bot_bc = FluxBoundaryCondition(u_quadratic_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
+    v_bot_bc = FluxBoundaryCondition(v_quadratic_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
 
     ocean_boundary_conditions = (u = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵘ), bottom = u_bot_bc),
                                  v = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵛ), bottom = v_bot_bc),
@@ -84,8 +81,8 @@ function ocean_simulation(grid; Δt = 5minutes,
     if !(grid isa ImmersedBoundaryGrid)
         forcing = NamedTuple()
     else
-        Fu = Forcing(u_immersed_bottom_drag, discrete_form=true, parameters=drag_coefficient)
-        Fv = Forcing(v_immersed_bottom_drag, discrete_form=true, parameters=drag_coefficient)
+        Fu = Forcing(u_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
+        Fv = Forcing(v_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
         forcing = (; u = Fu, v = Fv)
     end
     

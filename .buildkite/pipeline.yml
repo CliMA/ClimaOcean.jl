@@ -41,6 +41,14 @@ steps:
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
 
+  - label: "Run surface flux tests"
+    key: "tests_fluxes"
+    env:
+      CUDA_VISIBLE_DEVICES: "-1"
+      TEST_GROUP: "fluxes"
+    commands:
+      - "julia --project -e 'using Pkg; Pkg.test()'"
+
   # - label: "documentation"
   #   env:
   #     JULIA_DEBUG: "Documenter"
