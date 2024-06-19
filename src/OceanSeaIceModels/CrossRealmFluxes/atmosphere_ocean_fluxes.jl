@@ -46,6 +46,8 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     atmosphere_backend = u.backend
     atmosphere_time_indexing = u.time_indexing
 
+    runoff_args = get_runoff_args(atmosphere.runoff_flux)
+
     Qs = atmosphere.downwelling_radiation.shortwave
     Ql = atmosphere.downwelling_radiation.longwave
 
@@ -86,6 +88,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             atmosphere_times,
             atmosphere_backend,
             atmosphere_time_indexing,
+            runoff_args,
             radiation_properties,
             coupled_model.fluxes.ocean_reference_density,
             coupled_model.fluxes.ocean_heat_capacity,
@@ -233,6 +236,7 @@ end
                                                     atmos_times,
                                                     atmos_backend,
                                                     atmos_time_indexing,
+                                                    runoff_args,
                                                     radiation_properties,
                                                     ocean_reference_density,
                                                     ocean_heat_capacity,
@@ -253,9 +257,10 @@ end
         Qs = interp_atmos_time_series(downwelling_radiation.shortwave, X, time, atmos_args...)
         Qℓ = interp_atmos_time_series(downwelling_radiation.longwave,  X, time, atmos_args...)
 
-        # Accumulate mass fluxes of freshwater due to rain, snow, rivers,
-        # icebergs, and whatever else.
+        # Accumulate mass fluxes of freshwater due to rain, snow, rivers, icebergs, and whatever else.
+        # Rememeber runoff fluxes could be `nothing` if rivers and icebergs are not included in the forcing
         Mp = interp_atmos_time_series(prescribed_freshwater_flux, X, time, atmos_args...)
+        Mr = get_runoff_flux(X, time, runoff_args) 
 
         Qc = similarity_theory_fields.sensible_heat[i, j, 1] # sensible or "conductive" heat flux
         Qv = similarity_theory_fields.latent_heat[i, j, 1]   # latent heat flux
@@ -274,7 +279,7 @@ end
     # by dividing by the density of freshwater.
     # Also switch the sign, for some reason we are given freshwater flux as positive down.
     ρᶠ = freshwater_density
-    ΣF = - Mp / ρᶠ
+    ΣF = - (Mp + Mr) / ρᶠ
 
     # Add the contribution from the turbulent water vapor flux
     Fv = Mv / ρᶠ
@@ -331,4 +336,33 @@ end
 
     # Note: positive implies _upward_ heat flux, and therefore cooling.
     return ϵ * σ * Tₒ^4
+end
+
+# Retrieve the details of runoff fluxes (rivers and icebergs, if present in the simulation).
+# Note that these forcing fields are different in terms of frequency (daily instead of three-hourly)
+# and gridsize (1/4 degree instead of 1/2 degree) when compared to the other prescribed fluxes
+# So they need to be interpolated using their own grid / times / backend / time_indexing
+@inline get_runoff_args(::Nothing) = nothing
+
+@inline function get_runoff_args(runoff_flux)
+
+    data    = map(ϕ -> ϕ.data, runoff_flux)
+    grid    = runoff_flux.rivers.grid
+    times   = runoff_flux.rivers.times
+    backend = runoff_flux.rivers.backend
+    time_indexing = runoff_flux.rivers.time_indexing
+
+    return (data, grid, times, backend, time_indexing)
+end
+
+@inline get_runoff_flux(X, time, ::Nothing) = zero(eltype(X))
+
+@inline function get_runoff_flux(X, time, runoff_args)
+    
+    @inbounds runoff_flux = runoff_args[1] # The data is located at position 1 of the tuple
+    @inbounds other_args  = runoff_args[2:end] # Other args contain grid, times, backend and time_indexing
+    
+    Mr = interp_atmos_time_series(runoff_flux, X, time, other_args...)
+
+    return Mr
 end
