@@ -238,7 +238,7 @@ end
 
     while iterating(Σ★ - Σ₀, iteration, maxiter, similarity_theory)
         Σ₀ = Σ★
-        Σ★, ΔUᴳ = refine_characteristic_scales(Σ★, uτ, 
+        Σ★, ΔUᴳ = refine_characteristic_scales(Σ★, ΔUᴳ, 
                                                similarity_theory,
                                                surface_state,
                                                differences,
