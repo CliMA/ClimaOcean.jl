@@ -37,10 +37,10 @@ include("runtests_setup.jl")
         rm(test_jld2_filename, force=true)
 
         @info "Testing loading preprocessed JRA55 data on $A..."
-        in_memory_jra55_fts = ClimaOcean.DataWrangling.reanalysis_field_time_series(test_name;
-                                                                                    time_indices,
-                                                                                    architecture = arch,
-                                                                                    backend = InMemory(2))
+        in_memory_jra55_fts = ClimaOcean.DataWrangling.JRA55_field_time_series(test_name;
+                                                                               time_indices,
+                                                                               architecture = arch,
+                                                                               backend = InMemory(2))
 
         @test in_memory_jra55_fts isa FieldTimeSeries
 
