@@ -27,7 +27,6 @@ using CFTime
 using Dates
 
 include("tripolar_specific_methods.jl")
-include("xin_kai_vertical_diffusivity.jl")
 
 #####
 ##### Global Ocean at 1/6th of a degree
@@ -64,7 +63,6 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_
 #####                             
 
 free_surface = SplitExplicitFreeSurface(grid; substeps = 75)
-closure      = XinKaiVerticalDiffusivity()
 
 #####
 ##### Add restoring to ECCO fields for temperature and salinity in the artic and antarctic
@@ -113,7 +111,7 @@ using ClimaOcean.ECCO: on_native_grid
 
 forcing = (; T = FT, S = FS)
 
-ocean = ocean_simulation(grid; free_surface, closure, forcing) 
+ocean = ocean_simulation(grid; free_surface, forcing) 
 model = ocean.model
 
 initial_date = dates[1]
