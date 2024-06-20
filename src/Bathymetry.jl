@@ -101,17 +101,12 @@ function regrid_bathymetry(target_grid;
 
     φ_data = dataset["lat"][:]
     λ_data = dataset["lon"][:]
-    z_data = convert.(FT, dataset["z"][:, :])
+    z_data = convert(Array{FT}, dataset["z"][:, :])
 
     # Convert longitude to 0 - 360?
     λ_data .+= 180
     nhx      = size(z_data, 1)
     z_data   = circshift(z_data, (nhx ÷ 2, 1))
-
-    # Convert longitude to 0 - 360?
-    λ_data .+= 180
-    nhx      = size(h_data, 1)
-    h_data   = circshift(h_data, (nhx ÷ 2, 1))
 
     close(dataset)
 
@@ -119,6 +114,11 @@ function regrid_bathymetry(target_grid;
     arch = child_architecture(architecture(target_grid))
     φ₁, φ₂ = y_domain(target_grid)
     λ₁, λ₂ = x_domain(target_grid)
+
+    if λ₁ < 0 || λ₂ > 360
+        throw(ArgumentError("Cannot regrid bathymetry between λ₁ = $(λ₁) and λ₂ = $(λ₂).
+                             Bathymetry data is defined on longitudes spanning λ = (0, 360)."))
+    end
 
     # Calculate limiting indices on the bathymetry grid
     i₁ = searchsortedfirst(λ_data, λ₁)
@@ -247,16 +247,16 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
 end
 
 """
-    remove_lakes!(h_data; connected_regions_allowed = Inf)
+    remove_lakes!(z_data; connected_regions_allowed = Inf)
 
-Remove lakes from the bathymetry data stored in `h_data`, by identifying connected regions below sea level 
+Remove lakes from the bathymetry data stored in `z_data`, by identifying connected regions below sea level 
 and removing all but the specified number of largest connected regions (which represent the ocean and 
 other possibly disconnected regions like the Mediterranean and the Bering sea).
 
 # Arguments
 ============
 
-- `h_data`: A 2D array representing the bathymetry data.
+- `z_data`: A 2D array representing the bathymetry data.
 - `connected_regions_allowed`: The maximum number of connected regions to keep. 
                                Default is `Inf`, which means all connected regions are kept.
 
