@@ -68,41 +68,6 @@ function three_dimensional_regrid!(a, b)
     return a
 end
 
-import Oceananigans.Fields: interpolate!
-using Oceananigans.Fields: _interpolate!, AbstractField
-using Oceananigans.Architectures: child_architecture, architecture
-using Oceananigans.Utils: launch!
-using Oceananigans.BoundaryConditions
-    
-"""
-    interpolate!(to_field::Field, from_field::AbstractField)
-
-Interpolate `from_field` `to_field` and then fill the halo regions of `to_field`.
-"""
-function interpolate!(to_field::Field, from_field::AbstractField)
-    to_grid   = to_field.grid
-    from_grid = from_field.grid
-
-    to_arch   = child_architecture(architecture(to_field))
-    from_arch = child_architecture(architecture(from_field))
-    if !isnothing(from_arch) && to_arch != from_arch
-        msg = "Cannot interpolate! because from_field is on $from_arch while to_field is on $to_arch."
-        throw(ArgumentError(msg))
-    end
-
-    # Make locations
-    from_location = Tuple(L() for L in location(from_field))
-    to_location   = Tuple(L() for L in location(to_field))
-
-    launch!(to_arch, to_grid, size(to_field),
-            _interpolate!, to_field, to_grid, to_location,
-            from_field, from_grid, from_location)
-
-    fill_halo_regions!(to_field)
-
-    return nothing
-end
-
 include("diffuse_tracers.jl")
 
 end # module
