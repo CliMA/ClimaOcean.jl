@@ -18,8 +18,6 @@ import ClimaOcean: stateindex
 ##### Utilities
 #####
 
-@inline Δϕt²(i, j, k, grid, ϕ1, ϕ2, time) = (stateindex(ϕ1, i, j, k, grid, time) - stateindex(ϕ2, i, j, k, grid, time))^2
-
 function surface_flux(f::Field)
     top_bc = f.boundary_conditions.top
     if top_bc isa BoundaryCondition{<:Oceananigans.BoundaryConditions.Flux}

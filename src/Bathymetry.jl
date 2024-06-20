@@ -43,7 +43,8 @@ Keyword Arguments:
 - height_above_water: limits the maximum height of above-water topography (where h > 0). If
                       `nothing` the original topography is retained
 
-- minimum_depth: minimum depth for the shallow regions. `h > minimum_depth` will be considered land
+- minimum_depth: minimum depth for the shallow regions, defined as a positive value. 
+                 `h > - minimum_depth` will be considered land
 
 - dir: directory of the bathymetry-containing file
 
@@ -106,6 +107,11 @@ function regrid_bathymetry(target_grid;
     λ_data .+= 180
     nhx      = size(z_data, 1)
     z_data   = circshift(z_data, (nhx ÷ 2, 1))
+
+    # Convert longitude to 0 - 360?
+    λ_data .+= 180
+    nhx      = size(h_data, 1)
+    h_data   = circshift(h_data, (nhx ÷ 2, 1))
 
     close(dataset)
 

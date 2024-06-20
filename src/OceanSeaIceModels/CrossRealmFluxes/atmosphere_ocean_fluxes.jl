@@ -209,7 +209,11 @@ limit_fluxes_over_sea_ice!(args...) = nothing
 
     # Convert back from a zonal - meridional flux to the frame of 
     # reference of the native ocean grid
+<<<<<<< HEAD
     τˣ, τʸ = convert_to_intrinsic_reference_frame(i, j, kᴺ, grid, turbulent_fluxes.x_momentum, 
+=======
+    τˣ, τʸ = convert_to_extrinsic_reference_frame(i, j, kᴺ, grid, turbulent_fluxes.x_momentum, 
+>>>>>>> origin/main
                                                                   turbulent_fluxes.y_momentum)
 
     @inbounds begin
