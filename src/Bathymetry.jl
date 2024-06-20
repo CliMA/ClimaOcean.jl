@@ -100,7 +100,7 @@ function regrid_bathymetry(target_grid;
 
     φ_data = dataset["lat"][:]
     λ_data = dataset["lon"][:]
-    z_data = convert.(FT, dataset["z"][:, :])
+    z_data = convert(Array{FT}, dataset["z"][:, :])
 
     # Convert longitude to 0 - 360?
     λ_data .+= 180
