@@ -1,5 +1,7 @@
 module OceanSeaIceModels
 
+export OceanSeaIceModel, SimilarityTheoryTurbulentFluxes
+
 using Oceananigans
 using SeawaterPolynomials
 
@@ -44,12 +46,13 @@ include("PrescribedAtmospheres.jl")
 
 using .PrescribedAtmospheres:
     PrescribedAtmosphere,
-    TwoStreamDownwellingRadiation
+    TwoBandDownwellingRadiation
 
 include("CrossRealmFluxes/CrossRealmFluxes.jl")
 
 using .CrossRealmFluxes
 
+include("minimum_temperature_sea_ice.jl")
 include("ocean_sea_ice_model.jl")
 include("ocean_only_model.jl")
 include("time_step_ocean_sea_ice_model.jl")
@@ -60,10 +63,8 @@ import .CrossRealmFluxes:
 
 # "No atmosphere" implementation
 const NoAtmosphereModel = OceanSeaIceModel{<:Any, Nothing}
-const NoSeaIceModel = OceanSeaIceModel{Nothing}
 
 compute_atmosphere_ocean_fluxes!(coupled_model::NoAtmosphereModel) = nothing
-compute_sea_ice_ocean_fluxes!(coupled_model::NoSeaIceModel) = nothing
 
 #####
 ##### A fairly dumb, but nevertheless effective "sea ice model"

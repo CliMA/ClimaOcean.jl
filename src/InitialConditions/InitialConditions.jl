@@ -8,7 +8,7 @@ using Oceananigans.Fields: OneField
 using Oceananigans.Grids: peripheral_node
 using Oceananigans.Utils: launch!
 using Oceananigans.Fields: instantiated_location, interior, CenterField
-using Oceananigans.Architectures: architecture, device, GPU
+using Oceananigans.Architectures: architecture, device, GPU, child_architecture
 
 using KernelAbstractions: @kernel, @index
 using KernelAbstractions.Extras.LoopInfo: @unroll
@@ -17,7 +17,7 @@ using JLD2
 # Implementation of 3-dimensional regridding
 # TODO: move all the following to Oceananigans! 
 
-using Oceananigans.Fields: regrid!
+using Oceananigans.Fields: regrid!, interpolate!
 using Oceananigans.Grids: cpu_face_constructor_x, 
                           cpu_face_constructor_y, 
                           cpu_face_constructor_z,
@@ -37,6 +37,7 @@ function three_dimensional_regrid!(a, b)
 
     topo = topology(target_grid)
     arch = architecture(target_grid)
+    arch = child_architecture(arch)
     
     target_y = yt = cpu_face_constructor_y(target_grid)
     target_z = zt = cpu_face_constructor_z(target_grid)
@@ -65,6 +66,41 @@ function three_dimensional_regrid!(a, b)
     regrid!(a, target_grid, ygrid, field_y)
 
     return a
+end
+
+import Oceananigans.Fields: interpolate!
+using Oceananigans.Fields: _interpolate!, AbstractField
+using Oceananigans.Architectures: child_architecture, architecture
+using Oceananigans.Utils: launch!
+using Oceananigans.BoundaryConditions
+    
+"""
+    interpolate!(to_field::Field, from_field::AbstractField)
+
+Interpolate `from_field` `to_field` and then fill the halo regions of `to_field`.
+"""
+function interpolate!(to_field::Field, from_field::AbstractField)
+    to_grid   = to_field.grid
+    from_grid = from_field.grid
+
+    to_arch   = child_architecture(architecture(to_field))
+    from_arch = child_architecture(architecture(from_field))
+    if !isnothing(from_arch) && to_arch != from_arch
+        msg = "Cannot interpolate! because from_field is on $from_arch while to_field is on $to_arch."
+        throw(ArgumentError(msg))
+    end
+
+    # Make locations
+    from_location = Tuple(L() for L in location(from_field))
+    to_location   = Tuple(L() for L in location(to_field))
+
+    launch!(to_arch, to_grid, size(to_field),
+            _interpolate!, to_field, to_grid, to_location,
+            from_field, from_grid, from_location)
+
+    fill_halo_regions!(to_field)
+
+    return nothing
 end
 
 include("diffuse_tracers.jl")
