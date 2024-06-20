@@ -208,7 +208,7 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     Nλ = Int[Nλ..., Nλt]
     Nφ = Int[Nφ..., Nφt]
 
-    old_h     = native_z
+    old_z     = native_z
     TX, TY, _ = topology(target_grid)
 
     for pass = 1:passes - 1
@@ -224,12 +224,12 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
 
         new_h = Field{Center, Center, Nothing}(new_grid)
 
-        interpolate!(new_h, old_h)
-        old_h = new_h
+        interpolate!(new_h, old_z)
+        old_z = new_h
     end
 
     target_z = Field{Center, Center, Nothing}(target_grid)
-    interpolate!(target_z, old_h)
+    interpolate!(target_z, old_z)
 
     z_data = Array(interior(target_z, :, :, 1))
 
