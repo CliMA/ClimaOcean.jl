@@ -114,6 +114,11 @@ function regrid_bathymetry(target_grid;
     φ₁, φ₂ = y_domain(target_grid)
     λ₁, λ₂ = x_domain(target_grid)
 
+    if λ₁ < 0 || λ₂ > 360
+        throw(ArgumentError("Cannot regrid bathymetry between λ₁ = $(λ₁) and λ₂ = $(λ₂).
+                             Bathymetry data is defined on longitudes spanning λ = (0, 360)."))
+    end
+
     # Calculate limiting indices on the bathymetry grid
     i₁ = searchsortedfirst(λ_data, λ₁)
     i₂ = searchsortedfirst(λ_data, λ₂) - 1
