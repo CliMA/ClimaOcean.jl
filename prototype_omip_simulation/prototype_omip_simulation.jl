@@ -191,7 +191,7 @@ coupled_simulation = Simulation(coupled_model; Δt=1, stop_time)
 
 run!(coupled_simulation)
 
-wizard = TimeStepWizard(; cfl = 0.4, max_Δt = 800, max_change = 1.1)
+wizard = TimeStepWizard(; cfl = 0.3, max_Δt = 600, max_change = 1.1)
 ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 
 # Let's reset the maximum number of iterations
