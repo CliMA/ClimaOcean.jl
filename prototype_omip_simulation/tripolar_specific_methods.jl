@@ -26,6 +26,9 @@ import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: extrinsic_vector, intrinsi
 @inline hack_cosd(φ) = cos(π * φ / 180)
 @inline hack_sind(φ) = sin(π * φ / 180)
 
+# TODO: when https://github.com/CliMA/Oceananigans.jl/pull/3631 is merged,
+# these functions will be transferred to OrthogonalSphericalShellGrids
+
 # Here we assume that the tripolar grid is locally orthogonal
 @inline function extrinsic_vector(i, j, grid::TRG, uₒ, vₒ)
 
