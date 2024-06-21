@@ -8,10 +8,10 @@ using Oceananigans.Advection: TracerAdvection
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node
 
-using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities:
+using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities:
     CATKEVerticalDiffusivity,
     MixingLength,
-    TurbulentKineticEnergyEquation
+    CATKEEquation
 
 using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 
@@ -23,8 +23,8 @@ using Oceananigans.Operators
 default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
 
 function default_ocean_closure()
-    mixing_length = MixingLength(Cᵇ=0.01)
-    turbulent_kinetic_energy_equation = TurbulentKineticEnergyEquation(Cᵂϵ=1.0)
+    mixing_length = CATKEMixingLength(Cᵇ=0.01)
+    turbulent_kinetic_energy_equation = CATKEEquation(Cᵂϵ=1.0)
     return CATKEVerticalDiffusivity(; mixing_length, turbulent_kinetic_energy_equation)
 end
 
