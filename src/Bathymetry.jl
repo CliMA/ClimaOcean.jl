@@ -222,10 +222,10 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
                                             z = (0, 1),
                                      topology = (TX, TY, Bounded))
 
-        new_h = Field{Center, Center, Nothing}(new_grid)
+        new_z = Field{Center, Center, Nothing}(new_grid)
 
-        interpolate!(new_h, old_z)
-        old_z = new_h
+        interpolate!(new_z, old_z)
+        old_z = new_z
     end
 
     target_z = Field{Center, Center, Nothing}(target_grid)
