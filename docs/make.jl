@@ -45,6 +45,12 @@ pages = [
         "Private"        => "library/internals.md",
         "Function index" => "library/function_index.md",
         ],
+
+    "Examples" => [
+        "Inspect ECCO2 data" => "literated/inspect_ecco2_data.md",
+        "Surface fluxes" => "literated/generate_surface_fluxes.md",
+        "Single column simulation" => "literated/single_column_simulation.md",
+        ]
 ]
 
 makedocs(
