@@ -117,7 +117,8 @@ function ECCO_field_time_series(metadata::ECCOMetadata;
                                 grid = nothing)	
 
     # ECCO data is too chunky to allow other backends	
-    backend = ECCONetCDFBackend(time_indices_in_memory)
+    backend = ECCONetCDFBackend(time_indices_in_memory; 
+                                on_native_grid = insnothing(grid))
 
     # Making sure all the required individual files are downloaded
     download_dataset!(metadata)
