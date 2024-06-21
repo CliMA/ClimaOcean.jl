@@ -2,7 +2,7 @@
 
 julia_version = "1.10.4"
 manifest_format = "2.0"
-project_hash = "edb3b1f7c1c580248896d1c4ed1aa39adff53b7e"
+project_hash = "2c8b9abdf6073ccf167e94ea1ce3496589c888b1"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -97,9 +97,9 @@ version = "0.5.0"
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
 [[deps.BitFlags]]
-git-tree-sha1 = "2dc09997850d68179b69dafb58ae806167a32b1b"
+git-tree-sha1 = "0691e34b3bb8be9307330f88d1a3c3f25466c24d"
 uuid = "d1d4a3ce-64b1-5f1a-9ba4-7e7e69966f35"
-version = "0.1.8"
+version = "0.1.9"
 
 [[deps.BitTwiddlingConvenienceFunctions]]
 deps = ["Static"]
@@ -160,9 +160,9 @@ version = "0.9.0+0"
 
 [[deps.CUDA_Runtime_Discovery]]
 deps = ["Libdl"]
-git-tree-sha1 = "5db9da5fdeaa708c22ba86b82c49528f402497f2"
+git-tree-sha1 = "f3b237289a5a77c759b2dd5d4c2ff641d67c4030"
 uuid = "1af6417a-86b4-443c-805f-a4643ffb695f"
-version = "0.3.3"
+version = "0.3.4"
 
 [[deps.CUDA_Runtime_jll]]
 deps = ["Artifacts", "CUDA_Driver_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "TOML"]
@@ -188,7 +188,7 @@ weakdeps = ["SparseArrays"]
 
 [[deps.ClimaSeaIce]]
 deps = ["Adapt", "KernelAbstractions", "Oceananigans", "RootSolvers", "Roots", "SeawaterPolynomials"]
-git-tree-sha1 = "0ac8d2566e8f4887896c8a03ee87050fcbbf6599"
+git-tree-sha1 = "c900eecbb9cc3989602cfe9524070e225f512fe1"
 repo-rev = "ss/new-oceananigans"
 repo-url = "https://github.com/CliMA/ClimaSeaIce.jl.git"
 uuid = "6ba0ff68-24e6-4315-936c-2e99227c95a4"
@@ -488,9 +488,9 @@ version = "6.2.1+6"
 
 [[deps.GPUArrays]]
 deps = ["Adapt", "GPUArraysCore", "LLVM", "LinearAlgebra", "Printf", "Random", "Reexport", "Serialization", "Statistics"]
-git-tree-sha1 = "38cb19b8a3e600e509dc36a6396ac74266d108c1"
+git-tree-sha1 = "c154546e322a9c73364e8a60430b0f79b812d320"
 uuid = "0c68f7d7-f131-5f86-a1c3-88cf8149b2d7"
-version = "10.1.1"
+version = "10.2.0"
 
 [[deps.GPUArraysCore]]
 deps = ["Adapt"]
@@ -588,9 +588,15 @@ version = "0.2.1"
 
 [[deps.InlineStrings]]
 deps = ["Parsers"]
-git-tree-sha1 = "9cc2baf75c6d09f9da536ddf58eb2f29dedaf461"
+git-tree-sha1 = "86356004f30f8e737eff143d57d41bd580e437aa"
 uuid = "842dd82b-1e85-43dc-bf29-5d0ee9dffc48"
-version = "1.4.0"
+version = "1.4.1"
+
+    [deps.InlineStrings.extensions]
+    ArrowTypesExt = "ArrowTypes"
+
+    [deps.InlineStrings.weakdeps]
+    ArrowTypes = "31f734f8-188a-4ce0-8406-c8a06bd891cd"
 
 [[deps.IntelOpenMP_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
@@ -983,9 +989,9 @@ version = "1.2.0"
 
 [[deps.Oceananigans]]
 deps = ["Adapt", "CUDA", "Crayons", "CubedSphere", "Dates", "Distances", "DocStringExtensions", "FFTW", "Glob", "IncompleteLU", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "LinearAlgebra", "Logging", "MPI", "NCDatasets", "OffsetArrays", "OrderedCollections", "PencilArrays", "PencilFFTs", "Pkg", "Printf", "Random", "Rotations", "SeawaterPolynomials", "SparseArrays", "Statistics", "StructArrays"]
-git-tree-sha1 = "994ae77f4f232940822770d8ce7c2f84e373156e"
+git-tree-sha1 = "adfa619058ba3fb75c1f880c4098aa364fe79a16"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
-version = "0.91.1"
+version = "0.91.2"
 
     [deps.Oceananigans.extensions]
     OceananigansEnzymeExt = "Enzyme"
@@ -1084,15 +1090,17 @@ version = "2.8.1"
 
 [[deps.PencilArrays]]
 deps = ["Adapt", "JSON3", "LinearAlgebra", "MPI", "OffsetArrays", "Random", "Reexport", "StaticArrayInterface", "StaticArrays", "StaticPermutations", "Strided", "TimerOutputs", "VersionParsing"]
-git-tree-sha1 = "8c5b9251650cb0ac77911f7e8a9e8f7c15bd5c99"
+git-tree-sha1 = "fa85ac32172d96cfdb91dbc53e8e57007e5a2b5a"
 uuid = "0e08944d-e94e-41b1-9406-dcf66b6a9d2e"
-version = "0.19.4"
+version = "0.19.5"
 
     [deps.PencilArrays.extensions]
+    PencilArraysAMDGPUExt = ["AMDGPU"]
     PencilArraysDiffEqExt = ["DiffEqBase"]
     PencilArraysHDF5Ext = ["HDF5"]
 
     [deps.PencilArrays.weakdeps]
+    AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
     DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
     HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
 
@@ -1363,15 +1371,15 @@ version = "1.7.0"
 
 [[deps.Strided]]
 deps = ["LinearAlgebra", "StridedViews", "TupleTools"]
-git-tree-sha1 = "40c69be0e1b72ee2f42923b7d1ff13e0b04e675c"
+git-tree-sha1 = "bd9bd1c70cfc115cc3a30213fc725125a6b43652"
 uuid = "5e0ebb24-38b0-5f93-81fe-25c709ecae67"
-version = "2.0.4"
+version = "2.1.0"
 
 [[deps.StridedViews]]
 deps = ["LinearAlgebra", "PackageExtensionCompat"]
-git-tree-sha1 = "5b765c4e401693ab08981989f74a36a010aa1d8e"
+git-tree-sha1 = "2917996ce0fa6b8a3a85240a5e9ff930e2aeaa43"
 uuid = "4db3bf67-4bd7-4b4e-b153-31dc3fb37143"
-version = "0.2.2"
+version = "0.3.1"
 weakdeps = ["CUDA"]
 
     [deps.StridedViews.extensions]
