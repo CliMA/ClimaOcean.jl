@@ -19,13 +19,19 @@ using JLD2
 using NCDatasets
 using Downloads
 using Printf
+using Scratch
+
+download_cache::String = ""
+function __init__()
+    global download_cache = @get_scratch!("Bathymetry")
+end
 
 """
     regrid_bathymetry(target_grid;
                       url = "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_surface_elev_netcdf", 
                       height_above_water = <none>,
                       minimum_depth = 0,
-                      dir = joinpath(@__DIR__, "..", "data"),
+                      dir = download_cache,
                       filename = "ETOPO_2022_v1_60s_N90W180_surface.nc")
 
 Regrid bathymetry associated with the NetCDF file at `path = joinpath(dir, filename)` to `target_grid`.
@@ -73,7 +79,7 @@ Keyword Arguments:
 function regrid_bathymetry(target_grid;
                            height_above_water = nothing,
                            minimum_depth = 0,
-                           dir = joinpath(@__DIR__, "..", "data"),
+                           dir = download_cache,
                            url = "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_surface_elev_netcdf", 
                            filename = "ETOPO_2022_v1_60s_N90W180_surface.nc",
                            interpolation_passes = 1,
