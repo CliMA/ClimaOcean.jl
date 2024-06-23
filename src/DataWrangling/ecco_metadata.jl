@@ -24,10 +24,10 @@ Base.show(io::IO, metadata::ECCOMetadata) =
     "├── dates: $(metadata.dates)", '\n',
     "└── data version: $(metadata.version)")
 
-# The default is the ECCO4Monthly dataset at 1992-01-01.
+# The default is the ECCO2Daily dataset at 1993-01-01.
 function ECCOMetadata(name::Symbol; 
-                      date = DateTimeProlepticGregorian(1992, 1, 1),
-                   version = ECCO4Monthly()) 
+                      date = DateTimeProlepticGregorian(1993, 1, 1),
+                   version = ECCO2Daily()) 
              
     return ECCOMetadata(name, date, version) 
 end
