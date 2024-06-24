@@ -174,14 +174,14 @@ A struct representing ECCO restoring.
 - `ecco_grid`: The native ECCO grid to interpolate from.
 - `mask`: A mask (could be a number, an array, a function or a field).
 - `varname`: The variable name of the variable that needs restoring.
-- `λ`: The restoring timescale.
+- `λ⁻¹`: The reciprocal of the restoring timescale.
 """
 struct ECCORestoring{FTS, G, M, V, N} <: Function
     ecco_fts  :: FTS
     ecco_grid :: G
     mask      :: M
     varname   :: V
-    λ         :: N
+    λ⁻¹       :: N
 end
 
 Adapt.adapt_structure(to, p::ECCORestoring) = 
@@ -189,7 +189,7 @@ Adapt.adapt_structure(to, p::ECCORestoring) =
                   Adapt.adapt(to, p.ecco_grid),
                   Adapt.adapt(to, p.mask),
                   Adapt.adapt(to, p.varname),
-                  Adapt.adapt(to, p.λ))
+                  Adapt.adapt(to, p.λ⁻¹))
 
 @inline function (p::ECCORestoring)(i, j, k, grid, clock, fields)
     
@@ -208,7 +208,7 @@ Adapt.adapt_structure(to, p::ECCORestoring) =
     # Extracting the mask value at the current node
     mask = stateindex(p.mask, i, j, k, grid, clock.time, loc)
 
-    return 1 / p.λ * mask * (ecco_var - var)
+    return p.λ⁻¹ * mask * (ecco_var - var)
 end
 
 # Differentiating between restoring done with an ECCO FTS
@@ -272,7 +272,7 @@ function ECCO_restoring_forcing(metadata::ECCOMetadata;
     variable_name = metadata.name
     field_name = oceananigans_fieldname[variable_name]
     
-    ecco_restoring = ECCORestoring(ecco_fts, ecco_grid, mask, field_name, timescale)
+    ecco_restoring = ECCORestoring(ecco_fts, ecco_grid, mask, field_name, 1 / timescale)
     
     # Defining the forcing that depends on the restoring field.
     restoring_forcing = Forcing(ecco_restoring; discrete_form = true)
