@@ -277,11 +277,11 @@ end
     # Convert from a mass flux to a volume flux (aka velocity)
     # by dividing by the density of freshwater.
     # Also switch the sign, for some reason we are given freshwater flux as positive down.
-    ρᶠ = freshwater_density
-    ΣF = - (Mp + Mr) / ρᶠ
+    ρf⁻¹ = 1 / freshwater_density
+    ΣF   = - (Mp + Mr) * ρf⁻¹
 
     # Add the contribution from the turbulent water vapor flux
-    Fv = Mv / ρᶠ
+    Fv = Mv * ρf⁻¹
     ΣF += Fv
 
     # Compute fluxes for u, v, T, S from momentum, heat, and freshwater fluxes
@@ -290,12 +290,12 @@ end
     Jᵀ = net_tracer_fluxes.T
     Jˢ = net_tracer_fluxes.S
 
-    ρₒ = ocean_reference_density
-    cₒ = ocean_heat_capacity
+    ρₒ⁻¹ = ocean_reference_density
+    cₒ   = ocean_heat_capacity
 
-    atmos_ocean_Jᵘ = τx / ρₒ
-    atmos_ocean_Jᵛ = τy / ρₒ
-    atmos_ocean_Jᵀ = ΣQ / (ρₒ * cₒ)
+    atmos_ocean_Jᵘ = τx * ρₒ⁻¹
+    atmos_ocean_Jᵛ = τy * ρₒ⁻¹
+    atmos_ocean_Jᵀ = ΣQ * ρₒ⁻¹ / cₒ
     atmos_ocean_Jˢ = - Sₒ * ΣF
 
     # Mask fluxes over land for convenience
