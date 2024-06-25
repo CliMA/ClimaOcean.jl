@@ -236,7 +236,7 @@ using Base: midpoint
     hi = hi + u
     @inbounds while lo < hi - u
         m = midpoint(lo, hi)
-        if lt(o, x, v[m])
+        if lt(lo, x, v[m])
             hi = m
         else
             lo = m
