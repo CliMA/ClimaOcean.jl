@@ -79,15 +79,13 @@ from the start time.
 An array of time differences in seconds.
 """
 function ecco_times(metadata; start_time = first(metadata).dates)
-    times = []
+    times = zeros(length(metadata))
     for data in metadata
         date = data.dates
         time = date - start_time
         time = Second(time).value
         push!(times, time)
     end
-
-    times = tuple(times...)
 
     return times
 end
@@ -128,6 +126,7 @@ function ECCO_field_time_series(metadata::ECCOMetadata;
     ECCO_native_grid = ftmp.grid
     boundary_conditions = FieldBoundaryConditions(ECCO_native_grid, location)
     times = ecco_times(metadata)
+    times = on_architecture(architecture, times)
 
     fts_grid = isnothing(grid) ? ECCO_native_grid : grid
 
@@ -229,8 +228,33 @@ end
     return interpolate(X, time, ecco_data, ecco_location, ecco_grid, ecco_times, ecco_backend, ecco_time_indexing)
 end    
 
-# Interpolating the ecco_variable in time
-@inline get_ecco_variable(::Val{false}, ecco_fts, i, j, k, ecco_grid, grid, time) = @inbounds ecco_fts[i, j, k, time]
+# Interpolating the ecco_variable in time: since the time interpolation is excessively slow, 
+# so slow as to be 3 times slower than the whole tendency computation, we assume that the data in 
+# memory contains the data we need for the interpolation (this is always the case).
+# TODO: fix time interpolation in Oceananigans
+@inline function get_ecco_variable(::Val{false}, ecco_fts, i, j, k, ecco_grid, grid, time) 
+    
+    times = ecco_fts.times
+ 
+    n₁ = searchsortedlast(times, time.time)
+    n₂ = n₁ + 1
+
+    t  = time.time
+    @inbounds t₁ = times[n₁]
+    @inbounds t₂ = times[n₂]
+
+    # Fractional index
+    ñ  = (t₂ - t₁) / (n₂ - n₁) * (t - t₁)
+
+    # Indices
+    n₁ = n₁ - n₀ + 1
+    n₂ = n₂ - n₀ + 1
+
+    @inbounds e₁ = ecco_fts.data[i, j, k, n₁]
+    @inbounds e₂ = ecco_fts.data[i, j, k, n₂]
+
+    return ñ * e₂ + (1 - ñ) * e₁
+end
 
 """
     ECCO_restoring_forcing(metadata::ECCOMetadata;
