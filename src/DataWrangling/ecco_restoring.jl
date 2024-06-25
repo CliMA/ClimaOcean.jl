@@ -5,6 +5,7 @@ using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBac
 using Oceananigans.Utils: Time
 
 using CUDA: @allowscalar
+using Base
 
 using NCDatasets
 using JLD2 
@@ -227,16 +228,14 @@ end
     return interpolate(X, time, ecco_data, ecco_location, ecco_grid, ecco_times, ecco_backend, ecco_time_indexing)
 end    
 
-using Base: midpoint, lt
-
 # Same implentation as `Base.jl` (just a test for now, to remove)
 @inline function search_sorted_times(v, x, lo, hi)
     u  = one(lo)
     lo = lo - u
     hi = hi + u
     @inbounds while lo < hi - u
-        m = midpoint(lo, hi)
-        if lt(lo, x, v[m])
+        m = Base.midpoint(lo, hi)
+        if Base.lt(lo, x, v[m])
             hi = m
         else
             lo = m
