@@ -2,7 +2,7 @@
 
 julia_version = "1.10.4"
 manifest_format = "2.0"
-project_hash = "d2ec6eab3a1bcf9a6e07ba530f8c2ea9266b216c"
+project_hash = "5efeaf9bde5c5f86ae2cbcee35982d263f37f70d"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -188,8 +188,8 @@ weakdeps = ["SparseArrays"]
 
 [[deps.ClimaSeaIce]]
 deps = ["Adapt", "KernelAbstractions", "Oceananigans", "RootSolvers", "Roots", "SeawaterPolynomials"]
-git-tree-sha1 = "0ac8d2566e8f4887896c8a03ee87050fcbbf6599"
-repo-rev = "ss/new-oceananigans"
+git-tree-sha1 = "be4f97676cd18dc1566637e03c189b04c3fb4c59"
+repo-rev = "main"
 repo-url = "https://github.com/CliMA/ClimaSeaIce.jl.git"
 uuid = "6ba0ff68-24e6-4315-936c-2e99227c95a4"
 version = "0.1.0"
@@ -1001,9 +1001,9 @@ version = "1.2.0"
 
 [[deps.Oceananigans]]
 deps = ["Adapt", "CUDA", "Crayons", "CubedSphere", "Dates", "Distances", "DocStringExtensions", "FFTW", "Glob", "IncompleteLU", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "LinearAlgebra", "Logging", "MPI", "NCDatasets", "OffsetArrays", "OrderedCollections", "PencilArrays", "PencilFFTs", "Pkg", "Printf", "Random", "Rotations", "SeawaterPolynomials", "SparseArrays", "Statistics", "StructArrays"]
-git-tree-sha1 = "994ae77f4f232940822770d8ce7c2f84e373156e"
+git-tree-sha1 = "745b1c19221e09886cae331450a2a4ea73708a38"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
-version = "0.91.1"
+version = "0.91.3"
 
     [deps.Oceananigans.extensions]
     OceananigansEnzymeExt = "Enzyme"
