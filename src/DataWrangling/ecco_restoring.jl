@@ -227,7 +227,7 @@ end
     return interpolate(X, time, ecco_data, ecco_location, ecco_grid, ecco_times, ecco_backend, ecco_time_indexing)
 end    
 
-using Base: midpoint
+using Base: midpoint, lt
 
 # Same implentation as `Base.jl` (just a test for now, to remove)
 @inline function search_sorted_times(v, x, lo, hi)
