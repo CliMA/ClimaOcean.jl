@@ -126,7 +126,6 @@ function ECCO_field_time_series(metadata::ECCOMetadata;
     ECCO_native_grid = ftmp.grid
     boundary_conditions = FieldBoundaryConditions(ECCO_native_grid, location)
     times = ecco_times(metadata)
-    times = on_architecture(architecture, times)
 
     fts_grid = isnothing(grid) ? ECCO_native_grid : grid
 
