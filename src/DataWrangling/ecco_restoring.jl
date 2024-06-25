@@ -235,7 +235,7 @@ end
     hi = hi + u
     @inbounds while lo < hi - u
         m = Base.midpoint(lo, hi)
-        if Base.lt(lo, x, v[m])
+        if x < v[m]
             hi = m
         else
             lo = m
