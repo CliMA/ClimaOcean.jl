@@ -257,7 +257,7 @@ end
     nₘ = n₀ + ecco_fts.backend.length - 1 
 
     n₁ = search_sorted_times(times, t, n₀, nₘ)
-    n₂ = ifelse(n₁ < nₘ, n₂ + 1, n₁)
+    n₂ = ifelse(n₁ < nₘ, n₁ + 1, n₁)
 
     @inbounds t₁ = times[n₁]
     @inbounds t₂ = times[n₂]
