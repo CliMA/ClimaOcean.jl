@@ -228,52 +228,7 @@ end
     return interpolate(X, time, ecco_data, ecco_location, ecco_grid, ecco_times, ecco_backend, ecco_time_indexing)
 end    
 
-# Same implentation as `Base.jl` (just a test for now, to remove)
-@inline function search_sorted_times(v, x, lo, hi)
-    u  = one(lo)
-    lo = lo - u
-    hi = hi + u
-    @inbounds while lo < hi - u
-        m = Base.midpoint(lo, hi)
-        if x < v[m]
-            hi = m
-        else
-            lo = m
-        end
-    end
-    return lo
-end
-
-# Interpolating the ecco_variable in time: since the time interpolation is excessively slow, 
-# so slow as to be 3 times slower than the whole tendency computation, we assume that the data in 
-# memory contains the data we need for the interpolation (this is always the case).
-# TODO: fix time interpolation in Oceananigans
 @inline get_ecco_variable(::Val{false}, ecco_fts, i, j, k, ecco_grid, grid, time) = @inbounds ecco_fts[i, j, k, time]
-    
-#     times = ecco_fts.times
-#     t     = time.time
-    
-#     n₀ = ecco_fts.backend.start
-#     nₘ = n₀ + ecco_fts.backend.length - 1 
-
-#     n₁ = search_sorted_times(times, t, n₀, nₘ)
-#     n₂ = ifelse(n₁ < nₘ, n₁ + 1, n₁)
-
-#     @inbounds t₁ = times[n₁]
-#     @inbounds t₂ = times[n₂]
-    
-#     # Fractional index
-#     ñ = ifelse(n₁ == n₂, zero(grid), (t₂ - t₁) / (n₂ - n₁) * (t - t₁))
-
-#     # Indices
-#     n₁ = n₁ - n₀ + 1
-#     n₂ = n₂ - n₀ + 1
-
-#     @inbounds e₁ = ecco_fts.data[i, j, k, n₁]
-#     @inbounds e₂ = ecco_fts.data[i, j, k, n₂]
-
-#     return ñ * e₂ + (1 - ñ) * e₁
-# end
 
 """
     ECCO_restoring_forcing(metadata::ECCOMetadata;
