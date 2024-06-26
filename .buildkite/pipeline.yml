@@ -7,6 +7,9 @@ env:
   JULIA_LOAD_PATH: "${JULIA_LOAD_PATH}:${BUILDKITE_BUILD_CHECKOUT_PATH}/.buildkite"
   OPENBLAS_NUM_THREADS: 1
   OMPI_MCA_opal_warn_on_missing_libcuda: 0
+  ECCO_USERNAME: ${{ secrets.ECCO_USERNAME }}
+  ECCO_PASSWORD: ${{ secrets.ECCO_PASSWORD }}
+
 
 steps:
   - label: "initialize"
@@ -33,11 +36,11 @@ steps:
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
 
-  - label: "Run ECCO2 tests"
-    key: "tests_ecco2"
+  - label: "Run ECCO tests"
+    key: "tests_ecco"
     env:
       CUDA_VISIBLE_DEVICES: "-1"
-      TEST_GROUP: "ecco2"
+      TEST_GROUP: "ecco"
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
 

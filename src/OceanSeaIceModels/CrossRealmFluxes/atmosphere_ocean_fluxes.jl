@@ -107,8 +107,8 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
 end
 
 # Fallback
-@inline convert_to_intrinsic_reference_frame(i, j, k, grid, uₒ, vₒ) = uₒ, vₒ
-@inline convert_to_extrinsic_reference_frame(i, j, k, grid, uₒ, vₒ) = uₒ, vₒ
+@inline extrinsic_vector(i, j, k, grid, uₒ, vₒ) = uₒ, vₒ
+@inline intrinsic_vector(i, j, k, grid, uₒ, vₒ) = uₒ, vₒ
 
 # Fallback!
 limit_fluxes_over_sea_ice!(args...) = nothing
@@ -147,7 +147,7 @@ limit_fluxes_over_sea_ice!(args...) = nothing
     # Convert the native grid velocities to a zonal - meridional 
     # frame of reference (assuming the frame of reference is 
     # latitude - longitude here, we might want to change it)
-    uₒ, vₒ = convert_to_intrinsic_reference_frame(i, j, kᴺ, grid, uₒ, vₒ)
+    uₒ, vₒ = extrinsic_vector(i, j, kᴺ, grid, uₒ, vₒ)
         
     @inbounds begin
         # Atmos state, which is _assumed_ to exist at location = (c, c, nothing)
@@ -209,8 +209,7 @@ limit_fluxes_over_sea_ice!(args...) = nothing
 
     # Convert back from a zonal - meridional flux to the frame of 
     # reference of the native ocean grid
-    τˣ, τʸ = convert_to_extrinsic_reference_frame(i, j, kᴺ, grid, turbulent_fluxes.x_momentum, 
-                                                                  turbulent_fluxes.y_momentum)
+    τˣ, τʸ = intrinsic_vector(i, j, kᴺ, grid, turbulent_fluxes.x_momentum, turbulent_fluxes.y_momentum)
 
     @inbounds begin
         # +0: cooling, -0: heating
@@ -278,11 +277,11 @@ end
     # Convert from a mass flux to a volume flux (aka velocity)
     # by dividing by the density of freshwater.
     # Also switch the sign, for some reason we are given freshwater flux as positive down.
-    ρᶠ = freshwater_density
-    ΣF = - (Mp + Mr) / ρᶠ
+    ρf⁻¹ = 1 / freshwater_density
+    ΣF   = - (Mp + Mr) * ρf⁻¹
 
     # Add the contribution from the turbulent water vapor flux
-    Fv = Mv / ρᶠ
+    Fv = Mv * ρf⁻¹
     ΣF += Fv
 
     # Compute fluxes for u, v, T, S from momentum, heat, and freshwater fluxes
@@ -291,12 +290,12 @@ end
     Jᵀ = net_tracer_fluxes.T
     Jˢ = net_tracer_fluxes.S
 
-    ρₒ = ocean_reference_density
-    cₒ = ocean_heat_capacity
+    ρₒ⁻¹ = 1 / ocean_reference_density
+    cₒ   = ocean_heat_capacity
 
-    atmos_ocean_Jᵘ = τx / ρₒ
-    atmos_ocean_Jᵛ = τy / ρₒ
-    atmos_ocean_Jᵀ = ΣQ / (ρₒ * cₒ)
+    atmos_ocean_Jᵘ = τx * ρₒ⁻¹
+    atmos_ocean_Jᵛ = τy * ρₒ⁻¹
+    atmos_ocean_Jᵀ = ΣQ * ρₒ⁻¹ / cₒ
     atmos_ocean_Jˢ = - Sₒ * ΣF
 
     # Mask fluxes over land for convenience

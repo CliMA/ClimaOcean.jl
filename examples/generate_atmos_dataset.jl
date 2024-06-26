@@ -4,9 +4,9 @@ using JLD2
 
 time_indices = 1:1
 
-qt = ClimaOcean.JRA55.jra55_field_time_series(:specific_humidity; time_indices)
-Tt = ClimaOcean.JRA55.jra55_field_time_series(:temperature; time_indices)
-pt = ClimaOcean.JRA55.jra55_field_time_series(:sea_level_pressure; time_indices)
+qt = ClimaOcean.JRA55.JRA55_field_time_series(:specific_humidity; time_indices)
+Tt = ClimaOcean.JRA55.JRA55_field_time_series(:temperature; time_indices)
+pt = ClimaOcean.JRA55.JRA55_field_time_series(:sea_level_pressure; time_indices)
 
 Nx, Ny, Nz = size(qt[1])
 

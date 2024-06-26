@@ -31,10 +31,10 @@ Modules = [ClimaOcean.DataWrangling]
 Public = false
 ```
 
-## ECCO2
+## ECCO
 
 ```@autodocs
-Modules = [ClimaOcean.ECCO2]
+Modules = [ClimaOcean.ECCO]
 Public = false
 ```
 

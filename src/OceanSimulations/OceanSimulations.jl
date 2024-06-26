@@ -8,10 +8,10 @@ using Oceananigans.Advection: TracerAdvection
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node
 
-using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities:
+using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities:
     CATKEVerticalDiffusivity,
-    MixingLength,
-    TurbulentKineticEnergyEquation
+    CATKEMixingLength,
+    CATKEEquation
 
 using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 
@@ -23,8 +23,8 @@ using Oceananigans.Operators
 default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
 
 function default_ocean_closure()
-    mixing_length = MixingLength(Cᵇ=0.01)
-    turbulent_kinetic_energy_equation = TurbulentKineticEnergyEquation(Cᵂϵ=1.0)
+    mixing_length = CATKEMixingLength(Cᵇ=0.01)
+    turbulent_kinetic_energy_equation = CATKEEquation(Cᵂϵ=1.0)
     return CATKEVerticalDiffusivity(; mixing_length, turbulent_kinetic_energy_equation)
 end
 
@@ -59,6 +59,7 @@ function ocean_simulation(grid; Δt = 5minutes,
                           rotation_rate = Ω_Earth,
                           gravitational_acceleration = g_Earth,
                           bottom_drag_coefficient = 0.003,
+                          forcing = NamedTuple(),
                           coriolis = HydrostaticSphericalCoriolis(; rotation_rate),
                           momentum_advection = default_momentum_advection(),
                           tracer_advection = default_tracer_advection(),
@@ -78,12 +79,10 @@ function ocean_simulation(grid; Δt = 5minutes,
                                  T = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵀ)),
                                  S = FieldBoundaryConditions(top = FluxBoundaryCondition(Jˢ)))
 
-    if !(grid isa ImmersedBoundaryGrid)
-        forcing = NamedTuple()
-    else
+    if grid isa ImmersedBoundaryGrid
         Fu = Forcing(u_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
         Fv = Forcing(v_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
-        forcing = (; u = Fu, v = Fv)
+        forcing = merge(forcing, (; u = Fu, v = Fv))
     end
     
     # Use the TEOS10 equation of state

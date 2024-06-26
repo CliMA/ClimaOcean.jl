@@ -3,10 +3,14 @@ using Oceananigans
 using Oceananigans: architecture
 using ClimaOcean
 using ClimaOcean.ECCO
+using ClimaOcean.ECCO: ECCO4Monthly
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalDiffusivity
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.Units
 using Printf
+
+using CFTime
+using Dates
 
 #####
 ##### Regional Mediterranean grid 
@@ -24,8 +28,8 @@ z_faces = stretched_vertical_faces(depth = 5000,
                              stretching = PowerLawStretching(1.070), 
                              surface_layer_height = 50)
 
-Nx = 15 * 42 # 1 / 15th of a degree resolution
-Ny = 15 * 15 # 1 / 15th of a degree resolution
+Nx = 4 * 42 # 1 / 4th of a degree resolution
+Ny = 4 * 15 # 1 / 4th of a degree resolution
 Nz = length(z_faces) - 1
 
 grid = LatitudeLongitudeGrid(CPU();
@@ -44,7 +48,8 @@ grid = LatitudeLongitudeGrid(CPU();
 bottom_height = regrid_bathymetry(grid, 
                                   height_above_water = 1,
                                   minimum_depth = 10,
-                                  interpolation_passes = 25)
+                                  interpolation_passes = 25,
+                                  connected_regions_allowed = 1)
 
 # Let's use an active cell map to elide computation in inactive cells
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true)
@@ -53,6 +58,14 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_
 import Oceananigans.Advection: nothing_to_default
 
 nothing_to_default(user_value; default) = isnothing(user_value) ? default : user_value
+
+dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 12, 1)
+
+temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
+salinity    = ECCOMetadata(:salinity,    dates, ECCO4Monthly())
+
+FT = ECCO_restoring_forcing(temperature; timescale = 2days)
+FS = ECCO_restoring_forcing(salinity;    timescale = 2days)
 
 # Constructing the model
 #
@@ -63,9 +76,10 @@ nothing_to_default(user_value; default) = isnothing(user_value) ? default : user
 model = HydrostaticFreeSurfaceModel(; grid,
                             momentum_advection = WENOVectorInvariant(),
                               tracer_advection = WENO(grid; order = 7),
-                                  free_surface = SplitExplicitFreeSurface(; cfl = 0.75, grid),
+                                  free_surface = SplitExplicitFreeSurface(grid; cfl = 0.75),
                                       buoyancy = SeawaterBuoyancy(),
                                       tracers  = (:T, :S, :c),
+                                    #   forcing  = (T = FT, S = FS),
                                       coriolis = HydrostaticSphericalCoriolis(scheme = ActiveCellEnstrophyConserving()))
 
 # Initializing the model
@@ -77,7 +91,7 @@ model = HydrostaticFreeSurfaceModel(; grid,
 @info "initializing model"
 libia_blob(x, y, z) = z > -20 || (x - 15)^2 + (y - 34)^2 < 1.5 ? 1 : 0
 
-set!(model, T = ECCOMetadata(:temperature), S = ECCOMetadata(:salinity), c = libia_blob)
+set!(model, c = libia_blob, T = temperature[1], S = salinity[1])
 
 fig = Figure()
 ax  = Axis(fig[1, 1])
@@ -125,7 +139,7 @@ simulation.stop_iteration = Inf
 
 simulation.output_writers[:surface_fields] = JLD2OutputWriter(model, merge(model.velocities, model.tracers);
                                                               indices = (:, :, Nz),
-                                                              schedule = TimeInterval(1day),
+                                                              schedule = TimeInterval(1days),
                                                               overwrite_existing = true,
                                                               filename = "med_surface_field")
 

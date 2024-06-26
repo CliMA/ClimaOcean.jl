@@ -3,9 +3,12 @@ using Oceananigans
 using Oceananigans.Units
 using Oceananigans: architecture
 using ClimaOcean
-using ClimaOcean.ECCO2
+using ClimaOcean.ECCO
 using ClimaOcean.OceanSimulations
 using ClimaOcean.OceanSeaIceModels
+
+using CFTime
+using Dates
 
 #####
 ##### Near - Global Ocean at 1/4th of a degree
@@ -39,7 +42,7 @@ bottom_height = retrieve_bathymetry(grid;
                                     connected_regions_allowed = 0)
  
 # An immersed boundary using a staircase representation of bathymetry
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height)) 
+grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true) 
 
 #####
 ##### The Ocean component
@@ -49,11 +52,13 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 ocean = ocean_simulation(grid) 
 model = ocean.model
 
+date  = DateTimeProlepticGregorian(1993, 1, 1)
+
 # We interpolate the initial conditions from the ECCO2 dataset 
-# (for the moment these are both 1st January 1992)
+# (for the moment these are both 1st January 1993)
 set!(model, 
-     T = ECCO2Metadata(:temperature),
-     S = ECCO2Metadata(:salinity))
+     T = ECCO2Metadata(:temperature, date, ECCO2Daily()),
+     S = ECCO2Metadata(:salinity,    date, ECCO2Daily()))
 
 #####
 ##### The atmosphere
