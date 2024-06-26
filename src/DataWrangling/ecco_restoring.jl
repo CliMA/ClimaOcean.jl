@@ -95,7 +95,8 @@ end
     ECCO_field_time_series(metadata::ECCOMetadata;
                            architecture = CPU(),
                            time_indices_in_memory = 2,
-                           time_indexing = Cyclical())
+                           time_indexing = Cyclical(),
+                           grid = nothing)
 
 Create a field time series object for ECCO data.
 
@@ -106,6 +107,7 @@ Create a field time series object for ECCO data.
 - architecture: The architecture to use for computations (default: CPU()).
 - time_indices_in_memory: The number of time indices to keep in memory (default: 2).
 - time_indexing: The time indexing scheme to use (default: Cyclical()).
+- grid: if not a `nothing`, the ECCO data is directly interpolated on the `grid`,
 """
 function ECCO_field_time_series(metadata::ECCOMetadata;	
                                 architecture = CPU(),	
@@ -238,17 +240,20 @@ end
                             mask = 1,
                             timescale = 5days)
 
-Create a restoring forcing term for ECCO field time series.
+Create a restoring forcing term that restores to values stored in an ECCO field time series.
 
 # Arguments:
+=============
 - `metadata`: The metadata for the ECCO field time series.
 
 # Keyword Arguments:
-- `architecture`: The architecture.
-- `backend`: The backend.
-- `time_indexing`: The time indexing.
-- `mask`: The mask value.
-- `timescale`: The timescale.
+====================
+- `architecture`: The architecture. Typically `CPU` or `GPU`
+- `time_indices_in_memory`: The number of time indices to keep in memory. trade-off between performance
+                            and memory footprint.    
+- `time_indexing`: The time indexing scheme for the field time series, see [`FieldTimeSeries`](@ref)
+- `mask`: The mask value. Can be a function of `(x, y, z, time)`, an array or a number
+- `timescale`: The restoring timescale.
 """
 function ECCO_restoring_forcing(variable_name::Symbol, version=ECCO4Monthly(); kw...) 
      metadata = ECCOMetadata(variable_name, all_ecco_dates(version), version)
