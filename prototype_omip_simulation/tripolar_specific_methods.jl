@@ -30,7 +30,7 @@ import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: extrinsic_vector, intrinsi
 # these functions will be transferred to OrthogonalSphericalShellGrids
 
 # Here we assume that the tripolar grid is locally orthogonal
-@inline function extrinsic_vector(i, j, grid::TRG, uₒ, vₒ)
+@inline function extrinsic_vector(i, j, k, grid::TRG, uₒ, vₒ)
 
     φᶜᶠᵃ₊ = φnode(i, j+1, 1, grid, Center(), Face(), Center())
     φᶜᶠᵃ₋ = φnode(i,   j, 1, grid, Center(), Face(), Center())
@@ -52,7 +52,7 @@ import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: extrinsic_vector, intrinsi
     return uₒ * d₁ - vₒ * d₂, uₒ * d₂ + vₒ * d₁
 end
 
-@inline function intrinsic_vector(i, j, grid::TRG, uₒ, vₒ) 
+@inline function intrinsic_vector(i, j, k, grid::TRG, uₒ, vₒ) 
 
     φᶜᶠᵃ₊ = φnode(i, j+1, 1, grid, Center(), Face(), Center())
     φᶜᶠᵃ₋ = φnode(i,   j, 1, grid, Center(), Face(), Center())
