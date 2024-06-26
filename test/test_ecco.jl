@@ -17,7 +17,7 @@ using Dates
         end_date = DateTimeProlepticGregorian(1993, 4, 1)
         dates = start_date : Month(1) : end_date
 
-        temperature = ECCOMetadata(:temperature, dates, ECCO2Daily())
+        temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
         t_restoring = ECCO_restoring_forcing(temperature; timescale = 10days)
 
         ecco_fts = t_restoring.func.ecco_fts
