@@ -2,42 +2,41 @@ include("runtests_setup.jl")
 
 using ClimaOcean
 using ClimaOcean.ECCO
+using ClimaOcean.ECCO: ecco_field, file_name
 using Oceananigans.Grids: topology
+
+using CFTime
+using Dates
 
 @testset "ECCO fields utilities" begin
     for arch in test_architectures
         A = typeof(arch)
         @info "Testing ecco_field on $A..."
 
-        temperature_filename = ECCO.ecco_file_names[:temperature]
-        ecco_temperature    = ECCO.ecco_field(:temperature; architecture=arch)
+        start_date = DateTimeProlepticGregorian(1993, 1, 1)
+        end_date = DateTimeProlepticGregorian(1993, 4, 1)
+        dates = start_date : Month(1) : end_date
 
-        @test isfile(temperature_filename)
-        rm(temperature_filename)
+        temperature = ECCOMetadata(:temperature, dates, ECCO2Daily())
+        t_restoring = ECCO_restoring_forcing(temperature; timescale = 10days)
 
-        @test ecco_temperature isa Field
-        @test ecco_temperature.grid isa LatitudeLongitudeGrid
-        @test topology(ecco_temperature.grid) == (Periodic, Bounded, Bounded)
+        ecco_fts = t_restoring.func.ecco_fts
 
-        Nx, Ny, Nz = size(ecco_temperature)
-        @test Nx == 1440
-        @test Ny == 720
-        @test Nz == 50
+        for metadata in temperature
+            temperature_filename = file_name(metadata)
+            @test isfile(temperature_filename)
+        end
 
-        ice_thickness_filename = ECCO.ecco_file_names[:sea_ice_thickness]
-        ecco_ice_thickness    = ECCO.ecco_field(:sea_ice_thickness; architecture=arch)
+        @test ecco_fts isa FieldTimeSeries
+        @test ecco_fts.grid isa LatitudeLongitudeGrid
+        @test topology(ecco_fts.grid) == (Periodic, Bounded, Bounded)
 
-        @test isfile(ice_thickness_filename)
-        rm(ice_thickness_filename)
+        Nx, Ny, Nz, Nt = size(ecco_fts.data)
 
-        @test ecco_ice_thickness isa Field
-        @test ecco_ice_thickness.grid isa LatitudeLongitudeGrid
-        @test topology(ecco_ice_thickness.grid) == (Periodic, Bounded, Flat)
-
-        Nx, Ny, Nz = size(ecco_ice_thickness)
-        @test Nx == 1440
-        @test Ny == 720
-        @test Nz == 1
+        @test Nx == size(temperature[1])[1]
+        @test Ny == size(temperature[1])[2]
+        @test Nz == size(temperature[1])[3]
+        @test Nt == size(temperature[1])[3]
     end
 end
 

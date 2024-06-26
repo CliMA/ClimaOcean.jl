@@ -6,7 +6,6 @@ using OrthogonalSphericalShellGrids
 using Oceananigans
 using Oceananigans: architecture
 using Oceananigans.Grids: on_architecture
-using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalDiffusivity
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.Units
 using ClimaOcean
@@ -35,13 +34,13 @@ include("tripolar_specific_methods.jl")
 bathymetry_file = nothing # "bathymetry_tmp.jld2"
 
 # 60 vertical levels
-z_faces = exponential_z_faces(Nz=60, depth=6000)
+z_faces = exponential_z_faces(Nz=20, depth=6000)
 
-Nx = 1440
-Ny = 720
+Nx = 200
+Ny = 100
 Nz = length(z_faces) - 1
 
-arch = GPU() #Distributed(GPU(), partition = Partition(2))
+arch = CPU() #Distributed(GPU(), partition = Partition(2))
 
 grid = TripolarGrid(arch; 
                     size = (Nx, Ny, Nz), 
@@ -94,10 +93,13 @@ const c₂⁻ = c⁺[2]
 const c₃⁻ = - c⁺[3]
 const c₄⁻ = c⁺[4]
 
-@inline mask(λ, φ, z, t) = ifelse(φ >=  70, c₁⁺ * φ^3 + c₂⁺ * φ^2 + c₃⁺ * φ + c₄⁺,
-                           ifelse(φ <= -70, c₁⁻ * φ^3 + c₂⁻ * φ^2 + c₃⁻ * φ + c₄⁻, 0))
+@inline mask_f(λ, φ, z) = ifelse(φ >=  70, c₁⁺ * φ^3 + c₂⁺ * φ^2 + c₃⁺ * φ + c₄⁺,
+                          ifelse(φ <= -70, c₁⁻ * φ^3 + c₂⁻ * φ^2 + c₃⁻ * φ + c₄⁻, zero(eltype(φ))))
 
-dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 12, 1)
+mask = CenterField(grid)
+set!(mask, mask_f)
+
+dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 10, 1)
 
 temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
 salinity    = ECCOMetadata(:salinity,    dates, ECCO4Monthly())
@@ -107,7 +109,7 @@ FS = ECCO_restoring_forcing(salinity;    mask, grid, architecture = arch, timesc
 
 forcing = (; T = FT, S = FS)
 
-ocean = ocean_simulation(grid; free_surface, forcing) 
+ocean = ocean_simulation(grid; free_surface, forcing, closure = nothing) 
 model = ocean.model
 
 initial_date = dates[1]
@@ -148,7 +150,7 @@ function progress(sim)
      wall_time[1] = time_ns()
 end
 
-ocean.callbacks[:progress] = Callback(progress, IterationInterval(10))
+ocean.callbacks[:progress] = Callback(progress, IterationInterval(1))
 
 fluxes = (u = model.velocities.u.boundary_conditions.top.condition,
           v = model.velocities.v.boundary_conditions.top.condition,
@@ -182,7 +184,7 @@ ocean.output_writers[:checkpoint] = Checkpointer(model,
 # Simulation warm up!
 ocean.Δt = 10
 ocean.stop_iteration = 1
-wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 90, max_change = 1.1)
+wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 1, max_change = 1.1)
 ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(1))
 
 stop_time = 15days

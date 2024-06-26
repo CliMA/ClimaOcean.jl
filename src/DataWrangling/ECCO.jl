@@ -131,9 +131,9 @@ The data is either:
 (3) filled from `user_data` if `user_data` is provided.
 """
 function ecco_field(metadata::ECCOMetadata;
-                     architecture = CPU(),
-                     horizontal_halo = (3, 3),
-                     filename = file_name(metadata))
+                    architecture = CPU(),
+                    horizontal_halo = (3, 3),
+                    filename = file_name(metadata))
 
     shortname = short_name(metadata)
     

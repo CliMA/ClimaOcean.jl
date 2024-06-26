@@ -14,7 +14,7 @@ export
     exponential_z_faces,
     PowerLawStretching, LinearStretching,
     exponential_z_faces,
-    jra55_field_time_series,
+    JRA55_field_time_series,
     ecco_field, ECCOMetadata,
     ocean_simulation,
     initialize!
