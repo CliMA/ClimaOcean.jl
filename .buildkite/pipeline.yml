@@ -7,6 +7,9 @@ env:
   JULIA_LOAD_PATH: "${JULIA_LOAD_PATH}:${BUILDKITE_BUILD_CHECKOUT_PATH}/.buildkite"
   OPENBLAS_NUM_THREADS: 1
   OMPI_MCA_opal_warn_on_missing_libcuda: 0
+  ECCO_USERNAME: ${{ secrets.ECCO_USERNAME }}
+  ECCO_PASSWORD: ${{ secrets.ECCO_PASSWORD }}
+
 
 steps:
   - label: "initialize"
@@ -22,8 +25,6 @@ steps:
       slurm_cpus_per_task: 8
     env:
       JULIA_NUM_PRECOMPILE_TASKS: 8
-      ECCO_USERNAME: ${{ secrets.ECCO_USERNAME }}
-      ECCO_PASSWORD: ${{ secrets.ECCO_PASSWORD }}
 
   - wait
 
@@ -40,8 +41,6 @@ steps:
     env:
       CUDA_VISIBLE_DEVICES: "-1"
       TEST_GROUP: "ecco"
-      ECCO_USERNAME: ${{ secrets.ECCO_USERNAME }}
-      ECCO_PASSWORD: ${{ secrets.ECCO_PASSWORD }}
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
 
@@ -50,8 +49,6 @@ steps:
     env:
       CUDA_VISIBLE_DEVICES: "-1"
       TEST_GROUP: "fluxes"
-      ECCO_USERNAME: ${{ secrets.ECCO_USERNAME }}
-      ECCO_PASSWORD: ${{ secrets.ECCO_PASSWORD }}
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
 
