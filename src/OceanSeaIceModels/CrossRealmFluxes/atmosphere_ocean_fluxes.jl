@@ -290,7 +290,7 @@ end
     Jᵀ = net_tracer_fluxes.T
     Jˢ = net_tracer_fluxes.S
 
-    ρₒ⁻¹ = ocean_reference_density
+    ρₒ⁻¹ = 1 / ocean_reference_density
     cₒ   = ocean_heat_capacity
 
     atmos_ocean_Jᵘ = τx * ρₒ⁻¹
