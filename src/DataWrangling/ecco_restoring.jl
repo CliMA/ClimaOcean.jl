@@ -88,7 +88,7 @@ function ecco_times(metadata; start_time = first(metadata).dates)
         times[t] = time
     end
 
-    return tuple(times...)
+    return times
 end
 
 """
