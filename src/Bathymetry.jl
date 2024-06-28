@@ -100,12 +100,12 @@ function regrid_bathymetry(target_grid;
 
     φ_data = dataset["lat"][:]
     λ_data = dataset["lon"][:]
-    h_data = convert.(FT, dataset["z"][:, :])
+    z_data = convert(Array{FT}, dataset["z"][:, :])
 
     # Convert longitude to 0 - 360?
     λ_data .+= 180
-    nhx      = size(h_data, 1)
-    h_data   = circshift(h_data, (nhx ÷ 2, 1))
+    nhx      = size(z_data, 1)
+    z_data   = circshift(z_data, (nhx ÷ 2, 1))
 
     close(dataset)
 
@@ -113,6 +113,11 @@ function regrid_bathymetry(target_grid;
     arch = architecture(target_grid)
     φ₁, φ₂ = y_domain(target_grid)
     λ₁, λ₂ = x_domain(target_grid)
+
+    if λ₁ < 0 || λ₂ > 360
+        throw(ArgumentError("Cannot regrid bathymetry between λ₁ = $(λ₁) and λ₂ = $(λ₂).
+                             Bathymetry data is defined on longitudes spanning λ = (0, 360)."))
+    end
 
     # Calculate limiting indices on the bathymetry grid
     i₁ = searchsortedfirst(λ_data, λ₁)
@@ -144,14 +149,14 @@ function regrid_bathymetry(target_grid;
     # Restrict bathymetry _data to region of interest
     λ_data = λ_data[ii]
     φ_data = φ_data[jj]
-    h_data = h_data[ii, jj]
+    z_data = z_data[ii, jj]
 
     if !isnothing(height_above_water)
         # Overwrite the height of cells above water.
         # This has an impact on reconstruction. Greater height_above_water reduces total
         # wet area by biasing coastal regions to land during bathymetry regridding.
-        land = h_data .> 0
-        h_data[land] .= height_above_water
+        land = z_data .> 0
+        z_data[land] .= height_above_water
     end
 
     # Build the "native" grid of the bathymetry and make a bathymetry field.
@@ -166,29 +171,29 @@ function regrid_bathymetry(target_grid;
                                         z = (0, 1),
                                         halo = (10, 10, 1))
 
-    native_h = Field{Center, Center, Nothing}(native_grid)
-    set!(native_h, h_data)
+    native_z = Field{Center, Center, Nothing}(native_grid)
+    set!(native_z, z_data)
 
-    target_h = interpolate_bathymetry_in_passes(native_h, target_grid; 
+    target_z = interpolate_bathymetry_in_passes(native_z, target_grid; 
                                                 passes = interpolation_passes,
                                                 connected_regions_allowed,
                                                 minimum_depth)
 
-    return target_h
+    return target_z
 end
 
 # Here we can either use `regrid!` (three dimensional version) or `interpolate`
-function interpolate_bathymetry_in_passes(native_h, target_grid; 
+function interpolate_bathymetry_in_passes(native_z, target_grid; 
                                           passes = 10,
                                           connected_regions_allowed = 3,
                                           minimum_depth = 0)
     Nλt, Nφt = Nt = size(target_grid)
-    Nλn, Nφn = Nn = size(native_h)
+    Nλn, Nφn = Nn = size(native_z)
     
     if any(Nt[1:2] .> Nn[1:2]) # We are refining the grid (at least in one direction), more passes will not help!
-        target_h = Field{Center, Center, Nothing}(target_grid)
-        interpolate!(target_h, native_h)
-        return target_h
+        target_z = Field{Center, Center, Nothing}(target_grid)
+        interpolate!(target_z, native_z)
+        return target_z
     end
  
     latitude  = y_domain(target_grid)
@@ -203,7 +208,7 @@ function interpolate_bathymetry_in_passes(native_h, target_grid;
     Nλ = Int[Nλ..., Nλt]
     Nφ = Int[Nφ..., Nφt]
 
-    old_h     = native_h
+    old_z     = native_z
     TX, TY, _ = topology(target_grid)
 
     for pass = 1:passes - 1
@@ -217,61 +222,61 @@ function interpolate_bathymetry_in_passes(native_h, target_grid;
                                             z = (0, 1),
                                      topology = (TX, TY, Bounded))
 
-        new_h = Field{Center, Center, Nothing}(new_grid)
+        new_z = Field{Center, Center, Nothing}(new_grid)
 
-        interpolate!(new_h, old_h)
-        old_h = new_h
+        interpolate!(new_z, old_z)
+        old_z = new_z
     end
 
-    target_h = Field{Center, Center, Nothing}(target_grid)
-    interpolate!(target_h, old_h)
+    target_z = Field{Center, Center, Nothing}(target_grid)
+    interpolate!(target_z, old_z)
 
-    h_data = Array(interior(target_h, :, :, 1))
+    z_data = Array(interior(target_z, :, :, 1))
 
     if minimum_depth > 0
-        shallow_ocean = h_data .> - minimum_depth
-        h_data[shallow_ocean] .= 0
+        shallow_ocean = z_data .> - minimum_depth
+        z_data[shallow_ocean] .= 0
     end
 
-    h_data = remove_lakes!(h_data; connected_regions_allowed)
-    set!(target_h, h_data)
-    fill_halo_regions!(target_h)
+    z_data = remove_lakes!(z_data; connected_regions_allowed)
+    set!(target_z, z_data)
+    fill_halo_regions!(target_z)
 
-    return target_h
+    return target_z
 end
 
 """
-    remove_lakes!(h_data; connected_regions_allowed = Inf)
+    remove_lakes!(z_data; connected_regions_allowed = Inf)
 
-Remove lakes from the bathymetry data stored in `h_data`, by identifying connected regions below sea level 
+Remove lakes from the bathymetry data stored in `z_data`, by identifying connected regions below sea level 
 and removing all but the specified number of largest connected regions (which represent the ocean and 
 other possibly disconnected regions like the Mediterranean and the Bering sea).
 
 # Arguments
 ============
 
-- `h_data`: A 2D array representing the bathymetry data.
+- `z_data`: A 2D array representing the bathymetry data.
 - `connected_regions_allowed`: The maximum number of connected regions to keep. 
                                Default is `Inf`, which means all connected regions are kept.
 
 """
-function remove_lakes!(h_data::Field; kw...)
-    data = Array(interior(h_data, :, :, 1))
+function remove_lakes!(z_data::Field; kw...)
+    data = Array(interior(z_data, :, :, 1))
     data = remove_lakes!(data; kw...)
 
-    set!(h_data, data)
+    set!(z_data, data)
 
-    return h_data
+    return z_data
 end
 
-function remove_lakes!(h_data; connected_regions_allowed = Inf)
+function remove_lakes!(z_data; connected_regions_allowed = Inf)
 
     if connected_regions_allowed == Inf
         @info "we are not removing lakes"
-        return h_data
+        return z_data
     end
 
-    bathtmp = deepcopy(h_data)
+    bathtmp = deepcopy(z_data)
     batneg  = zeros(Bool, size(bathtmp)...)
     
     batneg[bathtmp.<0] .= true
