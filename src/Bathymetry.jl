@@ -1,7 +1,8 @@
 module Bathymetry
 
-export regrid_bathymetry
+export regrid_bathymetry, retrieve_bathymetry
 
+using ImageMorphology
 using ..DataWrangling: download_progress
 
 using Oceananigans
@@ -13,6 +14,7 @@ using Oceananigans.Utils: pretty_filesize, launch!
 using Oceananigans.Fields: interpolate!
 using Oceananigans.BoundaryConditions
 using KernelAbstractions: @kernel, @index
+using JLD2
 
 using NCDatasets
 using Downloads
@@ -40,7 +42,8 @@ Keyword Arguments:
 - height_above_water: limits the maximum height of above-water topography (where h > 0). If
                       `nothing` the original topography is retained
 
-- minimum_depth: minimum depth for the shallow regions. `h > minimum_depth` will be considered land
+- minimum_depth: minimum depth for the shallow regions, defined as a positive value. 
+                 `h > - minimum_depth` will be considered land
 
 - dir: directory of the bathymetry-containing file
 
@@ -61,6 +64,11 @@ Keyword Arguments:
                         applying a smoothing filter, with more passes increasing the strength of the filter.
                         If _refining_ the original grid, additional passes will not help and no intermediate
                         steps will be performed.
+
+- connected_regions_allowed: number of ``connected regions'' allowed in the bathymetry. Connected regions are fluid 
+                             regions that are fully encompassed by land (for example the ocean is one connected region).
+                             Default is `Inf`. If a value < `Inf` is specified, connected regions will be preserved in order
+                             of how many active cells they contain.
 """
 function regrid_bathymetry(target_grid;
                            height_above_water = nothing,
@@ -68,7 +76,8 @@ function regrid_bathymetry(target_grid;
                            dir = joinpath(@__DIR__, "..", "data"),
                            url = "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_surface_elev_netcdf", 
                            filename = "ETOPO_2022_v1_60s_N90W180_surface.nc",
-                           interpolation_passes = 1)
+                           interpolation_passes = 1,
+                           connected_regions_allowed = Inf) # Allow an `Inf` number of ``lakes''
 
     filepath = joinpath(dir, filename)
 
@@ -91,7 +100,12 @@ function regrid_bathymetry(target_grid;
 
     φ_data = dataset["lat"][:]
     λ_data = dataset["lon"][:]
-    h_data = convert.(FT, dataset["z"][:, :])
+    z_data = convert(Array{FT}, dataset["z"][:, :])
+
+    # Convert longitude to 0 - 360?
+    λ_data .+= 180
+    nhx      = size(z_data, 1)
+    z_data   = circshift(z_data, (nhx ÷ 2, 1))
 
     close(dataset)
 
@@ -99,6 +113,11 @@ function regrid_bathymetry(target_grid;
     arch = architecture(target_grid)
     φ₁, φ₂ = y_domain(target_grid)
     λ₁, λ₂ = x_domain(target_grid)
+
+    if λ₁ < 0 || λ₂ > 360
+        throw(ArgumentError("Cannot regrid bathymetry between λ₁ = $(λ₁) and λ₂ = $(λ₂).
+                             Bathymetry data is defined on longitudes spanning λ = (0, 360)."))
+    end
 
     # Calculate limiting indices on the bathymetry grid
     i₁ = searchsortedfirst(λ_data, λ₁)
@@ -130,19 +149,14 @@ function regrid_bathymetry(target_grid;
     # Restrict bathymetry _data to region of interest
     λ_data = λ_data[ii]
     φ_data = φ_data[jj]
-    h_data = h_data[ii, jj]
+    z_data = z_data[ii, jj]
 
     if !isnothing(height_above_water)
         # Overwrite the height of cells above water.
         # This has an impact on reconstruction. Greater height_above_water reduces total
         # wet area by biasing coastal regions to land during bathymetry regridding.
-        land = h_data .> 0
-        h_data[land] .= height_above_water
-    end
-
-    if minimum_depth > 0
-        shallow_ocean = h_data .> minimum_depth
-        h_data[shallow_ocean] .= height_above_water
+        land = z_data .> 0
+        z_data[land] .= height_above_water
     end
 
     # Build the "native" grid of the bathymetry and make a bathymetry field.
@@ -157,23 +171,29 @@ function regrid_bathymetry(target_grid;
                                         z = (0, 1),
                                         halo = (10, 10, 1))
 
-    native_h = Field{Center, Center, Nothing}(native_grid)
-    set!(native_h, h_data)
+    native_z = Field{Center, Center, Nothing}(native_grid)
+    set!(native_z, z_data)
 
-    target_h = interpolate_bathymetry_in_passes(native_h, target_grid; passes = interpolation_passes)
+    target_z = interpolate_bathymetry_in_passes(native_z, target_grid; 
+                                                passes = interpolation_passes,
+                                                connected_regions_allowed,
+                                                minimum_depth)
 
-    return target_h
+    return target_z
 end
 
 # Here we can either use `regrid!` (three dimensional version) or `interpolate`
-function interpolate_bathymetry_in_passes(native_h, target_grid; passes = 10)
+function interpolate_bathymetry_in_passes(native_z, target_grid; 
+                                          passes = 10,
+                                          connected_regions_allowed = 3,
+                                          minimum_depth = 0)
     Nλt, Nφt = Nt = size(target_grid)
-    Nλn, Nφn = Nn = size(native_h)
+    Nλn, Nφn = Nn = size(native_z)
     
     if any(Nt[1:2] .> Nn[1:2]) # We are refining the grid (at least in one direction), more passes will not help!
-        target_h = Field{Center, Center, Nothing}(target_grid)
-        interpolate!(target_h, native_h)
-        return target_h
+        target_z = Field{Center, Center, Nothing}(target_grid)
+        interpolate!(target_z, native_z)
+        return target_z
     end
  
     latitude  = y_domain(target_grid)
@@ -188,7 +208,7 @@ function interpolate_bathymetry_in_passes(native_h, target_grid; passes = 10)
     Nλ = Int[Nλ..., Nλt]
     Nφ = Int[Nφ..., Nφt]
 
-    old_h     = native_h
+    old_z     = native_z
     TX, TY, _ = topology(target_grid)
 
     for pass = 1:passes - 1
@@ -202,17 +222,141 @@ function interpolate_bathymetry_in_passes(native_h, target_grid; passes = 10)
                                             z = (0, 1),
                                      topology = (TX, TY, Bounded))
 
-        new_h = Field{Center, Center, Nothing}(new_grid)
+        new_z = Field{Center, Center, Nothing}(new_grid)
 
-        interpolate!(new_h, old_h)
-        old_h = new_h
+        interpolate!(new_z, old_z)
+        old_z = new_z
     end
 
-    target_h = Field{Center, Center, Nothing}(target_grid)
-    interpolate!(target_h, old_h)
+    target_z = Field{Center, Center, Nothing}(target_grid)
+    interpolate!(target_z, old_z)
 
-    return target_h
+    z_data = Array(interior(target_z, :, :, 1))
+
+    if minimum_depth > 0
+        shallow_ocean = z_data .> - minimum_depth
+        z_data[shallow_ocean] .= 0
+    end
+
+    z_data = remove_lakes!(z_data; connected_regions_allowed)
+    set!(target_z, z_data)
+    fill_halo_regions!(target_z)
+
+    return target_z
 end
+
+"""
+    remove_lakes!(z_data; connected_regions_allowed = Inf)
+
+Remove lakes from the bathymetry data stored in `z_data`, by identifying connected regions below sea level 
+and removing all but the specified number of largest connected regions (which represent the ocean and 
+other possibly disconnected regions like the Mediterranean and the Bering sea).
+
+# Arguments
+============
+
+- `z_data`: A 2D array representing the bathymetry data.
+- `connected_regions_allowed`: The maximum number of connected regions to keep. 
+                               Default is `Inf`, which means all connected regions are kept.
+
+"""
+function remove_lakes!(z_data::Field; kw...)
+    data = Array(interior(z_data, :, :, 1))
+    data = remove_lakes!(data; kw...)
+
+    set!(z_data, data)
+
+    return z_data
+end
+
+function remove_lakes!(z_data; connected_regions_allowed = Inf)
+
+    if connected_regions_allowed == Inf
+        @info "we are not removing lakes"
+        return z_data
+    end
+
+    bathtmp = deepcopy(z_data)
+    batneg  = zeros(Bool, size(bathtmp)...)
+    
+    batneg[bathtmp.<0] .= true
+    
+    connectivity = ImageMorphology.strel(batneg)
+    labels = ImageMorphology.label_components(connectivity)
+    
+    total_elements = zeros(maximum(labels))
+    label_elements = zeros(maximum(labels))
+
+    for i in 1:lastindex(total_elements)
+        total_elements[i] = length(labels[labels .== i])
+        label_elements[i] = i
+    end
+        
+    all_idx = []
+    ocean_idx = findfirst(x -> x == maximum(total_elements), total_elements)
+    push!(all_idx, label_elements[ocean_idx])
+    total_elements = filter((x) -> x != total_elements[ocean_idx], total_elements)
+    label_elements = filter((x) -> x != label_elements[ocean_idx], label_elements)
+
+    for _ in 1:connected_regions_allowed
+        next_maximum = findfirst(x -> x == maximum(total_elements), total_elements)
+        push!(all_idx, label_elements[next_maximum])
+        total_elements = filter((x) -> x != total_elements[next_maximum], total_elements)
+        label_elements = filter((x) -> x != label_elements[next_maximum], label_elements)
+    end
+        
+    labels = Float64.(labels)
+
+    for i in 1:maximum(labels)
+        remove_lake = (&).(Tuple(i != idx for idx in all_idx)...)
+        if remove_lake
+            labels[labels .== i] .= 1e10 # Fictitious super large number
+        end
+    end
+
+    # Removing land?
+    labels[labels .<  1e10] .= 0 
+    labels[labels .== 1e10] .= NaN
+
+    bathtmp .+= labels
+    bathtmp[isnan.(bathtmp)] .= 0
+
+    return bathtmp
+end
+
+"""
+    retrieve_bathymetry(grid, filename; kw...)
+
+Retrieve the bathymetry data from a file or generate it using a grid and save it to a file.
+
+# Arguments
+============
+
+- `grid`: The grid used to generate the bathymetry data.
+- `filename`: The name of the file to read or save the bathymetry data.
+- `kw...`: Additional keyword arguments.
+
+# Returns
+===========
+- `bottom_height`: The retrieved or generated bathymetry data.
+
+If the specified file exists, the function reads the bathymetry data from the file. 
+Otherwise, it generates the bathymetry data using the provided grid and saves it to the file before returning it.
+"""
+function retrieve_bathymetry(grid, filename; kw...) 
+    
+    if isfile(filename)
+        bottom_height = jldopen(filename)["bathymetry"]
+    else
+        bottom_height = regrid_bathymetry(grid; kw...)
+        jldsave(filename, bathymetry = Array(interior(bottom_height)))
+    end
+
+    return bottom_height
+end
+
+retrieve_bathymetry(grid, ::Nothing; kw...) = regrid_bathymetry(grid; kw...)
+retrieve_bathymetry(grid; kw...)            = regrid_bathymetry(grid; kw...)
 
 end # module
 

@@ -7,7 +7,6 @@ using Oceananigans.Fields: instantiated_location, interior, CenterField
 using Oceananigans.Architectures: architecture, device, GPU
 
 using KernelAbstractions: @kernel, @index
-using KernelAbstractions.Extras.LoopInfo: @unroll
 
 # Maybe we can remove this propagate field in lieu of a diffusion, 
 # Still we'll need to do this a couple of steps on the original grid
@@ -25,7 +24,7 @@ using KernelAbstractions.Extras.LoopInfo: @unroll
     counter = 0
     cumsum  = zero(eltype(field))
 
-    @unroll for n in nb
+    for n in nb
         counter += ifelse(isnan(n), 0, 1)
         cumsum  += ifelse(isnan(n), 0, n)
     end
@@ -76,6 +75,8 @@ function propagate_horizontally!(field, mask, tmp_field=deepcopy(field); max_ite
         @debug "Propagate pass $iter with sum $(sum(parent(field)))"
     end
 
+    fill_halo_regions!(field)
+
     return field
 end
 
@@ -98,7 +99,7 @@ end
     i, j = @index(Global, NTuple)
     Nz = size(grid, 3)
 
-    @unroll for k = Nz-1 : -1 : 1
+    for k = Nz-1 : -1 : 1
         @inbounds field[i, j, k] = ifelse(mask[i, j, k], field[i, j, k+1], field[i, j, k])
     end
 end
