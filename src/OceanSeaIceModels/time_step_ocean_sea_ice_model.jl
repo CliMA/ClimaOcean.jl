@@ -39,6 +39,7 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
     # - Store fractional ice-free / ice-covered _time_ for more
     #   accurate flux computation?
     tick!(coupled_model.clock, Δt)
+    
     update_state!(coupled_model, callbacks; compute_tendencies)
     
     return nothing

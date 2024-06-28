@@ -1,10 +1,12 @@
 agents:
   queue: new-central
   slurm_mem: 8G
-  modules: climacommon/2024_04_05
+  modules: climacommon/2024_05_27
 
 env:
   JULIA_LOAD_PATH: "${JULIA_LOAD_PATH}:${BUILDKITE_BUILD_CHECKOUT_PATH}/.buildkite"
+  OPENBLAS_NUM_THREADS: 1
+  OMPI_MCA_opal_warn_on_missing_libcuda: 0
 
 steps:
   - label: "initialize"
@@ -38,3 +40,25 @@ steps:
       TEST_GROUP: "ecco2"
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
+
+  - label: "Run surface flux tests"
+    key: "tests_fluxes"
+    env:
+      CUDA_VISIBLE_DEVICES: "-1"
+      TEST_GROUP: "fluxes"
+    commands:
+      - "julia --project -e 'using Pkg; Pkg.test()'"
+
+  # - label: "documentation"
+  #   env:
+  #     JULIA_DEBUG: "Documenter"
+  #   commands:
+  #     - "julia --color=yes --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'"
+  #     - "julia --color=yes --project=docs/ docs/make.jl"
+  #   agents:
+  #     slurm_mem: 120G
+  #     slurm_ntasks: 1
+  #     slurm_gpus_per_task: 1
+
+  - wait: ~
+    continue_on_failure: true
