@@ -30,5 +30,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For authentication with GitHub Actions token
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }} # For authentication with SSH deploy key
-          JULIA_DEBUG: Documenter
+          JULIA_DEBUG: Documenter  
+          ECCO_USERNAME: ${{ secrets.ECCO_USERNAME }} # To download ECCO data from the podaac website
+          ECCO_PASSWORD: ${{ secrets.ECCO_PASSWORD }} # To download ECCO data from the podaac website
         run: julia --color=yes --project=docs/ docs/make.jl

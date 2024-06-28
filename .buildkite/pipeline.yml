@@ -7,8 +7,8 @@ env:
   JULIA_LOAD_PATH: "${JULIA_LOAD_PATH}:${BUILDKITE_BUILD_CHECKOUT_PATH}/.buildkite"
   OPENBLAS_NUM_THREADS: 1
   OMPI_MCA_opal_warn_on_missing_libcuda: 0
-  ECCO_USERNAME: ${{ secrets.ECCO_USERNAME }}
-  ECCO_PASSWORD: ${{ secrets.ECCO_PASSWORD }}
+  ECCO_USERNAME: "${{ secrets.ECCO_USERNAME }}"
+  ECCO_PASSWORD: "${{ secrets.ECCO_PASSWORD }}"
 
 
 steps:
