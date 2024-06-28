@@ -56,7 +56,7 @@ interior(h_smooth)[land_smooth] .= NaN
 land_rough = interior(h_rough) .> 0
 interior(h_rough)[land_rough] .= NaN
 
-fig = Figure(size=(2400, 1200))
+fig = Figure(resolution=(2400, 800))
 ax = Axis(fig[1, 1])
 heatmap!(ax, λ, φ, interior(h_smooth, :, :, 1), nan_color=:white) #, colorrange=(-5000, 0))
 ax = Axis(fig[1, 2])

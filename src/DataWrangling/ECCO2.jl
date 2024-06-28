@@ -3,11 +3,12 @@ module ECCO2
 export ECCO2Metadata, ecco2_field, ecco2_center_mask, adjusted_ecco_tracers, initialize!
 
 using ClimaOcean.DataWrangling: inpaint_mask!
-using ClimaOcean.InitialConditions: three_dimensional_regrid!
+using ClimaOcean.InitialConditions: three_dimensional_regrid!, interpolate!
 
 using Oceananigans
-using Oceananigans: architecture
+using Oceananigans.Architectures: architecture, child_architecture
 using Oceananigans.BoundaryConditions
+using Oceananigans.DistributedComputations: DistributedField, all_reduce, barrier!
 using Oceananigans.Utils
 using KernelAbstractions: @kernel, @index
 using NCDatasets
@@ -22,11 +23,6 @@ struct ECCO2Metadata
     month :: Int
     day   :: Int
 end
-
-# We only have 1992 at the moment
-ECCO2Metadata(name::Symbol) = ECCO2Metadata(name, 1992, 1, 2)
-
-filename(data::ECCO2Metadata) = "ecco2_" * string(data.name) * "_$(data.year)$(data.month)$(data.day).nc"
 
 const ECCO2_Nx = 1440
 const ECCO2_Ny = 720
@@ -87,6 +83,11 @@ const ECCO2_z = [
       0.0,
 ]
 
+# We only have 1992 at the moment
+ECCO2Metadata(name::Symbol) = ECCO2Metadata(name, 1992, 1, 2)
+
+filename(data::ECCO2Metadata) = "ecco2_" * string(data.name) * "_$(data.year)$(data.month)$(data.day).nc"
+
 ecco2_file_names = Dict(
     :temperature           => "THETA.1440x720x50.19920102.nc",
     :salinity              => "SALT.1440x720x50.19920102.nc",
@@ -123,11 +124,6 @@ ecco2_location = Dict(
     :v_velocity            => (Center, Face,   Center),
 )
 
-ecco2_depth_names = Dict(
-    :temperature   => "DEPTH_T",
-    :salinity      => "DEPTH_T",
-)
-
 ecco2_urls = Dict(
     :temperature           => "https://www.dropbox.com/scl/fi/01h96yo2fhnnvt2zkmu0d/THETA.1440x720x50.19920102.nc?rlkey=ycso2v09gc6v2qb5j0lff0tjs",
     :salinity              => "https://www.dropbox.com/scl/fi/t068we10j5skphd461zg8/SALT.1440x720x50.19920102.nc?rlkey=r5each0ytdtzh5icedvzpe7bw",
@@ -137,30 +133,8 @@ ecco2_urls = Dict(
     :v_velocity            => "https://www.dropbox.com/scl/fi/buic35gssyeyfqohenkeo/VVEL.1440x720x50.19920102.nc?rlkey=fau48w4t5ruop4s6gm8t7z0a0",
 )
 
-
-shortnames = Dict(
-    :temperature           => "THETA",
-    :salinity              => "SALT",
-    :sea_ice_thickness     => "SIheff",
-    :sea_ice_area_fraction => "SIarea",
-    :u_velocity            => "UVEL",
-    :v_velocity            => "VVEL",
-)
-
 surface_variable(variable_name) = variable_name == :sea_ice_thickness
 
-"""
-    construct_vertical_interfaces(ds, depth_name)
-
-Constructs vertical interfaces for a given dataset `ds` and depth variable `depth_name`.
-
-# Arguments
-- `ds`: The dataset containing the depth variable.
-- `depth_name`: The name of the depth variable in the dataset.
-
-# Returns
-- `zf`: An array of interface depths.
-"""
 function construct_vertical_interfaces(ds, depth_name)
     # Construct vertical coordinate
     depth = ds[depth_name][:]
@@ -178,7 +152,7 @@ end
 
 function empty_ecco2_field(data::ECCO2Metadata;
                            architecture = CPU(), 
-                           horizontal_halo = (1, 1))
+                           horizontal_halo = (5, 5))
 
     variable_name = data.name
 
@@ -188,24 +162,19 @@ function empty_ecco2_field(data::ECCO2Metadata;
     latitude = (-90, 90)
     TX, TY = (Periodic, Bounded)
 
-    filename = ecco2_file_names[variable_name]
-    
-    ds = Dataset(filename)
-
     if variable_is_three_dimensional[variable_name] 
-        depth_name = ecco2_depth_names[variable_name]
-        z    = construct_vertical_interfaces(ds, depth_name)
+        z    = ECCO2_z
         # add vertical halo for 3D fields
-        halo = (horizontal_halo..., 1)
+        halo = (horizontal_halo..., 3)
         LZ   = Center
         TZ   = Bounded
-        N    = (1440, 720, 50)
+        N    = (ECCO2_Nx, ECCO2_Ny, ECCO2_Nz)
     else
         z    = nothing
         halo = horizontal_halo
         LZ   = Nothing
         TZ   = Flat
-        N    = (1440, 720)
+        N    = (ECCO2_Nx, ECCO2_Ny)
     end
 
     # Flat in z if the variable is two-dimensional
@@ -232,7 +201,7 @@ The data is either:
 """
 function ecco2_field(variable_name;
                      architecture = CPU(),
-                     horizontal_halo = (1, 1),
+                     horizontal_halo = (5, 5),
                      user_data = nothing,
                      year = 1992,
                      month = 1,
@@ -247,7 +216,6 @@ function ecco2_field(variable_name;
 
     if user_data isa Nothing
         ds = Dataset(filename)
-        
         if variable_is_three_dimensional[variable_name] 
             data = ds[short_name][:, :, :, 1]
             # The surface layer in three-dimensional ECCO fields is at `k = 1`
@@ -261,7 +229,13 @@ function ecco2_field(variable_name;
 
     field = empty_ecco2_field(ecco2_data; architecture, horizontal_halo)
     FT    = eltype(field)
-    data  = convert.(FT, data)
+    data  = if location(field)[2] == Face
+        new_data = zeros(FT, size(field))
+        new_data[:, 1:end-1, :] .= data
+        new_data    
+    else
+        convert.(FT, data)
+    end
 
     set!(field, data)
     fill_halo_regions!(field)
@@ -277,13 +251,13 @@ end
 """
     ecco2_center_mask(architecture = CPU(); minimum_value = Float32(-1e5))
 
-A boolean field where `false` represents a missing value in the ECCO2 :temperature dataset.
+A boolean field where `true` represents a missing value in the ECCO2 :temperature dataset.
 """
 function ecco2_center_mask(architecture = CPU(); minimum_value = Float32(-1e5))
     Tᵢ   = ecco2_field(:temperature; architecture)
     mask = CenterField(Tᵢ.grid, Bool)
 
-    # Set the mask with ones where T is defined
+    # Set the mask with ones where T is missing
     launch!(architecture, Tᵢ.grid, :xyz, _set_ecco2_mask!, mask, Tᵢ, minimum_value)
 
     return mask
@@ -316,7 +290,7 @@ Keyword Arguments:
 """
 function inpainted_ecco2_field(variable_name; 
                                architecture = CPU(),
-                               filename = "./inpainted_ecco2_fields.nc",
+                               filename = "./inpainted_ecco2_$(variable_name).nc",
                                mask = ecco2_center_mask(architecture),
                                kw...)
     
@@ -324,8 +298,10 @@ function inpainted_ecco2_field(variable_name;
         f = ecco2_field(variable_name; architecture)
         
         # Make sure all values are extended properly
-        @info "In-painting ecco field $variable_name and saving it in $filename"
+        @info "In-painting ecco $variable_name and saving it in $filename"
         inpaint_mask!(f, mask; kw...)
+
+        fill_halo_regions!(f)
 
         ds = Dataset(filename, "c")
         defVar(ds, string(variable_name), Array(interior(f)), ("lat", "lon", "z"))
@@ -337,11 +313,13 @@ function inpainted_ecco2_field(variable_name;
         if haskey(ds, string(variable_name))
             data = ds[variable_name][:, :, :]
             f = ecco2_field(variable_name; architecture, user_data = data)
+            fill_halo_regions!(f)
         else
             f = ecco2_field(variable_name; architecture)
             # Make sure all values are inpainted properly
-            @info "In-painting ecco field $variable_name and saving it in $filename"
+            @info "In-painting ecco $variable_name and saving it in $filename"
             inpaint_mask!(f, mask; kw...)
+            fill_halo_regions!(f)
 
             defVar(ds, string(variable_name), Array(interior(f)), ("lat", "lon", "z"))
         end
@@ -352,7 +330,39 @@ function inpainted_ecco2_field(variable_name;
     return f
 end
 
-function set!(field::Field, ecco2_metadata::ECCO2Metadata; filename="./inpainted_ecco2_fields.nc", kw...)
+function set!(field::DistributedField, ecco2_metadata::ECCO2Metadata; 
+              filename="./inpainted_ecco2_$(ecco2_metadata.name).nc", kw...)
+              
+    # Fields initialized from ECCO2
+    grid = field.grid
+    arch = architecture(grid)
+    child_arch = child_architecture(arch)
+    name = ecco2_metadata.name
+
+    f_ecco = if arch.local_rank == 0 # Make sure we read/write the file using only one core
+        mask = ecco2_center_mask(child_arch)
+        
+        inpainted_ecco2_field(name; filename, mask,
+                                  architecture = child_arch,
+                                  kw...)
+    else
+        empty_ecco2_field(ecco2_metadata; architecture = child_arch)
+    end
+
+    barrier!(arch)
+
+    # Distribute ecco field to all workers
+    parent(f_ecco) .= all_reduce(+, parent(f_ecco), arch)
+
+    f_grid = Field(ecco2_location[name], grid)   
+    interpolate!(f_grid, f_ecco)
+    set!(field, f_grid)
+    
+    return field
+end
+
+function set!(field::Field, ecco2_metadata::ECCO2Metadata; 
+              filename="./inpainted_ecco2_$(ecco2_metadata.name).nc", kw...)
 
     # Fields initialized from ECCO2
     grid = field.grid
@@ -365,29 +375,13 @@ function set!(field::Field, ecco2_metadata::ECCO2Metadata; filename="./inpainted
                               kw...)
 
     f_grid = Field(ecco2_location[name], grid)   
-    three_dimensional_regrid!(f_grid, f)
+    interpolate!(f_grid, f)
     set!(field, f_grid)
 
     return field
 end
 
-function ecco2_column(λ★, φ★)
-    Δ = 1/4 # resolution in degrees
-    φ₁ = -90 + Δ/2
-    φ₂ = +90 - Δ/2
-    λ₁ = 0   + Δ/2
-    λ₂ = 360 - Δ/2
-    φe = φ₁:Δ:φ₂
-    λe = λ₁:Δ:λ₂
-    
-    i★ = searchsortedfirst(λe, λ★)
-    j★ = searchsortedfirst(φe, φ★)
-    
-    longitude = (λe[i★] - Δ/2, λe[i★] + Δ/2)
-    latitude  = (φe[j★] - Δ/2, φe[j★] + Δ/2)
-
-    return i★, j★, longitude, latitude
-end
-
 end # module
+
+
 
