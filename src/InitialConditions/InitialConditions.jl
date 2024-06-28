@@ -8,7 +8,7 @@ using Oceananigans.Fields: OneField
 using Oceananigans.Grids: peripheral_node
 using Oceananigans.Utils: launch!
 using Oceananigans.Fields: instantiated_location, interior, CenterField
-using Oceananigans.Architectures: architecture, device, GPU
+using Oceananigans.Architectures: architecture, device, GPU, child_architecture
 
 using KernelAbstractions: @kernel, @index
 using KernelAbstractions.Extras.LoopInfo: @unroll
@@ -17,7 +17,7 @@ using JLD2
 # Implementation of 3-dimensional regridding
 # TODO: move all the following to Oceananigans! 
 
-using Oceananigans.Fields: regrid!
+using Oceananigans.Fields: regrid!, interpolate!
 using Oceananigans.Grids: cpu_face_constructor_x, 
                           cpu_face_constructor_y, 
                           cpu_face_constructor_z,
@@ -37,6 +37,7 @@ function three_dimensional_regrid!(a, b)
 
     topo = topology(target_grid)
     arch = architecture(target_grid)
+    arch = child_architecture(arch)
     
     target_y = yt = cpu_face_constructor_y(target_grid)
     target_z = zt = cpu_face_constructor_z(target_grid)

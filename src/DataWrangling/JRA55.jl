@@ -13,7 +13,7 @@ using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBac
 
 using ClimaOcean.OceanSeaIceModels:
     PrescribedAtmosphere,
-    TwoStreamDownwellingRadiation
+    TwoBandDownwellingRadiation
 
 using CUDA: @allowscalar
 
@@ -436,9 +436,12 @@ function JRA55_field_time_series(variable_name;
     Nrx, Nry, Nt = size(data)
     close(ds)
 
+    N = (Nrx, Nry)
+    H = min.(N, (3, 3))
+
     JRA55_native_grid = LatitudeLongitudeGrid(native_fts_architecture, Float32;
-                                              halo = (3, 3),
-                                              size = (Nrx, Nry),
+                                              halo = H,
+                                              size = N,
                                               longitude = λr,
                                               latitude = φr,
                                               topology = (TX, Bounded, Flat))
@@ -559,8 +562,6 @@ function JRA55_field_time_series(variable_name;
             m = 1 # reset
         end
 
-        @show fts[m]
-
         set!(on_disk_fts, fts[m], n, fts.times[m])
 
         n += 1
@@ -590,7 +591,8 @@ JRA55_prescribed_atmosphere(arch::Distributed, time_indices=Colon(); kw...) =
 function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
                                      backend = nothing,
                                      time_indexing = Cyclical(),
-                                     reference_height = 2,  # meters
+                                     reference_height = 10,  # meters
+                                     include_rivers_and_icebergs = true, # rivers and icebergs are not needed in single column simulations
                                      other_kw...)
 
     if isnothing(backend) # apply a default
@@ -616,10 +618,22 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
     pa  = JRA55_field_time_series(:sea_level_pressure;              kw...)
     Fra = JRA55_field_time_series(:rain_freshwater_flux;            kw...)
     Fsn = JRA55_field_time_series(:snow_freshwater_flux;            kw...)
-    Fri = JRA55_field_time_series(:river_freshwater_flux;           kw...)
-    Fic = JRA55_field_time_series(:iceberg_freshwater_flux;         kw...)
     Ql  = JRA55_field_time_series(:downwelling_longwave_radiation;  kw...)
     Qs  = JRA55_field_time_series(:downwelling_shortwave_radiation; kw...)
+
+    freshwater_flux = (rain = Fra,
+                       snow = Fsn)
+
+    # Remember that rivers and icebergs are on a different grid and have
+    # a different frequency than the rest of the JRA55 data
+    if include_rivers_and_icebergs
+        Fri = JRA55_field_time_series(:river_freshwater_flux;   kw...)
+        Fic = JRA55_field_time_series(:iceberg_freshwater_flux; kw...)
+        runoff_flux = (rivers   = Fri,
+                       icebergs = Fic)
+    else
+        runoff_flux = nothing
+    end
 
     times = ua.times
 
@@ -630,18 +644,18 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
                q = qa,
                r = ra)
 
-    freshwater_flux = (rain = Fra,
-                       snow = Fsn,
-                       rivers = Fri,
-                       icebergs = Fic)
                        
     pressure = pa
 
-    downwelling_radiation = TwoStreamDownwellingRadiation(shortwave=Qs, longwave=Ql)
+    downwelling_radiation = TwoBandDownwellingRadiation(shortwave=Qs, longwave=Ql)
 
-    atmosphere = PrescribedAtmosphere(times, eltype(ua);
+    FT = eltype(ua)
+    reference_height = convert(FT, reference_height)
+
+    atmosphere = PrescribedAtmosphere(times, FT;
                                       velocities,
                                       freshwater_flux,
+                                      runoff_flux,
                                       tracers,
                                       downwelling_radiation,
                                       reference_height,
