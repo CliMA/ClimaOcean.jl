@@ -94,7 +94,7 @@ function ConstitutiveParameters(FT = Float64;
                                       convert(FT, water_molar_mass))
 end
 
-const CP = ConstitutiveParameters
+const CP{FT} = ConstitutiveParameters{FT} where FT
 
 @inline gas_constant(p::CP)     = p.gas_constant
 @inline molmass_dryair(p::CP)   = p.dry_air_molar_mass
@@ -141,7 +141,7 @@ function HeatCapacityParameters(FT = Float64;
                                       convert(FT, water_ice_heat_capacity))
 end
 
-const HCP = HeatCapacityParameters
+const HCP{FT} = HeatCapacityParameters{FT} where FT
 @inline cp_v(p::HCP)    = p.water_vapor_heat_capacity
 @inline cp_l(p::HCP)    = p.liquid_water_heat_capacity
 @inline cp_i(p::HCP)    = p.water_ice_heat_capacity
@@ -190,7 +190,7 @@ function PhaseTransitionParameters(FT = Float64;
                                          convert(FT, total_ice_nucleation_temperature))
 end
 
-const PTP = PhaseTransitionParameters
+const PTP{FT} = PhaseTransitionParameters{FT} where FT
 @inline LH_v0(p::PTP)        = p.reference_vaporization_enthalpy
 @inline LH_s0(p::PTP)        = p.reference_sublimation_enthalpy
 @inline LH_f0(p::PTP)        = LH_s0(p) - LH_v0(p)
@@ -208,6 +208,11 @@ struct PrescribedAtmosphereThermodynamicsParameters{FT} <: AbstractThermodynamic
 end
 
 const PATP{FT} = PrescribedAtmosphereThermodynamicsParameters{FT} where FT
+
+Base.eltype(::PATP{FT}) where FT = FT
+Base.eltype(::CP{FT})   where FT = FT
+Base.eltype(::HCP{FT})  where FT = FT
+Base.eltype(::PTP{FT})  where FT = FT
 
 Base.summary(::PATP{FT}) where FT = "PrescribedAtmosphereThermodynamicsParameters{$FT}"
 
@@ -282,16 +287,18 @@ const PATP = PrescribedAtmosphereThermodynamicsParameters
 ##### Prescribed atmosphere (as opposed to dynamically evolving / prognostic)
 #####
 
-struct PrescribedAtmosphere{G, U, P, C, F, R, TP, TI, FT}
+struct PrescribedAtmosphere{G, U, P, C, F, I, R, TP, TI, FT}
     grid :: G
     velocities :: U
     pressure :: P
     tracers :: C
     freshwater_flux :: F
+    runoff_flux :: I
     downwelling_radiation :: R
     thermodynamics_parameters :: TP
     times :: TI
     reference_height :: FT
+    boundary_layer_height :: FT
 end
 
 Base.summary(::PrescribedAtmosphere) = "PrescribedAtmosphere"
@@ -312,8 +319,10 @@ state with data given at `times`.
 function PrescribedAtmosphere(times, FT=Float64;
                               reference_height,
                               velocities = nothing,
+                              boundary_layer_height = convert(FT, 600),
                               pressure = nothing,
                               freshwater_flux = nothing,
+                              runoff_flux = nothing,
                               downwelling_radiation = nothing,
                               thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT),
                               grid = nothing,
@@ -329,10 +338,12 @@ function PrescribedAtmosphere(times, FT=Float64;
                                 pressure,
                                 tracers,
                                 freshwater_flux,
+                                runoff_flux,
                                 downwelling_radiation,
                                 thermodynamics_parameters,
                                 times,
-                                convert(FT, reference_height))
+                                convert(FT, reference_height),
+                                convert(FT, boundary_layer_height))
 end
 
 update_model_field_time_series!(::Nothing, time) = nothing
@@ -346,23 +357,23 @@ function update_model_field_time_series!(atmos::PrescribedAtmosphere, time)
     return nothing
 end
 
-struct TwoStreamDownwellingRadiation{SW, LW}
+struct TwoBandDownwellingRadiation{SW, LW}
     shortwave :: SW
     longwave :: LW
 end
 
 """
-    TwoStreamDownwellingRadiation(shortwave=nothing, longwave=nothing)
+    TwoBandDownwellingRadiation(shortwave=nothing, longwave=nothing)
 
-Return a two-stream model for downwelling radiation that
-passes through he atmosphere and arrives at the surface of ocean
+Return a two-band model for downwelling radiation (split in a shortwave band
+and a longwave band) that passes through the atmosphere and arrives at the surface of ocean
 or sea ice.
 """
-TwoStreamDownwellingRadiation(; shortwave=nothing, longwave=nothing) =
-    TwoStreamDownwellingRadiation(shortwave, longwave)
+TwoBandDownwellingRadiation(; shortwave=nothing, longwave=nothing) =
+    TwoBandDownwellingRadiation(shortwave, longwave)
 
-Adapt.adapt_structure(to, tsdr::TwoStreamDownwellingRadiation) =
-    TwoStreamDownwellingRadiation(adapt(to, tsdr.shortwave),
+Adapt.adapt_structure(to, tsdr::TwoBandDownwellingRadiation) =
+    TwoBandDownwellingRadiation(adapt(to, tsdr.shortwave),
                                   adapt(to, tsdr.longwave))
 
 end # module

@@ -2,15 +2,19 @@ module ClimaOcean
 
 export
     OceanSeaIceModel,
-    FreezingLimitedOceanTemperature,
+    MinimumTemperatureSeaIce,
     Radiation,
+    SimilarityTheoryTurbulentFluxes,
     JRA55_prescribed_atmosphere,
     JRA55NetCDFBackend,
     ecco2_field,
     regrid_bathymetry,
+    retrieve_bathymetry,
     stretched_vertical_faces,
+    exponential_z_faces,
     PowerLawStretching, LinearStretching,
     jra55_field_time_series,
+    ocean_simulation,
     ecco2_field, ECCO2Metadata,
     initialize!
 
@@ -18,29 +22,25 @@ using Oceananigans
 using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
 using DataDeps
 
-@inline ϕ²(i, j, k, grid, ϕ) = @inbounds ϕ[i, j, k]^2
-@inline spᶠᶜᶜ(i, j, k, grid, Φ) = @inbounds sqrt(Φ.u[i, j, k]^2 + ℑxyᶠᶜᵃ(i, j, k, grid, ϕ², Φ.v))
-@inline spᶜᶠᶜ(i, j, k, grid, Φ) = @inbounds sqrt(Φ.v[i, j, k]^2 + ℑxyᶜᶠᵃ(i, j, k, grid, ϕ², Φ.u))
-
-@inline u_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.u[i, j, 1] * spᶠᶜᶜ(i, j, 1, grid, Φ)
-@inline v_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, 1] * spᶜᶠᶜ(i, j, 1, grid, Φ)
-
-@inline u_immersed_bottom_drag(i, j, k, grid, c, Φ, μ) = @inbounds - μ * Φ.u[i, j, k] * spᶠᶜᶜ(i, j, k, grid, Φ)
-@inline v_immersed_bottom_drag(i, j, k, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, k] * spᶜᶠᶜ(i, j, k, grid, Φ)
-
 include("OceanSeaIceModels/OceanSeaIceModels.jl")
 include("VerticalGrids.jl")
 include("InitialConditions/InitialConditions.jl")
 include("DataWrangling/DataWrangling.jl")
 include("Bathymetry.jl")
 include("Diagnostics.jl")
+include("OceanSimulations/OceanSimulations.jl")
 
 using .VerticalGrids
 using .Bathymetry
 using .DataWrangling: JRA55
 using .DataWrangling: ECCO2
 using .InitialConditions
+using .OceanSeaIceModels: OceanSeaIceModel
+using .OceanSimulations
 using .DataWrangling: JRA55, ECCO2
+using ClimaOcean.DataWrangling.JRA55: JRA55_prescribed_atmosphere, JRA55NetCDFBackend
+using ClimaOcean.DataWrangling.ECCO2: ecco2_field
+
 using .OceanSeaIceModels: OceanSeaIceModel, Radiation
 
 end # module
