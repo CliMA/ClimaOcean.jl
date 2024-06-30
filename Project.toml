@@ -25,6 +25,7 @@ SurfaceFluxes = "49b00bb7-8bd4-4f2b-b78c-51cd0450215f"
 Thermodynamics = "b60c26fb-14c3-4610-9d3e-2d17fe7ff00c"
 
 [compat]
+Adapt = "4"
 CUDA = "4, 5"
 ClimaSeaIce = "0.1"
 CubicSplines = "0.2"
