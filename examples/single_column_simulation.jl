@@ -38,6 +38,7 @@ Nz = 80
 H  = 400
 
 # Ocean station papa location
+location_name = "ocean_station_papa"
 λ★, φ★ = 35.1, 50.1 
 longitude = λ★ .+ (-0.25, 0.25)
 latitude  = φ★ .+ (-0.25, 0.25)
@@ -170,7 +171,7 @@ fields = merge(ocean.model.velocities, ocean.model.tracers, auxiliary_fields)
 # Slice fields at the surface
 outputs = merge(fields, fluxes)
 
-filename = "single_column_omip_$location"
+filename = "single_column_omip_$(location_name)"
 
 coupled_simulation.output_writers[:jld2] = JLD2OutputWriter(ocean.model, outputs; filename,
                                                             schedule = TimeInterval(3hours),
@@ -332,7 +333,7 @@ xlims!(axSz, Smin - 0.2, Smax + 0.2)
 
 display(fig)
 
-record(fig, "$(location)_single_column_simulation.mp4", 1:Nt, framerate=24) do nn
+record(fig, "$(location_name)_single_column_simulation.mp4", 1:Nt, framerate=24) do nn
     @info "Drawing frame $nn of $Nt..."
     n[] = nn
 end
