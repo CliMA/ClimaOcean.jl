@@ -1,9 +1,9 @@
-# # Single column ocean simulation forced by JRA55 Reananlysis
+# # Single column ocean simulation forced by JRA55 re-analysis
 #
 # In this example, we simulate the evolution of an ocean water column 
-# forced by an atmosphere prescribed by the JRA55 Reananlysis data
-# Specifically, the column is positioned at the location of the Ocean station
-# Papa measurements (144.9ᵒ W and 50.1ᵒ N)
+# forced by an atmosphere derived from the JRA55 re-analysis.
+# The simulated column is located at ocean station
+# Papa (144.9ᵒ W and 50.1ᵒ N)
 #
 # ## Install dependencies
 #
@@ -30,11 +30,7 @@ using Printf
 ##### Construct the grid
 #####
 
-# Since it is a single column, and therefore computationally
-# inexpensive, we can run the simulation entirely on the CPU
-arch = CPU()
-
-Nz = 80
+Nz = 200
 H  = 400
 
 # Ocean station papa location
@@ -44,23 +40,15 @@ longitude = λ★ .+ (-0.25, 0.25)
 latitude  = φ★ .+ (-0.25, 0.25)
 
 # We use a SingleColumnGrid
-grid = LatitudeLongitudeGrid(; size = (3, 3, Nz),
-                               longitude,
-                               latitude,
-                               z = (-H, 0),
-                               topology = (Periodic, Periodic, Bounded))
-
-# Building the ocean simulation
-momentum_advection = nothing
-tracer_advection = nothing
-coriolis = FPlane(latitude = φ★)
+grid = LatitudeLongitudeGrid(size = (3, 3, Nz);
+                             longitude, latitude, z = (-H, 0),  
+                             topology = (Periodic, Periodic, Bounded))
 
 ocean = ocean_simulation(grid; 
-                         coriolis,
-                         tracer_advection,
-                         momentum_advection,
+                         coriolis = FPlane(latitude = φ★),
+                         tracer_advection = nothing,
+                         momentum_advection = nothing,
                          bottom_drag_coefficient = 0)
-model = ocean.model
 
 start_time = time_ns()
 
@@ -127,11 +115,11 @@ function progress(sim)
     S = sim.model.ocean.model.tracers.S
     e = sim.model.ocean.model.tracers.e
 
-    τˣ = first(sim.model.fluxes.total.ocean.momentum.τˣ)
-    τʸ = first(sim.model.fluxes.total.ocean.momentum.τʸ)
+    τx = first(sim.model.fluxes.total.ocean.momentum.τx)
+    τy = first(sim.model.fluxes.total.ocean.momentum.τy)
     Q = first(sim.model.fluxes.total.ocean.heat)
 
-    u★ = sqrt(sqrt(τˣ^2 + τʸ^2))
+    u★ = sqrt(sqrt(τx^2 + τy^2))
 
     Nz = size(T, 3)
     msg *= @sprintf(", u★: %.2f m s⁻¹", u★)
@@ -147,8 +135,8 @@ end
 coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(100))
 
 # Build flux outputs
-Ju = coupled_model.fluxes.total.ocean.momentum.u
-Jv = coupled_model.fluxes.total.ocean.momentum.v
+τx = coupled_model.fluxes.total.ocean.momentum.u
+τy = coupled_model.fluxes.total.ocean.momentum.v
 JT = coupled_model.fluxes.total.ocean.tracers.T
 Js = coupled_model.fluxes.total.ocean.tracers.S
 E  = coupled_model.fluxes.turbulent.fields.water_vapor
@@ -158,13 +146,12 @@ Qv = coupled_model.fluxes.turbulent.fields.latent_heat
 cₚ = coupled_model.fluxes.ocean_heat_capacity
 
 Q  = ρₒ * cₚ * JT
-τx = ρₒ * Ju
-τy = ρₒ * Jv
+ρτx = ρₒ * τx
+ρτy = ρₒ * τy
 N² = buoyancy_frequency(ocean.model)
 κc = ocean.model.diffusivity_fields.κc
 
-fluxes = (; τx, τy, E, Js, Qv, Qc)
-
+fluxes = (; ρτx, ρτy, E, Js, Qv, Qc)
 auxiliary_fields = (; N², κc)
 fields = merge(ocean.model.velocities, ocean.model.tracers, auxiliary_fields)
 
@@ -193,8 +180,8 @@ Qv = FieldTimeSeries(filename, "Qv")
 Qc = FieldTimeSeries(filename, "Qc")
 Js = FieldTimeSeries(filename, "Js")
 Ev = FieldTimeSeries(filename, "E")
-τˣ = FieldTimeSeries(filename, "τx")
-τʸ = FieldTimeSeries(filename, "τy")
+ρτx = FieldTimeSeries(filename, "ρτx")
+ρτy = FieldTimeSeries(filename, "ρτy")
 
 Nz = size(T, 3)
 times = Qc.times
@@ -259,9 +246,9 @@ tn = @lift times[$n]
 colors = Makie.wong_colors()
 
 ρₒ = coupled_model.fluxes.ocean_reference_density
-Jᵘ = interior(τˣ, 1, 1, 1, :) ./ ρₒ
-Jᵛ = interior(τʸ, 1, 1, 1, :) ./ ρₒ
-u★ = @. (Jᵘ^2 + Jᵛ^2)^(1/4)
+τx = interior(ρτx, 1, 1, 1, :) ./ ρₒ
+τy = interior(ρτy, 1, 1, 1, :) ./ ρₒ
+u★ = @. (τx^2 + τy^2)^(1/4)
 
 lines!(axu, times, interior(u, 1, 1, Nz, :), color=colors[1], label="Zonal")
 lines!(axu, times, interior(v, 1, 1, Nz, :), color=colors[2], label="Meridional")
@@ -269,8 +256,8 @@ lines!(axu, times, u★, color=colors[3], label="Ocean-side u★")
 vlines!(axu, tn, linewidth=4, color=(:black, 0.5))
 axislegend(axu)
 
-lines!(axτ, times, interior(τˣ, 1, 1, 1, :), label="Zonal")
-lines!(axτ, times, interior(τʸ, 1, 1, 1, :), label="Meridional")
+lines!(axτ, times, interior(ρτx, 1, 1, 1, :), label="Zonal")
+lines!(axτ, times, interior(ρτy, 1, 1, 1, :), label="Meridional")
 vlines!(axτ, tn, linewidth=4, color=(:black, 0.5))
 axislegend(axτ)
 
@@ -337,3 +324,4 @@ record(fig, "$(location_name)_single_column_simulation.mp4", 1:Nt, framerate=24)
     @info "Drawing frame $nn of $Nt..."
     n[] = nn
 end
+
