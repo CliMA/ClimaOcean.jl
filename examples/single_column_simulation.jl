@@ -26,9 +26,10 @@ using ClimaOcean.OceanSimulations
 using CairoMakie
 using Printf
 
-#####
-##### Construct the grid
-#####
+# # Construct the grid
+#
+# First, we construct a single column grid with 2 meter spacing
+# located at ocean station Papa.
 
 Nz = 200
 H  = 400
@@ -39,12 +40,17 @@ location_name = "ocean_station_papa"
 longitude = λ★ .+ (-0.25, 0.25)
 latitude  = φ★ .+ (-0.25, 0.25)
 
-# We use a SingleColumnGrid
 grid = LatitudeLongitudeGrid(size = (3, 3, Nz);
                              longitude, latitude, z = (-H, 0),  
                              topology = (Periodic, Periodic, Bounded))
 
+# # An "ocean simulation"
+#
+# Next, we use ClimaOcean's ocean_simulation constructor to build a realistic
+# ocean simulation on the single column grid.
+
 ocean = ocean_simulation(grid; 
+                         Δt = 10minutes,
                          coriolis = FPlane(latitude = φ★),
                          tracer_advection = nothing,
                          momentum_advection = nothing,
@@ -60,17 +66,17 @@ set!(ocean.model, T = ECCO2Metadata(:temperature),
 elapsed = time_ns() - start_time
 @info "Initial condition built. " * prettytime(elapsed * 1e-9)
 start_time = time_ns()
-            
-# Retrieving the atmosphere
+
+# # A prescribed atmosphere based on JRA55 re-analysis
+#
+# We build a PrescribedAtmosphere at the same location as the single colunm grid
+# which is based on the JRA55 reanalysis.
+
 last_time = floor(Int, 31 * 24 / 3) # 31 days in hours divided by JRA55's frequency in hours
 backend = InMemory()
 atmosphere = JRA55_prescribed_atmosphere(time_indices = 1:last_time; 
                                          longitude, latitude, backend,
                                          include_rivers_and_icebergs = false)
-
-ocean.model.clock.time = 0
-ocean.model.clock.iteration = 0
-ocean.Δt = 10minutes
 
 ua = atmosphere.velocities.u
 va = atmosphere.velocities.v
@@ -92,7 +98,7 @@ display(fig)
 
 radiation = Radiation()
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
-coupled_simulation = Simulation(coupled_model, Δt=10minutes, stop_time=30days)
+coupled_simulation = Simulation(coupled_model, Δt=ocean.Δt, stop_time=30days)
 
 elapsed = time_ns() - start_time
 @info "Coupled simulation built. " * prettytime(elapsed * 1e-9)
