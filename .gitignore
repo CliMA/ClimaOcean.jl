@@ -34,3 +34,8 @@ docs/src/literated/
 *.DS_Store
 *.swp
 *.zip
+
+# outputs of NVIDIA profiling tools
+*.qdrep
+*.nsys-rep
+*.ncu-rep
