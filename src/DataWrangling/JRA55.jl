@@ -20,10 +20,16 @@ using CUDA: @allowscalar
 using NCDatasets
 using JLD2 
 using Dates
+using Scratch
 
 import Oceananigans.Fields: set!
 import Oceananigans.OutputReaders: new_backend, update_field_time_series!
 using Downloads: download
+
+download_cache::String = ""
+function __init__()
+    global download_cache = @get_scratch!("JRA55")
+end
 
 # A list of all variables provided in the JRA55 dataset:
 JRA55_variable_names = (:river_freshwater_flux,
@@ -316,6 +322,7 @@ function JRA55_field_time_series(variable_name;
                                  grid = nothing,
                                  location = nothing,
                                  url = nothing,
+                                 dir = download_cache,
                                  filename = nothing,
                                  shortname = nothing,
                                  latitude = nothing,
@@ -344,7 +351,9 @@ function JRA55_field_time_series(variable_name;
         throw(ArgumentError(msg))
     end
 
-    if !isnothing(filename) && !isfile(filename) && isnothing(url)
+    filepath = joinpath(dir, filename)
+
+    if !isnothing(filename) && !isfile(filepath) && isnothing(url)
         throw(ArgumentError("A filename was provided without a url, but the file does not exist.\n \
                             If intended, please provide both the filename and url that should be used \n \
                             to download the new file."))
@@ -359,12 +368,12 @@ function JRA55_field_time_series(variable_name;
     on_native_grid = isnothing(grid)
     !on_native_grid && backend isa JRA55NetCDFBackend && error("Can't use custom grid with JRA55NetCDFBackend.")
 
-    jld2_filename = string("JRA55_repeat_year_", variable_name, ".jld2")
+    jld2_filepath = joinpath(dir, string("JRA55_repeat_year_", variable_name, ".jld2"))
     fts_name = field_time_series_short_names[variable_name]
 
     # Note, we don't re-use existing jld2 files.
-    isfile(filename) || download(url, filename)
-    isfile(jld2_filename) && rm(jld2_filename)
+    isfile(filepath) || download(url, filepath)
+    isfile(jld2_filepath) && rm(jld2_filepath)
 
     # Determine default time indices
     if totally_in_memory
@@ -454,7 +463,7 @@ function JRA55_field_time_series(variable_name;
                                                        backend,
                                                        time_indexing,
                                                        boundary_conditions,
-                                                       path = filename,
+                                                       path = filepath,
                                                        name = shortname)
 
         # Fill the data in a GPU-friendly manner
@@ -501,7 +510,7 @@ function JRA55_field_time_series(variable_name;
     on_disk_fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid, all_times;
                                                    boundary_conditions,
                                                    backend = OnDisk(),
-                                                   path = jld2_filename,
+                                                   path = jld2_filepath,
                                                    name = fts_name)
 
     # Save data to disk, one field at a time
@@ -514,7 +523,7 @@ function JRA55_field_time_series(variable_name;
     fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid, times_in_memory;
                                            boundary_conditions,
                                            backend = InMemory(),
-                                           path = jld2_filename,
+                                           path = jld2_filepath,
                                            name = fts_name)
 
     # Re-compute data
@@ -573,7 +582,7 @@ function JRA55_field_time_series(variable_name;
 
     close(ds)
 
-    user_fts = FieldTimeSeries(jld2_filename, fts_name; architecture, backend, time_indexing)
+    user_fts = FieldTimeSeries(jld2_filepath, fts_name; architecture, backend, time_indexing)
     fill_halo_regions!(user_fts)
 
     return user_fts
