@@ -351,7 +351,7 @@ function JRA55_field_time_series(variable_name;
         throw(ArgumentError(msg))
     end
 
-    filepath = joinpath(dir, filename)
+    filepath = isnothing(filename) ? joinpath(dir, filenames[variable_name]) : joinpath(dir, filename)
 
     if !isnothing(filename) && !isfile(filepath) && isnothing(url)
         throw(ArgumentError("A filename was provided without a url, but the file does not exist.\n \
@@ -359,8 +359,8 @@ function JRA55_field_time_series(variable_name;
                             to download the new file."))
     end
 
-    isnothing(shortname) && (shortname = jra55_short_names[variable_name])
     isnothing(filename)  && (filename  = filenames[variable_name])
+    isnothing(shortname) && (shortname = jra55_short_names[variable_name])
     isnothing(url)       && (url       = urls[variable_name])
 
     # Record some important user decisions
