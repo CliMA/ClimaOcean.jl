@@ -121,8 +121,8 @@ function progress(sim)
     S = sim.model.ocean.model.tracers.S
     e = sim.model.ocean.model.tracers.e
 
-    τx = first(sim.model.fluxes.total.ocean.momentum.τx)
-    τy = first(sim.model.fluxes.total.ocean.momentum.τy)
+    τx = first(sim.model.fluxes.total.ocean.momentum.u)
+    τy = first(sim.model.fluxes.total.ocean.momentum.v)
     Q = first(sim.model.fluxes.total.ocean.heat)
 
     u★ = sqrt(sqrt(τx^2 + τy^2))
