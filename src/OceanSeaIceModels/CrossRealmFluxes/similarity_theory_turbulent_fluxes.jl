@@ -30,20 +30,20 @@ import SurfaceFluxes.Parameters:
 #####
 
 struct SimilarityTheoryTurbulentFluxes{FT, UF, TP, S, W, R, B, V, F}
-    gravitational_acceleration :: FT
-    von_karman_constant :: FT
-    turbulent_prandtl_number :: FT
-    gustiness_parameter :: FT
-    stability_functions :: UF
-    thermodynamics_parameters :: TP
-    water_vapor_saturation :: S
-    water_mole_fraction :: W
-    roughness_lengths :: R
-    bulk_coefficients :: B
-    bulk_velocity :: V
-    tolerance :: FT
-    maxiter :: Int
-    fields :: F
+    gravitational_acceleration :: FT # parameter
+    von_karman_constant :: FT        # parameter
+    turbulent_prandtl_number :: FT   # parameter
+    gustiness_parameter :: FT        # bulk velocity parameter
+    stability_functions :: UF        # functions for turbulent fluxes
+    thermodynamics_parameters :: TP  # parameter group
+    water_vapor_saturation :: S      # model for computing the saturation water vapor mass
+    water_mole_fraction :: W         # mole fraction of H₂O in seawater
+    roughness_lengths :: R           # parameterization for turbulent fluxes
+    bulk_coefficients :: B           # ?
+    bulk_velocity :: V               # bulk velocity scale for turbulent fluxes
+    tolerance :: FT                  # solver option
+    maxiter :: Int                   # solver option
+    fields :: F                      # fields that store turbulent fluxes
 end
 
 const STTF = SimilarityTheoryTurbulentFluxes
@@ -399,3 +399,4 @@ end
 
     return SimilarityScales(u★, θ★, q★), ΔUᴳ
 end
+
