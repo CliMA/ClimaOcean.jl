@@ -411,7 +411,7 @@ function JRA55_field_time_series(variable_name;
         LX, LY = location
     end
 
-    ds = Dataset(filename)
+    ds = Dataset(filepath)
 
     # Note that each file should have the variables
     #   - ds["time"]:     time coordinate 
@@ -501,7 +501,7 @@ function JRA55_field_time_series(variable_name;
     preprocessing_grid = on_native_grid ? JRA55_native_grid : grid
 
     # Re-open the dataset!
-    ds = Dataset(filename)
+    ds = Dataset(filepath)
     all_datetimes = ds["time"][time_indices]
     all_Nt = length(all_datetimes)
 
