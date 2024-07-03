@@ -26,9 +26,9 @@ import Oceananigans.Fields: set!
 import Oceananigans.OutputReaders: new_backend, update_field_time_series!
 using Downloads: download
 
-download_cache::String = ""
+download_jra55_cache::String = ""
 function __init__()
-    global download_cache = @get_scratch!("JRA55")
+    global download_jra55_cache = @get_scratch!("JRA55")
 end
 
 # A list of all variables provided in the JRA55 dataset:
@@ -322,7 +322,7 @@ function JRA55_field_time_series(variable_name;
                                  grid = nothing,
                                  location = nothing,
                                  url = nothing,
-                                 dir = download_cache,
+                                 dir = download_jra55_cache,
                                  filename = nothing,
                                  shortname = nothing,
                                  latitude = nothing,

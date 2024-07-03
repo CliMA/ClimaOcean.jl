@@ -21,9 +21,9 @@ using Downloads
 using Printf
 using Scratch
 
-download_cache::String = ""
+download_bathymetry_cache::String = ""
 function __init__()
-    global download_cache = @get_scratch!("Bathymetry")
+    global download_bathymetry_cache = @get_scratch!("Bathymetry")
 end
 
 """
@@ -79,7 +79,7 @@ Keyword Arguments:
 function regrid_bathymetry(target_grid;
                            height_above_water = nothing,
                            minimum_depth = 0,
-                           dir = download_cache,
+                           dir = download_bathymetry_cache,
                            url = "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_surface_elev_netcdf", 
                            filename = "ETOPO_2022_v1_60s_N90W180_surface.nc",
                            interpolation_passes = 1,
