@@ -152,8 +152,8 @@ function download_dataset!(metadata::ECCOMetadata;
 
         if !isfile(filename)
 
-            isnothing(username) && throw(ArgumentError("Please provide a username in the ECCO_USERNAME environment variable!"))
-            isnothing(password) && throw(ArgumentError("Please provide a password in the ECCO_PASSWORD environment variable!"))
+            isnothing(username) && throw(ArgumentError("Could not find the username for $(url). Please provide a username in the ECCO_USERNAME environment variable."))
+            isnothing(password) && throw(ArgumentError("Could not find the username for $(url). Please provide a password in the ECCO_PASSWORD environment variable."))
         
             # Version specific download file url
             if data.version isa ECCO2Monthly || data.version isa ECCO2Daily
