@@ -18,7 +18,7 @@ using Dates
         dates = start_date : Month(1) : end_date
 
         temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
-        t_restoring = ECCO_restoring_forcing(temperature; timescale = 10days)
+        t_restoring = ECCO_restoring_forcing(temperature; timescale = 1000.0)
 
         ecco_fts = t_restoring.func.ecco_fts
 
