@@ -24,7 +24,7 @@ default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
 
 function default_ocean_closure()
     mixing_length = CATKEMixingLength(Cᵇ=0.01)
-    turbulent_kinetic_energy_equation = CATKEEnergyEquation(Cᵂϵ=1.0)
+    turbulent_kinetic_energy_equation = CATKEEquation(Cᵂϵ=1.0)
     return CATKEVerticalDiffusivity(; mixing_length, turbulent_kinetic_energy_equation)
 end
 
