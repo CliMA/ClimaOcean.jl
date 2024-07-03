@@ -182,9 +182,9 @@ weakdeps = ["SparseArrays"]
 
 [[deps.ClimaSeaIce]]
 deps = ["Adapt", "KernelAbstractions", "Oceananigans", "RootSolvers", "Roots", "SeawaterPolynomials"]
-git-tree-sha1 = "e25e43451edd449c3dcc899bd447983d7b76a59f"
+git-tree-sha1 = "36752a8f020c7f1c959fea0e5a98b113d54fc74f"
 uuid = "6ba0ff68-24e6-4315-936c-2e99227c95a4"
-version = "0.1.0"
+version = "0.1.1"
 
 [[deps.CloseOpenIntervals]]
 deps = ["Static", "StaticArrayInterface"]
@@ -884,9 +884,9 @@ version = "1.2.0"
 
 [[deps.Oceananigans]]
 deps = ["Adapt", "CUDA", "Crayons", "CubedSphere", "Dates", "Distances", "DocStringExtensions", "FFTW", "Glob", "IncompleteLU", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "LinearAlgebra", "Logging", "MPI", "NCDatasets", "OffsetArrays", "OrderedCollections", "PencilArrays", "PencilFFTs", "Pkg", "Printf", "Random", "Rotations", "SeawaterPolynomials", "SparseArrays", "Statistics", "StructArrays"]
-git-tree-sha1 = "3a5d2b1d9a237731f886a657e72e4a52a7f6fb2b"
+git-tree-sha1 = "745b1c19221e09886cae331450a2a4ea73708a38"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
-version = "0.90.14"
+version = "0.91.3"
 
     [deps.Oceananigans.extensions]
     OceananigansEnzymeExt = "Enzyme"
