@@ -11,7 +11,7 @@ using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node
 using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities:
     CATKEVerticalDiffusivity,
     CATKEMixingLength,
-    CATKEEnergyEquation
+    CATKEEquation
 
 using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 
