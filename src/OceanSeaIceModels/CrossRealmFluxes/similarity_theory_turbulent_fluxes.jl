@@ -397,6 +397,6 @@ end
     # New velocity difference accounting for gustiness
     ΔU = sqrt(Δu^2 + Δv^2 + Uᴳ^2)
 
-    return SimilarityScales(u★, θ★, q★), ΔUᴳ
+    return SimilarityScales(u★, θ★, q★), ΔU
 end
 
