@@ -1,4 +1,5 @@
 import Statistics
+import Base: -
 
 #####
 ##### Struct that represents a 3-tuple of momentum, heat, and water vapor
@@ -10,7 +11,7 @@ struct SimilarityScales{U, T, Q}
     water_vapor :: Q
 end
 
-function Base.-(a::SimilarityScales, b::SimilarityScales)
+function -(a::SimilarityScales, b::SimilarityScales)
     Δu = a.momentum - b.momentum
     Δθ = a.temperature - b.temperature
     Δq = a.water_vapor - b.water_vapor
