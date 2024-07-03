@@ -10,7 +10,7 @@
 # We also need Oceananigans for the ImmersedBoundaryGrid and Field utilities, and CairoMakie to plot.
 
 using ClimaOcean
-using ClimaOcean.ECCO2
+using ClimaOcean.ECCO
 using ClimaOcean.JRA55
 using ClimaOcean.OceanSimulations
 using Oceananigans
@@ -23,7 +23,7 @@ using CairoMakie
 # We can use this mask as an immersed boundary for our grid.
 # Let's create the grid and visualize the mask.
 
-mask = ecco2_center_mask()
+mask = ecco_mask(:temperature)
 grid = mask.grid
 grid = ImmersedBoundaryGrid(grid, GridFittedBoundary(mask))
 
@@ -65,14 +65,14 @@ ocean = ocean_simulation(grid; momentum_advection = nothing,
 
 # Now that we have an atmosphere and a container for the ocean, we need to populate
 # our ocean with initial conditions. To do this, we can use the ECCO2 dataset by
-# `set!`ting the model with the `ECCO2Metadata`. If no date is specified,
+# `set!`ting the model with the `ECCOMetadata`. If no date is specified,
 # the fields corresponding to January 1st, 1992 (the first available date in
 # ECCO2) are used.
 # This command will download the fields to the local machine.
 
 set!(ocean.model;
-      T = ECCO2Metadata(:temperature), 
-      S = ECCO2Metadata(:salinity))
+      T = ECCOMetadata(:temperature), 
+      S = ECCOMetadata(:salinity))
 
 # The final step is to construct a coupled model.
 # The coupled model requires an ocean, which we have just constructed and initialized,

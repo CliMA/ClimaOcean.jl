@@ -20,7 +20,7 @@ using Oceananigans.BuoyancyModels: buoyancy_frequency
 using Oceananigans.Units: Time
 
 using ClimaOcean
-using ClimaOcean.ECCO2: ECCO2Metadata
+using ClimaOcean.ECCO
 using ClimaOcean.OceanSimulations
 
 using CairoMakie
@@ -64,8 +64,8 @@ model = ocean.model
 start_time = time_ns()
 
 # Initial conditions
-set!(ocean.model, T = ECCO2Metadata(:temperature),
-                  S = ECCO2Metadata(:salinity),
+set!(ocean.model, T = ECCOMetadata(:temperature),
+                  S = ECCOMetadata(:salinity),
                   e = 1e-6)
 
 elapsed = time_ns() - start_time

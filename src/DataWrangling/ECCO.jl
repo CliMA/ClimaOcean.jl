@@ -211,6 +211,9 @@ function ecco_mask(metadata, architecture = CPU();
     return mask
 end
 
+# Default
+ecco_mask() = ecco_mask(ECCOMetadata(:temperature))
+
 """
     inpainted_ecco_field(variable_name; 
                           architecture = CPU(),
