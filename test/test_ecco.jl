@@ -31,12 +31,13 @@ using Dates
         @test ecco_fts.grid isa LatitudeLongitudeGrid
         @test topology(ecco_fts.grid) == (Periodic, Bounded, Bounded)
 
-        Nx, Ny, Nz, Nt = size(ecco_fts.data)
+        Nx, Ny, Nz = size(interior(ecco_fts))
+        Nt = length(ecco_fts.times)
 
         @test Nx == size(temperature[1])[1]
         @test Ny == size(temperature[1])[2]
         @test Nz == size(temperature[1])[3]
-        @test Nt == size(temperature[1])[3]
+        @test Nt == size(temperature[1])[4]
     end
 end
 
