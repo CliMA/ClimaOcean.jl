@@ -34,10 +34,10 @@ using Dates
         Nx, Ny, Nz = size(interior(ecco_fts))
         Nt = length(ecco_fts.times)
 
-        @test Nx == size(temperature[1])[1]
-        @test Ny == size(temperature[1])[2]
-        @test Nz == size(temperature[1])[3]
-        @test Nt == size(temperature[1])[4]
+        @test Nx == size(temperature)[1]
+        @test Ny == size(temperature)[2]
+        @test Nz == size(temperature)[3]
+        @test Nt == size(temperature)[4]
     end
 end
 
