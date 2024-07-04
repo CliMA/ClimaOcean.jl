@@ -14,7 +14,6 @@ using ClimaOcean.JRA55: download_jra55_cache
         jra55_fts = ClimaOcean.JRA55.JRA55_field_time_series(test_name; architecture=arch, time_indices)
 
         test_filename = joinpath(download_jra55_cache, "RYF.rsds.1990_1991.nc")
-        test_jld2_filename = jra55_fts.path
 
         @test jra55_fts isa FieldTimeSeries
         @test jra55_fts.grid isa LatitudeLongitudeGrid
@@ -34,9 +33,6 @@ using ClimaOcean.JRA55: download_jra55_cache
         CUDA.@allowscalar begin
             @test view(jra55_fts.data, 1, :, 1, :) == view(jra55_fts.data, Nx+1, :, 1, :)
         end
-
-        @info "Testing preprocessing JRA55 data on $A..."
-        rm(test_jld2_filename, force=true)
 
         @info "Testing loading preprocessed JRA55 data on $A..."
         in_memory_jra55_fts = ClimaOcean.JRA55.JRA55_field_time_series(test_name;
