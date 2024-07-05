@@ -60,6 +60,7 @@ function ocean_simulation(grid; Δt = 5minutes,
                           gravitational_acceleration = g_Earth,
                           bottom_drag_coefficient = 0.003,
                           forcing = NamedTuple(),
+                          tracers = (:T, :S),
                           coriolis = HydrostaticSphericalCoriolis(; rotation_rate),
                           momentum_advection = default_momentum_advection(),
                           tracer_advection = default_tracer_advection(),
@@ -96,8 +97,7 @@ function ocean_simulation(grid; Δt = 5minutes,
         momentum_advection = nothing
     end
 
-    tracers = (:T, :S)
-    if closure isa CATKEVerticalDiffusivity
+    if closure isa CATKEVerticalDiffusivity 
         tracers = tuple(tracers..., :e)
         tracer_advection = (; T = tracer_advection, S = tracer_advection, e = nothing)
     end

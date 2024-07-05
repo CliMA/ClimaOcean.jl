@@ -6,7 +6,8 @@ using OrthogonalSphericalShellGrids
 using Oceananigans
 using Oceananigans: architecture
 using Oceananigans.Grids: on_architecture
-using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
+using Oceananigans.Coriolis: ActiveCellEnstrophyConserving, fᶠᶠᵃ
+using Oceananigans.BuoyanyModels: ∂y_b, ∂z_b
 using Oceananigans.Units
 using ClimaOcean
 using ClimaOcean.OceanSimulations
@@ -19,6 +20,7 @@ using ClimaOcean.JRA55: JRA55NetCDFBackend, JRA55_prescribed_atmosphere
 using ClimaOcean.ECCO: ECCO_restoring_forcing, ECCO4Monthly, ECCO2Daily, ECCOMetadata
 using ClimaOcean.Bathymetry
 using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: LatitudeDependentAlbedo
+using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 
 import ClimaOcean: stateindex
 
@@ -34,10 +36,10 @@ include("tripolar_specific_methods.jl")
 bathymetry_file = nothing # "bathymetry_tmp.jld2"
 
 # 60 vertical levels
-z_faces = exponential_z_faces(Nz=20, depth=6000)
+z_faces = exponential_z_faces(Nz=30, depth=6000)
 
-Nx = 200
-Ny = 100
+Nx = 360
+Ny = 180
 Nz = length(z_faces) - 1
 
 arch = CPU() #Distributed(GPU(), partition = Partition(2))
@@ -99,7 +101,7 @@ const c₄⁻ = c⁺[4]
 mask = CenterField(grid)
 set!(mask, mask_f)
 
-dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 10, 1)
+dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 12, 1)
 
 temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
 salinity    = ECCOMetadata(:salinity,    dates, ECCO4Monthly())
@@ -109,8 +111,62 @@ FS = ECCO_restoring_forcing(salinity;    mask, grid, architecture = arch, timesc
 
 forcing = (; T = FT, S = FS)
 
-ocean = ocean_simulation(grid; free_surface, forcing, closure = nothing) 
-model = ocean.model
+#####
+##### Adding custom closures!!!!
+#####
+
+# Vertical Closure!
+vertical_closure = ClimaOcean.OceanSimulations.default_ocean_closure()
+
+buoyancy = SeawaterBuoyancy(; gravitational_acceleration = Oceananigans.BuoyancyModels.g_Earth, 
+                              equation_of_state= TEOS10EquationOfState(; reference_density = 1020))
+
+# Diffusivities and closures coefficients
+gm_parameters = (; max_C = 20, 
+                   min_C = 0.23,
+                   K₀ᴳᴹ  =  1e3,
+                   buoyancy,
+                   coriolis = HydrostaticSphericalCoriolis()
+                 )
+
+# Custom GM coefficient, function of `i, j, k, grid, clock, fields, parameters`
+@inline function κskew(i, j, k, grid, ℓx, ℓy, ℓz, clock, fields, p) 
+     
+     β = ∂yᶜᶜᶜ(i, j, k, grid, fᶠᶠᵃ, p.coriolis)
+
+    ∂ʸb = ℑxyz(i, j, k, grid, (Center(), Face(), Center()), (ℓx, ℓy, ℓz), ∂y_b, p.buoyancy, fields)
+    ∂ᶻb = ℑxyz(i, j, k, grid, (Center(), Center(), Face()), (ℓx, ℓy, ℓz), ∂z_b, p.buoyancy, fields)
+
+    Sʸ = ∂ʸb / ∂ᶻb 
+    Sʸ = ifelse(isnan(Sʸ), zero(grid), Sʸ)
+
+    z  = znode(k, grid, Center())
+    C  = min(max(p.min_C, 1 - β / Sʸ * z), p.max_C)
+
+    return p.K₀ᴳᴹ * C
+end
+
+gerdes_koberle_willebrand_tapering = FluxTapering(1e-1)
+horizontal_closure = IsopycnalSkewSymmetricDiffusivity(κ_skew = κskew,
+                                                       κ_symmetric = 1000,
+                                                       skew_discrete_form = true,
+                                                       skew_loc = (nothing, nothing, nothing),
+                                                       parameters = gm_parameters,
+                                                       slope_limiter = gerdes_koberle_willebrand_tapering,
+                                                       required_halo_size = 3)
+
+
+#####
+##### Building and initializing the ocean simulation!
+#####
+
+closure = (vertical_closure, horizontal_closure)
+ocean   = ocean_simulation(grid; 
+                           tracers = (:T, :S, :e),
+                           free_surface, 
+                           forcing, 
+                           closure) 
+model   = ocean.model
 
 initial_date = dates[1]
 
