@@ -38,7 +38,7 @@ include("tripolar_specific_methods.jl")
 bathymetry_file = nothing # "bathymetry_tmp.jld2"
 
 # 60 vertical levels
-z_faces = exponential_z_faces(Nz=30, depth=6000)
+z_faces = exponential_z_faces(Nz=35, depth=6000)
 
 Nx = 360
 Ny = 180
@@ -118,6 +118,7 @@ forcing = (; T = FT, S = FS)
 #####
 
 # Vertical Closure!
+
 vertical_closure = ConvectiveAdjustmentVerticalDiffusivity(convective_κz = 0.1,
                                                            background_κz = 1e-5,
                                                            convective_νz = 0.1,
@@ -125,6 +126,9 @@ vertical_closure = ConvectiveAdjustmentVerticalDiffusivity(convective_κz = 0.1,
 
 buoyancy = SeawaterBuoyancy(; gravitational_acceleration = Oceananigans.BuoyancyModels.g_Earth, 
                               equation_of_state= TEOS10EquationOfState(; reference_density = 1020))
+
+
+# Isopycnal closure!
 
 # Parameters for the κskew function
 gm_parameters = (; max_C = 20, 
@@ -156,7 +160,7 @@ gm_parameters = (; max_C = 20,
 end
 
 gerdes_koberle_willebrand_tapering = FluxTapering(1e-1)
-horizontal_closure = IsopycnalSkewSymmetricDiffusivity(κ_skew = κskew,
+isopycnal_closure = IsopycnalSkewSymmetricDiffusivity(κ_skew = κskew,
                                                        κ_symmetric = 1000,
                                                        skew_discrete_form = true,
                                                        skew_loc = (nothing, nothing, nothing),
@@ -164,16 +168,39 @@ horizontal_closure = IsopycnalSkewSymmetricDiffusivity(κ_skew = κskew,
                                                        slope_limiter = gerdes_koberle_willebrand_tapering,
                                                        required_halo_size = 3)
 
+# Horizontal closure!
+
+using Oceananigans.AbstractOperations: Δx, Δy
+
+@inline Δ²ᵃᵃᵃ(i, j, k, grid, ℓx, ℓy, ℓz) = 2 / (1 / Δx(i, j, k, grid, ℓx, ℓy, ℓz)^2 +
+                                                1 / Δy(i, j, k, grid, ℓx, ℓy, ℓz)^2)
+
+@inline νhb(i, j, k, grid, ℓx, ℓy, ℓz, clock, fields) = 
+     Δ²ᵃᵃᵃ(i, j, k, grid, ℓx, ℓy, ℓz)^2 / 20days
+
+horizontal_closure = HorizontalScalarBiharmonicDiffusivity(ν = νhb, discrete_form = true)
 
 #####
 ##### Building and initializing the ocean simulation!
 #####
 
-closure = (vertical_closure, horizontal_closure)
-ocean   = ocean_simulation(grid; 
-                           free_surface, 
-                           forcing, 
-                           closure) 
+closure = (vertical_closure, isopycnal_closure, horizontal_closure)
+
+# Advection schemes 
+
+momentum_advection = VectorInvariant(; vorticity_scheme = WENO(),
+                                      divergence_scheme = WENO(),
+                                        vertical_scheme = Centered())
+
+tracer_advection = Oceananigans.Advection.TracerAdvection(WENO(), WENO(), Centered())
+
+# Building the ocean simulation
+ocean = ocean_simulation(grid; 
+                         momentum_advection,
+                         tracer_advection,
+                         free_surface, 
+                         forcing, 
+                         closure) 
 
 #####
 ##### The atmosphere
