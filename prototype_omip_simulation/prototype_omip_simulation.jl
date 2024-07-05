@@ -171,7 +171,6 @@ horizontal_closure = IsopycnalSkewSymmetricDiffusivity(κ_skew = κskew,
 
 closure = (vertical_closure, horizontal_closure)
 ocean   = ocean_simulation(grid; 
-                           tracers = (:T, :S, :e),
                            free_surface, 
                            forcing, 
                            closure) 
