@@ -7,7 +7,7 @@ using Oceananigans
 using Oceananigans.Operators
 using Oceananigans.Operators: ℑxyz
 using Oceananigans: architecture
-using Oceananigans.Grids: on_architecture, znode
+using Oceananigans.Grids: on_architecture, znode, φnode
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving, fᶠᶠᵃ
 using Oceananigans.BuoyancyModels: ∂y_b, ∂z_b
 using Oceananigans.Units
@@ -137,6 +137,8 @@ gm_parameters = (; max_C = 20,
 # Custom GM coefficient, function of `i, j, k, grid, clock, fields, parameters`
 @inline function κskew(i, j, k, grid, ℓx, ℓy, ℓz, clock, fields, p) 
      
+    φ  = φnode(i, j, k, grid.underlying_grid, Center(), Center(), Center()) 
+
      β = ∂yᶜᶜᶜ(i, j, k, grid, fᶠᶠᵃ, p.coriolis)
 
     ∂ʸb = ℑxyz(i, j, k, grid, (Center(), Face(), Center()), (ℓx, ℓy, ℓz), ∂y_b, p.buoyancy, fields)
@@ -148,7 +150,9 @@ gm_parameters = (; max_C = 20,
     z  = znode(k, grid.underlying_grid, Center())
     C  = min(max(p.min_C, 1 - β / Sʸ * z), p.max_C)
 
-    return p.K₀ᴳᴹ * C
+     equator_band = (φ > 20) & (φ < -20) 
+
+    return ifelse(equator_band, zero(grid), p.K₀ᴳᴹ * C)
 end
 
 gerdes_koberle_willebrand_tapering = FluxTapering(1e-1)
