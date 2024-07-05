@@ -118,7 +118,10 @@ forcing = (; T = FT, S = FS)
 #####
 
 # Vertical Closure!
-vertical_closure = ClimaOcean.OceanSimulations.default_ocean_closure()
+vertical_closure = ConvectiveAdjustmentVerticalDiffusivity(convective_κz = 0.1,
+                                                           background_κz = 1e-5,
+                                                           convective_νz = 0.1,
+                                                           background_νz = 1e-5)
 
 buoyancy = SeawaterBuoyancy(; gravitational_acceleration = Oceananigans.BuoyancyModels.g_Earth, 
                               equation_of_state= TEOS10EquationOfState(; reference_density = 1020))
@@ -168,13 +171,6 @@ ocean   = ocean_simulation(grid;
                            free_surface, 
                            forcing, 
                            closure) 
-model   = ocean.model
-
-initial_date = dates[1]
-
-set!(model, 
-     T = ECCOMetadata(:temperature, initial_date, ECCO2Daily()),
-     S = ECCOMetadata(:salinity,    initial_date, ECCO2Daily()))
 
 #####
 ##### The atmosphere
@@ -192,7 +188,7 @@ wall_time = [time_ns()]
 
 function progress(sim) 
     u, v, w = sim.model.velocities  
-    T, S = sim.model.tracers
+    T, S, e = sim.model.tracers
 
     Tmax = maximum(interior(T))
     Tmin = minimum(interior(T))
@@ -208,7 +204,7 @@ function progress(sim)
      wall_time[1] = time_ns()
 end
 
-ocean.callbacks[:progress] = Callback(progress, IterationInterval(1))
+ocean.callbacks[:progress] = Callback(progress, IterationInterval(10))
 
 fluxes = (u = model.velocities.u.boundary_conditions.top.condition,
           v = model.velocities.v.boundary_conditions.top.condition,
@@ -239,19 +235,31 @@ ocean.output_writers[:checkpoint] = Checkpointer(model,
                                                  overwrite_existing = true,
                                                  prefix = "checkpoint")
 
-# Simulation warm up!
-ocean.Δt = 10
-ocean.stop_iteration = 1
-wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 1, max_change = 1.1)
-ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(1))
+restart = nothing
+model   = ocean.model
+initial_date = dates[1]
 
-stop_time = 15days
+if isnothing(restart) # Warm up!
+     set!(model, 
+          T = ECCOMetadata(:temperature, initial_date, ECCO4Monthly()),
+          S = ECCOMetadata(:salinity,    initial_date, ECCO4Monthly()),
+          e = 1e-6)
 
-coupled_simulation = Simulation(coupled_model; Δt=1, stop_time)
+     ocean.Δt = 10
+     ocean.stop_iteration = 1
+     wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 90, max_change = 1.1)
+     ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(1))
 
-run!(coupled_simulation)
+     stop_time = 30days
 
-wizard = TimeStepWizard(; cfl = 0.3, max_Δt = 600, max_change = 1.1)
+     coupled_simulation = Simulation(coupled_model; Δt=1, stop_time)
+
+     run!(coupled_simulation)
+else
+     set!(model, restart)
+end
+
+wizard = TimeStepWizard(; cfl = 0.3, max_Δt = 900, max_change = 1.1)
 ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 
 # Let's reset the maximum number of iterations
