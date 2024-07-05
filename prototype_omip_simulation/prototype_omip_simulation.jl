@@ -4,10 +4,12 @@ using Oceananigans.Units
 using ClimaOcean
 using OrthogonalSphericalShellGrids
 using Oceananigans
+using Oceananigans.Operators
+using Oceananigans.Operators: ℑxyz
 using Oceananigans: architecture
-using Oceananigans.Grids: on_architecture
+using Oceananigans.Grids: on_architecture, znode
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving, fᶠᶠᵃ
-using Oceananigans.BuoyanyModels: ∂y_b, ∂z_b
+using Oceananigans.BuoyancyModels: ∂y_b, ∂z_b
 using Oceananigans.Units
 using ClimaOcean
 using ClimaOcean.OceanSimulations
@@ -121,10 +123,10 @@ vertical_closure = ClimaOcean.OceanSimulations.default_ocean_closure()
 buoyancy = SeawaterBuoyancy(; gravitational_acceleration = Oceananigans.BuoyancyModels.g_Earth, 
                               equation_of_state= TEOS10EquationOfState(; reference_density = 1020))
 
-# Diffusivities and closures coefficients
+# Parameters for the κskew function
 gm_parameters = (; max_C = 20, 
                    min_C = 0.23,
-                   K₀ᴳᴹ  =  1e3,
+                   K₀ᴳᴹ  = 1e3,
                    buoyancy,
                    coriolis = HydrostaticSphericalCoriolis()
                  )
@@ -140,7 +142,7 @@ gm_parameters = (; max_C = 20,
     Sʸ = ∂ʸb / ∂ᶻb 
     Sʸ = ifelse(isnan(Sʸ), zero(grid), Sʸ)
 
-    z  = znode(k, grid, Center())
+    z  = znode(k, grid.underlying_grid, Center())
     C  = min(max(p.min_C, 1 - β / Sʸ * z), p.max_C)
 
     return p.K₀ᴳᴹ * C
