@@ -23,7 +23,7 @@ using CairoMakie
 # We can use this mask as an immersed boundary for our grid.
 # Let's create the grid and visualize the mask.
 
-mask = ecco_mask(:temperature)
+mask = ecco_mask()
 grid = mask.grid
 grid = ImmersedBoundaryGrid(grid, GridFittedBoundary(mask))
 

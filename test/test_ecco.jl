@@ -43,7 +43,7 @@ end
 
 @testset "setting a field with ECCO" begin
     for arch in test_architectures
-        grid  = LatitudeLongitudeGrid(size = (10, 10, 10), latitude = (-60, -40), longitude = (-5, 5), z = (-200, 0))
+        grid  = LatitudeLongitudeGrid(size = (10, 10, 10), latitude = (-60, -40), longitude = (10, 15), z = (-200, 0))
         field = CenterField(grid)
         set!(field, ECCOMetadata(:temperature)) 
         set!(field, ECCOMetadata(:salinity))

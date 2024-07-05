@@ -175,6 +175,9 @@ function ecco_field(metadata::ECCOMetadata;
     return field
 end
 
+# Fallback
+ecco_field(var_name::Symbol; kw...) = ecco_field(ECCOMetadata(var_name); kw...)
+
 @kernel function _set_ecco2_mask!(mask, Tᵢ, minimum_value, maximum_value)
     i, j, k = @index(Global, NTuple)
     @inbounds mask[i, j, k] = (Tᵢ[i, j, k] < minimum_value) | (Tᵢ[i, j, k] > maximum_value) 
