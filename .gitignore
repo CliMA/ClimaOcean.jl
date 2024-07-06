@@ -35,7 +35,7 @@ docs/src/literated/
 *.swp
 *.zip
 
-# Report files from profiling
+# outputs of NVIDIA profiling tools
 *.qdrep
 *.nsys-rep
 *.ncu-rep

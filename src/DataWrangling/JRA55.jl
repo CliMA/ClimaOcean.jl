@@ -20,10 +20,16 @@ using CUDA: @allowscalar
 using NCDatasets
 using JLD2 
 using Dates
+using Scratch
 
 import Oceananigans.Fields: set!
 import Oceananigans.OutputReaders: new_backend, update_field_time_series!
 using Downloads: download
+
+download_jra55_cache::String = ""
+function __init__()
+    global download_jra55_cache = @get_scratch!("JRA55")
+end
 
 # A list of all variables provided in the JRA55 dataset:
 JRA55_variable_names = (:river_freshwater_flux,
@@ -314,6 +320,7 @@ function JRA55_field_time_series(variable_name;
                                  grid = nothing,
                                  location = nothing,
                                  url = nothing,
+                                 dir = download_jra55_cache,
                                  filename = nothing,
                                  shortname = nothing,
                                  latitude = nothing,
@@ -342,14 +349,16 @@ function JRA55_field_time_series(variable_name;
         throw(ArgumentError(msg))
     end
 
-    if !isnothing(filename) && !isfile(filename) && isnothing(url)
+    filepath = isnothing(filename) ? joinpath(dir, filenames[variable_name]) : joinpath(dir, filename)
+
+    if !isnothing(filename) && !isfile(filepath) && isnothing(url)
         throw(ArgumentError("A filename was provided without a url, but the file does not exist.\n \
                             If intended, please provide both the filename and url that should be used \n \
                             to download the new file."))
     end
 
-    isnothing(shortname) && (shortname = jra55_short_names[variable_name])
     isnothing(filename)  && (filename  = filenames[variable_name])
+    isnothing(shortname) && (shortname = jra55_short_names[variable_name])
     isnothing(url)       && (url       = urls[variable_name])
 
     # Record some important user decisions
@@ -357,12 +366,12 @@ function JRA55_field_time_series(variable_name;
     on_native_grid = isnothing(grid)
     !on_native_grid && backend isa JRA55NetCDFBackend && error("Can't use custom grid with JRA55NetCDFBackend.")
 
-    jld2_filename = string("JRA55_repeat_year_", variable_name, ".jld2")
+    jld2_filepath = joinpath(dir, string("JRA55_repeat_year_", variable_name, ".jld2"))
     fts_name = field_time_series_short_names[variable_name]
 
     # Note, we don't re-use existing jld2 files.
-    isfile(filename) || download(url, filename)
-    isfile(jld2_filename) && rm(jld2_filename)
+    isfile(filepath) || download(url, filepath)
+    isfile(jld2_filepath) && rm(jld2_filepath)
 
     # Determine default time indices
     if totally_in_memory
@@ -400,7 +409,7 @@ function JRA55_field_time_series(variable_name;
         LX, LY = location
     end
 
-    ds = Dataset(filename)
+    ds = Dataset(filepath)
 
     # Note that each file should have the variables
     #   - ds["time"]:     time coordinate 
@@ -452,7 +461,7 @@ function JRA55_field_time_series(variable_name;
                                                        backend,
                                                        time_indexing,
                                                        boundary_conditions,
-                                                       path = filename,
+                                                       path = filepath,
                                                        name = shortname)
 
         # Fill the data in a GPU-friendly manner
@@ -490,7 +499,7 @@ function JRA55_field_time_series(variable_name;
     preprocessing_grid = on_native_grid ? JRA55_native_grid : grid
 
     # Re-open the dataset!
-    ds = Dataset(filename)
+    ds = Dataset(filepath)
     all_datetimes = ds["time"][time_indices]
     all_Nt = length(all_datetimes)
 
@@ -499,7 +508,7 @@ function JRA55_field_time_series(variable_name;
     on_disk_fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid, all_times;
                                                    boundary_conditions,
                                                    backend = OnDisk(),
-                                                   path = jld2_filename,
+                                                   path = jld2_filepath,
                                                    name = fts_name)
 
     # Save data to disk, one field at a time
@@ -512,7 +521,7 @@ function JRA55_field_time_series(variable_name;
     fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid, times_in_memory;
                                            boundary_conditions,
                                            backend = InMemory(),
-                                           path = jld2_filename,
+                                           path = jld2_filepath,
                                            name = fts_name)
 
     # Re-compute data
@@ -571,7 +580,7 @@ function JRA55_field_time_series(variable_name;
 
     close(ds)
 
-    user_fts = FieldTimeSeries(jld2_filename, fts_name; architecture, backend, time_indexing)
+    user_fts = FieldTimeSeries(jld2_filepath, fts_name; architecture, backend, time_indexing)
     fill_halo_regions!(user_fts)
 
     return user_fts
