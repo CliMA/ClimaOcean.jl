@@ -18,7 +18,7 @@ using Dates
         dates = start_date : Month(1) : end_date
 
         temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
-        t_restoring = ECCO_restoring_forcing(temperature; timescale = 10days)
+        t_restoring = ECCO_restoring_forcing(temperature; timescale = 1000.0)
 
         ecco_fts = t_restoring.func.ecco_fts
 
@@ -31,18 +31,19 @@ using Dates
         @test ecco_fts.grid isa LatitudeLongitudeGrid
         @test topology(ecco_fts.grid) == (Periodic, Bounded, Bounded)
 
-        Nx, Ny, Nz, Nt = size(ecco_fts.data)
+        Nx, Ny, Nz = size(interior(ecco_fts))
+        Nt = length(ecco_fts.times)
 
-        @test Nx == size(temperature[1])[1]
-        @test Ny == size(temperature[1])[2]
-        @test Nz == size(temperature[1])[3]
-        @test Nt == size(temperature[1])[3]
+        @test Nx == size(temperature)[1]
+        @test Ny == size(temperature)[2]
+        @test Nz == size(temperature)[3]
+        @test Nt == size(temperature)[4]
     end
 end
 
 @testset "setting a field with ECCO" begin
     for arch in test_architectures
-        grid  = LatitudeLongitudeGrid(size = (10, 10, 10), latitude = (-60, -40), longitude = (-5, 5), z = (-200, 0))
+        grid  = LatitudeLongitudeGrid(size = (10, 10, 10), latitude = (-60, -40), longitude = (10, 15), z = (-200, 0))
         field = CenterField(grid)
         set!(field, ECCOMetadata(:temperature)) 
         set!(field, ECCOMetadata(:salinity))

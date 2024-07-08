@@ -1,19 +1,20 @@
 include("runtests_setup.jl")
 
+using ClimaOcean.JRA55: download_jra55_cache
+
 @testset "JRA55 and data wrangling utilities" begin
     for arch in test_architectures
         A = typeof(arch)
         @info "Testing reanalysis_field_time_series on $A..."
 
         test_name = :downwelling_shortwave_radiation
-        test_filename = "RYF.rsds.1990_1991.nc"
-        test_jld2_filename = "JRA55_repeat_year_downwelling_shortwave_radiation.jld2"
         time_indices = 1:3
 
         # This should download a file called "RYF.rsds.1990_1991.nc"
         jra55_fts = JRA55_field_time_series(test_name; architecture=arch, time_indices)
 
-        @test isfile(test_filename)
+        test_filename = joinpath(download_jra55_cache, "RYF.rsds.1990_1991.nc")
+
         @test jra55_fts isa FieldTimeSeries
         @test jra55_fts.grid isa LatitudeLongitudeGrid
         
@@ -33,9 +34,6 @@ include("runtests_setup.jl")
             @test view(jra55_fts.data, 1, :, 1, :) == view(jra55_fts.data, Nx+1, :, 1, :)
         end
 
-        @info "Testing preprocessing JRA55 data on $A..."
-        rm(test_jld2_filename, force=true)
-
         @info "Testing loading preprocessed JRA55 data on $A..."
         in_memory_jra55_fts = JRA55_field_time_series(test_name;
                                                       time_indices,
@@ -47,7 +45,6 @@ include("runtests_setup.jl")
         @test interior(in_memory_jra55_fts[1]) == interior(jra55_fts[1])
 
         # Clean up
-        rm(test_filename)
         rm(in_memory_jra55_fts.path)
 
         @info "Testing interpolate_field_time_series! on $A..."
