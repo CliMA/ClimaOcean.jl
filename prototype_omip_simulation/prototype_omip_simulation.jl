@@ -34,13 +34,13 @@ include("tripolar_specific_methods.jl")
 bathymetry_file = nothing # "bathymetry_tmp.jld2"
 
 # 60 vertical levels
-z_faces = exponential_z_faces(Nz=20, depth=6000)
+z_faces = exponential_z_faces(Nz=60, depth=6000)
 
-Nx = 200
-Ny = 100
+Nx = 2160
+Ny = 1080
 Nz = length(z_faces) - 1
 
-arch = CPU() #Distributed(GPU(), partition = Partition(2))
+arch = GPU() #Distributed(GPU(), partition = Partition(2))
 
 grid = TripolarGrid(arch; 
                     size = (Nx, Ny, Nz), 
@@ -61,7 +61,7 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_
 ##### The Ocean component
 #####                             
 
-free_surface = SplitExplicitFreeSurface(grid; substeps = 75)
+free_surface = SplitExplicitFreeSurface(grid; cfl = 0.75, fixed_Δt = 600)
 
 #####
 ##### Add restoring to ECCO fields for temperature and salinity in the artic and antarctic
@@ -99,7 +99,7 @@ const c₄⁻ = c⁺[4]
 mask = CenterField(grid)
 set!(mask, mask_f)
 
-dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 10, 1)
+dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(2003, 12, 1)
 
 temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
 salinity    = ECCOMetadata(:salinity,    dates, ECCO4Monthly())
@@ -109,14 +109,10 @@ FS = ECCO_restoring_forcing(salinity;    mask, grid, architecture = arch, timesc
 
 forcing = (; T = FT, S = FS)
 
-ocean = ocean_simulation(grid; free_surface, forcing, closure = nothing) 
+ocean = ocean_simulation(grid; free_surface, forcing) 
 model = ocean.model
 
 initial_date = dates[1]
-
-set!(model, 
-     T = ECCOMetadata(:temperature, initial_date, ECCO2Daily()),
-     S = ECCOMetadata(:salinity,    initial_date, ECCO2Daily()))
 
 #####
 ##### The atmosphere
@@ -150,7 +146,7 @@ function progress(sim)
      wall_time[1] = time_ns()
 end
 
-ocean.callbacks[:progress] = Callback(progress, IterationInterval(1))
+ocean.callbacks[:progress] = Callback(progress, IterationInterval(10))
 
 fluxes = (u = model.velocities.u.boundary_conditions.top.condition,
           v = model.velocities.v.boundary_conditions.top.condition,
@@ -159,20 +155,20 @@ fluxes = (u = model.velocities.u.boundary_conditions.top.condition,
 
 ocean.output_writers[:fluxes] = JLD2OutputWriter(model, fluxes,
                                                   schedule = TimeInterval(0.5days),
-                                                  overwrite_existing = true,
+                                                  overwrite_existing = false,
                                                   array_type = Array{Float32},
                                                   filename = "surface_fluxes")
 
 ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, model.velocities),
                                                   schedule = TimeInterval(0.5days),
-                                                  overwrite_existing = true,
+                                                  overwrite_existing = false,
                                                   array_type = Array{Float32},
                                                   filename = "surface",
                                                   indices = (:, :, grid.Nz))
 
 ocean.output_writers[:snapshots] = JLD2OutputWriter(model, merge(model.tracers, model.velocities),
                                                     schedule = TimeInterval(10days),
-                                                    overwrite_existing = true,
+                                                    overwrite_existing = false,
                                                     array_type = Array{Float32},
                                                     filename = "snapshots")
 
@@ -181,17 +177,29 @@ ocean.output_writers[:checkpoint] = Checkpointer(model,
                                                  overwrite_existing = true,
                                                  prefix = "checkpoint")
 
-# Simulation warm up!
-ocean.Δt = 10
-ocean.stop_iteration = 1
-wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 1, max_change = 1.1)
-ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(1))
-
-stop_time = 15days
+restart = nothing
 
 coupled_simulation = Simulation(coupled_model; Δt=1, stop_time)
+ocean.Δt = 10
 
-run!(coupled_simulation)
+if isnothing(restart)
+
+    # Set simulation from ECCO2 fields
+    set!(ocean.model, 
+         T = ECCOMetadata(:temperature, initial_date, ECCO2Daily()),
+         S = ECCOMetadata(:salinity,    initial_date, ECCO2Daily()))
+    
+    # Simulation warm up!
+    wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 1.5minutes, max_change = 1.1)
+    ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
+
+    stop_time = 25days
+
+    run!(coupled_simulation)
+else
+    # Set the ocean from the restart file
+    set!(ocean.model, restart)
+end
 
 wizard = TimeStepWizard(; cfl = 0.3, max_Δt = 600, max_change = 1.1)
 ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
