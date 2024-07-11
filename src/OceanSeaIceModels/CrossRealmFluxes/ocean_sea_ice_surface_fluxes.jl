@@ -29,6 +29,8 @@ using KernelAbstractions: @kernel, @index
 struct OceanSeaIceSurfaceFluxes{T, P, C, R, PI, PC, FT, UN}
     turbulent :: T
     prescribed :: P
+    # Add `components` which will also store components of the total fluxes
+    # (eg latent, sensible heat flux)
     total :: C
     radiation :: R
     previous_ice_thickness :: PI
