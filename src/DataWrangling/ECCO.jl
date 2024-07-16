@@ -138,9 +138,10 @@ function ecco_field(metadata::ECCOMetadata;
     shortname = short_name(metadata)
     
     download_dataset!(metadata)
+    three_dimensional = variable_is_three_dimensional(metadata)
 
     ds = Dataset(filename)
-    if variable_is_three_dimensional(metadata)
+    if three_dimensional
         data = ds[shortname][:, :, :, 1]
         # The surface layer in three-dimensional ECCO fields is at `k = 1`
         data = reverse(data, dims = 3)
@@ -166,7 +167,7 @@ function ecco_field(metadata::ECCOMetadata;
     # data by 180 degrees in longitude
     if metadata.version isa ECCO4Monthly 
         Nx = size(data, 1)
-        data = circshift(data, (Nx ÷ 2, 0, 0))
+        data = three_dimensional ? circshift(data, (Nx ÷ 2, 0, 0)) :  circshift(data, (Nx ÷ 2, 0)) 
     end
 
     set!(field, data)
