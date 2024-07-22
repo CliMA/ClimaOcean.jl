@@ -58,7 +58,8 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     # kernel parameters that compute fluxes in 0:Nx+1 and 0:Ny+1
     kernel_parameters = KernelParameters(kernel_size, (-1, -1))
 
-    launch!(arch, grid, kernel_parameters, _compute_atmosphere_ocean_similarity_theory_fluxes!,
+    launch!(arch, grid, kernel_parameters,
+            _compute_atmosphere_ocean_similarity_theory_fluxes!,
             similarity_theory,
             grid,
             clock,
@@ -73,7 +74,8 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             atmosphere.boundary_layer_height,
             atmosphere.thermodynamics_parameters)   
     
-    launch!(arch, grid, kernel_parameters, _assemble_atmosphere_ocean_fluxes!,
+    launch!(arch, grid, kernel_parameters,
+            _assemble_atmosphere_ocean_fluxes!,
             centered_velocity_fluxes,
             net_tracer_fluxes,
             grid,
@@ -182,19 +184,13 @@ limit_fluxes_over_sea_ice!(args...) = nothing
                                                similarity_theory.water_vapor_saturation,
                                                surface_type)
     
-    # Thermodynamic and dynamic surface state
+    # Thermodynamic and dynamic (ocean) surface state
     𝒬₀ = thermodynamic_surface_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₒ, qₒ)
-
     h₀ = zero(grid) # surface height
     Uₒ = SVector(uₒ, vₒ)
     𝒰₀ = dynamic_ocean_state = SurfaceFluxes.StateValues(h₀, Uₒ, 𝒬₀)
 
-    Qv = similarity_theory.fields.latent_heat
-    Qc = similarity_theory.fields.sensible_heat
-    Fv = similarity_theory.fields.water_vapor
-    τx = similarity_theory.fields.x_momentum
-    τy = similarity_theory.fields.y_momentum
-
+    # Some parameters
     g = default_gravitational_acceleration
     ϰ = similarity_theory.von_karman_constant
     
@@ -209,15 +205,22 @@ limit_fluxes_over_sea_ice!(args...) = nothing
 
     # Convert back from a zonal - meridional flux to the frame of 
     # reference of the native ocean grid
-    τˣ, τʸ = intrinsic_vector(i, j, kᴺ, grid, turbulent_fluxes.x_momentum, turbulent_fluxes.y_momentum)
+    ρτxⁱʲ, ρτyⁱʲ = intrinsic_vector(i, j, kᴺ, grid, turbulent_fluxes.x_momentum, turbulent_fluxes.y_momentum)
+
+    # Store fluxes
+    Qv = similarity_theory.fields.latent_heat
+    Qc = similarity_theory.fields.sensible_heat
+    Fv = similarity_theory.fields.water_vapor
+    ρτx = similarity_theory.fields.x_momentum
+    ρτy = similarity_theory.fields.y_momentum
 
     @inbounds begin
         # +0: cooling, -0: heating
-        Qv[i, j, 1] = ifelse(inactive, 0, turbulent_fluxes.latent_heat)
-        Qc[i, j, 1] = ifelse(inactive, 0, turbulent_fluxes.sensible_heat)
-        Fv[i, j, 1] = ifelse(inactive, 0, turbulent_fluxes.water_vapor)
-        τx[i, j, 1] = ifelse(inactive, 0, τˣ)
-        τy[i, j, 1] = ifelse(inactive, 0, τʸ)
+        Qv[i, j, 1]  = ifelse(inactive, 0, turbulent_fluxes.latent_heat)
+        Qc[i, j, 1]  = ifelse(inactive, 0, turbulent_fluxes.sensible_heat)
+        Fv[i, j, 1]  = ifelse(inactive, 0, turbulent_fluxes.water_vapor)
+        ρτx[i, j, 1] = ifelse(inactive, 0, ρτxⁱʲ)
+        ρτy[i, j, 1] = ifelse(inactive, 0, ρτyⁱʲ)
     end
 end
 
@@ -261,11 +264,11 @@ end
         Mp = interp_atmos_time_series(prescribed_freshwater_flux, X, time, atmos_args...)
         Mr = get_runoff_flux(X, time, runoff_args) 
 
-        Qc = similarity_theory_fields.sensible_heat[i, j, 1] # sensible or "conductive" heat flux
-        Qv = similarity_theory_fields.latent_heat[i, j, 1]   # latent heat flux
-        Mv = similarity_theory_fields.water_vapor[i, j, 1]   # mass flux of water vapor
-        τx = similarity_theory_fields.x_momentum[i, j, 1]    # zonal momentum flux
-        τy = similarity_theory_fields.y_momentum[i, j, 1]    # meridional momentum flux
+        Qc  = similarity_theory_fields.sensible_heat[i, j, 1] # sensible or "conductive" heat flux
+        Qv  = similarity_theory_fields.latent_heat[i, j, 1]   # latent heat flux
+        Mv  = similarity_theory_fields.water_vapor[i, j, 1]   # mass flux of water vapor
+        ρτx = similarity_theory_fields.x_momentum[i, j, 1]    # zonal momentum flux
+        ρτy = similarity_theory_fields.y_momentum[i, j, 1]    # meridional momentum flux
     end
 
     # Compute heat fluxes, bulk flux first
@@ -285,25 +288,25 @@ end
     ΣF += Fv
 
     # Compute fluxes for u, v, T, S from momentum, heat, and freshwater fluxes
-    Jᵘ = centered_velocity_fluxes.u
-    Jᵛ = centered_velocity_fluxes.v
+    τx = centered_velocity_fluxes.u
+    τy = centered_velocity_fluxes.v
     Jᵀ = net_tracer_fluxes.T
     Jˢ = net_tracer_fluxes.S
 
     ρₒ⁻¹ = 1 / ocean_reference_density
     cₒ   = ocean_heat_capacity
 
-    atmos_ocean_Jᵘ = τx * ρₒ⁻¹
-    atmos_ocean_Jᵛ = τy * ρₒ⁻¹
-    atmos_ocean_Jᵀ = ΣQ * ρₒ⁻¹ / cₒ
+    atmos_ocean_τx = ρτx * ρₒ⁻¹
+    atmos_ocean_τy = ρτy * ρₒ⁻¹
+    atmos_ocean_Jᵀ = ΣQ  * ρₒ⁻¹ / cₒ
     atmos_ocean_Jˢ = - Sₒ * ΣF
 
     # Mask fluxes over land for convenience
     inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
 
     @inbounds begin
-        Jᵘ[i, j, 1] = ifelse(inactive, 0, atmos_ocean_Jᵘ)
-        Jᵛ[i, j, 1] = ifelse(inactive, 0, atmos_ocean_Jᵛ)
+        τx[i, j, 1] = ifelse(inactive, 0, atmos_ocean_τx)
+        τy[i, j, 1] = ifelse(inactive, 0, atmos_ocean_τy)
         Jᵀ[i, j, 1] = ifelse(inactive, 0, atmos_ocean_Jᵀ)
         Jˢ[i, j, 1] = ifelse(inactive, 0, atmos_ocean_Jˢ)
     end
