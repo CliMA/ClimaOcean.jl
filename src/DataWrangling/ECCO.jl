@@ -121,7 +121,7 @@ end
                 horizontal_halo = (1, 1),
                 user_data = nothing,
                 url = ecco_urls[variable_name],
-                filename = ecco_file_names[variable_name],
+                filename = ecco_metadata_filenames[variable_name],
                 short_name = ecco_short_names[variable_name])
 
 Retrieve the ecco field corresponding to `variable_name`. 
@@ -133,7 +133,7 @@ The data is either:
 function ecco_field(metadata::ECCOMetadata;
                     architecture = CPU(),
                     horizontal_halo = (3, 3),
-                    filename = file_name(metadata))
+                    filename = metadata_filename(metadata))
 
     shortname = short_name(metadata)
     
@@ -199,7 +199,7 @@ A boolean field where `true` represents a missing value in the ECCO dataset.
 function ecco_mask(metadata, architecture = CPU(); 
                    minimum_value = Float32(-1e5),
                    maximum_value = Float32(1e5),
-                   filename = file_name(metadata))
+                   filename = metadata_filename(metadata))
 
     field = ecco_field(metadata; architecture, filename)
     mask  = Field{location(field)...}(field.grid, Bool)
@@ -246,7 +246,7 @@ Keyword Arguments:
 """
 function inpainted_ecco_field(metadata::ECCOMetadata; 
                               architecture = CPU(),
-                              filename = file_name(metadata),
+                              filename = metadata_filename(metadata),
                               mask = ecco_mask(metadata, architecture),
                               maxiter = Inf,
                               kw...)

@@ -39,3 +39,5 @@ docs/src/literated/
 *.qdrep
 *.nsys-rep
 *.ncu-rep
+*.sq
+*.sqlite

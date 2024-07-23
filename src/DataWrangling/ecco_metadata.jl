@@ -60,14 +60,14 @@ all_ecco_dates(::ECCO2Monthly) = DateTimeProlepticGregorian(1992, 1, 1) : Month(
 all_ecco_dates(::ECCO2Daily)   = DateTimeProlepticGregorian(1992, 1, 4) : Day(1)   : DateTimeProlepticGregorian(2023, 12, 31)
 
 # File name generation specific to each Dataset version
-function file_name(metadata::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4Monthly})
+function metadata_filename(metadata::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4Monthly})
     shortname   = short_name(metadata)
     yearstr  = string(Dates.year(metadata.dates))
     monthstr = string(Dates.month(metadata.dates), pad=2)
     return shortname * "_" * yearstr * "_" * monthstr * ".nc"
 end
 
-function file_name(metadata::ECCOMetadata{<:AbstractCFDateTime})
+function metadata_filename(metadata::ECCOMetadata{<:AbstractCFDateTime})
     shortname   = short_name(metadata)
     yearstr  = string(Dates.year(metadata.dates))
     monthstr = string(Dates.month(metadata.dates), pad=2)
@@ -147,7 +147,7 @@ function download_dataset!(metadata::ECCOMetadata;
                            url = urls(metadata))
 
     for data in metadata
-        filename  = file_name(data)
+        filename  = metadata_filename(data)
         shortname = short_name(data)
 
         if !isfile(filename)
