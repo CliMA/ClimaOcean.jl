@@ -5,6 +5,7 @@ agents:
 
 env:
   JULIA_LOAD_PATH: "${JULIA_LOAD_PATH}:${BUILDKITE_BUILD_CHECKOUT_PATH}/.buildkite"
+  JULIA_DEBUG: "Documenter"
   OPENBLAS_NUM_THREADS: 1
   OMPI_MCA_opal_warn_on_missing_libcuda: 0
 
@@ -20,6 +21,9 @@ steps:
     agents:
       slurm_mem: 32G
       slurm_cpus_per_task: 8
+      slurm_gpus: 1
+      slurm_ntasks: 1
+      slurm_gpus_per_task: 1
     env:
       JULIA_NUM_PRECOMPILE_TASKS: 8
 
@@ -48,6 +52,14 @@ steps:
       TEST_GROUP: "fluxes"
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
+
+  - label: "Run documentation"
+    key: "build_documentation"
+    env:
+      CUDA_VISIBLE_DEVICES: "0"
+    commands:
+      - "julia --color=yes --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'"
+      - "julia --color=yes --project=docs/ docs/make.jl"
 
   - wait: ~
     continue_on_failure: true
