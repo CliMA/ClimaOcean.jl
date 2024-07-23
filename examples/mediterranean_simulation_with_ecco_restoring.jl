@@ -1,35 +1,48 @@
+# # Mediterranean simulation with restoring to ECCO
+#
+# This Julia script is a comprehensive example of setting up and running a high-resolution ocean simulation for the Mediterranean Sea using 
+# the Oceananigans and ClimaOcean packages, with a focus on restoring temperature and salinity fields from the
+#  ECCO (Estimating the Circulation and Climate of the Ocean) dataset. 
+#
+# The script is divided into several sections, each handling a specific part of the simulation setup and execution process.
+#
+
+# ## Initial Setup with Package Imports
+#
+# The script begins by importing necessary Julia packages for visualization (GLMakie), 
+# ocean modeling (Oceananigans, ClimaOcean), and handling of dates and times (CFTime, Dates). 
+# These packages provide the foundational tools for creating the simulation environment, 
+# including grid setup, physical processes modeling, and data visualization.
+
 using GLMakie
 using Oceananigans
 using Oceananigans: architecture
 using ClimaOcean
 using ClimaOcean.ECCO
 using ClimaOcean.ECCO: ECCO4Monthly
-using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalDiffusivity
-using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.Units
 using Printf
 
 using CFTime
 using Dates
 
-#####
-##### Regional Mediterranean grid 
-#####
-
-# Domain and Grid size
+# ## Grid Configuration for the Mediterranean Sea
 #
-# We construct a grid that represents the Mediterranean sea, 
-# with a resolution of 1/10th of a degree (roughly 10 km resolution)
+# The script defines a high-resolution grid to represent the Mediterranean Sea, specifying the domain in terms of longitude (λ₁, λ₂), 
+# latitude (φ₁, φ₂), and a stretched vertical grid to capture the depth variation (z_faces). 
+# The grid resolution is set to approximately 1/15th of a degree, which translates to a spatial resolution of about 7 km. 
+# This section demonstrates the use of the LatitudeLongitudeGrid function to create a grid that matches the
+#  Mediterranean's geographical and bathymetric features.
+
 λ₁, λ₂  = ( 0, 42) # domain in longitude
 φ₁, φ₂  = (30, 45) # domain in latitude
-# A stretched vertical grid with a Δz of 1.5 meters in the first 50 meters
 z_faces = stretched_vertical_faces(depth = 5000, 
-                             surface_layer_Δz = 2.5, 
-                             stretching = PowerLawStretching(1.070), 
-                             surface_layer_height = 50)
+                                   surface_layer_Δz = 2.5, 
+                                   stretching = PowerLawStretching(1.070), 
+                                   surface_layer_height = 50)
 
-Nx = 4 * 42 # 1 / 4th of a degree resolution
-Ny = 4 * 15 # 1 / 4th of a degree resolution
+Nx = 15 * 42 # 1 / 15th of a degree resolution
+Ny = 15 * 15 # 1 / 15th of a degree resolution
 Nz = length(z_faces) - 1
 
 grid = LatitudeLongitudeGrid(CPU();
@@ -39,25 +52,25 @@ grid = LatitudeLongitudeGrid(CPU();
                              z = z_faces,
                              halo = (7, 7, 7))
 
-# Interpolating the bathymetry onto the grid
+# ### Bathymetry Interpolation
 #
-# We regrid the bathymetry onto the grid.
-# we allow a minimum depth of 10 meters (all shallower regions are 
-# considered land) and we use 25 intermediate grids (interpolation_passes = 25)
-# Note that more interpolation passes will smooth the bathymetry
+# The script interpolates bathymetric data onto the grid, ensuring that the model accurately represents 
+# the sea floor's topography. Parameters such as `minimum_depth` and `interpolation_passes`
+#  are adjusted to refine the bathymetry representation.
+
 bottom_height = regrid_bathymetry(grid, 
                                   height_above_water = 1,
                                   minimum_depth = 10,
                                   interpolation_passes = 25,
                                   connected_regions_allowed = 1)
 
-# Let's use an active cell map to elide computation in inactive cells
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true)
 
-# Correct oceananigans
-import Oceananigans.Advection: nothing_to_default
-
-nothing_to_default(user_value; default) = isnothing(user_value) ? default : user_value
+# ## Downloading ECCO data
+#
+# The model is initialized with temperature and salinity fields from the ECCO dataset, 
+# using the function `ECCO_restoring_forcing` to apply restoring forcings for these tracers. 
+# This allows us to nudge the model towards realistic temperature and salinity profiles.
 
 dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 12, 1)
 
@@ -67,39 +80,26 @@ salinity    = ECCOMetadata(:salinity,    dates, ECCO4Monthly())
 FT = ECCO_restoring_forcing(temperature; timescale = 2days)
 FS = ECCO_restoring_forcing(salinity;    timescale = 2days)
 
-# Constructing the model
+# Constructing the Simulation
 #
-# We construct a model that evolves two tracers, temperature (:T), salinity (:S)
-# We do not have convection since the simulation is just slumping to equilibrium so we do not need a turbulence closure
-# We select a linear equation of state for buoyancy calculation, and WENO schemes for both tracer and momentum advection.
-# The free surface utilizes a split-explicit formulation with a barotropic CFL of 0.75 based on wave speed.
-model = HydrostaticFreeSurfaceModel(; grid,
-                            momentum_advection = WENOVectorInvariant(),
-                              tracer_advection = WENO(grid; order = 7),
-                                  free_surface = SplitExplicitFreeSurface(grid; cfl = 0.75),
-                                      buoyancy = SeawaterBuoyancy(),
-                                      tracers  = (:T, :S, :c),
-                                    #   forcing  = (T = FT, S = FS),
-                                      coriolis = HydrostaticSphericalCoriolis(scheme = ActiveCellEnstrophyConserving()))
+# We construct an ocean simulation that evolves two tracers, temperature (:T), salinity (:S)
+# and we pass the previously defined forcing that nudge these tracers 
+
+ocean = ocean_simulation(grid; forcing = (T = FT, S = FS))
 
 # Initializing the model
 #
 # the model can be initialized with custom values or with ecco fields.
 # In this case, our ECCO dataset has access to a temperature and a salinity
 # field, so we initialize T and S from ECCO. 
-# We initialize our passive tracer with a surface blob near to the coasts of Libia
-@info "initializing model"
-libia_blob(x, y, z) = z > -20 || (x - 15)^2 + (y - 34)^2 < 1.5 ? 1 : 0
 
-set!(model, c = libia_blob, T = temperature[1], S = salinity[1])
+set!(ocean.model, T = temperature[1], S = salinity[1])
 
 fig = Figure()
 ax  = Axis(fig[1, 1])
 heatmap!(ax, interior(model.tracers.T, :, :, Nz), colorrange = (10, 20), colormap = :thermal)
 ax  = Axis(fig[1, 2])
 heatmap!(ax, interior(model.tracers.S, :, :, Nz), colorrange = (35, 40), colormap = :haline)
-
-simulation = Simulation(model, Δt = 10minutes, stop_time = 10*365days)
 
 function progress(sim) 
     u, v, w = sim.model.velocities  
@@ -113,37 +113,39 @@ function progress(sim)
                    maximum(abs, T), maximum(abs, S))
 end
 
-simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
+ocean.callbacks[:progress] = Callback(progress, IterationInterval(10))
 
-# Simulation warm up!
+# ## Simulation warm up!
 #
-# We have regridded from a coarse solution (1/4er of a degree) to a
-# fine grid (1/15th of a degree). Also, the bathymetry has little mismatches 
-# that might crash our simulation. We warm up the simulation with a little 
-# time step for few iterations to allow the solution to adjust to the new_grid
+# We have regridded from the coarse solution of the ECCO dataset (half of a degree) to a
+# fine grid (1/15th of a degree). The bathymetry might also have little mismatches 
+# that might crash the simulation. We warm up the simulation with a little 
+# time step for few iterations to allow the solution to adjust to the new grid
 # bathymetry
-simulation.Δt = 10
-simulation.stop_iteration = 1000
-run!(simulation)
 
-# Run the real simulation
+ocean.Δt = 10
+ocean.stop_iteration = 1000
+run!(ocean)
+
+# ## Run the real simulation
 #
 # Now that the solution has adjusted to the bathymetry we can ramp up the time
 # step size. We use a `TimeStepWizard` to automatically adapt to a cfl of 0.2
+
 wizard = TimeStepWizard(; cfl = 0.2, max_Δt = 10minutes, max_change = 1.1)
 
-simulation.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
+coean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 
 # Let's reset the maximum number of iterations
-simulation.stop_iteration = Inf
+ocean.stop_iteration = Inf
 
-simulation.output_writers[:surface_fields] = JLD2OutputWriter(model, merge(model.velocities, model.tracers);
-                                                              indices = (:, :, Nz),
-                                                              schedule = TimeInterval(1days),
-                                                              overwrite_existing = true,
-                                                              filename = "med_surface_field")
+ocean.output_writers[:surface_fields] = JLD2OutputWriter(model, merge(model.velocities, model.tracers);
+                                                         indices = (:, :, Nz),
+                                                         schedule = TimeInterval(1days),
+                                                         overwrite_existing = true,
+                                                         filename = "med_surface_field")
 
-run!(simulation)
+run!(ocean)
 
 # Record a video
 #
@@ -152,6 +154,7 @@ run!(simulation)
 # (2) Meridional velocity (v)
 # (3) Temperature (T)
 # (4) Salinity (S)
+
 u_series = FieldTimeSeries("med_surface_field.jld2", "u")
 v_series = FieldTimeSeries("med_surface_field.jld2", "v")
 T_series = FieldTimeSeries("med_surface_field.jld2", "T")
