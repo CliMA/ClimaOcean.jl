@@ -26,29 +26,13 @@ steps:
 
   - wait
 
-  - label: "Run JRA55 tests"
-    key: "tests_jra55"
+  - label: "Run documentation"
+    key: "Build documentation"
     env:
-      CUDA_VISIBLE_DEVICES: "-1"
-      TEST_GROUP: "jra55"
+      CUDA_VISIBLE_DEVICES: "0"
     commands:
-      - "julia --project -e 'using Pkg; Pkg.test()'"
-
-  - label: "Run ECCO tests"
-    key: "tests_ecco"
-    env:
-      CUDA_VISIBLE_DEVICES: "-1"
-      TEST_GROUP: "ecco"
-    commands:
-      - "julia --project -e 'using Pkg; Pkg.test()'"
-
-  - label: "Run surface flux tests"
-    key: "tests_fluxes"
-    env:
-      CUDA_VISIBLE_DEVICES: "-1"
-      TEST_GROUP: "fluxes"
-    commands:
-      - "julia --project -e 'using Pkg; Pkg.test()'"
+      - "julia --color=yes --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'"
+      - "julia --color=yes --project=docs/ docs/make.jl"
 
   - wait: ~
     continue_on_failure: true

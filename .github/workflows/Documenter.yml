@@ -33,4 +33,4 @@ jobs:
           JULIA_DEBUG: Documenter  
           ECCO_USERNAME: ${{ secrets.ECCO_USERNAME }} # To download ECCO data from the podaac website
           ECCO_PASSWORD: ${{ secrets.ECCO_PASSWORD }} # To download ECCO data from the podaac website
-        run: julia --color=yes --project=docs/ docs/make.jl
+        run: julia --color=yes --project=docs/ docs/make_without_examples.jl
