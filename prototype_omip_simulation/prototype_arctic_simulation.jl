@@ -163,7 +163,6 @@ radiation  = Radiation(arch)
 #####
 
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-
 coupled_simulation = Simulation(coupled_model; Δt = 1minutes, stop_time = 10days)
 
 wall_time = [time_ns()]

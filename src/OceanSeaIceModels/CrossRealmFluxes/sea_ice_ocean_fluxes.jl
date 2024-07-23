@@ -1,8 +1,9 @@
 using Oceananigans.Operators: Δzᶜᶜᶜ
+using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 
 function compute_sea_ice_ocean_fluxes!(coupled_model)
     #compute_sea_ice_ocean_salinity_flux!(coupled_model)
-    sea_ice_ocean_latent_heat_flux!(coupled_model)
+    # sea_ice_ocean_latent_heat_flux!(coupled_model)
     return nothing
 end
 
@@ -20,8 +21,8 @@ function compute_sea_ice_ocean_salinity_flux!(coupled_model)
     hⁿ = sea_ice.model.ice_thickness
     h⁻ = coupled_model.fluxes.previous_ice_thickness
 
-    launch!(arch, grid, :xy, _compute_sea_ice_ocean_salinity_flux!,
-            Qˢ, grid, hⁿ, h⁻, Sᵢ, Sₒ, Δt)
+    # launch!(arch, grid, :xy, _compute_sea_ice_ocean_salinity_flux!,
+    #         Qˢ, grid, hⁿ, h⁻, Sᵢ, Sₒ, Δt)
 
     return nothing
 end
@@ -68,7 +69,7 @@ function sea_ice_ocean_latent_heat_flux!(coupled_model)
     Δt = ocean.Δt
     hᵢ = sea_ice.model.ice_thickness
 
-    liquidus = sea_ice.model.phase_transitions.liquidus
+    liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
     grid = ocean.model.grid
     arch = architecture(grid)
 
@@ -162,3 +163,45 @@ end
     @inbounds Qₒ[i, j, 1] = δQ
 end
 
+function limit_fluxes_over_sea_ice!(grid, kernel_parameters, sea_ice::SeaIceModel,
+                                    staggered_velocity_fluxes,
+                                    net_tracer_fluxes,
+                                    ocean_state)
+
+    launch!(architecture(grid), grid, kernel_parameters, _massage_fluxes_on_sea_ice!,
+            staggered_velocity_fluxes,
+            net_tracer_fluxes,
+            grid, 
+            sea_ice.ice_concentration,
+            sea_ice.ice_dynamics.ocean_ice_drag_coefficient,
+            sea_ice.velocities,
+            ocean_state.u,
+            ocean_state.v)
+
+    return nothing
+end
+
+@kernel function _massage_fluxes_on_sea_ice!(staggered_velocity_fluxes,
+                                             net_tracer_fluxes,
+                                             grid, ℵ, Cᴰ, 𝒰ᵢ, uₒ, vₒ)    
+
+    i, j = @index(Global, NTuple)
+
+    @inbounds begin
+        Jᵘ = staggered_velocity_fluxes.u
+        Jᵛ = staggered_velocity_fluxes.v
+    
+        sea_ice = ℵ[i, j, 1] > 0
+        cooling_sea_ice = sea_ice & (Jᵀ[i, j, 1] > 0)
+
+        # Don't allow the ocean to cool below the minimum temperature! (make sure it heats up though!)
+	    # On the other hand, assume all heating fluxes are due to solar radiation and 
+	    # multiply by a fictitious albedo
+	    Jᵀ[i, j, 1] = ifelse(cooling_sea_ice, zero(grid), Jᵀ[i, j, 1]) 
+        
+        # If we are in a "sea ice" region we remove all fluxes
+        Jˢ[i, j, 1] = ifelse(sea_ice, zero(grid), Jˢ[i, j, 1])
+        Jᵘ[i, j, 1] = ifelse(sea_ice, Cᴰ * (u₀[i, j, 1] - 𝒰ᵢ.u[i, j, 1]), Jᵘ[i, j, 1]) 
+        Jᵛ[i, j, 1] = ifelse(sea_ice, Cᴰ * (v₀[i, j, 1] - 𝒰ᵢ.v[i, j, 1]), Jᵛ[i, j, 1]) 
+    end
+end

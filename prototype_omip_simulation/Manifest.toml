@@ -204,7 +204,7 @@ version = "0.2.0"
 
 [[deps.ClimaSeaIce]]
 deps = ["Adapt", "JSON3", "KernelAbstractions", "Oceananigans", "Printf", "RootSolvers", "Roots", "SeawaterPolynomials"]
-git-tree-sha1 = "86c5c5ce756cb4f318bec38c82c4b85c31c8eb05"
+git-tree-sha1 = "5cb153161f40557d2b3e27cea08b4c078cdcb295"
 repo-rev = "ss/evp-rheology"
 repo-url = "https://github.com/CliMA/ClimaSeaIce.jl.git"
 uuid = "6ba0ff68-24e6-4315-936c-2e99227c95a4"

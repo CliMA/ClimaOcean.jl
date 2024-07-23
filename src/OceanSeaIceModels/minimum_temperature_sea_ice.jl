@@ -20,13 +20,13 @@ end
 MinimumTemperatureSeaIce() = MinimumTemperatureSeaIce(-1.8)
 
 function limit_fluxes_over_sea_ice!(grid, kernel_parameters, sea_ice::MinimumTemperatureSeaIce,
-                                    centered_velocity_fluxes,
+                                    staggered_velocity_fluxes,
                                     net_tracer_fluxes,
                                     ocean_temperature,
                                     ocean_salinity)
 
     launch!(architecture(grid), grid, kernel_parameters, _cap_fluxes_on_sea_ice!,
-            centered_velocity_fluxes,
+            staggered_velocity_fluxes,
             net_tracer_fluxes,
             grid, 
             sea_ice.minimum_temperature,

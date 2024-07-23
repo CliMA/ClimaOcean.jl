@@ -93,15 +93,14 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             coupled_model.fluxes.ocean_reference_density,
             coupled_model.fluxes.ocean_heat_capacity,
             coupled_model.fluxes.freshwater_density)
-            
-    limit_fluxes_over_sea_ice!(grid, kernel_parameters, sea_ice,
-                               centered_velocity_fluxes,
-                               net_tracer_fluxes,
-                               ocean_state.T,
-                               ocean_state.S)
 
     launch!(arch, grid, :xy, reconstruct_momentum_fluxes!,
             grid, staggered_velocity_fluxes, centered_velocity_fluxes)
+
+    limit_fluxes_over_sea_ice!(grid, kernel_parameters, sea_ice,
+                               staggered_velocity_fluxes,
+                               net_tracer_fluxes,
+                               ocean_state)
 
     return nothing
 end
