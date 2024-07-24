@@ -8,6 +8,8 @@ env:
   OPENBLAS_NUM_THREADS: 1
   OMPI_MCA_opal_warn_on_missing_libcuda: 0
 
+timeout_in_minutes: 1440
+
 steps:
   - label: "initialize"
     key: "init"
