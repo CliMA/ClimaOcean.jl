@@ -18,7 +18,7 @@ steps:
       - "julia --project -e 'using CUDA; CUDA.precompile_runtime()'"
 
     agents:
-      slurm_mem: 32G
+      slurm_mem: 80G
       slurm_gpus: 1
       slurm_cpus_per_task: 8
     env:
@@ -27,7 +27,7 @@ steps:
   - wait
 
   - label: "Run documentation"
-    key: "Build documentation"
+    key: "build_documentation"
     env:
       CUDA_VISIBLE_DEVICES: "0"
     commands:
