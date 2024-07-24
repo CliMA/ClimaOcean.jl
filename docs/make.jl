@@ -31,9 +31,10 @@ end
 #####
 
 format = Documenter.HTML(
-  collapselevel = 2,
-     prettyurls = get(ENV, "CI", nothing) == "true",
-      canonical = "https://clima.github.io/ClimaOceanDocumentation/dev/",
+       collapselevel = 2,
+      size_threshold = nothing,
+          prettyurls = get(ENV, "CI", nothing) == "true",
+           canonical = "https://clima.github.io/ClimaOceanDocumentation/dev/",
 )
 
 pages = [
