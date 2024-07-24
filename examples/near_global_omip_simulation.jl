@@ -15,6 +15,7 @@ using Dates
 #####
 
 # 40 vertical levels
+
 z_faces = exponential_z_faces(Nz=40, depth=6000)
 
 Nx = 1440
@@ -35,6 +36,7 @@ grid = LatitudeLongitudeGrid(arch;
 # We retrieve the bathymetry from the ETOPO1 data by ensuring a 
 # minimum depth of 10 meters (everyhting shallower is considered land)
 # and removing all connected regions (inland lakes)
+
 bottom_height = retrieve_bathymetry(grid; 
                                     minimum_depth = 10,
                                     dir = "./",
@@ -42,6 +44,7 @@ bottom_height = retrieve_bathymetry(grid;
                                     connected_regions_allowed = 0)
  
 # An immersed boundary using a staircase representation of bathymetry
+
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true) 
 
 #####
@@ -56,6 +59,7 @@ date  = DateTimeProlepticGregorian(1993, 1, 1)
 
 # We interpolate the initial conditions from the ECCO2 dataset 
 # (for the moment these are both 1st January 1993)
+
 set!(model, 
      T = ECCO2Metadata(:temperature, date, ECCO2Daily()),
      S = ECCO2Metadata(:salinity,    date, ECCO2Daily()))
@@ -66,11 +70,13 @@ set!(model,
 
 # The whole prescribed atmosphere is loaded in memory 
 # 4 snapshots at the time.
+
 backend    = JRA55NetCDFBackend(4) 
 atmosphere = JRA55_prescribed_atmosphere(arch; backend)
 
 # Tabulated ocean albedo from Payne (1982)
 # ocean emissivity is the default 0.97
+
 radiation  = Radiation(arch)
 
 #####
@@ -79,9 +85,11 @@ radiation  = Radiation(arch)
 
 # Simplistic sea ice that ensure "no-cooling-fluxes" where `T < T_minimum`
 # to change with a thermodynamic sea-ice model
+
 sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
 
 # The complete coupled model
+
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 
 wall_time = [time_ns()]
@@ -89,6 +97,7 @@ wall_time = [time_ns()]
 # We define a progress function that
 # shows the maximum values of velocity and temperature
 # to make sure everything proceedes as planned
+
 function progress(sim) 
     u, v, w = sim.model.velocities  
     T = sim.model.tracers.T
@@ -119,6 +128,7 @@ output_kwargs = (; overwrite_existing = true, array_type = Array{Float32})
 
 # We add a couple of outputs: the surface state every 12 hours, the surface fluxes
 # every 12 hours, and the whole state every ten days
+
 ocean.output_writers[:fluxes] = JLD2OutputWriter(model, fluxes;
                                                   schedule = TimeInterval(0.5days),
                                                   overwrite_existing = true,
@@ -148,12 +158,14 @@ ocean.output_writers[:checkpoint] = Checkpointer(model;
 
 # warm up the simulation to ensure that the model adapts 
 # to the interpolated initial conditions without crashing
+
 ocean.Δt = 10
 ocean.stop_iteration = 1
 wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 90, max_change = 1.1)
 ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(1))
 
 # Finally, the coupled simulation!
+
 coupled_simulation = Simulation(coupled_model; Δt=1, stop_time = 20days)
 
 run!(coupled_simulation)
@@ -193,3 +205,9 @@ heatmap!(ax, interior(T, :, :, grid.Nz), colorrange = (-1, 30), colormap = :magm
 
 ax = Axis(fig[2, 1], title = "Turbulent Kinetic Energy [m²s⁻²]")
 heatmap!(ax, interior(e, :, :, grid.Nz), colorrange = (0, 1e-3), colormap = :solar)
+
+save("near_global_ocean_surface.png", fig)
+nothing #hide
+
+# ![](near_global_ocean_surface.png)
+

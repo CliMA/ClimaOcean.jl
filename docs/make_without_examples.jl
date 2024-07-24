@@ -8,24 +8,6 @@ using
 ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
 
 #####
-##### Generate examples
-#####
-
-const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
-const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
-
-to_be_literated = [
-    "inspect_ecco_data.jl",
-    "generate_surface_fluxes.jl",
-    "single_column_simulation.jl",
-]
-
-for file in to_be_literated
-    filepath = joinpath(EXAMPLES_DIR, file)
-    Literate.markdown(filepath, OUTPUT_DIR; flavor = Literate.DocumenterFlavor())
-end
-
-#####
 ##### Build and deploy docs
 #####
 
@@ -44,12 +26,6 @@ pages = [
         "Private"        => "library/internals.md",
         "Function index" => "library/function_index.md",
         ],
-
-    "Examples" => [
-        "Inspect ECCO2 data" => "literated/inspect_ecco_data.md",
-        "Surface fluxes" => "literated/generate_surface_fluxes.md",
-        "Single column simulation" => "literated/single_column_simulation.md",
-        ]
 ]
 
 makedocs(
