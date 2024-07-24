@@ -20,7 +20,7 @@ steps:
       - "julia --project -e 'using CUDA; CUDA.precompile_runtime()'"
 
     agents:
-      slurm_mem: 80G
+      slurm_mem: 120G
       slurm_gpus: 1
       slurm_cpus_per_task: 8
     env:
@@ -30,11 +30,18 @@ steps:
 
   - label: "Run documentation"
     key: "build_documentation"
-    env:
-      CUDA_VISIBLE_DEVICES: "0"
     commands:
       - "julia --color=yes --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'"
       - "julia --color=yes --project=docs/ docs/make.jl"
+
+    agents:
+      slurm_mem: 120G
+      slurm_gpus: 1
+      slurm_cpus_per_task: 8
+      slurm_ntasks: 1
+      slurm_gpus_per_task: 1
+    env:
+      JULIA_NUM_PRECOMPILE_TASKS: 8
 
   - wait: ~
     continue_on_failure: true

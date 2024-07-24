@@ -17,6 +17,7 @@ deps/src/
 docs/build/
 docs/site/
 docs/src/literated/
+docs/Manifest.toml
 
 # Output files 
 *.nc
