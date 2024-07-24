@@ -9,12 +9,12 @@
 
 # ## Initial Setup with Package Imports
 #
-# The script begins by importing necessary Julia packages for visualization (GLMakie), 
+# The script begins by importing necessary Julia packages for visualization (CairoMakie), 
 # ocean modeling (Oceananigans, ClimaOcean), and handling of dates and times (CFTime, Dates). 
 # These packages provide the foundational tools for creating the simulation environment, 
 # including grid setup, physical processes modeling, and data visualization.
 
-using GLMakie
+using CairoMakie
 using Oceananigans
 using Oceananigans: architecture
 using ClimaOcean
@@ -201,7 +201,7 @@ heatmap!(S)
 ax  = Axis(fig[2, 3], title = "passive tracer -")
 heatmap!(c)
 
-GLMakie.record(fig, "mediterranean_video.mp4", 1:length(u_series.times); framerate = 5) do i
+CairoMakie.record(fig, "mediterranean_video.mp4", 1:length(u_series.times); framerate = 5) do i
     @info "recording iteration $i"
     iter[] = i    
 end
