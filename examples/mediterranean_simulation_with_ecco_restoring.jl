@@ -45,7 +45,7 @@ Nx = 15 * 42 # 1 / 15th of a degree resolution
 Ny = 15 * 15 # 1 / 15th of a degree resolution
 Nz = length(z_faces) - 1
 
-grid = LatitudeLongitudeGrid(CPU();
+grid = LatitudeLongitudeGrid(GPU();
                              size = (Nx, Ny, Nz),
                              latitude  = (φ₁, φ₂),
                              longitude = (λ₁, λ₂),
@@ -138,6 +138,7 @@ coean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 
 # Let's reset the maximum number of iterations
 ocean.stop_iteration = Inf
+ocean.stop_time = 200days
 
 ocean.output_writers[:surface_fields] = JLD2OutputWriter(model, merge(model.velocities, model.tracers);
                                                          indices = (:, :, Nz),
