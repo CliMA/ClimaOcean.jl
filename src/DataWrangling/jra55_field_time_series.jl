@@ -44,29 +44,32 @@ new_backend(::JRA55NetCDFBackend{N}, start, length) where N = JRA55ONetCDFBacken
 on_native_grid(::JRA55NetCDFBackend{N}) where N = N
 
 function set!(fts::JRA55NetCDFFTS, path::JRA55Metadata=fts.path, name::String=fts.name) 
+ 
+    # Do different things based on the Backend...
+    ds = Dataset(path)
 
-    backend = fts.backend
-    start = backend.start
+    # Note that each file should have the variables
+    #   - ds["time"]:     time coordinate 
+    #   - ds["lon"]:      longitude at the location of the variable
+    #   - ds["lat"]:      latitude at the location of the variable
+    #   - ds["lon_bnds"]: bounding longitudes between which variables are averaged
+    #   - ds["lat_bnds"]: bounding latitudes between which variables are averaged
+    #   - ds[shortname]:  the variable data
 
-    # Set the JRA55 dataset based on the backend!s
+    # Nodes at the variable location
+    λc = ds["lon"][:]
+    φc = ds["lat"][:]
+    LX, LY, LZ = location(fts)
+    i₁, i₂, j₁, j₂, TX = compute_bounding_indices(nothing, nothing, fts.grid, LX, LY, λc, φc)
 
-    for t in start:start+length(backend)-1
-        
-        # find the file associated with the time index
-        metadata = @inbounds path[t] 
+    ti = time_indices(fts)
+    ti = collect(ti)
+    data = ds[name][i₁:i₂, j₁:j₂, ti]
+    close(ds)
 
-        arch = architecture(fts)
-
-        # f = inpainted_ecco_field(metadata; architecture = arch)
-        if on_native_grid(backend)
-            set!(fts[t], f)
-        else
-            interpolate!(fts[t], f)
-        end
-    end
-
+    copyto!(interior(fts, :, :, 1, :), data)
     fill_halo_regions!(fts)
-
+    
     return nothing
 end
 
@@ -79,10 +82,12 @@ end
 
 Create a field time series object for ECCO data.
 
-# Arguments:
+Arguments:
+===========
 - metadata: An ECCOMetadata object containing information about the ECCO dataset.
 
-# Keyword Arguments:
+Keyword Arguments:
+=====================
 - architecture: The architecture to use for computations (default: CPU()).
 - time_indices_in_memory: The number of time indices to keep in memory (default: 2).
 - time_indexing: The time indexing scheme to use (default: Cyclical()).
@@ -92,9 +97,10 @@ function JRA55_field_time_series(metadata::JRA55Metadata;
                                  architecture = CPU(),	
                                  backend = JRA55NetCDFBackend(20),	
                                  time_indexing = Cyclical(),
-                                 grid = nothing)	
+                                 grid = nothing,
+                                 latitude = nothing,
+                                 longitude = nothing)	
 
-    # ECCO data is too chunky to allow other backends	
     backend = if backend isa JRA55NetCDFBackend
         JRA55NetCDFBackend(backend.length; 
                            on_native_grid = isnothing(grid))
@@ -105,14 +111,57 @@ function JRA55_field_time_series(metadata::JRA55Metadata;
     # Making sure all the required individual files are downloaded
     download_dataset!(metadata)
 
+    # Note that each file should have the variables
+    #   - ds["time"]:     time coordinate 
+    #   - ds["lon"]:      longitude at the location of the variable
+    #   - ds["lat"]:      latitude at the location of the variable
+    #   - ds["lon_bnds"]: bounding longitudes between which variables are averaged
+    #   - ds["lat_bnds"]: bounding latitudes between which variables are averaged
+    #   - ds[shortname]: the variable data
+
+    # Nodes at the variable location
+    λc = ds["lon"][:]
+    φc = ds["lat"][:]
+
+    # Interfaces for the "native" JRA55 grid
+    λn = ds["lon_bnds"][1, :]
+    φn = ds["lat_bnds"][1, :]
+
+    # The .nc coordinates lon_bnds and lat_bnds do not include
+    # the last interface, so we push them here.
+    push!(φn, 90)
+    push!(λn, λn[1] + 360)
+
+    # TODO: support loading just part of the JRA55 data.
+    # Probably with arguments that take latitude, longitude bounds.
+    i₁, i₂, j₁, j₂, TX = compute_bounding_indices(longitude, latitude, grid, LX, LY, λc, φc)
+
+    native_times = ds["time"][time_indices]
+    data = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
+    λr = λn[i₁:i₂+1]
+    φr = φn[j₁:j₂+1]
+    Nrx, Nry, Nt = size(data)
+    close(ds)
+
+    N = (Nrx, Nry)
+    H = min.(N, (3, 3))
+
+    JRA55_native_grid = LatitudeLongitudeGrid(architecture, Float32;
+                                              halo = H,
+                                              size = N,
+                                              longitude = λr,
+                                              latitude = φr,
+                                              topology = (TX, Bounded, Flat))
+
+    boundary_conditions = FieldBoundaryConditions(JRA55_native_grid, (Center, Center, Nothing))
+
     location  = field_location(metadata)
     shortname = short_name(metadata)
 
-    JRA55_native_grid = jra55_native_grid()
     boundary_conditions = FieldBoundaryConditions(JRA55_native_grid, location)
     times = native_times(metadata)
 
-    fts_grid = isnothing(grid) ? ECCO_native_grid : grid
+    fts_grid = isnothing(grid) ? JRA55_native_grid : grid
 
     fts = FieldTimeSeries{location...}(fts_grid, times;	
                                        backend,	
@@ -127,140 +176,340 @@ function JRA55_field_time_series(metadata::JRA55Metadata;
     return fts	
 end
 
-ECCO_field_time_series(variable_name::Symbol, version=ECCO4Monthly(); kw...) = 
-    ECCO_field_time_series(ECCOMetadata(variable_name, all_ecco_dates(version), version); kw...)
+JRA55_field_time_series(variable_name::Symbol, version=JRA55RepeatYear(); kw...) = 
+    JRA55_field_time_series(Metadata(variable_name, all_dates(version), version); kw...)
 
-# Variable names for restoreable data
-struct Temperature end
-struct Salinity end
-struct UVelocity end
-struct VVelocity end
 
-oceananigans_fieldname = Dict(
-    :temperature => Temperature(), 
-    :salinity    => Salinity(), 
-    :u_velocity  => UVelocity(), 
-    :v_velocity  => VVelocity())
-
-@inline Base.getindex(fields, i, j, k, ::Temperature) = @inbounds fields.T[i, j, k]
-@inline Base.getindex(fields, i, j, k, ::Salinity)    = @inbounds fields.S[i, j, k]
-@inline Base.getindex(fields, i, j, k, ::UVelocity)   = @inbounds fields.u[i, j, k]
-@inline Base.getindex(fields, i, j, k, ::VVelocity)   = @inbounds fields.v[i, j, k]
 
 """
-    struct ECCORestoring{FTS, G, M, V, N} <: Function
+    JRA55_field_time_series(variable_name;
+                            architecture = CPU(),
+                            location = nothing,
+                            url = nothing,
+                            filename = nothing,
+                            shortname = nothing,
+                            backend = InMemory(),
+                            preprocess_chunk_size = 10,
+                            preprocess_architecture = CPU(),
+                            time_indices = nothing)
 
-A struct representing ECCO restoring.
+Return a `FieldTimeSeries` containing atmospheric reanalysis data for `variable_name`,
+which describes one of the variables in the "repeat year forcing" dataset derived
+from the Japanese 55-year atmospheric reanalysis for driving ocean-sea-ice models (JRA55-do).
+For more information about the derivation of the repeat year forcing dataset, see
 
-# Fields
-- `ecco_fts`: The ECCO FTS on the native ECCO grid.
-- `ecco_grid`: The native ECCO grid to interpolate from.
-- `mask`: A mask (could be a number, an array, a function or a field).
-- `variable_name`: The variable name of the variable that needs restoring.
-- `λ⁻¹`: The reciprocal of the restoring timescale.
+"Stewart et al., JRA55-do-based repeat year forcing datasets for driving ocean–sea-ice models",
+Ocean Modelling, 2020, https://doi.org/10.1016/j.ocemod.2019.101557.
+
+The `variable_name`s (and their `shortname`s used in NetCDF files)
+available from the JRA55-do are:
+
+    - `:river_freshwater_flux`              ("friver")
+    - `:rain_freshwater_flux`               ("prra")
+    - `:snow_freshwater_flux`               ("prsn")
+    - `:iceberg_freshwater_flux`            ("licalvf")
+    - `:specific_humidity`                  ("huss")
+    - `:sea_level_pressure`                 ("psl")
+    - `:relative_humidity`                  ("rhuss")
+    - `:downwelling_longwave_radiation`     ("rlds")
+    - `:downwelling_shortwave_radiation`    ("rsds")
+    - `:temperature`                        ("ras")
+    - `:eastward_velocity`                  ("uas")
+    - `:northward_velocity`                 ("vas")
+
+Keyword arguments
+=================
+
+    - `architecture`: Architecture for the `FieldTimeSeries`.
+                      Default: CPU()
+
+    - `time_indices`: Indices of the timeseries to extract from file. 
+                      For example, `time_indices=1:3` returns a 
+                      `FieldTimeSeries` with the first three time snapshots
+                      of `variable_name`.
+
+    - `url`: The url accessed to download the data for `variable_name`.
+             Default: `ClimaOcean.JRA55.urls[variable_name]`.
+
+    - `filename`: The name of the downloaded file.
+                  Default: `ClimaOcean.JRA55.filenames[variable_name]`.
+
+    - `shortname`: The "short name" of `variable_name` inside its NetCDF file.
+                    Default: `ClimaOcean.JRA55.jra55_short_names[variable_name]`.
+
+    - `interpolated_file`: file holding an Oceananigans compatible version of the JRA55 data.
+                            If it does not exist it will be generated.
+
+    - `time_chunks_in_memory`: number of fields held in memory. If `nothing` the whole timeseries is 
+                               loaded (not recommended).
 """
-struct ECCORestoring{FTS, G, M, V, N} <: Function
-    ecco_fts  :: FTS
-    ecco_grid :: G
-    mask      :: M
-    variable_name   :: V
-    λ⁻¹       :: N
-end
+function JRA55_field_time_series(variable_name;
+                                 architecture = CPU(),
+                                 grid = nothing,
+                                 location = nothing,
+                                 url = nothing,
+                                 dir = download_jra55_cache,
+                                 filename = nothing,
+                                 shortname = nothing,
+                                 latitude = nothing,
+                                 longitude = nothing,
+                                 backend = InMemory(),
+                                 time_indexing = Cyclical(),
+                                 preprocess_chunk_size = 10,
+                                 preprocess_architecture = CPU(),
+                                 time_indices = nothing)
 
-Adapt.adapt_structure(to, p::ECCORestoring) = 
-    ECCORestoring(Adapt.adapt(to, p.ecco_fts), 
-                  Adapt.adapt(to, p.ecco_grid),
-                  Adapt.adapt(to, p.mask),
-                  Adapt.adapt(to, p.variable_name),
-                  Adapt.adapt(to, p.λ⁻¹))
+    # OnDisk backends do not support time interpolation!
+    # Disallow OnDisk for JRA55 dataset loading 
+    if backend isa OnDisk 
+        msg = string("We cannot load the JRA55 dataset with an `OnDisk` backend")
+        throw(ArgumentError(msg))
+    end
 
-@inline function (p::ECCORestoring)(i, j, k, grid, clock, fields)
+    if isnothing(filename) && !(variable_name ∈ JRA55_variable_names)
+        variable_strs = Tuple("  - :$name \n" for name in JRA55_variable_names)
+        variables_msg = prod(variable_strs)
+
+        msg = string("The variable :$variable_name is not provided by the JRA55-do dataset!", '\n',
+                     "The variables provided by the JRA55-do dataset are:", '\n',
+                     variables_msg)
+
+        throw(ArgumentError(msg))
+    end
+
+    filepath = isnothing(filename) ? joinpath(dir, filenames[variable_name]) : joinpath(dir, filename)
+
+    if !isnothing(filename) && !isfile(filepath) && isnothing(url)
+        throw(ArgumentError("A filename was provided without a url, but the file does not exist.\n \
+                            If intended, please provide both the filename and url that should be used \n \
+                            to download the new file."))
+    end
+
+    isnothing(filename)  && (filename  = filenames[variable_name])
+    isnothing(shortname) && (shortname = jra55_short_names[variable_name])
+    isnothing(url)       && (url       = urls[variable_name])
+
+    # Record some important user decisions
+    totally_in_memory = backend isa TotallyInMemory
+    on_native_grid = isnothing(grid)
+    !on_native_grid && backend isa JRA55NetCDFBackend && error("Can't use custom grid with JRA55NetCDFBackend.")
+
+    jld2_filepath = joinpath(dir, string("JRA55_repeat_year_", variable_name, ".jld2"))
+    fts_name = field_time_series_short_names[variable_name]
+
+    # Note, we don't re-use existing jld2 files.
+    isfile(filepath) || download(url, filepath)
+    isfile(jld2_filepath) && rm(jld2_filepath)
+
+    # Determine default time indices
+    if totally_in_memory
+        # In this case, the whole time series is in memory.
+        # Either the time series is short, or we are doing a limited-area
+        # simulation, like in a single column. So, we conservatively
+        # set a default `time_indices = 1:2`.
+        isnothing(time_indices) && (time_indices = 1:2)
+        time_indices_in_memory  = time_indices
+        native_fts_architecture = architecture
+    else
+        # In this case, part or all of the time series will be stored in a file.
+        # Note: if the user has provided a grid, we will have to preprocess the
+        # .nc JRA55 data into a .jld2 file. In this case, `time_indices` refers
+        # to the time_indices that we will preprocess;
+        # by default we choose all of them. The architecture is only the
+        # architecture used for preprocessing, which typically will be CPU()
+        # even if we would like the final FieldTimeSeries on the GPU.
+        isnothing(time_indices) && (time_indices = :)
+
+        if backend isa JRA55NetCDFBackend
+            time_indices_in_memory = 1:length(backend)
+            native_fts_architecture = architecture
+        else # then `time_indices_in_memory` refers to preprocessing
+            maximum_index = min(preprocess_chunk_size, length(time_indices))
+            time_indices_in_memory = 1:maximum_index
+            native_fts_architecture = preprocess_architecture
+        end
+    end
+
+    # Set a default location.
+    if isnothing(location)
+        LX = LY = Center
+    else
+        LX, LY = location
+    end
+
+    ds = Dataset(filepath)
+
+    # Note that each file should have the variables
+    #   - ds["time"]:     time coordinate 
+    #   - ds["lon"]:      longitude at the location of the variable
+    #   - ds["lat"]:      latitude at the location of the variable
+    #   - ds["lon_bnds"]: bounding longitudes between which variables are averaged
+    #   - ds["lat_bnds"]: bounding latitudes between which variables are averaged
+    #   - ds[shortname]: the variable data
+
+    # Nodes at the variable location
+    λc = ds["lon"][:]
+    φc = ds["lat"][:]
+
+    # Interfaces for the "native" JRA55 grid
+    λn = ds["lon_bnds"][1, :]
+    φn = ds["lat_bnds"][1, :]
+
+    # The .nc coordinates lon_bnds and lat_bnds do not include
+    # the last interface, so we push them here.
+    push!(φn, 90)
+    push!(λn, λn[1] + 360)
+
+    # TODO: support loading just part of the JRA55 data.
+    # Probably with arguments that take latitude, longitude bounds.
+    i₁, i₂, j₁, j₂, TX = compute_bounding_indices(longitude, latitude, grid, LX, LY, λc, φc)
+
+    native_times = ds["time"][time_indices]
+    data = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
+    λr = λn[i₁:i₂+1]
+    φr = φn[j₁:j₂+1]
+    Nrx, Nry, Nt = size(data)
+    close(ds)
+
+    N = (Nrx, Nry)
+    H = min.(N, (3, 3))
+
+    JRA55_native_grid = LatitudeLongitudeGrid(native_fts_architecture, Float32;
+                                              halo = H,
+                                              size = N,
+                                              longitude = λr,
+                                              latitude = φr,
+                                              topology = (TX, Bounded, Flat))
+
+    boundary_conditions = FieldBoundaryConditions(JRA55_native_grid, (Center, Center, Nothing))
+    times = jra55_times(native_times)
     
-    # Figure out all the inputs: time, location, and node
-    time = Time(clock.time)
-    loc  = location(p.ecco_fts)
+    if backend isa JRA55NetCDFBackend
+        fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times;
+                                                       backend,
+                                                       time_indexing,
+                                                       boundary_conditions,
+                                                       path = filepath,
+                                                       name = shortname)
 
-    # Retrieve the variable to force
-    @inbounds var = fields[i, j, k, p.variable_name]
+        # Fill the data in a GPU-friendly manner
+        copyto!(interior(fts, :, :, 1, :), data)
+        fill_halo_regions!(fts)
 
-    ecco_backend = p.ecco_fts.backend
-    native_grid = on_native_grid(ecco_backend) 
+        return fts
+    else
+        # Make times into an array for later preprocessing
+        if !totally_in_memory
+            times = collect(times)
+        end
 
-    ecco_var = get_ecco_variable(Val(native_grid), p.ecco_fts, i, j, k, p.ecco_grid, grid, time)
+        native_fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times;
+                                                              time_indexing,
+                                                              boundary_conditions)
 
-    # Extracting the mask value at the current node
-    mask = stateindex(p.mask, i, j, k, grid, clock.time, loc)
+        # Fill the data in a GPU-friendly manner
+        copyto!(interior(native_fts, :, :, 1, :), data)
+        fill_halo_regions!(native_fts)
 
-    return p.λ⁻¹ * mask * (ecco_var - var)
-end
+        if on_native_grid && totally_in_memory
+            return native_fts
 
-# Differentiating between restoring done with an ECCO FTS
-# that lives on the native ecco grid, that requires interpolation in space
-# _inside_ the restoring function and restoring based on an ECCO 
-# FTS defined on the model grid that requires only time interpolation
-@inline function get_ecco_variable(::Val{true}, ecco_fts, i, j, k, ecco_grid, grid, time)
-    # Extracting the ECCO field time series data and parameters
-    ecco_times         = ecco_fts.times
-    ecco_data          = ecco_fts.data
-    ecco_time_indexing = ecco_fts.time_indexing
-    ecco_backend       = ecco_fts.backend
-    ecco_location      = instantiated_location(ecco_fts)
+        elseif totally_in_memory # but not on the native grid!
+            boundary_conditions = FieldBoundaryConditions(grid, (LX, LY, Nothing))
+            fts = FieldTimeSeries{LX, LY, Nothing}(grid, times; time_indexing, boundary_conditions)
+            interpolate!(fts, native_fts)
+            return fts
+        end
+    end
 
-    X = node(i, j, k, grid, ecco_location...)
+    @info "Pre-processing JRA55 $variable_name data into a JLD2 file..."
 
-    # Interpolating the ECCO field time series data onto the current node and time
-    return interpolate(X, time, ecco_data, ecco_location, ecco_grid, ecco_times, ecco_backend, ecco_time_indexing)
-end    
+    preprocessing_grid = on_native_grid ? JRA55_native_grid : grid
 
-@inline get_ecco_variable(::Val{false}, ecco_fts, i, j, k, ecco_grid, grid, time) = @inbounds ecco_fts[i, j, k, time]
+    # Re-open the dataset!
+    ds = Dataset(filepath)
+    all_datetimes = ds["time"][time_indices]
+    all_Nt = length(all_datetimes)
 
-"""
-    ECCO_restoring_forcing(metadata::ECCOMetadata;
-                            architecture = CPU(), 
-                            backend = ECCONetCDFBackend(2),
-                            time_indexing = Cyclical(),
-                            mask = 1,
-                            timescale = 5days)
+    all_times = jra55_times(all_datetimes)
 
-Create a restoring forcing term that restores to values stored in an ECCO field time series.
+    on_disk_fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid, all_times;
+                                                   boundary_conditions,
+                                                   backend = OnDisk(),
+                                                   path = jld2_filepath,
+                                                   name = fts_name)
 
-# Arguments:
-=============
-- `metadata`: The metadata for the ECCO field time series.
+    # Save data to disk, one field at a time
+    start_clock = time_ns()
+    n = 1 # on disk
+    m = 0 # in memory
 
-# Keyword Arguments:
-====================
-- `architecture`: The architecture. Typically `CPU` or `GPU`
-- `time_indices_in_memory`: The number of time indices to keep in memory. trade-off between performance
-                            and memory footprint.    
-- `time_indexing`: The time indexing scheme for the field time series, see [`FieldTimeSeries`](@ref)
-- `mask`: The mask value. Can be a function of `(x, y, z, time)`, an array or a number
-- `timescale`: The restoring timescale.
-"""
-function ECCO_restoring_forcing(variable_name::Symbol, version=ECCO4Monthly(); kw...) 
-     metadata = ECCOMetadata(variable_name, all_ecco_dates(version), version)
-    return ECCO_restoring_forcing(metadata; kw...)
-end
+    times_in_memory = all_times[time_indices_in_memory]
 
-function ECCO_restoring_forcing(metadata::ECCOMetadata;
-                                architecture = CPU(), 
-                                time_indices_in_memory = 2, # Not more than this if we want to use GPU!
-                                time_indexing = Cyclical(),
-                                mask = 1,
-                                timescale = 20days,
-                                grid = nothing)
+    fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid, times_in_memory;
+                                           boundary_conditions,
+                                           backend = InMemory(),
+                                           path = jld2_filepath,
+                                           name = fts_name)
 
-    ecco_fts  = ECCO_field_time_series(metadata; grid, architecture, time_indices_in_memory, time_indexing)                  
-    ecco_grid = ecco_fts.grid
+    # Re-compute data
+    new_data  = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
 
-    # Grab the correct Oceananigans field to restore
-    variable_name = metadata.name
-    field_name = oceananigans_fieldname[variable_name]
-    
-    ecco_restoring = ECCORestoring(ecco_fts, ecco_grid, mask, field_name, 1 / timescale)
-    
-    # Defining the forcing that depends on the restoring field.
-    restoring_forcing = Forcing(ecco_restoring; discrete_form = true)
+    if !on_native_grid
+        copyto!(interior(native_fts, :, :, 1, :), new_data[:, :, :])
+        fill_halo_regions!(native_fts)    
+        interpolate!(fts, native_fts)
+    else
+        copyto!(interior(fts, :, :, 1, :), new_data[:, :, :])
+    end
+                     
+    while n <= all_Nt
+        print("        ... processing time index $n of $all_Nt \r")
 
-    return restoring_forcing
+        if time_indices_in_memory isa Colon || n ∈ time_indices_in_memory
+            m += 1
+        else # load new data
+            # Update time_indices
+            time_indices_in_memory = time_indices_in_memory .+ preprocess_chunk_size
+            n₁ = first(time_indices_in_memory)
+
+            # Clip time_indices if they extend past the end of the dataset
+            if last(time_indices_in_memory) > all_Nt
+                time_indices_in_memory = UnitRange(n₁, all_Nt)
+            end
+
+            # Re-compute times
+            new_times = jra55_times(all_times[time_indices_in_memory], all_times[n₁])
+            native_fts.times = new_times
+
+            # Re-compute data
+            new_data  = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
+            fts.times = new_times
+
+            if !on_native_grid
+                copyto!(interior(native_fts, :, :, 1, :), new_data[:, :, :])
+                fill_halo_regions!(native_fts)    
+                interpolate!(fts, native_fts)
+            else
+                copyto!(interior(fts, :, :, 1, :), new_data[:, :, :])
+            end
+
+            m = 1 # reset
+        end
+
+        set!(on_disk_fts, fts[m], n, fts.times[m])
+
+        n += 1
+    end
+
+    elapsed = 1e-9 * (time_ns() - start_clock)
+    elapsed_str = prettytime(elapsed)
+    @info "    ... done ($elapsed_str)" * repeat(" ", 20)
+
+    close(ds)
+
+    user_fts = FieldTimeSeries(jld2_filepath, fts_name; architecture, backend, time_indexing)
+    fill_halo_regions!(user_fts)
+
+    return user_fts
 end
