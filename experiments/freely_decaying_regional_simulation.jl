@@ -7,7 +7,7 @@ using Oceananigans.Units: Time
 using ClimaOcean
 using ClimaOcean.OceanSeaIceModels: Radiation
 using ClimaOcean.DataWrangling.JRA55: JRA55_prescribed_atmosphere
-using ClimaOcean.DataWrangling.ECCO2: ecco2_field
+using ClimaOcean.DataWrangling.ECCO: ecco_field
 
 # using GLMakie
 using Printf
@@ -21,9 +21,9 @@ arch = CPU()
 epoch = Date(1992, 1, 1)
 date = Date(1992, 10, 1)
 start_seconds = Second(date - epoch).value
-Te = ecco2_field(:temperature, date)
-Se = ecco2_field(:salinity, date)
-# ℋe = ecco2_field(:sea_ice_thickness, date)
+Te = ecco_field(:temperature, date)
+Se = ecco_field(:salinity, date)
+# ℋe = ecco_field(:sea_ice_thickness, date)
 
 land = interior(Te) .< -10
 interior(Te)[land] .= NaN

@@ -2,6 +2,7 @@ using ClimaOcean
 import ClimaOcean.InitialConditions: interpolate!
 
 using Oceananigans
+using Oceananigans.Operators
 using Oceananigans.BoundaryConditions
 using Oceananigans.Fields: OneField
 using Oceananigans.Grids: peripheral_node
@@ -20,27 +21,55 @@ using Oceananigans.Grids: cpu_face_constructor_x,
                           λnode, φnode
 
 using OrthogonalSphericalShellGrids: TRG
+import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: extrinsic_vector, intrinsic_vector
 
 @inline hack_cosd(φ) = cos(π * φ / 180)
 @inline hack_sind(φ) = sin(π * φ / 180)
 
-import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: convert_to_latlon_frame, convert_to_native_frame
+# TODO: when https://github.com/CliMA/Oceananigans.jl/pull/3631 is merged,
+# these functions will be transferred to OrthogonalSphericalShellGrids
 
 # Here we assume that the tripolar grid is locally orthogonal
-@inline function convert_to_latlon_frame(i, j, grid::TRG, uₒ, vₒ)
-    φ₁ = φnode(i,   j, 1, grid, Face(), Center(), Center())
-    φ₂ = φnode(i+1, j, 1, grid, Face(), Center(), Center())
-     
-    θ = φ₂ - φ₁
-    
-    return uₒ * hack_cosd(θ) + vₒ * hack_sind(θ), uₒ * hack_sind(θ) + vₒ * hack_cosd(θ)
+@inline function extrinsic_vector(i, j, k, grid::TRG, uₒ, vₒ)
+
+    φᶜᶠᵃ₊ = φnode(i, j+1, 1, grid, Center(), Face(), Center())
+    φᶜᶠᵃ₋ = φnode(i,   j, 1, grid, Center(), Face(), Center())
+    Δyᶜᶜᵃ = Δyᶜᶜᶜ(i,   j, 1, grid)
+
+    ũ = deg2rad(φᶜᶠᵃ₊ - φᶜᶠᵃ₋) / Δyᶜᶜᵃ
+
+    φᶠᶜᵃ₊ = φnode(i+1, j, 1, grid, Face(), Center(), Center())
+    φᶠᶜᵃ₋ = φnode(i,   j, 1, grid, Face(), Center(), Center())
+    Δxᶜᶜᵃ = Δxᶜᶜᶜ(i,   j, 1, grid)
+
+    ṽ = - deg2rad(φᶠᶜᵃ₊ - φᶠᶜᵃ₋) / Δxᶜᶜᵃ
+
+    𝒰 = sqrt(ũ^2 + ṽ^2)
+
+    d₁ = ũ / 𝒰
+    d₂ = ṽ / 𝒰
+
+    return uₒ * d₁ - vₒ * d₂, uₒ * d₂ + vₒ * d₁
 end
 
-@inline function convert_to_native_frame(i, j, grid::TRG, uₒ, vₒ) 
-    φ₁ = φnode(i, j,   1, grid, Face(), Center(), Center())
-    φ₂ = φnode(i, j+1, 1, grid, Face(), Center(), Center())
-     
-    θ = φ₂ - φ₁
-    
-    return uₒ * hack_cosd(θ) + vₒ * hack_sind(θ), uₒ * hack_sind(θ) + vₒ * hack_cosd(θ)
+@inline function intrinsic_vector(i, j, k, grid::TRG, uₒ, vₒ) 
+
+    φᶜᶠᵃ₊ = φnode(i, j+1, 1, grid, Center(), Face(), Center())
+    φᶜᶠᵃ₋ = φnode(i,   j, 1, grid, Center(), Face(), Center())
+    Δyᶜᶜᵃ = Δyᶜᶜᶜ(i,   j, 1, grid)
+
+    ũ = deg2rad(φᶜᶠᵃ₊ - φᶜᶠᵃ₋) / Δyᶜᶜᵃ
+
+    φᶠᶜᵃ₊ = φnode(i+1, j, 1, grid, Face(), Center(), Center())
+    φᶠᶜᵃ₋ = φnode(i,   j, 1, grid, Face(), Center(), Center())
+    Δxᶜᶜᵃ = Δxᶜᶜᶜ(i,   j, 1, grid)
+
+    ṽ = - deg2rad(φᶠᶜᵃ₊ - φᶠᶜᵃ₋) / Δxᶜᶜᵃ
+
+    𝒰 = sqrt(ũ^2 + ṽ^2)
+
+    d₁ = ũ / 𝒰
+    d₂ = ṽ / 𝒰
+
+    return uₒ * d₁ + vₒ * d₂, uₒ * d₂ - vₒ * d₁
 end

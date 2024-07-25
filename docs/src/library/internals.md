@@ -31,10 +31,10 @@ Modules = [ClimaOcean.DataWrangling]
 Public = false
 ```
 
-## ECCO2
+## ECCO
 
 ```@autodocs
-Modules = [ClimaOcean.ECCO2]
+Modules = [ClimaOcean.ECCO]
 Public = false
 ```
 
@@ -43,4 +43,25 @@ Public = false
 ```@autodocs
 Modules = [ClimaOcean.Bathymetry]
 Public = false
+```
+
+## VerticalGrids
+
+```@autodocs
+Modules = [ClimaOcean.VerticalGrids]
+Private = false
+```
+
+## OceanSeaIceModels
+
+```@autodocs
+Modules = [ClimaOcean.OceanSeaIceModels]
+Private = false
+```
+
+## CrossRealFluxes
+
+```@autodocs
+Modules = [ClimaOcean.OceanSeaIceModels.CrossRealmFluxes]
+Private = false
 ```

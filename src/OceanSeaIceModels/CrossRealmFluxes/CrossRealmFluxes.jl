@@ -7,32 +7,16 @@ export Radiation,
        OceanSeaIceSurfaceFluxes,
        SimilarityTheoryTurbulentFluxes
 
-using ..OceanSeaIceModels: SKOFTS, default_gravitational_acceleration
+using ..OceanSeaIceModels: default_gravitational_acceleration
 
 import ..OceanSeaIceModels: surface_velocities,
                             surface_tracers
 
+import ClimaOcean: stateindex
+
 #####
 ##### Utilities
 #####
-
-@inline stateindex(a::Number, i, j, k, grid, time) = a
-@inline stateindex(a::SKOFTS, i, j, k, grid, time) = @inbounds a[i, j, k, time]
-@inline stateindex(a::AbstractArray, i, j, k, grid, time) = @inbounds a[i, j, k]
-@inline Δϕt²(i, j, k, grid, ϕ1, ϕ2, time) = (stateindex(ϕ1, i, j, k, grid, time) - stateindex(ϕ2, i, j, k, grid, time))^2
-
-@inline function stateindex(a::Tuple, i, j, k, grid, time)
-    N = length(a)
-    ntuple(Val(N)) do n
-        stateindex(a[n], i, j, k, grid, time)
-    end
-end
-
-@inline function stateindex(a::NamedTuple, i, j, k, grid, time)
-    vals = stateindex(values(a), i, j, k, grid, time)
-    names = keys(a)
-    return NamedTuple{names}(vals)
-end
 
 function surface_flux(f::Field)
     top_bc = f.boundary_conditions.top

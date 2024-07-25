@@ -59,6 +59,7 @@ function ocean_simulation(grid; Δt = 5minutes,
                           rotation_rate = Ω_Earth,
                           gravitational_acceleration = g_Earth,
                           bottom_drag_coefficient = 0.003,
+                          forcing = NamedTuple(),
                           coriolis = HydrostaticSphericalCoriolis(; rotation_rate),
                           momentum_advection = default_momentum_advection(),
                           tracer_advection = default_tracer_advection(),
@@ -78,12 +79,10 @@ function ocean_simulation(grid; Δt = 5minutes,
                                  T = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵀ)),
                                  S = FieldBoundaryConditions(top = FluxBoundaryCondition(Jˢ)))
 
-    if !(grid isa ImmersedBoundaryGrid)
-        forcing = NamedTuple()
-    else
+    if grid isa ImmersedBoundaryGrid
         Fu = Forcing(u_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
         Fv = Forcing(v_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
-        forcing = (; u = Fu, v = Fv)
+        forcing = merge(forcing, (; u = Fu, v = Fv))
     end
     
     # Use the TEOS10 equation of state

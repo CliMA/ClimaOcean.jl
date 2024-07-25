@@ -55,7 +55,7 @@ end
         cooling_sea_ice = sea_ice & (Jᵀ[i, j, 1] > 0)
 
         # Don't allow the ocean to cool below the minimum temperature! (make sure it heats up though!)
-        Jᵀ[i, j, 1] = ifelse(cooling_sea_ice, zero(grid), Jᵀ[i, j, 1]) 
+	Jᵀ[i, j, 1] = ifelse(cooling_sea_ice, zero(grid), Jᵀ[i, j, 1]) 
         
         # If we are in a "sea ice" region we remove all fluxes
         Jˢ[i, j, 1] = ifelse(sea_ice, zero(grid), Jˢ[i, j, 1])

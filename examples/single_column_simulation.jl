@@ -20,7 +20,7 @@ using Oceananigans.BuoyancyModels: buoyancy_frequency
 using Oceananigans.Units: Time
 
 using ClimaOcean
-using ClimaOcean.ECCO2: ECCO2Metadata
+using ClimaOcean.ECCO
 using ClimaOcean.OceanSimulations
 
 using CairoMakie
@@ -59,8 +59,8 @@ ocean = ocean_simulation(grid;
 start_time = time_ns()
 
 # Initial conditions
-set!(ocean.model, T = ECCO2Metadata(:temperature),
-                  S = ECCO2Metadata(:salinity),
+set!(ocean.model, T = ECCOMetadata(:temperature),
+                  S = ECCOMetadata(:salinity),
                   e = 1e-6)
 
 elapsed = time_ns() - start_time
@@ -324,10 +324,13 @@ Smax = maximum(interior(S))
 Smin = minimum(interior(S))
 xlims!(axSz, Smin - 0.2, Smax + 0.2)
 
-display(fig)
+save("single_column_profiles.png", fig)
+nothing # hide
 
-record(fig, "$(location_name)_single_column_simulation.mp4", 1:Nt, framerate=24) do nn
-    @info "Drawing frame $nn of $Nt..."
-    n[] = nn
-end
+# ![](single_column_profiles.png)
+
+# record(fig, "$(location_name)_single_column_simulation.mp4", 1:8:Nt, framerate=24) do nn
+#     @info "Drawing frame $nn of $Nt..."
+#     n[] = nn
+# end
 

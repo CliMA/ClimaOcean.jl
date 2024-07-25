@@ -193,16 +193,14 @@ function compute_bounding_indices(longitude, latitude, grid, LX, LY, λc, φc)
 end
 
 # Convert dates to range until Oceananigans supports dates natively
-function jra55_times(native_times, start_time=DateTimeNoLeap(1900, 01, 01))
-    Nt = length(native_times)
-    Δt = native_times[2] - native_times[1] # assume all times are equispaced
-    Δt = Second(Δt).value
+function jra55_times(native_times, start_time=native_times[1])
 
-    start_time = native_times[1] - start_time
-    start_time = Second(start_time).value
-
-    stop_time = start_time + Δt * (Nt - 1)
-    times = start_time:Δt:stop_time
+    times = []
+    for native_time in native_times
+        time = native_time - start_time
+        time = Second(time).value
+        push!(times, time)
+    end
 
     return times
 end
