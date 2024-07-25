@@ -44,7 +44,10 @@ bottom_height = retrieve_bathymetry(grid;
                                     connected_regions_allowed = 0)
  
 # An immersed boundary using a staircase representation of bathymetry
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/main
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true) 
 
 #####
@@ -63,7 +66,7 @@ date  = DateTimeProlepticGregorian(1993, 1, 1)
 set!(model, 
      T = ECCOMetadata(:temperature, date, ECCO2Daily()),
      S = ECCOMetadata(:salinity,    date, ECCO2Daily()))
-
+     
 #####
 ##### The atmosphere
 #####

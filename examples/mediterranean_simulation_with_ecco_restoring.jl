@@ -75,14 +75,17 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_
 dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 12, 1)
 
 temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
-FT = ECCO_restoring_forcing(temperature; architecture = GPU(), timescale = 2days)
+salinity    = ECCOMetadata(:salinity,    dates, ECCO4Monthly())
+
+FT = ECCO_restoring_forcing(temperature; timescale = 2days)
+FS = ECCO_restoring_forcing(salinity;    timescale = 2days)
 
 # Constructing the Simulation
 #
 # We construct an ocean simulation that evolves two tracers, temperature (:T), salinity (:S)
 # and we pass the previously defined forcing that nudge these tracers 
 
-ocean = ocean_simulation(grid; forcing = (; T = FT))
+ocean = ocean_simulation(grid; forcing = (T = FT, S = FS))
 
 # Initializing the model
 #

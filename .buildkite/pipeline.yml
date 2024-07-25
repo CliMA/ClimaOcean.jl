@@ -5,6 +5,7 @@ agents:
 
 env:
   JULIA_LOAD_PATH: "${JULIA_LOAD_PATH}:${BUILDKITE_BUILD_CHECKOUT_PATH}/.buildkite"
+  JULIA_DEBUG: "Documenter"
   OPENBLAS_NUM_THREADS: 1
   OMPI_MCA_opal_warn_on_missing_libcuda: 0
 
@@ -21,6 +22,9 @@ steps:
       slurm_mem: 32G
       slurm_gpus: 1
       slurm_cpus_per_task: 8
+      slurm_gpus: 1
+      slurm_ntasks: 1
+      slurm_gpus_per_task: 1
     env:
       JULIA_NUM_PRECOMPILE_TASKS: 8
 

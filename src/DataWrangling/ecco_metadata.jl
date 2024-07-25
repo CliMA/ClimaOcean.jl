@@ -142,9 +142,10 @@ ECCO_USERNAME=myuser ECCO_PASSWORD=mypasswrd julia
 - `metadata::ECCOMetadata`: The metadata specifying the dataset to be downloaded.
 """
 function download_dataset!(metadata::ECCOMetadata;
-                           username = get(ENV, "ECCO_USERNAME", nothing), 
-                           password = get(ENV, "ECCO_PASSWORD", nothing),
                            url = urls(metadata))
+
+    username = get(ENV, "ECCO_USERNAME", nothing)
+    password = get(ENV, "ECCO_PASSWORD", nothing)
 
     for data in metadata
         filename  = metadata_filename(data)

@@ -55,8 +55,6 @@ end
         cooling_sea_ice = sea_ice & (Jᵀ[i, j, 1] > 0)
 
         # Don't allow the ocean to cool below the minimum temperature! (make sure it heats up though!)
-	    # On the other hand, assume all heating fluxes are due to solar radiation and 
-	    # multiply by a fictitious albedo
 	    Jᵀ[i, j, 1] = ifelse(cooling_sea_ice, zero(grid), Jᵀ[i, j, 1]) 
         
         # If we are in a "sea ice" region we remove all fluxes

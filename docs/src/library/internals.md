@@ -44,3 +44,24 @@ Public = false
 Modules = [ClimaOcean.Bathymetry]
 Public = false
 ```
+
+## VerticalGrids
+
+```@autodocs
+Modules = [ClimaOcean.VerticalGrids]
+Private = false
+```
+
+## OceanSeaIceModels
+
+```@autodocs
+Modules = [ClimaOcean.OceanSeaIceModels]
+Private = false
+```
+
+## CrossRealFluxes
+
+```@autodocs
+Modules = [ClimaOcean.OceanSeaIceModels.CrossRealmFluxes]
+Private = false
+```
