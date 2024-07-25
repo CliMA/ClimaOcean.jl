@@ -53,13 +53,5 @@ steps:
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
 
-  - label: "Run documentation"
-    key: "build_documentation"
-    env:
-      CUDA_VISIBLE_DEVICES: "0"
-    commands:
-      - "julia --color=yes --project=docs/ -e 'using Pkg; Pkg.instantiate(); Pkg.develop(PackageSpec(path=pwd()))'"
-      - "julia --color=yes --project=docs/ docs/make.jl"
-
   - wait: ~
     continue_on_failure: true
