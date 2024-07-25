@@ -24,6 +24,8 @@ using KernelAbstractions.Extras.LoopInfo: @unroll
 
 function surface_velocities end
 function surface_tracers end
+function surface_horizontal_velocities end
+function surface_active_tracers end
 function downwelling_radiation end
 function freshwater_flux end
 function reference_density end

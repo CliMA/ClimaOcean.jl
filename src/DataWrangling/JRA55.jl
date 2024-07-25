@@ -599,7 +599,7 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
                                      backend = nothing,
                                      time_indexing = Cyclical(),
                                      reference_height = 10,  # meters
-                                     include_rivers_and_icebergs = true, # rivers and icebergs are not needed in single column simulations
+                                     include_rivers_and_icebergs = false, # rivers and icebergs are not needed in single column simulations
                                      other_kw...)
 
     if isnothing(backend) # apply a default

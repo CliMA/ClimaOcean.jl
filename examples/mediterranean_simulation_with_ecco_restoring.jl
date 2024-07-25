@@ -64,7 +64,7 @@ bottom_height = regrid_bathymetry(grid,
                                   interpolation_passes = 25,
                                   connected_regions_allowed = 1)
 
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true)
+grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
 # ## Downloading ECCO data
 #

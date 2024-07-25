@@ -44,7 +44,7 @@ bottom_height = retrieve_bathymetry(grid;
                                     connected_regions_allowed = 0)
  
 # An immersed boundary using a staircase representation of bathymetry
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true) 
+grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height)) 
 
 #####
 ##### The Ocean component
