@@ -77,8 +77,8 @@ dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGre
 temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
 salinity    = ECCOMetadata(:salinity,    dates, ECCO4Monthly())
 
-FT = ECCO_restoring_forcing(temperature; timescale = 2days)
-FS = ECCO_restoring_forcing(salinity;    timescale = 2days)
+FT = ECCO_restoring_forcing(temperature; architecture = arch, timescale = 2days)
+FS = ECCO_restoring_forcing(salinity;    architecture = arch, timescale = 2days)
 
 # Constructing the Simulation
 #
