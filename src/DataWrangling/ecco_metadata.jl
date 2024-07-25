@@ -136,7 +136,7 @@ The data download requires a username and password to be provided in the CLIMAOC
 environment variables. This can be done by exporting the environment variables in the shell before running the script,
 or by launching julia with 
 
-ECCO_USERNAME=myuser ECCO_PASSWORD=mypasswrd julia 
+CLIMAOCEAN_ECCO_USERNAME=myuser CLIMAOCEAN_ECCO_PASSWORD=mypasswrd julia 
 
 # Arguments
 - `metadata::ECCOMetadata`: The metadata specifying the dataset to be downloaded.
