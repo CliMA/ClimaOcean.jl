@@ -61,8 +61,8 @@ date  = DateTimeProlepticGregorian(1993, 1, 1)
 # (for the moment these are both 1st January 1993)
 
 set!(model, 
-     T = ECCO2Metadata(:temperature, date, ECCO2Daily()),
-     S = ECCO2Metadata(:salinity,    date, ECCO2Daily()))
+     T = ECCOMetadata(:temperature, date, ECCO2Daily()),
+     S = ECCOMetadata(:salinity,    date, ECCO2Daily()))
 
 #####
 ##### The atmosphere

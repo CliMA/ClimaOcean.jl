@@ -75,17 +75,14 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_
 dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 12, 1)
 
 temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
-salinity    = ECCOMetadata(:salinity,    dates, ECCO4Monthly())
-
 FT = ECCO_restoring_forcing(temperature; architecture = GPU(), timescale = 2days)
-FS = ECCO_restoring_forcing(salinity;    architecture = GPU(), timescale = 2days)
 
 # Constructing the Simulation
 #
 # We construct an ocean simulation that evolves two tracers, temperature (:T), salinity (:S)
 # and we pass the previously defined forcing that nudge these tracers 
 
-ocean = ocean_simulation(grid; forcing = (T = FT, S = FS))
+ocean = ocean_simulation(grid; forcing = (; T = FT))
 
 # Initializing the model
 #
@@ -134,7 +131,7 @@ run!(ocean)
 
 wizard = TimeStepWizard(; cfl = 0.2, max_Δt = 10minutes, max_change = 1.1)
 
-coean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
+ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 
 # Let's reset the maximum number of iterations
 ocean.stop_iteration = Inf
