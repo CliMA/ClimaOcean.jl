@@ -600,7 +600,6 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
                                      time_indexing = Cyclical(),
                                      reference_height = 10,  # meters
                                      include_rivers_and_icebergs = false, # rivers and icebergs are not needed in single column simulations
-                                     include_relative_humidity = false,
                                      other_kw...)
 
     if isnothing(backend) # apply a default
@@ -627,8 +626,6 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
     Fsn = JRA55_field_time_series(:snow_freshwater_flux;            kw...)
     Ql  = JRA55_field_time_series(:downwelling_longwave_radiation;  kw...)
     Qs  = JRA55_field_time_series(:downwelling_shortwave_radiation; kw...)
-
-    include_relative_humidity && ra = JRA55_field_time_series(:relative_humidity; kw...)
     
     freshwater_flux = (rain = Fra,
                        snow = Fsn)
@@ -651,8 +648,6 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
 
     tracers = (T = Ta,
                q = qa)
-
-    tracers = include_relative_humidity ? merge(tracers, (; r = ra)) : tracers
                        
     pressure = pa
 
