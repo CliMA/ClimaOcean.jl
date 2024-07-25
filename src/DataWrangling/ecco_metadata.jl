@@ -132,7 +132,7 @@ urls(::ECCOMetadata{<:Any, <:ECCO4Monthly}) = "https://ecco.jpl.nasa.gov/drive/f
 Download the dataset specified by the given metadata. If the metadata contains a single date, 
 the dataset is downloaded directly. If the metadata contains multiple dates, the dataset is 
 downloaded for each date individually. 
-The data download requires a username and password to be provided in the ECCO_USERNAME and ECCO_PASSWORD
+The data download requires a username and password to be provided in the CLIMAOCEAN_ECCO_USERNAME and CLIMAOCEAN_ECCO_PASSWORD
 environment variables. This can be done by exporting the environment variables in the shell before running the script,
 or by launching julia with 
 
@@ -153,8 +153,8 @@ function download_dataset!(metadata::ECCOMetadata;
 
         if !isfile(filename)
 
-            isnothing(username) && throw(ArgumentError("Could not find the username for $(url). Please provide a username in the ECCO_USERNAME environment variable."))
-            isnothing(password) && throw(ArgumentError("Could not find the username for $(url). Please provide a password in the ECCO_PASSWORD environment variable."))
+            isnothing(username) && throw(ArgumentError("Could not find the username for $(url). Please provide a username in the CLIMAOCEAN_ECCO_USERNAME environment variable."))
+            isnothing(password) && throw(ArgumentError("Could not find the username for $(url). Please provide a password in the CLIMAOCEAN_ECCO_PASSWORD environment variable."))
         
             # Version specific download file url
             if data.version isa ECCO2Monthly || data.version isa ECCO2Daily
