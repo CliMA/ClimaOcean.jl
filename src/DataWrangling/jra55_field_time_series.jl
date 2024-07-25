@@ -20,33 +20,35 @@ import Oceananigans.OutputReaders: new_backend, update_field_time_series!
 @inline instantiate(T::DataType) = T()
 @inline instantiate(T) = T
 
-struct ECCONetCDFBackend{N} <: AbstractInMemoryBackend{Int}
+struct JRA55NetCDFBackend{N} <: AbstractInMemoryBackend{Int}
     start :: Int
     length :: Int
 
-    ECCONetCDFBackend{N}(start::Int, length::Int) where N = new{N}(start, length)
+    JRA55NetCDFBackend{N}(start::Int, length::Int) where N = new{N}(start, length)
 end
 
 """
-    ECCONetCDFBackend(length)
+    JRA55NetCDFBackend(length)
 
-Represents an ECCO FieldTimeSeries backed by ECCO native .nc files.
+Represents an JRA55 FieldTimeSeries backed by JRA55 native .nc files.
 Each time instance is stored in an individual file.
 """
-ECCONetCDFBackend(length; on_native_grid = false) = ECCONetCDFBackend{on_native_grid}(1, length)
+JRA55NetCDFBackend(length; on_native_grid = false) = JRA55NetCDFBackend{on_native_grid}(1, length)
 
-Base.length(backend::ECCONetCDFBackend)  = backend.length
-Base.summary(backend::ECCONetCDFBackend) = string("ECCONetCDFBackend(", backend.start, ", ", backend.length, ")")
+Base.length(backend::JRA55NetCDFBackend)  = backend.length
+Base.summary(backend::JRA55NetCDFBackend) = string("JRA55NetCDFBackend(", backend.start, ", ", backend.length, ")")
 
-const ECCONetCDFFTS{N} = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:ECCONetCDFBackend{N}} where N
+const JRA55NetCDFFTS{N} = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <: JRA55NetCDFBackend{N}} where N
 
-new_backend(::ECCONetCDFBackend{N}, start, length) where N = ECCONetCDFBackend{N}(start, length)
-on_native_grid(::ECCONetCDFBackend{N}) where N = N
+new_backend(::JRA55NetCDFBackend{N}, start, length) where N = JRA55ONetCDFBackend{N}(start, length)
+on_native_grid(::JRA55NetCDFBackend{N}) where N = N
 
-function set!(fts::ECCONetCDFFTS, path::ECCOMetadata=fts.path, name::String=fts.name) 
+function set!(fts::JRA55NetCDFFTS, path::JRA55Metadata=fts.path, name::String=fts.name) 
 
     backend = fts.backend
     start = backend.start
+
+    # Set the JRA55 dataset based on the backend!s
 
     for t in start:start+length(backend)-1
         
@@ -54,7 +56,8 @@ function set!(fts::ECCONetCDFFTS, path::ECCOMetadata=fts.path, name::String=fts.
         metadata = @inbounds path[t] 
 
         arch = architecture(fts)
-        f = inpainted_ecco_field(metadata; architecture = arch)
+
+        # f = inpainted_ecco_field(metadata; architecture = arch)
         if on_native_grid(backend)
             set!(fts[t], f)
         else
@@ -68,7 +71,7 @@ function set!(fts::ECCONetCDFFTS, path::ECCOMetadata=fts.path, name::String=fts.
 end
 
 """
-    ECCO_field_time_series(metadata::ECCOMetadata;
+    JRA55_field_time_series(metadata::ECCOMetadata;
                            architecture = CPU(),
                            time_indices_in_memory = 2,
                            time_indexing = Cyclical(),
@@ -76,37 +79,38 @@ end
 
 Create a field time series object for ECCO data.
 
-Arguments:
-==============
+# Arguments:
 - metadata: An ECCOMetadata object containing information about the ECCO dataset.
 
-Keyword Arguments:
-=====================
+# Keyword Arguments:
 - architecture: The architecture to use for computations (default: CPU()).
 - time_indices_in_memory: The number of time indices to keep in memory (default: 2).
 - time_indexing: The time indexing scheme to use (default: Cyclical()).
 - grid: if not a `nothing`, the ECCO data is directly interpolated on the `grid`,
 """
-function ECCO_field_time_series(metadata::ECCOMetadata;	
-                                architecture = CPU(),	
-                                time_indices_in_memory = 2,	
-                                time_indexing = Cyclical(),
-                                grid = nothing)	
+function JRA55_field_time_series(metadata::JRA55Metadata;	
+                                 architecture = CPU(),	
+                                 backend = JRA55NetCDFBackend(20),	
+                                 time_indexing = Cyclical(),
+                                 grid = nothing)	
 
     # ECCO data is too chunky to allow other backends	
-    backend = ECCONetCDFBackend(time_indices_in_memory; 
-                                on_native_grid = isnothing(grid))
+    backend = if backend isa JRA55NetCDFBackend
+        JRA55NetCDFBackend(backend.length; 
+                           on_native_grid = isnothing(grid))
+    else 
+        backend
+    end
 
     # Making sure all the required individual files are downloaded
     download_dataset!(metadata)
 
-    location = field_location(metadata)
-    ftmp = empty_ecco_field(first(metadata); architecture)
+    location  = field_location(metadata)
     shortname = short_name(metadata)
 
-    ECCO_native_grid = ftmp.grid
-    boundary_conditions = FieldBoundaryConditions(ECCO_native_grid, location)
-    times = ecco_times(metadata)
+    JRA55_native_grid = jra55_native_grid()
+    boundary_conditions = FieldBoundaryConditions(JRA55_native_grid, location)
+    times = native_times(metadata)
 
     fts_grid = isnothing(grid) ? ECCO_native_grid : grid
 

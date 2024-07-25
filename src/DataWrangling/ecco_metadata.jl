@@ -4,55 +4,21 @@ import Dates: year, month, day
 import Oceananigans.Fields: set!
 import Base
 
+using ClimaOcean.DataWrangling: Metadata
+
 struct ECCO2Monthly end
 struct ECCO2Daily end
 struct ECCO4Monthly end
 
-# Metadata holding the ECCO dataset information:
-# - `name`: The name of the dataset.
-# - `dates`: The dates of the dataset, in a `AbstractCFDateTime` format.
-# - `version`: The version of the dataset, could be ECCO2Monthly, ECCO2Daily, or ECCO4Monthly.
-struct ECCOMetadata{D, V} 
-    name  :: Symbol
-    dates :: D
-    version :: V
-end
+const ECCOMetadata{T} = Union{Metadata{T, <:ECCO4Monthly}, Metadata{T, <:ECCO2Daily}, Metadata{T, <:ECCO2Monthly}} where T
 
-Base.show(io::IO, metadata::ECCOMetadata) = 
-    print(io, "ECCOMetadata:", '\n',
-    "├── field: $(metadata.name)", '\n',
-    "├── dates: $(metadata.dates)", '\n',
-    "└── data version: $(metadata.version)")
+Base.size(data::Metadata{<:Any, <:ECCO2Daily})       = (1440, 720, 50, length(data.dates))
+Base.size(data::Metadata{<:Any, <:ECCO2Monthly})     = (1440, 720, 50, length(data.dates))
+Base.size(data::Metadata{<:Any, <:ECCO4Monthly})     = (720,  360, 50, length(data.dates))
 
-# The default is the ECCO2Daily dataset at 1993-01-01.
-function ECCOMetadata(name::Symbol; 
-                      date = DateTimeProlepticGregorian(1993, 1, 1),
-                   version = ECCO2Daily()) 
-             
-    return ECCOMetadata(name, date, version) 
-end
-
-# Treat ECCOMetadata as an array to allow iteration over the dates.
-Base.getindex(metadata::ECCOMetadata, i::Int) = @inbounds ECCOMetadata(metadata.name, metadata.dates[i], metadata.version)
-Base.length(metadata::ECCOMetadata)       = length(metadata.dates)
-Base.eltype(metadata::ECCOMetadata)       = Base.eltype(metadata.dates)
-Base.first(metadata::ECCOMetadata)        = @inbounds ECCOMetadata(metadata.name, metadata.dates[1], metadata.version)
-Base.last(metadata::ECCOMetadata)         = @inbounds ECCOMetadata(metadata.name, metadata.dates[end], metadata.version)
-Base.iterate(metadata::ECCOMetadata, i=1) = (@inline; (i % UInt) - 1 < length(metadata) ? (@inbounds ECCOMetadata(metadata.name, metadata.dates[i], metadata.version), i + 1) : nothing)
-
-Base.axes(metadata::ECCOMetadata{<:AbstractCFDateTime})    = 1
-Base.first(metadata::ECCOMetadata{<:AbstractCFDateTime})   = metadata
-Base.last(metadata::ECCOMetadata{<:AbstractCFDateTime})    = metadata
-Base.iterate(metadata::ECCOMetadata{<:AbstractCFDateTime}) = (metadata, nothing)
-Base.iterate(::ECCOMetadata{<:AbstractCFDateTime}, ::Any)  = nothing
-
-Base.size(data::ECCOMetadata{<:Any, <:ECCO2Daily})   = (1440, 720, 50, length(data.dates))
-Base.size(data::ECCOMetadata{<:Any, <:ECCO2Monthly}) = (1440, 720, 50, length(data.dates))
-Base.size(data::ECCOMetadata{<:Any, <:ECCO4Monthly}) = (720,  360, 50, length(data.dates))
-
-Base.size(::ECCOMetadata{<:AbstractCFDateTime, <:ECCO2Daily})   = (1440, 720, 50, 1)
-Base.size(::ECCOMetadata{<:AbstractCFDateTime, <:ECCO2Monthly}) = (1440, 720, 50, 1)
-Base.size(::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4Monthly}) = (720,  360, 50, 1)
+Base.size(::Metadata{<:AbstractCFDateTime, <:ECCO2Daily})   = (1440, 720, 50, 1)
+Base.size(::Metadata{<:AbstractCFDateTime, <:ECCO2Monthly}) = (1440, 720, 50, 1)
+Base.size(::Metadata{<:AbstractCFDateTime, <:ECCO4Monthly}) = (720,  360, 50, 1)
 
 # The whole range of dates in the different dataset versions
 all_ecco_dates(::ECCO4Monthly) = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(2023, 12, 1)
@@ -60,8 +26,8 @@ all_ecco_dates(::ECCO2Monthly) = DateTimeProlepticGregorian(1992, 1, 1) : Month(
 all_ecco_dates(::ECCO2Daily)   = DateTimeProlepticGregorian(1992, 1, 4) : Day(1)   : DateTimeProlepticGregorian(2023, 12, 31)
 
 # File name generation specific to each Dataset version
-function metadata_filename(metadata::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4Monthly})
-    shortname   = short_name(metadata)
+function metadata_filename(metadata::Metadata{<:AbstractCFDateTime, <:ECCO4Monthly})
+    shortname = short_name(metadata)
     yearstr  = string(Dates.year(metadata.dates))
     monthstr = string(Dates.month(metadata.dates), pad=2)
     return shortname * "_" * yearstr * "_" * monthstr * ".nc"
@@ -82,9 +48,9 @@ function metadata_filename(metadata::ECCOMetadata{<:AbstractCFDateTime})
 end
 
 # Convenience functions
-short_name(data::ECCOMetadata{<:Any, <:ECCO2Daily})   = ecco2_short_names[data.name]
-short_name(data::ECCOMetadata{<:Any, <:ECCO2Monthly}) = ecco2_short_names[data.name]
-short_name(data::ECCOMetadata{<:Any, <:ECCO4Monthly}) = ecco4_short_names[data.name]
+short_name(data::Metadata{<:Any, <:ECCO2Daily})   = ecco2_short_names[data.name]
+short_name(data::Metadata{<:Any, <:ECCO2Monthly}) = ecco2_short_names[data.name]
+short_name(data::Metadata{<:Any, <:ECCO4Monthly}) = ecco4_short_names[data.name]
 
 field_location(data::ECCOMetadata) = ecco_location[data.name]
 
@@ -122,12 +88,12 @@ ecco_location = Dict(
 )
 
 # URLs for the ECCO datasets specific to each version
-urls(::ECCOMetadata{<:Any, <:ECCO2Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/monthly/"
-urls(::ECCOMetadata{<:Any, <:ECCO2Daily})   = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/daily/"
-urls(::ECCOMetadata{<:Any, <:ECCO4Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly/"
+urls(::Metadata{<:Any, <:ECCO2Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/monthly/"
+urls(::Metadata{<:Any, <:ECCO2Daily})   = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/daily/"
+urls(::Metadata{<:Any, <:ECCO4Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly/"
 
 """
-    download_dataset!(metadata::ECCOMetadata)
+    download_dataset!(metadata::Metadata)
 
 Download the dataset specified by the given metadata. If the metadata contains a single date, 
 the dataset is downloaded directly. If the metadata contains multiple dates, the dataset is 
@@ -139,7 +105,7 @@ or by launching julia with
 ECCO_USERNAME=myuser ECCO_PASSWORD=mypasswrd julia 
 
 # Arguments
-- `metadata::ECCOMetadata`: The metadata specifying the dataset to be downloaded.
+- `metadata::Metadata`: The metadata specifying the dataset to be downloaded.
 """
 function download_dataset!(metadata::ECCOMetadata;
                            url = urls(metadata))
