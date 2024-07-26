@@ -23,7 +23,7 @@ Ny = 600
 Nz = length(z_faces) - 1
 
 # Running on a GPU
-arch = GPU() 
+arch = CPU() 
 
 # A near-global grid from 75ᵒ S to 75ᵒ N
 grid = LatitudeLongitudeGrid(arch; 
@@ -165,7 +165,7 @@ ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(1))
 
 # Finally, the coupled simulation!
 
-coupled_simulation = Simulation(coupled_model; Δt=1, stop_time = 20days)
+coupled_simulation = Simulation(coupled_model; Δt=1, stop_iteration = 1) #stop_time = 20days)
 
 run!(coupled_simulation)
 
@@ -178,7 +178,7 @@ using CairoMakie
 u, v, w = model.velocities
 T, S, e = model.tracers
 
-using Oceananigans.Models.HydrostaticFreeSurfaceModel: VerticalVorticityField
+using Oceananigans.Models.HydrostaticFreeSurfaceModels: VerticalVorticityField
 
 ζ = VerticalVorticityField(model)
 s = Field(sqrt(u^2 + v^2))
