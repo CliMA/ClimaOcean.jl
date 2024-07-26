@@ -49,9 +49,9 @@ pages = [
         ],
 
     "Examples" => [
-        # "Inspect ECCO2 data" => "literated/inspect_ecco_data.md",
-        # "Surface fluxes" => "literated/generate_surface_fluxes.md",
-        # "Single column simulation" => "literated/single_column_simulation.md",
+        "Inspect ECCO2 data" => "literated/inspect_ecco_data.md",
+        "Surface fluxes" => "literated/generate_surface_fluxes.md",
+        "Single column simulation" => "literated/single_column_simulation.md",
         # "Mediterranean simulation with ECCO restoring" => "literated/mediterranean_simulation_with_ecco_restoring.md",
         "Near global OMIP simulation" => "literated/near_global_omip_simulation.md",
         ]
