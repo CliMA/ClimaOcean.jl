@@ -28,6 +28,7 @@ Thermodynamics = "b60c26fb-14c3-4610-9d3e-2d17fe7ff00c"
 
 [compat]
 Adapt = "4"
+CFTime = "0.1"
 CUDA = "4, 5"
 ClimaSeaIce = "0.1"
 CubicSplines = "0.2"
@@ -42,8 +43,8 @@ Scratch = "1"
 SeawaterPolynomials = "0.3.4"
 StaticArrays = "1"
 Statistics = "1.9"
-Thermodynamics = "0.12"
 SurfaceFluxes = "0.11"
+Thermodynamics = "0.12"
 julia = "1.9"
 
 [extras]
