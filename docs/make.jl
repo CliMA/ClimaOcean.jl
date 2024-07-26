@@ -15,9 +15,9 @@ const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
 const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
 
 to_be_literated = [
-    # "inspect_ecco_data.jl",
-    # "generate_surface_fluxes.jl",
-    # "single_column_simulation.jl",
+    "inspect_ecco_data.jl",
+    "generate_surface_fluxes.jl",
+    "single_column_simulation.jl",
     # "mediterranean_simulation_with_ecco_restoring.jl",
     "near_global_omip_simulation.jl"
 ]

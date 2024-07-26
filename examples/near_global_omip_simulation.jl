@@ -165,7 +165,7 @@ ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(1))
 
 # Finally, the coupled simulation!
 
-coupled_simulation = Simulation(coupled_model; Δt=1, stop_iteration = 1) #stop_time = 20days)
+coupled_simulation = Simulation(coupled_model; Δt=1, stop_time = 20days)
 
 run!(coupled_simulation)
 
@@ -202,7 +202,7 @@ heatmap!(ax, interior(s, :, :, grid.Nz), colorrange = (0, 0.5), colormap = :deep
 ax = Axis(fig[2, 1], title = "Surface Temperature [Cᵒ]")
 heatmap!(ax, interior(T, :, :, grid.Nz), colorrange = (-1, 30), colormap = :magma)
 
-ax = Axis(fig[2, 1], title = "Turbulent Kinetic Energy [m²s⁻²]")
+ax = Axis(fig[2, 2], title = "Turbulent Kinetic Energy [m²s⁻²]")
 heatmap!(ax, interior(e, :, :, grid.Nz), colorrange = (0, 1e-3), colormap = :solar)
 
 save("near_global_ocean_surface.png", fig)
