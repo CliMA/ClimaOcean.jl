@@ -80,11 +80,11 @@ end
                            time_indexing = Cyclical(),
                            grid = nothing)
 
-Create a field time series object for ECCO data.
+Create a field time series object for JRA55 data.
 
 Arguments:
 ===========
-- metadata: An ECCOMetadata object containing information about the ECCO dataset.
+- metadata: An JRA55Metadata object containing information about the JRA55 dataset.
 
 Keyword Arguments:
 =====================
@@ -163,11 +163,17 @@ function JRA55_field_time_series(metadata::JRA55Metadata;
 
     fts_grid = isnothing(grid) ? JRA55_native_grid : grid
 
+    path = if backend isa JRA55NetCDFBackend
+        metadata
+    else
+        file_path
+    end
+
     fts = FieldTimeSeries{location...}(fts_grid, times;	
                                        backend,	
                                        time_indexing,	
                                        boundary_conditions,	
-                                       path = metadata,	
+                                       path,	
                                        name = shortname)
 
     # Let's set the data	
