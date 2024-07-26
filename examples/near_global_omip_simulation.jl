@@ -1,7 +1,7 @@
 using Printf
 using Oceananigans
 using Oceananigans.Units
-using Oceananigans: architecture
+using Oceananigans: architecture, on_architecture
 using ClimaOcean
 using ClimaOcean.ECCO
 using ClimaOcean.OceanSimulations
@@ -23,7 +23,7 @@ Ny = 600
 Nz = length(z_faces) - 1
 
 # Running on a GPU
-arch = CPU() 
+arch = GPU() 
 
 # A near-global grid from 75ᵒ S to 75ᵒ N
 grid = LatitudeLongitudeGrid(arch; 
