@@ -67,8 +67,8 @@ bottom_height = retrieve_bathymetry(grid, bathymetry_file;
                                     interpolation_passes = 20,
                                     connected_regions_allowed = Inf)
  
-grid         = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true) 
-sea_ice_grid = ImmersedBoundaryGrid(sea_ice_grid, GridFittedBottom(bottom_height); active_cells_map = true) 
+grid         = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height)) 
+sea_ice_grid = ImmersedBoundaryGrid(sea_ice_grid, GridFittedBottom(bottom_height)) 
 
 #####
 ##### Restoring mask
