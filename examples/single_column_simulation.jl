@@ -324,10 +324,13 @@ Smax = maximum(interior(S))
 Smin = minimum(interior(S))
 xlims!(axSz, Smin - 0.2, Smax + 0.2)
 
-display(fig)
+save("single_column_profiles.png", fig)
+nothing # hide
 
-record(fig, "$(location_name)_single_column_simulation.mp4", 1:Nt, framerate=24) do nn
-    @info "Drawing frame $nn of $Nt..."
-    n[] = nn
-end
+# ![](single_column_profiles.png)
+
+# record(fig, "$(location_name)_single_column_simulation.mp4", 1:8:Nt, framerate=24) do nn
+#     @info "Drawing frame $nn of $Nt..."
+#     n[] = nn
+# end
 

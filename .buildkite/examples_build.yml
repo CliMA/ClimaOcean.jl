@@ -5,9 +5,10 @@ agents:
 
 env:
   JULIA_LOAD_PATH: "${JULIA_LOAD_PATH}:${BUILDKITE_BUILD_CHECKOUT_PATH}/.buildkite"
-  JULIA_DEBUG: "Documenter"
   OPENBLAS_NUM_THREADS: 1
   OMPI_MCA_opal_warn_on_missing_libcuda: 0
+
+timeout_in_minutes: 1440
 
 steps:
   - label: "initialize"
@@ -19,40 +20,28 @@ steps:
       - "julia --project -e 'using CUDA; CUDA.precompile_runtime()'"
 
     agents:
-      slurm_mem: 32G
+      slurm_mem: 120G
       slurm_gpus: 1
       slurm_cpus_per_task: 8
-      slurm_gpus: 1
-      slurm_ntasks: 1
-      slurm_gpus_per_task: 1
     env:
       JULIA_NUM_PRECOMPILE_TASKS: 8
 
   - wait
 
-  - label: "Run JRA55 tests"
-    key: "tests_jra55"
-    env:
-      CUDA_VISIBLE_DEVICES: "-1"
-      TEST_GROUP: "jra55"
+  - label: "Run documentation"
+    key: "build_documentation"
     commands:
-      - "julia --project -e 'using Pkg; Pkg.test()'"
+      - "julia --color=yes --project=docs/ -e 'using Pkg; Pkg.instantiate(); Pkg.develop(PackageSpec(path=pwd()))'"
+      - "julia --color=yes --project=docs/ docs/make.jl"
 
-  - label: "Run ECCO tests"
-    key: "tests_ecco"
+    agents:
+      slurm_mem: 120G
+      slurm_gpus: 1
+      slurm_cpus_per_task: 8
+      slurm_ntasks: 1
+      slurm_gpus_per_task: 1
     env:
-      CUDA_VISIBLE_DEVICES: "-1"
-      TEST_GROUP: "ecco"
-    commands:
-      - "julia --project -e 'using Pkg; Pkg.test()'"
-
-  - label: "Run surface flux tests"
-    key: "tests_fluxes"
-    env:
-      CUDA_VISIBLE_DEVICES: "-1"
-      TEST_GROUP: "fluxes"
-    commands:
-      - "julia --project -e 'using Pkg; Pkg.test()'"
+      JULIA_NUM_PRECOMPILE_TASKS: 8
 
   - wait: ~
     continue_on_failure: true

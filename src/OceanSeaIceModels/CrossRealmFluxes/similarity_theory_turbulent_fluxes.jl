@@ -30,20 +30,20 @@ import SurfaceFluxes.Parameters:
 #####
 
 struct SimilarityTheoryTurbulentFluxes{FT, UF, TP, S, W, R, B, V, F}
-    gravitational_acceleration :: FT
-    von_karman_constant :: FT
-    turbulent_prandtl_number :: FT
-    gustiness_parameter :: FT
-    stability_functions :: UF
-    thermodynamics_parameters :: TP
-    water_vapor_saturation :: S
-    water_mole_fraction :: W
-    roughness_lengths :: R
-    bulk_coefficients :: B
-    bulk_velocity :: V
-    tolerance :: FT
-    maxiter :: Int
-    fields :: F
+    gravitational_acceleration :: FT # parameter
+    von_karman_constant :: FT        # parameter
+    turbulent_prandtl_number :: FT   # parameter
+    gustiness_parameter :: FT        # bulk velocity parameter
+    stability_functions :: UF        # functions for turbulent fluxes
+    thermodynamics_parameters :: TP  # parameter group
+    water_vapor_saturation :: S      # model for computing the saturation water vapor mass
+    water_mole_fraction :: W         # mole fraction of H₂O in seawater
+    roughness_lengths :: R           # parameterization for turbulent fluxes
+    bulk_coefficients :: B           # ?
+    bulk_velocity :: V               # bulk velocity scale for turbulent fluxes
+    tolerance :: FT                  # solver option
+    maxiter :: Int                   # solver option
+    fields :: F                      # fields that store turbulent fluxes
 end
 
 const STTF = SimilarityTheoryTurbulentFluxes
@@ -229,23 +229,27 @@ end
     Σ★ = SimilarityScales(u★, u★, u★) 
 
     # The inital velocity scale assumes that
-    # the gustiness velocity `uᴳ` is equal to 0.5 ms⁻¹. 
+    # the gustiness velocity `Uᴳ` is equal to 0.5 ms⁻¹. 
     # That will be refined later on.
-    ΔUᴳ = sqrt(Δu^2 + Δv^2 + convert(eltype(Δh), 0.25))
+    FT = eltype(Δh)
+    Uᴳᵢ = convert(FT, 0.5^2)
+    ΔU = sqrt(Δu^2 + Δv^2 + Uᴳᵢ)
 
     # Initialize the solver
     iteration = 0
 
     while iterating(Σ★ - Σ₀, iteration, maxiter, similarity_theory)
         Σ₀ = Σ★
-        Σ★, ΔUᴳ = refine_characteristic_scales(Σ★, ΔUᴳ, 
-                                               similarity_theory,
-                                               surface_state,
-                                               differences,
-                                               atmos_boundary_layer_height,
-                                               thermodynamics_parameters,
-                                               gravitational_acceleration,
-                                               von_karman_constant)
+        # Refine both the characteristic scale and the effective
+        # velocity difference ΔU, including gustiness.
+        Σ★, ΔU = refine_similarity_variables(Σ★, ΔU, 
+                                             similarity_theory,
+                                             surface_state,
+                                             differences,
+                                             atmos_boundary_layer_height,
+                                             thermodynamics_parameters,
+                                             gravitational_acceleration,
+                                             von_karman_constant)
         iteration += 1
     end
 
@@ -257,9 +261,9 @@ end
     q★ = q★ / similarity_theory.turbulent_prandtl_number
 
     # `u★² ≡ sqrt(τx² + τy²)`
-    # We remove the gustiness by dividing by `ΔUᴳ`
-    τx = - u★^2 * Δu / ΔUᴳ
-    τy = - u★^2 * Δv / ΔUᴳ
+    # We remove the gustiness by dividing by `ΔU`
+    τx = - u★^2 * Δu / ΔU
+    τy = - u★^2 * Δv / ΔU
 
     𝒬ₐ = atmos_state.ts
     ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
@@ -326,15 +330,15 @@ end
     return Δh, Δu, Δv, Δθ, Δq
 end
 
-@inline function refine_characteristic_scales(estimated_characteristic_scales, 
-                                              velocity_scale,
-                                              similarity_theory,
-                                              surface_state,
-                                              differences,
-                                              atmos_boundary_layer_height,
-                                              thermodynamics_parameters,
-                                              gravitational_acceleration,
-                                              von_karman_constant)
+@inline function refine_similarity_variables(estimated_characteristic_scales, 
+                                             velocity_scale,
+                                             similarity_theory,
+                                             surface_state,
+                                             differences,
+                                             atmos_boundary_layer_height,
+                                             thermodynamics_parameters,
+                                             gravitational_acceleration,
+                                             von_karman_constant)
 
     # "initial" scales because we will recompute them
     u★ = estimated_characteristic_scales.momentum
@@ -358,7 +362,7 @@ end
     ℂ  = thermodynamics_parameters
     g  = gravitational_acceleration
     𝒬ₒ = surface_state.ts # thermodynamic state
-    zᵢ = atmos_boundary_layer_height
+    hᵢ = atmos_boundary_layer_height
 
     # Compute Monin-Obukhov length scale depending on a `buoyancy flux`
     b★ = buoyancy_scale(θ★, q★, 𝒬ₒ, ℂ, g)
@@ -388,10 +392,11 @@ end
 
     # Buoyancy flux characteristic scale for gustiness (Edson 2013)
     Jᵇ = - u★ * b★
-    uᴳ = β * cbrt(Jᵇ * zᵢ)
+    Uᴳ = β * cbrt(Jᵇ * hᵢ)
 
     # New velocity difference accounting for gustiness
-    ΔUᴳ = sqrt(Δu^2 + Δv^2 + uᴳ^2)
+    ΔU = sqrt(Δu^2 + Δv^2 + Uᴳ^2)
 
-    return SimilarityScales(u★, θ★, q★), ΔUᴳ
+    return SimilarityScales(u★, θ★, q★), ΔU
 end
+

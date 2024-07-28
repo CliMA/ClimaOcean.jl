@@ -1,4 +1,4 @@
-using GLMakie
+using CairoMakie
 using Oceananigans
 using ClimaOcean.Bathymetry: regrid_bathymetry
 

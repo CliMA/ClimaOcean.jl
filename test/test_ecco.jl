@@ -2,7 +2,7 @@ include("runtests_setup.jl")
 
 using ClimaOcean
 using ClimaOcean.ECCO
-using ClimaOcean.ECCO: ecco_field, file_name
+using ClimaOcean.ECCO: ecco_field, metadata_filename
 using Oceananigans.Grids: topology
 
 using CFTime
@@ -23,7 +23,7 @@ using Dates
         ecco_fts = t_restoring.func.ecco_fts
 
         for metadata in temperature
-            temperature_filename = file_name(metadata)
+            temperature_filename = metadata_filename(metadata)
             @test isfile(temperature_filename)
         end
 

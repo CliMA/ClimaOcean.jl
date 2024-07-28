@@ -18,7 +18,8 @@ to_be_literated = [
     "inspect_ecco_data.jl",
     "generate_surface_fluxes.jl",
     "single_column_simulation.jl",
-    # "near_global_omip_simulation.jl"
+    # "mediterranean_simulation_with_ecco_restoring.jl",
+    "near_global_omip_simulation.jl"
 ]
 
 for file in to_be_literated
@@ -31,9 +32,10 @@ end
 #####
 
 format = Documenter.HTML(
-  collapselevel = 2,
-     prettyurls = get(ENV, "CI", nothing) == "true",
-      canonical = "https://clima.github.io/ClimaOceanDocumentation/dev/",
+   collapselevel = 2,
+  size_threshold = nothing,
+      prettyurls = get(ENV, "CI", nothing) == "true",
+       canonical = "https://clima.github.io/ClimaOceanDocumentation/dev/",
 )
 
 pages = [
@@ -50,6 +52,8 @@ pages = [
         "Inspect ECCO2 data" => "literated/inspect_ecco_data.md",
         "Surface fluxes" => "literated/generate_surface_fluxes.md",
         "Single column simulation" => "literated/single_column_simulation.md",
+        # "Mediterranean simulation with ECCO restoring" => "literated/mediterranean_simulation_with_ecco_restoring.md",
+        "Near global OMIP simulation" => "literated/near_global_omip_simulation.md",
         ]
 ]
 

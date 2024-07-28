@@ -174,22 +174,22 @@ A struct representing ECCO restoring.
 - `ecco_fts`: The ECCO FTS on the native ECCO grid.
 - `ecco_grid`: The native ECCO grid to interpolate from.
 - `mask`: A mask (could be a number, an array, a function or a field).
-- `varname`: The variable name of the variable that needs restoring.
+- `variable_name`: The variable name of the variable that needs restoring.
 - `λ⁻¹`: The reciprocal of the restoring timescale.
 """
 struct ECCORestoring{FTS, G, M, V, N} <: Function
-    ecco_fts  :: FTS
-    ecco_grid :: G
-    mask      :: M
-    varname   :: V
-    λ⁻¹       :: N
+    ecco_fts      :: FTS
+    ecco_grid     :: G
+    mask          :: M
+    variable_name :: V
+    λ⁻¹           :: N
 end
 
 Adapt.adapt_structure(to, p::ECCORestoring) = 
     ECCORestoring(Adapt.adapt(to, p.ecco_fts), 
                   Adapt.adapt(to, p.ecco_grid),
                   Adapt.adapt(to, p.mask),
-                  Adapt.adapt(to, p.varname),
+                  Adapt.adapt(to, p.variable_name),
                   Adapt.adapt(to, p.λ⁻¹))
 
 @inline function (p::ECCORestoring)(i, j, k, grid, clock, fields)
@@ -199,7 +199,7 @@ Adapt.adapt_structure(to, p::ECCORestoring) =
     loc  = location(p.ecco_fts)
 
     # Retrieve the variable to force
-    @inbounds var = fields[i, j, k, p.varname]
+    @inbounds var = fields[i, j, k, p.variable_name]
 
     ecco_backend = p.ecco_fts.backend
     native_grid = on_native_grid(ecco_backend) 
