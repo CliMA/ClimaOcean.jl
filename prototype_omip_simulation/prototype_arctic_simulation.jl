@@ -75,7 +75,7 @@ sea_ice_grid = ImmersedBoundaryGrid(sea_ice_grid, GridFittedBottom(bottom_height
 #####
 
 # Build a mask that goes from 0 to 1 as a cubic function of φ between
-# 70 degrees and 90 degrees and zero derivatives at 70 and 90.
+# 50 degrees and 30 degrees and zero derivatives at 50 and 30.
 x₁ = 50
 x₂ = 30
 y₁ = 0
@@ -123,6 +123,7 @@ forcing = (; T = FT, S = FS)
 
 ocean = ocean_simulation(grid; free_surface, forcing) 
 model = ocean.model
+
 #####
 ##### Sea ice simulation
 #####
@@ -144,13 +145,13 @@ sea_ice = SeaIceModel(sea_ice_grid;
                       ocean_velocities,
                       ice_dynamics,
                       advection = WENO(; order = 7),
-                      ice_thermodynamics = nothing)
+                      ice_thermodynamics = nothing) # We are building this part
 
 ice_thickness     = ECCOMetadata(:sea_ice_thickness,     dates[1], ECCO4Monthly())
 ice_concentration = ECCOMetadata(:sea_ice_area_fraction, dates[1], ECCO4Monthly())
 inpaint_kwargs = (; maxiter = 2)
 
-set!(sea_ice.ice_thickness, ice_thickness; inpaint_kwargs...)
+set!(sea_ice.ice_thickness,     ice_thickness;     inpaint_kwargs...)
 set!(sea_ice.ice_concentration, ice_concentration; inpaint_kwargs...)
 
 sea_ice_simulation = Simulation(sea_ice; Δt = 1minutes, stop_time = 10days)
