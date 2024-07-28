@@ -4,6 +4,7 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 function compute_sea_ice_ocean_fluxes!(coupled_model)
     #compute_sea_ice_ocean_salinity_flux!(coupled_model)
     # sea_ice_ocean_latent_heat_flux!(coupled_model)
+
     return nothing
 end
 
@@ -190,7 +191,9 @@ end
     @inbounds begin
         Jᵘ = staggered_velocity_fluxes.u
         Jᵛ = staggered_velocity_fluxes.v
-    
+        Jᵀ = net_tracer_fluxes.T
+        Jˢ = net_tracer_fluxes.S
+
         sea_ice = ℵ[i, j, 1] > 0
         cooling_sea_ice = sea_ice & (Jᵀ[i, j, 1] > 0)
 
@@ -201,7 +204,7 @@ end
         
         # If we are in a "sea ice" region we remove all fluxes
         Jˢ[i, j, 1] = ifelse(sea_ice, zero(grid), Jˢ[i, j, 1])
-        Jᵘ[i, j, 1] = ifelse(sea_ice, Cᴰ * (u₀[i, j, 1] - 𝒰ᵢ.u[i, j, 1]), Jᵘ[i, j, 1]) 
-        Jᵛ[i, j, 1] = ifelse(sea_ice, Cᴰ * (v₀[i, j, 1] - 𝒰ᵢ.v[i, j, 1]), Jᵛ[i, j, 1]) 
+        Jᵘ[i, j, 1] = ifelse(sea_ice, Cᴰ * (uₒ[i, j, 1] - 𝒰ᵢ.u[i, j, 1]), Jᵘ[i, j, 1]) 
+        Jᵛ[i, j, 1] = ifelse(sea_ice, Cᴰ * (vₒ[i, j, 1] - 𝒰ᵢ.v[i, j, 1]), Jᵛ[i, j, 1]) 
     end
 end
