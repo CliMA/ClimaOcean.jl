@@ -21,6 +21,7 @@ using ClimaOcean.ECCO: ECCO_restoring_forcing, ECCO4Monthly, ECCO2Daily, ECCOMet
 using ClimaOcean.Bathymetry
 using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: LatitudeDependentAlbedo
 using ClimaSeaIce.SeaIceDynamics: ExplicitMomentumSolver
+using CairoMakie
 
 import ClimaOcean: stateindex
 
@@ -38,11 +39,11 @@ bathymetry_file = nothing # "bathymetry_tmp.jld2"
 # 60 vertical levels
 z_faces = exponential_z_faces(Nz=20, depth=4000)
 
-Nx = 500
-Ny = 200
+Nx = 1000
+Ny = 800
 Nz = length(z_faces) - 1
 
-arch = CPU() #Distributed(GPU(), partition = Partition(2))
+arch = GPU() #Distributed(GPU(), partition = Partition(2))
 
 grid = TripolarGrid(arch; 
                     size = (Nx, Ny, Nz), 
@@ -70,6 +71,41 @@ grid         = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); activ
 sea_ice_grid = ImmersedBoundaryGrid(sea_ice_grid, GridFittedBottom(bottom_height); active_cells_map = true) 
 
 #####
+##### Restoring mask
+#####
+
+# Build a mask that goes from 0 to 1 as a cubic function of φ between
+# 70 degrees and 90 degrees and zero derivatives at 70 and 90.
+x₁ = 50
+x₂ = 30
+y₁ = 0
+y₂ = 1
+
+A⁺ = [ x₁^3   x₁^2  x₁ 1
+       x₂^3   x₂^2  x₂ 1
+       3*x₁^2 2*x₁  1  0
+       3*x₂^2 2*x₂  1  0]
+           
+b⁺ = [y₁, y₂, 0, 0]
+c⁺ = A⁺ \ b⁺
+
+# Coefficients for the cubic mask
+const c₁⁺ = c⁺[1]
+const c₂⁺ = c⁺[2]
+const c₃⁺ = c⁺[3]
+const c₄⁺ = c⁺[4]
+
+const c₁⁻ = - c⁺[1]
+const c₂⁻ = c⁺[2]
+const c₃⁻ = - c⁺[3]
+const c₄⁻ = c⁺[4]
+
+@inline mask_f(λ, φ, z) = ifelse(φ <=  50, c₁⁺ * φ^3 + c₂⁺ * φ^2 + c₃⁺ * φ + c₄⁺, zero(eltype(φ)))
+
+mask = CenterField(grid)
+set!(mask, mask_f)
+
+#####
 ##### The Ocean component
 #####                             
 
@@ -80,9 +116,13 @@ dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGre
 temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
 salinity    = ECCOMetadata(:salinity,    dates, ECCO4Monthly())
 
-ocean = ocean_simulation(grid; free_surface) 
-model = ocean.model
+FT = ECCO_restoring_forcing(temperature; mask, grid, architecture = arch, timescale = 30days)
+FS = ECCO_restoring_forcing(salinity;    mask, grid, architecture = arch, timescale = 30days)
 
+forcing = (; T = FT, S = FS)
+
+ocean = ocean_simulation(grid; free_surface, forcing) 
+model = ocean.model
 #####
 ##### Sea ice simulation
 #####
@@ -93,7 +133,7 @@ v_surface_velocity = interior(model.velocities.v, :, :, grid.Nz)
 ocean_velocities = (; u = u_surface_velocity,
                       v = v_surface_velocity)
 
-ice_dynamics = ExplicitMomentumSolver(sea_ice_grid; substeps = 100)
+ice_dynamics = ExplicitMomentumSolver(sea_ice_grid; substeps = 120)
 
 τuₐ = Field((Face, Center, Nothing), grid)
 τvₐ = Field((Center, Face, Nothing), grid)
