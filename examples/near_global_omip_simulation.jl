@@ -18,12 +18,12 @@ using Dates
 
 z_faces = exponential_z_faces(Nz=40, depth=6000)
 
-Nx = 1440
-Ny = 600
+Nx = 360
+Ny = 150
 Nz = length(z_faces) - 1
 
 # Running on a GPU
-arch = GPU() 
+arch = CPU() 
 
 # A near-global grid from 75ᵒ S to 75ᵒ N
 grid = LatitudeLongitudeGrid(arch; 
@@ -165,7 +165,7 @@ ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(1))
 
 # Finally, the coupled simulation!
 
-coupled_simulation = Simulation(coupled_model; Δt=1, stop_time = 20days)
+coupled_simulation = Simulation(coupled_model; Δt=1, stop_iteration=1) #stop_time = 20days)
 
 run!(coupled_simulation)
 
