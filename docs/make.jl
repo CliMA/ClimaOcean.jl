@@ -19,7 +19,7 @@ to_be_literated = [
     "generate_surface_fluxes.jl",
     "single_column_simulation.jl",
     # "mediterranean_simulation_with_ecco_restoring.jl",
-    "near_global_omip_simulation.jl"
+    # "near_global_omip_simulation.jl"
 ]
 
 for file in to_be_literated
