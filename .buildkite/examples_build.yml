@@ -42,8 +42,15 @@ steps:
       slurm_ntasks: 1
       slurm_gpus_per_task: 1
       slurm_time: 48:00:00
+
     env:
       JULIA_NUM_PRECOMPILE_TASKS: 8
+      JULIA_DEBUG: "Documenter"
+      # This environment variable is needed to avoid SSL verification errors when Downloads.jl 
+      # tries to download the bathyemtry data. It should not be required so we need to fix our certificates
+      # and remove this environment variable. ref: https://github.com/JuliaLang/Downloads.jl/issues/97
+      JULIA_SSL_NO_VERIFY: "**" 
+
     timeout_in_minutes: 1440
 
   - wait: ~
