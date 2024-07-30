@@ -97,8 +97,13 @@ function regrid_bathymetry(target_grid;
             mkdir(dir)
         end
 
-        fileurl = joinpath(url, filename)
-        Downloads.download(fileurl, filepath; progress=download_progress, verbose=true)
+        try 
+            fileurl = joinpath(url, filename)
+            Downloads.download(fileurl, filepath; progress=download_progress, verbose=true)
+        catch 
+            cmd = `wget --no-check-certificate -O $filepath $fileurl`
+            run(cmd)
+        end
     end
 
     dataset = Dataset(filepath)
