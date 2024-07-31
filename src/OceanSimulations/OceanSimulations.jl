@@ -78,10 +78,6 @@ function ocean_simulation(grid; Δt = 5minutes,
     u_bot_bc = FluxBoundaryCondition(u_quadratic_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
     v_bot_bc = FluxBoundaryCondition(v_quadratic_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
 
-    #ocean_boundary_conditions = (u = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵘ), bottom = u_bot_bc),
-    #                             v = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵛ), bottom = v_bot_bc),
-    #                             T = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵀ)),
-    #                             S = FieldBoundaryConditions(top = FluxBoundaryCondition(Jˢ)))
     ocean_boundary_conditions = Dict(
         :u => FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵘ), bottom = u_bot_bc),
         :v => FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵛ), bottom = v_bot_bc),
