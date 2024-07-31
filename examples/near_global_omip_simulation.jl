@@ -1,15 +1,15 @@
-# # Near-global Ocean simulation
+# # Near-global Ocean Simulation
 #
 # This Julia script sets up and runs a near-global ocean simulation using the Oceananigans.jl and ClimaOcean.jl packages. 
-# The simulation spans from 75°S to 75°N with a horizontal resolution of 1/4th of a degree and 40 vertical levels. 
+# The simulation covers latitudes from 75°S to 75°N with a horizontal resolution of 1/4 degree and 40 vertical levels. 
 #
-# The simulation is then ran for one year and the results are visualized using the CairoMakie.jl package.
+# The simulation runs for one year, and the results are visualized using the CairoMakie.jl package.
 #
 # ## Initial Setup with Package Imports
 #
-# The script begins by importing necessary Julia packages for visualization (CairoMakie), 
-# ocean modeling (Oceananigans, ClimaOcean), and handling of dates and times (CFTime, Dates). 
-# These packages provide the foundational tools for creating the simulation environment, 
+# The script begins by importing the necessary Julia packages for visualization (CairoMakie), 
+# ocean modeling (Oceananigans, ClimaOcean), and handling dates and times (CFTime, Dates). 
+# These packages provide the foundational tools for setting up the simulation environment, 
 # including grid setup, physical processes modeling, and data visualization.
 
 using Printf
@@ -27,10 +27,10 @@ using Dates
 
 # ## Grid Configuration 
 #
-# We define a near-global grid from 75°S to 75°N with a horizontal resolution of 1/4th of a degree and 40 vertical levels. 
+# We define a near-global grid from 75°S to 75°N with a horizontal resolution of 1/4 degree and 40 vertical levels. 
 # The grid is created using Oceananigans' `LatitudeLongitudeGrid`. We use an exponential vertical spacing to better resolve the upper ocean layers.
 # The total depth of the domain is set to 6000 meters.
-# Finally, we specify the architecture to be used for the simulation, which in this case is a GPU.
+# Finally, we specify the architecture for the simulation, which in this case is a GPU.
 
 arch = GPU() 
 
@@ -49,9 +49,9 @@ grid = LatitudeLongitudeGrid(arch;
 
 # ## Bathymetry and Immersed Boundary
 #
-# We retrieve the bathymetry from the ETOPO1 data by ensuring a minimum depth of 10 meters (everything shallower is considered land)
-# The `interpolation_passes` parameter specifies the number of passes to interpolate the bathymetry data. The larger the number, 
-# the smoother the bathymetry will be. We also remove all connected regions (inland lakes) from the bathymetry data by specifying
+# We retrieve the bathymetry from the ETOPO1 data, ensuring a minimum depth of 10 meters (depths shallower than this are considered land).
+# The `interpolation_passes` parameter specifies the number of passes to interpolate the bathymetry data. A larger number 
+# results in a smoother bathymetry. We also remove all connected regions (such as inland lakes) from the bathymetry data by specifying
 # `connected_regions_allowed = 0`.
 
 bottom_height = retrieve_bathymetry(grid; 
@@ -64,8 +64,8 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
 # ## Ocean Model Configuration
 #
-# To set the ocean simulation we use the `ocean_simulation` function from ClimaOcean.jl. This allows us to build
-# an ocean simulation with default parameters and numerics. In this case, the defaults are
+# To configure the ocean simulation, we use the `ocean_simulation` function from ClimaOcean.jl. This function allows us to build
+# an ocean simulation with default parameters and numerics. The defaults include:
 # - CATKE turbulence closure for vertical mixing, see [`CATKEVerticalDiffusivity`](@ref)
 # - WENO-based advection scheme for momentum in the vector invariant form, see [`WENOVectorInvariant`](@ref)
 # - WENO-based advection scheme for tracers, see [`WENO`](@ref)
@@ -74,6 +74,7 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 # - Quadratic bottom drag with a drag coefficient of 0.003
 #
 # The ocean model is then initialized with the ECCO2 temperature and salinity fields for January 1, 1993.
+
 
 ocean = ocean_simulation(grid) 
 model = ocean.model
@@ -86,13 +87,13 @@ set!(model,
 
 # ## Prescribed Atmosphere and Radiation
 #
-# The atmospheric data is prescribed using the JRA55 dataset. The dataset is loaded into memory in 4 snapshots at a time.
+# The atmospheric data is prescribed using the JRA55 dataset, which is loaded into memory in 4 snapshots at a time.
 # The JRA55 dataset provides atmospheric data such as temperature, humidity, and wind fields to calculate turbulent fluxes
-# through bulk formulae, see [`CrossRealmFluxes`](@ref)
+# using bulk formulae, see [`CrossRealmFluxes`](@ref).
 #
-# The radiation model specified an ocean albedo emissivity to compute the net radiative fluxes. 
-# The default ocean albedo is based on the Payne (1982) and depends on cloud cover (computed from
-# the maximum possible incident solar radiation divided by the actual incident solar radiation), and the latitude.
+# The radiation model specifies an ocean albedo emissivity to compute the net radiative fluxes. 
+# The default ocean albedo is based on Payne (1982) and depends on cloud cover (calculated from
+# the ratio of maximum possible incident solar radiation to actual incident solar radiation) and latitude.
 # The ocean emissivity is set to 0.97.
 
 backend    = JRA55NetCDFBackend(4) 
@@ -101,25 +102,25 @@ radiation  = Radiation(arch)
 
 # ## Sea Ice Model 
 #
-# This simulation includes a simplified representation of an ice cover where the air-sea fluxes are shut down whenever the 
-# sea surface temperature is below the freezing point. Only heating fluxes are allowed. This is by no means a sea ice model
-# but it allows to include atmosphere-ocean fluxes without having the temperature plummeting to - ∞.  
+# This simulation includes a simplified representation of ice cover where the air-sea fluxes are shut down whenever the 
+# sea surface temperature is below the freezing point. Only heating fluxes are allowed. This is not a full sea ice model,
+# but it prevents the temperature from dropping excessively low by including atmosphere-ocean fluxes.
 
 sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
 
 # ## The Coupled Simulation
 #
-# Finally, we have everything it takes to define the coupled coupled, which includes the ocean, the atmosphere, and the radiation parameters.
+# Finally, we define the coupled model, which includes the ocean, atmosphere, and radiation parameters.
 # The model is constructed using the `OceanSeaIceModel` constructor.
 #
-# We can then construct a coupled simulation. In this case we start with a time step of 1 second and run the simulation for 720 days.
-# We will eventually increase the time step size as the simulation progresses and the initialization shocks dissipate.
+# We then create a coupled simulation, starting with a time step of 10 seconds and running the simulation for 10 days.
+# We will eventually increase the time step size and end time as the simulation progresses and initialization shocks dissipate.
 #
-# We also define a callback function to monitor the progress of the simulation. This function prints the current time, iteration, time step,
+# We also define a callback function to monitor the simulation's progress. This function prints the current time, iteration, time step,
 # as well as the maximum velocities and tracers in the domain. The wall time is also printed to monitor the time taken for each iteration.
 
 coupled_model      = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-coupled_simulation = Simulation(coupled_model; Δt=10, stop_time = 720days)
+coupled_simulation = Simulation(coupled_model; Δt=10, stop_time = 10days)
 
 wall_time = [time_ns()]
 
@@ -147,7 +148,7 @@ coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(1
 # ## Set up Output Writers
 #
 # We define output writers to save the simulation data at regular intervals. 
-# In this case we save the surface fluxes, and surface fields, at a fairly high frequency (half a day)
+# In this case, we save the surface fluxes and surface fields at a relatively high frequency (every half day).
 
 fluxes = (u = model.velocities.u.boundary_conditions.top.condition,
           v = model.velocities.v.boundary_conditions.top.condition,
@@ -167,17 +168,18 @@ ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, mo
                                                   filename = "surface",
                                                   indices = (:, :, grid.Nz),
                                                   output_kwargs...)
-# ## Warming up the simulation!
+
+# ## Warming Up the Simulation
 #
-# As an initial condition we have interpolated ECCO tracer fields on our custom grid.
-# Most likely the bathymetry of the original ECCO data is different than our grid, so the initialization of the velocity
-# field might lead to shocks if we use a large time step.
+# As an initial condition, we have interpolated ECCO tracer fields onto our custom grid.
+# The bathymetry of the original ECCO data may differ from our grid, so the initialization of the velocity
+# field might cause shocks if a large time step is used.
 #
 # Therefore, we warm up with a small time step to ensure that the interpolated initial conditions adapt to the model numerics and
-# parameterization without crashing. 30 days of integration with a maximum time step of 1.5 minutes should be enough to dissipate
+# parameterization without causing instability. A 30-day integration with a maximum time step of 1.5 minutes should be sufficient to dissipate
 # spurious initialization shocks.
 
-ocean.stop_time = 30days
+ocean.stop_time = 10days
 wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 90, max_change = 1.1)
 ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(1))
 
@@ -189,7 +191,7 @@ run!(coupled_simulation)
 # We increase the maximum time step size to 10 minutes and let the simulation run for 720 days.
 
 ocean.stop_time = 720days
-wizard = TimeStepWizard(; cfl = 0.25, max_Δt = 10minutes, max_change = 1.1)
+wizard = TimeStepWizard(; cfl = 0.25, max_Δt = 15minutes, max_change = 1.1)
 ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(1))
 
 # ## Visualizing the Results
