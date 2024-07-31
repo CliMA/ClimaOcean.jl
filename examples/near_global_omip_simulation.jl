@@ -1,3 +1,17 @@
+# # Near-global Ocean simulation
+#
+# This Julia script sets up and runs a near-global ocean simulation using the Oceananigans.jl and ClimaOcean.jl packages. 
+# The simulation spans from 75°S to 75°N with a horizontal resolution of 1/4th of a degree and 40 vertical levels. 
+#
+# The simulation is then ran for one year and the results are visualized using the CairoMakie.jl package.
+#
+# ## Initial Setup with Package Imports
+#
+# The script begins by importing necessary Julia packages for visualization (CairoMakie), 
+# ocean modeling (Oceananigans, ClimaOcean), and handling of dates and times (CFTime, Dates). 
+# These packages provide the foundational tools for creating the simulation environment, 
+# including grid setup, physical processes modeling, and data visualization.
+
 using Printf
 using Oceananigans
 using Oceananigans.Units
@@ -10,22 +24,21 @@ using ClimaOcean.OceanSeaIceModels
 using CFTime
 using Dates
 
-#####
-##### Near - Global Ocean at 1/4th of a degree
-#####
+# ## Grid Configuration 
+#
+# We define a near-global grid from 75°S to 75°N with a horizontal resolution of 1/4th of a degree and 40 vertical levels. 
+# The grid is created using Oceananigans' `LatitudeLongitudeGrid`. We use an exponential vertical spacing to better resolve the upper ocean layers.
+# The total depth of the domain is set to 6000 meters.
+# Finally, we specify the architecture to be used for the simulation, which in this case is a GPU.
 
-# 40 vertical levels
+arch = GPU() 
 
 z_faces = exponential_z_faces(Nz=40, depth=6000)
 
-Nx = 360
-Ny = 150
+Nx = 1440
+Ny = 600
 Nz = length(z_faces) - 1
 
-# Running on a GPU
-arch = CPU() 
-
-# A near-global grid from 75ᵒ S to 75ᵒ N
 grid = LatitudeLongitudeGrid(arch; 
                              size = (Nx, Ny, Nz), 
                              halo = (7, 7, 7), 
@@ -33,9 +46,12 @@ grid = LatitudeLongitudeGrid(arch;
                              longitude = (0, 360),
                              latitude = (-75, 75))
 
-# We retrieve the bathymetry from the ETOPO1 data by ensuring a 
-# minimum depth of 10 meters (everyhting shallower is considered land)
-# and removing all connected regions (inland lakes)
+# ## Bathymetry and Immersed Boundary
+#
+# We retrieve the bathymetry from the ETOPO1 data by ensuring a minimum depth of 10 meters (everything shallower is considered land)
+# The `interpolation_passes` parameter specifies the number of passes to interpolate the bathymetry data. The larger the number, 
+# the smoother the bathymetry will be. We also remove all connected regions (inland lakes) from the bathymetry data by specifying
+# `connected_regions_allowed = 0`.
 
 bottom_height = retrieve_bathymetry(grid; 
                                     minimum_depth = 10,
@@ -43,63 +59,73 @@ bottom_height = retrieve_bathymetry(grid;
                                     interpolation_passes = 20,
                                     connected_regions_allowed = 0)
  
-# An immersed boundary using a staircase representation of bathymetry
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height)) 
 
-#####
-##### The Ocean component
-#####                             
+# ## Ocean Model Configuration
+#
+# To set the ocean simulation we use the `ocean_simulation` function from ClimaOcean.jl. This allows us to build
+# an ocean simulation with default parameters and numerics. In this case, the defaults are
+# - CATKE turbulence closure for vertical mixing, see [`CATKEVerticalDiffusivity`](@ref)
+# - WENO-based advection scheme for momentum in the vector invariant form, see [`WENOVectorInvariant`](@ref)
+# - WENO-based advection scheme for tracers, see [`WENO`](@ref)
+# - `SplitExplicitFreeSurfaceSolver` with a Courant number of 0.7, see [`SplitExplicitFreeSurface`](@ref)
+# - TEOS-10 equation of state, see [`TEOS10EquationOfState`](@ref)
+# - Quadratic bottom drag with a drag coefficient of 0.003
+#
+# The ocean model is then initialized with the ECCO2 temperature and salinity fields for January 1, 1993.
 
-# We retain all the defaults for the ocean model
 ocean = ocean_simulation(grid) 
 model = ocean.model
 
 date  = DateTimeProlepticGregorian(1993, 1, 1)
 
-# We interpolate the initial conditions from the ECCO2 dataset 
-# (for the moment these are both 1st January 1993)
-
 set!(model, 
-     T = ECCOMetadata(:temperature, date, ECCO2Daily()),
-     S = ECCOMetadata(:salinity,    date, ECCO2Daily()))
+     T = ECCOMetadata(:temperature; date),
+     S = ECCOMetadata(:salinity;    date))
 
-#####
-##### The atmosphere
-#####
-
-# The whole prescribed atmosphere is loaded in memory 
-# 4 snapshots at the time.
+# ## Prescribed Atmosphere and Radiation
+#
+# The atmospheric data is prescribed using the JRA55 dataset. The dataset is loaded into memory in 4 snapshots at a time.
+# The JRA55 dataset provides atmospheric data such as temperature, humidity, and wind fields to calculate turbulent fluxes
+# through bulk formulae, see [`CrossRealmFluxes`](@ref)
+#
+# The radiation model specified an ocean albedo emissivity to compute the net radiative fluxes. 
+# The default ocean albedo is based on the Payne (1982) and depends on cloud cover (computed from
+# the maximum possible incident solar radiation divided by the actual incident solar radiation), and the latitude.
+# The ocean emissivity is set to 0.97.
 
 backend    = JRA55NetCDFBackend(4) 
 atmosphere = JRA55_prescribed_atmosphere(arch; backend)
-
-# Tabulated ocean albedo from Payne (1982)
-# ocean emissivity is the default 0.97
-
 radiation  = Radiation(arch)
 
-#####
-##### The atmospheric-forced coupled ocean-seaice model
-#####
-
-# Simplistic sea ice that ensure "no-cooling-fluxes" where `T < T_minimum`
-# to change with a thermodynamic sea-ice model
+# ## Sea Ice Model 
+#
+# This simulation includes a simplified representation of an ice cover where the air-sea fluxes are shut down whenever the 
+# sea surface temperature is below the freezing point. Only heating fluxes are allowed. This is by no means a sea ice model
+# but it allows to include atmosphere-ocean fluxes without having the temperature plummeting to - ∞.  
 
 sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
 
-# The complete coupled model
+# ## The Coupled Simulation
+#
+# Finally, we have everything it takes to define the coupled coupled, which includes the ocean, the atmosphere, and the radiation parameters.
+# The model is constructed using the `OceanSeaIceModel` constructor.
+#
+# We can then construct a coupled simulation. In this case we start with a time step of 1 second and run the simulation for 720 days.
+# We will eventually increase the time step size as the simulation progresses and the initialization shocks dissipate.
+#
+# We also define a callback function to monitor the progress of the simulation. This function prints the current time, iteration, time step,
+# as well as the maximum velocities and tracers in the domain. The wall time is also printed to monitor the time taken for each iteration.
 
-coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+coupled_model      = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+coupled_simulation = Simulation(coupled_model; Δt=10, stop_time = 720days)
 
 wall_time = [time_ns()]
 
-# We define a progress function that
-# shows the maximum values of velocity and temperature
-# to make sure everything proceedes as planned
-
 function progress(sim) 
-    u, v, w = sim.model.velocities  
-    T = sim.model.tracers.T
+    ocean = sim.model.ocean
+    u, v, w = ocean.model.velocities  
+    T = ocean.model.tracers.T
 
     Tmax = maximum(interior(T))
     Tmin = minimum(interior(T))
@@ -115,63 +141,73 @@ function progress(sim)
      wall_time[1] = time_ns()
 end
 
-ocean.callbacks[:progress] = Callback(progress, IterationInterval(10))
+coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
+
+# ## Set up Output Writers
+#
+# We define output writers to save the simulation data at regular intervals. 
+# In this case we save the surface fluxes, the surface fields, at a fairly high frequency (half a day)
+# and snapshots of the fields every 10 days.
+#
+# We also add a checkpoint writer to save the model state every 60 days, so that we can easily restart the simulation if needed.
 
 fluxes = (u = model.velocities.u.boundary_conditions.top.condition,
           v = model.velocities.v.boundary_conditions.top.condition,
           T = model.tracers.T.boundary_conditions.top.condition,
           S = model.tracers.S.boundary_conditions.top.condition)
 
-
 output_kwargs = (; overwrite_existing = true, array_type = Array{Float32})
 
-# We add a couple of outputs: the surface state every 12 hours, the surface fluxes
-# every 12 hours, and the whole state every ten days
+coupled_simulation.output_writers[:fluxes] = JLD2OutputWriter(model, fluxes;
+                                                              schedule = TimeInterval(0.5days),
+                                                              overwrite_existing = true,
+                                                              filename = "surface_fluxes",
+                                                              output_kwargs...)
 
-ocean.output_writers[:fluxes] = JLD2OutputWriter(model, fluxes;
-                                                  schedule = TimeInterval(0.5days),
-                                                  overwrite_existing = true,
-                                                  filename = "surface_fluxes",
-                                                  output_kwargs...)
+coupled_simulation.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, model.velocities);
+                                                               schedule = TimeInterval(0.5days),
+                                                               filename = "surface",
+                                                               indices = (:, :, grid.Nz),
+                                                               output_kwargs...)
 
-ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, model.velocities);
-                                                  schedule = TimeInterval(0.5days),
-                                                  filename = "surface",
-                                                  indices = (:, :, grid.Nz),
-                                                  output_kwargs...)
+coupled_simulation.output_writers[:snapshots] = JLD2OutputWriter(model, merge(model.tracers, model.velocities);
+                                                                 schedule = TimeInterval(10days),
+                                                                 filename = "snapshots",
+                                                                 output_kwargs...)
 
-ocean.output_writers[:snapshots] = JLD2OutputWriter(model, merge(model.tracers, model.velocities);
-                                                    schedule = TimeInterval(10days),
-                                                    filename = "snapshots",
-                                                    output_kwargs...)
+coupled_simulation.output_writers[:checkpoint] = Checkpointer(model;
+                                                              schedule = TimeInterval(60days),
+                                                              overwrite_existing = true,
+                                                              prefix = "checkpoint")
 
-# Checkpointer for restarting purposes
-ocean.output_writers[:checkpoint] = Checkpointer(model;
-                                                 schedule = TimeInterval(60days),
-                                                 overwrite_existing = true,
-                                                 prefix = "checkpoint")
+# ## Warming up the simulation!
+#
+# As an initial condition we have interpolated ECCO tracer fields on our custom grid.
+# Most likely the bathymetry of the original ECCO data is different than our grid, so the initialization of the velocity
+# field might lead to shocks if we use a large time step.
+#
+# Therefore, we warm up with a small time step to ensure that the interpolated initial conditions adapt to the model numerics and
+# parameterization without crashing. 30 days of integration with a maximum time step of 1.5 minutes should be enough to dissipate
+# spurious initialization shocks.
 
-#####
-##### Run the simulation!
-#####
-
-# warm up the simulation to ensure that the model adapts 
-# to the interpolated initial conditions without crashing
-
-ocean.Δt = 10
-ocean.stop_iteration = 1
+ocean.stop_time = 30days
 wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 90, max_change = 1.1)
 ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(1))
 
-# Finally, the coupled simulation!
-
-coupled_simulation = Simulation(coupled_model; Δt=1, stop_iteration=1) #stop_time = 20days)
-
 run!(coupled_simulation)
 
-#####
-##### Visualization
-#####
+# ## Running the simulation
+#
+# Now that the simulation has been warmed up, we can run it for the full year.
+# We increase the maximum time step size to 10 minutes and let the simulation run for 720 days.
+
+ocean.stop_time = 720days
+wizard = TimeStepWizard(; cfl = 0.25, max_Δt = 10minutes, max_change = 1.1)
+ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(1))
+
+# ## Visualizing the Results
+# 
+# after the simulation has finished, we can visualize the results.
 
 using CairoMakie
 
