@@ -24,7 +24,9 @@ to_be_literated = [
 
 for file in to_be_literated
     filepath = joinpath(EXAMPLES_DIR, file)
-    Literate.markdown(filepath, OUTPUT_DIR; flavor = Literate.DocumenterFlavor(), execute = true)
+    withenv("JULIA_DEBUG" => "Literate") do
+        Literate.markdown(filepath, OUTPUT_DIR; flavor = Literate.DocumenterFlavor(), execute = true)
+    end
 end
 
 #####
