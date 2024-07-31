@@ -20,6 +20,7 @@ using ClimaOcean
 using ClimaOcean.ECCO
 using ClimaOcean.OceanSimulations
 using ClimaOcean.OceanSeaIceModels
+using CairoMakie
 
 using CFTime
 using Dates
@@ -146,10 +147,7 @@ coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(1
 # ## Set up Output Writers
 #
 # We define output writers to save the simulation data at regular intervals. 
-# In this case we save the surface fluxes, the surface fields, at a fairly high frequency (half a day)
-# and snapshots of the fields every 10 days.
-#
-# We also add a checkpoint writer to save the model state every 60 days, so that we can easily restart the simulation if needed.
+# In this case we save the surface fluxes, and surface fields, at a fairly high frequency (half a day)
 
 fluxes = (u = model.velocities.u.boundary_conditions.top.condition,
           v = model.velocities.v.boundary_conditions.top.condition,
@@ -158,28 +156,17 @@ fluxes = (u = model.velocities.u.boundary_conditions.top.condition,
 
 output_kwargs = (; overwrite_existing = true, array_type = Array{Float32})
 
-coupled_simulation.output_writers[:fluxes] = JLD2OutputWriter(model, fluxes;
-                                                              schedule = TimeInterval(0.5days),
-                                                              overwrite_existing = true,
-                                                              filename = "surface_fluxes",
-                                                              output_kwargs...)
+ocean.output_writers[:fluxes] = JLD2OutputWriter(model, fluxes;
+                                                 schedule = TimeInterval(0.5days),
+                                                 overwrite_existing = true,
+                                                 filename = "surface_fluxes",
+                                                 output_kwargs...)
 
-coupled_simulation.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, model.velocities);
-                                                               schedule = TimeInterval(0.5days),
-                                                               filename = "surface",
-                                                               indices = (:, :, grid.Nz),
-                                                               output_kwargs...)
-
-coupled_simulation.output_writers[:snapshots] = JLD2OutputWriter(model, merge(model.tracers, model.velocities);
-                                                                 schedule = TimeInterval(10days),
-                                                                 filename = "snapshots",
-                                                                 output_kwargs...)
-
-coupled_simulation.output_writers[:checkpoint] = Checkpointer(model;
-                                                              schedule = TimeInterval(60days),
-                                                              overwrite_existing = true,
-                                                              prefix = "checkpoint")
-
+ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, model.velocities);
+                                                  schedule = TimeInterval(0.5days),
+                                                  filename = "surface",
+                                                  indices = (:, :, grid.Nz),
+                                                  output_kwargs...)
 # ## Warming up the simulation!
 #
 # As an initial condition we have interpolated ECCO tracer fields on our custom grid.
@@ -198,7 +185,7 @@ run!(coupled_simulation)
 
 # ## Running the simulation
 #
-# Now that the simulation has been warmed up, we can run it for the full year.
+# Now that the simulation has been warmed up, we can run it for the full two years.
 # We increase the maximum time step size to 10 minutes and let the simulation run for 720 days.
 
 ocean.stop_time = 720days
@@ -207,42 +194,47 @@ ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(1))
 
 # ## Visualizing the Results
 # 
-# after the simulation has finished, we can visualize the results.
+# The simulation has finished, let's visualize the results.
+# In this section we pull up the saved data and create visualizations using the CairoMakie.jl package.
+# In particular, we generate a video of the evolution of surface fields:
+# zonal velocity (u), meridional velocity (v), surface temperature (T), and turbulent kinetic energy (e)
 
-using CairoMakie
+u = FieldTimeSeries("surface.jld2", "u"; backend = OnDisk())
+v = FieldTimeSeries("surface.jld2", "v"; backend = OnDisk())
+T = FieldTimeSeries("surface.jld2", "T"; backend = OnDisk())
+e = FieldTimeSeries("surface.jld2", "e"; backend = OnDisk())
 
-u, v, w = model.velocities
-T, S, e = model.tracers
+iter = Observable(1)
 
-using Oceananigans.Models.HydrostaticFreeSurfaceModels: VerticalVorticityField
-
-ζ = VerticalVorticityField(model)
-s = Field(sqrt(u^2 + v^2))
-
-compute!(ζ)
-compute!(s)
-
-ζ = on_architecture(CPU(), ζ)
-s = on_architecture(CPU(), s)
-T = on_architecture(CPU(), T)
-e = on_architecture(CPU(), e)
+ui = @lift(interior(u[$iter], :, :, 1))
+vi = @lift(interior(u[$iter], :, :, 1))
+Ti = @lift(interior(u[$iter], :, :, 1))
+ei = @lift(interior(u[$iter], :, :, 1))
 
 fig = Figure(size = (1000, 800))
 
-ax = Axis(fig[1, 1], title = "Vertical vorticity [s⁻¹]")
-heatmap!(ax, interior(ζ, :, :, grid.Nz), colorrange = (-4e-5, 4e-5), colormap = :bwr)
+ax = Axis(fig[1, 1], title = "Zonal velocity [ms⁻¹]")
+heatmap!(ax, ui, colorrange = (-0.5, 0.5), colormap = :bwr)
 
-ax = Axis(fig[1, 2], title = "Surface speed [ms⁻¹]")
-heatmap!(ax, interior(s, :, :, grid.Nz), colorrange = (0, 0.5), colormap = :deep)
+ax = Axis(fig[1, 2], title = "Meridional velocity [ms⁻¹]")
+heatmap!(ax, vi, colorrange = (-0.5, 0.5), colormap = :bwr)
 
 ax = Axis(fig[2, 1], title = "Surface Temperature [Cᵒ]")
-heatmap!(ax, interior(T, :, :, grid.Nz), colorrange = (-1, 30), colormap = :magma)
+heatmap!(ax, Ti, colorrange = (-1, 30), colormap = :magma)
 
 ax = Axis(fig[2, 2], title = "Turbulent Kinetic Energy [m²s⁻²]")
-heatmap!(ax, interior(e, :, :, grid.Nz), colorrange = (0, 1e-3), colormap = :solar)
+heatmap!(ax, ei, colorrange = (0, 1e-3), colormap = :solar)
 
 save("near_global_ocean_surface.png", fig)
 nothing #hide
 
 # ![](near_global_ocean_surface.png)
+
+CairoMakie.record(fig, "near_global_ocean_surface.mp4", 1:length(u.times), framerate = 8) do i
+     @info "Generating frame $i of $(length(u.times))"
+     iter[] = i
+end
+nothing #hide
+
+# ![](near_global_ocean_surface.mp4)
 
