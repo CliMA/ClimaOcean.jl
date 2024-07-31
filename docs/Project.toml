@@ -1,6 +1,5 @@
 [deps]
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
-ClimaOcean = "0376089a-ecfe-4b0e-a64f-9c555d74d754"
 DataDeps = "124859b0-ceae-595e-8997-d05f6a7a8dfe"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 Literate = "98b081ad-f1c9-55d3-8b20-4c87d4299306"
