@@ -93,7 +93,7 @@ end
 
 withenv("GITHUB_REPOSITORY" => "CliMA/ClimaOceanDocumentation") do
     documenter_home = ENV["HOME"]
-    ENV["DOCUMENTER_KEY"] = readline("$HOME/.ssh/id_rsa")
+    ENV["DOCUMENTER_KEY"] = readline("$(documenter_home)/.ssh/id_rsa")
     deploydocs(        repo = "github.com/CliMA/ClimaOceanDocumentation.git",
                    versions = ["stable" => "v^", "v#.#.#", "dev" => "dev"],
                   forcepush = true,
