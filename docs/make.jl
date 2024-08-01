@@ -91,10 +91,12 @@ for file in files
     rm(file)
 end
 
-# withenv("GITHUB_REPOSITORY" => "CliMA/ClimaOceanDocumentation") do
+withenv("GITHUB_REPOSITORY" => "CliMA/ClimaOceanDocumentation") do
+    documenter_home = ENV["HOME"]
+    ENV["DOCUMENTER_KEY"] = readline("$HOME/.ssh/id_rsa")
     deploydocs(        repo = "github.com/CliMA/ClimaOceanDocumentation.git",
                    versions = ["stable" => "v^", "v#.#.#", "dev" => "dev"],
                   forcepush = true,
                   devbranch = "main",
                push_preview = true)
-# end
+end
