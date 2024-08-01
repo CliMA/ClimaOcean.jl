@@ -91,10 +91,10 @@ for file in files
     rm(file)
 end
 
-documenter_home = ENV["HOME"]
-ENV["DOCUMENTER_KEY"] = readline("$(documenter_home)/.ssh/id_rsa")
-deploydocs(        repo = "github.com/CliMA/ClimaOceanDocumentation.git",
-                versions = ["stable" => "v^", "v#.#.#", "dev" => "dev"],
-                forcepush = true,
-                devbranch = "main",
-            push_preview = true)
+withenv("GITHUB_REPOSITORY" => "CliMA/ClimaOceanDocumentation") do
+    deploydocs(        repo = "github.com/CliMA/ClimaOceanDocumentation.git",
+                   versions = ["stable" => "v^", "v#.#.#", "dev" => "dev"],
+                  forcepush = true,
+                  devbranch = "main",
+               push_preview = true)
+end
