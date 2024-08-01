@@ -1,4 +1,4 @@
-# Calculating surface fluxes with an ocean and an atmosphere
+# # Calculating surface fluxes with a prescribed ocean and an atmosphere
 #
 # ClimaOcean uses bulk formulae to estimate the surface exchange of momentum,
 # heat, and water vapor between the atmosphere and the ocean.
@@ -37,6 +37,7 @@ nothing #hide
 # ![](ecco_continents.png)
 
 # Next, we construct our atmosphere and ocean.
+#
 # The atmosphere is prescribed, downloaded from the JRA55 dataset.
 # It contains:
 # - zonal wind `u`
@@ -67,7 +68,7 @@ ocean = ocean_simulation(grid; momentum_advection = nothing,
 # our ocean with initial conditions. To do this, we can use the ECCO2 dataset by
 # `set!`ting the model with the `ECCOMetadata`. If no date is specified,
 # the fields corresponding to January 1st, 1992 (the first available date in
-# ECCO2) are used.
+# ECCO2 dataset) are used.
 # This command will download the fields to the local machine.
 
 set!(ocean.model;
@@ -91,13 +92,13 @@ coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 # Now that the surface fluxes are computed, we can extract and visualize them.
 # The turbulent fluxes are stored in `coupled_model.fluxes.turbulent`.
 # 
-# Qs = coupled_model.fluxes.turbulent.fields.sensible_heat : the sensible heat flux 
-# Ql = coupled_model.fluxes.turbulent.fields.latent_heat   : the latent heat flux 
-# τx = coupled_model.fluxes.turbulent.fields.x_momentum    : the zonal wind stress
-# τy = coupled_model.fluxes.turbulent.fields.y_momentum    : the meridional wind stress
-# Mv = coupled_model.fluxes.turbulent.fields.water_vapor   : evaporation
+# Qs = coupled_model.fluxes.turbulent.fields.sensible_heat : the sensible heat flux (in Wm⁻²)
+# Ql = coupled_model.fluxes.turbulent.fields.latent_heat   : the latent heat flux  (in Wm⁻²)
+# τx = coupled_model.fluxes.turbulent.fields.x_momentum    : the zonal wind stress (in Nm)
+# τy = coupled_model.fluxes.turbulent.fields.y_momentum    : the meridional wind stress (in Nm)
+# Mv = coupled_model.fluxes.turbulent.fields.water_vapor   : evaporation (in kg m⁻²s⁻¹)
 #
-# They are 3D fields with one point in the vertical. To extract the data, we use the 
+# They are 2D fields (3D data structures with one point in the vertical). To extract the data, we use the 
 # `interior` functionality from Oceananigans.
 
 turbulent_fluxes = coupled_model.fluxes.turbulent.fields
@@ -109,21 +110,21 @@ Ql = interior(turbulent_fluxes.latent_heat,   :, :, 1)
 Mv = interior(turbulent_fluxes.water_vapor,   :, :, 1)
 nothing
 
-fig = Figure()
+fig = Figure(size = (1500, 1500))
 
-ax = Axis(fig[1, 1], title = "Sensible heat flux")
+ax = Axis(fig[1, 1], title = "Sensible heat flux [Wm⁻²]")
 heatmap!(ax, Qs; colormap = :bwr)
 
-ax = Axis(fig[1, 2], title = "Latent heat flux")
+ax = Axis(fig[1, 2], title = "Latent heat flux [Wm⁻²]")
 heatmap!(ax, Ql; colormap = :bwr)
 
-ax = Axis(fig[2, 1], title = "Zonal wind stress")
+ax = Axis(fig[2, 1], title = "Zonal wind stress [Nm]")
 heatmap!(ax, τx; colormap = :bwr)
 
-ax = Axis(fig[2, 2], title = "Meridional wind stress")
+ax = Axis(fig[2, 2], title = "Meridional wind stress [Nm]")
 heatmap!(ax, τy; colormap = :bwr)
 
-ax = Axis(fig[3, 1], title = "Evaporation")
+ax = Axis(fig[3, 1], title = "Evaporation [kg m⁻²s⁻¹]")
 heatmap!(ax, Mv; colormap = :bwr)
 
 save("turbulent_fluxes.png", fig)

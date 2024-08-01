@@ -213,19 +213,23 @@ vi = @lift(interior(u[$iter], :, :, 1))
 Ti = @lift(interior(u[$iter], :, :, 1))
 ei = @lift(interior(u[$iter], :, :, 1))
 
-fig = Figure(size = (1000, 800))
+fig = Figure(size = (2000, 1500))
 
 ax = Axis(fig[1, 1], title = "Zonal velocity [ms⁻¹]")
 heatmap!(ax, ui, colorrange = (-0.5, 0.5), colormap = :bwr)
+hidedecorations!(ax)
 
 ax = Axis(fig[1, 2], title = "Meridional velocity [ms⁻¹]")
 heatmap!(ax, vi, colorrange = (-0.5, 0.5), colormap = :bwr)
+hidedecorations!(ax)
 
 ax = Axis(fig[2, 1], title = "Surface Temperature [Cᵒ]")
 heatmap!(ax, Ti, colorrange = (-1, 30), colormap = :magma)
+hidedecorations!(ax)
 
 ax = Axis(fig[2, 2], title = "Turbulent Kinetic Energy [m²s⁻²]")
 heatmap!(ax, ei, colorrange = (0, 1e-3), colormap = :solar)
+hidedecorations!(ax)
 
 save("near_global_ocean_surface.png", fig)
 nothing #hide
