@@ -66,6 +66,7 @@ function ocean_simulation(grid; Δt = 5minutes,
                           momentum_advection = default_momentum_advection(),
                           tracer_advection = default_tracer_advection(),
                           biogeochemistry = NoBiogeochemistry,
+                          tracers = (:T, :S),
                           boundary_conditions = NamedTuple(),
                           verbose = false)
 
@@ -102,10 +103,11 @@ function ocean_simulation(grid; Δt = 5minutes,
         momentum_advection = nothing
     end
 
-    tracers = (:T, :S)
+
     if closure isa CATKEVerticalDiffusivity
-        tracers = tuple(tracers..., :e)
-        tracer_advection = (; T = tracer_advection, S = tracer_advection, e = nothing)
+        tracers = tuple(tracers..., :e) 
+        tracer_advection = NamedTuple{typeof(tracers)}((get(tracers, i, tracer_advection) for i in 1:length(tracers))...)
+        tracer_advection = merge(tracer_advection, (e = nothing,))
     end
 
     ocean_model = HydrostaticFreeSurfaceModel(; grid,
