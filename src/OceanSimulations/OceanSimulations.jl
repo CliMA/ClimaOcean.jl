@@ -119,6 +119,7 @@ function ocean_simulation(grid; Δt = 5minutes,
                                               free_surface,
                                               coriolis,
                                               forcing,
+                                              biogeochemistry,
                                               boundary_conditions = ocean_boundary_conditions)
 
     ocean = Simulation(ocean_model; Δt, verbose)
