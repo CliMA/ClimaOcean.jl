@@ -1,4 +1,4 @@
-# # Calculating surface fluxes with a prescribed ocean and an atmosphere
+# # Surface fluxes from prescribed ocean and atmosphere
 #
 # ClimaOcean uses bulk formulae to estimate the surface exchange of momentum,
 # heat, and water vapor between the atmosphere and the ocean.
