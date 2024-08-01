@@ -182,7 +182,6 @@ ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, mo
 ocean.stop_time = 10days
 wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 90, max_change = 1.1)
 ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(1))
-
 run!(coupled_simulation)
 
 # ## Running the simulation
@@ -190,9 +189,10 @@ run!(coupled_simulation)
 # Now that the simulation has been warmed up, we can run it for the full two years.
 # We increase the maximum time step size to 10 minutes and let the simulation run for 720 days.
 
-ocean.stop_time = 720days
+ocean.stop_time = 100days
 wizard = TimeStepWizard(; cfl = 0.25, max_Δt = 15minutes, max_change = 1.1)
-ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(1))
+ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
+run!(coupled_simulation)
 
 # ## Visualizing the Results
 # 
