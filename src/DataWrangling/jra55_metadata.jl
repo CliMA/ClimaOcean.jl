@@ -30,7 +30,7 @@ end
 
 # Convenience functions
 short_name(data::JRA55Metadata)     = jra55_short_names[data.name]
-field_location(data::JRA55Metadata) = jra55_location[data.name]
+field_location(data::JRA55Metadata) = (Center, Center, Center)
 
 # A list of all variables provided in the JRA55 dataset:
 JRA55_variable_names = (:river_freshwater_flux,
@@ -91,7 +91,7 @@ field_time_series_short_names = Dict(
     :northward_velocity              => "va",  # Northward near-surface wind
 )
 
-urls = Dict(
+jra55_repeat_year_urls = Dict(
     :shortwave_radiation => "https://www.dropbox.com/scl/fi/z6fkvmd9oe3ycmaxta131/" *
                             "RYF.rsds.1990_1991.nc?rlkey=r7q6zcbj6a4fxsq0f8th7c4tc&dl=0",
 
@@ -135,9 +135,11 @@ urls = Dict(
 variable_is_three_dimensional(data::JRA55Metadata) = false
 
 # URLs for the JRA55 datasets specific to each version
-function urls(metadata::JRA55Metadata)
+function urls(metadata::Metadata{<:Any, <:JRA55MultipleYears})
     return "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/monthly/"
 end
+
+urls(metadata::Metadata{<:Any, <:JRA55RepeatYear}) = jra55_repeat_year_urls[metadata.name]
 
 function download_dataset!(metadata::JRA55Metadata;
                            url = urls(metadata))
@@ -147,7 +149,6 @@ function download_dataset!(metadata::JRA55Metadata;
         shortname = short_name(data)
 
         if !isfile(filename)
-            fileurl = joinpath(url, shortname, year, filename)
             download(url, filepath)
         end
     end
