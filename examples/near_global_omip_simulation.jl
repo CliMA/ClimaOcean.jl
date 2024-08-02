@@ -189,8 +189,8 @@ run!(coupled_simulation)
 # Now that the simulation has been warmed up, we can run it for the full two years.
 # We increase the maximum time step size to 10 minutes and let the simulation run for 720 days.
 
-ocean.stop_time = 100days
-wizard = TimeStepWizard(; cfl = 0.25, max_Δt = 15minutes, max_change = 1.1)
+ocean.stop_time = 60days
+wizard = TimeStepWizard(; cfl = 0.25, max_Δt = 10minutes, max_change = 1.1)
 ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 run!(coupled_simulation)
 
