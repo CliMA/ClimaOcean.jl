@@ -236,11 +236,11 @@ nothing #hide
 
 # ![](near_global_ocean_surface.png)
 
-CairoMakie.record(fig, "near_global_ocean_surface.mp4", 1:length(u.times), framerate = 8) do i
-     @info "Generating frame $i of $(length(u.times))"
-     iter[] = i
-end
-nothing #hide
+# CairoMakie.record(fig, "near_global_ocean_surface.mp4", 1:length(u.times), framerate = 8) do i
+#      @info "Generating frame $i of $(length(u.times))"
+#      iter[] = i
+# end
+# nothing #hide
 
-# ![](near_global_ocean_surface.mp4)
+# # ![](near_global_ocean_surface.mp4)
 
