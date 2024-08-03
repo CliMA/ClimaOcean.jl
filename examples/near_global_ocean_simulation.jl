@@ -60,7 +60,7 @@ bottom_height = retrieve_bathymetry(grid;
                                     interpolation_passes = 5,
                                     connected_regions_allowed = 2)
  
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true) 
+grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height)) 
 
 bathymetry = deepcopy(Array(interior(bottom_height, :, :, 1)))
 bathymetry[bathymetry .>= 0] .= NaN
