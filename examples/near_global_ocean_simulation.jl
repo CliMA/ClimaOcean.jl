@@ -29,7 +29,7 @@ using Dates
 # ### Grid Configuration 
 #
 # We define a global grid with a horizontal resolution of 1/4 degree and 40 vertical levels. 
-# The grid is a `TripolarGrid` with the north poles located at 55ᵒ N and 105ᵒ W and 105ᵒ E, respectively. 
+# The grid is a `LatitudeLongitudeGrid` capped at 75°S to 75°N.
 # We use an exponential vertical spacing to better resolve the upper ocean layers. The total depth of the domain is set to 6000 meters.
 # Finally, we specify the architecture for the simulation, which in this case is a GPU.
 
@@ -41,26 +41,26 @@ Nx = 1440
 Ny = 600
 Nz = length(z_faces) - 1
 
-grid = TripolarGrid(arch; 
-                    size = (Nx, Ny, Nz), 
-                    halo = (7, 7, 7), 
-                    z = z_faces, 
-                    first_pole_longitude = 75,
-                    north_poles_latitude = 55)
+grid = LatitudeLongitudeGrid(arch; 
+                             size = (Nx, Ny, Nz), 
+                             halo = (7, 7, 7), 
+                             z = z_faces, 
+                             latitude  = (-75, 75),
+                             longitude = (0, 360))
 
 # ### Bathymetry and Immersed Boundary
 #
 # We retrieve the bathymetry from the ETOPO1 data, ensuring a minimum depth of 10 meters (depths shallower than this are considered land).
 # The `interpolation_passes` parameter specifies the number of passes to interpolate the bathymetry data. A larger number 
 # results in a smoother bathymetry. We also remove all connected regions (such as inland lakes) from the bathymetry data by specifying
-# `connected_regions_allowed = 0` 
+# `connected_regions_allowed = 2` (Mediterrean sea an North sea in addition to the ocean) 
 
 bottom_height = retrieve_bathymetry(grid; 
                                     minimum_depth = 10,
                                     interpolation_passes = 5,
-                                    connected_regions_allowed = 0)
+                                    connected_regions_allowed = 2)
  
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height)) 
+grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true) 
 
 bathymetry = deepcopy(Array(interior(bottom_height, :, :, 1)))
 bathymetry[bathymetry .>= 0] .= NaN
