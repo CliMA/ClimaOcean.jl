@@ -25,7 +25,7 @@ using CairoMakie
 using CFTime
 using Dates
 
-# ## Grid Configuration 
+# ### Grid Configuration 
 #
 # We define a near-global grid from 75°S to 75°N with a horizontal resolution of 1/4 degree and 40 vertical levels. 
 # The grid is created using Oceananigans' `LatitudeLongitudeGrid`. We use an exponential vertical spacing to better resolve the upper ocean layers.
@@ -47,7 +47,7 @@ grid = LatitudeLongitudeGrid(arch;
                              longitude = (0, 360),
                              latitude = (-75, 75))
 
-# ## Bathymetry and Immersed Boundary
+# ### Bathymetry and Immersed Boundary
 #
 # We retrieve the bathymetry from the ETOPO1 data, ensuring a minimum depth of 10 meters (depths shallower than this are considered land).
 # The `interpolation_passes` parameter specifies the number of passes to interpolate the bathymetry data. A larger number 
@@ -62,7 +62,7 @@ bottom_height = retrieve_bathymetry(grid;
  
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height)) 
 
-# ## Ocean Model Configuration
+# ### Ocean Model Configuration
 #
 # To configure the ocean simulation, we use the `ocean_simulation` function from ClimaOcean.jl. This function allows us to build
 # an ocean simulation with default parameters and numerics. The defaults include:
@@ -85,7 +85,7 @@ set!(model,
      T = ECCOMetadata(:temperature; date),
      S = ECCOMetadata(:salinity;    date))
 
-# ## Prescribed Atmosphere and Radiation
+# ### Prescribed Atmosphere and Radiation
 #
 # The atmospheric data is prescribed using the JRA55 dataset, which is loaded into memory in 4 snapshots at a time.
 # The JRA55 dataset provides atmospheric data such as temperature, humidity, and wind fields to calculate turbulent fluxes
@@ -100,7 +100,7 @@ backend    = JRA55NetCDFBackend(4)
 atmosphere = JRA55_prescribed_atmosphere(arch; backend)
 radiation  = Radiation(arch)
 
-# ## Sea Ice Model 
+# ### Sea Ice Model 
 #
 # This simulation includes a simplified representation of ice cover where the air-sea fluxes are shut down whenever the 
 # sea surface temperature is below the freezing point. Only heating fluxes are allowed. This is not a full sea ice model,
@@ -145,7 +145,7 @@ end
 
 coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(500))
 
-# ## Set up Output Writers
+# ### Set up Output Writers
 #
 # We define output writers to save the simulation data at regular intervals. 
 # In this case, we save the surface fluxes and surface fields at a relatively high frequency (every half day).
@@ -169,7 +169,7 @@ ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, mo
                                                   indices = (:, :, grid.Nz),
                                                   output_kwargs...)
 
-# ## Warming Up the Simulation
+# ### Warming Up the Simulation
 #
 # As an initial condition, we have interpolated ECCO tracer fields onto our custom grid.
 # The bathymetry of the original ECCO data may differ from our grid, so the initialization of the velocity
@@ -184,7 +184,7 @@ wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 90, max_change = 1.1)
 ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 run!(coupled_simulation)
 
-# ## Running the simulation
+# ### Running the simulation
 #
 # Now that the simulation has been warmed up, we can run it for the full two years.
 # We increase the maximum time step size to 10 minutes and let the simulation run for 720 days.
