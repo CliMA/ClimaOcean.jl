@@ -56,11 +56,18 @@ grid = LatitudeLongitudeGrid(arch;
 
 bottom_height = retrieve_bathymetry(grid; 
                                     minimum_depth = 10,
-                                    dir = "./",
                                     interpolation_passes = 20,
                                     connected_regions_allowed = 0)
  
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height)) 
+
+fig = Figure()
+axis = Axis(fig[1, 1], title = "Bathymetry")
+heatmap!(axis, Array(bottom_height), colormap = :topo)
+save("bathymetry.png", fig)
+nothing #hide
+
+# ![](bathymetry.png)
 
 # ### Ocean Model Configuration
 #
@@ -84,6 +91,7 @@ date  = DateTimeProlepticGregorian(1993, 1, 1)
 set!(model, 
      T = ECCOMetadata(:temperature; date),
      S = ECCOMetadata(:salinity;    date))
+nothing #hide
 
 # ### Prescribed Atmosphere and Radiation
 #
@@ -99,6 +107,7 @@ set!(model,
 backend    = JRA55NetCDFBackend(4) 
 atmosphere = JRA55_prescribed_atmosphere(arch; backend)
 radiation  = Radiation(arch)
+nothing #hide
 
 # ### Sea Ice Model 
 #
@@ -107,6 +116,7 @@ radiation  = Radiation(arch)
 # but it prevents the temperature from dropping excessively low by including atmosphere-ocean fluxes.
 
 sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
+nothing #hide
 
 # ## The Coupled Simulation
 #
@@ -144,6 +154,7 @@ function progress(sim)
 end
 
 coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(500))
+nothing #hide
 
 # ### Set up Output Writers
 #
@@ -168,6 +179,7 @@ ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, mo
                                                   filename = "surface",
                                                   indices = (:, :, grid.Nz),
                                                   output_kwargs...)
+nothing #hide
 
 # ### Warming Up the Simulation
 #
@@ -183,6 +195,7 @@ ocean.stop_time = 10days
 wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 90, max_change = 1.1)
 ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 run!(coupled_simulation)
+nothing #hide
 
 # ### Running the simulation
 #
@@ -194,6 +207,7 @@ coupled_simulation.stop_time = 60days
 wizard = TimeStepWizard(; cfl = 0.25, max_Δt = 15minutes, max_change = 1.1)
 ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 run!(coupled_simulation)
+nothing #hide
 
 # ## Visualizing the Results
 # 

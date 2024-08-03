@@ -43,16 +43,21 @@ h_nolakes = regrid_bathymetry(grid; connected_regions_allowed = 0)
 land_smooth = interior(h_smooth) .>= 0
 interior(h_smooth)[land_smooth] .= NaN
 land_rough = interior(h_rough) .>= 0
-interior(h_rough)[land_rough] .= NaNxe
+interior(h_rough)[land_rough] .= NaN
 land_nolakes = interior(h_nolakes) .>= 0
 interior(h_nolakes)[land_nolakes] .= NaN
 
-fig = Figure(resolution=(2400, 800))
+fig = Figure(resolution=(1200, 400))
 ax = Axis(fig[1, 1])
 heatmap!(ax, λ, φ, interior(h_smooth,  :, :, 1), nan_color=:white) 
+
 ax = Axis(fig[1, 2])
 heatmap!(ax, λ, φ, interior(h_rough,   :, :, 1), nan_color=:white) 
+
 ax = Axis(fig[1, 3])
 heatmap!(ax, λ, φ, interior(h_nolakes, :, :, 1), nan_color=:white) 
 
-display(fig)
+save("different_bottom_heights.png", fig)
+nothing #hide
+
+# ![](different_bottom_heights.png) 
