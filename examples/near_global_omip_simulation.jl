@@ -158,13 +158,13 @@ fluxes = (u = model.velocities.u.boundary_conditions.top.condition,
 output_kwargs = (; overwrite_existing = true, array_type = Array{Float32})
 
 ocean.output_writers[:fluxes] = JLD2OutputWriter(model, fluxes;
-                                                 schedule = TimeInterval(0.5days),
+                                                 schedule = TimeInterval(1day),
                                                  overwrite_existing = true,
                                                  filename = "surface_fluxes",
                                                  output_kwargs...)
 
 ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, model.velocities);
-                                                  schedule = TimeInterval(0.5days),
+                                                  schedule = TimeInterval(1day),
                                                   filename = "surface",
                                                   indices = (:, :, grid.Nz),
                                                   output_kwargs...)
