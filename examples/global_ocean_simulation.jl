@@ -21,15 +21,16 @@ using ClimaOcean.ECCO
 using ClimaOcean.OceanSimulations
 using ClimaOcean.OceanSeaIceModels
 using CairoMakie
+using OrthogonalSphericalShellGrids
 
 using CFTime
 using Dates
 
 # ### Grid Configuration 
 #
-# We define a near-global grid from 75°S to 75°N with a horizontal resolution of 1/4 degree and 40 vertical levels. 
-# The grid is created using Oceananigans' `LatitudeLongitudeGrid`. We use an exponential vertical spacing to better resolve the upper ocean layers.
-# The total depth of the domain is set to 6000 meters.
+# We define a global grid with a horizontal resolution of 1/4 degree and 40 vertical levels. 
+# The grid is a `TripolarGrid` with the north poles located at 55ᵒ N and 105ᵒ W and 105ᵒ E, respectively. 
+# We use an exponential vertical spacing to better resolve the upper ocean layers. The total depth of the domain is set to 6000 meters.
 # Finally, we specify the architecture for the simulation, which in this case is a GPU.
 
 arch = GPU() 
@@ -40,30 +41,33 @@ Nx = 1440
 Ny = 600
 Nz = length(z_faces) - 1
 
-grid = LatitudeLongitudeGrid(arch; 
-                             size = (Nx, Ny, Nz), 
-                             halo = (7, 7, 7), 
-                             z = z_faces, 
-                             longitude = (0, 360),
-                             latitude = (-75, 75))
+grid = TripolarGrid(arch; 
+                    size = (Nx, Ny, Nz), 
+                    halo = (7, 7, 7), 
+                    z = z_faces, 
+                    first_pole_longitude = 75,
+                    north_poles_latitude = 55)
 
 # ### Bathymetry and Immersed Boundary
 #
 # We retrieve the bathymetry from the ETOPO1 data, ensuring a minimum depth of 10 meters (depths shallower than this are considered land).
 # The `interpolation_passes` parameter specifies the number of passes to interpolate the bathymetry data. A larger number 
 # results in a smoother bathymetry. We also remove all connected regions (such as inland lakes) from the bathymetry data by specifying
-# `connected_regions_allowed = 2` (on top of the global ocean: the Mediterranean and the north sea). 
+# `connected_regions_allowed = 0` 
 
 bottom_height = retrieve_bathymetry(grid; 
                                     minimum_depth = 10,
-                                    interpolation_passes = 20,
-                                    connected_regions_allowed = 2)
+                                    interpolation_passes = 5,
+                                    connected_regions_allowed = 0)
  
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height)) 
 
+bathymetry = deepcopy(Array(interior(bottom_height, :, :, 1)))
+bathymetry[bathymetry .>= 0] .= NaN
+
 fig = Figure(size = (800, 400))
 axis = Axis(fig[1, 1], title = "Bathymetry [m]")
-hm = heatmap!(axis, Array(interior(bottom_height, :, :, 1)), colormap = :deep, colorrange = (-6000, 0))
+hm = heatmap!(axis, bathymetry, colormap = :deep, colorrange = (-6000, 0))
 cb = Colorbar(fig[1, 2], hm)
 hidedecorations!(axis)
 
@@ -79,14 +83,15 @@ nothing #hide
 # - CATKE turbulence closure for vertical mixing, see [`CATKEVerticalDiffusivity`](@ref)
 # - WENO-based advection scheme for momentum in the vector invariant form, see [`WENOVectorInvariant`](@ref)
 # - WENO-based advection scheme for tracers, see [`WENO`](@ref)
-# - `SplitExplicitFreeSurfaceSolver` with a Courant number of 0.7, see [`SplitExplicitFreeSurface`](@ref)
+# - `SplitExplicitFreeSurfaceSolver` with 75 substeps, see [`SplitExplicitFreeSurface`](@ref)
 # - TEOS-10 equation of state, see [`TEOS10EquationOfState`](@ref)
 # - Quadratic bottom drag with a drag coefficient of 0.003
 #
 # The ocean model is then initialized with the ECCO2 temperature and salinity fields for January 1, 1993.
 
+free_surface = SplitExplicitFreeSurface(grid; substeps = 75)
 
-ocean = ocean_simulation(grid) 
+ocean = ocean_simulation(grid; free_surface) 
 model = ocean.model
 
 date  = DateTimeProlepticGregorian(1993, 1, 1)
@@ -94,6 +99,7 @@ date  = DateTimeProlepticGregorian(1993, 1, 1)
 set!(model, 
      T = ECCOMetadata(:temperature; date),
      S = ECCOMetadata(:salinity;    date))
+
 nothing #hide
 
 # ### Prescribed Atmosphere and Radiation
