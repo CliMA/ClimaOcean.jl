@@ -135,15 +135,15 @@ function progress(sim)
     step_time = 1e-9 * (time_ns() - wall_time[1])
 
     @info @sprintf("Time: %s, Iteration %d, Δt %s, max(vel): (%.2e, %.2e, %.2e), max(trac): %.2f, %.2f, wtime: %s \n",
-                   prettytime(sim.model.clock.time),
-                   sim.model.clock.iteration,
-                   prettytime(sim.Δt),
+                   prettytime(ocean.model.clock.time),
+                   ocean.model.clock.iteration,
+                   prettytime(ocean.Δt),
                    umax..., Tmax, Tmin, prettytime(step_time))
 
      wall_time[1] = time_ns()
 end
 
-coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
+coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(100))
 
 # ## Set up Output Writers
 #
@@ -181,7 +181,7 @@ ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, mo
 
 ocean.stop_time = 10days
 wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 90, max_change = 1.1)
-ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(1))
+ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 run!(coupled_simulation)
 
 # ## Running the simulation
@@ -206,14 +206,16 @@ v = FieldTimeSeries("surface.jld2", "v"; backend = OnDisk())
 T = FieldTimeSeries("surface.jld2", "T"; backend = OnDisk())
 e = FieldTimeSeries("surface.jld2", "e"; backend = OnDisk())
 
-iter = Observable(1)
+Nt = length(u.times)
+
+iter = Observable(Nt)
 
 ui = @lift(interior(u[$iter], :, :, 1))
 vi = @lift(interior(u[$iter], :, :, 1))
 Ti = @lift(interior(u[$iter], :, :, 1))
 ei = @lift(interior(u[$iter], :, :, 1))
 
-fig = Figure(size = (2000, 1500))
+fig = Figure(size = (1000, 750))
 
 ax = Axis(fig[1, 1], title = "Zonal velocity [ms⁻¹]")
 heatmap!(ax, ui, colorrange = (-0.5, 0.5), colormap = :bwr)
@@ -231,16 +233,11 @@ ax = Axis(fig[2, 2], title = "Turbulent Kinetic Energy [m²s⁻²]")
 heatmap!(ax, ei, colorrange = (0, 1e-3), colormap = :solar)
 hidedecorations!(ax)
 
-save("near_global_ocean_surface.png", fig)
+CairoMakie.record(fig, "near_global_ocean_surface.mp4", 1:length(u.times), framerate = 8) do i
+     @info "Generating frame $i of $(length(u.times))"
+     iter[] = i
+end
 nothing #hide
 
-# ![](near_global_ocean_surface.png)
-
-# CairoMakie.record(fig, "near_global_ocean_surface.mp4", 1:length(u.times), framerate = 8) do i
-#      @info "Generating frame $i of $(length(u.times))"
-#      iter[] = i
-# end
-# nothing #hide
-
-# # ![](near_global_ocean_surface.mp4)
+# ![](near_global_ocean_surface.mp4)
 
