@@ -212,9 +212,9 @@ Nt = length(u.times)
 iter = Observable(Nt)
 
 ui = @lift(interior(u[$iter], :, :, 1))
-vi = @lift(interior(u[$iter], :, :, 1))
-Ti = @lift(interior(u[$iter], :, :, 1))
-ei = @lift(interior(u[$iter], :, :, 1))
+vi = @lift(interior(v[$iter], :, :, 1))
+Ti = @lift(interior(T[$iter], :, :, 1))
+ei = @lift(interior(e[$iter], :, :, 1))
 
 fig = Figure(size = (1000, 750))
 
