@@ -13,14 +13,14 @@ using CairoMakie
 # We start by defining a gridded domain for the Mediterranean Sea using the `LatitudeLongitudeGrid` from Oceananigans. 
 # To have a reasonable resolution, we set a grid size to 1/25ᵒ of a degree in both latitude and longitude.
 #
-# The Mediterranean sea is positioned roughly between 25ᵒ and 50ᵒ latitude and -10ᵒ and 45ᵒ longitude.
+# The Mediterranean sea is positioned roughly between 28ᵒ and 48ᵒ latitude and 0ᵒ and 42ᵒ longitude.
 
-Nλ = 25 * 55
-Nφ = 25 * 25
+Nλ = 25 * 42
+Nφ = 25 * 20
 
 grid = LatitudeLongitudeGrid(size = (Nλ, Nφ, 1),
-                             latitude = (25, 50),
-                             longitude = (-10, 45),
+                             latitude = (28, 48),
+                             longitude = (0, 42),
                              z = (0, 1))
 
 # Next, we generate the bathymetry data for the Mediterranean Sea using the `regrid_bathymetry` function from ClimaOcean.
@@ -49,13 +49,13 @@ interior(h_nolakes)[land_nolakes] .= NaN
 
 fig = Figure(resolution=(1200, 400))
 ax = Axis(fig[1, 1])
-hm = heatmap!(ax, λ, φ, interior(h_smooth,  :, :, 1), nan_color=:white, colormap = :vermeer) 
+hm = heatmap!(ax, λ, φ, interior(h_smooth,  :, :, 1), nan_color=:white, colormap = :deep) 
 
 ax = Axis(fig[1, 2])
-hm = heatmap!(ax, λ, φ, interior(h_rough,   :, :, 1), nan_color=:white, colormap = :vermeer) 
+hm = heatmap!(ax, λ, φ, interior(h_rough,   :, :, 1), nan_color=:white, colormap = :deep) 
 
 ax = Axis(fig[1, 3])
-hm = heatmap!(ax, λ, φ, interior(h_nolakes, :, :, 1), nan_color=:white, colormap = :vermeer) 
+hm = heatmap!(ax, λ, φ, interior(h_nolakes, :, :, 1), nan_color=:white, colormap = :deep) 
 
 cb = Colorbar(fig[1, 4], hm, label="Depth [m]")
 

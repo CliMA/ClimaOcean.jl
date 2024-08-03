@@ -63,7 +63,7 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
 fig = Figure(size = (800, 400))
 axis = Axis(fig[1, 1], title = "Bathymetry [m]")
-hm = heatmap!(axis, Array(interior(bottom_height, :, :, 1)), colormap = :vermeer, colorrange = (-6000, 0))
+hm = heatmap!(axis, Array(interior(bottom_height, :, :, 1)), colormap = :deep, colorrange = (-6000, 0))
 cb = Colorbar(fig[1, 2], hm)
 hidedecorations!(axis)
 
