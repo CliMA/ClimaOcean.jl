@@ -10,17 +10,21 @@ using ClimaOcean
 using Oceananigans
 using CairoMakie
 
-# We start by defining a gridded domain for the Mediterranean Sea using the `LatitudeLongitudeGrid` from Oceananigans. 
-# To have a reasonable resolution, we set a grid size to 1/25ᵒ of a degree in both latitude and longitude.
+# We start by defining a gridded domain for the Mediterranean Sea using the `LatitudeLongitudeGrid` from Oceananigans.
 #
 # The Mediterranean sea is positioned roughly between 28ᵒ and 48ᵒ latitude and 0ᵒ and 42ᵒ longitude.
+# We define a grid in this region and to have a reasonable resolution, we set a grid resolution to 1/25ᵒ
+# in both latitude and longitude directions.
 
-Nλ = 25 * 42
-Nφ = 25 * 20
+latitude_range = (28, 48)
+longitude_range = (0, 42)
+
+Nφ = 25 * (latitude_range[2] - latitude_range[1])
+Nλ = 25 * (longitude_range[2] - longitude_range[1])
 
 grid = LatitudeLongitudeGrid(size = (Nλ, Nφ, 1),
-                             latitude = (28, 48),
-                             longitude = (0, 42),
+                             latitude = latitude_range,
+                             longitude = longitude_range,
                              z = (0, 1))
 
 # Next, we generate the bathymetry data for the Mediterranean Sea using the
@@ -48,8 +52,10 @@ nothing # hide
 
 land_smooth = interior(h_smooth) .>= 0
 interior(h_smooth)[land_smooth] .= NaN
+
 land_rough = interior(h_rough) .>= 0
 interior(h_rough)[land_rough] .= NaN
+
 land_nolakes = interior(h_nolakes) .>= 0
 interior(h_nolakes)[land_nolakes] .= NaN
 
