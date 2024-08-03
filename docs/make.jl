@@ -20,7 +20,7 @@ to_be_literated = [
     "generate_surface_fluxes.jl",
     # "single_column_simulation.jl",
     # "mediterranean_simulation_with_ecco_restoring.jl",
-    "near_global_omip_simulation.jl"
+    "global_ocean_simulation.jl"
 ]
 
 for file in to_be_literated
@@ -57,7 +57,7 @@ pages = [
         "Surface fluxes" => "literated/generate_surface_fluxes.md",
         # "Single column simulation" => "literated/single_column_simulation.md",
         # "Mediterranean simulation with ECCO restoring" => "literated/mediterranean_simulation_with_ecco_restoring.md",
-        "Near global Ocean simulation" => "literated/near_global_ocean_simulation.md",
+        "Global Ocean simulation" => "literated/global_ocean_simulation.md",
         ]
 ]
 
