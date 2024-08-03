@@ -114,23 +114,23 @@ fig = Figure(size = (1000, 2000))
 
 ax = Axis(fig[1, 1], title = "Sensible heat flux [Wm⁻²]")
 heatmap!(ax, Qs; colormap = :bwr)
-hidedecoration!(ax)
+hidedecorations!(ax)
 
 ax = Axis(fig[1, 2], title = "Latent heat flux [Wm⁻²]")
 heatmap!(ax, Ql; colormap = :bwr)
-hidedecoration!(ax)
+hidedecorations!(ax)
 
 ax = Axis(fig[2, 1], title = "Zonal wind stress [Nm]")
 heatmap!(ax, τx; colormap = :bwr)
-hidedecoration!(ax)
+hidedecorations!(ax)
 
 ax = Axis(fig[2, 2], title = "Meridional wind stress [Nm]")
 heatmap!(ax, τy; colormap = :bwr)
-hidedecoration!(ax)
+hidedecorations!(ax)
 
 ax = Axis(fig[3, 1], title = "Evaporation [kg m⁻²s⁻¹]")
 heatmap!(ax, Mv; colormap = :bwr)
-hidedecoration!(ax)
+hidedecorations!(ax)
 
 save("turbulent_fluxes.png", fig)
 nothing #hide
