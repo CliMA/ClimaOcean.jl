@@ -131,10 +131,10 @@ function progress(sim)
 
     Tmax = maximum(interior(T))
     Tmin = minimum(interior(T))
-    umax = maximum(interior(u)), maximum(interior(v)), maximum(interior(w))
+    umax = maximum(abs, interior(u)), maximum(abs, interior(v)), maximum(abs, interior(w))
     step_time = 1e-9 * (time_ns() - wall_time[1])
 
-    @info @sprintf("Time: %s, Iteration %d, Δt %s, max(vel): (%.2e, %.2e, %.2e), max(trac): %.2f, %.2f, wtime: %s \n",
+    @info @sprintf("Time: %s, Iteration %d, Δt %s, max(vel): (%.2e, %.2e, %.2e), max(T): %.2f, min(T): %.2f, wtime: %s \n",
                    prettytime(ocean.model.clock.time),
                    ocean.model.clock.iteration,
                    prettytime(ocean.Δt),
