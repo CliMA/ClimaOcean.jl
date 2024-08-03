@@ -49,13 +49,15 @@ interior(h_nolakes)[land_nolakes] .= NaN
 
 fig = Figure(resolution=(1200, 400))
 ax = Axis(fig[1, 1])
-heatmap!(ax, λ, φ, interior(h_smooth,  :, :, 1), nan_color=:white) 
+hm = heatmap!(ax, λ, φ, interior(h_smooth,  :, :, 1), nan_color=:white, colormap = :vermeer) 
 
 ax = Axis(fig[1, 2])
-heatmap!(ax, λ, φ, interior(h_rough,   :, :, 1), nan_color=:white) 
+hm = heatmap!(ax, λ, φ, interior(h_rough,   :, :, 1), nan_color=:white, colormap = :vermeer) 
 
 ax = Axis(fig[1, 3])
-heatmap!(ax, λ, φ, interior(h_nolakes, :, :, 1), nan_color=:white) 
+hm = heatmap!(ax, λ, φ, interior(h_nolakes, :, :, 1), nan_color=:white, colormap = :vermeer) 
+
+cb = Colorbar(fig[1, 4], hm, label="Depth [m]")
 
 save("different_bottom_heights.png", fig)
 nothing #hide

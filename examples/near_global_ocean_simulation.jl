@@ -52,18 +52,21 @@ grid = LatitudeLongitudeGrid(arch;
 # We retrieve the bathymetry from the ETOPO1 data, ensuring a minimum depth of 10 meters (depths shallower than this are considered land).
 # The `interpolation_passes` parameter specifies the number of passes to interpolate the bathymetry data. A larger number 
 # results in a smoother bathymetry. We also remove all connected regions (such as inland lakes) from the bathymetry data by specifying
-# `connected_regions_allowed = 0`.
+# `connected_regions_allowed = 2` (on top of the global ocean: the Mediterranean and the north sea). 
 
 bottom_height = retrieve_bathymetry(grid; 
                                     minimum_depth = 10,
                                     interpolation_passes = 20,
-                                    connected_regions_allowed = 0)
+                                    connected_regions_allowed = 2)
  
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height)) 
 
-fig = Figure()
-axis = Axis(fig[1, 1], title = "Bathymetry")
-heatmap!(axis, Array(bottom_height), colormap = :topo)
+fig = Figure(size = (800, 400))
+axis = Axis(fig[1, 1], title = "Bathymetry [m]")
+hm = heatmap!(axis, Array(interior(bottom_height, :, :, 1)), colormap = :vermeer, colorrange = (-6000, 0))
+cb = Colorbar(fig[1, 2], hm)
+hidedecorations!(axis)
+
 save("bathymetry.png", fig)
 nothing #hide
 
