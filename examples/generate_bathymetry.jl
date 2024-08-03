@@ -35,6 +35,7 @@ grid = LatitudeLongitudeGrid(size = (Nλ, Nφ, 1),
 h_rough   = regrid_bathymetry(grid)
 h_smooth  = regrid_bathymetry(grid; interpolation_passes = 40)
 h_nolakes = regrid_bathymetry(grid; connected_regions_allowed = 0)
+nothing # hide
 
 # Finally, we visualize the generated bathymetry data for the Mediterranean Sea using CairoMakie.
 
@@ -47,12 +48,12 @@ interior(h_rough)[land_rough] .= NaN
 land_nolakes = interior(h_nolakes) .>= 0
 interior(h_nolakes)[land_nolakes] .= NaN
 
-fig = Figure(resolution=(1200, 400))
+fig = Figure(resolution=(1400, 400))
 ax = Axis(fig[1, 1])
-hm = heatmap!(ax, λ, φ, interior(h_smooth,  :, :, 1), nan_color=:white, colormap = :deep) 
+hm = heatmap!(ax, λ, φ, interior(h_rough,   :, :, 1), nan_color=:white, colormap = :deep) 
 
 ax = Axis(fig[1, 2])
-hm = heatmap!(ax, λ, φ, interior(h_rough,   :, :, 1), nan_color=:white, colormap = :deep) 
+hm = heatmap!(ax, λ, φ, interior(h_smooth,  :, :, 1), nan_color=:white, colormap = :deep) 
 
 ax = Axis(fig[1, 3])
 hm = heatmap!(ax, λ, φ, interior(h_nolakes, :, :, 1), nan_color=:white, colormap = :deep) 
