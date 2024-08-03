@@ -143,7 +143,7 @@ function progress(sim)
      wall_time[1] = time_ns()
 end
 
-coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(100))
+coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(500))
 
 # ## Set up Output Writers
 #
