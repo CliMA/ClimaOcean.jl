@@ -76,7 +76,7 @@ text!(axS, 50, 50, text=depth_str, justification=:center, fontsize=24)
 stillframes = 10
 movingframes = Nz
 
-record(fig, "ECCO_temperature_salinity.gif", framerate=4) do io
+record(fig, "ECCO_temperature_salinity.mp4", framerate=4) do io
 
     [recordframe!(io) for _ = 1:stillframes]
 
@@ -94,4 +94,6 @@ record(fig, "ECCO_temperature_salinity.gif", framerate=4) do io
 
     [recordframe!(io) for _ = 1:stillframes]
 end
+nothing #hide
 
+# ![](ECCO_temperature_salinity.mp4)
