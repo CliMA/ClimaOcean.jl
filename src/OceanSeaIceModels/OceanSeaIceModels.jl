@@ -1,6 +1,6 @@
 module OceanSeaIceModels
 
-export OceanSeaIceModel, SimilarityTheoryTurbulentFluxes
+export OceanSeaIceModel, SimilarityTheoryTurbulentFluxes, Radiation
 
 using Oceananigans
 using SeawaterPolynomials
