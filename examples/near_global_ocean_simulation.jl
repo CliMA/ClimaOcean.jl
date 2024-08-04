@@ -223,7 +223,7 @@ Nt = length(u.times)
 iter = Observable(Nt)
 
 Ti = @lift begin
-     Ti = interior(T[$iter], :, :, 1))
+     Ti = interior(T[$iter], :, :, 1)
      Ti[Ti .== 0] .= NaN
      Ti
 end
@@ -249,58 +249,28 @@ si = @lift begin
      s
 end
 
-fig = Figure(size = (1000, 750))
+fig = Figure(size = (1000, 2800))
 
 ax = Axis(fig[1, 1], title = "Surface speed [ms⁻¹]")
 heatmap!(ax, si, colorrange = (0, 0.5), colormap = :deep)
 hidedecorations!(ax)
 
-CairoMakie.record(fig, "near_global_ocean_surface_speed.mp4", 1:length(u.times), framerate = 8) do i
-     @info "Generating frame $i of $(length(u.times))"
-     iter[] = i
-end
-nothing #hide
-
-# ![](near_global_ocean_surface_speed.mp4)
-
-fig = Figure(size = (1000, 750))
-
-ax = Axis(fig[1, 1], title = "Vertical velocity [ms⁻¹]")
+ax = Axis(fig[2, 1], title = "Vertical velocity [ms⁻¹]")
 heatmap!(ax, wi, colorrange = (-0.5e-3, 0.5e-3), colormap = :bwr)
 hidedecorations!(ax)
 
-CairoMakie.record(fig, "near_global_ocean_surface_vertical_velocity.mp4", 1:length(u.times), framerate = 8) do i
-     @info "Generating frame $i of $(length(u.times))"
-     iter[] = i
-end
-nothing #hide
-
-# ![](near_global_ocean_surface_vertical_velocity.mp4)
-
-fig = Figure(size = (1000, 750))
-
-ax = Axis(fig[1, 1], title = "Surface Temperature [Cᵒ]")
+ax = Axis(fig[3, 1], title = "Surface Temperature [Cᵒ]")
 heatmap!(ax, Ti, colorrange = (-1, 30), colormap = :magma)
 hidedecorations!(ax)
 
-CairoMakie.record(fig, "near_global_ocean_surface_temperature.mp4", 1:length(u.times), framerate = 8) do i
-     @info "Generating frame $i of $(length(u.times))"
-     iter[] = i
-end
-nothing #hide
-
-# ![](near_global_ocean_surface_temperature.mp4
-
-fig = Figure(size = (1000, 750))
-
-ax = Axis(fig[1, 1], title = "Turbulent Kinetic Energy [m²s⁻²]")
+ax = Axis(fig[4, 1], title = "Turbulent Kinetic Energy [m²s⁻²]")
 heatmap!(ax, ei, colorrange = (0, 1e-3), colormap = :solar)
 hidedecorations!(ax)
 
-CairoMakie.record(fig, "near_global_ocean_surface_tke.mp4", 1:length(u.times), framerate = 8) do i
+CairoMakie.record(fig, "near_global_ocean_surface.mp4", 1:length(u.times), framerate = 8) do i
      @info "Generating frame $i of $(length(u.times))"
      iter[] = i
 end
 nothing #hide
 
-# ![](near_global_ocean_surface_tke.mp4
+# ![](near_global_ocean_surface.mp4)

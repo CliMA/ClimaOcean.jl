@@ -59,18 +59,18 @@ interior(h_rough)[land_rough] .= NaN
 land_nolakes = interior(h_nolakes) .>= 0
 interior(h_nolakes)[land_nolakes] .= NaN
 
-fig = Figure(resolution=(1400, 400))
+fig = Figure(resolution=(850, 1150))
 
-ax = Axis(fig[1, 1])
-hm = heatmap!(ax, λ, φ, interior(h_rough, :, :, 1), nan_color=:white, colormap = :deep) 
+ax = Axis(fig[1, 1], title = "Rough bathymetry", xlabel = "Longitude", ylabel = "Latitude")
+hm = heatmap!(ax, λ, φ, - interior(h_rough, :, :, 1), nan_color=:white, colormap = Reverse(:deep))
 
-ax = Axis(fig[1, 2])
-hm = heatmap!(ax, λ, φ, interior(h_smooth, :, :, 1), nan_color=:white, colormap = :deep) 
+ax = Axis(fig[2, 1], title = "Smooth bathymetry", xlabel = "Longitude", ylabel = "Latitude")
+hm = heatmap!(ax, λ, φ, - interior(h_smooth, :, :, 1), nan_color=:white, colormap = Reverse(:deep))
 
-ax = Axis(fig[1, 3])
-hm = heatmap!(ax, λ, φ, interior(h_nolakes, :, :, 1), nan_color=:white, colormap = :deep) 
+ax = Axis(fig[3, 1], title = "Bathymetry without lakes}", xlabel = "Longitude", ylabel = "Latitude")
+hm = heatmap!(ax, λ, φ, - interior(h_nolakes, :, :, 1), nan_color=:white, colormap = Reverse(:deep))
 
-cb = Colorbar(fig[1, 4], hm, label="Depth [m]")
+cb = Colorbar(fig[1:3, 2], hm, height = Relative(3/4), label = "Depth [m]")
 
 save("different_bottom_heights.png", fig)
 nothing #hide
