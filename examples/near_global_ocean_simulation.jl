@@ -1,18 +1,17 @@
 # # Near-global Ocean Simulation
 #
-# This Julia script sets up and runs a near-global ocean simulation using the Oceananigans.jl and ClimaOcean.jl packages. 
+# The example sets up and runs a near-global ocean simulation using the Oceananigans.jl and ClimaOcean.jl packages.
 # The simulation covers latitudes from 75°S to 75°N with a horizontal resolution of 1/4 degree and 40 vertical levels. 
 #
-# The simulation runs for one year, and the results are visualized using the CairoMakie.jl package.
+# The ouptut of the simulation is visualized with the CairoMakie.jl package.
 #
 # ## Initial Setup with Package Imports
 #
-# The script begins by importing the necessary Julia packages for visualization (CairoMakie), 
-# ocean modeling (Oceananigans, ClimaOcean), and handling dates and times (CFTime, Dates). 
+# We begin by importing the necessary Julia packages for visualization (CairoMakie),
+# ocean modeling (Oceananigans, ClimaOcean), and handling dates and times (CFTime, Dates).
 # These packages provide the foundational tools for setting up the simulation environment, 
 # including grid setup, physical processes modeling, and data visualization.
 
-using Printf
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans: architecture, on_architecture
@@ -20,11 +19,11 @@ using ClimaOcean
 using ClimaOcean.ECCO
 using ClimaOcean.OceanSimulations
 using ClimaOcean.OceanSeaIceModels
-using CairoMakie
 using OrthogonalSphericalShellGrids
-
+using CairoMakie
 using CFTime
 using Dates
+using Printf
 
 # ### Grid Configuration 
 #
@@ -142,8 +141,9 @@ nothing #hide
 # We then create a coupled simulation, starting with a time step of 10 seconds and running the simulation for 10 days.
 # We will eventually increase the time step size and end time as the simulation progresses and initialization shocks dissipate.
 #
-# We also define a callback function to monitor the simulation's progress. This function prints the current time, iteration, time step,
-# as well as the maximum velocities and tracers in the domain. The wall time is also printed to monitor the time taken for each iteration.
+# We also define a callback function to monitor the simulation's progress. This function
+# outputs the current time, iteration, time step, as well as the maximum velocities and tracer
+# values in the domain. The wall time is also printed to monitor the time taken for each iteration.
 
 coupled_model      = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 coupled_simulation = Simulation(coupled_model; Δt=10, stop_time = 10days)
@@ -175,7 +175,8 @@ nothing #hide
 # ### Set up Output Writers
 #
 # We define output writers to save the simulation data at regular intervals. 
-# In this case, we save the surface fluxes and surface fields at a relatively high frequency (every half day).
+# In this case, we save the surface fluxes and surface fields at a relatively
+# high frequency (every 12 hours).
 
 fluxes = (u = model.velocities.u.boundary_conditions.top.condition,
           v = model.velocities.v.boundary_conditions.top.condition,
@@ -200,12 +201,13 @@ nothing #hide
 # ### Warming Up the Simulation
 #
 # As an initial condition, we have interpolated ECCO tracer fields onto our custom grid.
-# The bathymetry of the original ECCO data may differ from our grid, so the initialization of the velocity
-# field might cause shocks if a large time step is used.
+# The bathymetry of the original ECCO data may differ from our grid, so the initialization
+# of the velocity field might cause shocks if a large time step is used.
 #
-# Therefore, we warm up with a small time step to ensure that the interpolated initial conditions adapt to the model numerics and
-# parameterization without causing instability. A 30-day integration with a maximum time step of 1.5 minutes should be sufficient to dissipate
-# spurious initialization shocks.
+# Therefore, we start by a 'warm up', i.e., running the simulation with a small time step,
+# to ensure that the interpolated initial conditions adapt to the model numerics and
+# parameterization without causing instability. A 30-day integration with a maximum time step
+# of 90 seconds should be sufficient to dissipate spurious initialization shocks.
 
 ocean.stop_time = 10days
 wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 90, max_change = 1.1)
@@ -228,7 +230,7 @@ nothing #hide
 # ## Visualizing the Results
 # 
 # The simulation has finished, let's visualize the results.
-# In this section we pull up the saved data and create visualizations using the CairoMakie.jl package.
+# We first load the saved data and then create visualizations using the CairoMakie.jl package.
 # In particular, we generate a video of the evolution of surface fields:
 # zonal velocity (u), meridional velocity (v), surface temperature (T), and turbulent kinetic energy (e)
 
@@ -271,4 +273,3 @@ end
 nothing #hide
 
 # ![](near_global_ocean_surface.mp4)
-

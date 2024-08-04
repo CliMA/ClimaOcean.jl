@@ -455,7 +455,7 @@ function JRA55_field_time_series(variable_name;
 
     boundary_conditions = FieldBoundaryConditions(JRA55_native_grid, (Center, Center, Nothing))
     times = jra55_times(native_times)
-    
+
     if backend isa JRA55NetCDFBackend
         fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times;
                                                        backend,
@@ -534,7 +534,7 @@ function JRA55_field_time_series(variable_name;
     else
         copyto!(interior(fts, :, :, 1, :), new_data[:, :, :])
     end
-                     
+
     while n <= all_Nt
         print("        ... processing time index $n of $all_Nt \r")
 
@@ -626,7 +626,7 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
     Fsn = JRA55_field_time_series(:snow_freshwater_flux;            kw...)
     Ql  = JRA55_field_time_series(:downwelling_longwave_radiation;  kw...)
     Qs  = JRA55_field_time_series(:downwelling_shortwave_radiation; kw...)
-    
+
     freshwater_flux = (rain = Fra,
                        snow = Fsn)
 
@@ -648,7 +648,7 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
 
     tracers = (T = Ta,
                q = qa)
-                       
+
     pressure = pa
 
     downwelling_radiation = TwoBandDownwellingRadiation(shortwave=Qs, longwave=Ql)
@@ -669,4 +669,3 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
 end
 
 end # module
-
