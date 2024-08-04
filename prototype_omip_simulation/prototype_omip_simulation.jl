@@ -25,8 +25,6 @@ import ClimaOcean: stateindex
 using CFTime
 using Dates
 
-include("tripolar_specific_methods.jl")
-
 #####
 ##### Global Ocean at 1/6th of a degree
 #####

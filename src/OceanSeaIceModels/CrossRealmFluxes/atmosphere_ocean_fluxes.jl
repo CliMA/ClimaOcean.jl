@@ -1,3 +1,4 @@
+using Oceananigans.Operators: intrinsic_vector, extrinsic_vector
 
 #####
 ##### Surface flux computation
@@ -107,10 +108,6 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
 
     return nothing
 end
-
-# Fallback
-@inline extrinsic_vector(i, j, k, grid, uₒ, vₒ) = uₒ, vₒ
-@inline intrinsic_vector(i, j, k, grid, uₒ, vₒ) = uₒ, vₒ
 
 # Fallback!
 limit_fluxes_over_sea_ice!(args...) = nothing
