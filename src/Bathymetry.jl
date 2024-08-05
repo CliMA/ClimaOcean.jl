@@ -350,7 +350,7 @@ Retrieve the bathymetry data from a file or generate it using a grid and save it
 If the specified file exists, the function reads the bathymetry data from the file. 
 Otherwise, it generates the bathymetry data using the provided grid and saves it to the file before returning it.
 """
-function retrieve_bathymetry(grid, filename; kw...) 
+function retrieve_bathymetry(grid, filename=nothing; kw...) 
     
     if isfile(filename)
         bottom_height = jldopen(filename)["bathymetry"]

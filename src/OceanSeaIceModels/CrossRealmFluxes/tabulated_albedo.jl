@@ -107,11 +107,12 @@ Base.eltype(α::TabulatedAlbedo) = Base.eltype(α.S₀)
 @inline simulation_day(time::Time{<:Number})      = time.time ÷ 86400
 @inline seconds_in_day(time::Time{<:Number}, day) = time.time - day * 86400
 
-@inline function net_downwelling_radiation(i, j, grid, time, 
-                                           radiation::Radiation{<:Any, <:Any, <:SurfaceProperties{<:TabulatedAlbedo}}, 
-                                           Qs, Qℓ, ℵ) 
+const TR = Radiation{<:Any, <:Any, <:SurfaceProperties{<:TabulatedAlbedo}}
 
-    α = radiation.reflection.ocean * (1 - ℵ) + radiation.reflection.sea_ice * ℵ
+@inline net_downwelling_radiation(i, j, grid, time, radiation::TR, Qs, Qℓ, ::Nothing) =  
+    net_downwelling_radiation(i, j, grid, time, radiation, Qs, Qℓ, 0)
+
+@inline function net_downwelling_radiation(i, j, grid, time, radiation::TR, Qs, Qℓ, ℵ) 
 
     FT = eltype(α)
 
@@ -156,13 +157,13 @@ Base.eltype(α::TabulatedAlbedo) = Base.eltype(α.S₀)
     j⁻, j⁺, η = interpolator((abs(φ) - φ₁) / Δφ)
 
     # Bilinear interpolation!
-    α =  @inbounds ϕ₁(ξ, η) * getindex(α.α_table, i⁻, j⁻) +
-                   ϕ₂(ξ, η) * getindex(α.α_table, i⁻, j⁺) +
-                   ϕ₃(ξ, η) * getindex(α.α_table, i⁺, j⁻) +
-                   ϕ₄(ξ, η) * getindex(α.α_table, i⁺, j⁺)
+    α = @inbounds ϕ₁(ξ, η) * getindex(α.α_table, i⁻, j⁻) +
+                  ϕ₂(ξ, η) * getindex(α.α_table, i⁻, j⁺) +
+                  ϕ₃(ξ, η) * getindex(α.α_table, i⁺, j⁻) +
+                  ϕ₄(ξ, η) * getindex(α.α_table, i⁺, j⁺)
 
     ϵ = stateindex(radiation.emission.ocean, i, j, 1, grid, time) * (1 - ℵ) +
         stateindex(radiation.emission.sea_ice, i, j, 1, grid, time) * ℵ
-        
+
     return - (1 - α) * Qs - ϵ * Qℓ
 end
