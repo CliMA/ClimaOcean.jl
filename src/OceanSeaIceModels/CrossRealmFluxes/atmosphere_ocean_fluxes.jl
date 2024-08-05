@@ -267,7 +267,7 @@ end
 
 @kernel function _assemble_atmosphere_ocean_fluxes!(centered_velocity_fluxes,
                                                     net_tracer_fluxes,
-                                                    sea_ice_fluxes
+                                                    sea_ice_fluxes,
                                                     grid,
                                                     clock,
                                                     ocean_temperature,
