@@ -17,6 +17,7 @@ export
     JRA55_field_time_series,
     ecco_field, ECCOMetadata,
     ocean_simulation,
+    sea_ice_simulation,
     initialize!
 
 using Oceananigans
