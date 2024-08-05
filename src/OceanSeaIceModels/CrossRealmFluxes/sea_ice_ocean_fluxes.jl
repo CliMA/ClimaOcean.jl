@@ -2,9 +2,8 @@ using Oceananigans.Operators: Δzᶜᶜᶜ
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 
 function compute_sea_ice_ocean_fluxes!(coupled_model)
-    #compute_sea_ice_ocean_salinity_flux!(coupled_model)
-    # sea_ice_ocean_latent_heat_flux!(coupled_model)
-
+    compute_sea_ice_ocean_salinity_flux!(coupled_model)
+    sea_ice_ocean_latent_heat_flux!(coupled_model)
     return nothing
 end
 
@@ -21,15 +20,29 @@ function compute_sea_ice_ocean_salinity_flux!(coupled_model)
     Δt = ocean.Δt
     hⁿ = sea_ice.model.ice_thickness
     h⁻ = coupled_model.fluxes.previous_ice_thickness
+    ℵ  = sea_ice.model.ice_concentration
 
-    # launch!(arch, grid, :xy, _compute_sea_ice_ocean_salinity_flux!,
-    #         Qˢ, grid, hⁿ, h⁻, Sᵢ, Sₒ, Δt)
+    liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
+    ρₒ = coupled_model.fluxes.ocean_reference_density
+    cₒ = coupled_model.fluxes.ocean_heat_capacity
+    Qₒ = sea_ice.model.external_heat_fluxes.bottom
+    Tₒ = ocean.model.tracers.T
+    Δt = ocean.Δt
+
+    # What about the latent heat removed from the ocean when ice forms?
+    # Is it immediately removed from the ocean? Or is it stored in the ice?
+    launch!(arch, grid, :xy, _compute_sea_ice_ocean_salinity_flux!,
+            Qˢ, grid, ℵ, hⁿ, h⁻, Sᵢ, Sₒ, Δt)
+
+    launch!(arch, grid, :xyz, _compute_sea_ice_ocean_latent_heat_flux!,
+            Qₒ, grid, ℵ, hⁿ, Tₒ, Sₒ, ρₒ, cₒ, liquidus, Δt)
 
     return nothing
 end
 
 @kernel function _compute_sea_ice_ocean_salinity_flux!(sea_ice_ocean_salinity_flux,
                                                        grid,
+                                                       ice_concentration,
                                                        ice_thickness,
                                                        previous_ice_thickness,
                                                        ice_salinity,
@@ -44,6 +57,7 @@ end
     Qˢ = sea_ice_ocean_salinity_flux
     Sᵢ = ice_salinity
     Sₒ = ocean_salinity
+    ℵ  = ice_concentration
 
     @inbounds begin
         # Change in thickness
@@ -52,48 +66,16 @@ end
         # Update surface salinity flux.
         # Note: the Δt below is the ocean time-step, eg.
         # ΔS = ⋯ - ∮ Qˢ dt ≈ ⋯ - Δtₒ * Qˢ 
-        Qˢ[i, j, 1] = Δh / Δt * (Sᵢ[i, j, 1] - Sₒ[i, j, Nz])
+        Qˢ[i, j, 1] = ifelse(ℵ > 0, Δh / Δt * (Sᵢ[i, j, 1] - Sₒ[i, j, Nz]), Qˢ[i, j, 1])
 
         # Update previous ice thickness
         h⁻[i, j, 1] = hⁿ[i, j, 1]
     end
 end
 
-function sea_ice_ocean_latent_heat_flux!(coupled_model)
-    ocean = coupled_model.ocean
-    sea_ice = coupled_model.sea_ice
-    ρₒ = coupled_model.fluxes.ocean_reference_density
-    cₒ = coupled_model.fluxes.ocean_heat_capacity
-    Qₒ = sea_ice.model.external_heat_fluxes.bottom
-    Tₒ = ocean.model.tracers.T
-    Sₒ = ocean.model.tracers.S
-    Δt = ocean.Δt
-    hᵢ = sea_ice.model.ice_thickness
-
-    liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
-    grid = ocean.model.grid
-    arch = architecture(grid)
-
-    # What about the latent heat removed from the ocean when ice forms?
-    # Is it immediately removed from the ocean? Or is it stored in the ice?
-    launch!(arch, grid, :xy, _compute_sea_ice_ocean_latent_heat_flux!,
-            Qₒ, grid, hᵢ, Tₒ, Sₒ, liquidus, ρₒ, cₒ, Δt)
-
-    return nothing
-end
-
-#=
-function adjust_ice_covered_ocean_temperature!(coupled_model)
-    sea_ice_ocean_latent_heat_flux!(coupled_model)
-    sea_ice = coupled_model.sea_ice
-    Qₒ = sea_ice.model.external_heat_fluxes.bottom
-    parent(Qₒ) .= 0
-    return nothing
-end
-=#
-
 @kernel function _compute_sea_ice_ocean_latent_heat_flux!(latent_heat_flux,
                                                           grid,
+                                                          ice_concentration,
                                                           ice_thickness,
                                                           ocean_temperature,
                                                           ocean_salinity,
@@ -107,9 +89,10 @@ end
     hᵢ = ice_thickness
     Tₒ = ocean_temperature
     Sₒ = ocean_salinity
+    ℵ  = ice_concentration
 
     δQ = zero(grid)
-    icy_cell = @inbounds hᵢ[i, j, 1] > 0 # make ice bath approximation then
+    icy_cell = @inbounds ℵ[i, j, 1] > 0 # make ice bath approximation then
 
     for k = Nz:-1:1
         @inbounds begin
@@ -194,17 +177,11 @@ end
         Jᵀ = net_tracer_fluxes.T
         Jˢ = net_tracer_fluxes.S
 
-        sea_ice = ℵ[i, j, 1] > 0
-        cooling_sea_ice = sea_ice & (Jᵀ[i, j, 1] > 0)
+        icy_cell = ℵ[i, j, 1] > 0
+        cooling_sea_ice = icy_cell & (Jᵀ[i, j, 1] > 0)
 
-        # Don't allow the ocean to cool below the minimum temperature! (make sure it heats up though!)
-	    # On the other hand, assume all heating fluxes are due to solar radiation and 
-	    # multiply by a fictitious albedo
-	    Jᵀ[i, j, 1] = ifelse(cooling_sea_ice, zero(grid), Jᵀ[i, j, 1]) 
-        
         # If we are in a "sea ice" region we remove all fluxes
-        Jˢ[i, j, 1] = ifelse(sea_ice, zero(grid), Jˢ[i, j, 1])
-        Jᵘ[i, j, 1] = ifelse(sea_ice, Cᴰ * (uₒ[i, j, 1] - 𝒰ᵢ.u[i, j, 1]), Jᵘ[i, j, 1]) 
-        Jᵛ[i, j, 1] = ifelse(sea_ice, Cᴰ * (vₒ[i, j, 1] - 𝒰ᵢ.v[i, j, 1]), Jᵛ[i, j, 1]) 
+        Jᵘ[i, j, 1] = ifelse(icy_cell, Cᴰ * (uₒ[i, j, 1] - 𝒰ᵢ.u[i, j, 1]), Jᵘ[i, j, 1]) 
+        Jᵛ[i, j, 1] = ifelse(icy_cell, Cᴰ * (vₒ[i, j, 1] - 𝒰ᵢ.v[i, j, 1]), Jᵛ[i, j, 1]) 
     end
 end

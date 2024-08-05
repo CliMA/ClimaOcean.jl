@@ -25,8 +25,6 @@ import ClimaOcean: stateindex
 using CFTime
 using Dates
 
-include("tripolar_specific_methods.jl")
-
 #####
 ##### Global Ocean at 1/6th of a degree
 #####
@@ -40,7 +38,7 @@ Nx = 2160
 Ny = 1080
 Nz = length(z_faces) - 1
 
-arch = GPU() #Distributed(GPU(), partition = Partition(2))
+arch = GPU() 
 
 grid = TripolarGrid(arch; 
                     size = (Nx, Ny, Nz), 

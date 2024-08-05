@@ -22,13 +22,10 @@ using ClimaOcean.Bathymetry
 using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: LatitudeDependentAlbedo
 using ClimaSeaIce.SeaIceDynamics: ExplicitMomentumSolver
 using CairoMakie
-
-import ClimaOcean: stateindex
-
 using CFTime
 using Dates
 
-include("tripolar_specific_methods.jl")
+include("restoring_mask.jl")
 
 #####
 ##### Global Ocean at 1/6th of a degree
@@ -39,11 +36,11 @@ bathymetry_file = nothing # "bathymetry_tmp.jld2"
 # 60 vertical levels
 z_faces = exponential_z_faces(Nz=20, depth=4000)
 
-Nx = 1000
-Ny = 800
+Nx = 300
+Ny = 200
 Nz = length(z_faces) - 1
 
-arch = GPU() #Distributed(GPU(), partition = Partition(2))
+arch = CPU() 
 
 grid = TripolarGrid(arch; 
                     size = (Nx, Ny, Nz), 
@@ -71,41 +68,6 @@ grid         = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 sea_ice_grid = ImmersedBoundaryGrid(sea_ice_grid, GridFittedBottom(bottom_height)) 
 
 #####
-##### Restoring mask
-#####
-
-# Build a mask that goes from 0 to 1 as a cubic function of φ between
-# 50 degrees and 30 degrees and zero derivatives at 50 and 30.
-x₁ = 50
-x₂ = 30
-y₁ = 0
-y₂ = 1
-
-A⁺ = [ x₁^3   x₁^2  x₁ 1
-       x₂^3   x₂^2  x₂ 1
-       3*x₁^2 2*x₁  1  0
-       3*x₂^2 2*x₂  1  0]
-           
-b⁺ = [y₁, y₂, 0, 0]
-c⁺ = A⁺ \ b⁺
-
-# Coefficients for the cubic mask
-const c₁⁺ = c⁺[1]
-const c₂⁺ = c⁺[2]
-const c₃⁺ = c⁺[3]
-const c₄⁺ = c⁺[4]
-
-const c₁⁻ = - c⁺[1]
-const c₂⁻ = c⁺[2]
-const c₃⁻ = - c⁺[3]
-const c₄⁻ = c⁺[4]
-
-@inline mask_f(λ, φ, z) = ifelse(φ <=  50, c₁⁺ * φ^3 + c₂⁺ * φ^2 + c₃⁺ * φ + c₄⁺, zero(eltype(φ)))
-
-mask = CenterField(grid)
-set!(mask, mask_f)
-
-#####
 ##### The Ocean component
 #####                             
 
@@ -116,8 +78,8 @@ dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGre
 temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
 salinity    = ECCOMetadata(:salinity,    dates, ECCO4Monthly())
 
-FT = ECCO_restoring_forcing(temperature; mask, grid, architecture = arch, timescale = 30days)
-FS = ECCO_restoring_forcing(salinity;    mask, grid, architecture = arch, timescale = 30days)
+FT = ECCO_restoring_forcing(temperature; mask = cubic_restoring_mask(50, 30), grid, architecture = arch, timescale = 30days)
+FS = ECCO_restoring_forcing(salinity;    mask = cubic_restoring_mask(50, 30), grid, architecture = arch, timescale = 30days)
 
 forcing = (; T = FT, S = FS)
 
@@ -143,9 +105,8 @@ sea_ice = SeaIceModel(sea_ice_grid;
                       top_u_stress = τuₐ,
                       top_v_stress = τvₐ,
                       ocean_velocities,
-                      ice_dynamics,
-                      advection = WENO(; order = 7),
-                      ice_thermodynamics = nothing) # We are building this part
+                      ice_dynamics = nothing,
+                      advection = nothing) 
 
 ice_thickness     = ECCOMetadata(:sea_ice_thickness,     dates[1], ECCO4Monthly())
 ice_concentration = ECCOMetadata(:sea_ice_area_fraction, dates[1], ECCO4Monthly())
