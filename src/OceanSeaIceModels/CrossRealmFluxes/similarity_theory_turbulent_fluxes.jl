@@ -197,7 +197,7 @@ end
 #####
 
 """
-    LogarthmicSimilarityProfile()
+    LogarithmicSimilarityProfile()
 
 Represents the classic Monin-Obukhov similarity profile, which finds that 
 
@@ -216,12 +216,12 @@ which is a logarithmic profile adjusted by the stability function ``ψ`` and dep
 the Monin-Obukhov length ``L`` and the roughness length ``ℓ``.
 """
 struct LogarithmicSimilarityProfile end
-struct COARELogarthmicSimilarityProfile end
+struct COARELogarithmicSimilarityProfile end
 
-@inline similarity_profile(::LogarthmicSimilarityProfile, ψ, h, ℓ, L) =
+@inline similarity_profile(::LogarithmicSimilarityProfile, ψ, h, ℓ, L) =
     log(h / ℓ) - ψ(h / L) + ψ(ℓ / L)
 
-@inline similarity_profile(::COARELogarthmicSimilarityProfile, ψ, h, ℓ, L) =
+@inline similarity_profile(::COARELogarithmicSimilarityProfile, ψ, h, ℓ, L) =
     log(h / ℓ) - ψ(h / L)
 
 #####
