@@ -26,6 +26,7 @@ using CFTime
 using Dates
 
 include("restoring_mask.jl")
+include("simulation_output.jl")
 
 #####
 ##### Global Ocean at 1/6th of a degree
