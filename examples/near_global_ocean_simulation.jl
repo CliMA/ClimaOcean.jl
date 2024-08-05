@@ -250,29 +250,55 @@ si = @lift begin
      s
 end
 
-fig = Figure(size = (850, 1650))
 
+fig = Figure(size = (800, 400))
 ax = Axis(fig[1, 1], title = "Surface speed [ms⁻¹]")
 heatmap!(ax, si, colorrange = (0, 0.5), colormap = :deep)
 hidedecorations!(ax)
 
-ax = Axis(fig[2, 1], title = "Vertical velocity [ms⁻¹]")
+CairoMakie.record(fig, "near_global_ocean_surface_s.mp4", 1:Nt, framerate = 8) do i
+     @info "Generating frame $i of $Nt"
+     iter[] = i
+end
+nothing #hide
+ 
+ # ![](near_global_ocean_surface_s.mp4)
+ 
+fig = Figure(size = (800, 400))
+ax = Axis(fig[1, 1], title = "Vertical velocity [ms⁻¹]")
 heatmap!(ax, wi, colorrange = (-5e-4, 5e-4), colormap = :bwr)
 hidedecorations!(ax)
 
-ax = Axis(fig[3, 1], title = "Surface Temperature [Cᵒ]")
+CairoMakie.record(fig, "near_global_ocean_surface_w.mp4", 1:Nt, framerate = 8) do i
+     @info "Generating frame $i of $Nt"
+     iter[] = i
+end 
+nothing #hide
+ 
+# ![](near_global_ocean_surface_w.mp4)
+ 
+fig = Figure(size = (800, 400))
+ax = Axis(fig[1, 1], title = "Surface Temperature [Cᵒ]")
 heatmap!(ax, Ti, colorrange = (-1, 30), colormap = :magma)
 hidedecorations!(ax)
 
-ax = Axis(fig[4, 1], title = "Turbulent Kinetic Energy [m²s⁻²]")
+CairoMakie.record(fig, "near_global_ocean_surface_T.mp4", 1:Nt, framerate = 8) do i
+     @info "Generating frame $i of $Nt"
+     iter[] = i
+end
+nothing #hide
+ 
+# ![](near_global_ocean_surface_T.mp4)
+
+fig = Figure(size = (800, 400))
+ax = Axis(fig[1, 1], title = "Turbulent Kinetic Energy [m²s⁻²]")
 heatmap!(ax, ei, colorrange = (0, 1e-3), colormap = :solar)
 hidedecorations!(ax)
 
-CairoMakie.record(fig, "near_global_ocean_surface.mp4", 1:Nt, framerate = 8) do i
-    @info "Generating frame $i of $Nt"
-    iter[] = i
+CairoMakie.record(fig, "near_global_ocean_surface_e.mp4", 1:Nt, framerate = 8) do i
+     @info "Generating frame $i of $Nt"
+     iter[] = i
 end
-
 nothing #hide
-
-# ![](near_global_ocean_surface.mp4)
+ 
+# ![](near_global_ocean_surface_e.mp4)
