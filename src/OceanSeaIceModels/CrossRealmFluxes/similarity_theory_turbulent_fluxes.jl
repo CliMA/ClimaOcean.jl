@@ -39,7 +39,7 @@ struct SimilarityTheoryTurbulentFluxes{FT, UF, TP, S, W, R, B, V, F}
     water_vapor_saturation :: S      # model for computing the saturation water vapor mass
     water_mole_fraction :: W         # mole fraction of H₂O in seawater
     roughness_lengths :: R           # parameterization for turbulent fluxes
-    similarity_profile_type :: B     # ?
+    similarity_profile_type :: B     # similarity profile relating atmosphere to surface state
     bulk_velocity :: V               # bulk velocity scale for turbulent fluxes
     tolerance :: FT                  # solver option
     maxiter :: Int                   # solver option
