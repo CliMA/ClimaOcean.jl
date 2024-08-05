@@ -39,7 +39,7 @@ struct SimilarityTheoryTurbulentFluxes{FT, UF, TP, S, W, R, B, V, F}
     water_vapor_saturation :: S      # model for computing the saturation water vapor mass
     water_mole_fraction :: W         # mole fraction of H₂O in seawater
     roughness_lengths :: R           # parameterization for turbulent fluxes
-    bulk_coefficients :: B           # ?
+    similarity_profile_type :: B     # similarity profile relating atmosphere to surface state
     bulk_velocity :: V               # bulk velocity scale for turbulent fluxes
     tolerance :: FT                  # solver option
     maxiter :: Int                   # solver option
@@ -64,7 +64,7 @@ Adapt.adapt_structure(to, fluxes::STTF) = SimilarityTheoryTurbulentFluxes(adapt(
                                                                           adapt(to, fluxes.water_vapor_saturation),
                                                                           adapt(to, fluxes.water_mole_fraction),
                                                                           adapt(to, fluxes.roughness_lengths),
-                                                                          adapt(to, fluxes.bulk_coefficients),
+                                                                          adapt(to, fluxes.similarity_profile_type),
                                                                           adapt(to, fluxes.bulk_velocity),
                                                                           fluxes.tolerance,
                                                                           fluxes.maxiter,
@@ -91,7 +91,7 @@ function Base.show(io::IO, fluxes::SimilarityTheoryTurbulentFluxes)
           "├── water_mole_fraction: ",             summary(fluxes.water_mole_fraction), '\n',
           "├── water_vapor_saturation: ",          summary(fluxes.water_vapor_saturation), '\n',
           "├── roughness_lengths: ",               summary(fluxes.roughness_lengths), '\n',
-          "├── bulk_coefficients: ",               summary(fluxes.bulk_coefficients), '\n',
+          "├── similarity_profile_type: ",         summary(fluxes.similarity_profile_type), '\n',
           "└── thermodynamics_parameters: ",       summary(fluxes.thermodynamics_parameters))
 end
 
@@ -114,7 +114,7 @@ struct RelativeVelocity end
                                     water_vapor_saturation = ClasiusClapyeronSaturation(),
                                     water_mole_fraction = convert(FT, 0.98),
                                     roughness_lengths = default_roughness_lengths(FT),
-                                    bulk_coefficients = bulk_coefficients,
+                                    similarity_profile_type = LogarithmicSimilarityProfile(),
                                     bulk_velocity = RelativeVelocity(),
                                     tolerance = 1e-8,
                                     maxiter = 100,
@@ -140,7 +140,8 @@ Keyword Arguments
                          Default: 0.98, the rest is assumed to be other substances such as chlorine, sodium sulfide and magnesium.
 - `roughness_lengths`: The roughness lengths used to calculate the characteristic scales for momentum, temperature and 
                        water vapor. Default: default_roughness_lengths(FT), formulation taken from Edson et al (2013).
-- `bulk_coefficients`: The bulk coefficients.
+- `similarity_profile_type`: The type of similarity profile used to relate the atmospheric state to the 
+                             surface fluxes / characteristic scales.
 - `bulk_velocity`: The velocity used to calculate the characteristic scales. Default: RelativeVelocity() (difference between
                    atmospheric and oceanic speed).
 - `tolerance`: The tolerance for convergence (default: 1e-8).
@@ -157,7 +158,7 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                          water_vapor_saturation = ClasiusClapyeronSaturation(),
                                          water_mole_fraction = convert(FT, 0.98),
                                          roughness_lengths = default_roughness_lengths(FT),
-                                         bulk_coefficients = bulk_coefficients,
+                                         similarity_profile_type = LogarithmicSimilarityProfile(),
                                          bulk_velocity = RelativeVelocity(),
                                          tolerance = 1e-8,
                                          maxiter = 100,
@@ -172,7 +173,7 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                            water_vapor_saturation,
                                            water_mole_fraction,
                                            roughness_lengths,
-                                           bulk_coefficients,
+                                           similarity_profile_type,
                                            bulk_velocity,
                                            convert(FT, tolerance), 
                                            maxiter,
@@ -191,11 +192,37 @@ function SimilarityTheoryTurbulentFluxes(grid::AbstractGrid; kw...)
     return SimilarityTheoryTurbulentFluxes(eltype(grid); kw..., fields)
 end
 
-# Simplified coefficient a la COARE 
-@inline simplified_bulk_coefficients(ψ, h, ℓ, L) = log(h / ℓ) - ψ(h / L) # + ψ(ℓ / L)
+#####
+##### Similarity profile types
+#####
 
-# The complete bulk coefficient
-@inline bulk_coefficients(ψ, h, ℓ, L) = log(h / ℓ) - ψ(h / L) + ψ(ℓ / L)
+"""
+    LogarthmicSimilarityProfile()
+
+Represents the classic Monin-Obukhov similarity profile, which finds that 
+
+```math
+ϕ(z) = Π(z) ϕ★ / ϰ
+```
+
+where ``ϰ`` is the Von Karman constant, ``ϕ★`` is the characteristic scale for ``ϕ``,
+and ``Π`` is the "similarity profile",
+
+```math
+Π(h) = log(h / ℓ) - ψ(h / L) + ψ(ℓ / L)
+```
+
+which is a logarithmic profile adjusted by the stability function ``ψ`` and dependent on
+the Monin-Obukhov length ``L`` and the roughness length ``ℓ``.
+"""
+struct LogarthmicSimilarityProfile end
+struct COARELogarthmicSimilarityProfile end
+
+@inline similarity_profile(::LogarthmicSimilarityProfile, ψ, h, ℓ, L) =
+    log(h / ℓ) - ψ(h / L) + ψ(ℓ / L)
+
+@inline similarity_profile(::COARELogarthmicSimilarityProfile, ψ, h, ℓ, L) =
+    log(h / ℓ) - ψ(h / L)
 
 #####
 ##### Fixed-point iteration for roughness length
@@ -220,23 +247,22 @@ end
 
     differences = (; u=Δu, v=Δv, θ=Δθ, q=Δq, h=Δh)
     
-    u★ = convert(eltype(Δh), 1e-4)
-
     # Initial guess for the characteristic scales u★, θ★, q★.
     # Does not really matter if we are sophisticated or not, it converges 
     # in about 10 iterations no matter what...
-    Σ₀ = SimilarityScales(1, 1, 1)
+    u★ = convert(eltype(Δh), 1e-4)
     Σ★ = SimilarityScales(u★, u★, u★) 
 
     # The inital velocity scale assumes that
     # the gustiness velocity `Uᴳ` is equal to 0.5 ms⁻¹. 
     # That will be refined later on.
     FT = eltype(Δh)
-    Uᴳᵢ = convert(FT, 0.5^2)
-    ΔU = sqrt(Δu^2 + Δv^2 + Uᴳᵢ)
+    Uᴳᵢ² = convert(FT, 0.5^2)
+    ΔU = sqrt(Δu^2 + Δv^2 + Uᴳᵢ²)
 
     # Initialize the solver
     iteration = 0
+    Σ₀ = Σ★
 
     while iterating(Σ★ - Σ₀, iteration, maxiter, similarity_theory)
         Σ₀ = Σ★
@@ -283,21 +309,49 @@ end
 
 # Iterating condition for the characteristic scales solvers
 @inline function iterating(Σ★, iteration, maxiter, solver)
-    converged = norm(Σ★) <= solver.tolerance
-    reached_maxiter = iteration >= maxiter 
-    return !(converged | reached_maxiter)
+    havent_started = iteration == 0
+    not_converged = norm(Σ★) > solver.tolerance
+    havent_reached_maxiter = iteration < maxiter
+    return havent_started | not_converged | havent_reached_maxiter
 end
 
-# The M-O characteristic length is calculated as
-#  L★ = - u★² / (κ ⋅ b★)
-# where b★ is the characteristic buoyancy scale calculated from:
+"""
+    buoyancy_scale(θ★, q★, 𝒬, ℂ, g)
+
+Return the characteristic buoyancy scale `b★` associated with
+the characteristic temperature `θ★`, specific humidity scale `q★`,
+near-surface atmospheric thermodynamic state `𝒬`, thermodynamic
+parameters `ℂ`, and gravitational acceleration `g`.
+
+The buoyancy scale is defined in terms of the surface buoyancy flux,
+
+```math
+u★ b★ ≡ w′b′,
+```
+
+where `u★` is the friction velocity.
+Using the definition of buoyancy for non-condensing air, we find that
+
+```math
+b★ = g / 𝒯ₐ * (θ★ * (1 + δ * qₐ) + δ * 𝒯ₐ * q★),
+```
+where ``𝒯ₐ`` is the virtual temperature of the atmosphere near the surface,
+and ``δ = Rᵥ / R_d - 1``, where ``Rᵥ`` is the molar mass of water vapor and
+``R_d`` is the molar mass of dry air.
+
+Note that the Monin-Obukhov characteristic length scale is defined
+in terms of `b★` and additionally the Von Karman constant `ϰ`,
+
+```math
+L★ = - u★² / ϰ b★ .
+```
+"""
 @inline function buoyancy_scale(θ★, q★, 𝒬, ℂ, g)
     𝒯ₐ = AtmosphericThermodynamics.virtual_temperature(ℂ, 𝒬)
     qₐ = AtmosphericThermodynamics.vapor_specific_humidity(ℂ, 𝒬)
     ε  = AtmosphericThermodynamics.Parameters.molmass_ratio(ℂ)
     δ  = ε - 1 # typically equal to 0.608
 
-    # Fairell et al. 1996, 
     b★ = g / 𝒯ₐ * (θ★ * (1 + δ * qₐ) + δ * 𝒯ₐ * q★)
 
     return b★
@@ -358,16 +412,15 @@ end
     β  = similarity_theory.gustiness_parameter
 
     h  = differences.h
-    ϰ  = von_karman_constant
     ℂ  = thermodynamics_parameters
     g  = gravitational_acceleration
     𝒬ₒ = surface_state.ts # thermodynamic state
-    hᵢ = atmos_boundary_layer_height
 
     # Compute Monin-Obukhov length scale depending on a `buoyancy flux`
     b★ = buoyancy_scale(θ★, q★, 𝒬ₒ, ℂ, g)
 
     # Monin-Obhukov characteristic length scale and non-dimensional height
+    ϰ  = von_karman_constant
     L★ = ifelse(b★ == 0, zero(b★), - u★^2 / (ϰ * b★))
     
     # Compute roughness length scales
@@ -376,9 +429,10 @@ end
     ℓθ₀ = roughness_length(ℓθ, ℓu₀, u★, 𝒬ₒ, ℂ)
 
     # Transfer coefficients at height `h`
-    χu = ϰ / similarity_theory.bulk_coefficients(ψu, h, ℓu₀, L★) 
-    χθ = ϰ / similarity_theory.bulk_coefficients(ψθ, h, ℓθ₀, L★) 
-    χq = ϰ / similarity_theory.bulk_coefficients(ψq, h, ℓq₀, L★) 
+    profile_type = similarity_theory.similarity_profile_type
+    χu = ϰ / similarity_profile(profile_type, ψu, h, ℓu₀, L★) 
+    χθ = ϰ / similarity_profile(profile_type, ψθ, h, ℓθ₀, L★) 
+    χq = ϰ / similarity_profile(profile_type, ψq, h, ℓq₀, L★) 
 
     Δu = differences.u
     Δv = differences.v
@@ -391,6 +445,7 @@ end
     q★ = χq * Δq
 
     # Buoyancy flux characteristic scale for gustiness (Edson 2013)
+    hᵢ = atmos_boundary_layer_height
     Jᵇ = - u★ * b★
     Uᴳ = β * cbrt(Jᵇ * hᵢ)
 
