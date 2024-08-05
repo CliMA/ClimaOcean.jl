@@ -161,7 +161,7 @@ function progress(sim)
      wall_time[1] = time_ns()
 end
 
-coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(500))
+coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(1000))
 nothing #hide
 
 # ### Set up Output Writers
@@ -173,7 +173,7 @@ ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, mo
                                                   schedule = TimeInterval(1days),
                                                   filename = "surface",
                                                   indices = (:, :, grid.Nz),
-                                                  overwrite_existing = true, 
+                                                  overwrite_existing = true,
                                                   array_type = Array{Float32})
 nothing #hide
 
@@ -183,9 +183,9 @@ nothing #hide
 # The bathymetry of the original ECCO data may differ from our grid, so the initialization of the velocity
 # field might cause shocks if a large time step is used.
 #
-# Therefore, we warm up with a small time step to ensure that the interpolated initial conditions adapt to the model numerics and
-# parameterization without causing instability. A 30-day integration with a maximum time step of 1.5 minutes should be sufficient to dissipate
-# spurious initialization shocks.
+# Therefore, we warm up with a small time step to ensure that the interpolated initial conditions adapt
+# to the model numerics and parameterization without causing instability. A 10-day integration with
+# a maximum time step of 1.5 minutes should be sufficient to dissipate spurious initialization shocks.
 
 ocean.stop_time = 10days
 wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 90, max_change = 1.1)
@@ -209,8 +209,9 @@ nothing #hide
 # 
 # The simulation has finished, let's visualize the results.
 # In this section we pull up the saved data and create visualizations using the CairoMakie.jl package.
-# In particular, we generate a video of the evolution of surface fields:
-# surface speed (s), vertical velocity just below the surface (w), surface temperature (T), and turbulent kinetic energy (e)
+# In particular, we generate an animation of the evolution of surface fields:
+# surface speed (s), vertical velocity just below the surface (w), surface temperature (T), and 
+# turbulent kinetic energy (e).
 
 u = FieldTimeSeries("surface.jld2", "u"; backend = OnDisk())
 v = FieldTimeSeries("surface.jld2", "v"; backend = OnDisk())
@@ -218,7 +219,8 @@ T = FieldTimeSeries("surface.jld2", "T"; backend = OnDisk())
 e = FieldTimeSeries("surface.jld2", "e"; backend = OnDisk())
 w = FieldTimeSeries("surface.jld2", "w"; backend = OnDisk())
 
-Nt = length(u.times)
+times = u.times
+Nt = length(times)
 
 iter = Observable(Nt)
 
@@ -241,8 +243,7 @@ wi = @lift begin
 end
 
 si = @lift begin
-     s = sqrt(u[$iter]^2 + vi[$iter]^2)
-     s = Field(s)
+     s = Field(sqrt(u[$iter]^2 + v[$iter]^2))
      compute!(s)
      s = interior(s, :, :, 1)
      s[s .== 0] .= NaN
@@ -256,7 +257,7 @@ heatmap!(ax, si, colorrange = (0, 0.5), colormap = :deep)
 hidedecorations!(ax)
 
 ax = Axis(fig[2, 1], title = "Vertical velocity [ms⁻¹]")
-heatmap!(ax, wi, colorrange = (-0.5e-3, 0.5e-3), colormap = :bwr)
+heatmap!(ax, wi, colorrange = (-5e-4, 5e-4), colormap = :bwr)
 hidedecorations!(ax)
 
 ax = Axis(fig[3, 1], title = "Surface Temperature [Cᵒ]")
@@ -267,10 +268,11 @@ ax = Axis(fig[4, 1], title = "Turbulent Kinetic Energy [m²s⁻²]")
 heatmap!(ax, ei, colorrange = (0, 1e-3), colormap = :solar)
 hidedecorations!(ax)
 
-CairoMakie.record(fig, "near_global_ocean_surface.mp4", 1:length(u.times), framerate = 8) do i
-     @info "Generating frame $i of $(length(u.times))"
-     iter[] = i
+CairoMakie.record(fig, "near_global_ocean_surface.mp4", 1:Nt, framerate = 8) do i
+    @info "Generating frame $i of $Nt"
+    iter[] = i
 end
+
 nothing #hide
 
 # ![](near_global_ocean_surface.mp4)
