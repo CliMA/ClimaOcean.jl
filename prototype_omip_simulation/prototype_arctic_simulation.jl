@@ -96,7 +96,7 @@ v_surface_velocity = interior(model.velocities.v, :, :, grid.Nz)
 ocean_velocities = (; u = u_surface_velocity,
                       v = v_surface_velocity)
 
-sea_ice = sea_ice_simulation(sea_ice_grid; ocean_velocities) 
+sea_ice = sea_ice_simulation(sea_ice_grid; ocean_velocities, ocean_ice_drag_coefficient = 5.5) 
 
 ice_thickness     = ECCOMetadata(:sea_ice_thickness,     dates[1], ECCO4Monthly())
 ice_concentration = ECCOMetadata(:sea_ice_area_fraction, dates[1], ECCO4Monthly())

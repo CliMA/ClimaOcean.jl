@@ -1,5 +1,3 @@
-using ClimaOcean.OceanSeaIceModels: sea_ice_thickness, sea_ice_concentration
-
 #####
 ##### Surface flux computation
 #####
