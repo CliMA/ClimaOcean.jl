@@ -249,7 +249,7 @@ si = @lift begin
      s
 end
 
-fig = Figure(size = (1000, 2800))
+fig = Figure(size = (850, 1650))
 
 ax = Axis(fig[1, 1], title = "Surface speed [ms⁻¹]")
 heatmap!(ax, si, colorrange = (0, 0.5), colormap = :deep)
