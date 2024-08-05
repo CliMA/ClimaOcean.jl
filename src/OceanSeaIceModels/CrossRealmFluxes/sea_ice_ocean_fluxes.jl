@@ -16,7 +16,7 @@ function compute_sea_ice_ocean_salinity_flux!(coupled_model)
     arch = architecture(grid)
     Qˢ = ocean.model.tracers.S.boundary_conditions.top.condition
     Sₒ = ocean.model.tracers.S
-    Sᵢ = sea_ice.model.ice_salinity
+    Sᵢ = sea_ice.model.tracers.S
     Δt = ocean.Δt
     hⁿ = sea_ice.model.ice_thickness
     h⁻ = coupled_model.fluxes.previous_ice_thickness
