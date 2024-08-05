@@ -34,13 +34,13 @@ include("restoring_mask.jl")
 bathymetry_file = nothing # "bathymetry_tmp.jld2"
 
 # 60 vertical levels
-z_faces = exponential_z_faces(Nz=20, depth=4000)
+z_faces = exponential_z_faces(Nz=30, depth=4000)
 
-Nx = 300
-Ny = 200
+Nx = 1000
+Ny = 800
 Nz = length(z_faces) - 1
 
-arch = CPU() 
+arch = GPU() 
 
 grid = TripolarGrid(arch; 
                     size = (Nx, Ny, Nz), 
