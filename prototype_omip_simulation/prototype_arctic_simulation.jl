@@ -96,26 +96,14 @@ v_surface_velocity = interior(model.velocities.v, :, :, grid.Nz)
 ocean_velocities = (; u = u_surface_velocity,
                       v = v_surface_velocity)
 
-ice_dynamics = ExplicitMomentumSolver(sea_ice_grid; substeps = 120)
-
-τuₐ = Field((Face, Center, Nothing), grid)
-τvₐ = Field((Center, Face, Nothing), grid)
-
-sea_ice = SeaIceModel(sea_ice_grid; 
-                      top_u_stress = τuₐ,
-                      top_v_stress = τvₐ,
-                      ocean_velocities,
-                      ice_dynamics = nothing,
-                      advection = nothing) 
+sea_ice = sea_ice_simulation(sea_ice_grid; ocean_velocities) 
 
 ice_thickness     = ECCOMetadata(:sea_ice_thickness,     dates[1], ECCO4Monthly())
 ice_concentration = ECCOMetadata(:sea_ice_area_fraction, dates[1], ECCO4Monthly())
 inpaint_kwargs = (; maxiter = 2)
 
-set!(sea_ice.ice_thickness,     ice_thickness;     inpaint_kwargs...)
-set!(sea_ice.ice_concentration, ice_concentration; inpaint_kwargs...)
-
-sea_ice_simulation = Simulation(sea_ice; Δt = 1minutes, stop_time = 10days)
+set!(sea_ice.model.ice_thickness,     ice_thickness;     inpaint_kwargs...)
+set!(sea_ice.model.ice_concentration, ice_concentration; inpaint_kwargs...)
 
 #####
 ##### A prescribed atmosphere
@@ -129,7 +117,7 @@ radiation  = Radiation(arch)
 ##### Building the complete simulation
 #####
 
-coupled_model = OceanSeaIceModel(ocean, sea_ice_simulation; atmosphere, radiation)
+coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 coupled_simulation = Simulation(coupled_model; Δt = 1minutes, stop_time = 10days)
 
 wall_time = [time_ns()]

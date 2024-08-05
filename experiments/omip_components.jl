@@ -157,16 +157,16 @@ function omip_sea_ice_component(ocean_model)
                                 v = view(v, :, :, Nz), #interior(v, :, :, Nz),
                                 w = ZeroField())
 
-    sea_ice_model = SlabSeaIceModel(sea_ice_grid;
-                                    velocities = ocean_surface_velocities,
-                                    advection = WENO(),
-                                    ice_consolidation_thickness = 0.05,
-                                    ice_salinity = 4,
-                                    internal_heat_flux = ConductiveFlux(conductivity=2),
-                                    top_heat_flux = ConstantField(0), # W m⁻²
-                                    top_heat_boundary_condition = PrescribedTemperature(-10),
-                                    bottom_heat_boundary_condition = bottom_bc,
-                                    bottom_heat_flux = sea_ice_ocean_heat_flux)
+    sea_ice_model = SeaIceModel(sea_ice_grid;
+                                velocities = ocean_surface_velocities,
+                                advection = WENO(),
+                                ice_consolidation_thickness = 0.05,
+                                ice_salinity = 4,
+                                internal_heat_flux = ConductiveFlux(conductivity=2),
+                                top_heat_flux = ConstantField(0), # W m⁻²
+                                top_heat_boundary_condition = PrescribedTemperature(-10),
+                                bottom_heat_boundary_condition = bottom_bc,
+                                bottom_heat_flux = sea_ice_ocean_heat_flux)
 
     sea_ice = Simulation(sea_ice_model, Δt=5minutes, verbose=false)
 

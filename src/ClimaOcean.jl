@@ -62,14 +62,17 @@ include("DataWrangling/DataWrangling.jl")
 include("Bathymetry.jl")
 include("Diagnostics.jl")
 include("OceanSimulations/OceanSimulations.jl")
+include("SeaIceSimulations/SeaIceSimulations.jl")
 
 using .VerticalGrids
 using .Bathymetry
 using .DataWrangling
+using .DataWrangling: JRA55, ECCO
 using .InitialConditions
 using .OceanSeaIceModels
 using .OceanSimulations
-using .DataWrangling: JRA55, ECCO
+using .SeaIceSimulations
+
 using ClimaOcean.DataWrangling.JRA55: JRA55_prescribed_atmosphere, JRA55NetCDFBackend
 using ClimaOcean.DataWrangling.ECCO: ecco_field
 
