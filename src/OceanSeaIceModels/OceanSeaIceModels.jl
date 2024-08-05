@@ -63,15 +63,5 @@ const NoAtmosphereModel = OceanSeaIceModel{<:Any, Nothing}
 
 compute_atmosphere_ocean_fluxes!(coupled_model::NoAtmosphereModel) = nothing
 
-sea_ice_thickness(sea_ice::SeaIceModel)     = sea_ice.model.ice_thickness.data
-sea_ice_concentration(sea_ice::SeaIceModel) = sea_ice.ice_concentration.data
-sea_ice_salinity(sea_ice::SeaIceModel)      = sea_ice.tracers.S.data
-sea_ice_velocities(sea_ice::SeaIceModel)    = map(u -> u.data, sea_ice.velocities)
-
-sea_ice_thickness(::Nothing) = nothing
-sea_ice_concentration(::Nothing) = nothing
-sea_ice_salinity(::Nothing) = nothing
-sea_ice_velocities(::Nothing) = nothing
-sea_ice_temperature()
 end # module
 
