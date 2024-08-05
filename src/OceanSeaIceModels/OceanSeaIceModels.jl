@@ -15,6 +15,7 @@ using Oceananigans.TimeSteppers: tick!
 using Oceananigans.Models: AbstractModel
 using Oceananigans.OutputReaders: FieldTimeSeries, GPUAdaptedFieldTimeSeries
 
+using ClimaSeaIce
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 
 using ClimaOcean: stateindex
@@ -30,9 +31,6 @@ function downwelling_radiation end
 function freshwater_flux end
 function reference_density end
 function heat_capacity end
-
-sea_ice_thickness(::Nothing) = nothing
-sea_ice_concentration(::Nothing) = nothing
 
 const default_gravitational_acceleration = 9.80665
 const default_freshwater_density = 1000
@@ -65,43 +63,15 @@ const NoAtmosphereModel = OceanSeaIceModel{<:Any, Nothing}
 
 compute_atmosphere_ocean_fluxes!(coupled_model::NoAtmosphereModel) = nothing
 
-#####
-##### A fairly dumb, but nevertheless effective "sea ice model"
-#####
+sea_ice_thickness(sea_ice::SeaIceModel)     = sea_ice.model.ice_thickness.data
+sea_ice_concentration(sea_ice::SeaIceModel) = sea_ice.ice_concentration.data
+sea_ice_salinity(sea_ice::SeaIceModel)      = sea_ice.tracers.S.data
+sea_ice_velocities(sea_ice::SeaIceModel)    = map(u -> u.data, sea_ice.velocities)
 
-struct FreezingLimitedOceanTemperature{L}
-    liquidus :: L
-end
-
-const FreezingLimitedCoupledModel = OceanSeaIceModel{<:FreezingLimitedOceanTemperature}
-
-sea_ice_concentration(::FreezingLimitedOceanTemperature) = nothing
-
-function compute_sea_ice_ocean_fluxes!(cm::FreezingLimitedCoupledModel)
-    ocean = cm.ocean
-    liquidus = cm.sea_ice.liquidus
-    grid = ocean.model.grid
-    arch = architecture(grid)
-    Sₒ = ocean.model.tracers.S
-    Tₒ = ocean.model.tracers.T
-
-    launch!(arch, grid, :xyz,  above_freezing_ocean_temperature!, Tₒ, Sₒ, liquidus)
-
-    return nothing
-end
-
-@kernel function above_freezing_ocean_temperature!(Tₒ, Sₒ, liquidus)
-
-    i, j, k = @index(Global, NTuple)
-
-    @inbounds begin
-        Sᵢ = Sₒ[i, j, k]
-        Tᵢ = Tₒ[i, j, k]
-    end
-
-    Tₘ = melting_temperature(liquidus, Sᵢ)
-    @inbounds Tₒ[i, j, k] = ifelse(Tᵢ < Tₘ, Tₘ, Tᵢ)
-end
-
+sea_ice_thickness(::Nothing) = nothing
+sea_ice_concentration(::Nothing) = nothing
+sea_ice_salinity(::Nothing) = nothing
+sea_ice_velocities(::Nothing) = nothing
+sea_ice_temperature()
 end # module
 

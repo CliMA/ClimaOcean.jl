@@ -27,6 +27,7 @@ function sea_ice_simulation(grid; Δt = 5minutes,
                             gravitational_acceleration = g_Earth,
                             ocean_ice_drag_coefficient = 0.0055,
                             ocean_velocities = nothing,
+                            top_heat_flux = nothing,
                             ice_salinity = 4,
                             ice_thermodynamics = SlabSeaIceThermodynamics(grid),
                             ice_dynamics = ExplicitMomentumSolver(grid; substeps = 100, ocean_ice_drag_coefficient),
@@ -37,8 +38,9 @@ function sea_ice_simulation(grid; Δt = 5minutes,
     # Set up boundary conditions using Field
     top_zonal_momentum_flux      = Jᵘ = Field{Face, Center, Nothing}(grid)
     top_meridional_momentum_flux = Jᵛ = Field{Center, Face, Nothing}(grid)
-    top_heat_flux                = Jᵀ = Field{Center, Center, Nothing}(grid)
-    
+
+    Jᵀ = isnothing(top_heat_flux) : Field{Center, Center, Nothing}(grid) : top_heat_flux
+
     sea_ice_model = SeaIceModel(; grid,
                                   advection,
                                   ice_thermodynamics, 
@@ -47,6 +49,7 @@ function sea_ice_simulation(grid; Δt = 5minutes,
                                   top_u_stress = Jᵘ,
                                   top_v_stress = Jᵛ,
                                   coriolis,
+                                  top_heat_flux = Jᵀ,
                                   ice_salinity)
 
     sea_ice = Simulation(sea_ice_model; Δt, verbose)

@@ -1,7 +1,29 @@
+using ClimaOcean.OceanSeaIceModels: sea_ice_thickness, sea_ice_concentration
 
 #####
 ##### Surface flux computation
 #####
+
+@inline sea_ice_state(::Nothing) = (; T = nothing, S = nothing, ℵ = nothing, h = nothing, u = nothing, v = nothing)
+
+@inline function sea_ice_state(sea_ice::SeaIceModel) 
+    h = sea_ice.ice_thickness.data
+    ℵ = sea_ice.ice_concentration.data
+    u = sea_ice.velocities.u.data
+    v = sea_ice.velocities.v.data
+    T = sea_ice.ice_thermodynamics.top_surface_temperature
+    return (; h, ℵ, u, v, T)
+end
+
+@inline sea_ice_external_fluxes(::Nothing) = nothing    
+
+@inline function sea_ice_external_fluxes(sea_ice::SeaIceModel) 
+    u = sea_ice.external_momentum_stress.u.data
+    v = sea_ice.external_momentum_stress.v.data
+    Q = sea_ice.external_heat_fluxes.top.data
+
+    return (; u, v, Q)
+end
 
 const c = Center()
 const f = Face()
@@ -32,7 +54,10 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     similarity_theory    = coupled_model.fluxes.turbulent
     radiation_properties = coupled_model.fluxes.radiation
 
+    sea_ice_fluxes = sea_ice_external_fluxes(sea_ice)
+
     ocean_state = merge(ocean_velocities, ocean_tracers)
+    ice_state = sea_ice_state(sea_ice)
 
     atmosphere_velocities = map(u -> u.data, atmosphere.velocities)
     atmosphere_tracers    = map(c -> c.data, atmosphere.tracers)
@@ -64,6 +89,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             grid,
             clock,
             ocean_state,
+            sea_ice_state,
             coupled_model.fluxes.ocean_temperature_units,
             atmosphere_state,
             atmosphere_grid,
@@ -78,10 +104,13 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             _assemble_atmosphere_ocean_fluxes!,
             centered_velocity_fluxes,
             net_tracer_fluxes,
+            sea_ice_fluxes,
             grid,
             clock,
             ocean_state.T,
             ocean_state.S,
+            ice_state.ℵ,
+            ice_state.T,
             coupled_model.fluxes.ocean_temperature_units,
             similarity_theory.fields,
             downwelling_radiation,
@@ -114,10 +143,25 @@ end
 # Fallback!
 limit_fluxes_over_sea_ice!(args...) = nothing
 
+# If there is no sea ice, take the ocean velocities
+@inline centered_u_velocity(i, j, k, grid, uₒ, uᵢ, ::Nothing) = ℑxᶜᵃᵃ(i, j, k, grid, uₒ)
+@inline centered_v_velocity(i, j, k, grid, vₒ, vᵢ, ::Nothing) = ℑyᵃᶜᵃ(i, j, k, grid, vₒ)
+
+# If there is sea ice, take the sea ice velocities (if concentration is larger than one)
+@inline centered_u_velocity(i, j, k, grid, uₒ, uᵢ, ℵ) = ifelse(ℵ > 0, ℑxᶜᵃᵃ(i, j, k, grid, uᵢ), ℑxᶜᵃᵃ(i, j, k, grid, uₒ))
+@inline centered_v_velocity(i, j, k, grid, vₒ, vᵢ, ℵ) = ifelse(ℵ > 0, ℑyᵃᶜᵃ(i, j, k, grid, vᵢ), ℑxᶜᵃᵃ(i, j, k, grid, uₒ))
+
+@inline surface_tracer(i, j, k, grid, Tₒ, Tᵢ, ℵ)         = @inbounds ifelse(ℵ > 0, Tᵢ[i, j, k], Tₒ[i, j, k])
+@inline surface_tracer(i, j, k, grid, Tₒ, Tᵢ, ::Nothing) = @inbounds Tₒ[i, j, k]
+
+@inline surface_temperature(i, j, k, grid, Tₒ, Tᵢ, ℵ)         = @inbounds ifelse(ℵ > 0, Tᵢ[i, j, k], Tₒ[i, j, k])
+@inline surface_temperature(i, j, k, grid, Tₒ, Tᵢ, ::Nothing) = @inbounds Tₒ[i, j, k]
+
 @kernel function _compute_atmosphere_ocean_similarity_theory_fluxes!(similarity_theory,
                                                                      grid,
                                                                      clock,
                                                                      ocean_state,
+                                                                     sea_ice_state,
                                                                      ocean_temperature_units,
                                                                      atmos_state,
                                                                      atmos_grid,
@@ -136,11 +180,11 @@ limit_fluxes_over_sea_ice!(args...) = nothing
     # Extract state variables at cell centers
     @inbounds begin
         # Ocean state
-        uₒ = ℑxᶜᵃᵃ(i, j, 1, grid, ocean_state.u)
-        vₒ = ℑyᵃᶜᵃ(i, j, 1, grid, ocean_state.v)
-        Tₒ = ocean_state.T[i, j, 1]
+        uₒ = centered_u_velocity(i, j, 1, grid, ocean_state.u, ice_state.u, ice_state.ℵ)
+        vₒ = centered_v_velocity(i, j, 1, grid, ocean_state.v, ice_state.v, ice_state.ℵ)
+        Tₒ = surface_tracer(i, j, 1, grid, ocean_state.T, ice_state.T, ice_state.ℵ)
+        Sₒ = surface_tracer(i, j, 1, grid, ocean_state.S, ice_state.S, ice_state.ℵ)
         Tₒ = convert_to_kelvin(ocean_temperature_units, Tₒ)
-        Sₒ = ocean_state.S[i, j, 1]
     end
 
     kᴺ = size(grid, 3) # index of the top ocean cell
@@ -225,10 +269,14 @@ end
 
 @kernel function _assemble_atmosphere_ocean_fluxes!(centered_velocity_fluxes,
                                                     net_tracer_fluxes,
+                                                    sea_ice_fluxes
                                                     grid,
                                                     clock,
                                                     ocean_temperature,
                                                     ocean_salinity,
+                                                    ice_concentration,
+                                                    ice_temperature,
+                                                    ice_salinity,
                                                     ocean_temperature_units,
                                                     similarity_theory_fields,
                                                     downwelling_radiation,
@@ -248,9 +296,9 @@ end
     time = Time(clock.time)
 
     @inbounds begin
-        Tₒ = ocean_temperature[i, j, 1]
+        Tₒ = surface_tracer(i, j, 1, grid, ocean_temperature, ice_temperature, ice_concentration)
+        Sₒ = surface_tracer(i, j, 1, grid, ocean_salinity,    ice_salinity,    ice_concentration)
         Tₒ = convert_to_kelvin(ocean_temperature_units, Tₒ)
-        Sₒ = ocean_salinity[i, j, 1]
 
         X = node(i, j, kᴺ + 1, grid, c, c, f)
         atmos_args = (atmos_grid, atmos_times, atmos_backend, atmos_time_indexing)
@@ -268,11 +316,12 @@ end
         Mv  = similarity_theory_fields.water_vapor[i, j, 1]   # mass flux of water vapor
         ρτx = similarity_theory_fields.x_momentum[i, j, 1]    # zonal momentum flux
         ρτy = similarity_theory_fields.y_momentum[i, j, 1]    # meridional momentum flux
+        ℵ   = stateindex(ice_concentration, i, j, 1)          # ice concentration
     end
 
     # Compute heat fluxes, bulk flux first
-    Qd = net_downwelling_radiation(i, j, grid, time, radiation_properties, Qs, Qℓ)
-    Qu = net_upwelling_radiation(i, j, grid, time, radiation_properties, Tₒ)
+    Qd = net_downwelling_radiation(i, j, grid, time, radiation_properties, Qs, Qℓ, ℵ)
+    Qu = net_upwelling_radiation(i, j, grid, time, radiation_properties, Tₒ, ℵ)
 
     ΣQ = Qd + Qu + Qc + Qv
 
@@ -301,13 +350,28 @@ end
     atmos_ocean_Jˢ = - Sₒ * ΣF
 
     # Mask fluxes over land for convenience
-    inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
+    not_ocean = not_ocean_cell(i, j, kᴺ, grid, ℵ)
 
     @inbounds begin
-        τx[i, j, 1] = ifelse(inactive, 0, atmos_ocean_τx)
-        τy[i, j, 1] = ifelse(inactive, 0, atmos_ocean_τy)
-        Jᵀ[i, j, 1] = ifelse(inactive, 0, atmos_ocean_Jᵀ)
-        Jˢ[i, j, 1] = ifelse(inactive, 0, atmos_ocean_Jˢ)
+        τx[i, j, 1] = ifelse(not_ocean, 0, atmos_ocean_τx)
+        τy[i, j, 1] = ifelse(not_ocean, 0, atmos_ocean_τy)
+        Jᵀ[i, j, 1] = ifelse(not_ocean, 0, atmos_ocean_Jᵀ)
+        Jˢ[i, j, 1] = ifelse(not_ocean, 0, atmos_ocean_Jˢ)
+    end
+
+    assemble_sea_ice_fluxes!(sea_ice_fluxes, ℵ, ρτx, ρτy, ΣQ)
+end
+
+@inline not_ocean_cell(i, j, k, grid, ::Nothing) = inactive_node(i, j, k, grid, c, c, c)
+@inline not_ocean_cell(i, j, k, grid, ℵ) = inactive_node(i, j, k, grid, c, c, c) & (ℵ > 0)
+
+@inline assemble_sea_ice_fluxes!(::Nothing, args...) = nothing
+
+@inline function assemble_sea_ice_fluxes!(J, ℵ, ρτx, ρτy, ΣQ) 
+    @inbounds begin
+        J.u = ifelse(ℵ > 0, ρτx, 0)
+        J.v = ifelse(ℵ > 0, ρτy, 0)
+        J.Q = ifelse(ℵ > 0, ΣQ,  0)
     end
 end
 
@@ -321,20 +385,36 @@ end
 end
 
 # Fallback for a `Nothing` radiation scheme
-@inline   net_upwelling_radiation(i, j, grid, time, ::Nothing, Tₒ)     = zero(grid)
-@inline net_downwelling_radiation(i, j, grid, time, ::Nothing, Qs, Qℓ) = zero(grid)
+@inline   net_upwelling_radiation(i, j, grid, time, ::Nothing, Tₒ, ℵ)     = zero(grid)
+@inline net_downwelling_radiation(i, j, grid, time, ::Nothing, Qs, Qℓ, ℵ) = zero(grid)
 
-@inline function net_downwelling_radiation(i, j, grid, time, radiation, Qs, Qℓ)
-    α = stateindex(radiation.reflection.ocean, i, j, 1, grid, time)
-    ϵ = stateindex(radiation.emission.ocean, i, j, 1, grid, time)
+@inline net_downwelling_radiation(i, j, grid, time, radiation, Qs, Qℓ, ::Nothing) = 
+    net_downwelling_radiation(i, j, grid, time, radiation, Qs, Qℓ, 0)
+
+@inline net_upwelling_radiation(i, j, grid, time, radiation, Tₒ, ::Nothing) = 
+    net_upwelling_radiation(i, j, grid, time, radiation, Tₒ, 0)
+
+@inline function net_downwelling_radiation(i, j, grid, time, radiation, Qs, Qℓ, ℵ)
+    αₒ = stateindex(radiation.reflection.ocean, i, j, 1, grid, time)
+    αᵢ = stateindex(radiation.reflection.sea_ice, i, j, 1, grid, time)
     
+    ϵₒ = stateindex(radiation.emission.ocean, i, j, 1, grid, time)
+    ϵᵢ = stateindex(radiation.emission.sea_ice, i, j, 1, grid, time)
+    
+    α = ifelse(ℵ > 0, αᵢ, αₒ)
+    ϵ = ifelse(ℵ > 0, αᵢ, αₒ)
+
     return @inbounds - (1 - α) * Qs - ϵ * Qℓ
 end
 
-@inline function net_upwelling_radiation(i, j, grid, time, radiation, Tₒ)
+@inline function net_upwelling_radiation(i, j, grid, time, radiation, Tₒ, ℵ)
     σ = radiation.stefan_boltzmann_constant
-    ϵ = stateindex(radiation.emission.ocean, i, j, 1, grid, time)
 
+    ϵₒ = stateindex(radiation.emission.ocean, i, j, 1, grid, time)
+    ϵᵢ = stateindex(radiation.emission.sea_ice, i, j, 1, grid, time)
+    
+    ϵ = ifelse(ℵ > 0, αᵢ, αₒ)
+    
     # Note: positive implies _upward_ heat flux, and therefore cooling.
     return ϵ * σ * Tₒ^4
 end

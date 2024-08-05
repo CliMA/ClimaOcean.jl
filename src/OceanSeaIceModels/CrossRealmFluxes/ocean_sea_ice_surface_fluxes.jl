@@ -114,7 +114,19 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
                           tracers = ocean_tracer_fluxes,
                           heat = ocean_heat_flux)
 
-    total_fluxes = (; ocean=total_ocean_fluxes)
+    if sea_ice isa SeaIceSimulation
+        Jᵘ = surface_flux(sea_ice.model.velocities.u)
+        Jᵛ = surface_flux(sea_ice.model.velocities.v)
+        Jᵀ = surface_flux(sea_ice.model.ice_thermodynamics.top_surface_temperature)
+        
+        ice_fluxes = (u = Jᵘ,       # fluxes used in the model
+                      v = Jᵛ, 
+                      T = Jᵀ)
+    else
+        ice_fluxes = nothing
+    end
+
+    total_fluxes = (; ocean=total_ocean_fluxes, ice = ice_fluxes)
 
     return OceanSeaIceSurfaceFluxes(similarity_theory,
                                     prescribed_fluxes,

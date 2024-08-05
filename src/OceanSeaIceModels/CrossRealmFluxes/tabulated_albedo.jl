@@ -107,8 +107,11 @@ Base.eltype(α::TabulatedAlbedo) = Base.eltype(α.S₀)
 @inline simulation_day(time::Time{<:Number})      = time.time ÷ 86400
 @inline seconds_in_day(time::Time{<:Number}, day) = time.time - day * 86400
 
-@inline function net_downwelling_radiation(i, j, grid, time, radiation::Radiation{<:Any, <:Any, <:SurfaceProperties{<:TabulatedAlbedo}}, Qs, Qℓ) 
-    α = radiation.reflection.ocean
+@inline function net_downwelling_radiation(i, j, grid, time, 
+                                           radiation::Radiation{<:Any, <:Any, <:SurfaceProperties{<:TabulatedAlbedo}}, 
+                                           Qs, Qℓ, ℵ) 
+
+    α = radiation.reflection.ocean * (1 - ℵ) + radiation.reflection.sea_ice * ℵ
 
     FT = eltype(α)
 
@@ -158,7 +161,8 @@ Base.eltype(α::TabulatedAlbedo) = Base.eltype(α.S₀)
                    ϕ₃(ξ, η) * getindex(α.α_table, i⁺, j⁻) +
                    ϕ₄(ξ, η) * getindex(α.α_table, i⁺, j⁺)
 
-    ϵ = stateindex(radiation.emission.ocean, i, j, 1, grid, time)
-
+    ϵ = stateindex(radiation.emission.ocean, i, j, 1, grid, time) * (1 - ℵ) +
+        stateindex(radiation.emission.sea_ice, i, j, 1, grid, time) * ℵ
+        
     return - (1 - α) * Qs - ϵ * Qℓ
 end
