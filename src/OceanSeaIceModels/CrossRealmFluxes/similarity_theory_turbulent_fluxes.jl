@@ -215,7 +215,7 @@ and ``Π`` is the "similarity profile",
 which is a logarithmic profile adjusted by the stability function ``ψ`` and dependent on
 the Monin-Obukhov length ``L`` and the roughness length ``ℓ``.
 """
-struct LogarthmicSimilarityProfile end
+struct LogarithmicSimilarityProfile end
 struct COARELogarthmicSimilarityProfile end
 
 @inline similarity_profile(::LogarthmicSimilarityProfile, ψ, h, ℓ, L) =
