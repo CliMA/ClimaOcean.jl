@@ -66,10 +66,10 @@ bathymetry = deepcopy(Array(interior(bottom_height, :, :, 1)))
 bathymetry[bathymetry .>= 0] .= NaN
 
 fig = Figure(size = (800, 400))
-axis = Axis(fig[1, 1], title = "Bathymetry [m]")
+ax = Axis(fig[1, 1], title = "Bathymetry [m]")
 hm = heatmap!(axis, bathymetry, colormap = :deep, colorrange = (-6000, 0))
 cb = Colorbar(fig[1, 2], hm)
-hidedecorations!(axis)
+hidedecorations!(ax)
 
 save("bathymetry.png", fig)
 nothing #hide
@@ -204,7 +204,7 @@ nothing #hide
 
 ocean.stop_time = 100days
 coupled_simulation.stop_time = 100days
-conjure_time_step_wizard!(ocean; cfl = 0.25, max_Δt = 600, max_change = 1.1)
+conjure_time_step_wizard!(ocean; cfl = 0.25, max_Δt = 10minutes, max_change = 1.1)
 run!(coupled_simulation)
 nothing #hide
 
@@ -248,13 +248,13 @@ end
 
 fig = Figure(size = (800, 400))
 ax = Axis(fig[1, 1])
-heatmap!(ax, si, colorrange = (0, 0.5), colormap = :deep)
-cb = Colorbar(fig[0, 1], vertical = false, label = "Surface speed [ms⁻¹]")
+hm = heatmap!(ax, si, colorrange = (0, 0.5), colormap = :deep)
+cb = Colorbar(fig[0, 1], hm, vertical = false, label = "Surface speed [ms⁻¹]")
 hidedecorations!(ax)
 
 CairoMakie.record(fig, "near_global_ocean_surface_s.mp4", 1:Nt, framerate = 8) do i
-     @info "Generating frame $i of $Nt \r"
-     iter[] = i
+    @info "Generating frame $i of $Nt \r"
+    iter[] = i
 end
 nothing #hide
  
@@ -263,12 +263,12 @@ nothing #hide
 fig = Figure(size = (800, 400))
 ax = Axis(fig[1, 1])
 hm = heatmap!(ax, Ti, colorrange = (-1, 30), colormap = :magma)
-cb = Colorbar(fig[0, 1], vertical = false, label = "Surface Temperature [Cᵒ]")
+cb = Colorbar(fig[0, 1], hm, vertical = false, label = "Surface Temperature [Cᵒ]")
 hidedecorations!(ax)
 
 CairoMakie.record(fig, "near_global_ocean_surface_T.mp4", 1:Nt, framerate = 8) do i
-     @info "Generating frame $i of $Nt \r"
-     iter[] = i
+    @info "Generating frame $i of $Nt \r"
+    iter[] = i
 end
 nothing #hide
  
@@ -276,14 +276,14 @@ nothing #hide
 
 fig = Figure(size = (800, 400))
 ax = Axis(fig[1, 1])
-heatmap!(ax, ei, colorrange = (0, 1e-3), colormap = :solar)
-cb = Colorbar(fig[0, 1], vertical = false, label = "Turbulent Kinetic Energy [m²s⁻²]")
+hm = heatmap!(ax, ei, colorrange = (0, 1e-3), colormap = :solar)
+cb = Colorbar(fig[0, 1], hm, vertical = false, label = "Turbulent Kinetic Energy [m²s⁻²]")
 hidedecorations!(ax)
 
 CairoMakie.record(fig, "near_global_ocean_surface_e.mp4", 1:Nt, framerate = 8) do i
-     @info "Generating frame $i of $Nt \r"
-     iter[] = i
+    @info "Generating frame $i of $Nt \r"
+    iter[] = i
 end
 nothing #hide
- 
+
 # ![](near_global_ocean_surface_e.mp4)
