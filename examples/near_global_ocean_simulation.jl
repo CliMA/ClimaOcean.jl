@@ -186,22 +186,24 @@ nothing #hide
 # Therefore, we warm up with a small time step to ensure that the interpolated initial conditions adapt
 # to the model numerics and parameterization without causing instability. A 10-day integration with
 # a maximum time step of 1.5 minutes should be sufficient to dissipate spurious initialization shocks.
+# We use an adaptive time step that maintains the [CFL condition](https://en.wikipedia.org/wiki/Courant%E2%80%93Friedrichs%E2%80%93Lewy_condition) equal to 0.1.
+# For this scope, we use the Oceananigans utility `conjure_time_step_wizard!` (see Oceanigans's documentation)
 
 ocean.stop_time = 10days
-wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 90, max_change = 1.1)
-ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
+conjure_time_step_wizard!(ocean; cfl = 0.1, max_Δt = 90, max_change = 1.1)
 run!(coupled_simulation)
 nothing #hide
 
 # ### Running the simulation
 #
-# Now that the simulation has been warmed up, we can run it for the full two years.
-# We increase the maximum time step size to 12 minutes and let the simulation run for 100 days.
+# Now that the simulation has been warmed up, we can run it for the full 100 days.
+# We increase the maximum time step size to 10 minutes and let the simulation run for 100 days.
+# This time, we set the CFL in the time_step_wizard to be 0.25 as this is the recommended CFL to be
+# used in conjunction with Oceananigans' hydrosta
 
 ocean.stop_time = 100days
 coupled_simulation.stop_time = 100days
-wizard = TimeStepWizard(; cfl = 0.25, max_Δt = 12minutes, max_change = 1.1)
-ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
+conjure_time_step_wizard!(ocean; cfl = 0.25, max_Δt = 600, max_change = 1.1)
 run!(coupled_simulation)
 nothing #hide
 
@@ -210,14 +212,12 @@ nothing #hide
 # The simulation has finished, let's visualize the results.
 # In this section we pull up the saved data and create visualizations using the CairoMakie.jl package.
 # In particular, we generate an animation of the evolution of surface fields:
-# surface speed (s), vertical velocity just below the surface (w), surface temperature (T), and 
-# turbulent kinetic energy (e).
+# surface speed (s), surface temperature (T), and turbulent kinetic energy (e).
 
 u = FieldTimeSeries("surface.jld2", "u"; backend = OnDisk())
 v = FieldTimeSeries("surface.jld2", "v"; backend = OnDisk())
 T = FieldTimeSeries("surface.jld2", "T"; backend = OnDisk())
 e = FieldTimeSeries("surface.jld2", "e"; backend = OnDisk())
-w = FieldTimeSeries("surface.jld2", "w"; backend = OnDisk())
 
 times = u.times
 Nt = length(times)
@@ -236,12 +236,6 @@ ei = @lift begin
      ei
 end
 
-wi = @lift begin
-     wi = interior(w[$iter], :, :, 1)
-     wi[wi .== 0] .= NaN
-     wi
-end
-
 si = @lift begin
      s = Field(sqrt(u[$iter]^2 + v[$iter]^2))
      compute!(s)
@@ -252,12 +246,13 @@ end
 
 
 fig = Figure(size = (800, 400))
-ax = Axis(fig[1, 1], title = "Surface speed [ms⁻¹]")
+ax = Axis(fig[1, 1])
 heatmap!(ax, si, colorrange = (0, 0.5), colormap = :deep)
+cb = Colorbar(fig[0, 1], vertical = false, label = "Surface speed [ms⁻¹]")
 hidedecorations!(ax)
 
 CairoMakie.record(fig, "near_global_ocean_surface_s.mp4", 1:Nt, framerate = 8) do i
-     @info "Generating frame $i of $Nt"
+     @info "Generating frame $i of $Nt \r"
      iter[] = i
 end
 nothing #hide
@@ -265,25 +260,13 @@ nothing #hide
  # ![](near_global_ocean_surface_s.mp4)
  
 fig = Figure(size = (800, 400))
-ax = Axis(fig[1, 1], title = "Vertical velocity [ms⁻¹]")
-heatmap!(ax, wi, colorrange = (-5e-4, 5e-4), colormap = :bwr)
-hidedecorations!(ax)
-
-CairoMakie.record(fig, "near_global_ocean_surface_w.mp4", 1:Nt, framerate = 8) do i
-     @info "Generating frame $i of $Nt"
-     iter[] = i
-end 
-nothing #hide
- 
-# ![](near_global_ocean_surface_w.mp4)
- 
-fig = Figure(size = (800, 400))
-ax = Axis(fig[1, 1], title = "Surface Temperature [Cᵒ]")
-heatmap!(ax, Ti, colorrange = (-1, 30), colormap = :magma)
+ax = Axis(fig[1, 1])
+hm = heatmap!(ax, Ti, colorrange = (-1, 30), colormap = :magma)
+cb = Colorbar(fig[0, 1], vertical = false, label = "Surface Temperature [Cᵒ]")
 hidedecorations!(ax)
 
 CairoMakie.record(fig, "near_global_ocean_surface_T.mp4", 1:Nt, framerate = 8) do i
-     @info "Generating frame $i of $Nt"
+     @info "Generating frame $i of $Nt \r"
      iter[] = i
 end
 nothing #hide
@@ -291,12 +274,13 @@ nothing #hide
 # ![](near_global_ocean_surface_T.mp4)
 
 fig = Figure(size = (800, 400))
-ax = Axis(fig[1, 1], title = "Turbulent Kinetic Energy [m²s⁻²]")
+ax = Axis(fig[1, 1])
 heatmap!(ax, ei, colorrange = (0, 1e-3), colormap = :solar)
+cb = Colorbar(fig[0, 1], vertical = false, label = "Turbulent Kinetic Energy [m²s⁻²]")
 hidedecorations!(ax)
 
 CairoMakie.record(fig, "near_global_ocean_surface_e.mp4", 1:Nt, framerate = 8) do i
-     @info "Generating frame $i of $Nt"
+     @info "Generating frame $i of $Nt \r"
      iter[] = i
 end
 nothing #hide
