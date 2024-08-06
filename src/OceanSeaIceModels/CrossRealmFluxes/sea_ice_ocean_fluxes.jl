@@ -178,7 +178,6 @@ end
         Jˢ = net_tracer_fluxes.S
 
         icy_cell = ℵ[i, j, 1] > 0
-        cooling_sea_ice = icy_cell & (Jᵀ[i, j, 1] > 0)
 
         # If we are in a "sea ice" region we remove all fluxes
         Jᵘ[i, j, 1] = ifelse(icy_cell, Cᴰ * (uₒ[i, j, 1] - 𝒰ᵢ.u[i, j, 1]), Jᵘ[i, j, 1]) 
