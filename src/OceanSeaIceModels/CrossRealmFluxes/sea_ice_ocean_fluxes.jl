@@ -2,12 +2,6 @@ using Oceananigans.Operators: Δzᶜᶜᶜ
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 
 function compute_sea_ice_ocean_fluxes!(coupled_model)
-    compute_sea_ice_ocean_salinity_flux!(coupled_model)
-    sea_ice_ocean_latent_heat_flux!(coupled_model)
-    return nothing
-end
-
-function compute_sea_ice_ocean_salinity_flux!(coupled_model)
     # Compute salinity increment due to changes in ice thickness
 
     sea_ice = coupled_model.sea_ice

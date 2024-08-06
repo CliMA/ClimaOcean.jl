@@ -4,21 +4,21 @@
 
 @inline sea_ice_state(::Nothing) = (; T = nothing, S = nothing, ℵ = nothing, h = nothing, u = nothing, v = nothing)
 
-@inline function sea_ice_state(sea_ice::SeaIceModel) 
-    h = sea_ice.ice_thickness.data
-    ℵ = sea_ice.ice_concentration.data
-    u = sea_ice.velocities.u.data
-    v = sea_ice.velocities.v.data
-    T = sea_ice.ice_thermodynamics.top_surface_temperature
+@inline function sea_ice_state(sea_ice::Simulation{<:SeaIceModel}) 
+    h = sea_ice.model.ice_thickness.data
+    ℵ = sea_ice.model.ice_concentration.data
+    u = sea_ice.model.velocities.u.data
+    v = sea_ice.model.velocities.v.data
+    T = sea_ice.model.ice_thermodynamics.top_surface_temperature
     return (; h, ℵ, u, v, T)
 end
 
 @inline sea_ice_external_fluxes(::Nothing) = nothing    
 
-@inline function sea_ice_external_fluxes(sea_ice::SeaIceModel) 
-    u = sea_ice.external_momentum_stress.u.data
-    v = sea_ice.external_momentum_stress.v.data
-    Q = sea_ice.external_heat_fluxes.top.data
+@inline function sea_ice_external_fluxes(sea_ice::Simulation{<:SeaIceModel}) 
+    u = sea_ice.model.external_momentum_stress.u.data
+    v = sea_ice.model.external_momentum_stress.v.data
+    Q = sea_ice.model.external_heat_fluxes.top.data
 
     return (; u, v, Q)
 end
@@ -52,7 +52,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     similarity_theory    = coupled_model.fluxes.turbulent
     radiation_properties = coupled_model.fluxes.radiation
 
-    sea_ice_fluxes = sea_ice_external_fluxes(sea_ice)
+    ice_fluxes = sea_ice_external_fluxes(sea_ice)
 
     ocean_state = merge(ocean_velocities, ocean_tracers)
     ice_state = sea_ice_state(sea_ice)
@@ -87,7 +87,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             grid,
             clock,
             ocean_state,
-            sea_ice_state,
+            ice_state,
             coupled_model.fluxes.ocean_temperature_units,
             atmosphere_state,
             atmosphere_grid,
@@ -102,7 +102,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             _assemble_atmosphere_ocean_fluxes!,
             centered_velocity_fluxes,
             net_tracer_fluxes,
-            sea_ice_fluxes,
+            ice_fluxes,
             grid,
             clock,
             ocean_state.T,
@@ -124,7 +124,11 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             coupled_model.fluxes.freshwater_density)
 
     launch!(arch, grid, :xy, reconstruct_momentum_fluxes!,
-            grid, staggered_velocity_fluxes, centered_velocity_fluxes)
+            grid, 
+            staggered_velocity_fluxes, 
+            centered_velocity_fluxes, 
+            ice_fluxes, 
+            coupled_model.fluxes.ocean_reference_density)
 
     limit_fluxes_over_sea_ice!(grid, kernel_parameters, sea_ice,
                                staggered_velocity_fluxes,
@@ -348,37 +352,42 @@ end
     atmos_ocean_Jˢ = - Sₒ * ΣF
 
     # Mask fluxes over land for convenience
-    not_ocean = not_ocean_cell(i, j, kᴺ, grid, ℵ)
+    immersed  = inactive_node(i, j, k, grid, c, c, c)
+    not_ocean = not_ocean_cell(i, j, kᴺ, grid, ℵ, immersed)
 
     @inbounds begin
-        τx[i, j, 1] = ifelse(not_ocean, 0, atmos_ocean_τx)
-        τy[i, j, 1] = ifelse(not_ocean, 0, atmos_ocean_τy)
+        τx[i, j, 1] = ifelse(immersed,  0, atmos_ocean_τx)
+        τy[i, j, 1] = ifelse(immersed,  0, atmos_ocean_τy)
         Jᵀ[i, j, 1] = ifelse(not_ocean, 0, atmos_ocean_Jᵀ)
         Jˢ[i, j, 1] = ifelse(not_ocean, 0, atmos_ocean_Jˢ)
     end
 
-    assemble_sea_ice_fluxes!(sea_ice_fluxes, ℵ, ρτx, ρτy, ΣQ)
+    store_sea_ice_heat_flux!(i, j, sea_ice_fluxes, ΣQ)
 end
 
-@inline not_ocean_cell(i, j, k, grid, ::Nothing) = inactive_node(i, j, k, grid, c, c, c)
-@inline not_ocean_cell(i, j, k, grid, ℵ) = inactive_node(i, j, k, grid, c, c, c) & (ℵ > 0)
+@inline not_ocean_cell(i, j, k, grid, ::Nothing, immersed) = immersed 
+@inline not_ocean_cell(i, j, k, grid, ℵ, immersed) = immersed & (ℵ > 0)
 
-@inline assemble_sea_ice_fluxes!(::Nothing, args...) = nothing
+@inline store_sea_ice_heat_flux!(i, j, ::Nothing, args...) = nothing
+@inline store_sea_ice_heat_flux!(i, j, J, ΣQ) = @inbounds J.Q[i, j, 1] = ΣQ
 
-@inline function assemble_sea_ice_fluxes!(J, ℵ, ρτx, ρτy, ΣQ) 
-    @inbounds begin
-        J.u = ifelse(ℵ > 0, ρτx, 0)
-        J.v = ifelse(ℵ > 0, ρτy, 0)
-        J.Q = ifelse(ℵ > 0, ΣQ,  0)
-    end
-end
-
-@kernel function reconstruct_momentum_fluxes!(grid, J, Jᶜᶜᶜ)
+@kernel function reconstruct_momentum_fluxes!(grid, J, Jᶜᶜᶜ, Js, ρₒ)
     i, j = @index(Global, NTuple)
 
     @inbounds begin
         J.u[i, j, 1] = ℑxᶠᵃᵃ(i, j, 1, grid, Jᶜᶜᶜ.u) 
         J.v[i, j, 1] = ℑyᵃᶠᵃ(i, j, 1, grid, Jᶜᶜᶜ.v) 
+    end
+
+    store_sea_ice_momentum_fluxes!(i, j, Js, grid, Jᶜᶜᶜ, ρₒ)
+end
+
+@inline store_sea_ice_momentum_fluxes!(i, j, ::Nothing, args...) = nothing
+
+@inline function store_sea_ice_momentum_fluxes!(i, j, Js, grid, Jᶜᶜᶜ, ρₒ)
+    @inbounds begin
+        Js.u[i, j, 1] = ℑxᶠᵃᵃ(i, j, 1, grid, Jᶜᶜᶜ.u) * ρₒ
+        Js.v[i, j, 1] = ℑyᵃᶠᵃ(i, j, 1, grid, Jᶜᶜᶜ.v) * ρₒ
     end
 end
 
