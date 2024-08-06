@@ -423,7 +423,7 @@ end
     ϵₒ = stateindex(radiation.emission.ocean, i, j, 1, grid, time)
     ϵᵢ = stateindex(radiation.emission.sea_ice, i, j, 1, grid, time)
     
-    ϵ = ifelse(ℵ > 0, αᵢ, αₒ)
+    ϵ = ifelse(ℵ > 0, ϵₒ, ϵᵢ)
     
     # Note: positive implies _upward_ heat flux, and therefore cooling.
     return ϵ * σ * Tₒ^4
