@@ -32,7 +32,8 @@ const SomeKindOfFieldTimeSeries = Union{FieldTimeSeries,
 
 const SKOFTS = SomeKindOfFieldTimeSeries
 
-@inline stateindex(a::Number, i, j, k, args...) = a
+@inline stateindex(a::Nothing, i, j, k, args...) = a
+@inline stateindex(a::Number,  i, j, k, args...) = a
 @inline stateindex(a::AbstractArray, i, j, k, args...) = @inbounds a[i, j, k]
 @inline stateindex(a::SKOFTS, i, j, k, grid, time, args...) = @inbounds a[i, j, k, time]
 

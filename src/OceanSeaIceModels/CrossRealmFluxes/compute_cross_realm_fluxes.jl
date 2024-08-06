@@ -182,10 +182,11 @@ limit_fluxes_over_sea_ice!(args...) = nothing
     # Extract state variables at cell centers
     @inbounds begin
         # Ocean state
-        uₒ = centered_u_velocity(i, j, 1, grid, ocean_state.u, ice_state.u, ice_state.ℵ)
-        vₒ = centered_v_velocity(i, j, 1, grid, ocean_state.v, ice_state.v, ice_state.ℵ)
-        Tₒ = surface_tracer(i, j, 1, grid, ocean_state.T, ice_state.T, ice_state.ℵ)
-        Sₒ = surface_tracer(i, j, 1, grid, ocean_state.S, ice_state.S, ice_state.ℵ)
+        ℵ  = stateindex(ice_state.ℵ, i, j, 1)
+        uₒ = centered_u_velocity(i, j, 1, grid, ocean_state.u, ice_state.u, ℵ)
+        vₒ = centered_v_velocity(i, j, 1, grid, ocean_state.v, ice_state.v, ℵ)
+        Tₒ = surface_tracer(i, j, 1, grid, ocean_state.T, ice_state.T, ℵ)
+        Sₒ = surface_tracer(i, j, 1, grid, ocean_state.S, ice_state.S, ℵ)
         Tₒ = convert_to_kelvin(ocean_temperature_units, Tₒ)
     end
 
@@ -298,8 +299,9 @@ end
     time = Time(clock.time)
 
     @inbounds begin
-        Tₒ = surface_tracer(i, j, 1, grid, ocean_temperature, ice_temperature, ice_concentration)
-        Sₒ = surface_tracer(i, j, 1, grid, ocean_salinity,    ice_salinity,    ice_concentration)
+        ℵ  = stateindex(ice_concentration, i, j, 1)          # ice concentration
+        Tₒ = surface_tracer(i, j, 1, grid, ocean_temperature, ice_temperature, ℵ)
+        Sₒ = surface_tracer(i, j, 1, grid, ocean_salinity,    ice_salinity,    ℵ)
         Tₒ = convert_to_kelvin(ocean_temperature_units, Tₒ)
 
         X = node(i, j, kᴺ + 1, grid, c, c, f)
@@ -318,7 +320,6 @@ end
         Mv  = similarity_theory_fields.water_vapor[i, j, 1]   # mass flux of water vapor
         ρτx = similarity_theory_fields.x_momentum[i, j, 1]    # zonal momentum flux
         ρτy = similarity_theory_fields.y_momentum[i, j, 1]    # meridional momentum flux
-        ℵ   = stateindex(ice_concentration, i, j, 1)          # ice concentration
     end
 
     # Compute heat fluxes, bulk flux first
