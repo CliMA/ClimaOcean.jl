@@ -163,7 +163,7 @@ limit_fluxes_over_sea_ice!(args...) = nothing
                                                                      grid,
                                                                      clock,
                                                                      ocean_state,
-                                                                     sea_ice_state,
+                                                                     ice_state,
                                                                      ocean_temperature_units,
                                                                      atmos_state,
                                                                      atmos_grid,
