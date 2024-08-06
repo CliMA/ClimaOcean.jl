@@ -177,17 +177,18 @@ ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, mo
                                                   array_type = Array{Float32})
 nothing #hide
 
-# ### Warming Up the Simulation
+# ### Spinning Up the Simulation
 #
 # As an initial condition, we have interpolated ECCO tracer fields onto our custom grid.
 # The bathymetry of the original ECCO data may differ from our grid, so the initialization of the velocity
 # field might cause shocks if a large time step is used.
 #
-# Therefore, we warm up with a small time step to ensure that the interpolated initial conditions adapt
-# to the model numerics and parameterization without causing instability. A 10-day integration with
-# a maximum time step of 1.5 minutes should be sufficient to dissipate spurious initialization shocks.
+# Therefore, we spin up the simulation with a small time step to ensure that the interpolated initial
+# conditions adapt to the model numerics and parameterization without causing instability. A 10-day
+# integration with a maximum time step of 1.5 minutes should be sufficient to dissipate spurious
+# initialization shocks.
 # We use an adaptive time step that maintains the [CFL condition](https://en.wikipedia.org/wiki/Courant%E2%80%93Friedrichs%E2%80%93Lewy_condition) equal to 0.1.
-# For this scope, we use the Oceananigans utility `conjure_time_step_wizard!` (see Oceanigans's documentation)
+# For this scope, we use the Oceananigans utility `conjure_time_step_wizard!` (see Oceanigans's documentation).
 
 ocean.stop_time = 10days
 conjure_time_step_wizard!(ocean; cfl = 0.1, max_Δt = 90, max_change = 1.1)
@@ -196,10 +197,10 @@ nothing #hide
 
 # ### Running the simulation
 #
-# Now that the simulation has been warmed up, we can run it for the full 100 days.
+# Now that the simulation has spun up, we can run it for the full 100 days.
 # We increase the maximum time step size to 10 minutes and let the simulation run for 100 days.
-# This time, we set the CFL in the time_step_wizard to be 0.25 as this is the recommended CFL to be
-# used in conjunction with Oceananigans' hydrosta
+# This time, we set the CFL in the `time_step_wizard` to be 0.25; this is the recommended CFL to be
+# used in conjunction with Oceananigans' hydrostatic model.
 
 ocean.stop_time = 100days
 coupled_simulation.stop_time = 100days
