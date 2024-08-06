@@ -5,21 +5,21 @@
 @inline sea_ice_state(::Nothing) = (; T = nothing, S = nothing, ℵ = nothing, h = nothing, u = nothing, v = nothing)
 
 @inline function sea_ice_state(sea_ice::Simulation{<:SeaIceModel}) 
-    h = sea_ice.model.ice_thickness.data
-    ℵ = sea_ice.model.ice_concentration.data
-    u = sea_ice.model.velocities.u.data
-    v = sea_ice.model.velocities.v.data
+    h = sea_ice.model.ice_thickness
+    ℵ = sea_ice.model.ice_concentration
+    u = sea_ice.model.velocities.u
+    v = sea_ice.model.velocities.v
     T = sea_ice.model.ice_thermodynamics.top_surface_temperature
-    S = sea_ice.model.tracers.S.data
+    S = sea_ice.model.tracers.S
     return (; h, ℵ, u, v, T, S)
 end
 
 @inline sea_ice_external_fluxes(::Nothing) = nothing    
 
 @inline function sea_ice_external_fluxes(sea_ice::Simulation{<:SeaIceModel}) 
-    u = sea_ice.model.external_momentum_stresses.u.data
-    v = sea_ice.model.external_momentum_stresses.v.data
-    Q = sea_ice.model.external_heat_fluxes.top.data
+    u = sea_ice.model.external_momentum_stresses.u
+    v = sea_ice.model.external_momentum_stresses.v
+    Q = sea_ice.model.external_heat_fluxes.top
 
     return (; u, v, Q)
 end
