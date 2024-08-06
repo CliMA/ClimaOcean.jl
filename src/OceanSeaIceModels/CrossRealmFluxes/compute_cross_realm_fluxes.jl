@@ -110,6 +110,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             ocean_state.S,
             ice_state.ℵ,
             ice_state.T,
+            ice_state.S,
             coupled_model.fluxes.ocean_temperature_units,
             similarity_theory.fields,
             downwelling_radiation,
@@ -273,7 +274,7 @@ end
 
 @kernel function _assemble_atmosphere_ocean_fluxes!(centered_velocity_fluxes,
                                                     net_tracer_fluxes,
-                                                    sea_ice_fluxes,
+                                                    ice_fluxes,
                                                     grid,
                                                     clock,
                                                     ocean_temperature,
@@ -364,7 +365,7 @@ end
         Jˢ[i, j, 1] = ifelse(not_ocean, 0, atmos_ocean_Jˢ)
     end
 
-    store_sea_ice_heat_flux!(i, j, sea_ice_fluxes, ΣQ)
+    store_sea_ice_heat_flux!(i, j, ice_fluxes, ΣQ)
 end
 
 @inline not_ocean_cell(i, j, k, grid, ::Nothing, immersed) = immersed 
