@@ -73,8 +73,9 @@ end
                                                           ice_thickness,
                                                           ocean_temperature,
                                                           ocean_salinity,
+                                                          ρₒ, cₒ, 
                                                           liquidus,
-                                                          ρₒ, cₒ, Δt)
+                                                          Δt)
 
     i, j = @index(Global, NTuple)
 
