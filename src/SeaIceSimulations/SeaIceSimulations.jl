@@ -38,16 +38,16 @@ function sea_ice_simulation(grid; Δt = 5minutes,
 
     Jᵀ = isnothing(top_heat_flux) ? Field{Center, Center, Nothing}(grid) : top_heat_flux
 
-    sea_ice_model = SeaIceModel(; grid,
-                                  advection,
-                                  ice_thermodynamics, 
-                                  ice_dynamics, 
-                                  ocean_velocities,
-                                  top_u_stress = Jᵘ,
-                                  top_v_stress = Jᵛ,
-                                  coriolis,
-                                  top_heat_flux = Jᵀ,
-                                  ice_salinity)
+    sea_ice_model = SeaIceModel(grid;
+                                advection,
+                                ice_thermodynamics, 
+                                ice_dynamics, 
+                                ocean_velocities,
+                                top_u_stress = Jᵘ,
+                                top_v_stress = Jᵛ,
+                                coriolis,
+                                top_heat_flux = Jᵀ,
+                                ice_salinity)
 
     sea_ice = Simulation(sea_ice_model; Δt, verbose)
 
