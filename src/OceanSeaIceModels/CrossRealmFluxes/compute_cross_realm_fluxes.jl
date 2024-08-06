@@ -355,7 +355,7 @@ end
     atmos_ocean_Jˢ = - Sₒ * ΣF
 
     # Mask fluxes over land for convenience
-    immersed  = inactive_node(i, j, k, grid, c, c, c)
+    immersed  = inactive_node(i, j, kᴺ, grid, c, c, c)
     not_ocean = not_ocean_cell(i, j, kᴺ, grid, ℵ, immersed)
 
     @inbounds begin
