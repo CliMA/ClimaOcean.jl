@@ -41,19 +41,21 @@ Nx = 1440
 Ny = 600
 Nz = length(z_faces) - 1
 
-grid = LatitudeLongitudeGrid(arch; 
-                             size = (Nx, Ny, Nz), 
-                             halo = (7, 7, 7), 
+grid = LatitudeLongitudeGrid(arch;
+                             size = (Nx, Ny, Nz),
+                             halo = (7, 7, 7),
                              z = z_faces, 
                              latitude  = (-75, 75),
                              longitude = (0, 360))
 
 # ### Bathymetry and Immersed Boundary
 #
-# We retrieve the bathymetry from the ETOPO1 data, ensuring a minimum depth of 10 meters (depths shallower than this are considered land).
-# The `interpolation_passes` parameter specifies the number of passes to interpolate the bathymetry data. A larger number 
-# results in a smoother bathymetry. We also remove all connected regions (such as inland lakes) from the bathymetry data by specifying
-# `connected_regions_allowed = 2` (Mediterrean sea an North sea in addition to the ocean) 
+# We retrieve the bathymetry from the ETOPO1 data, ensuring a minimum depth of 10 meters
+# (depths shallower than this are considered land). The `interpolation_passes` parameter
+# specifies the number of passes to interpolate the bathymetry data. A larger number
+# results in a smoother bathymetry. We also remove all connected regions (such as inland
+# lakes) from the bathymetry data by specifying `connected_regions_allowed = 2` (Mediterrean
+# sea an North sea in addition to the ocean).
 
 bottom_height = retrieve_bathymetry(grid; 
                                     minimum_depth = 10,
@@ -91,7 +93,7 @@ nothing #hide
 
 free_surface = SplitExplicitFreeSurface(grid; substeps = 75)
 
-ocean = ocean_simulation(grid; free_surface) 
+ocean = ocean_simulation(grid; free_surface)
 model = ocean.model
 
 date  = DateTimeProlepticGregorian(1993, 1, 1)
@@ -103,14 +105,15 @@ nothing #hide
 
 # ### Prescribed Atmosphere and Radiation
 #
-# The atmospheric data is prescribed using the JRA55 dataset, which is loaded into memory in 4 snapshots at a time.
-# The JRA55 dataset provides atmospheric data such as temperature, humidity, and wind fields to calculate turbulent fluxes
+# The atmospheric data is prescribed using the JRA55 dataset, which is loaded
+# into memory in 4 snapshots at a time. The JRA55 dataset provides atmospheric
+# data such as temperature, humidity, and wind fields to calculate turbulent fluxes
 # using bulk formulae, see [`CrossRealmFluxes`](@ref).
 #
-# The radiation model specifies an ocean albedo emissivity to compute the net radiative fluxes. 
-# The default ocean albedo is based on Payne (1982) and depends on cloud cover (calculated from
-# the ratio of maximum possible incident solar radiation to actual incident solar radiation) and latitude.
-# The ocean emissivity is set to 0.97.
+# The radiation model specifies an ocean albedo emissivity to compute the net radiative
+# fluxes. The default ocean albedo is based on Payne (1982) and depends on cloud cover
+# (calculated from the ratio of maximum possible incident solar radiation to actual
+# incident solar radiation) and latitude. The ocean emissivity is set to 0.97.
 
 backend    = JRA55NetCDFBackend(41) 
 atmosphere = JRA55_prescribed_atmosphere(arch; backend)
@@ -119,23 +122,30 @@ nothing #hide
 
 # ### Sea Ice Model 
 #
-# This simulation includes a simplified representation of ice cover where the air-sea fluxes are shut down whenever the 
-# sea surface temperature is below the freezing point. Only heating fluxes are allowed. This is not a full sea ice model,
-# but it prevents the temperature from dropping excessively low by including atmosphere-ocean fluxes.
+# This simulation includes a simplified representation of ice cover where the
+# air-sea fluxes are shut down whenever the sea surface temperature is below
+# the freezing point. Only heating fluxes are allowed. This is not a full
+# sea ice model, but it prevents the temperature from dropping excessively
+# low by including atmosphere-ocean fluxes.
 
 sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
 nothing #hide
 
 # ## The Coupled Simulation
 #
-# Finally, we define the coupled model, which includes the ocean, atmosphere, and radiation parameters.
-# The model is constructed using the `OceanSeaIceModel` constructor.
+# Finally, we define the coupled model, which includes the ocean, atmosphere,
+# and radiation parameters. The model is constructed using the `OceanSeaIceModel`
+# constructor.
 #
-# We then create a coupled simulation, starting with a time step of 10 seconds and running the simulation for 10 days.
-# We will eventually increase the time step size and end time as the simulation progresses and initialization shocks dissipate.
+# We then create a coupled simulation, starting with a time step of 10 seconds
+# and running the simulation for 10 days.
+# We will eventually increase the time step size and end time as the simulation
+# progresses and initialization shocks dissipate.
 #
-# We also define a callback function to monitor the simulation's progress. This function prints the current time, iteration, time step,
-# as well as the maximum velocities and tracers in the domain. The wall time is also printed to monitor the time taken for each iteration.
+# We also define a callback function to monitor the simulation's progress.
+# This function prints the current time, iteration, time step,
+# as well as the maximum velocities and tracers in the domain. The wall time
+# is also printed to monitor the time taken for each iteration.
 
 coupled_model      = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 coupled_simulation = Simulation(coupled_model; Δt=10, stop_time = 10days)
@@ -144,7 +154,7 @@ wall_time = [time_ns()]
 
 function progress(sim) 
     ocean = sim.model.ocean
-    u, v, w = ocean.model.velocities  
+    u, v, w = ocean.model.velocities
     T = ocean.model.tracers.T
 
     Tmax = maximum(interior(T))
@@ -166,7 +176,7 @@ nothing #hide
 
 # ### Set up Output Writers
 #
-# We define output writers to save the simulation data at regular intervals. 
+# We define output writers to save the simulation data at regular intervals.
 # In this case, we save the surface fluxes and surface fields at a relatively high frequency (every day).
 
 ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, model.velocities);
