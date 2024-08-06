@@ -37,13 +37,13 @@ grid = LatitudeLongitudeGrid(size = (Nλ, Nφ, 1),
 #   one interpolation passes and no restrictions on connected regions.
 # - `h_smooth` shows the output of the function with 40 interpolation passes, which results
 #    in a smoother bathymetry.
-# - `h_nolakes` shows the output of the function with `connected_regions_allowed = 0`, which
+# - `h_no_connected_regions` shows the output of the function with `connected_regions_allowed = 0`, which
 #    means that the function does not allow connected regions in the bathymetry  (e.g., lakes)
 #    and fills them with land.
 
-h_rough   = regrid_bathymetry(grid)
-h_smooth  = regrid_bathymetry(grid; interpolation_passes = 40)
-h_nolakes = regrid_bathymetry(grid; connected_regions_allowed = 0)
+h_rough = regrid_bathymetry(grid)
+h_smooth = regrid_bathymetry(grid; interpolation_passes = 40)
+h_no_connected_regions = regrid_bathymetry(grid; connected_regions_allowed = 0)
 nothing # hide
 
 # Finally, we visualize the generated bathymetry data for the Mediterranean Sea using CairoMakie.
@@ -56,8 +56,8 @@ interior(h_smooth)[land_smooth] .= NaN
 land_rough = interior(h_rough) .>= 0
 interior(h_rough)[land_rough] .= NaN
 
-land_nolakes = interior(h_nolakes) .>= 0
-interior(h_nolakes)[land_nolakes] .= NaN
+land_no_connected_regions = interior(h_no_connected_regions) .>= 0
+interior(h_no_connected_regions)[land_no_connected_regions] .= NaN
 
 fig = Figure(resolution=(850, 1150))
 
@@ -67,8 +67,8 @@ hm = heatmap!(ax, λ, φ, - interior(h_rough, :, :, 1), nan_color=:white, colorm
 ax = Axis(fig[2, 1], title = "Smooth bathymetry", xlabel = "Longitude", ylabel = "Latitude")
 hm = heatmap!(ax, λ, φ, - interior(h_smooth, :, :, 1), nan_color=:white, colormap = Reverse(:deep))
 
-ax = Axis(fig[3, 1], title = "Bathymetry without lakes}", xlabel = "Longitude", ylabel = "Latitude")
-hm = heatmap!(ax, λ, φ, - interior(h_nolakes, :, :, 1), nan_color=:white, colormap = Reverse(:deep))
+ax = Axis(fig[3, 1], title = "Bathymetry without connected regions}", xlabel = "Longitude", ylabel = "Latitude")
+hm = heatmap!(ax, λ, φ, - interior(h_no_connected_regions, :, :, 1), nan_color=:white, colormap = Reverse(:deep))
 
 cb = Colorbar(fig[1:3, 2], hm, height = Relative(3/4), label = "Depth [m]")
 
