@@ -8,12 +8,9 @@ using Oceananigans.Advection: TracerAdvection
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node
 
-using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities:
-    CATKEVerticalDiffusivity,
-    CATKEMixingLength,
-    CATKEEquation
-
-using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
+using ClimaSeaIce
+using ClimaSeaIce.SeaIceThermodynamics: SlabSeaIceThermodynamics
+using ClimaSeaIce.SeaIceDynamics: ExplicitMomentumSolver
 
 using Oceananigans.BuoyancyModels: g_Earth
 using Oceananigans.Coriolis: Ω_Earth
