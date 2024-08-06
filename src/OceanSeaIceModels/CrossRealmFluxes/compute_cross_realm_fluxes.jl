@@ -151,7 +151,7 @@ limit_fluxes_over_sea_ice!(args...) = nothing
 
 # If there is sea ice, take the sea ice velocities (if concentration is larger than one)
 @inline centered_u_velocity(i, j, k, grid, uₒ, uᵢ, ℵ) = ifelse(ℵ > 0, ℑxᶜᵃᵃ(i, j, k, grid, uᵢ), ℑxᶜᵃᵃ(i, j, k, grid, uₒ))
-@inline centered_v_velocity(i, j, k, grid, vₒ, vᵢ, ℵ) = ifelse(ℵ > 0, ℑyᵃᶜᵃ(i, j, k, grid, vᵢ), ℑxᶜᵃᵃ(i, j, k, grid, uₒ))
+@inline centered_v_velocity(i, j, k, grid, vₒ, vᵢ, ℵ) = ifelse(ℵ > 0, ℑyᵃᶜᵃ(i, j, k, grid, vᵢ), ℑyᵃᶜᵃ(i, j, k, grid, vₒ))
 
 @inline surface_tracer(i, j, k, grid, Tₒ, Tᵢ, ℵ)         = @inbounds ifelse(ℵ > 0, Tᵢ[i, j, k], Tₒ[i, j, k])
 @inline surface_tracer(i, j, k, grid, Tₒ, Tᵢ, ::Nothing) = @inbounds Tₒ[i, j, k]
