@@ -10,7 +10,8 @@
     u = sea_ice.model.velocities.u.data
     v = sea_ice.model.velocities.v.data
     T = sea_ice.model.ice_thermodynamics.top_surface_temperature
-    return (; h, ℵ, u, v, T)
+    S = sea_ice.model.tracers.S.data
+    return (; h, ℵ, u, v, T, S)
 end
 
 @inline sea_ice_external_fluxes(::Nothing) = nothing    
