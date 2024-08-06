@@ -60,7 +60,7 @@ end
         # Update surface salinity flux.
         # Note: the Δt below is the ocean time-step, eg.
         # ΔS = ⋯ - ∮ Qˢ dt ≈ ⋯ - Δtₒ * Qˢ 
-        Qˢ[i, j, 1] = ifelse(ℵ > 0, Δh / Δt * (Sᵢ[i, j, 1] - Sₒ[i, j, Nz]), Qˢ[i, j, 1])
+        Qˢ[i, j, 1] = ifelse(ℵ[i, j, 1] > 0, Δh / Δt * (Sᵢ[i, j, 1] - Sₒ[i, j, Nz]), Qˢ[i, j, 1])
 
         # Update previous ice thickness
         h⁻[i, j, 1] = hⁿ[i, j, 1]
