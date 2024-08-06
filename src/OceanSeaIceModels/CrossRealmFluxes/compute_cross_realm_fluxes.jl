@@ -16,8 +16,8 @@ end
 @inline sea_ice_external_fluxes(::Nothing) = nothing    
 
 @inline function sea_ice_external_fluxes(sea_ice::Simulation{<:SeaIceModel}) 
-    u = sea_ice.model.external_momentum_stress.u.data
-    v = sea_ice.model.external_momentum_stress.v.data
+    u = sea_ice.model.external_momentum_stresses.u.data
+    v = sea_ice.model.external_momentum_stresses.v.data
     Q = sea_ice.model.external_heat_fluxes.top.data
 
     return (; u, v, Q)
