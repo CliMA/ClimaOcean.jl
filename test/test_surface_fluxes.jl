@@ -4,7 +4,8 @@ using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes:
                                     celsius_to_kelvin, 
                                     convert_to_kelvin, 
                                     SimilarityScales,
-                                    seawater_saturation_specific_humidity
+                                    seawater_saturation_specific_humidity,
+                                    NeutralLogarithmicSimilarityProfile
 
 using Thermodynamics
 import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: water_saturation_specific_humidity
@@ -80,16 +81,13 @@ end
     # the atmosphere, have zero gustiness and a constant roughness length of
     # `1e-4` for momentum, water vapor and temperature
     # For this case we can compute the fluxes by hand.
-
-    @inline neutral_bulk_coefficients(ψ, h, ℓ, L) = log(h / ℓ)
-
     ℓ = 1e-4
 
     roughness_lengths = SimilarityScales(ℓ, ℓ, ℓ)
     similarity_theory = SimilarityTheoryTurbulentFluxes(grid; 
                                                         roughness_lengths, 
                                                         gustiness_parameter = 0,
-                                                        bulk_coefficients = neutral_bulk_coefficients)
+                                                        similarity_profile_type = NeutralLogarithmicSimilarityProfile())
 
     # mid-latitude ocean conditions
     set!(ocean.model, u = 0, v = 0, T = 15, S = 30)
