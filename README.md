@@ -20,5 +20,5 @@ julia> Pkg.add(url="https://github.com/CliMA/ClimaOcean.jl.git")
 julia> Pkg.instantiate()
 ```
 
-Use `Pkg.add("url=https://github.com/CliMA/ClimaOcean.jl.git", rev="main") to install the latest version of `ClimaOcean`.
+Use `Pkg.add("url=https://github.com/CliMA/ClimaOcean.jl.git", rev="main")` to install the latest version of `ClimaOcean`.
 For more information, see the [documentation for `Pkg.jl`](https://pkgdocs.julialang.org).
