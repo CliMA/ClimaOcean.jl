@@ -4,8 +4,7 @@ using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes:
                                     celsius_to_kelvin, 
                                     convert_to_kelvin, 
                                     SimilarityScales,
-                                    seawater_saturation_specific_humidity,
-                                    NeutralLogarithmicSimilarityProfile
+                                    seawater_saturation_specific_humidity
 
 using Thermodynamics
 import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: water_saturation_specific_humidity
@@ -82,12 +81,18 @@ end
     # `1e-4` for momentum, water vapor and temperature
     # For this case we can compute the fluxes by hand.
     ℓ = 1e-4
+    
+    @inline zero_stability_function(ζ) = zero(ζ)
+
+    stability_functions = SimilarityScales(zero_stability_function, 
+                                           zero_stability_function, 
+                                           zero_stability_function)
 
     roughness_lengths = SimilarityScales(ℓ, ℓ, ℓ)
     similarity_theory = SimilarityTheoryTurbulentFluxes(grid; 
                                                         roughness_lengths, 
                                                         gustiness_parameter = 0,
-                                                        similarity_profile_type = NeutralLogarithmicSimilarityProfile())
+                                                        stability_functions)
 
     # mid-latitude ocean conditions
     set!(ocean.model, u = 0, v = 0, T = 15, S = 30)

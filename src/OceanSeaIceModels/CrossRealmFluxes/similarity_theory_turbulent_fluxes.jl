@@ -217,16 +217,12 @@ the Monin-Obukhov length ``L`` and the roughness length ``ℓ``.
 """
 struct LogarithmicSimilarityProfile end
 struct COARELogarithmicSimilarityProfile end
-struct NeutralLogarithmicSimilarityProfile end
 
 @inline similarity_profile(::LogarithmicSimilarityProfile, ψ, h, ℓ, L) =
     log(h / ℓ) - ψ(h / L) + ψ(ℓ / L)
 
 @inline similarity_profile(::COARELogarithmicSimilarityProfile, ψ, h, ℓ, L) =
     log(h / ℓ) - ψ(h / L)
-
-@inline similarity_profile(::NeutralLogarithmicSimilarityProfile, ψ, h, ℓ, L) =
-    log(h / ℓ) 
 
 #####
 ##### Fixed-point iteration for roughness length
