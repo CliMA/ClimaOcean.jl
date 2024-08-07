@@ -106,7 +106,8 @@ function ocean_simulation(grid; Δt = 5minutes,
 
     if closure isa CATKEVerticalDiffusivity
         tracers = tuple(tracers..., :e)
-        tracer_advection = (; zip(tracers,tuple(fill(default_advection, length(tracers))...)))
+        advection_value = tuple(fill(tracer_advection, length(tracers))...)
+        tracer_advection = (; zip(tracers,advection_value)...)
         tracer_advection = merge(tracer_advection, (e = nothing,))
     end
 
