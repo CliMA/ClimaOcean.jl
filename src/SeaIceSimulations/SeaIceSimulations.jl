@@ -36,7 +36,8 @@ function sea_ice_simulation(grid; Δt = 5minutes,
     top_zonal_momentum_flux      = Jᵘ = Field{Face, Center, Nothing}(grid)
     top_meridional_momentum_flux = Jᵛ = Field{Center, Face, Nothing}(grid)
 
-    Jᵀ = isnothing(top_heat_flux) ? Field{Center, Center, Nothing}(grid) : top_heat_flux
+    Qᵀ = isnothing(top_heat_flux) ? Field{Center, Center, Nothing}(grid) : top_heat_flux
+    Qᴮ = Field{Center, Center, Nothing}(grid) 
 
     sea_ice_model = SeaIceModel(grid;
                                 advection,
@@ -46,7 +47,8 @@ function sea_ice_simulation(grid; Δt = 5minutes,
                                 top_u_stress = Jᵘ,
                                 top_v_stress = Jᵛ,
                                 coriolis,
-                                top_heat_flux = Jᵀ,
+                                top_heat_flux = Qᵀ,
+                                bottom_heat_flux = Qᴮ,
                                 ice_salinity)
 
     sea_ice = Simulation(sea_ice_model; Δt, verbose)
