@@ -6,18 +6,19 @@
 
 [![Build status](https://badge.buildkite.com/3113cca353b83df3b5855d3f0d69827124614aef7017c835d2.svg)](https://buildkite.com/clima/climaocean-ci)
 
-Ocean component for CliMa's Earth system model based on Oceananigans.
+Tools for building and running realistic ocean-only and coupled ocean + sea-ice simulations based on [Oceananigans](https://github.com/CliMA/Oceananigans.jl) and [ClimaSeaIce](https://github.com/CliMA/ClimaSeaIce.jl).
 
 ## Installation
 
 To install from a Julia REPL:
 
 ```julia
-julia> ]
+julia> using Pkg
 
-pkg> add https://github.com/CliMA/ClimaOcean.jl.git
+julia> Pkg.add(url="https://github.com/CliMA/ClimaOcean.jl.git")
 
-pkg> instantiate
+julia> Pkg.instantiate()
 ```
 
-You can add `#main` to add the latest from `main` branch or `@vX.X` to install a tagged release.
+Use `Pkg.add("url=https://github.com/CliMA/ClimaOcean.jl.git", rev="main") to install the latest version of `ClimaOcean`.
+For more information, see the [documentation for `Pkg.jl`](https://pkgdocs.julialang.org).
