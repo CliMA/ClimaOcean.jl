@@ -226,7 +226,7 @@ struct NeutralLogarithmicSimilarityProfile end
     log(h / ℓ) - ψ(h / L)
 
 @inline similarity_profile(::NeutralLogarithmicSimilarityProfile, ψ, h, ℓ, L) =
-    log(h / ℓ) - ψ(h / L)
+    log(h / ℓ) 
 
 #####
 ##### Fixed-point iteration for roughness length
