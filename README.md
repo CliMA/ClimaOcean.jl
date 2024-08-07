@@ -27,8 +27,6 @@
 
 </p>
 
-Tools for building realistic ocean-only and coupled ocean + sea-ice simulations based on [Oceananigans](https://github.com/CliMA/Oceananigans.jl) and [ClimaSeaIce](https://github.com/CliMA/ClimaSeaIce.jl).
-
 ## Installation
 
 To install from a Julia REPL:
