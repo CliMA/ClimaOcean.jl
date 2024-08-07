@@ -50,7 +50,6 @@ default_tracer_advection() = TracerAdvection(WENO(; order = 7),
 @inline u_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.u[i, j, k] * is_immersed_drag_u(i, j, k, grid) * spᶠᶜᶜ(i, j, k, grid, fields) / Δzᶠᶜᶜ(i, j, k, grid)
 @inline v_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.v[i, j, k] * is_immersed_drag_v(i, j, k, grid) * spᶜᶠᶜ(i, j, k, grid, fields) / Δzᶜᶠᶜ(i, j, k, grid)
 
-NoBiogeochemistry(args...; kwargs...) = nothing
 
 # TODO: Specify the grid to a grid on the sphere; otherwise we can provide a different
 # function that requires latitude and longitude etc for computing coriolis=FPlane...
@@ -65,7 +64,7 @@ function ocean_simulation(grid; Δt = 5minutes,
                           coriolis = HydrostaticSphericalCoriolis(; rotation_rate),
                           momentum_advection = default_momentum_advection(),
                           tracer_advection = default_tracer_advection(),
-                          biogeochemistry = NoBiogeochemistry,
+                          biogeochemistry = nothing,
                           tracers = (:T, :S),
                           boundary_conditions = NamedTuple(),
                           verbose = false)
