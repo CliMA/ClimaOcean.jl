@@ -6,7 +6,7 @@
 
 [![Build status](https://badge.buildkite.com/3113cca353b83df3b5855d3f0d69827124614aef7017c835d2.svg)](https://buildkite.com/clima/climaocean-ci)
 
-Tools for building and running realistic ocean-only and coupled ocean + sea-ice simulations based on [Oceananigans](https://github.com/CliMA/Oceananigans.jl) and [ClimaSeaIce](https://github.com/CliMA/ClimaSeaIce.jl).
+Tools for building realistic ocean-only and coupled ocean + sea-ice simulations based on [Oceananigans](https://github.com/CliMA/Oceananigans.jl) and [ClimaSeaIce](https://github.com/CliMA/ClimaSeaIce.jl).
 
 ## Installation
 
