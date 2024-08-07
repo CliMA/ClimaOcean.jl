@@ -65,11 +65,11 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 bathymetry = deepcopy(Array(interior(bottom_height, :, :, 1)))
 bathymetry[bathymetry .>= 0] .= NaN
 
-fig = Figure(size = (800, 400))
-axis = Axis(fig[1, 1], title = "Bathymetry [m]")
-hm = heatmap!(axis, bathymetry, colormap = :deep, colorrange = (-6000, 0))
-cb = Colorbar(fig[1, 2], hm)
-hidedecorations!(axis)
+fig = Figure(size = (1200, 400))
+ax  = Axis(fig[1, 1])
+hm = heatmap!(ax, bathymetry, colormap = :deep, colorrange = (-6000, 0))
+cb = Colorbar(fig[0, 1], hm, label = "Bottom height [m]", vertical = false)
+hidedecorations!(ax)
 
 save("bathymetry.png", fig)
 nothing #hide
@@ -198,8 +198,8 @@ nothing #hide
 #
 # Now that the simulation has been warmed up, we can run it for the full 100 days.
 # We increase the maximum time step size to 10 minutes and let the simulation run for 100 days.
-# This time, we set the CFL in the time_step_wizard to be 0.25 as this is the recommended CFL to be
-# used in conjunction with Oceananigans' hydrosta
+# This time, we set the CFL in the time_step_wizard to be 0.25 as this is the maximum recommended CFL to be
+# used in conjunction with Oceananigans' hydrostatic time-stepping algorithm ([two step Adams-Bashfort](https://en.wikipedia.org/wiki/Linear_multistep_method))
 
 ocean.stop_time = 100days
 coupled_simulation.stop_time = 100days
