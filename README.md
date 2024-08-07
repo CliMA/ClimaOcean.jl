@@ -47,9 +47,11 @@ For more information, see the [documentation for `Pkg.jl`](https://pkgdocs.julia
 `ClimaOcean` is for realistic global and regional ocean-only, and ocean + sea-ice models.
 [Oceananigans](https://github.com/CliMA/Oceananigans.jl) is a lower-level package for simulation the dynamics of ocean-flavored fluids that can be used for _both_ realistic and idealized problems.
 While "idealized" problems come in all shapes and sizes, "realistic" problems are more narrowly defined, and require
-    - Simulating the evolution of momentum, ocean temperature (or heat), salinity, and sometimes ocean biogeochemistry.
-    - Computing fluxes of heat, water vapor, momentum, and trace gases between the ocean and atmosphere (where the atmospheric state is either prescribed or "coupled" and itself evolving) --- and also between sea ice and the atmosphere, when a sea ice component is included.
-    - Initializing the ocean model with realistic bathymetry and to some known ocean state at the beginning of the simulation.
+
+    * Simulating the evolution of momentum, ocean temperature (or heat), salinity, and sometimes ocean biogeochemistry.
+    * Computing fluxes of heat, water vapor, momentum, and trace gases between the ocean and atmosphere (where the atmospheric state is either prescribed or "coupled" and itself evolving) --- and also between sea ice and the atmosphere, when a sea ice component is included.
+    * Initializing the ocean model with realistic bathymetry and to some known ocean state at the beginning of the simulation.
+    
 `ClimaOcean` uses `Oceananigans` and `ClimaSeaIce` to build `OceanSeaIceModel` capable of performing all of these tasks, and more.
 Note also that, at least at the moment, `ClimaOcean`'s ocean functionality is focused on hydrostatic modeling with `Oceananigans`' `HydrostaticFreeSurfaceModel`.
 
