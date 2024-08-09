@@ -369,7 +369,7 @@ end
 @inline not_ocean_cell(i, j, k, grid, ℵ, immersed) = immersed & (ℵ > 0)
 
 @inline store_sea_ice_heat_flux!(i, j, ::Nothing, args...) = nothing
-@inline store_sea_ice_heat_flux!(i, j, J, ΣQ) = @inbounds J.Q[i, j, 1] = ΣQ 
+@inline store_sea_ice_heat_flux!(i, j, J, ΣQ) = @inbounds J.Q[i, j, 1] = ΣQ / 900 / 2210
 
 @kernel function reconstruct_momentum_fluxes!(grid, J, Jᶜᶜᶜ, Js, ρₒ)
     i, j = @index(Global, NTuple)
