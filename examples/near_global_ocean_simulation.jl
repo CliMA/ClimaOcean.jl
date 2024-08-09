@@ -1,11 +1,11 @@
-# # Near-global Ocean Simulation
+# # Near-global ocean simulation
 #
 # This Julia script sets up and runs a near-global ocean simulation using the Oceananigans.jl and ClimaOcean.jl packages. 
 # The simulation covers latitudes from 75°S to 75°N with a horizontal resolution of 1/4 degree and 40 vertical levels. 
 #
 # The simulation runs for one year, and the results are visualized using the CairoMakie.jl package.
 #
-# ## Initial Setup with Package Imports
+# ## Initial setup with package imports
 #
 # The script begins by importing the necessary Julia packages for visualization (CairoMakie), 
 # ocean modeling (Oceananigans, ClimaOcean), and handling dates and times (CFTime, Dates). 
@@ -15,18 +15,13 @@
 using Printf
 using Oceananigans
 using Oceananigans.Units
-using Oceananigans: architecture, on_architecture
 using ClimaOcean
-using ClimaOcean.ECCO
-using ClimaOcean.OceanSimulations
-using ClimaOcean.OceanSeaIceModels
 using CairoMakie
-using OrthogonalSphericalShellGrids
 
 using CFTime
 using Dates
 
-# ### Grid Configuration 
+# ### Grid configuration 
 #
 # We define a global grid with a horizontal resolution of 1/4 degree and 40 vertical levels. 
 # The grid is a `LatitudeLongitudeGrid` capped at 75°S to 75°N.
@@ -48,7 +43,7 @@ grid = LatitudeLongitudeGrid(arch;
                              latitude  = (-75, 75),
                              longitude = (0, 360))
 
-# ### Bathymetry and Immersed Boundary
+# ### Bathymetry and immersed boundary
 #
 # We retrieve the bathymetry from the ETOPO1 data, ensuring a minimum depth of 10 meters
 # (depths shallower than this are considered land). The `interpolation_passes` parameter
@@ -57,10 +52,10 @@ grid = LatitudeLongitudeGrid(arch;
 # lakes) from the bathymetry data by specifying `connected_regions_allowed = 2` (Mediterrean
 # sea an North sea in addition to the ocean).
 
-bottom_height = retrieve_bathymetry(grid; 
-                                    minimum_depth = 10,
-                                    interpolation_passes = 5,
-                                    connected_regions_allowed = 2)
+bottom_height = regrid_bathymetry(grid; 
+                                  minimum_depth = 10,
+                                  interpolation_passes = 5,
+                                  connected_regions_allowed = 2)
  
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height)) 
 
@@ -78,7 +73,7 @@ nothing #hide
 
 # ![](bathymetry.png)
 
-# ### Ocean Model Configuration
+# ### Ocean model configuration
 #
 # To configure the ocean simulation, we use the `ocean_simulation` function from ClimaOcean.jl. This function allows us to build
 # an ocean simulation with default parameters and numerics. The defaults include:
@@ -91,9 +86,7 @@ nothing #hide
 #
 # The ocean model is then initialized with the ECCO2 temperature and salinity fields for January 1, 1993.
 
-free_surface = SplitExplicitFreeSurface(grid; substeps = 75)
-
-ocean = ocean_simulation(grid; free_surface)
+ocean = ocean_simulation(grid)
 model = ocean.model
 
 date  = DateTimeProlepticGregorian(1993, 1, 1)
@@ -103,7 +96,7 @@ set!(model,
      S = ECCOMetadata(:salinity;    date))
 nothing #hide
 
-# ### Prescribed Atmosphere and Radiation
+# ### Prescribed atmosphere and radiation
 #
 # The atmospheric data is prescribed using the JRA55 dataset, which is loaded
 # into memory in 4 snapshots at a time. The JRA55 dataset provides atmospheric
@@ -120,7 +113,7 @@ atmosphere = JRA55_prescribed_atmosphere(arch; backend)
 radiation  = Radiation(arch)
 nothing #hide
 
-# ### Sea Ice Model 
+# ### Sea ice model 
 #
 # This simulation includes a simplified representation of ice cover where the
 # air-sea fluxes are shut down whenever the sea surface temperature is below
@@ -131,7 +124,7 @@ nothing #hide
 sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
 nothing #hide
 
-# ## The Coupled Simulation
+# ## The coupled simulation
 #
 # Finally, we define the coupled model, which includes the ocean, atmosphere,
 # and radiation parameters. The model is constructed using the `OceanSeaIceModel`
@@ -174,10 +167,11 @@ end
 coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(1000))
 nothing #hide
 
-# ### Set up Output Writers
+# ### Set up output writers
 #
 # We define output writers to save the simulation data at regular intervals.
 # In this case, we save the surface fluxes and surface fields at a relatively high frequency (every day).
+# The `indices` keyword argument allows us to save down a slice at the surface, which is located at `k = grid.Nz`
 
 ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, model.velocities);
                                                   schedule = TimeInterval(1days),
@@ -187,7 +181,7 @@ ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, mo
                                                   array_type = Array{Float32})
 nothing #hide
 
-# ### Spinning Up the Simulation
+# ### Spinning up the simulation
 #
 # As an initial condition, we have interpolated ECCO tracer fields onto our custom grid.
 # The bathymetry of the original ECCO data may differ from our grid, so the initialization of the velocity
@@ -218,7 +212,7 @@ conjure_time_step_wizard!(ocean; cfl = 0.25, max_Δt = 10minutes, max_change = 1
 run!(coupled_simulation)
 nothing #hide
 
-# ## Visualizing the Results
+# ## Visualizing the results
 # 
 # The simulation has finished, let's visualize the results.
 # In this section we pull up the saved data and create visualizations using the CairoMakie.jl package.
@@ -263,7 +257,6 @@ cb = Colorbar(fig[0, 1], hm, vertical = false, label = "Surface speed [ms⁻¹]"
 hidedecorations!(ax)
 
 CairoMakie.record(fig, "near_global_ocean_surface_s.mp4", 1:Nt, framerate = 8) do i
-    @info "Generating frame $i of $Nt \r"
     iter[] = i
 end
 nothing #hide
@@ -277,7 +270,6 @@ cb = Colorbar(fig[0, 1], hm, vertical = false, label = "Surface Temperature [C�
 hidedecorations!(ax)
 
 CairoMakie.record(fig, "near_global_ocean_surface_T.mp4", 1:Nt, framerate = 8) do i
-    @info "Generating frame $i of $Nt \r"
     iter[] = i
 end
 nothing #hide
@@ -291,7 +283,6 @@ cb = Colorbar(fig[0, 1], hm, vertical = false, label = "Turbulent Kinetic Energy
 hidedecorations!(ax)
 
 CairoMakie.record(fig, "near_global_ocean_surface_e.mp4", 1:Nt, framerate = 8) do i
-    @info "Generating frame $i of $Nt \r"
     iter[] = i
 end
 nothing #hide
