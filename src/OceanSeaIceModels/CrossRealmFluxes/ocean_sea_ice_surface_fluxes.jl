@@ -38,8 +38,6 @@ struct OceanSeaIceSurfaceFluxes{T, P, C, R, PI, PC, FT, UN}
     ocean_reference_density :: FT
     ocean_heat_capacity :: FT
     freshwater_density :: FT
-    ice_density :: FT
-    ice_heat_capacity :: FT
     ocean_temperature_units :: UN
 end
 
@@ -63,9 +61,7 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
                                   ocean_temperature_units = DegreesCelsius(),
                                   similarity_theory = nothing,
                                   ocean_reference_density = reference_density(ocean),
-                                  ocean_heat_capacity = heat_capacity(ocean),
-                                  ice_density = 900,
-                                  ice_heat_capacity = 2110)
+                                  ocean_heat_capacity = heat_capacity(ocean))
 
     grid = ocean.model.grid
     FT = eltype(grid)
@@ -143,8 +139,6 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
                                     ocean_reference_density,
                                     ocean_heat_capacity,
                                     freshwater_density,
-                                    ice_density,
-                                    ice_heat_capacity,
                                     ocean_temperature_units)
 end
     
