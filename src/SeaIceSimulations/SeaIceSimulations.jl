@@ -16,8 +16,6 @@ using Oceananigans.BuoyancyModels: g_Earth
 using Oceananigans.Coriolis: Ω_Earth
 using Oceananigans.Operators
 
-default_sea_ice_advection() = WENO(; order = 7)
-
 function sea_ice_simulation(grid; Δt = 5minutes,
                             reference_density = 1020,
                             rotation_rate = Ω_Earth,
@@ -30,7 +28,7 @@ function sea_ice_simulation(grid; Δt = 5minutes,
                             ice_thermodynamics = SlabSeaIceThermodynamics(grid; ice_consolidation_thickness),
                             ice_dynamics = ExplicitMomentumSolver(grid; substeps = 100, ocean_ice_drag_coefficient),
                             coriolis = HydrostaticSphericalCoriolis(; rotation_rate),
-                            advection = default_sea_ice_advection(),
+                            advection = WENO(; order = 7),
                             verbose = false)
 
     # Set up boundary conditions using Field
