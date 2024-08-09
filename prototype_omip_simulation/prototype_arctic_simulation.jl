@@ -26,20 +26,20 @@ using CFTime
 using Dates
 
 include("restoring_mask.jl")
-include("simulation_output.jl")
+# include("simulation_outputs.jl")
 
 #####
 ##### Global Ocean at 1/6th of a degree
 #####
 
 # 60 vertical levels
-z_faces = exponential_z_faces(Nz=60, depth=6000)
+z_faces = exponential_z_faces(Nz=30, depth=6000)
 
-Nx = 1440
-Ny = 900
+Nx = 360
+Ny = 180
 Nz = length(z_faces) - 1
 
-arch = GPU() 
+arch = CPU() 
 
 grid = TripolarGrid(arch; 
                     size = (Nx, Ny, Nz), 
@@ -68,7 +68,9 @@ sea_ice_grid = ImmersedBoundaryGrid(sea_ice_grid, GridFittedBottom(bottom_height
 ##### The Ocean component
 #####                             
 
-ocean = ocean_simulation(grid; free_surface) 
+free_surface = SplitExplicitFreeSurface(grid; substeps = 90)
+
+ocean = ocean_simulation(grid; Δt = 10, free_surface) 
 model = ocean.model
 
 #####
@@ -112,7 +114,7 @@ radiation  = Radiation(arch; ocean_albedo = LatitudeDependentAlbedo())
 #####
 
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-coupled_simulation = Simulation(coupled_model; Δt = 1minutes, stop_time = 30days)
+coupled_simulation = Simulation(coupled_model; Δt = 10, stop_time = 30days, stop_iteration = 1)
 
 function progress(sim) 
     u, v, w = sim.model.ocean.model.velocities  
@@ -120,7 +122,7 @@ function progress(sim)
     h    = sim.model.sea_ice.model.ice_thickness
 
     Tmax = maximum(interior(T))
-    hmax = minimum(interior(h))
+    hmax = maximum(interior(h))
     umax = maximum(interior(u)), maximum(interior(v)), maximum(interior(w))
     step_time = 1e-9 * (time_ns() - wall_time[1])
 
@@ -134,24 +136,24 @@ function progress(sim)
 end
 
 function update_dt!(simulation)
-    simulation.Δt = simulation.ocean.Δt
+    simulation.Δt = simulation.model.ocean.Δt
     return nothing
 end
 
-coupled_simulation.callbacks[:progress]  = Callback(progress,   IterationInterval(10))
+coupled_simulation.callbacks[:progress]  = Callback(progress,   IterationInterval(1))
 coupled_simulation.callbacks[:update_dt] = Callback(update_dt!, IterationInterval(1)) 
 
 #### Saving outputs
-set_outputs!(coupled_simulation)
+# set_outputs!(coupled_simulation)
 
 # Run for 30 days!
 conjure_time_step_wizard!(ocean; max_Δt = 90, max_change = 1.1, cfl = 0.1)
 run!(coupled_simulation)
 
-# Finnished the 30 days, run for other 720 days
-coupled_simulation.stop_time = 1080days
-ocean.stop_time = 1080days
-sea_ice.stop_time = 1080days
+# # Finished the 30 days, run for other 720 days
+# coupled_simulation.stop_time = 1080days
+# ocean.stop_time = 1080days
+# sea_ice.stop_time = 1080days
 
-conjure_time_step_wizard!(ocean; max_Δt = 900, max_change = 1.1, cfl = 0.25)
-run!(coupled_simulation)
+# conjure_time_step_wizard!(ocean; max_Δt = 900, max_change = 1.1, cfl = 0.25)
+# run!(coupled_simulation)

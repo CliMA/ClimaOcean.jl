@@ -123,6 +123,8 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             radiation_properties,
             coupled_model.fluxes.ocean_reference_density,
             coupled_model.fluxes.ocean_heat_capacity,
+            coupled_model.fluxes.ice_density,
+            coupled_model.fluxes.ice_heat_capacity,
             coupled_model.fluxes.freshwater_density)
 
     launch!(arch, grid, :xy, reconstruct_momentum_fluxes!,
@@ -294,6 +296,8 @@ end
                                                     radiation_properties,
                                                     ocean_reference_density,
                                                     ocean_heat_capacity,
+                                                    ice_density, 
+                                                    ice_heat_capacity,
                                                     freshwater_density)
 
     i, j = @index(Global, NTuple)
@@ -365,14 +369,14 @@ end
         Jˢ[i, j, 1] = ifelse(not_ocean, 0, atmos_ocean_Jˢ)
     end
 
-    store_sea_ice_heat_flux!(i, j, ice_fluxes, ΣQ)
+    store_sea_ice_heat_flux!(i, j, ice_fluxes, ΣQ,  ice_density, ice_heat_capacity)
 end
 
 @inline not_ocean_cell(i, j, k, grid, ::Nothing, immersed) = immersed 
 @inline not_ocean_cell(i, j, k, grid, ℵ, immersed) = immersed & (ℵ > 0)
 
 @inline store_sea_ice_heat_flux!(i, j, ::Nothing, args...) = nothing
-@inline store_sea_ice_heat_flux!(i, j, J, ΣQ) = @inbounds J.Q[i, j, 1] = ΣQ
+@inline store_sea_ice_heat_flux!(i, j, J, ΣQ, ρᵢ, cᵢ) = @inbounds J.Q[i, j, 1] = ΣQ / (ρᵢ * cᵢ)
 
 @kernel function reconstruct_momentum_fluxes!(grid, J, Jᶜᶜᶜ, Js, ρₒ)
     i, j = @index(Global, NTuple)
