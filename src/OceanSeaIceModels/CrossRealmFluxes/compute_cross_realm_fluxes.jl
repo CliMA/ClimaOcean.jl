@@ -152,14 +152,11 @@ limit_fluxes_over_sea_ice!(args...) = nothing
 @inline centered_v_velocity(i, j, k, grid, vₒ, vᵢ, ::Nothing) = ℑyᵃᶜᵃ(i, j, k, grid, vₒ)
 
 # If there is sea ice, take the sea ice velocities (if concentration is larger than one)
-@inline centered_u_velocity(i, j, k, grid, uₒ, uᵢ, ℵ) = ifelse(ℵ > 0, ℑxᶜᵃᵃ(i, j, k, grid, uᵢ), ℑxᶜᵃᵃ(i, j, k, grid, uₒ))
-@inline centered_v_velocity(i, j, k, grid, vₒ, vᵢ, ℵ) = ifelse(ℵ > 0, ℑyᵃᶜᵃ(i, j, k, grid, vᵢ), ℑyᵃᶜᵃ(i, j, k, grid, vₒ))
+@inline centered_u_velocity(i, j, k, grid, uₒ, uᵢ, ℵ) = ℵ * ℑxᶜᵃᵃ(i, j, k, grid, uᵢ) + (1 - ℵ) * ℑxᶜᵃᵃ(i, j, k, grid, uₒ)
+@inline centered_v_velocity(i, j, k, grid, vₒ, vᵢ, ℵ) = ℵ * ℑyᵃᶜᵃ(i, j, k, grid, vᵢ) + (1 - ℵ) * ℑyᵃᶜᵃ(i, j, k, grid, vₒ)
 
-@inline surface_tracer(i, j, k, grid, Tₒ, Tᵢ, ℵ)         = @inbounds ifelse(ℵ > 0, Tᵢ[i, j, k], Tₒ[i, j, k])
-@inline surface_tracer(i, j, k, grid, Tₒ, Tᵢ, ::Nothing) = @inbounds Tₒ[i, j, k]
-
-@inline surface_temperature(i, j, k, grid, Tₒ, Tᵢ, ℵ)         = @inbounds ifelse(ℵ > 0, Tᵢ[i, j, k], Tₒ[i, j, k])
-@inline surface_temperature(i, j, k, grid, Tₒ, Tᵢ, ::Nothing) = @inbounds Tₒ[i, j, k]
+@inline surface_tracer(i, j, k, grid, Sₒ, Sᵢ, ℵ)         = @inbounds ℵ * Sᵢ[i, j, k] + (1 - ℵ) * Sₒ[i, j, k]
+@inline surface_tracer(i, j, k, grid, Sₒ, Sᵢ, ::Nothing) = @inbounds Sₒ[i, j, k]
 
 @kernel function _compute_atmosphere_ocean_similarity_theory_fluxes!(similarity_theory,
                                                                      grid,
@@ -411,8 +408,8 @@ end
     ϵₒ = stateindex(radiation.emission.ocean, i, j, 1, grid, time)
     ϵᵢ = stateindex(radiation.emission.sea_ice, i, j, 1, grid, time)
     
-    α = ifelse(ℵ > 0, αᵢ, αₒ)
-    ϵ = ifelse(ℵ > 0, αᵢ, αₒ)
+    α = (1 - ℵ) * αₒ +  ℵ * αᵢ
+    ϵ = (1 - ℵ) * ϵₒ +  ℵ * ϵᵢ
 
     return @inbounds - (1 - α) * Qs - ϵ * Qℓ
 end
@@ -423,7 +420,7 @@ end
     ϵₒ = stateindex(radiation.emission.ocean, i, j, 1, grid, time)
     ϵᵢ = stateindex(radiation.emission.sea_ice, i, j, 1, grid, time)
     
-    ϵ = ifelse(ℵ > 0, ϵₒ, ϵᵢ)
+    ϵ = (1 - ℵ) * ϵₒ +  ℵ * ϵᵢ
     
     # Note: positive implies _upward_ heat flux, and therefore cooling.
     return ϵ * σ * Tₒ^4

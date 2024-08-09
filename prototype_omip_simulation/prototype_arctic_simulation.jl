@@ -68,9 +68,10 @@ sea_ice_grid = ImmersedBoundaryGrid(sea_ice_grid, GridFittedBottom(bottom_height
 ##### The Ocean component
 #####                             
 
+tracer_advection = WENO(; order = 7)
 free_surface = SplitExplicitFreeSurface(grid; substeps = 90)
 
-ocean = ocean_simulation(grid; Δt = 10, free_surface) 
+ocean = ocean_simulation(grid; Δt = 10, tracer_advection, free_surface) 
 model = ocean.model
 
 #####
