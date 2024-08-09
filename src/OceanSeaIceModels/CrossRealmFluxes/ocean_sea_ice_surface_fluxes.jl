@@ -69,9 +69,6 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
     ocean_reference_density = convert(FT, ocean_reference_density)
     ocean_heat_capacity = convert(FT, ocean_heat_capacity)
     freshwater_density = convert(FT, freshwater_density)
-    ice_density = convert(FT, ice_density)
-    ice_heat_capacity = convert(FT, ice_heat_capacity)
-
 
     if !isnothing(atmosphere)
         # It's the "thermodynamics gravitational acceleration"
