@@ -123,8 +123,6 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             radiation_properties,
             coupled_model.fluxes.ocean_reference_density,
             coupled_model.fluxes.ocean_heat_capacity,
-            coupled_model.fluxes.ice_density,
-            coupled_model.fluxes.ice_heat_capacity,
             coupled_model.fluxes.freshwater_density)
 
     launch!(arch, grid, :xy, reconstruct_momentum_fluxes!,
