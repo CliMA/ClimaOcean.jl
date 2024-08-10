@@ -2,7 +2,7 @@
 ##### Surface flux computation
 #####
 
-@inline sea_ice_state(::Nothing) = (; T = nothing, S = nothing, ℵ = nothing, h = nothing, u = nothing, v = nothing)
+@inline sea_ice_state(args) = (; T = nothing, S = nothing, ℵ = nothing, h = nothing, u = nothing, v = nothing)
 
 @inline function sea_ice_state(sea_ice::Simulation{<:SeaIceModel}) 
     h = sea_ice.model.ice_thickness
@@ -14,7 +14,7 @@
     return (; h, ℵ, u, v, T, S)
 end
 
-@inline sea_ice_external_fluxes(::Nothing) = nothing    
+@inline sea_ice_external_fluxes(args) = nothing    
 
 @inline function sea_ice_external_fluxes(sea_ice::Simulation{<:SeaIceModel}) 
     u = sea_ice.model.external_momentum_stresses.u
@@ -369,7 +369,7 @@ end
 @inline not_ocean_cell(i, j, k, grid, ℵ, immersed) = immersed & (ℵ > 0)
 
 @inline store_sea_ice_heat_flux!(i, j, ::Nothing, args...) = nothing
-@inline store_sea_ice_heat_flux!(i, j, J, ΣQ) = @inbounds J.Q[i, j, 1] = ΣQ / 900 / 2210
+@inline store_sea_ice_heat_flux!(i, j, J, ΣQ) = @inbounds J.Q[i, j, 1] = ΣQ / 900 / 2100
 
 @kernel function reconstruct_momentum_fluxes!(grid, J, Jᶜᶜᶜ, Js, ρₒ)
     i, j = @index(Global, NTuple)
