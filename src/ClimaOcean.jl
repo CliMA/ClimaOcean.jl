@@ -7,6 +7,7 @@ export
     SimilarityTheoryTurbulentFluxes,
     JRA55_prescribed_atmosphere,
     JRA55NetCDFBackend,
+    ECCOMetadata,
     ecco2_field,
     regrid_bathymetry,
     retrieve_bathymetry,
@@ -69,7 +70,7 @@ using .DataWrangling
 using .InitialConditions
 using .OceanSeaIceModels
 using .OceanSimulations
-using .DataWrangling: JRA55, ECCO
+using .DataWrangling: JRA55, ECCO, ECCOMetadata
 using ClimaOcean.DataWrangling.JRA55: JRA55_prescribed_atmosphere, JRA55NetCDFBackend
 using ClimaOcean.DataWrangling.ECCO: ecco_field
 
