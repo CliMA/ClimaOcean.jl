@@ -14,13 +14,13 @@ function set_outputs!(coupled_simulation)
                            sea_ice.model.ice_dynamics.auxiliary_fields)
 
     ocean.output_writers[:fluxes] = JLD2OutputWriter(ocean.model, fluxes,
-                                                     schedule = TimeInterval(0.5days),
+                                                     schedule = TimeInterval(0.1days),
                                                      overwrite_existing = false,
                                                      array_type = Array{Float32},
                                                      filename = "surface_fluxes")
     
     ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, merge(model.tracers, model.velocities),
-                                                      schedule = TimeInterval(0.5days),
+                                                      schedule = TimeInterval(0.1days),
                                                       overwrite_existing = false,
                                                       array_type = Array{Float32},
                                                       filename = "surface",
@@ -38,15 +38,15 @@ function set_outputs!(coupled_simulation)
                                                      prefix = "checkpoint_ocean")
 
     sea_ice.output_writers[:snapshots] = JLD2OutputWriter(sea_ice.model, sea_ice_outputs,
-                                                          schedule = TimeInterval(10days),
+                                                          schedule = TimeInterval(0.1days),
                                                           overwrite_existing = false,
                                                           array_type = Array{Float32},
                                                           filename = "snapshots_sea_ice")
     
-    sea_ice.output_writers[:checkpoint] = Checkpointer(model, 
-                                                       schedule = TimeInterval(60days),
-                                                       overwrite_existing = true,
-                                                       prefix = "checkpoint_sea_ice")
+#     sea_ice.output_writers[:checkpoint] = Checkpointer(model, 
+#                                                        schedule = TimeInterval(60days),
+#                                                        overwrite_existing = true,
+#                                                        prefix = "checkpoint_sea_ice")
 
     return nothing
 end
