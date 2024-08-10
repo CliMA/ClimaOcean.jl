@@ -70,9 +70,9 @@ using .DataWrangling
 using .InitialConditions
 using .OceanSeaIceModels
 using .OceanSimulations
-using .DataWrangling: JRA55, ECCO, ECCOMetadata
+using .DataWrangling: JRA55, ECCO
 using ClimaOcean.DataWrangling.JRA55: JRA55_prescribed_atmosphere, JRA55NetCDFBackend
-using ClimaOcean.DataWrangling.ECCO: ecco_field
+using ClimaOcean.DataWrangling.ECCO: ecco_field, ECCOMetadata
 
 end # module
 
