@@ -54,12 +54,10 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
 
     Qs = atmosphere.downwelling_radiation.shortwave
     Ql = atmosphere.downwelling_radiation.longwave
-
     downwelling_radiation = (shortwave=Qs.data, longwave=Ql.data)
 
-    kernel_size = (size(grid, 1) + 2, size(grid, 2) + 2)
-
     # kernel parameters that compute fluxes in 0:Nx+1 and 0:Ny+1
+    kernel_size = (size(grid, 1) + 2, size(grid, 2) + 2)
     kernel_parameters = KernelParameters(kernel_size, (-1, -1))
 
     launch!(arch, grid, kernel_parameters,
@@ -136,9 +134,7 @@ limit_fluxes_over_sea_ice!(args...) = nothing
                                                                      atmos_thermodynamics_parameters)
 
     i, j = @index(Global, NTuple)
-    kᴺ = size(grid, 3)
-
-    time = Time(clock.time)
+    kᴺ = size(grid, 3) # index of the top ocean cell
 
     # Extract state variables at cell centers
     @inbounds begin
@@ -149,20 +145,14 @@ limit_fluxes_over_sea_ice!(args...) = nothing
         Tₒ = convert_to_kelvin(ocean_temperature_units, Tₒ)
         Sₒ = ocean_state.S[i, j, kᴺ]
     end
-
-    kᴺ = size(grid, 3) # index of the top ocean cell
-
-    # Convert the native grid velocities to a zonal - meridional 
-    # frame of reference (assuming the frame of reference is 
-    # latitude - longitude here, we might want to change it)
-    uₒ, vₒ = extrinsic_vector(i, j, kᴺ, grid, uₒ, vₒ)
-        
+       
     @inbounds begin
         # Atmos state, which is _assumed_ to exist at location = (c, c, nothing)
         # The third index "k" should not matter but we put the correct index to get
         # a surface node anyways.
-        X = node(i, j, kᴺ + 1, grid, c, c, f)
         atmos_args = (atmos_grid, atmos_times, atmos_backend, atmos_time_indexing)
+        X = node(i, j, kᴺ + 1, grid, c, c, f)
+        time = Time(clock.time)
 
         uₐ = interp_atmos_time_series(atmos_state.u, X, time, atmos_args...)
         vₐ = interp_atmos_time_series(atmos_state.v, X, time, atmos_args...)
@@ -190,10 +180,16 @@ limit_fluxes_over_sea_ice!(args...) = nothing
                                                similarity_theory.water_vapor_saturation,
                                                surface_type)
     
-    # Thermodynamic and dynamic (ocean) surface state
+    # Thermodynamic and dynamic (ocean) surface state:
+    #
+    # Convert the native grid velocities to a zonal - meridional 
+    # frame of reference (assuming the frame of reference is 
+    # latitude - longitude here, we might want to change it)
+    uₒ, vₒ = extrinsic_vector(i, j, kᴺ, grid, uₒ, vₒ)
+    Uₒ = SVector(uₒ, vₒ)
+     
     𝒬₀ = thermodynamic_surface_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₒ, qₒ)
     h₀ = zero(grid) # surface height
-    Uₒ = SVector(uₒ, vₒ)
     𝒰₀ = dynamic_ocean_state = SurfaceFluxes.StateValues(h₀, Uₒ, 𝒬₀)
 
     # Some parameters
