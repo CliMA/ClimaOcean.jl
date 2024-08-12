@@ -103,13 +103,13 @@ function ocean_simulation(grid; Δt = 5minutes,
         tracer_advection = nothing
         momentum_advection = nothing
     end
-tracers = unique(tuple(tracers..., :T, :S))
 
+    tracers = unique(tuple(tracers..., :T, :S))
     if closure isa CATKEVerticalDiffusivity
         tracers = tuple(tracers..., :e)
-        advection_value = tuple(fill(tracer_advection, length(tracers))...)
-        tracer_advection = (; zip(tracers,advection_value)...)
-        tracer_advection = merge(tracer_advection, (e = nothing,))
+        tracer_advection = Dict{Symbol, Any}(name => tracer_advection for name in tracers)
+        tracer_advection[:e] = nothing
+        tracer_advection = NamedTuple(name => tracer_advection[name] for name in tracers)
     end
 
     ocean_model = HydrostaticFreeSurfaceModel(; grid,
