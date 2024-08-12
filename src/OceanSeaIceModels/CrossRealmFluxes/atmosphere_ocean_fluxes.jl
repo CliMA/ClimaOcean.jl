@@ -32,14 +32,18 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     similarity_theory    = coupled_model.fluxes.turbulent
     radiation_properties = coupled_model.fluxes.radiation
 
-    ocean_state = merge(ocean_velocities, ocean_tracers)
+    ocean_state = (u = ocean.model.velocities.u,
+                   v = ocean.model.velocities.v,
+                   T = ocean.model.tracers.T,
+                   S = ocean.model.tracers.S)
 
-    atmosphere_velocities = map(u -> u.data, atmosphere.velocities)
-    atmosphere_tracers    = map(c -> c.data, atmosphere.tracers)
-    atmosphere_pressure   = atmosphere.pressure.data
-
-    atmosphere_state = merge(atmosphere_velocities, atmosphere_tracers, (; p=atmosphere_pressure))
-    freshwater_flux  = map(ϕ -> ϕ.data, atmosphere.freshwater_flux)
+    # We use .data here to save parameter space (unlike Field, adapt_structure for
+    # fts = FieldTimeSeries does not return fts.data)
+    atmosphere_state = (u = atmosphere.velocities.u.data,
+                        v = atmosphere.velocities.v.data,
+                        T = atmosphere.tracers.T.data,
+                        q = atmosphere.tracers.q.data,
+                        p = atmosphere.pressure.data)
 
     u = atmosphere.velocities.u # for example 
     atmosphere_times = u.times
@@ -73,6 +77,8 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             atmosphere.reference_height, # height at which the state is known
             atmosphere.boundary_layer_height,
             atmosphere.thermodynamics_parameters)   
+
+    freshwater_flux = map(ϕ -> ϕ.data, atmosphere.freshwater_flux)
     
     launch!(arch, grid, kernel_parameters,
             _assemble_atmosphere_ocean_fluxes!,
@@ -137,11 +143,11 @@ limit_fluxes_over_sea_ice!(args...) = nothing
     # Extract state variables at cell centers
     @inbounds begin
         # Ocean state
-        uₒ = ℑxᶜᵃᵃ(i, j, 1, grid, ocean_state.u)
-        vₒ = ℑyᵃᶜᵃ(i, j, 1, grid, ocean_state.v)
-        Tₒ = ocean_state.T[i, j, 1]
+        uₒ = ℑxᶜᵃᵃ(i, j, kᴺ, grid, ocean_state.u)
+        vₒ = ℑyᵃᶜᵃ(i, j, kᴺ, grid, ocean_state.v)
+        Tₒ = ocean_state.T[i, j, kᴺ]
         Tₒ = convert_to_kelvin(ocean_temperature_units, Tₒ)
-        Sₒ = ocean_state.S[i, j, 1]
+        Sₒ = ocean_state.S[i, j, kᴺ]
     end
 
     kᴺ = size(grid, 3) # index of the top ocean cell
