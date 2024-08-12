@@ -103,7 +103,7 @@ function ocean_simulation(grid; Δt = 5minutes,
         tracer_advection = nothing
         momentum_advection = nothing
     end
-
+tracers = unique(tuple(tracers..., :T, :S))
 
     if closure isa CATKEVerticalDiffusivity
         tracers = tuple(tracers..., :e)
