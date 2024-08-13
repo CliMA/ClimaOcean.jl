@@ -10,6 +10,8 @@ export Radiation,
 using ..OceanSeaIceModels: default_gravitational_acceleration
 
 import ..OceanSeaIceModels: surface_velocities,
+                            surface_horizontal_velocities,
+                            surface_active_tracers,
                             surface_tracers
 
 import ClimaOcean: stateindex
@@ -27,6 +29,14 @@ function surface_flux(f::Field)
     end
 end
 
+function surface_horizontal_velocities(ocean::Simulation{<:HydrostaticFreeSurfaceModel})
+    grid = ocean.model.grid
+    Nz = size(grid, 3)
+    u = view(ocean.model.velocities.u.data, :, :, Nz)
+    v = view(ocean.model.velocities.v.data, :, :, Nz)
+    return (; u, v)
+end
+
 function surface_velocities(ocean::Simulation{<:HydrostaticFreeSurfaceModel})
     grid = ocean.model.grid
     Nz = size(grid, 3)
@@ -34,6 +44,14 @@ function surface_velocities(ocean::Simulation{<:HydrostaticFreeSurfaceModel})
     v = view(ocean.model.velocities.v.data, :, :, Nz)
     w = view(ocean.model.velocities.w.data, :, :, Nz+1)
     return (; u, v, w)
+end
+
+function surface_active_tracers(ocean::Simulation{<:HydrostaticFreeSurfaceModel})
+    grid = ocean.model.grid
+    Nz = size(grid, 3)
+    T = view(ocean.model.tracers.T.data, :, :, Nz)
+    S = view(ocean.model.tracers.S.data, :, :, Nz)
+    return (; T, S)
 end
 
 function surface_tracers(ocean::Simulation{<:HydrostaticFreeSurfaceModel})

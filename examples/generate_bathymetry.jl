@@ -1,70 +1,78 @@
-using GLMakie
+# # Generate bathymetry data for the Mediterranean Sea
+#
+# This script shows how to configure an Immersed boundary grid with realistic bathymetry using ClimaOcean.jl
+# by generating the bathymetry data for the Mediterranean Sea.
+#
+# For this example, we need Oceananigans for the LatitudeLongitudeGrid and Field utilities, 
+# ClimaOcean to donwload and regrid the bathymetry, and CairoMakie to visualize the grid.
+
+using ClimaOcean
 using Oceananigans
-using ClimaOcean.Bathymetry: regrid_bathymetry
+using CairoMakie
 
-#####
-##### Quarter degree near-global grid
-#####
+# We start by defining a gridded domain for the Mediterranean Sea using the `LatitudeLongitudeGrid` from Oceananigans.
+#
+# The Mediterranean sea is positioned roughly between 28ᵒ and 48ᵒ latitude and 0ᵒ and 42ᵒ longitude.
+# We define a grid in this region and to have a reasonable resolution, we set a grid resolution to 1/25ᵒ
+# in both latitude and longitude directions.
 
-grid = LatitudeLongitudeGrid(CPU();
-                             size = (4 * 360, 4 * 160, 1),
-                             latitude = (-80, 80),
-                             longitude = (-180, 180),
-                             z = (0, 1),
-                             halo = (4, 4, 4))
+latitude_range = (28, 48)
+longitude_range = (0, 42)
 
-h = regrid_bathymetry(grid, height_above_water=1, minimum_depth=5)
+Nφ = 25 * (latitude_range[2] - latitude_range[1])
+Nλ = 25 * (longitude_range[2] - longitude_range[1])
 
-λ, φ, z = nodes(h)
+grid = LatitudeLongitudeGrid(size = (Nλ, Nφ, 1),
+                             latitude = latitude_range,
+                             longitude = longitude_range,
+                             z = (0, 1))
 
-land = interior(h) .>= 0
-interior(h)[land] .= NaN
+# Next, we generate the bathymetry data for the Mediterranean Sea using the
+# `regrid_bathymetry` function from ClimaOcean. The function downloads the bathymetry
+# data from the ETOPO1 dataset, regrids it to the provided grid, and returns the
+# bathymetry field. The three different regidding procedures below demonstrate the effect
+# of different parameters on the generated bathymetry:
+#
+# - `h_rough`  shows the output of the function with default parameters, which means only
+#   one interpolation passes and no restrictions on connected regions.
+# - `h_smooth` shows the output of the function with 40 interpolation passes, which results
+#    in a smoother bathymetry.
+# - `h_no_connected_regions` shows the output of the function with `connected_regions_allowed = 0`, which
+#    means that the function does not allow connected regions in the bathymetry  (e.g., lakes)
+#    and fills them with land.
 
-fig = Figure(size=(2400, 1200))
-ax = Axis(fig[1, 1])
-heatmap!(ax, λ, φ, interior(h, :, :, 1), nan_color=:white, colorrange=(-5000, 0))
+h_rough = regrid_bathymetry(grid)
+h_smooth = regrid_bathymetry(grid; interpolation_passes = 40)
+h_no_connected_regions = regrid_bathymetry(grid; connected_regions_allowed = 0)
+nothing # hide
 
-λp = -112.45
-φp = 42.86
-text = "😻"
-text!(ax, λp, φp; text, fontsize=30)
-
-display(fig)
-
-#####
-##### Regional Mediterranean grid 
-#####
-
-# 1/25th degree resolution
-Nλ = 25 * 55
-Nφ = 25 * 25
-
-grid = LatitudeLongitudeGrid(CPU();
-                             size = (Nλ, Nφ, 1),
-                             latitude = (25, 50),
-                             longitude = (-10, 45),
-                             z = (0, 1),
-                             halo = (4, 4, 4))
-
-h_smooth  = regrid_bathymetry(grid, height_above_water=1, minimum_depth=10, interpolation_passes = 40)
-h_rough   = regrid_bathymetry(grid, height_above_water=1, minimum_depth=10, interpolation_passes = 1)
-h_nolakes = regrid_bathymetry(grid, height_above_water=1, minimum_depth=10, connected_regions_allowed = 0)
+# Finally, we visualize the generated bathymetry data for the Mediterranean Sea using CairoMakie.
 
 λ, φ, z = nodes(h_smooth)
 
 land_smooth = interior(h_smooth) .>= 0
 interior(h_smooth)[land_smooth] .= NaN
+
 land_rough = interior(h_rough) .>= 0
 interior(h_rough)[land_rough] .= NaN
-land_nolakes = interior(h_nolakes) .>= 0
-interior(h_nolakes)[land_nolakes] .= NaN
 
-fig = Figure(resolution=(2400, 800))
-ax = Axis(fig[1, 1])
-heatmap!(ax, λ, φ, interior(h_smooth,  :, :, 1), nan_color=:white) #, colorrange=(-5000, 0))
-ax = Axis(fig[1, 2])
-heatmap!(ax, λ, φ, interior(h_rough,   :, :, 1), nan_color=:white) #, colorrange=(-5000, 0))
-ax = Axis(fig[1, 3])
-heatmap!(ax, λ, φ, interior(h_nolakes, :, :, 1), nan_color=:white) #, colorrange=(-5000, 0))
+land_no_connected_regions = interior(h_no_connected_regions) .>= 0
+interior(h_no_connected_regions)[land_no_connected_regions] .= NaN
 
-display(fig)
+fig = Figure(resolution=(850, 1150))
+
+ax = Axis(fig[1, 1], title = "Rough bathymetry", xlabel = "Longitude", ylabel = "Latitude")
+hm = heatmap!(ax, λ, φ, - interior(h_rough, :, :, 1), nan_color=:white, colormap = Reverse(:deep))
+
+ax = Axis(fig[2, 1], title = "Smooth bathymetry", xlabel = "Longitude", ylabel = "Latitude")
+hm = heatmap!(ax, λ, φ, - interior(h_smooth, :, :, 1), nan_color=:white, colormap = Reverse(:deep))
+
+ax = Axis(fig[3, 1], title = "Bathymetry without connected regions}", xlabel = "Longitude", ylabel = "Latitude")
+hm = heatmap!(ax, λ, φ, - interior(h_no_connected_regions, :, :, 1), nan_color=:white, colormap = Reverse(:deep))
+
+cb = Colorbar(fig[1:3, 2], hm, height = Relative(3/4), label = "Depth (m)")
+
+save("different_bottom_heights.png", fig)
+nothing #hide
+
+# ![](different_bottom_heights.png)
