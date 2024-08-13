@@ -17,10 +17,6 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     arch = architecture(grid)
     clock = coupled_model.clock
 
-    # Ocean, atmosphere, and sea ice state
-    ocean_velocities  = surface_velocities(ocean)
-    ocean_tracers     = surface_tracers(ocean)
-
     # Fluxes, and flux contributors
     centered_velocity_fluxes = (u = coupled_model.fluxes.total.ocean.momentum.uᶜᶜᶜ,
                                 v = coupled_model.fluxes.total.ocean.momentum.vᶜᶜᶜ)
