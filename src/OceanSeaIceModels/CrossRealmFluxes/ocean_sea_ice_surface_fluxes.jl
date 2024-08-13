@@ -123,7 +123,10 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
                                 v = Field{Center, Center, Nothing}(grid),
                                 T = Field{Center, Center, Nothing}(grid),
                                 q = Field{Center, Center, Nothing}(grid),
-                                p = Field{Center, Center, Nothing}(grid))
+                                p = Field{Center, Center, Nothing}(grid),
+                                Qs = Field{Center, Center, Nothing}(grid),
+                                Qℓ = Field{Center, Center, Nothing}(grid),
+                                Mp = Field{Center, Center, Nothing}(grid))
 
     return OceanSeaIceSurfaceFluxes(similarity_theory,
                                     prescribed_fluxes,
@@ -168,3 +171,4 @@ end
     interp_atmos_time_series(ΣJ[2], args...) +
     interp_atmos_time_series(ΣJ[3], args...) +
     interp_atmos_time_series(ΣJ[4], args...)
+
