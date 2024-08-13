@@ -63,9 +63,39 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
                                            p = surface_atmosphere_state.p.data,
                                            q = surface_atmosphere_state.q.data)
 
+    #=
+    launch!(arch, grid, kernel_parameters,
+            _interpolate_velocities_tracers_pressure!,
+            surface_velocities_tracers_pressure,
+            grid,
+            clock,
+            atmosphere_velocities,
+            atmosphere_tracers,
+            atmosphere_pressure,
+            atmosphere_grid,
+            atmosphere_times,
+            atmosphere_backend,
+            atmosphere_time_indexing)
+    =#
+
     surface_radiation_freshwater_fluxes = (Qs = surface_atmosphere_state.Qs.data,
                                            Qℓ = surface_atmosphere_state.Qℓ.data,
                                            Mp = surface_atmosphere_state.Mp.data)
+
+    #=
+    launch!(arch, grid, kernel_parameters,
+            _interpolate_radiation_freshwater_fluxes!,
+            surface_radiation_freshwater_fluxes,
+            grid,
+            clock,
+            downwelling_radiation,
+            freshwater_flux,
+            runoff_args,
+            atmosphere_grid,
+            atmosphere_times,
+            atmosphere_backend,
+            atmosphere_time_indexing)
+    =#
 
     surface_atmosphere_state = merge(surface_velocities_tracers_pressure,
                                      surface_radiation_freshwater_fluxes)
@@ -208,6 +238,82 @@ end
         surface_atmos_state.Mp[i, j, 1] = Mh + Mr
     end
 end
+
+@kernel function _interpolate_velocities_tracers_pressure!(surface_atmos_state,
+                                                           grid,
+                                                           clock,
+                                                           atmos_velocities,
+                                                           atmos_tracers,
+                                                           atmos_pressure,
+                                                           atmos_grid,
+                                                           atmos_times,
+                                                           atmos_backend,
+                                                           atmos_time_indexing)
+
+    i, j = @index(Global, NTuple)
+    kᴺ = size(grid, 3) # index of the top ocean cell
+      
+    @inbounds begin
+        # Atmos state, which is _assumed_ to exist at location = (c, c, nothing)
+        # The third index "k" should not matter but we put the correct index to get
+        # a surface node anyways.
+        atmos_args = (atmos_grid, atmos_times, atmos_backend, atmos_time_indexing)
+        X = node(i, j, kᴺ + 1, grid, c, c, f)
+        time = Time(clock.time)
+
+        uₐ = interp_atmos_time_series(atmos_velocities.u, X, time, atmos_args...)
+        vₐ = interp_atmos_time_series(atmos_velocities.v, X, time, atmos_args...)
+        Tₐ = interp_atmos_time_series(atmos_tracers.T,    X, time, atmos_args...)
+        qₐ = interp_atmos_time_series(atmos_tracers.q,    X, time, atmos_args...)
+        pₐ = interp_atmos_time_series(atmos_pressure,     X, time, atmos_args...)
+
+        surface_atmos_state.u[i, j, 1] = uₐ
+        surface_atmos_state.v[i, j, 1] = vₐ
+        surface_atmos_state.T[i, j, 1] = Tₐ
+        surface_atmos_state.p[i, j, 1] = pₐ
+        surface_atmos_state.q[i, j, 1] = qₐ
+    end
+end
+
+
+
+@kernel function _interpolate_radiation_freshwater_fluxes!(surface_atmos_state,
+                                                           grid,
+                                                           clock,
+                                                           downwelling_radiation,
+                                                           prescribed_freshwater_flux,
+                                                           runoff_args,
+                                                           atmos_grid,
+                                                           atmos_times,
+                                                           atmos_backend,
+                                                           atmos_time_indexing)
+
+    i, j = @index(Global, NTuple)
+    kᴺ = size(grid, 3) # index of the top ocean cell
+      
+    @inbounds begin
+        # Atmos state, which is _assumed_ to exist at location = (c, c, nothing)
+        # The third index "k" should not matter but we put the correct index to get
+        # a surface node anyways.
+        atmos_args = (atmos_grid, atmos_times, atmos_backend, atmos_time_indexing)
+        X = node(i, j, kᴺ + 1, grid, c, c, f)
+        time = Time(clock.time)
+
+        Qs = interp_atmos_time_series(downwelling_radiation.shortwave, X, time, atmos_args...)
+        Qℓ = interp_atmos_time_series(downwelling_radiation.longwave,  X, time, atmos_args...)
+
+        # Accumulate mass fluxes of freshwater due to rain, snow, rivers, icebergs, and whatever else.
+        # Rememeber runoff fluxes could be `nothing` if rivers and icebergs are not included in the forcing
+        Mh = interp_atmos_time_series(prescribed_freshwater_flux, X, time, atmos_args...)
+        Mr = get_runoff_flux(X, time, runoff_args) 
+
+        surface_atmos_state.Qs[i, j, 1] = Qs
+        surface_atmos_state.Qℓ[i, j, 1] = Qℓ
+        surface_atmos_state.Mp[i, j, 1] = Mh + Mr
+    end
+end
+
+
 
 @kernel function _compute_atmosphere_ocean_similarity_theory_fluxes!(similarity_theory,
                                                                      grid,
