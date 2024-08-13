@@ -1,4 +1,3 @@
-using Oceananigans.Units
 using Oceananigans.Grids: node, on_architecture
 using Oceananigans.Fields: interpolate!, interpolate, location, instantiated_location
 using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBackend, FlavorOfFTS, time_indices
@@ -9,7 +8,7 @@ using Base
 
 using NCDatasets
 using JLD2 
-using Dates
+using Dates: Second
 
 using ClimaOcean: stateindex
 
