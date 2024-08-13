@@ -70,7 +70,7 @@ hm = heatmap!(ax, λ, φ, - interior(h_smooth, :, :, 1), nan_color=:white, color
 ax = Axis(fig[3, 1], title = "Bathymetry without connected regions}", xlabel = "Longitude", ylabel = "Latitude")
 hm = heatmap!(ax, λ, φ, - interior(h_no_connected_regions, :, :, 1), nan_color=:white, colormap = Reverse(:deep))
 
-cb = Colorbar(fig[1:3, 2], hm, height = Relative(3/4), label = "Depth [m]")
+cb = Colorbar(fig[1:3, 2], hm, height = Relative(3/4), label = "Depth (m)")
 
 save("different_bottom_heights.png", fig)
 nothing #hide

@@ -92,11 +92,11 @@ coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 # Now that the surface fluxes are computed, we can extract and visualize them.
 # The turbulent fluxes are stored in `coupled_model.fluxes.turbulent`.
 # 
-# `Qs = coupled_model.fluxes.turbulent.fields.sensible_heat` : the sensible heat flux (in Wm⁻²)
-# `Ql = coupled_model.fluxes.turbulent.fields.latent_heat`   : the latent heat flux  (in Wm⁻²)
-# `τx = coupled_model.fluxes.turbulent.fields.x_momentum `   : the zonal wind stress (in Nm)
-# `τy = coupled_model.fluxes.turbulent.fields.y_momentum `   : the meridional wind stress (in Nm)
-# `Mv = coupled_model.fluxes.turbulent.fields.water_vapor`   : evaporation (in kg m⁻²s⁻¹)
+# Qs = coupled_model.fluxes.turbulent.fields.sensible_heat : the sensible heat flux (in Wm⁻²)
+# Ql = coupled_model.fluxes.turbulent.fields.latent_heat   : the latent heat flux  (in Wm⁻²)
+# τx = coupled_model.fluxes.turbulent.fields.x_momentum    : the zonal wind stress (in Nm)
+# τy = coupled_model.fluxes.turbulent.fields.y_momentum    : the meridional wind stress (in Nm)
+# Mv = coupled_model.fluxes.turbulent.fields.water_vapor   : evaporation (in kg m⁻²s⁻¹)
 #
 # They are 2D fields (3D data structures with one point in the vertical). To extract the data, we use the 
 # `interior` functionality from Oceananigans.
@@ -108,31 +108,45 @@ Ql = interior(turbulent_fluxes.latent_heat,   :, :, 1)
 τx = interior(turbulent_fluxes.x_momentum,    :, :, 1)
 τy = interior(turbulent_fluxes.y_momentum,    :, :, 1)
 Mv = interior(turbulent_fluxes.water_vapor,   :, :, 1)
-nothing
-
-fig = Figure(size = (1000, 2000))
-
-ax = Axis(fig[1, 1], title = "Sensible heat flux [Wm⁻²]")
-heatmap!(ax, Qs; colormap = :bwr)
-hidedecorations!(ax)
-
-ax = Axis(fig[1, 2], title = "Latent heat flux [Wm⁻²]")
-heatmap!(ax, Ql; colormap = :bwr)
-hidedecorations!(ax)
-
-ax = Axis(fig[2, 1], title = "Zonal wind stress [Nm]")
-heatmap!(ax, τx; colormap = :bwr)
-hidedecorations!(ax)
-
-ax = Axis(fig[2, 2], title = "Meridional wind stress [Nm]")
-heatmap!(ax, τy; colormap = :bwr)
-hidedecorations!(ax)
-
-ax = Axis(fig[3, 1], title = "Evaporation [kg m⁻²s⁻¹]")
-heatmap!(ax, Mv; colormap = :bwr)
-hidedecorations!(ax)
-
-save("turbulent_fluxes.png", fig)
 nothing #hide
 
-# ![](turbulent_fluxes.png)
+fig = Figure(size = (800, 400))
+ax = Axis(fig[1, 1], title = "Sensible heat flux (Wm⁻²)")
+hm = heatmap!(ax, Qs; colormap = :bwr)
+hidedecorations!(ax)
+save("sensible_heat_flux.png", fig)
+nothing #hide
+# ![](sensible_heat_flux.png)
+
+fig = Figure(size = (800, 400))
+ax = Axis(fig[1, 2], title = "Latent heat flux (Wm⁻²)")
+heatmap!(ax, Ql; colormap = :bwr)
+hidedecorations!(ax)
+save("latent_heat_flux.png", fig)
+nothing #hide
+# ![](latent_heat_flux.png)
+
+fig = Figure(size = (800, 400))
+ax = Axis(fig[2, 1], title = "Zonal wind stress (Nm)")
+heatmap!(ax, τx; colormap = :bwr)
+hidedecorations!(ax)
+save("zonal_wind_stress.png", fig)
+nothing #hide
+# ![](zonal_wind_stress.png)
+
+fig = Figure(size = (800, 400))
+ax = Axis(fig[2, 2], title = "Meridional wind stress (Nm)")
+heatmap!(ax, τy; colormap = :bwr)
+hidedecorations!(ax)
+save("meridional_wind_stress.png", fig)
+nothing #hide
+# ![](meridional_wind_stress.png)
+
+fig = Figure(size = (800, 400))
+ax = Axis(fig[3, 1], title = "Water vapor flux (kg m⁻²s⁻¹)")
+heatmap!(ax, Mv; colormap = :bwr)
+hidedecorations!(ax)
+save("water_vapor_flux.png", fig)
+nothing #hide
+# ![](water_vapor_flux.png)
+
