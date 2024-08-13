@@ -26,7 +26,7 @@ using KernelAbstractions: @kernel, @index
 ##### Container for organizing information related to fluxes
 #####
 
-struct OceanSeaIceSurfaceFluxes{T, P, C, R, PI, PC, FT, UN}
+struct OceanSeaIceSurfaceFluxes{T, P, C, R, PI, PC, FT, UN, ATM}
     turbulent :: T
     prescribed :: P
     # Add `components` which will also store components of the total fluxes
@@ -40,6 +40,9 @@ struct OceanSeaIceSurfaceFluxes{T, P, C, R, PI, PC, FT, UN}
     ocean_heat_capacity :: FT
     freshwater_density :: FT
     ocean_temperature_units :: UN
+    # Scratch space to store the atmosphere state at the surface 
+    # interpolated to the ocean grid
+    surface_atmosphere_state :: ATM
 end
 
 # Possible units for temperature and salinity
@@ -116,6 +119,12 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
 
     total_fluxes = (; ocean=total_ocean_fluxes)
 
+    surface_atmosphere_state = (u = Field{Center, Center, Nothing}(grid),
+                                v = Field{Center, Center, Nothing}(grid),
+                                T = Field{Center, Center, Nothing}(grid),
+                                q = Field{Center, Center, Nothing}(grid),
+                                p = Field{Center, Center, Nothing}(grid))
+
     return OceanSeaIceSurfaceFluxes(similarity_theory,
                                     prescribed_fluxes,
                                     total_fluxes,
@@ -125,7 +134,8 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
                                     ocean_reference_density,
                                     ocean_heat_capacity,
                                     freshwater_density,
-                                    ocean_temperature_units)
+                                    ocean_temperature_units,
+                                    surface_atmosphere_state)
 end
     
 #####
