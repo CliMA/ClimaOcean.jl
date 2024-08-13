@@ -65,7 +65,7 @@ bathymetry[bathymetry .>= 0] .= NaN
 fig = Figure(size = (1200, 400))
 ax  = Axis(fig[1, 1])
 hm = heatmap!(ax, bathymetry, colormap = :deep, colorrange = (-6000, 0))
-cb = Colorbar(fig[0, 1], hm, label = "Bottom height [m]", vertical = false)
+cb = Colorbar(fig[0, 1], hm, label = "Bottom height (m)", vertical = false)
 hidedecorations!(ax)
 
 save("bathymetry.png", fig)
