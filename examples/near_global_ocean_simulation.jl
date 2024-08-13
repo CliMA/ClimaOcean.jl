@@ -253,7 +253,7 @@ end
 fig = Figure(size = (800, 400))
 ax = Axis(fig[1, 1])
 hm = heatmap!(ax, si, colorrange = (0, 0.5), colormap = :deep)
-cb = Colorbar(fig[0, 1], hm, vertical = false, label = "Surface speed [ms⁻¹]")
+cb = Colorbar(fig[0, 1], hm, vertical = false, label = "Surface speed (ms⁻¹)")
 hidedecorations!(ax)
 
 CairoMakie.record(fig, "near_global_ocean_surface_s.mp4", 1:Nt, framerate = 8) do i
@@ -266,7 +266,7 @@ nothing #hide
 fig = Figure(size = (800, 400))
 ax = Axis(fig[1, 1])
 hm = heatmap!(ax, Ti, colorrange = (-1, 30), colormap = :magma)
-cb = Colorbar(fig[0, 1], hm, vertical = false, label = "Surface Temperature [Cᵒ]")
+cb = Colorbar(fig[0, 1], hm, vertical = false, label = "Surface Temperature (Cᵒ)")
 hidedecorations!(ax)
 
 CairoMakie.record(fig, "near_global_ocean_surface_T.mp4", 1:Nt, framerate = 8) do i
@@ -279,7 +279,7 @@ nothing #hide
 fig = Figure(size = (800, 400))
 ax = Axis(fig[1, 1])
 hm = heatmap!(ax, ei, colorrange = (0, 1e-3), colormap = :solar)
-cb = Colorbar(fig[0, 1], hm, vertical = false, label = "Turbulent Kinetic Energy [m²s⁻²]")
+cb = Colorbar(fig[0, 1], hm, vertical = false, label = "Turbulent Kinetic Energy (m²s⁻²)")
 hidedecorations!(ax)
 
 CairoMakie.record(fig, "near_global_ocean_surface_e.mp4", 1:Nt, framerate = 8) do i
