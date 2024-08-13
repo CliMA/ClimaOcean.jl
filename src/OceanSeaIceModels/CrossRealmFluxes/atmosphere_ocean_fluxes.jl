@@ -43,7 +43,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     downwelling_radiation = (shortwave=Qs.data, longwave=Qℓ.data)
 
     freshwater_flux = map(ϕ -> ϕ.data, atmosphere.freshwater_flux)
-    runoff_args = nothing #get_runoff_args(atmosphere.runoff_flux)
+    runoff_args = get_runoff_args(atmosphere.runoff_flux)
 
     # Extract info for time-interpolation
     u = atmosphere.velocities.u # for example 
