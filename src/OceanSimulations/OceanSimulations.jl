@@ -62,7 +62,7 @@ function ocean_simulation(grid; Δt = 5minutes,
                           tracer_advection = default_tracer_advection(),
                           verbose = false)
 
-    # allocate memory in `Field`s for surface forcing boundary conditions
+    # Allocate memory in `Field`s for surface forcing boundary conditions
     top_zonal_momentum_flux      = Jᵘ = Field{Face, Center, Nothing}(grid)
     top_meridional_momentum_flux = Jᵛ = Field{Center, Face, Nothing}(grid)
     top_ocean_heat_flux          = Jᵀ = Field{Center, Center, Nothing}(grid)
