@@ -184,8 +184,10 @@ function regrid_bathymetry(target_grid;
 
     if minimum_depth > 0
         zi = interior(target_z, :, :, 1)
-        shallow_ocean = zi .> - minimum_depth
-        zi[shallow_ocean] .= 0
+
+        # Set the height of cells with z > -mininum_depth to z=0.
+        # (In-place + GPU-friendly)
+        zi .*= zi .<= - minimum_depth
     end
 
     if major_basins < Inf
