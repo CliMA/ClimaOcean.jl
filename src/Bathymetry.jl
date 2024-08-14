@@ -200,7 +200,6 @@ end
 # Here we can either use `regrid!` (three dimensional version) or `interpolate`
 function interpolate_bathymetry_in_passes(native_z, target_grid; 
                                           passes = 10,
-                                          major_basins = Inf,
                                           minimum_depth = 0)
     Nλt, Nφt = Nt = size(target_grid)
     Nλn, Nφn = Nn = size(native_z)
