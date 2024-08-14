@@ -127,7 +127,8 @@ urls(::ECCOMetadata{<:Any, <:ECCO2Daily})   = "https://ecco.jpl.nasa.gov/drive/f
 urls(::ECCOMetadata{<:Any, <:ECCO4Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly/"
 
 """
-    download_dataset!(metadata::ECCOMetadata)
+    download_dataset!(metadata::ECCOMetadata,
+                      url = urls(metadata))
 
 Download the dataset specified by the given metadata. If the metadata contains a single date, 
 the dataset is downloaded directly. If the metadata contains multiple dates, the dataset is 
