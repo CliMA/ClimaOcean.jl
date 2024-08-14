@@ -205,14 +205,15 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     Nλt, Nφt = Nt = size(target_grid)
     Nλn, Nφn = Nn = size(native_z)
 
-    # Check whether we are refining the grid in both directions.
-    # If not, skip interpolation passes.
-    if any(Nt[1:2] .> Nn[1:2])
+    # Check whether we are coarsening the grid in any directions.
+    # If so, skip interpolation passes.
+    if Nλt > Nλn || Nφt > Nφn
         target_z = Field{Center, Center, Nothing}(target_grid)
         interpolate!(target_z, native_z)
         @info string("Skipping passes for interplating bathymetry of size $Nn", '\n',
-                     "to target grid of size $Nt. Interpolation passes are effective only", '\n',
-                     "if bathymetry size is larger than target grid size in both horizontal directions.")
+                     "to target grid of size $Nt. Interpolation passes may only", '\n',
+                     "be used to refine bathymetryand requires that the bathymetry", '\n',
+                     "is larger than the target grid in both horizontal directions.")
         return target_z
     end
  
@@ -229,13 +230,14 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     Nλ = Int[Nλ..., Nλt]
     Nφ = Int[Nφ..., Nφt]
 
-    old_z     = native_z
-    TX, TY, _ = topology(target_grid)
+    old_z  = native_z
+    TX, TY = topology(target_grid)
 
     for pass = 1:passes - 1
         new_size = (Nλ[pass], Nφ[pass], 1)
 
         @debug "Bathymetry interpolation pass $pass with size $new_size"
+
         new_grid = LatitudeLongitudeGrid(architecture(target_grid),
                                          size = new_size, 
                                          latitude = (latitude[1],  latitude[2]), 
@@ -297,25 +299,25 @@ function remove_minor_basins!(Z, keep_major_basins)
         label_elements[e] = e
     end
         
-    Ib = [] # major basins indexes
-    Iw = findfirst(x -> x == maximum(total_elements), total_elements)
-    push!(Ib, label_elements[Iw])
-    total_elements = filter(x -> x != total_elements[Iw], total_elements)
-    label_elements = filter(x -> x != label_elements[Iw], label_elements)
+    mm_basins = [] # major basins indexes
+    mm_water = findfirst(x -> x == maximum(total_elements), total_elements)
+    push!(mm_basins, label_elements[mm_water])
+    total_elements = filter(x -> x != total_elements[mm_water], total_elements)
+    label_elements = filter(x -> x != label_elements[mm_water], label_elements)
 
-    for _ in 1:keep_major_basins
+    for m = 1:keep_major_basins
         next_maximum = findfirst(x -> x == maximum(total_elements), total_elements)
-        push!(Ib, label_elements[next_maximum])
+        push!(mm_basins, label_elements[next_maximum])
         total_elements = filter(x -> x != total_elements[next_maximum], total_elements)
         label_elements = filter(x -> x != label_elements[next_maximum], label_elements)
     end
         
     labels = map(Float64, labels)
 
-    for i in 1:maximum(labels)
-        remove_basin = (&).(Tuple(i != idx for idx in Ib)...)
+    for ℓ = 1:maximum(labels)
+        remove_basin = all(ℓ == m for m in mm_basins)
         if remove_basin
-            labels[labels .== i] .= 1e10 # Fictitious super large number
+            labels[labels .== ℓ] .= 1e10 # large number
         end
     end
 
