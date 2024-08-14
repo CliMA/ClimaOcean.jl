@@ -72,10 +72,10 @@ Keyword Arguments:
                         If _refining_ the original grid, additional passes will not help and no intermediate
                         steps will be performed.
 
-- basins: Number of "independent basins", or fluid regions fully encompassed by land,
-          that are retained by `remove_basins!`. Basins are removed by order of size:
-          the smallest basins are removed first. `basins=1` will retain only the largest basin.
-          Default: `Inf`.
+- major_basins: Number of "independent major basins", or fluid regions fully encompassed by land,
+                that are retained by [`remove_minor_basins!`](@ref). Basins are removed by order of size:
+                the smallest basins are removed first. `major_basins=1` will retain only the largest basin.
+                Default: `Inf`, which does not remove any basins.
 """
 function regrid_bathymetry(target_grid;
                            height_above_water = nothing,
