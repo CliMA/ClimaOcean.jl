@@ -83,8 +83,8 @@ function ocean_simulation(grid; Δt = 5minutes,
     u_immersed_bc = ImmersedBoundaryCondition(bottom = u_immersed_drag)
     v_immersed_bc = ImmersedBoundaryCondition(bottom = v_immersed_drag)
 
-    ocean_boundary_conditions = (u = FieldBoundaryConditions(top = u_top_bc, bottom = u_bot_bc, immmersed = u_immersed_bc),
-                                 v = FieldBoundaryConditions(top = v_top_bc, bottom = v_bot_bc, immmersed = v_immersed_bc),
+    ocean_boundary_conditions = (u = FieldBoundaryConditions(top = u_top_bc, bottom = u_bot_bc, immersed = u_immersed_bc),
+                                 v = FieldBoundaryConditions(top = v_top_bc, bottom = v_bot_bc, immersed = v_immersed_bc),
                                  T = FieldBoundaryConditions(top = T_top_bc),
                                  S = FieldBoundaryConditions(top = S_top_bc))
 
