@@ -270,16 +270,15 @@ Arguments
 
 """
 function remove_minor_basins!(Z::Field, keep_major_basins)
-    Nx, Ny, Nz = size(Z)
     Zi = interior(Z, :, :, 1)
-    Z_cpu = Array(Zi)
-    remove_minor_basins!(Z_cpu, keep_major_basins)
+    Zi_cpu = on_architecture(CPU(), Zi)
+    remove_minor_basins!(Zi_cpu, keep_major_basins)
     set!(Z, Z_cpu)
 
     return Z
 end
 
-function remove_minor_basins!(Z::Array, keep_major_basins)
+function remove_minor_basins!(Z, keep_major_basins)
 
     if !isfinite(keep_major_basins)
         throw(ArgumentError("`keep_major_basins` must be a finite number!"))
