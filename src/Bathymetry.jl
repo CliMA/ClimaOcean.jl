@@ -118,7 +118,7 @@ function regrid_bathymetry(target_grid;
     # Convert longitude from (-180, 180) to (0, 360)
     λ_data .+= 180
     Nhx    = size(z_data, 1)
-    z_data = circshift(z_data, (Nhx ÷ 2, 1))
+    z_data = circshift(z_data, (Nhx ÷ 2, 0))
 
     close(dataset)
 
@@ -200,7 +200,6 @@ end
 # Here we can either use `regrid!` (three dimensional version) or `interpolate`
 function interpolate_bathymetry_in_passes(native_z, target_grid; 
                                           passes = 10,
-                                          major_basins = Inf,
                                           minimum_depth = 0)
     Nλt, Nφt = Nt = size(target_grid)
     Nλn, Nφn = Nn = size(native_z)
