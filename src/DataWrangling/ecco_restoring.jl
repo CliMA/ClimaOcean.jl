@@ -244,7 +244,7 @@ end
 Create a restoring forcing term that restores to values stored in an ECCO field time series.
 The restoring is applied as a forcing on the right hand side of the evolution equations calculated as
 ```math
-F = mask / λ ⋅ (ECCO_variable - simulation_variable[i, j, k])
+F = mask / timescale ⋅ (ECCO_variable - simulation_variable[i, j, k])
 ```
 where ECCO_variable is linearly interpolated in space and time from the ECCO dataset of choice to the 
 simulation grid and time.
@@ -260,9 +260,9 @@ simulation grid and time.
 - `time_indices_in_memory`: The number of time indices to keep in memory. trade-off between performance
                             and memory footprint.    
 
-- `time_indexing`: The time indexing scheme for the field time series. 
+- `time_indexing`: The time indexing scheme of the field time series. Can be `Cyclical()`, `Linear()` or `Clamp()`.
 
-- `mask`: The mask. Can be a function of `(x, y, z, time)`, an array or a number.
+- `mask`: The tapering mask. Can be a function of `(x, y, z, time)`, a three-dimensional `AbstractArray` or a number.
 
 - `timescale`: The restoring timescale.
 """
