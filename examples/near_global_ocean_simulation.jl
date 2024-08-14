@@ -77,11 +77,11 @@ nothing #hide
 #
 # To configure the ocean simulation, we use the `ocean_simulation` function from ClimaOcean.jl. This function allows us to build
 # an ocean simulation with default parameters and numerics. The defaults include:
-# - CATKE turbulence closure for vertical mixing, see [`CATKEVerticalDiffusivity`](@ref)
-# - WENO-based advection scheme for momentum in the vector invariant form, see [`WENOVectorInvariant`](@ref)
-# - WENO-based advection scheme for tracers, see [`WENO`](@ref)
-# - `SplitExplicitFreeSurfaceSolver` with 75 substeps, see [`SplitExplicitFreeSurface`](@ref)
-# - TEOS-10 equation of state, see [`TEOS10EquationOfState`](@ref)
+# - CATKE turbulence closure for vertical mixing
+# - WENO-based advection scheme for momentum in the vector invariant form
+# - WENO-based advection scheme for tracers
+# - `SplitExplicitFreeSurfaceSolver` with 75 substeps
+# - TEOS-10 equation of state, see [`TEOS10EquationOfState`](https://clima.github.io/SeawaterPolynomials.jl/dev/#The-TEOS-10-standard)
 # - Quadratic bottom drag with a drag coefficient of 0.003
 #
 # The ocean model is then initialized with the ECCO2 temperature and salinity fields for January 1, 1993.
