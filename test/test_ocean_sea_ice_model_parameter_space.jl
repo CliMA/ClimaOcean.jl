@@ -1,6 +1,5 @@
 using Oceananigans
-include("runtests_setup.jl")
-
+using ClimaOcean
 using OrthogonalSphericalShellGrids
 
 arch = GPU() 
@@ -30,8 +29,4 @@ radiation  = Radiation(arch)
 sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
 
 # Fluxes are computed when the model is constructed, so we just test that this works.
-@test begin
-    coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-    true
-end
-
+coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)

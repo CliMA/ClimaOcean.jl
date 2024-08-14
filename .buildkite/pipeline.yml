@@ -31,7 +31,7 @@ steps:
   - wait
 
   - label: "Run JRA55 tests"
-    key: "tests_jra55"
+    key: "test_jra55"
     env:
       CUDA_VISIBLE_DEVICES: "-1"
       TEST_GROUP: "jra55"
@@ -39,7 +39,7 @@ steps:
       - "julia --project -e 'using Pkg; Pkg.test()'"
 
   - label: "Run ECCO tests"
-    key: "tests_ecco"
+    key: "test_ecco"
     env:
       CUDA_VISIBLE_DEVICES: "-1"
       TEST_GROUP: "ecco"
@@ -47,12 +47,20 @@ steps:
       - "julia --project -e 'using Pkg; Pkg.test()'"
 
   - label: "Run surface flux tests"
-    key: "tests_fluxes"
+    key: "test_fluxes"
     env:
       CUDA_VISIBLE_DEVICES: "-1"
       TEST_GROUP: "fluxes"
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
 
+  - label: "Run simulation tests"
+    key: "test_simulations"
+    env:
+      TEST_GROUP: "simulations"
+    commands:
+      - "julia --project -e 'using Pkg; Pkg.test()'"
+
   - wait: ~
     continue_on_failure: true
+
