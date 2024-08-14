@@ -205,7 +205,7 @@ Adapt.adapt_structure(to, p::ECCORestoring) =
     ecco_backend = p.ecco_fts.backend
     native_grid = on_native_grid(ecco_backend) 
 
-    ecco_var = get_ecco_variable(Val(native_grid), p.ecco_fts, i, j, k, p.ecco_grid, grid, time)
+    ecco_var = get_ecco_variable(Val(native_grid), p.ecco_fts, i, j, k, p.ecco_grid, grid, loc, time)
 
     # Extracting the mask value at the current node
     mask = stateindex(p.mask, i, j, k, grid, clock.time, loc)
@@ -217,13 +217,13 @@ end
 # that lives on the native ecco grid, that requires interpolation in space
 # _inside_ the restoring function and restoring based on an ECCO 
 # FTS defined on the model grid that requires only time interpolation
-@inline function get_ecco_variable(::Val{true}, ecco_fts, i, j, k, ecco_grid, grid, time)
+@inline function get_ecco_variable(::Val{true}, ecco_fts, i, j, k, ecco_grid, grid, loc, time)
     # Extracting the ECCO field time series data and parameters
     ecco_times         = ecco_fts.times
     ecco_data          = ecco_fts.data
     ecco_time_indexing = ecco_fts.time_indexing
     ecco_backend       = ecco_fts.backend
-    ecco_location      = instantiated_location(ecco_fts)
+    ecco_location      = instantiate.(loc)
 
     X = node(i, j, k, grid, ecco_location...)
 
@@ -231,7 +231,7 @@ end
     return interpolate(X, time, ecco_data, ecco_location, ecco_grid, ecco_times, ecco_backend, ecco_time_indexing)
 end    
 
-@inline get_ecco_variable(::Val{false}, ecco_fts, i, j, k, ecco_grid, grid, time) = @inbounds ecco_fts[i, j, k, time]
+@inline get_ecco_variable(::Val{false}, ecco_fts, i, j, k, ecco_grid, grid, loc, time) = @inbounds ecco_fts[i, j, k, time]
 
 """
     ECCO_restoring_forcing(metadata::ECCOMetadata;
