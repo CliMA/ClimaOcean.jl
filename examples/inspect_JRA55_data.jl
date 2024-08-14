@@ -1,5 +1,5 @@
 using ClimaOcean
-using GLMakie
+using CairoMakie
 using Oceananigans
 using Oceananigans.Units
 using Printf

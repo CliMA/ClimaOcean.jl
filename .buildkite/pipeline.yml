@@ -20,6 +20,7 @@ steps:
 
     agents:
       slurm_mem: 32G
+      slurm_gpus: 1
       slurm_cpus_per_task: 8
       slurm_gpus: 1
       slurm_ntasks: 1

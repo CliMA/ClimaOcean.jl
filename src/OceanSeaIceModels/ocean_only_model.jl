@@ -23,14 +23,14 @@ function time_step!(coupled_model::NoSeaIceModel, Δt; callbacks=[], compute_ten
 
     tick!(coupled_model.clock, ocean.Δt) # An Ocean-only model advances with the ocean time-step!
     update_state!(coupled_model, callbacks; compute_tendencies)
-    
+
     return nothing
 end
 
 function update_state!(coupled_model::NoSeaIceModel, callbacks=[]; compute_tendencies=false)
     time = Time(coupled_model.clock.time)
     update_model_field_time_series!(coupled_model.atmosphere, time)
-    
+
     ocean_model = coupled_model.ocean.model
 
     # Do we really have to do this?
@@ -42,4 +42,3 @@ function update_state!(coupled_model::NoSeaIceModel, callbacks=[]; compute_tende
     compute_atmosphere_ocean_fluxes!(coupled_model) 
     return nothing
 end
-
