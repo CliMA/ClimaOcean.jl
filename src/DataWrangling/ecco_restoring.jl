@@ -246,7 +246,7 @@ The restoring is applied as a forcing on the right hand side of the evolution eq
 ```math
 F = mask / λ ⋅ (ECCO_variable - simulation_variable[i, j, k])
 ```
-Where ECCO_variable is linearly interpolated in space and time from the ECCO dataset of choice to the 
+where ECCO_variable is linearly interpolated in space and time from the ECCO dataset of choice to the 
 simulation grid and time.
 
 # Arguments:
