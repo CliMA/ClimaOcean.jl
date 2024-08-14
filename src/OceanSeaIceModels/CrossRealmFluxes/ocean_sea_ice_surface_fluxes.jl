@@ -78,6 +78,7 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
         # It's the "thermodynamics gravitational acceleration"
         # (as opposed to the one used for the free surface)
         gravitational_acceleration = ocean.model.buoyancy.model.gravitational_acceleration
+
         if isnothing(similarity_theory)
             similarity_theory = SimilarityTheoryTurbulentFluxes(grid; gravitational_acceleration)
         end
@@ -95,17 +96,17 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
 
     ocean_grid = ocean.model.grid
     ρₒ = ocean_reference_density
-    Jᵘ = surface_flux(ocean.model.velocities.u)
-    Jᵛ = surface_flux(ocean.model.velocities.v)
-    Jᵘᶜᶜᶜ = Field{Center, Center, Nothing}(ocean_grid)
-    Jᵛᶜᶜᶜ = Field{Center, Center, Nothing}(ocean_grid)
+    τx = surface_flux(ocean.model.velocities.u)
+    τy = surface_flux(ocean.model.velocities.v)
+    τxᶜᶜᶜ = Field{Center, Center, Nothing}(ocean_grid)
+    τyᶜᶜᶜ = Field{Center, Center, Nothing}(ocean_grid)
 
-    ocean_momentum_fluxes = (u = Jᵘ,       # fluxes used in the model
-                             v = Jᵛ,       #
-                             τˣ = ρₒ * Jᵘ, # momentum fluxes multiplied by reference density
-                             τʸ = ρₒ * Jᵛ, # 
-                             uᶜᶜᶜ = Jᵘᶜᶜᶜ, # fluxes computed by bulk formula at cell centers
-                             vᶜᶜᶜ = Jᵛᶜᶜᶜ)
+    ocean_momentum_fluxes = (u = τx,        # fluxes used in the model
+                             v = τy,        #
+                             ρτx = ρₒ * τx, # momentum fluxes multiplied by reference density
+                             ρτy = ρₒ * τy, # 
+                             uᶜᶜᶜ = τxᶜᶜᶜ,  # fluxes computed by bulk formula at cell centers
+                             vᶜᶜᶜ = τyᶜᶜᶜ)
 
     tracers = ocean.model.tracers
     ocean_tracer_fluxes = NamedTuple(name => surface_flux(tracers[name]) for name in keys(tracers))

@@ -46,8 +46,8 @@ end
     @inbounds begin
         Tₒ = ocean_temperature[i, j, 1]
 
-        Jᵘ = centered_velocity_fluxes.u
-        Jᵛ = centered_velocity_fluxes.v
+        τx = centered_velocity_fluxes.u
+        τy = centered_velocity_fluxes.v
         Jᵀ = net_tracer_fluxes.T
         Jˢ = net_tracer_fluxes.S
     
@@ -59,7 +59,7 @@ end
         
         # If we are in a "sea ice" region we remove all fluxes
         Jˢ[i, j, 1] = ifelse(sea_ice, zero(grid), Jˢ[i, j, 1])
-        Jᵘ[i, j, 1] = ifelse(sea_ice, zero(grid), Jᵘ[i, j, 1]) 
-        Jᵛ[i, j, 1] = ifelse(sea_ice, zero(grid), Jᵛ[i, j, 1]) 
+        τx[i, j, 1] = ifelse(sea_ice, zero(grid), τx[i, j, 1]) 
+        τy[i, j, 1] = ifelse(sea_ice, zero(grid), τy[i, j, 1]) 
     end
 end
