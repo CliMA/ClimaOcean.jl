@@ -31,7 +31,7 @@ function download_progress(total, now; filename="")
         end
 
         if fraction > next_fraction[]
-            elapsed = time_ns() - download_start_time[]
+            elapsed = 1e-9 * (time_ns() - download_start_time[])
             msg = @sprintf(" ... downloaded %s (%d%% complete, %s)", pretty_filesize(now),
                            100fraction, prettytime(elapsed))
             @info msg
