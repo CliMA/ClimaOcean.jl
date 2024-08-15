@@ -60,8 +60,8 @@ ocean = ocean_simulation(grid; forcing)
 model = ocean.model
 
 set!(model, 
-     T = temperature[1]
-     S = salinity[1]
+     T = temperature[1],
+     S = salinity[1] )
      
 backend    = JRA55NetCDFBackend(41) 
 atmosphere = JRA55_prescribed_atmosphere(arch; backend)
