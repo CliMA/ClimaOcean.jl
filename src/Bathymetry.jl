@@ -287,7 +287,7 @@ function remove_minor_basins!(Z, keep_major_basins)
     end
 
     if keep_major_basins < 1
-        @warn "keep_major_basins is smaller than 1. This will lead to a completely immersed domain."
+        throw(ArgumentError("keep_major_basins must be greater than 1."))
     end
 
     water = Z .< 0
