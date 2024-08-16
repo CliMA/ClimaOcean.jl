@@ -87,23 +87,14 @@ function regrid_bathymetry(target_grid;
                            connected_regions_allowed = Inf) # Allow an `Inf` number of ``lakes''
 
     filepath = joinpath(dir, filename)
+    fileurl  = joinpath(url, filename)
 
-    if isfile(filepath)
-        @info "Regridding bathymetry from existing file $filepath."
-    else
-        @info "Downloading bathymetry..."
-        if !ispath(dir)
-            @info "Making bathymetry directory $dir..."
-            blocking_run(`mkdir $(dir)`)
-        end
-
-        fileurl = joinpath(url, filename)
-
-        try 
-            blocking_download(fileurl, filepath; progress=download_progress, verbose=true)
-        catch 
+    try 
+        blocking_download(fileurl, filepath; progress=download_progress, verbose=true)
+    catch 
+        if !isfile(filepath)
             cmd = `wget --no-check-certificate -O $filepath $fileurl`
-            blocking_run(cmd)
+            blocking_run(cmd)   
         end
     end
 
