@@ -25,8 +25,6 @@ import ClimaOcean: stateindex
 using CFTime
 using Dates
 
-include("tripolar_specific_methods.jl")
-
 #####
 ##### Global Ocean at 1/6th of a degree
 #####
@@ -34,13 +32,13 @@ include("tripolar_specific_methods.jl")
 bathymetry_file = nothing # "bathymetry_tmp.jld2"
 
 # 60 vertical levels
-z_faces = exponential_z_faces(Nz=60, depth=6000)
+z_faces = exponential_z_faces(Nz=10, depth=6000)
 
-Nx = 2160
-Ny = 1080
+Nx = 200
+Ny = 100
 Nz = length(z_faces) - 1
 
-arch = GPU() #Distributed(GPU(), partition = Partition(2))
+arch = Distributed(CPU(), partition = Partition(1, 2))
 
 grid = TripolarGrid(arch; 
                     size = (Nx, Ny, Nz), 
@@ -61,7 +59,7 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_
 ##### The Ocean component
 #####                             
 
-free_surface = SplitExplicitFreeSurface(grid; cfl = 0.75, fixed_Δt = 600)
+free_surface = SplitExplicitFreeSurface(grid; substeps = 10)
 
 #####
 ##### Add restoring to ECCO fields for temperature and salinity in the artic and antarctic
@@ -99,7 +97,7 @@ const c₄⁻ = c⁺[4]
 mask = CenterField(grid)
 set!(mask, mask_f)
 
-dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(2003, 12, 1)
+dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 5, 1)
 
 temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
 salinity    = ECCOMetadata(:salinity,    dates, ECCO4Monthly())
@@ -109,7 +107,9 @@ FS = ECCO_restoring_forcing(salinity;    mask, grid, architecture = arch, timesc
 
 forcing = (; T = FT, S = FS)
 
-ocean = ocean_simulation(grid; free_surface, forcing) 
+closure = RiBasedVerticalDiffusivity()
+
+ocean = ocean_simulation(grid; free_surface, forcing, closure) 
 model = ocean.model
 
 initial_date = dates[1]
