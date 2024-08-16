@@ -258,7 +258,7 @@ function inpainted_ecco_field(metadata::ECCOMetadata;
     inpaint_mask!(f, mask; maxiter)
 
     fill_halo_regions!(f)
-
+    
     return f
 end
 
@@ -275,9 +275,7 @@ function set!(field::Field, ecco_metadata::ECCOMetadata; kw...)
                               architecture = arch,
                               kw...)
 
-    f_grid = Field(field_location(ecco_metadata), grid)   
-    interpolate!(f_grid, f)
-    set!(field, f_grid)
+    interpolate!(field, f)
 
     return field
 end
