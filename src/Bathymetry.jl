@@ -6,7 +6,7 @@ using ImageMorphology
 using ..DataWrangling: download_progress
 
 using Oceananigans
-using Oceananigans.Architectures: architecture
+using Oceananigans.Architectures: architecture, on_architecture
 using Oceananigans.DistributedComputations: child_architecture
 using Oceananigans.Grids: halo_size, λnodes, φnodes
 using Oceananigans.Grids: x_domain, y_domain
@@ -275,7 +275,7 @@ function remove_minor_basins!(Z::Field, keep_major_basins)
     Zi = interior(Z, :, :, 1)
     Zi_cpu = on_architecture(CPU(), Zi)
     remove_minor_basins!(Zi_cpu, keep_major_basins)
-    set!(Z, Z_cpu)
+    set!(Z, Zi_cpu)
 
     return Z
 end
@@ -284,6 +284,10 @@ function remove_minor_basins!(Z, keep_major_basins)
 
     if !isfinite(keep_major_basins)
         throw(ArgumentError("`keep_major_basins` must be a finite number!"))
+    end
+
+    if keep_major_basins < 1
+        @warn "keep_major_basins is smaller than 1. This will lead to a completely immersed domain."
     end
 
     water = Z .< 0
@@ -305,7 +309,7 @@ function remove_minor_basins!(Z, keep_major_basins)
     total_elements = filter(x -> x != total_elements[mm_water], total_elements)
     label_elements = filter(x -> x != label_elements[mm_water], label_elements)
 
-    for m = 1:keep_major_basins
+    for m = 1:keep_major_basins-1 # The first basin is included by default
         next_maximum = findfirst(x -> x == maximum(total_elements), total_elements)
         push!(mm_basins, label_elements[next_maximum])
         total_elements = filter(x -> x != total_elements[next_maximum], total_elements)
@@ -315,7 +319,7 @@ function remove_minor_basins!(Z, keep_major_basins)
     labels = map(Float64, labels)
 
     for ℓ = 1:maximum(labels)
-        remove_basin = all(ℓ == m for m in mm_basins)
+        remove_basin = all(ℓ != m for m in mm_basins)
         if remove_basin
             labels[labels .== ℓ] .= 1e10 # large number
         end
