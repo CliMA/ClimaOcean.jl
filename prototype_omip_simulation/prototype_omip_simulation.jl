@@ -8,6 +8,7 @@ using ClimaOcean
 using OrthogonalSphericalShellGrids
 using Oceananigans
 using Oceananigans: architecture
+using Oceananigans.DistributedComputations: child_architecture
 using Oceananigans.Grids: on_architecture
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.Units
@@ -23,10 +24,12 @@ using ClimaOcean.ECCO: ECCO_restoring_forcing, ECCO4Monthly, ECCO2Daily, ECCOMet
 using ClimaOcean.Bathymetry
 using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: LatitudeDependentAlbedo
 
-import ClimaOcean: stateindex
-
 using CFTime
 using Dates
+
+import Oceananigans.OutputReaders: cpu_interpolating_time_indices
+
+cpu_interpolating_time_indices(arch::Distributed, args...) = cpu_interpolating_time_indices(child_architecture(arch), args...)
 
 #####
 ##### Global Ocean at 1/6th of a degree
@@ -42,6 +45,7 @@ Ny = 100
 Nz = length(z_faces) - 1
 
 arch = Distributed(CPU(), partition = Partition(1, 2))
+rank = arch.local_rank
 
 grid = TripolarGrid(arch; 
                     size = (Nx, Ny, Nz), 
@@ -110,8 +114,9 @@ FS = ECCO_restoring_forcing(salinity;    mask, grid, architecture = arch, timesc
 
 forcing = (; T = FT, S = FS)
 
-closure = RiBasedVerticalDiffusivity()
+closure = RiBasedVerticalDiffusivity(; horizontal_Ri_filter = Oceananigans.TurbulenceClosures.FivePointHorizontalFilter())
 
+@info "Building an ocean on rank $(rank)..."
 ocean = ocean_simulation(grid; free_surface, forcing, closure) 
 model = ocean.model
 
@@ -121,12 +126,14 @@ initial_date = dates[1]
 ##### The atmosphere
 #####
 
+@info "Uploading an atmosphere on rank $(rank)..."
 backend    = JRA55NetCDFBackend(4) 
 atmosphere = JRA55_prescribed_atmosphere(arch; backend)
 radiation  = Radiation(arch)
 
 sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
 
+@info "Coupling ocean and atmosphere on rank $(rank)..."
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 
 wall_time = [time_ns()]
@@ -156,37 +163,40 @@ fluxes = (u = model.velocities.u.boundary_conditions.top.condition,
           T = model.tracers.T.boundary_conditions.top.condition,
           S = model.tracers.S.boundary_conditions.top.condition)
 
+@info "Attaching Outputwriters on rank $(rank)..."
+
 ocean.output_writers[:fluxes] = JLD2OutputWriter(model, fluxes,
-                                                  schedule = TimeInterval(0.5days),
+                                                  schedule = TimeInterval(1days),
                                                   overwrite_existing = false,
                                                   array_type = Array{Float32},
-                                                  filename = "surface_fluxes")
+                                                  filename = "surface_fluxes_$(arch.local_rank)")
 
 ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, model.velocities),
-                                                  schedule = TimeInterval(0.5days),
+                                                  schedule = TimeInterval(1days),
                                                   overwrite_existing = false,
                                                   array_type = Array{Float32},
-                                                  filename = "surface",
+                                                  filename = "surface_$(arch.local_rank)",
                                                   indices = (:, :, grid.Nz))
 
 ocean.output_writers[:snapshots] = JLD2OutputWriter(model, merge(model.tracers, model.velocities),
                                                     schedule = TimeInterval(10days),
                                                     overwrite_existing = false,
                                                     array_type = Array{Float32},
-                                                    filename = "snapshots")
+                                                    filename = "snapshots_$(arch.local_rank)")
 
 ocean.output_writers[:checkpoint] = Checkpointer(model, 
                                                  schedule = TimeInterval(60days),
                                                  overwrite_existing = true,
-                                                 prefix = "checkpoint")
+                                                 prefix = "checkpoint_$(arch.local_rank)")
 
 restart = nothing
 
-coupled_simulation = Simulation(coupled_model; Δt=1, stop_time)
+coupled_simulation = Simulation(coupled_model; Δt = 1, stop_time = 25days)
 ocean.Δt = 10
 
 if isnothing(restart)
 
+    @info "Restarting from scratch on rank $(rank)..."
     # Set simulation from ECCO2 fields
     set!(ocean.model, 
          T = ECCOMetadata(:temperature, initial_date, ECCO2Daily()),
@@ -196,10 +206,11 @@ if isnothing(restart)
     wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 1.5minutes, max_change = 1.1)
     ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 
-    stop_time = 25days
+    ocean.stop_time = 25days
 
     run!(coupled_simulation)
 else
+    @info "Setting model from checkpoint $(restart) on rank $(rank)..."
     # Set the ocean from the restart file
     set!(ocean.model, restart)
 end
