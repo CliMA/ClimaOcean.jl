@@ -304,12 +304,7 @@ function remove_minor_basins!(Z, keep_major_basins)
     end
         
     mm_basins = [] # major basins indexes
-    mm_water = findfirst(x -> x == maximum(total_elements), total_elements)
-    push!(mm_basins, label_elements[mm_water])
-    total_elements = filter(x -> x != total_elements[mm_water], total_elements)
-    label_elements = filter(x -> x != label_elements[mm_water], label_elements)
-
-    for m = 1:keep_major_basins-1 # The first basin is included by default
+    for m = 1:keep_major_basins
         next_maximum = findfirst(x -> x == maximum(total_elements), total_elements)
         push!(mm_basins, label_elements[next_maximum])
         total_elements = filter(x -> x != total_elements[next_maximum], total_elements)
