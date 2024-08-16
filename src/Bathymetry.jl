@@ -287,7 +287,7 @@ function remove_minor_basins!(Z, keep_major_basins)
     end
 
     if keep_major_basins < 1
-        throw(ArgumentError("keep_major_basins must be greater than 1."))
+        throw(ArgumentError("keep_major_basins must be larger than 0."))
     end
 
     water = Z .< 0
