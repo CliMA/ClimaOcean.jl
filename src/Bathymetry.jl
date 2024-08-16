@@ -226,7 +226,7 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     for pass = 1:passes - 1
         new_size = (Nλ[pass], Nφ[pass], 1)
 
-        @info "pass number $pass with size $new_size"
+        @debug "pass number $pass with size $new_size"
         new_grid = LatitudeLongitudeGrid(child_architecture(target_grid),
                                          size = new_size, 
                                      latitude = (latitude[1],  latitude[2]), 
