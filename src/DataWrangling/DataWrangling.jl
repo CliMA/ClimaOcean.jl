@@ -11,6 +11,34 @@ using Oceananigans.Fields: interpolate
 using Oceananigans: pretty_filesize
 using Oceananigans.Utils: launch!
 using KernelAbstractions: @kernel, @index
+using MPI
+
+# Handle commands, typically downloading files
+# which should be executed by only one rank
+function global_barrier()
+    if MPI.Initialized()
+        MPI.Barrier(MPI.COMM_WORLD)
+    end
+end
+
+function running_cmd()
+    if MPI.Initialized() && MPI.Comm_rank(MPI.COMM_WORLD) != 0
+        return false
+    end
+    return true
+end
+
+function blocking_run(cmd)
+    running = running_cmd()
+    running && run(cmd)
+    global_barrier()
+end
+
+function blocking_download(url, filepath; kw...)
+    running = running_cmd()
+    running && download(url, filepath; kw...)
+    global_barrier()
+end
 
 next_fraction = Ref(0.0)
 download_start_time = Ref(time_ns())

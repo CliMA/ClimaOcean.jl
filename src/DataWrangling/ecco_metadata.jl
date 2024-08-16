@@ -1,5 +1,7 @@
 using CFTime
 using Dates
+using DataWrangling: blocking_run
+
 import Dates: year, month, day
 import Oceananigans.Fields: set!
 import Base
@@ -165,8 +167,7 @@ function download_dataset!(metadata::ECCOMetadata;
             end
 
             cmd = `wget --http-user=$(username) --http-passwd=$(password) $(fileurl)`
-        
-            run(cmd)
+            blocking_run(cmd)
         end
     end
 

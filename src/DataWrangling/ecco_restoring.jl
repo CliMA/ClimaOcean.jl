@@ -1,4 +1,3 @@
-using Oceananigans.Units
 using Oceananigans.Grids: node, on_architecture
 using Oceananigans.Fields: interpolate!, interpolate, location, instantiated_location
 using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBackend, FlavorOfFTS, time_indices
@@ -48,6 +47,7 @@ function set!(fts::ECCONetCDFFTS, path::ECCOMetadata=fts.path, name::String=fts.
     start = backend.start
 
     for t in start:start+length(backend)-1
+        
         # find the file associated with the time index
         metadata = @inbounds path[t] 
         set!(fts[t], metadata)

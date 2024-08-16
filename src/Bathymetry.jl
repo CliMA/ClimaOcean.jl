@@ -3,7 +3,7 @@ module Bathymetry
 export regrid_bathymetry, retrieve_bathymetry
 
 using ImageMorphology
-using ..DataWrangling: download_progress
+using ..DataWrangling: download_progress, blocking_download, blocking_run
 
 using Oceananigans
 using Oceananigans.Architectures: architecture
@@ -94,16 +94,16 @@ function regrid_bathymetry(target_grid;
         @info "Downloading bathymetry..."
         if !ispath(dir)
             @info "Making bathymetry directory $dir..."
-            mkdir(dir)
+            blocking_run(`mkdir $(dir)`)
         end
 
         fileurl = joinpath(url, filename)
 
         try 
-            Downloads.download(fileurl, filepath; progress=download_progress, verbose=true)
+            blocking_download(fileurl, filepath; progress=download_progress, verbose=true)
         catch 
             cmd = `wget --no-check-certificate -O $filepath $fileurl`
-            run(cmd)
+            blocking_run(cmd)
         end
     end
 
@@ -221,19 +221,17 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     Nλ = Int[Nλ..., Nλt]
     Nφ = Int[Nφ..., Nφt]
 
-    old_z     = native_z
-    TX, TY, _ = topology(target_grid)
+    old_z = native_z
 
     for pass = 1:passes - 1
         new_size = (Nλ[pass], Nφ[pass], 1)
 
-        @debug "pass number $pass with size $new_size"
-        new_grid = LatitudeLongitudeGrid(architecture(target_grid),
+        @info "pass number $pass with size $new_size"
+        new_grid = LatitudeLongitudeGrid(child_architecture(target_grid),
                                          size = new_size, 
                                      latitude = (latitude[1],  latitude[2]), 
                                     longitude = (longitude[1], longitude[2]), 
-                                            z = (0, 1),
-                                     topology = (TX, TY, Bounded))
+                                            z = (0, 1))
 
         new_z = Field{Center, Center, Nothing}(new_grid)
 

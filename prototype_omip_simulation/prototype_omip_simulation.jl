@@ -1,3 +1,6 @@
+using MPI
+MPI.Init()
+
 using Printf
 using Oceananigans
 using Oceananigans.Units
@@ -50,7 +53,7 @@ grid = TripolarGrid(arch;
 bottom_height = retrieve_bathymetry(grid, bathymetry_file; 
                                     minimum_depth = 10,
                                     dir = "./",
-                                    interpolation_passes = 20,
+                                    interpolation_passes = 2,
                                     connected_regions_allowed = 0)
  
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true) 
@@ -97,7 +100,7 @@ const c₄⁻ = c⁺[4]
 mask = CenterField(grid)
 set!(mask, mask_f)
 
-dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 5, 1)
+dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 3, 1)
 
 temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
 salinity    = ECCOMetadata(:salinity,    dates, ECCO4Monthly())
