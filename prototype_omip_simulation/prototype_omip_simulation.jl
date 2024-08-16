@@ -38,13 +38,13 @@ cpu_interpolating_time_indices(arch::Distributed, args...) = cpu_interpolating_t
 bathymetry_file = nothing # "bathymetry_tmp.jld2"
 
 # 60 vertical levels
-z_faces = exponential_z_faces(Nz=10, depth=6000)
+z_faces = exponential_z_faces(Nz=60, depth=6000)
 
-Nx = 200
-Ny = 100
+Nx = 4320
+Ny = 2160
 Nz = length(z_faces) - 1
 
-arch = Distributed(CPU(), partition = Partition(1, 2))
+arch = Distributed(GPU(), partition = Partition(1, 4))
 rank = arch.local_rank
 
 grid = TripolarGrid(arch; 
@@ -56,7 +56,7 @@ grid = TripolarGrid(arch;
 
 bottom_height = retrieve_bathymetry(grid, bathymetry_file; 
                                     minimum_depth = 10,
-                                    interpolation_passes = 2,
+                                    interpolation_passes = 20,
                                     connected_regions_allowed = 0)
  
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true) 
@@ -74,7 +74,7 @@ radiation  = Radiation(arch)
 ##### The Ocean component
 #####                             
 
-free_surface = SplitExplicitFreeSurface(grid; substeps = 10)
+free_surface = SplitExplicitFreeSurface(grid; substeps = 75)
 
 #####
 ##### Add restoring to ECCO fields for temperature and salinity in the artic and antarctic
