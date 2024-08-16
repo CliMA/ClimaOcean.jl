@@ -78,14 +78,43 @@ function ocean_simulation(grid; Δt = 5minutes,
     u_bot_bc = FluxBoundaryCondition(u_quadratic_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
     v_bot_bc = FluxBoundaryCondition(v_quadratic_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
 
-    ocean_boundary_conditions = (u = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵘ), bottom = u_bot_bc),
-                                 v = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵛ), bottom = v_bot_bc),
-                                 T = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵀ)),
-                                 S = FieldBoundaryConditions(top = FluxBoundaryCondition(Jˢ)))
-    
-    if !isempty(boundary_conditions)
-        ocean_boundary_conditions = merge(ocean_boundary_conditions, boundary_conditions)    
+    #ocean_boundary_conditions = (u = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵘ), bottom = u_bot_bc),
+    #                             v = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵛ), bottom = v_bot_bc),
+    #                             T = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵀ)),
+    #                             S = FieldBoundaryConditions(top = FluxBoundaryCondition(Jˢ)))
+    ocean_boundary_conditions = Dict(
+        :u => FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵘ), bottom = u_bot_bc),
+        :v => FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵛ), bottom = v_bot_bc),
+        :T => FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵀ)),
+        :S => FieldBoundaryConditions(top = FluxBoundaryCondition(Jˢ))
+    )
+
+    #convert user boundary conditions to dict
+    bcdict = Dict(name => getproperty(boundary_conditions, name) for name in propertynames(boundary_conditions))
+
+    if !isempty(bcdict)
+        # Merge user-supplied boundary conditions with the defaults
+        for (key, bc) in bcdict
+            if haskey(ocean_boundary_conditions, key)
+                # Extract all fields from the default and user FieldBoundaryConditions into dictionaries
+                default_bc_dict = Dict(name => getproperty(ocean_boundary_conditions[key], name) for name in propertynames(ocean_boundary_conditions[key])) 
+                user_bc_dict = Dict(name => getproperty(bc, name) for name in propertynames(bc))
+
+                # Merge the dictionaries
+                merged_bc_dict = merge(default_bc_dict, user_bc_dict) 
+
+                # Reconstruct the FieldBoundaryConditions using the merged dictionary
+                ocean_boundary_conditions[key] = FieldBoundaryConditions(; merged_bc_dict...)
+            else
+                # If the user specifies a new tracer not in the defaults, simply add it
+                ocean_boundary_conditions[key] = bc
+            end
+        end
+
+        #ocean_boundary_conditions = merge(ocean_boundary_conditions, boundary_conditions)    
     end
+    # Convert the dictionary back to a NamedTuple if needed
+    ocean_boundary_conditions = (; ocean_boundary_conditions...) 
 
     if grid isa ImmersedBoundaryGrid
         Fu = Forcing(u_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
@@ -104,7 +133,7 @@ function ocean_simulation(grid; Δt = 5minutes,
         momentum_advection = nothing
     end
 
-    tracers = unique(tuple(tracers..., :T, :S))
+    tracers = unique(tuple(tracers..., :T, :S)) 
     if closure isa CATKEVerticalDiffusivity
         tracers = tuple(tracers..., :e)
         tracer_advection = Dict{Symbol, Any}(name => tracer_advection for name in tracers)
