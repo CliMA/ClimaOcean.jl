@@ -35,6 +35,8 @@ cpu_interpolating_time_indices(arch::Distributed, args...) = cpu_interpolating_t
 ##### Global Ocean at 1/6th of a degree
 #####
 
+Nranks = MPI.Comm_size(MPI.COMM_WORLD)
+
 bathymetry_file = nothing # "bathymetry_tmp.jld2"
 
 # 60 vertical levels
@@ -44,7 +46,7 @@ Nx = 4320
 Ny = 2160
 Nz = length(z_faces) - 1
 
-arch = Distributed(GPU(), partition = Partition(1, 4))
+arch = Distributed(GPU(), partition = Partition(y = Nranks))
 rank = arch.local_rank
 
 grid = TripolarGrid(arch; 
