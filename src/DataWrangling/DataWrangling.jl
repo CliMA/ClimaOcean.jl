@@ -21,22 +21,23 @@ function global_barrier()
     end
 end
 
-function running_cmd()
-    if MPI.Initialized() && MPI.Comm_rank(MPI.COMM_WORLD) != 0
-        return false
-    end
-    return true
-end
-
 function blocking_run(cmd)
-    running = running_cmd()
+    running = if MPI.Initialized() && MPI.Comm_rank(MPI.COMM_WORLD) != 0
+        false
+    else
+        true
+    end
     running && run(cmd)
     global_barrier()
 end
 
 function blocking_download(url, filepath; kw...)
-    running = running_cmd()
-    running && download(url, filepath; kw...)
+    downloading = if MPI.Initialized() && MPI.Comm_rank(MPI.COMM_WORLD) != 0
+        false
+    else
+        true
+    end    
+    downloading && download(url, filepath; kw...)
     global_barrier()
 end
 

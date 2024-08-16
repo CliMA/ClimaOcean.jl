@@ -264,42 +264,15 @@ end
 
 inpainted_ecco_field(variable_name::Symbol; kw...) = inpainted_ecco_field(ECCOMetadata(variable_name); kw...)
     
-function set!(field::DistributedField, ecco_metadata::ECCOMetadata; kw...)
-    # Fields initialized from ECCO
-    grid = field.grid
-    arch = architecture(grid)
-    child_arch = child_architecture(arch)
-
-    f_ecco = if arch.local_rank == 0 # Make sure we read/write the file using only one core
-        mask = ecco_mask(ecco_metadata, child_arch)
-        
-        inpainted_ecco_field(ecco_metadata; mask,
-                             architecture = child_arch,
-                             kw...)
-    else
-        empty_ecco_field(ecco_metadata; architecture = child_arch)
-    end
-
-    barrier!(arch)
-
-    # Distribute ecco field to all workers
-    parent(f_ecco) .= all_reduce(+, parent(f_ecco), arch)
-
-    f_grid = Field(field_location(ecco_metadata), grid)   
-    interpolate!(f_grid, f_ecco)
-    set!(field, f_grid)
-    
-    return field
-end
-
 function set!(field::Field, ecco_metadata::ECCOMetadata; kw...)
 
     # Fields initialized from ECCO
     grid = field.grid
     mask = ecco_mask(ecco_metadata, architecture(grid))
-    
+    arch = child_architecture(grid)
+
     f = inpainted_ecco_field(ecco_metadata; mask,
-                              architecture = architecture(grid),
+                              architecture = arch,
                               kw...)
 
     f_grid = Field(field_location(ecco_metadata), grid)   
