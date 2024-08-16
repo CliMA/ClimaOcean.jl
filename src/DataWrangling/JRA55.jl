@@ -372,8 +372,13 @@ function JRA55_field_time_series(variable_name;
     fts_name = field_time_series_short_names[variable_name]
 
     # Note, we don't re-use existing jld2 files.
-    isfile(filepath) || blocking_download(url, filepath; progress=download_progress, verbose = true)
-    isfile(jld2_filepath) && blocking_run(`rm jld2_filepath`)
+    if !isfile(filepath) 
+        blocking_download(url, filepath; progress=download_progress)
+    end
+
+    if isfile(jld2_filepath) 
+        blocking_run(`rm jld2_filepath`)
+    end
 
     # Determine default time indices
     if totally_in_memory
