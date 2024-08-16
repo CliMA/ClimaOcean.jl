@@ -8,8 +8,6 @@ using ..OceanSeaIceModels: reference_density,
                            downwelling_radiation,
                            freshwater_flux
 
-using ClimaSeaIce: SlabSeaIceModel
-
 using Oceananigans: HydrostaticFreeSurfaceModel, architecture
 using Oceananigans.Grids: inactive_node, node
 using Oceananigans.BoundaryConditions: fill_halo_regions!
@@ -53,8 +51,6 @@ const celsius_to_kelvin = 273.15
 Base.summary(crf::OceanSeaIceSurfaceFluxes) = "OceanSeaIceSurfaceFluxes"
 Base.show(io::IO, crf::OceanSeaIceSurfaceFluxes) = print(io, summary(crf))
 
-const SlabSeaIceSimulation = Simulation{<:SlabSeaIceModel}
-
 function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
                                   atmosphere = nothing,
                                   radiation = nothing,
@@ -81,14 +77,8 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
     end
 
     prescribed_fluxes = nothing
-
-    if sea_ice isa SlabSeaIceSimulation
-        previous_ice_thickness = deepcopy(sea_ice.model.ice_thickness)
-        previous_ice_concentration = deepcopy(sea_ice.model.ice_concentration)
-    else
-        previous_ice_thickness = nothing
-        previous_ice_concentration = nothing
-    end
+    previous_ice_thickness = nothing
+    previous_ice_concentration = nothing
 
     ocean_grid = ocean.model.grid
     ρₒ = ocean_reference_density

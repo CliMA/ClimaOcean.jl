@@ -1,32 +1,10 @@
 using .CrossRealmFluxes: compute_atmosphere_ocean_fluxes!, compute_sea_ice_ocean_fluxes!
-
-using ClimaSeaIce: SlabSeaIceModel
-
-const SlabSeaIceSimulation = Simulation{<:SlabSeaIceModel}
-
 function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_tendencies=true)
     ocean = coupled_model.ocean
     sea_ice = coupled_model.sea_ice
 
     # Be paranoid and update state at iteration 0
     coupled_model.clock.iteration == 0 && update_state!(coupled_model, callbacks)
-
-    # Eventually, split out into OceanOnlyModel
-    if sea_ice isa SlabSeaIceSimulation
-        h = sea_ice.model.ice_thickness
-        fill_halo_regions!(h)
-
-        # Initialization
-        if coupled_model.clock.iteration == 0
-            @info "Initializing coupled model ice thickness..."
-            h⁻ = coupled_model.fluxes.previous_ice_thickness
-            hⁿ = coupled_model.sea_ice.model.ice_thickness
-            parent(h⁻) .= parent(hⁿ)
-        end
-
-        sea_ice.Δt = Δt
-        time_step!(sea_ice)
-    end
 
     ocean.Δt = Δt
 
