@@ -3,6 +3,7 @@ module DataWrangling
 using Oceananigans
 using Downloads
 using Printf
+using Downloads
 
 using Oceananigans.Architectures: architecture
 using Oceananigans.Grids: node
@@ -37,7 +38,7 @@ function blocking_download(url, filepath; kw...)
     else
         true
     end    
-    downloading && download(url, filepath; kw...)
+    downloading && Downloads.download(url, filepath; kw...)
     global_barrier()
 end
 

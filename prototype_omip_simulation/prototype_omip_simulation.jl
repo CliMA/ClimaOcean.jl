@@ -56,11 +56,19 @@ grid = TripolarGrid(arch;
 
 bottom_height = retrieve_bathymetry(grid, bathymetry_file; 
                                     minimum_depth = 10,
-                                    dir = "./",
                                     interpolation_passes = 2,
                                     connected_regions_allowed = 0)
  
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true) 
+
+#####
+##### The atmosphere component
+#####
+
+@info "Uploading an atmosphere on rank $(rank)..."
+backend    = JRA55NetCDFBackend(4) 
+atmosphere = JRA55_prescribed_atmosphere(arch; backend)
+radiation  = Radiation(arch)
 
 #####
 ##### The Ocean component
@@ -123,13 +131,8 @@ model = ocean.model
 initial_date = dates[1]
 
 #####
-##### The atmosphere
+##### Coupling the different models...
 #####
-
-@info "Uploading an atmosphere on rank $(rank)..."
-backend    = JRA55NetCDFBackend(4) 
-atmosphere = JRA55_prescribed_atmosphere(arch; backend)
-radiation  = Radiation(arch)
 
 sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
 
