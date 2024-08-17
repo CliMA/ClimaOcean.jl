@@ -2,7 +2,7 @@
 
 julia_version = "1.10.4"
 manifest_format = "2.0"
-project_hash = "cc2a25a40159fe5d96549d66d6a0fb1e23c7f6ab"
+project_hash = "ed1f4733b01f136f8f80a00da422b9defdc69b5b"
 
 [[deps.ANSIColoredPrinters]]
 git-tree-sha1 = "574baf8110975760d391c710b6341da1afa48d8c"
@@ -684,9 +684,9 @@ version = "1.0.0"
 
 [[deps.LLVMOpenMP_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "d986ce2d884d49126836ea94ed5bfb0f12679713"
+git-tree-sha1 = "e16271d212accd09d52ee0ae98956b8a05c4b626"
 uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
-version = "15.0.7+0"
+version = "17.0.6+0"
 
 [[deps.LRUCache]]
 git-tree-sha1 = "b3cc6698599b10e652832c2f23db3cab99d51b59"
@@ -938,9 +938,9 @@ version = "1.2.0"
 
 [[deps.Oceananigans]]
 deps = ["Adapt", "CUDA", "Crayons", "CubedSphere", "Dates", "Distances", "DocStringExtensions", "FFTW", "Glob", "IncompleteLU", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "LinearAlgebra", "Logging", "MPI", "NCDatasets", "OffsetArrays", "OrderedCollections", "Pkg", "Printf", "Random", "Rotations", "SeawaterPolynomials", "SparseArrays", "Statistics", "StructArrays"]
-git-tree-sha1 = "88607bd363d8a9b7e002b78a42abcbe39f6adf07"
+git-tree-sha1 = "ed415deb1d80c2a15c9b8bf0c7df04c6dec9d6c3"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
-version = "0.91.7"
+version = "0.91.8"
 
     [deps.Oceananigans.extensions]
     OceananigansEnzymeExt = "Enzyme"
