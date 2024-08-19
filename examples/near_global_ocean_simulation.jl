@@ -49,13 +49,13 @@ grid = LatitudeLongitudeGrid(arch;
 # (depths shallower than this are considered land). The `interpolation_passes` parameter
 # specifies the number of passes to interpolate the bathymetry data. A larger number
 # results in a smoother bathymetry. We also remove all connected regions (such as inland
-# lakes) from the bathymetry data by specifying `connected_regions_allowed = 2` (Mediterrean
+# lakes) from the bathymetry data by specifying `connected_regions_allowed = 3` (Mediterrean
 # sea an North sea in addition to the ocean).
 
 bottom_height = regrid_bathymetry(grid; 
                                   minimum_depth = 10,
                                   interpolation_passes = 5,
-                                  connected_regions_allowed = 2)
+                                  major_basins = 3)
  
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height)) 
 

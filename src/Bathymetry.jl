@@ -6,7 +6,7 @@ using ImageMorphology
 using ..DataWrangling: download_progress
 
 using Oceananigans
-using Oceananigans.Architectures: architecture
+using Oceananigans.Architectures: architecture, on_architecture
 using Oceananigans.DistributedComputations: child_architecture
 using Oceananigans.Grids: halo_size, λnodes, φnodes
 using Oceananigans.Grids: x_domain, y_domain
@@ -158,10 +158,10 @@ function regrid_bathymetry(target_grid;
     Δλ = λ_data[2] - λ_data[1]
     Δφ = φ_data[2] - φ_data[1]
 
-    λ₁_data = λ_data[i₁] - Δλ / 2
-    λ₂_data = λ_data[i₂] + Δλ / 2
-    φ₁_data = φ_data[j₁] - Δφ / 2
-    φ₂_data = φ_data[j₂] + Δφ / 2
+    λ₁_data = λ_data[1]   - Δλ / 2
+    λ₂_data = λ_data[end] + Δλ / 2
+    φ₁_data = φ_data[1]   - Δφ / 2
+    φ₂_data = φ_data[end] + Δφ / 2
 
     Nxn = length(λ_data)
     Nyn = length(φ_data)
@@ -169,7 +169,7 @@ function regrid_bathymetry(target_grid;
 
     native_grid = LatitudeLongitudeGrid(arch;
                                         size = (Nxn, Nyn, Nzn),
-                                        latitude = (φ₁_data, φ₂_data),
+                                        latitude  = (φ₁_data, φ₂_data),
                                         longitude = (λ₁_data, λ₂_data),
                                         z = (0, 1),
                                         halo = (10, 10, 1))
@@ -179,7 +179,6 @@ function regrid_bathymetry(target_grid;
 
     target_z = interpolate_bathymetry_in_passes(native_z, target_grid; 
                                                 passes = interpolation_passes,
-                                                major_basins,
                                                 minimum_depth)
 
     if minimum_depth > 0
@@ -276,7 +275,7 @@ function remove_minor_basins!(Z::Field, keep_major_basins)
     Zi = interior(Z, :, :, 1)
     Zi_cpu = on_architecture(CPU(), Zi)
     remove_minor_basins!(Zi_cpu, keep_major_basins)
-    set!(Z, Z_cpu)
+    set!(Z, Zi_cpu)
 
     return Z
 end
@@ -285,6 +284,10 @@ function remove_minor_basins!(Z, keep_major_basins)
 
     if !isfinite(keep_major_basins)
         throw(ArgumentError("`keep_major_basins` must be a finite number!"))
+    end
+
+    if keep_major_basins < 1
+        throw(ArgumentError("keep_major_basins must be larger than 0."))
     end
 
     water = Z .< 0
@@ -301,11 +304,6 @@ function remove_minor_basins!(Z, keep_major_basins)
     end
         
     mm_basins = [] # major basins indexes
-    mm_water = findfirst(x -> x == maximum(total_elements), total_elements)
-    push!(mm_basins, label_elements[mm_water])
-    total_elements = filter(x -> x != total_elements[mm_water], total_elements)
-    label_elements = filter(x -> x != label_elements[mm_water], label_elements)
-
     for m = 1:keep_major_basins
         next_maximum = findfirst(x -> x == maximum(total_elements), total_elements)
         push!(mm_basins, label_elements[next_maximum])
@@ -316,7 +314,7 @@ function remove_minor_basins!(Z, keep_major_basins)
     labels = map(Float64, labels)
 
     for ℓ = 1:maximum(labels)
-        remove_basin = all(ℓ == m for m in mm_basins)
+        remove_basin = all(ℓ != m for m in mm_basins)
         if remove_basin
             labels[labels .== ℓ] .= 1e10 # large number
         end

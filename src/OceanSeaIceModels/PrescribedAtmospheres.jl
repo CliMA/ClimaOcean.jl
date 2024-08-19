@@ -37,8 +37,6 @@ import Thermodynamics.Parameters:
                     # during partial ice nucleation
 
 import ..OceanSeaIceModels:
-    surface_velocities,
-    surface_tracers,
     downwelling_radiation,
     freshwater_flux
 
