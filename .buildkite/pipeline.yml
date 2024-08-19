@@ -54,5 +54,13 @@ steps:
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
 
+  - label: "Run bathyemtry tests"
+    key: "tests_bathymetry"
+    env:
+      CUDA_VISIBLE_DEVICES: "-1"
+      TEST_GROUP: "bathyemtry"
+    commands:
+      - "julia --project -e 'using Pkg; Pkg.test()'"
+
   - wait: ~
     continue_on_failure: true
