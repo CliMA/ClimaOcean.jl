@@ -20,9 +20,6 @@ steps:
       - "julia --project -e 'using Pkg; Pkg.instantiate(verbose=true)'"
       - "julia --project -e 'using Pkg; Pkg.precompile(strict=true)'"
       - "julia --project -e 'using Pkg; Pkg.status()'"
-      # Force the initialization of the CUDA runtime as it is lazily loaded by default:
-      - "echo '--- Force initialization of the CUDA runtime'"
-      - "julia --project -e 'using CUDA; CUDA.precompile_runtime()'"
     agents:
       slurm_mem: 120G
       slurm_gpus: 1
