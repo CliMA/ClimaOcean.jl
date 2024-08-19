@@ -1,6 +1,4 @@
 # Fallback
-@inline extrinsic_vector(i, j, k, grid, uₒ, vₒ) = uₒ, vₒ
-@inline intrinsic_vector(i, j, k, grid, uₒ, vₒ) = uₒ, vₒ
 
 # Fallback!
 limit_fluxes_over_sea_ice!(args...) = nothing

@@ -10,6 +10,7 @@ env:
   JULIA_LOAD_PATH: "${JULIA_LOAD_PATH}:${BUILDKITE_BUILD_CHECKOUT_PATH}/.buildkite"
   OPENBLAS_NUM_THREADS: 1
   OMPI_MCA_opal_warn_on_missing_libcuda: 0
+  JULIA_NUM_PRECOMPILE_TASKS: 8
 
 steps:
   - label: "initialize"
@@ -24,8 +25,6 @@ steps:
       slurm_mem: 120G
       slurm_gpus: 1
       slurm_cpus_per_task: 8
-    env:
-      JULIA_NUM_PRECOMPILE_TASKS: 8
 
   - wait
 
@@ -44,7 +43,6 @@ steps:
       slurm_time: 48:00:00
 
     env:
-      JULIA_NUM_PRECOMPILE_TASKS: 8
       JULIA_DEBUG: "Documenter"
       # This environment variable is needed to avoid SSL verification errors when Downloads.jl 
       # tries to download the bathymetry data. It should not be required so we need to fix our certificates.
