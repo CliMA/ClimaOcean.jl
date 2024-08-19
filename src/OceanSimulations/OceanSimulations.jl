@@ -62,15 +62,15 @@ function ocean_simulation(grid; Δt = 5minutes,
                           tracer_advection = default_tracer_advection(),
                           verbose = false)
 
-    # Allocate memory in `Field`s for surface forcing boundary conditions
-    top_zonal_momentum_flux      = Jᵘ = Field{Face, Center, Nothing}(grid)
-    top_meridional_momentum_flux = Jᵛ = Field{Center, Face, Nothing}(grid)
+    # Set up boundary conditions using Field
+    top_zonal_momentum_flux      = τx = Field{Face, Center, Nothing}(grid)
+    top_meridional_momentum_flux = τy = Field{Center, Face, Nothing}(grid)
     top_ocean_heat_flux          = Jᵀ = Field{Center, Center, Nothing}(grid)
     top_salt_flux                = Jˢ = Field{Center, Center, Nothing}(grid)
 
     # Construct ocean boundary conditions including surface forcing and bottom drag
-    u_top_bc = FluxBoundaryCondition(Jᵘ)
-    v_top_bc = FluxBoundaryCondition(Jᵛ)
+    u_top_bc = FluxBoundaryCondition(τx)
+    v_top_bc = FluxBoundaryCondition(τy)
     T_top_bc = FluxBoundaryCondition(Jᵀ)
     S_top_bc = FluxBoundaryCondition(Jˢ)
     

@@ -41,9 +41,9 @@ grid = LatitudeLongitudeGrid(size = (Nλ, Nφ, 1),
 #    means that the function does not allow connected regions in the bathymetry  (e.g., lakes)
 #    and fills them with land.
 
-h_rough  = regrid_bathymetry(grid)
-h_smooth = regrid_bathymetry(grid; major_basins = 40)
-h_no_connected_regions = regrid_bathymetry(grid; major_basins = 0)
+h_rough = regrid_bathymetry(grid)
+h_smooth = regrid_bathymetry(grid; interpolation_passes = 40)
+h_one_basin = regrid_bathymetry(grid; major_basins = 1)
 nothing # hide
 
 # Finally, we visualize the generated bathymetry data for the Mediterranean Sea using CairoMakie.
@@ -56,8 +56,8 @@ interior(h_smooth)[land_smooth] .= NaN
 land_rough = interior(h_rough) .>= 0
 interior(h_rough)[land_rough] .= NaN
 
-land_no_connected_regions = interior(h_no_connected_regions) .>= 0
-interior(h_no_connected_regions)[land_no_connected_regions] .= NaN
+land_one_basin = interior(h_one_basin) .>= 0
+interior(h_one_basin)[land_one_basin] .= NaN
 
 fig = Figure(resolution=(850, 1150))
 
@@ -67,8 +67,8 @@ hm = heatmap!(ax, λ, φ, - interior(h_rough, :, :, 1), nan_color=:white, colorm
 ax = Axis(fig[2, 1], title = "Smooth bathymetry", xlabel = "Longitude", ylabel = "Latitude")
 hm = heatmap!(ax, λ, φ, - interior(h_smooth, :, :, 1), nan_color=:white, colormap = Reverse(:deep))
 
-ax = Axis(fig[3, 1], title = "Bathymetry without connected regions}", xlabel = "Longitude", ylabel = "Latitude")
-hm = heatmap!(ax, λ, φ, - interior(h_no_connected_regions, :, :, 1), nan_color=:white, colormap = Reverse(:deep))
+ax = Axis(fig[3, 1], title = "Bathymetry without only one basin", xlabel = "Longitude", ylabel = "Latitude")
+hm = heatmap!(ax, λ, φ, - interior(h_one_basin, :, :, 1), nan_color=:white, colormap = Reverse(:deep))
 
 cb = Colorbar(fig[1:3, 2], hm, height = Relative(3/4), label = "Depth (m)")
 
