@@ -3,6 +3,8 @@ agents:
   slurm_mem: 8G
   modules: climacommon/2024_05_27
 
+timeout_in_minutes: 1440
+
 env:
   JULIA_LOAD_PATH: "${JULIA_LOAD_PATH}:${BUILDKITE_BUILD_CHECKOUT_PATH}/.buildkite"
   OPENBLAS_NUM_THREADS: 1
@@ -14,8 +16,9 @@ steps:
     key: "init"
     command:
       - "echo '--- Instantiate project'"
-      - "julia --project -e 'using Pkg; Pkg.instantiate(; verbose=true); Pkg.precompile(; strict=true)'"
+      - "julia --project -e 'using Pkg; Pkg.instantiate(verbose=true); Pkg.precompile(strict=true)'"
       # force the initialization of the CUDA runtime as it is lazily loaded by default
+      - "echo '--- Force initialization of the CUDA runtime'"
       - "julia --project -e 'using CUDA; CUDA.precompile_runtime()'"
     agents:
       slurm_mem: 120G
@@ -53,7 +56,7 @@ steps:
     env:
       TEST_GROUP: "simulations"
     commands:
-      - "julia --project -e 'using Pkg; Pkg.test()'"
+      - "julia --project -e 'using Pkg; Pkg.instantiate(verbose=true); Pkg.test()'"
     agents:
       slurm_mem: 120G
       slurm_gpus: 1
