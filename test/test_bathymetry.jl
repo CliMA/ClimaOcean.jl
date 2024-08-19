@@ -14,9 +14,7 @@ using ClimaOcean.Bathymetry: remove_minor_basins!
         # Test that remove_minor_basins!(Z, Inf) does nothing
         bottom_height = regrid_bathymetry(grid)        
         control_bottom_height = deepcopy(bottom_height)
-
         remove_minor_basins!(bottom_height, Inf)
-
         @test interior(bottom_height) .== interior(control_bottom_height)
 
         # Test that remove_minor_basins!(Z, 2) remove the correct number of Basins
@@ -31,7 +29,6 @@ using ClimaOcean.Bathymetry: remove_minor_basins!
 
         # This should have not changed anything
         remove_minor_basins!(bottom_height, 2)
-
         @test interior(bottom_height) .== interior(control_bottom_height)
 
         # This should have removed the right basin
