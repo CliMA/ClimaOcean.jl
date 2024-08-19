@@ -1,5 +1,38 @@
+using Oceananigans
+using OrthogonalSphericalShellGrids
+using Oceananigans.Fields: condition_operand, ConstantField
+using Oceananigans.AbstractOperations: materialize_condition!, ComputedField
+using Oceananigans.AbstractOperations: compute_at!, compute_computed_field!
+using Oceananigans.BuoyancyModels: buoyancy
+using Oceananigans.BoundaryConditions: fill_halo_regions!
+using Oceananigans.ImmersedBoundaries: ImmersedBoundaryGrid
+using Oceananigans.Architectures: device, architecture
+using Oceananigans.Utils: launch!
+using Oceananigans.Models: seawater_density
+using Oceananigans.Grids: Center, Face, inactive_node, znode
+using Oceananigans.Operators: Δzᶜᶜᶠ, ζ₃ᶠᶠᶜ
+using JLD2
+
+using KernelAbstractions: @index, @kernel
+using KernelAbstractions.Extras.LoopInfo: @unroll
+
+import Oceananigans.Fields: compute!
+
+using Oceananigans.Fields: OneField, condition_operand
+using Oceananigans.AbstractOperations: materialize_condition!
+using Oceananigans.Utils
 
 import Oceananigans.Fields: interior
+
+function compute!(comp::ComputedField, time=nothing)
+    # First compute `dependencies`:
+    compute_at!(comp.operand, time)
+
+    # Now perform the primary computation
+    @apply_regionally compute_computed_field!(comp)
+
+    return comp
+end
 
 interior(u::Union{Array, CuArray, SubArray}) = u
 
@@ -25,7 +58,6 @@ function condition_field!(f, condition = nothing)
     return nothing
 end
 
-
 const c = Center()
 const f = Face()
 
@@ -47,7 +79,7 @@ const f = Face()
     b_surface = @inbounds (b[i, j, Nz-2] + b[i, j, Nz-1] + b[i, j, Nz]) / 3
 
     k_start = Nz - 3
-    z_ij    = znode(i, j, k_start, grid, c, c, f)
+    z_ij    = znode(i, j, k_start + 1, grid, c, c, f)
 
     @unroll for k in k_start : -1 : 1 # scroll from point just below surface
 
@@ -73,15 +105,21 @@ const f = Face()
             new_z_ij = zᵏ + (Δb - Δbᵏ) / (Δb⁺ - Δbᵏ) * Δz⁺
         end
 
-        # Linearly interpolate to find mixed layer height
-
+        # If we reached the bottom, we break
+        if inactive_node(i, j, k, grid, c, c, c)
+            z_ij = znode(i, j, k, grid, c, c, f)
+            break
+        end
+        
         # Replace z_ij if we found a new mixed layer depth
-        replace_z = (just_below_mixed_layer | inside_mixed_layer) & !inactive_node(i, j, k, grid, c, c, c)
+        replace_z = (just_below_mixed_layer | inside_mixed_layer) 
         z_ij = ifelse(replace_z, new_z_ij, z_ij)
         if just_below_mixed_layer
             break
         end
     end
+
+    # Replace with bottom height if it reached the bottom
 
     # Note "-" since `h` is supposed to be "depth" rather than "height"
     @inbounds h[i, j, 1] = ifelse(inactive_node(i, j, k_start, grid, c, c, c), zero(grid), - z_ij)

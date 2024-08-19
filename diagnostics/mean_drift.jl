@@ -26,16 +26,6 @@ include("mixed_layer.jl")
 
 filename = "snapshots.jld2"
 
-function compute!(comp::ComputedField, time=nothing)
-    # First compute `dependencies`:
-    compute_at!(comp.operand, time)
-
-    # Now perform the primary computation
-    @apply_regionally compute_computed_field!(comp)
-
-    return comp
-end
-
 T = FieldTimeSeries(filename, "T"; backend = OnDisk())
 S = FieldTimeSeries(filename, "S"; backend = OnDisk())
 u = FieldTimeSeries(filename, "u"; backend = OnDisk())
@@ -89,13 +79,13 @@ jldsave("drifts.jld2"; Tmean, Smean, Kmean)
 using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 
 eos    = TEOS10EquationOfState()
-height = ConstantField(-200)
+height = ConstantField(0)
 
 mld = []
 for t in 1:length(T.times)
     ρ_operation = seawater_density(grid, eos, T[t], S[t], height)
-    ρ = compute!(Field(ρ_operation))
-    mld_t = MixedLayerDepth(grid, (; ρ), density_criterion = true)
+    ρ = compute!(Field(ρ_operation));
+    mld_t = MixedLayerDepth(grid, (; ρ), density_criterion = true);
     compute!(mld_t);
 
     push!(mld, interior(mld_t))
