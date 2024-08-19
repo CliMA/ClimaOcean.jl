@@ -16,10 +16,11 @@ steps:
     key: "init"
     command:
       - "echo '--- Instantiate project'"
-      - "julia --project -e 'using Pkg; Pkg.instantiate(verbose=true); Pkg.precompile(strict=true)'"
-      # force the initialization of the CUDA runtime as it is lazily loaded by default
+      - "julia --project -e 'using Pkg; Pkg.instantiate(verbose=true)'"
+      - "echo '--- Precompile project'"
+      - "julia --project -e 'using Pkg; Pkg.precompile(strict=true)'"
+      # Force the initialization of the CUDA runtime as it is lazily loaded by default:
       - "echo '--- Force initialization of the CUDA runtime'"
-      - "julia --project -e 'pkg = Base.PkgId(Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\"), \"CUDA_Runtime_jll\"); Base.compilecache(pkg)'"
       - "julia --project -e 'using CUDA; CUDA.precompile_runtime()'"
     agents:
       slurm_mem: 120G
@@ -57,13 +58,12 @@ steps:
     env:
       TEST_GROUP: "simulations"
     commands:
-      - "julia --project -e 'using Pkg; Pkg.instantiate(verbose=true); Pkg.test()'"
+      - "julia --project -e 'using Pkg; Pkg.test()'"
     agents:
       slurm_mem: 120G
       slurm_gpus: 1
       slurm_cpus_per_task: 8
-      slurm_ntasks: 1
-      slurm_gpus_per_task: 1
+
   - wait: ~
     continue_on_failure: true
 
