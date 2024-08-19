@@ -29,7 +29,6 @@ using ClimaOcean.Bathymetry: remove_minor_basins!
 
         # This should have not changed anything
         remove_minor_basins!(bottom_height, 2)
-
         @test interior(bottom_height) .== interior(control_bottom_height)
 
         # This should have removed the right basin
