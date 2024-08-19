@@ -30,7 +30,7 @@ steps:
   - wait
 
   - label: "CPU JRA55 tests"
-    key: "tests_jra55"
+    key: "cpu_jra55_tests"
     env:
       TEST_GROUP: "jra55"
     commands:
@@ -41,7 +41,7 @@ steps:
       slurm_ntasks: 1
 
   - label: "CPU ECCO tests"
-    key: "tests_ecco"
+    key: "cpu_ecco_tests"
     env:
       TEST_GROUP: "ecco"
     commands:
@@ -52,7 +52,7 @@ steps:
       slurm_ntasks: 1
 
   - label: "CPU surface flux tests"
-    key: "tests_fluxes"
+    key: "cpu_fluxes_tests"
     env:
       TEST_GROUP: "fluxes"
     commands:
@@ -63,7 +63,7 @@ steps:
       slurm_ntasks: 1
 
   - label: "CPU bathymetry tests"
-    key: "tests_bathymetry"
+    key: "cpu_bathymetry_tests"
     env:
       TEST_GROUP: "bathymetry"
     commands:
@@ -72,11 +72,9 @@ steps:
       slurm_mem: 32G
       slurm_cpus_per_task: 8
       slurm_ntasks: 1
-    env:
-      GPU_TEST: "true"
 
   - label: "GPU JRA55 tests"
-    key: "tests_jra55"
+    key: "gpu_jra55_tests"
     env:
       TEST_GROUP: "jra55"
     commands:
@@ -90,7 +88,7 @@ steps:
       GPU_TEST: "true"
 
   - label: "GPU ECCO tests"
-    key: "tests_ecco"
+    key: "gpu_ecco_tests"
     env:
       TEST_GROUP: "ecco"
     commands:
@@ -104,7 +102,7 @@ steps:
       GPU_TEST: "true"
       
   - label: "GPU surface flux tests"
-    key: "tests_fluxes"
+    key: "gpu_fluxes_tests"
     env:
       TEST_GROUP: "fluxes"
     commands:
@@ -118,7 +116,7 @@ steps:
       GPU_TEST: "true"
       
   - label: "GPU bathyemtry tests"
-    key: "tests_bathymetry"
+    key: "gpu_bathymetry_tests"
     env:
       TEST_GROUP: "bathymetry"
     commands:
