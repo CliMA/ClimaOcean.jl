@@ -13,4 +13,5 @@ using Oceananigans.OutputReaders: interpolate!
 
 using ClimaOcean
 
-test_architectures = [CPU()]
+gpu_test = parse(Bool, get(ENV, "GPU_TEST", "0"))
+test_architectures = gpu_test ? [CPU()] : [GPU()]
