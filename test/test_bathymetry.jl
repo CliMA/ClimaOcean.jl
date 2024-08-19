@@ -51,4 +51,5 @@ using ClimaOcean.Bathymetry: remove_minor_basins!
         # Testing that multiple passes do not change the solution when refining the grid
         @test interior(control_bottom_height) .== interior(interpolated_bottom_height)
     end
+
 end 
