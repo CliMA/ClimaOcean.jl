@@ -16,7 +16,7 @@ using OrthogonalSphericalShellGrids
                                         minimum_depth = 10,
                                         dir = "./",
                                         interpolation_passes = 20,
-                                        connected_regions_allowed = 0)
+                                        major_basins = 1)
      
     grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true)                           
 
