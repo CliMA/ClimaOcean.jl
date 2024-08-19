@@ -1,5 +1,6 @@
 include("runtests_setup.jl")
 
+using GPUArrays: @allowscalar
 using ClimaOcean.JRA55: download_jra55_cache
 
 @testset "JRA55 and data wrangling utilities" begin
@@ -24,13 +25,13 @@ using ClimaOcean.JRA55: download_jra55_cache
         @test Nz == 1
         @test Nt == length(time_indices)
 
-        CUDA.@allowscalar begin
+        @allowscalar begin
             @test jra55_fts[1, 1, 1, 1]   == 430.98105f0
             @test jra55_fts[641, 1, 1, 1] == 430.98105f0
         end
 
         # Test that halo regions were filled to respect boundary conditions
-        CUDA.@allowscalar begin
+        @allowscalar begin
             @test view(jra55_fts.data, 1, :, 1, :) == view(jra55_fts.data, Nx+1, :, 1, :)
         end
 
@@ -71,7 +72,7 @@ using ClimaOcean.JRA55: download_jra55_cache
         interpolate!(target_fts, jra55_fts)
 
         # Random regression test
-        CUDA.@allowscalar begin
+        @allowscalar begin
             @test target_fts[1, 1, 1, 1] == 222.243136478611
 
             # Only include this if we are filling halo regions within

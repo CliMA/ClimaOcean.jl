@@ -15,8 +15,6 @@ using ClimaOcean.OceanSeaIceModels:
     PrescribedAtmosphere,
     TwoBandDownwellingRadiation
 
-using CUDA: @allowscalar
-
 using NCDatasets
 using JLD2 
 using Dates
@@ -134,11 +132,10 @@ urls = Dict(
 compute_bounding_nodes(::Nothing, ::Nothing, LH, hnodes) = nothing
 compute_bounding_nodes(bounds, ::Nothing, LH, hnodes) = bounds
 
-# TODO: remove the allowscalar
 function compute_bounding_nodes(::Nothing, grid, LH, hnodes)
     hg = hnodes(grid, LH())
-    h₁ = @allowscalar minimum(hg)
-    h₂ = @allowscalar maximum(hg)
+    h₁ = minimum(parent(hg))
+    h₂ = maximum(parent(hg))
     return h₁, h₂
 end
 

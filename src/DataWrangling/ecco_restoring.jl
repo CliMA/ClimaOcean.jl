@@ -3,7 +3,6 @@ using Oceananigans.Fields: interpolate!, interpolate, location, instantiated_loc
 using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBackend, FlavorOfFTS, time_indices
 using Oceananigans.Utils: Time
 
-using CUDA: @allowscalar
 using Base
 
 using NCDatasets

@@ -1,6 +1,5 @@
 using ClimaOcean
 using Oceananigans
-using CUDA
 using Test
 
 using ClimaOcean.DataWrangling
