@@ -9,7 +9,7 @@ using ClimaOcean.OceanSeaIceModels: Radiation
 using ClimaOcean.DataWrangling.JRA55: JRA55_prescribed_atmosphere
 using ClimaOcean.DataWrangling.ECCO: ecco_field
 
-# using GLMakie
+# using CairoMakie
 using Printf
 using Dates
 

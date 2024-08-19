@@ -9,12 +9,12 @@
 
 # ## Initial Setup with Package Imports
 #
-# The script begins by importing necessary Julia packages for visualization (GLMakie), 
+# The script begins by importing necessary Julia packages for visualization (CairoMakie), 
 # ocean modeling (Oceananigans, ClimaOcean), and handling of dates and times (CFTime, Dates). 
 # These packages provide the foundational tools for creating the simulation environment, 
 # including grid setup, physical processes modeling, and data visualization.
 
-using GLMakie
+using CairoMakie
 using Oceananigans
 using Oceananigans: architecture
 using ClimaOcean
@@ -45,7 +45,7 @@ Nx = 15 * 42 # 1 / 15th of a degree resolution
 Ny = 15 * 15 # 1 / 15th of a degree resolution
 Nz = length(z_faces) - 1
 
-grid = LatitudeLongitudeGrid(CPU();
+grid = LatitudeLongitudeGrid(GPU();
                              size = (Nx, Ny, Nz),
                              latitude  = (φ₁, φ₂),
                              longitude = (λ₁, λ₂),
@@ -64,7 +64,7 @@ bottom_height = regrid_bathymetry(grid,
                                   interpolation_passes = 25,
                                   connected_regions_allowed = 1)
 
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true)
+grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
 # ## Downloading ECCO data
 #
@@ -77,8 +77,8 @@ dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGre
 temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
 salinity    = ECCOMetadata(:salinity,    dates, ECCO4Monthly())
 
-FT = ECCO_restoring_forcing(temperature; timescale = 2days)
-FS = ECCO_restoring_forcing(salinity;    timescale = 2days)
+FT = ECCO_restoring_forcing(temperature; architecture = GPU(), timescale = 2days)
+FS = ECCO_restoring_forcing(salinity;    architecture = GPU(), timescale = 2days)
 
 # Constructing the Simulation
 #
@@ -134,10 +134,11 @@ run!(ocean)
 
 wizard = TimeStepWizard(; cfl = 0.2, max_Δt = 10minutes, max_change = 1.1)
 
-coean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
+ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 
 # Let's reset the maximum number of iterations
 ocean.stop_iteration = Inf
+ocean.stop_time = 200days
 
 ocean.output_writers[:surface_fields] = JLD2OutputWriter(model, merge(model.velocities, model.tracers);
                                                          indices = (:, :, Nz),
@@ -200,7 +201,7 @@ heatmap!(S)
 ax  = Axis(fig[2, 3], title = "passive tracer -")
 heatmap!(c)
 
-GLMakie.record(fig, "mediterranean_video.mp4", 1:length(u_series.times); framerate = 5) do i
+CairoMakie.record(fig, "mediterranean_video.mp4", 1:length(u_series.times); framerate = 5) do i
     @info "recording iteration $i"
     iter[] = i    
 end

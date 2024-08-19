@@ -455,7 +455,7 @@ function JRA55_field_time_series(variable_name;
 
     boundary_conditions = FieldBoundaryConditions(JRA55_native_grid, (Center, Center, Nothing))
     times = jra55_times(native_times)
-    
+
     if backend isa JRA55NetCDFBackend
         fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times;
                                                        backend,
@@ -534,7 +534,7 @@ function JRA55_field_time_series(variable_name;
     else
         copyto!(interior(fts, :, :, 1, :), new_data[:, :, :])
     end
-                     
+
     while n <= all_Nt
         print("        ... processing time index $n of $all_Nt \r")
 
@@ -599,7 +599,7 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
                                      backend = nothing,
                                      time_indexing = Cyclical(),
                                      reference_height = 10,  # meters
-                                     include_rivers_and_icebergs = true, # rivers and icebergs are not needed in single column simulations
+                                     include_rivers_and_icebergs = false, # rivers and icebergs are not needed in single column simulations
                                      other_kw...)
 
     if isnothing(backend) # apply a default
@@ -621,7 +621,6 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
     va  = JRA55_field_time_series(:northward_velocity;              kw...)
     Ta  = JRA55_field_time_series(:temperature;                     kw...)
     qa  = JRA55_field_time_series(:specific_humidity;               kw...)
-    ra  = JRA55_field_time_series(:relative_humidity;               kw...)
     pa  = JRA55_field_time_series(:sea_level_pressure;              kw...)
     Fra = JRA55_field_time_series(:rain_freshwater_flux;            kw...)
     Fsn = JRA55_field_time_series(:snow_freshwater_flux;            kw...)
@@ -648,10 +647,8 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
                   v = va)
 
     tracers = (T = Ta,
-               q = qa,
-               r = ra)
+               q = qa)
 
-                       
     pressure = pa
 
     downwelling_radiation = TwoBandDownwellingRadiation(shortwave=Qs, longwave=Ql)
@@ -672,4 +669,3 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
 end
 
 end # module
-

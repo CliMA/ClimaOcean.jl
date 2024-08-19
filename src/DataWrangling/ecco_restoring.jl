@@ -1,4 +1,3 @@
-using Oceananigans.Units
 using Oceananigans.Grids: node, on_architecture
 using Oceananigans.Fields: interpolate!, interpolate, location, instantiated_location
 using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBackend, FlavorOfFTS, time_indices
@@ -9,7 +8,7 @@ using Base
 
 using NCDatasets
 using JLD2 
-using Dates
+using Dates: Second
 
 using ClimaOcean: stateindex
 
@@ -178,11 +177,11 @@ A struct representing ECCO restoring.
 - `λ⁻¹`: The reciprocal of the restoring timescale.
 """
 struct ECCORestoring{FTS, G, M, V, N} <: Function
-    ecco_fts  :: FTS
-    ecco_grid :: G
-    mask      :: M
-    variable_name   :: V
-    λ⁻¹       :: N
+    ecco_fts      :: FTS
+    ecco_grid     :: G
+    mask          :: M
+    variable_name :: V
+    λ⁻¹           :: N
 end
 
 Adapt.adapt_structure(to, p::ECCORestoring) = 

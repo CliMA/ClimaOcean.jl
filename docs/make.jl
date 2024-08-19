@@ -15,15 +15,19 @@ const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
 const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
 
 to_be_literated = [
-    "inspect_ecco_data.jl",
+    # "inspect_ecco_data.jl",
+    "generate_bathymetry.jl",
     "generate_surface_fluxes.jl",
-    "single_column_simulation.jl",
-    # "near_global_omip_simulation.jl"
+    # "single_column_simulation.jl",
+    # "mediterranean_simulation_with_ecco_restoring.jl",
+    "near_global_ocean_simulation.jl"
 ]
 
 for file in to_be_literated
     filepath = joinpath(EXAMPLES_DIR, file)
-    Literate.markdown(filepath, OUTPUT_DIR; flavor = Literate.DocumenterFlavor())
+    withenv("JULIA_DEBUG" => "Literate") do
+        Literate.markdown(filepath, OUTPUT_DIR; flavor = Literate.DocumenterFlavor(), execute = true)
+    end
 end
 
 #####
@@ -31,10 +35,10 @@ end
 #####
 
 format = Documenter.HTML(
-       collapselevel = 2,
-      size_threshold = nothing,
-          prettyurls = get(ENV, "CI", nothing) == "true",
-           canonical = "https://clima.github.io/ClimaOceanDocumentation/dev/",
+   collapselevel = 2,
+  size_threshold = nothing,
+      prettyurls = get(ENV, "CI", nothing) == "true",
+       canonical = "https://clima.github.io/ClimaOceanDocumentation/dev/",
 )
 
 pages = [
@@ -48,9 +52,12 @@ pages = [
         ],
 
     "Examples" => [
-        "Inspect ECCO2 data" => "literated/inspect_ecco_data.md",
+        # "Inspect ECCO2 data" => "literated/inspect_ecco_data.md",
+        "Generate bathymetry" => "literated/generate_bathymetry.md",
         "Surface fluxes" => "literated/generate_surface_fluxes.md",
-        "Single column simulation" => "literated/single_column_simulation.md",
+        # "Single column simulation" => "literated/single_column_simulation.md",
+        # "Mediterranean simulation with ECCO restoring" => "literated/mediterranean_simulation_with_ecco_restoring.md",
+        "Near-global Ocean simulation" => "literated/near_global_ocean_simulation.md",
         ]
 ]
 
@@ -86,10 +93,8 @@ for file in files
     rm(file)
 end
 
-withenv("GITHUB_REPOSITORY" => "CliMA/ClimaOceanDocumentation") do
-    deploydocs(        repo = "github.com/CliMA/ClimaOceanDocumentation.git",
-                   versions = ["stable" => "v^", "v#.#.#", "dev" => "dev"],
-                  forcepush = true,
-                  devbranch = "main",
-               push_preview = true)
-end
+deploydocs(repo = "github.com/CliMA/ClimaOceanDocumentation.git",
+       versions = ["stable" => "v^", "v#.#.#", "dev" => "dev"],
+      forcepush = true,
+      devbranch = "main",
+   push_preview = true)
