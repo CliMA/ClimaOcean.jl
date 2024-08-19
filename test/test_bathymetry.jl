@@ -14,7 +14,10 @@ using ClimaOcean.Bathymetry: remove_minor_basins!
         # Test that remove_minor_basins!(Z, Inf) does nothing
         bottom_height = regrid_bathymetry(grid)        
         control_bottom_height = deepcopy(bottom_height)
-        remove_minor_basins!(bottom_height, Inf)
+        @test_throws ArgumentError remove_minor_basins!(bottom_height, Inf)
+
+        # A fictitiously large number which should presumably keep all the basins
+        remove_minor_basins!(bottom_height, 10000000) 
         @test interior(bottom_height) .== interior(control_bottom_height)
 
         # Test that remove_minor_basins!(Z, 2) remove the correct number of Basins
