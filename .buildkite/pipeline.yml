@@ -73,7 +73,7 @@ steps:
       slurm_cpus_per_task: 8
       slurm_ntasks: 1
     env:
-      GPU_TEST: "1"
+      GPU_TEST: "true"
 
   - label: "GPU JRA55 tests"
     key: "tests_jra55"
@@ -87,7 +87,7 @@ steps:
       slurm_cpus_per_task: 8
       slurm_ntasks: 1
     env:
-      GPU_TEST: "1"
+      GPU_TEST: "true"
 
   - label: "GPU ECCO tests"
     key: "tests_ecco"
@@ -101,7 +101,7 @@ steps:
       slurm_cpus_per_task: 8
       slurm_ntasks: 1
     env:
-      GPU_TEST: "1"
+      GPU_TEST: "true"
       
   - label: "GPU surface flux tests"
     key: "tests_fluxes"
@@ -115,7 +115,7 @@ steps:
       slurm_cpus_per_task: 8
       slurm_ntasks: 1
     env:
-      GPU_TEST: "1"
+      GPU_TEST: "true"
       
   - label: "GPU bathyemtry tests"
     key: "tests_bathymetry"
@@ -129,7 +129,7 @@ steps:
       slurm_cpus_per_task: 8
       slurm_ntasks: 1
     env:
-      GPU_TEST: "1"
+      GPU_TEST: "true"
       
   - wait: ~
     continue_on_failure: true
