@@ -13,11 +13,13 @@ env:
 steps:
   - label: "initialize"
     key: "init"
+    concurrency: 1
+    concurrency_group: 'depot/climaocean-ci'
     command:
       - "echo '--- Instantiate project'"
       - "julia --project -e 'using Pkg; Pkg.instantiate(verbose=true)'"
-      - "echo '--- Precompile project'"
       - "julia --project -e 'using Pkg; Pkg.precompile(strict=true)'"
+      - "julia --project -e 'using Pkg; Pkg.status()'"
       # Force the initialization of the CUDA runtime as it is lazily loaded by default:
       - "echo '--- Force initialization of the CUDA runtime'"
       - "julia --project -e 'using CUDA; CUDA.precompile_runtime()'"
