@@ -1,4 +1,4 @@
-# Fallback
+using Oceananigans.Operators: extrinsic_vector, intrinsic_vector
 
 # Fallback!
 limit_fluxes_over_sea_ice!(args...) = nothing
