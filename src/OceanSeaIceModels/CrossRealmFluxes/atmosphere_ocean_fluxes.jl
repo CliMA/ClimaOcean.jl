@@ -82,16 +82,30 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
 
     # Separately interpolate the auxiliary freshwater fluxes, which may
     # live on a different grid than the primary fluxes and atmospheric state.
-    runoff_args = get_runoff_args(atmosphere.runoff_flux)
+    
+    auxiliary_freshwater_flux = atmosphere.auxiliary_freshwater_flux
     interpolated_prescribed_freshwater_flux = surface_atmosphere_state.Mp
 
-    if !isnothing(runoff_args)
+    if !isnothing(auxiliary_freshwater_flux)
+        # TODO: do not assume that `auxiliary_freshater_flux` is a tuple
+        auxiliary_data          = map(ϕ -> ϕ.data, auxiliary_freshwater_flux)
+
+        first_auxiliary_flux = first(auxiliary_freshwater_flux)
+        auxiliary_grid          = first_auxiliary_flux.grid
+        auxiliary_times         = first_auxiliary_flux.times
+        auxiliary_backend       = first_auxiliary_flux.backend
+        auxiliary_time_indexing = first_auxiliary_flux.time_indexing
+
         launch!(arch, grid, kernel_parameters,
-                _interpolate_auxiliary_freshwater_fluxes!,
+                _interpolate_auxiliary_freshwater_flux!,
                 interpolated_prescribed_freshwater_flux,
                 grid,
                 clock,
-                runoff_args)
+                auxiliary_data,
+                auxiliary_grid,
+                auxiliary_times,
+                auxiliary_backend,
+                auxiliary_time_indexing)
     end
 
     #####
@@ -163,60 +177,6 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     return nothing
 end
 
-#=
-@kernel function _interpolate_surface_atmosphere_state!(surface_atmos_state,
-                                                        grid,
-                                                        clock,
-                                                        atmos_velocities,
-                                                        atmos_tracers,
-                                                        atmos_pressure,
-                                                        downwelling_radiation,
-                                                        prescribed_freshwater_flux,
-                                                        runoff_args,
-                                                        atmos_grid,
-                                                        atmos_times,
-                                                        atmos_backend,
-                                                        atmos_time_indexing)
-
-    i, j = @index(Global, NTuple)
-    kᴺ = size(grid, 3) # index of the top ocean cell
-      
-    @inbounds begin
-        # Atmos state, which is _assumed_ to exist at location = (c, c, nothing)
-        # The third index "k" should not matter but we put the correct index to get
-        # a surface node anyways.
-        atmos_args = (atmos_grid, atmos_times, atmos_backend, atmos_time_indexing)
-        X = node(i, j, kᴺ + 1, grid, c, c, f)
-        time = Time(clock.time)
-
-        uₐ = interp_atmos_time_series(atmos_velocities.u, X, time, atmos_args...)
-        vₐ = interp_atmos_time_series(atmos_velocities.v, X, time, atmos_args...)
-
-        Tₐ = interp_atmos_time_series(atmos_tracers.T, X, time, atmos_args...)
-        qₐ = interp_atmos_time_series(atmos_tracers.q, X, time, atmos_args...)
-
-        pₐ = interp_atmos_time_series(atmos_pressure, X, time, atmos_args...)
-
-        Qs = interp_atmos_time_series(downwelling_radiation.shortwave, X, time, atmos_args...)
-        Qℓ = interp_atmos_time_series(downwelling_radiation.longwave,  X, time, atmos_args...)
-
-        # Accumulate mass fluxes of freshwater due to rain, snow, rivers, icebergs, and whatever else.
-        # Rememeber runoff fluxes could be `nothing` if rivers and icebergs are not included in the forcing
-        Mh = interp_atmos_time_series(prescribed_freshwater_flux, X, time, atmos_args...)
-        Mr = get_runoff_flux(X, time, runoff_args) 
-
-        surface_atmos_state.u[i, j, 1] = uₐ
-        surface_atmos_state.v[i, j, 1] = vₐ
-        surface_atmos_state.T[i, j, 1] = Tₐ
-        surface_atmos_state.p[i, j, 1] = pₐ
-        surface_atmos_state.q[i, j, 1] = qₐ
-        surface_atmos_state.Qs[i, j, 1] = Qs
-        surface_atmos_state.Qℓ[i, j, 1] = Qℓ
-        surface_atmos_state.Mp[i, j, 1] = Mh + Mr
-    end
-end
-=#
-
 @kernel function _interpolate_primary_atmospheric_state!(surface_atmos_state,
                                                          grid,
                                                          clock,
@@ -266,20 +226,27 @@ end
 
 
 
-@kernel function _interpolate_auxiliary_freshwater_fluxes!(freshwater_flux,
-                                                           grid,
-                                                           clock,
-                                                           runoff_args)
+@kernel function _interpolate_auxiliary_freshwater_flux!(freshwater_flux,
+                                                         grid,
+                                                         clock,
+                                                         auxiliary_freshwater_flux,
+                                                         auxiliary_grid,
+                                                         auxiliary_times,
+                                                         auxiliary_backend,
+                                                         auxiliary_time_indexing)
 
     i, j = @index(Global, NTuple)
     kᴺ = size(grid, 3) # index of the top ocean cell
       
     @inbounds begin
-        # Accumulate mass fluxes of freshwater due to rain, snow, rivers, icebergs, and whatever else.
-        # Rememeber runoff fluxes could be `nothing` if rivers and icebergs are not included in the forcing
         X = node(i, j, kᴺ + 1, grid, c, c, f)
         time = Time(clock.time)
-        Mr = get_runoff_flux(X, time, runoff_args) 
+        Mr = interp_atmos_time_series(auxiliary_freshwater_flux, X, time,
+                                      auxiliary_grid,
+                                      auxiliary_times,
+                                      auxiliary_backend,
+                                      auxiliary_time_indexing)
+
         freshwater_flux[i, j, 1] += Mr
     end
 end
@@ -483,31 +450,3 @@ end
     return ϵ * σ * Tₒ^4
 end
 
-# Retrieve the details of runoff fluxes (rivers and icebergs, if present in the simulation).
-# Note that these forcing fields are different in terms of frequency (daily instead of three-hourly)
-# and gridsize (1/4 degree instead of 1/2 degree) when compared to the other prescribed fluxes
-# So they need to be interpolated using their own grid / times / backend / time_indexing
-@inline get_runoff_args(::Nothing) = nothing
-
-@inline function get_runoff_args(runoff_flux)
-
-    data    = map(ϕ -> ϕ.data, runoff_flux)
-    grid    = runoff_flux.rivers.grid
-    times   = runoff_flux.rivers.times
-    backend = runoff_flux.rivers.backend
-    time_indexing = runoff_flux.rivers.time_indexing
-
-    return (data, grid, times, backend, time_indexing)
-end
-
-@inline get_runoff_flux(X, time, ::Nothing) = zero(eltype(X))
-
-@inline function get_runoff_flux(X, time, runoff_args)
-    
-    @inbounds runoff_flux = runoff_args[1] # The data is located at position 1 of the tuple
-    @inbounds other_args  = runoff_args[2:end] # Other args contain grid, times, backend and time_indexing
-    
-    Mr = interp_atmos_time_series(runoff_flux, X, time, other_args...)
-
-    return Mr
-end
