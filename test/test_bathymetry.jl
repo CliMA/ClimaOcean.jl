@@ -18,7 +18,7 @@ using ClimaOcean.Bathymetry: remove_minor_basins!
 
         # A fictitiously large number which should presumably keep all the basins
         remove_minor_basins!(bottom_height, 10000000) 
-        @test all(interior(bottom_height) .== interior(control_bottom_height))
+        @test parent(bottom_height) == parent(control_bottom_height)
 
         # Test that remove_minor_basins!(Z, 2) remove the correct number of Basins
         bottom_height = Field{Center, Center, Nothing}(grid)
