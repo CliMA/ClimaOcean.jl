@@ -15,11 +15,15 @@ steps:
     key: "init"
     concurrency: 1
     concurrency_group: 'depot/climaocean-ci'
+    env:
+      TEST_GROUP: "init"
     command:
       - "echo '--- Instantiate project'"
       - "julia --project -e 'using Pkg; Pkg.instantiate(verbose=true)'"
       - "julia --project -e 'using Pkg; Pkg.precompile(strict=true)'"
       - "julia --project -e 'using Pkg; Pkg.status()'"
+      # Force precompilation of the CUDA runtime (see test/runtests.jl)
+      - "julia --project -e 'using Pkg; Pkg.test()'"
     agents:
       slurm_mem: 120G
       slurm_gpus: 1
