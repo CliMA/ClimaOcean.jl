@@ -239,8 +239,6 @@ end
     kᴺ = size(grid, 3) # index of the top ocean cell
       
     @inbounds begin
-        # Accumulate mass fluxes of freshwater due to rain, snow, rivers, icebergs, and whatever else.
-        # Rememeber runoff fluxes could be `nothing` if rivers and icebergs are not included in the forcing
         X = node(i, j, kᴺ + 1, grid, c, c, f)
         time = Time(clock.time)
         Mr = interp_atmos_time_series(auxiliary_freshwater_flux, X, time,
