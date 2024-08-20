@@ -51,6 +51,9 @@ function set!(fts::ECCONetCDFFTS, path::ECCOMetadata=fts.path, name::String=fts.
         # find the file associated with the time index
         metadata = @inbounds path[t] 
         set!(fts[t], metadata)
+
+        # Make sure we clean up after ourselves!
+        GC.gc()
     end
 
     fill_halo_regions!(fts)
