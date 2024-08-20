@@ -1,6 +1,7 @@
 include("runtests_setup.jl")
 
 using ClimaOcean.JRA55: download_jra55_cache
+using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 
 @testset "JRA55 and data wrangling utilities" begin
     for arch in test_architectures
