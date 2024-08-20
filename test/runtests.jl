@@ -6,6 +6,7 @@ test_group = Symbol(test_group)
 
 if test_group == :init
     using CUDA
+    CUDA.set_runtime_version!(v"12.2")
     CUDA.precompile_runtime()
 end
 
