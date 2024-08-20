@@ -1,7 +1,6 @@
 using OrthogonalSphericalShellGrids
 using OrthogonalSphericalShellGrids: TRG
 using Oceananigans
-using NearestNeighbors
 using Oceananigans.Grids: OSSG, λnodes, φnodes
 using Oceananigans.Fields: fractional_index, fractional_z_index
 
@@ -46,14 +45,23 @@ ZFlatOSSG = OrthogonalSphericalShellGrid{<:Any, <:Any, <:Any, <:Flat}
     return f / (w₀₀ + w₀₁ + w₁₀ + w₀₂ + w₂₀ + w₁₁ + w₂₂ + w₁₂ + w₂₁)
 end
 
-@inline function distance(x₁, x₂, y₁, y₂) 
+@inline function distance(x₁, y₁, x₂, y₂) 
+    dx = x₁ - x₂
+    dy = y₁ - y₂
+    return dx * dx + dy * dy
+end
+
+@inline function simplified_distance(x₁, y₁, x₂, y₂) 
+    x₂ = ifelse(x₂ > x₁ + 100, x₂ - 360,
+         ifelse(x₂ < x₁ - 100, x₂ + 360, x₂))
+    
     dx = x₁ - x₂
     dy = y₁ - y₂
     return dx * dx + dy * dy
 end
 
 @inline function check_and_update(dist, i₀, j₀, i, j, λ₀, φ₀, λ, φ)               
-    d = distance(λ₀, λ, φ₀, φ) 
+    d = distance(λ₀, φ₀, λ , φ) 
     i₀ = ifelse(d < dist, i, i₀)          
     j₀ = ifelse(d < dist, j, j₀)          
     dist = min(d, dist)
@@ -106,15 +114,15 @@ end
     i₂ = i₀ + 1
     j₂ = j₀ + 1
 
-    di₀j₁ = @inbounds distance(λ₀, φ₀, λ[i₀, j₁], φ[i₀, j₁])
-    di₁j₀ = @inbounds distance(λ₀, φ₀, λ[i₁, j₀], φ[i₁, j₀])
-    di₀j₂ = @inbounds distance(λ₀, φ₀, λ[i₀, j₂], φ[i₀, j₂])
-    di₂j₀ = @inbounds distance(λ₀, φ₀, λ[i₂, j₀], φ[i₂, j₀])
+    di₀j₁ = @inbounds simplified_distance(λ₀, φ₀, λ[i₀, j₁], φ[i₀, j₁])
+    di₁j₀ = @inbounds simplified_distance(λ₀, φ₀, λ[i₁, j₀], φ[i₁, j₀])
+    di₀j₂ = @inbounds simplified_distance(λ₀, φ₀, λ[i₀, j₂], φ[i₀, j₂])
+    di₂j₀ = @inbounds simplified_distance(λ₀, φ₀, λ[i₂, j₀], φ[i₂, j₀])
     
-    di₁j₁ = @inbounds distance(λ₀, φ₀, λ[i₁, j₁], φ[i₁, j₁])
-    di₂j₂ = @inbounds distance(λ₀, φ₀, λ[i₂, j₂], φ[i₂, j₂])
-    di₁j₂ = @inbounds distance(λ₀, φ₀, λ[i₁, j₂], φ[i₁, j₂])
-    di₂j₁ = @inbounds distance(λ₀, φ₀, λ[i₂, j₁], φ[i₂, j₁])
+    di₁j₁ = @inbounds simplified_distance(λ₀, φ₀, λ[i₁, j₁], φ[i₁, j₁])
+    di₂j₂ = @inbounds simplified_distance(λ₀, φ₀, λ[i₂, j₂], φ[i₂, j₂])
+    di₁j₂ = @inbounds simplified_distance(λ₀, φ₀, λ[i₁, j₂], φ[i₁, j₂])
+    di₂j₁ = @inbounds simplified_distance(λ₀, φ₀, λ[i₂, j₁], φ[i₂, j₁])
 
     return i₀, j₀, di₀j₀, di₀j₁, di₁j₀, di₀j₂, di₂j₀, di₁j₁, di₂j₂, di₁j₂, di₂j₁
 end
