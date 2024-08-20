@@ -3,6 +3,7 @@ using Oceananigans
 using Oceananigans.Units
 using ClimaOcean
 using CairoMakie
+using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: LatitudeDependentAlbedo
 
 using CFTime
 using Dates
@@ -65,7 +66,7 @@ set!(model,
      
 backend    = JRA55NetCDFBackend(41) 
 atmosphere = JRA55_prescribed_atmosphere(arch; backend)
-radiation  = Radiation(arch)
+radiation  = Radiation(ocean_albedo = LatitudeDependentAlbedo())
 
 sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
 
