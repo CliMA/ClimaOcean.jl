@@ -21,11 +21,13 @@ steps:
 
       - "echo '--- Instantiate project'"
       - "julia --project -e 'using Pkg; Pkg.instantiate(verbose=true)'"
-      - "julia --project -e 'using Pkg; Pkg.precompile(strict=true)'"
-      - "julia --project -e 'using Pkg; Pkg.status()'"
+
       # Set CUDA runtime version and then force precompilation (see test/runtests.jl)
       - "TEST_GROUP=set_runtime_version julia --project -e 'using Pkg; Pkg.test()'"
       - "TEST_GROUP=precompile_runtime julia --project -e 'using Pkg; Pkg.test()'"
+
+      - "julia --project -e 'using Pkg; Pkg.precompile(strict=true)'"
+      - "julia --project -e 'using Pkg; Pkg.status()'"
     agents:
       slurm_gpus: 1
       slurm_cpus_per_task: 8
