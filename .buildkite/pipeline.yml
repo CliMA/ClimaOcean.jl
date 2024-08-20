@@ -15,8 +15,6 @@ steps:
     key: "init"
     concurrency: 1
     concurrency_group: 'depot/climaocean-ci'
-    env:
-      TEST_GROUP: "init"
     command:
       - "echo $$JULIA_DEPOT_PATH"
       - "nvidia-smi"
@@ -25,8 +23,9 @@ steps:
       - "julia --project -e 'using Pkg; Pkg.instantiate(verbose=true)'"
       - "julia --project -e 'using Pkg; Pkg.precompile(strict=true)'"
       - "julia --project -e 'using Pkg; Pkg.status()'"
-      # Force precompilation of the CUDA runtime (see test/runtests.jl)
-      - "julia --project -e 'using Pkg; Pkg.test()'"
+      # Set CUDA runtime version and then force precompilation (see test/runtests.jl)
+      - "TEST_GROUP=set_runtime_version julia --project -e 'using Pkg; Pkg.test()'"
+      - "TEST_GROUP=precompile_runtime julia --project -e 'using Pkg; Pkg.test()'"
     agents:
       slurm_gpus: 1
       slurm_cpus_per_task: 8

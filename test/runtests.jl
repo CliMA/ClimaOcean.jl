@@ -4,9 +4,13 @@ include("runtests_setup.jl")
 test_group = get(ENV, "TEST_GROUP", :all)
 test_group = Symbol(test_group)
 
-if test_group == :init
+if test_group == :set_runtime_version
     using CUDA
     CUDA.set_runtime_version!(v"12.2")
+end
+
+if test_group == :precompile_runtime
+    using CUDA
     CUDA.precompile_runtime()
 end
 
