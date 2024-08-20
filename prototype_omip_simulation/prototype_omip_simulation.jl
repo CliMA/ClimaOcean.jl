@@ -35,6 +35,8 @@ cpu_interpolating_time_indices(arch::Distributed, args...) = cpu_interpolating_t
 ##### Global Ocean at 1/6th of a degree
 #####
 
+Nranks = MPI.Comm_size(MPI.COMM_WORLD)
+
 bathymetry_file = nothing # "bathymetry_tmp.jld2"
 
 # 60 vertical levels
@@ -44,7 +46,7 @@ Nx = 4320
 Ny = 2160
 Nz = length(z_faces) - 1
 
-arch = Distributed(GPU(), partition = Partition(1, 4))
+arch = Distributed(GPU(), partition = Partition(y = Nranks))
 rank = arch.local_rank
 
 grid = TripolarGrid(arch; 
@@ -56,8 +58,7 @@ grid = TripolarGrid(arch;
 
 bottom_height = retrieve_bathymetry(grid, bathymetry_file; 
                                     minimum_depth = 10,
-                                    interpolation_passes = 20,
-                                    connected_regions_allowed = 0)
+				    interpolation_passes = 10)
  
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true) 
 
@@ -192,7 +193,8 @@ ocean.output_writers[:checkpoint] = Checkpointer(model,
                                                  overwrite_existing = true,
                                                  prefix = "checkpoint_$(arch.local_rank)")
 
-restart = nothing
+
+restart = nothing 
 
 coupled_simulation = Simulation(coupled_model; Δt = 1, stop_time = 25days)
 ocean.Δt = 10
@@ -209,7 +211,7 @@ if isnothing(restart)
     wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 1.5minutes, max_change = 1.1)
     ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 
-    ocean.stop_time = 25days
+    ocean.stop_time = 50days
 
     run!(coupled_simulation)
 else
@@ -218,12 +220,12 @@ else
     set!(ocean.model, restart)
 end
 
-wizard = TimeStepWizard(; cfl = 0.3, max_Δt = 600, max_change = 1.1)
+wizard = TimeStepWizard(; cfl = 0.3, max_Δt = 300, max_change = 1.1)
 ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 
 # Let's reset the maximum number of iterations
-coupled_model.ocean.stop_time = 7200days
-coupled_simulation.stop_time = 7200days
+coupled_model.ocean.stop_time = 6530days
+coupled_simulation.stop_time = 6530days
 coupled_model.ocean.stop_iteration = Inf
 coupled_simulation.stop_iteration = Inf
 
