@@ -2,12 +2,10 @@ agents:
   queue: new-central
   slurm_mem: 8G
   modules: climacommon/2024_05_27
-  slurm_time: 48:00:00
-
-timeout_in_minutes: 1440
 
 env:
   JULIA_LOAD_PATH: "${JULIA_LOAD_PATH}:${BUILDKITE_BUILD_CHECKOUT_PATH}/.buildkite"
+  JULIA_DEPOT_PATH: "${BUILDKITE_BUILD_PATH}/${BUILDKITE_PIPELINE_SLUG}/depot/default"
   OPENBLAS_NUM_THREADS: 1
   OMPI_MCA_opal_warn_on_missing_libcuda: 0
   JULIA_NUM_PRECOMPILE_TASKS: 8
@@ -16,10 +14,10 @@ steps:
   - label: "initialize"
     key: "init"
     command:
-      - "echo '--- Instantiate project'"
-      - "julia --project -e 'using Pkg; Pkg.instantiate(; verbose=true); Pkg.precompile(; strict=true)'"
-      # force the initialization of the CUDA runtime as it is lazily loaded by default
-      - "julia --project -e 'using CUDA; CUDA.precompile_runtime()'"
+      - echo "--- Instantiate project"
+      - "julia --project -e 'using Pkg; Pkg.instantiate(; verbose=true)'"
+      - echo "--- Precompile project"
+      - "julia --project -e 'using Pkg; Pkg.precompile(; strict=true)'"
 
     agents:
       slurm_mem: 120G
@@ -31,7 +29,10 @@ steps:
   - label: "Run documentation"
     key: "build_documentation"
     commands:
-      - "julia --color=yes --project=docs/ -e 'using Pkg; Pkg.instantiate(); Pkg.develop(PackageSpec(path=pwd()))'"
+      - "julia --color=yes --project=docs/ -e 'using Pkg; Pkg.instantiate()'"
+      - "julia --color=yes --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd()))'"
+      # force the initialization of the CUDA runtime as it is lazily loaded by default
+      - "julia --color=yes --project=docs/ -e 'using CUDA; CUDA.precompile_runtime()'"
       - "julia --color=yes --project=docs/ docs/make.jl"
 
     agents:
