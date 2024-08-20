@@ -18,7 +18,7 @@ using ClimaOcean.Bathymetry: remove_minor_basins!
 
         # A fictitiously large number which should presumably keep all the basins
         remove_minor_basins!(bottom_height, 10000000) 
-        @test interior(bottom_height) .== interior(control_bottom_height)
+        @test all(interior(bottom_height) .== interior(control_bottom_height))
 
         # Test that remove_minor_basins!(Z, 2) remove the correct number of Basins
         bottom_height = Field{Center, Center, Nothing}(grid)
@@ -32,7 +32,7 @@ using ClimaOcean.Bathymetry: remove_minor_basins!
 
         # This should have not changed anything
         remove_minor_basins!(bottom_height, 2)
-        @test interior(bottom_height) .== interior(control_bottom_height)
+        @test all(interior(bottom_height) .== interior(control_bottom_height))
 
         # This should have removed the right basin
         remove_minor_basins!(bottom_height, 1)
@@ -54,5 +54,4 @@ using ClimaOcean.Bathymetry: remove_minor_basins!
         # Testing that multiple passes do not change the solution when refining the grid
         @test interior(control_bottom_height) .== interior(interpolated_bottom_height)
     end
-
 end 
