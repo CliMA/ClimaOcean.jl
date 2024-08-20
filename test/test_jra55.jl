@@ -95,6 +95,19 @@ using ClimaOcean.JRA55: download_jra55_cache
         @test parent(Qswt) == parent(target_fts)    
         @test Qswt.times == target_fts.times
         rm(filepath)
+
+        #####
+        ##### JRA55 prescribed atmosphere
+        #####
+
+        backend    = JRA55NetCDFBackend(1) 
+        atmosphere = JRA55_prescribed_atmosphere(arch; backend)
+        @test atmosphere isa PrescribedAtmosphere
+        @test isnothing(atmosphere.auxiliary_freshwater_flux)
+
+        atmosphere = JRA55_prescribed_atmosphere(arch; backend, include_rivers_and_icebergs)
+        @test haskey(atmosphere.auxiliary_freshwater_flux, :rivers)
+        @test haskey(atmosphere.auxiliary_freshwater_flux, :icebergs)
     end 
 end
 
