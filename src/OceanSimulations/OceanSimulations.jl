@@ -70,8 +70,8 @@ function ocean_simulation(grid; Δt = 5minutes,
                           verbose = false)
 
     # Set up boundary conditions using Field
-    top_zonal_momentum_flux      = Jᵘ = Field{Face, Center, Nothing}(grid)
-    top_meridional_momentum_flux = Jᵛ = Field{Center, Face, Nothing}(grid)
+    top_zonal_momentum_flux      = τx = Field{Face, Center, Nothing}(grid)
+    top_meridional_momentum_flux = τy = Field{Center, Face, Nothing}(grid)
     top_ocean_heat_flux          = Jᵀ = Field{Center, Center, Nothing}(grid)
     top_salt_flux                = Jˢ = Field{Center, Center, Nothing}(grid)
 
@@ -115,6 +115,7 @@ function ocean_simulation(grid; Δt = 5minutes,
     end
     # Convert the dictionary back to a NamedTuple if needed
     ocean_boundary_conditions = (; ocean_boundary_conditions...) 
+
 
     if grid isa ImmersedBoundaryGrid
         Fu = Forcing(u_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
