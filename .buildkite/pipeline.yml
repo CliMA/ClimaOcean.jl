@@ -23,9 +23,11 @@ steps:
       - "julia --project -e 'using Pkg; Pkg.instantiate(verbose=true)'"
 
       # Set CUDA runtime version and then force precompilation (see test/runtests.jl)
+      - "echo '--- Configure CUDA'"
       - "TEST_GROUP=set_runtime_version julia --project -e 'using Pkg; Pkg.test()'"
       - "TEST_GROUP=precompile_runtime julia --project -e 'using Pkg; Pkg.test()'"
 
+      - "echo '--- Precompile project'"
       - "julia --project -e 'using Pkg; Pkg.precompile(strict=true)'"
       - "julia --project -e 'using Pkg; Pkg.status()'"
     agents:
