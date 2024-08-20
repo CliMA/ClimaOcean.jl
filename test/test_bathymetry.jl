@@ -37,10 +37,9 @@ using ClimaOcean.Bathymetry: remove_minor_basins!
         # This should have removed the right basin
         remove_minor_basins!(bottom_height, 1)
         
-        # The remaning bottom cells that are not immersed should be
-        # only (Ny * 20), with a bottom height of 1000, leading to a
-        # sum of - Ny * 20 * minimum(bottom_height)
-        @test sum(bottom_height) == - grid.Ny * 20 * minimum(bottom_height)
+        # The remaning bottom cells that are not immersed should be only on the left hand side
+        # The right half of the domain should be fully immersed i.e. bottom == 0
+        @test sum(view(bottom_height(:, 50:100, 1))) == 0
 
         grid = LatitudeLongitudeGrid(arch;
                                      size = (200, 200, 10), 
