@@ -4,6 +4,11 @@ include("runtests_setup.jl")
 test_group = get(ENV, "TEST_GROUP", :all)
 test_group = Symbol(test_group)
 
+if test_group == :init
+    using CUDA
+    CUDA.precompile_runtime()
+end
+
 # Tests JRA55 utilities, plus some DataWrangling utilities
 if test_group == :jra55 || test_group == :all
     include("test_jra55.jl")
