@@ -210,9 +210,9 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     if Nλt > Nλn || Nφt > Nφn
         target_z = Field{Center, Center, Nothing}(target_grid)
         interpolate!(target_z, native_z)
-        @info string("Skipping passes for interplating bathymetry of size $Nn", '\n',
-                     "to target grid of size $Nt. Interpolation passes may only", '\n',
-                     "be used to refine bathymetryand requires that the bathymetry", '\n',
+        @info string("Skipping passes for interplating bathymetry of size $Nn ", '\n',
+                     "to target grid of size $Nt. Interpolation passes may only ", '\n',
+                     "be used to refine bathymetryand requires that the bathymetry ", '\n',
                      "is larger than the target grid in both horizontal directions.")
         return target_z
     end
@@ -311,26 +311,21 @@ function remove_minor_basins!(Z, keep_major_basins)
     while (m <= keep_major_basins) && !isempty(total_elements) 
         next_maximum = findfirst(x -> x == maximum(total_elements), total_elements)
         push!(mm_basins, label_elements[next_maximum])
-        total_elements = filter(x -> x != total_elements[next_maximum], total_elements)
-        label_elements = filter(x -> x != label_elements[next_maximum], label_elements)
+        deleteat!(total_elements, next_maximum)
+        deleteat!(label_elements, next_maximum)
         m += 1
     end
-        
+
     labels = map(Float64, labels)
 
     for ℓ = 1:maximum(labels)
         remove_basin = all(ℓ != m for m in mm_basins)
         if remove_basin
-            labels[labels .== ℓ] .= 1e10 # large number
+            labels[labels .== ℓ] .= NaN # Regions to remove
         end
     end
 
-    # Flatten land
-    labels[labels .<  1e10] .= 0 
-    labels[labels .== 1e10] .= NaN
-
-    Z .+= labels
-    Z[isnan.(Z)] .= 0
+    Z[isnan.(labels)] .= 0
 
     return nothing
 end
