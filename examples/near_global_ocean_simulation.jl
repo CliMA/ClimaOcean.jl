@@ -56,15 +56,13 @@ bottom_height = regrid_bathymetry(grid;
                                   minimum_depth = 10,
                                   interpolation_passes = 5,
                                   major_basins = 3)
- 
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height)) 
 
-bathymetry = deepcopy(Array(interior(bottom_height, :, :, 1)))
-bathymetry[bathymetry .>= 0] .= NaN
+# For plotting
+bottom_height[bottom_height .>= 0] .= NaN
 
 fig = Figure(size = (1200, 400))
 ax  = Axis(fig[1, 1])
-hm = heatmap!(ax, bathymetry, colormap = :deep, colorrange = (-6000, 0))
+hm = heatmap!(ax, bottom_height, colormap = :deep, colorrange = (-6000, 0))
 cb = Colorbar(fig[0, 1], hm, label = "Bottom height (m)", vertical = false)
 hidedecorations!(ax)
 
@@ -72,6 +70,9 @@ save("bathymetry.png", fig)
 nothing #hide
 
 # ![](bathymetry.png)
+
+bottom_height[isnan.(bottom_height)] .= 0
+grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
 # ### Ocean model configuration
 #
@@ -90,11 +91,7 @@ ocean = ocean_simulation(grid)
 model = ocean.model
 
 date  = DateTimeProlepticGregorian(1993, 1, 1)
-
-set!(model, 
-     T = ECCOMetadata(:temperature; date),
-     S = ECCOMetadata(:salinity;    date))
-nothing #hide
+set!(model, T=ECCOMetadata(:temperature; date), S=ECCOMetadata(:salinity; date))
 
 # ### Prescribed atmosphere and radiation
 #
@@ -150,9 +147,9 @@ function progress(sim)
     u, v, w = ocean.model.velocities
     T = ocean.model.tracers.T
 
-    Tmax = maximum(interior(T))
-    Tmin = minimum(interior(T))
-    umax = maximum(abs, interior(u)), maximum(abs, interior(v)), maximum(abs, interior(w))
+    Tmax = maximum(T)
+    Tmin = minimum(T)
+    umax = maximum(abs, u)), maximum(abs, v), maximum(abs, w)
     step_time = 1e-9 * (time_ns() - wall_time[1])
 
     @info @sprintf("Time: %s, Iteration %d, Δt %s, max(vel): (%.2e, %.2e, %.2e), max(T): %.2f, min(T): %.2f, wtime: %s \n",
