@@ -149,7 +149,7 @@ function progress(sim)
 
     Tmax = maximum(T)
     Tmin = minimum(T)
-    umax = maximum(abs, u)), maximum(abs, v), maximum(abs, w)
+    umax = maximum(abs, u), maximum(abs, v), maximum(abs, w)
     step_time = 1e-9 * (time_ns() - wall_time[1])
 
     @info @sprintf("Time: %s, Iteration %d, Δt %s, max(vel): (%.2e, %.2e, %.2e), max(T): %.2f, min(T): %.2f, wtime: %s \n",
