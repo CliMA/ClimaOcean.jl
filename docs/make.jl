@@ -1,9 +1,9 @@
 pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..")) # add ClimaOcean to environment stack
 
 using
+  ClimaOcean,
   Documenter,
-  Literate,
-  ClimaOcean
+  Literate
 
 ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
 
