@@ -325,6 +325,7 @@ function remove_minor_basins!(Z, keep_major_basins)
         end
     end
 
+    # Flatten minor basins, corresponding to regions where `labels == NaN`
     Z[isnan.(labels)] .= 0
 
     return nothing
