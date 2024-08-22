@@ -57,12 +57,16 @@ bottom_height = regrid_bathymetry(grid;
                                   interpolation_passes = 5,
                                   major_basins = 3)
 
+grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
+
 # For plotting
-bottom_height[bottom_height .>= 0] .= NaN
+# TODO: would be nice to use Field for this rather than converting to Array
+cpu_bottom_height = on_architecture(CPU(), interior(bottom_height, :, :, 1))
+cpu_bottom_height[cpu_bottom_height .>= 0] .= NaN
 
 fig = Figure(size = (1200, 400))
 ax  = Axis(fig[1, 1])
-hm = heatmap!(ax, bottom_height, colormap = :deep, colorrange = (-6000, 0))
+hm = heatmap!(ax, cpu_bottom_height, colormap = :deep, colorrange = (-6000, 0))
 cb = Colorbar(fig[0, 1], hm, label = "Bottom height (m)", vertical = false)
 hidedecorations!(ax)
 
@@ -70,9 +74,6 @@ save("bathymetry.png", fig)
 nothing #hide
 
 # ![](bathymetry.png)
-
-bottom_height[isnan.(bottom_height)] .= 0
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
 # ### Ocean model configuration
 #
