@@ -15,6 +15,7 @@
 using Printf
 using Oceananigans
 using Oceananigans.Units
+using Oceananigans.Architectures: on_architecture
 using ClimaOcean
 using CairoMakie
 
