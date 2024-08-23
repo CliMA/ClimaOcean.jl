@@ -6,11 +6,11 @@ using Oceananigans.Fields: fractional_index, fractional_z_index
 
 import Oceananigans.Fields: interpolate, interpolate!, fractional_indices
 
-ZFlatOSSG = OrthogonalSphericalShellGrid{<:Any, <:Any, <:Any, <:Flat}
-
-@inline function interpolate(at_node, from_field, from_loc, from_grid::OSSG)
+@inline function interpolate(at_node, from_field, from_loc, from_grid::TRG)
     λ₀, φ₀, z₀ = at_node
-    i₀, j₀, d₀₀, d₀₁, d₁₀, d₀₂, d₂₀, d₁₁, d₂₂, d₁₂, d₂₁ = horizontal_distances(λ₀, φ₀, from_loc, grid)
+    i₀, j₀, d₀₀, d₀₁, d₁₀, d₀₂, d₂₀, d₁₁, d₂₂, d₁₂, d₂₁ = horizontal_distances(λ₀, φ₀, from_loc, from_grid)
+
+    k = findfirst(z -> z ≈ z₀, znodes(from_grid, from_loc...))
 
     i₁ = i₀ - 1
     i₂ = i₀ + 1
@@ -19,15 +19,15 @@ ZFlatOSSG = OrthogonalSphericalShellGrid{<:Any, <:Any, <:Any, <:Flat}
     j₂ = j₀ + 1
 
     @inbounds begin
-        f₀₀ = from_field[i₀, j₀, 1]
-        f₀₁ = from_field[i₀, j₁, 1]
-        f₁₀ = from_field[i₁, j₀, 1]
-        f₀₂ = from_field[i₀, j₂, 1]
-        f₂₀ = from_field[i₂, j₀, 1]
-        f₁₁ = from_field[i₁, j₁, 1]
-        f₂₂ = from_field[i₂, j₂, 1]
-        f₁₂ = from_field[i₁, j₂, 1]
-        f₂₁ = from_field[i₂, j₁, 1]
+        f₀₀ = from_field[i₀, j₀, k]
+        f₀₁ = from_field[i₀, j₁, k]
+        f₁₀ = from_field[i₁, j₀, k]
+        f₀₂ = from_field[i₀, j₂, k]
+        f₂₀ = from_field[i₂, j₀, k]
+        f₁₁ = from_field[i₁, j₁, k]
+        f₂₂ = from_field[i₂, j₂, k]
+        f₁₂ = from_field[i₁, j₂, k]
+        f₂₁ = from_field[i₂, j₁, k]
     end
 
     w₀₀ = 1 / d₀₀
@@ -106,26 +106,53 @@ end
         end 
     end
     
-    di₀j₀ = dist
-    
     # Now find the closest neighbors given i₀ and j₀
     i₁ = i₀ - 1
     j₁ = j₀ - 1
     i₂ = i₀ + 1
     j₂ = j₀ + 1
 
-    di₀j₁ = @inbounds simplified_distance(λ₀, φ₀, λ[i₀, j₁], φ[i₀, j₁])
-    di₁j₀ = @inbounds simplified_distance(λ₀, φ₀, λ[i₁, j₀], φ[i₁, j₀])
-    di₀j₂ = @inbounds simplified_distance(λ₀, φ₀, λ[i₀, j₂], φ[i₀, j₂])
-    di₂j₀ = @inbounds simplified_distance(λ₀, φ₀, λ[i₂, j₀], φ[i₂, j₀])
-    
-    di₁j₁ = @inbounds simplified_distance(λ₀, φ₀, λ[i₁, j₁], φ[i₁, j₁])
-    di₂j₂ = @inbounds simplified_distance(λ₀, φ₀, λ[i₂, j₂], φ[i₂, j₂])
-    di₁j₂ = @inbounds simplified_distance(λ₀, φ₀, λ[i₁, j₂], φ[i₁, j₂])
-    di₂j₁ = @inbounds simplified_distance(λ₀, φ₀, λ[i₂, j₁], φ[i₂, j₁])
+    @inbounds begin
+        λ₀₀ = λ[i₀, j₀]
+        φ₀₀ = φ[i₀, j₀]
+        λ₀₁ = λ[i₀, j₁]
+        φ₀₁ = φ[i₀, j₁]
+        λ₁₀ = λ[i₁, j₀]
+        φ₁₀ = φ[i₁, j₀]
+        λ₀₂ = λ[i₀, j₂]
+        φ₀₂ = φ[i₀, j₂]
+        λ₂₀ = λ[i₂, j₀]
+        φ₂₀ = φ[i₂, j₀]
 
-    return i₀, j₀, di₀j₀, di₀j₁, di₁j₀, di₀j₂, di₂j₀, di₁j₁, di₂j₂, di₁j₂, di₂j₁
+        λ₁₁ = λ[i₁, j₁]
+        φ₁₁ = φ[i₁, j₁]
+        λ₂₂ = λ[i₂, j₂]
+        φ₂₂ = φ[i₂, j₂]
+        λ₁₂ = λ[i₁, j₂]
+        φ₁₂ = φ[i₁, j₂]
+        λ₂₁ = λ[i₂, j₁]
+        φ₂₁ = φ[i₂, j₁]
+    end
+
+    λ₀₁, λ₁₀, λ₀₂, λ₂₀, λ₁₁, λ₂₂, λ₁₂, λ₂₁ = massage_longitudes.(λ₀, (λ₀₁, λ₁₀, λ₀₂, λ₂₀, λ₁₁, λ₂₂, λ₁₂, λ₂₁))
+
+    d₀₀ = distance(λ₀, φ₀, λ₀₀, φ₀₀)
+    d₀₁ = distance(λ₀, φ₀, λ₀₁, φ₀₁)
+    d₁₀ = distance(λ₀, φ₀, λ₁₀, φ₁₀)
+    d₀₂ = distance(λ₀, φ₀, λ₀₂, φ₀₂)
+    d₂₀ = distance(λ₀, φ₀, λ₂₀, φ₂₀)
+    d₁₁ = distance(λ₀, φ₀, λ₁₁, φ₁₁)
+    d₂₂ = distance(λ₀, φ₀, λ₂₂, φ₂₂)
+    d₁₂ = distance(λ₀, φ₀, λ₁₂, φ₁₂)
+    d₂₁ = distance(λ₀, φ₀, λ₂₁, φ₂₁)
+
+    return i₀, j₀, d₀₀, d₀₁, d₁₀, d₀₂, d₂₀, d₁₁, d₂₂, d₁₂, d₂₁
 end
+
+# We assume that all points are very close to each other
+@inline massage_longitudes(λ₀, λ) = ifelse(abs(λ₀ - λ) > 180, 
+                                    ifelse(λ₀ > 180, λ + 360, λ - 360), λ)
+
 
 # # We assume that in an OSSG, the latitude lines for a given i - index are sorted
 # # i.e. φ is monotone in j. This is not the case for λ that might jump between 0 and 360.
