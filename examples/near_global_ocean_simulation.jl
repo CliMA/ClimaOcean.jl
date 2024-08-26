@@ -223,21 +223,7 @@ v = FieldTimeSeries("surface.jld2", "v"; backend = OnDisk())
 T = FieldTimeSeries("surface.jld2", "T"; backend = OnDisk())
 e = FieldTimeSeries("surface.jld2", "e"; backend = OnDisk())
 
-# Set land values to NaN using the hacky method of deducing where T = 0
 times = u.times
-Nt = length(u)
-T1 = interior(T[1], :, :, 1)
-land = T1 .== 0
-for n = 1:Nt
-    ui = interior(u[n], :, :, 1)
-    vi = interior(v[n], :, :, 1)
-    Ti = interior(T[n], :, :, 1)
-    ei = interior(e[n], :, :, 1)
-    ui[land] .= NaN
-    vi[land] .= NaN
-    Ti[land] .= NaN
-    ei[land] .= NaN
-end
 
 iter = Observable(Nt)
 
