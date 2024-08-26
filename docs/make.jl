@@ -97,4 +97,4 @@ deploydocs(repo = "github.com/CliMA/ClimaOceanDocumentation.git",
        versions = ["stable" => "v^", "v#.#.#", "dev" => "dev"],
       forcepush = true,
       devbranch = "main",
-   push_preview = false)
+   push_preview = true)
