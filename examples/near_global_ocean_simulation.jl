@@ -15,7 +15,6 @@
 using Printf
 using Oceananigans
 using Oceananigans.Units
-using Oceananigans.Architectures: on_architecture
 using ClimaOcean
 using CairoMakie
 
@@ -25,8 +24,9 @@ using Dates
 # ### Grid configuration 
 #
 # We define a global grid with a horizontal resolution of 1/4 degree and 40 vertical levels. 
-# The grid is a `LatitudeLongitudeGrid` capped at 75°S to 75°N.
-# We use an exponential vertical spacing to better resolve the upper ocean layers. The total depth of the domain is set to 6000 meters.
+# The grid is a `LatitudeLongitudeGrid` spanning latitude from 75°S to 75°N.
+# We use an exponential vertical spacing to better resolve the upper ocean layers.
+# The total depth of the domain is set to 6000 meters.
 # Finally, we specify the architecture for the simulation, which in this case is a GPU.
 
 arch = GPU() 
@@ -40,7 +40,7 @@ Nz = length(z_faces) - 1
 grid = LatitudeLongitudeGrid(arch;
                              size = (Nx, Ny, Nz),
                              halo = (7, 7, 7),
-                             z = z_faces, 
+                             z = z_faces,
                              latitude  = (-75, 75),
                              longitude = (0, 360))
 
@@ -60,14 +60,11 @@ bottom_height = regrid_bathymetry(grid;
 
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
-# For plotting
-# TODO: would be nice to use Field for this rather than converting to Array
-cpu_bottom_height = on_architecture(CPU(), interior(bottom_height, :, :, 1))
-cpu_bottom_height[cpu_bottom_height .>= 0] .= NaN
+# And plot the bathymetry...
 
 fig = Figure(size = (1200, 400))
 ax  = Axis(fig[1, 1])
-hm = heatmap!(ax, cpu_bottom_height, colormap = :deep, colorrange = (-6000, 0))
+hm = heatmap!(ax, grid.immersed_boundary.bottom_height, colormap = :deep, colorrange = (-6000, 0))
 cb = Colorbar(fig[0, 1], hm, label = "Bottom height (m)", vertical = false)
 hidedecorations!(ax)
 
@@ -78,8 +75,9 @@ nothing #hide
 
 # ### Ocean model configuration
 #
-# To configure the ocean simulation, we use the `ocean_simulation` function from ClimaOcean.jl. This function allows us to build
-# an ocean simulation with default parameters and numerics. The defaults include:
+# To configure the ocean simulation, we use the `ocean_simulation` function from ClimaOcean.jl.
+# This function allows us to build an ocean simulation with default parameters and numerics.
+# The defaults include:
 # - CATKE turbulence closure for vertical mixing
 # - WENO-based advection scheme for momentum in the vector invariant form
 # - WENO-based advection scheme for tracers
@@ -216,7 +214,8 @@ nothing #hide
 # The simulation has finished, let's visualize the results.
 # In this section we pull up the saved data and create visualizations using the CairoMakie.jl package.
 # In particular, we generate an animation of the evolution of surface fields:
-# surface speed (s), surface temperature (T), and turbulent kinetic energy (e).
+# surface speed (``s``), surface temperature (``T``), and turbulent kinetic energy (``e``).
+# The surface speed is not loaded from disk but rather computed from the saved ``u`` and ``v``.
 
 u = FieldTimeSeries("surface.jld2", "u"; backend = OnDisk())
 v = FieldTimeSeries("surface.jld2", "v"; backend = OnDisk())
@@ -245,9 +244,9 @@ CairoMakie.record(fig, "near_global_ocean_surface_s.mp4", 1:Nt, framerate = 8) d
     iter[] = i
 end
 nothing #hide
- 
- # ![](near_global_ocean_surface_s.mp4)
- 
+
+# ![](near_global_ocean_surface_s.mp4)
+
 fig = Figure(size = (800, 400))
 ax = Axis(fig[1, 1])
 hm = heatmap!(ax, Ti, colorrange = (-1, 30), colormap = :magma)
@@ -258,7 +257,7 @@ CairoMakie.record(fig, "near_global_ocean_surface_T.mp4", 1:Nt, framerate = 8) d
     iter[] = i
 end
 nothing #hide
- 
+
 # ![](near_global_ocean_surface_T.mp4)
 
 fig = Figure(size = (800, 400))
