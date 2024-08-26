@@ -1,18 +1,9 @@
-using Printf
 using Oceananigans
 using Oceananigans.Units
+
 using ClimaOcean
-using OrthogonalSphericalShellGrids
-using Oceananigans
-using Oceananigans: architecture
-using Oceananigans.Grids: on_architecture
-using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
-using Oceananigans.Units
-using ClimaOcean
-using ClimaOcean.OceanSimulations
-using ClimaOcean.OceanSeaIceModels
-using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: Radiation, SimilarityTheoryTurbulentFluxes
 using ClimaOcean.VerticalGrids: exponential_z_faces
+
 using ClimaOcean.JRA55
 using ClimaOcean.ECCO
 using ClimaOcean.JRA55: JRA55NetCDFBackend, JRA55_prescribed_atmosphere
@@ -20,7 +11,8 @@ using ClimaOcean.ECCO: ECCO_restoring_forcing, ECCO4Monthly, ECCO2Daily, ECCOMet
 using ClimaOcean.Bathymetry
 using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: LatitudeDependentAlbedo
 
-import ClimaOcean: stateindex
+using OrthogonalSphericalShellGrids
+using Printf
 
 using CFTime
 using Dates
@@ -154,10 +146,10 @@ fluxes = (u = model.velocities.u.boundary_conditions.top.condition,
           S = model.tracers.S.boundary_conditions.top.condition)
 
 ocean.output_writers[:fluxes] = JLD2OutputWriter(model, fluxes,
-                                                  schedule = TimeInterval(0.5days),
-                                                  overwrite_existing = false,
-                                                  array_type = Array{Float32},
-                                                  filename = "surface_fluxes")
+                                                 schedule = TimeInterval(0.5days),
+                                                 overwrite_existing = false,
+                                                 array_type = Array{Float32},
+                                                 filename = "surface_fluxes")
 
 ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, model.velocities),
                                                   schedule = TimeInterval(0.5days),
