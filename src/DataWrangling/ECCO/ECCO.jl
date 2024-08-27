@@ -242,8 +242,7 @@ function set!(field::DistributedField, ecco_metadata::ECCOMetadata; kw...)
     # Distribute ecco field to all workers
     parent(ecco_field) .= all_reduce(+, parent(ecco_field), arch)
 
-    ecco_loc = location(ecco_metadata)
-    if 
+    # Can't we avoid creating a new field?
     grid_field = Field(location(ecco_metadata), grid)   
     interpolate!(grid_field, ecco_field)
     set!(field, grid_field)
