@@ -1,7 +1,7 @@
 using CFTime
 using Dates
 
-import Oceananigans.Fields: set!
+import Oceananigans.Fields: set!, location
 import Base
 
 struct ECCO2Monthly end
@@ -86,7 +86,7 @@ short_name(data::ECCOMetadata{<:Any, <:ECCO2Daily})   = ecco2_short_names[data.n
 short_name(data::ECCOMetadata{<:Any, <:ECCO2Monthly}) = ecco2_short_names[data.name]
 short_name(data::ECCOMetadata{<:Any, <:ECCO4Monthly}) = ecco4_short_names[data.name]
 
-field_location(data::ECCOMetadata) = ecco_location[data.name]
+location(data::ECCOMetadata) = ecco_location[data.name]
 
 variable_is_three_dimensional(data::ECCOMetadata) = 
     data.name == :temperature || 
