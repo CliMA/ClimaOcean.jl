@@ -121,17 +121,17 @@ function ECCO_field_time_series(metadata::ECCOMetadata;
     # Making sure all the required individual files are downloaded
     download_dataset!(metadata)
 
-    location = field_location(metadata)
+    loc = location(metadata)
     ftmp = empty_ecco_field(first(metadata); architecture)
     shortname = short_name(metadata)
 
     ECCO_native_grid = ftmp.grid
-    boundary_conditions = FieldBoundaryConditions(ECCO_native_grid, location)
+    boundary_conditions = FieldBoundaryConditions(ECCO_native_grid, loc)
     times = ecco_times(metadata)
 
     fts_grid = isnothing(grid) ? ECCO_native_grid : grid
 
-    fts = FieldTimeSeries{location...}(fts_grid, times;	
+    fts = FieldTimeSeries{loc...}(fts_grid, times;	
                                        backend,	
                                        time_indexing,	
                                        boundary_conditions,	

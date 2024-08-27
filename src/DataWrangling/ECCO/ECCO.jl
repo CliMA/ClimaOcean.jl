@@ -1,6 +1,6 @@
 module ECCO
 
-export ECCOMetadata, ecco_field, ecco_mask, adjusted_ecco_tracers, initialize!
+export ECCOMetadata, ecco_field, ECCO_missings_field, adjusted_ecco_tracers, initialize!
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
 export ECCO_restoring_forcing
 
@@ -20,6 +20,7 @@ using Dates
 using Adapt
 
 include("ecco_metadata.jl")
+include("ECCO_missings_field.jl")
 
 # Vertical coordinate
 const ECCO_z = [
@@ -85,10 +86,8 @@ function empty_ecco_field(metadata::ECCOMetadata;
     Nx, Ny, Nz, _ = size(metadata)
 
     variable_name = metadata.name
-    location = field_location(metadata)
+    location = location(metadata)
     
-    location = ecco_location[variable_name]
-
     longitude = (0, 360)
     latitude = (-90, 90)
     TX, TY = (Periodic, Bounded)
@@ -178,50 +177,11 @@ end
 # Fallback
 ecco_field(var_name::Symbol; kw...) = ecco_field(ECCOMetadata(var_name); kw...)
 
-@kernel function _set_ecco2_mask!(mask, Tᵢ, minimum_value, maximum_value)
-    i, j, k = @index(Global, NTuple)
-    @inbounds mask[i, j, k] = (Tᵢ[i, j, k] < minimum_value) | (Tᵢ[i, j, k] > maximum_value) 
-end
-
-@kernel function _set_ecco4_mask!(mask, Tᵢ, args...)
-    i, j, k = @index(Global, NTuple)
-    @inbounds mask[i, j, k] = (Tᵢ[i, j, k] == 0) 
-end
-
-@inline mask_kernel(version)        = _set_ecco2_mask!
-@inline mask_kernel(::ECCO4Monthly) = _set_ecco4_mask!
-
-"""
-    ecco_mask(architecture = CPU(); minimum_value = Float32(-1e5))
-
-A boolean field where `true` represents a missing value in the ECCO dataset.
-"""
-function ecco_mask(metadata, architecture = CPU(); 
-                   minimum_value = Float32(-1e5),
-                   maximum_value = Float32(1e5),
-                   filename = metadata_filename(metadata))
-
-    field = ecco_field(metadata; architecture, filename)
-    mask  = Field{location(field)...}(field.grid, Bool)
-
-    # ECCO4 has zeros in place of the missing values, while
-    # ECCO2 expresses missing values with values < -1e5
-    _set_mask! = mask_kernel(metadata.version)
-
-    # Set the mask with zeros where field is defined
-    launch!(architecture, field.grid, :xyz, _set_mask!, mask, field, minimum_value, maximum_value)
-
-    return mask
-end
-
-# Default
-ecco_mask() = ecco_mask(ECCOMetadata(:temperature))
-
 """
     inpainted_ecco_field(variable_name; 
                           architecture = CPU(),
                           filename = "./inpainted_ecco_fields.nc",
-                          mask = ecco_mask(architecture))
+                          mask = ECCO_missings_field(architecture))
     
 Retrieve the ECCO field corresponding to `variable_name` inpainted to fill all the
 missing values in the original dataset.
@@ -247,7 +207,7 @@ Keyword Arguments:
 function inpainted_ecco_field(metadata::ECCOMetadata; 
                               architecture = CPU(),
                               filename = metadata_filename(metadata),
-                              mask = ecco_mask(metadata, architecture),
+                              mask = ECCO_missings_field(metadata, architecture),
                               maxiter = Inf,
                               kw...)
     
@@ -270,12 +230,9 @@ function set!(field::DistributedField, ecco_metadata::ECCOMetadata; kw...)
     arch = architecture(grid)
     child_arch = child_architecture(arch)
 
-    f_ecco = if arch.local_rank == 0 # Make sure we read/write the file using only one core
-        mask = ecco_mask(ecco_metadata, child_arch)
-        
-        inpainted_ecco_field(ecco_metadata; mask,
-                             architecture = child_arch,
-                             kw...)
+    ecco_field = if arch.local_rank == 0 # Make sure we read/write the file using only one core
+        mask = ECCO_missings_field(ecco_metadata, child_arch)
+        inpainted_ecco_field(ecco_metadata; mask, architecture=child_arch, kw...)
     else
         empty_ecco_field(ecco_metadata; architecture = child_arch)
     end
@@ -283,28 +240,31 @@ function set!(field::DistributedField, ecco_metadata::ECCOMetadata; kw...)
     barrier!(arch)
 
     # Distribute ecco field to all workers
-    parent(f_ecco) .= all_reduce(+, parent(f_ecco), arch)
+    parent(ecco_field) .= all_reduce(+, parent(ecco_field), arch)
 
-    f_grid = Field(field_location(ecco_metadata), grid)   
-    interpolate!(f_grid, f_ecco)
-    set!(field, f_grid)
+    ecco_loc = location(ecco_metadata)
+    if 
+    grid_field = Field(location(ecco_metadata), grid)   
+    interpolate!(grid_field, ecco_field)
+    set!(field, grid_field)
     
     return field
 end
 
-function set!(field::Field, ecco_metadata::ECCOMetadata; kw...)
+function set!(field::Field, metadata::ECCOMetadata; kw...)
 
     # Fields initialized from ECCO
     grid = field.grid
-    mask = ecco_mask(ecco_metadata, architecture(grid))
-    
-    f = inpainted_ecco_field(ecco_metadata; mask,
-                              architecture = architecture(grid),
-                              kw...)
+    mask = ECCO_missings_field(metadata, architecture(grid))
+    ecco_field = inpainted_ecco_field(metadata; mask, architecture=architecture(grid), kw...)
 
-    f_grid = Field(field_location(ecco_metadata), grid)   
-    interpolate!(f_grid, f)
-    set!(field, f_grid)
+    if location(field) === location(metadata)
+        interpolate!(field, ecco_field)
+    else # how does this help?
+        field_loc = Field(location(metadata), grid)   
+        interpolate!(field_loc, ecco_field)
+        set!(field, field_loc)
+    end
 
     return field
 end
