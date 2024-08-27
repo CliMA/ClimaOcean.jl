@@ -223,6 +223,7 @@ T = FieldTimeSeries("surface.jld2", "T"; backend = OnDisk())
 e = FieldTimeSeries("surface.jld2", "e"; backend = OnDisk())
 
 times = u.times
+Nt = length(times)
 
 iter = Observable(Nt)
 
