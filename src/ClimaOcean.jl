@@ -8,7 +8,7 @@ export
     JRA55_prescribed_atmosphere,
     JRA55NetCDFBackend,
     ECCOMetadata,
-    ecco2_field,
+    ECCO2_field,
     regrid_bathymetry,
     retrieve_bathymetry,
     stretched_vertical_faces,
@@ -16,7 +16,7 @@ export
     PowerLawStretching, LinearStretching,
     exponential_z_faces,
     JRA55_field_time_series,
-    ecco_field, ECCOMetadata,
+    ECCO_field, ECCOMetadata,
     ocean_simulation,
     initialize!
 
@@ -72,7 +72,7 @@ using .OceanSeaIceModels
 using .OceanSimulations
 using .DataWrangling: JRA55, ECCO
 using ClimaOcean.DataWrangling.JRA55: JRA55_prescribed_atmosphere, JRA55NetCDFBackend
-using ClimaOcean.DataWrangling.ECCO: ecco_field, ECCOMetadata
+using ClimaOcean.DataWrangling.ECCO
 
 end # module
 

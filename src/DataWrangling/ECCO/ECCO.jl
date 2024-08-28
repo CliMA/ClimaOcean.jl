@@ -182,9 +182,9 @@ ECCO_field(var_name::Symbol; kw...) = ECCO_field(ECCOMetadata(var_name); kw...)
 
 """
     inpainted_ECCO_field(variable_name; 
-                          architecture = CPU(),
-                          filename = "./inpainted_ECCO_fields.nc",
-                          mask = ECCO_mask(architecture))
+                         architecture = CPU(),
+                         filename = "./inpainted_ECCO_fields.nc",
+                         mask = ECCO_mask(architecture))
     
 Retrieve the ECCO field corresponding to `variable_name` inpainted to fill all the
 missing values in the original dataset.
