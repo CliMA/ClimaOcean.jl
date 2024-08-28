@@ -203,8 +203,8 @@ nothing #hide
 # This time, we set the CFL in the time_step_wizard to be 0.25 as this is the maximum recommended CFL to be
 # used in conjunction with Oceananigans' hydrostatic time-stepping algorithm ([two step Adams-Bashfort](https://en.wikipedia.org/wiki/Linear_multistep_method))
 
-ocean.stop_time = 100days
-coupled_simulation.stop_time = 100days
+ocean.stop_time = 20days
+coupled_simulation.stop_time = 20days
 conjure_time_step_wizard!(ocean; cfl = 0.25, max_Δt = 10minutes, max_change = 1.1)
 run!(coupled_simulation)
 nothing #hide
