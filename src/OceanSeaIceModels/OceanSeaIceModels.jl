@@ -15,7 +15,7 @@ using Oceananigans.TimeSteppers: tick!
 using Oceananigans.Models: AbstractModel
 using Oceananigans.OutputReaders: FieldTimeSeries, GPUAdaptedFieldTimeSeries
 
-using ClimaSeaIce: melting_temperature
+using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 
 using ClimaOcean: stateindex
 
