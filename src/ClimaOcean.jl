@@ -8,7 +8,6 @@ export
     JRA55_prescribed_atmosphere,
     JRA55NetCDFBackend,
     ECCOMetadata,
-    ECCO2_field,
     regrid_bathymetry,
     retrieve_bathymetry,
     stretched_vertical_faces,
