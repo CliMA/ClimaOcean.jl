@@ -131,9 +131,9 @@ ECCO_location = Dict(
 )
 
 # URLs for the ECCO datasets specific to each version
-urls(::ECCOMetadata{<:Any, <:ECCO2Monthly}) = "https://ECCO.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/monthly/"
-urls(::ECCOMetadata{<:Any, <:ECCO2Daily})   = "https://ECCO.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/daily/"
-urls(::ECCOMetadata{<:Any, <:ECCO4Monthly}) = "https://ECCO.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly/"
+urls(::ECCOMetadata{<:Any, <:ECCO2Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/monthly/"
+urls(::ECCOMetadata{<:Any, <:ECCO2Daily})   = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/daily/"
+urls(::ECCOMetadata{<:Any, <:ECCO4Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly/"
 
 """
     download_dataset!(metadata::ECCOMetadata)
