@@ -1,6 +1,8 @@
 using CFTime
 using Dates
 
+using Base: @propagate_inbounds
+
 import Oceananigans.Fields: set!
 import Base
 
