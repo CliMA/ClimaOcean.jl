@@ -162,8 +162,9 @@ function download_dataset!(metadata::ECCOMetadata;
 
         if !isfile(filename)
 
-            isnothing(username) && throw(ArgumentError("Could not find the username for $(url). Please provide a username in the ECCO_USERNAME environment variable."))
-            isnothing(password) && throw(ArgumentError("Could not find the username for $(url). Please provide a password in the ECCO_PASSWORD environment variable."))
+            msg = "\n See ClimaOcean.jl/src/ECCO/README.md for instructions."
+            isnothing(username) && throw(ArgumentError("Could not find the username for $(url). Please provide a username in the ECCO_USERNAME environment variable." * msg))
+            isnothing(password) && throw(ArgumentError("Could not find the username for $(url). Please provide a password in the ECCO_PASSWORD environment variable." * msg))
         
             # Version specific download file url
             if data.version isa ECCO2Monthly || data.version isa ECCO2Daily
