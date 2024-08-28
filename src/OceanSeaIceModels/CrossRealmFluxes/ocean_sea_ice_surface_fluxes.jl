@@ -26,7 +26,7 @@ using KernelAbstractions: @kernel, @index
 ##### Container for organizing information related to fluxes
 #####
 
-struct OceanSeaIceSurfaceFluxes{T, P, C, R, PI, PC, FT, UN}
+struct OceanSeaIceSurfaceFluxes{T, P, C, R, PI, PC, FT, UN, ATM}
     turbulent :: T
     prescribed :: P
     # Add `components` which will also store components of the total fluxes
@@ -40,6 +40,9 @@ struct OceanSeaIceSurfaceFluxes{T, P, C, R, PI, PC, FT, UN}
     ocean_heat_capacity :: FT
     freshwater_density :: FT
     ocean_temperature_units :: UN
+    # Scratch space to store the atmosphere state at the surface 
+    # interpolated to the ocean grid
+    surface_atmosphere_state :: ATM
 end
 
 # Possible units for temperature and salinity
@@ -64,8 +67,8 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
                                   ocean_reference_density = reference_density(ocean),
                                   ocean_heat_capacity = heat_capacity(ocean))
 
-    grid = ocean.model.grid
-    FT = eltype(grid)
+    ocean_grid = ocean.model.grid
+    FT = eltype(ocean_grid)
 
     ocean_reference_density = convert(FT, ocean_reference_density)
     ocean_heat_capacity = convert(FT, ocean_heat_capacity)
@@ -75,8 +78,9 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
         # It's the "thermodynamics gravitational acceleration"
         # (as opposed to the one used for the free surface)
         gravitational_acceleration = ocean.model.buoyancy.model.gravitational_acceleration
+
         if isnothing(similarity_theory)
-            similarity_theory = SimilarityTheoryTurbulentFluxes(grid; gravitational_acceleration)
+            similarity_theory = SimilarityTheoryTurbulentFluxes(ocean_grid; gravitational_acceleration)
         end
     end
 
@@ -90,31 +94,13 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
         previous_ice_concentration = nothing
     end
 
-    ocean_grid = ocean.model.grid
-    ρₒ = ocean_reference_density
-    Jᵘ = surface_flux(ocean.model.velocities.u)
-    Jᵛ = surface_flux(ocean.model.velocities.v)
-    Jᵘᶜᶜᶜ = Field{Center, Center, Nothing}(ocean_grid)
-    Jᵛᶜᶜᶜ = Field{Center, Center, Nothing}(ocean_grid)
-
-    ocean_momentum_fluxes = (u = Jᵘ,       # fluxes used in the model
-                             v = Jᵛ,       #
-                             τˣ = ρₒ * Jᵘ, # momentum fluxes multiplied by reference density
-                             τʸ = ρₒ * Jᵛ, # 
-                             uᶜᶜᶜ = Jᵘᶜᶜᶜ, # fluxes computed by bulk formula at cell centers
-                             vᶜᶜᶜ = Jᵛᶜᶜᶜ)
-
-    tracers = ocean.model.tracers
-    ocean_tracer_fluxes = NamedTuple(name => surface_flux(tracers[name]) for name in keys(tracers))
-
-    cₚ = ocean_heat_capacity
-    ocean_heat_flux = ρₒ * cₚ * ocean_tracer_fluxes.T
-
-    total_ocean_fluxes = (momentum = ocean_momentum_fluxes,
-                          tracers = ocean_tracer_fluxes,
-                          heat = ocean_heat_flux)
+    total_ocean_fluxes = ocean_model_fluxes(ocean.model,
+                                            ocean_reference_density,
+                                            ocean_heat_capacity)
 
     total_fluxes = (; ocean=total_ocean_fluxes)
+
+    surface_atmosphere_state = interpolated_surface_atmosphere_state(ocean_grid)
 
     return OceanSeaIceSurfaceFluxes(similarity_theory,
                                     prescribed_fluxes,
@@ -125,8 +111,53 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
                                     ocean_reference_density,
                                     ocean_heat_capacity,
                                     freshwater_density,
-                                    ocean_temperature_units)
+                                    ocean_temperature_units,
+                                    surface_atmosphere_state)
 end
+
+function ocean_model_fluxes(model, ρₒ, cₚ)
+    grid = model.grid
+    τx = surface_flux(model.velocities.u)
+    τy = surface_flux(model.velocities.v)
+    τxᶜᶜᶜ = Field{Center, Center, Nothing}(grid)
+    τyᶜᶜᶜ = Field{Center, Center, Nothing}(grid)
+
+    ocean_momentum_fluxes = (u    = τx,      # fluxes used in the model
+                             v    = τy,      #
+                             # Including these (which are only a user convenience, not needed for
+                             # time-stepping) incurs about 100s in construction
+                             # time for OceanSeaIceSurfaceFluxes:
+                             # ρτx  = ρₒ * τx, # momentum fluxes multiplied by reference density
+                             # ρτy  = ρₒ * τy, # user convenience 
+                             uᶜᶜᶜ = τxᶜᶜᶜ,   # fluxes computed by bulk formula at cell centers
+                             vᶜᶜᶜ = τyᶜᶜᶜ)
+
+    tracers = model.tracers
+    ocean_tracer_fluxes = NamedTuple(name => surface_flux(tracers[name])
+                                     for name in keys(tracers))
+
+    ocean_heat_flux = ρₒ * cₚ * ocean_tracer_fluxes.T
+
+    fluxes = (momentum = ocean_momentum_fluxes,
+              tracers = ocean_tracer_fluxes,
+              heat = ocean_heat_flux)
+
+    return fluxes
+end
+
+function interpolated_surface_atmosphere_state(ocean_grid)
+    surface_atmosphere_state = (u  = Field{Center, Center, Nothing}(ocean_grid),
+                                v  = Field{Center, Center, Nothing}(ocean_grid),
+                                T  = Field{Center, Center, Nothing}(ocean_grid),
+                                q  = Field{Center, Center, Nothing}(ocean_grid),
+                                p  = Field{Center, Center, Nothing}(ocean_grid),
+                                Qs = Field{Center, Center, Nothing}(ocean_grid),
+                                Qℓ = Field{Center, Center, Nothing}(ocean_grid),
+                                Mp = Field{Center, Center, Nothing}(ocean_grid))
+
+    return surface_atmosphere_state
+end
+
     
 #####
 ##### Utility for interpolating tuples of fields
@@ -158,3 +189,4 @@ end
     interp_atmos_time_series(ΣJ[2], args...) +
     interp_atmos_time_series(ΣJ[3], args...) +
     interp_atmos_time_series(ΣJ[4], args...)
+

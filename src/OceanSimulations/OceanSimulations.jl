@@ -66,16 +66,16 @@ function ocean_simulation(grid; Δt = 5minutes,
                           verbose = false)
 
     # Set up boundary conditions using Field
-    top_zonal_momentum_flux      = Jᵘ = Field{Face, Center, Nothing}(grid)
-    top_meridional_momentum_flux = Jᵛ = Field{Center, Face, Nothing}(grid)
+    top_zonal_momentum_flux      = τx = Field{Face, Center, Nothing}(grid)
+    top_meridional_momentum_flux = τy = Field{Center, Face, Nothing}(grid)
     top_ocean_heat_flux          = Jᵀ = Field{Center, Center, Nothing}(grid)
     top_salt_flux                = Jˢ = Field{Center, Center, Nothing}(grid)
 
     u_bot_bc = FluxBoundaryCondition(u_quadratic_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
     v_bot_bc = FluxBoundaryCondition(v_quadratic_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
 
-    ocean_boundary_conditions = (u = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵘ), bottom = u_bot_bc),
-                                 v = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵛ), bottom = v_bot_bc),
+    ocean_boundary_conditions = (u = FieldBoundaryConditions(top = FluxBoundaryCondition(τx), bottom = u_bot_bc),
+                                 v = FieldBoundaryConditions(top = FluxBoundaryCondition(τy), bottom = v_bot_bc),
                                  T = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵀ)),
                                  S = FieldBoundaryConditions(top = FluxBoundaryCondition(Jˢ)))
 

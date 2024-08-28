@@ -3,35 +3,39 @@ agents:
   slurm_mem: 8G
   modules: climacommon/2024_05_27
 
+timeout_in_minutes: 1440
+
 env:
-  JULIA_LOAD_PATH: "${JULIA_LOAD_PATH}:${BUILDKITE_BUILD_CHECKOUT_PATH}/.buildkite"
-  JULIA_DEBUG: "Documenter"
   OPENBLAS_NUM_THREADS: 1
   OMPI_MCA_opal_warn_on_missing_libcuda: 0
+  JULIA_NUM_PRECOMPILE_TASKS: 8
 
 steps:
   - label: "initialize"
     key: "init"
+    concurrency: 1
+    concurrency_group: 'depot/climaocean-ci'
+    env:
+      TEST_GROUP: "init"
     command:
       - "echo '--- Instantiate project'"
-      - "julia --project -e 'using Pkg; Pkg.instantiate(; verbose=true); Pkg.precompile(; strict=true)'"
-      # force the initialization of the CUDA runtime as it is lazily loaded by default
-      - "julia --project -e 'using CUDA; CUDA.precompile_runtime()'"
+      - "julia --project -e 'using Pkg; Pkg.instantiate(verbose=true)'"
 
+      - "echo '--- Precompile project'"
+      - "julia --project -e 'using Pkg; Pkg.precompile(strict=true)'"
+      - "julia --project -e 'using Pkg; Pkg.status()'"
+
+      # Force the initialization of the CUDA runtime as it is lazily loaded by default:
+      - "echo '--- Initialize the CUDA runtime'"
+      - "julia --project -e 'using Pkg; Pkg.test()'"
     agents:
-      slurm_mem: 32G
       slurm_gpus: 1
       slurm_cpus_per_task: 8
-      slurm_gpus: 1
-      slurm_ntasks: 1
-      slurm_gpus_per_task: 1
-    env:
-      JULIA_NUM_PRECOMPILE_TASKS: 8
 
   - wait
 
   - label: "Run JRA55 tests"
-    key: "tests_jra55"
+    key: "test_jra55"
     env:
       CUDA_VISIBLE_DEVICES: "-1"
       TEST_GROUP: "jra55"
@@ -39,7 +43,7 @@ steps:
       - "julia --project -e 'using Pkg; Pkg.test()'"
 
   - label: "Run ECCO tests"
-    key: "tests_ecco"
+    key: "test_ecco"
     env:
       CUDA_VISIBLE_DEVICES: "-1"
       TEST_GROUP: "ecco"
@@ -47,12 +51,24 @@ steps:
       - "julia --project -e 'using Pkg; Pkg.test()'"
 
   - label: "Run surface flux tests"
-    key: "tests_fluxes"
+    key: "test_fluxes"
     env:
       CUDA_VISIBLE_DEVICES: "-1"
       TEST_GROUP: "fluxes"
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
 
+  - label: "Run simulation tests"
+    key: "test_simulations"
+    env:
+      TEST_GROUP: "simulations"
+    commands:
+      - "julia --project -e 'using Pkg; Pkg.test()'"
+    agents:
+      slurm_mem: 120G
+      slurm_gpus: 1
+      slurm_cpus_per_task: 8
+
   - wait: ~
     continue_on_failure: true
+
