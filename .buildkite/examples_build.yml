@@ -4,8 +4,6 @@ agents:
   modules: climacommon/2024_05_27
   slurm_time: 48:00:00
 
-timeout_in_minutes: 1440
-
 env:
   JULIA_LOAD_PATH: "${JULIA_LOAD_PATH}:${BUILDKITE_BUILD_CHECKOUT_PATH}/.buildkite"
   OPENBLAS_NUM_THREADS: 1
