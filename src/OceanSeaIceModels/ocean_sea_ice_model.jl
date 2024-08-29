@@ -26,8 +26,21 @@ end
 
 const OSIM = OceanSeaIceModel
 
-Base.summary(::OSIM)                = "OceanSeaIceModel"
-Base.show(io::IO, cm::OSIM)         = print(io, summary(cm))
+function Base.summary(model::OSIM)
+    A = nameof(typeof(architecture(model.grid)))
+    G = nameof(typeof(model.grid))
+    return string("OceanSeaIceModel{$A, $G}",
+                  "(time = ", prettytime(model.clock.time), ", iteration = ", model.clock.iteration, ")")
+end
+
+function Base.show(io::IO, cm::OSIM)
+    print(io, summary(cm))
+    print(io, "├── ocean: ", summary(cm.ocean.model))
+    print(io, "├── atmosphere: ", summary(cm.atmosphere))
+    print(io, "└── sea_ice: ", summary(cm.sea_ice))
+    return nothing
+end
+
 prettytime(model::OSIM)             = prettytime(model.clock.time)
 iteration(model::OSIM)              = model.clock.iteration
 timestepper(::OSIM)                 = nothing
