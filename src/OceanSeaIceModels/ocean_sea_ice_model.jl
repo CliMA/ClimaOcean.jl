@@ -63,7 +63,19 @@ function OceanSeaIceModel(ocean, sea_ice=nothing;
                           ocean_reference_density = reference_density(ocean),
                           ocean_heat_capacity = heat_capacity(ocean),
                           clock = deepcopy(ocean.model.clock))
-    
+
+    # Remove some potentially irksome callbacks from the ocean simulation
+    # TODO: also remove these from sea ice simulations
+    pop!(ocean.callbacks, :stop_time_exceeded)
+    pop!(ocean.callbacks, :stop_iteration_exceeded)
+    pop!(ocean.callbacks, :wall_time_limit_exceeded)
+    pop!(ocean.callbacks, :nan_checker)
+
+    # In case there was any doubt these are meaningless.
+    ocean.stop_time = Inf
+    ocean.stop_iteration = Inf
+    ocean.wall_time_limit = Inf
+
     # Contains information about flux contributions: bulk formula, prescribed fluxes, etc.
     fluxes = OceanSeaIceSurfaceFluxes(ocean, sea_ice; 
                                       atmosphere, 
