@@ -1,3 +1,4 @@
+#=
 using Oceananigans.OutputReaders: extract_field_time_series, update_field_time_series!
 
 const OceanOnlyModel = OceanSeaIceModel{Nothing}
@@ -42,3 +43,4 @@ function update_state!(coupled_model::NoSeaIceModel, callbacks=[]; compute_tende
     compute_atmosphere_ocean_fluxes!(coupled_model) 
     return nothing
 end
+=#
