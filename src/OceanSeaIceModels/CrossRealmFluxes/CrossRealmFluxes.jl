@@ -5,6 +5,7 @@ using Adapt
 
 export Radiation,
        OceanSeaIceSurfaceFluxes,
+       LatitudeDependentAlbedo,
        SimilarityTheoryTurbulentFluxes
 
 using ..OceanSeaIceModels: default_gravitational_acceleration
