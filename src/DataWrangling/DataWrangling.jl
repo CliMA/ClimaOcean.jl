@@ -54,8 +54,10 @@ end
 
 function save_field_time_series!(fts; path, name, overwrite_existing=false)
     overwrite_existing && rm(path; force=true)
+
     times = on_architecture(CPU(), fts.times)
     grid  = on_architecture(CPU(), fts.grid)
+    
     LX, LY, LZ = location(fts)
     ondisk_fts = FieldTimeSeries{LX, LY, LZ}(grid, times;
                                              backend = OnDisk(), path, name)

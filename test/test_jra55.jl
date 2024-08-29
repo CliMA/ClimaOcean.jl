@@ -92,8 +92,7 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 
         # Test that we can load the data back
         Qswt = FieldTimeSeries(filepath, "Qsw")
-        @show size(Qswt.data), size(target_fts)
-        @test parent(Qswt) == parent(target_fts)    
+        @test parent(Qswt.data) == parent(target_fts.data)
         @test Qswt.times == target_fts.times
         rm(filepath)
 
@@ -101,7 +100,7 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         ##### JRA55 prescribed atmosphere
         #####
 
-        backend    = JRA55NetCDFBackend(1) 
+        backend    = JRA55NetCDFBackend(2) 
         atmosphere = JRA55_prescribed_atmosphere(arch; backend, include_rivers_and_icebergs=false)
         @test atmosphere isa PrescribedAtmosphere
         @test isnothing(atmosphere.auxiliary_freshwater_flux)
