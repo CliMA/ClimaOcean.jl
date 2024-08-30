@@ -92,7 +92,7 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 
         # Test that we can load the data back
         Qswt = FieldTimeSeries(filepath, "Qsw")
-        @test parent(Qswt.data) == parent(target_fts.data)
+        @test on_architecture(CPU(), parent(Qswt.data)) == on_architecture(CPU(), parent(target_fts.data))
         @test Qswt.times == target_fts.times
         rm(filepath)
 
