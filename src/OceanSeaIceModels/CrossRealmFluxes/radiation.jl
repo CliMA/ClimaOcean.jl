@@ -18,7 +18,7 @@ Adapt.adapt_structure(to, r :: Radiation) =
     Radiation([arch = CPU(), FT=Float64];
               ocean_emissivity = 0.97,
               sea_ice_emissivity = 1.0,
-              ocean_albedo = TabulatedAlbedo(arch, FT),
+              ocean_albedo = LatitudeDependentAlbedo(FT),
               sea_ice_albedo = 0.7,
               stefan_boltzmann_constant = 5.67e-8)
 
@@ -42,7 +42,7 @@ Constructs a `Radiation` object that represents the radiation properties of the 
 function Radiation(arch = CPU(), FT=Float64;
                    ocean_emissivity = 0.97,
                    sea_ice_emissivity = 1.0,
-                   ocean_albedo = TabulatedAlbedo(arch, FT),
+                   ocean_albedo = LatitudeDependentAlbedo(FT),
                    sea_ice_albedo = 0.7,
                    stefan_boltzmann_constant = 5.67e-8)
 
@@ -72,58 +72,6 @@ function Base.show(io::IO, r::Radiation)
     print(io, "└── reflection: ", summary(r.reflection), '\n')
     print(io, "    ├── ocean: ", prettysummary(r.reflection.ocean), '\n')
     print(io, "    └── sea_ice: ", prettysummary(r.reflection.sea_ice))
-end
-
-struct LatitudeDependentAlbedo{FT}
-    direct :: FT
-    diffuse :: FT
-end
-
-"""
-    LatitudeDependentAlbedo([FT::DataType=Float64]; diffuse = 0.069, direct = 0.011)
-
-Constructs a `LatitudeDependentAlbedo` object. The albedo of the ocean surface is assumed to be a function of the latitude,
-obeying the following formula (Large and Yeager, 2009):
-
-    α(φ) = α.diffuse - α.direct * cos(2φ)
-
-where `φ` is the latitude, `α.diffuse` is the diffuse albedo, and `α.direct` is the direct albedo.
-
-# Arguments
-===========
-
-- `FT::DataType`: The data type of the albedo values. Default is `Float64`.
-
-# Keyword Arguments
-===================
-- `diffuse`: The diffuse albedo value. Default is `0.069`.
-- `direct`: The direct albedo value. Default is `0.011`.
-"""
-function LatitudeDependentAlbedo(FT::DataType=Float64; 
-                                 diffuse = 0.069, 
-                                 direct = 0.011) 
-    
-    return LatitudeDependentAlbedo(convert(FT, direct),
-                                   convert(FT, diffuse))
-end
-
-Adapt.adapt_structure(to, α::LatitudeDependentAlbedo) = 
-    LatitudeDependentAlbedo(Adapt.adapt(to, α.direct),                       
-                            Adapt.adapt(to, α.diffuse))
-
-function Base.summary(α::LatitudeDependentAlbedo{FT}) where FT
-    formula = string(prettysummary(α.diffuse), - prettysummary(α.direct), " cos(2φ)")
-    return string("LatitudeDepedendentAlbedo{$FT}: ", formula)
-end
-
-Base.show(io::IO, α::LatitudeDependentAlbedo) = print(io, summary(α))
-
-@inline function stateindex(α::LatitudeDependentAlbedo, i, j, k, grid, time) 
-    φ = φnode(i, j, k, grid, Center(), Center(), Center())
-    α_diffuse = α.diffuse
-    direct_correction = α.direct * hack_cosd(2φ)
-
-    return α_diffuse - direct_correction
 end
 
 struct SurfaceProperties{O, I}
