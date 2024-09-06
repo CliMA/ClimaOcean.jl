@@ -328,4 +328,3 @@ end
 nothing #hide
 
 # ![](single_column_profiles.mp4)
-#
