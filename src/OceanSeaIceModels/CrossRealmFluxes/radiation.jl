@@ -59,8 +59,20 @@ function Radiation(arch = CPU(), FT=Float64;
                      convert(FT, stefan_boltzmann_constant))
 end
 
-Base.summary(r::Radiation) = "Radiation"
-Base.show(io::IO, r::Radiation) = print(io, summary(r))
+Base.summary(r::Radiation{FT}) where FT = "Radiation{$FT}"
+
+function Base.show(io::IO, r::Radiation)
+    σ = r.stefan_boltzmann_constant
+
+    print(io, summary(r), ":", '\n')
+    print(io, "├── stefan_boltzmann_constant: ", prettysummary(σ), '\n')
+    print(io, "├── emission: ", summary(r.emission), '\n')
+    print(io, "│   ├── ocean: ", prettysummary(r.emission.ocean), '\n')
+    print(io, "│   └── sea_ice: ", prettysummary(r.emission.ocean), '\n')
+    print(io, "└── reflection: ", summary(r.reflection), '\n')
+    print(io, "    ├── ocean: ", prettysummary(r.reflection.ocean), '\n')
+    print(io, "    └── sea_ice: ", prettysummary(r.reflection.sea_ice))
+end
 
 struct LatitudeDependentAlbedo{FT}
     direct :: FT
@@ -75,7 +87,7 @@ obeying the following formula (Large and Yeager, 2009):
 
     α(φ) = α.diffuse - α.direct * cos(2φ)
 
-where `φ` is the latitude, `α.diffuse` is the diffuse albedo, and `α_.irect` is the direct albedo.
+where `φ` is the latitude, `α.diffuse` is the diffuse albedo, and `α.direct` is the direct albedo.
 
 # Arguments
 ===========
@@ -99,6 +111,13 @@ Adapt.adapt_structure(to, α::LatitudeDependentAlbedo) =
     LatitudeDependentAlbedo(Adapt.adapt(to, α.direct),                       
                             Adapt.adapt(to, α.diffuse))
 
+function Base.summary(α::LatitudeDependentAlbedo{FT}) where FT
+    formula = string(prettysummary(α.diffuse), - prettysummary(α.direct), " cos(2φ)")
+    return string("LatitudeDepedendentAlbedo{$FT}: ", formula)
+end
+
+Base.show(io::IO, α::LatitudeDependentAlbedo) = print(io, summary(α))
+
 @inline function stateindex(α::LatitudeDependentAlbedo, i, j, k, grid, time) 
     φ = φnode(i, j, k, grid, Center(), Center(), Center())
     α_diffuse = α.diffuse
@@ -115,3 +134,12 @@ end
 Adapt.adapt_structure(to, s :: SurfaceProperties) = 
     SurfaceProperties(Adapt.adapt(to, s.ocean),
                       Adapt.adapt(to, s.sea_ice))
+
+Base.summary(properties::SurfaceProperties) = "SurfaceProperties"
+
+function Base.show(io::IO, properties::SurfaceProperties)
+    print(io, "SurfaceProperties:", '\n')
+    print(io, "├── ocean: ", summary(properties.ocean), '\n')
+    print(io, "└── sea_ice: ", summary(properties.sea_ice))
+end
+

@@ -9,7 +9,7 @@ using ClimaOcean.OceanSeaIceModels:
 
 # Bilinear interpolation of the albedo α in α_table based on a 
 # transmissivity value (𝓉_values) and latitude (φ_values)
-struct TabulatedAlbedo{M, P, T, FT}
+struct TabulatedAlbedo{FT, M, P, T}
     α_table :: M
     φ_values :: P
     𝓉_values :: T
@@ -18,7 +18,7 @@ struct TabulatedAlbedo{M, P, T, FT}
     noon_in_seconds :: Int
 end
 
-Adapt.adapt_structure(to, α :: TabulatedAlbedo) = 
+Adapt.adapt_structure(to, α::TabulatedAlbedo) = 
     TabulatedAlbedo(Adapt.adapt(to, α.α_table),
                     Adapt.adapt(to, α.φ_values),
                     Adapt.adapt(to, α.𝓉_values),
@@ -91,10 +91,17 @@ function TabulatedAlbedo(arch = CPU(), FT = Float64;
     φ_values = on_architecture(arch, convert.(FT, φ_values)) 
     𝓉_values = on_architecture(arch, convert.(FT, 𝓉_values))
 
-    return TabulatedAlbedo(α_table, φ_values, 𝓉_values, convert(FT, S₀), convert(FT, day_to_radians), noon_in_seconds)
+    return TabulatedAlbedo(α_table,
+                           φ_values,
+                           𝓉_values,
+                           convert(FT, S₀),
+                           convert(FT, day_to_radians),
+                           noon_in_seconds)
 end
 
-Base.eltype(α::TabulatedAlbedo) = Base.eltype(α.S₀)
+Base.eltype(::TabulatedAlbedo{FT}) where FT = FT
+Base.summary(::TabulatedAlbedo{FT}) where FT = "TabulatedAlbedo{$FT}"
+Base.show(io::IO, α::TabulatedAlbedo) = print(io, summary(α))
 
 @inline ϕ₁(ξ, η) = (1 - ξ) * (1 - η)
 @inline ϕ₂(ξ, η) = (1 - ξ) *      η 
@@ -162,3 +169,4 @@ Base.eltype(α::TabulatedAlbedo) = Base.eltype(α.S₀)
 
     return - (1 - α) * Qs - ϵ * Qℓ
 end
+
