@@ -180,7 +180,7 @@ run!(simulation)
 
 # ### Running the simulation for real
 
-simulation.stop_time = 10days
+simulation.stop_time = 60days
 simulation.Δt = 10minutes
 run!(simulation)
 
