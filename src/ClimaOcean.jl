@@ -4,6 +4,7 @@ export
     OceanSeaIceModel,
     MinimumTemperatureSeaIce,
     Radiation,
+    LatitudeDependentAlbedo,
     SimilarityTheoryTurbulentFluxes,
     JRA55_prescribed_atmosphere,
     JRA55NetCDFBackend,
@@ -39,7 +40,6 @@ const SKOFTS = SomeKindOfFieldTimeSeries
 @inline function stateindex(a::Function, i, j, k, grid, time, loc)
     LX, LY, LZ = loc 
     λ, φ, z = node(i, j, k, grid, LX(), LY(), LZ())
-
     return a(λ, φ, z, time)
 end
 
