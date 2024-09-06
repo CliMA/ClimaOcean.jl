@@ -1,4 +1,3 @@
-#=
 # # Single column ocean simulation forced by JRA55 re-analysis
 #
 # In this example, we simulate the evolution of an ocean water column 
@@ -32,12 +31,12 @@ using Printf
 
 # Ocean station papa location
 location_name = "ocean_station_papa"
-λ★, φ★ = 35.1, 50.1 
+λ★, φ★ = 35.1, 50.1
 
 grid = RectilinearGrid(size = 200,
                        x = λ★,
                        y = φ★,
-                       z = (-400, 0),  
+                       z = (-400, 0),
                        topology = (Flat, Flat, Bounded))
 
 # # An "ocean simulation"
@@ -54,7 +53,6 @@ ocean.model
 # We set initial conditions from ECCO:
 
 set!(ocean.model, T=ECCOMetadata(:temperature), S=ECCOMetadata(:salinity))
-=#
 
 # # A prescribed atmosphere based on JRA55 re-analysis
 #
@@ -64,7 +62,7 @@ set!(ocean.model, T=ECCOMetadata(:temperature), S=ECCOMetadata(:salinity))
 simulation_days = 31
 snapshots_per_day = 8 # corresponding to JRA55's 3-hour frequency
 last_time = simulation_days * snapshots_per_day
-atmosphere = JRA55_prescribed_atmosphere(1:last_time; 
+atmosphere = JRA55_prescribed_atmosphere(1:last_time;
                                          longitude = λ★,
                                          latitude = φ★,
                                          #longitude = (λ★ - 1/4, λ★ + 1/4),
@@ -129,10 +127,10 @@ function progress(sim)
 
     Nz = size(T, 3)
     msg *= @sprintf(", u★: %.2f m s⁻¹", u★)
-    msg *= @sprintf(", Q: %.2f W m⁻²", Q)
-    msg *= @sprintf(", T₀: %.2f ᵒC",     first(interior(T, 1, 1, Nz)))
+    msg *= @sprintf(", Q: %.2f W m⁻²",  Q)
+    msg *= @sprintf(", T₀: %.2f ᵒC", first(interior(T, 1, 1, Nz)))
     msg *= @sprintf(", extrema(T): (%.2f, %.2f) ᵒC", minimum(T), maximum(T))
-    msg *= @sprintf(", S₀: %.2f g/kg",   first(interior(S, 1, 1, Nz)))
+    msg *= @sprintf(", S₀: %.2f g/kg", first(interior(S, 1, 1, Nz)))
     msg *= @sprintf(", e₀: %.2e m² s⁻²", first(interior(e, 1, 1, Nz)))
 
     @info msg
@@ -151,7 +149,7 @@ Qv = coupled_model.fluxes.turbulent.fields.latent_heat
 ρₒ = coupled_model.fluxes.ocean_reference_density
 cₚ = coupled_model.fluxes.ocean_heat_capacity
 
-Q  = ρₒ * cₚ * JT
+Q = ρₒ * cₚ * JT
 ρτx = ρₒ * τx
 ρτy = ρₒ * τy
 N² = buoyancy_frequency(ocean.model)
@@ -330,4 +328,3 @@ end
 nothing #hide
 
 # ![](single_column_profiles.mp4)
-#
