@@ -20,7 +20,7 @@ using Dates
         temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
         t_restoring = ECCO_restoring_forcing(temperature; timescale = 1000.0)
 
-        ECCO_fts = t_restoring.func.ecco_fts
+        ECCO_fts = t_restoring.func.ECCO_fts
 
         for metadata in temperature
             temperature_filename = metadata_filename(metadata)
