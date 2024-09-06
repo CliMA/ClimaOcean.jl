@@ -15,7 +15,7 @@ if test_group == :jra55 || test_group == :all
 end
 
 if test_group == :ecco || test_group == :all
-    include("test_ecco.jl")
+    include("test_ECCO.jl")
 end
 
 # Tests that we can download JRA55 utilities
