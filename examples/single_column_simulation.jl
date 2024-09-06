@@ -14,14 +14,12 @@
 # pkg"add Oceananigans, ClimaOcean, CairoMakie"
 # ```
 
+using ClimaOcean
+
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.BuoyancyModels: buoyancy_frequency
 using Oceananigans.Units: Time
-
-using ClimaOcean
-using ClimaOcean.ECCO
-using ClimaOcean.OceanSimulations
 
 using CairoMakie
 using Printf
@@ -31,74 +29,76 @@ using Printf
 # First, we construct a single column grid with 2 meter spacing
 # located at ocean station Papa.
 
-Nz = 200
-H  = 400
-
 # Ocean station papa location
 location_name = "ocean_station_papa"
 λ★, φ★ = 35.1, 50.1 
-longitude = λ★ .+ (-0.25, 0.25)
-latitude  = φ★ .+ (-0.25, 0.25)
 
-grid = LatitudeLongitudeGrid(size = (3, 3, Nz);
-                             longitude, latitude, z = (-H, 0),  
-                             topology = (Periodic, Periodic, Bounded))
+grid = RectilinearGrid(size = 200,
+                       x = λ★,
+                       y = φ★,
+                       z = (-400, 0),  
+                       topology = (Flat, Flat, Bounded))
 
 # # An "ocean simulation"
 #
 # Next, we use ClimaOcean's ocean_simulation constructor to build a realistic
-# ocean simulation on the single column grid.
+# ocean simulation on the single column grid,
 
-ocean = ocean_simulation(grid; 
-                         Δt = 10minutes,
-                         coriolis = FPlane(latitude = φ★),
-                         tracer_advection = nothing,
-                         momentum_advection = nothing,
-                         bottom_drag_coefficient = 0)
+ocean = ocean_simulation(grid; Δt=10minutes, coriolis=FPlane(latitude = φ★))
 
-start_time = time_ns()
+# which wraps around the ocean model
 
-# Initial conditions
-set!(ocean.model, T = ECCOMetadata(:temperature),
-                  S = ECCOMetadata(:salinity),
-                  e = 1e-6)
+ocean.model
 
-elapsed = time_ns() - start_time
-@info "Initial condition built. " * prettytime(elapsed * 1e-9)
-start_time = time_ns()
+# We set initial conditions from ECCO:
+
+set!(ocean.model, T=ECCOMetadata(:temperature), S=ECCOMetadata(:salinity))
 
 # # A prescribed atmosphere based on JRA55 re-analysis
 #
 # We build a PrescribedAtmosphere at the same location as the single colunm grid
 # which is based on the JRA55 reanalysis.
 
-last_time = floor(Int, 31 * 24 / 3) # 31 days in hours divided by JRA55's frequency in hours
-backend = InMemory()
-atmosphere = JRA55_prescribed_atmosphere(time_indices = 1:last_time; 
-                                         longitude, latitude, backend,
+simulation_days = 31
+snapshots_per_day = 8 # corresponding to JRA55's 3-hour frequency
+last_time = simulation_days * snapshots_per_day
+atmosphere = JRA55_prescribed_atmosphere(1:last_time; 
+                                         longitude = λ★,
+                                         latitude = φ★,
+                                         backend = InMemory(),
                                          include_rivers_and_icebergs = false)
 
-ua = atmosphere.velocities.u
-va = atmosphere.velocities.v
-Ta = atmosphere.tracers.T
-qa = atmosphere.tracers.q
-times = ua.times
+# This builds a representation of the atmosphere on the small grid
 
-fig = Figure(size=(1200, 1800))
-axu = Axis(fig[1, 1])
-axT = Axis(fig[2, 1])
-axq = Axis(fig[3, 1])
+atmosphere.grid
 
-lines!(axu, times ./ days, interior(ua, 1, 1, 1, :))
-lines!(axu, times ./ days, interior(va, 1, 1, 1, :))
-lines!(axT, times ./ days, interior(Ta, 1, 1, 1, :))
-lines!(axq, times ./ days, interior(qa, 1, 1, 1, :))
+# Let's take a look at the atmospheric state
+
+ua = interior(atmosphere.velocities.u, 1, 1, 1, :)
+va = interior(atmosphere.velocities.v, 1, 1, 1, :)
+Ta = interior(atmosphere.tracers.T, 1, 1, 1, :)
+qa = interior(atmosphere.tracers.q, 1, 1, 1, :)
+t_days = atmosphere.times / days
+
+fig = Figure(size=(800, 600))
+axu = Axis(fig[2, 1], xlabel="Days since Jan 1 1990", ylabel="Atmosphere \n velocity (m s⁻¹)")
+axT = Axis(fig[3, 1], xlabel="Days since Jan 1 1990", ylabel="Atmosphere \n temperature (K)")
+axq = Axis(fig[4, 1], xlabel="Days since Jan 1 1990", ylabel="Atmosphere \n specific humidity")
+Label(fig[1, 1], "Atmospheric state over ocean station Papa", tellwidth=false)
+
+lines!(axu, t_days, ua, label="Zonal velocity")
+lines!(axu, t_days, va, label="Meridional velocity")
+ylims!(axu, -6, 6)
+axislegend(axu, framevisible=false, nbanks=2, position=:lb)
+
+lines!(axT, t_days, Ta)
+lines!(axq, t_days, qa)
 
 display(fig)
 
 radiation = Radiation()
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
-coupled_simulation = Simulation(coupled_model, Δt=ocean.Δt, stop_time=30days)
+simulation = Simulation(coupled_model, Δt=ocean.Δt, stop_time=30days)
 
 elapsed = time_ns() - start_time
 @info "Coupled simulation built. " * prettytime(elapsed * 1e-9)
@@ -138,7 +138,7 @@ function progress(sim)
     @info msg
 end
 
-coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(100))
+simulation.callbacks[:progress] = Callback(progress, IterationInterval(100))
 
 # Build flux outputs
 τx = coupled_model.fluxes.total.ocean.momentum.u
@@ -166,11 +166,11 @@ outputs = merge(fields, fluxes)
 
 filename = "single_column_omip_$(location_name)"
 
-coupled_simulation.output_writers[:jld2] = JLD2OutputWriter(ocean.model, outputs; filename,
-                                                            schedule = TimeInterval(3hours),
-                                                            overwrite_existing = true)
+simulation.output_writers[:jld2] = JLD2OutputWriter(ocean.model, outputs; filename,
+                                                    schedule = TimeInterval(3hours),
+                                                    overwrite_existing = true)
 
-run!(coupled_simulation)
+run!(simulation)
 
 filename *= ".jld2"
 
@@ -330,3 +330,4 @@ end
 nothing #hide
 
 # ![](single_column_profiles.mp4)
+#
