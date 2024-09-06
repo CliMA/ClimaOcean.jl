@@ -31,12 +31,12 @@ using Printf
 
 # Ocean station papa location
 location_name = "ocean_station_papa"
-λ★, φ★ = 35.1, 50.1 
+λ★, φ★ = 35.1, 50.1
 
 grid = RectilinearGrid(size = 200,
                        x = λ★,
                        y = φ★,
-                       z = (-400, 0),  
+                       z = (-400, 0),
                        topology = (Flat, Flat, Bounded))
 
 # # An "ocean simulation"
@@ -62,7 +62,7 @@ set!(ocean.model, T=ECCOMetadata(:temperature), S=ECCOMetadata(:salinity))
 simulation_days = 31
 snapshots_per_day = 8 # corresponding to JRA55's 3-hour frequency
 last_time = simulation_days * snapshots_per_day
-atmosphere = JRA55_prescribed_atmosphere(1:last_time; 
+atmosphere = JRA55_prescribed_atmosphere(1:last_time;
                                          longitude = λ★,
                                          latitude = φ★,
                                          #longitude = (λ★ - 1/4, λ★ + 1/4),
