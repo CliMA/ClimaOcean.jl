@@ -149,7 +149,7 @@ Qv = coupled_model.fluxes.turbulent.fields.latent_heat
 ρₒ = coupled_model.fluxes.ocean_reference_density
 cₚ = coupled_model.fluxes.ocean_heat_capacity
 
-Q  = ρₒ * cₚ * JT
+Q = ρₒ * cₚ * JT
 ρτx = ρₒ * τx
 ρτy = ρₒ * τy
 N² = buoyancy_frequency(ocean.model)
