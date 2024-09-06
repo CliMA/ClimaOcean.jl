@@ -1,4 +1,3 @@
-#=
 # # Single column ocean simulation forced by JRA55 re-analysis
 #
 # In this example, we simulate the evolution of an ocean water column 
@@ -54,7 +53,6 @@ ocean.model
 # We set initial conditions from ECCO:
 
 set!(ocean.model, T=ECCOMetadata(:temperature), S=ECCOMetadata(:salinity))
-=#
 
 # # A prescribed atmosphere based on JRA55 re-analysis
 #
