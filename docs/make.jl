@@ -18,7 +18,7 @@ to_be_literated = [
     # "inspect_ecco_data.jl",
     "generate_bathymetry.jl",
     "generate_surface_fluxes.jl",
-    # "single_column_simulation.jl",
+    "single_column_os_papa_simulation.jl",
     # "mediterranean_simulation_with_ecco_restoring.jl",
     "near_global_ocean_simulation.jl"
 ]
@@ -34,12 +34,10 @@ end
 ##### Build and deploy docs
 #####
 
-format = Documenter.HTML(
-   collapselevel = 2,
-  size_threshold = nothing,
-      prettyurls = get(ENV, "CI", nothing) == "true",
-       canonical = "https://clima.github.io/ClimaOceanDocumentation/dev/",
-)
+format = Documenter.HTML(collapselevel = 2,
+                         size_threshold = nothing,
+                         prettyurls = get(ENV, "CI", nothing) == "true",
+                         canonical = "https://clima.github.io/ClimaOceanDocumentation/dev/")
 
 pages = [
     "Home" => "index.md",
@@ -61,16 +59,12 @@ pages = [
         ]
 ]
 
-makedocs(
-     sitename = "ClimaOcean.jl",
-      modules = [ClimaOcean],
-       format = format,
-        pages = pages,
-      doctest = true,
-        clean = true,
-     warnonly = [:cross_references, :missing_docs],
-    checkdocs = :exports
-)
+makedocs(sitename = "ClimaOcean.jl"; format, pages, 
+         modules = [ClimaOcean],
+         doctest = true,
+         clean = true,
+         warnonly = [:cross_references, :missing_docs],
+         checkdocs = :exports)
 
 @info "Clean up temporary .jld2 and .nc output created by doctests or literated examples..."
 
@@ -94,7 +88,8 @@ for file in files
 end
 
 deploydocs(repo = "github.com/CliMA/ClimaOceanDocumentation.git",
-       versions = ["stable" => "v^", "v#.#.#", "dev" => "dev"],
-      forcepush = true,
-      devbranch = "main",
-   push_preview = true)
+           versions = ["stable" => "v^", "v#.#.#", "dev" => "dev"],
+           forcepush = true,
+           devbranch = "main",
+           push_preview = true)
+

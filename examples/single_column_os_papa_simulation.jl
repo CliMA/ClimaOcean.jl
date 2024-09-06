@@ -1,3 +1,4 @@
+#=
 # # Single column ocean simulation forced by JRA55 re-analysis
 #
 # In this example, we simulate the evolution of an ocean water column 
@@ -53,6 +54,7 @@ ocean.model
 # We set initial conditions from ECCO:
 
 set!(ocean.model, T=ECCOMetadata(:temperature), S=ECCOMetadata(:salinity))
+=#
 
 # # A prescribed atmosphere based on JRA55 re-analysis
 #
@@ -65,6 +67,8 @@ last_time = simulation_days * snapshots_per_day
 atmosphere = JRA55_prescribed_atmosphere(1:last_time; 
                                          longitude = λ★,
                                          latitude = φ★,
+                                         #longitude = (λ★ - 1/4, λ★ + 1/4),
+                                         #latitude  = (φ★ - 1/4, φ★ + 1/4),
                                          backend = InMemory(),
                                          include_rivers_and_icebergs = false)
 
@@ -99,10 +103,6 @@ display(fig)
 radiation = Radiation()
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 simulation = Simulation(coupled_model, Δt=ocean.Δt, stop_time=30days)
-
-elapsed = time_ns() - start_time
-@info "Coupled simulation built. " * prettytime(elapsed * 1e-9)
-start_time = time_ns()
 
 wall_clock = Ref(time_ns())
 
