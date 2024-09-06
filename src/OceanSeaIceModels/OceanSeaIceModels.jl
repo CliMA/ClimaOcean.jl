@@ -1,6 +1,6 @@
 module OceanSeaIceModels
 
-export OceanSeaIceModel, SimilarityTheoryTurbulentFluxes, Radiation
+export OceanSeaIceModel, SimilarityTheoryTurbulentFluxes, Radiation, LatitudeDependentAlbedo
 
 using Oceananigans
 using SeawaterPolynomials
@@ -15,7 +15,7 @@ using Oceananigans.TimeSteppers: tick!
 using Oceananigans.Models: AbstractModel
 using Oceananigans.OutputReaders: FieldTimeSeries, GPUAdaptedFieldTimeSeries
 
-using ClimaSeaIce: melting_temperature
+using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 
 using ClimaOcean: stateindex
 
@@ -49,7 +49,6 @@ using .CrossRealmFluxes
 
 include("minimum_temperature_sea_ice.jl")
 include("ocean_sea_ice_model.jl")
-include("ocean_only_model.jl")
 include("time_step_ocean_sea_ice_model.jl")
 
 import .CrossRealmFluxes:
