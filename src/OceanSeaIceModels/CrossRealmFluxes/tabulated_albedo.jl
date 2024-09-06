@@ -83,8 +83,7 @@ function TabulatedAlbedo(arch = CPU(), FT = Float64;
                          φ_values = (0:2:90) ./ 180 * π,
                          𝓉_values = 0:0.05:1,
                          day_to_radians  = convert(FT, 2π / 86400), 
-                         noon_in_seconds = 86400 ÷ 2 # assumes that midnight is at t = 0 seconds
-                         )
+                         noon_in_seconds = 86400 ÷ 2) # assumes that midnight is at t = 0 seconds
 
     # Make everything GPU - ready
     α_table  = on_architecture(arch, convert.(FT, α_table))
@@ -116,10 +115,8 @@ Base.show(io::IO, α::TabulatedAlbedo) = print(io, summary(α))
 
 @inline function net_downwelling_radiation(i, j, grid, time, radiation::Radiation{<:Any, <:Any, <:SurfaceProperties{<:TabulatedAlbedo}}, Qs, Qℓ) 
     α = radiation.reflection.ocean
-
     FT = eltype(α)
-
-    λ, φ, z = node(i, j, 1, grid, Center(), Center(), Center())
+    λ, φ, z = _node(i, j, 1, grid, Center(), Center(), Center())
 
     φ = deg2rad(φ)
     λ = deg2rad(λ)
