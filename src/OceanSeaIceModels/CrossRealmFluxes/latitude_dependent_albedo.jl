@@ -38,7 +38,7 @@ Adapt.adapt_structure(to, α::LatitudeDependentAlbedo) =
                             Adapt.adapt(to, α.diffuse))
 
 function Base.summary(α::LatitudeDependentAlbedo{FT}) where FT
-    formula = string(prettysummary(α.diffuse), - prettysummary(α.direct), " cos(2φ)")
+    formula = string(prettysummary(α.diffuse), " - ", prettysummary(α.direct), " ⋅ cos(2φ)")
     return string("LatitudeDepedendentAlbedo{$FT}: ", formula)
 end
 
