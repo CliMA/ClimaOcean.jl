@@ -127,10 +127,10 @@ function progress(sim)
 
     Nz = size(T, 3)
     msg *= @sprintf(", u★: %.2f m s⁻¹", u★)
-    msg *= @sprintf(", Q: %.2f W m⁻²", Q)
-    msg *= @sprintf(", T₀: %.2f ᵒC",     first(interior(T, 1, 1, Nz)))
+    msg *= @sprintf(", Q: %.2f W m⁻²",  Q)
+    msg *= @sprintf(", T₀: %.2f ᵒC", first(interior(T, 1, 1, Nz)))
     msg *= @sprintf(", extrema(T): (%.2f, %.2f) ᵒC", minimum(T), maximum(T))
-    msg *= @sprintf(", S₀: %.2f g/kg",   first(interior(S, 1, 1, Nz)))
+    msg *= @sprintf(", S₀: %.2f g/kg", first(interior(S, 1, 1, Nz)))
     msg *= @sprintf(", e₀: %.2e m² s⁻²", first(interior(e, 1, 1, Nz)))
 
     @info msg
