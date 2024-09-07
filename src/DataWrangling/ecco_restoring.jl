@@ -285,7 +285,6 @@ function ECCO_restoring_forcing(metadata::ECCOMetadata;
     # Grab the correct Oceananigans field to restore
     variable_name = metadata.name
     field_name = oceananigans_fieldname[variable_name]
-    
     ecco_restoring = ECCORestoring(ecco_fts, ecco_grid, mask, field_name, 1 / timescale)
     
     # Defining the forcing that depends on the restoring field.
@@ -293,3 +292,4 @@ function ECCO_restoring_forcing(metadata::ECCOMetadata;
 
     return restoring_forcing
 end
+
