@@ -138,6 +138,7 @@ steps:
     key: "test_simulations"
     env:
       TEST_GROUP: "simulations"
+      GPU_TEST: "true"
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
     agents:
