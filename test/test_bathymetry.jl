@@ -9,7 +9,7 @@ using Statistics
 
         # Make data directory if it doesn't exist
         try
-            mkdir(data_directory)
+            mkdir(bathymetry_data_directory)
         catch
         end
 
@@ -20,7 +20,7 @@ using Statistics
                                      z = (-6000, 0))
 
         # Test that remove_minor_basins!(Z, Inf) does nothing
-        control_bottom_height = regrid_bathymetry(grid; dir=data_directory)        
+        control_bottom_height = regrid_bathymetry(grid; dir=bathymetry_data_directory)        
         bottom_height = deepcopy(control_bottom_height)
         @test_throws ArgumentError remove_minor_basins!(bottom_height, Inf)
 
@@ -59,10 +59,13 @@ using Statistics
                                      latitude = (-10, 50),
                                      z = (-6000, 0))
 
-        control_bottom_height = regrid_bathymetry(grid; dir=data_directory)
-        interpolated_bottom_height = regrid_bathymetry(grid; interpolation_passes=100, dir=data_directory)
+        control_bottom_height = regrid_bathymetry(grid; dir=bathymetry_data_directory)
+        interpolated_bottom_height = regrid_bathymetry(grid; interpolation_passes=100, dir=bathymetry_data_directory)
 
         # Testing that multiple passes do not change the solution when refining the grid
         @test parent(control_bottom_height) == parent(interpolated_bottom_height)
+
+        # Remove the data directory
+        rm(bathymetry_data_directory; recursive=true)
     end
 end 

@@ -13,12 +13,12 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 
         # Make data directory if it doesn't exist
         try
-            mkdir(data_directory)
+            mkdir(JRA55_data_directory)
         catch
         end
 
         # This should download a file called "RYF.rsds.1990_1991.nc"
-        jra55_fts = JRA55_field_time_series(test_name; architecture=arch, time_indices, dir = data_directory)
+        jra55_fts = JRA55_field_time_series(test_name; architecture=arch, time_indices, dir=JRA55_data_directory)
 
         test_filename = joinpath(data_directory, "RYF.rsds.1990_1991.nc")
 
@@ -46,7 +46,7 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
                                                       time_indices,
                                                       architecture = arch,
                                                       backend = InMemory(2),
-                                                      dir = data_directory)
+                                                      dir = JRA55_data_directory)
 
         @test in_memory_jra55_fts isa FieldTimeSeries
 
@@ -108,13 +108,16 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         #####
 
         backend    = JRA55NetCDFBackend(2) 
-        atmosphere = JRA55_prescribed_atmosphere(arch; backend, include_rivers_and_icebergs=false, dir=data_directory)
+        atmosphere = JRA55_prescribed_atmosphere(arch; backend, include_rivers_and_icebergs=false, dir=JRA55_data_directory)
         @test atmosphere isa PrescribedAtmosphere
         @test isnothing(atmosphere.auxiliary_freshwater_flux)
 
-        atmosphere = JRA55_prescribed_atmosphere(arch; backend, include_rivers_and_icebergs=true, dir=data_directory)
+        atmosphere = JRA55_prescribed_atmosphere(arch; backend, include_rivers_and_icebergs=true, dir=JRA55_data_directory)
         @test haskey(atmosphere.auxiliary_freshwater_flux, :rivers)
         @test haskey(atmosphere.auxiliary_freshwater_flux, :icebergs)
+
+        # Remove the data directory
+        rm(JRA55_data_directory; recursive=true)
     end 
 end
 
