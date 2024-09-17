@@ -8,6 +8,12 @@ using Oceananigans.Grids: topology
 using CFTime
 using Dates
 
+# Make data directory if it doesn't exist
+try
+    mkdir(ECCO_data_directory)
+catch
+end
+
 @testset "ECCO fields utilities" begin
     for arch in test_architectures
         A = typeof(arch)
@@ -49,3 +55,5 @@ end
         set!(field, ECCOMetadata(:salinity; dir=ECCO_data_directory))
     end 
 end
+
+rm(ECCO_data_directory; recursive=true)
