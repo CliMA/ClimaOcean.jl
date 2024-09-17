@@ -139,7 +139,7 @@ function ecco_field(metadata::ECCOMetadata;
     
     download_dataset!(metadata)
 
-    ds = Dataset(filename)
+    ds = Dataset(joinpath(metadata.dir, filename))
     if variable_is_three_dimensional(metadata)
         data = ds[shortname][:, :, :, 1]
         # The surface layer in three-dimensional ECCO fields is at `k = 1`

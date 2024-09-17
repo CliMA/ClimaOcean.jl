@@ -17,14 +17,14 @@ using Dates
         end_date = DateTimeProlepticGregorian(1993, 4, 1)
         dates = start_date : Month(1) : end_date
 
-        temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
+        temperature = ECCOMetadata(:temperature, dates; dir=ECCO_data_directory)
         t_restoring = ECCO_restoring_forcing(temperature; timescale = 1000.0)
 
         ecco_fts = t_restoring.func.ecco_fts
 
         for metadata in temperature
             temperature_filename = metadata_filename(metadata)
-            @test isfile(temperature_filename)
+            @test isfile(joinparth(ECCO_data_directory, temperature_filename))
         end
 
         @test ecco_fts isa FieldTimeSeries
@@ -45,7 +45,7 @@ end
     for arch in test_architectures
         grid  = LatitudeLongitudeGrid(size = (10, 10, 10), latitude = (-60, -40), longitude = (10, 15), z = (-200, 0))
         field = CenterField(grid)
-        set!(field, ECCOMetadata(:temperature)) 
-        set!(field, ECCOMetadata(:salinity))
+        set!(field, ECCOMetadata(:temperature; dir=ECCO_data_directory)) 
+        set!(field, ECCOMetadata(:salinity; dir=ECCO_data_directory))
     end 
 end

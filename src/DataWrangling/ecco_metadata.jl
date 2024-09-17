@@ -1,8 +1,14 @@
 using CFTime
 using Dates
+using Scratch
 
 import Oceananigans.Fields: set!
 import Base
+
+download_ECCO_cache::String = ""
+function __init__()
+    global download_ECCO_cache = @get_scratch!("ECCO")
+end
 
 struct ECCO2Monthly end
 struct ECCO2Daily end
@@ -16,6 +22,7 @@ struct ECCOMetadata{D, V}
     name  :: Symbol
     dates :: D
     version :: V
+    dir :: String
 end
 
 Base.show(io::IO, metadata::ECCOMetadata) = 
@@ -27,18 +34,21 @@ Base.show(io::IO, metadata::ECCOMetadata) =
 # The default is the ECCO2Daily dataset at 1993-01-01.
 function ECCOMetadata(name::Symbol; 
                       date = DateTimeProlepticGregorian(1993, 1, 1),
-                   version = ECCO2Daily()) 
+                   version = ECCO2Daily(),
+                       dir = download_ECCO_cache) 
              
-    return ECCOMetadata(name, date, version) 
+    return ECCOMetadata(name, date, version, dir) 
 end
 
+ECCOMetadata(name::Symbol, date, version=ECCO4Monthly(); dir = download_ECCO_cache) = ECCOMetadata(name, date, version, dir)
+
 # Treat ECCOMetadata as an array to allow iteration over the dates.
-Base.getindex(metadata::ECCOMetadata, i::Int) = @inbounds ECCOMetadata(metadata.name, metadata.dates[i], metadata.version)
+Base.getindex(metadata::ECCOMetadata, i::Int) = @inbounds ECCOMetadata(metadata.name, metadata.dates[i], metadata.version, metadata.dir)
 Base.length(metadata::ECCOMetadata)       = length(metadata.dates)
 Base.eltype(metadata::ECCOMetadata)       = Base.eltype(metadata.dates)
-Base.first(metadata::ECCOMetadata)        = @inbounds ECCOMetadata(metadata.name, metadata.dates[1], metadata.version)
-Base.last(metadata::ECCOMetadata)         = @inbounds ECCOMetadata(metadata.name, metadata.dates[end], metadata.version)
-Base.iterate(metadata::ECCOMetadata, i=1) = (@inline; (i % UInt) - 1 < length(metadata) ? (@inbounds ECCOMetadata(metadata.name, metadata.dates[i], metadata.version), i + 1) : nothing)
+Base.first(metadata::ECCOMetadata)        = @inbounds ECCOMetadata(metadata.name, metadata.dates[1], metadata.version, metadata.dir)
+Base.last(metadata::ECCOMetadata)         = @inbounds ECCOMetadata(metadata.name, metadata.dates[end], metadata.version, metadata.dir)
+Base.iterate(metadata::ECCOMetadata, i=1) = (@inline; (i % UInt) - 1 < length(metadata) ? (@inbounds ECCOMetadata(metadata.name, metadata.dates[i], metadata.version, metadata.dir), i + 1) : nothing)
 
 Base.axes(metadata::ECCOMetadata{<:AbstractCFDateTime})    = 1
 Base.first(metadata::ECCOMetadata{<:AbstractCFDateTime})   = metadata
@@ -146,6 +156,7 @@ function download_dataset!(metadata::ECCOMetadata;
 
     username = get(ENV, "ECCO_USERNAME", nothing)
     password = get(ENV, "ECCO_PASSWORD", nothing)
+    dir = metadata.dir
 
     for data in metadata
         filename  = metadata_filename(data)
@@ -164,7 +175,7 @@ function download_dataset!(metadata::ECCOMetadata;
                 fileurl = joinpath(url, shortname, year, filename)
             end
 
-            cmd = `wget --http-user=$(username) --http-passwd=$(password) $(fileurl)`
+            cmd = `wget --http-user=$(username) --http-passwd=$(password)  --directory-prefix=$(dir) $(fileurl)`
         
             run(cmd)
         end

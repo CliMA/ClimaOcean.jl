@@ -52,7 +52,7 @@ function set!(fts::ECCONetCDFFTS, path::ECCOMetadata=fts.path, name::String=fts.
         metadata = @inbounds path[t] 
 
         arch = architecture(fts)
-        f = inpainted_ecco_field(metadata; architecture = arch)
+        f = inpainted_ecco_field(metadata; architecture=arch)
         if on_native_grid(backend)
             set!(fts[t], f)
         else
