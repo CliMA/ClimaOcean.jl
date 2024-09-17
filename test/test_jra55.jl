@@ -20,7 +20,7 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         # This should download a file called "RYF.rsds.1990_1991.nc"
         jra55_fts = JRA55_field_time_series(test_name; architecture=arch, time_indices, dir=JRA55_data_directory)
 
-        test_filename = joinpath(data_directory, "RYF.rsds.1990_1991.nc")
+        test_filename = joinpath(JRA55_data_directory, "RYF.rsds.1990_1991.nc")
 
         @test jra55_fts isa FieldTimeSeries
         @test jra55_fts.grid isa LatitudeLongitudeGrid
