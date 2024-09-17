@@ -11,10 +11,16 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         test_name = :downwelling_shortwave_radiation
         time_indices = 1:3
 
-        # This should download a file called "RYF.rsds.1990_1991.nc"
-        jra55_fts = JRA55_field_time_series(test_name; architecture=arch, time_indices)
+        # Make data directory if it doesn't exist
+        try
+            mkdir(data_directory)
+        catch
+        end
 
-        test_filename = joinpath(download_jra55_cache, "RYF.rsds.1990_1991.nc")
+        # This should download a file called "RYF.rsds.1990_1991.nc"
+        jra55_fts = JRA55_field_time_series(test_name; architecture=arch, time_indices, dir = data_directory)
+
+        test_filename = joinpath(data_directory, "RYF.rsds.1990_1991.nc")
 
         @test jra55_fts isa FieldTimeSeries
         @test jra55_fts.grid isa LatitudeLongitudeGrid
@@ -39,7 +45,8 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         in_memory_jra55_fts = JRA55_field_time_series(test_name;
                                                       time_indices,
                                                       architecture = arch,
-                                                      backend = InMemory(2))
+                                                      backend = InMemory(2),
+                                                      dir = data_directory)
 
         @test in_memory_jra55_fts isa FieldTimeSeries
 
@@ -101,11 +108,11 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         #####
 
         backend    = JRA55NetCDFBackend(2) 
-        atmosphere = JRA55_prescribed_atmosphere(arch; backend, include_rivers_and_icebergs=false)
+        atmosphere = JRA55_prescribed_atmosphere(arch; backend, include_rivers_and_icebergs=false, dir=data_directory)
         @test atmosphere isa PrescribedAtmosphere
         @test isnothing(atmosphere.auxiliary_freshwater_flux)
 
-        atmosphere = JRA55_prescribed_atmosphere(arch; backend, include_rivers_and_icebergs=true)
+        atmosphere = JRA55_prescribed_atmosphere(arch; backend, include_rivers_and_icebergs=true, dir=data_directory)
         @test haskey(atmosphere.auxiliary_freshwater_flux, :rivers)
         @test haskey(atmosphere.auxiliary_freshwater_flux, :icebergs)
     end 
