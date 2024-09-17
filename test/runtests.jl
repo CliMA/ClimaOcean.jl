@@ -27,6 +27,10 @@ if test_group == :turbulent_fluxes || test_group == :all
     include("test_surface_fluxes.jl")
 end
 
+if test_group == :bathymetry || test_group == :all
+    include("test_bathymetry.jl")
+end
+
 if test_group == :simulations || test_group == :all
     include("test_simulations.jl")
 end
