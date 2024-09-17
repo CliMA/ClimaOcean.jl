@@ -30,7 +30,7 @@ end
 
         for metadata in temperature
             temperature_filename = metadata_filename(metadata)
-            @test isfile(joinparth(ECCO_data_directory, temperature_filename))
+            @test isfile(joinpath(ECCO_data_directory, temperature_filename))
         end
 
         @test ecco_fts isa FieldTimeSeries
