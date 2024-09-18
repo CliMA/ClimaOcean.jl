@@ -121,7 +121,6 @@ end
                 horizontal_halo = (1, 1),
                 user_data = nothing,
                 url = ecco_urls[variable_name],
-                filename = ecco_metadata_filenames[variable_name],
                 short_name = ecco_short_names[variable_name])
 
 Retrieve the ecco field corresponding to `variable_name`. 
@@ -132,14 +131,15 @@ The data is either:
 """
 function ecco_field(metadata::ECCOMetadata;
                     architecture = CPU(),
-                    horizontal_halo = (3, 3),
-                    filename = metadata_filename(metadata))
+                    horizontal_halo = (3, 3))
 
+    filename  = metadata_filename(metadata)
+    path      = metadata.path
     shortname = short_name(metadata)
     
     download_dataset!(metadata)
 
-    ds = Dataset(joinpath(metadata.dir, filename))
+    ds = Dataset(joinpath(path, filename))
     if variable_is_three_dimensional(metadata)
         data = ds[shortname][:, :, :, 1]
         # The surface layer in three-dimensional ECCO fields is at `k = 1`
