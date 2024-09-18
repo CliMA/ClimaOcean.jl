@@ -198,10 +198,9 @@ A boolean field where `true` represents a missing value in the ECCO dataset.
 """
 function ecco_mask(metadata, architecture = CPU(); 
                    minimum_value = Float32(-1e5),
-                   maximum_value = Float32(1e5),
-                   filename = metadata_filename(metadata))
+                   maximum_value = Float32(1e5))
 
-    field = ecco_field(metadata; architecture, filename)
+    field = ecco_field(metadata; architecture)
     mask  = Field{location(field)...}(field.grid, Bool)
 
     # ECCO4 has zeros in place of the missing values, while
@@ -220,7 +219,6 @@ ecco_mask() = ecco_mask(ECCOMetadata(:temperature))
 """
     inpainted_ecco_field(variable_name; 
                           architecture = CPU(),
-                          filename = "./inpainted_ecco_fields.nc",
                           mask = ecco_mask(architecture))
     
 Retrieve the ECCO field corresponding to `variable_name` inpainted to fill all the
@@ -236,9 +234,6 @@ Keyword Arguments:
 
 - `architecture`: either `CPU()` or `GPU()`.
 
-- `filename`: the path where to retrieve the data from. If the file does not exist,
-              the data will be downloaded from the ECCO dataset.
-
 - `mask`: the mask used to inpaint the field (see `inpaint_mask!`).
 
 - `maxiter`: the maximum number of iterations to inpaint the field (see `inpaint_mask!`).
@@ -246,12 +241,11 @@ Keyword Arguments:
 """
 function inpainted_ecco_field(metadata::ECCOMetadata; 
                               architecture = CPU(),
-                              filename = metadata_filename(metadata),
                               mask = ecco_mask(metadata, architecture),
                               maxiter = Inf,
                               kw...)
     
-    f = ecco_field(metadata; architecture, filename, kw...)
+    f = ecco_field(metadata; architecture, kw...)
 
     # Make sure all values are extended properly
     @info "In-painting ecco $(metadata.name)"

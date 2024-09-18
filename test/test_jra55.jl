@@ -39,8 +39,7 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         in_memory_jra55_fts = JRA55_field_time_series(test_name;
                                                       time_indices,
                                                       architecture = arch,
-                                                      backend = InMemory(2),
-                                                      dir = JRA55_data_directory)
+                                                      backend = InMemory(2))
 
         @test in_memory_jra55_fts isa FieldTimeSeries
 
