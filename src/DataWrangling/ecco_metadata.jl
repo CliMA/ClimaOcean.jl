@@ -164,6 +164,8 @@ function download_dataset!(metadata::ECCOMetadata;
                 fileurl = joinpath(url, shortname, year, filename)
             end
 
+            # Here add a method to download the file on windows where we can specify a password and a username
+
             cmd = `wget --http-user=$(username) --http-passwd=$(password) $(fileurl)`
         
             run(cmd)
