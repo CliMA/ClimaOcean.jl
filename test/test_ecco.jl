@@ -8,12 +8,6 @@ using Oceananigans.Grids: topology
 using CFTime
 using Dates
 
-# Make data directory if it doesn't exist
-try
-    mkdir(ECCO_data_directory)
-catch
-end
-
 @testset "ECCO fields utilities" begin
     for arch in test_architectures
         A = typeof(arch)
@@ -23,7 +17,7 @@ end
         end_date = DateTimeProlepticGregorian(1993, 4, 1)
         dates = start_date : Month(1) : end_date
 
-        temperature = ECCOMetadata(:temperature, dates; dir=ECCO_data_directory)
+        temperature = ECCOMetadata(:temperature, dates)
         t_restoring = ECCO_restoring_forcing(temperature; timescale = 1000.0)
 
         ecco_fts = t_restoring.func.ecco_fts
@@ -51,9 +45,7 @@ end
     for arch in test_architectures
         grid  = LatitudeLongitudeGrid(size = (10, 10, 10), latitude = (-60, -40), longitude = (10, 15), z = (-200, 0))
         field = CenterField(grid)
-        set!(field, ECCOMetadata(:temperature; dir=ECCO_data_directory)) 
-        set!(field, ECCOMetadata(:salinity; dir=ECCO_data_directory))
+        set!(field, ECCOMetadata(:temperature)) 
+        set!(field, ECCOMetadata(:salinity))
     end 
 end
-
-rm(ECCO_data_directory; recursive=true)

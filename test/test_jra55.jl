@@ -11,16 +11,10 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         test_name = :downwelling_shortwave_radiation
         time_indices = 1:3
 
-        # Make data directory if it doesn't exist
-        try
-            mkdir(JRA55_data_directory)
-        catch
-        end
-
         # This should download a file called "RYF.rsds.1990_1991.nc"
-        jra55_fts = JRA55_field_time_series(test_name; architecture=arch, time_indices, dir=JRA55_data_directory)
+        jra55_fts = JRA55_field_time_series(test_name; architecture=arch, time_indices)
 
-        test_filename = joinpath(JRA55_data_directory, "RYF.rsds.1990_1991.nc")
+        test_filename = joinpath(download_jra55_cache, "RYF.rsds.1990_1991.nc")
 
         @test jra55_fts isa FieldTimeSeries
         @test jra55_fts.grid isa LatitudeLongitudeGrid
@@ -108,16 +102,13 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         #####
 
         backend    = JRA55NetCDFBackend(2) 
-        atmosphere = JRA55_prescribed_atmosphere(arch; backend, include_rivers_and_icebergs=false, dir=JRA55_data_directory)
+        atmosphere = JRA55_prescribed_atmosphere(arch; backend, include_rivers_and_icebergs=false)
         @test atmosphere isa PrescribedAtmosphere
         @test isnothing(atmosphere.auxiliary_freshwater_flux)
 
-        atmosphere = JRA55_prescribed_atmosphere(arch; backend, include_rivers_and_icebergs=true, dir=JRA55_data_directory)
+        atmosphere = JRA55_prescribed_atmosphere(arch; backend, include_rivers_and_icebergs=true)
         @test haskey(atmosphere.auxiliary_freshwater_flux, :rivers)
         @test haskey(atmosphere.auxiliary_freshwater_flux, :icebergs)
-
-        # Remove the data directory
-        rm(JRA55_data_directory; recursive=true)
     end 
 end
 
