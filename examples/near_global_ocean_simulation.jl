@@ -49,22 +49,20 @@ grid = LatitudeLongitudeGrid(arch;
 # (depths shallower than this are considered land). The `interpolation_passes` parameter
 # specifies the number of passes to interpolate the bathymetry data. A larger number
 # results in a smoother bathymetry. We also remove all connected regions (such as inland
-# lakes) from the bathymetry data by specifying `connected_regions_allowed = 2` (Mediterrean
+# lakes) from the bathymetry data by specifying `connected_regions_allowed = 3` (Mediterrean
 # sea an North sea in addition to the ocean).
 
 bottom_height = regrid_bathymetry(grid; 
                                   minimum_depth = 10,
                                   interpolation_passes = 5,
-                                  connected_regions_allowed = 2)
- 
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height)) 
+                                  major_basins = 3)
 
-bathymetry = deepcopy(Array(interior(bottom_height, :, :, 1)))
-bathymetry[bathymetry .>= 0] .= NaN
+# For plotting
+bottom_height[bottom_height .>= 0] .= NaN
 
 fig = Figure(size = (1200, 400))
 ax  = Axis(fig[1, 1])
-hm = heatmap!(ax, bathymetry, colormap = :deep, colorrange = (-6000, 0))
+hm = heatmap!(ax, bottom_height, colormap = :deep, colorrange = (-6000, 0))
 cb = Colorbar(fig[0, 1], hm, label = "Bottom height (m)", vertical = false)
 hidedecorations!(ax)
 
@@ -72,6 +70,9 @@ save("bathymetry.png", fig)
 nothing #hide
 
 # ![](bathymetry.png)
+
+bottom_height[isnan.(bottom_height)] .= 0
+grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
 # ### Ocean model configuration
 #
@@ -90,11 +91,7 @@ ocean = ocean_simulation(grid)
 model = ocean.model
 
 date  = DateTimeProlepticGregorian(1993, 1, 1)
-
-set!(model, 
-     T = ECCOMetadata(:temperature; date),
-     S = ECCOMetadata(:salinity;    date))
-nothing #hide
+set!(model, T=ECCOMetadata(:temperature; date), S=ECCOMetadata(:salinity; date))
 
 # ### Prescribed atmosphere and radiation
 #
@@ -150,9 +147,9 @@ function progress(sim)
     u, v, w = ocean.model.velocities
     T = ocean.model.tracers.T
 
-    Tmax = maximum(interior(T))
-    Tmin = minimum(interior(T))
-    umax = maximum(abs, interior(u)), maximum(abs, interior(v)), maximum(abs, interior(w))
+    Tmax = maximum(T)
+    Tmin = minimum(T)
+    umax = maximum(abs, u), maximum(abs, v), maximum(abs, w)
     step_time = 1e-9 * (time_ns() - wall_time[1])
 
     @info @sprintf("Time: %s, Iteration %d, Δt %s, max(vel): (%.2e, %.2e, %.2e), max(T): %.2f, min(T): %.2f, wtime: %s \n",
@@ -224,31 +221,31 @@ v = FieldTimeSeries("surface.jld2", "v"; backend = OnDisk())
 T = FieldTimeSeries("surface.jld2", "T"; backend = OnDisk())
 e = FieldTimeSeries("surface.jld2", "e"; backend = OnDisk())
 
+# Set land values to NaN using the hacky method of deducing where T = 0
 times = u.times
-Nt = length(times)
+Nt = length(u)
+T1 = interior(T[1], :, :, 1)
+land = T1 .== 0
+for n = 1:Nt
+    ui = interior(u[n], :, :, 1)
+    vi = interior(v[n], :, :, 1)
+    Ti = interior(T[n], :, :, 1)
+    ei = interior(e[n], :, :, 1)
+    ui[land] .= NaN
+    vi[land] .= NaN
+    Ti[land] .= NaN
+    ei[land] .= NaN
+end
 
 iter = Observable(Nt)
 
-Ti = @lift begin
-     Ti = interior(T[$iter], :, :, 1)
-     Ti[Ti .== 0] .= NaN
-     Ti
-end
-
-ei = @lift begin
-     ei = interior(e[$iter], :, :, 1)
-     ei[ei .== 0] .= NaN
-     ei
-end
+Ti = @lift T[$iter]
+ei = @lift e[$iter]
 
 si = @lift begin
      s = Field(sqrt(u[$iter]^2 + v[$iter]^2))
      compute!(s)
-     s = interior(s, :, :, 1)
-     s[s .== 0] .= NaN
-     s
 end
-
 
 fig = Figure(size = (800, 400))
 ax = Axis(fig[1, 1])

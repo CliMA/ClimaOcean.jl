@@ -595,11 +595,21 @@ JRA55_prescribed_atmosphere(arch::Distributed, time_indices=Colon(); kw...) =
     JRA55_prescribed_atmosphere(child_architecture(arch), time_indices; kw...)
 
 # TODO: allow the user to pass dates
+"""
+    JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
+                                backend = nothing,
+                                time_indexing = Cyclical(),
+                                reference_height = 10,  # meters
+                                include_rivers_and_icebergs = false,
+                                other_kw...)
+
+Return a `PrescribedAtmosphere` representing JRA55 reanalysis data.
+"""
 function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
                                      backend = nothing,
                                      time_indexing = Cyclical(),
                                      reference_height = 10,  # meters
-                                     include_rivers_and_icebergs = false, # rivers and icebergs are not needed in single column simulations
+                                     include_rivers_and_icebergs = false,
                                      other_kw...)
 
     if isnothing(backend) # apply a default
@@ -631,14 +641,14 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
                        snow = Fsn)
 
     # Remember that rivers and icebergs are on a different grid and have
-    # a different frequency than the rest of the JRA55 data
+    # a different frequency than the rest of the JRA55 data. We use `PrescribedAtmospheres`
+    # "auxiliary_freshwater_flux" feature to represent them.
     if include_rivers_and_icebergs
         Fri = JRA55_field_time_series(:river_freshwater_flux;   kw...)
         Fic = JRA55_field_time_series(:iceberg_freshwater_flux; kw...)
-        runoff_flux = (rivers   = Fri,
-                       icebergs = Fic)
+        auxiliary_freshwater_flux = (rivers = Fri, icebergs = Fic)
     else
-        runoff_flux = nothing
+        auxiliary_freshwater_flux = nothing
     end
 
     times = ua.times
@@ -659,7 +669,7 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
     atmosphere = PrescribedAtmosphere(times, FT;
                                       velocities,
                                       freshwater_flux,
-                                      runoff_flux,
+                                      auxiliary_freshwater_flux,
                                       tracers,
                                       downwelling_radiation,
                                       reference_height,

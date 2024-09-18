@@ -4,7 +4,7 @@ using Oceananigans
 using Downloads
 using Printf
 
-using Oceananigans.Architectures: architecture
+using Oceananigans.Architectures: architecture, on_architecture
 using Oceananigans.Grids: node
 using Oceananigans.BoundaryConditions: fill_halo_regions!
 using Oceananigans.Fields: interpolate
@@ -31,7 +31,7 @@ function download_progress(total, now; filename="")
         end
 
         if fraction > next_fraction[]
-            elapsed = time_ns() - download_start_time[]
+            elapsed = 1e-9 * (time_ns() - download_start_time[])
             msg = @sprintf(" ... downloaded %s (%d%% complete, %s)", pretty_filesize(now),
                            100fraction, prettytime(elapsed))
             @info msg
@@ -54,8 +54,10 @@ end
 
 function save_field_time_series!(fts; path, name, overwrite_existing=false)
     overwrite_existing && rm(path; force=true)
-    times = fts.times
-    grid = fts.grid
+
+    times = on_architecture(CPU(), fts.times)
+    grid  = on_architecture(CPU(), fts.grid)
+    
     LX, LY, LZ = location(fts)
     ondisk_fts = FieldTimeSeries{LX, LY, LZ}(grid, times;
                                              backend = OnDisk(), path, name)
