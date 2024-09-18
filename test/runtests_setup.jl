@@ -15,6 +15,3 @@ using ClimaOcean
 
 gpu_test = parse(Bool, get(ENV, "GPU_TEST", "false"))
 test_architectures = gpu_test ? [GPU()] : [CPU()]
-JRA55_data_directory = gpu_test ? "GPU_JRA55_data" : "CPU_JRA55_data"
-bathymetry_data_directory = gpu_test ? "GPU_Bathymetry_data" : "CPU_Bathymetry_data"
-ECCO_data_directory = gpu_test ? "GPU_ECCO_data" : "CPU_ECCO_data"  
