@@ -18,6 +18,7 @@ struct ECCO4Monthly end
 # - `name`: The name of the dataset.
 # - `dates`: The dates of the dataset, in a `AbstractCFDateTime` format.
 # - `version`: The version of the dataset, could be ECCO2Monthly, ECCO2Daily, or ECCO4Monthly.
+# - `path`: The path where the dataset is stored.
 struct ECCOMetadata{D, V} 
     name  :: Symbol
     dates :: D
@@ -32,7 +33,24 @@ Base.show(io::IO, metadata::ECCOMetadata) =
     "├── version: $(metadata.version)", '\n',
     "└── file path: $(metadata.path)")
 
-# The default is the ECCO2Daily dataset at 1993-01-01.
+"""
+    ECCOMetadata(name::Symbol; 
+                 date = DateTimeProlepticGregorian(1993, 1, 1), 
+                 version = ECCO2Daily(), 
+                 path = download_ECCO_cache)
+
+Constructs an `ECCOMetadata` object with the specified parameters.
+
+# Arguments
+============
+- `name::Symbol`: The name of the metadata.
+
+# Keyword Arguments
+===================
+- `date`: The date of the metadata (default: DateTimeProlepticGregorian(1993, 1, 1)).
+- `version`: The version of the metadata (for the moment the choices are ECCO2Monthly(), ECCO2Daily(), or ECCO4Monthly()).
+- `path`: The path to the datafile (default: download_ECCO_cache).
+"""
 function ECCOMetadata(name::Symbol; 
                       date = DateTimeProlepticGregorian(1993, 1, 1),
                    version = ECCO2Daily(),
@@ -138,7 +156,8 @@ urls(::ECCOMetadata{<:Any, <:ECCO2Daily})   = "https://ecco.jpl.nasa.gov/drive/f
 urls(::ECCOMetadata{<:Any, <:ECCO4Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly/"
 
 """
-    download_dataset!(metadata::ECCOMetadata)
+    download_dataset!(metadata::ECCOMetadata;
+                      url = urls(metadata))
 
 Download the dataset specified by the given metadata. If the metadata contains a single date, 
 the dataset is downloaded directly. If the metadata contains multiple dates, the dataset is 
