@@ -12,6 +12,7 @@ using Dates: Second
 using ClimaOcean: stateindex
 
 import Oceananigans.Fields: set!
+import Oceananigans.Forcing: regularize_forcing
 import Oceananigans.OutputReaders: new_backend, update_field_time_series!
 
 @inline instantiate(T::DataType) = T()
@@ -50,13 +51,8 @@ function set!(fts::ECCONetCDFFTS, path::ECCOMetadata=fts.path, name::String=fts.
         # find the file associated with the time index
         metadata = @inbounds path[t] 
 
-        arch = architecture(fts)
-        f = inpainted_ECCO_field(metadata; architecture = arch)
-        if on_native_grid(backend)
-            set!(fts[t], f)
-        else
-            interpolate!(fts[t], f)
-        end
+        # Set the field with the correct metadata
+        set!(fts[t], metadata)
     end
 
     fill_halo_regions!(fts)
@@ -175,12 +171,12 @@ A struct representing ECCO restoring.
 - `variable_name`: The variable name of the variable that needs restoring.
 - `λ⁻¹`: The reciprocal of the restoring timescale.
 """
-struct ECCORestoring{FTS, G, M, V, N} <: Function
+struct ECCORestoring{FTS, G, M, V, N} 
     ECCO_fts      :: FTS
     ECCO_grid     :: G
     mask          :: M
     variable_name :: V
-    λ⁻¹           :: N
+    rate          :: N
 end
 
 Adapt.adapt_structure(to, p::ECCORestoring) = 
@@ -207,7 +203,7 @@ Adapt.adapt_structure(to, p::ECCORestoring) =
     # Extracting the mask value at the current node
     mask = stateindex(p.mask, i, j, k, grid, clock.time, loc)
 
-    return p.λ⁻¹ * mask * (ECCO_var - var)
+    return p.rate * mask * (ECCO_var - var)
 end
 
 # Differentiating between restoring done with an ECCO FTS
@@ -231,12 +227,12 @@ end
 @inline get_ECCO_variable(::Val{false}, ECCO_fts, i, j, k, ECCO_grid, grid, time) = @inbounds ECCO_fts[i, j, k, time]
 
 """
-    ECCO_restoring_forcing(metadata::ECCOMetadata;
-                            architecture = CPU(), 
-                            backend = ECCONetCDFBackend(2),
-                            time_indexing = Cyclical(),
-                            mask = 1,
-                            timescale = 5days)
+    ECCORestoring(metadata::ECCOMetadata;
+                  architecture = CPU(), 
+                  backend = ECCONetCDFBackend(2),
+                  time_indexing = Cyclical(),
+                  mask = 1,
+                  timescale = 5days)
 
 Create a restoring forcing term that restores to values stored in an ECCO field time series.
 
@@ -253,18 +249,22 @@ Create a restoring forcing term that restores to values stored in an ECCO field 
 - `mask`: The mask value. Can be a function of `(x, y, z, time)`, an array or a number
 - `timescale`: The restoring timescale.
 """
-function ECCO_restoring_forcing(variable_name::Symbol, version=ECCO4Monthly(); kw...) 
-     metadata = ECCOMetadata(variable_name, all_ECCO_dates(version), version)
-    return ECCO_restoring_forcing(metadata; kw...)
+function ECCORestoring(architecture, variable_name::Symbol; 
+                       version = ECCO4Monthly(),
+                       dates = all_ECCO_dates(version), 
+                       kw...) 
+                                
+     metadata = ECCOMetadata(variable_name, dates, version)
+    return ECCORestoring(metadata; architecture, kw...)
 end
 
-function ECCO_restoring_forcing(metadata::ECCOMetadata;
-                                architecture = CPU(), 
-                                time_indices_in_memory = 2, # Not more than this if we want to use GPU!
-                                time_indexing = Cyclical(),
-                                mask = 1,
-                                timescale = 20days,
-                                grid = nothing)
+function ECCORestoring(metadata::ECCOMetadata;
+                       architecture = CPU(), 
+                       time_indices_in_memory = 2, # Not more than this if we want to use GPU!
+                       time_indexing = Cyclical(),
+                       mask = 1,
+                       rate = 1 / 20days,
+                       grid = nothing)
 
     ECCO_fts  = ECCO_field_time_series(metadata; grid, architecture, time_indices_in_memory, time_indexing)                  
     ECCO_grid = ECCO_fts.grid
@@ -272,11 +272,8 @@ function ECCO_restoring_forcing(metadata::ECCOMetadata;
     # Grab the correct Oceananigans field to restore
     variable_name = metadata.name
     field_name = oceananigans_fieldname[variable_name]
-    ECCO_restoring = ECCORestoring(ECCO_fts, ECCO_grid, mask, field_name, 1 / timescale)
-    
-    # Defining the forcing that depends on the restoring field.
-    restoring_forcing = Forcing(ECCO_restoring; discrete_form = true)
 
-    return restoring_forcing
+    return ECCORestoring(ECCO_fts, ECCO_grid, mask, field_name, rate)
 end
 
+regularize_forcing(forcing::ECCORestoring, field, field_name, model_field_names) = forcing
