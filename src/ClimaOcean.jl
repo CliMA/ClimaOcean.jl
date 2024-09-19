@@ -4,10 +4,11 @@ export
     OceanSeaIceModel,
     MinimumTemperatureSeaIce,
     Radiation,
+    LatitudeDependentAlbedo,
     SimilarityTheoryTurbulentFluxes,
     JRA55_prescribed_atmosphere,
     JRA55NetCDFBackend,
-    ecco2_field,
+    ECCOMetadata,
     regrid_bathymetry,
     retrieve_bathymetry,
     stretched_vertical_faces,
@@ -15,7 +16,7 @@ export
     PowerLawStretching, LinearStretching,
     exponential_z_faces,
     JRA55_field_time_series,
-    ecco_field, ECCOMetadata,
+    ECCO_field, ECCOMetadata,
     ocean_simulation,
     initialize!
 
@@ -38,7 +39,6 @@ const SKOFTS = SomeKindOfFieldTimeSeries
 @inline function stateindex(a::Function, i, j, k, grid, time, loc)
     LX, LY, LZ = loc 
     λ, φ, z = node(i, j, k, grid, LX(), LY(), LZ())
-
     return a(λ, φ, z, time)
 end
 
@@ -71,7 +71,7 @@ using .OceanSeaIceModels
 using .OceanSimulations
 using .DataWrangling: JRA55, ECCO
 using ClimaOcean.DataWrangling.JRA55: JRA55_prescribed_atmosphere, JRA55NetCDFBackend
-using ClimaOcean.DataWrangling.ECCO: ecco_field
+using ClimaOcean.DataWrangling.ECCO
 
 end # module
 

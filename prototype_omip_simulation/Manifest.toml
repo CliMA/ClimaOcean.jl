@@ -175,7 +175,7 @@ version = "0.2.4"
 deps = ["Artifacts", "CUDA_Driver_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "TOML"]
 git-tree-sha1 = "4ca7d6d92075906c2ce871ea8bba971fff20d00c"
 uuid = "76a88914-d11a-5bdc-97e0-2f5a05c973a2"
-version = "0.12.1+0"
+version = "0.14.0+1"
 
 [[deps.ChainRulesCore]]
 deps = ["Compat", "LinearAlgebra"]
@@ -496,7 +496,7 @@ version = "0.1.6"
 deps = ["ExprTools", "InteractiveUtils", "LLVM", "Libdl", "Logging", "Scratch", "TimerOutputs", "UUIDs"]
 git-tree-sha1 = "1600477fba37c9fc067b9be21f5e8101f24a8865"
 uuid = "61eb1bfa-7361-4325-ad38-22787b887f55"
-version = "0.26.4"
+version = "0.26.5"
 
 [[deps.Git]]
 deps = ["Git_jll"]
@@ -1011,7 +1011,9 @@ version = "1.6.3"
 
 [[deps.OrthogonalSphericalShellGrids]]
 deps = ["Adapt", "CUDA", "Documenter", "DocumenterTools", "JLD2", "KernelAbstractions", "MPI", "Oceananigans", "OffsetArrays"]
-git-tree-sha1 = "400c17d7a387a6a65d24454b4343129716f38bef"
+git-tree-sha1 = "f9614694b607bd2168aef61a819f98a43b9b81c5"
+repo-rev = "main"
+repo-url = "https://github.com/CliMA/OrthogonalSphericalShellGrids.jl"
 uuid = "c2be9673-fb75-4747-82dc-aa2bb9f4aed0"
 version = "0.1.2"
 
@@ -1037,6 +1039,28 @@ deps = ["Dates", "PrecompileTools", "UUIDs"]
 git-tree-sha1 = "8489905bcdbcfac64d1daa51ca07c0d8f0283821"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
 version = "2.8.1"
+
+[[deps.PencilArrays]]
+deps = ["Adapt", "JSON3", "LinearAlgebra", "MPI", "OffsetArrays", "Random", "Reexport", "StaticArrayInterface", "StaticArrays", "StaticPermutations", "Strided", "TimerOutputs", "VersionParsing"]
+git-tree-sha1 = "fa85ac32172d96cfdb91dbc53e8e57007e5a2b5a"
+uuid = "0e08944d-e94e-41b1-9406-dcf66b6a9d2e"
+version = "0.19.5"
+
+    [deps.PencilArrays.extensions]
+    PencilArraysAMDGPUExt = ["AMDGPU"]
+    PencilArraysDiffEqExt = ["DiffEqBase"]
+    PencilArraysHDF5Ext = ["HDF5"]
+
+    [deps.PencilArrays.weakdeps]
+    AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
+    DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
+    HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
+
+[[deps.PencilFFTs]]
+deps = ["AbstractFFTs", "FFTW", "LinearAlgebra", "MPI", "PencilArrays", "Reexport", "TimerOutputs"]
+git-tree-sha1 = "bd69f3f0ee248cfb4241800aefb705b5ded592ff"
+uuid = "4a48f351-57a6-4416-9ec4-c37015456aae"
+version = "0.15.1"
 
 [[deps.Pkg]]
 deps = ["Artifacts", "Dates", "Downloads", "FileWatching", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Serialization", "TOML", "Tar", "UUIDs", "p7zip_jll"]

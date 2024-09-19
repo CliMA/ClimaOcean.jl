@@ -2,7 +2,7 @@ include("runtests_setup.jl")
 
 using ClimaOcean
 using ClimaOcean.ECCO
-using ClimaOcean.ECCO: ecco_field, metadata_filename
+using ClimaOcean.ECCO: ECCO_field, metadata_filename
 using Oceananigans.Grids: topology
 
 using CFTime
@@ -11,7 +11,7 @@ using Dates
 @testset "ECCO fields utilities" begin
     for arch in test_architectures
         A = typeof(arch)
-        @info "Testing ecco_field on $A..."
+        @info "Testing ECCO_field on $A..."
 
         start_date = DateTimeProlepticGregorian(1993, 1, 1)
         end_date = DateTimeProlepticGregorian(1993, 4, 1)
@@ -20,19 +20,19 @@ using Dates
         temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
         t_restoring = ECCO_restoring_forcing(temperature; timescale = 1000.0)
 
-        ecco_fts = t_restoring.func.ecco_fts
+        ECCO_fts = t_restoring.func.ECCO_fts
 
         for metadata in temperature
             temperature_filename = metadata_filename(metadata)
             @test isfile(temperature_filename)
         end
 
-        @test ecco_fts isa FieldTimeSeries
-        @test ecco_fts.grid isa LatitudeLongitudeGrid
-        @test topology(ecco_fts.grid) == (Periodic, Bounded, Bounded)
+        @test ECCO_fts isa FieldTimeSeries
+        @test ECCO_fts.grid isa LatitudeLongitudeGrid
+        @test topology(ECCO_fts.grid) == (Periodic, Bounded, Bounded)
 
-        Nx, Ny, Nz = size(interior(ecco_fts))
-        Nt = length(ecco_fts.times)
+        Nx, Ny, Nz = size(interior(ECCO_fts))
+        Nt = length(ECCO_fts.times)
 
         @test Nx == size(temperature)[1]
         @test Ny == size(temperature)[2]

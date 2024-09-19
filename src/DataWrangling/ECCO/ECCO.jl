@@ -1,6 +1,6 @@
 module ECCO
 
-export ECCOMetadata, ecco_field, ecco_mask, adjusted_ecco_tracers, initialize!
+export ECCOMetadata, ECCO_field, ECCO_mask, adjusted_ECCO_tracers, initialize!
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
 export ECCO_restoring_forcing
 
@@ -12,14 +12,16 @@ using Oceananigans.Architectures: architecture, child_architecture
 using Oceananigans.BoundaryConditions
 using Oceananigans.DistributedComputations: DistributedField, all_reduce, barrier!
 using Oceananigans.Utils
+
 using KernelAbstractions: @kernel, @index
 using NCDatasets
 using Downloads: download
 using Dates
-
 using Adapt
 
-include("ecco_metadata.jl")
+include("ECCO_metadata.jl")
+include("ECCO_mask.jl")
+include("ECCO_restoring.jl")
 
 # Vertical coordinate
 const ECCO_z = [
@@ -76,9 +78,9 @@ const ECCO_z = [
       0.0,
 ]
 
-empty_ecco_field(variable_name::Symbol; kw...) = empty_ecco_field(ECCOMetadata(variable_name); kw...)
+empty_ECCO_field(variable_name::Symbol; kw...) = empty_ECCO_field(ECCOMetadata(variable_name); kw...)
 
-function empty_ecco_field(metadata::ECCOMetadata;
+function empty_ECCO_field(metadata::ECCOMetadata;
                           architecture = CPU(), 
                           horizontal_halo = (3, 3))
 
@@ -87,7 +89,7 @@ function empty_ecco_field(metadata::ECCOMetadata;
     variable_name = metadata.name
     location = field_location(metadata)
     
-    location = ecco_location[variable_name]
+    location = ECCO_location[variable_name]
 
     longitude = (0, 360)
     latitude = (-90, 90)
@@ -116,21 +118,21 @@ function empty_ecco_field(metadata::ECCOMetadata;
 end
 
 """
-    ecco_field(variable_name;
+    ECCO_field(variable_name;
                 architecture = CPU(),
                 horizontal_halo = (1, 1),
                 user_data = nothing,
-                url = ecco_urls[variable_name],
-                filename = ecco_metadata_filenames[variable_name],
-                short_name = ecco_short_names[variable_name])
+                url = ECCO_urls[variable_name],
+                filename = ECCO_metadata_filenames[variable_name],
+                short_name = ECCO_short_names[variable_name])
 
-Retrieve the ecco field corresponding to `variable_name`. 
+Retrieve the ECCO field corresponding to `variable_name`. 
 The data is either:
 (1) retrieved from `filename`,
 (2) dowloaded from `url` if `filename` does not exists,
 (3) filled from `user_data` if `user_data` is provided.
 """
-function ecco_field(metadata::ECCOMetadata;
+function ECCO_field(metadata::ECCOMetadata;
                     architecture = CPU(),
                     horizontal_halo = (3, 3),
                     filename = metadata_filename(metadata))
@@ -149,7 +151,7 @@ function ecco_field(metadata::ECCOMetadata;
     end        
     close(ds)
 
-    field = empty_ecco_field(metadata; architecture, horizontal_halo)
+    field = empty_ECCO_field(metadata; architecture, horizontal_halo)
     
     FT    = eltype(field)
     data[ismissing.(data)] .= 1e10 # Artificially large number!
@@ -176,52 +178,13 @@ function ecco_field(metadata::ECCOMetadata;
 end
 
 # Fallback
-ecco_field(var_name::Symbol; kw...) = ecco_field(ECCOMetadata(var_name); kw...)
-
-@kernel function _set_ecco2_mask!(mask, Tᵢ, minimum_value, maximum_value)
-    i, j, k = @index(Global, NTuple)
-    @inbounds mask[i, j, k] = (Tᵢ[i, j, k] < minimum_value) | (Tᵢ[i, j, k] > maximum_value) 
-end
-
-@kernel function _set_ecco4_mask!(mask, Tᵢ, args...)
-    i, j, k = @index(Global, NTuple)
-    @inbounds mask[i, j, k] = (Tᵢ[i, j, k] == 0) 
-end
-
-@inline mask_kernel(version)        = _set_ecco2_mask!
-@inline mask_kernel(::ECCO4Monthly) = _set_ecco4_mask!
+ECCO_field(var_name::Symbol; kw...) = ECCO_field(ECCOMetadata(var_name); kw...)
 
 """
-    ecco_mask(architecture = CPU(); minimum_value = Float32(-1e5))
-
-A boolean field where `true` represents a missing value in the ECCO dataset.
-"""
-function ecco_mask(metadata, architecture = CPU(); 
-                   minimum_value = Float32(-1e5),
-                   maximum_value = Float32(1e5),
-                   filename = metadata_filename(metadata))
-
-    field = ecco_field(metadata; architecture, filename)
-    mask  = Field{location(field)...}(field.grid, Bool)
-
-    # ECCO4 has zeros in place of the missing values, while
-    # ECCO2 expresses missing values with values < -1e5
-    _set_mask! = mask_kernel(metadata.version)
-
-    # Set the mask with zeros where field is defined
-    launch!(architecture, field.grid, :xyz, _set_mask!, mask, field, minimum_value, maximum_value)
-
-    return mask
-end
-
-# Default
-ecco_mask() = ecco_mask(ECCOMetadata(:temperature))
-
-"""
-    inpainted_ecco_field(variable_name; 
-                          architecture = CPU(),
-                          filename = "./inpainted_ecco_fields.nc",
-                          mask = ecco_mask(architecture))
+    inpainted_ECCO_field(variable_name; 
+                         architecture = CPU(),
+                         filename = "./inpainted_ECCO_fields.nc",
+                         mask = ECCO_mask(architecture))
     
 Retrieve the ECCO field corresponding to `variable_name` inpainted to fill all the
 missing values in the original dataset.
@@ -244,17 +207,17 @@ Keyword Arguments:
 - `maxiter`: the maximum number of iterations to inpaint the field (see `inpaint_mask!`).
 
 """
-function inpainted_ecco_field(metadata::ECCOMetadata; 
+function inpainted_ECCO_field(metadata::ECCOMetadata; 
                               architecture = CPU(),
                               filename = metadata_filename(metadata),
-                              mask = ecco_mask(metadata, architecture),
+                              mask = ECCO_mask(metadata, architecture),
                               maxiter = Inf,
                               kw...)
     
-    f = ecco_field(metadata; architecture, filename, kw...)
+    f = ECCO_field(metadata; architecture, filename, kw...)
 
     # Make sure all values are extended properly
-    @info "In-painting ecco $(metadata.name)"
+    @info "In-painting ECCO $(metadata.name)"
     inpaint_mask!(f, mask; maxiter)
 
     fill_halo_regions!(f)
@@ -262,7 +225,7 @@ function inpainted_ecco_field(metadata::ECCOMetadata;
     return f
 end
 
-inpainted_ecco_field(variable_name::Symbol; kw...) = inpainted_ecco_field(ECCOMetadata(variable_name); kw...)
+inpainted_ECCO_field(variable_name::Symbol; kw...) = inpainted_ECCO_field(ECCOMetadata(variable_name); kw...)
     
 function set!(field::Field, ecco_metadata::ECCOMetadata; kw...)
 
@@ -279,7 +242,5 @@ function set!(field::Field, ecco_metadata::ECCOMetadata; kw...)
 
     return field
 end
-
-include("ecco_restoring.jl")
 
 end # Module 

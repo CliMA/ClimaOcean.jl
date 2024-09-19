@@ -1,11 +1,11 @@
-# # Near-global Ocean Simulation
+# # Near-global ocean simulation
 #
 # This Julia script sets up and runs a near-global ocean simulation using the Oceananigans.jl and ClimaOcean.jl packages. 
 # The simulation covers latitudes from 75°S to 75°N with a horizontal resolution of 1/4 degree and 40 vertical levels. 
 #
 # The simulation runs for one year, and the results are visualized using the CairoMakie.jl package.
 #
-# ## Initial Setup with Package Imports
+# ## Initial setup with package imports
 #
 # The script begins by importing the necessary Julia packages for visualization (CairoMakie), 
 # ocean modeling (Oceananigans, ClimaOcean), and handling dates and times (CFTime, Dates). 
@@ -15,18 +15,13 @@
 using Printf
 using Oceananigans
 using Oceananigans.Units
-using Oceananigans: architecture, on_architecture
 using ClimaOcean
-using ClimaOcean.ECCO
-using ClimaOcean.OceanSimulations
-using ClimaOcean.OceanSeaIceModels
 using CairoMakie
-using OrthogonalSphericalShellGrids
 
 using CFTime
 using Dates
 
-# ### Grid Configuration 
+# ### Grid configuration 
 #
 # We define a global grid with a horizontal resolution of 1/4 degree and 40 vertical levels. 
 # The grid is a `LatitudeLongitudeGrid` capped at 75°S to 75°N.
@@ -41,101 +36,106 @@ Nx = 1440
 Ny = 600
 Nz = length(z_faces) - 1
 
-grid = LatitudeLongitudeGrid(arch; 
-                             size = (Nx, Ny, Nz), 
-                             halo = (7, 7, 7), 
+grid = LatitudeLongitudeGrid(arch;
+                             size = (Nx, Ny, Nz),
+                             halo = (7, 7, 7),
                              z = z_faces, 
                              latitude  = (-75, 75),
                              longitude = (0, 360))
 
-# ### Bathymetry and Immersed Boundary
+# ### Bathymetry and immersed boundary
 #
-# We retrieve the bathymetry from the ETOPO1 data, ensuring a minimum depth of 10 meters (depths shallower than this are considered land).
-# The `interpolation_passes` parameter specifies the number of passes to interpolate the bathymetry data. A larger number 
-# results in a smoother bathymetry. We also remove all connected regions (such as inland lakes) from the bathymetry data by specifying
-# `connected_regions_allowed = 2` (Mediterrean sea an North sea in addition to the ocean) 
+# We retrieve the bathymetry from the ETOPO1 data, ensuring a minimum depth of 10 meters
+# (depths shallower than this are considered land). The `interpolation_passes` parameter
+# specifies the number of passes to interpolate the bathymetry data. A larger number
+# results in a smoother bathymetry. We also remove all connected regions (such as inland
+# lakes) from the bathymetry data by specifying `connected_regions_allowed = 3` (Mediterrean
+# sea an North sea in addition to the ocean).
 
-bottom_height = retrieve_bathymetry(grid; 
-                                    minimum_depth = 10,
-                                    interpolation_passes = 5,
-                                    connected_regions_allowed = 2)
- 
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height)) 
+bottom_height = regrid_bathymetry(grid; 
+                                  minimum_depth = 10,
+                                  interpolation_passes = 5,
+                                  major_basins = 3)
 
-bathymetry = deepcopy(Array(interior(bottom_height, :, :, 1)))
-bathymetry[bathymetry .>= 0] .= NaN
+# For plotting
+bottom_height[bottom_height .>= 0] .= NaN
 
-fig = Figure(size = (800, 400))
-axis = Axis(fig[1, 1], title = "Bathymetry [m]")
-hm = heatmap!(axis, bathymetry, colormap = :deep, colorrange = (-6000, 0))
-cb = Colorbar(fig[1, 2], hm)
-hidedecorations!(axis)
+fig = Figure(size = (1200, 400))
+ax  = Axis(fig[1, 1])
+hm = heatmap!(ax, bottom_height, colormap = :deep, colorrange = (-6000, 0))
+cb = Colorbar(fig[0, 1], hm, label = "Bottom height (m)", vertical = false)
+hidedecorations!(ax)
 
 save("bathymetry.png", fig)
 nothing #hide
 
 # ![](bathymetry.png)
 
-# ### Ocean Model Configuration
+bottom_height[isnan.(bottom_height)] .= 0
+grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
+
+# ### Ocean model configuration
 #
 # To configure the ocean simulation, we use the `ocean_simulation` function from ClimaOcean.jl. This function allows us to build
 # an ocean simulation with default parameters and numerics. The defaults include:
-# - CATKE turbulence closure for vertical mixing, see [`CATKEVerticalDiffusivity`](@ref)
-# - WENO-based advection scheme for momentum in the vector invariant form, see [`WENOVectorInvariant`](@ref)
-# - WENO-based advection scheme for tracers, see [`WENO`](@ref)
-# - `SplitExplicitFreeSurfaceSolver` with 75 substeps, see [`SplitExplicitFreeSurface`](@ref)
-# - TEOS-10 equation of state, see [`TEOS10EquationOfState`](@ref)
+# - CATKE turbulence closure for vertical mixing
+# - WENO-based advection scheme for momentum in the vector invariant form
+# - WENO-based advection scheme for tracers
+# - `SplitExplicitFreeSurfaceSolver` with 75 substeps
+# - TEOS-10 equation of state, see [`TEOS10EquationOfState`](https://clima.github.io/SeawaterPolynomials.jl/dev/#The-TEOS-10-standard)
 # - Quadratic bottom drag with a drag coefficient of 0.003
 #
 # The ocean model is then initialized with the ECCO2 temperature and salinity fields for January 1, 1993.
 
-free_surface = SplitExplicitFreeSurface(grid; substeps = 75)
-
-ocean = ocean_simulation(grid; free_surface) 
+ocean = ocean_simulation(grid)
 model = ocean.model
 
 date  = DateTimeProlepticGregorian(1993, 1, 1)
+set!(model, T=ECCOMetadata(:temperature; date), S=ECCOMetadata(:salinity; date))
 
-set!(model, 
-     T = ECCOMetadata(:temperature; date),
-     S = ECCOMetadata(:salinity;    date))
-nothing #hide
-
-# ### Prescribed Atmosphere and Radiation
+# ### Prescribed atmosphere and radiation
 #
-# The atmospheric data is prescribed using the JRA55 dataset, which is loaded into memory in 4 snapshots at a time.
-# The JRA55 dataset provides atmospheric data such as temperature, humidity, and wind fields to calculate turbulent fluxes
+# The atmospheric data is prescribed using the JRA55 dataset, which is loaded
+# into memory in 4 snapshots at a time. The JRA55 dataset provides atmospheric
+# data such as temperature, humidity, and wind fields to calculate turbulent fluxes
 # using bulk formulae, see [`CrossRealmFluxes`](@ref).
 #
-# The radiation model specifies an ocean albedo emissivity to compute the net radiative fluxes. 
-# The default ocean albedo is based on Payne (1982) and depends on cloud cover (calculated from
-# the ratio of maximum possible incident solar radiation to actual incident solar radiation) and latitude.
-# The ocean emissivity is set to 0.97.
+# The radiation model specifies an ocean albedo emissivity to compute the net radiative
+# fluxes. The default ocean albedo is based on Payne (1982) and depends on cloud cover
+# (calculated from the ratio of maximum possible incident solar radiation to actual
+# incident solar radiation) and latitude. The ocean emissivity is set to 0.97.
 
 backend    = JRA55NetCDFBackend(41) 
 atmosphere = JRA55_prescribed_atmosphere(arch; backend)
 radiation  = Radiation(arch)
 nothing #hide
 
-# ### Sea Ice Model 
+# ### Sea ice model 
 #
-# This simulation includes a simplified representation of ice cover where the air-sea fluxes are shut down whenever the 
-# sea surface temperature is below the freezing point. Only heating fluxes are allowed. This is not a full sea ice model,
-# but it prevents the temperature from dropping excessively low by including atmosphere-ocean fluxes.
+# This simulation includes a simplified representation of ice cover where the
+# air-sea fluxes are shut down whenever the sea surface temperature is below
+# the freezing point. Only heating fluxes are allowed. This is not a full
+# sea ice model, but it prevents the temperature from dropping excessively
+# low by including atmosphere-ocean fluxes.
 
 sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
 nothing #hide
 
-# ## The Coupled Simulation
+# ## The coupled simulation
 #
-# Finally, we define the coupled model, which includes the ocean, atmosphere, and radiation parameters.
-# The model is constructed using the `OceanSeaIceModel` constructor.
+# Finally, we define the coupled model, which includes the ocean, atmosphere,
+# and radiation parameters. The model is constructed using the `OceanSeaIceModel`
+# constructor.
 #
-# We then create a coupled simulation, starting with a time step of 10 seconds and running the simulation for 10 days.
-# We will eventually increase the time step size and end time as the simulation progresses and initialization shocks dissipate.
+# We then create a coupled simulation, starting with a time step of 10 seconds
+# and running the simulation for 10 days.
+# We will eventually increase the time step size and end time as the simulation
+# progresses and initialization shocks dissipate.
 #
-# We also define a callback function to monitor the simulation's progress. This function prints the current time, iteration, time step,
-# as well as the maximum velocities and tracers in the domain. The wall time is also printed to monitor the time taken for each iteration.
+# We also define a callback function to monitor the simulation's progress.
+# This function prints the current time, iteration, time step,
+# as well as the maximum velocities and tracers in the domain. The wall time
+# is also printed to monitor the time taken for each iteration.
 
 coupled_model      = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 coupled_simulation = Simulation(coupled_model; Δt=10, stop_time = 10days)
@@ -144,12 +144,12 @@ wall_time = [time_ns()]
 
 function progress(sim) 
     ocean = sim.model.ocean
-    u, v, w = ocean.model.velocities  
+    u, v, w = ocean.model.velocities
     T = ocean.model.tracers.T
 
-    Tmax = maximum(interior(T))
-    Tmin = minimum(interior(T))
-    umax = maximum(abs, interior(u)), maximum(abs, interior(v)), maximum(abs, interior(w))
+    Tmax = maximum(T)
+    Tmin = minimum(T)
+    umax = maximum(abs, u), maximum(abs, v), maximum(abs, w)
     step_time = 1e-9 * (time_ns() - wall_time[1])
 
     @info @sprintf("Time: %s, Iteration %d, Δt %s, max(vel): (%.2e, %.2e, %.2e), max(T): %.2f, min(T): %.2f, wtime: %s \n",
@@ -164,10 +164,11 @@ end
 coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(1000))
 nothing #hide
 
-# ### Set up Output Writers
+# ### Set up output writers
 #
-# We define output writers to save the simulation data at regular intervals. 
+# We define output writers to save the simulation data at regular intervals.
 # In this case, we save the surface fluxes and surface fields at a relatively high frequency (every day).
+# The `indices` keyword argument allows us to save down a slice at the surface, which is located at `k = grid.Nz`
 
 ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, model.velocities);
                                                   schedule = TimeInterval(1days),
@@ -177,102 +178,110 @@ ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, mo
                                                   array_type = Array{Float32})
 nothing #hide
 
-# ### Warming Up the Simulation
+# ### Spinning up the simulation
 #
 # As an initial condition, we have interpolated ECCO tracer fields onto our custom grid.
 # The bathymetry of the original ECCO data may differ from our grid, so the initialization of the velocity
 # field might cause shocks if a large time step is used.
 #
-# Therefore, we warm up with a small time step to ensure that the interpolated initial conditions adapt
-# to the model numerics and parameterization without causing instability. A 10-day integration with
-# a maximum time step of 1.5 minutes should be sufficient to dissipate spurious initialization shocks.
+# Therefore, we spin up the simulation with a small time step to ensure that the interpolated initial
+# conditions adapt to the model numerics and parameterization without causing instability. A 10-day
+# integration with a maximum time step of 1.5 minutes should be sufficient to dissipate spurious
+# initialization shocks.
+# We use an adaptive time step that maintains the [CFL condition](https://en.wikipedia.org/wiki/Courant%E2%80%93Friedrichs%E2%80%93Lewy_condition) equal to 0.1.
+# For this scope, we use the Oceananigans utility `conjure_time_step_wizard!` (see Oceanigans's documentation).
 
 ocean.stop_time = 10days
-wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 90, max_change = 1.1)
-ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
+conjure_time_step_wizard!(ocean; cfl = 0.1, max_Δt = 90, max_change = 1.1)
 run!(coupled_simulation)
 nothing #hide
 
 # ### Running the simulation
 #
-# Now that the simulation has been warmed up, we can run it for the full two years.
-# We increase the maximum time step size to 12 minutes and let the simulation run for 100 days.
+# Now that the simulation has spun up, we can run it for the full 100 days.
+# We increase the maximum time step size to 10 minutes and let the simulation run for 100 days.
+# This time, we set the CFL in the time_step_wizard to be 0.25 as this is the maximum recommended CFL to be
+# used in conjunction with Oceananigans' hydrostatic time-stepping algorithm ([two step Adams-Bashfort](https://en.wikipedia.org/wiki/Linear_multistep_method))
 
 ocean.stop_time = 100days
 coupled_simulation.stop_time = 100days
-wizard = TimeStepWizard(; cfl = 0.25, max_Δt = 12minutes, max_change = 1.1)
-ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
+conjure_time_step_wizard!(ocean; cfl = 0.25, max_Δt = 10minutes, max_change = 1.1)
 run!(coupled_simulation)
 nothing #hide
 
-# ## Visualizing the Results
+# ## Visualizing the results
 # 
 # The simulation has finished, let's visualize the results.
 # In this section we pull up the saved data and create visualizations using the CairoMakie.jl package.
 # In particular, we generate an animation of the evolution of surface fields:
-# surface speed (s), vertical velocity just below the surface (w), surface temperature (T), and 
-# turbulent kinetic energy (e).
+# surface speed (s), surface temperature (T), and turbulent kinetic energy (e).
 
 u = FieldTimeSeries("surface.jld2", "u"; backend = OnDisk())
 v = FieldTimeSeries("surface.jld2", "v"; backend = OnDisk())
 T = FieldTimeSeries("surface.jld2", "T"; backend = OnDisk())
 e = FieldTimeSeries("surface.jld2", "e"; backend = OnDisk())
-w = FieldTimeSeries("surface.jld2", "w"; backend = OnDisk())
 
+# Set land values to NaN using the hacky method of deducing where T = 0
 times = u.times
-Nt = length(times)
+Nt = length(u)
+T1 = interior(T[1], :, :, 1)
+land = T1 .== 0
+for n = 1:Nt
+    ui = interior(u[n], :, :, 1)
+    vi = interior(v[n], :, :, 1)
+    Ti = interior(T[n], :, :, 1)
+    ei = interior(e[n], :, :, 1)
+    ui[land] .= NaN
+    vi[land] .= NaN
+    Ti[land] .= NaN
+    ei[land] .= NaN
+end
 
 iter = Observable(Nt)
 
-Ti = @lift begin
-     Ti = interior(T[$iter], :, :, 1)
-     Ti[Ti .== 0] .= NaN
-     Ti
-end
-
-ei = @lift begin
-     ei = interior(e[$iter], :, :, 1)
-     ei[ei .== 0] .= NaN
-     ei
-end
-
-wi = @lift begin
-     wi = interior(w[$iter], :, :, 1)
-     wi[wi .== 0] .= NaN
-     wi
-end
+Ti = @lift T[$iter]
+ei = @lift e[$iter]
 
 si = @lift begin
      s = Field(sqrt(u[$iter]^2 + v[$iter]^2))
      compute!(s)
-     s = interior(s, :, :, 1)
-     s[s .== 0] .= NaN
-     s
 end
 
-fig = Figure(size = (850, 1650))
-
-ax = Axis(fig[1, 1], title = "Surface speed [ms⁻¹]")
-heatmap!(ax, si, colorrange = (0, 0.5), colormap = :deep)
+fig = Figure(size = (800, 400))
+ax = Axis(fig[1, 1])
+hm = heatmap!(ax, si, colorrange = (0, 0.5), colormap = :deep)
+cb = Colorbar(fig[0, 1], hm, vertical = false, label = "Surface speed (ms⁻¹)")
 hidedecorations!(ax)
 
-ax = Axis(fig[2, 1], title = "Vertical velocity [ms⁻¹]")
-heatmap!(ax, wi, colorrange = (-5e-4, 5e-4), colormap = :bwr)
-hidedecorations!(ax)
-
-ax = Axis(fig[3, 1], title = "Surface Temperature [Cᵒ]")
-heatmap!(ax, Ti, colorrange = (-1, 30), colormap = :magma)
-hidedecorations!(ax)
-
-ax = Axis(fig[4, 1], title = "Turbulent Kinetic Energy [m²s⁻²]")
-heatmap!(ax, ei, colorrange = (0, 1e-3), colormap = :solar)
-hidedecorations!(ax)
-
-CairoMakie.record(fig, "near_global_ocean_surface.mp4", 1:Nt, framerate = 8) do i
-    @info "Generating frame $i of $Nt"
+CairoMakie.record(fig, "near_global_ocean_surface_s.mp4", 1:Nt, framerate = 8) do i
     iter[] = i
 end
+nothing #hide
+ 
+ # ![](near_global_ocean_surface_s.mp4)
+ 
+fig = Figure(size = (800, 400))
+ax = Axis(fig[1, 1])
+hm = heatmap!(ax, Ti, colorrange = (-1, 30), colormap = :magma)
+cb = Colorbar(fig[0, 1], hm, vertical = false, label = "Surface Temperature (Cᵒ)")
+hidedecorations!(ax)
 
+CairoMakie.record(fig, "near_global_ocean_surface_T.mp4", 1:Nt, framerate = 8) do i
+    iter[] = i
+end
+nothing #hide
+ 
+# ![](near_global_ocean_surface_T.mp4)
+
+fig = Figure(size = (800, 400))
+ax = Axis(fig[1, 1])
+hm = heatmap!(ax, ei, colorrange = (0, 1e-3), colormap = :solar)
+cb = Colorbar(fig[0, 1], hm, vertical = false, label = "Turbulent Kinetic Energy (m²s⁻²)")
+hidedecorations!(ax)
+
+CairoMakie.record(fig, "near_global_ocean_surface_e.mp4", 1:Nt, framerate = 8) do i
+    iter[] = i
+end
 nothing #hide
 
-# ![](near_global_ocean_surface.mp4)
+# ![](near_global_ocean_surface_e.mp4)
