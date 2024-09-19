@@ -44,7 +44,7 @@ Nx = 4320
 Ny = 2160
 Nz = length(z_faces) - 1
 
-arch = Distributed(GPU(), partition = Partition(x = 8, y = Equal()))
+arch = Distributed(GPU(), partition = Partition(x = 2, y = Equal()))
 rank = arch.local_rank
 
 grid = TripolarGrid(arch; 
@@ -73,7 +73,7 @@ radiation  = Radiation(arch)
 ##### The Ocean component
 #####                             
 
-free_surface = SplitExplicitFreeSurface(grid; substeps = 75)
+free_surface = SplitExplicitFreeSurface(grid; substeps = 55)
 
 #####
 ##### Add restoring to ECCO fields for temperature and salinity in the artic and antarctic
@@ -111,13 +111,13 @@ const c₄⁻ = c⁺[4]
 mask = CenterField(grid)
 set!(mask, mask_f)
 
-dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 3, 1)
+dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 12, 1)
 
 temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
 salinity    = ECCOMetadata(:salinity,    dates, ECCO4Monthly())
 
-FT = ECCO_restoring_forcing(temperature; mask, grid, architecture = arch, timescale = 30days)
-FS = ECCO_restoring_forcing(salinity;    mask, grid, architecture = arch, timescale = 30days)
+FT = ECCO_restoring_forcing(temperature; mask, grid, architecture = arch, timescale = 5days)
+FS = ECCO_restoring_forcing(salinity;    mask, grid, architecture = arch, timescale = 5days)
 
 forcing = (; T = FT, S = FS)
 
@@ -209,8 +209,6 @@ if isnothing(restart)
     wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 1.5minutes, max_change = 1.1)
     ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 
-    ocean.stop_time = 50days
-
     run!(coupled_simulation)
 else
     @info "Setting model from checkpoint $(restart) on rank $(rank)..."
@@ -218,8 +216,11 @@ else
     set!(ocean.model, restart)
 end
 
-wizard = TimeStepWizard(; cfl = 0.3, max_Δt = 300, max_change = 1.1)
-ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
+# Remove the wizard
+pop!(ocean.callbacks, :wizard)
+
+ocean.Δt = 270
+coupled_simulation.Δt = 270
 
 # Let's reset the maximum number of iterations
 coupled_model.ocean.stop_time = 6530days
