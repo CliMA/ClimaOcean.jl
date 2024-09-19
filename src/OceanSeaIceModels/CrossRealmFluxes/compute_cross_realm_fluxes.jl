@@ -1,3 +1,11 @@
+using Oceananigans.Operators: extrinsic_vector, intrinsic_vector
+
+# Fallback!
+limit_fluxes_over_sea_ice!(args...) = nothing
+
+const c = Center()
+const f = Face()
+
 #####
 ##### Surface flux computation
 #####
@@ -24,9 +32,6 @@ end
     return (; u, v, Q)
 end
 
-const c = Center()
-const f = Face()
-
 function compute_atmosphere_ocean_fluxes!(coupled_model)
     ocean = coupled_model.ocean
     atmosphere = coupled_model.atmosphere
@@ -38,11 +43,98 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     arch = architecture(grid)
     clock = coupled_model.clock
 
-    # Ocean, atmosphere, and sea ice state
-    ocean_velocities  = surface_horizontal_velocities(ocean)
-    ocean_tracers     = surface_active_tracers(ocean)
+    #####
+    ##### First interpolate atmosphere time series
+    ##### in time and to the ocean grid.
+    #####
+    
+    # We use .data here to save parameter space (unlike Field, adapt_structure for
+    # fts = FieldTimeSeries does not return fts.data)
+    atmosphere_velocities = (u = atmosphere.velocities.u.data,
+                             v = atmosphere.velocities.v.data)
 
-    # Fluxes, and flux contributors
+    atmosphere_tracers = (T = atmosphere.tracers.T.data,
+                          q = atmosphere.tracers.q.data)
+
+    atmosphere_pressure = atmosphere.pressure.data
+
+    Qs = atmosphere.downwelling_radiation.shortwave
+    Qℓ = atmosphere.downwelling_radiation.longwave
+    downwelling_radiation = (shortwave=Qs.data, longwave=Qℓ.data)
+
+    freshwater_flux = map(ϕ -> ϕ.data, atmosphere.freshwater_flux)
+
+    # Extract info for time-interpolation
+    u = atmosphere.velocities.u # for example 
+    atmosphere_times = u.times
+    atmosphere_backend = u.backend
+    atmosphere_time_indexing = u.time_indexing
+
+    # kernel parameters that compute fluxes in 0:Nx+1 and 0:Ny+1
+    kernel_size = (size(grid, 1) + 2, size(grid, 2) + 2)
+    kernel_parameters = KernelParameters(kernel_size, (-1, -1))
+
+    surface_atmosphere_state = coupled_model.fluxes.surface_atmosphere_state
+
+    # Simplify NamedTuple to reduce parameter space consumption.
+    # See https://github.com/CliMA/ClimaOcean.jl/issues/116.
+    surface_atmosphere_state = (u = surface_atmosphere_state.u.data,
+                                v = surface_atmosphere_state.v.data,
+                                T = surface_atmosphere_state.T.data,
+                                p = surface_atmosphere_state.p.data,
+                                q = surface_atmosphere_state.q.data,
+                                Qs = surface_atmosphere_state.Qs.data,
+                                Qℓ = surface_atmosphere_state.Qℓ.data,
+                                Mp = surface_atmosphere_state.Mp.data)
+
+    launch!(arch, grid, kernel_parameters,
+            _interpolate_primary_atmospheric_state!,
+            surface_atmosphere_state,
+            grid,
+            clock,
+            atmosphere_velocities,
+            atmosphere_tracers,
+            atmosphere_pressure,
+            downwelling_radiation,
+            freshwater_flux,
+            atmosphere_grid,
+            atmosphere_times,
+            atmosphere_backend,
+            atmosphere_time_indexing)
+
+    # Separately interpolate the auxiliary freshwater fluxes, which may
+    # live on a different grid than the primary fluxes and atmospheric state.
+    
+    auxiliary_freshwater_flux = atmosphere.auxiliary_freshwater_flux
+    interpolated_prescribed_freshwater_flux = surface_atmosphere_state.Mp
+
+    if !isnothing(auxiliary_freshwater_flux)
+        # TODO: do not assume that `auxiliary_freshater_flux` is a tuple
+        auxiliary_data          = map(ϕ -> ϕ.data, auxiliary_freshwater_flux)
+
+        first_auxiliary_flux = first(auxiliary_freshwater_flux)
+        auxiliary_grid          = first_auxiliary_flux.grid
+        auxiliary_times         = first_auxiliary_flux.times
+        auxiliary_backend       = first_auxiliary_flux.backend
+        auxiliary_time_indexing = first_auxiliary_flux.time_indexing
+
+        launch!(arch, grid, kernel_parameters,
+                _interpolate_auxiliary_freshwater_flux!,
+                interpolated_prescribed_freshwater_flux,
+                grid,
+                clock,
+                auxiliary_data,
+                auxiliary_grid,
+                auxiliary_times,
+                auxiliary_backend,
+                auxiliary_time_indexing)
+    end
+
+    #####
+    ##### Next compute turbulent fluxes.
+    #####
+
+     # Fluxes, and flux contributors
     centered_velocity_fluxes = (u = coupled_model.fluxes.total.ocean.momentum.uᶜᶜᶜ,
                                 v = coupled_model.fluxes.total.ocean.momentum.vᶜᶜᶜ)
 
@@ -81,6 +173,11 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
 
     # kernel parameters that compute fluxes in 0:Nx+1 and 0:Ny+1
     kernel_parameters = KernelParameters(kernel_size, (-1, -1))
+    
+    ocean_state = (u = ocean.model.velocities.u,
+                   v = ocean.model.velocities.v,
+                   T = ocean.model.tracers.T,
+                   S = ocean.model.tracers.S)
 
     launch!(arch, grid, kernel_parameters,
             _compute_atmosphere_ocean_similarity_theory_fluxes!,
@@ -90,14 +187,18 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             ocean_state,
             ice_state,
             coupled_model.fluxes.ocean_temperature_units,
-            atmosphere_state,
-            atmosphere_grid,
-            atmosphere_times,
-            atmosphere_backend,
-            atmosphere_time_indexing,
+            surface_atmosphere_state,
             atmosphere.reference_height, # height at which the state is known
             atmosphere.boundary_layer_height,
             atmosphere.thermodynamics_parameters)   
+
+    #####
+    ##### Finally cobble together and properly interpolate fluxes
+    ##### to be used by the ocean model.
+    #####
+
+    interpolated_downwelling_radiation = (shortwave = surface_atmosphere_state.Qs,
+                                          longwave = surface_atmosphere_state.Qℓ)
     
     launch!(arch, grid, kernel_parameters,
             _assemble_atmosphere_ocean_fluxes!,
@@ -113,13 +214,8 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             ice_state.S,
             coupled_model.fluxes.ocean_temperature_units,
             similarity_theory.fields,
-            downwelling_radiation,
-            freshwater_flux,
-            atmosphere_grid,
-            atmosphere_times,
-            atmosphere_backend,
-            atmosphere_time_indexing,
-            runoff_args,
+            interpolated_downwelling_radiation,
+            interpolated_prescribed_freshwater_flux,
             radiation_properties,
             coupled_model.fluxes.ocean_reference_density,
             coupled_model.fluxes.ocean_heat_capacity,
@@ -140,12 +236,79 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     return nothing
 end
 
-# Fallback
-@inline extrinsic_vector(i, j, k, grid, uₒ, vₒ) = uₒ, vₒ
-@inline intrinsic_vector(i, j, k, grid, uₒ, vₒ) = uₒ, vₒ
+@kernel function _interpolate_primary_atmospheric_state!(surface_atmos_state,
+                                                         grid,
+                                                         clock,
+                                                         atmos_velocities,
+                                                         atmos_tracers,
+                                                         atmos_pressure,
+                                                         downwelling_radiation,
+                                                         prescribed_freshwater_flux,
+                                                         atmos_grid,
+                                                         atmos_times,
+                                                         atmos_backend,
+                                                         atmos_time_indexing)
 
-# Fallback!
-limit_fluxes_over_sea_ice!(args...) = nothing
+    i, j = @index(Global, NTuple)
+    kᴺ = size(grid, 3) # index of the top ocean cell
+      
+    @inbounds begin
+        # Atmos state, which is _assumed_ to exist at location = (c, c, nothing)
+        # The third index "k" should not matter but we put the correct index to get
+        # a surface node anyways.
+        atmos_args = (atmos_grid, atmos_times, atmos_backend, atmos_time_indexing)
+        X = node(i, j, kᴺ + 1, grid, c, c, f)
+        time = Time(clock.time)
+
+        uₐ = interp_atmos_time_series(atmos_velocities.u, X, time, atmos_args...)
+        vₐ = interp_atmos_time_series(atmos_velocities.v, X, time, atmos_args...)
+        Tₐ = interp_atmos_time_series(atmos_tracers.T,    X, time, atmos_args...)
+        qₐ = interp_atmos_time_series(atmos_tracers.q,    X, time, atmos_args...)
+        pₐ = interp_atmos_time_series(atmos_pressure,     X, time, atmos_args...)
+
+        Qs = interp_atmos_time_series(downwelling_radiation.shortwave, X, time, atmos_args...)
+        Qℓ = interp_atmos_time_series(downwelling_radiation.longwave,  X, time, atmos_args...)
+
+        # Usually precipitation
+        Mh = interp_atmos_time_series(prescribed_freshwater_flux, X, time, atmos_args...)
+
+        surface_atmos_state.u[i, j, 1] = uₐ
+        surface_atmos_state.v[i, j, 1] = vₐ
+        surface_atmos_state.T[i, j, 1] = Tₐ
+        surface_atmos_state.p[i, j, 1] = pₐ
+        surface_atmos_state.q[i, j, 1] = qₐ
+        surface_atmos_state.Qs[i, j, 1] = Qs
+        surface_atmos_state.Qℓ[i, j, 1] = Qℓ
+        surface_atmos_state.Mp[i, j, 1] = Mh
+    end
+end
+
+
+
+@kernel function _interpolate_auxiliary_freshwater_flux!(freshwater_flux,
+                                                         grid,
+                                                         clock,
+                                                         auxiliary_freshwater_flux,
+                                                         auxiliary_grid,
+                                                         auxiliary_times,
+                                                         auxiliary_backend,
+                                                         auxiliary_time_indexing)
+
+    i, j = @index(Global, NTuple)
+    kᴺ = size(grid, 3) # index of the top ocean cell
+      
+    @inbounds begin
+        X = node(i, j, kᴺ + 1, grid, c, c, f)
+        time = Time(clock.time)
+        Mr = interp_atmos_time_series(auxiliary_freshwater_flux, X, time,
+                                      auxiliary_grid,
+                                      auxiliary_times,
+                                      auxiliary_backend,
+                                      auxiliary_time_indexing)
+
+        freshwater_flux[i, j, 1] += Mr
+    end
+end
 
 # If there is no sea ice, take the ocean velocities
 @inline centered_u_velocity(i, j, k, grid, uₒ, uᵢ, ::Nothing) = ℑxᶜᵃᵃ(i, j, k, grid, uₒ)
@@ -164,11 +327,7 @@ limit_fluxes_over_sea_ice!(args...) = nothing
                                                                      ocean_state,
                                                                      ice_state,
                                                                      ocean_temperature_units,
-                                                                     atmos_state,
-                                                                     atmos_grid,
-                                                                     atmos_times,
-                                                                     atmos_backend,
-                                                                     atmos_time_indexing,
+                                                                     surface_atmos_state,
                                                                      atmosphere_reference_height,
                                                                      atmosphere_boundary_layer_height,
                                                                      atmos_thermodynamics_parameters)
@@ -176,39 +335,29 @@ limit_fluxes_over_sea_ice!(args...) = nothing
     i, j = @index(Global, NTuple)
     kᴺ = size(grid, 3)
 
-    time = Time(clock.time)
-
     # Extract state variables at cell centers
     @inbounds begin
         # Ocean state
-        ℵ  = stateindex(ice_state.ℵ, i, j, 1)
-        uₒ = centered_u_velocity(i, j, 1, grid, ocean_state.u, ice_state.u, ℵ)
-        vₒ = centered_v_velocity(i, j, 1, grid, ocean_state.v, ice_state.v, ℵ)
-        Tₒ = surface_tracer(i, j, 1, grid, ocean_state.T, ice_state.T, ℵ)
-        Sₒ = surface_tracer(i, j, 1, grid, ocean_state.S, ice_state.S, ℵ)
-        Tₒ = convert_to_kelvin(ocean_temperature_units, Tₒ)
     end
 
     kᴺ = size(grid, 3) # index of the top ocean cell
-
-    # Convert the native grid velocities to a zonal - meridional 
-    # frame of reference (assuming the frame of reference is 
-    # latitude - longitude here, we might want to change it)
-    uₒ, vₒ = extrinsic_vector(i, j, kᴺ, grid, uₒ, vₒ)
-        
+      
     @inbounds begin
-        # Atmos state, which is _assumed_ to exist at location = (c, c, nothing)
-        # The third index "k" should not matter but we put the correct index to get
-        # a surface node anyways.
-        X = node(i, j, kᴺ + 1, grid, c, c, f)
-        atmos_args = (atmos_grid, atmos_times, atmos_backend, atmos_time_indexing)
+        uₐ = surface_atmos_state.u[i, j, 1]
+        vₐ = surface_atmos_state.v[i, j, 1]
+        Tₐ = surface_atmos_state.T[i, j, 1]
+        pₐ = surface_atmos_state.p[i, j, 1]
+        qₐ = surface_atmos_state.q[i, j, 1]
 
-        uₐ = interp_atmos_time_series(atmos_state.u, X, time, atmos_args...)
-        vₐ = interp_atmos_time_series(atmos_state.v, X, time, atmos_args...)
+        ℵ  = stateindex(ice_state.ℵ, i, j, 1)
 
-        Tₐ = interp_atmos_time_series(atmos_state.T, X, time, atmos_args...)
-        pₐ = interp_atmos_time_series(atmos_state.p, X, time, atmos_args...)
-        qₐ = interp_atmos_time_series(atmos_state.q, X, time, atmos_args...)
+        # Extract state variables at cell centers
+        # Ocean state
+        uₒ = ℑxᶜᵃᵃ(i, j, kᴺ, grid, ocean_state.u)
+        vₒ = ℑyᵃᶜᵃ(i, j, kᴺ, grid, ocean_state.v)
+        Tₒ = surface_tracer(i, j, kᴺ, grid, ocean_state.T, ice_state.T, ℵ)
+        Sₒ = surface_tracer(i, j, kᴺ, grid, ocean_state.S, ice_state.S, ℵ)
+        Tₒ = convert_to_kelvin(ocean_temperature_units, Tₒ)
     end
 
     # Build thermodynamic and dynamic states in the atmosphere and surface.
@@ -229,10 +378,16 @@ limit_fluxes_over_sea_ice!(args...) = nothing
                                                similarity_theory.water_vapor_saturation,
                                                surface_type)
     
-    # Thermodynamic and dynamic (ocean) surface state
+    # Thermodynamic and dynamic (ocean) surface state:
+    #
+    # Convert the native grid velocities to a zonal - meridional 
+    # frame of reference (assuming the frame of reference is 
+    # latitude - longitude here, we might want to change it)
+    uₒ, vₒ = extrinsic_vector(i, j, kᴺ, grid, uₒ, vₒ)
+    Uₒ = SVector(uₒ, vₒ)
+     
     𝒬₀ = thermodynamic_surface_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₒ, qₒ)
     h₀ = zero(grid) # surface height
-    Uₒ = SVector(uₒ, vₒ)
     𝒰₀ = dynamic_ocean_state = SurfaceFluxes.StateValues(h₀, Uₒ, 𝒬₀)
 
     # Some parameters
@@ -283,11 +438,6 @@ end
                                                     similarity_theory_fields,
                                                     downwelling_radiation,
                                                     prescribed_freshwater_flux,
-                                                    atmos_grid,
-                                                    atmos_times,
-                                                    atmos_backend,
-                                                    atmos_time_indexing,
-                                                    runoff_args,
                                                     radiation_properties,
                                                     ocean_reference_density,
                                                     ocean_heat_capacity,
@@ -299,20 +449,14 @@ end
 
     @inbounds begin
         ℵ  = stateindex(ice_concentration, i, j, 1)          # ice concentration
-        Tₒ = surface_tracer(i, j, 1, grid, ocean_temperature, ice_temperature, ℵ)
-        Sₒ = surface_tracer(i, j, 1, grid, ocean_salinity,    ice_salinity,    ℵ)
+        Tₒ = surface_tracer(i, j, kᴺ, grid, ocean_temperature, ice_temperature, ℵ)
+        Sₒ = surface_tracer(i, j, kᴺ, grid, ocean_salinity,    ice_salinity,    ℵ)
         Tₒ = convert_to_kelvin(ocean_temperature_units, Tₒ)
 
-        X = node(i, j, kᴺ + 1, grid, c, c, f)
-        atmos_args = (atmos_grid, atmos_times, atmos_backend, atmos_time_indexing)
+        Qs = downwelling_radiation.shortwave[i, j, 1]
+        Qℓ = downwelling_radiation.longwave[i, j, 1]
 
-        Qs = interp_atmos_time_series(downwelling_radiation.shortwave, X, time, atmos_args...)
-        Qℓ = interp_atmos_time_series(downwelling_radiation.longwave,  X, time, atmos_args...)
-
-        # Accumulate mass fluxes of freshwater due to rain, snow, rivers, icebergs, and whatever else.
-        # Rememeber runoff fluxes could be `nothing` if rivers and icebergs are not included in the forcing
-        Mp = interp_atmos_time_series(prescribed_freshwater_flux, X, time, atmos_args...)
-        Mr = get_runoff_flux(X, time, runoff_args) 
+        Mp = prescribed_freshwater_flux[i, j, 1]
 
         Qc  = similarity_theory_fields.sensible_heat[i, j, 1] # sensible or "conductive" heat flux
         Qv  = similarity_theory_fields.latent_heat[i, j, 1]   # latent heat flux
@@ -331,9 +475,10 @@ end
     # by dividing by the density of freshwater.
     # Also switch the sign, for some reason we are given freshwater flux as positive down.
     ρf⁻¹ = 1 / freshwater_density
-    ΣF   = - (Mp + Mr) * ρf⁻¹
+    ΣF   = - Mp * ρf⁻¹
 
-    # Add the contribution from the turbulent water vapor flux
+    # Add the contribution from the turbulent water vapor flux, which has
+    # a different sign convention as the prescribed water mass fluxes (positive upwards)
     Fv = Mv * ρf⁻¹
     ΣF += Fv
 
@@ -426,31 +571,3 @@ end
     return ϵ * σ * Tₒ^4
 end
 
-# Retrieve the details of runoff fluxes (rivers and icebergs, if present in the simulation).
-# Note that these forcing fields are different in terms of frequency (daily instead of three-hourly)
-# and gridsize (1/4 degree instead of 1/2 degree) when compared to the other prescribed fluxes
-# So they need to be interpolated using their own grid / times / backend / time_indexing
-@inline get_runoff_args(::Nothing) = nothing
-
-@inline function get_runoff_args(runoff_flux)
-
-    data    = map(ϕ -> ϕ.data, runoff_flux)
-    grid    = runoff_flux.rivers.grid
-    times   = runoff_flux.rivers.times
-    backend = runoff_flux.rivers.backend
-    time_indexing = runoff_flux.rivers.time_indexing
-
-    return (data, grid, times, backend, time_indexing)
-end
-
-@inline get_runoff_flux(X, time, ::Nothing) = zero(eltype(X))
-
-@inline function get_runoff_flux(X, time, runoff_args)
-    
-    @inbounds runoff_flux = runoff_args[1] # The data is located at position 1 of the tuple
-    @inbounds other_args  = runoff_args[2:end] # Other args contain grid, times, backend and time_indexing
-    
-    Mr = interp_atmos_time_series(runoff_flux, X, time, other_args...)
-
-    return Mr
-end

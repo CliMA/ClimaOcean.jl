@@ -267,7 +267,7 @@ lines!(axτ, times, interior(ρτy, 1, 1, 1, :), label="Meridional")
 vlines!(axτ, tn, linewidth=4, color=(:black, 0.5))
 axislegend(axτ)
 
-lines!(axT, times, Tat[1:Nt] .- 273.15,             color=colors[1], linewidth=2, linestyle=:dash, label="Atmosphere temperature")
+lines!(axT, times, Tat[1:Nt] .- 273.15,      color=colors[1], linewidth=2, linestyle=:dash, label="Atmosphere temperature")
 lines!(axT, times, interior(T, 1, 1, Nz, :), color=colors[2], linewidth=4, label="Ocean surface temperature")
 vlines!(axT, tn, linewidth=4, color=(:black, 0.5))
 axislegend(axT)
@@ -279,7 +279,6 @@ lines!(axQ, times, - interior(Qlw, 1, 1, 1, 1:Nt), color=colors[5], label="Longw
 vlines!(axQ, tn, linewidth=4, color=(:black, 0.5))
 axislegend(axQ)
 
-#lines!(axF, times, interior(Jˢt, 1, 1, 1, :), label="Net freshwater flux")
 lines!(axF, times, Pt[1:Nt], label="Prescribed freshwater flux")
 lines!(axF, times, - interior(Ev, 1, 1, 1, 1:Nt), label="Evaporation")
 vlines!(axF, tn, linewidth=4, color=(:black, 0.5))
@@ -324,13 +323,10 @@ Smax = maximum(interior(S))
 Smin = minimum(interior(S))
 xlims!(axSz, Smin - 0.2, Smax + 0.2)
 
-save("single_column_profiles.png", fig)
-nothing # hide
+record(fig, "single_column_profiles.mp4", 1:8:Nt, framerate=24) do nn
+    @info "Drawing frame $nn of $Nt..."
+    n[] = nn
+end
+nothing #hide
 
-# ![](single_column_profiles.png)
-
-# record(fig, "$(location_name)_single_column_simulation.mp4", 1:8:Nt, framerate=24) do nn
-#     @info "Drawing frame $nn of $Nt..."
-#     n[] = nn
-# end
-
+# ![](single_column_profiles.mp4)

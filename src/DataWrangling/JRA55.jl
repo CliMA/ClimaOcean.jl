@@ -2,7 +2,7 @@ module JRA55
 
 using Oceananigans
 using Oceananigans.Units
- 
+
 using Oceananigans.Architectures: arch_array
 using Oceananigans.DistributedComputations
 using Oceananigans.DistributedComputations: child_architecture
@@ -10,6 +10,8 @@ using Oceananigans.BoundaryConditions: fill_halo_regions!
 using Oceananigans.Grids: λnodes, φnodes, on_architecture
 using Oceananigans.Fields: interpolate!
 using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBackend, FlavorOfFTS, time_indices
+
+using ClimaOcean.DataWrangling: download_progress, blocking_download, blocking_run
 
 using ClimaOcean.OceanSeaIceModels:
     PrescribedAtmosphere,
@@ -370,8 +372,11 @@ function JRA55_field_time_series(variable_name;
     fts_name = field_time_series_short_names[variable_name]
 
     # Note, we don't re-use existing jld2 files.
-    isfile(filepath) || download(url, filepath)
-    isfile(jld2_filepath) && rm(jld2_filepath)
+    blocking_download(url, filepath; progress=download_progress)
+
+    if isfile(jld2_filepath) 
+        blocking_run(`rm jld2_filepath`)
+    end
 
     # Determine default time indices
     if totally_in_memory
@@ -455,7 +460,7 @@ function JRA55_field_time_series(variable_name;
 
     boundary_conditions = FieldBoundaryConditions(JRA55_native_grid, (Center, Center, Nothing))
     times = jra55_times(native_times)
-    
+
     if backend isa JRA55NetCDFBackend
         fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times;
                                                        backend,
@@ -534,7 +539,7 @@ function JRA55_field_time_series(variable_name;
     else
         copyto!(interior(fts, :, :, 1, :), new_data[:, :, :])
     end
-                     
+
     while n <= all_Nt
         print("        ... processing time index $n of $all_Nt \r")
 
@@ -595,11 +600,21 @@ JRA55_prescribed_atmosphere(arch::Distributed, time_indices=Colon(); kw...) =
     JRA55_prescribed_atmosphere(child_architecture(arch), time_indices; kw...)
 
 # TODO: allow the user to pass dates
+"""
+    JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
+                                backend = nothing,
+                                time_indexing = Cyclical(),
+                                reference_height = 10,  # meters
+                                include_rivers_and_icebergs = false,
+                                other_kw...)
+
+Return a `PrescribedAtmosphere` representing JRA55 reanalysis data.
+"""
 function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
                                      backend = nothing,
                                      time_indexing = Cyclical(),
                                      reference_height = 10,  # meters
-                                     include_rivers_and_icebergs = false, # rivers and icebergs are not needed in single column simulations
+                                     include_rivers_and_icebergs = false,
                                      other_kw...)
 
     if isnothing(backend) # apply a default
@@ -626,19 +641,19 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
     Fsn = JRA55_field_time_series(:snow_freshwater_flux;            kw...)
     Ql  = JRA55_field_time_series(:downwelling_longwave_radiation;  kw...)
     Qs  = JRA55_field_time_series(:downwelling_shortwave_radiation; kw...)
-    
+
     freshwater_flux = (rain = Fra,
                        snow = Fsn)
 
     # Remember that rivers and icebergs are on a different grid and have
-    # a different frequency than the rest of the JRA55 data
+    # a different frequency than the rest of the JRA55 data. We use `PrescribedAtmospheres`
+    # "auxiliary_freshwater_flux" feature to represent them.
     if include_rivers_and_icebergs
         Fri = JRA55_field_time_series(:river_freshwater_flux;   kw...)
         Fic = JRA55_field_time_series(:iceberg_freshwater_flux; kw...)
-        runoff_flux = (rivers   = Fri,
-                       icebergs = Fic)
+        auxiliary_freshwater_flux = (rivers = Fri, icebergs = Fic)
     else
-        runoff_flux = nothing
+        auxiliary_freshwater_flux = nothing
     end
 
     times = ua.times
@@ -648,7 +663,7 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
 
     tracers = (T = Ta,
                q = qa)
-                       
+
     pressure = pa
 
     downwelling_radiation = TwoBandDownwellingRadiation(shortwave=Qs, longwave=Ql)
@@ -659,7 +674,7 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
     atmosphere = PrescribedAtmosphere(times, FT;
                                       velocities,
                                       freshwater_flux,
-                                      runoff_flux,
+                                      auxiliary_freshwater_flux,
                                       tracers,
                                       downwelling_radiation,
                                       reference_height,
@@ -669,4 +684,3 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
 end
 
 end # module
-

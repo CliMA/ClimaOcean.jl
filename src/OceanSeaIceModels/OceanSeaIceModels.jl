@@ -1,6 +1,6 @@
 module OceanSeaIceModels
 
-export OceanSeaIceModel, SimilarityTheoryTurbulentFluxes, Radiation
+export OceanSeaIceModel, SimilarityTheoryTurbulentFluxes, Radiation, LatitudeDependentAlbedo
 
 using Oceananigans
 using SeawaterPolynomials
@@ -51,7 +51,6 @@ using .CrossRealmFluxes
 
 include("minimum_temperature_sea_ice.jl")
 include("ocean_sea_ice_model.jl")
-include("ocean_only_model.jl")
 include("time_step_ocean_sea_ice_model.jl")
 
 import .CrossRealmFluxes:
@@ -64,4 +63,3 @@ const NoAtmosphereModel = OceanSeaIceModel{<:Any, Nothing}
 compute_atmosphere_ocean_fluxes!(coupled_model::NoAtmosphereModel) = nothing
 
 end # module
-
