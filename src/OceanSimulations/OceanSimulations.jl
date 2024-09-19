@@ -43,12 +43,9 @@ default_tracer_advection() = TracerAdvection(WENO(; order = 7),
 @inline u_quadratic_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.u[i, j, 1] * spᶠᶜᶜ(i, j, 1, grid, Φ)
 @inline v_quadratic_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, 1] * spᶜᶠᶜ(i, j, 1, grid, Φ)
 
-@inline is_immersed_drag_u(i, j, k, grid) = Int(immersed_peripheral_node(i, j, k-1, grid, Face(), Center(), Center()) & !inactive_node(i, j, k, grid, Face(), Center(), Center()))
-@inline is_immersed_drag_v(i, j, k, grid) = Int(immersed_peripheral_node(i, j, k-1, grid, Center(), Face(), Center()) & !inactive_node(i, j, k, grid, Center(), Face(), Center()))
-
 # Keep a constant linear drag parameter independent on vertical level
-@inline u_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.u[i, j, k] * is_immersed_drag_u(i, j, k, grid) * spᶠᶜᶜ(i, j, k, grid, fields) / Δzᶠᶜᶜ(i, j, k, grid)
-@inline v_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.v[i, j, k] * is_immersed_drag_v(i, j, k, grid) * spᶜᶠᶜ(i, j, k, grid, fields) / Δzᶜᶠᶜ(i, j, k, grid)
+@inline u_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.u[i, j, k] * spᶠᶜᶜ(i, j, k, grid, fields) 
+@inline v_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.v[i, j, k] * spᶜᶠᶜ(i, j, k, grid, fields) 
 
 # TODO: Specify the grid to a grid on the sphere; otherwise we can provide a different
 # function that requires latitude and longitude etc for computing coriolis=FPlane...
@@ -71,20 +68,26 @@ function ocean_simulation(grid; Δt = 5minutes,
     top_ocean_heat_flux          = Jᵀ = Field{Center, Center, Nothing}(grid)
     top_salt_flux                = Jˢ = Field{Center, Center, Nothing}(grid)
 
+    # Construct ocean boundary conditions including surface forcing and bottom drag
+    u_top_bc = FluxBoundaryCondition(τx)
+    v_top_bc = FluxBoundaryCondition(τy)
+    T_top_bc = FluxBoundaryCondition(Jᵀ)
+    S_top_bc = FluxBoundaryCondition(Jˢ)
+    
     u_bot_bc = FluxBoundaryCondition(u_quadratic_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
     v_bot_bc = FluxBoundaryCondition(v_quadratic_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
 
-    ocean_boundary_conditions = (u = FieldBoundaryConditions(top = FluxBoundaryCondition(τx), bottom = u_bot_bc),
-                                 v = FieldBoundaryConditions(top = FluxBoundaryCondition(τy), bottom = v_bot_bc),
-                                 T = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵀ)),
-                                 S = FieldBoundaryConditions(top = FluxBoundaryCondition(Jˢ)))
+    u_immersed_drag = FluxBoundaryCondition(u_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
+    v_immersed_drag = FluxBoundaryCondition(v_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
 
-    if grid isa ImmersedBoundaryGrid
-        Fu = Forcing(u_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
-        Fv = Forcing(v_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
-        forcing = merge(forcing, (; u = Fu, v = Fv))
-    end
-    
+    u_immersed_bc = ImmersedBoundaryCondition(bottom = u_immersed_drag)
+    v_immersed_bc = ImmersedBoundaryCondition(bottom = v_immersed_drag)
+
+    ocean_boundary_conditions = (u = FieldBoundaryConditions(top = u_top_bc, bottom = u_bot_bc, immersed = u_immersed_bc),
+                                 v = FieldBoundaryConditions(top = v_top_bc, bottom = v_bot_bc, immersed = v_immersed_bc),
+                                 T = FieldBoundaryConditions(top = T_top_bc),
+                                 S = FieldBoundaryConditions(top = S_top_bc))
+
     # Use the TEOS10 equation of state
     teos10 = TEOS10EquationOfState(; reference_density)
     buoyancy = SeawaterBuoyancy(; gravitational_acceleration, equation_of_state=teos10)
