@@ -24,7 +24,7 @@ using Dates
 
         for metadata in temperature
             temperature_filename = metadata_filename(metadata)
-            @test isfile(joinpath(ECCO_data_directory, temperature_filename))
+            @test isfile(joinpath(metadata.path, temperature_filename))
         end
 
         @test ecco_fts isa FieldTimeSeries
