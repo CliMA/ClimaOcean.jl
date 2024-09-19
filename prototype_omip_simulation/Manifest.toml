@@ -2,7 +2,7 @@
 
 julia_version = "1.10.5"
 manifest_format = "2.0"
-project_hash = "9fdcb0198cb9e6e4211696bafda4f2c218d93f63"
+project_hash = "10b13fb74986e823c8fecb470da5976b32e6f2fe"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -186,10 +186,12 @@ uuid = "0376089a-ecfe-4b0e-a64f-9c555d74d754"
 version = "0.2.1"
 
 [[deps.ClimaSeaIce]]
-deps = ["Adapt", "KernelAbstractions", "Oceananigans", "RootSolvers", "Roots", "SeawaterPolynomials"]
-git-tree-sha1 = "233ca191cf019db38f0e44dbbb19296016131491"
+deps = ["Adapt", "JSON3", "KernelAbstractions", "Oceananigans", "Printf", "RootSolvers", "Roots", "SeawaterPolynomials"]
+git-tree-sha1 = "f5f028bea7c1a915521d330d341a3e5132a3ebeb"
+repo-rev = "ss/evp-rheology"
+repo-url = "https://github.com/CliMA/ClimaSeaIce.jl.git"
 uuid = "6ba0ff68-24e6-4315-936c-2e99227c95a4"
-version = "0.1.2"
+version = "0.1.1"
 
 [[deps.CloseOpenIntervals]]
 deps = ["Static", "StaticArrayInterface"]

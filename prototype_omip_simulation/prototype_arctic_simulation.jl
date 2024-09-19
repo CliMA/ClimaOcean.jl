@@ -33,13 +33,13 @@ include("simulation_outputs.jl")
 #####
 
 # 60 vertical levels
-z_faces = exponential_z_faces(Nz=60, depth=6000)
+z_faces = exponential_z_faces(Nz=35, depth=6000)
 
-Nx = 1440
-Ny = 600
+Nx = 360
+Ny = 180
 Nz = length(z_faces) - 1
 
-arch = GPU() 
+arch = CPU() 
 
 grid = TripolarGrid(arch; 
                     size = (Nx, Ny, Nz), 
@@ -61,17 +61,16 @@ bottom_height = retrieve_bathymetry(grid;
                                     interpolation_passes = 20,
                                     connected_regions_allowed = 0)
  
-grid         = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true) 
+grid         = ImmersedBoundaryGrid(grid,         GridFittedBottom(bottom_height); active_cells_map = true) 
 sea_ice_grid = ImmersedBoundaryGrid(sea_ice_grid, GridFittedBottom(bottom_height); active_cells_map = true) 
 
 #####
 ##### The Ocean component
 #####                             
 
-tracer_advection = WENO(; order = 7)
 free_surface = SplitExplicitFreeSurface(grid; cfl=0.7, fixed_Δt = 600)
 
-ocean = ocean_simulation(grid; Δt = 10, tracer_advection, free_surface) 
+ocean = ocean_simulation(grid; Δt = 10, free_surface) 
 model = ocean.model
 
 #####
@@ -84,7 +83,7 @@ v_surface_velocity = interior(model.velocities.v, :, :, grid.Nz)
 ocean_velocities = (; u = u_surface_velocity,
                       v = v_surface_velocity)
 
-sea_ice = sea_ice_simulation(sea_ice_grid; ice_dynamics = nothing, advection = nothing) #ocean_velocities, ocean_ice_drag_coefficient = 5.5) 
+sea_ice = sea_ice_simulation(sea_ice_grid; ocean_velocities) #ocean_velocities, ocean_ice_drag_coefficient = 5.5) 
 
 #####
 ##### Setting the simulation with ECCO data
@@ -138,19 +137,13 @@ function progress(sim)
      wall_time[1] = time_ns()
 end
 
-function update_dt!(simulation)
-    simulation.Δt = simulation.model.ocean.Δt
-    return nothing
-end
-
 coupled_simulation.callbacks[:progress]  = Callback(progress,   IterationInterval(10))
-coupled_simulation.callbacks[:update_dt] = Callback(update_dt!, IterationInterval(1)) 
 
 #### Saving outputs
 set_outputs!(coupled_simulation)
 
 # Run for 30 days!
-conjure_time_step_wizard!(ocean; max_Δt = 50, max_change = 1.1, cfl = 0.1)
+coupled_simulation.Δt = 5minutes
 run!(coupled_simulation)
 
 # # Finished the 30 days, run for other 720 days
@@ -158,5 +151,5 @@ coupled_simulation.stop_time = 1080days
 ocean.stop_time = 1080days
 sea_ice.stop_time = 1080days
 
-conjure_time_step_wizard!(ocean; max_Δt = 600, max_change = 1.1, cfl = 0.25)
+coupled_simulation.Δt = 20minutes
 run!(coupled_simulation)
