@@ -73,7 +73,7 @@ end
 
 include("inpaint_mask.jl")
 include("JRA55.jl")
-include("ECCO.jl")
+include("ECCO/ECCO.jl")
 
 using .JRA55
 using .ECCO
