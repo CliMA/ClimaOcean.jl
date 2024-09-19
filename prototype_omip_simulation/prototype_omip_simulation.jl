@@ -79,45 +79,51 @@ free_surface = SplitExplicitFreeSurface(grid; substeps = 55)
 ##### Add restoring to ECCO fields for temperature and salinity in the artic and antarctic
 #####
 
-# Build a mask that goes from 0 to 1 as a cubic function of φ between
-# 70 degrees and 90 degrees and zero derivatives at 70 and 90.
-x₁ = 70
-x₂ = 90
-y₁ = 0
-y₂ = 1
+const z_surface = Array(grid.zᵃᵃᶠ.parent)[end-8]
+@info z_surface
+@show z_surface
 
-A⁺ = [ x₁^3   x₁^2  x₁ 1
-       x₂^3   x₂^2  x₂ 1
-       3*x₁^2 2*x₁  1  0
-       3*x₂^2 2*x₂  1  0]
-           
-b⁺ = [y₁, y₂, 0, 0]
-c⁺ = A⁺ \ b⁺
+@inline function mask_T(λ, φ, z)
+   if z < z_surface
+      return zero(λ)
+   else
+      if φ < -70 || φ > 70
+          return one(λ)
+      elseif φ < -60
+          return 1 / (-10) * (φ + 60)
+      elseif φ > 60
+          return 1 / 10 * (φ - 60)
+      else
+          return zero(λ)
+      end
+   end
+end
 
-# Coefficients for the cubic mask
-const c₁⁺ = c⁺[1]
-const c₂⁺ = c⁺[2]
-const c₃⁺ = c⁺[3]
-const c₄⁺ = c⁺[4]
+@inline function mask_S(λ, φ, z)
+   if z < z_surface
+      return zero(λ)
+   else
+      if φ < -70 || φ > 70
+         return one(λ)
+      else
+         return one(λ) * 0.1
+      end
+   end
+end
 
-const c₁⁻ = - c⁺[1]
-const c₂⁻ = c⁺[2]
-const c₃⁻ = - c⁺[3]
-const c₄⁻ = c⁺[4]
+maskT = CenterField(grid)
+maskS = CenterField(grid)
 
-@inline mask_f(λ, φ, z) = ifelse(φ >=  70, c₁⁺ * φ^3 + c₂⁺ * φ^2 + c₃⁺ * φ + c₄⁺,
-                          ifelse(φ <= -70, c₁⁻ * φ^3 + c₂⁻ * φ^2 + c₃⁻ * φ + c₄⁻, zero(eltype(φ))))
-
-mask = CenterField(grid)
-set!(mask, mask_f)
+set!(maskT, mask_T)
+set!(maskS, mask_S)
 
 dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 12, 1)
 
 temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
 salinity    = ECCOMetadata(:salinity,    dates, ECCO4Monthly())
 
-FT = ECCO_restoring_forcing(temperature; mask, grid, architecture = arch, timescale = 5days)
-FS = ECCO_restoring_forcing(salinity;    mask, grid, architecture = arch, timescale = 5days)
+FT = ECCO_restoring_forcing(temperature; mask = maskT, grid, architecture = arch, timescale = 5days)
+FS = ECCO_restoring_forcing(salinity;    mask = maskS, grid, architecture = arch, timescale = 5days)
 
 forcing = (; T = FT, S = FS)
 
