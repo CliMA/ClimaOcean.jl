@@ -28,10 +28,6 @@ function default_ocean_closure()
     return CATKEVerticalDiffusivity(; mixing_length, turbulent_kinetic_energy_equation)
 end
 
-default_momentum_advection() = VectorInvariant(; vorticity_scheme = WENO(; order = 9),
-                                                  vertical_scheme = Centered(),
-                                                divergence_scheme = WENO())
-
 default_tracer_advection() = TracerAdvection(WENO(; order = 7),
                                              WENO(; order = 7),
                                              Centered())
@@ -58,7 +54,7 @@ function ocean_simulation(grid; Δt = 5minutes,
                           bottom_drag_coefficient = 0.003,
                           forcing = NamedTuple(),
                           coriolis = HydrostaticSphericalCoriolis(; rotation_rate),
-                          momentum_advection = default_momentum_advection(),
+                          momentum_advection = WENOVectorInvariant(),
                           tracer_advection = default_tracer_advection(),
                           verbose = false)
 

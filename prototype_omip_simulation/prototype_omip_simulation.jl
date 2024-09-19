@@ -23,6 +23,7 @@ using ClimaOcean.JRA55: JRA55NetCDFBackend, JRA55_prescribed_atmosphere
 using ClimaOcean.ECCO: ECCO_restoring_forcing, ECCO4Monthly, ECCO2Daily, ECCOMetadata
 using ClimaOcean.Bathymetry
 using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: LatitudeDependentAlbedo
+using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: SimilarityTheoryTurbulentFluxes, LatitudeDependentAlbedo
 
 using CFTime
 using Dates
@@ -67,7 +68,7 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_
 @info "Uploading an atmosphere on rank $(rank)..."
 backend    = JRA55NetCDFBackend(4) 
 atmosphere = JRA55_prescribed_atmosphere(arch; backend)
-radiation  = Radiation(arch)
+radiation  = Radiation(arch; ocean_albedo = LatitudeDependentAlbedo())
 
 #####
 ##### The Ocean component
@@ -133,16 +134,13 @@ closure = RiBasedVerticalDiffusivity(; horizontal_Ri_filter = Oceananigans.Turbu
 ocean = ocean_simulation(grid; free_surface, forcing, closure) 
 model = ocean.model
 
-initial_date = dates[1]
-
 #####
-##### Coupling the different models...
+##### The Similarity Theory
 #####
 
-sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
-
-@info "Coupling ocean and atmosphere on rank $(rank)..."
-coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce(-1.0)
+similarity_theory = SimilarityTheoryTurbulentFluxes(grid; maxiter = 20)
+coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation, similarity_theory)
 
 wall_time = [time_ns()]
 
