@@ -41,47 +41,47 @@ end
     @inbounds mask[i, j, k] = (Tᵢ[i, j, k] == 0) 
 end
 
-struct LatitudinallyTaperedPolarMask{N, S, Z} 
-    northern_edges :: N
-    southern_edges :: S
-    z_edges :: Z
+struct LinearlyTaperedPolarMask{N, S, Z} 
+    northern :: N
+    southern :: S
+    z :: Z
 end
 
 """
-    LatitudinallyTaperedPolarMask(; northern_edges = (70,   75),
-                                    southern_edges = (-75, -70),
-                                    z_edges = (-20, 0))
+    LinearlyTaperedPolarMask(; northern = (70,   75),
+                                    southern = (-75, -70),
+                                    z = (-20, 0))
 
 Build a mask that is linearly tapered in latitude inbetween the northern and southern edges.
-The mask is constant in depth between the z_edges and is equal to zero everywhere else.
+The mask is constant in depth between the z and is equal to zero everywhere else.
 The mask has the following functional form:
 
 ```julia
-n = 1 / (northern_edges[2] - northern_edges[1]) * (φ - northern_edges[1])
-s = 1 / (southern_edges[1] - southern_edges[2]) * (φ - southern_edges[2])
+n = 1 / (northern[2] - northern[1]) * (φ - northern[1])
+s = 1 / (southern[1] - southern[2]) * (φ - southern[2])
 
-within_depth = (z_edges[1] < z < z_edges[2])
+within_depth = (z[1] < z < z[2])
 
 mask = within_depth ? max(n, s, 0) : 0
 ```
 """
-function LatitudinallyTaperedPolarMask(; northern_edges = (70,   75),
-                                         southern_edges = (-75, -70),
-                                         z_edges = (-20, 0))
+function LinearlyTaperedPolarMask(; northern = (70,   75),
+                                    southern = (-75, -70),
+                                    z = (-20, 0))
 
-    return LatitudinallyTaperedPolarMask(northern_edges, southern_edges, z_edges)
+    return LinearlyTaperedPolarMask(northern, southern, z)
 end
 
-@inline function (mask::LatitudinallyTaperedPolarMask)(φ, z)
-    n = 1 / (mask.northern_edges[2] - mask.northern_edges[1]) * (φ - mask.northern_edges[1])
-    s = 1 / (mask.southern_edges[1] - mask.southern_edges[2]) * (φ - mask.southern_edges[2])
+@inline function (mask::LinearlyTaperedPolarMask)(φ, z)
+    n = 1 / (mask.northern[2] - mask.northern[1]) * (φ - mask.northern[1])
+    s = 1 / (mask.southern[1] - mask.southern[2]) * (φ - mask.southern[2])
     
-    within_depth = (mask.z_edges[1] < z < mask.z_edges[2])
+    within_depth = (mask.z[1] < z < mask.z[2])
 
     return ifelse(within_depth, max(n, s, zero(n)), zero(n))
 end
 
-@inline function stateindex(mask::LatitudinallyTaperedPolarMask, i, j, k, grid, time, loc)
+@inline function stateindex(mask::LinearlyTaperedPolarMask, i, j, k, grid, time, loc)
     LX, LY, LZ = loc 
     λ, φ, z = node(i, j, k, grid, LX(), LY(), LZ())
     return mask(φ, z)

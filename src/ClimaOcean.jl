@@ -18,7 +18,7 @@ export
     ECCO_field, 
     ECCOMetadata,
     ECCORestoring,
-    LatitudinallyTaperedPolarMask,
+    LinearlyTaperedPolarMask,
     ocean_simulation,
     initialize!
 

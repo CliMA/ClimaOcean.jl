@@ -93,7 +93,7 @@ end
                            architecture = CPU(),
                            time_indices_in_memory = 2,
                            time_indexing = Cyclical(),
-                           maxiter = Inf,
+                           inpainting_maxiter = Inf,
                            grid = nothing)
 
 Create a field time series object for ECCO data.
@@ -105,20 +105,20 @@ Create a field time series object for ECCO data.
 - architecture: The architecture to use for computations (default: CPU()).
 - time_indices_in_memory: The number of time indices to keep in memory (default: 2).
 - time_indexing: The time indexing scheme to use (default: Cyclical()).
-- maxiter: The maximum number of iterations for the inpainting algorithm (default: Inf).
+- inpainting_maxiter: The maximum number of iterations for the inpainting algorithm (default: Inf).
 - grid: if not a `nothing`, the ECCO data is directly interpolated on the `grid`,
 """
 function ECCO_field_time_series(metadata::ECCOMetadata;	
                                 architecture = CPU(),	
                                 time_indices_in_memory = 2,	
                                 time_indexing = Cyclical(),
-                                maxiter = Inf,
+                                inpainting_maxiter = Inf,
                                 grid = nothing)	
 
     # ECCO data is too chunky to allow other backends	
     backend = ECCONetCDFBackend(time_indices_in_memory; 
                                 on_native_grid = isnothing(grid),
-                                maxiter)
+                                maxiter = inpainting_maxiter)
 
     # Making sure all the required individual files are downloaded
     download_dataset!(metadata)
@@ -179,16 +179,16 @@ A struct representing ECCO restoring.
 - `rate`: The reciprocal of the restoring timescale.
 """
 struct ECCORestoring{FTS, G, M, V, N} 
-    ECCO_fts      :: FTS
-    ECCO_grid     :: G
-    mask          :: M
-    variable_name :: V
-    rate          :: N
+    field_time_series :: FTS
+    grid              :: G
+    mask              :: M
+    variable_name     :: V
+    rate              :: N
 end
 
 Adapt.adapt_structure(to, p::ECCORestoring) = 
-    ECCORestoring(Adapt.adapt(to, p.ECCO_fts), 
-                  Adapt.adapt(to, p.ECCO_grid),
+    ECCORestoring(Adapt.adapt(to, p.field_time_series), 
+                  Adapt.adapt(to, p.grid),
                   Adapt.adapt(to, p.mask),
                   Adapt.adapt(to, p.variable_name),
                   Adapt.adapt(to, p.rate))
@@ -197,15 +197,15 @@ Adapt.adapt_structure(to, p::ECCORestoring) =
     
     # Figure out all the inputs: time, location, and node
     time = Time(clock.time)
-    loc  = location(p.ECCO_fts)
+    loc  = location(p.field_time_series)
 
     # Retrieve the variable to force
     @inbounds var = fields[i, j, k, p.variable_name]
 
-    ECCO_backend = p.ECCO_fts.backend
+    ECCO_backend = p.field_time_series.backend
     native_grid = on_native_grid(ECCO_backend) 
 
-    ECCO_var = get_ECCO_variable(Val(native_grid), p.ECCO_fts, i, j, k, p.ECCO_grid, grid, time)
+    ECCO_var = get_ECCO_variable(Val(native_grid), p.field_time_series, i, j, k, p.grid, grid, time)
 
     # Extracting the mask value at the current node
     mask = stateindex(p.mask, i, j, k, grid, clock.time, loc)
@@ -242,7 +242,7 @@ end
                   mask = 1,
                   rate = 1 / 20days,
                   grid = nothing,
-                  maxiter = Inf)
+                  inpainting_maxiter = Inf)
 
 Create a restoring forcing term that restores to values stored in an ECCO field time series.
 
@@ -262,7 +262,7 @@ Create a restoring forcing term that restores to values stored in an ECCO field 
 - `mask`: The mask value. Can be a function of `(x, y, z, time)`, an array or a number
 - `rate`: The restoring rate in s⁻¹.
 - `time_indices_in_memory = 2, # Not more than this if we want to use GPU!
-- `maxiter`: maximum number of iterations for the inpainting algorithm. (defaults to `Inf`)
+- `inpainting_maxiter`: maximum number of iterations for the inpainting algorithm. (defaults to `Inf`)
 
 It is possible to also pass an `ECCOMetadata` type as the first argument without the need for the 
 `variable_name` argument and the `version` and `dates` keyword arguments.
@@ -283,9 +283,9 @@ function ECCORestoring(metadata::ECCOMetadata;
                        mask = 1,
                        rate = 1 / 20days,
                        grid = nothing.
-                       maxiter = Inf)
+                       inpainting_maxiter = Inf)
 
-    ECCO_fts  = ECCO_field_time_series(metadata; grid, architecture, time_indices_in_memory, time_indexing, maxiter)                  
+    ECCO_fts  = ECCO_field_time_series(metadata; grid, architecture, time_indices_in_memory, time_indexing, inpainting_maxiter)                  
     ECCO_grid = ECCO_fts.grid
 
     # Grab the correct Oceananigans field to restore

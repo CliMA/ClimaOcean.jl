@@ -44,7 +44,7 @@ dates = start_date : Month(1) : end_date
     end
 end
 
-@testset "LatitudinallyTaperedPolarMask" begin
+@testset "LinearlyTaperedPolarMask" begin
 
     grid = LatitudeLongitudeGrid(size = (100, 100, 10), latitude = (-75, 75), longitude = (0, 360), z = (-200, 0))
     
@@ -54,7 +54,7 @@ end
     φ₄ = grid.φᵃᶜᵃ[100]
     z₁ = grid.zᵃᵃᶜ[6]
 
-    mask = LatitudinallyTaperedPolarMask(northern_edges = (φ₃, φ₄), 
+    mask = LinearlyTaperedPolarMask(northern_edges = (φ₃, φ₄), 
                                          southern_edges = (φ₁, φ₂), 
                                          z_edges = (z₁, 0))
 
