@@ -2,6 +2,8 @@ using CFTime
 using Dates
 using Scratch
 
+using Base: @propagate_inbounds
+
 import Oceananigans.Fields: set!
 import Base
 
@@ -62,12 +64,19 @@ end
 ECCOMetadata(name::Symbol, date, version=ECCO4Monthly(); path = download_ECCO_cache) = ECCOMetadata(name, date, version, path)
 
 # Treat ECCOMetadata as an array to allow iteration over the dates.
-Base.getindex(metadata::ECCOMetadata, i::Int) = @inbounds ECCOMetadata(metadata.name, metadata.dates[i], metadata.version, metadata.path)
 Base.length(metadata::ECCOMetadata)       = length(metadata.dates)
 Base.eltype(metadata::ECCOMetadata)       = Base.eltype(metadata.dates)
-Base.first(metadata::ECCOMetadata)        = @inbounds ECCOMetadata(metadata.name, metadata.dates[1], metadata.version, metadata.path)
-Base.last(metadata::ECCOMetadata)         = @inbounds ECCOMetadata(metadata.name, metadata.dates[end], metadata.version, metadata.path)
-Base.iterate(metadata::ECCOMetadata, i=1) = (@inline; (i % UInt) - 1 < length(metadata) ? (@inbounds ECCOMetadata(metadata.name, metadata.dates[i], metadata.version, metadata.path), i + 1) : nothing)
+@propagate_inbounds Base.getindex(m::ECCOMetadata, i::Int) = ECCOMetadata(m.name, m.dates[i],   m.version, m.path)
+@propagate_inbounds Base.first(m::ECCOMetadata)            = ECCOMetadata(m.name, m.dates[1],   m.version, m.path)
+@propagate_inbounds Base.last(m::ECCOMetadata)             = ECCOMetadata(m.name, m.dates[end], m.version, m.path)
+
+@inline function Base.iterate(m::ECCOMetadata, i=1)
+    if (i % UInt) - 1 < length(m)
+        return ECCOMetadata(m.name, m.dates[i], m.version, m.path), i + 1
+    else
+        return nothing
+    end
+end
 
 Base.axes(metadata::ECCOMetadata{<:AbstractCFDateTime})    = 1
 Base.first(metadata::ECCOMetadata{<:AbstractCFDateTime})   = metadata
@@ -84,9 +93,9 @@ Base.size(::ECCOMetadata{<:AbstractCFDateTime, <:ECCO2Monthly}) = (1440, 720, 50
 Base.size(::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4Monthly}) = (720,  360, 50, 1)
 
 # The whole range of dates in the different dataset versions
-all_ecco_dates(::ECCO4Monthly) = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(2023, 12, 1)
-all_ecco_dates(::ECCO2Monthly) = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(2023, 12, 1)
-all_ecco_dates(::ECCO2Daily)   = DateTimeProlepticGregorian(1992, 1, 4) : Day(1)   : DateTimeProlepticGregorian(2023, 12, 31)
+all_ECCO_dates(::ECCO4Monthly) = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(2023, 12, 1)
+all_ECCO_dates(::ECCO2Monthly) = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(2023, 12, 1)
+all_ECCO_dates(::ECCO2Daily)   = DateTimeProlepticGregorian(1992, 1, 4) : Day(1)   : DateTimeProlepticGregorian(2023, 12, 31)
 
 # File name generation specific to each Dataset version
 function metadata_filename(metadata::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4Monthly})
@@ -111,11 +120,11 @@ function metadata_filename(metadata::ECCOMetadata{<:AbstractCFDateTime})
 end
 
 # Convenience functions
-short_name(data::ECCOMetadata{<:Any, <:ECCO2Daily})   = ecco2_short_names[data.name]
-short_name(data::ECCOMetadata{<:Any, <:ECCO2Monthly}) = ecco2_short_names[data.name]
-short_name(data::ECCOMetadata{<:Any, <:ECCO4Monthly}) = ecco4_short_names[data.name]
+short_name(data::ECCOMetadata{<:Any, <:ECCO2Daily})   = ECCO2_short_names[data.name]
+short_name(data::ECCOMetadata{<:Any, <:ECCO2Monthly}) = ECCO2_short_names[data.name]
+short_name(data::ECCOMetadata{<:Any, <:ECCO4Monthly}) = ECCO4_short_names[data.name]
 
-field_location(data::ECCOMetadata) = ecco_location[data.name]
+field_location(data::ECCOMetadata) = ECCO_location[data.name]
 
 variable_is_three_dimensional(data::ECCOMetadata) = 
     data.name == :temperature || 
@@ -123,7 +132,7 @@ variable_is_three_dimensional(data::ECCOMetadata) =
     data.name == :u_velocity ||
     data.name == :v_velocity
 
-ecco4_short_names = Dict(
+ECCO4_short_names = Dict(
     :temperature           => "THETA",
     :salinity              => "SALT",
     :u_velocity            => "EVEL",
@@ -132,7 +141,7 @@ ecco4_short_names = Dict(
     :sea_ice_area_fraction => "SIarea"
 )
 
-ecco2_short_names = Dict(
+ECCO2_short_names = Dict(
     :temperature           => "THETA",
     :salinity              => "SALT",
     :u_velocity            => "UVEL",
@@ -141,7 +150,7 @@ ecco2_short_names = Dict(
     :sea_ice_area_fraction => "SIarea"
 )
 
-ecco_location = Dict(
+ECCO_location = Dict(
     :temperature           => (Center, Center, Center),
     :salinity              => (Center, Center, Center),
     :sea_ice_thickness     => (Center, Center, Nothing),
@@ -184,8 +193,9 @@ function download_dataset!(metadata::ECCOMetadata;
 
         if !isfile(filename)
 
-            isnothing(username) && throw(ArgumentError("Could not find the username for $(url). Please provide a username in the ECCO_USERNAME environment variable."))
-            isnothing(password) && throw(ArgumentError("Could not find the username for $(url). Please provide a password in the ECCO_PASSWORD environment variable."))
+            msg = "\n See ClimaOcean.jl/src/ECCO/README.md for instructions."
+            isnothing(username) && throw(ArgumentError("Could not find the username for $(url). Please provide a username in the ECCO_USERNAME environment variable." * msg))
+            isnothing(password) && throw(ArgumentError("Could not find the username for $(url). Please provide a password in the ECCO_PASSWORD environment variable." * msg))
         
             # Version specific download file url
             if data.version isa ECCO2Monthly || data.version isa ECCO2Daily

@@ -3,13 +3,12 @@ using Oceananigans.Fields: interpolate!, interpolate, location, instantiated_loc
 using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBackend, FlavorOfFTS, time_indices
 using Oceananigans.Utils: Time
 
-using CUDA: @allowscalar
 using Base
 
 using NCDatasets
 using JLD2 
-using Dates: Second
 
+using Dates: Second
 using ClimaOcean: stateindex
 
 import Oceananigans.Fields: set!
@@ -50,14 +49,7 @@ function set!(fts::ECCONetCDFFTS, path::ECCOMetadata=fts.path, name::String=fts.
         
         # find the file associated with the time index
         metadata = @inbounds path[t] 
-
-        arch = architecture(fts)
-        f = inpainted_ecco_field(metadata; architecture=arch)
-        if on_native_grid(backend)
-            set!(fts[t], f)
-        else
-            interpolate!(fts[t], f)
-        end
+        set!(fts[t], metadata)
     end
 
     fill_halo_regions!(fts)
@@ -66,7 +58,7 @@ function set!(fts::ECCONetCDFFTS, path::ECCOMetadata=fts.path, name::String=fts.
 end
 
 """
-    ecco_times(metadata; start_time = metadata.dates[1])
+    ECCO_times(metadata; start_time = metadata.dates[1])
 
 Extracts the time values from the given metadata and calculates the time difference
 from the start time.
@@ -78,7 +70,7 @@ from the start time.
 # Returns
 An array of time differences in seconds.
 """
-function ecco_times(metadata; start_time = first(metadata).dates)
+function ECCO_times(metadata; start_time = first(metadata).dates)
     times = zeros(length(metadata))
     for (t, data) in enumerate(metadata)
         date = data.dates
@@ -122,12 +114,12 @@ function ECCO_field_time_series(metadata::ECCOMetadata;
     download_dataset!(metadata)
 
     location = field_location(metadata)
-    ftmp = empty_ecco_field(first(metadata); architecture)
+    ftmp = empty_ECCO_field(first(metadata); architecture)
     shortname = short_name(metadata)
 
     ECCO_native_grid = ftmp.grid
     boundary_conditions = FieldBoundaryConditions(ECCO_native_grid, location)
-    times = ecco_times(metadata)
+    times = ECCO_times(metadata)
 
     fts_grid = isnothing(grid) ? ECCO_native_grid : grid
 
@@ -145,7 +137,7 @@ function ECCO_field_time_series(metadata::ECCOMetadata;
 end
 
 ECCO_field_time_series(variable_name::Symbol, version=ECCO4Monthly(); kw...) = 
-    ECCO_field_time_series(ECCOMetadata(variable_name, all_ecco_dates(version), version); kw...)
+    ECCO_field_time_series(ECCOMetadata(variable_name, all_ECCO_dates(version), version); kw...)
 
 # Variable names for restoreable data
 struct Temperature end
@@ -170,23 +162,23 @@ oceananigans_fieldname = Dict(
 A struct representing ECCO restoring.
 
 # Fields
-- `ecco_fts`: The ECCO FTS on the native ECCO grid.
-- `ecco_grid`: The native ECCO grid to interpolate from.
+- `ECCO_fts`: The ECCO FTS on the native ECCO grid.
+- `ECCO_grid`: The native ECCO grid to interpolate from.
 - `mask`: A mask (could be a number, an array, a function or a field).
 - `variable_name`: The variable name of the variable that needs restoring.
 - `λ⁻¹`: The reciprocal of the restoring timescale.
 """
 struct ECCORestoring{FTS, G, M, V, N} <: Function
-    ecco_fts      :: FTS
-    ecco_grid     :: G
+    ECCO_fts      :: FTS
+    ECCO_grid     :: G
     mask          :: M
     variable_name :: V
     λ⁻¹           :: N
 end
 
 Adapt.adapt_structure(to, p::ECCORestoring) = 
-    ECCORestoring(Adapt.adapt(to, p.ecco_fts), 
-                  Adapt.adapt(to, p.ecco_grid),
+    ECCORestoring(Adapt.adapt(to, p.ECCO_fts), 
+                  Adapt.adapt(to, p.ECCO_grid),
                   Adapt.adapt(to, p.mask),
                   Adapt.adapt(to, p.variable_name),
                   Adapt.adapt(to, p.λ⁻¹))
@@ -195,41 +187,41 @@ Adapt.adapt_structure(to, p::ECCORestoring) =
     
     # Figure out all the inputs: time, location, and node
     time = Time(clock.time)
-    loc  = location(p.ecco_fts)
+    loc  = location(p.ECCO_fts)
 
     # Retrieve the variable to force
     @inbounds var = fields[i, j, k, p.variable_name]
 
-    ecco_backend = p.ecco_fts.backend
-    native_grid = on_native_grid(ecco_backend) 
+    ECCO_backend = p.ECCO_fts.backend
+    native_grid = on_native_grid(ECCO_backend) 
 
-    ecco_var = get_ecco_variable(Val(native_grid), p.ecco_fts, i, j, k, p.ecco_grid, grid, time)
+    ECCO_var = get_ECCO_variable(Val(native_grid), p.ECCO_fts, i, j, k, p.ECCO_grid, grid, time)
 
     # Extracting the mask value at the current node
     mask = stateindex(p.mask, i, j, k, grid, clock.time, loc)
 
-    return p.λ⁻¹ * mask * (ecco_var - var)
+    return p.λ⁻¹ * mask * (ECCO_var - var)
 end
 
 # Differentiating between restoring done with an ECCO FTS
-# that lives on the native ecco grid, that requires interpolation in space
+# that lives on the native ECCO grid, that requires interpolation in space
 # _inside_ the restoring function and restoring based on an ECCO 
 # FTS defined on the model grid that requires only time interpolation
-@inline function get_ecco_variable(::Val{true}, ecco_fts, i, j, k, ecco_grid, grid, time)
+@inline function get_ECCO_variable(::Val{true}, ECCO_fts, i, j, k, ECCO_grid, grid, time)
     # Extracting the ECCO field time series data and parameters
-    ecco_times         = ecco_fts.times
-    ecco_data          = ecco_fts.data
-    ecco_time_indexing = ecco_fts.time_indexing
-    ecco_backend       = ecco_fts.backend
-    ecco_location      = instantiated_location(ecco_fts)
+    ECCO_times         = ECCO_fts.times
+    ECCO_data          = ECCO_fts.data
+    ECCO_time_indexing = ECCO_fts.time_indexing
+    ECCO_backend       = ECCO_fts.backend
+    ECCO_location      = instantiated_location(ECCO_fts)
 
-    X = node(i, j, k, grid, ecco_location...)
+    X = node(i, j, k, grid, ECCO_location...)
 
     # Interpolating the ECCO field time series data onto the current node and time
-    return interpolate(X, time, ecco_data, ecco_location, ecco_grid, ecco_times, ecco_backend, ecco_time_indexing)
+    return interpolate(X, time, ECCO_data, ECCO_location, ECCO_grid, ECCO_times, ECCO_backend, ECCO_time_indexing)
 end    
 
-@inline get_ecco_variable(::Val{false}, ecco_fts, i, j, k, ecco_grid, grid, time) = @inbounds ecco_fts[i, j, k, time]
+@inline get_ECCO_variable(::Val{false}, ECCO_fts, i, j, k, ECCO_grid, grid, time) = @inbounds ECCO_fts[i, j, k, time]
 
 """
     ECCO_restoring_forcing(metadata::ECCOMetadata;
@@ -255,7 +247,7 @@ Create a restoring forcing term that restores to values stored in an ECCO field 
 - `timescale`: The restoring timescale.
 """
 function ECCO_restoring_forcing(variable_name::Symbol, version=ECCO4Monthly(); kw...) 
-     metadata = ECCOMetadata(variable_name, all_ecco_dates(version), version)
+     metadata = ECCOMetadata(variable_name, all_ECCO_dates(version), version)
     return ECCO_restoring_forcing(metadata; kw...)
 end
 
@@ -267,16 +259,16 @@ function ECCO_restoring_forcing(metadata::ECCOMetadata;
                                 timescale = 20days,
                                 grid = nothing)
 
-    ecco_fts  = ECCO_field_time_series(metadata; grid, architecture, time_indices_in_memory, time_indexing)                  
-    ecco_grid = ecco_fts.grid
+    ECCO_fts  = ECCO_field_time_series(metadata; grid, architecture, time_indices_in_memory, time_indexing)                  
+    ECCO_grid = ECCO_fts.grid
 
     # Grab the correct Oceananigans field to restore
     variable_name = metadata.name
     field_name = oceananigans_fieldname[variable_name]
-    ecco_restoring = ECCORestoring(ecco_fts, ecco_grid, mask, field_name, 1 / timescale)
+    ECCO_restoring = ECCORestoring(ECCO_fts, ECCO_grid, mask, field_name, 1 / timescale)
     
     # Defining the forcing that depends on the restoring field.
-    restoring_forcing = Forcing(ecco_restoring; discrete_form = true)
+    restoring_forcing = Forcing(ECCO_restoring; discrete_form = true)
 
     return restoring_forcing
 end
