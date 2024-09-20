@@ -58,8 +58,7 @@ end
                                          southern_edges = (φ₁, φ₂), 
                                          z_edges = (z₁, 0))
 
-    temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
-    t_restoring = ECCORestoring(temperature; mask, rate = 1 / 1000.0)
+    t_restoring = ECCORestoring(:temperature, CPU(); dates, mask, rate = 1 / 1000.0)
 
     fill!(t_restoring.ECCO_fts[1], 1.0)
     fill!(t_restoring.ECCO_fts[2], 1.0)
