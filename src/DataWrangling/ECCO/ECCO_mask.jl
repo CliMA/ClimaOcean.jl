@@ -1,4 +1,5 @@
 using Oceananigans.Architectures: AbstractArchitecture
+import ClimaOcean: stateindex
 
 """
     ECCO_mask(architecture = CPU(); minimum_value = Float32(-1e5))
@@ -40,32 +41,48 @@ end
     @inbounds mask[i, j, k] = (Tᵢ[i, j, k] == 0) 
 end
 
-struct LatitudinallyTaperedPolarMask{N, S, Z} <: Function
+struct LatitudinallyTaperedPolarMask{N, S, Z} 
     northern_edges :: N
     southern_edges :: S
-    z_edges :: F
+    z_edges :: Z
 end
 
 """
     LatitudinallyTaperedPolarMask(; northern_edges = (70,   75),
-                               southern_edges = (-75, -70),
-                               z_edges = (-20, 0))
+                                    southern_edges = (-75, -70),
+                                    z_edges = (-20, 0))
 
-Build a mask that is linearly tapered in latitude between the northern and southern edges.
+Build a mask that is linearly tapered in latitude inbetween the northern and southern edges.
 The mask is constant in depth between the z_edges and is equal to zero everywhere else.
+The mask has the following functional form:
+
+```julia
+n = 1 / (northern_edges[2] - northern_edges[1]) * (φ - northern_edges[1])
+s = 1 / (southern_edges[1] - southern_edges[2]) * (φ - southern_edges[2])
+
+within_depth = (z_edges[1] < z < z_edges[2])
+
+mask = within_depth ? max(n, s, 0) : 0
+```
 """
-function LatitudinallyTaperedPolarMask(; northern_edges = (70, 75),
-                                     southern_edges = (-75, -70),
-                                     z_edges = (-20, 0))
+function LatitudinallyTaperedPolarMask(; northern_edges = (70,   75),
+                                         southern_edges = (-75, -70),
+                                         z_edges = (-20, 0))
 
     return LatitudinallyTaperedPolarMask(northern_edges, southern_edges, z_edges)
 end
 
-@inline function (mask::LinearlyTaperedPolarMask)(λ, φ, z, args...)
+@inline function (mask::LatitudinallyTaperedPolarMask)(φ, z)
     n = 1 / (mask.northern_edges[2] - mask.northern_edges[1]) * (φ - mask.northern_edges[1])
     s = 1 / (mask.southern_edges[1] - mask.southern_edges[2]) * (φ - mask.southern_edges[2])(φ)  
     
     within_depth = (mask.z_edges[1] < z < mask.z_edges[2])
 
     return ifelse(within_depth, max(n, s, zero(n)), zero(n))
+end
+
+@inline function stateindex(mask::LatitudinallyTaperedPolarMask, i, j, k, grid, time, loc)
+    LX, LY, LZ = loc 
+    λ, φ, z = node(i, j, k, grid, LX(), LY(), LZ())
+    return mask(φ, z)
 end

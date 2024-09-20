@@ -12,7 +12,7 @@ using Dates: Second
 using ClimaOcean: stateindex
 
 import Oceananigans.Fields: set!
-import Oceananigans.Forcing: regularize_forcing
+import Oceananigans.Forcings: regularize_forcing
 import Oceananigans.OutputReaders: new_backend, update_field_time_series!
 
 @inline instantiate(T::DataType) = T()
@@ -238,18 +238,25 @@ Create a restoring forcing term that restores to values stored in an ECCO field 
 
 # Arguments:
 =============
-- `metadata`: The metadata for the ECCO field time series.
+- `variable_name`: The name of the variable to restore. The choice is between 
+                   :temperature, :salinity, :u_velocity, :v_velocity, :sea_ice_thickness, :sea_ice_area_fraction.
+- `architecture`: The architecture. Typically `CPU` or `GPU`. Default is `CPU`.
 
 # Keyword Arguments:
 ====================
-- `architecture`: The architecture. Typically `CPU` or `GPU`
+- `version`: The version of the ECCO dataset. Default is `ECCO4Monthly()`.
+- `dates`: The dates to use for the ECCO dataset. Default is `all_ECCO_dates(version)`.
 - `time_indices_in_memory`: The number of time indices to keep in memory. trade-off between performance
                             and memory footprint.    
-- `time_indexing`: The time indexing scheme for the field time series, see [`FieldTimeSeries`](@ref)
+- `time_indexing`: The time indexing scheme for the field time series≥
 - `mask`: The mask value. Can be a function of `(x, y, z, time)`, an array or a number
-- `timescale`: The restoring timescale.
+- `rate`: The restoring rate in s⁻¹.
+- `time_indices_in_memory = 2, # Not more than this if we want to use GPU!
+
+It is possible to also pass an `ECCOMetadata` type as the first argument without the need for the 
+`variable_name` argument and the `version` and `dates` keyword argument.
 """
-function ECCORestoring(architecture, variable_name::Symbol; 
+function ECCORestoring(variable_name::Symbol, architecture = CPU(); 
                        version = ECCO4Monthly(),
                        dates = all_ECCO_dates(version), 
                        kw...) 
