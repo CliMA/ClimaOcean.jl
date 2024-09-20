@@ -33,7 +33,7 @@ Represents an ECCO FieldTimeSeries backed by ECCO native .nc files.
 Each time instance is stored in an individual file.
 the maxiter keyword argument is the maximum number of iterations for the inpainting algorithm.
 """
-ECCONetCDFBackend(length; on_native_grid = false) = ECCONetCDFBackend{on_native_grid}(1, length, maxiter)
+ECCONetCDFBackend(length; on_native_grid = false, maxiter = Inf) = ECCONetCDFBackend{on_native_grid}(1, length, maxiter)
 
 Base.length(backend::ECCONetCDFBackend)  = backend.length
 Base.summary(backend::ECCONetCDFBackend) = string("ECCONetCDFBackend(", backend.start, ", ", backend.length, ")")
