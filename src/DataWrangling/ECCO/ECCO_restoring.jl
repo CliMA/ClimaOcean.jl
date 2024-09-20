@@ -246,10 +246,16 @@ end
 
 Create a restoring forcing term that restores to values stored in an ECCO field time series.
 
-# Arguments:
-=============
-- `variable_name`: The name of the variable to restore. The choice is between 
-                   :temperature, :salinity, :u_velocity, :v_velocity, :sea_ice_thickness, :sea_ice_area_fraction.
+# Positional Arguments (order does not matter):
+===============================================
+- `variable_name`: The name of the variable to restore. (default: `:temperature`).
+                   The choice is between
+                    - `:temperature`, 
+                    - `:salinity`, 
+                    - `:u_velocity`, 
+                    - `:v_velocity`, 
+                    - `:sea_ice_thickness`, 
+                    - `:sea_ice_area_fraction`.
 - `architecture`: The architecture. Typically `CPU` or `GPU`. Default is `CPU`.
 
 # Keyword Arguments:
@@ -267,7 +273,7 @@ Create a restoring forcing term that restores to values stored in an ECCO field 
 It is possible to also pass an `ECCOMetadata` type as the first argument without the need for the 
 `variable_name` argument and the `version` and `dates` keyword arguments.
 """
-function ECCORestoring(variable_name::Symbol, architecture = CPU(); 
+function ECCORestoring(variable_name::Symbol, architecture::AbstractArchitecture = CPU(); 
                        version = ECCO4Monthly(),
                        dates = all_ECCO_dates(version), 
                        kw...) 
@@ -275,6 +281,10 @@ function ECCORestoring(variable_name::Symbol, architecture = CPU();
      metadata = ECCOMetadata(variable_name, dates, version)
     return ECCORestoring(metadata; architecture, kw...)
 end
+
+# Make sure we can call ECCORestoring with architecture as the first positional argument
+ECCORestoring(architecture::AbstractArchitecture, variable_name::Symbol = :temperature; kw...) = 
+    ECCORestoring(variable_name, architecture; kw...)
 
 function ECCORestoring(metadata::ECCOMetadata;
                        architecture = CPU(), 
