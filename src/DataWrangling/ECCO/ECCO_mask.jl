@@ -69,6 +69,10 @@ function LinearlyTaperedPolarMask(; northern = (70,   75),
                                     southern = (-75, -70),
                                     z = (-20, 0))
 
+    northern[1] < northern[2]  && throw(ArgumentError("Northern latitude range is invalid, northern[1] > northern[2]."))
+    southern[1] > southern[2]  && throw(ArgumentError("Southern latitude range is invalid, southern[1] < southern[2]."))
+    z[1] < z[2]                && throw(ArgumentError("Depth range is invalid, z[1] > z[2]."))
+
     return LinearlyTaperedPolarMask(northern, southern, z)
 end
 
