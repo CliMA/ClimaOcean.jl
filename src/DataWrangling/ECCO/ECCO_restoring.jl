@@ -40,7 +40,7 @@ Base.summary(backend::ECCONetCDFBackend) = string("ECCONetCDFBackend(", backend.
 
 const ECCONetCDFFTS{N} = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:ECCONetCDFBackend{N}} where N
 
-new_backend(::ECCONetCDFBackend{N}, start, length, maxiter) where N = ECCONetCDFBackend{N}(start, length, maxiter)
+new_backend(b::ECCONetCDFBackend{N}, start, length) where N = ECCONetCDFBackend{N}(start, length, b.maxiter)
 on_native_grid(::ECCONetCDFBackend{N}) where N = N
 
 function set!(fts::ECCONetCDFFTS, path::ECCOMetadata=fts.path, name::String=fts.name) 
