@@ -26,6 +26,10 @@ Base.show(io::IO, metadata::ECCOMetadata) =
     "├── dates: $(metadata.dates)", '\n',
     "└── data version: $(metadata.version)")
 
+Base.summary(data::ECCOMetadata{<:Any, <:ECCO2Daily})   = "Daily ECCO2 $(data.name) dataset, from $(first(data.dates)) to $(last(data.dates))"
+Base.summary(data::ECCOMetadata{<:Any, <:ECCO2Monthly}) = "Monthly ECCO2 $(data.name) dataset, from $(first(data.dates)) to $(last(data.dates))"
+Base.summary(data::ECCOMetadata{<:Any, <:ECCO4Monthly}) = "Monthly ECCO4 $(data.name) dataset, from $(first(data.dates)) to $(last(data.dates))"
+    
 # The default is the ECCO2Daily dataset at 1993-01-01.
 function ECCOMetadata(name::Symbol; 
                       date = DateTimeProlepticGregorian(1993, 1, 1),

@@ -166,6 +166,11 @@ oceananigans_fieldname = Dict(
 @inline Base.getindex(fields, i, j, k, ::UVelocity)   = @inbounds fields.u[i, j, k]
 @inline Base.getindex(fields, i, j, k, ::VVelocity)   = @inbounds fields.v[i, j, k]
 
+Base.summary(::Temperature) = "temperature"
+Base.summary(::Salinity)    = "salinity"
+Base.summary(::UVelocity)   = "u_velocity"
+Base.summary(::VVelocity)   = "v_velocity"
+
 """
     struct ECCORestoring{FTS, G, M, V, N} <: Function
 
@@ -304,5 +309,13 @@ function ECCORestoring(metadata::ECCOMetadata;
 
     return ECCORestoring(ECCO_fts, ECCO_grid, mask, field_name, rate)
 end
+
+Base.show(io::IO, p::ECCORestoring) = 
+    print(io, "Three-dimensional restoring to ECCO data:", '\n',
+              "├── restored variable: ", summary(p.variable_name), '\n',
+              "├── restoring dataset: ", summary(p.field_time_series.path), '\n',
+              "├── restoring rate: ", p.rate, '\n',
+              "├── mask: ", summary(p.mask), '\n',
+              "└── grid: ", summary(p.grid))
 
 regularize_forcing(forcing::ECCORestoring, field, field_name, model_field_names) = forcing
