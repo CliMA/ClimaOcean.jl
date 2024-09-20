@@ -49,8 +49,8 @@ end
 
 """
     LinearlyTaperedPolarMask(; northern = (70,   75),
-                                    southern = (-75, -70),
-                                    z = (-20, 0))
+                               southern = (-75, -70),
+                               z = (-20, 0))
 
 Build a mask that is linearly tapered in latitude inbetween the northern and southern edges.
 The mask is constant in depth between the z and is equal to zero everywhere else.
