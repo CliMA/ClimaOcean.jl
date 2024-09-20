@@ -9,7 +9,7 @@ using CFTime
 using Dates
 
 start_date = DateTimeProlepticGregorian(1993, 1, 1)
-end_date = DateTimeProlepticGregorian(1993, 4, 1)
+end_date = DateTimeProlepticGregorian(1993, 2, 1)
 dates = start_date : Month(1) : end_date
 
 @testset "ECCO fields utilities" begin
@@ -46,7 +46,7 @@ end
 
 @testset "LatitudinallyTaperedPolarMask" begin
 
-    grid = LatitudeLongitudeGrid(size = (100, 100, 10), latitude = (-75, -75), longitude = (0, 360), z = (-200, 0))
+    grid = LatitudeLongitudeGrid(size = (100, 100, 10), latitude = (-75, 75), longitude = (0, 360), z = (-200, 0))
     
     φ₁ = grid.φᵃᶜᵃ[1]
     φ₂ = grid.φᵃᶜᵃ[20]
@@ -54,24 +54,24 @@ end
     φ₄ = grid.φᵃᶜᵃ[100]
     z₁ = grid.zᵃᵃᶜ[6]
 
-    mask = LatitudinallyTaperedPolarMask(north_edges = (φ₃, φ₄), 
-                                         south_edges = (φ₁, φ₂), 
+    mask = LatitudinallyTaperedPolarMask(northern_edges = (φ₃, φ₄), 
+                                         southern_edges = (φ₁, φ₂), 
                                          z_edges = (z₁, 0))
 
     temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
     t_restoring = ECCORestoring(temperature; mask, rate = 1 / 1000.0)
 
-    fill!(ECCORestoring.ECCO_fts[1], 1.0)
-    fill!(ECCORestoring.ECCO_fts[2], 1.0)
+    fill!(t_restoring.ECCO_fts[1], 1.0)
+    fill!(t_restoring.ECCO_fts[2], 1.0)
 
     T = CenterField(grid)
     fields = (; T)
-    clock  = Clock()
+    clock  = Clock(; time = 0)
 
-    @test t_restoring(1, 1,   10, grid, clock, fields) == ECCORestoring.rate
+    @test t_restoring(1, 1,   10, grid, clock, fields) == t_restoring.rate
     @test t_restoring(1, 20,  10, grid, clock, fields) == 0
     @test t_restoring(1, 80,  10, grid, clock, fields) == 0
-    @test t_restoring(1, 100, 10, grid, clock, fields) == ECCORestoring.rate
+    @test t_restoring(1, 100, 10, grid, clock, fields) == t_restoring.rate
     @test t_restoring(1, 1,   5,  grid, clock, fields) == 0
     @test t_restoring(1, 10,  5,  grid, clock, fields) == 0
 end

@@ -74,7 +74,7 @@ end
 
 @inline function (mask::LatitudinallyTaperedPolarMask)(φ, z)
     n = 1 / (mask.northern_edges[2] - mask.northern_edges[1]) * (φ - mask.northern_edges[1])
-    s = 1 / (mask.southern_edges[1] - mask.southern_edges[2]) * (φ - mask.southern_edges[2])(φ)  
+    s = 1 / (mask.southern_edges[1] - mask.southern_edges[2]) * (φ - mask.southern_edges[2])
     
     within_depth = (mask.z_edges[1] < z < mask.z_edges[2])
 

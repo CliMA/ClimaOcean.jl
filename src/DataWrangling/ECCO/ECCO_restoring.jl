@@ -202,7 +202,7 @@ Adapt.adapt_structure(to, p::ECCORestoring) =
 
     # Extracting the mask value at the current node
     mask = stateindex(p.mask, i, j, k, grid, clock.time, loc)
-
+    
     return p.rate * mask * (ECCO_var - var)
 end
 
@@ -252,6 +252,7 @@ Create a restoring forcing term that restores to values stored in an ECCO field 
 - `mask`: The mask value. Can be a function of `(x, y, z, time)`, an array or a number
 - `rate`: The restoring rate in s⁻¹.
 - `time_indices_in_memory = 2, # Not more than this if we want to use GPU!
+- `maxiter`: maximum number of iterations for the inpainting algorithm. (defaults to `Inf`)
 
 It is possible to also pass an `ECCOMetadata` type as the first argument without the need for the 
 `variable_name` argument and the `version` and `dates` keyword argument.
