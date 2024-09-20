@@ -227,12 +227,14 @@ end
 @inline get_ECCO_variable(::Val{false}, ECCO_fts, i, j, k, ECCO_grid, grid, time) = @inbounds ECCO_fts[i, j, k, time]
 
 """
-    ECCORestoring(metadata::ECCOMetadata;
-                  architecture = CPU(), 
-                  backend = ECCONetCDFBackend(2),
+    ECCORestoring(variable_name::Symbol, [architecture = CPU()]; 
+                  version = ECCO4Monthly(),
+                  dates = all_ECCO_dates(version), 
+                  time_indices_in_memory = 2, # Not more than this if we want to use GPU!
                   time_indexing = Cyclical(),
                   mask = 1,
-                  timescale = 5days)
+                  rate = 1 / 20days,
+                  grid = nothing)
 
 Create a restoring forcing term that restores to values stored in an ECCO field time series.
 
@@ -255,7 +257,7 @@ Create a restoring forcing term that restores to values stored in an ECCO field 
 - `maxiter`: maximum number of iterations for the inpainting algorithm. (defaults to `Inf`)
 
 It is possible to also pass an `ECCOMetadata` type as the first argument without the need for the 
-`variable_name` argument and the `version` and `dates` keyword argument.
+`variable_name` argument and the `version` and `dates` keyword arguments.
 """
 function ECCORestoring(variable_name::Symbol, architecture = CPU(); 
                        version = ECCO4Monthly(),
