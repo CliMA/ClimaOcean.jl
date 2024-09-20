@@ -21,30 +21,33 @@ import Oceananigans.OutputReaders: new_backend, update_field_time_series!
 struct ECCONetCDFBackend{N} <: AbstractInMemoryBackend{Int}
     start :: Int
     length :: Int
+    maxiter :: Int
 
-    ECCONetCDFBackend{N}(start::Int, length::Int) where N = new{N}(start, length)
+    ECCONetCDFBackend{N}(start::Int, length::Int, maxiter::Int) where N = new{N}(start, length, maxiter)
 end
 
 """
-    ECCONetCDFBackend(length)
+    ECCONetCDFBackend(length; on_native_grid = false, maxiter = Inf)
 
 Represents an ECCO FieldTimeSeries backed by ECCO native .nc files.
 Each time instance is stored in an individual file.
+the maxiter keyword argument is the maximum number of iterations for the inpainting algorithm.
 """
-ECCONetCDFBackend(length; on_native_grid = false) = ECCONetCDFBackend{on_native_grid}(1, length)
+ECCONetCDFBackend(length; on_native_grid = false) = ECCONetCDFBackend{on_native_grid}(1, length, maxiter)
 
 Base.length(backend::ECCONetCDFBackend)  = backend.length
 Base.summary(backend::ECCONetCDFBackend) = string("ECCONetCDFBackend(", backend.start, ", ", backend.length, ")")
 
 const ECCONetCDFFTS{N} = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:ECCONetCDFBackend{N}} where N
 
-new_backend(::ECCONetCDFBackend{N}, start, length) where N = ECCONetCDFBackend{N}(start, length)
+new_backend(::ECCONetCDFBackend{N}, start, length, maxiter) where N = ECCONetCDFBackend{N}(start, length, maxiter)
 on_native_grid(::ECCONetCDFBackend{N}) where N = N
 
 function set!(fts::ECCONetCDFFTS, path::ECCOMetadata=fts.path, name::String=fts.name) 
 
     backend = fts.backend
-    start = backend.start
+    start   = backend.start
+    maxiter = backend.maxiter
 
     for t in start:start+length(backend)-1
         
@@ -52,7 +55,7 @@ function set!(fts::ECCONetCDFFTS, path::ECCOMetadata=fts.path, name::String=fts.
         metadata = @inbounds path[t] 
 
         # Set the field with the correct metadata
-        set!(fts[t], metadata)
+        set!(fts[t], metadata; maxiter)
     end
 
     fill_halo_regions!(fts)
@@ -90,6 +93,7 @@ end
                            architecture = CPU(),
                            time_indices_in_memory = 2,
                            time_indexing = Cyclical(),
+                           maxiter = Inf,
                            grid = nothing)
 
 Create a field time series object for ECCO data.
@@ -101,17 +105,20 @@ Create a field time series object for ECCO data.
 - architecture: The architecture to use for computations (default: CPU()).
 - time_indices_in_memory: The number of time indices to keep in memory (default: 2).
 - time_indexing: The time indexing scheme to use (default: Cyclical()).
+- maxiter: The maximum number of iterations for the inpainting algorithm (default: Inf).
 - grid: if not a `nothing`, the ECCO data is directly interpolated on the `grid`,
 """
 function ECCO_field_time_series(metadata::ECCOMetadata;	
                                 architecture = CPU(),	
                                 time_indices_in_memory = 2,	
                                 time_indexing = Cyclical(),
+                                maxiter = Inf,
                                 grid = nothing)	
 
     # ECCO data is too chunky to allow other backends	
     backend = ECCONetCDFBackend(time_indices_in_memory; 
-                                on_native_grid = isnothing(grid))
+                                on_native_grid = isnothing(grid),
+                                maxiter)
 
     # Making sure all the required individual files are downloaded
     download_dataset!(metadata)
@@ -169,7 +176,7 @@ A struct representing ECCO restoring.
 - `ECCO_grid`: The native ECCO grid to interpolate from.
 - `mask`: A mask (could be a number, an array, a function or a field).
 - `variable_name`: The variable name of the variable that needs restoring.
-- `λ⁻¹`: The reciprocal of the restoring timescale.
+- `rate`: The reciprocal of the restoring timescale.
 """
 struct ECCORestoring{FTS, G, M, V, N} 
     ECCO_fts      :: FTS
@@ -184,7 +191,7 @@ Adapt.adapt_structure(to, p::ECCORestoring) =
                   Adapt.adapt(to, p.ECCO_grid),
                   Adapt.adapt(to, p.mask),
                   Adapt.adapt(to, p.variable_name),
-                  Adapt.adapt(to, p.λ⁻¹))
+                  Adapt.adapt(to, p.rate))
 
 @inline function (p::ECCORestoring)(i, j, k, grid, clock, fields)
     
@@ -234,7 +241,8 @@ end
                   time_indexing = Cyclical(),
                   mask = 1,
                   rate = 1 / 20days,
-                  grid = nothing)
+                  grid = nothing,
+                  maxiter = Inf)
 
 Create a restoring forcing term that restores to values stored in an ECCO field time series.
 
@@ -274,9 +282,10 @@ function ECCORestoring(metadata::ECCOMetadata;
                        time_indexing = Cyclical(),
                        mask = 1,
                        rate = 1 / 20days,
-                       grid = nothing)
+                       grid = nothing.
+                       maxiter = Inf)
 
-    ECCO_fts  = ECCO_field_time_series(metadata; grid, architecture, time_indices_in_memory, time_indexing)                  
+    ECCO_fts  = ECCO_field_time_series(metadata; grid, architecture, time_indices_in_memory, time_indexing, maxiter)                  
     ECCO_grid = ECCO_fts.grid
 
     # Grab the correct Oceananigans field to restore

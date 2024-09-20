@@ -49,7 +49,7 @@ end
     grid = LatitudeLongitudeGrid(size = (100, 100, 10), latitude = (-75, 75), longitude = (0, 360), z = (-200, 0))
     
     φ₁ = grid.φᵃᶜᵃ[1]
-    φ₂ = grid.φᵃᶜᵃ[20]
+    φ₂ = grid.φᵃᶜᵃ[21]
     φ₃ = grid.φᵃᶜᵃ[80]
     φ₄ = grid.φᵃᶜᵃ[100]
     z₁ = grid.zᵃᵃᶜ[6]
@@ -58,7 +58,11 @@ end
                                          southern_edges = (φ₁, φ₂), 
                                          z_edges = (z₁, 0))
 
-    t_restoring = ECCORestoring(:temperature, CPU(); dates, mask, rate = 1 / 1000.0)
+    t_restoring = ECCORestoring(:temperature, CPU(); 
+                                dates, 
+                                mask, 
+                                rate = 1 / 1000.0,
+                                maxiter = 1)
 
     fill!(t_restoring.ECCO_fts[1], 1.0)
     fill!(t_restoring.ECCO_fts[2], 1.0)
@@ -68,8 +72,10 @@ end
     clock  = Clock(; time = 0)
 
     @test t_restoring(1, 1,   10, grid, clock, fields) == t_restoring.rate
-    @test t_restoring(1, 20,  10, grid, clock, fields) == 0
+    @test t_restoring(1, 11,  10, grid, clock, fields) == t_restoring.rate / 2
+    @test t_restoring(1, 21,  10, grid, clock, fields) == 0
     @test t_restoring(1, 80,  10, grid, clock, fields) == 0
+    @test t_restoring(1, 90,  10, grid, clock, fields) == t_restoring.rate / 2
     @test t_restoring(1, 100, 10, grid, clock, fields) == t_restoring.rate
     @test t_restoring(1, 1,   5,  grid, clock, fields) == 0
     @test t_restoring(1, 10,  5,  grid, clock, fields) == 0
