@@ -240,7 +240,7 @@ end
                   time_indices_in_memory = 2, # Not more than this if we want to use GPU!
                   time_indexing = Cyclical(),
                   mask = 1,
-                  rate = 1 / 20days,
+                  rate = 1,
                   grid = nothing,
                   inpainting_iterations = prod(size(metadata)))
 
