@@ -93,7 +93,7 @@ end
                            architecture = CPU(),
                            time_indices_in_memory = 2,
                            time_indexing = Cyclical(),
-                           inpainting_maxiter = Inf,
+                           inpainting_iterations = Inf,
                            grid = nothing)
 
 Create a field time series object for ECCO data.
@@ -105,20 +105,20 @@ Create a field time series object for ECCO data.
 - architecture: The architecture to use for computations (default: CPU()).
 - time_indices_in_memory: The number of time indices to keep in memory (default: 2).
 - time_indexing: The time indexing scheme to use (default: Cyclical()).
-- inpainting_maxiter: The maximum number of iterations for the inpainting algorithm (default: Inf).
+- inpainting_iterations: The maximum number of iterations for the inpainting algorithm (default: Inf).
 - grid: if not a `nothing`, the ECCO data is directly interpolated on the `grid`,
 """
 function ECCO_field_time_series(metadata::ECCOMetadata;	
                                 architecture = CPU(),	
                                 time_indices_in_memory = 2,	
                                 time_indexing = Cyclical(),
-                                inpainting_maxiter = Inf,
+                                inpainting_iterations = Inf,
                                 grid = nothing)	
 
     # ECCO data is too chunky to allow other backends	
     backend = ECCONetCDFBackend(time_indices_in_memory; 
                                 on_native_grid = isnothing(grid),
-                                maxiter = inpainting_maxiter)
+                                maxiter = inpainting_iterations)
 
     # Making sure all the required individual files are downloaded
     download_dataset!(metadata)
@@ -242,7 +242,7 @@ end
                   mask = 1,
                   rate = 1 / 20days,
                   grid = nothing,
-                  inpainting_maxiter = Inf)
+                  inpainting_iterations = Inf)
 
 Create a restoring forcing term that restores to values stored in an ECCO field time series.
 
@@ -262,7 +262,7 @@ Create a restoring forcing term that restores to values stored in an ECCO field 
 - `mask`: The mask value. Can be a function of `(x, y, z, time)`, an array or a number
 - `rate`: The restoring rate in s⁻¹.
 - `time_indices_in_memory = 2, # Not more than this if we want to use GPU!
-- `inpainting_maxiter`: maximum number of iterations for the inpainting algorithm. (defaults to `Inf`)
+- `inpainting_iterations`: maximum number of iterations for the inpainting algorithm. (defaults to `Inf`)
 
 It is possible to also pass an `ECCOMetadata` type as the first argument without the need for the 
 `variable_name` argument and the `version` and `dates` keyword arguments.
@@ -283,9 +283,9 @@ function ECCORestoring(metadata::ECCOMetadata;
                        mask = 1,
                        rate = 1 / 20days,
                        grid = nothing.
-                       inpainting_maxiter = Inf)
+                       inpainting_iterations = Inf)
 
-    ECCO_fts  = ECCO_field_time_series(metadata; grid, architecture, time_indices_in_memory, time_indexing, inpainting_maxiter)                  
+    ECCO_fts  = ECCO_field_time_series(metadata; grid, architecture, time_indices_in_memory, time_indexing, inpainting_iterations)                  
     ECCO_grid = ECCO_fts.grid
 
     # Grab the correct Oceananigans field to restore

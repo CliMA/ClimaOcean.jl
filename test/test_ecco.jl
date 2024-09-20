@@ -18,7 +18,7 @@ dates = start_date : Month(1) : end_date
         @info "Testing ECCO_field on $A..."
 
         temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
-        t_restoring = ECCORestoring(temperature; rate = 1 / 1000.0)
+        t_restoring = ECCORestoring(temperature; rate = 1 / 1000.0, inpainting_iterations = 1)
 
         ECCO_fts = t_restoring.ECCO_fts
 
@@ -62,7 +62,7 @@ end
                                 dates, 
                                 mask, 
                                 rate = 1 / 1000.0,
-                                maxiter = 1)
+                                inpainting_iterations = 1)
 
     fill!(t_restoring.ECCO_fts[1], 1.0)
     fill!(t_restoring.ECCO_fts[2], 1.0)
@@ -92,7 +92,7 @@ end
             true
         end
 
-        FT = ECCORestoring(:temperature, arch; rate = 1 / 1000.0)
+        FT = ECCORestoring(:temperature, arch; rate = 1 / 1000.0, inpainting_iterations = 1)
         ocean = ocean_simulation(grid; forcing = (; T = FT))
 
         @test begin
