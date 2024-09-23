@@ -20,7 +20,7 @@ dates = start_date : Month(1) : end_date
         temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
         t_restoring = ECCORestoring(temperature; rate = 1 / 1000.0, inpainting_iterations = 1)
 
-        ECCO_fts = t_restoring.ECCO_fts
+        ECCO_fts = t_restoring.field_time_series
 
         for metadata in temperature
             temperature_filename = metadata_filename(metadata)
@@ -64,8 +64,8 @@ end
                                 rate = 1 / 1000.0,
                                 inpainting_iterations = 1)
 
-    fill!(t_restoring.ECCO_fts[1], 1.0)
-    fill!(t_restoring.ECCO_fts[2], 1.0)
+    fill!(t_restoring.field_time_series[1], 1.0)
+    fill!(t_restoring.field_time_series[2], 1.0)
 
     T = CenterField(grid)
     fields = (; T)
