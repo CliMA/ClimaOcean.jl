@@ -183,8 +183,8 @@ ECCO_field(var_name::Symbol; kw...) = ECCO_field(ECCOMetadata(var_name); kw...)
 """
     inpainted_ECCO_field(variable_name; 
                          architecture = CPU(),
-                         filename = "./inpainted_ECCO_fields.nc",
-                         mask = ECCO_mask(architecture))
+                         mask = ECCO_mask(architecture),
+                         maxiter = Inf)
     
 Retrieve the ECCO field corresponding to `variable_name` inpainted to fill all the
 missing values in the original dataset.
@@ -198,20 +198,17 @@ Keyword Arguments:
 ==================
 
 - `architecture`: either `CPU()` or `GPU()`.
-
 - `mask`: the mask used to inpaint the field (see `inpaint_mask!`).
-
 - `maxiter`: the maximum number of iterations to inpaint the field (see `inpaint_mask!`).
 
 """
 function inpainted_ECCO_field(metadata::ECCOMetadata; 
                               architecture = CPU(),
-                              filename = metadata_filename(metadata),
                               mask = ECCO_mask(metadata, architecture),
                               maxiter = Inf,
                               kw...)
     
-    f = ECCO_field(metadata; architecture, filename, kw...)
+    f = ECCO_field(metadata; architecture, kw...)
 
     # Make sure all values are extended properly
     @info "In-painting ECCO $(metadata.name)"
