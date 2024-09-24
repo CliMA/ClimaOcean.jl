@@ -39,8 +39,8 @@ dates = start_date : Month(1) : end_date
         @test Nz == size(temperature)[3]
         @test Nt == size(temperature)[4]
 
-        @test ECCO_fts.times[1]   == ECCO_times(temperature[1])
-        @test ECCO_fts.times[end] == ECCO_times(temperature[end])
+        @test ECCO_fts.times[1]   == ECCO_times(temperature)[1]
+        @test ECCO_fts.times[end] == ECCO_times(temperature)[end]
     end
 end
 
@@ -54,9 +54,9 @@ end
     φ₄ = grid.φᵃᶜᵃ[100]
     z₁ = grid.zᵃᵃᶜ[6]
 
-    mask = LinearlyTaperedPolarMask(northern_edges = (φ₃, φ₄), 
-                                         southern_edges = (φ₁, φ₂), 
-                                         z_edges = (z₁, 0))
+    mask = LinearlyTaperedPolarMask(northern = (φ₃, φ₄), 
+                                    southern = (φ₁, φ₂), 
+                                    z        = (z₁, 0))
 
     t_restoring = ECCORestoring(:temperature, CPU(); 
                                 dates, 
