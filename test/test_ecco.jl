@@ -58,7 +58,7 @@ end
                                     southern = (φ₁, φ₂), 
                                     z        = (z₁, 0))
 
-    t_restoring = ECCORestoring(:temperature, CPU(); 
+    t_restoring = ECCORestoring(:temperature; 
                                 dates, 
                                 mask, 
                                 rate = 1 / 1000.0,
@@ -92,7 +92,7 @@ end
             true
         end
 
-        FT = ECCORestoring(:temperature, arch; rate = 1 / 1000.0, inpainting_iterations = 1)
+        FT = ECCORestoring(arch, :temperature; dates, rate = 1 / 1000.0, inpainting_iterations = 1)
         ocean = ocean_simulation(grid; forcing = (; T = FT))
 
         @test begin
