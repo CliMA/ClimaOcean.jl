@@ -51,7 +51,7 @@ To do this, `ClimaOcean` implements two core abstractions:
 * `ocean_simulation`, and
 * `OceanSeaIceModel`.
 
-To illustrate how `ClimaOcean` extends `Oceananigans`, consider this simple one-layer near-global model with 1/4 degree resolution,
+To illustrate how `ClimaOcean` extends `Oceananigans`, we set up a 10-layer near-global model at 1/4 degree resolution,
 
 ```julia
 using Oceananigans
