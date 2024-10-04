@@ -76,7 +76,7 @@ date  = DateTimeProlepticGregorian(1993, 1, 1)
 set!(ocean.model, T = ClimaOcean.ECCOMetadata(:temperature; date),
                   S = ClimaOcean.ECCOMetadata(:salinity; date))
 
-# Build and run an OceanSeaIceModel (with no sea ice compoent this time) forced by JRA55 reanalysis
+# Build and run an OceanSeaIceModel (with no sea ice component) forced by JRA55 reanalysis
 atmosphere = ClimaOcean.JRA55_prescribed_atmosphere(arch)
 coupled_model = ClimaOcean.OceanSeaIceModel(ocean; atmosphere)
 simulation = Simulation(coupled_model, Δt=10minutes, stop_time=30days)
