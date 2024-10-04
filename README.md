@@ -61,19 +61,23 @@ import ClimaOcean
 
 arch = GPU()
 grid = LatitudeLongitudeGrid(arch,
-                             size = (1440, 560, 1),
+                             size = (1440, 560, 10),
+                             halo = (7, 7, 7),
                              longitude = (0, 360),
                              latitude = (-70, 70),
                              z = (-3000, 0))
-bathymetry = ClimaOcean.regrid_bathymetry(grid)
-grid = ImmersedBoundaryGrid(grid, PartialCellBottom(bathymetry))
 
-ocean = ClimaOcean.ocean_simulation(; grid) # build the default ocean component
+bathymetry = ClimaOcean.regrid_bathymetry(grid) # builds gridded bathymetry based on ETOPO1
+grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bathymetry))
+
+# Build an ocean simulation initialized to the ECCO state estimate on Jan 1, 1993
+ocean = ClimaOcean.ocean_simulation(grid)
 date  = DateTimeProlepticGregorian(1993, 1, 1)
 set!(ocean.model, T = ClimaOcean.ECCOMetadata(:temperature; date),
                   S = ClimaOcean.ECCOMetadata(:salinity; date))
 
-atmosphere = ClimaOcean.JRA55PrescribedAtmosphere(arch) # a prescribed atmosphere based on JRA55 reanalysis
+# Build and run an OceanSeaIceModel (with no sea ice compoent this time) forced by JRA55 reanalysis
+atmosphere = ClimaOcean.JRA55_prescribed_atmosphere(arch)
 coupled_model = ClimaOcean.OceanSeaIceModel(ocean; atmosphere)
 simulation = Simulation(coupled_model, Δt=10minutes, stop_time=30days)
 run!(simulation)
