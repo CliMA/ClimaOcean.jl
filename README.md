@@ -83,10 +83,12 @@ simulation = Simulation(coupled_model, Δt=10minutes, stop_time=30days)
 run!(simulation)
 ```
 
-`ocean_simulation` configures an Oceananigans model for realistic simulations including temperature and salinity, the TEOS-10 equation of state, boundary conditions to store computed air-sea fluxes, the automatically-calibrated turbulence closure `CATKEVerticalDiffusivity`, and the [`WENOVectorInvariant` advection scheme](https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2023MS004130) for mesoscale-turbulence-resolving simulations.
+This simulation simulates approximately 8 years per day of wall time on an Nvidia H100.
 
-`OceanSeaIceModel` provides a framework for coupled modeling that encapsulates the ocean simulation, a prescribed atmosphere, and optionally, a sea ice simulation.
-`OceanSeaIceModel` is tasked with the computation of air-sea, air-ice, and ice-ocean fluxes.
+`ClimaOcean.ocean_simulation` configures an Oceananigans model for realistic simulations including temperature and salinity, the TEOS-10 equation of state, boundary conditions to store computed air-sea fluxes, the automatically-calibrated turbulence closure `CATKEVerticalDiffusivity`, and the [`WENOVectorInvariant` advection scheme](https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2023MS004130) for mesoscale-turbulence-resolving simulations.
+
+`ClimaOcean.OceanSeaIceModel` provides a framework for coupled modeling with an ocean component, prescribed atmosphere, and optionally, a sea ice component.
+`OceanSeaIceModel` computes air-sea, air-ice, and ice-ocean fluxes of momentum, heat, and freshwater.
 
 In addition to these core abstractions `ClimaOcean` provides convenience features for wrangling datasets of bathymetry, ocean temperature, salinity, and velocity fields, and prescribed atmospheric states.
     
