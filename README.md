@@ -54,20 +54,27 @@ To do this, `ClimaOcean` implements two core abstractions:
 To illustrate how `ClimaOcean` extends `Oceananigans`, consider this simple one-layer near-global model with 1/4 degree resolution,
 
 ```julia
-using ClimaOcean
 using Oceananigans
 using Oceananigans.Units
+using DateTime, CFTime
+import ClimaOcean
 
-grid = LatitudeLongitudeGrid(size=(1440, 560, 1), longitude=(0, 360), latitude=(-70, 70), z=(-3000, 0))
-bathymetry = regrid_bathymetry(grid)
+arch = GPU()
+grid = LatitudeLongitudeGrid(arch,
+                             size = (1440, 560, 1),
+                             longitude = (0, 360),
+                             latitude = (-70, 70),
+                             z = (-3000, 0))
+bathymetry = ClimaOcean.regrid_bathymetry(grid)
 grid = ImmersedBoundaryGrid(grid, PartialCellBottom(bathymetry))
 
-ocean = ocean_simulation(; grid) # build ocean component with default advection schemes and turbulence closures
+ocean = ClimaOcean.ocean_simulation(; grid) # build the default ocean component
 date  = DateTimeProlepticGregorian(1993, 1, 1)
-set!(ocean.model, T=ECCOMetadata(:temperature; date), S=ECCOMetadata(:salinity; date))
+set!(ocean.model, T = ClimaOcean.ECCOMetadata(:temperature; date),
+                  S = ClimaOcean.ECCOMetadata(:salinity; date))
 
-atmosphere = JRA55PrescribedAtmosphere() # a prescribed atmosphere based on JRA55 reanalysis
-coupled_model = OceanSeaIceModel(ocean; atmosphere)
+atmosphere = ClimaOcean.JRA55PrescribedAtmosphere(arch) # a prescribed atmosphere based on JRA55 reanalysis
+coupled_model = ClimaOcean.OceanSeaIceModel(ocean; atmosphere)
 simulation = Simulation(coupled_model, Δt=10minutes, stop_time=30days)
 run!(simulation)
 ```
