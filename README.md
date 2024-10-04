@@ -44,15 +44,40 @@ For more information, see the [documentation for `Pkg.jl`](https://pkgdocs.julia
 
 ## Why? What's the difference between ClimaOcean and [Oceananigans](https://github.com/CliMA/Oceananigans.jl)?
 
-[`Oceananigans`](https://github.com/CliMA/Oceananigans.jl) is a general-purpose package for ocean-flavored fluid dynamics. 
+`Oceananigans` is a general-purpose package for ocean-flavored fluid dynamics. 
 `ClimaOcean` _specializes_ `Oceananigans` for a specific application: realistic ocean simulations, and coupled ocean + sea ice simulations.
 
-Realistic ocean simulations require
+To do this, `ClimaOcean` implements two core abstractions:
+* `ocean_simulation`, and
+* `OceanSeaIceModel`.
 
-* Simulating the evolution of ocean temperature and salinity.
-* Computing fluxes of heat, water vapor, momentum, and trace gases between the ocean and atmosphere, where the atmospheric state is either prescribed, or evolving in an atmosphere-ocean coupled configuration.
-* Defining domain geometry using bathymetry observations.
-* Initializing the ocean model with realistic temperature, salinity, and velocity fields.
+To illustrate how `ClimaOcean` extends `Oceananigans`, consider this simple one-layer near-global model with 1/4 degree resolution,
+
+```julia
+using ClimaOcean
+using Oceananigans
+using Oceananigans.Units
+
+grid = LatitudeLongitudeGrid(size=(1440, 560, 1), longitude=(0, 360), latitude=(-70, 70), z=(-3000, 0))
+bathymetry = regrid_bathymetry(grid)
+grid = ImmersedBoundaryGrid(grid, PartialCellBottom(bathymetry))
+
+ocean = ocean_simulation(; grid) # build ocean component with default advection schemes and turbulence closures
+date  = DateTimeProlepticGregorian(1993, 1, 1)
+set!(ocean.model, T=ECCOMetadata(:temperature; date), S=ECCOMetadata(:salinity; date))
+
+atmosphere = JRA55PrescribedAtmosphere() # a prescribed atmosphere based on JRA55 reanalysis
+coupled_model = OceanSeaIceModel(ocean; atmosphere)
+simulation = Simulation(coupled_model, Δt=10minutes, stop_time=30days)
+run!(simulation)
+```
+
+`ocean_simulation` configures an Oceananigans model for realistic simulations including temperature and salinity, the TEOS-10 equation of state, boundary conditions to store computed air-sea fluxes, the automatically-calibrated turbulence closure `CATKEVerticalDiffusivity`, and the [`WENOVectorInvariant` advection scheme](https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2023MS004130) for mesoscale-turbulence-resolving simulations.
+
+`OceanSeaIceModel` provides a framework for coupled modeling that encapsulates the ocean simulation, a prescribed atmosphere, and optionally, a sea ice simulation.
+`OceanSeaIceModel` is tasked with the computation of air-sea, air-ice, and ice-ocean fluxes.
+
+In addition to these core abstractions `ClimaOcean` provides convenience features for wrangling datasets of bathymetry, ocean temperature, salinity, and velocity fields, and prescribed atmospheric states.
     
 `ClimaOcean` is built on top of `Oceananigans` and `ClimaSeaIce`, so it's important that `ClimaOcean` users become proficient with [`Oceananigans`](https://github.com/CliMA/Oceananigans.jl).
 Note that `ClimaOcean` is currently focused on hydrostatic modeling with `Oceananigans`' `HydrostaticFreeSurfaceModel`.
