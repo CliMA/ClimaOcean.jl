@@ -56,7 +56,7 @@ To illustrate how `ClimaOcean` extends `Oceananigans`, consider this simple one-
 ```julia
 using Oceananigans
 using Oceananigans.Units
-using DateTime, CFTime
+using Dates, CFTime
 import ClimaOcean
 
 arch = GPU()
