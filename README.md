@@ -47,10 +47,6 @@ For more information, see the [documentation for `Pkg.jl`](https://pkgdocs.julia
 `Oceananigans` is a general-purpose package for ocean-flavored fluid dynamics. 
 `ClimaOcean` _specializes_ `Oceananigans` for a specific application: realistic ocean simulations, and coupled ocean + sea ice simulations.
 
-To do this, `ClimaOcean` implements two core abstractions:
-* `ocean_simulation`, and
-* `OceanSeaIceModel`.
-
 To illustrate how `ClimaOcean` extends `Oceananigans`, we set up a 10-layer near-global model at 1/4 degree resolution,
 
 ```julia
@@ -83,11 +79,11 @@ simulation = Simulation(coupled_model, Δt=10minutes, stop_time=30days)
 run!(simulation)
 ```
 
-This simulation simulates approximately 8 years per day of wall time on an Nvidia H100.
+ClimaOcean's core abstractions are `ocean_simulation` and `ClimaOcean.OceanSeaIceModel`:
 
-`ClimaOcean.ocean_simulation` configures an Oceananigans model for realistic simulations including temperature and salinity, the TEOS-10 equation of state, boundary conditions to store computed air-sea fluxes, the automatically-calibrated turbulence closure `CATKEVerticalDiffusivity`, and the [`WENOVectorInvariant` advection scheme](https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2023MS004130) for mesoscale-turbulence-resolving simulations.
+* `ocean_simulation` configures an Oceananigans model for realistic simulations including temperature and salinity, the TEOS-10 equation of state, boundary conditions to store computed air-sea fluxes, the automatically-calibrated turbulence closure `CATKEVerticalDiffusivity`, and the [`WENOVectorInvariant` advection scheme](https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2023MS004130) for mesoscale-turbulence-resolving simulations.
 
-`ClimaOcean.OceanSeaIceModel` provides a framework for coupled modeling with an ocean component, prescribed atmosphere, and optionally, a sea ice component.
+* `OceanSeaIceModel` provides a framework for coupled modeling with an ocean component, prescribed atmosphere, and optionally, a sea ice component.
 `OceanSeaIceModel` computes air-sea, air-ice, and ice-ocean fluxes of momentum, heat, and freshwater.
 
 In addition to these core abstractions `ClimaOcean` provides convenience features for wrangling datasets of bathymetry, ocean temperature, salinity, and velocity fields, and prescribed atmospheric states.
@@ -95,5 +91,19 @@ In addition to these core abstractions `ClimaOcean` provides convenience feature
 `ClimaOcean` is built on top of `Oceananigans` and `ClimaSeaIce`, so it's important that `ClimaOcean` users become proficient with [`Oceananigans`](https://github.com/CliMA/Oceananigans.jl).
 Note that `ClimaOcean` is currently focused on hydrostatic modeling with `Oceananigans`' `HydrostaticFreeSurfaceModel`.
 
-    
+This simulation achieves approximately 8 years per day of wall time on an Nvidia H100.
+Since, for example, `ocean.model` is an Oceananigans.HydrostaticFreeSurfaceModel`, we can leverage all of Oceananigans features in our scripts.
+For example, to plot the surface speed at the end of the simulation we write
 
+```julia
+u, v, w = ocean.model.velocities
+speed = Field(sqrt(u^2 + v^2))
+compute!(speed)
+
+using GLMakie
+heatmap(view(speed, :, :, ocean.model.grid.Nz), colorrange=(0, 1), nan_color=:gray)
+```
+
+which produces
+
+<img width="955" alt="image" src="https://github.com/user-attachments/assets/10f338ee-d873-4a99-ae03-ef8cc8797e81">
