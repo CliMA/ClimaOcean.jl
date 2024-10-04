@@ -44,20 +44,18 @@ For more information, see the [documentation for `Pkg.jl`](https://pkgdocs.julia
 
 ## Why? What's the difference between ClimaOcean and [Oceananigans](https://github.com/CliMA/Oceananigans.jl)?
 
-`ClimaOcean` is for _realistic_ ocean-only and ocean + sea-ice simulations, in a region of the ocean ("regional") or covering the whole Earth.
-[Oceananigans](https://github.com/CliMA/Oceananigans.jl) is a lower-level package for simulating the dynamics of ocean-flavored fluids that can be used for _both_ idealized problems and, given enough effort, realistic problems as well.
-While "idealized" problems come in multifarious shapes and sizes, "realistic" problems tend to be more narrowly defined, and require
+[`Oceananigans`](https://github.com/CliMA/Oceananigans.jl) is a general-purpose package for ocean-flavored fluid dynamics. 
+`ClimaOcean` _specializes_ `Oceananigans` for a specific application: realistic ocean simulations, and coupled ocean + sea ice simulations.
 
-* Simulating the evolution of specific tracers: ocean temperature (or heat), salinity, and sometimes ocean biogeochemistry.
-* Computing fluxes of heat, water vapor, momentum, and trace gases between the ocean and atmosphere (where the atmospheric state is either prescribed or "coupled" and itself evolving) -- and also between sea ice and the atmosphere, when a sea ice component is included.
-* Initializing the ocean model with realistic initial conditions derived from observations of the ocean, and realistic bathymetry.
+Realistic ocean simulations require
+
+* Simulating the evolution of ocean temperature and salinity.
+* Computing fluxes of heat, water vapor, momentum, and trace gases between the ocean and atmosphere, where the atmospheric state is either prescribed, or evolving in an atmosphere-ocean coupled configuration.
+* Defining domain geometry using bathymetry observations.
+* Initializing the ocean model with realistic temperature, salinity, and velocity fields.
     
-`ClimaOcean` leverages `Oceananigans` and `ClimaSeaIce` to build `OceanSeaIceModel`s capable of meeting these requirements to simulate the dynamics of specific regions of the Earth's ocean.
-So if you're using `ClimaOcean`, it's a very good idea to become proficient in [`Oceananigans`](https://github.com/CliMA/Oceananigans.jl) as well.
-Note also that, at least at the moment, `ClimaOcean` is focused on hydrostatic modeling with `Oceananigans`' `HydrostaticFreeSurfaceModel`.
-
-In summary, if you're interested in realistic, hydrostatic regional or global simulations you may find `ClimaOcean` useful.
-Otherwise, you can stick with [Oceananigans](https://github.com/CliMA/Oceananigans.jl).
+`ClimaOcean` is built on top of `Oceananigans` and `ClimaSeaIce`, so it's important that `ClimaOcean` users become proficient with [`Oceananigans`](https://github.com/CliMA/Oceananigans.jl).
+Note that `ClimaOcean` is currently focused on hydrostatic modeling with `Oceananigans`' `HydrostaticFreeSurfaceModel`.
 
     
 
