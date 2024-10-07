@@ -7,11 +7,6 @@ using Base: @propagate_inbounds
 import Oceananigans.Fields: set!
 import Base
 
-download_ECCO_cache::String = ""
-function __init__()
-    global download_ECCO_cache = @get_scratch!("ECCO")
-end
-
 struct ECCO2Monthly end
 struct ECCO2Daily end
 struct ECCO4Monthly end

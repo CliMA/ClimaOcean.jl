@@ -19,6 +19,11 @@ using Downloads: download
 using Dates
 using Adapt
 
+download_ECCO_cache::String = ""
+function __init__()
+    global download_ECCO_cache = @get_scratch!("ECCO")
+end
+
 include("ECCO_metadata.jl")
 include("ECCO_mask.jl")
 include("ECCO_restoring.jl")
