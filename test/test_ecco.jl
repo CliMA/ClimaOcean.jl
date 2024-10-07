@@ -46,7 +46,11 @@ end
 
 @testset "LinearlyTaperedPolarMask" begin
 
-    grid = LatitudeLongitudeGrid(size = (100, 100, 10), latitude = (-75, 75), longitude = (0, 360), z = (-200, 0))
+    grid = LatitudeLongitudeGrid(size = (100, 100, 10), 
+                             latitude = (-75, 75), 
+                            longitude = (0, 360), 
+                                    z = (-200, 0),
+                                 halo = (6, 6, 6))
     
     φ₁ = grid.φᵃᶜᵃ[1]
     φ₂ = grid.φᵃᶜᵃ[21]
@@ -83,7 +87,13 @@ end
 
 @testset "setting a field with ECCO" begin
     for arch in test_architectures
-        grid  = LatitudeLongitudeGrid(arch; size = (10, 10, 10), latitude = (-60, -40), longitude = (10, 15), z = (-200, 0))
+
+        grid  = LatitudeLongitudeGrid(arch; size = (10, 10, 10), 
+                                        latitude = (-60, -40), 
+                                       longitude = (10, 15), 
+                                               z = (-200, 0),
+                                            halo = (6, 6, 6))
+        
         field = CenterField(grid)
         
         @test begin
