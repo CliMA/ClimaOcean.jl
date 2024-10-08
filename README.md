@@ -5,7 +5,7 @@
 
 <!-- description -->
 <p align="center">
-  <strong>🌎 Tools for building realistic ocean-only and coupled ocean + sea-ice simulations based on
+  <strong>🌎 A framework for realistic ocean-only and coupled ocean + sea-ice simulations driven by prescribed atmospheres and based on
           <a href="https://github.com/CliMA/Oceananigans.jl">Oceananigans</a>
           and <a href="https://github.com/CliMA/ClimaSeaIce.jl">ClimaSeaIce</a>.</strong>
 </p>
