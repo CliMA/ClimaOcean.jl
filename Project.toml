@@ -45,7 +45,7 @@ Scratch = "1"
 SeawaterPolynomials = "0.3.4"
 StaticArrays = "1"
 Statistics = "1.9"
-SurfaceFluxes = "0.11"
+SurfaceFluxes = "0.11, 0.12"
 Thermodynamics = "0.12"
 julia = "1.9"
 
