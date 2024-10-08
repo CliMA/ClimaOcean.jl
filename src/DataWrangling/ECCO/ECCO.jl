@@ -18,6 +18,7 @@ using NCDatasets
 using Downloads: download
 using Dates
 using Adapt
+using Scratch
 
 download_ECCO_cache::String = ""
 function __init__()
