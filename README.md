@@ -44,10 +44,11 @@ For more information, see the [documentation for `Pkg.jl`](https://pkgdocs.julia
 
 ## Why? What's the difference between ClimaOcean and [Oceananigans](https://github.com/CliMA/Oceananigans.jl)?
 
-`Oceananigans` is a general-purpose package for ocean-flavored fluid dynamics. 
-`ClimaOcean` _specializes_ `Oceananigans` for a specific application: realistic ocean simulations, and coupled ocean + sea ice simulations.
+`Oceananigans` is a general-purpose library for ocean-flavored fluid dynamics. 
+`ClimaOcean` implements a framework for driving realistic Oceananigans simulations with prescribed atmospheres, and coupling them to prognostic sea ice simulations.
 
-To illustrate how `ClimaOcean` extends `Oceananigans`, we set up a model with 10 vertical levels and a horizontal grid at a 1/4-degree resolution,
+In particular, `ClimaOcean` provides `OceanSeaIceModel` that encapsulates the ocean simulation, sea ice simulation, prescribed atmospheric state, and specifies how the three communicate.
+To illustrate how `OceanSeaIceModel` works, we set up a simulation on a grid with 10 vertical levels and 1/4-degree horizontal resolution:
 
 ```julia
 using Oceananigans
