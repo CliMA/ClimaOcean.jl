@@ -99,9 +99,11 @@ end
 Create a field time series object for ECCO data.
 
 # Arguments:
+============
 - metadata: An ECCOMetadata object containing information about the ECCO dataset.
 
 # Keyword Arguments:
+====================
 - architecture: The architecture to use for computations (default: CPU()).
 - time_indices_in_memory: The number of time indices to keep in memory (default: 2).
 - time_indexing: The time indexing scheme to use (default: Cyclical()).
@@ -232,25 +234,35 @@ end
 
 """
     ECCO_restoring_forcing(metadata::ECCOMetadata;
-                            architecture = CPU(), 
-                            backend = ECCONetCDFBackend(2),
-                            time_indexing = Cyclical(),
-                            mask = 1,
-                            timescale = 5days)
+                           architecture = CPU(), 
+                           backend = ECCONetCDFBackend(2),
+                           time_indexing = Cyclical(),
+                           mask = 1,
+                           timescale = 5days)
 
 Create a restoring forcing term that restores to values stored in an ECCO field time series.
+The restoring is applied as a forcing on the right hand side of the evolution equations calculated as
+```math
+F = mask / timescale ⋅ (ECCO_variable - simulation_variable[i, j, k])
+```
+where ECCO_variable is linearly interpolated in space and time from the ECCO dataset of choice to the 
+simulation grid and time.
 
 # Arguments:
 =============
-- `metadata`: The metadata for the ECCO field time series.
+- `metadata`: the metadata specifying the details of the ECCO field time series.
 
 # Keyword Arguments:
 ====================
 - `architecture`: The architecture. Typically `CPU` or `GPU`
+
 - `time_indices_in_memory`: The number of time indices to keep in memory. trade-off between performance
                             and memory footprint.    
-- `time_indexing`: The time indexing scheme for the field time series, see [`FieldTimeSeries`](@ref)
-- `mask`: The mask value. Can be a function of `(x, y, z, time)`, an array or a number
+
+- `time_indexing`: The time indexing scheme of the field time series. Can be `Cyclical()`, `Linear()` or `Clamp()`.
+
+- `mask`: The tapering mask. Can be a function of `(x, y, z, time)`, a three-dimensional `AbstractArray` or a number.
+
 - `timescale`: The restoring timescale.
 """
 function ECCO_restoring_forcing(variable_name::Symbol, version=ECCO4Monthly(); kw...) 
