@@ -86,7 +86,7 @@ ClimaOcean's core abstractions are `ocean_simulation` and `ClimaOcean.OceanSeaIc
 * `OceanSeaIceModel` provides a framework for coupled modeling with an ocean component, prescribed atmosphere, and optionally, a sea ice component.
 `OceanSeaIceModel` computes air-sea, air-ice, and ice-ocean fluxes of momentum, heat, and freshwater.
 
-In addition to these core abstractions `ClimaOcean` provides convenience features for wrangling datasets of bathymetry, ocean temperature, salinity, and velocity fields, and prescribed atmospheric states.
+In addition to these core abstractions `ClimaOcean` provides convenience features for wrangling datasets of bathymetry, ocean temperature, salinity, ocean velocity fields, and prescribed atmospheric states.
     
 `ClimaOcean` is built on top of `Oceananigans` and `ClimaSeaIce`, so it's important that `ClimaOcean` users become proficient with [`Oceananigans`](https://github.com/CliMA/Oceananigans.jl).
 Note that `ClimaOcean` is currently focused on hydrostatic modeling with `Oceananigans`' `HydrostaticFreeSurfaceModel`.
