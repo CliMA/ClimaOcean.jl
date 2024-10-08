@@ -91,7 +91,7 @@ In addition to these core abstractions `ClimaOcean` provides convenience feature
 `ClimaOcean` is built on top of `Oceananigans` and `ClimaSeaIce`, so it's important that `ClimaOcean` users become proficient with [`Oceananigans`](https://github.com/CliMA/Oceananigans.jl).
 Note that `ClimaOcean` is currently focused on hydrostatic modeling with `Oceananigans`' `HydrostaticFreeSurfaceModel`.
 
-This simulation achieves approximately 8 years per day of wall time on an Nvidia H100.
+The simulation above achieves approximately 8 simulated years per day of wall time on an Nvidia H100 GPU.
 Since, for example, `ocean.model` is an Oceananigans.HydrostaticFreeSurfaceModel`, we can leverage all of Oceananigans features in our scripts.
 For example, to plot the surface speed at the end of the simulation we write
 
