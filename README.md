@@ -47,7 +47,7 @@ For more information, see the [documentation for `Pkg.jl`](https://pkgdocs.julia
 `Oceananigans` is a general-purpose package for ocean-flavored fluid dynamics. 
 `ClimaOcean` _specializes_ `Oceananigans` for a specific application: realistic ocean simulations, and coupled ocean + sea ice simulations.
 
-To illustrate how `ClimaOcean` extends `Oceananigans`, we set up a 10-layer near-global model at 1/4 degree resolution,
+To illustrate how `ClimaOcean` extends `Oceananigans`, we set up a model with 10 vertical levels and a horizontal grid at a 1/4-degree resolution,
 
 ```julia
 using Oceananigans
