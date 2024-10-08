@@ -92,7 +92,7 @@ In addition to these core abstractions `ClimaOcean` provides convenience feature
 Note that `ClimaOcean` is currently focused on hydrostatic modeling with `Oceananigans`' `HydrostaticFreeSurfaceModel`.
 
 The simulation above achieves approximately 8 simulated years per day of wall time on an Nvidia H100 GPU.
-Since, for example, `ocean.model` is an Oceananigans.HydrostaticFreeSurfaceModel`, we can leverage all of Oceananigans features in our scripts.
+Since, for example, `ocean.model` is an `Oceananigans.HydrostaticFreeSurfaceModel`, we can leverage all of Oceananigans features in our scripts.
 For example, to plot the surface speed at the end of the simulation we write
 
 ```julia
