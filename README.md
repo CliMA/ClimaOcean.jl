@@ -47,7 +47,7 @@ For more information, see the [documentation for `Pkg.jl`](https://pkgdocs.julia
 `Oceananigans` is a general-purpose library for ocean-flavored fluid dynamics. 
 `ClimaOcean` implements a framework for driving realistic `Oceananigans` simulations with prescribed atmospheres, and coupling them to prognostic sea ice simulations.
 
-### `ClimaOcean's ocean and sea ice coupled model: `OceanSeaIceModel`
+### `ClimaOcean.OceanSeaIceModel`
 
 Our system for realistic modeling is anchored by `ClimaOcean.OceanSeaIceModel`, which encapsulates the ocean simulation, sea ice simulation, prescribed atmospheric state, and specifies how the three communicate.
 To illustrate how `OceanSeaIceModel` works we set up a simulation on a grid with 10 vertical levels and 1/4-degree horizontal resolution:
