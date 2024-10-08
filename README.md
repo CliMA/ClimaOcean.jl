@@ -47,8 +47,10 @@ For more information, see the [documentation for `Pkg.jl`](https://pkgdocs.julia
 `Oceananigans` is a general-purpose library for ocean-flavored fluid dynamics. 
 `ClimaOcean` implements a framework for driving realistic `Oceananigans` simulations with prescribed atmospheres, and coupling them to prognostic sea ice simulations.
 
-`ClimaOcean` provides `OceanSeaIceModel` that encapsulates the ocean simulation, sea ice simulation, prescribed atmospheric state, and specifies how the three communicate.
-To illustrate how `OceanSeaIceModel` works, we set up a simulation on a grid with 10 vertical levels and 1/4-degree horizontal resolution:
+### `ClimaOcean's ocean and sea ice coupled model: `OceanSeaIceModel`
+
+Our system for realistic modeling is anchored by `ClimaOcean.OceanSeaIceModel`, which encapsulates the ocean simulation, sea ice simulation, prescribed atmospheric state, and specifies how the three communicate.
+To illustrate how `OceanSeaIceModel` works we set up a simulation on a grid with 10 vertical levels and 1/4-degree horizontal resolution:
 
 ```julia
 using Oceananigans
@@ -80,20 +82,9 @@ simulation = Simulation(coupled_model, Δt=10minutes, stop_time=30days)
 run!(simulation)
 ```
 
-ClimaOcean's core abstractions are `ocean_simulation` and `ClimaOcean.OceanSeaIceModel`:
-
-* `ocean_simulation` configures an Oceananigans model for realistic simulations including temperature and salinity, the TEOS-10 equation of state, boundary conditions to store computed air-sea fluxes, the automatically-calibrated turbulence closure `CATKEVerticalDiffusivity`, and the [`WENOVectorInvariant` advection scheme](http://doi.org/10.1029/2023MS004130) for mesoscale-turbulence-resolving simulations.
-
-* `OceanSeaIceModel` provides a framework for coupled modeling with an ocean component, prescribed atmosphere, and optionally, a sea ice component.
-`OceanSeaIceModel` computes air-sea, air-ice, and ice-ocean fluxes of momentum, heat, and freshwater.
-
-In addition to these core abstractions `ClimaOcean` provides convenience features for wrangling datasets of bathymetry, ocean temperature, salinity, ocean velocity fields, and prescribed atmospheric states.
-    
-`ClimaOcean` is built on top of `Oceananigans` and `ClimaSeaIce`, so it's important that `ClimaOcean` users become proficient with [`Oceananigans`](https://github.com/CliMA/Oceananigans.jl).
-Note that `ClimaOcean` is currently focused on hydrostatic modeling with `Oceananigans`' `HydrostaticFreeSurfaceModel`.
-
 The simulation above achieves approximately 8 simulated years per day of wall time on an Nvidia H100 GPU.
-Since `ocean.model` is an `Oceananigans.HydrostaticFreeSurfaceModel`, we can leverage all of Oceananigans features in our scripts.
+
+Since `ocean.model` is an `Oceananigans.HydrostaticFreeSurfaceModel`, we can leverage `Oceananigans` features in our scripts.
 For example, to plot the surface speed at the end of the simulation we write
 
 ```julia
@@ -108,3 +99,12 @@ heatmap(view(speed, :, :, ocean.model.grid.Nz), colorrange=(0, 1), nan_color=:gr
 which produces
 
 <img width="955" alt="image" src="https://github.com/user-attachments/assets/10f338ee-d873-4a99-ae03-ef8cc8797e81">
+
+### Additional features: a utility for `ocean_simulation`s and data wrangling
+
+A second core abstraction in ClimaOcean is `ocean_simulation`. `ocean_simulation` configures an Oceananigans model for realistic simulations including temperature and salinity, the TEOS-10 equation of state, boundary conditions to store computed air-sea fluxes, the automatically-calibrated turbulence closure `CATKEVerticalDiffusivity`, and the [`WENOVectorInvariant` advection scheme](http://doi.org/10.1029/2023MS004130) for mesoscale-turbulence-resolving simulations.
+
+`ClimaOcean` also provides convenience features for wrangling datasets of bathymetry, ocean temperature, salinity, ocean velocity fields, and prescribed atmospheric states.
+
+`ClimaOcean` is built on top of `Oceananigans` and `ClimaSeaIce`, so it's important that `ClimaOcean` users become proficient with [`Oceananigans`](https://github.com/CliMA/Oceananigans.jl).
+Note that though `ClimaOcean` is currently focused on hydrostatic modeling with `Oceananigans`' `HydrostaticFreeSurfaceModel`, realistic nonhydrostatic modeling is also within the scope of this package.
