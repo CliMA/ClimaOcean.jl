@@ -81,7 +81,7 @@ run!(simulation)
 
 ClimaOcean's core abstractions are `ocean_simulation` and `ClimaOcean.OceanSeaIceModel`:
 
-* `ocean_simulation` configures an Oceananigans model for realistic simulations including temperature and salinity, the TEOS-10 equation of state, boundary conditions to store computed air-sea fluxes, the automatically-calibrated turbulence closure `CATKEVerticalDiffusivity`, and the [`WENOVectorInvariant` advection scheme](https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2023MS004130) for mesoscale-turbulence-resolving simulations.
+* `ocean_simulation` configures an Oceananigans model for realistic simulations including temperature and salinity, the TEOS-10 equation of state, boundary conditions to store computed air-sea fluxes, the automatically-calibrated turbulence closure `CATKEVerticalDiffusivity`, and the [`WENOVectorInvariant` advection scheme](http://doi.org/10.1029/2023MS004130) for mesoscale-turbulence-resolving simulations.
 
 * `OceanSeaIceModel` provides a framework for coupled modeling with an ocean component, prescribed atmosphere, and optionally, a sea ice component.
 `OceanSeaIceModel` computes air-sea, air-ice, and ice-ocean fluxes of momentum, heat, and freshwater.
