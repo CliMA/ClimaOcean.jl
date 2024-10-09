@@ -5,7 +5,7 @@ test_group = get(ENV, "TEST_GROUP", :all)
 test_group = Symbol(test_group)
 
 # Fictitious grid that triggers bathymetry download
-function download_bathymetry() 
+function download_bathymetry()
     grid = LatitudeLongitudeGrid(size = (10, 10, 1), 
                                  longitude = (0, 100), 
                                  latitude = (0, 50),
