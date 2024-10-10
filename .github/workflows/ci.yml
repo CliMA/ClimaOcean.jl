@@ -6,7 +6,7 @@ on:
   pull_request:
 jobs:
   test:
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ github.arch }} - ${{ github.event_name }}
+    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -19,8 +19,10 @@ jobs:
         include:
           - os: ubuntu-latest
             arch: x64
+            version: '1.10'
           - os: ubuntu-latest
             arch: x86
+            version: '1.10'
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@latest
