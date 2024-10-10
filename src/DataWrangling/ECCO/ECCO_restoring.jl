@@ -49,14 +49,7 @@ function set!(fts::ECCONetCDFFTS, path::ECCOMetadata=fts.path, name::String=fts.
         
         # find the file associated with the time index
         metadata = @inbounds path[t] 
-
-        arch = architecture(fts)
-        f = inpainted_ECCO_field(metadata; architecture = arch)
-        if on_native_grid(backend)
-            set!(fts[t], f)
-        else
-            interpolate!(fts[t], f)
-        end
+        set!(fts[t], metadata)
     end
 
     fill_halo_regions!(fts)
