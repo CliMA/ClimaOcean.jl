@@ -29,12 +29,12 @@
 
 ## Installation
 
-To install from a Julia REPL:
+`ClimaOcean` is a registered package. To install from a Julia REPL:
 
 ```julia
 julia> using Pkg
 
-julia> Pkg.add(url="https://github.com/CliMA/ClimaOcean.jl.git")
+julia> Pkg.add("ClimaOcean")
 
 julia> Pkg.instantiate()
 ```
