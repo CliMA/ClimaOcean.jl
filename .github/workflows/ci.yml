@@ -19,10 +19,10 @@ jobs:
         include:
           - os: ubuntu-latest
             arch: x64
-            name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+            name: Julia 1.10 - ubuntu-latest - x64 - ${{ github.event_name }}
           - os: ubuntu-latest
             arch: x86
-            name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+            name: Julia 1.10 - ubuntu-latest - x86 - ${{ github.event_name }}
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@latest
