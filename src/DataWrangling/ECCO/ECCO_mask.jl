@@ -7,10 +7,9 @@ A boolean field where `true` represents a missing value in the ECCO dataset.
 """
 function ECCO_mask(metadata, architecture = CPU(); 
                    minimum_value = Float32(-1e5),
-                   maximum_value = Float32(1e5),
-                   filename = metadata_filename(metadata))
+                   maximum_value = Float32(1e5))
 
-    field = ECCO_field(metadata; architecture, filename)
+    field = ECCO_field(metadata; architecture)
     mask  = Field{location(field)...}(field.grid, Bool)
 
     # ECCO4 has zeros in place of the missing values, while

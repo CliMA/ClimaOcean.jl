@@ -17,14 +17,14 @@ using Dates
         end_date = DateTimeProlepticGregorian(1993, 4, 1)
         dates = start_date : Month(1) : end_date
 
-        temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
+        temperature = ECCOMetadata(:temperature, dates)
         t_restoring = ECCO_restoring_forcing(temperature; timescale = 1000.0)
 
         ECCO_fts = t_restoring.func.ECCO_fts
 
         for metadata in temperature
             temperature_filename = metadata_filename(metadata)
-            @test isfile(temperature_filename)
+            @test isfile(joinpath(metadata.path, temperature_filename))
         end
 
         @test ECCO_fts isa FieldTimeSeries

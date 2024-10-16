@@ -18,6 +18,12 @@ using NCDatasets
 using Downloads: download
 using Dates
 using Adapt
+using Scratch
+
+download_ECCO_cache::String = ""
+function __init__()
+    global download_ECCO_cache = @get_scratch!("ECCO")
+end
 
 include("ECCO_metadata.jl")
 include("ECCO_mask.jl")
@@ -122,9 +128,8 @@ end
                 architecture = CPU(),
                 horizontal_halo = (1, 1),
                 user_data = nothing,
-                url = ECCO_urls[variable_name],
-                filename = ECCO_metadata_filenames[variable_name],
-                short_name = ECCO_short_names[variable_name])
+                url = ecco_urls[variable_name],
+                short_name = ecco_short_names[variable_name])
 
 Retrieve the ECCO field corresponding to `variable_name`. 
 The data is either:
@@ -134,14 +139,15 @@ The data is either:
 """
 function ECCO_field(metadata::ECCOMetadata;
                     architecture = CPU(),
-                    horizontal_halo = (3, 3),
-                    filename = metadata_filename(metadata))
+                    horizontal_halo = (3, 3))
 
+    filename  = metadata_filename(metadata)
+    path      = metadata.path
     shortname = short_name(metadata)
     
     download_dataset!(metadata)
 
-    ds = Dataset(filename)
+    ds = Dataset(joinpath(path, filename))
     if variable_is_three_dimensional(metadata)
         data = ds[shortname][:, :, :, 1]
         # The surface layer in three-dimensional ECCO fields is at `k = 1`
@@ -183,8 +189,8 @@ ECCO_field(var_name::Symbol; kw...) = ECCO_field(ECCOMetadata(var_name); kw...)
 """
     inpainted_ECCO_field(variable_name; 
                          architecture = CPU(),
-                         filename = "./inpainted_ECCO_fields.nc",
-                         mask = ECCO_mask(architecture))
+                         mask = ECCO_mask(architecture),
+                         maxiter = Inf)
     
 Retrieve the ECCO field corresponding to `variable_name` inpainted to fill all the
 missing values in the original dataset.
@@ -198,23 +204,17 @@ Keyword Arguments:
 ==================
 
 - `architecture`: either `CPU()` or `GPU()`.
-
-- `filename`: the path where to retrieve the data from. If the file does not exist,
-              the data will be downloaded from the ECCO dataset.
-
 - `mask`: the mask used to inpaint the field (see `inpaint_mask!`).
-
 - `maxiter`: the maximum number of iterations to inpaint the field (see `inpaint_mask!`).
 
 """
 function inpainted_ECCO_field(metadata::ECCOMetadata; 
                               architecture = CPU(),
-                              filename = metadata_filename(metadata),
                               mask = ECCO_mask(metadata, architecture),
                               maxiter = Inf,
                               kw...)
     
-    f = ECCO_field(metadata; architecture, filename, kw...)
+    f = ECCO_field(metadata; architecture, kw...)
 
     # Make sure all values are extended properly
     @info "In-painting ECCO $(metadata.name)"
