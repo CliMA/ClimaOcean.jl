@@ -53,7 +53,6 @@ function set!(fts::ECCONetCDFFTS, path::ECCOMetadata=fts.path, name::String=fts.
         
         # find the file associated with the time index
         metadata = @inbounds path[t] 
-
         # Set the field with the correct metadata
         set!(fts[t], metadata; maxiter)
     end

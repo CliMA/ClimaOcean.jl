@@ -24,7 +24,7 @@ dates = start_date : Month(1) : end_date
 
         for metadata in temperature
             temperature_filename = metadata_filename(metadata)
-            @test isfile(temperature_filename)
+            @test isfile(joinpath(metadata.path, temperature_filename))
         end
 
         @test ECCO_fts isa FieldTimeSeries
