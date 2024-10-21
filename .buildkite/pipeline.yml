@@ -13,8 +13,6 @@ env:
 steps:
   - label: "initialize"
     key: "init"
-    concurrency: 1
-    concurrency_group: 'depot/climaocean-ci'
     env:
       TEST_GROUP: "init"
     command:
