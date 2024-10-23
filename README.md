@@ -93,12 +93,12 @@ speed = Field(sqrt(u^2 + v^2))
 compute!(speed)
 
 using GLMakie
-heatmap(view(speed, :, :, ocean.model.grid.Nz), colorrange=(0, 1), nan_color=:gray)
+heatmap(view(speed, :, :, ocean.model.grid.Nz), colorrange=(0, 0.5), colormap=:magma, nan_color=:lightgray)
 ```
 
 which produces
 
-<img width="955" alt="image" src="https://github.com/user-attachments/assets/10f338ee-d873-4a99-ae03-ef8cc8797e81">
+<img width="1590" alt="image" src="https://github.com/user-attachments/assets/4c484b93-38fe-4840-bf7d-63a3a59d29e1">
 
 ### Additional features: a utility for `ocean_simulation`s and data wrangling
 
