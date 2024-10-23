@@ -29,7 +29,7 @@
 
 ## Installation
 
-`ClimaOcean` is a registered package. To install from a Julia REPL:
+ClimaOcean is a registered package. To install from a Julia REPL:
 
 ```julia
 julia> using Pkg
@@ -44,8 +44,8 @@ For more information, see the [documentation for `Pkg.jl`](https://pkgdocs.julia
 
 ## Why? What's the difference between ClimaOcean and [Oceananigans](https://github.com/CliMA/Oceananigans.jl)?
 
-`Oceananigans` is a general-purpose library for ocean-flavored fluid dynamics. 
-`ClimaOcean` implements a framework for driving realistic `Oceananigans` simulations with prescribed atmospheres, and coupling them to prognostic sea ice simulations.
+Oceananigans is a general-purpose library for ocean-flavored fluid dynamics. 
+ClimaOcean implements a framework for driving realistic Oceananigans simulations with prescribed atmospheres, and coupling them to prognostic sea ice simulations.
 
 ### A core abstraction: `ClimaOcean.OceanSeaIceModel`
 
@@ -104,7 +104,7 @@ which produces
 
 A second core abstraction in ClimaOcean is `ocean_simulation`. `ocean_simulation` configures an Oceananigans model for realistic simulations including temperature and salinity, the TEOS-10 equation of state, boundary conditions to store computed air-sea fluxes, the automatically-calibrated turbulence closure `CATKEVerticalDiffusivity`, and the [`WENOVectorInvariant` advection scheme](http://doi.org/10.1029/2023MS004130) for mesoscale-turbulence-resolving simulations.
 
-`ClimaOcean` also provides convenience features for wrangling datasets of bathymetry, ocean temperature, salinity, ocean velocity fields, and prescribed atmospheric states.
+ClimaOcean also provides convenience features for wrangling datasets of bathymetry, ocean temperature, salinity, ocean velocity fields, and prescribed atmospheric states.
 
-`ClimaOcean` is built on top of `Oceananigans` and `ClimaSeaIce`, so it's important that `ClimaOcean` users become proficient with [`Oceananigans`](https://github.com/CliMA/Oceananigans.jl).
-Note that though `ClimaOcean` is currently focused on hydrostatic modeling with `Oceananigans`' `HydrostaticFreeSurfaceModel`, realistic nonhydrostatic modeling is also within the scope of this package.
+ClimaOcean is built on top of Oceananigans and [ClimaSeaIce](https://github.com/CliMA/ClimaSeaIce.jl), so it's important that ClimaOcean users become proficient with [Oceananigans](https://github.com/CliMA/Oceananigans.jl).
+Note that though ClimaOcean is currently focused on hydrostatic modeling with `Oceananigans.HydrostaticFreeSurfaceModel`, realistic nonhydrostatic modeling is also within the scope of this package.
