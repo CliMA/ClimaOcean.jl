@@ -4,7 +4,7 @@ export ocean_simulation
 
 using Oceananigans
 using Oceananigans.Units
-using Oceananigans.Advection: TracerAdvection
+using Oceananigans.Advection: FluxFormAdvection
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node
 
@@ -32,7 +32,7 @@ default_momentum_advection() = VectorInvariant(; vorticity_scheme = WENO(; order
                                                   vertical_scheme = Centered(),
                                                 divergence_scheme = WENO())
 
-default_tracer_advection() = TracerAdvection(WENO(; order = 7),
+default_tracer_advection() = FluxFormAdvection(WENO(; order = 7),
                                              WENO(; order = 7),
                                              Centered())
 
