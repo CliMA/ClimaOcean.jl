@@ -33,8 +33,6 @@ Base.summary(data::ECCOMetadata{<:Any, <:ECCO2Daily})   = "Daily ECCO2 $(data.na
 Base.summary(data::ECCOMetadata{<:Any, <:ECCO2Monthly}) = "Monthly ECCO2 $(data.name) dataset, from $(first(data.dates)) to $(last(data.dates))"
 Base.summary(data::ECCOMetadata{<:Any, <:ECCO4Monthly}) = "Monthly ECCO4 $(data.name) dataset, from $(first(data.dates)) to $(last(data.dates))"
     
-# The default is the ECCO2Daily dataset at 1993-01-01.
-=======
 """
     ECCOMetadata(name::Symbol; 
                  date = DateTimeProlepticGregorian(1993, 1, 1), 
