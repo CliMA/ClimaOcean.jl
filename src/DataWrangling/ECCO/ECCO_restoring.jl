@@ -12,6 +12,7 @@ using Dates: Second
 using ClimaOcean: stateindex
 
 import Oceananigans.Fields: set!
+import Oceananigans.Forcings: regularize_forcing
 import Oceananigans.OutputReaders: new_backend, update_field_time_series!
 
 @inline instantiate(T::DataType) = T()
@@ -20,36 +21,40 @@ import Oceananigans.OutputReaders: new_backend, update_field_time_series!
 struct ECCONetCDFBackend{N} <: AbstractInMemoryBackend{Int}
     start :: Int
     length :: Int
+    maxiter :: Int
 
-    ECCONetCDFBackend{N}(start::Int, length::Int) where N = new{N}(start, length)
+    ECCONetCDFBackend{N}(start::Int, length::Int, maxiter::Int) where N = new{N}(start, length, maxiter)
 end
 
 """
-    ECCONetCDFBackend(length)
+    ECCONetCDFBackend(length; on_native_grid = false, maxiter = Inf)
 
 Represents an ECCO FieldTimeSeries backed by ECCO native .nc files.
 Each time instance is stored in an individual file.
+the maxiter keyword argument is the maximum number of iterations for the inpainting algorithm.
 """
-ECCONetCDFBackend(length; on_native_grid = false) = ECCONetCDFBackend{on_native_grid}(1, length)
+ECCONetCDFBackend(length; on_native_grid = false, maxiter = Inf) = ECCONetCDFBackend{on_native_grid}(1, length, maxiter)
 
 Base.length(backend::ECCONetCDFBackend)  = backend.length
 Base.summary(backend::ECCONetCDFBackend) = string("ECCONetCDFBackend(", backend.start, ", ", backend.length, ")")
 
 const ECCONetCDFFTS{N} = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:ECCONetCDFBackend{N}} where N
 
-new_backend(::ECCONetCDFBackend{N}, start, length) where N = ECCONetCDFBackend{N}(start, length)
+new_backend(b::ECCONetCDFBackend{N}, start, length) where N = ECCONetCDFBackend{N}(start, length, b.maxiter)
 on_native_grid(::ECCONetCDFBackend{N}) where N = N
 
 function set!(fts::ECCONetCDFFTS, path::ECCOMetadata=fts.path, name::String=fts.name) 
 
     backend = fts.backend
-    start = backend.start
+    start   = backend.start
+    maxiter = backend.maxiter
 
     for t in start:start+length(backend)-1
         
         # find the file associated with the time index
         metadata = @inbounds path[t] 
-        set!(fts[t], metadata)
+        # Set the field with the correct metadata
+        set!(fts[t], metadata; maxiter)
     end
 
     fill_halo_regions!(fts)
@@ -87,6 +92,7 @@ end
                            architecture = CPU(),
                            time_indices_in_memory = 2,
                            time_indexing = Cyclical(),
+                           inpainting_iterations = prod(size(metadata)),
                            grid = nothing)
 
 Create a field time series object for ECCO data.
@@ -98,17 +104,20 @@ Create a field time series object for ECCO data.
 - architecture: The architecture to use for computations (default: CPU()).
 - time_indices_in_memory: The number of time indices to keep in memory (default: 2).
 - time_indexing: The time indexing scheme to use (default: Cyclical()).
+- inpainting_iterations: The maximum number of iterations for the inpainting algorithm (default: prod(size(metadata))).
 - grid: if not a `nothing`, the ECCO data is directly interpolated on the `grid`,
 """
 function ECCO_field_time_series(metadata::ECCOMetadata;	
                                 architecture = CPU(),	
                                 time_indices_in_memory = 2,	
                                 time_indexing = Cyclical(),
+                                inpainting_iterations = prod(size(metadata)),
                                 grid = nothing)	
 
     # ECCO data is too chunky to allow other backends	
     backend = ECCONetCDFBackend(time_indices_in_memory; 
-                                on_native_grid = isnothing(grid))
+                                on_native_grid = isnothing(grid),
+                                maxiter = inpainting_iterations)
 
     # Making sure all the required individual files are downloaded
     download_dataset!(metadata)
@@ -156,6 +165,11 @@ oceananigans_fieldname = Dict(
 @inline Base.getindex(fields, i, j, k, ::UVelocity)   = @inbounds fields.u[i, j, k]
 @inline Base.getindex(fields, i, j, k, ::VVelocity)   = @inbounds fields.v[i, j, k]
 
+Base.summary(::Temperature) = "temperature"
+Base.summary(::Salinity)    = "salinity"
+Base.summary(::UVelocity)   = "u_velocity"
+Base.summary(::VVelocity)   = "v_velocity"
+
 """
     struct ECCORestoring{FTS, G, M, V, N} <: Function
 
@@ -166,41 +180,41 @@ A struct representing ECCO restoring.
 - `ECCO_grid`: The native ECCO grid to interpolate from.
 - `mask`: A mask (could be a number, an array, a function or a field).
 - `variable_name`: The variable name of the variable that needs restoring.
-- `λ⁻¹`: The reciprocal of the restoring timescale.
+- `rate`: The reciprocal of the restoring timescale.
 """
-struct ECCORestoring{FTS, G, M, V, N} <: Function
-    ECCO_fts      :: FTS
-    ECCO_grid     :: G
-    mask          :: M
-    variable_name :: V
-    λ⁻¹           :: N
+struct ECCORestoring{FTS, G, M, V, N} 
+    field_time_series :: FTS
+    grid              :: G
+    mask              :: M
+    variable_name     :: V
+    rate              :: N
 end
 
 Adapt.adapt_structure(to, p::ECCORestoring) = 
-    ECCORestoring(Adapt.adapt(to, p.ECCO_fts), 
-                  Adapt.adapt(to, p.ECCO_grid),
+    ECCORestoring(Adapt.adapt(to, p.field_time_series), 
+                  Adapt.adapt(to, p.grid),
                   Adapt.adapt(to, p.mask),
                   Adapt.adapt(to, p.variable_name),
-                  Adapt.adapt(to, p.λ⁻¹))
+                  Adapt.adapt(to, p.rate))
 
 @inline function (p::ECCORestoring)(i, j, k, grid, clock, fields)
     
     # Figure out all the inputs: time, location, and node
     time = Time(clock.time)
-    loc  = location(p.ECCO_fts)
+    loc  = location(p.field_time_series)
 
     # Retrieve the variable to force
     @inbounds var = fields[i, j, k, p.variable_name]
 
-    ECCO_backend = p.ECCO_fts.backend
+    ECCO_backend = p.field_time_series.backend
     native_grid = on_native_grid(ECCO_backend) 
 
-    ECCO_var = get_ECCO_variable(Val(native_grid), p.ECCO_fts, i, j, k, p.ECCO_grid, grid, time)
+    ECCO_var = get_ECCO_variable(Val(native_grid), p.field_time_series, i, j, k, p.grid, grid, time)
 
     # Extracting the mask value at the current node
     mask = stateindex(p.mask, i, j, k, grid, clock.time, loc)
-
-    return p.λ⁻¹ * mask * (ECCO_var - var)
+    
+    return p.rate * mask * (ECCO_var - var)
 end
 
 # Differentiating between restoring done with an ECCO FTS
@@ -224,52 +238,83 @@ end
 @inline get_ECCO_variable(::Val{false}, ECCO_fts, i, j, k, ECCO_grid, grid, time) = @inbounds ECCO_fts[i, j, k, time]
 
 """
-    ECCO_restoring_forcing(metadata::ECCOMetadata;
-                            architecture = CPU(), 
-                            backend = ECCONetCDFBackend(2),
-                            time_indexing = Cyclical(),
-                            mask = 1,
-                            timescale = 5days)
+    ECCORestoring(variable_name::Symbol, [architecture = CPU()]; 
+                  version = ECCO4Monthly(),
+                  dates = all_ECCO_dates(version), 
+                  time_indices_in_memory = 2, # Not more than this if we want to use GPU!
+                  time_indexing = Cyclical(),
+                  mask = 1,
+                  rate = 1,
+                  grid = nothing,
+                  inpainting_iterations = prod(size(metadata)))
 
 Create a restoring forcing term that restores to values stored in an ECCO field time series.
 
-# Arguments:
-=============
-- `metadata`: The metadata for the ECCO field time series.
+# Positional Arguments (order does not matter):
+===============================================
+- `variable_name`: The name of the variable to restore. (default: `:temperature`).
+                   The choice is between
+                    - `:temperature`, 
+                    - `:salinity`, 
+                    - `:u_velocity`, 
+                    - `:v_velocity`, 
+                    - `:sea_ice_thickness`, 
+                    - `:sea_ice_area_fraction`.
+- `architecture`: The architecture. Typically `CPU` or `GPU`. Default is `CPU`.
 
 # Keyword Arguments:
 ====================
-- `architecture`: The architecture. Typically `CPU` or `GPU`
+- `version`: The version of the ECCO dataset. Default is `ECCO4Monthly()`.
+- `dates`: The dates to use for the ECCO dataset. Default is `all_ECCO_dates(version)`.
 - `time_indices_in_memory`: The number of time indices to keep in memory. trade-off between performance
                             and memory footprint.    
-- `time_indexing`: The time indexing scheme for the field time series, see [`FieldTimeSeries`](@ref)
+- `time_indexing`: The time indexing scheme for the field time series≥
 - `mask`: The mask value. Can be a function of `(x, y, z, time)`, an array or a number
-- `timescale`: The restoring timescale.
+- `rate`: The restoring rate in s⁻¹.
+- `time_indices_in_memory = 2, # Not more than this if we want to use GPU!
+- `inpainting_iterations`: maximum number of iterations for the inpainting algorithm. (defaults to `prod(size(metadata))`)
+
+It is possible to also pass an `ECCOMetadata` type as the first argument without the need for the 
+`variable_name` argument and the `version` and `dates` keyword arguments.
 """
-function ECCO_restoring_forcing(variable_name::Symbol, version=ECCO4Monthly(); kw...) 
-     metadata = ECCOMetadata(variable_name, all_ECCO_dates(version), version)
-    return ECCO_restoring_forcing(metadata; kw...)
+function ECCORestoring(variable_name::Symbol, architecture::AbstractArchitecture = CPU(); 
+                       version = ECCO4Monthly(),
+                       dates = all_ECCO_dates(version), 
+                       kw...) 
+                                
+     metadata = ECCOMetadata(variable_name, dates, version)
+    return ECCORestoring(metadata; architecture, kw...)
 end
 
-function ECCO_restoring_forcing(metadata::ECCOMetadata;
-                                architecture = CPU(), 
-                                time_indices_in_memory = 2, # Not more than this if we want to use GPU!
-                                time_indexing = Cyclical(),
-                                mask = 1,
-                                timescale = 20days,
-                                grid = nothing)
+# Make sure we can call ECCORestoring with architecture as the first positional argument
+ECCORestoring(architecture::AbstractArchitecture, variable_name::Symbol = :temperature; kw...) = 
+    ECCORestoring(variable_name, architecture; kw...)
 
-    ECCO_fts  = ECCO_field_time_series(metadata; grid, architecture, time_indices_in_memory, time_indexing)                  
+function ECCORestoring(metadata::ECCOMetadata;
+                       architecture = CPU(), 
+                       time_indices_in_memory = 2, # Not more than this if we want to use GPU!
+                       time_indexing = Cyclical(),
+                       mask = 1,
+                       rate = 1,
+                       grid = nothing,
+                       inpainting_iterations = prod(size(metadata)))
+
+    ECCO_fts  = ECCO_field_time_series(metadata; grid, architecture, time_indices_in_memory, time_indexing, inpainting_iterations)                  
     ECCO_grid = ECCO_fts.grid
 
     # Grab the correct Oceananigans field to restore
     variable_name = metadata.name
     field_name = oceananigans_fieldname[variable_name]
-    ECCO_restoring = ECCORestoring(ECCO_fts, ECCO_grid, mask, field_name, 1 / timescale)
-    
-    # Defining the forcing that depends on the restoring field.
-    restoring_forcing = Forcing(ECCO_restoring; discrete_form = true)
 
-    return restoring_forcing
+    return ECCORestoring(ECCO_fts, ECCO_grid, mask, field_name, rate)
 end
 
+Base.show(io::IO, p::ECCORestoring) = 
+    print(io, "Three-dimensional restoring to ECCO data:", '\n',
+              "├── restored variable: ", summary(p.variable_name), '\n',
+              "├── restoring dataset: ", summary(p.field_time_series.path), '\n',
+              "├── restoring rate: ", p.rate, '\n',
+              "├── mask: ", summary(p.mask), '\n',
+              "└── grid: ", summary(p.grid))
+
+regularize_forcing(forcing::ECCORestoring, field, field_name, model_field_names) = forcing
