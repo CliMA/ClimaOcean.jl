@@ -98,7 +98,7 @@ all_ECCO_dates(::ECCO2Daily)   = DateTimeProlepticGregorian(1992, 1, 4) : Day(1)
 
 # File name generation specific to each Dataset version
 function metadata_filename(metadata::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4Monthly})
-    shortname   = short_name(metadata)
+    shortname = short_name(metadata)
     yearstr  = string(Dates.year(metadata.dates))
     monthstr = string(Dates.month(metadata.dates), pad=2)
     return shortname * "_" * yearstr * "_" * monthstr * ".nc"
@@ -129,7 +129,7 @@ metadata_url(prefix, m::ECCOMetadata{<:Any, <:ECCO2Monthly}) = joinpath(prefix, 
 
 function metadata_url(prefix, m::ECCOMetadata{<:Any, <:ECCO4Monthly})
     year = string(Dates.year(m.dates))
-    return joinpath(prefix, short_name(m), metadata_filename(m))
+    return joinpath(prefix, short_name(m), year, metadata_filename(m))
 end
 
 location(data::ECCOMetadata) = ECCO_location[data.name]

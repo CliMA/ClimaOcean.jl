@@ -17,11 +17,15 @@ import Oceananigans.OutputReaders: new_backend, update_field_time_series!
 @inline instantiate(T::DataType) = T()
 @inline instantiate(T) = T
 
-struct ECCONetCDFBackend{N} <: AbstractInMemoryBackend{Int}
+struct ECCONetCDFBackend{N, M} <: AbstractInMemoryBackend{Int}
     start :: Int
     length :: Int
+    metadata :: M
 
-    ECCONetCDFBackend{N}(start::Int, length::Int) where N = new{N}(start, length)
+    function ECCONetCDFBackend{N}(start::Int, length::Int, metadata) where N
+        M = typeof(metadata)
+        return new{N, M}(start, length, metadata)
+    end
 end
 
 """
@@ -30,26 +34,27 @@ end
 Represents an ECCO FieldTimeSeries backed by ECCO native .nc files.
 Each time instance is stored in an individual file.
 """
-ECCONetCDFBackend(length; on_native_grid = false) = ECCONetCDFBackend{on_native_grid}(1, length)
+ECCONetCDFBackend(length, metadata; on_native_grid = false) = ECCONetCDFBackend{on_native_grid}(1, length, metadata)
 
 Base.length(backend::ECCONetCDFBackend)  = backend.length
 Base.summary(backend::ECCONetCDFBackend) = string("ECCONetCDFBackend(", backend.start, ", ", backend.length, ")")
 
 const ECCONetCDFFTS{N} = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:ECCONetCDFBackend{N}} where N
 
-new_backend(::ECCONetCDFBackend{N}, start, length) where N = ECCONetCDFBackend{N}(start, length)
+new_backend(b::ECCONetCDFBackend{N}, start, length) where N =
+    ECCONetCDFBackend{N}(start, length, b.metadata)
+
 on_native_grid(::ECCONetCDFBackend{N}) where N = N
 
-function set!(fts::ECCONetCDFFTS, path::ECCOMetadata=fts.path, name::String=fts.name) 
-
+function set!(fts::ECCONetCDFFTS) #, metadata::ECCOMetadata=fts.backend.metadata, name::String="")
     backend = fts.backend
     start = backend.start
+    len = backend.length
 
-    for t in start:start+length(backend)-1
-        
-        # find the file associated with the time index
-        metadata = @inbounds path[t] 
-        set!(fts[t], metadata)
+    for t in start:start+len-1
+        # Set each element of the time-series to the associated file
+        metadatum = @inbounds backend.metadata[t] 
+        set!(fts[t], metadatum)
     end
 
     fill_halo_regions!(fts)
@@ -106,29 +111,26 @@ function ECCO_field_time_series(metadata::ECCOMetadata;
                                 time_indexing = Cyclical(),
                                 grid = nothing)	
 
-    # ECCO data is too chunky to allow other backends	
-    backend = ECCONetCDFBackend(time_indices_in_memory; 
-                                on_native_grid = isnothing(grid))
-
     # Making sure all the required individual files are downloaded
     download_dataset!(metadata)
 
-    location = field_location(metadata)
+    # ECCO data is too chunky to allow other backends	
+    backend = ECCONetCDFBackend(time_indices_in_memory, metadata; 
+                                on_native_grid = isnothing(grid))
+
+    loc = location(metadata)
     ftmp = empty_ECCO_field(first(metadata); architecture)
     shortname = short_name(metadata)
 
     ECCO_native_grid = ftmp.grid
-    boundary_conditions = FieldBoundaryConditions(ECCO_native_grid, location)
+    fts_grid = isnothing(grid) ? ECCO_native_grid : grid
+    boundary_conditions = FieldBoundaryConditions(fts_grid, loc)
     times = ECCO_times(metadata)
 
-    fts_grid = isnothing(grid) ? ECCO_native_grid : grid
-
-    fts = FieldTimeSeries{location...}(fts_grid, times;	
-                                       backend,	
-                                       time_indexing,	
-                                       boundary_conditions,	
-                                       path = metadata,	
-                                       name = shortname)
+    fts = FieldTimeSeries{loc...}(fts_grid, times;	
+                                  backend,
+                                  time_indexing,	
+                                  boundary_conditions)
 
     # Let's set the data	
     set!(fts)	
@@ -225,11 +227,11 @@ end
 
 """
     ECCO_restoring_forcing(metadata::ECCOMetadata;
-                            architecture = CPU(), 
-                            backend = ECCONetCDFBackend(2),
-                            time_indexing = Cyclical(),
-                            mask = 1,
-                            timescale = 5days)
+                           architecture = CPU(), 
+                           backend = ECCONetCDFBackend(2),
+                           time_indexing = Cyclical(),
+                           mask = 1,
+                           timescale = 5days)
 
 Create a restoring forcing term that restores to values stored in an ECCO field time series.
 
@@ -247,7 +249,7 @@ Create a restoring forcing term that restores to values stored in an ECCO field 
 - `timescale`: The restoring timescale.
 """
 function ECCO_restoring_forcing(variable_name::Symbol, version=ECCO4Monthly(); kw...) 
-     metadata = ECCOMetadata(variable_name, all_ECCO_dates(version), version)
+    metadata = ECCOMetadata(variable_name, all_ECCO_dates(version), version)
     return ECCO_restoring_forcing(metadata; kw...)
 end
 
