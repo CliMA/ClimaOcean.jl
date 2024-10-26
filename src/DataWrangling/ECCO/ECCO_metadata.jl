@@ -54,17 +54,17 @@ Constructs an `ECCOMetadata` object with the specified parameters.
 function ECCOMetadata(name::Symbol; 
                       dates = DateTimeProlepticGregorian(1993, 1, 1),
                       version = ECCO4Monthly(),
-                      dir = download_ECCO_cache) 
+                      dir = download_ECCO_cache)
              
-    return ECCOMetadata(name, date, version, dir) 
+    return ECCOMetadata(name, dates, version, dir)
 end
 
 ECCOMetadata(name::Symbol, date, version=ECCO4Monthly(); dir=download_ECCO_cache) =
-  ECCOMetadata(name, date, version, dir)
+    ECCOMetadata(name, date, version, dir)
 
 # Treat ECCOMetadata as an array to allow iteration over the dates.
-Base.length(metadata::ECCOMetadata)       = length(metadata.dates)
-Base.eltype(metadata::ECCOMetadata)       = Base.eltype(metadata.dates)
+Base.length(metadata::ECCOMetadata) = length(metadata.dates)
+Base.eltype(metadata::ECCOMetadata) = Base.eltype(metadata.dates)
 @propagate_inbounds Base.getindex(m::ECCOMetadata, i::Int) = ECCOMetadata(m.name, m.dates[i],   m.version, m.dir)
 @propagate_inbounds Base.first(m::ECCOMetadata)            = ECCOMetadata(m.name, m.dates[1],   m.version, m.dir)
 @propagate_inbounds Base.last(m::ECCOMetadata)             = ECCOMetadata(m.name, m.dates[end], m.version, m.dir)
@@ -134,7 +134,7 @@ end
 
 location(data::ECCOMetadata) = ECCO_location[data.name]
 
-variable_is_three_dimensional(data::ECCOMetadata) = 
+variable_is_three_dimensional(data::ECCOMetadata) =
     data.name == :temperature || 
     data.name == :salinity || 
     data.name == :u_velocity ||
@@ -218,4 +218,3 @@ function download_dataset!(metadata::ECCOMetadata; url = urls(metadata))
 
     return nothing
 end
-
