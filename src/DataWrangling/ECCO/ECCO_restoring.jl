@@ -28,6 +28,8 @@ struct ECCONetCDFBackend{N, M} <: AbstractInMemoryBackend{Int}
     end
 end
 
+Adapt.adapt_structure(to, b::ECCONetCDFBackend{N}) where N = ECCONetCDFBackend{N}(b.start, b.length, nothing)
+
 """
     ECCONetCDFBackend(length)
 
