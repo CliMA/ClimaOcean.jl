@@ -226,10 +226,4 @@ Colorbar(fig[2, 2], hm, label = "Surface Temperature (ᵒC)")
 hm = heatmap!(axe, en, colorrange = (0, 1e-3), colormap = :solar)
 Colorbar(fig[3, 2], hm, label = "Turbulent Kinetic Energy (m² s⁻²)")
 
-record(fig, "near_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
-    n[] = nn
-end
-nothing #hide
-
-# ![](near_global_ocean_surface.mp4)
-
+current_figure()
