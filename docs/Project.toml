@@ -6,6 +6,7 @@ Literate = "98b081ad-f1c9-55d3-8b20-4c87d4299306"
 OrthogonalSphericalShellGrids = "c2be9673-fb75-4747-82dc-aa2bb9f4aed0"
 
 [compat]
-CairoMakie = "0.10.12"
+CairoMakie = "0.10.12, 0.11, 0.12"
 DataDeps = "0.7"
 Documenter = "1"
+Oceananigans = "0.93.1"
