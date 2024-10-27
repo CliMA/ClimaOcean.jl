@@ -15,3 +15,4 @@ using ClimaOcean
 
 gpu_test = parse(Bool, get(ENV, "GPU_TEST", "false"))
 test_architectures = gpu_test ? [GPU()] : [CPU()]
+

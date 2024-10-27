@@ -91,45 +91,39 @@ function empty_ECCO_field(metadata::ECCOMetadata;
                           horizontal_halo = (3, 3))
 
     Nx, Ny, Nz, _ = size(metadata)
-
-    variable_name = metadata.name
-    location = field_location(metadata)
-    
-    location = ECCO_location[variable_name]
-
+    loc = location(metadata)
     longitude = (0, 360)
     latitude = (-90, 90)
     TX, TY = (Periodic, Bounded)
 
     if variable_is_three_dimensional(metadata)
-        z    = ECCO_z
-        # add vertical halo for 3D fields
+        TZ = Bounded
+        LZ = Center
+        z = ECCO_z
         halo = (horizontal_halo..., 3)
-        LZ   = Center
-        TZ   = Bounded
-        N    = (Nx, Ny, Nz)
-    else
-        z    = nothing
+        sz = (Nx, Ny, Nz)
+    else # the variable is two-dimensional
+        TZ = Flat
+        LZ = Nothing
+        z = nothing
         halo = horizontal_halo
-        LZ   = Nothing
-        TZ   = Flat
-        N    = (Nx, Ny)
+        sz = (Nx, Ny)
     end
 
-    # Flat in z if the variable is two-dimensional
-    grid = LatitudeLongitudeGrid(architecture; halo, size = N, topology = (TX, TY, TZ),
-                                 longitude, latitude, z)
+    grid = LatitudeLongitudeGrid(architecture; halo, longitude, latitude, z,
+                                 size = sz,
+                                 topology = (TX, TY, TZ))
 
-    return Field{location...}(grid)
+    return Field{loc...}(grid)
 end
 
 """
     ECCO_field(variable_name;
-                architecture = CPU(),
-                horizontal_halo = (1, 1),
-                user_data = nothing,
-                url = ecco_urls[variable_name],
-                short_name = ecco_short_names[variable_name])
+               architecture = CPU(),
+               horizontal_halo = (1, 1),
+               user_data = nothing,
+               url = ecco_urls[variable_name],
+               short_name = ecco_short_names[variable_name])
 
 Retrieve the ECCO field corresponding to `variable_name`. 
 The data is either:
@@ -141,27 +135,28 @@ function ECCO_field(metadata::ECCOMetadata;
                     architecture = CPU(),
                     horizontal_halo = (3, 3))
 
-    filename  = metadata_filename(metadata)
-    path      = metadata.path
-    shortname = short_name(metadata)
-    
     download_dataset!(metadata)
+    path = metadata_path(metadata)
+    ds = Dataset(path)
 
-    ds = Dataset(joinpath(path, filename))
+    shortname = short_name(metadata)
+
     if variable_is_three_dimensional(metadata)
         data = ds[shortname][:, :, :, 1]
+
         # The surface layer in three-dimensional ECCO fields is at `k = 1`
-        data = reverse(data, dims = 3)
+        data = reverse(data, dims=3)
     else
         data = ds[shortname][:, :, 1]
     end        
+
     close(ds)
 
     field = empty_ECCO_field(metadata; architecture, horizontal_halo)
     
-    FT    = eltype(field)
+    FT = eltype(field)
     data[ismissing.(data)] .= 1e10 # Artificially large number!
-    data  = if location(field)[2] == Face
+    data = if location(field)[2] == Face
         new_data = zeros(FT, size(field))
         new_data[:, 1:end-1, :] .= data
         new_data    
@@ -245,7 +240,7 @@ function set!(field::DistributedField, ECCO_metadata::ECCOMetadata; kw...)
     # Distribute ECCO field to all workers
     parent(f_ECCO) .= all_reduce(+, parent(f_ECCO), arch)
 
-    f_grid = Field(field_location(ECCO_metadata), grid)   
+    f_grid = Field(location(ECCO_metadata), grid)   
     interpolate!(f_grid, f_ECCO)
     set!(field, f_grid)
     
@@ -260,7 +255,7 @@ function set!(field::Field, ECCO_metadata::ECCOMetadata; kw...)
     mask = ECCO_mask(ECCO_metadata, arch)
     
     f = inpainted_ECCO_field(ECCO_metadata; mask, architecture=arch, kw...)
-    f_grid = Field(field_location(ECCO_metadata), grid)   
+    f_grid = Field(location(ECCO_metadata), grid)   
     interpolate!(f_grid, f)
     set!(field, f_grid)
 

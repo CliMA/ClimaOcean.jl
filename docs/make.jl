@@ -88,8 +88,7 @@ for file in files
 end
 
 deploydocs(repo = "github.com/CliMA/ClimaOceanDocumentation.git",
-           versions = ["stable" => "v^", "v#.#.#", "dev" => "dev"],
+           versions = ["stable" => "v^", "dev" => "dev", "v#.#.#"],
            forcepush = true,
            devbranch = "main",
            push_preview = true)
-
