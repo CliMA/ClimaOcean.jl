@@ -7,9 +7,9 @@
 #
 # ## Initial setup with package imports
 #
-# We begin by importing the necessary Julia packages for visualization (CairoMakie), 
-# ocean modeling (Oceananigans, ClimaOcean), and handling dates and times (CFTime, Dates). 
-# These packages provide the foundational tools for setting up the simulation environment, 
+# We begin by importing the necessary Julia packages for visualization (CairoMakie),
+# ocean modeling (Oceananigans, ClimaOcean), and handling dates and times (CFTime, Dates).
+# These packages provide the foundational tools for setting up the simulation environment,
 # including grid setup, physical processes modeling, and data visualization.
 
 using Printf
@@ -23,7 +23,7 @@ using Dates
 
 # ### Grid configuration 
 #
-# We define a global grid with a horizontal resolution of 1/4 degree and 40 vertical levels. 
+# We define a global grid with a horizontal resolution of 1/4 degree and 40 vertical levels.
 # The grid is a `LatitudeLongitudeGrid` spanning latitudes from 75°S to 75°N.
 # We use an exponential vertical spacing to better resolve the upper ocean layers.
 # The total depth of the domain is set to 6000 meters.
