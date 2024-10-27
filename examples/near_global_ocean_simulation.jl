@@ -80,8 +80,8 @@ ocean.model
 
 # We initialize the ocean model to ECCO2 temperature and salinity for January 1, 1993.
 
-date  = DateTimeProlepticGregorian(1993, 1, 1)
-set!(ocean.model, T=ECCOMetadata(:temperature; date), S=ECCOMetadata(:salinity; date))
+date = DateTimeProlepticGregorian(1993, 1, 1)
+set!(ocean.model, T=ECCOMetadata(:temperature; dates=date), S=ECCOMetadata(:salinity; dates=date))
 
 # ### Prescribed atmosphere and radiation
 #
