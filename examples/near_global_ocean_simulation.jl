@@ -1,13 +1,13 @@
 # # Near-global ocean simulation
 #
-# This Julia script sets up and runs a near-global ocean simulation using the Oceananigans.jl and ClimaOcean.jl packages. 
-# The simulation covers latitudes from 75°S to 75°N with a horizontal resolution of 1/4 degree and 40 vertical levels. 
+# This example sets up and runs a near-global ocean simulation using the Oceananigans.jl and ClimaOcean.jl packages.
+# The simulation covers latitudes from 75°S to 75°N with a horizontal resolution of 1/4 degree and 40 vertical levels.
 #
-# The simulation runs for one year, and the results are visualized using the CairoMakie.jl package.
+# The simulation's results are visualized using the CairoMakie.jl package.
 #
 # ## Initial setup with package imports
 #
-# The script begins by importing the necessary Julia packages for visualization (CairoMakie), 
+# We begin by importing the necessary Julia packages for visualization (CairoMakie), 
 # ocean modeling (Oceananigans, ClimaOcean), and handling dates and times (CFTime, Dates). 
 # These packages provide the foundational tools for setting up the simulation environment, 
 # including grid setup, physical processes modeling, and data visualization.
@@ -24,7 +24,7 @@ using Dates
 # ### Grid configuration 
 #
 # We define a global grid with a horizontal resolution of 1/4 degree and 40 vertical levels. 
-# The grid is a `LatitudeLongitudeGrid` spanning latitude from 75°S to 75°N.
+# The grid is a `LatitudeLongitudeGrid` spanning latitudes from 75°S to 75°N.
 # We use an exponential vertical spacing to better resolve the upper ocean layers.
 # The total depth of the domain is set to 6000 meters.
 # Finally, we specify the architecture for the simulation, which in this case is a GPU.
@@ -61,9 +61,11 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 # Let's see what the bathymetry looks like:
 
 h = grid.immersed_boundary.bottom_height
+
 fig, ax, hm = heatmap(h, colormap=:deep, colorrange=(-6000, 0))
 cb = Colorbar(fig[0, 1], hm, label="Bottom height (m)", vertical=false)
 hidedecorations!(ax)
+current_figure()
 save("bathymetry.png", fig) # hide
 
 # ![](bathymetry.png)
@@ -185,8 +187,8 @@ simulation.Δt = 10minutes
 run!(simulation)
 
 # ## A pretty movie
-# 
-# It's time to make a pretty movie of the simulation.
+#
+# It's time to make a pretty movie of the simulation. First we plot a snapshot:
 
 u = FieldTimeSeries("near_global_surface_fields.jld2", "u"; backend = OnDisk())
 v = FieldTimeSeries("near_global_surface_fields.jld2", "v"; backend = OnDisk())
@@ -227,3 +229,12 @@ hm = heatmap!(axe, en, colorrange = (0, 1e-3), colormap = :solar)
 Colorbar(fig[3, 2], hm, label = "Turbulent Kinetic Energy (m² s⁻²)")
 
 current_figure()
+
+# And now a movie:
+
+record(fig, "near_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
+    n[] = nn
+end
+nothing #hide
+
+# ![](near_global_ocean_surface.mp4)
