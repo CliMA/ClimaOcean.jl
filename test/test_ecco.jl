@@ -51,10 +51,9 @@ end
 
 @testset "Setting temperature and salinity to ECCO" begin
     for arch in test_architectures
-        grid = LatitudeLongitudeGrid(size=(10, 10, 10), latitude=(-60, -40), longitude=(10, 15), z=(-200, 0))
+        grid = LatitudeLongitudeGrid(size=(10, 10, 10), latitude=(-60, -40), longitude=(10, 15), z=(-200, 0), halo = (7, 7, 7))
         ocean = ocean_simulation(grid)
         date = DateTimeProlepticGregorian(1993, 1, 1)
         set!(ocean.model, T=ECCOMetadata(:temperature, date), S=ECCOMetadata(:salinity, date))
     end
 end
-
