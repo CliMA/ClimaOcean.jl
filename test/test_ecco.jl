@@ -47,6 +47,26 @@ inpainting = NearestNeighborInpainting(2)
     end
 end
 
+@testset "Inpainting algorithm" begin
+    temperature = ECCOMetadata(:temperature, dates[1], ECCO4Monthly())
+
+    grid = LatitudeLongitudeGrid(size = (100, 100, 10), 
+                             latitude = (-75, 75), 
+                            longitude = (0, 360), 
+                                    z = (-200, 0),
+                                 halo = (6, 6, 6))
+    
+    T_fully_inpainted = CenterField(grid)
+    T_partially_inpainted = CenterField(grid)
+
+    set!(T_fully_inpainted,     temperature; inpainting = NearestNeighbourInpainting(Inf))
+    set!(T_partially_inpainted, temperature; inpainting = NearestNeighbourInpainting(1))
+
+    @test all(T_fully_inpainted.data .!= 0)
+    @test any(T_partially_inpainted.data .== 0)
+end
+
+
 @testset "LinearlyTaperedPolarMask" begin
 
     grid = LatitudeLongitudeGrid(size = (100, 100, 10), 
