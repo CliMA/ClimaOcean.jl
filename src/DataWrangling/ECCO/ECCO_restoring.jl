@@ -18,13 +18,19 @@ import Oceananigans.OutputReaders: new_backend, update_field_time_series!
 @inline instantiate(T::DataType) = T()
 @inline instantiate(T) = T
 
-struct ECCONetCDFBackend{N} <: AbstractInMemoryBackend{Int}
+struct ECCONetCDFBackend{N, M} <: AbstractInMemoryBackend{Int}
     start :: Int
     length :: Int
     maxiter :: Int
+    metadata :: M
 
-    ECCONetCDFBackend{N}(start::Int, length::Int, maxiter::Int) where N = new{N}(start, length, maxiter)
+    function ECCONetCDFBackend{N}(start::Int, length::Int, maxiter::Int, metadata) where N
+        M = typeof(metadata)
+        return new{N, M}(start, length, maxiter, metadata)
+    end
 end
+
+Adapt.adapt_structure(to, b::ECCONetCDFBackend{N}) where N = ECCONetCDFBackend{N}(b.start, b.length, nothing)
 
 """
     ECCONetCDFBackend(length; on_native_grid = false, maxiter = Inf)
@@ -33,27 +39,27 @@ Represents an ECCO FieldTimeSeries backed by ECCO native .nc files.
 Each time instance is stored in an individual file.
 the maxiter keyword argument is the maximum number of iterations for the inpainting algorithm.
 """
-ECCONetCDFBackend(length; on_native_grid = false, maxiter = Inf) = ECCONetCDFBackend{on_native_grid}(1, length, maxiter)
+ECCONetCDFBackend(length, metadata; on_native_grid = false, maxiter = Inf) = ECCONetCDFBackend{on_native_grid}(1, length, maxiter, metadata)
 
 Base.length(backend::ECCONetCDFBackend)  = backend.length
 Base.summary(backend::ECCONetCDFBackend) = string("ECCONetCDFBackend(", backend.start, ", ", backend.length, ")")
 
 const ECCONetCDFFTS{N} = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:ECCONetCDFBackend{N}} where N
 
-new_backend(b::ECCONetCDFBackend{N}, start, length) where N = ECCONetCDFBackend{N}(start, length, b.maxiter)
+new_backend(b::ECCONetCDFBackend{N}, start, length) where N =
+    ECCONetCDFBackend{N}(start, length, b.maxiter, b.metadata)
+
 on_native_grid(::ECCONetCDFBackend{N}) where N = N
 
-function set!(fts::ECCONetCDFFTS, path::ECCOMetadata=fts.path, name::String=fts.name) 
-
+function set!(fts::ECCONetCDFFTS) 
     backend = fts.backend
     start   = backend.start
     maxiter = backend.maxiter
+    len = backend.length
 
-    for t in start:start+length(backend)-1
-        
-        # find the file associated with the time index
-        metadata = @inbounds path[t] 
-        # Set the field with the correct metadata
+    for t in start:start+len-1
+        # Set each element of the time-series to the associated file
+        metadatum = @inbounds backend.metadata[t] 
         set!(fts[t], metadata; maxiter)
     end
 
@@ -114,30 +120,27 @@ function ECCO_field_time_series(metadata::ECCOMetadata;
                                 inpainting_iterations = prod(size(metadata)),
                                 grid = nothing)	
 
-    # ECCO data is too chunky to allow other backends	
-    backend = ECCONetCDFBackend(time_indices_in_memory; 
-                                on_native_grid = isnothing(grid),
-                                maxiter = inpainting_iterations)
-
     # Making sure all the required individual files are downloaded
     download_dataset!(metadata)
 
-    location = field_location(metadata)
+    # ECCO data is too chunky to allow other backends	
+    backend = ECCONetCDFBackend(time_indices_in_memory, metadata; 
+                                on_native_grid = isnothing(grid),
+                                maxiter = inpainting_iterations)
+
+    loc = location(metadata)
     ftmp = empty_ECCO_field(first(metadata); architecture)
     shortname = short_name(metadata)
 
     ECCO_native_grid = ftmp.grid
-    boundary_conditions = FieldBoundaryConditions(ECCO_native_grid, location)
+    fts_grid = isnothing(grid) ? ECCO_native_grid : grid
+    boundary_conditions = FieldBoundaryConditions(fts_grid, loc)
     times = ECCO_times(metadata)
 
-    fts_grid = isnothing(grid) ? ECCO_native_grid : grid
-
-    fts = FieldTimeSeries{location...}(fts_grid, times;	
-                                       backend,	
-                                       time_indexing,	
-                                       boundary_conditions,	
-                                       path = metadata,	
-                                       name = shortname)
+    fts = FieldTimeSeries{loc...}(fts_grid, times;	
+                                  backend,
+                                  time_indexing,	
+                                  boundary_conditions)
 
     # Let's set the data	
     set!(fts)	
@@ -247,7 +250,6 @@ end
                   rate = 1,
                   grid = nothing,
                   inpainting_iterations = prod(size(metadata)))
-
 Create a restoring forcing term that restores to values stored in an ECCO field time series.
 
 # Positional Arguments (order does not matter):
@@ -277,13 +279,9 @@ Create a restoring forcing term that restores to values stored in an ECCO field 
 It is possible to also pass an `ECCOMetadata` type as the first argument without the need for the 
 `variable_name` argument and the `version` and `dates` keyword arguments.
 """
-function ECCORestoring(variable_name::Symbol, architecture::AbstractArchitecture = CPU(); 
-                       version = ECCO4Monthly(),
-                       dates = all_ECCO_dates(version), 
-                       kw...) 
-                                
-     metadata = ECCOMetadata(variable_name, dates, version)
-    return ECCORestoring(metadata; architecture, kw...)
+function ECCO_restoring_forcing(variable_name::Symbol, version=ECCO4Monthly(); kw...) 
+    metadata = ECCOMetadata(variable_name, all_ECCO_dates(version), version)
+    return ECCO_restoring_forcing(metadata; kw...)
 end
 
 # Make sure we can call ECCORestoring with architecture as the first positional argument

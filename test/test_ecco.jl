@@ -2,7 +2,7 @@ include("runtests_setup.jl")
 
 using ClimaOcean
 using ClimaOcean.ECCO
-using ClimaOcean.ECCO: ECCO_field, metadata_filename, ECCO_times
+using ClimaOcean.ECCO: ECCO_field, metadata_path
 using Oceananigans.Grids: topology
 
 using CFTime
@@ -22,9 +22,8 @@ dates = start_date : Month(1) : end_date
 
         ECCO_fts = t_restoring.field_time_series
 
-        for metadata in temperature
-            temperature_filename = metadata_filename(metadata)
-            @test isfile(joinpath(metadata.path, temperature_filename))
+        for metadatum in temperature
+            @test isfile(metadata_path(metadatum))
         end
 
         @test ECCO_fts isa FieldTimeSeries
@@ -85,7 +84,7 @@ end
     @test t_restoring(1, 10,  5,  grid, clock, fields) == 0
 end
 
-@testset "setting a field with ECCO" begin
+@testset "Timestepping with ECCORestoring" begin
     for arch in test_architectures
 
         grid  = LatitudeLongitudeGrid(arch; size = (10, 10, 10), 
@@ -111,4 +110,22 @@ end
             true
         end
     end 
+end
+
+@testset "Setting a field with ECCO" begin
+    for arch in test_architectures
+        grid = LatitudeLongitudeGrid(size=(10, 10, 10), latitude=(-60, -40), longitude=(10, 15), z=(-200, 0))
+        field = CenterField(grid)
+        set!(field, ECCOMetadata(:temperature)) 
+        set!(field, ECCOMetadata(:salinity))
+    end
+end
+
+@testset "Setting temperature and salinity to ECCO" begin
+    for arch in test_architectures
+        grid = LatitudeLongitudeGrid(size=(10, 10, 10), latitude=(-60, -40), longitude=(10, 15), z=(-200, 0), halo = (7, 7, 7))
+        ocean = ocean_simulation(grid)
+        date = DateTimeProlepticGregorian(1993, 1, 1)
+        set!(ocean.model, T=ECCOMetadata(:temperature, date), S=ECCOMetadata(:salinity, date))
+    end
 end
