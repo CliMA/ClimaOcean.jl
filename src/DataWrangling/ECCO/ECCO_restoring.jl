@@ -135,7 +135,7 @@ function ECCO_field_time_series(metadata::ECCOMetadata;
     # ECCO data is too chunky to allow other backends	
     backend = ECCONetCDFBackend(time_indices_in_memory, metadata; 
                                 on_native_grid = isnothing(grid),
-                                inpaiting)
+                                inpainting)
 
     loc = location(metadata)
     ftmp = empty_ECCO_field(first(metadata); architecture)
