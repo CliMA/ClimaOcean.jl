@@ -3,6 +3,7 @@ include("runtests_setup.jl")
 using ClimaOcean
 using ClimaOcean.ECCO
 using ClimaOcean.ECCO: ECCO_field, metadata_path
+using ClimaOcean.DataWrangling: NearestNeighborInpainting
 using Oceananigans.Grids: topology
 
 using CFTime
@@ -12,13 +13,16 @@ start_date = DateTimeProlepticGregorian(1993, 1, 1)
 end_date = DateTimeProlepticGregorian(1993, 2, 1)
 dates = start_date : Month(1) : end_date
 
+# Inpaint only the first two cells inside the missing mask
+inpainting = NearestNeighborInpainting(2)
+
 @testset "ECCO fields utilities" begin
     for arch in test_architectures
         A = typeof(arch)
         @info "Testing ECCO_field on $A..."
 
         temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
-        t_restoring = ECCORestoring(temperature; rate = 1 / 1000.0, inpainting_iterations = 1)
+        t_restoring = ECCORestoring(temperature; rate = 1 / 1000.0, inpainting)
 
         ECCO_fts = t_restoring.field_time_series
 
@@ -65,7 +69,7 @@ end
                                 dates, 
                                 mask, 
                                 rate = 1 / 1000.0,
-                                inpainting_iterations = 1)
+                                inpainting)
 
     fill!(t_restoring.field_time_series[1], 1.0)
     fill!(t_restoring.field_time_series[2], 1.0)
@@ -99,9 +103,9 @@ end
             set!(field, ECCOMetadata(:temperature)) 
             set!(field, ECCOMetadata(:salinity))
             true
-        end
+        end   
 
-        FT = ECCORestoring(arch, :temperature; dates, rate = 1 / 1000.0, inpainting_iterations = 1)
+        FT = ECCORestoring(arch, :temperature; dates, rate = 1 / 1000.0, inpainting)
         ocean = ocean_simulation(grid; forcing = (; T = FT))
 
         @test begin
@@ -126,6 +130,6 @@ end
         grid = LatitudeLongitudeGrid(size=(10, 10, 10), latitude=(-60, -40), longitude=(10, 15), z=(-200, 0), halo = (7, 7, 7))
         ocean = ocean_simulation(grid)
         date = DateTimeProlepticGregorian(1993, 1, 1)
-        set!(ocean.model, T=ECCOMetadata(:temperature, date), S=ECCOMetadata(:salinity, date))
+        set!(ocean.model, T=ECCOMetadata(:temperature, date), S=ECCOMetadata(:salinity, date); inpainting)
     end
 end
