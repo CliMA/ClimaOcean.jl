@@ -66,7 +66,6 @@ end
     @test any(T_partially_inpainted.data .== 0)
 end
 
-
 @testset "LinearlyTaperedPolarMask" begin
 
     grid = LatitudeLongitudeGrid(size = (100, 100, 10), 
