@@ -1,7 +1,8 @@
 # # Near-global ocean simulation
 #
-# This example sets up and runs a near-global ocean simulation using the Oceananigans.jl and ClimaOcean.jl packages.
-# The simulation covers latitudes from 75°S to 75°N with a horizontal resolution of 1/4 degree and 40 vertical levels.
+# This example sets up and runs a near-global ocean simulation using the Oceananigans.jl and
+# ClimaOcean.jl packages. The simulation covers latitudes from 75°S to 75°N with a horizontal
+# resolution of 1/4 degree and 40 vertical levels.
 #
 # The simulation's results are visualized using the CairoMakie.jl package.
 #
@@ -48,7 +49,7 @@ grid = LatitudeLongitudeGrid(arch;
 #
 # We use `regrid_bathymetry` to derive the bottom height from ETOPO1 data.
 # To smooth the interpolated data we use 5 interpolation passes. We also fill in all
-# minor enclosed basins but the 3 largest `major_basins` as well as reasons
+# sminor enclosed basins but the 3 largest `major_basins` as well as reasons
 # that are shallower than `minimum_depth = 10`.
 
 bottom_height = regrid_bathymetry(grid; 
@@ -65,8 +66,8 @@ h = grid.immersed_boundary.bottom_height
 fig, ax, hm = heatmap(h, colormap=:deep, colorrange=(-6000, 0))
 cb = Colorbar(fig[0, 1], hm, label="Bottom height (m)", vertical=false)
 hidedecorations!(ax)
-current_figure()
-save("bathymetry.png", fig) # hide
+save("bathymetry.png", fig)
+nothing #hide
 
 # ![](bathymetry.png)
 
@@ -227,14 +228,7 @@ Colorbar(fig[2, 2], hm, label = "Surface Temperature (ᵒC)")
 
 hm = heatmap!(axe, en, colorrange = (0, 1e-3), colormap = :solar)
 Colorbar(fig[3, 2], hm, label = "Turbulent Kinetic Energy (m² s⁻²)")
-
-current_figure()
-
-# And now a movie:
-
-record(fig, "near_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
-    n[] = nn
-end
+save("snapshot.png", fig)
 nothing #hide
 
-# ![](near_global_ocean_surface.mp4)
+# ![](snapshot.png)
