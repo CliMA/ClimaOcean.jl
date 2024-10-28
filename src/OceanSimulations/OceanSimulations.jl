@@ -50,6 +50,7 @@ default_tracer_advection() = FluxFormAdvection(WENO(; order = 7),
 @inline u_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.u[i, j, k] * is_immersed_drag_u(i, j, k, grid) * spᶠᶜᶜ(i, j, k, grid, fields) / Δzᶠᶜᶜ(i, j, k, grid)
 @inline v_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.v[i, j, k] * is_immersed_drag_v(i, j, k, grid) * spᶜᶠᶜ(i, j, k, grid, fields) / Δzᶜᶠᶜ(i, j, k, grid)
 
+
 # TODO: Specify the grid to a grid on the sphere; otherwise we can provide a different
 # function that requires latitude and longitude etc for computing coriolis=FPlane...
 function ocean_simulation(grid; Δt = 5minutes,
@@ -63,6 +64,9 @@ function ocean_simulation(grid; Δt = 5minutes,
                           coriolis = HydrostaticSphericalCoriolis(; rotation_rate),
                           momentum_advection = default_momentum_advection(),
                           tracer_advection = default_tracer_advection(),
+                          biogeochemistry = nothing,
+                          tracers = (:T, :S),
+                          boundary_conditions = NamedTuple(),
                           verbose = false)
 
     # Set up boundary conditions using Field
@@ -74,10 +78,40 @@ function ocean_simulation(grid; Δt = 5minutes,
     u_bot_bc = FluxBoundaryCondition(u_quadratic_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
     v_bot_bc = FluxBoundaryCondition(v_quadratic_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
 
-    ocean_boundary_conditions = (u = FieldBoundaryConditions(top = FluxBoundaryCondition(τx), bottom = u_bot_bc),
-                                 v = FieldBoundaryConditions(top = FluxBoundaryCondition(τy), bottom = v_bot_bc),
-                                 T = FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵀ)),
-                                 S = FieldBoundaryConditions(top = FluxBoundaryCondition(Jˢ)))
+    ocean_boundary_conditions = Dict(
+        :u => FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵘ), bottom = u_bot_bc),
+        :v => FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵛ), bottom = v_bot_bc),
+        :T => FieldBoundaryConditions(top = FluxBoundaryCondition(Jᵀ)),
+        :S => FieldBoundaryConditions(top = FluxBoundaryCondition(Jˢ))
+    )
+
+    #convert user boundary conditions to dict
+    bcdict = Dict(name => getproperty(boundary_conditions, name) for name in propertynames(boundary_conditions))
+
+    if !isempty(bcdict)
+        # Merge user-supplied boundary conditions with the defaults
+        for (key, bc) in bcdict
+            if haskey(ocean_boundary_conditions, key)
+                # Extract all fields from the default and user FieldBoundaryConditions into dictionaries
+                default_bc_dict = Dict(name => getproperty(ocean_boundary_conditions[key], name) for name in propertynames(ocean_boundary_conditions[key])) 
+                user_bc_dict = Dict(name => getproperty(bc, name) for name in propertynames(bc))
+
+                # Merge the dictionaries
+                merged_bc_dict = merge(default_bc_dict, user_bc_dict) 
+
+                # Reconstruct the FieldBoundaryConditions using the merged dictionary
+                ocean_boundary_conditions[key] = FieldBoundaryConditions(; merged_bc_dict...)
+            else
+                # If the user specifies a new tracer not in the defaults, simply add it
+                ocean_boundary_conditions[key] = bc
+            end
+        end
+
+        #ocean_boundary_conditions = merge(ocean_boundary_conditions, boundary_conditions)    
+    end
+    # Convert the dictionary back to a NamedTuple if needed
+    ocean_boundary_conditions = (; ocean_boundary_conditions...) 
+
 
     if grid isa ImmersedBoundaryGrid
         Fu = Forcing(u_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
@@ -96,10 +130,12 @@ function ocean_simulation(grid; Δt = 5minutes,
         momentum_advection = nothing
     end
 
-    tracers = (:T, :S)
+    tracers = unique(tuple(tracers..., :T, :S)) 
     if closure isa CATKEVerticalDiffusivity
         tracers = tuple(tracers..., :e)
-        tracer_advection = (; T = tracer_advection, S = tracer_advection, e = nothing)
+        tracer_advection = Dict{Symbol, Any}(name => tracer_advection for name in tracers)
+        tracer_advection[:e] = nothing
+        tracer_advection = NamedTuple(name => tracer_advection[name] for name in tracers)
     end
 
     ocean_model = HydrostaticFreeSurfaceModel(; grid,
@@ -111,6 +147,7 @@ function ocean_simulation(grid; Δt = 5minutes,
                                               free_surface,
                                               coriolis,
                                               forcing,
+                                              biogeochemistry,
                                               boundary_conditions = ocean_boundary_conditions)
 
     ocean = Simulation(ocean_model; Δt, verbose)
