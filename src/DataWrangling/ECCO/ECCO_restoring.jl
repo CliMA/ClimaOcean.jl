@@ -10,6 +10,7 @@ using JLD2
 
 using Dates: Second
 using ClimaOcean: stateindex
+using ClimaOcean.DataWrangling: NearestNeighborInpainting
 
 import Oceananigans.Fields: set!
 import Oceananigans.Forcings: regularize_forcing
@@ -18,28 +19,31 @@ import Oceananigans.OutputReaders: new_backend, update_field_time_series!
 @inline instantiate(T::DataType) = T()
 @inline instantiate(T) = T
 
-struct ECCONetCDFBackend{N, M} <: AbstractInMemoryBackend{Int}
+struct ECCONetCDFBackend{N, I, M} <: AbstractInMemoryBackend{Int}
     start :: Int
     length :: Int
-    maxiter :: Int
+    inpainting :: I
     metadata :: M
 
-    function ECCONetCDFBackend{N}(start::Int, length::Int, maxiter::Int, metadata) where N
+    function ECCONetCDFBackend{N}(start::Int, length::Int, inpainting, metadata) where N
         M = typeof(metadata)
-        return new{N, M}(start, length, maxiter, metadata)
+        I = typeof(inpainting)
+        return new{N, I, M}(start, length, inpainting, metadata)
     end
 end
 
-Adapt.adapt_structure(to, b::ECCONetCDFBackend{N}) where N = ECCONetCDFBackend{N}(b.start, b.length, nothing)
+Adapt.adapt_structure(to, b::ECCONetCDFBackend{N}) where N = ECCONetCDFBackend{N}(b.start, b.length, nothing, nothing)
 
 """
-    ECCONetCDFBackend(length; on_native_grid = false, maxiter = Inf)
+    ECCONetCDFBackend(length; on_native_grid = false, inpainting = NearestNeighborInpainting(Inf))
 
 Represents an ECCO FieldTimeSeries backed by ECCO native .nc files.
 Each time instance is stored in an individual file.
 the maxiter keyword argument is the maximum number of iterations for the inpainting algorithm.
 """
-ECCONetCDFBackend(length, metadata; on_native_grid = false, maxiter = Inf) = ECCONetCDFBackend{on_native_grid}(1, length, maxiter, metadata)
+ECCONetCDFBackend(length, metadata; 
+                  on_native_grid = false, 
+                  inpainting = NearestNeighborInpainting(Inf)) = ECCONetCDFBackend{on_native_grid}(1, length, inpainting, metadata)
 
 Base.length(backend::ECCONetCDFBackend)  = backend.length
 Base.summary(backend::ECCONetCDFBackend) = string("ECCONetCDFBackend(", backend.start, ", ", backend.length, ")")
@@ -47,20 +51,20 @@ Base.summary(backend::ECCONetCDFBackend) = string("ECCONetCDFBackend(", backend.
 const ECCONetCDFFTS{N} = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:ECCONetCDFBackend{N}} where N
 
 new_backend(b::ECCONetCDFBackend{N}, start, length) where N =
-    ECCONetCDFBackend{N}(start, length, b.maxiter, b.metadata)
+    ECCONetCDFBackend{N}(start, length, b.inpainting, b.metadata)
 
 on_native_grid(::ECCONetCDFBackend{N}) where N = N
 
 function set!(fts::ECCONetCDFFTS) 
     backend = fts.backend
     start   = backend.start
-    maxiter = backend.maxiter
+    inpainting = backend.inpainting
     len = backend.length
 
     for t in start:start+len-1
         # Set each element of the time-series to the associated file
         metadatum = @inbounds backend.metadata[t] 
-        set!(fts[t], metadata; maxiter)
+        set!(fts[t], metadatum; inpainting)
     end
 
     fill_halo_regions!(fts)
@@ -110,27 +114,31 @@ Create a field time series object for ECCO data.
 - architecture: The architecture to use for computations (default: CPU()).
 - time_indices_in_memory: The number of time indices to keep in memory (default: 2).
 - time_indexing: The time indexing scheme to use (default: Cyclical()).
-- inpainting_iterations: The maximum number of iterations for the inpainting algorithm (default: prod(size(metadata))).
+- `inpainting`: The inpainting algorithm to use for ECCO interpolation. For the moment, the only option is `NearestNeighborInpainting(maxiter)`, 
+                where an average of the valid surrounding values is used `maxiter` times.
 - grid: if not a `nothing`, the ECCO data is directly interpolated on the `grid`,
 """
 function ECCO_field_time_series(metadata::ECCOMetadata;	
                                 architecture = CPU(),	
                                 time_indices_in_memory = 2,	
                                 time_indexing = Cyclical(),
-                                inpainting_iterations = prod(size(metadata)),
+                                inpainting = NearestNeighborInpainting(prod(size(metadata))),
                                 grid = nothing)	
 
     # Making sure all the required individual files are downloaded
     download_dataset!(metadata)
 
+    if inpainting isa Int
+        inpainting = NearestNeighborInpainting(inpainting)
+    end
+
     # ECCO data is too chunky to allow other backends	
     backend = ECCONetCDFBackend(time_indices_in_memory, metadata; 
                                 on_native_grid = isnothing(grid),
-                                maxiter = inpainting_iterations)
+                                inpaiting)
 
     loc = location(metadata)
     ftmp = empty_ECCO_field(first(metadata); architecture)
-    shortname = short_name(metadata)
 
     ECCO_native_grid = ftmp.grid
     fts_grid = isnothing(grid) ? ECCO_native_grid : grid

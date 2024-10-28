@@ -112,6 +112,17 @@ end
 end
 
 """
+    NearestNeighborInpainting{M}
+
+A structure representing the nearest neighbor inpainting algorithm, where a missing value is
+substituted with the average of the surrounding valid values. This process is repeated a maximum 
+of `maxiter` times or until the field is completely inpainted.
+"""
+struct NearestNeighborInpainting{M}
+    maxiter :: M
+end
+
+"""
     inpaint_mask!(field, mask; max_iter = Inf)
 
 Inpaint field within `mask`, using values outside `mask`.
@@ -123,12 +134,17 @@ Arguments
     - `field`: `Field` to be inpainted.
     - `mask`: Boolean-valued `Field`, values where
               `mask[i, j, k] == true` are inpainted.
-    - `max_iter`: Maximum iterations for inpainting. Non-Inf values mean that
-                  NaN's can occur within the mask.
+    - `inpainting`: The inpainting algorithm to use. For the moment, the only option is `NearestNeighborInpainting(maxiter)`, 
+                    where an average of the valid surrounding values is used `maxiter` times.
 """
-function inpaint_mask!(field, mask; maxiter = 10)
+function inpaint_mask!(field, mask; inpainting = NearestNeighborInpainting(10))
+    
+    if inpainting isa Int
+        inpainting = FirstOrderInpainting(inpainting)
+    end
+
     continue_downwards!(field, mask)
-    propagate_horizontally!(field, mask; maxiter)
+    propagate_horizontally!(field, mask; inpainting)
     return field
 end
 
