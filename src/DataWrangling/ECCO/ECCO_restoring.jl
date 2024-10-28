@@ -303,9 +303,9 @@ function ECCORestoring(metadata::ECCOMetadata;
                        mask = 1,
                        rate = 1,
                        grid = nothing,
-                       inpainting_iterations = prod(size(metadata)))
+                       inpainting = NearestNeighborInpainting(prod(size(metadata))))
 
-    ECCO_fts  = ECCO_field_time_series(metadata; grid, architecture, time_indices_in_memory, time_indexing, inpainting_iterations)                  
+    ECCO_fts  = ECCO_field_time_series(metadata; grid, architecture, time_indices_in_memory, time_indexing, inpainting)                  
     ECCO_grid = ECCO_fts.grid
 
     # Grab the correct Oceananigans field to restore
