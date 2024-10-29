@@ -14,13 +14,13 @@ using Oceananigans
 using CairoMakie
 using Printf
 
-using ClimaOcean: ECCO
+using ClimaOcean.DataWrangling.ECCO: ECCO_field
 
-# The function `ecco_field` provided by `ClimaOcean.DataWrangling.ECCO` will automatically
+# The function `ECCO_field` provided by `ClimaOcean.DataWrangling.ECCO` will automatically
 # download ECCO data if it doesn't already exist at the default location.
 
-T = ECCO.ecco_field(:temperature)
-S = ECCO.ecco_field(:salinity)
+T = ECCO_field(:temperature)
+S = ECCO_field(:salinity)
 
 # Next, we massage the ECCO data by inserting NaNs in "land cells", which
 # are diagnosed by having an unphysically low temperature.
@@ -50,14 +50,14 @@ grid = T.grid
 Nz = size(grid, 3)
 k = Observable(Nz)
 
-Tk = @lift interior(T, :, :, $k)
-Sk = @lift interior(S, :, :, $k)
+Tk = @lift view(T, :, :, $k)
+Sk = @lift view(S, :, :, $k)
 
 # Finally, we make a nice plot with a label that displays depth, colorbars,
 # and light gray within land cells.
 
-hmT = heatmap!(axT, λ, φ, Tk, nan_color=:lightgray, colorrange=(-2, 30), colormap=:thermal)
-hmS = heatmap!(axS, λ, φ, Sk, nan_color=:lightgray, colorrange=(31, 37), colormap=:haline)
+hmT = heatmap!(axT, Tk, nan_color=:lightgray, colorrange=(-2, 30), colormap=:thermal)
+hmS = heatmap!(axS, Sk, nan_color=:lightgray, colorrange=(31, 37), colormap=:haline)
 
 Colorbar(fig[1, 2], hmT, label="Temperature (ᵒC)")
 Colorbar(fig[2, 2], hmS, label="Salinity (psu)")

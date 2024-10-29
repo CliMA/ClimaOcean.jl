@@ -4,7 +4,7 @@ using Oceananigans
 using Downloads
 using Printf
 
-using Oceananigans.Architectures: architecture
+using Oceananigans.Architectures: architecture, on_architecture
 using Oceananigans.Grids: node
 using Oceananigans.BoundaryConditions: fill_halo_regions!
 using Oceananigans.Fields: interpolate
@@ -54,8 +54,10 @@ end
 
 function save_field_time_series!(fts; path, name, overwrite_existing=false)
     overwrite_existing && rm(path; force=true)
-    times = fts.times
-    grid = fts.grid
+
+    times = on_architecture(CPU(), fts.times)
+    grid  = on_architecture(CPU(), fts.grid)
+    
     LX, LY, LZ = location(fts)
     ondisk_fts = FieldTimeSeries{LX, LY, LZ}(grid, times;
                                              backend = OnDisk(), path, name)
@@ -71,7 +73,7 @@ end
 
 include("inpaint_mask.jl")
 include("JRA55.jl")
-include("ECCO.jl")
+include("ECCO/ECCO.jl")
 
 using .JRA55
 using .ECCO

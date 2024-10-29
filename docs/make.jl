@@ -15,11 +15,11 @@ const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
 const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
 
 to_be_literated = [
-    # "inspect_ecco_data.jl",
+    # "inspect_ECCO_data.jl",
     "generate_bathymetry.jl",
     "generate_surface_fluxes.jl",
     # "single_column_simulation.jl",
-    # "mediterranean_simulation_with_ecco_restoring.jl",
+    # "mediterranean_simulation_with_ECCO_restoring.jl",
     "near_global_ocean_simulation.jl"
 ]
 
@@ -52,11 +52,11 @@ pages = [
         ],
 
     "Examples" => [
-        # "Inspect ECCO2 data" => "literated/inspect_ecco_data.md",
+        # "Inspect ECCO2 data" => "literated/inspect_ECCO_data.md",
         "Generate bathymetry" => "literated/generate_bathymetry.md",
         "Surface fluxes" => "literated/generate_surface_fluxes.md",
         # "Single column simulation" => "literated/single_column_simulation.md",
-        # "Mediterranean simulation with ECCO restoring" => "literated/mediterranean_simulation_with_ecco_restoring.md",
+        # "Mediterranean simulation with ECCO restoring" => "literated/mediterranean_simulation_with_ECCO_restoring.md",
         "Near-global Ocean simulation" => "literated/near_global_ocean_simulation.md",
         ]
 ]
@@ -93,8 +93,10 @@ for file in files
     rm(file)
 end
 
-deploydocs(repo = "github.com/CliMA/ClimaOceanDocumentation.git",
-       versions = ["stable" => "v^", "v#.#.#", "dev" => "dev"],
-      forcepush = true,
-      devbranch = "main",
-   push_preview = true)
+withenv("GITHUB_REPOSITORY" => "github.com/CliMA/ClimaOceanDocumentation.git") do
+    deploydocs(repo = "github.com/CliMA/ClimaOceanDocumentation.git",
+           versions = ["stable" => "v^", "v#.#.#", "dev" => "dev"],
+          forcepush = true,
+          devbranch = "main",
+       push_preview = true)
+end

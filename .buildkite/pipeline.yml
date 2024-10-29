@@ -27,6 +27,7 @@ steps:
 
       # Force the initialization of the CUDA runtime as it is lazily loaded by default:
       - "echo '--- Initialize the CUDA runtime'"
+      - "julia --project -e 'using CUDA; CUDA.precompile_runtime()'"
       - "julia --project -e 'using Pkg; Pkg.test()'"
     agents:
       slurm_gpus: 1
@@ -34,40 +35,119 @@ steps:
 
   - wait
 
-  - label: "Run JRA55 tests"
-    key: "test_jra55"
+  - label: "CPU JRA55 tests"
+    key: "cpu_jra55_tests"
     env:
-      CUDA_VISIBLE_DEVICES: "-1"
       TEST_GROUP: "jra55"
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
+    agents:
+      slurm_mem: 32G
+      slurm_cpus_per_task: 8
+      slurm_ntasks: 1
 
-  - label: "Run ECCO tests"
-    key: "test_ecco"
+  - label: "CPU ECCO tests"
+    key: "cpu_ecco_tests"
     env:
-      CUDA_VISIBLE_DEVICES: "-1"
       TEST_GROUP: "ecco"
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
+    agents:
+      slurm_mem: 32G
+      slurm_cpus_per_task: 8
+      slurm_ntasks: 1
 
-  - label: "Run surface flux tests"
-    key: "test_fluxes"
+  - label: "CPU surface flux tests"
+    key: "cpu_fluxes_tests"
     env:
-      CUDA_VISIBLE_DEVICES: "-1"
       TEST_GROUP: "fluxes"
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
+    agents:
+      slurm_mem: 32G
+      slurm_cpus_per_task: 8
+      slurm_ntasks: 1
 
+  - label: "CPU bathymetry tests"
+    key: "cpu_bathymetry_tests"
+    env:
+      TEST_GROUP: "bathymetry"
+    commands:
+      - "julia --project -e 'using Pkg; Pkg.test()'"
+    agents:
+      slurm_mem: 32G
+      slurm_cpus_per_task: 8
+      slurm_ntasks: 1
+
+  - label: "GPU JRA55 tests"
+    key: "gpu_jra55_tests"
+    env:
+      TEST_GROUP: "jra55"
+      GPU_TEST: "true"
+    commands:
+      - "julia --project -e 'using Pkg; Pkg.test()'"
+    agents:
+      slurm_mem: 32G
+      slurm_gpus: 1
+      slurm_cpus_per_task: 8
+      slurm_ntasks: 1
+      slurm_gpus_per_task: 1
+
+  - label: "GPU ECCO tests"
+    key: "gpu_ecco_tests"
+    env:
+      TEST_GROUP: "ecco"
+      GPU_TEST: "true"
+    commands:
+      - "julia --project -e 'using Pkg; Pkg.test()'"
+    agents:
+      slurm_mem: 32G
+      slurm_gpus: 1
+      slurm_cpus_per_task: 8
+      slurm_ntasks: 1
+      slurm_gpus_per_task: 1
+      
+  - label: "GPU surface flux tests"
+    key: "gpu_fluxes_tests"
+    env:
+      TEST_GROUP: "fluxes"
+      GPU_TEST: "true"
+    commands:
+      - "julia --project -e 'using Pkg; Pkg.test()'"
+    agents:
+      slurm_mem: 32G
+      slurm_gpus: 1
+      slurm_cpus_per_task: 8
+      slurm_ntasks: 1
+      slurm_gpus_per_task: 1
+      
+  - label: "GPU bathymetry tests"
+    key: "gpu_bathymetry_tests"
+    env:
+      TEST_GROUP: "bathymetry"
+      GPU_TEST: "true"
+    commands:
+      - "julia --project -e 'using Pkg; Pkg.test()'"
+    agents:
+      slurm_mem: 32G
+      slurm_gpus: 1
+      slurm_cpus_per_task: 8
+      slurm_ntasks: 1
+      slurm_gpus_per_task: 1
+      
   - label: "Run simulation tests"
     key: "test_simulations"
     env:
       TEST_GROUP: "simulations"
+      GPU_TEST: "true"
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
     agents:
-      slurm_mem: 120G
+      slurm_mem: 100G
       slurm_gpus: 1
       slurm_cpus_per_task: 8
+      slurm_ntasks: 1
+      slurm_gpus_per_task: 1
 
   - wait: ~
     continue_on_failure: true
