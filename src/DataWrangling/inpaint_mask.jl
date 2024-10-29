@@ -142,7 +142,7 @@ Arguments
 function inpaint_mask!(field, mask; inpainting = NearestNeighborInpainting(10))
     
     if inpainting isa Int
-        inpainting = FirstOrderInpainting(inpainting)
+        inpainting = NearestNeighborInpainting(inpainting)
     end
 
     continue_downwards!(field, mask)

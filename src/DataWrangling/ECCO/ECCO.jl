@@ -206,14 +206,14 @@ Keyword Arguments:
 function inpainted_ECCO_field(metadata::ECCOMetadata; 
                               architecture = CPU(),
                               mask = ECCO_mask(metadata, architecture),
-                              maxiter = Inf,
+                              inpainting = NearestNeighborInpainting(Inf),
                               kw...)
     
     f = ECCO_field(metadata; architecture, kw...)
 
     # Make sure all values are extended properly
     @info "In-painting ECCO $(metadata.name)"
-    inpaint_mask!(f, mask; maxiter)
+    inpaint_mask!(f, mask; inpainting)
 
     fill_halo_regions!(f)
 
