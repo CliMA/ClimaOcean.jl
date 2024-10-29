@@ -287,9 +287,12 @@ Create a restoring forcing term that restores to values stored in an ECCO field 
 It is possible to also pass an `ECCOMetadata` type as the first argument without the need for the 
 `variable_name` argument and the `version` and `dates` keyword arguments.
 """
-function ECCO_restoring_forcing(variable_name::Symbol, version=ECCO4Monthly(); kw...) 
-    metadata = ECCOMetadata(variable_name, all_ECCO_dates(version), version)
-    return ECCO_restoring_forcing(metadata; kw...)
+function ECCORestoring(variable_name::Symbol, architecture::AbstractArchitecture = CPU(); 
+                       version=ECCO4Monthly(), 
+                       dates = all_ECCO_dates(version), 
+                       kw...) 
+    metadata = ECCOMetadata(variable_name, dates, version)
+    return ECCORestoring(metadata; kw...)
 end
 
 # Make sure we can call ECCORestoring with architecture as the first positional argument
@@ -318,7 +321,7 @@ end
 Base.show(io::IO, p::ECCORestoring) = 
     print(io, "Three-dimensional restoring to ECCO data:", '\n',
               "├── restored variable: ", summary(p.variable_name), '\n',
-              "├── restoring dataset: ", summary(p.field_time_series.path), '\n',
+              "├── restoring dataset: ", summary(p.field_time_series.backend.metadata), '\n',
               "├── restoring rate: ", p.rate, '\n',
               "├── mask: ", summary(p.mask), '\n',
               "└── grid: ", summary(p.grid))

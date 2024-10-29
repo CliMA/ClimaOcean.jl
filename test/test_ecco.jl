@@ -9,6 +9,8 @@ using Oceananigans.Grids: topology
 using CFTime
 using Dates
 
+using CUDA: @allowscalar
+
 start_date = DateTimeProlepticGregorian(1993, 1, 1)
 end_date = DateTimeProlepticGregorian(1993, 2, 1)
 dates = start_date : Month(1) : end_date
@@ -48,63 +50,80 @@ inpainting = NearestNeighborInpainting(2)
 end
 
 @testset "Inpainting algorithm" begin
-    temperature = ECCOMetadata(:temperature, dates[1], ECCO4Monthly())
+    for arch in test_architectures
+        temperature = ECCOMetadata(:temperature, dates[1], ECCO4Monthly())
 
-    grid = LatitudeLongitudeGrid(size = (100, 100, 10), 
-                             latitude = (-75, 75), 
-                            longitude = (0, 360), 
-                                    z = (-200, 0),
-                                 halo = (6, 6, 6))
-    
-    T_fully_inpainted = CenterField(grid)
-    T_partially_inpainted = CenterField(grid)
+        grid = LatitudeLongitudeGrid(arch, 
+                                     size = (100, 100, 10), 
+                                 latitude = (-75, 75), 
+                                longitude = (0, 360), 
+                                        z = (-200, 0),
+                                     halo = (6, 6, 6))
+        
+        fully_inpainted_field = CenterField(grid)
+        partially_inpainted_field = CenterField(grid)
 
-    set!(T_fully_inpainted,     temperature; inpainting = NearestNeighbourInpainting(Inf))
-    set!(T_partially_inpainted, temperature; inpainting = NearestNeighbourInpainting(1))
+        set!(fully_inpainted_field,     temperature; inpainting = NearestNeighborInpainting(Inf))
+        set!(partially_inpainted_field, temperature; inpainting = NearestNeighborInpainting(1))
 
-    @test all(T_fully_inpainted.data .!= 0)
-    @test any(T_partially_inpainted.data .== 0)
+        fully_inpainted_interior = on_architecture(CPU(), interior(fully_inpainted_field))
+        partially_inpainted_interior = on_architecture(CPU(), interior(partially_inpainted_field))
+
+        @test all(fully_inpainted_interior .!= 0)
+        @test any(partially_inpainted_interior .== 0)
+    end
 end
 
 @testset "LinearlyTaperedPolarMask" begin
+    for arch in test_architectures
+        grid = LatitudeLongitudeGrid(arch; 
+                                        size = (100, 100, 10), 
+                                    latitude = (-75, 75), 
+                                longitude = (0, 360), 
+                                        z = (-200, 0),
+                                        halo = (6, 6, 6))
 
-    grid = LatitudeLongitudeGrid(size = (100, 100, 10), 
-                             latitude = (-75, 75), 
-                            longitude = (0, 360), 
-                                    z = (-200, 0),
-                                 halo = (6, 6, 6))
-    
-    φ₁ = grid.φᵃᶜᵃ[1]
-    φ₂ = grid.φᵃᶜᵃ[21]
-    φ₃ = grid.φᵃᶜᵃ[80]
-    φ₄ = grid.φᵃᶜᵃ[100]
-    z₁ = grid.zᵃᵃᶜ[6]
+        φ₁ = @allowscalar grid.φᵃᶜᵃ[1]
+        φ₂ = @allowscalar grid.φᵃᶜᵃ[21]
+        φ₃ = @allowscalar grid.φᵃᶜᵃ[80]
+        φ₄ = @allowscalar grid.φᵃᶜᵃ[100]
+        z₁ = @allowscalar grid.zᵃᵃᶜ[6]
 
-    mask = LinearlyTaperedPolarMask(northern = (φ₃, φ₄), 
-                                    southern = (φ₁, φ₂), 
-                                    z        = (z₁, 0))
+        mask = LinearlyTaperedPolarMask(northern = (φ₃, φ₄), 
+                                        southern = (φ₁, φ₂), 
+                                        z        = (z₁, 0))
 
-    t_restoring = ECCORestoring(:temperature; 
-                                dates, 
-                                mask, 
-                                rate = 1 / 1000.0,
-                                inpainting)
+        t_restoring = ECCORestoring(:temperature, arch; 
+                                    dates, 
+                                    mask, 
+                                    rate = 1 / 1000.0,
+                                    inpainting)
 
-    fill!(t_restoring.field_time_series[1], 1.0)
-    fill!(t_restoring.field_time_series[2], 1.0)
+        fill!(t_restoring.field_time_series[1], 1.0)
+        fill!(t_restoring.field_time_series[2], 1.0)
 
-    T = CenterField(grid)
-    fields = (; T)
-    clock  = Clock(; time = 0)
+        T = CenterField(grid)
+        fields = (; T)
+        clock  = Clock(; time = 0)
 
-    @test t_restoring(1, 1,   10, grid, clock, fields) == t_restoring.rate
-    @test t_restoring(1, 11,  10, grid, clock, fields) == t_restoring.rate / 2
-    @test t_restoring(1, 21,  10, grid, clock, fields) == 0
-    @test t_restoring(1, 80,  10, grid, clock, fields) == 0
-    @test t_restoring(1, 90,  10, grid, clock, fields) == t_restoring.rate / 2
-    @test t_restoring(1, 100, 10, grid, clock, fields) == t_restoring.rate
-    @test t_restoring(1, 1,   5,  grid, clock, fields) == 0
-    @test t_restoring(1, 10,  5,  grid, clock, fields) == 0
+        @test @allowscalar t_restoring(1, 1,   10, grid, clock, fields) == t_restoring.rate
+        @test @allowscalar t_restoring(1, 11,  10, grid, clock, fields) == t_restoring.rate / 2
+        @test @allowscalar t_restoring(1, 21,  10, grid, clock, fields) == 0
+        @test @allowscalar t_restoring(1, 80,  10, grid, clock, fields) == 0
+        @test @allowscalar t_restoring(1, 90,  10, grid, clock, fields) == t_restoring.rate / 2
+        @test @allowscalar t_restoring(1, 100, 10, grid, clock, fields) == t_restoring.rate
+        @test @allowscalar t_restoring(1, 1,   5,  grid, clock, fields) == 0
+        @test @allowscalar t_restoring(1, 10,  5,  grid, clock, fields) == 0
+    end
+end
+
+@testset "Setting a field with ECCO" begin
+    for arch in test_architectures
+        grid = LatitudeLongitudeGrid(size=(10, 10, 10), latitude=(-60, -40), longitude=(10, 15), z=(-200, 0))
+        field = CenterField(grid)
+        set!(field, ECCOMetadata(:temperature)) 
+        set!(field, ECCOMetadata(:salinity))
+    end
 end
 
 @testset "Timestepping with ECCORestoring" begin
@@ -124,7 +143,7 @@ end
             true
         end   
 
-        FT = ECCORestoring(arch, :temperature; dates, rate = 1 / 1000.0, inpainting)
+        FT = ECCORestoring(:temperature, arch; dates, rate = 1 / 1000.0, inpainting)
         ocean = ocean_simulation(grid; forcing = (; T = FT))
 
         @test begin
@@ -133,15 +152,6 @@ end
             true
         end
     end 
-end
-
-@testset "Setting a field with ECCO" begin
-    for arch in test_architectures
-        grid = LatitudeLongitudeGrid(size=(10, 10, 10), latitude=(-60, -40), longitude=(10, 15), z=(-200, 0))
-        field = CenterField(grid)
-        set!(field, ECCOMetadata(:temperature)) 
-        set!(field, ECCOMetadata(:salinity))
-    end
 end
 
 @testset "Setting temperature and salinity to ECCO" begin
