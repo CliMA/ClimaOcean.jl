@@ -2,7 +2,7 @@ include("runtests_setup.jl")
 
 using ClimaOcean
 using ClimaOcean.ECCO
-using ClimaOcean.ECCO: ECCO_field, metadata_path
+using ClimaOcean.ECCO: ECCO_field, metadata_path, ECCO_times
 using ClimaOcean.DataWrangling: NearestNeighborInpainting
 using Oceananigans.Grids: topology
 
