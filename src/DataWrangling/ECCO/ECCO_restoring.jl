@@ -292,7 +292,7 @@ function ECCORestoring(variable_name::Symbol, architecture::AbstractArchitecture
                        dates = all_ECCO_dates(version), 
                        kw...) 
     metadata = ECCOMetadata(variable_name, dates, version)
-    return ECCORestoring(metadata; kw...)
+    return ECCORestoring(metadata; architecture, kw...)
 end
 
 # Make sure we can call ECCORestoring with architecture as the first positional argument
