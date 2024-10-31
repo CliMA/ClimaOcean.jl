@@ -19,7 +19,9 @@ export
     ECCO_field, ECCOMetadata,
     ocean_simulation,
     initialize!,
-    @root
+    @root, 
+    @distribute,
+    global_barrier
 
 using Oceananigans
 using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
