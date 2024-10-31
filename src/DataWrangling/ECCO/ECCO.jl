@@ -216,48 +216,24 @@ function inpainted_ECCO_field(metadata::ECCOMetadata;
     inpaint_mask!(f, mask; maxiter)
 
     fill_halo_regions!(f)
-
+    
     return f
 end
 
 inpainted_ECCO_field(variable_name::Symbol; kw...) = inpainted_ECCO_field(ECCOMetadata(variable_name); kw...)
     
-function set!(field::DistributedField, ECCO_metadata::ECCOMetadata; kw...)
-    # Fields initialized from ECCO
-    grid = field.grid
-    arch = architecture(grid)
-    child_arch = child_architecture(arch)
-
-    f_ECCO = if arch.local_rank == 0 # Make sure we read/write the file using only one core
-        mask = ECCO_mask(ECCO_metadata, child_arch)
-        inpainted_ECCO_field(ECCO_metadata; mask, architecture = child_arch, kw...)
-    else
-        empty_ECCO_field(ECCO_metadata; architecture = child_arch)
-    end
-
-    barrier!(arch)
-
-    # Distribute ECCO field to all workers
-    parent(f_ECCO) .= all_reduce(+, parent(f_ECCO), arch)
-
-    f_grid = Field(location(ECCO_metadata), grid)   
-    interpolate!(f_grid, f_ECCO)
-    set!(field, f_grid)
-    
-    return field
-end
-
-function set!(field::Field, ECCO_metadata::ECCOMetadata; kw...)
+function set!(field::Field, ecco_metadata::ECCOMetadata; kw...)
 
     # Fields initialized from ECCO
     grid = field.grid
-    arch = architecture(grid)
-    mask = ECCO_mask(ECCO_metadata, arch)
-    
-    f = inpainted_ECCO_field(ECCO_metadata; mask, architecture=arch, kw...)
-    f_grid = Field(location(ECCO_metadata), grid)   
-    interpolate!(f_grid, f)
-    set!(field, f_grid)
+    arch = child_architecture(grid)
+    mask = ecco_mask(ecco_metadata, arch)
+
+    f = inpainted_ecco_field(ecco_metadata; mask,
+                              architecture = arch,
+                              kw...)
+
+    interpolate!(field, f)
 
     return field
 end

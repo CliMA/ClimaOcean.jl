@@ -1,8 +1,11 @@
 module DataWrangling
 
+export @root, @distribute
+
 using Oceananigans
 using Downloads
 using Printf
+using Downloads
 
 using Oceananigans.Architectures: architecture, on_architecture
 using Oceananigans.Grids: node
@@ -71,6 +74,7 @@ function save_field_time_series!(fts; path, name, overwrite_existing=false)
     return nothing
 end
 
+include("distributed_datawrangling.jl")
 include("inpaint_mask.jl")
 include("JRA55.jl")
 include("ECCO/ECCO.jl")

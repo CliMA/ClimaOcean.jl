@@ -2,7 +2,7 @@ module JRA55
 
 using Oceananigans
 using Oceananigans.Units
- 
+
 using Oceananigans.Architectures: arch_array
 using Oceananigans.DistributedComputations
 using Oceananigans.DistributedComputations: child_architecture
@@ -10,6 +10,8 @@ using Oceananigans.BoundaryConditions: fill_halo_regions!
 using Oceananigans.Grids: λnodes, φnodes, on_architecture
 using Oceananigans.Fields: interpolate!
 using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBackend, FlavorOfFTS, time_indices
+
+using ClimaOcean.DataWrangling: download_progress
 
 using ClimaOcean.OceanSeaIceModels:
     PrescribedAtmosphere,
@@ -370,8 +372,10 @@ function JRA55_field_time_series(variable_name;
     fts_name = field_time_series_short_names[variable_name]
 
     # Note, we don't re-use existing jld2 files.
-    isfile(filepath) || download(url, filepath)
-    isfile(jld2_filepath) && rm(jld2_filepath)
+    @root begin
+        isfile(filepath) || download(url, filepath)
+        isfile(jld2_filepath) && rm(jld2_filepath)
+    end
 
     # Determine default time indices
     if totally_in_memory
