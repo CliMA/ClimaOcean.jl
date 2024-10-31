@@ -1,6 +1,6 @@
 module DataWrangling
 
-export @root, @distribute
+export @root, @distribute, @handshake
 
 using Oceananigans
 using Downloads

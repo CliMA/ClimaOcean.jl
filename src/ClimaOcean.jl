@@ -20,7 +20,8 @@ export
     ocean_simulation,
     initialize!,
     @root, 
-    @distribute
+    @distribute,
+    @handshake
 
 using Oceananigans
 using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ

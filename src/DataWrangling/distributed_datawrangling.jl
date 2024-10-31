@@ -74,7 +74,7 @@ macro distribute(exp)
             rank   = ClimaOcean.DataWrangling.mpi_rank()
             nprocs = ClimaOcean.DataWrangling.mpi_size()
             for (counter, $variable) in enumerate($iterable)
-                if $variable % nprocs == rank
+                if (counter - 1) % nprocs == rank
                     $forbody
                 end
             end
@@ -83,4 +83,29 @@ macro distribute(exp)
     end
 
     return esc(new_loop)
+end
+
+"""
+    @handshake exs...
+
+perform `exs` on all ranks, but only one rank at a time, where
+ranks `r2 > r1` wait for rank `r1` to finish before executing `exs`
+"""
+macro handshake(exp)
+    command = quote
+        mpi_initialized = ClimaOcean.DataWrangling.mpi_initialized()
+        if !mpi_initialized
+            $exp
+        else
+            size = ClimaOcean.DataWrangling.mpi_size()
+            rank = ClimaOcean.DataWrangling.mpi_rank()
+            for r in 0:size-1
+                if rank == r
+                    $exp
+                end
+                ClimaOcean.DataWrangling.global_barrier()
+            end
+        end
+    end
+    return esc(command)
 end
