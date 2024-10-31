@@ -196,7 +196,8 @@ ECCO_USERNAME=myuser ECCO_PASSWORD=mypasswrd julia
 function download_dataset!(metadata::ECCOMetadata; url = urls(metadata))
     username = get(ENV, "ECCO_USERNAME", nothing)
     password = get(ENV, "ECCO_PASSWORD", nothing)
-
+    dir = metadata.dir
+    
     @distribute for metadatum in metadata # Distribute the download among ranks if MPI is initialized
 
         fileurl  = metadata_url(url, metadatum) 
@@ -216,7 +217,7 @@ function download_dataset!(metadata::ECCOMetadata; url = urls(metadata))
                 throw(ArgumentError(msg))
             end
 
-            cmd = `wget --http-user=$(username) --http-passwd=$(password) $(fileurl)`
+            cmd = `wget --http-user=$(username) --http-passwd=$(password)--directory-prefix=$dir $fileurl`
             run(cmd)
         end
     end
