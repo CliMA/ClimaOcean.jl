@@ -217,7 +217,7 @@ function download_dataset!(metadata::ECCOMetadata; url = urls(metadata))
                 throw(ArgumentError(msg))
             end
 
-            cmd = `wget --http-user=$(username) --http-passwd=$(password)--directory-prefix=$dir $fileurl`
+            cmd = `wget --http-user=$(username) --http-passwd=$(password) --directory-prefix=$dir $fileurl`
             run(cmd)
         end
     end
