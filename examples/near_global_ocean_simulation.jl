@@ -65,7 +65,6 @@ h = grid.immersed_boundary.bottom_height
 fig, ax, hm = heatmap(h, colormap=:deep, colorrange=(-6000, 0))
 cb = Colorbar(fig[0, 1], hm, label="Bottom height (m)", vertical=false)
 hidedecorations!(ax)
-current_figure()
 save("bathymetry.png", fig) # hide
 
 # ![](bathymetry.png)
@@ -227,14 +226,15 @@ Colorbar(fig[2, 2], hm, label = "Surface Temperature (ᵒC)")
 
 hm = heatmap!(axe, en, colorrange = (0, 1e-3), colormap = :solar)
 Colorbar(fig[3, 2], hm, label = "Turbulent Kinetic Energy (m² s⁻²)")
+save("snapshot.png", fig) # hide
 
-current_figure()
+# ![](snapshot.png)
 
 # And now a movie:
 
-record(fig, "near_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
-    n[] = nn
-end
-nothing #hide
+# record(fig, "near_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
+#     n[] = nn
+# end
+# nothing #hide
 
 # ![](near_global_ocean_surface.mp4)
