@@ -4,6 +4,8 @@ include("runtests_setup.jl")
 test_group = get(ENV, "TEST_GROUP", :all)
 test_group = Symbol(test_group)
 
+using ClimaOcean.ECCO: download_dataset
+
 if test_group == :init || test_group == :all
     using CUDA
     CUDA.precompile_runtime()
@@ -24,8 +26,8 @@ if test_group == :init || test_group == :all
     #### Download ECCO data 
     ####
 
-    download_dataset!(temperature_metadata)
-    download_dataset!(salinity_metadata)
+    download_dataset(temperature_metadata)
+    download_dataset(salinity_metadata)
 end
 
 # Tests JRA55 utilities, plus some DataWrangling utilities

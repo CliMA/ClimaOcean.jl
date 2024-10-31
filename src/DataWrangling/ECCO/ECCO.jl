@@ -137,7 +137,7 @@ function ECCO_field(metadata::ECCOMetadata;
                     architecture = CPU(),
                     horizontal_halo = (3, 3))
 
-    download_dataset!(metadata)
+    download_dataset(metadata)
     path = metadata_path(metadata)
     ds = Dataset(path)
 

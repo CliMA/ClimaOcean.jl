@@ -179,7 +179,7 @@ urls(::ECCOMetadata{<:Any, <:ECCO2Daily})   = "https://ecco.jpl.nasa.gov/drive/f
 urls(::ECCOMetadata{<:Any, <:ECCO4Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly/"
 
 """
-    download_dataset!(metadata::ECCOMetadata; url = urls(metadata))
+    download_dataset(metadata::ECCOMetadata; url = urls(metadata))
 
 Download the dataset specified by `ECCOMetadata`. If `ECCOMetadata.dates` is a single date, 
 the dataset is downloaded directly. If `ECCOMetadata.dates` is a vector of dates, each date
@@ -193,7 +193,7 @@ ECCO_USERNAME=myuser ECCO_PASSWORD=mypasswrd julia
 # Arguments
 - `metadata::ECCOMetadata`: The metadata specifying the dataset to be downloaded.
 """
-function download_dataset!(metadata::ECCOMetadata; url = urls(metadata))
+function download_dataset(metadata::ECCOMetadata; url = urls(metadata))
     username = get(ENV, "ECCO_USERNAME", nothing)
     password = get(ENV, "ECCO_PASSWORD", nothing)
     dir = metadata.dir
