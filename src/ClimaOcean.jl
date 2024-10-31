@@ -20,6 +20,7 @@ export
     ocean_simulation,
     initialize!,
     @root, 
+    @onrank,
     @distribute,
     @handshake
 

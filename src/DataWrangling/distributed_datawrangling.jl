@@ -32,23 +32,31 @@ macro root(exp)
     return esc(command)
 end
 
-# """
-# Perform `exp` only on rank `$rank`
-# Other ranks will wait for the root rank to finish before continuing.
-# The expression is run anyways if MPI in not initialized
-# """
-# macro onrank(rank, exp)
-#     command = quote
-#         if MPI.Initialized() && MPI.Comm_rank(MPI.COMM_WORLD) == $rank
-#             $exp
-#             global_barrier()
-#         else
-#            global_barrier()
-#         end
-#     end
+"""
+    @onrank rank, exs...
 
-#     return esc(command)
-# end
+Perform `exp` only on rank `rank`
+Other ranks will wait for the root rank to finish before continuing.
+The expression is run anyways if MPI in not initialized
+"""
+macro onrank(exp_with_rank)
+    on_rank = exp_with_rank.args[1]
+    exp  = exp_with_rank.args[2]
+    command = quote
+        mpi_initialized = ClimaOcean.DataWrangling.mpi_initialized()
+        rank = ClimaOcean.DataWrangling.mpi_rank()
+        if !mpi_initialized
+            $exp
+        else
+            if rank == $on_rank
+                $exp
+            end
+            ClimaOcean.DataWrangling.global_barrier()
+        end
+    end
+
+    return esc(command)
+end
 
 """ 
     @distribute for i in iterable
