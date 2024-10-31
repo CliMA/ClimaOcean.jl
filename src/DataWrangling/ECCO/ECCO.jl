@@ -88,7 +88,7 @@ empty_ECCO_field(variable_name::Symbol; kw...) = empty_ECCO_field(ECCOMetadata(v
 
 function empty_ECCO_field(metadata::ECCOMetadata;
                           architecture = CPU(), 
-                          horizontal_halo = (3, 3))
+                          horizontal_halo = (7, 7))
 
     Nx, Ny, Nz, _ = size(metadata)
     loc = location(metadata)
@@ -133,7 +133,7 @@ The data is either:
 """
 function ECCO_field(metadata::ECCOMetadata;
                     architecture = CPU(),
-                    horizontal_halo = (3, 3))
+                    horizontal_halo = (7, 7))
 
     download_dataset!(metadata)
     path = metadata_path(metadata)
