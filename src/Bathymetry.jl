@@ -17,6 +17,8 @@ using Oceananigans.BoundaryConditions
 using KernelAbstractions: @kernel, @index
 using JLD2
 
+using ClimaOcean
+
 using NCDatasets
 using Downloads
 using Printf
