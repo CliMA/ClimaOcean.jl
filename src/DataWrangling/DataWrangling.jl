@@ -12,40 +12,6 @@ using Oceananigans.Fields: interpolate
 using Oceananigans: pretty_filesize
 using Oceananigans.Utils: launch!
 using KernelAbstractions: @kernel, @index
-using MPI
-
-# Handle commands, typically downloading files
-# which should be executed by only one rank
-function global_barrier()
-    if MPI.Initialized()
-        MPI.Barrier(MPI.COMM_WORLD)
-    end
-end
-
-function blocking_run(cmd)
-    if MPI.Initialized() && MPI.Comm_rank(MPI.COMM_WORLD) != 0
-        nothing # Do nothing!
-    else
-        run(cmd)
-    end
-    global_barrier()
-end
-
-function blocking_download(url, filepath; overwrite_existing = false, kw...)
-    if overwrite_existing
-        blocking_run(`rm $filepath`)
-    end
-
-    if !isfile(filepath) 
-        if MPI.Initialized() && MPI.Comm_rank(MPI.COMM_WORLD) != 0
-            nothing # Do nothing!
-        else
-            Downloads.download(url, filepath; kw...)
-        end    
-    end
-
-    global_barrier()
-end
 
 next_fraction = Ref(0.0)
 download_start_time = Ref(time_ns())
@@ -106,6 +72,7 @@ function save_field_time_series!(fts; path, name, overwrite_existing=false)
     return nothing
 end
 
+include("distributed_downloads.jl")
 include("inpaint_mask.jl")
 include("JRA55.jl")
 include("ECCO/ECCO.jl")

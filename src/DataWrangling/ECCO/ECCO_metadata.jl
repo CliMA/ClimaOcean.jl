@@ -1,6 +1,6 @@
 using CFTime
 using Dates
-using ClimaOcean.DataWrangling: blocking_run
+using ClimaOcean.DataWrangling: distributed_run
 
 import Dates: year, month, day
 
@@ -99,6 +99,9 @@ all_ECCO_dates(::ECCO4Monthly) = DateTimeProlepticGregorian(1992, 1, 1) : Month(
 all_ECCO_dates(::ECCO2Monthly) = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(2023, 12, 1)
 all_ECCO_dates(::ECCO2Daily)   = DateTimeProlepticGregorian(1992, 1, 4) : Day(1)   : DateTimeProlepticGregorian(2023, 12, 31)
 
+# File names of metadata containing multiple dates
+metadata_filename(metadata) = [metadata_filename(metadatum) for metadatum in metadata]
+
 # File name generation specific to each Dataset version
 function metadata_filename(metadata::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4Monthly})
     shortname = short_name(metadata)
@@ -193,30 +196,33 @@ ECCO_USERNAME=myuser ECCO_PASSWORD=mypasswrd julia
 function download_dataset!(metadata::ECCOMetadata; url = urls(metadata))
     username = get(ENV, "ECCO_USERNAME", nothing)
     password = get(ENV, "ECCO_PASSWORD", nothing)
-    dir = metadata.dir
+
+    cmd = []
 
     for metadatum in metadata
         filename = metadata_filename(metadatum)
         filepath = metadata_path(metadatum)
-
         if !isfile(filepath)
             instructions_msg = "\n See ClimaOcean.jl/src/ECCO/README.md for instructions."
             if isnothing(username)
                 msg = "Could not find the ECCO_PASSWORD environment variable. \
                        See ClimaOcean.jl/src/ECCO/README.md for instructions on obtaining \
-                       and setting your ECCO_USERNAME and ECCO_PASSWORD."
+                       and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
                 throw(ArgumentError(msg))
             elseif isnothing(password)
                 msg = "Could not find the ECCO_PASSWORD environment variable. \
                        See ClimaOcean.jl/src/ECCO/README.md for instructions on obtaining \
-                       and setting your ECCO_USERNAME and ECCO_PASSWORD."
+                       and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
                 throw(ArgumentError(msg))
             end
 
-            cmd = `wget --http-user=$(username) --http-passwd=$(password) $(fileurl)`
-            blocking_run(cmd)
+            push!(cmd, `wget --http-user=$(username) --http-passwd=$(password) $(fileurl)`)
         end
     end
+    
+    # Run the download commands, in serial if not in a distributed environment
+    # otherwise split the commands among the ranks
+    distributed_run(cmd)
 
     return nothing
 end
