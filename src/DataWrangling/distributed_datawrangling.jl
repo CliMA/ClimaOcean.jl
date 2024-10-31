@@ -105,10 +105,10 @@ macro handshake(exp)
         if !mpi_initialized
             $exp
         else
-            sz = ClimaOcean.DataWrangling.mpi_size()
-            rk = ClimaOcean.DataWrangling.mpi_rank()
-            for r in 0:sz-1
-                if rk == r
+            rank   = ClimaOcean.DataWrangling.mpi_rank()
+            nprocs = ClimaOcean.DataWrangling.mpi_size()
+            for r in 0 : nprocs -1
+                if rank == r
                     $exp
                 end
                 ClimaOcean.DataWrangling.global_barrier()
