@@ -84,6 +84,7 @@ function regrid_bathymetry(target_grid;
                            url = "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_surface_elev_netcdf", 
                            filename = "ETOPO_2022_v1_60s_N90W180_surface.nc",
                            interpolation_passes = 1,
+                           latitude_tolerance = 1e-10,
                            major_basins = Inf) # Allow an `Inf` number of ``lakes''
 
     filepath = joinpath(dir, filename)
@@ -144,7 +145,7 @@ function regrid_bathymetry(target_grid;
     # Restrict bathymetry _data to region of interest
     λ_data = λ_data[ii]
     φ_data = φ_data[jj]
-    z_data = z_data[ii, jj]
+    z_data = z_data[ii, jj] 
 
     if !isnothing(height_above_water)
         # Overwrite the height of cells above water.
@@ -158,10 +159,10 @@ function regrid_bathymetry(target_grid;
     Δλ = λ_data[2] - λ_data[1]
     Δφ = φ_data[2] - φ_data[1]
 
-    λ₁_data = λ_data[1]   - Δλ / 2
-    λ₂_data = λ_data[end] + Δλ / 2
-    φ₁_data = φ_data[1]   - Δφ / 2
-    φ₂_data = φ_data[end] + Δφ / 2
+    λ₁_data = Float64(λ_data[1]   - Δλ / 2)
+    λ₂_data = Float64(λ_data[end] + Δλ / 2)
+    φ₁_data = Float64(φ_data[1]   - Δφ / 2)
+    φ₂_data = Float64(φ_data[end] + Δφ / 2)
 
     Nxn = length(λ_data)
     Nyn = length(φ_data)
