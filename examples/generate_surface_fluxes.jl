@@ -28,7 +28,7 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBoundary(mask))
 fig = Figure()
 ax  = Axis(fig[1, 1])
 heatmap!(ax, interior(grid.immersed_boundary.mask, :, :, grid.Nz))
-save("ECCO_continents.png", fig) # hide
+save("ECCO_continents.png", fig) #hide
 
 # ![](ECCO_continents.png)
 
