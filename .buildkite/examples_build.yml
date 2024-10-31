@@ -10,10 +10,7 @@ env:
   JULIA_LOAD_PATH: "${JULIA_LOAD_PATH}:${BUILDKITE_BUILD_CHECKOUT_PATH}/.buildkite"
   OPENBLAS_NUM_THREADS: 1
   OMPI_MCA_opal_warn_on_missing_libcuda: 0
-<<<<<<< HEAD
-=======
   JULIA_NUM_PRECOMPILE_TASKS: 8
->>>>>>> origin/main
 
 steps:
   - label: "initialize"

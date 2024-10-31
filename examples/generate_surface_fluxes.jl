@@ -89,7 +89,6 @@ heatmap!(ax, fluxes.y_momentum; colormap = :bwr)
 
 ax = Axis(fig[3, 1], title = "Water vapor flux (kg m⁻² s⁻¹)")
 heatmap!(ax, Mv; colormap = :bwr)
-hidedecorations!(ax)
 
 save("fluxes.png", fig)
 # ![](fluxes.png)
