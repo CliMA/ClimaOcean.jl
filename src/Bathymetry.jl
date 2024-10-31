@@ -141,7 +141,7 @@ function regrid_bathymetry(target_grid;
     j₂ = searchsortedfirst(φ_data, φ₂) - 1
     jj = j₁:j₂
 
-    # Restrict bathymetry _data to region of interest
+    # Restrict bathymetry coordinate_data to region of interest
     λ_data = λ_data[ii] |> Array{BigFloat}
     φ_data = φ_data[jj] |> Array{BigFloat}
     z_data = z_data[ii, jj] 
