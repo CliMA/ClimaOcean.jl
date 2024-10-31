@@ -3,7 +3,7 @@ module Bathymetry
 export regrid_bathymetry, retrieve_bathymetry
 
 using ImageMorphology
-using ..DataWrangling: download_progress, @root
+using ..DataWrangling: download_progress
 
 using Oceananigans
 using Oceananigans.Architectures: architecture, on_architecture
@@ -17,7 +17,7 @@ using Oceananigans.BoundaryConditions
 using KernelAbstractions: @kernel, @index
 using JLD2
 
-using ClimaOcean
+using ClimaOcean: @root
 
 using NCDatasets
 using Downloads
