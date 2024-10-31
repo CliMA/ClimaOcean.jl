@@ -4,10 +4,10 @@ export ECCOMetadata, ECCO_field, ECCO_mask, adjusted_ECCO_tracers, initialize!
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
 export ECCO_restoring_forcing
 
+using ClimaOcean
 using ClimaOcean.DataWrangling
 using ClimaOcean.DataWrangling: inpaint_mask!
 using ClimaOcean.InitialConditions: three_dimensional_regrid!, interpolate!
-using ClimaOcean: @root, @distribute
 
 using Oceananigans
 using Oceananigans.Architectures: architecture, child_architecture
