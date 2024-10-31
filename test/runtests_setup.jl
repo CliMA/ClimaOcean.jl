@@ -12,6 +12,8 @@ using Oceananigans.Architectures: architecture, on_architecture
 using Oceananigans.OutputReaders: interpolate!
 
 using ClimaOcean
+using CFTime
+using Dates 
 
 gpu_test = parse(Bool, get(ENV, "GPU_TEST", "false"))
 test_architectures = gpu_test ? [GPU()] : [CPU()]
