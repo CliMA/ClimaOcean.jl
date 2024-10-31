@@ -27,24 +27,23 @@ macro root(exp)
     return esc(command)
 end
 
-"""
-Perform `exp` only on rank `$rank`
-Other ranks will wait for the root rank to finish before continuing
-"""
-macro onrank(rank, exp)
-    if MPI.Initialized() && MPI.Comm_rank(MPI.COMM_WORLD) != eval(rank)
-        command = quote
-          global_barrier()
-        end
-    else
-        command = quote
-           $exp
-           global_barrier()
-        end
-    end
+# """
+# Perform `exp` only on rank `$rank`
+# Other ranks will wait for the root rank to finish before continuing.
+# The expression is run anyways if MPI in not initialized
+# """
+# macro onrank(rank, exp)
+#     command = quote
+#         if MPI.Initialized() && MPI.Comm_rank(MPI.COMM_WORLD) == $rank
+#             $exp
+#             global_barrier()
+#         else
+#            global_barrier()
+#         end
+#     end
 
-    return esc(command)
-end
+#     return esc(command)
+# end
 
 """ Distribute a `for` loop among ranks """
 macro distribute(exp)
