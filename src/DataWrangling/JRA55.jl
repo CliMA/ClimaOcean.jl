@@ -530,7 +530,7 @@ function JRA55_field_time_series(variable_name;
                                            name = fts_name)
 
     # Re-compute data
-    new_data  = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
+    new_data = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
 
     if !on_native_grid
         copyto!(interior(native_fts, :, :, 1, :), new_data[:, :, :])

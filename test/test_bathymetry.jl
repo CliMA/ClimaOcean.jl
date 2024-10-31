@@ -6,6 +6,7 @@ using Statistics
 @testset "Availability of Bathymetry" begin
     @info "Testing Bathymetry utils..."
     for arch in test_architectures
+
         grid = LatitudeLongitudeGrid(arch;
                                      size = (100, 100, 10), 
                                      longitude = (0, 100), 
@@ -53,7 +54,7 @@ using Statistics
                                      z = (-6000, 0))
 
         control_bottom_height = regrid_bathymetry(grid)
-        interpolated_bottom_height = regrid_bathymetry(grid; interpolation_passes = 100)
+        interpolated_bottom_height = regrid_bathymetry(grid; interpolation_passes=100)
 
         # Testing that multiple passes do not change the solution when refining the grid
         @test parent(control_bottom_height) == parent(interpolated_bottom_height)
