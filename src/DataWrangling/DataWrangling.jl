@@ -1,6 +1,6 @@
 module DataWrangling
 
-export @root, @distribute, global_barrier
+export @root, @distribute
 
 using Oceananigans
 using Downloads

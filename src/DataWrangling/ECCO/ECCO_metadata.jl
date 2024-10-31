@@ -1,6 +1,6 @@
 using CFTime
 using Dates
-using ClimaOcean.DataWrangling: distributed_run
+using ClimaOcean.DataWrangling
 
 import Dates: year, month, day
 
@@ -197,7 +197,7 @@ function download_dataset!(metadata::ECCOMetadata; url = urls(metadata))
     username = get(ENV, "ECCO_USERNAME", nothing)
     password = get(ENV, "ECCO_PASSWORD", nothing)
     dir = metadata.dir
-    
+
     @distribute for metadatum in metadata # Distribute the download among ranks if MPI is initialized
 
         fileurl  = metadata_url(url, metadatum) 

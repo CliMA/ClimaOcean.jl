@@ -5,23 +5,28 @@ using MPI
 ##### which should be executed by only one rank or distributed among ranks
 #####
 
-function global_barrier()
-    if MPI.Initialized()
-        MPI.Barrier(MPI.COMM_WORLD)
-    end
-end
+# Utilities to make the macro work importing only ClimaOcean and not MPI
+mpi_initialized() = MPI.Initialized()
+mpi_rank()        = MPI.Comm_rank(MPI.COMM_WORLD)
+mpi_size()        = MPI.Comm_size(MPI.COMM_WORLD)
+global_barrier()  = mpi_initialized() ? MPI.Barrier(MPI.COMM_WORLD) : nothing
 
 """
-Perform `exp` only on rank 0, otherwise know as "root" rank.
+    @root exs...
+
+Perform `exs` only on rank 0, otherwise know as "root" rank.
 Other ranks will wait for the root rank to finish before continuing
 """
 macro root(exp)
     command = quote
-        if MPI.Initialized() 
-            if MPI.Comm_rank(MPI.COMM_WORLD) == 0
+        if ClimaOcean.DataWrangling.mpi_initialized()
+            rank = ClimaOcean.DataWrangling.mpi_rank()
+            if rank == 0
                 $exp
             end
-            global_barrier()
+            ClimaOcean.DataWrangling.global_barrier()
+        else
+            $exp
         end
     end
     return esc(command)
@@ -45,7 +50,13 @@ end
 #     return esc(command)
 # end
 
-""" Distribute a `for` loop among ranks """
+""" 
+    @distribute for i in iterable
+        ...
+    end
+
+Distribute a `for` loop among different ranks
+"""
 macro distribute(exp)
     if exp.head != :for
         error("The `@distribute` macro expects a `for` loop")
@@ -56,18 +67,18 @@ macro distribute(exp)
     forbody  = exp.args[2]
 
     new_loop = quote
-        mpi_initialized = MPI.Initialized()
+        mpi_initialized = ClimaOcean.DataWrangling.mpi_initialized()
         if !mpi_initialized
             $exp
         else
-            rank   = MPI.Comm_rank(MPI.COMM_WORLD)
-            nprocs = MPI.Comm_size(MPI.COMM_WORLD)
+            rank   = ClimaOcean.DataWrangling.mpi_rank()
+            nprocs = ClimaOcean.DataWrangling.mpi_size()
             for (counter, $variable) in enumerate($iterable)
                 if $variable % nprocs == rank
                     $forbody
                 end
             end
-            global_barrier()
+            ClimaOcean.DataWrangling.global_barrier()
         end
     end
 
