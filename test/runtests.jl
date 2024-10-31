@@ -4,18 +4,6 @@ include("runtests_setup.jl")
 test_group = get(ENV, "TEST_GROUP", :all)
 test_group = Symbol(test_group)
 
-# Fictitious grid that triggers bathymetry download
-function download_bathymetry()
-    grid = LatitudeLongitudeGrid(size = (10, 10, 1), 
-                                 longitude = (0, 100), 
-                                 latitude = (0, 50),
-                                 z = (-6000, 0))
-
-    bottom = regrid_bathymetry(grid)
-
-    return nothing
-end
-
 if test_group == :init || test_group == :all
     using CUDA
     CUDA.precompile_runtime()
@@ -26,19 +14,18 @@ if test_group == :init || test_group == :all
     
     download_bathymetry() 
 
-    # Download JRA55 data
+    ####
+    #### Download JRA55 data 
+    ####
+    
     atmosphere = JRA55_prescribed_atmosphere()
 
-    # Download ECCO data
-    start_date = DateTimeProlepticGregorian(1993, 1, 1)
-    end_date = DateTimeProlepticGregorian(1993, 4, 1)
-    dates = start_date : Month(1) : end_date
+    ####
+    #### Download ECCO data 
+    ####
 
-    temperature = ECCOMetadata(:temperature, dates)
-    salinity = ECCOMetadata(:salinity, dates)
-
-    download_dataset!(temperature)
-    download_dataset!(salinity)
+    download_dataset!(temperature_metadata)
+    download_dataset!(salinity_metadata)
 end
 
 # Tests JRA55 utilities, plus some DataWrangling utilities
