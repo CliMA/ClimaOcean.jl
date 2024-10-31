@@ -1,5 +1,7 @@
 module DataWrangling
 
+export @root, @distribute
+
 using Oceananigans
 using Downloads
 using Printf

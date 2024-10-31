@@ -197,11 +197,11 @@ function download_dataset!(metadata::ECCOMetadata; url = urls(metadata))
     username = get(ENV, "ECCO_USERNAME", nothing)
     password = get(ENV, "ECCO_PASSWORD", nothing)
 
-    cmd = []
+    @distribute for metadatum in metadata # Distribute the download among ranks if MPI is initialized
 
-    for metadatum in metadata
-        filename = metadata_filename(metadatum)
+        fileurl  = metadata_url(url, metadatum) 
         filepath = metadata_path(metadatum)
+
         if !isfile(filepath)
             instructions_msg = "\n See ClimaOcean.jl/src/ECCO/README.md for instructions."
             if isnothing(username)
@@ -216,13 +216,10 @@ function download_dataset!(metadata::ECCOMetadata; url = urls(metadata))
                 throw(ArgumentError(msg))
             end
 
-            push!(cmd, `wget --http-user=$(username) --http-passwd=$(password) $(fileurl)`)
+            cmd = `wget --http-user=$(username) --http-passwd=$(password) $(fileurl)`
+            run(cmd)
         end
     end
-    
-    # Run the download commands, in serial if not in a distributed environment
-    # otherwise split the commands among the ranks
-    distributed_run(cmd)
 
     return nothing
 end

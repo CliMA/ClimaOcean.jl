@@ -18,7 +18,8 @@ export
     JRA55_field_time_series,
     ECCO_field, ECCOMetadata,
     ocean_simulation,
-    initialize!
+    initialize!,
+    @root
 
 using Oceananigans
 using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ

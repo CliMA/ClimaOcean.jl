@@ -5,60 +5,56 @@ using MPI
 ##### which should be executed by only one rank or distributed among ranks
 #####
 
-
 function global_barrier()
     if MPI.Initialized()
         MPI.Barrier(MPI.COMM_WORLD)
     end
 end
 
-function blocking_run(cmd)
+"""
+Perform `exp` only on rank 0, otherwise know as "root" rank.
+Other ranks will wait for the root rank to finish before continuing
+"""
+macro root(exp)
     if MPI.Initialized() && MPI.Comm_rank(MPI.COMM_WORLD) != 0
-        nothing # Do nothing!
+        command = quote
+          global_barrier()
+        end
     else
-        run(cmd)
-    end
-
-    global_barrier()
-    
-    return nothing
-end
-
-function blocking_download(url, filepath; overwrite_existing = false, kw...)
-    if overwrite_existing
-        blocking_run(`rm $filepath`)
-    end
-
-    if !isfile(filepath) 
-        if MPI.Initialized() && MPI.Comm_rank(MPI.COMM_WORLD) != 0
-            nothing # Do nothing!
-        else
-            Downloads.download(url, filepath; kw...)
-        end    
-    end
-
-    global_barrier()
-
-    return nothing
-end
-
-# If only one command is provided, run it with rank 0
-distributed_run(cmd) = blocking_run(cmd)
-
-# If multiple commands are provided, distribute them among the ranks
-function distributed_run(cmds::Union{AbstractVector, Tuple})
-    if length(cmds) == 1 # just one command
-        distributed_run(cmds[1])
-    else # split among different ranks
-        rank   = MPI.Comm_rank(MPI.COMM_WORLD)
-        nprocs = MPI.Comm_size(MPI.COMM_WORLD)
-        for (i, cmd) in enumerate(cmds)
-            if i % nprocs == rank
-                blocking_run(cmd)
-            end
+        command = quote
+           $exp
+           global_barrier()
         end
     end
-    global_barrier()
 
-    return nothing
+    return esc(command)
+end
+
+""" Distributed a `for` loop among ranks """
+macro distribute(exp)
+    if exp.head != :for
+        error("The `@distribute` macro expects a `for` loop")
+    end
+
+    mpi_initialized = MPI.Initialized()
+    if !mpi_initialized
+        return esc(exp)
+    end
+
+    rank     = MPI.Comm_rank(MPI.COMM_WORLD)
+    nprocs   = MPI.Comm_size(MPI.COMM_WORLD)
+    iterable = exp.args[1].args[2]
+    variable = exp.args[1].args[1]
+    forbody  = exp.args[2]
+
+    new_loop = quote
+        for (counter, $variable) in enumerate($iterable)
+            if $variable % $nprocs == $rank
+                $forbody
+            end
+        end
+        global_barrier()
+    end
+
+    return esc(new_loop)
 end
