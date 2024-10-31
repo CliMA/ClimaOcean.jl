@@ -19,12 +19,12 @@ Other ranks will wait for the root rank to finish before continuing
 """
 macro root(exp)
     command = quote
-        if ClimaOcean.DataWrangling.mpi_initialized()
-            rank = ClimaOcean.DataWrangling.mpi_rank()
+        if ClimaOcean.mpi_initialized()
+            rank = ClimaOcean.mpi_rank()
             if rank == 0
                 $exp
             end
-            ClimaOcean.DataWrangling.global_barrier()
+            ClimaOcean.global_barrier()
         else
             $exp
         end
@@ -43,15 +43,15 @@ macro onrank(exp_with_rank)
     on_rank = exp_with_rank.args[1]
     exp  = exp_with_rank.args[2]
     command = quote
-        mpi_initialized = ClimaOcean.DataWrangling.mpi_initialized()
-        rank = ClimaOcean.DataWrangling.mpi_rank()
+        mpi_initialized = ClimaOcean.mpi_initialized()
+        rank = ClimaOcean.mpi_rank()
         if !mpi_initialized
             $exp
         else
             if rank == $on_rank
                 $exp
             end
-            ClimaOcean.DataWrangling.global_barrier()
+            ClimaOcean.global_barrier()
         end
     end
 
@@ -75,18 +75,18 @@ macro distribute(exp)
     forbody  = exp.args[2]
 
     new_loop = quote
-        mpi_initialized = ClimaOcean.DataWrangling.mpi_initialized()
+        mpi_initialized = ClimaOcean.mpi_initialized()
         if !mpi_initialized
             $exp
         else
-            rank   = ClimaOcean.DataWrangling.mpi_rank()
-            nprocs = ClimaOcean.DataWrangling.mpi_size()
+            rank   = ClimaOcean.mpi_rank()
+            nprocs = ClimaOcean.mpi_size()
             for (counter, $variable) in enumerate($iterable)
                 if (counter - 1) % nprocs == rank
                     $forbody
                 end
             end
-            ClimaOcean.DataWrangling.global_barrier()
+            ClimaOcean.global_barrier()
         end
     end
 
@@ -101,17 +101,17 @@ ranks `r2 > r1` wait for rank `r1` to finish before executing `exs`
 """
 macro handshake(exp)
     command = quote
-        mpi_initialized = ClimaOcean.DataWrangling.mpi_initialized()
+        mpi_initialized = ClimaOcean.mpi_initialized()
         if !mpi_initialized
             $exp
         else
-            rank   = ClimaOcean.DataWrangling.mpi_rank()
-            nprocs = ClimaOcean.DataWrangling.mpi_size()
+            rank   = ClimaOcean.mpi_rank()
+            nprocs = ClimaOcean.mpi_size()
             for r in 0 : nprocs -1
                 if rank == r
                     $exp
                 end
-                ClimaOcean.DataWrangling.global_barrier()
+                ClimaOcean.global_barrier()
             end
         end
     end

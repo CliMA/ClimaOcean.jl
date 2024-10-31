@@ -31,6 +31,8 @@ using DataDeps
 using Oceananigans.OutputReaders: GPUAdaptedFieldTimeSeries, FieldTimeSeries
 using Oceananigans.Grids: node
 
+include("distributed_utils.jl")
+
 const SomeKindOfFieldTimeSeries = Union{FieldTimeSeries,
                                         GPUAdaptedFieldTimeSeries}
 
