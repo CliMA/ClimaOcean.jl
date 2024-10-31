@@ -229,11 +229,11 @@ function set!(field::Field, ecco_metadata::ECCOMetadata; kw...)
     # Fields initialized from ECCO
     grid = field.grid
     arch = child_architecture(grid)
-    mask = ecco_mask(ecco_metadata, arch)
+    mask = ECCO_mask(ecco_metadata, arch)
 
-    f = inpainted_ecco_field(ecco_metadata; mask,
-                              architecture = arch,
-                              kw...)
+    f = inpainted_ECCO_field(ecco_metadata; mask,
+                             architecture = arch,
+                             kw...)
 
     interpolate!(field, f)
 
