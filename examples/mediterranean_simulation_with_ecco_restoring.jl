@@ -74,8 +74,8 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
 dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 12, 1)
 
-temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
-salinity    = ECCOMetadata(:salinity,    dates, ECCO4Monthly())
+temperature = ECCOMetadata(:temperature, date)
+salinity    = ECCOMetadata(:salinity,    date)
 
 FT = ECCO_restoring_forcing(temperature; architecture = GPU(), timescale = 2days)
 FS = ECCO_restoring_forcing(salinity;    architecture = GPU(), timescale = 2days)
@@ -129,12 +129,9 @@ run!(ocean)
 
 # ## Run the real simulation
 #
-# Now that the solution has adjusted to the bathymetry we can ramp up the time
-# step size. We use a `TimeStepWizard` to automatically adapt to a cfl of 0.2
-
-wizard = TimeStepWizard(; cfl = 0.2, max_Δt = 10minutes, max_change = 1.1)
-
-ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
+# Now that the solution has adjusted to the bathymetry we 
+# can ramp up the time step size.
+ocean.Δt = 2minutes
 
 # Let's reset the maximum number of iterations
 ocean.stop_iteration = Inf
@@ -151,54 +148,37 @@ run!(ocean)
 # Record a video
 #
 # Let's read the data and record a video of the Mediterranean Sea's surface
-# (1) Zonal velocity (u)
-# (2) Meridional velocity (v)
-# (3) Temperature (T)
-# (4) Salinity (S)
+# (1) Speed (s)
+# (2) Temperature (T)
+# (3) Salinity (S)
+# (4) Passive tracer (c)
 
 u_series = FieldTimeSeries("med_surface_field.jld2", "u")
 v_series = FieldTimeSeries("med_surface_field.jld2", "v")
 T_series = FieldTimeSeries("med_surface_field.jld2", "T")
 S_series = FieldTimeSeries("med_surface_field.jld2", "S")
 c_series = FieldTimeSeries("med_surface_field.jld2", "c")
+
 iter = Observable(1)
 
-u = @lift begin
-    f = interior(u_series[$iter], :, :, 1)
-    f[f .== 0] .= NaN
-    f
+s = @lift begin
+    un = u_series[$iter]
+    vn = v_series[$iter]
+    sn = Field(sqrt(u^2 + v^2))
+    compute!(sn)
 end
-v = @lift begin
-    f = interior(v_series[$iter], :, :, 1)
-    f[f .== 0] .= NaN
-    f
-end
-T = @lift begin
-    f = interior(T_series[$iter], :, :, 1)
-    f[f .== 0] .= NaN
-    f
-end
-S = @lift begin
-    f = interior(S_series[$iter], :, :, 1)
-    f[f .== 0] .= NaN
-    f
-end
-c = @lift begin
-    f = interior(c_series[$iter], :, :, 1)
-    f[f .== 0] .= NaN
-    f
-end
+T = @lift(T_series[$iter])
+S = @lift(S_series[$iter])
+c = @lift(c_series[$iter])
 
 fig = Figure()
-ax  = Axis(fig[1, 1], title = "surface zonal velocity ms⁻¹")
-heatmap!(u)
-ax  = Axis(fig[1, 2], title = "surface meridional velocity ms⁻¹")
-heatmap!(v)
-ax  = Axis(fig[2, 1], title = "surface temperature ᵒC")
+ax  = Axis(fig[1, 1], title = "surface speed ms⁻¹")
+heatmap!(s)
+ax  = Axis(fig[1, 2], title = "surface temperature ᵒC")
 heatmap!(T)
-ax  = Axis(fig[2, 2], title = "surface salinity psu")
+ax  = Axis(fig[2, 1], title = "surface salinity psu")
 heatmap!(S)
-ax  = Axis(fig[2, 3], title = "passive tracer -")
+ax  = Axis(fig[2, 2], title = "passive tracer -")
 heatmap!(c)
 
 CairoMakie.record(fig, "mediterranean_video.mp4", 1:length(u_series.times); framerate = 5) do i
