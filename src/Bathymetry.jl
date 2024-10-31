@@ -111,8 +111,8 @@ function regrid_bathymetry(target_grid;
 
     FT = eltype(target_grid)
 
-    φ_data = dataset["lat"][:] 
-    λ_data = dataset["lon"][:] 
+    φ_data = dataset["lat"][:]
+    λ_data = dataset["lon"][:]
     z_data = convert(Array{FT}, dataset["z"][:, :])
 
     # Convert longitude from (-180, 180) to (0, 360)
