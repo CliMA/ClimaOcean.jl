@@ -20,11 +20,25 @@ if test_group == :init || test_group == :all
     using CUDA
     CUDA.precompile_runtime()
 
-    # Download bathymetry data
+    ####
+    #### Download bathymetry data
+    ####
+    
     download_bathymetry() 
 
     # Download JRA55 data
     atmosphere = JRA55_prescribed_atmosphere()
+
+    # Download ECCO data
+    start_date = DateTimeProlepticGregorian(1993, 1, 1)
+    end_date = DateTimeProlepticGregorian(1993, 4, 1)
+    dates = start_date : Month(1) : end_date
+
+    temperature = ECCOMetadata(:temperature, dates)
+    salinity = ECCOMetadata(:salinity, dates)
+
+    download_dataset!(temperature)
+    download_dataset!(salinity)
 end
 
 # Tests JRA55 utilities, plus some DataWrangling utilities
