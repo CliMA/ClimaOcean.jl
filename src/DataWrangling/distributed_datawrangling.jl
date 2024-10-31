@@ -30,7 +30,7 @@ macro root(exp)
     return esc(command)
 end
 
-""" Distributed a `for` loop among ranks """
+""" Distribute a `for` loop among ranks """
 macro distribute(exp)
     if exp.head != :for
         error("The `@distribute` macro expects a `for` loop")
