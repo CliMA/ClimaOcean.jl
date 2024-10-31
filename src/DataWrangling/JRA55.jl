@@ -444,7 +444,7 @@ function JRA55_field_time_series(variable_name;
     close(ds)
 
     N = (Nrx, Nry)
-    H = min.(N, (3, 3))
+    H = min.(N, (7, 7))
 
     JRA55_native_grid = LatitudeLongitudeGrid(native_fts_architecture, Float32;
                                               halo = H,
