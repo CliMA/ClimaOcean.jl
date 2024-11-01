@@ -193,16 +193,16 @@ run!(simulation)
 
 u = FieldTimeSeries("near_global_surface_fields.jld2", "u"; backend = OnDisk())
 v = FieldTimeSeries("near_global_surface_fields.jld2", "v"; backend = OnDisk())
-# T = FieldTimeSeries("near_global_surface_fields.jld2", "T"; backend = OnDisk())
-# e = FieldTimeSeries("near_global_surface_fields.jld2", "e"; backend = OnDisk())
+T = FieldTimeSeries("near_global_surface_fields.jld2", "T"; backend = OnDisk())
+e = FieldTimeSeries("near_global_surface_fields.jld2", "e"; backend = OnDisk())
 
 times = u.times
 Nt = length(times)
 
 n = Observable(Nt)
 
-Tn = @lift T[$n]
-en = @lift e[$n]
+Tn = @lift interior(T[$n], :, :, 1)
+en = @lift interior(e[$n], :, :, 1)
 
 un = Field{Face, Center, Nothing}(u.grid)
 vn = Field{Center, Face, Nothing}(v.grid)
@@ -217,17 +217,17 @@ end
 fig = Figure(size = (800, 1200))
 
 axs = Axis(fig[1, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
-# axT = Axis(fig[2, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
-# axe = Axis(fig[3, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
+axT = Axis(fig[2, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
+axe = Axis(fig[3, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
 
 hm = heatmap!(axs, sn, colorrange = (0, 0.5), colormap = :deep)
 Colorbar(fig[1, 2], hm, label = "Surface speed (m s⁻¹)")
 
-# hm = heatmap!(axT, Tn, colorrange = (-1, 30), colormap = :magma)
-# Colorbar(fig[2, 2], hm, label = "Surface Temperature (ᵒC)")
+hm = heatmap!(axT, Tn, colorrange = (-1, 30), colormap = :magma)
+Colorbar(fig[2, 2], hm, label = "Surface Temperature (ᵒC)")
 
-# hm = heatmap!(axe, en, colorrange = (0, 1e-3), colormap = :solar)
-# Colorbar(fig[3, 2], hm, label = "Turbulent Kinetic Energy (m² s⁻²)")
+hm = heatmap!(axe, en, colorrange = (0, 1e-3), colormap = :solar)
+Colorbar(fig[3, 2], hm, label = "Turbulent Kinetic Energy (m² s⁻²)")
 save("snapshot.png", fig)
 nothing #hide
 
