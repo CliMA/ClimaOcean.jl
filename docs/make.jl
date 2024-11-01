@@ -13,7 +13,7 @@ const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
 const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
 
 to_be_literated = [
-    # "inspect_ECCO_data.jl",
+    "inspect_ECCO_data.jl",
     "generate_bathymetry.jl",
     "generate_surface_fluxes.jl",
     "single_column_os_papa_simulation.jl",
@@ -50,7 +50,7 @@ pages = [
         ],
 
     "Examples" => [
-        # "Inspect ECCO2 data" => "literated/inspect_ECCO_data.md",
+        "Inspect ECCO2 data" => "literated/inspect_ECCO_data.md",
         "Generate bathymetry" => "literated/generate_bathymetry.md",
         "Surface fluxes" => "literated/generate_surface_fluxes.md",
         "Single column simulation" => "literated/single_column_os_papa_simulation.md",
