@@ -3,7 +3,7 @@
 # ClimaOcean uses bulk formulae to estimate the surface exchange of momentum,
 # heat, and water vapor between the atmosphere and the ocean.
 #
-# This script demonstrates an example of the turbulent surface flux calculations performed in ClimaOcean
+# This example demonstrates an example of the turbulent surface flux calculations performed in ClimaOcean
 # using ECCO2 data for the ocean and JRA55 data for the atmosphere.
 #
 # For this example, we need ClimaOcean with its DataWrangling modules: ECCO2 and JRA55.

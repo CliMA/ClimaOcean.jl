@@ -1,7 +1,7 @@
 # # Generate bathymetry data for the Mediterranean Sea
 #
-# This script shows how to configure an Immersed boundary grid with realistic bathymetry using ClimaOcean.jl
-# by generating the bathymetry data for the Mediterranean Sea.
+# This example shows how to configure an Immersed boundary grid with realistic bathymetry
+# using ClimaOcean.jl by generating the bathymetry data for the Mediterranean Sea.
 #
 # For this example, we need Oceananigans for the LatitudeLongitudeGrid and Field utilities, 
 # ClimaOcean to donwload and regrid the bathymetry, and CairoMakie to visualize the grid.
