@@ -141,10 +141,10 @@ function regrid_bathymetry(target_grid;
     j₂ = searchsortedfirst(φ_data, φ₂) - 1
     jj = j₁:j₂
 
-    # Restrict bathymetry _data to region of interest
-    λ_data = λ_data[ii]
-    φ_data = φ_data[jj]
-    z_data = z_data[ii, jj]
+    # Restrict bathymetry coordinate_data to region of interest
+    λ_data = λ_data[ii] |> Array{BigFloat}
+    φ_data = φ_data[jj] |> Array{BigFloat}
+    z_data = z_data[ii, jj] 
 
     if !isnothing(height_above_water)
         # Overwrite the height of cells above water.
@@ -158,10 +158,10 @@ function regrid_bathymetry(target_grid;
     Δλ = λ_data[2] - λ_data[1]
     Δφ = φ_data[2] - φ_data[1]
 
-    λ₁_data = λ_data[1]   - Δλ / 2
-    λ₂_data = λ_data[end] + Δλ / 2
-    φ₁_data = φ_data[1]   - Δφ / 2
-    φ₂_data = φ_data[end] + Δφ / 2
+    λ₁_data = convert(Float64, λ_data[1]   - Δλ / 2)
+    λ₂_data = convert(Float64, λ_data[end] + Δλ / 2)
+    φ₁_data = convert(Float64, φ_data[1]   - Δφ / 2)
+    φ₂_data = convert(Float64, φ_data[end] + Δφ / 2)
 
     Nxn = length(λ_data)
     Nyn = length(φ_data)
