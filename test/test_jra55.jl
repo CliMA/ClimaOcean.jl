@@ -108,6 +108,5 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         atmosphere = JRA55_prescribed_atmosphere(arch; backend, include_rivers_and_icebergs=true)
         @test haskey(atmosphere.auxiliary_freshwater_flux, :rivers)
         @test haskey(atmosphere.auxiliary_freshwater_flux, :icebergs)
-    end 
+    end
 end
-
