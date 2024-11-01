@@ -46,36 +46,36 @@ Arguments:
 Keyword Arguments:
 ==================
 
-- height_above_water: limits the maximum height of above-water topography (where h > 0). If
-                      `nothing` the original topography is retained
+- `height_above_water`: limits the maximum height of above-water topography (where h > 0). If
+                        `nothing` the original topography is retained
 
-- minimum_depth: minimum depth for the shallow regions, defined as a positive value. 
-                 `h > - minimum_depth` will be considered land
+- `minimum_depth`: minimum depth for the shallow regions, defined as a positive value. 
+                   `h > - minimum_depth` will be considered land
 
-- dir: directory of the bathymetry-containing file
+- `dir`: directory of the bathymetry-containing file
 
-- filename: file containing bathymetric data. Must be netcdf with fields:
-            (1) `lat` vector of latitude nodes
-            (2) `lon` vector of longitude nodes
-            (3) `z` matrix of depth values
+- `filename`: file containing bathymetric data. Must be netcdf with fields:
+              (1) `lat` vector of latitude nodes
+              (2) `lon` vector of longitude nodes
+              (3) `z` matrix of depth values
 
-- interpolation_passes: regridding/interpolation passes. The bathymetry is interpolated in
-                        `interpolation_passes - 1` intermediate steps. With more steps the 
-                        final bathymetry will be smoother.
-                        Example: interpolating from a 400x200 grid to a 100x100 grid in 4 passes will involve
-                        - 400x200 -> 325x175
-                        - 325x175 -> 250x150
-                        - 250x150 -> 175x125
-                        - 175x125 -> 100x100
-                        If _coarsening_ the original grid, linear interpolation in passes is equivalent to 
-                        applying a smoothing filter, with more passes increasing the strength of the filter.
-                        If _refining_ the original grid, additional passes will not help and no intermediate
-                        steps will be performed.
+- `interpolation_passes`: regridding/interpolation passes. The bathymetry is interpolated in
+                          `interpolation_passes - 1` intermediate steps. With more steps the 
+                          final bathymetry will be smoother.
+                          Example: interpolating from a 400x200 grid to a 100x100 grid in 4 passes will involve
+                          - 400x200 -> 325x175
+                          - 325x175 -> 250x150
+                          - 250x150 -> 175x125
+                          - 175x125 -> 100x100
+                          If _coarsening_ the original grid, linear interpolation in passes is equivalent to 
+                          applying a smoothing filter, with more passes increasing the strength of the filter.
+                          If _refining_ the original grid, additional passes will not help and no intermediate
+                          steps will be performed.
 
-- major_basins: Number of "independent major basins", or fluid regions fully encompassed by land,
-                that are retained by [`remove_minor_basins!`](@ref). Basins are removed by order of size:
-                the smallest basins are removed first. `major_basins=1` will retain only the largest basin.
-                Default: `Inf`, which does not remove any basins.
+- `major_basins`: Number of "independent major basins", or fluid regions fully encompassed by land,
+                  that are retained by [`remove_minor_basins!`](@ref). Basins are removed by order of size:
+                  the smallest basins are removed first. `major_basins=1` will retain only the largest basin.
+                  Default: `Inf`, which does not remove any basins.
 """
 function regrid_bathymetry(target_grid;
                            height_above_water = nothing,
