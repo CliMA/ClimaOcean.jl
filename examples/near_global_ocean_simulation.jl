@@ -240,4 +240,4 @@ record(fig, "near_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
 end
 nothing #hide
 
-![](near_global_ocean_surface.mp4)
+# ![](near_global_ocean_surface.mp4)
