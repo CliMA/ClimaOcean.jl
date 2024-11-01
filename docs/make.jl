@@ -18,8 +18,6 @@ to_be_literated = [
     "generate_surface_fluxes.jl",
     "single_column_os_papa_simulation.jl",
     # "mediterranean_simulation_with_ecco_restoring.jl",
-    # "single_column_simulation.jl",
-    # "mediterranean_simulation_with_ECCO_restoring.jl",
     "near_global_ocean_simulation.jl"
 ]
 
