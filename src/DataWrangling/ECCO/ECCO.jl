@@ -133,7 +133,7 @@ The data is either:
 """
 function ECCO_field(metadata::ECCOMetadata;
                     architecture = CPU(),
-                    horizontal_halo = (7, 7)))
+                    horizontal_halo = (7, 7))
 
     download_dataset!(metadata)
     path = metadata_path(metadata)
