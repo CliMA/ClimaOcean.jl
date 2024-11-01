@@ -179,6 +179,8 @@ ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
 # associated with starting from ECCO initial conditions that are both interpolated and also
 # satisfy a different dynamical balance than our simulation.
 
+simulation.stop_time = 10simulation.Δt
+
 run!(simulation)
 
 # ### Running the simulation for real
@@ -193,8 +195,8 @@ run!(simulation)
 
 u = FieldTimeSeries("near_global_surface_fields.jld2", "u"; backend = OnDisk())
 v = FieldTimeSeries("near_global_surface_fields.jld2", "v"; backend = OnDisk())
-T = FieldTimeSeries("near_global_surface_fields.jld2", "T"; backend = OnDisk())
-e = FieldTimeSeries("near_global_surface_fields.jld2", "e"; backend = OnDisk())
+# T = FieldTimeSeries("near_global_surface_fields.jld2", "T"; backend = OnDisk())
+# e = FieldTimeSeries("near_global_surface_fields.jld2", "e"; backend = OnDisk())
 
 times = u.times
 Nt = length(times)
@@ -217,17 +219,17 @@ end
 fig = Figure(size = (800, 1200))
 
 axs = Axis(fig[1, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
-axT = Axis(fig[2, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
-axe = Axis(fig[3, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
+# axT = Axis(fig[2, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
+# axe = Axis(fig[3, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
 
 hm = heatmap!(axs, sn, colorrange = (0, 0.5), colormap = :deep)
 Colorbar(fig[1, 2], hm, label = "Surface speed (m s⁻¹)")
 
-hm = heatmap!(axT, Tn, colorrange = (-1, 30), colormap = :magma)
-Colorbar(fig[2, 2], hm, label = "Surface Temperature (ᵒC)")
+# hm = heatmap!(axT, Tn, colorrange = (-1, 30), colormap = :magma)
+# Colorbar(fig[2, 2], hm, label = "Surface Temperature (ᵒC)")
 
-hm = heatmap!(axe, en, colorrange = (0, 1e-3), colormap = :solar)
-Colorbar(fig[3, 2], hm, label = "Turbulent Kinetic Energy (m² s⁻²)")
+# hm = heatmap!(axe, en, colorrange = (0, 1e-3), colormap = :solar)
+# Colorbar(fig[3, 2], hm, label = "Turbulent Kinetic Energy (m² s⁻²)")
 save("snapshot.png", fig)
 nothing #hide
 
@@ -235,9 +237,9 @@ nothing #hide
 
 # And now a movie:
 
-# record(fig, "near_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
-#     n[] = nn
-# end
-# nothing #hide
+record(fig, "near_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
+    n[] = nn
+end
+nothing #hide
 
-# ![](near_global_ocean_surface.mp4)
+![](near_global_ocean_surface.mp4)
