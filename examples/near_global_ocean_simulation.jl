@@ -179,8 +179,6 @@ ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
 # associated with starting from ECCO initial conditions that are both interpolated and also
 # satisfy a different dynamical balance than our simulation.
 
-simulation.stop_time = 10simulation.Δt
-
 run!(simulation)
 
 # ### Running the simulation for real
