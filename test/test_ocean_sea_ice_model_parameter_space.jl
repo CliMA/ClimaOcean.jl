@@ -4,9 +4,9 @@ using OrthogonalSphericalShellGrids
 
 start_time = time_ns()
 arch = GPU() 
-grid = TripolarGrid(arch; 
-                    size = (50, 50, 10), 
-                    halo = (7, 7, 7), 
+grid = TripolarGrid(arch;
+                    size = (50, 50, 10),
+                    halo = (7, 7, 7),
                     z = (-6000, 0), 
                     first_pole_longitude = 75,
                     north_poles_latitude = 55)
