@@ -11,15 +11,15 @@ struct ECCO2Daily end
 struct ECCO4Monthly end
 
 """
-    ECCOMetadata{D, V} 
+    struct ECCOMetadata{D, V}
 
 Metadata holding the ECCO dataset information:
 - `name`: The name of the dataset.
 - `dates`: The dates of the dataset, in a `AbstractCFDateTime` format.
-- `version`: The version of the dataset, could be ECCO2Monthly, ECCO2Daily, or ECCO4Monthly.
+- `version`: The version of the dataset, could be `ECCO2Monthly`, `ECCO2Daily`, or `ECCO4Monthly`.
 - `dir`: The directory where the dataset is stored.
 """
-struct ECCOMetadata{D, V} 
+struct ECCOMetadata{D, V}
     name  :: Symbol
     dates :: D
     version :: V
@@ -35,21 +35,22 @@ Base.show(io::IO, metadata::ECCOMetadata) =
 
 """
     ECCOMetadata(name::Symbol; 
-                 dates = DateTimeProlepticGregorian(1993, 1, 1), 
+                 dates = DateTimeProlepticGregorian(1993, 1, 1),
                  version = ECCO4Monthly(), 
                  dir = download_ECCO_cache)
 
-Constructs an `ECCOMetadata` object with the specified parameters.
+Construct an `ECCOMetadata` object with the specified parameters.
 
-# Arguments
-============
+Arguments
+=========
 - `name::Symbol`: The name of the metadata.
 
-# Keyword Arguments
-===================
-- `date`: The date of the metadata (default: DateTimeProlepticGregorian(1993, 1, 1)).
-- `version`: The version of the metadata (for the moment the choices are ECCO2Monthly(), ECCO2Daily(), or ECCO4Monthly()).
-- `dir`: The dir to the datafile (default: download_ECCO_cache).
+Keyword arguments
+=================
+- `date`: The date of the metadata (default: `DateTimeProlepticGregorian(1993, 1, 1)`).
+- `version`: The version of the metadata (for the moment the choices are `ECCO2Monthly()`,
+             `ECCO2Daily()`, or `ECCO4Monthly()`).
+- `dir`: The directory to the datafile (default: download_ECCO_cache).
 """
 function ECCOMetadata(name::Symbol; 
                       dates = DateTimeProlepticGregorian(1993, 1, 1),
@@ -178,11 +179,14 @@ urls(::ECCOMetadata{<:Any, <:ECCO4Monthly}) = "https://ecco.jpl.nasa.gov/drive/f
 Download the dataset specified by `ECCOMetadata`. If `ECCOMetadata.dates` is a single date, 
 the dataset is downloaded directly. If `ECCOMetadata.dates` is a vector of dates, each date
 is downloaded individually.
-The data download requires a username and password to be provided in the ECCO_USERNAME and ECCO_PASSWORD
-environment variables. This can be done by exporting the environment variables in the shell before running the script,
-or by launching julia with 
 
-ECCO_USERNAME=myuser ECCO_PASSWORD=mypasswrd julia 
+The data download requires a username and password to be provided in the `ECCO_USERNAME` and `ECCO_PASSWORD`
+environment variables. This can be done by exporting the environment variables in the shell
+before running the script, or by launching Julia with:
+
+```
+$ ECCO_USERNAME=myuser ECCO_PASSWORD=mypasswrd julia
+```
 
 # Arguments
 - `metadata::ECCOMetadata`: The metadata specifying the dataset to be downloaded.

@@ -31,9 +31,9 @@ end
 Adapt.adapt_structure(to, b::ECCONetCDFBackend{N}) where N = ECCONetCDFBackend{N}(b.start, b.length, nothing)
 
 """
-    ECCONetCDFBackend(length)
+    ECCONetCDFBackend(length, metadata; on_native_grid = false)
 
-Represents an ECCO FieldTimeSeries backed by ECCO native .nc files.
+Represents an ECCO FieldTimeSeries backed by ECCO native netCDF files.
 Each time instance is stored in an individual file.
 """
 ECCONetCDFBackend(length, metadata; on_native_grid = false) = ECCONetCDFBackend{on_native_grid}(1, length, metadata)
@@ -98,14 +98,16 @@ end
 
 Create a field time series object for ECCO data.
 
-# Arguments:
-- metadata: An ECCOMetadata object containing information about the ECCO dataset.
+# Arguments
 
-# Keyword Arguments:
-- architecture: The architecture to use for computations (default: CPU()).
-- time_indices_in_memory: The number of time indices to keep in memory (default: 2).
-- time_indexing: The time indexing scheme to use (default: Cyclical()).
-- grid: if not a `nothing`, the ECCO data is directly interpolated on the `grid`,
+- `metadata`: An ECCOMetadata object containing information about the ECCO dataset.
+
+# Keyword arguments
+
+- `architecture`: The architecture to use for computations (default: `CPU()`).
+- `time_indices_in_memory`: The number of time indices to keep in memory (default: 2).
+- `time_indexing`: The time indexing scheme to use (default: `Cyclical()`).
+- `grid`: if provided (default: `nothing`), the ECCO data is directly interpolated on the `grid`.
 """
 function ECCO_field_time_series(metadata::ECCOMetadata;	
                                 architecture = CPU(),	
@@ -168,7 +170,7 @@ A struct representing ECCO restoring.
 # Fields
 - `ECCO_fts`: The ECCO FTS on the native ECCO grid.
 - `ECCO_grid`: The native ECCO grid to interpolate from.
-- `mask`: A mask (could be a number, an array, a function or a field).
+- `mask`: A mask (could be a number, an array, a function, or a field).
 - `variable_name`: The variable name of the variable that needs restoring.
 - `λ⁻¹`: The reciprocal of the restoring timescale.
 """
@@ -237,12 +239,12 @@ end
 
 Create a restoring forcing term that restores to values stored in an ECCO field time series.
 
-# Arguments:
-=============
+Arguments
+=========
 - `metadata`: The metadata for the ECCO field time series.
 
-# Keyword Arguments:
-====================
+Keyword arguments
+=================
 - `architecture`: The architecture. Typically `CPU` or `GPU`
 - `time_indices_in_memory`: The number of time indices to keep in memory. trade-off between performance
                             and memory footprint.    

@@ -29,22 +29,24 @@ end
 
 """
     regrid_bathymetry(target_grid;
-                      url = "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_surface_elev_netcdf", 
-                      height_above_water = <none>,
+                      height_above_water = nothing,
                       minimum_depth = 0,
-                      dir = download_cache,
-                      filename = "ETOPO_2022_v1_60s_N90W180_surface.nc")
+                      dir = download_bathymetry_cache,
+                      url = "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_surface_elev_netcdf", 
+                      filename = "ETOPO_2022_v1_60s_N90W180_surface.nc",
+                      interpolation_passes = 1,
+                      major_basins = Inf)
 
 Regrid bathymetry associated with the NetCDF file at `path = joinpath(dir, filename)` to `target_grid`.
 If `path` does not exist, then a download is attempted from `joinpath(url, filename)`.
 
-Arguments:
-==========
+Arguments
+=========
 
 - target_grid: grid to interpolate onto
 
-Keyword Arguments:
-==================
+Keyword arguments
+=================
 
 - `height_above_water`: limits the maximum height of above-water topography (where h > 0). If
                         `nothing` the original topography is retained
@@ -74,7 +76,7 @@ Keyword Arguments:
 
 - `major_basins`: Number of "independent major basins", or fluid regions fully encompassed by land,
                   that are retained by [`remove_minor_basins!`](@ref). Basins are removed by order of size:
-                  the smallest basins are removed first. `major_basins=1` will retain only the largest basin.
+                  the smallest basins are removed first. `major_basins = 1` will retain only the largest basin.
                   Default: `Inf`, which does not remove any basins.
 """
 function regrid_bathymetry(target_grid;
@@ -291,10 +293,10 @@ function remove_minor_basins!(Z, keep_major_basins)
     end
 
     water = Z .< 0
-    
+
     connectivity = ImageMorphology.strel(water)
     labels = ImageMorphology.label_components(connectivity)
-    
+
     total_elements = zeros(maximum(labels))
     label_elements = zeros(maximum(labels))
 
@@ -302,7 +304,7 @@ function remove_minor_basins!(Z, keep_major_basins)
         total_elements[e] = length(labels[labels .== e])
         label_elements[e] = e
     end
-        
+
     mm_basins = [] # major basins indexes
     m = 1
 
@@ -336,19 +338,21 @@ end
 
 Retrieve the bathymetry data from a file or generate it using a grid and save it to a file.
 
-# Arguments
-============
+Arguments
+=========
 
 - `grid`: The grid used to generate the bathymetry data.
 - `filename`: The name of the file to read or save the bathymetry data.
-- `kw...`: Additional keyword arguments.
+- `kw...`: Additional Keyword arguments.
 
-# Returns
-===========
+Returns
+=======
+
 - `bottom_height`: The retrieved or generated bathymetry data.
 
 If the specified file exists, the function reads the bathymetry data from the file. 
-Otherwise, it generates the bathymetry data using the provided grid and saves it to the file before returning it.
+Otherwise, it generates the bathymetry data using the provided grid and saves it to
+the file before returning it.
 """
 function retrieve_bathymetry(grid, filename; kw...) 
     
@@ -366,4 +370,3 @@ retrieve_bathymetry(grid, ::Nothing; kw...) = regrid_bathymetry(grid; kw...)
 retrieve_bathymetry(grid; kw...)            = regrid_bathymetry(grid; kw...)
 
 end # module
-

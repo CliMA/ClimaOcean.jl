@@ -6,24 +6,28 @@ struct LatitudeDependentAlbedo{FT}
 end
 
 """
-    LatitudeDependentAlbedo([FT::DataType=Float64]; diffuse = 0.069, direct = 0.011)
+    LatitudeDependentAlbedo(FT::DataType=Float64; 
+                            diffuse = 0.069, 
+                            direct = 0.011) 
 
 Constructs a `LatitudeDependentAlbedo` object. The albedo of the ocean surface is assumed to be a function of the latitude,
 obeying the following formula (Large and Yeager, 2009):
 
-    α(φ) = α.diffuse - α.direct * cos(2φ)
+```
+α(φ) = α.diffuse - α.direct * cos(2φ)
+```
 
 where `φ` is the latitude, `α.diffuse` is the diffuse albedo, and `α.direct` is the direct albedo.
 
-# Arguments
-===========
+Arguments
+=========
 
 - `FT::DataType`: The data type of the albedo values. Default is `Float64`.
 
-# Keyword Arguments
-===================
-- `diffuse`: The diffuse albedo value. Default is `0.069`.
-- `direct`: The direct albedo value. Default is `0.011`.
+Keyword arguments
+=================
+- `diffuse`: The diffuse albedo value. Default is 0.069.
+- `direct`: The direct albedo value. Default is 0.011.
 """
 function LatitudeDependentAlbedo(FT::DataType=Float64; 
                                  diffuse = 0.069, 

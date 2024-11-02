@@ -190,13 +190,13 @@ ECCO_field(var_name::Symbol; kw...) = ECCO_field(ECCOMetadata(var_name); kw...)
 Retrieve the ECCO field corresponding to `variable_name` inpainted to fill all the
 missing values in the original dataset.
 
-Arguments:
-==========
+Arguments
+=========
 
 - `variable_name`: the variable name corresponding to the Dataset.
 
-Keyword Arguments:
-==================
+Keyword arguments
+=================
 
 - `architecture`: either `CPU()` or `GPU()`.
 - `mask`: the mask used to inpaint the field (see `inpaint_mask!`).

@@ -109,7 +109,7 @@ struct RelativeVelocity end
                                     von_karman_constant = convert(FT, 0.4),
                                     turbulent_prandtl_number = convert(FT, 1),
                                     gustiness_parameter = convert(FT, 6.5),
-                                    stability_functions = default_stability_functions(FT),
+                                    stability_functions = edson_stability_functions(FT),
                                     thermodynamics_parameters = PATP(FT),
                                     water_vapor_saturation = ClasiusClapyeronSaturation(),
                                     water_mole_fraction = convert(FT, 0.98),
@@ -123,27 +123,27 @@ struct RelativeVelocity end
 `SimilarityTheoryTurbulentFluxes` contains parameters and settings to calculate
 sea-air turbulent fluxes using Monin-Obukhov similarity theory.
 
-Keyword Arguments
-==================
+Keyword arguments
+=================
 
-- `gravitational_acceleration`: The gravitational acceleration (default: default_gravitational_acceleration).
+- `gravitational_acceleration`: The gravitational acceleration (default: `default_gravitational_acceleration`).
 - `von_karman_constant`: The von Karman constant (default: 0.4).
 - `turbulent_prandtl_number`: The turbulent Prandtl number (default: 1).
 - `gustiness_parameter`: The gustiness parameter that accounts for low wind speed areas (default: 6.5).
-- `stability_functions`: The stability functions. Default: default_stability_functions(FT) that follow the 
+- `stability_functions`: The stability functions. Default: `default_stability_functions(FT)` that follow the 
                          formulation of Edson et al (2013).
 - `thermodynamics_parameters`: The thermodynamics parameters used to calculate atmospheric stability and
                                saturation pressure. Default: `PATP`, alias for `PrescribedAtmosphereThermodynamicsParameters`.
-- `water_vapor_saturation`: The water vapor saturation law. Default: ClasiusClapyeronSaturation() that follows the 
-                            Clasius Clapyeron pressure formulation.
-- `water_mole_fraction`: The water mole fraction used to calculate the seawater_saturation_specific_humidity. 
+- `water_vapor_saturation`: The water vapor saturation law. Default: `ClasiusClapyeronSaturation()` that follows the 
+                            Clasius-Clapyeron pressure formulation.
+- `water_mole_fraction`: The water mole fraction used to calculate the `seawater_saturation_specific_humidity`.
                          Default: 0.98, the rest is assumed to be other substances such as chlorine, sodium sulfide and magnesium.
 - `roughness_lengths`: The roughness lengths used to calculate the characteristic scales for momentum, temperature and 
-                       water vapor. Default: default_roughness_lengths(FT), formulation taken from Edson et al (2013).
+                       water vapor. Default: `default_roughness_lengths(FT)`, formulation taken from Edson et al (2013).
 - `similarity_profile_type`: The type of similarity profile used to relate the atmospheric state to the 
                              surface fluxes / characteristic scales.
-- `bulk_velocity`: The velocity used to calculate the characteristic scales. Default: RelativeVelocity() (difference between
-                   atmospheric and oceanic speed).
+- `bulk_velocity`: The velocity used to calculate the characteristic scales. Default: `RelativeVelocity()`, that is the difference
+                   between atmospheric and oceanic speed.
 - `tolerance`: The tolerance for convergence (default: 1e-8).
 - `maxiter`: The maximum number of iterations (default: 100).
 - `fields`: The fields to calculate (default: nothing).
@@ -199,7 +199,7 @@ end
 """
     LogarithmicSimilarityProfile()
 
-Represents the classic Monin-Obukhov similarity profile, which finds that 
+Represent the classic Monin-Obukhov similarity profile, which finds that 
 
 ```math
 ϕ(z) = Π(z) ϕ★ / ϰ

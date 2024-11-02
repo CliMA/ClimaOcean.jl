@@ -24,14 +24,14 @@ Adapt.adapt_structure(to, r :: Radiation) =
 
 Constructs a `Radiation` object that represents the radiation properties of the ocean and sea ice.
 
-# Arguments
-===========
+Arguments
+=========
 
 - `arch`: The architecture of the system (default: `CPU()`).
 - `FT`: The floating-point type to use (default: `Float64`).
 
-# Keyword Arguments
-===================
+Keyword arguments
+=================
 
 - `ocean_emissivity`: The emissivity of the ocean surface (default: `0.97`).
 - `sea_ice_emissivity`: The emissivity of the sea ice surface (default: `1.0`).
@@ -90,4 +90,3 @@ function Base.show(io::IO, properties::SurfaceProperties)
     print(io, "├── ocean: ", summary(properties.ocean), '\n')
     print(io, "└── sea_ice: ", summary(properties.sea_ice))
 end
-

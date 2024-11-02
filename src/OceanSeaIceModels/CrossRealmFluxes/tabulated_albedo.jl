@@ -70,7 +70,7 @@ and day in the year.
 - `arch`: The architecture to use (default: `CPU()`).
 - `FT`: The floating-point type to use (default: `Float64`).
 
-# Keyword Arguments
+# Keyword arguments
 ===================
 - `S₀`: The solar constant (default: `convert(FT, 1365)`).
 - `α_table`: The table of albedo values (default: `α_payne`).

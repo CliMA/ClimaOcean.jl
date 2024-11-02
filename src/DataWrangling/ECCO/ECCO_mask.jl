@@ -38,4 +38,3 @@ end
     i, j, k = @index(Global, NTuple)
     @inbounds mask[i, j, k] = (Tᵢ[i, j, k] == 0) 
 end
-

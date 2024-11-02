@@ -56,7 +56,7 @@ end
 end
 
 """ 
-    propagate_horizontally!(field, mask [, tmp_field=deepcopy(field)]; max_iter = Inf)
+    propagate_horizontally!(field, mask, tmp_field=deepcopy(field); maxiter = Inf) 
 
 Horizontally propagate the values of `field` into the `mask`.
 In other words, cells where `mask[i, j, k] == false` are preserved,
@@ -114,21 +114,23 @@ end
 """
     inpaint_mask!(field, mask; max_iter = Inf)
 
-Inpaint field within `mask`, using values outside `mask`.
-In other words, regions where `mask[i, j, k] == 1` will be inpainted
-and regions where `mask[i, j, k] == 0` will be preserved.
+Inpaint `field` within `mask`, using values outside `mask`.
+In other words, regions where `mask[i, j, k] == 1` are inpainted
+and regions where `mask[i, j, k] == 0` are preserved.
 
 Arguments
 =========
-    - `field`: `Field` to be inpainted.
-    - `mask`: Boolean-valued `Field`, values where
-              `mask[i, j, k] == true` are inpainted.
-    - `max_iter`: Maximum iterations for inpainting. Non-Inf values mean that
-                  NaN's can occur within the mask.
+- `field`: Field to be inpainted.
+- `mask`: Boolean-valued `Field`, values where
+          `mask[i, j, k] == true` are inpainted.
+
+Keyword arguments
+=================
+- `max_iter`: Maximum iterations for inpainting. Non-Inf values mean that
+              NaN's can occur within the mask.
 """
 function inpaint_mask!(field, mask; maxiter = 10)
     continue_downwards!(field, mask)
     propagate_horizontally!(field, mask; maxiter)
     return field
 end
-

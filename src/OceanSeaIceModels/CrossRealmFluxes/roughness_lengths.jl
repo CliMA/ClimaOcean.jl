@@ -21,7 +21,7 @@ end
 Constructs a `ScalarRoughnessLength` object that represents the scalar roughness length
 that regulates the exchange of heat and water vapor between the ocean and the atmosphere.   
 
-Keyword Arguments
+Keyword arguments
 ==================
 
 - `air_kinematic_viscosity::Function`: The function to compute the air kinematic viscosity.
@@ -47,7 +47,7 @@ end
 Constructs a `MomentumRoughnessLength` object that represents the momentum roughness length that
 regulates the exchange of momentum, heat, and water vapor between the ocean and the atmosphere.
 
-Keyword Arguments
+Keyword arguments
 ==================
 
 - `gravitational_acceleration::Float`: The gravitational acceleration. Default is `default_gravitational_acceleration`.

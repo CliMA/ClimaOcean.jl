@@ -55,7 +55,7 @@ function three_dimensional_regrid!(a, b)
     field_z = Field(location(b), zgrid)
     regrid!(field_z, zgrid, source_grid, b)
 
-    # regrid in y 
+    # regrid in y
     @debug "Regridding in y"
     ygrid   = construct_grid(typeof(target_grid), arch, (Ns[1], Nt[2], Nt[3]), (xs, yt, zt), topo)
     field_y = Field(location(b), ygrid);
@@ -71,4 +71,3 @@ end
 include("diffuse_tracers.jl")
 
 end # module
-

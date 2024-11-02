@@ -15,9 +15,6 @@ using KernelAbstractions: @kernel, @index
 next_fraction = Ref(0.0)
 download_start_time = Ref(time_ns())
 
-"""
-    download_progress(total, now; filename="")
-"""
 function download_progress(total, now; filename="")
     messages = 10
 
