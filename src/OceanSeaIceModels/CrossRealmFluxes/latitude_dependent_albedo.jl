@@ -7,7 +7,7 @@ end
 
 """
     LatitudeDependentAlbedo(FT::DataType=Float64; 
-                            diffuse = 0.069, 
+                            diffuse = 0.069,
                             direct = 0.011) 
 
 Constructs a `LatitudeDependentAlbedo` object. The albedo of the ocean surface is assumed to be a function of the latitude,
@@ -48,10 +48,9 @@ end
 
 Base.show(io::IO, α::LatitudeDependentAlbedo) = print(io, summary(α))
 
-@inline function stateindex(α::LatitudeDependentAlbedo, i, j, k, grid, time) 
+@inline function stateindex(α::LatitudeDependentAlbedo, i, j, k, grid, time)
     φ = ηnode(i, j, k, grid, Center(), Center(), Center())
     α₀ = α.diffuse
     α₁ = α.direct
     return α₀ - α₁ * hack_cosd(2φ)
 end
-

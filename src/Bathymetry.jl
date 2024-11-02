@@ -45,8 +45,13 @@ Arguments
 
 - target_grid: grid to interpolate onto
 
+<<<<<<< HEAD
 Keyword arguments
 =================
+=======
+Keyword Arguments:
+==================
+>>>>>>> main
 
 - `height_above_water`: limits the maximum height of above-water topography (where h > 0). If
                         `nothing` the original topography is retained
