@@ -1,7 +1,7 @@
 # # Generate bathymetry data for the Mediterranean Sea
 #
-# This script shows how to configure an Immersed boundary grid with realistic bathymetry using ClimaOcean.jl
-# by generating the bathymetry data for the Mediterranean Sea.
+# This example shows how to configure an Immersed boundary grid with realistic bathymetry
+# using ClimaOcean.jl by generating the bathymetry data for the Mediterranean Sea.
 #
 # For this example, we need Oceananigans for the LatitudeLongitudeGrid and Field utilities, 
 # ClimaOcean to donwload and regrid the bathymetry, and CairoMakie to visualize the grid.
@@ -25,7 +25,8 @@ Nλ = 25 * (longitude_range[2] - longitude_range[1])
 grid = LatitudeLongitudeGrid(size = (Nλ, Nφ, 1),
                              latitude = latitude_range,
                              longitude = longitude_range,
-                             z = (0, 1))
+                             z = (0, 1),
+                             halo = (7, 7, 1))
 
 # Next, we generate the bathymetry data for the Mediterranean Sea using the
 # `regrid_bathymetry` function from ClimaOcean. The function downloads the bathymetry
@@ -33,7 +34,7 @@ grid = LatitudeLongitudeGrid(size = (Nλ, Nφ, 1),
 # bathymetry field. The three different regidding procedures below demonstrate the effect
 # of different parameters on the generated bathymetry:
 #
-# - `h_rough`  shows the output of the function with default parameters, which means only
+# - `h_rough` shows the output of the function with default parameters, which means only
 #   one interpolation passes and no restrictions on connected regions.
 # - `h_smooth` shows the output of the function with 40 interpolation passes, which results
 #    in a smoother bathymetry.
@@ -44,7 +45,7 @@ grid = LatitudeLongitudeGrid(size = (Nλ, Nφ, 1),
 h_rough = regrid_bathymetry(grid)
 h_smooth = regrid_bathymetry(grid; interpolation_passes = 40)
 h_one_basin = regrid_bathymetry(grid; major_basins = 1)
-nothing # hide
+nothing #hide
 
 # Finally, we visualize the generated bathymetry data for the Mediterranean Sea using CairoMakie.
 
@@ -59,7 +60,7 @@ interior(h_rough)[land_rough] .= NaN
 land_one_basin = interior(h_one_basin) .>= 0
 interior(h_one_basin)[land_one_basin] .= NaN
 
-fig = Figure(resolution=(850, 1150))
+fig = Figure(size=(850, 1150))
 
 ax = Axis(fig[1, 1], title = "Rough bathymetry", xlabel = "Longitude", ylabel = "Latitude")
 hm = heatmap!(ax, λ, φ, - interior(h_rough, :, :, 1), nan_color=:white, colormap = Reverse(:deep))

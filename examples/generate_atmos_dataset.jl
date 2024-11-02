@@ -15,4 +15,3 @@ T = Array(interior(Tt[1], 1:4:Nx, 1:4:Ny, 1))
 p = Array(interior(pt[1], 1:4:Nx, 1:4:Ny, 1))
 
 @save "atmospheric_state.jld2" q T p
-
