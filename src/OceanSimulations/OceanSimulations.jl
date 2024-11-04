@@ -7,6 +7,7 @@ using Oceananigans.Units
 using Oceananigans.Advection: FluxFormAdvection
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node
+using OrthogonalSphericalShellGrids
 
 using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities:
     CATKEVerticalDiffusivity,
@@ -28,6 +29,9 @@ default_or_override(default::Default, value=default.value) = value
 
 # Some defaults
 default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
+
+# TODO: 70 substeps is a bit arbitrary, should we pass the Δt in here?
+default_free_surface(grid::TripolarGrid) = SplitExplicitFreeSurface(grid; substeps = 70)
 
 function default_ocean_closure()
     mixing_length = CATKEMixingLength(Cᵇ=0.01)
