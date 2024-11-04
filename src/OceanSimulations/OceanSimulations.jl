@@ -82,8 +82,18 @@ function ocean_simulation(grid; Δt = 5minutes,
         # Don't let users use advection in a single column model
         tracer_advection = nothing
         momentum_advection = nothing
+
+        # No immersed boundaries in a single column grid
+        u_immersed_bc = nothing
+        v_immersed_bc = nothing
     else
         bottom_drag_coefficient = default_or_override(bottom_drag_coefficient)
+        
+        u_immersed_drag = FluxBoundaryCondition(u_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
+        v_immersed_drag = FluxBoundaryCondition(v_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
+        
+        u_immersed_bc = ImmersedBoundaryCondition(bottom = u_immersed_drag)
+        v_immersed_bc = ImmersedBoundaryCondition(bottom = v_immersed_drag)
     end
 
     # Set up boundary conditions using Field
@@ -101,12 +111,7 @@ function ocean_simulation(grid; Δt = 5minutes,
     u_bot_bc = FluxBoundaryCondition(u_quadratic_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
     v_bot_bc = FluxBoundaryCondition(v_quadratic_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
 
-    u_immersed_drag = FluxBoundaryCondition(u_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
-    v_immersed_drag = FluxBoundaryCondition(v_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
-
-    u_immersed_bc = ImmersedBoundaryCondition(bottom = u_immersed_drag)
-    v_immersed_bc = ImmersedBoundaryCondition(bottom = v_immersed_drag)
-
+    
     ocean_boundary_conditions = (u = FieldBoundaryConditions(top = u_top_bc, bottom = u_bot_bc, immersed = u_immersed_bc),
                                  v = FieldBoundaryConditions(top = v_top_bc, bottom = v_bot_bc, immersed = v_immersed_bc),
                                  T = FieldBoundaryConditions(top = T_top_bc),
