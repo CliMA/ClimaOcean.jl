@@ -25,6 +25,7 @@ end
 
 Default() = Default(nothing)
 default_or_override(default::Default, value=default.value) = value
+default_or_override(user_specified_value::Number, args...) = user_specified_value
 
 # Some defaults
 default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
@@ -89,6 +90,8 @@ function ocean_simulation(grid; Δt = 5minutes,
         bottom_drag_coefficient = default_or_override(bottom_drag_coefficient)
     end
 
+    bottom_drag_coefficient = convert(FT, bottom_drag_coefficient)
+    
     # Set up boundary conditions using Field
     top_zonal_momentum_flux      = τx = Field{Face, Center, Nothing}(grid)
     top_meridional_momentum_flux = τy = Field{Center, Face, Nothing}(grid)
