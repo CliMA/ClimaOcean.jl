@@ -49,7 +49,7 @@ if test_group == :turbulent_fluxes || test_group == :all
 end
 
 if test_group == :bathymetry || test_group == :all
-    CUDA.set_runtime_version!(v"12.6"; local_toolkit = true)
+    include("test_bathymetry.jl")
 end
 
 if test_group == :simulations || test_group == :all
