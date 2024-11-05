@@ -23,6 +23,7 @@ using Printf
 using Scratch
 
 download_bathymetry_cache::String = ""
+
 function __init__()
     global download_bathymetry_cache = @get_scratch!("Bathymetry")
 end

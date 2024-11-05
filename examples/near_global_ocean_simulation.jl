@@ -23,14 +23,15 @@ using Dates
 
 # ### Grid configuration 
 #
-# We define a global grid with a horizontal resolution of 1/4 degree and 40 vertical levels. 
+# We define a global grid with a horizontal resolution of 1/4 degree and 30 vertical levels. 
 # The grid is a `LatitudeLongitudeGrid` capped at 75°S to 75°N.
-# We use an exponential vertical spacing to better resolve the upper ocean layers. The total depth of the domain is set to 6000 meters.
+# We use an exponential vertical spacing to better resolve the upper ocean layers.
+# The total depth of the domain is set to 6000 meters.
 # Finally, we specify the architecture for the simulation, which in this case is a GPU.
 
 arch = GPU() 
 
-z_faces = exponential_z_faces(Nz=40, depth=6000)
+z_faces = exponential_z_faces(Nz=30, depth=4000)
 
 Nx = 1440
 Ny = 600
@@ -52,11 +53,28 @@ grid = LatitudeLongitudeGrid(arch;
 # lakes) from the bathymetry data by specifying `connected_regions_allowed = 3` (Mediterrean
 # sea an North sea in addition to the ocean).
 
-bottom_height = regrid_bathymetry(grid; 
-                                  minimum_depth = 10,
-                                  interpolation_passes = 5,
-                                  major_basins = 3)
+bathymetry_path = ClimaOcean.Bathymetry.download_bathymetry_cache
+rm(bathymetry_path, force=true)
 
+# try twice
+tries = 3
+_try = 0
+built_bathymetry = false
+
+while (_try < tries) || !built_bathymetry
+    try
+        bottom_height = regrid_bathymetry(grid; 
+                                          minimum_depth = 10,
+                                          interpolation_passes = 5,
+                                          major_basins = 3)
+
+        built_bathymetry = true
+    catch err
+        @warn "Building the bathymetry failed, trying again..." exception=err
+        _try += 1
+    end
+end
+        
 # For plotting
 bottom_height[bottom_height .>= 0] .= NaN
 
@@ -203,11 +221,11 @@ nothing #hide
 # This time, we set the CFL in the time_step_wizard to be 0.25 as this is the maximum recommended CFL to be
 # used in conjunction with Oceananigans' hydrostatic time-stepping algorithm ([two step Adams-Bashfort](https://en.wikipedia.org/wiki/Linear_multistep_method))
 
-ocean.stop_time = 100days
-coupled_simulation.stop_time = 100days
-conjure_time_step_wizard!(ocean; cfl = 0.25, max_Δt = 10minutes, max_change = 1.1)
-run!(coupled_simulation)
-nothing #hide
+# ocean.stop_time = 100days
+# coupled_simulation.stop_time = 100days
+# conjure_time_step_wizard!(ocean; cfl = 0.25, max_Δt = 10minutes, max_change = 1.1)
+# run!(coupled_simulation)
+# nothing #hide
 
 # ## Visualizing the results
 # 
