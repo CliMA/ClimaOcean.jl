@@ -26,7 +26,7 @@ function regional_omip_grid(arch, ecco_2_temperature_field;
 
     Te = ecco_2_temperature_field
     launch!(architecture(Te), Te.grid, :xyz, nan_land!, Te)
-    
+
     ΔΛ = last(longitude) - first(longitude)
     ΔΦ = last(latitude) - first(latitude)
     Nx = Int(ΔΛ / resolution)
@@ -36,7 +36,7 @@ function regional_omip_grid(arch, ecco_2_temperature_field;
     grid = LatitudeLongitudeGrid(arch; latitude, longitude, halo,
                                  size = (Nx, Ny, Nz),
                                  z = z)
-    
+
     Tᵢ = CenterField(grid)
     interpolate!(Tᵢ, Te)
 
@@ -45,7 +45,7 @@ function regional_omip_grid(arch, ecco_2_temperature_field;
 
     # Construct bottom_height depth by analyzing T
     launch!(arch, grid, :xy, infer_bottom_height!, bottom_height, Tᵢ, grid)
-   
+
     grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
     elapsed = 1e-9 * (time_ns() - start_time)
@@ -105,7 +105,7 @@ function omip_ocean_component(grid;
 
         tracers = tuple(:e, tracers...)
     end
-    
+
     ocean_model = HydrostaticFreeSurfaceModel(; grid, buoyancy, closure, tracers,
                                               tracer_advection, momentum_advection,
                                               free_surface = SplitExplicitFreeSurface(cfl=0.7; grid),
@@ -202,4 +202,3 @@ end
         T[i, j, k] = ifelse(land, NaN, Tᵢ)
     end
 end
-
