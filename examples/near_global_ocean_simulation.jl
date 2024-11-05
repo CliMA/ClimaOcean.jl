@@ -70,6 +70,7 @@ while (_try < tries) || !built_bathymetry
         built_bathymetry = true
     catch err
         @warn "Building the bathymetry failed, trying again..." exception=err
+        rm(bathymetry_path, force=true)
         _try += 1
     end
 end
