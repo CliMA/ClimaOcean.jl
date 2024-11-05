@@ -3,10 +3,10 @@
 # ClimaOcean can download and utilize data from the "ECCO" state estimate,
 # which stands for "Estimating the Circulation and Climate of the Ocean" --- two!
 #
-# This script shows how to download three-dimensional temperature and salinity fields
+# This example shows how to download three-dimensional temperature and salinity fields
 # from ECCO, and makes a short animation to showcase the fields' content.
 #
-# For this example we need Oceananigans for Field utilities, CairoMakie for plotting
+# For this example we need Oceananigans for Field utilities, CairoMakie for plotting,
 # Printf for nice labeling, and of course ClimaOcean to actually download and construct
 # the ECCO fields.
 
@@ -16,8 +16,8 @@ using Printf
 
 using ClimaOcean.DataWrangling.ECCO: ECCO_field
 
-# The function `ECCO_field` provided by `ClimaOcean.DataWrangling.ECCO` will automatically
-# download ECCO data if it doesn't already exist at the default location.
+# The function `ECCO_field` provided by `ClimaOcean.DataWrangling.ECCO` automatically
+# downloads ECCO data if that doesn't already exist at the default location.
 
 T = ECCO_field(:temperature)
 S = ECCO_field(:salinity)
@@ -39,8 +39,6 @@ fig = Figure(size=(1200, 1400))
 
 axT = Axis(fig[1, 1])
 axS = Axis(fig[2, 1])
-
-λ, φ, z = nodes(T)
 
 # To make an animation that scrolls through the 3D temperature
 # and salinity fields, we make an Observable for the vertical index,

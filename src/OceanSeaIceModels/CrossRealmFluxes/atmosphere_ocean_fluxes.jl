@@ -1,4 +1,5 @@
 using Oceananigans.Operators: extrinsic_vector, intrinsic_vector
+using Oceananigans.Grids: _node
 
 # Fallback!
 limit_fluxes_over_sea_ice!(args...) = nothing
@@ -49,8 +50,14 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     atmosphere_time_indexing = u.time_indexing
 
     # kernel parameters that compute fluxes in 0:Nx+1 and 0:Ny+1
-    kernel_size = (size(grid, 1) + 2, size(grid, 2) + 2)
-    kernel_parameters = KernelParameters(kernel_size, (-1, -1))
+    Nx, Ny, Nz = size(grid)
+    single_column_grid = Nx == 1 && Ny == 1
+
+    if single_column_grid
+        kernel_parameters = KernelParameters(1:1, 1:1)
+    else
+        kernel_parameters = KernelParameters(0:Nx+1, 0:Ny+1)
+    end
 
     surface_atmosphere_state = coupled_model.fluxes.surface_atmosphere_state
 
@@ -88,7 +95,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
 
     if !isnothing(auxiliary_freshwater_flux)
         # TODO: do not assume that `auxiliary_freshater_flux` is a tuple
-        auxiliary_data          = map(ϕ -> ϕ.data, auxiliary_freshwater_flux)
+        auxiliary_data = map(ϕ -> ϕ.data, auxiliary_freshwater_flux)
 
         first_auxiliary_flux = first(auxiliary_freshwater_flux)
         auxiliary_grid          = first_auxiliary_flux.grid
@@ -198,7 +205,7 @@ end
         # The third index "k" should not matter but we put the correct index to get
         # a surface node anyways.
         atmos_args = (atmos_grid, atmos_times, atmos_backend, atmos_time_indexing)
-        X = node(i, j, kᴺ + 1, grid, c, c, f)
+        X = _node(i, j, kᴺ + 1, grid, c, c, f)
         time = Time(clock.time)
 
         uₐ = interp_atmos_time_series(atmos_velocities.u, X, time, atmos_args...)
@@ -239,7 +246,7 @@ end
     kᴺ = size(grid, 3) # index of the top ocean cell
       
     @inbounds begin
-        X = node(i, j, kᴺ + 1, grid, c, c, f)
+        X = _node(i, j, kᴺ + 1, grid, c, c, f)
         time = Time(clock.time)
         Mr = interp_atmos_time_series(auxiliary_freshwater_flux, X, time,
                                       auxiliary_grid,

@@ -137,6 +137,11 @@ urls = Dict(
 compute_bounding_nodes(::Nothing, ::Nothing, LH, hnodes) = nothing
 compute_bounding_nodes(bounds, ::Nothing, LH, hnodes) = bounds
 
+function compute_bounding_nodes(x::Number, ::Nothing, LH, hnodes)
+    ϵ = convert(typeof(x), 0.001) # arbitrary?
+    return (x - ϵ, x + ϵ)
+end
+
 # TODO: remove the allowscalar
 function compute_bounding_nodes(::Nothing, grid, LH, hnodes)
     hg = hnodes(grid, LH())
@@ -150,7 +155,7 @@ function compute_bounding_indices(::Nothing, hc)
     return 1, Nh
 end
 
-function compute_bounding_indices(bounds, hc)
+function compute_bounding_indices(bounds::Tuple, hc)
     h₁, h₂ = bounds
     Nh = length(hc)
 
@@ -259,14 +264,16 @@ new_backend(::JRA55NetCDFBackend, start, length) = JRA55NetCDFBackend(start, len
 """
     JRA55_field_time_series(variable_name;
                             architecture = CPU(),
+                            time_indices = nothing,
+                            latitude = nothing,
+                            longitude = nothing,
                             location = nothing,
                             url = nothing,
                             filename = nothing,
                             shortname = nothing,
                             backend = InMemory(),
                             preprocess_chunk_size = 10,
-                            preprocess_architecture = CPU(),
-                            time_indices = nothing)
+                            preprocess_architecture = CPU())
 
 Return a `FieldTimeSeries` containing atmospheric reanalysis data for `variable_name`,
 which describes one of the variables in the "repeat year forcing" dataset derived
@@ -302,6 +309,14 @@ Keyword arguments
                       For example, `time_indices=1:3` returns a 
                       `FieldTimeSeries` with the first three time snapshots
                       of `variable_name`.
+
+    - `latitude`: Guiding latitude bounds for the resulting grid.
+                  Used to slice the data when loading into memory.
+                  Default: nothing, which retains the latitude range of the native grid.
+
+    - `longitude`: Guiding longitude bounds for the resulting grid.
+                   Used to slice the data when loading into memory.
+                  Default: nothing, which retains the longitude range of the native grid.
 
     - `url`: The url accessed to download the data for `variable_name`.
              Default: `ClimaOcean.JRA55.urls[variable_name]`.

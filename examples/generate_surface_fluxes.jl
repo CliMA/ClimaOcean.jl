@@ -3,7 +3,7 @@
 # ClimaOcean uses bulk formulae to estimate the surface exchange of momentum,
 # heat, and water vapor between the atmosphere and the ocean.
 #
-# This script demonstrates an example of the turbulent surface flux calculations performed in ClimaOcean
+# This example demonstrates an example of the turbulent surface flux calculations performed in ClimaOcean
 # using ECCO2 data for the ocean and JRA55 data for the atmosphere.
 #
 # For this example, we need ClimaOcean with its DataWrangling modules: ECCO2 and JRA55.
@@ -28,7 +28,7 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBoundary(mask))
 fig = Figure()
 ax  = Axis(fig[1, 1])
 heatmap!(ax, interior(grid.immersed_boundary.mask, :, :, grid.Nz))
-save("ECCO_continents.png", fig) # hide
+save("ECCO_continents.png", fig) #hide
 
 # ![](ECCO_continents.png)
 
@@ -47,7 +47,7 @@ save("ECCO_continents.png", fig) # hide
 # We invoke the constructor with only the first two time indices, corresponding to 
 # January 1st (at 00:00 AM and 03:00 AM).
 
-atmosphere  = JRA55_prescribed_atmosphere(1:2; backend = InMemory())
+atmosphere = JRA55_prescribed_atmosphere(1:2; backend = InMemory())
 ocean = ocean_simulation(grid)
 
 # Now that we have an atmosphere and ocean, we `set!` the ocean temperature and salinity
@@ -92,4 +92,3 @@ heatmap!(ax, Mv; colormap = :bwr)
 
 save("fluxes.png", fig)
 # ![](fluxes.png)
-

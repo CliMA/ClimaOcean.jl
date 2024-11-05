@@ -1,5 +1,6 @@
 module PrescribedAtmospheres
 
+using Oceananigans.Grids: grid_name
 using Oceananigans.Utils: prettysummary
 using Oceananigans.OutputReaders: update_field_time_series!, extract_field_time_series
 
@@ -285,7 +286,7 @@ const PATP = PrescribedAtmosphereThermodynamicsParameters
 ##### Prescribed atmosphere (as opposed to dynamically evolving / prognostic)
 #####
 
-struct PrescribedAtmosphere{G, U, P, C, F, I, R, TP, TI, FT}
+struct PrescribedAtmosphere{FT, G, U, P, C, F, I, R, TP, TI}
     grid :: G
     velocities :: U
     pressure :: P
@@ -299,8 +300,19 @@ struct PrescribedAtmosphere{G, U, P, C, F, I, R, TP, TI, FT}
     boundary_layer_height :: FT
 end
 
-Base.summary(::PrescribedAtmosphere) = "PrescribedAtmosphere"
-Base.show(io::IO, pa::PrescribedAtmosphere) = print(io, summary(pa))
+function Base.summary(pa::PrescribedAtmosphere{FT}) where FT
+    Nx, Ny, Nz = size(pa.grid)
+    Nt = length(pa.times)
+    sz_str = string(Nx, "×", Ny, "×", Nz, "×", Nt)
+    return string(sz_str, " PrescribedAtmosphere{$FT}")
+end
+
+function Base.show(io::IO, pa::PrescribedAtmosphere)
+    print(io, summary(pa), " on ", grid_name(pa.grid), ":", '\n')
+    print(io, "├── times: ", prettysummary(pa.times), '\n')
+    print(io, "├── reference_height: ", prettysummary(pa.reference_height), '\n')
+    print(io, "└── boundary_layer_height: ", prettysummary(pa.reference_height))
+end
 
 """
     PrescribedAtmosphere(times;

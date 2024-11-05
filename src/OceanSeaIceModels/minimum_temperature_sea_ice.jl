@@ -63,3 +63,4 @@ end
         τy[i, j, 1] = ifelse(sea_ice, zero(grid), τy[i, j, 1]) 
     end
 end
+
