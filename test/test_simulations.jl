@@ -1,5 +1,6 @@
 include("runtests_setup.jl")
 
+using CUDA
 using OrthogonalSphericalShellGrids
 
 @testset "Parameter space test" begin
