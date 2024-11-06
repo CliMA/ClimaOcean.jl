@@ -56,6 +56,7 @@ if test_group == :bathymetry || test_group == :all
 end
 
 if test_group == :simulations || test_group == :all
+    CUDA.set_runtime_version!(v"12.2", local_toolkit = true) # Seems to help in finding the correct CUDA version
     include("test_simulations.jl")
 end
 
