@@ -18,7 +18,7 @@ for n = 1:Nt
     hn[land] .= NaN
 end
 
-fig = Figure(resolution=(1200, 600))
+fig = Figure(size=(1200, 600))
 axT = Axis(fig[1, 1], xlabel="Longitude", ylabel="Latitude")
 axh = Axis(fig[2, 1], xlabel="Longitude", ylabel="Latitude")
 

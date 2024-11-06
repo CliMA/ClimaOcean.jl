@@ -1,7 +1,7 @@
 agents:
   queue: new-central
   slurm_mem: 8G
-  modules: climacommon/2024_05_27
+  modules: climacommon/2024_10_09
 
 timeout_in_minutes: 1440
 
@@ -13,8 +13,6 @@ env:
 steps:
   - label: "initialize"
     key: "init"
-    concurrency: 1
-    concurrency_group: 'depot/climaocean-ci'
     env:
       TEST_GROUP: "init"
     command:
@@ -27,6 +25,7 @@ steps:
 
       # Force the initialization of the CUDA runtime as it is lazily loaded by default:
       - "echo '--- Initialize the CUDA runtime'"
+      - "julia --project -e 'using CUDA; CUDA.precompile_runtime()'"
       - "julia --project -e 'using Pkg; Pkg.test()'"
     agents:
       slurm_gpus: 1
@@ -150,4 +149,3 @@ steps:
 
   - wait: ~
     continue_on_failure: true
-
