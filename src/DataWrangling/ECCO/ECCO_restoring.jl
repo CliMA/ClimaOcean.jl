@@ -116,9 +116,9 @@ Create a field time series object for ECCO data.
 - architecture: The architecture to use for computations (default: CPU()).
 - time_indices_in_memory: The number of time indices to keep in memory (default: 2).
 - time_indexing: The time indexing scheme to use (default: Cyclical()).
-- `inpainting`: The inpainting algorithm to use for ECCO interpolation. For the moment, the only option is `NearestNeighborInpainting(maxiter)`, 
+- `inpainting`: The inpainting algorithm to use for ECCO interpolation. For the moment, the only option is `NearestNeighborInpainting(maxiter)`.
                 where an average of the valid surrounding values is used `maxiter` times.
-- grid: if not a `nothing`, the ECCO data is directly interpolated on the `grid`,
+- grid: if not a `nothing`, the ECCO data is directly interpolated on the `grid`.
 """
 function ECCO_field_time_series(metadata::ECCOMetadata;	
                                 architecture = CPU(),	
@@ -251,13 +251,14 @@ end
 @inline get_ECCO_variable(::Val{false}, ECCO_fts, i, j, k, ECCO_grid, grid, time) = @inbounds ECCO_fts[i, j, k, time]
 
 """
-    ECCORestoring(variable_name, architecture;
+    ECCORestoring(variable_name::Symbol, [architecture = CPU()];
                   version=ECCO4Monthly(), 
                   dates = all_ECCO_dates(version), 
                   time_indices_in_memory = 2, 
                   time_indexing = Cyclical(),
                   mask = 1,
                   rate = 1,
+                  grid = nothing,
                   inpainting = NearestNeighborInpainting(prod(size(metadata))))
 
 Create a restoring forcing term that restores to values stored in an ECCO field time series.
@@ -289,8 +290,9 @@ simulation grid and time.
 - `time_indexing`: The time indexing scheme for the field time series≥
 - `mask`: The mask value. Can be a function of `(x, y, z, time)`, an array or a number
 - `rate`: The restoring rate in s⁻¹.
-- `time_indices_in_memory:` how many time instances are loaded in memory. The remaining are loaded lazyly
-- `inpainting`: inpainting algorithm, see [`inpaint_mask!`](@ref). (defaults to `NearestNeighborInpainting(Inf)`)
+- `time_indices_in_memory:` how many time instances are loaded in memory. The remaining are loaded lazily.
+- `grid`: if not a `nothing`, the ECCO data is directly interpolated on the `grid`.
+- `inpainting`: inpainting algorithm, see [`inpaint_mask!`](@ref). Defaults to `NearestNeighborInpainting(Inf)`.
 
 It is possible to also pass an `ECCOMetadata` type as the first argument without the need for the 
 `variable_name` argument and the `version` and `dates` keyword arguments.
