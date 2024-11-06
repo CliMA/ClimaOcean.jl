@@ -2,7 +2,7 @@ module ECCO
 
 export ECCOMetadata, ECCO_field, ECCO_mask, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
-export ECCO_restoring_forcing
+export ECCORestoring, LinearlyTaperedPolarMask
 
 using ClimaOcean.DataWrangling: inpaint_mask!
 using ClimaOcean.InitialConditions: three_dimensional_regrid!, interpolate!
@@ -206,14 +206,14 @@ Keyword Arguments:
 function inpainted_ECCO_field(metadata::ECCOMetadata; 
                               architecture = CPU(),
                               mask = ECCO_mask(metadata, architecture),
-                              maxiter = Inf,
+                              inpainting = NearestNeighborInpainting(Inf),
                               kw...)
     
     f = ECCO_field(metadata; architecture, kw...)
 
     # Make sure all values are extended properly
     @info "In-painting ECCO $(metadata.name)"
-    inpaint_mask!(f, mask; maxiter)
+    inpaint_mask!(f, mask; inpainting)
 
     fill_halo_regions!(f)
 
