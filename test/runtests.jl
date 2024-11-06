@@ -1,6 +1,8 @@
 # Common test setup file to make stand-alone tests easy
 include("runtests_setup.jl")
 
+using CUDA
+
 test_group = get(ENV, "TEST_GROUP", :all)
 test_group = Symbol(test_group)
 
@@ -18,6 +20,7 @@ end
 
 if test_group == :init || test_group == :all
     using CUDA
+    CUDA.set_runtime_version!(v"12.6"; local_toolkit = true)
     CUDA.precompile_runtime()
 
     # Download bathymetry data
