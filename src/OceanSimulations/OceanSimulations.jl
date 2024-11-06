@@ -7,6 +7,7 @@ using Oceananigans.Units
 using Oceananigans.Advection: FluxFormAdvection
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node
+using OrthogonalSphericalShellGrids
 
 using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities:
     CATKEVerticalDiffusivity,
@@ -19,8 +20,19 @@ using Oceananigans.BuoyancyModels: g_Earth
 using Oceananigans.Coriolis: Ω_Earth
 using Oceananigans.Operators
 
+struct Default{V}
+    value :: V
+end
+
+Default() = Default(nothing)
+default_or_override(default::Default, value=default.value) = value
+
 # Some defaults
 default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
+
+# 70 substeps is a safe rule of thumb for an ocean at 1/4 - 1/10th of a degree
+# TODO: pass the cfl and a given Δt to calculate the number of substeps?
+default_free_surface(grid::TripolarGrid) = SplitExplicitFreeSurface(grid; substeps = 70)
 
 function default_ocean_closure()
     mixing_length = CATKEMixingLength(Cᵇ=0.01)
@@ -58,12 +70,29 @@ function ocean_simulation(grid; Δt = 5minutes,
                           reference_density = 1020,
                           rotation_rate = Ω_Earth,
                           gravitational_acceleration = g_Earth,
-                          bottom_drag_coefficient = 0.003,
+                          bottom_drag_coefficient = Default(0.003),
                           forcing = NamedTuple(),
                           coriolis = HydrostaticSphericalCoriolis(; rotation_rate),
                           momentum_advection = default_momentum_advection(),
                           tracer_advection = default_tracer_advection(),
                           verbose = false)
+
+    FT = eltype(grid)
+
+    # Detect whether we are on a single column grid
+    Nx, Ny, _ = size(grid)
+    single_column_simulation = Nx == 1 && Ny == 1
+
+    if single_column_simulation
+        # Let users put a bottom drag if they want
+        bottom_drag_coefficient = default_or_override(bottom_drag_coefficient, zero(grid))
+
+        # Don't let users use advection in a single column model
+        tracer_advection = nothing
+        momentum_advection = nothing
+    else
+        bottom_drag_coefficient = default_or_override(bottom_drag_coefficient)
+    end
 
     # Set up boundary conditions using Field
     top_zonal_momentum_flux      = τx = Field{Face, Center, Nothing}(grid)
@@ -88,13 +117,6 @@ function ocean_simulation(grid; Δt = 5minutes,
     # Use the TEOS10 equation of state
     teos10 = TEOS10EquationOfState(; reference_density)
     buoyancy = SeawaterBuoyancy(; gravitational_acceleration, equation_of_state=teos10)
-
-    # Minor simplifications for single column grids
-    Nx, Ny, _ = size(grid)
-    if Nx == Ny == 1 # single column grid
-        tracer_advection = nothing
-        momentum_advection = nothing
-    end
 
     tracers = (:T, :S)
     if closure isa CATKEVerticalDiffusivity
