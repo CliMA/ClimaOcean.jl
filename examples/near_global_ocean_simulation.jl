@@ -52,7 +52,8 @@ grid = LatitudeLongitudeGrid(arch;
 # sminor enclosed basins but the 3 largest `major_basins` as well as reasons
 # that are shallower than `minimum_depth = 10`.
 
-bathymetry_path = ClimaOcean.Bathymetry.download_bathymetry_cache
+bathymetry_dir = ClimaOcean.Bathymetry.download_bathymetry_cache
+bathymetry_path = joinpath(bathymetry_dir, "/*")
 rm(bathymetry_path, force=true)
 
 # try twice
