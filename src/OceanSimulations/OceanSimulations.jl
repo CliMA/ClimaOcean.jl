@@ -24,23 +24,16 @@ struct Default{V}
     value :: V
 end
 
-Default() = Default(nothing)
-
 """
-    default_or_override(default::Default, possibly_alternative_default=default.value) = possibly_alternative_default
+    default_or_override(default::Default, alternative_default=default.value) = alternative_default
     default_or_override(override, alternative_default) = override
 
-Either return `default.value`, or an override.
+Either return `default.value`, an `alternative_default`, or an `override`.
 
-The override may be specified two ways:
-
-1. Provide `value` by writing `default_or_override(default, override_value)`. This
-pattern is useful for constructors, where "alternative defaults" must be implemented based
-on other aspects of a simulation's configuration.
-
-2. Provide the override in place of `default` by writing either `default_or_override(override)` or
-`default_or_override(override, alternative_default)`. In either of the above two cases, provided that
-`!(override isa Default)`, then `override` will supercede the `alternative_default`.
+The purpose of this function is to help define constructors with "configuration-dependent" defaults.
+For example, the default bottom drag should be 0 for a single column model, but 0.003 for a global model.
+We therefore need a way to specify both the "normal" default 0.003 as well as the "alternative default" 0,
+all while respecting user input and changing this to a new value if specified.
 """
 default_or_override(default::Default, possibly_alternative_default=default.value) =  possibly_alternative_default
 default_or_override(override, alternative_default=nothing) = override
