@@ -25,8 +25,25 @@ struct Default{V}
 end
 
 Default() = Default(nothing)
-default_or_override(default::Default, value=default.value) = value
-default_or_override(user_specified_value::Number, args...) = user_specified_value
+
+"""
+    default_or_override(default::Default, possibly_alternative_default=default.value) = possibly_alternative_default
+    default_or_override(override, alternative_default) = override
+
+Either return `default.value`, or an override.
+
+The override may be specified two ways:
+
+1. Provide `value` by writing `default_or_override(default, override_value)`. This
+pattern is useful for constructors, where "alternative defaults" must be implemented based
+on other aspects of a simulation's configuration.
+
+2. Provide the override in place of `default` by writing either `default_or_override(override)` or
+`default_or_override(override, alternative_default)`. In either of the above two cases, provided that
+`!(override isa Default)`, then `override` will supercede the `alternative_default`.
+"""
+default_or_override(default::Default, possibly_alternative_default=default.value) =  possibly_alternative_default
+default_or_override(override, alternative_default=nothing) = override
 
 # Some defaults
 default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
