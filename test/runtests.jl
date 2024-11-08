@@ -60,3 +60,7 @@ if test_group == :simulations || test_group == :all
     include("test_simulations.jl")
 end
 
+if test_group == :distributed || test_group == :all
+    include("test_distributed_utils.jl")
+end
+
