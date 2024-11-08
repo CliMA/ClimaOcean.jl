@@ -118,18 +118,13 @@ function empty_ECCO_field(metadata::ECCOMetadata;
 end
 
 """
-    ECCO_field(variable_name;
+    ECCO_field(metadata::ECCOMetadata;
                architecture = CPU(),
-               horizontal_halo = (1, 1),
-               user_data = nothing,
-               url = ecco_urls[variable_name],
-               short_name = ecco_short_names[variable_name])
+               horizontal_halo = (3, 3))
 
-Retrieve the ECCO field corresponding to `variable_name`. 
-The data is either:
-(1) retrieved from `filename`,
-(2) dowloaded from `url` if `filename` does not exists,
-(3) filled from `user_data` if `user_data` is provided.
+Retrieve the ecco field corresponding to `metadata`. 
+The data is loaded from `filename` on `architecture` with `horizontal_halo`
+in the x and y direction. The halo in the z-direction is one.
 """
 function ECCO_field(metadata::ECCOMetadata;
                     architecture = CPU(),
@@ -187,21 +182,20 @@ ECCO_field(var_name::Symbol; kw...) = ECCO_field(ECCOMetadata(var_name); kw...)
                          mask = ECCO_mask(architecture),
                          maxiter = Inf)
     
-Retrieve the ECCO field corresponding to `variable_name` inpainted to fill all the
-missing values in the original dataset.
+    
+Retrieve the ECCO field corresponding to `metadata` inpainted to fill all the missing values in the original dataset.
 
 Arguments:
 ==========
 
-- `variable_name`: the variable name corresponding to the Dataset.
+- `metadata`: the metadata corresponding to the dataset.
 
 Keyword Arguments:
 ==================
 
 - `architecture`: either `CPU()` or `GPU()`.
-- `mask`: the mask used to inpaint the field (see `inpaint_mask!`).
-- `maxiter`: the maximum number of iterations to inpaint the field (see `inpaint_mask!`).
-
+- `mask`: the mask used to inpaint the field, see [`inpaint_mask!`](@ref).
+- `inpainting`: the inpainting algorithm, see [`inpaint_mask!`](@ref). Default: `NearestNeighborInpainting(Inf)`.
 """
 function inpainted_ECCO_field(metadata::ECCOMetadata; 
                               architecture = CPU(),
