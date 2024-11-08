@@ -58,10 +58,10 @@ rm(bathymetry_path, force=true)
 
 # try twice
 tries = 3
-_try = 0
+attempt = 1
 built_bathymetry = false
 
-while (_try < tries) || !built_bathymetry
+while (attempt < tries) || !built_bathymetry
     try
         bottom_height = regrid_bathymetry(grid; 
                                           minimum_depth = 10,
@@ -70,10 +70,10 @@ while (_try < tries) || !built_bathymetry
 
         built_bathymetry = true
     catch err
-        @warn "Building the bathymetry failed, trying again..." exception=err
+        @warn "Building the bathymetry failed on attempt $attempt, trying again..."
         rm(bathymetry_path, force=true)
-        _try += 1
     end
+    attempt += 1
 end
         
 # Let's see what the bathymetry looks like:
