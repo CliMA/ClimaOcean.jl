@@ -9,7 +9,7 @@ using ClimaOcean.DataWrangling: Metadata
 struct JRA55MultipleYears end
 struct JRA55RepeatYear end
 
-const JRA55Metadata{T} = Union{Metadata{T, <:JRA55MultipleYears}, Metadata{<:JRA55RepeatYear}} where T
+const JRA55Metadata{T, V} = Union{Metadata{T, V<:JRA55MultipleYears}, Metadata{T, V<:JRA55RepeatYear}} where {T, V}
 
 Base.size(data::JRA55Metadata) = (640, 320, length(data.dates))
 Base.size(::JRA55Metadata{<:AbstractCFDateTime}) = (640, 320, 1)
@@ -29,8 +29,8 @@ function metadata_filename(metadata::Metadata{<:AbstractCFDateTime, <:JRA55Repea
 end
 
 # Convenience functions
-short_name(data::JRA55Metadata)     = jra55_short_names[data.name]
-field_location(data::JRA55Metadata) = (Center, Center, Center)
+short_name(data::JRA55Metadata) = jra55_short_names[data.name]
+location(data::JRA55Metadata)   = (Center, Center, Center)
 
 # A list of all variables provided in the JRA55 dataset:
 JRA55_variable_names = (:river_freshwater_flux,

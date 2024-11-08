@@ -1,12 +1,19 @@
 
-# Metadata holding the ECCO dataset information:
-# - `name`: The name of the dataset.
-# - `dates`: The dates of the dataset, in a `AbstractCFDateTime` format.
-# - `version`: The version of the dataset, could be ECCO2Monthly, ECCO2Daily, or ECCO4Monthly.
+
+"""
+    Metadata{D, V} 
+
+Metadata holding the dataset information:
+- `name`: The name of the dataset.
+- `dates`: The dates of the dataset, in a `AbstractCFDateTime` format.
+- `version`: The version of the dataset, could be ECCO2Monthly, ECCO2Daily, or ECCO4Monthly.
+- `dir`: The directory where the dataset is stored.
+"""
 struct Metadata{D, V} 
     name  :: Symbol
     dates :: D
     version :: V
+    dir :: String
 end
 
 Base.show(io::IO, metadata::Metadata) = 
@@ -15,22 +22,27 @@ Base.show(io::IO, metadata::Metadata) =
     "├── dates: $(metadata.dates)", '\n',
     "└── data version: $(metadata.version)")
 
+
 # Treat Metadata as an array to allow iteration over the dates.
-Base.getindex(metadata::Metadata, i::Int) = @inbounds Metadata(metadata.name, metadata.dates[i], metadata.version)
-Base.length(metadata::Metadata)           = length(metadata.dates)
-Base.eltype(metadata::Metadata)           = Base.eltype(metadata.dates)
-Base.first(metadata::Metadata)            = @inbounds Metadata(metadata.name, metadata.dates[1], metadata.version)
-Base.last(metadata::Metadata)             = @inbounds Metadata(metadata.name, metadata.dates[end], metadata.version)
-Base.iterate(metadata::Metadata, i=1)     = (@inline; (i % UInt) - 1 < length(metadata) ? (@inbounds Metadata(metadata.name, metadata.dates[i], metadata.version), i + 1) : nothing)
+Base.length(metadata::Metadata) = length(metadata.dates)
+Base.eltype(metadata::Metadata) = Base.eltype(metadata.dates)
+@propagate_inbounds Base.getindex(m::Metadata, i::Int) = Metadata(m.name, m.dates[i],   m.version, m.dir)
+@propagate_inbounds Base.first(m::Metadata)            = Metadata(m.name, m.dates[1],   m.version, m.dir)
+@propagate_inbounds Base.last(m::Metadata)             = Metadata(m.name, m.dates[end], m.version, m.dir)
+
+@inline function Base.iterate(m::Metadata, i=1)
+    if (i % UInt) - 1 < length(m)
+        return ECCOMetadata(m.name, m.dates[i], m.version, m.dir), i + 1
+    else
+        return nothing
+    end
+end
 
 Base.axes(metadata::Metadata{<:AbstractCFDateTime})    = 1
 Base.first(metadata::Metadata{<:AbstractCFDateTime})   = metadata
 Base.last(metadata::Metadata{<:AbstractCFDateTime})    = metadata
 Base.iterate(metadata::Metadata{<:AbstractCFDateTime}) = (metadata, nothing)
 Base.iterate(::Metadata{<:AbstractCFDateTime}, ::Any)  = nothing
-
-Base.size(data::Metadata{<:Any, <:JRA55ThreeHourly}) = (640,  320,  1, length(data.dates))
-
 
 """
     native_times(metadata; start_time = metadata.dates[1])

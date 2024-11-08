@@ -10,21 +10,7 @@ struct ECCO2Monthly end
 struct ECCO2Daily end
 struct ECCO4Monthly end
 
-"""
-    ECCOMetadata{D, V} 
-
-Metadata holding the ECCO dataset information:
-- `name`: The name of the dataset.
-- `dates`: The dates of the dataset, in a `AbstractCFDateTime` format.
-- `version`: The version of the dataset, could be ECCO2Monthly, ECCO2Daily, or ECCO4Monthly.
-- `dir`: The directory where the dataset is stored.
-"""
-struct ECCOMetadata{D, V} 
-    name  :: Symbol
-    dates :: D
-    version :: V
-    dir :: String
-end
+const ECCOMetadata{D, V} = Union{Metadata{T, V<:ECCO4Monthly}, Metadata{T, V<:ECCO2Daily}, Metadata{T, V<:ECCO2Monthly}} where {T, V}
 
 Base.show(io::IO, metadata::ECCOMetadata) = 
     print(io, "ECCOMetadata:", '\n',
@@ -60,32 +46,11 @@ function ECCOMetadata(name::Symbol;
                       version = ECCO4Monthly(),
                       dir = download_ECCO_cache)
              
-    return ECCOMetadata(name, dates, version, dir)
+    return Metadata(name, dates, version, dir)
 end
 
 ECCOMetadata(name::Symbol, date, version=ECCO4Monthly(); dir=download_ECCO_cache) =
-    ECCOMetadata(name, date, version, dir)
-
-# Treat ECCOMetadata as an array to allow iteration over the dates.
-Base.length(metadata::ECCOMetadata) = length(metadata.dates)
-Base.eltype(metadata::ECCOMetadata) = Base.eltype(metadata.dates)
-@propagate_inbounds Base.getindex(m::ECCOMetadata, i::Int) = ECCOMetadata(m.name, m.dates[i],   m.version, m.dir)
-@propagate_inbounds Base.first(m::ECCOMetadata)            = ECCOMetadata(m.name, m.dates[1],   m.version, m.dir)
-@propagate_inbounds Base.last(m::ECCOMetadata)             = ECCOMetadata(m.name, m.dates[end], m.version, m.dir)
-
-@inline function Base.iterate(m::ECCOMetadata, i=1)
-    if (i % UInt) - 1 < length(m)
-        return ECCOMetadata(m.name, m.dates[i], m.version, m.dir), i + 1
-    else
-        return nothing
-    end
-end
-
-Base.axes(metadata::ECCOMetadata{<:AbstractCFDateTime})    = 1
-Base.first(metadata::ECCOMetadata{<:AbstractCFDateTime})   = metadata
-Base.last(metadata::ECCOMetadata{<:AbstractCFDateTime})    = metadata
-Base.iterate(metadata::ECCOMetadata{<:AbstractCFDateTime}) = (metadata, nothing)
-Base.iterate(::ECCOMetadata{<:AbstractCFDateTime}, ::Any)  = nothing
+    Metadata(name, date, version, dir)
 
 Base.size(data::ECCOMetadata{<:Any, <:ECCO2Daily})   = (1440, 720, 50, length(data.dates))
 Base.size(data::ECCOMetadata{<:Any, <:ECCO2Monthly}) = (1440, 720, 50, length(data.dates))
