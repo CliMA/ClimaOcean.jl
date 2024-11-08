@@ -1,5 +1,6 @@
 module PrescribedAtmospheres
 
+using Oceananigans.Grids: grid_name
 using Oceananigans.Utils: prettysummary
 using Oceananigans.OutputReaders: update_field_time_series!, extract_field_time_series
 
@@ -37,8 +38,6 @@ import Thermodynamics.Parameters:
                     # during partial ice nucleation
 
 import ..OceanSeaIceModels:
-    surface_velocities,
-    surface_tracers,
     downwelling_radiation,
     freshwater_flux
 
@@ -287,13 +286,13 @@ const PATP = PrescribedAtmosphereThermodynamicsParameters
 ##### Prescribed atmosphere (as opposed to dynamically evolving / prognostic)
 #####
 
-struct PrescribedAtmosphere{G, U, P, C, F, I, R, TP, TI, FT}
+struct PrescribedAtmosphere{FT, G, U, P, C, F, I, R, TP, TI}
     grid :: G
     velocities :: U
     pressure :: P
     tracers :: C
     freshwater_flux :: F
-    runoff_flux :: I
+    auxiliary_freshwater_flux :: I
     downwelling_radiation :: R
     thermodynamics_parameters :: TP
     times :: TI
@@ -301,8 +300,19 @@ struct PrescribedAtmosphere{G, U, P, C, F, I, R, TP, TI, FT}
     boundary_layer_height :: FT
 end
 
-Base.summary(::PrescribedAtmosphere) = "PrescribedAtmosphere"
-Base.show(io::IO, pa::PrescribedAtmosphere) = print(io, summary(pa))
+function Base.summary(pa::PrescribedAtmosphere{FT}) where FT
+    Nx, Ny, Nz = size(pa.grid)
+    Nt = length(pa.times)
+    sz_str = string(Nx, "×", Ny, "×", Nz, "×", Nt)
+    return string(sz_str, " PrescribedAtmosphere{$FT}")
+end
+
+function Base.show(io::IO, pa::PrescribedAtmosphere)
+    print(io, summary(pa), " on ", grid_name(pa.grid), ":", '\n')
+    print(io, "├── times: ", prettysummary(pa.times), '\n')
+    print(io, "├── reference_height: ", prettysummary(pa.reference_height), '\n')
+    print(io, "└── boundary_layer_height: ", prettysummary(pa.reference_height))
+end
 
 """
     PrescribedAtmosphere(times;
@@ -322,7 +332,7 @@ function PrescribedAtmosphere(times, FT=Float64;
                               boundary_layer_height = convert(FT, 600),
                               pressure = nothing,
                               freshwater_flux = nothing,
-                              runoff_flux = nothing,
+                              auxiliary_freshwater_flux = nothing,
                               downwelling_radiation = nothing,
                               thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT),
                               grid = nothing,
@@ -338,7 +348,7 @@ function PrescribedAtmosphere(times, FT=Float64;
                                 pressure,
                                 tracers,
                                 freshwater_flux,
-                                runoff_flux,
+                                auxiliary_freshwater_flux,
                                 downwelling_radiation,
                                 thermodynamics_parameters,
                                 times,

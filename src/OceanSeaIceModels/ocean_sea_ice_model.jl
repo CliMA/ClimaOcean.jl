@@ -26,8 +26,21 @@ end
 
 const OSIM = OceanSeaIceModel
 
-Base.summary(::OSIM)                = "OceanSeaIceModel"
-Base.show(io::IO, cm::OSIM)         = print(io, summary(cm))
+function Base.summary(model::OSIM)
+    A = nameof(typeof(architecture(model.grid)))
+    G = nameof(typeof(model.grid))
+    return string("OceanSeaIceModel{$A, $G}",
+                  "(time = ", prettytime(model.clock.time), ", iteration = ", model.clock.iteration, ")")
+end
+
+function Base.show(io::IO, cm::OSIM)
+    print(io, summary(cm), "\n")
+    print(io, "├── ocean: ", summary(cm.ocean.model), "\n")
+    print(io, "├── atmosphere: ", summary(cm.atmosphere), "\n")
+    print(io, "└── sea_ice: ", summary(cm.sea_ice), "\n")
+    return nothing
+end
+
 prettytime(model::OSIM)             = prettytime(model.clock.time)
 iteration(model::OSIM)              = model.clock.iteration
 timestepper(::OSIM)                 = nothing
@@ -56,14 +69,26 @@ function heat_capacity(eos::TEOS10EquationOfState{FT}) where FT
     return convert(FT, cₚ⁰)
 end
 
-function OceanSeaIceModel(ocean, sea_ice=nothing;
+function OceanSeaIceModel(ocean, sea_ice=MinimumTemperatureSeaIce();
                           atmosphere = nothing,
                           radiation = nothing,
                           similarity_theory = nothing,
                           ocean_reference_density = reference_density(ocean),
                           ocean_heat_capacity = heat_capacity(ocean),
                           clock = deepcopy(ocean.model.clock))
-    
+
+    # Remove some potentially irksome callbacks from the ocean simulation
+    # TODO: also remove these from sea ice simulations
+    pop!(ocean.callbacks, :stop_time_exceeded, nothing)
+    pop!(ocean.callbacks, :stop_iteration_exceeded, nothing)
+    pop!(ocean.callbacks, :wall_time_limit_exceeded, nothing)
+    pop!(ocean.callbacks, :nan_checker, nothing)
+
+    # In case there was any doubt these are meaningless.
+    ocean.stop_time = Inf
+    ocean.stop_iteration = Inf
+    ocean.wall_time_limit = Inf
+
     # Contains information about flux contributions: bulk formula, prescribed fluxes, etc.
     fluxes = OceanSeaIceSurfaceFluxes(ocean, sea_ice; 
                                       atmosphere, 

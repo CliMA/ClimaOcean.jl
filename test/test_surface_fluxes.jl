@@ -80,16 +80,19 @@ end
     # the atmosphere, have zero gustiness and a constant roughness length of
     # `1e-4` for momentum, water vapor and temperature
     # For this case we can compute the fluxes by hand.
-
-    @inline neutral_bulk_coefficients(ψ, h, ℓ, L) = log(h / ℓ)
-
     ℓ = 1e-4
+    
+    @inline zero_stability_function(ζ) = zero(ζ)
+
+    stability_functions = SimilarityScales(zero_stability_function, 
+                                           zero_stability_function, 
+                                           zero_stability_function)
 
     roughness_lengths = SimilarityScales(ℓ, ℓ, ℓ)
     similarity_theory = SimilarityTheoryTurbulentFluxes(grid; 
                                                         roughness_lengths, 
                                                         gustiness_parameter = 0,
-                                                        bulk_coefficients = neutral_bulk_coefficients)
+                                                        stability_functions)
 
     # mid-latitude ocean conditions
     set!(ocean.model, u = 0, v = 0, T = 15, S = 30)
