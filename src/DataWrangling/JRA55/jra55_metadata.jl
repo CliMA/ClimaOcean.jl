@@ -14,6 +14,10 @@ const JRA55Metadata{T, V} = Union{Metadata{T, V<:JRA55MultipleYears}, Metadata{T
 Base.size(data::JRA55Metadata) = (640, 320, length(data.dates))
 Base.size(::JRA55Metadata{<:AbstractCFDateTime}) = (640, 320, 1)
 
+# The whole range of dates in the different dataset versions
+all_JRA55_times(::JRA55RepeatYear)    = DateTimeProlepticGregorian(1990, 1, 1) : Hour(3) : DateTimeProlepticGregorian(1991, 1, 1)
+all_JRA55_times(::JRA55MultipleYears) = DateTimeProlepticGregorian(1958, 1, 1) : Hour(3) : DateTimeProlepticGregorian(2018, 12, 1)
+
 # File name generation specific to each Dataset version
 function metadata_filename(metadata::Metadata{<:AbstractCFDateTime, <:JRA55MultipleYears})
     # fix the filename
@@ -23,9 +27,8 @@ end
 
 # File name generation specific to each Dataset version
 function metadata_filename(metadata::Metadata{<:AbstractCFDateTime, <:JRA55RepeatYear})
-    # fix the filename
-
-    return filename
+    shortname = short_name(metadata)
+    return "RYF." * shortname * ".1990_1991.nc"
 end
 
 # Convenience functions
@@ -46,22 +49,7 @@ JRA55_variable_names = (:river_freshwater_flux,
                         :eastward_velocity,
                         :northward_velocity)
 
-filenames = Dict(
-    :river_freshwater_flux           => "RYF.friver.1990_1991.nc",   # Freshwater fluxes from rivers
-    :rain_freshwater_flux            => "RYF.prra.1990_1991.nc",     # Freshwater flux from rainfall
-    :snow_freshwater_flux            => "RYF.prsn.1990_1991.nc",     # Freshwater flux from snowfall
-    :iceberg_freshwater_flux         => "RYF.licalvf.1990_1991.nc",  # Freshwater flux from calving icebergs
-    :specific_humidity               => "RYF.huss.1990_1991.nc",     # Surface specific humidity
-    :sea_level_pressure              => "RYF.psl.1990_1991.nc",      # Sea level pressure
-    :relative_humidity               => "RYF.rhuss.1990_1991.nc",    # Surface relative humidity
-    :downwelling_longwave_radiation  => "RYF.rlds.1990_1991.nc",     # Downwelling longwave radiation
-    :downwelling_shortwave_radiation => "RYF.rsds.1990_1991.nc",     # Downwelling shortwave radiation
-    :temperature                     => "RYF.tas.1990_1991.nc",      # Near-surface air temperature
-    :eastward_velocity               => "RYF.uas.1990_1991.nc",      # Eastward near-surface wind
-    :northward_velocity              => "RYF.vas.1990_1991.nc",      # Northward near-surface wind
-)
-
-jra55_short_names = Dict(
+JRA55_short_names = Dict(
     :river_freshwater_flux           => "friver",   # Freshwater fluxes from rivers
     :rain_freshwater_flux            => "prra",     # Freshwater flux from rainfall
     :snow_freshwater_flux            => "prsn",     # Freshwater flux from snowfall
@@ -90,6 +78,8 @@ field_time_series_short_names = Dict(
     :eastward_velocity               => "ua",  # Eastward near-surface wind
     :northward_velocity              => "va",  # Northward near-surface wind
 )
+
+urls(metadata::Metadata{<:Any, <:JRA55RepeatYear}) = jra55_repeat_year_urls[metadata.name]  
 
 jra55_repeat_year_urls = Dict(
     :shortwave_radiation => "https://www.dropbox.com/scl/fi/z6fkvmd9oe3ycmaxta131/" *
@@ -134,22 +124,17 @@ jra55_repeat_year_urls = Dict(
 
 variable_is_three_dimensional(data::JRA55Metadata) = false
 
-# URLs for the JRA55 datasets specific to each version
-function urls(metadata::Metadata{<:Any, <:JRA55MultipleYears})
-    return "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/monthly/"
-end
-
 urls(metadata::Metadata{<:Any, <:JRA55RepeatYear}) = jra55_repeat_year_urls[metadata.name]
 
 function download_dataset!(metadata::JRA55Metadata;
-                           url = urls(metadata))
+                           url = urls(metadata),
+                           dir = download_jra55_cache)
 
     for data in metadata
         filename  = metadata_filename(data)
-        shortname = short_name(data)
-
+        
         if !isfile(filename)
-            download(url, filepath)
+            download(url, dir)
         end
     end
 

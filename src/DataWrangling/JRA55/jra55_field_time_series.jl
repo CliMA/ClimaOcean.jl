@@ -132,9 +132,9 @@ end
 new_backend(::JRA55NetCDFBackend, start, length) = JRA55NetCDFBackend(start, length)
 
 """
-    JRA55_field_time_series(variable_name;
-                            architecture = CPU(),
-                            time_indices = nothing,
+    JRA55_field_time_series(variable_name, [architecture = CPU()]; 
+                            version = JRA55RepeatYear(),
+                            dates = all_JRA55_dates(version),
                             latitude = nothing,
                             longitude = nothing,
                             location = nothing,
