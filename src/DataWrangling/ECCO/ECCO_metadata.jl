@@ -11,15 +11,15 @@ struct ECCO2Daily end
 struct ECCO4Monthly end
 
 """
-    ECCOMetadata{D, V} 
+    struct ECCOMetadata{D, V}
 
-Metadata holding the ECCO dataset information:
+Metadata information for an ECCO dataset:
 - `name`: The name of the dataset.
-- `dates`: The dates of the dataset, in a `AbstractCFDateTime` format.
-- `version`: The version of the dataset, could be ECCO2Monthly, ECCO2Daily, or ECCO4Monthly.
+- `dates`: The dates of the dataset, in an `AbstractCFDateTime` format.
+- `version`: The version of the dataset, could be `ECCO2Monthly`, `ECCO2Daily`, or `ECCO4Monthly`.
 - `dir`: The directory where the dataset is stored.
 """
-struct ECCOMetadata{D, V} 
+struct ECCOMetadata{D, V}
     name  :: Symbol
     dates :: D
     version :: V
@@ -40,14 +40,14 @@ Base.summary(md::ECCOMetadata{<:Any, <:ECCO4Monthly}) = "ECCO4Monthly $(md.name)
 Base.summary(md::ECCOMetadata{<:AbstractCFDateTime, <:ECCO2Daily})   = "ECCO2Daily $(md.name) metadata at $(md.dates)"
 Base.summary(md::ECCOMetadata{<:AbstractCFDateTime, <:ECCO2Monthly}) = "ECCO2Monthly $(md.name) metadata at $(md.dates)"
 Base.summary(md::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4Monthly}) = "ECCO4Monthly $(md.name) metadata at $(md.dates)"
-    
+
 """
     ECCOMetadata(name::Symbol; 
-                 dates = DateTimeProlepticGregorian(1993, 1, 1), 
-                 version = ECCO4Monthly(), 
+                 dates = DateTimeProlepticGregorian(1993, 1, 1),
+                 version = ECCO4Monthly(),
                  dir = download_ECCO_cache)
 
-Constructs an `ECCOMetadata` object with the specified parameters.
+Construct an `ECCOMetadata` object with the specified parameters.
 
 Arguments
 =========
@@ -55,22 +55,20 @@ Arguments
 
 Keyword Arguments
 =================
-
 - `dates`: The date(s) of the metadata. Note this can either be a single date,
            representing a snapshot, or a range of dates, representing a time-series.
-           Default: DateTimeProlepticGregorian(1993, 1, 1).
+           Default: `DateTimeProlepticGregorian(1993, 1, 1)`.
 
-- `version`: The data version. Supported versions are ECCO2Monthly(), ECCO2Daily(),
-             or ECCO4Monthly()).
+- `version`: The data version. Supported versions are `ECCO2Monthly()`, `ECCO2Daily()`,
+             or `ECCO4Monthly()`.
 
-- `dir`: The directory of the data file
-         Default: `download_ECCO_cache`.
+- `dir`: The directory of the data file. Default: `download_ECCO_cache`.
 """
 function ECCOMetadata(name::Symbol; 
                       dates = DateTimeProlepticGregorian(1993, 1, 1),
                       version = ECCO4Monthly(),
                       dir = download_ECCO_cache)
-             
+
     return ECCOMetadata(name, dates, version, dir)
 end
 
@@ -227,7 +225,7 @@ function download_dataset!(metadata::ECCOMetadata; url = urls(metadata))
                        and setting your ECCO_USERNAME and ECCO_PASSWORD."
                 throw(ArgumentError(msg))
             end
-        
+
             fileurl = metadata_url(url, metadatum) 
             cmd = `wget --http-user=$(username) --http-passwd=$(password) --directory-prefix=$dir $fileurl`
             run(cmd)
