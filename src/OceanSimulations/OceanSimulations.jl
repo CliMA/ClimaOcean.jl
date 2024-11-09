@@ -24,8 +24,19 @@ struct Default{V}
     value :: V
 end
 
-Default() = Default(nothing)
-default_or_override(default::Default, value=default.value) = value
+"""
+    default_or_override(default::Default, alternative_default=default.value) = alternative_default
+    default_or_override(override, alternative_default) = override
+
+Either return `default.value`, an `alternative_default`, or an `override`.
+
+The purpose of this function is to help define constructors with "configuration-dependent" defaults.
+For example, the default bottom drag should be 0 for a single column model, but 0.003 for a global model.
+We therefore need a way to specify both the "normal" default 0.003 as well as the "alternative default" 0,
+all while respecting user input and changing this to a new value if specified.
+"""
+default_or_override(default::Default, possibly_alternative_default=default.value) =  possibly_alternative_default
+default_or_override(override, alternative_default=nothing) = override
 
 # Some defaults
 default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
@@ -94,6 +105,8 @@ function ocean_simulation(grid; Δt = 5minutes,
         bottom_drag_coefficient = default_or_override(bottom_drag_coefficient)
     end
 
+    bottom_drag_coefficient = convert(FT, bottom_drag_coefficient)
+    
     # Set up boundary conditions using Field
     top_zonal_momentum_flux      = τx = Field{Face, Center, Nothing}(grid)
     top_meridional_momentum_flux = τy = Field{Center, Face, Nothing}(grid)
