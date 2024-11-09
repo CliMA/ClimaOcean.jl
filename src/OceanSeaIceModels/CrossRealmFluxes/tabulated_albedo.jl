@@ -68,16 +68,16 @@ and day in the year.
 Arguments
 =========
 
-- `arch`: The architecture to use (default: `CPU()`).
-- `FT`: The floating-point type to use (default: `Float64`).
+- `arch`: The architecture to use. Default: `CPU()`.
+- `FT`: The floating-point type to use. Default: `Float64`.
 
 Keyword Arguments
 =================
 
-- `S₀`: The solar constant (default: `convert(FT, 1365)`).
-- `α_table`: The table of albedo values (default: `α_payne`).
-- `φ_values`: The latitude values for the table (default: `(0:2:90) ./ 180 * π`).
-- `𝓉_values`: The transmissivity values for the table (default: `0:0.05:1`).
+- `S₀`: The solar constant. Default: `convert(FT, 1365)`.
+- `α_table`: The table of albedo values. Default: `α_payne`.
+- `φ_values`: The latitude values for the table. Default: `(0:2:90) ./ 180 * π`.
+- `𝓉_values`: The transmissivity values for the table. Default: `0:0.05:1`.
 """
 function TabulatedAlbedo(arch = CPU(), FT = Float64;
                          S₀ = convert(FT, 1365),

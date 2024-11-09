@@ -122,9 +122,9 @@ Keyword Arguments
 
 - `architecture`: where data is stored. Should only be set if `isnothing(grid)`.
 
-- `time_indices_in_memory`: The number of time indices to keep in memory (default: 2).
+- `time_indices_in_memory`: The number of time indices to keep in memory. Default: 2.
 
-- `time_indexing`: The time indexing scheme to use (default: Cyclical()).
+- `time_indexing`: The time indexing scheme to use. Default: `Cyclical()`.
 
 - `inpainting`: The inpainting algorithm to use for ECCO interpolation.
                 The only option is `NearestNeighborInpainting(maxiter)`, 
@@ -254,38 +254,36 @@ Arguments
 
 - `architecture`: The architecture. Typically `CPU` or `GPU`. Default is `CPU`.
 
-- `variable_name`: The name of the variable to restore. (default: `:temperature`).
-                   The choice is between
-                    - `:temperature`, 
-                    - `:salinity`, 
-                    - `:u_velocity`, 
-                    - `:v_velocity`, 
-                    - `:sea_ice_thickness`, 
+- `variable_name`: The name of the variable to restore. Default: `:temperature`.
+                   The choice is between:
+                    - `:temperature`,
+                    - `:salinity`,
+                    - `:u_velocity`,
+                    - `:v_velocity`,
+                    - `:sea_ice_thickness`,
                     - `:sea_ice_area_fraction`.
 
 Keyword Arguments
 =================
 
-- `version`: The version of the ECCO dataset. Default is `ECCO4Monthly()`.
+- `version`: The version of the ECCO dataset. Default: `ECCO4Monthly()`.
 
-- `dates`: The dates to use for the ECCO dataset. Default is `all_ECCO_dates(version)`.
+- `dates`: The dates to use for the ECCO dataset. Default: `all_ECCO_dates(version)`.
 
-- `time_indices_in_memory`: The number of time indices to keep in memory. trade-off between performance
+- `time_indices_in_memory`: The number of time indices to keep in memory; trade-off between performance
                             and memory footprint.    
 
 - `time_indexing`: The time indexing scheme for the field time series≥
 
-- `mask`: The mask value. Can be a function of `(x, y, z, time)`, an array or a number
+- `mask`: The mask value. Can be a function of `(x, y, z, time)`, an array, or a number.
 
-- `rate`: The restoring rate in s⁻¹.
+- `rate`: The restoring rate, i.e., inverse of the restoring timescale (in s⁻¹).
 
-- `time_indices_in_memory = 2, # Not more than this if we want to use GPU!
-
-- `time_indices_in_memory:` how many time instances are loaded in memory. The remaining are loaded lazily.
+- `time_indices_in_memory:` how many time instances are loaded in memory; the remaining are loaded lazily.
 
 - `grid`: if not a `nothing`, the ECCO data is directly interpolated on the `grid`.
 
-- `inpainting`: inpainting algorithm, see [`inpaint_mask!`](@ref). Defaults to `NearestNeighborInpainting(Inf)`.
+- `inpainting`: inpainting algorithm, see [`inpaint_mask!`](@ref). Default: `NearestNeighborInpainting(Inf)`.
 
 - `grid`: If `isnothing(grid)`, ECCO data is interpolated on-the-fly to the simulation grid.
           If `!isnothing(grid)`, ECCO data is pre-interpolated to `grid`.
