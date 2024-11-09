@@ -33,9 +33,13 @@ Base.show(io::IO, metadata::ECCOMetadata) =
     "├── version: $(metadata.version)", '\n',
     "└── dir: $(metadata.dir)")
 
-Base.summary(data::ECCOMetadata{<:Any, <:ECCO2Daily})   = "Daily ECCO2 $(data.name) dataset, from $(first(data.dates)) to $(last(data.dates))"
-Base.summary(data::ECCOMetadata{<:Any, <:ECCO2Monthly}) = "Monthly ECCO2 $(data.name) dataset, from $(first(data.dates)) to $(last(data.dates))"
-Base.summary(data::ECCOMetadata{<:Any, <:ECCO4Monthly}) = "Monthly ECCO4 $(data.name) dataset, from $(first(data.dates)) to $(last(data.dates))"
+Base.summary(md::ECCOMetadata{<:Any, <:ECCO2Daily})   = "ECCO2Daily $(md.name) metadata ($(first(md.dates))--$(last(md.dates)))"
+Base.summary(md::ECCOMetadata{<:Any, <:ECCO2Monthly}) = "ECCO2Monthly $(md.name) metadata ($(first(md.dates))--$(last(md.dates)))"
+Base.summary(md::ECCOMetadata{<:Any, <:ECCO4Monthly}) = "ECCO4Monthly $(md.name) metadata ($(first(md.dates))--$(last(md.dates)))"
+
+Base.summary(md::ECCOMetadata{<:AbstractCFDateTime, <:ECCO2Daily})   = "ECCO2Daily $(md.name) metadata at $(md.dates)"
+Base.summary(md::ECCOMetadata{<:AbstractCFDateTime, <:ECCO2Monthly}) = "ECCO2Monthly $(md.name) metadata at $(md.dates)"
+Base.summary(md::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4Monthly}) = "ECCO4Monthly $(md.name) metadata at $(md.dates)"
     
 """
     ECCOMetadata(name::Symbol; 
@@ -45,15 +49,22 @@ Base.summary(data::ECCOMetadata{<:Any, <:ECCO4Monthly}) = "Monthly ECCO4 $(data.
 
 Constructs an `ECCOMetadata` object with the specified parameters.
 
-# Arguments
-============
+Arguments
+=========
 - `name::Symbol`: The name of the metadata.
 
-# Keyword Arguments
-===================
-- `date`: The date of the metadata (default: DateTimeProlepticGregorian(1993, 1, 1)).
-- `version`: The version of the metadata (for the moment the choices are ECCO2Monthly(), ECCO2Daily(), or ECCO4Monthly()).
-- `dir`: The dir to the datafile (default: download_ECCO_cache).
+Keyword Arguments
+=================
+
+- `dates`: The date(s) of the metadata. Note this can either be a single date,
+           representing a snapshot, or a range of dates, representing a time-series.
+           Default: DateTimeProlepticGregorian(1993, 1, 1).
+
+- `version`: The data version. Supported versions are ECCO2Monthly(), ECCO2Daily(),
+             or ECCO4Monthly()).
+
+- `dir`: The directory of the data file
+         Default: `download_ECCO_cache`.
 """
 function ECCOMetadata(name::Symbol; 
                       dates = DateTimeProlepticGregorian(1993, 1, 1),
@@ -69,6 +80,7 @@ ECCOMetadata(name::Symbol, date, version=ECCO4Monthly(); dir=download_ECCO_cache
 # Treat ECCOMetadata as an array to allow iteration over the dates.
 Base.length(metadata::ECCOMetadata) = length(metadata.dates)
 Base.eltype(metadata::ECCOMetadata) = Base.eltype(metadata.dates)
+
 @propagate_inbounds Base.getindex(m::ECCOMetadata, i::Int) = ECCOMetadata(m.name, m.dates[i],   m.version, m.dir)
 @propagate_inbounds Base.first(m::ECCOMetadata)            = ECCOMetadata(m.name, m.dates[1],   m.version, m.dir)
 @propagate_inbounds Base.last(m::ECCOMetadata)             = ECCOMetadata(m.name, m.dates[end], m.version, m.dir)
