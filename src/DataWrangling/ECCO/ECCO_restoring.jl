@@ -81,11 +81,13 @@ end
 Extracts the time values from the given metadata and calculates the time difference
 from the start time.
 
-# Arguments
+Arguments
+=========
 - `metadata`: The metadata containing the date information.
 - `start_time`: The start time for calculating the time difference. Defaults to the first date in the metadata.
 
-# Returns
+Returns
+=======
 An array of time differences in seconds.
 """
 function ECCO_times(metadata; start_time = first(metadata).dates)

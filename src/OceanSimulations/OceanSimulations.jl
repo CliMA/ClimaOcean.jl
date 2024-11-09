@@ -117,7 +117,7 @@ function ocean_simulation(grid;
         Fv = Forcing(v_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
         forcing = merge(forcing, (u=Fu, v=Fv))
     end
-    
+
     buoyancy = SeawaterBuoyancy(; gravitational_acceleration, equation_of_state)
 
     if tracer_advection isa NamedTuple
@@ -157,4 +157,3 @@ hasclosure(closure, ClosureType) = closure isa ClosureType
 hasclosure(closure_tuple::Tuple, ClosureType) = any(hasclosure(c, ClosureType) for c in closure_tuple)
 
 end # module
-

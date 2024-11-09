@@ -336,15 +336,16 @@ end
 
 Retrieve the bathymetry data from a file or generate it using a grid and save it to a file.
 
-# Arguments
-============
+Arguments
+=========
 
 - `grid`: The grid used to generate the bathymetry data.
 - `filename`: The name of the file to read or save the bathymetry data.
 - `kw...`: Additional keyword arguments.
 
-# Returns
-===========
+Returns
+=======
+
 - `bottom_height`: The retrieved or generated bathymetry data.
 
 If the specified file exists, the function reads the bathymetry data from the file. 
@@ -366,4 +367,3 @@ retrieve_bathymetry(grid, ::Nothing; kw...) = regrid_bathymetry(grid; kw...)
 retrieve_bathymetry(grid; kw...)            = regrid_bathymetry(grid; kw...)
 
 end # module
-

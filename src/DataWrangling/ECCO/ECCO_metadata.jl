@@ -194,13 +194,15 @@ urls(::ECCOMetadata{<:Any, <:ECCO4Monthly}) = "https://ecco.jpl.nasa.gov/drive/f
 Download the dataset specified by `ECCOMetadata`. If `ECCOMetadata.dates` is a single date, 
 the dataset is downloaded directly. If `ECCOMetadata.dates` is a vector of dates, each date
 is downloaded individually.
-The data download requires a username and password to be provided in the ECCO_USERNAME and ECCO_PASSWORD
-environment variables. This can be done by exporting the environment variables in the shell before running the script,
-or by launching julia with 
+The data download requires a username and password to be provided in the `ECCO_USERNAME` and
+`ECCO_PASSWORD` environment variables. This can be done by exporting the environment variables
+in the shell before running the script, or by launching julia with 
 
-ECCO_USERNAME=myuser ECCO_PASSWORD=mypasswrd julia 
-
-# Arguments
+```
+$ ECCO_USERNAME=myusername ECCO_PASSWORD=mypassword julia 
+```
+Arguments
+=========
 - `metadata::ECCOMetadata`: The metadata specifying the dataset to be downloaded.
 """
 function download_dataset!(metadata::ECCOMetadata; url = urls(metadata))

@@ -19,7 +19,8 @@ end
 
 MinimumTemperatureSeaIce() = MinimumTemperatureSeaIce(-1.8)
 
-function limit_fluxes_over_sea_ice!(grid, kernel_parameters, sea_ice::MinimumTemperatureSeaIce,
+function limit_fluxes_over_sea_ice!(grid, kernel_parameters,
+                                    sea_ice::MinimumTemperatureSeaIce,
                                     centered_velocity_fluxes,
                                     net_tracer_fluxes,
                                     ocean_temperature,
@@ -39,7 +40,7 @@ end
                                          net_tracer_fluxes,
                                          grid,
                                          minimum_temperature,
-                                         ocean_temperature)    
+                                         ocean_temperature)
 
     i, j = @index(Global, NTuple)
 
