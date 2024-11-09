@@ -15,13 +15,14 @@ obeying the following formula (Large and Yeager, 2009):
 
 where `φ` is the latitude, `α.diffuse` is the diffuse albedo, and `α.direct` is the direct albedo.
 
-# Arguments
-===========
+Arguments
+=========
 
 - `FT::DataType`: The data type of the albedo values. Default is `Float64`.
 
-# Keyword Arguments
-===================
+Keyword Arguments
+=================
+
 - `diffuse`: The diffuse albedo value. Default is `0.069`.
 - `direct`: The direct albedo value. Default is `0.011`.
 """

@@ -38,13 +38,13 @@ end
 Regrid bathymetry associated with the NetCDF file at `path = joinpath(dir, filename)` to `target_grid`.
 If `path` does not exist, then a download is attempted from `joinpath(url, filename)`.
 
-Arguments:
-==========
+Arguments
+=========
 
 - target_grid: grid to interpolate onto
 
-Keyword Arguments:
-==================
+Keyword Arguments
+=================
 
 - `height_above_water`: limits the maximum height of above-water topography (where h > 0). If
                         `nothing` the original topography is retained

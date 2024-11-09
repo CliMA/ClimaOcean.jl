@@ -113,18 +113,18 @@ Create a field time series object for ECCO data.
 Arguments
 =========
 
-- metadata: `ECCOMetadata` containing information about the ECCO dataset.
+- `metadata`: `ECCOMetadata` containing information about the ECCO dataset.
 
 Keyword Arguments
-===================
+=================
 
-- grid: where ECCO data is interpolated. If `nothing`, the native `ECCO` grid is used.
+- `grid`: where ECCO data is interpolated. If `nothing`, the native `ECCO` grid is used.
 
-- architecture: where data is stored. Should only be set if `isnothing(grid)`.
+- `architecture`: where data is stored. Should only be set if `isnothing(grid)`.
 
-- time_indices_in_memory: The number of time indices to keep in memory (default: 2).
+- `time_indices_in_memory`: The number of time indices to keep in memory (default: 2).
 
-- time_indexing: The time indexing scheme to use (default: Cyclical()).
+- `time_indexing`: The time indexing scheme to use (default: Cyclical()).
 
 - `inpainting`: The inpainting algorithm to use for ECCO interpolation.
                 The only option is `NearestNeighborInpainting(maxiter)`, 

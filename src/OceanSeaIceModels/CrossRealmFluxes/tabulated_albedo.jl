@@ -65,13 +65,15 @@ The transmissivity of the atmosphere is calculated as the ratio of the downwelli
 maximum possible downwelling solar radiation for a transparent atmosphere, function of hour of the day, latitude,
 and day in the year.
 
-# Arguments
-============
+Arguments
+=========
+
 - `arch`: The architecture to use (default: `CPU()`).
 - `FT`: The floating-point type to use (default: `Float64`).
 
-# Keyword Arguments
-===================
+Keyword Arguments
+=================
+
 - `S₀`: The solar constant (default: `convert(FT, 1365)`).
 - `α_table`: The table of albedo values (default: `α_payne`).
 - `φ_values`: The latitude values for the table (default: `(0:2:90) ./ 180 * π`).
