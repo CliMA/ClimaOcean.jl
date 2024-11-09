@@ -197,8 +197,9 @@ The data download requires a username and password to be provided in the `ECCO_U
 in the shell before running the script, or by launching julia with 
 
 ```
-$ ECCO_USERNAME=myusername ECCO_PASSWORD=mypassword julia 
+ECCO_USERNAME=myusername ECCO_PASSWORD=mypassword julia 
 ```
+
 Arguments
 =========
 - `metadata::ECCOMetadata`: The metadata specifying the dataset to be downloaded.
