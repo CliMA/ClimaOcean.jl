@@ -44,7 +44,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     freshwater_flux = map(ϕ -> ϕ.data, atmosphere.freshwater_flux)
 
     # Extract info for time-interpolation
-    u = atmosphere.velocities.u # for example 
+    u = atmosphere.velocities.u # for example
     atmosphere_times = u.times
     atmosphere_backend = u.backend
     atmosphere_time_indexing = u.time_indexing
@@ -199,7 +199,7 @@ end
 
     i, j = @index(Global, NTuple)
     kᴺ = size(grid, 3) # index of the top ocean cell
-      
+
     @inbounds begin
         # Atmos state, which is _assumed_ to exist at location = (c, c, nothing)
         # The third index "k" should not matter but we put the correct index to get
@@ -231,8 +231,6 @@ end
     end
 end
 
-
-
 @kernel function _interpolate_auxiliary_freshwater_flux!(freshwater_flux,
                                                          grid,
                                                          clock,
@@ -244,7 +242,7 @@ end
 
     i, j = @index(Global, NTuple)
     kᴺ = size(grid, 3) # index of the top ocean cell
-      
+
     @inbounds begin
         X = _node(i, j, kᴺ + 1, grid, c, c, f)
         time = Time(clock.time)
@@ -304,7 +302,7 @@ end
                                                similarity_theory.water_mole_fraction,
                                                similarity_theory.water_vapor_saturation,
                                                surface_type)
-    
+
     # Thermodynamic and dynamic (ocean) surface state:
     #
     # Convert the native grid velocities to a zonal - meridional 
@@ -394,7 +392,7 @@ end
     ΣQ = Qd + Qu + Qc + Qv
 
     # Convert from a mass flux to a volume flux (aka velocity)
-    # by dividing by the density of freshwater.
+    # by dividing with the seawater density.
     # Also switch the sign, for some reason we are given freshwater flux as positive down.
     ρf⁻¹ = 1 / freshwater_density
     ΣF   = - Mp * ρf⁻¹
@@ -456,4 +454,3 @@ end
     # Note: positive implies _upward_ heat flux, and therefore cooling.
     return ϵ * σ * Tₒ^4
 end
-

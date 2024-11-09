@@ -51,4 +51,3 @@ Base.show(io::IO, α::LatitudeDependentAlbedo) = print(io, summary(α))
     α₁ = α.direct
     return α₀ - α₁ * hack_cosd(2φ)
 end
-

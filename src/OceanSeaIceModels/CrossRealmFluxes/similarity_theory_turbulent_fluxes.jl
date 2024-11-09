@@ -137,7 +137,7 @@ Keyword Arguments
 - `water_vapor_saturation`: The water vapor saturation law. Default: `ClasiusClapyeronSaturation()` that follows the 
                             Clasius-Clapyeron pressure formulation.
 - `water_mole_fraction`: The water mole fraction used to calculate the `seawater_saturation_specific_humidity`. 
-                         Default: 0.98, the rest is assumed to be other substances such as chlorine, sodium sulfide and magnesium.
+                         Default: 0.98, the rest is assumed to be other substances such as chlorine, sodium sulfide, and magnesium.
 - `roughness_lengths`: The roughness lengths used to calculate the characteristic scales for momentum, temperature and 
                        water vapor. Default: `default_roughness_lengths(FT)`, formulation taken from Edson et al (2013).
 - `similarity_profile_type`: The type of similarity profile used to relate the atmospheric state to the 
@@ -199,7 +199,7 @@ end
 """
     LogarithmicSimilarityProfile()
 
-Represents the classic Monin-Obukhov similarity profile, which finds that 
+Represent the classic Monin-Obukhov similarity profile, which finds that 
 
 ```math
 ϕ(z) = Π(z) ϕ★ / ϰ
@@ -239,14 +239,14 @@ struct COARELogarithmicSimilarityProfile end
 
     # Prescribed difference between two states
     ℂₐ = thermodynamics_parameters
-    Δh, Δu, Δv, Δθ, Δq = state_differences(ℂₐ, 
-                                           atmos_state, 
-                                           surface_state, 
+    Δh, Δu, Δv, Δθ, Δq = state_differences(ℂₐ,
+                                           atmos_state,
+                                           surface_state,
                                            gravitational_acceleration,
                                            similarity_theory.bulk_velocity)
 
     differences = (; u=Δu, v=Δv, θ=Δθ, q=Δq, h=Δh)
-    
+
     # Initial guess for the characteristic scales u★, θ★, q★.
     # Does not really matter if we are sophisticated or not, it converges 
     # in about 10 iterations no matter what...
@@ -430,9 +430,9 @@ end
 
     # Transfer coefficients at height `h`
     profile_type = similarity_theory.similarity_profile_type
-    χu = ϰ / similarity_profile(profile_type, ψu, h, ℓu₀, L★) 
-    χθ = ϰ / similarity_profile(profile_type, ψθ, h, ℓθ₀, L★) 
-    χq = ϰ / similarity_profile(profile_type, ψq, h, ℓq₀, L★) 
+    χu = ϰ / similarity_profile(profile_type, ψu, h, ℓu₀, L★)
+    χθ = ϰ / similarity_profile(profile_type, ψθ, h, ℓθ₀, L★)
+    χq = ϰ / similarity_profile(profile_type, ψq, h, ℓq₀, L★)
 
     Δu = differences.u
     Δv = differences.v
@@ -454,4 +454,3 @@ end
 
     return SimilarityScales(u★, θ★, q★), ΔU
 end
-

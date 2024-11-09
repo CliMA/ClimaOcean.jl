@@ -39,7 +39,7 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
     #   accurate flux computation?
     tick!(coupled_model.clock, Δt)
     update_state!(coupled_model, callbacks; compute_tendencies)
-    
+
     return nothing
 end
 
@@ -51,4 +51,3 @@ function update_state!(coupled_model::OceanSeaIceModel, callbacks=[]; compute_te
     #compute_atmosphere_sea_ice_fluxes!(coupled_model)
     return nothing
 end
-
