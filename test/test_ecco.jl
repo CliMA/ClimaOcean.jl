@@ -98,9 +98,9 @@ end
 
         t_restoring = ECCORestoring(arch, :temperature;
                                     dates,
-                                    # mask,
+                                    mask,
                                     rate = 1 / 1000.0,)
-                                    # inpainting)
+                                    inpainting)
 
         fill!(t_restoring.field_time_series[1], 1.0)
         fill!(t_restoring.field_time_series[2], 1.0)
