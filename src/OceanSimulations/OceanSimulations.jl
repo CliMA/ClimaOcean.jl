@@ -4,6 +4,7 @@ export ocean_simulation
 
 using Oceananigans
 using Oceananigans.Units
+using Oceananigans.Utils: with_tracers
 using Oceananigans.Advection: FluxFormAdvection
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node
@@ -24,8 +25,19 @@ struct Default{V}
     value :: V
 end
 
-Default() = Default(nothing)
-default_or_override(default::Default, value=default.value) = value
+"""
+    default_or_override(default::Default, alternative_default=default.value) = alternative_default
+    default_or_override(override, alternative_default) = override
+
+Either return `default.value`, an `alternative_default`, or an `override`.
+
+The purpose of this function is to help define constructors with "configuration-dependent" defaults.
+For example, the default bottom drag should be 0 for a single column model, but 0.003 for a global model.
+We therefore need a way to specify both the "normal" default 0.003 as well as the "alternative default" 0,
+all while respecting user input and changing this to a new value if specified.
+"""
+default_or_override(default::Default, possibly_alternative_default=default.value) =  possibly_alternative_default
+default_or_override(override, alternative_default=nothing) = override
 
 # Some defaults
 default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
@@ -40,12 +52,12 @@ function default_ocean_closure()
     return CATKEVerticalDiffusivity(; mixing_length, turbulent_kinetic_energy_equation)
 end
 
-default_momentum_advection() = VectorInvariant(; vorticity_scheme = WENO(; order = 9),
+default_momentum_advection() = VectorInvariant(; vorticity_scheme = WENO(order=9),
                                                   vertical_scheme = Centered(),
-                                                divergence_scheme = WENO())
+                                                divergence_scheme = WENO(order=5))
 
-default_tracer_advection() = FluxFormAdvection(WENO(; order = 7),
-                                               WENO(; order = 7),
+default_tracer_advection() = FluxFormAdvection(WENO(order=7),
+                                               WENO(order=7),
                                                Centered())
 
 @inline ϕ²(i, j, k, grid, ϕ)    = @inbounds ϕ[i, j, k]^2
@@ -64,8 +76,10 @@ default_tracer_advection() = FluxFormAdvection(WENO(; order = 7),
 
 # TODO: Specify the grid to a grid on the sphere; otherwise we can provide a different
 # function that requires latitude and longitude etc for computing coriolis=FPlane...
-function ocean_simulation(grid; Δt = 5minutes,
+function ocean_simulation(grid;
+                          Δt = 5minutes,
                           closure = default_ocean_closure(),
+                          tracers = (:T, :S),
                           free_surface = default_free_surface(grid),
                           reference_density = 1020,
                           rotation_rate = Ω_Earth,
@@ -74,6 +88,7 @@ function ocean_simulation(grid; Δt = 5minutes,
                           forcing = NamedTuple(),
                           coriolis = HydrostaticSphericalCoriolis(; rotation_rate),
                           momentum_advection = default_momentum_advection(),
+                          equation_of_state = TEOS10EquationOfState(; reference_density),
                           tracer_advection = default_tracer_advection(),
                           verbose = false)
 
@@ -94,6 +109,8 @@ function ocean_simulation(grid; Δt = 5minutes,
         bottom_drag_coefficient = default_or_override(bottom_drag_coefficient)
     end
 
+    bottom_drag_coefficient = convert(FT, bottom_drag_coefficient)
+    
     # Set up boundary conditions using Field
     top_zonal_momentum_flux      = τx = Field{Face, Center, Nothing}(grid)
     top_meridional_momentum_flux = τy = Field{Center, Face, Nothing}(grid)
@@ -111,17 +128,26 @@ function ocean_simulation(grid; Δt = 5minutes,
     if grid isa ImmersedBoundaryGrid
         Fu = Forcing(u_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
         Fv = Forcing(v_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
-        forcing = merge(forcing, (; u = Fu, v = Fv))
+        forcing = merge(forcing, (u=Fu, v=Fv))
     end
-    
-    # Use the TEOS10 equation of state
-    teos10 = TEOS10EquationOfState(; reference_density)
-    buoyancy = SeawaterBuoyancy(; gravitational_acceleration, equation_of_state=teos10)
 
-    tracers = (:T, :S)
-    if closure isa CATKEVerticalDiffusivity
-        tracers = tuple(tracers..., :e)
-        tracer_advection = (; T = tracer_advection, S = tracer_advection, e = nothing)
+    buoyancy = SeawaterBuoyancy(; gravitational_acceleration, equation_of_state)
+
+    if tracer_advection isa NamedTuple
+        tracer_advection = with_tracers(tracers, tracer_advection, default_tracer_advection())
+    else
+        tracer_advection = NamedTuple(name => tracer_advection for name in tracers)
+    end
+
+    if hasclosure(closure, CATKEVerticalDiffusivity)
+        # Magically add :e to tracers
+        if !(:e ∈ tracers)
+            tracers = tuple(tracers..., :e)
+        end
+
+        # Turn off CATKE tracer advection
+        tke_advection = (; e=nothing)
+        tracer_advection = merge(tracer_advection, tke_advection)
     end
 
     ocean_model = HydrostaticFreeSurfaceModel(; grid,
@@ -139,5 +165,8 @@ function ocean_simulation(grid; Δt = 5minutes,
 
     return ocean
 end
+
+hasclosure(closure, ClosureType) = closure isa ClosureType
+hasclosure(closure_tuple::Tuple, ClosureType) = any(hasclosure(c, ClosureType) for c in closure_tuple)
 
 end # module

@@ -118,18 +118,13 @@ function empty_ECCO_field(metadata::ECCOMetadata;
 end
 
 """
-    ECCO_field(variable_name;
+    ECCO_field(metadata::ECCOMetadata;
                architecture = CPU(),
-               horizontal_halo = (1, 1),
-               user_data = nothing,
-               url = ecco_urls[variable_name],
-               short_name = ecco_short_names[variable_name])
+               horizontal_halo = (3, 3))
 
-Retrieve the ECCO field corresponding to `variable_name`. 
-The data is either:
-(1) retrieved from `filename`,
-(2) dowloaded from `url` if `filename` does not exists,
-(3) filled from `user_data` if `user_data` is provided.
+Retrieve the ecco field corresponding to `metadata`. 
+The data is loaded from `filename` on `architecture` with `horizontal_halo`
+in the x and y direction. The halo in the z-direction is one.
 """
 function ECCO_field(metadata::ECCOMetadata;
                     architecture = CPU(),
@@ -182,40 +177,46 @@ end
 ECCO_field(var_name::Symbol; kw...) = ECCO_field(ECCOMetadata(var_name); kw...)
 
 """
-    inpainted_ECCO_field(variable_name; 
+    inpainted_ECCO_field(metadata::ECCOMetadata;
                          architecture = CPU(),
-                         mask = ECCO_mask(architecture),
-                         maxiter = Inf)
+                         mask = ECCO_mask(metadata, architecture),
+                         inpainting = NearestNeighborInpainting(Inf),
+                         kw...)
     
-Retrieve the ECCO field corresponding to `variable_name` inpainted to fill all the
-missing values in the original dataset.
+Retrieve the ECCO field corresponding to `metadata` inpainted to fill all the missing
+values in the original dataset.
 
-Arguments:
-==========
+Arguments
+=========
 
-- `variable_name`: the variable name corresponding to the Dataset.
+- `metadata`: the metadata corresponding to the dataset.
 
-Keyword Arguments:
-==================
+Keyword Arguments
+=================
 
 - `architecture`: either `CPU()` or `GPU()`.
-- `mask`: the mask used to inpaint the field (see `inpaint_mask!`).
-- `maxiter`: the maximum number of iterations to inpaint the field (see `inpaint_mask!`).
-
+- `mask`: the mask used to inpaint the field, see [`inpaint_mask!`](@ref).
+- `inpainting`: the inpainting algorithm, see [`inpaint_mask!`](@ref). Default: `NearestNeighborInpainting(Inf)`.
 """
 function inpainted_ECCO_field(metadata::ECCOMetadata; 
                               architecture = CPU(),
                               mask = ECCO_mask(metadata, architecture),
                               inpainting = NearestNeighborInpainting(Inf),
                               kw...)
-    
-    f = ECCO_field(metadata; architecture, kw...)
 
     # Make sure all values are extended properly
-    @info "In-painting ECCO $(metadata.name)"
+    name = string(metadata.name)
+    date = string(metadata.dates)
+    version = summary(metadata.version)
+    @info string("Inpainting ", version, " ", name, " data from ", date, "...")
+    start_time = time_ns()
+    
+    f = ECCO_field(metadata; architecture, kw...)
     inpaint_mask!(f, mask; inpainting)
-
     fill_halo_regions!(f)
+
+    elapsed = 1e-9 * (time_ns() - start_time)
+    @info string(" ... (", prettytime(elapsed), ")")
 
     return f
 end
@@ -248,8 +249,6 @@ function set!(field::DistributedField, ECCO_metadata::ECCOMetadata; kw...)
 end
 
 function set!(field::Field, ECCO_metadata::ECCOMetadata; kw...)
-
-    # Fields initialized from ECCO
     grid = field.grid
     arch = architecture(grid)
     mask = ECCO_mask(ECCO_metadata, arch)
