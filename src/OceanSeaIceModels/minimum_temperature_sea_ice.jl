@@ -19,7 +19,8 @@ end
 
 MinimumTemperatureSeaIce() = MinimumTemperatureSeaIce(-1.8)
 
-function limit_fluxes_over_sea_ice!(grid, kernel_parameters, sea_ice::MinimumTemperatureSeaIce,
+function limit_fluxes_over_sea_ice!(grid, kernel_parameters,
+                                    sea_ice::MinimumTemperatureSeaIce,
                                     centered_velocity_fluxes,
                                     net_tracer_fluxes,
                                     ocean_temperature,
@@ -39,7 +40,7 @@ end
                                          net_tracer_fluxes,
                                          grid,
                                          minimum_temperature,
-                                         ocean_temperature)    
+                                         ocean_temperature)
 
     i, j = @index(Global, NTuple)
 
@@ -50,7 +51,7 @@ end
         τy = centered_velocity_fluxes.v
         Jᵀ = net_tracer_fluxes.T
         Jˢ = net_tracer_fluxes.S
-    
+
         sea_ice = Tₒ < minimum_temperature
         cooling_sea_ice = sea_ice & (Jᵀ[i, j, 1] > 0)
 
@@ -59,8 +60,7 @@ end
 
         # If we are in a "sea ice" region we remove all fluxes
         Jˢ[i, j, 1] = ifelse(sea_ice, zero(grid), Jˢ[i, j, 1])
-        τx[i, j, 1] = ifelse(sea_ice, zero(grid), τx[i, j, 1]) 
-        τy[i, j, 1] = ifelse(sea_ice, zero(grid), τy[i, j, 1]) 
+        τx[i, j, 1] = ifelse(sea_ice, zero(grid), τx[i, j, 1])
+        τy[i, j, 1] = ifelse(sea_ice, zero(grid), τy[i, j, 1])
     end
 end
-

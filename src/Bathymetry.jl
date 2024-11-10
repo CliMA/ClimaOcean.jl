@@ -38,13 +38,13 @@ end
 Regrid bathymetry associated with the NetCDF file at `path = joinpath(dir, filename)` to `target_grid`.
 If `path` does not exist, then a download is attempted from `joinpath(url, filename)`.
 
-Arguments:
-==========
+Arguments
+=========
 
 - target_grid: grid to interpolate onto
 
-Keyword Arguments:
-==================
+Keyword Arguments
+=================
 
 - `height_above_water`: limits the maximum height of above-water topography (where h > 0). If
                         `nothing` the original topography is retained
@@ -336,15 +336,16 @@ end
 
 Retrieve the bathymetry data from a file or generate it using a grid and save it to a file.
 
-# Arguments
-============
+Arguments
+=========
 
 - `grid`: The grid used to generate the bathymetry data.
 - `filename`: The name of the file to read or save the bathymetry data.
 - `kw...`: Additional keyword arguments.
 
-# Returns
-===========
+Returns
+=======
+
 - `bottom_height`: The retrieved or generated bathymetry data.
 
 If the specified file exists, the function reads the bathymetry data from the file. 
@@ -366,4 +367,3 @@ retrieve_bathymetry(grid, ::Nothing; kw...) = regrid_bathymetry(grid; kw...)
 retrieve_bathymetry(grid; kw...)            = regrid_bathymetry(grid; kw...)
 
 end # module
-

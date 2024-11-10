@@ -177,21 +177,22 @@ end
 ECCO_field(var_name::Symbol; kw...) = ECCO_field(ECCOMetadata(var_name); kw...)
 
 """
-    inpainted_ECCO_field(variable_name; 
+    inpainted_ECCO_field(metadata::ECCOMetadata;
                          architecture = CPU(),
-                         mask = ECCO_mask(architecture),
-                         maxiter = Inf)
+                         mask = ECCO_mask(metadata, architecture),
+                         inpainting = NearestNeighborInpainting(Inf),
+                         kw...)
     
-    
-Retrieve the ECCO field corresponding to `metadata` inpainted to fill all the missing values in the original dataset.
+Retrieve the ECCO field corresponding to `metadata` inpainted to fill all the missing
+values in the original dataset.
 
-Arguments:
-==========
+Arguments
+=========
 
 - `metadata`: the metadata corresponding to the dataset.
 
-Keyword Arguments:
-==================
+Keyword Arguments
+=================
 
 - `architecture`: either `CPU()` or `GPU()`.
 - `mask`: the mask used to inpaint the field, see [`inpaint_mask!`](@ref).
@@ -202,14 +203,20 @@ function inpainted_ECCO_field(metadata::ECCOMetadata;
                               mask = ECCO_mask(metadata, architecture),
                               inpainting = NearestNeighborInpainting(Inf),
                               kw...)
-    
-    f = ECCO_field(metadata; architecture, kw...)
 
     # Make sure all values are extended properly
-    @info "In-painting ECCO $(metadata.name)"
+    name = string(metadata.name)
+    date = string(metadata.dates)
+    version = summary(metadata.version)
+    @info string("Inpainting ", version, " ", name, " data from ", date, "...")
+    start_time = time_ns()
+    
+    f = ECCO_field(metadata; architecture, kw...)
     inpaint_mask!(f, mask; inpainting)
-
     fill_halo_regions!(f)
+
+    elapsed = 1e-9 * (time_ns() - start_time)
+    @info string(" ... (", prettytime(elapsed), ")")
 
     return f
 end
@@ -242,8 +249,6 @@ function set!(field::DistributedField, ECCO_metadata::ECCOMetadata; kw...)
 end
 
 function set!(field::Field, ECCO_metadata::ECCOMetadata; kw...)
-
-    # Fields initialized from ECCO
     grid = field.grid
     arch = architecture(grid)
     mask = ECCO_mask(ECCO_metadata, arch)
