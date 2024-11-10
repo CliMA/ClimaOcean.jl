@@ -1,6 +1,6 @@
 module ECCO
 
-export ECCOMetadata, ECCO_field, ECCO_mask, adjusted_ECCO_tracers, initialize!
+export ECCOMetadata, ECCO_field, ECCO_mask, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
 export ECCORestoring, LinearlyTaperedPolarMask
 
@@ -88,7 +88,7 @@ empty_ECCO_field(variable_name::Symbol; kw...) = empty_ECCO_field(ECCOMetadata(v
 
 function empty_ECCO_field(metadata::ECCOMetadata;
                           architecture = CPU(), 
-                          horizontal_halo = (3, 3))
+                          horizontal_halo = (7, 7))
 
     Nx, Ny, Nz, _ = size(metadata)
     loc = location(metadata)
@@ -128,7 +128,7 @@ in the x and y direction. The halo in the z-direction is one.
 """
 function ECCO_field(metadata::ECCOMetadata;
                     architecture = CPU(),
-                    horizontal_halo = (3, 3))
+                    horizontal_halo = (7, 7))
 
     download_dataset!(metadata)
     path = metadata_path(metadata)

@@ -48,9 +48,6 @@ h_one_basin = regrid_bathymetry(grid; major_basins = 1)
 nothing #hide
 
 # Finally, we visualize the generated bathymetry data for the Mediterranean Sea using CairoMakie.
-
-λ, φ, z = nodes(h_smooth)
-
 land_smooth = interior(h_smooth) .>= 0
 interior(h_smooth)[land_smooth] .= NaN
 
@@ -63,13 +60,13 @@ interior(h_one_basin)[land_one_basin] .= NaN
 fig = Figure(size=(850, 1150))
 
 ax = Axis(fig[1, 1], title = "Rough bathymetry", xlabel = "Longitude", ylabel = "Latitude")
-hm = heatmap!(ax, λ, φ, - interior(h_rough, :, :, 1), nan_color=:white, colormap = Reverse(:deep))
+hm = heatmap!(ax, h_rough, nan_color=:grey, colormap = Reverse(:deep))
 
 ax = Axis(fig[2, 1], title = "Smooth bathymetry", xlabel = "Longitude", ylabel = "Latitude")
-hm = heatmap!(ax, λ, φ, - interior(h_smooth, :, :, 1), nan_color=:white, colormap = Reverse(:deep))
+hm = heatmap!(ax, h_smooth, nan_color=:grey, colormap = Reverse(:deep))
 
-ax = Axis(fig[3, 1], title = "Bathymetry without only one basin", xlabel = "Longitude", ylabel = "Latitude")
-hm = heatmap!(ax, λ, φ, - interior(h_one_basin, :, :, 1), nan_color=:white, colormap = Reverse(:deep))
+ax = Axis(fig[3, 1], title = "Bathymetry with only one basin", xlabel = "Longitude", ylabel = "Latitude")
+hm = heatmap!(ax, h_one_basin, nan_color=:grey, colormap = Reverse(:deep))
 
 cb = Colorbar(fig[1:3, 2], hm, height = Relative(3/4), label = "Depth (m)")
 
