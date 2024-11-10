@@ -67,7 +67,7 @@ atmosphere = JRA55_prescribed_atmosphere(arch; backend=JRA55NetCDFBackend(41))
 sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 
-simulation = Simulation(coupled_model; Δt=30minutes, stop_time=2*365days)
+simulation = Simulation(coupled_model; Δt=15minutes, stop_time=2*365days)
 
 wall_time = Ref(time_ns())
 
