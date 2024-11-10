@@ -1,6 +1,3 @@
-ENV["ECCO_USERNAME"] = "navidcy"
-ENV["ECCO_PASSWORD"] = "Bfn8eGNc6hi7u@08lKA"
-
 include("runtests_setup.jl")
 
 using CFTime
@@ -150,17 +147,17 @@ end
         field = CenterField(grid)
 
         @test begin
-            set!(field, ECCOMetadata(:temperature)) 
+            set!(field, ECCOMetadata(:temperature))
             set!(field, ECCOMetadata(:salinity))
             true
         end
 
-        FT = ECCORestoring(arch, :temperature;
-                           dates,
-                           rate = 1 / 1000.0,
-                           inpainting)
+        forcing_T = ECCORestoring(arch, :temperature;
+                                  dates,
+                                  rate = 1 / 1000.0,
+                                  inpainting)
 
-        ocean = ocean_simulation(grid; forcing = (; T = FT))
+        ocean = ocean_simulation(grid; forcing = (; T = forcing_T))
 
         @test begin
             time_step!(ocean)
