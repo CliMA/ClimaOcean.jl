@@ -75,7 +75,7 @@ while (attempt < tries) || !built_bathymetry
     end
     attempt += 1
 end
-        
+
 # Let's see what the bathymetry looks like:
 
 zb = grid.immersed_boundary.bottom_height
