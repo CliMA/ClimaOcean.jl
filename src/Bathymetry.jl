@@ -41,7 +41,7 @@ If `path` does not exist, then a download is attempted from `joinpath(url, filen
 Arguments
 =========
 
-- target_grid: grid to interpolate onto
+- `target_grid`: grid to interpolate onto
 
 Keyword Arguments
 =================
