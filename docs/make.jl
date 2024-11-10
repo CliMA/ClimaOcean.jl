@@ -85,8 +85,10 @@ for file in files
     rm(file)
 end
 
-withenv("GITHUB_REPOSITORY" => "github.com/CliMA/ClimaOceanDocumentation.git") do
-    deploydocs(repo = "github.com/CliMA/ClimaOceanDocumentation.git",
+# Override the corresponding environment variable that deplodocs uses to determine if
+# it is deploying to the correct repository. For GitHub, it's the GITHUB_REPOSITORY variable:
+withenv("GITHUB_REPOSITORY" => repo) do
+    deploydocs(repo = repo,
                versions = ["stable" => "v^", "dev" => "dev", "v#.#.#"],
                forcepush = true,
                devbranch = "main",
