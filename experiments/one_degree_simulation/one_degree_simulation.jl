@@ -67,7 +67,7 @@ atmosphere = JRA55_prescribed_atmosphere(arch; backend=JRA55NetCDFBackend(41))
 sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 
-simulation = Simulation(coupled_model; Δt=10minutes, stop_iteration=10)
+simulation = Simulation(coupled_model; Δt=30minutes, stop_time=2*365days)
 
 wall_time = Ref(time_ns())
 
@@ -75,9 +75,12 @@ function progress(sim)
     ocean = sim.model.ocean
     u, v, w = ocean.model.velocities
     T = ocean.model.tracers.T
-    Tmax = maximum(T)
-    Tmin = minimum(T)
-    umax = maximum(abs, u), maximum(abs, v), maximum(abs, w)
+    Tmax = maximum(interior(T))
+    Tmin = minimum(interior(T))
+    umax = (maximum(abs, interior(u)),
+            maximum(abs, interior(v)),
+            maximum(abs, interior(w)))
+
     step_time = 1e-9 * (time_ns() - wall_time[])
 
     @info @sprintf("Time: %s, n: %d, Δt: %s, max|u|: (%.2e, %.2e, %.2e) m s⁻¹, extrema(T): (%.2f, %.2f) ᵒC, wall time: %s \n",
@@ -89,6 +92,6 @@ function progress(sim)
      return nothing
 end
 
-add_callback!(simulation, progress, IterationInterval(1))
+add_callback!(simulation, progress, IterationInterval(10))
 
 run!(simulation)
