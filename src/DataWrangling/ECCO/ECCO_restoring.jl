@@ -37,9 +37,8 @@ Adapt.adapt_structure(to, b::ECCONetCDFBackend{N}) where N = ECCONetCDFBackend{N
 """
     ECCONetCDFBackend(length; on_native_grid = false, inpainting = NearestNeighborInpainting(Inf))
 
-Represents an ECCO FieldTimeSeries backed by ECCO native .nc files.
+Represent an ECCO FieldTimeSeries backed by ECCO native netCDF files.
 Each time instance is stored in an individual file.
-the maxiter keyword argument is the maximum number of iterations for the inpainting algorithm.
 """
 function ECCONetCDFBackend(length, metadata;
                            on_native_grid = false, 
@@ -78,7 +77,7 @@ end
 """
     ECCO_times(metadata; start_time = metadata.dates[1])
 
-Extracts the time values from the given metadata and calculates the time difference
+Extract the time values from the given metadata and calculates the time difference
 from the start time.
 
 Arguments
