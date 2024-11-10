@@ -12,15 +12,14 @@ z = exponential_z_faces(Nz=30, depth=6000)
 Nx = 120
 Ny = 60
 Nz = length(z) - 1
-
-grid = TripolarGrid(arch; z, size = (Nx, Ny, Nz), north_poles_latitude=55, first_pole_longitude=70)
-
-@show grid
+grid = TripolarGrid(arch; z, size=(Nx, Ny, Nz))
 
 bottom_height = regrid_bathymetry(grid;
                                   minimum_depth = 10,
                                   interpolation_passes = 5,
                                   major_basins = 3)
+
+grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
 # Closure
 gm = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1000, κ_symmetric=1000)
@@ -45,7 +44,7 @@ set!(restoring_mask_field, restoring_mask)
 Fu = Forcing(sponge_layer, field_dependencies=:u, parameters=restoring_rate)
 Fv = Forcing(sponge_layer, field_dependencies=:v, parameters=restoring_rate)
 
-dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1994, 1, 1)
+dates = DateTimeProlepticGregorian(1993, 11, 1) : Month(1) : DateTimeProlepticGregorian(1994, 11, 1)
 temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
 salinity = ECCOMetadata(:salinity, dates, ECCO4Monthly())
 
@@ -68,7 +67,7 @@ atmosphere = JRA55_prescribed_atmosphere(arch; backend=JRA55NetCDFBackend(41))
 sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 
-simulation = Simulation(coupled_model; Δt=1, stop_iteration=10)
+simulation = Simulation(coupled_model; Δt=10minutes, stop_iteration=10)
 
 wall_time = Ref(time_ns())
 
