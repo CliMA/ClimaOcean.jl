@@ -392,7 +392,7 @@ end
     ΣQ = Qd + Qu + Qc + Qv
 
     # Convert from a mass flux to a volume flux (aka velocity)
-    # by dividing with the seawater density.
+    # by dividing with the density of freshwater.
     # Also switch the sign, for some reason we are given freshwater flux as positive down.
     ρf⁻¹ = 1 / freshwater_density
     ΣF   = - Mp * ρf⁻¹
