@@ -49,8 +49,8 @@ dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGre
 temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
 salinity = ECCOMetadata(:salinity, dates, ECCO4Monthly())
 
-FT = ECCORestoring(temperature; grid, architecture=arch, mask=restoring_mask_field, rate=restoring_rate)
-FS = ECCORestoring(salinity;    grid, architecture=arch, mask=restoring_mask_field, rate=restoring_rate)
+FT = ECCORestoring(arch, temperature; grid, mask=restoring_mask_field, rate=restoring_rate)
+FS = ECCORestoring(arch, salinity;    grid, mask=restoring_mask_field, rate=restoring_rate)
 forcing = (T=FT, S=FS, u=Fu, v=Fv)
 
 momentum_advection = VectorInvariant()
@@ -93,4 +93,3 @@ end
 add_callback!(simulation, progress, IterationInterval(1))
 
 run!(simulation)
-
