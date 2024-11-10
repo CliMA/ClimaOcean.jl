@@ -79,12 +79,12 @@ end
 
 @testset "LinearlyTaperedPolarMask" begin
     for arch in test_architectures
-        grid = LatitudeLongitudeGrid(arch; 
-                                        size = (100, 100, 10), 
-                                    latitude = (-75, 75), 
-                                longitude = (0, 360), 
-                                        z = (-200, 0),
-                                        halo = (6, 6, 6))
+        grid = LatitudeLongitudeGrid(arch;
+                                     size = (100, 100, 10),
+                                     latitude = (-75, 75),
+                                     longitude = (0, 360),
+                                     z = (-200, 0),
+                                     halo = (6, 6, 6))
 
         φ₁ = @allowscalar grid.φᵃᶜᵃ[1]
         φ₂ = @allowscalar grid.φᵃᶜᵃ[21]
@@ -92,13 +92,13 @@ end
         φ₄ = @allowscalar grid.φᵃᶜᵃ[100]
         z₁ = @allowscalar grid.zᵃᵃᶜ[6]
 
-        mask = LinearlyTaperedPolarMask(northern = (φ₃, φ₄), 
-                                        southern = (φ₁, φ₂), 
+        mask = LinearlyTaperedPolarMask(northern = (φ₃, φ₄),
+                                        southern = (φ₁, φ₂),
                                         z        = (z₁, 0))
 
-        t_restoring = ECCORestoring(:temperature, arch; 
-                                    dates, 
-                                    mask, 
+        t_restoring = ECCORestoring(arch, :temperature;
+                                    dates,
+                                    mask,
                                     rate = 1 / 1000.0,
                                     inpainting)
 

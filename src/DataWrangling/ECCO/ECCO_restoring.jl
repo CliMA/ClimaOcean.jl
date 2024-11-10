@@ -193,14 +193,14 @@ struct ECCORestoring{FTS, G, M, V, N}
     rate :: N
 end
 
-Adapt.adapt_structure(to, p::ECCORestoring) =  ECCORestoring(Adapt.adapt(to, p.field_time_series), 
-                                                             Adapt.adapt(to, p.grid),
-                                                             Adapt.adapt(to, p.mask),
-                                                             Adapt.adapt(to, p.variable_name),
-                                                             Adapt.adapt(to, p.rate))
+Adapt.adapt_structure(to, p::ECCORestoring) = ECCORestoring(Adapt.adapt(to, p.field_time_series),
+                                                            Adapt.adapt(to, p.grid),
+                                                            Adapt.adapt(to, p.mask),
+                                                            Adapt.adapt(to, p.variable_name),
+                                                            Adapt.adapt(to, p.rate))
 
 @inline function (p::ECCORestoring)(i, j, k, grid, clock, fields)
-    
+
     # Figure out all the inputs: time, location, and node
     time = Time(clock.time)
     loc = location(p.field_time_series)
@@ -233,8 +233,10 @@ end
 end    
 
 """
-    ECCORestoring([architecture=CPU(),] variable_name::Symbol,
-                  version = ECCO4Monthly(),
+    ECCORestoring([arch=CPU(),]
+                  variable_name::Symbol;
+                  version=ECCO4Monthly(),
+                  dates=all_ECCO_dates(version),
                   dates = all_ECCO_dates(version), 
                   time_indices_in_memory = 2, 
                   time_indexing = Cyclical(),
@@ -243,27 +245,27 @@ end
                   grid = nothing,
                   inpainting = NearestNeighborInpainting(prod(size(metadata))))
 
-Create a restoring forcing term that restores to values stored in an ECCO field time series.
+Create a forcing term that restores to values stored in an ECCO field time series.
 The restoring is applied as a forcing on the right hand side of the evolution equations calculated as
-```math
+
+```julia
 F = mask ⋅ rate ⋅ (ECCO_variable - simulation_variable[i, j, k])
 ```
-where ECCO_variable is linearly interpolated in space and time from the ECCO dataset of choice to the 
+where `ECCO_variable` is linearly interpolated in space and time from the ECCO dataset of choice to the 
 simulation grid and time.
 
 Arguments
 =========
 
-- `architecture`: The architecture. Typically `CPU` or `GPU`. Default is `CPU`.
+- `arch`: The architecture. Typically `CPU()` or `GPU()`. Default: `CPU()`.
 
-- `variable_name`: The name of the variable to restore. Default: `:temperature`.
-                   The choice is between:
-                    - `:temperature`,
-                    - `:salinity`,
-                    - `:u_velocity`,
-                    - `:v_velocity`,
-                    - `:sea_ice_thickness`,
-                    - `:sea_ice_area_fraction`.
+- `variable_name`: The name of the variable to restore. Choices include:
+  * `:temperature`,
+  * `:salinity`,
+  * `:u_velocity`,
+  * `:v_velocity`,
+  * `:sea_ice_thickness`,
+  * `:sea_ice_area_fraction`.
 
 Keyword Arguments
 =================
@@ -279,7 +281,7 @@ Keyword Arguments
 
 - `mask`: The mask value. Can be a function of `(x, y, z, time)`, an array, or a number.
 
-- `rate`: The restoring rate, i.e., inverse of the restoring timescale (in s⁻¹).
+- `rate`: The restoring rate, i.e., the inverse of the restoring timescale (in s⁻¹).
 
 - `time_indices_in_memory:` how many time instances are loaded in memory; the remaining are loaded lazily.
 
@@ -294,8 +296,12 @@ Keyword Arguments
 It is possible to also pass an `ECCOMetadata` type as the first argument without the need for the 
 `variable_name` argument and the `version` and `dates` keyword arguments.
 """
-function ECCORestoring(arch::AbstractArchitecture, variable_name::Symbol;
-                       version=ECCO4Monthly(), dates=all_ECCO_dates(version), kw...) 
+function ECCORestoring(arch::AbstractArchitecture,
+                       variable_name::Symbol;
+                       version=ECCO4Monthly(),
+                       dates=all_ECCO_dates(version),
+                       kw...)
+
     metadata = ECCOMetadata(variable_name, dates, version)
     return ECCORestoring(metadata; architecture, kw...)
 end
@@ -303,7 +309,11 @@ end
 # Make sure we can call ECCORestoring with architecture as the first positional argument
 ECCORestoring(variable_name::Symbol; kw...) = ECCORestoring(CPU(), variable_name; kw...)
 
-function ECCORestoring(metadata::ECCOMetadata; rate, architecture = CPU(), mask = 1, grid = nothing,
+function ECCORestoring(metadata::ECCOMetadata;
+                       rate,
+                       architecture = CPU(),
+                       mask = 1,
+                       grid = nothing,
                        time_indices_in_memory = 2, # Not more than this if we want to use GPU!
                        time_indexing = Cyclical(),
                        inpainting = NearestNeighborInpainting(Inf))
