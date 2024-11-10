@@ -122,10 +122,18 @@ end
 
 @testset "Setting a field with ECCO" begin
     for arch in test_architectures
-        grid = LatitudeLongitudeGrid(size=(10, 10, 10), latitude=(-60, -40), longitude=(10, 15), z=(-200, 0))
+        grid = LatitudeLongitudeGrid(arch;
+                                     size=(10, 10, 10),
+                                     latitude=(-60, -40),
+                                     longitude=(10, 15), z=(-200, 0))
+
         field = CenterField(grid)
-        set!(field, ECCOMetadata(:temperature)) 
-        set!(field, ECCOMetadata(:salinity))
+
+        @test begin
+            set!(field, ECCOMetadata(:temperature))
+            set!(field, ECCOMetadata(:salinity))
+            true
+        end
     end
 end
 
@@ -147,7 +155,11 @@ end
             true
         end
 
-        FT = ECCORestoring(:temperature, arch; dates, rate = 1 / 1000.0, inpainting)
+        FT = ECCORestoring(arch, :temperature;
+                           dates,
+                           rate = 1 / 1000.0,
+                           inpainting)
+
         ocean = ocean_simulation(grid; forcing = (; T = FT))
 
         @test begin
@@ -165,6 +177,7 @@ end
                                      longitude=(10, 15),
                                      z=(-200, 0),
                                      halo = (7, 7, 7))
+
         ocean = ocean_simulation(grid)
         date = DateTimeProlepticGregorian(1993, 1, 1)
         set!(ocean.model, T=ECCOMetadata(:temperature, date), S=ECCOMetadata(:salinity, date))
