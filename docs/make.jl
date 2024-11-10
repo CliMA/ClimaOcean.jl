@@ -85,9 +85,7 @@ for file in files
     rm(file)
 end
 
-ci_build = get(ENV, "CI", nothing) == "true"
-
-if ci_build
+withenv("GITHUB_REPOSITORY" => "github.com/CliMA/ClimaOceanDocumentation.git") do
     deploydocs(repo = "github.com/CliMA/ClimaOceanDocumentation.git",
                versions = ["stable" => "v^", "dev" => "dev", "v#.#.#"],
                forcepush = true,
