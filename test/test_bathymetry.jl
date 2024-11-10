@@ -41,7 +41,7 @@ using ClimaOcean.Bathymetry: remove_minor_basins!
         remove_minor_basins!(bottom_height, 1)
         
         # The remaning bottom cells that are not immersed should be only on the right hand side
-        # The left half of the domain should be fully immersed i.e. bottom == 0
+        # The left half of the domain should be fully immersed, i.e., bottom == 0
         @test sum(view(bottom_height, 1:50, :, 1)) == 0
 
         # While the right side should be not immersed, with a mean bottom depth 

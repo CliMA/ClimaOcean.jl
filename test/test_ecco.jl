@@ -1,3 +1,6 @@
+ENV["ECCO_USERNAME"] = "navidcy"
+ENV["ECCO_PASSWORD"] = "Bfn8eGNc6hi7u@08lKA"
+
 include("runtests_setup.jl")
 
 using CFTime
@@ -8,9 +11,6 @@ using ClimaOcean.ECCO
 using ClimaOcean.ECCO: ECCO_field, metadata_path, ECCO_times
 using ClimaOcean.DataWrangling: NearestNeighborInpainting
 using Oceananigans.Grids: topology
-
-using CFTime
-using Dates
 
 using CUDA: @allowscalar
 
@@ -56,13 +56,13 @@ end
     for arch in test_architectures
         temperature = ECCOMetadata(:temperature, dates[1], ECCO4Monthly())
 
-        grid = LatitudeLongitudeGrid(arch, 
-                                     size = (100, 100, 10), 
-                                 latitude = (-75, 75), 
-                                longitude = (0, 360), 
-                                        z = (-200, 0),
+        grid = LatitudeLongitudeGrid(arch,
+                                     size = (100, 100, 10),
+                                     latitude = (-75, 75),
+                                     longitude = (0, 360),
+                                     z = (-200, 0),
                                      halo = (6, 6, 6))
-        
+
         fully_inpainted_field = CenterField(grid)
         partially_inpainted_field = CenterField(grid)
 
@@ -94,13 +94,13 @@ end
 
         mask = LinearlyTaperedPolarMask(northern = (φ₃, φ₄),
                                         southern = (φ₁, φ₂),
-                                        z        = (z₁, 0))
+                                               z = (z₁, 0))
 
         t_restoring = ECCORestoring(arch, :temperature;
                                     dates,
-                                    mask,
-                                    rate = 1 / 1000.0,
-                                    inpainting)
+                                    # mask,
+                                    rate = 1 / 1000.0,)
+                                    # inpainting)
 
         fill!(t_restoring.field_time_series[1], 1.0)
         fill!(t_restoring.field_time_series[2], 1.0)
@@ -132,19 +132,20 @@ end
 @testset "Timestepping with ECCORestoring" begin
     for arch in test_architectures
 
-        grid  = LatitudeLongitudeGrid(arch; size = (10, 10, 10), 
-                                        latitude = (-60, -40), 
-                                       longitude = (10, 15), 
-                                               z = (-200, 0),
-                                            halo = (6, 6, 6))
-        
+        grid  = LatitudeLongitudeGrid(arch;
+                                      size = (10, 10, 10),
+                                      latitude = (-60, -40),
+                                      longitude = (10, 15),
+                                      z = (-200, 0),
+                                      halo = (6, 6, 6))
+
         field = CenterField(grid)
-        
+
         @test begin
             set!(field, ECCOMetadata(:temperature)) 
             set!(field, ECCOMetadata(:salinity))
             true
-        end   
+        end
 
         FT = ECCORestoring(:temperature, arch; dates, rate = 1 / 1000.0, inpainting)
         ocean = ocean_simulation(grid; forcing = (; T = FT))
@@ -154,12 +155,16 @@ end
             time_step!(ocean)
             true
         end
-    end 
+    end
 end
 
 @testset "Setting temperature and salinity to ECCO" begin
     for arch in test_architectures
-        grid = LatitudeLongitudeGrid(size=(10, 10, 10), latitude=(-60, -40), longitude=(10, 15), z=(-200, 0), halo = (7, 7, 7))
+        grid = LatitudeLongitudeGrid(size=(10, 10, 10),
+                                     latitude=(-60, -40),
+                                     longitude=(10, 15),
+                                     z=(-200, 0),
+                                     halo = (7, 7, 7))
         ocean = ocean_simulation(grid)
         date = DateTimeProlepticGregorian(1993, 1, 1)
         set!(ocean.model, T=ECCOMetadata(:temperature, date), S=ECCOMetadata(:salinity, date))

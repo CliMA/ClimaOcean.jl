@@ -185,7 +185,7 @@ Base.summary(::Salinity)    = "salinity"
 Base.summary(::UVelocity)   = "u_velocity"
 Base.summary(::VVelocity)   = "v_velocity"
 
-struct ECCORestoring{FTS, G, M, V, N} 
+struct ECCORestoring{FTS, G, M, V, N}
     field_time_series :: FTS
     grid :: G
     mask :: M
@@ -303,15 +303,12 @@ function ECCORestoring(arch::AbstractArchitecture,
                        kw...)
 
     metadata = ECCOMetadata(variable_name, dates, version)
-    return ECCORestoring(metadata; architecture, kw...)
+    return ECCORestoring(arch, metadata; kw...)
 end
 
-# Make sure we can call ECCORestoring with architecture as the first positional argument
-ECCORestoring(variable_name::Symbol; kw...) = ECCORestoring(CPU(), variable_name; kw...)
-
-function ECCORestoring(metadata::ECCOMetadata;
+function ECCORestoring(architecture::AbstractArchitecture,
+                       metadata::ECCOMetadata;
                        rate,
-                       architecture = CPU(),
                        mask = 1,
                        grid = nothing,
                        time_indices_in_memory = 2, # Not more than this if we want to use GPU!
@@ -326,6 +323,10 @@ function ECCORestoring(metadata::ECCOMetadata;
 
     return ECCORestoring(fts, fts.grid, mask, field_name, rate)
 end
+
+# Make sure we can call ECCORestoring with architecture as the first positional argument
+ECCORestoring(variable_name::Symbol; kw...) = ECCORestoring(CPU(), variable_name; kw...)
+ECCORestoring(metadata::ECCOMetadata; kw...) = ECCORestoring(CPU(), metadata; kw...)
 
 Base.show(io::IO, p::ECCORestoring) = 
     print(io, "Three-dimensional restoring to ECCO data:", '\n',
