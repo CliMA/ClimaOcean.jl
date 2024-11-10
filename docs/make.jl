@@ -18,7 +18,7 @@ to_be_literated = [
     # "generate_surface_fluxes.jl",
     # "single_column_os_papa_simulation.jl",
     # "mediterranean_simulation_with_ecco_restoring.jl",
-    # "near_global_ocean_simulation.jl"
+    "near_global_ocean_simulation.jl"
 ]
 
 for file in to_be_literated
@@ -40,14 +40,14 @@ format = Documenter.HTML(collapselevel = 2,
 pages = [
     "Home" => "index.md",
 
-    # "Examples" => [
+    "Examples" => [
         # "Inspect ECCO2 data" => "literated/inspect_ecco_data.md",
         # "Generate bathymetry" => "literated/generate_bathymetry.md",
         # "Surface fluxes" => "literated/generate_surface_fluxes.md",
         # "Single column simulation" => "literated/single_column_os_papa_simulation.md",
         # "Mediterranean simulation with ECCO restoring" => "literated/mediterranean_simulation_with_ecco_restoring.md",
-        # "Near-global Ocean simulation" => "literated/near_global_ocean_simulation.md",
-        # ],
+        "Near-global Ocean simulation" => "literated/near_global_ocean_simulation.md",
+        ],
 
     "Library" => [ 
         "Contents"       => "library/outline.md",
