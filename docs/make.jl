@@ -13,8 +13,8 @@ const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
 const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
 
 to_be_literated = [
-    "inspect_ecco_data.jl",
-    # "generate_bathymetry.jl",
+    # "inspect_ecco_data.jl",
+    "generate_bathymetry.jl",
     # "generate_surface_fluxes.jl",
     # "single_column_os_papa_simulation.jl",
     # "mediterranean_simulation_with_ecco_restoring.jl",
@@ -41,8 +41,8 @@ pages = [
     "Home" => "index.md",
 
     "Examples" => [
-        "Inspect ECCO2 data" => "literated/inspect_ecco_data.md",
-        # "Generate bathymetry" => "literated/generate_bathymetry.md",
+        # "Inspect ECCO2 data" => "literated/inspect_ecco_data.md",
+        "Generate bathymetry" => "literated/generate_bathymetry.md",
         # "Surface fluxes" => "literated/generate_surface_fluxes.md",
         # "Single column simulation" => "literated/single_column_os_papa_simulation.md",
         # "Mediterranean simulation with ECCO restoring" => "literated/mediterranean_simulation_with_ecco_restoring.md",
@@ -85,7 +85,9 @@ for file in files
     rm(file)
 end
 
-withenv("GITHUB_REPOSITORY" => "github.com/CliMA/ClimaOceanDocumentation.git") do
+ci_build = get(ENV, "CI", nothing) == "true"
+
+if ci_build
     deploydocs(repo = "github.com/CliMA/ClimaOceanDocumentation.git",
                deploy_config = Buildkite(),
                versions = ["stable" => "v^", "dev" => "dev", "v#.#.#"],
