@@ -32,11 +32,13 @@ using Dates
 
 arch = GPU() 
 
-z_faces = exponential_z_faces(Nz=40, depth=6000)
 
 Nx = 1440
 Ny = 600
-Nz = length(z_faces) - 1
+Nz = 40
+
+depth = 6000meters
+z_faces = exponential_z_faces(; Nz, depth)
 
 grid = LatitudeLongitudeGrid(arch;
                              size = (Nx, Ny, Nz),
@@ -50,10 +52,10 @@ grid = LatitudeLongitudeGrid(arch;
 # We use `regrid_bathymetry` to derive the bottom height from ETOPO1 data.
 # To smooth the interpolated data we use 5 interpolation passes. We also fill in
 # all the minor enclosed basins except the 3 largest `major_basins`, as well as regions
-# that are shallower than `minimum_depth = 10`.
+# that are shallower than `minimum_depth`.
 
 bottom_height = regrid_bathymetry(grid; 
-                                  minimum_depth = 10,
+                                  minimum_depth = 10meters,
                                   interpolation_passes = 5,
                                   major_basins = 3)
 
@@ -63,7 +65,7 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
 h = grid.immersed_boundary.bottom_height
 
-fig, ax, hm = heatmap(h, colormap=:deep, colorrange=(-6000, 0))
+fig, ax, hm = heatmap(h, colormap=:deep, colorrange=(-depth, 0))
 cb = Colorbar(fig[0, 1], hm, label="Bottom height (m)", vertical=false)
 hidedecorations!(ax)
 save("bathymetry.png", fig)
@@ -84,7 +86,8 @@ ocean.model
 # We initialize the ocean model to ECCO2 temperature and salinity for January 1, 1993.
 
 date = DateTimeProlepticGregorian(1993, 1, 1)
-set!(ocean.model, T=ECCOMetadata(:temperature; dates=date), S=ECCOMetadata(:salinity; dates=date))
+set!(ocean.model, T=ECCOMetadata(:temperature; dates=date),
+                  S=ECCOMetadata(:salinity; dates=date))
 
 # ### Prescribed atmosphere and radiation
 #
