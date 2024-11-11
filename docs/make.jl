@@ -13,10 +13,10 @@ const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
 const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
 
 to_be_literated = [
-    "inspect_ecco_data.jl",
-    "generate_bathymetry.jl",
-    "generate_surface_fluxes.jl",
-    "single_column_os_papa_simulation.jl",
+    # "inspect_ecco_data.jl",
+    # "generate_bathymetry.jl",
+    # "generate_surface_fluxes.jl",
+    # "single_column_os_papa_simulation.jl",
     # "mediterranean_simulation_with_ecco_restoring.jl",
     "near_global_ocean_simulation.jl"
 ]
@@ -40,21 +40,21 @@ format = Documenter.HTML(collapselevel = 2,
 pages = [
     "Home" => "index.md",
 
+    "Examples" => [
+        # "Inspect ECCO2 data" => "literated/inspect_ecco_data.md",
+        # "Generate bathymetry" => "literated/generate_bathymetry.md",
+        # "Surface fluxes" => "literated/generate_surface_fluxes.md",
+        # "Single column simulation" => "literated/single_column_os_papa_simulation.md",
+        # "Mediterranean simulation with ECCO restoring" => "literated/mediterranean_simulation_with_ecco_restoring.md",
+        "Near-global Ocean simulation" => "literated/near_global_ocean_simulation.md",
+        ],
+
     "Library" => [ 
         "Contents"       => "library/outline.md",
         "Public"         => "library/public.md",
         "Private"        => "library/internals.md",
         "Function index" => "library/function_index.md",
         ],
-
-    "Examples" => [
-        "Inspect ECCO2 data" => "literated/inspect_ecco_data.md",
-        "Generate bathymetry" => "literated/generate_bathymetry.md",
-        "Surface fluxes" => "literated/generate_surface_fluxes.md",
-        "Single column simulation" => "literated/single_column_os_papa_simulation.md",
-        # "Mediterranean simulation with ECCO restoring" => "literated/mediterranean_simulation_with_ecco_restoring.md",
-        "Near-global Ocean simulation" => "literated/near_global_ocean_simulation.md",
-        ]
 ]
 
 makedocs(sitename = "ClimaOcean.jl"; format, pages, 
