@@ -126,24 +126,11 @@ end
                mask = nothing,
                horizontal_halo = (7, 7))
 
-Return a `Field` on `architecture` described by `ECCOMetadata`.
+Return a `Field` on `architecture` described by `ECCOMetadata` with
+`horizontal_halo` size.
 If not `nothing`, the `inpainting` method is used to fill the cells
-within the specified `mask`.
-
-Arguments
-=========
-
-- `metadata`
-
-Keyword arguments
-==================
-- `architecture`:
-
-- `mask`: the mask used to inpaint the field, see [`inpaint_mask!`](@ref).
-
-- `inpainting`: the inpainting algorithm, see [`inpaint_mask!`](@ref). Default: `NearestNeighborInpainting(Inf)`.
-
-- `horizontal_halo`:
+within the specified `mask`. `mask` is set to `ECCO_mask` for non-nothing
+`inpainting`.
 """
 function ECCO_field(metadata::ECCOMetadata;
                     architecture = CPU(),
