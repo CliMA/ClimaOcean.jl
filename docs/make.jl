@@ -89,7 +89,7 @@ ci_build = get(ENV, "CI", nothing) == "true"
 
 if ci_build
     deploydocs(repo = "github.com/CliMA/ClimaOceanDocumentation.git",
-               deploy_config = Buildkite(),
+               deploy_config = Documenter.Buildkite(),
                versions = ["stable" => "v^", "dev" => "dev", "v#.#.#"],
                forcepush = true,
                devbranch = "main",
