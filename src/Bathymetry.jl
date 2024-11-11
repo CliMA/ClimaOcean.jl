@@ -42,7 +42,7 @@ If `path` does not exist, then a download is attempted from `joinpath(url, filen
 Arguments
 =========
 
-- target_grid: grid to interpolate onto
+- `target_grid`: grid to interpolate onto
 
 Keyword Arguments
 =================
@@ -63,15 +63,18 @@ Keyword Arguments
 - `interpolation_passes`: regridding/interpolation passes. The bathymetry is interpolated in
                           `interpolation_passes - 1` intermediate steps. With more steps the 
                           final bathymetry will be smoother.
-                          Example: interpolating from a 400x200 grid to a 100x100 grid in 4 passes will involve
-                          - 400x200 -> 325x175
-                          - 325x175 -> 250x150
-                          - 250x150 -> 175x125
-                          - 175x125 -> 100x100
-                          If _coarsening_ the original grid, linear interpolation in passes is equivalent to 
-                          applying a smoothing filter, with more passes increasing the strength of the filter.
-                          If _refining_ the original grid, additional passes will not help and no intermediate
-                          steps will be performed.
+                          
+  Example: interpolating from a 400x200 grid to a 100x100 grid in 4 passes involves:
+
+  * 400x200 → 325x175
+  * 325x175 → 250x150
+  * 250x150 → 175x125
+  * 175x125 → 100x100
+
+  If _coarsening_ the original grid, linear interpolation in passes is equivalent to
+  applying a smoothing filter, with more passes increasing the strength of the filter.
+  If _refining_ the original grid, additional passes will not help and no intermediate
+  steps will be performed.
 
 - `major_basins`: Number of "independent major basins", or fluid regions fully encompassed by land,
                   that are retained by [`remove_minor_basins!`](@ref). Basins are removed by order of size:
