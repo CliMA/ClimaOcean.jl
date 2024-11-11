@@ -20,7 +20,7 @@ Metadata information for an ECCO dataset:
 - `dir`: The directory where the dataset is stored.
 """
 struct ECCOMetadata{D, V}
-    name  :: Symbol
+    name :: Symbol
     dates :: D
     version :: V
     dir :: String

@@ -8,10 +8,10 @@ using Dates
 using Printf
 
 arch = CPU()
-z = exponential_z_faces(Nz=30, depth=6000)
 Nx = 120
 Ny = 60
-Nz = length(z) - 1
+Nz = 20
+z = exponential_z_faces(; Nz, depth=6000)
 grid = TripolarGrid(arch; z, size=(Nx, Ny, Nz))
 
 bottom_height = regrid_bathymetry(grid;
