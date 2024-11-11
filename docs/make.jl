@@ -57,7 +57,9 @@ pages = [
         ],
 ]
 
-makedocs(sitename = "ClimaOcean.jl"; format, pages, 
+makedocs(sitename = "ClimaOcean.jl";
+         format,
+         pages, 
          modules = [ClimaOcean],
          doctest = true,
          clean = true,
