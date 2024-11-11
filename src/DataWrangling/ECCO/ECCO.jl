@@ -122,22 +122,33 @@ end
 """
     ECCO_field(metadata::ECCOMetadata;
                architecture = CPU(),
-               inpainting = nothing, #NearestNeighborInpainting(Inf),
-               mask = nothing, #ECCO_mask(metadata, architecture),
-               horizontal_halo = (3, 3))
+               inpainting = nothing,
+               mask = nothing,
+               horizontal_halo = (7, 7))
 
-Retrieve the ecco field corresponding to `metadata`. 
-The data is loaded from `filename` on `architecture` with `horizontal_halo`
-in the x and y direction. The halo in the z-direction is one.
+Return a `Field` on `architecture` described by `ECCOMetadata`.
+If not `nothing`, the `inpainting` method is used to fill the cells
+within the specified `mask`.
 
-K
+Arguments
+=========
+
+- `metadata`
+
+Keyword arguments
+==================
+- `architecture`:
+
 - `mask`: the mask used to inpaint the field, see [`inpaint_mask!`](@ref).
+
 - `inpainting`: the inpainting algorithm, see [`inpaint_mask!`](@ref). Default: `NearestNeighborInpainting(Inf)`.
+
+- `horizontal_halo`:
 """
 function ECCO_field(metadata::ECCOMetadata;
                     architecture = CPU(),
-                    inpainting = nothing, #NearestNeighborInpainting(Inf),
-                    mask = nothing, #ECCO_mask(metadata, architecture),
+                    inpainting = nothing,
+                    mask = nothing,
                     horizontal_halo = (7, 7))
 
     !isnothing(inpainting) && isnothing(mask) &&
@@ -223,55 +234,6 @@ end
 
 inpainted_metadata_path(metadata::ECCOMetadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
 
-#=
-"""
-    inpainted_ECCO_field(metadata::ECCOMetadata;
-                         architecture = CPU(),
-                         mask = ECCO_mask(metadata, architecture),
-                         inpainting = NearestNeighborInpainting(Inf),
-                         kw...)
-    
-Retrieve the ECCO field corresponding to `metadata` inpainted to fill all the missing
-values in the original dataset.
-
-Arguments
-=========
-
-- `metadata`: the metadata corresponding to the dataset.
-
-Keyword Arguments
-=================
-
-- `architecture`: either `CPU()` or `GPU()`.
-- `mask`: the mask used to inpaint the field, see [`inpaint_mask!`](@ref).
-- `inpainting`: the inpainting algorithm, see [`inpaint_mask!`](@ref). Default: `NearestNeighborInpainting(Inf)`.
-"""
-function inpainted_ECCO_field(metadata::ECCOMetadata; 
-                              architecture = CPU(),
-                              mask = ECCO_mask(metadata, architecture),
-                              inpainting = NearestNeighborInpainting(Inf),
-                              kw...)
-
-    # Make sure all values are extended properly
-    name = string(metadata.name)
-    date = string(metadata.dates)
-    version = summary(metadata.version)
-    @info string("Inpainting ", version, " ", name, " data from ", date, "...")
-    start_time = time_ns()
-    
-    f = ECCO_field(metadata; architecture, kw...)
-    inpaint_mask!(f, mask; inpainting)
-    fill_halo_regions!(f)
-
-    elapsed = 1e-9 * (time_ns() - start_time)
-    @info string(" ... (", prettytime(elapsed), ")")
-
-    return f
-end
-
-inpainted_ECCO_field(variable_name::Symbol; kw...) = inpainted_ECCO_field(ECCOMetadata(variable_name); kw...)
-=#
-    
 function set!(field::DistributedField, ECCO_metadata::ECCOMetadata;
               inpainting = NearestNeighborInpainting(Inf),
               kw...)
@@ -317,3 +279,4 @@ function set!(field::Field, ECCO_metadata::ECCOMetadata;
 end
 
 end # Module 
+
