@@ -18,7 +18,7 @@ to_be_literated = [
     # "generate_surface_fluxes.jl",
     # "single_column_os_papa_simulation.jl",
     # "mediterranean_simulation_with_ecco_restoring.jl",
-    "near_global_ocean_simulation.jl"
+    # "near_global_ocean_simulation.jl"
 ]
 
 for file in to_be_literated
@@ -46,7 +46,7 @@ pages = [
         # "Surface fluxes" => "literated/generate_surface_fluxes.md",
         # "Single column simulation" => "literated/single_column_os_papa_simulation.md",
         # "Mediterranean simulation with ECCO restoring" => "literated/mediterranean_simulation_with_ecco_restoring.md",
-        "Near-global Ocean simulation" => "literated/near_global_ocean_simulation.md",
+        # "Near-global Ocean simulation" => "literated/near_global_ocean_simulation.md",
         ],
 
     "Library" => [ 
@@ -87,6 +87,7 @@ end
 
 withenv("GITHUB_REPOSITORY" => "github.com/CliMA/ClimaOceanDocumentation.git") do
     deploydocs(repo = "github.com/CliMA/ClimaOceanDocumentation.git",
+               deploy_config = Buildkite(),
                versions = ["stable" => "v^", "dev" => "dev", "v#.#.#"],
                forcepush = true,
                devbranch = "main",
