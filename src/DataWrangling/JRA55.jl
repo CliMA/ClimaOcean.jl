@@ -302,36 +302,36 @@ available from the JRA55-do are:
 Keyword arguments
 =================
 
-    - `architecture`: Architecture for the `FieldTimeSeries`.
-                      Default: CPU()
+- `architecture`: Architecture for the `FieldTimeSeries`.
+                  Default: CPU()
 
-    - `time_indices`: Indices of the timeseries to extract from file. 
-                      For example, `time_indices=1:3` returns a 
-                      `FieldTimeSeries` with the first three time snapshots
-                      of `variable_name`.
+- `time_indices`: Indices of the timeseries to extract from file. 
+                  For example, `time_indices=1:3` returns a 
+                  `FieldTimeSeries` with the first three time snapshots
+                  of `variable_name`.
 
-    - `latitude`: Guiding latitude bounds for the resulting grid.
-                  Used to slice the data when loading into memory.
-                  Default: nothing, which retains the latitude range of the native grid.
+- `latitude`: Guiding latitude bounds for the resulting grid.
+              Used to slice the data when loading into memory.
+              Default: nothing, which retains the latitude range of the native grid.
 
-    - `longitude`: Guiding longitude bounds for the resulting grid.
-                   Used to slice the data when loading into memory.
-                  Default: nothing, which retains the longitude range of the native grid.
+- `longitude`: Guiding longitude bounds for the resulting grid.
+              Used to slice the data when loading into memory.
+              Default: nothing, which retains the longitude range of the native grid.
 
-    - `url`: The url accessed to download the data for `variable_name`.
-             Default: `ClimaOcean.JRA55.urls[variable_name]`.
+- `url`: The url accessed to download the data for `variable_name`.
+         Default: `ClimaOcean.JRA55.urls[variable_name]`.
 
-    - `filename`: The name of the downloaded file.
-                  Default: `ClimaOcean.JRA55.filenames[variable_name]`.
+- `filename`: The name of the downloaded file.
+              Default: `ClimaOcean.JRA55.filenames[variable_name]`.
 
-    - `shortname`: The "short name" of `variable_name` inside its NetCDF file.
-                    Default: `ClimaOcean.JRA55.jra55_short_names[variable_name]`.
+- `shortname`: The "short name" of `variable_name` inside its NetCDF file.
+               Default: `ClimaOcean.JRA55.jra55_short_names[variable_name]`.
 
-    - `interpolated_file`: file holding an Oceananigans compatible version of the JRA55 data.
-                            If it does not exist it will be generated.
+- `interpolated_file`: file holding an Oceananigans compatible version of the JRA55 data.
+                       If it does not exist it will be generated.
 
-    - `time_chunks_in_memory`: number of fields held in memory. If `nothing` the whole timeseries is 
-                               loaded (not recommended).
+- `time_chunks_in_memory`: number of fields held in memory. If `nothing` the whole timeseries is 
+                           loaded (not recommended).
 """
 function JRA55_field_time_series(variable_name;
                                  architecture = CPU(),

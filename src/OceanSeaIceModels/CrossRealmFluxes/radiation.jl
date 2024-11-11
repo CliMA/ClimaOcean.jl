@@ -24,20 +24,20 @@ Adapt.adapt_structure(to, r :: Radiation) =
 
 Constructs a `Radiation` object that represents the radiation properties of the ocean and sea ice.
 
-# Arguments
-===========
+Arguments
+=========
 
-- `arch`: The architecture of the system (default: `CPU()`).
-- `FT`: The floating-point type to use (default: `Float64`).
+- `arch`: The architecture of the system. Default: `CPU()`.
+- `FT`: The floating-point type to use. Default: `Float64`.
 
-# Keyword Arguments
-===================
+Keyword Arguments
+=================
 
-- `ocean_emissivity`: The emissivity of the ocean surface (default: `0.97`).
-- `sea_ice_emissivity`: The emissivity of the sea ice surface (default: `1.0`).
-- `ocean_albedo`: The albedo of the ocean surface (default: `LatitudeDependentAlbedo(FT)`).
-- `sea_ice_albedo`: The albedo of the sea ice surface (default: `0.7`).
-- `stefan_boltzmann_constant`: The Stefan-Boltzmann constant (default: `5.67e-8`).
+- `ocean_emissivity`: The emissivity of the ocean surface. Default: `0.97`.
+- `sea_ice_emissivity`: The emissivity of the sea ice surface. Default: `1.0`.
+- `ocean_albedo`: The albedo of the ocean surface. Default: `LatitudeDependentAlbedo(FT)`.
+- `sea_ice_albedo`: The albedo of the sea ice surface. Default: `0.7`.
+- `stefan_boltzmann_constant`: The Stefan-Boltzmann constant. Default: `5.67e-8`.
 """
 function Radiation(arch = CPU(), FT=Float64;
                    ocean_emissivity = 0.97,

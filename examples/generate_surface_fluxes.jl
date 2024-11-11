@@ -18,16 +18,13 @@ using CairoMakie
 
 # # Computing fluxes on the ECCO2 grid
 #
-# We start by building the ECCO2 grid, using `ECCO_mask`
-# to identify missing cells.
+# We start by building the ECCO2 grid, using `ECCO_bottom_height` to identify the bottom height.
 
-mask = ECCO_mask()
-grid = mask.grid
-grid = ImmersedBoundaryGrid(grid, GridFittedBoundary(mask))
+grid = ECCO_immersed_grid()
 
 fig = Figure()
 ax  = Axis(fig[1, 1])
-heatmap!(ax, interior(grid.immersed_boundary.mask, :, :, grid.Nz))
+heatmap!(ax, interior(grid.immersed_boundary.bottom_height, :, :, 1))
 save("ECCO_continents.png", fig) #hide
 
 # ![](ECCO_continents.png)
@@ -71,24 +68,25 @@ coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation=Radiation())
 # Now that the surface fluxes are computed, we can extract and visualize them.
 # The turbulent fluxes are stored in `coupled_model.fluxes.turbulent`.
 
-fluxes = coupled_model.fluxes.turbulent.fields
+fluxes  = coupled_model.fluxes.turbulent.fields
+λ, φ, z = nodes(fluxes.sensible_heat)
 
-fig = Figure(size = (800, 400))
+fig = Figure(size = (800, 800), fontsize = 15)
 
-ax = Axis(fig[1, 1], title = "Sensible heat flux (W m⁻²)")
-heatmap!(ax, fluxes.sensible_heat; colormap = :bwr)
+ax = Axis(fig[1, 1], title = "Sensible heat flux (W m⁻²)", ylabel = "Latitude")
+heatmap!(ax, λ, φ, interior(fluxes.sensible_heat, :, :, 1); colormap = :bwr)
 
 ax = Axis(fig[1, 2], title = "Latent heat flux (W m⁻²)")
-heatmap!(ax, fluxes.latent_heat; colormap = :bwr)
+heatmap!(ax, λ, φ, interior(fluxes.latent_heat, :, :, 1); colormap = :bwr)
 
-ax = Axis(fig[2, 1], title = "Zonal wind stress (N m)")
-heatmap!(ax, fluxes.x_momentum; colormap = :bwr)
+ax = Axis(fig[2, 1], title = "Zonal wind stress (N m)", ylabel = "Latitude")
+heatmap!(ax, λ, φ, interior(fluxes.x_momentum, :, :, 1); colormap = :bwr)
 
-ax = Axis(fig[2, 2], title = "Meridional wind stress (N m)")
-heatmap!(ax, fluxes.y_momentum; colormap = :bwr)
+ax = Axis(fig[2, 2], title = "Meridional wind stress (N m)", xlabel = "Longitude")
+heatmap!(ax, λ, φ, interior(fluxes.y_momentum, :, :, 1); colormap = :bwr)
 
-ax = Axis(fig[3, 1], title = "Water vapor flux (kg m⁻² s⁻¹)")
-heatmap!(ax, Mv; colormap = :bwr)
+ax = Axis(fig[3, 1], title = "Water vapor flux (kg m⁻² s⁻¹)", xlabel = "Longitude", ylabel = "Latitude")
+heatmap!(ax, λ, φ, interior(fluxes.water_vapor, :, :, 1); colormap = :bwr)
 
 save("fluxes.png", fig)
 # ![](fluxes.png)
