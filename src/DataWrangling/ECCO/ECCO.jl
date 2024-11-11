@@ -151,8 +151,10 @@ function ECCO_field(metadata::ECCOMetadata;
                     mask = nothing,
                     horizontal_halo = (7, 7))
 
-    !isnothing(inpainting) && isnothing(mask) &&
-        throw(ArgumentError("Must provide a mask to use inpainting=$inpainting."))
+    # Respect user-supplied mask, but otherwise build default ECCO mask.
+    if !isnothing(inpainting) && isnothing(mask)
+        mask = ECCO_mask(metadata, architecture)
+    end
 
     field = empty_ECCO_field(metadata; architecture, horizontal_halo)
     inpainted_path = inpainted_metadata_path(metadata)
@@ -229,7 +231,7 @@ ECCO_field(var_name::Symbol; kw...) = ECCO_field(ECCOMetadata(var_name); kw...)
 function inpainted_metadata_filename(metadata::ECCOMetadata)
     original_filename = metadata_filename(metadata)
     without_extension = original_filename[1:end-3]
-    return "inpainted_" * without_extension * ".jld2"
+    return without_extension * "_inpainted.jld2"
 end
 
 inpainted_metadata_path(metadata::ECCOMetadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
