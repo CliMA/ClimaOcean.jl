@@ -17,7 +17,7 @@ using Printf
 using ClimaOcean.DataWrangling.ECCO: ECCO_field
 
 # The function `ECCO_field` provided by `ClimaOcean.DataWrangling.ECCO` automatically
-# downloads ECCO data if that doesn't already exist at the default location.
+# downloads ECCO data, if the data doesn't already exist at the default location.
 
 T = ECCO_field(:temperature)
 S = ECCO_field(:salinity)
@@ -35,7 +35,7 @@ Tp[Tp .< -10] .= NaN
 # We're ready to plot. We'll make an animation
 # that depicts how the ECCO data changes with depth.
 
-fig = Figure(size=(1200, 1400))
+fig = Figure(size=(900, 1050))
 
 axT = Axis(fig[1, 1])
 axS = Axis(fig[2, 1])
@@ -62,8 +62,8 @@ Colorbar(fig[2, 2], hmS, label="Salinity (psu)")
 
 z = znodes(grid, Center())
 depth_str = @lift @sprintf("%.1f meters depth", -z[$k])
-text!(axT, 50, 50, text=depth_str, color=:lemonchiffon, justification=:center, fontsize=24)
-text!(axS, 50, 50, text=depth_str, color=:lemonchiffon, justification=:center, fontsize=24)
+text!(axT, 50, 50, text=depth_str, color=:lemonchiffon, justification=:center, fontsize=20)
+text!(axS, 50, 50, text=depth_str, color=:lemonchiffon, justification=:center, fontsize=20)
 
 # # Making the animation
 #
@@ -78,14 +78,14 @@ record(fig, "ECCO_temperature_salinity.mp4", framerate=4) do io
 
     [recordframe!(io) for _ = 1:stillframes]
 
-    for kk in Nz:-4:1
+    for kk in Nz:-2:1
         k[] = kk
         recordframe!(io)
     end
 
     [recordframe!(io) for _ = 1:stillframes]
 
-    for kk in 1:4:Nz
+    for kk in 1:2:Nz
         k[] = kk
         recordframe!(io)
     end
