@@ -65,10 +65,7 @@ last_time = simulation_days * snapshots_per_day
 atmosphere = JRA55_prescribed_atmosphere(1:last_time;
                                          longitude = λ★,
                                          latitude = φ★,
-                                         #longitude = (λ★ - 1/4, λ★ + 1/4),
-                                         #latitude  = (φ★ - 1/4, φ★ + 1/4),
-                                         backend = InMemory(),
-                                         include_rivers_and_icebergs = false)
+                                         backend = InMemory())
 
 # This builds a representation of the atmosphere on the small grid
 
