@@ -16,6 +16,7 @@ Downloads = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 ImageMorphology = "787d08f9-d448-5407-9aad-5290dd7ab264"
 JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
 KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
+MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
 NCDatasets = "85f8d34a-cbdd-5861-8df4-14fed0d494ab"
 Oceananigans = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
 OrthogonalSphericalShellGrids = "c2be9673-fb75-4747-82dc-aa2bb9f4aed0"
@@ -40,7 +41,7 @@ JLD2 = "0.4, 0.5"
 KernelAbstractions = "0.9"
 NCDatasets = "0.12, 0.13, 0.14"
 Oceananigans = "0.93.1"
-OrthogonalSphericalShellGrids = "0.1.2"
+OrthogonalSphericalShellGrids = "0.1.2, 0.2"
 Scratch = "1"
 SeawaterPolynomials = "0.3.4"
 StaticArrays = "1"
@@ -51,7 +52,9 @@ julia = "1.9"
 
 [extras]
 Coverage = "a2441757-f6aa-5fb2-8edb-039e3f45d037"
+MPIPreferences = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+CUDA_Runtime_jll = "76a88914-d11a-5bdc-97e0-2f5a05c973a2"
 
 [targets]
-test = ["Coverage", "Test"]
+test = ["Coverage", "Test", "MPIPreferences", "CUDA_Runtime_jll"]

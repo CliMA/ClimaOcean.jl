@@ -139,7 +139,7 @@ function ECCO_field_time_series(metadata::ECCOMetadata;
                                 grid = nothing)	
 
     # Make sure all the required individual files are downloaded
-    download_dataset!(metadata)
+    download_dataset(metadata)
 
     inpainting isa Int && (inpainting = NearestNeighborInpainting(inpainting))
 
