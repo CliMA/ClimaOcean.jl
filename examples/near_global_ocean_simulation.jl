@@ -32,7 +32,6 @@ using Dates
 
 arch = GPU() 
 
-
 Nx = 1440
 Ny = 600
 Nz = 40
@@ -204,8 +203,19 @@ Nt = length(times)
 
 n = Observable(Nt)
 
-Tn = @lift interior(T[$n], :, :, 1)
-en = @lift interior(e[$n], :, :, 1)
+land = interior(T.grid.immersed_boundary.bottom_height) .>= 0
+
+Tn = @lift begin
+    Tn = interior(T[$n])
+    Tn[land] .= NaN
+    view(Tn, :, :, 1)
+end
+
+en = @lift begin
+    en = interior(e[$n])
+    en[land] .= NaN
+    view(en, :, :, 1)
+end
 
 un = Field{Face, Center, Nothing}(u.grid)
 vn = Field{Center, Face, Nothing}(v.grid)
