@@ -4,6 +4,8 @@ export ECCOMetadata, ECCO_field, ECCO_mask, ECCO_immersed_grid, adjusted_ECCO_tr
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
 export ECCORestoring, LinearlyTaperedPolarMask
 
+using ClimaOcean
+using ClimaOcean.DataWrangling
 using ClimaOcean.DataWrangling: inpaint_mask!
 using ClimaOcean.InitialConditions: three_dimensional_regrid!, interpolate!
 
@@ -130,7 +132,7 @@ function ECCO_field(metadata::ECCOMetadata;
                     architecture = CPU(),
                     horizontal_halo = (7, 7))
 
-    download_dataset!(metadata)
+    download_dataset(metadata)
     path = metadata_path(metadata)
     ds = Dataset(path)
 
@@ -214,46 +216,25 @@ function inpainted_ECCO_field(metadata::ECCOMetadata;
     f = ECCO_field(metadata; architecture, kw...)
     inpaint_mask!(f, mask; inpainting)
     fill_halo_regions!(f)
-
     elapsed = 1e-9 * (time_ns() - start_time)
     @info string(" ... (", prettytime(elapsed), ")")
-
     return f
 end
 
 inpainted_ECCO_field(variable_name::Symbol; kw...) = inpainted_ECCO_field(ECCOMetadata(variable_name); kw...)
     
-function set!(field::DistributedField, ECCO_metadata::ECCOMetadata; kw...)
+function set!(field::Field, ecco_metadata::ECCOMetadata; kw...)
+
     # Fields initialized from ECCO
     grid = field.grid
-    arch = architecture(grid)
-    child_arch = child_architecture(arch)
+    arch = child_architecture(grid)
+    mask = ECCO_mask(ecco_metadata, arch)
 
-    f_ECCO = if arch.local_rank == 0 # Make sure we read/write the file using only one core
-        mask = ECCO_mask(ECCO_metadata, child_arch)
-        inpainted_ECCO_field(ECCO_metadata; mask, architecture = child_arch, kw...)
-    else
-        empty_ECCO_field(ECCO_metadata; architecture = child_arch)
-    end
+    f = inpainted_ECCO_field(ecco_metadata; mask,
+                             architecture = arch,
+                             kw...)
 
-    barrier!(arch)
-
-    # Distribute ECCO field to all workers
-    parent(f_ECCO) .= all_reduce(+, parent(f_ECCO), arch)
-    interpolate!(field, f_ECCO)
-    
-    return field
-end
-
-function set!(field::Field, ECCO_metadata::ECCOMetadata; kw...)
-    grid = field.grid
-    arch = architecture(grid)
-    mask = ECCO_mask(ECCO_metadata, arch)
-    
-    f = inpainted_ECCO_field(ECCO_metadata; mask, architecture=arch, kw...)
-    f_grid = Field(location(ECCO_metadata), grid)   
-    interpolate!(f_grid, f)
-    set!(field, f_grid)
+    interpolate!(field, f)
 
     return field
 end

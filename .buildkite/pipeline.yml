@@ -147,5 +147,16 @@ steps:
       slurm_ntasks: 1
       slurm_gpus_per_task: 1
 
+  - label: "Run distributed tests"
+    key: "test_distributed"
+    env:
+      TEST_GROUP: "distributed"
+    commands:
+      - "srun julia --project -e 'using Pkg; Pkg.test()'"
+    agents:
+      slurm_mem: 10G
+      slurm_cpus_per_task: 1
+      slurm_ntasks: 4
+
   - wait: ~
     continue_on_failure: true
