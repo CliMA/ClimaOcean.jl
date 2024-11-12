@@ -40,13 +40,6 @@ format = Documenter.HTML(collapselevel = 2,
 pages = [
     "Home" => "index.md",
 
-    "Library" => [ 
-        "Contents"       => "library/outline.md",
-        "Public"         => "library/public.md",
-        "Private"        => "library/internals.md",
-        "Function index" => "library/function_index.md",
-        ],
-
     "Examples" => [
         "Inspect ECCO2 data" => "literated/inspect_ecco_data.md",
         "Generate bathymetry" => "literated/generate_bathymetry.md",
@@ -54,10 +47,19 @@ pages = [
         "Single column simulation" => "literated/single_column_os_papa_simulation.md",
         # "Mediterranean simulation with ECCO restoring" => "literated/mediterranean_simulation_with_ecco_restoring.md",
         "Near-global Ocean simulation" => "literated/near_global_ocean_simulation.md",
-        ]
+        ],
+
+    "Library" => [ 
+        "Contents"       => "library/outline.md",
+        "Public"         => "library/public.md",
+        "Private"        => "library/internals.md",
+        "Function index" => "library/function_index.md",
+        ],
 ]
 
-makedocs(sitename = "ClimaOcean.jl"; format, pages, 
+makedocs(sitename = "ClimaOcean.jl";
+         format,
+         pages, 
          modules = [ClimaOcean],
          doctest = true,
          clean = true,
@@ -85,8 +87,11 @@ for file in files
     rm(file)
 end
 
-withenv("GITHUB_REPOSITORY" => "github.com/CliMA/ClimaOceanDocumentation.git") do
+ci_build = get(ENV, "CI", nothing) == "true"
+
+if ci_build
     deploydocs(repo = "github.com/CliMA/ClimaOceanDocumentation.git",
+               deploy_config = Documenter.Buildkite(),
                versions = ["stable" => "v^", "dev" => "dev", "v#.#.#"],
                forcepush = true,
                devbranch = "main",
