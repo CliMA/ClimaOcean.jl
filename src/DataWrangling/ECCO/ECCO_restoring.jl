@@ -301,7 +301,7 @@ function ECCORestoring(arch::AbstractArchitecture,
                        dates=all_ECCO_dates(version),
                        kw...)
 
-    metadata = ECCOMetadata(variable_name, dates, version)
+    metadata = ECCOMetadata(variable_name; dates, version)
     return ECCORestoring(arch, metadata; kw...)
 end
 
