@@ -225,6 +225,9 @@ sn = @lift begin
     parent(un) .= parent(u[$n])
     parent(vn) .= parent(v[$n])
     compute!(s)
+    sn = interior(s)
+    sn[land] .= NaN
+    view(sn, :, :, 1)
 end
 
 fig = Figure(size = (800, 1200))
@@ -233,13 +236,13 @@ axs = Axis(fig[1, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
 axT = Axis(fig[2, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
 axe = Axis(fig[3, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
 
-hm = heatmap!(axs, sn, colorrange = (0, 0.5), colormap = :deep)
+hm = heatmap!(axs, sn, colorrange = (0, 0.5), colormap = :deep, nan_color=:lightgrey)
 Colorbar(fig[1, 2], hm, label = "Surface speed (m s⁻¹)")
 
-hm = heatmap!(axT, Tn, colorrange = (-1, 30), colormap = :magma)
+hm = heatmap!(axT, Tn, colorrange = (-1, 30), colormap = :magma, nan_color=:lightgrey)
 Colorbar(fig[2, 2], hm, label = "Surface Temperature (ᵒC)")
 
-hm = heatmap!(axe, en, colorrange = (0, 1e-3), colormap = :solar)
+hm = heatmap!(axe, en, colorrange = (0, 1e-3), colormap = :solar, nan_color=:lightgrey)
 Colorbar(fig[3, 2], hm, label = "Turbulent Kinetic Energy (m² s⁻²)")
 save("snapshot.png", fig)
 nothing #hide
