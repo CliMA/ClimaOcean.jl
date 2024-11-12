@@ -6,11 +6,11 @@ MPI.Init()
 @testset begin
     rank = MPI.Comm_rank(MPI.COMM_WORLD)
 
-    @root begin
+    @onrank 0, begin
         @test rank == 0
     end
 
-    @onrank 0, begin
+    @root begin
         @test rank == 0
     end
 
