@@ -72,9 +72,6 @@ function ECCOMetadata(name::Symbol;
     return ECCOMetadata(name, dates, version, dir)
 end
 
-ECCOMetadata(name::Symbol, date, version=ECCO4Monthly(); dir=download_ECCO_cache) =
-    ECCOMetadata(name, date, version, dir)
-
 # Treat ECCOMetadata as an array to allow iteration over the dates.
 Base.length(metadata::ECCOMetadata) = length(metadata.dates)
 Base.eltype(metadata::ECCOMetadata) = Base.eltype(metadata.dates)
