@@ -240,10 +240,7 @@ function set!(field::DistributedField, ECCO_metadata::ECCOMetadata; kw...)
 
     # Distribute ECCO field to all workers
     parent(f_ECCO) .= all_reduce(+, parent(f_ECCO), arch)
-
-    f_grid = Field(location(ECCO_metadata), grid)   
-    interpolate!(f_grid, f_ECCO)
-    set!(field, f_grid)
+    interpolate!(field, f_ECCO)
     
     return field
 end
