@@ -62,8 +62,8 @@ Colorbar(fig[2, 2], hmS, label="Salinity (psu)")
 
 z = znodes(grid, Center())
 depth_str = @lift @sprintf("%.1f meters depth", -z[$k])
-text!(axT, 50, 50, text=depth_str, justification=:center, fontsize=24)
-text!(axS, 50, 50, text=depth_str, justification=:center, fontsize=24)
+text!(axT, 50, 50, text=depth_str, color=:lemonchiffon, justification=:center, fontsize=24)
+text!(axS, 50, 50, text=depth_str, color=:lemonchiffon, justification=:center, fontsize=24)
 
 # # Making the animation
 #
