@@ -23,7 +23,7 @@ inpainting = NearestNeighborInpainting(2)
         A = typeof(arch)
         @info "Testing ECCO_field on $A..."
 
-        temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
+        temperature = ECCOMetadata(:temperature; dates, version = ECCO4Monthly())
         t_restoring = ECCORestoring(temperature; rate = 1 / 1000.0, inpainting)
 
         ECCO_fts = t_restoring.field_time_series
@@ -51,7 +51,7 @@ end
 
 @testset "Inpainting algorithm" begin
     for arch in test_architectures
-        temperature = ECCOMetadata(:temperature, dates[1], ECCO4Monthly())
+        temperature = ECCOMetadata(:temperature; dates = dates[1], version = ECCO4Monthly())
 
         grid = LatitudeLongitudeGrid(arch,
                                      size = (100, 100, 10),
@@ -177,6 +177,6 @@ end
 
         ocean = ocean_simulation(grid)
         date = DateTimeProlepticGregorian(1993, 1, 1)
-        set!(ocean.model, T=ECCOMetadata(:temperature, date), S=ECCOMetadata(:salinity, date))
+        set!(ocean.model, T=ECCOMetadata(:temperature; dates=date), S=ECCOMetadata(:salinity; dates=date))
     end
 end
