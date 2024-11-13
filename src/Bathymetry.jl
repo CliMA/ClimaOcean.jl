@@ -17,9 +17,6 @@ using Oceananigans.BoundaryConditions
 using KernelAbstractions: @kernel, @index
 using JLD2
 
-using OffsetArrays
-using ClimaOcean
-
 using NCDatasets
 using Downloads
 using Printf
@@ -93,19 +90,26 @@ function regrid_bathymetry(target_grid;
                            major_basins = Inf) # Allow an `Inf` number of ``lakes''
 
     filepath = joinpath(dir, filename)
-    fileurl  = joinpath(url, filename)
 
-    @root begin # perform all this only on rank 0, aka the "root" rank
-        if !isfile(filepath)
-            try 
-                Downloads.download(fileurl, filepath; progress=download_progress, verbose=true)
-            catch 
-                cmd = `wget --no-check-certificate -O $filepath $fileurl`
-                @root run(cmd)
-            end
+    if isfile(filepath)
+        @info "Regridding bathymetry from existing file $filepath."
+    else
+        @info "Downloading bathymetry..."
+        if !ispath(dir)
+            @info "Making bathymetry directory $dir..."
+            mkdir(dir)
+        end
+
+        fileurl = joinpath(url, filename)
+
+        try 
+            Downloads.download(fileurl, filepath; progress=download_progress, verbose=true)
+        catch 
+            cmd = `wget --no-check-certificate -O $filepath $fileurl`
+            run(cmd)
         end
     end
-    
+
     dataset = Dataset(filepath)
 
     FT = eltype(target_grid)
@@ -177,7 +181,8 @@ function regrid_bathymetry(target_grid;
     set!(native_z, z_data)
 
     target_z = interpolate_bathymetry_in_passes(native_z, target_grid; 
-                                                passes = interpolation_passes)
+                                                passes = interpolation_passes,
+                                                minimum_depth)
 
     if minimum_depth > 0
         zi = interior(target_z, :, :, 1)
@@ -198,7 +203,8 @@ end
 
 # Here we can either use `regrid!` (three dimensional version) or `interpolate`
 function interpolate_bathymetry_in_passes(native_z, target_grid; 
-                                          passes = 10)
+                                          passes = 10,
+                                          minimum_depth = 0)
     Nλt, Nφt = Nt = size(target_grid)
     Nλn, Nφn = Nn = size(native_z)
 
@@ -269,42 +275,13 @@ Arguments
 
 """
 function remove_minor_basins!(Z::Field, keep_major_basins)
-    Z_cpu = on_architecture(CPU(), Z)
-    TX    = topology(Z_cpu.grid, 1)
-    
-    Nx, Ny, _ = size(Z_cpu.grid)
-    Za_cpu = maybe_extend_longitude(Z_cpu, TX()) # Outputs a 2D AbstractArray
-
-    remove_minor_basins!(Za_cpu, keep_major_basins)
-    set!(Z, Za_cpu[1:Nx, 1:Ny])
+    Zi = interior(Z, :, :, 1)
+    Zi_cpu = on_architecture(CPU(), Zi)
+    remove_minor_basins!(Zi_cpu, keep_major_basins)
+    set!(Z, Zi_cpu)
 
     return Z
 end
-
-maybe_extend_longitude(Z_cpu, tx) = interior(Z_cpu, :, :, 1)
-
-# Since the strel algorithm in `remove_major_basins` does not recognize periodic boundaries,
-# before removing connected regions, we extend the longitude direction if it is periodic.
-# An extension of half the domain is enough.
-function maybe_extend_longitude(Z_cpu, ::Periodic)
-    Nx = size(Z_cpu, 1)
-    nx = Nx ÷ 2
-
-    Z_data   = Z_cpu.data[1:Nx, :, 1]
-    Z_parent = Z_data.parent 
-
-    # Add information on the LHS and to the RHS
-    Z_parent = vcat(Z_parent[nx:Nx, :], Z_parent, Z_parent[1:nx, :])
-
-    # Update offsets
-    yoffsets = Z_cpu.data.offsets[2]
-    xoffsets = - nx
-    
-    return OffsetArray(Z_parent, xoffsets, yoffsets)
-end
-
-remove_major_basins!(Z::OffsetArray, keep_minor_basins) = 
-    remove_minor_basins!(Z.parent, keep_minor_basins)
 
 function remove_minor_basins!(Z, keep_major_basins)
 
