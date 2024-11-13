@@ -18,7 +18,7 @@ Nx = 360
 Ny = 180
 Nz = 100
 
-z_faces = exponential_z_faces(; Nz, depth=5000, h=34),
+z_faces = exponential_z_faces(; Nz, depth=5000, h=34)
 
 underlying_grid = TripolarGrid(arch;
                                size = (Nx, Ny, Nz),
