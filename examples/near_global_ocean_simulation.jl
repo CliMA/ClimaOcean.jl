@@ -32,11 +32,12 @@ using Dates
 
 arch = GPU() 
 
-z_faces = exponential_z_faces(Nz=40, depth=6000)
-
 Nx = 1440
 Ny = 600
-Nz = length(z_faces) - 1
+Nz = 40
+
+depth = 6000meters
+z_faces = exponential_z_faces(; Nz, depth)
 
 grid = LatitudeLongitudeGrid(arch;
                              size = (Nx, Ny, Nz),
@@ -50,10 +51,10 @@ grid = LatitudeLongitudeGrid(arch;
 # We use `regrid_bathymetry` to derive the bottom height from ETOPO1 data.
 # To smooth the interpolated data we use 5 interpolation passes. We also fill in
 # all the minor enclosed basins except the 3 largest `major_basins`, as well as regions
-# that are shallower than `minimum_depth = 10`.
+# that are shallower than `minimum_depth`.
 
 bottom_height = regrid_bathymetry(grid; 
-                                  minimum_depth = 10,
+                                  minimum_depth = 10meters,
                                   interpolation_passes = 5,
                                   major_basins = 3)
 
@@ -63,7 +64,7 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
 h = grid.immersed_boundary.bottom_height
 
-fig, ax, hm = heatmap(h, colormap=:deep, colorrange=(-6000, 0))
+fig, ax, hm = heatmap(h, colormap=:deep, colorrange=(-depth, 0))
 cb = Colorbar(fig[0, 1], hm, label="Bottom height (m)", vertical=false)
 hidedecorations!(ax)
 save("bathymetry.png", fig)
@@ -84,7 +85,8 @@ ocean.model
 # We initialize the ocean model to ECCO2 temperature and salinity for January 1, 1993.
 
 date = DateTimeProlepticGregorian(1993, 1, 1)
-set!(ocean.model, T=ECCOMetadata(:temperature; dates=date), S=ECCOMetadata(:salinity; dates=date))
+set!(ocean.model, T=ECCOMetadata(:temperature; dates=date),
+                  S=ECCOMetadata(:salinity; dates=date))
 
 # ### Prescribed atmosphere and radiation
 #
@@ -201,8 +203,19 @@ Nt = length(times)
 
 n = Observable(Nt)
 
-Tn = @lift interior(T[$n], :, :, 1)
-en = @lift interior(e[$n], :, :, 1)
+land = interior(T.grid.immersed_boundary.bottom_height) .>= 0
+
+Tn = @lift begin
+    Tn = interior(T[$n])
+    Tn[land] .= NaN
+    view(Tn, :, :, 1)
+end
+
+en = @lift begin
+    en = interior(e[$n])
+    en[land] .= NaN
+    view(en, :, :, 1)
+end
 
 un = Field{Face, Center, Nothing}(u.grid)
 vn = Field{Center, Face, Nothing}(v.grid)
@@ -212,6 +225,9 @@ sn = @lift begin
     parent(un) .= parent(u[$n])
     parent(vn) .= parent(v[$n])
     compute!(s)
+    sn = interior(s)
+    sn[land] .= NaN
+    view(sn, :, :, 1)
 end
 
 fig = Figure(size = (800, 1200))
@@ -220,13 +236,13 @@ axs = Axis(fig[1, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
 axT = Axis(fig[2, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
 axe = Axis(fig[3, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
 
-hm = heatmap!(axs, sn, colorrange = (0, 0.5), colormap = :deep)
+hm = heatmap!(axs, sn, colorrange = (0, 0.5), colormap = :deep, nan_color=:lightgrey)
 Colorbar(fig[1, 2], hm, label = "Surface speed (m s⁻¹)")
 
-hm = heatmap!(axT, Tn, colorrange = (-1, 30), colormap = :magma)
+hm = heatmap!(axT, Tn, colorrange = (-1, 30), colormap = :magma, nan_color=:lightgrey)
 Colorbar(fig[2, 2], hm, label = "Surface Temperature (ᵒC)")
 
-hm = heatmap!(axe, en, colorrange = (0, 1e-3), colormap = :solar)
+hm = heatmap!(axe, en, colorrange = (0, 1e-3), colormap = :solar, nan_color=:lightgrey)
 Colorbar(fig[3, 2], hm, label = "Turbulent Kinetic Energy (m² s⁻²)")
 save("snapshot.png", fig)
 nothing #hide
