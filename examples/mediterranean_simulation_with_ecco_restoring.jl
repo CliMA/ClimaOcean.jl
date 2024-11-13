@@ -42,8 +42,8 @@ z_faces = stretched_vertical_faces(depth = 5000,
                                    stretching = PowerLawStretching(1.070), 
                                    surface_layer_height = 50)
 
-Nx = 15 * Int(λ₂ - λ₁) # 1/15 th of a degree resolution
-Ny = 15 * Int(φ₂ - φ₁) # 1/15 th of a degree resolution
+Nx = 15 * Int(λ₂ - λ₁) # 1/15th of a degree resolution
+Ny = 15 * Int(φ₂ - φ₁) # 1/15th of a degree resolution
 Nz = length(z_faces) - 1
 
 grid = LatitudeLongitudeGrid(GPU();
@@ -72,10 +72,12 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 # using the function `ECCORestoring` to apply restoring forcings for these tracers. 
 # This allows us to nudge the model towards realistic temperature and salinity profiles.
 
+@inline surface_mask(x, y, z, t) = z > - 50 
+
 dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 12, 1)
 
-FT = ECCORestoring(GPU(), :temperature; dates, version=ECCO4Monthly(), rate=1/2days)
-FS = ECCORestoring(GPU(), :salinity;    dates, version=ECCO4Monthly(), rate=1/2days)
+FT = ECCORestoring(GPU(), :temperature; dates, mask=surface_mask, version=ECCO4Monthly(), rate=1/5days)
+FS = ECCORestoring(GPU(), :salinity;    dates, mask=surface_mask, version=ECCO4Monthly(), rate=1/5days)
 
 # Constructing the Simulation
 #
