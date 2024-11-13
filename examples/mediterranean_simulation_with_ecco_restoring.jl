@@ -60,26 +60,22 @@ grid = LatitudeLongitudeGrid(GPU();
 # are adjusted to refine the bathymetry representation.
 
 bottom_height = regrid_bathymetry(grid, 
-                                  height_above_water = 1,
                                   minimum_depth = 10,
-                                  interpolation_passes = 25,
-                                  connected_regions_allowed = 1)
+                                  interpolation_passes = 10,
+                                  major_basins = 1)
 
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
 # ## Downloading ECCO data
 #
 # The model is initialized with temperature and salinity fields from the ECCO dataset, 
-# using the function `ECCO_restoring_forcing` to apply restoring forcings for these tracers. 
+# using the function `ECCORestoring` to apply restoring forcings for these tracers. 
 # This allows us to nudge the model towards realistic temperature and salinity profiles.
 
 dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 12, 1)
 
-temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
-salinity    = ECCOMetadata(:salinity,    dates, ECCO4Monthly())
-
-FT = ECCO_restoring_forcing(temperature; architecture = GPU(), timescale = 2days)
-FS = ECCO_restoring_forcing(salinity;    architecture = GPU(), timescale = 2days)
+FT = ECCORestoring(GPU(), :temperature; dates, version=ECCO4Monthly(), rate=1/2days)
+FS = ECCORestoring(GPU(), :salinity;    dates, version=ECCO4Monthly(), rate=1/2days)
 
 # Constructing the Simulation
 #
@@ -94,13 +90,17 @@ ocean = ocean_simulation(grid; forcing = (T = FT, S = FS))
 # In this case, our ECCO dataset has access to a temperature and a salinity
 # field, so we initialize temperature T and salinity S from ECCO.
 
-set!(ocean.model, T = temperature[1], S = salinity[1])
+set!(ocean.model, T=ECCOMetadata(:temperature; dates=dates[1]), 
+                  S=ECCOMetadata(:salinity;    dates=dates[1]))
 
 fig = Figure()
 ax  = Axis(fig[1, 1])
-heatmap!(ax, interior(model.tracers.T, :, :, Nz), colorrange = (10, 20), colormap = :thermal)
+heatmap!(ax, view(model.tracers.T, :, :, Nz), colorrange = (10, 20), colormap = :thermal)
 ax  = Axis(fig[1, 2])
-heatmap!(ax, interior(model.tracers.S, :, :, Nz), colorrange = (35, 40), colormap = :haline)
+heatmap!(ax, view(model.tracers.S, :, :, Nz), colorrange = (35, 40), colormap = :haline)
+
+save("initial_conditions.png", fig)
+# ![](initial_conditions.png)
 
 function progress(sim) 
     u, v, w = sim.model.velocities
@@ -129,17 +129,12 @@ ocean.stop_iteration = 1000
 run!(ocean)
 
 # ## Run the real simulation
-#
-# Now that the solution has adjusted to the bathymetry we can ramp up the time
-# step size. We use a `TimeStepWizard` to automatically adapt to a CFL of 0.2.
 
-wizard = TimeStepWizard(; cfl = 0.2, max_Δt = 10minutes, max_change = 1.1)
+# Let's reset the maximum number of iterations and we can not increase the time step size
 
-ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
-
-# Let's reset the maximum number of iterations
+ocean.Δt = 3minutes
 ocean.stop_iteration = Inf
-ocean.stop_time = 200days
+ocean.stop_time = 100days
 
 ocean.output_writers[:surface_fields] = JLD2OutputWriter(model, merge(model.velocities, model.tracers);
                                                          indices = (:, :, Nz),
@@ -164,45 +159,23 @@ S_series = FieldTimeSeries("med_surface_field.jld2", "S")
 c_series = FieldTimeSeries("med_surface_field.jld2", "c")
 iter = Observable(1)
 
-u = @lift begin
-    f = interior(u_series[$iter], :, :, 1)
-    f[f .== 0] .= NaN
-    f
-end
-v = @lift begin
-    f = interior(v_series[$iter], :, :, 1)
-    f[f .== 0] .= NaN
-    f
-end
-T = @lift begin
-    f = interior(T_series[$iter], :, :, 1)
-    f[f .== 0] .= NaN
-    f
-end
-S = @lift begin
-    f = interior(S_series[$iter], :, :, 1)
-    f[f .== 0] .= NaN
-    f
-end
-c = @lift begin
-    f = interior(c_series[$iter], :, :, 1)
-    f[f .== 0] .= NaN
-    f
-end
+u = @lift(u_series[$iter])
+v = @lift(v_series[$iter])
+T = @lift(T_series[$iter])
+S = @lift(S_series[$iter])
 
 fig = Figure()
 ax  = Axis(fig[1, 1], title = "surface zonal velocity ms⁻¹")
-heatmap!(u)
+heatmap!(ax, u)
 ax  = Axis(fig[1, 2], title = "surface meridional velocity ms⁻¹")
-heatmap!(v)
+heatmap!(ax, v)
 ax  = Axis(fig[2, 1], title = "surface temperature ᵒC")
-heatmap!(T)
+heatmap!(ax, T)
 ax  = Axis(fig[2, 2], title = "surface salinity psu")
-heatmap!(S)
-ax  = Axis(fig[2, 3], title = "passive tracer -")
-heatmap!(c)
+heatmap!(ax, S)
 
 CairoMakie.record(fig, "mediterranean_video.mp4", 1:length(u_series.times); framerate = 5) do i
     @info "recording iteration $i"
     iter[] = i    
 end
+# ![](mediterranean_video.mp4)
