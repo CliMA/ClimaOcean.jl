@@ -66,11 +66,12 @@ bottom_height = regrid_bathymetry(grid,
 
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
-# ## Downloading ECCO data
+# ## ECCO Restoring
 #
-# The model is initialized with temperature and salinity fields from the ECCO dataset, 
-# using the function `ECCORestoring` to apply restoring forcings for these tracers. 
+# The model is restored to at the surface to the temperature and salinity fields from the ECCO dataset.
+# We build the restoring using the `ECCORestoring` functionality. 
 # This allows us to nudge the model towards realistic temperature and salinity profiles.
+# `ECCORestoring` accepts a `mask` keyword argument to restrict the restoring region.
 
 @inline surface_mask(x, y, z, t) = z > - 50 
 
@@ -97,9 +98,9 @@ set!(ocean.model, T=ECCOMetadata(:temperature; dates=dates[1]),
 
 fig = Figure()
 ax  = Axis(fig[1, 1])
-heatmap!(ax, view(model.tracers.T, :, :, Nz), colorrange = (10, 20), colormap = :thermal)
+heatmap!(ax, view(ocean.model.tracers.T, :, :, Nz), colorrange = (10, 20), colormap = :thermal)
 ax  = Axis(fig[1, 2])
-heatmap!(ax, view(model.tracers.S, :, :, Nz), colorrange = (35, 40), colormap = :haline)
+heatmap!(ax, view(ocean.model.tracers.S, :, :, Nz), colorrange = (35, 40), colormap = :haline)
 
 save("initial_conditions.png", fig)
 # ![](initial_conditions.png)
