@@ -269,24 +269,24 @@ Arguments
 
 """
 function remove_minor_basins!(Z::Field, keep_major_basins)
-    TX = topology(Z.grid, 1)
     Z_cpu = on_architecture(CPU(), Z)
+    TX    = topology(Z_cpu.grid, 1)
     
     Nx, Ny, _ = size(Z_cpu.grid)
-    Z_cpu = maybe_extend_longitude(Z_cpu, TX()) # Outputs a 2D OffsetArray
+    Za_cpu = maybe_extend_longitude(Z_cpu, TX()) # Outputs a 2D AbstractArray
 
-    remove_minor_basins!(Zi_cpu, keep_major_basins)
-    set!(Z, Z_cpu[1:Nx, 1:Ny])
+    remove_minor_basins!(Za_cpu, keep_major_basins)
+    set!(Z, Za_cpu[1:Nx, 1:Ny])
 
     return Z
 end
 
-maybe_extend_longitude(Z_cpu, tx) = Z_cpu.data[:, :, 1]
+maybe_extend_longitude(Z_cpu, tx) = interior(Z_cpu, :, :, 1)
 
 # Since the strel algorithm in `remove_major_basins` does not recognize periodic boundaries,
 # before removing connected regions, we extend the longitude direction if it is periodic.
 # An extension of half the domain is enough.
-function maybe_extend_periodic_directions(Z_cpu, ::Periodic)
+function maybe_extend_longitude(Z_cpu, ::Periodic)
     Nx = size(Z_cpu, 1)
     nx = Nx ÷ 2
 
@@ -294,7 +294,7 @@ function maybe_extend_periodic_directions(Z_cpu, ::Periodic)
     Z_parent = Z_data.parent 
 
     # Add information on the LHS and to the RHS
-    Z_parent = hcat(Z_parent[:, nx:Nx], Z_parent, Z_parent[:, 1:nx])
+    Z_parent = vcat(Z_parent[nx:Nx, :], Z_parent, Z_parent[1:nx, :])
 
     # Update offsets
     yoffsets = Z_cpu.data.offsets[2]
