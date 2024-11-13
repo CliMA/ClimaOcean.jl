@@ -116,7 +116,7 @@ end
     
     within_depth = (mask.z[1] < z < mask.z[2])
 
-    return ifelse(within_depth, max(n, s, zero(n)), zero(n))
+    return ifelse(within_depth, min(one(n), max(n, s, zero(n))), zero(n))
 end
 
 @inline function stateindex(mask::LinearlyTaperedPolarMask, i, j, k, grid, time, loc)
