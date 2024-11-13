@@ -88,6 +88,7 @@ end
 
 Build a mask that is linearly tapered in latitude inbetween the northern and southern edges.
 The mask is constant in depth between the z and is equal to zero everywhere else.
+If the latitude is beyond the outer northern or southern edges, the mask capped to one.
 The mask has the following functional form:
 
 ```julia
@@ -96,7 +97,7 @@ s = 1 / (southern[1] - southern[2]) * (φ - southern[2])
 
 within_depth = (z[1] < z < z[2])
 
-mask = within_depth ? max(n, s, 0) : 0
+mask = within_depth ? min(1, max(n, s, 0)) : 0
 ```
 """
 function LinearlyTaperedPolarMask(; northern = (70,   75),
