@@ -17,6 +17,9 @@ using Oceananigans.BoundaryConditions
 using KernelAbstractions: @kernel, @index
 using JLD2
 
+using OffsetArrays
+using ClimaOcean
+
 using NCDatasets
 using Downloads
 using Printf
@@ -181,8 +184,7 @@ function regrid_bathymetry(target_grid;
     set!(native_z, z_data)
 
     target_z = interpolate_bathymetry_in_passes(native_z, target_grid; 
-                                                passes = interpolation_passes,
-                                                minimum_depth)
+                                                passes = interpolation_passes)
 
     if minimum_depth > 0
         zi = interior(target_z, :, :, 1)
@@ -203,8 +205,7 @@ end
 
 # Here we can either use `regrid!` (three dimensional version) or `interpolate`
 function interpolate_bathymetry_in_passes(native_z, target_grid; 
-                                          passes = 10,
-                                          minimum_depth = 0)
+                                          passes = 10)
     Nλt, Nφt = Nt = size(target_grid)
     Nλn, Nφn = Nn = size(native_z)
 
@@ -274,16 +275,45 @@ Arguments
                        Default is `Inf`, which means all connected regions are kept.
 
 """
-function remove_minor_basins!(Z::Field, keep_major_basins)
-    Zi = interior(Z, :, :, 1)
-    Zi_cpu = on_architecture(CPU(), Zi)
-    remove_minor_basins!(Zi_cpu, keep_major_basins)
-    set!(Z, Zi_cpu)
+function remove_minor_basins!(zb::Field, keep_major_basins)
+    zb_cpu = on_architecture(CPU(), zb)
+    TX     = topology(zb_cpu.grid, 1)
+    
+    Nx, Ny, _ = size(zb_cpu.grid)
+    zb_data   = maybe_extend_longitude(zb_cpu, TX()) # Outputs a 2D AbstractArray
 
-    return Z
+    remove_minor_basins!(zb_data, keep_major_basins)
+    set!(zb, zb_data[1:Nx, 1:Ny])
+
+    return zb
 end
 
-function remove_minor_basins!(Z, keep_major_basins)
+maybe_extend_longitude(zb_cpu, tx) = interior(zb_cpu, :, :, 1)
+
+# Since the strel algorithm in `remove_major_basins` does not recognize periodic boundaries,
+# before removing connected regions, we extend the longitude direction if it is periodic.
+# An extension of half the domain is enough.
+function maybe_extend_longitude(zb_cpu, ::Periodic)
+    Nx = size(zb_cpu, 1)
+    nx = Nx ÷ 2
+
+    zb_data   = zb_cpu.data[1:Nx, :, 1]
+    zb_parent = zb_data.parent 
+
+    # Add information on the LHS and to the RHS
+    zb_parent = vcat(zb_parent[nx:Nx, :], zb_parent, zb_parent[1:nx, :])
+
+    # Update offsets
+    yoffsets = zb_cpu.data.offsets[2]
+    xoffsets = - nx
+    
+    return OffsetArray(zb_parent, xoffsets, yoffsets)
+end
+
+remove_major_basins!(zb::OffsetArray, keep_minor_basins) = 
+    remove_minor_basins!(zb.parent, keep_minor_basins)
+
+function remove_minor_basins!(zb, keep_major_basins)
 
     if !isfinite(keep_major_basins)
         throw(ArgumentError("`keep_major_basins` must be a finite number!"))
@@ -293,7 +323,7 @@ function remove_minor_basins!(Z, keep_major_basins)
         throw(ArgumentError("keep_major_basins must be larger than 0."))
     end
 
-    water = Z .< 0
+    water = zb .< 0
     
     connectivity = ImageMorphology.strel(water)
     labels = ImageMorphology.label_components(connectivity)
@@ -329,7 +359,7 @@ function remove_minor_basins!(Z, keep_major_basins)
     end
 
     # Flatten minor basins, corresponding to regions where `labels == NaN`
-    Z[isnan.(labels)] .= 0
+    zb[isnan.(labels)] .= 0
 
     return nothing
 end
