@@ -268,12 +268,12 @@ Arguments
                        Default is `Inf`, which means all connected regions are kept.
 
 """
-function remove_minor_basins!(Z::Field, keep_major_basins)
-    Z_cpu = on_architecture(CPU(), Z)
-    TX    = topology(Z_cpu.grid, 1)
+function remove_minor_basins!(zb::Field, keep_major_basins)
+    zb_cpu = on_architecture(CPU(), zb)
+    TX     = topology(zb_cpu.grid, 1)
     
-    Nx, Ny, _ = size(Z_cpu.grid)
-    Za_cpu = maybe_extend_longitude(Z_cpu, TX()) # Outputs a 2D AbstractArray
+    Nx, Ny, _ = size(zb_cpu.grid)
+    zb_data   = maybe_extend_longitude(zb_cpu, TX()) # Outputs a 2D AbstractArray
 
     remove_minor_basins!(Za_cpu, keep_major_basins)
     set!(Z, Za_cpu[1:Nx, 1:Ny])
@@ -281,32 +281,32 @@ function remove_minor_basins!(Z::Field, keep_major_basins)
     return Z
 end
 
-maybe_extend_longitude(Z_cpu, tx) = interior(Z_cpu, :, :, 1)
+maybe_extend_longitude(zb_cpu, tx) = interior(zb_cpu, :, :, 1)
 
 # Since the strel algorithm in `remove_major_basins` does not recognize periodic boundaries,
 # before removing connected regions, we extend the longitude direction if it is periodic.
 # An extension of half the domain is enough.
-function maybe_extend_longitude(Z_cpu, ::Periodic)
-    Nx = size(Z_cpu, 1)
+function maybe_extend_longitude(zb_cpu, ::Periodic)
+    Nx = size(zb_cpu, 1)
     nx = Nx ÷ 2
 
-    Z_data   = Z_cpu.data[1:Nx, :, 1]
-    Z_parent = Z_data.parent 
+    zb_data   = zb_cpu.data[1:Nx, :, 1]
+    zb_parent = zb_data.parent 
 
     # Add information on the LHS and to the RHS
-    Z_parent = vcat(Z_parent[nx:Nx, :], Z_parent, Z_parent[1:nx, :])
+    zb_parent = vcat(zb_parent[nx:Nx, :], zb_parent, zb_parent[1:nx, :])
 
     # Update offsets
-    yoffsets = Z_cpu.data.offsets[2]
+    yoffsets = zb_cpu.data.offsets[2]
     xoffsets = - nx
     
-    return OffsetArray(Z_parent, xoffsets, yoffsets)
+    return OffsetArray(zb_parent, xoffsets, yoffsets)
 end
 
-remove_major_basins!(Z::OffsetArray, keep_minor_basins) = 
-    remove_minor_basins!(Z.parent, keep_minor_basins)
+remove_major_basins!(zb::OffsetArray, keep_minor_basins) = 
+    remove_minor_basins!(zb.parent, keep_minor_basins)
 
-function remove_minor_basins!(Z, keep_major_basins)
+function remove_minor_basins!(zb, keep_major_basins)
 
     if !isfinite(keep_major_basins)
         throw(ArgumentError("`keep_major_basins` must be a finite number!"))
@@ -316,7 +316,7 @@ function remove_minor_basins!(Z, keep_major_basins)
         throw(ArgumentError("keep_major_basins must be larger than 0."))
     end
 
-    water = Z .< 0
+    water = zb .< 0
     
     connectivity = ImageMorphology.strel(water)
     labels = ImageMorphology.label_components(connectivity)
@@ -352,7 +352,7 @@ function remove_minor_basins!(Z, keep_major_basins)
     end
 
     # Flatten minor basins, corresponding to regions where `labels == NaN`
-    Z[isnan.(labels)] .= 0
+    zb[isnan.(labels)] .= 0
 
     return nothing
 end
