@@ -275,10 +275,10 @@ function remove_minor_basins!(zb::Field, keep_major_basins)
     Nx, Ny, _ = size(zb_cpu.grid)
     zb_data   = maybe_extend_longitude(zb_cpu, TX()) # Outputs a 2D AbstractArray
 
-    remove_minor_basins!(Za_cpu, keep_major_basins)
-    set!(Z, Za_cpu[1:Nx, 1:Ny])
+    remove_minor_basins!(zb_data, keep_major_basins)
+    set!(zb, zb_data[1:Nx, 1:Ny])
 
-    return Z
+    return zb
 end
 
 maybe_extend_longitude(zb_cpu, tx) = interior(zb_cpu, :, :, 1)
