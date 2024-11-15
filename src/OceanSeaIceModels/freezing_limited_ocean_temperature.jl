@@ -8,6 +8,16 @@ struct FreezingLimitedOceanTemperature{L}
     liquidus :: L
 end
 
+"""
+    FreezingLimitedOceanTemperature(FT=Float64; liquidus = LinearLiquidus(FT)) 
+
+The minimal possible sea ice representation, providing an "Insulating layer" on the surface and clipping the 
+temperature above the freezing point. Not really a ``model'' per se, however, 
+it is the most simple way to make sure that temperature does not dip below freezing temperature. 
+All fluxes are shut down when the surface is below the `T < Tₘ` except for heating.
+
+the melting temperature is a function of salinity and is controlled by the `liquidus`.
+"""
 FreezingLimitedOceanTemperature(FT=Float64; liquidus = LinearLiquidus(FT)) = FreezingLimitedOceanTemperature(liquidus) 
 
 const FreezingLimitedCoupledModel = OceanSeaIceModel{<:FreezingLimitedOceanTemperature}
