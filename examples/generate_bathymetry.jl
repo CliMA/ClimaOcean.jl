@@ -60,13 +60,13 @@ interior(h_one_basin)[land_one_basin] .= NaN
 fig = Figure(size=(850, 1150))
 
 ax = Axis(fig[1, 1], title = "Rough bathymetry", xlabel = "Longitude", ylabel = "Latitude")
-hm = heatmap!(ax, h_rough, nan_color=:lightgrey, colormap = Reverse(:deep))
+hm = heatmap!(ax, h_rough, nan_color=:lightgray, colormap = Reverse(:deep))
 
 ax = Axis(fig[2, 1], title = "Smooth bathymetry", xlabel = "Longitude", ylabel = "Latitude")
-hm = heatmap!(ax, h_smooth, nan_color=:lightgrey, colormap = Reverse(:deep))
+hm = heatmap!(ax, h_smooth, nan_color=:lightgray, colormap = Reverse(:deep))
 
 ax = Axis(fig[3, 1], title = "Bathymetry with only one basin", xlabel = "Longitude", ylabel = "Latitude")
-hm = heatmap!(ax, h_one_basin, nan_color=:lightgrey, colormap = Reverse(:deep))
+hm = heatmap!(ax, h_one_basin, nan_color=:lightgray, colormap = Reverse(:deep))
 
 cb = Colorbar(fig[1:3, 2], hm, height = Relative(3/4), label = "Depth (m)")
 
