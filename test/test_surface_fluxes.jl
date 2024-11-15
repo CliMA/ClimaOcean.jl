@@ -154,7 +154,7 @@ end
 
     atmosphere = JRA55_prescribed_atmosphere(1:2; grid, backend = InMemory())
     
-    # Only specific terms above the minimum temperature
+    # Cap all fluxes exept for heating ones where T < -1.5
     sea_ice = MinimumTemperatureSeaIce(-1.5)
 
     fill!(ocean.model.tracers.T, -2.0)
@@ -170,7 +170,7 @@ end
     turbulent_fluxes = coupled_model.fluxes.turbulent.fields
 
     # Make sure that the fluxes are zero when the temperature is below the minimum
-    # but not zero when they are above    
+    # but not zero when it is above
     u, v, _ = ocean.model.velocities
     T, S    = ocean.model.tracers
 
@@ -178,7 +178,7 @@ end
         flux = surface_flux(field)
         @test flux[1, 2, 10] == 0.0 # below freezing and cooling, no flux
         @test flux[2, 1, 10] == 0.0 # below freezing and cooling, no flux
-        @test flux[1, 1, 10] == 0.0 # above freezing and cooling
-        @test flux[2, 2, 10] == 0.0 # above freezing and cooling
+        @test flux[1, 1, 10] != 0.0 # above freezing and cooling
+        @test flux[2, 2, 10] != 0.0 # above freezing and cooling
     end
 end
