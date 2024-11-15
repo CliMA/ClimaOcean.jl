@@ -28,7 +28,7 @@ struct ECCONetCDFBackend{N, C, I, M} <: AbstractInMemoryBackend{Int}
     function ECCONetCDFBackend{N, C}(start::Int, length::Int, inpainting, metadata) where {N, C}
         M = typeof(metadata)
         I = typeof(inpainting)
-        return new{N, C, I, M}(start, length, inpainting_settings, metadata)
+        return new{N, C, I, M}(start, length, inpainting, metadata)
     end
 end
 
