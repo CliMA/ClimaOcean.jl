@@ -315,7 +315,7 @@ function ECCORestoring(arch::AbstractArchitecture,
     return ECCORestoring(arch, metadata; kw...)
 end
 
-function ECCORestoring(architecture::AbstractArchitecture,
+function ECCORestoring(arch::AbstractArchitecture,
                        metadata::ECCOMetadata;
                        rate,
                        mask = 1,
@@ -325,9 +325,14 @@ function ECCORestoring(architecture::AbstractArchitecture,
                        inpainting = NearestNeighborInpainting(Inf),
                        cache_inpainted_data = false)
 
+    # Validate architecture
+    if !isnothing(grid) && architecture(grid) != arch
+        throw(ArgumentError("The architecture of ECCORestoring must match the architecture of the grid."))
+    end
+
     fts = ECCO_field_time_series(metadata; 
                                  grid, 
-                                 architecture, 
+                                 arch, 
                                  time_indices_in_memory, 
                                  time_indexing, 
                                  inpainting,
