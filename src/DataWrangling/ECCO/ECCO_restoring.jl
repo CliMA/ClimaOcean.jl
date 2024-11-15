@@ -293,8 +293,6 @@ Keyword Arguments
 
 - `time_indices_in_memory:` how many time instances are loaded in memory; the remaining are loaded lazily.
 
-- `grid`: if not a `nothing`, the ECCO data is directly interpolated on the `grid`.
-
 - `inpainting`: inpainting algorithm, see [`inpaint_mask!`](@ref). Default: `NearestNeighborInpainting(Inf)`.
 
 - `grid`: If `isnothing(grid)`, ECCO data is interpolated on-the-fly to the simulation grid.
@@ -339,7 +337,9 @@ function ECCORestoring(architecture::AbstractArchitecture,
     variable_name = metadata.name
     field_name = oceananigans_fieldname[variable_name]
 
-    return ECCORestoring(fts, fts.grid, mask, field_name, rate)
+    fts_grid = isnothing(grid) ? nothing : fts.grid 
+
+    return ECCORestoring(fts, fts_grid, mask, field_name, rate)
 end
 
 # Make sure we can call ECCORestoring with architecture as the first positional argument
