@@ -4,6 +4,8 @@ export ECCOMetadata, ECCO_field, ECCO_mask, ECCO_immersed_grid, adjusted_ECCO_tr
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
 export ECCORestoring, LinearlyTaperedPolarMask
 
+using ClimaOcean
+using ClimaOcean.DataWrangling
 using ClimaOcean.DataWrangling: inpaint_mask!
 using ClimaOcean.InitialConditions: three_dimensional_regrid!, interpolate!
 
@@ -154,7 +156,7 @@ function ECCO_field(metadata::ECCOMetadata;
         return field
     end
 
-    download_dataset!(metadata)
+    download_dataset(metadata)
     path = metadata_path(metadata)
     ds = Dataset(path)
     shortname = short_name(metadata)
@@ -203,10 +205,13 @@ function ECCO_field(metadata::ECCOMetadata;
 
         elapsed = 1e-9 * (time_ns() - start_time)
         @info string(" ... (", prettytime(elapsed), ")")
-
-        file = jldopen(inpainted_path, "w+")
-        file["data"] = on_architecture(CPU(), parent(field))
-        close(file)
+    
+        if save_inpainted
+            file = jldopen(inpainted_path, "w+")
+            file["data"] = on_architecture(CPU(), parent(field))
+            file["inpainting_steps"] = inpainting.steps
+            close(file)
+        end
     end
 
     return field
@@ -229,37 +234,15 @@ function set!(field::DistributedField, ECCO_metadata::ECCOMetadata;
 
     # Fields initialized from ECCO
     grid = field.grid
-    arch = architecture(grid)
-    child_arch = child_architecture(arch)
+    arch = child_architecture(grid)
+    mask = ECCO_mask(ecco_metadata, arch)
 
-    f_ECCO = if arch.local_rank == 0 # Make sure we read/write the file using only one core
-        mask = ECCO_mask(ECCO_metadata, child_arch)
-        ECCO_field(ECCO_metadata; inpainting, mask, architecture=child_arch, kw...)
-    else
-        empty_ECCO_field(ECCO_metadata; architecture=child_arch)
-    end
+    f = ECCO_field(ecco_metadata; mask,
+                   architecture = arch,
+                   inpainting,
+                   kw...)
 
-    barrier!(arch)
-
-    # Distribute ECCO field to all workers
-    parent(f_ECCO) .= all_reduce(+, parent(f_ECCO), arch)
-    interpolate!(field, f_ECCO)
-    
-    return field
-end
-
-function set!(field::Field, ECCO_metadata::ECCOMetadata;
-              inpainting = NearestNeighborInpainting(Inf), kw...)
-
-    grid = field.grid
-    arch = architecture(grid)
-    mask = ECCO_mask(ECCO_metadata, arch)
-    
-    native_field = ECCO_field(ECCO_metadata; inpainting, mask, architecture=arch, kw...)
-    on_grid = Field(location(ECCO_metadata), grid)   
-    #interpolate!(on_grid, native_field)
-    interpolate!(field, native_field)
-    #set!(field, on_grid)
+    interpolate!(field, f)
 
     return field
 end
