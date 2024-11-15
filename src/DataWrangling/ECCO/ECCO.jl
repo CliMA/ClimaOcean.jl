@@ -151,7 +151,7 @@ function ECCO_field(metadata::ECCOMetadata;
     inpainted_path = inpainted_metadata_path(metadata)
 
     if !isnothing(inpainting) && isfile(inpainted_path)
-        file = jldopen(inpainted_path)
+        file = jldopen(inpainted_path, "r")
         maxiter = file["inpainting_maxiter"]
 
         # read data if generated with the same inpainting
