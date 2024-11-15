@@ -138,7 +138,7 @@ end
     @test turbulent_fluxes.latent_heat[1, 1, 1]   ≈ Ql
     @test turbulent_fluxes.water_vapor[1, 1, 1]   ≈ Mv
 
-    @info " Testing MinimumTemperatureSeaIce..." 
+    @info " Testing FreezingLimitedOceanTemperature..." 
 
     grid = LatitudeLongitudeGrid(size = (2, 2, 10), 
                              latitude = (-0.5, 0.5), 
