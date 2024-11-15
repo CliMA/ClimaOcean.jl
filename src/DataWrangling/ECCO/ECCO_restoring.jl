@@ -332,7 +332,7 @@ function ECCORestoring(arch::AbstractArchitecture,
 
     fts = ECCO_field_time_series(metadata; 
                                  grid, 
-                                 arch, 
+                                 architecture = arch, 
                                  time_indices_in_memory, 
                                  time_indexing, 
                                  inpainting,
