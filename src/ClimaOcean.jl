@@ -13,7 +13,8 @@ export
     Radiation,
     LatitudeDependentAlbedo,
     SimilarityTheoryTurbulentFluxes,
-    JRA55_prescribed_atmosphere,
+    PrescribedAtmosphere,
+    JRA55PrescribedAtmosphere,
     JRA55NetCDFBackend,
     regrid_bathymetry,
     retrieve_bathymetry,
@@ -85,7 +86,9 @@ using .InitialConditions
 using .OceanSeaIceModels
 using .OceanSimulations
 using .DataWrangling: JRA55, ECCO
-using ClimaOcean.DataWrangling.JRA55: JRA55_prescribed_atmosphere, JRA55NetCDFBackend
+
+using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
+using ClimaOcean.DataWrangling.JRA55: JRA55PrescribedAtmosphere, JRA55NetCDFBackend
 using ClimaOcean.DataWrangling.ECCO
 
 end # module

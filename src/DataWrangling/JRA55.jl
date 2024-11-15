@@ -34,6 +34,9 @@ function __init__()
     global download_jra55_cache = @get_scratch!("JRA55")
 end
 
+struct JRA55Data end
+const JRA55PrescribedAtmosphere = PrescribedAtmosphere{<:Any, <:JRA55Data}
+
 # A list of all variables provided in the JRA55 dataset:
 JRA55_variable_names = (:river_freshwater_flux,
                         :rain_freshwater_flux,
@@ -608,15 +611,15 @@ end
 
 const AA = Oceananigans.Architectures.AbstractArchitecture
 
-JRA55_prescribed_atmosphere(time_indices=Colon(); kw...) =
-    JRA55_prescribed_atmosphere(CPU(), time_indices; kw...)
+JRA55PrescribedAtmosphere(time_indices=Colon(); kw...) =
+    JRA55PrescribedAtmosphere(CPU(), time_indices; kw...)
 
-JRA55_prescribed_atmosphere(arch::Distributed, time_indices=Colon(); kw...) =
-    JRA55_prescribed_atmosphere(child_architecture(arch), time_indices; kw...)
+JRA55PrescribedAtmosphere(arch::Distributed, time_indices=Colon(); kw...) =
+    JRA55PrescribedAtmosphere(child_architecture(arch), time_indices; kw...)
 
 # TODO: allow the user to pass dates
 """
-    JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
+    JRA55PrescribedAtmosphere(architecture::AA, time_indices=Colon();
                                 backend = nothing,
                                 time_indexing = Cyclical(),
                                 reference_height = 10,  # meters
@@ -625,7 +628,7 @@ JRA55_prescribed_atmosphere(arch::Distributed, time_indices=Colon(); kw...) =
 
 Return a `PrescribedAtmosphere` representing JRA55 reanalysis data.
 """
-function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
+function JRA55PrescribedAtmosphere(architecture::AA, time_indices=Colon();
                                      backend = nothing,
                                      time_indexing = Cyclical(),
                                      reference_height = 10,  # meters
@@ -657,45 +660,44 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
     Ql  = JRA55_field_time_series(:downwelling_longwave_radiation;  kw...)
     Qs  = JRA55_field_time_series(:downwelling_shortwave_radiation; kw...)
 
-    freshwater_flux = (rain = Fra,
-                       snow = Fsn)
-
-    # Remember that rivers and icebergs are on a different grid and have
-    # a different frequency than the rest of the JRA55 data. We use `PrescribedAtmospheres`
-    # "auxiliary_freshwater_flux" feature to represent them.
+    # In JRA55, rivers and icebergs are on a different grid and stored with
+    # a different frequency than the rest of the data. Here, we use the
+    # `PrescribedAtmosphere.auxiliary_freshwater_flux` feature to represent them.
     if include_rivers_and_icebergs
         Fri = JRA55_field_time_series(:river_freshwater_flux;   kw...)
         Fic = JRA55_field_time_series(:iceberg_freshwater_flux; kw...)
-        auxiliary_freshwater_flux = (rivers = Fri, icebergs = Fic)
+        auxiliary_freshwater_flux = (rivers=Fri, icebergs=Fic)
     else
         auxiliary_freshwater_flux = nothing
     end
 
     times = ua.times
-
-    velocities = (u = ua,
-                  v = va)
-
-    tracers = (T = Ta,
-               q = qa)
-
+    freshwater_flux = (rain=Fra, snow=Fsn)
+    velocities = (u=ua, v=va)
+    tracers = (T=Ta, q=qa)
     pressure = pa
-
     downwelling_radiation = TwoBandDownwellingRadiation(shortwave=Qs, longwave=Ql)
 
     FT = eltype(ua)
+    boundary_layer_height = convert(FT, 600)
     reference_height = convert(FT, reference_height)
+    thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT)
+    grid = ua.grid
+    metadata = JRA55()
 
-    atmosphere = PrescribedAtmosphere(times, FT;
-                                      velocities,
-                                      freshwater_flux,
-                                      auxiliary_freshwater_flux,
-                                      tracers,
-                                      downwelling_radiation,
-                                      reference_height,
-                                      pressure)
-
-    return atmosphere
+    return PrescribedAtmosphere(grid,
+                                metadata,
+                                velocities,
+                                pressure,
+                                tracers,
+                                freshwater_flux,
+                                auxiliary_freshwater_flux,
+                                downwelling_radiation,
+                                thermodynamics_parameters,
+                                times,
+                                reference_height,
+                                boundary_layer_height)
 end
 
 end # module
+

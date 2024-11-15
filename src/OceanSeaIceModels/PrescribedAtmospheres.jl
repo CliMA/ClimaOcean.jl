@@ -2,7 +2,8 @@ module PrescribedAtmospheres
 
 using Oceananigans.Grids: grid_name
 using Oceananigans.Utils: prettysummary
-using Oceananigans.OutputReaders: update_field_time_series!, extract_field_time_series
+using Oceananigans.Fields: Center
+using Oceananigans.OutputReaders: FieldTimeSeries, update_field_time_series!, extract_field_time_series
 
 using Adapt
 using Thermodynamics.Parameters: AbstractThermodynamicsParameters
@@ -95,12 +96,12 @@ end
 
 const CP{FT} = ConstitutiveParameters{FT} where FT
 
-@inline gas_constant(p::CP)     = p.gas_constant
-@inline molmass_dryair(p::CP)   = p.dry_air_molar_mass
-@inline molmass_water(p::CP)    = p.water_molar_mass
-@inline molmass_ratio(p::CP)    = molmass_dryair(p) / molmass_water(p)
-@inline R_v(p::CP)              = gas_constant(p) / molmass_water(p)
-@inline R_d(p::CP)              = gas_constant(p) / molmass_dryair(p)
+@inline gas_constant(p::CP)   = p.gas_constant
+@inline molmass_dryair(p::CP) = p.dry_air_molar_mass
+@inline molmass_water(p::CP)  = p.water_molar_mass
+@inline molmass_ratio(p::CP)  = molmass_dryair(p) / molmass_water(p)
+@inline R_v(p::CP)            = gas_constant(p) / molmass_water(p)
+@inline R_d(p::CP)            = gas_constant(p) / molmass_dryair(p)
 
 struct HeatCapacityParameters{FT} <: AbstractThermodynamicsParameters{FT}
     dry_air_adiabatic_exponent :: FT
@@ -286,8 +287,9 @@ const PATP = PrescribedAtmosphereThermodynamicsParameters
 ##### Prescribed atmosphere (as opposed to dynamically evolving / prognostic)
 #####
 
-struct PrescribedAtmosphere{FT, G, U, P, C, F, I, R, TP, TI}
+struct PrescribedAtmosphere{FT, M, G, U, P, C, F, I, R, TP, TI}
     grid :: G
+    metadata :: M
     velocities :: U
     pressure :: P
     tracers :: C
@@ -314,36 +316,72 @@ function Base.show(io::IO, pa::PrescribedAtmosphere)
     print(io, "└── boundary_layer_height: ", prettysummary(pa.reference_height))
 end
 
+function default_atmosphere_velocities(grid, times)
+    ua = FieldTimeSeries{Center, Center, Nothing}(grid, times)
+    va = FieldTimeSeries{Center, Center, Nothing}(grid, times)
+    return (u=ua, v=va)
+end
+
+function default_atmosphere_tracers(grid, times)
+    Ta = FieldTimeSeries{Center, Center, Nothing}(grid, times)
+    qa = FieldTimeSeries{Center, Center, Nothing}(grid, times)
+    parent(Ta) .= 273.15 + 20
+    return (T=Ta, q=qa)
+end
+
+function default_downwelling_radiation(grid, times)
+    Qℓ = FieldTimeSeries{Center, Center, Nothing}(grid, times)
+    Qs = FieldTimeSeries{Center, Center, Nothing}(grid, times)
+    return TwoBandDownwellingRadiation(shortwave=Qs, longwave=Qℓ)
+end
+
+function default_freshwater_flux(grid, times)
+    rain = FieldTimeSeries{Center, Center, Nothing}(grid, times)
+    snow = FieldTimeSeries{Center, Center, Nothing}(grid, times)
+    return (; rain, snow)
+end
+
+function default_atmosphere_pressure(grid, times)
+    pa = FieldTimeSeries{Center, Center, Nothing}(grid, times)
+    parent(pa) .= 101325
+    return pa
+end
+
 """
-    PrescribedAtmosphere(times;
-                         reference_height,
+    PrescribedAtmosphere(grid, times;
+                         metadata = nothing,
+                         reference_height = 10, # meters
+                         boundary_layer_height = 600 # meters,
+                         thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT),
                          velocities = nothing,
                          pressure = nothing,
                          freshwater_flux = nothing,
+                         auxiliary_freshwater_flux = nothing,
                          downwelling_radiation = nothing,
                          tracers = nothing)
 
 Return a representation of a prescribed time-evolving atmospheric
 state with data given at `times`.
 """
-function PrescribedAtmosphere(times, FT=Float64;
-                              reference_height,
-                              velocities = nothing,
-                              boundary_layer_height = convert(FT, 600),
-                              pressure = nothing,
-                              freshwater_flux = nothing,
+function PrescribedAtmosphere(grid, times;
+                              metadata = nothing,  
+                              reference_height = convert(eltype(grid), 10),
+                              boundary_layer_height = convert(eltype(grid), 600),
+                              thermodynamics_parameters = nothing,
                               auxiliary_freshwater_flux = nothing,
-                              downwelling_radiation = nothing,
-                              thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT),
-                              grid = nothing,
-                              tracers = nothing)
+                              velocities            = default_atmosphere_velocities(grid, times),
+                              tracers               = default_atmosphere_tracers(grid, times),
+                              pressure              = default_atmosphere_pressure(grid, times),
+                              freshwater_flux       = default_freshwater_flux(grid, times),
+                              downwelling_radiation = default_downwelling_radiation(grid, times))
 
-    if isnothing(grid) # try to find it
-        u = first(velocities)
-        grid = u.grid
+    FT = eltype(grid)
+    if isnothing(thermodynamics_parameters)
+        thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT)
     end
 
     return PrescribedAtmosphere(grid,
+                                metadata,
                                 velocities,
                                 pressure,
                                 tracers,
@@ -384,7 +422,7 @@ TwoBandDownwellingRadiation(; shortwave=nothing, longwave=nothing) =
 
 Adapt.adapt_structure(to, tsdr::TwoBandDownwellingRadiation) =
     TwoBandDownwellingRadiation(adapt(to, tsdr.shortwave),
-                                  adapt(to, tsdr.longwave))
+                                adapt(to, tsdr.longwave))
 
 end # module
 
