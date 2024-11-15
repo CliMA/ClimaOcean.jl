@@ -9,7 +9,7 @@ function limit_fluxes_over_sea_ice!(grid, kernel_parameters,
             centered_velocity_fluxes,
             net_tracer_fluxes,
             grid,
-            sea_ice.liquidus
+            sea_ice.liquidus,
             ocean_temperature,
             ocean_salinity)
 
