@@ -43,9 +43,10 @@ end
                                          ocean_temperature)
 
     i, j = @index(Global, NTuple)
-
+    kᴺ = size(grid, 3) 
+    
     @inbounds begin
-        Tₒ = ocean_temperature[i, j, 1]
+        Tₒ = ocean_temperature[i, j, kᴺ]
 
         τx = centered_velocity_fluxes.u
         τy = centered_velocity_fluxes.v
