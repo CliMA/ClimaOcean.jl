@@ -8,6 +8,8 @@ using Dates
 using Printf
 using CUDA: @allowscalar
 
+using Oceananigans.Grids: znode
+
 arch = CPU()
 
 #####
