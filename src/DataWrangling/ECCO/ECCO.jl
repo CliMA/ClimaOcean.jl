@@ -240,9 +240,9 @@ function set!(field::Field, ECCO_metadata::ECCOMetadata; kw...)
     # Fields initialized from ECCO
     grid = field.grid
     arch = child_architecture(grid)
-    mask = ECCO_mask(ecco_metadata, arch)
+    mask = ECCO_mask(ECCO_metadata, arch)
 
-    f = ECCO_field(ecco_metadata; mask,
+    f = ECCO_field(ECCO_metadata; mask,
                    architecture = arch,
                    kw...)
 

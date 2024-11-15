@@ -6,11 +6,12 @@ using Oceananigans.Units
 using CFTime
 using Dates
 using Printf
-using CUDA: @allowscalar
+using CUDA: @allowscalar, device!
 
 using Oceananigans.Grids: znode
 
-arch = CPU()
+device!(3)
+arch = GPU()
 
 #####
 ##### Grid and Bathymetry
