@@ -12,7 +12,7 @@ end
     FreezingLimitedOceanTemperature(FT=Float64; liquidus = LinearLiquidus(FT)) 
 
 The minimal possible sea ice representation, providing an "Insulating layer" on the surface and clipping the 
-temperature above the freezing point. Not really a ``model'' per se, however, 
+temperature below to the freezing point. Not really a ``model'' per se, however, 
 it is the most simple way to make sure that temperature does not dip below freezing temperature. 
 All fluxes are shut down when the surface is below the `T < Tₘ` except for heating.
 
