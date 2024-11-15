@@ -137,6 +137,33 @@ end
     @test turbulent_fluxes.sensible_heat[1, 1, 1] ≈ Qs
     @test turbulent_fluxes.latent_heat[1, 1, 1]   ≈ Ql
     @test turbulent_fluxes.water_vapor[1, 1, 1]   ≈ Mv
+
+    @info " Testing MinimumTemperatureSeaIce..." 
+
+    grid = LatitudeLongitudeGrid(size = (2, 2, 10), 
+                             latitude = (-0.5, 0.5), 
+                            longitude = (-0.5, 0.5), 
+                                    z = (-1, 0),
+                             topology = (Periodic, Periodic, Bounded))
+    
+    ocean = ocean_simulation(grid; momentum_advection = nothing, 
+                                     tracer_advection = nothing, 
+                                              closure = nothing,
+                              bottom_drag_coefficient = 0.0)
+
+    atmosphere = JRA55_prescribed_atmosphere(1:2; grid, backend = InMemory())
+
+    # Only specific terms above the minimum temperature
+    sea_ice = MinimumTemperatureSeaIce(-1.5)
+
+    fill!(ocean.model.tracers.T, -2.0)
+
+    ocean.model.tracers.T[1, 2, 10] = -1.0
+    ocean.model.tracers.T[2, 1, 10] = -1.0
+
+    coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere)
+
+    turbulent_fluxes = coupled_model.fluxes.turbulent.fields
+
+    
 end
-
-
