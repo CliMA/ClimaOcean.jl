@@ -4,7 +4,8 @@ using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes:
                                     celsius_to_kelvin, 
                                     convert_to_kelvin, 
                                     SimilarityScales,
-                                    seawater_saturation_specific_humidity
+                                    seawater_saturation_specific_humidity,
+                                    surface_flux
 
 using Thermodynamics
 import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: water_saturation_specific_humidity
@@ -152,7 +153,7 @@ end
                               bottom_drag_coefficient = 0.0)
 
     atmosphere = JRA55_prescribed_atmosphere(1:2; grid, backend = InMemory())
-
+    
     # Only specific terms above the minimum temperature
     sea_ice = MinimumTemperatureSeaIce(-1.5)
 
@@ -161,9 +162,23 @@ end
     ocean.model.tracers.T[1, 2, 10] = -1.0
     ocean.model.tracers.T[2, 1, 10] = -1.0
 
-    coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere)
+    # Always cooling!
+    fill!(atmosphere.temperature.T, 273.15 - 20)
+    
+    coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation=nothing)
 
     turbulent_fluxes = coupled_model.fluxes.turbulent.fields
 
-    
+    # Make sure that the fluxes are zero when the temperature is below the minimum
+    # but not zero when they are above    
+    u, v, _ = ocean.model.velocities
+    T, S    = ocean.model.tracers
+
+    for field in (u, v, T, S)
+        flux = surface_flux(field)
+        @test flux[1, 2, 10] == 0.0 # below freezing and cooling, no flux
+        @test flux[2, 1, 10] == 0.0 # below freezing and cooling, no flux
+        @test flux[1, 1, 10] == 0.0 # above freezing and cooling
+        @test flux[2, 2, 10] == 0.0 # above freezing and cooling
+    end
 end
