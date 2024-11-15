@@ -18,7 +18,7 @@ All fluxes are shut down when the surface is below the `T < Tₘ` except for hea
 
 the melting temperature is a function of salinity and is controlled by the `liquidus`.
 """
-FreezingLimitedOceanTemperature(FT=Float64; liquidus = LinearLiquidus(FT)) = FreezingLimitedOceanTemperature(liquidus) 
+FreezingLimitedOceanTemperature(; liquidus = LinearLiquidus()) = FreezingLimitedOceanTemperature(liquidus) 
 
 const FreezingLimitedCoupledModel = OceanSeaIceModel{<:FreezingLimitedOceanTemperature}
 
