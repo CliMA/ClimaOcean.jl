@@ -213,7 +213,8 @@ function ECCO_field(metadata::ECCOMetadata;
         elapsed = 1e-9 * (time_ns() - start_time)
         @info string(" ... (", prettytime(elapsed), ")")
     
-        if cache_inpainted_data
+        # We cache the inpainted data to avoid recomputing it
+        @root if cache_inpainted_data
             file = jldopen(inpainted_path, "w+")
             file["data"] = on_architecture(CPU(), parent(field))
             file["inpainting_maxiter"] = inpainting.maxiter
