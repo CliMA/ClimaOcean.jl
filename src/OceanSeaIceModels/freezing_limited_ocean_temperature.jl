@@ -14,7 +14,7 @@ end
 The minimal possible sea ice representation, providing an "Insulating layer" on the surface and clipping the 
 temperature below to the freezing point. Not really a ``model'' per se, however, 
 it is the most simple way to make sure that temperature does not dip below freezing. 
-All fluxes are shut down when the surface is below the `T < Tₘ` except for heating.
+All fluxes are shut down when the surface is below the `T < Tₘ` except for heating to allow temperature to increase.
 
 the melting temperature is a function of salinity and is controlled by the `liquidus`.
 """
