@@ -126,7 +126,8 @@ end
                architecture = CPU(),
                inpainting = nothing,
                mask = nothing,
-               horizontal_halo = (7, 7))
+               horizontal_halo = (7, 7),
+               cache_inpainted_data = false)
 
 Return a `Field` on `architecture` described by `ECCOMetadata` with
 `horizontal_halo` size.
@@ -138,7 +139,8 @@ function ECCO_field(metadata::ECCOMetadata;
                     architecture = CPU(),
                     inpainting = nothing,
                     mask = nothing,
-                    horizontal_halo = (7, 7))
+                    horizontal_halo = (7, 7),
+                    cache_inpainted_data = false)
 
     # Respect user-supplied mask, but otherwise build default ECCO mask.
     if !isnothing(inpainting) && isnothing(mask)
@@ -150,10 +152,15 @@ function ECCO_field(metadata::ECCOMetadata;
 
     if !isnothing(inpainting) && isfile(inpainted_path)
         file = jldopen(inpainted_path)
-        data = file["data"]
-        close(file)
-        copyto!(parent(field), data)
-        return field
+        maxiter = file["inpainting_maxiter"]
+
+        # read data if generated with the same inpainting
+        if maxiter == inpainting.maxiter
+            data = file["data"]
+            close(file)
+            copyto!(parent(field), data)
+            return field
+        end
     end
 
     download_dataset(metadata)
@@ -206,10 +213,10 @@ function ECCO_field(metadata::ECCOMetadata;
         elapsed = 1e-9 * (time_ns() - start_time)
         @info string(" ... (", prettytime(elapsed), ")")
     
-        if save_inpainted
+        if cache_inpainted_data
             file = jldopen(inpainted_path, "w+")
             file["data"] = on_architecture(CPU(), parent(field))
-            file["inpainting_steps"] = inpainting.steps
+            file["inpainting_maxiter"] = inpainting.maxiter
             close(file)
         end
     end
@@ -228,9 +235,7 @@ end
 
 inpainted_metadata_path(metadata::ECCOMetadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
 
-function set!(field::DistributedField, ECCO_metadata::ECCOMetadata;
-              inpainting = NearestNeighborInpainting(Inf),
-              kw...)
+function set!(field::Field, ECCO_metadata::ECCOMetadata; kw...)
 
     # Fields initialized from ECCO
     grid = field.grid
@@ -239,7 +244,6 @@ function set!(field::DistributedField, ECCO_metadata::ECCOMetadata;
 
     f = ECCO_field(ecco_metadata; mask,
                    architecture = arch,
-                   inpainting,
                    kw...)
 
     interpolate!(field, f)
