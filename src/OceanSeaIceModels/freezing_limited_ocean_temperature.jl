@@ -1,26 +1,5 @@
-using Oceananigans.Architectures: architecture
-
-import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: limit_fluxes_over_sea_ice!
-
-"""
-    struct MinimumTemperatureSeaIce{T}
-
-The minimal possible sea ice representation, providing an "Insulating layer" on the surface.
-Not really a ``model'' per se, however, it is the most simple way to make sure that temperature 
-does not dip below freezing temperature.
-All fluxes are shut down when the surface is below the `minimum_temperature` except for heating.
-
-# Fields
-- `minimum_temperature`: The minimum temperature of water.
-"""
-struct MinimumTemperatureSeaIce{T}
-    minimum_temperature :: T
-end
-
-MinimumTemperatureSeaIce() = MinimumTemperatureSeaIce(-1.8)
-
 function limit_fluxes_over_sea_ice!(grid, kernel_parameters,
-                                    sea_ice::MinimumTemperatureSeaIce,
+                                    sea_ice::FreezingLimitedOceanTemperature,
                                     centered_velocity_fluxes,
                                     net_tracer_fluxes,
                                     ocean_temperature,
@@ -30,8 +9,9 @@ function limit_fluxes_over_sea_ice!(grid, kernel_parameters,
             centered_velocity_fluxes,
             net_tracer_fluxes,
             grid,
-            sea_ice.minimum_temperature,
-            ocean_temperature)
+            sea_ice.liquidus
+            ocean_temperature,
+            ocean_salinity)
 
     return nothing
 end
@@ -39,20 +19,24 @@ end
 @kernel function _cap_fluxes_on_sea_ice!(centered_velocity_fluxes,
                                          net_tracer_fluxes,
                                          grid,
-                                         minimum_temperature,
-                                         ocean_temperature)
+                                         liquidus,
+                                         ocean_temperature,
+                                         ocean_salinity)
 
     i, j = @index(Global, NTuple)
 
     @inbounds begin
         Tₒ = ocean_temperature[i, j, 1]
+        Sₒ = ocean_salinity[i, j, 1]
 
+        Tₘ = melting_temperature(liquidus, Sₒ)
+    
         τx = centered_velocity_fluxes.u
         τy = centered_velocity_fluxes.v
         Jᵀ = net_tracer_fluxes.T
         Jˢ = net_tracer_fluxes.S
 
-        sea_ice = Tₒ < minimum_temperature
+        sea_ice = Tₒ < Tₘ
         cooling_sea_ice = sea_ice & (Jᵀ[i, j, 1] > 0)
 
         # Don't allow the ocean to cool below the minimum temperature! (make sure it heats up though!)

@@ -69,7 +69,7 @@ function heat_capacity(eos::TEOS10EquationOfState{FT}) where FT
     return convert(FT, cₚ⁰)
 end
 
-function OceanSeaIceModel(ocean, sea_ice=MinimumTemperatureSeaIce();
+function OceanSeaIceModel(ocean, sea_ice=freezing_limited_ocean_temperature();
                           atmosphere = nothing,
                           radiation = nothing,
                           similarity_theory = nothing,
