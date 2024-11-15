@@ -337,9 +337,11 @@ function ECCORestoring(architecture::AbstractArchitecture,
     variable_name = metadata.name
     field_name = oceananigans_fieldname[variable_name]
 
-    fts_grid = isnothing(grid) ? nothing : fts.grid 
+    # If we pass the grid we do not need to interpolate
+    # so we can save parameter space by setting the native grid to nothing
+    native_grid = isnothing(grid) ? fts.grid : nothing 
 
-    return ECCORestoring(fts, fts_grid, mask, field_name, rate)
+    return ECCORestoring(fts, native_grid, mask, field_name, rate)
 end
 
 # Make sure we can call ECCORestoring with architecture as the first positional argument
