@@ -9,7 +9,7 @@ struct FreezingLimitedOceanTemperature{L}
 end
 
 """
-    FreezingLimitedOceanTemperature(FT=Float64; liquidus = LinearLiquidus(FT)) 
+    FreezingLimitedOceanTemperature(FT::DataType) = FreezingLimitedOceanTemperature(LinearLiquidus(FT))
 
 The minimal possible sea ice representation, providing an "Insulating layer" on the surface and clipping the 
 temperature below to the freezing point. Not really a ``model'' per se, however, 

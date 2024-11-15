@@ -183,7 +183,7 @@ end
     end
 
     # Test that the temperature has snapped up to freezing
-    @test minimim(ocean.model.tracers.T) == 0
+    @test minimum(ocean.model.tracers.T) == 0
 end
 
 
