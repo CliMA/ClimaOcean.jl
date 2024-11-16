@@ -82,7 +82,7 @@ end
         Sₒ = ocean_salinity[i, j, 1]
 
         Tₘ = melting_temperature(liquidus, Sₒ)
-    
+
         τx = centered_velocity_fluxes.u
         τy = centered_velocity_fluxes.v
         Jᵀ = net_tracer_fluxes.T
