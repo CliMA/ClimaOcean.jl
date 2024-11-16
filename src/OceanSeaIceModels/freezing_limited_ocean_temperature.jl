@@ -18,7 +18,7 @@ All fluxes are shut down when the surface is below the `T < Tₘ` except for hea
 
 the melting temperature is a function of salinity and is controlled by the `liquidus`.
 """
-FreezingLimitedOceanTemperature(FT::DataType) = FreezingLimitedOceanTemperature(LinearLiquidus(FT))
+FreezingLimitedOceanTemperature(FT::DataType=Float64) = FreezingLimitedOceanTemperature(LinearLiquidus(FT))
 
 const FreezingLimitedCoupledModel = OceanSeaIceModel{<:FreezingLimitedOceanTemperature}
 
@@ -57,7 +57,7 @@ function limit_fluxes_over_sea_ice!(grid, kernel_parameters,
                                     ocean_temperature,
                                     ocean_salinity)
 
-    launch!(architecture(grid), grid, kernel_parameters, _cap_fluxes_on_sea_ice!,
+    launch!(architecture(grid), grid, kernel_parameters, _limit_fluxes_over_sea_ice!,
             centered_velocity_fluxes,
             net_tracer_fluxes,
             grid,
@@ -68,18 +68,19 @@ function limit_fluxes_over_sea_ice!(grid, kernel_parameters,
     return nothing
 end
 
-@kernel function _cap_fluxes_on_sea_ice!(centered_velocity_fluxes,
-                                         net_tracer_fluxes,
-                                         grid,
-                                         liquidus,
-                                         ocean_temperature,
-                                         ocean_salinity)
+@kernel function _limit_fluxes_over_sea_ice!(centered_velocity_fluxes,
+                                             net_tracer_fluxes,
+                                             grid,
+                                             liquidus,
+                                             ocean_temperature,
+                                             ocean_salinity)
 
     i, j = @index(Global, NTuple)
-
+    kᴺ = size(grid, 3)
+    
     @inbounds begin
-        Tₒ = ocean_temperature[i, j, 1]
-        Sₒ = ocean_salinity[i, j, 1]
+        Tₒ = ocean_temperature[i, j, kᴺ]
+        Sₒ = ocean_salinity[i, j, kᴺ]
 
         Tₘ = melting_temperature(liquidus, Sₒ)
 
