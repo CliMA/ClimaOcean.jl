@@ -90,7 +90,7 @@ end
 
 Build a mask that is linearly tapered in latitude between the northern and southern edges.
 The mask is constant in depth between the z and equals zero everywhere else.
-The mask is capped to one if the latitude is beyond the outer northern or southern edges.
+The mask is limited to lie between (0, 1).
 The mask has the following functional form:
 
 ```julia
