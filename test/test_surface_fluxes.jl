@@ -9,6 +9,7 @@ using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes:
 
 using Thermodynamics
 using CUDA
+using KernelAbstractions: @kernel, @index
 
 import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: water_saturation_specific_humidity
 
@@ -16,24 +17,51 @@ struct FixedSpecificHumidity{FT}
     qₒ :: FT
 end
 
+using Oceananigans.Utils
+using Oceananigans.Operators
+using Oceananigans.Models.HydrostaticFreeSurfaceModels: w_kernel_parameters
+import Oceananigans.Models.HydrostaticFreeSurfaceModels: compute_w_from_continuity!
+
+
+compute_w_from_continuity!(model; kwargs...) =
+    compute_w_from_continuity!(model.velocities, model.architecture, model.grid; kwargs...)
+
+compute_w_from_continuity!(velocities, arch, grid; parameters = w_kernel_parameters(grid)) = 
+    launch!(arch, grid, parameters, _my_compute_w_from_continuity!, velocities, grid)
+
+@kernel function _my_compute_w_from_continuity!(U, grid)
+    i, j = @index(Global, NTuple)
+
+    @show i, j
+    @inbounds U.w[i, j, 1] = 0
+    for k in 2:grid.Nz+1
+        @inbounds U.w[i, j, k] = U.w[i, j, k-1] - Δzᶜᶜᶜ(i, j, k-1, grid) * div_xyᶜᶜᶜ(i, j, k-1, grid, U.u, U.v)
+    end
+end
+
 @inline water_saturation_specific_humidity(h::FixedSpecificHumidity, args...) = h.qₒ
 
 @testset "Test surface fluxes" begin
     @info " Testing zero fluxes..."
     for arch in test_architectures
+
+        # TODO: There is a bug in LatitudeLongitudeGrids flat in the 
+        # latitude and longitude directions, fix it in Oceananigans then 
+        # change this grid to (Flat, Flat, Bounded)
         grid = LatitudeLongitudeGrid(arch;
-                                    size = (1, 1), 
-                                latitude = 0, 
-                               longitude = (-0.5, 0.5), 
+                                    size = (1, 5, 1), 
+                                latitude = (-0.5, 0.5), 
+                               longitude = (-0.5, 0.5),
                                        z = (-1, 0),
-                                topology = (Periodic, Flat, Bounded))
+                                topology = (Periodic, Bounded, Bounded),
+                      precompute_metrics = false)
         
         ocean = ocean_simulation(grid; momentum_advection = nothing, 
                                         tracer_advection = nothing, 
                                                 closure = nothing,
                                 bottom_drag_coefficient = 0.0)
 
-        atmosphere = JRA55_prescribed_atmosphere(1:2; grid, backend = InMemory())
+        atmosphere = JRA55_prescribed_atmosphere(1:2; architecture = arch) 
         
         CUDA.@allowscalar begin
             h  = atmosphere.reference_height
@@ -73,11 +101,11 @@ end
             turbulent_fluxes = coupled_model.fluxes.turbulent.fields
 
             # Make sure all fluxes are (almost) zero!
-            @test turbulent_fluxes.x_momentum[1, 1, 1]    < eps(eltype(grid))
-            @test turbulent_fluxes.y_momentum[1, 1, 1]    < eps(eltype(grid))
-            @test turbulent_fluxes.sensible_heat[1, 1, 1] < eps(eltype(grid))
-            @test turbulent_fluxes.latent_heat[1, 1, 1]   < eps(eltype(grid))
-            @test turbulent_fluxes.water_vapor[1, 1, 1]   < eps(eltype(grid))
+            @test turbulent_fluxes.x_momentum[1, 3, 1]    < eps(eltype(grid))
+            @test turbulent_fluxes.y_momentum[1, 3, 1]    < eps(eltype(grid))
+            @test turbulent_fluxes.sensible_heat[1, 3, 1] < eps(eltype(grid))
+            @test turbulent_fluxes.latent_heat[1, 3, 1]   < eps(eltype(grid))
+            @test turbulent_fluxes.water_vapor[1, 3, 1]   < eps(eltype(grid))
 
             @info " Testing neutral fluxes..."
             
@@ -105,8 +133,8 @@ end
             coupled_model = OceanSeaIceModel(ocean; atmosphere, similarity_theory)
 
             # Now manually compute the fluxes:
-            Tₒ = ocean.model.tracers.T[1, 1, 1] + celsius_to_kelvin
-            Sₒ = ocean.model.tracers.S[1, 1, 1]
+            Tₒ = ocean.model.tracers.T[1, 3, 1] + celsius_to_kelvin
+            Sₒ = ocean.model.tracers.S[1, 3, 1]
             qₒ = seawater_saturation_specific_humidity(ℂₐ, Tₒ, Sₒ, 𝒬ₐ,
                                                     similarity_theory.water_mole_fraction,
                                                     similarity_theory.water_vapor_saturation,
@@ -137,11 +165,11 @@ end
             turbulent_fluxes = coupled_model.fluxes.turbulent.fields
 
             # Make sure fluxes agree with the hand-calculated ones
-            @test turbulent_fluxes.x_momentum[1, 1, 1]    ≈ τx
-            @test turbulent_fluxes.y_momentum[1, 1, 1]    ≈ τy
-            @test turbulent_fluxes.sensible_heat[1, 1, 1] ≈ Qs
-            @test turbulent_fluxes.latent_heat[1, 1, 1]   ≈ Ql
-            @test turbulent_fluxes.water_vapor[1, 1, 1]   ≈ Mv
+            @test turbulent_fluxes.x_momentum[1, 3, 1]    ≈ τx
+            @test turbulent_fluxes.y_momentum[1, 3, 1]    ≈ τy
+            @test turbulent_fluxes.sensible_heat[1, 3, 1] ≈ Qs
+            @test turbulent_fluxes.latent_heat[1, 3, 1]   ≈ Ql
+            @test turbulent_fluxes.water_vapor[1, 3, 1]   ≈ Mv
         end
 
         @info " Testing FreezingLimitedOceanTemperature..." 
