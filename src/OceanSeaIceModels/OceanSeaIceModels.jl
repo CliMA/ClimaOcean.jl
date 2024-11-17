@@ -48,13 +48,14 @@ include("CrossRealmFluxes/CrossRealmFluxes.jl")
 
 using .CrossRealmFluxes
 
+import .CrossRealmFluxes:
+    compute_atmosphere_ocean_fluxes!,
+    compute_sea_ice_ocean_fluxes!,
+    limit_fluxes_over_sea_ice!
+
 include("ocean_sea_ice_model.jl")
 include("freezing_limited_ocean_temperature.jl")
 include("time_step_ocean_sea_ice_model.jl")
-
-import .CrossRealmFluxes:
-    compute_atmosphere_ocean_fluxes!,
-    compute_sea_ice_ocean_fluxes!
 
 # "No atmosphere" implementation
 const NoAtmosphereModel = OceanSeaIceModel{<:Any, Nothing}

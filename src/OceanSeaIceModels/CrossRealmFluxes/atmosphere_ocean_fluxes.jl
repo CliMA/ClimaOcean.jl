@@ -172,6 +172,8 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             coupled_model.fluxes.ocean_heat_capacity,
             coupled_model.fluxes.freshwater_density)
             
+    @show sea_ice
+    
     limit_fluxes_over_sea_ice!(grid, kernel_parameters, sea_ice,
                                centered_velocity_fluxes,
                                net_tracer_fluxes,
