@@ -92,7 +92,6 @@ end
         sea_ice = Tₒ < Tₘ
         cooling_sea_ice = sea_ice & (Jᵀ[i, j, 1] > 0)
 
-        @show i, j, cooling_sea_ice, Tₘ, T₀
         # Don't allow the ocean to cool below the minimum temperature! (make sure it heats up though!)
         Jᵀ[i, j, 1] = ifelse(cooling_sea_ice, zero(grid), Jᵀ[i, j, 1]) 
 
