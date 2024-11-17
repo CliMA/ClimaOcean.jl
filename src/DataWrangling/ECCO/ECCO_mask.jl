@@ -1,5 +1,7 @@
+using Oceananigans: location
 using Oceananigans.Architectures: AbstractArchitecture
 using Oceananigans.Grids: znode
+
 import ClimaOcean: stateindex
 
 """

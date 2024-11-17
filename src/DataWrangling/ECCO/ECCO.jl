@@ -10,6 +10,7 @@ using ClimaOcean.DataWrangling: inpaint_mask!
 using ClimaOcean.InitialConditions: three_dimensional_regrid!, interpolate!
 
 using Oceananigans
+using Oceananigans: location
 using Oceananigans.Architectures: architecture, child_architecture
 using Oceananigans.BoundaryConditions
 using Oceananigans.DistributedComputations: DistributedField, all_reduce, barrier!
