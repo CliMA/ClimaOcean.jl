@@ -61,7 +61,7 @@ Colorbar(fig[1, 2], hmT, label="Temperature (ᵒC)")
 Colorbar(fig[2, 2], hmS, label="Salinity (psu)")
 
 z = znodes(grid, Center())
-depth_str = @lift @sprintf("%.1f meters depth", -z[$k])
+depth_str = @lift @sprintf("z = %d meters", z[$k])
 text!(axT, 50, 50, text=depth_str, color=:lemonchiffon, justification=:center, fontsize=20)
 text!(axS, 50, 50, text=depth_str, color=:lemonchiffon, justification=:center, fontsize=20)
 
