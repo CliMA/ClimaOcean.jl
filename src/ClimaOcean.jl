@@ -9,7 +9,7 @@ end ClimaOcean
 
 export
     OceanSeaIceModel,
-    MinimumTemperatureSeaIce,
+    FreezingLimitedOceanTemperature,
     Radiation,
     LatitudeDependentAlbedo,
     SimilarityTheoryTurbulentFluxes,

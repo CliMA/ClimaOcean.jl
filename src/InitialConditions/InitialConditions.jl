@@ -3,6 +3,7 @@ module InitialConditions
 export initialize!
 
 using Oceananigans
+using Oceananigans: location
 using Oceananigans.BoundaryConditions
 using Oceananigans.Fields: OneField
 using Oceananigans.Grids: peripheral_node

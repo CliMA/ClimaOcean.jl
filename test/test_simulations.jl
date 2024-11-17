@@ -24,15 +24,13 @@ using OrthogonalSphericalShellGrids
         free_surface = SplitExplicitFreeSurface(grid; substeps = 20)
         ocean = ocean_simulation(grid; free_surface) 
 
-        backend    = JRA55NetCDFBackend(4)
+        backend = JRA55NetCDFBackend(4)
         atmosphere = JRA55_prescribed_atmosphere(arch; backend)
-        radiation  = Radiation(arch)
-
-        sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
+        radiation = Radiation(arch)
 
         # Fluxes are computed when the model is constructed, so we just test that this works.
         @test begin
-            coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+            coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
             true
         end
     end
