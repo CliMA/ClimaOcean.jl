@@ -26,10 +26,6 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
 @testset "Test surface fluxes" begin
     @info " Testing zero fluxes..."
     for arch in test_architectures
-
-        # TODO: There is a bug in LatitudeLongitudeGrids flat in the 
-        # latitude and longitude directions, fix it in Oceananigans then 
-        # change this grid to (Flat, Flat, Bounded)
         grid = LatitudeLongitudeGrid(arch;
                                     size = 1, 
                                 latitude = 0, 
