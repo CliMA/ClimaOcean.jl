@@ -142,7 +142,6 @@ end
             @test turbulent_fluxes.sensible_heat[1, 1, 1] ≈ Qs
             @test turbulent_fluxes.latent_heat[1, 1, 1]   ≈ Ql
             @test turbulent_fluxes.water_vapor[1, 1, 1]   ≈ Mv
-
         end
 
         @info " Testing FreezingLimitedOceanTemperature..." 
