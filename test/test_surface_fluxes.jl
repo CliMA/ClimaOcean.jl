@@ -18,11 +18,11 @@ end
 @testset "Test surface fluxes" begin
     @info " Testing zero fluxes..."
     
-    grid = LatitudeLongitudeGrid(size = (1, 1, 1), 
-                             latitude = (-0.5, 0.5), 
+    grid = LatitudeLongitudeGrid(size = (1, 1), 
+                             latitude = 0, 
                             longitude = (-0.5, 0.5), 
                                     z = (-1, 0),
-                             topology = (Periodic, Periodic, Bounded))
+                             topology = (Periodic, Flat, Bounded))
     
     ocean = ocean_simulation(grid; momentum_advection = nothing, 
                                      tracer_advection = nothing, 
@@ -144,7 +144,7 @@ end
                              latitude = (-0.5, 0.5), 
                             longitude = (-0.5, 0.5), 
                                     z = (-1, 0),
-                             topology = (Periodic, Periodic, Bounded))
+                             topology = (Bounded, Bounded, Bounded))
 
     ocean = ocean_simulation(grid; momentum_advection = nothing, 
                                      tracer_advection = nothing, 
@@ -163,7 +163,7 @@ end
     sea_ice = FreezingLimitedOceanTemperature()
 
     # Always cooling!
-    fill!(atmosphere.temperature.T, 273.15 - 20)
+    fill!(atmosphere.tracers.T, 273.15 - 20)
 
     coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation=nothing)
 
