@@ -69,7 +69,7 @@ function set!(fts::ECCONetCDFFTS)
     for t in start:start+len-1
         # Set each element of the time-series to the associated file
         metadatum = @inbounds backend.metadata[t] 
-        set!(fts[t], metadatum; inpainting, cache_inpainted_data = cache_data)
+        set!(fts[t], metadatum; inpainting, cache_inpainted_data=cache_data)
     end
 
     fill_halo_regions!(fts)
@@ -135,7 +135,7 @@ Keyword Arguments
                 where an average of the valid surrounding values is used `maxiter` times.
 
 - `cache_inpainted_data`: If `true`, the data is cached to disk after inpainting for later retrieving. 
-                          Default: `false`.
+                          Default: `true`.
 
 """
 function ECCO_field_time_series(metadata::ECCOMetadata;	
@@ -143,7 +143,7 @@ function ECCO_field_time_series(metadata::ECCOMetadata;
                                 time_indices_in_memory = 2,	
                                 time_indexing = Cyclical(),
                                 inpainting = NearestNeighborInpainting(prod(size(metadata))),
-                                cache_inpainted_data = false,
+                                cache_inpainted_data = true,
                                 grid = nothing)	
 
     # Make sure all the required individual files are downloaded
@@ -251,7 +251,7 @@ end
                   rate = 1,
                   grid = nothing,
                   inpainting = NearestNeighborInpainting(prod(size(metadata))),
-                  cache_inpainted_data = false)
+                  cache_inpainted_data = true)
 
 Create a forcing term that restores to values stored in an ECCO field time series.
 The restoring is applied as a forcing on the right hand side of the evolution equations calculated as
@@ -300,7 +300,7 @@ Keyword Arguments
           Default: nothing.
 
 - `cache_inpainted_data`: If `true`, the data is cached to disk after inpainting for later retrieving. 
-                          Default: `false`.
+                          Default: `true`.
                           
 It is possible to also pass an `ECCOMetadata` type as the first argument without the need for the 
 `variable_name` argument and the `version` and `dates` keyword arguments.
@@ -323,7 +323,7 @@ function ECCORestoring(arch::AbstractArchitecture,
                        time_indices_in_memory = 2, # Not more than this if we want to use GPU!
                        time_indexing = Cyclical(),
                        inpainting = NearestNeighborInpainting(Inf),
-                       cache_inpainted_data = false)
+                       cache_inpainted_data = true)
 
     # Validate architecture
     if !isnothing(grid) && architecture(grid) != arch
