@@ -109,7 +109,7 @@ radiation = Radiation(arch)
 # data such as temperature, humidity, and wind fields to calculate turbulent fluxes
 # using bulk formulae, see [`CrossRealmFluxes`](@ref).
 
-atmosphere = JRA55_prescribed_atmosphere(arch; backend=JRA55NetCDFBackend(41))
+atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(41))
 
 # ## The coupled simulation
 
