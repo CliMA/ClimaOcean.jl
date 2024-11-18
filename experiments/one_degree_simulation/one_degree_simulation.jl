@@ -46,7 +46,7 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(tampered_bottom_he
 
 gm = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1000, κ_symmetric=1000)
 catke = ClimaOcean.OceanSimulations.default_ocean_closure()
-viscous_closure = Oceananigans.TurbulenceClosures.HorizontalScalarDiffusivity(ν=10000)
+viscous_closure = Oceananigans.TurbulenceClosures.HorizontalScalarDiffusivity(ν=2000)
 
 closure = (gm, catke, viscous_closure)
 
@@ -73,7 +73,7 @@ forcing = (T=FT, S=FS)
 ##### 
 
 momentum_advection = VectorInvariant()
-tracer_advection   = Centered(order=2)
+tracer_advection   = WENO()
 
 # Should we add a side drag since this is at a coarser resolution?
 ocean = ocean_simulation(grid; momentum_advection, tracer_advection,
@@ -94,10 +94,10 @@ atmosphere = JRA55_prescribed_atmosphere(arch; backend=JRA55NetCDFBackend(20))
 ##### Coupled simulation
 #####
 
-sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
-coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+# similarity = SimilarityTheoryTurbulentFluxes(grid; gustiness_parameter = 0.5)
+coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation) #, similarity_theory = similarity)
 
-simulation = Simulation(coupled_model; Δt=15minutes, stop_time=2*365days)
+simulation = Simulation(coupled_model; Δt=1minutes, stop_time=2*365days, stop_iteration=1)
 
 #####
 ##### Run it!
