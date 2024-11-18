@@ -311,7 +311,7 @@ function Base.show(io::IO, pa::PrescribedAtmosphere)
     print(io, summary(pa), " on ", grid_name(pa.grid), ":", '\n')
     print(io, "├── times: ", prettysummary(pa.times), '\n')
     print(io, "├── reference_height: ", prettysummary(pa.reference_height), '\n')
-    print(io, "└── boundary_layer_height: ", prettysummary(pa.reference_height))
+    print(io, "└── boundary_layer_height: ", prettysummary(pa.boundary_layer_height))
 end
 
 """

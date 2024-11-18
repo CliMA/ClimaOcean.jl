@@ -2,7 +2,7 @@ module JRA55
 
 using Oceananigans
 using Oceananigans.Units
- 
+
 using Oceananigans: location
 using Oceananigans.Architectures: arch_array
 using Oceananigans.DistributedComputations
