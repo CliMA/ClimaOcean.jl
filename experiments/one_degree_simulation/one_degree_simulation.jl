@@ -10,7 +10,6 @@ using CUDA: @allowscalar, device!
 
 using Oceananigans.Grids: znode
 
-device!(3)
 arch = GPU()
 
 #####
