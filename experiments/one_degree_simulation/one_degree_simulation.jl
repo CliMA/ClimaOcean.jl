@@ -64,8 +64,8 @@ temperature = ECCOMetadata(:temperature; dates, version=ECCO4Monthly(), dir="./"
 salinity    = ECCOMetadata(:salinity;    dates, version=ECCO4Monthly(), dir="./")
 
 # inpainting = NearestNeighborInpainting(30) should be enough to fill the gaps near bathymetry
-FT = ECCORestoring(arch, temperature; grid, mask, rate=restoring_rate, inpainting=NearestNeighborInpainting(30))
-FS = ECCORestoring(arch, salinity;    grid, mask, rate=restoring_rate, inpainting=NearestNeighborInpainting(30))
+FT = ECCORestoring(arch, temperature; grid, mask, rate=restoring_rate, inpainting=NearestNeighborInpainting(50))
+FS = ECCORestoring(arch, salinity;    grid, mask, rate=restoring_rate, inpainting=NearestNeighborInpainting(50))
 forcing = (T=FT, S=FS)
 
 #####
@@ -94,9 +94,7 @@ atmosphere = JRA55_prescribed_atmosphere(arch; backend=JRA55NetCDFBackend(20))
 ##### Coupled simulation
 #####
 
-# similarity = SimilarityTheoryTurbulentFluxes(grid; gustiness_parameter = 0.5)
-coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation) #, similarity_theory = similarity)
-
+coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation) 
 simulation = Simulation(coupled_model; Δt=1minutes, stop_time=2*365days, stop_iteration=1)
 
 #####
