@@ -143,11 +143,6 @@ function ECCO_field(metadata::ECCOMetadata;
                     horizontal_halo = (7, 7),
                     cache_inpainted_data = false)
 
-    # Respect user-supplied mask, but otherwise build default ECCO mask.
-    if !isnothing(inpainting) && isnothing(mask)
-        mask = ECCO_mask(metadata, architecture)
-    end
-
     field = empty_ECCO_field(metadata; architecture, horizontal_halo)
     inpainted_path = inpainted_metadata_path(metadata)
 
@@ -203,6 +198,11 @@ function ECCO_field(metadata::ECCOMetadata;
     fill_halo_regions!(field)
 
     if !isnothing(inpainting)
+        # Respect user-supplied mask, but otherwise build default ECCO mask.
+        if isnothing(mask)
+            mask = ECCO_mask(metadata, architecture; data_field=field)
+        end
+
         # Make sure all values are extended properly
         name = string(metadata.name)
         date = string(metadata.dates)
