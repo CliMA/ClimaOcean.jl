@@ -4,7 +4,7 @@
 # ClimaOcean.jl. The simulation covers latitudes from 75°S to 75°N with a horizontal
 # resolution of 1/4 degree and 40 vertical levels.
 #
-# The simulation's results are visualized using the CairoMakie.jl package.
+# The simulation's results are visualized with the CairoMakie.jl package.
 #
 # ## Initial setup with package imports
 #
