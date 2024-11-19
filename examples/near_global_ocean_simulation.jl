@@ -58,7 +58,7 @@ bottom_height = regrid_bathymetry(grid;
                                   interpolation_passes = 5,
                                   major_basins = 3)
 
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
+grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
 # Let's see what the bathymetry looks like:
 
