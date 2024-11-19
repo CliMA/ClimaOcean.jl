@@ -25,7 +25,7 @@ function ECCO_mask(metadata, architecture = CPU();
     end
 
     # Set the mask with zeros where field is defined
-    launch!(architecture, data_field.grid, :xyz, _set_mask!, mask, field, minimum_value, maximum_value)
+    launch!(architecture, data_field.grid, :xyz, _set_mask!, mask, data_field, minimum_value, maximum_value)
 
     return mask
 end
