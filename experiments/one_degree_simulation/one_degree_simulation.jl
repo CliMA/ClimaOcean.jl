@@ -95,7 +95,7 @@ atmosphere = JRA55_prescribed_atmosphere(arch; backend=JRA55NetCDFBackend(20))
 #####
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation) 
-simulation = Simulation(coupled_model; Δt=1minutes, stop_time=2*365days, stop_iteration=1)
+simulation = Simulation(coupled_model; Δt=15minutes, stop_time=2*365days)
 
 #####
 ##### Run it!
