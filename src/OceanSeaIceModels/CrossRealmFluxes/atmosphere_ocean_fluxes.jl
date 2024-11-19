@@ -294,8 +294,8 @@ end
 
     hₐ = atmosphere_reference_height # elevation of atmos variables relative to surface
     
-    # Convert the zonal - meridional atmosphere velocities to 
-    # frame of reference of the native grid
+    # Convert the atmosphere velocities from a zonal - meridional frame of reference
+    # to frame of reference of the ocean grid
     uₐ, vₐ = intrinsic_vector(i, j, kᴺ, grid, uₐ, vₐ)
     
     Uₐ = SVector(uₐ, vₐ)
