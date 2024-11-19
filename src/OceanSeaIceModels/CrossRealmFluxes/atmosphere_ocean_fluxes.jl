@@ -293,6 +293,11 @@ end
     𝒬ₐ = thermodynamic_atmospheric_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₐ, qₐ)
 
     hₐ = atmosphere_reference_height # elevation of atmos variables relative to surface
+    
+    # Convert the zonal - meridional atmosphere velocities to 
+    # frame of reference of the native grid
+    uₐ, vₐ = intrinsic_vector(i, j, kᴺ, grid, uₐ, vₐ)
+    
     Uₐ = SVector(uₐ, vₐ)
     𝒰ₐ = dynamic_atmos_state = SurfaceFluxes.StateValues(hₐ, Uₐ, 𝒬ₐ)
 
@@ -304,11 +309,6 @@ end
                                                surface_type)
 
     # Thermodynamic and dynamic (ocean) surface state:
-    #
-    # Convert the native grid velocities to a zonal - meridional 
-    # frame of reference (assuming the frame of reference is 
-    # latitude - longitude here, we might want to change it)
-    uₒ, vₒ = extrinsic_vector(i, j, kᴺ, grid, uₒ, vₒ)
     Uₒ = SVector(uₒ, vₒ)
      
     𝒬₀ = thermodynamic_surface_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₒ, qₒ)
@@ -328,10 +328,6 @@ end
                                                         atmosphere_boundary_layer_height,
                                                         ℂₐ, g, ϰ, maxiter)
 
-    # Convert back from a zonal - meridional flux to the frame of 
-    # reference of the native ocean grid
-    ρτxⁱʲ, ρτyⁱʲ = intrinsic_vector(i, j, kᴺ, grid, turbulent_fluxes.x_momentum, turbulent_fluxes.y_momentum)
-
     # Store fluxes
     Qv = similarity_theory.fields.latent_heat
     Qc = similarity_theory.fields.sensible_heat
@@ -344,8 +340,8 @@ end
         Qv[i, j, 1]  = ifelse(inactive, 0, turbulent_fluxes.latent_heat)
         Qc[i, j, 1]  = ifelse(inactive, 0, turbulent_fluxes.sensible_heat)
         Fv[i, j, 1]  = ifelse(inactive, 0, turbulent_fluxes.water_vapor)
-        ρτx[i, j, 1] = ifelse(inactive, 0, ρτxⁱʲ)
-        ρτy[i, j, 1] = ifelse(inactive, 0, ρτyⁱʲ)
+        ρτx[i, j, 1] = ifelse(inactive, 0, turbulent_fluxes.x_momentum)
+        ρτy[i, j, 1] = ifelse(inactive, 0, turbulent_fluxes.y_momentum)
     end
 end
 
