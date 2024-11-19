@@ -162,6 +162,8 @@ function ECCO_field(metadata::ECCOMetadata;
             copyto!(parent(field), data)
             return field
         end
+
+        close(file)
     end
 
     download_dataset(metadata)
