@@ -73,7 +73,7 @@ forcing = (T=FT, S=FS)
 ##### 
 
 momentum_advection = VectorInvariant()
-tracer_advection   = WENO()
+tracer_advection   = Centered(order=2)
 
 # Should we add a side drag since this is at a coarser resolution?
 ocean = ocean_simulation(grid; momentum_advection, tracer_advection,
