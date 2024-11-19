@@ -13,14 +13,13 @@
 # These packages provide the foundational tools for setting up the simulation environment,
 # including grid setup, physical processes modeling, and data visualization.
 
-using Printf
+using ClimaOcean
 using Oceananigans
 using Oceananigans.Units
-using ClimaOcean
 using CairoMakie
-
 using CFTime
 using Dates
+using Printf
 
 # ### Grid configuration 
 #
