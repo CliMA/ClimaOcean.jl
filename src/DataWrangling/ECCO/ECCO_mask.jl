@@ -14,7 +14,7 @@ function ECCO_mask(metadata, architecture = CPU();
                    minimum_value = Float32(-1e5),
                    maximum_value = Float32(1e5))
 
-    mask  = Field{location(field)...}(data_field.grid, Bool)
+    mask  = Field{location(data_field)...}(data_field.grid, Bool)
 
     # ECCO4 has zeros in place of the missing values, while
     # ECCO2 expresses missing values with values < -1e5
