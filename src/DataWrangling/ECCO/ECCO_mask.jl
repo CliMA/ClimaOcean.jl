@@ -10,7 +10,7 @@ import ClimaOcean: stateindex
 A boolean field where `true` represents a missing value in the ECCO dataset.
 """
 function ECCO_mask(metadata, architecture = CPU(); 
-                   data_field = ECCO_field(metadata; architecture),
+                   data_field = ECCO_field(metadata; architecture, inpainting=nothing),
                    minimum_value = Float32(-1e5),
                    maximum_value = Float32(1e5))
 
