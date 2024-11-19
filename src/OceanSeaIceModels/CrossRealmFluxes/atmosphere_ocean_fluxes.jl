@@ -220,6 +220,10 @@ end
         # Usually precipitation
         Mh = interp_atmos_time_series(prescribed_freshwater_flux, X, time, atmos_args...)
 
+        # Convert the zonal - meridional atmosphere velocities to 
+        # frame of reference of the native grid
+        uₐ, vₐ = intrinsic_vector(i, j, kᴺ, grid, uₐ, vₐ)
+    
         surface_atmos_state.u[i, j, 1] = uₐ
         surface_atmos_state.v[i, j, 1] = vₐ
         surface_atmos_state.T[i, j, 1] = Tₐ
@@ -293,10 +297,6 @@ end
     𝒬ₐ = thermodynamic_atmospheric_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₐ, qₐ)
 
     hₐ = atmosphere_reference_height # elevation of atmos variables relative to surface
-    
-    # Convert the zonal - meridional atmosphere velocities to 
-    # frame of reference of the native grid
-    uₐ, vₐ = intrinsic_vector(i, j, kᴺ, grid, uₐ, vₐ)
     
     Uₐ = SVector(uₐ, vₐ)
     𝒰ₐ = dynamic_atmos_state = SurfaceFluxes.StateValues(hₐ, Uₐ, 𝒬ₐ)
