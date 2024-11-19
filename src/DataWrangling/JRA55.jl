@@ -17,6 +17,7 @@ using ClimaOcean.DataWrangling: download_progress
 
 using ClimaOcean.OceanSeaIceModels:
     PrescribedAtmosphere,
+    PrescribedAtmosphereThermodynamicsParameters,
     TwoBandDownwellingRadiation
 
 using CUDA: @allowscalar
