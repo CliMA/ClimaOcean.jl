@@ -44,7 +44,8 @@ default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
 
 # 70 substeps is a safe rule of thumb for an ocean at 1/4 - 1/10th of a degree
 # TODO: pass the cfl and a given Δt to calculate the number of substeps?
-default_free_surface(grid::TripolarGrid) = SplitExplicitFreeSurface(grid; substeps = 70)
+const TripolarOfSomeKind = Union{TripolarGrid, ImmersedBoundaryGrid{<:Any, <:Any, <:Any, <:Any, <:TripolarGrid}}
+default_free_surface(grid::TripolarOfSomeKind) = SplitExplicitFreeSurface(grid; substeps=70)
 
 function default_ocean_closure()
     mixing_length = CATKEMixingLength(Cᵇ=0.01)
@@ -107,6 +108,16 @@ function ocean_simulation(grid;
         u_immersed_bc = nothing
         v_immersed_bc = nothing
     else
+        if !(grid isa ImmersedBoundaryGrid)
+            msg = """Are you totally, 100% sure that you want to build a simulation on
+
+                   $(summary(grid))
+
+                   rather than on an ImmersedBoundaryGrid?
+                   """
+            @warn msg
+        end
+
         bottom_drag_coefficient = default_or_override(bottom_drag_coefficient)
         
         u_immersed_drag = FluxBoundaryCondition(u_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)

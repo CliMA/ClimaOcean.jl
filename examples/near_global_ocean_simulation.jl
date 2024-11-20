@@ -111,20 +111,12 @@ radiation = Radiation(arch)
 
 atmosphere = JRA55_prescribed_atmosphere(arch; backend=JRA55NetCDFBackend(41))
 
-# ### Sea ice model 
-#
-# This simulation includes a simplified representation of ice cover where the
-# air-sea fluxes are shut down whenever the sea surface temperature is below
-# the freezing point,
-
-sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
-
 # ## The coupled simulation
 
-# Next we assemble the ocean, sea ice, atmosphere, and radiation
+# Next we assemble the ocean, atmosphere, and radiation
 # into a coupled model,
 
-coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 
 # We then create a coupled simulation, starting with a time step of 10 seconds
 # and running the simulation for 10 days.
