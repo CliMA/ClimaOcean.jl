@@ -54,7 +54,7 @@ Base.summary(backend::ECCONetCDFBackend) = string("ECCONetCDFBackend(", backend.
 const ECCONetCDFFTS{N} = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:ECCONetCDFBackend{N}} where N
 
 new_backend(b::ECCONetCDFBackend{native, cache_data}, start, length) where {native, cache_data} =
-    ECCONetCDFBackend{native}(start, length, b.inpainting, b.metadata)
+    ECCONetCDFBackend{native, cache_data}(start, length, b.inpainting, b.metadata)
 
 on_native_grid(::ECCONetCDFBackend{native}) where native = native
 cache_inpainted_data(::ECCONetCDFBackend{native, cache_data}) where {native, cache_data} = cache_data
