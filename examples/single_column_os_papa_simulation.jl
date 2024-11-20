@@ -93,7 +93,9 @@ axislegend(axu, framevisible=false, nbanks=2, position=:lb)
 lines!(axT, t_days, Ta)
 lines!(axq, t_days, qa)
 
-display(fig)
+current_figure()
+
+# We continue constructing a simulation.
 
 radiation = Radiation()
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
