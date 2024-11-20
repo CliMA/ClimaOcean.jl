@@ -1,4 +1,4 @@
-# # Single column ocean simulation forced by JRA55 re-analysis
+# # Single-column ocean simulation forced by JRA55 re-analysis
 #
 # In this example, we simulate the evolution of an ocean water column 
 # forced by an atmosphere derived from the JRA55 re-analysis.
@@ -26,7 +26,7 @@ using Printf
 
 # # Construct the grid
 #
-# First, we construct a single column grid with 2 meter spacing
+# First, we construct a single-column grid with 2 meter spacing
 # located at ocean station Papa.
 
 # Ocean station papa location
@@ -42,7 +42,7 @@ grid = RectilinearGrid(size = 200,
 # # An "ocean simulation"
 #
 # Next, we use ClimaOcean's ocean_simulation constructor to build a realistic
-# ocean simulation on the single column grid,
+# ocean simulation on the single-column grid,
 
 ocean = ocean_simulation(grid; Δt=10minutes, coriolis=FPlane(latitude = φ★))
 
@@ -56,7 +56,7 @@ set!(ocean.model, T=ECCOMetadata(:temperature), S=ECCOMetadata(:salinity))
 
 # # A prescribed atmosphere based on JRA55 re-analysis
 #
-# We build a PrescribedAtmosphere at the same location as the single colunm grid
+# We build a PrescribedAtmosphere at the same location as the single-colunm grid
 # which is based on the JRA55 reanalysis.
 
 simulation_days = 31
@@ -236,7 +236,7 @@ axNz = Axis(fig[3, 4], xlabel="Buoyancy frequency (s⁻²)",          ylabel="z 
 axκz = Axis(fig[3, 5], xlabel="Eddy diffusivity (m² s⁻¹)",         ylabel="z (m)", xscale=log10)
 axez = Axis(fig[3, 6], xlabel="Turbulent kinetic energy (m² s⁻²)", ylabel="z (m)", xscale=log10)
 
-title = @sprintf("Single column simulation at %.2f, %.2f", φ★, λ★)
+title = @sprintf("Single-column simulation at %.2f, %.2f", φ★, λ★)
 Label(fig[0, 1:6], title)
 
 slider = Slider(fig[4, 1:6], range=1:Nt, startvalue=1)
@@ -320,7 +320,7 @@ Smax = maximum(interior(S))
 Smin = minimum(interior(S))
 xlims!(axSz, Smin - 0.2, Smax + 0.2)
 
-record(fig, "single_column_profiles.mp4", 1:2:Nt, framerate=24) do nn
+record(fig, "single_column_profiles.mp4", 1:Nt, framerate=24) do nn
     @info "Drawing frame $nn of $Nt..."
     n[] = nn
 end
