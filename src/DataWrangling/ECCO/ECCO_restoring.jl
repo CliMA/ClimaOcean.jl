@@ -54,7 +54,7 @@ Base.summary(backend::ECCONetCDFBackend) = string("ECCONetCDFBackend(", backend.
 const ECCONetCDFFTS{N} = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:ECCONetCDFBackend{N}} where N
 
 new_backend(b::ECCONetCDFBackend{native, cache_data}, start, length) where {native, cache_data} =
-    ECCONetCDFBackend{native}(start, length, b.inpainting, b.metadata)
+    ECCONetCDFBackend{native, cache_data}(start, length, b.inpainting, b.metadata)
 
 on_native_grid(::ECCONetCDFBackend{native}) where native = native
 cache_inpainted_data(::ECCONetCDFBackend{native, cache_data}) where {native, cache_data} = cache_data
@@ -353,12 +353,13 @@ end
 ECCORestoring(variable_name::Symbol; kw...) = ECCORestoring(CPU(), variable_name; kw...)
 ECCORestoring(metadata::ECCOMetadata; kw...) = ECCORestoring(CPU(), metadata; kw...)
 
-Base.show(io::IO, p::ECCORestoring) = 
-    print(io, "Three-dimensional restoring to ECCO data:", '\n',
+function Base.show(io::IO, p::ECCORestoring)
+    print(io, "ECCORestoring:", '\n',
               "├── restored variable: ", summary(p.variable_name), '\n',
               "├── restoring dataset: ", summary(p.field_time_series.backend.metadata), '\n',
               "├── restoring rate: ", p.rate, '\n',
               "├── mask: ", summary(p.mask), '\n',
               "└── grid: ", summary(p.grid))
+end
 
 regularize_forcing(forcing::ECCORestoring, field, field_name, model_field_names) = forcing
