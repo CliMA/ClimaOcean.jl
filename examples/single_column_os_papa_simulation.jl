@@ -312,7 +312,7 @@ xlims!(axTz, Tmin - 0.1, Tmax + 0.1)
 
 Nmax = maximum(interior(N²))
 Nmin = minimum(interior(N²))
-xlims!(axNz, Nmin / 2, Nmin * 1.1)
+xlims!(axNz, Nmin/2, Nmax * 1.1)
 
 κmax = maximum(interior(κ))
 xlims!(axκz, 1e-9, κmax * 1.1)
