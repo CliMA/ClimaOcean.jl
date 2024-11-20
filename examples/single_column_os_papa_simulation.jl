@@ -15,13 +15,10 @@
 # ```
 
 using ClimaOcean
-
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.BuoyancyModels: buoyancy_frequency
 using Oceananigans.Units: Time
-
-using CairoMakie
 using Printf
 
 # # Construct the grid
@@ -78,6 +75,10 @@ va = interior(atmosphere.velocities.v, 1, 1, 1, :)
 Ta = interior(atmosphere.tracers.T, 1, 1, 1, :)
 qa = interior(atmosphere.tracers.q, 1, 1, 1, :)
 t_days = atmosphere.times / days
+
+using CairoMakie
+
+set_theme!(Theme(linewidth=3, fontsize=24))
 
 fig = Figure(size=(800, 600))
 axu = Axis(fig[2, 1], xlabel="Days since Jan 1 1990", ylabel="Atmosphere \n velocity (m s⁻¹)")
@@ -217,8 +218,6 @@ for n = 1:Nt
     Qlwt[n] = Qlw[1, 1, 1, Time(t)]
     Pt[n]   =  Pr[1, 1, 1, Time(t)] + Ps[1, 1, 1, Time(t)]
 end
-
-set_theme!(Theme(linewidth=3))
 
 fig = Figure(size=(1800, 1800))
 
