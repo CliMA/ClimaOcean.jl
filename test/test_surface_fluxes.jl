@@ -200,7 +200,7 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
 end
 
 @testset "Fluxes regression" begin
-    for arch in archs
+    for arch in test_architectures
         @info "Testing fluxes regression..."
 
         grid = LatitudeLongitudeGrid(arch; 
