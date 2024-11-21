@@ -204,10 +204,10 @@ end
         @info "Testing fluxes regression..."
 
         grid = LatitudeLongitudeGrid(arch; 
-                                     size = (20, 20, 1), 
+                                     size = (20, 20, 20), 
                                  latitude = (-60, 60), 
                                 longitude = (0, 360),
-                                        z = (-10, 0))
+                                        z = (-5000, 0))
 
         # Speed up compilation by removing all the unnecessary stuff
         momentum_advection = nothing
@@ -241,10 +241,10 @@ end
         for time in times[2:end]
             coupled_model.clock.time = time
             update_state!(coupled_model)
-            Jᵀ = interior(ocean.model.tracers.T.boundary_conditions.top.condition, :, :, 1) ./ Ntimes
-            Jˢ = interior(ocean.model.tracers.S.boundary_conditions.top.condition, :, :, 1) ./ Ntimes
-            τˣ = interior(ocean.model.velocities.u.boundary_conditions.top.condition, :, :, 1) ./ Ntimes
-            τʸ = interior(ocean.model.velocities.v.boundary_conditions.top.condition, :, :, 1) ./ Ntimes
+            Jᵀ .+= interior(ocean.model.tracers.T.boundary_conditions.top.condition, :, :, 1) ./ Ntimes
+            Jˢ .+= interior(ocean.model.tracers.S.boundary_conditions.top.condition, :, :, 1) ./ Ntimes
+            τˣ .+= interior(ocean.model.velocities.u.boundary_conditions.top.condition, :, :, 1) ./ Ntimes
+            τʸ .+= interior(ocean.model.velocities.v.boundary_conditions.top.condition, :, :, 1) ./ Ntimes
         end
 
         Jᵀ_mean = mean(Jᵀ) 
@@ -258,15 +258,15 @@ end
         τʸ_std = std(τʸ)
 
         # Regression test
-        @test Jᵀ_mean ≈ 8.038180741140233e-8
-        @test Jˢ_mean ≈ -2.191994423726483e-9
-        @test τˣ_mean ≈ -2.1869354054671004e-7
-        @test τʸ_mean ≈ 6.670303283925459e-8
+        @test Jᵀ_mean ≈ -1.207693395030369e-5
+        @test Jˢ_mean ≈ 3.9281090899712464e-7
+        @test τˣ_mean ≈ -3.7264843238287076e-6
+        @test τʸ_mean ≈ 1.936055406194074e-6
 
-        @test Jᵀ_std ≈ 9.961293650034834e-7
-        @test Jˢ_std ≈ 4.823204714891769e-8
-        @test τˣ_std ≈ 1.654138345327227e-6
-        @test τʸ_std ≈ 1.0633748134770954e-6
+        @test Jᵀ_std ≈ 2.560813664790739e-5
+        @test Jˢ_std ≈ 1.281394541367997e-6
+        @test τˣ_std ≈ 3.886857915743739e-5
+        @test τʸ_std ≈ 2.6122894605070668e-5
     end
 end
 
