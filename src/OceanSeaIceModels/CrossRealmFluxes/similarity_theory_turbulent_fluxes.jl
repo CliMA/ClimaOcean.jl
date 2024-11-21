@@ -310,9 +310,9 @@ end
 # Iterating condition for the characteristic scales solvers
 @inline function iterating(Σ★, iteration, maxiter, solver)
     havent_started = iteration == 0
-    not_converged = norm(Σ★) > solver.tolerance
-    havent_reached_maxiter = iteration < maxiter
-    return havent_started | not_converged | havent_reached_maxiter
+    converged = norm(Σ★) < solver.tolerance
+    reached_maxiter = iteration ≥ maxiter
+    return !(converged | reached_maxiter) | havent_started
 end
 
 """
