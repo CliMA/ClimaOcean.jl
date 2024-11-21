@@ -185,7 +185,7 @@ ECCO_location = Dict(
     :salinity              => (Center, Center, Center),
     :sea_ice_thickness     => (Center, Center, Nothing),
     :sea_ice_area_fraction => (Center, Center, Nothing),
-    :ocean_qnet            => (Center, Center, Nothing),
+    :net_heat_flux         => (Center, Center, Nothing),
     :u_velocity            => (Face,   Center, Center),
     :v_velocity            => (Center, Face,   Center),
 )

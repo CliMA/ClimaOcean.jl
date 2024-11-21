@@ -365,9 +365,9 @@ end
     time = Time(clock.time)
 
     @inbounds begin
-        Tₒ = ocean_temperature[i, j, 1]
+        Tₒ = ocean_temperature[i, j, kᴺ]
         Tₒ = convert_to_kelvin(ocean_temperature_units, Tₒ)
-        Sₒ = ocean_salinity[i, j, 1]
+        Sₒ = ocean_salinity[i, j, kᴺ]
 
         Qs = downwelling_radiation.shortwave[i, j, 1]
         Qℓ = downwelling_radiation.longwave[i, j, 1]
