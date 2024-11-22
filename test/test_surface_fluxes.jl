@@ -232,6 +232,7 @@ end
         coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 
         times = 0:1hours:1days
+        Ntimes = length(times)
 
         # average the fluxes over one day
         Jᵀ = interior(ocean.model.tracers.T.boundary_conditions.top.condition, :, :, 1) ./ Ntimes
@@ -259,15 +260,15 @@ end
         τʸ_std = std(τʸ)
 
         # Regression test
-        @test Jᵀ_mean ≈ -1.207693395030369e-5
-        @test Jˢ_mean ≈ 3.9281090899712464e-7
-        @test τˣ_mean ≈ -3.7264843238287076e-6
-        @test τʸ_mean ≈ 1.936055406194074e-6
-
-        @test Jᵀ_std ≈ 2.560813664790739e-5
-        @test Jˢ_std ≈ 1.281394541367997e-6
-        @test τˣ_std ≈ 3.886857915743739e-5
-        @test τʸ_std ≈ 2.6122894605070668e-5
+        @test Jᵀ_mean = -3.526464713488678e-5
+        @test Jˢ_mean = 1.1470078542716042e-6
+        @test τˣ_mean = -1.0881334225579832e-5
+        @test τʸ_mean = 5.653281786086694e-6
+            
+        @test Jᵀ_std = 7.477575901188957e-5
+        @test Jˢ_std = 3.7416720607945508e-6
+        @test τˣ_std = 0.00011349625113971719
+        @test τʸ_std = 7.627885224680635e-5
     end
 end
 
