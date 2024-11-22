@@ -11,6 +11,7 @@ using Thermodynamics
 using CUDA
 using KernelAbstractions: @kernel, @index
 using Oceananigans.TimeSteppers: update_state!
+using Oceananigans.Units: hours, days
 
 using Statistics: mean, std
 
