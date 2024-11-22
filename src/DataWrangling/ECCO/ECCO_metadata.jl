@@ -1,5 +1,8 @@
 using CFTime
 using Dates
+using ClimaOcean.DataWrangling
+
+import Dates: year, month, day
 
 using Base: @propagate_inbounds
 
@@ -20,7 +23,7 @@ Metadata information for an ECCO dataset:
 - `dir`: The directory where the dataset is stored.
 """
 struct ECCOMetadata{D, V}
-    name  :: Symbol
+    name :: Symbol
     dates :: D
     version :: V
     dir :: String
@@ -110,6 +113,9 @@ all_ECCO_dates(::ECCO4Monthly) = DateTimeProlepticGregorian(1992, 1, 1) : Month(
 all_ECCO_dates(::ECCO2Monthly) = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(2023, 12, 1)
 all_ECCO_dates(::ECCO2Daily)   = DateTimeProlepticGregorian(1992, 1, 4) : Day(1)   : DateTimeProlepticGregorian(2023, 12, 31)
 
+# File names of metadata containing multiple dates
+metadata_filename(metadata) = [metadata_filename(metadatum) for metadatum in metadata]
+
 # File name generation specific to each Dataset version
 function metadata_filename(metadata::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4Monthly})
     shortname = short_name(metadata)
@@ -187,7 +193,7 @@ urls(::ECCOMetadata{<:Any, <:ECCO2Daily})   = "https://ecco.jpl.nasa.gov/drive/f
 urls(::ECCOMetadata{<:Any, <:ECCO4Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly/"
 
 """
-    download_dataset!(metadata::ECCOMetadata; url = urls(metadata))
+    download_dataset(metadata::ECCOMetadata; url = urls(metadata))
 
 Download the dataset specified by `ECCOMetadata`. If `ECCOMetadata.dates` is a single date, 
 the dataset is downloaded directly. If `ECCOMetadata.dates` is a vector of dates, each date
@@ -204,13 +210,14 @@ Arguments
 =========
 - `metadata::ECCOMetadata`: The metadata specifying the dataset to be downloaded.
 """
-function download_dataset!(metadata::ECCOMetadata; url = urls(metadata))
+function download_dataset(metadata::ECCOMetadata; url = urls(metadata))
     username = get(ENV, "ECCO_USERNAME", nothing)
     password = get(ENV, "ECCO_PASSWORD", nothing)
     dir = metadata.dir
 
-    for metadatum in metadata
-        filename = metadata_filename(metadatum)
+    @distribute for metadatum in metadata # Distribute the download among ranks if MPI is initialized
+
+        fileurl  = metadata_url(url, metadatum) 
         filepath = metadata_path(metadatum)
 
         if !isfile(filepath)
@@ -218,16 +225,15 @@ function download_dataset!(metadata::ECCOMetadata; url = urls(metadata))
             if isnothing(username)
                 msg = "Could not find the ECCO_PASSWORD environment variable. \
                        See ClimaOcean.jl/src/ECCO/README.md for instructions on obtaining \
-                       and setting your ECCO_USERNAME and ECCO_PASSWORD."
+                       and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
                 throw(ArgumentError(msg))
             elseif isnothing(password)
                 msg = "Could not find the ECCO_PASSWORD environment variable. \
                        See ClimaOcean.jl/src/ECCO/README.md for instructions on obtaining \
-                       and setting your ECCO_USERNAME and ECCO_PASSWORD."
+                       and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
                 throw(ArgumentError(msg))
             end
 
-            fileurl = metadata_url(url, metadatum) 
             cmd = `wget --http-user=$(username) --http-passwd=$(password) --directory-prefix=$dir $fileurl`
             run(cmd)
         end

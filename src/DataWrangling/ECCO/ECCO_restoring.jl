@@ -1,10 +1,10 @@
+using Oceananigans: location
 using Oceananigans.Grids: node, on_architecture
 using Oceananigans.Fields: interpolate!, interpolate, location, instantiated_location
 using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBackend, FlavorOfFTS, time_indices
 using Oceananigans.Utils: Time
 
 using Base
-
 using NCDatasets
 using JLD2 
 
@@ -19,20 +19,20 @@ import Oceananigans.OutputReaders: new_backend, update_field_time_series!
 @inline instantiate(T::DataType) = T()
 @inline instantiate(T) = T
 
-struct ECCONetCDFBackend{N, I, M} <: AbstractInMemoryBackend{Int}
+struct ECCONetCDFBackend{N, C, I, M} <: AbstractInMemoryBackend{Int}
     start :: Int
     length :: Int
     inpainting :: I
     metadata :: M
 
-    function ECCONetCDFBackend{N}(start::Int, length::Int, inpainting, metadata) where N
+    function ECCONetCDFBackend{N, C}(start::Int, length::Int, inpainting, metadata) where {N, C}
         M = typeof(metadata)
         I = typeof(inpainting)
-        return new{N, I, M}(start, length, inpainting, metadata)
+        return new{N, C, I, M}(start, length, inpainting, metadata)
     end
 end
 
-Adapt.adapt_structure(to, b::ECCONetCDFBackend{N}) where N = ECCONetCDFBackend{N}(b.start, b.length, nothing, nothing)
+Adapt.adapt_structure(to, b::ECCONetCDFBackend{N, C}) where {N, C} = ECCONetCDFBackend{N, C}(b.start, b.length, nothing, nothing)
 
 """
     ECCONetCDFBackend(length; on_native_grid = false, inpainting = NearestNeighborInpainting(Inf))
@@ -42,9 +42,10 @@ Each time instance is stored in an individual file.
 """
 function ECCONetCDFBackend(length, metadata;
                            on_native_grid = false, 
+                           cache_inpainted_data = false,
                            inpainting = NearestNeighborInpainting(Inf))
 
-    return ECCONetCDFBackend{on_native_grid}(1, length, inpainting, metadata)
+    return ECCONetCDFBackend{on_native_grid, cache_inpainted_data}(1, length, inpainting, metadata)
 end
 
 Base.length(backend::ECCONetCDFBackend)  = backend.length
@@ -52,21 +53,23 @@ Base.summary(backend::ECCONetCDFBackend) = string("ECCONetCDFBackend(", backend.
 
 const ECCONetCDFFTS{N} = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:ECCONetCDFBackend{N}} where N
 
-new_backend(b::ECCONetCDFBackend{native}, start, length) where native =
-    ECCONetCDFBackend{native}(start, length, b.inpainting, b.metadata)
+new_backend(b::ECCONetCDFBackend{native, cache_data}, start, length) where {native, cache_data} =
+    ECCONetCDFBackend{native, cache_data}(start, length, b.inpainting, b.metadata)
 
 on_native_grid(::ECCONetCDFBackend{native}) where native = native
+cache_inpainted_data(::ECCONetCDFBackend{native, cache_data}) where {native, cache_data} = cache_data
 
 function set!(fts::ECCONetCDFFTS) 
     backend = fts.backend
     start   = backend.start
     inpainting = backend.inpainting
+    cache_data = cache_inpainted_data(backend)
     len = backend.length
 
     for t in start:start+len-1
         # Set each element of the time-series to the associated file
         metadatum = @inbounds backend.metadata[t] 
-        set!(fts[t], metadatum; inpainting)
+        set!(fts[t], metadatum; inpainting, cache_inpainted_data=cache_data)
     end
 
     fill_halo_regions!(fts)
@@ -130,16 +133,21 @@ Keyword Arguments
 - `inpainting`: The inpainting algorithm to use for ECCO interpolation.
                 The only option is `NearestNeighborInpainting(maxiter)`, 
                 where an average of the valid surrounding values is used `maxiter` times.
+
+- `cache_inpainted_data`: If `true`, the data is cached to disk after inpainting for later retrieving. 
+                          Default: `true`.
+
 """
 function ECCO_field_time_series(metadata::ECCOMetadata;	
                                 architecture = CPU(),	
                                 time_indices_in_memory = 2,	
                                 time_indexing = Cyclical(),
                                 inpainting = NearestNeighborInpainting(prod(size(metadata))),
+                                cache_inpainted_data = true,
                                 grid = nothing)	
 
     # Make sure all the required individual files are downloaded
-    download_dataset!(metadata)
+    download_dataset(metadata)
 
     inpainting isa Int && (inpainting = NearestNeighborInpainting(inpainting))
 
@@ -151,7 +159,7 @@ function ECCO_field_time_series(metadata::ECCOMetadata;
     loc = LX, LY, LZ = location(metadata)
     boundary_conditions = FieldBoundaryConditions(grid, loc)
 
-    backend = ECCONetCDFBackend(time_indices_in_memory, metadata; on_native_grid, inpainting)
+    backend = ECCONetCDFBackend(time_indices_in_memory, metadata; on_native_grid, inpainting, cache_inpainted_data)
 
     fts = FieldTimeSeries{LX, LY, LZ}(grid, times; backend, time_indexing, boundary_conditions)
     set!(fts)	
@@ -242,7 +250,8 @@ end
                   mask = 1,
                   rate = 1,
                   grid = nothing,
-                  inpainting = NearestNeighborInpainting(prod(size(metadata))))
+                  inpainting = NearestNeighborInpainting(prod(size(metadata))),
+                  cache_inpainted_data = true)
 
 Create a forcing term that restores to values stored in an ECCO field time series.
 The restoring is applied as a forcing on the right hand side of the evolution equations calculated as
@@ -284,14 +293,15 @@ Keyword Arguments
 
 - `time_indices_in_memory:` how many time instances are loaded in memory; the remaining are loaded lazily.
 
-- `grid`: if not a `nothing`, the ECCO data is directly interpolated on the `grid`.
-
 - `inpainting`: inpainting algorithm, see [`inpaint_mask!`](@ref). Default: `NearestNeighborInpainting(Inf)`.
 
 - `grid`: If `isnothing(grid)`, ECCO data is interpolated on-the-fly to the simulation grid.
           If `!isnothing(grid)`, ECCO data is pre-interpolated to `grid`.
           Default: nothing.
 
+- `cache_inpainted_data`: If `true`, the data is cached to disk after inpainting for later retrieving. 
+                          Default: `true`.
+                          
 It is possible to also pass an `ECCOMetadata` type as the first argument without the need for the 
 `variable_name` argument and the `version` and `dates` keyword arguments.
 """
@@ -305,34 +315,51 @@ function ECCORestoring(arch::AbstractArchitecture,
     return ECCORestoring(arch, metadata; kw...)
 end
 
-function ECCORestoring(architecture::AbstractArchitecture,
+function ECCORestoring(arch::AbstractArchitecture,
                        metadata::ECCOMetadata;
                        rate,
                        mask = 1,
                        grid = nothing,
                        time_indices_in_memory = 2, # Not more than this if we want to use GPU!
                        time_indexing = Cyclical(),
-                       inpainting = NearestNeighborInpainting(Inf))
+                       inpainting = NearestNeighborInpainting(Inf),
+                       cache_inpainted_data = true)
 
-    fts = ECCO_field_time_series(metadata; grid, architecture, time_indices_in_memory, time_indexing, inpainting)
+    # Validate architecture
+    if !isnothing(grid) && architecture(grid) != arch
+        throw(ArgumentError("The architecture of ECCORestoring must match the architecture of the grid."))
+    end
+
+    fts = ECCO_field_time_series(metadata; 
+                                 grid, 
+                                 architecture = arch, 
+                                 time_indices_in_memory, 
+                                 time_indexing, 
+                                 inpainting,
+                                 cache_inpainted_data)
 
     # Grab the correct Oceananigans field to restore
     variable_name = metadata.name
     field_name = oceananigans_fieldname[variable_name]
 
-    return ECCORestoring(fts, fts.grid, mask, field_name, rate)
+    # If we pass the grid we do not need to interpolate
+    # so we can save parameter space by setting the native grid to nothing
+    native_grid = isnothing(grid) ? fts.grid : nothing 
+
+    return ECCORestoring(fts, native_grid, mask, field_name, rate)
 end
 
 # Make sure we can call ECCORestoring with architecture as the first positional argument
 ECCORestoring(variable_name::Symbol; kw...) = ECCORestoring(CPU(), variable_name; kw...)
 ECCORestoring(metadata::ECCOMetadata; kw...) = ECCORestoring(CPU(), metadata; kw...)
 
-Base.show(io::IO, p::ECCORestoring) = 
-    print(io, "Three-dimensional restoring to ECCO data:", '\n',
+function Base.show(io::IO, p::ECCORestoring)
+    print(io, "ECCORestoring:", '\n',
               "├── restored variable: ", summary(p.variable_name), '\n',
               "├── restoring dataset: ", summary(p.field_time_series.backend.metadata), '\n',
               "├── restoring rate: ", p.rate, '\n',
               "├── mask: ", summary(p.mask), '\n',
               "└── grid: ", summary(p.grid))
+end
 
 regularize_forcing(forcing::ECCORestoring, field, field_name, model_field_names) = forcing

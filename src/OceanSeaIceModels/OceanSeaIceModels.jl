@@ -1,6 +1,7 @@
 module OceanSeaIceModels
 
-export OceanSeaIceModel, SimilarityTheoryTurbulentFluxes, Radiation, LatitudeDependentAlbedo
+export OceanSeaIceModel, SimilarityTheoryTurbulentFluxes, FreezingLimitedOceanTemperature
+export Radiation, LatitudeDependentAlbedo
 
 using Oceananigans
 using SeawaterPolynomials
@@ -47,55 +48,18 @@ include("CrossRealmFluxes/CrossRealmFluxes.jl")
 
 using .CrossRealmFluxes
 
-include("minimum_temperature_sea_ice.jl")
-include("ocean_sea_ice_model.jl")
-include("time_step_ocean_sea_ice_model.jl")
-
 import .CrossRealmFluxes:
     compute_atmosphere_ocean_fluxes!,
-    compute_sea_ice_ocean_fluxes!
+    compute_sea_ice_ocean_fluxes!,
+    limit_fluxes_over_sea_ice!
+
+include("ocean_sea_ice_model.jl")
+include("freezing_limited_ocean_temperature.jl")
+include("time_step_ocean_sea_ice_model.jl")
 
 # "No atmosphere" implementation
 const NoAtmosphereModel = OceanSeaIceModel{<:Any, Nothing}
 
 compute_atmosphere_ocean_fluxes!(coupled_model::NoAtmosphereModel) = nothing
-
-#####
-##### A fairly dumb, but nevertheless effective "sea ice model"
-#####
-
-struct FreezingLimitedOceanTemperature{L}
-    liquidus :: L
-end
-
-const FreezingLimitedCoupledModel = OceanSeaIceModel{<:FreezingLimitedOceanTemperature}
-
-sea_ice_concentration(::FreezingLimitedOceanTemperature) = nothing
-
-function compute_sea_ice_ocean_fluxes!(cm::FreezingLimitedCoupledModel)
-    ocean = cm.ocean
-    liquidus = cm.sea_ice.liquidus
-    grid = ocean.model.grid
-    arch = architecture(grid)
-    Sₒ = ocean.model.tracers.S
-    Tₒ = ocean.model.tracers.T
-
-    launch!(arch, grid, :xyz,  above_freezing_ocean_temperature!, Tₒ, Sₒ, liquidus)
-
-    return nothing
-end
-
-@kernel function above_freezing_ocean_temperature!(Tₒ, Sₒ, liquidus)
-
-    i, j, k = @index(Global, NTuple)
-
-    @inbounds begin
-        Sᵢ = Sₒ[i, j, k]
-        Tᵢ = Tₒ[i, j, k]
-    end
-
-    Tₘ = melting_temperature(liquidus, Sᵢ)
-    @inbounds Tₒ[i, j, k] = ifelse(Tᵢ < Tₘ, Tₘ, Tᵢ)
-end
 
 end # module

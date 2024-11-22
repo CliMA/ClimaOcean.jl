@@ -118,13 +118,10 @@ initial_date = dates[1]
 ##### The atmosphere
 #####
 
-backend    = JRA55NetCDFBackend(4) 
+backend = JRA55NetCDFBackend(4) 
 atmosphere = JRA55_prescribed_atmosphere(arch; backend)
-radiation  = Radiation(arch)
-
-sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
-
-coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+radiation = Radiation(arch)
+coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 
 wall_time = [time_ns()]
 
