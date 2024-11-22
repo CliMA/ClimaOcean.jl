@@ -24,7 +24,7 @@ using Dates
 
 # ### Grid configuration 
 #
-# We define a global grid with a horizontal resolution of 1/4 degree and 40 vertical levels.
+# We define a global grid with a horizontal resolution of 1/4 degree and 30 vertical levels.
 # The grid is a `LatitudeLongitudeGrid` spanning latitudes from 75°S to 75°N.
 # We use an exponential vertical spacing to better resolve the upper ocean layers.
 # The total depth of the domain is set to 6000 meters.
@@ -53,16 +53,32 @@ grid = LatitudeLongitudeGrid(arch;
 # all the minor enclosed basins except the 3 largest `major_basins`, as well as regions
 # that are shallower than `minimum_depth`.
 
-bottom_height = regrid_bathymetry(grid; 
-                                  minimum_depth = 10meters,
-                                  interpolation_passes = 5,
-                                  major_basins = 3)
+bathymetry_dir = ClimaOcean.Bathymetry.download_bathymetry_cache
+bathymetry_path = joinpath(bathymetry_dir, "/*")
+rm(bathymetry_path, force=true)
 
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
+# try twice
+tries = 3
+attempt = 1
+built_bathymetry = false
 
+while (attempt < tries) || !built_bathymetry
+    try
+        bottom_height = regrid_bathymetry(grid; 
+                                          minimum_depth = 10,
+                                          interpolation_passes = 5,
+                                          major_basins = 3)
+
+        built_bathymetry = true
+    catch err
+        @warn "Building the bathymetry failed on attempt $attempt, trying again..."
+        rm(bathymetry_path, force=true)
+    end
+    attempt += 1
+end
 # Let's see what the bathymetry looks like:
 
-h = grid.immersed_boundary.bottom_height
+zb = grid.immersed_boundary.bottom_height
 
 fig, ax, hm = heatmap(h, colormap=:deep, colorrange=(-depth, 0))
 cb = Colorbar(fig[0, 1], hm, label="Bottom height (m)", vertical=false)
@@ -175,11 +191,15 @@ ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
 
 run!(simulation)
 
-# ### Running the simulation for real
+# ### Running the simulation
+#
+# Now that the simulation has spun up, we can run it for the full 60 days.
+# We increase the maximum time step size to 10 minutes and let the simulation run for 60 days.
 
-simulation.stop_time = 60days
-simulation.Δt = 10minutes
-run!(simulation)
+# simulation.stop_time = 60days
+# simulation.Δt = 10minutes
+# run!(simulation)
+# nothing #hide
 
 # ## A pretty movie
 #
