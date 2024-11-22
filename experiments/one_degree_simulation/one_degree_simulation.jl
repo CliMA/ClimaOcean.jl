@@ -46,8 +46,9 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(tampered_bottom_he
 
 gm = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1000, κ_symmetric=1000)
 catke = ClimaOcean.OceanSimulations.default_ocean_closure()
+viscous_closure = HorizontalScalarBiharmonicDiffusivity(ν = 1e11)
 
-closure = (gm, catke)
+closure = (gm, catke, viscous_closure)
 
 #####
 ##### Restoring
@@ -71,9 +72,7 @@ forcing = (T=FT, S=FS)
 ##### Ocean simulation
 ##### 
 
-momentum_advection = WENOVectorInvariant(vorticity_order=5, 
-                                         upwinding=OnlySelfUpwinding(cross_scheme=Centered()))
-
+momentum_advection = VectorInvariant()
 tracer_advection   = Centered(order=2)
 
 # Should we add a side drag since this is at a coarser resolution?
