@@ -191,7 +191,12 @@ function ECCO_field(metadata::ECCOMetadata;
     # data by 180 degrees in longitude
     if metadata.version isa ECCO4Monthly 
         Nx = size(data, 1)
-        data = circshift(data, (Nx ÷ 2, 0, 0))
+        if variable_is_three_dimensional(metadata)
+            shift = (Nx ÷ 2, 0, 0)
+        else
+            shift = (Nx ÷ 2, 0)
+        end
+        data = circshift(data, shift)
     end
 
     set!(field, data)
