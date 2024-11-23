@@ -138,6 +138,7 @@ run!(ocean)
 ocean.Δt = 3minutes
 ocean.stop_iteration = Inf
 ocean.stop_time = 100days
+model = ocean.model
 
 ocean.output_writers[:surface_fields] = JLD2OutputWriter(model, merge(model.velocities, model.tracers);
                                                          indices = (:, :, Nz),
