@@ -10,6 +10,10 @@ using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes:
 using Thermodynamics
 using CUDA
 using KernelAbstractions: @kernel, @index
+using Oceananigans.TimeSteppers: update_state!
+using Oceananigans.Units: hours, days
+
+using Statistics: mean, std
 
 import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: water_saturation_specific_humidity
 
@@ -193,6 +197,78 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
             # Test that the temperature has snapped up to freezing
             @test minimum(ocean.model.tracers.T) == 0
         end
+    end
+end
+
+@testset "Fluxes regression" begin
+    for arch in test_architectures
+        @info "Testing fluxes regression..."
+
+        grid = LatitudeLongitudeGrid(arch; 
+                                     size = (20, 20, 20), 
+                                 latitude = (-60, 60), 
+                                longitude = (0, 360),
+                                        z = (-5000, 0))
+
+        # Speed up compilation by removing all the unnecessary stuff
+        momentum_advection = nothing
+        tracer_advection   = nothing
+        tracers  = (:T, :S)
+        buoyancy = nothing
+        closure  = nothing
+        coriolis = nothing
+
+        ocean = ocean_simulation(grid; momentum_advection, tracer_advection, closure, tracers, coriolis)
+
+        T_metadata = ECCOMetadata(:temperature)
+        S_metadata = ECCOMetadata(:salinity)
+
+        set!(ocean.model; T=T_metadata, S=S_metadata)
+
+        atmosphere = JRA55_prescribed_atmosphere(1:10; grid, architecture = arch, backend = InMemory())
+        radiation  = Radiation(ocean_albedo=0.1, ocean_emissivity=1.0)
+        sea_ice    = nothing
+
+        coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+
+        times = 0:1hours:1days
+        Ntimes = length(times)
+
+        # average the fluxes over one day
+        Jᵀ = interior(ocean.model.tracers.T.boundary_conditions.top.condition, :, :, 1) ./ Ntimes
+        Jˢ = interior(ocean.model.tracers.S.boundary_conditions.top.condition, :, :, 1) ./ Ntimes
+        τˣ = interior(ocean.model.velocities.u.boundary_conditions.top.condition, :, :, 1) ./ Ntimes
+        τʸ = interior(ocean.model.velocities.v.boundary_conditions.top.condition, :, :, 1) ./ Ntimes
+
+        for time in times[2:end]
+            coupled_model.clock.time = time
+            update_state!(coupled_model)
+            Jᵀ .+= interior(ocean.model.tracers.T.boundary_conditions.top.condition, :, :, 1) ./ Ntimes
+            Jˢ .+= interior(ocean.model.tracers.S.boundary_conditions.top.condition, :, :, 1) ./ Ntimes
+            τˣ .+= interior(ocean.model.velocities.u.boundary_conditions.top.condition, :, :, 1) ./ Ntimes
+            τʸ .+= interior(ocean.model.velocities.v.boundary_conditions.top.condition, :, :, 1) ./ Ntimes
+        end
+
+        Jᵀ_mean = mean(Jᵀ) 
+        Jˢ_mean = mean(Jˢ) 
+        τˣ_mean = mean(τˣ) 
+        τʸ_mean = mean(τʸ) 
+
+        Jᵀ_std = std(Jᵀ)
+        Jˢ_std = std(Jˢ)
+        τˣ_std = std(τˣ)
+        τʸ_std = std(τʸ)
+
+        # Regression test
+        @test Jᵀ_mean ≈ -3.526464713488678e-5
+        @test Jˢ_mean ≈ 1.1470078542716042e-6
+        @test τˣ_mean ≈ -1.0881334225579832e-5
+        @test τʸ_mean ≈ 5.653281786086694e-6
+            
+        @test Jᵀ_std ≈ 7.477575901188957e-5
+        @test Jˢ_std ≈ 3.7416720607945508e-6
+        @test τˣ_std ≈ 0.00011349625113971719
+        @test τʸ_std ≈ 7.627885224680635e-5
     end
 end
 
