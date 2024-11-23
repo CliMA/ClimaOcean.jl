@@ -42,10 +42,33 @@ default_or_override(override, alternative_default=nothing) = override
 # Some defaults
 default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
 
-# 70 substeps is a safe rule of thumb for an ocean at 1/4 - 1/10th of a degree
-# TODO: pass the cfl and a given Δt to calculate the number of substeps?
+function infer_maximum_Δt(grid)
+    Δx = mean(xspacings(grid))
+    Δy = mean(yspacings(grid))
+    Δθ = rad2deg(mean([Δx, Δy])) / grid.radius
+
+    # The maximum Δt is roughly 40minutes / Δθ, giving:
+    # - 40 minutes for a 1 degree ocean
+    # - 20 minutes for a 1/4 degree ocean
+    # - 10 minutes for a 1/8 degree ocean
+    # - 5 minutes for a 1/16 degree ocean
+    # - 2.5 minutes for a 1/32 degree ocean
+
+    return 40minutes / Δθ
+end
+
+# Some defaults
+default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
+
 const TripolarOfSomeKind = Union{TripolarGrid, ImmersedBoundaryGrid{<:Any, <:Any, <:Any, <:Any, <:TripolarGrid}}
-default_free_surface(grid::TripolarOfSomeKind) = SplitExplicitFreeSurface(grid; substeps=70)
+
+function default_free_surface(grid::TripolarOfSomeKind; 
+                              fixed_Δt = infer_maximum_Δt(grid),
+                              cfl = 0.8) 
+    free_surface = SplitExplicitFreeSurface(grid; cfl, fixed_Δt)
+    @info "Using a $(free_surface)"
+    return free_surface
+end
 
 function default_ocean_closure()
     mixing_length = CATKEMixingLength(Cᵇ=0.01)
