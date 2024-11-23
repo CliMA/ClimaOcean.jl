@@ -3,6 +3,7 @@ module JRA55
 using Oceananigans
 using Oceananigans.Units
 
+using Oceananigans: location
 using Oceananigans.Architectures: arch_array
 using Oceananigans.DistributedComputations
 using Oceananigans.DistributedComputations: child_architecture
@@ -30,6 +31,7 @@ import Oceananigans.OutputReaders: new_backend, update_field_time_series!
 using Downloads: download
 
 download_jra55_cache::String = ""
+
 function __init__()
     global download_jra55_cache = @get_scratch!("JRA55")
 end
