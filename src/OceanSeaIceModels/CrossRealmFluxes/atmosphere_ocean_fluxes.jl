@@ -143,6 +143,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             ocean_state,
             coupled_model.fluxes.ocean_temperature_units,
             surface_atmosphere_state,
+            radiation_properties,
             atmosphere.reference_height, # height at which the state is known
             atmosphere.boundary_layer_height,
             atmosphere.thermodynamics_parameters)   
@@ -266,6 +267,7 @@ end
                                                                      ocean_state,
                                                                      ocean_temperature_units,
                                                                      surface_atmos_state,
+                                                                     radiation,
                                                                      atmosphere_reference_height,
                                                                      atmosphere_boundary_layer_height,
                                                                      atmos_thermodynamics_parameters)
@@ -279,6 +281,8 @@ end
         Tₐ = surface_atmos_state.T[i, j, 1]
         pₐ = surface_atmos_state.p[i, j, 1]
         qₐ = surface_atmos_state.q[i, j, 1]
+        Rs = surface_atmos_state.Qs[i, j, 1]
+        Rℓ = surface_atmos_state.Qℓ[i, j, 1]
 
         # Extract state variables at cell centers
         # Ocean state
@@ -322,11 +326,17 @@ end
     inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
     maxiter  = ifelse(inactive, 1, similarity_theory.maxiter)
 
-    turbulent_fluxes = compute_similarity_theory_fluxes(similarity_theory,
-                                                        dynamic_ocean_state,
-                                                        dynamic_atmos_state,
-                                                        atmosphere_boundary_layer_height,
-                                                        ℂₐ, g, ϰ, maxiter)
+    prescribed_heat_fluxes = net_downwelling_radiation(i, j, grid, time, radiation, Rs, Rℓ) 
+    stefan_boltzmann_constant = radiation.stefan_boltzmann_constant
+    ocean_emissivity = stateindex(radiation.emission.ocean, i, j, 1, grid, time)
+
+    turbulent_fluxes, surface_temperature = compute_similarity_theory_fluxes(similarity_theory,
+                                                                             dynamic_ocean_state,
+                                                                             dynamic_atmos_state,
+                                                                             prescribed_heat_fluxes,
+                                                                             (; stefan_boltzmann_constant, ocean_emissivity),
+                                                                             atmosphere_boundary_layer_height,
+                                                                             ℂₐ, g, ϰ, maxiter)
 
     # Store fluxes
     Qv = similarity_theory.fields.latent_heat
@@ -334,6 +344,7 @@ end
     Fv = similarity_theory.fields.water_vapor
     ρτx = similarity_theory.fields.x_momentum
     ρτy = similarity_theory.fields.y_momentum
+    Ts  = similarity_theory.fields.surface_temperature
 
     @inbounds begin
         # +0: cooling, -0: heating
@@ -342,6 +353,7 @@ end
         Fv[i, j, 1]  = ifelse(inactive, 0, turbulent_fluxes.water_vapor)
         ρτx[i, j, 1] = ifelse(inactive, 0, turbulent_fluxes.x_momentum)
         ρτy[i, j, 1] = ifelse(inactive, 0, turbulent_fluxes.y_momentum)
+        Ts[i, j, 1]  = surface_temperature
     end
 end
 

@@ -10,7 +10,7 @@ using CUDA: @allowscalar, device!
 
 using Oceananigans.Grids: znode
 
-arch = GPU()
+arch = CPU()
 
 #####
 ##### Grid and Bathymetry
@@ -18,7 +18,7 @@ arch = GPU()
 
 Nx = 360
 Ny = 180
-Nz = 100
+Nz = 50
 
 z_faces = exponential_z_faces(; Nz, depth=5000, h=34)
 
@@ -48,7 +48,7 @@ gm = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1
 catke = ClimaOcean.OceanSimulations.default_ocean_closure()
 viscous_closure = HorizontalScalarBiharmonicDiffusivity(ν = 1e11)
 
-closure = (gm, catke, viscous_closure)
+closure = (catke, viscous_closure)
 
 #####
 ##### Restoring
