@@ -47,7 +47,7 @@ coupled_model_diagnostic = OceanSeaIceModel(ocean2; atmosphere, radiation, simil
 for (coupled_model, suffix) in zip([coupled_model_diagnostic, coupled_model_prescribed],
                                    ["diagnostic", "prescribed"])
 
-    simulation = Simulation(coupled_model, Δt=ocean.Δt, stop_time=10days)
+    simulation = Simulation(coupled_model, Δt=ocean1.Δt, stop_time=10days)
 
     wall_clock = Ref(time_ns())
 
@@ -100,37 +100,37 @@ for (coupled_model, suffix) in zip([coupled_model_diagnostic, coupled_model_pres
     Q = ρₒ * cₚ * JT
     ρτx = ρₒ * τx
     ρτy = ρₒ * τy
-    N² = buoyancy_frequency(ocean.model)
-    κc = ocean.model.diffusivity_fields.κc
+    N² = buoyancy_frequency(coupled_model.ocean.model)
+    κc = coupled_model.ocean.model.diffusivity_fields.κc
 
     fluxes = (; ρτx, ρτy, E, Js, Qv, Qc, Ts)
     auxiliary_fields = (; N², κc)
-    fields = merge(ocean.model.velocities, ocean.model.tracers, auxiliary_fields)
+    fields = merge(coupled_model.ocean.model.velocities, coupled_model.ocean.model.tracers, auxiliary_fields)
 
     # Slice fields at the surface
     outputs = merge(fields, fluxes)
 
     filename = "single_column_omip_$(location_name)_$(suffix)"
 
-    simulation.output_writers[:jld2] = JLD2OutputWriter(ocean.model, outputs; filename,
+    simulation.output_writers[:jld2] = JLD2OutputWriter(coupled_model.ocean.model, outputs; filename,
                                                         schedule = TimeInterval(3hours),
                                                         overwrite_existing = true)
 
     run!(simulation)
 end
 
-
 #####
 ##### Visualization
 #####
 
-filename_prescribed = "single_column_omip_$(location_name)_prescribed"
-filename_diagnostic = "single_column_omip_$(location_name)_diagnostic"
+filename_prescribed = "single_column_omip_$(location_name)_prescribed.jld2"
+filename_diagnostic = "single_column_omip_$(location_name)_diagnostic.jld2"
 
 # Diagnosed
 ud  = FieldTimeSeries(filename_diagnostic, "u")
 vd  = FieldTimeSeries(filename_diagnostic, "v")
-ed  = FieldTimeSeries(filename_diagnostic, "e")
+Td  = FieldTimeSeries(filename_diagnostic, "v")
+ed  = FieldTimeSeries(filename_diagnostic, "T")
 Nd² = FieldTimeSeries(filename_diagnostic, "N²")
 κd  = FieldTimeSeries(filename_diagnostic, "κc")
 
@@ -145,6 +145,7 @@ Evd  = FieldTimeSeries(filename_diagnostic, "E")
 # Prescribed
 up  = FieldTimeSeries(filename_diagnostic, "u")
 vp  = FieldTimeSeries(filename_diagnostic, "v")
+Tp  = FieldTimeSeries(filename_diagnostic, "T")
 ep  = FieldTimeSeries(filename_diagnostic, "e")
 Np² = FieldTimeSeries(filename_diagnostic, "N²")
 κp  = FieldTimeSeries(filename_diagnostic, "κc")
@@ -157,8 +158,8 @@ Evp  = FieldTimeSeries(filename_diagnostic, "E")
 ρτxp = FieldTimeSeries(filename_diagnostic, "ρτx")
 ρτyp = FieldTimeSeries(filename_diagnostic, "ρτy")
 
-Nz = size(T, 3)
-times = Qc.times
+Nz = size(ud, 3)
+times = Qcd.times
 
 fig = Figure(size=(1800, 1800))
 
@@ -292,10 +293,10 @@ Smax = maximum(interior(Sp))
 Smin = minimum(interior(Sp))
 xlims!(axSz, Smin - 0.2, Smax + 0.2)
 
-record(fig, "single_column_profiles.mp4", 1:Nt, framerate=24) do nn
-    @info "Drawing frame $nn of $Nt..."
-    n[] = nn
-end
-nothing #hide
+# record(fig, "single_column_profiles.mp4", 1:Nt, framerate=24) do nn
+#     @info "Drawing frame $nn of $Nt..."
+#     n[] = nn
+# end
+# nothing #hide
 
 # ![](single_column_profiles.mp4)
