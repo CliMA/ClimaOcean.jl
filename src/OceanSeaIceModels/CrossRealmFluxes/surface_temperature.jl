@@ -1,3 +1,4 @@
+using CUDA: @allowscalar
 import Thermodynamics as AtmosphericThermodynamics  
 
 struct PrescribedSurfaceTemperature end
@@ -8,7 +9,7 @@ struct DiagnosticSurfaceTemperature{I}
     internal_flux :: I
 end
 
-struct DiffusiveFlux{Δz, K}
+struct DiffusiveFlux{Z, K}
     Δz :: Z
     κ  :: K # diffusivity in W m⁻² K⁻¹
 end
