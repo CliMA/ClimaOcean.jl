@@ -2,12 +2,20 @@ using CUDA: @allowscalar
 import Thermodynamics as AtmosphericThermodynamics  
 
 ####
-#### Prescribed surface temperature
+#### Utilities
+####
+
+@inline upwelling_radiation(θ₀, ::Nothing) = zero(θ₀)
+@inline upwelling_radiation(θ₀, r) = r.σ * r.ϵ * θ₀^4
+
+# For any surface temperture type that does not depend on the grid
+regularize_surface_temperature(surface_temperature_type, grid) = surface_temperature_type
+
+####
+#### Prescribed surface temperature (the easiest case)
 ####
 
 struct PrescribedSurfaceTemperature end
-
-regularize_surface_temperature(::PrescribedSurfaceTemperature, grid) = PrescribedSurfaceTemperature()
 
 # Do nothing (just copy the temperature)
 @inline retrieve_temperature(::PrescribedSurfaceTemperature, θ₀, args...) = θ₀
@@ -21,8 +29,8 @@ struct DiagnosticSurfaceTemperature{I}
 end
 
 struct DiffusiveFlux{Z, K}
-    Δz :: Z
-    κ  :: K # diffusivity in m²s⁻¹
+    δ :: Z # Boundary layer thickness, as a first guess we will use half the grid spacing
+    κ :: K # diffusivity in m²s⁻¹
 end
 
 # A default constructor for DiagnosticSurfaceTemperature
@@ -45,18 +53,18 @@ regularize_surface_temperature(T::DiagnosticSurfaceTemperature{<:DiffusiveFlux},
 # 
 #   Θo - Θₛ
 # κ ------- = Qn (all fluxes positive upwards)
-#     Δz
+#     δ
 #
 # Where the LHS is the internal diffusive flux inside the ocean and the RHS are the 
 # atmospheric and radiative fluxes (provided explicitly and iterated upon).
-@inline flux_balance_temperature(F::DiffusiveFlux, θo, Qn) = θo - Qn / F.κ * F.Δz
+@inline flux_balance_temperature(F::DiffusiveFlux, θo, Qn) = θo - Qn / F.κ * F.δ
 
 # Change 𝒬₀ as a function of incoming and outgoing fluxes. The flaw here is that
 # the ocean emissivity and albedo are fixed, but they might be a function of the 
 # surface temperature, so we might need to pass actually the radiation and the 
 # albedo and emissivity as arguments.
 @inline function retrieve_temperature(st::DiagnosticSurfaceTemperature, θ₀, ℂ, 𝒬₀, 
-                                      ρₐ, cₚ, ℰv, Σ★, ρₒ, cpₒ,
+                                      ρₐ, cₚ, ℰv, Σ★, ρₒ, cpₒ, g, 
                                       prescribed_heat_fluxes, 
                                       radiation_properties)
 
@@ -81,6 +89,3 @@ regularize_surface_temperature(T::DiagnosticSurfaceTemperature{<:DiffusiveFlux},
 
     return flux_balance_temperature(st.internal_flux, θo, Qn)
 end
-
-@inline upwelling_radiation(θ₀, ::Nothing) = zero(θ₀)
-@inline upwelling_radiation(θ₀, r) = r.σ * r.ϵ * θ₀^4
