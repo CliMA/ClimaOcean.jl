@@ -26,8 +26,8 @@ struct DiffusiveFlux{Z, K}
 end
 
 # A default constructor for DiagnosticSurfaceTemperature
-function DiagnosticSurfaceTemperature() 
-    internal_flux = DiffusiveFlux()
+function DiagnosticSurfaceTemperature(; κ = 0.1) 
+    internal_flux = DiffusiveFlux(; κ)
     return DiagnosticSurfaceTemperature(internal_flux)
 end
 
