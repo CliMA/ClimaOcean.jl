@@ -20,11 +20,11 @@ grid = RectilinearGrid(size = 200,
                        topology = (Flat, Flat, Bounded))
 
 ocean1 = ocean_simulation(grid; Δt=10minutes, coriolis=FPlane(latitude = φ★))
-# ocean2 = ocean_simulation(grid; Δt=10minutes, coriolis=FPlane(latitude = φ★))
+ocean2 = ocean_simulation(grid; Δt=10minutes, coriolis=FPlane(latitude = φ★))
 
 # We set initial conditions from ECCO:
-# set!(ocean1.model.tracers.T, ECCOMetadata(:temperature))
-# set!(ocean1.model.tracers.S, ECCOMetadata(:salinity))
+set!(ocean1.model.tracers.T, ECCOMetadata(:temperature))
+set!(ocean1.model.tracers.S, ECCOMetadata(:salinity))
 set!(ocean2.model.tracers.T, ECCOMetadata(:temperature)) 
 set!(ocean2.model.tracers.S, ECCOMetadata(:salinity)) 
 
@@ -44,10 +44,10 @@ coupled_model_prescribed = OceanSeaIceModel(ocean1; atmosphere, radiation)
 similarity_theory = SimilarityTheoryTurbulentFluxes(grid; surface_temperature_type = DiagnosticSurfaceTemperature())
 coupled_model_diagnostic = OceanSeaIceModel(ocean2; atmosphere, radiation, similarity_theory)
 
-for (coupled_model, suffix) in zip([coupled_model_prescribed, coupled_model_diagnostic],
+for (coupled_model, suffix) in zip([coupled_model_diagnostic, coupled_model_prescribed],
                                    ["diagnostic", "prescribed"])
 
-    simulation = Simulation(coupled_model, Δt=ocean.Δt, stop_time=30days)
+    simulation = Simulation(coupled_model, Δt=ocean.Δt, stop_time=10days)
 
     wall_clock = Ref(time_ns())
 
@@ -71,12 +71,12 @@ for (coupled_model, suffix) in zip([coupled_model_prescribed, coupled_model_diag
         Q = first(sim.model.fluxes.total.ocean.heat)
 
         u★ = sqrt(sqrt(τx^2 + τy^2))
+        Ts = first(interior(sim.model.fluxes.turbulent.fields.T_surface, 1, 1, 1))
 
         Nz = size(T, 3)
         msg *= @sprintf(", u★: %.2f m s⁻¹", u★)
         msg *= @sprintf(", Q: %.2f W m⁻²",  Q)
-        msg *= @sprintf(", T₀: %.2f ᵒC", first(interior(T, 1, 1, Nz)))
-        msg *= @sprintf(", extrema(T): (%.2f, %.2f) ᵒC", minimum(T), maximum(T))
+        msg *= @sprintf(", T₀: %.2f ᵒC", Ts)
         msg *= @sprintf(", S₀: %.2f g/kg", first(interior(S, 1, 1, Nz)))
         msg *= @sprintf(", e₀: %.2e m² s⁻²", first(interior(e, 1, 1, Nz)))
 
