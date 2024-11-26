@@ -1,9 +1,20 @@
 using CUDA: @allowscalar
 import Thermodynamics as AtmosphericThermodynamics  
 
+####
+#### Prescribed surface temperature
+####
+
 struct PrescribedSurfaceTemperature end
 
 regularize_surface_temperature(::PrescribedSurfaceTemperature, grid) = PrescribedSurfaceTemperature()
+
+# Do nothing (just copy the temperature)
+@inline retrieve_temperature(::PrescribedSurfaceTemperature, θ₀, args...) = θ₀
+
+####
+#### Diagnostic surface temperature calculated as a flux balance
+####
 
 struct DiagnosticSurfaceTemperature{I}
     internal_flux :: I
@@ -24,9 +35,6 @@ regularize_surface_temperature(T::DiagnosticSurfaceTemperature{<:DiffusiveFlux},
 
 @inline flux_balance_temperature(F::DiffusiveFlux, θo, Qn) = θo + Qn / F.κ * F.Δz
 
-# Do nothing (just copy the temperature)
-@inline retrieve_temperature(::PrescribedSurfaceTemperature, θ₀, args...) = θ₀
-
 # Change 𝒬₀ as a function of incoming and outgoing fluxes. The flaw here is that
 # the ocean emissivity and albedo are fixed, but they might be a function of the 
 # surface temperature, so we might need to pass actually the radiation and the 
@@ -37,10 +45,7 @@ regularize_surface_temperature(T::DiagnosticSurfaceTemperature{<:DiffusiveFlux},
                                       radiation_properties)
 
     Rd = prescribed_heat_fluxes # net downwelling radiation 
-    ϵ  = radiation_properties.ocean_emissivity
-    σ  = radiation_properties.stefan_boltzmann_constant
-
-    Ru = ϵ * σ * θ₀^4 # upwelling radiation (calculated explicitly)
+    Ru = upwelling_radiation(θ₀, radiation_properties) # upwelling radiation (calculated explicitly)
     Rn = Ru - Rd # net radiation
 
     u★ = Σ★.momentum
@@ -57,3 +62,6 @@ regularize_surface_temperature(T::DiagnosticSurfaceTemperature{<:DiffusiveFlux},
     # surface temperature calculated as a balance of fluxes
     return flux_balance_temperature(st.internal_flux, θo, Qn)
 end
+
+@inline upwelling_radiation(θ₀, ::Nothing) = zero(θ₀)
+@inline upwelling_radiation(θ₀, r) = r.σ * r.ϵ * θ₀^4

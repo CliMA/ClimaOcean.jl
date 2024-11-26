@@ -16,6 +16,7 @@ using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities:
     CATKEEquation
 
 using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
+using Statistics: mean
 
 using Oceananigans.BuoyancyModels: g_Earth
 using Oceananigans.Coriolis: Ω_Earth

@@ -327,14 +327,13 @@ end
     maxiter  = ifelse(inactive, 1, similarity_theory.maxiter)
 
     prescribed_heat_fluxes = net_downwelling_radiation(i, j, grid, time, radiation, Rs, Rℓ) 
-    stefan_boltzmann_constant = radiation.stefan_boltzmann_constant
-    ocean_emissivity = stateindex(radiation.emission.ocean, i, j, 1, grid, time)
+    radiative_properties = local_radiation_properties(i, j, 1, grid, radiation, time)
 
     turbulent_fluxes, surface_temperature = compute_similarity_theory_fluxes(similarity_theory,
                                                                              dynamic_ocean_state,
                                                                              dynamic_atmos_state,
                                                                              prescribed_heat_fluxes,
-                                                                             (; stefan_boltzmann_constant, ocean_emissivity),
+                                                                             radiative_properties,
                                                                              atmosphere_boundary_layer_height,
                                                                              ℂₐ, g, ϰ, maxiter)
 
@@ -344,7 +343,7 @@ end
     Fv = similarity_theory.fields.water_vapor
     ρτx = similarity_theory.fields.x_momentum
     ρτy = similarity_theory.fields.y_momentum
-    Ts  = similarity_theory.fields.surface_temperature
+    Ts  = similarity_theory.fields.T_surface
 
     @inbounds begin
         # +0: cooling, -0: heating

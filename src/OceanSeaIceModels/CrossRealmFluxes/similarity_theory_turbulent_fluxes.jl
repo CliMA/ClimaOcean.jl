@@ -29,7 +29,7 @@ import SurfaceFluxes.Parameters:
 ##### Bulk turbulent fluxes based on similarity theory
 #####
 
-struct SimilarityTheoryTurbulentFluxes{FT, UF, TP, S, W, R, B, V, F}
+struct SimilarityTheoryTurbulentFluxes{FT, UF, TP, S, W, R, B, T, V, F}
     gravitational_acceleration :: FT # parameter
     von_karman_constant :: FT        # parameter
     turbulent_prandtl_number :: FT   # parameter
@@ -40,7 +40,7 @@ struct SimilarityTheoryTurbulentFluxes{FT, UF, TP, S, W, R, B, V, F}
     water_mole_fraction :: W         # mole fraction of H₂O in seawater
     roughness_lengths :: R           # parameterization for turbulent fluxes
     similarity_profile_type :: B     # similarity profile relating atmosphere to surface state
-    surface_temperature :: T         # surface temperature either diagnostic or prescribed
+    surface_temperature_type :: T    # surface temperature either diagnostic or prescribed
     bulk_velocity :: V               # bulk velocity scale for turbulent fluxes
     tolerance :: FT                  # solver option
     maxiter :: Int                   # solver option
@@ -66,7 +66,7 @@ Adapt.adapt_structure(to, fluxes::STTF) = SimilarityTheoryTurbulentFluxes(adapt(
                                                                           adapt(to, fluxes.water_mole_fraction),
                                                                           adapt(to, fluxes.roughness_lengths),
                                                                           adapt(to, fluxes.similarity_profile_type),
-                                                                          adapt(to, fluxes.surface_temperature),
+                                                                          adapt(to, fluxes.surface_temperature_type),
                                                                           adapt(to, fluxes.bulk_velocity),
                                                                           fluxes.tolerance,
                                                                           fluxes.maxiter,
@@ -94,7 +94,7 @@ function Base.show(io::IO, fluxes::SimilarityTheoryTurbulentFluxes)
           "├── water_vapor_saturation: ",     summary(fluxes.water_vapor_saturation), '\n',
           "├── roughness_lengths: ",          summary(fluxes.roughness_lengths), '\n',
           "├── similarity_profile_type: ",    summary(fluxes.similarity_profile_type), '\n',
-          "├── surface_temperature: ",        summary(fluxes.surface_temperature), '\n',
+          "├── surface_temperature: ",        summary(fluxes.surface_temperature_type), '\n',
           "└── thermodynamics_parameters: ",  summary(fluxes.thermodynamics_parameters))
 end
 
@@ -118,7 +118,7 @@ struct RelativeVelocity end
                                     water_mole_fraction = convert(FT, 0.98),
                                     roughness_lengths = default_roughness_lengths(FT),
                                     similarity_profile_type = LogarithmicSimilarityProfile(),
-                                    surface_temperature = PrescribedSurfaceTemperature(),
+                                    surface_temperature_type = PrescribedSurfaceTemperature(),
                                     bulk_velocity = RelativeVelocity(),
                                     tolerance = 1e-8,
                                     maxiter = 100,
@@ -163,7 +163,7 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                          water_mole_fraction = convert(FT, 0.98),
                                          roughness_lengths = default_roughness_lengths(FT),
                                          similarity_profile_type = LogarithmicSimilarityProfile(),
-                                         surface_temperature = PrescribedSurfaceTemperature(),
+                                         surface_temperature_type = PrescribedSurfaceTemperature(),
                                          bulk_velocity = RelativeVelocity(),
                                          tolerance = 1e-8,
                                          maxiter = 100,
@@ -179,14 +179,14 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                            water_mole_fraction,
                                            roughness_lengths,
                                            similarity_profile_type,
-                                           surface_temperature,
+                                           surface_temperature_type,
                                            bulk_velocity,
                                            convert(FT, tolerance), 
                                            maxiter,
                                            fields)
 end
 
-function SimilarityTheoryTurbulentFluxes(grid::AbstractGrid; surface_temperature = PrescribedSurfaceTemperature(), kw...)
+function SimilarityTheoryTurbulentFluxes(grid::AbstractGrid; surface_temperature_type = PrescribedSurfaceTemperature(), kw...)
     water_vapor   = Field{Center, Center, Nothing}(grid)
     latent_heat   = Field{Center, Center, Nothing}(grid)
     sensible_heat = Field{Center, Center, Nothing}(grid)
@@ -196,9 +196,9 @@ function SimilarityTheoryTurbulentFluxes(grid::AbstractGrid; surface_temperature
 
     fields = (; latent_heat, sensible_heat, water_vapor, x_momentum, y_momentum, T_surface)
 
-    surface_temperature = regularize_surface_temperature(surface_temperature, grid)
+    surface_temperature_type = regularize_surface_temperature(surface_temperature_type, grid)
 
-    return SimilarityTheoryTurbulentFluxes(eltype(grid); kw..., fields)
+    return SimilarityTheoryTurbulentFluxes(eltype(grid); surface_temperature_type, kw..., fields)
 end
 
 #####
@@ -242,7 +242,7 @@ struct COARELogarithmicSimilarityProfile end
                                                   atmos_state,
                                                   atmos_boundary_layer_height,
                                                   prescribed_heat_fluxes, # Possibly use in state_differences
-                                                  radiation,
+                                                  radiative_properties,
                                                   thermodynamics_parameters,
                                                   gravitational_acceleration,
                                                   von_karman_constant,
@@ -250,22 +250,21 @@ struct COARELogarithmicSimilarityProfile end
 
     # Prescribed difference between two states
     ℂₐ = thermodynamics_parameters
-
+    FT = eltype(ℂₐ)
 
     # Initial guess for the characteristic scales u★, θ★, q★.
     # Does not really matter if we are sophisticated or not, it converges 
     # in about 10 iterations no matter what...
-    u★ = convert(eltype(Δh), 1e-4)
+    u★ = convert(FT, 1e-4)
     Σ★ = SimilarityScales(u★, u★, u★) 
-    Δu, Δv = velocity_differences(atmos_state, surface_state, bulk_velocity)
+    Δu, Δv = velocity_differences(atmos_state, surface_state, similarity_theory.bulk_velocity)
 
     # The inital velocity scale assumes that the gustiness velocity `Uᴳ` is equal to 0.5 ms⁻¹. 
-    # The initial surface temperature is the same as the ocean temperature (in Δθ).
+    # The initial surface temperature is the same as the ocean temperature.
     # These will be refined later on.
-    θs = AtmosphericThermodynamics.air_temperature(ℂₐ, surface_state.ts.temperature)
-    FT = eltype(Δh)
+    θs   = AtmosphericThermodynamics.air_temperature(ℂₐ, surface_state.ts)
     Uᴳᵢ² = convert(FT, 0.5^2)
-    ΔU = sqrt(Δu^2 + Δv^2 + Uᴳᵢ²)
+    ΔU   = sqrt(Δu^2 + Δv^2 + Uᴳᵢ²)
 
     # Initialize the solver
     iteration = 0
@@ -283,7 +282,7 @@ struct COARELogarithmicSimilarityProfile end
                                                  atmos_boundary_layer_height,
                                                  thermodynamics_parameters,
                                                  prescribed_heat_fluxes,
-                                                 radiation,
+                                                 radiative_properties,
                                                  gravitational_acceleration,
                                                  von_karman_constant)
         iteration += 1
@@ -370,7 +369,7 @@ end
 @inline velocity_differences(𝒰₁, 𝒰₀, ::RelativeVelocity) = @inbounds 𝒰₁.u[1] - 𝒰₀.u[1], 𝒰₁.u[2] - 𝒰₀.u[2]
 @inline velocity_differences(𝒰₁, 𝒰₀, ::WindVelocity)     = @inbounds 𝒰₁.u[1], 𝒰₁.u[2] 
 
-@inline function state_differences(ℂ, 𝒰₁, 𝒰₀, θ₀, Σ★, g, surface_temperature, 
+@inline function state_differences(ℂ, 𝒰₁, 𝒰₀, θ₀, Σ★, g, surface_temperature_type, 
                                    prescribed_heat_fluxes,
                                    radiation,
                                    bulk_velocity)
@@ -383,11 +382,11 @@ end
     𝒬₁ = 𝒰₁.ts
     𝒬₀ = 𝒰₀.ts
 
-    ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
-    cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
-    ℰv = AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
+    ρₐ = AtmosphericThermodynamics.air_density(ℂ, 𝒬₁)
+    cₚ = AtmosphericThermodynamics.cp_m(ℂ, 𝒬₁) # moist heat capacity
+    ℰv = AtmosphericThermodynamics.latent_heat_vapor(ℂ, 𝒬₁)
 
-    θ₀ = retrieve_temperature(surface_temperature, θ₀, ℂ, 𝒬₀, 𝒬₁, ρₐ, cₚ, ℰv, Σ★,
+    θ₀ = retrieve_temperature(surface_temperature_type, θ₀, ℂ, 𝒬₀, 𝒬₁, ρₐ, cₚ, ℰv, Σ★,
                               prescribed_heat_fluxes, 
                               radiation)
 
@@ -422,7 +421,7 @@ end
                                                surface_temperature,
                                                estimated_characteristic_scales,
                                                gravitational_acceleration,
-                                               similarity_theory.surface_temperature,
+                                               similarity_theory.surface_temperature_type,
                                                prescribed_heat_fluxes,
                                                radiation,
                                                similarity_theory.bulk_velocity)
@@ -444,7 +443,6 @@ end
     ℓq = similarity_theory.roughness_lengths.water_vapor
     β  = similarity_theory.gustiness_parameter
 
-    h  = differences.h
     ℂ  = thermodynamics_parameters
     g  = gravitational_acceleration
     𝒬ₒ = surface_state.ts # thermodynamic state
@@ -463,14 +461,9 @@ end
 
     # Transfer coefficients at height `h`
     profile_type = similarity_theory.similarity_profile_type
-    χu = ϰ / similarity_profile(profile_type, ψu, h, ℓu₀, L★)
-    χθ = ϰ / similarity_profile(profile_type, ψθ, h, ℓθ₀, L★)
-    χq = ϰ / similarity_profile(profile_type, ψq, h, ℓq₀, L★)
-
-    Δu = differences.u
-    Δv = differences.v
-    Δθ = differences.θ
-    Δq = differences.q
+    χu = ϰ / similarity_profile(profile_type, ψu, Δh, ℓu₀, L★)
+    χθ = ϰ / similarity_profile(profile_type, ψθ, Δh, ℓθ₀, L★)
+    χq = ϰ / similarity_profile(profile_type, ψq, Δh, ℓq₀, L★)
 
     # u★ including gustiness
     u★ = χu * uτ
