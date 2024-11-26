@@ -57,14 +57,11 @@ function infer_maximum_Δt(grid)
     return 40minutes / Δθ
 end
 
-# Some defaults
-default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
-
 const TripolarOfSomeKind = Union{TripolarGrid, ImmersedBoundaryGrid{<:Any, <:Any, <:Any, <:Any, <:TripolarGrid}}
 
 function default_free_surface(grid::TripolarOfSomeKind; 
                               fixed_Δt = infer_maximum_Δt(grid),
-                              cfl = 0.8) 
+                              cfl = 0.7) 
     free_surface = SplitExplicitFreeSurface(grid; cfl, fixed_Δt)
     @info "Using a $(free_surface)"
     return free_surface
@@ -98,7 +95,7 @@ default_tracer_advection() = FluxFormAdvection(WENO(order=7),
 # TODO: Specify the grid to a grid on the sphere; otherwise we can provide a different
 # function that requires latitude and longitude etc for computing coriolis=FPlane...
 function ocean_simulation(grid;
-                          Δt = 5minutes,
+                          Δt = infer_maximum_Δt(grid),
                           closure = default_ocean_closure(),
                           tracers = (:T, :S),
                           free_surface = default_free_surface(grid),
