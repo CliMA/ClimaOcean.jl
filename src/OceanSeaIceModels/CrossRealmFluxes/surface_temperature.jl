@@ -25,6 +25,14 @@ struct DiffusiveFlux{Z, K}
     κ  :: K # diffusivity in W m⁻² K⁻¹
 end
 
+# A default constructor for DiagnosticSurfaceTemperature
+function DiagnosticSurfaceTemperature() 
+    internal_flux = DiffusiveFlux()
+    return DiagnosticSurfaceTemperature(internal_flux)
+end
+
+DiffusiveFlux(; κ = 0.2) = DiffusiveFlux(nothing, κ)
+
 function DiffusiveFlux(grid; κ = 0.2) 
     Δz = @allowscalar Δzᶜᶜᶜ(1, 1, grid.Nz, grid)
     return DiffusiveFlux(Δz, κ)
