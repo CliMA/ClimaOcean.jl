@@ -49,20 +49,26 @@ end
 regularize_surface_temperature(T::DiagnosticSurfaceTemperature{<:DiffusiveFlux}, grid) =
     DiagnosticSurfaceTemperature(DiffusiveFlux(grid; κ = T.internal_flux.κ))
 
-# The balance solved is
+# The flux balance could be solved either
 # 
-#   Θo - Θₛ
-# κ ------- = Qn (all fluxes positive upwards)
-#     δ
+#   Θₒ - Θₛⁿ⁺¹
+# κ ---------- = Qn (all fluxes positive upwards)
+#       δ
 #
-# Where the LHS is the internal diffusive flux inside the ocean and the RHS are the 
-# atmospheric and radiative fluxes (provided explicitly and iterated upon).
-@inline flux_balance_temperature(F::DiffusiveFlux, θo, Qn) = θo - Qn / F.κ * F.δ
+# Where the LHS is the internal diffusive flux inside the ocean (within the boundary layer of thickness δ) 
+# and the RHS are the atmospheric and radiative fluxes are provided explicitly, or
+# 
+#   Θₒ - Θₛⁿ⁺¹
+# κ ---------- - σϵ θₛⁿ⁺¹θₛⁿ³ = Qn (all fluxes positive upwards)
+#       δ
+#
+# Where the LHS is the internal diffusive flux inside the ocean (within the boundary layer of thickness δ) 
+# plus the (semi-implicit) outgoing longwave flux and the RHS are the remaining atmospheric and radiative fluxes
+# provided explicitly.
+@inline flux_balance_temperature(F::DiffusiveFlux, θo, Qn) = (θo - Qn / F.κ * F.δ)
 
-# Change 𝒬₀ as a function of incoming and outgoing fluxes. The flaw here is that
-# the ocean emissivity and albedo are fixed, but they might be a function of the 
-# surface temperature, so we might need to pass actually the radiation and the 
-# albedo and emissivity as arguments.
+# he flaw here is that the ocean emissivity and albedo are fixed, but they might be a function of the 
+# surface temperature, so we might need to pass the radiation and the albedo and emissivity as arguments.
 @inline function retrieve_temperature(st::DiagnosticSurfaceTemperature, θ₀, ℂ, 𝒬₀, 
                                       ρₐ, cₚ, ℰv, Σ★, ρₒ, cpₒ, g, 
                                       prescribed_heat_fluxes, 
@@ -71,10 +77,9 @@ regularize_surface_temperature(T::DiagnosticSurfaceTemperature{<:DiffusiveFlux},
     Rd = prescribed_heat_fluxes # net downwelling radiation (positive out of the ocean)
     
     # upwelling radiation is calculated explicitly 
-    # TODO: we could calculate it semi-implicitly as ϵσTⁿ⁺¹Tⁿ³
     Ru = upwelling_radiation(θ₀, radiation_properties) 
     Rn = Rd + Ru
-
+    
     u★ = Σ★.momentum
     θ★ = Σ★.temperature
     q★ = Σ★.water_vapor
@@ -83,7 +88,7 @@ regularize_surface_temperature(T::DiagnosticSurfaceTemperature{<:DiffusiveFlux},
     Qs = - ρₐ * u★ * (cₚ * θ★ + q★ * ℰv)
 
     # Net heat flux (positive out of the ocean)
-    Qn = (Qs + Rn) / ρₒ / cpₒ
+    Qn = (Qs + Rn) / ρₒ / cpₒ 
 
     θo = AtmosphericThermodynamics.air_temperature(ℂ, 𝒬₀)
 

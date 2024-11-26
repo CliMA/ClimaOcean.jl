@@ -394,10 +394,10 @@ end
     cₚ = AtmosphericThermodynamics.cp_m(ℂ, 𝒬₁) # moist heat capacity
     ℰv = AtmosphericThermodynamics.latent_heat_vapor(ℂ, 𝒬₁)
 
-    θ₀ = retrieve_temperature(surface_temperature_type, θ₀, ℂ, 𝒬₀, ρₐ, cₚ, ℰv, Σ★, ρₒ, cpₒ,
+    θ₀ = retrieve_temperature(surface_temperature_type, θ₀, ℂ, 𝒬₀, ρₐ, cₚ, ℰv, Σ★, ρₒ, cpₒ, g,
                               prescribed_heat_fluxes, 
                               radiative_properties)
-                              
+
     θ₁ = AtmosphericThermodynamics.air_temperature(ℂ, 𝒬₁)
 
     # Temperature difference including the ``lapse rate'' `α = g / cₚ`
@@ -437,7 +437,7 @@ end
                                                prescribed_heat_fluxes,
                                                radiative_properties,
                                                similarity_theory.bulk_velocity)
-                                                 
+                                               
     # "initial" scales because we will recompute them
     u★ = estimated_characteristic_scales.momentum
     θ★ = estimated_characteristic_scales.temperature
