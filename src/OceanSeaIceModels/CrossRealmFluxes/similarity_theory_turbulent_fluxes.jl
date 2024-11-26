@@ -240,9 +240,9 @@ struct COARELogarithmicSimilarityProfile end
 @inline function compute_similarity_theory_fluxes(similarity_theory,
                                                   surface_state,
                                                   atmos_state,
-                                                  atmos_boundary_layer_height,
                                                   prescribed_heat_fluxes, # Possibly use in state_differences
                                                   radiative_properties,
+                                                  atmos_boundary_layer_height,
                                                   thermodynamics_parameters,
                                                   gravitational_acceleration,
                                                   von_karman_constant,
@@ -269,13 +269,13 @@ struct COARELogarithmicSimilarityProfile end
     # Initialize the solver
     iteration = 0
     Σ₀ = Σ★
-
+    
     while iterating(Σ★ - Σ₀, iteration, maxiter, similarity_theory)
         Σ₀ = Σ★
         # Refine both the characteristic scale, the effective
         # velocity difference ΔU, including gustiness, and the surface
         # state temperature.
-        Σ★, θs, ΔU = refine_similarity_variables(Σ★, θs, ΔU, 
+        Σ★, θs, ΔU = refine_similarity_variables(Σ★, θs, ΔU,
                                                  similarity_theory,
                                                  atmos_state,
                                                  surface_state,
@@ -425,12 +425,12 @@ end
                                                prescribed_heat_fluxes,
                                                radiation,
                                                similarity_theory.bulk_velocity)
-  
+                                                 
     # "initial" scales because we will recompute them
     u★ = estimated_characteristic_scales.momentum
     θ★ = estimated_characteristic_scales.temperature
     q★ = estimated_characteristic_scales.water_vapor
-    uτ = velocity_scale
+    ΔU = velocity_scale
 
     # Similarity functions from Edson et al. (2013)
     ψu = similarity_theory.stability_functions.momentum
@@ -453,7 +453,7 @@ end
     # Monin-Obhukov characteristic length scale and non-dimensional height
     ϰ  = von_karman_constant
     L★ = ifelse(b★ == 0, zero(b★), - u★^2 / (ϰ * b★))
-    
+
     # Compute roughness length scales
     ℓu₀ = roughness_length(ℓu, u★, 𝒬ₒ, ℂ)
     ℓq₀ = roughness_length(ℓq, ℓu₀, u★, 𝒬ₒ, ℂ)
@@ -466,7 +466,7 @@ end
     χq = ϰ / similarity_profile(profile_type, ψq, Δh, ℓq₀, L★)
 
     # u★ including gustiness
-    u★ = χu * uτ
+    u★ = χu * ΔU
     θ★ = χθ * Δθ
     q★ = χq * Δq
 
