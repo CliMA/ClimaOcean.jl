@@ -270,6 +270,9 @@ struct COARELogarithmicSimilarityProfile end
     iteration = 0
     Σ₀ = Σ★
     
+    # break the cycle if Δu == Δv == gustiness_parameter == 0
+
+    # Iterate until convergence
     while iterating(Σ★ - Σ₀, iteration, maxiter, similarity_theory)
         Σ₀ = Σ★
         # Refine both the characteristic scale, the effective
