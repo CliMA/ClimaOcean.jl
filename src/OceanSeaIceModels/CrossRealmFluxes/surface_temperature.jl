@@ -41,9 +41,9 @@ end
 
 DiffusiveFlux(; κ = 1e-2) = DiffusiveFlux(nothing, κ)
 
-function DiffusiveFlux(grid; κ = 1e-2) 
-    Δz = @allowscalar Δzᶜᶜᶜ(1, 1, grid.Nz, grid)
-    return DiffusiveFlux(Δz, κ)
+function DiffusiveFlux(grid; κ = 0.1) 
+    δ = @allowscalar Δzᶜᶜᶜ(1, 1, grid.Nz, grid)
+    return DiffusiveFlux(δ, κ)
 end
 
 regularize_surface_temperature(T::DiagnosticSurfaceTemperature{<:DiffusiveFlux}, grid) =
