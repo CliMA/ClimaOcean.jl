@@ -79,14 +79,6 @@ regularize_surface_temperature(T::DiagnosticSurfaceTemperature{<:DiffusiveFlux},
 
     θo = AtmosphericThermodynamics.air_temperature(ℂ, 𝒬₀)
 
-    # surface temperature calculated as a balance of fluxes
-    # t0 = 
-
-    # if θ₀ < 0
-    #     @show Qn, Qs, Rn, θ₀, u★, θ★, q★, ℰv
-    #     throw(ArgumentError("Negative temperature"))
-    # end
-
     return flux_balance_temperature(st.internal_flux, θo, Qn)
 end
 
