@@ -141,6 +141,8 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             grid,
             clock,
             ocean_state,
+            coupled_model.fluxes.ocean_reference_density,
+            coupled_model.fluxes.ocean_heat_capacity,
             coupled_model.fluxes.ocean_temperature_units,
             surface_atmosphere_state,
             radiation_properties,
@@ -265,6 +267,8 @@ end
                                                                      grid,
                                                                      clock,
                                                                      ocean_state,
+                                                                     ocean_density,
+                                                                     ocean_heat_capacity,
                                                                      ocean_temperature_units,
                                                                      surface_atmos_state,
                                                                      radiation,
@@ -334,6 +338,8 @@ end
                                                                              dynamic_atmos_state,
                                                                              prescribed_heat_fluxes,
                                                                              radiative_properties,
+                                                                             ocean_density,
+                                                                             ocean_heat_capacity,
                                                                              atmosphere_boundary_layer_height,
                                                                              ℂₐ, g, ϰ, maxiter)
 

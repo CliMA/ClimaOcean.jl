@@ -22,7 +22,7 @@ end
 
 struct DiffusiveFlux{Z, K}
     Δz :: Z
-    κ  :: K # diffusivity in W m⁻² K⁻¹
+    κ  :: K # diffusivity in m²s⁻¹
 end
 
 # A default constructor for DiagnosticSurfaceTemperature
@@ -31,9 +31,9 @@ function DiagnosticSurfaceTemperature()
     return DiagnosticSurfaceTemperature(internal_flux)
 end
 
-DiffusiveFlux(; κ = 0.2) = DiffusiveFlux(nothing, κ)
+DiffusiveFlux(; κ = 1e-2) = DiffusiveFlux(nothing, κ)
 
-function DiffusiveFlux(grid; κ = 0.2) 
+function DiffusiveFlux(grid; κ = 1e-2) 
     Δz = @allowscalar Δzᶜᶜᶜ(1, 1, grid.Nz, grid)
     return DiffusiveFlux(Δz, κ)
 end
@@ -48,13 +48,16 @@ regularize_surface_temperature(T::DiagnosticSurfaceTemperature{<:DiffusiveFlux},
 # surface temperature, so we might need to pass actually the radiation and the 
 # albedo and emissivity as arguments.
 @inline function retrieve_temperature(st::DiagnosticSurfaceTemperature, θ₀, ℂ, 𝒬₀, 
-                                      ρₐ, cₚ, ℰv, Σ★, 
+                                      ρₐ, cₚ, ℰv, Σ★, ρₒ, cpₒ,
                                       prescribed_heat_fluxes, 
                                       radiation_properties)
 
-    Rd = prescribed_heat_fluxes # net downwelling radiation 
-    Ru = upwelling_radiation(θ₀, radiation_properties) # upwelling radiation (calculated explicitly)
-    Rn = Ru - Rd # net radiation
+    Rd = prescribed_heat_fluxes # net downwelling radiation (positive out of the ocean)
+    
+    # upwelling radiation is calculated explicitly 
+    # TODO: we could calculate it semi-implicitly as ϵσTⁿ⁺¹Tⁿ³
+    Ru = upwelling_radiation(θ₀, radiation_properties) 
+    Rn = Ru + Rd # net radiation
 
     u★ = Σ★.momentum
     θ★ = Σ★.temperature
@@ -64,7 +67,7 @@ regularize_surface_temperature(T::DiagnosticSurfaceTemperature{<:DiffusiveFlux},
     Qs = - ρₐ * u★ * (cₚ * θ★ + q★ * ℰv)
 
     # Net heat flux (positive out of the ocean)
-    Qn = Qs + Rn
+    Qn = (Qs + Rn) / ρₒ / cpₒ
     θo = AtmosphericThermodynamics.air_temperature(ℂ, 𝒬₀)
 
     # surface temperature calculated as a balance of fluxes

@@ -24,7 +24,6 @@ import SurfaceFluxes.Parameters:
     universal_func_type,
     grav
 
-
 #####
 ##### Bulk turbulent fluxes based on similarity theory
 #####
@@ -242,6 +241,8 @@ struct COARELogarithmicSimilarityProfile end
                                                   atmos_state,
                                                   prescribed_heat_fluxes, # Possibly use in state_differences
                                                   radiative_properties,
+                                                  ocean_density,
+                                                  ocean_heat_capacity,
                                                   atmos_boundary_layer_height,
                                                   thermodynamics_parameters,
                                                   gravitational_acceleration,
@@ -265,12 +266,14 @@ struct COARELogarithmicSimilarityProfile end
     θs   = AtmosphericThermodynamics.air_temperature(ℂₐ, surface_state.ts)
     Uᴳᵢ² = convert(FT, 0.5^2)
     ΔU   = sqrt(Δu^2 + Δv^2 + Uᴳᵢ²)
+    
+    # break the cycle if Δu == Δv == gustiness_parameter == 0 since that would mean 
+    # that  u★ == 0 so there is no turbulent transfer and the solver will not converge, leading to NaNs.
+    zero_shear_velocity = (Δu == 0) && (Δv == 0) && (similarity_theory.gustiness_parameter == 0)
 
     # Initialize the solver
-    iteration = 0
-    Σ₀ = Σ★
-    
-    # break the cycle if Δu == Δv == gustiness_parameter == 0
+    iteration = ifelse(zero_shear_velocity, maxiter+1, 0)
+    Σ₀ = ifelse(zero_shear_velocity, SimilarityScales(0, 0, 0), Σ★)
 
     # Iterate until convergence
     while iterating(Σ★ - Σ₀, iteration, maxiter, similarity_theory)
@@ -282,6 +285,8 @@ struct COARELogarithmicSimilarityProfile end
                                                  similarity_theory,
                                                  atmos_state,
                                                  surface_state,
+                                                 ocean_density,
+                                                 ocean_heat_capacity,
                                                  atmos_boundary_layer_height,
                                                  thermodynamics_parameters,
                                                  prescribed_heat_fluxes,
@@ -372,9 +377,9 @@ end
 @inline velocity_differences(𝒰₁, 𝒰₀, ::RelativeVelocity) = @inbounds 𝒰₁.u[1] - 𝒰₀.u[1], 𝒰₁.u[2] - 𝒰₀.u[2]
 @inline velocity_differences(𝒰₁, 𝒰₀, ::WindVelocity)     = @inbounds 𝒰₁.u[1], 𝒰₁.u[2] 
 
-@inline function state_differences(ℂ, 𝒰₁, 𝒰₀, θ₀, Σ★, g, surface_temperature_type, 
+@inline function state_differences(ℂ, 𝒰₁, 𝒰₀, θ₀, Σ★, g, ρₒ, cpₒ, surface_temperature_type, 
                                    prescribed_heat_fluxes,
-                                   radiation,
+                                   radiative_properties,
                                    bulk_velocity)
     z₁ = 𝒰₁.z
     z₀ = 𝒰₀.z
@@ -389,10 +394,10 @@ end
     cₚ = AtmosphericThermodynamics.cp_m(ℂ, 𝒬₁) # moist heat capacity
     ℰv = AtmosphericThermodynamics.latent_heat_vapor(ℂ, 𝒬₁)
 
-    θ₀ = retrieve_temperature(surface_temperature_type, θ₀, ℂ, 𝒬₀, 𝒬₁, ρₐ, cₚ, ℰv, Σ★,
+    θ₀ = retrieve_temperature(surface_temperature_type, θ₀, ℂ, 𝒬₀, ρₐ, cₚ, ℰv, Σ★, ρₒ, cpₒ,
                               prescribed_heat_fluxes, 
-                              radiation)
-
+                              radiative_properties)
+                              
     θ₁ = AtmosphericThermodynamics.air_temperature(ℂ, 𝒬₁)
 
     # Temperature difference including the ``lapse rate'' `α = g / cₚ`
@@ -411,10 +416,12 @@ end
                                              similarity_theory,
                                              atmos_state,
                                              surface_state,
+                                             ocean_density,
+                                             ocean_heat_capacity,
                                              atmos_boundary_layer_height,
                                              thermodynamics_parameters,
                                              prescribed_heat_fluxes,
-                                             radiation,
+                                             radiative_properties,
                                              gravitational_acceleration,
                                              von_karman_constant)
 
@@ -423,10 +430,12 @@ end
                                                surface_state,
                                                surface_temperature,
                                                estimated_characteristic_scales,
+                                               ocean_density,
+                                               ocean_heat_capacity,
                                                gravitational_acceleration,
                                                similarity_theory.surface_temperature_type,
                                                prescribed_heat_fluxes,
-                                               radiation,
+                                               radiative_properties,
                                                similarity_theory.bulk_velocity)
                                                  
     # "initial" scales because we will recompute them
