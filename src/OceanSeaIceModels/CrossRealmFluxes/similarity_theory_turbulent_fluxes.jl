@@ -406,11 +406,16 @@ end
     Δθ = θ₁ - θ₀ + g / cₚ * Δh
 
     q₁ = AtmosphericThermodynamics.vapor_specific_humidity(ℂ, 𝒬₁)
+
+    # Recomputing the saturation specific humidity at the surface based on the new temperature
     q₀ = seawater_saturation_specific_humidity(ℂ, θ₀, S₀, 𝒬₁,
                                                water_mole_fraction,
                                                water_vapor_saturation,
                                                AtmosphericThermodynamics.Liquid())
     
+    𝒬ₛ = AtmosphericThermodynamics.PhaseEquil_pTq(ℂ, 𝒬₀.p, θ₀, q₀)
+    q₀ = AtmosphericThermodynamics.vapor_specific_humidity(ℂ, 𝒬ₛ)
+
     Δq = q₁ - q₀
 
     return Δh, Δu, Δv, Δθ, Δq, θ₀
