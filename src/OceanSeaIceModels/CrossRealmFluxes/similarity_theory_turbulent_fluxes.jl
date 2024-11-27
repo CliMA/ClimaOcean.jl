@@ -21,7 +21,6 @@ import SurfaceFluxes.Parameters:
     thermodynamics_params,
     uf_params,
     von_karman_const,
-    universal_func_type,
     grav
 
 #####
@@ -52,8 +51,6 @@ const STTF = SimilarityTheoryTurbulentFluxes
 @inline von_karman_const(fluxes::STTF)      = fluxes.von_karman_constant
 @inline grav(fluxes::STTF)                  = fluxes.gravitational_acceleration
 @inline molmass_ratio(fluxes::STTF)         = molmass_ratio(fluxes.thermodynamics_parameters)
-
-@inline universal_func_type(::STTF{<:Any, <:Any, <:BusingerParams}) = BusingerType()
 
 Adapt.adapt_structure(to, fluxes::STTF) = SimilarityTheoryTurbulentFluxes(adapt(to, fluxes.gravitational_acceleration),
                                                                           adapt(to, fluxes.von_karman_constant),
@@ -407,10 +404,9 @@ end
 
     # Temperature difference including the ``lapse rate'' `α = g / cₚ`
     Δθ = θ₁ - θ₀ + g / cₚ * Δh
-    
-    T₀ = θ₀ - celsius_to_kelvin
+
     q₁ = AtmosphericThermodynamics.vapor_specific_humidity(ℂ, 𝒬₁)
-    q₀ = seawater_saturation_specific_humidity(ℂ, T₀, S₀, 𝒬ₐ,
+    q₀ = seawater_saturation_specific_humidity(ℂ, θ₀, S₀, 𝒬₁,
                                                water_mole_fraction,
                                                water_vapor_saturation,
                                                AtmosphericThermodynamics.Liquid())

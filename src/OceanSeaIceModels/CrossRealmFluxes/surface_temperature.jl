@@ -65,9 +65,9 @@ regularize_surface_temperature_type(T::DiagnosticSurfaceTemperature{<:DiffusiveF
 #       δ           ρₒ cpₒ
 #
 # Where the LHS is the internal diffusive flux inside the ocean (within the boundary layer of thickness δ) 
-# plus the (semi-implicit) outgoing longwave flux and the RHS are the remaining atmospheric and radiative fluxes
+# plus the (semi-implicit) outgoing longwave radiation and the RHS are the remaining atmospheric and radiative fluxes
 # provided explicitly.
-@inline flux_balance_temperature(F::DiffusiveFlux, θₒ, Jᵀ) = (θₒ - Jᵀ / F.κ * F.δ)
+@inline flux_balance_temperature(F::DiffusiveFlux, θₒ, Jᵀ) = θₒ - Jᵀ / F.κ * F.δ
 
 # he flaw here is that the ocean emissivity and albedo are fixed, but they might be a function of the 
 # surface temperature, so we might need to pass the radiation and the albedo and emissivity as arguments.
@@ -93,6 +93,7 @@ regularize_surface_temperature_type(T::DiagnosticSurfaceTemperature{<:DiffusiveF
     Jᵀ = (Qt + Rn) / ρₒ / cpₒ 
 
     θₒ = AtmosphericThermodynamics.air_temperature(ℂ, 𝒬₀)
+    θₛ = flux_balance_temperature(st.internal_flux, θₒ, Jᵀ)
 
-    return flux_balance_temperature(st.internal_flux, θₒ, Jᵀ)
+    return θₛ
 end
