@@ -3,6 +3,7 @@ using ClimaOcean.ECCO: ECCO4Monthly, NearestNeighborInpainting
 using OrthogonalSphericalShellGrids
 using Oceananigans
 using Oceananigans.Units
+using Oceananigans.OceanSeaIceModels.CrossRealmFluxes: DiagnosticSurfaceTemperature, DiffusiveFlux
 using CFTime
 using Dates
 using Printf
