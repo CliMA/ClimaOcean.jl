@@ -195,7 +195,7 @@ function SimilarityTheoryTurbulentFluxes(grid::AbstractGrid; surface_temperature
 
     fields = (; latent_heat, sensible_heat, water_vapor, x_momentum, y_momentum, T_surface)
 
-    surface_temperature_type = regularize_surface_temperature(surface_temperature_type, grid)
+    surface_temperature_type = regularize_surface_temperature_type(surface_temperature_type, grid)
 
     return SimilarityTheoryTurbulentFluxes(eltype(grid); surface_temperature_type, kw..., fields)
 end
@@ -241,6 +241,7 @@ struct COARELogarithmicSimilarityProfile end
                                                   atmos_state,
                                                   prescribed_heat_fluxes, # Possibly use in state_differences
                                                   radiative_properties,
+                                                  ocean_salinity,
                                                   ocean_density,
                                                   ocean_heat_capacity,
                                                   atmos_boundary_layer_height,
@@ -285,6 +286,7 @@ struct COARELogarithmicSimilarityProfile end
                                                  similarity_theory,
                                                  atmos_state,
                                                  surface_state,
+                                                 ocean_salinity,
                                                  ocean_density,
                                                  ocean_heat_capacity,
                                                  atmos_boundary_layer_height,
@@ -377,7 +379,10 @@ end
 @inline velocity_differences(𝒰₁, 𝒰₀, ::RelativeVelocity) = @inbounds 𝒰₁.u[1] - 𝒰₀.u[1], 𝒰₁.u[2] - 𝒰₀.u[2]
 @inline velocity_differences(𝒰₁, 𝒰₀, ::WindVelocity)     = @inbounds 𝒰₁.u[1], 𝒰₁.u[2] 
 
-@inline function state_differences(ℂ, 𝒰₁, 𝒰₀, θ₀, Σ★, g, ρₒ, cpₒ, surface_temperature_type, 
+@inline function state_differences(ℂ, 𝒰₁, 𝒰₀, θ₀, S₀, Σ★, g, ρₒ, cpₒ, 
+                                   water_mole_fraction,
+                                   water_vapor_saturation,
+                                   surface_temperature_type, 
                                    prescribed_heat_fluxes,
                                    radiative_properties,
                                    bulk_velocity)
@@ -394,17 +399,22 @@ end
     cₚ = AtmosphericThermodynamics.cp_m(ℂ, 𝒬₁) # moist heat capacity
     ℰv = AtmosphericThermodynamics.latent_heat_vapor(ℂ, 𝒬₁)
 
-    θ₀ = retrieve_temperature(surface_temperature_type, θ₀, ℂ, 𝒬₀, ρₐ, cₚ, ℰv, Σ★, ρₒ, cpₒ, g,
-                              prescribed_heat_fluxes, 
-                              radiative_properties)
+    θ₀ = compute_surface_temperature(surface_temperature_type, θ₀, ℂ, 𝒬₀, ρₐ, cₚ, ℰv, Σ★, ρₒ, cpₒ, g,
+                                     prescribed_heat_fluxes, 
+                                     radiative_properties)
 
     θ₁ = AtmosphericThermodynamics.air_temperature(ℂ, 𝒬₁)
 
     # Temperature difference including the ``lapse rate'' `α = g / cₚ`
     Δθ = θ₁ - θ₀ + g / cₚ * Δh
-
+    
+    T₀ = θ₀ - celsius_to_kelvin
     q₁ = AtmosphericThermodynamics.vapor_specific_humidity(ℂ, 𝒬₁)
-    q₀ = AtmosphericThermodynamics.vapor_specific_humidity(ℂ, 𝒬₀)
+    q₀ = seawater_saturation_specific_humidity(ℂ, T₀, S₀, 𝒬ₐ,
+                                               water_mole_fraction,
+                                               water_vapor_saturation,
+                                               AtmosphericThermodynamics.Liquid())
+    
     Δq = q₁ - q₀
 
     return Δh, Δu, Δv, Δθ, Δq, θ₀
@@ -416,6 +426,7 @@ end
                                              similarity_theory,
                                              atmos_state,
                                              surface_state,
+                                             surface_salinity,
                                              ocean_density,
                                              ocean_heat_capacity,
                                              atmos_boundary_layer_height,
@@ -429,10 +440,13 @@ end
                                                atmos_state,
                                                surface_state,
                                                surface_temperature,
+                                               surface_salinity,
                                                estimated_characteristic_scales,
                                                gravitational_acceleration,
                                                ocean_density,
                                                ocean_heat_capacity,
+                                               similarity_theory.water_mole_fraction,
+                                               similarity_theory.water_vapor_saturation,
                                                similarity_theory.surface_temperature_type,
                                                prescribed_heat_fluxes,
                                                radiative_properties,

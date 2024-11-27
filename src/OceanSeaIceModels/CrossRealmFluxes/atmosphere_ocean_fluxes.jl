@@ -334,10 +334,11 @@ end
     radiative_properties = local_radiation_properties(i, j, 1, grid, radiation, time)
 
     turbulent_fluxes, surface_temperature = compute_similarity_theory_fluxes(similarity_theory,
-                                                                             dynamic_ocean_state,
-                                                                             dynamic_atmos_state,
+                                                                             dynamic_ocean_state, 
+                                                                             dynamic_atmos_state, 
                                                                              prescribed_heat_fluxes,
                                                                              radiative_properties,
+                                                                             Sₒ,
                                                                              ocean_density,
                                                                              ocean_heat_capacity,
                                                                              atmosphere_boundary_layer_height,
