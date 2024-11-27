@@ -61,7 +61,7 @@ end
 const TripolarOfSomeKind = Union{TripolarGrid, ImmersedBoundaryGrid{<:Any, <:Any, <:Any, <:Any, <:TripolarGrid}}
 
 function default_free_surface(grid::TripolarOfSomeKind; 
-                              fixed_Δt = infer_maximum_Δt(grid),
+                              fixed_Δt = compute_maximum_Δt(grid),
                               cfl = 0.7) 
     free_surface = SplitExplicitFreeSurface(grid; cfl, fixed_Δt)
     @info "Using a $(free_surface)"
