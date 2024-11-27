@@ -67,11 +67,11 @@ regularize_surface_temperature_type(T::DiagnosticSurfaceTemperature{<:DiffusiveF
 # Where the LHS is the internal diffusive flux inside the ocean (within the boundary layer of thickness δ) 
 # plus the (semi-implicit) outgoing longwave flux and the RHS are the remaining atmospheric and radiative fluxes
 # provided explicitly.
-@inline flux_balance_temperature(F::DiffusiveFlux, θo, Qn) = (θo - Qn / F.κ * F.δ)
+@inline flux_balance_temperature(F::DiffusiveFlux, θo, Jᵀ) = (θₒ - Jᵀ / F.κ * F.δ)
 
 # he flaw here is that the ocean emissivity and albedo are fixed, but they might be a function of the 
 # surface temperature, so we might need to pass the radiation and the albedo and emissivity as arguments.
-@inline function compute_surface_temperature(st::DiagnosticSurfaceTemperature, θ₀, ℂ, 𝒬₀, 
+@inline function compute_surface_temperature(st::DiagnosticSurfaceTemperature, θₛ, ℂ, 𝒬₀, 
                                             ρₐ, cₚ, ℰv, Σ★, ρₒ, cpₒ, g, 
                                             prescribed_heat_fluxes, 
                                             radiation_properties)
@@ -79,20 +79,20 @@ regularize_surface_temperature_type(T::DiagnosticSurfaceTemperature{<:DiffusiveF
     Rd = prescribed_heat_fluxes # net downwelling radiation (positive out of the ocean)
     
     # upwelling radiation is calculated explicitly 
-    Ru = upwelling_radiation(θ₀, radiation_properties) 
-    Rn = Rd + Ru
+    Ru = upwelling_radiation(θₛ, radiation_properties) 
+    Rn = Rd + Ru # Net radiation (positive out of the ocean)
     
     u★ = Σ★.momentum
     θ★ = Σ★.temperature
     q★ = Σ★.water_vapor
  
-    # sensible heat flux + latent heat flux (positive out of the ocean)
-    Qs = - ρₐ * u★ * (cₚ * θ★ + q★ * ℰv)
+    # Turbulent heat fluxes, sensible + latent (positive out of the ocean)
+    Qt = - ρₐ * u★ * (cₚ * θ★ + q★ * ℰv)
 
-    # Net heat flux (positive out of the ocean)
-    Qn = (Qs + Rn) / ρₒ / cpₒ 
+    # Net temperature flux (positive out of the ocean)
+    Jᵀ = (Qt + Rn) / ρₒ / cpₒ 
 
-    θo = AtmosphericThermodynamics.air_temperature(ℂ, 𝒬₀)
+    θₒ = AtmosphericThermodynamics.air_temperature(ℂ, 𝒬₀)
 
-    return flux_balance_temperature(st.internal_flux, θo, Qn)
+    return flux_balance_temperature(st.internal_flux, θₒ, Jᵀ)
 end
