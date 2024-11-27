@@ -10,7 +10,7 @@ using CUDA: @allowscalar, device!
 
 using Oceananigans.Grids: znode
 
-arch = CPU()
+arch = GPU()
 
 #####
 ##### Grid and Bathymetry
@@ -48,7 +48,7 @@ gm = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1
 catke = ClimaOcean.OceanSimulations.default_ocean_closure()
 viscous_closure = HorizontalScalarBiharmonicDiffusivity(ν = 1e11)
 
-closure = (catke, viscous_closure)
+closure = (gm, catke, viscous_closure)
 
 #####
 ##### Restoring
@@ -87,6 +87,8 @@ set!(ocean.model, T=ECCOMetadata(:temperature; dates=first(dates)),
 ##### Atmospheric forcing
 #####
 
+surface_temperature_type = DiagnosticSurfaceTemperature(κ=0.01, δ=1.0)
+similarity_theory = SimilarityTheoryTurbulentFluxes(grid, surface_temperature_type)
 radiation  = Radiation(arch)
 atmosphere = JRA55_prescribed_atmosphere(arch; backend=JRA55NetCDFBackend(20))
 
