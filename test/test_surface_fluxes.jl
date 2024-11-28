@@ -200,6 +200,10 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
     end
 end
 
+@testset "SkinTemperature" begin
+    
+end
+
 @testset "Fluxes regression" begin
     for arch in test_architectures
         @info "Testing fluxes regression..."
@@ -271,5 +275,4 @@ end
         @test τʸ_std ≈ 7.627885224680635e-5
     end
 end
-
 

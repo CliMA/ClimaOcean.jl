@@ -114,7 +114,7 @@ struct RelativeVelocity end
                                     water_mole_fraction = convert(FT, 0.98),
                                     roughness_lengths = default_roughness_lengths(FT),
                                     similarity_profile_type = LogarithmicSimilarityProfile(),
-                                    surface_temperature_type = PrescribedSurfaceTemperature(),
+                                    surface_temperature_type = BulkTemperature(),
                                     bulk_velocity = RelativeVelocity(),
                                     tolerance = 1e-8,
                                     maxiter = 100,
@@ -159,7 +159,7 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                          water_mole_fraction = convert(FT, 0.98),
                                          roughness_lengths = default_roughness_lengths(FT),
                                          similarity_profile_type = LogarithmicSimilarityProfile(),
-                                         surface_temperature_type = PrescribedSurfaceTemperature(),
+                                         surface_temperature_type = BulkTemperature(),
                                          bulk_velocity = RelativeVelocity(),
                                          tolerance = 1e-8,
                                          maxiter = 100,
@@ -182,7 +182,7 @@ function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                            fields)
 end
 
-function SimilarityTheoryTurbulentFluxes(grid::AbstractGrid; surface_temperature_type = PrescribedSurfaceTemperature(), kw...)
+function SimilarityTheoryTurbulentFluxes(grid::AbstractGrid; surface_temperature_type = BulkTemperature(), kw...)
     water_vapor   = Field{Center, Center, Nothing}(grid)
     latent_heat   = Field{Center, Center, Nothing}(grid)
     sensible_heat = Field{Center, Center, Nothing}(grid)

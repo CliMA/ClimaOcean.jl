@@ -1,8 +1,8 @@
 # This simulation tests the difference between using a
-# `PrescribedSurfaceTemperature` and a `DiagnosticSurfaceTemperature`
+# `BulkTemperature` and a `SkinTemperature`
 
 using ClimaOcean
-using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: SimilarityTheoryTurbulentFluxes, DiagnosticSurfaceTemperature
+using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: SimilarityTheoryTurbulentFluxes, SkinTemperature
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.BuoyancyModels: buoyancy_frequency
@@ -41,7 +41,7 @@ atmosphere = JRA55_prescribed_atmosphere(1:last_time;
 radiation = Radiation()
 coupled_model_prescribed = OceanSeaIceModel(ocean1; atmosphere, radiation)
 
-similarity_theory = SimilarityTheoryTurbulentFluxes(grid; surface_temperature_type = DiagnosticSurfaceTemperature(; κ = 0.5))
+similarity_theory = SimilarityTheoryTurbulentFluxes(grid; surface_temperature_type = SkinTemperature(; κ = 0.5))
 coupled_model_diagnostic = OceanSeaIceModel(ocean2; atmosphere, radiation, similarity_theory)
 
 for (coupled_model, suffix) in zip([coupled_model_diagnostic, coupled_model_prescribed],

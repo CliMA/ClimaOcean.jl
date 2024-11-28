@@ -15,16 +15,16 @@ regularize_surface_temperature_type(surface_temperature_type, grid) = surface_te
 #### Prescribed surface temperature (the easiest case)
 ####
 
-struct PrescribedSurfaceTemperature end
+struct BulkTemperature end
 
 # Do nothing (just copy the temperature)
-@inline compute_surface_temperature(::PrescribedSurfaceTemperature, θ₀, args...) = θ₀
+@inline compute_surface_temperature(::BulkTemperature, θ₀, args...) = θ₀
 
 ####
 #### Diagnostic surface temperature calculated as a flux balance
 ####
 
-struct DiagnosticSurfaceTemperature{I}
+struct SkinTemperature{I}
     internal_flux :: I
 end
 
@@ -33,10 +33,10 @@ struct DiffusiveFlux{Z, K}
     κ :: K # diffusivity in m²s⁻¹
 end
 
-# A default constructor for DiagnosticSurfaceTemperature
-function DiagnosticSurfaceTemperature(; κ = 0.1, δ = nothing) 
+# A default constructor for SkinTemperature
+function SkinTemperature(; κ = 0.1, δ = nothing) 
     internal_flux = DiffusiveFlux(; κ, δ)
-    return DiagnosticSurfaceTemperature(internal_flux)
+    return SkinTemperature(internal_flux)
 end
 
 DiffusiveFlux(; κ = 1e-2, δ = nothing) = DiffusiveFlux(δ, κ)
@@ -48,8 +48,8 @@ function DiffusiveFlux(grid; κ = 0.1, δ = nothing)
     return DiffusiveFlux(δ, κ)
 end
 
-regularize_surface_temperature_type(T::DiagnosticSurfaceTemperature{<:DiffusiveFlux}, grid) =
-    DiagnosticSurfaceTemperature(DiffusiveFlux(grid; κ = T.internal_flux.κ, δ = T.internal_flux.δ))
+regularize_surface_temperature_type(T::SkinTemperature{<:DiffusiveFlux}, grid) =
+    SkinTemperature(DiffusiveFlux(grid; κ = T.internal_flux.κ, δ = T.internal_flux.δ))
 
 # The flux balance could be solved either
 # 
@@ -71,7 +71,7 @@ regularize_surface_temperature_type(T::DiagnosticSurfaceTemperature{<:DiffusiveF
 
 # he flaw here is that the ocean emissivity and albedo are fixed, but they might be a function of the 
 # surface temperature, so we might need to pass the radiation and the albedo and emissivity as arguments.
-@inline function compute_surface_temperature(st::DiagnosticSurfaceTemperature, θₛ, ℂ, 𝒬₀, 
+@inline function compute_surface_temperature(st::SkinTemperature, θₛ, ℂ, 𝒬₀, 
                                             ρₐ, cₚ, ℰv, Σ★, ρₒ, cpₒ, g, 
                                             prescribed_heat_fluxes, 
                                             radiation_properties)

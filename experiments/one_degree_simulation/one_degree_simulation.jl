@@ -3,7 +3,7 @@ using ClimaOcean.ECCO: ECCO4Monthly, NearestNeighborInpainting
 using OrthogonalSphericalShellGrids
 using Oceananigans
 using Oceananigans.Units
-using Oceananigans.OceanSeaIceModels.CrossRealmFluxes: DiagnosticSurfaceTemperature, DiffusiveFlux
+using Oceananigans.OceanSeaIceModels.CrossRealmFluxes: SkinTemperature, DiffusiveFlux
 using CFTime
 using Dates
 using Printf
@@ -88,7 +88,7 @@ set!(ocean.model, T=ECCOMetadata(:temperature; dates=first(dates)),
 ##### Atmospheric forcing
 #####
 
-surface_temperature_type = DiagnosticSurfaceTemperature(κ=0.01, δ=1.0)
+surface_temperature_type = SkinTemperature(κ=0.01, δ=1.0)
 similarity_theory = SimilarityTheoryTurbulentFluxes(grid, surface_temperature_type)
 radiation  = Radiation(arch)
 atmosphere = JRA55_prescribed_atmosphere(arch; backend=JRA55NetCDFBackend(20))
