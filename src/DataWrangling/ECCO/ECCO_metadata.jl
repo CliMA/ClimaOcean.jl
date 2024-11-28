@@ -5,6 +5,7 @@ using ClimaOcean.DataWrangling
 import Dates: year, month, day
 
 using Base: @propagate_inbounds
+using Downloads
 
 import Oceananigans.Fields: set!, location
 import Base
@@ -237,10 +238,50 @@ function download_dataset(metadata::ECCOMetadata; url = urls(metadata))
                 throw(ArgumentError(msg))
             end
 
-            cmd = `wget --http-user=$(username) --http-passwd=$(password) --directory-prefix=$dir $fileurl`
-            run(cmd)
+            downloader = ECCO_downloader(username, password, dir)
+            Downloads.download(fileurl, filepath; downloader, verbose=true)
         end
     end
 
+    # Always remove the file after downloading
+    # to avoid storing the password in the netrc file
+    remove_netrc!(dir)
+
     return nothing
+end
+
+# ECCO downloader 
+function ECCO_downloader(username, password, dir)
+    filepath   = update_ECCO_netrc!(username, password, dir)
+    downloader = Downloads.Downloader()
+    easy_hook  = (easy, _) -> Downloads.Curl.setopt(easy, Downloads.Curl.CURLOPT_NETRC_FILE, filepath)
+
+    downloader.easy_hook = easy_hook
+    return downloader
+end
+
+# Code snippet adapted from https://github.com/evetion/SpaceLiDAR.jl/blob/master/src/utils.jl#L150
+function update_ECCO_netrc!(username, password, dir)
+    if Sys.iswindows()
+        filepath = joinpath(dir, "ECCO_netrc")
+    else
+        filepath = joinpath(dir, "ECCO.netrc")
+    end
+
+    open(filepath, "a") do f
+        write(f, "\n")
+        write(f, "machine ecco.jpl.nasa.gov login $username password $password\n")
+    end
+    
+    return filepath
+end
+
+function remove_netrc!(dir)
+    if Sys.iswindows()
+        filepath = joinpath(dir, "ECCO_netrc")
+    else
+        filepath = joinpath(dir, "ECCO.netrc")
+    end
+
+    rm(filepath; force = true)
 end
