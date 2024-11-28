@@ -51,12 +51,12 @@ struct DiffusiveFlux{Z, K}
 end
 
 # A default constructor for SkinTemperature
-function SkinTemperature(; κ = 0.1, δ = 1.0) 
-    internal_flux = DiffusiveFlux(; κ, δ)
+function SkinTemperature(FT::DataType=Float64; κ=1e-2, δ=1.0) 
+    internal_flux = DiffusiveFlux(FT; κ, δ)
     return SkinTemperature(internal_flux)
 end
 
-DiffusiveFlux(; κ = 1e-2, δ = 1.0) = DiffusiveFlux(δ, κ)
+DiffusiveFlux(FT; κ = 1e-2, δ = 1.0) = DiffusiveFlux(convert(FT, δ), convert(FT, κ))
 
 # The flux balance could be solved either
 # 
