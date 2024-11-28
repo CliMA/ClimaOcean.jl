@@ -1,10 +1,19 @@
-# ClimaOcean.jl
+<!-- Title -->
+<h1 align="center">
+  ClimaOcean.jl
+</h1>
 
-### 🌎 A framework for realistic ocean-only and coupled ocean + sea-ice simulations driven by prescribed atmospheres and based on [Oceananigans](https://github.com/CliMA/Oceananigans.jl) and [ClimaSeaIce](https://github.com/CliMA/ClimaSeaIce.jl).
+<!-- description -->
+<p align="center">
+  <strong>🌎 A framework for realistic ocean-only and coupled ocean + sea-ice simulations driven by prescribed atmospheres and based on <a href=https://github.com/CliMA/Oceananigans.jl>Oceananigans</a> and <a href=https://github.com/CliMA/ClimaSeaIce.jl>ClimaSeaIce</a></strong>. 
+</p>
+
+### 
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7677442.svg?style=flat-square)](https://doi.org/10.5281/zenodo.7677442)
-[![Documentation](https://img.shields.io/badge/documentation-in%20development-orange?style=flat-square)](https://clima.github.io/ClimaOceanDocumentation/dev)
 [![Build status](https://badge.buildkite.com/3113cca353b83df3b5855d3f0d69827124614aef7017c835d2.svg?style=flat-square)](https://buildkite.com/clima/climaocean-ci)
+[![Documentation](https://img.shields.io/badge/documentation-stable%20release-blue?style=flat-square)](https://clima.github.io/ClimaOceanDocumentation/stable)
+[![Documentation](https://img.shields.io/badge/documentation-in%20development-orange?style=flat-square)](https://clima.github.io/ClimaOceanDocumentation/dev)
 
 ## Installation
 

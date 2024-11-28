@@ -140,7 +140,7 @@ Arguments
 - `inpainting`: The inpainting algorithm to use. For the moment, the only option is `NearestNeighborInpainting(maxiter)`, 
                 where an average of the valid surrounding values is used `maxiter` times.
 """
-function inpaint_mask!(field, mask; inpainting=NearestNeighborInpainting(10))
+function inpaint_mask!(field, mask; inpainting=NearestNeighborInpainting(Inf))
 
     if inpainting isa Int
         inpainting = NearestNeighborInpainting(inpainting)
