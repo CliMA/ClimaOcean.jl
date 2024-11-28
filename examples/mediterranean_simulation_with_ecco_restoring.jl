@@ -160,7 +160,6 @@ u_series = FieldTimeSeries("med_surface_field.jld2", "u")
 v_series = FieldTimeSeries("med_surface_field.jld2", "v")
 T_series = FieldTimeSeries("med_surface_field.jld2", "T")
 S_series = FieldTimeSeries("med_surface_field.jld2", "S")
-c_series = FieldTimeSeries("med_surface_field.jld2", "c")
 iter = Observable(1)
 
 u = @lift(u_series[$iter])
