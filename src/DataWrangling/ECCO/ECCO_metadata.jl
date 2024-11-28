@@ -145,12 +145,12 @@ short_name(data::ECCOMetadata{<:Any, <:ECCO2Daily})   = ECCO2_short_names[data.n
 short_name(data::ECCOMetadata{<:Any, <:ECCO2Monthly}) = ECCO2_short_names[data.name]
 short_name(data::ECCOMetadata{<:Any, <:ECCO4Monthly}) = ECCO4_short_names[data.name]
 
-metadata_url(prefix, m::ECCOMetadata{<:Any, <:ECCO2Daily}) = joinpath(prefix, short_name(m), metadata_filename(m))
-metadata_url(prefix, m::ECCOMetadata{<:Any, <:ECCO2Monthly}) = joinpath(prefix, short_name(m), metadata_filename(m))
+metadata_url(prefix, m::ECCOMetadata{<:Any, <:ECCO2Daily}) = prefix * "/" * short_name(m) * "/" * metadata_filename(m)
+metadata_url(prefix, m::ECCOMetadata{<:Any, <:ECCO2Monthly}) = prefix * "/" * short_name(m) * "/" * metadata_filename(m)
 
 function metadata_url(prefix, m::ECCOMetadata{<:Any, <:ECCO4Monthly})
     year = string(Dates.year(m.dates))
-    return joinpath(prefix, short_name(m), year, metadata_filename(m))
+    return prefix * "/" * short_name(m) * "/" * year * "/" * metadata_filename(m)
 end
 
 location(data::ECCOMetadata) = ECCO_location[data.name]
