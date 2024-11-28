@@ -12,18 +12,38 @@ import Thermodynamics as AtmosphericThermodynamics
 regularize_surface_temperature_type(surface_temperature_type, grid) = surface_temperature_type
 
 ####
-#### Prescribed surface temperature (the easiest case)
+#### Bulk surface temperature (the easiest case)
 ####
 
+""" 
+    struct BulkTemperature end
+
+A type to represent the surface temperature used in the flux calculation.
+The surface temperature is not calculated but provided by either the ocean or the sea ice model.
+"""
 struct BulkTemperature end
 
 # Do nothing (just copy the temperature)
 @inline compute_surface_temperature(::BulkTemperature, θ₀, args...) = θ₀
 
 ####
-#### Diagnostic surface temperature calculated as a flux balance
+#### Skin surface temperature calculated as a flux balance
 ####
 
+""" 
+    struct SkinTemperature     
+        internal_flux :: I
+    end
+
+A type to represent the surface temperature used in the flux calculation.
+The surface temperature is calculated from the flux balance at the surface.
+In particular, the surface temperature ``θₛ`` is the root of:
+ 
+F(θₛ) - Jᵀ = 0 (all fluxes positive upwards)
+
+where Jᵀ are the fluxes at the top of the surface (turbulent + radiative), and F is the internal diffusive flux
+dependent on the surface temperature itself.
+"""
 struct SkinTemperature{I}
     internal_flux :: I
 end
