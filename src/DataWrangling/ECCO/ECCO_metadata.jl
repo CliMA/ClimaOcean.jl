@@ -241,7 +241,7 @@ function download_dataset(metadata::ECCOMetadata; url = urls(metadata))
                 throw(ArgumentError(msg))
             end
 
-            Downloads.download(fileurl, filepath; downloader, progerss=download_progress)
+            Downloads.download(fileurl, filepath; downloader, progress=download_progress)
         end
     end
 
