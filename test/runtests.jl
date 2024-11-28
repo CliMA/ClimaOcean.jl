@@ -17,7 +17,7 @@ if test_group == :init || test_group == :all
     #### Download bathymetry data
     ####
     
-    download_bathymetry() 
+    # download_bathymetry() 
 
     # ####
     # #### Download JRA55 data 

@@ -14,3 +14,8 @@ end
         ClimaOcean.ECCO.download_dataset(metadata)
     end
 end
+
+@testset "Availability of the Bathymetry" begin
+    @info "Testing that we can download the bathymetry..."
+    download_bathymetry()
+end
