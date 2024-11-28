@@ -192,8 +192,6 @@ function SimilarityTheoryTurbulentFluxes(grid::AbstractGrid; surface_temperature
 
     fields = (; latent_heat, sensible_heat, water_vapor, x_momentum, y_momentum, T_surface)
 
-    surface_temperature_type = regularize_surface_temperature_type(surface_temperature_type, grid)
-
     return SimilarityTheoryTurbulentFluxes(eltype(grid); surface_temperature_type, kw..., fields)
 end
 

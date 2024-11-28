@@ -8,9 +8,6 @@ import Thermodynamics as AtmosphericThermodynamics
 @inline upwelling_radiation(θ₀, ::Nothing) = zero(θ₀)
 @inline upwelling_radiation(θ₀, r) = r.σ * r.ϵ * θ₀^4
 
-# For any surface temperture type that does not depend on the grid
-regularize_surface_temperature_type(surface_temperature_type, grid) = surface_temperature_type
-
 ####
 #### Bulk surface temperature (the easiest case)
 ####
@@ -54,22 +51,12 @@ struct DiffusiveFlux{Z, K}
 end
 
 # A default constructor for SkinTemperature
-function SkinTemperature(; κ = 0.1, δ = nothing) 
+function SkinTemperature(; κ = 0.1, δ = 1.0) 
     internal_flux = DiffusiveFlux(; κ, δ)
     return SkinTemperature(internal_flux)
 end
 
-DiffusiveFlux(; κ = 1e-2, δ = nothing) = DiffusiveFlux(δ, κ)
-
-function DiffusiveFlux(grid; κ = 0.1, δ = nothing)
-    if isnothing(δ)
-        δ = @allowscalar Δzᶜᶜᶜ(1, 1, grid.Nz, grid)
-    end
-    return DiffusiveFlux(δ, κ)
-end
-
-regularize_surface_temperature_type(T::SkinTemperature{<:DiffusiveFlux}, grid) =
-    SkinTemperature(DiffusiveFlux(grid; κ = T.internal_flux.κ, δ = T.internal_flux.δ))
+DiffusiveFlux(; κ = 1e-2, δ = 1.0) = DiffusiveFlux(δ, κ)
 
 # The flux balance could be solved either
 # 
