@@ -3,7 +3,6 @@ using ClimaOcean.ECCO: ECCO4Monthly, NearestNeighborInpainting
 using OrthogonalSphericalShellGrids
 using Oceananigans
 using Oceananigans.Units
-using Oceananigans.OceanSeaIceModels.CrossRealmFluxes: SkinTemperature, DiffusiveFlux
 using CFTime
 using Dates
 using Printf
@@ -19,7 +18,7 @@ arch = GPU()
 
 Nx = 360
 Ny = 180
-Nz = 50
+Nz = 100
 
 z_faces = exponential_z_faces(; Nz, depth=5000, h=34)
 
@@ -47,7 +46,7 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(tampered_bottom_he
 
 gm = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1000, κ_symmetric=1000)
 catke = ClimaOcean.OceanSimulations.default_ocean_closure()
-viscous_closure = HorizontalScalarBiharmonicDiffusivity(ν = 1e11)
+viscous_closure = Oceananigans.TurbulenceClosures.HorizontalScalarDiffusivity(ν=2000)
 
 closure = (gm, catke, viscous_closure)
 
@@ -88,8 +87,6 @@ set!(ocean.model, T=ECCOMetadata(:temperature; dates=first(dates)),
 ##### Atmospheric forcing
 #####
 
-surface_temperature_type = SkinTemperature(κ=0.01, δ=1.0)
-similarity_theory = SimilarityTheoryTurbulentFluxes(grid, surface_temperature_type)
 radiation  = Radiation(arch)
 atmosphere = JRA55_prescribed_atmosphere(arch; backend=JRA55NetCDFBackend(20))
 
@@ -98,7 +95,7 @@ atmosphere = JRA55_prescribed_atmosphere(arch; backend=JRA55NetCDFBackend(20))
 #####
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation) 
-simulation = Simulation(coupled_model; Δt=2minutes, stop_time=30days)
+simulation = Simulation(coupled_model; Δt=15minutes, stop_time=2*365days)
 
 #####
 ##### Run it!
@@ -128,9 +125,5 @@ function progress(sim)
 end
 
 add_callback!(simulation, progress, IterationInterval(10))
-
-run!(simulation)
-
-simulation.Δt = 25minutes
 
 run!(simulation)
