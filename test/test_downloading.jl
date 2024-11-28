@@ -6,3 +6,11 @@ include("runtests_setup.jl")
         fts = ClimaOcean.JRA55.JRA55_field_time_series(name; time_indices=2:3)
     end
 end
+
+@testset "Availability of ECCO data" begin
+    @info "Testing that we can download ECCO data..."
+    for variable in keys(ClimaOcean.ECCO.ECCO4_short_names)
+        metadata = ECCOMetadata(variable)
+        ClimaOcean.ECCO.download_dataset(metadata)
+    end
+end
