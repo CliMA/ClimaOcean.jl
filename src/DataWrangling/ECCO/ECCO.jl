@@ -6,7 +6,7 @@ export ECCORestoring, LinearlyTaperedPolarMask
 
 using ClimaOcean
 using ClimaOcean.DataWrangling
-using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, DownloadProgress
+using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, download_progress
 using ClimaOcean.InitialConditions: three_dimensional_regrid!, interpolate!
 
 using Oceananigans

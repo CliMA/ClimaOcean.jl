@@ -3,7 +3,7 @@ module Bathymetry
 export regrid_bathymetry, retrieve_bathymetry
 
 using ImageMorphology
-using ..DataWrangling: DownloadProgress
+using ..DataWrangling: download_progress
 
 using Oceananigans
 using Oceananigans.Architectures: architecture, on_architecture
@@ -96,8 +96,7 @@ function regrid_bathymetry(target_grid;
     fileurl  = url * "/" * filename # joinpath on windows creates the wrong url
 
     @root if !isfile(filepath) # perform all this only on rank 0, aka the "root" rank
-        progress = DownloadProgress(filename)
-        Downloads.download(fileurl, filepath; progress)
+        Downloads.download(fileurl, filepath; progress=download_progress)
     end
     
     dataset = Dataset(filepath)
