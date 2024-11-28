@@ -13,7 +13,7 @@ using Oceananigans.Fields: interpolate!
 using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBackend, FlavorOfFTS, time_indices
 
 using ClimaOcean
-using ClimaOcean.DataWrangling: download_progress
+using ClimaOcean.DataWrangling: DownloadProgress
 
 using ClimaOcean.OceanSeaIceModels:
     PrescribedAtmosphere,
@@ -391,7 +391,10 @@ function JRA55_field_time_series(variable_name;
 
     # Note, we don't re-use existing jld2 files.
     @root begin
-        isfile(filepath) || download(url, filepath)
+        if isfile(filepath)
+            progress = DownloadProgress("JRA55 $variable_name data", 50)
+            Downloads.download(url, filepath; progress)
+        end
         isfile(jld2_filepath) && rm(jld2_filepath)
     end
 

@@ -240,8 +240,8 @@ function download_dataset(metadata::ECCOMetadata; url = urls(metadata))
                        and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
                 throw(ArgumentError(msg))
             end
-
-            Downloads.download(fileurl, filepath; downloader, verbose=true)
+            progress = DownloadProgress("$(summary(metadata))")
+            Downloads.download(fileurl, filepath; downloader, progress)
         end
     end
 

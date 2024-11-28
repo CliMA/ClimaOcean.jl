@@ -13,20 +13,30 @@ using Oceananigans: pretty_filesize, location
 using Oceananigans.Utils: launch!
 using KernelAbstractions: @kernel, @index
 
-next_fraction = Ref(0.0)
-download_start_time = Ref(time_ns())
+struct DownloadProgress <: Function
+    fileurl :: String
+    messages :: Int
+    next_fraction :: Ref{Float64}
+    download_start_time :: Ref{UInt64}
+end
+
+DownloadProgress(fileurl) = DownloadProgress(fileurl, 10, Ref(0.0), Ref(time_ns()))
 
 """
-    download_progress(total, now; filename="")
+    DowloadProgress(total, now; filename="")
+
+a graceful progres for downloading files
 """
-function download_progress(total, now; filename="")
-    messages = 10
+function (d::DownloadProgress)(total, now; filename="")
+    messages = d.messages
+    next_fraction = d.next_fraction
+    download_start_time = d.download_start_time
 
     if total > 0 
         fraction = now / total
 
         if fraction < 1 / messages && next_fraction[] == 0
-            @info @sprintf("Downloading %s (size: %s)...", filename, pretty_filesize(total))
+            @info @sprintf("Downloading %s (size: %s)...", d.fileurl, pretty_filesize(total))
             next_fraction[] = 1 / messages
             download_start_time[] = time_ns()
         end
@@ -40,7 +50,6 @@ function download_progress(total, now; filename="")
         end
     else
         if now > 0 && next_fraction[] == 0
-            @info "Downloading $filename..."
             next_fraction[] = 1 / messages
             download_start_time[] = time_ns()
         end
