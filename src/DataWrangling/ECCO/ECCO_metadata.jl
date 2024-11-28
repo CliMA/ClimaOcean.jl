@@ -252,16 +252,16 @@ end
 
 # ECCO downloader 
 function ECCO_downloader(username, password, dir)
-    filepath   = update_ECCO_netrc!(username, password, dir)
+    netrc_file = ECCO_netrc!(username, password, dir)
     downloader = Downloads.Downloader()
-    easy_hook  = (easy, _) -> Downloads.Curl.setopt(easy, Downloads.Curl.CURLOPT_NETRC_FILE, filepath)
+    easy_hook  = (easy, _) -> Downloads.Curl.setopt(easy, Downloads.Curl.CURLOPT_NETRC_FILE, netrc_file)
 
     downloader.easy_hook = easy_hook
     return downloader
 end
 
 # Code snippet adapted from https://github.com/evetion/SpaceLiDAR.jl/blob/master/src/utils.jl#L150
-function update_ECCO_netrc!(username, password, dir)
+function ECCO_netrc!(username, password, dir)
     if Sys.iswindows()
         filepath = joinpath(dir, "ECCO_netrc")
     else
