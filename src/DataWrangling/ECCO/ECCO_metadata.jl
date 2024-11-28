@@ -219,6 +219,9 @@ function download_dataset(metadata::ECCOMetadata; url = urls(metadata))
     password = get(ENV, "ECCO_PASSWORD", nothing)
     dir = metadata.dir
 
+    # Write down the username and password in a .netrc file
+    downloader = ECCO_downloader(username, password, dir)
+
     @distribute for metadatum in metadata # Distribute the download among ranks if MPI is initialized
 
         fileurl  = metadata_url(url, metadatum) 
@@ -238,13 +241,11 @@ function download_dataset(metadata::ECCOMetadata; url = urls(metadata))
                 throw(ArgumentError(msg))
             end
 
-            downloader = ECCO_downloader(username, password, dir)
             Downloads.download(fileurl, filepath; downloader, verbose=true)
         end
     end
 
-    # Always remove the file after downloading
-    # to avoid storing the password in the netrc file
+    # Remove the .netrc file after downloading to avoid storing the credentials
     remove_netrc!(dir)
 
     return nothing
