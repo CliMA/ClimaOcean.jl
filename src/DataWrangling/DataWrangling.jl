@@ -65,10 +65,8 @@ For example:
 
 ```
 mktempdir(dir) do tmp
-
     dowloader = netrc_downloader(username, password, machine, tmp)
-    ... download files ...
-
+    Downloads.download(fileurl, filepath; downloader)
 end
 ```
 """
