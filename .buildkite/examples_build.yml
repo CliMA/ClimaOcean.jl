@@ -4,8 +4,6 @@ agents:
   modules: climacommon/2024_05_27
   slurm_time: 48:00:00
 
-timeout_in_minutes: 1440
-
 env:
   JULIA_LOAD_PATH: "${JULIA_LOAD_PATH}:${BUILDKITE_BUILD_CHECKOUT_PATH}/.buildkite"
   OPENBLAS_NUM_THREADS: 1
@@ -45,7 +43,7 @@ steps:
     env:
       JULIA_DEBUG: "Documenter"
       # This environment variable is needed to avoid SSL verification errors when Downloads.jl 
-      # tries to download the bathymetry data. It should not be required so we need to fix our certificates.
+      # tries to download the bathymetry data. It should not be required so we need to fix our certificates
       # and remove this environment variable. ref: https://github.com/JuliaLang/Downloads.jl/issues/97
       JULIA_SSL_NO_VERIFY: "**" 
 
