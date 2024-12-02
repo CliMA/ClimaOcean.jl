@@ -5,7 +5,9 @@ using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes:
                                     convert_to_kelvin, 
                                     SimilarityScales,
                                     seawater_saturation_specific_humidity,
-                                    surface_flux
+                                    surface_flux,
+                                    SkinTemperature, 
+                                    BulkTemperature
 
 using Thermodynamics
 using CUDA
