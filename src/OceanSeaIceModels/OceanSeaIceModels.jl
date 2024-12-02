@@ -50,6 +50,7 @@ using .CrossRealmFluxes
 
 import .CrossRealmFluxes:
     compute_atmosphere_ocean_fluxes!,
+    compute_atmosphere_sea_ice_fluxes!,
     compute_sea_ice_ocean_fluxes!,
     limit_fluxes_over_sea_ice!
 
@@ -60,10 +61,14 @@ include("time_step_ocean_sea_ice_model.jl")
 # "No atmosphere" implementation
 const NoAtmosphereModel = OceanSeaIceModel{<:Any, Nothing}
 
-compute_atmosphere_ocean_fluxes!(coupled_model::NoAtmosphereModel) = nothing
+compute_atmosphere_ocean_fluxes!(::NoAtmosphereModel) = nothing
+compute_atmosphere_sea_ice_fluxes!(::NoAtmosphereModel) = nothing
 
 const NoSeaIceModel = OceanSeaIceModel{Nothing}
 
-compute_sea_ice_ocean_fluxes!(cm::NoSeaIceModel) = nothing
+compute_atmosphere_sea_ice_fluxes!(::NoSeaIceModel) = nothing
+compute_atmosphere_sea_ice_fluxes!(::OceanSeaIceModel{<:FreezingLimitedCoupledModel}) = nothing
+
+compute_sea_ice_ocean_fluxes!(::NoSeaIceModel) = nothing
 
 end # module

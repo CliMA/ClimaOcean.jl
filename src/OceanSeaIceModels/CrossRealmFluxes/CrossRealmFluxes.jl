@@ -34,7 +34,9 @@ include("seawater_saturation_specific_humidity.jl")
 include("surface_temperature.jl")
 include("similarity_theory_turbulent_fluxes.jl")
 include("ocean_sea_ice_surface_fluxes.jl")
+include("compute_atmosphere_surface_fluxes.jl")
 include("atmosphere_ocean_fluxes.jl")
+include("atmosphere_sea_ice_fluxes.jl")
 include("sea_ice_ocean_fluxes.jl")
 
 end # module

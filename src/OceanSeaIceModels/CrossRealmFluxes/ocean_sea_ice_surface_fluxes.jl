@@ -63,7 +63,8 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
                                   radiation = nothing,
                                   freshwater_density = 1000,
                                   ocean_temperature_units = DegreesCelsius(),
-                                  similarity_theory = nothing,
+                                  ocean_similarity_theory = nothing,
+                                  sea_ice_similarity_theory = nothing,
                                   ocean_reference_density = reference_density(ocean),
                                   ocean_heat_capacity = heat_capacity(ocean))
 
@@ -80,7 +81,11 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
         gravitational_acceleration = ocean.model.buoyancy.model.gravitational_acceleration
 
         if isnothing(similarity_theory)
-            similarity_theory = SimilarityTheoryTurbulentFluxes(ocean_grid; gravitational_acceleration)
+            ocean_similarity_theory = SimilarityTheoryTurbulentFluxes(ocean_grid; gravitational_acceleration)
+
+            if !isnothing(sea_ice)
+                sea_ice_similarity_theory = SimilarityTheoryTurbulentFluxes(sea_ice_grid; gravitational_acceleration)
+            end
         end
     end
 
@@ -101,6 +106,9 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
     total_fluxes = (; ocean=total_ocean_fluxes)
 
     surface_atmosphere_state = interpolated_surface_atmosphere_state(ocean_grid)
+
+    similarity_theory = (; ocean=ocean_similarity_theory,
+                         sea_ice=sea_ice_similarity_theory)
 
     return OceanSeaIceSurfaceFluxes(similarity_theory,
                                     prescribed_fluxes,
