@@ -329,9 +329,10 @@ end
     
     inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
     maxiter  = ifelse(inactive, 1, similarity_theory.maxiter)
+    time     = Time(clock.time)
 
     prescribed_heat_fluxes = net_downwelling_radiation(i, j, grid, time, radiation, Rs, Rℓ) 
-    radiative_properties = local_radiation_properties(i, j, 1, grid, radiation, time)
+    radiative_properties = local_radiation_properties(i, j, kᴺ, grid, radiation, time)
 
     turbulent_fluxes, surface_temperature = compute_similarity_theory_fluxes(similarity_theory,
                                                                              dynamic_ocean_state, 
