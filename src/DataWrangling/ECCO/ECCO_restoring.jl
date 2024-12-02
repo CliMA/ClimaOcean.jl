@@ -105,12 +105,11 @@ function ECCO_times(metadata; start_time = first(metadata).dates)
 end
 
 """
-    ECCOFieldTimeSeries(metadata::ECCOMetadata;
-                        grid = nothing,
+    ECCOFieldTimeSeries(metadata::ECCOMetadata, grid=nothing;
                         architecture = isnothing(grid) ? CPU() : architecture(grid),
                         time_indices_in_memory = 2,
                         time_indexing = Cyclical(),
-                        inpainting_iterations = prod(size(metadata)),
+                        inpainting = nothing)
 
 Create a field time series object for ECCO data.
 
@@ -138,28 +137,28 @@ Keyword Arguments
                           Default: `true`.
 
 """
-function ECCOFieldTimeSeries(metadata::ECCOMetadata, grid=nothing;	
-                             architecture = isnothing(grid) ? CPU() : architecture(grid),	
+function ECCOFieldTimeSeries(metadata::ECCOMetadata, arch::AbstractArchitecture=CPU(); kw...)
+    download_dataset(metadata)
+    ftmp = empty_ECCO_field(first(metadata); architecture)
+    grid = ftmp.grid
+    return ECCOFieldTimeSeries(metadata, grid; kw...)
+end
+
+function ECCOFieldTimeSeries(metadata::ECCOMetadata, grid::AbstractGrid;
                              time_indices_in_memory = 2,	
                              time_indexing = Cyclical(),
-                             inpainting = NearestNeighborInpainting(prod(size(metadata))),
+                             inpainting = nothing,
                              cache_inpainted_data = true)
 
     # Make sure all the required individual files are downloaded
     download_dataset(metadata)
 
     inpainting isa Int && (inpainting = NearestNeighborInpainting(inpainting))
-
-    ftmp = empty_ECCO_field(first(metadata); architecture)
-    on_native_grid = isnothing(grid)
-    on_native_grid && (grid = ftmp.grid)
+    backend = ECCONetCDFBackend(time_indices_in_memory, metadata; on_native_grid, inpainting, cache_inpainted_data)
 
     times = ECCO_times(metadata)
     loc = LX, LY, LZ = location(metadata)
     boundary_conditions = FieldBoundaryConditions(grid, loc)
-
-    backend = ECCONetCDFBackend(time_indices_in_memory, metadata; on_native_grid, inpainting, cache_inpainted_data)
-
     fts = FieldTimeSeries{LX, LY, LZ}(grid, times; backend, time_indexing, boundary_conditions)
     set!(fts)	
 
@@ -248,7 +247,7 @@ end
                   mask = 1,
                   rate = 1,
                   grid = nothing,
-                  inpainting = NearestNeighborInpainting(prod(size(metadata))),
+                  inpainting = NearestNeighborInpainting(Inf),
                   cache_inpainted_data = true)
 
 Create a forcing term that restores to values stored in an ECCO field time series.
