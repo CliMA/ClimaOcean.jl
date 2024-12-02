@@ -42,7 +42,7 @@ default_or_override(override, alternative_default=nothing) = override
 # Some defaults
 default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
 
-function infer_maximum_Δt(grid)
+function compute_maximum_Δt(grid)
     Δx = mean(xspacings(grid))
     Δy = mean(yspacings(grid))
     Δθ = rad2deg(mean([Δx, Δy])) / grid.radius
@@ -60,7 +60,7 @@ end
 const TripolarOfSomeKind = Union{TripolarGrid, ImmersedBoundaryGrid{<:Any, <:Any, <:Any, <:Any, <:TripolarGrid}}
 
 function default_free_surface(grid::TripolarOfSomeKind; 
-                              fixed_Δt = infer_maximum_Δt(grid),
+                              fixed_Δt = compute_maximum_Δt(grid),
                               cfl = 0.7) 
     free_surface = SplitExplicitFreeSurface(grid; cfl, fixed_Δt)
     @info "Using a $(free_surface)"
@@ -95,7 +95,7 @@ default_tracer_advection() = FluxFormAdvection(WENO(order=7),
 # TODO: Specify the grid to a grid on the sphere; otherwise we can provide a different
 # function that requires latitude and longitude etc for computing coriolis=FPlane...
 function ocean_simulation(grid;
-                          Δt = infer_maximum_Δt(grid),
+                          Δt = compute_maximum_Δt(grid),
                           closure = default_ocean_closure(),
                           tracers = (:T, :S),
                           free_surface = default_free_surface(grid),
