@@ -57,8 +57,8 @@ end
     netrc_downloader(username, password, machine, dir)
 
 Create a downloader that uses a netrc file to authenticate with the given machine.
-This downlader writes the username and password in a file named `auth.netrc` (for Unix) and `auth_netrc` (for Windows)
-which is located in the directory `dir`. To avoid storing passwords in plain text,
+This downlader writes the username and password in a file named `auth.netrc` (for Unix) and 
+`auth_netrc` (for Windows), located in the directory `dir`. To avoid storing passwords in plain text,
 it is recommended to initialize the downloader in a temporary directory.
 
 For example:
