@@ -138,13 +138,12 @@ Keyword Arguments
                           Default: `true`.
 
 """
-function ECCOFieldTimeSeries(metadata::ECCOMetadata;	
-                             architecture = CPU(),	
+function ECCOFieldTimeSeries(metadata::ECCOMetadata, grid=nothing;	
+                             architecture = isnothing(grid) ? CPU() : architecture(grid),	
                              time_indices_in_memory = 2,	
                              time_indexing = Cyclical(),
                              inpainting = NearestNeighborInpainting(prod(size(metadata))),
-                             cache_inpainted_data = true,
-                             grid = nothing)	
+                             cache_inpainted_data = true)
 
     # Make sure all the required individual files are downloaded
     download_dataset(metadata)
@@ -176,11 +175,10 @@ struct Salinity end
 struct UVelocity end
 struct VVelocity end
 
-oceananigans_fieldname = Dict(
-    :temperature => Temperature(), 
-    :salinity    => Salinity(), 
-    :u_velocity  => UVelocity(), 
-    :v_velocity  => VVelocity())
+const oceananigans_fieldnames = Dict(:temperature => Temperature(), 
+                                     :salinity    => Salinity(), 
+                                     :u_velocity  => UVelocity(), 
+                                     :v_velocity  => VVelocity())
 
 @inline Base.getindex(fields, i, j, k, ::Temperature) = @inbounds fields.T[i, j, k]
 @inline Base.getindex(fields, i, j, k, ::Salinity)    = @inbounds fields.S[i, j, k]
@@ -330,8 +328,7 @@ function ECCORestoring(arch::AbstractArchitecture,
         throw(ArgumentError("The architecture of ECCORestoring must match the architecture of the grid."))
     end
 
-    fts = ECCOFieldTimeSeries(metadata; 
-                              grid, 
+    fts = ECCOFieldTimeSeries(metadata, grid;
                               architecture = arch, 
                               time_indices_in_memory, 
                               time_indexing, 
@@ -340,7 +337,7 @@ function ECCORestoring(arch::AbstractArchitecture,
 
     # Grab the correct Oceananigans field to restore
     variable_name = metadata.name
-    field_name = oceananigans_fieldname[variable_name]
+    field_name = oceananigans_fieldnames[variable_name]
 
     # If we pass the grid we do not need to interpolate
     # so we can save parameter space by setting the native grid to nothing
