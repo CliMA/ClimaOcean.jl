@@ -252,8 +252,6 @@ struct COARELogarithmicSimilarityProfile end
     # Initial guess for the characteristic scales u★, θ★, q★.
     # Does not really matter if we are sophisticated or not, it converges 
     # in about 10 iterations no matter what...
-    u★ = convert(FT, 1e-4)
-    Σ★ = SimilarityScales(u★, u★, u★) 
     Δu, Δv = velocity_differences(atmos_state, surface_state, similarity_theory.bulk_velocity)
 
     # The inital velocity scale assumes that the gustiness velocity `Uᴳ` is equal to 0.5 ms⁻¹. 
@@ -264,13 +262,14 @@ struct COARELogarithmicSimilarityProfile end
     ΔU   = sqrt(Δu^2 + Δv^2 + Uᴳᵢ²)
     
     # break the cycle if Δu == Δv == gustiness_parameter == 0 since that would mean 
-    # that  u★ == 0 so there is no turbulent transfer and the solver will not converge, leading to NaNs.
+    # that u★ == 0 so there is no turbulent transfer and the solver will not converge, leading to NaNs.
     zero_shear_velocity = (Δu == 0) && (Δv == 0) && (similarity_theory.gustiness_parameter == 0)
 
     # Initialize the solver
     iteration = ifelse(zero_shear_velocity, maxiter+1, 0)
-    Σₙ =  SimilarityScales(zero(grid), zero(grid), zero(grid))
-    Σ₀ = ifelse(zero_shear_velocity, Σₙ, Σ★)
+    u★ = ifelse(zero_shear_velocity, zero(grid), convert(FT, 1e-4))
+    Σ★ = SimilarityScales(u★, u★, u★) 
+    Σ₀ = Σ★
 
     # Iterate until convergence
     while iterating(Σ★ - Σ₀, iteration, maxiter, similarity_theory)
@@ -324,10 +323,10 @@ end
 
 # Iterating condition for the characteristic scales solvers
 @inline function iterating(Σ★, iteration, maxiter, solver)
-    havent_started = iteration == 0
+    hasnt_started = iteration == 0
     converged = norm(Σ★) < solver.tolerance
     reached_maxiter = iteration ≥ maxiter
-    return !(converged | reached_maxiter) | havent_started
+    return !(converged | reached_maxiter) | hasnt_started
 end
 
 """
