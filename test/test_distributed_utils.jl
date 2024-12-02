@@ -54,7 +54,8 @@ using Dates
 end
 
 @testset "Distributed ECCO download" begin
-    metadata = ECCOMetadata(:temperature, dates=Date(1992, 1, 1):Month(1):Date(1992, 4, 1))
+    dates = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(1994, 4, 1)
+    metadata = ECCOMetadata(:u_velocity; dates)
     download_dataset(metadata)
 
     @root for metadatum in metadata
