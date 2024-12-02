@@ -13,6 +13,10 @@ using Oceananigans: pretty_filesize, location
 using Oceananigans.Utils: launch!
 using KernelAbstractions: @kernel, @index
 
+#####
+##### Downloading utilities
+#####
+
 next_fraction = Ref(0.0)
 download_start_time = Ref(time_ns())
 
@@ -48,10 +52,6 @@ function download_progress(total, now; filename="")
 
     return nothing
 end
-
-#####
-##### Downloading utilities
-#####
 
 """
     netrc_downloader(username, password, machine, dir)
