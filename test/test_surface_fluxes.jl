@@ -30,7 +30,6 @@ import Oceananigans.Fields: _fractional_indices
 _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, nothing, nothing)
 
 @testset "Test surface fluxes" begin
-    @info " Testing zero fluxes..."
     for arch in test_architectures
         grid = LatitudeLongitudeGrid(arch;
                                     size = 1, 
@@ -63,19 +62,22 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
             water_vapor_saturation = FixedSpecificHumidity(qₐ)
             water_mole_fraction = 1
 
+            # Thermodynamic parameters of the atmosphere
+            𝒬ₐ = Thermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₐ, qₐ)
+            cp = Thermodynamics.cp_m(ℂₐ, 𝒬ₐ)
+            ρₐ = Thermodynamics.air_density(ℂₐ, 𝒬ₐ)
+            ℰv = Thermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
+
             # turbulent fluxes that force a specific humidity at the ocean's surface
             for Tmode in (BulkTemperature, SkinTemperature)
+                @info " Testing zero fluxes with $(Tmode)..."
+
                 similarity_theory = SimilarityTheoryTurbulentFluxes(grid; 
                                                                     water_vapor_saturation, 
                                                                     water_mole_fraction, 
                                                                     surface_temperature_type = Tmode())
 
-                # Thermodynamic parameters of the atmosphere
                 g  = similarity_theory.gravitational_acceleration
-                𝒬ₐ = Thermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₐ, qₐ)
-                cp = Thermodynamics.cp_m(ℂₐ, 𝒬ₐ)
-                ρₐ = Thermodynamics.air_density(ℂₐ, 𝒬ₐ)
-                ℰv = Thermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
 
                 # Ensure that the ΔT between atmosphere and ocean is zero 
                 # Note that the Δθ accounts for the "lapse rate" at height h
@@ -130,6 +132,7 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
             
             𝒬ₒ = Thermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₒ, qₒ)
             qₒ = Thermodynamics.vapor_specific_humidity(ℂₐ, 𝒬ₒ)
+            g  = similarity_theory.gravitational_acceleration
 
             # Differences!
             Δu = uₐ
