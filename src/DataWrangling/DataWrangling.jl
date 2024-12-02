@@ -50,6 +50,43 @@ function download_progress(total, now; filename="")
 end
 
 #####
+##### Downloading utilities
+#####
+
+# netrc-based downloader 
+# This downlader writes down a netrc file with the username and password for the given machine.
+# To avoid storing passwords in plain text, it is recommended to use a temporary directory.
+# For example:
+# mktempdir(parent) do dir
+#     netrc_downloader(username, password, machine, dir)
+#     ... download files ...
+# end
+function netrc_downloader(username, password, machine, dir)
+    netrc_file = netrc_permission_file(username, password, machine, dir)
+    downloader = Downloads.Downloader()
+    easy_hook  = (easy, _) -> Downloads.Curl.setopt(easy, Downloads.Curl.CURLOPT_NETRC_FILE, netrc_file)
+
+    downloader.easy_hook = easy_hook
+    return downloader
+end
+
+# Code snippet adapted from https://github.com/evetion/SpaceLiDAR.jl/blob/master/src/utils.jl#L150
+function netrc_permission_file(username, password, machine, dir)
+    if Sys.iswindows()
+        filepath = joinpath(dir, "ECCO_netrc")
+    else
+        filepath = joinpath(dir, "ECCO.netrc")
+    end
+
+    open(filepath, "a") do f
+        write(f, "\n")
+        write(f, "machine $machine login $username password $password\n")
+    end
+    
+    return filepath
+end
+
+#####
 ##### FieldTimeSeries utilities
 #####
 

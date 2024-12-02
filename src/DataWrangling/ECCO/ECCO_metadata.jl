@@ -1,6 +1,7 @@
 using CFTime
 using Dates
 using ClimaOcean.DataWrangling
+using ClimaOcean.DataWrangling: netrc_downloader
 
 import Dates: year, month, day
 
@@ -222,9 +223,9 @@ function download_dataset(metadata::ECCOMetadata; url = urls(metadata))
     # Create a temporary directory to store the .netrc file
     # The directory will be deleted after the download is complete
     mktempdir(dir) do tmp
-    
+
         # Write down the username and password in a .netrc file
-        downloader = ECCO_downloader(username, password, tmp)
+        downloader = netrc_downloader(username, password, "ecco.jpl.nasa.gov", tmp)
 
         @distribute for metadatum in metadata # Distribute the download among ranks if MPI is initialized
 
@@ -251,30 +252,4 @@ function download_dataset(metadata::ECCOMetadata; url = urls(metadata))
     end
     
     return nothing
-end
-
-# netcr-based downloader 
-function ECCO_downloader(username, password, dir)
-    netrc_file = ECCO_netrc(username, password, dir)
-    downloader = Downloads.Downloader()
-    easy_hook  = (easy, _) -> Downloads.Curl.setopt(easy, Downloads.Curl.CURLOPT_NETRC_FILE, netrc_file)
-
-    downloader.easy_hook = easy_hook
-    return downloader
-end
-
-# Code snippet adapted from https://github.com/evetion/SpaceLiDAR.jl/blob/master/src/utils.jl#L150
-function ECCO_netrc(username, password, dir)
-    if Sys.iswindows()
-        filepath = joinpath(dir, "ECCO_netrc")
-    else
-        filepath = joinpath(dir, "ECCO.netrc")
-    end
-
-    open(filepath, "a") do f
-        write(f, "\n")
-        write(f, "machine ecco.jpl.nasa.gov login $username password $password\n")
-    end
-    
-    return filepath
 end
