@@ -57,8 +57,9 @@ end
     netrc_downloader(username, password, machine, dir)
 
 Create a downloader that uses a netrc file to authenticate with the given machine.
-This downlader writes down a netrc file with the username and password for the given machine in the directory `dir`.
-To avoid storing passwords in plain text, it is recommended to initialize the downloader in a temporary directory.
+This downlader writes the username and password in a file named `auth.netrc` (for Unix) and `auth_netrc` (for Windows)
+which is located in the directory `dir`. To avoid storing passwords in plain text,
+it is recommended to initialize the downloader in a temporary directory.
 
 For example:
 
@@ -83,9 +84,9 @@ end
 # Code snippet adapted from https://github.com/evetion/SpaceLiDAR.jl/blob/master/src/utils.jl#L150
 function netrc_permission_file(username, password, machine, dir)
     if Sys.iswindows()
-        filepath = joinpath(dir, "ECCO_netrc")
+        filepath = joinpath(dir, "auth_netrc")
     else
-        filepath = joinpath(dir, "ECCO.netrc")
+        filepath = joinpath(dir, "auth.netrc")
     end
 
     open(filepath, "a") do f
