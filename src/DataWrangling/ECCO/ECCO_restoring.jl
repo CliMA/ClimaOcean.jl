@@ -106,11 +106,11 @@ end
 
 """
     ECCOFieldTimeSeries(metadata::ECCOMetadata;
-                           grid = nothing,
-                           architecture = isnothing(grid) ? CPU() : architecture(grid),
-                           time_indices_in_memory = 2,
-                           time_indexing = Cyclical(),
-                           inpainting_iterations = prod(size(metadata)),
+                        grid = nothing,
+                        architecture = isnothing(grid) ? CPU() : architecture(grid),
+                        time_indices_in_memory = 2,
+                        time_indexing = Cyclical(),
+                        inpainting_iterations = prod(size(metadata)),
 
 Create a field time series object for ECCO data.
 
@@ -139,12 +139,12 @@ Keyword Arguments
 
 """
 function ECCOFieldTimeSeries(metadata::ECCOMetadata;	
-                                architecture = CPU(),	
-                                time_indices_in_memory = 2,	
-                                time_indexing = Cyclical(),
-                                inpainting = NearestNeighborInpainting(prod(size(metadata))),
-                                cache_inpainted_data = true,
-                                grid = nothing)	
+                             architecture = CPU(),	
+                             time_indices_in_memory = 2,	
+                             time_indexing = Cyclical(),
+                             inpainting = NearestNeighborInpainting(prod(size(metadata))),
+                             cache_inpainted_data = true,
+                             grid = nothing)	
 
     # Make sure all the required individual files are downloaded
     download_dataset(metadata)
