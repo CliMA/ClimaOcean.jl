@@ -60,4 +60,4 @@ end
     @root for metadatum in metadata
         @test isfile(metadata_path(metadatum))
     end
-end 
+end
