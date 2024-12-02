@@ -15,7 +15,7 @@ import Thermodynamics as AtmosphericThermodynamics
 """ 
     struct BulkTemperature end
 
-A type to represent the surface temperature used in the flux calculation.
+Represents the surface temperature used in fixed-point iteration for surface fluxes following similarity theory.
 The surface temperature is not calculated but provided by either the ocean or the sea ice model.
 """
 struct BulkTemperature end
