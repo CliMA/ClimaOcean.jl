@@ -56,6 +56,6 @@ MPI.Init()
         push!(a, i)
     end
 
-    @onrank 0 @test a == [1, 3, 5, 7, 9]
-    @onrank 1 @test a == [2, 4, 6, 8, 10]
+    @onrank split_comm 0 @test a == [1, 3, 5, 7, 9]
+    @onrank split_comm 1 @test a == [2, 4, 6, 8, 10]
 end
