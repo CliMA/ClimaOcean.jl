@@ -218,42 +218,44 @@ function download_dataset(metadata::ECCOMetadata; url = urls(metadata))
     username = get(ENV, "ECCO_USERNAME", nothing)
     password = get(ENV, "ECCO_PASSWORD", nothing)
     dir = metadata.dir
+    
+    # Create a temporary directory to store the .netrc file
+    # The directory will be deleted after the download is complete
+    mktempdir(dir) do tmp
+    
+        # Write down the username and password in a .netrc file
+        downloader = ECCO_downloader(username, password, tmp)
 
-    # Write down the username and password in a .netrc file
-    downloader = ECCO_downloader(username, password, dir)
+        @distribute for metadatum in metadata # Distribute the download among ranks if MPI is initialized
 
-    @distribute for metadatum in metadata # Distribute the download among ranks if MPI is initialized
+            fileurl  = metadata_url(url, metadatum) 
+            filepath = metadata_path(metadatum)
 
-        fileurl  = metadata_url(url, metadatum) 
-        filepath = metadata_path(metadatum)
+            if !isfile(filepath)
+                instructions_msg = "\n See ClimaOcean.jl/src/ECCO/README.md for instructions."
+                if isnothing(username)
+                    msg = "Could not find the ECCO_PASSWORD environment variable. \
+                           See ClimaOcean.jl/src/ECCO/README.md for instructions on obtaining \
+                           and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
+                    throw(ArgumentError(msg))
+                elseif isnothing(password)
+                    msg = "Could not find the ECCO_PASSWORD environment variable. \
+                           See ClimaOcean.jl/src/ECCO/README.md for instructions on obtaining \
+                           and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
+                    throw(ArgumentError(msg))
+                end
 
-        if !isfile(filepath)
-            instructions_msg = "\n See ClimaOcean.jl/src/ECCO/README.md for instructions."
-            if isnothing(username)
-                msg = "Could not find the ECCO_PASSWORD environment variable. \
-                       See ClimaOcean.jl/src/ECCO/README.md for instructions on obtaining \
-                       and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
-                throw(ArgumentError(msg))
-            elseif isnothing(password)
-                msg = "Could not find the ECCO_PASSWORD environment variable. \
-                       See ClimaOcean.jl/src/ECCO/README.md for instructions on obtaining \
-                       and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
-                throw(ArgumentError(msg))
+                Downloads.download(fileurl, filepath; downloader, progress=download_progress)
             end
-
-            Downloads.download(fileurl, filepath; downloader, progress=download_progress)
         end
     end
-
-    # Remove the .netrc file after downloading to avoid storing the credentials
-    remove_netrc!(dir)
-
+    
     return nothing
 end
 
-# ECCO downloader 
+# netcr-based downloader 
 function ECCO_downloader(username, password, dir)
-    netrc_file = ECCO_netrc!(username, password, dir)
+    netrc_file = ECCO_netrc(username, password, dir)
     downloader = Downloads.Downloader()
     easy_hook  = (easy, _) -> Downloads.Curl.setopt(easy, Downloads.Curl.CURLOPT_NETRC_FILE, netrc_file)
 
@@ -262,7 +264,7 @@ function ECCO_downloader(username, password, dir)
 end
 
 # Code snippet adapted from https://github.com/evetion/SpaceLiDAR.jl/blob/master/src/utils.jl#L150
-function ECCO_netrc!(username, password, dir)
+function ECCO_netrc(username, password, dir)
     if Sys.iswindows()
         filepath = joinpath(dir, "ECCO_netrc")
     else
@@ -275,14 +277,4 @@ function ECCO_netrc!(username, password, dir)
     end
     
     return filepath
-end
-
-function remove_netrc!(dir)
-    if Sys.iswindows()
-        filepath = joinpath(dir, "ECCO_netrc")
-    else
-        filepath = joinpath(dir, "ECCO.netrc")
-    end
-
-    rm(filepath; force = true)
 end
