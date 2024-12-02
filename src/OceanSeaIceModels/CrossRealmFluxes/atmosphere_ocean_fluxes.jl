@@ -277,8 +277,9 @@ end
                                                                      atmos_thermodynamics_parameters)
 
     i, j = @index(Global, NTuple)
-    kᴺ = size(grid, 3) # index of the top ocean cell
-      
+    kᴺ   = size(grid, 3) # index of the top ocean cell
+    time = Time(clock.time)
+
     @inbounds begin
         uₐ = surface_atmos_state.u[i, j, 1]
         vₐ = surface_atmos_state.v[i, j, 1]
@@ -329,10 +330,9 @@ end
     
     inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
     maxiter  = ifelse(inactive, 1, similarity_theory.maxiter)
-    time     = Time(clock.time)
 
     prescribed_heat_fluxes = net_downwelling_radiation(i, j, grid, time, radiation, Rs, Rℓ) 
-    radiative_properties = local_radiation_properties(i, j, kᴺ, grid, radiation, time)
+    radiative_properties = local_radiation_properties(i, j, kᴺ, grid, time, radiation)
 
     turbulent_fluxes, surface_temperature = compute_similarity_theory_fluxes(similarity_theory,
                                                                              dynamic_ocean_state, 

@@ -91,9 +91,9 @@ function Base.show(io::IO, properties::SurfaceProperties)
     print(io, "└── sea_ice: ", summary(properties.sea_ice))
 end
 
-@inline local_radiation_properties(i, j, k, grid, ::Nothing, time) = nothing
+@inline local_radiation_properties(i, j, k, grid, time, ::Nothing) = nothing
 
-@inline function local_radiation_properties(i, j, k, grid, r::Radiation, time) 
+@inline function local_radiation_properties(i, j, k, grid, time, r::Radiation) 
     σ = r.stefan_boltzmann_constant
     ϵ = stateindex(r.emission.ocean, i, j, k, grid, time)
     α = stateindex(r.reflection.ocean, i, j, k, grid, time)
