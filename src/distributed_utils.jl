@@ -89,15 +89,21 @@ macro distribute(communicator, exp)
     variable = exp.args[1].args[1]
     forbody  = exp.args[2]
 
+    # Safety net if the iterable variable has the same name as the 
+    # reserved variable names (nprocs, counter, rank)
+    nprocs  = ifelse(variable == :nprocs,  :othernprocs,  :nprocs)
+    counter = ifelse(variable == :counter, :othercounter, :counter)
+    rank    = ifelse(variable == :rank,    :otherrank,    :rank)
+
     new_loop = quote
         mpi_initialized = ClimaOcean.mpi_initialized()
         if !mpi_initialized
             $exp
         else
-            rank   = ClimaOcean.mpi_rank($communicator)
-            nprocs = ClimaOcean.mpi_size($communicator)
-            for (counter, $variable) in enumerate($iterable)
-                if (counter - 1) % nprocs == rank
+            $rank   = ClimaOcean.mpi_rank($communicator)
+            $nprocs = ClimaOcean.mpi_size($communicator)
+            for ($counter, $variable) in enumerate($iterable)
+                if ($counter - 1) % $nprocs == $rank
                     $forbody
                 end
             end
