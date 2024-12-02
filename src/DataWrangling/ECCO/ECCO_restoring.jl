@@ -51,7 +51,7 @@ end
 Base.length(backend::ECCONetCDFBackend)  = backend.length
 Base.summary(backend::ECCONetCDFBackend) = string("ECCONetCDFBackend(", backend.start, ", ", backend.length, ")")
 
-const ECCONetCDFFTS{N} = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:ECCONetCDFBackend{N}} where N
+const ECCOFieldTimeSeries{N} = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:ECCONetCDFBackend{N}} where N
 
 new_backend(b::ECCONetCDFBackend{native, cache_data}, start, length) where {native, cache_data} =
     ECCONetCDFBackend{native, cache_data}(start, length, b.inpainting, b.metadata)
@@ -59,7 +59,7 @@ new_backend(b::ECCONetCDFBackend{native, cache_data}, start, length) where {nati
 on_native_grid(::ECCONetCDFBackend{native}) where native = native
 cache_inpainted_data(::ECCONetCDFBackend{native, cache_data}) where {native, cache_data} = cache_data
 
-function set!(fts::ECCONetCDFFTS) 
+function set!(fts::ECCOFieldTimeSeries) 
     backend = fts.backend
     start   = backend.start
     inpainting = backend.inpainting
@@ -105,7 +105,7 @@ function ECCO_times(metadata; start_time = first(metadata).dates)
 end
 
 """
-    ECCO_field_time_series(metadata::ECCOMetadata;
+    ECCOFieldTimeSeries(metadata::ECCOMetadata;
                            grid = nothing,
                            architecture = isnothing(grid) ? CPU() : architecture(grid),
                            time_indices_in_memory = 2,
@@ -138,7 +138,7 @@ Keyword Arguments
                           Default: `true`.
 
 """
-function ECCO_field_time_series(metadata::ECCOMetadata;	
+function ECCOFieldTimeSeries(metadata::ECCOMetadata;	
                                 architecture = CPU(),	
                                 time_indices_in_memory = 2,	
                                 time_indexing = Cyclical(),
@@ -167,8 +167,8 @@ function ECCO_field_time_series(metadata::ECCOMetadata;
     return fts	
 end
 
-ECCO_field_time_series(variable_name::Symbol, version=ECCO4Monthly(); kw...) = 
-    ECCO_field_time_series(ECCOMetadata(variable_name, all_ECCO_dates(version), version); kw...)
+ECCOFieldTimeSeries(variable_name::Symbol, version=ECCO4Monthly(); kw...) = 
+    ECCOFieldTimeSeries(ECCOMetadata(variable_name, all_ECCO_dates(version), version); kw...)
 
 # Variable names for restoreable data
 struct Temperature end
@@ -330,13 +330,13 @@ function ECCORestoring(arch::AbstractArchitecture,
         throw(ArgumentError("The architecture of ECCORestoring must match the architecture of the grid."))
     end
 
-    fts = ECCO_field_time_series(metadata; 
-                                 grid, 
-                                 architecture = arch, 
-                                 time_indices_in_memory, 
-                                 time_indexing, 
-                                 inpainting,
-                                 cache_inpainted_data)
+    fts = ECCOFieldTimeSeries(metadata; 
+                              grid, 
+                              architecture = arch, 
+                              time_indices_in_memory, 
+                              time_indexing, 
+                              inpainting,
+                              cache_inpainted_data)
 
     # Grab the correct Oceananigans field to restore
     variable_name = metadata.name
