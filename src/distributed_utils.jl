@@ -44,7 +44,7 @@ end
     @onrank communicator rank exs...
 
 Perform `exp` only on rank `rank` (0-based index) in `communicator`.
-Other ranks will wait for the root rank to finish before continuing.
+Other ranks will wait for rank `rank` to finish before continuing.
 The expression is run anyways if MPI in not initialized.
 If `communicator` is not provided, `MPI.COMM_WORLD` is used.
 """
