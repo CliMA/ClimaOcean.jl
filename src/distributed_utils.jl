@@ -14,7 +14,7 @@ global_barrier(comm) = MPI.Barrier(comm)
 """
     @root communicator exs...
 
-Perform `exs` only on rank 0 in communicator, otherwise know as "root" rank.
+Perform `exs` only on rank 0 in communicator, otherwise known as the "root" rank.
 Other ranks will wait for the root rank to finish before continuing.
 If `communicator` is not provided, `MPI.COMM_WORLD` is used.
 """
