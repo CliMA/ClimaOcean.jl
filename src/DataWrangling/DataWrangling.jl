@@ -53,14 +53,24 @@ end
 ##### Downloading utilities
 #####
 
-# netrc-based downloader 
-# This downlader writes down a netrc file with the username and password for the given machine.
-# To avoid storing passwords in plain text, it is recommended to use a temporary directory.
-# For example:
-# mktempdir(parent) do dir
-#     netrc_downloader(username, password, machine, dir)
-#     ... download files ...
-# end
+"""
+    netrc_downloader(username, password, machine, dir)
+
+Create a downloader that uses a netrc file to authenticate with the given machine.
+This downlader writes down a netrc file with the username and password for the given machine in the directory `dir`.
+To avoid storing passwords in plain text, it is recommended to initialize the downloader in a temporary directory.
+
+For example:
+
+```
+mktempdir(dir) do tmp
+
+    dowloader = netrc_downloader(username, password, machine, tmp)
+    ... download files ...
+
+end
+```
+"""
 function netrc_downloader(username, password, machine, dir)
     netrc_file = netrc_permission_file(username, password, machine, dir)
     downloader = Downloads.Downloader()
@@ -79,7 +89,6 @@ function netrc_permission_file(username, password, machine, dir)
     end
 
     open(filepath, "a") do f
-        write(f, "\n")
         write(f, "machine $machine login $username password $password\n")
     end
     
