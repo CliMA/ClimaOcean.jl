@@ -263,7 +263,7 @@ struct COARELogarithmicSimilarityProfile end
     
     # break the cycle if Δu == Δv == gustiness_parameter == 0 since that would mean 
     # that u★ == 0 so there is no turbulent transfer and the solver will not converge, leading to NaNs.
-    zero_shear_velocity = (Δu == 0) && (Δv == 0) && (similarity_theory.gustiness_parameter == 0)
+    zero_shear_velocity = (Δu == 0) & (Δv == 0) & (similarity_theory.gustiness_parameter == 0)
 
     # Initialize the solver
     iteration = ifelse(zero_shear_velocity, maxiter+1, 0)
