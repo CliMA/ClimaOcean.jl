@@ -267,7 +267,7 @@ struct COARELogarithmicSimilarityProfile end
 
     # Initialize the solver
     iteration = ifelse(zero_shear_velocity, maxiter+1, 0)
-    u★ = ifelse(zero_shear_velocity, zero(grid), convert(FT, 1e-4))
+    u★ = ifelse(zero_shear_velocity, zero(FT), convert(FT, 1e-4))
     Σ★ = SimilarityScales(u★, u★, u★) 
     Σ₀ = Σ★
 
