@@ -137,7 +137,7 @@ Keyword Arguments
 """
 function ECCOFieldTimeSeries(metadata::ECCOMetadata, arch::AbstractArchitecture=CPU(); kw...)
     download_dataset(metadata)
-    ftmp = empty_ECCO_field(first(metadata); architecture)
+    ftmp = empty_ECCO_field(first(metadata); arch)
     grid = ftmp.grid
     return ECCOFieldTimeSeries(metadata, grid; kw...)
 end
