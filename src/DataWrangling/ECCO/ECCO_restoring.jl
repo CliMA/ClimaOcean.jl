@@ -209,19 +209,20 @@ Adapt.adapt_structure(to, p::ECCORestoring) = ECCORestoring(Adapt.adapt(to, p.fi
 
     # Possibly interpolate ECCO data from the ECCO grid to simulation grid.
     # Otherwise, simply extract the pre-interpolated data from p.field_time_series.
-    backend = p.field_time_series.backend
-    ψ_ecco = maybe_interpolate(p.field_time_series, i, j, k, p.native_grid, grid, time)
+    if p.native_grid isa Nothing
+        ψ_ecco = @inbounds p.field_time_series[i, j, k]
+    else
+        ψ_ecco = interpolate_to_grid(p.field_time_series, i, j, k, p.native_grid, grid, time)
+    end
 
     ψ = @inbounds fields[i, j, k, p.variable_name]
     μ = stateindex(p.mask, i, j, k, grid, clock.time, loc)
-    ω = p.rate
+    r = p.rate
 
-    return ω * μ * (ψ_ecco - ψ)
+    return r * μ * (ψ_ecco - ψ)
 end
 
-@inline maybe_interpolate(fts, i, j, k, ::Nothing, grid, time) = @inbounds fts[i, j, k, time]
-
-@inline function maybe_interpolate(fts, i, j, k, native_grid, grid, time)
+@inline function interpolate_to_grid(fts, i, j, k, native_grid, grid, time)
     times = fts.times
     data = fts.data
     time_indexing = fts.time_indexing
@@ -248,7 +249,7 @@ Build a forcing term that restores to values stored in an ECCO field time series
 The restoring is applied as a forcing on the right hand side of the evolution equations calculated as
 
 ```math
-Fψ = μ r (ψ_ECCO - ψ)
+Fψ = r μ (ψ_ECCO - ψ)
 ```
 
 where ``μ`` is the mask, ``r`` is the restoring rate, ``ψ`` is the simulation variable,
