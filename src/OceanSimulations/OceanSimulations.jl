@@ -6,7 +6,7 @@ using Oceananigans
 using Oceananigans.Units
 using Oceananigans.Utils: with_tracers
 using Oceananigans.Advection: FluxFormAdvection
-using Oceananigans.DistributedComputations: DistributedGrid, allreduce
+using Oceananigans.DistributedComputations: DistributedGrid, all_reduce
 using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node
 using OrthogonalSphericalShellGrids
 
