@@ -6,7 +6,7 @@ using Oceananigans
 using Oceananigans.Units
 using Oceananigans.Utils: with_tracers
 using Oceananigans.Advection: FluxFormAdvection
-using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
+using Oceananigans.DistributedComputations: DistributedGrid, allreduce
 using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node
 using OrthogonalSphericalShellGrids
 
@@ -67,6 +67,19 @@ function default_free_surface(grid::TripolarOfSomeKind;
     @info "Using a $(free_surface)"
     return free_surface
 end
+
+function default_free_surface(grid::DistributedGrid; 
+                              fixed_Δt = compute_maximum_Δt(grid),
+                              cfl = 0.7) 
+    
+    free_surface = SplitExplicitFreeSurface(grid; cfl, fixed_Δt)
+    substeps = length(free_surface.substepping.averaging_weights)
+    substeps = all_reduce(max, substeps, architecture(grid))
+    free_surface = SplitExplicitFreeSurface(grid; substeps)
+    @info "Using a $(free_surface)"
+    return free_surface
+end
+
 
 function default_ocean_closure()
     mixing_length = CATKEMixingLength(Cᵇ=0.01)
