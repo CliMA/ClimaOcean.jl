@@ -12,7 +12,7 @@ using KernelAbstractions: @kernel, @index
     NearestNeighborInpainting{M}
 
 A structure representing the nearest neighbor inpainting algorithm, where a missing value is
-substituted with the average of the surrounding valid values. This process is repeated a maximum 
+substituted with the average of the surrounding valid values. This process is repeated a maximum
 of `maxiter` times or until the field is completely inpainted.
 """
 struct NearestNeighborInpainting{M}
@@ -73,7 +73,7 @@ Horizontally propagate the values of `field` into the `mask`.
 In other words, cells where `mask[i, j, k] == false` are preserved,
 and cells where `mask[i, j, k] == true` are painted over.
 
-The first argument `inpainting` is the inpainting algorithm to use in the _propagate_field! step.
+The first argument `inpainting` is the inpainting algorithm to use in the `_propagate_field!` step.
 """
 function propagate_horizontally!(inpainting::NearestNeighborInpainting, field, mask, tmp_field=deepcopy(field)) 
     iter  = 0
@@ -127,26 +127,27 @@ end
 """
     inpaint_mask!(field, mask; max_iter = Inf)
 
-Inpaint field within `mask`, using values outside `mask`.
-In other words, regions where `mask[i, j, k] == 1` will be inpainted
-and regions where `mask[i, j, k] == 0` will be preserved.
+Inpaint `field` within `mask`, using values outside `mask`.
+In other words, regions where `mask[i, j, k] == 1` is inpainted
+and regions where `mask[i, j, k] == 0` are preserved.
 
 Arguments
 =========
-    - `field`: `Field` to be inpainted.
-    - `mask`: Boolean-valued `Field`, values where
-              `mask[i, j, k] == true` are inpainted.
-    - `inpainting`: The inpainting algorithm to use. For the moment, the only option is `NearestNeighborInpainting(maxiter)`, 
-                    where an average of the valid surrounding values is used `maxiter` times.
+
+- `field`: `Field` to be inpainted.
+- `mask`: Boolean-valued `Field`, values where
+          `mask[i, j, k] == true` are inpainted.
+- `inpainting`: The inpainting algorithm to use. For the moment, the only option is `NearestNeighborInpainting(maxiter)`, 
+                where an average of the valid surrounding values is used `maxiter` times.
 """
-function inpaint_mask!(field, mask; inpainting = NearestNeighborInpainting(10))
-    
+function inpaint_mask!(field, mask; inpainting=NearestNeighborInpainting(Inf))
+
     if inpainting isa Int
         inpainting = NearestNeighborInpainting(inpainting)
     end
 
     continue_downwards!(field, mask)
     propagate_horizontally!(inpainting, field, mask)
+
     return field
 end
-

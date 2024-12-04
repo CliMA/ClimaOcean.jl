@@ -69,7 +69,7 @@ function heat_capacity(eos::TEOS10EquationOfState{FT}) where FT
     return convert(FT, cₚ⁰)
 end
 
-function OceanSeaIceModel(ocean, sea_ice=MinimumTemperatureSeaIce();
+function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature();
                           atmosphere = nothing,
                           radiation = nothing,
                           similarity_theory = nothing,
@@ -90,11 +90,11 @@ function OceanSeaIceModel(ocean, sea_ice=MinimumTemperatureSeaIce();
     ocean.wall_time_limit = Inf
 
     # Contains information about flux contributions: bulk formula, prescribed fluxes, etc.
-    fluxes = OceanSeaIceSurfaceFluxes(ocean, sea_ice; 
+    fluxes = OceanSeaIceSurfaceFluxes(ocean, sea_ice;
                                       atmosphere, 
-                                      ocean_reference_density, 
+                                      ocean_reference_density,
                                       similarity_theory,
-                                      ocean_heat_capacity, 
+                                      ocean_heat_capacity,
                                       radiation)
 
     ocean_sea_ice_model = OceanSeaIceModel(clock,
@@ -117,4 +117,3 @@ function default_nan_checker(model::OceanSeaIceModel)
     nan_checker = NaNChecker((; u_ocean))
     return nan_checker
 end
-

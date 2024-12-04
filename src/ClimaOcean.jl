@@ -1,8 +1,15 @@
 module ClimaOcean
 
+# Use the README as the module docs
+@doc let
+    path = joinpath(dirname(@__DIR__), "README.md")
+    include_dependency(path)
+    read(path, String)
+end ClimaOcean
+
 export
     OceanSeaIceModel,
-    MinimumTemperatureSeaIce,
+    FreezingLimitedOceanTemperature,
     Radiation,
     LatitudeDependentAlbedo,
     SimilarityTheoryTurbulentFluxes,
@@ -20,7 +27,11 @@ export
     ECCORestoring,
     LinearlyTaperedPolarMask,
     ocean_simulation,
-    initialize!
+    initialize!,
+    @root, 
+    @onrank,
+    @distribute,
+    @handshake
 
 using Oceananigans
 using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
@@ -28,6 +39,8 @@ using DataDeps
 
 using Oceananigans.OutputReaders: GPUAdaptedFieldTimeSeries, FieldTimeSeries
 using Oceananigans.Grids: node
+
+include("distributed_utils.jl")
 
 const SomeKindOfFieldTimeSeries = Union{FieldTimeSeries,
                                         GPUAdaptedFieldTimeSeries}

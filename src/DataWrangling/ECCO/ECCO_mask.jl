@@ -1,4 +1,7 @@
+using Oceananigans: location
 using Oceananigans.Architectures: AbstractArchitecture
+using Oceananigans.Grids: znode
+
 import ClimaOcean: stateindex
 
 """
@@ -7,11 +10,11 @@ import ClimaOcean: stateindex
 A boolean field where `true` represents a missing value in the ECCO dataset.
 """
 function ECCO_mask(metadata, architecture = CPU(); 
+                   data_field = ECCO_field(metadata; architecture, inpainting=nothing),
                    minimum_value = Float32(-1e5),
                    maximum_value = Float32(1e5))
 
-    field = ECCO_field(metadata; architecture)
-    mask  = Field{location(field)...}(field.grid, Bool)
+    mask  = Field{location(data_field)...}(data_field.grid, Bool)
 
     # ECCO4 has zeros in place of the missing values, while
     # ECCO2 expresses missing values with values < -1e5
@@ -22,7 +25,7 @@ function ECCO_mask(metadata, architecture = CPU();
     end
 
     # Set the mask with zeros where field is defined
-    launch!(architecture, field.grid, :xyz, _set_mask!, mask, field, minimum_value, maximum_value)
+    launch!(architecture, data_field.grid, :xyz, _set_mask!, mask, data_field, minimum_value, maximum_value)
 
     return mask
 end
@@ -40,6 +43,40 @@ end
     @inbounds mask[i, j, k] = (Tᵢ[i, j, k] == 0) 
 end
 
+"""
+    ECCO_immersed_grid(metadata, architecture = CPU())
+
+Compute the `ImmersedBoundaryGrid` for `metadata` with a bottom height field that is defined 
+by the first non-missing value from the bottom up.
+"""
+function ECCO_immersed_grid(metadata, architecture = CPU())
+
+    mask = ECCO_mask(metadata, architecture)
+    grid = mask.grid
+    bottom = Field{Center, Center, Nothing}(grid)
+
+    # Set the mask with zeros where field is defined
+    launch!(architecture, grid, :xy, _set_height_from_mask!, bottom, grid, mask)
+
+    return ImmersedBoundaryGrid(grid, GridFittedBottom(bottom))
+end
+
+# Default
+ECCO_immersed_grid(arch::AbstractArchitecture=CPU()) = ECCO_immersed_grid(ECCOMetadata(:temperature), arch)
+
+@kernel function _set_height_from_mask!(bottom, grid, mask)
+    i, j = @index(Global, NTuple)
+    
+    # Starting from the bottom
+    @inbounds bottom[i, j, 1] = znode(i, j, 1, grid, Center(), Center(), Face())
+
+    # Sweep up
+    for k in 1:grid.Nz
+        z⁺ = znode(i, j, k+1, grid, Center(), Center(), Face())
+        @inbounds bottom[i, j, k] = ifelse(mask[i, j, k], z⁺, bottom[i, j, k])
+    end
+end
+
 struct LinearlyTaperedPolarMask{N, S, Z} 
     northern :: N
     southern :: S
@@ -51,17 +88,18 @@ end
                                southern = (-75, -70),
                                z = (-20, 0))
 
-Build a mask that is linearly tapered in latitude inbetween the northern and southern edges.
-The mask is constant in depth between the z and is equal to zero everywhere else.
+Build a mask that is linearly tapered in latitude between the northern and southern edges.
+The mask is constant in depth between the z and equals zero everywhere else.
+The mask is limited to lie between (0, 1).
 The mask has the following functional form:
 
 ```julia
 n = 1 / (northern[2] - northern[1]) * (φ - northern[1])
 s = 1 / (southern[1] - southern[2]) * (φ - southern[2])
 
-within_depth = (z[1] < z < z[2])
+valid_depth = (z[1] < z < z[2])
 
-mask = within_depth ? max(n, s, 0) : 0
+mask = valid_depth ? clamp(max(n, s), 0, 1) : 0
 ```
 """
 function LinearlyTaperedPolarMask(; northern = (70,   75),
@@ -79,9 +117,13 @@ end
     n = 1 / (mask.northern[2] - mask.northern[1]) * (φ - mask.northern[1])
     s = 1 / (mask.southern[1] - mask.southern[2]) * (φ - mask.southern[2])
     
-    within_depth = (mask.z[1] < z < mask.z[2])
+    # The mask is active only between `mask.z[1]` and `mask.z[2]`
+    valid_depth = (mask.z[1] < z < mask.z[2])
 
-    return ifelse(within_depth, max(n, s, zero(n)), zero(n))
+    # we clamp the mask between 0 and 1
+    mask_value = clamp(max(n, s), 0, 1)
+
+    return ifelse(valid_depth, mask_value, zero(n))
 end
 
 @inline function stateindex(mask::LinearlyTaperedPolarMask, i, j, k, grid, time, loc)

@@ -1,4 +1,4 @@
-# # Single column ocean simulation forced by JRA55 re-analysis
+# # Single-column ocean simulation forced by JRA55 re-analysis
 #
 # In this example, we simulate the evolution of an ocean water column 
 # forced by an atmosphere derived from the JRA55 re-analysis.
@@ -15,18 +15,15 @@
 # ```
 
 using ClimaOcean
-
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.BuoyancyModels: buoyancy_frequency
 using Oceananigans.Units: Time
-
-using CairoMakie
 using Printf
 
 # # Construct the grid
 #
-# First, we construct a single column grid with 2 meter spacing
+# First, we construct a single-column grid with 2 meter spacing
 # located at ocean station Papa.
 
 # Ocean station papa location
@@ -42,7 +39,7 @@ grid = RectilinearGrid(size = 200,
 # # An "ocean simulation"
 #
 # Next, we use ClimaOcean's ocean_simulation constructor to build a realistic
-# ocean simulation on the single column grid,
+# ocean simulation on the single-column grid,
 
 ocean = ocean_simulation(grid; Δt=10minutes, coriolis=FPlane(latitude = φ★))
 
@@ -56,7 +53,7 @@ set!(ocean.model, T=ECCOMetadata(:temperature), S=ECCOMetadata(:salinity))
 
 # # A prescribed atmosphere based on JRA55 re-analysis
 #
-# We build a PrescribedAtmosphere at the same location as the single colunm grid
+# We build a PrescribedAtmosphere at the same location as the single-colunm grid
 # which is based on the JRA55 reanalysis.
 
 simulation_days = 31
@@ -65,10 +62,7 @@ last_time = simulation_days * snapshots_per_day
 atmosphere = JRA55_prescribed_atmosphere(1:last_time;
                                          longitude = λ★,
                                          latitude = φ★,
-                                         #longitude = (λ★ - 1/4, λ★ + 1/4),
-                                         #latitude  = (φ★ - 1/4, φ★ + 1/4),
-                                         backend = InMemory(),
-                                         include_rivers_and_icebergs = false)
+                                         backend = InMemory())
 
 # This builds a representation of the atmosphere on the small grid
 
@@ -81,6 +75,10 @@ va = interior(atmosphere.velocities.v, 1, 1, 1, :)
 Ta = interior(atmosphere.tracers.T, 1, 1, 1, :)
 qa = interior(atmosphere.tracers.q, 1, 1, 1, :)
 t_days = atmosphere.times / days
+
+using CairoMakie
+
+set_theme!(Theme(linewidth=3, fontsize=24))
 
 fig = Figure(size=(800, 600))
 axu = Axis(fig[2, 1], xlabel="Days since Jan 1 1990", ylabel="Atmosphere \n velocity (m s⁻¹)")
@@ -96,7 +94,9 @@ axislegend(axu, framevisible=false, nbanks=2, position=:lb)
 lines!(axT, t_days, Ta)
 lines!(axq, t_days, qa)
 
-display(fig)
+current_figure()
+
+# We continue constructing a simulation.
 
 radiation = Radiation()
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
@@ -219,29 +219,26 @@ for n = 1:Nt
     Pt[n]   =  Pr[1, 1, 1, Time(t)] + Ps[1, 1, 1, Time(t)]
 end
 
-set_theme!(Theme(linewidth=3))
+fig = Figure(size=(1800, 1800))
 
-fig = Figure(size=(2400, 1800))
+axτ = Axis(fig[1, 1:3], xlabel="Days since Oct 1 1992", ylabel="Wind stress (N m⁻²)")
+axQ = Axis(fig[1, 4:6], xlabel="Days since Oct 1 1992", ylabel="Heat flux (W m⁻²)")
+axu = Axis(fig[2, 1:3], xlabel="Days since Oct 1 1992", ylabel="Velocities (m s⁻¹)")
+axT = Axis(fig[2, 4:6], xlabel="Days since Oct 1 1992", ylabel="Surface temperature (ᵒC)")
+axF = Axis(fig[3, 1:3], xlabel="Days since Oct 1 1992", ylabel="Freshwater volume flux (m s⁻¹)")
+axS = Axis(fig[3, 4:6], xlabel="Days since Oct 1 1992", ylabel="Surface salinity (g kg⁻¹)")
 
-axτ = Axis(fig[1, 1:2], xlabel="Days since Oct 1 1992", ylabel="Wind stress (N m⁻²)")
-axu = Axis(fig[2, 1:2], xlabel="Days since Oct 1 1992", ylabel="Velocities (m s⁻¹)")
-axQ = Axis(fig[1, 3:4], xlabel="Days since Oct 1 1992", ylabel="Heat flux (W m⁻²)")
-axT = Axis(fig[2, 3:4], xlabel="Days since Oct 1 1992", ylabel="Surface temperature (ᵒC)")
-axF = Axis(fig[1, 5:6], xlabel="Days since Oct 1 1992", ylabel="Freshwater volume flux (m s⁻¹)")
-axS = Axis(fig[2, 5:6], xlabel="Days since Oct 1 1992", ylabel="Surface salinity (g kg⁻¹)")
+axuz = Axis(fig[4:5, 1:2], xlabel="Velocities (m s⁻¹)",                ylabel="z (m)")
+axTz = Axis(fig[4:5, 3:4], xlabel="Temperature (ᵒC)",                  ylabel="z (m)")
+axSz = Axis(fig[4:5, 5:6], xlabel="Salinity (g kg⁻¹)",                 ylabel="z (m)")
+axNz = Axis(fig[6:7, 1:2], xlabel="Buoyancy frequency (s⁻²)",          ylabel="z (m)")
+axκz = Axis(fig[6:7, 3:4], xlabel="Eddy diffusivity (m² s⁻¹)",         ylabel="z (m)", xscale=log10)
+axez = Axis(fig[6:7, 5:6], xlabel="Turbulent kinetic energy (m² s⁻²)", ylabel="z (m)", xscale=log10)
 
-axuz = Axis(fig[3, 1], xlabel="Velocities (m s⁻¹)",                ylabel="z (m)")
-axTz = Axis(fig[3, 2], xlabel="Temperature (ᵒC)",                  ylabel="z (m)")
-axSz = Axis(fig[3, 3], xlabel="Salinity (g kg⁻¹)",                 ylabel="z (m)")
-axNz = Axis(fig[3, 4], xlabel="Buoyancy frequency (s⁻²)",          ylabel="z (m)")
-axκz = Axis(fig[3, 5], xlabel="Eddy diffusivity (m² s⁻¹)",         ylabel="z (m)", xscale=log10)
-axez = Axis(fig[3, 6], xlabel="Turbulent kinetic energy (m² s⁻²)", ylabel="z (m)", xscale=log10)
-
-title = @sprintf("Single column simulation at %.2f, %.2f", φ★, λ★)
+title = @sprintf("Single-column simulation at %.2f, %.2f", φ★, λ★)
 Label(fig[0, 1:6], title)
 
-slider = Slider(fig[4, 1:6], range=1:Nt, startvalue=1)
-n = slider.value
+n = Observable(1)
 
 times = (times .- times[1]) ./days
 Nt = length(times)
@@ -305,23 +302,27 @@ scatterlines!(axκz, κn,  zf)
 
 axislegend(axuz)
 
+ulim = max(maximum(abs, u), maximum(abs, v))
+xlims!(axuz, -ulim, ulim)
+
 Tmax = maximum(interior(T))
 Tmin = minimum(interior(T))
 xlims!(axTz, Tmin - 0.1, Tmax + 0.1)
 
 Nmax = maximum(interior(N²))
-Nmin = minimum(interior(N²))
-xlims!(axNz, Nmin / 2, Nmin * 1.1)
+xlims!(axNz, -Nmax/10, Nmax * 1.05)
+
+κmax = maximum(interior(κ))
+xlims!(axκz, 1e-9, κmax * 1.1)
 
 emax = maximum(interior(e))
-xlims!(axez, 8e-7, emax * 1.1)
-xlims!(axκz, 1e-7, 10)
+xlims!(axez, 1e-11, emax * 1.1)
 
 Smax = maximum(interior(S))
 Smin = minimum(interior(S))
 xlims!(axSz, Smin - 0.2, Smax + 0.2)
 
-record(fig, "single_column_profiles.mp4", 1:8:Nt, framerate=24) do nn
+record(fig, "single_column_profiles.mp4", 1:Nt, framerate=24) do nn
     @info "Drawing frame $nn of $Nt..."
     n[] = nn
 end

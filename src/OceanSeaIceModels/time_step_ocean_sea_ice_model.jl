@@ -29,8 +29,7 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
     end
 
     # TODO after ice time-step:
-    #   - Adjust ocean heat flux if the ice completely melts?
-
+    #  - Adjust ocean heat flux if the ice completely melts?
     ocean.Δt = Δt
     time_step!(ocean)
 
@@ -39,16 +38,15 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
     #   accurate flux computation?
     tick!(coupled_model.clock, Δt)
     update_state!(coupled_model, callbacks; compute_tendencies)
-    
+
     return nothing
 end
 
 function update_state!(coupled_model::OceanSeaIceModel, callbacks=[]; compute_tendencies=true)
     time = Time(coupled_model.clock.time)
     update_model_field_time_series!(coupled_model.atmosphere, time)
-    compute_atmosphere_ocean_fluxes!(coupled_model) 
-    #compute_sea_ice_ocean_fluxes!(coupled_model)
-    #compute_atmosphere_sea_ice_fluxes!(coupled_model)
+    compute_atmosphere_ocean_fluxes!(coupled_model)
+    compute_sea_ice_ocean_fluxes!(coupled_model)
+    # compute_atmosphere_sea_ice_fluxes!(coupled_model)
     return nothing
 end
-

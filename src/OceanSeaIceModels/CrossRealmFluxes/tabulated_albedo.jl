@@ -65,17 +65,19 @@ The transmissivity of the atmosphere is calculated as the ratio of the downwelli
 maximum possible downwelling solar radiation for a transparent atmosphere, function of hour of the day, latitude,
 and day in the year.
 
-# Arguments
-============
-- `arch`: The architecture to use (default: `CPU()`).
-- `FT`: The floating-point type to use (default: `Float64`).
+Arguments
+=========
 
-# Keyword Arguments
-===================
-- `S₀`: The solar constant (default: `convert(FT, 1365)`).
-- `α_table`: The table of albedo values (default: `α_payne`).
-- `φ_values`: The latitude values for the table (default: `(0:2:90) ./ 180 * π`).
-- `𝓉_values`: The transmissivity values for the table (default: `0:0.05:1`).
+- `arch`: The architecture to use. Default: `CPU()`.
+- `FT`: The floating-point type to use. Default: `Float64`.
+
+Keyword Arguments
+=================
+
+- `S₀`: The solar constant. Default: `convert(FT, 1365)`.
+- `α_table`: The table of albedo values. Default: `α_payne`.
+- `φ_values`: The latitude values for the table. Default: `(0:2:90) ./ 180 * π`.
+- `𝓉_values`: The transmissivity values for the table. Default: `0:0.05:1`.
 """
 function TabulatedAlbedo(arch = CPU(), FT = Float64;
                          S₀ = convert(FT, 1365),
@@ -122,28 +124,28 @@ Base.show(io::IO, α::TabulatedAlbedo) = print(io, summary(α))
     λ = deg2rad(λ)
 
     day         = simulation_day(time)
-    day2rad     = α.day_to_radians     
-    noon_in_sec = α.noon_in_seconds    
+    day2rad     = α.day_to_radians
+    noon_in_sec = α.noon_in_seconds
     sec_of_day  = seconds_in_day(time, day)
-    
+
     # Hour angle h
     h = (sec_of_day - noon_in_sec) * day2rad + λ
 
     # Declination angle δ
-	march_first = 80
-	δ = deg2rad((23 + 27/60) * sind(360 * (day - march_first) / 365.25))
+    march_first = 80
+    δ = deg2rad((23 + 27/60) * sind(360 * (day - march_first) / 365.25))
     δ = convert(FT, δ)
 
-	# Zenith angle of the sun (if smaller than 0 we are in the dark)
-	cosθₛ = max(0, sin(φ) * sin(δ) + cos(h) * cos(δ) * cos(φ))
+    # Zenith angle of the sun (if smaller than 0 we are in the dark)
+    cosθₛ = max(0, sin(φ) * sin(δ) + cos(h) * cos(δ) * cos(φ))
 
     # Maximum downwelling solar radiation for
     # a transparent atmosphere
-	Qmax = α.S₀ * cosθₛ 
+    Qmax = α.S₀ * cosθₛ 
 
     # Finding the transmissivity and capping it to 1
     𝓉 = ifelse(Qmax > 0, min(1, Qs / Qmax), 0)
-    
+
     # finding the i-index in the table (depending on transmissivity)
     # we assume that the transmissivity is tabulated with a constant spacing
     𝓉₁ = @inbounds α.𝓉_values[1]
@@ -166,4 +168,3 @@ Base.show(io::IO, α::TabulatedAlbedo) = print(io, summary(α))
 
     return - (1 - α) * Qs - ϵ * Qℓ
 end
-

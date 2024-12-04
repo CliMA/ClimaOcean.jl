@@ -126,27 +126,27 @@ sea-air turbulent fluxes using Monin-Obukhov similarity theory.
 Keyword Arguments
 ==================
 
-- `gravitational_acceleration`: The gravitational acceleration (default: default_gravitational_acceleration).
-- `von_karman_constant`: The von Karman constant (default: 0.4).
-- `turbulent_prandtl_number`: The turbulent Prandtl number (default: 1).
-- `gustiness_parameter`: The gustiness parameter that accounts for low wind speed areas (default: 6.5).
-- `stability_functions`: The stability functions. Default: default_stability_functions(FT) that follow the 
-                         formulation of Edson et al (2013).
+- `gravitational_acceleration`: The gravitational acceleration. Default: `default_gravitational_acceleration`.
+- `von_karman_constant`: The von Karman constant. Default: 0.4.
+- `turbulent_prandtl_number`: The turbulent Prandtl number. Default: 1.
+- `gustiness_parameter`: The gustiness parameter that accounts for low wind speed areas. Default: 6.5.
+- `stability_functions`: The stability functions. Default: `default_stability_functions(FT)` that follow the 
+                         formulation of Edson et al. (2013).
 - `thermodynamics_parameters`: The thermodynamics parameters used to calculate atmospheric stability and
-                               saturation pressure. Default: `PATP`, alias for `PrescribedAtmosphereThermodynamicsParameters`.
-- `water_vapor_saturation`: The water vapor saturation law. Default: ClasiusClapyeronSaturation() that follows the 
-                            Clasius Clapyeron pressure formulation.
-- `water_mole_fraction`: The water mole fraction used to calculate the seawater_saturation_specific_humidity. 
-                         Default: 0.98, the rest is assumed to be other substances such as chlorine, sodium sulfide and magnesium.
+                               saturation pressure. Default: `PATP(FT)`, alias for `PrescribedAtmosphereThermodynamicsParameters`.
+- `water_vapor_saturation`: The water vapor saturation law. Default: `ClasiusClapyeronSaturation()` that follows the 
+                            Clasius-Clapyeron pressure formulation.
+- `water_mole_fraction`: The water mole fraction used to calculate the `seawater_saturation_specific_humidity`. 
+                         Default: 0.98, the rest is assumed to be other substances such as chlorine, sodium sulfide, and magnesium.
 - `roughness_lengths`: The roughness lengths used to calculate the characteristic scales for momentum, temperature and 
-                       water vapor. Default: default_roughness_lengths(FT), formulation taken from Edson et al (2013).
+                       water vapor. Default: `default_roughness_lengths(FT)`, formulation taken from Edson et al (2013).
 - `similarity_profile_type`: The type of similarity profile used to relate the atmospheric state to the 
                              surface fluxes / characteristic scales.
-- `bulk_velocity`: The velocity used to calculate the characteristic scales. Default: RelativeVelocity() (difference between
+- `bulk_velocity`: The velocity used to calculate the characteristic scales. Default: `RelativeVelocity()` (difference between
                    atmospheric and oceanic speed).
-- `tolerance`: The tolerance for convergence (default: 1e-8).
-- `maxiter`: The maximum number of iterations (default: 100).
-- `fields`: The fields to calculate (default: nothing).
+- `tolerance`: The tolerance for convergence. Default: 1e-8.
+- `maxiter`: The maximum number of iterations. Default: 100.
+- `fields`: The fields to calculate. Default: nothing.
 """
 function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
                                          gravitational_acceleration = default_gravitational_acceleration,
@@ -199,7 +199,7 @@ end
 """
     LogarithmicSimilarityProfile()
 
-Represents the classic Monin-Obukhov similarity profile, which finds that 
+Represent the classic Monin-Obukhov similarity profile, which finds that 
 
 ```math
 ϕ(z) = Π(z) ϕ★ / ϰ
@@ -239,14 +239,14 @@ struct COARELogarithmicSimilarityProfile end
 
     # Prescribed difference between two states
     ℂₐ = thermodynamics_parameters
-    Δh, Δu, Δv, Δθ, Δq = state_differences(ℂₐ, 
-                                           atmos_state, 
-                                           surface_state, 
+    Δh, Δu, Δv, Δθ, Δq = state_differences(ℂₐ,
+                                           atmos_state,
+                                           surface_state,
                                            gravitational_acceleration,
                                            similarity_theory.bulk_velocity)
 
     differences = (; u=Δu, v=Δv, θ=Δθ, q=Δq, h=Δh)
-    
+
     # Initial guess for the characteristic scales u★, θ★, q★.
     # Does not really matter if we are sophisticated or not, it converges 
     # in about 10 iterations no matter what...
@@ -310,9 +310,9 @@ end
 # Iterating condition for the characteristic scales solvers
 @inline function iterating(Σ★, iteration, maxiter, solver)
     havent_started = iteration == 0
-    not_converged = norm(Σ★) > solver.tolerance
-    havent_reached_maxiter = iteration < maxiter
-    return havent_started | not_converged | havent_reached_maxiter
+    converged = norm(Σ★) < solver.tolerance
+    reached_maxiter = iteration ≥ maxiter
+    return !(converged | reached_maxiter) | havent_started
 end
 
 """
@@ -430,9 +430,9 @@ end
 
     # Transfer coefficients at height `h`
     profile_type = similarity_theory.similarity_profile_type
-    χu = ϰ / similarity_profile(profile_type, ψu, h, ℓu₀, L★) 
-    χθ = ϰ / similarity_profile(profile_type, ψθ, h, ℓθ₀, L★) 
-    χq = ϰ / similarity_profile(profile_type, ψq, h, ℓq₀, L★) 
+    χu = ϰ / similarity_profile(profile_type, ψu, h, ℓu₀, L★)
+    χθ = ϰ / similarity_profile(profile_type, ψθ, h, ℓθ₀, L★)
+    χq = ϰ / similarity_profile(profile_type, ψq, h, ℓq₀, L★)
 
     Δu = differences.u
     Δv = differences.v
@@ -454,4 +454,3 @@ end
 
     return SimilarityScales(u★, θ★, q★), ΔU
 end
-

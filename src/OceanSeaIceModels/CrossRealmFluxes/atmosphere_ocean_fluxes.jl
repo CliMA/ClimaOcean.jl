@@ -44,7 +44,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     freshwater_flux = map(ϕ -> ϕ.data, atmosphere.freshwater_flux)
 
     # Extract info for time-interpolation
-    u = atmosphere.velocities.u # for example 
+    u = atmosphere.velocities.u # for example
     atmosphere_times = u.times
     atmosphere_backend = u.backend
     atmosphere_time_indexing = u.time_indexing
@@ -171,7 +171,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             coupled_model.fluxes.ocean_reference_density,
             coupled_model.fluxes.ocean_heat_capacity,
             coupled_model.fluxes.freshwater_density)
-            
+                
     limit_fluxes_over_sea_ice!(grid, kernel_parameters, sea_ice,
                                centered_velocity_fluxes,
                                net_tracer_fluxes,
@@ -199,7 +199,7 @@ end
 
     i, j = @index(Global, NTuple)
     kᴺ = size(grid, 3) # index of the top ocean cell
-      
+
     @inbounds begin
         # Atmos state, which is _assumed_ to exist at location = (c, c, nothing)
         # The third index "k" should not matter but we put the correct index to get
@@ -220,6 +220,10 @@ end
         # Usually precipitation
         Mh = interp_atmos_time_series(prescribed_freshwater_flux, X, time, atmos_args...)
 
+        # Convert atmosphere velocities (defined on a latitude-longitude grid) to 
+        # the frame of reference of the native grid
+        uₐ, vₐ = intrinsic_vector(i, j, kᴺ, grid, uₐ, vₐ)
+    
         surface_atmos_state.u[i, j, 1] = uₐ
         surface_atmos_state.v[i, j, 1] = vₐ
         surface_atmos_state.T[i, j, 1] = Tₐ
@@ -230,8 +234,6 @@ end
         surface_atmos_state.Mp[i, j, 1] = Mh
     end
 end
-
-
 
 @kernel function _interpolate_auxiliary_freshwater_flux!(freshwater_flux,
                                                          grid,
@@ -244,7 +246,7 @@ end
 
     i, j = @index(Global, NTuple)
     kᴺ = size(grid, 3) # index of the top ocean cell
-      
+
     @inbounds begin
         X = _node(i, j, kᴺ + 1, grid, c, c, f)
         time = Time(clock.time)
@@ -295,6 +297,7 @@ end
     𝒬ₐ = thermodynamic_atmospheric_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₐ, qₐ)
 
     hₐ = atmosphere_reference_height # elevation of atmos variables relative to surface
+    
     Uₐ = SVector(uₐ, vₐ)
     𝒰ₐ = dynamic_atmos_state = SurfaceFluxes.StateValues(hₐ, Uₐ, 𝒬ₐ)
 
@@ -304,13 +307,8 @@ end
                                                similarity_theory.water_mole_fraction,
                                                similarity_theory.water_vapor_saturation,
                                                surface_type)
-    
+
     # Thermodynamic and dynamic (ocean) surface state:
-    #
-    # Convert the native grid velocities to a zonal - meridional 
-    # frame of reference (assuming the frame of reference is 
-    # latitude - longitude here, we might want to change it)
-    uₒ, vₒ = extrinsic_vector(i, j, kᴺ, grid, uₒ, vₒ)
     Uₒ = SVector(uₒ, vₒ)
      
     𝒬₀ = thermodynamic_surface_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₒ, qₒ)
@@ -330,10 +328,6 @@ end
                                                         atmosphere_boundary_layer_height,
                                                         ℂₐ, g, ϰ, maxiter)
 
-    # Convert back from a zonal - meridional flux to the frame of 
-    # reference of the native ocean grid
-    ρτxⁱʲ, ρτyⁱʲ = intrinsic_vector(i, j, kᴺ, grid, turbulent_fluxes.x_momentum, turbulent_fluxes.y_momentum)
-
     # Store fluxes
     Qv = similarity_theory.fields.latent_heat
     Qc = similarity_theory.fields.sensible_heat
@@ -346,8 +340,8 @@ end
         Qv[i, j, 1]  = ifelse(inactive, 0, turbulent_fluxes.latent_heat)
         Qc[i, j, 1]  = ifelse(inactive, 0, turbulent_fluxes.sensible_heat)
         Fv[i, j, 1]  = ifelse(inactive, 0, turbulent_fluxes.water_vapor)
-        ρτx[i, j, 1] = ifelse(inactive, 0, ρτxⁱʲ)
-        ρτy[i, j, 1] = ifelse(inactive, 0, ρτyⁱʲ)
+        ρτx[i, j, 1] = ifelse(inactive, 0, turbulent_fluxes.x_momentum)
+        ρτy[i, j, 1] = ifelse(inactive, 0, turbulent_fluxes.y_momentum)
     end
 end
 
@@ -371,9 +365,9 @@ end
     time = Time(clock.time)
 
     @inbounds begin
-        Tₒ = ocean_temperature[i, j, 1]
+        Tₒ = ocean_temperature[i, j, kᴺ]
         Tₒ = convert_to_kelvin(ocean_temperature_units, Tₒ)
-        Sₒ = ocean_salinity[i, j, 1]
+        Sₒ = ocean_salinity[i, j, kᴺ]
 
         Qs = downwelling_radiation.shortwave[i, j, 1]
         Qℓ = downwelling_radiation.longwave[i, j, 1]
@@ -394,7 +388,7 @@ end
     ΣQ = Qd + Qu + Qc + Qv
 
     # Convert from a mass flux to a volume flux (aka velocity)
-    # by dividing by the density of freshwater.
+    # by dividing with the density of freshwater.
     # Also switch the sign, for some reason we are given freshwater flux as positive down.
     ρf⁻¹ = 1 / freshwater_density
     ΣF   = - Mp * ρf⁻¹
@@ -456,4 +450,3 @@ end
     # Note: positive implies _upward_ heat flux, and therefore cooling.
     return ϵ * σ * Tₒ^4
 end
-
