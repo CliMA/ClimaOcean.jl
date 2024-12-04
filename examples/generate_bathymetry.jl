@@ -38,7 +38,7 @@ grid = LatitudeLongitudeGrid(size = (Nλ, Nφ, 1),
 #   one interpolation passes and no restrictions on connected regions.
 # - `h_smooth` shows the output of the function with 40 interpolation passes, which results
 #    in a smoother bathymetry.
-# - `h_no_connected_regions` shows the output of the function with `connected_regions_allowed = 0`, which
+# - `h_no_connected_regions` shows the output of the function with `major_basins = 1`, which
 #    means that the function does not allow connected regions in the bathymetry  (e.g., lakes)
 #    and fills them with land.
 
