@@ -45,7 +45,7 @@ Base.summary(md::ECCOMetadata{<:AbstractCFDateTime, <:ECCO2Monthly}) = "ECCO2Mon
 Base.summary(md::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4Monthly}) = "ECCO4Monthly $(md.name) metadata at $(md.dates)"
 
 """
-    ECCOMetadata(name::Symbol; 
+    ECCOMetadata(name::Symbol;
                  dates = DateTimeProlepticGregorian(1993, 1, 1),
                  version = ECCO4Monthly(),
                  dir = download_ECCO_cache)
@@ -74,9 +74,6 @@ function ECCOMetadata(name::Symbol;
 
     return ECCOMetadata(name, dates, version, dir)
 end
-
-ECCOMetadata(name::Symbol, date, version=ECCO4Monthly(); dir=download_ECCO_cache) =
-    ECCOMetadata(name, date, version, dir)
 
 # Treat ECCOMetadata as an array to allow iteration over the dates.
 Base.length(metadata::ECCOMetadata) = length(metadata.dates)
