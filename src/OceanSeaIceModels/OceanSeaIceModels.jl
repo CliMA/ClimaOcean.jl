@@ -2,6 +2,7 @@ module OceanSeaIceModels
 
 export OceanSeaIceModel, SimilarityTheoryTurbulentFluxes, FreezingLimitedOceanTemperature
 export Radiation, LatitudeDependentAlbedo
+export SkinTemperature, BulkTemperature
 
 using Oceananigans
 using SeawaterPolynomials
