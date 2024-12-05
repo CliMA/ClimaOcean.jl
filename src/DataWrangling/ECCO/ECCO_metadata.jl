@@ -222,12 +222,12 @@ function download_dataset(metadata::ECCOMetadata; url = urls(metadata))
     
     # Create a temporary directory to store the .netrc file
     # The directory will be deleted after the download is complete
-    mktempdir(dir) do tmp
+    @root mktempdir(dir) do tmp
 
         # Write down the username and password in a .netrc file
         downloader = netrc_downloader(username, password, "ecco.jpl.nasa.gov", tmp)
 
-        @distribute for metadatum in metadata # Distribute the download among ranks if MPI is initialized
+        asyncmap(metadata, ntasks=10) do metadatum # Distribute the download among tasks
 
             fileurl  = metadata_url(url, metadatum) 
             filepath = metadata_path(metadatum)
