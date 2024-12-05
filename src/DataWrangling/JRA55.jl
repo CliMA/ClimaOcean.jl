@@ -686,7 +686,7 @@ function JRA55PrescribedAtmosphere(architecture::AA, time_indices=Colon();
     reference_height = convert(FT, reference_height)
     thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT)
     grid = ua.grid
-    metadata = JRA55()
+    metadata = JRA55Data()
 
     return PrescribedAtmosphere(grid,
                                 metadata,
