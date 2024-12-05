@@ -15,8 +15,8 @@ Base.size(data::JRA55Metadata) = (640, 320, length(data.dates))
 Base.size(::JRA55Metadata{<:AbstractCFDateTime}) = (640, 320, 1)
 
 # The whole range of dates in the different dataset versions
-all_JRA55_times(::JRA55RepeatYear)    = DateTimeProlepticGregorian(1990, 1, 1, 3) : Hour(3) : DateTimeProlepticGregorian(1991,  1, 1)
-all_JRA55_times(::JRA55MultipleYears) = DateTimeProlepticGregorian(1958, 1, 1)    : Hour(3) : DateTimeProlepticGregorian(2021,  1, 1)
+all_JRA55_times(::JRA55RepeatYear)    = DateTimeProlepticGregorian(1990, 1, 1) : Hour(3) : DateTimeProlepticGregorian(1991, 1, 1)
+all_JRA55_times(::JRA55MultipleYears) = DateTimeProlepticGregorian(1958, 1, 1) : Hour(3) : DateTimeProlepticGregorian(2021, 1, 1)
 
 # File name generation specific to each Dataset version
 function metadata_filename(metadata::Metadata{<:AbstractCFDateTime, <:JRA55MultipleYears})
