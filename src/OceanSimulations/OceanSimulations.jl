@@ -113,6 +113,16 @@ function ocean_simulation(grid;
         u_immersed_bc = DefaultBoundaryCondition()
         v_immersed_bc = DefaultBoundaryCondition()
     else
+        if !(grid isa ImmersedBoundaryGrid)
+            msg = """Are you totally, 100% sure that you want to build a simulation on
+
+                   $(summary(grid))
+
+                   rather than on an ImmersedBoundaryGrid?
+                   """
+            @warn msg
+        end
+
         bottom_drag_coefficient = default_or_override(bottom_drag_coefficient)
         
         u_immersed_drag = FluxBoundaryCondition(u_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)

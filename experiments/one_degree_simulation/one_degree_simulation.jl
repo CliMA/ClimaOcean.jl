@@ -10,7 +10,6 @@ using CUDA: @allowscalar, device!
 
 using Oceananigans.Grids: znode
 
-device!(3)
 arch = GPU()
 
 #####
@@ -47,7 +46,7 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(tampered_bottom_he
 
 gm = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1000, κ_symmetric=1000)
 catke = ClimaOcean.OceanSimulations.default_ocean_closure()
-viscous_closure = Oceananigans.TurbulenceClosures.HorizontalScalarDiffusivity(ν=10000)
+viscous_closure = Oceananigans.TurbulenceClosures.HorizontalScalarDiffusivity(ν=2000)
 
 closure = (gm, catke, viscous_closure)
 
@@ -65,8 +64,8 @@ temperature = ECCOMetadata(:temperature; dates, version=ECCO4Monthly(), dir="./"
 salinity    = ECCOMetadata(:salinity;    dates, version=ECCO4Monthly(), dir="./")
 
 # inpainting = NearestNeighborInpainting(30) should be enough to fill the gaps near bathymetry
-FT = ECCORestoring(arch, temperature; grid, mask, rate=restoring_rate, inpainting=NearestNeighborInpainting(30))
-FS = ECCORestoring(arch, salinity;    grid, mask, rate=restoring_rate, inpainting=NearestNeighborInpainting(30))
+FT = ECCORestoring(arch, temperature; grid, mask, rate=restoring_rate, inpainting=NearestNeighborInpainting(50))
+FS = ECCORestoring(arch, salinity;    grid, mask, rate=restoring_rate, inpainting=NearestNeighborInpainting(50))
 forcing = (T=FT, S=FS)
 
 #####
@@ -95,9 +94,7 @@ atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(20))
 ##### Coupled simulation
 #####
 
-sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
-coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-
+coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation) 
 simulation = Simulation(coupled_model; Δt=15minutes, stop_time=2*365days)
 
 #####

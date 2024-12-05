@@ -4,7 +4,7 @@
 # ClimaOcean.jl. The simulation covers latitudes from 75°S to 75°N with a horizontal
 # resolution of 1/4 degree and 40 vertical levels.
 #
-# The simulation's results are visualized using the CairoMakie.jl package.
+# The simulation's results are visualized with the CairoMakie.jl package.
 #
 # ## Initial setup with package imports
 #
@@ -13,14 +13,13 @@
 # These packages provide the foundational tools for setting up the simulation environment,
 # including grid setup, physical processes modeling, and data visualization.
 
-using Printf
+using ClimaOcean
 using Oceananigans
 using Oceananigans.Units
-using ClimaOcean
 using CairoMakie
-
 using CFTime
 using Dates
+using Printf
 
 # ### Grid configuration 
 #
@@ -58,7 +57,7 @@ bottom_height = regrid_bathymetry(grid;
                                   interpolation_passes = 5,
                                   major_basins = 3)
 
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
+grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
 # Let's see what the bathymetry looks like:
 

@@ -6,7 +6,7 @@ export ECCORestoring, LinearlyTaperedPolarMask
 
 using ClimaOcean
 using ClimaOcean.DataWrangling
-using ClimaOcean.DataWrangling: inpaint_mask!
+using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting
 using ClimaOcean.InitialConditions: three_dimensional_regrid!, interpolate!
 
 using Oceananigans
@@ -138,15 +138,10 @@ within the specified `mask`. `mask` is set to `ECCO_mask` for non-nothing
 """
 function ECCO_field(metadata::ECCOMetadata;
                     architecture = CPU(),
-                    inpainting = nothing,
+                    inpainting = NearestNeighborInpainting(Inf),
                     mask = nothing,
                     horizontal_halo = (7, 7),
                     cache_inpainted_data = false)
-
-    # Respect user-supplied mask, but otherwise build default ECCO mask.
-    if !isnothing(inpainting) && isnothing(mask)
-        mask = ECCO_mask(metadata, architecture)
-    end
 
     field = empty_ECCO_field(metadata; architecture, horizontal_halo)
     inpainted_path = inpainted_metadata_path(metadata)
@@ -162,6 +157,8 @@ function ECCO_field(metadata::ECCOMetadata;
             copyto!(parent(field), data)
             return field
         end
+
+        close(file)
     end
 
     download_dataset(metadata)
@@ -194,13 +191,23 @@ function ECCO_field(metadata::ECCOMetadata;
     # data by 180 degrees in longitude
     if metadata.version isa ECCO4Monthly 
         Nx = size(data, 1)
-        data = circshift(data, (Nx ÷ 2, 0, 0))
+        if variable_is_three_dimensional(metadata)
+            shift = (Nx ÷ 2, 0, 0)
+        else
+            shift = (Nx ÷ 2, 0)
+        end
+        data = circshift(data, shift)
     end
 
     set!(field, data)
     fill_halo_regions!(field)
 
     if !isnothing(inpainting)
+        # Respect user-supplied mask, but otherwise build default ECCO mask.
+        if isnothing(mask)
+            mask = ECCO_mask(metadata, architecture; data_field=field)
+        end
+
         # Make sure all values are extended properly
         name = string(metadata.name)
         date = string(metadata.dates)

@@ -10,11 +10,11 @@ import ClimaOcean: stateindex
 A boolean field where `true` represents a missing value in the ECCO dataset.
 """
 function ECCO_mask(metadata, architecture = CPU(); 
+                   data_field = ECCO_field(metadata; architecture, inpainting=nothing),
                    minimum_value = Float32(-1e5),
                    maximum_value = Float32(1e5))
 
-    field = ECCO_field(metadata; architecture)
-    mask  = Field{location(field)...}(field.grid, Bool)
+    mask  = Field{location(data_field)...}(data_field.grid, Bool)
 
     # ECCO4 has zeros in place of the missing values, while
     # ECCO2 expresses missing values with values < -1e5
@@ -25,7 +25,7 @@ function ECCO_mask(metadata, architecture = CPU();
     end
 
     # Set the mask with zeros where field is defined
-    launch!(architecture, field.grid, :xyz, _set_mask!, mask, field, minimum_value, maximum_value)
+    launch!(architecture, data_field.grid, :xyz, _set_mask!, mask, data_field, minimum_value, maximum_value)
 
     return mask
 end
