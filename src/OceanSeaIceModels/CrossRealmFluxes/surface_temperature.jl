@@ -73,7 +73,7 @@ DiffusiveFlux(FT; κ = 1e-2, δ = 1.0) = DiffusiveFlux(convert(FT, δ), convert(
 #
 # Where the LHS is the internal diffusive flux inside the ocean (within the boundary layer of thickness δ) 
 # plus the (semi-implicit) outgoing longwave radiation and the RHS are the remaining atmospheric and radiative fluxes
-# provided explicitly.
+# provided explicitly. Here we implement the fully explicit version.
 @inline flux_balance_temperature(F::DiffusiveFlux, θₒ, Jᵀ) = θₒ - Jᵀ / F.κ * F.δ
 
 # he flaw here is that the ocean emissivity and albedo are fixed, but they might be a function of the 
