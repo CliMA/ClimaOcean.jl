@@ -1,12 +1,10 @@
-
-
 """
     Metadata{D, V} 
 
 Metadata holding the dataset information:
 - `name`: The name of the dataset.
 - `dates`: The dates of the dataset, in a `AbstractCFDateTime` format.
-- `version`: The version of the dataset, could be ECCO2Monthly, ECCO2Daily, or ECCO4Monthly.
+- `version`: The version of the dataset, could be ECCO2Monthly, ECCO2Daily, ECCO4Monthly, JRA55RepeatYear, or JRA55MultipleYears.
 - `dir`: The directory where the dataset is stored.
 """
 struct Metadata{D, V} 
