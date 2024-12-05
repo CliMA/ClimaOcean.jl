@@ -13,7 +13,7 @@ struct ECCO2Monthly end
 struct ECCO2Daily end
 struct ECCO4Monthly end
 
-const ECCOMetadata{D, V} = Union{Metadata{T, V<:ECCO4Monthly}, Metadata{T, V<:ECCO2Daily}, Metadata{T, V<:ECCO2Monthly}} where {T, V}
+const ECCOMetadata{D, V} = Union{Metadata{D, V<:ECCO4Monthly}, Metadata{D, V<:ECCO2Daily}, Metadata{D, V<:ECCO2Monthly}} where {D, V}
 
 Base.show(io::IO, metadata::ECCOMetadata) = 
     print(io, "ECCOMetadata:", '\n',
