@@ -252,7 +252,15 @@ function set!(fts::JRA55NetCDFFTS, path::String=fts.path, name::String=fts.name)
 
     ti = time_indices(fts)
     ti = collect(ti)
-    data = ds[name][i₁:i₂, j₁:j₂, ti]
+
+    if issorted(ti)
+        data = ds[name][i₁:i₂, j₁:j₂, ti]
+    else # ti must wrap around 1
+        fwd = sortperm(ti)
+        data = ds[name][i₁:i₂, j₁:j₂, ti[fwd]]
+        data = data[:, :, invperm(fwd)]
+    end
+
     close(ds)
 
     copyto!(interior(fts, :, :, 1, :), data)
