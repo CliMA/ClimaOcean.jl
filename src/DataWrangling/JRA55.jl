@@ -255,10 +255,14 @@ function set!(fts::JRA55NetCDFFTS, path::String=fts.path, name::String=fts.name)
 
     if issorted(ti)
         data = ds[name][i₁:i₂, j₁:j₂, ti]
-    else # ti must wrap around 1
+    else
+        # The time indices may be cycling past 1; eg ti = [6, 7, 8, 1].
+        # However, DiskArrays does not seem to support loading data with unsorted
+        # indices. So to handle this, we first load the data with sorted time-indices,
+        # and then invert the permutation to obtain the desired cycling time-series.
         fwd = sortperm(ti)
-        data = ds[name][i₁:i₂, j₁:j₂, ti[fwd]]
-        data = data[:, :, invperm(fwd)]
+        tmp = ds[name][i₁:i₂, j₁:j₂, ti[fwd]]
+        data = tmp[:, :, invperm(fwd)]
     end
 
     close(ds)

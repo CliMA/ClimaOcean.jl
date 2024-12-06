@@ -56,13 +56,13 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 
             Nt = length(netcdf_jra55_fts.times)
             @test Oceananigans.OutputReaders.time_indices(netcdf_jra55_fts) == (1, 2, 3, 4)
-            f₁ = netcdf_jra55_fts.data[:, :, 1, 1]
+            f₁ = Array(view(netcdf_jra55_fts.data, :, :, 1, 1))
 
             netcdf_jra55_fts.backend = JRA55NetCDFBackend(Nt-2, Nb)
             @test Oceananigans.OutputReaders.time_indices(netcdf_jra55_fts) == (Nt-2, Nt-1, Nt, 1)
             set!(netcdf_jra55_fts)
 
-            f₁′ = netcdf_jra55_fts.data[:, :, 1, 4]
+            f₁′ = Array(view(netcdf_jra55_fts.data, :, :, 1, 4))
             @test f₁ == f₁′
         end
 
