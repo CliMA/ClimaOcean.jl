@@ -37,7 +37,7 @@ For example, the default bottom drag should be 0 for a single column model, but 
 We therefore need a way to specify both the "normal" default 0.003 as well as the "alternative default" 0,
 all while respecting user input and changing this to a new value if specified.
 """
-default_or_override(default::Default, possibly_alternative_default=default.value) =  possibly_alternative_default
+default_or_override(default::Default, possibly_alternative_default=default.value) = possibly_alternative_default
 default_or_override(override, alternative_default=nothing) = override
 
 # Some defaults
@@ -95,6 +95,8 @@ function ocean_simulation(grid;
 
     if grid isa RectilinearGrid # turn off Coriolis unless user-supplied
         coriolis = default_or_override(coriolis, nothing)
+    else
+        coriolis = default_or_override(coriolis)
     end
 
     # Detect whether we are on a single column grid
