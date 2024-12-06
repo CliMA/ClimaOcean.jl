@@ -121,6 +121,7 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         ##### JRA55 prescribed atmosphere
         #####
 
+        Nb = 4
         backend = JRA55NetCDFBackend(Nb) 
         atmosphere = JRA55_prescribed_atmosphere(arch; backend, include_rivers_and_icebergs=false)
         @test atmosphere isa PrescribedAtmosphere
