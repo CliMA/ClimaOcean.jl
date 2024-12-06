@@ -23,7 +23,7 @@ if test_group == :init || test_group == :all
     #### Download JRA55 data 
     ####
     
-    atmosphere = JRA55_prescribed_atmosphere()
+    atmosphere = JRA55PrescribedAtmosphere()
 
     ####
     #### Download ECCO data 

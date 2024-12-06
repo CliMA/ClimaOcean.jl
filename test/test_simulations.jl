@@ -25,7 +25,7 @@ using OrthogonalSphericalShellGrids
         ocean = ocean_simulation(grid; free_surface) 
 
         backend = JRA55NetCDFBackend(4)
-        atmosphere = JRA55_prescribed_atmosphere(arch; backend)
+        atmosphere = JRA55PrescribedAtmosphere(arch; backend)
         radiation = Radiation(arch)
 
         # Fluxes are computed when the model is constructed, so we just test that this works.

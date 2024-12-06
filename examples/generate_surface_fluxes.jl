@@ -44,7 +44,7 @@ save("ECCO_continents.png", fig) #hide
 # We invoke the constructor with only the first two time indices, corresponding to 
 # January 1st (at 00:00 AM and 03:00 AM).
 
-atmosphere = JRA55_prescribed_atmosphere(1:2; backend = InMemory())
+atmosphere = JRA55PrescribedAtmosphere(1:2; backend = InMemory())
 ocean = ocean_simulation(grid)
 
 # Now that we have an atmosphere and ocean, we `set!` the ocean temperature and salinity
