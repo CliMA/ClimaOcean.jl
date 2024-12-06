@@ -37,16 +37,33 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 
         @info "Testing loading preprocessed JRA55 data on $A..."
         in_memory_jra55_fts = JRA55_field_time_series(test_name;
-                                                      time_indices,
+                                                      time_indices = 1:8,
                                                       architecture = arch,
-                                                      backend = InMemory(2))
+                                                      backend = InMemory(4))
 
         @test in_memory_jra55_fts isa FieldTimeSeries
-
         @test interior(in_memory_jra55_fts[1]) == interior(jra55_fts[1])
 
         # Clean up
         rm(in_memory_jra55_fts.path)
+
+        # Test wrapping
+        Nb = 4
+        backend = JRA55NetCDFBackend(Nb) 
+        netcdf_jra55_fts = JRA55_field_time_series(test_name; backend,
+                                                   time_indices = Colon(),
+                                                   architecture = arch)
+
+        Nt = length(netcdf_jra55_fts.times)
+        @test Oceananigans.OutputReaders.time_indices(netcdf_jra55_fts) == (1, 2, 3, 4)
+        f₁ = netcdf_jra55_fts.data[:, :, 1, 1]
+
+        netcdf_jra55_fts.backend = JRA55NetCDFBackend(Nt-2, Nb)
+        @test Oceananigans.OutputReaders.time_indices(netcdf_jra55_fts) == (Nt-2, Nt-1, Nt, 1)
+        set!(netcdf_jra55_fts)
+
+        f₁′ = netcdf_jra55_fts.data[:, :, 1, 4]
+        @test f₁ == f₁′
 
         @info "Testing interpolate_field_time_series! on $A..."
         # Make target grid and field
@@ -100,7 +117,6 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         ##### JRA55 prescribed atmosphere
         #####
 
-        backend    = JRA55NetCDFBackend(2) 
         atmosphere = JRA55_prescribed_atmosphere(arch; backend, include_rivers_and_icebergs=false)
         @test atmosphere isa PrescribedAtmosphere
         @test isnothing(atmosphere.auxiliary_freshwater_flux)
