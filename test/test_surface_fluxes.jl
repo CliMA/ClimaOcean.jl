@@ -226,7 +226,7 @@ end
 
         set!(ocean.model; T=T_metadata, S=S_metadata)
 
-        atmosphere = JRA55_prescribed_atmosphere(1:10; grid, architecture = arch, backend = InMemory())
+        atmosphere = JRA55PrescribedAtmosphere(1:10; grid, architecture = arch, backend = InMemory())
         radiation  = Radiation(ocean_albedo=0.1, ocean_emissivity=1.0)
         sea_ice    = nothing
 
