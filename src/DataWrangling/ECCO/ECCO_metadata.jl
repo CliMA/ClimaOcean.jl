@@ -81,7 +81,6 @@ ECCOMetadata(name::Symbol, date, version=ECCO4Monthly(); dir=download_ECCO_cache
     ECCOMetadata(name, date, version, dir)
 
 # Treat ECCOMetadata as an array to allow iteration over the dates.
-Base.length(metadata::ECCOMetadata) = length(metadata.dates)
 Base.eltype(metadata::ECCOMetadata) = Base.eltype(metadata.dates)
 
 @propagate_inbounds Base.getindex(m::ECCOMetadata, i::Int) = ECCOMetadata(m.name, m.dates[i],   m.version, m.dir)
@@ -102,10 +101,12 @@ Base.last(metadata::ECCOMetadata{<:AbstractCFDateTime})    = metadata
 Base.iterate(metadata::ECCOMetadata{<:AbstractCFDateTime}) = (metadata, nothing)
 Base.iterate(::ECCOMetadata{<:AbstractCFDateTime}, ::Any)  = nothing
 
+Base.length(metadata::ECCOMetadata) = length(metadata.dates)
 Base.size(data::ECCOMetadata{<:Any, <:ECCO2Daily})   = (1440, 720, 50, length(data.dates))
 Base.size(data::ECCOMetadata{<:Any, <:ECCO2Monthly}) = (1440, 720, 50, length(data.dates))
 Base.size(data::ECCOMetadata{<:Any, <:ECCO4Monthly}) = (720,  360, 50, length(data.dates))
 
+Base.length(metadata::ECCOMetadata{<:AbstractCFDateTime}) = 1
 Base.size(::ECCOMetadata{<:AbstractCFDateTime, <:ECCO2Daily})   = (1440, 720, 50, 1)
 Base.size(::ECCOMetadata{<:AbstractCFDateTime, <:ECCO2Monthly}) = (1440, 720, 50, 1)
 Base.size(::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4Monthly}) = (720,  360, 50, 1)
