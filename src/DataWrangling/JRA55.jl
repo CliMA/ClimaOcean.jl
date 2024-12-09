@@ -391,7 +391,7 @@ function JRA55_field_time_series(variable_name;
 
     # Note, we don't re-use existing jld2 files.
     @root begin
-        isfile(filepath) || download(url, filepath)
+        isfile(filepath) || download(url, filepath; progress=download_progress)
         isfile(jld2_filepath) && rm(jld2_filepath)
     end
 
