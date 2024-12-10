@@ -217,6 +217,7 @@ end
             true
         end
 
+        # The backend has cycled tot he beginning
         @test t_restoring.field_time_series.backend.start == 1
     end
 end
