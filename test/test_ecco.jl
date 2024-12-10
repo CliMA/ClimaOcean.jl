@@ -7,8 +7,10 @@ using ClimaOcean
 using ClimaOcean.ECCO
 using ClimaOcean.ECCO: ECCO_field, metadata_path, ECCO_times
 using ClimaOcean.DataWrangling: NearestNeighborInpainting
+
 using Oceananigans.Grids: topology
 using Oceananigans.OutputReaders: time_indices
+using Oceananigans.TimeStepping: update_state!
 using Oceananigans.Units
 
 using CUDA: @allowscalar
