@@ -6,10 +6,11 @@ using MPI
 #####
 
 # Utilities to make the macro work importing only ClimaOcean and not MPI
-mpi_initialized()    = MPI.Initialized()
-mpi_rank(comm)       = MPI.Comm_rank(comm)
-mpi_size(comm)       = MPI.Comm_size(comm)
-global_barrier(comm) = MPI.Barrier(comm) 
+mpi_initialized()     = MPI.Initialized()
+mpi_rank(comm)        = MPI.Comm_rank(comm)
+mpi_size(comm)        = MPI.Comm_size(comm)
+global_barrier(comm)  = MPI.Barrier(comm) 
+global_communicator() = MPI.COMM_WORLD
 
 """
     @root communicator exs...
@@ -35,7 +36,7 @@ end
 
 macro root(exp)
     command = quote
-        @root MPI.COMM_WORLD $exp
+        @root ClimaOcean.global_communicator() $exp
     end
     return esc(command)
 end
@@ -67,7 +68,7 @@ end
 
 macro onrank(rank, exp)
     command = quote
-        @onrank MPI.COMM_WORLD $rank $exp
+        @onrank ClimaOcean.global_communicator() $rank $exp
     end
     return esc(command)
 end
@@ -116,7 +117,7 @@ end
 
 macro distribute(exp)
     command = quote
-        @distribute MPI.COMM_WORLD $exp
+        @distribute ClimaOcean.global_communicator() $exp
     end
     return esc(command)
 end
@@ -149,7 +150,7 @@ end
 
 macro handshake(exp)
     command = quote
-        @handshake MPI.COMM_WORLD $exp
+        @handshake ClimaOcean.global_communicator() $exp
     end
     return esc(command)
 end
