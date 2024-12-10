@@ -37,9 +37,9 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 
             @info "Testing loading preprocessed JRA55 data on $A..."
             in_memory_jra55_fts = JRA55_field_time_series(test_name;
-                                                          time_indices = 1:8,
+                                                          time_indices = 1:3,
                                                           architecture = arch,
-                                                          backend = InMemory(4))
+                                                          backend = InMemory(2))
 
             @test in_memory_jra55_fts isa FieldTimeSeries
             @test interior(in_memory_jra55_fts[1]) == interior(jra55_fts[1])
@@ -47,7 +47,7 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
             # Clean up
             rm(in_memory_jra55_fts.path)
 
-            # Test wrapping
+            @info "Testing Cyclical time_indices for JRA55 data on $A..."
             Nb = 4
             backend = JRA55NetCDFBackend(Nb) 
             netcdf_jra55_fts = JRA55_field_time_series(test_name; backend,
