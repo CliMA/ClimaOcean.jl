@@ -9,6 +9,7 @@ using ClimaOcean.ECCO: ECCO_field, metadata_path, ECCO_times
 using ClimaOcean.DataWrangling: NearestNeighborInpainting
 using Oceananigans.Grids: topology
 using Oceananigans.OutputReaders: time_indices
+using Oceananigans.Units
 
 using CUDA: @allowscalar
 
@@ -207,7 +208,7 @@ end
         times = ECCO_times(t_restoring.field_time_series.backend.metadata)
         ocean = ocean_simulation(grid, forcing = (; T = t_restoring))
 
-        ocean.model.clock.time = times[3] + 2days
+        ocean.model.clock.time = times[3] + 2 * Units.days
         update_state!(ocean.model)
 
         @test t_restoring.field_time_series.backend.start == 3
@@ -216,7 +217,7 @@ end
         time_step!(ocean)
 
         # Try stepping out of the ECCO dataset bounds
-        ocean.model.clock.time = last(times) + 2days
+        ocean.model.clock.time = last(times) + 2 * Units.days
 
         update_state!(ocean.model)
         
