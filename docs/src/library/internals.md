@@ -59,7 +59,7 @@ Modules = [ClimaOcean.OceanSeaIceModels]
 Private = false
 ```
 
-## CrossRealFluxes
+## CrossRealmFluxes
 
 ```@autodocs
 Modules = [ClimaOcean.OceanSeaIceModels.CrossRealmFluxes]
