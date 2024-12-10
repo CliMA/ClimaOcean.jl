@@ -6,25 +6,26 @@ using MPI
 #####
 
 # Utilities to make the macro work importing only ClimaOcean and not MPI
-mpi_initialized() = MPI.Initialized()
-mpi_rank()        = MPI.Comm_rank(MPI.COMM_WORLD)
-mpi_size()        = MPI.Comm_size(MPI.COMM_WORLD)
-global_barrier()  = mpi_initialized() ? MPI.Barrier(MPI.COMM_WORLD) : nothing
+mpi_initialized()    = MPI.Initialized()
+mpi_rank(comm)       = MPI.Comm_rank(comm)
+mpi_size(comm)       = MPI.Comm_size(comm)
+global_barrier(comm) = MPI.Barrier(comm) 
 
 """
-    @root exs...
+    @root communicator exs...
 
-Perform `exs` only on rank 0, otherwise know as "root" rank.
-Other ranks will wait for the root rank to finish before continuing
+Perform `exs` only on rank 0 in communicator, otherwise known as the "root" rank.
+Other ranks will wait for the root rank to finish before continuing.
+If `communicator` is not provided, `MPI.COMM_WORLD` is used.
 """
-macro root(exp)
+macro root(communicator, exp)
     command = quote
         if ClimaOcean.mpi_initialized()
-            rank = ClimaOcean.mpi_rank()
+            rank = ClimaOcean.mpi_rank($communicator)
             if rank == 0
                 $exp
             end
-            ClimaOcean.global_barrier()
+            ClimaOcean.global_barrier($communicator)
         else
             $exp
         end
@@ -32,40 +33,54 @@ macro root(exp)
     return esc(command)
 end
 
-"""
-    @onrank rank, exs...
+macro root(exp)
+    command = quote
+        @root MPI.COMM_WORLD $exp
+    end
+    return esc(command)
+end
 
-Perform `exp` only on rank `rank`
-Other ranks will wait for the root rank to finish before continuing.
-The expression is run anyways if MPI in not initialized
 """
-macro onrank(exp_with_rank)
-    on_rank = exp_with_rank.args[1]
-    exp  = exp_with_rank.args[2]
+    @onrank communicator rank exs...
+
+Perform `exp` only on rank `rank` (0-based index) in `communicator`.
+Other ranks will wait for rank `rank` to finish before continuing.
+The expression is run anyways if MPI in not initialized.
+If `communicator` is not provided, `MPI.COMM_WORLD` is used.
+"""
+macro onrank(communicator, on_rank, exp)
     command = quote
         mpi_initialized = ClimaOcean.mpi_initialized()
-        rank = ClimaOcean.mpi_rank()
         if !mpi_initialized
             $exp
         else
+            rank = ClimaOcean.mpi_rank($communicator)
             if rank == $on_rank
                 $exp
             end
-            ClimaOcean.global_barrier()
+            ClimaOcean.global_barrier($communicator)
         end
     end
 
+    return esc(command)
+end
+
+macro onrank(rank, exp)
+    command = quote
+        @onrank MPI.COMM_WORLD $rank $exp
+    end
     return esc(command)
 end
 
 """ 
-    @distribute for i in iterable
+    @distribute communicator for i in iterable
         ...
     end
 
-Distribute a `for` loop among different ranks
+Distribute a `for` loop among different ranks in `communicator`.
+If `communicator` is not provided, `MPI.COMM_WORLD` is used.
 """
-macro distribute(exp)
+macro distribute(communicator, exp)
     if exp.head != :for
         error("The `@distribute` macro expects a `for` loop")
     end
@@ -74,46 +89,67 @@ macro distribute(exp)
     variable = exp.args[1].args[1]
     forbody  = exp.args[2]
 
+    # Safety net if the iterable variable has the same name as the 
+    # reserved variable names (nprocs, counter, rank)
+    nprocs  = ifelse(variable == :nprocs,  :othernprocs,  :nprocs)
+    counter = ifelse(variable == :counter, :othercounter, :counter)
+    rank    = ifelse(variable == :rank,    :otherrank,    :rank)
+
     new_loop = quote
         mpi_initialized = ClimaOcean.mpi_initialized()
         if !mpi_initialized
             $exp
         else
-            rank   = ClimaOcean.mpi_rank()
-            nprocs = ClimaOcean.mpi_size()
-            for (counter, $variable) in enumerate($iterable)
-                if (counter - 1) % nprocs == rank
+            $rank   = ClimaOcean.mpi_rank($communicator)
+            $nprocs = ClimaOcean.mpi_size($communicator)
+            for ($counter, $variable) in enumerate($iterable)
+                if ($counter - 1) % $nprocs == $rank
                     $forbody
                 end
             end
-            ClimaOcean.global_barrier()
+            ClimaOcean.global_barrier($communicator)
         end
     end
 
     return esc(new_loop)
 end
 
-"""
-    @handshake exs...
+macro distribute(exp)
+    command = quote
+        @distribute MPI.COMM_WORLD $exp
+    end
+    return esc(command)
+end
 
-perform `exs` on all ranks, but only one rank at a time, where
-ranks `r2 > r1` wait for rank `r1` to finish before executing `exs`
 """
-macro handshake(exp)
+    @handshake communicator exs...
+
+perform `exs` on all ranks in `communicator`, but only one rank at a time, where
+ranks `r2 > r1` wait for rank `r1` to finish before executing `exs`.
+If `communicator` is not provided, `MPI.COMM_WORLD` is used.
+"""
+macro handshake(communicator, exp)
     command = quote
         mpi_initialized = ClimaOcean.mpi_initialized()
         if !mpi_initialized
             $exp
         else
-            rank   = ClimaOcean.mpi_rank()
-            nprocs = ClimaOcean.mpi_size()
+            rank   = ClimaOcean.mpi_rank($communicator)
+            nprocs = ClimaOcean.mpi_size($communicator)
             for r in 0 : nprocs -1
                 if rank == r
                     $exp
                 end
-                ClimaOcean.global_barrier()
+                ClimaOcean.global_barrier($communicator)
             end
         end
+    end
+    return esc(command)
+end
+
+macro handshake(exp)
+    command = quote
+        @handshake MPI.COMM_WORLD $exp
     end
     return esc(command)
 end
