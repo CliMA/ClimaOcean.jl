@@ -93,19 +93,26 @@ function regrid_bathymetry(target_grid;
                            major_basins = Inf) # Allow an `Inf` number of ``lakes''
 
     filepath = joinpath(dir, filename)
-    fileurl  = joinpath(url, filename)
 
-    @root begin # perform all this only on rank 0, aka the "root" rank
-        if !isfile(filepath)
-            try 
-                Downloads.download(fileurl, filepath; progress=download_progress, verbose=true)
-            catch 
-                cmd = `wget --no-check-certificate -O $filepath $fileurl`
-                @root run(cmd)
-            end
+    if isfile(filepath)
+        @info "Regridding bathymetry from existing file $filepath."
+    else
+        @info "Downloading bathymetry..."
+        if !ispath(dir)
+            @info "Making bathymetry directory $dir..."
+            mkdir(dir)
+        end
+
+        fileurl = joinpath(url, filename)
+
+        try 
+            Downloads.download(fileurl, filepath; progress=download_progress, verbose=true)
+        catch 
+            cmd = `wget --no-check-certificate -O $filepath $fileurl`
+            run(cmd)
         end
     end
-    
+
     dataset = Dataset(filepath)
 
     FT = eltype(target_grid)
