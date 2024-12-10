@@ -46,7 +46,7 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(tampered_bottom_he
 
 gm = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1000, κ_symmetric=1000)
 catke = ClimaOcean.OceanSimulations.default_ocean_closure()
-viscous_closure = Oceananigans.TurbulenceClosures.HorizontalScalarDiffusivity(ν=2000)
+viscous_closure = HorizontalScalarBiharmonicDiffusivity(ν = 1e11)
 
 closure = (gm, catke, viscous_closure)
 
@@ -95,7 +95,7 @@ atmosphere = JRA55_prescribed_atmosphere(arch; backend=JRA55NetCDFBackend(20))
 #####
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation) 
-simulation = Simulation(coupled_model; Δt=15minutes, stop_time=2*365days)
+simulation = Simulation(coupled_model; Δt=2minutes, stop_time=30days)
 
 #####
 ##### Run it!
@@ -125,5 +125,9 @@ function progress(sim)
 end
 
 add_callback!(simulation, progress, IterationInterval(10))
+
+run!(simulation)
+
+simulation.Δt = 25minutes
 
 run!(simulation)
