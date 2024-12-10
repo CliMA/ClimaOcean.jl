@@ -36,7 +36,7 @@ end
 
 macro root(exp)
     command = quote
-        @root MPI.COMM_WORLD $exp
+        @root ClimaOcean.global_communicator() $exp
     end
     return esc(command)
 end
