@@ -185,3 +185,38 @@ end
         set!(ocean.model, T=ECCOMetadata(:temperature, date), S=ECCOMetadata(:salinity, date))
     end
 end
+
+@testset "ECCO dataset cycling boundaries" begin
+    for arch in test_architectures
+        grid = LatitudeLongitudeGrid(size=(10, 10, 10),
+                                     latitude=(-60, -40),
+                                     longitude=(10, 15),
+                                     z=(-200, 0),
+                                     halo = (7, 7, 7))
+
+        t_restoring = ECCORestoring(arch, :temperature;
+                                    dates,
+                                    rate = 1 / 1000.0,
+                                    inpainting)
+
+
+        ocean = ocean_simulation(grid, forcing = (; T = t_restoring))
+
+        # Compile
+        time_step!(ocean)
+
+        # Try stepping out of the ECCO dataset bounds
+        times = ECCO_times(t_restoring.field_time_series.backend.metadata)
+
+        ocean.model.clock.time = last(times) + 2days
+
+        update_state!(ocean.model)
+        
+        @test begin
+            time_step!(ocean)
+            true
+        end
+
+        @test t_restoring.field_time_series.backend.start == 1
+    end
+end
