@@ -93,17 +93,10 @@ function regrid_bathymetry(target_grid;
                            major_basins = Inf) # Allow an `Inf` number of ``lakes''
 
     filepath = joinpath(dir, filename)
-    fileurl  = joinpath(url, filename)
+    fileurl  = url * "/" * filename # joinpath on windows creates the wrong url
 
-    @root begin # perform all this only on rank 0, aka the "root" rank
-        if !isfile(filepath)
-            try 
-                Downloads.download(fileurl, filepath; progress=download_progress, verbose=true)
-            catch 
-                cmd = `wget --no-check-certificate -O $filepath $fileurl`
-                @root run(cmd)
-            end
-        end
+    @root if !isfile(filepath) # perform all this only on rank 0, aka the "root" rank
+        Downloads.download(fileurl, filepath; progress=download_progress)
     end
     
     dataset = Dataset(filepath)
