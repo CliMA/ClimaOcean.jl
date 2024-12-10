@@ -101,12 +101,11 @@ set!(ocean.model, T=ECCOMetadata(:temperature; dates=date),
 radiation = Radiation(arch)
 
 # The atmospheric data is prescribed using the JRA55 dataset.
-# The number of snapshots that are loaded into memory is determined by
-# the `backend`
-
-# into memory in 41 snapshots at a time. The JRA55 dataset provides atmospheric
+# The JRA55 dataset provides atmospheric
 # data such as temperature, humidity, and wind fields to calculate turbulent fluxes
 # using bulk formulae, see [`CrossRealmFluxes`](@ref).
+# The number of snapshots that are loaded into memory is determined by
+# the `backend`. Here, we load 41 snapshots at a time into memory.
 
 atmosphere = JRA55_prescribed_atmosphere(arch; backend=JRA55NetCDFBackend(41))
 
@@ -117,7 +116,7 @@ atmosphere = JRA55_prescribed_atmosphere(arch; backend=JRA55NetCDFBackend(41))
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 
-# We then create a coupled simulation, starting with a time step of 10 seconds
+# We then create a coupled simulation, starting with a time step of 90 seconds
 # and running the simulation for 10 days.
 
 simulation = Simulation(coupled_model; Δt=90, stop_time=10days)
