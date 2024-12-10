@@ -141,7 +141,7 @@ function ECCO_field(metadata::ECCOMetadata;
                     inpainting = NearestNeighborInpainting(Inf),
                     mask = nothing,
                     horizontal_halo = (7, 7),
-                    cache_inpainted_data = false)
+                    cache_inpainted_data = true)
 
     field = empty_ECCO_field(metadata; architecture, horizontal_halo)
     inpainted_path = inpainted_metadata_path(metadata)

@@ -5,7 +5,9 @@ using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes:
                                     convert_to_kelvin, 
                                     SimilarityScales,
                                     seawater_saturation_specific_humidity,
-                                    surface_flux
+                                    surface_flux,
+                                    SkinTemperature, 
+                                    BulkTemperature
 
 using Thermodynamics
 using CUDA
@@ -28,7 +30,6 @@ import Oceananigans.Fields: _fractional_indices
 _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, nothing, nothing)
 
 @testset "Test surface fluxes" begin
-    @info " Testing zero fluxes..."
     for arch in test_architectures
         grid = LatitudeLongitudeGrid(arch;
                                     size = 1, 
@@ -61,32 +62,40 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
             water_vapor_saturation = FixedSpecificHumidity(qₐ)
             water_mole_fraction = 1
 
-            # turbulent fluxes that force a specific humidity at the ocean's surface
-            similarity_theory = SimilarityTheoryTurbulentFluxes(grid; water_vapor_saturation, water_mole_fraction)
-
             # Thermodynamic parameters of the atmosphere
-            g  = similarity_theory.gravitational_acceleration
             𝒬ₐ = Thermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₐ, qₐ)
             cp = Thermodynamics.cp_m(ℂₐ, 𝒬ₐ)
             ρₐ = Thermodynamics.air_density(ℂₐ, 𝒬ₐ)
             ℰv = Thermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
 
-            # Ensure that the ΔT between atmosphere and ocean is zero 
-            # Note that the Δθ accounts for the "lapse rate" at height h
-            Tₒ = Tₐ - celsius_to_kelvin + h / cp * g
-            
-            set!(ocean.model, u = uₐ, v = vₐ, T = Tₒ)
+            # turbulent fluxes that force a specific humidity at the ocean's surface
+            for Tmode in (BulkTemperature, SkinTemperature)
+                @info " Testing zero fluxes with $(Tmode)..."
 
-            # Compute the turbulent fluxes (neglecting radiation)
-            coupled_model    = OceanSeaIceModel(ocean; atmosphere, similarity_theory)
-            turbulent_fluxes = coupled_model.fluxes.turbulent.fields
+                similarity_theory = SimilarityTheoryTurbulentFluxes(grid; 
+                                                                    water_vapor_saturation, 
+                                                                    water_mole_fraction, 
+                                                                    surface_temperature_type = Tmode())
 
-            # Make sure all fluxes are (almost) zero!
-            @test turbulent_fluxes.x_momentum[1, 1, 1]    < eps(eltype(grid))
-            @test turbulent_fluxes.y_momentum[1, 1, 1]    < eps(eltype(grid))
-            @test turbulent_fluxes.sensible_heat[1, 1, 1] < eps(eltype(grid))
-            @test turbulent_fluxes.latent_heat[1, 1, 1]   < eps(eltype(grid))
-            @test turbulent_fluxes.water_vapor[1, 1, 1]   < eps(eltype(grid))
+                g  = similarity_theory.gravitational_acceleration
+
+                # Ensure that the ΔT between atmosphere and ocean is zero 
+                # Note that the Δθ accounts for the "lapse rate" at height h
+                Tₒ = Tₐ - celsius_to_kelvin + h / cp * g
+                
+                set!(ocean.model, u = uₐ, v = vₐ, T = Tₒ)
+
+                # Compute the turbulent fluxes (neglecting radiation)
+                coupled_model    = OceanSeaIceModel(ocean; atmosphere, similarity_theory)
+                turbulent_fluxes = coupled_model.fluxes.turbulent.fields
+
+                # Make sure all fluxes are (almost) zero!
+                @test turbulent_fluxes.x_momentum[1, 1, 1]    < eps(eltype(grid))
+                @test turbulent_fluxes.y_momentum[1, 1, 1]    < eps(eltype(grid))
+                @test turbulent_fluxes.sensible_heat[1, 1, 1] < eps(eltype(grid))
+                @test turbulent_fluxes.latent_heat[1, 1, 1]   < eps(eltype(grid))
+                @test turbulent_fluxes.water_vapor[1, 1, 1]   < eps(eltype(grid))
+            end
 
             @info " Testing neutral fluxes..."
             
@@ -123,6 +132,7 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
             
             𝒬ₒ = Thermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₒ, qₒ)
             qₒ = Thermodynamics.vapor_specific_humidity(ℂₐ, 𝒬ₒ)
+            g  = similarity_theory.gravitational_acceleration
 
             # Differences!
             Δu = uₐ
@@ -271,5 +281,4 @@ end
         @test τʸ_std ≈ 7.627885224680635e-5
     end
 end
-
 
