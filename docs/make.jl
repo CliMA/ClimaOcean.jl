@@ -1,9 +1,7 @@
-pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..")) # add ClimaOcean to environment stack
-
 using
+  ClimaOcean,
   Documenter,
-  Literate,
-  ClimaOcean
+  Literate
 
 ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
 
@@ -16,29 +14,40 @@ const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
 
 to_be_literated = [
     "inspect_ecco_data.jl",
+    "generate_bathymetry.jl",
     "generate_surface_fluxes.jl",
-    "single_column_simulation.jl",
-    # "near_global_omip_simulation.jl"
+    "single_column_os_papa_simulation.jl",
+    # "mediterranean_simulation_with_ecco_restoring.jl",
+    "near_global_ocean_simulation.jl"
 ]
 
 for file in to_be_literated
     filepath = joinpath(EXAMPLES_DIR, file)
-    Literate.markdown(filepath, OUTPUT_DIR; flavor = Literate.DocumenterFlavor())
+    withenv("JULIA_DEBUG" => "Literate") do
+        Literate.markdown(filepath, OUTPUT_DIR; flavor = Literate.DocumenterFlavor(), execute = true)
+    end
 end
 
 #####
 ##### Build and deploy docs
 #####
 
-format = Documenter.HTML(
-       collapselevel = 2,
-      size_threshold = nothing,
-          prettyurls = get(ENV, "CI", nothing) == "true",
-           canonical = "https://clima.github.io/ClimaOceanDocumentation/dev/",
-)
+format = Documenter.HTML(collapselevel = 2,
+                         size_threshold = nothing,
+                         prettyurls = get(ENV, "CI", nothing) == "true",
+                         canonical = "https://clima.github.io/ClimaOceanDocumentation/dev/")
 
 pages = [
     "Home" => "index.md",
+
+    "Examples" => [
+        "Inspect ECCO2 data" => "literated/inspect_ecco_data.md",
+        "Generate bathymetry" => "literated/generate_bathymetry.md",
+        "Surface fluxes" => "literated/generate_surface_fluxes.md",
+        "Single-column simulation" => "literated/single_column_os_papa_simulation.md",
+        # "Mediterranean simulation with ECCO restoring" => "literated/mediterranean_simulation_with_ecco_restoring.md",
+        "Near-global Ocean simulation" => "literated/near_global_ocean_simulation.md",
+        ],
 
     "Library" => [ 
         "Contents"       => "library/outline.md",
@@ -46,24 +55,16 @@ pages = [
         "Private"        => "library/internals.md",
         "Function index" => "library/function_index.md",
         ],
-
-    "Examples" => [
-        "Inspect ECCO2 data" => "literated/inspect_ecco_data.md",
-        "Surface fluxes" => "literated/generate_surface_fluxes.md",
-        "Single column simulation" => "literated/single_column_simulation.md",
-        ]
 ]
 
-makedocs(
-     sitename = "ClimaOcean.jl",
-      modules = [ClimaOcean],
-       format = format,
-        pages = pages,
-      doctest = true,
-        clean = true,
-     warnonly = [:cross_references, :missing_docs],
-    checkdocs = :exports
-)
+makedocs(sitename = "ClimaOcean.jl";
+         format,
+         pages, 
+         modules = [ClimaOcean],
+         doctest = true,
+         clean = true,
+         warnonly = [:cross_references, :missing_docs],
+         checkdocs = :exports)
 
 @info "Clean up temporary .jld2 and .nc output created by doctests or literated examples..."
 
@@ -86,10 +87,13 @@ for file in files
     rm(file)
 end
 
-withenv("GITHUB_REPOSITORY" => "CliMA/ClimaOceanDocumentation") do
-    deploydocs(        repo = "github.com/CliMA/ClimaOceanDocumentation.git",
-                   versions = ["stable" => "v^", "v#.#.#", "dev" => "dev"],
-                  forcepush = true,
-                  devbranch = "main",
+ci_build = get(ENV, "CI", nothing) == "true"
+
+if ci_build
+    deploydocs(repo = "github.com/CliMA/ClimaOceanDocumentation.git",
+               deploy_config = Documenter.Buildkite(),
+               versions = ["stable" => "v^", "dev" => "dev", "v#.#.#"],
+               forcepush = true,
+               devbranch = "main",
                push_preview = true)
 end

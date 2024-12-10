@@ -44,6 +44,7 @@ dζ = min(ζmax, Aˢζ)
 
 While the stability parameter for unstable atmospheric conditions is calculated
 as a function of the two individual stability functions as follows
+
 ```math
 fᵤ₁ = √√(1 - Aᵘζ)
 ψᵤ₁ = Bᵘ / 2 ⋅ log((1 + fᵤ₁ + fᵤ₁² + fᵤ₁³) / Bᵘ) - √Bᵘ atan(fᵤ₁) - Cᵘ
@@ -71,7 +72,7 @@ stability function for _stable_ or _unstable_ atmospheric conditions, respective
     Eᵘ   :: FT = 3.0
     Fᵘ   :: FT = π / sqrt(3)
 end
-    
+
 @inline function (ψ::MomentumStabilityFunction)(ζ)
     ζmax = ψ.ζmax
     Aˢ   = ψ.Aˢ  
@@ -170,15 +171,15 @@ end
     dζ = min(ζmax, Aˢ * ζ⁺)
 
     # stability function for stable atmospheric conditions 
-    ψₛ = - (1 + Bˢ * ζ⁺) ^ Cˢ - Bˢ * (ζ⁺ - Dˢ) * exp(-dζ) - Eˢ
-    
+    ψₛ = - (1 + Bˢ * ζ⁺)^Cˢ - Bˢ * (ζ⁺ - Dˢ) * exp(-dζ) - Eˢ
+
     # Stability parameter for _unstable_ atmospheric conditions
     fᵤ₁ = sqrt(1 - Aᵘ * ζ⁻)
     ψᵤ₁ = Bᵘ * log((1 + fᵤ₁) / Bᵘ) + Cᵘ
-        
+
     fᵤ₂ = cbrt(1 - Dᵘ * ζ⁻)
     ψᵤ₂ = Eᵘ / 2 * log((1 + fᵤ₂ + fᵤ₂^2) / Eᵘ) - sqrt(Eᵘ) * atan( (1 + 2fᵤ₂) / sqrt(Eᵘ)) + Fᵘ
-        
+
     f  = ζ⁻^2 / (1 + ζ⁻^2)
     ψᵤ = (1 - f) * ψᵤ₁ + f * ψᵤ₂  
 

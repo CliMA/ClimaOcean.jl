@@ -1,6 +1,7 @@
 include("runtests_setup.jl")
 
 using ClimaOcean.JRA55: download_jra55_cache
+using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 
 @testset "JRA55 and data wrangling utilities" begin
     for arch in test_architectures
@@ -91,10 +92,21 @@ using ClimaOcean.JRA55: download_jra55_cache
 
         # Test that we can load the data back
         Qswt = FieldTimeSeries(filepath, "Qsw")
-        @show size(Qswt.data), size(target_fts)
-        @test parent(Qswt) == parent(target_fts)    
+        @test on_architecture(CPU(), parent(Qswt.data)) == on_architecture(CPU(), parent(target_fts.data))
         @test Qswt.times == target_fts.times
         rm(filepath)
-    end 
-end
 
+        #####
+        ##### JRA55 prescribed atmosphere
+        #####
+
+        backend    = JRA55NetCDFBackend(2) 
+        atmosphere = JRA55_prescribed_atmosphere(arch; backend, include_rivers_and_icebergs=false)
+        @test atmosphere isa PrescribedAtmosphere
+        @test isnothing(atmosphere.auxiliary_freshwater_flux)
+
+        atmosphere = JRA55_prescribed_atmosphere(arch; backend, include_rivers_and_icebergs=true)
+        @test haskey(atmosphere.auxiliary_freshwater_flux, :rivers)
+        @test haskey(atmosphere.auxiliary_freshwater_flux, :icebergs)
+    end
+end
