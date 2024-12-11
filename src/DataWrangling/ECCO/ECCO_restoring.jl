@@ -61,12 +61,10 @@ cache_inpainted_data(::ECCONetCDFBackend{native, cache_data}) where {native, cac
 
 function set!(fts::ECCOFieldTimeSeries) 
     backend = fts.backend
-    start   = backend.start
     inpainting = backend.inpainting
     cache_data = cache_inpainted_data(backend)
-    len = backend.length
 
-    for t in start:start+len-1
+    for t in time_indices(fts)
         # Set each element of the time-series to the associated file
         metadatum = @inbounds backend.metadata[t] 
         set!(fts[t], metadatum; inpainting, cache_inpainted_data=cache_data)
