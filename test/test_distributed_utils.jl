@@ -3,6 +3,10 @@ include("runtests_setup.jl")
 using MPI
 MPI.Init()
 
+using ClimaOcean.ECCO: download_dataset, metadata_path
+using CFTime
+using Dates
+
 @testset begin
     rank = MPI.Comm_rank(MPI.COMM_WORLD)
 
@@ -47,6 +51,7 @@ MPI.Init()
     @onrank 3 begin
         @test a == [4, 8]
     end
+  
 
     split_comm = MPI.Comm_split(MPI.COMM_WORLD, rank % 2, rank)
 
@@ -58,4 +63,14 @@ MPI.Init()
 
     @onrank split_comm 0 @test a == [1, 3, 5, 7, 9]
     @onrank split_comm 1 @test a == [2, 4, 6, 8, 10]
+end
+
+@testset "Distributed ECCO download" begin
+    dates = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(1994, 4, 1)
+    metadata = ECCOMetadata(:u_velocity; dates)
+    download_dataset(metadata)
+
+    @root for metadatum in metadata
+        @test isfile(metadata_path(metadatum))
+    end
 end

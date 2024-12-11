@@ -6,7 +6,7 @@ export ECCORestoring, LinearlyTaperedPolarMask
 
 using ClimaOcean
 using ClimaOcean.DataWrangling
-using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting
+using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, download_progress
 using ClimaOcean.InitialConditions: three_dimensional_regrid!, interpolate!
 
 using Oceananigans
@@ -141,7 +141,7 @@ function ECCO_field(metadata::ECCOMetadata;
                     inpainting = NearestNeighborInpainting(Inf),
                     mask = nothing,
                     horizontal_halo = (7, 7),
-                    cache_inpainted_data = false)
+                    cache_inpainted_data = true)
 
     field = empty_ECCO_field(metadata; architecture, horizontal_halo)
     inpainted_path = inpainted_metadata_path(metadata)
