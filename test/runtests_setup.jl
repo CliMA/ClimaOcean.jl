@@ -30,7 +30,7 @@ salinity_metadata    = ECCOMetadata(:salinity, dates)
 
 # Fictitious grid that triggers bathymetry download
 function download_bathymetry(; dir = download_bathymetry_cache, 
-                          filename = "ETOPO_2022_v1_60s_N90W180_surface.nc")
+                             filename = "ETOPO_2022_v1_60s_N90W180_surface.nc")
                           
     grid = LatitudeLongitudeGrid(size = (10, 10, 1), 
                                  longitude = (0, 100), 
@@ -41,3 +41,4 @@ function download_bathymetry(; dir = download_bathymetry_cache,
 
     return nothing
 end
+
