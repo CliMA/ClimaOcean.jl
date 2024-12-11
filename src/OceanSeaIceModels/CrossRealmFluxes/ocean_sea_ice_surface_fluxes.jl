@@ -114,7 +114,8 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
                                                 sea_ice_reference_density,
                                                 sea_ice_heat_capacity)
 
-    total_fluxes = (; ocean=total_ocean_fluxes)
+    total_fluxes = (; ocean=total_ocean_fluxes,
+                      sea_ice=total_sea_ice_fluxes)
 
     surface_atmosphere_state = interpolated_surface_atmosphere_state(ocean_grid)
 
