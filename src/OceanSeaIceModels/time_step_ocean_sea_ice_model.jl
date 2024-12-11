@@ -2,8 +2,6 @@ using .CrossRealmFluxes: compute_atmosphere_ocean_fluxes!, compute_sea_ice_ocean
 
 using ClimaSeaIce: SeaIceModel
 
-const SeaIceSimulation = Simulation{<:SeaIceModel}
-
 function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_tendencies=true)
     ocean = coupled_model.ocean
     sea_ice = coupled_model.sea_ice

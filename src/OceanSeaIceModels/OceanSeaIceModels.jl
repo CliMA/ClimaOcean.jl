@@ -35,6 +35,8 @@ sea_ice_concentration(::Nothing) = nothing
 const default_gravitational_acceleration = 9.80665
 const default_freshwater_density = 1000
 
+const SeaIceSimulation = Simulation{<:SeaIceModel}
+
 #####
 ##### Some implementation
 #####

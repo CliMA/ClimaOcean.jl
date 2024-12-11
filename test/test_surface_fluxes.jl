@@ -86,8 +86,8 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
                 set!(ocean.model, u = uₐ, v = vₐ, T = Tₒ)
 
                 # Compute the turbulent fluxes (neglecting radiation)
-                coupled_model    = OceanSeaIceModel(ocean; atmosphere, similarity_theory)
-                turbulent_fluxes = coupled_model.fluxes.turbulent.fields
+                coupled_model    = OceanSeaIceModel(ocean; atmosphere, ocean_similarity_theory=similarity_theory)
+                turbulent_fluxes = coupled_model.fluxes.turbulent.ocean.fields
 
                 # Make sure all fluxes are (almost) zero!
                 @test turbulent_fluxes.x_momentum[1, 1, 1]    < eps(eltype(grid))
@@ -120,7 +120,7 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
             # mid-latitude ocean conditions
             set!(ocean.model, u = 0, v = 0, T = 15, S = 30)
             
-            coupled_model = OceanSeaIceModel(ocean; atmosphere, similarity_theory)
+            coupled_model = OceanSeaIceModel(ocean; atmosphere, ocean_similarity_theory=similarity_theory)
 
             # Now manually compute the fluxes:
             Tₒ = ocean.model.tracers.T[1, 1, 1] + celsius_to_kelvin
@@ -153,7 +153,7 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
             Mv = - ρₐ * u★ * q★
             Ql = - ρₐ * u★ * q★ * ℰv
 
-            turbulent_fluxes = coupled_model.fluxes.turbulent.fields
+            turbulent_fluxes = coupled_model.fluxes.turbulent.ocean.fields
 
             # Make sure fluxes agree with the hand-calculated ones
             @test turbulent_fluxes.x_momentum[1, 1, 1]    ≈ τx
@@ -193,7 +193,7 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
 
             coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation=nothing)
 
-            turbulent_fluxes = coupled_model.fluxes.turbulent.fields
+            turbulent_fluxes = coupled_model.fluxes.turbulent.ocean.fields
 
             # Make sure that temperature fluxes are zero when the temperature 
             # is below the minimum but not zero when it is above

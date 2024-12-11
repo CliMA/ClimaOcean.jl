@@ -72,17 +72,24 @@ end
 function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature();
                           atmosphere = nothing,
                           radiation = nothing,
-                          similarity_theory = nothing,
+                          ocean_similarity_theory = nothing,
+                          sea_ice_similarity_theory = nothing,
                           ocean_reference_density = reference_density(ocean),
                           ocean_heat_capacity = heat_capacity(ocean),
                           clock = deepcopy(ocean.model.clock))
 
     # Remove some potentially irksome callbacks from the ocean simulation
-    # TODO: also remove these from sea ice simulations
     pop!(ocean.callbacks, :stop_time_exceeded, nothing)
     pop!(ocean.callbacks, :stop_iteration_exceeded, nothing)
     pop!(ocean.callbacks, :wall_time_limit_exceeded, nothing)
     pop!(ocean.callbacks, :nan_checker, nothing)
+
+    if sea_ice isa SeaIceSimulation
+        pop!(sea_ice.callbacks, :stop_time_exceeded, nothing)
+        pop!(sea_ice.callbacks, :stop_iteration_exceeded, nothing)
+        pop!(sea_ice.callbacks, :wall_time_limit_exceeded, nothing)
+        pop!(sea_ice.callbacks, :nan_checker, nothing)
+    end
 
     # In case there was any doubt these are meaningless.
     ocean.stop_time = Inf
@@ -93,7 +100,8 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature();
     fluxes = OceanSeaIceSurfaceFluxes(ocean, sea_ice;
                                       atmosphere, 
                                       ocean_reference_density,
-                                      similarity_theory,
+                                      ocean_similarity_theory,
+                                      sea_ice_similarity_theory,
                                       ocean_heat_capacity,
                                       radiation)
 

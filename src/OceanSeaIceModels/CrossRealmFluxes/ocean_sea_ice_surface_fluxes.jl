@@ -87,12 +87,12 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
         # (as opposed to the one used for the free surface)
         gravitational_acceleration = ocean.model.buoyancy.model.gravitational_acceleration
 
-        if isnothing(similarity_theory)
+        if isnothing(ocean_similarity_theory)
             ocean_similarity_theory = SimilarityTheoryTurbulentFluxes(ocean_grid; gravitational_acceleration)
+        end
 
-            if !isnothing(sea_ice)
-                sea_ice_similarity_theory = SimilarityTheoryTurbulentFluxes(sea_ice_grid; gravitational_acceleration)
-            end
+        if !isnothing(sea_ice) && isnothing(sea_ice_similarity_theory)
+            sea_ice_similarity_theory = SimilarityTheoryTurbulentFluxes(sea_ice_grid; gravitational_acceleration)
         end
     end
 
