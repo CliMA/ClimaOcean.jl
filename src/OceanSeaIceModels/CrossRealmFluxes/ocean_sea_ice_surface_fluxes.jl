@@ -38,8 +38,11 @@ struct OceanSeaIceSurfaceFluxes{T, P, C, R, PI, PC, FT, UN, ATM}
     # The ocean is Boussinesq, so these are _only_ coupled properties:
     ocean_reference_density :: FT
     ocean_heat_capacity :: FT
+    sea_ice_reference_density :: FT
+    sea_ice_heat_capacity :: FT
     freshwater_density :: FT
     ocean_temperature_units :: UN
+    sea_ice_temperature_units :: UN
     # Scratch space to store the atmosphere state at the surface 
     # interpolated to the ocean grid
     surface_atmosphere_state :: ATM
@@ -118,7 +121,10 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
                                     previous_ice_concentration,
                                     ocean_reference_density,
                                     ocean_heat_capacity,
+                                    sea_ice_reference_density,
+                                    sea_ice_heat_capacity,
                                     freshwater_density,
+                                    ocean_temperature_units,
                                     ocean_temperature_units,
                                     surface_atmosphere_state)
 end

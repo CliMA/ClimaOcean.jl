@@ -85,6 +85,7 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
             grid,
             clock,
             sea_ice_state,
+            AtmosphericThermodynamics.Solid(), # surface phase
             coupled_model.fluxes.sea_ice_reference_density,
             coupled_model.fluxes.sea_ice_heat_capacity,
             coupled_model.fluxes.sea_ice_temperature_units,
