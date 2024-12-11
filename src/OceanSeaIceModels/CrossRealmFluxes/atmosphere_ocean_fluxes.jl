@@ -139,8 +139,11 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             grid,
             clock,
             ocean_state,
+            coupled_model.fluxes.ocean_reference_density,
+            coupled_model.fluxes.ocean_heat_capacity,
             coupled_model.fluxes.ocean_temperature_units,
             surface_atmosphere_state,
+            radiation_properties,
             atmosphere.reference_height, # height at which the state is known
             atmosphere.boundary_layer_height,
             atmosphere.thermodynamics_parameters)   
@@ -262,21 +265,27 @@ end
                                                                      grid,
                                                                      clock,
                                                                      ocean_state,
+                                                                     ocean_density,
+                                                                     ocean_heat_capacity,
                                                                      ocean_temperature_units,
                                                                      surface_atmos_state,
+                                                                     radiation,
                                                                      atmosphere_reference_height,
                                                                      atmosphere_boundary_layer_height,
                                                                      atmos_thermodynamics_parameters)
 
     i, j = @index(Global, NTuple)
-    kᴺ = size(grid, 3) # index of the top ocean cell
-      
+    kᴺ   = size(grid, 3) # index of the top ocean cell
+    time = Time(clock.time)
+
     @inbounds begin
         uₐ = surface_atmos_state.u[i, j, 1]
         vₐ = surface_atmos_state.v[i, j, 1]
         Tₐ = surface_atmos_state.T[i, j, 1]
         pₐ = surface_atmos_state.p[i, j, 1]
         qₐ = surface_atmos_state.q[i, j, 1]
+        Rs = surface_atmos_state.Qs[i, j, 1]
+        Rℓ = surface_atmos_state.Qℓ[i, j, 1]
 
         # Extract state variables at cell centers
         # Ocean state
@@ -320,11 +329,19 @@ end
     inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
     maxiter  = ifelse(inactive, 1, similarity_theory.maxiter)
 
-    turbulent_fluxes = compute_similarity_theory_fluxes(similarity_theory,
-                                                        dynamic_ocean_state,
-                                                        dynamic_atmos_state,
-                                                        atmosphere_boundary_layer_height,
-                                                        ℂₐ, g, ϰ, maxiter)
+    prescribed_heat_fluxes = net_downwelling_radiation(i, j, grid, time, radiation, Rs, Rℓ) 
+    radiative_properties = local_radiation_properties(i, j, kᴺ, grid, time, radiation)
+
+    turbulent_fluxes, surface_temperature = compute_similarity_theory_fluxes(similarity_theory,
+                                                                             dynamic_ocean_state, 
+                                                                             dynamic_atmos_state, 
+                                                                             prescribed_heat_fluxes,
+                                                                             radiative_properties,
+                                                                             Sₒ,
+                                                                             ocean_density,
+                                                                             ocean_heat_capacity,
+                                                                             atmosphere_boundary_layer_height,
+                                                                             ℂₐ, g, ϰ, maxiter)
 
     # Store fluxes
     Qv = similarity_theory.fields.latent_heat
@@ -332,6 +349,7 @@ end
     Fv = similarity_theory.fields.water_vapor
     ρτx = similarity_theory.fields.x_momentum
     ρτy = similarity_theory.fields.y_momentum
+    Ts  = similarity_theory.fields.T_surface
 
     @inbounds begin
         # +0: cooling, -0: heating
@@ -340,6 +358,7 @@ end
         Fv[i, j, 1]  = ifelse(inactive, 0, turbulent_fluxes.water_vapor)
         ρτx[i, j, 1] = ifelse(inactive, 0, turbulent_fluxes.x_momentum)
         ρτy[i, j, 1] = ifelse(inactive, 0, turbulent_fluxes.y_momentum)
+        Ts[i, j, 1]  = surface_temperature
     end
 end
 

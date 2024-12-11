@@ -13,6 +13,8 @@ export
     Radiation,
     LatitudeDependentAlbedo,
     SimilarityTheoryTurbulentFluxes,
+    SkinTemperature,
+    BulkTemperature,
     PrescribedAtmosphere,
     JRA55PrescribedAtmosphere,
     JRA55NetCDFBackend,
