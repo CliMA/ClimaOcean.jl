@@ -250,9 +250,25 @@ function set!(fts::JRA55NetCDFFTS, path::String=fts.path, name::String=fts.name)
     LX, LY, LZ = location(fts)
     i₁, i₂, j₁, j₂, TX = compute_bounding_indices(nothing, nothing, fts.grid, LX, LY, λc, φc)
 
-    ti = time_indices(fts)
-    ti = collect(ti)
-    data = ds[name][i₁:i₂, j₁:j₂, ti]
+    nn = time_indices(fts)
+    nn = collect(nn)
+
+    if issorted(nn)
+        data = ds[name][i₁:i₂, j₁:j₂, nn]
+    else
+        # The time indices may be cycling past 1; eg ti = [6, 7, 8, 1].
+        # However, DiskArrays does not seem to support loading data with unsorted
+        # indices. So to handle this, we load the data in chunks, where each chunk's
+        # indices are sorted, and then glue the data together.
+        m = findfirst(n -> n == 1, nn)
+        n1 = nn[1:m-1]
+        n2 = nn[m:end]
+
+        data1 = ds[name][i₁:i₂, j₁:j₂, n1]
+        data2 = ds[name][i₁:i₂, j₁:j₂, n2]
+        data = cat(data1, data2, dims=3)
+    end
+
     close(ds)
 
     copyto!(interior(fts, :, :, 1, :), data)
@@ -391,7 +407,7 @@ function JRA55_field_time_series(variable_name;
 
     # Note, we don't re-use existing jld2 files.
     @root begin
-        isfile(filepath) || download(url, filepath)
+        isfile(filepath) || download(url, filepath; progress=download_progress)
         isfile(jld2_filepath) && rm(jld2_filepath)
     end
 
