@@ -23,6 +23,7 @@ FreezingLimitedOceanTemperature(FT::DataType=Float64) = FreezingLimitedOceanTemp
 const FreezingLimitedCoupledModel = OceanSeaIceModel{<:FreezingLimitedOceanTemperature}
 
 sea_ice_concentration(::FreezingLimitedOceanTemperature) = nothing
+sea_ice_thickness(::FreezingLimitedOceanTemperature) = nothing
 
 function compute_sea_ice_ocean_fluxes!(cm::FreezingLimitedCoupledModel)
     ocean = cm.ocean

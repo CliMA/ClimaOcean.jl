@@ -1,11 +1,5 @@
 using ClimaSeaIce: SeaIceModel
 
-sea_ice_thickness(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_thickness
-sea_ice_thickness(::Nothing) = nothing
-
-sea_ice_concentration(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_concentration
-sea_ice_concentration(::Nothing) = nothing
-
 function limit_fluxes_over_sea_ice!(grid, kernel_parameters, sea_ice,
                                     centered_velocity_fluxes,
                                     net_tracer_fluxes, args...)

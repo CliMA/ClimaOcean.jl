@@ -30,13 +30,16 @@ function freshwater_flux end
 function reference_density end
 function heat_capacity end
 
-sea_ice_thickness(::Nothing) = nothing
-sea_ice_concentration(::Nothing) = nothing
-
 const default_gravitational_acceleration = 9.80665
 const default_freshwater_density = 1000
 
 const SeaIceSimulation = Simulation{<:SeaIceModel}
+
+sea_ice_thickness(::Nothing) = nothing
+sea_ice_thickness(sea_ice::SeaIceSimulation) = sea_ice.model.ice_thickness
+
+sea_ice_concentration(::Nothing) = nothing
+sea_ice_concentration(sea_ice::SeaIceSimulation) = sea_ice.model.ice_concentration
 
 #####
 ##### Some implementation

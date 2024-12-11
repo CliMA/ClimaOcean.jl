@@ -5,6 +5,7 @@ using SurfaceFluxes
 using ..OceanSeaIceModels: reference_density,
                            heat_capacity,
                            sea_ice_concentration,
+                           sea_ice_thickness,
                            downwelling_radiation,
                            freshwater_flux
 
