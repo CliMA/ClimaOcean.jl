@@ -69,13 +69,17 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
                                   ocean_similarity_theory = nothing,
                                   sea_ice_similarity_theory = nothing,
                                   ocean_reference_density = reference_density(ocean),
-                                  ocean_heat_capacity = heat_capacity(ocean))
+                                  ocean_heat_capacity = heat_capacity(ocean),
+                                  sea_ice_reference_density = 900,
+                                  sea_ice_heat_capacity = 2110)
 
     ocean_grid = ocean.model.grid
     FT = eltype(ocean_grid)
 
     ocean_reference_density = convert(FT, ocean_reference_density)
     ocean_heat_capacity = convert(FT, ocean_heat_capacity)
+    sea_ice_reference_density = convert(FT, sea_ice_reference_density)
+    sea_ice_heat_capacity = convert(FT, sea_ice_heat_capacity)
     freshwater_density = convert(FT, freshwater_density)
 
     if !isnothing(atmosphere)
@@ -102,9 +106,13 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
         previous_ice_concentration = nothing
     end
 
-    total_ocean_fluxes = ocean_model_fluxes(ocean.model,
-                                            ocean_reference_density,
-                                            ocean_heat_capacity)
+    total_ocean_fluxes = surface_model_fluxes(ocean.model,
+                                              ocean_reference_density,
+                                              ocean_heat_capacity)
+
+    total_sea_ice_fluxes = surface_model_fluxes(sea_ice.model,
+                                                sea_ice_reference_density,
+                                                sea_ice_heat_capacity)
 
     total_fluxes = (; ocean=total_ocean_fluxes)
 
@@ -129,32 +137,32 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
                                     surface_atmosphere_state)
 end
 
-function ocean_model_fluxes(model, ρₒ, cₚ)
+function surface_model_fluxes(model, ρₛ, cₛ)
     grid = model.grid
     τx = surface_flux(model.velocities.u)
     τy = surface_flux(model.velocities.v)
     τxᶜᶜᶜ = Field{Center, Center, Nothing}(grid)
     τyᶜᶜᶜ = Field{Center, Center, Nothing}(grid)
 
-    ocean_momentum_fluxes = (u    = τx,      # fluxes used in the model
-                             v    = τy,      #
-                             # Including these (which are only a user convenience, not needed for
-                             # time-stepping) incurs about 100s in construction
-                             # time for OceanSeaIceSurfaceFluxes:
-                             # ρτx  = ρₒ * τx, # momentum fluxes multiplied by reference density
-                             # ρτy  = ρₒ * τy, # user convenience 
-                             uᶜᶜᶜ = τxᶜᶜᶜ,   # fluxes computed by bulk formula at cell centers
-                             vᶜᶜᶜ = τyᶜᶜᶜ)
+   surface_momentum_fluxes = (u    = τx,      # fluxes used in the model
+                              v    = τy,      #
+                              # Including these (which are only a user convenience, not needed for
+                              # time-stepping) incurs about 100s in construction
+                              # time for OceanSeaIceSurfaceFluxes:
+                              # ρτx  = ρₒ * τx, # momentum fluxes multiplied by reference density
+                              # ρτy  = ρₒ * τy, # user convenience 
+                              uᶜᶜᶜ = τxᶜᶜᶜ,   # fluxes computed by bulk formula at cell centers
+                              vᶜᶜᶜ = τyᶜᶜᶜ)
 
     tracers = model.tracers
-    ocean_tracer_fluxes = NamedTuple(name => surface_flux(tracers[name])
+    surface_tracer_fluxes = NamedTuple(name => surface_flux(tracers[name])
                                      for name in keys(tracers))
 
-    ocean_heat_flux = ρₒ * cₚ * ocean_tracer_fluxes.T
+    surface_heat_flux = ρₛ * cₛ * surface_tracer_fluxes.T
 
-    fluxes = (momentum = ocean_momentum_fluxes,
-              tracers = ocean_tracer_fluxes,
-              heat = ocean_heat_flux)
+    fluxes = (momentum = surface_momentum_fluxes,
+              tracers = surface_tracer_fluxes,
+              heat = surface_heat_flux)
 
     return fluxes
 end
@@ -171,7 +179,6 @@ function interpolated_surface_atmosphere_state(ocean_grid)
 
     return surface_atmosphere_state
 end
-
     
 #####
 ##### Utility for interpolating tuples of fields
