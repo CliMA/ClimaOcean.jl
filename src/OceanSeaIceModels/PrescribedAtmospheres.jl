@@ -353,12 +353,12 @@ end
                          reference_height = 10, # meters
                          boundary_layer_height = 600 # meters,
                          thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT),
-                         velocities = nothing,
-                         pressure = nothing,
-                         freshwater_flux = nothing,
-                         auxiliary_freshwater_flux = nothing,
-                         downwelling_radiation = nothing,
-                         tracers = nothing)
+                              auxiliary_freshwater_flux = nothing,
+                              velocities            = default_atmosphere_velocities(grid, times),
+                              tracers               = default_atmosphere_tracers(grid, times),
+                              pressure              = default_atmosphere_pressure(grid, times),
+                              freshwater_flux       = default_freshwater_flux(grid, times),
+                              downwelling_radiation = default_downwelling_radiation(grid, times))
 
 Return a representation of a prescribed time-evolving atmospheric
 state with data given at `times`.
