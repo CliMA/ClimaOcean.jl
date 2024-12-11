@@ -108,7 +108,7 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         # What else might we test?
 
         @info "Testing save_field_time_series! on $A..."
-        filepath = "JRA55_downwelling_shortwave_radiation_test.jld2"
+        filepath = "JRA55_downwelling_shortwave_radiation_test_$(string(typeof(arch))).jld2"
         ClimaOcean.DataWrangling.save_field_time_series!(target_fts, path=filepath, name="Qsw",
                                                          overwrite_existing = true)
         @test isfile(filepath)
