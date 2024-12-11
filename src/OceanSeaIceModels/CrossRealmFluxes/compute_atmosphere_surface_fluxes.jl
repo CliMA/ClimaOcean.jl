@@ -3,6 +3,7 @@
                                                                        grid,
                                                                        clock,
                                                                        surface_state,
+                                                                       surface_phase,
                                                                        surface_density,
                                                                        surface_heat_capacity,
                                                                        surface_temperature_units,
@@ -66,7 +67,8 @@
     
     inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
     maxiter  = ifelse(inactive, 1, similarity_theory.maxiter)
-
+    
+    surface_salinity = Sₒ
     prescribed_heat_fluxes = net_downwelling_radiation(i, j, grid, time, radiation, Rs, Rℓ) 
     radiative_properties = local_radiation_properties(i, j, kᴺ, grid, time, radiation)
 
@@ -75,7 +77,8 @@
                                                                              dynamic_atmos_state, 
                                                                              prescribed_heat_fluxes,
                                                                              radiative_properties,
-                                                                             Sₒ,
+                                                                             surface_phase,
+                                                                             surface_salinity,
                                                                              surface_density,
                                                                              surface_heat_capacity,
                                                                              atmosphere_boundary_layer_height,

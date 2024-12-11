@@ -138,6 +138,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             grid,
             clock,
             ocean_state,
+            AtmosphericThermodynamics.Liquid(), # surface phase
             coupled_model.fluxes.ocean_reference_density,
             coupled_model.fluxes.ocean_heat_capacity,
             coupled_model.fluxes.ocean_temperature_units,
