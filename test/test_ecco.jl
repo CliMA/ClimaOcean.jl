@@ -10,7 +10,7 @@ using ClimaOcean.DataWrangling: NearestNeighborInpainting
 
 using Oceananigans.Grids: topology
 using Oceananigans.OutputReaders: time_indices
-using Oceananigans.TimeStepping: update_state!
+using Oceananigans.TimeSteppers: update_state!
 using Oceananigans.Units
 
 using CUDA: @allowscalar
