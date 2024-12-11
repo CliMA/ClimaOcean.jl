@@ -178,7 +178,8 @@ end
 
 @testset "Setting temperature and salinity to ECCO" begin
     for arch in test_architectures
-        grid = LatitudeLongitudeGrid(size=(10, 10, 10),
+        grid = LatitudeLongitudeGrid(arch; 
+                                     size=(10, 10, 10),
                                      latitude=(-60, -40),
                                      longitude=(10, 15),
                                      z=(-200, 0),
@@ -192,7 +193,8 @@ end
 
 @testset "ECCO dataset cycling boundaries" begin
     for arch in test_architectures
-        grid = LatitudeLongitudeGrid(size=(10, 10, 10),
+        grid = LatitudeLongitudeGrid(arch;
+                                     size=(10, 10, 10),
                                      latitude=(-60, -40),
                                      longitude=(10, 15),
                                      z=(-200, 0),
