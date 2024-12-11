@@ -32,18 +32,19 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
 @testset "Test surface fluxes" begin
     for arch in test_architectures
         grid = LatitudeLongitudeGrid(arch;
-                                    size = 1, 
-                                latitude = 0, 
-                               longitude = 0,
-                                       z = (-1, 0),
-                                topology = (Flat, Flat, Bounded))
+                                     size = 1, 
+                                     latitude = 0, 
+                                     longitude = 0,
+                                     z = (-1, 0),
+                                     topology = (Flat, Flat, Bounded))
         
-        ocean = ocean_simulation(grid; momentum_advection = nothing, 
-                                        tracer_advection = nothing, 
-                                                closure = nothing,
-                                bottom_drag_coefficient = 0.0)
+        ocean = ocean_simulation(grid;
+                                 momentum_advection = nothing, 
+                                 tracer_advection = nothing, 
+                                 closure = nothing,
+                                 bottom_drag_coefficient = 0.0)
 
-        atmosphere = JRA55_prescribed_atmosphere(1:2; grid, architecture = arch, backend = InMemory()) 
+        atmosphere = JRA55PrescribedAtmosphere(1:2; grid, architecture = arch, backend = InMemory()) 
         
         CUDA.@allowscalar begin
             h  = atmosphere.reference_height
@@ -177,7 +178,7 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
                                                 closure = nothing,
                                 bottom_drag_coefficient = 0.0)
 
-        atmosphere = JRA55_prescribed_atmosphere(1:2; grid, architecture = arch, backend = InMemory())
+        atmosphere = JRA55PrescribedAtmosphere(1:2; grid, architecture = arch, backend = InMemory())
 
         fill!(ocean.model.tracers.T, -2.0)
 
@@ -235,7 +236,7 @@ end
 
         set!(ocean.model; T=T_metadata, S=S_metadata)
 
-        atmosphere = JRA55_prescribed_atmosphere(1:10; grid, architecture = arch, backend = InMemory())
+        atmosphere = JRA55PrescribedAtmosphere(1:10; grid, architecture = arch, backend = InMemory())
         radiation  = Radiation(ocean_albedo=0.1, ocean_emissivity=1.0)
         sea_ice    = nothing
 

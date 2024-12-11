@@ -107,7 +107,7 @@ radiation = Radiation(arch)
 # The number of snapshots that are loaded into memory is determined by
 # the `backend`. Here, we load 41 snapshots at a time into memory.
 
-atmosphere = JRA55_prescribed_atmosphere(arch; backend=JRA55NetCDFBackend(41))
+atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(41))
 
 # ## The coupled simulation
 

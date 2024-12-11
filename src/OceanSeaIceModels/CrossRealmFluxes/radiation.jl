@@ -9,10 +9,9 @@ struct Radiation{FT, E, R}
     stefan_boltzmann_constant :: FT
 end
 
-Adapt.adapt_structure(to, r :: Radiation) = 
-            Radiation(Adapt.adapt(to, r.emission),
-                      Adapt.adapt(to, r.reflection),
-                      Adapt.adapt(to, r.stefan_boltzmann_constant))
+Adapt.adapt_structure(to, r :: Radiation) =  Radiation(Adapt.adapt(to, r.emission),
+                                                       Adapt.adapt(to, r.reflection),
+                                                       Adapt.adapt(to, r.stefan_boltzmann_constant))
 
 """
     Radiation([arch = CPU(), FT=Float64];
