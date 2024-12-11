@@ -123,13 +123,12 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         ##### JRA55 prescribed atmosphere
         #####
 
-        Nb = 4
-        backend = JRA55NetCDFBackend(Nb) 
-        atmosphere = JRA55_prescribed_atmosphere(arch; backend, include_rivers_and_icebergs=false)
+        backend    = JRA55NetCDFBackend(2) 
+        atmosphere = JRA55PrescribedAtmosphere(arch; backend, include_rivers_and_icebergs=false)
         @test atmosphere isa PrescribedAtmosphere
         @test isnothing(atmosphere.auxiliary_freshwater_flux)
 
-        atmosphere = JRA55_prescribed_atmosphere(arch; backend, include_rivers_and_icebergs=true)
+        atmosphere = JRA55PrescribedAtmosphere(arch; backend, include_rivers_and_icebergs=true)
         @test haskey(atmosphere.auxiliary_freshwater_flux, :rivers)
         @test haskey(atmosphere.auxiliary_freshwater_flux, :icebergs)
     end
