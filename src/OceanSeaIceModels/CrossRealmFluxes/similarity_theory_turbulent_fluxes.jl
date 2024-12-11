@@ -96,10 +96,10 @@ end
 
 const PATP = PrescribedAtmosphereThermodynamicsParameters
 
-""" The exchange fluxes depend on the atmosphere velocity but not the ocean velocity """
+""" The exchange fluxes depend on the atmosphere velocity but not the surface velocity """
 struct WindVelocity end
 
-""" The exchange fluxes depend on the relative velocity between the atmosphere and the ocean """
+""" The exchange fluxes depend on the relative velocity between the atmosphere and the surface """
 struct RelativeVelocity end
 
 """
@@ -143,7 +143,7 @@ Keyword Arguments
 - `similarity_profile_type`: The type of similarity profile used to relate the atmospheric state to the 
                              surface fluxes / characteristic scales.
 - `bulk_velocity`: The velocity used to calculate the characteristic scales. Default: `RelativeVelocity()` (difference between
-                   atmospheric and oceanic speed).
+                   atmospheric and surfaceic speed).
 - `tolerance`: The tolerance for convergence. Default: 1e-8.
 - `maxiter`: The maximum number of iterations. Default: 100.
 - `fields`: The fields to calculate. Default: nothing.
@@ -236,9 +236,10 @@ struct COARELogarithmicSimilarityProfile end
                                                   atmos_state,
                                                   prescribed_heat_fluxes, # Possibly use in state_differences
                                                   radiative_properties,
-                                                  ocean_salinity,
-                                                  ocean_density,
-                                                  ocean_heat_capacity,
+                                                  surface_phase,
+                                                  surface_salinity,
+                                                  surface_density,
+                                                  surface_heat_capacity,
                                                   atmos_boundary_layer_height,
                                                   thermodynamics_parameters,
                                                   gravitational_acceleration,
@@ -255,7 +256,7 @@ struct COARELogarithmicSimilarityProfile end
     Δu, Δv = velocity_differences(atmos_state, surface_state, similarity_theory.bulk_velocity)
 
     # The inital velocity scale assumes that the gustiness velocity `Uᴳ` is equal to 0.5 ms⁻¹. 
-    # The initial surface temperature is the same as the ocean temperature.
+    # The initial surface temperature is the same as the surface temperature.
     # These will be refined later on.
     θs   = AtmosphericThermodynamics.air_temperature(ℂₐ, surface_state.ts)
     Uᴳᵢ² = convert(FT, 0.5^2)
@@ -281,9 +282,10 @@ struct COARELogarithmicSimilarityProfile end
                                                  similarity_theory,
                                                  atmos_state,
                                                  surface_state,
-                                                 ocean_salinity,
-                                                 ocean_density,
-                                                 ocean_heat_capacity,
+                                                 surface_phase,
+                                                 surface_salinity,
+                                                 surface_density,
+                                                 surface_heat_capacity,
                                                  atmos_boundary_layer_height,
                                                  thermodynamics_parameters,
                                                  prescribed_heat_fluxes,
@@ -380,7 +382,8 @@ end
                                    surface_temperature_type, 
                                    prescribed_heat_fluxes,
                                    radiative_properties,
-                                   bulk_velocity)
+                                   bulk_velocity,
+                                   surface_phase)
     z₁ = 𝒰₁.z
     z₀ = 𝒰₀.z
     Δh = z₁ - z₀
@@ -409,7 +412,7 @@ end
     q₀ = seawater_saturation_specific_humidity(ℂ, θ₀, S₀, 𝒬₁,
                                                water_mole_fraction,
                                                water_vapor_saturation,
-                                               AtmosphericThermodynamics.Liquid())
+                                               surface_phase)
     
     𝒬ₛ = AtmosphericThermodynamics.PhaseEquil_pTq(ℂ, 𝒬₀.p, θ₀, q₀)
     q₀ = AtmosphericThermodynamics.vapor_specific_humidity(ℂ, 𝒬ₛ)
@@ -425,9 +428,10 @@ end
                                              similarity_theory,
                                              atmos_state,
                                              surface_state,
+                                             surface_phase, # Either liquid or solid
                                              surface_salinity,
-                                             ocean_density,
-                                             ocean_heat_capacity,
+                                             surface_density,
+                                             surface_heat_capacity,
                                              atmos_boundary_layer_height,
                                              thermodynamics_parameters,
                                              prescribed_heat_fluxes,
@@ -442,14 +446,15 @@ end
                                                surface_salinity,
                                                estimated_characteristic_scales,
                                                gravitational_acceleration,
-                                               ocean_density,
-                                               ocean_heat_capacity,
+                                               surface_density,
+                                               surface_heat_capacity,
                                                similarity_theory.water_mole_fraction,
                                                similarity_theory.water_vapor_saturation,
                                                similarity_theory.surface_temperature_type,
                                                prescribed_heat_fluxes,
                                                radiative_properties,
-                                               similarity_theory.bulk_velocity)
+                                               similarity_theory.bulk_velocity,
+                                               surface_phase)
                                                
     # "initial" scales because we will recompute them
     u★ = estimated_characteristic_scales.momentum
