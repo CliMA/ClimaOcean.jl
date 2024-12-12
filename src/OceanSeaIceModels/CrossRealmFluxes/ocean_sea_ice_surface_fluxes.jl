@@ -97,6 +97,7 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
                                   atmosphere = nothing,
                                   radiation = nothing,
                                   freshwater_density = 1000,
+                                  prescribed_fluxes = nothing, # ?? Is this ever used ??
                                   ocean_temperature_units = DegreesCelsius(),
                                   turbulent_fluxes = nothing,
                                   water_vapor_saturation = ClasiusClapyeronSaturation(),
@@ -148,8 +149,6 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
                                                fluxes_fields)
         end
     end
-
-    prescribed_fluxes = nothing
 
     if sea_ice isa SeaIceSimulation
         previous_ice_thickness = deepcopy(sea_ice.model.ice_thickness)
