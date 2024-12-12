@@ -145,6 +145,8 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             coupled_model.fluxes.ocean_temperature_units,
             surface_atmosphere_state,
             radiation_properties,
+            coupled_model.fluxes.turbulent.water_mole_fraction,
+            coupled_model.fluxes.turbulent.water_vapor_saturation,
             atmosphere.reference_height, # height at which the state is known
             atmosphere.boundary_layer_height,
             atmosphere.thermodynamics_parameters)   
