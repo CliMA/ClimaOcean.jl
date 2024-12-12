@@ -1,6 +1,6 @@
 """ Compute turbulent fluxes between an atmosphere and a surface state using similarity theory """
 @kernel function _compute_atmosphere_surface_similarity_theory_fluxes!(fluxes_fields,
-                                                                       similarity_theory,
+                                                                       coefficients,
                                                                        grid,
                                                                        clock,
                                                                        surface_state,
@@ -10,6 +10,8 @@
                                                                        surface_temperature_units,
                                                                        surface_atmos_state,
                                                                        radiation,
+                                                                       mole_fraction,
+                                                                       vapor_saturation,
                                                                        atmosphere_reference_height,
                                                                        atmosphere_boundary_layer_height,
                                                                        atmos_thermodynamics_parameters)
@@ -49,11 +51,10 @@
     𝒰ₐ = dynamic_atmos_state = SurfaceFluxes.StateValues(hₐ, Uₐ, 𝒬ₐ)
 
     # Build surface state with saturated specific humidity
-    surface_type = AtmosphericThermodynamics.Liquid()
     qₒ = seawater_saturation_specific_humidity(ℂₐ, Tₒ, Sₒ, 𝒬ₐ,
-                                               similarity_theory.water_mole_fraction,
-                                               similarity_theory.water_vapor_saturation,
-                                               surface_type)
+                                               mole_fraction,
+                                               vapor_saturation,
+                                               surface_phase)
 
     # Thermodynamic and dynamic (ocean) surface state:
     Uₒ = SVector(uₒ, vₒ)
@@ -64,26 +65,24 @@
 
     # Some parameters
     g = default_gravitational_acceleration
-    ϰ = similarity_theory.von_karman_constant
-    
-    inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
-    maxiter  = ifelse(inactive, 1, similarity_theory.maxiter)
     
     surface_salinity = Sₒ
     prescribed_heat_fluxes = net_downwelling_radiation(i, j, grid, time, radiation, Rs, Rℓ) 
     radiative_properties = local_radiation_properties(i, j, kᴺ, grid, time, radiation)
 
-    turbulent_fluxes, surface_temperature = compute_similarity_theory_fluxes(similarity_theory,
-                                                                             dynamic_surface_state, 
-                                                                             dynamic_atmos_state, 
-                                                                             prescribed_heat_fluxes,
-                                                                             radiative_properties,
-                                                                             surface_phase,
-                                                                             surface_salinity,
-                                                                             surface_density,
-                                                                             surface_heat_capacity,
-                                                                             atmosphere_boundary_layer_height,
-                                                                             ℂₐ, g, ϰ, maxiter)
+    turbulent_fluxes, surface_temperature = compute_turbulent_fluxes(coefficients,
+                                                                     dynamic_surface_state, 
+                                                                     dynamic_atmos_state, 
+                                                                     prescribed_heat_fluxes,
+                                                                     radiative_properties,
+                                                                     surface_phase,
+                                                                     surface_salinity,
+                                                                     surface_density,
+                                                                     surface_heat_capacity,
+                                                                     mole_fraction,
+                                                                     vapor_saturation,
+                                                                     atmosphere_boundary_layer_height,
+                                                                     ℂₐ, g, inactive)
 
     # Store fluxes
     Qv = fluxes_fields.latent_heat
