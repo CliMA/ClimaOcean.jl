@@ -7,7 +7,9 @@ using ..OceanSeaIceModels: reference_density,
                            sea_ice_concentration,
                            sea_ice_thickness,
                            downwelling_radiation,
-                           freshwater_flux
+                           freshwater_flux,
+                           SeaIceSimulation
+
 
 using ClimaSeaIce: SeaIceModel
 
@@ -81,8 +83,6 @@ const celsius_to_kelvin = 273.15
 Base.summary(crf::OceanSeaIceSurfaceFluxes) = "OceanSeaIceSurfaceFluxes"
 Base.show(io::IO, crf::OceanSeaIceSurfaceFluxes) = print(io, summary(crf))
 
-const SeaIceSimulation = Simulation{<:SeaIceModel}
-
 """
     We need a docstring...
 
@@ -125,15 +125,15 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
         # Build turbulent fluxes if they do not exist
         if isnothing(turbulent_fluxes)
             ocean_fluxes = SimilarityTheoryFluxes()
-            sea_ice_fluxes = if !isnothing(sea_ice)
+            sea_ice_fluxes = if sea_ice isa SeaIceSimulation
                 SimilarityTheoryFluxes()
             else
                 nothing
             end
             coefficients = (ocean=ocean_fluxes, sea_ice=sea_ice_fluxes)
-            ocean_fields = time_series_fields(ocean_grid)
-            sea_ice_fields = if !isnothing(sea_ice)
-                time_series_fields(sea_ice.model.grid)
+            ocean_fields = turbulent_fluxes_fields(ocean_grid)
+            sea_ice_fields = if sea_ice isa SeaIceSimulation
+                turbulent_fluxes_fields(sea_ice.model.grid)
             else
                 nothing
             end
