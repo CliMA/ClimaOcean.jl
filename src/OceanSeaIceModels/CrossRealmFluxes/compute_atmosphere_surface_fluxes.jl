@@ -1,5 +1,6 @@
 """ Compute turbulent fluxes between an atmosphere and a surface state using similarity theory """
-@kernel function _compute_atmosphere_surface_similarity_theory_fluxes!(similarity_theory,
+@kernel function _compute_atmosphere_surface_similarity_theory_fluxes!(fluxes_fields,
+                                                                       similarity_theory,
                                                                        grid,
                                                                        clock,
                                                                        surface_state,
@@ -85,12 +86,12 @@
                                                                              ℂₐ, g, ϰ, maxiter)
 
     # Store fluxes
-    Qv = similarity_theory.fields.latent_heat
-    Qc = similarity_theory.fields.sensible_heat
-    Fv = similarity_theory.fields.water_vapor
-    ρτx = similarity_theory.fields.x_momentum
-    ρτy = similarity_theory.fields.y_momentum
-    Ts  = similarity_theory.fields.T_surface
+    Qv = fluxes_fields.latent_heat
+    Qc = fluxes_fields.sensible_heat
+    Fv = fluxes_fields.water_vapor
+    ρτx = fluxes_fields.x_momentum
+    ρτy = fluxes_fields.y_momentum
+    Ts  = fluxes_fields.T_surface
 
     @inbounds begin
         # +0: cooling, -0: heating

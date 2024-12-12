@@ -28,7 +28,7 @@ using KernelAbstractions: @kernel, @index
 #####
 
 struct OceanSeaIceSurfaceFluxes{T, P, C, R, PI, PC, FT, UN, ATM}
-    turbulent :: T
+    turbulent :: T # the turbulent fluxes
     prescribed :: P
     # Add `components` which will also store components of the total fluxes
     # (eg latent, sensible heat flux)
@@ -49,6 +49,27 @@ struct OceanSeaIceSurfaceFluxes{T, P, C, R, PI, PC, FT, UN, ATM}
     surface_atmosphere_state :: ATM
 end
 
+struct TurbulentFluxes{T, FT, C, W, I, M, F}
+    thermodynamic_parameters :: T
+    gravitational_acceleration :: FT
+    coefficients :: C
+    water_vapor_saturation :: W    # model for computing the saturation water vapor mass over ocean
+    ice_vapor_saturation :: I      # model for computing the saturation water vapor mass over ice
+    water_mole_fraction :: M       # mole fraction of H₂O in seawater
+    fields :: F                    # fields that store turbulent fluxes
+end
+
+struct ClasiusClapyeronSaturation end
+ 
+@inline function water_saturation_specific_humidity(::ClasiusClapyeronSaturation, ℂₐ, ρₛ, Tₛ)
+    FT = eltype(ℂₐ)
+    p★ = AtmosphericThermodynamics.saturation_vapor_pressure(ℂₐ, convert(FT, Tₛ), Liquid())
+    q★ = AtmosphericThermodynamics.q_vap_saturation_from_density(ℂₐ, convert(FT, Tₛ), ρₛ, p★)
+    return q★
+end
+
+const PATP = PrescribedAtmosphereThermodynamicsParameters
+
 # Possible units for temperature and salinity
 struct DegreesCelsius end
 struct DegreesKelvin end
@@ -62,13 +83,26 @@ Base.show(io::IO, crf::OceanSeaIceSurfaceFluxes) = print(io, summary(crf))
 
 const SeaIceSimulation = Simulation{<:SeaIceModel}
 
+"""
+    We need a docstring...
+
+- `thermodynamics_parameters`: The thermodynamics parameters used to calculate atmospheric stability and
+                               saturation pressure. Default: `PATP(FT)`, alias for `PrescribedAtmosphereThermodynamicsParameters`.
+- `water_vapor_saturation`: The water vapor saturation law. Default: `ClasiusClapyeronSaturation()` that follows the 
+                            Clasius-Clapyeron pressure formulation.
+- `water_mole_fraction`: The water mole fraction used to calculate the `seawater_saturation_specific_humidity`. 
+                         Default: 0.98, the rest is assumed to be other substances such as chlorine, sodium sulfide, and magnesium.
+"""
 function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
                                   atmosphere = nothing,
                                   radiation = nothing,
                                   freshwater_density = 1000,
                                   ocean_temperature_units = DegreesCelsius(),
-                                  ocean_similarity_theory = nothing,
-                                  sea_ice_similarity_theory = nothing,
+                                  turbulent_fluxes = nothing,
+                                  water_vapor_saturation = ClasiusClapyeronSaturation(),
+                                  ice_vapor_saturation = ClasiusClapyeronSaturation(),
+                                  water_mole_fraction = convert(FT, 0.98),
+                                  thermodynamics_parameters = PATP(FT),
                                   ocean_reference_density = reference_density(ocean),
                                   ocean_heat_capacity = heat_capacity(ocean),
                                   sea_ice_reference_density = 900,
@@ -88,12 +122,30 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
         # (as opposed to the one used for the free surface)
         gravitational_acceleration = ocean.model.buoyancy.model.gravitational_acceleration
 
-        if isnothing(ocean_similarity_theory)
-            ocean_similarity_theory = SimilarityTheoryTurbulentFluxes(ocean_grid; gravitational_acceleration)
-        end
+        # Build turbulent fluxes if they do not exist
+        if isnothing(turbulent_fluxes)
+            ocean_fluxes = SimilarityTheoryFluxes()
+            sea_ice_fluxes = if !isnothing(sea_ice)
+                SimilarityTheoryFluxes()
+            else
+                nothing
+            end
+            coefficients = (ocean=ocean_fluxes, sea_ice=sea_ice_fluxes)
+            ocean_fields = time_series_fields(ocean_grid)
+            sea_ice_fields = if !isnothing(sea_ice)
+                time_series_fields(sea_ice.model.grid)
+            else
+                nothing
+            end
 
-        if !isnothing(sea_ice) && isnothing(sea_ice_similarity_theory)
-            sea_ice_similarity_theory = SimilarityTheoryTurbulentFluxes(sea_ice_grid; gravitational_acceleration)
+            fluxes_fields = (ocean=ocean_fields, sea_ice=sea_ice_fields)
+            turbulent_fluxes = TurbulentFluxes(thermodynamics_parameters,
+                                               gravitational_acceleration,
+                                               coefficients,
+                                               water_vapor_saturation,
+                                               ice_vapor_saturation,
+                                               water_mole_fraction,
+                                               fluxes_fields)
         end
     end
 
@@ -115,8 +167,10 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
                                                 sea_ice_reference_density,
                                                 sea_ice_heat_capacity)
 
+    # The actual fields in the boundary conditions of 
+    # model-specific velocities and tracers
     total_fluxes = (; ocean=total_ocean_fluxes,
-                      sea_ice=total_sea_ice_fluxes)
+                    sea_ice=total_sea_ice_fluxes)
 
     surface_atmosphere_state = interpolated_surface_atmosphere_state(ocean_grid)
 
@@ -167,6 +221,17 @@ function surface_model_fluxes(model, ρₛ, cₛ)
               heat = surface_heat_flux)
 
     return fluxes
+end
+
+function turbulent_fluxes_fields(grid)
+    water_vapor   = Field{Center, Center, Nothing}(grid)
+    latent_heat   = Field{Center, Center, Nothing}(grid)
+    sensible_heat = Field{Center, Center, Nothing}(grid)
+    x_momentum    = Field{Center, Center, Nothing}(grid)
+    y_momentum    = Field{Center, Center, Nothing}(grid)
+    T_surface     = Field{Center, Center, Nothing}(grid)
+
+    return (; latent_heat, sensible_heat, water_vapor, x_momentum, y_momentum, T_surface)
 end
 
 function interpolated_surface_atmosphere_state(ocean_grid)

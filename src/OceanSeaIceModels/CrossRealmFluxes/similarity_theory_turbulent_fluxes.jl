@@ -27,22 +27,17 @@ import SurfaceFluxes.Parameters:
 ##### Bulk turbulent fluxes based on similarity theory
 #####
 
-struct SimilarityTheoryTurbulentFluxes{FT, UF, TP, S, W, R, B, T, V, F}
-    gravitational_acceleration :: FT # parameter
+struct SimilarityTheoryFluxes{FT, UF, R, B, T, V, F}
     von_karman_constant :: FT        # parameter
     turbulent_prandtl_number :: FT   # parameter
     gustiness_parameter :: FT        # bulk velocity parameter
     stability_functions :: UF        # functions for turbulent fluxes
-    thermodynamics_parameters :: TP  # parameter group
-    water_vapor_saturation :: S      # model for computing the saturation water vapor mass
-    water_mole_fraction :: W         # mole fraction of H₂O in seawater
     roughness_lengths :: R           # parameterization for turbulent fluxes
     similarity_profile_type :: B     # similarity profile relating atmosphere to surface state
     surface_temperature_type :: T    # surface temperature either diagnostic or prescribed
     bulk_velocity :: V               # bulk velocity scale for turbulent fluxes
     tolerance :: FT                  # solver option
     maxiter :: Int                   # solver option
-    fields :: F                      # fields that store turbulent fluxes
 end
 
 const STTF = SimilarityTheoryTurbulentFluxes
@@ -52,34 +47,20 @@ const STTF = SimilarityTheoryTurbulentFluxes
 @inline grav(fluxes::STTF)                  = fluxes.gravitational_acceleration
 @inline molmass_ratio(fluxes::STTF)         = molmass_ratio(fluxes.thermodynamics_parameters)
 
-Adapt.adapt_structure(to, fluxes::STTF) = SimilarityTheoryTurbulentFluxes(adapt(to, fluxes.gravitational_acceleration),
-                                                                          adapt(to, fluxes.von_karman_constant),
-                                                                          adapt(to, fluxes.turbulent_prandtl_number),
-                                                                          adapt(to, fluxes.gustiness_parameter),
-                                                                          adapt(to, fluxes.stability_functions),
-                                                                          adapt(to, fluxes.thermodynamics_parameters),
-                                                                          adapt(to, fluxes.water_vapor_saturation),
-                                                                          adapt(to, fluxes.water_mole_fraction),
-                                                                          adapt(to, fluxes.roughness_lengths),
-                                                                          adapt(to, fluxes.similarity_profile_type),
-                                                                          adapt(to, fluxes.surface_temperature_type),
-                                                                          adapt(to, fluxes.bulk_velocity),
-                                                                          fluxes.tolerance,
-                                                                          fluxes.maxiter,
-                                                                          adapt(to, fluxes.fields))
+Adapt.adapt_structure(to, fluxes::STTF) = SimilarityTheoryFluxes(adapt(to, fluxes.von_karman_constant),
+                                                                 adapt(to, fluxes.turbulent_prandtl_number),
+                                                                 adapt(to, fluxes.gustiness_parameter),
+                                                                 adapt(to, fluxes.stability_functions),
+                                                                 adapt(to, fluxes.roughness_lengths),
+                                                                 adapt(to, fluxes.similarity_profile_type),
+                                                                 adapt(to, fluxes.surface_temperature_type),
+                                                                 adapt(to, fluxes.bulk_velocity),
+                                                                 fluxes.tolerance,
+                                                                 fluxes.maxiter)
 
-Base.summary(::SimilarityTheoryTurbulentFluxes{FT}) where FT = "SimilarityTheoryTurbulentFluxes{$FT}"
+Base.summary(::SimilarityTheoryFluxes{FT}) where FT = "SimilarityTheoryTurbulentFluxes{$FT}"
 
-struct ClasiusClapyeronSaturation end
- 
-@inline function water_saturation_specific_humidity(::ClasiusClapyeronSaturation, ℂₐ, ρₛ, Tₛ)
-    FT = eltype(ℂₐ)
-    p★ = AtmosphericThermodynamics.saturation_vapor_pressure(ℂₐ, convert(FT, Tₛ), Liquid())
-    q★ = AtmosphericThermodynamics.q_vap_saturation_from_density(ℂₐ, convert(FT, Tₛ), ρₛ, p★)
-    return q★
-end
-
-function Base.show(io::IO, fluxes::SimilarityTheoryTurbulentFluxes)
+function Base.show(io::IO, fluxes::SimilarityTheoryFluxes)
     print(io, summary(fluxes), '\n',
           "├── gravitational_acceleration: ", prettysummary(fluxes.gravitational_acceleration), '\n',
           "├── von_karman_constant: ",        prettysummary(fluxes.von_karman_constant), '\n',
@@ -94,8 +75,6 @@ function Base.show(io::IO, fluxes::SimilarityTheoryTurbulentFluxes)
           "└── thermodynamics_parameters: ",  summary(fluxes.thermodynamics_parameters))
 end
 
-const PATP = PrescribedAtmosphereThermodynamicsParameters
-
 """ The exchange fluxes depend on the atmosphere velocity but not the surface velocity """
 struct WindVelocity end
 
@@ -103,41 +82,30 @@ struct WindVelocity end
 struct RelativeVelocity end
 
 """
-    SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
-                                    gravitational_acceleration = default_gravitational_acceleration,
-                                    von_karman_constant = convert(FT, 0.4),
-                                    turbulent_prandtl_number = convert(FT, 1),
-                                    gustiness_parameter = convert(FT, 6.5),
-                                    stability_functions = default_stability_functions(FT),
-                                    thermodynamics_parameters = PATP(FT),
-                                    water_vapor_saturation = ClasiusClapyeronSaturation(),
-                                    water_mole_fraction = convert(FT, 0.98),
-                                    roughness_lengths = default_roughness_lengths(FT),
-                                    similarity_profile_type = LogarithmicSimilarityProfile(),
-                                    surface_temperature_type = BulkTemperature(),
-                                    bulk_velocity = RelativeVelocity(),
-                                    tolerance = 1e-8,
-                                    maxiter = 100,
-                                    fields = nothing)
+    SimilarityTheoryFluxes(FT::DataType = Float64;
+                           gravitational_acceleration = default_gravitational_acceleration,
+                           von_karman_constant = convert(FT, 0.4),
+                           turbulent_prandtl_number = convert(FT, 1),
+                           gustiness_parameter = convert(FT, 6.5),
+                           stability_functions = default_stability_functions(FT),
+                           roughness_lengths = default_roughness_lengths(FT),
+                           similarity_profile_type = LogarithmicSimilarityProfile(),
+                           surface_temperature_type = BulkTemperature(),
+                           bulk_velocity = RelativeVelocity(),
+                           tolerance = 1e-8,
+                           maxiter = 100)
 
-`SimilarityTheoryTurbulentFluxes` contains parameters and settings to calculate
-sea-air turbulent fluxes using Monin-Obukhov similarity theory.
+`SimilarityTheoryFluxes` contains parameters and settings to calculate
+surface-air turbulent fluxes using Monin-Obukhov similarity theory.
 
 Keyword Arguments
 ==================
 
-- `gravitational_acceleration`: The gravitational acceleration. Default: `default_gravitational_acceleration`.
 - `von_karman_constant`: The von Karman constant. Default: 0.4.
 - `turbulent_prandtl_number`: The turbulent Prandtl number. Default: 1.
 - `gustiness_parameter`: The gustiness parameter that accounts for low wind speed areas. Default: 6.5.
 - `stability_functions`: The stability functions. Default: `default_stability_functions(FT)` that follow the 
                          formulation of Edson et al. (2013).
-- `thermodynamics_parameters`: The thermodynamics parameters used to calculate atmospheric stability and
-                               saturation pressure. Default: `PATP(FT)`, alias for `PrescribedAtmosphereThermodynamicsParameters`.
-- `water_vapor_saturation`: The water vapor saturation law. Default: `ClasiusClapyeronSaturation()` that follows the 
-                            Clasius-Clapyeron pressure formulation.
-- `water_mole_fraction`: The water mole fraction used to calculate the `seawater_saturation_specific_humidity`. 
-                         Default: 0.98, the rest is assumed to be other substances such as chlorine, sodium sulfide, and magnesium.
 - `roughness_lengths`: The roughness lengths used to calculate the characteristic scales for momentum, temperature and 
                        water vapor. Default: `default_roughness_lengths(FT)`, formulation taken from Edson et al (2013).
 - `similarity_profile_type`: The type of similarity profile used to relate the atmospheric state to the 
@@ -146,54 +114,43 @@ Keyword Arguments
                    atmospheric and surfaceic speed).
 - `tolerance`: The tolerance for convergence. Default: 1e-8.
 - `maxiter`: The maximum number of iterations. Default: 100.
-- `fields`: The fields to calculate. Default: nothing.
 """
-function SimilarityTheoryTurbulentFluxes(FT::DataType = Float64;
-                                         gravitational_acceleration = default_gravitational_acceleration,
-                                         von_karman_constant = convert(FT, 0.4),
-                                         turbulent_prandtl_number = convert(FT, 1),
-                                         gustiness_parameter = convert(FT, 6.5),
-                                         stability_functions = edson_stability_functions(FT),
-                                         thermodynamics_parameters = PATP(FT),
-                                         water_vapor_saturation = ClasiusClapyeronSaturation(),
-                                         water_mole_fraction = convert(FT, 0.98),
-                                         roughness_lengths = default_roughness_lengths(FT),
-                                         similarity_profile_type = LogarithmicSimilarityProfile(),
-                                         surface_temperature_type = BulkTemperature(),
-                                         bulk_velocity = RelativeVelocity(),
-                                         tolerance = 1e-8,
-                                         maxiter = 100,
-                                         fields = nothing)
+function SimilarityTheoryFluxes(FT::DataType = Float64;
+                                von_karman_constant = convert(FT, 0.4),
+                                turbulent_prandtl_number = convert(FT, 1),
+                                gustiness_parameter = convert(FT, 6.5),
+                                stability_functions = edson_stability_functions(FT),
+                                roughness_lengths = default_roughness_lengths(FT),
+                                similarity_profile_type = LogarithmicSimilarityProfile(),
+                                surface_temperature_type = BulkTemperature(),
+                                bulk_velocity = RelativeVelocity(),
+                                tolerance = 1e-8,
+                                maxiter = 100)
 
-    return SimilarityTheoryTurbulentFluxes(convert(FT, gravitational_acceleration),
-                                           convert(FT, von_karman_constant),
-                                           convert(FT, turbulent_prandtl_number),
-                                           convert(FT, gustiness_parameter),
-                                           stability_functions,
-                                           thermodynamics_parameters,
-                                           water_vapor_saturation,
-                                           water_mole_fraction,
-                                           roughness_lengths,
-                                           similarity_profile_type,
-                                           surface_temperature_type,
-                                           bulk_velocity,
-                                           convert(FT, tolerance), 
-                                           maxiter,
-                                           fields)
+    return SimilarityTheoryFluxes(convert(FT, von_karman_constant),
+                                  convert(FT, turbulent_prandtl_number),
+                                  convert(FT, gustiness_parameter),
+                                  stability_functions,
+                                  roughness_lengths,
+                                  similarity_profile_type,
+                                  surface_temperature_type,
+                                  bulk_velocity,
+                                  convert(FT, tolerance), 
+                                  maxiter)
 end
 
-function SimilarityTheoryTurbulentFluxes(grid::AbstractGrid; surface_temperature_type = BulkTemperature(), kw...)
-    water_vapor   = Field{Center, Center, Nothing}(grid)
-    latent_heat   = Field{Center, Center, Nothing}(grid)
-    sensible_heat = Field{Center, Center, Nothing}(grid)
-    x_momentum    = Field{Center, Center, Nothing}(grid)
-    y_momentum    = Field{Center, Center, Nothing}(grid)
-    T_surface     = Field{Center, Center, Nothing}(grid)
+# function SimilarityTheoryFluxes(grid::AbstractGrid; surface_temperature_type = BulkTemperature(), kw...)
+#     water_vapor   = Field{Center, Center, Nothing}(grid)
+#     latent_heat   = Field{Center, Center, Nothing}(grid)
+#     sensible_heat = Field{Center, Center, Nothing}(grid)
+#     x_momentum    = Field{Center, Center, Nothing}(grid)
+#     y_momentum    = Field{Center, Center, Nothing}(grid)
+#     T_surface     = Field{Center, Center, Nothing}(grid)
 
-    fields = (; latent_heat, sensible_heat, water_vapor, x_momentum, y_momentum, T_surface)
+#     fields = (; latent_heat, sensible_heat, water_vapor, x_momentum, y_momentum, T_surface)
 
-    return SimilarityTheoryTurbulentFluxes(eltype(grid); surface_temperature_type, kw..., fields)
-end
+#     return SimilarityTheoryTurbulentFluxes(eltype(grid); surface_temperature_type, kw..., fields)
+# end
 
 #####
 ##### Similarity profile types

@@ -122,10 +122,10 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
 
     staggered_velocity_fluxes = (u = coupled_model.fluxes.total.ocean.momentum.u,
                                  v = coupled_model.fluxes.total.ocean.momentum.v)
-
     net_tracer_fluxes    = coupled_model.fluxes.total.ocean.tracers
-    similarity_theory    = coupled_model.fluxes.turbulent.ocean
+    similarity_theory    = coupled_model.fluxes.turbulent.coefficients.ocean
     radiation_properties = coupled_model.fluxes.radiation
+    turbulent_fluxes     = coupled_model.fluxes.turbulent.fields.ocean
 
     ocean_state = (u = ocean.model.velocities.u,
                    v = ocean.model.velocities.v,
@@ -134,6 +134,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
 
     launch!(arch, grid, kernel_parameters,
             _compute_atmosphere_surface_similarity_theory_fluxes!,
+            turbulent_fluxes,
             similarity_theory,
             grid,
             clock,
@@ -165,7 +166,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             ocean_state.T,
             ocean_state.S,
             coupled_model.fluxes.ocean_temperature_units,
-            similarity_theory.fields,
+            fluxes_fields, 
             interpolated_downwelling_radiation,
             interpolated_prescribed_freshwater_flux,
             radiation_properties,
@@ -268,7 +269,7 @@ end
                                                     ocean_temperature,
                                                     ocean_salinity,
                                                     ocean_temperature_units,
-                                                    similarity_theory_fields,
+                                                    turbulent_fluxes,
                                                     downwelling_radiation,
                                                     prescribed_freshwater_flux,
                                                     radiation_properties,
@@ -290,11 +291,11 @@ end
 
         Mp = prescribed_freshwater_flux[i, j, 1]
 
-        Qc  = similarity_theory_fields.sensible_heat[i, j, 1] # sensible or "conductive" heat flux
-        Qv  = similarity_theory_fields.latent_heat[i, j, 1]   # latent heat flux
-        Mv  = similarity_theory_fields.water_vapor[i, j, 1]   # mass flux of water vapor
-        ρτx = similarity_theory_fields.x_momentum[i, j, 1]    # zonal momentum flux
-        ρτy = similarity_theory_fields.y_momentum[i, j, 1]    # meridional momentum flux
+        Qc  = turbulent_fluxes.sensible_heat[i, j, 1] # sensible or "conductive" heat flux
+        Qv  = turbulent_fluxes.latent_heat[i, j, 1]   # latent heat flux
+        Mv  = turbulent_fluxes.water_vapor[i, j, 1]   # mass flux of water vapor
+        ρτx = turbulent_fluxes.x_momentum[i, j, 1]    # zonal momentum flux
+        ρτy = turbulent_fluxes.y_momentum[i, j, 1]    # meridional momentum flux
     end
 
     # Compute heat fluxes, bulk flux first
