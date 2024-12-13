@@ -1,3 +1,5 @@
+using ClimaOcean.OceanSeaIceModels
+
 function limit_fluxes_over_sea_ice!(grid, kernel_parameters, sea_ice,
                                     centered_velocity_fluxes,
                                     net_tracer_fluxes, args...)
@@ -26,7 +28,10 @@ end
     end
 end
 
-function compute_atmosphere_sea_ice_fluxes!(coupled_model)
+# Fallback
+compute_atmosphere_sea_ice_fluxes!(coupled_model) = nothing
+
+function compute_atmosphere_sea_ice_fluxes!(coupled_model::OceanSeaIceModel{<:SeaIceSimulation})
     surface_atmosphere_state = coupled_model.fluxes.surface_atmosphere_state
     sea_ice = coupled_model.sea_ice
 

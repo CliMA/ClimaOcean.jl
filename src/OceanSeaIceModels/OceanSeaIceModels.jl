@@ -72,11 +72,4 @@ const NoAtmosphereModel = OceanSeaIceModel{<:Any, Nothing}
 compute_atmosphere_ocean_fluxes!(::NoAtmosphereModel) = nothing
 compute_atmosphere_sea_ice_fluxes!(::NoAtmosphereModel) = nothing
 
-const NoSeaIceModel = OceanSeaIceModel{Nothing}
-
-compute_atmosphere_sea_ice_fluxes!(::NoSeaIceModel) = nothing
-compute_atmosphere_sea_ice_fluxes!(::OceanSeaIceModel{<:FreezingLimitedCoupledModel}) = nothing
-
-compute_sea_ice_ocean_fluxes!(::NoSeaIceModel) = nothing
-
 end # module

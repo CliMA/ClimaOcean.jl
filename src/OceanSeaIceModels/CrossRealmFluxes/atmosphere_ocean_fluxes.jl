@@ -166,7 +166,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             ocean_state.T,
             ocean_state.S,
             coupled_model.fluxes.ocean_temperature_units,
-            fluxes_fields, 
+            turbulent_fluxes, 
             interpolated_downwelling_radiation,
             interpolated_prescribed_freshwater_flux,
             radiation_properties,
