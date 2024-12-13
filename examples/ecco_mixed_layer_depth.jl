@@ -1,18 +1,14 @@
-#=
+using ClimaOcean
+using ClimaOcean.Diagnostics: MixedLayerDepthField
+using ClimaOcean.DataWrangling.ECCO: ECCO_field, ECCOFieldTimeSeries
 using Oceananigans
-using Oceananigans.ImmersedBoundaries: mask_immersed_field!
-
-#include("mixed_layer_depth.jl")
-
 using GLMakie
 using Printf
-using ClimaOcean
-using ClimaOcean.DataWrangling.ECCO: ECCO_field, ECCOFieldTimeSeries
 using CFTime
 using Dates
 
 using SeawaterPolynomials: TEOS10EquationOfState
-using Oceananigans.BuoyancyModels: buoyancy
+using Oceananigans.BuoyancyFormulations: buoyancy
 
 arch = CPU()
 Nx = 360 ÷ 1
@@ -34,9 +30,8 @@ bottom_height = regrid_bathymetry(grid;
 
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
-#dates = ClimaOcean.DataWrangling.ECCO.all_ECCO_dates(ClimaOcean.DataWrangling.ECCO.ECCO4Monthly())
 start = DateTimeProlepticGregorian(1993, 1, 1)
-stop  = DateTimeProlepticGregorian(2017, 1, 1)
+stop  = DateTimeProlepticGregorian(2003, 1, 1)
 dates = range(start; stop, step=Month(1))
 
 Tmeta = ECCOMetadata(:temperature; dates)
@@ -60,7 +55,6 @@ for n = 1:Nt-1
     @time compute!(h)
     parent(ht[n]) .= parent(h)
 end
-=#
 
 function titlestr(n)
     d = dates[n]
@@ -71,9 +65,6 @@ end
 
 fig = Figure(size=(1500, 800))
 axh = Axis(fig[2, 1], xlabel="Longitude", ylabel="Latitude")
-
-#slider = Slider(fig[3, 1], range=1:Nt, startvalue=1)
-#n = slider.value
 n = Observable(1)
 
 str = @lift titlestr($n)

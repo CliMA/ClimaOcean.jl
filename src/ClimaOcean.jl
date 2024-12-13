@@ -75,7 +75,7 @@ include("VerticalGrids.jl")
 include("InitialConditions/InitialConditions.jl")
 include("DataWrangling/DataWrangling.jl")
 include("Bathymetry.jl")
-include("Diagnostics.jl")
+include("Diagnostics/Diagnostics.jl")
 include("OceanSimulations/OceanSimulations.jl")
 
 using .VerticalGrids
