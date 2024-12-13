@@ -23,8 +23,8 @@ julia> using Pkg
 julia> Pkg.add("ClimaOcean")
 ```
 
-!!! compat "Julia 1.9 is required"
-    ClimaOcean requires Julia 1.9 or later.
+!!! compat "Julia 1.10 is required"
+    ClimaOcean requires Julia 1.10 or later.
     
 ## Quick start
 
