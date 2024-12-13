@@ -121,7 +121,7 @@ function CrossRealmSurfaceFluxes(ocean, sea_ice=nothing;
     if !isnothing(atmosphere)
         # It's the "thermodynamics gravitational acceleration"
         # (as opposed to the one used for the free surface)
-        gravitational_acceleration = ocean.model.buoyancy.model.gravitational_acceleration
+        gravitational_acceleration = ocean.model.buoyancy.formulation.gravitational_acceleration
 
         # Build turbulent fluxes if they do not exist
         if isnothing(turbulent_fluxes)

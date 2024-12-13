@@ -42,7 +42,7 @@ include("similarity_theory_turbulent_fluxes.jl")
 include("constant_coefficient_turbulent_fluxes.jl")
 
 # Total fluxes
-include("ocean_sea_ice_surface_fluxes.jl")
+include("cross_realm_surface_fluxes.jl")
 include("compute_atmosphere_surface_fluxes.jl")
 include("atmosphere_ocean_fluxes.jl")
 include("atmosphere_sea_ice_fluxes.jl")
