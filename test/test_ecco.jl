@@ -96,7 +96,7 @@ end
         φ₂ = @allowscalar grid.φᵃᶜᵃ[21]
         φ₃ = @allowscalar grid.φᵃᶜᵃ[80]
         φ₄ = @allowscalar grid.φᵃᶜᵃ[100]
-        z₁ = @allowscalar grid.zᵃᵃᶜ[6]
+        z₁ = @allowscalar grid.z.cᵃᵃᶜ[6]
 
         mask = LinearlyTaperedPolarMask(northern = (φ₃, φ₄),
                                         southern = (φ₁, φ₂),
