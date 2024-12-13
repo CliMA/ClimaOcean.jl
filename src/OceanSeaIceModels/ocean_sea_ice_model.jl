@@ -1,7 +1,7 @@
 using Oceananigans
 using Oceananigans.Models: update_model_field_time_series!
 using Oceananigans.TimeSteppers: Clock
-using Oceananigans.BuoyancyModels: SeawaterBuoyancy
+using Oceananigans: SeawaterBuoyancy
 
 using SeawaterPolynomials: TEOS10EquationOfState
 

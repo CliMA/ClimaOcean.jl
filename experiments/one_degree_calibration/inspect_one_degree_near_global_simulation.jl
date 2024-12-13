@@ -1,5 +1,5 @@
 using Oceananigans
-using Oceananigans.BuoyancyModels: ∂z_b, buoyancy_perturbation
+using Oceananigans.BuoyancyFormulations: ∂z_b, buoyancy_perturbation
 using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 using JLD2
 using CairoMakie
