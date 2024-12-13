@@ -2,7 +2,7 @@ using Oceananigans.Operators: Δzᶜᶜᶜ
 
 function compute_sea_ice_ocean_fluxes!(coupled_model)
     #compute_sea_ice_ocean_salinity_flux!(coupled_model)
-    sea_ice_ocean_latent_heat_flux!(coupled_model)
+    compute_sea_ice_ocean_latent_heat_flux!(coupled_model)
     return nothing
 end
 
@@ -57,7 +57,7 @@ end
     end
 end
 
-function sea_ice_ocean_latent_heat_flux!(coupled_model)
+function compute_sea_ice_ocean_latent_heat_flux!(coupled_model)
     ocean = coupled_model.ocean
     sea_ice = coupled_model.sea_ice
     ρₒ = coupled_model.fluxes.ocean_reference_density
@@ -79,16 +79,6 @@ function sea_ice_ocean_latent_heat_flux!(coupled_model)
 
     return nothing
 end
-
-#=
-function adjust_ice_covered_ocean_temperature!(coupled_model)
-    sea_ice_ocean_latent_heat_flux!(coupled_model)
-    sea_ice = coupled_model.sea_ice
-    Qₒ = sea_ice.model.external_heat_fluxes.bottom
-    parent(Qₒ) .= 0
-    return nothing
-end
-=#
 
 @kernel function _compute_sea_ice_ocean_latent_heat_flux!(latent_heat_flux,
                                                           grid,

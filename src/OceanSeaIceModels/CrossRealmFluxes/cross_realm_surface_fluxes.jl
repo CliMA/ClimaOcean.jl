@@ -29,7 +29,7 @@ using KernelAbstractions: @kernel, @index
 ##### Container for organizing information related to fluxes
 #####
 
-struct OceanSeaIceSurfaceFluxes{T, P, C, R, PI, PC, FT, UN, ATM}
+struct CrossRealmSurfaceFluxes{T, P, C, R, PI, PC, FT, UN, ATM}
     turbulent :: T # the turbulent fluxes
     prescribed :: P
     # Add `components` which will also store components of the total fluxes
@@ -80,8 +80,8 @@ const celsius_to_kelvin = 273.15
 @inline convert_to_kelvin(::DegreesCelsius, T::FT) where FT = T + convert(FT, celsius_to_kelvin)
 @inline convert_to_kelvin(::DegreesKelvin, T) = T
 
-Base.summary(crf::OceanSeaIceSurfaceFluxes) = "OceanSeaIceSurfaceFluxes"
-Base.show(io::IO, crf::OceanSeaIceSurfaceFluxes) = print(io, summary(crf))
+Base.summary(crf::CrossRealmSurfaceFluxes) = "CrossRealmSurfaceFluxes"
+Base.show(io::IO, crf::CrossRealmSurfaceFluxes) = print(io, summary(crf))
 
 """
     We need a docstring...
@@ -93,21 +93,21 @@ Base.show(io::IO, crf::OceanSeaIceSurfaceFluxes) = print(io, summary(crf))
 - `water_mole_fraction`: The water mole fraction used to calculate the `seawater_saturation_specific_humidity`. 
                          Default: 0.98, the rest is assumed to be other substances such as chlorine, sodium sulfide, and magnesium.
 """
-function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
-                                  atmosphere = nothing,
-                                  radiation = nothing,
-                                  freshwater_density = 1000,
-                                  prescribed_fluxes = nothing, # ?? Is this ever used ??
-                                  ocean_temperature_units = DegreesCelsius(),
-                                  turbulent_fluxes = nothing,
-                                  water_vapor_saturation = ClasiusClapyeronSaturation(),
-                                  ice_vapor_saturation = ClasiusClapyeronSaturation(),
-                                  water_mole_fraction = convert(FT, 0.98),
-                                  thermodynamics_parameters = PATP(FT),
-                                  ocean_reference_density = reference_density(ocean),
-                                  ocean_heat_capacity = heat_capacity(ocean),
-                                  sea_ice_reference_density = 900,
-                                  sea_ice_heat_capacity = 2110)
+function CrossRealmSurfaceFluxes(ocean, sea_ice=nothing;
+                                 atmosphere = nothing,
+                                 radiation = nothing,
+                                 freshwater_density = 1000,
+                                 prescribed_fluxes = nothing, # ?? Is this ever used ??
+                                 ocean_temperature_units = DegreesCelsius(),
+                                 turbulent_fluxes = nothing,
+                                 water_vapor_saturation = ClasiusClapyeronSaturation(),
+                                 ice_vapor_saturation = ClasiusClapyeronSaturation(),
+                                 water_mole_fraction = convert(FT, 0.98),
+                                 thermodynamics_parameters = PATP(FT),
+                                 ocean_reference_density = reference_density(ocean),
+                                 ocean_heat_capacity = heat_capacity(ocean),
+                                 sea_ice_reference_density = 900,
+                                 sea_ice_heat_capacity = 2110)
 
     ocean_grid = ocean.model.grid
     FT = eltype(ocean_grid)
@@ -177,20 +177,20 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
     similarity_theory = (; ocean=ocean_similarity_theory,
                          sea_ice=sea_ice_similarity_theory)
 
-    return OceanSeaIceSurfaceFluxes(similarity_theory,
-                                    prescribed_fluxes,
-                                    total_fluxes,
-                                    radiation,
-                                    previous_ice_thickness,
-                                    previous_ice_concentration,
-                                    ocean_reference_density,
-                                    ocean_heat_capacity,
-                                    sea_ice_reference_density,
-                                    sea_ice_heat_capacity,
-                                    freshwater_density,
-                                    ocean_temperature_units,
-                                    ocean_temperature_units,
-                                    surface_atmosphere_state)
+    return CrossRealmSurfaceFluxes(similarity_theory,
+                                   prescribed_fluxes,
+                                   total_fluxes,
+                                   radiation,
+                                   previous_ice_thickness,
+                                   previous_ice_concentration,
+                                   ocean_reference_density,
+                                   ocean_heat_capacity,
+                                   sea_ice_reference_density,
+                                   sea_ice_heat_capacity,
+                                   freshwater_density,
+                                   ocean_temperature_units,
+                                   ocean_temperature_units,
+                                   surface_atmosphere_state)
 end
 
 function surface_model_fluxes(model, ρₛ, cₛ)
@@ -204,7 +204,7 @@ function surface_model_fluxes(model, ρₛ, cₛ)
                               v    = τy,      #
                               # Including these (which are only a user convenience, not needed for
                               # time-stepping) incurs about 100s in construction
-                              # time for OceanSeaIceSurfaceFluxes:
+                              # time for CrossRealmSurfaceFluxes:
                               # ρτx  = ρₒ * τx, # momentum fluxes multiplied by reference density
                               # ρτy  = ρₒ * τy, # user convenience 
                               uᶜᶜᶜ = τxᶜᶜᶜ,   # fluxes computed by bulk formula at cell centers

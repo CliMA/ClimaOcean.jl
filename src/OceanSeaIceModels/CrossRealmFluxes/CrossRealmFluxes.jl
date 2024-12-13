@@ -4,7 +4,7 @@ using Oceananigans
 using Adapt 
 
 export Radiation,
-       OceanSeaIceSurfaceFluxes,
+       CrossRealmSurfaceFluxes,
        LatitudeDependentAlbedo,
        SimilarityTheoryTurbulentFluxes,
        SkinTemperature, 

@@ -30,6 +30,7 @@ export
     ECCORestoring,
     LinearlyTaperedPolarMask,
     ocean_simulation,
+    sea_ice_simulation,
     initialize!,
     @root, 
     @onrank,
@@ -80,6 +81,7 @@ include("DataWrangling/DataWrangling.jl")
 include("Bathymetry.jl")
 include("Diagnostics.jl")
 include("OceanSimulations/OceanSimulations.jl")
+include("SeaIceSimulations/SeaIceSimulations.jl")
 
 using .VerticalGrids
 using .Bathymetry
@@ -87,6 +89,7 @@ using .DataWrangling
 using .InitialConditions
 using .OceanSeaIceModels
 using .OceanSimulations
+using .SeaIceSimulations
 using .DataWrangling: JRA55, ECCO
 
 using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere

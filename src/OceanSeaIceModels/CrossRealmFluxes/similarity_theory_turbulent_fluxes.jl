@@ -40,16 +40,17 @@ struct SimilarityTheoryFluxes{FT, UF, R, B, T, V, F}
     maxiter :: Int                   # solver option
 end
 
-Adapt.adapt_structure(to, fluxes::STTF) = SimilarityTheoryFluxes(adapt(to, fluxes.von_karman_constant),
-                                                                 adapt(to, fluxes.turbulent_prandtl_number),
-                                                                 adapt(to, fluxes.gustiness_parameter),
-                                                                 adapt(to, fluxes.stability_functions),
-                                                                 adapt(to, fluxes.roughness_lengths),
-                                                                 adapt(to, fluxes.similarity_profile_type),
-                                                                 adapt(to, fluxes.surface_temperature_type),
-                                                                 adapt(to, fluxes.bulk_velocity),
-                                                                 fluxes.tolerance,
-                                                                 fluxes.maxiter)
+Adapt.adapt_structure(to, fluxes::SimilarityTheoryFluxes) = 
+    SimilarityTheoryFluxes(adapt(to, fluxes.von_karman_constant),
+                           adapt(to, fluxes.turbulent_prandtl_number),
+                           adapt(to, fluxes.gustiness_parameter),
+                           adapt(to, fluxes.stability_functions),
+                           adapt(to, fluxes.roughness_lengths),
+                           adapt(to, fluxes.similarity_profile_type),
+                           adapt(to, fluxes.surface_temperature_type),
+                           adapt(to, fluxes.bulk_velocity),
+                           fluxes.tolerance,
+                           fluxes.maxiter)
 
 Base.summary(::SimilarityTheoryFluxes{FT}) where FT = "SimilarityTheoryTurbulentFluxes{$FT}"
 

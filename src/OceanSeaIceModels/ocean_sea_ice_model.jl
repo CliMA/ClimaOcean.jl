@@ -97,7 +97,7 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature();
     ocean.wall_time_limit = Inf
 
     # Contains information about flux contributions: bulk formula, prescribed fluxes, etc.
-    fluxes = OceanSeaIceSurfaceFluxes(ocean, sea_ice;
+    fluxes = CrossRealmSurfaceFluxes(ocean, sea_ice;
                                       atmosphere, 
                                       ocean_reference_density,
                                       ocean_similarity_theory,
