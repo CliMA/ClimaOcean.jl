@@ -1,5 +1,3 @@
-using ClimaSeaIce: SeaIceModel
-
 function limit_fluxes_over_sea_ice!(grid, kernel_parameters, sea_ice,
                                     centered_velocity_fluxes,
                                     net_tracer_fluxes, args...)
@@ -44,11 +42,11 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
     
     # Assumption: The sea ice and the ocean are on the same horizontal 
     # grid, so we do not need to reinterpolate the atmospheric state
-    surface_atmosphere_state = (u = surface_atmosphere_state.u.data,
-                                v = surface_atmosphere_state.v.data,
-                                T = surface_atmosphere_state.T.data,
-                                p = surface_atmosphere_state.p.data,
-                                q = surface_atmosphere_state.q.data,
+    surface_atmosphere_state = (u  = surface_atmosphere_state.u.data,
+                                v  = surface_atmosphere_state.v.data,
+                                T  = surface_atmosphere_state.T.data,
+                                p  = surface_atmosphere_state.p.data,
+                                q  = surface_atmosphere_state.q.data,
                                 Qs = surface_atmosphere_state.Qs.data,
                                 Qℓ = surface_atmosphere_state.Qℓ.data,
                                 Mp = surface_atmosphere_state.Mp.data)
@@ -70,7 +68,7 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
 
     sea_ice_state = (u = sea_ice.model.velocities.u,
                      v = sea_ice.model.velocities.v,
-                     T = sea_ice.model.tracers.T,
+                     T = sea_ice.model.ice_thermodynamics.top_surface_temperature,
                      S = sea_ice.model.tracers.S)
 
     launch!(arch, grid, kernel_parameters,

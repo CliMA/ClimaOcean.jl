@@ -106,8 +106,8 @@ function CrossRealmSurfaceFluxes(ocean, sea_ice=nothing;
                                  thermodynamics_parameters = PATP(FT),
                                  ocean_reference_density = reference_density(ocean),
                                  ocean_heat_capacity = heat_capacity(ocean),
-                                 sea_ice_reference_density = 900,
-                                 sea_ice_heat_capacity = 2110)
+                                 sea_ice_reference_density = reference_density(sea_ice),
+                                 sea_ice_heat_capacity = reference_density(sea_ice))
 
     ocean_grid = ocean.model.grid
     FT = eltype(ocean_grid)
