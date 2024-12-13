@@ -7,6 +7,8 @@ using Oceananigans.Units
 using Oceananigans.Utils: with_tracers
 using Oceananigans.Advection: FluxFormAdvection
 using Oceananigans.DistributedComputations: DistributedGrid, all_reduce
+using Oceananigans.BoundaryConditions: DefaultBoundaryCondition
+using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node
 using OrthogonalSphericalShellGrids
 
@@ -37,7 +39,7 @@ For example, the default bottom drag should be 0 for a single column model, but 
 We therefore need a way to specify both the "normal" default 0.003 as well as the "alternative default" 0,
 all while respecting user input and changing this to a new value if specified.
 """
-default_or_override(default::Default, possibly_alternative_default=default.value) =  possibly_alternative_default
+default_or_override(default::Default, possibly_alternative_default=default.value) = possibly_alternative_default
 default_or_override(override, alternative_default=nothing) = override
 
 # Some defaults
@@ -118,13 +120,19 @@ function ocean_simulation(grid;
                           gravitational_acceleration = g_Earth,
                           bottom_drag_coefficient = Default(0.003),
                           forcing = NamedTuple(),
-                          coriolis = HydrostaticSphericalCoriolis(; rotation_rate),
+                          coriolis = Default(HydrostaticSphericalCoriolis(; rotation_rate)),
                           momentum_advection = default_momentum_advection(),
                           equation_of_state = TEOS10EquationOfState(; reference_density),
                           tracer_advection = default_tracer_advection(),
                           verbose = false)
 
     FT = eltype(grid)
+
+    if grid isa RectilinearGrid # turn off Coriolis unless user-supplied
+        coriolis = default_or_override(coriolis, nothing)
+    else
+        coriolis = default_or_override(coriolis)
+    end
 
     # Detect whether we are on a single column grid
     Nx, Ny, _ = size(grid)
@@ -139,8 +147,8 @@ function ocean_simulation(grid;
         momentum_advection = nothing
 
         # No immersed boundaries in a single column grid
-        u_immersed_bc = nothing
-        v_immersed_bc = nothing
+        u_immersed_bc = DefaultBoundaryCondition()
+        v_immersed_bc = DefaultBoundaryCondition()
     else
         if !(grid isa ImmersedBoundaryGrid)
             msg = """Are you totally, 100% sure that you want to build a simulation on
@@ -177,11 +185,11 @@ function ocean_simulation(grid;
     
     u_bot_bc = FluxBoundaryCondition(u_quadratic_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
     v_bot_bc = FluxBoundaryCondition(v_quadratic_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
-    
-    ocean_boundary_conditions = (u = FieldBoundaryConditions(top = u_top_bc, bottom = u_bot_bc, immersed = u_immersed_bc),
-                                 v = FieldBoundaryConditions(top = v_top_bc, bottom = v_bot_bc, immersed = v_immersed_bc),
-                                 T = FieldBoundaryConditions(top = T_top_bc),
-                                 S = FieldBoundaryConditions(top = S_top_bc))
+
+    ocean_boundary_conditions = (u = FieldBoundaryConditions(top=u_top_bc, bottom=u_bot_bc, immersed=u_immersed_bc),
+                                 v = FieldBoundaryConditions(top=v_top_bc, bottom=v_bot_bc, immersed=v_immersed_bc),
+                                 T = FieldBoundaryConditions(top=T_top_bc),
+                                 S = FieldBoundaryConditions(top=S_top_bc))
 
     # Use the TEOS10 equation of state
     teos10 = TEOS10EquationOfState(; reference_density)
