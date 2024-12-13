@@ -17,7 +17,7 @@ const MixedLayerDepthField = Field{<:Any, <:Any, <:Any, <:MixedLayerDepthOperand
     MixedLayerDepthField(bm, grid, tracers; difference_criterion=1e-4)
 
 """
-function MixedLayerDepthField(bm, grid, tracers; difference_criterion=1e-4)
+function MixedLayerDepthField(bm, grid, tracers; difference_criterion=3e-5)
     operand = MixedLayerDepthOperand(bm, grid, tracers; difference_criterion)
     loc = (Center, Center, Nothing)
     indices = (:, :, :)
