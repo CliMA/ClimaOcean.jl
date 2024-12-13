@@ -1,3 +1,5 @@
+using Oceananigans.Grids: inactive_node
+
 """ Compute turbulent fluxes between an atmosphere and a surface state using similarity theory """
 @kernel function _compute_atmosphere_surface_similarity_theory_fluxes!(fluxes_fields,
                                                                        coefficients,
@@ -69,6 +71,7 @@
     surface_salinity = Sₒ
     prescribed_heat_fluxes = net_downwelling_radiation(i, j, grid, time, radiation, Rs, Rℓ) 
     radiative_properties = local_radiation_properties(i, j, kᴺ, grid, time, radiation)
+    inactive_cell = inactive_node(i, j, kᴺ, grid)
 
     turbulent_fluxes, surface_temperature = compute_turbulent_fluxes(coefficients,
                                                                      dynamic_surface_state, 
@@ -82,7 +85,7 @@
                                                                      mole_fraction,
                                                                      vapor_saturation,
                                                                      atmosphere_boundary_layer_height,
-                                                                     ℂₐ, g, inactive)
+                                                                     ℂₐ, g, inactive_cell)
 
     # Store fluxes
     Qv = fluxes_fields.latent_heat

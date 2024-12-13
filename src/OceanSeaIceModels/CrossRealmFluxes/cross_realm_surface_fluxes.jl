@@ -114,8 +114,8 @@ function CrossRealmSurfaceFluxes(ocean, sea_ice=nothing;
 
     ocean_reference_density = convert(FT, ocean_reference_density)
     ocean_heat_capacity = convert(FT, ocean_heat_capacity)
-    sea_ice_reference_density = isnothing(sea_ice_reference_density) ? nothing : convert(FT, sea_ice_reference_density)
-    sea_ice_heat_capacity = isnothing(sea_ice_heat_capacity) ? nothing : convert(FT, sea_ice_heat_capacity)
+    sea_ice_reference_density = convert(FT, sea_ice_reference_density)
+    sea_ice_heat_capacity = convert(FT, sea_ice_heat_capacity)
     freshwater_density = convert(FT, freshwater_density)
     water_mole_fraction = convert(FT, water_mole_fraction)
     

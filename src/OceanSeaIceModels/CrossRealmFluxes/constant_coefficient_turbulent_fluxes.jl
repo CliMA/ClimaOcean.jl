@@ -23,7 +23,6 @@ end
     
     # Prescribed difference between two states
     ℂₐ = thermodynamics_parameters
-    FT = eltype(ℂₐ)
 
     # state differences...
     Δh, Δu, Δv, Δθ, Δq, θs = state_differences(thermodynamics_parameters,
