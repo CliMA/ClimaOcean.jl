@@ -102,8 +102,8 @@ function CrossRealmSurfaceFluxes(ocean, sea_ice=nothing;
                                  turbulent_fluxes = nothing,
                                  water_vapor_saturation = ClasiusClapyeronSaturation(),
                                  ice_vapor_saturation = ClasiusClapyeronSaturation(),
-                                 water_mole_fraction = convert(eltype(ocean_grid), 0.98),
-                                 thermodynamics_parameters = PATP(eltype(ocean_grid)),
+                                 water_mole_fraction = 0.98,
+                                 thermodynamics_parameters = nothing,
                                  ocean_reference_density = reference_density(ocean),
                                  ocean_heat_capacity = heat_capacity(ocean),
                                  sea_ice_reference_density = reference_density(sea_ice),
@@ -114,11 +114,16 @@ function CrossRealmSurfaceFluxes(ocean, sea_ice=nothing;
 
     ocean_reference_density = convert(FT, ocean_reference_density)
     ocean_heat_capacity = convert(FT, ocean_heat_capacity)
-    sea_ice_reference_density = convert(FT, sea_ice_reference_density)
-    sea_ice_heat_capacity = convert(FT, sea_ice_heat_capacity)
+    sea_ice_reference_density = isnothing(sea_ice_reference_density) ? nothing : convert(FT, sea_ice_reference_density)
+    sea_ice_heat_capacity = isnothing(sea_ice_heat_capacity) ? nothing : convert(FT, sea_ice_heat_capacity)
     freshwater_density = convert(FT, freshwater_density)
-
+    water_mole_fraction = convert(FT, water_mole_fraction)
+    
     if !isnothing(atmosphere)
+        if isnothing(thermodynamics_parameters)
+            thermodynamics_parameters = PATP(FT)
+        end
+
         # It's the "thermodynamics gravitational acceleration"
         # (as opposed to the one used for the free surface)
         gravitational_acceleration = ocean.model.buoyancy.formulation.gravitational_acceleration
@@ -163,9 +168,14 @@ function CrossRealmSurfaceFluxes(ocean, sea_ice=nothing;
                                               ocean_reference_density,
                                               ocean_heat_capacity)
 
-    total_sea_ice_fluxes = surface_model_fluxes(sea_ice.model,
-                                                sea_ice_reference_density,
-                                                sea_ice_heat_capacity)
+                                        
+    total_sea_ice_fluxes = if sea_ice isa SeaIceSimulation
+        surface_model_fluxes(sea_ice.model,
+                             sea_ice_reference_density,
+                             sea_ice_heat_capacity)
+    else
+        nothing
+    end
 
     # The actual fields in the boundary conditions of 
     # model-specific velocities and tracers
@@ -174,10 +184,7 @@ function CrossRealmSurfaceFluxes(ocean, sea_ice=nothing;
 
     surface_atmosphere_state = interpolated_surface_atmosphere_state(ocean_grid)
 
-    similarity_theory = (; ocean=ocean_similarity_theory,
-                         sea_ice=sea_ice_similarity_theory)
-
-    return CrossRealmSurfaceFluxes(similarity_theory,
+    return CrossRealmSurfaceFluxes(turbulent_fluxes,
                                    prescribed_fluxes,
                                    total_fluxes,
                                    radiation,

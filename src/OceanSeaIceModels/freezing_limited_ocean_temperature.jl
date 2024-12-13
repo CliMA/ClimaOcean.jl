@@ -25,6 +25,9 @@ const FreezingLimitedCoupledModel = OceanSeaIceModel{<:FreezingLimitedOceanTempe
 sea_ice_concentration(::FreezingLimitedOceanTemperature) = nothing
 sea_ice_thickness(::FreezingLimitedOceanTemperature) = nothing
 
+reference_density(::FreezingLimitedOceanTemperature) = nothing
+heat_capacity(::FreezingLimitedOceanTemperature) = nothing
+
 function compute_sea_ice_ocean_fluxes!(cm::FreezingLimitedCoupledModel)
     ocean = cm.ocean
     liquidus = cm.sea_ice.liquidus

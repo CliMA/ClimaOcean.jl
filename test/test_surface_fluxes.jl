@@ -73,7 +73,7 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
             for Tmode in (BulkTemperature, SkinTemperature)
                 @info " Testing zero fluxes with $(Tmode)..."
 
-                similarity_theory = SimilarityTheoryTurbulentFluxes(grid; 
+                similarity_theory = SimilarityTheoryFluxes(grid; 
                                                                     water_vapor_saturation, 
                                                                     water_mole_fraction, 
                                                                     surface_temperature_type = Tmode())
@@ -113,7 +113,7 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
                                                 zero_stability_function)
 
             roughness_lengths = SimilarityScales(ℓ, ℓ, ℓ)
-            similarity_theory = SimilarityTheoryTurbulentFluxes(grid; 
+            similarity_theory = SimilarityTheoryFluxes(grid; 
                                                                 roughness_lengths, 
                                                                 gustiness_parameter = 0,
                                                                 stability_functions)

@@ -76,8 +76,7 @@ end
 function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature();
                           atmosphere = nothing,
                           radiation = nothing,
-                          ocean_similarity_theory = nothing,
-                          sea_ice_similarity_theory = nothing,
+                          turbulent_fluxes = nothing,
                           ocean_reference_density = reference_density(ocean),
                           ocean_heat_capacity = heat_capacity(ocean),
                           clock = deepcopy(ocean.model.clock))
@@ -103,9 +102,8 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature();
     # Contains information about flux contributions: bulk formula, prescribed fluxes, etc.
     fluxes = CrossRealmSurfaceFluxes(ocean, sea_ice;
                                       atmosphere, 
+                                      turbulent_fluxes,
                                       ocean_reference_density,
-                                      ocean_similarity_theory,
-                                      sea_ice_similarity_theory,
                                       ocean_heat_capacity,
                                       radiation)
 

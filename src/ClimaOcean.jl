@@ -12,7 +12,7 @@ export
     FreezingLimitedOceanTemperature,
     Radiation,
     LatitudeDependentAlbedo,
-    SimilarityTheoryTurbulentFluxes,
+    SimilarityTheoryFluxes,
     SkinTemperature,
     BulkTemperature,
     PrescribedAtmosphere,

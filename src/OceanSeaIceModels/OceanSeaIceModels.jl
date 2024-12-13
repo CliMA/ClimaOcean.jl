@@ -1,6 +1,6 @@
 module OceanSeaIceModels
 
-export OceanSeaIceModel, SimilarityTheoryTurbulentFluxes, FreezingLimitedOceanTemperature
+export OceanSeaIceModel, SimilarityTheoryFluxes, FreezingLimitedOceanTemperature
 export Radiation, LatitudeDependentAlbedo
 export SkinTemperature, BulkTemperature
 

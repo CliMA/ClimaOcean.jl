@@ -27,7 +27,7 @@ import SurfaceFluxes.Parameters:
 ##### Bulk turbulent fluxes based on similarity theory
 #####
 
-struct SimilarityTheoryFluxes{FT, UF, R, B, T, V, F}
+struct SimilarityTheoryFluxes{FT, UF, R, B, T, V}
     von_karman_constant :: FT        # parameter
     turbulent_prandtl_number :: FT   # parameter
     gustiness_parameter :: FT        # bulk velocity parameter
@@ -52,7 +52,7 @@ Adapt.adapt_structure(to, fluxes::SimilarityTheoryFluxes) =
                            fluxes.tolerance,
                            fluxes.maxiter)
 
-Base.summary(::SimilarityTheoryFluxes{FT}) where FT = "SimilarityTheoryTurbulentFluxes{$FT}"
+Base.summary(::SimilarityTheoryFluxes{FT}) where FT = "SimilarityTheoryFluxes{$FT}"
 
 function Base.show(io::IO, fluxes::SimilarityTheoryFluxes)
     print(io, summary(fluxes), '\n',

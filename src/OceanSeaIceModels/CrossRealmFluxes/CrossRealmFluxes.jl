@@ -6,7 +6,7 @@ using Adapt
 export Radiation,
        CrossRealmSurfaceFluxes,
        LatitudeDependentAlbedo,
-       SimilarityTheoryTurbulentFluxes,
+       SimilarityTheoryFluxes,
        SkinTemperature, 
        BulkTemperature
 
