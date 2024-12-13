@@ -1,6 +1,7 @@
 module CrossRealmFluxes
 
 using Oceananigans
+using Oceananigans.Fields: AbstractField
 using Adapt 
 
 export Radiation,
@@ -18,7 +19,7 @@ import ClimaOcean: stateindex
 ##### Utilities
 #####
 
-function surface_flux(f::Field)
+function surface_flux(f::AbstractField)
     top_bc = f.boundary_conditions.top
     if top_bc isa BoundaryCondition{<:Oceananigans.BoundaryConditions.Flux}
         return top_bc.condition
