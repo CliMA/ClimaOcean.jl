@@ -3,7 +3,7 @@ module Diagnostics
 export MixedLayerDepthField
 
 using Oceananigans
-using Oceananigans.BuoyancyModels: buoyancy
+using Oceananigans.BuoyancyFormulations: buoyancy
 using Oceananigans.BoundaryConditions: fill_halo_regions!
 using Oceananigans.ImmersedBoundaries: ImmersedBoundaryGrid
 using Oceananigans.Architectures: device, architecture
