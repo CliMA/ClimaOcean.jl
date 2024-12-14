@@ -43,6 +43,7 @@ label = @lift string("Repeat-year JRA55 forcing on year-day ",
 Label(fig[0, 1:2], label, fontsize=24)
 
 sf = surface!(axsw, x, y, z, color=Qswn, colorrange=(0, 1200))
+
 Colorbar(fig[2, 1], sf,
          vertical = false,
          width = Relative(0.5),
