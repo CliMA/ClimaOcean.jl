@@ -45,7 +45,7 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
             @test interior(in_memory_jra55_fts[1]) == interior(jra55_fts[1])
 
             # Clean up
-            rm(in_memory_jra55_fts.path)
+            isfile(in_memory_jra55_fts.path) && rm(in_memory_jra55_fts.path, force=true)
 
             @info "Testing Cyclical time_indices for JRA55 data on $A..."
             Nb = 4
