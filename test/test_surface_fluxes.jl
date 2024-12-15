@@ -73,12 +73,9 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
             for Tmode in (BulkTemperature, SkinTemperature)
                 @info " Testing zero fluxes with $(Tmode)..."
 
-                similarity_theory = SimilarityTheoryFluxes(grid; 
-                                                                    water_vapor_saturation, 
-                                                                    water_mole_fraction, 
-                                                                    surface_temperature_type = Tmode())
+                turbulent_coefficients = SimilarityTheoryFluxes(surface_temperature_type = Tmode())
 
-                g  = similarity_theory.gravitational_acceleration
+                g = ocean.model.buoyancy.formulation.gravitational_acceleration
 
                 # Ensure that the ΔT between atmosphere and ocean is zero 
                 # Note that the Δθ accounts for the "lapse rate" at height h
@@ -87,8 +84,8 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
                 set!(ocean.model, u = uₐ, v = vₐ, T = Tₒ)
 
                 # Compute the turbulent fluxes (neglecting radiation)
-                coupled_model    = OceanSeaIceModel(ocean; atmosphere, ocean_similarity_theory=similarity_theory)
-                turbulent_fluxes = coupled_model.fluxes.turbulent.ocean.fields
+                coupled_model    = OceanSeaIceModel(ocean; atmosphere, turbulent_coefficients, water_vapor_saturation, water_mole_fraction)
+                turbulent_fluxes = coupled_model.fluxes.turbulent.fields.ocean
 
                 # Make sure all fluxes are (almost) zero!
                 @test turbulent_fluxes.x_momentum[1, 1, 1]    < eps(eltype(grid))
@@ -113,23 +110,22 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
                                                 zero_stability_function)
 
             roughness_lengths = SimilarityScales(ℓ, ℓ, ℓ)
-            similarity_theory = SimilarityTheoryFluxes(grid; 
-                                                                roughness_lengths, 
-                                                                gustiness_parameter = 0,
-                                                                stability_functions)
+            similarity_theory = SimilarityTheoryFluxes(roughness_lengths, 
+                                                       gustiness_parameter = 0,
+                                                       stability_functions)
 
             # mid-latitude ocean conditions
             set!(ocean.model, u = 0, v = 0, T = 15, S = 30)
             
-            coupled_model = OceanSeaIceModel(ocean; atmosphere, ocean_similarity_theory=similarity_theory)
+            coupled_model = OceanSeaIceModel(ocean; atmosphere, turbulent_coefficients=similarity_theory)
 
             # Now manually compute the fluxes:
             Tₒ = ocean.model.tracers.T[1, 1, 1] + celsius_to_kelvin
             Sₒ = ocean.model.tracers.S[1, 1, 1]
             qₒ = seawater_saturation_specific_humidity(ℂₐ, Tₒ, Sₒ, 𝒬ₐ,
-                                                    similarity_theory.water_mole_fraction,
-                                                    similarity_theory.water_vapor_saturation,
-                                                    Thermodynamics.Liquid())
+                                                       coupled_model.fluxes.turbulent.water_mole_fraction,
+                                                       coupled_model.fluxes.turbulent.water_vapor_saturation,
+                                                       Thermodynamics.Liquid())
             
             𝒬ₒ = Thermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₒ, qₒ)
             qₒ = Thermodynamics.vapor_specific_humidity(ℂₐ, 𝒬ₒ)
@@ -154,7 +150,7 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
             Mv = - ρₐ * u★ * q★
             Ql = - ρₐ * u★ * q★ * ℰv
 
-            turbulent_fluxes = coupled_model.fluxes.turbulent.ocean.fields
+            turbulent_fluxes = coupled_model.fluxes.turbulent.fields.ocean
 
             # Make sure fluxes agree with the hand-calculated ones
             @test turbulent_fluxes.x_momentum[1, 1, 1]    ≈ τx

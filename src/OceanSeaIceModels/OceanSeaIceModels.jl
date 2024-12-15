@@ -72,10 +72,18 @@ const NoAtmosphereModel = OceanSeaIceModel{<:Any, Nothing}
 compute_atmosphere_ocean_fluxes!(::NoAtmosphereModel) = nothing
 compute_atmosphere_sea_ice_fluxes!(::NoAtmosphereModel) = nothing
 
+# "No sea ice" implementation
 const NoSeaIceModel = Union{OceanSeaIceModel{Nothing}, FreezingLimitedCoupledModel}
 
 # Fallback
 compute_sea_ice_ocean_fluxes!(::NoSeaIceModel) = nothing
 compute_atmosphere_ocean_fluxes!(::NoSeaIceModel) = nothing
+compute_atmosphere_sea_ice_fluxes!(::NoSeaIceModel) = nothing
+
+# "Only ocean" implementation
+const OnlyOceanModel = Union{OceanSeaIceModel{Nothing, Nothing}, OceanSeaIceModel{Nothing, <:FreezingLimitedOceanTemperature}}
+
+compute_atmosphere_sea_ice_fluxes!(::OnlyOceanModel) = nothing
+compute_sea_ice_ocean_fluxes!(::OnlyOceanModel) = nothing
 
 end # module

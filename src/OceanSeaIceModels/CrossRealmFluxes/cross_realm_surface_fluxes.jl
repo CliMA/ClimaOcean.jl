@@ -41,11 +41,11 @@ struct CrossRealmSurfaceFluxes{T, P, C, R, PI, PC, FT, UN, ATM}
     # The ocean is Boussinesq, so these are _only_ coupled properties:
     ocean_reference_density :: FT
     ocean_heat_capacity :: FT
-    sea_ice_reference_density :: FT
-    sea_ice_heat_capacity :: FT
+    ice_reference_density :: FT
+    ice_heat_capacity :: FT
     freshwater_density :: FT
     ocean_temperature_units :: UN
-    sea_ice_temperature_units :: UN
+    ice_temperature_units :: UN
     # Scratch space to store the atmosphere state at the surface 
     # interpolated to the ocean grid
     surface_atmosphere_state :: ATM
@@ -59,15 +59,6 @@ struct TurbulentFluxes{T, FT, C, W, I, M, F}
     ice_vapor_saturation :: I      # model for computing the saturation water vapor mass over ice
     water_mole_fraction :: M       # mole fraction of H₂O in seawater
     fields :: F                    # fields that store turbulent fluxes
-end
-
-struct ClasiusClapyeronSaturation end
- 
-@inline function water_saturation_specific_humidity(::ClasiusClapyeronSaturation, ℂₐ, ρₛ, Tₛ)
-    FT = eltype(ℂₐ)
-    p★ = AtmosphericThermodynamics.saturation_vapor_pressure(ℂₐ, convert(FT, Tₛ), Liquid())
-    q★ = AtmosphericThermodynamics.q_vap_saturation_from_density(ℂₐ, convert(FT, Tₛ), ρₛ, p★)
-    return q★
 end
 
 const PATP = PrescribedAtmosphereThermodynamicsParameters
@@ -99,23 +90,23 @@ function CrossRealmSurfaceFluxes(ocean, sea_ice=nothing;
                                  freshwater_density = 1000,
                                  prescribed_fluxes = nothing, # ?? Is this ever used ??
                                  ocean_temperature_units = DegreesCelsius(),
-                                 turbulent_fluxes = nothing,
+                                 turbulent_coefficients = nothing,
                                  water_vapor_saturation = ClasiusClapyeronSaturation(),
                                  ice_vapor_saturation = ClasiusClapyeronSaturation(),
                                  water_mole_fraction = 0.98,
                                  thermodynamics_parameters = nothing,
                                  ocean_reference_density = reference_density(ocean),
                                  ocean_heat_capacity = heat_capacity(ocean),
-                                 sea_ice_reference_density = reference_density(sea_ice),
-                                 sea_ice_heat_capacity = reference_density(sea_ice))
+                                 ice_reference_density = reference_density(sea_ice),
+                                 ice_heat_capacity = reference_density(sea_ice))
 
     ocean_grid = ocean.model.grid
     FT = eltype(ocean_grid)
 
     ocean_reference_density = convert(FT, ocean_reference_density)
     ocean_heat_capacity = convert(FT, ocean_heat_capacity)
-    sea_ice_reference_density = convert(FT, sea_ice_reference_density)
-    sea_ice_heat_capacity = convert(FT, sea_ice_heat_capacity)
+    ice_reference_density = convert(FT, ice_reference_density)
+    ice_heat_capacity = convert(FT, ice_heat_capacity)
     freshwater_density = convert(FT, freshwater_density)
     water_mole_fraction = convert(FT, water_mole_fraction)
     
@@ -128,32 +119,33 @@ function CrossRealmSurfaceFluxes(ocean, sea_ice=nothing;
         # (as opposed to the one used for the free surface)
         gravitational_acceleration = ocean.model.buoyancy.formulation.gravitational_acceleration
 
-        # Build turbulent fluxes if they do not exist
-        if isnothing(turbulent_fluxes)
-            ocean_fluxes = SimilarityTheoryFluxes()
-            sea_ice_fluxes = if sea_ice isa SeaIceSimulation
-                SimilarityTheoryFluxes()
-            else
-                nothing
-            end
-            coefficients = (ocean=ocean_fluxes, sea_ice=sea_ice_fluxes)
-            ocean_fields = turbulent_fluxes_fields(ocean_grid)
-            sea_ice_fields = if sea_ice isa SeaIceSimulation
-                turbulent_fluxes_fields(sea_ice.model.grid)
-            else
-                nothing
-            end
-
-            fluxes_fields = (ocean=ocean_fields, sea_ice=sea_ice_fields)
-            
-            turbulent_fluxes = TurbulentFluxes(thermodynamics_parameters,
-                                               gravitational_acceleration,
-                                               coefficients,
-                                               water_vapor_saturation,
-                                               ice_vapor_saturation,
-                                               water_mole_fraction,
-                                               fluxes_fields)
+        ocean_fields = turbulent_fluxes_fields(ocean_grid)
+        sea_ice_fields = if sea_ice isa SeaIceSimulation
+            turbulent_fluxes_fields(sea_ice.model.grid)
+        else
+            nothing
         end
+
+        fluxes_fields = (ocean=ocean_fields, sea_ice=sea_ice_fields)
+        
+        # Build turbulent fluxes if they do not exist
+        if isnothing(turbulent_coefficients)
+            ocean_fluxes = SimilarityTheoryFluxes()
+            sea_ice_fluxes = sea_ice isa SeaIceSimulation ? SimilarityTheoryFluxes() : nothing
+            
+            turbulent_coefficients = (ocean=ocean_fluxes, sea_ice=sea_ice_fluxes)
+        elseif !(turbulent_coefficients isa NamedTuple)            
+            turbulent_coefficients = (ocean=turbulent_coefficients, 
+                                    sea_ice=turbulent_coefficients)
+        end
+
+        turbulent_fluxes = TurbulentFluxes(thermodynamics_parameters,
+                                           gravitational_acceleration,
+                                           turbulent_coefficients,
+                                           water_vapor_saturation,
+                                           ice_vapor_saturation,
+                                           water_mole_fraction,
+                                           fluxes_fields)
     end
 
     if sea_ice isa SeaIceSimulation
@@ -192,8 +184,8 @@ function CrossRealmSurfaceFluxes(ocean, sea_ice=nothing;
                                    previous_ice_concentration,
                                    ocean_reference_density,
                                    ocean_heat_capacity,
-                                   sea_ice_reference_density,
-                                   sea_ice_heat_capacity,
+                                   ice_reference_density,
+                                   ice_heat_capacity,
                                    freshwater_density,
                                    ocean_temperature_units,
                                    ocean_temperature_units,

@@ -5,6 +5,8 @@ using Oceananigans: SeawaterBuoyancy
 
 using SeawaterPolynomials: TEOS10EquationOfState
 
+import Thermodynamics as AtmosphericThermodynamics  
+
 # Simulations interface
 import Oceananigans: fields, prognostic_fields
 import Oceananigans.Fields: set!
@@ -75,13 +77,28 @@ function heat_capacity(::TEOS10EquationOfState{FT}) where FT
     return convert(FT, cₚ⁰)
 end
 
+struct ClasiusClapyeronSaturation end
+ 
+@inline function water_saturation_specific_humidity(::ClasiusClapyeronSaturation, ℂₐ, ρₛ, Tₛ)
+    FT = eltype(ℂₐ)
+    p★ = AtmosphericThermodynamics.saturation_vapor_pressure(ℂₐ, convert(FT, Tₛ), Liquid())
+    q★ = AtmosphericThermodynamics.q_vap_saturation_from_density(ℂₐ, convert(FT, Tₛ), ρₛ, p★)
+    return q★
+end
+
 function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature();
                           atmosphere = nothing,
                           radiation = nothing,
-                          turbulent_fluxes = nothing,
+                          turbulent_coefficients = nothing,
+                          clock = deepcopy(ocean.model.clock),
+                          water_vapor_saturation = ClasiusClapyeronSaturation(),
+                          ice_vapor_saturation = ClasiusClapyeronSaturation(),
+                          water_mole_fraction = 0.98,
+                          thermodynamics_parameters = nothing,
                           ocean_reference_density = reference_density(ocean),
                           ocean_heat_capacity = heat_capacity(ocean),
-                          clock = deepcopy(ocean.model.clock))
+                          ice_reference_density = reference_density(sea_ice),
+                          ice_heat_capacity = heat_capacity(sea_ice))
 
     # Remove some potentially irksome callbacks from the ocean simulation
     pop!(ocean.callbacks, :stop_time_exceeded, nothing)
@@ -103,11 +120,17 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature();
 
     # Contains information about flux contributions: bulk formula, prescribed fluxes, etc.
     fluxes = CrossRealmSurfaceFluxes(ocean, sea_ice;
-                                      atmosphere, 
-                                      turbulent_fluxes,
-                                      ocean_reference_density,
-                                      ocean_heat_capacity,
-                                      radiation)
+                                     water_vapor_saturation,
+                                     ice_vapor_saturation,
+                                     water_mole_fraction,
+                                     thermodynamics_parameters,
+                                     atmosphere, 
+                                     turbulent_coefficients,
+                                     ocean_reference_density,
+                                     ocean_heat_capacity,
+                                     ice_reference_density,
+                                     ice_heat_capacity,
+                                     radiation)
 
     ocean_sea_ice_model = OceanSeaIceModel(clock,
                                            ocean.model.grid,
