@@ -44,7 +44,7 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(tampered_bottom_he
 ##### Closures
 #####
 
-gm = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1000, κ_symmetric=1000)
+gm = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1000) # We don't need diffusion: κ_symmetric=1000)
 catke = ClimaOcean.OceanSimulations.default_ocean_closure()
 
 closure = (gm, catke)
