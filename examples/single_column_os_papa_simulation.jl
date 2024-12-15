@@ -17,7 +17,7 @@
 using ClimaOcean
 using Oceananigans
 using Oceananigans.Units
-using Oceananigans.BuoyancyModels: buoyancy_frequency
+using Oceananigans.BuoyancyFormulations: buoyancy_frequency
 using Oceananigans.Units: Time
 using Printf
 

@@ -20,7 +20,7 @@ using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities:
 using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 using Statistics: mean
 
-using Oceananigans.BuoyancyModels: g_Earth
+using Oceananigans.BuoyancyFormulations: g_Earth
 using Oceananigans.Coriolis: Ω_Earth
 using Oceananigans.Operators
 
@@ -120,6 +120,7 @@ function ocean_simulation(grid;
                           gravitational_acceleration = g_Earth,
                           bottom_drag_coefficient = Default(0.003),
                           forcing = NamedTuple(),
+                          timestepper = :QuasiAdamsBashforth2,
                           coriolis = Default(HydrostaticSphericalCoriolis(; rotation_rate)),
                           momentum_advection = default_momentum_advection(),
                           equation_of_state = TEOS10EquationOfState(; reference_density),
@@ -220,6 +221,7 @@ function ocean_simulation(grid;
                                               tracer_advection,
                                               momentum_advection,
                                               tracers,
+                                              timestepper,
                                               free_surface,
                                               coriolis,
                                               forcing,
