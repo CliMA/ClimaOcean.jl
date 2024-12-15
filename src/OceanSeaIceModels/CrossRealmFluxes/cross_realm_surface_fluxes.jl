@@ -131,7 +131,7 @@ function CrossRealmSurfaceFluxes(ocean, sea_ice=nothing;
         # Build turbulent fluxes if they do not exist
         if isnothing(turbulent_coefficients)
             ocean_fluxes = SimilarityTheoryFluxes()
-            sea_ice_fluxes = sea_ice isa SeaIceSimulation ? SimilarityTheoryFluxes() : nothing
+            sea_ice_fluxes = sea_ice_similarity_theory(sea_ice)
             
             turbulent_coefficients = (ocean=ocean_fluxes, sea_ice=sea_ice_fluxes)
         elseif !(turbulent_coefficients isa NamedTuple)            
@@ -220,6 +220,18 @@ function surface_model_fluxes(model, ρₛ, cₛ)
               heat = surface_heat_flux)
 
     return fluxes
+end
+
+sea_ice_similarity_theory(sea_ice) = nothing
+
+function sea_ice_similarity_theory(sea_ice::SeaIceSimulation)
+    # Here we need to make sure the surface temperature type is
+    # SkinTemperature. Also we need to pass the sea ice internal flux
+    # The thickness and salinity need to be passed as well, 
+    # but the can be passed as state variables once we refactor the `StateValues` struct.
+    internal_flux = sea_ice.model.ice_thermodynamics.internal_flux
+    surface_temperature_type = SkinTemperature(internal_flux)
+    return SimilarityTheoryFluxes(; surface_temperature_type)
 end
 
 function surface_model_fluxes(model::SeaIceModel, ρₛ, cₛ)
