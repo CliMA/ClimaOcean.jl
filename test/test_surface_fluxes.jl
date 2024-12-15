@@ -236,6 +236,8 @@ end
 
         coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 
+        @show coupled_model.sea_ice
+        
         times = 0:1hours:1days
         Ntimes = length(times)
 
