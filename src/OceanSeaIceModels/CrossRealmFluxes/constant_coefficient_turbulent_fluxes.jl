@@ -47,10 +47,14 @@ end
     # These will be refined later on.
     ΔU = sqrt(Δu^2 + Δv^2)
     
+    Cd = coefficients.momentum
+    Cq = coefficients.water_vapor
+    Ch = coefficients.heat
+
     # `u★² ≡ sqrt(τx² + τy²)`
     # We remove the gustiness by dividing by `ΔU`
-    τx = - coefficients.momentum * Δu * ΔU
-    τy = - coefficients.momentum * Δv * ΔU
+    τx = - Cd * Δu * ΔU
+    τy = - Cd * Δv * ΔU
 
     𝒬ₐ = atmos_state.ts
     ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
@@ -58,9 +62,9 @@ end
     ℰv = AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
 
     fluxes = (;
-        sensible_heat = - ρₐ * cₚ * ΔU * Δθ,
-        latent_heat   = - ρₐ * ΔU * Δq * ℰv,
-        water_vapor   = - ρₐ * ΔU * Δq,
+        sensible_heat = - ρₐ * cₚ * Cd * Ch * Δθ,
+        latent_heat   = - ρₐ * Cd * Cq * Δq * ℰv,
+        water_vapor   = - ρₐ * Cd * Cq * Δq,
         x_momentum    = + ρₐ * τx,
         y_momentum    = + ρₐ * τy,
     )
