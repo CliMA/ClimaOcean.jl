@@ -20,18 +20,20 @@ Nx = 360
 Ny = 180
 Nz = 100
 
-z_faces = exponential_z_faces(; Nz, depth=5000, h=34)
+r_faces = exponential_z_faces(; Nz, depth=5000, h=34)
+z_faces = ZStarVerticalCoordinate(r_faces)
 
 underlying_grid = TripolarGrid(arch;
                                size = (Nx, Ny, Nz),
                                z = z_faces,
+                               halo = (5, 5, 4),
                                first_pole_longitude = 70,
                                north_poles_latitude = 55)
 
-bottom_height = regrid_bathymetry(underlying_grid;
-                                  minimum_depth = 10,
-                                  interpolation_passes = 75,
-                                  major_basins = 2)
+bottom_height = retrieve_bathymetry(underlying_grid, "mybath.jld2";
+                                    minimum_depth = 10,
+                                    interpolation_passes = 75,
+                                    major_basins = 2)
 
 # Open Gibraltar strait 
 # TODO: find a better way to do this
@@ -44,7 +46,7 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(tampered_bottom_he
 ##### Closures
 #####
 
-gm = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1000) # We don't need diffusion: κ_symmetric=1000)
+gm = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1000) # We don't need diffusion: κ_symmetric = 0!
 catke = ClimaOcean.OceanSimulations.default_ocean_closure()
 
 closure = (gm, catke)
@@ -63,8 +65,8 @@ temperature = ECCOMetadata(:temperature; dates, version=ECCO4Monthly(), dir="./"
 salinity    = ECCOMetadata(:salinity;    dates, version=ECCO4Monthly(), dir="./")
 
 # inpainting = NearestNeighborInpainting(30) should be enough to fill the gaps near bathymetry
-FT = ECCORestoring(arch, temperature; grid, mask, rate=restoring_rate, inpainting=NearestNeighborInpainting(50))
-FS = ECCORestoring(arch, salinity;    grid, mask, rate=restoring_rate, inpainting=NearestNeighborInpainting(50))
+FT = ECCORestoring(temperature, grid; mask, rate=restoring_rate, inpainting=NearestNeighborInpainting(50))
+FS = ECCORestoring(salinity,    grid; mask, rate=restoring_rate, inpainting=NearestNeighborInpainting(50))
 forcing = (T=FT, S=FS)
 
 #####
@@ -79,7 +81,7 @@ tracer_advection   = WENO()
 free_surface = SplitExplicitFreeSurface(grid; substeps=30)
 
 # Should we add a side drag since this is at a coarser resolution?
-ocean = ocean_simulation(grid; momentum_advection, tracer_advection,
+ocean = ocean_simulation(grid; momentum_advection, tracer_advection, free_surface,
                          closure, forcing)
 
 set!(ocean.model, T=ECCOMetadata(:temperature; dates=first(dates)),
