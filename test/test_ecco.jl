@@ -28,7 +28,7 @@ inpainting = NearestNeighborInpainting(2)
         for name in (:temperature, :salinity)
             @info "Testing ECCO_field on $A..."
             metadata = ECCOMetadata(name, dates, ECCO4Monthly())
-            restoring = ECCORestoring(metadata ; rate = 1 / 1000.0, inpainting)
+            restoring = ECCORestoring(metadata; rate=1/1000, inpainting)
 
             for datum in metadata 
                 @test isfile(metadata_path(datum))
@@ -102,11 +102,9 @@ end
                                         southern = (φ₁, φ₂),
                                                z = (z₁, 0))
 
-        t_restoring = ECCORestoring(arch, :temperature;
-                                    dates,
-                                    mask,
-                                    rate = 1 / 1000.0,
-                                    inpainting)
+        t_restoring = ECCORestoring(:temperature, arch;
+                                    dates, mask, inpainting,
+                                    rate=1/1000)
 
         fill!(t_restoring.field_time_series[1], 1.0)
         fill!(t_restoring.field_time_series[2], 1.0)
@@ -161,7 +159,7 @@ end
             true
         end
 
-        forcing_T = ECCORestoring(arch, :temperature;
+        forcing_T = ECCORestoring(:temperature, arch;
                                   dates,
                                   rate = 1 / 1000.0,
                                   inpainting)
@@ -204,7 +202,7 @@ end
         end_date = DateTimeProlepticGregorian(1993, 5, 1)
         dates = start_date : Month(1) : end_date
 
-        t_restoring = ECCORestoring(arch, :temperature;
+        t_restoring = ECCORestoring(:temperature, arch;
                                     dates,
                                     rate = 1 / 1000.0,
                                     inpainting)

@@ -64,9 +64,9 @@ reference_density(buoyancy_formulation::SeawaterBuoyancy) = reference_density(bu
 reference_density(eos::TEOS10EquationOfState) = eos.reference_density
 reference_density(sea_ice::SeaIceSimulation) = sea_ice.model.ice_thermodynamics.phase_transitions.ice_density
 
-heat_capacity(sea_ice::SeaIceSimulation)     = sea_ice.model.ice_thermodynamics.phase_transitions.ice_heat_capacity
 heat_capacity(ocean::Simulation) = heat_capacity(ocean.model.buoyancy.formulation)
 heat_capacity(buoyancy_formulation::SeawaterBuoyancy) = heat_capacity(buoyancy_formulation.equation_of_state)
+heat_capacity(sea_ice::SeaIceSimulation) = sea_ice.model.ice_thermodynamics.phase_transitions.ice_heat_capacity
 
 # Does not really matter if there is no model
 reference_density(::Nothing) = 0
