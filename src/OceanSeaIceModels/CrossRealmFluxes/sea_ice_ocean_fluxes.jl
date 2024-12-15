@@ -1,4 +1,5 @@
 using Oceananigans.Operators: Δzᶜᶜᶜ
+using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 
 function compute_sea_ice_ocean_fluxes!(coupled_model)
     #compute_sea_ice_ocean_salinity_flux!(coupled_model)
@@ -68,7 +69,7 @@ function compute_sea_ice_ocean_latent_heat_flux!(coupled_model)
     Δt = ocean.Δt
     hᵢ = sea_ice.model.ice_thickness
 
-    liquidus = sea_ice.model.phase_transitions.liquidus
+    liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
     grid = ocean.model.grid
     arch = architecture(grid)
 
