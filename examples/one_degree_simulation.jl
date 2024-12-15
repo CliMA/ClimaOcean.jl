@@ -30,10 +30,10 @@ underlying_grid = TripolarGrid(arch;
                                first_pole_longitude = 70,
                                north_poles_latitude = 55)
 
-bottom_height = retrieve_bathymetry(underlying_grid, "mybath.jld2";
-                                    minimum_depth = 10,
-                                    interpolation_passes = 75,
-                                    major_basins = 2)
+bottom_height = regrid_bathymetry(underlying_grid;
+                                  minimum_depth = 10,
+                                  interpolation_passes = 75,
+                                  major_basins = 2)
 
 # Open Gibraltar strait 
 # TODO: find a better way to do this
