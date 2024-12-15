@@ -38,7 +38,7 @@ bottom_height = regrid_bathymetry(underlying_grid;
 tampered_bottom_height = deepcopy(bottom_height)
 view(tampered_bottom_height, 102:103, 124, 1) .= -400
 
-grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(tampered_bottom_height))
+grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(tampered_bottom_height); active_cells_map=true)
 
 #####
 ##### Closures
@@ -75,13 +75,23 @@ forcing = (T=FT, S=FS)
 momentum_advection = VectorInvariant()
 tracer_advection   = Centered(order=2)
 
+free_surface = SplitExplicitFreeSurface(grid; substeps=30)
+
 # Should we add a side drag since this is at a coarser resolution?
 ocean = ocean_simulation(grid; momentum_advection, tracer_advection,
-                         closure, forcing,
-                         tracers = (:T, :S, :e))
+                         free_surface, forcing)
 
 set!(ocean.model, T=ECCOMetadata(:temperature; dates=first(dates)),
                   S=ECCOMetadata(:salinity;    dates=first(dates)))
+
+#####
+##### Sea ice simulation
+#####
+
+sea_ice = sea_ice_simulation(grid)
+
+set!(sea_ice.model.ice_thickness,     ECCOMetadata(:sea_ice_thickness;     dates=first(dates)); inpainting=NearestNeighborInpainting(0))
+set!(sea_ice.model.ice_concentration, ECCOMetadata(:sea_ice_concentration; dates=first(dates)); inpainting=NearestNeighborInpainting(0))
 
 #####
 ##### Atmospheric forcing
@@ -94,8 +104,8 @@ atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(20))
 ##### Coupled simulation
 #####
 
-coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation) 
-simulation = Simulation(coupled_model; Δt=15minutes, stop_time=2*365days)
+coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation) 
+simulation = Simulation(coupled_model; Δt=1minutes, stop_time=2*365days)
 
 #####
 ##### Run it!
@@ -105,19 +115,22 @@ wall_time = Ref(time_ns())
 
 function progress(sim)
     ocean = sim.model.ocean
+    sea_ice = sim.model.sea_ice
     u, v, w = ocean.model.velocities
     T = ocean.model.tracers.T
+    h = sea_ice.model.ice_thickness
     Tmax = maximum(interior(T))
     Tmin = minimum(interior(T))
+    hmax = maximum(interior(h))
     umax = (maximum(abs, interior(u)),
             maximum(abs, interior(v)),
             maximum(abs, interior(w)))
 
     step_time = 1e-9 * (time_ns() - wall_time[])
 
-    @info @sprintf("Time: %s, n: %d, Δt: %s, max|u|: (%.2e, %.2e, %.2e) m s⁻¹, extrema(T): (%.2f, %.2f) ᵒC, wall time: %s \n",
+    @info @sprintf("Time: %s, n: %d, Δt: %s, max|u|: (%.2e, %.2e, %.2e) m s⁻¹, extrema(T): (%.2f, %.2f) ᵒC, max(h): %.2f m, wall time: %s \n",
                    prettytime(sim), iteration(sim), prettytime(sim.Δt),
-                   umax..., Tmax, Tmin, prettytime(step_time))
+                   umax..., Tmax, Tmin, hmax, prettytime(step_time))
 
      wall_time[] = time_ns()
 
