@@ -6,7 +6,6 @@ using Oceananigans.Units
 using CFTime
 using Dates
 using Printf
-using CUDA: @allowscalar, device!
 
 using Oceananigans.Grids: znode
 
@@ -46,17 +45,18 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(tampered_bottom_he
 ##### Closures
 #####
 
-gm = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1000) # We don't need diffusion: κ_symmetric = 0!
-catke = ClimaOcean.OceanSimulations.default_ocean_closure()
+# We don't need any diffusion: κ_symmetric = 0!
+eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1000) 
+vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
 
-closure = (gm, catke)
+closure = (eddy_closure, vertical_mixing)
 
 #####
 ##### Restoring
 #####
 
 restoring_rate  = 1 / 2days
-z_below_surface = @allowscalar znode(1, 1, grid.Nz, grid, Center(), Center(), Face())
+z_below_surface = r_faces[end-1]
 
 mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(z_below_surface, 0))
 
@@ -64,9 +64,8 @@ dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGre
 temperature = ECCOMetadata(:temperature; dates, version=ECCO4Monthly(), dir="./")
 salinity    = ECCOMetadata(:salinity;    dates, version=ECCO4Monthly(), dir="./")
 
-# inpainting = NearestNeighborInpainting(30) should be enough to fill the gaps near bathymetry
-FT = ECCORestoring(temperature, grid; mask, rate=restoring_rate, inpainting=NearestNeighborInpainting(50))
-FS = ECCORestoring(salinity,    grid; mask, rate=restoring_rate, inpainting=NearestNeighborInpainting(50))
+FT = ECCORestoring(temperature, grid; mask, rate=restoring_rate)
+FS = ECCORestoring(salinity,    grid; mask, rate=restoring_rate)
 forcing = (T=FT, S=FS)
 
 #####
