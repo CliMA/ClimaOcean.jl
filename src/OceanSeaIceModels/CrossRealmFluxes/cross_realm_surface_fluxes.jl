@@ -163,8 +163,8 @@ function CrossRealmSurfaceFluxes(ocean, sea_ice=nothing;
                                         
     total_sea_ice_fluxes = if sea_ice isa SeaIceSimulation
         surface_model_fluxes(sea_ice.model,
-                             sea_ice_reference_density,
-                             sea_ice_heat_capacity)
+                             ice_reference_density,
+                             ice_heat_capacity)
     else
         nothing
     end
@@ -213,6 +213,30 @@ function surface_model_fluxes(model, ρₛ, cₛ)
     surface_tracer_fluxes = NamedTuple(name => surface_flux(tracers[name])
                                      for name in keys(tracers))
 
+    surface_heat_flux = ρₛ * cₛ * surface_tracer_fluxes.T
+
+    fluxes = (momentum = surface_momentum_fluxes,
+              tracers = surface_tracer_fluxes,
+              heat = surface_heat_flux)
+
+    return fluxes
+end
+
+function surface_model_fluxes(model::SeaIceModel, ρₛ, cₛ)
+    grid = model.grid
+    τx = surface_flux(model.velocities.u)
+    τy = surface_flux(model.velocities.v)
+    τxᶜᶜᶜ = Field{Center, Center, Nothing}(grid)
+    τyᶜᶜᶜ = Field{Center, Center, Nothing}(grid)
+
+   surface_momentum_fluxes = (u    = τx,      # fluxes used in the model
+                              v    = τy,      #
+                              uᶜᶜᶜ = τxᶜᶜᶜ,   # fluxes computed by bulk formula at cell centers
+                              vᶜᶜᶜ = τyᶜᶜᶜ)
+
+    surface_tracer_fluxes = (T = Field{Center, Center, Nothing}(grid),
+                             S = Field{Center, Center, Nothing}(grid))
+                             
     surface_heat_flux = ρₛ * cₛ * surface_tracer_fluxes.T
 
     fluxes = (momentum = surface_momentum_fluxes,
