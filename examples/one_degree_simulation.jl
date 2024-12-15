@@ -38,7 +38,7 @@ bottom_height = regrid_bathymetry(underlying_grid;
 tampered_bottom_height = deepcopy(bottom_height)
 view(tampered_bottom_height, 102:103, 124, 1) .= -400
 
-grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(tampered_bottom_height))
+grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(tampered_bottom_height); active_cells_map=true)
 
 #####
 ##### Closures
@@ -74,6 +74,9 @@ forcing = (T=FT, S=FS)
 # No numerical-only closure
 momentum_advection = WENOVectorInvariant(vorticity_order=5)
 tracer_advection   = WENO()
+
+# Spacings still don't work correctly?
+free_surface = SplitExplicitFreeSurface(grid; substeps=30)
 
 # Should we add a side drag since this is at a coarser resolution?
 ocean = ocean_simulation(grid; momentum_advection, tracer_advection,
@@ -127,7 +130,7 @@ add_callback!(simulation, progress, IterationInterval(10))
 
 outputs = merge(ocean.model.tracers, ocean.model.velocities)
 ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
-                                                  schedule = TimeInterval(1days),
+                                                  schedule = TimeInterval(5days),
                                                   filename = "global_surface_fields",
                                                   indices = (:, :, grid.Nz),
                                                   with_halos = true,
@@ -137,7 +140,7 @@ ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
 run!(simulation)
 
 simulation.Δt = 25minutes
-simulation.stop_time = 360days
+simulation.stop_time = 720days
 
 run!(simulation)
 
