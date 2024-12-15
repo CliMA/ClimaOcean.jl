@@ -79,9 +79,7 @@ free_surface = SplitExplicitFreeSurface(grid; substeps=30)
 
 # Should we add a side drag since this is at a coarser resolution?
 ocean = ocean_simulation(grid; momentum_advection, tracer_advection,
-                         free_surface)
-                         
-                         forcing, tracers = (:T, :S, :e))
+                         free_surface, forcing)
 
 set!(ocean.model, T=ECCOMetadata(:temperature; dates=first(dates)),
                   S=ECCOMetadata(:salinity;    dates=first(dates)))
