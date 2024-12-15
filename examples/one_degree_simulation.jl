@@ -71,6 +71,7 @@ forcing = (T=FT, S=FS)
 ##### Ocean simulation
 ##### 
 
+# No numerical-only closure
 momentum_advection = WENOVectorInvariant(vorticity_order=5)
 tracer_advection   = WENO()
 
