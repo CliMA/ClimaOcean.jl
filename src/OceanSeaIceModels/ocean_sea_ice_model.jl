@@ -7,6 +7,8 @@ using SeawaterPolynomials: TEOS10EquationOfState
 
 import Thermodynamics as AtmosphericThermodynamics  
 
+using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: ClasiusClapyeronSaturation
+
 # Simulations interface
 import Oceananigans: fields, prognostic_fields
 import Oceananigans.Fields: set!
@@ -75,15 +77,6 @@ heat_capacity(::Nothing) = 0
 function heat_capacity(::TEOS10EquationOfState{FT}) where FT
     cₚ⁰ = SeawaterPolynomials.TEOS10.teos10_reference_heat_capacity
     return convert(FT, cₚ⁰)
-end
-
-struct ClasiusClapyeronSaturation end
- 
-@inline function water_saturation_specific_humidity(::ClasiusClapyeronSaturation, ℂₐ, ρₛ, Tₛ)
-    FT = eltype(ℂₐ)
-    p★ = AtmosphericThermodynamics.saturation_vapor_pressure(ℂₐ, convert(FT, Tₛ), AtmosphericThermodynamics.Liquid())
-    q★ = AtmosphericThermodynamics.q_vap_saturation_from_density(ℂₐ, convert(FT, Tₛ), ρₛ, p★)
-    return q★
 end
 
 function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature();

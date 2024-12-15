@@ -77,7 +77,6 @@ const NoSeaIceModel = Union{OceanSeaIceModel{Nothing}, FreezingLimitedCoupledMod
 
 # Fallback
 compute_sea_ice_ocean_fluxes!(::NoSeaIceModel) = nothing
-compute_atmosphere_ocean_fluxes!(::NoSeaIceModel) = nothing
 compute_atmosphere_sea_ice_fluxes!(::NoSeaIceModel) = nothing
 
 # "Only ocean" implementation

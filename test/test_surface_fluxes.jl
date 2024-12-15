@@ -15,9 +15,9 @@ using KernelAbstractions: @kernel, @index
 using Oceananigans.TimeSteppers: update_state!
 using Oceananigans.Units: hours, days
 
-using Statistics: mean, std
+import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: water_saturation_specific_humidity
 
-import ClimaOcean.OceanSeaIceModels: water_saturation_specific_humidity
+using Statistics: mean, std
 
 struct FixedSpecificHumidity{FT}
     qₒ :: FT
@@ -189,8 +189,6 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
             fill!(atmosphere.tracers.T, 273.15 - 20)
 
             coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation=nothing)
-
-            turbulent_fluxes = coupled_model.fluxes.turbulent.ocean.fields
 
             # Make sure that temperature fluxes are zero when the temperature 
             # is below the minimum but not zero when it is above

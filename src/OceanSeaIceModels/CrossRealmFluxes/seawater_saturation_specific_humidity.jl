@@ -1,5 +1,13 @@
-using ClimaOcean.OceanSeaIceModels: water_saturation_specific_humidity
 using Thermodynamics: Liquid
+
+struct ClasiusClapyeronSaturation end
+ 
+@inline function water_saturation_specific_humidity(::ClasiusClapyeronSaturation, ℂₐ, ρₛ, Tₛ)
+    FT = eltype(ℂₐ)
+    p★ = Thermodynamics.saturation_vapor_pressure(ℂₐ, convert(FT, Tₛ), Liquid())
+    q★ = Thermodynamics.q_vap_saturation_from_density(ℂₐ, convert(FT, Tₛ), ρₛ, p★)
+    return q★
+end
 
 struct SalinityConstituent{FT}
     molar_mass :: FT

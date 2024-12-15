@@ -89,7 +89,7 @@ function CrossRealmSurfaceFluxes(ocean, sea_ice=nothing;
                                  radiation = nothing,
                                  freshwater_density = 1000,
                                  prescribed_fluxes = nothing, # ?? Is this ever used ??
-                                 ocean_temperature_units = DegreesCelsius(),
+                                 surface_temperature_units = DegreesCelsius(),
                                  turbulent_coefficients = nothing,
                                  water_vapor_saturation = ClasiusClapyeronSaturation(),
                                  ice_vapor_saturation = ClasiusClapyeronSaturation(),
@@ -187,8 +187,8 @@ function CrossRealmSurfaceFluxes(ocean, sea_ice=nothing;
                                    ice_reference_density,
                                    ice_heat_capacity,
                                    freshwater_density,
-                                   ocean_temperature_units,
-                                   ocean_temperature_units,
+                                   surface_temperature_units,
+                                   surface_temperature_units,
                                    surface_atmosphere_state)
 end
 
