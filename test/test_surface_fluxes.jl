@@ -17,7 +17,7 @@ using Oceananigans.Units: hours, days
 
 using Statistics: mean, std
 
-import ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: water_saturation_specific_humidity
+import ClimaOcean.OceanSeaIceModels: water_saturation_specific_humidity
 
 struct FixedSpecificHumidity{FT}
     qₒ :: FT
@@ -110,9 +110,9 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
                                                 zero_stability_function)
 
             roughness_lengths = SimilarityScales(ℓ, ℓ, ℓ)
-            similarity_theory = SimilarityTheoryFluxes(roughness_lengths, 
-                                                       gustiness_parameter = 0,
-                                                       stability_functions)
+            similarity_theory = SimilarityTheoryFluxes(; roughness_lengths, 
+                                                         gustiness_parameter = 0,
+                                                         stability_functions)
 
             # mid-latitude ocean conditions
             set!(ocean.model, u = 0, v = 0, T = 15, S = 30)
@@ -129,7 +129,7 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
             
             𝒬ₒ = Thermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₒ, qₒ)
             qₒ = Thermodynamics.vapor_specific_humidity(ℂₐ, 𝒬ₒ)
-            g  = similarity_theory.gravitational_acceleration
+            g  = ocean.model.buoyancy.formulation.gravitational_acceleration
 
             # Differences!
             Δu = uₐ

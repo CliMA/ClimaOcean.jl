@@ -1,3 +1,4 @@
+using ClimaOcean.OceanSeaIceModels: water_saturation_specific_humidity
 using Thermodynamics: Liquid
 
 struct SalinityConstituent{FT}

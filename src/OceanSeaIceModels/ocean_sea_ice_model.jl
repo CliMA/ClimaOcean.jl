@@ -81,7 +81,7 @@ struct ClasiusClapyeronSaturation end
  
 @inline function water_saturation_specific_humidity(::ClasiusClapyeronSaturation, ℂₐ, ρₛ, Tₛ)
     FT = eltype(ℂₐ)
-    p★ = AtmosphericThermodynamics.saturation_vapor_pressure(ℂₐ, convert(FT, Tₛ), Liquid())
+    p★ = AtmosphericThermodynamics.saturation_vapor_pressure(ℂₐ, convert(FT, Tₛ), AtmosphericThermodynamics.Liquid())
     q★ = AtmosphericThermodynamics.q_vap_saturation_from_density(ℂₐ, convert(FT, Tₛ), ρₛ, p★)
     return q★
 end
@@ -106,17 +106,21 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature();
     pop!(ocean.callbacks, :wall_time_limit_exceeded, nothing)
     pop!(ocean.callbacks, :nan_checker, nothing)
 
+    # In case there was any doubt these are meaningless.
+    ocean.stop_time = Inf
+    ocean.stop_iteration = Inf
+    ocean.wall_time_limit = Inf
+
     if sea_ice isa SeaIceSimulation
         pop!(sea_ice.callbacks, :stop_time_exceeded, nothing)
         pop!(sea_ice.callbacks, :stop_iteration_exceeded, nothing)
         pop!(sea_ice.callbacks, :wall_time_limit_exceeded, nothing)
         pop!(sea_ice.callbacks, :nan_checker, nothing)
-    end
 
-    # In case there was any doubt these are meaningless.
-    ocean.stop_time = Inf
-    ocean.stop_iteration = Inf
-    ocean.wall_time_limit = Inf
+        sea_ice.stop_time = Inf
+        sea_ice.stop_iteration = Inf
+        sea_ice.wall_time_limit = Inf
+    end
 
     # Contains information about flux contributions: bulk formula, prescribed fluxes, etc.
     fluxes = CrossRealmSurfaceFluxes(ocean, sea_ice;
