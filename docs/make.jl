@@ -17,6 +17,7 @@ to_be_literated = [
     "generate_bathymetry.jl",
     "generate_surface_fluxes.jl",
     "single_column_os_papa_simulation.jl",
+    "one_degree_simulation.jl",
     # "mediterranean_simulation_with_ecco_restoring.jl",
     "near_global_ocean_simulation.jl"
 ]
@@ -46,6 +47,7 @@ pages = [
         "Surface fluxes" => "literated/generate_surface_fluxes.md",
         "Single-column simulation" => "literated/single_column_os_papa_simulation.md",
         # "Mediterranean simulation with ECCO restoring" => "literated/mediterranean_simulation_with_ecco_restoring.md",
+        "One-degree Ocean simulation" => "literated/one_degree_simulation.md",
         "Near-global Ocean simulation" => "literated/near_global_ocean_simulation.md",
         ],
 

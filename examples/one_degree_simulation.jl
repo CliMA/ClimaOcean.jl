@@ -46,9 +46,8 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(tampered_bottom_he
 
 gm = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1000, κ_symmetric=1000)
 catke = ClimaOcean.OceanSimulations.default_ocean_closure()
-viscous_closure = HorizontalScalarBiharmonicDiffusivity(ν = 1e11)
 
-closure = (gm, catke, viscous_closure)
+closure = (gm, catke)
 
 #####
 ##### Restoring
@@ -72,13 +71,12 @@ forcing = (T=FT, S=FS)
 ##### Ocean simulation
 ##### 
 
-momentum_advection = VectorInvariant()
-tracer_advection   = Centered(order=2)
+momentum_advection = WENOVectorInvariant(vorticity_order=5)
+tracer_advection   = WENO()
 
 # Should we add a side drag since this is at a coarser resolution?
 ocean = ocean_simulation(grid; momentum_advection, tracer_advection,
-                         closure, forcing,
-                         tracers = (:T, :S, :e))
+                         closure, forcing)
 
 set!(ocean.model, T=ECCOMetadata(:temperature; dates=first(dates)),
                   S=ECCOMetadata(:salinity;    dates=first(dates)))
@@ -95,7 +93,7 @@ atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(20))
 #####
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation) 
-simulation = Simulation(coupled_model; Δt=2minutes, stop_time=30days)
+simulation = Simulation(coupled_model; Δt=1minutes, stop_time=30days)
 
 #####
 ##### Run it!
@@ -126,8 +124,87 @@ end
 
 add_callback!(simulation, progress, IterationInterval(10))
 
+outputs = merge(ocean.model.tracers, ocean.model.velocities)
+ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
+                                                  schedule = TimeInterval(1days),
+                                                  filename = "global_surface_fields",
+                                                  indices = (:, :, grid.Nz),
+                                                  with_halos = true,
+                                                  overwrite_existing = true,
+                                                  array_type = Array{Float32})
+
 run!(simulation)
 
 simulation.Δt = 25minutes
+simulation.stop_time = 360days
 
 run!(simulation)
+
+# ## A pretty movie
+#
+# It's time to make a pretty movie of the simulation. First we plot a snapshot:
+
+u = FieldTimeSeries("global_surface_fields.jld2", "u"; backend = OnDisk())
+v = FieldTimeSeries("global_surface_fields.jld2", "v"; backend = OnDisk())
+T = FieldTimeSeries("global_surface_fields.jld2", "T"; backend = OnDisk())
+e = FieldTimeSeries("global_surface_fields.jld2", "e"; backend = OnDisk())
+
+times = u.times
+Nt = length(times)
+
+n = Observable(Nt)
+
+land = interior(T.grid.immersed_boundary.bottom_height) .>= 0
+
+Tn = @lift begin
+    Tn = interior(T[$n])
+    Tn[land] .= NaN
+    view(Tn, :, :, 1)
+end
+
+en = @lift begin
+    en = interior(e[$n])
+    en[land] .= NaN
+    view(en, :, :, 1)
+end
+
+un = Field{Face, Center, Nothing}(u.grid)
+vn = Field{Center, Face, Nothing}(v.grid)
+s = Field(sqrt(un^2 + vn^2))
+
+sn = @lift begin
+    parent(un) .= parent(u[$n])
+    parent(vn) .= parent(v[$n])
+    compute!(s)
+    sn = interior(s)
+    sn[land] .= NaN
+    view(sn, :, :, 1)
+end
+
+fig = Figure(size = (800, 1200))
+
+axs = Axis(fig[1, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
+axT = Axis(fig[2, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
+axe = Axis(fig[3, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
+
+hm = heatmap!(axs, sn, colorrange = (0, 0.5), colormap = :deep, nan_color=:lightgray)
+Colorbar(fig[1, 2], hm, label = "Surface speed (m s⁻¹)")
+
+hm = heatmap!(axT, Tn, colorrange = (-1, 30), colormap = :magma, nan_color=:lightgray)
+Colorbar(fig[2, 2], hm, label = "Surface Temperature (ᵒC)")
+
+hm = heatmap!(axe, en, colorrange = (0, 1e-3), colormap = :solar, nan_color=:lightgray)
+Colorbar(fig[3, 2], hm, label = "Turbulent Kinetic Energy (m² s⁻²)")
+save("snapshot.png", fig)
+nothing #hide
+
+# ![](snapshot.png)
+
+# And now a movie:
+
+record(fig, "near_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
+    n[] = nn
+end
+nothing #hide
+
+# ![](near_global_ocean_surface.mp4)
