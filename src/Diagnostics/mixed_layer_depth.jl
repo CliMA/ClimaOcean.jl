@@ -82,7 +82,8 @@ const f = Face()
     # Apply various criterion
     h = -z★
     h = max(h, zero(grid))
-    h = min(h, grid.Lz)
+    H = static_column_depthᶜᶜᵃ(i, j, grid)
+    h = min(h, H)
 
     @inbounds mld[i, j, 1] = h
 end
