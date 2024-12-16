@@ -16,6 +16,8 @@ using ClimaOcean.Bathymetry: download_bathymetry_cache
 using CFTime
 using Dates 
 
+using CUDA: @allowscalar
+
 gpu_test = parse(Bool, get(ENV, "GPU_TEST", "false"))
 test_architectures = gpu_test ? [GPU()] : [CPU()]
 
