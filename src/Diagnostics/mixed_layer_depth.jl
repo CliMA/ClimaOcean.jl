@@ -1,3 +1,5 @@
+using Oceananigans.Grids: static_column_depthᶜᶜᵃ
+
 mutable struct MixedLayerDepthOperand{FT, B}
     buoyancy_perturbation :: B
     difference_criterion :: FT
