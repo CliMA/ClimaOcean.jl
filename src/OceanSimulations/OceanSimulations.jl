@@ -166,6 +166,8 @@ function ocean_simulation(grid;
                                    S = FieldBoundaryConditions(top=S_top_bc))
 
     # Merge boundary conditions with preference to user
+    # TODO: support users specifying only _part_ of the bcs for u, v, T, S (ie adding the top and immersed
+    # conditions even when a user-bc is supplied).
     boundary_conditions = merge(default_boundary_conditions, boundary_conditions)
 
     buoyancy = SeawaterBuoyancy(; gravitational_acceleration, equation_of_state)
