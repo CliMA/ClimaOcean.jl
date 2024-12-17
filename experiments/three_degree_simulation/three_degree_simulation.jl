@@ -1,5 +1,4 @@
 using ClimaOcean
-using ClimaOcean.ECCO: ECCO4Monthly, NearestNeighborInpainting
 using OrthogonalSphericalShellGrids
 using Oceananigans
 using Oceananigans.Units
@@ -7,14 +6,7 @@ using CFTime
 using Dates
 using Printf
 
-using Oceananigans.Grids: znode
-
 arch = CPU()
-
-#####
-##### Grid and Bathymetry
-#####
-
 Nx = 120
 Ny = 60
 Nz = 50
