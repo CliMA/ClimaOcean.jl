@@ -90,20 +90,13 @@ function regrid_bathymetry(target_grid;
                            url = "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_surface_elev_netcdf", 
                            filename = "ETOPO_2022_v1_60s_N90W180_surface.nc",
                            interpolation_passes = 1,
-                           major_basins = Inf) # Allow an `Inf` number of ``lakes''
+                           major_basins = 1) # Allow an `Inf` number of ``lakes''
 
     filepath = joinpath(dir, filename)
-    fileurl  = joinpath(url, filename)
+    fileurl  = url * "/" * filename # joinpath on windows creates the wrong url
 
-    @root begin # perform all this only on rank 0, aka the "root" rank
-        if !isfile(filepath)
-            try 
-                Downloads.download(fileurl, filepath; progress=download_progress, verbose=true)
-            catch 
-                cmd = `wget --no-check-certificate -O $filepath $fileurl`
-                @root run(cmd)
-            end
-        end
+    @root if !isfile(filepath) # perform all this only on rank 0, aka the "root" rank
+        Downloads.download(fileurl, filepath; progress=download_progress)
     end
     
     dataset = Dataset(filepath)

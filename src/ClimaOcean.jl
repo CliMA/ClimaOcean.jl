@@ -15,7 +15,8 @@ export
     SimilarityTheoryTurbulentFluxes,
     SkinTemperature,
     BulkTemperature,
-    JRA55_prescribed_atmosphere,
+    PrescribedAtmosphere,
+    JRA55PrescribedAtmosphere,
     JRA55NetCDFBackend,
     regrid_bathymetry,
     retrieve_bathymetry,
@@ -77,7 +78,7 @@ include("VerticalGrids.jl")
 include("InitialConditions/InitialConditions.jl")
 include("DataWrangling/DataWrangling.jl")
 include("Bathymetry.jl")
-include("Diagnostics.jl")
+include("Diagnostics/Diagnostics.jl")
 include("OceanSimulations/OceanSimulations.jl")
 
 using .VerticalGrids
@@ -87,7 +88,9 @@ using .InitialConditions
 using .OceanSeaIceModels
 using .OceanSimulations
 using .DataWrangling: JRA55, ECCO
-using ClimaOcean.DataWrangling.JRA55: JRA55_prescribed_atmosphere, JRA55NetCDFBackend
+
+using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
+using ClimaOcean.DataWrangling.JRA55: JRA55PrescribedAtmosphere, JRA55NetCDFBackend
 using ClimaOcean.DataWrangling.ECCO
 
 end # module
