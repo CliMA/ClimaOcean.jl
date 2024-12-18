@@ -68,12 +68,12 @@ const φS₂ = -75
 end
 
 @inline function u_restoring(i, j, k, grid, clock, fields, p)
-     φ = φnode(i, j, k, grid, Face(), Center(), Center())[2]
+     φ = φnode(i, j, k, grid, Face(), Center(), Center())
      return - p.rate * fields.u[i, j, k] * northern_mask(φ)
 end
 
 @inline function v_restoring(i, j, k, grid, clock, fields, p)
-     φ = φnode(i, j, k, grid, Center(), Face(), Center())[2]
+     φ = φnode(i, j, k, grid, Center(), Face(), Center())
      return - p.rate * fields.v[i, j, k] * northern_mask(φ)
 end
 
