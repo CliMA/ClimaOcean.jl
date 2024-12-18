@@ -1,6 +1,7 @@
 using Printf
 using Oceananigans
 using Oceananigans.Units
+using Oceananigans.Grids: φnode
 using ClimaOcean
 using CairoMakie
 
@@ -79,8 +80,8 @@ end
 Fu = Forcing(u_restoring; discrete_form=true, parameters=(; rate=1/2days))
 Fv = Forcing(v_restoring; discrete_form=true, parameters=(; rate=1/2days))
 
-FT = ECCORestoringForcing(:temperature, grid; dates, rate=1/2days, tracer_mask)
-FS = ECCORestoringForcing(:salinity,    grid; dates, rate=1/2days, tracer_mask)
+FT = ECCORestoring(:temperature, grid; dates, rate=1/2days, mask=tracer_mask)
+FS = ECCORestoring(:salinity,    grid; dates, rate=1/2days, mask=tracer_mask)
 
 forcing = (T=FT, S=FS, u=Fu, v=Fv)
 
@@ -92,7 +93,7 @@ set!(model,
      S = ECCOMetadata(:salinity;    dates = dates[1]))
      
 backend    = JRA55NetCDFBackend(41) 
-atmosphere = JRA55_prescribed_atmosphere(arch; backend)
+atmosphere = JRA55PrescribedAtmosphere(arch; backend)
 radiation  = Radiation()
 
 coupled_model      = OceanSeaIceModel(ocean; atmosphere, radiation)
