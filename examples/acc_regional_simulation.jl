@@ -16,10 +16,8 @@ using ClimaOcean.ECCO
 # 4. add oceananigans#main
 # 5. ECCO_USERNAME=francispoulin ECCO_PASSWORD=???????????? julia --project
 
-
 # 1) No output, need to add
 # 2) Restoring force (work in progress)
-
 
 arch = GPU() 
 
@@ -45,17 +43,46 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height), active_cells_
 
 dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 5, 1)
 
-mask = LinearlyTaperedPolarMask( northern = (-35, -30), southern = (-85, -80), z = (-10000,0) )
+#
+# Restoring force 
+#               φS                   φN             -20
+# -------------- | ------------------ | ------------ |
+# no restoring   0    linear mask     1   mask = 1   1
+#
 
-@inline function u_restoring(i, j, k, grid, clock, fields, parameters)
-	
+const φN₁ = -22
+const φN₂ = -25
+const φS₁ = -78
+const φS₂ = -75
 
-#FU = Forcing(:, grid; dates, timescale = 2days, mask)
+@inline northern_mask(φ)    = min(max((φ - φN₂) / (φN₁ - φN₂), zero(φ)), one(φ))
+@inline southern_mask(φ, z) = ifelse(z > -20, 
+                                     min(max((φ - φS₂) / (φS₁ - φS₂), zero(φ)), one(φ)), 
+                                     zero(φ))
 
-FT = ECCORestoringForcing(:temperature, grid; dates, timescale = 2days, mask)
-FS = ECCORestoringForcing(:salinity,    grid; dates, timescale = 2days, mask)
+@inline function tracer_mask(λ, φ, z, t)
+     n = northern_mask(φ)
+     s = southern_mask(φ, z)
+     return max(s, n)
+end
 
-forcing = (T=FT, S=FS)
+@inline function u_restoring(i, j, k, grid, clock, fields, p)
+     φ = φ(j, grid, Center())
+     return - p.rate * fields.u[i, j, k] * northern_mask(φ)
+end
+
+@inline function v_restoring(i, j, k, grid, clock, fields, p)
+     φ = φ(j, grid, Center())
+     return - p.rate * fields.v[i, j, k] * northern_mask(φ)
+end
+
+Fu = Forcing(u_restoring; discrete_form=true, parameters=(; rate=1/2days))
+Fv = Forcing(v_restoring; discrete_form=true, parameters=(; rate=1/2days))
+
+FT = ECCORestoringForcing(:temperature, grid; dates, rate=1/2days, tracer_mask)
+FS = ECCORestoringForcing(:salinity,    grid; dates, rate=1/2days, tracer_mask)
+
+forcing = (T=FT, S=FS, u=Fu, v=Fv)
 
 ocean = ocean_simulation(grid; forcing)
 model = ocean.model
