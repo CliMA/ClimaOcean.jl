@@ -20,7 +20,7 @@ using ClimaOcean.ECCO
 # 1) No output, need to add
 # 2) Restoring force (work in progress)
 
-arch = GPU() 
+arch = CPU() 
 
 z_faces = exponential_z_faces(Nz=40, depth=6000)
 
@@ -68,12 +68,12 @@ const φS₂ = -75
 end
 
 @inline function u_restoring(i, j, k, grid, clock, fields, p)
-     φ = node(i, j, k, Face(), Center(), Center())[2]
+     φ = φnode(i, j, k, Face(), Center(), Center())[2]
      return - p.rate * fields.u[i, j, k] * northern_mask(φ)
 end
 
 @inline function v_restoring(i, j, k, grid, clock, fields, p)
-     φ = node(i, j, k, Center(), Face(), Center())[2]
+     φ = φnode(i, j, k, Center(), Face(), Center())[2]
      return - p.rate * fields.v[i, j, k] * northern_mask(φ)
 end
 
