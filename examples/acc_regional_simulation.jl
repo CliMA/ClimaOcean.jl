@@ -3,7 +3,6 @@ using Oceananigans
 using Oceananigans.Units
 using ClimaOcean
 using CairoMakie
-using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: LatitudeDependentAlbedo
 
 using CFTime
 using Dates
@@ -22,13 +21,12 @@ using ClimaOcean.ECCO
 # 2) Restoring force (work in progress)
 
 
-
 arch = GPU() 
 
 z_faces = exponential_z_faces(Nz=40, depth=6000)
 
-Nx = 1440
-Ny = 600
+Nx = 100 #1440
+Ny = 100  #600
 Nz = length(z_faces) - 1
 
 grid = LatitudeLongitudeGrid(arch;
@@ -41,19 +39,21 @@ grid = LatitudeLongitudeGrid(arch;
 bottom_height = regrid_bathymetry(grid; 
                                   minimum_depth = 10,
                                   interpolation_passes = 5,
-                                  connected_regions_allowed = 0)
+                                  major_basins = 1)
  
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height), active_cells_map=true) 
 
 dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 5, 1)
 
-temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
-salinity    = ECCOMetadata(:salinity,    dates, ECCO4Monthly())
+mask = LinearlyTaperedPolarMask( northern = (-35, -30), southern = (-85, -80), z = (-10000,0) )
 
-@inline mask(λ, φ, z, t) = min(1, max(0, -(λ + 80)/10 + 1, (λ + 30)/10))
+@inline function u_restoring(i, j, k, grid, clock, fields, parameters)
+	
 
-FT = ECCO_restoring_forcing(temperature; grid, architecture = GPU(), timescale = 2days, mask)
-FS = ECCO_restoring_forcing(salinity;    grid, architecture = GPU(), timescale = 2days, mask)
+#FU = Forcing(:, grid; dates, timescale = 2days, mask)
+
+FT = ECCORestoringForcing(:temperature, grid; dates, timescale = 2days, mask)
+FS = ECCORestoringForcing(:salinity,    grid; dates, timescale = 2days, mask)
 
 forcing = (T=FT, S=FS)
 
@@ -61,16 +61,14 @@ ocean = ocean_simulation(grid; forcing)
 model = ocean.model
 
 set!(model, 
-     T = temperature[1],
-     S = salinity[1] )
+     T = ECCOMetadata(:temperature; dates = dates[1]),
+     S = ECCOMetadata(:salinity;    dates = dates[1]))
      
 backend    = JRA55NetCDFBackend(41) 
 atmosphere = JRA55_prescribed_atmosphere(arch; backend)
-radiation  = Radiation(ocean_albedo = LatitudeDependentAlbedo())
+radiation  = Radiation()
 
-sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
-
-coupled_model      = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+coupled_model      = OceanSeaIceModel(ocean; atmosphere, radiation)
 coupled_simulation = Simulation(coupled_model; Δt=10, stop_time = 10days)
 
 wall_time = [time_ns()]
