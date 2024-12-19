@@ -5,6 +5,7 @@ MPI.Init()
 
 using NCDatasets
 using ClimaOcean.ECCO: download_dataset, metadata_path
+using Oceananigans.DistributedComputations: reconstruct_global_grid
 using CFTime
 using Dates
 
@@ -87,7 +88,8 @@ end
         # Define the dimension "lon" and "lat" with the size 361 and 21 resp.
         defDim(ds, "lon", 361)
         defDim(ds, "lat", 21)
-
+        defVar(ds, "lat", Float32, ("lat", ))
+        defVar(ds, "lon", Float32, ("lon", ))
 
         # Define the variables z
         z = defVar(ds, "z", Float32, ("lon","lat"))
@@ -96,8 +98,10 @@ end
         data = [Float32(-i) for i = 1:361, j = 1:21]
 
         # write a the complete data set
+        ds["lon"][:] = λ
+        ds["lat"][:] = φ
         z[:,:] = data
-
+        
         close(ds)
     end
 
@@ -109,12 +113,22 @@ end
                                  latitude = (0, 20),
                                  z = (0, 1))
 
-    # It is linear interpolation so the data should be exactly equal to `i`
-    bottom_height = regrid_bathymetry(grid; interpolation_passes=10)
+    global_grid = reconstruct_global_grid(grid)
+
+    local_height = regrid_bathymetry(grid; 
+                                      dir = "./",
+                                      filename = "trivial_bathymetry.nc",
+                                      interpolation_passes=10)
+
+    global_height = regrid_bathymetry(global_grid; 
+                                      dir = "./",
+                                      filename = "trivial_bathymetry.nc",
+                                      interpolation_passes=10)
     Nx, Ny, _ = size(grid)
     rank      = arch.local_rank
+    irange    = rank * Nx + 1 : (rank + 1) * Nx
     
-    irange = rank * Nx + 1 : (rank + 1) * Nx
-    data   = repeat(irange, 1, Ny)
-    @test interior(bottom_height) == - data
+    @handshake begin
+        @test interior(global_height, irange, :, 1) == interior(local_height, :, :, 1)
+    end
 end
