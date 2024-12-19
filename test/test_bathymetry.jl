@@ -1,25 +1,26 @@
 using Oceananigans
-using ClimaOcean
-using ClimaOcean.Bathymetry: remove_minor_basins!
 using Statistics
+using ClimaOcean
+
+using ClimaOcean.Bathymetry: remove_minor_basins!
 
 @testset "Availability of Bathymetry" begin
     @info "Testing Bathymetry utils..."
     for arch in test_architectures
 
         grid = LatitudeLongitudeGrid(arch;
-                                     size = (100, 100, 10), 
-                                     longitude = (0, 100), 
+                                     size = (100, 100, 10),
+                                     longitude = (0, 100),
                                      latitude = (0, 50),
                                      z = (-6000, 0))
 
         # Test that remove_minor_basins!(Z, Inf) does nothing
-        control_bottom_height = regrid_bathymetry(grid)        
+        control_bottom_height = regrid_bathymetry(grid)
         bottom_height = deepcopy(control_bottom_height)
         @test_throws ArgumentError remove_minor_basins!(bottom_height, Inf)
 
         # A fictitiously large number which should presumably keep all the basins
-        remove_minor_basins!(bottom_height, 10000000) 
+        remove_minor_basins!(bottom_height, 10000000)
         @test parent(bottom_height) == parent(control_bottom_height)
 
         # Test that remove_minor_basins!(Z, 2) remove the correct number of Basins
@@ -27,7 +28,7 @@ using Statistics
         control_bottom_height = Field{Center, Center, Nothing}(grid)
         
         # A two basins bathymetry
-        bottom(x, y) = - 1000 * Int((x < 10) | (x > 50)) 
+        bottom(x, y) = - 1000 * Int((x < 10) | (x > 50))
         
         set!(bottom_height, bottom)
         set!(control_bottom_height, bottom)
@@ -40,7 +41,7 @@ using Statistics
         remove_minor_basins!(bottom_height, 1)
         
         # The remaning bottom cells that are not immersed should be only on the right hand side
-        # The left half of the domain should be fully immersed i.e. bottom == 0
+        # The left half of the domain should be fully immersed, i.e., bottom == 0
         @test sum(view(bottom_height, 1:50, :, 1)) == 0
 
         # While the right side should be not immersed, with a mean bottom depth 
@@ -48,8 +49,8 @@ using Statistics
         @test mean(view(bottom_height, 51:100, :, 1)) == -1000
 
         grid = LatitudeLongitudeGrid(arch;
-                                     size = (200, 200, 10), 
-                                     longitude = (0, 2), 
+                                     size = (200, 200, 10),
+                                     longitude = (0, 2),
                                      latitude = (-10, 50),
                                      z = (-6000, 0))
 
@@ -59,4 +60,4 @@ using Statistics
         # Testing that multiple passes do not change the solution when refining the grid
         @test parent(control_bottom_height) == parent(interpolated_bottom_height)
     end
-end 
+end

@@ -1,13 +1,16 @@
 module ECCO
 
-export ECCOMetadata, ECCO_field, ECCO_mask, adjusted_ECCO_tracers, initialize!
+export ECCOMetadata, ECCO_field, ECCO_mask, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
-export ECCO_restoring_forcing
+export ECCORestoring, LinearlyTaperedPolarMask
 
-using ClimaOcean.DataWrangling: inpaint_mask!
+using ClimaOcean
+using ClimaOcean.DataWrangling
+using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, download_progress
 using ClimaOcean.InitialConditions: three_dimensional_regrid!, interpolate!
 
 using Oceananigans
+using Oceananigans: location
 using Oceananigans.Architectures: architecture, child_architecture
 using Oceananigans.BoundaryConditions
 using Oceananigans.DistributedComputations: DistributedField, all_reduce, barrier!
@@ -15,6 +18,7 @@ using Oceananigans.Utils
 
 using KernelAbstractions: @kernel, @index
 using NCDatasets
+using JLD2
 using Downloads: download
 using Dates
 using Adapt
@@ -88,85 +92,97 @@ empty_ECCO_field(variable_name::Symbol; kw...) = empty_ECCO_field(ECCOMetadata(v
 
 function empty_ECCO_field(metadata::ECCOMetadata;
                           architecture = CPU(), 
-                          horizontal_halo = (3, 3))
+                          horizontal_halo = (7, 7))
 
     Nx, Ny, Nz, _ = size(metadata)
-
-    variable_name = metadata.name
-    location = field_location(metadata)
-    
-    location = ECCO_location[variable_name]
-
+    loc = location(metadata)
     longitude = (0, 360)
     latitude = (-90, 90)
     TX, TY = (Periodic, Bounded)
 
     if variable_is_three_dimensional(metadata)
-        z    = ECCO_z
-        # add vertical halo for 3D fields
+        TZ = Bounded
+        LZ = Center
+        z = ECCO_z
         halo = (horizontal_halo..., 3)
-        LZ   = Center
-        TZ   = Bounded
-        N    = (Nx, Ny, Nz)
-    else
-        z    = nothing
+        sz = (Nx, Ny, Nz)
+    else # the variable is two-dimensional
+        TZ = Flat
+        LZ = Nothing
+        z = nothing
         halo = horizontal_halo
-        LZ   = Nothing
-        TZ   = Flat
-        N    = (Nx, Ny)
+        sz = (Nx, Ny)
     end
 
-    # Flat in z if the variable is two-dimensional
-    grid = LatitudeLongitudeGrid(architecture; halo, size = N, topology = (TX, TY, TZ),
-                                 longitude, latitude, z)
+    grid = LatitudeLongitudeGrid(architecture; halo, longitude, latitude, z,
+                                 size = sz,
+                                 topology = (TX, TY, TZ))
 
-    return Field{location...}(grid)
+    return Field{loc...}(grid)
 end
 
 """
-    ECCO_field(variable_name;
-                architecture = CPU(),
-                horizontal_halo = (1, 1),
-                user_data = nothing,
-                url = ecco_urls[variable_name],
-                short_name = ecco_short_names[variable_name])
+    ECCO_field(metadata::ECCOMetadata;
+               architecture = CPU(),
+               inpainting = nothing,
+               mask = nothing,
+               horizontal_halo = (7, 7),
+               cache_inpainted_data = false)
 
-Retrieve the ECCO field corresponding to `variable_name`. 
-The data is either:
-(1) retrieved from `filename`,
-(2) dowloaded from `url` if `filename` does not exists,
-(3) filled from `user_data` if `user_data` is provided.
+Return a `Field` on `architecture` described by `ECCOMetadata` with
+`horizontal_halo` size.
+If not `nothing`, the `inpainting` method is used to fill the cells
+within the specified `mask`. `mask` is set to `ECCO_mask` for non-nothing
+`inpainting`.
 """
 function ECCO_field(metadata::ECCOMetadata;
                     architecture = CPU(),
-                    horizontal_halo = (3, 3))
+                    inpainting = NearestNeighborInpainting(Inf),
+                    mask = nothing,
+                    horizontal_halo = (7, 7),
+                    cache_inpainted_data = true)
 
-    filename  = metadata_filename(metadata)
-    path      = metadata.path
+    field = empty_ECCO_field(metadata; architecture, horizontal_halo)
+    inpainted_path = inpainted_metadata_path(metadata)
+
+    if !isnothing(inpainting) && isfile(inpainted_path)
+        file = jldopen(inpainted_path, "r")
+        maxiter = file["inpainting_maxiter"]
+
+        # read data if generated with the same inpainting
+        if maxiter == inpainting.maxiter
+            data = file["data"]
+            close(file)
+            copyto!(parent(field), data)
+            return field
+        end
+
+        close(file)
+    end
+
+    download_dataset(metadata)
+    path = metadata_path(metadata)
+    ds = Dataset(path)
     shortname = short_name(metadata)
-    
-    download_dataset!(metadata)
 
-    ds = Dataset(joinpath(path, filename))
     if variable_is_three_dimensional(metadata)
         data = ds[shortname][:, :, :, 1]
-        # The surface layer in three-dimensional ECCO fields is at `k = 1`
-        data = reverse(data, dims = 3)
+        data = reverse(data, dims=3)
     else
         data = ds[shortname][:, :, 1]
     end        
-    close(ds)
 
-    field = empty_ECCO_field(metadata; architecture, horizontal_halo)
+    close(ds)
     
-    FT    = eltype(field)
+    # Convert data from Union(FT, missing} to FT
+    FT = eltype(field)
     data[ismissing.(data)] .= 1e10 # Artificially large number!
-    data  = if location(field)[2] == Face
+    data = if location(field)[2] == Face # ?
         new_data = zeros(FT, size(field))
         new_data[:, 1:end-1, :] .= data
         new_data    
     else
-        convert.(FT, data)
+        data = Array{FT}(data)
     end
     
     # ECCO4 data is on a -180, 180 longitude grid as opposed to ECCO2 data that
@@ -174,11 +190,44 @@ function ECCO_field(metadata::ECCOMetadata;
     # data by 180 degrees in longitude
     if metadata.version isa ECCO4Monthly 
         Nx = size(data, 1)
-        data = circshift(data, (Nx ÷ 2, 0, 0))
+        if variable_is_three_dimensional(metadata)
+            shift = (Nx ÷ 2, 0, 0)
+        else
+            shift = (Nx ÷ 2, 0)
+        end
+        data = circshift(data, shift)
     end
 
     set!(field, data)
     fill_halo_regions!(field)
+
+    if !isnothing(inpainting)
+        # Respect user-supplied mask, but otherwise build default ECCO mask.
+        if isnothing(mask)
+            mask = ECCO_mask(metadata, architecture; data_field=field)
+        end
+
+        # Make sure all values are extended properly
+        name = string(metadata.name)
+        date = string(metadata.dates)
+        version = summary(metadata.version)
+        @info string("Inpainting ", version, " ", name, " data from ", date, "...")
+        start_time = time_ns()
+        
+        inpaint_mask!(field, mask; inpainting)
+        fill_halo_regions!(field)
+
+        elapsed = 1e-9 * (time_ns() - start_time)
+        @info string(" ... (", prettytime(elapsed), ")")
+    
+        # We cache the inpainted data to avoid recomputing it
+        @root if cache_inpainted_data
+            file = jldopen(inpainted_path, "w+")
+            file["data"] = on_architecture(CPU(), parent(field))
+            file["inpainting_maxiter"] = inpainting.maxiter
+            close(file)
+        end
+    end
 
     return field
 end
@@ -186,85 +235,29 @@ end
 # Fallback
 ECCO_field(var_name::Symbol; kw...) = ECCO_field(ECCOMetadata(var_name); kw...)
 
-"""
-    inpainted_ECCO_field(variable_name; 
-                         architecture = CPU(),
-                         mask = ECCO_mask(architecture),
-                         maxiter = Inf)
-    
-Retrieve the ECCO field corresponding to `variable_name` inpainted to fill all the
-missing values in the original dataset.
-
-Arguments:
-==========
-
-- `variable_name`: the variable name corresponding to the Dataset.
-
-Keyword Arguments:
-==================
-
-- `architecture`: either `CPU()` or `GPU()`.
-- `mask`: the mask used to inpaint the field (see `inpaint_mask!`).
-- `maxiter`: the maximum number of iterations to inpaint the field (see `inpaint_mask!`).
-
-"""
-function inpainted_ECCO_field(metadata::ECCOMetadata; 
-                              architecture = CPU(),
-                              mask = ECCO_mask(metadata, architecture),
-                              maxiter = Inf,
-                              kw...)
-    
-    f = ECCO_field(metadata; architecture, kw...)
-
-    # Make sure all values are extended properly
-    @info "In-painting ECCO $(metadata.name)"
-    inpaint_mask!(f, mask; maxiter)
-
-    fill_halo_regions!(f)
-
-    return f
+function inpainted_metadata_filename(metadata::ECCOMetadata)
+    original_filename = metadata_filename(metadata)
+    without_extension = original_filename[1:end-3]
+    return without_extension * "_inpainted.jld2"
 end
 
-inpainted_ECCO_field(variable_name::Symbol; kw...) = inpainted_ECCO_field(ECCOMetadata(variable_name); kw...)
-    
-function set!(field::DistributedField, ECCO_metadata::ECCOMetadata; kw...)
-    # Fields initialized from ECCO
-    grid = field.grid
-    arch = architecture(grid)
-    child_arch = child_architecture(arch)
-
-    f_ECCO = if arch.local_rank == 0 # Make sure we read/write the file using only one core
-        mask = ECCO_mask(ECCO_metadata, child_arch)
-        inpainted_ECCO_field(ECCO_metadata; mask, architecture = child_arch, kw...)
-    else
-        empty_ECCO_field(ECCO_metadata; architecture = child_arch)
-    end
-
-    barrier!(arch)
-
-    # Distribute ECCO field to all workers
-    parent(f_ECCO) .= all_reduce(+, parent(f_ECCO), arch)
-
-    f_grid = Field(field_location(ECCO_metadata), grid)   
-    interpolate!(f_grid, f_ECCO)
-    set!(field, f_grid)
-    
-    return field
-end
+inpainted_metadata_path(metadata::ECCOMetadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
 
 function set!(field::Field, ECCO_metadata::ECCOMetadata; kw...)
 
     # Fields initialized from ECCO
     grid = field.grid
-    arch = architecture(grid)
+    arch = child_architecture(grid)
     mask = ECCO_mask(ECCO_metadata, arch)
-    
-    f = inpainted_ECCO_field(ECCO_metadata; mask, architecture=arch, kw...)
-    f_grid = Field(field_location(ECCO_metadata), grid)   
-    interpolate!(f_grid, f)
-    set!(field, f_grid)
+
+    f = ECCO_field(ECCO_metadata; mask,
+                   architecture = arch,
+                   kw...)
+
+    interpolate!(field, f)
 
     return field
 end
 
 end # Module 
+

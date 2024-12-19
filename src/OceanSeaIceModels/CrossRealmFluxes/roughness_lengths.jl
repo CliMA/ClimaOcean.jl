@@ -40,21 +40,23 @@ end
 
 """
     MomentumRoughnessLength([FT=Float64];
-                            air_kinematic_viscosity = temperature_dependent_viscosity,
-                            reynolds_number_scaling_function = empirical_scaling_function,
-                            maximum_roughness_length = 1.6e-4)
+                            gravitational_acceleration = default_gravitational_acceleration,
+                            maximum_roughness_length = 1.0,
+                            air_kinematic_viscosity = TemperatureDependentAirViscosity(FT),
+                            gravity_wave_parameter = 0.011,
+                            laminar_parameter = 0.11)
 
-Constructs a `MomentumRoughnessLength` object that represents the momentum roughness length that
+Construct a `MomentumRoughnessLength` object that represents the momentum roughness length that
 regulates the exchange of momentum, heat, and water vapor between the ocean and the atmosphere.
 
 Keyword Arguments
-==================
+=================
 
-- `gravitational_acceleration::Float`: The gravitational acceleration. Default is `default_gravitational_acceleration`.
-- `maximum_roughness_length::Float`: The maximum roughness length. Default is `1.0`.
-- `air_kinematic_viscosity::Float`: The air kinematic viscosity. Default is `temperature_dependent_viscosity`.
-- `_wave_parameter::Float`: The wave parameter. Default is `0.011`.
-- `laminar_parameter::Float`: The laminar parameter. Default is `0.11`.
+- `gravitational_acceleration`: The gravitational acceleration. Default: `default_gravitational_acceleration`.
+- `maximum_roughness_length`: The maximum roughness length. Default: 1.0.
+- `air_kinematic_viscosity`: The air kinematic viscosity. Default: `TemperatureDependentAirViscosity(FT)`.
+- `gravity_wave_parameter`: The wave parameter. Default: 0.011.
+- `laminar_parameter`: The laminar parameter. Default: 0.11.
 """
 function MomentumRoughnessLength(FT=Float64;
                                  gravitational_acceleration = default_gravitational_acceleration,

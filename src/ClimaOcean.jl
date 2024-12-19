@@ -1,14 +1,23 @@
 module ClimaOcean
 
+# Use the README as the module docs
+@doc let
+    path = joinpath(dirname(@__DIR__), "README.md")
+    include_dependency(path)
+    read(path, String)
+end ClimaOcean
+
 export
     OceanSeaIceModel,
-    MinimumTemperatureSeaIce,
+    FreezingLimitedOceanTemperature,
     Radiation,
     LatitudeDependentAlbedo,
     SimilarityTheoryTurbulentFluxes,
-    JRA55_prescribed_atmosphere,
+    SkinTemperature,
+    BulkTemperature,
+    PrescribedAtmosphere,
+    JRA55PrescribedAtmosphere,
     JRA55NetCDFBackend,
-    ECCOMetadata,
     regrid_bathymetry,
     retrieve_bathymetry,
     stretched_vertical_faces,
@@ -16,9 +25,16 @@ export
     PowerLawStretching, LinearStretching,
     exponential_z_faces,
     JRA55_field_time_series,
-    ECCO_field, ECCOMetadata,
+    ECCO_field, 
+    ECCOMetadata,
+    ECCORestoring,
+    LinearlyTaperedPolarMask,
     ocean_simulation,
-    initialize!
+    initialize!,
+    @root, 
+    @onrank,
+    @distribute,
+    @handshake
 
 using Oceananigans
 using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
@@ -26,6 +42,8 @@ using DataDeps
 
 using Oceananigans.OutputReaders: GPUAdaptedFieldTimeSeries, FieldTimeSeries
 using Oceananigans.Grids: node
+
+include("distributed_utils.jl")
 
 const SomeKindOfFieldTimeSeries = Union{FieldTimeSeries,
                                         GPUAdaptedFieldTimeSeries}
@@ -60,7 +78,7 @@ include("VerticalGrids.jl")
 include("InitialConditions/InitialConditions.jl")
 include("DataWrangling/DataWrangling.jl")
 include("Bathymetry.jl")
-include("Diagnostics.jl")
+include("Diagnostics/Diagnostics.jl")
 include("OceanSimulations/OceanSimulations.jl")
 
 using .VerticalGrids
@@ -70,7 +88,9 @@ using .InitialConditions
 using .OceanSeaIceModels
 using .OceanSimulations
 using .DataWrangling: JRA55, ECCO
-using ClimaOcean.DataWrangling.JRA55: JRA55_prescribed_atmosphere, JRA55NetCDFBackend
+
+using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
+using ClimaOcean.DataWrangling.JRA55: JRA55PrescribedAtmosphere, JRA55NetCDFBackend
 using ClimaOcean.DataWrangling.ECCO
 
 end # module

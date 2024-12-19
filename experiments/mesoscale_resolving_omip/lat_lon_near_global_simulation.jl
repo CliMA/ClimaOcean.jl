@@ -115,12 +115,10 @@ ocean.output_writers[:checkpoint] = Checkpointer(ocean.model,
 ##### The atmosphere
 #####
 
-backend    = JRA55NetCDFBackend(4) 
-atmosphere = JRA55_prescribed_atmosphere(arch; backend)
-radiation  = Radiation(arch, ocean_albedo=LatitudeDependentAlbedo())
-
-sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
-coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+backend = JRA55NetCDFBackend(4) 
+atmosphere = JRA55PrescribedAtmosphere(arch; backend)
+radiation = Radiation(arch, ocean_albedo=LatitudeDependentAlbedo())
+coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 
 @info "Set up coupled model:"
 @info coupled_model

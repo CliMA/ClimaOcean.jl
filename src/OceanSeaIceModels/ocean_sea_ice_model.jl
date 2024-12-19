@@ -1,7 +1,7 @@
 using Oceananigans
 using Oceananigans.Models: update_model_field_time_series!
 using Oceananigans.TimeSteppers: Clock
-using Oceananigans.BuoyancyModels: SeawaterBuoyancy
+using Oceananigans: SeawaterBuoyancy
 
 using SeawaterPolynomials: TEOS10EquationOfState
 
@@ -34,10 +34,10 @@ function Base.summary(model::OSIM)
 end
 
 function Base.show(io::IO, cm::OSIM)
-    print(io, summary(cm))
-    print(io, "├── ocean: ", summary(cm.ocean.model))
-    print(io, "├── atmosphere: ", summary(cm.atmosphere))
-    print(io, "└── sea_ice: ", summary(cm.sea_ice))
+    print(io, summary(cm), "\n")
+    print(io, "├── ocean: ", summary(cm.ocean.model), "\n")
+    print(io, "├── atmosphere: ", summary(cm.atmosphere), "\n")
+    print(io, "└── sea_ice: ", summary(cm.sea_ice), "\n")
     return nothing
 end
 
@@ -57,19 +57,19 @@ reference_density(unsupported) =
 heat_capacity(unsupported) =
     throw(ArgumentError("Cannot deduce the heat capacity from $(typeof(unsupported))"))
 
-reference_density(ocean::Simulation) = reference_density(ocean.model.buoyancy.model)
-reference_density(buoyancy_model::SeawaterBuoyancy) = reference_density(buoyancy_model.equation_of_state)
+reference_density(ocean::Simulation) = reference_density(ocean.model.buoyancy.formulation)
+reference_density(buoyancy_formulation::SeawaterBuoyancy) = reference_density(buoyancy_formulation.equation_of_state)
 reference_density(eos::TEOS10EquationOfState) = eos.reference_density
 
-heat_capacity(ocean::Simulation) = heat_capacity(ocean.model.buoyancy.model)
-heat_capacity(buoyancy_model::SeawaterBuoyancy) = heat_capacity(buoyancy_model.equation_of_state)
+heat_capacity(ocean::Simulation) = heat_capacity(ocean.model.buoyancy.formulation)
+heat_capacity(buoyancy_formulation::SeawaterBuoyancy) = heat_capacity(buoyancy_formulation.equation_of_state)
 
 function heat_capacity(eos::TEOS10EquationOfState{FT}) where FT
     cₚ⁰ = SeawaterPolynomials.TEOS10.teos10_reference_heat_capacity
     return convert(FT, cₚ⁰)
 end
 
-function OceanSeaIceModel(ocean, sea_ice=nothing;
+function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature();
                           atmosphere = nothing,
                           radiation = nothing,
                           similarity_theory = nothing,
@@ -79,10 +79,10 @@ function OceanSeaIceModel(ocean, sea_ice=nothing;
 
     # Remove some potentially irksome callbacks from the ocean simulation
     # TODO: also remove these from sea ice simulations
-    pop!(ocean.callbacks, :stop_time_exceeded)
-    pop!(ocean.callbacks, :stop_iteration_exceeded)
-    pop!(ocean.callbacks, :wall_time_limit_exceeded)
-    pop!(ocean.callbacks, :nan_checker)
+    pop!(ocean.callbacks, :stop_time_exceeded, nothing)
+    pop!(ocean.callbacks, :stop_iteration_exceeded, nothing)
+    pop!(ocean.callbacks, :wall_time_limit_exceeded, nothing)
+    pop!(ocean.callbacks, :nan_checker, nothing)
 
     # In case there was any doubt these are meaningless.
     ocean.stop_time = Inf
@@ -90,11 +90,11 @@ function OceanSeaIceModel(ocean, sea_ice=nothing;
     ocean.wall_time_limit = Inf
 
     # Contains information about flux contributions: bulk formula, prescribed fluxes, etc.
-    fluxes = OceanSeaIceSurfaceFluxes(ocean, sea_ice; 
+    fluxes = OceanSeaIceSurfaceFluxes(ocean, sea_ice;
                                       atmosphere, 
-                                      ocean_reference_density, 
+                                      ocean_reference_density,
                                       similarity_theory,
-                                      ocean_heat_capacity, 
+                                      ocean_heat_capacity,
                                       radiation)
 
     ocean_sea_ice_model = OceanSeaIceModel(clock,
@@ -117,4 +117,3 @@ function default_nan_checker(model::OceanSeaIceModel)
     nan_checker = NaNChecker((; u_ocean))
     return nan_checker
 end
-

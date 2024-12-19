@@ -119,7 +119,7 @@ end
 
         # Melting / freezing temperature at the surface of the ocean
         Tₘ = melting_temperature(liquidus, Sᴺ)
-                                 
+
         # Conditions for non-zero ice-ocean flux:
         #   - the ocean is below the freezing temperature, causing formation of ice.
         freezing = Tᴺ < Tₘ 
@@ -139,7 +139,7 @@ end
         #
         #   - When Tᴺ > Tₘ and we are in a surface cell covered by ice, we assume equilibrium
         #     and cool the ocean by injecting excess heat into the ice.
-        # 
+        #
         δEₒ = adjust_temperature * ρₒ * cₒ * (Tₘ - Tᴺ)
 
         # Perform temperature adjustment
@@ -154,11 +154,10 @@ end
         # A negative value δQ < 0 implies that heat is fluxed from the ice into
         # the ocean, cooling the ice and heating the ocean (δEₒ > 0). This occurs when
         # frazil ice is formed within the ocean.
-        
+
         δQ -= δEₒ * Δz / Δt
     end
 
     # Store ice-ocean flux
     @inbounds Qₒ[i, j, 1] = δQ
 end
-

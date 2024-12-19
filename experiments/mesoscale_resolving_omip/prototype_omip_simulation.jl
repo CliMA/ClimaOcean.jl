@@ -15,7 +15,7 @@ using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: Radiation, SimilarityTheory
 using ClimaOcean.VerticalGrids: exponential_z_faces
 using ClimaOcean.JRA55
 using ClimaOcean.ECCO
-using ClimaOcean.JRA55: JRA55NetCDFBackend, JRA55_prescribed_atmosphere
+using ClimaOcean.JRA55: JRA55NetCDFBackend, JRA55PrescribedAtmosphere
 using ClimaOcean.ECCO: ECCO_restoring_forcing, ECCO4Monthly, ECCO2Daily, ECCOMetadata
 using ClimaOcean.Bathymetry
 using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: LatitudeDependentAlbedo
@@ -118,13 +118,10 @@ initial_date = dates[1]
 ##### The atmosphere
 #####
 
-backend    = JRA55NetCDFBackend(4) 
-atmosphere = JRA55_prescribed_atmosphere(arch; backend)
-radiation  = Radiation(arch)
-
-sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
-
-coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+backend = JRA55NetCDFBackend(4) 
+atmosphere = JRA55PrescribedAtmosphere(arch; backend)
+radiation = Radiation(arch)
+coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 
 wall_time = [time_ns()]
 

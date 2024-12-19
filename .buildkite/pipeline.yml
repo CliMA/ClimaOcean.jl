@@ -1,7 +1,7 @@
 agents:
   queue: new-central
   slurm_mem: 8G
-  modules: climacommon/2024_05_27
+  modules: climacommon/2024_10_08
 
 timeout_in_minutes: 1440
 
@@ -13,8 +13,6 @@ env:
 steps:
   - label: "initialize"
     key: "init"
-    concurrency: 1
-    concurrency_group: 'depot/climaocean-ci'
     env:
       TEST_GROUP: "init"
     command:
@@ -101,7 +99,7 @@ steps:
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
     agents:
-      slurm_mem: 32G
+      slurm_mem: 8G
       slurm_gpus: 1
       slurm_cpus_per_task: 8
       slurm_ntasks: 1
@@ -115,7 +113,7 @@ steps:
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
     agents:
-      slurm_mem: 32G
+      slurm_mem: 8G
       slurm_gpus: 1
       slurm_cpus_per_task: 8
       slurm_ntasks: 1
@@ -129,7 +127,7 @@ steps:
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
     agents:
-      slurm_mem: 32G
+      slurm_mem: 8G
       slurm_gpus: 1
       slurm_cpus_per_task: 8
       slurm_ntasks: 1
@@ -143,12 +141,22 @@ steps:
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
     agents:
-      slurm_mem: 100G
+      slurm_mem: 10G
       slurm_gpus: 1
       slurm_cpus_per_task: 8
       slurm_ntasks: 1
       slurm_gpus_per_task: 1
 
+  - label: "Run distributed tests"
+    key: "test_distributed"
+    env:
+      TEST_GROUP: "distributed"
+    commands:
+      - "srun julia --project -e 'using Pkg; Pkg.test()'"
+    agents:
+      slurm_mem: 10G
+      slurm_cpus_per_task: 1
+      slurm_ntasks: 4
+
   - wait: ~
     continue_on_failure: true
-

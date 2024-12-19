@@ -9,7 +9,7 @@ using ClimaOcean.OceanSeaIceModels:
 
 # Bilinear interpolation of the albedo α in α_table based on a 
 # transmissivity value (𝓉_values) and latitude (φ_values)
-struct TabulatedAlbedo{M, P, T, FT}
+struct TabulatedAlbedo{FT, M, P, T}
     α_table :: M
     φ_values :: P
     𝓉_values :: T
@@ -18,7 +18,7 @@ struct TabulatedAlbedo{M, P, T, FT}
     noon_in_seconds :: Int
 end
 
-Adapt.adapt_structure(to, α :: TabulatedAlbedo) = 
+Adapt.adapt_structure(to, α::TabulatedAlbedo) = 
     TabulatedAlbedo(Adapt.adapt(to, α.α_table),
                     Adapt.adapt(to, α.φ_values),
                     Adapt.adapt(to, α.𝓉_values),
@@ -65,17 +65,19 @@ The transmissivity of the atmosphere is calculated as the ratio of the downwelli
 maximum possible downwelling solar radiation for a transparent atmosphere, function of hour of the day, latitude,
 and day in the year.
 
-# Arguments
-============
-- `arch`: The architecture to use (default: `CPU()`).
-- `FT`: The floating-point type to use (default: `Float64`).
+Arguments
+=========
 
-# Keyword Arguments
-===================
-- `S₀`: The solar constant (default: `convert(FT, 1365)`).
-- `α_table`: The table of albedo values (default: `α_payne`).
-- `φ_values`: The latitude values for the table (default: `(0:2:90) ./ 180 * π`).
-- `𝓉_values`: The transmissivity values for the table (default: `0:0.05:1`).
+- `arch`: The architecture to use. Default: `CPU()`.
+- `FT`: The floating-point type to use. Default: `Float64`.
+
+Keyword Arguments
+=================
+
+- `S₀`: The solar constant. Default: `convert(FT, 1365)`.
+- `α_table`: The table of albedo values. Default: `α_payne`.
+- `φ_values`: The latitude values for the table. Default: `(0:2:90) ./ 180 * π`.
+- `𝓉_values`: The transmissivity values for the table. Default: `0:0.05:1`.
 """
 function TabulatedAlbedo(arch = CPU(), FT = Float64;
                          S₀ = convert(FT, 1365),
@@ -83,18 +85,24 @@ function TabulatedAlbedo(arch = CPU(), FT = Float64;
                          φ_values = (0:2:90) ./ 180 * π,
                          𝓉_values = 0:0.05:1,
                          day_to_radians  = convert(FT, 2π / 86400), 
-                         noon_in_seconds = 86400 ÷ 2 # assumes that midnight is at t = 0 seconds
-                         )
+                         noon_in_seconds = 86400 ÷ 2) # assumes that midnight is at t = 0 seconds
 
     # Make everything GPU - ready
     α_table  = on_architecture(arch, convert.(FT, α_table))
     φ_values = on_architecture(arch, convert.(FT, φ_values)) 
     𝓉_values = on_architecture(arch, convert.(FT, 𝓉_values))
 
-    return TabulatedAlbedo(α_table, φ_values, 𝓉_values, convert(FT, S₀), convert(FT, day_to_radians), noon_in_seconds)
+    return TabulatedAlbedo(α_table,
+                           φ_values,
+                           𝓉_values,
+                           convert(FT, S₀),
+                           convert(FT, day_to_radians),
+                           noon_in_seconds)
 end
 
-Base.eltype(α::TabulatedAlbedo) = Base.eltype(α.S₀)
+Base.eltype(::TabulatedAlbedo{FT}) where FT = FT
+Base.summary(::TabulatedAlbedo{FT}) where FT = "TabulatedAlbedo{$FT}"
+Base.show(io::IO, α::TabulatedAlbedo) = print(io, summary(α))
 
 @inline ϕ₁(ξ, η) = (1 - ξ) * (1 - η)
 @inline ϕ₂(ξ, η) = (1 - ξ) *      η 
@@ -109,37 +117,35 @@ Base.eltype(α::TabulatedAlbedo) = Base.eltype(α.S₀)
 
 @inline function net_downwelling_radiation(i, j, grid, time, radiation::Radiation{<:Any, <:Any, <:SurfaceProperties{<:TabulatedAlbedo}}, Qs, Qℓ) 
     α = radiation.reflection.ocean
-
     FT = eltype(α)
-
-    λ, φ, z = node(i, j, 1, grid, Center(), Center(), Center())
+    λ, φ, z = _node(i, j, 1, grid, Center(), Center(), Center())
 
     φ = deg2rad(φ)
     λ = deg2rad(λ)
 
     day         = simulation_day(time)
-    day2rad     = α.day_to_radians     
-    noon_in_sec = α.noon_in_seconds    
+    day2rad     = α.day_to_radians
+    noon_in_sec = α.noon_in_seconds
     sec_of_day  = seconds_in_day(time, day)
-    
+
     # Hour angle h
     h = (sec_of_day - noon_in_sec) * day2rad + λ
 
     # Declination angle δ
-	march_first = 80
-	δ = deg2rad((23 + 27/60) * sind(360 * (day - march_first) / 365.25))
+    march_first = 80
+    δ = deg2rad((23 + 27/60) * sind(360 * (day - march_first) / 365.25))
     δ = convert(FT, δ)
 
-	# Zenith angle of the sun (if smaller than 0 we are in the dark)
-	cosθₛ = max(0, sin(φ) * sin(δ) + cos(h) * cos(δ) * cos(φ))
+    # Zenith angle of the sun (if smaller than 0 we are in the dark)
+    cosθₛ = max(0, sin(φ) * sin(δ) + cos(h) * cos(δ) * cos(φ))
 
     # Maximum downwelling solar radiation for
     # a transparent atmosphere
-	Qmax = α.S₀ * cosθₛ 
+    Qmax = α.S₀ * cosθₛ 
 
     # Finding the transmissivity and capping it to 1
     𝓉 = ifelse(Qmax > 0, min(1, Qs / Qmax), 0)
-    
+
     # finding the i-index in the table (depending on transmissivity)
     # we assume that the transmissivity is tabulated with a constant spacing
     𝓉₁ = @inbounds α.𝓉_values[1]

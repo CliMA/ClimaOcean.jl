@@ -3,14 +3,19 @@ module DataWrangling
 using Oceananigans
 using Downloads
 using Printf
+using Downloads
 
 using Oceananigans.Architectures: architecture, on_architecture
 using Oceananigans.Grids: node
 using Oceananigans.BoundaryConditions: fill_halo_regions!
 using Oceananigans.Fields: interpolate
-using Oceananigans: pretty_filesize
+using Oceananigans: pretty_filesize, location
 using Oceananigans.Utils: launch!
 using KernelAbstractions: @kernel, @index
+
+#####
+##### Downloading utilities
+#####
 
 next_fraction = Ref(0.0)
 download_start_time = Ref(time_ns())
@@ -46,6 +51,49 @@ function download_progress(total, now; filename="")
     end
 
     return nothing
+end
+
+"""
+    netrc_downloader(username, password, machine, dir)
+
+Create a downloader that uses a netrc file to authenticate with the given machine.
+This downlader writes the username and password in a file named `auth.netrc` (for Unix) and 
+`auth_netrc` (for Windows), located in the directory `dir`. 
+To avoid leaving the password on disk after the downloader has been used,
+it is recommended to initialize the downloader in a temporary directory, which will be removed
+after the download is complete.
+
+For example:
+
+```
+mktempdir(dir) do tmp
+    dowloader = netrc_downloader(username, password, machine, tmp)
+    Downloads.download(fileurl, filepath; downloader)
+end
+```
+"""
+function netrc_downloader(username, password, machine, dir)
+    netrc_file = netrc_permission_file(username, password, machine, dir)
+    downloader = Downloads.Downloader()
+    easy_hook  = (easy, _) -> Downloads.Curl.setopt(easy, Downloads.Curl.CURLOPT_NETRC_FILE, netrc_file)
+
+    downloader.easy_hook = easy_hook
+    return downloader
+end
+
+# Code snippet adapted from https://github.com/evetion/SpaceLiDAR.jl/blob/master/src/utils.jl#L150
+function netrc_permission_file(username, password, machine, dir)
+    if Sys.iswindows()
+        filepath = joinpath(dir, "auth_netrc")
+    else
+        filepath = joinpath(dir, "auth.netrc")
+    end
+
+    open(filepath, "a") do f
+        write(f, "machine $machine login $username password $password\n")
+    end
+    
+    return filepath
 end
 
 #####

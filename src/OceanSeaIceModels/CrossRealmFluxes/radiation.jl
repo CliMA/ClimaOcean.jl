@@ -9,40 +9,39 @@ struct Radiation{FT, E, R}
     stefan_boltzmann_constant :: FT
 end
 
-Adapt.adapt_structure(to, r :: Radiation) = 
-            Radiation(Adapt.adapt(to, r.emission),
-                      Adapt.adapt(to, r.reflection),
-                      Adapt.adapt(to, r.stefan_boltzmann_constant))
+Adapt.adapt_structure(to, r :: Radiation) =  Radiation(Adapt.adapt(to, r.emission),
+                                                       Adapt.adapt(to, r.reflection),
+                                                       Adapt.adapt(to, r.stefan_boltzmann_constant))
 
 """
     Radiation([arch = CPU(), FT=Float64];
               ocean_emissivity = 0.97,
               sea_ice_emissivity = 1.0,
-              ocean_albedo = TabulatedAlbedo(arch, FT),
+              ocean_albedo = LatitudeDependentAlbedo(FT),
               sea_ice_albedo = 0.7,
               stefan_boltzmann_constant = 5.67e-8)
 
 Constructs a `Radiation` object that represents the radiation properties of the ocean and sea ice.
 
-# Arguments
-===========
+Arguments
+=========
 
-- `arch`: The architecture of the system (default: `CPU()`).
-- `FT`: The floating-point type to use (default: `Float64`).
+- `arch`: The architecture of the system. Default: `CPU()`.
+- `FT`: The floating-point type to use. Default: `Float64`.
 
-# Keyword Arguments
-===================
+Keyword Arguments
+=================
 
-- `ocean_emissivity`: The emissivity of the ocean surface (default: `0.97`).
-- `sea_ice_emissivity`: The emissivity of the sea ice surface (default: `1.0`).
-- `ocean_albedo`: The albedo of the ocean surface (default: `LatitudeDependentAlbedo(FT)`).
-- `sea_ice_albedo`: The albedo of the sea ice surface (default: `0.7`).
-- `stefan_boltzmann_constant`: The Stefan-Boltzmann constant (default: `5.67e-8`).
+- `ocean_emissivity`: The emissivity of the ocean surface. Default: `0.97`.
+- `sea_ice_emissivity`: The emissivity of the sea ice surface. Default: `1.0`.
+- `ocean_albedo`: The albedo of the ocean surface. Default: `LatitudeDependentAlbedo(FT)`.
+- `sea_ice_albedo`: The albedo of the sea ice surface. Default: `0.7`.
+- `stefan_boltzmann_constant`: The Stefan-Boltzmann constant. Default: `5.67e-8`.
 """
 function Radiation(arch = CPU(), FT=Float64;
                    ocean_emissivity = 0.97,
                    sea_ice_emissivity = 1.0,
-                   ocean_albedo = TabulatedAlbedo(arch, FT),
+                   ocean_albedo = LatitudeDependentAlbedo(FT),
                    sea_ice_albedo = 0.7,
                    stefan_boltzmann_constant = 5.67e-8)
 
@@ -59,52 +58,19 @@ function Radiation(arch = CPU(), FT=Float64;
                      convert(FT, stefan_boltzmann_constant))
 end
 
-Base.summary(r::Radiation) = "Radiation"
-Base.show(io::IO, r::Radiation) = print(io, summary(r))
+Base.summary(r::Radiation{FT}) where FT = "Radiation{$FT}"
 
-struct LatitudeDependentAlbedo{FT}
-    direct :: FT
-    diffuse :: FT
-end
+function Base.show(io::IO, r::Radiation)
+    σ = r.stefan_boltzmann_constant
 
-"""
-    LatitudeDependentAlbedo([FT::DataType=Float64]; diffuse = 0.069, direct = 0.011)
-
-Constructs a `LatitudeDependentAlbedo` object. The albedo of the ocean surface is assumed to be a function of the latitude,
-obeying the following formula (Large and Yeager, 2009):
-
-    α(φ) = α.diffuse - α.direct * cos(2φ)
-
-where `φ` is the latitude, `α.diffuse` is the diffuse albedo, and `α_.irect` is the direct albedo.
-
-# Arguments
-===========
-
-- `FT::DataType`: The data type of the albedo values. Default is `Float64`.
-
-# Keyword Arguments
-===================
-- `diffuse`: The diffuse albedo value. Default is `0.069`.
-- `direct`: The direct albedo value. Default is `0.011`.
-"""
-function LatitudeDependentAlbedo(FT::DataType=Float64; 
-                                 diffuse = 0.069, 
-                                 direct = 0.011) 
-    
-    return LatitudeDependentAlbedo(convert(FT, direct),
-                                   convert(FT, diffuse))
-end
-
-Adapt.adapt_structure(to, α::LatitudeDependentAlbedo) = 
-    LatitudeDependentAlbedo(Adapt.adapt(to, α.direct),                       
-                            Adapt.adapt(to, α.diffuse))
-
-@inline function stateindex(α::LatitudeDependentAlbedo, i, j, k, grid, time) 
-    φ = φnode(i, j, k, grid, Center(), Center(), Center())
-    α_diffuse = α.diffuse
-    direct_correction = α.direct * hack_cosd(2φ)
-
-    return α_diffuse - direct_correction
+    print(io, summary(r), ":", '\n')
+    print(io, "├── stefan_boltzmann_constant: ", prettysummary(σ), '\n')
+    print(io, "├── emission: ", summary(r.emission), '\n')
+    print(io, "│   ├── ocean: ", prettysummary(r.emission.ocean), '\n')
+    print(io, "│   └── sea_ice: ", prettysummary(r.emission.ocean), '\n')
+    print(io, "└── reflection: ", summary(r.reflection), '\n')
+    print(io, "    ├── ocean: ", prettysummary(r.reflection.ocean), '\n')
+    print(io, "    └── sea_ice: ", prettysummary(r.reflection.sea_ice))
 end
 
 struct SurfaceProperties{O, I}
@@ -115,3 +81,21 @@ end
 Adapt.adapt_structure(to, s :: SurfaceProperties) = 
     SurfaceProperties(Adapt.adapt(to, s.ocean),
                       Adapt.adapt(to, s.sea_ice))
+
+Base.summary(properties::SurfaceProperties) = "SurfaceProperties"
+
+function Base.show(io::IO, properties::SurfaceProperties)
+    print(io, "SurfaceProperties:", '\n')
+    print(io, "├── ocean: ", summary(properties.ocean), '\n')
+    print(io, "└── sea_ice: ", summary(properties.sea_ice))
+end
+
+@inline local_radiation_properties(i, j, k, grid, time, ::Nothing) = nothing
+
+@inline function local_radiation_properties(i, j, k, grid, time, r::Radiation) 
+    σ = r.stefan_boltzmann_constant
+    ϵ = stateindex(r.emission.ocean, i, j, k, grid, time)
+    α = stateindex(r.reflection.ocean, i, j, k, grid, time)
+
+    return (; ϵ, α, σ)
+end
