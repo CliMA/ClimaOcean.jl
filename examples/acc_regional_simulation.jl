@@ -20,12 +20,12 @@ using ClimaOcean.ECCO
 # 1) No output, need to add
 # 2) Restoring force (work in progress)
 
-arch = CPU() 
+arch = GPU() 
 
 z_faces = exponential_z_faces(Nz=40, depth=6000)
 
-Nx = 100 #1440
-Ny = 100  #600
+Nx = 1440
+Ny = 600
 Nz = length(z_faces) - 1
 
 grid = LatitudeLongitudeGrid(arch;
@@ -155,7 +155,7 @@ nothing #hide
 # This time, we set the CFL in the time_step_wizard to be 0.25 as this is the maximum recommended CFL to be
 # used in conjunction with Oceananigans' hydrostatic time-stepping algorithm ([two step Adams-Bashfort](https://en.wikipedia.org/wiki/Linear_multistep_method))
 
-ocean.stop_time = 100days
+ocean.stop_time = 2*365days
 coupled_simulation.stop_time = 100days
 conjure_time_step_wizard!(ocean; cfl = 0.25, max_Δt = 10minutes, max_change = 1.1)
 run!(coupled_simulation)
