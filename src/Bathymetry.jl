@@ -7,7 +7,7 @@ using ..DataWrangling: download_progress
 
 using Oceananigans
 using Oceananigans.Architectures: architecture, on_architecture
-using Oceananigans.DistributedComputations: DistributedGrid, reconstruct_global_grid, barrier!, all_reduce, rank
+using Oceananigans.DistributedComputations: DistributedGrid, reconstruct_global_grid, barrier!, all_reduce
 using Oceananigans.Grids: halo_size, λnodes, φnodes
 using Oceananigans.Grids: x_domain, y_domain
 using Oceananigans.Grids: topology
@@ -256,7 +256,7 @@ function regrid_bathymetry(target_grid::DistributedGrid; kw...)
     # If all ranks open a gigantic bathymetry and the memory is 
     # shared, we could easily have OOM errors. 
     # We perform the reconstruction only on rank 0 and share the result.
-    bottom_height = if rank(arch) == 0
+    bottom_height = if arch.local_rank == 0
         bottom_field = regrid_bathymetry(global_grid; kw...)
         interior(bottom_field)
     else
