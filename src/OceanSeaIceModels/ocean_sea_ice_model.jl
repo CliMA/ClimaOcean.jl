@@ -16,7 +16,7 @@ import Oceananigans.TimeSteppers: time_step!, update_state!, time
 import Oceananigans.Utils: prettytime
 import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker
 
-struct OceanSeaIceModel{I, A, O, F, C, G} <: AbstractModel{Nothing}
+struct OceanSeaIceModel{I, A, O, F, C} <: AbstractModel{Nothing}
     clock :: C
     atmosphere :: A
     sea_ice :: I
