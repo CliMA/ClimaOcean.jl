@@ -344,8 +344,7 @@ function Base.show(io::IO, p::ECCORestoring)
               "├── restored variable: ", summary(p.variable_name), '\n',
               "├── restoring dataset: ", summary(p.field_time_series.backend.metadata), '\n',
               "├── restoring rate: ", p.rate, '\n',
-              "├── mask: ", summary(p.mask), '\n',
-              "└── grid: ", summary(p.grid))
+              "└── mask: ", summary(p.mask))
 end
 
 regularize_forcing(forcing::ECCORestoring, field, field_name, model_field_names) = forcing
