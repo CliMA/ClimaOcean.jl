@@ -56,6 +56,13 @@ const celsius_to_kelvin = 273.15
 Base.summary(crf::OceanSeaIceSurfaceFluxes) = "OceanSeaIceSurfaceFluxes"
 Base.show(io::IO, crf::OceanSeaIceSurfaceFluxes) = print(io, summary(crf))
 
+function Base.show(io::IO, crf::OceanSeaIceSurfaceFluxes)
+    print(io, summary(crf), "\n")
+    print(io, "├── radiation: ", summary(crf.radiation), "\n")
+    print(io, "└── turbulent coefficients: ", summary(crf.turbulent), "\n")
+    return nothing
+end
+
 const SeaIceSimulation = Simulation{<:SeaIceModel}
 
 function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
