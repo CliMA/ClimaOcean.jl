@@ -25,7 +25,6 @@ using Adapt
 using Scratch
 
 download_ECCO_cache::String = ""
-
 function __init__()
     global download_ECCO_cache = @get_scratch!("ECCO")
 end
