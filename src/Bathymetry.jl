@@ -7,7 +7,7 @@ using ..DataWrangling: download_progress
 
 using Oceananigans
 using Oceananigans.Architectures: architecture, on_architecture
-using Oceananigans.DistributedComputations: child_architecture
+using Oceananigans.DistributedComputations: DistributedGrid, reconstruct_global_grid
 using Oceananigans.Grids: halo_size, λnodes, φnodes
 using Oceananigans.Grids: x_domain, y_domain
 using Oceananigans.Grids: topology
@@ -115,7 +115,7 @@ function regrid_bathymetry(target_grid;
     close(dataset)
 
     # Diagnose target grid information
-    arch = child_architecture(architecture(target_grid))
+    arch = architecture(target_grid)
     φ₁, φ₂ = y_domain(target_grid)
     λ₁, λ₂ = x_domain(target_grid)
 
@@ -246,6 +246,16 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
 
     return target_z
 end
+
+function regrid_bathymetry(target_grid::DistributedGrid; kw...)
+    global_grid = reconstruct_global_grid(target_grid)
+    bottom_height = regrid_bathymetry(global_grid; kw...)
+    local_bottom_height = Field{Center, Center, Nothing}(target_grid)
+    set!(local_bottom_height, interior(bottom_height))
+    
+    return local_bottom_height
+end
+
 
 """
     remove_minor_basins!(z_data, keep_major_basins)

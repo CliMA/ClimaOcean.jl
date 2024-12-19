@@ -3,6 +3,7 @@ include("runtests_setup.jl")
 using MPI
 MPI.Init()
 
+using NCDatasets
 using ClimaOcean.ECCO: download_dataset, metadata_path
 using CFTime
 using Dates
@@ -73,4 +74,47 @@ end
     @root for metadatum in metadata
         @test isfile(metadata_path(metadatum))
     end
+end
+
+@testset "Distributed Bathymetry interpolation" begin
+    # We start by building a fake bathyemtry on rank 0 and save it to file
+    @root begin
+        λ = 0:1:360
+        φ = 0:1:20
+
+        ds = NCDataset("./trivial_bathymetry.nc","c")
+
+        # Define the dimension "lon" and "lat" with the size 361 and 21 resp.
+        defDim(ds, "lon", 361)
+        defDim(ds, "lat", 21)
+
+
+        # Define the variables z
+        z = defVar(ds, "z", Float32, ("lon","lat"))
+
+        # Generate some example data
+        data = [Float32(-i) for i = 1:361, j = 1:21]
+
+        # write a the complete data set
+        v[:,:] = data
+
+        close(ds)
+    end
+
+    arch = Distributed(CPU(), partition=Partition(4, 1))
+
+    grid = LatitudeLongitudeGrid(arch;
+                                 size = (80, 10, 1),
+                                 longitude = (0, 360),
+                                 latitude = (0, 20),
+                                 z = (0, 1))
+
+    # It is linear interpolation so the data should be exactly equal to `i`
+    bottom_height = regrid_bathymetry(grid; interpolation_passes=10)
+    Nx, Ny, _ = size(grid)
+    rank      = arch.local_rank
+    
+    irange = rank * Nx + 1 : (rank + 1) * Nx
+    data   = repeat(irange, 1, Ny)
+    @test interior(bottom_height) == - data
 end
