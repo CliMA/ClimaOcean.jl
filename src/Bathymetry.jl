@@ -252,15 +252,16 @@ function regrid_bathymetry(target_grid::DistributedGrid; kw...)
     global_grid = reconstruct_global_grid(target_grid)
     global_grid = on_architecture(CPU(), global_grid)
     arch = architecture(target_grid)
+    Nx, Ny, _ = size(global_grid)
 
     # If all ranks open a gigantic bathymetry and the memory is 
     # shared, we could easily have OOM errors. 
     # We perform the reconstruction only on rank 0 and share the result.
     bottom_height = if arch.local_rank == 0
         bottom_field = regrid_bathymetry(global_grid; kw...)
-        interior(bottom_field)
+        bottom_field.data[1:Nx, 1:Ny, 1]
     else
-        zeros(size(global_grid))
+        zeros(Nx, Ny)
     end
 
     # Synchronize
