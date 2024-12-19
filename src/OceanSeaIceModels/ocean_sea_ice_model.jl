@@ -7,6 +7,7 @@ using SeawaterPolynomials: TEOS10EquationOfState
 
 # Simulations interface
 import Oceananigans: fields, prognostic_fields
+import Oceananigans.Architectures: architecture
 import Oceananigans.Fields: set!
 import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker
 import Oceananigans.OutputWriters: default_included_properties
@@ -17,7 +18,6 @@ import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker
 
 struct OceanSeaIceModel{I, A, O, F, C, G} <: AbstractModel{Nothing}
     clock :: C
-    grid :: G # TODO: make it so Oceananigans.Simulation does not require this
     atmosphere :: A
     sea_ice :: I
     ocean :: O
@@ -27,9 +27,8 @@ end
 const OSIM = OceanSeaIceModel
 
 function Base.summary(model::OSIM)
-    A = nameof(typeof(architecture(model.grid)))
-    G = nameof(typeof(model.grid))
-    return string("OceanSeaIceModel{$A, $G}",
+    A = typeof(architecture(model))
+    return string("OceanSeaIceModel{$A}",
                   "(time = ", prettytime(model.clock.time), ", iteration = ", model.clock.iteration, ")")
 end
 
@@ -40,6 +39,9 @@ function Base.show(io::IO, cm::OSIM)
     print(io, "└── sea_ice: ", summary(cm.sea_ice), "\n")
     return nothing
 end
+
+# Assumption: We have an ocean!
+architecture(model::OSIM) = architecture(model.ocean)
 
 prettytime(model::OSIM)             = prettytime(model.clock.time)
 iteration(model::OSIM)              = model.clock.iteration
@@ -98,7 +100,6 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature();
                                       radiation)
 
     ocean_sea_ice_model = OceanSeaIceModel(clock,
-                                           ocean.model.grid,
                                            atmosphere,
                                            sea_ice,
                                            ocean,
