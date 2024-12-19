@@ -27,7 +27,7 @@ end
 const OSIM = OceanSeaIceModel
 
 function Base.summary(model::OSIM)
-    A = typeof(architecture(model))
+    A = nameof(typeof(architecture(model)))
     return string("OceanSeaIceModel{$A}",
                   "(time = ", prettytime(model.clock.time), ", iteration = ", model.clock.iteration, ")")
 end
