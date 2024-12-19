@@ -96,7 +96,9 @@ function regrid_bathymetry(target_grid;
     fileurl  = url * "/" * filename # joinpath on windows creates the wrong url
 
     # No need for @root here, because only rank 0 accesses this function
-    Downloads.download(fileurl, filepath; progress=download_progress)
+    if !isfile(filepath)
+        Downloads.download(fileurl, filepath; progress=download_progress)
+    end
 
     dataset = Dataset(filepath, "r")
 
@@ -272,7 +274,7 @@ function regrid_bathymetry(target_grid::DistributedGrid; kw...)
 
     # Partition the result
     local_bottom_height = Field{Center, Center, Nothing}(target_grid)
-    set!(local_bottom_height, interior(bottom_height))
+    set!(local_bottom_height, bottom_height)
     fill_halo_regions!(local_bottom_height)
     
     return local_bottom_height
