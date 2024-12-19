@@ -7,7 +7,7 @@ using ..DataWrangling: download_progress
 
 using Oceananigans
 using Oceananigans.Architectures: architecture, on_architecture
-using Oceananigans.DistributedComputations: DistributedGrid, reconstruct_global_grid
+using Oceananigans.DistributedComputations: DistributedGrid, reconstruct_global_grid, barrier!, all_reduce, rank
 using Oceananigans.Grids: halo_size, λnodes, φnodes
 using Oceananigans.Grids: x_domain, y_domain
 using Oceananigans.Grids: topology
@@ -95,11 +95,10 @@ function regrid_bathymetry(target_grid;
     filepath = joinpath(dir, filename)
     fileurl  = url * "/" * filename # joinpath on windows creates the wrong url
 
-    @root if !isfile(filepath) # perform all this only on rank 0, aka the "root" rank
-        Downloads.download(fileurl, filepath; progress=download_progress)
-    end
-    
-    dataset = Dataset(filepath)
+    # No need for @root here, because only rank 0 accesses this function
+    Downloads.download(fileurl, filepath; progress=download_progress)
+
+    dataset = Dataset(filepath, "r")
 
     FT = eltype(target_grid)
 
@@ -247,11 +246,33 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     return target_z
 end
 
+# Regridding bathymetry for distributed grids, we handle the whole process
+# on just one rank, and share the results with the other processors.
 function regrid_bathymetry(target_grid::DistributedGrid; kw...)
     global_grid = reconstruct_global_grid(target_grid)
-    bottom_height = regrid_bathymetry(global_grid; kw...)
+    global_grid = on_architecture(CPU(), global_grid)
+    arch = architecture(target_grid)
+
+    # If all ranks open a gigantic bathymetry and the memory is 
+    # shared, we could easily have OOM errors. 
+    # We perform the reconstruction only on rank 0 and share the result.
+    bottom_height = if rank(arch) == 0
+        bottom_field = regrid_bathymetry(global_grid; kw...)
+        interior(bottom_field)
+    else
+        zeros(size(global_grid))
+    end
+
+    # Synchronize
+    ClimaOcean.global_barrier(arch.communicator)
+
+    # Share the result (can we share SubArrays?)
+    bottom_height = all_reduce(+, bottom_height, arch)
+
+    # Partition the result
     local_bottom_height = Field{Center, Center, Nothing}(target_grid)
     set!(local_bottom_height, interior(bottom_height))
+    fill_halo_regions!(local_bottom_height)
     
     return local_bottom_height
 end
