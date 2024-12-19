@@ -36,7 +36,8 @@ function Base.show(io::IO, cm::OSIM)
     print(io, summary(cm), "\n")
     print(io, "├── ocean: ", summary(cm.ocean.model), "\n")
     print(io, "├── atmosphere: ", summary(cm.atmosphere), "\n")
-    print(io, "└── sea_ice: ", summary(cm.sea_ice), "\n")
+    print(io, "├── sea_ice: ", summary(cm.sea_ice), "\n")
+    print(io, "└── fluxes: ", summary(cm.fluxes))
     return nothing
 end
 
