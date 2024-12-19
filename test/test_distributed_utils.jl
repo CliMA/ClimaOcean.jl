@@ -105,30 +105,34 @@ end
         close(ds)
     end
 
-    arch = Distributed(CPU(), partition=Partition(4, 1))
+    arch_x  = Distributed(CPU(), partition=Partition(4, 1))
+    arch_y  = Distributed(CPU(), partition=Partition(1, 4))
+    arch_xy = Distributed(CPU(), partition=Partition(2, 2))
 
-    grid = LatitudeLongitudeGrid(arch;
-                                 size = (80, 10, 1),
-                                 longitude = (0, 360),
-                                 latitude = (0, 20),
-                                 z = (0, 1))
+    for arch in (arch_x, arch_y, arch_xy)
+        grid = LatitudeLongitudeGrid(arch;
+                                    size = (40, 40, 1),
+                                    longitude = (0, 100),
+                                    latitude = (0, 20),
+                                    z = (0, 1))
 
-    global_grid = reconstruct_global_grid(grid)
+        global_grid = reconstruct_global_grid(grid)
 
-    local_height = regrid_bathymetry(grid; 
-                                      dir = "./",
-                                      filename = "trivial_bathymetry.nc",
-                                      interpolation_passes=10)
+        local_height = regrid_bathymetry(grid; 
+                                        dir = "./",
+                                        filename = "trivial_bathymetry.nc",
+                                        interpolation_passes=10)
 
-    global_height = regrid_bathymetry(global_grid; 
-                                      dir = "./",
-                                      filename = "trivial_bathymetry.nc",
-                                      interpolation_passes=10)
-    Nx, Ny, _ = size(grid)
-    rank      = arch.local_rank
-    irange    = rank * Nx + 1 : (rank + 1) * Nx
-    
-    @handshake begin
-        @test interior(global_height, irange, :, 1) == interior(local_height, :, :, 1)
+        global_height = regrid_bathymetry(global_grid; 
+                                        dir = "./",
+                                        filename = "trivial_bathymetry.nc",
+                                        interpolation_passes=10)
+        Nx, Ny, _ = size(grid)
+        rank      = arch.local_rank
+        irange    = rank * Nx + 1 : (rank + 1) * Nx
+        
+        @handshake begin
+            @test interior(global_height, irange, :, 1) == interior(local_height, :, :, 1)
+        end
     end
 end
