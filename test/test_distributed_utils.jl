@@ -96,7 +96,7 @@ end
         data = [Float32(-i) for i = 1:361, j = 1:21]
 
         # write a the complete data set
-        v[:,:] = data
+        z[:,:] = data
 
         close(ds)
     end
