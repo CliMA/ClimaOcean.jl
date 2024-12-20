@@ -80,14 +80,17 @@ end
 @testset "Distributed Bathymetry interpolation" begin
     # We start by building a fake bathyemtry on rank 0 and save it to file
     @root begin
-        λ = 0:1:360
-        φ = 0:1:20
+        λ = -180:0.1:180
+        φ = 0:0.1:50
 
-        ds = NCDataset("./trivial_bathymetry.nc","c")
+        Nλ = length(λ)
+        Nφ = length(φ)
 
-        # Define the dimension "lon" and "lat" with the size 361 and 21 resp.
-        defDim(ds, "lon", 361)
-        defDim(ds, "lat", 21)
+        ds = NCDataset("./trivial_bathymetry.nc", "c")
+
+        # Define the dimension "lon" and "lat" with the size 361 and 51 resp.
+        defDim(ds, "lon", Nλ)
+        defDim(ds, "lat", Nφ)
         defVar(ds, "lat", Float32, ("lat", ))
         defVar(ds, "lon", Float32, ("lon", ))
 
@@ -95,7 +98,7 @@ end
         z = defVar(ds, "z", Float32, ("lon","lat"))
 
         # Generate some example data
-        data = [Float32(-i) for i = 1:361, j = 1:21]
+        data = [Float32(-i) for i = 1:Nλ, j = 1:Nφ]
 
         # write a the complete data set
         ds["lon"][:] = λ
@@ -128,11 +131,11 @@ end
                                             z = (0, 1))
 
         local_height = regrid_bathymetry(local_grid; 
-                                          dir = "./",
-                                          filename = "trivial_bathymetry.nc",
-                                          interpolation_passes=10)
+                                         dir = "./",
+                                         filename = "trivial_bathymetry.nc",
+                                         interpolation_passes=10)
 
-        Nx, Ny, _ = size(grid)
+        Nx, Ny, _ = size(local_grid)
         rx, ry, _ = arch.local_index
         irange    = (rx - 1) * Nx + 1 : rx * Nx
         jrange    = (ry - 1) * Ny + 1 : ry * Ny
