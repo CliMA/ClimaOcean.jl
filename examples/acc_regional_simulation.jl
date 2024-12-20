@@ -10,16 +10,6 @@ using Dates
 
 using ClimaOcean.ECCO
 
-#things to do
-# 1. git pull
-# 2. update library
-# 3. add CairoMakie
-# 4. add oceananigans#main
-# 5. ECCO_USERNAME=francispoulin ECCO_PASSWORD=???????????? julia --project
-
-# 1) No output, need to add
-# 2) Restoring force (work in progress)
-
 arch = GPU() 
 
 z_faces = exponential_z_faces(Nz=40, depth=6000)
@@ -97,7 +87,7 @@ atmosphere = JRA55PrescribedAtmosphere(arch; backend)
 radiation  = Radiation()
 
 coupled_model      = OceanSeaIceModel(ocean; atmosphere, radiation)
-coupled_simulation = Simulation(coupled_model; Δt=10, stop_time = 10days)
+coupled_simulation = Simulation(coupled_model; Δt=10minutes, stop_time = 10days)
 
 wall_time = [time_ns()]
 
@@ -138,26 +128,21 @@ nothing #hide
 #
 # Therefore, we spin up the simulation with a small time step to ensure that the interpolated initial
 # conditions adapt to the model numerics and parameterization without causing instability. A 10-day
-# integration with a maximum time step of 1.5 minutes should be sufficient to dissipate spurious
+# integration with a maximum time step of 1 minute should be sufficient to dissipate spurious
 # initialization shocks.
-# We use an adaptive time step that maintains the [CFL condition](https://en.wikipedia.org/wiki/Courant%E2%80%93Friedrichs%E2%80%93Lewy_condition) equal to 0.1.
-# For this scope, we use the Oceananigans utility `conjure_time_step_wizard!` (see Oceanigans's documentation).
 
-ocean.stop_time = 10days
-conjure_time_step_wizard!(ocean; cfl = 0.1, max_Δt = 90, max_change = 1.1)
+coupled_simulation.stop_time = 10days
+coupled_simulation.Δt = 1minutes
 run!(coupled_simulation)
 nothing #hide
 
 # ### Running the simulation
 #
-# Now that the simulation has spun up, we can run it for the full 100 days.
-# We increase the maximum time step size to 10 minutes and let the simulation run for 100 days.
-# This time, we set the CFL in the time_step_wizard to be 0.25 as this is the maximum recommended CFL to be
-# used in conjunction with Oceananigans' hydrostatic time-stepping algorithm ([two step Adams-Bashfort](https://en.wikipedia.org/wiki/Linear_multistep_method))
+# Now that the simulation has spun up, we can run it for the full 2 years.
+# We increase the maximum time step size to 10 minutes and let the simulation run for 2 years.
 
-ocean.stop_time = 2*365days
-coupled_simulation.stop_time = 100days
-conjure_time_step_wizard!(ocean; cfl = 0.25, max_Δt = 10minutes, max_change = 1.1)
+coupled_simulation.stop_time = 2*365days
+coupled_simulation.Δt = 10minutes
 run!(coupled_simulation)
 nothing #hide
 
