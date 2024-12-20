@@ -101,7 +101,7 @@ fig = Figure(size=(1000, 800))
 
 axτ = Axis(fig[1, 1:3], xlabel="Time (days)", ylabel="Zonal momentum \n flux (N m⁻²)", xaxisposition=:top)
 axQ = Axis(fig[2, 1:3], xlabel="Time (days)", ylabel="Heat flux \n (W m⁻²)")
-axh = Axis(fig[3, 1:3], xlabel="Time (days)", ylabel="Heat flux \n (W m⁻²)")
+axh = Axis(fig[3, 1:3], xlabel="Time (days)", ylabel="Sea ice thickness \n (m)")
 axT = Axis(fig[4, 1], xlabel="Temperature (ᵒC)", ylabel="z (m)")
 axS = Axis(fig[4, 2], xlabel="Salinity (g kg⁻¹)", ylabel="z (m)")
 axu = Axis(fig[4, 3], xlabel="Velocities (m s⁻¹)", ylabel="z (m)", yaxisposition=:right)
