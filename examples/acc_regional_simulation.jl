@@ -1,22 +1,21 @@
-using Printf
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.Grids: φnode
 using ClimaOcean
-using CairoMakie
+using ClimaOcean.ECCO
 
+using Printf
+using CairoMakie
 using CFTime
 using Dates
 
-using ClimaOcean.ECCO
-
 arch = GPU() 
-
-z_faces = exponential_z_faces(Nz=40, depth=6000)
 
 Nx = 1440
 Ny = 600
-Nz = length(z_faces) - 1
+Nz = 40  
+
+z_faces = exponential_z_faces(Nz=Nz+1, depth=6000)
 
 grid = LatitudeLongitudeGrid(arch;
                              size = (Nx, Ny, Nz),
@@ -67,13 +66,10 @@ end
      return - p.rate * fields.v[i, j, k] * northern_mask(φ)
 end
 
-Fu = Forcing(u_restoring; discrete_form=true, parameters=(; rate=1/2days))
-Fv = Forcing(v_restoring; discrete_form=true, parameters=(; rate=1/2days))
-
-FT = ECCORestoring(:temperature, grid; dates, rate=1/2days, mask=tracer_mask)
-FS = ECCORestoring(:salinity,    grid; dates, rate=1/2days, mask=tracer_mask)
-
-forcing = (T=FT, S=FS, u=Fu, v=Fv)
+forcing = (T=ECCORestoring(:temperature, grid; dates, rate=1/2days, mask=tracer_mask),
+	   S=ECCORestoring(:salinity,    grid; dates, rate=1/2days, mask=tracer_mask),
+	   u=Forcing(u_restoring; discrete_form=true, parameters=(; rate=1/2days)),
+	   v=Forcing(v_restoring; discrete_form=true, parameters=(; rate=1/2days)))
 
 ocean = ocean_simulation(grid; forcing)
 model = ocean.model
@@ -96,8 +92,7 @@ function progress(sim)
     u, v, w = ocean.model.velocities
     T = ocean.model.tracers.T
 
-    Tmax = maximum(interior(T))
-    Tmin = minimum(interior(T))
+    Tmax, Tmin = maximum(interior(T)), minimum(interior(T))
     umax = maximum(abs, interior(u)), maximum(abs, interior(v)), maximum(abs, interior(w))
     step_time = 1e-9 * (time_ns() - wall_time[1])
 
@@ -110,7 +105,7 @@ function progress(sim)
      wall_time[1] = time_ns()
 end
 
-coupled_simulation.callbacks[:progress] = Callback(progress, IterationInterval(1000))
+coupled_simulation.callbacks[:progress] = Callback(progress, TimeInterval(4hours)) 
 
 ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, model.velocities);
                                                   schedule = TimeInterval(1days),
