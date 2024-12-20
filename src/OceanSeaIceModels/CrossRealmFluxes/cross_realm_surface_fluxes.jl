@@ -156,23 +156,28 @@ function CrossRealmSurfaceFluxes(ocean, sea_ice=nothing;
         previous_ice_concentration = nothing
     end
 
-    total_ocean_fluxes = surface_model_fluxes(ocean.model,
+    total_ocean_fluxes = model_surface_fluxes(ocean.model,
                                               ocean_reference_density,
                                               ocean_heat_capacity)
-
                                         
+
+    #=
     total_sea_ice_fluxes = if sea_ice isa SeaIceSimulation
-        surface_model_fluxes(sea_ice.model,
+        model_surface_fluxes(sea_ice.model,
                              ice_reference_density,
                              ice_heat_capacity)
     else
         nothing
     end
+    =#
+
+    sea_ice_grid = sea_ice.model.grid
+    total_sea_ice_fluxes = (; heat = Field{Center, Center, Nothing}(sea_ice_grid))
 
     # The actual fields in the boundary conditions of 
     # model-specific velocities and tracers
-    total_fluxes = (; ocean=total_ocean_fluxes,
-                    sea_ice=total_sea_ice_fluxes)
+    total_fluxes = (; ocean   = total_ocean_fluxes,
+                      sea_ice = total_sea_ice_fluxes)
 
     surface_atmosphere_state = interpolated_surface_atmosphere_state(ocean_grid)
 
@@ -192,7 +197,7 @@ function CrossRealmSurfaceFluxes(ocean, sea_ice=nothing;
                                    surface_atmosphere_state)
 end
 
-function surface_model_fluxes(model, ρₛ, cₛ)
+function model_surface_fluxes(model, ρₛ, cₛ)
     grid = model.grid
     τx = surface_flux(model.velocities.u)
     τy = surface_flux(model.velocities.v)
@@ -229,33 +234,9 @@ function sea_ice_similarity_theory(sea_ice::SeaIceSimulation)
     # SkinTemperature. Also we need to pass the sea ice internal flux
     # The thickness and salinity need to be passed as well, 
     # but the can be passed as state variables once we refactor the `StateValues` struct.
-    internal_flux = sea_ice.model.ice_thermodynamics.internal_flux
+    internal_flux = sea_ice.model.ice_thermodynamics.internal_heat_flux
     surface_temperature_type = SkinTemperature(internal_flux)
     return SimilarityTheoryFluxes(; surface_temperature_type)
-end
-
-function surface_model_fluxes(model::SeaIceModel, ρₛ, cₛ)
-    grid = model.grid
-    τx = surface_flux(model.velocities.u)
-    τy = surface_flux(model.velocities.v)
-    τxᶜᶜᶜ = Field{Center, Center, Nothing}(grid)
-    τyᶜᶜᶜ = Field{Center, Center, Nothing}(grid)
-
-   surface_momentum_fluxes = (u    = τx,      # fluxes used in the model
-                              v    = τy,      #
-                              uᶜᶜᶜ = τxᶜᶜᶜ,   # fluxes computed by bulk formula at cell centers
-                              vᶜᶜᶜ = τyᶜᶜᶜ)
-
-    surface_tracer_fluxes = (T = Field{Center, Center, Nothing}(grid),
-                             S = Field{Center, Center, Nothing}(grid))
-                             
-    surface_heat_flux = ρₛ * cₛ * surface_tracer_fluxes.T
-
-    fluxes = (momentum = surface_momentum_fluxes,
-              tracers = surface_tracer_fluxes,
-              heat = surface_heat_flux)
-
-    return fluxes
 end
 
 function turbulent_fluxes_fields(grid)
