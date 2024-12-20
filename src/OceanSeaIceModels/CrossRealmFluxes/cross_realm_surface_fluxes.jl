@@ -30,7 +30,10 @@ using KernelAbstractions: @kernel, @index
 #####
 
 struct CrossRealmSurfaceFluxes{T, P, C, R, PI, PC, FT, UN, ATM}
-    turbulent :: T # the turbulent fluxes
+    turbulent :: T # turbulent atmopshere fluxes
+    # atmosphere_ocean
+    # atmosphere_sea_ice
+    # sea_ice_ocean
     prescribed :: P
     # Add `components` which will also store components of the total fluxes
     # (eg latent, sensible heat flux)
