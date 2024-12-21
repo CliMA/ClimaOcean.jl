@@ -107,7 +107,7 @@ end
 
 """
     ECCOFieldTimeSeries(metadata::ECCOMetadata [, arch_or_grid=CPU() ];
-                        time_indices_in_memory = 2,	
+                        time_indices_in_memory = 2,
                         time_indexing = Cyclical(),
                         inpainting = nothing,
                         cache_inpainted_data = true)
@@ -119,7 +119,7 @@ Arguments
 
 - `metadata`: `ECCOMetadata` containing information about the ECCO dataset.
 
-- `arch_or_grid`: Either a grid to interpolate ECCO data to, or an `arch`itecture
+- `arch_or_grid`: Either a grid to interpolate the ECCO data to, or an `arch`itecture
                   to use for the native ECCO grid. Default: CPU().
 
 Keyword Arguments
