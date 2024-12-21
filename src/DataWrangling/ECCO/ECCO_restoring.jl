@@ -293,8 +293,8 @@ Keyword Arguments
 
 - `rate`: The restoring rate, i.e., the inverse of the restoring timescale (in s⁻¹).
 
-- `data_dir`: The directory where the native ECCO data is located. If the data does not exist it will
-              be automatically downloaded. Default: `download_ECCO_cache`.
+- `dir`: The directory where the native ECCO data is located. If the data does not exist it will
+         be automatically downloaded. Default: `download_ECCO_cache`.
 
 - `inpainting`: inpainting algorithm, see [`inpaint_mask!`](@ref). Default: `NearestNeighborInpainting(Inf)`.
 
@@ -305,10 +305,10 @@ function ECCORestoring(variable_name::Symbol,
                        arch_or_grid = CPU();
                        version = ECCO4Monthly(),
                        dates = all_ECCO_dates(version),
-                       data_dir = download_ECCO_cache,
+                       dir = download_ECCO_cache,
                        kw...)
 
-    metadata = ECCOMetadata(variable_name, dates, version, data_dir)
+    metadata = ECCOMetadata(variable_name, dates, version, dir)
     return ECCORestoring(metadata, arch_or_grid; kw...)
 end
 
