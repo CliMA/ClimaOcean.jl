@@ -243,37 +243,37 @@ end
                   inpainting = NearestNeighborInpainting(Inf),
                   cache_inpainted_data = true)
 
-Build a forcing term that restores to values stored in an ECCO field time series.
-The restoring is applied as a forcing on the right hand side of the evolution equations calculated as
+Return a forcing term that restores to values stored in an ECCO field time series.
+The restoring is applied as a forcing on the right hand side of the evolution
+equations calculated as:
 
 ```math
 Fψ = r μ (ψ_{ECCO} - ψ)
 ```
 
 where ``μ`` is the mask, ``r`` is the restoring rate, ``ψ`` is the simulation variable,
-and the ECCO variable ``ψ_ECCO`` is linearly interpolated in space and time from the
-ECCO dataset of choice to the simulation grid and time.
+and ``ψ_{ECCO}`` is the ECCO variable that is linearly interpolated in space and time
+from the ECCO dataset of choice to the simulation grid and time.
 
 Arguments
 =========
 
 - `variable_name`: The name of the variable to restore. Choices include:
-                        * `:temperature`,
-                        * `:salinity`,
-                        * `:u_velocity`,
-                        * `:v_velocity`,
-                        * `:sea_ice_thickness`,
-                        * `:sea_ice_area_fraction`.
-
-                    Note that `ECCOMetadata` may be provided as the first argument instead
-                    of `variable_name`. In this case the `version` and `dates` kwargs (described below)
-                    cannot be provided.
+  * `:temperature`,
+  * `:salinity`,
+  * `:u_velocity`,
+  * `:v_velocity`,
+  * `:sea_ice_thickness`,
+  * `:sea_ice_area_fraction`.
 
 - `arch_or_grid`: Either the architecture of the simulation, or a grid on which the ECCO data
                   is pre-interpolated when loaded. If an `arch`itecture is provided, such as
-                  `arch_or_grid = CPU()` or `arch_or_grid = GPU()`, ECCO data
-                  will be interpolated on-the-fly when the forcing tendency is computed.  
-                  Default: CPU().
+                  `arch_or_grid = CPU()` or `arch_or_grid = GPU()`, ECCO data are interpolated
+                  on-the-fly when the forcing tendency is computed. Default: CPU().
+
+!!! info "Providing `ECCOMetadata` instead of `variable_name`"
+    Note that `ECCOMetadata` may be provided as the first argument instead of `variable_name`.
+    In this case the `version` and `dates` kwargs (described below) cannot be provided.
 
 Keyword Arguments
 =================
@@ -340,7 +340,7 @@ function Base.show(io::IO, p::ECCORestoring)
               "├── restoring dataset: ", summary(p.field_time_series.backend.metadata), '\n',
               "├── restoring rate: ", p.rate, '\n',
               "├── mask: ", summary(p.mask), '\n',
-              "└── grid: ", summary(p.grid))
+              "└── grid: ", summary(p.native_grid))
 end
 
 regularize_forcing(forcing::ECCORestoring, field, field_name, model_field_names) = forcing
