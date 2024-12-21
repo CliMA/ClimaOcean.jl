@@ -64,8 +64,8 @@ temperature = ECCOMetadata(:temperature; dates, version=ECCO4Monthly(), dir="./"
 salinity    = ECCOMetadata(:salinity;    dates, version=ECCO4Monthly(), dir="./")
 
 # inpainting = NearestNeighborInpainting(30) should be enough to fill the gaps near bathymetry
-FT = ECCORestoring(arch, temperature; grid, mask, rate=restoring_rate, inpainting=NearestNeighborInpainting(50))
-FS = ECCORestoring(arch, salinity;    grid, mask, rate=restoring_rate, inpainting=NearestNeighborInpainting(50))
+FT = ECCORestoring(temperature, grid; mask, rate=restoring_rate, inpainting=NearestNeighborInpainting(50))
+FS = ECCORestoring(salinity, grid;    mask, rate=restoring_rate, inpainting=NearestNeighborInpainting(50))
 forcing = (T=FT, S=FS)
 
 #####
