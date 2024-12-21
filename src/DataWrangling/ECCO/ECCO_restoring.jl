@@ -240,7 +240,7 @@ end
     ECCORestoring(variable_name::Symbol, [ arch_or_grid = CPU(), ];
                   version = ECCO4Monthly(),
                   dates = all_ECCO_dates(version),
-                  time_indices_in_memory = 2, 
+                  time_indices_in_memory = 2,
                   time_indexing = Cyclical(),
                   mask = 1,
                   rate = 1,
