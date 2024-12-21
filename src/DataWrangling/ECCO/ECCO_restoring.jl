@@ -263,7 +263,7 @@ Arguments
                         * `:u_velocity`,
                         * `:v_velocity`,
                         * `:sea_ice_thickness`,
-                        * `:sea_ice_area_fraction`.
+                        * `:sea_ice_concentration`.
 
                     Note that `ECCOMetadata` may be provided as the first argument instead
                     of `variable_name`. In this case the `version` and `dates` kwargs (described below)

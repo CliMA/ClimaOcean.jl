@@ -11,7 +11,7 @@ using Oceananigans.Units
 using ClimaOcean
 using ClimaOcean.OceanSimulations
 using ClimaOcean.OceanSeaIceModels
-using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: Radiation, SimilarityTheoryTurbulentFluxes
+using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: Radiation, SimilarityTheoryFluxes
 using ClimaOcean.VerticalGrids: exponential_z_faces
 using ClimaOcean.JRA55
 using ClimaOcean.ECCO
