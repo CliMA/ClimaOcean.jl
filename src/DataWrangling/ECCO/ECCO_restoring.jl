@@ -6,7 +6,7 @@ using Oceananigans.Utils: Time
 
 using Base
 using NCDatasets
-using JLD2 
+using JLD2
 
 using Dates: Second
 using ClimaOcean: stateindex
@@ -35,7 +35,10 @@ end
 Adapt.adapt_structure(to, b::ECCONetCDFBackend{N, C}) where {N, C} = ECCONetCDFBackend{N, C}(b.start, b.length, nothing, nothing)
 
 """
-    ECCONetCDFBackend(length; on_native_grid=false, inpainting=NearestNeighborInpainting(Inf))
+    ECCONetCDFBackend(length, metadata;
+                      on_native_grid = false, 
+                      cache_inpainted_data = false,
+                      inpainting = NearestNeighborInpainting(Inf))
 
 Represent an ECCO FieldTimeSeries backed by ECCO native netCDF files.
 Each time instance is stored in an individual file.
@@ -76,7 +79,7 @@ function set!(fts::ECCOFieldTimeSeries)
 end
 
 """
-    ECCO_times(metadata; start_time = metadata.dates[1])
+    ECCO_times(metadata; start_time = first(metadata).dates)
 
 Extract the time values from the given metadata and calculates the time difference
 from the start time.
@@ -104,9 +107,10 @@ end
 
 """
     ECCOFieldTimeSeries(metadata::ECCOMetadata [, arch_or_grid=CPU() ];
-                        time_indices_in_memory = 2,
+                        time_indices_in_memory = 2,	
                         time_indexing = Cyclical(),
-                        inpainting = nothing)
+                        inpainting = nothing,
+                        cache_inpainted_data = true)
 
 Create a field time series object for ECCO data.
 
