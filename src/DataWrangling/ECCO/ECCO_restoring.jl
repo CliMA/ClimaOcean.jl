@@ -244,7 +244,7 @@ end
                   time_indexing = Cyclical(),
                   mask = 1,
                   rate = 1,
-                  data_dir = download_ECCO_cache,
+                  dir = download_ECCO_cache,
                   inpainting = NearestNeighborInpainting(Inf),
                   cache_inpainted_data = true)
 
