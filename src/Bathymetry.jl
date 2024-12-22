@@ -7,7 +7,7 @@ using ..DataWrangling: download_progress
 
 using Oceananigans
 using Oceananigans.Architectures: architecture, on_architecture
-using Oceananigans.DistributedComputations: child_architecture
+using Oceananigans.DistributedComputations: DistributedGrid, reconstruct_global_grid, barrier!, all_reduce
 using Oceananigans.Grids: halo_size, λnodes, φnodes
 using Oceananigans.Grids: x_domain, y_domain
 using Oceananigans.Grids: topology
@@ -90,16 +90,17 @@ function regrid_bathymetry(target_grid;
                            url = "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_surface_elev_netcdf", 
                            filename = "ETOPO_2022_v1_60s_N90W180_surface.nc",
                            interpolation_passes = 1,
-                           major_basins = Inf) # Allow an `Inf` number of ``lakes''
+                           major_basins = 1) # Allow an `Inf` number of ``lakes''
 
     filepath = joinpath(dir, filename)
     fileurl  = url * "/" * filename # joinpath on windows creates the wrong url
 
-    @root if !isfile(filepath) # perform all this only on rank 0, aka the "root" rank
+    # No need for @root here, because only rank 0 accesses this function
+    if !isfile(filepath)
         Downloads.download(fileurl, filepath; progress=download_progress)
     end
-    
-    dataset = Dataset(filepath)
+
+    dataset = Dataset(filepath, "r")
 
     FT = eltype(target_grid)
 
@@ -115,7 +116,7 @@ function regrid_bathymetry(target_grid;
     close(dataset)
 
     # Diagnose target grid information
-    arch = child_architecture(architecture(target_grid))
+    arch = architecture(target_grid)
     φ₁, φ₂ = y_domain(target_grid)
     λ₁, λ₂ = x_domain(target_grid)
 
@@ -246,6 +247,39 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
 
     return target_z
 end
+
+# Regridding bathymetry for distributed grids, we handle the whole process
+# on just one rank, and share the results with the other processors.
+function regrid_bathymetry(target_grid::DistributedGrid; kw...)
+    global_grid = reconstruct_global_grid(target_grid)
+    global_grid = on_architecture(CPU(), global_grid)
+    arch = architecture(target_grid)
+    Nx, Ny, _ = size(global_grid)
+
+    # If all ranks open a gigantic bathymetry and the memory is 
+    # shared, we could easily have OOM errors. 
+    # We perform the reconstruction only on rank 0 and share the result.
+    bottom_height = if arch.local_rank == 0
+        bottom_field = regrid_bathymetry(global_grid; kw...)
+        bottom_field.data[1:Nx, 1:Ny, 1]
+    else
+        zeros(Nx, Ny)
+    end
+
+    # Synchronize
+    ClimaOcean.global_barrier(arch.communicator)
+
+    # Share the result (can we share SubArrays?)
+    bottom_height = all_reduce(+, bottom_height, arch)
+
+    # Partition the result
+    local_bottom_height = Field{Center, Center, Nothing}(target_grid)
+    set!(local_bottom_height, bottom_height)
+    fill_halo_regions!(local_bottom_height)
+    
+    return local_bottom_height
+end
+
 
 """
     remove_minor_basins!(z_data, keep_major_basins)

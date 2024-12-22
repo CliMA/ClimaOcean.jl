@@ -56,6 +56,13 @@ const celsius_to_kelvin = 273.15
 Base.summary(crf::OceanSeaIceSurfaceFluxes) = "OceanSeaIceSurfaceFluxes"
 Base.show(io::IO, crf::OceanSeaIceSurfaceFluxes) = print(io, summary(crf))
 
+function Base.show(io::IO, crf::OceanSeaIceSurfaceFluxes)
+    print(io, summary(crf), "\n")
+    print(io, "├── radiation: ", summary(crf.radiation), "\n")
+    print(io, "└── turbulent coefficients: ", summary(crf.turbulent), "\n")
+    return nothing
+end
+
 const SeaIceSimulation = Simulation{<:SeaIceModel}
 
 function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
@@ -77,7 +84,7 @@ function OceanSeaIceSurfaceFluxes(ocean, sea_ice=nothing;
     if !isnothing(atmosphere)
         # It's the "thermodynamics gravitational acceleration"
         # (as opposed to the one used for the free surface)
-        gravitational_acceleration = ocean.model.buoyancy.model.gravitational_acceleration
+        gravitational_acceleration = ocean.model.buoyancy.formulation.gravitational_acceleration
 
         if isnothing(similarity_theory)
             similarity_theory = SimilarityTheoryTurbulentFluxes(ocean_grid; gravitational_acceleration)

@@ -3,7 +3,7 @@ using Oceananigans.Architectures: arch_array
 using Oceananigans.Units
 using Oceananigans.Grids: on_architecture
 using Oceananigans.Utils: WallTimeInterval
-using Oceananigans.BuoyancyModels: buoyancy
+using Oceananigans.BuoyancyFormulations: buoyancy
 using Oceananigans.Models.HydrostaticFreeSurfaceModels: VerticalVorticityField
 using ClimaOcean.NearGlobalSimulations: one_degree_near_global_simulation
 using ParameterEstimocean
