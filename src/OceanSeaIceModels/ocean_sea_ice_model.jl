@@ -42,7 +42,7 @@ function Base.show(io::IO, cm::OSIM)
 end
 
 # Assumption: We have an ocean!
-architecture(model::OSIM) = architecture(model.ocean)
+architecture(model::OSIM) = architecture(model.ocean.model)
 
 prettytime(model::OSIM)             = prettytime(model.clock.time)
 iteration(model::OSIM)              = model.clock.iteration
