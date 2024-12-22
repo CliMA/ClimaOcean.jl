@@ -1,7 +1,7 @@
 using Oceananigans
 using Oceananigans.ImmersedBoundaries: mask_immersed_field!
 
-using GLMakie
+using CairoMakie
 using Printf
 using ClimaOcean
 using ClimaOcean.DataWrangling.ECCO: ECCO_field, ECCOFieldTimeSeries
