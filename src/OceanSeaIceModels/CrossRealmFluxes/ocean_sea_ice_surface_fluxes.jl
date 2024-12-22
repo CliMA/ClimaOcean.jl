@@ -54,7 +54,6 @@ const celsius_to_kelvin = 273.15
 @inline convert_to_kelvin(::DegreesKelvin, T) = T
 
 Base.summary(crf::OceanSeaIceSurfaceFluxes) = "OceanSeaIceSurfaceFluxes"
-Base.show(io::IO, crf::OceanSeaIceSurfaceFluxes) = print(io, summary(crf))
 
 function Base.show(io::IO, crf::OceanSeaIceSurfaceFluxes)
     print(io, summary(crf), "\n")
