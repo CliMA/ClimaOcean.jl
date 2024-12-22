@@ -19,8 +19,7 @@ Nx = 360
 Ny = 180
 Nz = 100
 
-r_faces = exponential_z_faces(; Nz, depth=5000, h=34)
-z_faces = ZStarVerticalCoordinate(r_faces)
+z_faces = exponential_z_faces(; Nz, depth=5000, h=34)
 
 underlying_grid = TripolarGrid(arch;
                                size = (Nx, Ny, Nz),
@@ -56,7 +55,7 @@ closure = (eddy_closure, vertical_mixing)
 #####
 
 restoring_rate  = 1 / 2days
-z_below_surface = r_faces[end-1]
+z_below_surface = z_faces[end-1]
 
 mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(z_below_surface, 0))
 
