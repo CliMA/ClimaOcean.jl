@@ -1,10 +1,12 @@
 using CFTime
 using Dates
 using ClimaOcean.DataWrangling
+using ClimaOcean.DataWrangling: netrc_downloader
 
 import Dates: year, month, day
 
 using Base: @propagate_inbounds
+using Downloads
 
 import Oceananigans.Fields: set!, location
 import Base
@@ -64,10 +66,12 @@ end
 ECCOMetadata(name::Symbol, date, version=ECCO4Monthly(); dir=download_ECCO_cache) =
     Metadata(name, date, version, dir)
 
+Base.length(metadata::ECCOMetadata) = length(metadata.dates)
 Base.size(data::ECCOMetadata{<:Any, <:ECCO2Daily})   = (1440, 720, 50, length(data.dates))
 Base.size(data::ECCOMetadata{<:Any, <:ECCO2Monthly}) = (1440, 720, 50, length(data.dates))
 Base.size(data::ECCOMetadata{<:Any, <:ECCO4Monthly}) = (720,  360, 50, length(data.dates))
 
+Base.length(metadata::ECCOMetadata{<:AbstractCFDateTime}) = 1
 Base.size(::ECCOMetadata{<:AbstractCFDateTime, <:ECCO2Daily})   = (1440, 720, 50, 1)
 Base.size(::ECCOMetadata{<:AbstractCFDateTime, <:ECCO2Monthly}) = (1440, 720, 50, 1)
 Base.size(::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4Monthly}) = (720,  360, 50, 1)
@@ -108,12 +112,12 @@ short_name(data::ECCOMetadata{<:Any, <:ECCO2Daily})   = ECCO2_short_names[data.n
 short_name(data::ECCOMetadata{<:Any, <:ECCO2Monthly}) = ECCO2_short_names[data.name]
 short_name(data::ECCOMetadata{<:Any, <:ECCO4Monthly}) = ECCO4_short_names[data.name]
 
-metadata_url(prefix, m::ECCOMetadata{<:Any, <:ECCO2Daily}) = joinpath(prefix, short_name(m), metadata_filename(m))
-metadata_url(prefix, m::ECCOMetadata{<:Any, <:ECCO2Monthly}) = joinpath(prefix, short_name(m), metadata_filename(m))
+metadata_url(prefix, m::ECCOMetadata{<:Any, <:ECCO2Daily}) = prefix * "/" * short_name(m) * "/" * metadata_filename(m)
+metadata_url(prefix, m::ECCOMetadata{<:Any, <:ECCO2Monthly}) = prefix * "/" * short_name(m) * "/" * metadata_filename(m)
 
 function metadata_url(prefix, m::ECCOMetadata{<:Any, <:ECCO4Monthly})
     year = string(Dates.year(m.dates))
-    return joinpath(prefix, short_name(m), year, metadata_filename(m))
+    return prefix * "/" * short_name(m) * "/" * year * "/" * metadata_filename(m)
 end
 
 location(data::ECCOMetadata) = ECCO_location[data.name]
@@ -129,6 +133,7 @@ ECCO4_short_names = Dict(
     :salinity              => "SALT",
     :u_velocity            => "EVEL",
     :v_velocity            => "NVEL",
+    :free_surface          => "SSH",
     :sea_ice_thickness     => "SIheff",
     :sea_ice_area_fraction => "SIarea",
     :net_heat_flux         => "oceQnet"
@@ -139,6 +144,7 @@ ECCO2_short_names = Dict(
     :salinity              => "SALT",
     :u_velocity            => "UVEL",
     :v_velocity            => "VVEL",
+    :free_surface          => "SSH",
     :sea_ice_thickness     => "SIheff",
     :sea_ice_area_fraction => "SIarea",
     :net_heat_flux         => "oceQnet"
@@ -147,6 +153,7 @@ ECCO2_short_names = Dict(
 ECCO_location = Dict(
     :temperature           => (Center, Center, Center),
     :salinity              => (Center, Center, Center),
+    :free_surface          => (Center, Center, Nothing),
     :sea_ice_thickness     => (Center, Center, Nothing),
     :sea_ice_area_fraction => (Center, Center, Nothing),
     :net_heat_flux         => (Center, Center, Nothing),
@@ -181,30 +188,37 @@ function download_dataset(metadata::ECCOMetadata; url = urls(metadata))
     username = get(ENV, "ECCO_USERNAME", nothing)
     password = get(ENV, "ECCO_PASSWORD", nothing)
     dir = metadata.dir
+    
+    # Create a temporary directory to store the .netrc file
+    # The directory will be deleted after the download is complete
+    @root mktempdir(dir) do tmp
 
-    @distribute for metadatum in metadata # Distribute the download among ranks if MPI is initialized
+        # Write down the username and password in a .netrc file
+        downloader = netrc_downloader(username, password, "ecco.jpl.nasa.gov", tmp)
 
-        fileurl  = metadata_url(url, metadatum) 
-        filepath = metadata_path(metadatum)
+        asyncmap(metadata, ntasks=10) do metadatum # Distribute the download among tasks
 
-        if !isfile(filepath)
-            instructions_msg = "\n See ClimaOcean.jl/src/ECCO/README.md for instructions."
-            if isnothing(username)
-                msg = "Could not find the ECCO_PASSWORD environment variable. \
-                       See ClimaOcean.jl/src/ECCO/README.md for instructions on obtaining \
-                       and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
-                throw(ArgumentError(msg))
-            elseif isnothing(password)
-                msg = "Could not find the ECCO_PASSWORD environment variable. \
-                       See ClimaOcean.jl/src/ECCO/README.md for instructions on obtaining \
-                       and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
-                throw(ArgumentError(msg))
+            fileurl  = metadata_url(url, metadatum) 
+            filepath = metadata_path(metadatum)
+
+            if !isfile(filepath)
+                instructions_msg = "\n See ClimaOcean.jl/src/ECCO/README.md for instructions."
+                if isnothing(username)
+                    msg = "Could not find the ECCO_PASSWORD environment variable. \
+                           See ClimaOcean.jl/src/ECCO/README.md for instructions on obtaining \
+                           and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
+                    throw(ArgumentError(msg))
+                elseif isnothing(password)
+                    msg = "Could not find the ECCO_PASSWORD environment variable. \
+                           See ClimaOcean.jl/src/ECCO/README.md for instructions on obtaining \
+                           and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
+                    throw(ArgumentError(msg))
+                end
+
+                Downloads.download(fileurl, filepath; downloader, progress=download_progress)
             end
-
-            cmd = `wget --http-user=$(username) --http-passwd=$(password) --directory-prefix=$dir $fileurl`
-            run(cmd)
         end
     end
-
+    
     return nothing
 end

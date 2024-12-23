@@ -2,7 +2,7 @@ name = "ClimaOcean"
 uuid = "0376089a-ecfe-4b0e-a64f-9c555d74d754"
 license = "MIT"
 authors = ["Climate Modeling Alliance and contributors"]
-version = "0.2.4"
+version = "0.3.2"
 
 [deps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
@@ -42,16 +42,16 @@ JLD2 = "0.4, 0.5"
 KernelAbstractions = "0.9"
 MPI = "0.20"
 NCDatasets = "0.12, 0.13, 0.14"
-Oceananigans = "0.94.3 - 0.99"
+Oceananigans = "0.95.4 - 0.99"
 OffsetArrays = "1.14"
-OrthogonalSphericalShellGrids = "0.1.8"
+OrthogonalSphericalShellGrids = "0.2.1"
 Scratch = "1"
 SeawaterPolynomials = "0.3.4"
 StaticArrays = "1"
 Statistics = "1.9"
 SurfaceFluxes = "0.11, 0.12"
 Thermodynamics = "0.12"
-julia = "1.9"
+julia = "1.10"
 
 [extras]
 CUDA_Runtime_jll = "76a88914-d11a-5bdc-97e0-2f5a05c973a2"

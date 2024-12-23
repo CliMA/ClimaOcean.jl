@@ -7,7 +7,11 @@ using ClimaOcean
 using ClimaOcean.ECCO
 using ClimaOcean.ECCO: ECCO_field, metadata_path, ECCO_times
 using ClimaOcean.DataWrangling: NearestNeighborInpainting
+
 using Oceananigans.Grids: topology
+using Oceananigans.OutputReaders: time_indices
+using Oceananigans.TimeSteppers: update_state!
+using Oceananigans.Units
 
 using CUDA: @allowscalar
 
@@ -24,7 +28,7 @@ inpainting = NearestNeighborInpainting(2)
         for name in (:temperature, :salinity)
             @info "Testing ECCO_field on $A..."
             metadata = ECCOMetadata(name, dates, ECCO4Monthly())
-            restoring = ECCORestoring(metadata ; rate = 1 / 1000.0, inpainting)
+            restoring = ECCORestoring(metadata; rate=1/1000, inpainting)
 
             for datum in metadata 
                 @test isfile(metadata_path(datum))
@@ -92,17 +96,15 @@ end
         φ₂ = @allowscalar grid.φᵃᶜᵃ[21]
         φ₃ = @allowscalar grid.φᵃᶜᵃ[80]
         φ₄ = @allowscalar grid.φᵃᶜᵃ[100]
-        z₁ = @allowscalar grid.zᵃᵃᶜ[6]
+        z₁ = @allowscalar grid.z.cᵃᵃᶜ[6]
 
         mask = LinearlyTaperedPolarMask(northern = (φ₃, φ₄),
                                         southern = (φ₁, φ₂),
                                                z = (z₁, 0))
 
-        t_restoring = ECCORestoring(arch, :temperature;
-                                    dates,
-                                    mask,
-                                    rate = 1 / 1000.0,
-                                    inpainting)
+        t_restoring = ECCORestoring(:temperature, arch;
+                                    dates, mask, inpainting,
+                                    rate=1/1000)
 
         fill!(t_restoring.field_time_series[1], 1.0)
         fill!(t_restoring.field_time_series[2], 1.0)
@@ -157,7 +159,7 @@ end
             true
         end
 
-        forcing_T = ECCORestoring(arch, :temperature;
+        forcing_T = ECCORestoring(:temperature, arch;
                                   dates,
                                   rate = 1 / 1000.0,
                                   inpainting)
@@ -174,7 +176,8 @@ end
 
 @testset "Setting temperature and salinity to ECCO" begin
     for arch in test_architectures
-        grid = LatitudeLongitudeGrid(size=(10, 10, 10),
+        grid = LatitudeLongitudeGrid(arch; 
+                                     size=(10, 10, 10),
                                      latitude=(-60, -40),
                                      longitude=(10, 15),
                                      z=(-200, 0),
@@ -183,5 +186,49 @@ end
         ocean = ocean_simulation(grid)
         date = DateTimeProlepticGregorian(1993, 1, 1)
         set!(ocean.model, T=ECCOMetadata(:temperature, date), S=ECCOMetadata(:salinity, date))
+    end
+end
+
+@testset "ECCO dataset cycling boundaries" begin
+    for arch in test_architectures
+        grid = LatitudeLongitudeGrid(arch;
+                                     size=(10, 10, 10),
+                                     latitude=(-60, -40),
+                                     longitude=(10, 15),
+                                     z=(-200, 0),
+                                     halo = (7, 7, 7))
+
+        start_date = DateTimeProlepticGregorian(1993, 1, 1)
+        end_date = DateTimeProlepticGregorian(1993, 5, 1)
+        dates = start_date : Month(1) : end_date
+
+        t_restoring = ECCORestoring(:temperature, arch;
+                                    dates,
+                                    rate = 1 / 1000.0,
+                                    inpainting)
+
+        times = ECCO_times(t_restoring.field_time_series.backend.metadata)
+        ocean = ocean_simulation(grid, forcing = (; T = t_restoring))
+
+        ocean.model.clock.time = times[3] + 2 * Units.days
+        update_state!(ocean.model)
+
+        @test t_restoring.field_time_series.backend.start == 3
+
+        # Compile
+        time_step!(ocean)
+
+        # Try stepping out of the ECCO dataset bounds
+        ocean.model.clock.time = last(times) + 2 * Units.days
+
+        update_state!(ocean.model)
+        
+        @test begin
+            time_step!(ocean)
+            true
+        end
+
+        # The backend has cycled to the end
+        @test time_indices(t_restoring.field_time_series) == (5, 1)
     end
 end
