@@ -38,7 +38,7 @@ dTdz = N² / (α * g)
 Tᵢ(z) = T₀ + dTdz * z
 set!(ocean.model, T=Tᵢ, S=S₀)
 
-sea_ice_grid = RectilinearGrid(size=(),  topology=(Flat, Flat, Flat))
+sea_ice_grid = RectilinearGrid(size=(), topology=(Flat, Flat, Flat))
 top_sea_ice_temperature = Field{Center, Center, Nothing}(sea_ice_grid)
 
 # Alternative
@@ -63,11 +63,12 @@ simulation = Simulation(model, Δt=10minutes, stop_time=10days)
 
 Q = model.fluxes.total.ocean.heat
 
-Ql = model.fluxes.turbulent.fields.ocean.latent_heat
-Qs = model.fluxes.turbulent.fields.ocean.sensible_heat
-τx = model.fluxes.turbulent.fields.ocean.x_momentum
-τy = model.fluxes.turbulent.fields.ocean.y_momentum
-Fv = model.fluxes.turbulent.fields.ocean.water_vapor
+Ql  = model.fluxes.turbulent.fields.ocean.latent_heat
+Qs  = model.fluxes.turbulent.fields.ocean.sensible_heat
+τx  = model.fluxes.turbulent.fields.ocean.x_momentum
+τy  = model.fluxes.turbulent.fields.ocean.y_momentum
+Fv  = model.fluxes.turbulent.fields.ocean.water_vapor
+Qib = sea_ice_model.external_heat_fluxes.bottom
 
 # TODO: the total fluxes are defined on _interfaces_ between components:
 # atmopshere_ocean, atmosphere_sea_ice, ocean_sea_ice. They aren't defined wrt to 
@@ -75,7 +76,7 @@ Fv = model.fluxes.turbulent.fields.ocean.water_vapor
 Qo = model.fluxes.total.ocean.heat
 Qi = model.fluxes.total.sea_ice.heat
 
-fluxes = (; Qo, Qi, Ql, Qs, τx, τy, Fv)
+fluxes = (; Qo, Qi, Qib, Ql, Qs, τx, τy, Fv)
 ocean_outputs = merge(ocean.model.velocities, ocean.model.tracers)
 sea_ice_outputs = (; h=sea_ice.model.ice_thickness)
 outputs = merge(ocean_outputs, sea_ice_outputs, fluxes)
@@ -89,14 +90,15 @@ simulation.output_writers[:ow] = ow
 
 run!(simulation)
 
-ut = FieldTimeSeries("idealized_atmosphere.jld2", "u")
-vt = FieldTimeSeries("idealized_atmosphere.jld2", "v")
-Tt = FieldTimeSeries("idealized_atmosphere.jld2", "T")
-St = FieldTimeSeries("idealized_atmosphere.jld2", "S")
-τx = FieldTimeSeries("idealized_atmosphere.jld2", "τx")
-Qo = FieldTimeSeries("idealized_atmosphere.jld2", "Qo")
-h = FieldTimeSeries("idealized_atmosphere.jld2", "h")
-Nt = length(St)
+ut  = FieldTimeSeries("idealized_atmosphere.jld2", "u")
+vt  = FieldTimeSeries("idealized_atmosphere.jld2", "v")
+Tt  = FieldTimeSeries("idealized_atmosphere.jld2", "T")
+St  = FieldTimeSeries("idealized_atmosphere.jld2", "S")
+τx  = FieldTimeSeries("idealized_atmosphere.jld2", "τx")
+Qo  = FieldTimeSeries("idealized_atmosphere.jld2", "Qo")
+Qib = FieldTimeSeries("idealized_atmosphere.jld2", "Qib")
+h   = FieldTimeSeries("idealized_atmosphere.jld2", "h")
+Nt  = length(St)
 
 using GLMakie
 
