@@ -53,6 +53,8 @@ sea_ice_model = SeaIceModel(sea_ice_grid;
                             bottom_heat_flux = bottom_sea_ice_heat_flux,
                             ice_thermodynamics)
 
+set!(sea_ice_model.ice_concentration, 1.0)
+
 sea_ice = Simulation(sea_ice_model, Δt=10minutes)
 
 model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
