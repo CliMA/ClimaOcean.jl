@@ -168,7 +168,7 @@ end
 ECCOFieldTimeSeries(variable_name::Symbol, version=ECCO4Monthly(); kw...) = 
     ECCOFieldTimeSeries(ECCOMetadata(variable_name, all_ECCO_dates(version), version); kw...)
 
-# Variable names for restoreable data
+# Variable names for restorable data
 struct Temperature end
 struct Salinity end
 struct UVelocity end
@@ -244,6 +244,7 @@ end
                   time_indexing = Cyclical(),
                   mask = 1,
                   rate = 1,
+                  dir = download_ECCO_cache,
                   inpainting = NearestNeighborInpainting(Inf),
                   cache_inpainted_data = true)
 
@@ -296,6 +297,9 @@ Keyword Arguments
 
 - `rate`: The restoring rate, i.e., the inverse of the restoring timescale (in s⁻¹).
 
+- `dir`: The directory where the native ECCO data is located. If the data does not exist it will
+         be automatically downloaded. Default: `download_ECCO_cache`.
+
 - `inpainting`: inpainting algorithm, see [`inpaint_mask!`](@ref). Default: `NearestNeighborInpainting(Inf)`.
 
 - `cache_inpainted_data`: If `true`, the data is cached to disk after inpainting for later retrieving. 
@@ -305,9 +309,10 @@ function ECCORestoring(variable_name::Symbol,
                        arch_or_grid = CPU();
                        version = ECCO4Monthly(),
                        dates = all_ECCO_dates(version),
+                       dir = download_ECCO_cache,
                        kw...)
 
-    metadata = ECCOMetadata(variable_name, dates, version)
+    metadata = ECCOMetadata(variable_name, dates, version, dir)
     return ECCORestoring(metadata, arch_or_grid; kw...)
 end
 
