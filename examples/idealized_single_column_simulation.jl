@@ -54,6 +54,7 @@ sea_ice_model = SeaIceModel(sea_ice_grid;
                             ice_thermodynamics)
 
 set!(sea_ice_model.ice_concentration, 1.0)
+set!(sea_ice_model.ice_thickness, 1.0)
 
 sea_ice = Simulation(sea_ice_model, Δt=10minutes)
 
