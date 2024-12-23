@@ -1,6 +1,6 @@
 module OceanSeaIceModels
 
-export OceanSeaIceModel, SimilarityTheoryTurbulentFluxes, FreezingLimitedOceanTemperature
+export OceanSeaIceModel, SimilarityTheoryFluxes, FreezingLimitedOceanTemperature
 export Radiation, LatitudeDependentAlbedo
 export SkinTemperature, BulkTemperature
 
@@ -17,6 +17,7 @@ using Oceananigans.TimeSteppers: tick!
 using Oceananigans.Models: AbstractModel
 using Oceananigans.OutputReaders: FieldTimeSeries, GPUAdaptedFieldTimeSeries
 
+using ClimaSeaIce: SeaIceModel
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 
 using ClimaOcean: stateindex
@@ -29,11 +30,16 @@ function freshwater_flux end
 function reference_density end
 function heat_capacity end
 
-sea_ice_thickness(::Nothing) = nothing
-sea_ice_concentration(::Nothing) = nothing
-
 const default_gravitational_acceleration = 9.80665
 const default_freshwater_density = 1000
+
+const SeaIceSimulation = Simulation{<:SeaIceModel}
+
+sea_ice_thickness(::Nothing) = nothing
+sea_ice_thickness(sea_ice::SeaIceSimulation) = sea_ice.model.ice_thickness
+
+sea_ice_concentration(::Nothing) = nothing
+sea_ice_concentration(sea_ice::SeaIceSimulation) = sea_ice.model.ice_concentration
 
 #####
 ##### Some implementation
@@ -52,6 +58,7 @@ using .CrossRealmFluxes
 
 import .CrossRealmFluxes:
     compute_atmosphere_ocean_fluxes!,
+    compute_atmosphere_sea_ice_fluxes!,
     compute_sea_ice_ocean_fluxes!,
     limit_fluxes_over_sea_ice!
 
@@ -62,10 +69,20 @@ include("time_step_ocean_sea_ice_model.jl")
 # "No atmosphere" implementation
 const NoAtmosphereModel = OceanSeaIceModel{<:Any, Nothing}
 
-compute_atmosphere_ocean_fluxes!(coupled_model::NoAtmosphereModel) = nothing
+compute_atmosphere_ocean_fluxes!(::NoAtmosphereModel) = nothing
+compute_atmosphere_sea_ice_fluxes!(::NoAtmosphereModel) = nothing
 
-const NoSeaIceModel = OceanSeaIceModel{Nothing}
+# "No sea ice" implementation
+const NoSeaIceModel = Union{OceanSeaIceModel{Nothing}, FreezingLimitedCoupledModel}
 
-compute_sea_ice_ocean_fluxes!(cm::NoSeaIceModel) = nothing
+# Fallback
+compute_sea_ice_ocean_fluxes!(::NoSeaIceModel) = nothing
+compute_atmosphere_sea_ice_fluxes!(::NoSeaIceModel) = nothing
+
+# "Only ocean" implementation
+const OnlyOceanModel = Union{OceanSeaIceModel{Nothing, Nothing}, OceanSeaIceModel{Nothing, <:FreezingLimitedOceanTemperature}}
+
+compute_atmosphere_sea_ice_fluxes!(::OnlyOceanModel) = nothing
+compute_sea_ice_ocean_fluxes!(::OnlyOceanModel) = nothing
 
 end # module
