@@ -1,24 +1,24 @@
 
 const AA = Oceananigans.Architectures.AbstractArchitecture
 
-JRA55_prescribed_atmosphere(time_indices=Colon(); kw...) =
-    JRA55_prescribed_atmosphere(CPU(), time_indices; kw...)
+JRA55PrescribedAtmosphere(time_indices=Colon(); kw...) =
+    JRA55PrescribedAtmosphere(CPU(), time_indices; kw...)
 
-JRA55_prescribed_atmosphere(arch::Distributed, time_indices=Colon(); kw...) =
-    JRA55_prescribed_atmosphere(child_architecture(arch), time_indices; kw...)
+JRA55PrescribedAtmosphere(arch::Distributed, time_indices=Colon(); kw...) =
+    JRA55PrescribedAtmosphere(child_architecture(arch), time_indices; kw...)
 
 # TODO: allow the user to pass dates
 """
-    JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
-                                backend = nothing,
-                                time_indexing = Cyclical(),
-                                reference_height = 10,  # meters
-                                include_rivers_and_icebergs = false,
-                                other_kw...)
+    JRA55PrescribedAtmosphere(architecture::AA, time_indices=Colon();
+                              backend = nothing,
+                              time_indexing = Cyclical(),
+                              reference_height = 10,  # meters
+                              include_rivers_and_icebergs = false,
+                              other_kw...)
 
 Return a `PrescribedAtmosphere` representing JRA55 reanalysis data.
 """
-function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
+function JRA55PrescribedAtmosphere(architecture::AA, time_indices=Colon();
                                      backend = nothing,
                                      time_indexing = Cyclical(),
                                      reference_height = 10,  # meters
