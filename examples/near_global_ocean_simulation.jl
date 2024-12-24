@@ -25,7 +25,7 @@ using Printf
 #
 # We define a global grid with a horizontal resolution of 1/4 degree and 40 vertical levels.
 # The grid is a `LatitudeLongitudeGrid` spanning latitudes from 75°S to 75°N.
-# We use an exponential vertical spacing to better resolve the upper ocean layers.
+# We use an exponential vertical spacing to better resolve the upper-ocean layers.
 # The total depth of the domain is set to 6000 meters.
 # Finally, we specify the architecture for the simulation, which in this case is a GPU.
 
@@ -117,7 +117,7 @@ coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 # We then create a coupled simulation. We start with a small-ish time step of 90 seconds.
 # We run the simulation for 10 days with this small-ish time step.
 
-simulation = Simulation(coupled_model; Δt=90, stop_time=400)
+simulation = Simulation(coupled_model; Δt=90, stop_time=10days)
 
 # We define a callback function to monitor the simulation's progress,
 
@@ -212,7 +212,7 @@ end
 un = Field{Face, Center, Nothing}(u.grid)
 vn = Field{Center, Face, Nothing}(v.grid)
 
-s = @at (Center, Center, Nothing) sqrt(u^2 + v^2) # compute √(u²+v²) and interpolate back to Center, Center
+s = @at (Center, Center, Nothing) sqrt(un^2 + vn^2) # compute √(u²+v²) and interpolate back to Center, Center
 s = Field(s)
 
 sn = @lift begin
@@ -224,6 +224,9 @@ sn = @lift begin
     view(sn, :, :, 1)
 end
 
+title = @lift string("Near-global 1/4 degree ocean simulation after ",
+                     prettytime(times[$n] - times[1]))
+
 λ, φ, _ = nodes(T) # T, e, and s all live on the same grid locations
 
 fig = Figure(size = (1000, 1500))
@@ -233,13 +236,16 @@ axT = Axis(fig[2, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
 axe = Axis(fig[3, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
 
 hm = heatmap!(axs, λ, φ, sn, colorrange = (0, 0.5), colormap = :deep, nan_color=:lightgray)
-Colorbar(fig[1, 2], hm, label = "Surface speed (m s⁻¹)")
+Colorbar(fig[1, 2], hm, label = "Surface Speed (m s⁻¹)")
 
 hm = heatmap!(axT, λ, φ, Tn, colorrange = (-1, 30), colormap = :magma, nan_color=:lightgray)
 Colorbar(fig[2, 2], hm, label = "Surface Temperature (ᵒC)")
 
 hm = heatmap!(axe, λ, φ, en, colorrange = (0, 1e-3), colormap = :solar, nan_color=:lightgray)
 Colorbar(fig[3, 2], hm, label = "Turbulent Kinetic Energy (m² s⁻²)")
+
+Label(fig[0, :], title)
+
 save("snapshot.png", fig)
 nothing #hide
 
