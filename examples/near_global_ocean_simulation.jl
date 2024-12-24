@@ -211,7 +211,9 @@ end
 
 un = Field{Face, Center, Nothing}(u.grid)
 vn = Field{Center, Face, Nothing}(v.grid)
-s = Field(sqrt(un^2 + vn^2))
+
+s = @at (Center, Center, Nothing) sqrt(u^2 + v^2) # compute √(u²+v²) and interpolate back to Center, Center
+s = Field(s)
 
 sn = @lift begin
     parent(un) .= parent(u[$n])
@@ -222,9 +224,7 @@ sn = @lift begin
     view(sn, :, :, 1)
 end
 
-λT, φT, _ = nodes(T)
-λs, φs, _ = nodes(s)
-λe, φe, _ = nodes(e)
+λ, φ, _ = nodes(T) # T, e, and s all live on the same grid locations
 
 fig = Figure(size = (1000, 1500))
 
@@ -232,13 +232,13 @@ axs = Axis(fig[1, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
 axT = Axis(fig[2, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
 axe = Axis(fig[3, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
 
-hm = heatmap!(axs, λs, φs, sn, colorrange = (0, 0.5), colormap = :deep, nan_color=:lightgray)
+hm = heatmap!(axs, λ, φ, sn, colorrange = (0, 0.5), colormap = :deep, nan_color=:lightgray)
 Colorbar(fig[1, 2], hm, label = "Surface speed (m s⁻¹)")
 
-hm = heatmap!(axT, λT, φT, Tn, colorrange = (-1, 30), colormap = :magma, nan_color=:lightgray)
+hm = heatmap!(axT, λ, φ, Tn, colorrange = (-1, 30), colormap = :magma, nan_color=:lightgray)
 Colorbar(fig[2, 2], hm, label = "Surface Temperature (ᵒC)")
 
-hm = heatmap!(axe, λe, φe, en, colorrange = (0, 1e-3), colormap = :solar, nan_color=:lightgray)
+hm = heatmap!(axe, λ, φ, en, colorrange = (0, 1e-3), colormap = :solar, nan_color=:lightgray)
 Colorbar(fig[3, 2], hm, label = "Turbulent Kinetic Energy (m² s⁻²)")
 save("snapshot.png", fig)
 nothing #hide
