@@ -296,14 +296,14 @@ Arguments
 =========
 
 - `z_data`: A 2D array representing the bathymetry data.
-- `keep_major_basins`: The maximum number of connected regions to keep. 
-                       Default is `Inf`, which means all connected regions are kept.
+- `keep_major_basins`: The maximum number of connected regions to keep.
+                       If `Inf` is provided then all connected regions are kept.
 
 """
 function remove_minor_basins!(zb::Field, keep_major_basins)
     zb_cpu = on_architecture(CPU(), zb)
     TX     = topology(zb_cpu.grid, 1)
-    
+
     Nx, Ny, _ = size(zb_cpu.grid)
     zb_data   = maybe_extend_longitude(zb_cpu, TX()) # Outputs a 2D AbstractArray
 
@@ -331,7 +331,7 @@ function maybe_extend_longitude(zb_cpu, ::Periodic)
     # Update offsets
     yoffsets = zb_cpu.data.offsets[2]
     xoffsets = - nx
-    
+
     return OffsetArray(zb_parent, xoffsets, yoffsets)
 end
 
