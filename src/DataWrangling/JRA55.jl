@@ -302,11 +302,10 @@ new_backend(::JRA55NetCDFBackend, start, length) = JRA55NetCDFBackend(start, len
 
 Return a `FieldTimeSeries` containing atmospheric reanalysis data for `variable_name`,
 which describes one of the variables in the "repeat year forcing" dataset derived
-from the Japanese 55-year atmospheric reanalysis for driving ocean-sea-ice models (JRA55-do).
-For more information about the derivation of the repeat year forcing dataset, see
+from the Japanese 55-year atmospheric reanalysis for driving ocean-sea ice models (JRA55-do).
+For more information about the derivation of the repeat-year forcing dataset, see
 
-> Stewart et al. (2020). JRA55-do-based repeat year forcing datasets for driving ocean–sea-ice models, 
-  _Ocean Modelling_, **147**, 101557, https://doi.org/10.1016/j.ocemod.2019.101557.
+> Stewart et al. (2020). JRA55-do-based repeat year forcing datasets for driving ocean–sea-ice models, _Ocean Modelling_, **147**, 101557, https://doi.org/10.1016/j.ocemod.2019.101557.
 
 The `variable_name`s (and their `shortname`s used in NetCDF files) available from the JRA55-do are:
 - `:river_freshwater_flux`              ("friver")
@@ -353,8 +352,8 @@ Keyword arguments
 - `interpolated_file`: file holding an Oceananigans compatible version of the JRA55 data.
                        If it does not exist it will be generated.
 
-- `time_chunks_in_memory`: number of fields held in memory. If `nothing` the whole timeseries is 
-                           loaded (not recommended).
+- `time_chunks_in_memory`: number of fields held in memory. If `nothing` then the whole timeseries
+                           is loaded (not recommended).
 """
 function JRA55_field_time_series(variable_name;
                                  architecture = CPU(),
