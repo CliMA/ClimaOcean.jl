@@ -60,9 +60,9 @@ Keyword Arguments
 - `dir`: directory of the bathymetry-containing file. Default: `download_bathymetry_cache`.
 
 - `filename`: file containing bathymetric data. Must be netCDF with fields:
-              1. `lat` vector of latitude nodes
-              2. `lon` vector of longitude nodes
-              3. `z` matrix of depth values
+  1. `lat` vector of latitude nodes
+  2. `lon` vector of longitude nodes
+  3. `z` matrix of depth values
 
 - `interpolation_passes`: regridding/interpolation passes. The bathymetry is interpolated in
                           `interpolation_passes - 1` intermediate steps. The more the interpolation
