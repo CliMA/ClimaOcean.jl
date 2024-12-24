@@ -23,7 +23,7 @@ using ClimaOcean.OceanSeaIceModels:
 using CUDA: @allowscalar
 
 using NCDatasets
-using JLD2 
+using JLD2
 using Dates
 using Scratch
 
@@ -286,40 +286,41 @@ new_backend(::JRA55NetCDFBackend, start, length) = JRA55NetCDFBackend(start, len
 """
     JRA55_field_time_series(variable_name;
                             architecture = CPU(),
-                            time_indices = nothing,
-                            latitude = nothing,
-                            longitude = nothing,
+                            grid = nothing,
                             location = nothing,
                             url = nothing,
+                            dir = download_jra55_cache,
                             filename = nothing,
                             shortname = nothing,
+                            latitude = nothing,
+                            longitude = nothing,
                             backend = InMemory(),
+                            time_indexing = Cyclical(),
                             preprocess_chunk_size = 10,
-                            preprocess_architecture = CPU())
+                            preprocess_architecture = CPU(),
+                            time_indices = nothing)
 
 Return a `FieldTimeSeries` containing atmospheric reanalysis data for `variable_name`,
 which describes one of the variables in the "repeat year forcing" dataset derived
 from the Japanese 55-year atmospheric reanalysis for driving ocean-sea-ice models (JRA55-do).
 For more information about the derivation of the repeat year forcing dataset, see
 
-"Stewart et al., JRA55-do-based repeat year forcing datasets for driving ocean–sea-ice models",
-Ocean Modelling, 2020, https://doi.org/10.1016/j.ocemod.2019.101557.
+> Stewart et al. (2020). JRA55-do-based repeat year forcing datasets for driving ocean–sea-ice models, 
+  _Ocean Modelling_, **147**, 101557, https://doi.org/10.1016/j.ocemod.2019.101557.
 
-The `variable_name`s (and their `shortname`s used in NetCDF files)
-available from the JRA55-do are:
-
-    - `:river_freshwater_flux`              ("friver")
-    - `:rain_freshwater_flux`               ("prra")
-    - `:snow_freshwater_flux`               ("prsn")
-    - `:iceberg_freshwater_flux`            ("licalvf")
-    - `:specific_humidity`                  ("huss")
-    - `:sea_level_pressure`                 ("psl")
-    - `:relative_humidity`                  ("rhuss")
-    - `:downwelling_longwave_radiation`     ("rlds")
-    - `:downwelling_shortwave_radiation`    ("rsds")
-    - `:temperature`                        ("ras")
-    - `:eastward_velocity`                  ("uas")
-    - `:northward_velocity`                 ("vas")
+The `variable_name`s (and their `shortname`s used in NetCDF files) available from the JRA55-do are:
+- `:river_freshwater_flux`              ("friver")
+- `:rain_freshwater_flux`               ("prra")
+- `:snow_freshwater_flux`               ("prsn")
+- `:iceberg_freshwater_flux`            ("licalvf")
+- `:specific_humidity`                  ("huss")
+- `:sea_level_pressure`                 ("psl")
+- `:relative_humidity`                  ("rhuss")
+- `:downwelling_longwave_radiation`     ("rlds")
+- `:downwelling_shortwave_radiation`    ("rsds")
+- `:temperature`                        ("ras")
+- `:eastward_velocity`                  ("uas")
+- `:northward_velocity`                 ("vas")
 
 Keyword arguments
 =================
@@ -639,20 +640,20 @@ JRA55PrescribedAtmosphere(arch::Distributed, time_indices=Colon(); kw...) =
 # TODO: allow the user to pass dates
 """
     JRA55PrescribedAtmosphere(architecture::AA, time_indices=Colon();
-                                backend = nothing,
-                                time_indexing = Cyclical(),
-                                reference_height = 10,  # meters
-                                include_rivers_and_icebergs = false,
-                                other_kw...)
+                              backend = nothing,
+                              time_indexing = Cyclical(),
+                              reference_height = 10,  # meters
+                              include_rivers_and_icebergs = false,
+                              other_kw...)
 
 Return a `PrescribedAtmosphere` representing JRA55 reanalysis data.
 """
 function JRA55PrescribedAtmosphere(architecture::AA, time_indices=Colon();
-                                     backend = nothing,
-                                     time_indexing = Cyclical(),
-                                     reference_height = 10,  # meters
-                                     include_rivers_and_icebergs = false,
-                                     other_kw...)
+                                   backend = nothing,
+                                   time_indexing = Cyclical(),
+                                   reference_height = 10,  # meters
+                                   include_rivers_and_icebergs = false,
+                                   other_kw...)
 
     if isnothing(backend) # apply a default
         Ni = try
@@ -667,7 +668,7 @@ function JRA55PrescribedAtmosphere(architecture::AA, time_indices=Colon();
     end
 
     kw = (; time_indices, time_indexing, backend, architecture)
-    kw = merge(kw, other_kw) 
+    kw = merge(kw, other_kw)
 
     ua  = JRA55_field_time_series(:eastward_velocity;               kw...)
     va  = JRA55_field_time_series(:northward_velocity;              kw...)
@@ -719,4 +720,3 @@ function JRA55PrescribedAtmosphere(architecture::AA, time_indices=Colon();
 end
 
 end # module
-
