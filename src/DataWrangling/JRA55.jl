@@ -639,20 +639,20 @@ JRA55PrescribedAtmosphere(arch::Distributed, time_indices=Colon(); kw...) =
 # TODO: allow the user to pass dates
 """
     JRA55PrescribedAtmosphere(architecture::AA, time_indices=Colon();
-                                backend = nothing,
-                                time_indexing = Cyclical(),
-                                reference_height = 10,  # meters
-                                include_rivers_and_icebergs = false,
-                                other_kw...)
+                              backend = nothing,
+                              time_indexing = Cyclical(),
+                              reference_height = 10,  # meters
+                              include_rivers_and_icebergs = false,
+                              other_kw...)
 
 Return a `PrescribedAtmosphere` representing JRA55 reanalysis data.
 """
 function JRA55PrescribedAtmosphere(architecture::AA, time_indices=Colon();
-                                     backend = nothing,
-                                     time_indexing = Cyclical(),
-                                     reference_height = 10,  # meters
-                                     include_rivers_and_icebergs = false,
-                                     other_kw...)
+                                   backend = nothing,
+                                   time_indexing = Cyclical(),
+                                   reference_height = 10,  # meters
+                                   include_rivers_and_icebergs = false,
+                                   other_kw...)
 
     if isnothing(backend) # apply a default
         Ni = try
@@ -667,7 +667,7 @@ function JRA55PrescribedAtmosphere(architecture::AA, time_indices=Colon();
     end
 
     kw = (; time_indices, time_indexing, backend, architecture)
-    kw = merge(kw, other_kw) 
+    kw = merge(kw, other_kw)
 
     ua  = JRA55_field_time_series(:eastward_velocity;               kw...)
     va  = JRA55_field_time_series(:northward_velocity;              kw...)
@@ -719,4 +719,3 @@ function JRA55PrescribedAtmosphere(architecture::AA, time_indices=Colon();
 end
 
 end # module
-
