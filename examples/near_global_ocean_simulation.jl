@@ -29,7 +29,7 @@ using Printf
 # The total depth of the domain is set to 6000 meters.
 # Finally, we specify the architecture for the simulation, which in this case is a GPU.
 
-arch = GPU() 
+arch = GPU()
 
 Nx = 1440
 Ny = 600
@@ -63,8 +63,8 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_
 
 h = grid.immersed_boundary.bottom_height
 
-fig = Figure(size = (1000, 1500))
-ax = Axis(fig[1, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
+fig = Figure(size = (800, 450))
+ax = Axis(fig[1, 1])
 hm = heatmap!(ax, h, colormap=:deep, colorrange=(-depth, 0))
 cb = Colorbar(fig[0, 1], hm, label="Bottom height (m)", vertical=false)
 hidedecorations!(ax)
