@@ -51,7 +51,7 @@ Arguments
 Keyword Arguments
 =================
 
-- `height_above_water`: limits the maximum height of above-water topography (where ``h > 0``).
+- `height_above_water`: limits the maximum height of above-water topography (where ``h > 0``) before inetrpolating.
                         Default: `nothing`, which implies that the original topography is retained.
 
 - `minimum_depth`: minimum depth for the shallow regions, defined as a positive value. 
