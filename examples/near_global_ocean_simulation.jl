@@ -63,11 +63,8 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_
 
 h = grid.immersed_boundary.bottom_height
 
-fig = Figure(size = (800, 450))
-ax = Axis(fig[1, 1])
-hm = heatmap!(ax, h, colormap=:deep, colorrange=(-depth, 0))
-cb = Colorbar(fig[0, 1], hm, label="Bottom height (m)", vertical=false)
-hidedecorations!(ax)
+fig, ax, hm = heatmap(h, colormap=:deep, colorrange=(-depth, 0))
+Colorbar(fig[0, 1], hm, label="Bottom height (m)", vertical=false)
 save("bathymetry.png", fig)
 nothing #hide
 
