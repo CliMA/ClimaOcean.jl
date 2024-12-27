@@ -1,7 +1,7 @@
 using Oceananigans
 using Oceananigans.ImmersedBoundaries: mask_immersed_field!
 
-using GLMakie
+using CairoMakie
 using Printf
 using ClimaOcean
 using ClimaOcean.DataWrangling.ECCO: ECCO_field, ECCOFieldTimeSeries
@@ -32,7 +32,7 @@ T = CenterField(grid)
 S = CenterField(grid)
 
 using SeawaterPolynomials: TEOS10EquationOfState
-using Oceananigans.BuoyancyModels: buoyancy
+using Oceananigans.BuoyancyFormulations: buoyancy
 
 equation_of_state = TEOS10EquationOfState()
 sb = SeawaterBuoyancy(; equation_of_state)
@@ -83,5 +83,4 @@ Colorbar(fig[1, 2], hmT, label="Temperature (ᵒC)")
 Colorbar(fig[2, 2], hmS, label="Salinity (g kg⁻¹)")
 Colorbar(fig[3, 2], hmb, label="Buoyancy difference (m s⁻²)")
 
-display(fig)
-
+fig
