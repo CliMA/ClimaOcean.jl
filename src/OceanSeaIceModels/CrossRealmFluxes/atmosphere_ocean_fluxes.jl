@@ -353,11 +353,11 @@ end
 
     @inbounds begin
         # +0: cooling, -0: heating
-        Qv[i, j, 1]  = ifelse(inactive, 0, turbulent_fluxes.latent_heat)
-        Qc[i, j, 1]  = ifelse(inactive, 0, turbulent_fluxes.sensible_heat)
-        Fv[i, j, 1]  = ifelse(inactive, 0, turbulent_fluxes.water_vapor)
-        ρτx[i, j, 1] = ifelse(inactive, 0, turbulent_fluxes.x_momentum)
-        ρτy[i, j, 1] = ifelse(inactive, 0, turbulent_fluxes.y_momentum)
+        Qv[i, j, 1]  = ifelse(inactive, zero(grid), turbulent_fluxes.latent_heat)
+        Qc[i, j, 1]  = ifelse(inactive, zero(grid), turbulent_fluxes.sensible_heat)
+        Fv[i, j, 1]  = ifelse(inactive, zero(grid), turbulent_fluxes.water_vapor)
+        ρτx[i, j, 1] = ifelse(inactive, zero(grid), turbulent_fluxes.x_momentum)
+        ρτy[i, j, 1] = ifelse(inactive, zero(grid), turbulent_fluxes.y_momentum)
         Ts[i, j, 1]  = surface_temperature
     end
 end
@@ -433,10 +433,10 @@ end
     inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
 
     @inbounds begin
-        τx[i, j, 1] = ifelse(inactive, 0, atmos_ocean_τx)
-        τy[i, j, 1] = ifelse(inactive, 0, atmos_ocean_τy)
-        Jᵀ[i, j, 1] = ifelse(inactive, 0, atmos_ocean_Jᵀ)
-        Jˢ[i, j, 1] = ifelse(inactive, 0, atmos_ocean_Jˢ)
+        τx[i, j, 1] = ifelse(inactive, zero(grid), atmos_ocean_τx)
+        τy[i, j, 1] = ifelse(inactive, zero(grid), atmos_ocean_τy)
+        Jᵀ[i, j, 1] = ifelse(inactive, zero(grid), atmos_ocean_Jᵀ)
+        Jˢ[i, j, 1] = ifelse(inactive, zero(grid), atmos_ocean_Jˢ)
     end
 end
 
