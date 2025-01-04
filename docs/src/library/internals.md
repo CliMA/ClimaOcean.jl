@@ -38,6 +38,13 @@ Modules = [ClimaOcean.ECCO]
 Public = false
 ```
 
+## JRA55
+
+```@autodocs
+Modules = [ClimaOcean.JRA55]
+Public = false
+```
+
 ## Bathymetry
 
 ```@autodocs
@@ -59,7 +66,7 @@ Modules = [ClimaOcean.OceanSeaIceModels]
 Private = false
 ```
 
-## CrossRealFluxes
+## CrossRealmFluxes
 
 ```@autodocs
 Modules = [ClimaOcean.OceanSeaIceModels.CrossRealmFluxes]

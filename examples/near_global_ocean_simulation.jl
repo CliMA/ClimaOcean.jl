@@ -4,7 +4,7 @@
 # ClimaOcean.jl. The simulation covers latitudes from 75°S to 75°N with a horizontal
 # resolution of 1/4 degree and 40 vertical levels.
 #
-# The simulation's results are visualized using the CairoMakie.jl package.
+# The simulation's results are visualized with the CairoMakie.jl package.
 #
 # ## Initial setup with package imports
 #
@@ -13,24 +13,23 @@
 # These packages provide the foundational tools for setting up the simulation environment,
 # including grid setup, physical processes modeling, and data visualization.
 
-using Printf
+using ClimaOcean
 using Oceananigans
 using Oceananigans.Units
-using ClimaOcean
 using CairoMakie
-
 using CFTime
 using Dates
+using Printf
 
 # ### Grid configuration 
 #
 # We define a global grid with a horizontal resolution of 1/4 degree and 30 vertical levels.
 # The grid is a `LatitudeLongitudeGrid` spanning latitudes from 75°S to 75°N.
-# We use an exponential vertical spacing to better resolve the upper ocean layers.
+# We use an exponential vertical spacing to better resolve the upper-ocean layers.
 # The total depth of the domain is set to 6000 meters.
 # Finally, we specify the architecture for the simulation, which in this case is a GPU.
 
-arch = GPU() 
+arch = GPU()
 
 Nx = 1440
 Ny = 600
@@ -50,8 +49,8 @@ grid = LatitudeLongitudeGrid(arch;
 #
 # We use `regrid_bathymetry` to derive the bottom height from ETOPO1 data.
 # To smooth the interpolated data we use 5 interpolation passes. We also fill in
-# all the minor enclosed basins except the 3 largest `major_basins`, as well as regions
-# that are shallower than `minimum_depth`.
+# (i) all the minor enclosed basins except the 3 largest `major_basins`, as well as
+# (ii) regions that are shallower than `minimum_depth`.
 
 bathymetry_dir = ClimaOcean.Bathymetry.download_bathymetry_cache
 bathymetry_path = joinpath(bathymetry_dir, "/*")
@@ -76,13 +75,15 @@ while (attempt < tries) || !built_bathymetry
     end
     attempt += 1
 end
+
+grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
+
 # Let's see what the bathymetry looks like:
 
 zb = grid.immersed_boundary.bottom_height
 
 fig, ax, hm = heatmap(h, colormap=:deep, colorrange=(-depth, 0))
-cb = Colorbar(fig[0, 1], hm, label="Bottom height (m)", vertical=false)
-hidedecorations!(ax)
+Colorbar(fig[0, 1], hm, label="Bottom height (m)", vertical=false)
 save("bathymetry.png", fig)
 nothing #hide
 
@@ -98,7 +99,7 @@ ocean = ocean_simulation(grid)
 
 ocean.model
 
-# We initialize the ocean model to ECCO2 temperature and salinity for January 1, 1993.
+# We initialize the ocean model with ECCO2 temperature and salinity for January 1, 1993.
 
 date = DateTimeProlepticGregorian(1993, 1, 1)
 set!(ocean.model, T=ECCOMetadata(:temperature; dates=date),
@@ -107,8 +108,7 @@ set!(ocean.model, T=ECCOMetadata(:temperature; dates=date),
 # ### Prescribed atmosphere and radiation
 #
 # Next we build a prescribed atmosphere state and radiation model,
-# which will drive the development of the ocean simulation.
-# We use the default `Radiation` model,
+# which will drive the ocean simulation. We use the default `Radiation` model,
 
 ## The radiation model specifies an ocean albedo emissivity to compute the net radiative
 ## fluxes. The default ocean albedo is based on Payne (1982) and depends on cloud cover
@@ -118,14 +118,12 @@ set!(ocean.model, T=ECCOMetadata(:temperature; dates=date),
 radiation = Radiation(arch)
 
 # The atmospheric data is prescribed using the JRA55 dataset.
+# The JRA55 dataset provides atmospheric data such as temperature, humidity, and winds
+# to calculate turbulent fluxes using bulk formulae, see [`CrossRealmFluxes`](@ref).
 # The number of snapshots that are loaded into memory is determined by
-# the `backend`
+# the `backend`. Here, we load 41 snapshots at a time into memory.
 
-# into memory in 41 snapshots at a time. The JRA55 dataset provides atmospheric
-# data such as temperature, humidity, and wind fields to calculate turbulent fluxes
-# using bulk formulae, see [`CrossRealmFluxes`](@ref).
-
-atmosphere = JRA55_prescribed_atmosphere(arch; backend=JRA55NetCDFBackend(41))
+atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(41))
 
 # ## The coupled simulation
 
@@ -134,8 +132,8 @@ atmosphere = JRA55_prescribed_atmosphere(arch; backend=JRA55NetCDFBackend(41))
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 
-# We then create a coupled simulation, starting with a time step of 10 seconds
-# and running the simulation for 10 days.
+# We then create a coupled simulation. We start with a small-ish time step of 90 seconds.
+# We run the simulation for 10 days with this small-ish time step.
 
 simulation = Simulation(coupled_model; Δt=90, stop_time=10days)
 
@@ -143,7 +141,7 @@ simulation = Simulation(coupled_model; Δt=90, stop_time=10days)
 
 wall_time = Ref(time_ns())
 
-function progress(sim) 
+function progress(sim)
     ocean = sim.model.ocean
     u, v, w = ocean.model.velocities
     T = ocean.model.tracers.T
@@ -172,7 +170,8 @@ simulation.callbacks[:progress] = Callback(progress, TimeInterval(5days))
 #
 # We define output writers to save the simulation data at regular intervals.
 # In this case, we save the surface fluxes and surface fields at a relatively high frequency (every day).
-# The `indices` keyword argument allows us to save down a slice at the surface, which is located at `k = grid.Nz`
+# The `indices` keyword argument allows us to save only a slice of the three dimensional variable.
+# Below, we use `indices` to save only the values of the variables at the surface, which corresponds to `k = grid.Nz`
 
 outputs = merge(ocean.model.tracers, ocean.model.velocities)
 ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
@@ -185,8 +184,8 @@ ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
 
 # ### Spinning up the simulation
 #
-# We spin up the simulation with a very short time-step to resolve the "initialization shock"
-# associated with starting from ECCO initial conditions that are both interpolated and also
+# We spin up the simulation with a small-ish time-step to resolve the "initialization shock"
+# associated with starting from ECCO2 initial conditions that are both interpolated and also
 # satisfy a different dynamical balance than our simulation.
 
 run!(simulation)
@@ -195,15 +194,16 @@ run!(simulation)
 #
 # Now that the simulation has spun up, we can run it for the full 60 days.
 # We increase the maximum time step size to 10 minutes and let the simulation run for 60 days.
+# After the initial spin up of 10 days, we can increase the time-step and run for longer.
 
-# simulation.stop_time = 60days
-# simulation.Δt = 10minutes
-# run!(simulation)
-# nothing #hide
+simulation.stop_time = 60days
+simulation.Δt = 10minutes
+run!(simulation)
 
 # ## A pretty movie
 #
-# It's time to make a pretty movie of the simulation. First we plot a snapshot:
+# It's time to make a pretty movie of the simulation. First we load the output we've been saving on
+# disk and plot the final snapshot:
 
 u = FieldTimeSeries("near_global_surface_fields.jld2", "u"; backend = OnDisk())
 v = FieldTimeSeries("near_global_surface_fields.jld2", "v"; backend = OnDisk())
@@ -231,7 +231,9 @@ end
 
 un = Field{Face, Center, Nothing}(u.grid)
 vn = Field{Center, Face, Nothing}(v.grid)
-s = Field(sqrt(un^2 + vn^2))
+
+s = @at (Center, Center, Nothing) sqrt(un^2 + vn^2) # compute √(u²+v²) and interpolate back to Center, Center
+s = Field(s)
 
 sn = @lift begin
     parent(un) .= parent(u[$n])
@@ -242,26 +244,34 @@ sn = @lift begin
     view(sn, :, :, 1)
 end
 
-fig = Figure(size = (800, 1200))
+title = @lift string("Near-global 1/4 degree ocean simulation after ",
+                     prettytime(times[$n] - times[1]))
+
+λ, φ, _ = nodes(T) # T, e, and s all live on the same grid locations
+
+fig = Figure(size = (1000, 1500))
 
 axs = Axis(fig[1, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
 axT = Axis(fig[2, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
 axe = Axis(fig[3, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
 
-hm = heatmap!(axs, sn, colorrange = (0, 0.5), colormap = :deep, nan_color=:lightgray)
-Colorbar(fig[1, 2], hm, label = "Surface speed (m s⁻¹)")
+hm = heatmap!(axs, λ, φ, sn, colorrange = (0, 0.5), colormap = :deep, nan_color=:lightgray)
+Colorbar(fig[1, 2], hm, label = "Surface Speed (m s⁻¹)")
 
-hm = heatmap!(axT, Tn, colorrange = (-1, 30), colormap = :magma, nan_color=:lightgray)
+hm = heatmap!(axT, λ, φ, Tn, colorrange = (-1, 30), colormap = :magma, nan_color=:lightgray)
 Colorbar(fig[2, 2], hm, label = "Surface Temperature (ᵒC)")
 
-hm = heatmap!(axe, en, colorrange = (0, 1e-3), colormap = :solar, nan_color=:lightgray)
+hm = heatmap!(axe, λ, φ, en, colorrange = (0, 1e-3), colormap = :solar, nan_color=:lightgray)
 Colorbar(fig[3, 2], hm, label = "Turbulent Kinetic Energy (m² s⁻²)")
+
+Label(fig[0, :], title)
+
 save("snapshot.png", fig)
 nothing #hide
 
 # ![](snapshot.png)
 
-# And now a movie:
+# And now we make a movie:
 
 record(fig, "near_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
     n[] = nn

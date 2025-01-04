@@ -6,7 +6,7 @@ export ECCORestoring, LinearlyTaperedPolarMask
 
 using ClimaOcean
 using ClimaOcean.DataWrangling
-using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting
+using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, download_progress
 using ClimaOcean.InitialConditions: three_dimensional_regrid!, interpolate!
 
 using Oceananigans
@@ -25,7 +25,6 @@ using Adapt
 using Scratch
 
 download_ECCO_cache::String = ""
-
 function __init__()
     global download_ECCO_cache = @get_scratch!("ECCO")
 end
@@ -141,7 +140,7 @@ function ECCO_field(metadata::ECCOMetadata;
                     inpainting = NearestNeighborInpainting(Inf),
                     mask = nothing,
                     horizontal_halo = (7, 7),
-                    cache_inpainted_data = false)
+                    cache_inpainted_data = true)
 
     field = empty_ECCO_field(metadata; architecture, horizontal_halo)
     inpainted_path = inpainted_metadata_path(metadata)
@@ -191,7 +190,12 @@ function ECCO_field(metadata::ECCOMetadata;
     # data by 180 degrees in longitude
     if metadata.version isa ECCO4Monthly 
         Nx = size(data, 1)
-        data = circshift(data, (Nx ÷ 2, 0, 0))
+        if variable_is_three_dimensional(metadata)
+            shift = (Nx ÷ 2, 0, 0)
+        else
+            shift = (Nx ÷ 2, 0)
+        end
+        data = circshift(data, shift)
     end
 
     set!(field, data)

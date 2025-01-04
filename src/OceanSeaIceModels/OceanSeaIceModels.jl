@@ -2,6 +2,7 @@ module OceanSeaIceModels
 
 export OceanSeaIceModel, SimilarityTheoryTurbulentFluxes, FreezingLimitedOceanTemperature
 export Radiation, LatitudeDependentAlbedo
+export SkinTemperature, BulkTemperature
 
 using Oceananigans
 using SeawaterPolynomials
@@ -42,6 +43,7 @@ include("PrescribedAtmospheres.jl")
 
 using .PrescribedAtmospheres:
     PrescribedAtmosphere,
+    PrescribedAtmosphereThermodynamicsParameters,
     TwoBandDownwellingRadiation
 
 include("CrossRealmFluxes/CrossRealmFluxes.jl")
@@ -61,5 +63,9 @@ include("time_step_ocean_sea_ice_model.jl")
 const NoAtmosphereModel = OceanSeaIceModel{<:Any, Nothing}
 
 compute_atmosphere_ocean_fluxes!(coupled_model::NoAtmosphereModel) = nothing
+
+const NoSeaIceModel = OceanSeaIceModel{Nothing}
+
+compute_sea_ice_ocean_fluxes!(cm::NoSeaIceModel) = nothing
 
 end # module

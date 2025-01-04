@@ -13,7 +13,6 @@ const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
 const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
 
 to_be_literated = [
-    "inspect_ecco_data.jl",
     "generate_bathymetry.jl",
     "generate_surface_fluxes.jl",
     "single_column_os_papa_simulation.jl",
@@ -41,10 +40,9 @@ pages = [
     "Home" => "index.md",
 
     "Examples" => [
-        "Inspect ECCO2 data" => "literated/inspect_ecco_data.md",
         "Generate bathymetry" => "literated/generate_bathymetry.md",
         "Surface fluxes" => "literated/generate_surface_fluxes.md",
-        "Single column simulation" => "literated/single_column_os_papa_simulation.md",
+        "Single-column simulation" => "literated/single_column_os_papa_simulation.md",
         # "Mediterranean simulation with ECCO restoring" => "literated/mediterranean_simulation_with_ecco_restoring.md",
         "Near-global Ocean simulation" => "literated/near_global_ocean_simulation.md",
         ],
@@ -59,7 +57,7 @@ pages = [
 
 makedocs(sitename = "ClimaOcean.jl";
          format,
-         pages, 
+         pages,
          modules = [ClimaOcean],
          doctest = true,
          clean = true,

@@ -6,6 +6,7 @@ using Oceananigans
 using Oceananigans.Units
 using Oceananigans.Utils: with_tracers
 using Oceananigans.Advection: FluxFormAdvection
+using Oceananigans.BoundaryConditions: DefaultBoundaryCondition
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node
 using OrthogonalSphericalShellGrids
@@ -17,7 +18,7 @@ using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities:
 
 using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 
-using Oceananigans.BuoyancyModels: g_Earth
+using Oceananigans.BuoyancyFormulations: g_Earth
 using Oceananigans.Coriolis: Ω_Earth
 using Oceananigans.Operators
 
@@ -36,7 +37,7 @@ For example, the default bottom drag should be 0 for a single column model, but 
 We therefore need a way to specify both the "normal" default 0.003 as well as the "alternative default" 0,
 all while respecting user input and changing this to a new value if specified.
 """
-default_or_override(default::Default, possibly_alternative_default=default.value) =  possibly_alternative_default
+default_or_override(default::Default, possibly_alternative_default=default.value) = possibly_alternative_default
 default_or_override(override, alternative_default=nothing) = override
 
 # Some defaults
@@ -72,6 +73,12 @@ default_tracer_advection() = FluxFormAdvection(WENO(order=7),
 @inline u_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.u[i, j, k] * spᶠᶜᶜ(i, j, k, grid, fields) 
 @inline v_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.v[i, j, k] * spᶜᶠᶜ(i, j, k, grid, fields) 
 
+function add_required_boundary_conditions(user_boundary_conditions, grid, bottom_drag_coefficient)
+    
+    return boundary_conditions
+end
+
+
 # TODO: Specify the grid to a grid on the sphere; otherwise we can provide a different
 # function that requires latitude and longitude etc for computing coriolis=FPlane...
 function ocean_simulation(grid;
@@ -84,13 +91,22 @@ function ocean_simulation(grid;
                           gravitational_acceleration = g_Earth,
                           bottom_drag_coefficient = Default(0.003),
                           forcing = NamedTuple(),
-                          coriolis = HydrostaticSphericalCoriolis(; rotation_rate),
+                          biogeochemistry = nothing,
+                          timestepper = :QuasiAdamsBashforth2,
+                          coriolis = Default(HydrostaticSphericalCoriolis(; rotation_rate)),
                           momentum_advection = default_momentum_advection(),
                           equation_of_state = TEOS10EquationOfState(; reference_density),
+                          boundary_conditions::NamedTuple = NamedTuple(),
                           tracer_advection = default_tracer_advection(),
                           verbose = false)
 
     FT = eltype(grid)
+
+    if grid isa RectilinearGrid # turn off Coriolis unless user-supplied
+        coriolis = default_or_override(coriolis, nothing)
+    else
+        coriolis = default_or_override(coriolis)
+    end
 
     # Detect whether we are on a single column grid
     Nx, Ny, _ = size(grid)
@@ -105,8 +121,8 @@ function ocean_simulation(grid;
         momentum_advection = nothing
 
         # No immersed boundaries in a single column grid
-        u_immersed_bc = nothing
-        v_immersed_bc = nothing
+        u_immersed_bc = DefaultBoundaryCondition()
+        v_immersed_bc = DefaultBoundaryCondition()
     else
         if !(grid isa ImmersedBoundaryGrid)
             msg = """Are you totally, 100% sure that you want to build a simulation on
@@ -128,7 +144,7 @@ function ocean_simulation(grid;
     end
 
     bottom_drag_coefficient = convert(FT, bottom_drag_coefficient)
-    
+
     # Set up boundary conditions using Field
     top_zonal_momentum_flux      = τx = Field{Face, Center, Nothing}(grid)
     top_meridional_momentum_flux = τy = Field{Center, Face, Nothing}(grid)
@@ -140,18 +156,19 @@ function ocean_simulation(grid;
     v_top_bc = FluxBoundaryCondition(τy)
     T_top_bc = FluxBoundaryCondition(Jᵀ)
     S_top_bc = FluxBoundaryCondition(Jˢ)
-    
+        
     u_bot_bc = FluxBoundaryCondition(u_quadratic_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
     v_bot_bc = FluxBoundaryCondition(v_quadratic_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
-    
-    ocean_boundary_conditions = (u = FieldBoundaryConditions(top = u_top_bc, bottom = u_bot_bc, immersed = u_immersed_bc),
-                                 v = FieldBoundaryConditions(top = v_top_bc, bottom = v_bot_bc, immersed = v_immersed_bc),
-                                 T = FieldBoundaryConditions(top = T_top_bc),
-                                 S = FieldBoundaryConditions(top = S_top_bc))
 
-    # Use the TEOS10 equation of state
-    teos10 = TEOS10EquationOfState(; reference_density)
-    buoyancy = SeawaterBuoyancy(; gravitational_acceleration, equation_of_state=teos10)
+    default_boundary_conditions = (u = FieldBoundaryConditions(top=u_top_bc, bottom=u_bot_bc, immersed=u_immersed_bc),
+                                   v = FieldBoundaryConditions(top=v_top_bc, bottom=v_bot_bc, immersed=v_immersed_bc),
+                                   T = FieldBoundaryConditions(top=T_top_bc),
+                                   S = FieldBoundaryConditions(top=S_top_bc))
+
+    # Merge boundary conditions with preference to user
+    # TODO: support users specifying only _part_ of the bcs for u, v, T, S (ie adding the top and immersed
+    # conditions even when a user-bc is supplied).
+    boundary_conditions = merge(default_boundary_conditions, boundary_conditions)
 
     buoyancy = SeawaterBuoyancy(; gravitational_acceleration, equation_of_state)
 
@@ -175,13 +192,15 @@ function ocean_simulation(grid;
     ocean_model = HydrostaticFreeSurfaceModel(; grid,
                                               buoyancy,
                                               closure,
+                                              biogeochemistry,
                                               tracer_advection,
                                               momentum_advection,
                                               tracers,
+                                              timestepper,
                                               free_surface,
                                               coriolis,
                                               forcing,
-                                              boundary_conditions = ocean_boundary_conditions)
+                                              boundary_conditions)
 
     ocean = Simulation(ocean_model; Δt, verbose)
 

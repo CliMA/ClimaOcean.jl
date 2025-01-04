@@ -6,7 +6,9 @@ using Adapt
 export Radiation,
        OceanSeaIceSurfaceFluxes,
        LatitudeDependentAlbedo,
-       SimilarityTheoryTurbulentFluxes
+       SimilarityTheoryTurbulentFluxes,
+       SkinTemperature, 
+       BulkTemperature
 
 using ..OceanSeaIceModels: default_gravitational_acceleration
 
@@ -31,6 +33,7 @@ include("tabulated_albedo.jl")
 include("roughness_lengths.jl")
 include("stability_functions.jl")
 include("seawater_saturation_specific_humidity.jl")
+include("surface_temperature.jl")
 include("similarity_theory_turbulent_fluxes.jl")
 include("ocean_sea_ice_surface_fluxes.jl")
 include("atmosphere_ocean_fluxes.jl")

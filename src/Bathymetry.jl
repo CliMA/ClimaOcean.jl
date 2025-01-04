@@ -7,7 +7,7 @@ using ..DataWrangling: download_progress
 
 using Oceananigans
 using Oceananigans.Architectures: architecture, on_architecture
-using Oceananigans.DistributedComputations: child_architecture
+using Oceananigans.DistributedComputations: DistributedGrid, reconstruct_global_grid, barrier!, all_reduce
 using Oceananigans.Grids: halo_size, λnodes, φnodes
 using Oceananigans.Grids: x_domain, y_domain
 using Oceananigans.Grids: topology
@@ -33,81 +33,80 @@ end
 
 """
     regrid_bathymetry(target_grid;
-                      url = "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_surface_elev_netcdf", 
-                      height_above_water = <none>,
+                      height_above_water = nothing,
                       minimum_depth = 0,
-                      dir = download_cache,
-                      filename = "ETOPO_2022_v1_60s_N90W180_surface.nc")
+                      dir = download_bathymetry_cache,
+                      url = "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_surface_elev_netcdf",
+                      filename = "ETOPO_2022_v1_60s_N90W180_surface.nc",
+                      interpolation_passes = 1,
+                      major_basins = 1)
 
-Regrid bathymetry associated with the NetCDF file at `path = joinpath(dir, filename)` to `target_grid`.
+Return bathymetry associated with the NetCDF file at `path = joinpath(dir, filename)` regridded onto `target_grid`.
 If `path` does not exist, then a download is attempted from `joinpath(url, filename)`.
 
 Arguments
 =========
 
-- `target_grid`: grid to interpolate onto
+- `target_grid`: grid to interpolate the bathymetry onto.
 
 Keyword Arguments
 =================
 
-- `height_above_water`: limits the maximum height of above-water topography (where h > 0). If
-                        `nothing` the original topography is retained
+- `height_above_water`: limits the maximum height of above-water topography (where ``h > 0``) before inetrpolating.
+                        Default: `nothing`, which implies that the original topography is retained.
 
 - `minimum_depth`: minimum depth for the shallow regions, defined as a positive value. 
-                   `h > - minimum_depth` will be considered land
+                   `h > - minimum_depth` is considered land. Default: 0.
 
-- `dir`: directory of the bathymetry-containing file
+- `dir`: directory of the bathymetry-containing file. Default: `download_bathymetry_cache`.
 
-- `filename`: file containing bathymetric data. Must be netcdf with fields:
-              (1) `lat` vector of latitude nodes
-              (2) `lon` vector of longitude nodes
-              (3) `z` matrix of depth values
+- `filename`: file containing bathymetric data. Must be netCDF with fields:
+  1. `lat` vector of latitude nodes
+  2. `lon` vector of longitude nodes
+  3. `z` matrix of depth values
 
 - `interpolation_passes`: regridding/interpolation passes. The bathymetry is interpolated in
-                          `interpolation_passes - 1` intermediate steps. With more steps the 
-                          final bathymetry will be smoother.
-                          
-  Example: interpolating from a 400x200 grid to a 100x100 grid in 4 passes involves:
+                          `interpolation_passes - 1` intermediate steps. The more the interpolation
+                          steps the smoother the final bathymetry becomes.
 
-  * 400x200 → 325x175
-  * 325x175 → 250x150
-  * 250x150 → 175x125
-  * 175x125 → 100x100
+  Example
+  =======
+
+  Interpolating from a 400 x 200 grid to a 100 x 100 grid in 4 passes involves:
+
+  * 400 x 200 → 325 x 175
+  * 325 x 175 → 250 x 150
+  * 250 x 150 → 175 x 125
+  * 175 x 125 → 100 x 100
 
   If _coarsening_ the original grid, linear interpolation in passes is equivalent to
   applying a smoothing filter, with more passes increasing the strength of the filter.
-  If _refining_ the original grid, additional passes will not help and no intermediate
-  steps will be performed.
+  If _refining_ the original grid, additional passes do not help and no intermediate
+  steps are performed.
 
 - `major_basins`: Number of "independent major basins", or fluid regions fully encompassed by land,
                   that are retained by [`remove_minor_basins!`](@ref). Basins are removed by order of size:
-                  the smallest basins are removed first. `major_basins=1` will retain only the largest basin.
-                  Default: `Inf`, which does not remove any basins.
+                  the smallest basins are removed first. `major_basins = 1` retains only the largest basin.
+                  If `Inf` then no basins are removed. Default: 1.
 """
 function regrid_bathymetry(target_grid;
                            height_above_water = nothing,
                            minimum_depth = 0,
                            dir = download_bathymetry_cache,
-                           url = "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_surface_elev_netcdf", 
+                           url = "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_surface_elev_netcdf",
                            filename = "ETOPO_2022_v1_60s_N90W180_surface.nc",
                            interpolation_passes = 1,
-                           major_basins = Inf) # Allow an `Inf` number of ``lakes''
+                           major_basins = 1) # Allow an `Inf` number of "lakes"
 
     filepath = joinpath(dir, filename)
-    fileurl  = joinpath(url, filename)
+    fileurl  = url * "/" * filename # joinpath on windows creates the wrong url
 
-    @root begin # perform all this only on rank 0, aka the "root" rank
-        if !isfile(filepath)
-            try 
-                Downloads.download(fileurl, filepath; progress=download_progress, verbose=true)
-            catch 
-                cmd = `wget --no-check-certificate -O $filepath $fileurl`
-                @root run(cmd)
-            end
-        end
+    # No need for @root here, because only rank 0 accesses this function
+    if !isfile(filepath)
+        Downloads.download(fileurl, filepath; progress=download_progress)
     end
-    
-    dataset = Dataset(filepath)
+
+    dataset = Dataset(filepath, "r")
 
     FT = eltype(target_grid)
 
@@ -123,7 +122,7 @@ function regrid_bathymetry(target_grid;
     close(dataset)
 
     # Diagnose target grid information
-    arch = child_architecture(architecture(target_grid))
+    arch = architecture(target_grid)
     φ₁, φ₂ = y_domain(target_grid)
     λ₁, λ₂ = x_domain(target_grid)
 
@@ -198,7 +197,7 @@ function regrid_bathymetry(target_grid;
 end
 
 # Here we can either use `regrid!` (three dimensional version) or `interpolate`
-function interpolate_bathymetry_in_passes(native_z, target_grid; 
+function interpolate_bathymetry_in_passes(native_z, target_grid;
                                           passes = 10)
     Nλt, Nφt = Nt = size(target_grid)
     Nλn, Nφn = Nn = size(native_z)
@@ -208,9 +207,9 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     if Nλt > Nλn || Nφt > Nφn
         target_z = Field{Center, Center, Nothing}(target_grid)
         interpolate!(target_z, native_z)
-        @info string("Skipping passes for interplating bathymetry of size $Nn ", '\n',
+        @info string("Skipping passes for interpolating bathymetry of size $Nn ", '\n',
                      "to target grid of size $Nt. Interpolation passes may only ", '\n',
-                     "be used to refine bathymetryand requires that the bathymetry ", '\n',
+                     "be used to refine bathymetry and require that the bathymetry ", '\n',
                      "is larger than the target grid in both horizontal directions.")
         return target_z
     end
@@ -237,9 +236,9 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
         @debug "Bathymetry interpolation pass $pass with size $new_size"
 
         new_grid = LatitudeLongitudeGrid(architecture(target_grid),
-                                         size = new_size, 
-                                         latitude = (latitude[1],  latitude[2]), 
-                                         longitude = (longitude[1], longitude[2]), 
+                                         size = new_size,
+                                         latitude = (latitude[1],  latitude[2]),
+                                         longitude = (longitude[1], longitude[2]),
                                          z = (0, 1),
                                          topology = (TX, TY, Bounded))
 
@@ -255,6 +254,39 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     return target_z
 end
 
+# Regridding bathymetry for distributed grids, we handle the whole process
+# on just one rank, and share the results with the other processors.
+function regrid_bathymetry(target_grid::DistributedGrid; kw...)
+    global_grid = reconstruct_global_grid(target_grid)
+    global_grid = on_architecture(CPU(), global_grid)
+    arch = architecture(target_grid)
+    Nx, Ny, _ = size(global_grid)
+
+    # If all ranks open a gigantic bathymetry and the memory is 
+    # shared, we could easily have OOM errors. 
+    # We perform the reconstruction only on rank 0 and share the result.
+    bottom_height = if arch.local_rank == 0
+        bottom_field = regrid_bathymetry(global_grid; kw...)
+        bottom_field.data[1:Nx, 1:Ny, 1]
+    else
+        zeros(Nx, Ny)
+    end
+
+    # Synchronize
+    ClimaOcean.global_barrier(arch.communicator)
+
+    # Share the result (can we share SubArrays?)
+    bottom_height = all_reduce(+, bottom_height, arch)
+
+    # Partition the result
+    local_bottom_height = Field{Center, Center, Nothing}(target_grid)
+    set!(local_bottom_height, bottom_height)
+    fill_halo_regions!(local_bottom_height)
+
+    return local_bottom_height
+end
+
+
 """
     remove_minor_basins!(z_data, keep_major_basins)
 
@@ -265,14 +297,14 @@ Arguments
 =========
 
 - `z_data`: A 2D array representing the bathymetry data.
-- `keep_major_basins`: The maximum number of connected regions to keep. 
-                       Default is `Inf`, which means all connected regions are kept.
+- `keep_major_basins`: The maximum number of connected regions to keep.
+                       If `Inf` is provided then all connected regions are kept.
 
 """
 function remove_minor_basins!(zb::Field, keep_major_basins)
     zb_cpu = on_architecture(CPU(), zb)
     TX     = topology(zb_cpu.grid, 1)
-    
+
     Nx, Ny, _ = size(zb_cpu.grid)
     zb_data   = maybe_extend_longitude(zb_cpu, TX()) # Outputs a 2D AbstractArray
 
@@ -300,7 +332,7 @@ function maybe_extend_longitude(zb_cpu, ::Periodic)
     # Update offsets
     yoffsets = zb_cpu.data.offsets[2]
     xoffsets = - nx
-    
+
     return OffsetArray(zb_parent, xoffsets, yoffsets)
 end
 
