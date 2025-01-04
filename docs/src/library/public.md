@@ -39,6 +39,13 @@ Modules = [ClimaOcean.ECCO]
 Private = false
 ```
 
+## JRA55
+
+```@autodocs
+Modules = [ClimaOcean.JRA55]
+Private = false
+```
+
 ## Bathymetry
 
 ```@autodocs

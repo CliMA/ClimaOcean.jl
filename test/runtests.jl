@@ -13,9 +13,9 @@ if test_group == :init || test_group == :all
     CUDA.set_runtime_version!(v"12.6"; local_toolkit = true)
     CUDA.precompile_runtime()
 
-    ####
-    #### Download bathymetry data
-    ####
+    ###
+    ### Download bathymetry data
+    ###
     
     download_bathymetry() 
 
@@ -23,7 +23,7 @@ if test_group == :init || test_group == :all
     #### Download JRA55 data 
     ####
     
-    atmosphere = JRA55_prescribed_atmosphere()
+    atmosphere = JRA55PrescribedAtmosphere()
 
     ####
     #### Download ECCO data 
@@ -58,6 +58,7 @@ end
 if test_group == :simulations || test_group == :all
     CUDA.set_runtime_version!(v"12.2", local_toolkit = true) # Seems to help in finding the correct CUDA version
     include("test_simulations.jl")
+    include("test_diagnostics.jl")
 end
 
 if test_group == :distributed || test_group == :all

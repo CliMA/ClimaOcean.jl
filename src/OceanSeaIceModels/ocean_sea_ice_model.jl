@@ -1,12 +1,13 @@
 using Oceananigans
 using Oceananigans.Models: update_model_field_time_series!
 using Oceananigans.TimeSteppers: Clock
-using Oceananigans.BuoyancyModels: SeawaterBuoyancy
+using Oceananigans: SeawaterBuoyancy
 
 using SeawaterPolynomials: TEOS10EquationOfState
 
 # Simulations interface
 import Oceananigans: fields, prognostic_fields
+import Oceananigans.Architectures: architecture
 import Oceananigans.Fields: set!
 import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker
 import Oceananigans.OutputWriters: default_included_properties
@@ -15,9 +16,8 @@ import Oceananigans.TimeSteppers: time_step!, update_state!, time
 import Oceananigans.Utils: prettytime
 import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker
 
-struct OceanSeaIceModel{I, A, O, F, C, G} <: AbstractModel{Nothing}
+struct OceanSeaIceModel{I, A, O, F, C} <: AbstractModel{Nothing}
     clock :: C
-    grid :: G # TODO: make it so Oceananigans.Simulation does not require this
     atmosphere :: A
     sea_ice :: I
     ocean :: O
@@ -27,9 +27,8 @@ end
 const OSIM = OceanSeaIceModel
 
 function Base.summary(model::OSIM)
-    A = nameof(typeof(architecture(model.grid)))
-    G = nameof(typeof(model.grid))
-    return string("OceanSeaIceModel{$A, $G}",
+    A = nameof(typeof(architecture(model)))
+    return string("OceanSeaIceModel{$A}",
                   "(time = ", prettytime(model.clock.time), ", iteration = ", model.clock.iteration, ")")
 end
 
@@ -37,9 +36,14 @@ function Base.show(io::IO, cm::OSIM)
     print(io, summary(cm), "\n")
     print(io, "├── ocean: ", summary(cm.ocean.model), "\n")
     print(io, "├── atmosphere: ", summary(cm.atmosphere), "\n")
-    print(io, "└── sea_ice: ", summary(cm.sea_ice), "\n")
+    print(io, "├── sea_ice: ", summary(cm.sea_ice), "\n")
+    print(io, "└── fluxes: ", summary(cm.fluxes))
     return nothing
 end
+
+# Assumption: We have an ocean!
+architecture(model::OSIM) = architecture(model.ocean.model)
+Base.eltype(model::OSIM) = Base.eltype(model.ocean.model)
 
 prettytime(model::OSIM)             = prettytime(model.clock.time)
 iteration(model::OSIM)              = model.clock.iteration
@@ -57,12 +61,12 @@ reference_density(unsupported) =
 heat_capacity(unsupported) =
     throw(ArgumentError("Cannot deduce the heat capacity from $(typeof(unsupported))"))
 
-reference_density(ocean::Simulation) = reference_density(ocean.model.buoyancy.model)
-reference_density(buoyancy_model::SeawaterBuoyancy) = reference_density(buoyancy_model.equation_of_state)
+reference_density(ocean::Simulation) = reference_density(ocean.model.buoyancy.formulation)
+reference_density(buoyancy_formulation::SeawaterBuoyancy) = reference_density(buoyancy_formulation.equation_of_state)
 reference_density(eos::TEOS10EquationOfState) = eos.reference_density
 
-heat_capacity(ocean::Simulation) = heat_capacity(ocean.model.buoyancy.model)
-heat_capacity(buoyancy_model::SeawaterBuoyancy) = heat_capacity(buoyancy_model.equation_of_state)
+heat_capacity(ocean::Simulation) = heat_capacity(ocean.model.buoyancy.formulation)
+heat_capacity(buoyancy_formulation::SeawaterBuoyancy) = heat_capacity(buoyancy_formulation.equation_of_state)
 
 function heat_capacity(eos::TEOS10EquationOfState{FT}) where FT
     cₚ⁰ = SeawaterPolynomials.TEOS10.teos10_reference_heat_capacity
@@ -98,7 +102,6 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature();
                                       radiation)
 
     ocean_sea_ice_model = OceanSeaIceModel(clock,
-                                           ocean.model.grid,
                                            atmosphere,
                                            sea_ice,
                                            ocean,

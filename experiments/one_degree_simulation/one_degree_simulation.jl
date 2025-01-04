@@ -88,7 +88,7 @@ set!(ocean.model, T=ECCOMetadata(:temperature; dates=first(dates)),
 #####
 
 radiation  = Radiation(arch)
-atmosphere = JRA55_prescribed_atmosphere(arch; backend=JRA55NetCDFBackend(20))
+atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(20))
 
 #####
 ##### Coupled simulation

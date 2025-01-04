@@ -17,12 +17,13 @@ using ClimaOcean.DataWrangling: download_progress
 
 using ClimaOcean.OceanSeaIceModels:
     PrescribedAtmosphere,
+    PrescribedAtmosphereThermodynamicsParameters,
     TwoBandDownwellingRadiation
 
 using CUDA: @allowscalar
 
 using NCDatasets
-using JLD2 
+using JLD2
 using Dates
 using Scratch
 
@@ -35,6 +36,9 @@ download_jra55_cache::String = ""
 function __init__()
     global download_jra55_cache = @get_scratch!("JRA55")
 end
+
+struct JRA55Data end
+const JRA55PrescribedAtmosphere = PrescribedAtmosphere{<:Any, <:JRA55Data}
 
 # A list of all variables provided in the JRA55 dataset:
 JRA55_variable_names = (:river_freshwater_flux,
@@ -250,9 +254,25 @@ function set!(fts::JRA55NetCDFFTS, path::String=fts.path, name::String=fts.name)
     LX, LY, LZ = location(fts)
     i₁, i₂, j₁, j₂, TX = compute_bounding_indices(nothing, nothing, fts.grid, LX, LY, λc, φc)
 
-    ti = time_indices(fts)
-    ti = collect(ti)
-    data = ds[name][i₁:i₂, j₁:j₂, ti]
+    nn = time_indices(fts)
+    nn = collect(nn)
+
+    if issorted(nn)
+        data = ds[name][i₁:i₂, j₁:j₂, nn]
+    else
+        # The time indices may be cycling past 1; eg ti = [6, 7, 8, 1].
+        # However, DiskArrays does not seem to support loading data with unsorted
+        # indices. So to handle this, we load the data in chunks, where each chunk's
+        # indices are sorted, and then glue the data together.
+        m = findfirst(n -> n == 1, nn)
+        n1 = nn[1:m-1]
+        n2 = nn[m:end]
+
+        data1 = ds[name][i₁:i₂, j₁:j₂, n1]
+        data2 = ds[name][i₁:i₂, j₁:j₂, n2]
+        data = cat(data1, data2, dims=3)
+    end
+
     close(ds)
 
     copyto!(interior(fts, :, :, 1, :), data)
@@ -266,40 +286,40 @@ new_backend(::JRA55NetCDFBackend, start, length) = JRA55NetCDFBackend(start, len
 """
     JRA55_field_time_series(variable_name;
                             architecture = CPU(),
-                            time_indices = nothing,
-                            latitude = nothing,
-                            longitude = nothing,
+                            grid = nothing,
                             location = nothing,
                             url = nothing,
+                            dir = download_jra55_cache,
                             filename = nothing,
                             shortname = nothing,
+                            latitude = nothing,
+                            longitude = nothing,
                             backend = InMemory(),
+                            time_indexing = Cyclical(),
                             preprocess_chunk_size = 10,
-                            preprocess_architecture = CPU())
+                            preprocess_architecture = CPU(),
+                            time_indices = nothing)
 
 Return a `FieldTimeSeries` containing atmospheric reanalysis data for `variable_name`,
 which describes one of the variables in the "repeat year forcing" dataset derived
-from the Japanese 55-year atmospheric reanalysis for driving ocean-sea-ice models (JRA55-do).
-For more information about the derivation of the repeat year forcing dataset, see
+from the Japanese 55-year atmospheric reanalysis for driving ocean-sea ice models (JRA55-do).
+For more information about the derivation of the repeat-year forcing dataset, see
 
-"Stewart et al., JRA55-do-based repeat year forcing datasets for driving ocean–sea-ice models",
-Ocean Modelling, 2020, https://doi.org/10.1016/j.ocemod.2019.101557.
+> Stewart et al. (2020). JRA55-do-based repeat year forcing datasets for driving ocean–sea-ice models, _Ocean Modelling_, **147**, 101557, https://doi.org/10.1016/j.ocemod.2019.101557.
 
-The `variable_name`s (and their `shortname`s used in NetCDF files)
-available from the JRA55-do are:
-
-    - `:river_freshwater_flux`              ("friver")
-    - `:rain_freshwater_flux`               ("prra")
-    - `:snow_freshwater_flux`               ("prsn")
-    - `:iceberg_freshwater_flux`            ("licalvf")
-    - `:specific_humidity`                  ("huss")
-    - `:sea_level_pressure`                 ("psl")
-    - `:relative_humidity`                  ("rhuss")
-    - `:downwelling_longwave_radiation`     ("rlds")
-    - `:downwelling_shortwave_radiation`    ("rsds")
-    - `:temperature`                        ("ras")
-    - `:eastward_velocity`                  ("uas")
-    - `:northward_velocity`                 ("vas")
+The `variable_name`s (and their `shortname`s used in NetCDF files) available from the JRA55-do are:
+- `:river_freshwater_flux`              ("friver")
+- `:rain_freshwater_flux`               ("prra")
+- `:snow_freshwater_flux`               ("prsn")
+- `:iceberg_freshwater_flux`            ("licalvf")
+- `:specific_humidity`                  ("huss")
+- `:sea_level_pressure`                 ("psl")
+- `:relative_humidity`                  ("rhuss")
+- `:downwelling_longwave_radiation`     ("rlds")
+- `:downwelling_shortwave_radiation`    ("rsds")
+- `:temperature`                        ("ras")
+- `:eastward_velocity`                  ("uas")
+- `:northward_velocity`                 ("vas")
 
 Keyword arguments
 =================
@@ -332,8 +352,8 @@ Keyword arguments
 - `interpolated_file`: file holding an Oceananigans compatible version of the JRA55 data.
                        If it does not exist it will be generated.
 
-- `time_chunks_in_memory`: number of fields held in memory. If `nothing` the whole timeseries is 
-                           loaded (not recommended).
+- `time_chunks_in_memory`: number of fields held in memory. If `nothing` then the whole timeseries
+                           is loaded (not recommended).
 """
 function JRA55_field_time_series(variable_name;
                                  architecture = CPU(),
@@ -391,7 +411,7 @@ function JRA55_field_time_series(variable_name;
 
     # Note, we don't re-use existing jld2 files.
     @root begin
-        isfile(filepath) || download(url, filepath)
+        isfile(filepath) || download(url, filepath; progress=download_progress)
         isfile(jld2_filepath) && rm(jld2_filepath)
     end
 
@@ -610,29 +630,29 @@ end
 
 const AA = Oceananigans.Architectures.AbstractArchitecture
 
-JRA55_prescribed_atmosphere(time_indices=Colon(); kw...) =
-    JRA55_prescribed_atmosphere(CPU(), time_indices; kw...)
+JRA55PrescribedAtmosphere(time_indices=Colon(); kw...) =
+    JRA55PrescribedAtmosphere(CPU(), time_indices; kw...)
 
-JRA55_prescribed_atmosphere(arch::Distributed, time_indices=Colon(); kw...) =
-    JRA55_prescribed_atmosphere(child_architecture(arch), time_indices; kw...)
+JRA55PrescribedAtmosphere(arch::Distributed, time_indices=Colon(); kw...) =
+    JRA55PrescribedAtmosphere(child_architecture(arch), time_indices; kw...)
 
 # TODO: allow the user to pass dates
 """
-    JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
-                                backend = nothing,
-                                time_indexing = Cyclical(),
-                                reference_height = 10,  # meters
-                                include_rivers_and_icebergs = false,
-                                other_kw...)
+    JRA55PrescribedAtmosphere(architecture::AA, time_indices=Colon();
+                              backend = nothing,
+                              time_indexing = Cyclical(),
+                              reference_height = 10,  # meters
+                              include_rivers_and_icebergs = false,
+                              other_kw...)
 
 Return a `PrescribedAtmosphere` representing JRA55 reanalysis data.
 """
-function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
-                                     backend = nothing,
-                                     time_indexing = Cyclical(),
-                                     reference_height = 10,  # meters
-                                     include_rivers_and_icebergs = false,
-                                     other_kw...)
+function JRA55PrescribedAtmosphere(architecture::AA, time_indices=Colon();
+                                   backend = nothing,
+                                   time_indexing = Cyclical(),
+                                   reference_height = 10,  # meters
+                                   include_rivers_and_icebergs = false,
+                                   other_kw...)
 
     if isnothing(backend) # apply a default
         Ni = try
@@ -647,7 +667,7 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
     end
 
     kw = (; time_indices, time_indexing, backend, architecture)
-    kw = merge(kw, other_kw) 
+    kw = merge(kw, other_kw)
 
     ua  = JRA55_field_time_series(:eastward_velocity;               kw...)
     va  = JRA55_field_time_series(:northward_velocity;              kw...)
@@ -659,45 +679,43 @@ function JRA55_prescribed_atmosphere(architecture::AA, time_indices=Colon();
     Ql  = JRA55_field_time_series(:downwelling_longwave_radiation;  kw...)
     Qs  = JRA55_field_time_series(:downwelling_shortwave_radiation; kw...)
 
-    freshwater_flux = (rain = Fra,
-                       snow = Fsn)
-
-    # Remember that rivers and icebergs are on a different grid and have
-    # a different frequency than the rest of the JRA55 data. We use `PrescribedAtmospheres`
-    # "auxiliary_freshwater_flux" feature to represent them.
+    # In JRA55, rivers and icebergs are on a different grid and stored with
+    # a different frequency than the rest of the data. Here, we use the
+    # `PrescribedAtmosphere.auxiliary_freshwater_flux` feature to represent them.
     if include_rivers_and_icebergs
         Fri = JRA55_field_time_series(:river_freshwater_flux;   kw...)
         Fic = JRA55_field_time_series(:iceberg_freshwater_flux; kw...)
-        auxiliary_freshwater_flux = (rivers = Fri, icebergs = Fic)
+        auxiliary_freshwater_flux = (rivers=Fri, icebergs=Fic)
     else
         auxiliary_freshwater_flux = nothing
     end
 
     times = ua.times
-
-    velocities = (u = ua,
-                  v = va)
-
-    tracers = (T = Ta,
-               q = qa)
-
+    freshwater_flux = (rain=Fra, snow=Fsn)
+    velocities = (u=ua, v=va)
+    tracers = (T=Ta, q=qa)
     pressure = pa
-
     downwelling_radiation = TwoBandDownwellingRadiation(shortwave=Qs, longwave=Ql)
 
     FT = eltype(ua)
+    boundary_layer_height = convert(FT, 600)
     reference_height = convert(FT, reference_height)
+    thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT)
+    grid = ua.grid
+    metadata = JRA55Data()
 
-    atmosphere = PrescribedAtmosphere(times, FT;
-                                      velocities,
-                                      freshwater_flux,
-                                      auxiliary_freshwater_flux,
-                                      tracers,
-                                      downwelling_radiation,
-                                      reference_height,
-                                      pressure)
-
-    return atmosphere
+    return PrescribedAtmosphere(grid,
+                                metadata,
+                                velocities,
+                                pressure,
+                                tracers,
+                                freshwater_flux,
+                                auxiliary_freshwater_flux,
+                                downwelling_radiation,
+                                thermodynamics_parameters,
+                                times,
+                                reference_height,
+                                boundary_layer_height)
 end
 
 end # module
