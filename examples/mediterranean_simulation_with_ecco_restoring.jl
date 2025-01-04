@@ -75,17 +75,19 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
 @inline surface_mask(x, y, z, t) = z > - 50 
 
-dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 12, 1)
+start = DateTimeProlepticGregorian(1993, 1, 1)
+stop  = DateTimeProlepticGregorian(1993, 12, 1)
+dates = range(start, stop; step=Month(1))
 
-FT = ECCORestoring(GPU(), :temperature; dates, mask=surface_mask, version=ECCO4Monthly(), rate=1/5days)
-FS = ECCORestoring(GPU(), :salinity;    dates, mask=surface_mask, version=ECCO4Monthly(), rate=1/5days)
+FT = ECCORestoring(:temperature, grid; dates, mask=surface_mask, rate=1/5days)
+FS = ECCORestoring(:salinity, grid;    dates, mask=surface_mask, rate=1/5days)
 
 # Constructing the Simulation
 #
 # We construct an ocean simulation that evolves two tracers, temperature (:T), salinity (:S)
 # and we pass the previously defined forcing that nudge these tracers 
 
-ocean = ocean_simulation(grid; forcing = (T = FT, S = FS))
+ocean = ocean_simulation(grid; forcing = (T=FT, S=FS))
 
 # Initializing the model
 #
