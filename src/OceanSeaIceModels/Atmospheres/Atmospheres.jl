@@ -4,6 +4,10 @@ export PrescribedAtmosphere, PrognosticAtmosphere
 
 using KernelAbstractions: @kernel, @index
 using Oceananigans.Utils: KernelParameters
+using Oceananigans.Grids: grid_name
+using Oceananigans.Utils: prettysummary
+using Oceananigans.Fields: Center
+using Oceananigans.OutputReaders: FieldTimeSeries, update_field_time_series!, extract_field_time_series
 
 include("atmospheric_parameters.jl")
 include("prescribed_atmospheres.jl")
