@@ -84,7 +84,7 @@ const PATP = PrescribedAtmosphereThermodynamicsParameters
 ##### Prescribed atmosphere (as opposed to dynamically evolving / prognostic)
 #####
 
-struct PrescribedAtmosphere{FT, M, G, U, P, C, F, I, R, TP, TI} <: AbstractAtmosphere
+struct PrescribedAtmosphere{FT, M, G, U, P, C, F, I, R, TP, TI} 
     grid :: G
     metadata :: M
     velocities :: U
@@ -98,6 +98,10 @@ struct PrescribedAtmosphere{FT, M, G, U, P, C, F, I, R, TP, TI} <: AbstractAtmos
     reference_height :: FT
     boundary_layer_height :: FT
 end
+
+surface_layer_height(atmos::PrescribedAtmosphere)      = atmos.reference_height
+boundary_layer_height(atmos::PrescribedAtmosphere)     = atmos.boundary_layer_height
+thermodynamics_parameters(atmos::PrescribedAtmosphere) = atmos.thermodynamics_parameters
 
 function Base.summary(pa::PrescribedAtmosphere{FT}) where FT
     Nx, Ny, Nz = size(pa.grid)
@@ -231,7 +235,7 @@ function interpolate_atmospheric_state!(surface_atmosphere_state,
                                         interpolated_prescribed_freshwater_flux,
                                         atmosphere::PrescribedAtmosphere, 
                                         ocean_grid, clock)
-                                        
+
     atmosphere_grid = atmosphere.grid
 
     # We use .data here to save parameter space (unlike Field, adapt_structure for

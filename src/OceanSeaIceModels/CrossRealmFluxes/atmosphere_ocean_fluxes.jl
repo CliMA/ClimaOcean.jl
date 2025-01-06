@@ -88,9 +88,9 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             coupled_model.fluxes.ocean_temperature_units,
             surface_atmosphere_state,
             radiation_properties,
-            atmosphere.reference_height, # height at which the state is known
-            atmosphere.boundary_layer_height,
-            atmosphere.thermodynamics_parameters)   
+            surface_layer_height(atmosphere), # height at which the state is known
+            boundary_layer_height(boundary_layer_height),
+            themodynamics_parameters(atmosphere))   
 
     #####
     ##### Finally cobble together and properly interpolate fluxes
