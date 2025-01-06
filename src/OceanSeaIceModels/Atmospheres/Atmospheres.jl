@@ -4,7 +4,7 @@ export PrescribedAtmosphere
 
 using KernelAbstractions: @kernel, @index
 using Oceananigans.Utils: KernelParameters
-using Oceananigans.Grids: grid_name
+using Oceananigans.Grids: grid_name, architecture
 using Oceananigans.Utils: prettysummary
 using Oceananigans.Fields: Center
 using Oceananigans.OutputReaders: FieldTimeSeries, update_field_time_series!, extract_field_time_series
