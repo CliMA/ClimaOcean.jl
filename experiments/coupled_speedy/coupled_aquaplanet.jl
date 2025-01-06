@@ -1,22 +1,21 @@
 using ClimaOcean
 using Oceananigans
 using SpeedyWeather
+using Oceananigans.Units
 using ClimaOcean.OceanSeaIceModels.Atmospheres: HeatCapacityParameters, ConstitutiveParameters, PrognosticAtmosphere
-
-import ClimaOcean.OceanSeaIceModels: time_step!
 
 #####
 ##### Ocean model (idealized quarter degree model)
 #####
 
-Nx = 360
-Ny = 180
-Nz = 40
+Nx = 90
+Ny = 40
+Nz = 10
 
 depth = 5000
 φmax  = 75
 
-arch = Oceananigans.CPU()
+arch    = Oceananigans.CPU()
 r_faces = ClimaOcean.exponential_z_faces(; Nz, depth)
 
 # A quarter degree ocean model (idealized)
@@ -47,7 +46,7 @@ model      = PrimitiveWetModel(spectral_grid)
 simulation = initialize!(model)
 atmosphere = PrognosticAtmosphere(; simulation)
 
-# Initialize the speedyweather timestepping correctly
+# Initialize the Speedyweather timestepping correctly
 #=
 
 =# 
@@ -109,7 +108,6 @@ function progress(earth)
 
 
     # Some outputs from oceananigans?
-
 
 end
 
