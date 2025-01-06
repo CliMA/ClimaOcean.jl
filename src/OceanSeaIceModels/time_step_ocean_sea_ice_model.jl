@@ -33,6 +33,10 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
     ocean.Δt = Δt
     time_step!(ocean)
 
+    # Time step the atmosphere
+    # TODO: allow different time-steps for atmosphere and ocean
+    time_step!(atmosphere)
+
     # TODO:
     # - Store fractional ice-free / ice-covered _time_ for more
     #   accurate flux computation?

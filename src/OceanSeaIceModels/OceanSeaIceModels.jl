@@ -40,6 +40,7 @@ const default_freshwater_density = 1000
 #####
 
 include("PrescribedAtmospheres.jl")
+include("PrognosticAtmospheres.jl")
 
 using .PrescribedAtmospheres:
     PrescribedAtmosphere,
