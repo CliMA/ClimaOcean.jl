@@ -49,8 +49,6 @@ atmosphere = PrognosticAtmosphere(; simulation)
 
 # Initialize the speedyweather timestepping correctly
 #=
-SpeedyWeather.first_timesteps!()
-
 
 =# 
 
@@ -80,7 +78,6 @@ function time_step!(atmos::PrognosticAtmosphere{<:Any, <:SpeedyWeather.Simulatio
     return nothing
 end
 
-
 # Interpolate the atmospheric surface fields to the ocean/sea-ice model grid
 function interpolate_atmospheric_state!(surface_atmosphere_state, 
                                         interpolated_prescribed_freshwater_flux, 
@@ -98,7 +95,7 @@ end
 ##### Coupled model
 ##### 
 
-radiation   = Radiation() # ? 
+radiation   = Radiation() # Need to fix this to be consistent with SpeedyWeather? 
 earth_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 earth       = ClimaOcean.Simulation(earth_model, Δt=10minutes)
 

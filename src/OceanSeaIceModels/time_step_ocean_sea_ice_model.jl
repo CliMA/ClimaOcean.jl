@@ -8,7 +8,8 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
     ocean = coupled_model.ocean
     sea_ice = coupled_model.sea_ice
     atmosphere = coupled_model.atmosphere
-    
+
+    @info "Initializing the time-step"
     # Be paranoid and update state at iteration 0
     coupled_model.clock.iteration == 0 && update_state!(coupled_model, callbacks)
 
@@ -29,15 +30,18 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
         time_step!(sea_ice)
     end
 
+    @info "Time-stepping the atmosphere"
     # Time step the atmosphere
     # TODO: allow different time-steps for atmosphere and ocean
     time_step!(atmosphere)
 
+    @info "Time-stepping the Ocean"
     # TODO after ice time-step:
     #  - Adjust ocean heat flux if the ice completely melts?
     ocean.Δt = Δt
     time_step!(ocean)
 
+    @info "Computing Fluxes"
     # TODO:
     # - Store fractional ice-free / ice-covered _time_ for more
     #   accurate flux computation?
