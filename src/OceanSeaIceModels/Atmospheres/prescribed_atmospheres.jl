@@ -99,10 +99,6 @@ struct PrescribedAtmosphere{FT, M, G, U, P, C, F, I, R, TP, TI}
     boundary_layer_height :: FT
 end
 
-surface_layer_height(atmos::PrescribedAtmosphere)      = atmos.reference_height
-boundary_layer_height(atmos::PrescribedAtmosphere)     = atmos.boundary_layer_height
-thermodynamics_parameters(atmos::PrescribedAtmosphere) = atmos.thermodynamics_parameters
-
 function Base.summary(pa::PrescribedAtmosphere{FT}) where FT
     Nx, Ny, Nz = size(pa.grid)
     Nt = length(pa.times)
