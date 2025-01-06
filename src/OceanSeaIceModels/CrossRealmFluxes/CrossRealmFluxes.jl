@@ -11,7 +11,7 @@ export Radiation,
        BulkTemperature
 
 using ..OceanSeaIceModels: default_gravitational_acceleration
-using .Atmospheres: surface_layer_height, boundary_layer_height, thermodynamics_parameters
+using ..Atmospheres: surface_layer_height, boundary_layer_height, thermodynamics_parameters
 
 import ClimaOcean: stateindex
 
