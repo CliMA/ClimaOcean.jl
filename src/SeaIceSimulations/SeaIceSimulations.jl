@@ -39,29 +39,27 @@ function sea_ice_simulation(grid;
 
     ice_thermodynamics = SlabSeaIceThermodynamics(grid;
                                                   internal_heat_flux,
-                                                  top_surface_temperature,
                                                   phase_transitions,
                                                   top_heat_boundary_condition)
 
     bottom_heat_flux = Field{Center, Center, Nothing}(grid)
+    top_heat_flux    = Field{Center, Center, Nothing}(grid)
 
     top_momentum_stress = (u = Field{Face, Center, Nothing}(grid),
                            v = Field{Center, Face, Nothing}(grid))
 
     velocities = deepcopy(top_momentum_stress)
 
-    new_ice_salinity = Field{Center, Center, Nothing}(grid)
-    set!(new_ice_salinity, ice_salinity)
-
     # Build the sea ice model
     sea_ice_model = SeaIceModel(grid;
-                                ice_salinity=new_ice_salinity,
+                                ice_salinity,
                                 advection,
                                 tracers,
                                 velocities,
                                 top_momentum_stress,
                                 ice_thermodynamics,
-                                bottom_heat_flux)
+                                bottom_heat_flux,
+                                top_heat_flux)
 
     verbose = false
 

@@ -101,7 +101,7 @@ function CrossRealmSurfaceFluxes(ocean, sea_ice=nothing;
                                  ocean_reference_density = reference_density(ocean),
                                  ocean_heat_capacity = heat_capacity(ocean),
                                  ice_reference_density = reference_density(sea_ice),
-                                 ice_heat_capacity = reference_density(sea_ice))
+                                 ice_heat_capacity = heat_capacity(sea_ice))
 
     ocean_grid = ocean.model.grid
     FT = eltype(ocean_grid)
@@ -163,7 +163,7 @@ function CrossRealmSurfaceFluxes(ocean, sea_ice=nothing;
         total_sea_ice_fluxes = nothing
     end
 
-    total_ocean_fluxes = model_surface_fluxes(ocean.model,
+    total_ocean_fluxes = ocean_surface_fluxes(ocean.model,
                                               ocean_reference_density,
                                               ocean_heat_capacity)
                                         
@@ -189,7 +189,7 @@ function CrossRealmSurfaceFluxes(ocean, sea_ice=nothing;
                                    surface_atmosphere_state)
 end
 
-function model_surface_fluxes(model, ρₛ, cₛ)
+function ocean_surface_fluxes(model, ρₛ, cₛ)
     grid = model.grid
     τx = surface_flux(model.velocities.u)
     τy = surface_flux(model.velocities.v)

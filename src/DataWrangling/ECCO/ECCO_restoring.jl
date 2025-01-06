@@ -6,7 +6,7 @@ using Oceananigans.Utils: Time
 
 using Base
 using NCDatasets
-using JLD2 
+using JLD2
 
 using Dates: Second
 using ClimaOcean: stateindex
@@ -35,7 +35,10 @@ end
 Adapt.adapt_structure(to, b::ECCONetCDFBackend{N, C}) where {N, C} = ECCONetCDFBackend{N, C}(b.start, b.length, nothing, nothing)
 
 """
-    ECCONetCDFBackend(length; on_native_grid=false, inpainting=NearestNeighborInpainting(Inf))
+    ECCONetCDFBackend(length, metadata;
+                      on_native_grid = false, 
+                      cache_inpainted_data = false,
+                      inpainting = NearestNeighborInpainting(Inf))
 
 Represent an ECCO FieldTimeSeries backed by ECCO native netCDF files.
 Each time instance is stored in an individual file.
@@ -76,7 +79,7 @@ function set!(fts::ECCOFieldTimeSeries)
 end
 
 """
-    ECCO_times(metadata; start_time = metadata.dates[1])
+    ECCO_times(metadata; start_time = first(metadata).dates)
 
 Extract the time values from the given metadata and calculates the time difference
 from the start time.
@@ -106,7 +109,8 @@ end
     ECCOFieldTimeSeries(metadata::ECCOMetadata [, arch_or_grid=CPU() ];
                         time_indices_in_memory = 2,
                         time_indexing = Cyclical(),
-                        inpainting = nothing)
+                        inpainting = nothing,
+                        cache_inpainted_data = true)
 
 Create a field time series object for ECCO data.
 
@@ -115,7 +119,7 @@ Arguments
 
 - `metadata`: `ECCOMetadata` containing information about the ECCO dataset.
 
-- `arch_or_grid`: Either a grid to interpolate ECCO data to, or an `arch`itecture
+- `arch_or_grid`: Either a grid to interpolate the ECCO data to, or an `arch`itecture
                   to use for the native ECCO grid. Default: CPU().
 
 Keyword Arguments
@@ -164,7 +168,7 @@ end
 ECCOFieldTimeSeries(variable_name::Symbol, version=ECCO4Monthly(); kw...) = 
     ECCOFieldTimeSeries(ECCOMetadata(variable_name, all_ECCO_dates(version), version); kw...)
 
-# Variable names for restoreable data
+# Variable names for restorable data
 struct Temperature end
 struct Salinity end
 struct UVelocity end
@@ -236,44 +240,45 @@ end
     ECCORestoring(variable_name::Symbol, [ arch_or_grid = CPU(), ];
                   version = ECCO4Monthly(),
                   dates = all_ECCO_dates(version),
-                  time_indices_in_memory = 2, 
+                  time_indices_in_memory = 2,
                   time_indexing = Cyclical(),
                   mask = 1,
                   rate = 1,
+                  dir = download_ECCO_cache,
                   inpainting = NearestNeighborInpainting(Inf),
                   cache_inpainted_data = true)
 
-Build a forcing term that restores to values stored in an ECCO field time series.
-The restoring is applied as a forcing on the right hand side of the evolution equations calculated as
+Return a forcing term that restores to values stored in an ECCO field time series.
+The restoring is applied as a forcing on the right hand side of the evolution
+equations calculated as:
 
 ```math
 Fψ = r μ (ψ_{ECCO} - ψ)
 ```
 
 where ``μ`` is the mask, ``r`` is the restoring rate, ``ψ`` is the simulation variable,
-and the ECCO variable ``ψ_ECCO`` is linearly interpolated in space and time from the
-ECCO dataset of choice to the simulation grid and time.
+and ``ψ_{ECCO}`` is the ECCO variable that is linearly interpolated in space and time
+from the ECCO dataset of choice to the simulation grid and time.
 
 Arguments
 =========
 
 - `variable_name`: The name of the variable to restore. Choices include:
-                        * `:temperature`,
-                        * `:salinity`,
-                        * `:u_velocity`,
-                        * `:v_velocity`,
-                        * `:sea_ice_thickness`,
-                        * `:sea_ice_concentration`.
-
-                    Note that `ECCOMetadata` may be provided as the first argument instead
-                    of `variable_name`. In this case the `version` and `dates` kwargs (described below)
-                    cannot be provided.
+  * `:temperature`,
+  * `:salinity`,
+  * `:u_velocity`,
+  * `:v_velocity`,
+  * `:sea_ice_thickness`,
+  * `:sea_ice_area_fraction`.
 
 - `arch_or_grid`: Either the architecture of the simulation, or a grid on which the ECCO data
                   is pre-interpolated when loaded. If an `arch`itecture is provided, such as
-                  `arch_or_grid = CPU()` or `arch_or_grid = GPU()`, ECCO data
-                  will be interpolated on-the-fly when the forcing tendency is computed.  
-                  Default: CPU().
+                  `arch_or_grid = CPU()` or `arch_or_grid = GPU()`, ECCO data are interpolated
+                  on-the-fly when the forcing tendency is computed. Default: CPU().
+
+!!! info "Providing `ECCOMetadata` instead of `variable_name`"
+    Note that `ECCOMetadata` may be provided as the first argument instead of `variable_name`.
+    In this case the `version` and `dates` kwargs (described below) cannot be provided.
 
 Keyword Arguments
 =================
@@ -292,6 +297,9 @@ Keyword Arguments
 
 - `rate`: The restoring rate, i.e., the inverse of the restoring timescale (in s⁻¹).
 
+- `dir`: The directory where the native ECCO data is located. If the data does not exist it will
+         be automatically downloaded. Default: `download_ECCO_cache`.
+
 - `inpainting`: inpainting algorithm, see [`inpaint_mask!`](@ref). Default: `NearestNeighborInpainting(Inf)`.
 
 - `cache_inpainted_data`: If `true`, the data is cached to disk after inpainting for later retrieving. 
@@ -301,9 +309,10 @@ function ECCORestoring(variable_name::Symbol,
                        arch_or_grid = CPU();
                        version = ECCO4Monthly(),
                        dates = all_ECCO_dates(version),
+                       dir = download_ECCO_cache,
                        kw...)
 
-    metadata = ECCOMetadata(variable_name, dates, version)
+    metadata = ECCOMetadata(variable_name, dates, version, dir)
     return ECCORestoring(metadata, arch_or_grid; kw...)
 end
 
@@ -340,7 +349,7 @@ function Base.show(io::IO, p::ECCORestoring)
               "├── restoring dataset: ", summary(p.field_time_series.backend.metadata), '\n',
               "├── restoring rate: ", p.rate, '\n',
               "├── mask: ", summary(p.mask), '\n',
-              "└── grid: ", summary(p.grid))
+              "└── grid: ", summary(p.native_grid))
 end
 
 regularize_forcing(forcing::ECCORestoring, field, field_name, model_field_names) = forcing
