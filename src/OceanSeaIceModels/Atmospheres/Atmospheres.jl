@@ -1,6 +1,6 @@
 module Atmospheres
 
-export PrescribedAtmosphere, PrognosticAtmosphere
+export PrescribedAtmosphere
 
 using KernelAbstractions: @kernel, @index
 using Oceananigans.Utils: KernelParameters
