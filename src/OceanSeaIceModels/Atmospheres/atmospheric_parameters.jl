@@ -1,8 +1,3 @@
-using Oceananigans.Grids: grid_name
-using Oceananigans.Utils: prettysummary
-using Oceananigans.Fields: Center
-using Oceananigans.OutputReaders: FieldTimeSeries, update_field_time_series!, extract_field_time_series
-
 using Adapt
 using Thermodynamics.Parameters: AbstractThermodynamicsParameters
 
@@ -35,10 +30,6 @@ import Thermodynamics.Parameters:
                     # (below which homogeneous ice nucleation occurs)
     pow_icenuc      # "Power parameter" that controls liquid/ice condensate partitioning
                     # during partial ice nucleation
-
-import ..OceanSeaIceModels:
-    downwelling_radiation,
-    freshwater_flux
 
 #####
 ##### Atmospheric thermodynamics parameters
