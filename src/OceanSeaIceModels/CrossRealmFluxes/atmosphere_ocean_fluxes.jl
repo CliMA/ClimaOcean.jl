@@ -1,6 +1,6 @@
 using Oceananigans.Operators: extrinsic_vector, intrinsic_vector
 using Oceananigans.Grids: _node
-using ClimaOcean.OceanSeaIceModels.Atmospheres: interpolate_atmospheric_state!
+using ClimaOcean.OceanSeaIceModels.Atmospheres: interpolate_atmospheric_state!, regrid_fluxes_to_atmospheric_model!
 
 # Fallback!
 limit_fluxes_over_sea_ice!(args...) = nothing
@@ -110,6 +110,8 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
 
     launch!(arch, grid, :xy, reconstruct_momentum_fluxes!,
             grid, staggered_velocity_fluxes, centered_velocity_fluxes)
+
+    regrid_fluxes_to_atmospheric_model!(atmosphere, net_tracer_fluxes, centered_velocity_fluxes)
 
     return nothing
 end

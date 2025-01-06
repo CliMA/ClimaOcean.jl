@@ -39,7 +39,10 @@ function interpolate_atmospheric_state!(atmosphere::PrognosticAtmosphere, surfac
 
     # Here we need to interpolate atmospheric state to the ocean grid?
 
-
 end
 
+function regrid_fluxes_to_atmospheric_model!(atmosphere::PrognosticAtmosphere, net_tracer_fluxes, centered_velocity_fluxes)
 
+    # Here we need to interpolate the ocean-atmosphere fluxes to the atmospheric grid
+
+end

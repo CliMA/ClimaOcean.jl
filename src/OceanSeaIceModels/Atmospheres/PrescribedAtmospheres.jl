@@ -429,6 +429,9 @@ Adapt.adapt_structure(to, tsdr::TwoBandDownwellingRadiation) =
 
 end # module
 
+# A prescribed atmosphere does not need fluxes!
+regrid_fluxes_to_atmospheric_model!(atmos::PrescribedAtmosphere, args...) = nothing
+
 function interpolate_atmospheric_state!(atmosphere::PrescribedAtmosphere, surface_atmosphere_state, grid, clock)
     atmosphere_grid = atmosphere.grid
 
