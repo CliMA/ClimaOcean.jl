@@ -150,12 +150,12 @@ end
                          reference_height = 10, # meters
                          boundary_layer_height = 600 # meters,
                          thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT),
-                              auxiliary_freshwater_flux = nothing,
-                              velocities            = default_atmosphere_velocities(grid, times),
-                              tracers               = default_atmosphere_tracers(grid, times),
-                              pressure              = default_atmosphere_pressure(grid, times),
-                              freshwater_flux       = default_freshwater_flux(grid, times),
-                              downwelling_radiation = default_downwelling_radiation(grid, times))
+                         auxiliary_freshwater_flux = nothing,
+                         velocities            = default_atmosphere_velocities(grid, times),
+                         tracers               = default_atmosphere_tracers(grid, times),
+                         pressure              = default_atmosphere_pressure(grid, times),
+                         freshwater_flux       = default_freshwater_flux(grid, times),
+                         downwelling_radiation = default_downwelling_radiation(grid, times))
 
 Return a representation of a prescribed time-evolving atmospheric
 state with data given at `times`.
@@ -227,7 +227,11 @@ Adapt.adapt_structure(to, tsdr::TwoBandDownwellingRadiation) =
 # A prescribed atmosphere does not need fluxes!
 regrid_fluxes_to_atmospheric_model!(atmos::PrescribedAtmosphere, args...) = nothing
 
-function interpolate_atmospheric_state!(atmosphere::PrescribedAtmosphere, surface_atmosphere_state, grid, clock)
+function interpolate_atmospheric_state!(surface_atmosphere_state,
+                                        interpolated_prescribed_freshwater_flux,
+                                        atmosphere::PrescribedAtmosphere, 
+                                        ocean_grid, clock)
+                                        
     atmosphere_grid = atmosphere.grid
 
     # We use .data here to save parameter space (unlike Field, adapt_structure for
@@ -250,7 +254,7 @@ function interpolate_atmospheric_state!(atmosphere::PrescribedAtmosphere, surfac
     atmosphere_backend = u.backend
     atmosphere_time_indexing = u.time_indexing
 
-    Nx, Ny, Nz = size(grid)
+    Nx, Ny, Nz = size(ocean_grid)
     single_column_grid = Nx == 1 && Ny == 1
 
     if single_column_grid
@@ -260,10 +264,10 @@ function interpolate_atmospheric_state!(atmosphere::PrescribedAtmosphere, surfac
         kernel_parameters = KernelParameters(0:Nx+1, 0:Ny+1)
     end    
     
-    launch!(architecture(grid), grid, kernel_parameters,
+    launch!(architecture(ocean_grid), ocean_grid, kernel_parameters,
             _interpolate_primary_atmospheric_state!,
             surface_atmosphere_state,
-            grid,
+            ocean_grid,
             clock,
             atmosphere_velocities,
             atmosphere_tracers,
@@ -279,7 +283,6 @@ function interpolate_atmospheric_state!(atmosphere::PrescribedAtmosphere, surfac
     # live on a different grid than the primary fluxes and atmospheric state.
     
     auxiliary_freshwater_flux = atmosphere.auxiliary_freshwater_flux
-    interpolated_prescribed_freshwater_flux = surface_atmosphere_state.Mp
 
     if !isnothing(auxiliary_freshwater_flux)
         # TODO: do not assume that `auxiliary_freshater_flux` is a tuple
@@ -291,10 +294,10 @@ function interpolate_atmospheric_state!(atmosphere::PrescribedAtmosphere, surfac
         auxiliary_backend       = first_auxiliary_flux.backend
         auxiliary_time_indexing = first_auxiliary_flux.time_indexing
 
-        launch!(architecture(grid), grid, kernel_parameters,
+        launch!(architecture(ocean_grid), ocean_grid, kernel_parameters,
                 _interpolate_auxiliary_freshwater_flux!,
                 interpolated_prescribed_freshwater_flux,
-                grid,
+                ocean_grid,
                 clock,
                 auxiliary_data,
                 auxiliary_grid,

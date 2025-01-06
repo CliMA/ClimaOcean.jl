@@ -7,7 +7,8 @@ const SeaIceSimulation = Simulation{<:SeaIceModel}
 function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_tendencies=true)
     ocean = coupled_model.ocean
     sea_ice = coupled_model.sea_ice
-
+    atmosphere = coupled_model.atmosphere
+    
     # Be paranoid and update state at iteration 0
     coupled_model.clock.iteration == 0 && update_state!(coupled_model, callbacks)
 

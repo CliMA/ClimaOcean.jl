@@ -31,20 +31,35 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
 
     # Simplify NamedTuple to reduce parameter space consumption.
     # See https://github.com/CliMA/ClimaOcean.jl/issues/116.
-    surface_atmosphere_state = (u = surface_atmosphere_state.u.data,
-                                v = surface_atmosphere_state.v.data,
-                                T = surface_atmosphere_state.T.data,
-                                p = surface_atmosphere_state.p.data,
-                                q = surface_atmosphere_state.q.data,
+    surface_atmosphere_state = (u  = surface_atmosphere_state.u.data,
+                                v  = surface_atmosphere_state.v.data,
+                                T  = surface_atmosphere_state.T.data,
+                                p  = surface_atmosphere_state.p.data,
+                                q  = surface_atmosphere_state.q.data,
                                 Qs = surface_atmosphere_state.Qs.data,
                                 Qℓ = surface_atmosphere_state.Qℓ.data,
                                 Mp = surface_atmosphere_state.Mp.data)
 
-    interpolate_atmospheric_state!(atmosphere, surface_atmosphere_state, grid, clock)
+    interpolated_prescribed_freshwater_flux = surface_atmosphere_state.Mp
+
+    interpolate_atmospheric_state!(surface_atmosphere_state, 
+                                   interpolated_prescribed_freshwater_flux, 
+                                   atmosphere,
+                                   grid, clock)
 
     #####
     ##### Next compute turbulent fluxes.
     #####
+
+    Nx, Ny, Nz = size(grid)
+    single_column_grid = Nx == 1 && Ny == 1
+
+    if single_column_grid
+        kernel_parameters = KernelParameters(1:1, 1:1)
+    else
+        # Compute fluxes into halo regions, ie from 0:Nx+1 and 0:Ny+1
+        kernel_parameters = KernelParameters(0:Nx+1, 0:Ny+1)
+    end    
 
      # Fluxes, and flux contributors
     centered_velocity_fluxes = (u = coupled_model.fluxes.total.ocean.momentum.uᶜᶜᶜ,
