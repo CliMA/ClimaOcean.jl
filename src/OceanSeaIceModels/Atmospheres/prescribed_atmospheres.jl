@@ -96,7 +96,7 @@ struct PrescribedAtmosphere{FT, M, G, U, P, C, F, I, R, TP, TI}
     thermodynamics_parameters :: TP
     times :: TI
     reference_height :: FT
-    boundary_layer_height :: FT
+    boundary_layer_height :: FT # This is a parameter for gustiness, it should be in the SimilarityTheoryTurbulentFluxes type
 end
 
 function Base.summary(pa::PrescribedAtmosphere{FT}) where FT
