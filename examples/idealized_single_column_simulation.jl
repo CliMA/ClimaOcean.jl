@@ -40,8 +40,6 @@ set!(ocean.model, T=Tᵢ, S=S₀)
 
 sea_ice_grid = RectilinearGrid(size=(),  topology=(Flat, Flat, Flat))
 top_sea_ice_temperature = Field{Center, Center, Nothing}(sea_ice_grid)
-
-# Alternative
 top_heat_boundary_condition = PrescribedTemperature(top_sea_ice_temperature)
 ice_thermodynamics = SlabSeaIceThermodynamics(sea_ice_grid; top_heat_boundary_condition)
                                               
@@ -57,8 +55,6 @@ sea_ice = Simulation(sea_ice_model, Δt=10minutes)
 
 model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 simulation = Simulation(model, Δt=10minutes, stop_time=10days)
-
-Q = model.fluxes.total.ocean.heat
 
 Ql = model.fluxes.turbulent.fields.ocean.latent_heat
 Qs = model.fluxes.turbulent.fields.ocean.sensible_heat

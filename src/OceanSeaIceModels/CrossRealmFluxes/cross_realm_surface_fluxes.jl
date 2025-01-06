@@ -154,33 +154,22 @@ function CrossRealmSurfaceFluxes(ocean, sea_ice=nothing;
     if sea_ice isa SeaIceSimulation
         previous_ice_thickness = deepcopy(sea_ice.model.ice_thickness)
         previous_ice_concentration = deepcopy(sea_ice.model.ice_concentration)
+        sea_ice_grid = sea_ice.model.grid
+        total_sea_ice_fluxes = (top_heat = sea_ice.model.external_heat_fluxes.top,
+                                bottom_heat = sea_ice.model.external_heat_fluxes.bottom)
     else
         previous_ice_thickness = nothing
         previous_ice_concentration = nothing
+        total_sea_ice_fluxes = nothing
     end
 
     total_ocean_fluxes = model_surface_fluxes(ocean.model,
                                               ocean_reference_density,
                                               ocean_heat_capacity)
                                         
-
-    #=
-    total_sea_ice_fluxes = if sea_ice isa SeaIceSimulation
-        model_surface_fluxes(sea_ice.model,
-                             ice_reference_density,
-                             ice_heat_capacity)
-    else
-        nothing
-    end
-    =#
-
-    sea_ice_grid = sea_ice.model.grid
-    total_sea_ice_fluxes = (; heat = Field{Center, Center, Nothing}(sea_ice_grid))
-
-    # The actual fields in the boundary conditions of 
-    # model-specific velocities and tracers
-    total_fluxes = (; ocean   = total_ocean_fluxes,
-                      sea_ice = total_sea_ice_fluxes)
+    # Total interface fluxes
+    total_fluxes = (ocean   = total_ocean_fluxes,
+                    sea_ice = total_sea_ice_fluxes)
 
     surface_atmosphere_state = interpolated_surface_atmosphere_state(ocean_grid)
 

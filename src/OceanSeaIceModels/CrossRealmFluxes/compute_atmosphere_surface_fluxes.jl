@@ -28,8 +28,8 @@ using Oceananigans.Grids: inactive_node
         Tₐ = surface_atmos_state.T[i, j, 1]
         pₐ = surface_atmos_state.p[i, j, 1]
         qₐ = surface_atmos_state.q[i, j, 1]
-        Rs = surface_atmos_state.Qs[i, j, 1]
-        Rℓ = surface_atmos_state.Qℓ[i, j, 1]
+        Qs = surface_atmos_state.Qs[i, j, 1]
+        Qℓ = surface_atmos_state.Qℓ[i, j, 1]
 
         # Extract state variables at cell centers
         # Ocean state
@@ -69,7 +69,7 @@ using Oceananigans.Grids: inactive_node
     g = default_gravitational_acceleration
     
     surface_salinity = Sₒ
-    prescribed_heat_fluxes = net_downwelling_radiation(i, j, grid, time, radiation, Rs, Rℓ) 
+    prescribed_heat_fluxes = net_downwelling_radiation(i, j, grid, time, radiation, Qs, Qℓ) 
     radiative_properties = local_radiation_properties(i, j, kᴺ, grid, time, radiation)
     inactive_cell = inactive_node(i, j, kᴺ, grid, Center(), Center(), Center())
 

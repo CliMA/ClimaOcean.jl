@@ -30,3 +30,4 @@ end
 
 # Nothing yet...
 compute_atmosphere_sea_ice_fluxes!(coupled_model) = nothing
+
