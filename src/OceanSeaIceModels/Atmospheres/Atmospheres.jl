@@ -2,6 +2,8 @@ module Atmospheres
 
 export PrescribedAtmosphere, PrognosticAtmosphere
 
+using KernelAbstractions: @kernel, @index
+
 """
     abstract type AbstractAtmosphere 
 
@@ -10,7 +12,9 @@ and ocean model defined in ClimaOcean
 """
 abstract type AbstractAtmosphere end
 
-
+include("atmospheric_parameters.jl")
+include("prescribed_atmospheres.jl")
+include("prognostic_atmospheres.jl")
 
 
 end

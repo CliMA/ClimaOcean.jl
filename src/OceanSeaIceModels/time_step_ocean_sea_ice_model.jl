@@ -28,14 +28,14 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
         time_step!(sea_ice)
     end
 
+    # Time step the atmosphere
+    # TODO: allow different time-steps for atmosphere and ocean
+    time_step!(atmosphere)
+
     # TODO after ice time-step:
     #  - Adjust ocean heat flux if the ice completely melts?
     ocean.Δt = Δt
     time_step!(ocean)
-
-    # Time step the atmosphere
-    # TODO: allow different time-steps for atmosphere and ocean
-    time_step!(atmosphere)
 
     # TODO:
     # - Store fractional ice-free / ice-covered _time_ for more

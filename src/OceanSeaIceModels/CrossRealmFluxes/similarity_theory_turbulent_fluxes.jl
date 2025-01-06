@@ -10,7 +10,7 @@ using Printf
 using Thermodynamics: PhasePartition
 using KernelAbstractions.Extras.LoopInfo: @unroll
 
-using ..PrescribedAtmospheres: PrescribedAtmosphereThermodynamicsParameters
+using ..Atmospheres: PrescribedAtmosphereThermodynamicsParameters
 
 using Statistics: norm
 

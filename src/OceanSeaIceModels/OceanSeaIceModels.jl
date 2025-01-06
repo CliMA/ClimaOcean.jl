@@ -39,10 +39,11 @@ const default_freshwater_density = 1000
 ##### Some implementation
 #####
 
-include("PrescribedAtmospheres.jl")
-include("PrognosticAtmospheres.jl")
+include("Atmospheres/Atmospheres.jl")
 
-using .PrescribedAtmospheres:
+using .Atmospheres
+
+using .Atmospheres:
     PrescribedAtmosphere,
     PrescribedAtmosphereThermodynamicsParameters,
     TwoBandDownwellingRadiation
