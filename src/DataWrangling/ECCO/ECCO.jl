@@ -2,6 +2,7 @@ module ECCO
 
 export ECCOMetadata, ECCO_field, ECCO_mask, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
+export ECCODarwinMetadata, ECCO4DarwinMonthly, ECCO270DarwinMonthly
 export ECCORestoring, LinearlyTaperedPolarMask
 
 using ClimaOcean
@@ -32,6 +33,8 @@ end
 include("ECCO_metadata.jl")
 include("ECCO_mask.jl")
 include("ECCO_restoring.jl")
+
+include("ECCODarwin.jl")
 
 # Vertical coordinate
 const ECCO_z = [
@@ -90,7 +93,7 @@ const ECCO_z = [
 
 empty_ECCO_field(variable_name::Symbol; kw...) = empty_ECCO_field(ECCOMetadata(variable_name); kw...)
 
-function empty_ECCO_field(metadata::ECCOMetadata;
+function empty_ECCO_field(metadata::Union{ECCOMetadata,ECCODarwinMetadata};
                           architecture = CPU(), 
                           horizontal_halo = (7, 7))
 
@@ -235,15 +238,15 @@ end
 # Fallback
 ECCO_field(var_name::Symbol; kw...) = ECCO_field(ECCOMetadata(var_name); kw...)
 
-function inpainted_metadata_filename(metadata::ECCOMetadata)
+function inpainted_metadata_filename(metadata::Union{ECCOMetadata,ECCODarwinMetadata})
     original_filename = metadata_filename(metadata)
     without_extension = original_filename[1:end-3]
     return without_extension * "_inpainted.jld2"
 end
 
-inpainted_metadata_path(metadata::ECCOMetadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
+inpainted_metadata_path(metadata::Union{ECCOMetadata,ECCODarwinMetadata}) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
 
-function set!(field::Field, ECCO_metadata::ECCOMetadata; kw...)
+function set!(field::Field, ECCO_metadata::Union{ECCOMetadata,ECCODarwinMetadata}; kw...)
 
     # Fields initialized from ECCO
     grid = field.grid
