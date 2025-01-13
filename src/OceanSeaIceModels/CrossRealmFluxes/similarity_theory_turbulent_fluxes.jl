@@ -167,7 +167,9 @@ struct COARELogarithmicSimilarityProfile end
                                           surface_state,
                                           atmos_state,
                                           prescribed_heat_fluxes, # Possibly use in state_differences
-                                          radiative_properties,
+                                          stefan_boltzmann_constant,
+                                          albedo,
+                                          emissivity,
                                           surface_phase,
                                           surface_salinity,
                                           surface_density,
@@ -227,7 +229,9 @@ struct COARELogarithmicSimilarityProfile end
                                                  atmos_boundary_layer_height,
                                                  thermodynamics_parameters,
                                                  prescribed_heat_fluxes,
-                                                 radiative_properties,
+                                                 stefan_boltzmann_constant,
+                                                 albedo,
+                                                 emissivity,
                                                  gravitational_acceleration,
                                                  von_karman_constant)
         iteration += 1
@@ -284,7 +288,9 @@ end
                                              atmos_boundary_layer_height,
                                              thermodynamics_parameters,
                                              prescribed_heat_fluxes,
-                                             radiative_properties,
+                                             stefan_boltzmann_constant,
+                                             albedo,
+                                             emissivity,
                                              gravitational_acceleration,
                                              von_karman_constant)
 
@@ -301,7 +307,9 @@ end
                                                vapor_saturation,
                                                similarity_theory.surface_temperature_type,
                                                prescribed_heat_fluxes,
-                                               radiative_properties,
+                                               stefan_boltzmann_constant,
+                                               albedo,
+                                               emissivity,
                                                similarity_theory.bulk_velocity,
                                                surface_phase)
                                                

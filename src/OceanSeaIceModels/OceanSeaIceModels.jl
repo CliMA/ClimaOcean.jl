@@ -60,7 +60,7 @@ import .CrossRealmFluxes:
     compute_atmosphere_ocean_fluxes!,
     compute_atmosphere_sea_ice_fluxes!,
     compute_sea_ice_ocean_fluxes!,
-    limit_fluxes_over_sea_ice!
+    adjust_fluxes_over_sea_ice!
 
 include("ocean_sea_ice_model.jl")
 include("freezing_limited_ocean_temperature.jl")

@@ -1,4 +1,4 @@
-using .CrossRealmFluxes: compute_atmosphere_ocean_fluxes!, compute_sea_ice_ocean_fluxes!
+using .CrossRealmFluxes: compute_atmosphere_ocean_fluxes!, compute_sea_ice_ocean_fluxes!, interpolate_atmospheric_state!
 
 using ClimaSeaIce: SeaIceModel
 
@@ -43,6 +43,7 @@ end
 function update_state!(coupled_model::OceanSeaIceModel, callbacks=[]; compute_tendencies=true)
     time = Time(coupled_model.clock.time)
     update_model_field_time_series!(coupled_model.atmosphere, time)
+    interpolate_atmospheric_state!(coupled_model)
     compute_atmosphere_ocean_fluxes!(coupled_model)
 
     # The atmospheric state is interpolated on the ocean grid in the previous 
@@ -51,5 +52,6 @@ function update_state!(coupled_model::OceanSeaIceModel, callbacks=[]; compute_te
     # the same horizontal grid.
     compute_atmosphere_sea_ice_fluxes!(coupled_model)
     compute_sea_ice_ocean_fluxes!(coupled_model)
+
     return nothing
 end

@@ -81,7 +81,7 @@ include("DataWrangling/DataWrangling.jl")
 include("Bathymetry.jl")
 include("Diagnostics/Diagnostics.jl")
 include("OceanSimulations/OceanSimulations.jl")
-include("SeaIceSimulations/SeaIceSimulations.jl")
+include("SeaIceSimulations.jl")
 
 using .VerticalGrids
 using .Bathymetry

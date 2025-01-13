@@ -14,7 +14,7 @@ function compute_sea_ice_ocean_salinity_flux!(coupled_model)
     ocean = coupled_model.ocean
     grid = ocean.model.grid
     arch = architecture(grid)
-    Qˢ = ocean.model.tracers.S.boundary_conditions.top.condition
+    Jˢ = ocean.model.tracers.S.boundary_conditions.top.condition
     Sₒ = ocean.model.tracers.S
     Sᵢ = sea_ice.model.ice_salinity
     Δt = ocean.Δt
@@ -22,7 +22,7 @@ function compute_sea_ice_ocean_salinity_flux!(coupled_model)
     h⁻ = coupled_model.fluxes.previous_ice_thickness
 
     launch!(arch, grid, :xy, _compute_sea_ice_ocean_salinity_flux!,
-            Qˢ, grid, hⁿ, h⁻, Sᵢ, Sₒ, Δt)
+            Jˢ, grid, hⁿ, h⁻, Sᵢ, Sₒ, Δt)
 
     return nothing
 end
@@ -40,7 +40,7 @@ end
 
     hⁿ = ice_thickness
     h⁻ = previous_ice_thickness
-    Qˢ = sea_ice_ocean_salinity_flux
+    Jˢ = sea_ice_ocean_salinity_flux
     Sᵢ = ice_salinity
     Sₒ = ocean_salinity
 
@@ -50,8 +50,8 @@ end
 
         # Update surface salinity flux.
         # Note: the Δt below is the ocean time-step, eg.
-        # ΔS = ⋯ - ∮ Qˢ dt ≈ ⋯ - Δtₒ * Qˢ 
-        Qˢ[i, j, 1] = Δh / Δt * (Sᵢ[i, j, 1] - Sₒ[i, j, Nz])
+        # ΔS = ⋯ - ∮ Jˢ dt ≈ ⋯ - Δtₒ * Jˢ 
+        Jˢ[i, j, 1] = Δh / Δt * (Sᵢ[i, j, 1] - Sₒ[i, j, Nz])
 
         # Update previous ice thickness
         h⁻[i, j, 1] = hⁿ[i, j, 1]

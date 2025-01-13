@@ -11,7 +11,9 @@ using Oceananigans.Grids: inactive_node
                                                                        surface_heat_capacity,
                                                                        surface_temperature_units,
                                                                        surface_atmos_state,
-                                                                       radiation,
+                                                                       stefan_boltzmann_constant,
+                                                                       albedo,
+                                                                       emissivity,
                                                                        mole_fraction,
                                                                        vapor_saturation,
                                                                        atmosphere_reference_height,
@@ -33,11 +35,11 @@ using Oceananigans.Grids: inactive_node
 
         # Extract state variables at cell centers
         # Ocean state
-        uₒ = ℑxᶜᵃᵃ(i, j, kᴺ, grid, surface_state.u)
-        vₒ = ℑyᵃᶜᵃ(i, j, kᴺ, grid, surface_state.v)
-        Tₒ = surface_state.T[i, j, kᴺ]
-        Tₒ = convert_to_kelvin(surface_temperature_units, Tₒ)
-        Sₒ = surface_state.S[i, j, kᴺ]
+        uₛ = ℑxᶜᵃᵃ(i, j, kᴺ, grid, surface_state.u)
+        vₛ = ℑyᵃᶜᵃ(i, j, kᴺ, grid, surface_state.v)
+        Tₛ = surface_state.T[i, j, kᴺ]
+        Tₛ = convert_to_kelvin(surface_temperature_units, Tₛ)
+        Sₛ = surface_state.S[i, j, kᴺ]
     end
 
     # Build thermodynamic and dynamic states in the atmosphere and surface.
@@ -53,31 +55,33 @@ using Oceananigans.Grids: inactive_node
     𝒰ₐ = dynamic_atmos_state = SurfaceFluxes.StateValues(hₐ, Uₐ, 𝒬ₐ)
 
     # Build surface state with saturated specific humidity
-    qₒ = seawater_saturation_specific_humidity(ℂₐ, Tₒ, Sₒ, 𝒬ₐ,
-                                               mole_fraction,
-                                               vapor_saturation,
-                                               surface_phase)
-
-    # Thermodynamic and dynamic (ocean) surface state:
-    Uₒ = SVector(uₒ, vₒ)
+    qₛ = seawater_saturation_specific_humidity(ℂₐ, Tₛ, Sₛ, 𝒬ₐ,
+                                              mole_fraction,
+                                              vapor_saturation,
+                                              surface_phase)
+    
+    # Thermodynamic and dynamic surface state:
+    Uₛ = SVector(uₛ, vₛ)
      
-    𝒬₀ = thermodynamic_surface_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₒ, qₒ)
+    𝒬₀ = thermodynamic_surface_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₛ, qₛ)
     h₀ = zero(grid) # surface height
-    𝒰₀ = dynamic_surface_state = SurfaceFluxes.StateValues(h₀, Uₒ, 𝒬₀)
+    𝒰₀ = dynamic_surface_state = SurfaceFluxes.StateValues(h₀, Uₛ, 𝒬₀)
 
     # Some parameters
     g = default_gravitational_acceleration
     
-    surface_salinity = Sₒ
-    prescribed_heat_fluxes = net_downwelling_radiation(i, j, grid, time, radiation, Qs, Qℓ) 
-    radiative_properties = local_radiation_properties(i, j, kᴺ, grid, time, radiation)
+    surface_salinity = Sₛ
+    σ = stefan_boltzmann_constant
+    α = stateindex(albedo, i, j, 1, grid, time)
+    ϵ = stateindex(emissivity, i, j, 1, grid, time)
+    prescribed_heat_fluxes = net_downwelling_radiation(i, j, grid, time, α, ϵ, Qs, Qℓ) 
     inactive_cell = inactive_node(i, j, kᴺ, grid, Center(), Center(), Center())
 
     turbulent_fluxes, surface_temperature = compute_turbulent_fluxes(coefficients,
                                                                      dynamic_surface_state, 
                                                                      dynamic_atmos_state, 
                                                                      prescribed_heat_fluxes,
-                                                                     radiative_properties,
+                                                                     σ, α, ϵ,
                                                                      surface_phase,
                                                                      surface_salinity,
                                                                      surface_density,
@@ -106,80 +110,3 @@ using Oceananigans.Grids: inactive_node
     end
 end
 
-@kernel function _assemble_atmosphere_sea_ice_fluxes!(centered_velocity_fluxes,
-                                                      net_tracer_fluxes,
-                                                      grid,
-                                                      clock,
-                                                      sea_ice_temperature,
-                                                      sea_ice_salinity,
-                                                      sea_ice_temperature_units,
-                                                      turbulent_fluxes,
-                                                      downwelling_radiation,
-                                                      prescribed_freshwater_flux,
-                                                      radiation_properties,
-                                                      sea_ice_reference_density,
-                                                      sea_ice_heat_capacity,
-                                                      freshwater_density)
-
-    i, j = @index(Global, NTuple)
-    kᴺ = size(grid, 3)
-    time = Time(clock.time)
-
-    @inbounds begin
-        Tₒ = sea_ice_temperature[i, j, kᴺ]
-        Tₒ = convert_to_kelvin(sea_ice_temperature_units, Tₒ)
-        Sₒ = sea_ice_salinity[i, j, kᴺ]
-
-        Qs = downwelling_radiation.shortwave[i, j, 1]
-        Qℓ = downwelling_radiation.longwave[i, j, 1]
-
-        Mp = prescribed_freshwater_flux[i, j, 1]
-
-        Qc  = turbulent_fluxes.sensible_heat[i, j, 1] # sensible or "conductive" heat flux
-        Qv  = turbulent_fluxes.latent_heat[i, j, 1]   # latent heat flux
-        Mv  = turbulent_fluxes.water_vapor[i, j, 1]   # mass flux of water vapor
-        ρτx = turbulent_fluxes.x_momentum[i, j, 1]    # zonal momentum flux
-        ρτy = turbulent_fluxes.y_momentum[i, j, 1]    # meridional momentum flux
-    end
-
-    # Compute heat fluxes, bulk flux first
-    Qd = net_downwelling_radiation(i, j, grid, time, radiation_properties, Qs, Qℓ)
-    Qu = net_upwelling_radiation(i, j, grid, time, radiation_properties, Tₒ)
-
-    ΣQ = Qd + Qu + Qc + Qv
-
-    # Convert from a mass flux to a volume flux (aka velocity)
-    # by dividing with the density of freshwater.
-    # Also switch the sign, for some reason we are given freshwater flux as positive down.
-    ρf⁻¹ = 1 / freshwater_density
-    ΣF   = - Mp * ρf⁻¹
-
-    # Add the contribution from the turbulent water vapor flux, which has
-    # a different sign convention as the prescribed water mass fluxes (positive upwards)
-    Fv = Mv * ρf⁻¹
-    ΣF += Fv
-
-    # Compute fluxes for u, v, T, S from momentum, heat, and freshwater fluxes
-    τx = centered_velocity_fluxes.u
-    τy = centered_velocity_fluxes.v
-    Jᵀ = net_tracer_fluxes.T
-    Jˢ = net_tracer_fluxes.S
-
-    ρₒ⁻¹ = 1 / sea_ice_reference_density
-    cₒ   = sea_ice_heat_capacity
-
-    atmos_ocean_τx = ρτx * ρₒ⁻¹
-    atmos_ocean_τy = ρτy * ρₒ⁻¹
-    atmos_ocean_Jᵀ = ΣQ  * ρₒ⁻¹ / cₒ
-    atmos_ocean_Jˢ = - Sₒ * ΣF
-
-    # Mask fluxes over land for convenience
-    inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
-
-    @inbounds begin
-        τx[i, j, 1] = ifelse(inactive, 0, atmos_ocean_τx)
-        τy[i, j, 1] = ifelse(inactive, 0, atmos_ocean_τy)
-        Jᵀ[i, j, 1] = ifelse(inactive, 0, atmos_ocean_Jᵀ)
-        Jˢ[i, j, 1] = ifelse(inactive, 0, atmos_ocean_Jˢ)
-    end
-end

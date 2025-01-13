@@ -1,10 +1,10 @@
-using Thermodynamics: Liquid
+using Thermodynamics: Liquid, Ice
 
 struct ClasiusClapyeronSaturation end
  
-@inline function water_saturation_specific_humidity(::ClasiusClapyeronSaturation, ℂₐ, ρₛ, Tₛ)
+@inline function saturation_specific_humidity(::ClasiusClapyeronSaturation, ℂₐ, ρₛ, Tₛ, phase)
     FT = eltype(ℂₐ)
-    p★ = Thermodynamics.saturation_vapor_pressure(ℂₐ, convert(FT, Tₛ), Liquid())
+    p★ = Thermodynamics.saturation_vapor_pressure(ℂₐ, convert(FT, Tₛ), phase)
     q★ = Thermodynamics.q_vap_saturation_from_density(ℂₐ, convert(FT, Tₛ), ρₛ, p★)
     return q★
 end
@@ -68,15 +68,36 @@ end
                                                        ::Liquid)
 
     ℂₐ = atmosphere_thermodynamics_parameters
-    FT = eltype(ℂₐ)
     Tₛ = surface_temperature
     Sₛ = surface_salinity
+
+    FT = eltype(ℂₐ)
     ρₛ = atmos_state.ρ # surface density -- should we extrapolate to obtain this?
     ρₛ = convert(FT, ρₛ)
 
-    q★_H₂O = water_saturation_specific_humidity(water_vapor_saturation, ℂₐ, ρₛ, Tₛ)
+    q★_H₂O = saturation_specific_humidity(water_vapor_saturation, ℂₐ, ρₛ, Tₛ, Liquid())
     x_H₂O  = compute_water_mole_fraction(water_mole_fraction, Sₛ)
 
     # Return saturation specific humidity for salty seawater
     return q★_H₂O * x_H₂O
 end
+
+@inline function seawater_saturation_specific_humidity(atmosphere_thermodynamics_parameters,
+                                                       surface_temperature,
+                                                       surface_salinity,
+                                                       atmos_state,
+                                                       water_mole_fraction,
+                                                       water_vapor_saturation,
+                                                       ::Ice)
+
+    ℂₐ = atmosphere_thermodynamics_parameters
+    Tₛ = surface_temperature
+
+    FT = eltype(ℂₐ)
+    ρₛ = atmos_state.ρ # surface density -- should we extrapolate to obtain this?
+    ρₛ = convert(FT, ρₛ)
+
+    q★ = saturation_specific_humidity(water_vapor_saturation, ℂₐ, ρₛ, Tₛ, Ice())
+    return q★
+end
+

@@ -19,6 +19,23 @@ import ClimaOcean: stateindex
 ##### Utilities
 #####
 
+const c = Center()
+const f = Face()
+
+function surface_computations_kernel_parameters(grid)
+    Nx, Ny, Nz = size(grid)
+    single_column_grid = Nx == 1 && Ny == 1
+
+    if single_column_grid
+        kernel_parameters = KernelParameters(1:1, 1:1)
+    else
+        # Compute fluxes into halo regions, ie from 0:Nx+1 and 0:Ny+1
+        kernel_parameters = KernelParameters(0:Nx+1, 0:Ny+1)
+    end
+
+    return kernel_parameters
+end
+
 function surface_flux(f::AbstractField)
     top_bc = f.boundary_conditions.top
     if top_bc isa BoundaryCondition{<:Oceananigans.BoundaryConditions.Flux}
@@ -44,7 +61,9 @@ include("constant_coefficient_turbulent_fluxes.jl")
 
 # Total fluxes
 include("cross_realm_surface_fluxes.jl")
+include("interpolate_atmospheric_state.jl")
 include("compute_atmosphere_surface_fluxes.jl")
+include("assemble_interface_fluxes.jl")
 include("atmosphere_ocean_fluxes.jl")
 include("atmosphere_sea_ice_fluxes.jl")
 include("sea_ice_ocean_fluxes.jl")

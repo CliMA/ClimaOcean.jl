@@ -54,7 +54,9 @@ end
                                    water_vapor_saturation,
                                    surface_temperature_type, 
                                    prescribed_heat_fluxes,
-                                   radiative_properties,
+                                   stefan_boltzmann_constant,
+                                   albedo,
+                                   emissivity, 
                                    bulk_velocity,
                                    surface_phase)
     z₁ = 𝒰₁.z
@@ -72,7 +74,9 @@ end
 
     θ₀ = compute_surface_temperature(surface_temperature_type, θ₀, ℂ, 𝒬₀, ρₐ, cₚ, ℰv, Σ★, ρₒ, cpₒ, g,
                                      prescribed_heat_fluxes, 
-                                     radiative_properties)
+                                     stefan_boltzmann_constant,
+                                     albedo,
+                                     emissivity)
 
     θ₁ = AtmosphericThermodynamics.air_temperature(ℂ, 𝒬₁)
 

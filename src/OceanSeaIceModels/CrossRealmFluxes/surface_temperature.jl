@@ -2,13 +2,6 @@ using CUDA: @allowscalar
 import Thermodynamics as AtmosphericThermodynamics  
 
 ####
-#### Utilities
-####
-
-@inline upwelling_radiation(θ₀, ::Nothing) = zero(θ₀)
-@inline upwelling_radiation(θ₀, r) = r.σ * r.ϵ * θ₀^4
-
-####
 #### Bulk surface temperature (the easiest case)
 ####
 
@@ -50,7 +43,7 @@ end
 
 struct DiffusiveFlux{Z, K}
     δ :: Z # Boundary layer thickness, as a first guess we will use half the grid spacing
-    κ :: K # diffusivity in m²s⁻¹
+    κ :: K # diffusivity in m² s⁻¹
 end
 
 # A default constructor for SkinTemperature
@@ -83,14 +76,14 @@ DiffusiveFlux(FT; κ = 1e-2, δ = 1.0) = DiffusiveFlux(convert(FT, δ), convert(
 # the flaw here is that the ocean emissivity and albedo are fixed, but they might be a function of the
 # surface temperature, so we might need to pass the radiation and the albedo and emissivity as arguments.
 @inline function compute_surface_temperature(st::SkinTemperature, θₛ, ℂ, 𝒬₀,
-                                            ρₐ, cₚ, ℰv, Σ★, ρₒ, cpₒ, g,
-                                            prescribed_heat_fluxes,
-                                            radiation_properties)
+                                             ρₐ, cₚ, ℰv, Σ★, ρₒ, cpₒ, g,
+                                             prescribed_heat_fluxes,
+                                             σ, α, ϵ)
 
     Rd = prescribed_heat_fluxes # net downwelling radiation (positive out of the ocean)
 
     # upwelling radiation is calculated explicitly 
-    Ru = upwelling_radiation(θₛ, radiation_properties) 
+    Ru = upwelling_radiation(θₛ, σ, ϵ)
     Rn = Rd + Ru # Net radiation (positive out of the ocean)
 
     u★ = Σ★.momentum
@@ -108,3 +101,4 @@ DiffusiveFlux(FT; κ = 1e-2, δ = 1.0) = DiffusiveFlux(convert(FT, δ), convert(
 
     return θₛ
 end
+

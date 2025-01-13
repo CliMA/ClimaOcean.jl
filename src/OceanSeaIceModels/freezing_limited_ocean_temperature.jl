@@ -37,7 +37,7 @@ function compute_sea_ice_ocean_fluxes!(cm::FreezingLimitedCoupledModel)
     Sₒ = ocean.model.tracers.S
     Tₒ = ocean.model.tracers.T
 
-    launch!(arch, grid, :xyz,  above_freezing_ocean_temperature!, Tₒ, Sₒ, liquidus)
+    launch!(arch, grid, :xyz, above_freezing_ocean_temperature!, Tₒ, Sₒ, liquidus)
 
     return nothing
 end
@@ -55,14 +55,14 @@ end
     @inbounds Tₒ[i, j, k] = ifelse(Tᵢ < Tₘ, Tₘ, Tᵢ)
 end
 
-function limit_fluxes_over_sea_ice!(grid, kernel_parameters,
+function adjust_fluxes_over_sea_ice!(grid, kernel_parameters,
                                     sea_ice::FreezingLimitedOceanTemperature,
                                     centered_velocity_fluxes,
                                     net_tracer_fluxes,
                                     ocean_temperature,
                                     ocean_salinity)
     
-    launch!(architecture(grid), grid, kernel_parameters, _limit_fluxes_over_sea_ice!,
+    launch!(architecture(grid), grid, kernel_parameters, _adjust_fluxes_over_sea_ice!,
             centered_velocity_fluxes,
             net_tracer_fluxes,
             grid,
@@ -73,12 +73,12 @@ function limit_fluxes_over_sea_ice!(grid, kernel_parameters,
     return nothing
 end
 
-@kernel function _limit_fluxes_over_sea_ice!(centered_velocity_fluxes,
-                                             net_tracer_fluxes,
-                                             grid,
-                                             liquidus,
-                                             ocean_temperature,
-                                             ocean_salinity)
+@kernel function _adjust_fluxes_over_sea_ice!(centered_velocity_fluxes,
+                                              net_tracer_fluxes,
+                                              grid,
+                                              liquidus,
+                                              ocean_temperature,
+                                              ocean_salinity)
 
     i, j = @index(Global, NTuple)
     kᴺ = size(grid, 3)

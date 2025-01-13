@@ -29,12 +29,11 @@ using KernelAbstractions: @kernel, @index
 ##### Container for organizing information related to fluxes
 #####
 
-struct CrossRealmSurfaceFluxes{T, P, C, R, PI, PC, FT, UN, ATM}
+struct CrossRealmSurfaceFluxes{T, C, R, PI, PC, FT, UN, ATM}
     turbulent :: T # turbulent atmopshere fluxes
     # atmosphere_ocean
     # atmosphere_sea_ice
     # sea_ice_ocean
-    prescribed :: P
     # Add `components` which will also store components of the total fluxes
     # (eg latent, sensible heat flux)
     total :: C
@@ -54,8 +53,7 @@ struct CrossRealmSurfaceFluxes{T, P, C, R, PI, PC, FT, UN, ATM}
     surface_atmosphere_state :: ATM
 end
 
-struct TurbulentFluxes{T, FT, C, W, I, M, F}
-    thermodynamic_parameters :: T
+struct TurbulentFluxes{FT, C, W, I, M, F}
     gravitational_acceleration :: FT
     coefficients :: C
     water_vapor_saturation :: W    # model for computing the saturation water vapor mass over ocean
@@ -78,10 +76,8 @@ Base.summary(crf::CrossRealmSurfaceFluxes) = "CrossRealmSurfaceFluxes"
 Base.show(io::IO, crf::CrossRealmSurfaceFluxes) = print(io, summary(crf))
 
 """
-    We need a docstring...
+    CrossRealmSurfaceFluxes(ocean, sea_ice=nothing; kw...)
 
-- `thermodynamics_parameters`: The thermodynamics parameters used to calculate atmospheric stability and
-                               saturation pressure. Default: `PATP(FT)`, alias for `PrescribedAtmosphereThermodynamicsParameters`.
 - `water_vapor_saturation`: The water vapor saturation law. Default: `ClasiusClapyeronSaturation()` that follows the 
                             Clasius-Clapyeron pressure formulation.
 - `water_mole_fraction`: The water mole fraction used to calculate the `seawater_saturation_specific_humidity`. 
@@ -91,13 +87,11 @@ function CrossRealmSurfaceFluxes(ocean, sea_ice=nothing;
                                  atmosphere = nothing,
                                  radiation = nothing,
                                  freshwater_density = 1000,
-                                 prescribed_fluxes = nothing, # ?? Is this ever used ??
                                  surface_temperature_units = DegreesCelsius(),
                                  turbulent_coefficients = nothing,
                                  water_vapor_saturation = ClasiusClapyeronSaturation(),
                                  ice_vapor_saturation = ClasiusClapyeronSaturation(),
                                  water_mole_fraction = 0.98,
-                                 thermodynamics_parameters = nothing,
                                  ocean_reference_density = reference_density(ocean),
                                  ocean_heat_capacity = heat_capacity(ocean),
                                  ice_reference_density = reference_density(sea_ice),
@@ -114,10 +108,6 @@ function CrossRealmSurfaceFluxes(ocean, sea_ice=nothing;
     water_mole_fraction = convert(FT, water_mole_fraction)
     
     if !isnothing(atmosphere)
-        if isnothing(thermodynamics_parameters)
-            thermodynamics_parameters = PATP(FT)
-        end
-
         # It's the "thermodynamics gravitational acceleration"
         # (as opposed to the one used for the free surface)
         gravitational_acceleration = ocean.model.buoyancy.formulation.gravitational_acceleration
@@ -139,11 +129,10 @@ function CrossRealmSurfaceFluxes(ocean, sea_ice=nothing;
             turbulent_coefficients = (ocean=ocean_fluxes, sea_ice=sea_ice_fluxes)
         elseif !(turbulent_coefficients isa NamedTuple)            
             turbulent_coefficients = (ocean=turbulent_coefficients, 
-                                    sea_ice=turbulent_coefficients)
+                                      sea_ice=turbulent_coefficients)
         end
 
-        turbulent_fluxes = TurbulentFluxes(thermodynamics_parameters,
-                                           gravitational_acceleration,
+        turbulent_fluxes = TurbulentFluxes(gravitational_acceleration,
                                            turbulent_coefficients,
                                            water_vapor_saturation,
                                            ice_vapor_saturation,
@@ -174,7 +163,6 @@ function CrossRealmSurfaceFluxes(ocean, sea_ice=nothing;
     surface_atmosphere_state = interpolated_surface_atmosphere_state(ocean_grid)
 
     return CrossRealmSurfaceFluxes(turbulent_fluxes,
-                                   prescribed_fluxes,
                                    total_fluxes,
                                    radiation,
                                    previous_ice_thickness,
@@ -208,7 +196,7 @@ function ocean_surface_fluxes(model, ρₛ, cₛ)
 
     tracers = model.tracers
     surface_tracer_fluxes = NamedTuple(name => surface_flux(tracers[name])
-                                     for name in keys(tracers))
+                                       for name in keys(tracers))
 
     surface_heat_flux = ρₛ * cₛ * surface_tracer_fluxes.T
 
