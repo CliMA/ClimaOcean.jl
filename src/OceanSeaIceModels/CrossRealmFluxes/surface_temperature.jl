@@ -12,11 +12,12 @@ import Thermodynamics as AtmosphericThermodynamics
 #### Bulk surface temperature (the easiest case)
 ####
 
-""" 
-    struct BulkTemperature end
+"""
+    struct BulkTemperature
 
-Represents the surface temperature used in fixed-point iteration for surface fluxes following similarity theory.
-The surface temperature is not calculated but provided by either the ocean or the sea ice model.
+A type to represent the surface temperature used in fixed-point iteration for surface
+fluxes following similarity theory. The surface temperature is not calculated but instead
+provided by either the ocean or the sea ice model.
 """
 struct BulkTemperature end
 
@@ -29,17 +30,19 @@ struct BulkTemperature end
 
 """ 
     struct SkinTemperature     
-        internal_flux :: I
-    end
 
 A type to represent the surface temperature used in the flux calculation.
 The surface temperature is calculated from the flux balance at the surface.
 In particular, the surface temperature ``θₛ`` is the root of:
  
-F(θₛ) - Jᵀ = 0 (all fluxes positive upwards)
+```math
+F(θₛ) - Jᵀ = 0
+```
 
-where Jᵀ are the fluxes at the top of the surface (turbulent + radiative), and F is the internal diffusive flux
-dependent on the surface temperature itself.
+where ``Jᵀ`` are the fluxes at the top of the surface (turbulent + radiative), and
+``F`` is the internal diffusive flux dependent on the surface temperature itself.
+
+Note that all fluxes positive upwards.
 """
 struct SkinTemperature{I}
     internal_flux :: I
@@ -77,19 +80,19 @@ DiffusiveFlux(FT; κ = 1e-2, δ = 1.0) = DiffusiveFlux(convert(FT, δ), convert(
 # that can be explored in the future.
 @inline flux_balance_temperature(F::DiffusiveFlux, θₒ, Jᵀ) = θₒ - Jᵀ / F.κ * F.δ
 
-# he flaw here is that the ocean emissivity and albedo are fixed, but they might be a function of the 
+# the flaw here is that the ocean emissivity and albedo are fixed, but they might be a function of the
 # surface temperature, so we might need to pass the radiation and the albedo and emissivity as arguments.
-@inline function compute_surface_temperature(st::SkinTemperature, θₛ, ℂ, 𝒬₀, 
-                                            ρₐ, cₚ, ℰv, Σ★, ρₒ, cpₒ, g, 
-                                            prescribed_heat_fluxes, 
+@inline function compute_surface_temperature(st::SkinTemperature, θₛ, ℂ, 𝒬₀,
+                                            ρₐ, cₚ, ℰv, Σ★, ρₒ, cpₒ, g,
+                                            prescribed_heat_fluxes,
                                             radiation_properties)
 
     Rd = prescribed_heat_fluxes # net downwelling radiation (positive out of the ocean)
-    
+
     # upwelling radiation is calculated explicitly 
     Ru = upwelling_radiation(θₛ, radiation_properties) 
     Rn = Rd + Ru # Net radiation (positive out of the ocean)
-    
+
     u★ = Σ★.momentum
     θ★ = Σ★.temperature
     q★ = Σ★.water_vapor
