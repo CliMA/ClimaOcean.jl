@@ -44,8 +44,6 @@ using DataDeps
 using Oceananigans.OutputReaders: GPUAdaptedFieldTimeSeries, FieldTimeSeries
 using Oceananigans.Grids: node
 
-include("distributed_utils.jl")
-
 const SomeKindOfFieldTimeSeries = Union{FieldTimeSeries,
                                         GPUAdaptedFieldTimeSeries}
 
@@ -74,6 +72,7 @@ end
     return NamedTuple{names}(vals)
 end
 
+include("DistributedUtils.jl")
 include("OceanSeaIceModels/OceanSeaIceModels.jl")
 include("VerticalGrids.jl")
 include("InitialConditions/InitialConditions.jl")
@@ -83,6 +82,7 @@ include("Diagnostics/Diagnostics.jl")
 include("OceanSimulations.jl")
 include("SeaIceSimulations.jl")
 
+using .DistributedUtils
 using .VerticalGrids
 using .Bathymetry
 using .DataWrangling
