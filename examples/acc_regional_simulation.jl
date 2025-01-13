@@ -40,7 +40,7 @@ dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGre
 # no restoring   0    linear mask     1   mask = 1   1
 #
 
-const φN₁ = -22
+const φN₁ = -23
 const φN₂ = -25
 const φS₁ = -78
 const φS₂ = -75
@@ -66,10 +66,10 @@ end
      return - p.rate * fields.v[i, j, k] * northern_mask(φ)
 end
 
-forcing = (T=ECCORestoring(:temperature, grid; dates, rate=1/2days, mask=tracer_mask),
-	   S=ECCORestoring(:salinity,    grid; dates, rate=1/2days, mask=tracer_mask),
-	   u=Forcing(u_restoring; discrete_form=true, parameters=(; rate=1/2days)),
-	   v=Forcing(v_restoring; discrete_form=true, parameters=(; rate=1/2days)))
+forcing = (T=ECCORestoring(:temperature, grid; dates, rate=1/5days, mask=tracer_mask),
+	      S=ECCORestoring(:salinity,    grid; dates, rate=1/5days, mask=tracer_mask),
+	      u=Forcing(u_restoring; discrete_form=true, parameters=(; rate=1/5days)),
+	      v=Forcing(v_restoring; discrete_form=true, parameters=(; rate=1/5days)))
 
 ocean = ocean_simulation(grid; forcing)
 model = ocean.model
@@ -108,7 +108,7 @@ end
 coupled_simulation.callbacks[:progress] = Callback(progress, TimeInterval(4hours)) 
 
 ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, model.velocities);
-                                                  schedule = TimeInterval(1days),
+                                                  schedule = TimeInterval(5days),
                                                   filename = "surface",
                                                   indices = (:, :, grid.Nz),
                                                   overwrite_existing = true,
@@ -127,7 +127,7 @@ nothing #hide
 # initialization shocks.
 
 coupled_simulation.stop_time = 10days
-coupled_simulation.Δt = 1minutes
+coupled_simulation.Δt = 2minutes
 run!(coupled_simulation)
 nothing #hide
 
