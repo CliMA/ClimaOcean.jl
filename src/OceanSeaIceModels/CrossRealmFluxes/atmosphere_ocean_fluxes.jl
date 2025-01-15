@@ -126,7 +126,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     launch!(arch, grid, :xy, reconstruct_momentum_fluxes!,
             grid, staggered_velocity_fluxes, centered_velocity_fluxes)
 
-    regrid_fluxes_to_atmospheric_model!(atmosphere, net_tracer_fluxes, centered_velocity_fluxes)
+    regrid_fluxes_to_atmospheric_model!(atmosphere, similarity_theory.fields)
 
     return nothing
 end
