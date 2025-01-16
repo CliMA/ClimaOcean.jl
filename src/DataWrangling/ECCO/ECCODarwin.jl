@@ -151,9 +151,6 @@ Base.size(::ECCODarwinMetadata{<:AbstractCFDateTime, <:Any, <:ECCO4DarwinMonthly
 all_ECCO_dates(::ECCO4DarwinMonthly)   = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(2023, 12, 31)
 all_ECCO_dates(::ECCO270DarwinMonthly) = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(2023, 12, 31)
 
-# File names of metadata containing multiple dates
-metadata_filename(metadata) = [metadata_filename(metadatum) for metadatum in metadata]
-
 # File name generation specific to each Dataset version
 function metadata_filename(metadata::ECCODarwinMetadata{<:AbstractCFDateTime})
     shortname = short_name(metadata)
