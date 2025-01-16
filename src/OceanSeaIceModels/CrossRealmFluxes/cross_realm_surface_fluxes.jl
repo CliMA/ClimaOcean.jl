@@ -29,37 +29,37 @@ using KernelAbstractions: @kernel, @index
 ##### Container for organizing information related to fluxes
 #####
 
-struct CrossRealmSurfaceFluxes{T, C, R, PI, PC, FT, UN, ATM}
-    turbulent :: T # turbulent atmopshere fluxes
-    # atmosphere_ocean
-    # atmosphere_sea_ice
-    # sea_ice_ocean
-    # Add `components` which will also store components of the total fluxes
-    # (eg latent, sensible heat flux)
-    total :: C
-    radiation :: R
-    previous_ice_thickness :: PI
-    previous_ice_concentration :: PC
-    # The ocean is Boussinesq, so these are _only_ coupled properties:
-    ocean_reference_density :: FT
-    ocean_heat_capacity :: FT
-    ice_reference_density :: FT
-    ice_heat_capacity :: FT
-    freshwater_density :: FT
-    ocean_temperature_units :: UN
-    ice_temperature_units :: UN
-    # Scratch space to store the atmosphere state at the surface 
-    # interpolated to the ocean grid
-    surface_atmosphere_state :: ATM
+struct AtmosphereInterface{J, F, ST, P}
+    fluxes :: J
+    flux_formulation :: F
+    temperature :: ST
+    properties :: P
 end
 
-struct TurbulentFluxes{FT, C, W, I, M, F}
+struct SeaIceOceanInterface{J, P, H, A}
+    fluxes :: J 
+    properties :: P
+    previous_ice_thickness :: H
+    previous_ice_concentration :: A
+end
+
+#struct Interfaces{AO, ASI, SIO, C, OP, SIP, ATM}
+struct CrossRealmSurfaceFluxes{AO, ASI, SIO, C, AP, OP, SIP, ATM}
+    atmosphere_ocean_interface :: AO
+    atmosphere_sea_ice_interface :: ASI
+    sea_ice_ocean_interface :: SIO
+    atmosphere_properties :: AP
+    ocean_properties :: OP
+    sea_ice_properties :: SIP
+    # Scratch space to hold the near-surface atmosphere state
+    # interpolated to the ocean grid
+    near_surface_atmosphere_state :: ATM
+    net_fluxes :: C
+end
+
+struct TurbulentFluxes{FT, C, M, F}
     gravitational_acceleration :: FT
     coefficients :: C
-    water_vapor_saturation :: W    # model for computing the saturation water vapor mass over ocean
-    ice_vapor_saturation :: I      # model for computing the saturation water vapor mass over ice
-    water_mole_fraction :: M       # mole fraction of H₂O in seawater
-    fields :: F                    # fields that store turbulent fluxes
 end
 
 const PATP = PrescribedAtmosphereThermodynamicsParameters
@@ -75,134 +75,185 @@ const celsius_to_kelvin = 273.15
 Base.summary(crf::CrossRealmSurfaceFluxes) = "CrossRealmSurfaceFluxes"
 Base.show(io::IO, crf::CrossRealmSurfaceFluxes) = print(io, summary(crf))
 
+function atmosphere_ocean_interface(ocean, radiation, temperature_formulation, specific_humidity_formulation)
+    water_vapor   = Field{Center, Center, Nothing}(ocean.model.grid)
+    latent_heat   = Field{Center, Center, Nothing}(ocean.model.grid)
+    sensible_heat = Field{Center, Center, Nothing}(ocean.model.grid)
+    x_momentum    = Field{Center, Center, Nothing}(ocean.model.grid)
+    y_momentum    = Field{Center, Center, Nothing}(ocean.model.grid)
+    ao_fluxes = (; latent_heat, sensible_heat, water_vapor, x_momentum, y_momentum)
+
+    σ = radiation.stefan_boltzmann_constant
+    αₐₒ = radiation.reflection.ocean
+    ϵₐₒ = radiation.emission.ocean
+    ao_radiation = (σ=σ, α=αₐₒ, ϵ=ϵₐₒ)
+    ao_phase = AtmosphericThermodynamics.Liquid()
+
+    FT = eltype(ocean.model.grid)
+    water_mole_fraction = convert(FT, 0.98)
+    ao_properties = InterfaceProperties(ao_radiation,
+                                        specific_humidity_formulation,
+                                        temperature_formulation)
+
+    ao_flux_formulation = SimilarityTheoryFluxes()
+    interface_temperature = Field{Center, Center, Nothing}(ocean.model.grid)
+
+    return AtmosphereInterface(ao_fluxes, ao_flux_formulation, interface_temperature, ao_properties)
+end
+
+atmosphere_sea_ice_interface(::Nothing, args...) = nothing
+
+function atmosphere_sea_ice_interface(sea_ice, radiation, temperature_formulation)
+    water_vapor   = Field{Center, Center, Nothing}(sea_ice.model.grid)
+    latent_heat   = Field{Center, Center, Nothing}(sea_ice.model.grid)
+    sensible_heat = Field{Center, Center, Nothing}(sea_ice.model.grid)
+    x_momentum    = Field{Center, Center, Nothing}(sea_ice.model.grid)
+    y_momentum    = Field{Center, Center, Nothing}(sea_ice.model.grid)
+    fluxes = (; latent_heat, sensible_heat, water_vapor, x_momentum, y_momentum)
+
+    σ = radiation.stefan_boltzmann_constant
+    αₐᵢ = radiation.reflection.sea_ice
+    ϵₐᵢ = radiation.emission.sea_ice
+    radiation = (σ=σ, α=αₐᵢ, ϵ=ϵₐᵢ)
+    phase = AtmosphericThermodynamics.Ice()
+    specific_humidity_formulation = SpecificHumidityFormulation(phase)
+    properties = InterfaceProperties(radiation,
+                                     specific_humidity_formulation,
+                                     temperature_formulation)
+
+    ai_flux_formulation = sea_ice_similarity_theory(sea_ice)
+    interface_temperature = Field{Center, Center, Nothing}(sea_ice.model.grid)
+
+    return AtmosphereInterface(fluxes, ai_flux_formulation, interface_temperature, properties)
+end
+
+sea_ice_ocean_interface(::Nothing, ocean) = nothing
+
+function sea_ice_ocean_interface(sea_ice, ocean)
+    previous_ice_thickness = deepcopy(sea_ice.model.ice_thickness)
+    previous_ice_concentration = deepcopy(sea_ice.model.ice_concentration)
+    io_heat_flux = Field{Center, Center, Nothing}(ocean.model.grid)
+    io_salt_flux = Field{Center, Center, Nothing}(ocean.model.grid)
+    io_fluxes = (heat=io_heat_flux, salt=io_salt_flux)
+    io_properties = nothing
+
+    return SeaIceOceanInterface(io_fluxes,
+                                io_properties,
+                                previous_ice_thickness,
+                                previous_ice_concentration)
+end
+
+function default_ai_temperature(sea_ice)
+    internal_flux = sea_ice.model.ice_thermodynamics.internal_heat_flux
+    return SkinTemperature(internal_flux)
+end
+
+function default_ao_specific_humidity(ocean)
+    FT = eltype(ocean.model.grid)
+    phase = AtmosphericThermodynamics.Liquid()
+    x_H₂O = convert(FT, 0.98)
+    return SpecificHumidityFormulation(phase, x_H₂O)
+end
+
 """
     CrossRealmSurfaceFluxes(ocean, sea_ice=nothing; kw...)
 
-- `water_vapor_saturation`: The water vapor saturation law. Default: `ClasiusClapyeronSaturation()` that follows the 
-                            Clasius-Clapyeron pressure formulation.
-- `water_mole_fraction`: The water mole fraction used to calculate the `seawater_saturation_specific_humidity`. 
-                         Default: 0.98, the rest is assumed to be other substances such as chlorine, sodium sulfide, and magnesium.
 """
-function CrossRealmSurfaceFluxes(ocean, sea_ice=nothing;
-                                 atmosphere = nothing,
+function CrossRealmSurfaceFluxes(atmosphere, ocean, sea_ice=nothing;
                                  radiation = nothing,
                                  freshwater_density = 1000,
-                                 surface_temperature_units = DegreesCelsius(),
-                                 turbulent_coefficients = nothing,
-                                 water_vapor_saturation = ClasiusClapyeronSaturation(),
-                                 ice_vapor_saturation = ClasiusClapyeronSaturation(),
-                                 water_mole_fraction = 0.98,
+                                 atmosphere_ocean_interface_temperature = BulkTemperature(),
+                                 atmosphere_ocean_interface_specific_humidity = default_ao_specific_humidity(ocean),
+                                 atmosphere_sea_ice_interface_temperature = default_ai_temperature(sea_ice),
                                  ocean_reference_density = reference_density(ocean),
                                  ocean_heat_capacity = heat_capacity(ocean),
-                                 ice_reference_density = reference_density(sea_ice),
-                                 ice_heat_capacity = heat_capacity(sea_ice))
+                                 ocean_temperature_units = DegreesCelsius(),
+                                 sea_ice_temperature_units = DegreesCelsius(),
+                                 sea_ice_reference_density = reference_density(sea_ice),
+                                 sea_ice_heat_capacity = heat_capacity(sea_ice))
 
     ocean_grid = ocean.model.grid
     FT = eltype(ocean_grid)
 
-    ocean_reference_density = convert(FT, ocean_reference_density)
-    ocean_heat_capacity = convert(FT, ocean_heat_capacity)
-    ice_reference_density = convert(FT, ice_reference_density)
-    ice_heat_capacity = convert(FT, ice_heat_capacity)
-    freshwater_density = convert(FT, freshwater_density)
-    water_mole_fraction = convert(FT, water_mole_fraction)
-    
-    if !isnothing(atmosphere)
-        # It's the "thermodynamics gravitational acceleration"
-        # (as opposed to the one used for the free surface)
-        gravitational_acceleration = ocean.model.buoyancy.formulation.gravitational_acceleration
+    ocean_reference_density   = convert(FT, ocean_reference_density)
+    ocean_heat_capacity       = convert(FT, ocean_heat_capacity)
+    sea_ice_reference_density = convert(FT, sea_ice_reference_density)
+    sea_ice_heat_capacity     = convert(FT, sea_ice_heat_capacity)
+    freshwater_density        = convert(FT, freshwater_density)
 
-        ocean_fields = turbulent_fluxes_fields(ocean_grid)
-        sea_ice_fields = if sea_ice isa SeaIceSimulation
-            turbulent_fluxes_fields(sea_ice.model.grid)
-        else
-            nothing
-        end
+    atmosphere_properties = atmosphere.thermodynamics_parameters
 
-        fluxes_fields = (ocean=ocean_fields, sea_ice=sea_ice_fields)
-        
-        # Build turbulent fluxes if they do not exist
-        if isnothing(turbulent_coefficients)
-            ocean_fluxes = SimilarityTheoryFluxes()
-            sea_ice_fluxes = sea_ice_similarity_theory(sea_ice)
-            
-            turbulent_coefficients = (ocean=ocean_fluxes, sea_ice=sea_ice_fluxes)
-        elseif !(turbulent_coefficients isa NamedTuple)            
-            turbulent_coefficients = (ocean=turbulent_coefficients, 
-                                      sea_ice=turbulent_coefficients)
-        end
+    ocean_properties = (reference_density  = ocean_reference_density,
+                        heat_capacity      = ocean_heat_capacity,
+                        freshwater_density = freshwater_density,
+                        temperature_units  = ocean_temperature_units)
 
-        turbulent_fluxes = TurbulentFluxes(gravitational_acceleration,
-                                           turbulent_coefficients,
-                                           water_vapor_saturation,
-                                           ice_vapor_saturation,
-                                           water_mole_fraction,
-                                           fluxes_fields)
-    end
+    sea_ice_properties = (reference_density  = sea_ice_reference_density,
+                          heat_capacity      = sea_ice_heat_capacity,
+                          freshwater_density = freshwater_density,
+                          liquidus           = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus,
+                          temperature_units  = sea_ice_temperature_units)
+
+    ao_interface = atmosphere_ocean_interface(ocean,
+                                              radiation,
+                                              atmosphere_ocean_interface_temperature,
+                                              atmosphere_ocean_interface_specific_humidity)
+
+    ai_interface = atmosphere_sea_ice_interface(sea_ice,
+                                                radiation,
+                                                atmosphere_sea_ice_interface_temperature)
+
+    io_interface = sea_ice_ocean_interface(sea_ice, ocean)
 
     if sea_ice isa SeaIceSimulation
-        previous_ice_thickness = deepcopy(sea_ice.model.ice_thickness)
-        previous_ice_concentration = deepcopy(sea_ice.model.ice_concentration)
-        sea_ice_grid = sea_ice.model.grid
-        total_sea_ice_fluxes = (top_heat = sea_ice.model.external_heat_fluxes.top,
-                                bottom_heat = sea_ice.model.external_heat_fluxes.bottom)
+        net_top_sea_ice_fluxes = (; Q=sea_ice.model.external_heat_fluxes.top)
+        net_bottom_sea_ice_fluxes = (; Q=sea_ice.model.external_heat_fluxes.bottom)
     else
-        previous_ice_thickness = nothing
-        previous_ice_concentration = nothing
-        total_sea_ice_fluxes = nothing
+        net_top_sea_ice_fluxes = nothing
+        net_bottom_sea_ice_fluxes = nothing
     end
 
-    total_ocean_fluxes = ocean_surface_fluxes(ocean.model,
-                                              ocean_reference_density,
-                                              ocean_heat_capacity)
-                                        
+    τx = surface_flux(ocean.model.velocities.u)
+    τy = surface_flux(ocean.model.velocities.v)
+    tracers = ocean.model.tracers
+    ρₒ = ocean_reference_density
+    cₒ = ocean_heat_capacity
+    Qₒ = ρₒ * cₒ * surface_flux(ocean.model.tracers.T)
+    net_ocean_surface_fluxes = (u=τx, v=τx, Q=Qₒ)
+
+    ocean_surface_tracer_fluxes = NamedTuple(name => surface_flux(tracers[name]) for name in keys(tracers))
+    net_ocean_surface_fluxes = merge(ocean_surface_tracer_fluxes, net_ocean_surface_fluxes)
+
     # Total interface fluxes
-    total_fluxes = (ocean   = total_ocean_fluxes,
-                    sea_ice = total_sea_ice_fluxes)
+    net_fluxes = (ocean_surface  = net_ocean_surface_fluxes,
+                  sea_ice_top    = net_top_sea_ice_fluxes,
+                  sea_ice_bottom = net_bottom_sea_ice_fluxes)
 
-    surface_atmosphere_state = interpolated_surface_atmosphere_state(ocean_grid)
-
-    return CrossRealmSurfaceFluxes(turbulent_fluxes,
-                                   total_fluxes,
-                                   radiation,
-                                   previous_ice_thickness,
-                                   previous_ice_concentration,
-                                   ocean_reference_density,
-                                   ocean_heat_capacity,
-                                   ice_reference_density,
-                                   ice_heat_capacity,
-                                   freshwater_density,
-                                   surface_temperature_units,
-                                   surface_temperature_units,
-                                   surface_atmosphere_state)
+    return CrossRealmSurfaceFluxes(ao_interface,
+                                   ai_interface,
+                                   io_interface,
+                                   atmosphere_properties,
+                                   ocean_properties,
+                                   sea_ice_properties,
+                                   near_surface_atmosphere_state(ocean.model.grid),
+                                   net_fluxes)
 end
 
-function ocean_surface_fluxes(model, ρₛ, cₛ)
+function ocean_interface_fluxes(model, ρₛ, cₛ)
     grid = model.grid
     τx = surface_flux(model.velocities.u)
     τy = surface_flux(model.velocities.v)
-    τxᶜᶜᶜ = Field{Center, Center, Nothing}(grid)
-    τyᶜᶜᶜ = Field{Center, Center, Nothing}(grid)
-
-   surface_momentum_fluxes = (u    = τx,      # fluxes used in the model
-                              v    = τy,      #
-                              # Including these (which are only a user convenience, not needed for
-                              # time-stepping) incurs about 100s in construction
-                              # time for CrossRealmSurfaceFluxes:
-                              # ρτx  = ρₒ * τx, # momentum fluxes multiplied by reference density
-                              # ρτy  = ρₒ * τy, # user convenience 
-                              uᶜᶜᶜ = τxᶜᶜᶜ,   # fluxes computed by bulk formula at cell centers
-                              vᶜᶜᶜ = τyᶜᶜᶜ)
+    interface_momentum_fluxes = (u=τx, v=τy)
 
     tracers = model.tracers
-    surface_tracer_fluxes = NamedTuple(name => surface_flux(tracers[name])
-                                       for name in keys(tracers))
+    interface_tracer_fluxes = NamedTuple(name => surface_flux(tracers[name])
+                                         for name in keys(tracers))
 
-    surface_heat_flux = ρₛ * cₛ * surface_tracer_fluxes.T
+    interface_heat_flux = ρₛ * cₛ * interface_tracer_fluxes.T
 
-    fluxes = (momentum = surface_momentum_fluxes,
-              tracers = surface_tracer_fluxes,
-              heat = surface_heat_flux)
+    fluxes = (momentum = interface_momentum_fluxes,
+              tracers = interface_tracer_fluxes,
+              heat = interface_heat_flux)
 
     return fluxes
 end
@@ -210,37 +261,26 @@ end
 sea_ice_similarity_theory(sea_ice) = nothing
 
 function sea_ice_similarity_theory(sea_ice::SeaIceSimulation)
-    # Here we need to make sure the surface temperature type is
+    # Here we need to make sure the interface temperature type is
     # SkinTemperature. Also we need to pass the sea ice internal flux
     # The thickness and salinity need to be passed as well, 
     # but the can be passed as state variables once we refactor the `StateValues` struct.
     internal_flux = sea_ice.model.ice_thermodynamics.internal_heat_flux
-    surface_temperature_type = SkinTemperature(internal_flux)
-    return SimilarityTheoryFluxes(; surface_temperature_type)
+    interface_temperature_type = SkinTemperature(internal_flux)
+    return SimilarityTheoryFluxes(; interface_temperature_type)
 end
 
-function turbulent_fluxes_fields(grid)
-    water_vapor   = Field{Center, Center, Nothing}(grid)
-    latent_heat   = Field{Center, Center, Nothing}(grid)
-    sensible_heat = Field{Center, Center, Nothing}(grid)
-    x_momentum    = Field{Center, Center, Nothing}(grid)
-    y_momentum    = Field{Center, Center, Nothing}(grid)
-    T_surface     = Field{Center, Center, Nothing}(grid)
+function near_surface_atmosphere_state(ocean_grid)
+    interface_atmosphere_state = (u  = Field{Center, Center, Nothing}(ocean_grid),
+                                  v  = Field{Center, Center, Nothing}(ocean_grid),
+                                  T  = Field{Center, Center, Nothing}(ocean_grid),
+                                  q  = Field{Center, Center, Nothing}(ocean_grid),
+                                  p  = Field{Center, Center, Nothing}(ocean_grid),
+                                  Qs = Field{Center, Center, Nothing}(ocean_grid),
+                                  Qℓ = Field{Center, Center, Nothing}(ocean_grid),
+                                  Mp = Field{Center, Center, Nothing}(ocean_grid))
 
-    return (; latent_heat, sensible_heat, water_vapor, x_momentum, y_momentum, T_surface)
-end
-
-function interpolated_surface_atmosphere_state(ocean_grid)
-    surface_atmosphere_state = (u  = Field{Center, Center, Nothing}(ocean_grid),
-                                v  = Field{Center, Center, Nothing}(ocean_grid),
-                                T  = Field{Center, Center, Nothing}(ocean_grid),
-                                q  = Field{Center, Center, Nothing}(ocean_grid),
-                                p  = Field{Center, Center, Nothing}(ocean_grid),
-                                Qs = Field{Center, Center, Nothing}(ocean_grid),
-                                Qℓ = Field{Center, Center, Nothing}(ocean_grid),
-                                Mp = Field{Center, Center, Nothing}(ocean_grid))
-
-    return surface_atmosphere_state
+    return interface_atmosphere_state
 end
     
 #####

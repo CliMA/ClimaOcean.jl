@@ -17,24 +17,19 @@ using Statistics: norm
 import Thermodynamics as AtmosphericThermodynamics
 import Thermodynamics.Parameters: molmass_ratio
 
-import SurfaceFluxes.Parameters:
-    thermodynamics_params,
-    uf_params,
-    von_karman_const,
-    grav
-
 #####
 ##### Bulk turbulent fluxes based on similarity theory
 #####
 
 struct SimilarityTheoryFluxes{FT, UF, R, B, T, V}
+    gravitational_acceleration :: FT # parameter
     von_karman_constant :: FT        # parameter
     turbulent_prandtl_number :: FT   # parameter
     gustiness_parameter :: FT        # bulk velocity parameter
     stability_functions :: UF        # functions for turbulent fluxes
     roughness_lengths :: R           # parameterization for turbulent fluxes
-    similarity_profile_type :: B     # similarity profile relating atmosphere to surface state
-    surface_temperature_type :: T    # surface temperature either diagnostic or prescribed
+    similarity_profile_type :: B     # similarity profile relating atmosphere to interface state
+    interface_temperature_type :: T  # interface temperature either diagnostic or prescribed
     bulk_velocity :: V               # bulk velocity scale for turbulent fluxes
     tolerance :: FT                  # solver option
     maxiter :: Int                   # solver option
@@ -47,7 +42,7 @@ Adapt.adapt_structure(to, fluxes::SimilarityTheoryFluxes) =
                            adapt(to, fluxes.stability_functions),
                            adapt(to, fluxes.roughness_lengths),
                            adapt(to, fluxes.similarity_profile_type),
-                           adapt(to, fluxes.surface_temperature_type),
+                           adapt(to, fluxes.interface_temperature_type),
                            adapt(to, fluxes.bulk_velocity),
                            fluxes.tolerance,
                            fluxes.maxiter)
@@ -56,7 +51,6 @@ Base.summary(::SimilarityTheoryFluxes{FT}) where FT = "SimilarityTheoryFluxes{$F
 
 function Base.show(io::IO, fluxes::SimilarityTheoryFluxes)
     print(io, summary(fluxes), '\n',
-          "├── gravitational_acceleration: ", prettysummary(fluxes.gravitational_acceleration), '\n',
           "├── von_karman_constant: ",        prettysummary(fluxes.von_karman_constant), '\n',
           "├── turbulent_prandtl_number: ",   prettysummary(fluxes.turbulent_prandtl_number), '\n',
           "├── gustiness_parameter: ",        prettysummary(fluxes.gustiness_parameter), '\n',
@@ -65,26 +59,26 @@ function Base.show(io::IO, fluxes::SimilarityTheoryFluxes)
           "├── water_vapor_saturation: ",     summary(fluxes.water_vapor_saturation), '\n',
           "├── roughness_lengths: ",          summary(fluxes.roughness_lengths), '\n',
           "├── similarity_profile_type: ",    summary(fluxes.similarity_profile_type), '\n',
-          "├── surface_temperature: ",        summary(fluxes.surface_temperature_type), '\n',
+          "├── interface_temperature: ",      summary(fluxes.interface_temperature_type), '\n',
           "└── thermodynamics_parameters: ",  summary(fluxes.thermodynamics_parameters))
 end
 
 """
     SimilarityTheoryFluxes(FT::DataType = Float64;
-                           gravitational_acceleration = default_gravitational_acceleration,
+                           gravitational_acceleration = convert(FT, 9.81),
                            von_karman_constant = convert(FT, 0.4),
                            turbulent_prandtl_number = convert(FT, 1),
                            gustiness_parameter = convert(FT, 6.5),
                            stability_functions = default_stability_functions(FT),
                            roughness_lengths = default_roughness_lengths(FT),
                            similarity_profile_type = LogarithmicSimilarityProfile(),
-                           surface_temperature_type = BulkTemperature(),
+                           interface_temperature_type = BulkTemperature(),
                            bulk_velocity = RelativeVelocity(),
                            tolerance = 1e-8,
                            maxiter = 100)
 
 `SimilarityTheoryFluxes` contains parameters and settings to calculate
-surface-air turbulent fluxes using Monin-Obukhov similarity theory.
+air-interface turbulent fluxes using Monin-Obukhov similarity theory.
 
 Keyword Arguments
 ==================
@@ -97,31 +91,33 @@ Keyword Arguments
 - `roughness_lengths`: The roughness lengths used to calculate the characteristic scales for momentum, temperature and 
                        water vapor. Default: `default_roughness_lengths(FT)`, formulation taken from Edson et al (2013).
 - `similarity_profile_type`: The type of similarity profile used to relate the atmospheric state to the 
-                             surface fluxes / characteristic scales.
+                             interface fluxes / characteristic scales.
 - `bulk_velocity`: The velocity used to calculate the characteristic scales. Default: `RelativeVelocity()` (difference between
-                   atmospheric and surfaceic speed).
+                   atmospheric and interfaceic speed).
 - `tolerance`: The tolerance for convergence. Default: 1e-8.
 - `maxiter`: The maximum number of iterations. Default: 100.
 """
 function SimilarityTheoryFluxes(FT::DataType = Float64;
-                                von_karman_constant = convert(FT, 0.4),
-                                turbulent_prandtl_number = convert(FT, 1),
-                                gustiness_parameter = convert(FT, 6.5),
+                                gravitational_acceleration = 9.81,
+                                von_karman_constant = 0.4,
+                                turbulent_prandtl_number = 1,
+                                gustiness_parameter = 6.5,
                                 stability_functions = edson_stability_functions(FT),
                                 roughness_lengths = default_roughness_lengths(FT),
                                 similarity_profile_type = LogarithmicSimilarityProfile(),
-                                surface_temperature_type = BulkTemperature(),
+                                interface_temperature_type = BulkTemperature(),
                                 bulk_velocity = RelativeVelocity(),
                                 tolerance = 1e-8,
                                 maxiter = 100)
 
-    return SimilarityTheoryFluxes(convert(FT, von_karman_constant),
+    return SimilarityTheoryFluxes(convert(FT, gravitational_acceleration),
+                                  convert(FT, von_karman_constant),
                                   convert(FT, turbulent_prandtl_number),
                                   convert(FT, gustiness_parameter),
                                   stability_functions,
                                   roughness_lengths,
                                   similarity_profile_type,
-                                  surface_temperature_type,
+                                  interface_temperature_type,
                                   bulk_velocity,
                                   convert(FT, tolerance), 
                                   maxiter)
@@ -159,211 +155,205 @@ struct COARELogarithmicSimilarityProfile end
 @inline similarity_profile(::COARELogarithmicSimilarityProfile, ψ, h, ℓ, L) =
     log(h / ℓ) - ψ(h / L)
 
-#####
-##### Fixed-point iteration for roughness length
-#####
-
-@inline function compute_turbulent_fluxes(similarity_theory::SimilarityTheoryFluxes,
-                                          surface_state,
-                                          atmos_state,
-                                          prescribed_heat_fluxes, # Possibly use in state_differences
-                                          stefan_boltzmann_constant,
-                                          albedo,
-                                          emissivity,
-                                          surface_phase,
-                                          surface_salinity,
-                                          surface_density,
-                                          surface_heat_capacity,
-                                          mole_fraction,
-                                          vapor_saturation,
-                                          atmos_boundary_layer_height,
-                                          thermodynamics_parameters,
-                                          gravitational_acceleration,
-                                          inactive_cell)
-
-    # Prescribed difference between two states
-    ℂₐ = thermodynamics_parameters
-    FT = eltype(ℂₐ)
-
-    von_karman_constant = similarity_theory.von_karman_constant
-    maxiter = ifelse(inactive_cell, 1, similarity_theory.maxiter)
-
-    # Initial guess for the characteristic scales u★, θ★, q★.
-    # Does not really matter if we are sophisticated or not, it converges 
-    # in about 10 iterations no matter what...
-    Δu, Δv = velocity_differences(atmos_state, surface_state, similarity_theory.bulk_velocity)
-
-    # The inital velocity scale assumes that the gustiness velocity `Uᴳ` is equal to 0.5 ms⁻¹. 
-    # The initial surface temperature is the same as the surface temperature.
-    # These will be refined later on.
-    θs   = AtmosphericThermodynamics.air_temperature(ℂₐ, surface_state.ts)
-    Uᴳᵢ² = convert(FT, 0.5^2)
-    ΔU   = sqrt(Δu^2 + Δv^2 + Uᴳᵢ²)
-    
-    # break the cycle if Δu == Δv == gustiness_parameter == 0 since that would mean 
-    # that u★ == 0 so there is no turbulent transfer and the solver will not converge, leading to NaNs.
-    zero_shear_velocity = (Δu == 0) & (Δv == 0) & (similarity_theory.gustiness_parameter == 0)
-
-    # Initialize the solver
-    iteration = ifelse(zero_shear_velocity, maxiter+1, 0)
-    u★ = ifelse(zero_shear_velocity, zero(FT), convert(FT, 1e-4))
-    Σ★ = SimilarityScales(u★, u★, u★) 
-    Σ₀ = Σ★
-
-    # Iterate until convergence
-    while iterating(Σ★ - Σ₀, iteration, maxiter, similarity_theory)
-        Σ₀ = Σ★
-        # Refine both the characteristic scale, the effective
-        # velocity difference ΔU, including gustiness, and the surface
-        # state temperature.
-        Σ★, θs, ΔU = refine_similarity_variables(Σ★, θs, ΔU,
-                                                 similarity_theory,
-                                                 atmos_state,
-                                                 surface_state,
-                                                 surface_phase,
-                                                 surface_salinity,
-                                                 surface_density,
-                                                 surface_heat_capacity,
-                                                 mole_fraction,
-                                                 vapor_saturation,
-                                                 atmos_boundary_layer_height,
-                                                 thermodynamics_parameters,
-                                                 prescribed_heat_fluxes,
-                                                 stefan_boltzmann_constant,
-                                                 albedo,
-                                                 emissivity,
-                                                 gravitational_acceleration,
-                                                 von_karman_constant)
-        iteration += 1
-    end
-
-    u★ = Σ★.momentum
-    θ★ = Σ★.temperature
-    q★ = Σ★.water_vapor
-
-    θ★ = θ★ / similarity_theory.turbulent_prandtl_number
-    q★ = q★ / similarity_theory.turbulent_prandtl_number
-
-    # `u★² ≡ sqrt(τx² + τy²)`
-    # We remove the gustiness by dividing by `ΔU`
-    τx = - u★^2 * Δu / ΔU
-    τy = - u★^2 * Δv / ΔU
-
-    𝒬ₐ = atmos_state.ts
-    ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
-    cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
-    ℰv = AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
-
-    fluxes = (;
-        sensible_heat = - ρₐ * cₚ * u★ * θ★,
-        latent_heat   = - ρₐ * u★ * q★ * ℰv,
-        water_vapor   = - ρₐ * u★ * q★,
-        x_momentum    = + ρₐ * τx,
-        y_momentum    = + ρₐ * τy,
-    )
-    
-    return fluxes, θs
-end
-
 # Iterating condition for the characteristic scales solvers
-@inline function iterating(Σ★, iteration, maxiter, solver)
+@inline function _iterating(Ψⁿ, Ψ⁻, iteration, maxiter, tolerance)
     hasnt_started = iteration == 0
-    converged = norm(Σ★) < solver.tolerance
     reached_maxiter = iteration ≥ maxiter
+    drift = abs(Ψⁿ.u★ - Ψ⁻.u★) + abs(Ψⁿ.θ★ - Ψ⁻.θ★) + abs(Ψⁿ.q★ - Ψ⁻.q★)
+    converged = drift < tolerance
     return !(converged | reached_maxiter) | hasnt_started
 end
 
-@inline function refine_similarity_variables(estimated_characteristic_scales, 
-                                             surface_temperature,
-                                             velocity_scale,
-                                             similarity_theory,
-                                             atmos_state,
-                                             surface_state,
-                                             surface_phase, # Either liquid or solid
-                                             surface_salinity,
-                                             surface_density,
-                                             surface_heat_capacity,
-                                             mole_fraction,
-                                             vapor_saturation,
-                                             atmos_boundary_layer_height,
-                                             thermodynamics_parameters,
-                                             prescribed_heat_fluxes,
-                                             stefan_boltzmann_constant,
-                                             albedo,
-                                             emissivity,
-                                             gravitational_acceleration,
-                                             von_karman_constant)
+@inline function compute_interface_state(turbulent_flux_formulation,
+                                         initial_interface_state,
+                                         atmosphere_state,
+                                         interior_state,
+                                         downwelling_radiation,
+                                         interface_properties,
+                                         atmosphere_properties,
+                                         interior_properties)
 
-    Δh, Δu, Δv, Δθ, Δq, θ₀ = state_differences(thermodynamics_parameters,
-                                               atmos_state,
-                                               surface_state,
-                                               surface_temperature,
-                                               surface_salinity,
-                                               estimated_characteristic_scales,
-                                               gravitational_acceleration,
-                                               surface_density,
-                                               surface_heat_capacity,
-                                               mole_fraction,
-                                               vapor_saturation,
-                                               similarity_theory.surface_temperature_type,
-                                               prescribed_heat_fluxes,
-                                               stefan_boltzmann_constant,
-                                               albedo,
-                                               emissivity,
-                                               similarity_theory.bulk_velocity,
-                                               surface_phase)
-                                               
+    Ψₐ = atmosphere_state
+    Ψᵢ = interior_state
+    Ψₛⁿ = Ψₛ⁻ = initial_interface_state
+    iteration = 0
+    maxiter = turbulent_flux_formulation.maxiter
+    tolerance = turbulent_flux_formulation.tolerance
+
+    while _iterating(Ψₛⁿ, Ψₛ⁻, iteration, maxiter, tolerance)
+        Ψₛ⁻ = Ψₛⁿ
+        Ψₛⁿ = iterate_interface_state(turbulent_flux_formulation,
+                                      Ψₛ⁻, Ψₐ, Ψᵢ,
+                                      downwelling_radiation,
+                                      interface_properties,
+                                      atmosphere_properties,
+                                      interior_properties)
+        iteration += 1
+    end
+
+    return Ψₛⁿ
+
+end
+
+@inline function iterate_interface_state(turbulent_flux_formulation,
+                                         approximate_interface_state,
+                                         atmosphere_state,
+                                         interior_state,
+                                         downwelling_radiation,
+                                         interface_properties,
+                                         atmosphere_properties,
+                                         interior_properties)
+    
+    Tₛ = compute_interface_temperature(interface_properties.temperature_formulation,
+                                       approximate_interface_state,
+                                       atmosphere_state,
+                                       interior_state,
+                                       downwelling_radiation,
+                                       interface_properties,
+                                       atmosphere_properties,
+                                       interior_properties)
+    
+    # Thermodynamic state
+    FT = eltype(approximate_interface_state)
+    ℂₐ = atmosphere_properties.thermodynamics_parameters
+    𝒬ₐ = atmosphere_state.𝒬
+    ρₐ = 𝒬ₐ.ρ
+
+    # Recompute the saturation specific humidity at the interface based on the new temperature
+    q_formulation = interface_properties.specific_humidity_formulation
+    Sₛ = approximate_interface_state.S
+    qₛ = saturation_specific_humidity(q_formulation, ℂₐ, ρₐ, Tₛ, Sₛ)
+
+    # Compute the specific humidity increment
+    qₐ = AtmosphericThermodynamics.vapor_specific_humidity(ℂₐ, 𝒬ₐ)
+    Δq = qₐ - qₛ
+
+    # Temperature increment including the ``lapse rate'' `α = g / cₚ`
+    zₐ = atmosphere_state.z
+    zₛ = zero(FT)
+    Δh = zₐ - zₛ
+    Tₐ = AtmosphericThermodynamics.air_temperature(ℂₐ, 𝒬ₐ)
+    g = turbulent_flux_formulation.gravitational_acceleration
+    cₚ = interior_properties.heat_capacity
+    Δθ = Tₐ - Tₛ + g / cₚ * Δh
+
+    # Recompute interface thermodynamic state with new temperature and specific humidity
+    𝒬ₛ = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, 𝒬ₐ.p, Tₛ, qₛ)
+
     # "initial" scales because we will recompute them
-    u★ = estimated_characteristic_scales.momentum
-    θ★ = estimated_characteristic_scales.temperature
-    q★ = estimated_characteristic_scales.water_vapor
-    ΔU = velocity_scale
+    u★ = approximate_interface_state.u★
+    θ★ = approximate_interface_state.θ★
+    q★ = approximate_interface_state.q★
 
     # Similarity functions from Edson et al. (2013)
-    ψu = similarity_theory.stability_functions.momentum
-    ψθ = similarity_theory.stability_functions.temperature
-    ψq = similarity_theory.stability_functions.water_vapor
+    ψu = turbulent_flux_formulation.stability_functions.momentum
+    ψθ = turbulent_flux_formulation.stability_functions.temperature
+    ψq = turbulent_flux_formulation.stability_functions.water_vapor
 
     # Extract roughness lengths
-    ℓu = similarity_theory.roughness_lengths.momentum
-    ℓθ = similarity_theory.roughness_lengths.temperature
-    ℓq = similarity_theory.roughness_lengths.water_vapor
-    β  = similarity_theory.gustiness_parameter
-
-    ℂ  = thermodynamics_parameters
-    g  = gravitational_acceleration
-    𝒬ₒ = surface_state.ts # thermodynamic state
+    ℓu = turbulent_flux_formulation.roughness_lengths.momentum
+    ℓθ = turbulent_flux_formulation.roughness_lengths.temperature
+    ℓq = turbulent_flux_formulation.roughness_lengths.water_vapor
+    β = turbulent_flux_formulation.gustiness_parameter
 
     # Compute Monin-Obukhov length scale depending on a `buoyancy flux`
-    b★ = buoyancy_scale(θ★, q★, 𝒬ₒ, ℂ, g)
+    b★ = buoyancy_scale(θ★, q★, 𝒬ₛ, ℂₐ, g)
 
     # Monin-Obhukov characteristic length scale and non-dimensional height
-    ϰ  = von_karman_constant
+    ϰ = turbulent_flux_formulation.von_karman_constant
     L★ = ifelse(b★ == 0, zero(b★), - u★^2 / (ϰ * b★))
 
     # Compute roughness length scales
-    ℓu₀ = roughness_length(ℓu, u★, 𝒬ₒ, ℂ)
-    ℓq₀ = roughness_length(ℓq, ℓu₀, u★, 𝒬ₒ, ℂ)
-    ℓθ₀ = roughness_length(ℓθ, ℓu₀, u★, 𝒬ₒ, ℂ)
+    ℓu₀ = roughness_length(ℓu, u★, 𝒬ₛ, ℂₐ)
+    ℓq₀ = roughness_length(ℓq, ℓu₀, u★, 𝒬ₛ, ℂₐ)
+    ℓθ₀ = roughness_length(ℓθ, ℓu₀, u★, 𝒬ₛ, ℂₐ)
 
     # Transfer coefficients at height `h`
-    profile_type = similarity_theory.similarity_profile_type
+    profile_type = turbulent_flux_formulation.similarity_profile_type
     χu = ϰ / similarity_profile(profile_type, ψu, Δh, ℓu₀, L★)
     χθ = ϰ / similarity_profile(profile_type, ψθ, Δh, ℓθ₀, L★)
     χq = ϰ / similarity_profile(profile_type, ψq, Δh, ℓq₀, L★)
 
-    # u★ including gustiness
+    # Buoyancy flux characteristic scale for gustiness (Edson 2013)
+    h_bℓ = atmosphere_state.h_bℓ
+    Jᵇ = - u★ * b★
+    Uᴳ = β * cbrt(Jᵇ * h_bℓ)
+
+    # New velocity difference accounting for gustiness
+    Δu, Δv = velocity_difference(turbulent_flux_formulation.bulk_velocity, atmosphere_state, approximate_interface_state)
+    ΔU = sqrt(Δu^2 + Δv^2 + Uᴳ^2)
+
+    #=
+    Pr = turbulent_flux_formulation.turbulent_prandtl_number
+    χθ = χθ / Pr
+    χq = χq / Pr
+    =#
+
+    # Recompute 
     u★ = χu * ΔU
     θ★ = χθ * Δθ
     q★ = χq * Δq
 
-    # Buoyancy flux characteristic scale for gustiness (Edson 2013)
-    hᵢ = atmos_boundary_layer_height
-    Jᵇ = - u★ * b★
-    Uᴳ = β * cbrt(Jᵇ * hᵢ)
+    u = approximate_interface_state.u
+    v = approximate_interface_state.v
+    S = approximate_interface_state.S
 
-    # New velocity difference accounting for gustiness
-    ΔU = sqrt(Δu^2 + Δv^2 + Uᴳ^2)
-
-    return SimilarityScales(u★, θ★, q★), θ₀, ΔU
+    return InterfaceState(u★, θ★, q★, u, v, Tₛ, S, convert(FT, qₛ))
 end
+
+""" The exchange fluxes depend on the atmosphere velocity but not the interface velocity """
+struct WindVelocity end
+
+""" The exchange fluxes depend on the relative velocity between the atmosphere and the interface """
+struct RelativeVelocity end
+
+"""
+    buoyancy_scale(θ★, q★, 𝒬, ℂ, g)
+
+Return the characteristic buoyancy scale `b★` associated with
+the characteristic temperature `θ★`, specific humidity scale `q★`,
+near-interface atmospheric thermodynamic state `𝒬`, thermodynamic
+parameters `ℂ`, and gravitational acceleration `g`.
+
+The buoyancy scale is defined in terms of the interface buoyancy flux,
+
+```math
+u★ b★ ≡ w′b′,
+```
+
+where `u★` is the friction velocity.
+Using the definition of buoyancy for non-condensing air, we find that
+
+```math
+b★ = g / 𝒯ₐ * (θ★ * (1 + δ * qₐ) + δ * 𝒯ₐ * q★),
+```
+where ``𝒯ₐ`` is the virtual temperature of the atmosphere near the interface,
+and ``δ = Rᵥ / R_d - 1``, where ``Rᵥ`` is the molar mass of water vapor and
+``R_d`` is the molar mass of dry air.
+
+Note that the Monin-Obukhov characteristic length scale is defined
+in terms of `b★` and additionally the Von Karman constant `ϰ`,
+
+```math
+L★ = - u★² / ϰ b★ .
+```
+"""
+@inline function buoyancy_scale(θ★, q★, 𝒬, ℂ, g)
+    𝒯ₐ = AtmosphericThermodynamics.virtual_temperature(ℂ, 𝒬)
+    qₐ = AtmosphericThermodynamics.vapor_specific_humidity(ℂ, 𝒬)
+    ε  = AtmosphericThermodynamics.Parameters.molmass_ratio(ℂ)
+    δ  = ε - 1 # typically equal to 0.608
+
+    b★ = g / 𝒯ₐ * (θ★ * (1 + δ * qₐ) + δ * 𝒯ₐ * q★)
+
+    return b★
+end
+
+@inline function velocity_difference(::RelativeVelocity, 𝒰₁, 𝒰₀)
+    Δu = 𝒰₁.u - 𝒰₀.u
+    Δv = 𝒰₁.v - 𝒰₀.v
+    return Δu, Δv
+end
+
+@inline velocity_difference(::WindVelocity, 𝒰₁, 𝒰₀) = 𝒰₁.u, 𝒰₁.v
+

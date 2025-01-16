@@ -7,8 +7,6 @@ using SeawaterPolynomials: TEOS10EquationOfState
 
 import Thermodynamics as AtmosphericThermodynamics  
 
-using ClimaOcean.OceanSeaIceModels.CrossRealmFluxes: ClasiusClapyeronSaturation
-
 # Simulations interface
 import Oceananigans: fields, prognostic_fields
 import Oceananigans.Architectures: architecture
@@ -37,18 +35,24 @@ function Base.summary(model::OSIM)
 end
 
 function Base.show(io::IO, cm::OSIM)
+
+    if cm.sea_ice isa Simulation
+        sea_ice_summary = summary(cm.sea_ice.model)
+    else
+        sea_ice_summary = summary(cm.sea_ice)
+    end
+
     print(io, summary(cm), "\n")
     print(io, "├── ocean: ", summary(cm.ocean.model), "\n")
     print(io, "├── atmosphere: ", summary(cm.atmosphere), "\n")
-    print(io, "├── sea_ice: ", summary(cm.sea_ice), "\n")
+    print(io, "├── sea_ice: ", sea_ice_summary, "\n")
     print(io, "└── fluxes: ", summary(cm.fluxes))
     return nothing
 end
 
 # Assumption: We have an ocean!
-architecture(model::OSIM) = architecture(model.ocean.model)
-Base.eltype(model::OSIM) = Base.eltype(model.ocean.model)
-
+architecture(model::OSIM)           = architecture(model.ocean.model)
+Base.eltype(model::OSIM)            = Base.eltype(model.ocean.model)
 prettytime(model::OSIM)             = prettytime(model.clock.time)
 iteration(model::OSIM)              = model.clock.iteration
 Base.eltype(model::OSIM)            = eltype(model.ocean.model)
@@ -87,15 +91,11 @@ end
 function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature();
                           atmosphere = nothing,
                           radiation = nothing,
-                          turbulent_coefficients = nothing,
                           clock = deepcopy(ocean.model.clock),
-                          water_vapor_saturation = ClasiusClapyeronSaturation(),
-                          ice_vapor_saturation = ClasiusClapyeronSaturation(),
-                          water_mole_fraction = 0.98,
                           ocean_reference_density = reference_density(ocean),
                           ocean_heat_capacity = heat_capacity(ocean),
-                          ice_reference_density = reference_density(sea_ice),
-                          ice_heat_capacity = heat_capacity(sea_ice))
+                          sea_ice_reference_density = reference_density(sea_ice),
+                          sea_ice_heat_capacity = heat_capacity(sea_ice))
 
     # Remove some potentially irksome callbacks from the ocean simulation
     pop!(ocean.callbacks, :stop_time_exceeded, nothing)
@@ -120,16 +120,11 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature();
     end
 
     # Contains information about flux contributions: bulk formula, prescribed fluxes, etc.
-    fluxes = CrossRealmSurfaceFluxes(ocean, sea_ice;
-                                     water_vapor_saturation,
-                                     ice_vapor_saturation,
-                                     water_mole_fraction,
-                                     atmosphere, 
-                                     turbulent_coefficients,
+    fluxes = CrossRealmSurfaceFluxes(atmosphere, ocean, sea_ice;
                                      ocean_reference_density,
                                      ocean_heat_capacity,
-                                     ice_reference_density,
-                                     ice_heat_capacity,
+                                     sea_ice_reference_density,
+                                     sea_ice_heat_capacity,
                                      radiation)
 
     ocean_sea_ice_model = OceanSeaIceModel(clock,

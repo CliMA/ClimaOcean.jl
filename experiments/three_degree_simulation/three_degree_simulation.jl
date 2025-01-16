@@ -75,6 +75,8 @@ sea_ice = Simulation(sea_ice_model, Δt=20minutes)
 set!(sea_ice_model, h=1, ℵ=1)
 
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation) 
+
+#=
 simulation = Simulation(coupled_model; Δt=20minutes, stop_time=3days)
 
 wall_time = Ref(time_ns())
@@ -157,3 +159,4 @@ heatmap!(axh, hn)
 heatmap!(axℵ, ℵn)
 
 display(fig)
+=#

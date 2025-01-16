@@ -1,13 +1,13 @@
-@kernel function _assemble_atmosphere_ocean_fluxes!(centered_velocity_fluxes,
-                                                    grid,
-                                                    clock,
-                                                    surface_temperature,
-                                                    surface_temperature_units,
-                                                    turbulent_fluxes,
-                                                    downwelling_radiation,
-                                                    stefan_boltzmann_constant,
-                                                    albedo,
-                                                    emissivity)
+@kernel function _assemble_atmosphere_sea_ice_fluxes!(net_heat_flux,
+                                                      grid,
+                                                      clock,
+                                                      surface_temperature,
+                                                      surface_temperature_units,
+                                                      turbulent_fluxes,
+                                                      downwelling_radiation,
+                                                      stefan_boltzmann_constant,
+                                                      albedo,
+                                                      emissivity)
 
     i, j = @index(Global, NTuple)
     kᴺ = size(grid, 3)
@@ -36,7 +36,7 @@
     inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
 
     @inbounds begin
-        Qₐᵢ[i, j, 1] = ifelse(inactive, zero(grid), ΣQ)
+        net_heat_flux[i, j, 1] = ifelse(inactive, zero(grid), ΣQ)
     end
 end
 
@@ -49,22 +49,22 @@ end
     end
 end
 
-
-@kernel function _assemble_atmosphere_sea_ice_fluxes!(net_tracer_fluxes,
-                                                      grid,
-                                                      clock,
-                                                      surface_temperature,
-                                                      surface_salinity,
-                                                      surface_temperature_units,
-                                                      turbulent_fluxes,
-                                                      downwelling_radiation,
-                                                      prescribed_freshwater_flux,
-                                                      stefan_boltzmann_constant,
-                                                      albedo,
-                                                      emissivity,
-                                                      surface_reference_density,
-                                                      surface_heat_capacity,
-                                                      freshwater_density)
+@kernel function _assemble_atmosphere_ocean_fluxes!(centered_velocity_fluxes,
+                                                    net_tracer_fluxes,
+                                                    grid,
+                                                    clock,
+                                                    surface_temperature,
+                                                    surface_salinity,
+                                                    surface_temperature_units,
+                                                    turbulent_fluxes,
+                                                    downwelling_radiation,
+                                                    prescribed_freshwater_flux,
+                                                    stefan_boltzmann_constant,
+                                                    albedo,
+                                                    emissivity,
+                                                    surface_reference_density,
+                                                    surface_heat_capacity,
+                                                    freshwater_density)
 
     i, j = @index(Global, NTuple)
     kᴺ = size(grid, 3)
@@ -106,6 +106,8 @@ end
     ΣF += Fv
 
     # Compute fluxes for u, v, T, S from momentum, heat, and freshwater fluxes
+    τx = centered_velocity_fluxes.u
+    τy = centered_velocity_fluxes.v
     Jᵀ = net_tracer_fluxes.T
     Jˢ = net_tracer_fluxes.S
 
@@ -125,15 +127,6 @@ end
         τy[i, j, 1] = ifelse(inactive, zero(grid), _τy)
         Jᵀ[i, j, 1] = ifelse(inactive, zero(grid), _Jᵀ)
         Jˢ[i, j, 1] = ifelse(inactive, zero(grid), _Jˢ)
-    end
-end
-
-@kernel function reconstruct_momentum_fluxes!(grid, J, Jᶜᶜᶜ)
-    i, j = @index(Global, NTuple)
-
-    @inbounds begin
-        J.u[i, j, 1] = ℑxᶠᵃᵃ(i, j, 1, grid, Jᶜᶜᶜ.u) 
-        J.v[i, j, 1] = ℑyᵃᶠᵃ(i, j, 1, grid, Jᶜᶜᶜ.v) 
     end
 end
 

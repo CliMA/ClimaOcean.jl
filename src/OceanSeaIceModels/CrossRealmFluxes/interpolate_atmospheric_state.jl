@@ -1,4 +1,5 @@
 using Oceananigans.Operators: intrinsic_vector
+using Oceananigans.Grids: _node
 
 """Interpolate the atmospheric state onto the ocean / sea-ice grid."""
 function interpolate_atmospheric_state!(coupled_model)
@@ -37,24 +38,24 @@ function interpolate_atmospheric_state!(coupled_model)
     atmosphere_backend = u.backend
     atmosphere_time_indexing = u.time_indexing
 
-    surface_atmosphere_fields = coupled_model.fluxes.surface_atmosphere_state
+    atmosphere_fields = coupled_model.fluxes.near_surface_atmosphere_state
 
     # Simplify NamedTuple to reduce parameter space consumption.
     # See https://github.com/CliMA/ClimaOcean.jl/issues/116.
-    surface_atmosphere_data = (u = surface_atmosphere_fields.u.data,
-                               v = surface_atmosphere_fields.v.data,
-                               T = surface_atmosphere_fields.T.data,
-                               p = surface_atmosphere_fields.p.data,
-                               q = surface_atmosphere_fields.q.data,
-                               Qs = surface_atmosphere_fields.Qs.data,
-                               Qℓ = surface_atmosphere_fields.Qℓ.data,
-                               Mp = surface_atmosphere_fields.Mp.data)
+    atmosphere_data = (u = atmosphere_fields.u.data,
+                       v = atmosphere_fields.v.data,
+                       T = atmosphere_fields.T.data,
+                       p = atmosphere_fields.p.data,
+                       q = atmosphere_fields.q.data,
+                       Qs = atmosphere_fields.Qs.data,
+                       Qℓ = atmosphere_fields.Qℓ.data,
+                       Mp = atmosphere_fields.Mp.data)
 
     kernel_parameters = surface_computations_kernel_parameters(grid)
     
     launch!(arch, grid, kernel_parameters,
             _interpolate_primary_atmospheric_state!,
-            surface_atmosphere_data,
+            atmosphere_data,
             grid,
             clock,
             atmosphere_velocities,
@@ -71,7 +72,7 @@ function interpolate_atmospheric_state!(coupled_model)
     # live on a different grid than the primary fluxes and atmospheric state.
     
     auxiliary_freshwater_flux = atmosphere.auxiliary_freshwater_flux
-    interpolated_prescribed_freshwater_flux = surface_atmosphere_data.Mp
+    interpolated_prescribed_freshwater_flux = atmosphere_data.Mp
 
     if !isnothing(auxiliary_freshwater_flux)
         # TODO: do not assume that `auxiliary_freshater_flux` is a tuple
