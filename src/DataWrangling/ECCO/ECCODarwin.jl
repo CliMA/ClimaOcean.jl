@@ -27,20 +27,22 @@ Metadata information for an ECCO dataset:
 - `dir`: The directory where the dataset is stored.
 """
 struct ECCODarwinMetadata{D, R, V}
-    name    :: Symbol
-    dates   :: D
-    date_ref:: R
-    dt      :: Int
-    version :: V
-    dir     :: String
+    name          :: Symbol
+    dates         :: D
+    reference_date:: R
+    dt            :: Int
+    scale_factor  :: Real
+    version       :: V
+    dir           :: String
 end
 
 Base.show(io::IO, metadata::ECCODarwinMetadata) = 
     print(io, "ECCODarwinMetadata:", '\n',
     "├── name:    $(metadata.name)", '\n',
     "├── dates:   $(metadata.dates)", '\n',
-    "├── date_ref:$(metadata.date_ref)", '\n',
+    "├── reference_date:$(metadata.reference_date)", '\n',
     "├── dt:      $(metadata.dt)", '\n',
+    "├── scale_factor:$(metadata.scale_factor)", '\n',
     "├── version: $(metadata.version)", '\n',
     "└── dir:     $(metadata.dir)")
 
@@ -51,12 +53,14 @@ Base.summary(md::ECCODarwinMetadata{<:AbstractCFDateTime, <:ECCO4DarwinMonthly})
 Base.summary(md::ECCODarwinMetadata{<:AbstractCFDateTime, <:ECCO270DarwinMonthly}) = "ECCO270DarwinMonthly $(md.name) metadata at $(md.dates)"
 
 """
-    ECCODarwinMetadata(name::Symbol; 
-                dates    = DateTimeProlepticGregorian(1993, 1, 1),
-                date_ref = DateTimeProlepticGregorian(1993, 1, 1, 12, 0, 0),
-                dt       = 3600,
-                version  = ECCO4DarwinMonthly(),
-                dir      = download_ECCO_cache)
+    ECCODarwinMetadata(
+                name::Symbol; 
+                dates          = DateTimeProlepticGregorian(1993, 1, 1),
+                reference_date = DateTimeProlepticGregorian(1992, 1, 1, 12, 0, 0),
+                dt             = 3600,
+                scale_factor   = 1,
+                version        = ECCO4DarwinMonthly(),
+                dir            = download_ECCO_cache)
 
 Construct an `ECCODarwinMetadata` object with the specified parameters.
 
@@ -71,7 +75,7 @@ Keyword Arguments
            Default: `DateTimeProlepticGregorian(1993, 1, 1)`.
 
 
-- `date_ref`: The reference date. Default: `DateTimeProlepticGregorian(1993, 1, 1, 12, 0, 0)`.
+- `reference_date`: The reference date. Default: `DateTimeProlepticGregorian(1992, 1, 1, 12, 0, 0)`.
 
 - `dt`: The time step. Default: `3600`.
            
@@ -80,14 +84,15 @@ Keyword Arguments
 - `dir`: The directory of the data file. Default: `download_ECCO_cache`.
 """
 function ECCODarwinMetadata(name::Symbol; 
-    dates    = DateTimeProlepticGregorian(1993, 1, 1),
-    date_ref = DateTimeProlepticGregorian(1992, 1, 1, 12, 0, 0),
-    dt       = 3600,
-    version  = ECCO4DarwinMonthly(),
-    dir      = download_ECCO_cache,
+    dates          = DateTimeProlepticGregorian(1993, 1, 1),
+    reference_date = DateTimeProlepticGregorian(1992, 1, 1, 12, 0, 0),
+    dt             = 3600,
+    scale_factor   = 1,
+    version        = ECCO4DarwinMonthly(),
+    dir            = download_ECCO_cache,
 )
 
-    return ECCODarwinMetadata(name, dates, date_ref, dt, version, dir)
+    return ECCODarwinMetadata(name, dates, reference_date, dt, scale_factor, version, dir)
 end
 
 function ECCODarwinMetadata(name::Symbol, 
@@ -95,9 +100,10 @@ function ECCODarwinMetadata(name::Symbol,
     version::ECCO4DarwinMonthly;
     dir      = download_ECCO_cache,
 )
-    date_ref = DateTimeProlepticGregorian(1992, 1, 1, 12, 0, 0)
-    dt       = 3600
-    return ECCODarwinMetadata(name, dates, date_ref, dt, version, dir)
+    reference_date = DateTimeProlepticGregorian(1992, 1, 1, 12, 0, 0)
+    dt             = 3600
+    scale_factor   = 1e-3
+    return ECCODarwinMetadata(name, dates, reference_date, dt, scale_factor, version, dir)
 end
 
 function ECCODarwinMetadata(name::Symbol, 
@@ -105,21 +111,22 @@ function ECCODarwinMetadata(name::Symbol,
     version::ECCO270DarwinMonthly; 
     dir=download_ECCO_cache)
 
-    date_ref = DateTimeProlepticGregorian(1992, 1, 1, 0, 0, 0)
+    reference_date = DateTimeProlepticGregorian(1992, 1, 1, 0, 0, 0)
     dt = 1200
-    ECCODarwinMetadata(name, dates, date_ref, dt, version, dir)
+    scale_factor = 1e-3
+    ECCODarwinMetadata(name, dates, reference_date, dt, scale_factor, version, dir)
 end
 
 # Treat ECCODarwinMetadata as an array to allow iteration over the dates.
 Base.eltype(metadata::ECCODarwinMetadata) = Base.eltype(metadata.dates)
 
-@propagate_inbounds Base.getindex(m::ECCODarwinMetadata, i::Int) = ECCODarwinMetadata(m.name, m.dates[i],   m.date_ref, m.dt, m.version, m.dir)
-@propagate_inbounds Base.first(m::ECCODarwinMetadata)            = ECCODarwinMetadata(m.name, m.dates[1],   m.date_ref, m.dt, m.version, m.dir)
-@propagate_inbounds Base.last(m::ECCODarwinMetadata)             = ECCODarwinMetadata(m.name, m.dates[end], m.date_ref, m.dt, m.version, m.dir)
+@propagate_inbounds Base.getindex(m::ECCODarwinMetadata, i::Int) = ECCODarwinMetadata(m.name, m.dates[i],   m.reference_date, m.dt, m.version, m.dir)
+@propagate_inbounds Base.first(m::ECCODarwinMetadata)            = ECCODarwinMetadata(m.name, m.dates[1],   m.reference_date, m.dt, m.version, m.dir)
+@propagate_inbounds Base.last(m::ECCODarwinMetadata)             = ECCODarwinMetadata(m.name, m.dates[end], m.reference_date, m.dt, m.version, m.dir)
 
 @inline function Base.iterate(m::ECCODarwinMetadata, i=1)
     if (i % UInt) - 1 < length(m)
-        return ECCODarwinMetadata(m.name, m.dates[i], m.date_ref, m.dt, m.version, m.dir), i + 1
+        return ECCODarwinMetadata(m.name, m.dates[i], m.reference_date, m.dt, m.scale_factor, m.version, m.dir), i + 1
     else
         return nothing
     end
@@ -151,7 +158,7 @@ metadata_filename(metadata) = [metadata_filename(metadatum) for metadatum in met
 function metadata_filename(metadata::ECCODarwinMetadata{<:AbstractCFDateTime})
     shortname = short_name(metadata)
     
-    iternum = Dates.value((metadata.dates-metadata.date_ref)/(metadata.dt*1e3))
+    iternum = Dates.value((metadata.dates-metadata.reference_date)/(metadata.dt*1e3))
     iterstr = string(iternum, pad=10)
 
     return shortname * "." * iterstr * ".data"
@@ -280,7 +287,7 @@ function download_dataset(metadata::ECCODarwinMetadata; url = urls(metadata))
 end
 
 ECCODarwinMeshGrid(::ECCO4DarwinMonthly)   = GridSpec("LatLonCap", MeshArrays.GRID_LLC90)
-ECCODarwinMeshGrid(::ECCO270DarwinMonthly) = GridSpec("LatLonCap", MeshArrays.GRID_LLC90)
+ECCODarwinMeshGrid(::ECCO270DarwinMonthly) = gcmgrid("./", "LatLonCap", 5, [(270, 810), (270, 810), (270, 270), (810, 270), (810, 270)], (270, 3510), Float64, read, write)
 
 """
     ECCODarwinModelMeta(metafile)
@@ -438,6 +445,9 @@ function ECCO_field(metadata::ECCODarwinMetadata;
         data = Array{FT}(data)
     end
     
+    # Scale data according to metadata.scale_factor
+    data = data .* metadata.scale_factor
+
     # ECCO4 data is on a -180, 180 longitude grid as opposed to ECCO2 data that
     # is on a 0, 360 longitude grid. To make the data consistent, we shift ECCO4
     # data by 180 degrees in longitude
