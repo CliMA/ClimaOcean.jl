@@ -162,7 +162,6 @@ function metadata_filename(metadata::ECCODarwinMetadata{<:AbstractCFDateTime})
 end
 
 # Convenience functions
-metadata_path(metadata) = joinpath(metadata.dir, metadata_filename(metadata))
 short_name(data::ECCODarwinMetadata{<:Any, <:Any, <:ECCO270DarwinMonthly}) = ECCO270Darwin_short_names[data.name]
 short_name(data::ECCODarwinMetadata{<:Any, <:Any, <:ECCO4DarwinMonthly})   = ECCO4Darwin_short_names[data.name]
 
