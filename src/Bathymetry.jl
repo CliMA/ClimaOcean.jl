@@ -161,6 +161,10 @@ function regrid_bathymetry(target_grid;
     φ₁_data = convert(Float64, φ_data[1]   - Δφ / 2)
     φ₂_data = convert(Float64, φ_data[end] + Δφ / 2)
 
+    # Make sure the limits of the data do not cross -90 and 90 degree
+    φ₁_data = max(φ₁_data, -90)
+    φ₂_data = min(φ₂_data,  90)
+
     Nxn = length(λ_data)
     Nyn = length(φ_data)
     Nzn = 1
