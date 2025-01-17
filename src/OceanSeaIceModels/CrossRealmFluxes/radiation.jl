@@ -92,4 +92,5 @@ end
 
 @inline upwelling_radiation(T, σ, ϵ) = σ * ϵ * T^4
 @inline net_downwelling_radiation(i, j, grid, time, α, ϵ, Qs, Qℓ) = - (1 - α) * Qs - ϵ * Qℓ
+@inline net_downwelling_radiation(r, α, ϵ) = - (1 - α) * r.Qs - ϵ * r.Qℓ
 

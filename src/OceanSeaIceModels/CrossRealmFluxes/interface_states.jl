@@ -1,5 +1,6 @@
 using CUDA: @allowscalar
 
+import ClimaSeaIce
 import Thermodynamics as AtmosphericThermodynamics  
 using Thermodynamics: Liquid, Ice
 
@@ -148,48 +149,112 @@ end
 
 DiffusiveFlux(FT; κ = 1e-2, δ = 1.0) = DiffusiveFlux(convert(FT, δ), convert(FT, κ))
 
-# The flux balance could be solved either
+# The flux balance is solved by computing
 # 
-#   Tᵇ - Tₛⁿ⁺¹
-# κ ---------- = Jᵀ (all fluxes positive upwards)
-#       δ
+#            κ 
+# Jᵃ(Tₛⁿ) + --- (Tₛⁿ⁺¹ - Tᵢ) = 0
+#            δ
 #
-# Where the LHS is the internal diffusive flux inside the ocean (within the boundary layer of thickness δ) 
-# and the RHS are the atmospheric and radiative fluxes are provided explicitly, or
+# where Jᵃ is the external flux impinging on the surface from above and
+# Jᵢ = - κ (Tₛ - Tᵢ) / δ is the "internal flux" coming up from below.
+# We have indicated that Jᵃ may depend on the surface temperature from the previous
+# iterate. We thus find that 
+#
+# Tₛⁿ⁺¹ = Tᵢ + δ * Jᵃ(Tₛⁿ) / κ
+#
+# Note that we could also use the fact that Jᵃ(T) = σ * ϵ * T^4 + ⋯
+# to expand Jᵃ around Tⁿ⁺¹,
+#
+# Jᵃ(Tⁿ⁺¹) ≈ Jᵃ(Tⁿ) + (Tⁿ⁺¹ - Tⁿ) * ∂T_Jᵃ(Tⁿ)
+#          ≈ Jᵃ(Tⁿ) + 4 * (Tⁿ⁺¹ - Tⁿ) σ * ϵ * Tⁿ^3 / (ρ c)
+#
+# which produces the alternative, semi-implicit flux balance
 # 
-#   Tᵇ - Tₛⁿ⁺¹    σ ϵ Tₛⁿ⁺¹Tₛⁿ³
-# κ ---------- - ------------ = Jᵀ (all fluxes positive upwards)
-#       δ           ρₒ cpₒ
+#                                      κ 
+# Jᵃ(Tₛⁿ) - 4 α Tₛⁿ⁴ + 4 α Tₛⁿ Tₛⁿ³ + --- (Tₛⁿ⁺¹ - Tᵢ) = 0
+#                                      δ
 #
-# Where the LHS is the internal diffusive flux inside the ocean (within the boundary layer of thickness δ) 
-# plus the (semi-implicit) outgoing longwave radiation and the RHS are the remaining atmospheric and radiative fluxes
-# provided explicitly. Here we implement the fully explicit version, the linearized version is an optimization
-# that can be explored in the future.
-@inline flux_balance_temperature(F::DiffusiveFlux, Tᵇ, Jᵀ) = Tᵇ - Jᵀ / F.κ * F.δ
+# with α = σ ϵ / (ρ c) such that
+#
+# Tₛⁿ⁺¹ (κ / δ + 4 α Tₛⁿ³) = κ * Tᵢ / δ - Jᵃ + 4 α Tₛⁿ⁴)
+#
+# or
+#
+# Tₛⁿ⁺¹ = = (Tᵢ - δ / κ * (Jᵃ - 4 α Tₛⁿ⁴)) / (1 + 4 δ σ ϵ Tₛⁿ³ / ρ c κ) 
+#
+# corresponding to a linearization of the outgoing longwave radiation term.
+@inline flux_balance_temperature(F::DiffusiveFlux, Jᵀ, Ψₛ, ℙₛ, Ψᵢ, ℙᵢ) = Ψᵢ.T + Jᵀ * F.δ / F.κ
 
-# the flaw here is that the ocean emissivity and albedo are fixed, but they might be a function of the
-# interface temperature, so we might need to pass the radiation and the albedo and emissivity as arguments.
-@inline function compute_interface_temperature(st::SkinTemperature, Tₛ, ℂ, 𝒬₀, 𝒬₁, Σ★, ρᵇ, cᵇ, Qd, σ, α, ϵ)
-    ρₐ = AtmosphericThermodynamics.air_density(ℂ, 𝒬₁)
-    cₚ = AtmosphericThermodynamics.cp_m(ℂ, 𝒬₁) # moist heat capacity
-    ℰv = AtmosphericThermodynamics.latent_heat_vapor(ℂ, 𝒬₁)
+@inline function flux_balance_temperature(F::ClimaSeaIce.ConductiveFlux, Jᵀ, Ψₛ, ℙₛ, Ψᵢ, ℙᵢ)
+    k = F.conductivity
+    ρ = ℙᵢ.reference_density
+    c = ℙᵢ.heat_capacity
+    κ = k / (ρ * c)
+    h = Ψᵢ.h
+
+    # Bottom temperature at the melting temperature
+    Tᵢ = ClimaSeaIce.SeaIceThermodynamics.melting_temperature(ℙᵢ.liquidus, Ψᵢ.S)
+    Tᵢ = convert_to_kelvin(ℙᵢ.temperature_units, Tᵢ)
+
+    # Tₛ = Tᵢ - Jᵀ * h / κ
+
+    Tₛ⁻ = Ψₛ.T
+    σ = ℙₛ.radiation.σ
+    ϵ = ℙₛ.radiation.ϵ
+    α = σ * ϵ / (ρ * c)
+    Tₛ = (κ * Tᵢ / h - Jᵀ + 4α * Tₛ⁻^4) / (κ / h + 4 * α * Tₛ⁻^3)
+    Tₛ = ifelse(isnan(Tₛ), Tₛ⁻, Tₛ)
+
+    # Under heating fluxes, cap surface temperature by melting temperature
+    Tₘ = ℙᵢ.liquidus.freshwater_melting_temperature
+    Tₘ = convert_to_kelvin(ℙᵢ.temperature_units, Tₘ)
+
+    return min(Tₛ, Tₘ)
+end
+
+@inline function compute_interface_temperature(st::SkinTemperature,
+                                               interface_state,
+                                               atmosphere_state,
+                                               interior_state,
+                                               downwelling_radiation,
+                                               interface_properties,
+                                               atmosphere_properties,
+                                               interior_properties)
+
+    ℂₐ = atmosphere_properties.thermodynamics_parameters
+    𝒬ₐ = atmosphere_state.𝒬
+    ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
+    cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
+    ℰv = AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
 
     # upwelling radiation is calculated explicitly 
-    Qu = upwelling_radiation(Tₛ, σ, ϵ)
+    Tₛ⁻ = interface_state.T # approximate interface temperature from previous iteration
+    σ = interface_properties.radiation.σ
+    ϵ = interface_properties.radiation.ϵ
+    α = interface_properties.radiation.α
+
+    Qu = upwelling_radiation(Tₛ⁻, σ, ϵ)
+    Qd = net_downwelling_radiation(downwelling_radiation, α, ϵ)
     Qn = Qd + Qu # Net radiation (positive out of the ocean)
 
-    u★ = Σ★.momentum
-    T★ = Σ★.temperature
-    q★ = Σ★.water_vapor
+    u★ = interface_state.u★
+    θ★ = interface_state.θ★
+    q★ = interface_state.q★
  
     # Turbulent heat fluxes, sensible + latent (positive out of the ocean)
-    Qt = - ρₐ * u★ * (cₚ * T★ + q★ * ℰv)
+    Qt = - ρₐ * u★ * (cₚ * θ★ + q★ * ℰv)
 
     # Net temperature flux (positive upwards)
-    Jᵀ = (Qt + Qn) / (ρᵇ * cᵇ)
+    ρᵢ = interior_properties.reference_density
+    cᵢ = interior_properties.heat_capacity
+    Jᵀ = (Qt + Qn) / (ρᵢ * cᵢ)
 
-    Tₒ = AtmosphericThermodynamics.air_temperature(ℂ, 𝒬₀)
-    Tₛ = flux_balance_temperature(st.internal_flux, Tₒ, Jᵀ) # new interface temperature
+    Tᵇ = interior_state.T
+    Tₛ = flux_balance_temperature(st.internal_flux, Jᵀ,
+                                  interface_state,
+                                  interface_properties,
+                                  interior_state,
+                                  interior_properties)
 
     return Tₛ
 end

@@ -156,7 +156,7 @@ end
         Fv[i, j, 1]  = - ρₐ * u★ * q★
         ρτx[i, j, 1] = + ρₐ * τx
         ρτy[i, j, 1] = + ρₐ * τy
-        Ts[i, j, 1]  = interface_state.T
+        Ts[i, j, 1]  = convert_from_kelvin(ocean_properties.temperature_units, Ψₛ.T)
     end
 
     # u★ = sqrt((ρτx / ρₐ)^2 + (ρτx / ρₐ)^2)

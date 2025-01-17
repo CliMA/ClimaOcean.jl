@@ -11,24 +11,26 @@ struct SimilarityScales{U, T, Q}
     water_vapor :: Q
 end
 
+#=
 function -(a::SimilarityScales, b::SimilarityScales)
     Δu = a.momentum - b.momentum
     Δθ = a.temperature - b.temperature
     Δq = a.water_vapor - b.water_vapor
     return SimilarityScales(Δu, Δθ, Δq)
 end
+=#
 
-Statistics.norm(a::SimilarityScales) = norm(a.momentum) + norm(a.temperature) + norm(a.water_vapor)
+# Statistics.norm(a::SimilarityScales) = norm(a.momentum) + norm(a.temperature) + norm(a.water_vapor)
 
 # Edson et al. (2013)
 function edson_stability_functions(FT = Float64)
-    ψu = MomentumStabilityFunction()
-    ψc = ScalarStabilityFunction()
+    ψu = EdsonMomentumStabilityFunctionsFunction{FT}()
+    ψc = EdsonScalarStabilityFunction{FT}()
     return SimilarityScales(ψu, ψc, ψc)
 end
 
 """
-    MomentumStabilityFunction{FT}
+    EdsonMomentumStabilityFunctionsFunction{FT}
 
 A struct representing the momentum stability function detailed in Edson et al (2013).
 The formulation hinges on the definition of three different functions:
@@ -59,7 +61,7 @@ f  = ζ² / (1 + ζ²)
 The superscripts ``ˢ`` and ``ᵘ`` indicate if the parameter applies to the 
 stability function for _stable_ or _unstable_ atmospheric conditions, respectively.
 """
-@kwdef struct MomentumStabilityFunction{FT}
+@kwdef struct EdsonMomentumStabilityFunctionsFunction{FT}
     ζmax :: FT = 50.0
     Aˢ   :: FT = 0.35
     Bˢ   :: FT = 0.7
@@ -73,7 +75,7 @@ stability function for _stable_ or _unstable_ atmospheric conditions, respective
     Fᵘ   :: FT = π / sqrt(3)
 end
 
-@inline function (ψ::MomentumStabilityFunction)(ζ)
+@inline function (ψ::EdsonMomentumStabilityFunctionsFunction)(ζ)
     ζmax = ψ.ζmax
     Aˢ   = ψ.Aˢ  
     Bˢ   = ψ.Bˢ  
@@ -107,7 +109,7 @@ end
 end
 
 """
-    ScalarStabilityFunction{FT}
+    EdsonScalarStabilityFunction{FT}
 
 A struct representing the scalar stability function detailed in Edson et al (2013).
 The formulation hinges on the definition of three different functions:
@@ -137,7 +139,7 @@ f  = ζ² / (1 + ζ²)
 The superscripts ``ˢ`` and ``ᵘ`` indicate if the parameter applies to the 
 stability function for _stable_ or _unstable_ atmospheric conditions, respectively.
 """
-@kwdef struct ScalarStabilityFunction{FT}
+@kwdef struct EdsonScalarStabilityFunction{FT}
     ζmax :: FT = 50.0
     Aˢ   :: FT = 0.35
     Bˢ   :: FT = 2/3
@@ -152,7 +154,7 @@ stability function for _stable_ or _unstable_ atmospheric conditions, respective
     Fᵘ   :: FT = π / sqrt(3)
 end
 
-@inline function (ψ::ScalarStabilityFunction)(ζ)
+@inline function (ψ::EdsonScalarStabilityFunction)(ζ)
     ζmax = ψ.ζmax
     Aˢ   = ψ.Aˢ  
     Bˢ   = ψ.Bˢ  
@@ -178,10 +180,114 @@ end
     ψᵤ₁ = Bᵘ * log((1 + fᵤ₁) / Bᵘ) + Cᵘ
 
     fᵤ₂ = cbrt(1 - Dᵘ * ζ⁻)
-    ψᵤ₂ = Eᵘ / 2 * log((1 + fᵤ₂ + fᵤ₂^2) / Eᵘ) - sqrt(Eᵘ) * atan( (1 + 2fᵤ₂) / sqrt(Eᵘ)) + Fᵘ
+    ψᵤ₂ = Eᵘ / 2 * log((1 + fᵤ₂ + fᵤ₂^2) / Eᵘ) - sqrt(Eᵘ) * atan((1 + 2fᵤ₂) / sqrt(Eᵘ)) + Fᵘ
 
     f  = ζ⁻^2 / (1 + ζ⁻^2)
     ψᵤ = (1 - f) * ψᵤ₁ + f * ψᵤ₂  
 
     return ifelse(ζ < 0, ψᵤ, ψₛ)
 end
+
+#####
+##### From Grachev et al 2007, for stable boundary layers
+#####
+
+@kwdef struct ShebaMomentumStabilityFunction{FT}
+    a :: FT = 6.5
+    b :: FT = 1.3
+end
+
+# @inline (ψ::ShebaMomentumStabilityFunction)(ζ) = 1 + ψ.a * ζ * cbrt(1 + ζ) / (ψ.b + ζ)
+@inline function (Ψ::ShebaMomentumStabilityFunction)(ζ)
+    a = Ψ.a
+    b = Ψ.b
+    ζ⁺ = max(zero(ζ), ζ)
+    z = cbrt(1 + ζ⁺)
+    B = cbrt((1 - b) / b)
+
+    rt3 = sqrt(3)
+    Ψ₁ = - 3 * a * (z - 1) / b
+    Ψ₂ = a * B / 2b * (2 * log((z + B) / (1 + B))
+                       - log((z^2 - B * z + B^2) / (1 - B + B^2))
+                       + 2 * rt3 * (atan((2z - B) / (rt3 * B)) - atan((2 - B) / (rt3 * B))))
+
+    return Ψ₁ + Ψ₂
+end
+
+@kwdef struct ShebaScalarStabilityFunction{FT}
+    a :: FT = 5.0
+    b :: FT = 5.0
+    c :: FT = 3.0
+end
+
+@inline function (Ψ::ShebaScalarStabilityFunction)(ζ)
+    a = Ψ.a
+    b = Ψ.b
+    c = Ψ.c
+    B = sqrt(c^2 - 4)
+    ζ⁺ = max(zero(ζ), ζ)
+
+    Ψ₁ = - b/2 * log(1 + c * ζ⁺ + ζ⁺^2)
+    Ψ₂ = (b * c / 2B - a / B) * (log((2ζ⁺ + c - B) / (2ζ⁺ + c + B))
+                                 + log((c - B) / (c + B)))
+
+    return Ψ₁ + Ψ₂
+end
+
+#####
+##### From Paulson 1970 for unstable boundary layers
+####
+
+@kwdef struct PaulsonMomentumStabilityFunction{FT}
+    a :: FT = 16.0
+    b :: FT = π/2
+end
+
+@inline function (Ψ::PaulsonMomentumStabilityFunction)(ζ)
+    a = Ψ.a
+    b = Ψ.b
+    ζ⁻ = min(zero(ζ), ζ)
+    z = sqrt(sqrt((1 - a * ζ⁻)))
+
+    Ψ₁ = 2 * log((1 + z) / 2)
+    Ψ₂ = log((1 + z^2) / 2)
+    Ψ₃ = - 2 * atan(z)
+
+    return Ψ₁ + Ψ₂ + Ψ₃ + b
+end
+
+@kwdef struct PaulsonScalarStabilityFunction{FT}
+    a :: FT = 16.0
+end
+
+@inline function (Ψ::PaulsonScalarStabilityFunction)(ζ)
+    a = Ψ.a
+    ζ⁻ = min(zero(ζ), ζ)
+    z = sqrt(sqrt((1 - a * ζ⁻)))
+    return 2 * log((1 + z^2) / 2)
+end
+
+struct SplitStabilityFunction{S, U}
+    stable :: S
+    unstable :: U
+end
+
+@inline function (Ψ::SplitStabilityFunction)(ζ)
+    Ψ_stable = Ψ.stable(ζ)
+    Ψ_unstable = Ψ.unstable(ζ)
+    stable = ζ > 0
+    return ifelse(stable, Ψ_stable, Ψ_unstable)
+end
+
+function atmosphere_sea_ice_stability_functions(FT=Float64)
+    stable_momentum = PaulsonMomentumStabilityFunction{FT}()
+    unstable_momentum = ShebaMomentumStabilityFunction{FT}()
+    momentum = SplitStabilityFunction(stable_momentum, unstable_momentum)
+
+    stable_scalar = PaulsonScalarStabilityFunction{FT}()
+    unstable_scalar = ShebaScalarStabilityFunction{FT}()
+    scalar = SplitStabilityFunction(stable_scalar, unstable_scalar)
+
+    return SimilarityScales(momentum, scalar, scalar)
+end
+

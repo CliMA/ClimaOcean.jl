@@ -55,12 +55,8 @@ function Base.show(io::IO, fluxes::SimilarityTheoryFluxes)
           "├── turbulent_prandtl_number: ",   prettysummary(fluxes.turbulent_prandtl_number), '\n',
           "├── gustiness_parameter: ",        prettysummary(fluxes.gustiness_parameter), '\n',
           "├── stability_functions: ",        summary(fluxes.stability_functions), '\n',
-          "├── water_mole_fraction: ",        summary(fluxes.water_mole_fraction), '\n',
-          "├── water_vapor_saturation: ",     summary(fluxes.water_vapor_saturation), '\n',
           "├── roughness_lengths: ",          summary(fluxes.roughness_lengths), '\n',
-          "├── similarity_profile_type: ",    summary(fluxes.similarity_profile_type), '\n',
-          "├── interface_temperature: ",      summary(fluxes.interface_temperature_type), '\n',
-          "└── thermodynamics_parameters: ",  summary(fluxes.thermodynamics_parameters))
+          "└── similarity_profile_type: ",    summary(fluxes.similarity_profile_type))
 end
 
 """
@@ -72,7 +68,6 @@ end
                            stability_functions = default_stability_functions(FT),
                            roughness_lengths = default_roughness_lengths(FT),
                            similarity_profile_type = LogarithmicSimilarityProfile(),
-                           interface_temperature_type = BulkTemperature(),
                            bulk_velocity = RelativeVelocity(),
                            tolerance = 1e-8,
                            maxiter = 100)
@@ -212,7 +207,7 @@ end
                                        interface_properties,
                                        atmosphere_properties,
                                        interior_properties)
-    
+
     # Thermodynamic state
     FT = eltype(approximate_interface_state)
     ℂₐ = atmosphere_properties.thermodynamics_parameters

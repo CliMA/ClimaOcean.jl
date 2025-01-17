@@ -72,6 +72,9 @@ const celsius_to_kelvin = 273.15
 @inline convert_to_kelvin(::DegreesCelsius, T::FT) where FT = T + convert(FT, celsius_to_kelvin)
 @inline convert_to_kelvin(::DegreesKelvin, T) = T
 
+@inline convert_from_kelvin(::DegreesCelsius, T::FT) where FT = T - convert(FT, celsius_to_kelvin)
+@inline convert_from_kelvin(::DegreesKelvin, T) = T
+
 Base.summary(crf::CrossRealmSurfaceFluxes) = "CrossRealmSurfaceFluxes"
 Base.show(io::IO, crf::CrossRealmSurfaceFluxes) = print(io, summary(crf))
 
@@ -117,11 +120,14 @@ function atmosphere_sea_ice_interface(sea_ice, radiation, temperature_formulatio
     radiation = (σ=σ, α=αₐᵢ, ϵ=ϵₐᵢ)
     phase = AtmosphericThermodynamics.Ice()
     specific_humidity_formulation = SpecificHumidityFormulation(phase)
+
     properties = InterfaceProperties(radiation,
                                      specific_humidity_formulation,
                                      temperature_formulation)
 
-    ai_flux_formulation = sea_ice_similarity_theory(sea_ice)
+    FT = eltype(sea_ice.model.grid)
+    stability_functions = atmosphere_sea_ice_stability_functions(FT)
+    ai_flux_formulation = SimilarityTheoryFluxes(; stability_functions)
     interface_temperature = Field{Center, Center, Nothing}(sea_ice.model.grid)
 
     return AtmosphereInterface(fluxes, ai_flux_formulation, interface_temperature, properties)
@@ -144,8 +150,8 @@ function sea_ice_ocean_interface(sea_ice, ocean)
 end
 
 function default_ai_temperature(sea_ice)
-    internal_flux = sea_ice.model.ice_thermodynamics.internal_heat_flux
-    return SkinTemperature(internal_flux)
+    conductive_flux = sea_ice.model.ice_thermodynamics.internal_heat_flux.parameters.flux
+    return SkinTemperature(conductive_flux)
 end
 
 function default_ao_specific_humidity(ocean)

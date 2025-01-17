@@ -28,7 +28,7 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
                        Qs = atmosphere_fields.Qs.data,
                        Qℓ = atmosphere_fields.Qℓ.data,
                        Mp = atmosphere_fields.Mp.data,
-                       zb = atmosphere.boundary_layer_height)
+                       h_bℓ = atmosphere.boundary_layer_height)
 
     flux_formulation = coupled_model.fluxes.atmosphere_sea_ice_interface.flux_formulation
     interface_fluxes = coupled_model.fluxes.atmosphere_sea_ice_interface.fluxes
@@ -93,6 +93,7 @@ end
         vᵢ = ℑyᵃᶜᵃ(i, j, 1, grid, interior_state.v)
         hᵢ = interior_state.h[i, j, 1]
         Tₛ = interface_temperature[i, j, 1]
+        Tₛ = convert_to_kelvin(sea_ice_properties.temperature_units, Tₛ)
     end
 
     # Build thermodynamic and dynamic states in the atmosphere and interface.
@@ -101,12 +102,16 @@ end
     #   ⋅ 𝒰 ≡ "dynamic" state vector (thermodynamics + reference height + velocity)
     ℂₐ = atmosphere_properties.thermodynamics_parameters
     𝒬ₐ = thermodynamic_atmospheric_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₐ, qₐ)
-    hₐ = atmosphere_reference_height # elevation of atmos variables relative to interface
-    Uₐ = SVector(uₐ, vₐ)
-    local_atmosphere_state = SurfaceFluxes.StateValues(hₐ, Uₐ, 𝒬ₐ)
+    zₐ = atmosphere_properties.reference_height # elevation of atmos variables relative to interface
+
+    local_atmosphere_state = (z = zₐ,
+                              u = uₐ,
+                              v = vₐ,
+                              𝒬 = 𝒬ₐ,
+                              h_bℓ = atmosphere_state.h_bℓ)
+
     downwelling_radiation = (; Qs, Qℓ)
     local_interior_state = (u=uᵢ, v=vᵢ, T=Tᵢ, S=Sᵢ, h=hᵢ)
-    atmosphere_properties = ℂₐ
 
     # Estimate initial interface state
     FT = eltype(grid)
@@ -114,11 +119,13 @@ end
 
     # Estimate interface specific humidity using interior temperature
     q_formulation = interface_properties.specific_humidity_formulation
-    qₛ = saturation_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ.ρ, Tₛ, Sᵢ) 
-    initial_interface_state = InterfaceState(u★, u★, u★, uᵢ, vᵢ, Tₛ, Sᵢ, qₛ)
+    qₛ = saturation_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ.ρ, Tₛ, Sᵢ)
 
-    if inactive_node(i, j, kᴺ, grid, Center(), Center(), Center())
-        interface_state = zero_interface_state(FT)
+    # Guess
+    initial_interface_state = InterfaceState(u★, u★, u★, uᵢ, vᵢ, Tₛ, Sᵢ, convert(FT, qₛ))
+
+    if inactive_node(i, j, kᴺ, grid, Center(), Center(), Center()) || hᵢ == 0
+        interface_state = InterfaceState(zero(FT), zero(FT), zero(FT), uᵢ, vᵢ, Tᵢ, Sᵢ, zero(FT))
     else
         interface_state = compute_interface_state(turbulent_flux_formulation,
                                                   initial_interface_state,
@@ -147,8 +154,6 @@ end
     τx = - u★^2 * Δu / ΔU
     τy = - u★^2 * Δv / ΔU
 
-    𝒬ₐ = local_atmosphere_state.ts
-    ℂₐ = atmosphere_properties
     ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
     cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
     ℰv = AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
@@ -168,7 +173,7 @@ end
         Fv[i, j, 1]  = - ρₐ * u★ * q★
         ρτx[i, j, 1] = + ρₐ * τx
         ρτy[i, j, 1] = + ρₐ * τy
-        Ts[i, j, 1]  = interface_state.T
+        Ts[i, j, 1]  = convert_from_kelvin(sea_ice_properties.temperature_units, Ψₛ.T)
     end
 end
 
