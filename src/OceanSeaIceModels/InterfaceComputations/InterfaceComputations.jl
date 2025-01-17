@@ -54,7 +54,7 @@ include("tabulated_albedo.jl")
 include("roughness_lengths.jl")
 include("interface_states.jl")
 include("similarity_theory_turbulent_fluxes.jl")
-include("constant_coefficient_turbulent_fluxes.jl")
+include("coefficient_based_turbulent_fluxes.jl")
 
 include("component_interfaces.jl")
 include("interpolate_atmospheric_state.jl")

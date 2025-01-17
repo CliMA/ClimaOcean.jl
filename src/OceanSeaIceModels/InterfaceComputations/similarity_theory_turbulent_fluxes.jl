@@ -201,7 +201,7 @@ as well as the atmosphere state `Ψₐ`, the interior state `Ψᵢ`,
 downwelling radiation `Qᵣ`, and the interface, atmosphere,
 and interior properties `ℙₛ`, `ℙₐ`, and `ℙᵢ`.
 """
-@inline function iterate_interface_state(flux_formulation,
+@inline function iterate_interface_state(flux_formulation::SimilarityTheoryFluxes,
                                          approximate_interface_state,
                                          atmosphere_state,
                                          interior_state,

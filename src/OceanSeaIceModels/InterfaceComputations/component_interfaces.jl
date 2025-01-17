@@ -120,8 +120,9 @@ function atmosphere_sea_ice_interface(sea_ice, radiation, temperature_formulatio
                                      temperature_formulation)
 
     FT = eltype(sea_ice.model.grid)
-    stability_functions = atmosphere_sea_ice_stability_functions(FT)
-    ai_flux_formulation = SimilarityTheoryFluxes(; stability_functions)
+    # stability_functions = atmosphere_sea_ice_stability_functions(FT)
+    # ai_flux_formulation = SimilarityTheoryFluxes(; stability_functions)
+    ai_flux_formulation = CoefficientBasedFluxes(drag_coefficient = 5e-3)
     interface_temperature = Field{Center, Center, Nothing}(sea_ice.model.grid)
 
     return AtmosphereInterface(fluxes, ai_flux_formulation, interface_temperature, properties)

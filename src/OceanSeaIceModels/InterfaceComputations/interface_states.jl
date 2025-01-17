@@ -183,32 +183,51 @@ DiffusiveFlux(FT; κ = 1e-2, δ = 1.0) = DiffusiveFlux(convert(FT, δ), convert(
 # Tₛⁿ⁺¹ = = (Tᵢ - δ / κ * (Jᵃ - 4 α Tₛⁿ⁴)) / (1 + 4 δ σ ϵ Tₛⁿ³ / ρ c κ) 
 #
 # corresponding to a linearization of the outgoing longwave radiation term.
-@inline flux_balance_temperature(F::DiffusiveFlux, Jᵀ, Ψₛ, ℙₛ, Ψᵢ, ℙᵢ) = Ψᵢ.T + Jᵀ * F.δ / F.κ
+@inline function flux_balance_temperature(F::DiffusiveFlux, Qₐ, Ψₛ, ℙₛ, Ψᵢ, ℙᵢ)
+    ρ = ℙ.reference_density
+    c = ℙ.heat_capacity
+    Jᵀ = Qₐ / (ρ * c)
+    return Ψᵢ.T + Jᵀ * F.δ / F.κ
+end
 
-@inline function flux_balance_temperature(F::ClimaSeaIce.ConductiveFlux, Jᵀ, Ψₛ, ℙₛ, Ψᵢ, ℙᵢ)
+# Q + k / h * (Tˢ - Tᵢ) = 0
+# ⟹  Tₛ = Tᵢ - Q * h / k
+@inline function flux_balance_temperature(F::ClimaSeaIce.ConductiveFlux, Qₐ, Ψₛ, ℙₛ, Ψᵢ, ℙᵢ)
     k = F.conductivity
-    ρ = ℙᵢ.reference_density
-    c = ℙᵢ.heat_capacity
-    κ = k / (ρ * c)
     h = Ψᵢ.h
 
     # Bottom temperature at the melting temperature
     Tᵢ = ClimaSeaIce.SeaIceThermodynamics.melting_temperature(ℙᵢ.liquidus, Ψᵢ.S)
     Tᵢ = convert_to_kelvin(ℙᵢ.temperature_units, Tᵢ)
-
-    # Tₛ = Tᵢ - Jᵀ * h / κ
-
     Tₛ⁻ = Ψₛ.T
+
+    #=
+    @show Tᵢ Tₛ⁻
+    @show Qₐ
+    @show h
+    @show k
+    @show Qₐ * h / k
+    =#
+
+    k *= 100
+    Tₛ = Tᵢ - Qₐ * h / k
+
+    #=
     σ = ℙₛ.radiation.σ
     ϵ = ℙₛ.radiation.ϵ
-    α = σ * ϵ / (ρ * c)
-    Tₛ = (κ * Tᵢ / h - Jᵀ + 4α * Tₛ⁻^4) / (κ / h + 4 * α * Tₛ⁻^3)
+    α = σ * ϵ
+    Tₛ = (Tᵢ - h / k * (Qₐ + 4α * Tₛ⁻^4)) / (1 + 4α * h * Tₛ⁻^3 / k)
     Tₛ = ifelse(isnan(Tₛ), Tₛ⁻, Tₛ)
-    Tₛ = max(173.0, Tₛ)
+    =#
+
+    # @show Tₛ
 
     # Under heating fluxes, cap surface temperature by melting temperature
     Tₘ = ℙᵢ.liquidus.freshwater_melting_temperature
     Tₘ = convert_to_kelvin(ℙᵢ.temperature_units, Tₘ)
+
+    # Don't let it go below 0?
+    Tₛ = max(zero(Tₛ), Tₛ)
 
     return min(Tₛ, Tₘ)
 end
@@ -225,7 +244,7 @@ end
     ℂₐ = atmosphere_properties.thermodynamics_parameters
     𝒬ₐ = atmosphere_state.𝒬
     ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
-    cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
+    cₐ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
     ℰv = AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
 
     # upwelling radiation is calculated explicitly 
@@ -236,22 +255,20 @@ end
 
     Qu = upwelling_radiation(Tₛ⁻, σ, ϵ)
     Qd = net_downwelling_radiation(downwelling_radiation, α, ϵ)
-    Qn = Qd + Qu # Net radiation (positive out of the ocean)
+    Qr = Qd + Qu # Net radiation (positive out of the ocean)
 
     u★ = interface_state.u★
     θ★ = interface_state.θ★
     q★ = interface_state.q★
  
     # Turbulent heat fluxes, sensible + latent (positive out of the ocean)
-    Qt = - ρₐ * u★ * (cₚ * θ★ + q★ * ℰv)
+    Qc = - ρₐ * cₐ * u★ * θ★
+    Qv = - ρₐ * ℰv * u★ * q★
 
-    # Net temperature flux (positive upwards)
-    ρᵢ = interior_properties.reference_density
-    cᵢ = interior_properties.heat_capacity
-    Jᵀ = (Qt + Qn) / (ρᵢ * cᵢ)
+    # Net heat flux
+    Qa = Qr + Qc + Qv
 
-    Tᵇ = interior_state.T
-    Tₛ = flux_balance_temperature(st.internal_flux, Jᵀ,
+    Tₛ = flux_balance_temperature(st.internal_flux, Qa,
                                   interface_state,
                                   interface_properties,
                                   interior_state,

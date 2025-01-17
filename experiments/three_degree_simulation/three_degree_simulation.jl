@@ -21,8 +21,8 @@ underlying_grid = TripolarGrid(arch; size=(Nx, Ny, Nz), z=z_faces)
 latitude = (-80, -20)
 longitude = (0, 360)
 
-Nx = 120
-Ny = 20
+Nx = 8 * 120
+Ny = 8 * 20
 Nz = 30
 
 z_faces = exponential_z_faces(; Nz, depth=1000, h=30)
@@ -86,7 +86,15 @@ set!(sea_ice.model.ice_concentration, concentration_meta)
 
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation) 
 
-@show coupled_model.interfaces.atmosphere_sea_ice_interface.temperature
+@show ℵ = coupled_model.sea_ice.model.ice_concentration
+@show Ts = coupled_model.interfaces.atmosphere_sea_ice_interface.temperature
+
+using GLMakie
+
+fig = Figure()
+ax = Axis(fig[1, 1])
+hm = heatmap!(ax, Ts * ℵ, nan_color=:lightgray)
+Colorbar(fig[1, 2], hm, label="Ice surface temperature (ᵒC)")
 
 #=
 simulation = Simulation(coupled_model; Δt=20minutes, stop_time=3days)
