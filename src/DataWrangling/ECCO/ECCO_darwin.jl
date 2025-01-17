@@ -68,12 +68,18 @@ function ECCO_darwin_model_data(metadata, path)
 
     meshed_data = read(reshape(native_data, native_size...), native_grid)
     Nx, Ny, Nz, _ = size(metadata)
-    coeffs = interpolation_setup()
+    coeffs = interpolation_setup() # from MeshArrays LLC90 easy regridding
     data = zeros(Float32, Nx, Ny, Nz) # Native LLC90 grid at precision of the input binary file
 
-    # Interpolate each layer
+    # Get a continental mask on the native model grid 
+    native_grid_fac_center = GridLoadVar("hFacC", native_grid)
+
+    # Interpolate each masked layer
     for k in 1:Nz
-        i, j, c = Interpolate(meshed_data[:, k], coeffs)
+        i, j, c = MeshArrays.Interpolate(
+            meshed_data[:, k] * land_mask(native_grid_fac_center[:, k]), 
+            coeffs,
+        )
         data[:, :, k] = c
     end
     
