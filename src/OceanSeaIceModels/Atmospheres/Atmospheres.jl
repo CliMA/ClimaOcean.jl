@@ -2,12 +2,14 @@ module Atmospheres
 
 export PrescribedAtmosphere
 
-using KernelAbstractions: @kernel, @index
+using Oceananigans
 using Oceananigans.Utils: KernelParameters
 using Oceananigans.Grids: grid_name, architecture
 using Oceananigans.Utils: prettysummary, launch!
 using Oceananigans.Fields: Center
 using Oceananigans.OutputReaders: FieldTimeSeries, update_field_time_series!, extract_field_time_series
+
+using KernelAbstractions: @kernel, @index
 
 include("atmospheric_parameters.jl")
 include("prescribed_atmospheres.jl")
