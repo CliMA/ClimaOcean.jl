@@ -204,6 +204,7 @@ DiffusiveFlux(FT; κ = 1e-2, δ = 1.0) = DiffusiveFlux(convert(FT, δ), convert(
     α = σ * ϵ / (ρ * c)
     Tₛ = (κ * Tᵢ / h - Jᵀ + 4α * Tₛ⁻^4) / (κ / h + 4 * α * Tₛ⁻^3)
     Tₛ = ifelse(isnan(Tₛ), Tₛ⁻, Tₛ)
+    Tₛ = max(173.0, Tₛ)
 
     # Under heating fluxes, cap surface temperature by melting temperature
     Tₘ = ℙᵢ.liquidus.freshwater_melting_temperature

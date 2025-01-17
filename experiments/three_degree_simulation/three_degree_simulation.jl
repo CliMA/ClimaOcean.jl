@@ -21,11 +21,11 @@ underlying_grid = TripolarGrid(arch; size=(Nx, Ny, Nz), z=z_faces)
 latitude = (-80, -20)
 longitude = (0, 360)
 
-Nx = 120
-Ny = 20
-Nz = 30
+Nx = 480
+Ny = 80
+Nz = 10
 
-z_faces = exponential_z_faces(; Nz, depth=6000, h=34)
+z_faces = exponential_z_faces(; Nz, depth=1000, h=30)
 underlying_grid = LatitudeLongitudeGrid(arch; size=(Nx, Ny, Nz), latitude, longitude, z=z_faces)
 bottom_height = regrid_bathymetry(underlying_grid)
 grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height))
@@ -50,11 +50,13 @@ ocean = ocean_simulation(grid;
                          # forcing = (T=FT, S=FT),
                          tracers = (:T, :S, :e))
 
-set!(ocean.model, T=ECCOMetadata(:temperature; dates=first(dates)),
-                  S=ECCOMetadata(:salinity; dates=first(dates)))
+start_date = DateTimeProlepticGregorian(1993, 7, 1)
+set!(ocean.model, T=ECCOMetadata(:temperature; dates=start_date),
+                  S=ECCOMetadata(:salinity; dates=start_date))
 
 radiation  = Radiation(arch)
 atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(20))
+ocean.model.clock.time = 180days
 
 sea_ice_grid = LatitudeLongitudeGrid(arch; size=(Nx, Ny), latitude, longitude, topology=(Periodic, Bounded, Flat))
 land_mask = bottom_height .>= 0
@@ -71,8 +73,16 @@ sea_ice_model = SeaIceModel(sea_ice_grid;
                             bottom_heat_flux = bottom_sea_ice_heat_flux,
                             ice_thermodynamics)
 
+sea_ice_model.clock.time = 180days
+
 sea_ice = Simulation(sea_ice_model, Δt=20minutes)
-set!(sea_ice_model, h=1, ℵ=1)
+
+thickness_meta = ECCOMetadata(:sea_ice_thickness; dates=start_date)
+concentration_meta = ECCOMetadata(:sea_ice_concentration; dates=start_date)
+set!(sea_ice.model.ice_thickness, thickness_meta)
+set!(sea_ice.model.ice_concentration, concentration_meta)
+
+# set!(sea_ice_model, h=1, ℵ=1)
 
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation) 
 
