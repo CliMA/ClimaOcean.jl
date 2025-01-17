@@ -21,40 +21,45 @@ import Thermodynamics.Parameters: molmass_ratio
 ##### Bulk turbulent fluxes based on similarity theory
 #####
 
-struct SimilarityTheoryFluxes{FT, UF, R, B, T, V}
+struct SimilarityTheoryFluxes{FT, UF, R, B, V}
     gravitational_acceleration :: FT # parameter
     von_karman_constant :: FT        # parameter
     turbulent_prandtl_number :: FT   # parameter
     gustiness_parameter :: FT        # bulk velocity parameter
     stability_functions :: UF        # functions for turbulent fluxes
     roughness_lengths :: R           # parameterization for turbulent fluxes
-    similarity_profile_type :: B     # similarity profile relating atmosphere to interface state
+    similarity_form :: B             # similarity profile relating atmosphere to interface state
     bulk_velocity :: V               # bulk velocity scale for turbulent fluxes
-    tolerance :: FT                  # solver option
-    maxiter :: Int                   # solver option
+    solver_tolerance :: FT           # solver option
+    solver_maxiter :: Int            # solver option
 end
 
 Adapt.adapt_structure(to, fluxes::SimilarityTheoryFluxes) = 
-    SimilarityTheoryFluxes(adapt(to, fluxes.von_karman_constant),
+    SimilarityTheoryFluxes(adapt(to, fluxes.gravitational_acceleration),
+                           adapt(to, fluxes.von_karman_constant),
                            adapt(to, fluxes.turbulent_prandtl_number),
                            adapt(to, fluxes.gustiness_parameter),
                            adapt(to, fluxes.stability_functions),
                            adapt(to, fluxes.roughness_lengths),
-                           adapt(to, fluxes.similarity_profile_type),
+                           adapt(to, fluxes.similarity_form),
                            adapt(to, fluxes.bulk_velocity),
-                           fluxes.tolerance,
-                           fluxes.maxiter)
+                           fluxes.solver_tolerance,
+                           fluxes.solver_maxiter)
 
 Base.summary(::SimilarityTheoryFluxes{FT}) where FT = "SimilarityTheoryFluxes{$FT}"
 
 function Base.show(io::IO, fluxes::SimilarityTheoryFluxes)
     print(io, summary(fluxes), '\n',
+          "├── gravitational_acceleration: ", prettysummary(fluxes.gravitational_acceleration), '\n',
           "├── von_karman_constant: ",        prettysummary(fluxes.von_karman_constant), '\n',
           "├── turbulent_prandtl_number: ",   prettysummary(fluxes.turbulent_prandtl_number), '\n',
           "├── gustiness_parameter: ",        prettysummary(fluxes.gustiness_parameter), '\n',
           "├── stability_functions: ",        summary(fluxes.stability_functions), '\n',
           "├── roughness_lengths: ",          summary(fluxes.roughness_lengths), '\n',
-          "└── similarity_profile_type: ",    summary(fluxes.similarity_profile_type))
+          "├── bulk_velocity: ",              summary(fluxes.bulk_velocity), '\n',
+          "├── similarity_form: ",            summary(fluxes.similarity_form), '\n',
+          "├── solver_tolerance: ",           summary(fluxes.solver_tolerance), '\n',
+          "└── solver_maxiter: ",             summary(fluxes.solver_maxiter))
 end
 
 """
@@ -65,10 +70,10 @@ end
                            gustiness_parameter = convert(FT, 6.5),
                            stability_functions = default_stability_functions(FT),
                            roughness_lengths = default_roughness_lengths(FT),
-                           similarity_profile_type = LogarithmicSimilarityProfile(),
+                           similarity_form = LogarithmicSimilarityProfile(),
                            bulk_velocity = RelativeVelocity(),
-                           tolerance = 1e-8,
-                           maxiter = 100)
+                           solver_tolerance = 1e-8,
+                           solver_maxiter = 100)
 
 `SimilarityTheoryFluxes` contains parameters and settings to calculate
 air-interface turbulent fluxes using Monin-Obukhov similarity theory.
@@ -76,6 +81,7 @@ air-interface turbulent fluxes using Monin-Obukhov similarity theory.
 Keyword Arguments
 ==================
 
+- `gravitational_acceleration`: Gravitational acceleration.
 - `von_karman_constant`: The von Karman constant. Default: 0.4.
 - `turbulent_prandtl_number`: The turbulent Prandtl number. Default: 1.
 - `gustiness_parameter`: The gustiness parameter that accounts for low wind speed areas. Default: 6.5.
@@ -83,12 +89,12 @@ Keyword Arguments
                          formulation of Edson et al. (2013).
 - `roughness_lengths`: The roughness lengths used to calculate the characteristic scales for momentum, temperature and 
                        water vapor. Default: `default_roughness_lengths(FT)`, formulation taken from Edson et al (2013).
-- `similarity_profile_type`: The type of similarity profile used to relate the atmospheric state to the 
+- `similarity_form`: The type of similarity profile used to relate the atmospheric state to the 
                              interface fluxes / characteristic scales.
 - `bulk_velocity`: The velocity used to calculate the characteristic scales. Default: `RelativeVelocity()` (difference between
-                   atmospheric and interfaceic speed).
-- `tolerance`: The tolerance for convergence. Default: 1e-8.
-- `maxiter`: The maximum number of iterations. Default: 100.
+                   atmospheric and interface speed).
+- `solver_tolerance`: The tolerance for convergence. Default: 1e-8.
+- `solver_maxiter`: The maximum number of iterations. Default: 100.
 """
 function SimilarityTheoryFluxes(FT::DataType = Float64;
                                 gravitational_acceleration = 9.81,
@@ -97,10 +103,10 @@ function SimilarityTheoryFluxes(FT::DataType = Float64;
                                 gustiness_parameter = 6.5,
                                 stability_functions = edson_stability_functions(FT),
                                 roughness_lengths = default_roughness_lengths(FT),
-                                similarity_profile_type = LogarithmicSimilarityProfile(),
+                                similarity_form = LogarithmicSimilarityProfile(),
                                 bulk_velocity = RelativeVelocity(),
-                                tolerance = 1e-8,
-                                maxiter = 100)
+                                solver_tolerance = 1e-8,
+                                solver_maxiter = 100)
 
     return SimilarityTheoryFluxes(convert(FT, gravitational_acceleration),
                                   convert(FT, von_karman_constant),
@@ -108,10 +114,10 @@ function SimilarityTheoryFluxes(FT::DataType = Float64;
                                   convert(FT, gustiness_parameter),
                                   stability_functions,
                                   roughness_lengths,
-                                  similarity_profile_type,
+                                  similarity_form,
                                   bulk_velocity,
-                                  convert(FT, tolerance), 
-                                  maxiter)
+                                  convert(FT, solver_tolerance), 
+                                  solver_maxiter)
 end
 
 #####
@@ -147,7 +153,7 @@ struct COARELogarithmicSimilarityProfile end
     log(h / ℓ) - ψ(h / L)
 
 # Iterating condition for the characteristic scales solvers
-@inline function _iterating(Ψⁿ, Ψ⁻, iteration, maxiter, tolerance)
+@inline function iterating(Ψⁿ, Ψ⁻, iteration, maxiter, tolerance)
     hasnt_started = iteration == 0
     reached_maxiter = iteration ≥ maxiter
     drift = abs(Ψⁿ.u★ - Ψ⁻.u★) + abs(Ψⁿ.θ★ - Ψ⁻.θ★) + abs(Ψⁿ.q★ - Ψ⁻.q★)
@@ -155,7 +161,7 @@ struct COARELogarithmicSimilarityProfile end
     return !(converged | reached_maxiter) | hasnt_started
 end
 
-@inline function compute_interface_state(turbulent_flux_formulation,
+@inline function compute_interface_state(flux_formulation::SimilarityTheoryFluxes,
                                          initial_interface_state,
                                          atmosphere_state,
                                          interior_state,
@@ -168,12 +174,12 @@ end
     Ψᵢ = interior_state
     Ψₛⁿ = Ψₛ⁻ = initial_interface_state
     iteration = 0
-    maxiter = turbulent_flux_formulation.maxiter
-    tolerance = turbulent_flux_formulation.tolerance
+    maxiter = flux_formulation.solver_maxiter
+    tolerance = flux_formulation.solver_tolerance
 
-    while _iterating(Ψₛⁿ, Ψₛ⁻, iteration, maxiter, tolerance)
+    while iterating(Ψₛⁿ, Ψₛ⁻, iteration, maxiter, tolerance)
         Ψₛ⁻ = Ψₛⁿ
-        Ψₛⁿ = iterate_interface_state(turbulent_flux_formulation,
+        Ψₛⁿ = iterate_interface_state(flux_formulation,
                                       Ψₛ⁻, Ψₐ, Ψᵢ,
                                       downwelling_radiation,
                                       interface_properties,
@@ -186,7 +192,16 @@ end
 
 end
 
-@inline function iterate_interface_state(turbulent_flux_formulation,
+"""
+    iterate_interface_state(flux_formulation, Ψₛⁿ⁻¹, Ψₐ, Ψᵢ, Qᵣ, ℙₛ, ℙₐ, ℙᵢ)
+
+Return the nth iterate of the interface state `Ψₛⁿ` computed according to the
+`flux_formulation`, given the interface state at the previous iterate `Ψₛⁿ⁻¹`,
+as well as the atmosphere state `Ψₐ`, the interior state `Ψᵢ`,
+downwelling radiation `Qᵣ`, and the interface, atmosphere,
+and interior properties `ℙₛ`, `ℙₐ`, and `ℙᵢ`.
+"""
+@inline function iterate_interface_state(flux_formulation,
                                          approximate_interface_state,
                                          atmosphere_state,
                                          interior_state,
@@ -224,7 +239,7 @@ end
     zₛ = zero(FT)
     Δh = zₐ - zₛ
     Tₐ = AtmosphericThermodynamics.air_temperature(ℂₐ, 𝒬ₐ)
-    g = turbulent_flux_formulation.gravitational_acceleration
+    g = flux_formulation.gravitational_acceleration
     cₚ = interior_properties.heat_capacity
     Δθ = Tₐ - Tₛ + g / cₚ * Δh
 
@@ -237,21 +252,21 @@ end
     q★ = approximate_interface_state.q★
 
     # Similarity functions from Edson et al. (2013)
-    ψu = turbulent_flux_formulation.stability_functions.momentum
-    ψθ = turbulent_flux_formulation.stability_functions.temperature
-    ψq = turbulent_flux_formulation.stability_functions.water_vapor
+    ψu = flux_formulation.stability_functions.momentum
+    ψθ = flux_formulation.stability_functions.temperature
+    ψq = flux_formulation.stability_functions.water_vapor
 
     # Extract roughness lengths
-    ℓu = turbulent_flux_formulation.roughness_lengths.momentum
-    ℓθ = turbulent_flux_formulation.roughness_lengths.temperature
-    ℓq = turbulent_flux_formulation.roughness_lengths.water_vapor
-    β = turbulent_flux_formulation.gustiness_parameter
+    ℓu = flux_formulation.roughness_lengths.momentum
+    ℓθ = flux_formulation.roughness_lengths.temperature
+    ℓq = flux_formulation.roughness_lengths.water_vapor
+    β = flux_formulation.gustiness_parameter
 
     # Compute Monin-Obukhov length scale depending on a `buoyancy flux`
     b★ = buoyancy_scale(θ★, q★, 𝒬ₛ, ℂₐ, g)
 
     # Monin-Obhukov characteristic length scale and non-dimensional height
-    ϰ = turbulent_flux_formulation.von_karman_constant
+    ϰ = flux_formulation.von_karman_constant
     L★ = ifelse(b★ == 0, zero(b★), - u★^2 / (ϰ * b★))
 
     # Compute roughness length scales
@@ -260,10 +275,10 @@ end
     ℓθ₀ = roughness_length(ℓθ, ℓu₀, u★, 𝒬ₛ, ℂₐ)
 
     # Transfer coefficients at height `h`
-    profile_type = turbulent_flux_formulation.similarity_profile_type
-    χu = ϰ / similarity_profile(profile_type, ψu, Δh, ℓu₀, L★)
-    χθ = ϰ / similarity_profile(profile_type, ψθ, Δh, ℓθ₀, L★)
-    χq = ϰ / similarity_profile(profile_type, ψq, Δh, ℓq₀, L★)
+    form = flux_formulation.similarity_form
+    χu = ϰ / similarity_profile(form, ψu, Δh, ℓu₀, L★)
+    χθ = ϰ / similarity_profile(form, ψθ, Δh, ℓθ₀, L★)
+    χq = ϰ / similarity_profile(form, ψq, Δh, ℓq₀, L★)
 
     # Buoyancy flux characteristic scale for gustiness (Edson 2013)
     h_bℓ = atmosphere_state.h_bℓ
@@ -271,11 +286,11 @@ end
     Uᴳ = β * cbrt(Jᵇ * h_bℓ)
 
     # New velocity difference accounting for gustiness
-    Δu, Δv = velocity_difference(turbulent_flux_formulation.bulk_velocity, atmosphere_state, approximate_interface_state)
+    Δu, Δv = velocity_difference(flux_formulation.bulk_velocity, atmosphere_state, approximate_interface_state)
     ΔU = sqrt(Δu^2 + Δv^2 + Uᴳ^2)
 
     #=
-    Pr = turbulent_flux_formulation.turbulent_prandtl_number
+    Pr = flux_formulation.turbulent_prandtl_number
     χθ = χθ / Pr
     χq = χq / Pr
     =#

@@ -1,7 +1,7 @@
 using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus
 
 #####
-##### A simple-minded yet effective "sea ice model"
+##### A workaround when you don't have a sea ice model
 #####
 
 struct FreezingLimitedOceanTemperature{L}

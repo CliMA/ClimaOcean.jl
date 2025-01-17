@@ -38,7 +38,7 @@ function interpolate_atmospheric_state!(coupled_model)
     atmosphere_backend = u.backend
     atmosphere_time_indexing = u.time_indexing
 
-    atmosphere_fields = coupled_model.fluxes.near_surface_atmosphere_state
+    atmosphere_fields = coupled_model.interfaces.near_surface_atmosphere_state
 
     # Simplify NamedTuple to reduce parameter space consumption.
     # See https://github.com/CliMA/ClimaOcean.jl/issues/116.

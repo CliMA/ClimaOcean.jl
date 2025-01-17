@@ -21,9 +21,9 @@ underlying_grid = TripolarGrid(arch; size=(Nx, Ny, Nz), z=z_faces)
 latitude = (-80, -20)
 longitude = (0, 360)
 
-Nx = 480
-Ny = 80
-Nz = 10
+Nx = 120
+Ny = 20
+Nz = 30
 
 z_faces = exponential_z_faces(; Nz, depth=1000, h=30)
 underlying_grid = LatitudeLongitudeGrid(arch; size=(Nx, Ny, Nz), latitude, longitude, z=z_faces)
@@ -85,6 +85,8 @@ set!(sea_ice.model.ice_concentration, concentration_meta)
 # set!(sea_ice_model, h=1, ℵ=1)
 
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation) 
+
+@show coupled_model.interfaces.atmosphere_sea_ice_interface.temperature
 
 #=
 simulation = Simulation(coupled_model; Δt=20minutes, stop_time=3days)

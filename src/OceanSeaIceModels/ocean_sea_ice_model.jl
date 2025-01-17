@@ -23,7 +23,7 @@ struct OceanSeaIceModel{I, A, O, F, C} <: AbstractModel{Nothing}
     atmosphere :: A
     sea_ice :: I
     ocean :: O
-    fluxes :: F
+    interfaces :: F
 end
 
 const OSIM = OceanSeaIceModel
@@ -46,7 +46,7 @@ function Base.show(io::IO, cm::OSIM)
     print(io, "├── ocean: ", summary(cm.ocean.model), "\n")
     print(io, "├── atmosphere: ", summary(cm.atmosphere), "\n")
     print(io, "├── sea_ice: ", sea_ice_summary, "\n")
-    print(io, "└── fluxes: ", summary(cm.fluxes))
+    print(io, "└── interface: ", summary(cm.interfaces))
     return nothing
 end
 
@@ -55,7 +55,6 @@ architecture(model::OSIM)           = architecture(model.ocean.model)
 Base.eltype(model::OSIM)            = Base.eltype(model.ocean.model)
 prettytime(model::OSIM)             = prettytime(model.clock.time)
 iteration(model::OSIM)              = model.clock.iteration
-Base.eltype(model::OSIM)            = eltype(model.ocean.model)
 timestepper(::OSIM)                 = nothing
 reset!(::OSIM)                      = nothing
 initialize!(::OSIM)                 = nothing
@@ -120,7 +119,7 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature();
     end
 
     # Contains information about flux contributions: bulk formula, prescribed fluxes, etc.
-    fluxes = CrossRealmSurfaceFluxes(atmosphere, ocean, sea_ice;
+    interfaces = ComponentInterfaces(atmosphere, ocean, sea_ice;
                                      ocean_reference_density,
                                      ocean_heat_capacity,
                                      sea_ice_reference_density,
@@ -131,7 +130,7 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature();
                                            atmosphere,
                                            sea_ice,
                                            ocean,
-                                           fluxes)
+                                           interfaces)
 
     update_state!(ocean_sea_ice_model)
 

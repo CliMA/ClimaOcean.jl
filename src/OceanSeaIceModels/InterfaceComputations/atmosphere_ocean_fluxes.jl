@@ -13,7 +13,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
                    T = ocean.model.tracers.T,
                    S = ocean.model.tracers.S)
 
-    atmosphere_fields = coupled_model.fluxes.near_surface_atmosphere_state
+    atmosphere_fields = coupled_model.interfaces.near_surface_atmosphere_state
 
     # Simplify NamedTuple to reduce parameter space consumption.
     # See https://github.com/CliMA/ClimaOcean.jl/issues/116.
@@ -27,11 +27,11 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
                        Mp = atmosphere_fields.Mp.data,
                        h_bℓ = atmosphere.boundary_layer_height)
 
-    flux_formulation = coupled_model.fluxes.atmosphere_ocean_interface.flux_formulation
-    interface_fluxes = coupled_model.fluxes.atmosphere_ocean_interface.fluxes
-    interface_temperature = coupled_model.fluxes.atmosphere_ocean_interface.temperature
-    interface_properties = coupled_model.fluxes.atmosphere_ocean_interface.properties
-    ocean_properties = coupled_model.fluxes.ocean_properties
+    flux_formulation = coupled_model.interfaces.atmosphere_ocean_interface.flux_formulation
+    interface_fluxes = coupled_model.interfaces.atmosphere_ocean_interface.fluxes
+    interface_temperature = coupled_model.interfaces.atmosphere_ocean_interface.temperature
+    interface_properties = coupled_model.interfaces.atmosphere_ocean_interface.properties
+    ocean_properties = coupled_model.interfaces.ocean_properties
     atmosphere_properties = (thermodynamics_parameters = atmosphere.thermodynamics_parameters,
                              reference_height = atmosphere.reference_height)
 

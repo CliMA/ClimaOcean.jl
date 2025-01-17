@@ -43,8 +43,7 @@ struct SeaIceOceanInterface{J, P, H, A}
     previous_ice_concentration :: A
 end
 
-#struct Interfaces{AO, ASI, SIO, C, OP, SIP, ATM}
-struct CrossRealmSurfaceFluxes{AO, ASI, SIO, C, AP, OP, SIP, ATM}
+struct ComponentInterfaces{AO, ASI, SIO, C, AP, OP, SIP, ATM}
     atmosphere_ocean_interface :: AO
     atmosphere_sea_ice_interface :: ASI
     sea_ice_ocean_interface :: SIO
@@ -55,11 +54,6 @@ struct CrossRealmSurfaceFluxes{AO, ASI, SIO, C, AP, OP, SIP, ATM}
     # interpolated to the ocean grid
     near_surface_atmosphere_state :: ATM
     net_fluxes :: C
-end
-
-struct TurbulentFluxes{FT, C, M, F}
-    gravitational_acceleration :: FT
-    coefficients :: C
 end
 
 const PATP = PrescribedAtmosphereThermodynamicsParameters
@@ -75,8 +69,8 @@ const celsius_to_kelvin = 273.15
 @inline convert_from_kelvin(::DegreesCelsius, T::FT) where FT = T - convert(FT, celsius_to_kelvin)
 @inline convert_from_kelvin(::DegreesKelvin, T) = T
 
-Base.summary(crf::CrossRealmSurfaceFluxes) = "CrossRealmSurfaceFluxes"
-Base.show(io::IO, crf::CrossRealmSurfaceFluxes) = print(io, summary(crf))
+Base.summary(crf::ComponentInterfaces) = "ComponentInterfaces"
+Base.show(io::IO, crf::ComponentInterfaces) = print(io, summary(crf))
 
 function atmosphere_ocean_interface(ocean, radiation, temperature_formulation, specific_humidity_formulation)
     water_vapor   = Field{Center, Center, Nothing}(ocean.model.grid)
@@ -162,10 +156,10 @@ function default_ao_specific_humidity(ocean)
 end
 
 """
-    CrossRealmSurfaceFluxes(ocean, sea_ice=nothing; kw...)
+    ComponentInterfaces(ocean, sea_ice=nothing; kw...)
 
 """
-function CrossRealmSurfaceFluxes(atmosphere, ocean, sea_ice=nothing;
+function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                                  radiation = nothing,
                                  freshwater_density = 1000,
                                  atmosphere_ocean_interface_temperature = BulkTemperature(),
@@ -235,7 +229,7 @@ function CrossRealmSurfaceFluxes(atmosphere, ocean, sea_ice=nothing;
                   sea_ice_top    = net_top_sea_ice_fluxes,
                   sea_ice_bottom = net_bottom_sea_ice_fluxes)
 
-    return CrossRealmSurfaceFluxes(ao_interface,
+    return ComponentInterfaces(ao_interface,
                                    ai_interface,
                                    io_interface,
                                    atmosphere_properties,

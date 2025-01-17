@@ -16,7 +16,7 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
                       Tₒ = ocean.model.tracers.T,
                       Sₒ = ocean.model.tracers.S)
 
-    atmosphere_fields = coupled_model.fluxes.near_surface_atmosphere_state
+    atmosphere_fields = coupled_model.interfaces.near_surface_atmosphere_state
 
     # Simplify NamedTuple to reduce parameter space consumption.
     # See https://github.com/CliMA/ClimaOcean.jl/issues/116.
@@ -30,11 +30,11 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
                        Mp = atmosphere_fields.Mp.data,
                        h_bℓ = atmosphere.boundary_layer_height)
 
-    flux_formulation = coupled_model.fluxes.atmosphere_sea_ice_interface.flux_formulation
-    interface_fluxes = coupled_model.fluxes.atmosphere_sea_ice_interface.fluxes
-    interface_temperature = coupled_model.fluxes.atmosphere_sea_ice_interface.temperature
-    interface_properties = coupled_model.fluxes.atmosphere_sea_ice_interface.properties
-    sea_ice_properties = coupled_model.fluxes.sea_ice_properties
+    flux_formulation = coupled_model.interfaces.atmosphere_sea_ice_interface.flux_formulation
+    interface_fluxes = coupled_model.interfaces.atmosphere_sea_ice_interface.fluxes
+    interface_temperature = coupled_model.interfaces.atmosphere_sea_ice_interface.temperature
+    interface_properties = coupled_model.interfaces.atmosphere_sea_ice_interface.properties
+    sea_ice_properties = coupled_model.interfaces.sea_ice_properties
 
     atmosphere_properties = (thermodynamics_parameters = atmosphere.thermodynamics_parameters,
                              reference_height = atmosphere.reference_height)
@@ -72,6 +72,7 @@ end
     i, j = @index(Global, NTuple)
     kᴺ   = size(grid, 3) # index of the top ocean cell
     time = Time(clock.time)
+    FT = eltype(grid)
 
     @inbounds begin
         uₐ = atmosphere_state.u[i, j, 1]
@@ -89,8 +90,8 @@ end
         Sᵢ = interior_state.Sₒ[i, j, kᴺ]
 
         # Sea ice properties
-        uᵢ = ℑxᶜᵃᵃ(i, j, 1, grid, interior_state.u)
-        vᵢ = ℑyᵃᶜᵃ(i, j, 1, grid, interior_state.v)
+        uᵢ = zero(FT) # ℑxᶜᵃᵃ(i, j, 1, grid, interior_state.u)
+        vᵢ = zero(FT) # ℑyᵃᶜᵃ(i, j, 1, grid, interior_state.v)
         hᵢ = interior_state.h[i, j, 1]
         Tₛ = interface_temperature[i, j, 1]
         Tₛ = convert_to_kelvin(sea_ice_properties.temperature_units, Tₛ)
@@ -114,7 +115,6 @@ end
     local_interior_state = (u=uᵢ, v=vᵢ, T=Tᵢ, S=Sᵢ, h=hᵢ)
 
     # Estimate initial interface state
-    FT = eltype(grid)
     u★ = convert(FT, 1e-4)
 
     # Estimate interface specific humidity using interior temperature
@@ -122,10 +122,13 @@ end
     qₛ = saturation_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ.ρ, Tₛ, Sᵢ)
 
     # Guess
-    initial_interface_state = InterfaceState(u★, u★, u★, uᵢ, vᵢ, Tₛ, Sᵢ, convert(FT, qₛ))
+    Sₛ = zero(FT) # what should we use for interface salinity?
+    initial_interface_state = InterfaceState(u★, u★, u★, uᵢ, vᵢ, Tₛ, Sₛ, convert(FT, qₛ))
+    land = inactive_node(i, j, kᴺ, grid, Center(), Center(), Center())
+    ice_free = hᵢ == 1
 
-    if inactive_node(i, j, kᴺ, grid, Center(), Center(), Center()) || hᵢ == 0
-        interface_state = InterfaceState(zero(FT), zero(FT), zero(FT), uᵢ, vᵢ, Tᵢ, Sᵢ, zero(FT))
+    if land || ice_free
+        interface_state = InterfaceState(zero(FT), zero(FT), zero(FT), uᵢ, vᵢ, Tᵢ, Sₛ, zero(FT))
     else
         interface_state = compute_interface_state(turbulent_flux_formulation,
                                                   initial_interface_state,

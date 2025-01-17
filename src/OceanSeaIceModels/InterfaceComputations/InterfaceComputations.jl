@@ -1,11 +1,11 @@
-module CrossRealmFluxes
+module InterfaceComputations
 
 using Oceananigans
 using Oceananigans.Fields: AbstractField
 using Adapt 
 
 export Radiation,
-       CrossRealmSurfaceFluxes,
+       ComponentInterfaces,
        LatitudeDependentAlbedo,
        SimilarityTheoryFluxes,
        SkinTemperature, 
@@ -52,14 +52,11 @@ include("tabulated_albedo.jl")
 
 # Turbulent fluxes
 include("roughness_lengths.jl")
-include("stability_functions.jl")
-# include("seawater_saturation_specific_humidity.jl")
 include("interface_states.jl")
 include("similarity_theory_turbulent_fluxes.jl")
 include("constant_coefficient_turbulent_fluxes.jl")
 
-# Total fluxes
-include("cross_realm_surface_fluxes.jl")
+include("component_interfaces.jl")
 include("interpolate_atmospheric_state.jl")
 include("assemble_interface_fluxes.jl")
 include("atmosphere_ocean_fluxes.jl")
