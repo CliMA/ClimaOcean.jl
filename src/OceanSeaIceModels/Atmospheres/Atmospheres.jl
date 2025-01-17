@@ -18,7 +18,7 @@ using KernelAbstractions: @kernel, @index
 # Note: assumes loc = (c, c, nothing) (and the third location should
 # not matter.)
 @inline interp_atmos_time_series(J, X, time, grid, args...) =
-    interpolate(X, time, J, (c, c, nothing), grid, args...)
+    interpolate(X, time, J, (Center(), Center(), nothing), grid, args...)
 
 @inline interp_atmos_time_series(ΣJ::NamedTuple, args...) =
     interp_atmos_time_series(values(ΣJ), args...)
