@@ -1,8 +1,11 @@
 using Oceananigans.Grids: _node
 using Oceananigans.Units: Time
 using Oceananigans.Operators: intrinsic_vector
-using Oceananigans.Models: update_model_field_time_series!
 using Oceananigans.OutputReaders: update_field_time_series!, extract_field_time_series
+
+import Oceananigans.Models: update_model_field_time_series!
+import Oceananigans.TimeSteppers: time_step!
+
 
 #####
 ##### Prescribed atmosphere (as opposed to dynamically evolving / prognostic)
@@ -120,6 +123,7 @@ time_step!(atmos::PrescribedAtmosphere) = nothing
 
 update_model_field_time_series!(::Nothing, time) = nothing
 
+# We update all the field time series in the prescribed atmosphere
 function update_model_field_time_series!(atmos::PrescribedAtmosphere, time)
     ftses = extract_field_time_series(atmos)
     for fts in ftses
