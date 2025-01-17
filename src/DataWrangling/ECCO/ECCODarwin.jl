@@ -162,8 +162,7 @@ function metadata_filename(metadata::ECCODarwinMetadata{<:AbstractCFDateTime})
 end
 
 # Convenience functions
-short_name(data::ECCODarwinMetadata{<:Any, <:Any, <:ECCO270DarwinMonthly}) = ECCO270Darwin_short_names[data.name]
-short_name(data::ECCODarwinMetadata{<:Any, <:Any, <:ECCO4DarwinMonthly})   = ECCO4Darwin_short_names[data.name]
+short_name(data::ECCODarwinMetadata) = ECCODarwin_short_names[data.name]
 
 metadata_url(prefix, m::ECCODarwinMetadata{<:Any, <:Any, <:ECCO4DarwinMonthly}) = prefix * "/" * short_name(m) * "/" * metadata_filename(m)
 metadata_url(prefix, m::ECCODarwinMetadata{<:Any, <:Any, <:ECCO270DarwinMonthly}) = prefix * "/" * short_name(m) * "/" * metadata_filename(m)
@@ -180,19 +179,7 @@ variable_is_three_dimensional(data::ECCODarwinMetadata) =
     data.name == :Fe  ||
     data.name == :Siᵀ
 
-ECCO4Darwin_short_names = Dict(
-    :DIC => "DIC",
-    :ALK => "ALK",
-    :PO₄ => "PO4",
-    :NO₃ => "NO3",
-    :DOP => "DOP",
-    :POP => "POP",
-    :Fe  => "FeT",
-    :Siᵀ => "SiO2",
-    :PAR => "PAR",
-)
-
-ECCO270Darwin_short_names = Dict(
+ECCODarwin_short_names = Dict(
     :DIC => "DIC",
     :ALK => "ALK",
     :PO₄ => "PO4",
@@ -286,12 +273,12 @@ ECCODarwinMeshGrid(::ECCO4DarwinMonthly)   = GridSpec("LatLonCap", MeshArrays.GR
 ECCODarwinMeshGrid(::ECCO270DarwinMonthly) = gcmgrid("./", "LatLonCap", 5, [(270, 810), (270, 810), (270, 270), (810, 270), (810, 270)], (270, 3510), Float64, read, write)
 
 """
-    ECCODarwinModelMeta(metafile)
+    ECCO_darwin_model_meta(metafile)
 
 Read ECCODarwin metadata file and return as a NamedTuple
 
 """
-function ECCODarwinModelMeta(fileName)
+function ECCO_darwin_model_meta(filename)
     meta = read(fileName,String)
     meta = split(meta,";\n")
     meta = meta[isempty.(meta).==false]
@@ -304,33 +291,33 @@ function ECCODarwinModelMeta(fileName)
     meta = replace.(meta,Ref(","=>" "))
 
     meta = split.(meta,"=")
-    meta = [[replace(x[1]," "=>"") x[2]] for x in meta]
+    meta = [[replace(x[1], " " => ""), x[2]] for x in meta]
 
-    metaDict = Dict{String,Any}(m[1] => m[2] for m in meta)
+    meta_dict = Dict{String, Any}(m[1] => m[2] for m in meta)
 
-    for k in keys(metaDict)
-        val = eval(Meta.parse(metaDict[k]))
+    for k in keys(meta_dict)
+        val = eval(Meta.parse(meta_dict[k]))
         if isa(val[1],String)
             val = replace.(val,Ref(" "=>""))
         end
         if length(val) == 1
             val = val[1]
         end
-        metaDict[k] = val
+        meta_dict[k] = val
     end
-    metaDict["dataprec"] = titlecase(metaDict["dataprec"])
+    meta_dict["dataprec"] = titlecase(meta_dict["dataprec"])
 
-    meta = (; zip(Symbol.(keys(metaDict)),values(metaDict))...)
+    meta = (; zip(Symbol.(keys(meta_dict)),values(meta_dict))...)
     return meta
 end
 
 """
-    ECCODarwinModelData(metafile)
+    ECCO_darwin_model_data(metafile)
 
 Read a ECCODarwin data file and regrid using MeshArrays on to regular lat-lon grid
 
 """
-function ECCODarwinModelData(file_name::String, meta_data, mesh_grid)
+function ECCO_darwin_model_data(file_name::String, meta_data, mesh_grid)
     T     = eval(Symbol(meta_data.dataprec))
     fid   = open(file_name)
     ndims = meta_data.nDims
@@ -416,9 +403,9 @@ function ECCO_field(metadata::ECCODarwinMetadata;
     path = metadata_path(metadata)
 
     # Open ECCODarwin binary data file
-    data = ECCODarwinModelData(
+    data = ECCO_darwin_model_data(
                 path, 
-                ECCODarwinModelMeta(
+                ECCO_darwin_model_meta(
                     replace(path,"data"=>"meta"),
                 ),
                 ECCODarwinMeshGrid(

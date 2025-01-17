@@ -238,13 +238,13 @@ end
 # Fallback
 ECCO_field(var_name::Symbol; kw...) = ECCO_field(ECCOMetadata(var_name); kw...)
 
-function inpainted_metadata_filename(metadata::Union{ECCOMetadata,ECCODarwinMetadata})
+function inpainted_metadata_filename(metadata::Union{ECCOMetadata, ECCODarwinMetadata})
     original_filename = metadata_filename(metadata)
     without_extension = original_filename[1:end-3]
     return without_extension * "_inpainted.jld2"
 end
 
-inpainted_metadata_path(metadata::Union{ECCOMetadata,ECCODarwinMetadata}) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
+inpainted_metadata_path(metadata::Union{ECCOMetadata, ECCODarwinMetadata}) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
 
 function set!(field::Field, ECCO_metadata::Union{ECCOMetadata,ECCODarwinMetadata}; kw...)
 
