@@ -248,7 +248,7 @@ end
         # The third index "k" should not matter but we put the correct index to get
         # a surface node anyways.
         atmos_args = (atmos_grid, atmos_times, atmos_backend, atmos_time_indexing)
-        X = _node(i, j, kᴺ + 1, grid, c, c, f)
+        X = _node(i, j, kᴺ + 1, grid, Center(), Center(), Face())
         time = Time(clock.time)
 
         uₐ = interp_atmos_time_series(atmos_velocities.u, X, time, atmos_args...)
