@@ -2,7 +2,7 @@ module ECCO
 
 export ECCOMetadata, ECCO_field, ECCO_mask, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
-export ECCODarwinMetadata, ECCO4DarwinMonthly, ECCO270DarwinMonthly
+export ECCO4DarwinMonthly
 export ECCORestoring, LinearlyTaperedPolarMask
 
 using ClimaOcean
@@ -33,8 +33,7 @@ end
 include("ECCO_metadata.jl")
 include("ECCO_mask.jl")
 include("ECCO_restoring.jl")
-
-include("ECCODarwin.jl")
+include("ECCO_darwin.jl")
 
 # Vertical coordinate
 const ECCO_z = [
@@ -93,7 +92,7 @@ const ECCO_z = [
 
 empty_ECCO_field(variable_name::Symbol; kw...) = empty_ECCO_field(ECCOMetadata(variable_name); kw...)
 
-function empty_ECCO_field(metadata::Union{ECCOMetadata,ECCODarwinMetadata};
+function empty_ECCO_field(metadata::ECCOMetadata;
                           architecture = CPU(), 
                           horizontal_halo = (7, 7))
 
@@ -122,6 +121,26 @@ function empty_ECCO_field(metadata::Union{ECCOMetadata,ECCODarwinMetadata};
                                  topology = (TX, TY, TZ))
 
     return Field{loc...}(grid)
+end
+
+"""
+    retrieve_data(metadata, path)
+
+Retrieve data from `path` according to `metadata`.
+"""
+function retrieve_data(metadata, path)
+    ds = Dataset(path)
+    shortname = short_name(metadata)
+
+    if variable_is_three_dimensional(metadata)
+        data = ds[shortname][:, :, :, 1]
+        data = reverse(data, dims=3)
+    else
+        data = ds[shortname][:, :, 1]
+    end        
+
+    close(ds)
+    return data
 end
 
 """
@@ -165,17 +184,7 @@ function ECCO_field(metadata::ECCOMetadata;
 
     download_dataset(metadata)
     path = metadata_path(metadata)
-    ds = Dataset(path)
-    shortname = short_name(metadata)
-
-    if variable_is_three_dimensional(metadata)
-        data = ds[shortname][:, :, :, 1]
-        data = reverse(data, dims=3)
-    else
-        data = ds[shortname][:, :, 1]
-    end        
-
-    close(ds)
+    data = retrieve_data(metadata, path)
     
     # Convert data from Union(FT, missing} to FT
     FT = eltype(field)
@@ -238,15 +247,15 @@ end
 # Fallback
 ECCO_field(var_name::Symbol; kw...) = ECCO_field(ECCOMetadata(var_name); kw...)
 
-function inpainted_metadata_filename(metadata::Union{ECCOMetadata, ECCODarwinMetadata})
+function inpainted_metadata_filename(metadata::ECCOMetadata)
     original_filename = metadata_filename(metadata)
     without_extension = original_filename[1:end-3]
     return without_extension * "_inpainted.jld2"
 end
 
-inpainted_metadata_path(metadata::Union{ECCOMetadata, ECCODarwinMetadata}) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
+inpainted_metadata_path(metadata::ECCOMetadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
 
-function set!(field::Field, ECCO_metadata::Union{ECCOMetadata,ECCODarwinMetadata}; kw...)
+function set!(field::Field, ECCO_metadata::ECCOMetadata; kw...)
 
     # Fields initialized from ECCO
     grid = field.grid
