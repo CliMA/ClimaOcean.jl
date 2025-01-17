@@ -1,6 +1,8 @@
 using Oceananigans.Grids: _node
 using Oceananigans.Units: Time
-using Oceananigans.Fields: intrinsic_vector
+using Oceananigans.Operators: intrinsic_vector
+using Oceananigans.Models: update_model_field_time_series!
+using Oceananigans.OutputReaders: update_field_time_series!, extract_field_time_series
 
 #####
 ##### Prescribed atmosphere (as opposed to dynamically evolving / prognostic)
