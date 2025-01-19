@@ -54,7 +54,7 @@ closure = (eddy_closure, vertical_mixing)
 ##### Restoring
 #####
 
-restoring_rate  = 1 / 2days
+restoring_rate  = 1 / 10days
 z_below_surface = z_faces[end-1]
 
 mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(z_below_surface, 0))
@@ -71,19 +71,31 @@ forcing = (T=FT, S=FS)
 ##### Ocean simulation
 ##### 
 
-# No numerical-only closure
-momentum_advection = WENOVectorInvariant(vorticity_order=5)
-tracer_advection   = WENO()
+momentum_advection = WENOVectorInvariant(vorticity_order=3)
+tracer_advection   = Centered()
+
+using Oceananigans.TurbulenceClosures: IsopycnalSkewSymmetricDiffusivity,
+                                       ExplicitTimeDiscretization,
+                                       DiffusiveFormulation
+
+using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities: CATKEVerticalDiffusivity
+
+numerical_closure = HorizontalScalarDiffusivity(ν=5e3)
+eddy_closure = IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3, skew_flux_formulation=DiffusiveFormulation())
+vertical_mixing = CATKEVerticalDiffusivity()
+
+closure = (eddy_closure, numerical_closure, vertical_mixing)
 
 # Spacings still don't work correctly?
 free_surface = SplitExplicitFreeSurface(grid; substeps=30)
 
 # Should we add a side drag since this is at a coarser resolution?
-ocean = ocean_simulation(grid; momentum_advection, tracer_advection, free_surface,
-                         closure, forcing)
-
-set!(ocean.model, T=ECCOMetadata(:temperature; dates=first(dates)),
-                  S=ECCOMetadata(:salinity;    dates=first(dates)))
+ocean = ocean_simulation(grid;
+                         momentum_advection,
+                         tracer_advection,
+                         closure,
+                         forcing,
+                         free_surface)
 
 #####
 ##### Atmospheric forcing
@@ -97,7 +109,7 @@ atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(20))
 #####
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation) 
-simulation = Simulation(coupled_model; Δt=1minutes, stop_time=30days)
+simulation = Simulation(coupled_model; Δt=5minutes, stop_time=10days)
 
 #####
 ##### Run it!
@@ -139,7 +151,7 @@ ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
 
 run!(simulation)
 
-simulation.Δt = 25minutes
+simulation.Δt = 30minutes
 simulation.stop_time = 720days
 
 run!(simulation)
