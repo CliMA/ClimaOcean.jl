@@ -48,6 +48,9 @@ default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
 const TripolarOfSomeKind = Union{TripolarGrid, ImmersedBoundaryGrid{<:Any, <:Any, <:Any, <:Any, <:TripolarGrid}}
 default_free_surface(grid::TripolarOfSomeKind) = SplitExplicitFreeSurface(grid; substeps=70)
 
+default_vertical_coordinate(grid) = Oceananigans.Models.ZCoordinate()
+default_vertical_coordinate(::MutableGridOfSomeKind) = Oceananigans.Models.ZStar()
+
 function default_ocean_closure()
     mixing_length = CATKEMixingLength(Cᵇ=0.01)
     turbulent_kinetic_energy_equation = CATKEEquation(Cᵂϵ=1.0)
@@ -73,12 +76,6 @@ default_tracer_advection() = FluxFormAdvection(WENO(order=7),
 @inline u_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.u[i, j, k] * spᶠᶜᶜ(i, j, k, grid, fields) 
 @inline v_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.v[i, j, k] * spᶜᶠᶜ(i, j, k, grid, fields) 
 
-function add_required_boundary_conditions(user_boundary_conditions, grid, bottom_drag_coefficient)
-    
-    return boundary_conditions
-end
-
-
 # TODO: Specify the grid to a grid on the sphere; otherwise we can provide a different
 # function that requires latitude and longitude etc for computing coriolis=FPlane...
 function ocean_simulation(grid;
@@ -98,6 +95,7 @@ function ocean_simulation(grid;
                           equation_of_state = TEOS10EquationOfState(; reference_density),
                           boundary_conditions::NamedTuple = NamedTuple(),
                           tracer_advection = default_tracer_advection(),
+                          vertical_coordinate = default_vertical_coordinate(grid),
                           verbose = false)
 
     FT = eltype(grid)
@@ -200,7 +198,8 @@ function ocean_simulation(grid;
                                               free_surface,
                                               coriolis,
                                               forcing,
-                                              boundary_conditions)
+                                              boundary_conditions,
+                                              vertical_coordinate)
 
     ocean = Simulation(ocean_model; Δt, verbose)
 
