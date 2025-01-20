@@ -135,7 +135,7 @@ run!(ocean)
 
 # ## Run the real simulation
 
-# Let's reset the maximum number of iterations and we can not increase the time step size
+# Let's reset the maximum number of iterations and we can now increase the time step size
 
 ocean.Δt = 3minutes
 ocean.stop_iteration = Inf
@@ -158,29 +158,29 @@ run!(ocean)
 # (3) Temperature (T)
 # (4) Salinity (S)
 
-# u_series = FieldTimeSeries("med_surface_field.jld2", "u"; backend=OnDisk())
-# v_series = FieldTimeSeries("med_surface_field.jld2", "v"; backend=OnDisk())
-# T_series = FieldTimeSeries("med_surface_field.jld2", "T"; backend=OnDisk())
-# S_series = FieldTimeSeries("med_surface_field.jld2", "S"; backend=OnDisk())
-# iter = Observable(1)
+u_series = FieldTimeSeries("med_surface_field.jld2", "u"; backend=InMemory(10))
+v_series = FieldTimeSeries("med_surface_field.jld2", "v"; backend=InMemory(10))
+T_series = FieldTimeSeries("med_surface_field.jld2", "T"; backend=InMemory(10))
+S_series = FieldTimeSeries("med_surface_field.jld2", "S"; backend=InMemory(10))
+iter = Observable(1)
 
-# u = @lift(u_series[$iter])
-# v = @lift(v_series[$iter])
-# T = @lift(T_series[$iter])
-# S = @lift(S_series[$iter])
+u = @lift(u_series[$iter])
+v = @lift(v_series[$iter])
+T = @lift(T_series[$iter])
+S = @lift(S_series[$iter])
 
-# fig = Figure()
-# ax  = Axis(fig[1, 1], title = "surface zonal velocity ms⁻¹")
-# heatmap!(ax, u)
-# ax  = Axis(fig[1, 2], title = "surface meridional velocity ms⁻¹")
-# heatmap!(ax, v)
-# ax  = Axis(fig[2, 1], title = "surface temperature ᵒC")
-# heatmap!(ax, T)
-# ax  = Axis(fig[2, 2], title = "surface salinity psu")
-# heatmap!(ax, S)
+fig = Figure()
+ax  = Axis(fig[1, 1], title = "surface zonal velocity ms⁻¹")
+heatmap!(ax, u)
+ax  = Axis(fig[1, 2], title = "surface meridional velocity ms⁻¹")
+heatmap!(ax, v)
+ax  = Axis(fig[2, 1], title = "surface temperature ᵒC")
+heatmap!(ax, T)
+ax  = Axis(fig[2, 2], title = "surface salinity psu")
+heatmap!(ax, S)
 
-# CairoMakie.record(fig, "mediterranean_video.mp4", 1:length(u_series.times); framerate = 5) do i
-#     @info "recording iteration $i"
-#     iter[] = i    
-# end
-# # ![](mediterranean_video.mp4)
+CairoMakie.record(fig, "mediterranean_video.mp4", 1:length(u_series.times); framerate = 5) do i
+    @info "recording iteration $i"
+    iter[] = i    
+end
+# ![](mediterranean_video.mp4)
