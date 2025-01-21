@@ -45,7 +45,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     interpolate_atmospheric_state!(surface_atmosphere_state, 
                                    interpolated_prescribed_freshwater_flux, 
                                    atmosphere,
-                                   grid, clock)
+                                   grid, coupled_model.fluxes, clock)
 
     #####
     ##### Next compute turbulent fluxes.
