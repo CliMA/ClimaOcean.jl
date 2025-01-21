@@ -143,11 +143,12 @@ function ocean_model_fluxes(model, ρₒ, cₚ)
                                      for name in keys(tracers))
 
     ocean_heat_flux = ρₒ * cₚ * ocean_tracer_fluxes.T
+    upwelling_radiation = Field{Center, Center, Nothing}(grid)
 
-    fluxes = (momentum = ocean_momentum_fluxes,
-              tracers = ocean_tracer_fluxes,
-              heat = ocean_heat_flux)
-
+    fluxes = (; momentum = ocean_momentum_fluxes,
+                tracers = ocean_tracer_fluxes,
+                heat = (; total = ocean_heat_flux, upwelling_radiation))
+    
     return fluxes
 end
 
@@ -159,6 +160,7 @@ function interpolated_surface_atmosphere_state(ocean_grid)
                                 p  = Field{Center, Center, Nothing}(ocean_grid),
                                 Qs = Field{Center, Center, Nothing}(ocean_grid),
                                 Qℓ = Field{Center, Center, Nothing}(ocean_grid),
+                                Qu = Field{Center, Center, Nothing}(ocean_grid),
                                 Mp = Field{Center, Center, Nothing}(ocean_grid))
 
     return surface_atmosphere_state
