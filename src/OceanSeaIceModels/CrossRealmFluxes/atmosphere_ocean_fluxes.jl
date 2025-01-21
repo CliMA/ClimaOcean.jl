@@ -38,6 +38,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
                                 q  = surface_atmosphere_state.q.data,
                                 Qs = surface_atmosphere_state.Qs.data,
                                 Qℓ = surface_atmosphere_state.Qℓ.data,
+                                Qu = surface_atmosphere_state.Qu.data,
                                 Mp = surface_atmosphere_state.Mp.data)
 
     interpolated_prescribed_freshwater_flux = surface_atmosphere_state.Mp
@@ -100,6 +101,8 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     interpolated_downwelling_radiation = (shortwave = surface_atmosphere_state.Qs,
                                           longwave = surface_atmosphere_state.Qℓ)
     
+    upwelling_radiation = coupled_model.fluxes.total.ocean.heat.upwelling_radiation
+                                    
     launch!(arch, grid, kernel_parameters,
             _assemble_atmosphere_ocean_fluxes!,
             centered_velocity_fluxes,
@@ -111,6 +114,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             coupled_model.fluxes.ocean_temperature_units,
             similarity_theory.fields,
             interpolated_downwelling_radiation,
+            upwelling_radiation,
             interpolated_prescribed_freshwater_flux,
             radiation_properties,
             coupled_model.fluxes.ocean_reference_density,
@@ -241,6 +245,7 @@ end
                                                     ocean_temperature_units,
                                                     similarity_theory_fields,
                                                     downwelling_radiation,
+                                                    upwelling_radiation,
                                                     prescribed_freshwater_flux,
                                                     radiation_properties,
                                                     ocean_reference_density,
@@ -260,17 +265,17 @@ end
         Qℓ = downwelling_radiation.longwave[i, j, 1]
 
         Mp = prescribed_freshwater_flux[i, j, 1]
-
-        Qc  = similarity_theory_fields.sensible_heat[i, j, 1] # sensible or "conductive" heat flux
-        Qv  = similarity_theory_fields.latent_heat[i, j, 1]   # latent heat flux
-        Mv  = similarity_theory_fields.water_vapor[i, j, 1]   # mass flux of water vapor
-        ρτx = similarity_theory_fields.x_momentum[i, j, 1]    # zonal momentum flux
-        ρτy = similarity_theory_fields.y_momentum[i, j, 1]    # meridional momentum flux
+        Ts  = similarity_theory_fields.T_surface[i, j, 1]
+        Qc  = similarity_theory_fields.sensible_heat[i, j, 1]        # sensible or "conductive" heat flux
+        Qv  = similarity_theory_fields.latent_heat[i, j, 1]          # latent heat flux
+        Mv  = similarity_theory_fields.water_vapor[i, j, 1]          # mass flux of water vapor
+        ρτx = similarity_theory_fields.x_momentum[i, j, 1]           # zonal momentum flux
+        ρτy = similarity_theory_fields.y_momentum[i, j, 1]           # meridional momentum flux
     end
 
     # Compute heat fluxes, bulk flux first
     Qd = net_downwelling_radiation(i, j, grid, time, radiation_properties, Qs, Qℓ)
-    Qu = net_upwelling_radiation(i, j, grid, time, radiation_properties, Tₒ)
+    Qu = net_upwelling_radiation(i, j, grid, time, radiation_properties, Ts)
 
     ΣQ = Qd + Qu + Qc + Qv
 
@@ -290,6 +295,7 @@ end
     τy = centered_velocity_fluxes.v
     Jᵀ = net_tracer_fluxes.T
     Jˢ = net_tracer_fluxes.S
+    Ru = upwelling_radiation # net upward longwave radiation (will go in the new data structure)
 
     ρₒ⁻¹ = 1 / ocean_reference_density
     cₒ   = ocean_heat_capacity
@@ -307,6 +313,7 @@ end
         τy[i, j, 1] = ifelse(inactive, zero(grid), atmos_ocean_τy)
         Jᵀ[i, j, 1] = ifelse(inactive, zero(grid), atmos_ocean_Jᵀ)
         Jˢ[i, j, 1] = ifelse(inactive, zero(grid), atmos_ocean_Jˢ)
+        Ru[i, j, 1] = ifelse(inactive, zero(grid), Qu)
     end
 end
 
