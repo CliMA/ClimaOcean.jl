@@ -8,7 +8,8 @@ using ..OceanSeaIceModels: reference_density,
                            sea_ice_thickness,
                            downwelling_radiation,
                            freshwater_flux,
-                           SeaIceSimulation
+                           SeaIceSimulation,
+                           FreezingLimitedOceanTemperature
 
 
 using ClimaSeaIce: SeaIceModel
@@ -72,7 +73,12 @@ const celsius_to_kelvin = 273.15
 Base.summary(crf::ComponentInterfaces) = "ComponentInterfaces"
 Base.show(io::IO, crf::ComponentInterfaces) = print(io, summary(crf))
 
-function atmosphere_ocean_interface(ocean, radiation, temperature_formulation, specific_humidity_formulation)
+function atmosphere_ocean_interface(ocean, 
+                                    radiation, 
+                                    ao_flux_formulation,
+                                    temperature_formulation, 
+                                    specific_humidity_formulation)
+
     water_vapor   = Field{Center, Center, Nothing}(ocean.model.grid)
     latent_heat   = Field{Center, Center, Nothing}(ocean.model.grid)
     sensible_heat = Field{Center, Center, Nothing}(ocean.model.grid)
@@ -83,24 +89,25 @@ function atmosphere_ocean_interface(ocean, radiation, temperature_formulation, s
     σ = radiation.stefan_boltzmann_constant
     αₐₒ = radiation.reflection.ocean
     ϵₐₒ = radiation.emission.ocean
-    ao_radiation = (σ=σ, α=αₐₒ, ϵ=ϵₐₒ)
-    ao_phase = AtmosphericThermodynamics.Liquid()
+    radiation = (σ=σ, α=αₐₒ, ϵ=ϵₐₒ)
 
-    FT = eltype(ocean.model.grid)
-    water_mole_fraction = convert(FT, 0.98)
-    ao_properties = InterfaceProperties(ao_radiation,
+    ao_properties = InterfaceProperties(radiation,
                                         specific_humidity_formulation,
                                         temperature_formulation)
 
-    ao_flux_formulation = SimilarityTheoryFluxes()
     interface_temperature = Field{Center, Center, Nothing}(ocean.model.grid)
 
     return AtmosphereInterface(ao_fluxes, ao_flux_formulation, interface_temperature, ao_properties)
 end
 
 atmosphere_sea_ice_interface(::Nothing, args...) = nothing
+atmosphere_sea_ice_interface(::FreezingLimitedOceanTemperature, args...) = nothing
 
-function atmosphere_sea_ice_interface(sea_ice, radiation, temperature_formulation)
+function atmosphere_sea_ice_interface(sea_ice, 
+                                      radiation, 
+                                      ai_flux_formulation,
+                                      temperature_formulation)
+
     water_vapor   = Field{Center, Center, Nothing}(sea_ice.model.grid)
     latent_heat   = Field{Center, Center, Nothing}(sea_ice.model.grid)
     sensible_heat = Field{Center, Center, Nothing}(sea_ice.model.grid)
@@ -112,6 +119,7 @@ function atmosphere_sea_ice_interface(sea_ice, radiation, temperature_formulatio
     αₐᵢ = radiation.reflection.sea_ice
     ϵₐᵢ = radiation.emission.sea_ice
     radiation = (σ=σ, α=αₐᵢ, ϵ=ϵₐᵢ)
+
     phase = AtmosphericThermodynamics.Ice()
     specific_humidity_formulation = SpecificHumidityFormulation(phase)
 
@@ -119,16 +127,13 @@ function atmosphere_sea_ice_interface(sea_ice, radiation, temperature_formulatio
                                      specific_humidity_formulation,
                                      temperature_formulation)
 
-    FT = eltype(sea_ice.model.grid)
-    # stability_functions = atmosphere_sea_ice_stability_functions(FT)
-    # ai_flux_formulation = SimilarityTheoryFluxes(; stability_functions)
-    ai_flux_formulation = CoefficientBasedFluxes(drag_coefficient = 5e-3)
     interface_temperature = Field{Center, Center, Nothing}(sea_ice.model.grid)
 
     return AtmosphereInterface(fluxes, ai_flux_formulation, interface_temperature, properties)
 end
 
 sea_ice_ocean_interface(::Nothing, ocean) = nothing
+sea_ice_ocean_interface(::FreezingLimitedOceanTemperature, ocean) = nothing
 
 function sea_ice_ocean_interface(sea_ice, ocean)
     previous_ice_thickness = deepcopy(sea_ice.model.ice_thickness)
@@ -143,6 +148,9 @@ function sea_ice_ocean_interface(sea_ice, ocean)
                                 previous_ice_thickness,
                                 previous_ice_concentration)
 end
+
+default_ai_temperature(::Nothing) = nothing
+default_ai_temperature(::FreezingLimitedOceanTemperature) = nothing
 
 function default_ai_temperature(sea_ice)
     conductive_flux = sea_ice.model.ice_thermodynamics.internal_heat_flux.parameters.flux
@@ -161,17 +169,19 @@ end
 
 """
 function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
-                                 radiation = nothing,
-                                 freshwater_density = 1000,
-                                 atmosphere_ocean_interface_temperature = BulkTemperature(),
-                                 atmosphere_ocean_interface_specific_humidity = default_ao_specific_humidity(ocean),
-                                 atmosphere_sea_ice_interface_temperature = default_ai_temperature(sea_ice),
-                                 ocean_reference_density = reference_density(ocean),
-                                 ocean_heat_capacity = heat_capacity(ocean),
-                                 ocean_temperature_units = DegreesCelsius(),
-                                 sea_ice_temperature_units = DegreesCelsius(),
-                                 sea_ice_reference_density = reference_density(sea_ice),
-                                 sea_ice_heat_capacity = heat_capacity(sea_ice))
+                             radiation = Radiation(),
+                             freshwater_density = 1000,
+                             atmosphere_ocean_flux_formulation = SimilarityTheoryFluxes(),
+                             atmosphere_sea_ice_flux_formulation = CoefficientBasedFluxes(drag_coefficient=5e-3),
+                             atmosphere_ocean_interface_temperature = BulkTemperature(),
+                             atmosphere_ocean_interface_specific_humidity = default_ao_specific_humidity(ocean),
+                             atmosphere_sea_ice_interface_temperature = default_ai_temperature(sea_ice),
+                             ocean_reference_density = reference_density(ocean),
+                             ocean_heat_capacity = heat_capacity(ocean),
+                             ocean_temperature_units = DegreesCelsius(),
+                             sea_ice_temperature_units = DegreesCelsius(),
+                             sea_ice_reference_density = reference_density(sea_ice),
+                             sea_ice_heat_capacity = heat_capacity(sea_ice))
 
     ocean_grid = ocean.model.grid
     FT = eltype(ocean_grid)
@@ -189,27 +199,31 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                         freshwater_density = freshwater_density,
                         temperature_units  = ocean_temperature_units)
 
-    sea_ice_properties = (reference_density  = sea_ice_reference_density,
-                          heat_capacity      = sea_ice_heat_capacity,
-                          freshwater_density = freshwater_density,
-                          liquidus           = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus,
-                          temperature_units  = sea_ice_temperature_units)
-
     ao_interface = atmosphere_ocean_interface(ocean,
                                               radiation,
+                                              atmosphere_ocean_flux_formulation,
                                               atmosphere_ocean_interface_temperature,
                                               atmosphere_ocean_interface_specific_humidity)
 
-    ai_interface = atmosphere_sea_ice_interface(sea_ice,
-                                                radiation,
-                                                atmosphere_sea_ice_interface_temperature)
-
     io_interface = sea_ice_ocean_interface(sea_ice, ocean)
 
+    ai_interface = atmosphere_sea_ice_interface(sea_ice,
+                                                radiation,
+                                                atmosphere_sea_ice_flux_formulation,
+                                                atmosphere_sea_ice_interface_temperature)
+
+        
     if sea_ice isa SeaIceSimulation
+        sea_ice_properties = (reference_density  = sea_ice_reference_density,
+                              heat_capacity      = sea_ice_heat_capacity,
+                              freshwater_density = freshwater_density,
+                              liquidus           = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus,
+                              temperature_units  = sea_ice_temperature_units)
+
         net_top_sea_ice_fluxes = (; Q=sea_ice.model.external_heat_fluxes.top)
         net_bottom_sea_ice_fluxes = (; Q=sea_ice.model.external_heat_fluxes.bottom)
     else
+        sea_ice_properties = nothing
         net_top_sea_ice_fluxes = nothing
         net_bottom_sea_ice_fluxes = nothing
     end
@@ -220,7 +234,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
     ρₒ = ocean_reference_density
     cₒ = ocean_heat_capacity
     Qₒ = ρₒ * cₒ * surface_flux(ocean.model.tracers.T)
-    net_ocean_surface_fluxes = (u=τx, v=τx, Q=Qₒ)
+    net_ocean_surface_fluxes = (u=τx, v=τy, Q=Qₒ)
 
     ocean_surface_tracer_fluxes = NamedTuple(name => surface_flux(tracers[name]) for name in keys(tracers))
     net_ocean_surface_fluxes = merge(ocean_surface_tracer_fluxes, net_ocean_surface_fluxes)

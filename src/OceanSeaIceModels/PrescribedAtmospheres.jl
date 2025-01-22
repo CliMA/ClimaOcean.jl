@@ -347,6 +347,9 @@ function default_atmosphere_pressure(grid, times)
     return pa
 end
 
+@inline thermodynamics_parameters(atmos::PrescribedAtmosphere) = atmos.thermodynamics_parameters
+@inline reference_height(atmos::PrescribedAtmosphere) = atmos.reference_height
+
 """
     PrescribedAtmosphere(grid, times;
                          metadata = nothing,

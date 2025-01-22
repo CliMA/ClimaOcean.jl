@@ -1,7 +1,8 @@
-
+using Oceananigans.BuoyancyFormulations: g_Earth
 
 struct CoefficientBasedFluxes{CD, CH, CQ, ΔU, FT}
     drag_coefficient :: CD
+    gravitational_acceleration :: FT
     heat_transfer_coefficient :: CH
     vapor_flux_coefficient :: CQ
     bulk_velocity :: ΔU
@@ -14,6 +15,7 @@ convert_if_number(FT, a) = a
 
 function CoefficientBasedFluxes(FT = Float64;
                                 drag_coefficient = 1e-3,
+                                gravitational_acceleration = g_Earth,
                                 heat_transfer_coefficient = drag_coefficient,
                                 vapor_flux_coefficient = drag_coefficient,
                                 bulk_velocity = RelativeVelocity(),
@@ -25,6 +27,7 @@ function CoefficientBasedFluxes(FT = Float64;
     vapor_flux_coefficient = convert_if_number(FT, vapor_flux_coefficient)
 
     return CoefficientBasedFluxes(drag_coefficient,
+                                  gravitational_acceleration,
                                   heat_transfer_coefficient,
                                   vapor_flux_coefficient,
                                   bulk_velocity,
@@ -110,8 +113,8 @@ and interior properties `ℙₛ`, `ℙₐ`, and `ℙᵢ`.
     zₛ = zero(FT)
     Δh = zₐ - zₛ
     Tₐ = AtmosphericThermodynamics.air_temperature(ℂₐ, 𝒬ₐ)
-    g = 9.81 #flux_formulation.gravitational_acceleration
-    cₐ = interior_properties.heat_capacity
+    g  = flux_formulation.gravitational_acceleration
+    cₐ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ)
     θₐ = Tₐ + g * Δh / cₐ
     Δθ = θₐ - Tₛ
 
