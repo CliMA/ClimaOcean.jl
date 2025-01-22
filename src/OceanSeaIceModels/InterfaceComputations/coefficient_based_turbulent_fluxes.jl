@@ -111,8 +111,9 @@ and interior properties `ℙₛ`, `ℙₐ`, and `ℙᵢ`.
     Δh = zₐ - zₛ
     Tₐ = AtmosphericThermodynamics.air_temperature(ℂₐ, 𝒬ₐ)
     g = 9.81 #flux_formulation.gravitational_acceleration
-    cₚ = interior_properties.heat_capacity
-    Δθ = Tₐ - Tₛ + g / cₚ * Δh
+    cₐ = interior_properties.heat_capacity
+    θₐ = Tₐ + g * Δh / cₐ
+    Δθ = θₐ - Tₛ
 
     Δu, Δv = velocity_difference(flux_formulation.bulk_velocity, atmosphere_state, approximate_interface_state)
     ΔU = sqrt(Δu^2 + Δv^2)

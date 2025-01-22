@@ -262,7 +262,7 @@ end
     q★ = interface_state.q★
  
     # Turbulent heat fluxes, sensible + latent (positive out of the ocean)
-    Qc = - ρₐ * cₐ * u★ * θ★
+    Qc = - ρₐ * cₐ * u★ * θ★ # = - ρₐ cₐ u★ Ch / sqrt(Cd) * (θₐ - Tₛ)
     Qv = - ρₐ * ℰv * u★ * q★
 
     # Net heat flux

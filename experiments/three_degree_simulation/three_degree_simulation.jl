@@ -93,7 +93,7 @@ using GLMakie
 
 fig = Figure()
 ax = Axis(fig[1, 1])
-hm = heatmap!(ax, Ts * ℵ, nan_color=:lightgray)
+hm = heatmap!(ax, Ts * ℵ, nan_color=:lightgray, colorrange=(-40, 0))
 Colorbar(fig[1, 2], hm, label="Ice surface temperature (ᵒC)")
 
 #=
