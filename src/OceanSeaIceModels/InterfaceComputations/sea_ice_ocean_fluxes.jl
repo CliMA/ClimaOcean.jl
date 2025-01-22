@@ -14,20 +14,21 @@ function compute_sea_ice_ocean_salinity_flux!(coupled_model)
     ocean = coupled_model.ocean
     grid = ocean.model.grid
     arch = architecture(grid)
-    Jˢ = ocean.model.tracers.S.boundary_conditions.top.condition
     Sₒ = ocean.model.tracers.S
     Sᵢ = sea_ice.model.ice_salinity
     Δt = ocean.Δt
     hⁿ = sea_ice.model.ice_thickness
     h⁻ = coupled_model.interfaces.previous_ice_thickness
 
+    interface_fluxes = coupled_model.interfaces.sea_ice_ocean_interface.fluxes
+
     launch!(arch, grid, :xy, _compute_sea_ice_ocean_salinity_flux!,
-            Jˢ, grid, hⁿ, h⁻, Sᵢ, Sₒ, Δt)
+            interface_fluxes.salt, grid, hⁿ, h⁻, Sᵢ, Sₒ, Δt)
 
     return nothing
 end
 
-@kernel function _compute_sea_ice_ocean_salinity_flux!(sea_ice_ocean_salinity_flux,
+@kernel function _compute_sea_ice_ocean_salinity_flux!(salt_flux,
                                                        grid,
                                                        ice_thickness,
                                                        previous_ice_thickness,
@@ -43,6 +44,7 @@ end
     Jˢ = sea_ice_ocean_salinity_flux
     Sᵢ = ice_salinity
     Sₒ = ocean_salinity
+    Jˢ = salt_flux
 
     @inbounds begin
         # Change in thickness
@@ -63,7 +65,7 @@ function compute_sea_ice_ocean_latent_heat_flux!(coupled_model)
     sea_ice = coupled_model.sea_ice
     ρₒ = coupled_model.interfaces.ocean_reference_density
     cₒ = coupled_model.interfaces.ocean_heat_capacity
-    Qₒ = sea_ice.model.external_heat_fluxes.bottom
+    Qₒ = coupled_model.interfaces.sea_ice_ocean_interface.fluxes.heat
     Tₒ = ocean.model.tracers.T
     Sₒ = ocean.model.tracers.S
     Δt = ocean.Δt

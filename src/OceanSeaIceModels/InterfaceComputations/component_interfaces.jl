@@ -231,13 +231,13 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                   sea_ice_bottom = net_bottom_sea_ice_fluxes)
 
     return ComponentInterfaces(ao_interface,
-                                   ai_interface,
-                                   io_interface,
-                                   atmosphere_properties,
-                                   ocean_properties,
-                                   sea_ice_properties,
-                                   near_surface_atmosphere_state(ocean.model.grid),
-                                   net_fluxes)
+                               ai_interface,
+                               io_interface,
+                               atmosphere_properties,
+                               ocean_properties,
+                               sea_ice_properties,
+                               near_surface_atmosphere_state(ocean.model.grid),
+                               net_fluxes)
 end
 
 function ocean_interface_fluxes(model, ρₛ, cₛ)
