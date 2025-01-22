@@ -32,8 +32,8 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     interface_temperature = coupled_model.interfaces.atmosphere_ocean_interface.temperature
     interface_properties = coupled_model.interfaces.atmosphere_ocean_interface.properties
     ocean_properties = coupled_model.interfaces.ocean_properties
-    atmosphere_properties = (thermodynamics_parameters = atmosphere.thermodynamics_parameters,
-                             reference_height = atmosphere.reference_height)
+    atmosphere_properties = (thermodynamics_parameters = thermodynamics_parameters(atmosphere),
+                             reference_height = reference_height(atmosphere))
 
     kernel_parameters = surface_computations_kernel_parameters(grid)
 
