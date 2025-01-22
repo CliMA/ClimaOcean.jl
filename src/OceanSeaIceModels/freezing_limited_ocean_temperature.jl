@@ -37,6 +37,14 @@ function compute_sea_ice_ocean_fluxes!(cm::FreezingLimitedCoupledModel)
     arch = architecture(grid)
     Sₒ = ocean.model.tracers.S
     Tₒ = ocean.model.tracers.T
+    net_fluxes = cm.interfaces.net_fluxes.ocean_surface
+    sea_ice = cm.sea_ice
+    
+    launch!(arch, grid, :xy, _adjust_fluxes_over_sea_ice!,
+            net_fluxes,
+            grid,
+            sea_ice.liquidus,
+            Tₒ, Sₒ)
 
     launch!(arch, grid, :xyz, above_freezing_ocean_temperature!, Tₒ, Sₒ, liquidus)
 
@@ -56,26 +64,7 @@ end
     @inbounds Tₒ[i, j, k] = ifelse(Tᵢ < Tₘ, Tₘ, Tᵢ)
 end
 
-function adjust_fluxes_over_sea_ice!(grid, kernel_parameters,
-                                    sea_ice::FreezingLimitedOceanTemperature,
-                                    centered_velocity_fluxes,
-                                    net_tracer_fluxes,
-                                    ocean_temperature,
-                                    ocean_salinity)
-    
-    launch!(architecture(grid), grid, kernel_parameters, _adjust_fluxes_over_sea_ice!,
-            centered_velocity_fluxes,
-            net_tracer_fluxes,
-            grid,
-            sea_ice.liquidus,
-            ocean_temperature,
-            ocean_salinity)
-
-    return nothing
-end
-
-@kernel function _adjust_fluxes_over_sea_ice!(centered_velocity_fluxes,
-                                              net_tracer_fluxes,
+@kernel function _adjust_fluxes_over_sea_ice!(net_fluxes,
                                               grid,
                                               liquidus,
                                               ocean_temperature,
@@ -90,10 +79,10 @@ end
 
         Tₘ = melting_temperature(liquidus, Sₒ)
 
-        τx = centered_velocity_fluxes.u
-        τy = centered_velocity_fluxes.v
-        Jᵀ = net_tracer_fluxes.T
-        Jˢ = net_tracer_fluxes.S
+        τx = net_fluxes.u
+        τy = net_fluxes.v
+        Jᵀ = net_fluxes.T
+        Jˢ = net_fluxes.S
 
         sea_ice = Tₒ < Tₘ
         cooling_sea_ice = sea_ice & (Jᵀ[i, j, 1] > 0)

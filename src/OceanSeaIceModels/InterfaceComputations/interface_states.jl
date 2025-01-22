@@ -184,8 +184,8 @@ DiffusiveFlux(FT; κ = 1e-2, δ = 1.0) = DiffusiveFlux(convert(FT, δ), convert(
 #
 # corresponding to a linearization of the outgoing longwave radiation term.
 @inline function flux_balance_temperature(F::DiffusiveFlux, Qₐ, Ψₛ, ℙₛ, Ψᵢ, ℙᵢ)
-    ρ = ℙ.reference_density
-    c = ℙ.heat_capacity
+    ρ = ℙᵢ.reference_density
+    c = ℙᵢ.heat_capacity
     Jᵀ = Qₐ / (ρ * c)
     return Ψᵢ.T + Jᵀ * F.δ / F.κ
 end

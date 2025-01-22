@@ -94,7 +94,8 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature();
                           ocean_reference_density = reference_density(ocean),
                           ocean_heat_capacity = heat_capacity(ocean),
                           sea_ice_reference_density = reference_density(sea_ice),
-                          sea_ice_heat_capacity = heat_capacity(sea_ice))
+                          sea_ice_heat_capacity = heat_capacity(sea_ice),
+                          interfaces = nothing)
 
     # Remove some potentially irksome callbacks from the ocean simulation
     pop!(ocean.callbacks, :stop_time_exceeded, nothing)
@@ -119,12 +120,14 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature();
     end
 
     # Contains information about flux contributions: bulk formula, prescribed fluxes, etc.
-    interfaces = ComponentInterfaces(atmosphere, ocean, sea_ice;
-                                     ocean_reference_density,
-                                     ocean_heat_capacity,
-                                     sea_ice_reference_density,
-                                     sea_ice_heat_capacity,
-                                     radiation)
+    if isnothing(interfaces)
+        interfaces = ComponentInterfaces(atmosphere, ocean, sea_ice;
+                                         ocean_reference_density,
+                                         ocean_heat_capacity,
+                                         sea_ice_reference_density,
+                                         sea_ice_heat_capacity,
+                                         radiation)
+    end
 
     ocean_sea_ice_model = OceanSeaIceModel(clock,
                                            atmosphere,

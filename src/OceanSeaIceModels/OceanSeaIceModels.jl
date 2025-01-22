@@ -60,7 +60,6 @@ import .InterfaceComputations:
     compute_atmosphere_ocean_fluxes!,
     compute_atmosphere_sea_ice_fluxes!,
     compute_sea_ice_ocean_fluxes!
-    #adjust_fluxes_over_sea_ice!
 
 include("ocean_sea_ice_model.jl")
 include("freezing_limited_ocean_temperature.jl")
@@ -76,7 +75,7 @@ compute_atmosphere_sea_ice_fluxes!(::NoAtmosphereModel) = nothing
 const NoSeaIceModel = Union{OceanSeaIceModel{Nothing}, FreezingLimitedCoupledModel}
 
 # Fallback
-compute_sea_ice_ocean_fluxes!(::NoSeaIceModel) = nothing
+compute_sea_ice_ocean_fluxes!(::OceanSeaIceModel{Nothing}) = nothing
 compute_atmosphere_sea_ice_fluxes!(::NoSeaIceModel) = nothing
 
 # "Only ocean" implementation

@@ -1,5 +1,6 @@
 using Oceananigans.Utils: prettysummary
 using Oceananigans.Grids: AbstractGrid
+using Oceananigans.BuoyancyFormulations: g_Earth
 
 using Adapt
 using Thermodynamics: Liquid
@@ -97,7 +98,7 @@ Keyword Arguments
 - `solver_maxiter`: The maximum number of iterations. Default: 100.
 """
 function SimilarityTheoryFluxes(FT::DataType = Float64;
-                                gravitational_acceleration = 9.81,
+                                gravitational_acceleration = g_Earth,
                                 von_karman_constant = 0.4,
                                 turbulent_prandtl_number = 1,
                                 gustiness_parameter = 6.5,
@@ -189,7 +190,6 @@ end
     end
 
     return Ψₛⁿ
-
 end
 
 """
@@ -239,8 +239,8 @@ and interior properties `ℙₛ`, `ℙₐ`, and `ℙᵢ`.
     zₛ = zero(FT)
     Δh = zₐ - zₛ
     Tₐ = AtmosphericThermodynamics.air_temperature(ℂₐ, 𝒬ₐ)
-    g = flux_formulation.gravitational_acceleration
-    cₚ = interior_properties.heat_capacity
+    g  = flux_formulation.gravitational_acceleration
+    cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ)
     Δθ = Tₐ - Tₛ + g / cₚ * Δh
 
     # Recompute interface thermodynamic state with new temperature and specific humidity
@@ -280,6 +280,12 @@ and interior properties `ℙₛ`, `ℙₐ`, and `ℙᵢ`.
     χθ = ϰ / similarity_profile(form, ψθ, Δh, ℓθ₀, L★)
     χq = ϰ / similarity_profile(form, ψq, Δh, ℓq₀, L★)
 
+    #=
+    Pr = flux_formulation.turbulent_prandtl_number
+    χθ = χθ / Pr
+    χq = χq / Pr
+    =#
+    
     # Buoyancy flux characteristic scale for gustiness (Edson 2013)
     h_bℓ = atmosphere_state.h_bℓ
     Jᵇ = - u★ * b★
@@ -288,12 +294,6 @@ and interior properties `ℙₛ`, `ℙₐ`, and `ℙᵢ`.
     # New velocity difference accounting for gustiness
     Δu, Δv = velocity_difference(flux_formulation.bulk_velocity, atmosphere_state, approximate_interface_state)
     ΔU = sqrt(Δu^2 + Δv^2 + Uᴳ^2)
-
-    #=
-    Pr = flux_formulation.turbulent_prandtl_number
-    χθ = χθ / Pr
-    χq = χq / Pr
-    =#
 
     # Recompute 
     u★ = χu * ΔU

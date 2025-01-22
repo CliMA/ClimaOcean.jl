@@ -1,5 +1,7 @@
 using Oceananigans.Operators: intrinsic_vector
 using Oceananigans.Grids: inactive_node
+using ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres: thermodynamics_parameters, 
+                                                          reference_height
 
 function compute_atmosphere_ocean_fluxes!(coupled_model)
     ocean = coupled_model.ocean
@@ -48,6 +50,20 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             atmosphere_data,
             interface_properties,
             atmosphere_properties,
+            ocean_properties)
+
+    net_fluxes = coupled_model.interfaces.net_fluxes.ocean_surface
+
+    launch!(arch, grid, kernel_parameters, 
+            _assemble_atmosphere_ocean_fluxes!,
+            net_fluxes,
+            grid,
+            clock,
+            interface_fluxes,
+            interface_temperature,
+            ocean_state,
+            atmosphere_data,
+            interface_properties,
             ocean_properties)
 
     return nothing
@@ -134,20 +150,21 @@ end
     Ψₐ = local_atmosphere_state
     Δu, Δv = velocity_difference(turbulent_flux_formulation.bulk_velocity, Ψₐ, Ψₛ)
     ΔU = sqrt(Δu^2 + Δv^2)
-    τx = - u★^2 * Δu / ΔU
-    τy = - u★^2 * Δv / ΔU
+    
+    τx = ifelse(ΔU == 0, zero(grid), - u★^2 * Δu / ΔU)
+    τy = ifelse(ΔU == 0, zero(grid), - u★^2 * Δv / ΔU)
 
     ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
     cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
     ℰv = AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
 
     # Store fluxes
-    Qv = interface_fluxes.latent_heat
-    Qc = interface_fluxes.sensible_heat
-    Fv = interface_fluxes.water_vapor
+    Qv  = interface_fluxes.latent_heat
+    Qc  = interface_fluxes.sensible_heat
+    Fv  = interface_fluxes.water_vapor
     ρτx = interface_fluxes.x_momentum
     ρτy = interface_fluxes.y_momentum
-    Ts = interface_temperature
+    Ts  = interface_temperature
 
     @inbounds begin
         # +0: cooling, -0: heating
@@ -158,7 +175,5 @@ end
         ρτy[i, j, 1] = + ρₐ * τy
         Ts[i, j, 1]  = convert_from_kelvin(ocean_properties.temperature_units, Ψₛ.T)
     end
-
-    # u★ = sqrt((ρτx / ρₐ)^2 + (ρτx / ρₐ)^2)
 end
 
