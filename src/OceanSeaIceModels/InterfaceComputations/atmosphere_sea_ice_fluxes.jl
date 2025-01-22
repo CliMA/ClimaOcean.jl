@@ -125,7 +125,7 @@ end
     Sₛ = zero(FT) # what should we use for interface salinity?
     initial_interface_state = InterfaceState(u★, u★, u★, uᵢ, vᵢ, Tₛ, Sₛ, convert(FT, qₛ))
     land = inactive_node(i, j, kᴺ, grid, Center(), Center(), Center())
-    ice_free = hᵢ == 1
+    ice_free = hᵢ == 0
 
     if land || ice_free
         interface_state = InterfaceState(zero(FT), zero(FT), zero(FT), uᵢ, vᵢ, Tᵢ, Sₛ, zero(FT))
