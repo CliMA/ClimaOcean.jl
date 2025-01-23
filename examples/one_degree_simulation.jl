@@ -96,7 +96,8 @@ ocean = ocean_simulation(grid;
                          closure,
                          forcing,
                          free_surface)
-
+set!(ocean.model, T=ECCOMetadata(:temperature; dates=first(dates)),
+                  S=ECCOMetadata(:salinity; dates=first(dates)))
 #####
 ##### Atmospheric forcing
 #####
