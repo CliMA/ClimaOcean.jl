@@ -1,4 +1,5 @@
 using CUDA: @allowscalar
+using Printf
 
 import ClimaSeaIce
 import Thermodynamics as AtmosphericThermodynamics  
@@ -201,35 +202,32 @@ end
     Tᵢ = convert_to_kelvin(ℙᵢ.temperature_units, Tᵢ)
     Tₛ⁻ = Ψₛ.T
 
-    #=
-    @show Tᵢ Tₛ⁻
-    @show Qₐ
-    @show h
-    @show k
-    @show Qₐ * h / k
-    =#
-
-    k *= 100
-    Tₛ = Tᵢ - Qₐ * h / k
-
-    #=
     σ = ℙₛ.radiation.σ
     ϵ = ℙₛ.radiation.ϵ
     α = σ * ϵ
     Tₛ = (Tᵢ - h / k * (Qₐ + 4α * Tₛ⁻^4)) / (1 + 4α * h * Tₛ⁻^3 / k)
     Tₛ = ifelse(isnan(Tₛ), Tₛ⁻, Tₛ)
-    =#
 
-    # @show Tₛ
+    # @show Tₛ = Tᵢ - Qₐ * h / k
+
+    #@show Tₛ
 
     # Under heating fluxes, cap surface temperature by melting temperature
     Tₘ = ℙᵢ.liquidus.freshwater_melting_temperature
     Tₘ = convert_to_kelvin(ℙᵢ.temperature_units, Tₘ)
 
-    # Don't let it go below 0?
-    Tₛ = max(zero(Tₛ), Tₛ)
+    # Fix a NaN
+    Tₛ = ifelse(isnan(Tₛ), Tₛ⁻, Tₛ)
 
-    return min(Tₛ, Tₘ)
+    # Don't let it go below some minimum number?
+    FT = typeof(Tₛ⁻)
+    min_Tₛ = convert(FT, 230)
+    Tₛ = max(min_Tₛ, Tₛ)
+    Tₛ = min(Tₛ, Tₘ)
+
+    Tₛ⁺ = 0.1 * Tₛ + 0.9 * Tₛ⁻ 
+
+    return Tₛ⁺
 end
 
 @inline function compute_interface_temperature(st::SkinTemperature,
@@ -290,9 +288,25 @@ struct InterfaceState{FT}
     T :: FT  # interface temperature
     S :: FT  # interface salinity
     q :: FT  # interface specific humidity
+    melting :: Bool
 end
 
+InterfaceState(u★, θ★, q★, u, v, T, S, q) =
+    InterfaceState(u★, θ★, q★, u, v, T, S, q, false)
+
 Base.eltype(::InterfaceState{FT}) where FT = FT
+
+function Base.show(io::IO, is::InterfaceState)
+    print(io, "InterfaceState(",
+          "u★=", prettysummary(is.u★), " ",
+          "θ★=", prettysummary(is.θ★), " ",
+          "q★=", prettysummary(is.q★), " ",
+          "u=", prettysummary(is.u), " ",
+          "v=", prettysummary(is.v), " ",
+          "T=", prettysummary(is.T), " ",
+          "S=", prettysummary(is.S), " ",
+          "q=", prettysummary(is.q), ")")
+end
 
 zero_interface_state(FT) = InterfaceState(zero(FT),
                                           zero(FT),
@@ -302,4 +316,108 @@ zero_interface_state(FT) = InterfaceState(zero(FT),
                                           convert(FT, 273.15),
                                           zero(FT),
                                           zero(FT))
+
+# Iterating condition for the characteristic scales solvers
+@inline function iterating(Ψⁿ, Ψ⁻, iteration, maxiter, tolerance)
+    hasnt_started = iteration == 0
+    reached_maxiter = iteration ≥ maxiter
+    drift = abs(Ψⁿ.u★ - Ψ⁻.u★) + abs(Ψⁿ.θ★ - Ψ⁻.θ★) + abs(Ψⁿ.q★ - Ψ⁻.q★)
+    converged = drift < tolerance
+    return !(converged | reached_maxiter) | hasnt_started
+end
+
+@inline function compute_interface_state(flux_formulation,
+                                         initial_interface_state,
+                                         atmosphere_state,
+                                         interior_state,
+                                         downwelling_radiation,
+                                         interface_properties,
+                                         atmosphere_properties,
+                                         interior_properties)
+
+    Ψₐ = atmosphere_state
+    Ψᵢ = interior_state
+    Ψₛⁿ = Ψₛ⁻ = initial_interface_state
+    iteration = 0
+    maxiter = flux_formulation.solver_maxiter
+    tolerance = flux_formulation.solver_tolerance
+
+    while iterating(Ψₛⁿ, Ψₛ⁻, iteration, maxiter, tolerance)
+        Ψₛ⁻ = Ψₛⁿ
+        Ψₛⁿ = iterate_interface_state(flux_formulation,
+                                      Ψₛ⁻, Ψₐ, Ψᵢ,
+                                      downwelling_radiation,
+                                      interface_properties,
+                                      atmosphere_properties,
+                                      interior_properties)
+        iteration += 1
+    end
+
+    return Ψₛⁿ
+end
+
+"""
+    iterate_interface_state(flux_formulation, Ψₛⁿ⁻¹, Ψₐ, Ψᵢ, Qᵣ, ℙₛ, ℙₐ, ℙᵢ)
+
+Return the nth iterate of the interface state `Ψₛⁿ` computed according to the
+`flux_formulation`, given the interface state at the previous iterate `Ψₛⁿ⁻¹`,
+as well as the atmosphere state `Ψₐ`, the interior state `Ψᵢ`,
+downwelling radiation `Qᵣ`, and the interface, atmosphere,
+and interior properties `ℙₛ`, `ℙₐ`, and `ℙᵢ`.
+"""
+@inline function iterate_interface_state(flux_formulation,
+                                         approximate_interface_state,
+                                         atmosphere_state,
+                                         interior_state,
+                                         downwelling_radiation,
+                                         interface_properties,
+                                         atmosphere_properties,
+                                         interior_properties)
+    
+    Tₛ = compute_interface_temperature(interface_properties.temperature_formulation,
+                                       approximate_interface_state,
+                                       atmosphere_state,
+                                       interior_state,
+                                       downwelling_radiation,
+                                       interface_properties,
+                                       atmosphere_properties,
+                                       interior_properties)
+
+    # Thermodynamic state
+    FT = eltype(approximate_interface_state)
+    ℂₐ = atmosphere_properties.thermodynamics_parameters
+    𝒬ₐ = atmosphere_state.𝒬
+    ρₐ = 𝒬ₐ.ρ
+
+    # Recompute the saturation specific humidity at the interface based on the new temperature
+    q_formulation = interface_properties.specific_humidity_formulation
+    Sₛ = approximate_interface_state.S
+    qₛ = saturation_specific_humidity(q_formulation, ℂₐ, ρₐ, Tₛ, Sₛ)
+
+    # Compute the specific humidity increment
+    qₐ = AtmosphericThermodynamics.vapor_specific_humidity(ℂₐ, 𝒬ₐ)
+    Δq = qₐ - qₛ
+
+    # Temperature increment including the ``lapse rate'' `α = g / cₚ`
+    zₐ = atmosphere_state.z
+    zₛ = zero(FT)
+    Δh = zₐ - zₛ
+    Tₐ = AtmosphericThermodynamics.air_temperature(ℂₐ, 𝒬ₐ)
+    g  = flux_formulation.gravitational_acceleration
+    cₐ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ)
+    θₐ = Tₐ + g * Δh / cₐ
+    Δθ = θₐ - Tₛ
+
+    u★, θ★, q★ = iterate_interface_fluxes(flux_formulation,
+                                          Tₛ, qₛ, Δθ, Δq, Δh,
+                                          approximate_interface_state,
+                                          atmosphere_state,
+                                          atmosphere_properties)
+
+    u = approximate_interface_state.u
+    v = approximate_interface_state.v
+    S = approximate_interface_state.S
+
+    return InterfaceState(u★, θ★, q★, u, v, Tₛ, S, convert(FT, qₛ))
+end
 

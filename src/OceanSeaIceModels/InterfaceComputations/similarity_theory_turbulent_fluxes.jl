@@ -19,6 +19,17 @@ import Thermodynamics as AtmosphericThermodynamics
 import Thermodynamics.Parameters: molmass_ratio
 
 #####
+##### These are more general properties
+#####
+
+""" The exchange fluxes depend on the atmosphere velocity but not the interface velocity """
+struct WindVelocity end
+
+""" The exchange fluxes depend on the relative velocity between the atmosphere and the interface """
+struct RelativeVelocity end
+
+
+#####
 ##### Bulk turbulent fluxes based on similarity theory
 #####
 
@@ -153,98 +164,14 @@ struct COARELogarithmicSimilarityProfile end
 @inline similarity_profile(::COARELogarithmicSimilarityProfile, ψ, h, ℓ, L) =
     log(h / ℓ) - ψ(h / L)
 
-# Iterating condition for the characteristic scales solvers
-@inline function iterating(Ψⁿ, Ψ⁻, iteration, maxiter, tolerance)
-    hasnt_started = iteration == 0
-    reached_maxiter = iteration ≥ maxiter
-    drift = abs(Ψⁿ.u★ - Ψ⁻.u★) + abs(Ψⁿ.θ★ - Ψ⁻.θ★) + abs(Ψⁿ.q★ - Ψ⁻.q★)
-    converged = drift < tolerance
-    return !(converged | reached_maxiter) | hasnt_started
-end
+function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
+                                  Tₛ, qₛ, Δθ, Δq, Δh,
+                                  approximate_interface_state,
+                                  atmosphere_state,
+                                  atmosphere_properties)
 
-@inline function compute_interface_state(flux_formulation::SimilarityTheoryFluxes,
-                                         initial_interface_state,
-                                         atmosphere_state,
-                                         interior_state,
-                                         downwelling_radiation,
-                                         interface_properties,
-                                         atmosphere_properties,
-                                         interior_properties)
-
-    Ψₐ = atmosphere_state
-    Ψᵢ = interior_state
-    Ψₛⁿ = Ψₛ⁻ = initial_interface_state
-    iteration = 0
-    maxiter = flux_formulation.solver_maxiter
-    tolerance = flux_formulation.solver_tolerance
-
-    while iterating(Ψₛⁿ, Ψₛ⁻, iteration, maxiter, tolerance)
-        Ψₛ⁻ = Ψₛⁿ
-        Ψₛⁿ = iterate_interface_state(flux_formulation,
-                                      Ψₛ⁻, Ψₐ, Ψᵢ,
-                                      downwelling_radiation,
-                                      interface_properties,
-                                      atmosphere_properties,
-                                      interior_properties)
-        iteration += 1
-    end
-
-    return Ψₛⁿ
-end
-
-"""
-    iterate_interface_state(flux_formulation, Ψₛⁿ⁻¹, Ψₐ, Ψᵢ, Qᵣ, ℙₛ, ℙₐ, ℙᵢ)
-
-Return the nth iterate of the interface state `Ψₛⁿ` computed according to the
-`flux_formulation`, given the interface state at the previous iterate `Ψₛⁿ⁻¹`,
-as well as the atmosphere state `Ψₐ`, the interior state `Ψᵢ`,
-downwelling radiation `Qᵣ`, and the interface, atmosphere,
-and interior properties `ℙₛ`, `ℙₐ`, and `ℙᵢ`.
-"""
-@inline function iterate_interface_state(flux_formulation::SimilarityTheoryFluxes,
-                                         approximate_interface_state,
-                                         atmosphere_state,
-                                         interior_state,
-                                         downwelling_radiation,
-                                         interface_properties,
-                                         atmosphere_properties,
-                                         interior_properties)
-    
-    Tₛ = compute_interface_temperature(interface_properties.temperature_formulation,
-                                       approximate_interface_state,
-                                       atmosphere_state,
-                                       interior_state,
-                                       downwelling_radiation,
-                                       interface_properties,
-                                       atmosphere_properties,
-                                       interior_properties)
-
-    # Thermodynamic state
-    FT = eltype(approximate_interface_state)
     ℂₐ = atmosphere_properties.thermodynamics_parameters
     𝒬ₐ = atmosphere_state.𝒬
-    ρₐ = 𝒬ₐ.ρ
-
-    # Recompute the saturation specific humidity at the interface based on the new temperature
-    q_formulation = interface_properties.specific_humidity_formulation
-    Sₛ = approximate_interface_state.S
-    qₛ = saturation_specific_humidity(q_formulation, ℂₐ, ρₐ, Tₛ, Sₛ)
-
-    # Compute the specific humidity increment
-    qₐ = AtmosphericThermodynamics.vapor_specific_humidity(ℂₐ, 𝒬ₐ)
-    Δq = qₐ - qₛ
-
-    # Temperature increment including the ``lapse rate'' `α = g / cₚ`
-    zₐ = atmosphere_state.z
-    zₛ = zero(FT)
-    Δh = zₐ - zₛ
-    Tₐ = AtmosphericThermodynamics.air_temperature(ℂₐ, 𝒬ₐ)
-    g  = flux_formulation.gravitational_acceleration
-    cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ)
-    Δθ = Tₐ - Tₛ + g / cₚ * Δh
-
-    # Recompute interface thermodynamic state with new temperature and specific humidity
-    𝒬ₛ = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, 𝒬ₐ.p, Tₛ, qₛ)
 
     # "initial" scales because we will recompute them
     u★ = approximate_interface_state.u★
@@ -262,7 +189,11 @@ and interior properties `ℙₛ`, `ℙₐ`, and `ℙᵢ`.
     ℓq = flux_formulation.roughness_lengths.water_vapor
     β = flux_formulation.gustiness_parameter
 
+    # Compute surface thermodynamic state
+    𝒬ₛ = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, 𝒬ₐ.p, Tₛ, qₛ)
+
     # Compute Monin-Obukhov length scale depending on a `buoyancy flux`
+    g = flux_formulation.gravitational_acceleration
     b★ = buoyancy_scale(θ★, q★, 𝒬ₛ, ℂₐ, g)
 
     # Monin-Obhukov characteristic length scale and non-dimensional height
@@ -292,7 +223,10 @@ and interior properties `ℙₛ`, `ℙₐ`, and `ℙᵢ`.
     Uᴳ = β * cbrt(Jᵇ * h_bℓ)
 
     # New velocity difference accounting for gustiness
-    Δu, Δv = velocity_difference(flux_formulation.bulk_velocity, atmosphere_state, approximate_interface_state)
+    Δu, Δv = velocity_difference(flux_formulation.bulk_velocity,
+                                 atmosphere_state,
+                                 approximate_interface_state)
+
     ΔU = sqrt(Δu^2 + Δv^2 + Uᴳ^2)
 
     # Recompute 
@@ -300,25 +234,15 @@ and interior properties `ℙₛ`, `ℙₐ`, and `ℙᵢ`.
     θ★ = χθ * Δθ
     q★ = χq * Δq
 
-    u = approximate_interface_state.u
-    v = approximate_interface_state.v
-    S = approximate_interface_state.S
-
-    return InterfaceState(u★, θ★, q★, u, v, Tₛ, S, convert(FT, qₛ))
+    return u★, θ★, q★
 end
-
-""" The exchange fluxes depend on the atmosphere velocity but not the interface velocity """
-struct WindVelocity end
-
-""" The exchange fluxes depend on the relative velocity between the atmosphere and the interface """
-struct RelativeVelocity end
 
 """
     buoyancy_scale(θ★, q★, 𝒬, ℂ, g)
 
 Return the characteristic buoyancy scale `b★` associated with
 the characteristic temperature `θ★`, specific humidity scale `q★`,
-near-interface atmospheric thermodynamic state `𝒬`, thermodynamic
+surface thermodynamic state `𝒬`, thermodynamic
 parameters `ℂ`, and gravitational acceleration `g`.
 
 The buoyancy scale is defined in terms of the interface buoyancy flux,
@@ -331,9 +255,9 @@ where `u★` is the friction velocity.
 Using the definition of buoyancy for non-condensing air, we find that
 
 ```math
-b★ = g / 𝒯ₐ * (θ★ * (1 + δ * qₐ) + δ * 𝒯ₐ * q★),
+b★ = g / 𝒯ₛ * (θ★ * (1 + δ * qₐ) + δ * 𝒯ₛ * q★),
 ```
-where ``𝒯ₐ`` is the virtual temperature of the atmosphere near the interface,
+where ``𝒯ₐ`` is the virtual temperature at the surface,
 and ``δ = Rᵥ / R_d - 1``, where ``Rᵥ`` is the molar mass of water vapor and
 ``R_d`` is the molar mass of dry air.
 

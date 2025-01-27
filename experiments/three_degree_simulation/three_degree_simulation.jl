@@ -7,6 +7,8 @@ using Oceananigans.Units
 using CFTime
 using Dates
 using Printf
+using Statistics
+using Oceananigans.TimeSteppers: update_state!
 
 arch = CPU()
 
@@ -21,8 +23,8 @@ underlying_grid = TripolarGrid(arch; size=(Nx, Ny, Nz), z=z_faces)
 latitude = (-80, -20)
 longitude = (0, 360)
 
-Nx = 8 * 120
-Ny = 8 * 20
+Nx = 120
+Ny = 20
 Nz = 30
 
 z_faces = exponential_z_faces(; Nz, depth=1000, h=30)
@@ -50,13 +52,17 @@ ocean = ocean_simulation(grid;
                          # forcing = (T=FT, S=FT),
                          tracers = (:T, :S, :e))
 
-start_date = DateTimeProlepticGregorian(1993, 7, 1)
+start_date = first(dates)
 set!(ocean.model, T=ECCOMetadata(:temperature; dates=start_date),
                   S=ECCOMetadata(:salinity; dates=start_date))
 
 radiation  = Radiation(arch)
 atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(20))
-ocean.model.clock.time = 180days
+# ocean.model.clock.time = 180days
+
+#####
+##### Sea ice model stuff
+#####
 
 sea_ice_grid = LatitudeLongitudeGrid(arch; size=(Nx, Ny), latitude, longitude, topology=(Periodic, Bounded, Flat))
 land_mask = bottom_height .>= 0
@@ -75,7 +81,7 @@ sea_ice_model = SeaIceModel(sea_ice_grid;
 
 sea_ice_model.clock.time = 180days
 
-sea_ice = Simulation(sea_ice_model, Δt=20minutes)
+sea_ice = Simulation(sea_ice_model, Δt=10minutes)
 
 thickness_meta = ECCOMetadata(:sea_ice_thickness; dates=start_date)
 concentration_meta = ECCOMetadata(:sea_ice_concentration; dates=start_date)
@@ -86,28 +92,17 @@ set!(sea_ice.model.ice_concentration, concentration_meta)
 
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation) 
 
-@show ℵ = coupled_model.sea_ice.model.ice_concentration
-@show Ts = coupled_model.interfaces.atmosphere_sea_ice_interface.temperature
-
-using GLMakie
-
-fig = Figure()
-ax = Axis(fig[1, 1])
-hm = heatmap!(ax, Ts * ℵ, nan_color=:lightgray, colorrange=(-40, 0))
-Colorbar(fig[1, 2], hm, label="Ice surface temperature (ᵒC)")
-
-#=
-simulation = Simulation(coupled_model; Δt=20minutes, stop_time=3days)
+simulation = Simulation(coupled_model; Δt=10minutes, stop_time=3days)
 
 wall_time = Ref(time_ns())
 
 function progress(sim)
     sea_ice = sim.model.sea_ice
     h = sea_ice.model.ice_thickness
-    T = top_sea_ice_temperature
+    Tai = coupled_model.interfaces.atmosphere_sea_ice_interface.temperature
     hmax = maximum(interior(h))
-    Timax = maximum(interior(Ti))
-    Timin = minimum(interior(Ti))
+    Taiavg = mean(interior(Tai))
+    Taimin = minimum(interior(Tai))
 
     ocean = sim.model.ocean
     u, v, w = ocean.model.velocities
@@ -119,9 +114,9 @@ function progress(sim)
 
     @info @sprintf("Time: %s, n: %d, Δt: %s, max(h): %.1f, extrema(Ti): (%.2f, %.2f) K, \
                    max|u|: (%.2e, %.2e, %.2e) m s⁻¹, \
-                   extrema(T): (%.2f, %.2f) ᵒC, wall time: %s \n",
+                   min(Ti): %.2f, mean(Ti): %.2f ᵒC, wall time: %s \n",
                    prettytime(sim), iteration(sim), prettytime(sim.Δt),
-                   hmax, Timin, Timax, umax..., Tmin, Tmax, prettytime(step_time))
+                   hmax, Taimin, Taiavg, umax..., Tmin, Tmax, prettytime(step_time))
 
     wall_time[] = time_ns()
 
@@ -130,19 +125,20 @@ end
 
 add_callback!(simulation, progress, IterationInterval(10))
 
-Ql = coupled_model.fluxes.turbulent.fields.ocean.latent_heat
-Qs = coupled_model.fluxes.turbulent.fields.ocean.sensible_heat
-τx = coupled_model.fluxes.turbulent.fields.ocean.x_momentum
-τy = coupled_model.fluxes.turbulent.fields.ocean.y_momentum
-Fv = coupled_model.fluxes.turbulent.fields.ocean.water_vapor
+Ql = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.latent_heat
+Qs = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.sensible_heat
+τx = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.x_momentum
+τy = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.y_momentum
+Fv = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.water_vapor
 
 # TODO: the total fluxes are defined on _interfaces_ between components:
 # atmopshere_ocean, atmosphere_sea_ice, ocean_sea_ice. They aren't defined wrt to 
 # just one component
-Qo = coupled_model.fluxes.total.ocean.heat
-Qi = coupled_model.fluxes.total.sea_ice.top_heat
+# Qo = coupled_model.interfaces.net_fluxes.ocean_surface.heat
+# Qi = coupled_model.interfaces.net_fluxes.sea_ice_top.heat
 
-fluxes = (; Qo, Qi, Ql, Qs, τx, τy, Fv)
+#fluxes = (; Qo, Qi, Ql, Qs, τx, τy, Fv)
+fluxes = (; Ql, Qs, τx, τy, Fv)
 ocean_outputs = merge(ocean.model.velocities, ocean.model.tracers)
 
 h = sea_ice_model.ice_thickness
@@ -161,6 +157,7 @@ simulation.output_writers[:jld2] = ow
 
 run!(simulation)
 
+#=
 using GLMakie
 
 ht = FieldTimeSeries("three_degree_simulation.jld2", "h")
@@ -179,4 +176,5 @@ heatmap!(axh, hn)
 heatmap!(axℵ, ℵn)
 
 display(fig)
+=#
 =#

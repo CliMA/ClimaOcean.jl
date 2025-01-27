@@ -52,20 +52,6 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             atmosphere_properties,
             ocean_properties)
 
-    net_fluxes = coupled_model.interfaces.net_fluxes.ocean_surface
-
-    launch!(arch, grid, kernel_parameters, 
-            _assemble_atmosphere_ocean_fluxes!,
-            net_fluxes,
-            grid,
-            clock,
-            interface_fluxes,
-            interface_temperature,
-            ocean_state,
-            atmosphere_data,
-            interface_properties,
-            ocean_properties)
-
     return nothing
 end
 

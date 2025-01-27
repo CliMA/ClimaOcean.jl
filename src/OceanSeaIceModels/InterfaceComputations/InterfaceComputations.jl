@@ -58,9 +58,9 @@ include("coefficient_based_turbulent_fluxes.jl")
 
 include("component_interfaces.jl")
 include("interpolate_atmospheric_state.jl")
-include("assemble_interface_fluxes.jl")
 include("atmosphere_ocean_fluxes.jl")
 include("atmosphere_sea_ice_fluxes.jl")
 include("sea_ice_ocean_fluxes.jl")
+include("assemble_net_fluxes.jl")
 
 end # module

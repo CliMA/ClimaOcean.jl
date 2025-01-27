@@ -6,13 +6,14 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
     ocean = coupled_model.ocean
     atmosphere = coupled_model.atmosphere
     sea_ice = coupled_model.sea_ice
-    grid = sea_ice.model.grid
+    grid = ocean.model.grid
     arch = architecture(grid)
     clock = coupled_model.clock
 
     interior_state = (u = ZeroField(),
                       v = ZeroField(),
                       h = sea_ice.model.ice_thickness,
+                      ℵ = sea_ice.model.ice_concentration,
                       Tₒ = ocean.model.tracers.T,
                       Sₒ = ocean.model.tracers.S)
 
@@ -32,9 +33,11 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
 
     flux_formulation = coupled_model.interfaces.atmosphere_sea_ice_interface.flux_formulation
     interface_fluxes = coupled_model.interfaces.atmosphere_sea_ice_interface.fluxes
+    net_top_heat_flux = coupled_model.interfaces.net_fluxes.sea_ice_top.heat
     interface_temperature = coupled_model.interfaces.atmosphere_sea_ice_interface.temperature
     interface_properties = coupled_model.interfaces.atmosphere_sea_ice_interface.properties
     sea_ice_properties = coupled_model.interfaces.sea_ice_properties
+    ocean_properties = coupled_model.interfaces.ocean_properties
 
     atmosphere_properties = (thermodynamics_parameters = atmosphere.thermodynamics_parameters,
                              reference_height = atmosphere.reference_height)
@@ -45,6 +48,7 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
             _compute_atmosphere_sea_ice_interface_state!,
             interface_fluxes,
             interface_temperature,
+            net_top_heat_flux,
             grid,
             clock,
             flux_formulation,
@@ -52,7 +56,8 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
             atmosphere_data,
             interface_properties,
             atmosphere_properties,
-            sea_ice_properties)
+            sea_ice_properties,
+            ocean_properties)
 
     return nothing
 end
@@ -60,6 +65,7 @@ end
 """ Compute turbulent fluxes between an atmosphere and a interface state using similarity theory """
 @kernel function _compute_atmosphere_sea_ice_interface_state!(interface_fluxes,
                                                               interface_temperature,
+                                                              net_top_heat_flux,
                                                               grid,
                                                               clock,
                                                               turbulent_flux_formulation,
@@ -67,7 +73,8 @@ end
                                                               atmosphere_state,
                                                               interface_properties,
                                                               atmosphere_properties,
-                                                              sea_ice_properties)
+                                                              sea_ice_properties,
+                                                              ocean_properties)
 
     i, j = @index(Global, NTuple)
     kᴺ   = size(grid, 3) # index of the top ocean cell
@@ -86,13 +93,14 @@ end
         # Extract state variables at cell centers
         # Ocean properties below sea ice
         Tᵢ = interior_state.Tₒ[i, j, kᴺ]
-        Tᵢ = convert_to_kelvin(sea_ice_properties.temperature_units, Tᵢ)
+        Tᵢ = convert_to_kelvin(ocean_properties.temperature_units, Tᵢ)
         Sᵢ = interior_state.Sₒ[i, j, kᴺ]
 
         # Sea ice properties
         uᵢ = zero(FT) # ℑxᶜᵃᵃ(i, j, 1, grid, interior_state.u)
         vᵢ = zero(FT) # ℑyᵃᶜᵃ(i, j, 1, grid, interior_state.v)
         hᵢ = interior_state.h[i, j, 1]
+        ℵᵢ = interior_state.ℵ[i, j, 1]
         Tₛ = interface_temperature[i, j, 1]
         Tₛ = convert_to_kelvin(sea_ice_properties.temperature_units, Tₛ)
     end
@@ -161,6 +169,12 @@ end
     cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
     ℰv = AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
 
+    σ = interface_properties.radiation.σ
+    α = stateindex(interface_properties.radiation.α, i, j, 1, grid, time)
+    ϵ = stateindex(interface_properties.radiation.ϵ, i, j, 1, grid, time)
+    Qu = upwelling_radiation(Ψₛ.T, σ, ϵ)
+    Qd = net_downwelling_radiation(downwelling_radiation, α, ϵ)
+
     # Store fluxes
     Qv = interface_fluxes.latent_heat
     Qc = interface_fluxes.sensible_heat
@@ -168,15 +182,23 @@ end
     ρτx = interface_fluxes.x_momentum
     ρτy = interface_fluxes.y_momentum
     Ts = interface_temperature
+    ΣQ = net_top_heat_flux
 
     @inbounds begin
         # +0: cooling, -0: heating
-        Qv[i, j, 1]  = - ρₐ * u★ * q★ * ℰv
-        Qc[i, j, 1]  = - ρₐ * cₚ * u★ * θ★
+        Qv[i, j, 1]  = _Qv = - ρₐ * u★ * q★ * ℰv
+        Qc[i, j, 1]  = _Qc = - ρₐ * cₚ * u★ * θ★
+        ΣQ[i, j, 1]  = Qu + Qd + _Qv + _Qc
         Fv[i, j, 1]  = - ρₐ * u★ * q★
         ρτx[i, j, 1] = + ρₐ * τx
         ρτy[i, j, 1] = + ρₐ * τy
         Ts[i, j, 1]  = convert_from_kelvin(sea_ice_properties.temperature_units, Ψₛ.T)
     end
+
+    _ΣQ = Qu + Qd + _Qv + _Qc
+
+    # @printf("ℵ: %.1e, h: %.1e, Ts: %.1f, Ta: %.1f, Qd: %d, Qu: %d, Qc: %.1e, Qv: %.1e, ΣQ: %.1e \n",
+    #         ℵᵢ, hᵢ, Ts[i, j, 1], Tₐ - 273.15, Qd, Qu, _Qc, _Qv, _ΣQ)
+
 end
 

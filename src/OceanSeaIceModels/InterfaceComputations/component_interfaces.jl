@@ -8,9 +8,7 @@ using ..OceanSeaIceModels: reference_density,
                            sea_ice_thickness,
                            downwelling_radiation,
                            freshwater_flux,
-                           SeaIceSimulation,
-                           FreezingLimitedOceanTemperature
-
+                           SeaIceSimulation
 
 using ClimaSeaIce: SeaIceModel
 
@@ -100,10 +98,9 @@ function atmosphere_ocean_interface(ocean,
     return AtmosphereInterface(ao_fluxes, ao_flux_formulation, interface_temperature, ao_properties)
 end
 
-atmosphere_sea_ice_interface(::Nothing, args...) = nothing
-atmosphere_sea_ice_interface(::FreezingLimitedOceanTemperature, args...) = nothing
+atmosphere_sea_ice_interface(sea_ice, args...) = nothing
 
-function atmosphere_sea_ice_interface(sea_ice, 
+function atmosphere_sea_ice_interface(sea_ice::SeaIceSimulation, 
                                       radiation, 
                                       ai_flux_formulation,
                                       temperature_formulation)
@@ -127,19 +124,22 @@ function atmosphere_sea_ice_interface(sea_ice,
                                      specific_humidity_formulation,
                                      temperature_formulation)
 
-    interface_temperature = Field{Center, Center, Nothing}(sea_ice.model.grid)
+    interface_temperature = sea_ice.model.ice_thermodynamics.top_surface_temperature
 
     return AtmosphereInterface(fluxes, ai_flux_formulation, interface_temperature, properties)
 end
 
-sea_ice_ocean_interface(::Nothing, ocean) = nothing
-sea_ice_ocean_interface(::FreezingLimitedOceanTemperature, ocean) = nothing
+sea_ice_ocean_interface(sea_ice, ocean) = nothing
 
-function sea_ice_ocean_interface(sea_ice, ocean)
+function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean)
     previous_ice_thickness = deepcopy(sea_ice.model.ice_thickness)
     previous_ice_concentration = deepcopy(sea_ice.model.ice_concentration)
-    io_heat_flux = Field{Center, Center, Nothing}(ocean.model.grid)
+    io_heat_flux = sea_ice.model.external_heat_fluxes.bottom
     io_salt_flux = Field{Center, Center, Nothing}(ocean.model.grid)
+
+    @assert io_heat_flux isa Field{Center, Center, Nothing}
+    @assert io_salt_flux isa Field{Center, Center, Nothing}
+
     io_fluxes = (heat=io_heat_flux, salt=io_salt_flux)
     io_properties = nothing
 
@@ -149,10 +149,9 @@ function sea_ice_ocean_interface(sea_ice, ocean)
                                 previous_ice_concentration)
 end
 
-default_ai_temperature(::Nothing) = nothing
-default_ai_temperature(::FreezingLimitedOceanTemperature) = nothing
+default_ai_temperature(sea_ice) = nothing
 
-function default_ai_temperature(sea_ice)
+function default_ai_temperature(sea_ice::SeaIceSimulation)
     conductive_flux = sea_ice.model.ice_thermodynamics.internal_heat_flux.parameters.flux
     return SkinTemperature(conductive_flux)
 end
@@ -212,7 +211,6 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                                                 atmosphere_sea_ice_flux_formulation,
                                                 atmosphere_sea_ice_interface_temperature)
 
-        
     if sea_ice isa SeaIceSimulation
         sea_ice_properties = (reference_density  = sea_ice_reference_density,
                               heat_capacity      = sea_ice_heat_capacity,
@@ -220,8 +218,8 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                               liquidus           = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus,
                               temperature_units  = sea_ice_temperature_units)
 
-        net_top_sea_ice_fluxes = (; Q=sea_ice.model.external_heat_fluxes.top)
-        net_bottom_sea_ice_fluxes = (; Q=sea_ice.model.external_heat_fluxes.bottom)
+        net_top_sea_ice_fluxes = (; heat=sea_ice.model.external_heat_fluxes.top)
+        net_bottom_sea_ice_fluxes = (; heat=sea_ice.model.external_heat_fluxes.bottom)
     else
         sea_ice_properties = nothing
         net_top_sea_ice_fluxes = nothing
