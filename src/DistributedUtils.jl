@@ -1,3 +1,8 @@
+module DistributedUtils
+
+export mpi_initialized, mpi_rank, mpi_size, global_barrier, global_communicator
+export @root, @onrank, @distribute, @handshake
+
 using MPI
 
 #####
@@ -154,3 +159,5 @@ macro handshake(exp)
     end
     return esc(command)
 end
+
+end # module

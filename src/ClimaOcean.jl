@@ -12,7 +12,7 @@ export
     FreezingLimitedOceanTemperature,
     Radiation,
     LatitudeDependentAlbedo,
-    SimilarityTheoryTurbulentFluxes,
+    SimilarityTheoryFluxes,
     SkinTemperature,
     BulkTemperature,
     PrescribedAtmosphere,
@@ -30,6 +30,7 @@ export
     ECCORestoring,
     LinearlyTaperedPolarMask,
     ocean_simulation,
+    sea_ice_simulation,
     initialize!,
     @root, 
     @onrank,
@@ -42,8 +43,6 @@ using DataDeps
 
 using Oceananigans.OutputReaders: GPUAdaptedFieldTimeSeries, FieldTimeSeries
 using Oceananigans.Grids: node
-
-include("distributed_utils.jl")
 
 const SomeKindOfFieldTimeSeries = Union{FieldTimeSeries,
                                         GPUAdaptedFieldTimeSeries}
@@ -73,20 +72,24 @@ end
     return NamedTuple{names}(vals)
 end
 
+include("DistributedUtils.jl")
 include("OceanSeaIceModels/OceanSeaIceModels.jl")
 include("VerticalGrids.jl")
 include("InitialConditions/InitialConditions.jl")
 include("DataWrangling/DataWrangling.jl")
 include("Bathymetry.jl")
 include("Diagnostics/Diagnostics.jl")
-include("OceanSimulations/OceanSimulations.jl")
+include("OceanSimulations.jl")
+include("SeaIceSimulations.jl")
 
+using .DistributedUtils
 using .VerticalGrids
 using .Bathymetry
 using .DataWrangling
 using .InitialConditions
 using .OceanSeaIceModels
 using .OceanSimulations
+using .SeaIceSimulations
 using .DataWrangling: JRA55, ECCO
 
 using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere

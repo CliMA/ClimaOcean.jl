@@ -168,3 +168,4 @@ Base.show(io::IO, α::TabulatedAlbedo) = print(io, summary(α))
 
     return - (1 - α) * Qs - ϵ * Qℓ
 end
+

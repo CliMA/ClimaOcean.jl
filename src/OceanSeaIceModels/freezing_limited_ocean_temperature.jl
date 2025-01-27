@@ -1,7 +1,7 @@
 using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus
 
 #####
-##### A simple-minded yet effective "sea ice model"
+##### A workaround when you don't have a sea ice model
 #####
 
 struct FreezingLimitedOceanTemperature{L}
@@ -24,6 +24,11 @@ FreezingLimitedOceanTemperature(FT::DataType=Float64) = FreezingLimitedOceanTemp
 const FreezingLimitedCoupledModel = OceanSeaIceModel{<:FreezingLimitedOceanTemperature}
 
 sea_ice_concentration(::FreezingLimitedOceanTemperature) = nothing
+sea_ice_thickness(::FreezingLimitedOceanTemperature) = nothing
+
+# does not matter
+reference_density(::FreezingLimitedOceanTemperature) = 0
+heat_capacity(::FreezingLimitedOceanTemperature) = 0
 
 function compute_sea_ice_ocean_fluxes!(cm::FreezingLimitedCoupledModel)
     ocean = cm.ocean
@@ -32,8 +37,16 @@ function compute_sea_ice_ocean_fluxes!(cm::FreezingLimitedCoupledModel)
     arch = architecture(grid)
     Sₒ = ocean.model.tracers.S
     Tₒ = ocean.model.tracers.T
+    net_fluxes = cm.interfaces.net_fluxes.ocean_surface
+    sea_ice = cm.sea_ice
+    
+    launch!(arch, grid, :xy, _adjust_fluxes_over_sea_ice!,
+            net_fluxes,
+            grid,
+            sea_ice.liquidus,
+            Tₒ, Sₒ)
 
-    launch!(arch, grid, :xyz,  above_freezing_ocean_temperature!, Tₒ, Sₒ, liquidus)
+    launch!(arch, grid, :xyz, above_freezing_ocean_temperature!, Tₒ, Sₒ, liquidus)
 
     return nothing
 end
@@ -51,30 +64,11 @@ end
     @inbounds Tₒ[i, j, k] = ifelse(Tᵢ < Tₘ, Tₘ, Tᵢ)
 end
 
-function limit_fluxes_over_sea_ice!(grid, kernel_parameters,
-                                    sea_ice::FreezingLimitedOceanTemperature,
-                                    centered_velocity_fluxes,
-                                    net_tracer_fluxes,
-                                    ocean_temperature,
-                                    ocean_salinity)
-    
-    launch!(architecture(grid), grid, kernel_parameters, _limit_fluxes_over_sea_ice!,
-            centered_velocity_fluxes,
-            net_tracer_fluxes,
-            grid,
-            sea_ice.liquidus,
-            ocean_temperature,
-            ocean_salinity)
-
-    return nothing
-end
-
-@kernel function _limit_fluxes_over_sea_ice!(centered_velocity_fluxes,
-                                             net_tracer_fluxes,
-                                             grid,
-                                             liquidus,
-                                             ocean_temperature,
-                                             ocean_salinity)
+@kernel function _adjust_fluxes_over_sea_ice!(net_fluxes,
+                                              grid,
+                                              liquidus,
+                                              ocean_temperature,
+                                              ocean_salinity)
 
     i, j = @index(Global, NTuple)
     kᴺ = size(grid, 3)
@@ -85,10 +79,10 @@ end
 
         Tₘ = melting_temperature(liquidus, Sₒ)
 
-        τx = centered_velocity_fluxes.u
-        τy = centered_velocity_fluxes.v
-        Jᵀ = net_tracer_fluxes.T
-        Jˢ = net_tracer_fluxes.S
+        τx = net_fluxes.u
+        τy = net_fluxes.v
+        Jᵀ = net_fluxes.T
+        Jˢ = net_fluxes.S
 
         sea_ice = Tₒ < Tₘ
         cooling_sea_ice = sea_ice & (Jᵀ[i, j, 1] > 0)

@@ -40,12 +40,12 @@ radiation = Radiation(ocean_albedo=0.1)
 model = OceanSeaIceModel(ocean; atmosphere, radiation)
 simulation = Simulation(model, Δt=10.0, stop_time=3days)
 
-Q = model.fluxes.total.ocean.heat
-Ql = model.fluxes.turbulent.fields.latent_heat
-Qs = model.fluxes.turbulent.fields.sensible_heat
-τx = model.fluxes.turbulent.fields.x_momentum
-τy = model.fluxes.turbulent.fields.y_momentum
-Fv = model.fluxes.turbulent.fields.water_vapor
+Q = model.interfaces.net_fluxes.ocean_surface.heat
+Ql = model.interfaces.atmosphere_ocean_interface.fluxes.latent_heat
+Qs = model.interfaces.atmosphere_ocean_interface.fluxes.sensible_heat
+τx = model.interfaces.atmosphere_ocean_interface.fluxes.x_momentum
+τy = model.interfaces.atmosphere_ocean_interface.fluxes.y_momentum
+Fv = model.interfaces.atmosphere_ocean_interface.fluxes.water_vapor
 
 fluxes = (; Q, Ql, Qs, τx, τy, Fv)
 outputs = merge(ocean.model.velocities, ocean.model.tracers, fluxes)
