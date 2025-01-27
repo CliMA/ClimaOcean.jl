@@ -10,7 +10,7 @@ using Printf
 using Statistics
 using Oceananigans.TimeSteppers: update_state!
 
-arch = CPU()
+arch = GPU()
 
 #=
 Nx = 120
@@ -23,11 +23,11 @@ underlying_grid = TripolarGrid(arch; size=(Nx, Ny, Nz), z=z_faces)
 latitude = (-80, -20)
 longitude = (0, 360)
 
-Nx = 120
-Ny = 20
-Nz = 30
+Nx = 360
+Ny = 60
+Nz = 60
 
-z_faces = exponential_z_faces(; Nz, depth=1000, h=30)
+z_faces = exponential_z_faces(; Nz, depth=5000, h=30)
 underlying_grid = LatitudeLongitudeGrid(arch; size=(Nx, Ny, Nz), latitude, longitude, z=z_faces)
 bottom_height = regrid_bathymetry(underlying_grid)
 grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height))
@@ -40,8 +40,8 @@ dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGre
 temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
 salinity = ECCOMetadata(:salinity, dates, ECCO4Monthly())
 
-restoring_rate  = 1/2days
-mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90))
+restoring_rate = 1/2days
+mask = LinearlyTaperedPolarMask(northern=(-25, -20))
 FT = ECCORestoring(temperature, grid; mask, rate=restoring_rate)
 FS = ECCORestoring(salinity, grid; mask, rate=restoring_rate)
 
@@ -53,8 +53,8 @@ ocean = ocean_simulation(grid;
                          tracers = (:T, :S, :e))
 
 start_date = first(dates)
-set!(ocean.model, T=ECCOMetadata(:temperature; dates=start_date),
-                  S=ECCOMetadata(:salinity; dates=start_date))
+#set!(ocean.model, T=ECCOMetadata(:temperature; dates=start_date),
+#                  S=ECCOMetadata(:salinity; dates=start_date))
 
 radiation  = Radiation(arch)
 atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(20))
@@ -65,7 +65,7 @@ atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(20))
 #####
 
 sea_ice_grid = LatitudeLongitudeGrid(arch; size=(Nx, Ny), latitude, longitude, topology=(Periodic, Bounded, Flat))
-land_mask = bottom_height .>= 0
+land_mask = interior(bottom_height) .>= 0
 sea_ice_grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBoundary(land_mask))
 top_sea_ice_temperature = Field{Center, Center, Nothing}(sea_ice_grid)
 top_heat_boundary_condition = PrescribedTemperature(top_sea_ice_temperature)
@@ -79,20 +79,39 @@ sea_ice_model = SeaIceModel(sea_ice_grid;
                             bottom_heat_flux = bottom_sea_ice_heat_flux,
                             ice_thermodynamics)
 
-sea_ice_model.clock.time = 180days
-
 sea_ice = Simulation(sea_ice_model, Δt=10minutes)
 
-thickness_meta = ECCOMetadata(:sea_ice_thickness; dates=start_date)
-concentration_meta = ECCOMetadata(:sea_ice_concentration; dates=start_date)
-set!(sea_ice.model.ice_thickness, thickness_meta)
-set!(sea_ice.model.ice_concentration, concentration_meta)
+# thickness_meta = ECCOMetadata(:sea_ice_thickness; dates=start_date)
+# concentration_meta = ECCOMetadata(:sea_ice_concentration; dates=start_date)
+# set!(sea_ice.model.ice_thickness, thickness_meta)
+# set!(sea_ice.model.ice_concentration, concentration_meta)
 
 # set!(sea_ice_model, h=1, ℵ=1)
 
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation) 
 
-simulation = Simulation(coupled_model; Δt=10minutes, stop_time=3days)
+simulation = Simulation(coupled_model; Δt=5minutes, stop_time=4 * 360days)
+
+#=
+coupled_model.clock.time = 0
+coupled_model.clock.iteration = 0
+coupled_model.clock.last_Δt = Inf
+
+ocean.model.clock.time = 0
+ocean.model.clock.iteration = 0
+ocean.model.clock.last_Δt = Inf
+
+sea_ice.model.clock.time = 0
+sea_ice.model.clock.iteration = 0
+sea_ice.model.clock.last_Δt = Inf
+=#
+
+thickness_meta = ECCOMetadata(:sea_ice_thickness; dates=start_date)
+concentration_meta = ECCOMetadata(:sea_ice_concentration; dates=start_date)
+set!(sea_ice.model.ice_thickness, thickness_meta)
+set!(sea_ice.model.ice_concentration, concentration_meta)
+set!(ocean.model, T=ECCOMetadata(:temperature; dates=start_date),
+                  S=ECCOMetadata(:salinity; dates=start_date), u=0, v=0)
 
 wall_time = Ref(time_ns())
 
@@ -101,7 +120,7 @@ function progress(sim)
     h = sea_ice.model.ice_thickness
     Tai = coupled_model.interfaces.atmosphere_sea_ice_interface.temperature
     hmax = maximum(interior(h))
-    Taiavg = mean(interior(Tai))
+    #Taiavg = mean(interior(Tai))
     Taimin = minimum(interior(Tai))
 
     ocean = sim.model.ocean
@@ -112,11 +131,12 @@ function progress(sim)
     umax = (maximum(abs, interior(u)), maximum(abs, interior(v)), maximum(abs, interior(w)))
     step_time = 1e-9 * (time_ns() - wall_time[])
 
-    @info @sprintf("Time: %s, n: %d, Δt: %s, max(h): %.1f, extrema(Ti): (%.2f, %.2f) K, \
+    @info @sprintf("Time: %s, n: %d, Δt: %s, max(h): %.1f, min(Ti): %.2f ᵒC, \
                    max|u|: (%.2e, %.2e, %.2e) m s⁻¹, \
                    min(Ti): %.2f, mean(Ti): %.2f ᵒC, wall time: %s \n",
                    prettytime(sim), iteration(sim), prettytime(sim.Δt),
-                   hmax, Taimin, Taiavg, umax..., Tmin, Tmax, prettytime(step_time))
+                   hmax, Taimin,# Taiavg,
+                   umax..., Tmin, Tmax, prettytime(step_time))
 
     wall_time[] = time_ns()
 
@@ -150,7 +170,7 @@ outputs = merge(ocean_outputs, sea_ice_outputs, fluxes)
 
 ow = JLD2OutputWriter(ocean.model, outputs,
                       filename = "three_degree_simulation.jld2",
-                      schedule = TimeInterval(1hours),
+                      schedule = TimeInterval(1days),
                       overwrite_existing = true)
 
 simulation.output_writers[:jld2] = ow
@@ -176,5 +196,4 @@ heatmap!(axh, hn)
 heatmap!(axℵ, ℵn)
 
 display(fig)
-=#
 =#
