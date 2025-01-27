@@ -115,4 +115,3 @@ record(fig, "idealized_atmosphere.mp4", 1:Nt, framerate=24) do nn
     @info "Drawing frame $nn of $Nt..."
     n[] = nn
 end
-
