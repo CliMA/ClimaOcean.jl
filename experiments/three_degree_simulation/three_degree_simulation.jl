@@ -13,21 +13,18 @@ using Oceananigans.TimeSteppers: update_state!
 arch = GPU()
 
 #=
+Nx = 360 * 4
+Ny = 60 * 4
+Nz = 60
+=#
 Nx = 120
 Ny = 60
-Nz = 50
-z_faces = exponential_z_faces(; Nz, depth=6000, h=34)
-underlying_grid = TripolarGrid(arch; size=(Nx, Ny, Nz), z=z_faces)
-=#
+Nz = 30
+z_faces = exponential_z_faces(; Nz, depth=5000, h=30)
 
 latitude = (-80, -20)
 longitude = (0, 360)
 
-Nx = 360 * 4
-Ny = 60 * 4
-Nz = 60
-
-z_faces = exponential_z_faces(; Nz, depth=5000, h=30)
 underlying_grid = LatitudeLongitudeGrid(arch; size=(Nx, Ny, Nz), halo=(7, 7, 7), latitude, longitude, z=z_faces)
 bottom_height = regrid_bathymetry(underlying_grid)
 grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height))
@@ -90,7 +87,7 @@ sea_ice = Simulation(sea_ice_model, Δt=10minutes)
 # set!(sea_ice_model, h=1, ℵ=1)
 
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation) 
-simulation = Simulation(coupled_model; Δt=2minutes, stop_time=30days)
+simulation = Simulation(coupled_model; Δt=10minutes, stop_time=3days)
 
 #=
 coupled_model.clock.time = 0
