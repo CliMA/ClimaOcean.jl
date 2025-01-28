@@ -90,6 +90,13 @@ function thermodynamic_sea_ice_time_step!(coupled_model)
     return nothing
 end
 
+@inline function conservative_adjustment(ℵ, h, hᶜ)
+    V = ℵ * h # = ℵ⁺ * (h + dh)
+    dh = max(zero(h), hᶜ - h)
+    ℵ⁺ = V / (h + dh)
+    return ℵ⁺, h + dh
+end
+
 @kernel function update_thickness!(ice_thickness,
                                    grid, Δt,
                                    ice_concentration,
@@ -118,6 +125,9 @@ end
         ℵᵢ = ice_concentration[i, j, 1]
     end
 
+    # Volume conserving adjustment to respect minimum thickness
+    ℵᵢ, hᵢ = conservative_adjustment(ℵᵢ, hᵢ, hᶜ)
+
     # Consolidation criteria
     @inbounds Tuᵢ = Tu[i, j, 1]
 
@@ -138,51 +148,37 @@ end
     # wb = - Qbᵢ / ℰb
 
     # Clip thickness for thermodynamic computations
-    #hᵢ = max(hᶜ, hᵢ)
     k = Qi.parameters.flux.conductivity
     Qiᵢ = - k * (Tuᵢ - Tbᵢ) / hᵢ * (hᵢ > hᶜ) # getflux(Qi, i, j, grid, Tuᵢ, clock, model_fields)
 
     # Upper (top) and bottom interface velocities
-    w_melting  = (Quᵢ - Qiᵢ) / ℰu # < 0 => melting
-    w_freezing = +Qiᵢ / ℰb # < 0 => freezing
-    w_frazil   = -Qbᵢ / ℰb # < 0 => freezing
+    w_top = (Quᵢ - Qiᵢ) / ℰu # < 0 => melting
+    w_bot = +Qiᵢ / ℰb # < 0 => freezing
+    w_frz = -Qbᵢ / ℰb # < 0 => freezing
 
-    Δh_melting  = w_melting  * Δt * ℵᵢ
-    Δh_freezing = w_freezing * Δt * ℵᵢ
-    Δh_frazil   = w_frazil   * Δt # frazil flux contributes from entire cell
+    Δh_top = w_top * Δt * ℵᵢ
+    Δh_bot = w_bot * Δt * ℵᵢ
 
-    if ℵᵢ < 1 && Δh_frazil > 0 # Add ice volume laterally
-        # ΔV = h * Δℵ
-        ℵ⁺ = ℵᵢ + Δh_frazil / hᶜ
-        ℵ⁺ = min(one(ℵ⁺), ℵ⁺)
-        Δh_frazil -= ℵ⁺ * hᵢ
-    else
-        ℵ⁺ = ℵᵢ
-    end
+    ΔV_frz = w_frz * Δt # frazil flux contributes from entire cell
 
-    Δh = Δh_frazil + Δh_freezing + Δh_melting
+    # Compute frazil growth: lateral first, then vertical
+    # dV = dh * ℵ + h * dℵ
+    dℵ = min(1 - ℵᵢ, ΔV_frz / hᵢ)
+    dℵ = max(dℵ, zero(dℵ))
+    ℵ⁺ = ℵᵢ + dℵ
+    Δh_frz = ΔV_frz - hᵢ * ℵ⁺
 
-    if Δh > 0
-        h⁺ = hᵢ + Δh / ℵ⁺
-        h⁺ = max(zero(h⁺), h⁺)
-    else
-        h⁺ = hᵢ
-    end
+    Δh = Δh_frz + Δh_bot + Δh_top
 
-    # TODO: incorporate minimum_thickness
+    h⁺ = hᵢ + Δh / ℵ⁺ * (Δh > 0)
+    h⁺ = max(zero(h⁺), h⁺)
+
+    # Adjust again to be paranoid?
+    ℵ⁺, h⁺ = conservative_adjustment(ℵ⁺, h⁺, hᶜ)
 
     @inbounds begin
         ice_thickness[i, j, 1] = h⁺
         ice_concentration[i, j, 1] = ℵ⁺
     end
-
-    #=
-    @printf("Tu: %.1f, Δh freeze: %.1e, Δh melt : %.1e, Δh frazil: %.1e \n",
-            Tuᵢ, Δh_freezing, Δh_melting, Δh_frazil)
-
-    @printf("h: %.1e, ℵ: %.1e Qu: %.1e, Qi: %.1e, Qb: %.1e \n",
-            h⁺, ℵ⁺, Quᵢ, Qiᵢ, Qbᵢ)
-    =#
-
 end
 

@@ -217,6 +217,10 @@ Fv = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.water_vapor
 fluxes = (; Ql, Qs, τx, τy, Fv)
 ocean_outputs = merge(ocean.model.velocities, ocean.model.tracers)
 
+Nz = size(grid, 3)
+ocean_outputs = NamedTuple(name => view(ocean_outputs[name], :, :, Nz)
+                           for name in keys(ocean_outputs))
+
 h = sea_ice_model.ice_thickness
 ℵ = sea_ice_model.ice_concentration
 Ti = top_sea_ice_temperature
@@ -225,7 +229,8 @@ sea_ice_outputs = (; h, ℵ, Ti)
 outputs = merge(ocean_outputs, sea_ice_outputs, fluxes)
 
 ow = JLD2OutputWriter(ocean.model, outputs,
-                      filename = "three_degree_simulation.jld2",
+                      filename = "three_degree_simulation_surface.jld2",
+                      indices = (:, :, size(grid, 3)),
                       schedule = TimeInterval(1days),
                       overwrite_existing = true)
 
