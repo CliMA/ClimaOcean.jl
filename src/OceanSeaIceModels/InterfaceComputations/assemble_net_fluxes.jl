@@ -95,7 +95,6 @@ end
     Qr = (; Qs, Qℓ)
     Qd = net_downwelling_radiation(Qr, α, ϵ)
     ΣQao = Qd + Qu + Qc + Qv
-    # @printf("Qio: %d, Qd: %d, Qu: %d, Qc: %d, Qv: %d \n", Qio, Qd, Qu, Qc, Qv)
 
     # Convert from a mass flux to a volume flux (aka velocity)
     # by dividing with the density of freshwater.
@@ -218,9 +217,6 @@ end
 
     # Mask fluxes over land for convenience
     inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
-
-    @printf("Ts: %.1f, Qd: %d, Qu: %d, Qc: %d, Qv: %d \n",
-            Ts, Qd, Qu, Qc, Qv)
 
     @inbounds net_heat_flux[i, j, 1] = ifelse(inactive, zero(grid), ΣQ)
 end

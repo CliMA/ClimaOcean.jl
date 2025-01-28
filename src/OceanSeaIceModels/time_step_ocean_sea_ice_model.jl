@@ -26,6 +26,7 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
             h⁻ = coupled_model.interfaces.sea_ice_ocean_interface.previous_ice_thickness
             hⁿ = coupled_model.sea_ice.model.ice_thickness
             parent(h⁻) .= parent(hⁿ)
+            # fix_concentration_artifacts!(coupled_model)
         end
 
         sea_ice.Δt = Δt
@@ -47,6 +48,10 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
 end
 
 function update_state!(coupled_model::OceanSeaIceModel, callbacks=[]; compute_tendencies=true)
+    if coupled_model.clock.iteration == 0
+        fix_concentration_artifacts!(coupled_model)
+    end
+
     time = Time(coupled_model.clock.time)
     update_model_field_time_series!(coupled_model.atmosphere, time)
     interpolate_atmospheric_state!(coupled_model)
@@ -90,6 +95,13 @@ function thermodynamic_sea_ice_time_step!(coupled_model)
     return nothing
 end
 
+@inline function conservative_adjustment(ℵ, h, hᶜ)
+    V = ℵ * h # = ℵ⁺ * (h + dh)
+    dh = max(zero(h), hᶜ - h)
+    ℵ⁺ = V / (h + dh)
+    return ℵ⁺, h + dh
+end
+
 @kernel function update_thickness!(ice_thickness,
                                    grid, Δt,
                                    ice_concentration,
@@ -118,6 +130,9 @@ end
         ℵᵢ = ice_concentration[i, j, 1]
     end
 
+    # Volume conserving adjustment to respect minimum thickness
+    ℵᵢ, hᵢ = conservative_adjustment(ℵᵢ, hᵢ, hᶜ)
+
     # Consolidation criteria
     @inbounds Tuᵢ = Tu[i, j, 1]
 
@@ -143,46 +158,63 @@ end
     Qiᵢ = - 𝓀 * (Tuᵢ - Tbᵢ) / hᵢ * (hᵢ > hᶜ) # getflux(Qi, i, j, grid, Tuᵢ, clock, model_fields)
 
     # Upper (top) and bottom interface velocities
-    w_melting  = (Quᵢ - Qiᵢ) / ℰu # < 0 => melting
-    w_freezing = +Qiᵢ / ℰb # < 0 => freezing
-    w_frazil   = -Qbᵢ / ℰb # < 0 => freezing
+    w_top = (Quᵢ - Qiᵢ) / ℰu # < 0 => melting
+    w_bot = +Qiᵢ / ℰb # < 0 => freezing
+    w_frz = -Qbᵢ / ℰb # < 0 => freezing
 
-    Δh_melting  = w_melting  * Δt * ℵᵢ
-    Δh_freezing = w_freezing * Δt * ℵᵢ
-    Δh_frazil   = w_frazil   * Δt # frazil flux contributes from entire cell
+    Δh_top = w_top * Δt * ℵᵢ
+    Δh_bot = w_bot * Δt * ℵᵢ
 
-    if ℵᵢ < 1 && Δh_frazil > 0 # Add ice volume laterally
-        # ΔV = h * Δℵ
-        ℵ⁺ = ℵᵢ + Δh_frazil / hᶜ
-        ℵ⁺ = min(one(ℵ⁺), ℵ⁺)
-        Δh_frazil -= ℵ⁺ * hᵢ
-    else
-        ℵ⁺ = ℵᵢ
-    end
+    ΔV_frz = w_frz * Δt # frazil flux contributes from entire cell
 
-    Δh = Δh_frazil + Δh_freezing + Δh_melting
+    # Compute frazil growth: lateral first, then vertical
+    # dV = dh * ℵ + h * dℵ
+    dℵ = min(1 - ℵᵢ, ΔV_frz / hᵢ)
+    dℵ = max(dℵ, zero(dℵ))
+    ℵ⁺ = ℵᵢ + dℵ
+    Δh_frz = ΔV_frz - hᵢ * ℵ⁺
 
-    if Δh > 0
-        h⁺ = hᵢ + Δh / ℵ⁺
-        h⁺ = max(zero(h⁺), h⁺)
-    else
-        h⁺ = hᵢ
-    end
+    Δh = Δh_frz + Δh_bot + Δh_top
 
-    # TODO: incorporate minimum_thickness
+    h⁺ = hᵢ + Δh / ℵ⁺ * (Δh > 0)
+    h⁺ = max(zero(h⁺), h⁺)
+
+    # Adjust again to be paranoid?
+    ℵ⁺, h⁺ = conservative_adjustment(ℵ⁺, h⁺, hᶜ)
 
     @inbounds begin
         ice_thickness[i, j, 1] = h⁺
         ice_concentration[i, j, 1] = ℵ⁺
     end
+end
 
-    #=
-    @printf("Tu: %.1f, Δh freeze: %.1e, Δh melt : %.1e, Δh frazil: %.1e \n",
-            Tuᵢ, Δh_freezing, Δh_melting, Δh_frazil)
+function fix_concentration_artifacts!(coupled_model)
+    ocean = coupled_model.ocean
+    sea_ice = coupled_model.sea_ice
+    grid = ocean.model.grid
+    arch = architecture(grid)
 
-    @printf("h: %.1e, ℵ: %.1e Qu: %.1e, Qi: %.1e, Qb: %.1e \n",
-            h⁺, ℵ⁺, Quᵢ, Qiᵢ, Qbᵢ)
-    =#
+    interior_state = (h = sea_ice.model.ice_thickness,
+                      ℵ = sea_ice.model.ice_concentration)
 
+    #kernel_parameters = surface_computations_kernel_parameters(grid)
+    launch!(arch, grid, :xy, _fix_concentration_artifacts!, interior_state)
+
+    return nothing
+end
+
+""" Compute turbulent fluxes between an atmosphere and a interface state using similarity theory """
+@kernel function _fix_concentration_artifacts!(interior_state)
+    i, j = @index(Global, NTuple)
+    hᶜ = 0.05
+
+    @inbounds begin
+        hᵢ = interior_state.h[i, j, 1]
+        ℵᵢ = interior_state.ℵ[i, j, 1]
+
+        has_significant_ice = hᵢ > hᶜ
+        interior_state.ℵ[i, j, 1] = ℵᵢ * has_significant_ice
+        interior_state.h[i, j, 1] = hᵢ * has_significant_ice
+    end
 end
 

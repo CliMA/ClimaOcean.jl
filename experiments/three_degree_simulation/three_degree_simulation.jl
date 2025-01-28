@@ -10,13 +10,14 @@ using Printf
 using Statistics
 using Oceananigans.TimeSteppers: update_state!
 
-arch = GPU()
+arch = CPU()
 
 #=
 Nx = 360 * 4
 Ny = 60 * 4
 Nz = 60
 =#
+
 Nx = 120
 Ny = 60
 Nz = 30
@@ -79,36 +80,25 @@ sea_ice_model = SeaIceModel(sea_ice_grid;
 
 sea_ice = Simulation(sea_ice_model, Δt=10minutes)
 
-# thickness_meta = ECCOMetadata(:sea_ice_thickness; dates=start_date)
-# concentration_meta = ECCOMetadata(:sea_ice_concentration; dates=start_date)
-# set!(sea_ice.model.ice_thickness, thickness_meta)
-# set!(sea_ice.model.ice_concentration, concentration_meta)
-
-# set!(sea_ice_model, h=1, ℵ=1)
-
-coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation) 
-simulation = Simulation(coupled_model; Δt=10minutes, stop_time=3days)
-
-#=
-coupled_model.clock.time = 0
-coupled_model.clock.iteration = 0
-coupled_model.clock.last_Δt = Inf
-
-ocean.model.clock.time = 0
-ocean.model.clock.iteration = 0
-ocean.model.clock.last_Δt = Inf
-
-sea_ice.model.clock.time = 0
-sea_ice.model.clock.iteration = 0
-sea_ice.model.clock.last_Δt = Inf
-=#
-
 thickness_meta = ECCOMetadata(:sea_ice_thickness; dates=start_date)
 concentration_meta = ECCOMetadata(:sea_ice_concentration; dates=start_date)
 set!(sea_ice.model.ice_thickness, thickness_meta)
 set!(sea_ice.model.ice_concentration, concentration_meta)
+
 set!(ocean.model, T=ECCOMetadata(:temperature; dates=start_date),
                   S=ECCOMetadata(:salinity; dates=start_date), u=0, v=0)
+
+coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation) 
+simulation = Simulation(coupled_model; Δt=10minutes, stop_time=3days)
+
+ℵ = sea_ice.model.ice_concentration
+heatmap(ℵ)
+
+#h = sea_ice.model.ice_thickness
+#heatmap(h)
+
+
+#=
 
 wall_time = Ref(time_ns())
 
@@ -203,16 +193,12 @@ Qs = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.sensible_heat
 τx = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.x_momentum
 τy = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.y_momentum
 Fv = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.water_vapor
-
-# TODO: the total fluxes are defined on _interfaces_ between components:
-# atmopshere_ocean, atmosphere_sea_ice, ocean_sea_ice. They aren't defined wrt to 
-# just one component
-# Qo = coupled_model.interfaces.net_fluxes.ocean_surface.heat
-# Qi = coupled_model.interfaces.net_fluxes.sea_ice_top.heat
-
-#fluxes = (; Qo, Qi, Ql, Qs, τx, τy, Fv)
 fluxes = (; Ql, Qs, τx, τy, Fv)
 ocean_outputs = merge(ocean.model.velocities, ocean.model.tracers)
+
+Nz = size(grid, 3)
+ocean_outputs = NamedTuple(name => view(ocean_outputs[name], :, :, Nz)
+                           for name in keys(ocean_outputs))
 
 h = sea_ice_model.ice_thickness
 ℵ = sea_ice_model.ice_concentration
@@ -222,38 +208,12 @@ sea_ice_outputs = (; h, ℵ, Ti)
 outputs = merge(ocean_outputs, sea_ice_outputs, fluxes)
 
 ow = JLD2OutputWriter(ocean.model, outputs,
-                      filename = "three_degree_simulation.jld2",
+                      filename = "three_degree_simulation_surface.jld2",
+                      indices = (:, :, size(grid, 3)),
                       schedule = TimeInterval(1days),
                       overwrite_existing = true)
 
 simulation.output_writers[:jld2] = ow
 
-run!(simulation)
-
-#=
-@info "Increasing time-step:"
-@show simulation.Δt = 5minutes
-simulation.stop_time = 360days
-run!(simulation)
-=#
-
-#=
-using GLMakie
-
-ht = FieldTimeSeries("three_degree_simulation.jld2", "h")
-ℵt = FieldTimeSeries("three_degree_simulation.jld2", "ℵ")
-Nt = length(ht)
-
-fig = Figure()
-axh = Axis(fig[1, 1])
-axℵ = Axis(fig[2, 1])
-slider = Slider(fig[3, 1], range=1:Nt, startvalue=1)
-n = slider.value
-
-hn = @lift ht[$n]
-ℵn = @lift ℵt[$n]
-heatmap!(axh, hn)
-heatmap!(axℵ, ℵn)
-
-display(fig)
+#run!(simulation)
 =#

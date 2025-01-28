@@ -109,8 +109,6 @@ end
     # ice bath equilibrium condition to cool down a warm ocean (δEₒ < 0).
     δQ_melting = - δE_ice_bath * Δz / Δt
 
-    # @printf("Q_frazil: %.1f, Q_io: %.1f \n", δQ_frazil, δQ_melting)
-
     # Store column-integrated ice-ocean heat flux
     @inbounds Qᵢₒ[i, j, 1] = 0 #δQ_frazil + δQ_melting
 end
