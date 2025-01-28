@@ -51,6 +51,7 @@ function iterate_interface_fluxes(flux_formulation::CoefficientBasedFluxes,
     Cq = flux_formulation.vapor_flux_coefficient
 
     u★ = sqrt(Cd) * ΔU
+    # u★ θ★ = Ch * Δθ * ΔU
     θ★ = Ch / sqrt(Cd) * Δθ
     q★ = Cq / sqrt(Cd) * Δq
 

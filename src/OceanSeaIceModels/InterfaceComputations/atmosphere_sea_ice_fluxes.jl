@@ -167,7 +167,7 @@ end
 
     ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
     cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
-    ℰv = AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
+    ℰs = AtmosphericThermodynamics.latent_heat_sublim(ℂₐ, 𝒬ₐ)
 
     σ = interface_properties.radiation.σ
     α = stateindex(interface_properties.radiation.α, i, j, 1, grid, time)
@@ -186,7 +186,7 @@ end
 
     @inbounds begin
         # +0: cooling, -0: heating
-        Qv[i, j, 1]  = _Qv = - ρₐ * u★ * q★ * ℰv
+        Qv[i, j, 1]  = _Qv = - ρₐ * u★ * q★ * ℰs
         Qc[i, j, 1]  = _Qc = - ρₐ * cₚ * u★ * θ★
         ΣQ[i, j, 1]  = Qu + Qd + _Qv + _Qc
         Fv[i, j, 1]  = - ρₐ * u★ * q★
@@ -194,11 +194,5 @@ end
         ρτy[i, j, 1] = + ρₐ * τy
         Ts[i, j, 1]  = convert_from_kelvin(sea_ice_properties.temperature_units, Ψₛ.T)
     end
-
-    _ΣQ = Qu + Qd + _Qv + _Qc
-
-    # @printf("ℵ: %.1e, h: %.1e, Ts: %.1f, Ta: %.1f, Qd: %d, Qu: %d, Qc: %.1e, Qv: %.1e, ΣQ: %.1e \n",
-    #         ℵᵢ, hᵢ, Ts[i, j, 1], Tₐ - 273.15, Qd, Qu, _Qc, _Qv, _ΣQ)
-
 end
 

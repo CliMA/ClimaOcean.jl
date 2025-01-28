@@ -171,7 +171,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              radiation = Radiation(),
                              freshwater_density = 1000,
                              atmosphere_ocean_flux_formulation = SimilarityTheoryFluxes(),
-                             atmosphere_sea_ice_flux_formulation = CoefficientBasedFluxes(drag_coefficient=5e-3),
+                             atmosphere_sea_ice_flux_formulation = CoefficientBasedFluxes(drag_coefficient=1e-3, heat_transfer_coefficient=1e-4, vapor_flux_coefficient=1e-4),
                              atmosphere_ocean_interface_temperature = BulkTemperature(),
                              atmosphere_ocean_interface_specific_humidity = default_ao_specific_humidity(ocean),
                              atmosphere_sea_ice_interface_temperature = default_ai_temperature(sea_ice),

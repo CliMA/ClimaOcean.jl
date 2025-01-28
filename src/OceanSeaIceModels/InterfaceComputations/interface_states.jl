@@ -243,7 +243,10 @@ end
     𝒬ₐ = atmosphere_state.𝒬
     ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
     cₐ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
-    ℰv = AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
+
+    # TODO: this depends on the phase of the interface
+    #ℰv = 0 #AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
+    ℰs = AtmosphericThermodynamics.latent_heat_sublim(ℂₐ, 𝒬ₐ)
 
     # upwelling radiation is calculated explicitly 
     Tₛ⁻ = interface_state.T # approximate interface temperature from previous iteration
@@ -261,7 +264,7 @@ end
  
     # Turbulent heat fluxes, sensible + latent (positive out of the ocean)
     Qc = - ρₐ * cₐ * u★ * θ★ # = - ρₐ cₐ u★ Ch / sqrt(Cd) * (θₐ - Tₛ)
-    Qv = - ρₐ * ℰv * u★ * q★
+    Qv = - ρₐ * ℰs * u★ * q★
 
     # Net heat flux
     Qa = Qr + Qc + Qv

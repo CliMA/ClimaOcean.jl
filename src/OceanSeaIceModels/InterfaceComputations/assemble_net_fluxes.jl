@@ -1,4 +1,5 @@
 using Printf
+using Oceananigans.Operators: ℑxᶠᵃᵃ, ℑyᵃᶠᵃ
 
 function compute_net_ocean_fluxes!(coupled_model)
     ocean = coupled_model.ocean
@@ -46,7 +47,7 @@ function compute_net_ocean_fluxes!(coupled_model)
     return nothing
 end
 
-@inline τᶜᶜᶜ(i, j, k, grid, ρτᶜᶜᶜ, ℵ, ρₒ⁻¹) = @inbounds ρₒ⁻¹ * (1 - ℵ[i, j, 1]) * ρτᶜᶜᶜ[i, j, 1]
+@inline τᶜᶜᶜ(i, j, k, grid, ρₒ⁻¹, ℵ, ρτᶜᶜᶜ) = @inbounds ρₒ⁻¹ * (1 - ℵ[i, j, 1]) * ρτᶜᶜᶜ[i, j, 1]
 
 @kernel function _assemble_net_ocean_fluxes!(net_ocean_fluxes,
                                              grid,
@@ -116,18 +117,17 @@ end
     ρₒ⁻¹ = 1 / ocean_properties.reference_density
     cₒ   = ocean_properties.heat_capacity
 
-    τxao = τᶜᶜᶜ(i, j, 1, grid, ρτx, ℵ, ρₒ⁻¹)
-    τyao = τᶜᶜᶜ(i, j, 1, grid, ρτy, ℵ, ρₒ⁻¹)
+    τxao = ℑxᶠᵃᵃ(i, j, 1, grid, τᶜᶜᶜ, ρₒ⁻¹, ℵ, ρτx)
+    τyao = ℑyᵃᶠᵃ(i, j, 1, grid, τᶜᶜᶜ, ρₒ⁻¹, ℵ, ρτy)
     Jᵀao = ΣQao  * ρₒ⁻¹ / cₒ
     Jˢao = - Sₒ * ΣFao
-
     Jᵀio = Qio * ρₒ⁻¹ / cₒ
 
     @inbounds begin
-        τx[i, j, 1] = (1 - ℵ) * τxao
-        τy[i, j, 1] = (1 - ℵ) * τyao
-        Jᵀ[i, j, 1] = (1 - ℵ) * Jᵀao + ℵ * Jᵀio
-        Jˢ[i, j, 1] = (1 - ℵ) * Jˢao + ℵ * Jˢio
+        τx[i, j, 1] = τxao
+        τy[i, j, 1] = τyao
+        Jᵀ[i, j, 1] = (1 - ℵ) * Jᵀao + Jᵀio
+        Jˢ[i, j, 1] = (1 - ℵ) * Jˢao + Jˢio
     end
 end
 

@@ -23,18 +23,18 @@ underlying_grid = TripolarGrid(arch; size=(Nx, Ny, Nz), z=z_faces)
 latitude = (-80, -20)
 longitude = (0, 360)
 
-Nx = 360
-Ny = 60
+Nx = 360 * 4
+Ny = 60 * 4
 Nz = 60
 
 z_faces = exponential_z_faces(; Nz, depth=5000, h=30)
-underlying_grid = LatitudeLongitudeGrid(arch; size=(Nx, Ny, Nz), latitude, longitude, z=z_faces)
+underlying_grid = LatitudeLongitudeGrid(arch; size=(Nx, Ny, Nz), halo=(7, 7, 7), latitude, longitude, z=z_faces)
 bottom_height = regrid_bathymetry(underlying_grid)
 grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height))
 
-gm = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=4000, κ_symmetric=4000)
+gm = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=2000, κ_symmetric=2000)
 catke = ClimaOcean.OceanSimulations.default_ocean_closure()
-viscous_closure = Oceananigans.TurbulenceClosures.HorizontalScalarDiffusivity(ν=4000)
+viscous_closure = Oceananigans.TurbulenceClosures.HorizontalScalarDiffusivity(ν=2000)
 
 dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 12, 1)
 temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
@@ -46,9 +46,10 @@ FT = ECCORestoring(temperature, grid; mask, rate=restoring_rate)
 FS = ECCORestoring(salinity, grid; mask, rate=restoring_rate)
 
 ocean = ocean_simulation(grid;
-                         momentum_advection =  VectorInvariant(),
-                         tracer_advection = Centered(order=2),
-                         closure = (gm, catke, viscous_closure),
+                         #momentum_advection =  VectorInvariant(),
+                         #tracer_advection = Centered(order=2),
+                         #closure = (gm, catke, viscous_closure),
+                         closure = catke,
                          # forcing = (T=FT, S=FT),
                          tracers = (:T, :S, :e))
 
@@ -89,8 +90,7 @@ sea_ice = Simulation(sea_ice_model, Δt=10minutes)
 # set!(sea_ice_model, h=1, ℵ=1)
 
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation) 
-
-simulation = Simulation(coupled_model; Δt=5minutes, stop_time=4 * 360days)
+simulation = Simulation(coupled_model; Δt=2minutes, stop_time=30days)
 
 #=
 coupled_model.clock.time = 0
@@ -131,19 +131,75 @@ function progress(sim)
     umax = (maximum(abs, interior(u)), maximum(abs, interior(v)), maximum(abs, interior(w)))
     step_time = 1e-9 * (time_ns() - wall_time[])
 
-    @info @sprintf("Time: %s, n: %d, Δt: %s, max(h): %.1f, min(Ti): %.2f ᵒC, \
-                   max|u|: (%.2e, %.2e, %.2e) m s⁻¹, \
-                   min(Ti): %.2f, mean(Ti): %.2f ᵒC, wall time: %s \n",
-                   prettytime(sim), iteration(sim), prettytime(sim.Δt),
-                   hmax, Taimin,# Taiavg,
-                   umax..., Tmin, Tmax, prettytime(step_time))
+    Fv_ao = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.water_vapor
+    Qv_ao = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.latent_heat
+    Qc_ao = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.sensible_heat
+    τx_ao = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.x_momentum
+    τy_ao = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.y_momentum
 
+    Fv_ai = coupled_model.interfaces.atmosphere_sea_ice_interface.fluxes.water_vapor
+    Qv_ai = coupled_model.interfaces.atmosphere_sea_ice_interface.fluxes.latent_heat
+    Qc_ai = coupled_model.interfaces.atmosphere_sea_ice_interface.fluxes.sensible_heat
+    τx_ai = coupled_model.interfaces.atmosphere_sea_ice_interface.fluxes.x_momentum
+    τy_ai = coupled_model.interfaces.atmosphere_sea_ice_interface.fluxes.y_momentum
+
+    msg = @sprintf("Time: %s, n: %d, Δt: %s, \
+                   max(h): %.1f, \
+                   min(Ti): %.2f ᵒC, \
+                   max|u|: (%.2e, %.2e, %.2e) m s⁻¹, \
+                   extrema(To): (%.1f, %.1f) ᵒC, \
+                   wall time: %s \n",
+                   prettytime(sim), iteration(sim), prettytime(sim.Δt),
+                   hmax,
+                   Taimin,# Taiavg,
+                   umax...,
+                   Tmin, Tmax,
+                   prettytime(step_time))
+
+    max_Fv_ai = maximum(Fv_ai)
+    max_Qv_ai = maximum(Qv_ai)
+    max_Qc_ai = maximum(Qc_ai)
+    max_τx_ai = maximum(τx_ai)
+    max_τy_ai = maximum(τy_ai)
+
+    min_Fv_ai = minimum(Fv_ai)
+    min_Qv_ai = minimum(Qv_ai)
+    min_Qc_ai = minimum(Qc_ai)
+    min_τx_ai = minimum(τx_ai)
+    min_τy_ai = minimum(τy_ai)
+
+    max_Fv_ao = maximum(Fv_ao)
+    max_Qv_ao = maximum(Qv_ao)
+    max_Qc_ao = maximum(Qc_ao)
+    max_τx_ao = maximum(τx_ao)
+    max_τy_ao = maximum(τy_ao)
+
+    min_Fv_ao = minimum(Fv_ao)
+    min_Qv_ao = minimum(Qv_ao)
+    min_Qc_ao = minimum(Qc_ao)
+    min_τx_ao = minimum(τx_ao)
+    min_τy_ao = minimum(τy_ao)
+
+    msg *= @sprintf("    ao: extrema(Qv): (% 6d, % 6d), ao: extrema(Qc): (% 6d, % 6d), ao: extrema(Fv): (% 6d, % 6d), ao: extrema(τx): (% 6d, % 6d), ao: extrema(τy): (% 6d, % 6d) \n",
+                    min_Qv_ao, max_Qv_ao,
+                    min_Qc_ao, max_Qc_ao,
+                    1e6 * min_Fv_ao, 1e6 * max_Fv_ao,
+                    1e3 * min_τx_ao, 1e3 * max_τx_ao,
+                    1e3 * min_τy_ao, 1e3 * max_τy_ao)
+
+    msg *= @sprintf("    ai: extrema(Qv): (% 6d, % 6d), ai: extrema(Qc): (% 6d, % 6d), ai: extrema(Fv): (% 6d, % 6d)",
+                    min_Qv_ai, max_Qv_ai,
+                    min_Qc_ai, max_Qc_ai,
+                    1e6 * min_Fv_ai, 1e6 * max_Fv_ai)
+
+    @info msg
+    
     wall_time[] = time_ns()
 
     return nothing
 end
 
-add_callback!(simulation, progress, IterationInterval(10))
+add_callback!(simulation, progress, IterationInterval(100))
 
 Ql = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.latent_heat
 Qs = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.sensible_heat
@@ -176,6 +232,13 @@ ow = JLD2OutputWriter(ocean.model, outputs,
 simulation.output_writers[:jld2] = ow
 
 run!(simulation)
+
+#=
+@info "Increasing time-step:"
+@show simulation.Δt = 5minutes
+simulation.stop_time = 360days
+run!(simulation)
+=#
 
 #=
 using GLMakie

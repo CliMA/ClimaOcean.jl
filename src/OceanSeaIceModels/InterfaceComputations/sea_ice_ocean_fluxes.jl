@@ -78,7 +78,6 @@ end
         # A negative value δQ_frazil < 0 implies that heat is fluxed from the ice into
         # the ocean, cooling the ice and heating the ocean (δEₒ > 0). This occurs when
         # frazil ice is formed within the ocean.
-        #
         δQ_frazil -= δE_frazil * Δz / Δt
     end
 
@@ -113,7 +112,7 @@ end
     # @printf("Q_frazil: %.1f, Q_io: %.1f \n", δQ_frazil, δQ_melting)
 
     # Store column-integrated ice-ocean heat flux
-    @inbounds Qᵢₒ[i, j, 1] = δQ_frazil + δQ_melting
+    @inbounds Qᵢₒ[i, j, 1] = 0 #δQ_frazil + δQ_melting
 end
 
 function compute_sea_ice_ocean_salinity_flux!(coupled_model)
