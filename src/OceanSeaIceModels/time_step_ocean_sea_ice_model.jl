@@ -139,8 +139,8 @@ end
 
     # Clip thickness for thermodynamic computations
     #hᵢ = max(hᶜ, hᵢ)
-    k = Qi.parameters.flux.conductivity
-    Qiᵢ = - k * (Tuᵢ - Tbᵢ) / hᵢ * (hᵢ > hᶜ) # getflux(Qi, i, j, grid, Tuᵢ, clock, model_fields)
+    𝓀 = Qi.parameters.flux.conductivity
+    Qiᵢ = - 𝓀 * (Tuᵢ - Tbᵢ) / hᵢ * (hᵢ > hᶜ) # getflux(Qi, i, j, grid, Tuᵢ, clock, model_fields)
 
     # Upper (top) and bottom interface velocities
     w_melting  = (Quᵢ - Qiᵢ) / ℰu # < 0 => melting
