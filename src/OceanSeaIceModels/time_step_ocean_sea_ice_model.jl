@@ -28,7 +28,6 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
             h⁻ = coupled_model.interfaces.sea_ice_ocean_interface.previous_ice_thickness
             hⁿ = coupled_model.sea_ice.model.ice_thickness
             parent(h⁻) .= parent(hⁿ)
-            # fix_concentration_artifacts!(coupled_model)
         end
 
         sea_ice.Δt = Δt
@@ -50,10 +49,6 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
 end
 
 function update_state!(coupled_model::OceanSeaIceModel, callbacks=[]; compute_tendencies=true)
-    if coupled_model.clock.iteration == 0
-        fix_concentration_artifacts!(coupled_model)
-    end
-
     time = Time(coupled_model.clock.time)
     update_model_field_time_series!(coupled_model.atmosphere, time)
     interpolate_atmospheric_state!(coupled_model)
@@ -185,38 +180,6 @@ end
     @inbounds begin
         ice_thickness[i, j, 1] = h⁺
         ice_concentration[i, j, 1] = ℵ⁺
-    end
-end
-
-function fix_concentration_artifacts!(coupled_model)
-    ocean = coupled_model.ocean
-    sea_ice = coupled_model.sea_ice
-    grid = ocean.model.grid
-    arch = architecture(grid)
-
-    interior_state = (h = sea_ice.model.ice_thickness,
-                      ℵ = sea_ice.model.ice_concentration)
-
-    #kernel_parameters = surface_computations_kernel_parameters(grid)
-    launch!(arch, grid, :xy, _fix_concentration_artifacts!, interior_state, grid)
-
-    return nothing
-end
-
-""" Compute turbulent fluxes between an atmosphere and a interface state using similarity theory """
-@kernel function _fix_concentration_artifacts!(interior_state, grid)
-    i, j = @index(Global, NTuple)
-    hᶜ = 0.05
-    φ = φnode(i, j, 1, grid, Center(), Center(), Center())
-
-    @inbounds begin
-        hᵢ = interior_state.h[i, j, 1]
-        ℵᵢ = interior_state.ℵ[i, j, 1]
-
-        polarward_of_sixty = abs(φ) > 57
-        has_significant_ice = hᵢ > hᶜ
-        interior_state.ℵ[i, j, 1] = ℵᵢ * has_significant_ice * polarward_of_sixty
-        interior_state.h[i, j, 1] = hᵢ * has_significant_ice * polarward_of_sixty
     end
 end
 
