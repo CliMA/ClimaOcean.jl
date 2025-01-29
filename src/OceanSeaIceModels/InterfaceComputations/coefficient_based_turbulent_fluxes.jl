@@ -35,11 +35,11 @@ function CoefficientBasedFluxes(FT = Float64;
                                   solver_maxiter)
 end
 
-function iterate_interface_fluxes(flux_formulation::CoefficientBasedFluxes,
-                                  Tₛ, qₛ, Δθ, Δq, Δh,
-                                  approximate_interface_state,
-                                  atmosphere_state,
-                                  atmosphere_properties)
+@inline function iterate_interface_fluxes(flux_formulation::CoefficientBasedFluxes,
+                                          Tₛ, qₛ, Δθ, Δq, Δh,
+                                          approximate_interface_state,
+                                          atmosphere_state,
+                                          atmosphere_properties)
 
     Ψₐ = atmosphere_state
     Ψ̃ᵢ = approximate_interface_state

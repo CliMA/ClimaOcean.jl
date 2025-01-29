@@ -202,15 +202,14 @@ end
     Tᵢ = convert_to_kelvin(ℙᵢ.temperature_units, Tᵢ)
     Tₛ⁻ = Ψₛ.T
 
+    #=
     σ = ℙₛ.radiation.σ
     ϵ = ℙₛ.radiation.ϵ
     α = σ * ϵ
     Tₛ = (Tᵢ - h / k * (Qₐ + 4α * Tₛ⁻^4)) / (1 + 4α * h * Tₛ⁻^3 / k)
-    Tₛ = ifelse(isnan(Tₛ), Tₛ⁻, Tₛ)
+    =#
 
-    # @show Tₛ = Tᵢ - Qₐ * h / k
-
-    #@show Tₛ
+    Tₛ = Tᵢ - Qₐ * h / k
 
     # Under heating fluxes, cap surface temperature by melting temperature
     Tₘ = ℙᵢ.liquidus.freshwater_melting_temperature
@@ -225,7 +224,7 @@ end
     Tₛ = max(min_Tₛ, Tₛ)
     Tₛ = min(Tₛ, Tₘ)
 
-    Tₛ⁺ = 0.1 * Tₛ + 0.9 * Tₛ⁻ 
+    Tₛ⁺ = (Tₛ + 9Tₛ⁻) / 10
 
     return Tₛ⁺
 end
@@ -311,14 +310,14 @@ function Base.show(io::IO, is::InterfaceState)
           "q=", prettysummary(is.q), ")")
 end
 
-zero_interface_state(FT) = InterfaceState(zero(FT),
-                                          zero(FT),
-                                          zero(FT),
-                                          zero(FT),
-                                          zero(FT),
-                                          convert(FT, 273.15),
-                                          zero(FT),
-                                          zero(FT))
+@inline zero_interface_state(FT) = InterfaceState(zero(FT),
+                                                  zero(FT),
+                                                  zero(FT),
+                                                  zero(FT),
+                                                  zero(FT),
+                                                  convert(FT, 273.15),
+                                                  zero(FT),
+                                                  zero(FT))
 
 # Iterating condition for the characteristic scales solvers
 @inline function iterating(Ψⁿ, Ψ⁻, iteration, maxiter, tolerance)

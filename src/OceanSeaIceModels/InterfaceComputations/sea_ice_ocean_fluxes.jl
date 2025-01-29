@@ -110,7 +110,7 @@ end
     δQ_melting = - δE_ice_bath * Δz / Δt
 
     # Store column-integrated ice-ocean heat flux
-    @inbounds Qᵢₒ[i, j, 1] = 0 #δQ_frazil + δQ_melting
+    @inbounds Qᵢₒ[i, j, 1] = δQ_frazil + δQ_melting
 end
 
 function compute_sea_ice_ocean_salinity_flux!(coupled_model)

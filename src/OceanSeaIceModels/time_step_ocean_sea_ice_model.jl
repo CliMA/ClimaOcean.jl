@@ -6,6 +6,8 @@ using .InterfaceComputations:
 
 using ClimaSeaIce: SeaIceModel, SeaIceThermodynamics
 
+using Oceananigans.Grids: φnode
+
 using Printf
 
 function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_tendencies=true)
@@ -152,8 +154,6 @@ end
     # just add ocean fluxes from frazil ice formation or melting
     # wb = - Qbᵢ / ℰb
 
-    # Clip thickness for thermodynamic computations
-    #hᵢ = max(hᶜ, hᵢ)
     𝓀 = Qi.parameters.flux.conductivity
     Qiᵢ = - 𝓀 * (Tuᵢ - Tbᵢ) / hᵢ * (hᵢ > hᶜ) # getflux(Qi, i, j, grid, Tuᵢ, clock, model_fields)
 
@@ -198,23 +198,25 @@ function fix_concentration_artifacts!(coupled_model)
                       ℵ = sea_ice.model.ice_concentration)
 
     #kernel_parameters = surface_computations_kernel_parameters(grid)
-    launch!(arch, grid, :xy, _fix_concentration_artifacts!, interior_state)
+    launch!(arch, grid, :xy, _fix_concentration_artifacts!, interior_state, grid)
 
     return nothing
 end
 
 """ Compute turbulent fluxes between an atmosphere and a interface state using similarity theory """
-@kernel function _fix_concentration_artifacts!(interior_state)
+@kernel function _fix_concentration_artifacts!(interior_state, grid)
     i, j = @index(Global, NTuple)
     hᶜ = 0.05
+    φ = φnode(i, j, 1, grid, Center(), Center(), Center())
 
     @inbounds begin
         hᵢ = interior_state.h[i, j, 1]
         ℵᵢ = interior_state.ℵ[i, j, 1]
 
+        polarward_of_sixty = abs(φ) > 57
         has_significant_ice = hᵢ > hᶜ
-        interior_state.ℵ[i, j, 1] = ℵᵢ * has_significant_ice
-        interior_state.h[i, j, 1] = hᵢ * has_significant_ice
+        interior_state.ℵ[i, j, 1] = ℵᵢ * has_significant_ice * polarward_of_sixty
+        interior_state.h[i, j, 1] = hᵢ * has_significant_ice * polarward_of_sixty
     end
 end
 

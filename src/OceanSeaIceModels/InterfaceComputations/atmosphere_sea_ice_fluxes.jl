@@ -105,13 +105,6 @@ end
         Tₛ = convert_to_kelvin(sea_ice_properties.temperature_units, Tₛ)
     end
 
-    #=
-    hᶜ = 0.05 #thermodynamics.ice_consolidation_thickness
-    has_significant_ice = hᵢ > hᶜ
-    @inbounds interior_state.ℵ[i, j, 1] = ℵᵢ * has_significant_ice
-    @inbounds interior_state.h[i, j, 1] = hᵢ * has_significant_ice
-    =#
-
     # Build thermodynamic and dynamic states in the atmosphere and interface.
     # Notation:
     #   ⋅ 𝒬 ≡ thermodynamic state vector
@@ -142,7 +135,7 @@ end
     land = inactive_node(i, j, kᴺ, grid, Center(), Center(), Center())
     ice_free = hᵢ == 0
 
-    if land || ice_free
+    if (land | ice_free)
         interface_state = InterfaceState(zero(FT), zero(FT), zero(FT), uᵢ, vᵢ, Tᵢ, Sₛ, zero(FT))
     else
         interface_state = compute_interface_state(turbulent_flux_formulation,
