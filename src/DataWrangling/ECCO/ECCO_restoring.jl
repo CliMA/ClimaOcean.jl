@@ -253,7 +253,7 @@ The restoring is applied as a forcing on the right hand side of the evolution
 equations calculated as:
 
 ```math
-Fψ = r μ (ψ_{ECCO} - ψ)
+F_ψ = r μ (ψ_{ECCO} - ψ)
 ```
 
 where ``μ`` is the mask, ``r`` is the restoring rate, ``ψ`` is the simulation variable,

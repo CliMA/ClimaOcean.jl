@@ -23,7 +23,7 @@ grid = LatitudeLongitudeGrid(arch; z,
                              latitude  = (-80, 80),
                              longitude = (0, 360))
 
-bottom_height = regrid_bathymetry(grid; 
+bottom_height = regrid_bathymetry(grid;
                                   minimum_depth = 10,
                                   interpolation_passes = 5,
                                   major_basins = 1)
@@ -73,7 +73,9 @@ Label(fig[1, 1], str, tellwidth=false)
 hn = @lift ht[$n]
 hm = heatmap!(axh, hn, colorrange=(0, 500), colormap=:magma, nan_color=:lightgray)
 Colorbar(fig[2, 2], hm, label="Mixed layer depth (m)")
-display(fig)
+fig
+
+# And record a movie
 
 record(fig, "ecco_mld.mp4", 1:Nt-1, framerate=4) do nn
     @info "Drawing frame $nn of $Nt..."
