@@ -153,13 +153,14 @@ ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
 run!(simulation)
 
 simulation.Δt = 30minutes
-simulation.stop_time = 720days
+simulation.stop_time = 360days
 
 run!(simulation)
 
 # ## A pretty movie
 #
 # It's time to make a pretty movie of the simulation. First we plot a snapshot:
+using CairoMakie
 
 u = FieldTimeSeries("global_surface_fields.jld2", "u"; backend = OnDisk())
 v = FieldTimeSeries("global_surface_fields.jld2", "v"; backend = OnDisk())
