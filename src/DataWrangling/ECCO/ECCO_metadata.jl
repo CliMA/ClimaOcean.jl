@@ -15,6 +15,8 @@ struct ECCO2Monthly end
 struct ECCO2Daily end
 struct ECCO4Monthly end
 
+struct ECCO4DarwinMonthly end
+
 """
     struct ECCOMetadata{D, V}
 
