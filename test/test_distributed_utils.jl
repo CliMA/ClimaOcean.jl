@@ -5,7 +5,7 @@ MPI.Init()
 
 using NCDatasets
 using ClimaOcean.ECCO: download_dataset, metadata_path
-using Oceananigans.DistributedComputations: reconstruct_global_grid
+using Oceananigans.DistributedComputations: reconstruct_global_grid, partition
 using CFTime
 using Dates
 
@@ -115,9 +115,9 @@ end
                                         z = (0, 1))
 
     global_height = regrid_bathymetry(global_grid; 
-                                    dir = "./",
-                                    filename = "trivial_bathymetry.nc",
-                                    interpolation_passes=10)
+                                      dir = "./",
+                                      filename = "trivial_bathymetry.nc",
+                                      interpolation_passes=10)
 
     arch_x  = Distributed(CPU(), partition=Partition(4, 1))
     arch_y  = Distributed(CPU(), partition=Partition(1, 4))
@@ -145,3 +145,48 @@ end
         end
     end
 end
+
+@testset "Distributed Tripolar grid simulations" begin
+    grid = TripolarGrid(CPU();
+                        size = (360, 170, 10),
+                        z = (-1000, 0))
+
+    bottom_height = retrieve_bathymetry(grid)    
+    grid  = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
+    ocean = ocean_simulation(grid)
+    
+    set!(ocean.model, T = ECCOMetadata(:temperature),
+                      S = ECCOMetadata(:salinity))
+
+    ocean.stop_time = 1day
+
+    us = interior(ocean.model.velocities.u, :, :, 1)
+    vs = interior(ocean.model.velocities.v, :, :, 1)
+
+    run!(ocean)
+
+    arch_y  = Distributed(CPU(), partition=Partition(1, 4))
+    arch_xy = Distributed(CPU(), partition=Partition(2, 2))
+
+    for arch in (arch_x, arch_y)
+        grid = TripolarGrid(arch;
+                            size = (360, 170, 10),
+                            z = (-1000, 0))
+
+        parallel_bottom_height = partition(bottom_height, arch, size(grid)[[1, 2]])
+        grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
+
+        parallel_ocean = ocean_simulation(grid)
+        ocean.stop_time = 1day
+        
+        run!(parallel_ocean)
+
+        up = interior(parallel_ocean.model.velocities.u, :, :, 1)
+        vp = interior(parallel_ocean.model.velocities.v, :, :, 1)
+    
+        @test all(up .≈ partition(us, arch, size(up)))
+        @test all(vp .≈ partition(vs, arch, size(vp)))
+    end
+end
+
+
