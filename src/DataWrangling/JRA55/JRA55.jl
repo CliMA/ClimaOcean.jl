@@ -1,6 +1,6 @@
 module JRA55
 
-export JRA55FieldTimeSeries, JRA55PrescribedAtmosphere
+export JRA55FieldTimeSeries, JRA55PrescribedAtmosphere, JRA55RepeatYear
 
 using Oceananigans
 using Oceananigans.Units

@@ -2,15 +2,6 @@ using CFTime
 using Dates
 using Base: @propagate_inbounds
 
-"""
-    Metadata{D, V} 
-
-Metadata holding the dataset information:
-- `name`: The name of the dataset.
-- `dates`: The dates of the dataset, in a `AbstractCFDateTime` format.
-- `version`: The version of the dataset, could be ECCO2Monthly, ECCO2Daily, ECCO4Monthly, JRA55RepeatYear, or JRA55MultipleYears.
-- `dir`: The directory where the dataset is stored.
-"""
 struct Metadata{D, V} 
     name  :: Symbol
     dates :: D
@@ -18,12 +9,30 @@ struct Metadata{D, V}
     dir :: String
 end
 
-function Metadata(name;
+"""
+   Metadata(variable_name;
+            version = ECCO4Monthly(),
+            dates = all_dates(name),
+            dir = default_download_folder(version))
+
+Metadata holding a specific dataset information.
+
+Arguments
+=========
+- `variable_name`: a symbol representing the name of the variable (for example :temperature, :salinity, :u_velocity, etc...)
+
+Keyword Arguments
+=================
+- `dates`: The dates of the dataset, in a `AbstractCFDateTime` format.
+- `version`: The version of the dataset, could be `ECCO2Monthly`, `ECCO2Daily`, `ECCO4Monthly`, `JRA55RepeatYear`, or `JRA55MultipleYears`.
+- `dir`: The directory where the dataset is stored.
+"""
+function Metadata(variable_name;
                   version = ECCO4Monthly(),
                   dates = all_dates(name),
                   dir = default_download_folder(version))
 
-    return Metadata(name, dates, version, dir)
+    return Metadata(variable_name, dates, version, dir)
 end
 
 default_download_folder(version) = "./"

@@ -231,7 +231,7 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture = CPU();
 
     # OnDisk backends do not support time interpolation!
     # Disallow OnDisk for JRA55 dataset loading 
-    if backend isa PartlyInMemory || backend isa OnDisk
+    if ((backend isa InMemory) && !isnothing(backend.length)) || backend isa OnDisk
         msg = string("We cannot load the JRA55 dataset with a $(backend) backend. Use `InMemory()` or `JRA55NetCDFBackend(N)` instead.")
         throw(ArgumentError(msg))
     end
