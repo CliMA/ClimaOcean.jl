@@ -29,7 +29,7 @@ Keyword Arguments
 """
 function Metadata(variable_name;
                   version = ECCO4Monthly(),
-                  dates = all_dates(name),
+                  dates = all_dates(version),
                   dir = default_download_folder(version))
 
     return Metadata(variable_name, dates, version, dir)
