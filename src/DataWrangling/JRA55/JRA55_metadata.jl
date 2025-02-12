@@ -43,19 +43,18 @@ function metadata_filename(metadata::Metadata{<:Any, <:JRA55RepeatYear}) # No di
     return "RYF." * shortname * ".1990_1991.nc"
 end
 
-# TODO: Implement this function for JRA55MultipleYears
-# function metadata_filename(metadata::Metadata{<:AbstractCFDateTime, <:JRA55MultipleYears})
-#     # fix the filename
-#     shortname = short_name(metadata)
-#     year      = Dates.year(metadata.dates)
-#     suffix    = "_input4MIPs_atmosphericState_OMIP_MRI-JRA55-do-1-5-0_gr_"
-#     dates     = "($year)01010130-($year)12312330.nc"
-#     return shortname * suffix * dates * ".nc"
-# end
+function metadata_filename(metadata::Metadata{<:AbstractCFDateTime, <:JRA55MultipleYears})
+    # fix the filename
+    shortname = short_name(metadata)
+    year      = Dates.year(metadata.dates)
+    suffix    = "_input4MIPs_atmosphericState_OMIP_MRI-JRA55-do-1-5-0_gr_"
+    dates     = "($year)01010130-($year)12312330.nc"
+    return shortname * suffix * dates * ".nc"
+end
 
 # Convenience functions
 short_name(data::JRA55Metadata) = JRA55_short_names[data.name]
-location(data::JRA55Metadata)   = (Center, Center, Center)
+location(::JRA55Metadata)   = (Center, Center, Center)
 
 # A list of all variables provided in the JRA55 dataset:
 JRA55_variable_names = (:river_freshwater_flux,
@@ -84,21 +83,6 @@ JRA55_short_names = Dict(
     :temperature                     => "tas",      # Near-surface air temperature
     :eastward_velocity               => "uas",      # Eastward near-surface wind
     :northward_velocity              => "vas",      # Northward near-surface wind
-)
-
-field_time_series_short_names = Dict(
-    :river_freshwater_flux           => "Fri", # Freshwater fluxes from rivers
-    :rain_freshwater_flux            => "Fra", # Freshwater flux from rainfall
-    :snow_freshwater_flux            => "Fsn", # Freshwater flux from snowfall
-    :iceberg_freshwater_flux         => "Fic", # Freshwater flux from calving icebergs
-    :specific_humidity               => "qa",  # Surface specific humidity
-    :sea_level_pressure              => "pa",  # Sea level pressure
-    :relative_humidity               => "rh",  # Surface relative humidity
-    :downwelling_longwave_radiation  => "Ql",  # Downwelling longwave radiation
-    :downwelling_shortwave_radiation => "Qs",  # Downwelling shortwave radiation
-    :temperature                     => "Ta",  # Near-surface air temperature
-    :eastward_velocity               => "ua",  # Eastward near-surface wind
-    :northward_velocity              => "va",  # Northward near-surface wind
 )
 
 JRA55_repeat_year_urls = Dict(
