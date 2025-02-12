@@ -245,7 +245,7 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, arch_or_grid = CPU();
         throw(ArgumentError(msg))
     end
 
-    if  !(variable_name ∈ JRA55_variable_names)
+    if !(variable_name ∈ JRA55_variable_names)
         variable_strs = Tuple("  - :$name \n" for name in JRA55_variable_names)
         variables_msg = prod(variable_strs)
 
