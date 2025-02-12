@@ -1,19 +1,25 @@
+# # One-degree global ocean simulation
+#
+# This example shows how to configure a global ocean simulation at 1ᵒ horizontal resolution with
+# realistic bathymetry.
+#
+# For this example, we need Oceananigans, ClimaOcea, and CairoMakie to visualize the simulation.
+# Also CFTime and Dates for date handling.
+
 using ClimaOcean
 using ClimaOcean.ECCO: ECCO4Monthly, NearestNeighborInpainting
-using OrthogonalSphericalShellGrids
 using Oceananigans
 using Oceananigans.Units
+using OrthogonalSphericalShellGrids
 using CFTime
 using Dates
 using Printf
 
 using Oceananigans.Grids: znode
 
-arch = GPU()
+arch = CPU()
 
-#####
-##### Grid and Bathymetry
-#####
+# ### Grid and Bathymetry
 
 Nx = 360
 Ny = 180
@@ -33,27 +39,15 @@ bottom_height = regrid_bathymetry(underlying_grid;
                                   interpolation_passes = 75,
                                   major_basins = 2)
 
-# Open Gibraltar strait 
-# TODO: find a better way to do this
+# For this bathymetry at this horizontal resolution we need to manually open the Gibraltar strait.
 tampered_bottom_height = deepcopy(bottom_height)
 view(tampered_bottom_height, 102:103, 124, 1) .= -400
 
 grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(tampered_bottom_height); active_cells_map=true)
 
-#####
-##### Closures
-#####
+# ### Restoring
 
-# We don't need any diffusion: κ_symmetric = 0!
-eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1000) 
-vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
-
-closure = (eddy_closure, vertical_mixing)
-
-#####
-##### Restoring
-#####
-
+# We include temperature and salinity surface restoring to ECCO2.
 restoring_rate  = 1 / 10days
 z_below_surface = z_faces[end-1]
 
@@ -67,12 +61,11 @@ FT = ECCORestoring(temperature, grid; mask, rate=restoring_rate)
 FS = ECCORestoring(salinity,    grid; mask, rate=restoring_rate)
 forcing = (T=FT, S=FS)
 
-#####
-##### Ocean simulation
-##### 
+# ### Closures
 
-momentum_advection = WENOVectorInvariant(vorticity_order=3)
-tracer_advection   = Centered()
+# We include a Gent-McWilliam isopycnal diffussivity as a parameterization for the mesoscale
+# eddy fluxes. For vertical mixing at the upper-ocean boundary layer we include the CATKE
+# parameterization. We also include some explicit horizontal diffusivity.
 
 using Oceananigans.TurbulenceClosures: IsopycnalSkewSymmetricDiffusivity,
                                        ExplicitTimeDiscretization,
@@ -81,40 +74,58 @@ using Oceananigans.TurbulenceClosures: IsopycnalSkewSymmetricDiffusivity,
 using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities: CATKEVerticalDiffusivity
 
 numerical_closure = HorizontalScalarDiffusivity(ν=5e3)
-eddy_closure = IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3, skew_flux_formulation=DiffusiveFormulation())
+eddy_closure = IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3,
+                                                 skew_flux_formulation=DiffusiveFormulation())
 vertical_mixing = CATKEVerticalDiffusivity()
 
 closure = (eddy_closure, numerical_closure, vertical_mixing)
 
-# Spacings still don't work correctly?
+# ### Ocean simulation
+
+# Now we bring everything together to construct the ocean simulation.
+# We use a split-explicit timestepping with 30 substeps for the barotropic
+# mode.
+
 free_surface = SplitExplicitFreeSurface(grid; substeps=30)
 
-# Should we add a side drag since this is at a coarser resolution?
+momentum_advection = WENOVectorInvariant(vorticity_order=3)
+tracer_advection   = Centered()
+
 ocean = ocean_simulation(grid;
                          momentum_advection,
                          tracer_advection,
                          closure,
                          forcing,
                          free_surface)
+
+# ### Initial condition
+
+# We initialize the ocean from the ECCO2 state estimate.
+
 set!(ocean.model, T=ECCOMetadata(:temperature; dates=first(dates)),
                   S=ECCOMetadata(:salinity; dates=first(dates)))
-#####
-##### Atmospheric forcing
-#####
 
+# ### Atmospheric forcing
+
+# We force the simulation with an JRA55-do atmospheric reanalysis.
 radiation  = Radiation(arch)
 atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(20))
 
-#####
-##### Coupled simulation
-#####
+# ### Coupled simulation
 
-coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation) 
+# Now we are ready to build the coupled ocean--sea ice model and bring everything
+# together into a `simulation`.
+
+# We use a relatively short time step initially and only run for a few days to
+# avoid numerical instabilities from the initial "shock" of the adjustment of the
+# flow fields.
+
+coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 simulation = Simulation(coupled_model; Δt=5minutes, stop_time=10days)
 
-#####
-##### Run it!
-##### 
+# ### A progress messenger
+#
+# We write a function that prints out a helpful progress message while the simulation runs.
 
 wall_time = Ref(time_ns())
 
@@ -139,7 +150,14 @@ function progress(sim)
      return nothing
 end
 
+# And add it as a callback to the simulation.
 add_callback!(simulation, progress, IterationInterval(10))
+
+# ### Output
+#
+# We are almost there! We need to save some output. Below we choose to save _only surface_
+# fields using the `indices` keyword argument. We save all velocity components and
+# also both temperature and salinity.
 
 outputs = merge(ocean.model.tracers, ocean.model.velocities)
 ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
@@ -150,6 +168,13 @@ ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
                                                   overwrite_existing = true,
                                                   array_type = Array{Float32})
 
+# ### Ready to run
+
+# We are ready to press the big red button and run the simulation.
+
+# After we run for a short time (here we set up the simulation with `stop_time = 10days`),
+# we increase the timestep and run for longer.
+
 run!(simulation)
 
 simulation.Δt = 30minutes
@@ -157,9 +182,9 @@ simulation.stop_time = 360days
 
 run!(simulation)
 
-# ## A pretty movie
+# ### A pretty movie
 #
-# It's time to make a pretty movie of the simulation. First we plot a snapshot:
+# We load the saved output and make a pretty movie of the simulation. First we plot a snapshot:
 using CairoMakie
 
 u = FieldTimeSeries("global_surface_fields.jld2", "u"; backend = OnDisk())
@@ -172,7 +197,8 @@ Nt = length(times)
 
 n = Observable(Nt)
 
-land = interior(T.grid.immersed_boundary.bottom_height) .>= 0
+# We create a land mask and use it to fill land points with `NaN`s.
+land = interior(T.grid.immersed_boundary.bottom_height) .≥ 0
 
 Tn = @lift begin
     Tn = interior(T[$n])
@@ -186,6 +212,7 @@ en = @lift begin
     view(en, :, :, 1)
 end
 
+# We compute the surface speed.
 un = Field{Face, Center, Nothing}(u.grid)
 vn = Field{Center, Face, Nothing}(v.grid)
 s = Field(sqrt(un^2 + vn^2))
@@ -199,6 +226,7 @@ sn = @lift begin
     view(sn, :, :, 1)
 end
 
+# Finally, we plot a snapshot of the surface speed, temperature, and salinity.
 fig = Figure(size = (800, 1200))
 
 axs = Axis(fig[1, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
