@@ -1,6 +1,6 @@
 # # One-degree global ocean simulation
 #
-# This example configures a global ocean simulation at 1ᵒ horizontal resolution with
+# This example configures a global ocean--sea ice simulation at 1ᵒ horizontal resolution with
 # realistic bathymetry and some closures.
 #
 # For this example, we need Oceananigans, ClimaOcean, OrthogonalSphericalShellGrids, and
