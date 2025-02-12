@@ -176,13 +176,15 @@ The `variable_name`s (and their `shortname`s used in NetCDF files) available fro
 Keyword arguments
 =================
 
-- `architecture`: Architecture for the `FieldTimeSeries`.
-                  Default: CPU()
+- `architecture`: Architecture for the `FieldTimeSeries`. Default: CPU()
 
-- `time_indices`: Indices of the timeseries to extract from file. 
-                  For example, `time_indices=1:3` returns a 
-                  `FieldTimeSeries` with the first three time snapshots
-                  of `variable_name`.
+- `dates`: The date(s) of the metadata. Note this can either be a single date,
+           representing a snapshot, or a range of dates, representing a time-series.
+           Default: `all_dates(version)` (see `all_dates`).
+
+- `version`: The data version. The only supported versions is `JRA55RepeatYear()`
+
+- `dir`: The directory of the data file. Default: `ClimaOcean.JRA55.download_JRA55_cache`.
 
 - `latitude`: Guiding latitude bounds for the resulting grid.
               Used to slice the data when loading into memory.
@@ -192,14 +194,13 @@ Keyword arguments
               Used to slice the data when loading into memory.
               Default: nothing, which retains the longitude range of the native grid.
 
-- `interpolated_file`: file holding an Oceananigans compatible version of the JRA55 data.
-                       If it does not exist it will be generated.
-
-- `time_chunks_in_memory`: number of fields held in memory. If `nothing` then the whole timeseries
-                           is loaded (not recommended).
+- `backend`: Backend for the `FieldTimeSeries`. The two options are 
+             * `InMemory()`: the whole time series is loaded into memory.
+             * `JRA55NetCDFBackend(total_time_instances_in_memory)`: only a subset of the time series is loaded into memory.
+             Default: `InMemory()`.
 """
 function JRA55FieldTimeSeries(variable_name::Symbol,
-                              arch_or_grid = CPU();
+                              architecture = CPU();
                               version = JRA55RepeatYear(),
                               dates = all_dates(version),
                               dir = download_JRA55_cache,
@@ -207,16 +208,14 @@ function JRA55FieldTimeSeries(variable_name::Symbol,
 
     metadata = Metadata(variable_name, dates, version, dir)
 
-    return JRA55FieldTimeSeries(metadata, arch_or_grid; kw...)
+    return JRA55FieldTimeSeries(metadata, architecture; kw...)
 end
 
-function JRA55FieldTimeSeries(metadata::JRA55Metadata, arch_or_grid = CPU(); 
+function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture = CPU(); 
                               latitude = nothing,
                               longitude = nothing,
                               backend = InMemory(),
-                              time_indexing = Cyclical(),
-                              preprocess_chunk_size = 10,
-                              preprocess_architecture = CPU())
+                              time_indexing = Cyclical())
 
     # First thing: we download the dataset!
     download_dataset!(metadata)
@@ -224,24 +223,15 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, arch_or_grid = CPU();
     # Unpack metadata details
     time_indices = JRA55_time_indices(metadata.version, metadata.dates)
     shortname = short_name(metadata)
-    dir = metadata.dir
     variable_name = metadata.name
     
     filepath = metadata_path(metadata) # Might be multiple paths!!!
     filepath = filepath isa AbstractArray ? first(filepath) : filepath
 
-    if arch_or_grid isa AbstractGrid
-        grid = arch_or_grid
-        architecture = Oceananigans.Grids.architecture(grid)
-    else
-        grid = nothing
-        architecture = arch_or_grid
-    end
-
     # OnDisk backends do not support time interpolation!
     # Disallow OnDisk for JRA55 dataset loading 
-    if backend isa OnDisk 
-        msg = string("We cannot load the JRA55 dataset with an `OnDisk` backend")
+    if !(backend isa JRA55NetCDFBackend) && !(backend isa TotallyInMemory)
+        msg = string("We cannot load the JRA55 dataset with an `OnDisk` or a `PartiallyInMemory` backend")
         throw(ArgumentError(msg))
     end
 
@@ -258,11 +248,6 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, arch_or_grid = CPU();
 
     # Record some important user decisions
     totally_in_memory = backend isa TotallyInMemory
-    on_native_grid = isnothing(grid)
-    !on_native_grid && backend isa JRA55NetCDFBackend && error("Can't use custom grid with JRA55NetCDFBackend.")
-
-    jld2_filepath = joinpath(dir, string("JRA55_repeat_year_", variable_name, ".jld2"))
-    fts_name = field_time_series_short_names[variable_name]
 
     # Determine default time indices
     if totally_in_memory
@@ -270,7 +255,6 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, arch_or_grid = CPU();
         # Either the time series is short, or we are doing a limited-area
         # simulation, like in a single column. So, we conservatively
         # set a default `time_indices = 1:2`.
-        isnothing(time_indices) && (time_indices = 1:2)
         time_indices_in_memory  = time_indices
         native_fts_architecture = architecture
     else
@@ -281,16 +265,8 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, arch_or_grid = CPU();
         # by default we choose all of them. The architecture is only the
         # architecture used for preprocessing, which typically will be CPU()
         # even if we would like the final FieldTimeSeries on the GPU.
-        isnothing(time_indices) && (time_indices = :)
-
-        if backend isa JRA55NetCDFBackend
-            time_indices_in_memory = 1:length(backend)
-            native_fts_architecture = architecture
-        else # then `time_indices_in_memory` refers to preprocessing
-            maximum_index = min(preprocess_chunk_size, length(time_indices))
-            time_indices_in_memory = 1:maximum_index
-            native_fts_architecture = preprocess_architecture
-        end
+        time_indices_in_memory = 1:length(backend)
+        native_fts_architecture = architecture
     end
 
     ds = Dataset(filepath)
@@ -353,118 +329,15 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, arch_or_grid = CPU();
 
         return fts
     else
-        # Make times into an array for later preprocessing
-        if !totally_in_memory
-            times = collect(times)
-        end
-
         native_fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times;
                                                               time_indexing,
+                                                              backend, 
                                                               boundary_conditions)
 
         # Fill the data in a GPU-friendly manner
         copyto!(interior(native_fts, :, :, 1, :), data)
         fill_halo_regions!(native_fts)
 
-        if on_native_grid && totally_in_memory
-            return native_fts
-
-        elseif totally_in_memory # but not on the native grid!
-            boundary_conditions = FieldBoundaryConditions(grid, (LX, LY, Nothing))
-            fts = FieldTimeSeries{LX, LY, Nothing}(grid, times; time_indexing, boundary_conditions)
-            interpolate!(fts, native_fts)
-            return fts
-        end
+        return native_fts
     end
-
-    @info "Pre-processing JRA55 $variable_name data into a JLD2 file..."
-
-    preprocessing_grid = on_native_grid ? JRA55_native_grid : grid
-
-    # Re-open the dataset!
-    ds = Dataset(filepath)
-    all_datetimes = ds["time"][time_indices]
-    all_Nt = length(all_datetimes)
-
-    all_times = native_times(all_datetimes)
-
-    on_disk_fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid, all_times;
-                                                   boundary_conditions,
-                                                   backend = OnDisk(),
-                                                   path = jld2_filepath,
-                                                   name = fts_name)
-
-    # Save data to disk, one field at a time
-    start_clock = time_ns()
-    n = 1 # on disk
-    m = 0 # in memory
-
-    times_in_memory = all_times[time_indices_in_memory]
-
-    fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid, times_in_memory;
-                                           boundary_conditions,
-                                           backend = InMemory(),
-                                           path = jld2_filepath,
-                                           name = fts_name)
-
-    # Re-compute data
-    new_data = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
-
-    if !on_native_grid
-        copyto!(interior(native_fts, :, :, 1, :), new_data[:, :, :])
-        fill_halo_regions!(native_fts)    
-        interpolate!(fts, native_fts)
-    else
-        copyto!(interior(fts, :, :, 1, :), new_data[:, :, :])
-    end
-
-    while n <= all_Nt
-        print("        ... processing time index $n of $all_Nt \r")
-
-        if time_indices_in_memory isa Colon || n ∈ time_indices_in_memory
-            m += 1
-        else # load new data
-            # Update time_indices
-            time_indices_in_memory = time_indices_in_memory .+ preprocess_chunk_size
-            n₁ = first(time_indices_in_memory)
-
-            # Clip time_indices if they extend past the end of the dataset
-            if last(time_indices_in_memory) > all_Nt
-                time_indices_in_memory = UnitRange(n₁, all_Nt)
-            end
-
-            # Re-compute times
-            new_times = native_times(all_times[time_indices_in_memory], all_times[n₁])
-            native_fts.times = new_times
-
-            # Re-compute data
-            new_data  = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
-            fts.times = new_times
-
-            if !on_native_grid
-                copyto!(interior(native_fts, :, :, 1, :), new_data[:, :, :])
-                fill_halo_regions!(native_fts)    
-                interpolate!(fts, native_fts)
-            else
-                copyto!(interior(fts, :, :, 1, :), new_data[:, :, :])
-            end
-
-            m = 1 # reset
-        end
-
-        set!(on_disk_fts, fts[m], n, fts.times[m])
-
-        n += 1
-    end
-
-    elapsed = 1e-9 * (time_ns() - start_clock)
-    elapsed_str = prettytime(elapsed)
-    @info "    ... done ($elapsed_str)" * repeat(" ", 20)
-
-    close(ds)
-
-    user_fts = FieldTimeSeries(jld2_filepath, fts_name; architecture, backend, time_indexing)
-    fill_halo_regions!(user_fts)
-
-    return user_fts
 end
