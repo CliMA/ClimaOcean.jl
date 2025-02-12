@@ -129,8 +129,10 @@ JRA55_repeat_year_urls = Dict(
 variable_is_three_dimensional(data::JRA55Metadata) = false
 
 urls(metadata::Metadata{<:Any, <:JRA55RepeatYear}) = JRA55_repeat_year_urls[metadata.name]  
-# TODO: 
-# urls(metadata::Metadata{<:Any, <:JRA55MultipleYears}) = ...
+function urls(metadata::Metadata{<:Any, <:JRA55MultipleYears})
+    shotname = short_name(metadata)
+    return "https://esgf-data2.llnl.gov/thredds/fileServer/user_pub_work/input4MIPs/CMIP6/OMIP/MRI/MRI-JRA55-do-1-5-0/atmos/$(shortname)/prra/gr/v20200916/"
+end
 
 metadata_url(prefix, m::Metadata{<:Any, <:JRA55RepeatYear}) = prefix # No specific name for this url
 

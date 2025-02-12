@@ -18,7 +18,7 @@ struct Metadata{D, V}
     dir :: String
 end
 
-Base.show(io::IO, metadata::EMetadata) = 
+Base.show(io::IO, metadata::Metadata) = 
     print(io, "ECCOMetadata:", '\n',
     "├── name: $(metadata.name)", '\n',
     "├── dates: $(metadata.dates)", '\n',
