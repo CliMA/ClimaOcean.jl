@@ -1,10 +1,10 @@
 # # One-degree global ocean simulation
 #
-# This example shows how to configure a global ocean simulation at 1ᵒ horizontal resolution with
-# realistic bathymetry.
+# This example configures a global ocean simulation at 1ᵒ horizontal resolution with
+# realistic bathymetry and some closures.
 #
-# For this example, we need Oceananigans, ClimaOcea, and CairoMakie to visualize the simulation.
-# Also CFTime and Dates for date handling.
+# For this example, we need Oceananigans, ClimaOcean, OrthogonalSphericalShellGrids, and
+# CairoMakie to visualize the simulation. Also we need CFTime and Dates for date handling.
 
 using ClimaOcean
 using ClimaOcean.ECCO: ECCO4Monthly, NearestNeighborInpainting
