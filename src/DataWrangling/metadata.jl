@@ -18,6 +18,16 @@ struct Metadata{D, V}
     dir :: String
 end
 
+function Metadata(name;
+                  version = ECCO4Monthly(),
+                  dates = all_dates(name),
+                  dir = default_download_folder(version))
+
+    return Metadata(name, dates, version, dir)
+end
+
+default_download_folder(version) = "./"
+
 Base.show(io::IO, metadata::Metadata) = 
     print(io, "ECCOMetadata:", '\n',
     "├── name: $(metadata.name)", '\n',

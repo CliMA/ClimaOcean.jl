@@ -8,13 +8,15 @@ using Downloads
 
 import Oceananigans.Fields: set!, location
 import Base
-import ClimaOcean.DataWrangling: all_dates, metadata_filename
+import ClimaOcean.DataWrangling: all_dates, metadata_filename, default_download_folder
 
 struct ECCO2Monthly end
 struct ECCO2Daily end
 struct ECCO4Monthly end
 
 const ECCOMetadata{D, V} = Metadata{D, V} where {D, V<:Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}}
+
+default_download_folder(::Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}) = download_ECCO_cache
 
 Base.summary(md::ECCOMetadata{<:Any, <:ECCO2Daily})   = "ECCO2Daily $(md.name) metadata ($(first(md.dates))--$(last(md.dates)))"
 Base.summary(md::ECCOMetadata{<:Any, <:ECCO2Monthly}) = "ECCO2Monthly $(md.name) metadata ($(first(md.dates))--$(last(md.dates)))"

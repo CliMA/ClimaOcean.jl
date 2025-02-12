@@ -11,12 +11,14 @@ import Base
 import ClimaOcean.DataWrangling: all_dates, metadata_filename
 
 import Oceananigans.Fields: set!, location
-import ClimaOcean.DataWrangling: all_dates, metadata_filename
+import ClimaOcean.DataWrangling: all_dates, metadata_filename, default_download_folder
 
 struct JRA55MultipleYears end
 struct JRA55RepeatYear end
 
 const JRA55Metadata{T, V} = Metadata{T, V} where {T, V<:Union{<:JRA55MultipleYears, <:JRA55RepeatYear}}
+
+default_download_folder(::Union{<:JRA55MultipleYears, <:JRA55RepeatYear}) = download_JRA55_cache
 
 Base.size(data::JRA55Metadata) = (640, 320, length(data.dates))
 Base.size(::JRA55Metadata{<:AbstractCFDateTime}) = (640, 320, 1)
