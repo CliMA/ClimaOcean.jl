@@ -12,18 +12,21 @@ JRA55PrescribedAtmosphere(arch::Distributed, time_indices=Colon(); kw...) =
     JRA55PrescribedAtmosphere(architecture::AA, time_indices=Colon();
                               backend = nothing,
                               time_indexing = Cyclical(),
+                              dates = all_dates(metadata), 
                               reference_height = 10,  # meters
                               include_rivers_and_icebergs = false,
                               other_kw...)
 
 Return a `PrescribedAtmosphere` representing JRA55 reanalysis data.
 """
-function JRA55PrescribedAtmosphere(architecture::AA, time_indices=Colon();
-                                     backend = nothing,
-                                     time_indexing = Cyclical(),
-                                     reference_height = 10,  # meters
-                                     include_rivers_and_icebergs = false,
-                                     other_kw...)
+function JRA55PrescribedAtmosphere(metadata::JRA55Metadata, arch_or_grid = CPU();
+                                   backend = nothing,
+                                   time_indexing = Cyclical(),
+                                   reference_height = 10,  # meters
+                                   include_rivers_and_icebergs = false,
+                                   other_kw...)
+
+    time_indices = JRA55_time_indices(metadata.version, metadata.dates)
 
     if isnothing(backend) # apply a default
         Ni = try
@@ -40,15 +43,15 @@ function JRA55PrescribedAtmosphere(architecture::AA, time_indices=Colon();
     kw = (; time_indices, time_indexing, backend, architecture)
     kw = merge(kw, other_kw) 
 
-    ua  = JRA55_field_time_series(:eastward_velocity;               kw...)
-    va  = JRA55_field_time_series(:northward_velocity;              kw...)
-    Ta  = JRA55_field_time_series(:temperature;                     kw...)
-    qa  = JRA55_field_time_series(:specific_humidity;               kw...)
-    pa  = JRA55_field_time_series(:sea_level_pressure;              kw...)
-    Fra = JRA55_field_time_series(:rain_freshwater_flux;            kw...)
-    Fsn = JRA55_field_time_series(:snow_freshwater_flux;            kw...)
-    Ql  = JRA55_field_time_series(:downwelling_longwave_radiation;  kw...)
-    Qs  = JRA55_field_time_series(:downwelling_shortwave_radiation; kw...)
+    ua  = JRA55FieldTimeSeries(:eastward_velocity;               kw...)
+    va  = JRA55FieldTimeSeries(:northward_velocity;              kw...)
+    Ta  = JRA55FieldTimeSeries(:temperature;                     kw...)
+    qa  = JRA55FieldTimeSeries(:specific_humidity;               kw...)
+    pa  = JRA55FieldTimeSeries(:sea_level_pressure;              kw...)
+    Fra = JRA55FieldTimeSeries(:rain_freshwater_flux;            kw...)
+    Fsn = JRA55FieldTimeSeries(:snow_freshwater_flux;            kw...)
+    Ql  = JRA55FieldTimeSeries(:downwelling_longwave_radiation;  kw...)
+    Qs  = JRA55FieldTimeSeries(:downwelling_shortwave_radiation; kw...)
 
     freshwater_flux = (rain = Fra,
                        snow = Fsn)
@@ -57,8 +60,8 @@ function JRA55PrescribedAtmosphere(architecture::AA, time_indices=Colon();
     # a different frequency than the rest of the JRA55 data. We use `PrescribedAtmospheres`
     # "auxiliary_freshwater_flux" feature to represent them.
     if include_rivers_and_icebergs
-        Fri = JRA55_field_time_series(:river_freshwater_flux;   kw...)
-        Fic = JRA55_field_time_series(:iceberg_freshwater_flux; kw...)
+        Fri = JRA55FieldTimeSeries(:river_freshwater_flux;   kw...)
+        Fic = JRA55FieldTimeSeries(:iceberg_freshwater_flux; kw...)
         auxiliary_freshwater_flux = (rivers = Fri, icebergs = Fic)
     else
         auxiliary_freshwater_flux = nothing

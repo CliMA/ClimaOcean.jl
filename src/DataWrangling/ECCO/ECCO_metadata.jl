@@ -4,18 +4,17 @@ using ClimaOcean.DataWrangling
 using ClimaOcean.DataWrangling: netrc_downloader
 
 import Dates: year, month, day
-
-using Base: @propagate_inbounds
 using Downloads
 
 import Oceananigans.Fields: set!, location
 import Base
+import ClimaOcean.DataWrangling: all_dates
 
 struct ECCO2Monthly end
 struct ECCO2Daily end
 struct ECCO4Monthly end
 
-const ECCOMetadata{D, V} = Union{Metadata{D, V<:ECCO4Monthly}, Metadata{D, V<:ECCO2Daily}, Metadata{D, V<:ECCO2Monthly}} where {D, V}
+const ECCOMetadata{D, V} = Metadata{D, V} where {D, V<:Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}}
 
 Base.show(io::IO, metadata::ECCOMetadata) = 
     print(io, "ECCOMetadata:", '\n',
@@ -77,9 +76,9 @@ Base.size(::ECCOMetadata{<:AbstractCFDateTime, <:ECCO2Monthly}) = (1440, 720, 50
 Base.size(::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4Monthly}) = (720,  360, 50, 1)
 
 # The whole range of dates in the different dataset versions
-all_ECCO_dates(::ECCO4Monthly) = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(2023, 12, 1)
-all_ECCO_dates(::ECCO2Monthly) = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(2023, 12, 1)
-all_ECCO_dates(::ECCO2Daily)   = DateTimeProlepticGregorian(1992, 1, 4) : Day(1)   : DateTimeProlepticGregorian(2023, 12, 31)
+all_dates(::ECCO4Monthly) = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(2023, 12, 1)
+all_dates(::ECCO2Monthly) = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(2023, 12, 1)
+all_dates(::ECCO2Daily)   = DateTimeProlepticGregorian(1992, 1, 4) : Day(1)   : DateTimeProlepticGregorian(2023, 12, 31)
 
 # File names of metadata containing multiple dates
 metadata_filename(metadata) = [metadata_filename(metadatum) for metadatum in metadata]

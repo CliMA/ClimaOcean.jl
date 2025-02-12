@@ -1,3 +1,4 @@
+using ClimaOcean.DataWrangling: all_dates, native_times
 
 download_JRA55_cache::String = ""
 
@@ -69,19 +70,6 @@ function compute_bounding_indices(longitude, latitude, grid, LX, LY, λc, φc)
     TX = infer_longitudinal_topology(λbounds)
 
     return i₁, i₂, j₁, j₂, TX
-end
-
-# Convert dates to range until Oceananigans supports dates natively
-function JRA55_times(native_times, start_time=native_times[1])
-
-    times = []
-    for native_time in native_times
-        time = native_time - start_time
-        time = Second(time).value
-        push!(times, time)
-    end
-
-    return times
 end
 
 struct JRA55NetCDFBackend <: AbstractInMemoryBackend{Int}
@@ -221,13 +209,21 @@ Keyword arguments
 - `time_chunks_in_memory`: number of fields held in memory. If `nothing` then the whole timeseries
                            is loaded (not recommended).
 """
-function JRA55FieldTimeSeries(variable_name, architecture=CPU(); 
+function JRA55FieldTimeSeries(variable_name::Symbol,
+                              arch_or_grid = CPU();
                               version = JRA55RepeatYear(),
-                              dates = all_JRA55_dates(version),
+                              dates = all_dates(version),
+                              dir = download_JRA55_cache,
+                              kw...)
+
+    metadata = Metadata(variable_name, dates, version, dir)
+
+    return JRA55FieldTimeSeries(metadata, arch_or_grid; kw...)
+end
+
+function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(); 
                               grid = nothing,
                               location = nothing,
-                              url = nothing,
-                              dir = download_JRA55_cache,
                               filename = nothing,
                               shortname = nothing,
                               latitude = nothing,
@@ -237,7 +233,7 @@ function JRA55FieldTimeSeries(variable_name, architecture=CPU();
                               preprocess_chunk_size = 10,
                               preprocess_architecture = CPU())
 
-    time_indices = JRA55_time_indices(dates)
+    time_indices = JRA55_time_indices(metadata.version, metadata.dates)
 
     # OnDisk backends do not support time interpolation!
     # Disallow OnDisk for JRA55 dataset loading 
@@ -346,7 +342,7 @@ function JRA55FieldTimeSeries(variable_name, architecture=CPU();
     # Probably with arguments that take latitude, longitude bounds.
     i₁, i₂, j₁, j₂, TX = compute_bounding_indices(longitude, latitude, grid, LX, LY, λc, φc)
 
-    native_times = ds["time"][time_indices]
+    native_JRA55_times = ds["time"][time_indices]
     data = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
     λr = λn[i₁:i₂+1]
     φr = φn[j₁:j₂+1]
@@ -364,7 +360,7 @@ function JRA55FieldTimeSeries(variable_name, architecture=CPU();
                                               topology = (TX, Bounded, Flat))
 
     boundary_conditions = FieldBoundaryConditions(JRA55_native_grid, (Center, Center, Nothing))
-    times = JRA55_times(native_times)
+    times = native_times(native_JRA55_times)
 
     if backend isa JRA55NetCDFBackend
         fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times;
@@ -413,7 +409,7 @@ function JRA55FieldTimeSeries(variable_name, architecture=CPU();
     all_datetimes = ds["time"][time_indices]
     all_Nt = length(all_datetimes)
 
-    all_times = JRA55_times(all_datetimes)
+    all_times = native_times(all_datetimes)
 
     on_disk_fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid, all_times;
                                                    boundary_conditions,
@@ -461,7 +457,7 @@ function JRA55FieldTimeSeries(variable_name, architecture=CPU();
             end
 
             # Re-compute times
-            new_times = JRA55_times(all_times[time_indices_in_memory], all_times[n₁])
+            new_times = native_times(all_times[time_indices_in_memory], all_times[n₁])
             native_fts.times = new_times
 
             # Re-compute data

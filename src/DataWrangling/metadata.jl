@@ -1,3 +1,7 @@
+using CFTime
+using Dates
+using Base: @propagate_inbounds
+
 """
     Metadata{D, V} 
 
@@ -24,13 +28,14 @@ Base.show(io::IO, metadata::Metadata) =
 # Treat Metadata as an array to allow iteration over the dates.
 Base.length(metadata::Metadata) = length(metadata.dates)
 Base.eltype(metadata::Metadata) = Base.eltype(metadata.dates)
+
 @propagate_inbounds Base.getindex(m::Metadata, i::Int) = Metadata(m.name, m.dates[i],   m.version, m.dir)
 @propagate_inbounds Base.first(m::Metadata)            = Metadata(m.name, m.dates[1],   m.version, m.dir)
 @propagate_inbounds Base.last(m::Metadata)             = Metadata(m.name, m.dates[end], m.version, m.dir)
 
 @inline function Base.iterate(m::Metadata, i=1)
     if (i % UInt) - 1 < length(m)
-        return ECCOMetadata(m.name, m.dates[i], m.version, m.dir), i + 1
+        return Metadata(m.name, m.dates[i], m.version, m.dir), i + 1
     else
         return nothing
     end
@@ -66,3 +71,11 @@ function native_times(metadata; start_time = first(metadata).dates)
 
     return times
 end
+
+"""
+    all_dates(metadata)
+
+Extracts all the dates of the given metadata formatted using the `DateTimeProlepticGregorian` type.
+Needs to be extended by any new dataset version.
+"""
+all_dates(metadata) = all_dates(metadata.version)

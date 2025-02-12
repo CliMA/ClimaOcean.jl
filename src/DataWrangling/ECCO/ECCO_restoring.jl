@@ -166,7 +166,7 @@ function ECCOFieldTimeSeries(metadata::ECCOMetadata, grid::AbstractGrid;
 end
 
 ECCOFieldTimeSeries(variable_name::Symbol, version=ECCO4Monthly(); kw...) = 
-    ECCOFieldTimeSeries(ECCOMetadata(variable_name, all_ECCO_dates(version), version); kw...)
+    ECCOFieldTimeSeries(ECCOMetadata(variable_name, all_dates(version), version); kw...)
 
 # Variable names for restorable data
 struct Temperature end
@@ -239,7 +239,7 @@ end
 """
     ECCORestoring(variable_name::Symbol, [ arch_or_grid = CPU(), ];
                   version = ECCO4Monthly(),
-                  dates = all_ECCO_dates(version),
+                  dates = all_dates(version),
                   time_indices_in_memory = 2,
                   time_indexing = Cyclical(),
                   mask = 1,
@@ -285,7 +285,7 @@ Keyword Arguments
 
 - `version`: The version of the ECCO dataset. Default: `ECCO4Monthly()`.
 
-- `dates`: The dates to use for the ECCO dataset. Default: `all_ECCO_dates(version)`.
+- `dates`: The dates to use for the ECCO dataset. Default: `all_dates(version)`.
 
 - `time_indices_in_memory`: The number of time indices to keep in memory. The number is chosen based on 
                             a trade-off between increased performance (more indices in memory) and reduced
@@ -308,7 +308,7 @@ Keyword Arguments
 function ECCORestoring(variable_name::Symbol,
                        arch_or_grid = CPU();
                        version = ECCO4Monthly(),
-                       dates = all_ECCO_dates(version),
+                       dates = all_dates(version),
                        dir = download_ECCO_cache,
                        kw...)
 

@@ -5,18 +5,24 @@ import Oceananigans.Fields: set!
 import Base
 
 using ClimaOcean.DataWrangling: Metadata
+import ClimaOcean.DataWrangling: all_dates
 
 struct JRA55MultipleYears end
 struct JRA55RepeatYear end
 
-const JRA55Metadata{T, V} = Union{Metadata{T, V<:JRA55MultipleYears}, Metadata{T, V<:JRA55RepeatYear}} where {T, V}
+const JRA55Metadata{T, V} = Metadata{T, V} where {T, V<:Union{<:JRA55MultipleYears, <:JRA55RepeatYear}}
 
 Base.size(data::JRA55Metadata) = (640, 320, length(data.dates))
 Base.size(::JRA55Metadata{<:AbstractCFDateTime}) = (640, 320, 1)
 
 # The whole range of dates in the different dataset versions
-all_JRA55_times(::JRA55RepeatYear)    = DateTimeProlepticGregorian(1990, 1, 1) : Hour(3) : DateTimeProlepticGregorian(1991, 1, 1)
-all_JRA55_times(::JRA55MultipleYears) = DateTimeProlepticGregorian(1958, 1, 1) : Hour(3) : DateTimeProlepticGregorian(2021, 1, 1)
+all_dates(::JRA55RepeatYear)    = DateTimeProlepticGregorian(1990, 1, 1) : Hour(3) : DateTimeProlepticGregorian(1991, 1, 1)
+all_dates(::JRA55MultipleYears) = DateTimeProlepticGregorian(1958, 1, 1) : Hour(3) : DateTimeProlepticGregorian(2021, 1, 1)
+
+function JRA55_time_indices(version, dates)
+    all_JRA55_dates = all_dates(version)
+    return findall(all_JRA55_dates .== dates)
+end
 
 # File name generation specific to each Dataset version
 function metadata_filename(metadata::Metadata{<:AbstractCFDateTime, <:JRA55MultipleYears})
@@ -35,7 +41,7 @@ function metadata_filename(metadata::Metadata{<:AbstractCFDateTime, <:JRA55Repea
 end
 
 # Convenience functions
-short_name(data::JRA55Metadata) = jra55_short_names[data.name]
+short_name(data::JRA55Metadata) = JRA55_short_names[data.name]
 location(data::JRA55Metadata)   = (Center, Center, Center)
 
 # A list of all variables provided in the JRA55 dataset:
@@ -82,9 +88,7 @@ field_time_series_short_names = Dict(
     :northward_velocity              => "va",  # Northward near-surface wind
 )
 
-urls(metadata::Metadata{<:Any, <:JRA55RepeatYear}) = jra55_repeat_year_urls[metadata.name]  
-
-jra55_repeat_year_urls = Dict(
+JRA55_repeat_year_urls = Dict(
     :shortwave_radiation => "https://www.dropbox.com/scl/fi/z6fkvmd9oe3ycmaxta131/" *
                             "RYF.rsds.1990_1991.nc?rlkey=r7q6zcbj6a4fxsq0f8th7c4tc&dl=0",
 
@@ -127,11 +131,13 @@ jra55_repeat_year_urls = Dict(
 
 variable_is_three_dimensional(data::JRA55Metadata) = false
 
-urls(metadata::Metadata{<:Any, <:JRA55RepeatYear}) = jra55_repeat_year_urls[metadata.name]
+urls(metadata::Metadata{<:Any, <:JRA55RepeatYear})    = JRA55_repeat_year_urls[metadata.name]  
+# TODO: 
+# urls(metadata::Metadata{<:Any, <:JRA55MultipleYears}) = ...
 
 function download_dataset!(metadata::JRA55Metadata;
                            url = urls(metadata),
-                           dir = download_jra55_cache)
+                           dir = download_JRA55_cache)
 
     for data in metadata
         filename  = metadata_filename(data)
