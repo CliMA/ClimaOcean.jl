@@ -41,7 +41,8 @@ bottom_height = regrid_bathymetry(underlying_grid;
 tampered_bottom_height = deepcopy(bottom_height)
 view(tampered_bottom_height, 102:103, 124, 1) .= -400
 
-grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(tampered_bottom_height); active_cells_map=true)
+grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(tampered_bottom_height);
+                            active_cells_map=true)
 
 # ### Restoring
 
@@ -139,7 +140,7 @@ function progress(sim)
 
     step_time = 1e-9 * (time_ns() - wall_time[])
 
-    @info @sprintf("Time: %s, n: %d, Δt: %s, max|u|: (%.2e, %.2e, %.2e) m s⁻¹, extrema(T): (%.2f, %.2f) ᵒC, wall time: %s \n",
+    @info @sprintf("time: %s, iteration: %d, Δt: %s, max|u|: (%.2e, %.2e, %.2e) m s⁻¹, extrema(T): (%.2f, %.2f) ᵒC, wall time: %s \n",
                    prettytime(sim), iteration(sim), prettytime(sim.Δt),
                    umax..., Tmax, Tmin, prettytime(step_time))
 
@@ -154,8 +155,9 @@ add_callback!(simulation, progress, IterationInterval(10))
 # ### Output
 #
 # We are almost there! We need to save some output. Below we choose to save _only surface_
-# fields using the `indices` keyword argument. We save all velocity components and
-# also both temperature and salinity.
+# fields using the `indices` keyword argument. We save all velocity and tracer components.
+# Note, that besides temperature and salinity, the CATKE vertical mixing parameterization
+# also uses a prognostic turbulent kinetic energy, `e`, to diagnose the vertical mixing length.
 
 outputs = merge(ocean.model.tracers, ocean.model.velocities)
 ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
@@ -224,7 +226,8 @@ sn = @lift begin
     view(sn, :, :, 1)
 end
 
-# Finally, we plot a snapshot of the surface speed, temperature, and salinity.
+# Finally, we plot a snapshot of the surface speed, temperature, and the turbulent
+# eddy kinetic energy from the CATKE vertical mixing parameterization.
 fig = Figure(size = (800, 1200))
 
 axs = Axis(fig[1, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
@@ -239,6 +242,7 @@ Colorbar(fig[2, 2], hm, label = "Surface Temperature (ᵒC)")
 
 hm = heatmap!(axe, en, colorrange = (0, 1e-3), colormap = :solar, nan_color=:lightgray)
 Colorbar(fig[3, 2], hm, label = "Turbulent Kinetic Energy (m² s⁻²)")
+
 save("snapshot.png", fig)
 nothing #hide
 
