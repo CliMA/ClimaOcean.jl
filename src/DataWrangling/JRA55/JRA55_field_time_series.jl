@@ -218,7 +218,7 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture = CPU();
                               time_indexing = Cyclical())
 
     # First thing: we download the dataset!
-    download_dataset!(metadata)
+    download_dataset(metadata)
 
     # Unpack metadata details
     time_indices = JRA55_time_indices(metadata.version, metadata.dates)

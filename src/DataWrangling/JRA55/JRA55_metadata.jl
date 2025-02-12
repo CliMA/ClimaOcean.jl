@@ -136,7 +136,7 @@ urls(metadata::Metadata{<:Any, <:JRA55RepeatYear}) = JRA55_repeat_year_urls[meta
 metadata_url(prefix, m::Metadata{<:Any, <:JRA55RepeatYear}) = prefix # No specific name for this url
 
 # TODO: This will need to change when we add a method for JRA55MultipleYears
-function download_dataset!(metadata::JRA55Metadata; url = urls(metadata))
+function download_dataset(metadata::JRA55Metadata; url = urls(metadata))
 
     asyncmap(metadata, ntasks=10) do metadatum # Distribute the download among tasks
 
