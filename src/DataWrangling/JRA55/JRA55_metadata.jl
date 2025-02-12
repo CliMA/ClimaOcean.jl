@@ -86,21 +86,6 @@ JRA55_short_names = Dict(
     :northward_velocity              => "vas",      # Northward near-surface wind
 )
 
-field_time_series_short_names = Dict(
-    :river_freshwater_flux           => "Fri", # Freshwater fluxes from rivers
-    :rain_freshwater_flux            => "Fra", # Freshwater flux from rainfall
-    :snow_freshwater_flux            => "Fsn", # Freshwater flux from snowfall
-    :iceberg_freshwater_flux         => "Fic", # Freshwater flux from calving icebergs
-    :specific_humidity               => "qa",  # Surface specific humidity
-    :sea_level_pressure              => "pa",  # Sea level pressure
-    :relative_humidity               => "rh",  # Surface relative humidity
-    :downwelling_longwave_radiation  => "Ql",  # Downwelling longwave radiation
-    :downwelling_shortwave_radiation => "Qs",  # Downwelling shortwave radiation
-    :temperature                     => "Ta",  # Near-surface air temperature
-    :eastward_velocity               => "ua",  # Eastward near-surface wind
-    :northward_velocity              => "va",  # Northward near-surface wind
-)
-
 JRA55_repeat_year_urls = Dict(
     :shortwave_radiation => "https://www.dropbox.com/scl/fi/z6fkvmd9oe3ycmaxta131/" *
                             "RYF.rsds.1990_1991.nc?rlkey=r7q6zcbj6a4fxsq0f8th7c4tc&dl=0",
