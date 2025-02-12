@@ -24,7 +24,7 @@ export
     exponential_z_faces,
     PowerLawStretching, LinearStretching,
     exponential_z_faces,
-    JRA55_field_time_series,
+    JRA55FieldTimeSeries,
     ECCO_field, 
     ECCOMetadata,
     ECCORestoring,

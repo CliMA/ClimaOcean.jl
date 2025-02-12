@@ -31,7 +31,7 @@ import Oceananigans.OutputReaders: new_backend, update_field_time_series!
 using Downloads: download
 
 include("JRA55_metadata.jl")
-include("JRA55_field_time_series.jl")
+include("JRA55FieldTimeSeries.jl")
 include("JRA55_prescribed_atmosphere.jl")
 
 end # module

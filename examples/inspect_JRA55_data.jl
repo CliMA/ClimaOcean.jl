@@ -5,8 +5,8 @@ using Oceananigans.Units
 using Printf
 
 time_indices = Colon()
-Qswt = ClimaOcean.JRA55.JRA55_field_time_series(:downwelling_shortwave_radiation; time_indices)
-rht = ClimaOcean.JRA55.JRA55_field_time_series(:relative_humidity; time_indices)
+Qswt = ClimaOcean.JRA55.JRA55FieldTimeSeries(:downwelling_shortwave_radiation; time_indices)
+rht = ClimaOcean.JRA55.JRA55FieldTimeSeries(:relative_humidity; time_indices)
 
 function lonlat2xyz(lons::AbstractVector, lats::AbstractVector)
     x = [cosd(lat) * cosd(lon) for lon in lons, lat in lats]
