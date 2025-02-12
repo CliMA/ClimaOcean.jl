@@ -18,12 +18,12 @@ struct Metadata{D, V}
     dir :: String
 end
 
-Base.show(io::IO, metadata::Metadata) = 
-    print(io, "Metadata:", '\n',
-    "├── field: $(metadata.name)", '\n',
+Base.show(io::IO, metadata::EMetadata) = 
+    print(io, "ECCOMetadata:", '\n',
+    "├── name: $(metadata.name)", '\n',
     "├── dates: $(metadata.dates)", '\n',
-    "└── data version: $(metadata.version)")
-
+    "├── version: $(metadata.version)", '\n',
+    "└── data directory: $(metadata.dir)")
 
 # Treat Metadata as an array to allow iteration over the dates.
 Base.length(metadata::Metadata) = length(metadata.dates)

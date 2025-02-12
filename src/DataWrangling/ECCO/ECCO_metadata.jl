@@ -16,13 +16,6 @@ struct ECCO4Monthly end
 
 const ECCOMetadata{D, V} = Metadata{D, V} where {D, V<:Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}}
 
-Base.show(io::IO, metadata::ECCOMetadata) = 
-    print(io, "ECCOMetadata:", '\n',
-    "├── name: $(metadata.name)", '\n',
-    "├── dates: $(metadata.dates)", '\n',
-    "├── version: $(metadata.version)", '\n',
-    "└── dir: $(metadata.dir)")
-
 Base.summary(md::ECCOMetadata{<:Any, <:ECCO2Daily})   = "ECCO2Daily $(md.name) metadata ($(first(md.dates))--$(last(md.dates)))"
 Base.summary(md::ECCOMetadata{<:Any, <:ECCO2Monthly}) = "ECCO2Monthly $(md.name) metadata ($(first(md.dates))--$(last(md.dates)))"
 Base.summary(md::ECCOMetadata{<:Any, <:ECCO4Monthly}) = "ECCO4Monthly $(md.name) metadata ($(first(md.dates))--$(last(md.dates)))"
