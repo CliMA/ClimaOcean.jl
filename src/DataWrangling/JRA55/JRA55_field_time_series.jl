@@ -1,5 +1,6 @@
 using ClimaOcean.DataWrangling: all_dates, native_times
 using Oceananigans.Grids: AbstractGrid
+using Oceananigans.OutputReaders: PartlyInMemory
 
 download_JRA55_cache::String = ""
 
@@ -230,8 +231,8 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture = CPU();
 
     # OnDisk backends do not support time interpolation!
     # Disallow OnDisk for JRA55 dataset loading 
-    if !(backend isa JRA55NetCDFBackend) && !(backend isa TotallyInMemory)
-        msg = string("We cannot load the JRA55 dataset with an `OnDisk` or a `PartiallyInMemory` backend")
+    if backend isa PartlyInMemory || backend isa OnDisk
+        msg = string("We cannot load the JRA55 dataset with a $(backend) backend. Use `InMemory()` or `JRA55NetCDFBackend(N)` instead.")
         throw(ArgumentError(msg))
     end
 
