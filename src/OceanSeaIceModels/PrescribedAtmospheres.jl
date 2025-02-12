@@ -287,9 +287,8 @@ const PATP = PrescribedAtmosphereThermodynamicsParameters
 ##### Prescribed atmosphere (as opposed to dynamically evolving / prognostic)
 #####
 
-struct PrescribedAtmosphere{FT, M, G, U, P, C, F, I, R, TP, TI}
+struct PrescribedAtmosphere{FT, G, U, P, C, F, I, R, TP, TI}
     grid :: G
-    metadata :: M
     velocities :: U
     pressure :: P
     tracers :: C
@@ -349,22 +348,20 @@ end
 
 """
     PrescribedAtmosphere(grid, times;
-                         metadata = nothing,
                          reference_height = 10, # meters
                          boundary_layer_height = 600 # meters,
                          thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT),
-                              auxiliary_freshwater_flux = nothing,
-                              velocities            = default_atmosphere_velocities(grid, times),
-                              tracers               = default_atmosphere_tracers(grid, times),
-                              pressure              = default_atmosphere_pressure(grid, times),
-                              freshwater_flux       = default_freshwater_flux(grid, times),
-                              downwelling_radiation = default_downwelling_radiation(grid, times))
+                         auxiliary_freshwater_flux = nothing,
+                         velocities            = default_atmosphere_velocities(grid, times),
+                         tracers               = default_atmosphere_tracers(grid, times),
+                         pressure              = default_atmosphere_pressure(grid, times),
+                         freshwater_flux       = default_freshwater_flux(grid, times),
+                         downwelling_radiation = default_downwelling_radiation(grid, times))
 
 Return a representation of a prescribed time-evolving atmospheric
 state with data given at `times`.
 """
 function PrescribedAtmosphere(grid, times;
-                              metadata = nothing,  
                               reference_height = convert(eltype(grid), 10),
                               boundary_layer_height = convert(eltype(grid), 600),
                               thermodynamics_parameters = nothing,
@@ -381,7 +378,6 @@ function PrescribedAtmosphere(grid, times;
     end
 
     return PrescribedAtmosphere(grid,
-                                metadata,
                                 velocities,
                                 pressure,
                                 tracers,

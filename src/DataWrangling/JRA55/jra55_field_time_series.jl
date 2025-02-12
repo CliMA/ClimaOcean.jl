@@ -292,7 +292,7 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture = CPU();
     push!(φn, 90)
     push!(λn, λn[1] + 360)
 
-    i₁, i₂, j₁, j₂, TX = compute_bounding_indices(longitude, latitude, grid, Center, Center, λc, φc)
+    i₁, i₂, j₁, j₂, TX = compute_bounding_indices(longitude, latitude, nothing, Center, Center, λc, φc)
 
     data = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
     λr = λn[i₁:i₂+1]
