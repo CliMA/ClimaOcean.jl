@@ -22,7 +22,7 @@ Base.size(data::JRA55Metadata) = (640, 320, length(data.dates))
 Base.size(::JRA55Metadata{<:AbstractCFDateTime}) = (640, 320, 1)
 
 # The whole range of dates in the different dataset versions
-all_dates(::JRA55RepeatYear)    = DateTimeProlepticGregorian(1990, 1, 1) : Hour(3) : DateTimeProlepticGregorian(1991, 1, 1)
+all_dates(::JRA55RepeatYear)    = DateTimeProlepticGregorian(1990, 1, 1) : Hour(3) : DateTimeProlepticGregorian(1990, 12, 31, 23, 59, 59)
 all_dates(::JRA55MultipleYears) = DateTimeProlepticGregorian(1958, 1, 1) : Hour(3) : DateTimeProlepticGregorian(2021, 1, 1)
 
 function JRA55_time_indices(version, dates)

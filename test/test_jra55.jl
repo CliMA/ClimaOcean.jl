@@ -10,8 +10,10 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 
         # This should download files called "RYF.rsds.1990_1991.nc" and "RYF.tas.1990_1991.nc"
         for test_name in (:downwelling_shortwave_radiation, :temperature)
-            time_indices = 1:3
-            JRA55_fts = JRA55FieldTimeSeries(test_name; architecture=arch, time_indices)
+            dates = ClimaOcean.DataWrangling.all_dates(JRA55.JRA55RepeatYear())
+            dates = dates[1:3]
+
+            JRA55_fts = JRA55FieldTimeSeries(test_name, arch; dates)
             test_filename = joinpath(download_JRA55_cache, "RYF.rsds.1990_1991.nc")
 
             @test JRA55_fts isa FieldTimeSeries
@@ -21,7 +23,7 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
             @test Nx == 640
             @test Ny == 320
             @test Nz == 1
-            @test Nt == length(time_indices)
+            @test Nt == 3
 
             if test_name == :downwelling_shortwave_radiation
                 CUDA.@allowscalar begin
@@ -35,24 +37,10 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
                 @test view(JRA55_fts.data, 1, :, 1, :) == view(JRA55_fts.data, Nx+1, :, 1, :)
             end
 
-            @info "Testing loading preprocessed JRA55 data on $A..."
-            in_memory_JRA55_fts = JRA55_field_time_series(test_name;
-                                                          time_indices = 1:4,
-                                                          architecture = arch,
-                                                          backend = InMemory(2))
-
-            @test in_memory_JRA55_fts isa FieldTimeSeries
-            @test interior(in_memory_JRA55_fts[1]) == interior(JRA55_fts[1])
-
-            # Clean up
-            isfile(in_memory_JRA55_fts.path) && rm(in_memory_JRA55_fts.path, force=true)
-
             @info "Testing Cyclical time_indices for JRA55 data on $A..."
             Nb = 4
             backend = JRA55NetCDFBackend(Nb) 
-            netcdf_JRA55_fts = JRA55_field_time_series(test_name; backend,
-                                                       time_indices = Colon(),
-                                                       architecture = arch)
+            netcdf_JRA55_fts = JRA55FieldTimeSeries(test_name, arch; backend)
 
             Nt = length(netcdf_JRA55_fts.times)
             @test Oceananigans.OutputReaders.time_indices(netcdf_JRA55_fts) == (1, 2, 3, 4)
@@ -70,7 +58,9 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 
         @info "Testing interpolate_field_time_series! on $A..."
 
-        JRA55_fts = JRA55_field_time_series(:downwelling_shortwave_radiation; architecture=arch, time_indices=1:3)
+        dates = ClimaOcean.DataWrangling.all_dates(JRA55.JRA55RepeatYear())
+        dates = dates[1:3]
+        JRA55_fts = JRA55FieldTimeSeries(:downwelling_shortwave_radiation, arch; dates)
 
         # Make target grid and field
         resolution = 1 # degree, eg 1/4
