@@ -15,8 +15,6 @@ using CFTime
 using Dates
 using Printf
 
-using Oceananigans.Grids: znode
-
 arch = GPU()
 
 # ### Grid and Bathymetry
