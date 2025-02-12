@@ -62,12 +62,11 @@ forcing = (T=FT, S=FS)
 
 # ### Closures
 
-# We include a Gent-McWilliam isopycnal diffussivity as a parameterization for the mesoscale
+# We include a Gent-McWilliam isopycnal diffusivity as a parameterization for the mesoscale
 # eddy fluxes. For vertical mixing at the upper-ocean boundary layer we include the CATKE
 # parameterization. We also include some explicit horizontal diffusivity.
 
 using Oceananigans.TurbulenceClosures: IsopycnalSkewSymmetricDiffusivity,
-                                       ExplicitTimeDiscretization,
                                        DiffusiveFormulation
 
 using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities: CATKEVerticalDiffusivity
