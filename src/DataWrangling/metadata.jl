@@ -47,20 +47,25 @@ Base.last(metadata::Metadata{<:AbstractCFDateTime})    = metadata
 Base.iterate(metadata::Metadata{<:AbstractCFDateTime}) = (metadata, nothing)
 Base.iterate(::Metadata{<:AbstractCFDateTime}, ::Any)  = nothing
 
-"""
-    native_times(metadata; start_time = metadata.dates[1])
+metadata_path(metadata) = joinpath(metadata.dir, metadata_filename(metadata))
 
-Extracts the time values from the given metadata and calculates the time difference
+
+"""
+    native_times(metadata; start_time = first(metadata).dates)
+
+Extract the time values from the given metadata and calculates the time difference
 from the start time.
 
-# Arguments
+Arguments
+=========
 - `metadata`: The metadata containing the date information.
 - `start_time`: The start time for calculating the time difference. Defaults to the first date in the metadata.
 
-# Returns
+Returns
+=======
 An array of time differences in seconds.
 """
-function native_times(metadata; start_time = first(metadata).dates)
+function native_times(metadata; start_time=first(metadata).dates)
     times = zeros(length(metadata))
     for (t, data) in enumerate(metadata)
         date = data.dates
@@ -79,3 +84,6 @@ Extracts all the dates of the given metadata formatted using the `DateTimeProlep
 Needs to be extended by any new dataset version.
 """
 all_dates(metadata) = all_dates(metadata.version)
+
+# File names of metadata containing multiple dates
+metadata_filename(metadata) = [metadata_filename(metadatum) for metadatum in metadata]

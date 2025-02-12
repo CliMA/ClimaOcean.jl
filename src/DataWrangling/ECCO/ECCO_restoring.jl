@@ -10,7 +10,7 @@ using JLD2
 
 using Dates: Second
 using ClimaOcean: stateindex
-using ClimaOcean.DataWrangling: NearestNeighborInpainting
+using ClimaOcean.DataWrangling: NearestNeighborInpainting, native_times
 
 import Oceananigans.Fields: set!
 import Oceananigans.Forcings: regularize_forcing
@@ -79,33 +79,6 @@ function set!(fts::ECCOFieldTimeSeries)
 end
 
 """
-    ECCO_times(metadata; start_time = first(metadata).dates)
-
-Extract the time values from the given metadata and calculates the time difference
-from the start time.
-
-Arguments
-=========
-- `metadata`: The metadata containing the date information.
-- `start_time`: The start time for calculating the time difference. Defaults to the first date in the metadata.
-
-Returns
-=======
-An array of time differences in seconds.
-"""
-function ECCO_times(metadata; start_time = first(metadata).dates)
-    times = zeros(length(metadata))
-    for (t, data) in enumerate(metadata)
-        date = data.dates
-        time = date - start_time
-        time = Second(time).value
-        times[t] = time
-    end
-
-    return times
-end
-
-"""
     ECCOFieldTimeSeries(metadata::ECCOMetadata [, arch_or_grid=CPU() ];
                         time_indices_in_memory = 2,
                         time_indexing = Cyclical(),
@@ -156,7 +129,7 @@ function ECCOFieldTimeSeries(metadata::ECCOMetadata, grid::AbstractGrid;
     inpainting isa Int && (inpainting = NearestNeighborInpainting(inpainting))
     backend = ECCONetCDFBackend(time_indices_in_memory, metadata; on_native_grid, inpainting, cache_inpainted_data)
 
-    times = ECCO_times(metadata)
+    times = native_times(metadata)
     loc = LX, LY, LZ = location(metadata)
     boundary_conditions = FieldBoundaryConditions(grid, loc)
     fts = FieldTimeSeries{LX, LY, LZ}(grid, times; backend, time_indexing, boundary_conditions)

@@ -1,11 +1,17 @@
 using CFTime
 using Dates
+using Downloads
+
+using ClimaOcean.DataWrangling
+using ClimaOcean.DataWrangling: Metadata, metadata_path, download_progress
+
 import Dates: year, month, day
 import Oceananigans.Fields: set!
 import Base
+import ClimaOcean.DataWrangling: all_dates, metadata_filename
 
-using ClimaOcean.DataWrangling: Metadata
-import ClimaOcean.DataWrangling: all_dates
+import Oceananigans.Fields: set!, location
+import ClimaOcean.DataWrangling: all_dates, metadata_filename
 
 struct JRA55MultipleYears end
 struct JRA55RepeatYear end
@@ -21,24 +27,31 @@ all_dates(::JRA55MultipleYears) = DateTimeProlepticGregorian(1958, 1, 1) : Hour(
 
 function JRA55_time_indices(version, dates)
     all_JRA55_dates = all_dates(version)
-    return findall(all_JRA55_dates .== dates)
+    indices = Int[]
+    
+    for date in dates
+        index = findfirst(x -> x == date, all_JRA55_dates)
+        push!(indices, index)
+    end
+
+    return indices
 end
 
 # File name generation specific to each Dataset version
-function metadata_filename(metadata::Metadata{<:AbstractCFDateTime, <:JRA55MultipleYears})
-    # fix the filename
-    shortname = short_name(metadata)
-    year      = Dates.year(metadata.dates)
-    suffix    = "_input4MIPs_atmosphericState_OMIP_MRI-JRA55-do-1-5-0_gr_"
-    dates     = "($year)01010130-($year)12312330.nc"
-    return shortname * suffix * dates * ".nc"
-end
-
-# File name generation specific to each Dataset version
-function metadata_filename(metadata::Metadata{<:AbstractCFDateTime, <:JRA55RepeatYear})
+function metadata_filename(metadata::Metadata{<:Any, <:JRA55RepeatYear}) # No difference 
     shortname = short_name(metadata)
     return "RYF." * shortname * ".1990_1991.nc"
 end
+
+# TODO: Implement this function for JRA55MultipleYears
+# function metadata_filename(metadata::Metadata{<:AbstractCFDateTime, <:JRA55MultipleYears})
+#     # fix the filename
+#     shortname = short_name(metadata)
+#     year      = Dates.year(metadata.dates)
+#     suffix    = "_input4MIPs_atmosphericState_OMIP_MRI-JRA55-do-1-5-0_gr_"
+#     dates     = "($year)01010130-($year)12312330.nc"
+#     return shortname * suffix * dates * ".nc"
+# end
 
 # Convenience functions
 short_name(data::JRA55Metadata) = JRA55_short_names[data.name]
@@ -131,19 +144,22 @@ JRA55_repeat_year_urls = Dict(
 
 variable_is_three_dimensional(data::JRA55Metadata) = false
 
-urls(metadata::Metadata{<:Any, <:JRA55RepeatYear})    = JRA55_repeat_year_urls[metadata.name]  
+urls(metadata::Metadata{<:Any, <:JRA55RepeatYear}) = JRA55_repeat_year_urls[metadata.name]  
 # TODO: 
 # urls(metadata::Metadata{<:Any, <:JRA55MultipleYears}) = ...
 
-function download_dataset!(metadata::JRA55Metadata;
-                           url = urls(metadata),
-                           dir = download_JRA55_cache)
+metadata_url(prefix, m::Metadata{<:Any, <:JRA55RepeatYear}) = prefix # No specific name for this url
 
-    for data in metadata
-        filename  = metadata_filename(data)
-        
-        if !isfile(filename)
-            download(url, dir)
+# TODO: This will need to change when we add a method for JRA55MultipleYears
+function download_dataset!(metadata::JRA55Metadata; url = urls(metadata))
+
+    asyncmap(metadata, ntasks=10) do metadatum # Distribute the download among tasks
+
+        fileurl  = metadata_url(url, metadatum) 
+        filepath = metadata_path(metadatum)
+
+        if !isfile(filepath)
+            Downloads.download(fileurl, filepath; progress=download_progress)
         end
     end
 

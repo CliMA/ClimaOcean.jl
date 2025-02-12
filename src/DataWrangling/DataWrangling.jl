@@ -1,5 +1,7 @@
 module DataWrangling
 
+export Metadata
+
 using Oceananigans
 using Downloads
 using Printf

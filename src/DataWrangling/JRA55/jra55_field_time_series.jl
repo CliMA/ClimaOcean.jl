@@ -1,4 +1,5 @@
 using ClimaOcean.DataWrangling: all_dates, native_times
+using Oceananigans.Grids: AbstractGrid
 
 download_JRA55_cache::String = ""
 
@@ -89,6 +90,7 @@ Base.summary(backend::JRA55NetCDFBackend) = string("JRA55NetCDFBackend(", backen
 
 const JRA55NetCDFFTS = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend}
 
+# TODO: This will need to change when we add a method for JRA55MultipleYears
 function set!(fts::JRA55NetCDFFTS, path::String=fts.path, name::String=fts.name) 
 
     ds = Dataset(path)
@@ -194,15 +196,6 @@ Keyword arguments
               Used to slice the data when loading into memory.
               Default: nothing, which retains the longitude range of the native grid.
 
-- `url`: The url accessed to download the data for `variable_name`.
-         Default: `ClimaOcean.JRA55.urls[variable_name]`.
-
-- `filename`: The name of the downloaded file.
-              Default: `ClimaOcean.JRA55.filenames[variable_name]`.
-
-- `shortname`: The "short name" of `variable_name` inside its NetCDF file.
-               Default: `ClimaOcean.JRA55.JRA55_short_names[variable_name]`.
-
 - `interpolated_file`: file holding an Oceananigans compatible version of the JRA55 data.
                        If it does not exist it will be generated.
 
@@ -221,11 +214,7 @@ function JRA55FieldTimeSeries(variable_name::Symbol,
     return JRA55FieldTimeSeries(metadata, arch_or_grid; kw...)
 end
 
-function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(); 
-                              grid = nothing,
-                              location = nothing,
-                              filename = nothing,
-                              shortname = nothing,
+function JRA55FieldTimeSeries(metadata::JRA55Metadata, arch_or_grid = CPU(); 
                               latitude = nothing,
                               longitude = nothing,
                               backend = InMemory(),
@@ -233,7 +222,25 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU();
                               preprocess_chunk_size = 10,
                               preprocess_architecture = CPU())
 
+    # First thing: we download the dataset!
+    download_dataset!(metadata)
+
+    # Unpack metadata details
     time_indices = JRA55_time_indices(metadata.version, metadata.dates)
+    shortname = short_name(metadata)
+    dir = metadata.dir
+    variable_name = metadata.name
+    
+    filepath = metadata_path(metadata) # Might be multiple paths!!!
+    filepath = filepath isa AbstractArray ? first(filepath) : filepath
+
+    if arch_or_grid isa AbstractGrid
+        grid = arch_or_grid
+        architecture = Oceananigans.Grids.architecture(grid)
+    else
+        grid = nothing
+        architecture = arch_or_grid
+    end
 
     # OnDisk backends do not support time interpolation!
     # Disallow OnDisk for JRA55 dataset loading 
@@ -242,7 +249,7 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU();
         throw(ArgumentError(msg))
     end
 
-    if isnothing(filename) && !(variable_name ∈ JRA55_variable_names)
+    if  !(variable_name ∈ JRA55_variable_names)
         variable_strs = Tuple("  - :$name \n" for name in JRA55_variable_names)
         variables_msg = prod(variable_strs)
 
@@ -253,18 +260,6 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU();
         throw(ArgumentError(msg))
     end
 
-    filepath = isnothing(filename) ? joinpath(dir, filenames[variable_name]) : joinpath(dir, filename)
-
-    if !isnothing(filename) && !isfile(filepath) && isnothing(url)
-        throw(ArgumentError("A filename was provided without a url, but the file does not exist.\n \
-                            If intended, please provide both the filename and url that should be used \n \
-                            to download the new file."))
-    end
-
-    isnothing(filename)  && (filename  = filenames[variable_name])
-    isnothing(shortname) && (shortname = JRA55_short_names[variable_name])
-    isnothing(url)       && (url       = urls[variable_name])
-
     # Record some important user decisions
     totally_in_memory = backend isa TotallyInMemory
     on_native_grid = isnothing(grid)
@@ -272,12 +267,6 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU();
 
     jld2_filepath = joinpath(dir, string("JRA55_repeat_year_", variable_name, ".jld2"))
     fts_name = field_time_series_short_names[variable_name]
-
-    # Note, we don't re-use existing jld2 files.
-    @root begin
-        isfile(filepath) || download(url, filepath; progress=download_progress)
-        isfile(jld2_filepath) && rm(jld2_filepath)
-    end
 
     # Determine default time indices
     if totally_in_memory
@@ -308,13 +297,6 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU();
         end
     end
 
-    # Set a default location.
-    if isnothing(location)
-        LX = LY = Center
-    else
-        LX, LY = location
-    end
-
     ds = Dataset(filepath)
 
     # Note that each file should have the variables
@@ -340,9 +322,8 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU();
 
     # TODO: support loading just part of the JRA55 data.
     # Probably with arguments that take latitude, longitude bounds.
-    i₁, i₂, j₁, j₂, TX = compute_bounding_indices(longitude, latitude, grid, LX, LY, λc, φc)
+    i₁, i₂, j₁, j₂, TX = compute_bounding_indices(longitude, latitude, grid, Center, Center, λc, φc)
 
-    native_JRA55_times = ds["time"][time_indices]
     data = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
     λr = λn[i₁:i₂+1]
     φr = φn[j₁:j₂+1]
@@ -360,7 +341,7 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU();
                                               topology = (TX, Bounded, Flat))
 
     boundary_conditions = FieldBoundaryConditions(JRA55_native_grid, (Center, Center, Nothing))
-    times = native_times(native_JRA55_times)
+    times = native_times(metadata)
 
     if backend isa JRA55NetCDFBackend
         fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times;

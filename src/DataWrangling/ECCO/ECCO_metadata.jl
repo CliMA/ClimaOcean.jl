@@ -1,14 +1,14 @@
 using CFTime
 using Dates
 using ClimaOcean.DataWrangling
-using ClimaOcean.DataWrangling: netrc_downloader
+using ClimaOcean.DataWrangling: netrc_downloader, metadata_path
 
 import Dates: year, month, day
 using Downloads
 
 import Oceananigans.Fields: set!, location
 import Base
-import ClimaOcean.DataWrangling: all_dates
+import ClimaOcean.DataWrangling: all_dates, metadata_filename
 
 struct ECCO2Monthly end
 struct ECCO2Daily end
@@ -80,9 +80,6 @@ all_dates(::ECCO4Monthly) = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : 
 all_dates(::ECCO2Monthly) = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(2023, 12, 1)
 all_dates(::ECCO2Daily)   = DateTimeProlepticGregorian(1992, 1, 4) : Day(1)   : DateTimeProlepticGregorian(2023, 12, 31)
 
-# File names of metadata containing multiple dates
-metadata_filename(metadata) = [metadata_filename(metadatum) for metadatum in metadata]
-
 # File name generation specific to each Dataset version
 function metadata_filename(metadata::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4Monthly})
     shortname = short_name(metadata)
@@ -106,7 +103,6 @@ function metadata_filename(metadata::ECCOMetadata{<:AbstractCFDateTime})
 end
 
 # Convenience functions
-metadata_path(metadata) = joinpath(metadata.dir, metadata_filename(metadata))
 short_name(data::ECCOMetadata{<:Any, <:ECCO2Daily})   = ECCO2_short_names[data.name]
 short_name(data::ECCOMetadata{<:Any, <:ECCO2Monthly}) = ECCO2_short_names[data.name]
 short_name(data::ECCOMetadata{<:Any, <:ECCO4Monthly}) = ECCO4_short_names[data.name]

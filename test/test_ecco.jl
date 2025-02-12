@@ -5,7 +5,7 @@ using Dates
 using ClimaOcean
 
 using ClimaOcean.ECCO
-using ClimaOcean.ECCO: ECCO_field, metadata_path, ECCO_times
+using ClimaOcean.ECCO: ECCO_field, metadata_path, native_times
 using ClimaOcean.DataWrangling: NearestNeighborInpainting
 
 using Oceananigans.Grids: topology
@@ -47,8 +47,8 @@ inpainting = NearestNeighborInpainting(2)
             @test Nz == size(metadata)[3]
             @test Nt == size(metadata)[4]
 
-            @test fts.times[1] == ECCO_times(metadata)[1]
-            @test fts.times[end] == ECCO_times(metadata)[end]
+            @test fts.times[1] == native_times(metadata)[1]
+            @test fts.times[end] == native_times(metadata)[end]
 
             datum = first(metadata)
             ψ = ECCO_field(datum, architecture=arch, inpainting=NearestNeighborInpainting(2))
@@ -207,7 +207,7 @@ end
                                     rate = 1 / 1000.0,
                                     inpainting)
 
-        times = ECCO_times(t_restoring.field_time_series.backend.metadata)
+        times = native_times(t_restoring.field_time_series.backend.metadata)
         ocean = ocean_simulation(grid, forcing = (; T = t_restoring))
 
         ocean.model.clock.time = times[3] + 2 * Units.days
