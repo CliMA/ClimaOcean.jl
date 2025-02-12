@@ -13,6 +13,7 @@ using Oceananigans.Grids: λnodes, φnodes, on_architecture
 using Oceananigans.Fields: interpolate!
 using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBackend, FlavorOfFTS, time_indices
 
+using ClimaOcean
 using ClimaOcean: @root
 
 using ClimaOcean.OceanSeaIceModels:
