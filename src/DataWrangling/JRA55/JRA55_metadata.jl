@@ -48,7 +48,12 @@ function metadata_filename(metadata::Metadata{<:AbstractCFDateTime, <:JRA55Multi
     shortname = short_name(metadata)
     year      = Dates.year(metadata.dates)
     suffix    = "_input4MIPs_atmosphericState_OMIP_MRI-JRA55-do-1-5-0_gr_"
-    dates     = "($year)01010130-($year)12312330.nc"
+    
+    if shortname == "tas"
+        dates     = "$(year)01010000-$(year)12312100"
+    else
+        dates     = "$(year)01010130-$(year)12312330"
+    end
     return shortname * suffix * dates * ".nc"
 end
 
@@ -129,17 +134,15 @@ JRA55_repeat_year_urls = Dict(
 variable_is_three_dimensional(data::JRA55Metadata) = false
 
 urls(metadata::Metadata{<:Any, <:JRA55RepeatYear}) = JRA55_repeat_year_urls[metadata.name]  
-function urls(metadata::Metadata{<:Any, <:JRA55MultipleYears})
-    shotname = short_name(metadata)
-    return "https://esgf-data2.llnl.gov/thredds/fileServer/user_pub_work/input4MIPs/CMIP6/OMIP/MRI/MRI-JRA55-do-1-5-0/atmos/$(shortname)/prra/gr/v20200916/"
-end
+urls(metadata::Metadata{<:Any, <:JRA55MultipleYears}) = "https://esgf-data2.llnl.gov/thredds/fileServer/user_pub_work/input4MIPs/CMIP6/OMIP/MRI/MRI-JRA55-do-1-5-0/atmos/3hrPt"
 
-metadata_url(prefix, m::Metadata{<:Any, <:JRA55RepeatYear}) = prefix # No specific name for this url
+metadata_url(prefix, m::Metadata{<:Any, <:JRA55RepeatYear})    = prefix # No specific name for this url
+metadata_url(prefix, m::Metadata{<:Any, <:JRA55MultipleYears}) = prefix * "/" * short_name(m) * "/gr/v20200916/" * metadata_filename(m)
 
 # TODO: This will need to change when we add a method for JRA55MultipleYears
 function download_dataset!(metadata::JRA55Metadata; url = urls(metadata))
 
-    asyncmap(metadata, ntasks=10) do metadatum # Distribute the download among tasks
+    for metadatum in metadata # Distribute the download among tasks
 
         fileurl  = metadata_url(url, metadatum) 
         filepath = metadata_path(metadatum)

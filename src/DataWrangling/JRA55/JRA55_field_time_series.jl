@@ -73,17 +73,20 @@ function compute_bounding_indices(longitude, latitude, grid, LX, LY, λc, φc)
     return i₁, i₂, j₁, j₂, TX
 end
 
-struct JRA55NetCDFBackend <: AbstractInMemoryBackend{Int}
+struct JRA55NetCDFBackend{M} <: AbstractInMemoryBackend{Int}
     start :: Int
     length :: Int
+    metadata :: M
 end
+
+Adapt.adapt_structure(to, b::JRA55NetCDFBackend) = JRA55NetCDFBackend(b.start, b.length, nothing)
 
 """
     JRA55NetCDFBackend(length)
 
 Represents a JRA55 FieldTimeSeries backed by JRA55 native .nc files.
 """
-JRA55NetCDFBackend(length) = JRA55NetCDFBackend(1, length)
+JRA55NetCDFBackend(length, metadata) = JRA55NetCDFBackend(1, length, metadata)
 
 Base.length(backend::JRA55NetCDFBackend) = backend.length
 Base.summary(backend::JRA55NetCDFBackend) = string("JRA55NetCDFBackend(", backend.start, ", ", backend.length, ")")
@@ -91,52 +94,59 @@ Base.summary(backend::JRA55NetCDFBackend) = string("JRA55NetCDFBackend(", backen
 const JRA55NetCDFFTS = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend}
 
 # TODO: This will need to change when we add a method for JRA55MultipleYears
-function set!(fts::JRA55NetCDFFTS, path::String=fts.path, name::String=fts.name) 
+function set!(fts::JRA55NetCDFFTS) 
 
-    ds = Dataset(path)
+    backend  = fts.backend
+    metadata = backend.metadata
 
-    # Note that each file should have the variables
-    #   - ds["time"]:     time coordinate 
-    #   - ds["lon"]:      longitude at the location of the variable
-    #   - ds["lat"]:      latitude at the location of the variable
-    #   - ds["lon_bnds"]: bounding longitudes between which variables are averaged
-    #   - ds["lat_bnds"]: bounding latitudes between which variables are averaged
-    #   - ds[shortname]:  the variable data
+    filepath = metadata_path(metadata)
+    
+    for path in filepath
+        ds = Dataset(path)
 
-    # Nodes at the variable location
-    λc = ds["lon"][:]
-    φc = ds["lat"][:]
-    LX, LY, LZ = location(fts)
-    i₁, i₂, j₁, j₂, TX = compute_bounding_indices(nothing, nothing, fts.grid, LX, LY, λc, φc)
+        # Note that each file should have the variables
+        #   - ds["time"]:     time coordinate 
+        #   - ds["lon"]:      longitude at the location of the variable
+        #   - ds["lat"]:      latitude at the location of the variable
+        #   - ds["lon_bnds"]: bounding longitudes between which variables are averaged
+        #   - ds["lat_bnds"]: bounding latitudes between which variables are averaged
+        #   - ds[shortname]:  the variable data
 
-    nn = time_indices(fts)
-    nn = collect(nn)
+        # Nodes at the variable location
+        λc = ds["lon"][:]
+        φc = ds["lat"][:]
+        LX, LY, LZ = location(fts)
+        i₁, i₂, j₁, j₂, TX = compute_bounding_indices(nothing, nothing, fts.grid, LX, LY, λc, φc)
 
-    if issorted(nn)
-        data = ds[name][i₁:i₂, j₁:j₂, nn]
-    else
-        # The time indices may be cycling past 1; eg ti = [6, 7, 8, 1].
-        # However, DiskArrays does not seem to support loading data with unsorted
-        # indices. So to handle this, we load the data in chunks, where each chunk's
-        # indices are sorted, and then glue the data together.
-        m = findfirst(n -> n == 1, nn)
-        n1 = nn[1:m-1]
-        n2 = nn[m:end]
+        nn = time_indices(fts)
+        nn = collect(nn)
 
-        data1 = ds[name][i₁:i₂, j₁:j₂, n1]
-        data2 = ds[name][i₁:i₂, j₁:j₂, n2]
-        data = cat(data1, data2, dims=3)
+        if issorted(nn)
+            data = ds[name][i₁:i₂, j₁:j₂, nn]
+        else
+            # The time indices may be cycling past 1; eg ti = [6, 7, 8, 1].
+            # However, DiskArrays does not seem to support loading data with unsorted
+            # indices. So to handle this, we load the data in chunks, where each chunk's
+            # indices are sorted, and then glue the data together.
+            m = findfirst(n -> n == 1, nn)
+            n1 = nn[1:m-1]
+            n2 = nn[m:end]
+
+            data1 = ds[name][i₁:i₂, j₁:j₂, n1]
+            data2 = ds[name][i₁:i₂, j₁:j₂, n2]
+            data = cat(data1, data2, dims=3)
+        end
+
+        close(ds)
+
+        copyto!(interior(fts, :, :, 1, :), data)
+        fill_halo_regions!(fts)
     end
-
-    close(ds)
-
-    copyto!(interior(fts, :, :, 1, :), data)
-    fill_halo_regions!(fts)
-
+    
     return nothing
 end
 
-new_backend(::JRA55NetCDFBackend, start, length) = JRA55NetCDFBackend(start, length)
+new_backend(b::JRA55NetCDFBackend, start, length) = JRA55NetCDFBackend(start, length, b.metadata)
 
 """
     JRA55FieldTimeSeries(variable_name [, arch_or_grid=CPU() ]; 
