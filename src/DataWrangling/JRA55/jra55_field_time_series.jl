@@ -292,8 +292,6 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture = CPU();
     push!(φn, 90)
     push!(λn, λn[1] + 360)
 
-    # TODO: support loading just part of the JRA55 data.
-    # Probably with arguments that take latitude, longitude bounds.
     i₁, i₂, j₁, j₂, TX = compute_bounding_indices(longitude, latitude, grid, Center, Center, λc, φc)
 
     data = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
