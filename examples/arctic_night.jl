@@ -29,8 +29,8 @@ parent(atmosphere.downwelling_radiation.shortwave) .= Qℓ # W
 grid = RectilinearGrid(size=400, z=(-400, 0), topology=(Flat, Flat, Bounded))
 ocean = ocean_simulation(grid, coriolis=FPlane(; f))
 
-eos = ocean.model.buoyancy.model.equation_of_state
-g = ocean.model.buoyancy.model.gravitational_acceleration
+eos = ocean.model.buoyancy.formulation.equation_of_state
+g = ocean.model.buoyancy.formulation.gravitational_acceleration
 α = SeawaterPolynomials.thermal_expansion(T₀, S₀, 0, eos)
 dTdz = N² / (α * g)
 Tᵢ(z) = max(-1.8, T₀ + dTdz * z)
@@ -111,7 +111,7 @@ hidespines!(axu, :t, :l)
 hidespines!(axτ, :b, :r)
 hidespines!(axQ, :t, :r)
 
-record(fig, "idealized_atmosphere.mp4", 1:Nt, framerate=24) do nn
+record(fig, "arctic_night_atmosphere.mp4", 1:Nt, framerate=24) do nn
     @info "Drawing frame $nn of $Nt..."
     n[] = nn
 end

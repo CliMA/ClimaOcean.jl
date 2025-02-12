@@ -1,8 +1,8 @@
 
-download_jra55_cache::String = ""
+download_JRA55_cache::String = ""
 
 function __init__()
-    global download_jra55_cache = @get_scratch!("JRA55")
+    global download_JRA55_cache = @get_scratch!("JRA55")
 end
 
 compute_bounding_nodes(::Nothing, ::Nothing, LH, hnodes) = nothing
@@ -72,7 +72,7 @@ function compute_bounding_indices(longitude, latitude, grid, LX, LY, λc, φc)
 end
 
 # Convert dates to range until Oceananigans supports dates natively
-function jra55_times(native_times, start_time=native_times[1])
+function JRA55_times(native_times, start_time=native_times[1])
 
     times = []
     for native_time in native_times
@@ -149,42 +149,43 @@ end
 new_backend(::JRA55NetCDFBackend, start, length) = JRA55NetCDFBackend(start, length)
 
 """
-    JRA55_field_time_series(variable_name, [architecture = CPU()]; 
-                            version = JRA55RepeatYear(),
-                            dates = all_JRA55_dates(version),
-                            latitude = nothing,
-                            longitude = nothing,
-                            location = nothing,
-                            url = nothing,
-                            filename = nothing,
-                            shortname = nothing,
-                            backend = InMemory(),
-                            preprocess_chunk_size = 10,
-                            preprocess_architecture = CPU())
+    JRA55FieldTimeSeries(variable_name [, arch_or_grid=CPU() ]; 
+                         version = JRA55RepeatYear(),
+                         dates = all_JRA55_dates(version),
+                         latitude = nothing,
+                         longitude = nothing,
+                         location = nothing,
+                         url = nothing,
+                         dir = download_JRA55_cache,
+                         filename = nothing,
+                         shortname = nothing,
+                         latitude = nothing,
+                         longitude = nothing,
+                         backend = InMemory(),
+                         time_indexing = Cyclical(),
+                         preprocess_chunk_size = 10,
+                         preprocess_architecture = CPU())
 
 Return a `FieldTimeSeries` containing atmospheric reanalysis data for `variable_name`,
 which describes one of the variables in the "repeat year forcing" dataset derived
-from the Japanese 55-year atmospheric reanalysis for driving ocean-sea-ice models (JRA55-do).
-For more information about the derivation of the repeat year forcing dataset, see
+from the Japanese 55-year atmospheric reanalysis for driving ocean-sea ice models (JRA55-do).
+For more information about the derivation of the repeat-year forcing dataset, see
 
-"Stewart et al., JRA55-do-based repeat year forcing datasets for driving ocean–sea-ice models",
-Ocean Modelling, 2020, https://doi.org/10.1016/j.ocemod.2019.101557.
+> Stewart et al. (2020). JRA55-do-based repeat year forcing datasets for driving ocean–sea-ice models, _Ocean Modelling_, **147**, 101557, https://doi.org/10.1016/j.ocemod.2019.101557.
 
-The `variable_name`s (and their `shortname`s used in NetCDF files)
-available from the JRA55-do are:
-
-    - `:river_freshwater_flux`              ("friver")
-    - `:rain_freshwater_flux`               ("prra")
-    - `:snow_freshwater_flux`               ("prsn")
-    - `:iceberg_freshwater_flux`            ("licalvf")
-    - `:specific_humidity`                  ("huss")
-    - `:sea_level_pressure`                 ("psl")
-    - `:relative_humidity`                  ("rhuss")
-    - `:downwelling_longwave_radiation`     ("rlds")
-    - `:downwelling_shortwave_radiation`    ("rsds")
-    - `:temperature`                        ("ras")
-    - `:eastward_velocity`                  ("uas")
-    - `:northward_velocity`                 ("vas")
+The `variable_name`s (and their `shortname`s used in NetCDF files) available from the JRA55-do are:
+- `:river_freshwater_flux`              ("friver")
+- `:rain_freshwater_flux`               ("prra")
+- `:snow_freshwater_flux`               ("prsn")
+- `:iceberg_freshwater_flux`            ("licalvf")
+- `:specific_humidity`                  ("huss")
+- `:sea_level_pressure`                 ("psl")
+- `:relative_humidity`                  ("rhuss")
+- `:downwelling_longwave_radiation`     ("rlds")
+- `:downwelling_shortwave_radiation`    ("rsds")
+- `:temperature`                        ("ras")
+- `:eastward_velocity`                  ("uas")
+- `:northward_velocity`                 ("vas")
 
 Keyword arguments
 =================
@@ -212,29 +213,31 @@ Keyword arguments
               Default: `ClimaOcean.JRA55.filenames[variable_name]`.
 
 - `shortname`: The "short name" of `variable_name` inside its NetCDF file.
-               Default: `ClimaOcean.JRA55.jra55_short_names[variable_name]`.
+               Default: `ClimaOcean.JRA55.JRA55_short_names[variable_name]`.
 
 - `interpolated_file`: file holding an Oceananigans compatible version of the JRA55 data.
                        If it does not exist it will be generated.
 
-- `time_chunks_in_memory`: number of fields held in memory. If `nothing` the whole timeseries is 
-                           loaded (not recommended).
+- `time_chunks_in_memory`: number of fields held in memory. If `nothing` then the whole timeseries
+                           is loaded (not recommended).
 """
-function JRA55_field_time_series(variable_name;
-                                 architecture = CPU(),
-                                 grid = nothing,
-                                 location = nothing,
-                                 url = nothing,
-                                 dir = download_jra55_cache,
-                                 filename = nothing,
-                                 shortname = nothing,
-                                 latitude = nothing,
-                                 longitude = nothing,
-                                 backend = InMemory(),
-                                 time_indexing = Cyclical(),
-                                 preprocess_chunk_size = 10,
-                                 preprocess_architecture = CPU(),
-                                 time_indices = nothing)
+function JRA55FieldTimeSeries(variable_name, architecture=CPU(); 
+                              version = JRA55RepeatYear(),
+                              dates = all_JRA55_dates(version),
+                              grid = nothing,
+                              location = nothing,
+                              url = nothing,
+                              dir = download_JRA55_cache,
+                              filename = nothing,
+                              shortname = nothing,
+                              latitude = nothing,
+                              longitude = nothing,
+                              backend = InMemory(),
+                              time_indexing = Cyclical(),
+                              preprocess_chunk_size = 10,
+                              preprocess_architecture = CPU())
+
+    time_indices = JRA55_time_indices(dates)
 
     # OnDisk backends do not support time interpolation!
     # Disallow OnDisk for JRA55 dataset loading 
@@ -263,7 +266,7 @@ function JRA55_field_time_series(variable_name;
     end
 
     isnothing(filename)  && (filename  = filenames[variable_name])
-    isnothing(shortname) && (shortname = jra55_short_names[variable_name])
+    isnothing(shortname) && (shortname = JRA55_short_names[variable_name])
     isnothing(url)       && (url       = urls[variable_name])
 
     # Record some important user decisions
@@ -361,7 +364,7 @@ function JRA55_field_time_series(variable_name;
                                               topology = (TX, Bounded, Flat))
 
     boundary_conditions = FieldBoundaryConditions(JRA55_native_grid, (Center, Center, Nothing))
-    times = jra55_times(native_times)
+    times = JRA55_times(native_times)
 
     if backend isa JRA55NetCDFBackend
         fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times;
@@ -410,7 +413,7 @@ function JRA55_field_time_series(variable_name;
     all_datetimes = ds["time"][time_indices]
     all_Nt = length(all_datetimes)
 
-    all_times = jra55_times(all_datetimes)
+    all_times = JRA55_times(all_datetimes)
 
     on_disk_fts = FieldTimeSeries{LX, LY, Nothing}(preprocessing_grid, all_times;
                                                    boundary_conditions,
@@ -458,7 +461,7 @@ function JRA55_field_time_series(variable_name;
             end
 
             # Re-compute times
-            new_times = jra55_times(all_times[time_indices_in_memory], all_times[n₁])
+            new_times = JRA55_times(all_times[time_indices_in_memory], all_times[n₁])
             native_fts.times = new_times
 
             # Re-compute data

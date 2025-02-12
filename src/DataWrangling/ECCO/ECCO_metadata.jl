@@ -162,23 +162,35 @@ ECCO_location = Dict(
 )
 
 # URLs for the ECCO datasets specific to each version
-urls(::ECCOMetadata{<:Any, <:ECCO2Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/monthly/"
-urls(::ECCOMetadata{<:Any, <:ECCO2Daily})   = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/daily/"
-urls(::ECCOMetadata{<:Any, <:ECCO4Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly/"
+urls(::ECCOMetadata{<:Any, <:ECCO2Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/monthly"
+urls(::ECCOMetadata{<:Any, <:ECCO2Daily})   = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/daily"
+urls(::ECCOMetadata{<:Any, <:ECCO4Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly"
 
 """
     download_dataset(metadata::ECCOMetadata; url = urls(metadata))
 
-Download the dataset specified by `ECCOMetadata`. If `ECCOMetadata.dates` is a single date, 
+Download the dataset specified by `ECCOMetadata`. If `ECCOMetadata.dates` is a single date,
 the dataset is downloaded directly. If `ECCOMetadata.dates` is a vector of dates, each date
 is downloaded individually.
+
 The data download requires a username and password to be provided in the `ECCO_USERNAME` and
 `ECCO_PASSWORD` environment variables. This can be done by exporting the environment variables
-in the shell before running the script, or by launching julia with 
+in the shell before running the script, or by launching julia with
 
 ```
-ECCO_USERNAME=myusername ECCO_PASSWORD=mypassword julia 
+ECCO_USERNAME=myusername ECCO_PASSWORD=mypassword julia
 ```
+
+or by invoking
+
+```julia
+julia> ENV["ECCO_USERNAME"] = "myusername"
+
+julia> ENV["ECCO_PASSWORD"] = "mypassword"
+```
+
+within julia.
+
 
 Arguments
 =========
@@ -188,7 +200,7 @@ function download_dataset(metadata::ECCOMetadata; url = urls(metadata))
     username = get(ENV, "ECCO_USERNAME", nothing)
     password = get(ENV, "ECCO_PASSWORD", nothing)
     dir = metadata.dir
-    
+
     # Create a temporary directory to store the .netrc file
     # The directory will be deleted after the download is complete
     @root mktempdir(dir) do tmp
@@ -219,6 +231,6 @@ function download_dataset(metadata::ECCOMetadata; url = urls(metadata))
             end
         end
     end
-    
+
     return nothing
 end
