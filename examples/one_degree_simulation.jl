@@ -17,7 +17,7 @@ using Printf
 
 using Oceananigans.Grids: znode
 
-arch = CPU()
+arch = GPU()
 
 # ### Grid and Bathymetry
 
