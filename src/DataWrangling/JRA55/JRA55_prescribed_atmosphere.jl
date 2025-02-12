@@ -3,7 +3,6 @@ const AA = Oceananigans.Architectures.AbstractArchitecture
 JRA55PrescribedAtmosphere(arch::Distributed; kw...) =
     JRA55PrescribedAtmosphere(child_architecture(arch); kw...)
 
-# TODO: allow the user to pass dates
 """
     JRA55PrescribedAtmosphere(architecture::AA;
                               version = JRA55RepeatYear(),
