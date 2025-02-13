@@ -158,7 +158,8 @@ function regrid_bathymetry(target_grid;
 
     native_z = Field{Center, Center, Nothing}(native_grid)
     set!(native_z, z_data)
-
+    fill_halo_regions!(native_z)
+    
     target_z = interpolate_bathymetry_in_passes(native_z, target_grid; 
                                                 passes = interpolation_passes)
 
