@@ -27,7 +27,7 @@ inpainting = NearestNeighborInpainting(2)
         A = typeof(arch)
         for name in (:temperature, :salinity)
             @info "Testing ECCO_field on $A..."
-            metadata = ECCOMetadata(name, dates, ECCO4Monthly())
+            metadata = Metadata(name; dates, version=ECCO4Monthly())
             restoring = ECCORestoring(metadata; rate=1/1000, inpainting)
 
             for datum in metadata 
@@ -60,7 +60,7 @@ end
 
 @testset "Inpainting algorithm" begin
     for arch in test_architectures
-        T_metadata = ECCOMetadata(:temperature, dates[1], ECCO4Monthly())
+        T_metadata = Metadata(:temperature; dates=dates[1], version=ECCO4Monthly())
 
         grid = LatitudeLongitudeGrid(arch,
                                      size = (100, 100, 10),
@@ -134,8 +134,8 @@ end
         field = CenterField(grid)
 
         @test begin
-            set!(field, ECCOMetadata(:temperature))
-            set!(field, ECCOMetadata(:salinity))
+            set!(field, Metadata(:temperature, dates=start_date, version=ECCO4Monthly()))
+            set!(field, Metadata(:salinity, dates=start_date, version=ECCO4Monthly()))
             true
         end
     end
@@ -154,8 +154,8 @@ end
         field = CenterField(grid)
 
         @test begin
-            set!(field, ECCOMetadata(:temperature))
-            set!(field, ECCOMetadata(:salinity))
+            set!(field, Metadata(:temperature, dates=start_date, version=ECCO4Monthly()))
+            set!(field, Metadata(:salinity, dates=start_date, version=ECCO4Monthly()))
             true
         end
 
@@ -185,7 +185,8 @@ end
 
         ocean = ocean_simulation(grid)
         date = DateTimeProlepticGregorian(1993, 1, 1)
-        set!(ocean.model, T=ECCOMetadata(:temperature, date), S=ECCOMetadata(:salinity, date))
+        set!(ocean.model, T=Metadata(:temperature; dates=start_date, version=ECCO4Monthly()), 
+                          S=Metadata(:salinity; dates=start_date, version=ECCO4Monthly()))
     end
 end
 

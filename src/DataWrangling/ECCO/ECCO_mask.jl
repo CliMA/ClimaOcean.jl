@@ -31,7 +31,7 @@ function ECCO_mask(metadata, architecture = CPU();
 end
 
 # Default
-ECCO_mask(arch::AbstractArchitecture=CPU()) = ECCO_mask(ECCOMetadata(:temperature), arch)
+ECCO_mask(arch::AbstractArchitecture=CPU()) = ECCO_mask(Metadata(:temperature, version=ECCO4Monthly()), arch)
 
 @kernel function _set_ECCO2_mask!(mask, Tᵢ, minimum_value, maximum_value)
     i, j, k = @index(Global, NTuple)
@@ -62,7 +62,7 @@ function ECCO_immersed_grid(metadata, architecture = CPU())
 end
 
 # Default
-ECCO_immersed_grid(arch::AbstractArchitecture=CPU()) = ECCO_immersed_grid(ECCOMetadata(:temperature), arch)
+ECCO_immersed_grid(arch::AbstractArchitecture=CPU()) = ECCO_immersed_grid(Metadata(:temperature, version=ECCO4Monthly()), arch)
 
 @kernel function _set_height_from_mask!(bottom, grid, mask)
     i, j = @index(Global, NTuple)

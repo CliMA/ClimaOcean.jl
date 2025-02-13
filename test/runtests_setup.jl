@@ -26,8 +26,8 @@ start_date = DateTimeProlepticGregorian(1993, 1, 1)
 end_date   = DateTimeProlepticGregorian(1993, 4, 1)
 dates      = start_date : Month(1) : end_date
 
-temperature_metadata = ECCOMetadata(:temperature, dates)
-salinity_metadata    = ECCOMetadata(:salinity, dates)
+temperature_metadata = Metadata(:temperature; dates, version=ECCO4Monthly())
+salinity_metadata    = Metadata(:salinity; dates, version=ECCO4Monthly())
 
 # Fictitious grid that triggers bathymetry download
 function download_bathymetry(; dir = download_bathymetry_cache, 

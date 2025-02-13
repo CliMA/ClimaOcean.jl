@@ -23,12 +23,14 @@ Arguments
 
 Keyword Arguments
 =================
-- `dates`: The dates of the dataset, in a `AbstractCFDateTime` format.
-- `version`: The version of the dataset, could be `ECCO2Monthly`, `ECCO2Daily`, `ECCO4Monthly`, `JRA55RepeatYear`, or `JRA55MultipleYears`.
+- `dates`: The dates of the dataset, in a `AbstractCFDateTime` format.. Note this can either be a single date,
+           representing a snapshot, or a range of dates, representing a time-series.
+- `version`: The version of the dataset. Supported versions are `ECCO2Monthly()`, `ECCO2Daily()`, `ECCO4Monthly()`,
+             `JRA55RepeatYear()`, or `JRA55MultipleYears()`.
 - `dir`: The directory where the dataset is stored.
 """
 function Metadata(variable_name;
-                  version = ECCO4Monthly(),
+                  version,
                   dates = all_dates(version),
                   dir = default_download_folder(version))
 
@@ -47,6 +49,9 @@ Base.show(io::IO, metadata::Metadata) =
 # Treat Metadata as an array to allow iteration over the dates.
 Base.length(metadata::Metadata) = length(metadata.dates)
 Base.eltype(metadata::Metadata) = Base.eltype(metadata.dates)
+
+# If only one date, it's a single element array
+Base.length(metadata::Metadata{<:AbstractCFDateTime}) = 1
 
 @propagate_inbounds Base.getindex(m::Metadata, i::Int) = Metadata(m.name, m.dates[i],   m.version, m.dir)
 @propagate_inbounds Base.first(m::Metadata)            = Metadata(m.name, m.dates[1],   m.version, m.dir)

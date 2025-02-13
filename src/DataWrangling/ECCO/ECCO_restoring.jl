@@ -285,7 +285,7 @@ function ECCORestoring(variable_name::Symbol,
                        dir = download_ECCO_cache,
                        kw...)
 
-    metadata = ECCOMetadata(variable_name, dates, version, dir)
+    metadata = Metadata(variable_name, dates, version, dir)
     return ECCORestoring(metadata, arch_or_grid; kw...)
 end
 

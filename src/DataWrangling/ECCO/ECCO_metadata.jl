@@ -26,46 +26,10 @@ Base.summary(md::ECCOMetadata{<:AbstractCFDateTime, <:ECCO2Daily})   = "ECCO2Dai
 Base.summary(md::ECCOMetadata{<:AbstractCFDateTime, <:ECCO2Monthly}) = "ECCO2Monthly $(md.name) metadata at $(md.dates)"
 Base.summary(md::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4Monthly}) = "ECCO4Monthly $(md.name) metadata at $(md.dates)"
 
-"""
-    ECCOMetadata(name::Symbol; 
-                 dates = DateTimeProlepticGregorian(1993, 1, 1),
-                 version = ECCO4Monthly(),
-                 dir = download_ECCO_cache)
-
-Construct an `ECCOMetadata` object with the specified parameters.
-
-Arguments
-=========
-- `name::Symbol`: The name of the metadata.
-
-Keyword Arguments
-=================
-- `dates`: The date(s) of the metadata. Note this can either be a single date,
-           representing a snapshot, or a range of dates, representing a time-series.
-           Default: `DateTimeProlepticGregorian(1993, 1, 1)`.
-
-- `version`: The data version. Supported versions are `ECCO2Monthly()`, `ECCO2Daily()`,
-             or `ECCO4Monthly()`.
-
-- `dir`: The directory of the data file. Default: `download_ECCO_cache`.
-"""
-function ECCOMetadata(name::Symbol; 
-                      dates = DateTimeProlepticGregorian(1993, 1, 1),
-                      version = ECCO4Monthly(),
-                      dir = download_ECCO_cache)
-             
-    return Metadata(name, dates, version, dir)
-end
-
-ECCOMetadata(name::Symbol, date, version=ECCO4Monthly(); dir=download_ECCO_cache) =
-    Metadata(name, date, version, dir)
-
-Base.length(metadata::ECCOMetadata) = length(metadata.dates)
 Base.size(data::ECCOMetadata{<:Any, <:ECCO2Daily})   = (1440, 720, 50, length(data.dates))
 Base.size(data::ECCOMetadata{<:Any, <:ECCO2Monthly}) = (1440, 720, 50, length(data.dates))
 Base.size(data::ECCOMetadata{<:Any, <:ECCO4Monthly}) = (720,  360, 50, length(data.dates))
 
-Base.length(metadata::ECCOMetadata{<:AbstractCFDateTime}) = 1
 Base.size(::ECCOMetadata{<:AbstractCFDateTime, <:ECCO2Daily})   = (1440, 720, 50, 1)
 Base.size(::ECCOMetadata{<:AbstractCFDateTime, <:ECCO2Monthly}) = (1440, 720, 50, 1)
 Base.size(::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4Monthly}) = (720,  360, 50, 1)
