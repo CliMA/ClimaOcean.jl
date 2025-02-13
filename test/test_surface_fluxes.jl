@@ -14,6 +14,7 @@ using CUDA
 using KernelAbstractions: @kernel, @index
 using Oceananigans.TimeSteppers: update_state!
 using Oceananigans.Units: hours, days
+using ClimaOcean.DataWrangling: all_dates
 
 using Statistics: mean, std
 
@@ -25,16 +26,12 @@ end
 
 @inline water_saturation_specific_humidity(h::FixedSpecificHumidity, args...) = h.qₒ
 
-# TODO: Remove this when https://github.com/CliMA/Oceananigans.jl/pull/3923 is merged
-import Oceananigans.Fields: _fractional_indices
-_fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, nothing, nothing)
-
 @testset "Test surface fluxes" begin
     for arch in test_architectures
         grid = LatitudeLongitudeGrid(arch;
                                      size = 1, 
-                                     latitude = 0, 
-                                     longitude = 0,
+                                     latitude = 10, 
+                                     longitude = 10,
                                      z = (-1, 0),
                                      topology = (Flat, Flat, Bounded))
         
@@ -44,7 +41,8 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
                                  closure = nothing,
                                  bottom_drag_coefficient = 0.0)
 
-        atmosphere = JRA55PrescribedAtmosphere(1:2; grid, architecture = arch, backend = InMemory()) 
+        dates = all_dates(JRA55RepeatYear())[1:2]
+        atmosphere = JRA55PrescribedAtmosphere(arch, Float64; dates, backend = InMemory()) 
         
         CUDA.@allowscalar begin
             h  = atmosphere.reference_height
@@ -58,9 +56,15 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
 
             ℂₐ = atmosphere.thermodynamics_parameters
 
+            fill!(parent(atmosphere.tracers.T),    Tₐ)
+            fill!(parent(atmosphere.tracers.q),    qₐ)
+            fill!(parent(atmosphere.velocities.u), uₐ)
+            fill!(parent(atmosphere.velocities.v), vₐ)
+            fill!(parent(atmosphere.pressure),     pₐ)
+
             # Force the saturation humidity of the ocean to be 
             # equal to the atmospheric saturation humidity
-            water_vapor_saturation = FixedSpecificHumidity(qₐ)
+            water_vapor_saturation = FixedSpecificHumidity(Thermodynamics.vapor_specific_humidity(ℂₐ, 𝒬ₐ))
             water_mole_fraction = 1
 
             # Thermodynamic parameters of the atmosphere
@@ -84,7 +88,9 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
                 # Note that the Δθ accounts for the "lapse rate" at height h
                 Tₒ = Tₐ - celsius_to_kelvin + h / cp * g
                 
-                set!(ocean.model, u = uₐ, v = vₐ, T = Tₒ)
+                fill!(parent(ocean.model.velocities.u), uₐ)
+                fill!(parent(ocean.model.velocities.v), vₐ)
+                fill!(parent(ocean.model.tracers.T), Tₒ)
 
                 # Compute the turbulent fluxes (neglecting radiation)
                 coupled_model    = OceanSeaIceModel(ocean; atmosphere, similarity_theory)
@@ -118,21 +124,25 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
                                                                 gustiness_parameter = 0,
                                                                 stability_functions)
 
-            # mid-latitude ocean conditions
-            set!(ocean.model, u = 0, v = 0, T = 15, S = 30)
-            
+            # mid-latitude ocean conditions            
+            fill!(parent(ocean.model.velocities.u), 0)
+            fill!(parent(ocean.model.velocities.v), 0)
+            fill!(parent(ocean.model.tracers.T), 15)
+            fill!(parent(ocean.model.tracers.S), 30)
+
             coupled_model = OceanSeaIceModel(ocean; atmosphere, similarity_theory)
 
             # Now manually compute the fluxes:
             Tₒ = ocean.model.tracers.T[1, 1, 1] + celsius_to_kelvin
             Sₒ = ocean.model.tracers.S[1, 1, 1]
             qₒ = seawater_saturation_specific_humidity(ℂₐ, Tₒ, Sₒ, 𝒬ₐ,
-                                                    similarity_theory.water_mole_fraction,
-                                                    similarity_theory.water_vapor_saturation,
-                                                    Thermodynamics.Liquid())
+                                                       similarity_theory.water_mole_fraction,
+                                                       similarity_theory.water_vapor_saturation,
+                                                       Thermodynamics.Liquid())
             
             𝒬ₒ = Thermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₒ, qₒ)
             qₒ = Thermodynamics.vapor_specific_humidity(ℂₐ, 𝒬ₒ)
+            qₐ = Thermodynamics.vapor_specific_humidity(ℂₐ, 𝒬ₐ)
             g  = similarity_theory.gravitational_acceleration
 
             # Differences!
@@ -178,7 +188,8 @@ _fractional_indices(at_node, grid, ::Nothing, ::Nothing, ::Nothing) = (nothing, 
                                                 closure = nothing,
                                 bottom_drag_coefficient = 0.0)
 
-        atmosphere = JRA55PrescribedAtmosphere(1:2; grid, architecture = arch, backend = InMemory())
+        dates = all_dates(JRA55RepeatYear())[1:2]
+        atmosphere = JRA55PrescribedAtmosphere(arch; dates, backend = InMemory()) 
 
         fill!(ocean.model.tracers.T, -2.0)
 
@@ -231,12 +242,13 @@ end
 
         ocean = ocean_simulation(grid; momentum_advection, tracer_advection, closure, tracers, coriolis)
 
-        T_metadata = ECCOMetadata(:temperature)
-        S_metadata = ECCOMetadata(:salinity)
+        T_metadata = Metadata(:temperature, dates=DateTimeProlepticGregorian(1993, 1, 1), version=ECCO4Monthly())
+        S_metadata = Metadata(:salinity,  dates=DateTimeProlepticGregorian(1993, 1, 1), version=ECCO4Monthly())
 
         set!(ocean.model; T=T_metadata, S=S_metadata)
 
-        atmosphere = JRA55PrescribedAtmosphere(1:10; grid, architecture = arch, backend = InMemory())
+        dates = all_dates(JRA55RepeatYear())[1:10]
+        atmosphere = JRA55PrescribedAtmosphere(arch; dates, backend = InMemory())
         radiation  = Radiation(ocean_albedo=0.1, ocean_emissivity=1.0)
         sea_ice    = nothing
 

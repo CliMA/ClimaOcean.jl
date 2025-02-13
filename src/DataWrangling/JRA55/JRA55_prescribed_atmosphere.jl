@@ -15,7 +15,7 @@ JRA55PrescribedAtmosphere(arch::Distributed; kw...) =
 
 Return a `PrescribedAtmosphere` representing JRA55 reanalysis data.
 """
-function JRA55PrescribedAtmosphere(architecture = CPU();
+function JRA55PrescribedAtmosphere(architecture = CPU(), FT = Float32;
                                    version = JRA55RepeatYear(),
                                    dates = all_dates(version),
                                    backend = JRA55NetCDFBackend(10),
@@ -27,15 +27,15 @@ function JRA55PrescribedAtmosphere(architecture = CPU();
     kw = (; time_indexing, backend, dates, version)
     kw = merge(kw, other_kw) 
 
-    ua  = JRA55FieldTimeSeries(:eastward_velocity, architecture;               kw...)
-    va  = JRA55FieldTimeSeries(:northward_velocity, architecture;              kw...)
-    Ta  = JRA55FieldTimeSeries(:temperature, architecture;                     kw...)
-    qa  = JRA55FieldTimeSeries(:specific_humidity, architecture;               kw...)
-    pa  = JRA55FieldTimeSeries(:sea_level_pressure, architecture;              kw...)
-    Fra = JRA55FieldTimeSeries(:rain_freshwater_flux, architecture;            kw...)
-    Fsn = JRA55FieldTimeSeries(:snow_freshwater_flux, architecture;            kw...)
-    Ql  = JRA55FieldTimeSeries(:downwelling_longwave_radiation, architecture;  kw...)
-    Qs  = JRA55FieldTimeSeries(:downwelling_shortwave_radiation, architecture; kw...)
+    ua  = JRA55FieldTimeSeries(:eastward_velocity, architecture, FT;               kw...)
+    va  = JRA55FieldTimeSeries(:northward_velocity, architecture, FT;              kw...)
+    Ta  = JRA55FieldTimeSeries(:temperature, architecture, FT;                     kw...)
+    qa  = JRA55FieldTimeSeries(:specific_humidity, architecture, FT;               kw...)
+    pa  = JRA55FieldTimeSeries(:sea_level_pressure, architecture, FT;              kw...)
+    Fra = JRA55FieldTimeSeries(:rain_freshwater_flux, architecture, FT;            kw...)
+    Fsn = JRA55FieldTimeSeries(:snow_freshwater_flux, architecture, FT;            kw...)
+    Ql  = JRA55FieldTimeSeries(:downwelling_longwave_radiation, architecture, FT;  kw...)
+    Qs  = JRA55FieldTimeSeries(:downwelling_shortwave_radiation, architecture, FT; kw...)
 
     freshwater_flux = (rain = Fra,
                        snow = Fsn)

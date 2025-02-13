@@ -140,7 +140,7 @@ end
 new_backend(::JRA55NetCDFBackend, start, length) = JRA55NetCDFBackend(start, length)
 
 """
-    JRA55FieldTimeSeries(variable_name [, arch_or_grid=CPU() ]; 
+    JRA55FieldTimeSeries(variable_name, [FT = Float32]; 
                          version = JRA55RepeatYear(),
                          dates = all_JRA55_dates(version),
                          latitude = nothing,
@@ -200,8 +200,7 @@ Keyword arguments
              * `JRA55NetCDFBackend(total_time_instances_in_memory)`: only a subset of the time series is loaded into memory.
              Default: `InMemory()`.
 """
-function JRA55FieldTimeSeries(variable_name::Symbol,
-                              architecture = CPU();
+function JRA55FieldTimeSeries(variable_name::Symbol, architecture = CPU(), FT=Float32,;
                               version = JRA55RepeatYear(),
                               dates = all_dates(version),
                               dir = download_JRA55_cache,
@@ -209,10 +208,10 @@ function JRA55FieldTimeSeries(variable_name::Symbol,
 
     metadata = Metadata(variable_name, dates, version, dir)
 
-    return JRA55FieldTimeSeries(metadata, architecture; kw...)
+    return JRA55FieldTimeSeries(metadata, architecture, FT; kw...)
 end
 
-function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture = CPU(); 
+function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Float32; 
                               latitude = nothing,
                               longitude = nothing,
                               backend = InMemory(),
@@ -304,7 +303,7 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture = CPU();
     N = (Nrx, Nry)
     H = min.(N, (3, 3))
 
-    JRA55_native_grid = LatitudeLongitudeGrid(native_fts_architecture, Float32;
+    JRA55_native_grid = LatitudeLongitudeGrid(native_fts_architecture, FT;
                                               halo = H,
                                               size = N,
                                               longitude = λr,
