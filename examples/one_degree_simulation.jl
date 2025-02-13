@@ -69,14 +69,11 @@ forcing = (T=FT, S=FS)
 using Oceananigans.TurbulenceClosures: IsopycnalSkewSymmetricDiffusivity,
                                        DiffusiveFormulation
 
-using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities: CATKEVerticalDiffusivity
-
-numerical_closure = HorizontalScalarDiffusivity(ν=5e3)
 eddy_closure = IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3,
                                                  skew_flux_formulation=DiffusiveFormulation())
-vertical_mixing = CATKEVerticalDiffusivity()
+vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
 
-closure = (eddy_closure, numerical_closure, vertical_mixing)
+closure = (eddy_closure, vertical_mixing)
 
 # ### Ocean simulation
 

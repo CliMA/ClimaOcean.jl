@@ -82,7 +82,6 @@ function default_free_surface(grid::DistributedGrid;
     return free_surface
 end
 
-
 default_vertical_coordinate(grid) = Oceananigans.Models.ZCoordinate()
 default_vertical_coordinate(::MutableGridOfSomeKind) = Oceananigans.Models.ZStar()
 
