@@ -340,9 +340,9 @@ end
     Ψₐ = atmosphere_state
     Ψᵢ = interior_state
     Ψₛⁿ = Ψₛ⁻ = initial_interface_state
-    iteration = 0
     maxiter = flux_formulation.solver_maxiter
     tolerance = flux_formulation.solver_tolerance
+    iteration = 0
 
     while iterating(Ψₛⁿ, Ψₛ⁻, iteration, maxiter, tolerance)
         Ψₛ⁻ = Ψₛⁿ
