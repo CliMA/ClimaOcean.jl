@@ -8,7 +8,6 @@ using ClimaOcean.DataWrangling: Metadata, metadata_path, download_progress
 import Dates: year, month, day
 import Oceananigans.Fields: set!
 import Base
-import ClimaOcean.DataWrangling: all_dates, metadata_filename
 
 import Oceananigans.Fields: set!, location
 import ClimaOcean.DataWrangling: all_dates, metadata_filename, default_download_folder
