@@ -4,7 +4,7 @@ JRA55PrescribedAtmosphere(arch::Distributed; kw...) =
     JRA55PrescribedAtmosphere(child_architecture(arch); kw...)
 
 """
-    JRA55PrescribedAtmosphere(architecture::AA;
+    JRA55PrescribedAtmosphere([architecture = CPU()];
                               version = JRA55RepeatYear(),
                               dates = all_dates(version),
                               backend = nothing,
@@ -15,7 +15,7 @@ JRA55PrescribedAtmosphere(arch::Distributed; kw...) =
 
 Return a `PrescribedAtmosphere` representing JRA55 reanalysis data.
 """
-function JRA55PrescribedAtmosphere(architecture;
+function JRA55PrescribedAtmosphere(architecture = CPU();
                                    version = JRA55RepeatYear(),
                                    dates = all_dates(version),
                                    backend = JRA55NetCDFBackend(10),
