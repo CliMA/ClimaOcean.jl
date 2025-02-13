@@ -169,8 +169,7 @@ hidespines!(axu, :t, :l)
 hidespines!(axτ, :b, :r)
 hidespines!(axQ, :t, :r)
 
-# record(fig, "idealized_atmosphere.mp4", 1:Nt, framerate=24) do nn
-#     @info "Drawing frame $nn of $Nt..."
-#     n[] = nn
-# end
-
+record(fig, "idealized_atmosphere.mp4", 1:Nt, framerate=24) do nn
+    @info "Drawing frame $nn of $Nt..."
+    n[] = nn
+end

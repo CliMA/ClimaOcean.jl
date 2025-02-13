@@ -29,8 +29,8 @@ parent(atmosphere.downwelling_radiation.shortwave) .= Qℓ # W
 grid = RectilinearGrid(size=400, z=(-400, 0), topology=(Flat, Flat, Bounded))
 ocean = ocean_simulation(grid, coriolis=FPlane(; f))
 
-eos = ocean.model.buoyancy.model.equation_of_state
-g = ocean.model.buoyancy.model.gravitational_acceleration
+eos = ocean.model.buoyancy.formulation.equation_of_state
+g = ocean.model.buoyancy.formulation.gravitational_acceleration
 α = SeawaterPolynomials.thermal_expansion(T₀, S₀, 0, eos)
 dTdz = N² / (α * g)
 Tᵢ(z) = max(-1.8, T₀ + dTdz * z)
