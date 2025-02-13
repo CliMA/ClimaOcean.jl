@@ -52,7 +52,7 @@ z_below_surface = z_faces[end-1]
 
 mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(z_below_surface, 0))
 
-dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 11, 1)
+dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1994, 1, 1)
 temperature = ECCOMetadata(:temperature; dates, version=ECCO4Monthly(), dir="./")
 salinity    = ECCOMetadata(:salinity;    dates, version=ECCO4Monthly(), dir="./")
 
