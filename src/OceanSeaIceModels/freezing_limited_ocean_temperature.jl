@@ -2,7 +2,7 @@ using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus
 
 import ClimaOcean.OceanSeaIceModels.InterfaceComputations: add_sea_ice_ocean_fluxes!, 
                                                            computed_sea_ice_ocean_fluxes,
-                                                           atmosphere_sea_ice_interface
+                                                           sea_ice_ocean_interface
 
 #####
 ##### A workaround when you don't have a sea ice model
@@ -96,7 +96,7 @@ end
 
 # Extend interface methods to work with a `FreezingLimitedOceanTemperature`
 
-atmosphere_sea_ice_interface(sea_ice::FreezingLimitedOceanTemperature, args...) = sea_ice
+sea_ice_ocean_interface(sea_ice::FreezingLimitedOceanTemperature, args...) = sea_ice
 
 @inline computed_sea_ice_ocean_fluxes(interface::FreezingLimitedOceanTemperature) = interface
 
