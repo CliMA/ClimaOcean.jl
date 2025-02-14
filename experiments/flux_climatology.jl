@@ -8,6 +8,7 @@ using Oceananigans.Models: AbstractModel, update_model_field_time_series!
 using Oceananigans.Units
 using Adapt
 
+using Printf
 using KernelAbstractions: @index, @kernel
 
 #####
