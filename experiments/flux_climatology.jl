@@ -66,7 +66,7 @@ finalize_std!(f::FluxStatistics) = @. f.std = sqrt(f.std - f.avg^2)
 #####
 
 function compute_flux_climatology(earth)
-    net_fluxes = coupled_model.interfaces.net_fluxes.ocean_surface
+    net_fluxes = earth.interfaces.net_fluxes.ocean_surface
     τx = FluxStatistics(net_fluxes.u)
     τy = FluxStatistics(net_fluxes.v)
     Jᵀ = FluxStatistics(net_fluxes.T)
