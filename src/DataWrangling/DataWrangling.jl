@@ -15,6 +15,8 @@ using Oceananigans: pretty_filesize, location
 using Oceananigans.Utils: launch!
 using KernelAbstractions: @kernel, @index
 
+using ClimaOcean.DistributedUtils
+
 #####
 ##### Downloading utilities
 #####
