@@ -170,7 +170,7 @@ ECCO4_short_names = Dict(
     :v_velocity            => "NVEL",
     :free_surface          => "SSH",
     :sea_ice_thickness     => "SIheff",
-    :sea_ice_area_fraction => "SIarea",
+    :sea_ice_concentration => "SIarea",
     :net_heat_flux         => "oceQnet"
 )
 
@@ -181,7 +181,7 @@ ECCO2_short_names = Dict(
     :v_velocity            => "VVEL",
     :free_surface          => "SSH",
     :sea_ice_thickness     => "SIheff",
-    :sea_ice_area_fraction => "SIarea",
+    :sea_ice_concentration => "SIarea",
     :net_heat_flux         => "oceQnet"
 )
 
@@ -190,7 +190,7 @@ ECCO_location = Dict(
     :salinity              => (Center, Center, Center),
     :free_surface          => (Center, Center, Nothing),
     :sea_ice_thickness     => (Center, Center, Nothing),
-    :sea_ice_area_fraction => (Center, Center, Nothing),
+    :sea_ice_concentration => (Center, Center, Nothing),
     :net_heat_flux         => (Center, Center, Nothing),
     :u_velocity            => (Face,   Center, Center),
     :v_velocity            => (Center, Face,   Center),

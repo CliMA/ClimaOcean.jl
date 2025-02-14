@@ -10,60 +10,47 @@ using Printf
 using Statistics
 using Oceananigans.TimeSteppers: update_state!
 
-arch = CPU()
+arch = GPU()
 
-#=
-Nx = 360 * 4
-Ny = 60 * 4
-Nz = 60
-=#
+#Nx = 2160
+#Ny = 1080
+#Nz = 60
 
-Nx = 120
-Ny = 60
-Nz = 30
+Nx = 360 * 1
+Ny = 180 * 1
+
+Nz = 40
 z_faces = exponential_z_faces(; Nz, depth=5000, h=30)
+prefix = "deep_half_degree_simulation_io"
 
-latitude = (-80, -20)
-longitude = (0, 360)
+#Nz = 10
+#z_faces = (-3000, 0)
+#prefix = "shallow_fourth_degree_simulation"
 
-underlying_grid = LatitudeLongitudeGrid(arch; size=(Nx, Ny, Nz), halo=(7, 7, 7), latitude, longitude, z=z_faces)
+underlying_grid = TripolarGrid(arch; size=(Nx, Ny, Nz), halo=(7, 7, 7), z=z_faces)
 bottom_height = regrid_bathymetry(underlying_grid)
 grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height))
 
-gm = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=2000, κ_symmetric=2000)
 catke = ClimaOcean.OceanSimulations.default_ocean_closure()
-viscous_closure = Oceananigans.TurbulenceClosures.HorizontalScalarDiffusivity(ν=2000)
 
 dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 12, 1)
 temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
 salinity = ECCOMetadata(:salinity, dates, ECCO4Monthly())
 
-restoring_rate = 1/2days
-mask = LinearlyTaperedPolarMask(northern=(-25, -20))
-FT = ECCORestoring(temperature, grid; mask, rate=restoring_rate)
-FS = ECCORestoring(salinity, grid; mask, rate=restoring_rate)
-
 ocean = ocean_simulation(grid;
-                         #momentum_advection =  VectorInvariant(),
-                         #tracer_advection = Centered(order=2),
-                         #closure = (gm, catke, viscous_closure),
                          closure = catke,
-                         # forcing = (T=FT, S=FT),
-                         tracers = (:T, :S, :e))
-
-start_date = first(dates)
-#set!(ocean.model, T=ECCOMetadata(:temperature; dates=start_date),
-#                  S=ECCOMetadata(:salinity; dates=start_date))
+                         tracers = (:T, :S, :e),
+                         momentum_advection = WENOVectorInvariant(vorticity_order=5),
+                         tracer_advection = WENO(order=5))
 
 radiation  = Radiation(arch)
 atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(20))
-# ocean.model.clock.time = 180days
 
 #####
 ##### Sea ice model stuff
 #####
 
-sea_ice_grid = LatitudeLongitudeGrid(arch; size=(Nx, Ny), latitude, longitude, topology=(Periodic, Bounded, Flat))
+sea_ice_grid = underlying_grid
 land_mask = interior(bottom_height) .>= 0
 sea_ice_grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBoundary(land_mask))
 top_sea_ice_temperature = Field{Center, Center, Nothing}(sea_ice_grid)
@@ -79,7 +66,10 @@ sea_ice_model = SeaIceModel(sea_ice_grid;
                             ice_thermodynamics)
 
 sea_ice = Simulation(sea_ice_model, Δt=10minutes)
+coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation) 
+simulation = Simulation(coupled_model; Δt=10minutes, stop_time=4*360days)
 
+start_date = first(dates)
 thickness_meta = ECCOMetadata(:sea_ice_thickness; dates=start_date)
 concentration_meta = ECCOMetadata(:sea_ice_concentration; dates=start_date)
 set!(sea_ice.model.ice_thickness, thickness_meta)
@@ -88,18 +78,6 @@ set!(sea_ice.model.ice_concentration, concentration_meta)
 set!(ocean.model, T=ECCOMetadata(:temperature; dates=start_date),
                   S=ECCOMetadata(:salinity; dates=start_date), u=0, v=0)
 
-coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation) 
-simulation = Simulation(coupled_model; Δt=10minutes, stop_time=3days)
-
-ℵ = sea_ice.model.ice_concentration
-heatmap(ℵ)
-
-#h = sea_ice.model.ice_thickness
-#heatmap(h)
-
-
-#=
-
 wall_time = Ref(time_ns())
 
 function progress(sim)
@@ -107,7 +85,6 @@ function progress(sim)
     h = sea_ice.model.ice_thickness
     Tai = coupled_model.interfaces.atmosphere_sea_ice_interface.temperature
     hmax = maximum(interior(h))
-    #Taiavg = mean(interior(Tai))
     Taimin = minimum(interior(Tai))
 
     ocean = sim.model.ocean
@@ -180,7 +157,7 @@ function progress(sim)
                     1e6 * min_Fv_ai, 1e6 * max_Fv_ai)
 
     @info msg
-    
+
     wall_time[] = time_ns()
 
     return nothing
@@ -188,32 +165,44 @@ end
 
 add_callback!(simulation, progress, IterationInterval(100))
 
-Ql = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.latent_heat
-Qs = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.sensible_heat
+Qv = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.latent_heat
+Qc = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.sensible_heat
 τx = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.x_momentum
 τy = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.y_momentum
 Fv = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.water_vapor
-fluxes = (; Ql, Qs, τx, τy, Fv)
-ocean_outputs = merge(ocean.model.velocities, ocean.model.tracers)
+
+fluxes = (; Qv, Qc, τx, τy, Fv)
 
 Nz = size(grid, 3)
-ocean_outputs = NamedTuple(name => view(ocean_outputs[name], :, :, Nz)
-                           for name in keys(ocean_outputs))
+u, v, w = ocean.model.velocities
+s_op = @at (Center, Center, Center) sqrt(u^2 + v^2)
+s = Field(s_op, indices=(:, :, Nz))
+ocean_outputs = merge(ocean.model.velocities, ocean.model.tracers, (; s))
 
+ocean_outputs = NamedTuple(name => view(ocean_outputs[name], :, :, Nz) for name in keys(ocean_outputs))
 h = sea_ice_model.ice_thickness
 ℵ = sea_ice_model.ice_concentration
 Ti = top_sea_ice_temperature
 sea_ice_outputs = (; h, ℵ, Ti)
 
-outputs = merge(ocean_outputs, sea_ice_outputs, fluxes)
+surface_outputs = merge(ocean_outputs, sea_ice_outputs, fluxes)
 
-ow = JLD2OutputWriter(ocean.model, outputs,
-                      filename = "three_degree_simulation_surface.jld2",
-                      indices = (:, :, size(grid, 3)),
-                      schedule = TimeInterval(1days),
+surface_ow = JLD2OutputWriter(ocean.model, surface_outputs,
+                      filename = prefix * "_surface.jld2",
+                      schedule = TimeInterval(5days),
                       overwrite_existing = true)
 
-simulation.output_writers[:jld2] = ow
+simulation.output_writers[:jld2] = surface_ow
 
-#run!(simulation)
-=#
+fields_outputs = merge(ocean.model.velocities, ocean.model.tracers)
+fields_outputs = merge(fields_outputs, (; h, ℵ))
+
+fields_ow = JLD2OutputWriter(ocean.model, fields_outputs,
+                             filename = prefix * "_fields.jld2",
+                             schedule = TimeInterval(30days),
+                             overwrite_existing = true)
+
+simulation.output_writers[:fields] = fields_ow
+
+run!(simulation)
+
