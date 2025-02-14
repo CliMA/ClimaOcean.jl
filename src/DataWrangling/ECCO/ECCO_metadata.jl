@@ -37,7 +37,7 @@ Base.size(::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4Monthly}) = (720,  360, 50
 # The whole range of dates in the different dataset versions
 all_dates(::ECCO4Monthly) = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(2023, 12, 1)
 all_dates(::ECCO2Monthly) = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(2023, 12, 1)
-all_dates(::ECCO2Daily)   = DateTimeProlepticGregorian(1992, 1, 4) : Day(1)   : DateTimeProlepticGregorian(2023, 12, 31)
+all_dates(::ECCO2Daily)   = DateTimeProlepticGregorian(1992, 1, 4) : Day(3)   : DateTimeProlepticGregorian(2023, 12, 31)
 
 # File name generation specific to each Dataset version
 function metadata_filename(metadata::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4Monthly})
