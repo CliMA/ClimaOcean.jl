@@ -158,10 +158,10 @@ the Monin-Obukhov length ``L`` and the roughness length ``ℓ``.
 struct LogarithmicSimilarityProfile end
 struct COARELogarithmicSimilarityProfile end
 
-@inline similarity_profile(::LogarithmicSimilarityProfile, ψ, h, ℓ, L) =
+@inline similarity_profile(::LogarithmicSimilarityProfile, ψ, h, ℓ, L) = 
     log(h / ℓ) - ψ(h / L) + ψ(ℓ / L)
 
-@inline similarity_profile(::COARELogarithmicSimilarityProfile, ψ, h, ℓ, L) =
+@inline similarity_profile(::COARELogarithmicSimilarityProfile, ψ, h, ℓ, L) = 
     log(h / ℓ) - ψ(h / L)
 
 function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
@@ -198,7 +198,7 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
 
     # Monin-Obhukov characteristic length scale and non-dimensional height
     ϰ = flux_formulation.von_karman_constant
-    L★ = ifelse(b★ == 0, zero(b★), - u★^2 / (ϰ * b★))
+    L★ = ifelse(b★ == 0, Inf, - u★^2 / (ϰ * b★))
 
     # Compute roughness length scales
     ℓu₀ = roughness_length(ℓu, u★, 𝒬ₛ, ℂₐ)

@@ -1,5 +1,9 @@
 using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus
 
+import ClimaOcean.OceanSeaIceModels.InterfaceComputations: add_sea_ice_ocean_fluxes!, 
+                                                           computed_sea_ice_ocean_fluxes,
+                                                           atmosphere_sea_ice_interface
+
 #####
 ##### A workaround when you don't have a sea ice model
 #####
@@ -37,14 +41,6 @@ function compute_sea_ice_ocean_fluxes!(cm::FreezingLimitedCoupledModel)
     arch = architecture(grid)
     Sₒ = ocean.model.tracers.S
     Tₒ = ocean.model.tracers.T
-    net_fluxes = cm.interfaces.net_fluxes.ocean_surface
-    sea_ice = cm.sea_ice
-    
-    launch!(arch, grid, :xy, _adjust_fluxes_over_sea_ice!,
-            net_fluxes,
-            grid,
-            sea_ice.liquidus,
-            Tₒ, Sₒ)
 
     launch!(arch, grid, :xyz, above_freezing_ocean_temperature!, Tₒ, Sₒ, liquidus)
 
@@ -83,6 +79,46 @@ end
         τy = net_fluxes.v
         Jᵀ = net_fluxes.T
         Jˢ = net_fluxes.S
+
+        sea_ice = Tₒ < Tₘ
+        cooling_sea_ice = sea_ice & (Jᵀ[i, j, 1] > 0)
+
+        @show i, j, cooling_sea_ice, sea_ice
+        # Don't allow the ocean to cool below the minimum temperature! (make sure it heats up though!)
+        Jᵀ[i, j, 1] = ifelse(cooling_sea_ice, zero(grid), Jᵀ[i, j, 1]) 
+
+        # If we are in a "sea ice" region we remove all fluxes
+        Jˢ[i, j, 1] = ifelse(sea_ice, zero(grid), Jˢ[i, j, 1])
+        τx[i, j, 1] = ifelse(sea_ice, zero(grid), τx[i, j, 1])
+        τy[i, j, 1] = ifelse(sea_ice, zero(grid), τy[i, j, 1])
+    end
+end
+
+# Extend interface methods to work with a `FreezingLimitedOceanTemperature`
+
+atmosphere_sea_ice_interface(sea_ice::FreezingLimitedOceanTemperature, args...) = sea_ice
+
+@inline computed_sea_ice_ocean_fluxes(interface::FreezingLimitedOceanTemperature) = interface
+
+@inline function add_sea_ice_ocean_fluxes!(i, j, grid,
+                                           net_ocean_fluxes,
+                                           sea_ice_ocean_fluxes::FreezingLimitedOceanTemperature,
+                                           sea_ice_concentration,
+                                           ocean_salinity,
+                                           ocean_surface_temperature)
+    
+    kᴺ = size(grid, 3)
+                                           
+    @inbounds begin
+        Tₒ = ocean_surface_temperature[i, j, kᴺ]
+        Sₒ = ocean_salinity[i, j, kᴺ]
+
+        Tₘ = melting_temperature(sea_ice_ocean_fluxes.liquidus, Sₒ)
+
+        τx = net_ocean_fluxes.u
+        τy = net_ocean_fluxes.v
+        Jᵀ = net_ocean_fluxes.T
+        Jˢ = net_ocean_fluxes.S
 
         sea_ice = Tₒ < Tₘ
         cooling_sea_ice = sea_ice & (Jᵀ[i, j, 1] > 0)

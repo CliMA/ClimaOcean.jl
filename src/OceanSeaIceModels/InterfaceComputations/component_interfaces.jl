@@ -9,7 +9,7 @@ using ..OceanSeaIceModels: reference_density,
                            downwelling_radiation,
                            freshwater_flux,
                            SeaIceSimulation
-
+                           
 using ClimaSeaIce: SeaIceModel
 
 using Oceananigans: HydrostaticFreeSurfaceModel, architecture
