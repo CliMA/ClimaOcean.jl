@@ -30,8 +30,8 @@ end
     for arch in test_architectures
         grid = LatitudeLongitudeGrid(arch;
                                      size = 1, 
-                                     latitude = 0, 
-                                     longitude = 0,
+                                     latitude = 10, 
+                                     longitude = 10,
                                      z = (-1, 0),
                                      topology = (Flat, Flat, Bounded))
         
