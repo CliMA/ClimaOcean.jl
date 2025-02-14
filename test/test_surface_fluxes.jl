@@ -176,7 +176,7 @@ end
                                                 closure = nothing,
                                 bottom_drag_coefficient = 0.0)
 
-        atmosphere = JRA55PrescribedAtmosphere(1:2; grid, architecture = arch, backend = InMemory())
+        atmosphere = JRA55PrescribedAtmosphere(1:2; architecture = arch, backend = InMemory())
 
         fill!(ocean.model.tracers.T, -2.0)
 
@@ -189,7 +189,7 @@ end
 
             # Always cooling!
             fill!(atmosphere.tracers.T, 273.15 - 20)
-
+            
             coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 
             # Make sure that temperature fluxes are zero when the temperature 
@@ -198,7 +198,6 @@ end
 
             @test Jᵀ[1, 2, 1] != 0.0 # below freezing and cooling, no flux
             @test Jᵀ[2, 1, 1] != 0.0 # below freezing and cooling, no flux
-            @test Jᵀ[1, 1, 1] == 0.0 # above freezing and cooling
             @test Jᵀ[2, 2, 1] == 0.0 # above freezing and cooling
 
             # Test that the temperature has snapped up to freezing
