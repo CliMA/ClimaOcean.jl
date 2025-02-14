@@ -48,6 +48,13 @@ Adapt.adapt_structure(to, f::FluxStatistics) = FluxStatistics(Adapt.adapt(to, f.
                                                               Adapt.adapt(to, f.max),
                                                               Adapt.adapt(to, f.min))
 
+import Oceananigans.Architectures: on_architecture
+
+on_architecture(arch, f::FluxStatistics) = FluxStatistics(on_architecture(arch, f.avg),
+                                                          on_architecture(arch, f.std),
+                                                          on_architecture(arch, f.max),
+                                                          on_architecture(arch, f.min))
+
 function update_stats!(stats::FluxStatistics, flux, Δt, stop_time)
     grid = flux.grid
     arch = architecture(grid)
