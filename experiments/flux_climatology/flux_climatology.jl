@@ -147,7 +147,7 @@ S = ECCOFieldTimeSeries(:salinity,    version; dates)
 grid = u.grid
 
 ocean_model = PrescribedOcean((; u, v, T, S); grid)
-ocean = Simulation(ocean_model, Δt=1hour, stop_time=365days)
+ocean = Simulation(ocean_model, Δt=3hour, stop_time=365days)
 
 #####
 ##### Need to extend a couple of methods
