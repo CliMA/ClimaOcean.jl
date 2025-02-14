@@ -49,8 +49,8 @@ end
             h  = atmosphere.reference_height
             pₐ = atmosphere.pressure[1][1, 1, 1]
 
-            Tₐ = atmosphere.tracers.T[1][1, 1, 1]
-            qₐ = atmosphere.tracers.q[1][1, 1, 1]
+            Tₐ = 15 + celsius_to_kelvin
+            qₐ = 0.003
             
             uₐ = atmosphere.velocities.u[1][1, 1, 1]
             vₐ = atmosphere.velocities.v[1][1, 1, 1]
