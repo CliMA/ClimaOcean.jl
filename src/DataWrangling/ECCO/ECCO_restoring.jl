@@ -165,8 +165,13 @@ function ECCOFieldTimeSeries(metadata::ECCOMetadata, grid::AbstractGrid;
     return fts	
 end
 
-ECCOFieldTimeSeries(variable_name::Symbol, version=ECCO4Monthly(); kw...) = 
-    ECCOFieldTimeSeries(ECCOMetadata(variable_name, all_ECCO_dates(version), version); kw...)
+function ECCOFieldTimeSeries(variable_name::Symbol, version=ECCO4Monthly(); 
+                             dates=all_ECCO_dates(version), 
+                             dir = download_ECCO_cache, 
+                             kw...) 
+    
+    return ECCOFieldTimeSeries(ECCOMetadata(variable_name, dates, version, dir); kw...)
+end
 
 # Variable names for restorable data
 struct Temperature end
