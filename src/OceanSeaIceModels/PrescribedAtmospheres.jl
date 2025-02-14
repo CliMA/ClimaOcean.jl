@@ -243,7 +243,7 @@ function Base.show(io::IO, p::PrescribedAtmosphereThermodynamicsParameters)
         "    └── total_ice_nucleation_temperature (Tⁱ): ", prettysummary(pt.total_ice_nucleation_temperature))
 end
 
-function PrescribedAtmosphereThermodynamicsParameters(FT = Float64;
+function PrescribedAtmosphereThermodynamicsParameters(FT=Float64;
                                                       constitutive = ConstitutiveParameters(FT),
                                                       phase_transitions = PhaseTransitionParameters(FT),
                                                       heat_capacity = HeatCapacityParameters(FT))
@@ -345,6 +345,9 @@ function default_atmosphere_pressure(grid, times)
     parent(pa) .= 101325
     return pa
 end
+
+@inline thermodynamics_parameters(atmos::PrescribedAtmosphere) = atmos.thermodynamics_parameters
+@inline reference_height(atmos::PrescribedAtmosphere) = atmos.reference_height
 
 """
     PrescribedAtmosphere(grid, times;
