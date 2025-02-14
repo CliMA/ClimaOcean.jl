@@ -17,6 +17,12 @@ function compute_net_ocean_fluxes!(coupled_model)
     atmos_ocean_fluxes = coupled_model.interfaces.atmosphere_ocean_interface.fluxes
     sea_ice_ocean_fluxes = computed_sea_ice_ocean_fluxes(coupled_model.interfaces.sea_ice_ocean_interface)
 
+    # We remove the heat flux since does not need to be assembled and bloats the parameter space.
+    net_ocean_fluxes = (u = net_ocean_fluxes.u,
+                        v = net_ocean_fluxes.v,
+                        T = net_ocean_fluxes.T,
+                        S = net_ocean_fluxes.S)
+
     # Simplify NamedTuple to reduce parameter space consumption.
     # See https://github.com/CliMA/ClimaOcean.jl/issues/116.
     atmosphere_fields = coupled_model.interfaces.near_surface_atmosphere_state

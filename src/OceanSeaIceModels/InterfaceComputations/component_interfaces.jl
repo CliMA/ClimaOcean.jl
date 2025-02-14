@@ -9,7 +9,7 @@ using ..OceanSeaIceModels: reference_density,
                            downwelling_radiation,
                            freshwater_flux,
                            SeaIceSimulation
-                           
+
 using ClimaSeaIce: SeaIceModel
 
 using Oceananigans: HydrostaticFreeSurfaceModel, architecture
@@ -251,25 +251,6 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                                sea_ice_properties,
                                near_surface_atmosphere_state(ocean.model.grid),
                                net_fluxes)
-end
-
-function ocean_interface_fluxes(model, ρₛ, cₛ)
-    grid = model.grid
-    τx = surface_flux(model.velocities.u)
-    τy = surface_flux(model.velocities.v)
-    interface_momentum_fluxes = (u=τx, v=τy)
-
-    tracers = model.tracers
-    interface_tracer_fluxes = NamedTuple(name => surface_flux(tracers[name])
-                                         for name in keys(tracers))
-
-    interface_heat_flux = ρₛ * cₛ * interface_tracer_fluxes.T
-
-    fluxes = (momentum = interface_momentum_fluxes,
-              tracers = interface_tracer_fluxes,
-              heat = interface_heat_flux)
-
-    return fluxes
 end
 
 sea_ice_similarity_theory(sea_ice) = nothing
