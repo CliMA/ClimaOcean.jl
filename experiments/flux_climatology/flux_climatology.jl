@@ -17,7 +17,6 @@ import Oceananigans.TimeSteppers: time_step!, update_state!, reset!, tick!
 import Oceananigans.Models: timestepper, update_model_field_time_series!
 
 import ClimaOcean.OceanSeaIceModels: reference_density, heat_capacity
-import ClimaOcean.OceanSeaIceModels.InterfaceComputations: surface_flux
 
 #####
 ##### A Data structure that holds flux statistics
@@ -178,8 +177,6 @@ timestepper(::PrescribedOcean) = nothing
 
 reference_density(ocean::Simulation{<:PrescribedOcean}) = 1025.6
 heat_capacity(ocean::Simulation{<:PrescribedOcean}) = 3995.6
-
-surface_flux(fts::FieldTimeSeries) = Field{location(fts)[1:2]..., Nothing}(fts.grid)
 
 #####
 ##### A prescribed atmosphere...
