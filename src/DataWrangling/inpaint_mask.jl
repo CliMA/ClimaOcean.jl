@@ -80,20 +80,20 @@ function propagate_horizontally!(inpainting::NearestNeighborInpainting, field, m
     grid  = field.grid
     arch  = architecture(grid)
     
-    launch!(arch, grid, :xyz, _nan_mask!, field, mask)
+    launch!(arch, grid, size(field), _nan_mask!, field, mask)
     fill_halo_regions!(field)
 
     # Need temporary field to avoid a race condition
     parent(tmp_field) .= parent(field)
 
     while propagating(field, mask, iter, inpainting)
-        launch!(arch, grid, :xyz, _propagate_field!,   field, inpainting, tmp_field)
-        launch!(arch, grid, :xyz, _substitute_values!, field, tmp_field)
+        launch!(arch, grid, size(field), _propagate_field!,   field, inpainting, tmp_field)
+        launch!(arch, grid, size(field), _substitute_values!, field, tmp_field)
         iter += 1
         @debug "Propagate pass $iter with sum $(sum(parent(field)))"
     end
 
-    launch!(arch, grid, :xyz, _fill_nans!, field)
+    launch!(arch, grid, size(field), _fill_nans!, field)
 
     fill_halo_regions!(field)
 
@@ -146,8 +146,14 @@ function inpaint_mask!(field, mask; inpainting=NearestNeighborInpainting(Inf))
         inpainting = NearestNeighborInpainting(inpainting)
     end
 
-    continue_downwards!(field, mask)
+    # TODO: make this a proper condition
+    Nx, Ny, Nz = size(field)
+    if Nz > 1
+        continue_downwards!(field, mask)
+    end
+
     propagate_horizontally!(inpainting, field, mask)
 
     return field
 end
+
