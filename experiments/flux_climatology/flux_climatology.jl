@@ -72,7 +72,7 @@ end
     end
 end
 
-finalize_std!(f::FluxStatistics) = @. f.std = sqrt(f.std - f.avg^2)
+finalize_std!(f::FluxStatistics) = parent(f.std) .= sqrt.(parent(f.std) .- parent(f.avg).^2)
 
 #####
 ##### A function to compute flux statistics
@@ -147,10 +147,10 @@ dates   = all_ECCO_dates(version)[1:24]
 
 arch = CPU()
 
-u = ECCOFieldTimeSeries(:u_velocity,  version; architecture = arch, dates)
-v = ECCOFieldTimeSeries(:v_velocity,  version; architecture = arch, dates)
-T = ECCOFieldTimeSeries(:temperature, version; architecture = arch, dates)
-S = ECCOFieldTimeSeries(:salinity,    version; architecture = arch, dates)
+u = ECCOFieldTimeSeries(:u_velocity,  version; time_indices_in_memory = 13, architecture = arch, dates)
+v = ECCOFieldTimeSeries(:v_velocity,  version; time_indices_in_memory = 13, architecture = arch, dates)
+T = ECCOFieldTimeSeries(:temperature, version; time_indices_in_memory = 13, architecture = arch, dates)
+S = ECCOFieldTimeSeries(:salinity,    version; time_indices_in_memory = 13, architecture = arch, dates)
 
 grid = ECCO.ECCO_immersed_grid(arch)
 
