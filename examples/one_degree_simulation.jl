@@ -15,7 +15,7 @@ using CFTime
 using Dates
 using Printf
 
-arch = GPU()
+arch = CPU()
 
 # ### Grid and Bathymetry
 
@@ -49,7 +49,7 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(tampered_bottom_he
 
 # We include temperature and salinity surface restoring to ECCO2.
 restoring_rate  = 1 / 10days
-z_below_surface = z_faces[end-1]
+z_below_surface = r_faces[end-1]
 
 mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(z_below_surface, 0))
 
