@@ -1,6 +1,10 @@
 
 using GLMakie
 
+mask = ClimaOcean.ECCO.ECCO_mask()
+mask = Array(interior(mask, :, :, 50)) |> Array{Float64}
+mask[mask .== 1] .= NaN
+
 fig = Figure(resolution = (800, 600))
 axQ = Axis(fig[1, 1], title = "Heat Flux")
 axS = Axis(fig[1, 2], title = "Salinity Flux")
@@ -10,10 +14,12 @@ axv = Axis(fig[2, 2], title = "Meridional stress")
 ρ  = reference_density(earth.model.ocean.model)
 cp = heat_capacity(earth.model.ocean.model)
 
-heatmap!(axQ, stats.Jᵀ.avg * ρ * cp, colormap = :balance)
-heatmap!(axS, stats.Jˢ.avg,          colormap = :balance)
-heatmap!(axu, stats.τx.avg,          colormap = :balance)
-heatmap!(axv, stats.τy.avg,          colormap = :balance)
+Qavg = compute!(Field(stats.Jᵀ.avg * ρ * cp))
+
+heatmap!(axQ, Qavg,          colormap = :balance)
+heatmap!(axS, stats.Jˢ.avg,  colormap = :balance)
+heatmap!(axu, stats.τx.avg,  colormap = :balance)
+heatmap!(axv, stats.τy.avg,  colormap = :balance)
 
 save("mean_fluxes.png", fig)
 

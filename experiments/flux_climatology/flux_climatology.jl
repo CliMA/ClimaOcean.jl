@@ -145,12 +145,14 @@ end
 version = ECCO4Monthly()
 dates   = all_ECCO_dates(version)[1:24]
 
-u = ECCOFieldTimeSeries(:u_velocity,  version; dates)
-v = ECCOFieldTimeSeries(:v_velocity,  version; dates)
-T = ECCOFieldTimeSeries(:temperature, version; dates)
-S = ECCOFieldTimeSeries(:salinity,    version; dates)
+arch = CPU()
 
-grid = u.grid
+u = ECCOFieldTimeSeries(:u_velocity,  version; architecture = arch, dates)
+v = ECCOFieldTimeSeries(:v_velocity,  version; architecture = arch, dates)
+T = ECCOFieldTimeSeries(:temperature, version; architecture = arch, dates)
+S = ECCOFieldTimeSeries(:salinity,    version; architecture = arch, dates)
+
+grid = ECCO.ECCO_immersed_grid(arch)
 
 ocean_model = PrescribedOcean((; u, v, T, S); grid)
 ocean = Simulation(ocean_model, Δt=3hour, stop_time=365days)
@@ -163,17 +165,17 @@ function time_step!(model::PrescribedOcean, Δt; callbacks=[], euler=true)
     tick!(model.clock, Δt)
     time = Time(model.clock.time)
 
-    parent(model.velocities.u) .= parent(model.timeseries.u[time])
-    parent(model.velocities.v) .= parent(model.timeseries.v[time])
-    parent(model.tracers.T)    .= parent(model.timeseries.T[time])
-    parent(model.tracers.S)    .= parent(model.timeseries.S[time])
-
     possible_fts = merge(model.velocities, model.tracers)
     time_series_tuple = extract_field_time_series(possible_fts)
 
     for fts in time_series_tuple
         update_field_time_series!(fts, time)
     end
+
+    parent(model.velocities.u) .= parent(model.timeseries.u[time])
+    parent(model.velocities.v) .= parent(model.timeseries.v[time])
+    parent(model.tracers.T)    .= parent(model.timeseries.T[time])
+    parent(model.tracers.S)    .= parent(model.timeseries.S[time])
 
     return nothing
 end
@@ -188,7 +190,7 @@ heat_capacity(ocean::Simulation{<:PrescribedOcean}) = 3995.6
 ##### A prescribed atmosphere...
 #####
 
-atmosphere = JRA55PrescribedAtmosphere(CPU(); backend=JRA55NetCDFBackend(10))
+atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(1000))
 
 #####
 ##### A prescribed earth...
