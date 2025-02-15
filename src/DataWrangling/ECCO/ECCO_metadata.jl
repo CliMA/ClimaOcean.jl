@@ -161,8 +161,9 @@ function download_dataset(metadata::ECCOMetadata; url = urls(metadata))
 
         # Write down the username and password in a .netrc file
         downloader = netrc_downloader(username, password, "ecco.jpl.nasa.gov", tmp)
-
-        asyncmap(metadata, ntasks=10) do metadatum # Distribute the download among tasks
+        ntasks = Threads.nthreads()
+        
+        asyncmap(metadata; ntasks) do metadatum # Distribute the download among tasks
 
             fileurl  = metadata_url(url, metadatum) 
             filepath = metadata_path(metadatum)
