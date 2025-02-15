@@ -4,11 +4,11 @@ using Oceananigans.Grids: grid_name
 using Oceananigans.Utils: prettysummary
 using Oceananigans.Fields: Center
 using Oceananigans.OutputReaders: FieldTimeSeries, update_field_time_series!, extract_field_time_series
+using Oceananigans.TimeSteppers: tick!
 
 using Adapt
 using Thermodynamics.Parameters: AbstractThermodynamicsParameters
 
-import Oceananigans.Models: update_model_field_time_series!
 import Oceananigans.TimeSteppers: time_step!
 
 import Thermodynamics.Parameters:
@@ -288,8 +288,9 @@ const PATP = PrescribedAtmosphereThermodynamicsParameters
 ##### Prescribed atmosphere (as opposed to dynamically evolving / prognostic)
 #####
 
-struct PrescribedAtmosphere{FT, M, G, U, P, C, F, I, R, TP, TI}
+struct PrescribedAtmosphere{FT, M, G, C, U, P, C, F, I, R, TP, TI}
     grid :: G
+    clock :: Clock{C}
     metadata :: M
     velocities :: U
     pressure :: P
@@ -348,7 +349,18 @@ function default_atmosphere_pressure(grid, times)
     return pa
 end
 
-@inline time_step!(::PrescribedAtmosphere) = nothing
+@inline function time_step!(atmos::PrescribedAtmosphere, Δt) 
+    tick!(atmos.clock, Δt)
+    
+    time = Time(atmos.clock.time)
+    ftses = extract_field_time_series(atmos)
+
+    for fts in ftses
+        update_field_time_series!(fts, time)
+    end    
+    
+    return nothing
+end
 
 @inline thermodynamics_parameters(atmos::PrescribedAtmosphere) = atmos.thermodynamics_parameters
 @inline reference_height(atmos::PrescribedAtmosphere) = atmos.reference_height
@@ -356,6 +368,7 @@ end
 
 """
     PrescribedAtmosphere(grid, times;
+                         clock = Clock{Float64}(time = 0),
                          metadata = nothing,
                          reference_height = 10, # meters
                          boundary_layer_height = 600 # meters,
@@ -371,6 +384,7 @@ Return a representation of a prescribed time-evolving atmospheric
 state with data given at `times`.
 """
 function PrescribedAtmosphere(grid, times;
+                              clock = Clock{Float64}(time = 0),
                               metadata = nothing,  
                               reference_height = convert(eltype(grid), 10),
                               boundary_layer_height = convert(eltype(grid), 600),
@@ -388,6 +402,7 @@ function PrescribedAtmosphere(grid, times;
     end
 
     return PrescribedAtmosphere(grid,
+                                clock,
                                 metadata,
                                 velocities,
                                 pressure,
@@ -399,17 +414,6 @@ function PrescribedAtmosphere(grid, times;
                                 times,
                                 convert(FT, reference_height),
                                 convert(FT, boundary_layer_height))
-end
-
-update_model_field_time_series!(::Nothing, time) = nothing
-
-function update_model_field_time_series!(atmos::PrescribedAtmosphere, time)
-    ftses = extract_field_time_series(atmos)
-    for fts in ftses
-        update_field_time_series!(fts, time)
-    end
-
-    return nothing
 end
 
 struct TwoBandDownwellingRadiation{SW, LW}
