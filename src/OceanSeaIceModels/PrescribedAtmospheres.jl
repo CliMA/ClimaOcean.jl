@@ -288,9 +288,9 @@ const PATP = PrescribedAtmosphereThermodynamicsParameters
 ##### Prescribed atmosphere (as opposed to dynamically evolving / prognostic)
 #####
 
-struct PrescribedAtmosphere{FT, M, G, C, U, P, C, F, I, R, TP, TI}
+struct PrescribedAtmosphere{FT, M, G, T, U, P, C, F, I, R, TP, TI}
     grid :: G
-    clock :: Clock{C}
+    clock :: Clock{T}
     metadata :: M
     velocities :: U
     pressure :: P
@@ -373,12 +373,12 @@ end
                          reference_height = 10, # meters
                          boundary_layer_height = 600 # meters,
                          thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT),
-                              auxiliary_freshwater_flux = nothing,
-                              velocities            = default_atmosphere_velocities(grid, times),
-                              tracers               = default_atmosphere_tracers(grid, times),
-                              pressure              = default_atmosphere_pressure(grid, times),
-                              freshwater_flux       = default_freshwater_flux(grid, times),
-                              downwelling_radiation = default_downwelling_radiation(grid, times))
+                         auxiliary_freshwater_flux = nothing,
+                         velocities            = default_atmosphere_velocities(grid, times),
+                         tracers               = default_atmosphere_tracers(grid, times),
+                         pressure              = default_atmosphere_pressure(grid, times),
+                         freshwater_flux       = default_freshwater_flux(grid, times),
+                         downwelling_radiation = default_downwelling_radiation(grid, times))
 
 Return a representation of a prescribed time-evolving atmospheric
 state with data given at `times`.
