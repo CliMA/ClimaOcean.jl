@@ -23,7 +23,8 @@ Nx = 360
 Ny = 180
 Nz = 100
 
-z_faces = exponential_z_faces(; Nz, depth=5000, h=34)
+r_faces = exponential_z_faces(; Nz, depth=5000, h=34)
+z_faces = Oceananigans.MutableVerticalDiscretization(r_faces)
 
 underlying_grid = TripolarGrid(arch;
                                size = (Nx, Ny, Nz),
@@ -116,7 +117,7 @@ atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(20))
 # flow fields.
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
-simulation = Simulation(coupled_model; Δt=5minutes, stop_time=10days)
+simulation = Simulation(coupled_model; Δt=1minutes, stop_time=10days)
 
 # ### A progress messenger
 #
@@ -173,7 +174,7 @@ ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
 
 run!(simulation)
 
-simulation.Δt = 30minutes
+simulation.Δt = 20minutes
 simulation.stop_time = 360days
 
 run!(simulation)
