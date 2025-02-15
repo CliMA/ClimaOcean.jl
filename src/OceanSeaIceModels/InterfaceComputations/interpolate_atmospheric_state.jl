@@ -6,7 +6,6 @@ function interpolate_atmospheric_state!(coupled_model)
     ocean = coupled_model.ocean
     atmosphere = coupled_model.atmosphere
     atmosphere_grid = atmosphere.grid
-    sea_ice = coupled_model.sea_ice
 
     # Basic model properties
     grid = ocean.model.grid
