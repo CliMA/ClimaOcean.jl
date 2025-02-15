@@ -51,14 +51,14 @@ end
 function update_state!(coupled_model::OceanSeaIceModel, callbacks=[]; compute_tendencies=true)
     time = Time(coupled_model.clock.time)
     update_model_field_time_series!(coupled_model.atmosphere, time)
-    interpolate_atmospheric_state!(coupled_model)
+    interpolate_atmospheric_state!(coupled_model) # This function needs to be specialized by the different atmospheres
 
     # Compute interface states
     compute_atmosphere_ocean_fluxes!(coupled_model)
     compute_atmosphere_sea_ice_fluxes!(coupled_model)
     compute_sea_ice_ocean_fluxes!(coupled_model)
 
-    # compute_net_atmosphere_fluxes!(coupled_model)
+    compute_net_atmosphere_fluxes!(coupled_model) # This function needs to be specialized by the different atmospheres
     compute_net_ocean_fluxes!(coupled_model)
     #compute_net_sea_ice_fluxes!(coupled_model)
 

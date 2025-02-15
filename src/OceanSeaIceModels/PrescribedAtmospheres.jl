@@ -9,6 +9,7 @@ using Adapt
 using Thermodynamics.Parameters: AbstractThermodynamicsParameters
 
 import Oceananigans.Models: update_model_field_time_series!
+import Oceananigans.TimeSteppers: time_step!
 
 import Thermodynamics.Parameters:
     gas_constant,   #
@@ -347,8 +348,11 @@ function default_atmosphere_pressure(grid, times)
     return pa
 end
 
+@inline time_step!(::PrescribedAtmosphere) = nothing
+
 @inline thermodynamics_parameters(atmos::PrescribedAtmosphere) = atmos.thermodynamics_parameters
 @inline reference_height(atmos::PrescribedAtmosphere) = atmos.reference_height
+@inline boundary_layer_height(atmos::PrescribedAtmosphere) = atmos.boundary_layer_height    
 
 """
     PrescribedAtmosphere(grid, times;
