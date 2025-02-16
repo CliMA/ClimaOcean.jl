@@ -6,6 +6,7 @@ using Oceananigans
 using Oceananigans.Units
 using Oceananigans.Utils: with_tracers
 using Oceananigans.Advection: FluxFormAdvection
+using Oceananigans.DistributedComputations: DistributedGrid, all_reduce
 using Oceananigans.BoundaryConditions: DefaultBoundaryCondition
 using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node, MutableGridOfSomeKind
@@ -17,6 +18,7 @@ using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities:
     CATKEEquation
 
 using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
+using Statistics: mean
 
 using Oceananigans.BuoyancyFormulations: g_Earth
 using Oceananigans.Coriolis: Ω_Earth
@@ -43,10 +45,42 @@ default_or_override(override, alternative_default=nothing) = override
 # Some defaults
 default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
 
-# 70 substeps is a safe rule of thumb for an ocean at 1/4 - 1/10th of a degree
-# TODO: pass the cfl and a given Δt to calculate the number of substeps?
+function compute_maximum_Δt(grid)
+    Δx = mean(xspacings(grid))
+    Δy = mean(yspacings(grid))
+    Δθ = rad2deg(mean([Δx, Δy])) / grid.radius
+
+    # The maximum Δt is roughly 40minutes / Δθ, giving:
+    # - 40 minutes for a 1 degree ocean
+    # - 20 minutes for a 1/4 degree ocean
+    # - 10 minutes for a 1/8 degree ocean
+    # - 5 minutes for a 1/16 degree ocean
+    # - 2.5 minutes for a 1/32 degree ocean
+
+    return 40minutes / Δθ
+end
+
 const TripolarOfSomeKind = Union{TripolarGrid, ImmersedBoundaryGrid{<:Any, <:Any, <:Any, <:Any, <:TripolarGrid}}
-default_free_surface(grid::TripolarOfSomeKind) = SplitExplicitFreeSurface(grid; substeps=70)
+
+function default_free_surface(grid::TripolarOfSomeKind; 
+                              fixed_Δt = compute_maximum_Δt(grid),
+                              cfl = 0.7) 
+    free_surface = SplitExplicitFreeSurface(grid; cfl, fixed_Δt)
+    @info "Using a $(free_surface)"
+    return free_surface
+end
+
+function default_free_surface(grid::DistributedGrid; 
+                              fixed_Δt = compute_maximum_Δt(grid),
+                              cfl = 0.7) 
+    
+    free_surface = SplitExplicitFreeSurface(grid; cfl, fixed_Δt)
+    substeps = length(free_surface.substepping.averaging_weights)
+    substeps = all_reduce(max, substeps, architecture(grid))
+    free_surface = SplitExplicitFreeSurface(grid; substeps)
+    @info "Using a $(free_surface)"
+    return free_surface
+end
 
 default_vertical_coordinate(grid) = Oceananigans.Models.ZCoordinate()
 default_vertical_coordinate(::MutableGridOfSomeKind) = Oceananigans.Models.ZStar()
@@ -79,7 +113,7 @@ default_tracer_advection() = FluxFormAdvection(WENO(order=7),
 # TODO: Specify the grid to a grid on the sphere; otherwise we can provide a different
 # function that requires latitude and longitude etc for computing coriolis=FPlane...
 function ocean_simulation(grid;
-                          Δt = 5minutes,
+                          Δt = compute_maximum_Δt(grid),
                           closure = default_ocean_closure(),
                           tracers = (:T, :S),
                           free_surface = default_free_surface(grid),
