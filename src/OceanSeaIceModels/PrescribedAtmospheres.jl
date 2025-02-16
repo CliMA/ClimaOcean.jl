@@ -288,10 +288,9 @@ const PATP = PrescribedAtmosphereThermodynamicsParameters
 ##### Prescribed atmosphere (as opposed to dynamically evolving / prognostic)
 #####
 
-struct PrescribedAtmosphere{FT, M, G, T, U, P, C, F, I, R, TP, TI}
+struct PrescribedAtmosphere{FT, G, T, U, P, C, F, I, R, TP, TI}
     grid :: G
     clock :: Clock{T}
-    metadata :: M
     velocities :: U
     pressure :: P
     tracers :: C
@@ -369,7 +368,6 @@ end
 """
     PrescribedAtmosphere(grid, times;
                          clock = Clock{Float64}(time = 0),
-                         metadata = nothing,
                          reference_height = 10, # meters
                          boundary_layer_height = 600 # meters,
                          thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT),
@@ -385,7 +383,6 @@ state with data given at `times`.
 """
 function PrescribedAtmosphere(grid, times;
                               clock = Clock{Float64}(time = 0),
-                              metadata = nothing,  
                               reference_height = convert(eltype(grid), 10),
                               boundary_layer_height = convert(eltype(grid), 600),
                               thermodynamics_parameters = nothing,
@@ -403,7 +400,6 @@ function PrescribedAtmosphere(grid, times;
 
     return PrescribedAtmosphere(grid,
                                 clock,
-                                metadata,
                                 velocities,
                                 pressure,
                                 tracers,

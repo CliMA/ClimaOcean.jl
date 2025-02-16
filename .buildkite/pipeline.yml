@@ -34,9 +34,9 @@ steps:
   - wait
 
   - label: "CPU JRA55 tests"
-    key: "cpu_jra55_tests"
+    key: "cpu_JRA55_tests"
     env:
-      TEST_GROUP: "jra55"
+      TEST_GROUP: "JRA55"
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
     agents:
@@ -78,9 +78,9 @@ steps:
       slurm_ntasks: 1
 
   - label: "GPU JRA55 tests"
-    key: "gpu_jra55_tests"
+    key: "gpu_JRA55_tests"
     env:
-      TEST_GROUP: "jra55"
+      TEST_GROUP: "JRA55"
       GPU_TEST: "true"
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
