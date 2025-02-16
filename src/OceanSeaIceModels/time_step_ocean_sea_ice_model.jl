@@ -13,6 +13,7 @@ using Printf
 function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_tendencies=true)
     ocean = coupled_model.ocean
     sea_ice = coupled_model.sea_ice
+    atmosphere = coupled_model.atmosphere
 
     # Be paranoid and update state at iteration 0
     coupled_model.clock.iteration == 0 && update_state!(coupled_model, callbacks)
@@ -39,6 +40,9 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
     ocean.Δt = Δt
     time_step!(ocean)
 
+    # Time step the atmosphere
+    time_step!(atmosphere, Δt)
+
     # TODO:
     # - Store fractional ice-free / ice-covered _time_ for more
     #   accurate flux computation?
@@ -49,16 +53,17 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
 end
 
 function update_state!(coupled_model::OceanSeaIceModel, callbacks=[]; compute_tendencies=true)
-    time = Time(coupled_model.clock.time)
-    update_model_field_time_series!(coupled_model.atmosphere, time)
-    interpolate_atmospheric_state!(coupled_model)
+    
+    # This function needs to be specialized to allow different atmospheric models
+    interpolate_atmospheric_state!(coupled_model) 
 
     # Compute interface states
     compute_atmosphere_ocean_fluxes!(coupled_model)
     compute_atmosphere_sea_ice_fluxes!(coupled_model)
     compute_sea_ice_ocean_fluxes!(coupled_model)
 
-    # compute_net_atmosphere_fluxes!(coupled_model)
+    # This function needs to be specialized to allow different atmospheric models
+    compute_net_atmosphere_fluxes!(coupled_model)
     compute_net_ocean_fluxes!(coupled_model)
     #compute_net_sea_ice_fluxes!(coupled_model)
 
