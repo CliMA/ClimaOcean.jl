@@ -65,28 +65,28 @@ set!(ocean.model; T=T_metadata, S=S_metadata)
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation=Radiation())
 
-# Now that the surface fluxes are computed, we can extract and visualize them.
-# The turbulent fluxes are stored in `coupled_model.fluxes.turbulent`.
+# # Now that the surface fluxes are computed, we can extract and visualize them.
+# # The turbulent fluxes are stored in `coupled_model.fluxes.turbulent`.
 
-fluxes  = coupled_model.fluxes.turbulent.fields
-λ, φ, z = nodes(fluxes.sensible_heat)
+# fluxes  = coupled_model.fluxes.turbulent.fields
+# λ, φ, z = nodes(fluxes.sensible_heat)
 
-fig = Figure(size = (800, 800), fontsize = 15)
+# fig = Figure(size = (800, 800), fontsize = 15)
 
-ax = Axis(fig[1, 1], title = "Sensible heat flux (W m⁻²)", ylabel = "Latitude")
-heatmap!(ax, λ, φ, interior(fluxes.sensible_heat, :, :, 1); colormap = :bwr)
+# ax = Axis(fig[1, 1], title = "Sensible heat flux (W m⁻²)", ylabel = "Latitude")
+# heatmap!(ax, λ, φ, interior(fluxes.sensible_heat, :, :, 1); colormap = :bwr)
 
-ax = Axis(fig[1, 2], title = "Latent heat flux (W m⁻²)")
-heatmap!(ax, λ, φ, interior(fluxes.latent_heat, :, :, 1); colormap = :bwr)
+# ax = Axis(fig[1, 2], title = "Latent heat flux (W m⁻²)")
+# heatmap!(ax, λ, φ, interior(fluxes.latent_heat, :, :, 1); colormap = :bwr)
 
-ax = Axis(fig[2, 1], title = "Zonal wind stress (N m)", ylabel = "Latitude")
-heatmap!(ax, λ, φ, interior(fluxes.x_momentum, :, :, 1); colormap = :bwr)
+# ax = Axis(fig[2, 1], title = "Zonal wind stress (N m)", ylabel = "Latitude")
+# heatmap!(ax, λ, φ, interior(fluxes.x_momentum, :, :, 1); colormap = :bwr)
 
-ax = Axis(fig[2, 2], title = "Meridional wind stress (N m)", xlabel = "Longitude")
-heatmap!(ax, λ, φ, interior(fluxes.y_momentum, :, :, 1); colormap = :bwr)
+# ax = Axis(fig[2, 2], title = "Meridional wind stress (N m)", xlabel = "Longitude")
+# heatmap!(ax, λ, φ, interior(fluxes.y_momentum, :, :, 1); colormap = :bwr)
 
-ax = Axis(fig[3, 1], title = "Water vapor flux (kg m⁻² s⁻¹)", xlabel = "Longitude", ylabel = "Latitude")
-heatmap!(ax, λ, φ, interior(fluxes.water_vapor, :, :, 1); colormap = :bwr)
+# ax = Axis(fig[3, 1], title = "Water vapor flux (kg m⁻² s⁻¹)", xlabel = "Longitude", ylabel = "Latitude")
+# heatmap!(ax, λ, φ, interior(fluxes.water_vapor, :, :, 1); colormap = :bwr)
 
-save("fluxes.png", fig)
+# save("fluxes.png", fig)
 # ![](fluxes.png)
