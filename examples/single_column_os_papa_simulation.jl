@@ -122,9 +122,9 @@ function progress(sim)
     S = sim.model.ocean.model.tracers.S
     e = sim.model.ocean.model.tracers.e
 
-    τx = first(sim.model.fluxes.total.ocean.momentum.u)
-    τy = first(sim.model.fluxes.total.ocean.momentum.v)
-    Q = first(sim.model.fluxes.total.ocean.heat)
+    τx = first(sim.model.interfaces.net_fluxes.ocean_surface.u)
+    τy = first(sim.model.interfaces.net_fluxes.ocean_surface.v)
+    Q  = first(sim.model.interfaces.net_fluxes.ocean_surface.Q)
 
     u★ = sqrt(sqrt(τx^2 + τy^2))
 
@@ -142,15 +142,15 @@ end
 simulation.callbacks[:progress] = Callback(progress, IterationInterval(100))
 
 # Build flux outputs
-τx = coupled_model.fluxes.total.ocean.momentum.u
-τy = coupled_model.fluxes.total.ocean.momentum.v
-JT = coupled_model.fluxes.total.ocean.tracers.T
-Js = coupled_model.fluxes.total.ocean.tracers.S
-E  = coupled_model.fluxes.turbulent.fields.water_vapor
-Qc = coupled_model.fluxes.turbulent.fields.sensible_heat
-Qv = coupled_model.fluxes.turbulent.fields.latent_heat
-ρₒ = coupled_model.fluxes.ocean_reference_density
-cₚ = coupled_model.fluxes.ocean_heat_capacity
+τx = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.x_momentum
+τy = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.y_momentum
+JT = coupled_model.interfaces.net_fluxes.ocean_surface.T
+Js = coupled_model.interfaces.net_fluxes.ocean_surface.S
+E  = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.water_vapor
+Qc = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.sensible_heat
+Qv = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.latent_heat
+ρₒ = coupled_model.interfaces.fluxes.ocean_reference_density
+cₚ = coupled_model.interfaces.fluxes.ocean_heat_capacity
 
 Q = ρₒ * cₚ * JT
 ρτx = ρₒ * τx
