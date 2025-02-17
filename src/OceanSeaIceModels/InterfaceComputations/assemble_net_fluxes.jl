@@ -88,16 +88,18 @@ end
 
     add_sea_ice_ocean_fluxes!(i, j, grid, 
                               net_ocean_fluxes,
+                              ocean_properties,
                               sea_ice_ocean_fluxes,
                               sea_ice_concentration,
                               ocean_salinity,
                               ocean_surface_temperature)
 end
 
-@inline add_sea_ice_ocean_fluxes!(i, j, grid, net_ocean_fluxes, ::Nothing, args...) = nothing
+@inline add_sea_ice_ocean_fluxes!(i, j, grid, net_ocean_fluxes, ocean_properties, ::Nothing, args...) = nothing
 
 @inline function add_sea_ice_ocean_fluxes!(i, j, grid, 
                                            net_ocean_fluxes,
+                                           ocean_properties,
                                            sea_ice_ocean_fluxes,
                                            sea_ice_concentration, args...)
 

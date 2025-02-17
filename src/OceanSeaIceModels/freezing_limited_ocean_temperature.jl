@@ -102,6 +102,7 @@ sea_ice_ocean_interface(sea_ice::FreezingLimitedOceanTemperature, args...) = sea
 
 @inline function add_sea_ice_ocean_fluxes!(i, j, grid,
                                            net_ocean_fluxes,
+                                           ocean_properties,
                                            sea_ice_ocean_fluxes::FreezingLimitedOceanTemperature,
                                            sea_ice_concentration,
                                            ocean_salinity,
