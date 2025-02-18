@@ -89,4 +89,6 @@ ax = Axis(fig[3, 1], title = "Water vapor flux (kg m⁻² s⁻¹)", xlabel = "Lo
 heatmap!(ax, λ, φ, interior(fluxes.water_vapor, :, :, 1); colormap = :bwr)
 
 save("fluxes.png", fig)
-![](fluxes.png)
+nothing #hide
+
+# ![](fluxes.png)
