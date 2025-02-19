@@ -141,7 +141,7 @@ function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean)
     @assert io_salt_flux isa Field{Center, Center, Nothing}
 
     io_fluxes = (heat=io_heat_flux, salt=io_salt_flux)
-    io_properties = nothing
+    io_properties = (Ch = 1e-3, Cd = 1e-3)
 
     return SeaIceOceanInterface(io_fluxes,
                                 io_properties,

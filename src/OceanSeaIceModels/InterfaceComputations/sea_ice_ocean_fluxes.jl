@@ -16,6 +16,7 @@ function compute_sea_ice_ocean_latent_heat_flux!(coupled_model)
     Δt = ocean.Δt
     ℵᵢ = sea_ice.model.ice_concentration
 
+    sea_ice_ocean_properties = coupled_model.interfaces.sea_ice_ocean_interface.properties
     ocean_properties = coupled_model.interfaces.ocean_properties
     liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
     grid = ocean.model.grid
@@ -24,7 +25,7 @@ function compute_sea_ice_ocean_latent_heat_flux!(coupled_model)
     # What about the latent heat removed from the ocean when ice forms?
     # Is it immediately removed from the ocean? Or is it stored in the ice?
     launch!(arch, grid, :xy, _compute_sea_ice_ocean_latent_heat_flux!,
-            Qₒ, grid, ℵᵢ, Tₒ, Sₒ, liquidus, ocean_properties, Δt)
+            Qₒ, grid, ℵᵢ, Tₒ, Sₒ, liquidus, sea_ice_ocean_properties, ocean_properties, Δt)
 
     return nothing
 end
@@ -35,6 +36,7 @@ end
                                                           ocean_temperature,
                                                           ocean_salinity,
                                                           liquidus,
+                                                          sea_ice_ocean_properties,
                                                           ocean_properties,
                                                           Δt)
 
@@ -50,7 +52,7 @@ end
     ℵ = @inbounds ice_concentration[i, j, 1]
     δQ_frazil = zero(grid)
 
-    for k = Nz:-1:1
+    for k = Nz-1:-1:1
         @inbounds begin
             # Various quantities
             Δz = Δzᶜᶜᶜ(i, j, k, grid)
@@ -90,27 +92,27 @@ end
         Sᴺ = Sₒ[i, j, kᴺ]
     end
 
-    # Adjust temperature 
+    # Adjust temperature?
     Tₘ = melting_temperature(liquidus, Sᴺ)
     ΔT = ℵ * (Tₘ - Tᴺ)
-    max_δQ = 1000
-    max_δE = max_δQ * Δt / Δz
-    max_ΔT = max_δE / (ρₒ * cₒ)
-    ΔT = min(ΔT, + max_ΔT)
-    ΔT = max(ΔT, - max_ΔT)
-    @inbounds Tₒ[i, j, kᴺ] = Tᴺ + ΔT
 
     # Compute total heat associated with temperature adjustment
     δE_ice_bath = ρₒ * cₒ * ΔT
+    
+    # If the ocean is freezing, we immediately return to a melting temperature, 
+    # so we need to pass the exact integrated flux to the ocean. 
+    # If the sea ice is melting, we do not need to change the ocean temperature, 
+    # but we just calculate the heat flux based on a turbulent heat transfer coefficient.
+    # γ = ifelse(freezing, Δz / Δt, )
 
     # Compute the heat flux from ocean into ice due to sea ice melting.
     # A positive value δQ_melting > 0 corresponds to ocean cooling; ie
     # is fluxing upwards, into the ice. This occurs when applying the
     # ice bath equilibrium condition to cool down a warm ocean (δEₒ < 0).
-    δQ_melting = - δE_ice_bath * Δz / Δt
+    δQ_melting = - δE_ice_bath * sea_ice_ocean_properties.Ch
 
     # Store column-integrated ice-ocean heat flux
-    @inbounds Qᵢₒ[i, j, 1] = δQ_frazil + δQ_melting
+    @inbounds Qᵢₒ[i, j, 1] = δQ_frazil + δQ_melting    
 end
 
 function compute_sea_ice_ocean_salinity_flux!(coupled_model)

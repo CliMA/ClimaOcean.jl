@@ -45,18 +45,11 @@ function sea_ice_simulation(grid;
     bottom_heat_flux = Field{Center, Center, Nothing}(grid)
     top_heat_flux    = Field{Center, Center, Nothing}(grid)
 
-    top_momentum_stress = (u = Field{Face, Center, Nothing}(grid),
-                           v = Field{Center, Face, Nothing}(grid))
-
-    velocities = deepcopy(top_momentum_stress)
-
     # Build the sea ice model
     sea_ice_model = SeaIceModel(grid;
                                 ice_salinity,
                                 advection,
                                 tracers,
-                                velocities,
-                                top_momentum_stress,
                                 ice_thermodynamics,
                                 bottom_heat_flux,
                                 top_heat_flux)
