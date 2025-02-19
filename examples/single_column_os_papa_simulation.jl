@@ -101,8 +101,10 @@ current_figure()
 # the skin temperature from a balance between internal and external heat fluxes.
 
 radiation = Radiation()
-similarity_theory = SimilarityTheoryTurbulentFluxes(grid; surface_temperature_type=SkinTemperature())
-coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
+similarity_theory = SimilarityTheoryFluxes(grid; surface_temperature_type=SkinTemperature())
+
+# TODO: improve interface to allow passing fluxes types easily
+coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation) 
 simulation = Simulation(coupled_model, Δt=ocean.Δt, stop_time=30days)
 
 wall_clock = Ref(time_ns())
