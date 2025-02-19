@@ -35,8 +35,9 @@ struct AtmosphereInterface{J, F, ST, P}
     properties :: P
 end
 
-struct SeaIceOceanInterface{J, P, H, A}
+struct SeaIceOceanInterface{J, F, P, H, A}
     fluxes :: J 
+    flux_formulation :: F
     properties :: P
     previous_ice_thickness :: H
     previous_ice_concentration :: A
@@ -129,9 +130,9 @@ function atmosphere_sea_ice_interface(sea_ice::SeaIceSimulation,
     return AtmosphereInterface(fluxes, ai_flux_formulation, interface_temperature, properties)
 end
 
-sea_ice_ocean_interface(sea_ice, ocean) = nothing
+sea_ice_ocean_interface(sea_ice, ocean, args...) = nothing
 
-function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean)
+function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean, so_flux_formulation)
     previous_ice_thickness = deepcopy(sea_ice.model.ice_thickness)
     previous_ice_concentration = deepcopy(sea_ice.model.ice_concentration)
     io_heat_flux = sea_ice.model.external_heat_fluxes.bottom
@@ -141,10 +142,11 @@ function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean)
     @assert io_salt_flux isa Field{Center, Center, Nothing}
 
     io_fluxes = (heat=io_heat_flux, salt=io_salt_flux)
-    io_properties = (Ch = 1e-3, Cd = 1e-3)
+    io_properties = nothing
 
     return SeaIceOceanInterface(io_fluxes,
                                 io_properties,
+                                so_flux_formulation,
                                 previous_ice_thickness,
                                 previous_ice_concentration)
 end
@@ -205,7 +207,9 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                                               atmosphere_ocean_interface_temperature,
                                               atmosphere_ocean_interface_specific_humidity)
 
-    io_interface = sea_ice_ocean_interface(sea_ice, ocean)
+    io_interface = sea_ice_ocean_interface(sea_ice, 
+                                           ocean,
+                                           atmosphere_sea_ice_flux_formulation)
 
     ai_interface = atmosphere_sea_ice_interface(sea_ice,
                                                 radiation,
