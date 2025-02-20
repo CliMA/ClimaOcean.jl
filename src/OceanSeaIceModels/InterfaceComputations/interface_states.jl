@@ -218,15 +218,17 @@ end
     # Fix a NaN
     Tₛ = ifelse(isnan(Tₛ), Tₛ⁻, Tₛ)
 
+    #=
     # Don't let it go below some minimum number?
-    FT = typeof(Tₛ⁻)
-    min_Tₛ = convert(FT, 230)
-    Tₛ = max(min_Tₛ, Tₛ)
-    Tₛ = min(Tₛ, Tₘ)
+    # FT = typeof(Tₛ⁻)
+    # min_Tₛ = convert(FT, 230)
+    # Tₛ = max(min_Tₛ, Tₛ)
+    # Tₛ = min(Tₛ, Tₘ)
 
-    Tₛ⁺ = (Tₛ + 9Tₛ⁻) / 10
+    # Tₛ = (Tₛ + 9Tₛ⁻) / 10
+    =#
 
-    return Tₛ⁺
+    return Tₛ
 end
 
 @inline function compute_interface_temperature(st::SkinTemperature,
@@ -319,6 +321,45 @@ end
                                                   zero(FT),
                                                   zero(FT))
 
+# Iterating condition for the characteristic scales solvers
+@inline function iterating(Ψⁿ, Ψ⁻, iteration, maxiter, tolerance)
+    hasnt_started = iteration == 0
+    reached_maxiter = iteration ≥ maxiter
+    drift = abs(Ψⁿ.u★ - Ψ⁻.u★) + abs(Ψⁿ.θ★ - Ψ⁻.θ★) + abs(Ψⁿ.q★ - Ψ⁻.q★)
+    converged = drift < tolerance
+    return !(converged | reached_maxiter) | hasnt_started
+end
+
+@inline function compute_interface_state(flux_formulation::SimilarityTheoryFluxes,
+                                         initial_interface_state,
+                                         atmosphere_state,
+                                         interior_state,
+                                         downwelling_radiation,
+                                         interface_properties,
+                                         atmosphere_properties,
+                                         interior_properties)
+
+    Ψₐ = atmosphere_state
+    Ψᵢ = interior_state
+    Ψₛⁿ = Ψₛ⁻ = initial_interface_state
+    maxiter = flux_formulation.solver_maxiter
+    tolerance = flux_formulation.solver_tolerance
+    iteration = 0
+
+    while iterating(Ψₛⁿ, Ψₛ⁻, iteration, maxiter, tolerance)
+        Ψₛ⁻ = Ψₛⁿ
+        Ψₛⁿ = iterate_interface_state(flux_formulation,
+                                      Ψₛ⁻, Ψₐ, Ψᵢ,
+                                      downwelling_radiation,
+                                      interface_properties,
+                                      atmosphere_properties,
+                                      interior_properties)
+        iteration += 1
+    end
+
+    return Ψₛⁿ
+end
+
 """
     iterate_interface_state(flux_formulation, Ψₛⁿ⁻¹, Ψₐ, Ψᵢ, Qᵣ, ℙₛ, ℙₐ, ℙᵢ)
 
@@ -336,7 +377,7 @@ and interior properties `ℙₛ`, `ℙₐ`, and `ℙᵢ`.
                                          interface_properties,
                                          atmosphere_properties,
                                          interior_properties)
-    
+        
     Tₛ = compute_interface_temperature(interface_properties.temperature_formulation,
                                        approximate_interface_state,
                                        atmosphere_state,

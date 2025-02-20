@@ -163,45 +163,7 @@ struct COARELogarithmicSimilarityProfile end
 
 @inline similarity_profile(::COARELogarithmicSimilarityProfile, ψ, h, ℓ, L) = 
     log(h / ℓ) - ψ(h / L)
-# Iterating condition for the characteristic scales solvers
-@inline function iterating(Ψⁿ, Ψ⁻, iteration, maxiter, tolerance)
-    hasnt_started = iteration == 0
-    reached_maxiter = iteration ≥ maxiter
-    drift = abs(Ψⁿ.u★ - Ψ⁻.u★) + abs(Ψⁿ.θ★ - Ψ⁻.θ★) + abs(Ψⁿ.q★ - Ψ⁻.q★)
-    converged = drift < tolerance
-    return !(converged | reached_maxiter) | hasnt_started
-end
-
-@inline function compute_interface_state(flux_formulation::SimilarityTheoryFluxes,
-                                         initial_interface_state,
-                                         atmosphere_state,
-                                         interior_state,
-                                         downwelling_radiation,
-                                         interface_properties,
-                                         atmosphere_properties,
-                                         interior_properties)
-
-    Ψₐ = atmosphere_state
-    Ψᵢ = interior_state
-    Ψₛⁿ = Ψₛ⁻ = initial_interface_state
-    maxiter = flux_formulation.solver_maxiter
-    tolerance = flux_formulation.solver_tolerance
-    iteration = 0
-
-    while iterating(Ψₛⁿ, Ψₛ⁻, iteration, maxiter, tolerance)
-        Ψₛ⁻ = Ψₛⁿ
-        Ψₛⁿ = iterate_interface_state(flux_formulation,
-                                      Ψₛ⁻, Ψₐ, Ψᵢ,
-                                      downwelling_radiation,
-                                      interface_properties,
-                                      atmosphere_properties,
-                                      interior_properties)
-        iteration += 1
-    end
-
-    return Ψₛⁿ
-end
-
+    
 function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
                                   Tₛ, qₛ, Δθ, Δq, Δh,
                                   approximate_interface_state,
