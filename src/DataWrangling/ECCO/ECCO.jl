@@ -115,7 +115,7 @@ function empty_ECCO_field(metadata::ECCOMetadata;
         sz = (Nx, Ny)
     end
 
-    grid = LatitudeLongitudeGrid(architecture; halo, longitude, latitude, z,
+    grid = LatitudeLongitudeGrid(architecture, Float32; halo, longitude, latitude, z,
                                  size = sz,
                                  topology = (TX, TY, TZ))
 

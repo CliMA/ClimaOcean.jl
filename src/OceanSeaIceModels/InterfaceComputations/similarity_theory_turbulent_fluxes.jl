@@ -108,7 +108,7 @@ Keyword Arguments
 - `solver_tolerance`: The tolerance for convergence. Default: 1e-8.
 - `solver_maxiter`: The maximum number of iterations. Default: 100.
 """
-function SimilarityTheoryFluxes(FT::DataType = Float64;
+function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                 gravitational_acceleration = g_Earth,
                                 von_karman_constant = 0.4,
                                 turbulent_prandtl_number = 1,
@@ -459,7 +459,7 @@ end
 end
 
 # Edson et al. (2013)
-function edson_stability_functions(FT = Float64)
+function edson_stability_functions(FT=Oceananigans.defaults.FloatType)
     ψu = EdsonMomentumStabilityFunction{FT}()
     ψc = EdsonScalarStabilityFunction{FT}()
     return SimilarityScales(ψu, ψc, ψc)
@@ -556,7 +556,7 @@ end
     return ifelse(stable, Ψ_stable, Ψ_unstable)
 end
 
-function atmosphere_sea_ice_stability_functions(FT=Float64)
+function atmosphere_sea_ice_stability_functions(FT=Oceananigans.defaults.FloatType)
     stable_momentum = PaulsonMomentumStabilityFunction{FT}()
     unstable_momentum = ShebaMomentumStabilityFunction{FT}()
     momentum = SplitStabilityFunction(stable_momentum, unstable_momentum)

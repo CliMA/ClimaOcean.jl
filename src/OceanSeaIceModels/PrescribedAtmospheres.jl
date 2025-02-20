@@ -63,9 +63,10 @@ end
 Base.show(io::IO, p::ConstitutiveParameters) = print(io, summary(p))
 
 """
-    ConstitutiveParameters(FT; gas_constant       = 8.3144598,
-                               dry_air_molar_mass = 0.02897,
-                               water_molar_mass   = 0.018015)
+    ConstitutiveParameters(FT = Float64;
+                           gas_constant       = 8.3144598,
+                           dry_air_molar_mass = 0.02897,
+                           water_molar_mass   = 0.018015)
 
 Construct a set of parameters that define the density of moist air,
 
@@ -85,7 +86,7 @@ where
 
 For more information see [reference docs].
 """
-function ConstitutiveParameters(FT = Float64;
+function ConstitutiveParameters(FT = Oceananigans.defaults.FloatType;
                                 gas_constant       = 8.3144598,
                                 dry_air_molar_mass = 0.02897,
                                 water_molar_mass   = 0.018015)
@@ -130,7 +131,7 @@ Base.show(io::IO, p::HeatCapacityParameters) = print(io, summary(p))
 
 Isobaric heat capacities.
 """
-function HeatCapacityParameters(FT = Float64;
+function HeatCapacityParameters(FT = Oceananigans.defaults.FloatType;
                                 dry_air_adiabatic_exponent = 2/7,
                                 water_vapor_heat_capacity = 1859,
                                 liquid_water_heat_capacity = 4181,
@@ -173,7 +174,7 @@ end
 
 Base.show(io::IO, p::PhaseTransitionParameters) = print(io, summary(p))
 
-function PhaseTransitionParameters(FT = Float64;
+function PhaseTransitionParameters(FT = Oceananigans.defaults.FloatType;
                                    reference_vaporization_enthalpy = 2500800,
                                    reference_sublimation_enthalpy = 2834400,
                                    reference_temperature = 273.16,
@@ -244,7 +245,7 @@ function Base.show(io::IO, p::PrescribedAtmosphereThermodynamicsParameters)
         "    └── total_ice_nucleation_temperature (Tⁱ): ", prettysummary(pt.total_ice_nucleation_temperature))
 end
 
-function PrescribedAtmosphereThermodynamicsParameters(FT=Float64;
+function PrescribedAtmosphereThermodynamicsParameters(FT = Oceananigans.defaults.FloatType;
                                                       constitutive = ConstitutiveParameters(FT),
                                                       phase_transitions = PhaseTransitionParameters(FT),
                                                       heat_capacity = HeatCapacityParameters(FT))

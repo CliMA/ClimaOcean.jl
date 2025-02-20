@@ -13,7 +13,7 @@ end
 convert_if_number(FT, a::Number) = convert(FT, a)
 convert_if_number(FT, a) = a
 
-function CoefficientBasedFluxes(FT = Float64;
+function CoefficientBasedFluxes(FT = Oceananigans.defaults.FloatType;
                                 drag_coefficient = 1e-3,
                                 gravitational_acceleration = g_Earth,
                                 heat_transfer_coefficient = drag_coefficient,
