@@ -4,9 +4,8 @@ using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus
 ##### A workaround when you don't have a sea ice model
 #####
 
-struct FreezingLimitedOceanTemperature{L, C}
+struct FreezingLimitedOceanTemperature{L}
     liquidus :: L
-    ice_concentration :: C
 end
 
 """
@@ -20,10 +19,7 @@ the `T < Tₘ` except for heating to allow temperature to increase.
 
 The melting temperature is a function of salinity and is controlled by the `liquidus`.
 """
-function FreezingLimitedOceanTemperature(grid; FT::DataType=Float64) 
-    ice_concentration = Field{Center, Center, Nothing}(grid)
-    return FreezingLimitedOceanTemperature(LinearLiquidus(FT), ice_concentration)
-end
+FreezingLimitedOceanTemperature(FT::DataType=Float64) = FreezingLimitedOceanTemperature(LinearLiquidus(FT))
 
 const FreezingLimitedCoupledModel = OceanSeaIceModel{<:FreezingLimitedOceanTemperature}
 
@@ -45,28 +41,8 @@ function compute_sea_ice_ocean_fluxes!(cm::FreezingLimitedCoupledModel)
     Tₒ = ocean.model.tracers.T
 
     launch!(arch, grid, :xyz, _above_freezing_ocean_temperature!, Tₒ, Sₒ, liquidus)
-    launch!(arch, grid, :xy, _compute_ice_concentration!, ℵ, grid, ocean.model.tracers.T, ocean.model.tracers.S, liquidus)
    
     return nothing
-end
-
-@kernel function _compute_ice_concentration!(ℵ, grid, 
-                                             ocean_surface_temperature, 
-                                             ocean_salinity, 
-                                             liquidus)
-
-    i, j = @index(Global, NTuple)
-    kᴺ = size(grid, 3)
-                                           
-    @inbounds begin
-        Tₒ = ocean_surface_temperature[i, j, kᴺ]
-        Sₒ = ocean_salinity[i, j, kᴺ]
-
-        Tₘ = melting_temperature(liquidus, Sₒ)
-
-        sea_ice = Tₒ < Tₘ
-        ℵ[i, j, 1] = ifelse(sea_ice, one(grid), zero(grid))
-    end
 end
 
 @kernel function _above_freezing_ocean_temperature!(Tₒ, Sₒ, liquidus)
