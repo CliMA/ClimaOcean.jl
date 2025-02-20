@@ -20,7 +20,7 @@ function CoefficientBasedFluxes(FT = Float64;
                                 vapor_flux_coefficient = drag_coefficient,
                                 bulk_velocity = RelativeVelocity(),
                                 solver_tolerance = 1e-8,
-                                solver_maxiter = Int(1e6))
+                                solver_maxiter = 20)
 
     drag_coefficient = convert_if_number(FT, drag_coefficient)
     heat_transfer_coefficient = convert_if_number(FT, heat_transfer_coefficient)

@@ -219,8 +219,8 @@ end
     T★  = min(T★, Tₘ)
     ΔT★ = T★ - Tₛ⁻
     max_ΔT = convert(typeof(T★), st.max_ΔT)
-    ΔT  = max(max_ΔT, abs(ΔT★))
-    Tₛ⁺ = Tₛ⁻ + ΔT * sign(ΔT★)
+    abs_ΔT = min(max_ΔT, abs(ΔT★))
+    Tₛ⁺ = Tₛ⁻ + abs_ΔT * sign(ΔT★)
 
     return Tₛ⁺
 end

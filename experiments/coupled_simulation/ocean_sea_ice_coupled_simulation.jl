@@ -25,7 +25,9 @@ Nz   = length(r_faces) - 1
 grid = TripolarGrid(arch, Float64; size=(Nx, Ny, Nz), z=z_faces)
 sea_ice_grid = TripolarGrid(arch, Float64; size=(Nx, Ny, 1), z = (-10, 0))
 
-# Adding a bathymetry to the grid
+# ## Adding a bathymetry to the grid
+url = "https://www.dropbox.com/scl/fi/zy1cu64ybn93l67rjgiq0/Downsampled_ETOPO_2022.nc?rlkey=5upqvoxrnljj205amqf663vcw&st=ou8b32tt&dl=0"
+filename = isfile("Downsampled_ETOPO_2022.nc") ? "Downsampled_ETOPO_2022.nc" : download(url, "Downsampled_ETOPO_2022.nc")
 bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1, filename, dir="./")
 
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
@@ -159,4 +161,10 @@ end
 
 add_callback!(earth, progress, IterationInterval(10))
 
+
 run!(earth)
+
+# ## Visualizing the results
+#
+# We can visualize the results using CairoMakie. We record a video of surface variables and fluxes.
+# To load the data we can use Oceananigans' `FieldTimeSeries` object.
