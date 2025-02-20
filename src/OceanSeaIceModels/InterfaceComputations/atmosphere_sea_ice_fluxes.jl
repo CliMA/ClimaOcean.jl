@@ -176,13 +176,13 @@ end
     Qd = net_downwelling_radiation(downwelling_radiation, α, ϵ)
 
     # Store fluxes
-    Qv = interface_fluxes.latent_heat
-    Qc = interface_fluxes.sensible_heat
-    Fv = interface_fluxes.water_vapor
+    Qv  = interface_fluxes.latent_heat
+    Qc  = interface_fluxes.sensible_heat
+    Fv  = interface_fluxes.water_vapor
     ρτx = interface_fluxes.x_momentum
     ρτy = interface_fluxes.y_momentum
-    Ts = interface_temperature
-    ΣQ = net_top_heat_flux
+    Ts  = interface_temperature
+    ΣQ  = net_top_heat_flux
 
     @inbounds begin
         # +0: cooling, -0: heating
