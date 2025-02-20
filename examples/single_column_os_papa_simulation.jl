@@ -149,8 +149,8 @@ Js = coupled_model.interfaces.net_fluxes.ocean_surface.S
 E  = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.water_vapor
 Qc = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.sensible_heat
 Qv = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.latent_heat
-ρₒ = coupled_model.interfaces.fluxes.ocean_reference_density
-cₚ = coupled_model.interfaces.fluxes.ocean_heat_capacity
+ρₒ = coupled_model.interfaces.ocean_properties.reference_density
+cₚ = coupled_model.interfaces.ocean_properties.heat_capacity
 
 Q = ρₒ * cₚ * JT
 ρτx = ρₒ * τx
