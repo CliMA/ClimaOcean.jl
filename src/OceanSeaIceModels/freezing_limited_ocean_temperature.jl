@@ -1,7 +1,5 @@
 using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus
 
-import ClimaOcean.OceanSeaIceModels.InterfaceComputations: add_sea_ice_ocean_fluxes!
-
 #####
 ##### A workaround when you don't have a sea ice model
 #####
@@ -30,7 +28,7 @@ end
 const FreezingLimitedCoupledModel = OceanSeaIceModel{<:FreezingLimitedOceanTemperature}
 
 # Extend interface methods to work with a `FreezingLimitedOceanTemperature`
-sea_ice_concentration(sea_ice::FreezingLimitedOceanTemperature) = sea_ice.ice_concentration
+sea_ice_concentration(::FreezingLimitedOceanTemperature) = ZeroField()
 sea_ice_thickness(::FreezingLimitedOceanTemperature) = nothing
 
 # does not matter
