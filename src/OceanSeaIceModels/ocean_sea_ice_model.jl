@@ -86,7 +86,7 @@ function heat_capacity(::TEOS10EquationOfState{FT}) where FT
     return convert(FT, cₚ⁰)
 end
 
-function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(ocean.model.grid);
+function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(ocean.model));
                           atmosphere = nothing,
                           radiation = nothing,
                           clock = deepcopy(ocean.model.clock),
