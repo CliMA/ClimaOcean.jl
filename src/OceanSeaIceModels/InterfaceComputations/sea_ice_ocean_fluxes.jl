@@ -1,5 +1,5 @@
-using Oceananigans.Operators: Δzᶜᶜᶜ
-using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
+using Oceananigans.Operators: Δzᶜᶜᶜ, Vᶜᶜᶜ, Azᶜᶜᶜ
+using ClimaSeaIce.SeaIceThermodynamics: melting_temperature, latent_heat
 
 function compute_sea_ice_ocean_fluxes!(coupled_model)
     #compute_sea_ice_ocean_salinity_flux!(coupled_model)
@@ -22,7 +22,7 @@ function compute_sea_ice_ocean_latent_heat_flux!(coupled_model)
     grid = ocean.model.grid
     arch = architecture(grid)
 
-    Ch = coupled_model.interfaces.flux_formulation.heat_transfer_coefficient
+    Ch = coupled_model.interfaces.sea_ice_ocean_interface.flux_formulation.heat_transfer_coefficient
 
     # What about the latent heat removed from the ocean when ice forms?
     # Is it immediately removed from the ocean? Or is it stored in the ice?
@@ -47,17 +47,17 @@ end
 
     Nz  = size(grid, 3)
     Qᵢₒ = heat_flux
+    h   = ice_thickness
     Tₒ  = ocean_temperature
     Sₒ  = ocean_salinity
     ρₒ  = ocean_properties.reference_density
     cₒ  = ocean_properties.heat_capacity
     ρᵢ  = sea_ice_properties.reference_density
     cᵢ  = sea_ice_properties.heat_capacity
-    Ch  = heat_transfer_coefficients
+    Ch  = heat_transfer_coefficient
     liquidus = phase_transitions.liquidus
 
     ℵ = @inbounds ice_concentration[i, j, 1]
-    h = @inbounds ice_thickness[i, j, 1]
 
     ΔVᵢ = zero(grid)
 
@@ -84,20 +84,24 @@ end
         # Compute the change in ice mass due to frazil ice formation
         # following conservation of energy:
         # mₒ ΔE = mᵢ (Eᵢ - mᵢ Ef)
-        ℰₘ = SeaIceThermodynamics.latent_heat(phase_transitions, Tₘ)
-        
+        ℰₘ = latent_heat(phase_transitions, Tₘ)
         ΔT = (Tᵏ - Tₘ) * freezing
         Vₒ = Vᶜᶜᶜ(i, j, k, grid) * ρₒ
         Tₘ = convert_to_kelvin(ocean_properties.temperature_units, Tₘ)
 
         # Change in (per volume) energy of sea ice
-        ΔEᵢ = ρᵢ * Tᵐ * (cᵢ - cₒ) - ℰₘ
+        ΔEᵢ = ρᵢ * Tₘ * (cᵢ - cₒ) - ℰₘ
         
         # Change in volume of sea ice due to frazil ice formation
         ΔVᵢ += Vₒ * ρₒ * cₒ * ΔT / ΔEᵢ
+        if freezing
+            @show i, j, ΔVᵢ, ΔT, ΔEᵢ, Vₒ * ρₒ * cₒ * ΔT, ℰₘ
+        end
+    
     end
 
     # Compute the thickness change in the sea ice due to the frazil ice formation 
+    # In this step ice thickness can only grow, it cannot decrease
     @inbounds h[i, j, 1] += ΔVᵢ / Azᶜᶜᶜ(i, j, Nz, grid)
 
     @inbounds begin
@@ -108,7 +112,7 @@ end
     Tₘ = melting_temperature(liquidus, Sᴺ)
     ΔT = ℵ * (Tₘ - Tᴺ)
 
-    # Compute a heat flux, based on a simple turbulent heat transfer 
+    # Compute a heat flux, based on a simple turbulent velocity
     @inbounds Qᵢₒ[i, j, 1] = ρₒ * cₒ * Ch * ΔT
 end
 

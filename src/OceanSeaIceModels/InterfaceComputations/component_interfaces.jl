@@ -132,7 +132,7 @@ end
 
 sea_ice_ocean_interface(sea_ice, ocean, args...) = nothing
 
-function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean, so_flux_formulation)
+function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean, io_flux_formulation)
     previous_ice_thickness = deepcopy(sea_ice.model.ice_thickness)
     previous_ice_concentration = deepcopy(sea_ice.model.ice_concentration)
     io_heat_flux = sea_ice.model.external_heat_fluxes.bottom
@@ -145,8 +145,8 @@ function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean, so_flux_formu
     io_properties = nothing
 
     return SeaIceOceanInterface(io_fluxes,
+                                io_flux_formulation,
                                 io_properties,
-                                so_flux_formulation,
                                 previous_ice_thickness,
                                 previous_ice_concentration)
 end
@@ -174,7 +174,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              freshwater_density = 1000,
                              atmosphere_ocean_flux_formulation = SimilarityTheoryFluxes(),
                              atmosphere_sea_ice_flux_formulation = CoefficientBasedFluxes(drag_coefficient=2e-3, heat_transfer_coefficient=5e-4, vapor_flux_coefficient=5e-4),
-                             #atmosphere_sea_ice_flux_formulation = atmosphere_sea_ice_stability_functions(),
+                             sea_ice_ocean_flux_formulation = CoefficientBasedFluxes(drag_coefficient=5.5e-3, heat_transfer_coefficient=1e-7, vapor_flux_coefficient=3e-9), 
                              atmosphere_ocean_interface_temperature = BulkTemperature(),
                              atmosphere_ocean_interface_specific_humidity = default_ao_specific_humidity(ocean),
                              atmosphere_sea_ice_interface_temperature = default_ai_temperature(sea_ice),
@@ -206,10 +206,10 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                                               atmosphere_ocean_flux_formulation,
                                               atmosphere_ocean_interface_temperature,
                                               atmosphere_ocean_interface_specific_humidity)
-
+    
     io_interface = sea_ice_ocean_interface(sea_ice, 
                                            ocean,
-                                           atmosphere_sea_ice_flux_formulation)
+                                           sea_ice_ocean_flux_formulation)
 
     ai_interface = atmosphere_sea_ice_interface(sea_ice,
                                                 radiation,

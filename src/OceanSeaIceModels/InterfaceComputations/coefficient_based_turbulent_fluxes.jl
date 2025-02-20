@@ -6,8 +6,6 @@ struct CoefficientBasedFluxes{CD, CH, CQ, ΔU, FT}
     heat_transfer_coefficient :: CH
     vapor_flux_coefficient :: CQ
     bulk_velocity :: ΔU
-    solver_tolerance :: FT
-    solver_maxiter :: Int
 end
 
 convert_if_number(FT, a::Number) = convert(FT, a)
@@ -18,9 +16,7 @@ function CoefficientBasedFluxes(FT = Float64;
                                 gravitational_acceleration = g_Earth,
                                 heat_transfer_coefficient = drag_coefficient,
                                 vapor_flux_coefficient = drag_coefficient,
-                                bulk_velocity = RelativeVelocity(),
-                                solver_tolerance = 1e-8,
-                                solver_maxiter = 10)
+                                bulk_velocity = RelativeVelocity())
 
     drag_coefficient = convert_if_number(FT, drag_coefficient)
     heat_transfer_coefficient = convert_if_number(FT, heat_transfer_coefficient)
@@ -30,10 +26,12 @@ function CoefficientBasedFluxes(FT = Float64;
                                   gravitational_acceleration,
                                   heat_transfer_coefficient,
                                   vapor_flux_coefficient,
-                                  bulk_velocity,
-                                  convert(FT, solver_tolerance),
-                                  solver_maxiter)
+                                  bulk_velocity)
 end
+
+# No need to iterate in this particular case, one iteration is enough
+@inline compute_interface_state(flux_formulation::CoefficientBasedFluxes, args...) = 
+    iterate_interface_state(flux_formulation, args...)
 
 @inline function iterate_interface_fluxes(flux_formulation::CoefficientBasedFluxes,
                                           Tₛ, qₛ, Δθ, Δq, Δh,
