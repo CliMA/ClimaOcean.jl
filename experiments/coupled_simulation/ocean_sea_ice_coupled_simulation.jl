@@ -10,6 +10,7 @@ using Printf
 using ClimaOcean.DataWrangling: NearestNeighborInpainting
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 using Oceananigans.Grids: architecture
+using KernelAbstractions: @kernel, @index
 
 @kernel function _adjust_initial_ocean_temperature!(T, grid, S, liquidus)
     i, j, k = @index(Global, NTuple)
@@ -105,9 +106,9 @@ set!(ocean.model, T=temperature, S=salinity)
 set!(sea_ice.model.ice_thickness,     ice_thickness,     inpainting=NearestNeighborInpainting(1))
 set!(sea_ice.model.ice_concentration, ice_concentration, inpainting=NearestNeighborInpainting(1))
 
-adjust_ocean_temperature!(ocean, sea_ice)
+# adjust_ocean_temperature!(ocean, sea_ice)
 
-earth_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+earth_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 
 earth = Simulation(earth_model; Δt=30minutes, stop_iteration=10, stop_time=30days)
 

@@ -4,7 +4,7 @@ using Oceananigans.Operators: ℑxᶠᵃᵃ, ℑyᵃᶠᵃ
 using ClimaOcean.OceanSeaIceModels: sea_ice_concentration
 
 @inline computed_sea_ice_ocean_fluxes(interface) = interface.fluxes
-@inline computed_sea_ice_ocean_fluxes(::Nothing) = nothing
+@inline computed_sea_ice_ocean_fluxes(::Nothing) = (heat = ZeroField(), salt = ZeroField())
 
 function compute_net_ocean_fluxes!(coupled_model)
     ocean = coupled_model.ocean
@@ -58,7 +58,7 @@ function compute_net_ocean_fluxes!(coupled_model)
     return nothing
 end
 
-@inline τᶜᶜᶜ(i, j, k, grid, ρₒ⁻¹, ℵ, ρτᶜᶜᶜ) = @inbounds ρₒ⁻¹ * (1 - ℵ[i, j, 1]) 
+@inline τᶜᶜᶜ(i, j, k, grid, ρₒ⁻¹, ℵ, ρτᶜᶜᶜ) = @inbounds ρₒ⁻¹ * (1 - ℵ[i, j, k]) * ρτᶜᶜᶜ[i, j, k]
 
 @kernel function _assemble_net_ocean_fluxes!(net_ocean_fluxes,
                                              grid,
@@ -74,70 +74,6 @@ end
                                              ocean_properties)
 
     i, j = @index(Global, NTuple)
-
-    assemble_net_atmosphere_ocean_fluxes!(i, j, grid, 
-                                          net_ocean_fluxes,
-                                          clock,
-                                          atmos_ocean_fluxes,
-                                          ocean_salinity,
-                                          ocean_surface_temperature,
-                                          downwelling_radiation,
-                                          freshwater_flux,
-                                          atmos_ocean_properties,
-                                          ocean_properties)
-
-    add_sea_ice_ocean_fluxes!(i, j, grid, 
-                              net_ocean_fluxes,
-                              ocean_properties,
-                              sea_ice_ocean_fluxes,
-                              sea_ice_concentration,
-                              ocean_salinity,
-                              ocean_surface_temperature)
-end
-
-@inline add_sea_ice_ocean_fluxes!(i, j, grid, net_ocean_fluxes, ocean_properties, ::Nothing, args...) = nothing
-
-@inline function add_sea_ice_ocean_fluxes!(i, j, grid, 
-                                           net_ocean_fluxes,
-                                           ocean_properties,
-                                           sea_ice_ocean_fluxes,
-                                           sea_ice_concentration, args...)
-
-    # Compute fluxes for u, v, T, S from momentum, heat, and freshwater fluxes
-    τx = net_ocean_fluxes.u
-    τy = net_ocean_fluxes.v
-    Jᵀ = net_ocean_fluxes.T
-    Jˢ = net_ocean_fluxes.S
-
-    ρₒ⁻¹ = 1 / ocean_properties.reference_density
-    cₒ   = ocean_properties.heat_capacity
-
-    @inbounds begin
-        ℵ    = sea_ice_concentration[i, j, 1]
-        Qio  = sea_ice_ocean_fluxes.heat[i, j, 1]
-        Jˢio = sea_ice_ocean_fluxes.salt[i, j, 1]
-    end
-    
-    Jᵀio = Qio * ρₒ⁻¹ / cₒ
-
-    @inbounds begin
-        τx[i, j, 1] *= 1 - ℑxᶠᵃᵃ(i, j, 1, grid, ℵ)
-        τy[i, j, 1] *= 1 - ℑyᵃᶠᵃ(i, j, 1, grid, ℵ)
-        Jᵀ[i, j, 1] = (1 - ℵ) * Jᵀ[i, j, 1] + Jᵀio
-        Jˢ[i, j, 1] = (1 - ℵ) * Jˢ[i, j, 1] + Jˢio
-    end
-end
-
-@inline function assemble_net_atmosphere_ocean_fluxes!(i, j, grid, 
-                                                       net_ocean_fluxes,
-                                                       clock,
-                                                       atmos_ocean_fluxes,
-                                                       ocean_salinity,
-                                                       ocean_surface_temperature,
-                                                       downwelling_radiation,
-                                                       freshwater_flux,
-                                                       atmos_ocean_properties,
-                                                       ocean_properties)
     kᴺ = size(grid, 3)
     time = Time(clock.time)
                                           
@@ -181,20 +117,28 @@ end
     τy = net_ocean_fluxes.v
     Jᵀ = net_ocean_fluxes.T
     Jˢ = net_ocean_fluxes.S
+    ℵ = sea_ice_concentration
+    ρₒ⁻¹ = 1 / ocean_properties.reference_density
+    cₒ   = ocean_properties.heat_capacity
+
+    τxao = ℑxᶠᵃᵃ(i, j, 1, grid, τᶜᶜᶜ, ρₒ⁻¹, ℵ, ρτx)
+    τyao = ℑyᵃᶠᵃ(i, j, 1, grid, τᶜᶜᶜ, ρₒ⁻¹, ℵ, ρτy)
+    Jᵀao = ΣQao  * ρₒ⁻¹ / cₒ
+    Jˢao = - Sₒ * ΣFao
 
     ρₒ⁻¹ = 1 / ocean_properties.reference_density
     cₒ   = ocean_properties.heat_capacity
 
-    τxao = ℑxᶠᵃᵃ(i, j, 1, grid, ρτx) * ρₒ⁻¹
-    τyao = ℑyᵃᶠᵃ(i, j, 1, grid, ρτy) * ρₒ⁻¹
-    Jᵀao = ΣQao  * ρₒ⁻¹ / cₒ
-    Jˢao = - Sₒ * ΣFao
-
     @inbounds begin
+        ℵᵢ   = ℵ[i, j, 1]
+        Qio  = sea_ice_ocean_fluxes.heat[i, j, 1]
+        Jˢio = sea_ice_ocean_fluxes.salt[i, j, 1]
+        Jᵀio = Qio * ρₒ⁻¹ / cₒ
+
         τx[i, j, 1] = τxao
         τy[i, j, 1] = τyao
-        Jᵀ[i, j, 1] = Jᵀao
-        Jˢ[i, j, 1] = Jˢao
+        Jᵀ[i, j, 1] = (1 - ℵᵢ) * Jᵀao + Jᵀio
+        Jˢ[i, j, 1] = (1 - ℵᵢ) * Jˢao + Jˢio
     end
 end
 
