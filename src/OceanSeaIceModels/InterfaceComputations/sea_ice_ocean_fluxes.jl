@@ -89,13 +89,13 @@ end
         Vₒ = Vᶜᶜᶜ(i, j, k, grid) * ρₒ
         Tₘ = convert_to_kelvin(ocean_properties.temperature_units, Tₘ)
 
-        # Change in (per volume) energy of sea ice
-        ΔEᵢ = ρᵢ * Tₘ * (cᵢ - cₒ) - ℰₘ
+        # (per volume) Energy of sea ice
+        Eᵢ = ρᵢ * cᵢ * Tₘ - ℰₘ
         
         # Change in volume of sea ice due to frazil ice formation
-        ΔVᵢ += Vₒ * ρₒ * cₒ * ΔT / ΔEᵢ
+        ΔVᵢ -= Vₒ * ρₒ * cₒ * ΔT / Eᵢ
         if freezing
-            @show i, j, ΔVᵢ, ΔT, ΔEᵢ, Vₒ * ρₒ * cₒ * ΔT, ℰₘ
+            @show i, j, ΔVᵢ, ΔT, Eᵢ, Vₒ * ρₒ * cₒ * ΔT, ℰₘ, Azᶜᶜᶜ(i, j, Nz, grid)
         end
     
     end

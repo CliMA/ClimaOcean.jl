@@ -14,6 +14,7 @@ using ClimaOcean.ECCO
 using ClimaOcean.JRA55
 using ClimaOcean.OceanSimulations
 using Oceananigans
+using Oceananigans.Grids: cpu_face_constructor_x, cpu_face_constructor_y
 using GLMakie
 
 # # Computing fluxes on the ECCO grid
@@ -21,6 +22,9 @@ using GLMakie
 # We start by building the ECCO grid, using `ECCO_immersed_grid` to include the bottom height.
 
 grid = ECCO_immersed_grid()
+latitude  = cpu_face_constructor_y(grid)
+longitude = cpu_face_constructor_y(grid)
+sea_ice_grid = LatitudeLongitudeGrid(; size=size(grid)[1:2], latitude, longitude, topology=(Periodic, Bounded, Flat))
 
 # fig = Figure()
 # ax  = Axis(fig[1, 1])
@@ -46,7 +50,7 @@ grid = ECCO_immersed_grid()
 
 atmosphere = JRA55PrescribedAtmosphere(1:2; backend = InMemory())
 ocean = ocean_simulation(grid)
-sea_ice = sea_ice_simulation(grid)
+sea_ice = sea_ice_simulation(sea_ice_grid)
 
 # Now that we have an atmosphere and ocean, we `set!` the ocean temperature and salinity
 # to the ECCO2 data by first creating T, S metadata objects,
