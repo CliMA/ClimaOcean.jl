@@ -9,6 +9,29 @@ using Printf
 
 using ClimaOcean.DataWrangling: NearestNeighborInpainting
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
+using Oceananigans.Grids: architecture
+
+@kernel function _adjust_initial_ocean_temperature!(T, grid, S, liquidus)
+    i, j, k = @index(Global, NTuple)
+    @inbounds begin
+        Tm = melting_temperature(liquidus, S[i, j, k])
+        T[i, j, k] = max(T[i, j, k], Tm)
+    end
+
+    if k == size(grid, 3)
+        T[i, j, k] = melting_temperature(liquidus, S[i, j, k])
+    end
+end
+
+function adjust_ocean_temperature!(ocean, sea_ice) 
+    T = ocean.model.tracers.T
+    S = ocean.model.tracers.S
+    liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
+
+    grid = ocean.model.grid
+    arch = architecture(grid)
+    launch!(arch, grid, :xy, _adjust_initial_ocean_temperature!, ocean.tracers.T, grid, ocean.model.tracers.S, )
+end
 
 arch = CPU()
 
@@ -82,23 +105,7 @@ set!(ocean.model, T=temperature, S=salinity)
 set!(sea_ice.model.ice_thickness,     ice_thickness,     inpainting=NearestNeighborInpainting(1))
 set!(sea_ice.model.ice_concentration, ice_concentration, inpainting=NearestNeighborInpainting(1))
 
-# Fix ocean temperature
-Threads.@spawn for i in 1:Nx, j in 1:Ny
-    for k in 1:Nz
-        @inbounds begin
-            S  = ocean.model.tracers.S[i, j, k]
-            T  = ocean.model.tracers.T[i, j, k]
-            Tm = melting_temperature(sea_ice.model.ice_thermodynamics.phase_transitions.liquidus, S)
-            ocean.model.tracers.T[i, j, k] = max(Tm, T)
-        end
-    end
-
-    @inbounds begin
-        if sea_ice.model.ice_concentration[i, j, 1] != 0
-            ocean.model.tracers.T[i, j, Nz] = melting_temperature(sea_ice.model.ice_thermodynamics.phase_transitions.liquidus, ocean.model.tracers.S[i, j, Nz])
-        end
-    end
-end
+adjust_ocean_temperature!(ocean, sea_ice)
 
 earth_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 
