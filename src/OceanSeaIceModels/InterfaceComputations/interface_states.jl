@@ -133,22 +133,17 @@ where ``Jᵀ`` are the fluxes at the top of the interface (turbulent + radiative
 
 Note that all fluxes positive upwards.
 """
-struct SkinTemperature{I}
+struct SkinTemperature{I, FT}
     internal_flux :: I
+    max_ΔT :: FT
 end
+
+SkinTemperature(internal_flux; max_ΔT=5) = SkinTemperature(internal_flux, max_ΔT)
 
 struct DiffusiveFlux{Z, K}
     δ :: Z # Boundary layer thickness, as a first guess we will use half the grid spacing
     κ :: K # diffusivity in m² s⁻¹
 end
-
-# A default constructor for SkinTemperature
-function SkinTemperature(FT::DataType=Float64; κ=1e-2, δ=1.0) 
-    internal_flux = DiffusiveFlux(FT; κ, δ)
-    return SkinTemperature(internal_flux)
-end
-
-DiffusiveFlux(FT; κ = 1e-2, δ = 1.0) = DiffusiveFlux(convert(FT, δ), convert(FT, κ))
 
 # The flux balance is solved by computing
 # 
@@ -161,7 +156,7 @@ DiffusiveFlux(FT; κ = 1e-2, δ = 1.0) = DiffusiveFlux(convert(FT, δ), convert(
 # We have indicated that Jᵃ may depend on the surface temperature from the previous
 # iterate. We thus find that 
 #
-# Tₛⁿ⁺¹ = Tᵢ + δ * Jᵃ(Tₛⁿ) / κ
+# Tₛⁿ⁺¹ = Tᵢ - δ * Jᵃ(Tₛⁿ) / κ
 #
 # Note that we could also use the fact that Jᵃ(T) = σ * ϵ * T^4 + ⋯
 # to expand Jᵃ around Tⁿ⁺¹,
@@ -184,16 +179,18 @@ DiffusiveFlux(FT; κ = 1e-2, δ = 1.0) = DiffusiveFlux(convert(FT, δ), convert(
 # Tₛⁿ⁺¹ = = (Tᵢ - δ / κ * (Jᵃ - 4 α Tₛⁿ⁴)) / (1 + 4 δ σ ϵ Tₛⁿ³ / ρ c κ) 
 #
 # corresponding to a linearization of the outgoing longwave radiation term.
-@inline function flux_balance_temperature(F::DiffusiveFlux, Qₐ, Ψₛ, ℙₛ, Ψᵢ, ℙᵢ)
+@inline function flux_balance_temperature(st::SkinTemperature{<:DiffusiveFlux}, Qₐ, Ψₛ, ℙₛ, Ψᵢ, ℙᵢ)
+    F = st.internal_flux
     ρ = ℙᵢ.reference_density
     c = ℙᵢ.heat_capacity
     Jᵀ = Qₐ / (ρ * c)
-    return Ψᵢ.T + Jᵀ * F.δ / F.κ
+    return Ψᵢ.T - Jᵀ * F.δ / F.κ
 end
 
 # Q + k / h * (Tˢ - Tᵢ) = 0
 # ⟹  Tₛ = Tᵢ - Q * h / k
-@inline function flux_balance_temperature(F::ClimaSeaIce.ConductiveFlux, Qₐ, Ψₛ, ℙₛ, Ψᵢ, ℙᵢ)
+@inline function flux_balance_temperature(st::SkinTemperature{<:ClimaSeaIce.ConductiveFlux}, Qₐ, Ψₛ, ℙₛ, Ψᵢ, ℙᵢ)
+    F = st.internal_flux
     k = F.conductivity
     h = Ψᵢ.h
 
@@ -209,22 +206,21 @@ end
     Tₛ = (Tᵢ - h / k * (Qₐ + 4α * Tₛ⁻^4)) / (1 + 4α * h * Tₛ⁻^3 / k)
     =#
 
-    Tₛ = Tᵢ - Qₐ * h / k
+    T★ = Tᵢ - Qₐ * h / k
 
     # Under heating fluxes, cap surface temperature by melting temperature
     Tₘ = ℙᵢ.liquidus.freshwater_melting_temperature
     Tₘ = convert_to_kelvin(ℙᵢ.temperature_units, Tₘ)
 
     # Fix a NaN
-    Tₛ = ifelse(isnan(Tₛ), Tₛ⁻, Tₛ)
+    T★ = ifelse(isnan(T★), Tₛ⁻, T★)
 
     # Don't let it go below some minimum number?
-    FT = typeof(Tₛ⁻)
-    min_Tₛ = convert(FT, 230)
-    Tₛ = max(min_Tₛ, Tₛ)
-    Tₛ = min(Tₛ, Tₘ)
-
-    Tₛ⁺ = (Tₛ + 9Tₛ⁻) / 10
+    T★  = min(T★, Tₘ)
+    ΔT★ = T★ - Tₛ⁻
+    max_ΔT = convert(typeof(T★), st.max_ΔT)
+    ΔT  = max(max_ΔT, abs(ΔT★))
+    Tₛ⁺ = Tₛ⁻ + ΔT * sign(ΔT★)
 
     return Tₛ⁺
 end
@@ -268,7 +264,7 @@ end
     # Net heat flux
     Qa = Qr + Qc + Qv
 
-    Tₛ = flux_balance_temperature(st.internal_flux, Qa,
+    Tₛ = flux_balance_temperature(st, Qa,
                                   interface_state,
                                   interface_properties,
                                   interior_state,

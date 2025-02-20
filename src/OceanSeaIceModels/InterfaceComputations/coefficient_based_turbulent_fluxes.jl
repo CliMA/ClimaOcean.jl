@@ -20,7 +20,7 @@ function CoefficientBasedFluxes(FT = Float64;
                                 vapor_flux_coefficient = drag_coefficient,
                                 bulk_velocity = RelativeVelocity(),
                                 solver_tolerance = 1e-8,
-                                solver_maxiter = 10)
+                                solver_maxiter = Int(1e6))
 
     drag_coefficient = convert_if_number(FT, drag_coefficient)
     heat_transfer_coefficient = convert_if_number(FT, heat_transfer_coefficient)
@@ -53,6 +53,13 @@ end
     u★ = sqrt(Cd) * ΔU
     θ★ = Ch / sqrt(Cd) * Δθ
     q★ = Cq / sqrt(Cd) * Δq
+
+    # ρₐ cₐ u★ θ★ 
+
+    # - 2e-3 / sqrt(5e-4) * 10
+
+    # -0.8944271909999159
+    # u★ = sqrt(2e-3) 
 
     return u★, θ★, q★
 end

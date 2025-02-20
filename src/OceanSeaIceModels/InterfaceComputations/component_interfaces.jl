@@ -171,7 +171,9 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              radiation = Radiation(),
                              freshwater_density = 1000,
                              atmosphere_ocean_flux_formulation = SimilarityTheoryFluxes(),
-                             atmosphere_sea_ice_flux_formulation = CoefficientBasedFluxes(drag_coefficient=2e-3, heat_transfer_coefficient=5e-4, vapor_flux_coefficient=5e-4),
+                             atmosphere_sea_ice_flux_formulation = CoefficientBasedFluxes(drag_coefficient=1e-3,
+                                                                                          heat_transfer_coefficient=1e-4, 
+                                                                                          vapor_flux_coefficient=1e-4),
                              #atmosphere_sea_ice_flux_formulation = atmosphere_sea_ice_stability_functions(),
                              atmosphere_ocean_interface_temperature = BulkTemperature(),
                              atmosphere_ocean_interface_specific_humidity = default_ao_specific_humidity(ocean),
@@ -185,7 +187,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
 
     ocean_grid = ocean.model.grid
     FT = eltype(ocean_grid)
-
+    
     ocean_reference_density   = convert(FT, ocean_reference_density)
     ocean_heat_capacity       = convert(FT, ocean_heat_capacity)
     sea_ice_reference_density = convert(FT, sea_ice_reference_density)
