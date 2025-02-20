@@ -330,7 +330,7 @@ end
     return !(converged | reached_maxiter) | hasnt_started
 end
 
-@inline function compute_interface_state(flux_formulation::SimilarityTheoryFluxes,
+@inline function compute_interface_state(flux_formulation,
                                          initial_interface_state,
                                          atmosphere_state,
                                          interior_state,
