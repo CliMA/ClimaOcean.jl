@@ -23,7 +23,7 @@ using GLMakie
 
 grid = ECCO_immersed_grid()
 latitude  = cpu_face_constructor_y(grid)
-longitude = cpu_face_constructor_y(grid)
+longitude = cpu_face_constructor_x(grid)
 sea_ice_grid = LatitudeLongitudeGrid(; size=size(grid)[1:2], latitude, longitude, topology=(Periodic, Bounded, Flat))
 
 # fig = Figure()
