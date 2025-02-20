@@ -249,7 +249,7 @@ tn = @lift times[$n]
 
 colors = Makie.wong_colors()
 
-ρₒ = coupled_model.fluxes.ocean_reference_density
+ρₒ = coupled_model.interfaces.ocean_properties.reference_density
 τx = interior(ρτx, 1, 1, 1, :) ./ ρₒ
 τy = interior(ρτy, 1, 1, 1, :) ./ ρₒ
 u★ = @. (τx^2 + τy^2)^(1/4)
