@@ -58,9 +58,9 @@ function update_state!(coupled_model::OceanSeaIceModel, callbacks=[]; compute_te
     interpolate_atmospheric_state!(coupled_model) 
 
     # Compute interface states
-    compute_atmosphere_ocean_fluxes!(coupled_model)
+    # compute_atmosphere_ocean_fluxes!(coupled_model)
     compute_atmosphere_sea_ice_fluxes!(coupled_model)
-    compute_sea_ice_ocean_fluxes!(coupled_model)
+    # compute_sea_ice_ocean_fluxes!(coupled_model)
 
     # This function needs to be specialized to allow different atmospheric models
     compute_net_atmosphere_fluxes!(coupled_model)

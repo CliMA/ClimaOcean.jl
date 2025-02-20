@@ -217,16 +217,21 @@ end
 
     # Fix a NaN
     Tₛ = ifelse(isnan(Tₛ), Tₛ⁻, Tₛ)
+    Tₛ = min(Tₛ, Tₘ)
 
     #=
     # Don't let it go below some minimum number?
     # FT = typeof(Tₛ⁻)
     # min_Tₛ = convert(FT, 230)
     # Tₛ = max(min_Tₛ, Tₛ)
-    # Tₛ = min(Tₛ, Tₘ)
+    # 
 
     # Tₛ = (Tₛ + 9Tₛ⁻) / 10
     =#
+
+    if Tₛ < -5
+        @show Tₛ, Tₘ, Qₐ, h, k, Tᵢ
+    end
 
     return Tₛ
 end
@@ -269,6 +274,10 @@ end
 
     # Net heat flux
     Qa = Qr + Qc + Qv
+
+    if Qa > 1000
+        @show Qa, Qr, Qc, Qv, u★, θ★, q★, Tₛ⁻
+    end
 
     Tₛ = flux_balance_temperature(st.internal_flux, Qa,
                                   interface_state,
