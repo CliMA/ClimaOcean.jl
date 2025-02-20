@@ -8,7 +8,8 @@ using ClimaOcean.OceanSeaIceModels.InterfaceComputations:
                                    saturation_specific_humidity,
                                    surface_flux,
                                    SkinTemperature, 
-                                   BulkTemperature
+                                   BulkTemperature,
+                                   DiffusiveFlux
 
 using Thermodynamics
 using CUDA
@@ -69,7 +70,7 @@ end
             radiation = Radiation(ocean_emissivity=0, ocean_albedo=1)
 
             # turbulent fluxes that force a specific humidity at the ocean's surface
-            for Tmode in (BulkTemperature, SkinTemperature)
+            for Tmode in (BulkTemperature(), SkinTemperature(DiffusiveFlux(1, 1e-2)))
                 @info " Testing zero fluxes with $(Tmode)..."
 
                 interfaces = ComponentInterfaces(atmosphere, ocean; 
