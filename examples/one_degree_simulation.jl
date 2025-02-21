@@ -15,7 +15,7 @@ using CFTime
 using Dates
 using Printf
 
-arch = CPU()
+arch = GPU()
 
 # ### Grid and Bathymetry
 
