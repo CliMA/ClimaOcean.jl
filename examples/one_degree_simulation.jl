@@ -7,14 +7,13 @@
 # CairoMakie to visualize the simulation. Also we need CFTime and Dates for date handling.
 
 using ClimaOcean
-using ClimaOcean.ECCO: ECCO4Monthly, NearestNeighborInpainting
+using ClimaOcean.ECCO
 using Oceananigans
 using Oceananigans.Units
 using OrthogonalSphericalShellGrids
 using CFTime
 using Dates
 using Printf
-using CUDA
 
 arch = GPU()
 
