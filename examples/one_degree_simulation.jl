@@ -40,6 +40,7 @@ bottom_height = regrid_bathymetry(underlying_grid;
                                   major_basins = 2)
 
 # For this bathymetry at this horizontal resolution we need to manually open the Gibraltar strait.
+
 tampered_bottom_height = deepcopy(bottom_height)
 CUDA.@allowscalar view(tampered_bottom_height, 102:103, 124, 1) .= -400
 
@@ -47,8 +48,9 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(tampered_bottom_he
                             active_cells_map=true)
 
 # ### Restoring
+#
+# We include temperature and salinity surface restoring to ECCO data.
 
-# We include temperature and salinity surface restoring to ECCO2.
 restoring_rate  = 1 / 10days
 z_below_surface = r_faces[end-1]
 
@@ -63,7 +65,7 @@ FS = ECCORestoring(salinity,    grid; mask, rate=restoring_rate)
 forcing = (T=FT, S=FS)
 
 # ### Closures
-
+#
 # We include a Gent-McWilliam isopycnal diffusivity as a parameterization for the mesoscale
 # eddy fluxes. For vertical mixing at the upper-ocean boundary layer we include the CATKE
 # parameterization. We also include some explicit horizontal diffusivity.
@@ -78,7 +80,7 @@ vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
 closure = (eddy_closure, vertical_mixing)
 
 # ### Ocean simulation
-
+#
 # Now we bring everything together to construct the ocean simulation.
 # We use a split-explicit timestepping with 30 substeps for the barotropic
 # mode.
@@ -97,7 +99,7 @@ ocean = ocean_simulation(grid;
 
 # ### Initial condition
 
-# We initialize the ocean from the ECCO2 state estimate.
+# We initialize the ocean from the ECCO state estimate.
 
 set!(ocean.model, T=ECCOMetadata(:temperature; dates=first(dates)),
                   S=ECCOMetadata(:salinity; dates=first(dates)))
@@ -105,6 +107,7 @@ set!(ocean.model, T=ECCOMetadata(:temperature; dates=first(dates)),
 # ### Atmospheric forcing
 
 # We force the simulation with an JRA55-do atmospheric reanalysis.
+
 radiation  = Radiation(arch)
 atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(20))
 
@@ -138,9 +141,12 @@ function progress(sim)
 
     step_time = 1e-9 * (time_ns() - wall_time[])
 
-    @info @sprintf("time: %s, iteration: %d, Δt: %s, max|u|: (%.2e, %.2e, %.2e) m s⁻¹, extrema(T): (%.2f, %.2f) ᵒC, wall time: %s \n",
-                   prettytime(sim), iteration(sim), prettytime(sim.Δt),
-                   umax..., Tmax, Tmin, prettytime(step_time))
+    msg1 = @sprintf("time: %s, iteration: %d, Δt: %s, ", prettytime(sim), iteration(sim), prettytime(sim.Δt))
+    msg2 = @sprintf("max|u|: (%.2e, %.2e, %.2e) m s⁻¹, ", umax...)
+    msg3 = @sprintf("extrema(T): (%.2f, %.2f) ᵒC, ", Tmax, Tmin)
+    msg4 = @sprintf("wall time: %s \n", prettytime(step_time))
+
+    @info msg1 * msg2 * msg3 * msg4
 
      wall_time[] = time_ns()
 
@@ -148,6 +154,7 @@ function progress(sim)
 end
 
 # And add it as a callback to the simulation.
+
 add_callback!(simulation, progress, IterationInterval(10))
 
 # ### Output
@@ -181,6 +188,7 @@ run!(simulation)
 # ### A pretty movie
 #
 # We load the saved output and make a pretty movie of the simulation. First we plot a snapshot:
+
 using CairoMakie
 
 u = FieldTimeSeries("global_surface_fields.jld2", "u"; backend = OnDisk())
@@ -194,6 +202,7 @@ Nt = length(times)
 n = Observable(Nt)
 
 # We create a land mask and use it to fill land points with `NaN`s.
+
 land = interior(T.grid.immersed_boundary.bottom_height) .≥ 0
 
 Tn = @lift begin
@@ -209,6 +218,7 @@ en = @lift begin
 end
 
 # We compute the surface speed.
+
 un = Field{Face, Center, Nothing}(u.grid)
 vn = Field{Center, Face, Nothing}(v.grid)
 s = Field(sqrt(un^2 + vn^2))
@@ -224,6 +234,7 @@ end
 
 # Finally, we plot a snapshot of the surface speed, temperature, and the turbulent
 # eddy kinetic energy from the CATKE vertical mixing parameterization.
+
 fig = Figure(size = (800, 1200))
 
 axs = Axis(fig[1, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
