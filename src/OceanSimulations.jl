@@ -113,7 +113,7 @@ default_tracer_advection() = FluxFormAdvection(WENO(order=7),
 # TODO: Specify the grid to a grid on the sphere; otherwise we can provide a different
 # function that requires latitude and longitude etc for computing coriolis=FPlane...
 function ocean_simulation(grid;
-                          Δt = compute_maximum_Δt(grid),
+                          Δt = estimate_maximum_Δt(grid),
                           closure = default_ocean_closure(),
                           tracers = (:T, :S),
                           free_surface = default_free_surface(grid),
