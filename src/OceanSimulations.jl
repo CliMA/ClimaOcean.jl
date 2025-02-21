@@ -51,22 +51,21 @@ function estimate_maximum_Δt(grid)
     Δθ = rad2deg(mean([Δx, Δy])) / grid.radius
 
     # The maximum Δt is roughly 40minutes / Δθ, giving:
-    # - 40 minutes for a 1 degree ocean
-    # - 20 minutes for a 1/4 degree ocean
-    # - 10 minutes for a 1/8 degree ocean
-    # - 5 minutes for a 1/16 degree ocean
-    # - 2.5 minutes for a 1/32 degree ocean
+    # - 30 minutes for a 1 degree ocean
+    # - 15 minutes for a 1/4 degree ocean
+    # - 7.5 minutes for a 1/8 degree ocean
+    # - 3.75 minutes for a 1/16 degree ocean
+    # - 1.875 minutes for a 1/32 degree ocean
 
-    return 40minutes / Δθ
+    return 30minutes / Δθ
 end
 
 const TripolarOfSomeKind = Union{TripolarGrid, ImmersedBoundaryGrid{<:Any, <:Any, <:Any, <:Any, <:TripolarGrid}}
 
 function default_free_surface(grid::TripolarOfSomeKind; 
-                              fixed_Δt = compute_maximum_Δt(grid),
+                              fixed_Δt = estimate_maximum_Δt(grid),
                               cfl = 0.7) 
     free_surface = SplitExplicitFreeSurface(grid; cfl, fixed_Δt)
-    @info "Using a $(free_surface)"
     return free_surface
 end
 
