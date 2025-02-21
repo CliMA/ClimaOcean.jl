@@ -31,7 +31,7 @@ function adjust_ocean_temperature!(ocean, sea_ice)
 
     grid = ocean.model.grid
     arch = architecture(grid)
-    launch!(arch, grid, :xy, _adjust_initial_ocean_temperature!, ocean.tracers.T, grid, ocean.model.tracers.S, )
+    launch!(arch, grid, :xy, _adjust_initial_ocean_temperature!, T, grid, S, liquidus)
 end
 
 arch = CPU()

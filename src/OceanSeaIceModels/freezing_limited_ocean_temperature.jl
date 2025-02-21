@@ -17,7 +17,7 @@ does not dip below freezing.
 
 The melting temperature is a function of salinity and is controlled by the `liquidus`.
 """
-FreezingLimitedOceanTemperature(FT=Float64; liquidus=LinearLiquidus(FT)) = FreezingLimitedOceanTemperature(liquidus)
+FreezingLimitedOceanTemperature(FT::DataType=Float64; liquidus=LinearLiquidus(FT)) = FreezingLimitedOceanTemperature(liquidus)
 
 const FreezingLimitedCoupledModel = OceanSeaIceModel{<:FreezingLimitedOceanTemperature}
 
