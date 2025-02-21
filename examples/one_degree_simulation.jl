@@ -14,6 +14,7 @@ using OrthogonalSphericalShellGrids
 using CFTime
 using Dates
 using Printf
+using CUDA
 
 arch = GPU()
 
@@ -40,7 +41,7 @@ bottom_height = regrid_bathymetry(underlying_grid;
 
 # For this bathymetry at this horizontal resolution we need to manually open the Gibraltar strait.
 tampered_bottom_height = deepcopy(bottom_height)
-view(tampered_bottom_height, 102:103, 124, 1) .= -400
+CUDA.@allowscalar view(tampered_bottom_height, 102:103, 124, 1) .= -400
 
 grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(tampered_bottom_height);
                             active_cells_map=true)
