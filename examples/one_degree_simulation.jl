@@ -162,7 +162,6 @@ ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
                                                   schedule = TimeInterval(5days),
                                                   filename = "global_surface_fields",
                                                   indices = (:, :, grid.Nz),
-                                                  with_halos = true,
                                                   overwrite_existing = true)
 
 # ### Ready to run
