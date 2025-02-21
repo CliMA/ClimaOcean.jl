@@ -45,7 +45,7 @@ default_or_override(override, alternative_default=nothing) = override
 # Some defaults
 default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
 
-function compute_maximum_Δt(grid)
+function estimate_maximum_Δt(grid)
     Δx = mean(xspacings(grid))
     Δy = mean(yspacings(grid))
     Δθ = rad2deg(mean([Δx, Δy])) / grid.radius
