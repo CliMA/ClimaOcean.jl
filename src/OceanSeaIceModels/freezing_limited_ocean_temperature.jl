@@ -9,17 +9,15 @@ struct FreezingLimitedOceanTemperature{L}
 end
 
 """
-    FreezingLimitedOceanTemperature(FT=Float64)
+    FreezingLimitedOceanTemperature(FT=Float64; liquidus=LinearLiquidus(FT))
 
-The minimal possible sea ice representation, providing an "Insulating layer" on
-the surface and clipping the temperature below to the freezing point. Not really
-a "model"' per se, however, it is the most simple way to make sure that temperature
-does not dip below freezing. All fluxes are shut down when the surface is below
-the `T < Tₘ` except for heating to allow temperature to increase.
+The minimal possible sea ice representation, clipping the temperature below to the freezing point.
+Not really a "model"' per se, however, it is the most simple way to make sure that temperature
+does not dip below freezing. 
 
 The melting temperature is a function of salinity and is controlled by the `liquidus`.
 """
-FreezingLimitedOceanTemperature(FT::DataType=Float64) = FreezingLimitedOceanTemperature(LinearLiquidus(FT))
+FreezingLimitedOceanTemperature(FT=Float64; liquidus=LinearLiquidus(FT)) = FreezingLimitedOceanTemperature(liquidus)
 
 const FreezingLimitedCoupledModel = OceanSeaIceModel{<:FreezingLimitedOceanTemperature}
 
@@ -33,7 +31,6 @@ heat_capacity(::FreezingLimitedOceanTemperature) = 0
 
 function compute_sea_ice_ocean_fluxes!(cm::FreezingLimitedCoupledModel)
     ocean = cm.ocean
-    ℵ = cm.sea_ice.ice_concentration
     liquidus = cm.sea_ice.liquidus
     grid = ocean.model.grid
     arch = architecture(grid)
