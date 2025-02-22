@@ -7,21 +7,24 @@ using CFTime
 using Dates
 using Printf
 
+using Oceananigans.Utils: launch!
 using ClimaOcean.DataWrangling: NearestNeighborInpainting
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 using Oceananigans.Grids: architecture
 using KernelAbstractions: @kernel, @index
 
 @kernel function _adjust_initial_ocean_temperature!(T, grid, S, liquidus)
-    i, j, k = @index(Global, NTuple)
-    @inbounds begin
-        Tm = melting_temperature(liquidus, S[i, j, k])
-        T[i, j, k] = max(T[i, j, k], Tm)
+    i, j = @index(Global, NTuple)
+    Nz = size(grid, 3)
+
+    for k in 1:Nz-1
+        @inbounds begin
+            Tm = melting_temperature(liquidus, S[i, j, k])
+            T[i, j, k] = max(T[i, j, k], Tm)
+        end
     end
 
-    if k == size(grid, 3)
-        T[i, j, k] = melting_temperature(liquidus, S[i, j, k])
-    end
+    @inbounds T[i, j, Nz] = melting_temperature(liquidus, S[i, j, Nz])
 end
 
 function adjust_ocean_temperature!(ocean, sea_ice) 
@@ -87,6 +90,8 @@ ocean = ocean_simulation(grid;
 #####
 
 # Define the model!
+# TODO: Fix the melting temperature to -1.96 degrees Celsius
+# Verify that the minimum temperature is -1.96 degrees Celsius
 sea_ice = sea_ice_simulation(sea_ice_grid; dynamics=nothing, advection=nothing) 
 
 #####
