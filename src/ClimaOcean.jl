@@ -79,7 +79,7 @@ include("InitialConditions/InitialConditions.jl")
 include("DataWrangling/DataWrangling.jl")
 include("Bathymetry.jl")
 include("Diagnostics/Diagnostics.jl")
-include("OceanSimulations.jl")
+include("OceanSimulations/OceanSimulations.jl")
 include("SeaIceSimulations.jl")
 
 using .DistributedUtils

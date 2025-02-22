@@ -1,44 +1,3 @@
-module OceanSimulations
-
-export ocean_simulation
-
-using Oceananigans
-using Oceananigans.Units
-using Oceananigans.Utils: with_tracers
-using Oceananigans.Advection: FluxFormAdvection
-using Oceananigans.BoundaryConditions: DefaultBoundaryCondition
-using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
-using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node, MutableGridOfSomeKind
-using OrthogonalSphericalShellGrids
-
-using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities:
-    CATKEVerticalDiffusivity,
-    CATKEMixingLength,
-    CATKEEquation
-
-using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
-
-using Oceananigans.BuoyancyFormulations: g_Earth
-using Oceananigans.Coriolis: Ω_Earth
-using Oceananigans.Operators
-
-struct Default{V}
-    value :: V
-end
-
-"""
-    default_or_override(default::Default, alternative_default=default.value) = alternative_default
-    default_or_override(override, alternative_default) = override
-
-Either return `default.value`, an `alternative_default`, or an `override`.
-
-The purpose of this function is to help define constructors with "configuration-dependent" defaults.
-For example, the default bottom drag should be 0 for a single column model, but 0.003 for a global model.
-We therefore need a way to specify both the "normal" default 0.003 as well as the "alternative default" 0,
-all while respecting user input and changing this to a new value if specified.
-"""
-default_or_override(default::Default, possibly_alternative_default=default.value) = possibly_alternative_default
-default_or_override(override, alternative_default=nothing) = override
 
 # Some defaults
 default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
@@ -168,12 +127,21 @@ function ocean_simulation(grid;
     # conditions even when a user-bc is supplied).
     boundary_conditions = merge(default_boundary_conditions, boundary_conditions)
 
+    # Forcing for u, v
+    atmospheric_pressure = Field{Center, Center, Nothing}(grid)
+    u_forcing = BarotropicPressureForcing(XDirection(), atmospheric_pressure)
+    v_forcing = BarotropicPressureForcing(YDirection(), atmospheric_pressure)
+
+    :u ∈ keys(forcing) && (u_forcing = (u_forcing, forcing[:u]))
+    :v ∈ keys(forcing) && (v_forcing = (v_forcing, forcing[:v]))
+    forcing = merge(forcing, (u=u_forcing, v=v_forcing))
+
     buoyancy = SeawaterBuoyancy(; gravitational_acceleration, equation_of_state)
 
     if tracer_advection isa NamedTuple
         tracer_advection = with_tracers(tracers, tracer_advection, default_tracer_advection())
     else
-        tracer_advection = NamedTuple(name => tracer_advection for name in tracers)
+       tracer_advection = NamedTuple(name => tracer_advection for name in tracers)
     end
 
     if hasclosure(closure, CATKEVerticalDiffusivity)
@@ -208,5 +176,3 @@ end
 
 hasclosure(closure, ClosureType) = closure isa ClosureType
 hasclosure(closure_tuple::Tuple, ClosureType) = any(hasclosure(c, ClosureType) for c in closure_tuple)
-
-end # module
