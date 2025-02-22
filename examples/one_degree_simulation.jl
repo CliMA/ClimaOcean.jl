@@ -39,13 +39,9 @@ bottom_height = regrid_bathymetry(underlying_grid;
                                   major_basins = 2)
 
 # For this bathymetry at this horizontal resolution we need to manually open the Gibraltar strait.
+# view(bottom_height, 102:103, 124, 1) .= -400
 
-using CUDA: @allowscalar
-
-tampered_bottom_height = deepcopy(bottom_height)
-@allowscalar view(tampered_bottom_height, 102:103, 124, 1) .= -400
-
-grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(tampered_bottom_height); active_cells_map=true)
+grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
 # ### Restoring
 #
