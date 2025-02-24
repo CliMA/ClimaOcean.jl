@@ -118,9 +118,9 @@ function progress(sim)
     S = sim.model.ocean.model.tracers.S
     e = sim.model.ocean.model.tracers.e
 
-    τx = first(simulation.model.interfaces.net_fluxes.ocean_surface.u)
-    τy = first(simulation.model.interfaces.net_fluxes.ocean_surface.v)
-    Q = first(simulation.model.interfaces.net_fluxes.ocean_surface.Q)
+    τx = first(sim.model.interfaces.net_fluxes.ocean_surface.u)
+    τy = first(sim.model.interfaces.net_fluxes.ocean_surface.v)
+    Q = first(sim.model.interfaces.net_fluxes.ocean_surface.Q)
 
     u★ = sqrt(sqrt(τx^2 + τy^2))
 
@@ -133,6 +133,8 @@ function progress(sim)
     msg *= @sprintf(", e₀: %.2e m² s⁻²", first(interior(e, 1, 1, Nz)))
 
     @info msg
+
+    return nothing
 end
 
 simulation.callbacks[:progress] = Callback(progress, IterationInterval(100))
