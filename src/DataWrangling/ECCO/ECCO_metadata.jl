@@ -167,7 +167,7 @@ ECCO4_short_names = Dict(
     :v_velocity            => "NVEL",
     :free_surface          => "SSH",
     :sea_ice_thickness     => "SIheff",
-    :sea_ice_area_fraction => "SIarea",
+    :sea_ice_concentration => "SIarea",
     :net_heat_flux         => "oceQnet"
 )
 
@@ -178,7 +178,7 @@ ECCO2_short_names = Dict(
     :v_velocity            => "VVEL",
     :free_surface          => "SSH",
     :sea_ice_thickness     => "SIheff",
-    :sea_ice_area_fraction => "SIarea",
+    :sea_ice_concentration => "SIarea",
     :net_heat_flux         => "oceQnet"
 )
 
@@ -187,30 +187,42 @@ ECCO_location = Dict(
     :salinity              => (Center, Center, Center),
     :free_surface          => (Center, Center, Nothing),
     :sea_ice_thickness     => (Center, Center, Nothing),
-    :sea_ice_area_fraction => (Center, Center, Nothing),
+    :sea_ice_concentration => (Center, Center, Nothing),
     :net_heat_flux         => (Center, Center, Nothing),
     :u_velocity            => (Face,   Center, Center),
     :v_velocity            => (Center, Face,   Center),
 )
 
 # URLs for the ECCO datasets specific to each version
-urls(::ECCOMetadata{<:Any, <:ECCO2Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/monthly/"
-urls(::ECCOMetadata{<:Any, <:ECCO2Daily})   = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/daily/"
-urls(::ECCOMetadata{<:Any, <:ECCO4Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly/"
+urls(::ECCOMetadata{<:Any, <:ECCO2Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/monthly"
+urls(::ECCOMetadata{<:Any, <:ECCO2Daily})   = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/daily"
+urls(::ECCOMetadata{<:Any, <:ECCO4Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly"
 
 """
     download_dataset(metadata::ECCOMetadata; url = urls(metadata))
 
-Download the dataset specified by `ECCOMetadata`. If `ECCOMetadata.dates` is a single date, 
+Download the dataset specified by `ECCOMetadata`. If `ECCOMetadata.dates` is a single date,
 the dataset is downloaded directly. If `ECCOMetadata.dates` is a vector of dates, each date
 is downloaded individually.
+
 The data download requires a username and password to be provided in the `ECCO_USERNAME` and
 `ECCO_PASSWORD` environment variables. This can be done by exporting the environment variables
-in the shell before running the script, or by launching julia with 
+in the shell before running the script, or by launching julia with
 
 ```
-ECCO_USERNAME=myusername ECCO_PASSWORD=mypassword julia 
+ECCO_USERNAME=myusername ECCO_PASSWORD=mypassword julia
 ```
+
+or by invoking
+
+```julia
+julia> ENV["ECCO_USERNAME"] = "myusername"
+
+julia> ENV["ECCO_PASSWORD"] = "mypassword"
+```
+
+within julia.
+
 
 Arguments
 =========
@@ -220,29 +232,30 @@ function download_dataset(metadata::ECCOMetadata; url = urls(metadata))
     username = get(ENV, "ECCO_USERNAME", nothing)
     password = get(ENV, "ECCO_PASSWORD", nothing)
     dir = metadata.dir
-    
+
     # Create a temporary directory to store the .netrc file
     # The directory will be deleted after the download is complete
     @root mktempdir(dir) do tmp
 
         # Write down the username and password in a .netrc file
         downloader = netrc_downloader(username, password, "ecco.jpl.nasa.gov", tmp)
-
-        asyncmap(metadata, ntasks=10) do metadatum # Distribute the download among tasks
+        ntasks = Threads.nthreads()
+        
+        asyncmap(metadata; ntasks) do metadatum # Distribute the download among tasks
 
             fileurl  = metadata_url(url, metadatum) 
             filepath = metadata_path(metadatum)
 
             if !isfile(filepath)
-                instructions_msg = "\n See ClimaOcean.jl/src/ECCO/README.md for instructions."
+                instructions_msg = "\n See ClimaOcean.jl/src/DataWrangling/ECCO/README.md for instructions."
                 if isnothing(username)
                     msg = "Could not find the ECCO_PASSWORD environment variable. \
-                           See ClimaOcean.jl/src/ECCO/README.md for instructions on obtaining \
+                           See ClimaOcean.jl/src/DataWrangling/ECCO/README.md for instructions on obtaining \
                            and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
                     throw(ArgumentError(msg))
                 elseif isnothing(password)
                     msg = "Could not find the ECCO_PASSWORD environment variable. \
-                           See ClimaOcean.jl/src/ECCO/README.md for instructions on obtaining \
+                           See ClimaOcean.jl/src/DataWrangling/ECCO/README.md for instructions on obtaining \
                            and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
                     throw(ArgumentError(msg))
                 end
@@ -251,6 +264,6 @@ function download_dataset(metadata::ECCOMetadata; url = urls(metadata))
             end
         end
     end
-    
+
     return nothing
 end

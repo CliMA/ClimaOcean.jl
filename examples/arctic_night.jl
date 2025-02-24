@@ -29,8 +29,8 @@ parent(atmosphere.downwelling_radiation.shortwave) .= Qℓ # W
 grid = RectilinearGrid(size=400, z=(-400, 0), topology=(Flat, Flat, Bounded))
 ocean = ocean_simulation(grid, coriolis=FPlane(; f))
 
-eos = ocean.model.buoyancy.model.equation_of_state
-g = ocean.model.buoyancy.model.gravitational_acceleration
+eos = ocean.model.buoyancy.formulation.equation_of_state
+g = ocean.model.buoyancy.formulation.gravitational_acceleration
 α = SeawaterPolynomials.thermal_expansion(T₀, S₀, 0, eos)
 dTdz = N² / (α * g)
 Tᵢ(z) = max(-1.8, T₀ + dTdz * z)
@@ -40,12 +40,12 @@ radiation = Radiation(ocean_albedo=0.1)
 model = OceanSeaIceModel(ocean; atmosphere, radiation)
 simulation = Simulation(model, Δt=10.0, stop_time=3days)
 
-Q = model.fluxes.total.ocean.heat
-Ql = model.fluxes.turbulent.fields.latent_heat
-Qs = model.fluxes.turbulent.fields.sensible_heat
-τx = model.fluxes.turbulent.fields.x_momentum
-τy = model.fluxes.turbulent.fields.y_momentum
-Fv = model.fluxes.turbulent.fields.water_vapor
+Q = model.interfaces.net_fluxes.ocean_surface.heat
+Ql = model.interfaces.atmosphere_ocean_interface.fluxes.latent_heat
+Qs = model.interfaces.atmosphere_ocean_interface.fluxes.sensible_heat
+τx = model.interfaces.atmosphere_ocean_interface.fluxes.x_momentum
+τy = model.interfaces.atmosphere_ocean_interface.fluxes.y_momentum
+Fv = model.interfaces.atmosphere_ocean_interface.fluxes.water_vapor
 
 fluxes = (; Q, Ql, Qs, τx, τy, Fv)
 outputs = merge(ocean.model.velocities, ocean.model.tracers, fluxes)
@@ -111,7 +111,7 @@ hidespines!(axu, :t, :l)
 hidespines!(axτ, :b, :r)
 hidespines!(axQ, :t, :r)
 
-record(fig, "idealized_atmosphere.mp4", 1:Nt, framerate=24) do nn
+record(fig, "arctic_night_atmosphere.mp4", 1:Nt, framerate=24) do nn
     @info "Drawing frame $nn of $Nt..."
     n[] = nn
 end
