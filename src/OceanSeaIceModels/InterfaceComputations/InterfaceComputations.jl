@@ -2,6 +2,7 @@ module InterfaceComputations
 
 using Oceananigans
 using Oceananigans.Fields: AbstractField
+using Oceananigans.Utils: KernelParameters
 using Adapt 
 
 export
