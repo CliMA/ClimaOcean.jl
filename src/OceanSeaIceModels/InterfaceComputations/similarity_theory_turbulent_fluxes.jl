@@ -120,6 +120,7 @@ function SimilarityTheoryFluxes(FT::DataType = Float64;
                                 solver_maxiter = 100)
 
     if isnothing(solver_stop_criteria)
+        solver_tolerance = convert(FT, solver_tolerance)
         solver_stop_criteria = ConvergenceStopCriteria(solver_tolerance, solver_maxiter)
     end
 

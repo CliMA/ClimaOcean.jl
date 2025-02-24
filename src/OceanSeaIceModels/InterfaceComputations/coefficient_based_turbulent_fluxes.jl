@@ -23,6 +23,7 @@ function CoefficientBasedFluxes(FT = Float64;
                                 solver_maxiter = 10)
 
     if isnothing(solver_stop_criteria)
+        solver_tolerance = convert(FT, solver_tolerance)
         solver_stop_criteria = ConvergenceStopCriteria(solver_tolerance, solver_maxiter)
     end
 
@@ -35,8 +36,7 @@ function CoefficientBasedFluxes(FT = Float64;
                                   heat_transfer_coefficient,
                                   vapor_flux_coefficient,
                                   bulk_velocity,
-                                  convert(FT, solver_tolerance),
-                                  solver_maxiter)
+                                  solver_stop_criteria)
 end
 
 @inline function iterate_interface_fluxes(flux_formulation::CoefficientBasedFluxes,
