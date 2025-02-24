@@ -36,7 +36,7 @@ function compute_net_ocean_fluxes!(coupled_model)
     ocean_salinity = ocean.model.tracers.S
     atmos_ocean_properties = coupled_model.interfaces.atmosphere_ocean_interface.properties
     ocean_properties = coupled_model.interfaces.ocean_properties
-    kernel_parameters = surface_computations_kernel_parameters(grid)
+    kernel_parameters = interface_kernel_parameters(grid)
 
     ocean_surface_temperature = coupled_model.interfaces.atmosphere_ocean_interface.temperature
 
@@ -223,7 +223,7 @@ function compute_net_sea_ice_fluxes!(coupled_model)
     ocean_salinity = ocean.model.tracers.S
     atmos_ocean_properties = coupled_model.interfaces.atmosphere_ocean_interface.properties
     ocean_properties = coupled_model.interfaces.ocean_properties
-    kernel_parameters = surface_computations_kernel_parameters(grid)
+    kernel_parameters = interface_kernel_parameters(grid)
 
     ocean_surface_temperature = coupled_model.interfaces.atmosphere_ocean_interface.temperature
 

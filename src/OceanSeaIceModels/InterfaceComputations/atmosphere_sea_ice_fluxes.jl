@@ -42,7 +42,7 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
     atmosphere_properties = (thermodynamics_parameters = atmosphere.thermodynamics_parameters,
                              reference_height = atmosphere.reference_height)
 
-    kernel_parameters = surface_computations_kernel_parameters(grid)
+    kernel_parameters = interface_kernel_parameters(grid)
 
     launch!(arch, grid, kernel_parameters,
             _compute_atmosphere_sea_ice_interface_state!,

@@ -73,14 +73,14 @@ end
 end
 
 include("DistributedUtils.jl")
+include("OceanSimulations/OceanSimulations.jl")
+include("SeaIceSimulations.jl")
 include("OceanSeaIceModels/OceanSeaIceModels.jl")
 include("VerticalGrids.jl")
 include("InitialConditions/InitialConditions.jl")
 include("DataWrangling/DataWrangling.jl")
 include("Bathymetry.jl")
 include("Diagnostics/Diagnostics.jl")
-include("OceanSimulations/OceanSimulations.jl")
-include("SeaIceSimulations.jl")
 
 using .DistributedUtils
 using .VerticalGrids

@@ -4,12 +4,13 @@ using Oceananigans
 using Oceananigans.Fields: AbstractField
 using Adapt 
 
-export Radiation,
-       ComponentInterfaces,
-       LatitudeDependentAlbedo,
-       SimilarityTheoryFluxes,
-       SkinTemperature, 
-       BulkTemperature
+export
+    Radiation,
+    ComponentInterfaces,
+    LatitudeDependentAlbedo,
+    SimilarityTheoryFluxes,
+    SkinTemperature, 
+    BulkTemperature
 
 using ..OceanSeaIceModels: default_gravitational_acceleration
 
@@ -22,7 +23,7 @@ import ClimaOcean: stateindex
 const c = Center()
 const f = Face()
 
-function surface_computations_kernel_parameters(grid)
+function interface_kernel_parameters(grid)
     Nx, Ny, Nz = size(grid)
     single_column_grid = Nx == 1 && Ny == 1
 

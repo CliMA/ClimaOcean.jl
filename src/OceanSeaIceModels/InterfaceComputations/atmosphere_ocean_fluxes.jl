@@ -38,7 +38,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     atmosphere_properties = (thermodynamics_parameters = thermodynamics_parameters(atmosphere),
                              reference_height = reference_height(atmosphere))
 
-    kernel_parameters = surface_computations_kernel_parameters(grid)
+    kernel_parameters = interface_kernel_parameters(grid)
 
     launch!(arch, grid, kernel_parameters,
             _compute_atmosphere_ocean_interface_state!,

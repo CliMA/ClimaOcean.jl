@@ -1,6 +1,8 @@
 using Oceananigans.Operators: intrinsic_vector
 using Oceananigans.Grids: _node
 
+using ...OceanSimulations: forcing_barotropic_pressure
+
 """Interpolate the atmospheric state onto the ocean / sea-ice grid."""
 function interpolate_atmospheric_state!(coupled_model)
     ocean = coupled_model.ocean
@@ -50,7 +52,7 @@ function interpolate_atmospheric_state!(coupled_model)
                        Qℓ = atmosphere_fields.Qℓ.data,
                        Mp = atmosphere_fields.Mp.data)
 
-    kernel_parameters = surface_computations_kernel_parameters(grid)
+    kernel_parameters = interface_kernel_parameters(grid)
     
     launch!(arch, grid, kernel_parameters,
             _interpolate_primary_atmospheric_state!,
@@ -93,6 +95,12 @@ function interpolate_atmospheric_state!(coupled_model)
                 auxiliary_times,
                 auxiliary_backend,
                 auxiliary_time_indexing)
+    end
+
+    # Set ocean barotropic pressure forcing
+    ocean_forcing_pressure = forcing_barotropic_pressure(ocean)
+    if !isnothing(ocean_forcing_pressure)
+        parent(ocean_forcing_pressure) .= parent(atmosphere_pressure)
     end
 
     return nothing
@@ -174,4 +182,34 @@ end
     end
 end
 
+#####
+##### Utility for interpolating tuples of fields
+#####
+
+# Note: assumes loc = (c, c, nothing) (and the third location should
+# not matter.)
+@inline interp_atmos_time_series(J, X, time, grid, args...) =
+    interpolate(X, time, J, (c, c, nothing), grid, args...)
+
+@inline interp_atmos_time_series(ΣJ::NamedTuple, args...) =
+    interp_atmos_time_series(values(ΣJ), args...)
+
+@inline interp_atmos_time_series(ΣJ::Tuple{<:Any}, args...) =
+    interp_atmos_time_series(ΣJ[1], args...) +
+    interp_atmos_time_series(ΣJ[2], args...)
+
+@inline interp_atmos_time_series(ΣJ::Tuple{<:Any, <:Any}, args...) =
+    interp_atmos_time_series(ΣJ[1], args...) +
+    interp_atmos_time_series(ΣJ[2], args...)
+
+@inline interp_atmos_time_series(ΣJ::Tuple{<:Any, <:Any, <:Any}, args...) =
+    interp_atmos_time_series(ΣJ[1], args...) +
+    interp_atmos_time_series(ΣJ[2], args...) +
+    interp_atmos_time_series(ΣJ[3], args...)
+
+@inline interp_atmos_time_series(ΣJ::Tuple{<:Any, <:Any, <:Any, <:Any}, args...) =
+    interp_atmos_time_series(ΣJ[1], args...) +
+    interp_atmos_time_series(ΣJ[2], args...) +
+    interp_atmos_time_series(ΣJ[3], args...) +
+    interp_atmos_time_series(ΣJ[4], args...)
 

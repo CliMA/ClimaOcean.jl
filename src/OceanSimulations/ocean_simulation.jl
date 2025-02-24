@@ -141,7 +141,7 @@ function ocean_simulation(grid;
     if tracer_advection isa NamedTuple
         tracer_advection = with_tracers(tracers, tracer_advection, default_tracer_advection())
     else
-       tracer_advection = NamedTuple(name => tracer_advection for name in tracers)
+        tracer_advection = NamedTuple(name => tracer_advection for name in tracers)
     end
 
     if hasclosure(closure, CATKEVerticalDiffusivity)

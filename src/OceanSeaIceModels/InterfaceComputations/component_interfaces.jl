@@ -16,7 +16,7 @@ using Oceananigans: HydrostaticFreeSurfaceModel, architecture
 using Oceananigans.Grids: inactive_node, node
 using Oceananigans.BoundaryConditions: fill_halo_regions!
 using Oceananigans.Fields: ConstantField, interpolate
-using Oceananigans.Utils: launch!, Time, KernelParameters
+using Oceananigans.Utils: launch!, Time
 
 # using Oceananigans.OutputReaders: extract_field_time_series, update_field_time_series!
 
@@ -280,34 +280,3 @@ function near_surface_atmosphere_state(ocean_grid)
     return interface_atmosphere_state
 end
     
-#####
-##### Utility for interpolating tuples of fields
-#####
-
-# Note: assumes loc = (c, c, nothing) (and the third location should
-# not matter.)
-@inline interp_atmos_time_series(J, X, time, grid, args...) =
-    interpolate(X, time, J, (c, c, nothing), grid, args...)
-
-@inline interp_atmos_time_series(ΣJ::NamedTuple, args...) =
-    interp_atmos_time_series(values(ΣJ), args...)
-
-@inline interp_atmos_time_series(ΣJ::Tuple{<:Any}, args...) =
-    interp_atmos_time_series(ΣJ[1], args...) +
-    interp_atmos_time_series(ΣJ[2], args...)
-
-@inline interp_atmos_time_series(ΣJ::Tuple{<:Any, <:Any}, args...) =
-    interp_atmos_time_series(ΣJ[1], args...) +
-    interp_atmos_time_series(ΣJ[2], args...)
-
-@inline interp_atmos_time_series(ΣJ::Tuple{<:Any, <:Any, <:Any}, args...) =
-    interp_atmos_time_series(ΣJ[1], args...) +
-    interp_atmos_time_series(ΣJ[2], args...) +
-    interp_atmos_time_series(ΣJ[3], args...)
-
-@inline interp_atmos_time_series(ΣJ::Tuple{<:Any, <:Any, <:Any, <:Any}, args...) =
-    interp_atmos_time_series(ΣJ[1], args...) +
-    interp_atmos_time_series(ΣJ[2], args...) +
-    interp_atmos_time_series(ΣJ[3], args...) +
-    interp_atmos_time_series(ΣJ[4], args...)
-
