@@ -19,11 +19,11 @@ forcing_barotropic_pressure(something) = nothing
 forcing_barotropic_pressure(f::BarotropicPressureForcing) = f.pressure.data
 
 function forcing_barotropic_pressure(mf::MultipleForcings)
-    n = findfirst(f -> f isa BarotropicPressureForcing, mf.forcings)
+    n = findfirst(f -> f isa BarotropicPressureForcing, mf.forcing)
     if isnothing(n)
         return nothing
     else
-        return forcing_barotropic_pressure(mf.forcings[n])
+        return forcing_barotropic_pressure(mf.forcing[n])
     end
 end
 
@@ -31,8 +31,8 @@ forcing_barotropic_pressure(sim::Simulation) =
     forcing_barotropic_pressure(sim.model)
 
 function forcing_barotropic_pressure(model::HydrostaticFreeSurfaceModel)
-    u_pressure = forcing_barotropic_pressure(model.forcings.v)
-    v_pressure = forcing_barotropic_pressure(model.forcings.u)
+    u_pressure = forcing_barotropic_pressure(model.forcing.u)
+    v_pressure = forcing_barotropic_pressure(model.forcing.v)
     @assert u_pressure === v_pressure
     return u_pressure
 end
