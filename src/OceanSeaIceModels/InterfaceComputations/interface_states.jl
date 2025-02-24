@@ -320,14 +320,6 @@ end
                                                   zero(FT))
 
 # Iterating condition for the characteristic scales solvers
-@inline function iterating(Ψⁿ, Ψ⁻, iteration, maxiter, tolerance)
-    hasnt_started = iteration == 0
-    reached_maxiter = iteration ≥ maxiter
-    drift = abs(Ψⁿ.u★ - Ψ⁻.u★) + abs(Ψⁿ.θ★ - Ψ⁻.θ★) + abs(Ψⁿ.q★ - Ψ⁻.q★)
-    converged = drift < tolerance
-    return !(converged | reached_maxiter) | hasnt_started
-end
-
 @inline function compute_interface_state(flux_formulation,
                                          initial_interface_state,
                                          atmosphere_state,
@@ -340,11 +332,10 @@ end
     Ψₐ = atmosphere_state
     Ψᵢ = interior_state
     Ψₛⁿ = Ψₛ⁻ = initial_interface_state
-    maxiter = flux_formulation.solver_maxiter
-    tolerance = flux_formulation.solver_tolerance
+    stop_criteria = flux_formulation.solver_stop_criteria
     iteration = 0
 
-    while iterating(Ψₛⁿ, Ψₛ⁻, iteration, maxiter, tolerance)
+    while iterating(Ψₛⁿ, Ψₛ⁻, iteration, stop_criteria)
         Ψₛ⁻ = Ψₛⁿ
         Ψₛⁿ = iterate_interface_state(flux_formulation,
                                       Ψₛ⁻, Ψₐ, Ψᵢ,
