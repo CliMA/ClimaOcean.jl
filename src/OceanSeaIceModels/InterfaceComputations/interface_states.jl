@@ -59,7 +59,7 @@ struct WaterMoleFraction{FT, C}
     salinity_constituents :: C
 end
 
-function WaterMoleFraction(FT=Float64)
+function WaterMoleFraction(FT=Oceananigans.defaults.FloatType)
     water_molar_mass = convert(FT, 18.02)
 
     # TODO: find reference for these
