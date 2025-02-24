@@ -52,11 +52,15 @@ function interpolate_atmospheric_state!(coupled_model)
                        Qℓ = atmosphere_fields.Qℓ.data,
                        Mp = atmosphere_fields.Mp.data)
 
+    # Set ocean barotropic pressure forcing
+    ocean_forcing_pressure = forcing_barotropic_pressure(ocean)
+
     kernel_parameters = interface_kernel_parameters(grid)
     
     launch!(arch, grid, kernel_parameters,
             _interpolate_primary_atmospheric_state!,
             atmosphere_data,
+            ocean_forcing_pressure,
             grid,
             clock,
             atmosphere_velocities,
@@ -97,16 +101,12 @@ function interpolate_atmospheric_state!(coupled_model)
                 auxiliary_time_indexing)
     end
 
-    # Set ocean barotropic pressure forcing
-    ocean_forcing_pressure = forcing_barotropic_pressure(ocean)
-    if !isnothing(ocean_forcing_pressure)
-        parent(ocean_forcing_pressure) .= parent(atmosphere_pressure)
-    end
-
+    
     return nothing
 end
 
 @kernel function _interpolate_primary_atmospheric_state!(surface_atmos_state,
+                                                         ocean_forcing_pressure,
                                                          grid,
                                                          clock,
                                                          atmos_velocities,
@@ -145,7 +145,7 @@ end
         # Convert atmosphere velocities (defined on a latitude-longitude grid) to 
         # the frame of reference of the native grid
         uₐ, vₐ = intrinsic_vector(i, j, kᴺ, grid, uₐ, vₐ)
-    
+
         surface_atmos_state.u[i, j, 1] = uₐ
         surface_atmos_state.v[i, j, 1] = vₐ
         surface_atmos_state.T[i, j, 1] = Tₐ
@@ -154,8 +154,13 @@ end
         surface_atmos_state.Qs[i, j, 1] = Qs
         surface_atmos_state.Qℓ[i, j, 1] = Qℓ
         surface_atmos_state.Mp[i, j, 1] = Mh
+
+        set_surface_variable!(ocean_forcing_pressure, i, j, pₐ)
     end
 end
+
+@inline set_surface_variable!(::Nothing, i, j, p¹) = nothing
+@inline set_surface_variable!(pᶠ, i, j, p¹) = @inbounds pᶠ[i, j, 1]
 
 @kernel function _interpolate_auxiliary_freshwater_flux!(freshwater_flux,
                                                          grid,

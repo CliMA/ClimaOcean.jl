@@ -16,7 +16,7 @@ const YDirectionBPF = BarotropicPressureForcing{<:YDirection}
 @inline (bpf::YDirectionBPF)(i, j, k, grid, clock, fields) = - ∂yᶜᶠᶜ(i, j, k, grid, bpf.pressure)
 
 forcing_barotropic_pressure(something) = nothing
-forcing_barotropic_pressure(f::BarotropicPressureForcing) = f.pressure
+forcing_barotropic_pressure(f::BarotropicPressureForcing) = f.pressure.data
 
 function forcing_barotropic_pressure(mf::MultipleForcings)
     n = findfirst(f -> f isa BarotropicPressureForcing, mf.forcings)
