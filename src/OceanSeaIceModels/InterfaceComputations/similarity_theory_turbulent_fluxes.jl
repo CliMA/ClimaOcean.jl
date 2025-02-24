@@ -28,27 +28,6 @@ struct WindVelocity end
 """ The exchange fluxes depend on the relative velocity between the atmosphere and the interface """
 struct RelativeVelocity end
 
-struct ConvergenceStopCriteria{FT}
-    tolerance :: FT     
-    maxiter :: Int
-end
-
-@inline function iterating(Ψⁿ, Ψ⁻, iteration, convergence::ConvergenceStopCriteria)
-    maxiter = convergence.maxiter
-    tolerance = convergence.tolerance
-    hasnt_started = iteration == 0
-    reached_maxiter = iteration ≥ maxiter
-    drift = abs(Ψⁿ.u★ - Ψ⁻.u★) + abs(Ψⁿ.θ★ - Ψ⁻.θ★) + abs(Ψⁿ.q★ - Ψ⁻.q★)
-    converged = drift < tolerance
-    return !(converged | reached_maxiter) | hasnt_started
-end
-
-struct FixedIterations
-    iterations :: Int
-end
-
-@inline iterating(Ψⁿ, Ψ⁻, iteration, fixed::FixedIterations) = iteration <= fixed.iterations
-
 #####
 ##### Bulk turbulent fluxes based on similarity theory
 #####
@@ -62,7 +41,7 @@ struct SimilarityTheoryFluxes{FT, UF, R, B, V, S}
     roughness_lengths :: R           # parameterization for turbulent fluxes
     similarity_form :: B             # similarity profile relating atmosphere to interface state
     bulk_velocity :: V               # bulk velocity scale for turbulent fluxes
-    solver_stop_criteria :: S    # solver option
+    solver_stop_criteria :: S        # stop criteria for compute_interface_state
 end
 
 Adapt.adapt_structure(to, fluxes::SimilarityTheoryFluxes) = 
