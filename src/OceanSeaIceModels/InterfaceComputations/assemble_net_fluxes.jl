@@ -142,9 +142,13 @@ end
     end
 end
 
-compute_net_sea_ice_fluxes!(coupled_model) = nothing
-
 function compute_net_sea_ice_fluxes!(coupled_model)
+    sea_ice = coupled_model.sea_ice
+
+    if isnothing(sea_ice)
+        return nothing
+    end
+
     ocean = coupled_model.ocean
     grid  = ocean.model.grid
     arch  = architecture(grid)
