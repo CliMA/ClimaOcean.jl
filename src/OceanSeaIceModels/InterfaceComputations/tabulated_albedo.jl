@@ -79,7 +79,7 @@ Keyword Arguments
 - `φ_values`: The latitude values for the table. Default: `(0:2:90) ./ 180 * π`.
 - `𝓉_values`: The transmissivity values for the table. Default: `0:0.05:1`.
 """
-function TabulatedAlbedo(arch = CPU(), FT = Float64;
+function TabulatedAlbedo(arch = CPU(), FT = Oceananigans.defaults.FloatType;
                          S₀ = convert(FT, 1365),
                          α_table  = α_payne,
                          φ_values = (0:2:90) ./ 180 * π,

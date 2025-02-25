@@ -1,26 +1,31 @@
 using Oceananigans.BuoyancyFormulations: g_Earth
 
-struct CoefficientBasedFluxes{CD, CH, CQ, ΔU, FT}
+struct CoefficientBasedFluxes{CD, CH, CQ, ΔU, FT, S}
     drag_coefficient :: CD
     gravitational_acceleration :: FT
     heat_transfer_coefficient :: CH
     vapor_flux_coefficient :: CQ
     bulk_velocity :: ΔU
-    solver_tolerance :: FT
-    solver_maxiter :: Int
+    solver_stop_criteria :: S
 end
 
 convert_if_number(FT, a::Number) = convert(FT, a)
 convert_if_number(FT, a) = a
 
-function CoefficientBasedFluxes(FT = Float64;
+function CoefficientBasedFluxes(FT = Oceananigans.defaults.FloatType;
                                 drag_coefficient = 1e-3,
                                 gravitational_acceleration = g_Earth,
                                 heat_transfer_coefficient = drag_coefficient,
                                 vapor_flux_coefficient = drag_coefficient,
                                 bulk_velocity = RelativeVelocity(),
+                                solver_stop_criteria = nothing,
                                 solver_tolerance = 1e-8,
                                 solver_maxiter = 10)
+
+    if isnothing(solver_stop_criteria)
+        solver_tolerance = convert(FT, solver_tolerance)
+        solver_stop_criteria = ConvergenceStopCriteria(solver_tolerance, solver_maxiter)
+    end
 
     drag_coefficient = convert_if_number(FT, drag_coefficient)
     heat_transfer_coefficient = convert_if_number(FT, heat_transfer_coefficient)
@@ -31,8 +36,7 @@ function CoefficientBasedFluxes(FT = Float64;
                                   heat_transfer_coefficient,
                                   vapor_flux_coefficient,
                                   bulk_velocity,
-                                  convert(FT, solver_tolerance),
-                                  solver_maxiter)
+                                  solver_stop_criteria)
 end
 
 @inline function iterate_interface_fluxes(flux_formulation::CoefficientBasedFluxes,
