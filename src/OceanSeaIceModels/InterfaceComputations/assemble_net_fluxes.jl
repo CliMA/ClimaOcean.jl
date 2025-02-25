@@ -131,7 +131,7 @@ end
 
     @inbounds begin
         ℵᵢ   = ℵ[i, j, 1]
-        Qio  = sea_ice_ocean_fluxes.heat[i, j, 1]
+        Qio  = sea_ice_ocean_fluxes.interfacial_heat[i, j, 1]
         Jˢio = sea_ice_ocean_fluxes.salt[i, j, 1]
         Jᵀio = Qio * ρₒ⁻¹ / cₒ
 
@@ -144,8 +144,7 @@ end
 
 compute_net_sea_ice_fluxes!(coupled_model) = nothing
 
-#=
-function compute_net_sea_ice_fluxes!(coupled_model)
+function compute_net_sea_ice_fluxes!(coupled_model::OceanSeaIceModel{<:SeaIceSimulation})
     ocean = coupled_model.ocean
     sea_ice = coupled_model.sea_ice
     grid = ocean.model.grid
@@ -165,42 +164,36 @@ function compute_net_sea_ice_fluxes!(coupled_model)
 
     freshwater_flux = atmosphere_fields.Mp.data
 
-    sea_ice_concentration = sea_ice.model.ice_concentration
-    ocean_salinity = ocean.model.tracers.S
-    atmos_ocean_properties = coupled_model.interfaces.atmosphere_ocean_interface.properties
-    ocean_properties = coupled_model.interfaces.ocean_properties
+    atmos_sea_ice_properties = coupled_model.interfaces.atmosphere_sea_ice_interface.properties
     kernel_parameters = surface_computations_kernel_parameters(grid)
 
-    ocean_surface_temperature = coupled_model.interfaces.atmosphere_ocean_interface.temperature
+    sea_ice_surface_temperature = coupled_model.interfaces.atmosphere_ocean_interface.temperature
 
     launch!(arch, grid, kernel_parameters, 
             _assemble_net_sea_ice_fluxes!,
-            net_ocean_fluxes,
+            top_heat_flux,
+            bottom_heat_flux, 
             grid,
             clock,
-            atmos_ocean_fluxes,
             sea_ice_ocean_fluxes,
-            ocean_salinity,
-            ocean_surface_temperature,
-            sea_ice_concentration,
-            downwelling_radiation,
             freshwater_flux,
-            atmos_ocean_properties,
-            ocean_properties)
+            sea_ice_surface_temperature,
+            downwelling_radiation,
+            atmos_sea_ice_properties)
 
     return nothing
 end
 
-@kernel function _assemble_atmosphere_sea_ice_fluxes!(net_heat_flux,
+@kernel function _assemble_atmosphere_sea_ice_fluxes!(top_heat_flux,
+                                                      bottom_heat_flux, 
                                                       grid,
                                                       clock,
+                                                      atmosphere_sea_ice_fluxes,
+                                                      sea_ice_ocean_fluxes,
+                                                      freshwater_flux, # Where do we add this one?
                                                       surface_temperature,
-                                                      surface_temperature_units,
-                                                      turbulent_fluxes,
                                                       downwelling_radiation,
-                                                      stefan_boltzmann_constant,
-                                                      albedo,
-                                                      emissivity)
+                                                      atmos_sea_ice_properties)
 
     i, j = @index(Global, NTuple)
     kᴺ = size(grid, 3)
@@ -210,24 +203,27 @@ end
         Ts = surface_temperature[i, j, kᴺ]
         Ts = convert_to_kelvin(surface_temperature_units, Ts)
 
-        Qs  = downwelling_radiation.shortwave[i, j, 1]
-        Qℓ  = downwelling_radiation.longwave[i, j, 1]
-        Qc  = turbulent_fluxes.sensible_heat[i, j, 1] # sensible or "conductive" heat flux
-        Qv  = turbulent_fluxes.latent_heat[i, j, 1]   # latent heat flux
+        Qs = downwelling_radiation.shortwave[i, j, 1]
+        Qℓ = downwelling_radiation.longwave[i, j, 1]
+        Qc = atmosphere_sea_ice_fluxes.sensible_heat[i, j, 1] # sensible or "conductive" heat flux
+        Qv = atmosphere_sea_ice_fluxes.latent_heat[i, j, 1]   # latent heat flux
+        Qf = sea_ice_ocean_fluxes.frazil_heat[i, j, 1]        # frazil heat flux
+        Qi = sea_ice_ocean_fluxes.interfacial_heat[i, j, 1]   # interfacial heat flux
     end
 
     # Compute radiation fluxes
-    σ = stefan_boltzmann_constant
-    α = stateindex(albedo, i, j, 1, grid, time)
-    ϵ = stateindex(emissivity, i, j, 1, grid, time)
+    σ = atmos_sea_ice_properties.radiation.σ
+    α = stateindex(atmos_sea_ice_properties.radiation.α, i, j, kᴹ, grid, time)
+    ϵ = stateindex(atmos_sea_ice_properties.radiation.ϵ, i, j, kᴹ, grid, time)
     Qu = upwelling_radiation(Ts, σ, ϵ)
     Qd = net_downwelling_radiation(i, j, grid, time, α, ϵ, Qs, Qℓ)
 
-    ΣQ = Qd + Qu + Qc + Qv
+    ΣQt = Qd + Qu + Qc + Qv
+    ΣQb = Qf + Qi
 
     # Mask fluxes over land for convenience
     inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
 
-    @inbounds net_heat_flux[i, j, 1] = ifelse(inactive, zero(grid), ΣQ)
+    @inbounds top_heat_flux[i, j, 1] = ifelse(inactive, zero(grid), ΣQt)
+    @inbounds bottom_heat_flux[i, j, 1] = ifelse(inactive, zero(grid), ΣQb)
 end
-=#

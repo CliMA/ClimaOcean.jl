@@ -151,13 +151,6 @@ end
     u★ = interface_state.u★
     θ★ = interface_state.θ★
     q★ = interface_state.q★
-
-    #=
-    Pr = similarity_theory.turbulent_prandtl_number
-    θ★ = θ★ / Pr
-    q★ = q★ / Pr
-    =#
-
     Ψₛ = interface_state
     Ψₐ = local_atmosphere_state
     Δu, Δv = velocity_difference(turbulent_flux_formulation.bulk_velocity, Ψₐ, Ψₛ)

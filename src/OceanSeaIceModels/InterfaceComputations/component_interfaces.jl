@@ -17,9 +17,6 @@ using Oceananigans.Grids: inactive_node, node
 using Oceananigans.BoundaryConditions: fill_halo_regions!
 using Oceananigans.Fields: ConstantField, interpolate
 using Oceananigans.Utils: launch!, Time, KernelParameters
-
-# using Oceananigans.OutputReaders: extract_field_time_series, update_field_time_series!
-
 using Oceananigans.Operators: ℑxᶜᵃᵃ, ℑyᵃᶜᵃ, ℑxᶠᵃᵃ, ℑyᵃᶠᵃ
 
 using KernelAbstractions: @kernel, @index
@@ -131,17 +128,23 @@ end
 
 sea_ice_ocean_interface(sea_ice, ocean) = nothing
 
-function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean)
+function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean;
+                                 characteristic_melting_speed = 1e-5)
+
     previous_ice_thickness = deepcopy(sea_ice.model.ice_thickness)
     previous_ice_concentration = deepcopy(sea_ice.model.ice_concentration)
     io_heat_flux = sea_ice.model.external_heat_fluxes.bottom
     io_salt_flux = Field{Center, Center, Nothing}(ocean.model.grid)
 
-    @assert io_heat_flux isa Field{Center, Center, Nothing}
+    @assert io_frazil_heat_flux isa Field{Center, Center, Nothing}
+    @assert io_bottom_heat_flux isa Field{Center, Center, Nothing}
     @assert io_salt_flux isa Field{Center, Center, Nothing}
 
-    io_fluxes = (heat=io_heat_flux, salt=io_salt_flux)
-    io_properties = nothing
+    io_fluxes = (bottom_heat=io_heat_flux, 
+                 frazil_heat=io_frazil_heat_flux,
+                 salt=io_salt_flux)
+
+    io_properties = (; characteristic_melting_speed)
 
     return SeaIceOceanInterface(io_fluxes,
                                 io_properties,
