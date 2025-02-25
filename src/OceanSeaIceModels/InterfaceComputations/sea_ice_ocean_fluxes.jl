@@ -108,7 +108,7 @@ end
     δQ_melting = - δE_ice_bath * uₘ★
 
     # Store column-integrated ice-ocean heat flux
-    @inbounda Qᶠₒ[i, j, 1] = δQ_frazil
+    @inbounds Qᶠₒ[i, j, 1] = δQ_frazil
     @inbounds Qᵢₒ[i, j, 1] = δQ_melting
 end
 
@@ -164,5 +164,3 @@ end
         h⁻[i, j, 1] = hⁿ[i, j, 1]
     end
 end
-
-

@@ -144,15 +144,13 @@ end
 
 compute_net_sea_ice_fluxes!(coupled_model) = nothing
 
-function compute_net_sea_ice_fluxes!(coupled_model::OceanSeaIceModel{<:SeaIceSimulation})
+function compute_net_sea_ice_fluxes!(coupled_model)
     ocean = coupled_model.ocean
-    sea_ice = coupled_model.sea_ice
-    grid = ocean.model.grid
-    arch = architecture(grid)
+    grid  = ocean.model.grid
+    arch  = architecture(grid)
     clock = coupled_model.clock
 
     top_heat_flux = coupled_model.interfaces.net_fluxes.sea_ice_top
-    atmos_ocean_fluxes = coupled_model.interfaces.atmosphere_ocean_interface.fluxes
     sea_ice_ocean_fluxes = coupled_model.interfaces.sea_ice_ocean_interface.fluxes
 
     # Simplify NamedTuple to reduce parameter space consumption.
