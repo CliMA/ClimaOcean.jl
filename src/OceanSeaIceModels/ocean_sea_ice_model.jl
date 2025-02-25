@@ -1,6 +1,8 @@
 using Oceananigans
 using Oceananigans.TimeSteppers: Clock
 using Oceananigans: SeawaterBuoyancy
+using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
+using KernelAbstractions: @kernel, @index
 
 using SeawaterPolynomials: TEOS10EquationOfState
 
@@ -134,6 +136,9 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(
                                            ocean,
                                            interfaces)
 
+    # Make sure the initial temperature of the ocean
+    # is not below freezing and above melting near the surface
+    adjust_freezing_ocean_temperature!(ocean, sea_ice)
     update_state!(ocean_sea_ice_model)
 
     return ocean_sea_ice_model
@@ -146,4 +151,31 @@ function default_nan_checker(model::OceanSeaIceModel)
     u_ocean = model.ocean.model.velocities.u
     nan_checker = NaNChecker((; u_ocean))
     return nan_checker
+end
+
+@kernel function _adjust_freezing_ocean_temperature!(T, grid, S, liquidus)
+    i, j = @index(Global, NTuple)
+    Nz = size(grid, 3)
+
+    for k in 1:Nz-1
+        @inbounds begin
+            Tm = melting_temperature(liquidus, S[i, j, k])
+            T[i, j, k] = max(T[i, j, k], Tm)
+        end
+    end
+
+    @inbounds T[i, j, Nz] = melting_temperature(liquidus, S[i, j, Nz])
+end
+
+# Fallback
+adjust_freezing_ocean_temperature!(ocean, sea_ice) = nothing
+
+function adjust_freezing_ocean_temperature!(ocean, sea_ice::SeaIceSimulation) 
+    T = ocean.model.tracers.T
+    S = ocean.model.tracers.S
+    liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
+
+    grid = ocean.model.grid
+    arch = architecture(grid)
+    launch!(arch, grid, :xy, _adjust_freezing_ocean_temperature!, T, grid, S, liquidus)
 end

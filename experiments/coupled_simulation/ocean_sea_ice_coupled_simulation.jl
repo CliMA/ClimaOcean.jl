@@ -13,29 +13,6 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 using Oceananigans.Grids: architecture
 using KernelAbstractions: @kernel, @index
 
-@kernel function _adjust_initial_ocean_temperature!(T, grid, S, liquidus)
-    i, j = @index(Global, NTuple)
-    Nz = size(grid, 3)
-
-    for k in 1:Nz-1
-        @inbounds begin
-            Tm = melting_temperature(liquidus, S[i, j, k])
-            T[i, j, k] = max(T[i, j, k], Tm)
-        end
-    end
-
-    @inbounds T[i, j, Nz] = melting_temperature(liquidus, S[i, j, Nz])
-end
-
-function adjust_ocean_temperature!(ocean, sea_ice) 
-    T = ocean.model.tracers.T
-    S = ocean.model.tracers.S
-    liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
-
-    grid = ocean.model.grid
-    arch = architecture(grid)
-    launch!(arch, grid, :xy, _adjust_initial_ocean_temperature!, T, grid, S, liquidus)
-end
 
 arch = CPU()
 
