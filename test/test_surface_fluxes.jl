@@ -70,13 +70,13 @@ end
             radiation = Radiation(ocean_emissivity=0, ocean_albedo=1)
 
             # turbulent fluxes that force a specific humidity at the ocean's surface
-            for Tmode in (BulkTemperature(), SkinTemperature(DiffusiveFlux(1, 1e-2)))
+            for atmosphere_ocean_interface_temperature in (BulkTemperature(), SkinTemperature(DiffusiveFlux(1, 1e-2)))
                 @info " Testing zero fluxes with $(Tmode)..."
 
                 interfaces = ComponentInterfaces(atmosphere, ocean; 
                                                  radiation,
                                                  atmosphere_ocean_interface_specific_humidity,
-                                                 atmosphere_ocean_interface_temperature=Tmode())
+                                                 atmosphere_ocean_interface_temperature)
 
                 g = ocean.model.buoyancy.formulation.gravitational_acceleration
 

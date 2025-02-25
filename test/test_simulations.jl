@@ -16,7 +16,7 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
         grid = TripolarGrid(arch;
                             size = (50, 50, 10),
                             halo = (7, 7, 7),
-                            z = (-6000, 0)
+                            z = (-6000, 0))
 
         bottom_height = retrieve_bathymetry(grid; 
                                             minimum_depth = 10,
