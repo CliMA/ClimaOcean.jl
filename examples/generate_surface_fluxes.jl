@@ -18,7 +18,7 @@ using CairoMakie
 
 # # Computing fluxes on the ECCO2 grid
 #
-# We start by building the ECCO2 grid, using `ECCO_bottom_height` to identify the bottom height.
+# We start by building the ECCO2 grid, using `ECCO_immersed_grid` function.
 
 grid = ECCO_immersed_grid()
 
