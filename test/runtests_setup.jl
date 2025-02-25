@@ -44,3 +44,6 @@ function download_bathymetry(; dir = download_bathymetry_cache,
     return nothing
 end
 
+# Trigger downloading JRA55
+atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(41))
+
