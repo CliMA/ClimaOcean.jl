@@ -11,8 +11,8 @@ using SeawaterPolynomials: TEOS10EquationOfState
 using Oceananigans.BuoyancyFormulations: buoyancy
 
 arch = CPU()
-Nx = 360 ÷ 1
-Ny = 160 ÷ 1
+Nx = 360 
+Ny = 160 
 
 z = ClimaOcean.DataWrangling.ECCO.ECCO_z
 z = z[20:end]
