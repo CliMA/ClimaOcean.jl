@@ -23,7 +23,8 @@ the `T < Tₘ` except for heating to allow temperature to increase.
 
 The melting temperature is a function of salinity and is controlled by the `liquidus`.
 """
-FreezingLimitedOceanTemperature(FT::DataType=Float64) = FreezingLimitedOceanTemperature(LinearLiquidus(FT))
+FreezingLimitedOceanTemperature(FT::DataType=Oceananigans.defaults.FloatType) =
+    FreezingLimitedOceanTemperature(LinearLiquidus(FT))
 
 const FreezingLimitedCoupledModel = OceanSeaIceModel{<:FreezingLimitedOceanTemperature}
 
