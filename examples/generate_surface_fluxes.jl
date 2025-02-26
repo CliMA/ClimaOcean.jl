@@ -16,13 +16,11 @@ using ClimaOcean.OceanSimulations
 using Oceananigans
 using CairoMakie
 
-# # Computing fluxes on a LatitudeLongitudeGrid
+# # Computing fluxes on the ECCO2 grid
 #
-# We start by building a grid spanning the poles.
+# We start by building the ECCO2 grid, using `ECCO_bottom_height` to identify the bottom height.
 
-grid = LatitudeLongitudeGrid(size=(720, 360, 1), longitude=(0, 360), latitude=(-90, 90), z=(-30, 0))
-bottom_height = regrid_bathymetry(grid)
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
+grid = ECCO_immersed_grid()
 
 fig = Figure()
 ax  = Axis(fig[1, 1])
@@ -47,7 +45,7 @@ save("ECCO_continents.png", fig) #hide
 # January 1st (at 00:00 AM and 03:00 AM).
 
 atmosphere = JRA55PrescribedAtmosphere(1:2; backend = InMemory())
-ocean = ocean_simulation(grid)
+ocean = ocean_simulation(grid, closure=nothing)
 
 # Now that we have an atmosphere and ocean, we `set!` the ocean temperature and salinity
 # to the ECCO2 data by first creating T, S metadata objects,
@@ -68,9 +66,9 @@ set!(ocean.model; T=T_metadata, S=S_metadata)
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation=Radiation())
 
 # Now that the surface fluxes are computed, we can extract and visualize them.
-# The turbulent fluxes are stored in `coupled_model.interfaces.atmosphere_ocean_interface.fluxes`.
+# The turbulent fluxes are stored in `coupled_model.fluxes.turbulent`.
 
-fluxes  = coupled_model.interfaces.atmosphere_ocean_interface.fluxes
+fluxes  = coupled_model.fluxes.turbulent.fields
 λ, φ, z = nodes(fluxes.sensible_heat)
 
 fig = Figure(size = (800, 800), fontsize = 15)
@@ -91,6 +89,4 @@ ax = Axis(fig[3, 1], title = "Water vapor flux (kg m⁻² s⁻¹)", xlabel = "Lo
 heatmap!(ax, λ, φ, interior(fluxes.water_vapor, :, :, 1); colormap = :bwr)
 
 save("fluxes.png", fig)
-nothing #hide
-
 # ![](fluxes.png)
