@@ -22,6 +22,8 @@ using CairoMakie
 
 grid = ECCO_immersed_grid()
 
+# We visualize the bottom height of the ECCO grid using CairoMakie.
+
 fig = Figure()
 ax  = Axis(fig[1, 1])
 heatmap!(ax, interior(grid.immersed_boundary.bottom_height, :, :, 1))
@@ -45,7 +47,7 @@ save("ECCO_continents.png", fig) #hide
 # January 1st (at 00:00 AM and 03:00 AM).
 
 atmosphere = JRA55PrescribedAtmosphere(1:2; backend = InMemory())
-ocean = ocean_simulation(grid)
+ocean = ocean_simulation(grid, closure=nothing)
 
 # Now that we have an atmosphere and ocean, we `set!` the ocean temperature and salinity
 # to the ECCO2 data by first creating T, S metadata objects,
@@ -68,7 +70,7 @@ coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation=Radiation())
 # # Now that the surface fluxes are computed, we can extract and visualize them.
 # # The turbulent fluxes are stored in `coupled_modelinterfaces.atmosphere_ocean_interface.fluxes`.
 
-fluxes  = coupled_modelinterfaces.atmosphere_ocean_interface.fluxes
+fluxes  = coupled_model.interfaces.atmosphere_ocean_interface.fluxes
 λ, φ, z = nodes(fluxes.sensible_heat)
 
 fig = Figure(size = (800, 800), fontsize = 15)
