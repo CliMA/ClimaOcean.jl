@@ -5,7 +5,6 @@ using .InterfaceComputations:
     interpolate_atmospheric_state!
 
 using ClimaSeaIce: SeaIceModel, SeaIceThermodynamics
-
 using Oceananigans.Grids: φnode
 
 using Printf
