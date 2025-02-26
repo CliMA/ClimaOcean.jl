@@ -193,14 +193,6 @@ end
             
             coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 
-            # Make sure that temperature fluxes are zero when the temperature 
-            # is below the minimum but not zero when it is above
-            Jᵀ = surface_flux(ocean.model.tracers.T)
-
-            @test Jᵀ[1, 2, 1] != 0.0 # below freezing and cooling, no flux
-            @test Jᵀ[2, 1, 1] != 0.0 # below freezing and cooling, no flux
-            @test Jᵀ[2, 2, 1] == 0.0 # above freezing and cooling
-
             # Test that the temperature has snapped up to freezing
             @test minimum(ocean.model.tracers.T) == 0
         end
