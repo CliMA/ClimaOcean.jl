@@ -153,7 +153,7 @@ function default_nan_checker(model::OceanSeaIceModel)
     return nan_checker
 end
 
-@kernel function _adjust_freezing_ocean_temperature!(T, grid, S, liquidus)
+@kernel function _adjust_freezing_ocean_temperature!(T, grid, S, ℵ, liquidus)
     i, j = @index(Global, NTuple)
     Nz = size(grid, 3)
 
@@ -164,7 +164,12 @@ end
         end
     end
 
-    @inbounds T[i, j, Nz] = melting_temperature(liquidus, S[i, j, Nz])
+    @inbounds begin
+        ℵi = ℵ[i, j, k]
+        Tm = melting_temperature(liquidus, S[i, j, Nz])
+        T[i, j, Nz] = ifelse(ℵi > 0, Tm, T[i, j, Nz])
+    end
+    @inbounds
 end
 
 # Fallback
@@ -173,9 +178,10 @@ adjust_freezing_ocean_temperature!(ocean, sea_ice) = nothing
 function adjust_freezing_ocean_temperature!(ocean, sea_ice::SeaIceSimulation) 
     T = ocean.model.tracers.T
     S = ocean.model.tracers.S
+    ℵ = sea_ice.model.ice_concentration
     liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
 
     grid = ocean.model.grid
     arch = architecture(grid)
-    launch!(arch, grid, :xy, _adjust_freezing_ocean_temperature!, T, grid, S, liquidus)
+    launch!(arch, grid, :xy, _adjust_freezing_ocean_temperature!, T, grid, S, ℵ, liquidus)
 end
