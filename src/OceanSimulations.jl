@@ -88,7 +88,8 @@ end
 default_vertical_coordinate(grid) = Oceananigans.Models.ZCoordinate()
 default_vertical_coordinate(::MutableGridOfSomeKind) = Oceananigans.Models.ZStar()
 
-function default_ocean_closure(FT=Oceananigans.defaults.FloatType)
+function default_ocean_closure(grid)
+    FT = eltype(grid)
     mixing_length = CATKEMixingLength(Cᵇ=convert(FT, 0.01))
     turbulent_kinetic_energy_equation = CATKEEquation(Cᵂϵ=convert(FT, 1.0))
     return CATKEVerticalDiffusivity(; mixing_length, turbulent_kinetic_energy_equation)
@@ -117,7 +118,7 @@ default_tracer_advection() = FluxFormAdvection(WENO(order=7),
 # function that requires latitude and longitude etc for computing coriolis=FPlane...
 function ocean_simulation(grid;
                           Δt = estimate_maximum_Δt(grid),
-                          closure = default_ocean_closure(),
+                          closure = default_ocean_closure(grid),
                           tracers = (:T, :S),
                           free_surface = default_free_surface(grid),
                           reference_density = 1020,
