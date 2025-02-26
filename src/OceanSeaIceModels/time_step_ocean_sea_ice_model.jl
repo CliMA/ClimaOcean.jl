@@ -75,7 +75,7 @@ function thermodynamic_sea_ice_time_step!(coupled_model)
     sea_ice = coupled_model.sea_ice
     model = sea_ice.model
     Δt = sea_ice.Δt
-    grid = coupled_model.ocean.model.grid
+    grid = coupled_model.sea_ice.model.grid
     arch = architecture(grid)
     clock = model.clock
     thermodynamics = model.ice_thermodynamics
@@ -129,8 +129,8 @@ end
 
     @inbounds begin
         hᶜ = thermodynamics.ice_consolidation_thickness
-        hᵢ = ice_thickness[i, j, 1]
-        ℵᵢ = ice_concentration[i, j, 1]
+        hᵢ = ice_thickness[i, j, kᴺ]
+        ℵᵢ = ice_concentration[i, j, kᴺ]
     end
 
     # Volume conserving adjustment to respect minimum thickness
@@ -184,8 +184,8 @@ end
     ℵ⁺, h⁺ = conservative_adjustment(ℵ⁺, h⁺, hᶜ)
 
     @inbounds begin
-        ice_thickness[i, j, 1] = h⁺
-        ice_concentration[i, j, 1] = ℵ⁺
+        ice_thickness[i, j, kᴺ] = h⁺
+        ice_concentration[i, j, kᴺ] = ℵ⁺
     end
 end
 

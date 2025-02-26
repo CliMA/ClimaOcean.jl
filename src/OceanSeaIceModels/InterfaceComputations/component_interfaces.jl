@@ -141,7 +141,7 @@ function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean;
     @assert io_bottom_heat_flux isa Field{Center, Center, Nothing}
     @assert io_salt_flux isa Field{Center, Center, Nothing}
 
-    io_fluxes = (bottom_heat=io_bottom_heat_flux, 
+    io_fluxes = (interfacial_heat=io_bottom_heat_flux, 
                  frazil_heat=io_frazil_heat_flux,
                  salt=io_salt_flux)
 

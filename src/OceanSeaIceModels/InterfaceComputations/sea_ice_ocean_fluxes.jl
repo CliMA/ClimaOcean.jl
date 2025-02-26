@@ -2,7 +2,7 @@ using Oceananigans.Operators: Δzᶜᶜᶜ
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 
 function compute_sea_ice_ocean_fluxes!(coupled_model)
-    #compute_sea_ice_ocean_salinity_flux!(coupled_model)
+    compute_sea_ice_ocean_salinity_flux!(coupled_model)
     compute_sea_ice_ocean_latent_heat_flux!(coupled_model)
     return nothing
 end
@@ -117,13 +117,13 @@ function compute_sea_ice_ocean_salinity_flux!(coupled_model)
 
     sea_ice = coupled_model.sea_ice
     ocean = coupled_model.ocean
-    grid = ocean.model.grid
+    grid = sea_ice.model.grid
     arch = architecture(grid)
     Sₒ = ocean.model.tracers.S
-    Sᵢ = sea_ice.model.ice_salinity
+    Sᵢ = sea_ice.model.tracers.S
     Δt = ocean.Δt
     hⁿ = sea_ice.model.ice_thickness
-    h⁻ = coupled_model.interfaces.previous_ice_thickness
+    h⁻ = coupled_model.interfaces.sea_ice_ocean_interface.previous_ice_thickness
 
     interface_fluxes = coupled_model.interfaces.sea_ice_ocean_interface.fluxes
 
@@ -146,7 +146,6 @@ end
 
     hⁿ = ice_thickness
     h⁻ = previous_ice_thickness
-    Jˢ = sea_ice_ocean_salinity_flux
     Sᵢ = ice_salinity
     Sₒ = ocean_salinity
     Jˢ = salt_flux
