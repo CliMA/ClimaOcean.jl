@@ -16,11 +16,19 @@ using ClimaOcean.OceanSimulations
 using Oceananigans
 using CairoMakie
 
+
 # # Computing fluxes on the ECCO2 grid
 #
 # We start by building the ECCO2 grid, using `ECCO_bottom_height` to identify the bottom height.
 
 grid = ECCO_immersed_grid()
+
+# The ECCO data is in single precision. To make sure that the computations are performed everywhere in single precision,
+# we set the default precision to `Float32`.
+
+Oceananigans.defaults.FloatType = Float32
+
+# We visualize the bottom height of the ECCO grid using CairoMakie.
 
 fig = Figure()
 ax  = Axis(fig[1, 1])
