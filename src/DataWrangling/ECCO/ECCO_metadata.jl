@@ -170,7 +170,7 @@ ECCO4_short_names = Dict(
     :v_velocity            => "NVEL",
     :free_surface          => "SSH",
     :sea_ice_thickness     => "SIheff",
-    :sea_ice_area_fraction => "SIarea",
+    :sea_ice_concentration => "SIarea",
     :net_heat_flux         => "oceQnet"
 )
 
@@ -181,7 +181,7 @@ ECCO2_short_names = Dict(
     :v_velocity            => "VVEL",
     :free_surface          => "SSH",
     :sea_ice_thickness     => "SIheff",
-    :sea_ice_area_fraction => "SIarea",
+    :sea_ice_concentration => "SIarea",
     :net_heat_flux         => "oceQnet"
 )
 
@@ -190,7 +190,7 @@ ECCO_location = Dict(
     :salinity              => (Center, Center, Center),
     :free_surface          => (Center, Center, Nothing),
     :sea_ice_thickness     => (Center, Center, Nothing),
-    :sea_ice_area_fraction => (Center, Center, Nothing),
+    :sea_ice_concentration => (Center, Center, Nothing),
     :net_heat_flux         => (Center, Center, Nothing),
     :u_velocity            => (Face,   Center, Center),
     :v_velocity            => (Center, Face,   Center),
@@ -242,22 +242,23 @@ function download_dataset(metadata::ECCOMetadata; url = urls(metadata))
 
         # Write down the username and password in a .netrc file
         downloader = netrc_downloader(username, password, "ecco.jpl.nasa.gov", tmp)
-
-        asyncmap(metadata, ntasks=10) do metadatum # Distribute the download among tasks
+        ntasks = Threads.nthreads()
+        
+        asyncmap(metadata; ntasks) do metadatum # Distribute the download among tasks
 
             fileurl  = metadata_url(url, metadatum) 
             filepath = metadata_path(metadatum)
 
             if !isfile(filepath)
-                instructions_msg = "\n See ClimaOcean.jl/src/ECCO/README.md for instructions."
+                instructions_msg = "\n See ClimaOcean.jl/src/DataWrangling/ECCO/README.md for instructions."
                 if isnothing(username)
                     msg = "Could not find the ECCO_PASSWORD environment variable. \
-                           See ClimaOcean.jl/src/ECCO/README.md for instructions on obtaining \
+                           See ClimaOcean.jl/src/DataWrangling/ECCO/README.md for instructions on obtaining \
                            and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
                     throw(ArgumentError(msg))
                 elseif isnothing(password)
                     msg = "Could not find the ECCO_PASSWORD environment variable. \
-                           See ClimaOcean.jl/src/ECCO/README.md for instructions on obtaining \
+                           See ClimaOcean.jl/src/DataWrangling/ECCO/README.md for instructions on obtaining \
                            and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
                     throw(ArgumentError(msg))
                 end

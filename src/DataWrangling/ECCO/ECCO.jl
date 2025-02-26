@@ -2,9 +2,10 @@ module ECCO
 
 export ECCOMetadata, ECCO_field, ECCO_mask, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
-export ECCORestoring, LinearlyTaperedPolarMask
+export ECCOFieldTimeSeries, ECCORestoring, LinearlyTaperedPolarMask
 
 using ClimaOcean
+using ClimaOcean.DistributedUtils: @root
 using ClimaOcean.DataWrangling
 using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, download_progress
 using ClimaOcean.InitialConditions: three_dimensional_regrid!, interpolate!
@@ -114,7 +115,7 @@ function empty_ECCO_field(metadata::ECCOMetadata;
         sz = (Nx, Ny)
     end
 
-    grid = LatitudeLongitudeGrid(architecture; halo, longitude, latitude, z,
+    grid = LatitudeLongitudeGrid(architecture, Float32; halo, longitude, latitude, z,
                                  size = sz,
                                  topology = (TX, TY, TZ))
 
