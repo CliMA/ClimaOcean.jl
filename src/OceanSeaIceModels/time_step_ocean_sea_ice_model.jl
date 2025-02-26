@@ -2,6 +2,7 @@ using .InterfaceComputations:
     compute_atmosphere_ocean_fluxes!,
     compute_sea_ice_ocean_fluxes!,
     compute_net_ocean_fluxes!,
+    compute_net_sea_ice_fluxes!,
     interpolate_atmospheric_state!
 
 using ClimaSeaIce: SeaIceModel, SeaIceThermodynamics
@@ -65,7 +66,7 @@ function update_state!(coupled_model::OceanSeaIceModel, callbacks=[]; compute_te
     # This function needs to be specialized to allow different atmospheric models
     compute_net_atmosphere_fluxes!(coupled_model)
     compute_net_ocean_fluxes!(coupled_model)
-    #compute_net_sea_ice_fluxes!(coupled_model)
+    compute_net_sea_ice_fluxes!(coupled_model)
 
     return nothing
 end
