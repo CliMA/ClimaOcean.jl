@@ -71,7 +71,7 @@ end
 
             # turbulent fluxes that force a specific humidity at the ocean's surface
             for atmosphere_ocean_interface_temperature in (BulkTemperature(), SkinTemperature(DiffusiveFlux(1, 1e-2)))
-                @info " Testing zero fluxes with $(Tmode)..."
+                @info " Testing zero fluxes with $(atmosphere_ocean_interface_temperature)..."
 
                 interfaces = ComponentInterfaces(atmosphere, ocean; 
                                                  radiation,

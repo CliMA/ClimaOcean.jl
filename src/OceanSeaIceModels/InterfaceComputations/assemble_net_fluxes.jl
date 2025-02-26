@@ -76,7 +76,9 @@ end
     i, j = @index(Global, NTuple)
     kᴺ = size(grid, 3)
     time = Time(clock.time)
-                                          
+    ρτx = atmos_ocean_fluxes.x_momentum  # zonal momentum flux                      
+    ρτy = atmos_ocean_fluxes.y_momentum  # meridional momentum flux
+
     @inbounds begin
         Sₒ = ocean_salinity[i, j, kᴺ]
         Tₛ = ocean_surface_temperature[i, j, 1]
@@ -88,8 +90,6 @@ end
         Qc  = atmos_ocean_fluxes.sensible_heat[i, j, 1] # sensible or "conductive" heat flux
         Qv  = atmos_ocean_fluxes.latent_heat[i, j, 1]   # latent heat flux
         Mv  = atmos_ocean_fluxes.water_vapor[i, j, 1]   # mass flux of water vapor
-        ρτx = atmos_ocean_fluxes.x_momentum[i, j, 1]    # zonal momentum flux
-        ρτy = atmos_ocean_fluxes.y_momentum[i, j, 1]    # meridional momentum flux
     end
 
     # Compute radiation fluxes
