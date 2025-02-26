@@ -10,6 +10,8 @@ using ..OceanSeaIceModels: reference_density,
                            freshwater_flux,
                            SeaIceSimulation
 
+using ..OceanSeaIceModels.PrescribedAtmospheres: thermodynamics_parameters
+
 using ClimaSeaIce: SeaIceModel
 
 using Oceananigans: HydrostaticFreeSurfaceModel, architecture
@@ -194,7 +196,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
     sea_ice_heat_capacity     = convert(FT, sea_ice_heat_capacity)
     freshwater_density        = convert(FT, freshwater_density)
 
-    atmosphere_properties = atmosphere.thermodynamics_parameters
+    atmosphere_properties = thermodynamics_parameters(atmosphere)
 
     ocean_properties = (reference_density  = ocean_reference_density,
                         heat_capacity      = ocean_heat_capacity,

@@ -1,10 +1,13 @@
 using Oceananigans.Operators: intrinsic_vector
 using Oceananigans.Grids: _node
 
+using ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres: PrescribedAtmosphere
+import ClimaOcean.OceanSeaIceModels: interpolate_atmosphere_state!
+
+# TODO: move to PrescribedAtmospheres
 """Interpolate the atmospheric state onto the ocean / sea-ice grid."""
-function interpolate_atmospheric_state!(coupled_model)
+function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosphere, coupled_model)
     ocean = coupled_model.ocean
-    atmosphere = coupled_model.atmosphere
     atmosphere_grid = atmosphere.grid
 
     # Basic model properties
@@ -37,7 +40,7 @@ function interpolate_atmospheric_state!(coupled_model)
     atmosphere_backend = u.backend
     atmosphere_time_indexing = u.time_indexing
 
-    atmosphere_fields = coupled_model.interfaces.near_surface_atmosphere_state
+    atmosphere_fields = interfaces.near_surface_atmosphere_state
 
     # Simplify NamedTuple to reduce parameter space consumption.
     # See https://github.com/CliMA/ClimaOcean.jl/issues/116.

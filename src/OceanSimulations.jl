@@ -96,6 +96,7 @@ function ocean_simulation(grid;
                           boundary_conditions::NamedTuple = NamedTuple(),
                           tracer_advection = default_tracer_advection(),
                           vertical_coordinate = default_vertical_coordinate(grid),
+                          warn = true,
                           verbose = false)
 
     FT = eltype(grid)
@@ -122,7 +123,7 @@ function ocean_simulation(grid;
         u_immersed_bc = DefaultBoundaryCondition()
         v_immersed_bc = DefaultBoundaryCondition()
     else
-        if !(grid isa ImmersedBoundaryGrid)
+        if warn && !(grid isa ImmersedBoundaryGrid)
             msg = """Are you totally, 100% sure that you want to build a simulation on
 
                    $(summary(grid))
