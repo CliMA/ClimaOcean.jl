@@ -1,0 +1,8 @@
+[deps]
+ClimaOcean = "0376089a-ecfe-4b0e-a64f-9c555d74d754"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+LegendrePolynomials = "3db4a2ba-fc88-11e8-3e01-49c72059a882"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Oceananigans = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
+SPICE = "5bab7191-041a-5c2e-a744-024b9c3a5062"
+SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
