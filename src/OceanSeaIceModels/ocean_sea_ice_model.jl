@@ -163,7 +163,7 @@ end
             T[i, j, k] = max(T[i, j, k], Tm)
         end
 
-        ℵi = ℵ[i, j, k]
+        ℵi = ℵ[i, j, 1]
         Tm = melting_temperature(liquidus, S[i, j, Nz])
         T[i, j, Nz] = ifelse(ℵi > 0, Tm, T[i, j, Nz])
     end
