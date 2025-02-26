@@ -101,7 +101,6 @@ current_figure()
 # the skin temperature from a balance between internal and external heat fluxes.
 
 radiation = Radiation()
-# TODO: improve interface to allow passing fluxes types easily
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation) 
 simulation = Simulation(coupled_model, Δt=ocean.Δt, stop_time=30days)
 
