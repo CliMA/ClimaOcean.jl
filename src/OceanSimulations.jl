@@ -84,9 +84,9 @@ end
 default_vertical_coordinate(grid) = Oceananigans.Models.ZCoordinate()
 default_vertical_coordinate(::MutableGridOfSomeKind) = Oceananigans.Models.ZStar()
 
-function default_ocean_closure()
-    mixing_length = CATKEMixingLength(Cᵇ=0.01)
-    turbulent_kinetic_energy_equation = CATKEEquation(Cᵂϵ=1.0)
+function default_ocean_closure(FT=Oceananigans.defaults.FloatType)
+    mixing_length = CATKEMixingLength(Cᵇ=convert(FT, 0.01))
+    turbulent_kinetic_energy_equation = CATKEEquation(Cᵂϵ=convert(FT, 1.0))
     return CATKEVerticalDiffusivity(; mixing_length, turbulent_kinetic_energy_equation)
 end
 

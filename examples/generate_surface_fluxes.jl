@@ -16,17 +16,17 @@ using ClimaOcean.OceanSimulations
 using Oceananigans
 using CairoMakie
 
+# The ECCO and JRA55 data is in single precision.
+# To make sure that the computations are performed everywhere in single precision,
+# we set the default precision to `Float32`.
+
+Oceananigans.defaults.FloatType = Float32
 
 # # Computing fluxes on the ECCO2 grid
 #
 # We start by building the ECCO2 grid, using `ECCO_bottom_height` to identify the bottom height.
 
 grid = ECCO_immersed_grid()
-
-# The ECCO data is in single precision. To make sure that the computations are performed everywhere in single precision,
-# we set the default precision to `Float32`.
-
-Oceananigans.defaults.FloatType = Float32
 
 # We visualize the bottom height of the ECCO grid using CairoMakie.
 
@@ -53,7 +53,7 @@ save("ECCO_continents.png", fig) #hide
 # January 1st (at 00:00 AM and 03:00 AM).
 
 atmosphere = JRA55PrescribedAtmosphere(1:2; backend = InMemory())
-ocean = ocean_simulation(grid, closure=nothing)
+ocean = ocean_simulation(grid)
 
 # Now that we have an atmosphere and ocean, we `set!` the ocean temperature and salinity
 # to the ECCO2 data by first creating T, S metadata objects,
