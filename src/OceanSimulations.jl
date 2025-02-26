@@ -13,11 +13,12 @@ using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node, MutableGridOfSomeKind
 using OrthogonalSphericalShellGrids
 
+using Oceananigans.TurbulenceClosures: VerticallyImplicitTimeDiscretization
+
 using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities:
     CATKEVerticalDiffusivity,
     CATKEMixingLength,
-    CATKEEquation,
-    convert_eltype
+    CATKEEquation
 
 using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 using Statistics: mean
@@ -93,10 +94,7 @@ function default_ocean_closure(FT=Oceananigans.defaults.FloatType)
     mixing_length = CATKEMixingLength(Cᵇ=0.01)
     turbulent_kinetic_energy_equation = CATKEEquation(Cᵂϵ=1.0)
 
-    mixing_length = convert_eltype(FT, mixing_length)
-    turbulent_kinetic_energy_equation = convert_eltype(FT, turbulent_kinetic_energy_equation)
-
-    return CATKEVerticalDiffusivity(; mixing_length, turbulent_kinetic_energy_equation)
+    return CATKEVerticalDiffusivity(VerticallyImplicitTimeDiscretization(), FT; mixing_length, turbulent_kinetic_energy_equation)
 end
 
 default_momentum_advection() = VectorInvariant(; vorticity_scheme = WENO(order=9),
