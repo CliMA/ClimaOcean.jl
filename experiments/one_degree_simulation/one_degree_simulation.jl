@@ -10,24 +10,15 @@ using CUDA: @allowscalar, device!
 
 using Oceananigans.Grids: znode
 
+Oceananigans.defaults.FloatType = Float64
 arch = CPU()
-Nx = 360
-Ny = 180
-Nz = 50
+Nx = 256
+Ny = 128
+Nz = 32
+z_faces = exponential_z_faces(; Nz, depth=6000, h=34)
+underlying_grid = TripolarGrid(arch; size=(Nx, Ny, Nz), z=z_faces)
 
-z_faces = exponential_z_faces(; Nz, depth=5000, h=34)
-
-underlying_grid = TripolarGrid(arch;
-                               size = (Nx, Ny, Nz),
-                               z = z_faces,
-                               first_pole_longitude = 70,
-                               north_poles_latitude = 55)
-
-bottom_height = regrid_bathymetry(underlying_grid;
-                                  minimum_depth = 10,
-                                  interpolation_passes = 75,
-                                  major_basins = 1)
-
+bottom_height = regrid_bathymetry(underlying_grid; minimum_depth=10, major_basins=1)
 view(bottom_height, 102:103, 124, 1) .= -400 # open Gibraltar strait 
 grid = ImmersedBoundaryGrid(underlying_grid, PartialCellBottom(bottom_height); active_cells_map=true)
 

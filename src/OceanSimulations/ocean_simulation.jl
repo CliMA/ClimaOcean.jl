@@ -129,8 +129,8 @@ function ocean_simulation(grid;
 
     # Forcing for u, v
     atmospheric_pressure = Field{Center, Center, Nothing}(grid)
-    u_forcing = BarotropicPressureForcing(XDirection(), atmospheric_pressure)
-    v_forcing = BarotropicPressureForcing(YDirection(), atmospheric_pressure)
+    u_forcing = BarotropicPressureForcing(XDirection(), atmospheric_pressure, reference_density)
+    v_forcing = BarotropicPressureForcing(YDirection(), atmospheric_pressure, reference_density)
 
     :u ∈ keys(forcing) && (u_forcing = (u_forcing, forcing[:u]))
     :v ∈ keys(forcing) && (v_forcing = (v_forcing, forcing[:v]))

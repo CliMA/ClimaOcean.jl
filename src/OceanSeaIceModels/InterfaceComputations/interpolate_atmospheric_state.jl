@@ -155,7 +155,7 @@ end
         surface_atmos_state.Qℓ[i, j, 1] = Qℓ
         surface_atmos_state.Mp[i, j, 1] = Mh
 
-        set_surface_variable!(ocean_forcing_pressure, i, j, pₐ)
+        # set_surface_variable!(ocean_forcing_pressure, i, j, pₐ)
     end
 end
 

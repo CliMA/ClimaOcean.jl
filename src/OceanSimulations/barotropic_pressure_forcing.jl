@@ -4,16 +4,17 @@ using Oceananigans.Forcings: MultipleForcings
 struct XDirection end
 struct YDirection end
 
-struct BarotropicPressureForcing{D, P}
+struct BarotropicPressureForcing{D, P, FT}
     direction :: D
     pressure :: P
+    reference_density :: FT
 end
 
 const XDirectionBPF = BarotropicPressureForcing{<:XDirection}
 const YDirectionBPF = BarotropicPressureForcing{<:YDirection}
 
-@inline (bpf::XDirectionBPF)(i, j, k, grid, clock, fields) = - ∂xᶠᶜᶜ(i, j, k, grid, bpf.pressure)
-@inline (bpf::YDirectionBPF)(i, j, k, grid, clock, fields) = - ∂yᶜᶠᶜ(i, j, k, grid, bpf.pressure)
+@inline (bpf::XDirectionBPF)(i, j, k, grid, clock, fields) = - ∂xᶠᶜᶜ(i, j, k, grid, bpf.pressure) / bpf.reference_density
+@inline (bpf::YDirectionBPF)(i, j, k, grid, clock, fields) = - ∂yᶜᶠᶜ(i, j, k, grid, bpf.pressure) / bpf.reference_density
 
 forcing_barotropic_pressure(something) = nothing
 forcing_barotropic_pressure(f::BarotropicPressureForcing) = f.pressure.data
