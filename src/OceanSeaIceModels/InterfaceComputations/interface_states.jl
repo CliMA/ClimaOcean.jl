@@ -215,8 +215,8 @@ end
     # Fix a NaN
     T★ = ifelse(isnan(T★), Tₛ⁻, T★)
 
-    # Don't let it go below some minimum number?
-    T★  = min(T★, Tₘ)
+    # To prevent instabilities in the fixed point iteration
+    # solver we cap the maximum temperature difference with `max_ΔT`
     ΔT★ = T★ - Tₛ⁻
     max_ΔT = convert(typeof(T★), st.max_ΔT)
     abs_ΔT = min(max_ΔT, abs(ΔT★))
