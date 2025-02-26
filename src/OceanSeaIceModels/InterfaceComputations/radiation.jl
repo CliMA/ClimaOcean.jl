@@ -38,7 +38,7 @@ Keyword Arguments
 - `sea_ice_albedo`: The albedo of the sea ice surface. Default: `0.7`.
 - `stefan_boltzmann_constant`: The Stefan-Boltzmann constant. Default: `5.67e-8`.
 """
-function Radiation(arch = CPU(), FT=Float64;
+function Radiation(arch = CPU(), FT=Oceananigans.defaults.FloatType;
                    ocean_emissivity = 0.97,
                    sea_ice_emissivity = 1.0,
                    ocean_albedo = LatitudeDependentAlbedo(FT),
