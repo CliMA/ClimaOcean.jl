@@ -155,6 +155,7 @@ function compute_net_sea_ice_fluxes!(coupled_model)
     clock = coupled_model.clock
 
     top_heat_flux = coupled_model.interfaces.net_fluxes.sea_ice_top
+    bottom_heat_flux = coupled_model.interfaces.net_fluxes.sea_ice_bottom
     sea_ice_ocean_fluxes = coupled_model.interfaces.sea_ice_ocean_interface.fluxes
 
     # Simplify NamedTuple to reduce parameter space consumption.

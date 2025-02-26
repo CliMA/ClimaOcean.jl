@@ -133,14 +133,15 @@ function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean;
 
     previous_ice_thickness = deepcopy(sea_ice.model.ice_thickness)
     previous_ice_concentration = deepcopy(sea_ice.model.ice_concentration)
-    io_heat_flux = sea_ice.model.external_heat_fluxes.bottom
+    io_bottom_heat_flux = Field{Center, Center, Nothing}(ocean.model.grid)
+    io_frazil_heat_flux = Field{Center, Center, Nothing}(ocean.model.grid)
     io_salt_flux = Field{Center, Center, Nothing}(ocean.model.grid)
 
     @assert io_frazil_heat_flux isa Field{Center, Center, Nothing}
     @assert io_bottom_heat_flux isa Field{Center, Center, Nothing}
     @assert io_salt_flux isa Field{Center, Center, Nothing}
 
-    io_fluxes = (bottom_heat=io_heat_flux, 
+    io_fluxes = (bottom_heat=io_bottom_heat_flux, 
                  frazil_heat=io_frazil_heat_flux,
                  salt=io_salt_flux)
 
