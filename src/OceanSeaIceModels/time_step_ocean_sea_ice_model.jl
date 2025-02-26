@@ -75,7 +75,7 @@ function thermodynamic_sea_ice_time_step!(coupled_model)
     sea_ice = coupled_model.sea_ice
     model = sea_ice.model
     Δt = sea_ice.Δt
-    grid = coupled_model.ocean.model.grid
+    grid = coupled_model.sea_ice.model.grid
     arch = architecture(grid)
     clock = model.clock
     thermodynamics = model.ice_thermodynamics
