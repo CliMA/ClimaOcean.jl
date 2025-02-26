@@ -3,7 +3,7 @@ include("runtests_setup.jl")
 using CUDA
 using OrthogonalSphericalShellGrids
 
-@testset "Parameter space test" begin
+@testset "GPU time stepping test" begin
 
     for arch in test_architectures
         grid = TripolarGrid(arch;
@@ -31,6 +31,7 @@ using OrthogonalSphericalShellGrids
         # Fluxes are computed when the model is constructed, so we just test that this works.
         @test begin
             coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
+            time_step!(coupled_model, 1)
             true
         end
     end

@@ -1,5 +1,4 @@
 using Oceananigans
-using Oceananigans.Models: update_model_field_time_series!
 using Oceananigans.TimeSteppers: Clock
 using Oceananigans: SeawaterBuoyancy
 

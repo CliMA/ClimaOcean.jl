@@ -11,6 +11,7 @@ using Oceananigans.BoundaryConditions: fill_halo_regions!
 using Oceananigans.Grids: λnodes, φnodes, on_architecture
 using Oceananigans.Fields: interpolate!
 using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBackend, FlavorOfFTS, time_indices
+using Oceananigans.TimeSteppers: Clock
 
 using ClimaOcean
 using ClimaOcean.DistributedUtils: @root
@@ -706,6 +707,7 @@ function JRA55PrescribedAtmosphere(architecture::AA, time_indices=Colon();
     metadata = JRA55Data()
 
     return PrescribedAtmosphere(grid,
+                                Clock{Float64}(time = 0),
                                 metadata,
                                 velocities,
                                 pressure,

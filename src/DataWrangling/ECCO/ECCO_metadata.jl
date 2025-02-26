@@ -250,15 +250,15 @@ function download_dataset(metadata::ECCOMetadata; url = urls(metadata))
             filepath = metadata_path(metadatum)
 
             if !isfile(filepath)
-                instructions_msg = "\n See ClimaOcean.jl/src/ECCO/README.md for instructions."
+                instructions_msg = "\n See ClimaOcean.jl/src/DataWrangling/ECCO/README.md for instructions."
                 if isnothing(username)
                     msg = "Could not find the ECCO_PASSWORD environment variable. \
-                           See ClimaOcean.jl/src/ECCO/README.md for instructions on obtaining \
+                           See ClimaOcean.jl/src/DataWrangling/ECCO/README.md for instructions on obtaining \
                            and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
                     throw(ArgumentError(msg))
                 elseif isnothing(password)
                     msg = "Could not find the ECCO_PASSWORD environment variable. \
-                           See ClimaOcean.jl/src/ECCO/README.md for instructions on obtaining \
+                           See ClimaOcean.jl/src/DataWrangling/ECCO/README.md for instructions on obtaining \
                            and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
                     throw(ArgumentError(msg))
                 end

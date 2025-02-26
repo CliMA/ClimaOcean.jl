@@ -148,8 +148,9 @@ function regrid_bathymetry(target_grid;
     Nxn = length(λ_data)
     Nyn = length(φ_data)
     Nzn = 1
-    
-    native_grid = LatitudeLongitudeGrid(arch;
+
+  
+    native_grid = LatitudeLongitudeGrid(arch, Float32;
                                         size = (Nxn, Nyn, Nzn),
                                         latitude  = (φ₁_data, φ₂_data),
                                         longitude = (λ₁_data, λ₂_data),
@@ -219,7 +220,7 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
 
         @debug "Bathymetry interpolation pass $pass with size $new_size"
 
-        new_grid = LatitudeLongitudeGrid(architecture(target_grid),
+        new_grid = LatitudeLongitudeGrid(architecture(target_grid), Float32,
                                          size = new_size,
                                          latitude = (latitude[1],  latitude[2]),
                                          longitude = (longitude[1], longitude[2]),
