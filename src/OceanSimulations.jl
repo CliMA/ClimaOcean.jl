@@ -50,7 +50,7 @@ function estimate_maximum_Δt(grid)
     Δy = mean(yspacings(grid))
     Δθ = rad2deg(mean([Δx, Δy])) / grid.radius
 
-    # The maximum Δt is roughly 40minutes / Δθ, giving:
+    # The maximum Δt is roughly 30minutes / Δθ, giving:
     # - 30 minutes for a 1 degree ocean
     # - 15 minutes for a 1/4 degree ocean
     # - 7.5 minutes for a 1/8 degree ocean
