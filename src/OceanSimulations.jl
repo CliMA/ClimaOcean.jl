@@ -5,7 +5,7 @@ export ocean_simulation
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.Utils: with_tracers
-using Oceanananigans.Grids: architecture
+using Oceananigans.Grids: architecture
 using Oceananigans.Advection: FluxFormAdvection
 using Oceananigans.DistributedComputations: DistributedGrid, all_reduce
 using Oceananigans.BoundaryConditions: DefaultBoundaryCondition
