@@ -76,7 +76,7 @@ coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation=Radiation())
 # Now that the surface fluxes are computed, we can extract and visualize them.
 # The turbulent fluxes are stored in `coupled_model.fluxes.turbulent`.
 
-fluxes  = coupled_model.fluxes.turbulent.fields
+fluxes  = coupled_model.interfaces.atmosphere_ocean_interface.fluxes
 λ, φ, z = nodes(fluxes.sensible_heat)
 
 fig = Figure(size = (800, 800), fontsize = 15)
