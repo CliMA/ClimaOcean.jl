@@ -16,11 +16,13 @@ using ClimaOcean.OceanSimulations
 using Oceananigans
 using CairoMakie
 
-# # Computing fluxes on the ECCO2 grid
+# # Computing fluxes on a LatitudeLongitudeGrid
 #
-# We start by building the ECCO2 grid, using `ECCO_bottom_height` to identify the bottom height.
+# We start by building a grid spanning the poles.
 
-grid = ECCO_immersed_grid()
+grid = LatitudeLongitudeGrid(size=(720, 360, 1), longitude=(0, 360), latitude=(-90, 90), z=(-30, 0))
+bottom_height = regrid_bathymetry(grid)
+grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
 fig = Figure()
 ax  = Axis(fig[1, 1])
