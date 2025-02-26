@@ -154,9 +154,10 @@ function compute_net_sea_ice_fluxes!(coupled_model)
     arch  = architecture(grid)
     clock = coupled_model.clock
 
-    top_heat_flux = coupled_model.interfaces.net_fluxes.sea_ice_top
-    bottom_heat_flux = coupled_model.interfaces.net_fluxes.sea_ice_bottom
+    top_heat_flux = coupled_model.interfaces.net_fluxes.sea_ice_top.heat
+    bottom_heat_flux = coupled_model.interfaces.net_fluxes.sea_ice_bottom.heat
     sea_ice_ocean_fluxes = coupled_model.interfaces.sea_ice_ocean_interface.fluxes
+    atmosphere_sea_ice_fluxes = coupled_model.interfaces.atmosphere_sea_ice_interface.fluxes
 
     # Simplify NamedTuple to reduce parameter space consumption.
     # See https://github.com/CliMA/ClimaOcean.jl/issues/116.
@@ -168,6 +169,8 @@ function compute_net_sea_ice_fluxes!(coupled_model)
     freshwater_flux = atmosphere_fields.Mp.data
 
     atmos_sea_ice_properties = coupled_model.interfaces.atmosphere_sea_ice_interface.properties
+    sea_ice_properties = coupled_model.interfaces.sea_ice_properties
+
     kernel_parameters = surface_computations_kernel_parameters(grid)
 
     sea_ice_surface_temperature = coupled_model.interfaces.atmosphere_ocean_interface.temperature
@@ -178,36 +181,39 @@ function compute_net_sea_ice_fluxes!(coupled_model)
             bottom_heat_flux, 
             grid,
             clock,
+            atmosphere_sea_ice_fluxes,
             sea_ice_ocean_fluxes,
             freshwater_flux,
             sea_ice_surface_temperature,
             downwelling_radiation,
+            sea_ice_properties,
             atmos_sea_ice_properties)
 
     return nothing
 end
 
-@kernel function _assemble_atmosphere_sea_ice_fluxes!(top_heat_flux,
-                                                      bottom_heat_flux, 
-                                                      grid,
-                                                      clock,
-                                                      atmosphere_sea_ice_fluxes,
-                                                      sea_ice_ocean_fluxes,
-                                                      freshwater_flux, # Where do we add this one?
-                                                      surface_temperature,
-                                                      downwelling_radiation,
-                                                      atmos_sea_ice_properties)
+@kernel function _assemble_net_sea_ice_fluxes!(top_heat_flux,
+                                               bottom_heat_flux, 
+                                               grid,
+                                               clock,
+                                               atmosphere_sea_ice_fluxes,
+                                               sea_ice_ocean_fluxes,
+                                               freshwater_flux, # Where do we add this one?
+                                               surface_temperature,
+                                               downwelling_radiation,
+                                               sea_ice_properties,
+                                               atmos_sea_ice_properties)
 
     i, j = @index(Global, NTuple)
     kᴺ = size(grid, 3)
     time = Time(clock.time)
-
+    
     @inbounds begin
         Ts = surface_temperature[i, j, kᴺ]
-        Ts = convert_to_kelvin(surface_temperature_units, Ts)
+        Ts = convert_to_kelvin(sea_ice_properties.temperature_units, Ts)
 
-        Qs = downwelling_radiation.shortwave[i, j, 1]
-        Qℓ = downwelling_radiation.longwave[i, j, 1]
+        Qs = downwelling_radiation.Qs[i, j, 1]
+        Qℓ = downwelling_radiation.Qℓ[i, j, 1]
         Qc = atmosphere_sea_ice_fluxes.sensible_heat[i, j, 1] # sensible or "conductive" heat flux
         Qv = atmosphere_sea_ice_fluxes.latent_heat[i, j, 1]   # latent heat flux
         Qf = sea_ice_ocean_fluxes.frazil_heat[i, j, 1]        # frazil heat flux
@@ -216,8 +222,8 @@ end
 
     # Compute radiation fluxes
     σ = atmos_sea_ice_properties.radiation.σ
-    α = stateindex(atmos_sea_ice_properties.radiation.α, i, j, kᴹ, grid, time)
-    ϵ = stateindex(atmos_sea_ice_properties.radiation.ϵ, i, j, kᴹ, grid, time)
+    α = stateindex(atmos_sea_ice_properties.radiation.α, i, j, kᴺ, grid, time)
+    ϵ = stateindex(atmos_sea_ice_properties.radiation.ϵ, i, j, kᴺ, grid, time)
     Qu = upwelling_radiation(Ts, σ, ϵ)
     Qd = net_downwelling_radiation(i, j, grid, time, α, ϵ, Qs, Qℓ)
 
