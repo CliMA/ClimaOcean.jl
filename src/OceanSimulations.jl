@@ -5,6 +5,7 @@ export ocean_simulation
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.Utils: with_tracers
+using Oceanananigans.Grids: architecture
 using Oceananigans.Advection: FluxFormAdvection
 using Oceananigans.DistributedComputations: DistributedGrid, all_reduce
 using Oceananigans.BoundaryConditions: DefaultBoundaryCondition
@@ -46,6 +47,7 @@ default_or_override(override, alternative_default=nothing) = override
 default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
 
 function estimate_maximum_Δt(grid)
+    arch = architecture(grid)
     Δx = mean(xspacings(grid))
     Δy = mean(yspacings(grid))
     Δθ = rad2deg(mean([Δx, Δy])) / grid.radius
@@ -57,7 +59,9 @@ function estimate_maximum_Δt(grid)
     # - 3.75 minutes for a 1/16 degree ocean
     # - 1.875 minutes for a 1/32 degree ocean
 
-    return 30minutes / Δθ
+    Δt = 30minutes / Δθ
+    
+    return all_reduce(min, Δt, arch)
 end
 
 const TripolarOfSomeKind = Union{TripolarGrid, ImmersedBoundaryGrid{<:Any, <:Any, <:Any, <:Any, <:TripolarGrid}}
