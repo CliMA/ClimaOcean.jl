@@ -157,19 +157,16 @@ end
     i, j = @index(Global, NTuple)
     Nz = size(grid, 3)
 
-    for k in 1:Nz-1
-        @inbounds begin
+    @inbounds begin
+        for k in 1:Nz-1
             Tm = melting_temperature(liquidus, S[i, j, k])
             T[i, j, k] = max(T[i, j, k], Tm)
         end
-    end
 
-    @inbounds begin
         ℵi = ℵ[i, j, k]
         Tm = melting_temperature(liquidus, S[i, j, Nz])
         T[i, j, Nz] = ifelse(ℵi > 0, Tm, T[i, j, Nz])
     end
-    @inbounds
 end
 
 # Fallback
