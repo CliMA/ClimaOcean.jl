@@ -47,7 +47,7 @@ sea_ice_concentration(sea_ice::SeaIceSimulation) = sea_ice.model.ice_concentrati
 
 # Atmosphere interface
 interpolate_atmosphere_state!(interfaces, atmosphere, coupled_model) = nothing
-compute_net_atmosphere_fluxes!(copuled_model) = nothing
+compute_net_atmosphere_fluxes!(coupled_model) = nothing
 
 # TODO: extend this to cover all components
 synchronize_clock!(model, clock) = nothing
