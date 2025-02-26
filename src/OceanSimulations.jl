@@ -16,7 +16,8 @@ using OrthogonalSphericalShellGrids
 using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities:
     CATKEVerticalDiffusivity,
     CATKEMixingLength,
-    CATKEEquation
+    CATKEEquation,
+    convert_eltype
 
 using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 using Statistics: mean
