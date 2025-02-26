@@ -10,10 +10,12 @@ using Oceananigans.Grids: φnode
 
 using Printf
 
+
 function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_tendencies=true)
     ocean = coupled_model.ocean
     sea_ice = coupled_model.sea_ice
     atmosphere = coupled_model.atmosphere
+    clock = coupled_model.clock
 
     # Be paranoid and update state at iteration 0
     coupled_model.clock.iteration == 0 && update_state!(coupled_model, callbacks)
@@ -41,6 +43,7 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
     time_step!(ocean)
 
     # Time step the atmosphere
+    synchronize_clock!(atmosphere, clock)
     time_step!(atmosphere)
 
     # TODO:

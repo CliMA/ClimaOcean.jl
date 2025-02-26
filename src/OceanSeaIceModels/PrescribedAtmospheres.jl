@@ -4,7 +4,7 @@ using Oceananigans.Grids: grid_name
 using Oceananigans.Utils: prettysummary, Time
 using Oceananigans.Fields: Center
 using Oceananigans.OutputReaders: FieldTimeSeries, update_field_time_series!, extract_field_time_series
-using Oceananigans.TimeSteppers: tick!, Clock
+using Oceananigans.TimeSteppers: Clock
 
 using Adapt
 using Thermodynamics.Parameters: AbstractThermodynamicsParameters
@@ -40,6 +40,7 @@ import Thermodynamics.Parameters:
                     # during partial ice nucleation
 
 import ..OceanSeaIceModels:
+    synchronize_clock!,
     downwelling_radiation,
     freshwater_flux
 
@@ -289,7 +290,7 @@ const PATP = PrescribedAtmosphereThermodynamicsParameters
 ##### Prescribed atmosphere (as opposed to dynamically evolving / prognostic)
 #####
 
-struct PrescribedAtmosphere{FT, M, G, T, U, P, C, F, I, R, TP, TI}
+mutable struct PrescribedAtmosphere{FT, M, G, T, U, P, C, F, I, R, TP, TI}
     grid :: G
     clock :: Clock{T}
     metadata :: M
@@ -350,9 +351,13 @@ function default_atmosphere_pressure(grid, times)
     return pa
 end
 
-@inline function time_step!(atmos::PrescribedAtmosphere, Δt) 
-    tick!(atmos.clock, Δt)
-    
+function synchronize_clock!(atmos::PrescribedAtmosphere, clock)
+    atmos.clock.time = clock.time
+    atmos.clock.iteration = clock.iteration
+    return nothing
+end
+
+@inline function time_step!(atmos::PrescribedAtmosphere)
     time = Time(atmos.clock.time)
     ftses = extract_field_time_series(atmos)
 
