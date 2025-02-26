@@ -59,7 +59,7 @@ struct WaterMoleFraction{FT, C}
     salinity_constituents :: C
 end
 
-function WaterMoleFraction(FT=Float64)
+function WaterMoleFraction(FT=Oceananigans.defaults.FloatType)
     water_molar_mass = convert(FT, 18.02)
 
     # TODO: find reference for these
@@ -215,8 +215,8 @@ end
     # Fix a NaN
     T★ = ifelse(isnan(T★), Tₛ⁻, T★)
 
-    # Don't let it go below some minimum number?
-    T★  = min(T★, Tₘ)
+    # To prevent instabilities in the fixed point iteration
+    # solver we cap the maximum temperature difference with `max_ΔT`
     ΔT★ = T★ - Tₛ⁻
     max_ΔT = convert(typeof(T★), st.max_ΔT)
     abs_ΔT = min(max_ΔT, abs(ΔT★))
