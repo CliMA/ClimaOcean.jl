@@ -1,6 +1,8 @@
 [deps]
+CFTime = "179af706-886a-5703-950a-314cd64e0468"
 ClimaOcean = "0376089a-ecfe-4b0e-a64f-9c555d74d754"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
 LegendrePolynomials = "3db4a2ba-fc88-11e8-3e01-49c72059a882"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Oceananigans = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"

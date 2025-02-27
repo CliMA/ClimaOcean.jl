@@ -40,7 +40,7 @@ all while respecting user input and changing this to a new value if specified.
 default_or_override(default::Default, possibly_alternative_default=default.value) = possibly_alternative_default
 default_or_override(override, alternative_default=nothing) = override
 
-include("barotropic_pressure_forcing.jl")
+include("barotropic_potential_forcing.jl")
 include("ocean_simulation.jl")
 
 end # module

@@ -1,7 +1,7 @@
 using Oceananigans.Operators: intrinsic_vector
 using Oceananigans.Grids: _node
 
-using ...OceanSimulations: forcing_barotropic_pressure
+using ...OceanSimulations: forcing_barotropic_potential
 
 """Interpolate the atmospheric state onto the ocean / sea-ice grid."""
 function interpolate_atmospheric_state!(coupled_model)
@@ -52,15 +52,11 @@ function interpolate_atmospheric_state!(coupled_model)
                        Qℓ = atmosphere_fields.Qℓ.data,
                        Mp = atmosphere_fields.Mp.data)
 
-    # Set ocean barotropic pressure forcing
-    ocean_forcing_pressure = forcing_barotropic_pressure(ocean)
-
     kernel_parameters = interface_kernel_parameters(grid)
     
     launch!(arch, grid, kernel_parameters,
             _interpolate_primary_atmospheric_state!,
             atmosphere_data,
-            ocean_forcing_pressure,
             grid,
             clock,
             atmosphere_velocities,
@@ -101,12 +97,15 @@ function interpolate_atmospheric_state!(coupled_model)
                 auxiliary_time_indexing)
     end
 
-    
-    return nothing
+    # Set ocean barotropic pressure forcing
+    barotropic_potential = forcing_barotropic_potential(ocean)
+    ρₒ = ocean.interfaces.ocean_properties.reference_density
+    if !isnothing(barotropic_potential)
+        parent(barotropic_potential) .= parent(atmosphere_data) ./ ρₒ
+    end
 end
-
+    
 @kernel function _interpolate_primary_atmospheric_state!(surface_atmos_state,
-                                                         ocean_forcing_pressure,
                                                          grid,
                                                          clock,
                                                          atmos_velocities,
@@ -154,8 +153,6 @@ end
         surface_atmos_state.Qs[i, j, 1] = Qs
         surface_atmos_state.Qℓ[i, j, 1] = Qℓ
         surface_atmos_state.Mp[i, j, 1] = Mh
-
-        # set_surface_variable!(ocean_forcing_pressure, i, j, pₐ)
     end
 end
 

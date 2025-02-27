@@ -98,6 +98,15 @@ function ocean_simulation(grid;
         
         u_immersed_bc = ImmersedBoundaryCondition(bottom = u_immersed_drag)
         v_immersed_bc = ImmersedBoundaryCondition(bottom = v_immersed_drag)
+
+        # Forcing for u, v
+        barotropic_potential = Field{Center, Center, Nothing}(grid)
+        u_forcing = BarotropicPotentialForcing(XDirection(), barotropic_potential)
+        v_forcing = BarotropicPotentialForcing(YDirection(), barotropic_potential)
+
+        :u ∈ keys(forcing) && (u_forcing = (u_forcing, forcing[:u]))
+        :v ∈ keys(forcing) && (v_forcing = (v_forcing, forcing[:v]))
+        forcing = merge(forcing, (u=u_forcing, v=v_forcing))
     end
 
     bottom_drag_coefficient = convert(FT, bottom_drag_coefficient)
@@ -126,16 +135,6 @@ function ocean_simulation(grid;
     # TODO: support users specifying only _part_ of the bcs for u, v, T, S (ie adding the top and immersed
     # conditions even when a user-bc is supplied).
     boundary_conditions = merge(default_boundary_conditions, boundary_conditions)
-
-    # Forcing for u, v
-    atmospheric_pressure = Field{Center, Center, Nothing}(grid)
-    u_forcing = BarotropicPressureForcing(XDirection(), atmospheric_pressure, reference_density)
-    v_forcing = BarotropicPressureForcing(YDirection(), atmospheric_pressure, reference_density)
-
-    :u ∈ keys(forcing) && (u_forcing = (u_forcing, forcing[:u]))
-    :v ∈ keys(forcing) && (v_forcing = (v_forcing, forcing[:v]))
-    forcing = merge(forcing, (u=u_forcing, v=v_forcing))
-
     buoyancy = SeawaterBuoyancy(; gravitational_acceleration, equation_of_state)
 
     if tracer_advection isa NamedTuple
