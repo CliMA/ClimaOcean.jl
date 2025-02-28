@@ -1,5 +1,17 @@
 using Oceananigans.DistributedComputations: DistributedGrid, all_reduce
 using Oceananigans.Architectures: architecture
+using Oceananigans.BoundaryConditions: DefaultBoundaryCondition
+using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node, MutableGridOfSomeKind
+using OrthogonalSphericalShellGrids
+
+using Oceananigans.TurbulenceClosures: VerticallyImplicitTimeDiscretization
+
+using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities:
+    CATKEVerticalDiffusivity,
+    CATKEMixingLength,
+    CATKEEquation
+
+using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 using Statistics: mean
 
 # Some defaults
