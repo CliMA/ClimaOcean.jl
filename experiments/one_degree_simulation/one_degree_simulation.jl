@@ -47,6 +47,8 @@ set!(ocean.model, T=ECCOMetadata(:temperature; dates=first(dates)),
 radiation  = Radiation(arch)
 atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(41))
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation) 
+
+#=
 simulation = Simulation(coupled_model; Δt=20minutes, stop_iteration=100)
 
 wall_time = Ref(time_ns())
@@ -75,4 +77,5 @@ end
 add_callback!(simulation, progress, IterationInterval(10))
 
 run!(simulation)
+=#
 

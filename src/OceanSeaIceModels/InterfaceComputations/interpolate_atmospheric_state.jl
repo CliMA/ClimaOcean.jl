@@ -57,9 +57,11 @@ function interpolate_atmospheric_state!(coupled_model)
 
     kernel_parameters = interface_kernel_parameters(grid)
 
+    # Assumption, should be generalized
     ua = atmosphere.velocities.u
     time_interp_indices = InterpolatingTimeIndices(ua, clock.time)
     
+    #=
     launch!(arch, grid, kernel_parameters,
             _interpolate_primary_atmospheric_state!,
             atmosphere_data,
@@ -107,6 +109,7 @@ function interpolate_atmospheric_state!(coupled_model)
     if !isnothing(barotropic_potential)
         parent(barotropic_potential) .= parent(atmosphere_data.p) ./ ρₒ
     end
+    =#
 end
     
 @kernel function _interpolate_primary_atmospheric_state!(surface_atmos_state,

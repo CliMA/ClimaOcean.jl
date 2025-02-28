@@ -1,3 +1,6 @@
+using Oceananigans.DistributedComputations: DistributedGrid
+using Oceananigans.Architectures: architecture
+
 # Some defaults
 default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
 
