@@ -28,12 +28,11 @@ struct WindVelocity end
 """ The exchange fluxes depend on the relative velocity between the atmosphere and the interface """
 struct RelativeVelocity end
 
-
 #####
 ##### Bulk turbulent fluxes based on similarity theory
 #####
 
-struct SimilarityTheoryFluxes{FT, UF, R, B, V}
+struct SimilarityTheoryFluxes{FT, UF, R, B, V, S}
     gravitational_acceleration :: FT # parameter
     von_karman_constant :: FT        # parameter
     turbulent_prandtl_number :: FT   # parameter
@@ -42,8 +41,7 @@ struct SimilarityTheoryFluxes{FT, UF, R, B, V}
     roughness_lengths :: R           # parameterization for turbulent fluxes
     similarity_form :: B             # similarity profile relating atmosphere to interface state
     bulk_velocity :: V               # bulk velocity scale for turbulent fluxes
-    solver_tolerance :: FT           # solver option
-    solver_maxiter :: Int            # solver option
+    solver_stop_criteria :: S        # stop criteria for compute_interface_state
 end
 
 Adapt.adapt_structure(to, fluxes::SimilarityTheoryFluxes) = 
@@ -55,8 +53,8 @@ Adapt.adapt_structure(to, fluxes::SimilarityTheoryFluxes) =
                            adapt(to, fluxes.roughness_lengths),
                            adapt(to, fluxes.similarity_form),
                            adapt(to, fluxes.bulk_velocity),
-                           fluxes.solver_tolerance,
-                           fluxes.solver_maxiter)
+                           adapt(to, fluxes.solver_stop_criteria))
+                           
 
 Base.summary(::SimilarityTheoryFluxes{FT}) where FT = "SimilarityTheoryFluxes{$FT}"
 
@@ -70,8 +68,7 @@ function Base.show(io::IO, fluxes::SimilarityTheoryFluxes)
           "├── roughness_lengths: ",          summary(fluxes.roughness_lengths), '\n',
           "├── bulk_velocity: ",              summary(fluxes.bulk_velocity), '\n',
           "├── similarity_form: ",            summary(fluxes.similarity_form), '\n',
-          "├── solver_tolerance: ",           summary(fluxes.solver_tolerance), '\n',
-          "└── solver_maxiter: ",             summary(fluxes.solver_maxiter))
+          "└── solver_stop_criteria: ",       summary(fluxes.solver_stop_criteria))
 end
 
 """
@@ -84,6 +81,7 @@ end
                            roughness_lengths = default_roughness_lengths(FT),
                            similarity_form = LogarithmicSimilarityProfile(),
                            bulk_velocity = RelativeVelocity(),
+                           solver_stop_criteria = nothing,
                            solver_tolerance = 1e-8,
                            solver_maxiter = 100)
 
@@ -108,7 +106,7 @@ Keyword Arguments
 - `solver_tolerance`: The tolerance for convergence. Default: 1e-8.
 - `solver_maxiter`: The maximum number of iterations. Default: 100.
 """
-function SimilarityTheoryFluxes(FT::DataType = Float64;
+function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                 gravitational_acceleration = g_Earth,
                                 von_karman_constant = 0.4,
                                 turbulent_prandtl_number = 1,
@@ -117,8 +115,14 @@ function SimilarityTheoryFluxes(FT::DataType = Float64;
                                 roughness_lengths = default_roughness_lengths(FT),
                                 similarity_form = LogarithmicSimilarityProfile(),
                                 bulk_velocity = RelativeVelocity(),
+                                solver_stop_criteria = nothing,
                                 solver_tolerance = 1e-8,
                                 solver_maxiter = 100)
+
+    if isnothing(solver_stop_criteria)
+        solver_tolerance = convert(FT, solver_tolerance)
+        solver_stop_criteria = ConvergenceStopCriteria(solver_tolerance, solver_maxiter)
+    end
 
     return SimilarityTheoryFluxes(convert(FT, gravitational_acceleration),
                                   convert(FT, von_karman_constant),
@@ -128,8 +132,7 @@ function SimilarityTheoryFluxes(FT::DataType = Float64;
                                   roughness_lengths,
                                   similarity_form,
                                   bulk_velocity,
-                                  convert(FT, solver_tolerance), 
-                                  solver_maxiter)
+                                  solver_stop_criteria)
 end
 
 #####
@@ -459,7 +462,7 @@ end
 end
 
 # Edson et al. (2013)
-function edson_stability_functions(FT = Float64)
+function edson_stability_functions(FT=Oceananigans.defaults.FloatType)
     ψu = EdsonMomentumStabilityFunction{FT}()
     ψc = EdsonScalarStabilityFunction{FT}()
     return SimilarityScales(ψu, ψc, ψc)
@@ -556,7 +559,7 @@ end
     return ifelse(stable, Ψ_stable, Ψ_unstable)
 end
 
-function atmosphere_sea_ice_stability_functions(FT=Float64)
+function atmosphere_sea_ice_stability_functions(FT=Oceananigans.defaults.FloatType)
     stable_momentum = PaulsonMomentumStabilityFunction{FT}()
     unstable_momentum = ShebaMomentumStabilityFunction{FT}()
     momentum = SplitStabilityFunction(stable_momentum, unstable_momentum)
