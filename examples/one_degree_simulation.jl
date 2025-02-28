@@ -61,8 +61,8 @@ forcing = (T=FT, S=FS)
 
 # ### Closures
 #
-# We include a Gent-McWilliam isopycnal diffusivity as a parameterization for the mesoscale
-# eddy fluxes. For vertical mixing at the upper-ocean boundary layer we include the CATKE
+# We include a Gent-McWilliams isopycnal diffusivity as a parameterization for the mesoscale
+# eddy fluxes. For vertical mixing at the upper-ocean boundary layer, we include the CATKE
 # parameterization. We also include some explicit horizontal diffusivity.
 
 using Oceananigans.TurbulenceClosures: IsopycnalSkewSymmetricDiffusivity,
@@ -76,7 +76,7 @@ closure = (eddy_closure, vertical_mixing)
 
 # ### Ocean simulation
 #
-# Now we bring everything together to construct the ocean simulation.
+# Let's bring everything together to construct the ocean simulation.
 # We use a split-explicit timestepping with 30 substeps for the barotropic
 # mode.
 
@@ -138,7 +138,7 @@ function progress(sim)
 
     msg1 = @sprintf("time: %s, iteration: %d, Δt: %s, ", prettytime(sim), iteration(sim), prettytime(sim.Δt))
     msg2 = @sprintf("max|u|: (%.2e, %.2e, %.2e) m s⁻¹, ", umax...)
-    msg3 = @sprintf("extrema(T): (%.2f, %.2f) ᵒC, ", Tmax, Tmin)
+    msg3 = @sprintf("extrema(T): (%.2f, %.2f) ᵒC, ", Tmin, Tmax)
     msg4 = @sprintf("wall time: %s \n", prettytime(step_time))
 
     @info msg1 * msg2 * msg3 * msg4
@@ -232,9 +232,11 @@ end
 
 fig = Figure(size = (800, 1200))
 
-axs = Axis(fig[1, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
-axT = Axis(fig[2, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
-axe = Axis(fig[3, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
+title = @lift string("Global 1ᵒ ocean simulation after ", prettytime(times[$n] - times[1]))
+
+axs = Axis(fig[1, 1])
+axT = Axis(fig[2, 1])
+axe = Axis(fig[3, 1])
 
 hm = heatmap!(axs, sn, colorrange = (0, 0.5), colormap = :deep, nan_color=:lightgray)
 Colorbar(fig[1, 2], hm, label = "Surface speed (m s⁻¹)")
@@ -244,6 +246,12 @@ Colorbar(fig[2, 2], hm, label = "Surface Temperature (ᵒC)")
 
 hm = heatmap!(axe, en, colorrange = (0, 1e-3), colormap = :solar, nan_color=:lightgray)
 Colorbar(fig[3, 2], hm, label = "Turbulent Kinetic Energy (m² s⁻²)")
+
+for ax in (axs, axT, axe)
+    hidedecorations!(ax)
+end
+
+Label(fig[0, :], title)
 
 save("global_snapshot.png", fig)
 nothing #hide
