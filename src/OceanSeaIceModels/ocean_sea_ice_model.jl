@@ -55,12 +55,16 @@ Base.eltype(model::OSIM)            = Base.eltype(model.ocean.model)
 prettytime(model::OSIM)             = prettytime(model.clock.time)
 iteration(model::OSIM)              = model.clock.iteration
 timestepper(::OSIM)                 = nothing
-reset!(::OSIM)                      = nothing
 initialize!(::OSIM)                 = nothing
 default_included_properties(::OSIM) = tuple()
 prognostic_fields(cm::OSIM)         = nothing
 fields(::OSIM)                      = NamedTuple()
 default_clock(TT)                   = Oceananigans.TimeSteppers.Clock{TT}(0, 0, 1)
+
+function reset!(model::OSIM)
+    reset!(model.ocean)
+    return nothing
+end
 
 reference_density(unsupported) =
     throw(ArgumentError("Cannot extract reference density from $(typeof(unsupported))"))
@@ -147,3 +151,4 @@ function default_nan_checker(model::OceanSeaIceModel)
     nan_checker = NaNChecker((; u_ocean))
     return nan_checker
 end
+

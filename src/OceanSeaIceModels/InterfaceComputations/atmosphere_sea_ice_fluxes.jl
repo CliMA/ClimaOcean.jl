@@ -17,7 +17,7 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
                       Tₒ = ocean.model.tracers.T,
                       Sₒ = ocean.model.tracers.S)
 
-    atmosphere_fields = coupled_model.interfaces.near_surface_atmosphere_state
+    atmosphere_fields = coupled_model.interfaces.exchanger.exchange_atmosphere_state
 
     # Simplify NamedTuple to reduce parameter space consumption.
     # See https://github.com/CliMA/ClimaOcean.jl/issues/116.
@@ -42,7 +42,7 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
     atmosphere_properties = (thermodynamics_parameters = atmosphere.thermodynamics_parameters,
                              reference_height = atmosphere.reference_height)
 
-    kernel_parameters = surface_computations_kernel_parameters(grid)
+    kernel_parameters = interface_kernel_parameters(grid)
 
     launch!(arch, grid, kernel_parameters,
             _compute_atmosphere_sea_ice_interface_state!,
