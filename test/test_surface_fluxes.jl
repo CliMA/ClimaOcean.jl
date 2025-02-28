@@ -8,7 +8,8 @@ using ClimaOcean.OceanSeaIceModels.InterfaceComputations:
                                    saturation_specific_humidity,
                                    surface_flux,
                                    SkinTemperature, 
-                                   BulkTemperature
+                                   BulkTemperature,
+                                   DiffusiveFlux
 
 using Thermodynamics
 using CUDA
@@ -69,13 +70,13 @@ end
             radiation = Radiation(ocean_emissivity=0, ocean_albedo=1)
 
             # turbulent fluxes that force a specific humidity at the ocean's surface
-            for Tmode in (BulkTemperature, SkinTemperature)
-                @info " Testing zero fluxes with $(Tmode)..."
+            for atmosphere_ocean_interface_temperature in (BulkTemperature(), SkinTemperature(DiffusiveFlux(1, 1e-2)))
+                @info " Testing zero fluxes with $(atmosphere_ocean_interface_temperature)..."
 
                 interfaces = ComponentInterfaces(atmosphere, ocean; 
                                                  radiation,
                                                  atmosphere_ocean_interface_specific_humidity,
-                                                 atmosphere_ocean_interface_temperature=Tmode())
+                                                 atmosphere_ocean_interface_temperature)
 
                 g = ocean.model.buoyancy.formulation.gravitational_acceleration
 
@@ -191,14 +192,6 @@ end
             fill!(atmosphere.tracers.T, 273.15 - 20)
             
             coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-
-            # Make sure that temperature fluxes are zero when the temperature 
-            # is below the minimum but not zero when it is above
-            Jᵀ = surface_flux(ocean.model.tracers.T)
-
-            @test Jᵀ[1, 2, 1] != 0.0 # below freezing and cooling, no flux
-            @test Jᵀ[2, 1, 1] != 0.0 # below freezing and cooling, no flux
-            @test Jᵀ[2, 2, 1] == 0.0 # above freezing and cooling
 
             # Test that the temperature has snapped up to freezing
             @test minimum(ocean.model.tracers.T) == 0

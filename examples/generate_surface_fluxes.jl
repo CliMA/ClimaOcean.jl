@@ -67,8 +67,8 @@ set!(ocean.model; T=T_metadata, S=S_metadata)
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation=Radiation())
 
-# Now that the surface fluxes are computed, we can extract and visualize them.
-# The turbulent fluxes are stored in `coupled_model.fluxes.turbulent`.
+# # Now that the surface fluxes are computed, we can extract and visualize them.
+# # The turbulent fluxes are stored in `coupled_modelinterfaces.atmosphere_ocean_interface.fluxes`.
 
 fluxes  = coupled_model.interfaces.atmosphere_ocean_interface.fluxes
 λ, φ, z = nodes(fluxes.sensible_heat)
@@ -91,4 +91,4 @@ ax = Axis(fig[3, 1], title = "Water vapor flux (kg m⁻² s⁻¹)", xlabel = "Lo
 heatmap!(ax, λ, φ, interior(fluxes.water_vapor, :, :, 1); colormap = :bwr)
 
 save("fluxes.png", fig)
-# ![](fluxes.png)
+![](fluxes.png)

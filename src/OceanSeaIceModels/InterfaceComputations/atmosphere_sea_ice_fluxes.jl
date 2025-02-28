@@ -133,7 +133,7 @@ end
     Sₛ = zero(FT) # what should we use for interface salinity?
     initial_interface_state = InterfaceState(u★, u★, u★, uᵢ, vᵢ, Tₛ, Sₛ, convert(FT, qₛ))
     land = inactive_node(i, j, kᴺ, grid, Center(), Center(), Center())
-    ice_free = hᵢ == 0
+    ice_free = ℵᵢ == 0
 
     if (land | ice_free)
         interface_state = InterfaceState(zero(FT), zero(FT), zero(FT), uᵢ, vᵢ, Tᵢ, Sₛ, zero(FT))
@@ -186,12 +186,12 @@ end
 
     @inbounds begin
         # +0: cooling, -0: heating
-        Qv[i, j, 1]  = _Qv = - ρₐ * u★ * q★ * ℰs
-        Qc[i, j, 1]  = _Qc = - ρₐ * cₚ * u★ * θ★
+        Qv[i, j, 1]  = _Qv = - ρₐ * u★ * q★ * ℰs 
+        Qc[i, j, 1]  = _Qc = - ρₐ * cₚ * u★ * θ★ 
         ΣQ[i, j, 1]  = Qu + Qd + _Qv + _Qc
-        Fv[i, j, 1]  = - ρₐ * u★ * q★
-        ρτx[i, j, 1] = + ρₐ * τx
-        ρτy[i, j, 1] = + ρₐ * τy
+        Fv[i, j, 1]  = - ρₐ * u★ * q★ 
+        ρτx[i, j, 1] = + ρₐ * τx 
+        ρτy[i, j, 1] = + ρₐ * τy 
         Ts[i, j, 1]  = convert_from_kelvin(sea_ice_properties.temperature_units, Ψₛ.T)
     end
 end
