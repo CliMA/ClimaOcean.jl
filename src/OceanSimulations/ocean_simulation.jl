@@ -1,5 +1,6 @@
-using Oceananigans.DistributedComputations: DistributedGrid
+using Oceananigans.DistributedComputations: DistributedGrid, all_reduce
 using Oceananigans.Architectures: architecture
+using Statistics: mean
 
 # Some defaults
 default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
