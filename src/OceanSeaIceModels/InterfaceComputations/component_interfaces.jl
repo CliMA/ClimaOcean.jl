@@ -1,6 +1,7 @@
 using StaticArrays
 using Thermodynamics
 using SurfaceFluxes
+using OffsetArrays
 
 using ..OceanSeaIceModels: reference_density,
                            heat_capacity,
@@ -15,7 +16,7 @@ using ClimaSeaIce: SeaIceModel
 using Oceananigans: HydrostaticFreeSurfaceModel, architecture
 using Oceananigans.Grids: inactive_node, node
 using Oceananigans.BoundaryConditions: fill_halo_regions!
-using Oceananigans.Fields: ConstantField, interpolate
+using Oceananigans.Fields: ConstantField, interpolate, FractionalIndices
 using Oceananigans.Utils: launch!, Time
 
 # using Oceananigans.OutputReaders: extract_field_time_series, update_field_time_series!
@@ -42,35 +43,56 @@ struct SeaIceOceanInterface{J, P, H, A}
     previous_ice_concentration :: A
 end
 
-struct ComponentInterfaces{AO, ASI, SIO, C, AP, OP, SIP, R, ATM}
+struct ComponentInterfaces{AO, ASI, SIO, C, AP, OP, SIP, EX}
     atmosphere_ocean_interface :: AO
     atmosphere_sea_ice_interface :: ASI
     sea_ice_ocean_interface :: SIO
     atmosphere_properties :: AP
     ocean_properties :: OP
     sea_ice_properties :: SIP
-    state_exchanger :: R
-    # Scratch space to hold the near-surface atmosphere state
-    # interpolated to the ocean grid
+    exchanger :: EX
     net_fluxes :: C
 end
 
-struct StateExchanger{ATM}
-    near_surface_atmosphere_state :: ATM
+struct StateExchanger{G, AST, AEX}
+    exchange_grid :: G
+    exchange_atmosphere_state :: AST
+    atmosphere_exchanger :: AEX
 end
 
-function StateExchanger(coupled_model)
-    ocean_grid = coupled_model.ocean.model.grid
-    near_surface_atmosphere_state = (u  = Field{Center, Center, Nothing}(ocean_grid),
-                                     v  = Field{Center, Center, Nothing}(ocean_grid),
-                                     T  = Field{Center, Center, Nothing}(ocean_grid),
-                                     q  = Field{Center, Center, Nothing}(ocean_grid),
-                                     p  = Field{Center, Center, Nothing}(ocean_grid),
-                                     Qs = Field{Center, Center, Nothing}(ocean_grid),
-                                     Qℓ = Field{Center, Center, Nothing}(ocean_grid),
-                                     Mp = Field{Center, Center, Nothing}(ocean_grid))
+function StateExchanger(ocean::Simulation, atmosphere)
+    # TODO: generalize this
+    exchange_grid = ocean.model.grid
 
-    return StateExchanger(near_surface_atmosphere_state)
+    exchange_atmosphere_state = (u  = Field{Center, Center, Nothing}(exchange_grid),
+                                 v  = Field{Center, Center, Nothing}(exchange_grid),
+                                 T  = Field{Center, Center, Nothing}(exchange_grid),
+                                 q  = Field{Center, Center, Nothing}(exchange_grid),
+                                 p  = Field{Center, Center, Nothing}(exchange_grid),
+                                 Qs = Field{Center, Center, Nothing}(exchange_grid),
+                                 Qℓ = Field{Center, Center, Nothing}(exchange_grid),
+                                 Mp = Field{Center, Center, Nothing}(exchange_grid))
+
+    # TODO: use kernel_parameters not hard code?
+    # kernel_parameters = interface_kernel_parameters(ocean_grid)
+    
+    atmos_grid = atmosphere.grid
+    arch = architecture(exchange_grid)
+    Nx, Ny, Nz = size(exchange_grid)
+    FT = eltype(atmosphere.grid)
+    frac_indices_data = Array{FractionalIndices{FT, FT, Nothing}, 3}(undef, Nx+2, Ny+2, 1)
+    frac_indices = OffsetArray(frac_indices_data, -1, -1, 0)
+    frac_indices = on_architecture(arch, frac_indices)
+    launch!(arch, exchange_grid, :xy, _compute_fractional_indices!, frac_indices, exchange_grid, atmos_grid)
+
+    return StateExchanger(ocean.model.grid, exchange_atmosphere_state, frac_indices)
+end
+
+@kernel function _compute_fractional_indices!(frac_indices, exchange_grid, atmos_grid)
+    i, j = @index(Global, NTuple)
+    kᴺ = size(exchange_grid, 3) # index of the top ocean cell
+    X = _node(i, j, kᴺ + 1, exchange_grid, c, c, f)
+    @inbounds frac_indices[i, j, 1] = FractionalIndices(X, atmos_grid, c, c, nothing)
 end
 
 const PATP = PrescribedAtmosphereThermodynamicsParameters
@@ -263,7 +285,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                   sea_ice_top    = net_top_sea_ice_fluxes,
                   sea_ice_bottom = net_bottom_sea_ice_fluxes)
 
-    exchanger = StateExchanger(coupled_model)
+    exchanger = StateExchanger(ocean, atmosphere)
 
     return ComponentInterfaces(ao_interface,
                                ai_interface,

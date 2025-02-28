@@ -25,7 +25,7 @@ function compute_net_ocean_fluxes!(coupled_model)
 
     # Simplify NamedTuple to reduce parameter space consumption.
     # See https://github.com/CliMA/ClimaOcean.jl/issues/116.
-    atmosphere_fields = coupled_model.interfaces.exchanger.near_surface_atmosphere_state
+    atmosphere_fields = coupled_model.interfaces.exchanger.exchange_atmosphere_state
 
     downwelling_radiation = (Qs = atmosphere_fields.Qs.data,
                              Qℓ = atmosphere_fields.Qℓ.data)
@@ -212,7 +212,7 @@ function compute_net_sea_ice_fluxes!(coupled_model)
 
     # Simplify NamedTuple to reduce parameter space consumption.
     # See https://github.com/CliMA/ClimaOcean.jl/issues/116.
-    atmosphere_fields = coupled_model.interfaces.exchanger.near_surface_atmosphere_state
+    atmosphere_fields = coupled_model.interfaces.exchanger.exchange_atmosphere_state
 
     downwelling_radiation = (Qs = atmosphere_fields.Qs.data,
                              Qℓ = atmosphere_fields.Qℓ.data)
