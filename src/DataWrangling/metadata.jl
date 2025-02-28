@@ -11,7 +11,7 @@ end
 
 """
    Metadata(variable_name;
-            version = ECCO4Monthly(),
+            version,
             dates = all_dates(name),
             dir = default_download_folder(version))
 
