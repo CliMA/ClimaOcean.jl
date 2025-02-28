@@ -2,7 +2,7 @@ using .InterfaceComputations:
     compute_atmosphere_ocean_fluxes!,
     compute_sea_ice_ocean_fluxes!,
     compute_net_ocean_fluxes!,
-    interpolate_atmospheric_state!
+    interpolate_atmosphere_state!
 
 using ClimaSeaIce: SeaIceModel, SeaIceThermodynamics
 
@@ -10,10 +10,12 @@ using Oceananigans.Grids: φnode
 
 using Printf
 
+
 function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_tendencies=true)
     ocean = coupled_model.ocean
     sea_ice = coupled_model.sea_ice
     atmosphere = coupled_model.atmosphere
+    clock = coupled_model.clock
 
     # Be paranoid and update state at iteration 0
     coupled_model.clock.iteration == 0 && update_state!(coupled_model, callbacks)
@@ -41,7 +43,8 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
     time_step!(ocean)
 
     # Time step the atmosphere
-    time_step!(atmosphere, Δt)
+    synchronize_clock!(atmosphere, clock)
+    time_step!(atmosphere)
 
     # TODO:
     # - Store fractional ice-free / ice-covered _time_ for more
@@ -55,7 +58,7 @@ end
 function update_state!(coupled_model::OceanSeaIceModel, callbacks=[]; compute_tendencies=true)
     
     # This function needs to be specialized to allow different atmospheric models
-    interpolate_atmospheric_state!(coupled_model) 
+    interpolate_atmosphere_state!(coupled_model.interfaces, coupled_model.atmosphere, coupled_model) 
 
     # Compute interface states
     compute_atmosphere_ocean_fluxes!(coupled_model)
