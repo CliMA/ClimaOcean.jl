@@ -16,7 +16,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
                    T = ocean.model.tracers.T,
                    S = ocean.model.tracers.S)
 
-    atmosphere_fields = coupled_model.interfaces.near_surface_atmosphere_state
+    atmosphere_fields = coupled_model.interfaces.exchanger.near_surface_atmosphere_state
 
     # Simplify NamedTuple to reduce parameter space consumption.
     # See https://github.com/CliMA/ClimaOcean.jl/issues/116.

@@ -17,14 +17,15 @@ underlying_grid = TripolarGrid(arch; size=(Nx, Ny, Nz), z=z_faces)
 
 bottom_height = regrid_bathymetry(underlying_grid; minimum_depth=30, interpolation_passes=20, major_basins=1)
 view(bottom_height, 73:78, 88:89, 1) .= -1000 # open Gibraltar strait 
-grid = ImmersedBoundaryGrid(underlying_grid, PartialCellBottom(bottom_height); active_cells_map=true)
-heatmap(interior(grid.immersed_boundary.bottom_height, :, :, 1))
 
-gm = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1000, κ_symmetric=1000)
+grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); active_cells_map=true)
+
 catke = ClimaOcean.OceanSimulations.default_ocean_closure()
 viscous_closure = Oceananigans.TurbulenceClosures.HorizontalScalarDiffusivity(ν=2000)
-#closure = (gm, catke, viscous_closure)
 closure = (catke, viscous_closure)
+
+#gm = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1000, κ_symmetric=1000)
+#closure = (gm, catke, viscous_closure)
 
 dates = DateTime(1993, 1, 1) : Month(1) : DateTime(1993, 11, 1)
 mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(-100, 0))
@@ -37,17 +38,17 @@ forcing = (T=FT, S=FS)
 
 momentum_advection = VectorInvariant()
 tracer_advection = Centered(order=2)
-free_surface = SplitExplicitFreeSurface(grid; substeps=30)
-ocean = ocean_simulation(grid; momentum_advection, tracer_advection, free_surface) #, forcing)
+free_surface = SplitExplicitFreeSurface(grid; substeps=70)
+ocean = ocean_simulation(grid; momentum_advection, tracer_advection, free_surface, forcing)
                          
 set!(ocean.model, T=ECCOMetadata(:temperature; dates=first(dates)),
                   S=ECCOMetadata(:salinity;    dates=first(dates)))
 
 radiation  = Radiation(arch)
-atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(20))
+atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(41))
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation) 
-simulation = Simulation(coupled_model; Δt=1e-16, stop_iteration=100)
+simulation = Simulation(coupled_model; Δt=20minutes, stop_iteration=100)
 
 wall_time = Ref(time_ns())
 
@@ -72,6 +73,7 @@ function progress(sim)
      return nothing
 end
 
-add_callback!(simulation, progress, IterationInterval(1))
+add_callback!(simulation, progress, IterationInterval(10))
 
 run!(simulation)
+

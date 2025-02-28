@@ -42,17 +42,35 @@ struct SeaIceOceanInterface{J, P, H, A}
     previous_ice_concentration :: A
 end
 
-struct ComponentInterfaces{AO, ASI, SIO, C, AP, OP, SIP, ATM}
+struct ComponentInterfaces{AO, ASI, SIO, C, AP, OP, SIP, R, ATM}
     atmosphere_ocean_interface :: AO
     atmosphere_sea_ice_interface :: ASI
     sea_ice_ocean_interface :: SIO
     atmosphere_properties :: AP
     ocean_properties :: OP
     sea_ice_properties :: SIP
+    state_exchanger :: R
     # Scratch space to hold the near-surface atmosphere state
     # interpolated to the ocean grid
-    near_surface_atmosphere_state :: ATM
     net_fluxes :: C
+end
+
+struct StateExchanger{ATM}
+    near_surface_atmosphere_state :: ATM
+end
+
+function StateExchanger(coupled_model)
+    ocean_grid = coupled_model.ocean.model.grid
+    near_surface_atmosphere_state = (u  = Field{Center, Center, Nothing}(ocean_grid),
+                                     v  = Field{Center, Center, Nothing}(ocean_grid),
+                                     T  = Field{Center, Center, Nothing}(ocean_grid),
+                                     q  = Field{Center, Center, Nothing}(ocean_grid),
+                                     p  = Field{Center, Center, Nothing}(ocean_grid),
+                                     Qs = Field{Center, Center, Nothing}(ocean_grid),
+                                     Qℓ = Field{Center, Center, Nothing}(ocean_grid),
+                                     Mp = Field{Center, Center, Nothing}(ocean_grid))
+
+    return StateExchanger(near_surface_atmosphere_state)
 end
 
 const PATP = PrescribedAtmosphereThermodynamicsParameters
@@ -245,13 +263,15 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                   sea_ice_top    = net_top_sea_ice_fluxes,
                   sea_ice_bottom = net_bottom_sea_ice_fluxes)
 
+    exchanger = StateExchanger(coupled_model)
+
     return ComponentInterfaces(ao_interface,
                                ai_interface,
                                io_interface,
                                atmosphere_properties,
                                ocean_properties,
                                sea_ice_properties,
-                               near_surface_atmosphere_state(ocean.model.grid),
+                               exchanger,
                                net_fluxes)
 end
 
@@ -267,16 +287,3 @@ function sea_ice_similarity_theory(sea_ice::SeaIceSimulation)
     return SimilarityTheoryFluxes(; interface_temperature_type)
 end
 
-function near_surface_atmosphere_state(ocean_grid)
-    interface_atmosphere_state = (u  = Field{Center, Center, Nothing}(ocean_grid),
-                                  v  = Field{Center, Center, Nothing}(ocean_grid),
-                                  T  = Field{Center, Center, Nothing}(ocean_grid),
-                                  q  = Field{Center, Center, Nothing}(ocean_grid),
-                                  p  = Field{Center, Center, Nothing}(ocean_grid),
-                                  Qs = Field{Center, Center, Nothing}(ocean_grid),
-                                  Qℓ = Field{Center, Center, Nothing}(ocean_grid),
-                                  Mp = Field{Center, Center, Nothing}(ocean_grid))
-
-    return interface_atmosphere_state
-end
-    
