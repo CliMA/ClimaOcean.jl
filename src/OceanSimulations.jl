@@ -9,7 +9,6 @@ using Oceananigans.Grids: architecture
 using Oceananigans.Advection: FluxFormAdvection
 using Oceananigans.DistributedComputations: DistributedGrid, all_reduce
 using Oceananigans.BoundaryConditions: DefaultBoundaryCondition
-using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node, MutableGridOfSomeKind
 using OrthogonalSphericalShellGrids
 
