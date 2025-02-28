@@ -120,7 +120,7 @@ function progress(sim)
 
     τx = first(sim.model.interfaces.net_fluxes.ocean_surface.u)
     τy = first(sim.model.interfaces.net_fluxes.ocean_surface.v)
-    Q = first(sim.model.interfaces.net_fluxes.ocean_surface.Q)
+    Q  = first(sim.model.interfaces.net_fluxes.ocean_surface.Q)
 
     u★ = sqrt(sqrt(τx^2 + τy^2))
 
@@ -247,7 +247,7 @@ tn = @lift times[$n]
 
 colors = Makie.wong_colors()
 
-ρₒ = coupled_model.fluxes.ocean_reference_density
+ρₒ = coupled_model.interfaces.ocean_properties.reference_density
 τx = interior(ρτx, 1, 1, 1, :) ./ ρₒ
 τy = interior(ρτy, 1, 1, 1, :) ./ ρₒ
 u★ = @. (τx^2 + τy^2)^(1/4)

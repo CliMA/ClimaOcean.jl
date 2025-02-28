@@ -13,7 +13,7 @@ struct ScalarRoughnessLength{FT, V, R}
 end
 
 """
-    ScalarRoughnessLength([FT=Float64];
+    ScalarRoughnessLength(FT = Float64;
                           air_kinematic_viscosity = temperature_dependent_viscosity,
                           reynolds_number_scaling_function = empirical_scaling_function,
                           maximum_roughness_length = 1.6e-4)
@@ -28,7 +28,7 @@ Keyword Arguments
 - `reynolds_number_scaling_function::Function`: The function to compute the Reynolds number scaling factor.
 - `maximum_roughness_length::Float`: The maximum roughness length value. Defaults to `1.6e-4`.
 """
-function ScalarRoughnessLength(FT=Float64;
+function ScalarRoughnessLength(FT=Oceananigans.defaults.FloatType;
                                air_kinematic_viscosity = TemperatureDependentAirViscosity(FT),
                                reynolds_number_scaling_function = ReynoldsScalingFunction(FT),
                                maximum_roughness_length = 1.6e-4) # Values from COARE3.6
@@ -39,7 +39,7 @@ function ScalarRoughnessLength(FT=Float64;
 end
 
 """
-    MomentumRoughnessLength([FT=Float64];
+    MomentumRoughnessLength(FT = Float64;
                             gravitational_acceleration = default_gravitational_acceleration,
                             maximum_roughness_length = 1.0,
                             air_kinematic_viscosity = TemperatureDependentAirViscosity(FT),
@@ -58,7 +58,7 @@ Keyword Arguments
 - `gravity_wave_parameter`: The wave parameter. Default: 0.011.
 - `laminar_parameter`: The laminar parameter. Default: 0.11.
 """
-function MomentumRoughnessLength(FT=Float64;
+function MomentumRoughnessLength(FT=Oceananigans.defaults.FloatType;
                                  gravitational_acceleration = default_gravitational_acceleration,
                                  maximum_roughness_length = 1.0, # An estimate?
                                  air_kinematic_viscosity = TemperatureDependentAirViscosity(FT),
@@ -72,7 +72,7 @@ function MomentumRoughnessLength(FT=Float64;
                                           convert(FT, maximum_roughness_length))
 end
 
-function default_roughness_lengths(FT=Float64)
+function default_roughness_lengths(FT=Oceananigans.defaults.FloatType)
     momentum    = MomentumRoughnessLength(FT)
     temperature = ScalarRoughnessLength(FT)
     water_vapor = ScalarRoughnessLength(FT)
@@ -88,7 +88,7 @@ struct TemperatureDependentAirViscosity{FT}
 end
 
 """
-    TemperatureDependentAirViscosity([FT = Float64;
+    TemperatureDependentAirViscosity([FT = Oceananigans.defaults.FloatType;
                                       C₀ = 1.326e-5,
                                       C₁ = C₀ * 6.542e-3,
                                       C₂ = C₀ * 8.301e-6,
@@ -100,7 +100,7 @@ viscosity of air as
 C₀ + C₁ T + C₂ T^2 + C₃ T^3.
 ```
 """
-function TemperatureDependentAirViscosity(FT = Float64;
+function TemperatureDependentAirViscosity(FT = Oceananigans.defaults.FloatType;
                                           C₀ = 1.326e-5,
                                           C₁ = C₀ * 6.542e-3,
                                           C₂ = C₀ * 8.301e-6,
@@ -148,7 +148,7 @@ struct ReynoldsScalingFunction{FT}
 end
 
 """
-    ReynoldsScalingFunction(FT = Float64; A = 5.85e-5, b = 0.72)
+    ReynoldsScalingFunction(FT=Float64; A=5.85e-5, b=0.72)
 
 Empirical fit of the scalar roughness length with roughness Reynolds number `R★ = u★ ℓu / ν`.
 Edson et al. (2013), equation (28).
@@ -156,7 +156,7 @@ Edson et al. (2013), equation (28).
     ℓs = A / R★ ^ b
 ```
 """
-ReynoldsScalingFunction(FT = Float64; A = 5.85e-5, b = 0.72) = 
+ReynoldsScalingFunction(FT = Oceananigans.defaults.FloatType; A = 5.85e-5, b = 0.72) = 
     ReynoldsScalingFunction(convert(FT, A), convert(FT, b))
 
 @inline (s::ReynoldsScalingFunction)(R★, args...) = ifelse(R★ == 0, convert(eltype(R★), 0), s.A / R★ ^ s.b)
