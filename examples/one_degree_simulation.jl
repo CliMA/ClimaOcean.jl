@@ -1,7 +1,8 @@
 # # One-degree global ocean simulation
 #
 # This example configures a global ocean--sea ice simulation at 1ᵒ horizontal resolution with
-# realistic bathymetry and some closures.
+# realistic bathymetry, few closures. The simulation is forced by JRA55 atmospheric reanalysis
+# and initialized by temperature and salinity from ECCO2 state estimate.
 #
 # For this example, we need Oceananigans, ClimaOcean, OrthogonalSphericalShellGrids, and
 # CairoMakie to visualize the simulation. Also we need CFTime and Dates for date handling.
