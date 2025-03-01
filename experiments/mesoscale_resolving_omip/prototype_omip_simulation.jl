@@ -6,7 +6,6 @@ using OrthogonalSphericalShellGrids
 using Oceananigans
 using Oceananigans: architecture
 using Oceananigans.Grids: on_architecture
-using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.Units
 using ClimaOcean
 using ClimaOcean.OceanSimulations
@@ -42,24 +41,24 @@ Nz = length(z_faces) - 1
 
 arch = GPU() #Distributed(GPU(), partition = Partition(2))
 
-grid = TripolarGrid(arch; 
-                    size = (Nx, Ny, Nz), 
-                    halo = (7, 7, 7), 
-                    z = z_faces, 
+grid = TripolarGrid(arch;
+                    size = (Nx, Ny, Nz),
+                    halo = (7, 7, 7),
+                    z = z_faces,
                     north_poles_latitude = 55,
                     first_pole_longitude = 75)
 
-bottom_height = retrieve_bathymetry(grid, bathymetry_file; 
+bottom_height = retrieve_bathymetry(grid, bathymetry_file;
                                     minimum_depth = 10,
                                     dir = "./",
                                     interpolation_passes = 20,
                                     connected_regions_allowed = 0)
- 
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true) 
+
+grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true)
 
 #####
 ##### The Ocean component
-#####                             
+#####
 
 free_surface = SplitExplicitFreeSurface(grid; cfl = 0.75, fixed_Δt = 600)
 
@@ -78,7 +77,7 @@ A⁺ = [ x₁^3   x₁^2  x₁ 1
        x₂^3   x₂^2  x₂ 1
        3*x₁^2 2*x₁  1  0
        3*x₂^2 2*x₂  1  0]
-           
+
 b⁺ = [y₁, y₂, 0, 0]
 c⁺ = A⁺ \ b⁺
 
@@ -109,7 +108,7 @@ FS = ECCO_restoring_forcing(salinity;    mask, grid, architecture = arch, timesc
 
 forcing = (; T = FT, S = FS)
 
-ocean = ocean_simulation(grid; free_surface, forcing) 
+ocean = ocean_simulation(grid; free_surface, forcing)
 model = ocean.model
 
 initial_date = dates[1]
@@ -118,15 +117,15 @@ initial_date = dates[1]
 ##### The atmosphere
 #####
 
-backend = JRA55NetCDFBackend(4) 
+backend = JRA55NetCDFBackend(4)
 atmosphere = JRA55PrescribedAtmosphere(arch; backend)
 radiation = Radiation(arch)
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 
 wall_time = [time_ns()]
 
-function progress(sim) 
-    u, v, w = sim.model.velocities  
+function progress(sim)
+    u, v, w = sim.model.velocities
     T, S = sim.model.tracers
 
     Tmax = maximum(interior(T))
@@ -169,7 +168,7 @@ ocean.output_writers[:snapshots] = JLD2OutputWriter(model, merge(model.tracers, 
                                                     array_type = Array{Float32},
                                                     filename = "snapshots")
 
-ocean.output_writers[:checkpoint] = Checkpointer(model, 
+ocean.output_writers[:checkpoint] = Checkpointer(model,
                                                  schedule = TimeInterval(60days),
                                                  overwrite_existing = true,
                                                  prefix = "checkpoint")
@@ -182,10 +181,10 @@ ocean.Δt = 10
 if isnothing(restart)
 
     # Set simulation from ECCO2 fields
-    set!(ocean.model, 
+    set!(ocean.model,
          T = ECCOMetadata(:temperature, initial_date, ECCO2Daily()),
          S = ECCOMetadata(:salinity,    initial_date, ECCO2Daily()))
-    
+
     # Simulation warm up!
     wizard = TimeStepWizard(; cfl = 0.1, max_Δt = 1.5minutes, max_change = 1.1)
     ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
