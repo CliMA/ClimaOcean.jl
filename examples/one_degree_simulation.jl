@@ -251,7 +251,7 @@ Colorbar(fig[2, 2], hm, label = "Surface Temperature (ᵒC)")
 hm = heatmap!(axe, en, colorrange = (0, 1e-3), colormap = :solar, nan_color=:lightgray)
 Colorbar(fig[3, 2], hm, label = "Turbulent Kinetic Energy (m² s⁻²)")
 
-save("/g/data/v46/txs156/ClimaOcean.jl/Figures/global_snapshot.png", fig)
+save("global_snapshot.png", fig)
 nothing #hide
 
 # ![](global_snapshot.png)
