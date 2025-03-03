@@ -43,7 +43,8 @@ function sea_ice_simulation(grid;
     ice_thermodynamics = SlabSeaIceThermodynamics(grid;
                                                   internal_heat_flux,
                                                   phase_transitions,
-                                                  top_heat_boundary_condition)
+                                                  top_heat_boundary_condition,
+                                                  bottom_heat_boundary_condition)
 
     bottom_heat_flux = Field{Center, Center, Nothing}(grid)
     top_heat_flux    = Field{Center, Center, Nothing}(grid)
