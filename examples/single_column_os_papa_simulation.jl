@@ -97,11 +97,8 @@ lines!(axq, t_days, qa)
 current_figure()
 
 # We continue constructing a simulation.
-# For the fluxes computation we use a `SkinTemperature` formulation that computes
-# the skin temperature from a balance between internal and external heat fluxes.
-
 radiation = Radiation()
-coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation) 
+coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 simulation = Simulation(coupled_model, Δt=ocean.Δt, stop_time=30days)
 
 wall_clock = Ref(time_ns())
@@ -136,20 +133,22 @@ function progress(sim)
     msg *= @sprintf(", e₀: %.2e m² s⁻²", first(interior(e, 1, 1, Nz)))
 
     @info msg
+
+    return nothing
 end
 
 simulation.callbacks[:progress] = Callback(progress, IterationInterval(100))
 
 # Build flux outputs
-τx = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.x_momentum
-τy = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.y_momentum
-JT = coupled_model.interfaces.net_fluxes.ocean_surface.T
-Js = coupled_model.interfaces.net_fluxes.ocean_surface.S
-E  = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.water_vapor
-Qc = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.sensible_heat
-Qv = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.latent_heat
-ρₒ = coupled_model.interfaces.ocean_properties.reference_density
-cₚ = coupled_model.interfaces.ocean_properties.heat_capacity
+τx = simulation.model.interfaces.net_fluxes.ocean_surface.u
+τy = simulation.model.interfaces.net_fluxes.ocean_surface.v
+JT = simulation.model.interfaces.net_fluxes.ocean_surface.T
+Js = simulation.model.interfaces.net_fluxes.ocean_surface.S
+E  = simulation.model.interfaces.atmosphere_ocean_interface.fluxes.water_vapor
+Qc = simulation.model.interfaces.atmosphere_ocean_interface.fluxes.sensible_heat
+Qv = simulation.model.interfaces.atmosphere_ocean_interface.fluxes.latent_heat
+ρₒ = simulation.model.interfaces.ocean_properties.reference_density
+cₚ = simulation.model.interfaces.ocean_properties.heat_capacity
 
 Q = ρₒ * cₚ * JT
 ρτx = ρₒ * τx
