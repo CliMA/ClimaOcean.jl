@@ -32,8 +32,8 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
         end
 
         sea_ice.Δt = Δt
-        # thermodynamic_sea_ice_time_step!(coupled_model)
-        time_step!(sea_ice)
+        thermodynamic_sea_ice_time_step!(coupled_model)
+        # time_step!(sea_ice)
     end
 
     # TODO after ice time-step:
@@ -81,6 +81,7 @@ function thermodynamic_sea_ice_time_step!(coupled_model)
     thermodynamics = model.ice_thermodynamics
     ice_thickness = model.ice_thickness
     ice_concentration = model.ice_concentration
+    ice_consolidation_thickness = model.ice_consolidation_thickness
     top_external_heat_flux = model.external_heat_fluxes.top
     bottom_external_heat_flux = model.external_heat_fluxes.bottom
     ocean_salinity = coupled_model.ocean.model.tracers.S
@@ -89,6 +90,7 @@ function thermodynamic_sea_ice_time_step!(coupled_model)
             ice_thickness,
             grid, Δt,
             ice_concentration,
+            ice_consolidation_thickness,
             ocean_salinity,
             thermodynamics,
             top_external_heat_flux,
@@ -108,6 +110,7 @@ end
 @kernel function update_thickness!(ice_thickness,
                                    grid, Δt,
                                    ice_concentration,
+                                   ice_consolidation_thickness,
                                    ocean_salinity,
                                    thermodynamics,
                                    top_external_heat_flux,
@@ -128,7 +131,7 @@ end
     Tu = thermodynamics.top_surface_temperature
 
     @inbounds begin
-        hᶜ = thermodynamics.ice_consolidation_thickness
+        hᶜ = ice_consolidation_thickness[i, j, kᴺ]
         hᵢ = ice_thickness[i, j, kᴺ]
         ℵᵢ = ice_concentration[i, j, kᴺ]
     end
