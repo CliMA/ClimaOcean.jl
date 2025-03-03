@@ -58,13 +58,6 @@ end
     θ★ = Ch / sqrt(Cd) * Δθ
     q★ = Cq / sqrt(Cd) * Δq
 
-    # ρₐ cₐ u★ θ★ 
-
-    # - 2e-3 / sqrt(5e-4) * 10
-
-    # -0.8944271909999159
-    # u★ = sqrt(2e-3) 
-
     return u★, θ★, q★
 end
 
