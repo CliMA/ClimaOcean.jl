@@ -32,8 +32,7 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
         end
 
         sea_ice.Δt = Δt
-        thermodynamic_sea_ice_time_step!(coupled_model)
-        # time_step!(sea_ice)
+        time_step!(sea_ice)
     end
 
     # TODO after ice time-step:
@@ -168,7 +167,6 @@ end
 
     Δh_top = w_top * Δt * ℵᵢ
     Δh_bot = w_bot * Δt * ℵᵢ
-
     ΔV_frz = w_frz * Δt # frazil flux contributes from entire cell
 
     # Compute frazil growth: lateral first, then vertical

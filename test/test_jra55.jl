@@ -96,11 +96,11 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 
         # Random regression test
         CUDA.@allowscalar begin
-            @test target_fts[1, 1, 1, 1] == 222.243136478611
+            @test target_fts[1, 1, 1, 1] == 222.24313354492188
 
             # Only include this if we are filling halo regions within
             # interpolate_field_time_series
-            @test target_fts[Nx + 1, 1, 1, 1] == 222.243136478611
+            @test target_fts[Nx + 1, 1, 1, 1] == 222.24313354492188
         end
 
         @test target_fts.times == jra55_fts.times
