@@ -14,8 +14,20 @@ using OrthogonalSphericalShellGrids
 using CFTime
 using Dates
 using Printf
+using ClimaOcean.ECCO: download_dataset
 
 arch = GPU()
+
+# ### Download necessary files to run the code
+
+# ### ECCO files
+
+dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1994, 1, 1)
+temperature = ECCOMetadata(:temperature; dates, version=ECCO4Monthly(), dir="./")
+salinity    = ECCOMetadata(:salinity;    dates, version=ECCO4Monthly(), dir="./")
+
+download_dataset(temperature)
+download_dataset(salinity)
 
 # ### Grid and Bathymetry
 
@@ -34,10 +46,9 @@ underlying_grid = TripolarGrid(arch;
                                north_poles_latitude = 55)
 
 bottom_height = regrid_bathymetry(underlying_grid;
-                                  minimum_depth = 10,
-                                  interpolation_passes = 75,
-                                  major_basins = 2)
-
+                                minimum_depth = 10,
+                               interpolation_passes = 75,
+				major_basins = 2)
 # For this bathymetry at this horizontal resolution we need to manually open the Gibraltar strait.
 view(bottom_height, 102:103, 124, 1) .= -400
 grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); active_cells_map=true)
@@ -45,15 +56,10 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); ac
 # ### Restoring
 #
 # We include temperature and salinity surface restoring to ECCO data.
-
 restoring_rate  = 1 / 10days
 z_below_surface = r_faces[end-1]
 
 mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(z_below_surface, 0))
-
-dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1994, 1, 1)
-temperature = ECCOMetadata(:temperature; dates, version=ECCO4Monthly(), dir="./")
-salinity    = ECCOMetadata(:salinity;    dates, version=ECCO4Monthly(), dir="./")
 
 FT = ECCORestoring(temperature, grid; mask, rate=restoring_rate)
 FS = ECCORestoring(salinity,    grid; mask, rate=restoring_rate)
