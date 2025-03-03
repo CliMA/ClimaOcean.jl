@@ -41,7 +41,7 @@ function interpolate_atmospheric_state!(coupled_model)
     atmosphere_time_indexing = u.time_indexing
 
     atmosphere_fields = coupled_model.interfaces.exchanger.exchange_atmosphere_state
-    space_interp_indices = coupled_model.interfaces.exchanger.atmosphere_exchanger
+    space_fractional_indices = coupled_model.interfaces.exchanger.atmosphere_exchanger
     exchange_grid = coupled_model.interfaces.exchanger.exchange_grid
 
     # Simplify NamedTuple to reduce parameter space consumption.
@@ -59,14 +59,13 @@ function interpolate_atmospheric_state!(coupled_model)
 
     # Assumption, should be generalized
     ua = atmosphere.velocities.u
-    time_interp_indices = TimeInterpolator(ua, clock.time)
+    time_interpolator = TimeInterpolator(ua, clock.time)
     
-    #=
     launch!(arch, grid, kernel_parameters,
             _interpolate_primary_atmospheric_state!,
             atmosphere_data,
-            space_interp_indices,
-            time_interp_indices,
+            space_fractional_indices,
+            time_interpolator,
             exchange_grid,
             atmosphere_velocities,
             atmosphere_tracers,
@@ -109,12 +108,11 @@ function interpolate_atmospheric_state!(coupled_model)
     if !isnothing(barotropic_potential)
         parent(barotropic_potential) .= parent(atmosphere_data.p) ./ ρₒ
     end
-    =#
 end
     
 @kernel function _interpolate_primary_atmospheric_state!(surface_atmos_state,
-                                                         space_interp_indices,
-                                                         time_interp_indices,
+                                                         space_fractional_indices,
+                                                         time_interpolator,
                                                          exchange_grid,
                                                          atmos_velocities,
                                                          atmos_tracers,
@@ -127,8 +125,8 @@ end
     i, j = @index(Global, NTuple)
 
     @inbounds begin
-        x_itp = space_interp_indices[i, j, 1]
-        t_itp = time_interp_indices
+        x_itp = space_fractional_indices[i, j, 1]
+        t_itp = time_interpolator
         atmos_args = (x_itp, t_itp, atmos_backend, atmos_time_indexing)
 
         uₐ = interp_atmos_time_series(atmos_velocities.u, atmos_args...)

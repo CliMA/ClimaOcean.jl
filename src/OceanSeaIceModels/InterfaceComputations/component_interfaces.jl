@@ -80,10 +80,15 @@ function StateExchanger(ocean::Simulation, atmosphere)
     arch = architecture(exchange_grid)
     Nx, Ny, Nz = size(exchange_grid)
     FT = eltype(atmosphere.grid)
-    frac_indices_data = Array{FractionalIndices{FT, FT, Nothing}, 3}(undef, Nx+2, Ny+2, 1)
+
+    #frac_indices_data = Array{FractionalIndices{FT, FT, Nothing}, 3}(undef, Nx+2, Ny+2, 1)
+    frac_indices_data = [FractionalIndices(zero(FT), zero(FT), nothing) for i=1:Nx+2, j=1:Ny+2, k=1:1]
     frac_indices = OffsetArray(frac_indices_data, -1, -1, 0)
     frac_indices = on_architecture(arch, frac_indices)
-    launch!(arch, exchange_grid, :xy, _compute_fractional_indices!, frac_indices, exchange_grid, atmos_grid)
+
+    kernel_parameters = interface_kernel_parameters(exchange_grid)
+    launch!(arch, exchange_grid, kernel_parameters,
+            _compute_fractional_indices!, frac_indices, exchange_grid, atmos_grid)
 
     return StateExchanger(ocean.model.grid, exchange_atmosphere_state, frac_indices)
 end
@@ -92,6 +97,7 @@ end
     i, j = @index(Global, NTuple)
     kᴺ = size(exchange_grid, 3) # index of the top ocean cell
     X = _node(i, j, kᴺ + 1, exchange_grid, c, c, f)
+    # @show FractionalIndices(X, atmos_grid, c, c, nothing)
     @inbounds frac_indices[i, j, 1] = FractionalIndices(X, atmos_grid, c, c, nothing)
 end
 
