@@ -1,6 +1,6 @@
 using Oceananigans.Operators: intrinsic_vector
 using Oceananigans.Grids: _node
-using Oceananigans.OutputReaders: InterpolatingTimeIndices
+using Oceananigans.OutputReaders: TimeInterpolator
 
 using ...OceanSimulations: forcing_barotropic_potential
 
@@ -59,7 +59,7 @@ function interpolate_atmospheric_state!(coupled_model)
 
     # Assumption, should be generalized
     ua = atmosphere.velocities.u
-    time_interp_indices = InterpolatingTimeIndices(ua, clock.time)
+    time_interp_indices = TimeInterpolator(ua, clock.time)
     
     #=
     launch!(arch, grid, kernel_parameters,
