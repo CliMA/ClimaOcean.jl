@@ -131,7 +131,7 @@ end
 
     @inbounds begin
         ℵᵢ   = ℵ[i, j, 1]
-        Qio  = sea_ice_ocean_fluxes.interfacial_heat[i, j, 1]
+        Qio  = sea_ice_ocean_fluxes.interface_heat[i, j, 1]
         Jˢio = sea_ice_ocean_fluxes.salt[i, j, 1]
         Jᵀio = Qio * ρₒ⁻¹ / cₒ
 
@@ -217,7 +217,7 @@ end
         Qc = atmosphere_sea_ice_fluxes.sensible_heat[i, j, 1] # sensible or "conductive" heat flux
         Qv = atmosphere_sea_ice_fluxes.latent_heat[i, j, 1]   # latent heat flux
         Qf = sea_ice_ocean_fluxes.frazil_heat[i, j, 1]        # frazil heat flux
-        Qi = sea_ice_ocean_fluxes.interfacial_heat[i, j, 1]   # interfacial heat flux
+        Qi = sea_ice_ocean_fluxes.interface_heat[i, j, 1]   # interfacial heat flux
     end
 
     # Compute radiation fluxes

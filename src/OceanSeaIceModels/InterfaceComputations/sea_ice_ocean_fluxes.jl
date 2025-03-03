@@ -11,7 +11,7 @@ function compute_sea_ice_ocean_latent_heat_flux!(coupled_model)
     ocean = coupled_model.ocean
     sea_ice = coupled_model.sea_ice
     Qᶠₒ = coupled_model.interfaces.sea_ice_ocean_interface.fluxes.frazil_heat
-    Qᵢₒ = coupled_model.interfaces.sea_ice_ocean_interface.fluxes.interfacial_heat
+    Qᵢₒ = coupled_model.interfaces.sea_ice_ocean_interface.fluxes.interface_heat
     
     interface_properties = coupled_model.interfaces.sea_ice_ocean_interface.properties 
    
@@ -34,7 +34,7 @@ function compute_sea_ice_ocean_latent_heat_flux!(coupled_model)
 end
 
 @kernel function _compute_sea_ice_ocean_latent_heat_flux!(frazil_heat_flux,
-                                                          interfacial_heat_flux,
+                                                          interface_heat_flux,
                                                           grid,
                                                           ice_concentration,
                                                           ocean_temperature,
@@ -48,7 +48,7 @@ end
 
     Nz  = size(grid, 3)
     Qᶠₒ = frazil_heat_flux
-    Qᵢₒ = interfacial_heat_flux
+    Qᵢₒ = interface_heat_flux
     Tₒ  = ocean_temperature
     Sₒ  = ocean_salinity
     ρₒ  = ocean_properties.reference_density
