@@ -2,6 +2,7 @@ using StaticArrays
 using Thermodynamics
 using SurfaceFluxes
 using OffsetArrays
+using CUDA: @allowscalar
 
 using ..OceanSeaIceModels: reference_density,
                            heat_capacity,
@@ -82,7 +83,7 @@ function StateExchanger(ocean::Simulation, atmosphere)
 
     # Make an array of FractionalIndices
     kᴺ = size(exchange_grid, 3)
-    X1 = _node(1, 1, kᴺ + 1, exchange_grid, c, c, f)
+    @allowscalar X1 = _node(1, 1, kᴺ + 1, exchange_grid, c, c, f)
     i1 = FractionalIndices(X1, atmosphere.grid, c, c, nothing)
     frac_indices_data = [deepcopy(i1) for i=1:Nx+2, j=1:Ny+2, k=1:1]
     frac_indices = OffsetArray(frac_indices_data, -1, -1, 0)
