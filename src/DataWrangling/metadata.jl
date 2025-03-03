@@ -93,9 +93,9 @@ function native_times(metadata; start_time=first(metadata).dates)
     times = zeros(length(metadata))
     for (t, data) in enumerate(metadata)
         date = data.dates
-        time = date - start_time
-        time = Second(time).value
-        times[t] = time
+        delta = date - start_time
+        delta = Second(delta).value
+        times[t] = delta
     end
 
     return times
