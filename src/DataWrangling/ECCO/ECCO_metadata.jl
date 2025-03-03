@@ -45,7 +45,7 @@ Base.summary(md::ECCOMetadata) = string("ECCOMetadata{", versionstr(md), "} of "
                  dates = DateTime(1993, 1, 1),
                  version = ECCO4Monthly(),
                  dir = download_ECCO_cache)
-version
+
 Construct an `ECCOMetadata` object with the specified parameters.
 
 Arguments
