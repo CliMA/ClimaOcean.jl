@@ -85,10 +85,10 @@ atmosphere  = JRA55PrescribedAtmosphere(arch, backend=JRA55NetCDFBackend(20))
 radiation   = Radiation(ocean_albedo = LatitudeDependentAlbedo(), sea_ice_albedo=0.6)
 
 set!(ocean.model, T=temperature, S=salinity) 
-set!(sea_ice.model, h=ice_thickness, ℵ=ice_concentration)
+set!(sea_ice.model.ice_thickness,     ice_thickness,     inpainting=NearestNeighborInpainting(1))
+set!(sea_ice.model.ice_concentration, ice_concentration, inpainting=NearestNeighborInpainting(1))
 
 earth_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-
 earth = Simulation(earth_model; Δt=30minutes, stop_iteration=10, stop_time=30days)
 
 u, v, _ = ocean.model.velocities

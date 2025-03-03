@@ -7,7 +7,7 @@
 # CairoMakie to visualize the simulation. Also we need CFTime and Dates for date handling.
 
 using ClimaOcean
-using ClimaOcean.ECCO: ECCO4Monthly, NearestNeighborInpainting
+using ClimaOcean.ECCO
 using Oceananigans
 using Oceananigans.Units
 using OrthogonalSphericalShellGrids
@@ -15,7 +15,7 @@ using CFTime
 using Dates
 using Printf
 
-arch = CPU()
+arch = GPU()
 
 # ### Grid and Bathymetry
 
@@ -39,15 +39,13 @@ bottom_height = regrid_bathymetry(underlying_grid;
                                   major_basins = 2)
 
 # For this bathymetry at this horizontal resolution we need to manually open the Gibraltar strait.
-tampered_bottom_height = deepcopy(bottom_height)
-view(tampered_bottom_height, 102:103, 124, 1) .= -400
-
-grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(tampered_bottom_height);
-                            active_cells_map=true)
+view(bottom_height, 102:103, 124, 1) .= -400
+grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
 # ### Restoring
+#
+# We include temperature and salinity surface restoring to ECCO data.
 
-# We include temperature and salinity surface restoring to ECCO2.
 restoring_rate  = 1 / 10days
 z_below_surface = r_faces[end-1]
 
@@ -62,7 +60,6 @@ FS = ECCORestoring(salinity,    grid; mask, rate=restoring_rate)
 forcing = (T=FT, S=FS)
 
 # ### Closures
-
 # We include a Gent-McWilliam isopycnal diffusivity as a parameterization for the mesoscale
 # eddy fluxes. For vertical mixing at the upper-ocean boundary layer we include the CATKE
 # parameterization. We also include some explicit horizontal diffusivity.
@@ -77,7 +74,6 @@ vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
 closure = (eddy_closure, vertical_mixing)
 
 # ### Ocean simulation
-
 # Now we bring everything together to construct the ocean simulation.
 # We use a split-explicit timestepping with 30 substeps for the barotropic
 # mode.
@@ -96,7 +92,7 @@ ocean = ocean_simulation(grid;
 
 # ### Initial condition
 
-# We initialize the ocean from the ECCO2 state estimate.
+# We initialize the ocean from the ECCO state estimate.
 
 set!(ocean.model, T=ECCOMetadata(:temperature; dates=first(dates)),
                   S=ECCOMetadata(:salinity; dates=first(dates)))
@@ -137,9 +133,12 @@ function progress(sim)
 
     step_time = 1e-9 * (time_ns() - wall_time[])
 
-    @info @sprintf("time: %s, iteration: %d, Δt: %s, max|u|: (%.2e, %.2e, %.2e) m s⁻¹, extrema(T): (%.2f, %.2f) ᵒC, wall time: %s \n",
-                   prettytime(sim), iteration(sim), prettytime(sim.Δt),
-                   umax..., Tmax, Tmin, prettytime(step_time))
+    msg1 = @sprintf("time: %s, iteration: %d, Δt: %s, ", prettytime(sim), iteration(sim), prettytime(sim.Δt))
+    msg2 = @sprintf("max|u|: (%.2e, %.2e, %.2e) m s⁻¹, ", umax...)
+    msg3 = @sprintf("extrema(T): (%.2f, %.2f) ᵒC, ", Tmax, Tmin)
+    msg4 = @sprintf("wall time: %s \n", prettytime(step_time))
+
+    @info msg1 * msg2 * msg3 * msg4
 
      wall_time[] = time_ns()
 
@@ -164,6 +163,7 @@ ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
                                                   with_halos = true,
                                                   overwrite_existing = true,
                                                   array_type = Array{Float32})
+                                                  overwrite_existing = true)
 
 # ### Ready to run
 

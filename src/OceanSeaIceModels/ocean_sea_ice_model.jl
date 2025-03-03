@@ -181,4 +181,6 @@ function adjust_freezing_ocean_temperature!(ocean, sea_ice::SeaIceSimulation)
     grid = ocean.model.grid
     arch = architecture(grid)
     launch!(arch, grid, :xy, _adjust_freezing_ocean_temperature!, T, grid, S, ℵ, liquidus)
+
+    return nothing
 end

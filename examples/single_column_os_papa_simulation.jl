@@ -101,8 +101,7 @@ current_figure()
 # the skin temperature from a balance between internal and external heat fluxes.
 
 radiation = Radiation()
-similarity_theory = SimilarityTheoryTurbulentFluxes(grid; surface_temperature_type=SkinTemperature())
-coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
+coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation) 
 simulation = Simulation(coupled_model, Δt=ocean.Δt, stop_time=30days)
 
 wall_clock = Ref(time_ns())
@@ -149,8 +148,8 @@ Js = coupled_model.interfaces.net_fluxes.ocean_surface.S
 E  = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.water_vapor
 Qc = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.sensible_heat
 Qv = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.latent_heat
-ρₒ = coupled_model.interfaces.fluxes.ocean_reference_density
-cₚ = coupled_model.interfaces.fluxes.ocean_heat_capacity
+ρₒ = coupled_model.interfaces.ocean_properties.reference_density
+cₚ = coupled_model.interfaces.ocean_properties.heat_capacity
 
 Q = ρₒ * cₚ * JT
 ρτx = ρₒ * τx
@@ -249,7 +248,7 @@ tn = @lift times[$n]
 
 colors = Makie.wong_colors()
 
-ρₒ = coupled_model.fluxes.ocean_reference_density
+ρₒ = coupled_model.interfaces.ocean_properties.reference_density
 τx = interior(ρτx, 1, 1, 1, :) ./ ρₒ
 τy = interior(ρτy, 1, 1, 1, :) ./ ρₒ
 u★ = @. (τx^2 + τy^2)^(1/4)
