@@ -1,42 +1,22 @@
 using CFTime
 using Dates
 using ClimaOcean.DataWrangling
-using ClimaOcean.DataWrangling: netrc_downloader
+using ClimaOcean.DataWrangling: netrc_downloader, metadata_path
 
 import Dates: year, month, day
-
-using Base: @propagate_inbounds
 using Downloads
 
 import Oceananigans.Fields: set!, location
 import Base
+import ClimaOcean.DataWrangling: all_dates, metadata_filename, default_download_folder
 
 struct ECCO2Monthly end
 struct ECCO2Daily end
 struct ECCO4Monthly end
 
-"""
-    struct ECCOMetadata{D, V}
+const ECCOMetadata{D, V} = Metadata{D, V} where {D, V<:Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}}
 
-Metadata information for an ECCO dataset:
-- `name`: The name of the dataset.
-- `dates`: The dates of the dataset, in an `AbstractCFDateTime` format.
-- `version`: The version of the dataset, could be `ECCO2Monthly`, `ECCO2Daily`, or `ECCO4Monthly`.
-- `dir`: The directory where the dataset is stored.
-"""
-struct ECCOMetadata{D, V}
-    name :: Symbol
-    dates :: D
-    version :: V
-    dir :: String
-end
-
-Base.show(io::IO, metadata::ECCOMetadata) = 
-    print(io, "ECCOMetadata:", '\n',
-    "├── name: $(metadata.name)", '\n',
-    "├── dates: $(metadata.dates)", '\n',
-    "├── version: $(metadata.version)", '\n',
-    "└── dir: $(metadata.dir)")
+default_download_folder(::Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}) = download_ECCO_cache
 
 Base.summary(md::ECCOMetadata{<:Any, <:ECCO2Daily})   = "ECCO2Daily $(md.name) metadata ($(first(md.dates))--$(last(md.dates)))"
 Base.summary(md::ECCOMetadata{<:Any, <:ECCO2Monthly}) = "ECCO2Monthly $(md.name) metadata ($(first(md.dates))--$(last(md.dates)))"
@@ -46,78 +26,18 @@ Base.summary(md::ECCOMetadata{<:AbstractCFDateTime, <:ECCO2Daily})   = "ECCO2Dai
 Base.summary(md::ECCOMetadata{<:AbstractCFDateTime, <:ECCO2Monthly}) = "ECCO2Monthly $(md.name) metadata at $(md.dates)"
 Base.summary(md::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4Monthly}) = "ECCO4Monthly $(md.name) metadata at $(md.dates)"
 
-"""
-    ECCOMetadata(name::Symbol; 
-                 dates = DateTimeProlepticGregorian(1993, 1, 1),
-                 version = ECCO4Monthly(),
-                 dir = download_ECCO_cache)
-
-Construct an `ECCOMetadata` object with the specified parameters.
-
-Arguments
-=========
-- `name::Symbol`: The name of the metadata.
-
-Keyword Arguments
-=================
-- `dates`: The date(s) of the metadata. Note this can either be a single date,
-           representing a snapshot, or a range of dates, representing a time-series.
-           Default: `DateTimeProlepticGregorian(1993, 1, 1)`.
-
-- `version`: The data version. Supported versions are `ECCO2Monthly()`, `ECCO2Daily()`,
-             or `ECCO4Monthly()`.
-
-- `dir`: The directory of the data file. Default: `download_ECCO_cache`.
-"""
-function ECCOMetadata(name::Symbol; 
-                      dates = DateTimeProlepticGregorian(1993, 1, 1),
-                      version = ECCO4Monthly(),
-                      dir = download_ECCO_cache)
-
-    return ECCOMetadata(name, dates, version, dir)
-end
-
-ECCOMetadata(name::Symbol, date, version=ECCO4Monthly(); dir=download_ECCO_cache) =
-    ECCOMetadata(name, date, version, dir)
-
-# Treat ECCOMetadata as an array to allow iteration over the dates.
-Base.eltype(metadata::ECCOMetadata) = Base.eltype(metadata.dates)
-
-@propagate_inbounds Base.getindex(m::ECCOMetadata, i::Int) = ECCOMetadata(m.name, m.dates[i],   m.version, m.dir)
-@propagate_inbounds Base.first(m::ECCOMetadata)            = ECCOMetadata(m.name, m.dates[1],   m.version, m.dir)
-@propagate_inbounds Base.last(m::ECCOMetadata)             = ECCOMetadata(m.name, m.dates[end], m.version, m.dir)
-
-@inline function Base.iterate(m::ECCOMetadata, i=1)
-    if (i % UInt) - 1 < length(m)
-        return ECCOMetadata(m.name, m.dates[i], m.version, m.dir), i + 1
-    else
-        return nothing
-    end
-end
-
-Base.axes(metadata::ECCOMetadata{<:AbstractCFDateTime})    = 1
-Base.first(metadata::ECCOMetadata{<:AbstractCFDateTime})   = metadata
-Base.last(metadata::ECCOMetadata{<:AbstractCFDateTime})    = metadata
-Base.iterate(metadata::ECCOMetadata{<:AbstractCFDateTime}) = (metadata, nothing)
-Base.iterate(::ECCOMetadata{<:AbstractCFDateTime}, ::Any)  = nothing
-
-Base.length(metadata::ECCOMetadata) = length(metadata.dates)
 Base.size(data::ECCOMetadata{<:Any, <:ECCO2Daily})   = (1440, 720, 50, length(data.dates))
 Base.size(data::ECCOMetadata{<:Any, <:ECCO2Monthly}) = (1440, 720, 50, length(data.dates))
 Base.size(data::ECCOMetadata{<:Any, <:ECCO4Monthly}) = (720,  360, 50, length(data.dates))
 
-Base.length(metadata::ECCOMetadata{<:AbstractCFDateTime}) = 1
 Base.size(::ECCOMetadata{<:AbstractCFDateTime, <:ECCO2Daily})   = (1440, 720, 50, 1)
 Base.size(::ECCOMetadata{<:AbstractCFDateTime, <:ECCO2Monthly}) = (1440, 720, 50, 1)
 Base.size(::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4Monthly}) = (720,  360, 50, 1)
 
 # The whole range of dates in the different dataset versions
-all_ECCO_dates(::ECCO4Monthly) = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(2023, 12, 1)
-all_ECCO_dates(::ECCO2Monthly) = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(2023, 12, 1)
-all_ECCO_dates(::ECCO2Daily)   = DateTimeProlepticGregorian(1992, 1, 4) : Day(1)   : DateTimeProlepticGregorian(2023, 12, 31)
-
-# File names of metadata containing multiple dates
-metadata_filename(metadata) = [metadata_filename(metadatum) for metadatum in metadata]
+all_dates(::ECCO4Monthly) = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(2023, 12, 1)
+all_dates(::ECCO2Monthly) = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(2023, 12, 1)
+all_dates(::ECCO2Daily)   = DateTimeProlepticGregorian(1992, 1, 4) : Day(3)   : DateTimeProlepticGregorian(2023, 12, 31)
 
 # File name generation specific to each Dataset version
 function metadata_filename(metadata::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4Monthly})
@@ -142,7 +62,6 @@ function metadata_filename(metadata::ECCOMetadata{<:AbstractCFDateTime})
 end
 
 # Convenience functions
-metadata_path(metadata) = joinpath(metadata.dir, metadata_filename(metadata))
 short_name(data::ECCOMetadata{<:Any, <:ECCO2Daily})   = ECCO2_short_names[data.name]
 short_name(data::ECCOMetadata{<:Any, <:ECCO2Monthly}) = ECCO2_short_names[data.name]
 short_name(data::ECCOMetadata{<:Any, <:ECCO4Monthly}) = ECCO4_short_names[data.name]
