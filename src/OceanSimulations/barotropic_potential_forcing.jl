@@ -1,6 +1,8 @@
 using Oceananigans.Operators: ∂xᶠᶜᶜ, ∂yᶜᶠᶜ
 using Oceananigans.Forcings: MultipleForcings
 
+using Adapt
+
 struct XDirection end
 struct YDirection end
 
@@ -8,6 +10,10 @@ struct BarotropicPotentialForcing{D, P}
     direction :: D
     potential :: P
 end
+
+Adapt.adapt_structure(to, bpf::BarotropicPotentialForcing) =
+    BarotropicPotentialForcing(adapt(to, bpf.direction),
+                               adapt(to, bpf.potential))
 
 const XDirectionBPF = BarotropicPotentialForcing{<:XDirection}
 const YDirectionBPF = BarotropicPotentialForcing{<:YDirection}
