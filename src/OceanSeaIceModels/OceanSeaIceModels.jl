@@ -13,6 +13,7 @@ using Oceananigans.Utils: launch!, Time, KernelParameters
 using Oceananigans.Architectures: architecture
 using Oceananigans.BoundaryConditions: fill_halo_regions!, BoundaryCondition
 using Oceananigans.Grids: architecture
+using Oceananigans.Fields: ZeroField
 using Oceananigans.TimeSteppers: tick!
 using Oceananigans.Models: AbstractModel
 using Oceananigans.OutputReaders: FieldTimeSeries, GPUAdaptedFieldTimeSeries
@@ -35,10 +36,10 @@ const default_freshwater_density = 1000
 
 const SeaIceSimulation = Simulation{<:SeaIceModel}
 
-sea_ice_thickness(::Nothing) = nothing
+sea_ice_thickness(::Nothing) = ZeroField()
 sea_ice_thickness(sea_ice::SeaIceSimulation) = sea_ice.model.ice_thickness
 
-sea_ice_concentration(::Nothing) = nothing
+sea_ice_concentration(::Nothing) = ZeroField()
 sea_ice_concentration(sea_ice::SeaIceSimulation) = sea_ice.model.ice_concentration
 
 #####
