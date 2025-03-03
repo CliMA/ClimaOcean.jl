@@ -2,10 +2,10 @@ using .InterfaceComputations:
     compute_atmosphere_ocean_fluxes!,
     compute_sea_ice_ocean_fluxes!,
     compute_net_ocean_fluxes!,
+    compute_net_sea_ice_fluxes!,
     interpolate_atmospheric_state!
 
 using ClimaSeaIce: SeaIceModel, SeaIceThermodynamics
-
 using Oceananigans.Grids: φnode
 
 using Printf
@@ -66,7 +66,7 @@ function update_state!(coupled_model::OceanSeaIceModel, callbacks=[]; compute_te
     # This function needs to be specialized to allow different atmospheric models
     compute_net_atmosphere_fluxes!(coupled_model)
     compute_net_ocean_fluxes!(coupled_model)
-    #compute_net_sea_ice_fluxes!(coupled_model)
+    compute_net_sea_ice_fluxes!(coupled_model)
 
     return nothing
 end
@@ -129,8 +129,8 @@ end
 
     @inbounds begin
         hᶜ = thermodynamics.ice_consolidation_thickness
-        hᵢ = ice_thickness[i, j, 1]
-        ℵᵢ = ice_concentration[i, j, 1]
+        hᵢ = ice_thickness[i, j, kᴺ]
+        ℵᵢ = ice_concentration[i, j, kᴺ]
     end
 
     # Volume conserving adjustment to respect minimum thickness
@@ -184,8 +184,8 @@ end
     ℵ⁺, h⁺ = conservative_adjustment(ℵ⁺, h⁺, hᶜ)
 
     @inbounds begin
-        ice_thickness[i, j, 1] = h⁺
-        ice_concentration[i, j, 1] = ℵ⁺
+        ice_thickness[i, j, kᴺ] = h⁺
+        ice_concentration[i, j, kᴺ] = ℵ⁺
     end
 end
 
