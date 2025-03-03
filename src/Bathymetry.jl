@@ -30,12 +30,18 @@ function __init__()
     global download_bathymetry_cache = @get_scratch!("Bathymetry")
 end
 
+# etopo_url = "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_surface_elev_netcdf/" *
+#              "ETOPO_2022_v1_60s_N90W180_surface.nc"
+
+etopo_url = "https://www.dropbox.com/scl/fi/6pwalcuuzgtpanysn4h6f/" *
+            "ETOPO_2022_v1_60s_N90W180_surface.nc?rlkey=2t7890ruyk4nd5t5eov5768lt&st=yfxsy1lu&dl=0"
+
 """
     regrid_bathymetry(target_grid;
                       height_above_water = nothing,
                       minimum_depth = 0,
                       dir = download_bathymetry_cache,
-                      url = "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_surface_elev_netcdf",
+                      url = ClimaOcean.Bathymetry.etopo_url,
                       filename = "ETOPO_2022_v1_60s_N90W180_surface.nc",
                       interpolation_passes = 1,
                       major_basins = 1)
@@ -92,17 +98,16 @@ function regrid_bathymetry(target_grid;
                            height_above_water = nothing,
                            minimum_depth = 0,
                            dir = download_bathymetry_cache,
-                           url = "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_surface_elev_netcdf",
+                           url = etopo_url,
                            filename = "ETOPO_2022_v1_60s_N90W180_surface.nc",
                            interpolation_passes = 1,
                            major_basins = 1) # Allow an `Inf` number of "lakes"
 
     filepath = joinpath(dir, filename)
-    fileurl  = url * "/" * filename # joinpath on windows creates the wrong url
 
     # No need for @root here, because only rank 0 accesses this function
     if !isfile(filepath)
-        Downloads.download(fileurl, filepath; progress=download_progress)
+        Downloads.download(url, filepath; progress=download_progress)
     end
 
     dataset = Dataset(filepath, "r")
