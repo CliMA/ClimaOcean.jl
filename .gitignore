@@ -47,3 +47,11 @@ docs/src/literated/
 *.ncu-rep
 *.sq
 *.sqlite
+
+# NASA NAIF kernel files
+*.bsp
+*.bpc
+*.tf
+*.tls
+*.tpc
+*.txt
