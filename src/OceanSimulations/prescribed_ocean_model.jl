@@ -3,10 +3,12 @@ using Oceananigans
 using Oceananigans.BoundaryConditions
 using Oceananigans.Grids: architecture
 
+using Oceananigans.Models: AbstractModel
+
 import Oceananigans.TimeSteppers: time_step!, update_state!, tick!
 import Oceananigans.Models: timestepper, update_model_field_time_series!
 
-import ClimaOcean.OceanSeaIceModels: reference_density, heat_capacity
+import ClimaOcean: reference_density, heat_capacity
 
 #####
 ##### A prescribed ocean...

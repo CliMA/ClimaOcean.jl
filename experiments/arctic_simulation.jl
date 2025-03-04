@@ -19,7 +19,7 @@ Nz = length(r_faces) - 1
 grid = RotatedLatitudeLongitudeGrid(size = (Nx, Ny, Nz), 
                                     latitude = (-45, 45),
                                     longitude = (-45, 45),
-                                    z = z_faces,
+                                    z = r_faces,
                                     north_pole = (180, 0),
                                     halo = (5, 5, 4),
                                     topology = (Bounded, Bounded, Bounded))
@@ -34,7 +34,7 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
 # ...with prescribed velocity and tracer fields
 version = ECCO2Daily()
-dates   = all_ECCO_dates(version)[1:200]
+dates   = all_ECCO_dates(version)[1:30]
 
 u = ECCOFieldTimeSeries(:u_velocity,  version; grid, dates, time_indices_in_memory=10)
 v = ECCOFieldTimeSeries(:v_velocity,  version; grid, dates, time_indices_in_memory=10)
