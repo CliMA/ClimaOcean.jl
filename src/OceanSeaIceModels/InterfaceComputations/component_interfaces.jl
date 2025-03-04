@@ -110,8 +110,8 @@ end
     fi = indices_tuple.i
     fj = indices_tuple.j
     @inbounds begin
-        fi[i, j, k] = fractional_indices_ij.i
-        fj[i, j, k] = fractional_indices_ij.j
+        fi[i, j, 1] = fractional_indices_ij.i
+        fj[i, j, 1] = fractional_indices_ij.j
     end
 end
 
