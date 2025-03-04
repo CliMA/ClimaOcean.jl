@@ -16,6 +16,7 @@ using Oceananigans.Operators
 
 using ClimaSeaIce
 using ClimaSeaIce: SeaIceModel, SlabSeaIceThermodynamics, PhaseTransitions, ConductiveFlux
+using ClimaSeaIce.SeaIceThermodynamics: IceWaterThermalEquilibrium
 
 using ClimaOcean.OceanSimulations: Default
 
