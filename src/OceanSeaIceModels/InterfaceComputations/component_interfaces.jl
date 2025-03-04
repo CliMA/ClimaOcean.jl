@@ -59,6 +59,11 @@ struct StateExchanger{G, AST, AEX}
     atmosphere_exchanger :: AEX
 end
 
+# Note that Field location can also affect fractional index type.
+# Here we assume that we know the location of Fields that will be interpolated.
+fractional_index_type(FT, Topo) = FT
+fractional_index_type(FT, ::Flat) = Nothing
+
 function StateExchanger(ocean::Simulation, atmosphere)
     # TODO: generalize this
     exchange_grid = ocean.model.grid
@@ -81,8 +86,13 @@ function StateExchanger(ocean::Simulation, atmosphere)
 
     # Make an array of FractionalIndices
     FT = eltype(exchange_grid)
-    frac_indices = [FractionalIndices(one(FT), one(FT), one(FT)) for i=1:Nx+2, j=1:Ny+2, k=1:1]
-    frac_indices = OffsetArray(frac_indices, -1, -1, 0)
+    TX, TY, TZ = topology(exchange_grid)
+    FX = fractional_index_type(FT, TX())
+    FY = fractional_index_type(FT, TY())
+    FR = FractionalIndices{FX, FY, Nothing}
+
+    underlying_frac_indices = Array{FR}(undef, Nx+2, Ny+2, 1)
+    frac_indices = OffsetArray(underlying_frac_indices, -1, -1, 0)
     frac_indices = on_architecture(arch, frac_indices)
 
     kernel_parameters = interface_kernel_parameters(exchange_grid)
