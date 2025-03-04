@@ -36,10 +36,15 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 version = ECCO2Daily()
 dates   = all_ECCO_dates(version)[1:30]
 
-u = ECCOFieldTimeSeries(:u_velocity,  version; grid, dates, time_indices_in_memory=10)
-v = ECCOFieldTimeSeries(:v_velocity,  version; grid, dates, time_indices_in_memory=10)
-T = ECCOFieldTimeSeries(:temperature, version; grid, dates, time_indices_in_memory=10)
-S = ECCOFieldTimeSeries(:salinity,    version; grid, dates, time_indices_in_memory=10)
+u_metadata = ECCOMetadata(:u_velocity;  version, dates)
+v_metadata = ECCOMetadata(:v_velocity;  version, dates)
+T_metadata = ECCOMetadata(:temperature; version, dates)
+S_metadata = ECCOMetadata(:salinity;    version, dates)
+
+u = ECCOFieldTimeSeries(u_metadata, grid; time_indices_in_memory=2)
+v = ECCOFieldTimeSeries(v_metadata, grid; time_indices_in_memory=2)
+T = ECCOFieldTimeSeries(T_metadata, grid; time_indices_in_memory=2)
+S = ECCOFieldTimeSeries(S_metadata, grid; time_indices_in_memory=2)
 
 ocean_model = PrescribedOcean((; u, v, T, S); grid)
 ocean       = Simulation(ocean_model, Δt=10minutes, verbose=false)
