@@ -36,18 +36,17 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 #####
 
 # A very diffusive ocean
-momentum_advection = VectorInvariant() 
+momentum_advection = WENOVectorInvariant(order=3) 
 tracer_advection   = WENO(order=3)
 
 free_surface = SplitExplicitFreeSurface(grid; cfl=0.7) 
-closure = (ClimaOcean.OceanSimulations.default_ocean_closure(), HorizontalScalarDiffusivity(κ=1000, ν=3000))
+closure = ClimaOcean.OceanSimulations.default_ocean_closure()
 
 ocean = ocean_simulation(grid; 
                          momentum_advection, 
                          tracer_advection, 
                          free_surface,
                          closure)
-
 
 set!(ocean.model, T=ECCOMetadata(:temperature),
                   S=ECCOMetadata(:salinity))
@@ -73,7 +72,7 @@ radiation  = Radiation()
 #####
 
 arctic = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-arctic = Simulation(arctic, Δt=5minutes, stop_time=365days)
+arctic = Simulation(arctic, Δt=8minutes, stop_time=365days)
 
 # Sea-ice variables
 h  = sea_ice.model.ice_thickness
@@ -90,7 +89,7 @@ Qᶠ = arctic.model.interfaces.sea_ice_ocean_interface.fluxes.frazil_heat
 Qᵗ = arctic.model.interfaces.net_fluxes.sea_ice_top.heat
 Qᴮ = arctic.model.interfaces.net_fluxes.sea_ice_bottom.heat
 
-# Ou
+# Output writers
 sea_ice.output_writers[:vars] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, Gh, Gℵ, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ),
                                                  filename = "sea_ice_quantities.jld2",
                                                  schedule = IterationInterval(12),
