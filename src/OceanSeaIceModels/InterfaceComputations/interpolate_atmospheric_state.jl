@@ -126,8 +126,8 @@ end
     i, j = @index(Global, NTuple)
 
     @inbounds begin
-        fi = space_fractional_indices.fi[i, j, 1]
-        fj = space_fractional_indices.fj[i, j, 1]
+        fi = space_fractional_indices.i[i, j, 1]
+        fj = space_fractional_indices.j[i, j, 1]
     end
 
     x_itp = FractionalIndices(fi, fj, nothing)
