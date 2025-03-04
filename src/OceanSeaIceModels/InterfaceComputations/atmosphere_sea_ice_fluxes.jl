@@ -17,7 +17,7 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
                       Tₒ = ocean.model.tracers.T,
                       Sₒ = ocean.model.tracers.S)
 
-    atmosphere_fields = coupled_model.interfaces.near_surface_atmosphere_state
+    atmosphere_fields = coupled_model.interfaces.exchanger.exchange_atmosphere_state
 
     # Simplify NamedTuple to reduce parameter space consumption.
     # See https://github.com/CliMA/ClimaOcean.jl/issues/116.
@@ -33,7 +33,6 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
 
     flux_formulation = coupled_model.interfaces.atmosphere_sea_ice_interface.flux_formulation
     interface_fluxes = coupled_model.interfaces.atmosphere_sea_ice_interface.fluxes
-    net_top_heat_flux = coupled_model.interfaces.net_fluxes.sea_ice_top.heat
     interface_temperature = coupled_model.interfaces.atmosphere_sea_ice_interface.temperature
     interface_properties = coupled_model.interfaces.atmosphere_sea_ice_interface.properties
     sea_ice_properties = coupled_model.interfaces.sea_ice_properties
@@ -42,13 +41,12 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
     atmosphere_properties = (thermodynamics_parameters = atmosphere.thermodynamics_parameters,
                              reference_height = atmosphere.reference_height)
 
-    kernel_parameters = surface_computations_kernel_parameters(grid)
+    kernel_parameters = interface_kernel_parameters(grid)
 
     launch!(arch, grid, kernel_parameters,
             _compute_atmosphere_sea_ice_interface_state!,
             interface_fluxes,
             interface_temperature,
-            net_top_heat_flux,
             grid,
             clock,
             flux_formulation,
@@ -65,7 +63,6 @@ end
 """ Compute turbulent fluxes between an atmosphere and a interface state using similarity theory """
 @kernel function _compute_atmosphere_sea_ice_interface_state!(interface_fluxes,
                                                               interface_temperature,
-                                                              net_top_heat_flux,
                                                               grid,
                                                               clock,
                                                               turbulent_flux_formulation,
@@ -133,7 +130,7 @@ end
     Sₛ = zero(FT) # what should we use for interface salinity?
     initial_interface_state = InterfaceState(u★, u★, u★, uᵢ, vᵢ, Tₛ, Sₛ, convert(FT, qₛ))
     land = inactive_node(i, j, kᴺ, grid, Center(), Center(), Center())
-    ice_free = hᵢ == 0
+    ice_free = ℵᵢ == 0
 
     if (land | ice_free)
         interface_state = InterfaceState(zero(FT), zero(FT), zero(FT), uᵢ, vᵢ, Tᵢ, Sₛ, zero(FT))
@@ -151,13 +148,6 @@ end
     u★ = interface_state.u★
     θ★ = interface_state.θ★
     q★ = interface_state.q★
-
-    #=
-    Pr = similarity_theory.turbulent_prandtl_number
-    θ★ = θ★ / Pr
-    q★ = q★ / Pr
-    =#
-
     Ψₛ = interface_state
     Ψₐ = local_atmosphere_state
     Δu, Δv = velocity_difference(turbulent_flux_formulation.bulk_velocity, Ψₐ, Ψₛ)
@@ -169,12 +159,6 @@ end
     cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
     ℰs = AtmosphericThermodynamics.latent_heat_sublim(ℂₐ, 𝒬ₐ)
 
-    σ = interface_properties.radiation.σ
-    α = stateindex(interface_properties.radiation.α, i, j, 1, grid, time)
-    ϵ = stateindex(interface_properties.radiation.ϵ, i, j, 1, grid, time)
-    Qu = upwelling_radiation(Ψₛ.T, σ, ϵ)
-    Qd = net_downwelling_radiation(downwelling_radiation, α, ϵ)
-
     # Store fluxes
     Qv = interface_fluxes.latent_heat
     Qc = interface_fluxes.sensible_heat
@@ -182,16 +166,14 @@ end
     ρτx = interface_fluxes.x_momentum
     ρτy = interface_fluxes.y_momentum
     Ts = interface_temperature
-    ΣQ = net_top_heat_flux
 
     @inbounds begin
         # +0: cooling, -0: heating
-        Qv[i, j, 1]  = _Qv = - ρₐ * u★ * q★ * ℰs
-        Qc[i, j, 1]  = _Qc = - ρₐ * cₚ * u★ * θ★
-        ΣQ[i, j, 1]  = Qu + Qd + _Qv + _Qc
-        Fv[i, j, 1]  = - ρₐ * u★ * q★
-        ρτx[i, j, 1] = + ρₐ * τx
-        ρτy[i, j, 1] = + ρₐ * τy
+        Qv[i, j, 1]  = - ρₐ * u★ * q★ * ℰs 
+        Qc[i, j, 1]  = - ρₐ * cₚ * u★ * θ★ 
+        Fv[i, j, 1]  = - ρₐ * u★ * q★ 
+        ρτx[i, j, 1] = + ρₐ * τx 
+        ρτy[i, j, 1] = + ρₐ * τy 
         Ts[i, j, 1]  = convert_from_kelvin(sea_ice_properties.temperature_units, Ψₛ.T)
     end
 end

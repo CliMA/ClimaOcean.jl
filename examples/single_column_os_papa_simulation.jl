@@ -97,11 +97,7 @@ lines!(axq, t_days, qa)
 current_figure()
 
 # We continue constructing a simulation.
-# For the fluxes computation we use a `SkinTemperature` formulation that computes
-# the skin temperature from a balance between internal and external heat fluxes.
-
 radiation = Radiation()
-similarity_theory = SimilarityTheoryTurbulentFluxes(grid; surface_temperature_type=SkinTemperature())
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 simulation = Simulation(coupled_model, Δt=ocean.Δt, stop_time=30days)
 
@@ -122,9 +118,9 @@ function progress(sim)
     S = sim.model.ocean.model.tracers.S
     e = sim.model.ocean.model.tracers.e
 
-    τx = first(sim.model.fluxes.total.ocean.momentum.u)
-    τy = first(sim.model.fluxes.total.ocean.momentum.v)
-    Q = first(sim.model.fluxes.total.ocean.heat)
+    τx = first(sim.model.interfaces.net_fluxes.ocean_surface.u)
+    τy = first(sim.model.interfaces.net_fluxes.ocean_surface.v)
+    Q  = first(sim.model.interfaces.net_fluxes.ocean_surface.Q)
 
     u★ = sqrt(sqrt(τx^2 + τy^2))
 
@@ -137,20 +133,22 @@ function progress(sim)
     msg *= @sprintf(", e₀: %.2e m² s⁻²", first(interior(e, 1, 1, Nz)))
 
     @info msg
+
+    return nothing
 end
 
 simulation.callbacks[:progress] = Callback(progress, IterationInterval(100))
 
 # Build flux outputs
-τx = coupled_model.fluxes.total.ocean.momentum.u
-τy = coupled_model.fluxes.total.ocean.momentum.v
-JT = coupled_model.fluxes.total.ocean.tracers.T
-Js = coupled_model.fluxes.total.ocean.tracers.S
-E  = coupled_model.fluxes.turbulent.fields.water_vapor
-Qc = coupled_model.fluxes.turbulent.fields.sensible_heat
-Qv = coupled_model.fluxes.turbulent.fields.latent_heat
-ρₒ = coupled_model.fluxes.ocean_reference_density
-cₚ = coupled_model.fluxes.ocean_heat_capacity
+τx = simulation.model.interfaces.net_fluxes.ocean_surface.u
+τy = simulation.model.interfaces.net_fluxes.ocean_surface.v
+JT = simulation.model.interfaces.net_fluxes.ocean_surface.T
+Js = simulation.model.interfaces.net_fluxes.ocean_surface.S
+E  = simulation.model.interfaces.atmosphere_ocean_interface.fluxes.water_vapor
+Qc = simulation.model.interfaces.atmosphere_ocean_interface.fluxes.sensible_heat
+Qv = simulation.model.interfaces.atmosphere_ocean_interface.fluxes.latent_heat
+ρₒ = simulation.model.interfaces.ocean_properties.reference_density
+cₚ = simulation.model.interfaces.ocean_properties.heat_capacity
 
 Q = ρₒ * cₚ * JT
 ρτx = ρₒ * τx
@@ -249,7 +247,7 @@ tn = @lift times[$n]
 
 colors = Makie.wong_colors()
 
-ρₒ = coupled_model.fluxes.ocean_reference_density
+ρₒ = coupled_model.interfaces.ocean_properties.reference_density
 τx = interior(ρτx, 1, 1, 1, :) ./ ρₒ
 τy = interior(ρτy, 1, 1, 1, :) ./ ρₒ
 u★ = @. (τx^2 + τy^2)^(1/4)

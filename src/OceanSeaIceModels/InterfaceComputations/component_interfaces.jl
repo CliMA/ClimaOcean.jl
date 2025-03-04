@@ -1,6 +1,8 @@
 using StaticArrays
 using Thermodynamics
 using SurfaceFluxes
+using OffsetArrays
+using CUDA: @allowscalar
 
 using ..OceanSeaIceModels: reference_density,
                            heat_capacity,
@@ -15,10 +17,9 @@ using ClimaSeaIce: SeaIceModel
 using Oceananigans: HydrostaticFreeSurfaceModel, architecture
 using Oceananigans.Grids: inactive_node, node
 using Oceananigans.BoundaryConditions: fill_halo_regions!
-using Oceananigans.Fields: ConstantField, interpolate
-using Oceananigans.Utils: launch!, Time, KernelParameters
 
-# using Oceananigans.OutputReaders: extract_field_time_series, update_field_time_series!
+using Oceananigans.Fields: ConstantField, interpolate, FractionalIndices
+using Oceananigans.Utils: launch!, Time, KernelParameters
 
 using Oceananigans.Operators: ℑxᶜᵃᵃ, ℑyᵃᶜᵃ, ℑxᶠᵃᵃ, ℑyᵃᶠᵃ
 
@@ -42,17 +43,63 @@ struct SeaIceOceanInterface{J, P, H, A}
     previous_ice_concentration :: A
 end
 
-struct ComponentInterfaces{AO, ASI, SIO, C, AP, OP, SIP, ATM}
+struct ComponentInterfaces{AO, ASI, SIO, C, AP, OP, SIP, EX}
     atmosphere_ocean_interface :: AO
     atmosphere_sea_ice_interface :: ASI
     sea_ice_ocean_interface :: SIO
     atmosphere_properties :: AP
     ocean_properties :: OP
     sea_ice_properties :: SIP
-    # Scratch space to hold the near-surface atmosphere state
-    # interpolated to the ocean grid
-    near_surface_atmosphere_state :: ATM
+    exchanger :: EX
     net_fluxes :: C
+end
+
+struct StateExchanger{G, AST, AEX}
+    exchange_grid :: G
+    exchange_atmosphere_state :: AST
+    atmosphere_exchanger :: AEX
+end
+
+function StateExchanger(ocean::Simulation, atmosphere)
+    # TODO: generalize this
+    exchange_grid = ocean.model.grid
+
+    exchange_atmosphere_state = (u  = Field{Center, Center, Nothing}(exchange_grid),
+                                 v  = Field{Center, Center, Nothing}(exchange_grid),
+                                 T  = Field{Center, Center, Nothing}(exchange_grid),
+                                 q  = Field{Center, Center, Nothing}(exchange_grid),
+                                 p  = Field{Center, Center, Nothing}(exchange_grid),
+                                 Qs = Field{Center, Center, Nothing}(exchange_grid),
+                                 Qℓ = Field{Center, Center, Nothing}(exchange_grid),
+                                 Mp = Field{Center, Center, Nothing}(exchange_grid))
+
+    # TODO: use kernel_parameters not hard code?
+    # kernel_parameters = interface_kernel_parameters(ocean_grid)
+    
+    atmos_grid = atmosphere.grid
+    arch = architecture(exchange_grid)
+    Nx, Ny, Nz = size(exchange_grid)
+
+    # Make an array of FractionalIndices
+    kᴺ = size(exchange_grid, 3)
+    @allowscalar X1 = _node(1, 1, kᴺ + 1, exchange_grid, c, c, f)
+    i1 = FractionalIndices(X1, atmosphere.grid, c, c, nothing)
+    frac_indices_data = [deepcopy(i1) for i=1:Nx+2, j=1:Ny+2, k=1:1]
+    frac_indices = OffsetArray(frac_indices_data, -1, -1, 0)
+    frac_indices = on_architecture(arch, frac_indices)
+
+    kernel_parameters = interface_kernel_parameters(exchange_grid)
+    launch!(arch, exchange_grid, kernel_parameters,
+            _compute_fractional_indices!, frac_indices, exchange_grid, atmos_grid)
+
+    return StateExchanger(ocean.model.grid, exchange_atmosphere_state, frac_indices)
+end
+
+@kernel function _compute_fractional_indices!(frac_indices, exchange_grid, atmos_grid)
+    i, j = @index(Global, NTuple)
+    kᴺ = size(exchange_grid, 3) # index of the top ocean cell
+    X = _node(i, j, kᴺ + 1, exchange_grid, c, c, f)
+    @inbounds frac_indices[i, j, 1] = FractionalIndices(X, atmos_grid, c, c, nothing)
 end
 
 const PATP = PrescribedAtmosphereThermodynamicsParameters
@@ -131,17 +178,24 @@ end
 
 sea_ice_ocean_interface(sea_ice, ocean) = nothing
 
-function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean)
+function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean;
+                                 characteristic_melting_speed = 1e-5)
+
     previous_ice_thickness = deepcopy(sea_ice.model.ice_thickness)
     previous_ice_concentration = deepcopy(sea_ice.model.ice_concentration)
-    io_heat_flux = sea_ice.model.external_heat_fluxes.bottom
+    io_bottom_heat_flux = Field{Center, Center, Nothing}(ocean.model.grid)
+    io_frazil_heat_flux = Field{Center, Center, Nothing}(ocean.model.grid)
     io_salt_flux = Field{Center, Center, Nothing}(ocean.model.grid)
 
-    @assert io_heat_flux isa Field{Center, Center, Nothing}
+    @assert io_frazil_heat_flux isa Field{Center, Center, Nothing}
+    @assert io_bottom_heat_flux isa Field{Center, Center, Nothing}
     @assert io_salt_flux isa Field{Center, Center, Nothing}
 
-    io_fluxes = (heat=io_heat_flux, salt=io_salt_flux)
-    io_properties = nothing
+    io_fluxes = (interface_heat=io_bottom_heat_flux, 
+                 frazil_heat=io_frazil_heat_flux,
+                 salt=io_salt_flux)
+
+    io_properties = (; characteristic_melting_speed)
 
     return SeaIceOceanInterface(io_fluxes,
                                 io_properties,
@@ -171,7 +225,6 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              radiation = Radiation(),
                              freshwater_density = 1000,
                              atmosphere_ocean_flux_formulation = SimilarityTheoryFluxes(),
-                             #atmosphere_sea_ice_flux_formulation = atmosphere_sea_ice_stability_functions(),
                              atmosphere_sea_ice_flux_formulation = CoefficientBasedFluxes(drag_coefficient=2e-3,
                                                                                           heat_transfer_coefficient=1e-4,
                                                                                           vapor_flux_coefficient=1e-4),
@@ -187,7 +240,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
 
     ocean_grid = ocean.model.grid
     FT = eltype(ocean_grid)
-
+    
     ocean_reference_density   = convert(FT, ocean_reference_density)
     ocean_heat_capacity       = convert(FT, ocean_heat_capacity)
     sea_ice_reference_density = convert(FT, sea_ice_reference_density)
@@ -245,13 +298,15 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                   sea_ice_top    = net_top_sea_ice_fluxes,
                   sea_ice_bottom = net_bottom_sea_ice_fluxes)
 
+    exchanger = StateExchanger(ocean, atmosphere)
+
     return ComponentInterfaces(ao_interface,
                                ai_interface,
                                io_interface,
                                atmosphere_properties,
                                ocean_properties,
                                sea_ice_properties,
-                               near_surface_atmosphere_state(ocean.model.grid),
+                               exchanger,
                                net_fluxes)
 end
 
@@ -266,48 +321,4 @@ function sea_ice_similarity_theory(sea_ice::SeaIceSimulation)
     interface_temperature_type = SkinTemperature(internal_flux)
     return SimilarityTheoryFluxes(; interface_temperature_type)
 end
-
-function near_surface_atmosphere_state(ocean_grid)
-    interface_atmosphere_state = (u  = Field{Center, Center, Nothing}(ocean_grid),
-                                  v  = Field{Center, Center, Nothing}(ocean_grid),
-                                  T  = Field{Center, Center, Nothing}(ocean_grid),
-                                  q  = Field{Center, Center, Nothing}(ocean_grid),
-                                  p  = Field{Center, Center, Nothing}(ocean_grid),
-                                  Qs = Field{Center, Center, Nothing}(ocean_grid),
-                                  Qℓ = Field{Center, Center, Nothing}(ocean_grid),
-                                  Mp = Field{Center, Center, Nothing}(ocean_grid))
-
-    return interface_atmosphere_state
-end
-    
-#####
-##### Utility for interpolating tuples of fields
-#####
-
-# Note: assumes loc = (c, c, nothing) (and the third location should
-# not matter.)
-@inline interp_atmos_time_series(J, X, time, grid, args...) =
-    interpolate(X, time, J, (c, c, nothing), grid, args...)
-
-@inline interp_atmos_time_series(ΣJ::NamedTuple, args...) =
-    interp_atmos_time_series(values(ΣJ), args...)
-
-@inline interp_atmos_time_series(ΣJ::Tuple{<:Any}, args...) =
-    interp_atmos_time_series(ΣJ[1], args...) +
-    interp_atmos_time_series(ΣJ[2], args...)
-
-@inline interp_atmos_time_series(ΣJ::Tuple{<:Any, <:Any}, args...) =
-    interp_atmos_time_series(ΣJ[1], args...) +
-    interp_atmos_time_series(ΣJ[2], args...)
-
-@inline interp_atmos_time_series(ΣJ::Tuple{<:Any, <:Any, <:Any}, args...) =
-    interp_atmos_time_series(ΣJ[1], args...) +
-    interp_atmos_time_series(ΣJ[2], args...) +
-    interp_atmos_time_series(ΣJ[3], args...)
-
-@inline interp_atmos_time_series(ΣJ::Tuple{<:Any, <:Any, <:Any, <:Any}, args...) =
-    interp_atmos_time_series(ΣJ[1], args...) +
-    interp_atmos_time_series(ΣJ[2], args...) +
-    interp_atmos_time_series(ΣJ[3], args...) +
-    interp_atmos_time_series(ΣJ[4], args...)
 
