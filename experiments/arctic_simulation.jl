@@ -12,7 +12,7 @@ using Printf
 using CUDA
 CUDA.device!(1)
 
-r_faces = ClimaOcean.exponential_z_faces(; Nz=30, h=10, depth=3000)
+r_faces = ClimaOcean.exponential_z_faces(; Nz=30, h=10, depth=2000)
 z_faces = MutableVerticalDiscretization(r_faces)
 
 Nx = 180 # longitudinal direction -> 250 points is about 1.5ᵒ resolution
@@ -37,10 +37,10 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
 # A very diffusive ocean
 momentum_advection = VectorInvariant() 
-tracer_advection   = Centered(order=3)
+tracer_advection   = WENO(order=3)
 
-free_surface = SplitExplicitFreeSurface(grid; cfl=0.8) 
-closure = (ClimaOcean.OceanSimulations.default_ocean_closure(), HorizontalScalarDiffusivity(κ=1000, ν=10000))
+free_surface = SplitExplicitFreeSurface(grid; cfl=0.7) 
+closure = (ClimaOcean.OceanSimulations.default_ocean_closure(), HorizontalScalarDiffusivity(κ=1000, ν=3000))
 
 ocean = ocean_simulation(grid; 
                          momentum_advection, 
@@ -73,12 +73,15 @@ radiation  = Radiation()
 #####
 
 arctic = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-arctic = Simulation(arctic, Δt=20minutes, stop_time=365days)
+arctic = Simulation(arctic, Δt=5minutes, stop_time=365days)
 
-h = sea_ice.model.ice_thickness
-ℵ = sea_ice.model.ice_concentration
+# Sea-ice variables
+h  = sea_ice.model.ice_thickness
+ℵ  = sea_ice.model.ice_concentration
 Gh = sea_ice.model.timestepper.Gⁿ.h
 Gℵ = sea_ice.model.timestepper.Gⁿ.ℵ
+
+# Fluxes
 Tu = arctic.model.interfaces.atmosphere_sea_ice_interface.temperature
 Qˡ = arctic.model.interfaces.atmosphere_sea_ice_interface.fluxes.latent_heat
 Qˢ = arctic.model.interfaces.atmosphere_sea_ice_interface.fluxes.sensible_heat
@@ -87,6 +90,7 @@ Qᶠ = arctic.model.interfaces.sea_ice_ocean_interface.fluxes.frazil_heat
 Qᵗ = arctic.model.interfaces.net_fluxes.sea_ice_top.heat
 Qᴮ = arctic.model.interfaces.net_fluxes.sea_ice_bottom.heat
 
+# Ou
 sea_ice.output_writers[:vars] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, Gh, Gℵ, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ),
                                                  filename = "sea_ice_quantities.jld2",
                                                  schedule = IterationInterval(12),
