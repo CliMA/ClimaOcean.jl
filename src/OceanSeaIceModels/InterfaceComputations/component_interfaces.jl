@@ -81,13 +81,11 @@ function StateExchanger(ocean::Simulation, atmosphere)
     Nx, Ny, Nz = size(exchange_grid)
 
     # Make an array of FractionalIndices
-    kᴺ = size(exchange_grid, 3)
-    @allowscalar X1 = _node(1, 1, kᴺ + 1, exchange_grid, c, c, f)
-    i1 = FractionalIndices(X1, atmosphere.grid, c, c, nothing)
-    frac_indices_data = [deepcopy(i1) for i=1:Nx+2, j=1:Ny+2, k=1:1]
-    frac_indices = OffsetArray(frac_indices_data, -1, -1, 0)
+    FT = eltype(exchange_grid)
+    frac_indices = [FractionalIndices(one(FT), one(FT), one(FT)) for i=1:Nx+2, j=1:Ny+2, k=1:1]
+    frac_indices = OffsetArray(frac_indices, -1, -1, 0)
     frac_indices = on_architecture(arch, frac_indices)
-
+    
     kernel_parameters = interface_kernel_parameters(exchange_grid)
     launch!(arch, exchange_grid, kernel_parameters,
             _compute_fractional_indices!, frac_indices, exchange_grid, atmos_grid)
@@ -225,9 +223,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              radiation = Radiation(),
                              freshwater_density = 1000,
                              atmosphere_ocean_flux_formulation = SimilarityTheoryFluxes(),
-                             atmosphere_sea_ice_flux_formulation = CoefficientBasedFluxes(drag_coefficient=2e-3,
-                                                                                          heat_transfer_coefficient=1e-4,
-                                                                                          vapor_flux_coefficient=1e-4),
+                             atmosphere_sea_ice_flux_formulation = SimilarityTheoryFluxes(),
                              atmosphere_ocean_interface_temperature = BulkTemperature(),
                              atmosphere_ocean_interface_specific_humidity = default_ao_specific_humidity(ocean),
                              atmosphere_sea_ice_interface_temperature = default_ai_temperature(sea_ice),
