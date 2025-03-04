@@ -130,25 +130,9 @@ function regrid_bathymetry(target_grid;
     φ₁, φ₂ = y_domain(target_grid)
     λ₁, λ₂ = x_domain(target_grid)
 
-    if λ₁ < 0 || λ₂ > 360
-        throw(ArgumentError("Cannot regrid bathymetry between λ₁ = $(λ₁) and λ₂ = $(λ₂).
-                             Bathymetry data is defined on longitudes spanning λ = (0, 360)."))
-    end
-
-    # Calculate limiting indices on the bathymetry grid
-    i₁ = searchsortedfirst(λ_data, λ₁)
-    i₂ = searchsortedfirst(λ_data, λ₂) - 1
-    ii = i₁:i₂
-
-    j₁ = searchsortedfirst(φ_data, φ₁)
-    j₂ = searchsortedfirst(φ_data, φ₂) - 1
-    jj = j₁:j₂
-
-    # Restrict bathymetry coordinate_data to region of interest
-    λ_data = λ_data[ii] |> Array{BigFloat}
-    φ_data = φ_data[jj] |> Array{BigFloat}
-    z_data = z_data[ii, jj] 
-
+    λ_data = λ_data |> Array{BigFloat}
+    φ_data = φ_data |> Array{BigFloat}
+    
     if !isnothing(height_above_water)
         # Overwrite the height of cells above water.
         # This has an impact on reconstruction. Greater height_above_water reduces total
@@ -170,6 +154,7 @@ function regrid_bathymetry(target_grid;
     Nyn = length(φ_data)
     Nzn = 1
 
+  
     native_grid = LatitudeLongitudeGrid(arch, Float32;
                                         size = (Nxn, Nyn, Nzn),
                                         latitude  = (φ₁_data, φ₂_data),
@@ -179,7 +164,8 @@ function regrid_bathymetry(target_grid;
 
     native_z = Field{Center, Center, Nothing}(native_grid)
     set!(native_z, z_data)
-
+    fill_halo_regions!(native_z)
+    
     target_z = interpolate_bathymetry_in_passes(native_z, target_grid; 
                                                 passes = interpolation_passes)
 
