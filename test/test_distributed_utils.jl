@@ -80,7 +80,7 @@ end
 @testset "Distributed Bathymetry interpolation" begin
     # We start by building a fake bathyemtry on rank 0 and save it to file
     @root begin
-        λ = -180:0.1:180
+        λ = -179.5:0.1:179.5
         φ = 0:0.1:50
 
         Nλ = length(λ)
