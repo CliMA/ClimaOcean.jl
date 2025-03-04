@@ -35,8 +35,9 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 ##### A Propgnostic Ocean model
 #####
 
-momentum_advection = WENOVectorInvariant(order=5) 
-tracer_advection   = Centered()
+# A very diffusive ocean
+momentum_advection = WENOVectorInvariant(order=3) 
+tracer_advection   = WENO(order=3)
 
 free_surface = SplitExplicitFreeSurface(grid; cfl=0.8) 
 
@@ -70,7 +71,7 @@ radiation  = Radiation()
 #####
 
 arctic = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-arctic = Simulation(arctic, Δt=8minutes, stop_time=365days)
+arctic = Simulation(arctic, Δt=20minutes, stop_time=365days)
 
 h = sea_ice.model.ice_thickness
 ℵ = sea_ice.model.ice_concentration
