@@ -29,25 +29,22 @@ bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1)
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
 #####
-##### A Prescribed Ocean model
+##### A Propgnostic Ocean model
 #####
 
-# ...with prescribed velocity and tracer fields
-version = ECCO2Daily()
-dates   = all_ECCO_dates(version)[1:30]
+momentum_advection = WENOVectorInvariant(order=5) 
+tracer_advection   = Centered()
 
-u_metadata = ECCOMetadata(:u_velocity;  version, dates)
-v_metadata = ECCOMetadata(:v_velocity;  version, dates)
-T_metadata = ECCOMetadata(:temperature; version, dates)
-S_metadata = ECCOMetadata(:salinity;    version, dates)
+free_surface = SplitExplicitFreeSurface(grid; cfl=0.7) 
 
-u = ECCOFieldTimeSeries(u_metadata, grid; time_indices_in_memory=2)
-v = ECCOFieldTimeSeries(v_metadata, grid; time_indices_in_memory=2)
-T = ECCOFieldTimeSeries(T_metadata, grid; time_indices_in_memory=2)
-S = ECCOFieldTimeSeries(S_metadata, grid; time_indices_in_memory=2)
+ocean = ocean_simulation(grid; 
+                         momentum_advection, 
+                         tracer_advection, 
+                         free_surface)
 
-ocean_model = PrescribedOcean((; u, v, T, S); grid)
-ocean       = Simulation(ocean_model, Δt=10minutes, verbose=false)
+
+set!(ocean.model, T=ECCOMetadata(:temperature),
+                  S=ECCOMetadata(:salinity))
 
 #####
 ##### A Prognostic Sea-ice model
@@ -59,7 +56,7 @@ set!(sea_ice.model, h=ECCOMetadata(:sea_ice_thickness),
                     ℵ=ECCOMetadata(:sea_ice_concentration))
 
 #####
-##### Atmosphere model
+##### A Prescribed Atmosphere model
 #####
 
 atmosphere = JRA55PrescribedAtmosphere(; backend=JRA55NetCDFBackend(40))
@@ -80,7 +77,13 @@ Tu = arctic.model.interfaces.atmosphere_sea_ice_interface.temperature
 
 sea_ice.output_writers[:vars] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, Gh, Gℵ, Tu),
                                                  filename = "sea_ice_quantities.jld2",
-                                                 schedule = IterationInterval(12))
+                                                 schedule = IterationInterval(12),
+                                                 overwrite_existing=true)
+
+sea_ice.output_writers[:avrages] = JLD2OutputWriter(sea_ice.model, (; h, ℵ),
+                                                    filename = "averaged_sea_ice_quantities.jld2",
+                                                    schedule = AveragedTimeInterval(1days),
+                                                    overwrite_existing=true)
 
 wall_time = Ref(time_ns())
 
@@ -114,3 +117,38 @@ end
 add_callback!(arctic, progress, IterationInterval(10))
 
 run!(arctic)
+
+#####
+##### Comparison to ECCO Climatology
+#####
+
+version = ECCO4Monthly()
+dates   = all_ECCO_dates(version)[1:12]
+
+h_metadata = ECCOMetadata(:sea_ice_thickness;     version, dates)
+ℵ_metadata = ECCOMetadata(:sea_ice_concentration; version, dates)
+
+# Montly averaged ECCO data
+hE = ECCOFieldTimeSeries(h_metadata, grid; time_indices_in_memory=12)
+ℵE = ECCOFieldTimeSeries(ℵ_metadata, grid; time_indices_in_memory=12)
+
+# Daily averaged Model output
+hm = FieldTimeSeries("averaged_sea_ice_quantities.jld2", "h")
+ℵm = FieldTimeSeries("averaged_sea_ice_quantities.jld2", "ℵ")
+
+# Montly average the model output
+h̄m = FieldTimeSeries{Center, Center, Nothing}(grid, hE.times; backend=InMemory())
+ℵ̄m = FieldTimeSeries{Center, Center, Nothing}(grid, hE.times; backend=InMemory())
+
+for (i, time) in enumerate(hE.times)
+    counter = 0
+    for (j, t) in enumerate(hm.times)
+        if t ≤ time
+            h̄m[i] .+= hm[j]
+            ℵ̄m[i] .+= ℵm[j]
+            counter += 1
+        end
+    end
+    h̄m[i] ./= counter
+    ℵ̄m[i] ./= counter
+end
