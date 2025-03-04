@@ -7,6 +7,7 @@ using Oceananigans.OrthogonalSphericalShellGrids
 using ClimaOcean.OceanSimulations
 using ClimaOcean.ECCO
 using ClimaOcean.ECCO: all_ECCO_dates
+using ClimaSeaIce.SeaIceThermodynamics: IceWaterThermalEquilibrium
 using Printf
 
 using CUDA
@@ -55,12 +56,16 @@ set!(ocean.model, T=ECCOMetadata(:temperature),
 ##### A Prognostic Sea-ice model
 #####
 
-sea_ice = sea_ice_simulation(grid; dynamics=nothing, advection=nothing) 
+# Remember to pass the SSS as a bottom bc to the sea ice!
+SSS = view(ocean.model.tracers.S, :, :, grid.Nz)
+bottom_heat_boundary_condition = IceWaterThermalEquilibrium(SSS)
+
+sea_ice = sea_ice_simulation(grid; bottom_heat_boundary_condition, dynamics=nothing, advection=nothing) 
 
 set!(sea_ice.model, h=ECCOMetadata(:sea_ice_thickness), 
                     ℵ=ECCOMetadata(:sea_ice_concentration))
 
-#####
+##### 
 ##### A Prescribed Atmosphere model
 #####
 
@@ -90,12 +95,12 @@ Qᵗ = arctic.model.interfaces.net_fluxes.sea_ice_top.heat
 Qᴮ = arctic.model.interfaces.net_fluxes.sea_ice_bottom.heat
 
 # Output writers
-sea_ice.output_writers[:vars] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, Gh, Gℵ, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ),
+arctic.output_writers[:vars] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, Gh, Gℵ, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ),
                                                  filename = "sea_ice_quantities.jld2",
                                                  schedule = IterationInterval(12),
                                                  overwrite_existing=true)
 
-sea_ice.output_writers[:avrages] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ),
+arctic.output_writers[:avrages] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ),
                                                     filename = "averaged_sea_ice_quantities.jld2",
                                                     schedule = AveragedTimeInterval(1days),
                                                     overwrite_existing=true)

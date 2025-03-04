@@ -32,7 +32,7 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
         end
 
         sea_ice.Δt = Δt
-        thermodynamic_sea_ice_time_step!(coupled_model)
+        time_step!(sea_ice)
     end
 
     # TODO after ice time-step:
@@ -77,7 +77,7 @@ function thermodynamic_sea_ice_time_step!(coupled_model)
     grid = coupled_model.sea_ice.model.grid
     arch = architecture(grid)
     clock = model.clock
-    thermodynamics = model.ice_thermodynamics
+    thermodynamics = model.thermodynamics
     ice_thickness = model.ice_thickness
     ice_concentration = model.ice_concentration
     ice_consolidation_thickness = model.ice_consolidation_thickness

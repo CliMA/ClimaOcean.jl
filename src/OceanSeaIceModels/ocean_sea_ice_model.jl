@@ -77,11 +77,11 @@ heat_capacity(unsupported) =
 reference_density(ocean::Simulation) = reference_density(ocean.model.buoyancy.formulation)
 reference_density(buoyancy_formulation::SeawaterBuoyancy) = reference_density(buoyancy_formulation.equation_of_state)
 reference_density(eos::TEOS10EquationOfState) = eos.reference_density
-reference_density(sea_ice::SeaIceSimulation) = sea_ice.model.ice_thermodynamics.phase_transitions.ice_density
+reference_density(sea_ice::SeaIceSimulation) = sea_ice.model.thermodynamics.phase_transitions.ice_density
 
 heat_capacity(ocean::Simulation) = heat_capacity(ocean.model.buoyancy.formulation)
 heat_capacity(buoyancy_formulation::SeawaterBuoyancy) = heat_capacity(buoyancy_formulation.equation_of_state)
-heat_capacity(sea_ice::SeaIceSimulation) = sea_ice.model.ice_thermodynamics.phase_transitions.ice_heat_capacity
+heat_capacity(sea_ice::SeaIceSimulation) = sea_ice.model.thermodynamics.phase_transitions.ice_heat_capacity
 
 # Does not really matter if there is no model
 reference_density(::Nothing) = 0
@@ -180,7 +180,7 @@ function above_freezing_ocean_temperature!(ocean, sea_ice::SeaIceSimulation)
     T = ocean.model.tracers.T
     S = ocean.model.tracers.S
     ℵ = sea_ice.model.ice_concentration
-    liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
+    liquidus = sea_ice.model.thermodynamics.phase_transitions.liquidus
 
     grid = ocean.model.grid
     arch = architecture(grid)

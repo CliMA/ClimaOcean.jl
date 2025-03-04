@@ -81,8 +81,8 @@ function StateExchanger(ocean::Simulation, atmosphere)
     Nx, Ny, Nz = size(exchange_grid)
 
     # Make an array of FractionalIndices
-    FT = eltype(exchange_grid)
-    frac_indices = [FractionalIndices(one(FT), one(FT), one(FT)) for i=1:Nx+2, j=1:Ny+2, k=1:1]
+    FT = eltype(atmos_grid)
+    frac_indices = [FractionalIndices(one(FT), one(FT), nothing) for i=1:Nx+2, j=1:Ny+2, k=1:1]
     frac_indices = OffsetArray(frac_indices, -1, -1, 0)
     frac_indices = on_architecture(arch, frac_indices)
     
@@ -169,7 +169,7 @@ function atmosphere_sea_ice_interface(sea_ice::SeaIceSimulation,
                                      specific_humidity_formulation,
                                      temperature_formulation)
 
-    interface_temperature = sea_ice.model.ice_thermodynamics.top_surface_temperature
+    interface_temperature = sea_ice.model.thermodynamics.top_surface_temperature
 
     return AtmosphereInterface(fluxes, ai_flux_formulation, interface_temperature, properties)
 end
@@ -204,7 +204,7 @@ end
 default_ai_temperature(sea_ice) = nothing
 
 function default_ai_temperature(sea_ice::SeaIceSimulation)
-    conductive_flux = sea_ice.model.ice_thermodynamics.internal_heat_flux.parameters.flux
+    conductive_flux = sea_ice.model.thermodynamics.internal_heat_flux.parameters.flux
     return SkinTemperature(conductive_flux)
 end
 
@@ -223,7 +223,9 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              radiation = Radiation(),
                              freshwater_density = 1000,
                              atmosphere_ocean_flux_formulation = SimilarityTheoryFluxes(),
-                             atmosphere_sea_ice_flux_formulation = SimilarityTheoryFluxes(),
+                             atmosphere_sea_ice_flux_formulation = CoefficientBasedFluxes(drag_coefficient=2e-3,
+                                                                                          heat_transfer_coefficient=1e-4,
+                                                                                          vapor_flux_coefficient=1e-4),
                              atmosphere_ocean_interface_temperature = BulkTemperature(),
                              atmosphere_ocean_interface_specific_humidity = default_ao_specific_humidity(ocean),
                              atmosphere_sea_ice_interface_temperature = default_ai_temperature(sea_ice),
@@ -267,7 +269,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
         sea_ice_properties = (reference_density  = sea_ice_reference_density,
                               heat_capacity      = sea_ice_heat_capacity,
                               freshwater_density = freshwater_density,
-                              liquidus           = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus,
+                              liquidus           = sea_ice.model.thermodynamics.phase_transitions.liquidus,
                               temperature_units  = sea_ice_temperature_units)
 
         net_top_sea_ice_fluxes = (; heat=sea_ice.model.external_heat_fluxes.top)
@@ -313,7 +315,7 @@ function sea_ice_similarity_theory(sea_ice::SeaIceSimulation)
     # SkinTemperature. Also we need to pass the sea ice internal flux
     # The thickness and salinity need to be passed as well, 
     # but the can be passed as state variables once we refactor the `StateValues` struct.
-    internal_flux = sea_ice.model.ice_thermodynamics.internal_heat_flux
+    internal_flux = sea_ice.model.thermodynamics.internal_heat_flux
     interface_temperature_type = SkinTemperature(internal_flux)
     return SimilarityTheoryFluxes(; interface_temperature_type)
 end
