@@ -84,16 +84,16 @@ function StateExchanger(ocean::Simulation, atmosphere)
     arch = architecture(exchange_grid)
     Nx, Ny, Nz = size(exchange_grid)
 
-    # Make an array of FractionalIndices
-    FT = eltype(exchange_grid)
+    # Make a NamedTuple of fractional indices
+    # Note: we could use an array of FractionalIndices. Instead, for compatbility
+    # with Reactant we construct FractionalIndices on the fly in `interpolate_atmospheric_state`.
+    FT = eltype(atmos_grid)
     TX, TY, TZ = topology(exchange_grid)
     FX = fractional_index_type(FT, TX())
     FY = fractional_index_type(FT, TY())
-    FR = FractionalIndices{FX, FY, Nothing}
-
-    underlying_frac_indices = Array{FR}(undef, Nx+2, Ny+2, 1)
-    frac_indices = OffsetArray(underlying_frac_indices, -1, -1, 0)
-    frac_indices = on_architecture(arch, frac_indices)
+    fi = Field{Center, Center, Nothing}(exchange_grid, FX)
+    fj = Field{Center, Center, Nothing}(exchange_grid, FY)
+    frac_indices = (i=fi, j=fj) # no k needed, only horizontal interpolation
 
     kernel_parameters = interface_kernel_parameters(exchange_grid)
     launch!(arch, exchange_grid, kernel_parameters,
@@ -102,11 +102,17 @@ function StateExchanger(ocean::Simulation, atmosphere)
     return StateExchanger(ocean.model.grid, exchange_atmosphere_state, frac_indices)
 end
 
-@kernel function _compute_fractional_indices!(frac_indices, exchange_grid, atmos_grid)
+@kernel function _compute_fractional_indices!(indices_tuple, exchange_grid, atmos_grid)
     i, j = @index(Global, NTuple)
     kᴺ = size(exchange_grid, 3) # index of the top ocean cell
     X = _node(i, j, kᴺ + 1, exchange_grid, c, c, f)
-    @inbounds frac_indices[i, j, 1] = FractionalIndices(X, atmos_grid, c, c, nothing)
+    fractional_indices_ij = FractionalIndices(X, atmos_grid, c, c, nothing)
+    fi = indices_tuple.i
+    fj = indices_tuple.j
+    @inbounds begin
+        fi[i, j, k] = fractional_indices_ij.i
+        fj[i, j, k] = fractional_indices_ij.j
+    end
 end
 
 const PATP = PrescribedAtmosphereThermodynamicsParameters
