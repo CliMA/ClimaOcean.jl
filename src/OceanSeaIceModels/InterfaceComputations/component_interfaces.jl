@@ -82,7 +82,7 @@ function StateExchanger(ocean::Simulation, atmosphere)
     # Make an array of FractionalIndices
     FT = eltype(exchange_grid)
     frac_indices = [FractionalIndices(one(FT), one(FT), one(FT)) for i=1:Nx+2, j=1:Ny+2, k=1:1]
-    frac_indices = OffsetArray(frac_indices_data, -1, -1, 0)
+    frac_indices = OffsetArray(frac_indices, -1, -1, 0)
     frac_indices = on_architecture(arch, frac_indices)
 
     kernel_parameters = interface_kernel_parameters(exchange_grid)
