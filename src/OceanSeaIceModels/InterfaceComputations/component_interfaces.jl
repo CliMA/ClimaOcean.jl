@@ -14,7 +14,7 @@ using ..OceanSeaIceModels: reference_density,
 using ClimaSeaIce: SeaIceModel
 
 using Oceananigans: HydrostaticFreeSurfaceModel, architecture
-using Oceananigans.Grids: inactive_node, node
+using Oceananigans.Grids: inactive_node, node, topology
 using Oceananigans.BoundaryConditions: fill_halo_regions!
 
 using Oceananigans.Fields: ConstantField, interpolate, FractionalIndices
