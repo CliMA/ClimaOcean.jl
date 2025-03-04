@@ -32,7 +32,7 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
         end
 
         sea_ice.Δt = Δt
-        time_step!(sea_ice)
+        thermodynamic_sea_ice_time_step!(coupled_model)
     end
 
     # TODO after ice time-step:

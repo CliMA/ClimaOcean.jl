@@ -70,7 +70,7 @@ radiation  = Radiation()
 #####
 
 arctic = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-arctic = Simulation(arctic, Δt=600, stop_time=365days)
+arctic = Simulation(arctic, Δt=300, stop_time=365days)
 
 h = sea_ice.model.ice_thickness
 ℵ = sea_ice.model.ice_concentration
