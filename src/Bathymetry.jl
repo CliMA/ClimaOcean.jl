@@ -127,8 +127,6 @@ function regrid_bathymetry(target_grid;
 
     # Diagnose target grid information
     arch = architecture(target_grid)
-    φ₁, φ₂ = y_domain(target_grid)
-    λ₁, λ₂ = x_domain(target_grid)
 
     λ_data = λ_data |> Array{BigFloat}
     φ_data = φ_data |> Array{BigFloat}
@@ -205,8 +203,8 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     end
  
     # Interpolate in passes
-    latitude  = y_domain(target_grid)
-    longitude = x_domain(target_grid)
+    latitude  = y_domain(native_z.grid)
+    longitude = x_domain(native_z.grid)
 
     ΔNλ = floor((Nλn - Nλt) / passes)
     ΔNφ = floor((Nφn - Nφt) / passes)
