@@ -151,7 +151,9 @@ function regrid_bathymetry(target_grid;
     Nxn = length(λ_data)
     Nyn = length(φ_data)
     Nzn = 1
-
+    
+    @show φ₁_data, φ₂_data
+    @show λ₁_data, λ₂_data
   
     native_grid = LatitudeLongitudeGrid(arch, Float32;
                                         size = (Nxn, Nyn, Nzn),

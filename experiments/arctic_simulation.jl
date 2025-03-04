@@ -4,6 +4,10 @@ using Oceananigans
 using Oceananigans.Grids
 using Oceananigans.Units
 using Oceananigans.OrthogonalSphericalShellGrids
+using ClimaOcean.OceanSimulations
+using ClimaOcean.ECCO
+using ClimaOcean.ECCO: all_ECCO_dates
+using Printf
 
 r_faces = ClimaOcean.exponential_z_faces(; Nz=30, h=10, depth=3000)
 z_faces = MutableVerticalDiscretization(r_faces)
@@ -25,31 +29,26 @@ bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1)
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
 #####
-##### Ocean model
+##### A Prescribed Ocean model
 #####
 
-momentum_advection = WENOVectorInvariant(order=5) 
-tracer_advection   = Centered()
+# ...with prescribed velocity and tracer fields
+version = ECCO2Daily()
+dates   = all_ECCO_dates(version)[1:200]
 
-free_surface = SplitExplicitFreeSurface(grid; cfl=0.7) 
+u = ECCOFieldTimeSeries(:u_velocity,  version; dates, time_indices_in_memory=2)
+v = ECCOFieldTimeSeries(:v_velocity,  version; dates, time_indices_in_memory=2)
+T = ECCOFieldTimeSeries(:temperature, version; dates, time_indices_in_memory=2)
+S = ECCOFieldTimeSeries(:salinity,    version; dates, time_indices_in_memory=2)
 
-ocean = ocean_simulation(grid; 
-                         momentum_advection, 
-                         tracer_advection, 
-                         free_surface)
+ocean_model = PrescribedOcean((; u, v, T, S); grid)
+ocean       = Simulation(ocean_model, Δt=10minutes, verbose=false)
 
 #####
-##### Sea-ice model
+##### A Prognostic Sea-ice model
 #####
 
 sea_ice = sea_ice_simulation(grid; dynamics=nothing, advection=nothing) 
-
-#####
-##### Initialize the models
-#####
-
-set!(ocean.model, T=ECCOMetadata(:temperature), 
-                  S=ECCOMetadata(:salinity))
 
 set!(sea_ice.model, h=ECCOMetadata(:sea_ice_thickness), 
                     ℵ=ECCOMetadata(:sea_ice_concentration))
@@ -68,3 +67,45 @@ radiation  = Radiation()
 arctic = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 arctic = Simulation(arctic, Δt=600, stop_time=365days)
 
+h = sea_ice.model.ice_thickness
+ℵ = sea_ice.model.ice_concentration
+Gh = sea_ice.model.timestepper.Gⁿ.h
+Gℵ = sea_ice.model.timestepper.Gⁿ.ℵ
+Tu = arctic.model.interfaces.atmosphere_sea_ice_interface.temperature
+
+sea_ice.output_writers[:vars] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, Gh, Gℵ, Tu),
+                                                 filename = "sea_ice_quantities.jld2",
+                                                 schedule = IterationInterval(12))
+
+wall_time = Ref(time_ns())
+
+using Statistics
+
+function progress(sim)
+    sea_ice = sim.model.sea_ice
+    hmax = maximum(sea_ice.model.ice_thickness)
+    ℵmax = maximum(sea_ice.model.ice_concentration)
+    hmean = mean(sea_ice.model.ice_thickness)
+    ℵmean = mean(sea_ice.model.ice_concentration)
+    Tmax = maximum(sim.model.interfaces.atmosphere_sea_ice_interface.temperature)
+    Tmin = minimum(sim.model.interfaces.atmosphere_sea_ice_interface.temperature)
+
+    step_time = 1e-9 * (time_ns() - wall_time[])
+
+    msg1 = @sprintf("time: %s, iteration: %d, Δt: %s, ", prettytime(sim), iteration(sim), prettytime(sim.Δt))
+    msg2 = @sprintf("max(h): %.2e m, max(ℵ): %.2e ", hmax, ℵmax)
+    msg3 = @sprintf("mean(h): %.2e m, mean(ℵ): %.2e ", hmean, ℵmean)
+    msg4 = @sprintf("extrema(T): (%.2f, %.2f) ᵒC, ", Tmax, Tmin)
+    msg5 = @sprintf("wall time: %s \n", prettytime(step_time))
+
+    @info msg1 * msg2 * msg3 * msg4 * msg5
+
+     wall_time[] = time_ns()
+
+     return nothing
+end
+
+# And add it as a callback to the simulation.
+add_callback!(arctic, progress, IterationInterval(10))
+
+run!(arctic)

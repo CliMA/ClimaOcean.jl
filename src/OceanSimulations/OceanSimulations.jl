@@ -1,6 +1,6 @@
 module OceanSimulations
 
-export ocean_simulation
+export ocean_simulation, PrescribedOcean
 
 using Oceananigans
 using Oceananigans.Units
