@@ -35,7 +35,7 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 momentum_advection = WENOVectorInvariant(order=5) 
 tracer_advection   = Centered()
 
-free_surface = SplitExplicitFreeSurface(grid; cfl=0.7) 
+free_surface = SplitExplicitFreeSurface(grid; cfl=0.8) 
 
 ocean = ocean_simulation(grid; 
                          momentum_advection, 
@@ -67,20 +67,26 @@ radiation  = Radiation()
 #####
 
 arctic = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-arctic = Simulation(arctic, Δt=600, stop_time=365days)
+arctic = Simulation(arctic, Δt=8minutes, stop_time=365days)
 
 h = sea_ice.model.ice_thickness
 ℵ = sea_ice.model.ice_concentration
 Gh = sea_ice.model.timestepper.Gⁿ.h
 Gℵ = sea_ice.model.timestepper.Gⁿ.ℵ
 Tu = arctic.model.interfaces.atmosphere_sea_ice_interface.temperature
+Qˡ = arctic.model.interfaces.atmosphere_sea_ice_interface.fluxes.latent_heat
+Qˢ = arctic.model.interfaces.atmosphere_sea_ice_interface.fluxes.sensible_heat
+Qⁱ = arctic.model.interfaces.sea_ice_ocean_interface.fluxes.interface_heat
+Qᶠ = arctic.model.interfaces.sea_ice_ocean_interface.fluxes.frazil_heat
+Qᵗ = arctic.model.interfaces.net_fluxes.sea_ice_top.heat
+Qᴮ = arctic.model.interfaces.net_fluxes.sea_ice_bottom.heat
 
-sea_ice.output_writers[:vars] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, Gh, Gℵ, Tu),
+sea_ice.output_writers[:vars] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, Gh, Gℵ, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ),
                                                  filename = "sea_ice_quantities.jld2",
                                                  schedule = IterationInterval(12),
                                                  overwrite_existing=true)
 
-sea_ice.output_writers[:avrages] = JLD2OutputWriter(sea_ice.model, (; h, ℵ),
+sea_ice.output_writers[:avrages] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ),
                                                     filename = "averaged_sea_ice_quantities.jld2",
                                                     schedule = AveragedTimeInterval(1days),
                                                     overwrite_existing=true)
