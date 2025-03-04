@@ -36,15 +36,17 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 #####
 
 # A very diffusive ocean
-momentum_advection = WENOVectorInvariant(order=3) 
-tracer_advection   = WENO(order=3)
+momentum_advection = VectorInvariant() 
+tracer_advection   = Centered(order=3)
 
 free_surface = SplitExplicitFreeSurface(grid; cfl=0.8) 
+closure = (ClimaOcean.OceanSimulations.default_ocean_closure(), HorizontalScalarDiffusivity(κ=1000, ν=10000))
 
 ocean = ocean_simulation(grid; 
                          momentum_advection, 
                          tracer_advection, 
-                         free_surface)
+                         free_surface,
+                         closure)
 
 
 set!(ocean.model, T=ECCOMetadata(:temperature),
