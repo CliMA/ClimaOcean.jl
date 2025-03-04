@@ -83,11 +83,11 @@ function StateExchanger(ocean::Simulation, atmosphere)
     # Make an array of FractionalIndices
     kᴺ = size(exchange_grid, 3)
     @allowscalar X1 = _node(1, 1, kᴺ + 1, exchange_grid, c, c, f)
-    i1 = FractionalIndices(X1, atmosphere.grid, c, c, nothing)
+    @allowscalar i1 = FractionalIndices(X1, atmosphere.grid, c, c, nothing)
     frac_indices_data = [deepcopy(i1) for i=1:Nx+2, j=1:Ny+2, k=1:1]
     frac_indices = OffsetArray(frac_indices_data, -1, -1, 0)
     frac_indices = on_architecture(arch, frac_indices)
-
+    
     kernel_parameters = interface_kernel_parameters(exchange_grid)
     launch!(arch, exchange_grid, kernel_parameters,
             _compute_fractional_indices!, frac_indices, exchange_grid, atmos_grid)
