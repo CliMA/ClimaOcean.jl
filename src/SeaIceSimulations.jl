@@ -28,6 +28,7 @@ function sea_ice_simulation(grid;
                             ice_consolidation_thickness = 0.05, # m
                             ice_density = 900, # kg m⁻³
                             dynamics = nothing,
+                            bottom_heat_boundary_condition = IceWaterThermalEquilibrium(),
                             phase_transitions = PhaseTransitions(; ice_heat_capacity, ice_density),
                             conductivity = 2, # kg m s⁻³ K⁻¹
                             internal_heat_flux = ConductiveFlux(; conductivity))
@@ -42,7 +43,8 @@ function sea_ice_simulation(grid;
     ice_thermodynamics = SlabSeaIceThermodynamics(grid;
                                                   internal_heat_flux,
                                                   phase_transitions,
-                                                  top_heat_boundary_condition)
+                                                  top_heat_boundary_condition,
+                                                  bottom_heat_boundary_condition)
 
     bottom_heat_flux = Field{Center, Center, Nothing}(grid)
     top_heat_flux    = Field{Center, Center, Nothing}(grid)
