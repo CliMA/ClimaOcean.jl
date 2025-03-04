@@ -1,6 +1,11 @@
 
+using Oceananigans
+using Oceananigans.BoundaryConditions
+using Oceananigans.Grids: architecture
+
 import Oceananigans.TimeSteppers: time_step!, update_state!, tick!
 import Oceananigans.Models: timestepper, update_model_field_time_series!
+
 import ClimaOcean.OceanSeaIceModels: reference_density, heat_capacity
 
 #####

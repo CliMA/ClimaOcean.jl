@@ -41,5 +41,6 @@ default_or_override(override, alternative_default=nothing) = override
 
 include("barotropic_potential_forcing.jl")
 include("ocean_simulation.jl")
+include("prescribed_ocean_model.jl")
 
 end # module

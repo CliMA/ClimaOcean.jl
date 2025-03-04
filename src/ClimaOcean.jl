@@ -73,9 +73,9 @@ end
 end
 
 include("DistributedUtils.jl")
+include("OceanSeaIceModels/OceanSeaIceModels.jl")
 include("OceanSimulations/OceanSimulations.jl")
 include("SeaIceSimulations.jl")
-include("OceanSeaIceModels/OceanSeaIceModels.jl")
 include("VerticalGrids.jl")
 include("InitialConditions/InitialConditions.jl")
 include("DataWrangling/DataWrangling.jl")
