@@ -28,6 +28,7 @@ struct OceanSeaIceModel{I, A, O, F, C} <: AbstractModel{Nothing}
 end
 
 const OSIM = OceanSeaIceModel
+const OSIMSIM = Simulation{<:OceanSeaIceModel}
 
 function Base.summary(model::OSIM)
     A = nameof(typeof(architecture(model)))
@@ -189,3 +190,8 @@ function above_freezing_ocean_temperature!(ocean, sea_ice::SeaIceSimulation)
     return nothing
 end
 
+# TODO: picking up OceanSeaIceModel simulations from a checkpoint is a WIP
+function set!(sim::OSIMSIM, pickup)
+    set!(sim.model.ocean, pickup)
+    return nothing
+end
