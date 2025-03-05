@@ -77,7 +77,7 @@ radiation  = Radiation()
 #####
 
 arctic = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-arctic = Simulation(arctic, Δt=8minutes, stop_time=365days)
+arctic = Simulation(arctic, Δt=5minutes, stop_time=365days)
 
 # Sea-ice variables
 h  = sea_ice.model.ice_thickness
@@ -153,22 +153,23 @@ hE = ECCOFieldTimeSeries(h_metadata, grid; time_indices_in_memory=12)
 ℵE = ECCOFieldTimeSeries(ℵ_metadata, grid; time_indices_in_memory=12)
 
 # Daily averaged Model output
-hm = FieldTimeSeries("averaged_sea_ice_quantities.jld2", "h")
-ℵm = FieldTimeSeries("averaged_sea_ice_quantities.jld2", "ℵ")
+h = FieldTimeSeries("averaged_sea_ice_quantities.jld2", "h")
+ℵ = FieldTimeSeries("averaged_sea_ice_quantities.jld2", "ℵ")
 
 # Montly average the model output
-h̄m = FieldTimeSeries{Center, Center, Nothing}(grid, hE.times; backend=InMemory())
-ℵ̄m = FieldTimeSeries{Center, Center, Nothing}(grid, hE.times; backend=InMemory())
+hm = FieldTimeSeries{Center, Center, Nothing}(grid, hE.times; backend=InMemory())
+ℵm = FieldTimeSeries{Center, Center, Nothing}(grid, hE.times; backend=InMemory())
 
-for (i, time) in enumerate(hE.times)
+for (i, time) in enumerate(hm.times)
     counter = 0
-    for (j, t) in enumerate(hm.times)
+    for (j, t) in enumerate(h.times)
         if t ≤ time
-            h̄m[i] .+= hm[j]
-            ℵ̄m[i] .+= ℵm[j]
+            hm[i] .+= h[j]
+            ℵm[i] .+= ℵ[j]
             counter += 1
         end
     end
-    h̄m[i] ./= counter
-    ℵ̄m[i] ./= counter
+    @show counter
+    hm[i] ./= counter
+    ℵm[i] ./= counter
 end
