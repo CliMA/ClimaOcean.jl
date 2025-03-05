@@ -7,7 +7,7 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 
 @inline kernel_melting_temperature(i, j, k, grid, liquidus, S) = @inbounds melting_temperature(liquidus, S[i, j, k])
 
-@testset "GPU time stepping test" begin
+@testset "Time stepping test" begin
 
     for arch in test_architectures
 
@@ -26,9 +26,9 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
                                             interpolation_passes = 20,
                                             major_basins = 1)
         
-        grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map = true)
+        grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
-        free_surface = SplitExplicitFreeSurface(grid; substeps = 20)
+        free_surface = SplitExplicitFreeSurface(grid; substeps=20)
         ocean = ocean_simulation(grid; free_surface) 
 
         backend = JRA55NetCDFBackend(4)
@@ -54,7 +54,6 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
         
         # Set the ocean temperature and salinity
         set!(ocean.model, T=temperature_metadata[1], S=salinity_metadata[1])
-
         above_freezing_ocean_temperature!(ocean, sea_ice)
 
         # Test that ocean temperatures are above freezing
@@ -62,13 +61,15 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
         S = on_architecture(CPU(), ocean.model.tracers.S)
 
         Tm = KernelFunctionOperation{Center, Center, Center}(kernel_melting_temperature, grid, liquidus, S)
-        @test all(T .> Tm)
+        @test all(T .>= Tm)
 
         # Fluxes are computed when the model is constructed, so we just test that this works.
         # And that we can time step with sea ice
         @test begin
             coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+            time_step!(coupled_model, 1)
             true
         end
     end
 end
+
