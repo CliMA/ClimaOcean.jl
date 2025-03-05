@@ -272,7 +272,17 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                               liquidus           = sea_ice.model.thermodynamics.phase_transitions.liquidus,
                               temperature_units  = sea_ice_temperature_units)
 
-        net_top_sea_ice_fluxes = (; heat=sea_ice.model.external_heat_fluxes.top)
+        net_momentum_fluxes = if sea_ice.model.dynamics isa Nothing 
+            u = Field{Face, Center, Nothing}(sea_ice.model.grid)
+            v = Field{Center, Face, Nothing}(sea_ice.model.grid)
+            (; u, v) 
+        else
+            u = sea_ice.model.dynamics.external_momentum_fluxes.top.u
+            v = sea_ice.model.dynamics.external_momentum_fluxes.top.v
+            (u, v)
+        end
+
+        net_top_sea_ice_fluxes = merge((; heat=sea_ice.model.external_heat_fluxes.top), net_momentum_fluxes)
         net_bottom_sea_ice_fluxes = (; heat=sea_ice.model.external_heat_fluxes.bottom)
     else
         sea_ice_properties = nothing

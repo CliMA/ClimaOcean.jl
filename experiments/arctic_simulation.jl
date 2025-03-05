@@ -56,11 +56,29 @@ set!(ocean.model, T=ECCOMetadata(:temperature),
 ##### A Prognostic Sea-ice model
 #####
 
+using ClimaSeaIce.SeaIceMomentumEquations
+using ClimaSeaIce.Rheologies
+
 # Remember to pass the SSS as a bottom bc to the sea ice!
 SSS = view(ocean.model.tracers.S, :, :, grid.Nz)
 bottom_heat_boundary_condition = IceWaterThermalEquilibrium(SSS)
 
-sea_ice = sea_ice_simulation(grid; bottom_heat_boundary_condition, dynamics=nothing, advection=nothing) 
+SSU = view(ocean.model.velocities.u, :, :, grid.Nz)
+SSV = view(ocean.model.velocities.u, :, :, grid.Nz)
+
+τo  = SemiImplicitStress(uₑ=SSU, vₑ=SSV)
+τua = Field{Face, Center, Nothing}(grid) 
+τva = Field{Center, Face, Nothing}(grid)
+
+dynamics = SeaIceMomentumEquation(grid; 
+                                  coriolis = ocean.model.coriolis,
+                                  top_momentum_stress = (u=τua, v=τva),
+                                  bottom_momentum_stress = τo,
+                                  ocean_velocities = (u=SSU, v=SSV),
+                                  rhelogy = ElastoViscoPlasticRheology(),
+                                  solver = SplitExplicitSolver(120))
+
+sea_ice = sea_ice_simulation(grid; bottom_heat_boundary_condition, dynamics, advection=WENO(order=7)) 
 
 set!(sea_ice.model, h=ECCOMetadata(:sea_ice_thickness), 
                     ℵ=ECCOMetadata(:sea_ice_concentration))
