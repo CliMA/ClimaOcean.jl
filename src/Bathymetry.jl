@@ -189,9 +189,15 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     Nλt, Nφt = Nt = size(target_grid)
     Nλn, Nφn = Nn = size(native_z)
 
+    resxt = minimum_xspacing(target_grid)
+    resyt = minimum_yspacing(target_grid)
+
+    resxn = minimum_xspacing(native_z.grid)
+    resyn = minimum_yspacing(native_z.grid)
+
     # Check whether we are coarsening the grid in any directions.
     # If so, skip interpolation passes.
-    if Nλt > Nλn || Nφt > Nφn
+    if resxt > resxn || resyt > resyn
         target_z = Field{Center, Center, Nothing}(target_grid)
         interpolate!(target_z, native_z)
         @info string("Skipping passes for interpolating bathymetry of size $Nn ", '\n',
@@ -202,8 +208,8 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     end
  
     # Interpolate in passes
-    latitude  = y_domain(native_z.grid)
-    longitude = x_domain(native_z.grid)
+    latitude  = y_domain(target_grid)
+    longitude = x_domain(target_grid)
 
     ΔNλ = floor((Nλn - Nλt) / passes)
     ΔNφ = floor((Nφn - Nφt) / passes)
