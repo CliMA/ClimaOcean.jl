@@ -5,6 +5,8 @@ using OrthogonalSphericalShellGrids
 using ClimaOcean.OceanSeaIceModels: above_freezing_ocean_temperature!
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 
+@inline pointwise_melting_T(i, j, k, grid, liquidus, S) = @inbounds melting_temperature(liquidus, S[i, j, k])
+
 @testset "GPU time stepping test" begin
 
     for arch in test_architectures
@@ -59,10 +61,7 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
         T = on_architecture(CPU(), ocean.model.tracers.T)
         S = on_architecture(CPU(), ocean.model.tracers.S)
 
-        @inline pointwise_melting_T(i, j, k, grid, liquidus, S) = @inbounds melting_temperature(liquidus, S[i, j, k])
-
-        Tm = KernelFunctionOperation{Center, Center, Center}(pointwise_melting_T, grid, S)
-
+        Tm = KernelFunctionOperation{Center, Center, Center}(pointwise_melting_T, grid, liquidus, S)
         @test all(T .> Tm)
 
         # Fluxes are computed when the model is constructed, so we just test that this works.
