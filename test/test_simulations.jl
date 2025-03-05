@@ -2,7 +2,7 @@ include("runtests_setup.jl")
 
 using CUDA
 using OrthogonalSphericalShellGrids
-using ClimaOcean.OceanSeaIceModels: adjust_freezing_ocean_temperature!
+using ClimaOcean.OceanSeaIceModels: above_freezing_ocean_temperature!
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 
 @testset "GPU time stepping test" begin
@@ -53,7 +53,7 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
         # Set the ocean temperature and salinity
         set!(ocean.model, T=temperature_metadata[1], S=salinity_metadata[1])
 
-        adjust_freezing_ocean_temperature!(ocean, sea_ice)
+        above_freezing_ocean_temperature!(ocean, sea_ice)
 
         # Test that ocean temperatures are above freezing
         T = on_architecture(CPU(), ocean.model.T)

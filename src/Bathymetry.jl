@@ -127,7 +127,7 @@ function regrid_bathymetry(target_grid;
 
     # Diagnose target grid information
     arch = architecture(target_grid)
-
+    arch   = architecture(target_grid)
     λ_data = λ_data |> Array{BigFloat}
     φ_data = φ_data |> Array{BigFloat}
     
@@ -151,7 +151,7 @@ function regrid_bathymetry(target_grid;
     Nxn = length(λ_data)
     Nyn = length(φ_data)
     Nzn = 1
-    
+
     native_grid = LatitudeLongitudeGrid(arch, Float32;
                                         size = (Nxn, Nyn, Nzn),
                                         latitude  = (φ₁_data, φ₂_data),
@@ -189,9 +189,15 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     Nλt, Nφt = Nt = size(target_grid)
     Nλn, Nφn = Nn = size(native_z)
 
+    resxt = minimum_xspacing(target_grid)
+    resyt = minimum_yspacing(target_grid)
+
+    resxn = minimum_xspacing(native_z.grid)
+    resyn = minimum_yspacing(native_z.grid)
+
     # Check whether we are coarsening the grid in any directions.
     # If so, skip interpolation passes.
-    if Nλt > Nλn || Nφt > Nφn
+    if resxt > resxn || resyt > resyn
         target_z = Field{Center, Center, Nothing}(target_grid)
         interpolate!(target_z, native_z)
         @info string("Skipping passes for interpolating bathymetry of size $Nn ", '\n',
