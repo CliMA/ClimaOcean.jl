@@ -270,7 +270,7 @@ function download_dataset(metadata::ECCOMetadata; url = urls(metadata))
 	    end
         end
 	if !missing_files
-            println("Note: ECCO $(metadata.name) data is in $(metadata.dir).")
+            @info "Note: ECCO $(metadata.name) data is in $(metadata.dir)."
 	end
     end
 
