@@ -111,7 +111,7 @@ function interpolate_atmospheric_state!(coupled_model)
     end
 end
 
-@inline get_fractional_index(i, j, ::Nothing) = 1
+@inline get_fractional_index(i, j, ::Nothing) = 0
 @inline get_fractional_index(i, j, frac) = @inbounds frac[i, j, 1]
     
 @kernel function _interpolate_primary_atmospheric_state!(surface_atmos_state,
