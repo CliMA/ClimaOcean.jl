@@ -56,8 +56,8 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
         above_freezing_ocean_temperature!(ocean, sea_ice)
 
         # Test that ocean temperatures are above freezing
-        T = on_architecture(CPU(), ocean.model.T)
-        S = on_architecture(CPU(), ocean.model.S)
+        T = on_architecture(CPU(), ocean.model.tracers.T)
+        S = on_architecture(CPU(), ocean.model.tracers.S)
 
         @inline pointwise_melting_T(i, j, k, grid, liquidus, S) = @inbounds melting_temperature(liquidus, S[i, j, k])
 
