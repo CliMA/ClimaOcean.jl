@@ -110,6 +110,9 @@ function interpolate_atmospheric_state!(coupled_model)
         parent(barotropic_potential) .= parent(atmosphere_data.p) ./ ρₒ
     end
 end
+
+@inline get_fractional_index(i, j, ::Nothing) = 1
+@inline get_fractional_index(i, j, frac) = @inbounds frac[i, j, 1]
     
 @kernel function _interpolate_primary_atmospheric_state!(surface_atmos_state,
                                                          space_fractional_indices,
@@ -125,10 +128,10 @@ end
 
     i, j = @index(Global, NTuple)
 
-    @inbounds begin
-        fi = space_fractional_indices.i[i, j, 1]
-        fj = space_fractional_indices.j[i, j, 1]
-    end
+    ii = space_fractional_indices.i
+    jj = space_fractional_indices.j
+    fi = get_fractional_index(i, j, ii)
+    fj = get_fractional_index(i, j, jj)
 
     x_itp = FractionalIndices(fi, fj, nothing)
     t_itp = time_interpolator

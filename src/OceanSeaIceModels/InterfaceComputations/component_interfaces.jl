@@ -89,10 +89,8 @@ function StateExchanger(ocean::Simulation, atmosphere)
     # with Reactant we construct FractionalIndices on the fly in `interpolate_atmospheric_state`.
     FT = eltype(atmos_grid)
     TX, TY, TZ = topology(exchange_grid)
-    FX = fractional_index_type(FT, TX())
-    FY = fractional_index_type(FT, TY())
-    fi = Field{Center, Center, Nothing}(exchange_grid, FX)
-    fj = Field{Center, Center, Nothing}(exchange_grid, FY)
+    fi = TX() isa Flat ? nothing : Field{Center, Center, Nothing}(exchange_grid, FX)
+    fj = TY() isa Flat ? nothing : Field{Center, Center, Nothing}(exchange_grid, FY)
     frac_indices = (i=fi, j=fj) # no k needed, only horizontal interpolation
 
     kernel_parameters = interface_kernel_parameters(exchange_grid)
@@ -110,8 +108,13 @@ end
     fi = indices_tuple.i
     fj = indices_tuple.j
     @inbounds begin
-        fi[i, j, 1] = fractional_indices_ij.i
-        fj[i, j, 1] = fractional_indices_ij.j
+        if !isnothing(fi)
+            fi[i, j, 1] = fractional_indices_ij.i
+        end
+
+        if !isnothing(fj)
+            fj[i, j, 1] = fractional_indices_ij.j
+        end
     end
 end
 
