@@ -75,7 +75,7 @@ dynamics = SeaIceMomentumEquation(grid;
                                   top_momentum_stress = (u=τua, v=τva),
                                   bottom_momentum_stress = τo,
                                   ocean_velocities = (u=SSU, v=SSV),
-                                  rhelogy = ElastoViscoPlasticRheology(),
+                                  rheology = ElastoViscoPlasticRheology(),
                                   solver = SplitExplicitSolver(120))
 
 sea_ice = sea_ice_simulation(grid; bottom_heat_boundary_condition, dynamics, advection=WENO(order=7)) 
