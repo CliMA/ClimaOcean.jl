@@ -197,7 +197,7 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
 
     # Check whether we are coarsening the grid in any directions.
     # If so, skip interpolation passes.
-    if resxt > resxn || resyt > resyn
+    if resxt < resxn || resyt < resyn
         target_z = Field{Center, Center, Nothing}(target_grid)
         interpolate!(target_z, native_z)
         @info string("Skipping passes for interpolating bathymetry of size $Nn ", '\n',
