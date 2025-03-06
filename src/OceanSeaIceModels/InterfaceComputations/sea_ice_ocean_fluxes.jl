@@ -21,7 +21,7 @@ function compute_sea_ice_ocean_latent_heat_flux!(coupled_model)
     ℵᵢ = sea_ice.model.ice_concentration
     
     ocean_properties = coupled_model.interfaces.ocean_properties
-    liquidus = sea_ice.model.thermodynamics.phase_transitions.liquidus
+    liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
     grid = ocean.model.grid
     arch = architecture(grid)
 

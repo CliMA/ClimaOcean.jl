@@ -187,7 +187,7 @@ function atmosphere_sea_ice_interface(sea_ice::SeaIceSimulation,
                                      specific_humidity_formulation,
                                      temperature_formulation)
 
-    interface_temperature = sea_ice.model.thermodynamics.top_surface_temperature
+    interface_temperature = sea_ice.model.ice_thermodynamics.top_surface_temperature
 
     return AtmosphereInterface(fluxes, ai_flux_formulation, interface_temperature, properties)
 end
@@ -222,7 +222,7 @@ end
 default_ai_temperature(sea_ice) = nothing
 
 function default_ai_temperature(sea_ice::SeaIceSimulation)
-    conductive_flux = sea_ice.model.thermodynamics.internal_heat_flux.parameters.flux
+    conductive_flux = sea_ice.model.ice_thermodynamics.internal_heat_flux.parameters.flux
     return SkinTemperature(conductive_flux)
 end
 
@@ -287,7 +287,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
         sea_ice_properties = (reference_density  = sea_ice_reference_density,
                               heat_capacity      = sea_ice_heat_capacity,
                               freshwater_density = freshwater_density,
-                              liquidus           = sea_ice.model.thermodynamics.phase_transitions.liquidus,
+                              liquidus           = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus,
                               temperature_units  = sea_ice_temperature_units)
 
         net_top_sea_ice_fluxes = (; heat=sea_ice.model.external_heat_fluxes.top)
@@ -333,7 +333,7 @@ function sea_ice_similarity_theory(sea_ice::SeaIceSimulation)
     # SkinTemperature. Also we need to pass the sea ice internal flux
     # The thickness and salinity need to be passed as well, 
     # but the can be passed as state variables once we refactor the `StateValues` struct.
-    internal_flux = sea_ice.model.thermodynamics.internal_heat_flux
+    internal_flux = sea_ice.model.ice_thermodynamics.internal_heat_flux
     interface_temperature_type = SkinTemperature(internal_flux)
     return SimilarityTheoryFluxes(; interface_temperature_type)
 end

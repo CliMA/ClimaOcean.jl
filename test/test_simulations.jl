@@ -50,7 +50,7 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
         sea_ice_grid = ImmersedBoundaryGrid(sea_ice_grid, GridFittedBottom(bottom_height))
 
         sea_ice  = sea_ice_simulation(sea_ice_grid) 
-        liquidus = sea_ice.model.thermodynamics.phase_transitions.liquidus
+        liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
         
         # Set the ocean temperature and salinity
         set!(ocean.model, T=temperature_metadata[1], S=salinity_metadata[1])
