@@ -98,10 +98,10 @@ arctic = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 arctic = Simulation(arctic, Δt=5minutes, stop_time=365days)
 
 # Sea-ice variables
-h  = sea_ice.model.ice_thickness
-ℵ  = sea_ice.model.ice_concentration
-Gh = sea_ice.model.timestepper.Gⁿ.h
-Gℵ = sea_ice.model.timestepper.Gⁿ.ℵ
+h = sea_ice.model.ice_thickness
+ℵ = sea_ice.model.ice_concentration
+u = sea_ice.model.velocities.u
+v = sea_ice.model.velocities.v
 
 # Fluxes
 Tu = arctic.model.interfaces.atmosphere_sea_ice_interface.temperature
@@ -111,14 +111,16 @@ Qⁱ = arctic.model.interfaces.sea_ice_ocean_interface.fluxes.interface_heat
 Qᶠ = arctic.model.interfaces.sea_ice_ocean_interface.fluxes.frazil_heat
 Qᵗ = arctic.model.interfaces.net_fluxes.sea_ice_top.heat
 Qᴮ = arctic.model.interfaces.net_fluxes.sea_ice_bottom.heat
+τx = arctic.model.interfaces.net_fluxes.sea_ice_top.u
+τy = arctic.model.interfaces.net_fluxes.sea_ice_top.v
 
 # Output writers
-arctic.output_writers[:vars] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, Gh, Gℵ, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ),
+arctic.output_writers[:vars] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, u, v, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ, τx, τy),
                                                  filename = "sea_ice_quantities.jld2",
                                                  schedule = IterationInterval(12),
                                                  overwrite_existing=true)
 
-arctic.output_writers[:avrages] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ),
+arctic.output_writers[:avrages] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ, u, v, τx, τy),
                                                     filename = "averaged_sea_ice_quantities.jld2",
                                                     schedule = AveragedTimeInterval(1days),
                                                     overwrite_existing=true)

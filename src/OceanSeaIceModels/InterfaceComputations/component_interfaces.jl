@@ -277,9 +277,9 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
             v = Field{Center, Face, Nothing}(sea_ice.model.grid)
             (; u, v) 
         else
-            u = sea_ice.model.dynamics.external_momentum_fluxes.top.u
-            v = sea_ice.model.dynamics.external_momentum_fluxes.top.v
-            (u, v)
+            u = sea_ice.model.dynamics.external_momentum_stresses.top.u
+            v = sea_ice.model.dynamics.external_momentum_stresses.top.v
+            (; u, v)
         end
 
         net_top_sea_ice_fluxes = merge((; heat=sea_ice.model.external_heat_fluxes.top), net_momentum_fluxes)
