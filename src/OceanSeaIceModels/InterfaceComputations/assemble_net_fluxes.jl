@@ -119,21 +119,18 @@ end
     Jˢ = net_ocean_fluxes.S
     ℵ = sea_ice_concentration
     ρₒ⁻¹ = 1 / ocean_properties.reference_density
-    cₒ   = ocean_properties.heat_capacity
+    cₒ⁻¹ = 1 / ocean_properties.heat_capacity
 
     τxao = ℑxᶠᵃᵃ(i, j, 1, grid, τᶜᶜᶜ, ρₒ⁻¹, ℵ, ρτx)
     τyao = ℑyᵃᶠᵃ(i, j, 1, grid, τᶜᶜᶜ, ρₒ⁻¹, ℵ, ρτy)
-    Jᵀao = ΣQao  * ρₒ⁻¹ / cₒ
+    Jᵀao = ΣQao * (ρₒ⁻¹ * cₒ⁻¹)
     Jˢao = - Sₒ * ΣFao
-
-    ρₒ⁻¹ = 1 / ocean_properties.reference_density
-    cₒ   = ocean_properties.heat_capacity
 
     @inbounds begin
         ℵᵢ   = ℵ[i, j, 1]
         Qio  = sea_ice_ocean_fluxes.interface_heat[i, j, 1]
         Jˢio = sea_ice_ocean_fluxes.salt[i, j, 1]
-        Jᵀio = Qio * ρₒ⁻¹ / cₒ
+        Jᵀio = Qio * (ρₒ⁻¹ * cₒ⁻¹)
 
         τx[i, j, 1] = τxao
         τy[i, j, 1] = τyao
