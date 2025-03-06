@@ -51,7 +51,7 @@ using ClimaOcean.Bathymetry: remove_minor_basins!
         grid = LatitudeLongitudeGrid(arch;
                                      size = (200, 200, 10),
                                      longitude = (0, 2),
-                                     latitude = (-10, 50),
+                                     latitude = (-0.1, 0.1),
                                      z = (-6000, 0))
 
         control_bottom_height = regrid_bathymetry(grid)
