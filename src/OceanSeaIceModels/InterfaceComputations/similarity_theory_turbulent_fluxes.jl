@@ -190,7 +190,7 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
     ℓu = flux_formulation.roughness_lengths.momentum
     ℓθ = flux_formulation.roughness_lengths.temperature
     ℓq = flux_formulation.roughness_lengths.water_vapor
-    β = flux_formulation.gustiness_parameter
+    β  = flux_formulation.gustiness_parameter
 
     # Compute surface thermodynamic state
     𝒬ₛ = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, 𝒬ₐ.p, Tₛ, qₛ)
