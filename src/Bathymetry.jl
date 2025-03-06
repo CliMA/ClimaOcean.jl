@@ -202,8 +202,8 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
         interpolate!(target_z, native_z)
         @info string("Skipping passes for interpolating bathymetry of size $Nn ", '\n',
                      "to target grid of size $Nt. Interpolation passes may only ", '\n',
-                     "be used to refine bathymetry and require that the bathymetry ", '\n',
-                     "is larger than the target grid in both horizontal directions.")
+                     "be used to coarsen bathymetry and require that the bathymetry ", '\n',
+                     "is finer than the target grid in both horizontal directions.")
         return target_z
     end
  
