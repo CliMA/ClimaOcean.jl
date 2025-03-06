@@ -1,6 +1,8 @@
 using Oceananigans
 using Oceananigans.TimeSteppers: Clock
 using Oceananigans: SeawaterBuoyancy
+using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
+using KernelAbstractions: @kernel, @index
 
 using SeawaterPolynomials: TEOS10EquationOfState
 
@@ -55,12 +57,16 @@ Base.eltype(model::OSIM)            = Base.eltype(model.ocean.model)
 prettytime(model::OSIM)             = prettytime(model.clock.time)
 iteration(model::OSIM)              = model.clock.iteration
 timestepper(::OSIM)                 = nothing
-reset!(::OSIM)                      = nothing
 initialize!(::OSIM)                 = nothing
 default_included_properties(::OSIM) = tuple()
 prognostic_fields(cm::OSIM)         = nothing
 fields(::OSIM)                      = NamedTuple()
 default_clock(TT)                   = Oceananigans.TimeSteppers.Clock{TT}(0, 0, 1)
+
+function reset!(model::OSIM)
+    reset!(model.ocean)
+    return nothing
+end
 
 reference_density(unsupported) =
     throw(ArgumentError("Cannot extract reference density from $(typeof(unsupported))"))
@@ -86,7 +92,7 @@ function heat_capacity(::TEOS10EquationOfState{FT}) where FT
     return convert(FT, cₚ⁰)
 end
 
-function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature();
+function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(ocean.model));
                           atmosphere = nothing,
                           radiation = nothing,
                           clock = deepcopy(ocean.model.clock),
@@ -134,6 +140,9 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature();
                                            ocean,
                                            interfaces)
 
+    # Make sure the initial temperature of the ocean
+    # is not below freezing and above melting near the surface
+    above_freezing_ocean_temperature!(ocean, sea_ice)
     update_state!(ocean_sea_ice_model)
 
     return ocean_sea_ice_model
@@ -147,3 +156,36 @@ function default_nan_checker(model::OceanSeaIceModel)
     nan_checker = NaNChecker((; u_ocean))
     return nan_checker
 end
+
+@kernel function _above_freezing_ocean_temperature!(T, grid, S, ℵ, liquidus)
+    i, j = @index(Global, NTuple)
+    Nz = size(grid, 3)
+
+    @inbounds begin
+        for k in 1:Nz-1
+            Tm = melting_temperature(liquidus, S[i, j, k])
+            T[i, j, k] = max(T[i, j, k], Tm)
+        end
+
+        ℵi = ℵ[i, j, 1]
+        Tm = melting_temperature(liquidus, S[i, j, Nz])
+        T[i, j, Nz] = ifelse(ℵi > 0, Tm, T[i, j, Nz])
+    end
+end
+
+# Fallback
+above_freezing_ocean_temperature!(ocean, sea_ice) = nothing
+
+function above_freezing_ocean_temperature!(ocean, sea_ice::SeaIceSimulation) 
+    T = ocean.model.tracers.T
+    S = ocean.model.tracers.S
+    ℵ = sea_ice.model.ice_concentration
+    liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
+
+    grid = ocean.model.grid
+    arch = architecture(grid)
+    launch!(arch, grid, :xy, _above_freezing_ocean_temperature!, T, grid, S, ℵ, liquidus)
+
+    return nothing
+end
+

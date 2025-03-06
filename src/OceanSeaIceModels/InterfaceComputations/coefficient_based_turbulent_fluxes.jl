@@ -20,7 +20,7 @@ function CoefficientBasedFluxes(FT = Oceananigans.defaults.FloatType;
                                 bulk_velocity = RelativeVelocity(),
                                 solver_stop_criteria = nothing,
                                 solver_tolerance = 1e-8,
-                                solver_maxiter = 10)
+                                solver_maxiter = 20)
 
     if isnothing(solver_stop_criteria)
         solver_tolerance = convert(FT, solver_tolerance)
