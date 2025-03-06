@@ -2,7 +2,6 @@ using StaticArrays
 using Thermodynamics
 using SurfaceFluxes
 using OffsetArrays
-using CUDA: @allowscalar
 
 using ..OceanSeaIceModels: reference_density,
                            heat_capacity,
@@ -15,7 +14,7 @@ using ..OceanSeaIceModels: reference_density,
 using ClimaSeaIce: SeaIceModel
 
 using Oceananigans: HydrostaticFreeSurfaceModel, architecture
-using Oceananigans.Grids: inactive_node, node
+using Oceananigans.Grids: inactive_node, node, topology
 using Oceananigans.BoundaryConditions: fill_halo_regions!
 
 using Oceananigans.Fields: ConstantField, interpolate, FractionalIndices
@@ -60,6 +59,11 @@ struct StateExchanger{G, AST, AEX}
     atmosphere_exchanger :: AEX
 end
 
+# Note that Field location can also affect fractional index type.
+# Here we assume that we know the location of Fields that will be interpolated.
+fractional_index_type(FT, Topo) = FT
+fractional_index_type(FT, ::Flat) = Nothing
+
 function StateExchanger(ocean::Simulation, atmosphere)
     # TODO: generalize this
     exchange_grid = ocean.model.grid
@@ -80,12 +84,15 @@ function StateExchanger(ocean::Simulation, atmosphere)
     arch = architecture(exchange_grid)
     Nx, Ny, Nz = size(exchange_grid)
 
-    # Make an array of FractionalIndices
+    # Make a NamedTuple of fractional indices
+    # Note: we could use an array of FractionalIndices. Instead, for compatbility
+    # with Reactant we construct FractionalIndices on the fly in `interpolate_atmospheric_state`.
     FT = eltype(atmos_grid)
-    frac_indices = [FractionalIndices(one(FT), one(FT), nothing) for i=1:Nx+2, j=1:Ny+2, k=1:1]
-    frac_indices = OffsetArray(frac_indices, -1, -1, 0)
-    frac_indices = on_architecture(arch, frac_indices)
-    
+    TX, TY, TZ = topology(exchange_grid)
+    fi = TX() isa Flat ? nothing : Field{Center, Center, Nothing}(exchange_grid, FT)
+    fj = TY() isa Flat ? nothing : Field{Center, Center, Nothing}(exchange_grid, FT)
+    frac_indices = (i=fi, j=fj) # no k needed, only horizontal interpolation
+
     kernel_parameters = interface_kernel_parameters(exchange_grid)
     launch!(arch, exchange_grid, kernel_parameters,
             _compute_fractional_indices!, frac_indices, exchange_grid, atmos_grid)
@@ -93,11 +100,22 @@ function StateExchanger(ocean::Simulation, atmosphere)
     return StateExchanger(ocean.model.grid, exchange_atmosphere_state, frac_indices)
 end
 
-@kernel function _compute_fractional_indices!(frac_indices, exchange_grid, atmos_grid)
+@kernel function _compute_fractional_indices!(indices_tuple, exchange_grid, atmos_grid)
     i, j = @index(Global, NTuple)
     kᴺ = size(exchange_grid, 3) # index of the top ocean cell
     X = _node(i, j, kᴺ + 1, exchange_grid, c, c, f)
-    @inbounds frac_indices[i, j, 1] = FractionalIndices(X, atmos_grid, c, c, nothing)
+    fractional_indices_ij = FractionalIndices(X, atmos_grid, c, c, nothing)
+    fi = indices_tuple.i
+    fj = indices_tuple.j
+    @inbounds begin
+        if !isnothing(fi)
+            fi[i, j, 1] = fractional_indices_ij.i
+        end
+
+        if !isnothing(fj)
+            fj[i, j, 1] = fractional_indices_ij.j
+        end
+    end
 end
 
 const PATP = PrescribedAtmosphereThermodynamicsParameters
