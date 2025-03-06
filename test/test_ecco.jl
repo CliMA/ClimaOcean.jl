@@ -206,7 +206,7 @@ end
                                     rate = 1 / 1000.0,
                                     inpainting)
 
-        times = native_times(t_restoring.field_time_series.backend.metadata)
+        times = native_times(T_restoring.field_time_series.backend.metadata)
         ocean = ocean_simulation(grid, forcing = (; T = T_restoring))
 
         ocean.model.clock.time = times[3] + 2 * Units.days
