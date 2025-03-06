@@ -102,25 +102,25 @@ end
                                         southern = (φ₁, φ₂),
                                                z = (z₁, 0))
 
-        t_restoring = ECCORestoring(:temperature, arch;
+        T_restoring = ECCORestoring(:temperature, arch;
                                     dates, mask, inpainting,
                                     rate=1/1000)
 
-        fill!(t_restoring.field_time_series[1], 1.0)
-        fill!(t_restoring.field_time_series[2], 1.0)
+        fill!(T_restoring.field_time_series[1], 1.0)
+        fill!(T_restoring.field_time_series[2], 1.0)
 
         T = CenterField(grid)
         fields = (; T)
         clock  = Clock(; time = 0)
 
-        @test @allowscalar t_restoring(1, 1,   10, grid, clock, fields) == t_restoring.rate
-        @test @allowscalar t_restoring(1, 11,  10, grid, clock, fields) == t_restoring.rate / 2
-        @test @allowscalar t_restoring(1, 21,  10, grid, clock, fields) == 0
-        @test @allowscalar t_restoring(1, 80,  10, grid, clock, fields) == 0
-        @test @allowscalar t_restoring(1, 90,  10, grid, clock, fields) == t_restoring.rate / 2
-        @test @allowscalar t_restoring(1, 100, 10, grid, clock, fields) == t_restoring.rate
-        @test @allowscalar t_restoring(1, 1,   5,  grid, clock, fields) == 0
-        @test @allowscalar t_restoring(1, 10,  5,  grid, clock, fields) == 0
+        @test @allowscalar T_restoring(1, 1,   10, grid, clock, fields) == T_restoring.rate
+        @test @allowscalar T_restoring(1, 11,  10, grid, clock, fields) == T_restoring.rate / 2
+        @test @allowscalar T_restoring(1, 21,  10, grid, clock, fields) == 0
+        @test @allowscalar T_restoring(1, 80,  10, grid, clock, fields) == 0
+        @test @allowscalar T_restoring(1, 90,  10, grid, clock, fields) == T_restoring.rate / 2
+        @test @allowscalar T_restoring(1, 100, 10, grid, clock, fields) == T_restoring.rate
+        @test @allowscalar T_restoring(1, 1,   5,  grid, clock, fields) == 0
+        @test @allowscalar T_restoring(1, 10,  5,  grid, clock, fields) == 0
     end
 end
 
@@ -159,12 +159,10 @@ end
             true
         end
 
-        forcing_T = ECCORestoring(:temperature, arch;
-                                  dates,
-                                  rate = 1 / 1000.0,
-                                  inpainting)
+        forcing_T = ECCORestoring(:temperature, arch; dates, inpainting,
+                                  rate = 1/1000)
 
-        ocean = ocean_simulation(grid; forcing = (; T = forcing_T))
+        ocean = ocean_simulation(grid; forcing = (; T = forcing_T), verbose=false)
 
         @test begin
             time_step!(ocean)
@@ -177,10 +175,10 @@ end
 @testset "Setting temperature and salinity to ECCO" begin
     for arch in test_architectures
         grid = LatitudeLongitudeGrid(arch; 
-                                     size=(10, 10, 10),
-                                     latitude=(-60, -40),
-                                     longitude=(10, 15),
-                                     z=(-200, 0),
+                                     size = (10, 10, 10),
+                                     latitude = (-60, -40),
+                                     longitude = (10, 15),
+                                     z = (-200, 0),
                                      halo = (7, 7, 7))
 
         ocean = ocean_simulation(grid)
@@ -193,28 +191,28 @@ end
 @testset "ECCO dataset cycling boundaries" begin
     for arch in test_architectures
         grid = LatitudeLongitudeGrid(arch;
-                                     size=(10, 10, 10),
-                                     latitude=(-60, -40),
-                                     longitude=(10, 15),
-                                     z=(-200, 0),
+                                     size = (10, 10, 10),
+                                     latitude = (-60, -40),
+                                     longitude = (10, 15),
+                                     z = (-200, 0),
                                      halo = (7, 7, 7))
 
         start_date = DateTimeProlepticGregorian(1993, 1, 1)
         end_date = DateTimeProlepticGregorian(1993, 5, 1)
         dates = start_date : Month(1) : end_date
 
-        t_restoring = ECCORestoring(:temperature, arch;
+        T_restoring = ECCORestoring(:temperature, arch;
                                     dates,
                                     rate = 1 / 1000.0,
                                     inpainting)
 
         times = native_times(t_restoring.field_time_series.backend.metadata)
-        ocean = ocean_simulation(grid, forcing = (; T = t_restoring))
+        ocean = ocean_simulation(grid, forcing = (; T = T_restoring))
 
         ocean.model.clock.time = times[3] + 2 * Units.days
         update_state!(ocean.model)
 
-        @test t_restoring.field_time_series.backend.start == 3
+        @test T_restoring.field_time_series.backend.start == 3
 
         # Compile
         time_step!(ocean)
@@ -230,6 +228,7 @@ end
         end
 
         # The backend has cycled to the end
-        @test time_indices(t_restoring.field_time_series) == (5, 1)
+        @test time_indices(T_restoring.field_time_series) == (5, 1)
     end
 end
+

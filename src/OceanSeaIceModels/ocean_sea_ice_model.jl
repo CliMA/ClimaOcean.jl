@@ -57,12 +57,16 @@ Base.eltype(model::OSIM)            = Base.eltype(model.ocean.model)
 prettytime(model::OSIM)             = prettytime(model.clock.time)
 iteration(model::OSIM)              = model.clock.iteration
 timestepper(::OSIM)                 = nothing
-reset!(::OSIM)                      = nothing
 initialize!(::OSIM)                 = nothing
 default_included_properties(::OSIM) = tuple()
 prognostic_fields(cm::OSIM)         = nothing
 fields(::OSIM)                      = NamedTuple()
 default_clock(TT)                   = Oceananigans.TimeSteppers.Clock{TT}(0, 0, 1)
+
+function reset!(model::OSIM)
+    reset!(model.ocean)
+    return nothing
+end
 
 reference_density(unsupported) =
     throw(ArgumentError("Cannot extract reference density from $(typeof(unsupported))"))
@@ -138,7 +142,7 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(
 
     # Make sure the initial temperature of the ocean
     # is not below freezing and above melting near the surface
-    adjust_freezing_ocean_temperature!(ocean, sea_ice)
+    above_freezing_ocean_temperature!(ocean, sea_ice)
     update_state!(ocean_sea_ice_model)
 
     return ocean_sea_ice_model
@@ -153,7 +157,7 @@ function default_nan_checker(model::OceanSeaIceModel)
     return nan_checker
 end
 
-@kernel function _adjust_freezing_ocean_temperature!(T, grid, S, ℵ, liquidus)
+@kernel function _above_freezing_ocean_temperature!(T, grid, S, ℵ, liquidus)
     i, j = @index(Global, NTuple)
     Nz = size(grid, 3)
 
@@ -170,9 +174,9 @@ end
 end
 
 # Fallback
-adjust_freezing_ocean_temperature!(ocean, sea_ice) = nothing
+above_freezing_ocean_temperature!(ocean, sea_ice) = nothing
 
-function adjust_freezing_ocean_temperature!(ocean, sea_ice::SeaIceSimulation) 
+function above_freezing_ocean_temperature!(ocean, sea_ice::SeaIceSimulation) 
     T = ocean.model.tracers.T
     S = ocean.model.tracers.S
     ℵ = sea_ice.model.ice_concentration
@@ -180,7 +184,8 @@ function adjust_freezing_ocean_temperature!(ocean, sea_ice::SeaIceSimulation)
 
     grid = ocean.model.grid
     arch = architecture(grid)
-    launch!(arch, grid, :xy, _adjust_freezing_ocean_temperature!, T, grid, S, ℵ, liquidus)
+    launch!(arch, grid, :xy, _above_freezing_ocean_temperature!, T, grid, S, ℵ, liquidus)
 
     return nothing
 end
+

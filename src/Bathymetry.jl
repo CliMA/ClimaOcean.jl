@@ -126,29 +126,10 @@ function regrid_bathymetry(target_grid;
     close(dataset)
 
     # Diagnose target grid information
-    arch = architecture(target_grid)
-    φ₁, φ₂ = y_domain(target_grid)
-    λ₁, λ₂ = x_domain(target_grid)
-
-    if λ₁ < 0 || λ₂ > 360
-        throw(ArgumentError("Cannot regrid bathymetry between λ₁ = $(λ₁) and λ₂ = $(λ₂).
-                             Bathymetry data is defined on longitudes spanning λ = (0, 360)."))
-    end
-
-    # Calculate limiting indices on the bathymetry grid
-    i₁ = searchsortedfirst(λ_data, λ₁)
-    i₂ = searchsortedfirst(λ_data, λ₂) - 1
-    ii = i₁:i₂
-
-    j₁ = searchsortedfirst(φ_data, φ₁)
-    j₂ = searchsortedfirst(φ_data, φ₂) - 1
-    jj = j₁:j₂
-
-    # Restrict bathymetry coordinate_data to region of interest
-    λ_data = λ_data[ii] |> Array{BigFloat}
-    φ_data = φ_data[jj] |> Array{BigFloat}
-    z_data = z_data[ii, jj] 
-
+    arch   = architecture(target_grid)
+    λ_data = λ_data |> Array{BigFloat}
+    φ_data = φ_data |> Array{BigFloat}
+    
     if !isnothing(height_above_water)
         # Overwrite the height of cells above water.
         # This has an impact on reconstruction. Greater height_above_water reduces total
@@ -179,7 +160,8 @@ function regrid_bathymetry(target_grid;
 
     native_z = Field{Center, Center, Nothing}(native_grid)
     set!(native_z, z_data)
-
+    fill_halo_regions!(native_z)
+    
     target_z = interpolate_bathymetry_in_passes(native_z, target_grid; 
                                                 passes = interpolation_passes)
 
@@ -206,15 +188,21 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     Nλt, Nφt = Nt = size(target_grid)
     Nλn, Nφn = Nn = size(native_z)
 
-    # Check whether we are coarsening the grid in any directions.
-    # If so, skip interpolation passes.
-    if Nλt > Nλn || Nφt > Nφn
+    resxt = minimum_xspacing(target_grid)
+    resyt = minimum_yspacing(target_grid)
+
+    resxn = minimum_xspacing(native_z.grid)
+    resyn = minimum_yspacing(native_z.grid)
+
+    # Check whether we are refining the grid in any directions.
+    # If so, skip interpolation passes, as they are not needed.
+    if resxt < resxn || resyt < resyn
         target_z = Field{Center, Center, Nothing}(target_grid)
         interpolate!(target_z, native_z)
         @info string("Skipping passes for interpolating bathymetry of size $Nn ", '\n',
                      "to target grid of size $Nt. Interpolation passes may only ", '\n',
-                     "be used to refine bathymetry and require that the bathymetry ", '\n',
-                     "is larger than the target grid in both horizontal directions.")
+                     "be used to coarsen bathymetry and require that the bathymetry ", '\n',
+                     "is finer than the target grid in both horizontal directions.")
         return target_z
     end
  
