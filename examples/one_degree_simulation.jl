@@ -67,7 +67,6 @@ FS = ECCORestoring(salinity,    grid; mask, rate=restoring_rate)
 forcing = (T=FT, S=FS)
 
 # ### Closures
-#
 # We include a Gent-McWilliam isopycnal diffusivity as a parameterization for the mesoscale
 # eddy fluxes. For vertical mixing at the upper-ocean boundary layer we include the CATKE
 # parameterization. We also include some explicit horizontal diffusivity.
@@ -82,7 +81,6 @@ vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
 closure = (eddy_closure, vertical_mixing)
 
 # ### Ocean simulation
-#
 # Now we bring everything together to construct the ocean simulation.
 # We use a split-explicit timestepping with 30 substeps for the barotropic
 # mode.
@@ -109,7 +107,6 @@ set!(ocean.model, T=ECCOMetadata(:temperature; dates=first(dates)),
 # ### Atmospheric forcing
 
 # We force the simulation with an JRA55-do atmospheric reanalysis.
-
 radiation  = Radiation(arch)
 atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(20))
 
@@ -156,7 +153,6 @@ function progress(sim)
 end
 
 # And add it as a callback to the simulation.
-
 add_callback!(simulation, progress, IterationInterval(10))
 
 # ### Output
@@ -171,6 +167,9 @@ ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
                                                   schedule = TimeInterval(5days),
                                                   filename = "global_surface_fields",
                                                   indices = (:, :, grid.Nz),
+                                                  with_halos = true,
+                                                  overwrite_existing = true,
+                                                  array_type = Array{Float32})
                                                   overwrite_existing = true)
 
 # ### Ready to run
@@ -190,7 +189,6 @@ run!(simulation)
 # ### A pretty movie
 #
 # We load the saved output and make a pretty movie of the simulation. First we plot a snapshot:
-
 using CairoMakie
 
 u = FieldTimeSeries("global_surface_fields.jld2", "u"; backend = OnDisk())
@@ -204,7 +202,6 @@ Nt = length(times)
 n = Observable(Nt)
 
 # We create a land mask and use it to fill land points with `NaN`s.
-
 land = interior(T.grid.immersed_boundary.bottom_height) .≥ 0
 
 Tn = @lift begin
@@ -220,7 +217,6 @@ en = @lift begin
 end
 
 # We compute the surface speed.
-
 un = Field{Face, Center, Nothing}(u.grid)
 vn = Field{Center, Face, Nothing}(v.grid)
 s = Field(sqrt(un^2 + vn^2))
@@ -236,7 +232,6 @@ end
 
 # Finally, we plot a snapshot of the surface speed, temperature, and the turbulent
 # eddy kinetic energy from the CATKE vertical mixing parameterization.
-
 fig = Figure(size = (800, 1200))
 
 axs = Axis(fig[1, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")

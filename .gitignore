@@ -51,3 +51,11 @@ notebooks/.ipynb_checkpoints/*
 *.ncu-rep
 *.sq
 *.sqlite
+
+# NASA NAIF kernel files
+*.bsp
+*.bpc
+*.tf
+*.tls
+*.tpc
+*.txt
