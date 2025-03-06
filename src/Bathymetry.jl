@@ -195,8 +195,8 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     resxn = minimum_xspacing(native_z.grid)
     resyn = minimum_yspacing(native_z.grid)
 
-    # Check whether we are coarsening the grid in any directions.
-    # If so, skip interpolation passes.
+    # Check whether we are refining the grid in any directions.
+    # If so, skip interpolation passes, as they are not needed.
     if resxt < resxn || resyt < resyn
         target_z = Field{Center, Center, Nothing}(target_grid)
         interpolate!(target_z, native_z)
