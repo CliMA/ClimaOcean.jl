@@ -22,7 +22,7 @@ using ClimaOcean.OceanSimulations: Default
 
 function sea_ice_simulation(grid;
                             Δt = 5minutes,
-                            ice_salinity = 0, # psu
+                            ice_salinity = 4, # psu
                             advection = nothing, # for the moment
                             tracers = (), 
                             ice_heat_capacity = 2100, # J kg⁻¹ K⁻¹
