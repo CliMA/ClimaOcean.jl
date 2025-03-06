@@ -195,15 +195,15 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     resxn = minimum_xspacing(native_z.grid)
     resyn = minimum_yspacing(native_z.grid)
 
-    # Check whether we are coarsening the grid in any directions.
-    # If so, skip interpolation passes.
-    if resxt > resxn || resyt > resyn
+    # Check whether we are refining the grid in any directions.
+    # If so, skip interpolation passes, as they are not needed.
+    if resxt < resxn || resyt < resyn
         target_z = Field{Center, Center, Nothing}(target_grid)
         interpolate!(target_z, native_z)
         @info string("Skipping passes for interpolating bathymetry of size $Nn ", '\n',
                      "to target grid of size $Nt. Interpolation passes may only ", '\n',
-                     "be used to refine bathymetry and require that the bathymetry ", '\n',
-                     "is larger than the target grid in both horizontal directions.")
+                     "be used to coarsen bathymetry and require that the bathymetry ", '\n',
+                     "is finer than the target grid in both horizontal directions.")
         return target_z
     end
  
