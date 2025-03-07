@@ -56,7 +56,7 @@ function progress(sim)
     msg *= @sprintf(", max|u|: (%.2e, %.2e, %.2e) m s⁻¹, extrema(T): (%.2f, %.2f) ᵒC, wall time: %s",
                     umax..., Tmax, Tmin, prettytime(step_time))
 
-    @info msg 
+    @info msg
 
     wall_time[] = time_ns()
 end
@@ -73,7 +73,7 @@ ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
                                                   overwrite_existing = true,
                                                   array_type = Array{Float32})
 
-output_dir = "/g/data/v46/txs156/ClimaOcean.jl-checkpointer/examples/"
+output_dir = "."
 prefix = "checkpointer_mwe"
 
 ocean.output_writers[:checkpoint] = Checkpointer(ocean.model;
@@ -83,7 +83,7 @@ ocean.output_writers[:checkpoint] = Checkpointer(ocean.model;
                                                  dir = output_dir,
                                                  verbose = true,
                                                  overwrite_existing = true)
-                              
+
 @show simulation
 
 run!(simulation)
@@ -93,7 +93,7 @@ run!(simulation)
 checkpoint_file = prefix * "_iteration40.jld2"
 
 set!(simulation, checkpoint_file)
-    
+
 coupled_model = OceanSeaIceModel(simulation.model.ocean; atmosphere, radiation)
 
 simulation = Simulation(coupled_model; Δt=10, stop_iteration=100)
