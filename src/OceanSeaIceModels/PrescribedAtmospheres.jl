@@ -40,7 +40,6 @@ import Thermodynamics.Parameters:
                     # during partial ice nucleation
 
 import ..OceanSeaIceModels:
-    synchronize_clock!,
     downwelling_radiation,
     freshwater_flux
 
@@ -350,14 +349,6 @@ function default_atmosphere_pressure(grid, times)
     parent(pa) .= 101325
     return pa
 end
-
-#=
-function synchronize_clock!(atmos::PrescribedAtmosphere, clock)
-    atmos.clock.time = clock.time
-    atmos.clock.iteration = clock.iteration
-    return nothing
-end
-=#
 
 @inline function time_step!(atmos::PrescribedAtmosphere, Δt)
     tick!(atmos.clock, Δt)

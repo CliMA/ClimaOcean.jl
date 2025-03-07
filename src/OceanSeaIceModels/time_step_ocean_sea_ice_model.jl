@@ -40,7 +40,6 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
     time_step!(ocean, Δt)
 
     # Time step the atmosphere
-    # synchronize_clock!(atmosphere, clock)
     time_step!(atmosphere, Δt)
 
     # TODO:
