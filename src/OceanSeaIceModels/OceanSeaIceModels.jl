@@ -45,6 +45,7 @@ sea_ice_concentration(sea_ice::SeaIceSimulation) = sea_ice.model.ice_concentrati
 #####
 ##### Some implementation
 #####
+include("ocean_sea_ice_model.jl")
 
 include("PrescribedAtmospheres.jl")
 
@@ -62,7 +63,6 @@ import .InterfaceComputations:
     compute_atmosphere_sea_ice_fluxes!,
     compute_sea_ice_ocean_fluxes!
 
-include("ocean_sea_ice_model.jl")
 include("freezing_limited_ocean_temperature.jl")
 include("time_step_ocean_sea_ice_model.jl")
 
