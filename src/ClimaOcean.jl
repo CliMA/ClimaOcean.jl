@@ -81,6 +81,7 @@ include("Bathymetry.jl")
 include("Diagnostics/Diagnostics.jl")
 include("OceanSimulations.jl")
 include("SeaIceSimulations.jl")
+include("OutputWriters.jl")
 
 using .DistributedUtils
 using .VerticalGrids
@@ -91,6 +92,7 @@ using .OceanSeaIceModels
 using .OceanSimulations
 using .SeaIceSimulations
 using .DataWrangling: JRA55, ECCO
+using .OutputWriters
 
 using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 using ClimaOcean.DataWrangling.JRA55: JRA55PrescribedAtmosphere, JRA55NetCDFBackend
