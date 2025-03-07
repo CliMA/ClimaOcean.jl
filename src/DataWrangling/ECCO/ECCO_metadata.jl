@@ -165,13 +165,16 @@ function download_dataset(metadata::ECCOMetadata; url = urls(metadata))
         # Write down the username and password in a .netrc file
         downloader = netrc_downloader(username, password, "ecco.jpl.nasa.gov", tmp)
         ntasks = Threads.nthreads()
-        
+       
+	missing_files = false
+
         asyncmap(metadata; ntasks) do metadatum # Distribute the download among tasks
 
             fileurl  = metadata_url(url, metadatum) 
             filepath = metadata_path(metadatum)
 
-            if !isfile(filepath)
+	    if !isfile(filepath)
+	    	missing_files = true
                 instructions_msg = "\n See ClimaOcean.jl/src/DataWrangling/ECCO/README.md for instructions."
                 if isnothing(username)
                     msg = "Could not find the ECCO_PASSWORD environment variable. \
@@ -184,10 +187,13 @@ function download_dataset(metadata::ECCOMetadata; url = urls(metadata))
                            and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
                     throw(ArgumentError(msg))
                 end
-
+		println("Downloading ECCO data: $(metadatum.name)")
                 Downloads.download(fileurl, filepath; downloader, progress=download_progress)
-            end
+	    end
         end
+	if !missing_files
+            @info "Note: ECCO $(metadata.name) data is in $(metadata.dir)."
+	end
     end
 
     return nothing

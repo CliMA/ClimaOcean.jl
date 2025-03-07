@@ -129,10 +129,13 @@ end
     # Guess
     Sₛ = zero(FT) # what should we use for interface salinity?
     initial_interface_state = InterfaceState(u★, u★, u★, uᵢ, vᵢ, Tₛ, Sₛ, convert(FT, qₛ))
-    land = inactive_node(i, j, kᴺ, grid, Center(), Center(), Center())
+    not_water = inactive_node(i, j, kᴺ, grid, Center(), Center(), Center())
     ice_free = ℵᵢ == 0
 
-    if (land | ice_free)
+    stop_criteria = turbulent_flux_formulation.solver_stop_criteria
+    needs_to_converge = stop_criteria isa ConvergenceStopCriteria
+
+    if needs_to_converge && not_water || ice_free
         interface_state = InterfaceState(zero(FT), zero(FT), zero(FT), uᵢ, vᵢ, Tᵢ, Sₛ, zero(FT))
     else
         interface_state = compute_interface_state(turbulent_flux_formulation,
