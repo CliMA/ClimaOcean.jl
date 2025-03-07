@@ -90,9 +90,9 @@ coupled_checkpointer = Checkpointer(coupled_model;
                                     verbose = true,
                                     overwrite_existing = true)
 
-@show simulation
+# @show simulation
 
-run!(simulation)
+# run!(simulation)
 
 @info "simulation run for 10 iterations; you should have a checkpointer at 8"
 

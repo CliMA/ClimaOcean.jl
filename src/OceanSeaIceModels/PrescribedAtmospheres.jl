@@ -8,6 +8,7 @@ using Oceananigans.TimeSteppers: tick!, Clock
 
 using Adapt
 using Thermodynamics.Parameters: AbstractThermodynamicsParameters
+using ..OceanSeaIceModels: OceanSeaIceModel
 
 import Oceananigans.TimeSteppers: time_step!
 
@@ -350,16 +351,28 @@ function default_atmosphere_pressure(grid, times)
     return pa
 end
 
-@inline function time_step!(atmos::PrescribedAtmosphere, Δt) 
+@inline function time_step!(atmos::PrescribedAtmosphere, coupled_model::OceanSeaIceModel, Δt) 
     tick!(atmos.clock, Δt)
     
-    time = Time(atmos.clock.time)
-    ftses = extract_field_time_series(atmos)
+    if atmos.clock.time == coupled_model.ocean.model.clock.time
+        time = Time(atmos.clock.time)
+        ftses = extract_field_time_series(atmos)
 
-    for fts in ftses
-        update_field_time_series!(fts, time)
-    end    
-    
+        for fts in ftses
+            update_field_time_series!(fts, time)
+        end    
+    else
+        @warn "Atmosphere and ocean have different times! Reverting atmosphere to ocean time"
+        @warn "Atmosphere time = %d" %((atmos.clock.time))
+        @warn "Ocean time = %d" %((coupled_model.ocean.model.clock.time))
+
+        time = Time(coupled_model.ocean.model.clock.time)
+        ftses = extract_field_time_series(atmos)
+
+        for fts in ftses
+            update_field_time_series!(fts, time)
+        end    
+    end
     return nothing
 end
 
