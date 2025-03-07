@@ -9,10 +9,9 @@ struct Radiation{FT, E, R}
     stefan_boltzmann_constant :: FT
 end
 
-Adapt.adapt_structure(to, r :: Radiation) = 
-            Radiation(Adapt.adapt(to, r.emission),
-                      Adapt.adapt(to, r.reflection),
-                      Adapt.adapt(to, r.stefan_boltzmann_constant))
+Adapt.adapt_structure(to, r :: Radiation) =  Radiation(Adapt.adapt(to, r.emission),
+                                                       Adapt.adapt(to, r.reflection),
+                                                       Adapt.adapt(to, r.stefan_boltzmann_constant))
 
 """
     Radiation([arch = CPU(), FT=Float64];
@@ -39,7 +38,7 @@ Keyword Arguments
 - `sea_ice_albedo`: The albedo of the sea ice surface. Default: `0.7`.
 - `stefan_boltzmann_constant`: The Stefan-Boltzmann constant. Default: `5.67e-8`.
 """
-function Radiation(arch = CPU(), FT=Float64;
+function Radiation(arch = CPU(), FT=Oceananigans.defaults.FloatType;
                    ocean_emissivity = 0.97,
                    sea_ice_emissivity = 1.0,
                    ocean_albedo = LatitudeDependentAlbedo(FT),
@@ -90,4 +89,8 @@ function Base.show(io::IO, properties::SurfaceProperties)
     print(io, "├── ocean: ", summary(properties.ocean), '\n')
     print(io, "└── sea_ice: ", summary(properties.sea_ice))
 end
+
+@inline upwelling_radiation(T, σ, ϵ) = σ * ϵ * T^4
+@inline net_downwelling_radiation(i, j, grid, time, α, ϵ, Qs, Qℓ) = - (1 - α) * Qs - ϵ * Qℓ
+@inline net_downwelling_radiation(r, α, ϵ) = - (1 - α) * r.Qs - ϵ * r.Qℓ
 

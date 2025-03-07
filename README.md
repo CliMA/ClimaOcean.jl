@@ -1,10 +1,19 @@
-# ClimaOcean.jl
+<!-- Title -->
+<h1 align="center">
+  ClimaOcean.jl
+</h1>
 
-### 🌎 A framework for realistic ocean-only and coupled ocean + sea-ice simulations driven by prescribed atmospheres and based on [Oceananigans](https://github.com/CliMA/Oceananigans.jl) and [ClimaSeaIce](https://github.com/CliMA/ClimaSeaIce.jl).
+<!-- description -->
+<p align="center">
+  <strong>🌎 A framework for realistic ocean-only and coupled ocean + sea-ice simulations driven by prescribed atmospheres and based on <a href=https://github.com/CliMA/Oceananigans.jl>Oceananigans</a> and <a href=https://github.com/CliMA/ClimaSeaIce.jl>ClimaSeaIce</a></strong>. 
+</p>
+
+### 
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7677442.svg?style=flat-square)](https://doi.org/10.5281/zenodo.7677442)
-[![Documentation](https://img.shields.io/badge/documentation-in%20development-orange?style=flat-square)](https://clima.github.io/ClimaOceanDocumentation/dev)
 [![Build status](https://badge.buildkite.com/3113cca353b83df3b5855d3f0d69827124614aef7017c835d2.svg?style=flat-square)](https://buildkite.com/clima/climaocean-ci)
+[![Documentation](https://img.shields.io/badge/documentation-stable%20release-blue?style=flat-square)](https://clima.github.io/ClimaOceanDocumentation/stable)
+[![Documentation](https://img.shields.io/badge/documentation-in%20development-orange?style=flat-square)](https://clima.github.io/ClimaOceanDocumentation/dev)
 
 ## Installation
 
@@ -18,7 +27,7 @@ julia> Pkg.add("ClimaOcean")
 julia> Pkg.instantiate()
 ```
 
-Use `Pkg.add("url=https://github.com/CliMA/ClimaOcean.jl.git", rev="main")` to install the latest version of `ClimaOcean`.
+Use `Pkg.add(url="https://github.com/CliMA/ClimaOcean.jl.git", rev="main")` to install the latest version of `ClimaOcean`.
 For more information, see the [documentation for `Pkg.jl`](https://pkgdocs.julialang.org).
 
 ## Why? What's the difference between ClimaOcean and [Oceananigans](https://github.com/CliMA/Oceananigans.jl)?
@@ -50,12 +59,12 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bathymetry))
 
 # Build an ocean simulation initialized to the ECCO state estimate on Jan 1, 1993
 ocean = ClimaOcean.ocean_simulation(grid)
-date  = DateTimeProlepticGregorian(1993, 1, 1)
-set!(ocean.model, T = ClimaOcean.ECCOMetadata(:temperature; date),
-                  S = ClimaOcean.ECCOMetadata(:salinity; date))
+dates = DateTimeProlepticGregorian(1993, 1, 1)
+set!(ocean.model, T = ClimaOcean.ECCOMetadata(:temperature; dates),
+                  S = ClimaOcean.ECCOMetadata(:salinity; dates))
 
 # Build and run an OceanSeaIceModel (with no sea ice component) forced by JRA55 reanalysis
-atmosphere = ClimaOcean.JRA55_prescribed_atmosphere(arch)
+atmosphere = ClimaOcean.JRA55PrescribedAtmosphere(arch)
 coupled_model = ClimaOcean.OceanSeaIceModel(ocean; atmosphere)
 simulation = Simulation(coupled_model, Δt=5minutes, stop_time=30days)
 run!(simulation)

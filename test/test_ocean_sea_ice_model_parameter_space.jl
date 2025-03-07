@@ -30,7 +30,7 @@ model = ocean.model
 
 start_time = time_ns()
 backend    = JRA55NetCDFBackend(4) 
-atmosphere = JRA55_prescribed_atmosphere(arch; backend)
+atmosphere = JRA55PrescribedAtmosphere(arch; backend)
 radiation  = Radiation(arch)
 
 elapsed = 1e-9 * (time_ns() - start_time)
@@ -38,8 +38,7 @@ elapsed = 1e-9 * (time_ns() - start_time)
 
 # Fluxes are computed when the model is constructed, so we just test that this works.
 start_time = time_ns()
-sea_ice = ClimaOcean.OceanSeaIceModels.MinimumTemperatureSeaIce()
-coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 
 elapsed = 1e-9 * (time_ns() - start_time)
 @info "Coupled model construction time: " * prettytime(elapsed)
