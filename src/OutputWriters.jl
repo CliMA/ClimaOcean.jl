@@ -2,7 +2,7 @@ module OutputWriters
 
 using ClimaOcean.OceanSeaIceModels: OceanSeaIceModel
 
-export Checkpointer
+using Oceananigans.OutputWriters: default_checkpointed_properties
 
 import Oceananigans: Checkpointer
 
@@ -12,7 +12,7 @@ function Checkpointer(coupled_model::OceanSeaIceModel; schedule,
                       overwrite_existing = false,
                       verbose = false,
                       cleanup = false,
-                      properties = default_checkpointed_properties(model))
+                      properties = default_checkpointed_properties(coupled_model.ocean.model))
 
     @info "I went in your new method"
 
