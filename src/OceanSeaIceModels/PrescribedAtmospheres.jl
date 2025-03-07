@@ -4,7 +4,7 @@ using Oceananigans.Grids: grid_name
 using Oceananigans.Utils: prettysummary, Time
 using Oceananigans.Fields: Center
 using Oceananigans.OutputReaders: FieldTimeSeries, update_field_time_series!, extract_field_time_series
-using Oceananigans.TimeSteppers: Clock
+using Oceananigans.TimeSteppers: Clock, tick!
 
 using Adapt
 using Thermodynamics.Parameters: AbstractThermodynamicsParameters
@@ -351,13 +351,17 @@ function default_atmosphere_pressure(grid, times)
     return pa
 end
 
+#=
 function synchronize_clock!(atmos::PrescribedAtmosphere, clock)
     atmos.clock.time = clock.time
     atmos.clock.iteration = clock.iteration
     return nothing
 end
+=#
 
-@inline function time_step!(atmos::PrescribedAtmosphere)
+@inline function time_step!(atmos::PrescribedAtmosphere, Δt)
+    tick!(atmos.clock, Δt)
+
     time = Time(atmos.clock.time)
     ftses = extract_field_time_series(atmos)
 

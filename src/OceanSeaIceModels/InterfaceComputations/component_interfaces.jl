@@ -11,7 +11,9 @@ using ..OceanSeaIceModels: reference_density,
                            freshwater_flux,
                            SeaIceSimulation
 
-using ..OceanSeaIceModels.PrescribedAtmospheres: thermodynamics_parameters
+using ..OceanSeaIceModels.PrescribedAtmospheres:
+    PrescribedAtmosphere,
+    thermodynamics_parameters
 
 using ClimaSeaIce: SeaIceModel
 
@@ -79,9 +81,12 @@ function StateExchanger(ocean::Simulation, atmosphere)
                                  Qℓ = Field{Center, Center, Nothing}(exchange_grid),
                                  Mp = Field{Center, Center, Nothing}(exchange_grid))
 
-    # TODO: use kernel_parameters not hard code?
-    # kernel_parameters = interface_kernel_parameters(ocean_grid)
-    
+    exchanger = atmosphere_exchanger(atmosphere, exchange_grid)
+
+    return StateExchanger(ocean.model.grid, exchange_atmosphere_state, exchanger)
+end
+
+function atmosphere_exchanger(atmosphere::PrescribedAtmosphere, exchange_grid)
     atmos_grid = atmosphere.grid
     arch = architecture(exchange_grid)
     Nx, Ny, Nz = size(exchange_grid)
@@ -99,7 +104,7 @@ function StateExchanger(ocean::Simulation, atmosphere)
     launch!(arch, exchange_grid, kernel_parameters,
             _compute_fractional_indices!, frac_indices, exchange_grid, atmos_grid)
 
-    return StateExchanger(ocean.model.grid, exchange_atmosphere_state, frac_indices)
+    return frac_indices
 end
 
 @kernel function _compute_fractional_indices!(indices_tuple, exchange_grid, atmos_grid)

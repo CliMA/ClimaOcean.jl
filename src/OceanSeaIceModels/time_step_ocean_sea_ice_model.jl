@@ -3,13 +3,12 @@ using .InterfaceComputations:
     compute_sea_ice_ocean_fluxes!,
     compute_net_ocean_fluxes!,
     compute_net_sea_ice_fluxes!,
-    interpolate_atmospheric_state!
+    interpolate_atmosphere_state!
 
 using ClimaSeaIce: SeaIceModel, SeaIceThermodynamics
 using Oceananigans.Grids: φnode
 
 using Printf
-
 
 function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_tendencies=true)
     ocean = coupled_model.ocean
@@ -33,18 +32,16 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
             parent(h⁻) .= parent(hⁿ)
         end
 
-        sea_ice.Δt = Δt
-        time_step!(sea_ice)
+        time_step!(sea_ice, Δt)
     end
 
     # TODO after ice time-step:
     #  - Adjust ocean heat flux if the ice completely melts?
-    ocean.Δt = Δt
-    time_step!(ocean)
+    time_step!(ocean, Δt)
 
     # Time step the atmosphere
-    synchronize_clock!(atmosphere, clock)
-    time_step!(atmosphere)
+    # synchronize_clock!(atmosphere, clock)
+    time_step!(atmosphere, Δt)
 
     # TODO:
     # - Store fractional ice-free / ice-covered _time_ for more
