@@ -215,8 +215,8 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     end
  
     # Interpolate in passes
-    latitude  = y_domain(target_grid)
-    longitude = x_domain(target_grid)
+    latitude  = y_domain(native_z.grid)
+    longitude = x_domain(native_z.grid)
 
     ΔNλ = floor((Nλn - Nλt) / passes)
     ΔNφ = floor((Nφn - Nφt) / passes)
