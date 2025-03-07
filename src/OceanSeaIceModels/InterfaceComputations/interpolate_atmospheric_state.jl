@@ -1,5 +1,9 @@
 using Oceananigans.Operators: intrinsic_vector
 using Oceananigans.Grids: _node
+using Oceananigans.Fields: FractionalIndices
+using Oceananigans.OutputReaders: TimeInterpolator
+
+using ...OceanSimulations: forcing_barotropic_potential
 
 """Interpolate the atmospheric state onto the ocean / sea-ice grid."""
 function interpolate_atmospheric_state!(coupled_model)
@@ -37,7 +41,9 @@ function interpolate_atmospheric_state!(coupled_model)
     atmosphere_backend = u.backend
     atmosphere_time_indexing = u.time_indexing
 
-    atmosphere_fields = coupled_model.interfaces.near_surface_atmosphere_state
+    atmosphere_fields = coupled_model.interfaces.exchanger.exchange_atmosphere_state
+    space_fractional_indices = coupled_model.interfaces.exchanger.atmosphere_exchanger
+    exchange_grid = coupled_model.interfaces.exchanger.exchange_grid
 
     # Simplify NamedTuple to reduce parameter space consumption.
     # See https://github.com/CliMA/ClimaOcean.jl/issues/116.
@@ -50,26 +56,28 @@ function interpolate_atmospheric_state!(coupled_model)
                        Qℓ = atmosphere_fields.Qℓ.data,
                        Mp = atmosphere_fields.Mp.data)
 
-    kernel_parameters = surface_computations_kernel_parameters(grid)
+    kernel_parameters = interface_kernel_parameters(grid)
+
+    # Assumption, should be generalized
+    ua = atmosphere.velocities.u
+    time_interpolator = TimeInterpolator(ua, clock.time)
     
     launch!(arch, grid, kernel_parameters,
             _interpolate_primary_atmospheric_state!,
             atmosphere_data,
-            grid,
-            clock,
+            space_fractional_indices,
+            time_interpolator,
+            exchange_grid,
             atmosphere_velocities,
             atmosphere_tracers,
             atmosphere_pressure,
             downwelling_radiation,
             freshwater_flux,
-            atmosphere_grid,
-            atmosphere_times,
             atmosphere_backend,
             atmosphere_time_indexing)
 
     # Separately interpolate the auxiliary freshwater fluxes, which may
     # live on a different grid than the primary fluxes and atmospheric state.
-    
     auxiliary_freshwater_flux = atmosphere.auxiliary_freshwater_flux
     interpolated_prescribed_freshwater_flux = atmosphere_data.Mp
 
@@ -95,49 +103,58 @@ function interpolate_atmospheric_state!(coupled_model)
                 auxiliary_time_indexing)
     end
 
-    return nothing
+    # Set ocean barotropic pressure forcing
+    barotropic_potential = forcing_barotropic_potential(ocean)
+    ρₒ = coupled_model.interfaces.ocean_properties.reference_density
+    if !isnothing(barotropic_potential)
+        parent(barotropic_potential) .= parent(atmosphere_data.p) ./ ρₒ
+    end
 end
 
+@inline get_fractional_index(i, j, ::Nothing) = nothing
+@inline get_fractional_index(i, j, frac) = @inbounds frac[i, j, 1]
+    
 @kernel function _interpolate_primary_atmospheric_state!(surface_atmos_state,
-                                                         grid,
-                                                         clock,
+                                                         space_fractional_indices,
+                                                         time_interpolator,
+                                                         exchange_grid,
                                                          atmos_velocities,
                                                          atmos_tracers,
                                                          atmos_pressure,
                                                          downwelling_radiation,
                                                          prescribed_freshwater_flux,
-                                                         atmos_grid,
-                                                         atmos_times,
                                                          atmos_backend,
                                                          atmos_time_indexing)
 
     i, j = @index(Global, NTuple)
-    kᴺ = size(grid, 3) # index of the top ocean cell
+
+    ii = space_fractional_indices.i
+    jj = space_fractional_indices.j
+    fi = get_fractional_index(i, j, ii)
+    fj = get_fractional_index(i, j, jj)
+
+    x_itp = FractionalIndices(fi, fj, nothing)
+    t_itp = time_interpolator
+    atmos_args = (x_itp, t_itp, atmos_backend, atmos_time_indexing)
+
+    uₐ = interp_atmos_time_series(atmos_velocities.u, atmos_args...)
+    vₐ = interp_atmos_time_series(atmos_velocities.v, atmos_args...)
+    Tₐ = interp_atmos_time_series(atmos_tracers.T,    atmos_args...)
+    qₐ = interp_atmos_time_series(atmos_tracers.q,    atmos_args...)
+    pₐ = interp_atmos_time_series(atmos_pressure,     atmos_args...)
+
+    Qs = interp_atmos_time_series(downwelling_radiation.shortwave, atmos_args...)
+    Qℓ = interp_atmos_time_series(downwelling_radiation.longwave,  atmos_args...)
+
+    # Usually precipitation
+    Mh = interp_atmos_time_series(prescribed_freshwater_flux, atmos_args...)
+
+    # Convert atmosphere velocities (usually defined on a latitude-longitude grid) to 
+    # the frame of reference of the native grid
+    kᴺ = size(exchange_grid, 3) # index of the top ocean cell
+    uₐ, vₐ = intrinsic_vector(i, j, kᴺ, exchange_grid, uₐ, vₐ)
 
     @inbounds begin
-        # Atmos state, which is _assumed_ to exist at location = (c, c, nothing)
-        # The third index "k" should not matter but we put the correct index to get
-        # a surface node anyways.
-        atmos_args = (atmos_grid, atmos_times, atmos_backend, atmos_time_indexing)
-        X = _node(i, j, kᴺ + 1, grid, c, c, f)
-        time = Time(clock.time)
-
-        uₐ = interp_atmos_time_series(atmos_velocities.u, X, time, atmos_args...)
-        vₐ = interp_atmos_time_series(atmos_velocities.v, X, time, atmos_args...)
-        Tₐ = interp_atmos_time_series(atmos_tracers.T,    X, time, atmos_args...)
-        qₐ = interp_atmos_time_series(atmos_tracers.q,    X, time, atmos_args...)
-        pₐ = interp_atmos_time_series(atmos_pressure,     X, time, atmos_args...)
-
-        Qs = interp_atmos_time_series(downwelling_radiation.shortwave, X, time, atmos_args...)
-        Qℓ = interp_atmos_time_series(downwelling_radiation.longwave,  X, time, atmos_args...)
-
-        # Usually precipitation
-        Mh = interp_atmos_time_series(prescribed_freshwater_flux, X, time, atmos_args...)
-
-        # Convert atmosphere velocities (defined on a latitude-longitude grid) to 
-        # the frame of reference of the native grid
-        uₐ, vₐ = intrinsic_vector(i, j, kᴺ, grid, uₐ, vₐ)
-    
         surface_atmos_state.u[i, j, 1] = uₐ
         surface_atmos_state.v[i, j, 1] = vₐ
         surface_atmos_state.T[i, j, 1] = Tₐ
@@ -150,7 +167,7 @@ end
 end
 
 @kernel function _interpolate_auxiliary_freshwater_flux!(freshwater_flux,
-                                                         grid,
+                                                         interface_grid,
                                                          clock,
                                                          auxiliary_freshwater_flux,
                                                          auxiliary_grid,
@@ -159,10 +176,10 @@ end
                                                          auxiliary_time_indexing)
 
     i, j = @index(Global, NTuple)
-    kᴺ = size(grid, 3) # index of the top ocean cell
+    kᴺ = size(interface_grid, 3) # index of the top ocean cell
 
     @inbounds begin
-        X = _node(i, j, kᴺ + 1, grid, c, c, f)
+        X = _node(i, j, kᴺ + 1, interface_grid, c, c, f)
         time = Time(clock.time)
         Mr = interp_atmos_time_series(auxiliary_freshwater_flux, X, time,
                                       auxiliary_grid,
@@ -174,4 +191,36 @@ end
     end
 end
 
+#####
+##### Utility for interpolating tuples of fields
+#####
+
+# Note: assumes loc = (c, c, nothing) (and the third location should not matter.)
+@inline interp_atmos_time_series(J::AbstractArray, x_itp::FractionalIndices, t_itp, args...) =
+    interpolate(x_itp, t_itp, J, args...)
+
+@inline interp_atmos_time_series(J::AbstractArray, X, time, grid, args...) =
+    interpolate(X, time, J, (c, c, nothing), grid, args...)
+
+@inline interp_atmos_time_series(ΣJ::NamedTuple, args...) =
+    interp_atmos_time_series(values(ΣJ), args...)
+
+@inline interp_atmos_time_series(ΣJ::Tuple{<:Any}, args...) =
+    interp_atmos_time_series(ΣJ[1], args...) +
+    interp_atmos_time_series(ΣJ[2], args...)
+
+@inline interp_atmos_time_series(ΣJ::Tuple{<:Any, <:Any}, args...) =
+    interp_atmos_time_series(ΣJ[1], args...) +
+    interp_atmos_time_series(ΣJ[2], args...)
+
+@inline interp_atmos_time_series(ΣJ::Tuple{<:Any, <:Any, <:Any}, args...) =
+    interp_atmos_time_series(ΣJ[1], args...) +
+    interp_atmos_time_series(ΣJ[2], args...) +
+    interp_atmos_time_series(ΣJ[3], args...)
+
+@inline interp_atmos_time_series(ΣJ::Tuple{<:Any, <:Any, <:Any, <:Any}, args...) =
+    interp_atmos_time_series(ΣJ[1], args...) +
+    interp_atmos_time_series(ΣJ[2], args...) +
+    interp_atmos_time_series(ΣJ[3], args...) +
+    interp_atmos_time_series(ΣJ[4], args...)
 
