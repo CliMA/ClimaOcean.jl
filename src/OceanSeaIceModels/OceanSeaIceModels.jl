@@ -23,13 +23,13 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 
 using ClimaOcean: stateindex
 
+import ClimaOcean: reference_density, heat_capacity
+
 using KernelAbstractions: @kernel, @index
 using KernelAbstractions.Extras.LoopInfo: @unroll
 
 function downwelling_radiation end
 function freshwater_flux end
-function reference_density end
-function heat_capacity end
 
 const default_gravitational_acceleration = 9.80665
 const default_freshwater_density = 1000
@@ -46,11 +46,6 @@ sea_ice_concentration(sea_ice::SeaIceSimulation) = sea_ice.model.ice_concentrati
 ##### Some implementation
 #####
 
-# Atmosphere interface
-interpolate_atmosphere_state!(interfaces, atmosphere, coupled_model) = nothing
-compute_net_atmosphere_fluxes!(coupled_model) = nothing
-
-# TODO: import this last
 include("PrescribedAtmospheres.jl")
 
 using .PrescribedAtmospheres:
@@ -78,6 +73,7 @@ compute_atmosphere_ocean_fluxes!(::NoAtmosphereModel) = nothing
 compute_atmosphere_sea_ice_fluxes!(::NoAtmosphereModel) = nothing
 
 const PrescribedAtmosphereModel = OceanSeaIceModel{<:Any, <:PrescribedAtmosphere}
+
 compute_net_atmosphere_fluxes!(::PrescribedAtmosphereModel) = nothing
 
 # "No sea ice" implementation
