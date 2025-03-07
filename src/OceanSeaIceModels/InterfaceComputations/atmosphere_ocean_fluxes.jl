@@ -116,7 +116,12 @@ end
     qₛ = saturation_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ.ρ, Tᵢ, Sᵢ) 
     initial_interface_state = InterfaceState(u★, u★, u★, uᵢ, vᵢ, Tᵢ, Sᵢ, qₛ)
 
-    if inactive_node(i, j, kᴺ, grid, Center(), Center(), Center())
+    # Don't use convergence criteria in an inactive cell
+    stop_criteria = turbulent_flux_formulation.solver_stop_criteria
+    needs_to_converge = stop_criteria isa ConvergenceStopCriteria
+    not_water = inactive_node(i, j, kᴺ, grid, Center(), Center(), Center())
+
+    if needs_to_converge && not_water
         interface_state = zero_interface_state(FT)
     else
         interface_state = compute_interface_state(turbulent_flux_formulation,
@@ -128,6 +133,9 @@ end
                                                   atmosphere_properties,
                                                   ocean_properties)
     end
+
+    # In the case of FixedIterations, make sure interface state is zero'd
+    interface_state = ifelse(not_water, zero_interface_state(FT), interface_state)
 
     u★ = interface_state.u★
     θ★ = interface_state.θ★
