@@ -56,7 +56,7 @@ function progress(sim)
     msg *= @sprintf(", max|u|: (%.2e, %.2e, %.2e) m s⁻¹, extrema(T): (%.2f, %.2f) ᵒC, wall time: %s",
                     umax..., Tmax, Tmin, prettytime(step_time))
 
-    @info msg 
+    @info msg
 
     wall_time[] = time_ns()
 end
@@ -103,7 +103,7 @@ run!(simulation)
 checkpoint_file = prefix * "_iteration40.jld2"
 
 set!(simulation, checkpoint_file)
-    
+
 coupled_model = OceanSeaIceModel(simulation.model.ocean; atmosphere, radiation)
 
 simulation = Simulation(coupled_model; Δt=10, stop_iteration=20)
