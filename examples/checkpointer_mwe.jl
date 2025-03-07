@@ -51,7 +51,7 @@ function progress(sim)
 
     step_time = 1e-9 * (time_ns() - wall_time[])
 
-    msg = @sprintf("Iter: %d, time: %s, Δt: %s", iteration(sim), prettytime(sim), prettytime(sim.Δt))
+    msg = @sprintf("Iter: %d, simulation time: %s, atmosphere time: %s, Δt: %s", iteration(sim), prettytime(sim), prettytime(atmosphere.clock.time), prettytime(sim.Δt))
     msg *= @sprintf(", max|u|: (%.2e, %.2e, %.2e) m s⁻¹, extrema(T): (%.2f, %.2f) ᵒC, wall time: %s",
                     umax..., Tmax, Tmin, prettytime(step_time))
 
@@ -90,22 +90,19 @@ coupled_checkpointer = Checkpointer(coupled_model;
                                     verbose = true,
                                     overwrite_existing = true)
 
-#=
-
 @show simulation
 
 run!(simulation)
 
-@info "simulation run for 50 iterations; you should have a checkpointer at 40"
+@info "simulation run for 10 iterations; you should have a checkpointer at 8"
 
-checkpoint_file = prefix * "_iteration40.jld2"
+checkpoint_file = prefix * "_iteration8.jld2"
 
 set!(simulation, checkpoint_file)
 
 coupled_model = OceanSeaIceModel(simulation.model.ocean; atmosphere, radiation)
 
 simulation = Simulation(coupled_model; Δt=10, stop_iteration=20)
-simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
+simulation.callbacks[:progress] = Callback(progress, IterationInterval(1))
 
 run!(simulation)
-=#
