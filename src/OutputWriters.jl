@@ -1,6 +1,6 @@
 module OutputWriters
 
-using ClimaOcean.OceanSeaIceModel: OceanSeaIceModel
+using ClimaOcean.OceanSeaIceModels: OceanSeaIceModel
 
 export Checkpointer
 
