@@ -46,6 +46,11 @@ sea_ice_concentration(sea_ice::SeaIceSimulation) = sea_ice.model.ice_concentrati
 ##### Some implementation
 #####
 
+# Atmosphere interface
+interpolate_atmosphere_state!(interfaces, atmosphere, coupled_model) = nothing
+compute_net_atmosphere_fluxes!(coupled_model) = nothing
+
+# TODO: import this last
 include("PrescribedAtmospheres.jl")
 
 using .PrescribedAtmospheres:
