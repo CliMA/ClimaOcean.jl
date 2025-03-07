@@ -4,7 +4,6 @@ using Oceananigans.Units
 using CFTime
 using Dates
 using Printf
-using Glob
 
 arch = CPU()
 
@@ -85,12 +84,11 @@ ocean.output_writers[:checkpoint] = Checkpointer(ocean.model;
                                                  overwrite_existing = true)
 
 coupled_checkpointer = Checkpointer(coupled_model;
-                                                 schedule = IterationInterval(4),
-                                                 prefix = prefix,
-                                                #  cleanup = true,
-                                                 dir = output_dir,
-                                                 verbose = true,
-                                                 overwrite_existing = true)
+                                    schedule = IterationInterval(4),
+                                    prefix = prefix,
+                                    dir = output_dir,
+                                    verbose = true,
+                                    overwrite_existing = true)
 
 #=
 

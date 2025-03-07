@@ -25,14 +25,15 @@ export
     PowerLawStretching, LinearStretching,
     exponential_z_faces,
     JRA55_field_time_series,
-    ECCO_field, 
+    ECCO_field,
     ECCOMetadata,
     ECCORestoring,
     LinearlyTaperedPolarMask,
+    Checkpointer,
     ocean_simulation,
     sea_ice_simulation,
     initialize!,
-    @root, 
+    @root,
     @onrank,
     @distribute,
     @handshake
@@ -54,7 +55,7 @@ const SKOFTS = SomeKindOfFieldTimeSeries
 @inline stateindex(a::SKOFTS, i, j, k, grid, time, args...) = @inbounds a[i, j, k, time]
 
 @inline function stateindex(a::Function, i, j, k, grid, time, loc)
-    LX, LY, LZ = loc 
+    LX, LY, LZ = loc
     λ, φ, z = node(i, j, k, grid, LX(), LY(), LZ())
     return a(λ, φ, z, time)
 end
