@@ -34,7 +34,7 @@ atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(41))
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 
-simulation = Simulation(coupled_model; Δt=10, stop_iteration=50)
+simulation = Simulation(coupled_model; Δt=10, stop_iteration=10)
 
 wall_time = Ref(time_ns())
 
@@ -61,29 +61,39 @@ function progress(sim)
     wall_time[] = time_ns()
 end
 
-simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
+simulation.callbacks[:progress] = Callback(progress, IterationInterval(1))
 
 outputs = merge(ocean.model.tracers, ocean.model.velocities)
 
 ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
-                                                  schedule = IterationInterval(10),
+                                                  schedule = IterationInterval(2),
                                                   filename = "checkpointer_mwe_surface",
                                                   indices = (:, :, grid.Nz),
                                                   with_halos = true,
                                                   overwrite_existing = true,
                                                   array_type = Array{Float32})
 
-output_dir = "/g/data/v46/txs156/ClimaOcean.jl-checkpointer/examples/"
+output_dir = "."
 prefix = "checkpointer_mwe"
 
 ocean.output_writers[:checkpoint] = Checkpointer(ocean.model;
-                                                 schedule = IterationInterval(20),
+                                                 schedule = IterationInterval(4),
                                                  prefix = prefix,
                                                 #  cleanup = true,
                                                  dir = output_dir,
                                                  verbose = true,
                                                  overwrite_existing = true)
-                              
+
+coupled_checkpointer = Checkpointer(coupled_model;
+                                                 schedule = IterationInterval(4),
+                                                 prefix = prefix,
+                                                #  cleanup = true,
+                                                 dir = output_dir,
+                                                 verbose = true,
+                                                 overwrite_existing = true)
+
+#=
+
 @show simulation
 
 run!(simulation)
@@ -96,7 +106,8 @@ set!(simulation, checkpoint_file)
     
 coupled_model = OceanSeaIceModel(simulation.model.ocean; atmosphere, radiation)
 
-simulation = Simulation(coupled_model; Δt=10, stop_iteration=100)
+simulation = Simulation(coupled_model; Δt=10, stop_iteration=20)
 simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
 
 run!(simulation)
+=#
