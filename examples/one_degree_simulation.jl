@@ -169,7 +169,7 @@ ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
                                                   indices = (:, :, grid.Nz),
                                                   with_halos = true,
                                                   overwrite_existing = true,
-                                                  array_type = Array{Float32})
+                                                  array_type = Array{Float32},
                                                   overwrite_existing = true)
 
 # ### Ready to run
