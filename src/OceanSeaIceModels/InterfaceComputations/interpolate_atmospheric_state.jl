@@ -106,12 +106,34 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
                 auxiliary_time_indexing)
     end
 
+    # barotropic potential in PrescribedAtmosphere?
+    atmosphere_pressure = atmosphere.pressure.data
+    tidal_potential = atmosphere.tidal_potential
+
+    if !isnothing(tidal_potential)
+        tidal_potential_data = tidal_potential.data
+    else
+        tidal_potential_data = nothing
+    end
+
+    launch!(arch, grid, kernel_parameters,
+            _compute_barotropic_potential!,
+            barotropic_potential,
+            space_fractional_indices,
+            time_interpolator,
+            atmosphere_pressure,
+            tidal_potential_data,
+            coupled_model.interfaces.ocean_properties.reference_density,
+            atmosphere_backend,
+            atmosphere_time_indexing)
+
+    #=
     # Set ocean barotropic pressure forcing
     barotropic_potential = forcing_barotropic_potential(ocean)
-    ρₒ = coupled_model.interfaces.ocean_properties.reference_density
     if !isnothing(barotropic_potential)
-        parent(barotropic_potential) .= parent(atmosphere_data.p) ./ ρₒ
+        parent(barotropic_potential) .= parent(atmosphere_data.p) ./ ρₒ .+ parent(tidal_potential)
     end
+    =#
 end
 
 @inline get_fractional_index(i, j, ::Nothing) = nothing
@@ -167,6 +189,34 @@ end
         surface_atmos_state.Qℓ[i, j, 1] = Qℓ
         surface_atmos_state.Mp[i, j, 1] = Mh
     end
+end
+
+@kernel function _compute_barotropic_potential!(barotropic_potential,
+                                                space_fractional_indices,
+                                                time_interpolator,
+                                                atmos_pressure,
+                                                tidal_potential,
+                                                ocean_reference_density,
+                                                atmos_backend,
+                                                atmos_time_indexing)
+
+    i, j = @index(Global, NTuple)
+
+    ρₒ = ocean_reference_density
+
+    ii = space_fractional_indices.i
+    jj = space_fractional_indices.j
+    fi = get_fractional_index(i, j, ii)
+    fj = get_fractional_index(i, j, jj)
+
+    x_itp = FractionalIndices(fi, fj, nothing)
+    t_itp = time_interpolator
+    atmos_args = (x_itp, t_itp, atmos_backend, atmos_time_indexing)
+
+    pa = interp_atmos_time_series(atmos_pressure, atmos_args...) # yes this is a re-interpolation
+    Φt = interp_atmos_time_series(tidal_potential, atmos_args...)
+
+    @inbounds barotropic_potential[i, j, 1] = pa / ρₒ + Φt
 end
 
 @kernel function _interpolate_auxiliary_freshwater_flux!(freshwater_flux,
