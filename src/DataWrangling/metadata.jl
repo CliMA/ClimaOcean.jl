@@ -104,7 +104,7 @@ end
 """
     all_dates(metadata)
 
-Extracts all the dates of the given metadata formatted using the `DateTimeProlepticGregorian` type.
+Extracts all the dates of the given metadata formatted using the `DateTime` type.
 Needs to be extended by any new dataset version.
 """
 all_dates(metadata) = all_dates(metadata.version, metadata.name)
