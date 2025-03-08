@@ -289,7 +289,7 @@ const PATP = PrescribedAtmosphereThermodynamicsParameters
 ##### Prescribed atmosphere (as opposed to dynamically evolving / prognostic)
 #####
 
-mutable struct PrescribedAtmosphere{FT, M, G, T, U, P, C, F, I, R, TP, TI}
+mutable struct PrescribedAtmosphere{FT, M, G, T, U, P, C, F, I, ΦT, R, TP, TI}
     grid :: G
     clock :: Clock{T}
     metadata :: M
@@ -298,6 +298,7 @@ mutable struct PrescribedAtmosphere{FT, M, G, T, U, P, C, F, I, R, TP, TI}
     tracers :: C
     freshwater_flux :: F
     auxiliary_freshwater_flux :: I
+    tidal_potential :: ΦT # this really belongs elsewhere, but we put it here for now
     downwelling_radiation :: R
     thermodynamics_parameters :: TP
     times :: TI
@@ -375,6 +376,7 @@ end
                          boundary_layer_height = 600 # meters,
                          thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT),
                          auxiliary_freshwater_flux = nothing,
+                         tidal_potential = nothing,
                          velocities            = default_atmosphere_velocities(grid, times),
                          tracers               = default_atmosphere_tracers(grid, times),
                          pressure              = default_atmosphere_pressure(grid, times),
@@ -391,6 +393,7 @@ function PrescribedAtmosphere(grid, times;
                               boundary_layer_height = convert(eltype(grid), 600),
                               thermodynamics_parameters = nothing,
                               auxiliary_freshwater_flux = nothing,
+                              tidal_potential = nothing,
                               velocities            = default_atmosphere_velocities(grid, times),
                               tracers               = default_atmosphere_tracers(grid, times),
                               pressure              = default_atmosphere_pressure(grid, times),
@@ -410,6 +413,7 @@ function PrescribedAtmosphere(grid, times;
                                 tracers,
                                 freshwater_flux,
                                 auxiliary_freshwater_flux,
+                                tidal_potential,
                                 downwelling_radiation,
                                 thermodynamics_parameters,
                                 times,
