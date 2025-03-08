@@ -114,6 +114,10 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
         tidal_potential_data = nothing
     end
 
+    # Which forcing is this going to be?
+    index = 
+    barotropic_potential = ocean.model.velocities.u.forcing[1]
+
     launch!(arch, grid, kernel_parameters,
             _compute_barotropic_potential!,
             barotropic_potential,
