@@ -4,7 +4,7 @@ using Oceananigans.Grids: grid_name
 using Oceananigans.Utils: prettysummary, Time
 using Oceananigans.Fields: Center
 using Oceananigans.OutputReaders: FieldTimeSeries, update_field_time_series!, extract_field_time_series
-using Oceananigans.TimeSteppers: tick!, Clock
+using Oceananigans.TimeSteppers: Clock, tick!
 
 using Adapt
 using Thermodynamics.Parameters: AbstractThermodynamicsParameters
@@ -300,7 +300,7 @@ struct PrescribedAtmosphere{FT, G, T, U, P, C, F, I, R, TP, TI}
     downwelling_radiation :: R
     thermodynamics_parameters :: TP
     times :: TI
-    reference_height :: FT
+    surface_layer_height :: FT
     boundary_layer_height :: FT
 end
 
@@ -314,7 +314,7 @@ end
 function Base.show(io::IO, pa::PrescribedAtmosphere)
     print(io, summary(pa), " on ", grid_name(pa.grid), ":", '\n')
     print(io, "├── times: ", prettysummary(pa.times), '\n')
-    print(io, "├── reference_height: ", prettysummary(pa.reference_height), '\n')
+    print(io, "├── surface_layer_height: ", prettysummary(pa.surface_layer_height), '\n')
     print(io, "└── boundary_layer_height: ", prettysummary(pa.boundary_layer_height))
 end
 
@@ -349,9 +349,9 @@ function default_atmosphere_pressure(grid, times)
     return pa
 end
 
-@inline function time_step!(atmos::PrescribedAtmosphere, Δt) 
+@inline function time_step!(atmos::PrescribedAtmosphere, Δt)
     tick!(atmos.clock, Δt)
-    
+
     time = Time(atmos.clock.time)
     ftses = extract_field_time_series(atmos)
 
@@ -363,13 +363,13 @@ end
 end
 
 @inline thermodynamics_parameters(atmos::PrescribedAtmosphere) = atmos.thermodynamics_parameters
-@inline reference_height(atmos::PrescribedAtmosphere) = atmos.reference_height
+@inline surface_layer_height(atmos::PrescribedAtmosphere) = atmos.surface_layer_height
 @inline boundary_layer_height(atmos::PrescribedAtmosphere) = atmos.boundary_layer_height    
 
 """
     PrescribedAtmosphere(grid, times;
                          clock = Clock{Float64}(time = 0),
-                         reference_height = 10, # meters
+                         surface_layer_height = 10, # meters
                          boundary_layer_height = 600 # meters,
                          thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT),
                          auxiliary_freshwater_flux = nothing,
@@ -384,7 +384,7 @@ state with data given at `times`.
 """
 function PrescribedAtmosphere(grid, times;
                               clock = Clock{Float64}(time = 0),
-                              reference_height = convert(eltype(grid), 10),
+                              surface_layer_height = convert(eltype(grid), 10),
                               boundary_layer_height = convert(eltype(grid), 600),
                               thermodynamics_parameters = nothing,
                               auxiliary_freshwater_flux = nothing,
@@ -409,7 +409,7 @@ function PrescribedAtmosphere(grid, times;
                                 downwelling_radiation,
                                 thermodynamics_parameters,
                                 times,
-                                convert(FT, reference_height),
+                                convert(FT, surface_layer_height),
                                 convert(FT, boundary_layer_height))
 end
 
