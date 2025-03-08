@@ -14,8 +14,8 @@ struct ECCO2Monthly end
 struct ECCO2Daily end
 struct ECCO4Monthly end
 
-const ECCOMetadata{D, V} = Metadata{D, V} where {D, V<:Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}}
-const ECCOMetadatum{V}   = ECCOMetadata{<:AnyDateTime, V}
+const ECCOMetadata{D} = Metadata{D, Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}} where {D}
+const ECCOMetadatum   = ECCOMetadata{<:AnyDateTime}
 
 default_download_folder(::Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}) = download_ECCO_cache
 
@@ -27,13 +27,13 @@ datestr(md::ECCOMetadatum) = string(md.dates)
 Base.summary(md::ECCOMetadata) = string("ECCOMetadata{", versionstr(md), "} of ",
                                         md.name, " for ", datestr(md))
 
-Base.size(data::ECCOMetadata{<:Any, <:ECCO2Daily})   = (1440, 720, 50, length(data.dates))
-Base.size(data::ECCOMetadata{<:Any, <:ECCO2Monthly}) = (1440, 720, 50, length(data.dates))
-Base.size(data::ECCOMetadata{<:Any, <:ECCO4Monthly}) = (720,  360, 50, length(data.dates))
+Base.size(data::Metadata{<:Any, <:ECCO2Daily})   = (1440, 720, 50, length(data.dates))
+Base.size(data::Metadata{<:Any, <:ECCO2Monthly}) = (1440, 720, 50, length(data.dates))
+Base.size(data::Metadata{<:Any, <:ECCO4Monthly}) = (720,  360, 50, length(data.dates))
 
-Base.size(::ECCOMetadatum{<:ECCO2Daily})   = (1440, 720, 50, 1)
-Base.size(::ECCOMetadatum{<:ECCO2Monthly}) = (1440, 720, 50, 1)
-Base.size(::ECCOMetadatum{<:ECCO4Monthly}) = (720,  360, 50, 1)
+Base.size(::Metadata{<:AnyDateTime, <:ECCO2Daily})   = (1440, 720, 50, 1)
+Base.size(::Metadata{<:AnyDateTime, <:ECCO2Monthly}) = (1440, 720, 50, 1)
+Base.size(::Metadata{<:AnyDateTime, <:ECCO4Monthly}) = (720,  360, 50, 1)
 
 # The whole range of dates in the different dataset versions
 all_dates(::ECCO4Monthly, name) = DateTime(1992, 1, 1) : Month(1) : DateTime(2023, 12, 1)
@@ -41,14 +41,14 @@ all_dates(::ECCO2Monthly, name) = DateTime(1992, 1, 1) : Month(1) : DateTime(202
 all_dates(::ECCO2Daily, name)   = DateTime(1992, 1, 4) : Day(1)   : DateTime(2023, 12, 31)
 
 # File name generation specific to each Dataset version
-function metadata_filename(metadata::ECCOMetadata{<:AnyDateTime, <:ECCO4Monthly})
+function metadata_filename(metadata::Metadata{<:AnyDateTime, <:ECCO4Monthly})
     shortname = short_name(metadata)
     yearstr  = string(Dates.year(metadata.dates))
     monthstr = string(Dates.month(metadata.dates), pad=2)
     return shortname * "_" * yearstr * "_" * monthstr * ".nc"
 end
 
-function metadata_filename(metadata::ECCOMetadatum)
+function metadata_filename(metadata::Metadata{<:AnyDateTime, <:Union{ECCO2Daily, ECCO2Monthly}})
     shortname   = short_name(metadata)
     yearstr  = string(Dates.year(metadata.dates))
     monthstr = string(Dates.month(metadata.dates), pad=2)
@@ -63,14 +63,14 @@ function metadata_filename(metadata::ECCOMetadatum)
 end
 
 # Convenience functions
-short_name(data::ECCOMetadata{<:Any, <:ECCO2Daily})   = ECCO2_short_names[data.name]
-short_name(data::ECCOMetadata{<:Any, <:ECCO2Monthly}) = ECCO2_short_names[data.name]
-short_name(data::ECCOMetadata{<:Any, <:ECCO4Monthly}) = ECCO4_short_names[data.name]
+short_name(data::Metadata{<:Any, <:ECCO2Daily})   = ECCO2_short_names[data.name]
+short_name(data::Metadata{<:Any, <:ECCO2Monthly}) = ECCO2_short_names[data.name]
+short_name(data::Metadata{<:Any, <:ECCO4Monthly}) = ECCO4_short_names[data.name]
 
-metadata_url(prefix, m::ECCOMetadata{<:Any, <:ECCO2Daily}) = prefix * "/" * short_name(m) * "/" * metadata_filename(m)
-metadata_url(prefix, m::ECCOMetadata{<:Any, <:ECCO2Monthly}) = prefix * "/" * short_name(m) * "/" * metadata_filename(m)
+metadata_url(prefix, m::Metadata{<:Any, <:ECCO2Daily})   = prefix * "/" * short_name(m) * "/" * metadata_filename(m)
+metadata_url(prefix, m::Metadata{<:Any, <:ECCO2Monthly}) = prefix * "/" * short_name(m) * "/" * metadata_filename(m)
 
-function metadata_url(prefix, m::ECCOMetadata{<:Any, <:ECCO4Monthly})
+function metadata_url(prefix, m::Metadata{<:Any, <:ECCO4Monthly})
     year = string(Dates.year(m.dates))
     return prefix * "/" * short_name(m) * "/" * year * "/" * metadata_filename(m)
 end
@@ -117,9 +117,9 @@ ECCO_location = Dict(
 )
 
 # URLs for the ECCO datasets specific to each version
-urls(::ECCOMetadata{<:Any, <:ECCO2Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/monthly"
-urls(::ECCOMetadata{<:Any, <:ECCO2Daily})   = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/daily"
-urls(::ECCOMetadata{<:Any, <:ECCO4Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly"
+urls(::Metadata{<:Any, <:ECCO2Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/monthly"
+urls(::Metadata{<:Any, <:ECCO2Daily})   = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/daily"
+urls(::Metadata{<:Any, <:ECCO4Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly"
 
 """
     download_dataset(metadata::ECCOMetadata; url = urls(metadata))

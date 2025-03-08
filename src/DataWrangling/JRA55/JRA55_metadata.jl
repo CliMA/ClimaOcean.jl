@@ -15,8 +15,8 @@ import ClimaOcean.DataWrangling: all_dates, metadata_filename, default_download_
 struct JRA55MultipleYears end
 struct JRA55RepeatYear end
 
-const JRA55Metadata{T, V} = Metadata{T, V} where {T, V<:Union{<:JRA55MultipleYears, <:JRA55RepeatYear}}
-const JRA55Metadatum      = JRA55Metadata{<:AnyDateTime}
+const JRA55Metadata{D} = Metadata{D, Union{<:JRA55MultipleYears, <:JRA55RepeatYear}} where {D}
+const JRA55Metadatum   = JRA55Metadata{<:AnyDateTime}
 
 default_download_folder(::Union{<:JRA55MultipleYears, <:JRA55RepeatYear}) = download_JRA55_cache
 
@@ -71,7 +71,7 @@ end
 
 # Convenience functions
 short_name(data::JRA55Metadata) = JRA55_short_names[data.name]
-location(data::JRA55Metadata)   = (Center, Center, Center)
+location(::JRA55Metadata)       = (Center, Center, Center)
 
 # A list of all variables provided in the JRA55 dataset:
 JRA55_variable_names = (:river_freshwater_flux,
@@ -149,7 +149,7 @@ urls(metadata::Metadata{<:Any, <:JRA55RepeatYear}) = JRA55_repeat_year_urls[meta
 # TODO: 
 # urls(metadata::Metadata{<:Any, <:JRA55MultipleYears}) = ...
 
-metadata_url(prefix, m::Metadata{<:Any, <:JRA55RepeatYear}) = prefix # No specific name for this url
+metadata_url(prefix, ::Metadata{<:Any, <:JRA55RepeatYear}) = prefix # No specific name for this url
 
 # TODO: This will need to change when we add a method for JRA55MultipleYears
 function download_dataset(metadata::JRA55Metadata; url = urls(metadata))
