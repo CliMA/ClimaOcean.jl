@@ -226,7 +226,7 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
     time_indices = JRA55_time_indices(version, metadata.dates, name)
 
     # Change the metadata to reflect the actual time indices
-    metadata = with_dates(metadata, all_dates(version, name)[time_indices])
+    metadata = Metadata(metadata.name, dates, metadata.version, metadata.dir)
 
     shortname = short_name(metadata)
     variable_name = metadata.name

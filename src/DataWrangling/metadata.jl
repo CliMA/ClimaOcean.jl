@@ -73,7 +73,6 @@ Base.iterate(::Metadata{<:AbstractCFDateTime}, ::Any)  = nothing
 
 metadata_path(metadata) = joinpath(metadata.dir, metadata_filename(metadata))
 
-
 """
     native_times(metadata; start_time = first(metadata).dates)
 
