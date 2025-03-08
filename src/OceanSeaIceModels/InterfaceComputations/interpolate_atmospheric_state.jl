@@ -118,10 +118,10 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
     # Which forcing is this going to be?
     u_forcing = ocean.model.forcing.u
     barotropic_potential = if u_forcing isa BarotropicPotentialForcing
-        u_forcing
+        u_forcing.potential
     else
         n = findfirst(x -> x isa BarotropicPotentialForcing, u_forcing)
-        u_forcing[n]
+        u_forcing[n].potential
     end
     
     launch!(arch, grid, kernel_parameters,
