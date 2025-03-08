@@ -23,16 +23,30 @@ Base.size(data::JRA55Metadata) = (640, 320, length(data.dates))
 Base.size(::JRA55Metadata{<:AbstractCFDateTime}) = (640, 320, 1)
 
 # The whole range of dates in the different dataset versions
-all_dates(::JRA55RepeatYear)    = DateTimeProlepticGregorian(1990, 1, 1) : Hour(3) : DateTimeProlepticGregorian(1990, 12, 31, 23, 59, 59)
-all_dates(::JRA55MultipleYears) = DateTimeProlepticGregorian(1958, 1, 1) : Hour(3) : DateTimeProlepticGregorian(2021, 1, 1)
+# NOTE! rivers and icebergs have a different frequency! (typical JRA55 data is three-hourly while rivers and icebergs are daily)
+function all_dates(::JRA55RepeatYear, name)   
+    if name == :river_freshwater_flux || name == :iceberg_freshwater_flux
+        return DateTime(1990, 1, 1) : Day(1) : DateTime(1990, 12, 31)
+    else
+        return DateTime(1990, 1, 1) : Hour(3) : DateTime(1990, 12, 31, 23, 59, 59)
+    end
+end
 
-function JRA55_time_indices(version, dates)
-    all_JRA55_dates = all_dates(version)
+function all_dates(::JRA55MultipleYears, name)
+    if name == :river_freshwater_flux || name == :iceberg_freshwater_flux
+        return DateTime(1958, 1, 1) : Day(1) : DateTime(2021, 1, 1)
+    else
+        return DateTime(1958, 1, 1) : Hour(3) : DateTime(2021, 1, 1)
+    end
+end
+
+function JRA55_time_indices(version, dates, name)
+    all_JRA55_dates = all_dates(version, name)
     indices = Int[]
     
     for date in dates
         index = findfirst(x -> x == date, all_JRA55_dates)
-        push!(indices, index)
+        !isnothing(index) && push!(indices, index)
     end
 
     return indices

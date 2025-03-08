@@ -181,7 +181,7 @@ Keyword arguments
 
 - `dates`: The date(s) of the metadata. Note this can either be a single date,
            representing a snapshot, or a range of dates, representing a time-series.
-           Default: `all_dates(version)` (see `all_dates`).
+           Default: `all_dates(version, name)` (see `all_dates`).
 
 - `version`: The data version. The only supported versions is `JRA55RepeatYear()`
 
@@ -202,7 +202,7 @@ Keyword arguments
 """
 function JRA55FieldTimeSeries(variable_name::Symbol, architecture = CPU(), FT=Float32,;
                               version = JRA55RepeatYear(),
-                              dates = all_dates(version),
+                              dates = all_dates(version, variable_name),
                               dir = download_JRA55_cache,
                               kw...)
 
@@ -221,7 +221,13 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
     download_dataset(metadata)
 
     # Unpack metadata details
-    time_indices = JRA55_time_indices(metadata.version, metadata.dates)
+    version = metadata.version
+    name    = metadata.name
+    time_indices = JRA55_time_indices(version, metadata.dates, name)
+
+    # Change the metadata to reflect the actual time indices
+    metadata = with_dates(metadata, all_dates(version, name)[time_indices])
+
     shortname = short_name(metadata)
     variable_name = metadata.name
     

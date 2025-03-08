@@ -10,7 +10,7 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 
         # This should download files called "RYF.rsds.1990_1991.nc" and "RYF.tas.1990_1991.nc"
         for test_name in (:downwelling_shortwave_radiation, :temperature)
-            dates = ClimaOcean.DataWrangling.all_dates(JRA55.JRA55RepeatYear())
+            dates = ClimaOcean.DataWrangling.all_dates(JRA55.JRA55RepeatYear(), test_name)
             dates = dates[1:3]
 
             JRA55_fts = JRA55FieldTimeSeries(test_name, arch; dates)
@@ -58,9 +58,10 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 
         @info "Testing interpolate_field_time_series! on $A..."
 
-        dates = ClimaOcean.DataWrangling.all_dates(JRA55.JRA55RepeatYear())
+        name  = :downwelling_shortwave_radiation
+        dates = ClimaOcean.DataWrangling.all_dates(JRA55.JRA55RepeatYear(), name)
         dates = dates[1:3]
-        JRA55_fts = JRA55FieldTimeSeries(:downwelling_shortwave_radiation, arch; dates)
+        JRA55_fts = JRA55FieldTimeSeries(name, arch; dates)
 
         # Make target grid and field
         resolution = 1 # degree, eg 1/4
@@ -118,8 +119,15 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         @test atmosphere isa PrescribedAtmosphere
         @test isnothing(atmosphere.auxiliary_freshwater_flux)
 
+        # Test that rivers and icebergs are included in the JRA55 data with the correct frequency
         atmosphere = JRA55PrescribedAtmosphere(arch; backend, include_rivers_and_icebergs=true)
         @test haskey(atmosphere.auxiliary_freshwater_flux, :rivers)
         @test haskey(atmosphere.auxiliary_freshwater_flux, :icebergs)
+        
+        rivers_times = atmosphere.auxiliary_freshwater_flux.rivers.times
+        pressure_times = atmosphere.pressure.times
+        @test rivers_times != pressure_times
+        @test length(rivers_times) != length(pressure_times)
+        @test rivers_times[2] - rivers_times[1] == 86400
     end
 end

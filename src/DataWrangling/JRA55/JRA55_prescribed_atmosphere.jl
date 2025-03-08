@@ -17,14 +17,14 @@ Return a `PrescribedAtmosphere` representing JRA55 reanalysis data.
 """
 function JRA55PrescribedAtmosphere(architecture = CPU(), FT = Float32;
                                    version = JRA55RepeatYear(),
-                                   dates = all_dates(version),
+                                   dates = all_dates(version, :temperature),
                                    backend = JRA55NetCDFBackend(10),
                                    time_indexing = Cyclical(),
                                    reference_height = 10,  # meters
                                    include_rivers_and_icebergs = false,
                                    other_kw...)
 
-    kw = (; time_indexing, backend, dates, version)
+    kw = (; time_indexing, dates, backend, version)
     kw = merge(kw, other_kw) 
 
     ua  = JRA55FieldTimeSeries(:eastward_velocity, architecture, FT;               kw...)

@@ -12,7 +12,7 @@ end
 """
    Metadata(variable_name;
             version,
-            dates = all_dates(name),
+            dates = all_dates(version, variable_name),
             dir = default_download_folder(version))
 
 Metadata holding a specific dataset information.
@@ -31,7 +31,7 @@ Keyword Arguments
 """
 function Metadata(variable_name;
                   version,
-                  dates = all_dates(version),
+                  dates = all_dates(version, variable_name),
                   dir = default_download_folder(version))
 
     return Metadata(variable_name, dates, version, dir)
@@ -107,7 +107,7 @@ end
 Extracts all the dates of the given metadata formatted using the `DateTimeProlepticGregorian` type.
 Needs to be extended by any new dataset version.
 """
-all_dates(metadata) = all_dates(metadata.version)
+all_dates(metadata) = all_dates(metadata.version, metadata.name)
 
 # File names of metadata containing multiple dates
 metadata_filename(metadata) = [metadata_filename(metadatum) for metadatum in metadata]
