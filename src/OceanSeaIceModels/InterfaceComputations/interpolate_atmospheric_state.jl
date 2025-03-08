@@ -116,7 +116,7 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
     end
 
     # Which forcing is this going to be?
-    u_forcing = ocean.model.velocities.u.forcing
+    u_forcing = ocean.model.forcing.u
     barotropic_potential = if u_forcing isa BarotropicPotentialForcing
         u_forcing
     else
