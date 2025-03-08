@@ -9,7 +9,7 @@ JRA55PrescribedAtmosphere(arch::Distributed; kw...) =
                               dates = all_dates(version),
                               backend = JRA55NetCDFBackend(10),
                               time_indexing = Cyclical(),
-                              reference_height = 10,  # meters
+                              surface_layer_height = 10,  # meters
                               include_rivers_and_icebergs = false,
                               other_kw...)
 
@@ -20,7 +20,7 @@ function JRA55PrescribedAtmosphere(architecture = CPU(), FT = Float32;
                                    dates = all_dates(version, :temperature),
                                    backend = JRA55NetCDFBackend(10),
                                    time_indexing = Cyclical(),
-                                   reference_height = 10,  # meters
+                                   surface_layer_height = 10,  # meters
                                    include_rivers_and_icebergs = false,
                                    other_kw...)
 
@@ -65,7 +65,7 @@ function JRA55PrescribedAtmosphere(architecture = CPU(), FT = Float32;
     downwelling_radiation = TwoBandDownwellingRadiation(shortwave=Qs, longwave=Ql)
 
     FT = eltype(ua)
-    reference_height = convert(FT, reference_height)
+    surface_layer_height = convert(FT, surface_layer_height)
 
     atmosphere = PrescribedAtmosphere(grid, times;
                                       velocities,
@@ -73,7 +73,7 @@ function JRA55PrescribedAtmosphere(architecture = CPU(), FT = Float32;
                                       auxiliary_freshwater_flux,
                                       tracers,
                                       downwelling_radiation,
-                                      reference_height,
+                                      surface_layer_height,
                                       pressure)
 
     return atmosphere
