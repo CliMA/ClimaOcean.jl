@@ -702,7 +702,7 @@ function JRA55PrescribedAtmosphere(architecture::AA, time_indices=Colon();
 
     FT = eltype(ua)
     boundary_layer_height = convert(FT, 600)
-    reference_height = convert(FT, reference_height)
+    surface_layer_height = convert(FT, surface_layer_height)
     thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT)
     grid = ua.grid
     metadata = JRA55Data()
