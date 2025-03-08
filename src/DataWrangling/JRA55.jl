@@ -652,7 +652,8 @@ Return a `PrescribedAtmosphere` representing JRA55 reanalysis data.
 function JRA55PrescribedAtmosphere(architecture::AA, time_indices=Colon();
                                    backend = nothing,
                                    time_indexing = Cyclical(),
-                                   reference_height = 10,  # meters
+                                   surface_layer_height = 10,  # meters
+                                   tidal_potential = nothing,
                                    include_rivers_and_icebergs = false,
                                    other_kw...)
 
@@ -714,10 +715,11 @@ function JRA55PrescribedAtmosphere(architecture::AA, time_indices=Colon();
                                 tracers,
                                 freshwater_flux,
                                 auxiliary_freshwater_flux,
+                                tidal_potential,
                                 downwelling_radiation,
                                 thermodynamics_parameters,
                                 times,
-                                reference_height,
+                                surface_layer_height,
                                 boundary_layer_height)
 end
 
