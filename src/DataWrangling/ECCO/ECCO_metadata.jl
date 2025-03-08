@@ -1,7 +1,7 @@
 using CFTime
 using Dates
 using ClimaOcean.DataWrangling
-using ClimaOcean.DataWrangling: netrc_downloader, metadata_path
+using ClimaOcean.DataWrangling: netrc_downloader, metadata_path, AnyDateTime
 
 import Dates: year, month, day
 using Downloads
@@ -15,13 +15,11 @@ struct ECCO2Daily end
 struct ECCO4Monthly end
 
 const ECCOMetadata{D, V} = Metadata{D, V} where {D, V<:Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}}
+const ECCOMetadatum{V}   = ECCOMetadata{<:AnyDateTime, V}
 
 default_download_folder(::Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}) = download_ECCO_cache
 
 versionstr(md::ECCOMetadata) = string(md.version)
-
-const AnyDateTime = Union{AbstractCFDateTime, Dates.AbstractDateTime}
-const ECCOMetadatum = ECCOMetadata{<:AnyDateTime}
 
 datestr(md::ECCOMetadata) = string(first(md.dates), "--", last(md.dates))
 datestr(md::ECCOMetadatum) = string(md.dates)
@@ -33,9 +31,9 @@ Base.size(data::ECCOMetadata{<:Any, <:ECCO2Daily})   = (1440, 720, 50, length(da
 Base.size(data::ECCOMetadata{<:Any, <:ECCO2Monthly}) = (1440, 720, 50, length(data.dates))
 Base.size(data::ECCOMetadata{<:Any, <:ECCO4Monthly}) = (720,  360, 50, length(data.dates))
 
-Base.size(::ECCOMetadata{<:AbstractCFDateTime, <:ECCO2Daily})   = (1440, 720, 50, 1)
-Base.size(::ECCOMetadata{<:AbstractCFDateTime, <:ECCO2Monthly}) = (1440, 720, 50, 1)
-Base.size(::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4Monthly}) = (720,  360, 50, 1)
+Base.size(::ECCOMetadatum{<:ECCO2Daily})   = (1440, 720, 50, 1)
+Base.size(::ECCOMetadatum{<:ECCO2Monthly}) = (1440, 720, 50, 1)
+Base.size(::ECCOMetadatum{<:ECCO4Monthly}) = (720,  360, 50, 1)
 
 # The whole range of dates in the different dataset versions
 all_dates(::ECCO4Monthly, name) = DateTime(1992, 1, 1) : Month(1) : DateTime(2023, 12, 1)

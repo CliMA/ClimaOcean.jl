@@ -3,7 +3,7 @@ using Dates
 using Downloads
 
 using ClimaOcean.DataWrangling
-using ClimaOcean.DataWrangling: Metadata, metadata_path, download_progress
+using ClimaOcean.DataWrangling: Metadata, metadata_path, download_progress, AnyDateTime
 
 import Dates: year, month, day
 import Oceananigans.Fields: set!
@@ -16,11 +16,12 @@ struct JRA55MultipleYears end
 struct JRA55RepeatYear end
 
 const JRA55Metadata{T, V} = Metadata{T, V} where {T, V<:Union{<:JRA55MultipleYears, <:JRA55RepeatYear}}
+const JRA55Metadatum      = JRA55Metadata{<:AnyDateTime}
 
 default_download_folder(::Union{<:JRA55MultipleYears, <:JRA55RepeatYear}) = download_JRA55_cache
 
 Base.size(data::JRA55Metadata) = (640, 320, length(data.dates))
-Base.size(::JRA55Metadata{<:AbstractCFDateTime}) = (640, 320, 1)
+Base.size(::JRA55Metadatum)    = (640, 320, 1)
 
 # The whole range of dates in the different dataset versions
 # NOTE! rivers and icebergs have a different frequency! (typical JRA55 data is three-hourly while rivers and icebergs are daily)

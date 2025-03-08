@@ -31,11 +31,14 @@ Keyword Arguments
 """
 function Metadata(variable_name;
                   version,
-                  dates = all_dates(version, variable_name),
-                  dir = default_download_folder(version))
+                  dates=all_dates(version, variable_name)[1],
+                  dir=default_download_folder(version))
 
     return Metadata(variable_name, dates, version, dir)
 end
+
+const AnyDateTime = Union{AbstractCFDateTime, Dates.AbstractDateTime}
+const Metadatum   = Metadata{<:AnyDateTime}
 
 default_download_folder(version) = "./"
 
@@ -51,7 +54,7 @@ Base.length(metadata::Metadata) = length(metadata.dates)
 Base.eltype(metadata::Metadata) = Base.eltype(metadata.dates)
 
 # If only one date, it's a single element array
-Base.length(metadata::Metadata{<:AbstractCFDateTime}) = 1
+Base.length(metadata::Metadatum) = 1
 
 @propagate_inbounds Base.getindex(m::Metadata, i::Int) = Metadata(m.name, m.dates[i],   m.version, m.dir)
 @propagate_inbounds Base.first(m::Metadata)            = Metadata(m.name, m.dates[1],   m.version, m.dir)
@@ -65,11 +68,12 @@ Base.length(metadata::Metadata{<:AbstractCFDateTime}) = 1
     end
 end
 
-Base.axes(metadata::Metadata{<:AbstractCFDateTime})    = 1
-Base.first(metadata::Metadata{<:AbstractCFDateTime})   = metadata
-Base.last(metadata::Metadata{<:AbstractCFDateTime})    = metadata
-Base.iterate(metadata::Metadata{<:AbstractCFDateTime}) = (metadata, nothing)
-Base.iterate(::Metadata{<:AbstractCFDateTime}, ::Any)  = nothing
+# Implementation for 1 date
+Base.axes(metadata::Metadatum)    = 1
+Base.first(metadata::Metadatum)   = metadata
+Base.last(metadata::Metadatum)    = metadata
+Base.iterate(metadata::Metadatum) = (metadata, nothing)
+Base.iterate(::Metadatum, ::Any)  = nothing
 
 metadata_path(metadata) = joinpath(metadata.dir, metadata_filename(metadata))
 
