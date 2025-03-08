@@ -32,9 +32,25 @@ set!(ocean.model, T=first(atmos.tracers.T), S=35)
 
 # neutral radiation
 radiation=Radiation(ocean_albedo=1, ocean_emissivity=0)
-barotropic_earth_model = OceanSeaIceModel(ocean, nothing; atmosphere=atmos, radiation)
 
-barotropic_earth = Simulation(barotropic_earth_model, Δt=20minutes, stop_time=360days)
+# No fluxes
+struct ZeroFluxes{N, B}
+    solver_stop_criteria :: N
+    bulk_velocity :: B
+end
+
+import ClimaOcean.OceanSeaIceModels.InterfaceComputations: compute_interface_state, ComponentInterfaces
+using ClimaOcean.OceanSeaIceModels.InterfaceComputations: zero_interface_state
+
+@inline compute_interface_state(::ZeroFluxes, args...) = zero_interface_state(Float64)
+
+interfaces = ComponentInterfaces(atmos, ocean, nothing;
+                                 atmosphere_ocean_flux_formulation=ZeroFluxes(nothing, ClimaOcean.OceanSeaIceModels.InterfaceComputations.WindVelocity()),
+                                 radiation)
+
+barotropic_earth_model = OceanSeaIceModel(ocean, nothing; atmosphere=atmos, radiation, interfaces)
+
+barotropic_earth = Simulation(barotropic_earth_model, Δt=20minutes, stop_time=2days)
 
 wall_time = Ref(0.0)
 
