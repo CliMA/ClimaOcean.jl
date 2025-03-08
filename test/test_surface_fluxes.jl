@@ -47,7 +47,7 @@ end
         atmosphere = JRA55PrescribedAtmosphere(arch, Float64; dates, backend = InMemory()) 
         
         CUDA.@allowscalar begin
-            h  = atmosphere.reference_height
+            h  = atmosphere.surface_layer_height
             pₐ = atmosphere.pressure[1][1, 1, 1]
 
             Tₐ = 15 + celsius_to_kelvin
