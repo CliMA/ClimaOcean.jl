@@ -200,7 +200,7 @@ Keyword arguments
              * `JRA55NetCDFBackend(total_time_instances_in_memory)`: only a subset of the time series is loaded into memory.
              Default: `InMemory()`.
 """
-function JRA55FieldTimeSeries(variable_name::Symbol, architecture = CPU(), FT=Float32,;
+function JRA55FieldTimeSeries(variable_name::Symbol, architecture = CPU(), FT=Float32;
                               version = JRA55RepeatYear(),
                               dates = all_dates(version, variable_name),
                               dir = download_JRA55_cache,

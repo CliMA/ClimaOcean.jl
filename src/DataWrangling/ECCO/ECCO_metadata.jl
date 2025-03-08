@@ -14,7 +14,7 @@ struct ECCO2Monthly end
 struct ECCO2Daily end
 struct ECCO4Monthly end
 
-const ECCOMetadata{D} = Metadata{D, Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}} where {D}
+const ECCOMetadata{D} = Metadata{D, <:Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}} where {D}
 const ECCOMetadatum   = ECCOMetadata{<:AnyDateTime}
 
 default_download_folder(::Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}) = download_ECCO_cache
