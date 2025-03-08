@@ -15,6 +15,7 @@
 # ```
 
 using ClimaOcean
+using ClimaOcean.ECCO
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.BuoyancyFormulations: buoyancy_frequency
@@ -49,7 +50,7 @@ ocean.model
 
 # We set initial conditions from ECCO:
 
-set!(ocean.model, T=ECCOMetadata(:temperature), S=ECCOMetadata(:salinity))
+set!(ocean.model, T=Metadata(:temperature, version=ECCO4Monthly()), S=Metadata(:salinity, version=ECCO4Monthly()))
 
 # # A prescribed atmosphere based on JRA55 re-analysis
 #

@@ -14,6 +14,7 @@
 # including grid setup, physical processes modeling, and data visualization.
 
 using ClimaOcean
+using ClimaOcean.ECCO
 using Oceananigans
 using Oceananigans.Units
 using CairoMakie
@@ -83,8 +84,8 @@ ocean.model
 # We initialize the ocean model with ECCO2 temperature and salinity for January 1, 1993.
 
 date = DateTimeProlepticGregorian(1993, 1, 1)
-set!(ocean.model, T=ECCOMetadata(:temperature; dates=date),
-                  S=ECCOMetadata(:salinity; dates=date))
+set!(ocean.model, T=Metadata(:temperature; dates=date, version=ECCO4Monthly()),
+                  S=Metadata(:salinity; dates=date, version=ECCO4Monthly()))
 
 # ### Prescribed atmosphere and radiation
 #
