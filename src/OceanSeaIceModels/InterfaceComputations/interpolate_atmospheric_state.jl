@@ -5,6 +5,7 @@ using Oceananigans.OutputReaders: TimeInterpolator
 
 using ...OceanSimulations: forcing_barotropic_potential
 
+using ClimaOcean.OceanSimulations: BarotropicPotentialForcing
 using ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres: PrescribedAtmosphere
 import ClimaOcean.OceanSeaIceModels: interpolate_atmosphere_state!
 
@@ -115,9 +116,14 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
     end
 
     # Which forcing is this going to be?
-    index = 
-    barotropic_potential = ocean.model.velocities.u.forcing[1]
-
+    u_forcing = ocean.model.velocities.u.forcing
+    barotropic_potential = if u_forcing isa BarotropicPotentialForcing
+        u_forcing
+    else
+        n = findfirst(x -> x isa BarotropicPotentialForcing, u_forcing)
+        u_forcing[n]
+    end
+    
     launch!(arch, grid, kernel_parameters,
             _compute_barotropic_potential!,
             barotropic_potential,
