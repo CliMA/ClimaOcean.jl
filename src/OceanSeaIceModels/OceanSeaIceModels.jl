@@ -78,6 +78,7 @@ compute_atmosphere_ocean_fluxes!(::NoAtmosphereModel) = nothing
 compute_atmosphere_sea_ice_fluxes!(::NoAtmosphereModel) = nothing
 
 const PrescribedAtmosphereModel = OceanSeaIceModel{<:Any, <:PrescribedAtmosphere}
+
 compute_net_atmosphere_fluxes!(::PrescribedAtmosphereModel) = nothing
 
 # "No sea ice" implementation
