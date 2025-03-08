@@ -94,22 +94,19 @@ end
         Sᴺ = Sₒ[i, j, Nz]
     end
 
-    # Adjust temperature 
-    Tₘ = melting_temperature(liquidus, Sᴺ)
-    ΔT = ℵ * (Tₘ - Tᴺ)
-
     # Compute total heat associated with temperature adjustment
-    δE_ice_bath = ρₒ * cₒ * ΔT
+    Tₘ = melting_temperature(liquidus, Sᴺ)
+    δE_ice_bath = ρₒ * cₒ *  (Tₘ - Tᴺ)
 
     # Compute the heat flux from ocean into ice due to sea ice melting.
     # A positive value δQ_melting > 0 corresponds to ocean cooling; ie
     # is fluxing upwards, into the ice. This occurs when applying the
     # ice bath equilibrium condition to cool down a warm ocean (δEₒ < 0).
-    δQ_melting = - δE_ice_bath * uₘ★
+    δQ_melting = - δE_ice_bath * uₘ★  
 
     # Store column-integrated ice-ocean heat flux
     @inbounds Qᶠₒ[i, j, 1] = δQ_frazil
-    @inbounds Qᵢₒ[i, j, 1] = δQ_melting
+    @inbounds Qᵢₒ[i, j, 1] = δQ_melting * ℵ # Melting depends on concentration
 end
 
 function compute_sea_ice_ocean_salinity_flux!(coupled_model)

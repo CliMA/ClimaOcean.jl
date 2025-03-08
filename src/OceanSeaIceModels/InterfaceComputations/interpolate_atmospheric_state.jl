@@ -5,10 +5,13 @@ using Oceananigans.OutputReaders: TimeInterpolator
 
 using ...OceanSimulations: forcing_barotropic_potential
 
+using ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres: PrescribedAtmosphere
+import ClimaOcean.OceanSeaIceModels: interpolate_atmosphere_state!
+
+# TODO: move to PrescribedAtmospheres
 """Interpolate the atmospheric state onto the ocean / sea-ice grid."""
-function interpolate_atmospheric_state!(coupled_model)
+function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosphere, coupled_model)
     ocean = coupled_model.ocean
-    atmosphere = coupled_model.atmosphere
     atmosphere_grid = atmosphere.grid
 
     # Basic model properties

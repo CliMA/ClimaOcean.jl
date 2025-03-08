@@ -32,7 +32,6 @@ end
 
 include("ECCO_metadata.jl")
 include("ECCO_mask.jl")
-include("ECCO_restoring.jl")
 
 # Vertical coordinate
 const ECCO_z = [
@@ -272,6 +271,8 @@ function set!(field::Field, ECCO_metadata::ECCOMetadata; kw...)
 
     return field
 end
+
+include("ECCO_restoring.jl")
 
 end # Module 
 
