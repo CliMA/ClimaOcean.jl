@@ -15,6 +15,7 @@
 # ```
 
 using ClimaOcean
+using ClimaOcean.ECCO
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.BuoyancyFormulations: buoyancy_frequency
@@ -49,7 +50,7 @@ ocean.model
 
 # We set initial conditions from ECCO:
 
-set!(ocean.model, T=ECCOMetadata(:temperature), S=ECCOMetadata(:salinity))
+set!(ocean.model, T=Metadata(:temperature, version=ECCO4Monthly()), S=Metadata(:salinity, version=ECCO4Monthly()))
 
 # # A prescribed atmosphere based on JRA55 re-analysis
 #
@@ -58,11 +59,10 @@ set!(ocean.model, T=ECCOMetadata(:temperature), S=ECCOMetadata(:salinity))
 
 simulation_days = 31
 snapshots_per_day = 8 # corresponding to JRA55's 3-hour frequency
-last_time = simulation_days * snapshots_per_day
-atmosphere = JRA55PrescribedAtmosphere(1:last_time;
-                                       longitude = λ★,
+time_indices_in_memory = simulation_days * snapshots_per_day
+atmosphere = JRA55PrescribedAtmosphere(longitude = λ★,
                                        latitude = φ★,
-                                       backend = InMemory())
+                                       backend = JRA55NetCDFBackend(time_indices_in_memory))
 
 # This builds a representation of the atmosphere on the small grid
 
