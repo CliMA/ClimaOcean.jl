@@ -40,7 +40,7 @@ function compute_bounding_indices(bounds::Tuple, hc)
     # |         |         |         |         |         |
     # |    x  ᵒ |    x    |    x    |    x  ᵒ |    x    |
     # |         |         |         |         |         |
-    # 1         2         3         4         5         6 
+    # 1         2         3         4         5         6
     #
     # then for example, we should find that (iᵢ, i₂) = (1, 5).
     # So we want to reduce the first index by one, and limit them
@@ -92,12 +92,12 @@ Base.summary(backend::JRA55NetCDFBackend) = string("JRA55NetCDFBackend(", backen
 const JRA55NetCDFFTS = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend}
 
 # TODO: This will need to change when we add a method for JRA55MultipleYears
-function set!(fts::JRA55NetCDFFTS, path::String=fts.path, name::String=fts.name) 
+function set!(fts::JRA55NetCDFFTS, path::String=fts.path, name::String=fts.name)
 
     ds = Dataset(path)
 
     # Note that each file should have the variables
-    #   - ds["time"]:     time coordinate 
+    #   - ds["time"]:     time coordinate
     #   - ds["lon"]:      longitude at the location of the variable
     #   - ds["lat"]:      latitude at the location of the variable
     #   - ds["lon_bnds"]: bounding longitudes between which variables are averaged
@@ -140,7 +140,7 @@ end
 new_backend(::JRA55NetCDFBackend, start, length) = JRA55NetCDFBackend(start, length)
 
 """
-    JRA55FieldTimeSeries(variable_name, [FT = Float32]; 
+    JRA55FieldTimeSeries(variable_name, [FT = Float32];
                          version = JRA55RepeatYear(),
                          dates = all_JRA55_dates(version),
                          latitude = nothing,
@@ -195,7 +195,7 @@ Keyword arguments
               Used to slice the data when loading into memory.
               Default: nothing, which retains the longitude range of the native grid.
 
-- `backend`: Backend for the `FieldTimeSeries`. The two options are 
+- `backend`: Backend for the `FieldTimeSeries`. The two options are
              * `InMemory()`: the whole time series is loaded into memory.
              * `JRA55NetCDFBackend(total_time_instances_in_memory)`: only a subset of the time series is loaded into memory.
              Default: `InMemory()`.
@@ -211,7 +211,7 @@ function JRA55FieldTimeSeries(variable_name::Symbol, architecture = CPU(), FT=Fl
     return JRA55FieldTimeSeries(metadata, architecture, FT; kw...)
 end
 
-function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Float32; 
+function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Float32;
                               latitude = nothing,
                               longitude = nothing,
                               backend = InMemory(),
@@ -224,19 +224,19 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
     version = metadata.version
     name    = metadata.name
     time_indices = JRA55_time_indices(version, metadata.dates, name)
-    
+
     # Change the metadata to reflect the actual time indices
-    dates    = all_dates(version, name)[time_indices] 
+    dates    = all_dates(version, name)[time_indices]
     metadata = Metadata(metadata.name, dates, metadata.version, metadata.dir)
 
     shortname = short_name(metadata)
     variable_name = metadata.name
-    
+
     filepath = metadata_path(metadata) # Might be multiple paths!!!
     filepath = filepath isa AbstractArray ? first(filepath) : filepath
 
     # OnDisk backends do not support time interpolation!
-    # Disallow OnDisk for JRA55 dataset loading 
+    # Disallow OnDisk for JRA55 dataset loading
     if ((backend isa InMemory) && !isnothing(backend.length)) || backend isa OnDisk
         msg = string("We cannot load the JRA55 dataset with a $(backend) backend. Use `InMemory()` or `JRA55NetCDFBackend(N)` instead.")
         throw(ArgumentError(msg))
@@ -279,7 +279,7 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
     ds = Dataset(filepath)
 
     # Note that each file should have the variables
-    #   - ds["time"]:     time coordinate 
+    #   - ds["time"]:     time coordinate
     #   - ds["lon"]:      longitude at the location of the variable
     #   - ds["lat"]:      latitude at the location of the variable
     #   - ds["lon_bnds"]: bounding longitudes between which variables are averaged
@@ -336,7 +336,7 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
     else
         native_fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times;
                                                               time_indexing,
-                                                              backend, 
+                                                              backend,
                                                               boundary_conditions)
 
         # Fill the data in a GPU-friendly manner
