@@ -1,6 +1,6 @@
 # # Single-column ocean simulation forced by JRA55 re-analysis
 #
-# In this example, we simulate the evolution of an ocean water column 
+# In this example, we simulate the evolution of an ocean water column
 # forced by an atmosphere derived from the JRA55 re-analysis.
 # The simulated column is located at ocean station
 # Papa (144.9ᵒ W and 50.1ᵒ N)
@@ -80,7 +80,7 @@ using CairoMakie
 
 set_theme!(Theme(linewidth=3, fontsize=24))
 
-fig = Figure(size=(800, 600))
+fig = Figure(size=(800, 1000))
 axu = Axis(fig[2, 1], xlabel="Days since Jan 1 1990", ylabel="Atmosphere \n velocity (m s⁻¹)")
 axT = Axis(fig[3, 1], xlabel="Days since Jan 1 1990", ylabel="Atmosphere \n temperature (K)")
 axq = Axis(fig[4, 1], xlabel="Days since Jan 1 1990", ylabel="Atmosphere \n specific humidity")
@@ -254,7 +254,7 @@ u★ = @. (τx^2 + τy^2)^(1/4)
 
 lines!(axu, times, interior(u, 1, 1, Nz, :), color=colors[1], label="Zonal")
 lines!(axu, times, interior(v, 1, 1, Nz, :), color=colors[2], label="Meridional")
-lines!(axu, times, u★, color=colors[3], label="Ocean-side u★") 
+lines!(axu, times, u★, color=colors[3], label="Ocean-side u★")
 vlines!(axu, tn, linewidth=4, color=(:black, 0.5))
 axislegend(axu)
 
@@ -293,13 +293,13 @@ Sn  = @lift interior(S[$n],  1, 1, :)
 en  = @lift interior(e[$n],  1, 1, :)
 N²n = @lift interior(N²[$n], 1, 1, :)
 
-scatterlines!(axuz, un,  zc, label="u") 
-scatterlines!(axuz, vn,  zc, label="v") 
-scatterlines!(axTz, Tn,  zc) 
-scatterlines!(axSz, Sn,  zc) 
-scatterlines!(axez, en,  zc) 
-scatterlines!(axNz, N²n, zf) 
-scatterlines!(axκz, κn,  zf) 
+scatterlines!(axuz, un,  zc, label="u")
+scatterlines!(axuz, vn,  zc, label="v")
+scatterlines!(axTz, Tn,  zc)
+scatterlines!(axSz, Sn,  zc)
+scatterlines!(axez, en,  zc)
+scatterlines!(axNz, N²n, zf)
+scatterlines!(axκz, κn,  zf)
 
 axislegend(axuz)
 
