@@ -54,10 +54,12 @@ function interpolating(::MustRefine, p, z₁, grid₁, z₀, grid₀)
     min_Δy₁ = minimum_yspacing(grid₁)
     min_Δy₀ = minimum_yspacing(grid₀)
 
-    refining_in_x = both_x_regular && min_Δx₁ <= min_Δx₀
-    refining_in_y = both_y_regular && min_Δy₁ <= min_Δy₀
+    refining_in_x = both_x_regular && (min_Δx₁ < min_Δx₀)
+    refining_in_y = both_y_regular && (min_Δy₁ < min_Δy₀)
 
-    return refining_in_x || refining_in_y
+    # Let us interpolate one time (pass == 1). Then, shut it down if
+    # we are refining the grid in _either_ x or y.
+    return pass == 1 || !(refining_in_x || refining_in_y)
 end
 
 tupleit(a) = tuple(a)
