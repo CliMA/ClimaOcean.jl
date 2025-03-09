@@ -19,7 +19,8 @@ import Oceananigans.TimeSteppers: time_step!, update_state!, time
 import Oceananigans.Utils: prettytime
 import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker
 
-struct OceanSeaIceModel{I, A, O, F, C} <: AbstractModel{Nothing}
+struct OceanSeaIceModel{I, A, O, F, C, Arch} <: AbstractModel{Nothing, Arch}
+    architecture :: Arch
     clock :: C
     atmosphere :: A
     sea_ice :: I
@@ -57,7 +58,6 @@ Base.eltype(model::OSIM)            = Base.eltype(model.ocean.model)
 prettytime(model::OSIM)             = prettytime(model.clock.time)
 iteration(model::OSIM)              = model.clock.iteration
 timestepper(::OSIM)                 = nothing
-initialize!(::OSIM)                 = nothing
 default_included_properties(::OSIM) = tuple()
 prognostic_fields(cm::OSIM)         = nothing
 fields(::OSIM)                      = NamedTuple()
@@ -65,6 +65,11 @@ default_clock(TT)                   = Oceananigans.TimeSteppers.Clock{TT}(0, 0, 
 
 function reset!(model::OSIM)
     reset!(model.ocean)
+    return nothing
+end
+
+function initialize!(model::OSIM)
+    initialize!(model.ocean)
     return nothing
 end
 
@@ -102,26 +107,21 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(
                           sea_ice_heat_capacity = heat_capacity(sea_ice),
                           interfaces = nothing)
 
-    # Remove some potentially irksome callbacks from the ocean simulation
-    pop!(ocean.callbacks, :stop_time_exceeded, nothing)
-    pop!(ocean.callbacks, :stop_iteration_exceeded, nothing)
-    pop!(ocean.callbacks, :wall_time_limit_exceeded, nothing)
-    pop!(ocean.callbacks, :nan_checker, nothing)
-
-    # In case there was any doubt these are meaningless.
-    ocean.stop_time = Inf
-    ocean.stop_iteration = Inf
-    ocean.wall_time_limit = Inf
-
+    if !isnothing(ocean.callbacks)
+        # Remove some potentially irksome callbacks from the ocean simulation
+        pop!(ocean.callbacks, :stop_time_exceeded, nothing)
+        pop!(ocean.callbacks, :stop_iteration_exceeded, nothing)
+        pop!(ocean.callbacks, :wall_time_limit_exceeded, nothing)
+        pop!(ocean.callbacks, :nan_checker, nothing)
+    end
+    
     if sea_ice isa SeaIceSimulation
-        pop!(sea_ice.callbacks, :stop_time_exceeded, nothing)
-        pop!(sea_ice.callbacks, :stop_iteration_exceeded, nothing)
-        pop!(sea_ice.callbacks, :wall_time_limit_exceeded, nothing)
-        pop!(sea_ice.callbacks, :nan_checker, nothing)
-
-        sea_ice.stop_time = Inf
-        sea_ice.stop_iteration = Inf
-        sea_ice.wall_time_limit = Inf
+        if !isnothing(sea_ice.callbacks)
+            pop!(sea_ice.callbacks, :stop_time_exceeded, nothing)
+            pop!(sea_ice.callbacks, :stop_iteration_exceeded, nothing)
+            pop!(sea_ice.callbacks, :wall_time_limit_exceeded, nothing)
+            pop!(sea_ice.callbacks, :nan_checker, nothing)
+        end
     end
 
     # Contains information about flux contributions: bulk formula, prescribed fluxes, etc.
@@ -134,7 +134,10 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(
                                          radiation)
     end
 
-    ocean_sea_ice_model = OceanSeaIceModel(clock,
+    arch = architecture(ocean.model.grid)
+
+    ocean_sea_ice_model = OceanSeaIceModel(arch,
+                                           clock,
                                            atmosphere,
                                            sea_ice,
                                            ocean,
