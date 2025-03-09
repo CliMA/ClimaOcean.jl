@@ -36,6 +36,20 @@ end
 etopo_url = "https://www.dropbox.com/scl/fi/6pwalcuuzgtpanysn4h6f/" *
             "ETOPO_2022_v1_60s_N90W180_surface.nc?rlkey=2t7890ruyk4nd5t5eov5768lt&st=yfxsy1lu&dl=0"
 
+function download_bathymetry(;
+                             url = etopo_url,
+                             dir = download_bathymetry_cache,
+                             filename = "ETOPO_2022_v1_60s_N90W180_surface.nc")
+
+    filepath = joinpath(dir, filename)
+    # No need for @root here, because only rank 0 accesses this function
+    if !isfile(filepath)
+        Downloads.download(url, filepath; progress=download_progress)
+    end
+
+    return filepath
+end
+
 """
     regrid_bathymetry(target_grid;
                       height_above_water = nothing,
@@ -103,13 +117,7 @@ function regrid_bathymetry(target_grid;
                            interpolation_passes = 1,
                            major_basins = 1) # Allow an `Inf` number of "lakes"
 
-    filepath = joinpath(dir, filename)
-
-    # No need for @root here, because only rank 0 accesses this function
-    if !isfile(filepath)
-        Downloads.download(url, filepath; progress=download_progress)
-    end
-
+    filepath = download_bathymetry(; url, dir, filename)
     dataset = Dataset(filepath, "r")
 
     FT = eltype(target_grid)
