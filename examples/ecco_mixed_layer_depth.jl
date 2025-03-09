@@ -1,6 +1,6 @@
 using ClimaOcean
 using ClimaOcean.Diagnostics: MixedLayerDepthField
-using ClimaOcean.DataWrangling.ECCO: ECCO_field, ECCOFieldTimeSeries
+using ClimaOcean.DataWrangling.ECCO: ECCO_field, ECCOFieldTimeSeries, ECCO4Monthly
 using Oceananigans
 using CairoMakie
 using Printf
@@ -34,8 +34,8 @@ start = DateTimeProlepticGregorian(1993, 1, 1)
 stop  = DateTimeProlepticGregorian(2003, 1, 1)
 dates = range(start; stop, step=Month(1))
 
-Tmeta = ECCOMetadata(:temperature; dates)
-Smeta = ECCOMetadata(:salinity; dates)
+Tmeta = Metadata(:temperature; dates, version=ECCO4Monthly())
+Smeta = Metadata(:salinity; dates, version=ECCO4Monthly())
 
 Tt = ECCOFieldTimeSeries(Tmeta, grid; time_indices_in_memory=2)
 St = ECCOFieldTimeSeries(Smeta, grid; time_indices_in_memory=2)
