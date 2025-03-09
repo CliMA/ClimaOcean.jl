@@ -10,7 +10,7 @@ using Oceananigans.Architectures: architecture, on_architecture
 using Oceananigans.DistributedComputations: DistributedGrid, reconstruct_global_grid, barrier!, all_reduce
 using Oceananigans.Grids: halo_size, λnodes, φnodes
 using Oceananigans.Grids: x_domain, y_domain
-using Oceananigans.Grids: topology
+using Oceananigans.Grids: topology, XRegularLLG, YRegularLLG
 using Oceananigans.Utils: pretty_filesize, launch!
 using Oceananigans.Fields: interpolate!
 using Oceananigans.BoundaryConditions
