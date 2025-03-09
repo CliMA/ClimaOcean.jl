@@ -19,7 +19,8 @@ import Oceananigans.TimeSteppers: time_step!, update_state!, time
 import Oceananigans.Utils: prettytime
 import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker
 
-struct OceanSeaIceModel{I, A, O, F, C} <: AbstractModel{Nothing}
+struct OceanSeaIceModel{I, A, O, F, C, Arch} <: AbstractModel{Nothing, Arch}
+    architecture :: Arch
     clock :: C
     atmosphere :: A
     sea_ice :: I
@@ -102,16 +103,18 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(
                           sea_ice_heat_capacity = heat_capacity(sea_ice),
                           interfaces = nothing)
 
-    # Remove some potentially irksome callbacks from the ocean simulation
-    pop!(ocean.callbacks, :stop_time_exceeded, nothing)
-    pop!(ocean.callbacks, :stop_iteration_exceeded, nothing)
-    pop!(ocean.callbacks, :wall_time_limit_exceeded, nothing)
-    pop!(ocean.callbacks, :nan_checker, nothing)
-
+    if !isnothing(ocean.callbacks)
+        # Remove some potentially irksome callbacks from the ocean simulation
+        pop!(ocean.callbacks, :stop_time_exceeded, nothing)
+        pop!(ocean.callbacks, :stop_iteration_exceeded, nothing)
+        pop!(ocean.callbacks, :wall_time_limit_exceeded, nothing)
+        pop!(ocean.callbacks, :nan_checker, nothing)
+    end
+    
     # In case there was any doubt these are meaningless.
-    ocean.stop_time = Inf
-    ocean.stop_iteration = Inf
-    ocean.wall_time_limit = Inf
+    # ocean.stop_time = Inf
+    # ocean.stop_iteration = Inf
+    # ocean.wall_time_limit = Inf
 
     if sea_ice isa SeaIceSimulation
         pop!(sea_ice.callbacks, :stop_time_exceeded, nothing)
@@ -134,7 +137,10 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(
                                          radiation)
     end
 
-    ocean_sea_ice_model = OceanSeaIceModel(clock,
+    arch = architecture(ocean.model.grid)
+
+    ocean_sea_ice_model = OceanSeaIceModel(arch,
+                                           clock,
                                            atmosphere,
                                            sea_ice,
                                            ocean,
