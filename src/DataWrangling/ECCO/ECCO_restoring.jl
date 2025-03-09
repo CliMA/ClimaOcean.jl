@@ -138,7 +138,8 @@ function ECCOFieldTimeSeries(metadata::ECCOMetadata, grid::AbstractGrid;
     return fts	
 end
 
-function ECCOFieldTimeSeries(variable_name::Symbol, version=ECCO4Monthly(); 
+function ECCOFieldTimeSeries(variable_name::Symbol; 
+                             version = ECCO4Monthly(),
                              architecture = CPU(),
                              dates = all_dates(version, variable_name),
                              dir = download_ECCO_cache,
