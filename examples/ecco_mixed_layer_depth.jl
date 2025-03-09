@@ -2,7 +2,7 @@ using ClimaOcean
 using ClimaOcean.Diagnostics: MixedLayerDepthField
 using ClimaOcean.DataWrangling.ECCO: ECCO_field, ECCOFieldTimeSeries
 using Oceananigans
-using GLMakie
+using CairoMakie
 using Printf
 using CFTime
 using Dates
@@ -11,8 +11,8 @@ using SeawaterPolynomials: TEOS10EquationOfState
 using Oceananigans.BuoyancyFormulations: buoyancy
 
 arch = CPU()
-Nx = 360 ÷ 1
-Ny = 160 ÷ 1
+Nx = 360 
+Ny = 160 
 
 z = ClimaOcean.DataWrangling.ECCO.ECCO_z
 z = z[20:end]
@@ -23,7 +23,7 @@ grid = LatitudeLongitudeGrid(arch; z,
                              latitude  = (-80, 80),
                              longitude = (0, 360))
 
-bottom_height = regrid_bathymetry(grid; 
+bottom_height = regrid_bathymetry(grid;
                                   minimum_depth = 10,
                                   interpolation_passes = 5,
                                   major_basins = 1)
@@ -73,7 +73,9 @@ Label(fig[1, 1], str, tellwidth=false)
 hn = @lift ht[$n]
 hm = heatmap!(axh, hn, colorrange=(0, 500), colormap=:magma, nan_color=:lightgray)
 Colorbar(fig[2, 2], hm, label="Mixed layer depth (m)")
-display(fig)
+fig
+
+# And record a movie
 
 record(fig, "ecco_mld.mp4", 1:Nt-1, framerate=4) do nn
     @info "Drawing frame $nn of $Nt..."

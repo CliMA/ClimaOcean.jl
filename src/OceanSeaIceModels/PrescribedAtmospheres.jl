@@ -289,7 +289,7 @@ const PATP = PrescribedAtmosphereThermodynamicsParameters
 ##### Prescribed atmosphere (as opposed to dynamically evolving / prognostic)
 #####
 
-mutable struct PrescribedAtmosphere{FT, M, G, T, U, P, C, F, I, ΦT, R, TP, TI}
+mutable struct PrescribedAtmosphere{FT, M, G, T, U, P, C, F, I, R, TP, TI}
     grid :: G
     clock :: Clock{T}
     metadata :: M
@@ -381,7 +381,6 @@ end
                          boundary_layer_height = 600 # meters,
                          thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT),
                          auxiliary_freshwater_flux = nothing,
-                         tidal_potential = nothing,
                          velocities            = default_atmosphere_velocities(grid, times),
                          tracers               = default_atmosphere_tracers(grid, times),
                          pressure              = default_atmosphere_pressure(grid, times),

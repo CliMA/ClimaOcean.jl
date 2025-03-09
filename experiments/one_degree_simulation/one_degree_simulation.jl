@@ -1,105 +1,54 @@
 using ClimaOcean
-using ClimaOcean.ECCO: ECCO4Monthly, NearestNeighborInpainting
+using ClimaOcean.ECCO: ECCO4Monthly
 using OrthogonalSphericalShellGrids
 using Oceananigans
 using Oceananigans.Units
-using CFTime
 using Dates
 using Printf
-using CUDA: @allowscalar, device!
+using GLMakie
 
-using Oceananigans.Grids: znode
+Oceananigans.defaults.FloatType = Float64
+arch = CPU()
+Nx = 256
+Ny = 128
+Nz = 32
+z_faces = exponential_z_faces(; Nz, depth=6000, h=34)
+underlying_grid = TripolarGrid(arch; size=(Nx, Ny, Nz), z=z_faces)
 
-arch = GPU()
+bottom_height = regrid_bathymetry(underlying_grid; minimum_depth=30, interpolation_passes=20, major_basins=1)
+view(bottom_height, 73:78, 88:89, 1) .= -1000 # open Gibraltar strait 
 
-#####
-##### Grid and Bathymetry
-#####
+grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
-Nx = 360
-Ny = 180
-Nz = 100
-
-z_faces = exponential_z_faces(; Nz, depth=5000, h=34)
-
-underlying_grid = TripolarGrid(arch;
-                               size = (Nx, Ny, Nz),
-                               z = z_faces,
-                               first_pole_longitude = 70,
-                               north_poles_latitude = 55)
-
-bottom_height = regrid_bathymetry(underlying_grid;
-                                  minimum_depth = 10,
-                                  interpolation_passes = 75,
-                                  major_basins = 2)
-
-# Open Gibraltar strait 
-# TODO: find a better way to do this
-tampered_bottom_height = deepcopy(bottom_height)
-view(tampered_bottom_height, 102:103, 124, 1) .= -400
-
-grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(tampered_bottom_height))
-
-#####
-##### Closures
-#####
-
-gm = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1000, κ_symmetric=1000)
 catke = ClimaOcean.OceanSimulations.default_ocean_closure()
 viscous_closure = Oceananigans.TurbulenceClosures.HorizontalScalarDiffusivity(ν=2000)
+closure = (catke, viscous_closure)
 
-closure = (gm, catke, viscous_closure)
+#gm = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1000, κ_symmetric=1000)
+#closure = (gm, catke, viscous_closure)
 
-#####
-##### Restoring
-#####
-
-restoring_rate  = 1 / 2days
-z_below_surface = @allowscalar znode(1, 1, grid.Nz, grid, Center(), Center(), Face())
-
-mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(z_below_surface, 0))
-
-dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 11, 1)
-temperature = ECCOMetadata(:temperature; dates, version=ECCO4Monthly(), dir="./")
-salinity    = ECCOMetadata(:salinity;    dates, version=ECCO4Monthly(), dir="./")
-
-# inpainting = NearestNeighborInpainting(30) should be enough to fill the gaps near bathymetry
-FT = ECCORestoring(arch, temperature; grid, mask, rate=restoring_rate, inpainting=NearestNeighborInpainting(50))
-FS = ECCORestoring(arch, salinity;    grid, mask, rate=restoring_rate, inpainting=NearestNeighborInpainting(50))
+dates = DateTime(1993, 1, 1) : Month(1) : DateTime(1993, 11, 1)
+mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(-100, 0))
+temperature = ECCOMetadata(:temperature; dates, version=ECCO4Monthly())
+salinity    = ECCOMetadata(:salinity;    dates, version=ECCO4Monthly())
+rate = 1/10days
+FT = ECCORestoring(temperature, grid; mask, rate)
+FS = ECCORestoring(salinity, grid; mask, rate)
 forcing = (T=FT, S=FS)
 
-#####
-##### Ocean simulation
-##### 
-
 momentum_advection = VectorInvariant()
-tracer_advection   = Centered(order=2)
-
-# Should we add a side drag since this is at a coarser resolution?
-ocean = ocean_simulation(grid; momentum_advection, tracer_advection,
-                         closure, forcing,
-                         tracers = (:T, :S, :e))
-
+tracer_advection = Centered(order=2)
+free_surface = SplitExplicitFreeSurface(grid; substeps=70)
+ocean = ocean_simulation(grid; momentum_advection, tracer_advection, free_surface, forcing)
+                         
 set!(ocean.model, T=ECCOMetadata(:temperature; dates=first(dates)),
                   S=ECCOMetadata(:salinity;    dates=first(dates)))
 
-#####
-##### Atmospheric forcing
-#####
-
 radiation  = Radiation(arch)
-atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(20))
-
-#####
-##### Coupled simulation
-#####
-
+atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(41))
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation) 
-simulation = Simulation(coupled_model; Δt=15minutes, stop_time=2*365days)
 
-#####
-##### Run it!
-##### 
+simulation = Simulation(coupled_model; Δt=10minutes, stop_iteration=100)
 
 wall_time = Ref(time_ns())
 
@@ -127,3 +76,4 @@ end
 add_callback!(simulation, progress, IterationInterval(10))
 
 run!(simulation)
+
