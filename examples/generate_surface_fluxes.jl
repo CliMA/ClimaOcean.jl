@@ -43,7 +43,7 @@ save("ECCO_continents.png", fig) #hide
 # - downwelling shortwave radiation
 # - downwelling longwave radiation
 #
-# We load in memory only the first two time indices, corresponding to January 1st 
+# We load in memory only the first two time indices, corresponding to January 1st
 # (at 00:00 AM and 03:00 AM), by using `JRA55NetCDFBackend(2)`.
 
 atmosphere = JRA55PrescribedAtmosphere(; backend = JRA55NetCDFBackend(2))
@@ -65,7 +65,7 @@ set!(ocean.model; T=T_metadata, S=S_metadata)
 # uses the two-band shortwave (visible and UV) + longwave (mid and far infrared)
 # decomposition of the radiation spectrum.
 
-coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation=Radiation())
+coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation=Radiation(eltype))
 
 # # Now that the surface fluxes are computed, we can extract and visualize them.
 # # The turbulent fluxes are stored in `coupled_modelinterfaces.atmosphere_ocean_interface.fluxes`.
@@ -91,4 +91,5 @@ ax = Axis(fig[3, 1], title = "Water vapor flux (kg m⁻² s⁻¹)", xlabel = "Lo
 heatmap!(ax, λ, φ, interior(fluxes.water_vapor, :, :, 1); colormap = :bwr)
 
 save("fluxes.png", fig)
-![](fluxes.png)
+
+# ![](fluxes.png)

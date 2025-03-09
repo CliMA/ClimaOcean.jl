@@ -6,7 +6,7 @@ using KernelAbstractions: @kernel, @index
 
 using SeawaterPolynomials: TEOS10EquationOfState
 
-import Thermodynamics as AtmosphericThermodynamics  
+import Thermodynamics as AtmosphericThermodynamics
 
 # Simulations interface
 import Oceananigans: fields, prognostic_fields
@@ -150,7 +150,7 @@ end
 
 time(coupled_model::OceanSeaIceModel) = coupled_model.clock.time
 
-# Check for NaNs in the first prognostic field (generalizes to prescribed velocitries).
+# Check for NaNs in the first prognostic field (generalizes to prescribed velocities).
 function default_nan_checker(model::OceanSeaIceModel)
     u_ocean = model.ocean.model.velocities.u
     nan_checker = NaNChecker((; u_ocean))
@@ -176,7 +176,7 @@ end
 # Fallback
 above_freezing_ocean_temperature!(ocean, sea_ice) = nothing
 
-function above_freezing_ocean_temperature!(ocean, sea_ice::SeaIceSimulation) 
+function above_freezing_ocean_temperature!(ocean, sea_ice::SeaIceSimulation)
     T = ocean.model.tracers.T
     S = ocean.model.tracers.S
     ℵ = sea_ice.model.ice_concentration
@@ -188,4 +188,3 @@ function above_freezing_ocean_temperature!(ocean, sea_ice::SeaIceSimulation)
 
     return nothing
 end
-
