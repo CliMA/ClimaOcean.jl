@@ -16,8 +16,6 @@ using ClimaOcean.OceanSimulations
 using Oceananigans
 using CairoMakie
 
-Oceananigans.defaults.FloatType = Float32
-
 # # Computing fluxes on the ECCO2 grid
 #
 # We start by building the ECCO2 grid, using `ECCO_bottom_height` to identify the bottom height.
@@ -93,4 +91,5 @@ ax = Axis(fig[3, 1], title = "Water vapor flux (kg m⁻² s⁻¹)", xlabel = "Lo
 heatmap!(ax, λ, φ, interior(fluxes.water_vapor, :, :, 1); colormap = :bwr)
 
 save("fluxes.png", fig)
+
 # ![](fluxes.png)
