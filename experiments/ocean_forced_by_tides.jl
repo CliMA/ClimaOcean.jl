@@ -5,6 +5,9 @@ using OrthogonalSphericalShellGrids
 using Oceananigans.Units
 using Printf
 
+Φ = FieldTimeSeries("tidal_potential_jra55.jld2", "Φ")
+Oceananigans.BoundaryConditions.fill_halo_regions!(Φ)
+
 import Oceananigans.BuoyancyFormulations: ρ′ 
 import ClimaOcean.OceanSeaIceModels: reference_density, heat_capacity
 
@@ -26,8 +29,6 @@ grid  = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells
 ocean = ocean_simulation(grid; closure=nothing, momentum_advection=nothing, bottom_drag_coefficient=0, tracer_advection=nothing, equation_of_state)
 
 # A prescribed tidal forcing
-Φ = FieldTimeSeries("tidal_potential_jra55.jld2", "Φ")
-Oceananigans.BoundaryConditions.fill_halo_regions!(Φ)
 atmos = PrescribedAtmosphere(Φ.grid, Φ.times; tidal_potential=Φ)
 set!(ocean.model, T=first(atmos.tracers.T) + 273.15, S=35)
 
@@ -50,7 +51,7 @@ interfaces = ComponentInterfaces(atmos, ocean, nothing;
                                  radiation)
 
 barotropic_earth_model = OceanSeaIceModel(ocean, nothing; atmosphere=atmos, radiation, interfaces)
-barotropic_earth = Simulation(barotropic_earth_model, Δt=20minutes, stop_time=2days) 
+barotropic_earth = Simulation(barotropic_earth_model, Δt=20minutes, stop_time=2days, stop_iteration=1) 
 
 wall_time = Ref(0.0)
 
