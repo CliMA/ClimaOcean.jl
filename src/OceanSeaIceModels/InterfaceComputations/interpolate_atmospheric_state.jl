@@ -116,7 +116,7 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
     end
 
     # Which forcing is this going to be?
-    barotropic_potential = forcing_barotropic_potential(ocean.model.forcing.u)
+    barotropic_potential = forcing_barotropic_potential(ocean)
     
     launch!(arch, grid, kernel_parameters,
             _compute_barotropic_potential!,
