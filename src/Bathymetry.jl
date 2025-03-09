@@ -51,7 +51,7 @@ function download_bathymetry(; url = etopo_url,
 
     filepath = joinpath(dir, filename)
 
-    ClimaOcean.@root begin
+    @root begin
         if !isfile(filepath)
             Downloads.download(url, filepath; progress=download_progress)
         end
