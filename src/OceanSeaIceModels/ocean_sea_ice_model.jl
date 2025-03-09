@@ -58,7 +58,6 @@ Base.eltype(model::OSIM)            = Base.eltype(model.ocean.model)
 prettytime(model::OSIM)             = prettytime(model.clock.time)
 iteration(model::OSIM)              = model.clock.iteration
 timestepper(::OSIM)                 = nothing
-initialize!(::OSIM)                 = nothing
 default_included_properties(::OSIM) = tuple()
 prognostic_fields(cm::OSIM)         = nothing
 fields(::OSIM)                      = NamedTuple()
@@ -66,6 +65,11 @@ default_clock(TT)                   = Oceananigans.TimeSteppers.Clock{TT}(0, 0, 
 
 function reset!(model::OSIM)
     reset!(model.ocean)
+    return nothing
+end
+
+function initialize!(model::OSIM)
+    initialize!(model.ocean)
     return nothing
 end
 
@@ -111,20 +115,13 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(
         pop!(ocean.callbacks, :nan_checker, nothing)
     end
     
-    # In case there was any doubt these are meaningless.
-    # ocean.stop_time = Inf
-    # ocean.stop_iteration = Inf
-    # ocean.wall_time_limit = Inf
-
     if sea_ice isa SeaIceSimulation
-        pop!(sea_ice.callbacks, :stop_time_exceeded, nothing)
-        pop!(sea_ice.callbacks, :stop_iteration_exceeded, nothing)
-        pop!(sea_ice.callbacks, :wall_time_limit_exceeded, nothing)
-        pop!(sea_ice.callbacks, :nan_checker, nothing)
-
-        sea_ice.stop_time = Inf
-        sea_ice.stop_iteration = Inf
-        sea_ice.wall_time_limit = Inf
+        if !isnothing(sea_ice.callbacks)
+            pop!(sea_ice.callbacks, :stop_time_exceeded, nothing)
+            pop!(sea_ice.callbacks, :stop_iteration_exceeded, nothing)
+            pop!(sea_ice.callbacks, :wall_time_limit_exceeded, nothing)
+            pop!(sea_ice.callbacks, :nan_checker, nothing)
+        end
     end
 
     # Contains information about flux contributions: bulk formula, prescribed fluxes, etc.
