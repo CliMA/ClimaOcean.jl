@@ -41,9 +41,7 @@ struct InterpolationPasses
 end
 
 interpolating(interp::InterpolationPasses, pass, z₁, grid₁, z₀, grid₀) = pass > interp.passes
-
-interpolating(criteria::Tuple, args...) =
-    any(interpolating(criterion, args...) for crit in criteria)
+interpolating(criteria::Tuple, args...) = any(interpolating(crit, args...) for crit in criteria)
 
 struct MustRefine end
 
