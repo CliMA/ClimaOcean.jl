@@ -23,6 +23,7 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         @test haskey(atmosphere, :tracers)
         @test haskey(atmosphere, :pressure)
 
+        @test atmosphere.tracers.T.times == 1:100
         @test atmosphere.velocities.u.boundary_conditions isa FieldBoundaryConditions
 
         @info "Testing reanalysis_field_time_series on $A..."
