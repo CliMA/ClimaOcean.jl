@@ -44,15 +44,16 @@ etopo_url = "https://www.dropbox.com/scl/fi/6pwalcuuzgtpanysn4h6f/" *
 Download the bathymetry from `url` and saves it under `filename` in the directory `dir` and
 return the full filepath where the bathymetry is saved.
 """
-function download_bathymetry(;
-                             url = etopo_url,
+function download_bathymetry(; url = etopo_url,
                              dir = download_bathymetry_cache,
                              filename = "ETOPO_2022_v1_60s_N90W180_surface.nc")
 
     filepath = joinpath(dir, filename)
-    # No need for @root here, because only rank 0 accesses this function
-    if !isfile(filepath)
-        Downloads.download(url, filepath; progress=download_progress)
+
+    ClimaOcean.@root begin
+        if !isfile(filepath)
+            Downloads.download(url, filepath; progress=download_progress)
+        end
     end
 
     return filepath
