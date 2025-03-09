@@ -40,6 +40,10 @@ all_dates(::ECCO4Monthly, name) = DateTime(1992, 1, 1) : Month(1) : DateTime(202
 all_dates(::ECCO2Monthly, name) = DateTime(1992, 1, 1) : Month(1) : DateTime(2023, 12, 1)
 all_dates(::ECCO2Daily, name)   = DateTime(1992, 1, 4) : Day(1)   : DateTime(2023, 12, 31)
 
+# Fallback, actually, we do not really need the name for ECCO since all 
+# variables have the same frequency and the same time-range, differently from JRA55
+all_dates(version::Union{<:ECCO4Monthly, <:ECCO2Monthly, <:ECCO2Daily}) = all_dates(version, :temperature)
+
 # File name generation specific to each Dataset version
 function metadata_filename(metadata::Metadata{<:AnyDateTime, <:ECCO4Monthly})
     shortname = short_name(metadata)

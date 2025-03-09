@@ -41,6 +41,9 @@ function all_dates(::JRA55MultipleYears, name)
     end
 end
 
+# Fallback, if we not provide the name, take the highest frequency 
+all_dates(version::Union{<:JRA55MultipleYears, <:JRA55RepeatYear}) = all_dates(version, :temperature)
+
 function JRA55_time_indices(version, dates, name)
     all_JRA55_dates = all_dates(version, name)
     indices = Int[]
