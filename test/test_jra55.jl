@@ -6,6 +6,25 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 @testset "JRA55 and data wrangling utilities" begin
     for arch in test_architectures
         A = typeof(arch)
+
+        @info "Testing a prescribed atmosphere on $A..."
+        grid = LatitudeLongitudeGrid(arch; size=(10, 10, 1),
+                                     longitude=(0, 360),
+                                     latitude=(-90, 90),
+                                     z=(0, 1),
+                                     topology=(Periodic, Bounded, Bounded))
+
+        atmosphere = PrescribedAtmosphere(grid, 1:100)
+
+        @test atmosphere isa PrescribedAtmosphere
+        @test atmosphere.grid isa LatitudeLongitudeGrid
+
+        @test haskey(atmosphere, :velocities)
+        @test haskey(atmosphere, :tracers)
+        @test haskey(atmosphere, :pressure)
+
+        @test atmosphere.velocities.u.boundary_conditions isa FieldBoundaryConditions
+
         @info "Testing reanalysis_field_time_series on $A..."
 
         # This should download files called "RYF.rsds.1990_1991.nc" and "RYF.tas.1990_1991.nc"
