@@ -1,6 +1,6 @@
 module DataWrangling
 
-export Metadata
+export Metadata, all_dates
 
 using Oceananigans
 using Downloads
