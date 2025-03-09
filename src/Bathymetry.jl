@@ -1,6 +1,6 @@
 module Bathymetry
 
-export regrid_bathymetry, retrieve_bathymetry
+export regrid_bathymetry, retrieve_bathymetry, download_bathymetry
 
 using ImageMorphology
 using ..DataWrangling: download_progress
@@ -36,6 +36,14 @@ end
 etopo_url = "https://www.dropbox.com/scl/fi/6pwalcuuzgtpanysn4h6f/" *
             "ETOPO_2022_v1_60s_N90W180_surface.nc?rlkey=2t7890ruyk4nd5t5eov5768lt&st=yfxsy1lu&dl=0"
 
+"""
+    download_bathymetry(; dir = download_bathymetry_cache,
+                          url = etopo_url,
+                          filename = "ETOPO_2022_v1_60s_N90W180_surface.nc")
+
+Download the bathymetry from `url` and saves it under `filename` in the directory `dir` and
+return the full filepath where the bathymetry is saved.
+"""
 function download_bathymetry(;
                              url = etopo_url,
                              dir = download_bathymetry_cache,
