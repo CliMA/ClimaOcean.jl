@@ -212,7 +212,7 @@ end
     pa = interp_atmos_time_series(atmos_pressure,  atmos_args...) # yes this is a re-interpolation
     Φt = interp_atmos_time_series(tidal_potential, atmos_args...)
 
-    @inbounds barotropic_potential[i, j, 1] = pa / ρₒ + Φt
+    @inbounds barotropic_potential[i, j, 1] = pa / ρₒ + Φt / ρₒ
 end
 
 @kernel function _interpolate_auxiliary_freshwater_flux!(freshwater_flux,
