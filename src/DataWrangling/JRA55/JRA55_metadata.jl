@@ -15,8 +15,8 @@ import ClimaOcean.DataWrangling: all_dates, metadata_filename, default_download_
 struct JRA55MultipleYears end
 struct JRA55RepeatYear end
 
-const JRA55Metadata{D} = Metadata{D, <:Union{<:JRA55MultipleYears, <:JRA55RepeatYear}} where {D}
-const JRA55Metadatum   = JRA55Metadata{<:AnyDateTime}
+const JRA55Metadata   = Metadata{<:Any, <:Union{<:JRA55MultipleYears, <:JRA55RepeatYear}} 
+const JRA55Metadatum  = Metadatum{<:Any, <:Union{<:JRA55MultipleYears, <:JRA55RepeatYear}}
 
 default_download_folder(::Union{<:JRA55MultipleYears, <:JRA55RepeatYear}) = download_JRA55_cache
 
@@ -57,7 +57,7 @@ function JRA55_time_indices(version, dates, name)
 end
 
 # File name generation specific to each Dataset version
-function metadata_filename(metadata::Metadata{<:Any, <:JRA55RepeatYear}) # No difference 
+function metadata_filename(metadata::Metadatum{<:Any, <:JRA55RepeatYear}) # No difference 
     shortname = short_name(metadata)
     return "RYF." * shortname * ".1990_1991.nc"
 end

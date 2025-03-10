@@ -15,7 +15,7 @@ end
             dates = all_dates(version, variable_name),
             dir = default_download_folder(version))
 
-Metadata holding a specific dataset information.
+Metadata holding a specific dataset information that can be used to build `FieldTimeSeries`s.
 
 Arguments
 =========
@@ -23,8 +23,7 @@ Arguments
 
 Keyword Arguments
 =================
-- `dates`: The dates of the dataset, in a `AbstractCFDateTime` format.. Note this can either be a single date,
-           representing a snapshot, or a range of dates, representing a time-series.
+- `dates`: The dates of the dataset. It is a range (or vector) of dates in a `AbstractDateTime` format.. 
 - `version`: The version of the dataset. Supported versions are `ECCO2Monthly()`, `ECCO2Daily()`, `ECCO4Monthly()`,
              `JRA55RepeatYear()`, or `JRA55MultipleYears()`.
 - `dir`: The directory where the dataset is stored.
@@ -37,8 +36,40 @@ function Metadata(variable_name;
     return Metadata(variable_name, dates, version, dir)
 end
 
-const AnyDateTime = Union{AbstractCFDateTime, Dates.AbstractDateTime}
-const Metadatum   = Metadata{<:AnyDateTime}
+struct Metadatum{D, V} 
+    name  :: Symbol
+    dates :: D
+    version :: V
+    dir :: String
+end
+
+"""
+   Metadatum(variable_name;
+             version,
+             date = all_dates(version, variable_name)[1],
+             dir = default_download_folder(version))
+
+Metadatum holding a the information of a snapshot of a `Metadata` dataset that can be used to initialize models.
+
+Arguments
+=========
+- `variable_name`: a symbol representing the name of the variable (for example :temperature, :salinity, :u_velocity, etc...)
+
+Keyword Arguments
+=================
+- `date`: The date of the snapshot, in a `AbstractDateTime` format.. Note this can either be a single date,
+           representing a snapshot, or a range of dates, representing a time-series.
+- `version`: The version of the dataset. Supported versions are `ECCO2Monthly()`, `ECCO2Daily()`, `ECCO4Monthly()`,
+             `JRA55RepeatYear()`, or `JRA55MultipleYears()`.
+- `dir`: The directory where the dataset is stored.
+"""
+function Metadatum(variable_name;
+                  version,
+                  date = all_dates(version, variable_name)[1],
+                  dir = default_download_folder(version))
+
+    return Metadatum(variable_name, date, version, dir)
+end
 
 default_download_folder(version) = "./"
 
@@ -56,24 +87,17 @@ Base.eltype(metadata::Metadata) = Base.eltype(metadata.dates)
 # If only one date, it's a single element array
 Base.length(metadata::Metadatum) = 1
 
-@propagate_inbounds Base.getindex(m::Metadata, i::Int) = Metadata(m.name, m.dates[i],   m.version, m.dir)
-@propagate_inbounds Base.first(m::Metadata)            = Metadata(m.name, m.dates[1],   m.version, m.dir)
-@propagate_inbounds Base.last(m::Metadata)             = Metadata(m.name, m.dates[end], m.version, m.dir)
+@propagate_inbounds Base.getindex(m::Metadata, i::Int) = Metadatum(m.name, m.dates[i],   m.version, m.dir)
+@propagate_inbounds Base.first(m::Metadata)            = Metadatum(m.name, m.dates[1],   m.version, m.dir)
+@propagate_inbounds Base.last(m::Metadata)             = Metadatum(m.name, m.dates[end], m.version, m.dir)
 
 @inline function Base.iterate(m::Metadata, i=1)
     if (i % UInt) - 1 < length(m)
-        return Metadata(m.name, m.dates[i], m.version, m.dir), i + 1
+        return Metadatum(m.name, m.dates[i], m.version, m.dir), i + 1
     else
         return nothing
     end
 end
-
-# Implementation for 1 date
-Base.axes(metadata::Metadatum)    = 1
-Base.first(metadata::Metadatum)   = metadata
-Base.last(metadata::Metadatum)    = metadata
-Base.iterate(metadata::Metadatum) = (metadata, nothing)
-Base.iterate(::Metadatum, ::Any)  = nothing
 
 metadata_path(metadata) = joinpath(metadata.dir, metadata_filename(metadata))
 
@@ -113,4 +137,4 @@ Needs to be extended by any new dataset version.
 all_dates(metadata) = all_dates(metadata.version, metadata.name)
 
 # File names of metadata containing multiple dates
-metadata_filename(metadata) = [metadata_filename(metadatum) for metadatum in metadata]
+metadata_filename(metadata::Metadata) = [metadata_filename(metadatum) for metadatum in metadata]
