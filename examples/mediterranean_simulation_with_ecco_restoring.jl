@@ -75,8 +75,8 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
 dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 12, 1)
 
-temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
-salinity    = ECCOMetadata(:salinity,    dates, ECCO4Monthly())
+temperature = Metadata(:temperature; dates, dataset=ECCO4Monthly())
+salinity    = Metadata(:salinity;    dates, dataset=ECCO4Monthly())
 
 FT = ECCO_restoring_forcing(temperature; architecture = GPU(), timescale = 2days)
 FS = ECCO_restoring_forcing(salinity;    architecture = GPU(), timescale = 2days)

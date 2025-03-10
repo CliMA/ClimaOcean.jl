@@ -10,7 +10,7 @@ using JLD2
 
 using Dates: Second
 using ClimaOcean: stateindex
-using ClimaOcean.DataWrangling: NearestNeighborInpainting
+using ClimaOcean.DataWrangling: NearestNeighborInpainting, native_times
 
 import Oceananigans.Fields: set!
 import Oceananigans.Forcings: regularize_forcing
@@ -79,33 +79,6 @@ function set!(fts::ECCOFieldTimeSeries)
 end
 
 """
-    ECCO_times(metadata; start_time = first(metadata).dates)
-
-Extract the time values from the given metadata and calculates the time difference
-from the start time.
-
-Arguments
-=========
-- `metadata`: The metadata containing the date information.
-- `start_time`: The start time for calculating the time difference. Defaults to the first date in the metadata.
-
-Returns
-=======
-An array of time differences in seconds.
-"""
-function ECCO_times(metadata; start_time = first(metadata).dates)
-    times = zeros(length(metadata))
-    for (t, data) in enumerate(metadata)
-        date = data.dates
-        time = date - start_time
-        time = Second(time).value
-        times[t] = time
-    end
-
-    return times
-end
-
-"""
     ECCOFieldTimeSeries(metadata::ECCOMetadata [, arch_or_grid=CPU() ];
                         time_indices_in_memory = 2,
                         time_indexing = Cyclical(),
@@ -156,7 +129,7 @@ function ECCOFieldTimeSeries(metadata::ECCOMetadata, grid::AbstractGrid;
     inpainting isa Int && (inpainting = NearestNeighborInpainting(inpainting))
     backend = ECCONetCDFBackend(time_indices_in_memory, metadata; on_native_grid, inpainting, cache_inpainted_data)
 
-    times = ECCO_times(metadata)
+    times = native_times(metadata)
     loc = LX, LY, LZ = location(metadata)
     boundary_conditions = FieldBoundaryConditions(grid, loc)
     fts = FieldTimeSeries{LX, LY, LZ}(grid, times; backend, time_indexing, boundary_conditions)
@@ -165,13 +138,14 @@ function ECCOFieldTimeSeries(metadata::ECCOMetadata, grid::AbstractGrid;
     return fts	
 end
 
-function ECCOFieldTimeSeries(variable_name::Symbol, version=ECCO4Monthly(); 
+function ECCOFieldTimeSeries(variable_name::Symbol; 
+                             dataset = ECCO4Monthly(),
                              architecture = CPU(),
-                             dates = all_ECCO_dates(version),
+                             dates = all_dates(dataset, variable_name),
                              dir = download_ECCO_cache,
                              kw...)
 
-    metadata = ECCOMetadata(variable_name, dates, version, dir)
+    metadata = Metadata(variable_name, dates, dataset, dir)
     return ECCOFieldTimeSeries(metadata, architecture; kw...)
 end
 
@@ -245,8 +219,8 @@ end
 
 """
     ECCORestoring(variable_name::Symbol, [ arch_or_grid = CPU(), ];
-                  version = ECCO4Monthly(),
-                  dates = all_ECCO_dates(version),
+                  dataset = ECCO4Monthly(),
+                  dates = all_dates(dataset, variable_name),
                   time_indices_in_memory = 2,
                   time_indexing = Cyclical(),
                   mask = 1,
@@ -285,14 +259,14 @@ Arguments
 
 !!! info "Providing `ECCOMetadata` instead of `variable_name`"
     Note that `ECCOMetadata` may be provided as the first argument instead of `variable_name`.
-    In this case the `version` and `dates` kwargs (described below) cannot be provided.
+    In this case the `dataset` and `dates` kwargs (described below) cannot be provided.
 
 Keyword Arguments
 =================
 
-- `version`: The version of the ECCO dataset. Default: `ECCO4Monthly()`.
+- `dataset`: The dataset of the ECCO dataset. Default: `ECCO4Monthly()`.
 
-- `dates`: The dates to use for the ECCO dataset. Default: `all_ECCO_dates(version)`.
+- `dates`: The dates to use for the ECCO dataset. Default: `all_dates(dataset, variable_name)`.
 
 - `time_indices_in_memory`: The number of time indices to keep in memory. The number is chosen based on 
                             a trade-off between increased performance (more indices in memory) and reduced
@@ -314,12 +288,12 @@ Keyword Arguments
 """
 function ECCORestoring(variable_name::Symbol,
                        arch_or_grid = CPU();
-                       version = ECCO4Monthly(),
-                       dates = all_ECCO_dates(version),
+                       dataset = ECCO4Monthly(),
+                       dates = all_dates(dataset, variable_name),
                        dir = download_ECCO_cache,
                        kw...)
 
-    metadata = ECCOMetadata(variable_name, dates, version, dir)
+    metadata = Metadata(variable_name, dates, dataset, dir)
     return ECCORestoring(metadata, arch_or_grid; kw...)
 end
 

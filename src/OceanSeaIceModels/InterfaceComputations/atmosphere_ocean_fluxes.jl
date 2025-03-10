@@ -1,6 +1,6 @@
 using Oceananigans.Operators: intrinsic_vector
 using Oceananigans.Grids: inactive_node
-using ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres: thermodynamics_parameters, 
+using ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres: thermodynamics_parameters,
                                                           surface_layer_height,
                                                           boundary_layer_height
 
@@ -113,7 +113,7 @@ end
 
     # Estimate interface specific humidity using interior temperature
     q_formulation = interface_properties.specific_humidity_formulation
-    qₛ = saturation_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ.ρ, Tᵢ, Sᵢ) 
+    qₛ = saturation_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ.ρ, Tᵢ, Sᵢ)
     initial_interface_state = InterfaceState(u★, u★, u★, uᵢ, vᵢ, Tᵢ, Sᵢ, qₛ)
 
     # Don't use convergence criteria in an inactive cell
@@ -145,7 +145,7 @@ end
     Ψₐ = local_atmosphere_state
     Δu, Δv = velocity_difference(interface_properties.velocity_formulation, Ψₐ, Ψₛ)
     ΔU = sqrt(Δu^2 + Δv^2)
-    
+
     τx = ifelse(ΔU == 0, zero(grid), - u★^2 * Δu / ΔU)
     τy = ifelse(ΔU == 0, zero(grid), - u★^2 * Δv / ΔU)
 
@@ -171,4 +171,3 @@ end
         Ts[i, j, 1]  = convert_from_kelvin(ocean_properties.temperature_units, Ψₛ.T)
     end
 end
-

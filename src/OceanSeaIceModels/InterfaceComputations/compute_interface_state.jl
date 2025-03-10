@@ -3,7 +3,7 @@
 #####
 
 struct ConvergenceStopCriteria{FT}
-    tolerance :: FT     
+    tolerance :: FT
     maxiter :: Int
 end
 
@@ -74,7 +74,7 @@ and interior properties `ℙₛ`, `ℙₐ`, and `ℙᵢ`.
                                          interface_properties,
                                          atmosphere_properties,
                                          interior_properties)
-    
+
     Tₛ = compute_interface_temperature(interface_properties.temperature_formulation,
                                        approximate_interface_state,
                                        atmosphere_state,
@@ -122,4 +122,3 @@ and interior properties `ℙₛ`, `ℙₐ`, and `ℙᵢ`.
 
     return InterfaceState(u★, θ★, q★, u, v, Tₛ, S, convert(FT, qₛ))
 end
-

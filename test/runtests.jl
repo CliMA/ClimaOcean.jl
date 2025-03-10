@@ -34,7 +34,7 @@ if test_group == :init || test_group == :all
 end
 
 # Tests JRA55 utilities, plus some DataWrangling utilities
-if test_group == :jra55 || test_group == :all
+if test_group == :JRA55 || test_group == :all
     include("test_jra55.jl")
 end
 
@@ -56,7 +56,7 @@ if test_group == :bathymetry || test_group == :all
 end
 
 if test_group == :simulations || test_group == :all
-    CUDA.set_runtime_version!(v"12.2", local_toolkit = true) # Seems to help in finding the correct CUDA version
+    CUDA.set_runtime_version!(v"12.2", local_toolkit = true) # Seems to help in finding the correct CUDA dataset
     include("test_simulations.jl")
     include("test_diagnostics.jl")
 end

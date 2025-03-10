@@ -43,19 +43,19 @@ save("ECCO_continents.png", fig) #hide
 # - downwelling shortwave radiation
 # - downwelling longwave radiation
 #
-# We invoke the constructor with only the first two time indices, corresponding to 
-# January 1st (at 00:00 AM and 03:00 AM).
+# We load in memory only the first two time indices, corresponding to January 1st
+# (at 00:00 AM and 03:00 AM), by using `JRA55NetCDFBackend(2)`.
 
-atmosphere = JRA55PrescribedAtmosphere(1:2; backend = InMemory())
+atmosphere = JRA55PrescribedAtmosphere(; backend = JRA55NetCDFBackend(2))
 ocean = ocean_simulation(grid, closure=nothing)
 
 # Now that we have an atmosphere and ocean, we `set!` the ocean temperature and salinity
 # to the ECCO2 data by first creating T, S metadata objects,
 
-T_metadata = ECCOMetadata(:temperature)
-S_metadata = ECCOMetadata(:salinity)
+T_metadata = Metadata(:temperature; dataset=ECCO4Monthly())
+S_metadata = Metadata(:salinity; dataset=ECCO4Monthly())
 
-# Note that if a date is not provided to `ECCOMetadata`, then the default Jan 1st, 1992 is used.
+# Note that if a date is not provided to `Metadata`, then the default Jan 1st, 1992 is used.
 # To copy the ECCO state into `ocean.model`, we use `set!`,
 
 set!(ocean.model; T=T_metadata, S=S_metadata)
@@ -65,7 +65,7 @@ set!(ocean.model; T=T_metadata, S=S_metadata)
 # uses the two-band shortwave (visible and UV) + longwave (mid and far infrared)
 # decomposition of the radiation spectrum.
 
-coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation=Radiation())
+coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation=Radiation(eltype))
 
 # # Now that the surface fluxes are computed, we can extract and visualize them.
 # # The turbulent fluxes are stored in `coupled_modelinterfaces.atmosphere_ocean_interface.fluxes`.
@@ -91,4 +91,5 @@ ax = Axis(fig[3, 1], title = "Water vapor flux (kg m⁻² s⁻¹)", xlabel = "Lo
 heatmap!(ax, λ, φ, interior(fluxes.water_vapor, :, :, 1); colormap = :bwr)
 
 save("fluxes.png", fig)
-![](fluxes.png)
+
+# ![](fluxes.png)

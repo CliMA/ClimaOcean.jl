@@ -4,7 +4,7 @@ using Oceananigans.ImmersedBoundaries: mask_immersed_field!
 using CairoMakie
 using Printf
 using ClimaOcean
-using ClimaOcean.DataWrangling.ECCO: ECCO_field, ECCOFieldTimeSeries
+using ClimaOcean.DataWrangling.ECCO: ECCO_field, ECCOFieldTimeSeries, ECCO4Monthly
 using CFTime
 using Dates
 
@@ -39,12 +39,12 @@ sb = SeawaterBuoyancy(; equation_of_state)
 tracers = (T=T, S=S)
 b = Field(buoyancy(sb, grid, tracers))
 
-start = DateTimeProlepticGregorian(1993, 1, 1)
-stop  = DateTimeProlepticGregorian(1999, 1, 1)
+start = DateTime(1993, 1, 1)
+stop  = DateTime(1999, 1, 1)
 dates = range(start; stop, step=Month(1))
 
-Tmeta = ECCOMetadata(:temperature; dates)
-Smeta = ECCOMetadata(:salinity; dates)
+Tmeta = Metadata(:temperature; dates, dataset=ECCO4Monthly())
+Smeta = Metadata(:salinity; dates, dataset=ECCO4Monthly())
 
 Tt = ECCOFieldTimeSeries(Tmeta, grid; time_indices_in_memory=length(dates))
 St = ECCOFieldTimeSeries(Smeta, grid; time_indices_in_memory=length(dates))

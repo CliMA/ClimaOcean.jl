@@ -5,7 +5,7 @@ export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
 export ECCOFieldTimeSeries, ECCORestoring, LinearlyTaperedPolarMask
 
 using ClimaOcean
-using ClimaOcean.DistributedUtils: @root
+using ClimaOcean.DistributedUtils
 using ClimaOcean.DataWrangling
 using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, download_progress
 using ClimaOcean.InitialConditions: three_dimensional_regrid!, interpolate!
@@ -201,7 +201,7 @@ function ECCO_field(metadata::ECCOMetadata;
     # ECCO4 data is on a -180, 180 longitude grid as opposed to ECCO2 data that
     # is on a 0, 360 longitude grid. To make the data consistent, we shift ECCO4
     # data by 180 degrees in longitude
-    if metadata.version isa ECCO4Monthly 
+    if metadata.dataset isa ECCO4Monthly 
         Nx = size(data, 1)
         if variable_is_three_dimensional(metadata)
             shift = (Nx ÷ 2, 0, 0)
@@ -223,8 +223,8 @@ function ECCO_field(metadata::ECCOMetadata;
         # Make sure all values are extended properly
         name = string(metadata.name)
         date = string(metadata.dates)
-        version = summary(metadata.version)
-        @info string("Inpainting ", version, " ", name, " data from ", date, "...")
+        dataset = summary(metadata.dataset)
+        @info string("Inpainting ", dataset, " ", name, " data from ", date, "...")
         start_time = time_ns()
         
         inpaint_mask!(field, mask; inpainting)
