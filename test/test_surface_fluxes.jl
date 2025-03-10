@@ -43,8 +43,8 @@ end
                                  closure = nothing,
                                  bottom_drag_coefficient = 0.0)
 
-        dates = all_dates(JRA55RepeatYear(), :temperature)[1:2]
-        atmosphere = JRA55PrescribedAtmosphere(arch, Float64; dates, backend = InMemory()) 
+        dates = all_dates(JRA55RepeatYear(), :temperature)
+        atmosphere = JRA55PrescribedAtmosphere(arch, Float64; end_date=dates[2], backend = InMemory()) 
         
         CUDA.@allowscalar begin
             h  = atmosphere.surface_layer_height

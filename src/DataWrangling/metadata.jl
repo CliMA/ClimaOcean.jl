@@ -114,3 +114,26 @@ all_dates(metadata) = all_dates(metadata.dataset, metadata.name)
 
 # File names of metadata containing multiple dates
 metadata_filename(metadata) = [metadata_filename(metadatum) for metadatum in metadata]
+
+"""
+    compute_native_date_range(native_dates, start_date, end_date)
+
+Compute the range of dates that fall within the specified start and end date.
+"""
+function compute_native_date_range(native_dates, start_date, end_date)
+    if last(native_dates) < end_date
+        @warn "`end_date` ($end_date) is after the last date in the dataset $(last(native_dates))"
+    end
+
+    if last(native_dates) < start_date
+       throw(ArgumentError("`start_date` ($start_date) is after the last date in the dataset $(last(native_dates))"))
+    end
+
+    start_idx = findfirst(x -> x ≥ start_date, native_dates)
+    end_idx = findfirst(x -> x ≥ end_date, native_dates)
+    
+    start_idx = start_idx > 1 ? start_idx - 1 : start_idx
+    end_idx = isnothing(end_idx) ? length(native_dates) : end_idx
+
+    return native_dates[start_idx:end_idx]
+end

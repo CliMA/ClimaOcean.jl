@@ -1,4 +1,5 @@
 using ClimaOcean.DataWrangling: all_dates, native_times
+using ClimaOcean.DataWrangling: compute_native_date_range
 using Oceananigans.Grids: AbstractGrid
 using Oceananigans.OutputReaders: PartlyInMemory
 
