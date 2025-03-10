@@ -22,7 +22,7 @@ import Thermodynamics.Parameters: molmass_ratio
 ##### Bulk turbulent fluxes based on similarity theory
 #####
 
-struct SimilarityTheoryFluxes{FT, UF, R, B, S}
+struct SimilarityTheoryFluxes{FT, UF, R, B, S} <: AbstractIterativeSolver{S}
     gravitational_acceleration :: FT # parameter
     von_karman_constant :: FT        # parameter
     turbulent_prandtl_number :: FT   # parameter
