@@ -17,9 +17,9 @@ to_be_literated = [
     "generate_bathymetry.jl",
     "generate_surface_fluxes.jl",
     "single_column_os_papa_simulation.jl",
-    "one_degree_simulation.jl",
+    # "one_degree_simulation.jl",
     # "mediterranean_simulation_with_ecco_restoring.jl",
-    "near_global_ocean_simulation.jl"
+    # "near_global_ocean_simulation.jl"
 ]
 
 for file in to_be_literated
