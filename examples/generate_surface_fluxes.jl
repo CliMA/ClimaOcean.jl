@@ -24,10 +24,10 @@ grid = ECCO_immersed_grid()
 
 # We visualize the bottom height of the ECCO grid using CairoMakie.
 
-fig = Figure()
-ax  = Axis(fig[1, 1])
-heatmap!(ax, interior(grid.immersed_boundary.bottom_height, :, :, 1))
-save("ECCO_continents.png", fig) #hide
+fig, ax, hm = heatmap(grid.immersed_boundary.bottom_height)
+Colorbar(fig[1, 2], hm, height = Relative(3/4), label = "Depth (m)")
+
+save("ECCO_continents.png", fig)
 
 # ![](ECCO_continents.png)
 
@@ -43,7 +43,7 @@ save("ECCO_continents.png", fig) #hide
 # - downwelling shortwave radiation
 # - downwelling longwave radiation
 #
-# We invoke the constructor with only the first two time indices, corresponding to 
+# We invoke the constructor with only the first two time indices, corresponding to
 # January 1st (at 00:00 AM and 03:00 AM).
 
 atmosphere = JRA55PrescribedAtmosphere(1:2; backend = InMemory())
@@ -67,10 +67,10 @@ set!(ocean.model; T=T_metadata, S=S_metadata)
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation=Radiation())
 
-# # Now that the surface fluxes are computed, we can extract and visualize them.
-# # The turbulent fluxes are stored in `coupled_modelinterfaces.atmosphere_ocean_interface.fluxes`.
+# Now that the surface fluxes are computed, we can extract and visualize them.
+# The turbulent fluxes are stored in `coupled_model.interfaces.atmosphere_ocean_interface.fluxes`.
 
-fluxes  = coupled_model.interfaces.atmosphere_ocean_interface.fluxes
+fluxes = coupled_model.interfaces.atmosphere_ocean_interface.fluxes
 λ, φ, z = nodes(fluxes.sensible_heat)
 
 fig = Figure(size = (800, 800), fontsize = 15)
@@ -90,5 +90,6 @@ heatmap!(ax, λ, φ, interior(fluxes.y_momentum, :, :, 1); colormap = :bwr)
 ax = Axis(fig[3, 1], title = "Water vapor flux (kg m⁻² s⁻¹)", xlabel = "Longitude", ylabel = "Latitude")
 heatmap!(ax, λ, φ, interior(fluxes.water_vapor, :, :, 1); colormap = :bwr)
 
-save("fluxes.png", fig)
-![](fluxes.png)
+save("surface_fluxes.png", fig)
+
+# ![](fluxes.png)

@@ -48,7 +48,7 @@ underlying_grid = TripolarGrid(arch;
 bottom_height = regrid_bathymetry(underlying_grid;
                                   minimum_depth = 10,
                                   interpolation_passes = 75, # 75 interpolation passes smooth the bathymetry near Florida so that the Gulf Stream is able to flow
-				  major_basins = 2)
+                                  major_basins = 2)
 
 # For this bathymetry at this horizontal resolution we need to manually open the Gibraltar strait.
 view(bottom_height, 102:103, 124, 1) .= -400
@@ -142,7 +142,7 @@ function progress(sim)
 
     msg1 = @sprintf("time: %s, iteration: %d, Δt: %s, ", prettytime(sim), iteration(sim), prettytime(sim.Δt))
     msg2 = @sprintf("max|u|: (%.2e, %.2e, %.2e) m s⁻¹, ", umax...)
-    msg3 = @sprintf("extrema(T): (%.2f, %.2f) ᵒC, ", Tmax, Tmin)
+    msg3 = @sprintf("extrema(T): (%.2f, %.2f) ᵒC, ", Tmin, Tmax)
     msg4 = @sprintf("wall time: %s \n", prettytime(step_time))
 
     @info msg1 * msg2 * msg3 * msg4
