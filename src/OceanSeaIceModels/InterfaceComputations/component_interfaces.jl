@@ -295,8 +295,8 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
     ai_interface = atmosphere_sea_ice_interface(sea_ice,
                                                 radiation,
                                                 atmosphere_sea_ice_flux_formulation,
-                                                atmosphere_sea_ice_velocity_difference,
-                                                atmosphere_sea_ice_interface_temperature)
+                                                atmosphere_sea_ice_interface_temperature,
+                                                atmosphere_sea_ice_velocity_difference)
 
     if sea_ice isa SeaIceSimulation
         sea_ice_properties = (reference_density  = sea_ice_reference_density,
