@@ -51,10 +51,8 @@ function download_bathymetry(; url = etopo_url,
 
     filepath = joinpath(dir, filename)
 
-    @root begin
-        if !isfile(filepath)
-            Downloads.download(url, filepath; progress=download_progress)
-        end
+    if !isfile(filepath)
+        Dowwnloads.download(url, filepath; progress=download_progress)
     end
 
     return filepath
