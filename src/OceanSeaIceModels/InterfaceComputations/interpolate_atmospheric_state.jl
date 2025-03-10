@@ -191,6 +191,9 @@ end
 @inline interpolate_tidal_potential(::Nothing,       grid, args) = zero(grid)
 @inline interpolate_tidal_potential(tidal_potential, grid, args) = interp_atmos_time_series(tidal_potential, args...)
 
+# Fallback
+@kernel _compute_barotropic_potential!(::Nothing, args...) = nothing
+
 @kernel function _compute_barotropic_potential!(barotropic_potential,
                                                 grid,
                                                 space_fractional_indices,
