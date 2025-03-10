@@ -20,6 +20,7 @@ using Oceananigans
 using Oceananigans.Units
 using Oceananigans.BuoyancyFormulations: buoyancy_frequency
 using Oceananigans.Units: Time
+using Dates
 using Printf
 
 # # Construct the grid
@@ -58,12 +59,10 @@ set!(ocean.model, T=Metadata(:temperature, dataset=ECCO4Monthly()),
 # We build a PrescribedAtmosphere at the same location as the single-colunm grid
 # which is based on the JRA55 reanalysis.
 
-simulation_days = 31
-snapshots_per_day = 8 # corresponding to JRA55's 3-hour frequency
-time_indices_in_memory = simulation_days * snapshots_per_day
 atmosphere = JRA55PrescribedAtmosphere(longitude = λ★,
                                        latitude = φ★,
-                                       backend = JRA55NetCDFBackend(time_indices_in_memory))
+                                       end_date = DateTime(1990, 1, 31), # Last day of the simulation
+                                       backend = JRA55NetCDFBackend(30))
 
 # This builds a representation of the atmosphere on the small grid
 
