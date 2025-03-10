@@ -93,7 +93,7 @@ tracer_advection   = Centered()
 ocean = ocean_simulation(grid;
                          momentum_advection,
                          tracer_advection,
-                         closure,
+#                          closure,
                          forcing,
                          free_surface)
 
