@@ -2,7 +2,7 @@ using ClimaOcean
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.Grids
-using OrthogonalSphericalShellGrids
+using Oceananiagans.OrthogonalSphericalShellGrids
 using CFTime
 using Dates
 using Printf

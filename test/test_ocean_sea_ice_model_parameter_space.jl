@@ -1,6 +1,6 @@
 using Oceananigans
 using ClimaOcean
-using OrthogonalSphericalShellGrids
+using Oceananigans.OrthogonalSphericalShellGrids
 
 start_time = time_ns()
 arch = GPU() 
