@@ -3,6 +3,7 @@ module PrescribedAtmospheres
 using Oceananigans.Grids: grid_name
 using Oceananigans.Utils: prettysummary, Time
 using Oceananigans.Fields: Center
+using Oceananigans.BoundaryConditions: FieldBoundaryConditions
 using Oceananigans.OutputReaders: FieldTimeSeries, update_field_time_series!, extract_field_time_series
 using Oceananigans.TimeSteppers: Clock, tick!
 
@@ -320,32 +321,37 @@ function Base.show(io::IO, pa::PrescribedAtmosphere)
 end
 
 function default_atmosphere_velocities(grid, times)
-    ua = FieldTimeSeries{Center, Center, Nothing}(grid, times)
-    va = FieldTimeSeries{Center, Center, Nothing}(grid, times)
+    bcs = FieldBoundaryConditions(grid, (Center, Center, Nothing))
+    ua  = FieldTimeSeries{Center, Center, Nothing}(grid, times; boundary_conditions=bcs)
+    va  = FieldTimeSeries{Center, Center, Nothing}(grid, times; boundary_conditions=bcs)
     return (u=ua, v=va)
 end
 
 function default_atmosphere_tracers(grid, times)
-    Ta = FieldTimeSeries{Center, Center, Nothing}(grid, times)
-    qa = FieldTimeSeries{Center, Center, Nothing}(grid, times)
+    bcs = FieldBoundaryConditions(grid, (Center, Center, Nothing))
+    Ta  = FieldTimeSeries{Center, Center, Nothing}(grid, times; boundary_conditions=bcs)
+    qa  = FieldTimeSeries{Center, Center, Nothing}(grid, times; boundary_conditions=bcs)
     parent(Ta) .= 273.15 + 20
     return (T=Ta, q=qa)
 end
 
 function default_downwelling_radiation(grid, times)
-    Qℓ = FieldTimeSeries{Center, Center, Nothing}(grid, times)
-    Qs = FieldTimeSeries{Center, Center, Nothing}(grid, times)
+    bcs = FieldBoundaryConditions(grid, (Center, Center, Nothing))
+    Qℓ  = FieldTimeSeries{Center, Center, Nothing}(grid, times; boundary_conditions=bcs)
+    Qs  = FieldTimeSeries{Center, Center, Nothing}(grid, times; boundary_conditions=bcs)
     return TwoBandDownwellingRadiation(shortwave=Qs, longwave=Qℓ)
 end
 
 function default_freshwater_flux(grid, times)
-    rain = FieldTimeSeries{Center, Center, Nothing}(grid, times)
-    snow = FieldTimeSeries{Center, Center, Nothing}(grid, times)
+    bcs  = FieldBoundaryConditions(grid, (Center, Center, Nothing))
+    rain = FieldTimeSeries{Center, Center, Nothing}(grid, times; boundary_conditions=bcs)
+    snow = FieldTimeSeries{Center, Center, Nothing}(grid, times; boundary_conditions=bcs)
     return (; rain, snow)
 end
 
 function default_atmosphere_pressure(grid, times)
-    pa = FieldTimeSeries{Center, Center, Nothing}(grid, times)
+    bcs = FieldBoundaryConditions(grid, (Center, Center, Nothing))
+    pa  = FieldTimeSeries{Center, Center, Nothing}(grid, times; boundary_conditions=bcs)
     parent(pa) .= 101325
     return pa
 end
