@@ -187,8 +187,8 @@ end
     end
 end
 
-@inline interpolate_tidal_potential(::Nothing,       grid, args...) = zero(grid)
-@inline interpolate_tidal_potential(tidal_potential, grid, args...) = interp_atmos_time_series(tidal_potential, atmos_args...)
+@inline interpolate_tidal_potential(::Nothing,       grid, args) = zero(grid)
+@inline interpolate_tidal_potential(tidal_potential, grid, args) = interp_atmos_time_series(tidal_potential, args...)
 
 @kernel function _compute_barotropic_potential!(barotropic_potential,
                                                 space_fractional_indices,
