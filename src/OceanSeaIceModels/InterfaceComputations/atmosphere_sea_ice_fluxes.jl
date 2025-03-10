@@ -135,7 +135,7 @@ end
     stop_criteria = turbulent_flux_formulation.solver_stop_criteria
     needs_to_converge = stop_criteria isa ConvergenceStopCriteria
 
-    if needs_to_converge && not_water || ice_free
+    if (needs_to_converge && not_water) || ice_free
         interface_state = InterfaceState(zero(FT), zero(FT), zero(FT), uᵢ, vᵢ, Tᵢ, Sₛ, zero(FT))
     else
         interface_state = compute_interface_state(turbulent_flux_formulation,
@@ -153,7 +153,7 @@ end
     q★ = interface_state.q★
     Ψₛ = interface_state
     Ψₐ = local_atmosphere_state
-    Δu, Δv = velocity_difference(turbulent_flux_formulation.bulk_velocity, Ψₐ, Ψₛ)
+    Δu, Δv = velocity_difference(interface_properties.velocity_formulation, Ψₐ, Ψₛ)
     ΔU = sqrt(Δu^2 + Δv^2)
     τx = - u★^2 * Δu / ΔU
     τy = - u★^2 * Δv / ΔU
