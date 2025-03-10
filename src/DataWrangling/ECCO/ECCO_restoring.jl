@@ -139,13 +139,13 @@ function ECCOFieldTimeSeries(metadata::ECCOMetadata, grid::AbstractGrid;
 end
 
 function ECCOFieldTimeSeries(variable_name::Symbol; 
-                             version = ECCO4Monthly(),
+                             dataset = ECCO4Monthly(),
                              architecture = CPU(),
-                             dates = all_dates(version, variable_name),
+                             dates = all_dates(dataset, variable_name),
                              dir = download_ECCO_cache,
                              kw...)
 
-    metadata = Metadata(variable_name, dates, version, dir)
+    metadata = Metadata(variable_name, dates, dataset, dir)
     return ECCOFieldTimeSeries(metadata, architecture; kw...)
 end
 
@@ -219,8 +219,8 @@ end
 
 """
     ECCORestoring(variable_name::Symbol, [ arch_or_grid = CPU(), ];
-                  version = ECCO4Monthly(),
-                  dates = all_dates(version, variable_name),
+                  dataset = ECCO4Monthly(),
+                  dates = all_dates(dataset, variable_name),
                   time_indices_in_memory = 2,
                   time_indexing = Cyclical(),
                   mask = 1,
@@ -259,14 +259,14 @@ Arguments
 
 !!! info "Providing `ECCOMetadata` instead of `variable_name`"
     Note that `ECCOMetadata` may be provided as the first argument instead of `variable_name`.
-    In this case the `version` and `dates` kwargs (described below) cannot be provided.
+    In this case the `dataset` and `dates` kwargs (described below) cannot be provided.
 
 Keyword Arguments
 =================
 
-- `version`: The version of the ECCO dataset. Default: `ECCO4Monthly()`.
+- `dataset`: The dataset of the ECCO dataset. Default: `ECCO4Monthly()`.
 
-- `dates`: The dates to use for the ECCO dataset. Default: `all_dates(version, variable_name)`.
+- `dates`: The dates to use for the ECCO dataset. Default: `all_dates(dataset, variable_name)`.
 
 - `time_indices_in_memory`: The number of time indices to keep in memory. The number is chosen based on 
                             a trade-off between increased performance (more indices in memory) and reduced
@@ -288,12 +288,12 @@ Keyword Arguments
 """
 function ECCORestoring(variable_name::Symbol,
                        arch_or_grid = CPU();
-                       version = ECCO4Monthly(),
-                       dates = all_dates(version, variable_name),
+                       dataset = ECCO4Monthly(),
+                       dates = all_dates(dataset, variable_name),
                        dir = download_ECCO_cache,
                        kw...)
 
-    metadata = Metadata(variable_name, dates, version, dir)
+    metadata = Metadata(variable_name, dates, dataset, dir)
     return ECCORestoring(metadata, arch_or_grid; kw...)
 end
 

@@ -5,15 +5,15 @@ using Base: @propagate_inbounds
 struct Metadata{D, V} 
     name  :: Symbol
     dates :: D
-    version :: V
+    dataset :: V
     dir :: String
 end
 
 """
    Metadata(variable_name;
-            version,
-            dates = all_dates(version, variable_name),
-            dir = default_download_folder(version))
+            dataset,
+            dates = all_dates(dataset, variable_name),
+            dir = default_download_folder(dataset))
 
 Metadata holding a specific dataset information.
 
@@ -25,28 +25,28 @@ Keyword Arguments
 =================
 - `dates`: The dates of the dataset, in a `AbstractCFDateTime` format.. Note this can either be a single date,
            representing a snapshot, or a range of dates, representing a time-series.
-- `version`: The version of the dataset. Supported versions are `ECCO2Monthly()`, `ECCO2Daily()`, `ECCO4Monthly()`,
+- `dataset`: The dataset of the dataset. Supported datasets are `ECCO2Monthly()`, `ECCO2Daily()`, `ECCO4Monthly()`,
              `JRA55RepeatYear()`, or `JRA55MultipleYears()`.
 - `dir`: The directory where the dataset is stored.
 """
 function Metadata(variable_name;
-                  version,
-                  dates=all_dates(version, variable_name)[1],
-                  dir=default_download_folder(version))
+                  dataset,
+                  dates=all_dates(dataset, variable_name)[1],
+                  dir=default_download_folder(dataset))
 
-    return Metadata(variable_name, dates, version, dir)
+    return Metadata(variable_name, dates, dataset, dir)
 end
 
 const AnyDateTime = Union{AbstractCFDateTime, Dates.AbstractDateTime}
 const Metadatum   = Metadata{<:AnyDateTime}
 
-default_download_folder(version) = "./"
+default_download_folder(dataset) = "./"
 
 Base.show(io::IO, metadata::Metadata) = 
     print(io, "ECCOMetadata:", '\n',
     "├── name: $(metadata.name)", '\n',
     "├── dates: $(metadata.dates)", '\n',
-    "├── version: $(metadata.version)", '\n',
+    "├── dataset: $(metadata.dataset)", '\n',
     "└── data directory: $(metadata.dir)")
 
 # Treat Metadata as an array to allow iteration over the dates.
@@ -56,13 +56,13 @@ Base.eltype(metadata::Metadata) = Base.eltype(metadata.dates)
 # If only one date, it's a single element array
 Base.length(metadata::Metadatum) = 1
 
-@propagate_inbounds Base.getindex(m::Metadata, i::Int) = Metadata(m.name, m.dates[i],   m.version, m.dir)
-@propagate_inbounds Base.first(m::Metadata)            = Metadata(m.name, m.dates[1],   m.version, m.dir)
-@propagate_inbounds Base.last(m::Metadata)             = Metadata(m.name, m.dates[end], m.version, m.dir)
+@propagate_inbounds Base.getindex(m::Metadata, i::Int) = Metadata(m.name, m.dates[i],   m.dataset, m.dir)
+@propagate_inbounds Base.first(m::Metadata)            = Metadata(m.name, m.dates[1],   m.dataset, m.dir)
+@propagate_inbounds Base.last(m::Metadata)             = Metadata(m.name, m.dates[end], m.dataset, m.dir)
 
 @inline function Base.iterate(m::Metadata, i=1)
     if (i % UInt) - 1 < length(m)
-        return Metadata(m.name, m.dates[i], m.version, m.dir), i + 1
+        return Metadata(m.name, m.dates[i], m.dataset, m.dir), i + 1
     else
         return nothing
     end
@@ -108,9 +108,9 @@ end
     all_dates(metadata)
 
 Extracts all the dates of the given metadata formatted using the `DateTime` type.
-Needs to be extended by any new dataset version.
+Needs to be extended by any new dataset dataset.
 """
-all_dates(metadata) = all_dates(metadata.version, metadata.name)
+all_dates(metadata) = all_dates(metadata.dataset, metadata.name)
 
 # File names of metadata containing multiple dates
 metadata_filename(metadata) = [metadata_filename(metadatum) for metadatum in metadata]

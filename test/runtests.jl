@@ -10,7 +10,7 @@ using ClimaOcean.ECCO: download_dataset
 
 if test_group == :init || test_group == :all
     using CUDA
-    CUDA.set_runtime_version!(v"12.6"; local_toolkit = true)
+    CUDA.set_runtime_dataset!(v"12.6"; local_toolkit = true)
     CUDA.precompile_runtime()
 
     ###
@@ -56,7 +56,7 @@ if test_group == :bathymetry || test_group == :all
 end
 
 if test_group == :simulations || test_group == :all
-    CUDA.set_runtime_version!(v"12.2", local_toolkit = true) # Seems to help in finding the correct CUDA version
+    CUDA.set_runtime_dataset!(v"12.2", local_toolkit = true) # Seems to help in finding the correct CUDA dataset
     include("test_simulations.jl")
     include("test_diagnostics.jl")
 end

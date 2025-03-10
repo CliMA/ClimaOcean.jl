@@ -50,8 +50,8 @@ ocean.model
 
 # We set initial conditions from ECCO:
 
-set!(ocean.model, T=Metadata(:temperature, version=ECCO4Monthly()),
-                  S=Metadata(:salinity, version=ECCO4Monthly()))
+set!(ocean.model, T=Metadata(:temperature, dataset=ECCO4Monthly()),
+                  S=Metadata(:salinity, dataset=ECCO4Monthly()))
 
 # # A prescribed atmosphere based on JRA55 re-analysis
 #

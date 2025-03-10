@@ -43,8 +43,8 @@ start = DateTime(1993, 1, 1)
 stop  = DateTime(1999, 1, 1)
 dates = range(start; stop, step=Month(1))
 
-Tmeta = Metadata(:temperature; dates, version=ECCO4Monthly())
-Smeta = Metadata(:salinity; dates, version=ECCO4Monthly())
+Tmeta = Metadata(:temperature; dates, dataset=ECCO4Monthly())
+Smeta = Metadata(:salinity; dates, dataset=ECCO4Monthly())
 
 Tt = ECCOFieldTimeSeries(Tmeta, grid; time_indices_in_memory=length(dates))
 St = ECCOFieldTimeSeries(Smeta, grid; time_indices_in_memory=length(dates))

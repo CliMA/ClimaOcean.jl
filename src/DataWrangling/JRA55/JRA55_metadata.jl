@@ -23,7 +23,7 @@ default_download_folder(::Union{<:JRA55MultipleYears, <:JRA55RepeatYear}) = down
 Base.size(data::JRA55Metadata) = (640, 320, length(data.dates))
 Base.size(::JRA55Metadatum)    = (640, 320, 1)
 
-# The whole range of dates in the different dataset versions
+# The whole range of dates in the different dataset datasets
 # NOTE! rivers and icebergs have a different frequency! (typical JRA55 data is three-hourly while rivers and icebergs are daily)
 function all_dates(::JRA55RepeatYear, name)   
     if name == :river_freshwater_flux || name == :iceberg_freshwater_flux
@@ -42,10 +42,10 @@ function all_dates(::JRA55MultipleYears, name)
 end
 
 # Fallback, if we not provide the name, take the highest frequency 
-all_dates(version::Union{<:JRA55MultipleYears, <:JRA55RepeatYear}) = all_dates(version, :temperature)
+all_dates(dataset::Union{<:JRA55MultipleYears, <:JRA55RepeatYear}) = all_dates(dataset, :temperature)
 
-function JRA55_time_indices(version, dates, name)
-    all_JRA55_dates = all_dates(version, name)
+function JRA55_time_indices(dataset, dates, name)
+    all_JRA55_dates = all_dates(dataset, name)
     indices = Int[]
     
     for date in dates
@@ -56,7 +56,7 @@ function JRA55_time_indices(version, dates, name)
     return indices
 end
 
-# File name generation specific to each Dataset version
+# File name generation specific to each Dataset dataset
 function metadata_filename(metadata::Metadata{<:Any, <:JRA55RepeatYear}) # No difference 
     shortname = short_name(metadata)
     return "RYF." * shortname * ".1990_1991.nc"

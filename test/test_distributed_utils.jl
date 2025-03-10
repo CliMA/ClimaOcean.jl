@@ -69,7 +69,7 @@ end
 
 @testset "Distributed ECCO download" begin
     dates = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(1994, 4, 1)
-    metadata = Metadata(:u_velocity; version=ECCO4Monthly(), dates)
+    metadata = Metadata(:u_velocity; dataset=ECCO4Monthly(), dates)
     download_dataset(metadata)
 
     @root for metadatum in metadata

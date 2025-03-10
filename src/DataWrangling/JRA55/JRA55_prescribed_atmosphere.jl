@@ -5,8 +5,8 @@ JRA55PrescribedAtmosphere(arch::Distributed; kw...) =
 
 """
     JRA55PrescribedAtmosphere([architecture = CPU()];
-                              version = JRA55RepeatYear(),
-                              dates = all_dates(version),
+                              dataset = JRA55RepeatYear(),
+                              dates = all_dates(dataset),
                               backend = JRA55NetCDFBackend(10),
                               time_indexing = Cyclical(),
                               surface_layer_height = 10,  # meters
@@ -16,15 +16,15 @@ JRA55PrescribedAtmosphere(arch::Distributed; kw...) =
 Return a `PrescribedAtmosphere` representing JRA55 reanalysis data.
 """
 function JRA55PrescribedAtmosphere(architecture = CPU(), FT = Float32;
-                                   version = JRA55RepeatYear(),
-                                   dates = all_dates(version, :temperature),
+                                   dataset = JRA55RepeatYear(),
+                                   dates = all_dates(dataset, :temperature),
                                    backend = JRA55NetCDFBackend(10),
                                    time_indexing = Cyclical(),
                                    surface_layer_height = 10,  # meters
                                    include_rivers_and_icebergs = false,
                                    other_kw...)
 
-    kw = (; time_indexing, dates, backend, version)
+    kw = (; time_indexing, dates, backend, dataset)
     kw = merge(kw, other_kw) 
 
     ua  = JRA55FieldTimeSeries(:eastward_velocity, architecture, FT;               kw...)

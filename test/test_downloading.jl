@@ -13,7 +13,7 @@ end
 @testset "Availability of ECCO data" begin
     @info "Testing that we can download ECCO data..."
     for variable in keys(ClimaOcean.ECCO.ECCO4_short_names)
-        metadata = Metadata(variable, dates=DateTimeProlepticGregorian(1993, 1, 1), version=ECCO4Monthly())
+        metadata = Metadata(variable, dates=DateTimeProlepticGregorian(1993, 1, 1), dataset=ECCO4Monthly())
         filepath = metadata_path(metadata)
         isfile(filepath) && rm(filepath; force=true)
         ClimaOcean.ECCO.download_dataset(metadata)

@@ -22,8 +22,8 @@ arch = GPU()
 # ### ECCO files
 
 dates = DateTime(1993, 1, 1) : Month(1) : DateTime(1994, 1, 1)
-temperature = Metadata(:temperature; dates, version=ECCO4Monthly(), dir="./")
-salinity    = Metadata(:salinity;    dates, version=ECCO4Monthly(), dir="./")
+temperature = Metadata(:temperature; dates, dataset=ECCO4Monthly(), dir="./")
+salinity    = Metadata(:salinity;    dates, dataset=ECCO4Monthly(), dir="./")
 
 download_dataset(temperature)
 download_dataset(salinity)
@@ -100,8 +100,8 @@ ocean = ocean_simulation(grid;
 
 # We initialize the ocean from the ECCO state estimate.
 
-set!(ocean.model, T=Metadata(:temperature; dates=first(dates), version=ECCO4Monthly()),
-                  S=Metadata(:salinity;    dates=first(dates), version=ECCO4Monthly()))
+set!(ocean.model, T=Metadata(:temperature; dates=first(dates), dataset=ECCO4Monthly()),
+                  S=Metadata(:salinity;    dates=first(dates), dataset=ECCO4Monthly()))
 
 # ### Atmospheric forcing
 
