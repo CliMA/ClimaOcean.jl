@@ -11,9 +11,9 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         # This should download files called "RYF.rsds.1990_1991.nc" and "RYF.tas.1990_1991.nc"
         for test_name in (:downwelling_shortwave_radiation, :temperature)
             dates = ClimaOcean.DataWrangling.all_dates(JRA55.JRA55RepeatYear(), test_name)
-            end_date = dates[3]
+            dates = dates[1:3]
 
-            JRA55_fts = JRA55FieldTimeSeries(test_name, arch; end_date)
+            JRA55_fts = JRA55FieldTimeSeries(test_name, arch; dates)
             test_filename = joinpath(download_JRA55_cache, "RYF.rsds.1990_1991.nc")
 
             @test JRA55_fts isa FieldTimeSeries
@@ -60,8 +60,8 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 
         name  = :downwelling_shortwave_radiation
         dates = ClimaOcean.DataWrangling.all_dates(JRA55.JRA55RepeatYear(), name)
-        end_date = dates[3]
-        JRA55_fts = JRA55FieldTimeSeries(name, arch; end_date)
+        dates = dates[1:3]
+        JRA55_fts = JRA55FieldTimeSeries(name, arch; dates)
 
         # Make target grid and field
         resolution = 1 # degree, eg 1/4
