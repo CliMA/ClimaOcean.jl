@@ -121,6 +121,7 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
     launch!(arch, grid, kernel_parameters,
             _compute_barotropic_potential!,
             barotropic_potential,
+            grid,
             space_fractional_indices,
             time_interpolator,
             atmosphere_pressure,
@@ -187,7 +188,14 @@ end
     end
 end
 
+@inline interpolate_tidal_potential(::Nothing,       grid, args) = zero(grid)
+@inline interpolate_tidal_potential(tidal_potential, grid, args) = interp_atmos_time_series(tidal_potential, args...)
+
+# Fallback
+@kernel _compute_barotropic_potential!(::Nothing, args...) = nothing
+
 @kernel function _compute_barotropic_potential!(barotropic_potential,
+                                                grid,
                                                 space_fractional_indices,
                                                 time_interpolator,
                                                 atmos_pressure,
@@ -210,7 +218,7 @@ end
     atmos_args = (x_itp, t_itp, atmos_backend, atmos_time_indexing)
 
     pa = interp_atmos_time_series(atmos_pressure,  atmos_args...) # yes this is a re-interpolation
-    Φt = interp_atmos_time_series(tidal_potential, atmos_args...)
+    Φt = interpolate_tidal_potential(tidal_potential, grid, atmos_args)
 
     @inbounds barotropic_potential[i, j, 1] = pa / ρₒ + Φt / ρₒ
 end
@@ -245,7 +253,6 @@ end
 #####
 
 # Assumption: a Nothing object interpolates to zero!!
-@inline interp_atmos_time_series(::Nothing, x_itp::FractionalIndices,    args...) = zero(x_itp.i)
 @inline interp_atmos_time_series(::Nothing, X, time, grid::AbstractGrid, args...) = zero(grid)
 
 # Note: assumes loc = (c, c, nothing) (and the third location should not matter.)
