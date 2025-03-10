@@ -121,6 +121,7 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
     launch!(arch, grid, kernel_parameters,
             _compute_barotropic_potential!,
             barotropic_potential,
+            grid,
             space_fractional_indices,
             time_interpolator,
             atmosphere_pressure,
@@ -191,6 +192,7 @@ end
 @inline interpolate_tidal_potential(tidal_potential, grid, args) = interp_atmos_time_series(tidal_potential, args...)
 
 @kernel function _compute_barotropic_potential!(barotropic_potential,
+                                                grid,
                                                 space_fractional_indices,
                                                 time_interpolator,
                                                 atmos_pressure,
