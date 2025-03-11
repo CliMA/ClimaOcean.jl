@@ -9,10 +9,11 @@ using Thermodynamics: Liquid, Ice
 ##### Interface properties
 #####
 
-struct InterfaceProperties{R, Q, T}
+struct InterfaceProperties{R, Q, T, V}
     radiation :: R
     specific_humidity_formulation :: Q
     temperature_formulation :: T
+    velocity_formulation :: V
 end
 
 #####
@@ -96,6 +97,24 @@ end
 
     return (1 - s) / (1 - s + α * s)
 end
+
+####
+#### Velocity difference formulations
+####
+
+""" The exchange fluxes depend on the atmosphere velocity but not the interface velocity """
+struct WindVelocity end
+
+""" The exchange fluxes depend on the relative velocity between the atmosphere and the interface """
+struct RelativeVelocity end
+
+@inline function velocity_difference(::RelativeVelocity, 𝒰₁, 𝒰₀)
+    Δu = 𝒰₁.u - 𝒰₀.u
+    Δv = 𝒰₁.v - 𝒰₀.v
+    return Δu, Δv
+end
+
+@inline velocity_difference(::WindVelocity, 𝒰₁, 𝒰₀) = 𝒰₁.u, 𝒰₁.v
 
 ####
 #### Interface temperature formulations
@@ -233,7 +252,7 @@ end
                                                interface_properties,
                                                atmosphere_properties,
                                                interior_properties)
-
+        
     ℂₐ = atmosphere_properties.thermodynamics_parameters
     𝒬ₐ = atmosphere_state.𝒬
     ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)

@@ -143,7 +143,7 @@ end
 
     Ψₛ = interface_state
     Ψₐ = local_atmosphere_state
-    Δu, Δv = velocity_difference(turbulent_flux_formulation.bulk_velocity, Ψₐ, Ψₛ)
+    Δu, Δv = velocity_difference(interface_properties.velocity_formulation, Ψₐ, Ψₛ)
     ΔU = sqrt(Δu^2 + Δv^2)
     
     τx = ifelse(ΔU == 0, zero(grid), - u★^2 * Δu / ΔU)
