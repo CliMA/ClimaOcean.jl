@@ -106,7 +106,7 @@ using OrthogonalSphericalShellGrids
         grid = OrthogonalSphericalShellGrids.TripolarGrid(CPU(); size=(Nx, Ny, Nz), halo=(7, 7, 7), z)
         grid = ImmersedBoundaryGrid(grid, GridFittedBottom((x, y) -> -5000))
         ocean = ocean_simulation(grid)
-        model = OceanSeaIceModel(ocean)
+        #model = OceanSeaIceModel(ocean)
     end
 end
 
