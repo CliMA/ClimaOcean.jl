@@ -2,12 +2,6 @@ using Oceananigans.Operators: Δzᶜᶜᶜ
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 
 function compute_sea_ice_ocean_fluxes!(coupled_model)
-    compute_sea_ice_ocean_salinity_flux!(coupled_model)
-    compute_sea_ice_ocean_latent_heat_flux!(coupled_model)
-    return nothing
-end
-
-function compute_sea_ice_ocean_latent_heat_flux!(coupled_model)
     ocean = coupled_model.ocean
     sea_ice = coupled_model.sea_ice
     fluxes = coupled_model.interfaces.sea_ice_ocean_interface.fluxes
@@ -29,24 +23,24 @@ function compute_sea_ice_ocean_latent_heat_flux!(coupled_model)
 
     # What about the latent heat removed from the ocean when ice forms?
     # Is it immediately removed from the ocean? Or is it stored in the ice?
-    launch!(arch, grid, :xy, _compute_sea_ice_ocean_latent_heat_flux!,
+    launch!(arch, grid, :xy, _compute_sea_ice_ocean_fluxes!,
     fluxes, grid, hᵢ, ℵᵢ, Sᵢ, h⁻, Tₒ, Sₒ, liquidus, ocean_properties, interface_properties, Δt)
 
     return nothing
 end
 
-@kernel function _compute_sea_ice_ocean_latent_heat_flux!(sea_ice_ocean_fluxes,
-                                                          grid,
-                                                          ice_thickness,
-                                                          ice_concentration,
-                                                          ice_salinity,
-                                                          previous_ice_thickness,
-                                                          ocean_temperature,
-                                                          ocean_salinity,
-                                                          liquidus,
-                                                          ocean_properties,
-                                                          interface_properties,
-                                                          Δt)
+@kernel function _compute_sea_ice_ocean_fluxes!(sea_ice_ocean_fluxes,
+                                                grid,
+                                                ice_thickness,
+                                                ice_concentration,
+                                                ice_salinity,
+                                                previous_ice_thickness,
+                                                ocean_temperature,
+                                                ocean_salinity,
+                                                liquidus,
+                                                ocean_properties,
+                                                interface_properties,
+                                                Δt)
 
     i, j = @index(Global, NTuple)
 
