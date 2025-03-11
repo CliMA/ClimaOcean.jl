@@ -80,8 +80,8 @@ dynamics = SeaIceMomentumEquation(grid;
 
 sea_ice = sea_ice_simulation(grid; bottom_heat_boundary_condition, dynamics, advection=WENO(order=7)) 
 
-set!(sea_ice.model, h=ECCOMetadata(:sea_ice_thickness), 
-                    ℵ=ECCOMetadata(:sea_ice_concentration))
+set!(sea_ice.model, h=Metadata(:sea_ice_thickness), 
+                    ℵ=Metadata(:sea_ice_concentration))
 
 ##### 
 ##### A Prescribed Atmosphere model
@@ -162,11 +162,11 @@ run!(arctic)
 ##### Comparison to ECCO Climatology
 #####
 
-version = ECCO4Monthly()
+dataset = ECCO4Monthly()
 dates   = all_dates(version)[1:12]
 
-h_metadata = ECCOMetadata(:sea_ice_thickness;     version, dates)
-ℵ_metadata = ECCOMetadata(:sea_ice_concentration; version, dates)
+h_metadata = Metadata(:sea_ice_thickness;     dataset, dates)
+ℵ_metadata = Metadata(:sea_ice_concentration; dataset, dates)
 
 # Montly averaged ECCO data
 hE = ECCOFieldTimeSeries(h_metadata, grid; time_indices_in_memory=12)
