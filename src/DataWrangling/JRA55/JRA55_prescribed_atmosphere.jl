@@ -25,7 +25,7 @@ function JRA55PrescribedAtmosphere(architecture = CPU(), FT = Float32;
                                    include_rivers_and_icebergs = false,
                                    other_kw...)
 
-    kw = (; time_indexing, dates, backend, start_date, end_date, dataset)
+    kw = (; time_indexing, backend, start_date, end_date, dataset)
     kw = merge(kw, other_kw) 
 
     ua  = JRA55FieldTimeSeries(:eastward_velocity, architecture, FT;               kw...)
