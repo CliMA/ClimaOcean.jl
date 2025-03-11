@@ -1,19 +1,31 @@
 const AA = Oceananigans.Architectures.AbstractArchitecture
 
-JRA55PrescribedAtmosphere(arch::Distributed; kw...) =
+JRA55PrescribedAtmosphere(arch::Distributed, FT = Float32; kw...) =
     JRA55PrescribedAtmosphere(child_architecture(arch); kw...)
 
+
 """
-    JRA55PrescribedAtmosphere([architecture = CPU()];
+    JRA55PrescribedAtmosphere([architecture = CPU(), FT = Float32];
                               dataset = JRA55RepeatYear(),
-                              dates = all_dates(dataset),
+                              start_date = first_date(dataset, :temperature),
+                              end_date = last_date(dataset, :temperature),
                               backend = JRA55NetCDFBackend(10),
                               time_indexing = Cyclical(),
                               surface_layer_height = 10,  # meters
                               include_rivers_and_icebergs = false,
                               other_kw...)
 
-Return a `PrescribedAtmosphere` representing JRA55 reanalysis data.
+Return a [`PrescribedAtmosphere`](@ref) representing JRA55 reanalysis data.
+The atmospheric data will be held in `JRA55FieldTimeSeries` objects containing:
+
+- velocities (`ua`, `va`)
+- tracers (`Ta`, `qa`)
+- pressure (`pa`)
+- freshwater fluxes (`Fra`, `Fsn`)
+- downwelling radiation (`Ql`, `Qs`)
+- auxiliary freshwater fluxes (`Fri`, `Fic`) if `include_rivers_and_icebergs` is `true`
+
+For a detailed description of the keyword arguments, see the [`JRA55FieldTimeSeries`](@ref) constructor.
 """
 function JRA55PrescribedAtmosphere(architecture = CPU(), FT = Float32;
                                    dataset = JRA55RepeatYear(),

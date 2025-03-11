@@ -147,12 +147,8 @@ new_backend(::JRA55NetCDFBackend, start, length) = JRA55NetCDFBackend(start, len
                          latitude = nothing,
                          longitude = nothing,
                          dir = download_JRA55_cache,
-                         filename = nothing,
-                         shortname = nothing,
                          backend = InMemory(),
-                         time_indexing = Cyclical(),
-                         preprocess_chunk_size = 10,
-                         preprocess_architecture = CPU())
+                         time_indexing = Cyclical())
 
 Return a `FieldTimeSeries` containing atmospheric reanalysis data for `variable_name`,
 which describes one of the variables in the "repeat year forcing" dataset derived
@@ -187,6 +183,8 @@ Keyword arguments
 - `dataset`: The data dataset. The only supported datasets is `JRA55RepeatYear()`
 
 - `dir`: The directory of the data file. Default: `ClimaOcean.JRA55.download_JRA55_cache`.
+
+- `time_indexing`: The time indexing scheme for the field time series. Default: `Cyclical()`.
 
 - `latitude`: Guiding latitude bounds for the resulting grid.
               Used to slice the data when loading into memory.
