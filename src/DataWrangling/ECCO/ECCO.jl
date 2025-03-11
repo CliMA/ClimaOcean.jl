@@ -14,6 +14,7 @@ using Oceananigans
 using Oceananigans: location
 using Oceananigans.Architectures: architecture, child_architecture
 using Oceananigans.BoundaryConditions
+using Oceananigans.DistributedComputations
 using Oceananigans.DistributedComputations: DistributedField, all_reduce, barrier!
 using Oceananigans.Utils
 

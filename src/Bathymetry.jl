@@ -4,7 +4,7 @@ export regrid_bathymetry, retrieve_bathymetry, download_bathymetry
 
 using ImageMorphology
 using ..DataWrangling: download_progress
-using ..DistributedUtils: @root
+using Oceananigans.DistributedComputations
 
 using Oceananigans
 using Oceananigans.Architectures: architecture, on_architecture
