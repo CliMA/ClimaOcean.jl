@@ -11,7 +11,6 @@ using ClimaOcean.ECCO
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.OrthogonalSphericalShellGrids
-using CFTime
 using Dates
 using Printf
 using ClimaOcean.ECCO: download_dataset
