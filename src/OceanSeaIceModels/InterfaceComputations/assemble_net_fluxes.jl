@@ -6,9 +6,6 @@ using ClimaOcean.OceanSeaIceModels: sea_ice_concentration
 @inline computed_sea_ice_ocean_fluxes(interface) = interface.fluxes
 @inline computed_sea_ice_ocean_fluxes(::Nothing) = (interface_heat = ZeroField(), frazil_heat = ZeroField(), salt = ZeroField())
 
-compute_net_ocean_fluxes!(::OceanSeaIceModel{Nothing, Nothing}) = nothing
-compute_net_ocean_fluxes!(::OceanSeaIceModel{<:FreezingLimitedOceanTemperature, Nothing}) = nothing
-
 function compute_net_ocean_fluxes!(coupled_model)
     ocean = coupled_model.ocean
     sea_ice = coupled_model.sea_ice

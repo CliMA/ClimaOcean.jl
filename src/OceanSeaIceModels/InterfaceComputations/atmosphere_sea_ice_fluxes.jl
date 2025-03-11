@@ -4,10 +4,6 @@ using Oceananigans.Fields: ZeroField
 
 using ..OceanSeaIceModels: FreezingLimitedOceanTemperature
 
-compute_atmosphere_sea_ice_fluxes!(::OceanSeaIceModel{<:Any, Nothing}) = nothing
-compute_atmosphere_sea_ice_fluxes!(::OceanSeaIceModel{Nothing, Nothing}) = nothing
-compute_atmosphere_sea_ice_fluxes!(::OceanSeaIceModel{<:FreezingLimitedOceanTemperature, Nothing}) = nothing
-                                           
 function compute_atmosphere_sea_ice_fluxes!(coupled_model)
     ocean = coupled_model.ocean
     atmosphere = coupled_model.atmosphere
