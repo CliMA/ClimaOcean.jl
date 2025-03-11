@@ -42,7 +42,7 @@ set!(ocean.model, T=Tᵢ, S=S₀)
 sea_ice_grid = RectilinearGrid(size=(), topology=(Flat, Flat, Flat))
 top_sea_ice_temperature = Field{Center, Center, Nothing}(sea_ice_grid)
 top_heat_boundary_condition = PrescribedTemperature(top_sea_ice_temperature)
-thermodynamics = SlabSeaIceThermodynamics(sea_ice_grid; top_heat_boundary_condition)
+ice_thermodynamics = SlabSeaIceThermodynamics(sea_ice_grid; top_heat_boundary_condition)
                                               
 top_sea_ice_heat_flux = Field{Center, Center, Nothing}(sea_ice_grid)
 bottom_sea_ice_heat_flux = Field{Center, Center, Nothing}(sea_ice_grid)
@@ -50,7 +50,7 @@ bottom_sea_ice_heat_flux = Field{Center, Center, Nothing}(sea_ice_grid)
 sea_ice_model = SeaIceModel(sea_ice_grid;
                             top_heat_flux = top_sea_ice_heat_flux,
                             bottom_heat_flux = bottom_sea_ice_heat_flux,
-                            thermodynamics)
+                            ice_thermodynamics)
 
 set!(sea_ice_model.ice_concentration, 0.9)
 set!(sea_ice_model.ice_thickness, 0.1)
@@ -76,7 +76,7 @@ Qi = sea_ice_model.external_heat_fluxes.top
 fluxes = (; Qo, Qi, Qib, Qv, Qc, τx, τy, Fv)
 ocean_outputs = merge(ocean.model.velocities, ocean.model.tracers)
 sea_ice_outputs = (h = sea_ice.model.ice_thickness,
-                   Ti = sea_ice.model.thermodynamics.top_surface_temperature,
+                   Ti = sea_ice.model.ice_thermodynamics.top_surface_temperature,
                    ℵ = sea_ice.model.ice_concentration)
                    
 outputs = merge(ocean_outputs, sea_ice_outputs, fluxes)

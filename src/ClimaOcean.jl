@@ -44,10 +44,6 @@ using DataDeps
 
 using Oceananigans.OutputReaders: GPUAdaptedFieldTimeSeries, FieldTimeSeries
 using Oceananigans.Grids: node
-using SeawaterPolynomials.TEOS10
-
-function reference_density end
-function heat_capacity end
 
 const SomeKindOfFieldTimeSeries = Union{FieldTimeSeries,
                                         GPUAdaptedFieldTimeSeries}

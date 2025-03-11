@@ -143,7 +143,6 @@ function regrid_bathymetry(target_grid;
     close(dataset)
 
     # Diagnose target grid information
-    arch = architecture(target_grid)
     arch   = architecture(target_grid)
     λ_data = λ_data |> Array{BigFloat}
     φ_data = φ_data |> Array{BigFloat}
