@@ -3,14 +3,14 @@
 # This example configures a global ocean--sea ice simulation at 1ᵒ horizontal resolution with
 # realistic bathymetry and some closures.
 #
-# For this example, we need Oceananigans, ClimaOcean, OrthogonalSphericalShellGrids, and
+# For this example, we need Oceananigans, ClimaOcean, and
 # CairoMakie to visualize the simulation. Also we need CFTime and Dates for date handling.
 
 using ClimaOcean
 using ClimaOcean.ECCO
 using Oceananigans
 using Oceananigans.Units
-using OrthogonalSphericalShellGrids
+using Oceananigans.OrthogonalSphericalShellGrids
 using Dates
 using Printf
 using ClimaOcean.ECCO: download_dataset
