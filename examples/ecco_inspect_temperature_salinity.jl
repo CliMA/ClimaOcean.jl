@@ -42,9 +42,6 @@ b = Field(buoyancy(sb, grid, tracers))
 start_date = DateTime(1993, 1, 1)
 end_date   = DateTime(1999, 1, 1)
 
-Tmeta = Metadata(:temperature; dates, dataset=ECCO4Monthly())
-Smeta = Metadata(:salinity; dates, dataset=ECCO4Monthly())
-
 Tt = ECCOFieldTimeSeries(:temperature, grid; start_date, end_date, time_indices_in_memory=length(dates))
 St = ECCOFieldTimeSeries(:salinity,    grid; start_date, end_date, time_indices_in_memory=length(dates))
 
