@@ -1,7 +1,7 @@
 using Oceananigans.Operators: intrinsic_vector
 using Oceananigans.Grids: inactive_node
 using ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres: thermodynamics_parameters, 
-                                                          reference_height,
+                                                          surface_layer_height,
                                                           boundary_layer_height
 
 function compute_atmosphere_ocean_fluxes!(coupled_model)
@@ -36,7 +36,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     interface_properties = coupled_model.interfaces.atmosphere_ocean_interface.properties
     ocean_properties = coupled_model.interfaces.ocean_properties
     atmosphere_properties = (thermodynamics_parameters = thermodynamics_parameters(atmosphere),
-                             reference_height = reference_height(atmosphere))
+                             surface_layer_height = surface_layer_height(atmosphere))
 
     kernel_parameters = interface_kernel_parameters(grid)
 
@@ -96,7 +96,7 @@ end
     #   ⋅ 𝒰 ≡ "dynamic" state vector (thermodynamics + reference height + velocity)
     ℂₐ = atmosphere_properties.thermodynamics_parameters
     𝒬ₐ = thermodynamic_atmospheric_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₐ, qₐ)
-    zₐ = atmosphere_properties.reference_height # elevation of atmos variables relative to interface
+    zₐ = atmosphere_properties.surface_layer_height # elevation of atmos variables relative to interface
 
     local_atmosphere_state = (z = zₐ,
                               u = uₐ,
@@ -143,7 +143,7 @@ end
 
     Ψₛ = interface_state
     Ψₐ = local_atmosphere_state
-    Δu, Δv = velocity_difference(turbulent_flux_formulation.bulk_velocity, Ψₐ, Ψₛ)
+    Δu, Δv = velocity_difference(interface_properties.velocity_formulation, Ψₐ, Ψₛ)
     ΔU = sqrt(Δu^2 + Δv^2)
     
     τx = ifelse(ΔU == 0, zero(grid), - u★^2 * Δu / ΔU)

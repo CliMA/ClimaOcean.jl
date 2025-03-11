@@ -147,7 +147,7 @@ end
 function ECCOFieldTimeSeries(metadata::ECCOMetadata, grid::AbstractGrid;
                              time_indices_in_memory = 2,	
                              time_indexing = Cyclical(),
-                             inpainting = nothing,
+                             inpainting = default_inpainting(metadata),
                              cache_inpainted_data = true)
 
     # Make sure all the required individual files are downloaded
