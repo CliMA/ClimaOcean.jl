@@ -1,6 +1,6 @@
 module DataWrangling
 
-export Metadata, all_dates, first_date, end_date
+export Metadata, Metadatum, all_dates, first_date, end_date
 
 using Oceananigans
 using Downloads
