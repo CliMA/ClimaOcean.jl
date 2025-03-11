@@ -6,7 +6,7 @@ using Oceananigans.Units
 using Oceananigans.OrthogonalSphericalShellGrids
 using ClimaOcean.OceanSimulations
 using ClimaOcean.ECCO
-using ClimaOcean.ECCO: all_ECCO_dates
+using ClimaOcean.DataWrangling
 using ClimaSeaIce.SeaIceThermodynamics: IceWaterThermalEquilibrium
 using Printf
 
@@ -163,7 +163,7 @@ run!(arctic)
 #####
 
 version = ECCO4Monthly()
-dates   = all_ECCO_dates(version)[1:12]
+dates   = all_dates(version)[1:12]
 
 h_metadata = ECCOMetadata(:sea_ice_thickness;     version, dates)
 ℵ_metadata = ECCOMetadata(:sea_ice_concentration; version, dates)
