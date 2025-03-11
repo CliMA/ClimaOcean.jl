@@ -256,7 +256,7 @@ end
 
 inpainted_metadata_path(metadata::ECCOMetadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
 
-function set!(field::Field, ECCO_metadata::ECCOMetadata; kw...)
+function set!(field::Field, ECCO_metadata::ECCOMetadatum; kw...)
 
     # Fields initialized from ECCO
     grid = field.grid
