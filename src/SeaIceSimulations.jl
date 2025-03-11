@@ -41,14 +41,17 @@ function sea_ice_simulation(grid;
     top_surface_temperature = Field{Center, Center, Nothing}(grid)
     top_heat_boundary_condition = PrescribedTemperature(top_surface_temperature)
 
-    thermodynamics = SlabSeaIceThermodynamics(grid;
-                                              internal_heat_flux,
-                                              phase_transitions,
-                                              top_heat_boundary_condition,
-                                              bottom_heat_boundary_condition)
+    ice_thermodynamics = SlabSeaIceThermodynamics(grid;
+                                                  internal_heat_flux,
+                                                  phase_transitions,
+                                                  top_heat_boundary_condition,
+                                                  bottom_heat_boundary_condition)
 
     bottom_heat_flux = Field{Center, Center, Nothing}(grid)
     top_heat_flux    = Field{Center, Center, Nothing}(grid)
+
+    # top_momentum_stress = (u = Field{Face, Center, Nothing}(grid),
+    #                        v = Field{Center, Face, Nothing}(grid))
 
     # Build the sea ice model
     sea_ice_model = SeaIceModel(grid;
@@ -56,7 +59,8 @@ function sea_ice_simulation(grid;
                                 advection,
                                 tracers,
                                 ice_consolidation_thickness,
-                                thermodynamics,
+                                # top_momentum_stress,
+                                ice_thermodynamics,
                                 dynamics,
                                 bottom_heat_flux,
                                 top_heat_flux)
