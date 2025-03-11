@@ -51,10 +51,9 @@ function download_bathymetry(; url = etopo_url,
 
     filepath = joinpath(dir, filename)
 
-    @root begin
-        if !isfile(filepath)
-            Downloads.download(url, filepath; progress=download_progress)
-        end
+    #TODO: embed this into a @root macro; see failed attempts in https://github.com/CliMA/ClimaOcean.jl/pull/391
+    if !isfile(filepath)
+        Downloads.download(url, filepath; progress=download_progress)
     end
 
     return filepath
