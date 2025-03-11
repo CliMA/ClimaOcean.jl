@@ -140,11 +140,11 @@ Extracts the first date of the given dataset and variable name formatted using t
 first_date(dataset, variable_name) = first(all_dates(dataset, variable_name))
 
 """
-    end_date(dataset, variable_name)
+    last_date(dataset, variable_name)
 
 Extracts the last date of the given dataset and variable name formatted using the `DateTime` type.
 """
-end_date(dataset, variable_name) = last(all_dates(dataset, variable_name))
+last_date(dataset, variable_name) = last(all_dates(dataset, variable_name))
 
 """
     metadata_filename(metadata)
