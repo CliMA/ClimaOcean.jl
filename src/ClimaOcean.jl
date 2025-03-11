@@ -32,6 +32,7 @@ export
     ocean_simulation,
     sea_ice_simulation,
     initialize!,
+    run_coupled!,
     @root, 
     @onrank,
     @distribute,

@@ -1,9 +1,11 @@
+export run_coupled!
+
 using Oceananigans
+using Oceananigans.OutputWriters: checkpoint_path
 using Oceananigans.TimeSteppers: Clock
 using Oceananigans: SeawaterBuoyancy
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 using KernelAbstractions: @kernel, @index
-
 using SeawaterPolynomials: TEOS10EquationOfState
 
 import Thermodynamics as AtmosphericThermodynamics  
@@ -14,7 +16,7 @@ import Oceananigans.Architectures: architecture
 import Oceananigans.Fields: set!
 import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker
 import Oceananigans.OutputWriters: default_included_properties
-import Oceananigans.Simulations: reset!, initialize!, iteration
+import Oceananigans.Simulations: reset!, initialize!, iteration, run!
 import Oceananigans.TimeSteppers: time_step!, update_state!, time
 import Oceananigans.Utils: prettytime
 import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker
@@ -29,6 +31,20 @@ struct OceanSeaIceModel{I, A, O, F, C, Arch} <: AbstractModel{Nothing, Arch}
 end
 
 const OSIM = OceanSeaIceModel
+const OSIMSIM = Simulation{<:OceanSeaIceModel}
+
+function run_coupled!(sim::OSIMSIM; pickup)    
+    if pickup
+        checkpoint_file_path = checkpoint_path(pickup, sim.model.ocean.output_writers)
+        set!(sim.model.ocean, checkpoint_file_path)
+        # Setting the atmosphere time to the ocean time
+        sim.model.atmosphere.clock.time = sim.model.ocean.model.clock.time
+    end
+
+    @show sim.model.clock.time
+    run!(sim)
+end
+
 
 function Base.summary(model::OSIM)
     A = nameof(typeof(architecture(model)))
@@ -158,6 +174,16 @@ function default_nan_checker(model::OceanSeaIceModel)
     u_ocean = model.ocean.model.velocities.u
     nan_checker = NaNChecker((; u_ocean))
     return nan_checker
+end
+
+# TODO: picking up OceanSeaIceModel simulations from a checkpoint is a WIP
+function set!(sim::OSIMSIM, pickup::Union{Bool, Integer, String})
+    checkpoint_file_path = checkpoint_path(pickup, sim.model.ocean.output_writers)
+    set!(sim.model.ocean, filepath = checkpoint_file_path)
+    set!(sim.model.ocean, pickup = pickup)
+    # Setting the atmosphere time to the ocean time
+    sim.model.atmosphere.clock.time = sim.model.ocean.model.clock.time
+    return nothing
 end
 
 @kernel function _above_freezing_ocean_temperature!(T, grid, S, ℵ, liquidus)
