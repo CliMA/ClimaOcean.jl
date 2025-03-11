@@ -4,6 +4,8 @@ using ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres: thermodynamics_paramet
                                                           surface_layer_height,
                                                           boundary_layer_height
 
+compute_atmosphere_ocean_fluxes!(::OceanSeaIceModel{<:Any, Nothing}) = nothing
+
 function compute_atmosphere_ocean_fluxes!(coupled_model)
     ocean = coupled_model.ocean
     atmosphere = coupled_model.atmosphere

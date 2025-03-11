@@ -13,7 +13,7 @@ export
     SkinTemperature, 
     BulkTemperature
 
-using ..OceanSeaIceModels: default_gravitational_acceleration
+using ..OceanSeaIceModels: default_gravitational_acceleration, OceanSeaIceModel
 
 import ClimaOcean: stateindex
 
