@@ -68,6 +68,9 @@ end
 fractional_index_type(FT, Topo) = FT
 fractional_index_type(FT, ::Flat) = Nothing
 
+
+StateExchanger(ocean::Simulation, ::Nothing) = nothing
+
 function StateExchanger(ocean::Simulation, atmosphere)
     # TODO: generalize this
     exchange_grid = ocean.model.grid
@@ -141,7 +144,10 @@ const celsius_to_kelvin = 273.15
 Base.summary(crf::ComponentInterfaces) = "ComponentInterfaces"
 Base.show(io::IO, crf::ComponentInterfaces) = print(io, summary(crf))
 
-function atmosphere_ocean_interface(ocean, 
+atmosphere_ocean_interface(::Nothing, args...) = nothing
+
+function atmosphere_ocean_interface(atmos,
+                                    ocean, 
                                     radiation, 
                                     ao_flux_formulation,
                                     temperature_formulation, 
@@ -170,9 +176,13 @@ function atmosphere_ocean_interface(ocean,
     return AtmosphereInterface(ao_fluxes, ao_flux_formulation, interface_temperature, ao_properties)
 end
 
-atmosphere_sea_ice_interface(sea_ice, args...) = nothing
+atmosphere_sea_ice_interface(atmos, sea_ice, args...) = nothing
+atmosphere_sea_ice_interface(::Nothing, args...) = nothing
+atmosphere_sea_ice_interface(::Nothing, ::Nothing, args...) = nothing
+atmosphere_sea_ice_interface(::Nothing, ::SeaIceSimulation, args...) = nothing
 
-function atmosphere_sea_ice_interface(sea_ice::SeaIceSimulation, 
+function atmosphere_sea_ice_interface(atmos,
+                                      sea_ice::SeaIceSimulation, 
                                       radiation, 
                                       ai_flux_formulation,
                                       temperature_formulation,
@@ -283,7 +293,8 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                         freshwater_density = freshwater_density,
                         temperature_units  = ocean_temperature_units)
 
-    ao_interface = atmosphere_ocean_interface(ocean,
+    ao_interface = atmosphere_ocean_interface(atmosphere,
+                                              ocean,
                                               radiation,
                                               atmosphere_ocean_flux_formulation,
                                               atmosphere_ocean_interface_temperature,
@@ -292,7 +303,8 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
 
     io_interface = sea_ice_ocean_interface(sea_ice, ocean)
 
-    ai_interface = atmosphere_sea_ice_interface(sea_ice,
+    ai_interface = atmosphere_sea_ice_interface(atmosphere,
+                                                sea_ice,
                                                 radiation,
                                                 atmosphere_sea_ice_flux_formulation,
                                                 atmosphere_sea_ice_interface_temperature,
