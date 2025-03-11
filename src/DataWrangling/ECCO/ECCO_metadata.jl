@@ -19,12 +19,12 @@ const ECCOMetadatum   = ECCOMetadata{<:AnyDateTime}
 
 default_download_folder(::Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}) = download_ECCO_cache
 
-versionstr(md::ECCOMetadata) = string(md.version)
+datasetstr(md::ECCOMetadata) = string(md.dataset)
 
 datestr(md::ECCOMetadata) = string(first(md.dates), "--", last(md.dates))
 datestr(md::ECCOMetadatum) = string(md.dates)
 
-Base.summary(md::ECCOMetadata) = string("ECCOMetadata{", versionstr(md), "} of ",
+Base.summary(md::ECCOMetadata) = string("ECCOMetadata{", datasetstr(md), "} of ",
                                         md.name, " for ", datestr(md))
 
 Base.size(data::Metadata{<:Any, <:ECCO2Daily})   = (1440, 720, 50, length(data.dates))
@@ -35,16 +35,16 @@ Base.size(::Metadata{<:AnyDateTime, <:ECCO2Daily})   = (1440, 720, 50, 1)
 Base.size(::Metadata{<:AnyDateTime, <:ECCO2Monthly}) = (1440, 720, 50, 1)
 Base.size(::Metadata{<:AnyDateTime, <:ECCO4Monthly}) = (720,  360, 50, 1)
 
-# The whole range of dates in the different dataset versions
+# The whole range of dates in the different dataset datasets
 all_dates(::ECCO4Monthly, name) = DateTime(1992, 1, 1) : Month(1) : DateTime(2023, 12, 1)
 all_dates(::ECCO2Monthly, name) = DateTime(1992, 1, 1) : Month(1) : DateTime(2023, 12, 1)
 all_dates(::ECCO2Daily, name)   = DateTime(1992, 1, 4) : Day(1)   : DateTime(2023, 12, 31)
 
 # Fallback, actually, we do not really need the name for ECCO since all 
 # variables have the same frequency and the same time-range, differently from JRA55
-all_dates(version::Union{<:ECCO4Monthly, <:ECCO2Monthly, <:ECCO2Daily}) = all_dates(version, :temperature)
+all_dates(dataset::Union{<:ECCO4Monthly, <:ECCO2Monthly, <:ECCO2Daily}) = all_dates(dataset, :temperature)
 
-# File name generation specific to each Dataset version
+# File name generation specific to each Dataset dataset
 function metadata_filename(metadata::Metadata{<:AnyDateTime, <:ECCO4Monthly})
     shortname = short_name(metadata)
     yearstr  = string(Dates.year(metadata.dates))
@@ -58,9 +58,9 @@ function metadata_filename(metadata::Metadata{<:AnyDateTime, <:Union{ECCO2Daily,
     monthstr = string(Dates.month(metadata.dates), pad=2)
     postfix = variable_is_three_dimensional(metadata) ? ".1440x720x50." : ".1440x720."
 
-    if metadata.version isa ECCO2Monthly 
+    if metadata.dataset isa ECCO2Monthly 
         return shortname * postfix * yearstr * monthstr * ".nc"
-    elseif metadata.version isa ECCO2Daily
+    elseif metadata.dataset isa ECCO2Daily
         daystr = string(Dates.day(metadata.dates), pad=2)
         return shortname * postfix * yearstr * monthstr * daystr * ".nc"
     end
@@ -120,7 +120,7 @@ ECCO_location = Dict(
     :v_velocity            => (Center, Face,   Center),
 )
 
-# URLs for the ECCO datasets specific to each version
+# URLs for the ECCO datasets specific to each dataset
 urls(::Metadata{<:Any, <:ECCO2Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/monthly"
 urls(::Metadata{<:Any, <:ECCO2Daily})   = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/daily"
 urls(::Metadata{<:Any, <:ECCO4Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly"

@@ -2,6 +2,7 @@ include("runtests_setup.jl")
 
 using ClimaOcean.ECCO: metadata_path, ECCO4Monthly
 using ClimaOcean.JRA55: JRA55NetCDFBackend
+using Dates
 
 @testset "Availability of JRA55 data" begin
     @info "Testing that we can download all the JRA55 data..."
@@ -13,10 +14,10 @@ end
 @testset "Availability of ECCO data" begin
     @info "Testing that we can download ECCO data..."
     for variable in keys(ClimaOcean.ECCO.ECCO4_short_names)
-        metadata = Metadata(variable, dates=DateTimeProlepticGregorian(1993, 1, 1), version=ECCO4Monthly())
-        filepath = metadata_path(metadata)
+        metadatum = Metadatum(variable, date=DateTime(1993, 1, 1), dataset=ECCO4Monthly())
+        filepath = metadata_path(metadatum)
         isfile(filepath) && rm(filepath; force=true)
-        ClimaOcean.ECCO.download_dataset(metadata)
+        ClimaOcean.ECCO.download_dataset(metadatum)
     end
 end
 

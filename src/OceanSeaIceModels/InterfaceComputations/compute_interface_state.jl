@@ -113,6 +113,7 @@ and interior properties `ℙₛ`, `ℙₐ`, and `ℙᵢ`.
                                           Tₛ, qₛ, Δθ, Δq, Δh,
                                           approximate_interface_state,
                                           atmosphere_state,
+                                          interface_properties,
                                           atmosphere_properties)
 
     u = approximate_interface_state.u

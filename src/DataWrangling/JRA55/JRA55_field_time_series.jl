@@ -1,4 +1,5 @@
 using ClimaOcean.DataWrangling: all_dates, native_times
+using ClimaOcean.DataWrangling: compute_native_date_range
 using Oceananigans.Grids: AbstractGrid
 using Oceananigans.OutputReaders: PartlyInMemory
 
@@ -141,8 +142,8 @@ new_backend(::JRA55NetCDFBackend, start, length) = JRA55NetCDFBackend(start, len
 
 """
     JRA55FieldTimeSeries(variable_name, [FT = Float32];
-                         version = JRA55RepeatYear(),
-                         dates = all_JRA55_dates(version),
+                         dataset = JRA55RepeatYear(),
+                         dates = all_JRA55_dates(dataset),
                          latitude = nothing,
                          longitude = nothing,
                          dir = download_JRA55_cache,
@@ -181,9 +182,9 @@ Keyword arguments
 
 - `dates`: The date(s) of the metadata. Note this can either be a single date,
            representing a snapshot, or a range of dates, representing a time-series.
-           Default: `all_dates(version, name)` (see `all_dates`).
+           Default: `all_dates(dataset, name)` (see `all_dates`).
 
-- `version`: The data version. The only supported versions is `JRA55RepeatYear()`
+- `dataset`: The data dataset. The only supported datasets is `JRA55RepeatYear()`
 
 - `dir`: The directory of the data file. Default: `ClimaOcean.JRA55.download_JRA55_cache`.
 
@@ -201,12 +202,12 @@ Keyword arguments
              Default: `InMemory()`.
 """
 function JRA55FieldTimeSeries(variable_name::Symbol, architecture = CPU(), FT=Float32;
-                              version = JRA55RepeatYear(),
-                              dates = all_dates(version, variable_name),
+                              dataset = JRA55RepeatYear(),
+                              dates = all_dates(dataset, variable_name),
                               dir = download_JRA55_cache,
                               kw...)
 
-    metadata = Metadata(variable_name, dates, version, dir)
+    metadata = Metadata(variable_name, dates, dataset, dir)
 
     return JRA55FieldTimeSeries(metadata, architecture, FT; kw...)
 end
@@ -221,13 +222,13 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
     download_dataset(metadata)
 
     # Unpack metadata details
-    version = metadata.version
+    dataset = metadata.dataset
     name    = metadata.name
-    time_indices = JRA55_time_indices(version, metadata.dates, name)
+    time_indices = JRA55_time_indices(dataset, metadata.dates, name)
 
     # Change the metadata to reflect the actual time indices
-    dates    = all_dates(version, name)[time_indices]
-    metadata = Metadata(metadata.name, dates, metadata.version, metadata.dir)
+    dates    = all_dates(dataset, name)[time_indices]
+    metadata = Metadata(metadata.name, dates, metadata.dataset, metadata.dir)
 
     shortname = short_name(metadata)
     variable_name = metadata.name

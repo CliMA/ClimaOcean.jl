@@ -43,8 +43,8 @@ end
                                  closure = nothing,
                                  bottom_drag_coefficient = 0.0)
 
-        dates = all_dates(JRA55RepeatYear(), :temperature)[1:2]
-        atmosphere = JRA55PrescribedAtmosphere(arch, Float64; dates, backend = InMemory()) 
+        dates = all_dates(JRA55RepeatYear(), :temperature)
+        atmosphere = JRA55PrescribedAtmosphere(arch, Float64; end_date=dates[2], backend = InMemory()) 
         
         CUDA.@allowscalar begin
             h  = atmosphere.surface_layer_height
@@ -230,8 +230,8 @@ end
 
         ocean = ocean_simulation(grid; momentum_advection, tracer_advection, closure, tracers, coriolis)
 
-        T_metadata = Metadata(:temperature, dates=DateTimeProlepticGregorian(1993, 1, 1), version=ECCO4Monthly())
-        S_metadata = Metadata(:salinity,  dates=DateTimeProlepticGregorian(1993, 1, 1), version=ECCO4Monthly())
+        T_metadata = Metadatum(:temperature, date=DateTime(1993, 1, 1), dataset=ECCO4Monthly())
+        S_metadata = Metadatum(:salinity,  date=DateTime(1993, 1, 1), dataset=ECCO4Monthly())
 
         set!(ocean.model; T=T_metadata, S=S_metadata)
 
