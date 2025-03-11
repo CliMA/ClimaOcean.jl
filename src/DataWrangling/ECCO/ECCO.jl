@@ -88,7 +88,7 @@ const ECCO_z = [
       0.0,
 ]
 
-empty_ECCO_field(variable_name::Symbol; kw...) = empty_ECCO_field(ECCOMetadata(variable_name); kw...)
+empty_ECCO_field(variable_name::Symbol; kw...) = empty_ECCO_field(Metadatum(variable_name, dataset=ECCO4Monthly()); kw...)
 
 function empty_ECCO_field(metadata::ECCOMetadata;
                           architecture = CPU(), 
