@@ -373,6 +373,20 @@ end
             update_field_time_series!(fts, time)
         end    
     end
+
+    return nothing
+end
+
+@inline function time_step!(atmos::PrescribedAtmosphere, Δt)
+    tick!(atmos.clock, Δt)
+
+    time = Time(atmos.clock.time)
+    ftses = extract_field_time_series(atmos)
+
+    for fts in ftses
+        update_field_time_series!(fts, time)
+    end    
+    
     return nothing
 end
 
@@ -450,4 +464,3 @@ Adapt.adapt_structure(to, tsdr::TwoBandDownwellingRadiation) =
                                 adapt(to, tsdr.longwave))
 
 end # module
-

@@ -37,8 +37,16 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
 
     # TODO after ice time-step:
     #  - Adjust ocean heat flux if the ice completely melts?
+<<<<<<< HEAD
     ocean.Δt = Δt
     time_step!(ocean.model, Δt; kw...)
+=======
+
+    ocean.Δt = Δt
+    time_step!(ocean, Δt)
+
+    @warn "I am time stepping the atmosphere"
+>>>>>>> 96bc51183104cfa924d741480c464c03968231f5
     # Time step the atmosphere
     time_step!(atmosphere, coupled_model, Δt)
 
