@@ -180,9 +180,9 @@ Keyword arguments
 
 - `architecture`: Architecture for the `FieldTimeSeries`. Default: CPU()
 
-- `dates`: The date(s) of the metadata. Note this can either be a single date,
-           representing a snapshot, or a range of dates, representing a time-series.
-           Default: `all_dates(dataset, name)` (see `all_dates`).
+- `start_date`: The starting date to use for the ECCO dataset. Default: `first_date(dataset, variable_name)`.
+
+- `end_date`: The ending date to use for the ECCO dataset. Default: `end_date(dataset, variable_name)`.
 
 - `dataset`: The data dataset. The only supported datasets is `JRA55RepeatYear()`
 
@@ -203,9 +203,13 @@ Keyword arguments
 """
 function JRA55FieldTimeSeries(variable_name::Symbol, architecture = CPU(), FT=Float32;
                               dataset = JRA55RepeatYear(),
-                              dates = all_dates(dataset, variable_name),
+                              start_date = first_date(dataset, variable_name),
+                              end_date = last_date(dataset, variable_name),
                               dir = download_JRA55_cache,
                               kw...)
+
+    native_dates = all_dates(dataset, variable_name)
+    dates = compute_native_date_range(native_dates, start_date, end_date)                          
 
     metadata = Metadata(variable_name, dates, dataset, dir)
 

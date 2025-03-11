@@ -23,8 +23,8 @@ Arguments
 
 Keyword Arguments
 =================
-- `dates`: The dates of the dataset, in a `AbstractCFDateTime` format.. Note this can either be a single date,
-           representing a snapshot, or a range of dates, representing a time-series.
+- `dates`: The dates of the dataset, in a `AbstractCFDateTime` format.. Note this can either be a range or a vector of dates, 
+           representing a time-series. For a single date, use the [`Metadatum`](@ref) constructor .
 - `dataset`: The dataset of the dataset. Supported datasets are `ECCO2Monthly()`, `ECCO2Daily()`, `ECCO4Monthly()`,
              `JRA55RepeatYear()`, or `JRA55MultipleYears()`.
 - `dir`: The directory where the dataset is stored.
@@ -40,7 +40,14 @@ end
 const AnyDateTime = Union{AbstractCFDateTime, Dates.AbstractDateTime}
 const Metadatum   = Metadata{<:AnyDateTime}
 
-# A constructor for a single date
+"""
+    Metadatum(variable_name;
+                   dataset,
+                   date=first_date(dataset, variable_name),
+                   dir=default_download_folder(dataset))
+
+Specific constructor for a `Metadata` object with a single date, representative of a snapshot in time.
+"""
 function Metadatum(variable_name;
                    dataset,
                    date=first_date(dataset, variable_name),
@@ -142,7 +149,8 @@ end_date(dataset, variable_name) = last(all_dates(dataset, variable_name))
 """
     metadata_filename(metadata)
 
-# File names of metadata containing multiple dates
+File names of metadata containing multiple dates. The specific version for a `Metadatum` object is 
+extended in the data specific modules.
 """
 metadata_filename(metadata) = [metadata_filename(metadatum) for metadatum in metadata]
 
