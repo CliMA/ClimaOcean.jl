@@ -198,7 +198,7 @@ function atmosphere_sea_ice_interface(sea_ice::SeaIceSimulation,
                                      temperature_formulation,
                                      velocity_formulation)
 
-    interface_temperature = sea_ice.model.thermodynamics.top_surface_temperature
+    interface_temperature = sea_ice.model.ice_thermodynamics.top_surface_temperature
 
     return AtmosphereInterface(fluxes, ai_flux_formulation, interface_temperature, properties)
 end
