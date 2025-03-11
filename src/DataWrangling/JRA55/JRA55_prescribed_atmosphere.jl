@@ -16,15 +16,7 @@ JRA55PrescribedAtmosphere(arch::Distributed, FT = Float32; kw...) =
                               other_kw...)
 
 Return a [`PrescribedAtmosphere`](@ref) representing JRA55 reanalysis data.
-The atmospheric data will be held in `JRA55FieldTimeSeries` objects containing:
-
-- velocities (`ua`, `va`)
-- tracers (`Ta`, `qa`)
-- pressure (`pa`)
-- freshwater fluxes (`Fra`, `Fsn`)
-- downwelling radiation (`Ql`, `Qs`)
-- auxiliary freshwater fluxes (`Fri`, `Fic`) if `include_rivers_and_icebergs` is `true`
-
+The atmospheric data will be held in `JRA55FieldTimeSeries` objects containing.
 For a detailed description of the keyword arguments, see the [`JRA55FieldTimeSeries`](@ref) constructor.
 """
 function JRA55PrescribedAtmosphere(architecture = CPU(), FT = Float32;
