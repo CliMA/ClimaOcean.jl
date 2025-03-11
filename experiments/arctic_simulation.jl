@@ -49,8 +49,8 @@ ocean = ocean_simulation(grid;
                          free_surface,
                          closure)
 
-set!(ocean.model, T=ECCOMetadata(:temperature),
-                  S=ECCOMetadata(:salinity))
+set!(ocean.model, T=Metadata(:temperature),
+                  S=Metadata(:salinity))
 
 #####
 ##### A Prognostic Sea-ice model
