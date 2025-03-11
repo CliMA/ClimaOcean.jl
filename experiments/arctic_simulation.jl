@@ -49,8 +49,10 @@ ocean = ocean_simulation(grid;
                          free_surface,
                          closure)
 
-set!(ocean.model, T=Metadata(:temperature),
-                  S=Metadata(:salinity))
+dataset = ECCO4Monthly()
+
+set!(ocean.model, T=Metadata(:temperature; dataset),
+                  S=Metadata(:salinity;    dataset))
 
 #####
 ##### A Prognostic Sea-ice model
@@ -80,8 +82,8 @@ dynamics = SeaIceMomentumEquation(grid;
 
 sea_ice = sea_ice_simulation(grid; bottom_heat_boundary_condition, dynamics, advection=WENO(order=7)) 
 
-set!(sea_ice.model, h=Metadata(:sea_ice_thickness), 
-                    ℵ=Metadata(:sea_ice_concentration))
+set!(sea_ice.model, h=Metadata(:sea_ice_thickness;     dataset), 
+                    ℵ=Metadata(:sea_ice_concentration; dataset))
 
 ##### 
 ##### A Prescribed Atmosphere model
