@@ -5,7 +5,7 @@ using Dates
 using ClimaOcean
 
 using ClimaOcean.ECCO
-using ClimaOcean.ECCO: ECCO_field, metadata_path, ECCO_times
+using ClimaOcean.ECCO: ECCO_field, metadata_path, native_times
 using ClimaOcean.DataWrangling: NearestNeighborInpainting
 
 using Oceananigans.Grids: topology
@@ -27,7 +27,7 @@ inpainting = NearestNeighborInpainting(2)
         A = typeof(arch)
         for name in (:temperature, :salinity)
             @info "Testing ECCO_field on $A..."
-            metadata = ECCOMetadata(name, dates, ECCO4Monthly())
+            metadata = Metadata(name; dates, dataset=ECCO4Monthly())
             restoring = ECCORestoring(metadata; rate=1/1000, inpainting)
 
             for datum in metadata 
@@ -47,8 +47,8 @@ inpainting = NearestNeighborInpainting(2)
             @test Nz == size(metadata)[3]
             @test Nt == size(metadata)[4]
 
-            @test fts.times[1] == ECCO_times(metadata)[1]
-            @test fts.times[end] == ECCO_times(metadata)[end]
+            @test fts.times[1] == native_times(metadata)[1]
+            @test fts.times[end] == native_times(metadata)[end]
 
             datum = first(metadata)
             ψ = ECCO_field(datum, architecture=arch, inpainting=NearestNeighborInpainting(2))
@@ -60,7 +60,7 @@ end
 
 @testset "Inpainting algorithm" begin
     for arch in test_architectures
-        T_metadata = ECCOMetadata(:temperature, dates[1], ECCO4Monthly())
+        T_metadata = Metadata(:temperature; dates=dates[1], dataset=ECCO4Monthly())
 
         grid = LatitudeLongitudeGrid(arch,
                                      size = (100, 100, 10),
@@ -134,8 +134,8 @@ end
         field = CenterField(grid)
 
         @test begin
-            set!(field, ECCOMetadata(:temperature))
-            set!(field, ECCOMetadata(:salinity))
+            set!(field, Metadata(:temperature, dates=start_date, dataset=ECCO4Monthly()))
+            set!(field, Metadata(:salinity, dates=start_date, dataset=ECCO4Monthly()))
             true
         end
     end
@@ -154,8 +154,8 @@ end
         field = CenterField(grid)
 
         @test begin
-            set!(field, ECCOMetadata(:temperature))
-            set!(field, ECCOMetadata(:salinity))
+            set!(field, Metadata(:temperature, dates=start_date, dataset=ECCO4Monthly()))
+            set!(field, Metadata(:salinity, dates=start_date, dataset=ECCO4Monthly()))
             true
         end
 
@@ -183,7 +183,8 @@ end
 
         ocean = ocean_simulation(grid)
         date = DateTimeProlepticGregorian(1993, 1, 1)
-        set!(ocean.model, T=ECCOMetadata(:temperature, date), S=ECCOMetadata(:salinity, date))
+        set!(ocean.model, T=Metadata(:temperature; dates=start_date, dataset=ECCO4Monthly()), 
+                          S=Metadata(:salinity; dates=start_date, dataset=ECCO4Monthly()))
     end
 end
 
@@ -200,10 +201,12 @@ end
         end_date = DateTimeProlepticGregorian(1993, 5, 1)
         dates = start_date : Month(1) : end_date
 
-        T_restoring = ECCORestoring(:temperature, arch; dates, inpainting,
-                                    rate = 1/1000)
-                                    
-        times = ECCO_times(T_restoring.field_time_series.backend.metadata)
+        T_restoring = ECCORestoring(:temperature, arch;
+                                    dates,
+                                    rate = 1 / 1000.0,
+                                    inpainting)
+
+        times = native_times(T_restoring.field_time_series.backend.metadata)
         ocean = ocean_simulation(grid, forcing = (; T = T_restoring))
 
         ocean.model.clock.time = times[3] + 2 * Units.days

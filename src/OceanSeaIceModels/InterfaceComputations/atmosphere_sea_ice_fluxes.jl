@@ -39,7 +39,7 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
     ocean_properties = coupled_model.interfaces.ocean_properties
 
     atmosphere_properties = (thermodynamics_parameters = atmosphere.thermodynamics_parameters,
-                             reference_height = atmosphere.reference_height)
+                             surface_layer_height = atmosphere.surface_layer_height)
 
     kernel_parameters = interface_kernel_parameters(grid)
 
@@ -108,7 +108,7 @@ end
     #   ⋅ 𝒰 ≡ "dynamic" state vector (thermodynamics + reference height + velocity)
     ℂₐ = atmosphere_properties.thermodynamics_parameters
     𝒬ₐ = thermodynamic_atmospheric_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₐ, qₐ)
-    zₐ = atmosphere_properties.reference_height # elevation of atmos variables relative to interface
+    zₐ = atmosphere_properties.surface_layer_height # elevation of atmos variables relative to interface
 
     local_atmosphere_state = (z = zₐ,
                               u = uₐ,
@@ -129,10 +129,13 @@ end
     # Guess
     Sₛ = zero(FT) # what should we use for interface salinity?
     initial_interface_state = InterfaceState(u★, u★, u★, uᵢ, vᵢ, Tₛ, Sₛ, convert(FT, qₛ))
-    land = inactive_node(i, j, kᴺ, grid, Center(), Center(), Center())
+    not_water = inactive_node(i, j, kᴺ, grid, Center(), Center(), Center())
     ice_free = ℵᵢ == 0
 
-    if (land | ice_free)
+    stop_criteria = turbulent_flux_formulation.solver_stop_criteria
+    needs_to_converge = stop_criteria isa ConvergenceStopCriteria
+
+    if (needs_to_converge && not_water) || ice_free
         interface_state = InterfaceState(zero(FT), zero(FT), zero(FT), uᵢ, vᵢ, Tᵢ, Sₛ, zero(FT))
     else
         interface_state = compute_interface_state(turbulent_flux_formulation,
@@ -150,7 +153,7 @@ end
     q★ = interface_state.q★
     Ψₛ = interface_state
     Ψₐ = local_atmosphere_state
-    Δu, Δv = velocity_difference(turbulent_flux_formulation.bulk_velocity, Ψₐ, Ψₛ)
+    Δu, Δv = velocity_difference(interface_properties.velocity_formulation, Ψₐ, Ψₛ)
     ΔU = sqrt(Δu^2 + Δv^2)
     τx = - u★^2 * Δu / ΔU
     τy = - u★^2 * Δv / ΔU
