@@ -12,6 +12,7 @@ using Printf
 
 using CUDA
 CUDA.device!(1)
+arch = GPU()
 
 r_faces = ClimaOcean.exponential_z_faces(; Nz=30, h=10, depth=2000)
 z_faces = MutableVerticalDiscretization(r_faces)
@@ -20,13 +21,13 @@ Nx = 180 # longitudinal direction -> 250 points is about 1.5ᵒ resolution
 Ny = 180 # meridional direction -> same thing, 48 points is about 1.5ᵒ resolution
 Nz = length(r_faces) - 1
 
-grid = RotatedLatitudeLongitudeGrid(GPU(), size = (Nx, Ny, Nz), 
-                                           latitude = (-45, 45),
-                                           longitude = (-45, 45),
-                                           z = r_faces,
-                                           north_pole = (180, 0),
-                                           halo = (5, 5, 4),
-                                           topology = (Bounded, Bounded, Bounded))
+grid = RotatedLatitudeLongitudeGrid(arch, size = (Nx, Ny, Nz), 
+                                          latitude = (-45, 45),
+                                          longitude = (-45, 45),
+                                          z = r_faces,
+                                          north_pole = (180, 0),
+                                          halo = (5, 5, 4),
+                                          topology = (Bounded, Bounded, Bounded))
 
 bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1)
 
@@ -89,7 +90,7 @@ set!(sea_ice.model, h=Metadata(:sea_ice_thickness;     dataset),
 ##### A Prescribed Atmosphere model
 #####
 
-atmosphere = JRA55PrescribedAtmosphere(GPU(); backend=JRA55NetCDFBackend(40))
+atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(40))
 radiation  = Radiation()
 
 #####
