@@ -29,9 +29,9 @@ Base.size(::JRA55Metadatum)    = (640, 320, 1)
 # NOTE! rivers and icebergs have a different frequency! (typical JRA55 data is three-hourly while rivers and icebergs are daily)
 function all_dates(::JRA55RepeatYear, name)   
     if name == :river_freshwater_flux || name == :iceberg_freshwater_flux
-        return DateTime(1990, 1, 1) : Day(1) : DateTime(1990, 12, 31)
+        return DateTime(1990, 5, 1) : Day(1) : DateTime(1991, 4, 30)
     else
-        return DateTime(1990, 1, 1) : Hour(3) : DateTime(1990, 12, 31, 23, 59, 59)
+        return DateTime(1990, 5, 1) : Hour(3) : DateTime(1991, 4, 30, 23, 59, 59)
     end
 end
 
