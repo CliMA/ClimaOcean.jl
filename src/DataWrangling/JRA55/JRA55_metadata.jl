@@ -2,6 +2,8 @@ using CFTime
 using Dates
 using Downloads
 
+using Oceananigans.DistributedComputations
+
 using ClimaOcean.DataWrangling
 using ClimaOcean.DataWrangling: Metadata, metadata_path, download_progress, AnyDateTime
 
