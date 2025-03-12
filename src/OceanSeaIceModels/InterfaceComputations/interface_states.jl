@@ -214,8 +214,8 @@ end
     h = Ψᵢ.h
 
     # Bottom temperature at the melting temperature
-    Tₘ = ClimaSeaIce.SeaIceThermodynamics.melting_temperature(ℙᵢ.liquidus, Ψᵢ.S)
-    Tₘ = convert_to_kelvin(ℙᵢ.temperature_units, Tₘ)
+    Tᵢ  = ClimaSeaIce.SeaIceThermodynamics.melting_temperature(ℙᵢ.liquidus, Ψᵢ.S)
+    Tᵢ  = convert_to_kelvin(ℙᵢ.temperature_units, Tᵢ)
     Tₛ⁻ = Ψₛ.T
 
     #=
@@ -226,9 +226,6 @@ end
     =#
 
     T★ = Tᵢ - Qₐ * h / k
-
-    Tₘ = ℙᵢ.liquidus.freshwater_melting_temperature
-    Tₘ = convert_to_kelvin(ℙᵢ.temperature_units, Tₘ)
 
     # Fix a NaN
     T★ = ifelse(isnan(T★), Tₛ⁻, T★)
@@ -241,6 +238,8 @@ end
     Tₛ⁺ = Tₛ⁻ + abs_ΔT * sign(ΔT★)
 
     # Under heating fluxes, cap surface temperature by melting temperature
+    Tₘ = ℙᵢ.liquidus.freshwater_melting_temperature
+    Tₘ = convert_to_kelvin(ℙᵢ.temperature_units, Tₘ)
     Tₛ⁺ = min(Tₛ⁺, Tₘ)
 
     return Tₛ⁺
