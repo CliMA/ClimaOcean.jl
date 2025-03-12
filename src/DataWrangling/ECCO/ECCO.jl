@@ -5,7 +5,6 @@ export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
 export ECCOFieldTimeSeries, ECCORestoring, LinearlyTaperedPolarMask
 
 using ClimaOcean
-using ClimaOcean.DistributedUtils
 using ClimaOcean.DataWrangling
 using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, download_progress
 using ClimaOcean.InitialConditions: three_dimensional_regrid!, interpolate!
