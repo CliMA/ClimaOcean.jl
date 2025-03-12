@@ -2,6 +2,8 @@
 ##### Solver stop criteria
 #####
 
+abstract type AbstractIterativeSolver{S} end
+
 struct ConvergenceStopCriteria{FT}
     tolerance :: FT     
     maxiter :: Int
@@ -28,7 +30,8 @@ end
 #####
 
 # Iterating condition for the characteristic scales solvers
-@inline function compute_interface_state(flux_formulation,
+@inline function compute_interface_state(flux_formulation::AbstractIterativeSolver,
+                                         stop_condition,     
                                          initial_interface_state,
                                          atmosphere_state,
                                          interior_state,
@@ -37,21 +40,29 @@ end
                                          atmosphere_properties,
                                          interior_properties)
 
+
+    stop_criteria = flux_formulation.solver_stop_criteria
+    needs_to_converge = stop_criteria isa ConvergenceStopCriteria
+
     Ψₐ = atmosphere_state
     Ψᵢ = interior_state
     Ψₛⁿ = Ψₛ⁻ = initial_interface_state
     stop_criteria = flux_formulation.solver_stop_criteria
     iteration = 0
 
-    while iterating(Ψₛⁿ, Ψₛ⁻, iteration, stop_criteria)
-        Ψₛ⁻ = Ψₛⁿ
-        Ψₛⁿ = iterate_interface_state(flux_formulation,
-                                      Ψₛ⁻, Ψₐ, Ψᵢ,
-                                      downwelling_radiation,
-                                      interface_properties,
-                                      atmosphere_properties,
-                                      interior_properties)
-        iteration += 1
+    if needs_to_converge && stop_condition
+        Ψₛⁿ = zero_interface_state(FT)
+    else
+        while iterating(Ψₛⁿ, Ψₛ⁻, iteration, stop_criteria)
+            Ψₛ⁻ = Ψₛⁿ
+            Ψₛⁿ = iterate_interface_state(flux_formulation,
+                                          Ψₛ⁻, Ψₐ, Ψᵢ,
+                                          downwelling_radiation,
+                                          interface_properties,
+                                          atmosphere_properties,
+                                          interior_properties)
+            iteration += 1
+        end
     end
 
     return Ψₛⁿ
