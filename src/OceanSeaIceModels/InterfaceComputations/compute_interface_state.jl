@@ -31,7 +31,7 @@ end
 
 # Iterating condition for the characteristic scales solvers
 @inline function compute_interface_state(flux_formulation::AbstractIterativeSolver,
-                                         stop_condition,     
+                                         need_to_iterate, # Bool -> do we need to iterate or not?
                                          initial_interface_state,
                                          atmosphere_state,
                                          interior_state,
@@ -50,7 +50,7 @@ end
     stop_criteria = flux_formulation.solver_stop_criteria
     iteration = 0
 
-    if needs_to_converge && stop_condition
+    if needs_to_converge && !need_to_iterate
         Ψₛⁿ = zero_interface_state(FT)
     else
         while iterating(Ψₛⁿ, Ψₛ⁻, iteration, stop_criteria)

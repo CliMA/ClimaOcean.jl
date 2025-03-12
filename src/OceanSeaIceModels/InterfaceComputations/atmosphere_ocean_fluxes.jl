@@ -117,10 +117,10 @@ end
     initial_interface_state = InterfaceState(u★, u★, u★, uᵢ, vᵢ, Tᵢ, Sᵢ, qₛ)
 
     # Don't use convergence criteria in an inactive cell
-    not_water = inactive_node(i, j, kᴺ, grid, Center(), Center(), Center())
+    is_water = !(inactive_node(i, j, kᴺ, grid, Center(), Center(), Center()))
     
     interface_state = compute_interface_state(turbulent_flux_formulation,
-                                              not_water,
+                                              is_water,
                                               initial_interface_state,
                                               local_atmosphere_state,
                                               local_interior_state,

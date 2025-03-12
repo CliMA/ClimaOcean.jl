@@ -131,11 +131,10 @@ end
     initial_interface_state = InterfaceState(u★, u★, u★, uᵢ, vᵢ, Tₛ, Sₛ, convert(FT, qₛ))
     not_water = inactive_node(i, j, kᴺ, grid, Center(), Center(), Center())
     ice_free = ℵᵢ == 0
-
-   stop_condition = (not_water || ice_free)
+    is_ice = !(not_water || ice_free)
 
     interface_state = compute_interface_state(turbulent_flux_formulation,
-                                              stop_condition,
+                                              is_ice,
                                               initial_interface_state,
                                               local_atmosphere_state,
                                               local_interior_state,
@@ -143,7 +142,7 @@ end
                                               interface_properties,
                                               atmosphere_properties,
                                               sea_ice_properties)
-                                              
+
     u★ = interface_state.u★
     θ★ = interface_state.θ★
     q★ = interface_state.q★
