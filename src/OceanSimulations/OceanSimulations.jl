@@ -8,7 +8,7 @@ using Oceananigans.Utils: with_tracers
 using Oceananigans.Advection: FluxFormAdvection
 using Oceananigans.BoundaryConditions: DefaultBoundaryCondition
 using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node, MutableGridOfSomeKind
-using OrthogonalSphericalShellGrids
+using Oceananigans.OrthogonalSphericalShellGrids
 
 using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities:
     CATKEVerticalDiffusivity,

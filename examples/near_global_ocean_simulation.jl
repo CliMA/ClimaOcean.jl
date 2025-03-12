@@ -14,6 +14,7 @@
 # including grid setup, physical processes modeling, and data visualization.
 
 using ClimaOcean
+using ClimaOcean.ECCO
 using Oceananigans
 using Oceananigans.Units
 using CairoMakie

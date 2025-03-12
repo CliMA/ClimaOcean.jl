@@ -2,7 +2,7 @@ using Oceananigans.DistributedComputations: DistributedGrid, all_reduce
 using Oceananigans.Architectures: architecture
 using Oceananigans.BoundaryConditions: DefaultBoundaryCondition
 using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node, MutableGridOfSomeKind
-using OrthogonalSphericalShellGrids
+using Oceananigans.OrthogonalSphericalShellGrids
 
 using Oceananigans.TurbulenceClosures: VerticallyImplicitTimeDiscretization
 

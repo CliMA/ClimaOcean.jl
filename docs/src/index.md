@@ -49,7 +49,7 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bathymetry))
 
 # Build an ocean simulation initialized to the ECCO state estimate on Jan 1, 1993
 ocean = ClimaOcean.ocean_simulation(grid)
-date  = DateTimeProlepticGregorian(1993, 1, 1)
+date  = DateTime(1993, 1, 1)
 set!(ocean.model, T = ClimaOcean.ECCOMetadata(:temperature; date),
                   S = ClimaOcean.ECCOMetadata(:salinity; date))
 
