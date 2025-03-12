@@ -58,9 +58,9 @@ end
                                         z = (0, 1))
 
     global_height = regrid_bathymetry(global_grid; 
-                                    dir = "./",
-                                    filename = "trivial_bathymetry.nc",
-                                    interpolation_passes=10)
+                                      dir = "./",
+                                      filename = "trivial_bathymetry.nc",
+                                      interpolation_passes=10)
 
     arch_x  = Distributed(CPU(), partition=Partition(4, 1))
     arch_y  = Distributed(CPU(), partition=Partition(1, 4))
