@@ -215,7 +215,7 @@ end
 
     # Bottom temperature at the melting temperature
     Tₘ = ClimaSeaIce.SeaIceThermodynamics.melting_temperature(ℙᵢ.liquidus, Ψᵢ.S)
-    Tₘ = convert_to_kelvin(ℙᵢ.temperature_units, Tᵢ)
+    Tₘ = convert_to_kelvin(ℙᵢ.temperature_units, Tₘ)
     Tₛ⁻ = Ψₛ.T
 
     #=
