@@ -19,17 +19,18 @@ struct PrescribedOcean{A, G, C, U, T, F} <: AbstractModel{Nothing}
     timeseries :: F
 end
 
-function PrescribedOcean(timeseries; 
+function PrescribedOcean(timeseries=NamedTuple(); 
                          grid, 
                          clock=Clock{Float64}(time = 0)) 
 
     # Make sure all elements of the timeseries are on the same grid
-    for (k, v) in timeseries
-        if !isa(v, FieldTimeSeries)
-            throw(ArgumentError("All variables in the `timeseries` argument must be `FieldTimeSeries`"))
-        end
-        if v.grid != grid
-            throw(ArgumentError("All variables in the timeseries reside on the provided grid"))
+    # If we decide to pass a timeseries
+    if !isempty(timeseries)
+        for (k, v) in timeseries
+            isa(v, FieldTimeSeries) ||
+                throw(ArgumentError("All variables in the `timeseries` argument must be `FieldTimeSeries`"))
+            v.grid == grid ||
+                throw(ArgumentError("All variables in the timeseries reside on the provided grid"))
         end
     end
 
@@ -66,10 +67,10 @@ function time_step!(model::PrescribedOcean, Δt; callbacks=[], euler=true)
     update_temperature = haskey(model.timeseries, :T)
     update_salinity    = haskey(model.timeseries, :S)
 
-    update_u_velocity  && iterpolate!(model.velocities.u, model.timeseries.u[time])
-    update_v_velocity  && iterpolate!(model.velocities.v, model.timeseries.v[time])
-    update_temperature && iterpolate!(model.tracers.T,    model.timeseries.T[time])
-    update_salinity    && iterpolate!(model.tracers.S,    model.timeseries.S[time])
+    update_u_velocity  && parent(model.velocities.u) .= parent(model.timeseries.u[time])
+    update_v_velocity  && parent(model.velocities.v) .= parent(model.timeseries.v[time])
+    update_temperature && parent(model.tracers.T)    .= parent(model.timeseries.T[time])
+    update_salinity    && parent(model.tracers.S)    .= parent(model.timeseries.S[time])
 
     return nothing
 end
