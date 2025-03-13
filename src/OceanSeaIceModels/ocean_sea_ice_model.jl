@@ -1,5 +1,3 @@
-export run_coupled!
-
 using Oceananigans
 using Oceananigans.OutputWriters: checkpoint_path
 using Oceananigans.TimeSteppers: Clock
@@ -32,19 +30,6 @@ end
 
 const OSIM = OceanSeaIceModel
 const OSIMSIM = Simulation{<:OceanSeaIceModel}
-
-function run_coupled!(sim::OSIMSIM; pickup)    
-    if pickup
-        checkpoint_file_path = checkpoint_path(pickup, sim.model.ocean.output_writers)
-        set!(sim.model.ocean, checkpoint_file_path)
-        # Setting the atmosphere time to the ocean time
-        sim.model.atmosphere.clock.time = sim.model.ocean.model.clock.time
-    end
-
-    @show sim.model.clock.time
-    run!(sim)
-end
-
 
 function Base.summary(model::OSIM)
     A = nameof(typeof(architecture(model)))
@@ -130,7 +115,7 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(
         pop!(ocean.callbacks, :wall_time_limit_exceeded, nothing)
         pop!(ocean.callbacks, :nan_checker, nothing)
     end
-    
+
     if sea_ice isa SeaIceSimulation
         if !isnothing(sea_ice.callbacks)
             pop!(sea_ice.callbacks, :stop_time_exceeded, nothing)
