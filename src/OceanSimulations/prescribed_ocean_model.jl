@@ -1,3 +1,4 @@
+using Oceananigans.Models: AbstractModel
 using Oceananigans.OutputReaders: extract_field_time_series, update_field_time_series!
 
 import Oceananigans.TimeSteppers: time_step!, update_state!, reset!, tick!
