@@ -1,4 +1,3 @@
-#=
 using ClimaOcean
 using Oceananigans
 using Oceananigans.Units
@@ -26,17 +25,19 @@ ocean = ocean_simulation(grid)
 #                   S=ECCOMetadata(:salinity; dates=date))
 
 radiation = Radiation(arch)
-=#
+
 atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(41))
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 
-simulation = Simulation(coupled_model; Δt=10, stop_iteration=50)
+simulation = Simulation(coupled_model; Δt=10, stop_iteration=8)
 
 wall_time = Ref(time_ns())
 
 function progress(sim)
     ocean = sim.model.ocean
+    atmosphere = sim.model.atmosphere
+
     u, v, w = ocean.model.velocities
     T = ocean.model.tracers.T
 
@@ -49,7 +50,7 @@ function progress(sim)
 
     step_time = 1e-9 * (time_ns() - wall_time[])
 
-    msg = @sprintf("Iter: %d, simulation time: %s, atmosphere time: %s, Δt: %s", iteration(sim), prettytime(sim), prettytime(atmosphere.clock.time), prettytime(sim.Δt))
+    msg = @sprintf("Iter: %d, sim time: %s, atmos time: %s, ocean time: %s", iteration(sim), sim.model.clock.time, atmosphere.clock.time, ocean.model.clock.time)
     msg *= @sprintf(", max|u|: (%.2e, %.2e, %.2e) m s⁻¹, extrema(T): (%.2f, %.2f) ᵒC, wall time: %s",
                     umax..., Tmax, Tmin, prettytime(step_time))
 
@@ -64,7 +65,7 @@ outputs = merge(ocean.model.tracers, ocean.model.velocities)
 
 simulation.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
                                                        schedule = IterationInterval(2),
-                                                       filename = "checkpointer_mwe_surface",
+                                                       filename = "surface",
                                                        indices = (:, :, grid.Nz),
                                                        with_halos = true,
                                                        overwrite_existing = true,
@@ -73,31 +74,15 @@ simulation.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
 output_dir = "."
 prefix = "checkpointer_mwe"
 
-ocean.output_writers[:checkpoint] = Checkpointer(ocean.model;
-                                                      schedule = IterationInterval(2),
+simulation.output_writers[:checkpoint] = Checkpointer(ocean.model;
+                                                      schedule = IterationInterval(3),
                                                       prefix = prefix,
                                                       dir = output_dir,
                                                       verbose = true,
                                                       overwrite_existing = true)
 
-# @show simulation
+run!(simulation)
 
-using ClimaOcean.OceanSeaIceModels: OceanSeaIceModel, OSIMSIM
-import Oceananigans.OutputWriters: write_output!
-import Oceananigans.Simulations: pickup!
-
-write_output!(c::Checkpointer, model::OceanSeaIceModel) = write_output!(c::Checkpointer, model.ocean.model)
-
-function pickup!(sim::OSIMSIM, pickup)
-    @info "i try to properly pick up"
-    set!(sim.model.ocean, pickup)
-    return nothing
-end
-
-# run!(simulation)
-
-# @info "simulation run for 10 iterations; you should have a checkpointer at 8"
-
-# simulation.stop_iteration = 20
+simulation.stop_iteration += 5
 
 run!(simulation, pickup=true)
