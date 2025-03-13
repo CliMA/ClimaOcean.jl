@@ -91,7 +91,7 @@ ocean.output_writers[:checkpoint] = Checkpointer(ocean.model;
 
 # @show simulation
 
-run_coupled!(simulation, pickup=true)
+run!(simulation)
 
 # @info "simulation run for 10 iterations; you should have a checkpointer at 8"
 
