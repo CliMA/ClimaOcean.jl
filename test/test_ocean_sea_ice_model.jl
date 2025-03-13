@@ -66,10 +66,17 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
         ##### Coupled ocean-sea ice and prescribed atmosphere
         #####
 
-        sea_ice_grid = TripolarGrid(arch; size=(50, 50, 1), z = (-10, 0))
-        sea_ice_grid = ImmersedBoundaryGrid(sea_ice_grid, GridFittedBottom(bottom_height))
+        # Adding a sea ice model to the coupled model
+        τua = Field{Face, Center, Nothing}(grid) 
+        τva = Field{Center, Face, Nothing}(grid)
 
-        sea_ice  = sea_ice_simulation(sea_ice_grid) 
+        dynamics = SeaIceMomentumEquation(grid; 
+                                          coriolis = ocean.model.coriolis,
+                                          top_momentum_stress = (u=τua, v=τva),
+                                          rheology = ElastoViscoPlasticRheology(),
+                                          solver = SplitExplicitSolver(120))
+
+        sea_ice  = sea_ice_simulation(grid; dynamics, advection=WENO(order=7)) 
         liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
         
         # Set the ocean temperature and salinity
