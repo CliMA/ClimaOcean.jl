@@ -17,6 +17,8 @@ using Statistics: mean
 # Some defaults
 default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
 
+estimate_maximum_Δt(grid::RectilinearGrid) = 30minutes # ?
+
 function estimate_maximum_Δt(grid)
     arch = architecture(grid)
     Δx = mean(xspacings(grid))

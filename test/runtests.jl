@@ -55,9 +55,8 @@ if test_group == :bathymetry || test_group == :all
     include("test_bathymetry.jl")
 end
 
-if test_group == :simulations || test_group == :all
-    CUDA.set_runtime_version!(v"12.2", local_toolkit = true) # Seems to help in finding the correct CUDA dataset
-    include("test_simulations.jl")
+if test_group == :ocean_sea_ice_model || test_group == :all
+    include("test_ocean_sea_ice_model.jl")
     include("test_diagnostics.jl")
 end
 
