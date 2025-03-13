@@ -12,7 +12,10 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     arch = architecture(grid)
     clock = coupled_model.clock
 
-    ocean_state = ocean_state(ocean)
+    ocean_state = (u = ocean.model.u,
+                   v = ocean.model.v,
+                   T = ocean.model.T,
+                   S = ocean.model.S)
 
     atmosphere_fields = coupled_model.interfaces.exchanger.exchange_atmosphere_state
 
