@@ -30,6 +30,7 @@ end
 
 const OSIM = OceanSeaIceModel
 const OSIMSIM = Simulation{<:OceanSeaIceModel}
+const OSIMSIMPA = Simulation{<:OceanSeaIceModel{<:Any, <:PrescribedAtmosphere}}
 
 function Base.summary(model::OSIM)
     A = nameof(typeof(architecture(model)))
@@ -66,22 +67,16 @@ default_clock(TT)                   = Oceananigans.TimeSteppers.Clock{TT}(0, 0, 
 time(model::OSIM)                   = model.clock.time
 checkpointer_address(::OSIM)        = "HydrostaticFreeSurfaceModel"
 
-function reset!(model::OSIM)
-    reset!(model.ocean)
-    return nothing
-end
+reset!(model::OSIM) = reset!(model.ocean)
 
-function initialize!(model::OSIM)
-    initialize!(model.ocean)
-    return nothing
-end
+initialize!(model::OSIM) = initialize!(model.ocean)
 
 initialize_jld2_file!(filepath, init, jld2_kw, including, outputs, model::OSIM) =
     initialize_jld2_file!(filepath, init, jld2_kw, including, outputs, model.ocean.model)
 
 write_output!(c::Checkpointer, model::OSIM) = write_output!(c, model.ocean.model)
 
-function set!(sim::OSIMSIM, pickup::Union{Bool, Integer, String})
+function set!(sim::OSIMSIMPA, pickup::Union{Bool, Integer, String})
     checkpoint_file_path = checkpoint_path(pickup, sim.output_writers)
 
     set!(sim.model.ocean.model, checkpoint_file_path)
