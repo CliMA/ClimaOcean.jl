@@ -212,12 +212,13 @@ end
     F = st.internal_flux
     k = F.conductivity
     h = Ψᵢ.h
+    ℵ = Ψᵢ.ℵ
 
     # Bottom temperature at the melting temperature
     Tᵢ  = ClimaSeaIce.SeaIceThermodynamics.melting_temperature(ℙᵢ.liquidus, Ψᵢ.S)
     Tᵢ  = convert_to_kelvin(ℙᵢ.temperature_units, Tᵢ)
     Tₛ⁻ = Ψₛ.T
-
+    
     #=
     σ = ℙₛ.radiation.σ
     ϵ = ℙₛ.radiation.ϵ
@@ -225,7 +226,7 @@ end
     Tₛ = (Tᵢ - h / k * (Qₐ + 4α * Tₛ⁻^4)) / (1 + 4α * h * Tₛ⁻^3 / k)
     =#
 
-    T★ = Tᵢ - Qₐ * h / k * ℵi # We need to multiply the flux by the concentration?
+    T★ = Tᵢ - Qₐ * h / k * ℵ # We need to multiply the flux by the concentration?
 
     # Fix a NaN
     T★ = ifelse(isnan(T★), Tₛ⁻, T★)
