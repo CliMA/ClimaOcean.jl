@@ -138,15 +138,14 @@ function ECCOFieldTimeSeries(metadata::ECCOMetadata, grid::AbstractGrid;
     return fts	
 end
 
-function ECCOFieldTimeSeries(variable_name::Symbol; 
+function ECCOFieldTimeSeries(variable_name::Symbol, arch_or_grid=CPU();
                              dataset = ECCO4Monthly(),
-                             architecture = CPU(),
                              dates = all_dates(dataset, variable_name),
                              dir = download_ECCO_cache,
                              kw...)
 
     metadata = Metadata(variable_name, dates, dataset, dir)
-    return ECCOFieldTimeSeries(metadata, architecture; kw...)
+    return ECCOFieldTimeSeries(metadata, arch_or_grid; kw...)
 end
 
 # Variable names for restorable data

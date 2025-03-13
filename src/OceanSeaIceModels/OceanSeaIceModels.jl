@@ -25,10 +25,10 @@ using ClimaOcean: stateindex
 using KernelAbstractions: @kernel, @index
 using KernelAbstractions.Extras.LoopInfo: @unroll
 
+import ClimaOcean: reference_density, heat_capacity
+
 function downwelling_radiation end
 function freshwater_flux end
-function reference_density end
-function heat_capacity end
 
 const default_gravitational_acceleration = 9.80665
 const default_freshwater_density = 1000

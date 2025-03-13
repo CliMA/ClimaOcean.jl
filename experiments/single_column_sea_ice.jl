@@ -3,94 +3,71 @@ using ClimaSeaIce
 using Oceananigans
 using Oceananigans.Grids
 using Oceananigans.Units
-using Oceananigans.OrthogonalSphericalShellGrids
 using ClimaOcean.OceanSimulations
 using ClimaOcean.ECCO
 using ClimaOcean.DataWrangling
 using ClimaSeaIce.SeaIceThermodynamics: IceWaterThermalEquilibrium
 using Printf
 
-grid = RectilinearGrid(arch, size = (), 
+# A single column grid with one point in the Arctic ocean
+grid = LatitudeLongitudeGrid(size = 1, 
                              latitude = 87.0,
                              longitude = 33.0,
-                             topology = (Flat, Flat, Flat))
-
-bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1)
-
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
+                             z = (-10, 0),
+                             topology = (Flat, Flat, Bounded))
 
 #####
-##### A Propgnostic Ocean model
+##### A Prescribed Ocean model
 #####
-
-# A very diffusive ocean
-momentum_advection = WENOVectorInvariant(order=3) 
-tracer_advection   = WENO(order=3)
-
-free_surface = SplitExplicitFreeSurface(grid; cfl=0.7) 
-closure = ClimaOcean.OceanSimulations.default_ocean_closure()
-
-ocean = ocean_simulation(grid; 
-                         momentum_advection, 
-                         tracer_advection, 
-                         free_surface,
-                         closure)
 
 dataset = ECCO4Monthly()
+dates   = all_dates(dataset)[1:24]
 
-set!(ocean.model, T=Metadata(:temperature; dataset),
-                  S=Metadata(:salinity;    dataset))
+T = ECCOFieldTimeSeries(:temperature, grid; dates, inpainting=nothing, time_indices_in_memory=24)
+S = ECCOFieldTimeSeries(:salinity, grid;    dates, inpainting=nothing, time_indices_in_memory=24)
 
-#####
-##### A Prognostic Sea-ice model
-#####
-
-using ClimaSeaIce.SeaIceMomentumEquations
-using ClimaSeaIce.Rheologies
-
-# Remember to pass the SSS as a bottom bc to the sea ice!
-SSS = view(ocean.model.tracers.S, :, :, grid.Nz)
-bottom_heat_boundary_condition = IceWaterThermalEquilibrium(SSS)
-
-SSU = view(ocean.model.velocities.u, :, :, grid.Nz)
-SSV = view(ocean.model.velocities.u, :, :, grid.Nz)
-
-τo  = SemiImplicitStress(uₑ=SSU, vₑ=SSV)
-τua = Field{Face, Center, Nothing}(grid) 
-τva = Field{Center, Face, Nothing}(grid)
-
-dynamics = SeaIceMomentumEquation(grid; 
-                                  coriolis = ocean.model.coriolis,
-                                  top_momentum_stress = (u=τua, v=τva),
-                                  bottom_momentum_stress = τo,
-                                  ocean_velocities = (u=SSU, v=SSV),
-                                  rheology = ElastoViscoPlasticRheology(),
-                                  solver = SplitExplicitSolver(120))
-
-sea_ice = sea_ice_simulation(grid; bottom_heat_boundary_condition, dynamics, advection=WENO(order=7)) 
-
-set!(sea_ice.model, h=Metadata(:sea_ice_thickness;     dataset), 
-                    ℵ=Metadata(:sea_ice_concentration; dataset))
+ocean_model = PrescribedOceanModel((; T, S); grid)
+ocean = Simulation(ocean_model, Δt=30minutes, stop_time=730days)
 
 ##### 
 ##### A Prescribed Atmosphere model
 #####
 
-atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(40))
-radiation  = Radiation()
+atmosphere = JRA55PrescribedAtmosphere(latitude = 87.0,
+                                       longitude = 33.0,
+                                       backend = InMemory())
+
+#####
+##### A Prognostic Sea-ice model with no dynamics
+#####
+
+# Remember to pass the SSS as a bottom bc to the sea ice!
+SSS = view(ocean.model.tracers.S, :, :, 1)
+bottom_heat_boundary_condition = IceWaterThermalEquilibrium(SSS)
+
+sea_ice = sea_ice_simulation(grid; bottom_heat_boundary_condition) 
+
+set!(sea_ice.model, h=Metadata(:sea_ice_thickness;     dataset, dates=first(dates)), 
+                    ℵ=Metadata(:sea_ice_concentration; dataset, dates=first(dates)))
+
+#####
+##### Radiation of the Ocean and the Sea ice
+#####
+
+# to mimick snow, as in Semtner (1975) we use a sea ice albedo that is 0.64 for top temperatures 
+# above -0.1 ᵒC and 0.75 for top temperatures below -0.1 ᵒC. We also disable radiation for the ocean.
+radiation = Radiation(sea_ice_albedo=0.7, ocean_albedo=1, ocean_emissivity=0)
 
 #####
 ##### Arctic coupled model
 #####
 
 arctic = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-arctic = Simulation(arctic, Δt=5minutes, stop_time=365days)
+arctic = Simulation(arctic, Δt=30minutes, stop_time=730days)
 
 # Sea-ice variables
 h = sea_ice.model.ice_thickness
 ℵ = sea_ice.model.ice_concentration
-u = sea_ice.model.velocities.u
-v = sea_ice.model.velocities.v
 
 # Fluxes
 Tu = arctic.model.interfaces.atmosphere_sea_ice_interface.temperature
@@ -100,16 +77,14 @@ Qⁱ = arctic.model.interfaces.sea_ice_ocean_interface.fluxes.interface_heat
 Qᶠ = arctic.model.interfaces.sea_ice_ocean_interface.fluxes.frazil_heat
 Qᵗ = arctic.model.interfaces.net_fluxes.sea_ice_top.heat
 Qᴮ = arctic.model.interfaces.net_fluxes.sea_ice_bottom.heat
-τx = arctic.model.interfaces.net_fluxes.sea_ice_top.u
-τy = arctic.model.interfaces.net_fluxes.sea_ice_top.v
 
 # Output writers
-arctic.output_writers[:vars] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, u, v, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ, τx, τy),
+arctic.output_writers[:vars] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ),
                                                  filename = "sea_ice_quantities.jld2",
                                                  schedule = IterationInterval(12),
                                                  overwrite_existing=true)
 
-arctic.output_writers[:averages] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ, u, v, τx, τy),
+arctic.output_writers[:averages] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ),
                                                     filename = "averaged_sea_ice_quantities.jld2",
                                                     schedule = AveragedTimeInterval(1days),
                                                     overwrite_existing=true)
@@ -120,65 +95,23 @@ using Statistics
 
 function progress(sim)
     sea_ice = sim.model.sea_ice
-    hmax = maximum(sea_ice.model.ice_thickness)
-    ℵmax = maximum(sea_ice.model.ice_concentration)
-    hmean = mean(sea_ice.model.ice_thickness)
-    ℵmean = mean(sea_ice.model.ice_concentration)
-    Tmax = maximum(sim.model.interfaces.atmosphere_sea_ice_interface.temperature)
-    Tmin = minimum(sim.model.interfaces.atmosphere_sea_ice_interface.temperature)
+    h = first(sea_ice.model.ice_thickness)
+    ℵ = first(sea_ice.model.ice_concentration)
+    T = first(sim.model.interfaces.atmosphere_sea_ice_interface.temperature)
 
     step_time = 1e-9 * (time_ns() - wall_time[])
 
     msg1 = @sprintf("time: %s, iteration: %d, Δt: %s, ", prettytime(sim), iteration(sim), prettytime(sim.Δt))
-    msg2 = @sprintf("max(h): %.2e m, max(ℵ): %.2e ", hmax, ℵmax)
-    msg3 = @sprintf("mean(h): %.2e m, mean(ℵ): %.2e ", hmean, ℵmean)
-    msg4 = @sprintf("extrema(T): (%.2f, %.2f) ᵒC, ", Tmax, Tmin)
-    msg5 = @sprintf("wall time: %s \n", prettytime(step_time))
+    msg2 = @sprintf("h: %.2e m, ℵ: %.2e , T: %.2e ᴼC", h, ℵ, T)
+    msg3 = @sprintf("wall time: %s \n", prettytime(step_time))
 
-    @info msg1 * msg2 * msg3 * msg4 * msg5
+    @info msg1 * msg2 * msg3
 
-     wall_time[] = time_ns()
-
-     return nothing
+    wall_time[] = time_ns()
+    return nothing
 end
 
 # And add it as a callback to the simulation.
 add_callback!(arctic, progress, IterationInterval(10))
 
 run!(arctic)
-
-#####
-##### Comparison to ECCO Climatology
-#####
-
-dataset = ECCO4Monthly()
-dates   = all_dates(version)[1:12]
-
-h_metadata = Metadata(:sea_ice_thickness;     dataset, dates)
-ℵ_metadata = Metadata(:sea_ice_concentration; dataset, dates)
-
-# Montly averaged ECCO data
-hE = ECCOFieldTimeSeries(h_metadata, grid; time_indices_in_memory=12)
-ℵE = ECCOFieldTimeSeries(ℵ_metadata, grid; time_indices_in_memory=12)
-
-# Daily averaged Model output
-h = FieldTimeSeries("averaged_sea_ice_quantities.jld2", "h")
-ℵ = FieldTimeSeries("averaged_sea_ice_quantities.jld2", "ℵ")
-
-# Montly average the model output
-hm = FieldTimeSeries{Center, Center, Nothing}(grid, hE.times; backend=InMemory())
-ℵm = FieldTimeSeries{Center, Center, Nothing}(grid, hE.times; backend=InMemory())
-
-for (i, time) in enumerate(hm.times)
-    counter = 0
-    for (j, t) in enumerate(h.times)
-        if t ≤ time
-            hm[i] .+= h[j]
-            ℵm[i] .+= ℵ[j]
-            counter += 1
-        end
-    end
-    @show counter
-    hm[i] ./= counter
-    ℵm[i] ./= counter
-end
