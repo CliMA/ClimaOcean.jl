@@ -71,7 +71,6 @@ end
 
     i, j = @index(Global, NTuple)
     kᴺ   = size(grid, 3) # index of the top ocean cell
-    time = Time(clock.time)
 
     @inbounds begin
         uₐ = atmosphere_state.u[i, j, 1]
