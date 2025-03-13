@@ -14,7 +14,6 @@ using Oceananigans.Fields: interpolate!
 using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBackend, FlavorOfFTS, time_indices
 
 using ClimaOcean
-using ClimaOcean.DistributedUtils
 
 using ClimaOcean.OceanSeaIceModels:
     PrescribedAtmosphere,

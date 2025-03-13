@@ -2,6 +2,7 @@ using CFTime
 using Dates
 using ClimaOcean.DataWrangling
 using ClimaOcean.DataWrangling: netrc_downloader, metadata_path, AnyDateTime
+using Oceananigans.DistributedComputations
 
 import Dates: year, month, day
 using Downloads
