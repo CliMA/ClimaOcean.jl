@@ -60,7 +60,7 @@ end
 
 @testset "Inpainting algorithm" begin
     for arch in test_architectures
-        T_metadata = Metadata(:temperature; dates=dates[1], dataset=ECCO4Monthly())
+        T_metadatum = Metadatum(:temperature; date=start_date, dataset=ECCO4Monthly())
 
         grid = LatitudeLongitudeGrid(arch,
                                      size = (100, 100, 10),
@@ -72,8 +72,8 @@ end
         fully_inpainted_field = CenterField(grid)
         partially_inpainted_field = CenterField(grid)
 
-        set!(fully_inpainted_field,     T_metadata; inpainting = NearestNeighborInpainting(Inf))
-        set!(partially_inpainted_field, T_metadata; inpainting = NearestNeighborInpainting(1))
+        set!(fully_inpainted_field,     T_metadatum; inpainting = NearestNeighborInpainting(Inf))
+        set!(partially_inpainted_field, T_metadatum; inpainting = NearestNeighborInpainting(1))
 
         fully_inpainted_interior = on_architecture(CPU(), interior(fully_inpainted_field))
         partially_inpainted_interior = on_architecture(CPU(), interior(partially_inpainted_field))
@@ -102,9 +102,7 @@ end
                                         southern = (φ₁, φ₂),
                                                z = (z₁, 0))
 
-        T_restoring = ECCORestoring(:temperature, arch;
-                                    dates, mask, inpainting,
-                                    rate=1/1000)
+        T_restoring = ECCORestoring(:temperature, arch; start_date, end_date, mask, inpainting, rate=1/1000)
 
         fill!(T_restoring.field_time_series[1], 1.0)
         fill!(T_restoring.field_time_series[2], 1.0)
@@ -134,8 +132,8 @@ end
         field = CenterField(grid)
 
         @test begin
-            set!(field, Metadata(:temperature, dates=start_date, dataset=ECCO4Monthly()))
-            set!(field, Metadata(:salinity, dates=start_date, dataset=ECCO4Monthly()))
+            set!(field, Metadatum(:temperature, date=start_date, dataset=ECCO4Monthly()))
+            set!(field, Metadatum(:salinity,    date=start_date, dataset=ECCO4Monthly()))
             true
         end
     end
@@ -154,13 +152,12 @@ end
         field = CenterField(grid)
 
         @test begin
-            set!(field, Metadata(:temperature, dates=start_date, dataset=ECCO4Monthly()))
-            set!(field, Metadata(:salinity, dates=start_date, dataset=ECCO4Monthly()))
+            set!(field, Metadatum(:temperature, date=start_date, dataset=ECCO4Monthly()))
+            set!(field, Metadatum(:salinity,    date=start_date, dataset=ECCO4Monthly()))
             true
         end
 
-        forcing_T = ECCORestoring(:temperature, arch; dates, inpainting,
-                                  rate = 1/1000)
+        forcing_T = ECCORestoring(:temperature, arch; start_date, end_date, inpainting, rate=1/1000)
 
         ocean = ocean_simulation(grid; forcing = (; T = forcing_T), verbose=false)
 
@@ -183,8 +180,8 @@ end
 
         ocean = ocean_simulation(grid)
         date = DateTimeProlepticGregorian(1993, 1, 1)
-        set!(ocean.model, T=Metadata(:temperature; dates=start_date, dataset=ECCO4Monthly()), 
-                          S=Metadata(:salinity; dates=start_date, dataset=ECCO4Monthly()))
+        set!(ocean.model, T=Metadatum(:temperature; date=start_date, dataset=ECCO4Monthly()), 
+                          S=Metadatum(:salinity; date=start_date, dataset=ECCO4Monthly()))
     end
 end
 
@@ -201,10 +198,7 @@ end
         end_date = DateTimeProlepticGregorian(1993, 5, 1)
         dates = start_date : Month(1) : end_date
 
-        T_restoring = ECCORestoring(:temperature, arch;
-                                    dates,
-                                    rate = 1 / 1000.0,
-                                    inpainting)
+        T_restoring = ECCORestoring(:temperature, arch; start_date, end_date, inpainting, rate=1/1000)
 
         times = native_times(T_restoring.field_time_series.backend.metadata)
         ocean = ocean_simulation(grid, forcing = (; T = T_restoring))

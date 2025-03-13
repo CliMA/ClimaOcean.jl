@@ -187,8 +187,8 @@ end
                                                 closure = nothing,
                                 bottom_drag_coefficient = 0.0)
 
-        dates = all_dates(JRA55RepeatYear(), :temperature)[1:2]
-        atmosphere = JRA55PrescribedAtmosphere(arch; dates, backend = InMemory()) 
+        dates = all_dates(JRA55RepeatYear(), :temperature)
+        atmosphere = JRA55PrescribedAtmosphere(arch; end_date=dates[2], backend = InMemory()) 
 
         fill!(ocean.model.tracers.T, -2.0)
 
@@ -230,13 +230,13 @@ end
 
         ocean = ocean_simulation(grid; momentum_advection, tracer_advection, closure, tracers, coriolis)
 
-        T_metadata = Metadata(:temperature, dates=DateTimeProlepticGregorian(1993, 1, 1), dataset=ECCO4Monthly())
-        S_metadata = Metadata(:salinity,  dates=DateTimeProlepticGregorian(1993, 1, 1), dataset=ECCO4Monthly())
+        T_metadata = Metadatum(:temperature, date=DateTimeProlepticGregorian(1993, 1, 1), dataset=ECCO4Monthly())
+        S_metadata = Metadatum(:salinity,    date=DateTimeProlepticGregorian(1993, 1, 1), dataset=ECCO4Monthly())
 
         set!(ocean.model; T=T_metadata, S=S_metadata)
 
-        dates = all_dates(JRA55RepeatYear(), :temperature)[1:10]
-        atmosphere = JRA55PrescribedAtmosphere(arch; dates, backend = InMemory())
+        end_date   = all_dates(JRA55RepeatYear(), :temperature)[10]
+        atmosphere = JRA55PrescribedAtmosphere(arch; end_date, backend = InMemory())
         radiation  = Radiation(ocean_albedo=0.1, ocean_emissivity=1.0)
         sea_ice    = nothing
 
