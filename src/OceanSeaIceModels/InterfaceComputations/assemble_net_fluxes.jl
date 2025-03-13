@@ -173,7 +173,7 @@ function compute_net_sea_ice_fluxes!(coupled_model)
 
     kernel_parameters = interface_kernel_parameters(grid)
 
-    sea_ice_surface_temperature = coupled_model.interfaces.atmosphere_ocean_interface.temperature
+    sea_ice_surface_temperature = coupled_model.interfaces.atmosphere_sea_ice_interface.temperature
 
     launch!(arch, grid, kernel_parameters, 
             _assemble_net_sea_ice_fluxes!,
