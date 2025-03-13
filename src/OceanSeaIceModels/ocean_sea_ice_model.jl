@@ -74,18 +74,15 @@ function initialize!(model::OSIM)
     return nothing
 end
 
-
-initialize_jld2_file!(filepath, init, jld2_kw, including, outputs, model::OceanSeaIceModel) =
+initialize_jld2_file!(filepath, init, jld2_kw, including, outputs, model::OSIM) =
     initialize_jld2_file!(filepath, init, jld2_kw, including, outputs, model.ocean.model)
-
-set!(model::OSIM, filepath::AbstractString) = set!(model.ocean.model, filepath)
 
 write_output!(c::Checkpointer, model::OSIM) = write_output!(c, model.ocean.model)
 
 function set!(sim::OSIMSIM, pickup::Union{Bool, Integer, String})
     checkpoint_file_path = checkpoint_path(pickup, sim.output_writers)
 
-    set!(sim.model, checkpoint_file_path)
+    set!(sim.model.ocean.model, checkpoint_file_path)
 
     sim.model.clock.iteration = sim.model.ocean.model.clock.iteration
     sim.model.clock.time = sim.model.ocean.model.clock.time
@@ -177,10 +174,10 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(
     return ocean_sea_ice_model
 end
 
-time(coupled_model::OceanSeaIceModel) = coupled_model.clock.time
+time(coupled_model::OSIM) = coupled_model.clock.time
 
 # Check for NaNs in the first prognostic field (generalizes to prescribed velocities).
-function default_nan_checker(model::OceanSeaIceModel)
+function default_nan_checker(model::OSIM)
     u_ocean = model.ocean.model.velocities.u
     nan_checker = NaNChecker((; u_ocean))
     return nan_checker
