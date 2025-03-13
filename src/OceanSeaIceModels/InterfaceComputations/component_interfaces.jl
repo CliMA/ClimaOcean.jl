@@ -47,6 +47,7 @@ struct SeaIceOceanInterface{J, P, H, A}
 end
 
 struct ComponentInterfaces{AO, ASI, SIO, C, AP, OP, SIP, EX}
+    grid :: G
     atmosphere_ocean_interface :: AO
     atmosphere_sea_ice_interface :: ASI
     sea_ice_ocean_interface :: SIO
@@ -58,8 +59,7 @@ struct ComponentInterfaces{AO, ASI, SIO, C, AP, OP, SIP, EX}
 end
 
 struct StateExchanger{G, AST, AEX}
-    exchange_grid :: G
-    exchange_atmosphere_state :: AST
+    components_state :: AST
     atmosphere_exchanger :: AEX
 end
 
