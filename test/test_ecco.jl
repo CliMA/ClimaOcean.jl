@@ -1,6 +1,5 @@
 include("runtests_setup.jl")
 
-using CFTime
 using Dates
 using ClimaOcean
 
@@ -15,8 +14,8 @@ using Oceananigans.Units
 
 using CUDA: @allowscalar
 
-start_date = DateTimeProlepticGregorian(1993, 1, 1)
-end_date = DateTimeProlepticGregorian(1993, 2, 1)
+start_date = DateTime(1993, 1, 1)
+end_date = DateTime(1993, 2, 1)
 dates = start_date : Month(1) : end_date
 
 # Inpaint only the first two cells inside the missing mask
@@ -179,7 +178,7 @@ end
                                      halo = (7, 7, 7))
 
         ocean = ocean_simulation(grid)
-        date = DateTimeProlepticGregorian(1993, 1, 1)
+        date = DateTime(1993, 1, 1)
         set!(ocean.model, T=Metadatum(:temperature; date=start_date, dataset=ECCO4Monthly()), 
                           S=Metadatum(:salinity; date=start_date, dataset=ECCO4Monthly()))
     end
@@ -194,8 +193,8 @@ end
                                      z = (-200, 0),
                                      halo = (7, 7, 7))
 
-        start_date = DateTimeProlepticGregorian(1993, 1, 1)
-        end_date = DateTimeProlepticGregorian(1993, 5, 1)
+        start_date = DateTime(1993, 1, 1)
+        end_date = DateTime(1993, 5, 1)
         dates = start_date : Month(1) : end_date
 
         T_restoring = ECCORestoring(:temperature, arch; start_date, end_date, inpainting, rate=1/1000)
