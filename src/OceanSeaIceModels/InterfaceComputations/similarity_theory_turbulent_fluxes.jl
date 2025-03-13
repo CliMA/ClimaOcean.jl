@@ -19,20 +19,10 @@ import Thermodynamics as AtmosphericThermodynamics
 import Thermodynamics.Parameters: molmass_ratio
 
 #####
-##### These are more general properties
-#####
-
-""" The exchange fluxes depend on the atmosphere velocity but not the interface velocity """
-struct WindVelocity end
-
-""" The exchange fluxes depend on the relative velocity between the atmosphere and the interface """
-struct RelativeVelocity end
-
-#####
 ##### Bulk turbulent fluxes based on similarity theory
 #####
 
-struct SimilarityTheoryFluxes{FT, UF, R, B, V, S}
+struct SimilarityTheoryFluxes{FT, UF, R, B, S}
     gravitational_acceleration :: FT # parameter
     von_karman_constant :: FT        # parameter
     turbulent_prandtl_number :: FT   # parameter
@@ -40,7 +30,6 @@ struct SimilarityTheoryFluxes{FT, UF, R, B, V, S}
     stability_functions :: UF        # functions for turbulent fluxes
     roughness_lengths :: R           # parameterization for turbulent fluxes
     similarity_form :: B             # similarity profile relating atmosphere to interface state
-    bulk_velocity :: V               # bulk velocity scale for turbulent fluxes
     solver_stop_criteria :: S        # stop criteria for compute_interface_state
 end
 
@@ -52,7 +41,6 @@ Adapt.adapt_structure(to, fluxes::SimilarityTheoryFluxes) =
                            adapt(to, fluxes.stability_functions),
                            adapt(to, fluxes.roughness_lengths),
                            adapt(to, fluxes.similarity_form),
-                           adapt(to, fluxes.bulk_velocity),
                            adapt(to, fluxes.solver_stop_criteria))
                            
 
@@ -66,7 +54,6 @@ function Base.show(io::IO, fluxes::SimilarityTheoryFluxes)
           "├── gustiness_parameter: ",        prettysummary(fluxes.gustiness_parameter), '\n',
           "├── stability_functions: ",        summary(fluxes.stability_functions), '\n',
           "├── roughness_lengths: ",          summary(fluxes.roughness_lengths), '\n',
-          "├── bulk_velocity: ",              summary(fluxes.bulk_velocity), '\n',
           "├── similarity_form: ",            summary(fluxes.similarity_form), '\n',
           "└── solver_stop_criteria: ",       summary(fluxes.solver_stop_criteria))
 end
@@ -80,7 +67,6 @@ end
                            stability_functions = default_stability_functions(FT),
                            roughness_lengths = default_roughness_lengths(FT),
                            similarity_form = LogarithmicSimilarityProfile(),
-                           bulk_velocity = RelativeVelocity(),
                            solver_stop_criteria = nothing,
                            solver_tolerance = 1e-8,
                            solver_maxiter = 100)
@@ -101,8 +87,6 @@ Keyword Arguments
                        water vapor. Default: `default_roughness_lengths(FT)`, formulation taken from Edson et al (2013).
 - `similarity_form`: The type of similarity profile used to relate the atmospheric state to the 
                              interface fluxes / characteristic scales.
-- `bulk_velocity`: The velocity used to calculate the characteristic scales. Default: `RelativeVelocity()` (difference between
-                   atmospheric and interface speed).
 - `solver_tolerance`: The tolerance for convergence. Default: 1e-8.
 - `solver_maxiter`: The maximum number of iterations. Default: 100.
 """
@@ -114,7 +98,6 @@ function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                 stability_functions = edson_stability_functions(FT),
                                 roughness_lengths = default_roughness_lengths(FT),
                                 similarity_form = LogarithmicSimilarityProfile(),
-                                bulk_velocity = RelativeVelocity(),
                                 solver_stop_criteria = nothing,
                                 solver_tolerance = 1e-8,
                                 solver_maxiter = 100)
@@ -131,7 +114,6 @@ function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                   stability_functions,
                                   roughness_lengths,
                                   similarity_form,
-                                  bulk_velocity,
                                   solver_stop_criteria)
 end
 
@@ -171,6 +153,7 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
                                   Tₛ, qₛ, Δθ, Δq, Δh,
                                   approximate_interface_state,
                                   atmosphere_state,
+                                  interface_properties,
                                   atmosphere_properties)
 
     ℂₐ = atmosphere_properties.thermodynamics_parameters
@@ -226,7 +209,7 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
     Uᴳ = β * cbrt(Jᵇ * h_bℓ)
 
     # New velocity difference accounting for gustiness
-    Δu, Δv = velocity_difference(flux_formulation.bulk_velocity,
+    Δu, Δv = velocity_difference(interface_properties.velocity_formulation,
                                  atmosphere_state,
                                  approximate_interface_state)
 
@@ -281,14 +264,6 @@ L★ = - u★² / ϰ b★ .
 
     return b★
 end
-
-@inline function velocity_difference(::RelativeVelocity, 𝒰₁, 𝒰₀)
-    Δu = 𝒰₁.u - 𝒰₀.u
-    Δv = 𝒰₁.v - 𝒰₀.v
-    return Δu, Δv
-end
-
-@inline velocity_difference(::WindVelocity, 𝒰₁, 𝒰₀) = 𝒰₁.u, 𝒰₁.v
 
 import Statistics
 
