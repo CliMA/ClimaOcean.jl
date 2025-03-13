@@ -157,7 +157,7 @@ struct SkinTemperature{I, FT}
     max_ΔT :: FT
 end
 
-SkinTemperature(internal_flux; max_ΔT=20) = SkinTemperature(internal_flux, max_ΔT)
+SkinTemperature(internal_flux; max_ΔT=5) = SkinTemperature(internal_flux, max_ΔT)
 
 struct DiffusiveFlux{Z, K}
     δ :: Z # Boundary layer thickness, as a first guess we will use half the grid spacing
