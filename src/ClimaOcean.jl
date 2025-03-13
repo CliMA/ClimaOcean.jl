@@ -41,16 +41,6 @@ using DataDeps
 using Oceananigans.OutputReaders: GPUAdaptedFieldTimeSeries, FieldTimeSeries
 using Oceananigans.Grids: node
 
-# Does not really matter if there is no model
-reference_density(::Nothing) = 0
-heat_capacity(::Nothing) = 0
-
-reference_density(unsupported) =
-    throw(ArgumentError("Cannot extract reference density from $(typeof(unsupported))"))
-
-heat_capacity(unsupported) =
-    throw(ArgumentError("Cannot deduce the heat capacity from $(typeof(unsupported))"))
-
 const SomeKindOfFieldTimeSeries = Union{FieldTimeSeries,
                                         GPUAdaptedFieldTimeSeries}
 
