@@ -150,18 +150,15 @@ JRA55_repeat_year_urls = Dict(
 
 variable_is_three_dimensional(data::JRA55Metadata) = false
 
-urls(metadata::Metadata{<:Any, <:JRA55RepeatYear}) = JRA55_repeat_year_urls[metadata.name]  
+metadata_url(metadata::Metadata{<:Any, <:JRA55RepeatYear}) = JRA55_repeat_year_urls[metadata.name]  
 # TODO: 
-# urls(metadata::Metadata{<:Any, <:JRA55MultipleYears}) = ...
+# metadata_url(metadata::Metadata{<:Any, <:JRA55MultipleYears}) = ...
 
-metadata_url(prefix, ::Metadata{<:Any, <:JRA55RepeatYear}) = prefix # No specific name for this url
-
-# TODO: This will need to change when we add a method for JRA55MultipleYears
-function download_dataset(metadata::JRA55Metadata; url = urls(metadata))
+function download_dataset(metadata::JRA55Metadata)
 
     @root for metadatum in metadata
 
-        fileurl  = metadata_url(url, metadatum) 
+        fileurl  = metadata_url(metadatum) 
         filepath = metadata_path(metadatum)
 
         if !isfile(filepath)

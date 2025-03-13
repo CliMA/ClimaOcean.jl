@@ -72,14 +72,6 @@ short_name(data::Metadata{<:Any, <:ECCO2Daily})   = ECCO2_short_names[data.name]
 short_name(data::Metadata{<:Any, <:ECCO2Monthly}) = ECCO2_short_names[data.name]
 short_name(data::Metadata{<:Any, <:ECCO4Monthly}) = ECCO4_short_names[data.name]
 
-metadata_url(prefix, m::Metadata{<:Any, <:ECCO2Daily})   = prefix * "/" * short_name(m) * "/" * metadata_filename(m)
-metadata_url(prefix, m::Metadata{<:Any, <:ECCO2Monthly}) = prefix * "/" * short_name(m) * "/" * metadata_filename(m)
-
-function metadata_url(prefix, m::Metadata{<:Any, <:ECCO4Monthly})
-    year = string(Dates.year(m.dates))
-    return prefix * "/" * short_name(m) * "/" * year * "/" * metadata_filename(m)
-end
-
 location(data::ECCOMetadata) = ECCO_location[data.name]
 
 variable_is_three_dimensional(data::ECCOMetadata) =
@@ -121,10 +113,17 @@ ECCO_location = Dict(
     :v_velocity            => (Center, Face,   Center),
 )
 
+const ECCO2_url = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/"
+
 # URLs for the ECCO datasets specific to each dataset
-urls(::Metadata{<:Any, <:ECCO2Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/monthly"
-urls(::Metadata{<:Any, <:ECCO2Daily})   = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/daily"
-urls(::Metadata{<:Any, <:ECCO4Monthly}) = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly"
+metadata_url(m::Metadata{<:Any, <:ECCO2Daily})   = ECCO2_url *  "monthly/" * short_name(m) * "/" * metadata_filename(m)
+metadata_url(m::Metadata{<:Any, <:ECCO2Monthly}) = ECCO2_url *  "daily/"   * short_name(m) * "/" * metadata_filename(m)
+
+function metadata_url(m::Metadata{<:Any, <:ECCO4Monthly})
+    year = string(Dates.year(m.dates))
+    prefix =  "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly/"
+    return prefix * short_name(m) * "/" * year * "/" * metadata_filename(m)
+end
 
 """
     download_dataset(metadata::ECCOMetadata; url = urls(metadata))
@@ -156,7 +155,7 @@ Arguments
 =========
 - `metadata::ECCOMetadata`: The metadata specifying the dataset to be downloaded.
 """
-function download_dataset(metadata::ECCOMetadata; url = urls(metadata))
+function download_dataset(metadata::ECCOMetadata)
     username = get(ENV, "ECCO_USERNAME", nothing)
     password = get(ENV, "ECCO_PASSWORD", nothing)
     dir = metadata.dir
@@ -173,7 +172,7 @@ function download_dataset(metadata::ECCOMetadata; url = urls(metadata))
 
         asyncmap(metadata; ntasks) do metadatum # Distribute the download among tasks
 
-            fileurl  = metadata_url(url, metadatum) 
+            fileurl  = metadata_url(metadatum) 
             filepath = metadata_path(metadatum)
 
             if !isfile(filepath)
