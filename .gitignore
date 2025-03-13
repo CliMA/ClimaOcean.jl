@@ -21,7 +21,7 @@ docs/build/
 docs/site/
 docs/src/literated/
 
-# Output files 
+# Output files
 *.nc
 *.jld2
 *.mp4
@@ -57,3 +57,6 @@ docs/src/literated/
 *.tls
 *.tpc
 *.txt
+
+# vscode
+.vscode

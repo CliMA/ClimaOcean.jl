@@ -2,7 +2,7 @@ using Oceananigans.DistributedComputations: DistributedGrid, all_reduce
 using Oceananigans.Architectures: architecture
 using Oceananigans.BoundaryConditions: DefaultBoundaryCondition
 using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node, MutableGridOfSomeKind
-using OrthogonalSphericalShellGrids
+using Oceananigans.OrthogonalSphericalShellGrids
 
 using Oceananigans.TurbulenceClosures: VerticallyImplicitTimeDiscretization
 
@@ -16,6 +16,8 @@ using Statistics: mean
 
 # Some defaults
 default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
+
+estimate_maximum_Δt(grid::RectilinearGrid) = 30minutes # ?
 
 function estimate_maximum_Δt(grid)
     arch = architecture(grid)

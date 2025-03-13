@@ -1,9 +1,10 @@
 module Bathymetry
 
-export regrid_bathymetry, retrieve_bathymetry
+export regrid_bathymetry, retrieve_bathymetry, download_bathymetry
 
 using ImageMorphology
 using ..DataWrangling: download_progress
+using Oceananigans.DistributedComputations
 
 using Oceananigans
 using Oceananigans.Architectures: architecture, on_architecture
@@ -37,6 +38,28 @@ etopo_url = "https://www.dropbox.com/scl/fi/6pwalcuuzgtpanysn4h6f/" *
             "ETOPO_2022_v1_60s_N90W180_surface.nc?rlkey=2t7890ruyk4nd5t5eov5768lt&st=yfxsy1lu&dl=0"
 
 """
+    download_bathymetry(; dir = download_bathymetry_cache,
+                          url = etopo_url,
+                          filename = "ETOPO_2022_v1_60s_N90W180_surface.nc")
+
+Download the bathymetry from `url` and saves it under `filename` in the directory `dir` and
+return the full filepath where the bathymetry is saved.
+"""
+function download_bathymetry(; url = etopo_url,
+                             dir = download_bathymetry_cache,
+                             filename = "ETOPO_2022_v1_60s_N90W180_surface.nc")
+
+    filepath = joinpath(dir, filename)
+
+    #TODO: embed this into a @root macro; see failed attempts in https://github.com/CliMA/ClimaOcean.jl/pull/391
+    if !isfile(filepath)
+        Downloads.download(url, filepath; progress=download_progress)
+    end
+
+    return filepath
+end
+
+"""
     regrid_bathymetry(target_grid;
                       height_above_water = nothing,
                       minimum_depth = 0,
@@ -57,10 +80,10 @@ Arguments
 Keyword Arguments
 =================
 
-- `height_above_water`: limits the maximum height of above-water topography (where ``h > 0``) before inetrpolating.
+- `height_above_water`: limits the maximum height of above-water topography (where ``h > 0``) before interpolating.
                         Default: `nothing`, which implies that the original topography is retained.
 
-- `minimum_depth`: minimum depth for the shallow regions, defined as a positive value. 
+- `minimum_depth`: minimum depth for the shallow regions, defined as a positive value.
                    `h > - minimum_depth` is considered land. Default: 0.
 
 - `dir`: directory of the bathymetry-containing file. Default: `download_bathymetry_cache`.
@@ -103,13 +126,7 @@ function regrid_bathymetry(target_grid;
                            interpolation_passes = 1,
                            major_basins = 1) # Allow an `Inf` number of "lakes"
 
-    filepath = joinpath(dir, filename)
-
-    # No need for @root here, because only rank 0 accesses this function
-    if !isfile(filepath)
-        Downloads.download(url, filepath; progress=download_progress)
-    end
-
+    filepath = download_bathymetry(; url, dir, filename)
     dataset = Dataset(filepath, "r")
 
     FT = eltype(target_grid)
@@ -129,7 +146,7 @@ function regrid_bathymetry(target_grid;
     arch   = architecture(target_grid)
     λ_data = λ_data |> Array{BigFloat}
     φ_data = φ_data |> Array{BigFloat}
-    
+
     if !isnothing(height_above_water)
         # Overwrite the height of cells above water.
         # This has an impact on reconstruction. Greater height_above_water reduces total
@@ -161,8 +178,8 @@ function regrid_bathymetry(target_grid;
     native_z = Field{Center, Center, Nothing}(native_grid)
     set!(native_z, z_data)
     fill_halo_regions!(native_z)
-    
-    target_z = interpolate_bathymetry_in_passes(native_z, target_grid; 
+
+    target_z = interpolate_bathymetry_in_passes(native_z, target_grid;
                                                 passes = interpolation_passes)
 
     if minimum_depth > 0
@@ -182,7 +199,7 @@ function regrid_bathymetry(target_grid;
     return target_z
 end
 
-# Here we can either use `regrid!` (three dimensional version) or `interpolate`
+# Here we can either use `regrid!` (three dimensional version) or `interpolate!`.
 function interpolate_bathymetry_in_passes(native_z, target_grid;
                                           passes = 10)
     Nλt, Nφt = Nt = size(target_grid)
@@ -255,8 +272,8 @@ function regrid_bathymetry(target_grid::DistributedGrid; kw...)
     arch = architecture(target_grid)
     Nx, Ny, _ = size(global_grid)
 
-    # If all ranks open a gigantic bathymetry and the memory is 
-    # shared, we could easily have OOM errors. 
+    # If all ranks open a gigantic bathymetry and the memory is
+    # shared, we could easily have OOM errors.
     # We perform the reconstruction only on rank 0 and share the result.
     bottom_height = if arch.local_rank == 0
         bottom_field = regrid_bathymetry(global_grid; kw...)
@@ -266,7 +283,7 @@ function regrid_bathymetry(target_grid::DistributedGrid; kw...)
     end
 
     # Synchronize
-    ClimaOcean.global_barrier(arch.communicator)
+    Oceananigans.DistributedComputations.global_barrier(arch.communicator)
 
     # Share the result (can we share SubArrays?)
     bottom_height = all_reduce(+, bottom_height, arch)
@@ -317,7 +334,7 @@ function maybe_extend_longitude(zb_cpu, ::Periodic)
     nx = Nx ÷ 2
 
     zb_data   = zb_cpu.data[1:Nx, :, 1]
-    zb_parent = zb_data.parent 
+    zb_parent = zb_data.parent
 
     # Add information on the LHS and to the RHS
     zb_parent = vcat(zb_parent[nx:Nx, :], zb_parent, zb_parent[1:nx, :])
@@ -329,7 +346,7 @@ function maybe_extend_longitude(zb_cpu, ::Periodic)
     return OffsetArray(zb_parent, xoffsets, yoffsets)
 end
 
-remove_major_basins!(zb::OffsetArray, keep_minor_basins) = 
+remove_major_basins!(zb::OffsetArray, keep_minor_basins) =
     remove_minor_basins!(zb.parent, keep_minor_basins)
 
 function remove_minor_basins!(zb, keep_major_basins)
@@ -343,10 +360,10 @@ function remove_minor_basins!(zb, keep_major_basins)
     end
 
     water = zb .< 0
-    
+
     connectivity = ImageMorphology.strel(water)
     labels = ImageMorphology.label_components(connectivity)
-    
+
     total_elements = zeros(maximum(labels))
     label_elements = zeros(maximum(labels))
 
@@ -354,13 +371,13 @@ function remove_minor_basins!(zb, keep_major_basins)
         total_elements[e] = length(labels[labels .== e])
         label_elements[e] = e
     end
-        
+
     mm_basins = [] # major basins indexes
     m = 1
 
     # We add basin indexes until we reach the specified number (m == keep_major_basins) or
-    # we run out of basins to keep -> isempty(total_elements) 
-    while (m <= keep_major_basins) && !isempty(total_elements) 
+    # we run out of basins to keep -> isempty(total_elements)
+    while (m <= keep_major_basins) && !isempty(total_elements)
         next_maximum = findfirst(x -> x == maximum(total_elements), total_elements)
         push!(mm_basins, label_elements[next_maximum])
         deleteat!(total_elements, next_maximum)
@@ -400,11 +417,11 @@ Returns
 
 - `bottom_height`: The retrieved or generated bathymetry data.
 
-If the specified file exists, the function reads the bathymetry data from the file. 
+If the specified file exists, the function reads the bathymetry data from the file.
 Otherwise, it generates the bathymetry data using the provided grid and saves it to the file before returning it.
 """
-function retrieve_bathymetry(grid, filename; kw...) 
-    
+function retrieve_bathymetry(grid, filename; kw...)
+
     if isfile(filename)
         bottom_height = jldopen(filename)["bathymetry"]
     else

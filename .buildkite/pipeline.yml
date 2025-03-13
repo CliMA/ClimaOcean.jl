@@ -34,9 +34,9 @@ steps:
   - wait
 
   - label: "CPU JRA55 tests"
-    key: "cpu_jra55_tests"
+    key: "cpu_JRA55_tests"
     env:
-      TEST_GROUP: "jra55"
+      TEST_GROUP: "JRA55"
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
     agents:
@@ -78,9 +78,9 @@ steps:
       slurm_ntasks: 1
 
   - label: "GPU JRA55 tests"
-    key: "gpu_jra55_tests"
+    key: "gpu_JRA55_tests"
     env:
-      TEST_GROUP: "jra55"
+      TEST_GROUP: "JRA55"
       GPU_TEST: "true"
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
@@ -134,9 +134,9 @@ steps:
       slurm_gpus_per_task: 1
       
   - label: "Run simulation tests"
-    key: "test_simulations"
+    key: "test_ocean_sea_ice_model"
     env:
-      TEST_GROUP: "simulations"
+      TEST_GROUP: "ocean_sea_ice_model"
       GPU_TEST: "true"
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"

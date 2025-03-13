@@ -25,8 +25,8 @@ using ClimaOcean.Diagnostics: MixedLayerDepthField, MixedLayerDepthOperand
         stop  = DateTimeProlepticGregorian(1993, 2, 1)
         dates = range(start; stop, step=Month(1))
 
-        Tmeta = ECCOMetadata(:temperature; dates)
-        Smeta = ECCOMetadata(:salinity; dates)
+        Tmeta = Metadata(:temperature; dataset=ECCO4Monthly(), dates)
+        Smeta = Metadata(:salinity; dataset=ECCO4Monthly(), dates)
 
         Tt = ECCOFieldTimeSeries(Tmeta, grid; time_indices_in_memory=2)
         St = ECCOFieldTimeSeries(Smeta, grid; time_indices_in_memory=2)
