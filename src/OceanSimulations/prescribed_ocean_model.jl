@@ -27,9 +27,10 @@ on a `grid` with a `clock`.
 
 Arguments
 =========
-- `timeseries::NamedTuple`: A named tuple containing time series data for various fields. The named tuple can be empty or 
-                            include any combination of the following fields: `u`, `v`, `T`, `S`.
-                            All elements provided must be of type `FieldTimeSeries` and reside on the provided `grid`.
+- `timeseries`: A `NamedTuple` containing time series data for various fields. The named tuple can be empty 
+                (meaning that the ocean does not evolve in time) or include any combination of the 
+                following fields: `u`, `v`, `T`, `S`. All elements provided must be of type `FieldTimeSeries` 
+                and reside on the provided `grid`.
 """
 function PrescribedOcean(timeseries=NamedTuple(); 
                          grid, 
