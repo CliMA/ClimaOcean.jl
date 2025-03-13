@@ -83,12 +83,17 @@ ocean.output_writers[:checkpoint] = Checkpointer(ocean.model;
 
 using ClimaOcean.OceanSeaIceModels: OSIMSIM
 # import Oceananigans.OutputWriters: write_output!
-import Oceananigans.Simulations: pickup!
+import Oceananigans.Simulations: pickup!, set!
 
 # write_output!(c::Checkpointer, model::OceanSeaIceModel) = write_output!(c::Checkpointer, model.ocean.model)
 
-function pickup!(sim::OSIMSIM, pickup)
-    @info "i try to properly pick up"
+# function pickup!(sim::OSIMSIM, pickup)
+#     set!(sim.model.ocean, pickup)
+#     return nothing
+# end
+
+function set!(sim::OSIMSIM, pickup)
+    @info "I am trying the set! method instead"
     set!(sim.model.ocean, pickup)
     return nothing
 end
@@ -97,6 +102,6 @@ run!(simulation)
 
 # @info "simulation run for 10 iterations; you should have a checkpointer at 8"
 
-# simulation.stop_iteration = 20
+simulation.stop_iteration = 20
 
 run!(simulation, pickup=true)
