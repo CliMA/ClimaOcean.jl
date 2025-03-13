@@ -11,13 +11,10 @@ Nx = 144
 Ny = 60
 Nz = 40
 
-depth = 6000meters
-z_faces = exponential_z_faces(; Nz, depth)
-
 grid = LatitudeLongitudeGrid(arch;
                              size = (Nx, Ny, Nz),
                              halo = (7, 7, 7),
-                             z = z_faces,
+                             z = (-6000, 0),
                              latitude  = (-75, 75),
                              longitude = (0, 360))
 
@@ -64,44 +61,42 @@ simulation.callbacks[:progress] = Callback(progress, IterationInterval(1))
 
 outputs = merge(ocean.model.tracers, ocean.model.velocities)
 
-ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
-                                                  schedule = IterationInterval(2),
-                                                  filename = "checkpointer_mwe_surface",
-                                                  indices = (:, :, grid.Nz),
-                                                  with_halos = true,
-                                                  overwrite_existing = true,
-                                                  array_type = Array{Float32})
+simulation.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
+                                                       schedule = IterationInterval(2),
+                                                       filename = "checkpointer_mwe_surface",
+                                                       indices = (:, :, grid.Nz),
+                                                       with_halos = true,
+                                                       overwrite_existing = true,
+                                                       array_type = Array{Float32})
 
 output_dir = "."
 prefix = "checkpointer_mwe"
 
 ocean.output_writers[:checkpoint] = Checkpointer(ocean.model;
-                                                 schedule = IterationInterval(2),
-                                                 prefix = prefix,
-                                                 dir = output_dir,
-                                                 verbose = true,
-                                                 overwrite_existing = true)
-
-# coupled_checkpointer = Checkpointer(coupled_model;
-#                                     schedule = IterationInterval(4),
-#                                     prefix = prefix,
-#                                     dir = output_dir,
-#                                     verbose = true,
-#                                     overwrite_existing = true)
+                                                      schedule = IterationInterval(2),
+                                                      prefix = prefix,
+                                                      dir = output_dir,
+                                                      verbose = true,
+                                                      overwrite_existing = true)
 
 # @show simulation
+
+using ClimaOcean.OceanSeaIceModels: OSIMSIM
+# import Oceananigans.OutputWriters: write_output!
+import Oceananigans.Simulations: pickup!
+
+# write_output!(c::Checkpointer, model::OceanSeaIceModel) = write_output!(c::Checkpointer, model.ocean.model)
+
+function pickup!(sim::OSIMSIM, pickup)
+    @info "i try to properly pick up"
+    set!(sim.model.ocean, pickup)
+    return nothing
+end
 
 run!(simulation)
 
 # @info "simulation run for 10 iterations; you should have a checkpointer at 8"
 
-# checkpoint_file = prefix * "_iteration0.jld2"
+# simulation.stop_iteration = 20
 
-# set!(simulation, checkpoint_file)
-
-# coupled_model = OceanSeaIceModel(simulation.model.ocean; atmosphere, radiation)
-
-# simulation = Simulation(coupled_model; Δt=10, stop_iteration=20)
-# simulation.callbacks[:progress] = Callback(progress, IterationInterval(1))
-
-# run!(simulation)
+run!(simulation, pickup=true)
