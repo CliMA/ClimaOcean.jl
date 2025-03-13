@@ -81,7 +81,7 @@ dynamics = SeaIceMomentumEquation(grid;
                                   rheology = ElastoViscoPlasticRheology(),
                                   solver = SplitExplicitSolver(120))
 
-sea_ice = sea_ice_simulation(grid; bottom_heat_boundary_condition, dynamics, advection=WENO(order=7)) 
+sea_ice = sea_ice_simulation(grid; bottom_heat_boundary_condition) #, dynamics, advection=WENO(order=7)) 
 
 set!(sea_ice.model, h=Metadata(:sea_ice_thickness;     dataset), 
                     ℵ=Metadata(:sea_ice_concentration; dataset))
