@@ -52,6 +52,8 @@ compute_net_atmosphere_fluxes!(coupled_model) = nothing
 
 # TODO: import this last
 include("PrescribedAtmospheres.jl")
+include("ocean_sea_ice_model.jl")
+include("freezing_limited_ocean_temperature.jl")
 
 using .PrescribedAtmospheres:
     PrescribedAtmosphere,
@@ -68,8 +70,6 @@ import .InterfaceComputations:
     compute_net_ocean_fluxes!,
     compute_sea_ice_ocean_fluxes!
 
-include("ocean_sea_ice_model.jl")
-include("freezing_limited_ocean_temperature.jl")
 include("time_step_ocean_sea_ice_model.jl")
 
 # "No atmosphere" implementation
