@@ -13,11 +13,11 @@ import Oceananigans: fields, prognostic_fields
 import Oceananigans.Architectures: architecture
 import Oceananigans.Fields: set!
 import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker
-import Oceananigans.OutputWriters: default_included_properties
+import Oceananigans.OutputWriters: default_included_properties, checkpointer_address,
+                                   write_output!, initialize_jld2_file!
 import Oceananigans.Simulations: reset!, initialize!, iteration, run!
 import Oceananigans.TimeSteppers: time_step!, update_state!, time
 import Oceananigans.Utils: prettytime
-import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker
 
 struct OceanSeaIceModel{I, A, O, F, C, Arch} <: AbstractModel{Nothing, Arch}
     architecture :: Arch
@@ -30,6 +30,7 @@ end
 
 const OSIM = OceanSeaIceModel
 const OSIMSIM = Simulation{<:OceanSeaIceModel}
+const OSIMSIMPA = Simulation{<:OceanSeaIceModel{<:Any, <:PrescribedAtmosphere}}
 
 function Base.summary(model::OSIM)
     A = nameof(typeof(architecture(model)))
@@ -60,17 +61,33 @@ prettytime(model::OSIM)             = prettytime(model.clock.time)
 iteration(model::OSIM)              = model.clock.iteration
 timestepper(::OSIM)                 = nothing
 default_included_properties(::OSIM) = tuple()
-prognostic_fields(cm::OSIM)         = nothing
+prognostic_fields(::OSIM)           = nothing
 fields(::OSIM)                      = NamedTuple()
 default_clock(TT)                   = Oceananigans.TimeSteppers.Clock{TT}(0, 0, 1)
+time(model::OSIM)                   = model.clock.time
+checkpointer_address(::OSIM)        = "HydrostaticFreeSurfaceModel"
 
-function reset!(model::OSIM)
-    reset!(model.ocean)
-    return nothing
-end
+reset!(model::OSIM) = reset!(model.ocean)
 
-function initialize!(model::OSIM)
-    initialize!(model.ocean)
+initialize!(model::OSIM) = initialize!(model.ocean)
+
+initialize_jld2_file!(filepath, init, jld2_kw, including, outputs, model::OSIM) =
+    initialize_jld2_file!(filepath, init, jld2_kw, including, outputs, model.ocean.model)
+
+write_output!(c::Checkpointer, model::OSIM) = write_output!(c, model.ocean.model)
+
+function set!(sim::OSIMSIMPA, pickup::Union{Bool, Integer, String})
+    checkpoint_file_path = checkpoint_path(pickup, sim.output_writers)
+
+    set!(sim.model.ocean.model, checkpoint_file_path)
+
+    sim.model.clock.iteration = sim.model.ocean.model.clock.iteration
+    sim.model.clock.time = sim.model.ocean.model.clock.time
+
+    # Setting the atmosphere time to the ocean time
+    sim.model.atmosphere.clock.iteration = sim.model.ocean.model.clock.iteration
+    sim.model.atmosphere.clock.time = sim.model.ocean.model.clock.time
+
     return nothing
 end
 
@@ -152,23 +169,11 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(
     return ocean_sea_ice_model
 end
 
-time(coupled_model::OceanSeaIceModel) = coupled_model.clock.time
-
 # Check for NaNs in the first prognostic field (generalizes to prescribed velocities).
-function default_nan_checker(model::OceanSeaIceModel)
+function default_nan_checker(model::OSIM)
     u_ocean = model.ocean.model.velocities.u
     nan_checker = NaNChecker((; u_ocean))
     return nan_checker
-end
-
-# TODO: picking up OceanSeaIceModel simulations from a checkpoint is a WIP
-function set!(sim::OSIMSIM, pickup::Union{Bool, Integer, String})
-    checkpoint_file_path = checkpoint_path(pickup, sim.model.ocean.output_writers)
-    set!(sim.model.ocean, filepath = checkpoint_file_path)
-    set!(sim.model.ocean, pickup = pickup)
-    # Setting the atmosphere time to the ocean time
-    sim.model.atmosphere.clock.time = sim.model.ocean.model.clock.time
-    return nothing
 end
 
 @kernel function _above_freezing_ocean_temperature!(T, grid, S, ℵ, liquidus)
