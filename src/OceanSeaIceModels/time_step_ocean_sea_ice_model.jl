@@ -10,7 +10,7 @@ using Oceananigans.Grids: φnode
 
 using Printf
 
-function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_tendencies=true, kw...)
+function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_tendencies=true)
     ocean = coupled_model.ocean
     sea_ice = coupled_model.sea_ice
     atmosphere = coupled_model.atmosphere
@@ -37,7 +37,7 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
 
     # TODO after ice time-step:
     #  - Adjust ocean heat flux if the ice completely melts?
-    time_step!(ocean.model, Δt; kw...)
+    time_step!(ocean, Δt)
 
     # Time step the atmosphere
     time_step!(atmosphere, Δt)

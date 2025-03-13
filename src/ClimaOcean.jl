@@ -27,17 +27,12 @@ export
     Metadata,
     all_dates,
     JRA55FieldTimeSeries,
-    ECCO_field, 
+    ECCO_field,
     ECCORestoring,
     LinearlyTaperedPolarMask,
     ocean_simulation,
     sea_ice_simulation,
-    initialize!,
-    run_coupled!,
-    @root, 
-    @onrank,
-    @distribute,
-    @handshake
+    initialize!
 
 using Oceananigans
 using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
@@ -56,7 +51,7 @@ const SKOFTS = SomeKindOfFieldTimeSeries
 @inline stateindex(a::SKOFTS, i, j, k, grid, time, args...) = @inbounds a[i, j, k, time]
 
 @inline function stateindex(a::Function, i, j, k, grid, time, loc)
-    LX, LY, LZ = loc 
+    LX, LY, LZ = loc
     λ, φ, z = node(i, j, k, grid, LX(), LY(), LZ())
     return a(λ, φ, z, time)
 end
@@ -74,7 +69,6 @@ end
     return NamedTuple{names}(vals)
 end
 
-include("DistributedUtils.jl")
 include("OceanSimulations/OceanSimulations.jl")
 include("SeaIceSimulations.jl")
 include("OceanSeaIceModels/OceanSeaIceModels.jl")
@@ -84,7 +78,6 @@ include("DataWrangling/DataWrangling.jl")
 include("Bathymetry.jl")
 include("Diagnostics/Diagnostics.jl")
 
-using .DistributedUtils
 using .VerticalGrids
 using .Bathymetry
 using .DataWrangling
