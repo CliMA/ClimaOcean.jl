@@ -2,7 +2,7 @@ using CUDA: @allowscalar
 using Printf
 
 import ClimaSeaIce
-import Thermodynamics as AtmosphericThermodynamics  
+import Thermodynamics as AtmosphericThermodynamics
 using Thermodynamics: Liquid, Ice
 
 #####
@@ -23,7 +23,7 @@ end
 # TODO: allow different saturation models
 # struct ClasiusClapyeronSaturation end
 struct SpecificHumidityFormulation{Φ, X}
-    # saturation :: S 
+    # saturation :: S
     phase :: Φ
     water_mole_fraction :: X
 end
@@ -136,13 +136,13 @@ struct BulkTemperature end
 #### Skin interface temperature calculated as a flux balance
 ####
 
-""" 
-    struct SkinTemperature     
+"""
+    struct SkinTemperature
 
 A type to represent the interface temperature used in the flux calculation.
 The interface temperature is calculated from the flux balance at the interface.
 In particular, the interface temperature ``Tₛ`` is the root of:
- 
+
 ```math
 F(Tₛ) - Jᵀ = 0
 ```
@@ -165,15 +165,15 @@ struct DiffusiveFlux{Z, K}
 end
 
 # The flux balance is solved by computing
-# 
-#            κ 
+#
+#            κ
 # Jᵃ(Tₛⁿ) + --- (Tₛⁿ⁺¹ - Tᵢ) = 0
 #            δ
 #
 # where Jᵃ is the external flux impinging on the surface from above and
 # Jᵢ = - κ (Tₛ - Tᵢ) / δ is the "internal flux" coming up from below.
 # We have indicated that Jᵃ may depend on the surface temperature from the previous
-# iterate. We thus find that 
+# iterate. We thus find that
 #
 # Tₛⁿ⁺¹ = Tᵢ - δ * Jᵃ(Tₛⁿ) / κ
 #
@@ -184,8 +184,8 @@ end
 #          ≈ Jᵃ(Tⁿ) + 4 * (Tⁿ⁺¹ - Tⁿ) σ * ϵ * Tⁿ^3 / (ρ c)
 #
 # which produces the alternative, semi-implicit flux balance
-# 
-#                                      κ 
+#
+#                                      κ
 # Jᵃ(Tₛⁿ) - 4 α Tₛⁿ⁴ + 4 α Tₛⁿ Tₛⁿ³ + --- (Tₛⁿ⁺¹ - Tᵢ) = 0
 #                                      δ
 #
@@ -195,7 +195,7 @@ end
 #
 # or
 #
-# Tₛⁿ⁺¹ = = (Tᵢ - δ / κ * (Jᵃ - 4 α Tₛⁿ⁴)) / (1 + 4 δ σ ϵ Tₛⁿ³ / ρ c κ) 
+# Tₛⁿ⁺¹ = = (Tᵢ - δ / κ * (Jᵃ - 4 α Tₛⁿ⁴)) / (1 + 4 δ σ ϵ Tₛⁿ³ / ρ c κ)
 #
 # corresponding to a linearization of the outgoing longwave radiation term.
 @inline function flux_balance_temperature(st::SkinTemperature{<:DiffusiveFlux}, Qₐ, Ψₛ, ℙₛ, Ψᵢ, ℙᵢ)
@@ -214,8 +214,8 @@ end
     h = Ψᵢ.h
 
     # Bottom temperature at the melting temperature
-    Tᵢ = ClimaSeaIce.SeaIceThermodynamics.melting_temperature(ℙᵢ.liquidus, Ψᵢ.S)
-    Tᵢ = convert_to_kelvin(ℙᵢ.temperature_units, Tᵢ)
+    Tᵢ  = ClimaSeaIce.SeaIceThermodynamics.melting_temperature(ℙᵢ.liquidus, Ψᵢ.S)
+    Tᵢ  = convert_to_kelvin(ℙᵢ.temperature_units, Tᵢ)
     Tₛ⁻ = Ψₛ.T
 
     #=
@@ -227,10 +227,6 @@ end
 
     T★ = Tᵢ - Qₐ * h / k
 
-    # Under heating fluxes, cap surface temperature by melting temperature
-    Tₘ = ℙᵢ.liquidus.freshwater_melting_temperature
-    Tₘ = convert_to_kelvin(ℙᵢ.temperature_units, Tₘ)
-
     # Fix a NaN
     T★ = ifelse(isnan(T★), Tₛ⁻, T★)
 
@@ -240,6 +236,11 @@ end
     max_ΔT = convert(typeof(T★), st.max_ΔT)
     abs_ΔT = min(max_ΔT, abs(ΔT★))
     Tₛ⁺ = Tₛ⁻ + abs_ΔT * sign(ΔT★)
+
+    # Under heating fluxes, cap surface temperature by melting temperature
+    Tₘ = ℙᵢ.liquidus.freshwater_melting_temperature
+    Tₘ = convert_to_kelvin(ℙᵢ.temperature_units, Tₘ)
+    Tₛ⁺ = min(Tₛ⁺, Tₘ)
 
     return Tₛ⁺
 end
@@ -262,7 +263,7 @@ end
     #ℰv = 0 #AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
     ℰs = AtmosphericThermodynamics.latent_heat_sublim(ℂₐ, 𝒬ₐ)
 
-    # upwelling radiation is calculated explicitly 
+    # upwelling radiation is calculated explicitly
     Tₛ⁻ = interface_state.T # approximate interface temperature from previous iteration
     σ = interface_properties.radiation.σ
     ϵ = interface_properties.radiation.ϵ
@@ -275,7 +276,7 @@ end
     u★ = interface_state.u★
     θ★ = interface_state.θ★
     q★ = interface_state.q★
- 
+
     # Turbulent heat fluxes, sensible + latent (positive out of the ocean)
     Qc = - ρₐ * cₐ * u★ * θ★ # = - ρₐ cₐ u★ Ch / sqrt(Cd) * (θₐ - Tₛ)
     Qv = - ρₐ * ℰs * u★ * q★
@@ -333,4 +334,3 @@ end
                                                   convert(FT, 273.15),
                                                   zero(FT),
                                                   zero(FT))
-

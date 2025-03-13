@@ -24,18 +24,15 @@ export
     exponential_z_faces,
     PowerLawStretching, LinearStretching,
     exponential_z_faces,
-    JRA55_field_time_series,
+    Metadata,
+    all_dates,
+    JRA55FieldTimeSeries,
     ECCO_field, 
-    ECCOMetadata,
     ECCORestoring,
     LinearlyTaperedPolarMask,
     ocean_simulation,
     sea_ice_simulation,
-    initialize!,
-    @root, 
-    @onrank,
-    @distribute,
-    @handshake
+    initialize!
 
 using Oceananigans
 using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
@@ -72,7 +69,6 @@ end
     return NamedTuple{names}(vals)
 end
 
-include("DistributedUtils.jl")
 include("OceanSimulations/OceanSimulations.jl")
 include("SeaIceSimulations.jl")
 include("OceanSeaIceModels/OceanSeaIceModels.jl")
@@ -82,7 +78,6 @@ include("DataWrangling/DataWrangling.jl")
 include("Bathymetry.jl")
 include("Diagnostics/Diagnostics.jl")
 
-using .DistributedUtils
 using .VerticalGrids
 using .Bathymetry
 using .DataWrangling

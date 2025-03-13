@@ -6,12 +6,13 @@ using Oceananigans.Units
 using Oceananigans.OrthogonalSphericalShellGrids
 using ClimaOcean.OceanSimulations
 using ClimaOcean.ECCO
-using ClimaOcean.ECCO: all_ECCO_dates
+using ClimaOcean.DataWrangling
 using ClimaSeaIce.SeaIceThermodynamics: IceWaterThermalEquilibrium
 using Printf
 
 using CUDA
 CUDA.device!(1)
+arch = GPU()
 
 r_faces = ClimaOcean.exponential_z_faces(; Nz=30, h=10, depth=2000)
 z_faces = MutableVerticalDiscretization(r_faces)
@@ -20,13 +21,13 @@ Nx = 180 # longitudinal direction -> 250 points is about 1.5ᵒ resolution
 Ny = 180 # meridional direction -> same thing, 48 points is about 1.5ᵒ resolution
 Nz = length(r_faces) - 1
 
-grid = RotatedLatitudeLongitudeGrid(GPU(), size = (Nx, Ny, Nz), 
-                                           latitude = (-45, 45),
-                                           longitude = (-45, 45),
-                                           z = r_faces,
-                                           north_pole = (180, 0),
-                                           halo = (5, 5, 4),
-                                           topology = (Bounded, Bounded, Bounded))
+grid = RotatedLatitudeLongitudeGrid(arch, size = (Nx, Ny, Nz), 
+                                          latitude = (-45, 45),
+                                          longitude = (-45, 45),
+                                          z = r_faces,
+                                          north_pole = (180, 0),
+                                          halo = (5, 5, 4),
+                                          topology = (Bounded, Bounded, Bounded))
 
 bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1)
 
@@ -49,27 +50,47 @@ ocean = ocean_simulation(grid;
                          free_surface,
                          closure)
 
-set!(ocean.model, T=ECCOMetadata(:temperature),
-                  S=ECCOMetadata(:salinity))
+dataset = ECCO4Monthly()
+
+set!(ocean.model, T=Metadata(:temperature; dataset),
+                  S=Metadata(:salinity;    dataset))
 
 #####
 ##### A Prognostic Sea-ice model
 #####
 
+using ClimaSeaIce.SeaIceMomentumEquations
+using ClimaSeaIce.Rheologies
+
 # Remember to pass the SSS as a bottom bc to the sea ice!
 SSS = view(ocean.model.tracers.S, :, :, grid.Nz)
 bottom_heat_boundary_condition = IceWaterThermalEquilibrium(SSS)
 
-sea_ice = sea_ice_simulation(grid; bottom_heat_boundary_condition, dynamics=nothing, advection=nothing) 
+SSU = view(ocean.model.velocities.u, :, :, grid.Nz)
+SSV = view(ocean.model.velocities.u, :, :, grid.Nz)
 
-set!(sea_ice.model, h=ECCOMetadata(:sea_ice_thickness), 
-                    ℵ=ECCOMetadata(:sea_ice_concentration))
+τo  = SemiImplicitStress(uₑ=SSU, vₑ=SSV)
+τua = Field{Face, Center, Nothing}(grid) 
+τva = Field{Center, Face, Nothing}(grid)
+
+dynamics = SeaIceMomentumEquation(grid; 
+                                  coriolis = ocean.model.coriolis,
+                                  top_momentum_stress = (u=τua, v=τva),
+                                  bottom_momentum_stress = τo,
+                                  ocean_velocities = (u=SSU, v=SSV),
+                                  rheology = ElastoViscoPlasticRheology(),
+                                  solver = SplitExplicitSolver(120))
+
+sea_ice = sea_ice_simulation(grid; bottom_heat_boundary_condition, dynamics, advection=WENO(order=7)) 
+
+set!(sea_ice.model, h=Metadata(:sea_ice_thickness;     dataset), 
+                    ℵ=Metadata(:sea_ice_concentration; dataset))
 
 ##### 
 ##### A Prescribed Atmosphere model
 #####
 
-atmosphere = JRA55PrescribedAtmosphere(GPU(); backend=JRA55NetCDFBackend(40))
+atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(40))
 radiation  = Radiation()
 
 #####
@@ -80,10 +101,10 @@ arctic = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 arctic = Simulation(arctic, Δt=5minutes, stop_time=365days)
 
 # Sea-ice variables
-h  = sea_ice.model.ice_thickness
-ℵ  = sea_ice.model.ice_concentration
-Gh = sea_ice.model.timestepper.Gⁿ.h
-Gℵ = sea_ice.model.timestepper.Gⁿ.ℵ
+h = sea_ice.model.ice_thickness
+ℵ = sea_ice.model.ice_concentration
+u = sea_ice.model.velocities.u
+v = sea_ice.model.velocities.v
 
 # Fluxes
 Tu = arctic.model.interfaces.atmosphere_sea_ice_interface.temperature
@@ -93,14 +114,16 @@ Qⁱ = arctic.model.interfaces.sea_ice_ocean_interface.fluxes.interface_heat
 Qᶠ = arctic.model.interfaces.sea_ice_ocean_interface.fluxes.frazil_heat
 Qᵗ = arctic.model.interfaces.net_fluxes.sea_ice_top.heat
 Qᴮ = arctic.model.interfaces.net_fluxes.sea_ice_bottom.heat
+τx = arctic.model.interfaces.net_fluxes.sea_ice_top.u
+τy = arctic.model.interfaces.net_fluxes.sea_ice_top.v
 
 # Output writers
-arctic.output_writers[:vars] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, Gh, Gℵ, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ),
+arctic.output_writers[:vars] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, u, v, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ, τx, τy),
                                                  filename = "sea_ice_quantities.jld2",
                                                  schedule = IterationInterval(12),
                                                  overwrite_existing=true)
 
-arctic.output_writers[:avrages] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ),
+arctic.output_writers[:averages] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ, u, v, τx, τy),
                                                     filename = "averaged_sea_ice_quantities.jld2",
                                                     schedule = AveragedTimeInterval(1days),
                                                     overwrite_existing=true)
@@ -142,11 +165,11 @@ run!(arctic)
 ##### Comparison to ECCO Climatology
 #####
 
-version = ECCO4Monthly()
-dates   = all_ECCO_dates(version)[1:12]
+dataset = ECCO4Monthly()
+dates   = all_dates(version)[1:12]
 
-h_metadata = ECCOMetadata(:sea_ice_thickness;     version, dates)
-ℵ_metadata = ECCOMetadata(:sea_ice_concentration; version, dates)
+h_metadata = Metadata(:sea_ice_thickness;     dataset, dates)
+ℵ_metadata = Metadata(:sea_ice_concentration; dataset, dates)
 
 # Montly averaged ECCO data
 hE = ECCOFieldTimeSeries(h_metadata, grid; time_indices_in_memory=12)
