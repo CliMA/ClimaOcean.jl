@@ -13,11 +13,11 @@ import Oceananigans: fields, prognostic_fields
 import Oceananigans.Architectures: architecture
 import Oceananigans.Fields: set!
 import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker
-import Oceananigans.OutputWriters: default_included_properties
+import Oceananigans.OutputWriters: default_included_properties, checkpointer_address,
+                                   write_output!, initialize_jld2_file!
 import Oceananigans.Simulations: reset!, initialize!, iteration, run!
 import Oceananigans.TimeSteppers: time_step!, update_state!, time
 import Oceananigans.Utils: prettytime
-import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker
 
 struct OceanSeaIceModel{I, A, O, F, C, Arch} <: AbstractModel{Nothing, Arch}
     architecture :: Arch
@@ -73,6 +73,31 @@ function initialize!(model::OSIM)
     initialize!(model.ocean)
     return nothing
 end
+
+
+initialize_jld2_file!(filepath, init, jld2_kw, including, outputs, model::OceanSeaIceModel) =
+    initialize_jld2_file!(filepath, init, jld2_kw, including, outputs, model.ocean.model)
+
+set!(model::OSIM, filepath::AbstractString) = set!(model.ocean.model, filepath)
+
+write_output!(c::Checkpointer, model::OSIM) = write_output!(c, model.ocean.model)
+
+function set!(sim::OSIMSIM, pickup::Union{Bool, Integer, String})
+    checkpoint_file_path = checkpoint_path(pickup, sim.output_writers)
+
+    set!(sim.model, checkpoint_file_path)
+
+    sim.model.clock.iteration = sim.model.ocean.model.clock.iteration
+    sim.model.clock.time = sim.model.ocean.model.clock.time
+
+    # Setting the atmosphere time to the ocean time
+    sim.model.atmosphere.clock.iteration = sim.model.ocean.model.clock.iteration
+    sim.model.atmosphere.clock.time = sim.model.ocean.model.clock.time
+
+    return nothing
+end
+
+checkpointer_address(::OSIM) = "HydrostaticFreeSurfaceModel"
 
 reference_density(unsupported) =
     throw(ArgumentError("Cannot extract reference density from $(typeof(unsupported))"))
@@ -159,16 +184,6 @@ function default_nan_checker(model::OceanSeaIceModel)
     u_ocean = model.ocean.model.velocities.u
     nan_checker = NaNChecker((; u_ocean))
     return nan_checker
-end
-
-# TODO: picking up OceanSeaIceModel simulations from a checkpoint is a WIP
-function set!(sim::OSIMSIM, pickup::Union{Bool, Integer, String})
-    checkpoint_file_path = checkpoint_path(pickup, sim.model.ocean.output_writers)
-    set!(sim.model.ocean, filepath = checkpoint_file_path)
-    set!(sim.model.ocean, pickup = pickup)
-    # Setting the atmosphere time to the ocean time
-    sim.model.atmosphere.clock.time = sim.model.ocean.model.clock.time
-    return nothing
 end
 
 @kernel function _above_freezing_ocean_temperature!(T, grid, S, ℵ, liquidus)
