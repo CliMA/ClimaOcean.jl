@@ -12,7 +12,7 @@ using Printf
 
 using CUDA
 CUDA.device!(1)
-arch = CPU()
+arch = GPU()
 
 r_faces = ClimaOcean.exponential_z_faces(; Nz=30, h=10, depth=2000)
 z_faces = MutableVerticalDiscretization(r_faces)
