@@ -225,7 +225,7 @@ end
     Tₛ = (Tᵢ - h / k * (Qₐ + 4α * Tₛ⁻^4)) / (1 + 4α * h * Tₛ⁻^3 / k)
     =#
 
-    T★ = Tᵢ - Qₐ * h / k # * ℵi We need to multiply the flux by the concentration?
+    T★ = Tᵢ - Qₐ * h / k * ℵi # We need to multiply the flux by the concentration?
 
     # Fix a NaN
     T★ = ifelse(isnan(T★), Tₛ⁻, T★)
