@@ -63,6 +63,8 @@ default_included_properties(::OSIM) = tuple()
 prognostic_fields(cm::OSIM)         = nothing
 fields(::OSIM)                      = NamedTuple()
 default_clock(TT)                   = Oceananigans.TimeSteppers.Clock{TT}(0, 0, 1)
+time(model::OSIM)                   = model.clock.time
+checkpointer_address(::OSIM)        = "HydrostaticFreeSurfaceModel"
 
 function reset!(model::OSIM)
     reset!(model.ocean)
@@ -93,8 +95,6 @@ function set!(sim::OSIMSIM, pickup::Union{Bool, Integer, String})
 
     return nothing
 end
-
-checkpointer_address(::OSIM) = "HydrostaticFreeSurfaceModel"
 
 reference_density(unsupported) =
     throw(ArgumentError("Cannot extract reference density from $(typeof(unsupported))"))
@@ -173,8 +173,6 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(
 
     return ocean_sea_ice_model
 end
-
-time(coupled_model::OSIM) = coupled_model.clock.time
 
 # Check for NaNs in the first prognostic field (generalizes to prescribed velocities).
 function default_nan_checker(model::OSIM)
