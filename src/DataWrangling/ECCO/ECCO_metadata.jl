@@ -167,8 +167,6 @@ function download_dataset(metadata::ECCOMetadata; url = urls(metadata))
         # Write down the username and password in a .netrc file
         downloader = netrc_downloader(username, password, "ecco.jpl.nasa.gov", tmp)
         ntasks = Threads.nthreads()
-       
-        missing_files = false
 
         asyncmap(metadata; ntasks) do metadatum # Distribute the download among tasks
 
@@ -193,10 +191,6 @@ function download_dataset(metadata::ECCOMetadata; url = urls(metadata))
                 Downloads.download(fileurl, filepath; downloader, progress=download_progress)
             end
         end
-        
-	    if !missing_files
-            @info "Note: ECCO $(metadata.name) data is in $(metadata.dir)."
-	    end
     end
 
     return nothing
