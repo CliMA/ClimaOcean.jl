@@ -141,19 +141,15 @@ function default_nan_checker(model::OceanSeaIceModel)
     return nan_checker
 end
 
-@kernel function _above_freezing_ocean_temperature!(T, grid, S, ℵ, liquidus)
+@kernel function _above_freezing_ocean_temperature!(T, grid, S, liquidus)
     i, j = @index(Global, NTuple)
     Nz = size(grid, 3)
 
     @inbounds begin
-        for k in 1:Nz-1
+        for k in 1:Nz
             Tm = melting_temperature(liquidus, S[i, j, k])
             T[i, j, k] = max(T[i, j, k], Tm)
         end
-
-        ℵi = ℵ[i, j, 1]
-        Tm = melting_temperature(liquidus, S[i, j, Nz])
-        T[i, j, Nz] = ifelse(ℵi > 0, Tm, T[i, j, Nz])
     end
 end
 

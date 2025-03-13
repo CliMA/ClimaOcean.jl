@@ -84,11 +84,6 @@ arctic.output_writers[:vars] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, Tu, Q�
                                                  schedule = IterationInterval(12),
                                                  overwrite_existing=true)
 
-arctic.output_writers[:averages] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ),
-                                                    filename = "averaged_sea_ice_quantities.jld2",
-                                                    schedule = AveragedTimeInterval(1days),
-                                                    overwrite_existing=true)
-
 wall_time = Ref(time_ns())
 
 using Statistics
@@ -115,3 +110,5 @@ end
 add_callback!(arctic, progress, IterationInterval(10))
 
 run!(arctic)
+
+h = FieldTimeSeries("sea_ice_quantities.jld2", "h")

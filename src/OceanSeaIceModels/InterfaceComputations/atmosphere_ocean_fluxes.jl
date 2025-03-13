@@ -1,5 +1,6 @@
 using Oceananigans.Operators: intrinsic_vector
 using Oceananigans.Grids: inactive_node
+using ClimaOcean.OceanSimulations
 using ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres: thermodynamics_parameters,
                                                           surface_layer_height,
                                                           boundary_layer_height
@@ -11,10 +12,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     arch = architecture(grid)
     clock = coupled_model.clock
 
-    ocean_state = (u = ocean.model.velocities.u,
-                   v = ocean.model.velocities.v,
-                   T = ocean.model.tracers.T,
-                   S = ocean.model.tracers.S)
+    ocean_state = ocean_state(ocean)
 
     atmosphere_fields = coupled_model.interfaces.exchanger.exchange_atmosphere_state
 
