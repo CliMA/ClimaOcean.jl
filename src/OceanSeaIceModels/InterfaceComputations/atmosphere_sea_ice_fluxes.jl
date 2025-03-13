@@ -2,8 +2,6 @@ using Oceananigans.Operators: intrinsic_vector
 using Oceananigans.Grids: inactive_node
 using Oceananigans.Fields: ZeroField
 
-using ..OceanSeaIceModels: FreezingLimitedOceanTemperature
-
 function compute_atmosphere_sea_ice_fluxes!(coupled_model)
     ocean = coupled_model.ocean
     atmosphere = coupled_model.atmosphere
