@@ -11,6 +11,27 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 
     for arch in test_architectures
 
+        λ★, φ★ = 35.1, 50.1
+
+        grid = RectilinearGrid(arch, size = 200, x = λ★, y = φ★,
+                               z = (-400, 0), topology = (Flat, Flat, Bounded))
+
+        ocean = ocean_simulation(grid)
+        data = Int[]
+        pushdata(sim) = push!(data, iteration(sim))
+        add_callback!(ocean, pushdata)
+        backend = JRA55NetCDFBackend(4)
+        atmosphere = JRA55PrescribedAtmosphere(arch; backend)
+        radiation = Radiation(arch)
+        coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
+        Δt = 60
+        for n = 1:3
+            time_step!(coupled_model, Δt)
+        end
+        @test data == [0, 1, 2, 3]
+
+        # TODO: do the same for a SeaIceSimulation, and eventually prognostic Atmos
+
         #####
         ##### Ocean and prescribed atmosphere
         #####
@@ -20,11 +41,10 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
                             halo = (7, 7, 7),
                             z = (-6000, 0))
 
-        bottom_height = retrieve_bathymetry(grid; 
-                                            minimum_depth = 10,
-                                            dir = "./",
-                                            interpolation_passes = 20,
-                                            major_basins = 1)
+        bottom_height = regrid_bathymetry(grid; 
+                                          minimum_depth = 10,
+                                          interpolation_passes = 20,
+                                          major_basins = 1)
         
         grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
