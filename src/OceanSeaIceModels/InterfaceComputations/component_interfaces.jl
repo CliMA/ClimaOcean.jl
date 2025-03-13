@@ -245,7 +245,7 @@ function default_ao_specific_humidity(ocean)
 end
 
 """
-    ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
+    ComponentInterfaces(atmosphere, ocean, sea_ice;
                         radiation = Radiation(),
                         freshwater_density = 1000,
                         atmosphere_ocean_flux_formulation = SimilarityTheoryFluxes(),
@@ -262,7 +262,7 @@ end
                         sea_ice_reference_density = reference_density(sea_ice),
                         sea_ice_heat_capacity = heat_capacity(sea_ice))
 """
-function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
+function ComponentInterfaces(atmosphere, ocean, sea_ice;
                              radiation = Radiation(),
                              freshwater_density = 1000,
                              atmosphere_ocean_flux_formulation = SimilarityTheoryFluxes(eltype(ocean.model.grid)),

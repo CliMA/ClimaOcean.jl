@@ -1,6 +1,6 @@
 module OceanSimulations
 
-export ocean_simulation, PrescribedOceanModel
+export ocean_simulation, PrescribedOcean, ocean_state
 
 using Oceananigans
 using Oceananigans.Units
@@ -50,6 +50,14 @@ default_or_override(override, alternative_default=nothing) = override
 
 include("barotropic_potential_forcing.jl")
 include("ocean_simulation.jl")
-include("prescribed_ocean_model.jl")
+include("prescribed_ocean.jl")
+
+# Grab the ocean state (Needs extending for new ocean models)
+ocean_state(::Nothing) = (u = nothing, v = nothing, T = nothing, S = nothing)
+ocean_state(ocean::Simulation{<:HydrostaticFreeSurfaceModel}) = ocean_state(ocean.model)
+ocean_state(ocean) = (u = ocean.velocities.u,
+                      v = ocean.velocities.v,
+                      T = ocean.tracers.T,
+                      S = ocean.tracers.S)
 
 end # module

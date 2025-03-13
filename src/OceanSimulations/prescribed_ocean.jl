@@ -12,7 +12,7 @@ import Oceananigans.Architectures: on_architecture
 ##### A prescribed ocean...
 #####
 
-struct PrescribedOceanModel{G, C, U, T, F, Arch} <: AbstractModel{Nothing, Arch}
+struct PrescribedOcean{G, C, U, T, F, Arch} <: AbstractModel{Nothing, Arch}
     architecture :: Arch      
     grid :: G        
     clock :: Clock{C}
@@ -22,7 +22,7 @@ struct PrescribedOceanModel{G, C, U, T, F, Arch} <: AbstractModel{Nothing, Arch}
 end
 
 """
-    PrescribedOceanModel(timeseries=NamedTuple(); grid, clock=Clock{Float64}(time = 0))
+    PrescribedOcean(timeseries=NamedTuple(); grid, clock=Clock{Float64}(time = 0))
 
 Create a prescribed ocean model to be used in combination with ClimaOcean's `OceanSeaIceModel` 
 on a `grid` with a `clock`.
@@ -34,7 +34,7 @@ Arguments
                 following fields: `u`, `v`, `T`, `S`. All elements provided must be of type `FieldTimeSeries` 
                 and reside on the provided `grid`.
 """
-function PrescribedOceanModel(timeseries=NamedTuple(); 
+function PrescribedOcean(timeseries=NamedTuple(); 
                          grid, 
                          clock=Clock{Float64}(time = 0)) 
 
@@ -60,14 +60,14 @@ function PrescribedOceanModel(timeseries=NamedTuple();
     T = CenterField(grid, boundary_conditions=FieldBoundaryConditions(grid, (Center, Center, Center), top = FluxBoundaryCondition(Jᵀ)))
     S = CenterField(grid, boundary_conditions=FieldBoundaryConditions(grid, (Center, Center, Center), top = FluxBoundaryCondition(Jˢ)))
 
-    return PrescribedOceanModel(architecture(grid), grid, clock, (; u, v, w=ZeroField()), (; T, S), timeseries)
+    return PrescribedOcean(architecture(grid), grid, clock, (; u, v, w=ZeroField()), (; T, S), timeseries)
 end
 
 #####
 ##### Need to extend a couple of methods
 #####
 
-function time_step!(model::PrescribedOceanModel, Δt; callbacks=[], euler=true)
+function time_step!(model::PrescribedOcean, Δt; callbacks=[], euler=true)
     tick!(model.clock, Δt)
     time = Time(model.clock.time)
 
@@ -99,8 +99,8 @@ function time_step!(model::PrescribedOceanModel, Δt; callbacks=[], euler=true)
     return nothing
 end
 
-update_state!(::PrescribedOceanModel) = nothing
-timestepper(::PrescribedOceanModel) = nothing
+update_state!(::PrescribedOcean) = nothing
+timestepper(::PrescribedOcean) = nothing
 
-reference_density(ocean::Simulation{<:PrescribedOceanModel}) = 1025.6
-heat_capacity(ocean::Simulation{<:PrescribedOceanModel}) = 3995.6
+reference_density(ocean::Simulation{<:PrescribedOcean}) = 1025.6
+heat_capacity(ocean::Simulation{<:PrescribedOcean}) = 3995.6
