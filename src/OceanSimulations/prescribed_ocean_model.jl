@@ -10,8 +10,8 @@ import Oceananigans.Architectures: on_architecture
 ##### A prescribed ocean...
 #####
 
-struct PrescribedOcean{A, G, C, U, T, F} <: AbstractModel{Nothing}
-    architecture :: A       
+struct PrescribedOcean{G, C, U, T, F, Arch} <: AbstractModel{Nothing, Arch}
+    architecture :: Arch      
     grid :: G        
     clock :: Clock{C}
     velocities :: U
@@ -19,6 +19,18 @@ struct PrescribedOcean{A, G, C, U, T, F} <: AbstractModel{Nothing}
     timeseries :: F
 end
 
+"""
+    PrescribedOcean(timeseries=NamedTuple(); grid, clock=Clock{Float64}(time = 0))
+
+Create a prescribed ocean model to be used in combination with ClimaOcean's `OceanSeaIceModel` 
+on a `grid` with a `clock`.
+
+Arguments
+=========
+- `timeseries::NamedTuple`: A named tuple containing time series data for various fields. The named tuple can be empty or 
+                            include any combination of the following fields: `u`, `v`, `T`, `S`.
+                            All elements provided must be of type `FieldTimeSeries` and reside on the provided `grid`.
+"""
 function PrescribedOcean(timeseries=NamedTuple(); 
                          grid, 
                          clock=Clock{Float64}(time = 0)) 
@@ -44,7 +56,7 @@ function PrescribedOcean(timeseries=NamedTuple();
     T = CenterField(grid, boundary_conditions=FieldBoundaryConditions(grid, (Center, Center, Center), top = FluxBoundaryCondition(Jᵀ)))
     S = CenterField(grid, boundary_conditions=FieldBoundaryConditions(grid, (Center, Center, Center), top = FluxBoundaryCondition(Jˢ)))
 
-    PrescribedOcean(architecture(grid), grid, clock, (; u, v, w=ZeroField()), (; T, S), timeseries)
+    return PrescribedOcean(architecture(grid), grid, clock, (; u, v, w=ZeroField()), (; T, S), timeseries)
 end
 
 #####
