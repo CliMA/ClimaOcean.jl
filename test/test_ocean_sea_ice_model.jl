@@ -4,12 +4,35 @@ using CUDA
 using Oceananigans.OrthogonalSphericalShellGrids
 using ClimaOcean.OceanSeaIceModels: above_freezing_ocean_temperature!
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
+using ClimaSeaIce.SeaIceMomentumEquations
+using ClimaSeaIce.Rheologies
 
 @inline kernel_melting_temperature(i, j, k, grid, liquidus, S) = @inbounds melting_temperature(liquidus, S[i, j, k])
 
 @testset "Time stepping test" begin
 
     for arch in test_architectures
+
+        λ★, φ★ = 35.1, 50.1
+
+        grid = RectilinearGrid(arch, size = 200, x = λ★, y = φ★,
+                               z = (-400, 0), topology = (Flat, Flat, Bounded))
+
+        ocean = ocean_simulation(grid)
+        data = Int[]
+        pushdata(sim) = push!(data, iteration(sim))
+        add_callback!(ocean, pushdata)
+        backend = JRA55NetCDFBackend(4)
+        atmosphere = JRA55PrescribedAtmosphere(arch; backend)
+        radiation = Radiation(arch)
+        coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
+        Δt = 60
+        for n = 1:3
+            time_step!(coupled_model, Δt)
+        end
+        @test data == [0, 1, 2, 3]
+
+        # TODO: do the same for a SeaIceSimulation, and eventually prognostic Atmos
 
         #####
         ##### Ocean and prescribed atmosphere
@@ -20,11 +43,10 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
                             halo = (7, 7, 7),
                             z = (-6000, 0))
 
-        bottom_height = retrieve_bathymetry(grid; 
-                                            minimum_depth = 10,
-                                            dir = "./",
-                                            interpolation_passes = 20,
-                                            major_basins = 1)
+        bottom_height = regrid_bathymetry(grid; 
+                                          minimum_depth = 10,
+                                          interpolation_passes = 20,
+                                          major_basins = 1)
         
         grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
@@ -46,10 +68,17 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
         ##### Coupled ocean-sea ice and prescribed atmosphere
         #####
 
-        sea_ice_grid = TripolarGrid(arch; size=(50, 50, 1), z = (-10, 0))
-        sea_ice_grid = ImmersedBoundaryGrid(sea_ice_grid, GridFittedBottom(bottom_height))
+        # Adding a sea ice model to the coupled model
+        τua = Field{Face, Center, Nothing}(grid) 
+        τva = Field{Center, Face, Nothing}(grid)
 
-        sea_ice  = sea_ice_simulation(sea_ice_grid) 
+        dynamics = SeaIceMomentumEquation(grid; 
+                                          coriolis = ocean.model.coriolis,
+                                          top_momentum_stress = (u=τua, v=τva),
+                                          rheology = ElastoViscoPlasticRheology(),
+                                          solver = SplitExplicitSolver(120))
+
+        sea_ice  = sea_ice_simulation(grid; dynamics, advection=WENO(order=7)) 
         liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
         
         # Set the ocean temperature and salinity
