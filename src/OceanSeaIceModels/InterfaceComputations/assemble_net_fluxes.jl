@@ -233,15 +233,12 @@ end
     Qu = upwelling_radiation(Ts, σ, ϵ)
     Qd = net_downwelling_radiation(i, j, grid, time, α, ϵ, Qs, Qℓ)
 
-    ΣQt = (Qd + Qu + Qc + Qv) #* ℵi
-    ΣQb = Qi
+    ΣQt = (Qd + Qu + Qc + Qv) # * ℵi We need to multiply these times the concentration?
+    ΣQb = Qf + Qi 
 
     # Mask fluxes over land for convenience
     inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
 
-    if ΣQt - Qc - Qv - Qu > 0
-        @show ΣQt, Qc, Qv, Qu, Qd
-    end
     @inbounds top_fluxes.heat[i, j, 1]  = ifelse(inactive, zero(grid), ΣQt)
     @inbounds top_fluxes.u[i, j, 1]     = ifelse(inactive, zero(grid), ℑxᶠᵃᵃ(i, j, 1, grid, ρτx))
     @inbounds top_fluxes.v[i, j, 1]     = ifelse(inactive, zero(grid), ℑyᵃᶠᵃ(i, j, 1, grid, ρτy))
