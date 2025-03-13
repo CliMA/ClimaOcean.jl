@@ -1,3 +1,4 @@
+#=
 using ClimaOcean
 using Oceananigans
 using Oceananigans.Units
@@ -11,13 +12,10 @@ Nx = 144
 Ny = 60
 Nz = 40
 
-depth = 6000meters
-z_faces = exponential_z_faces(; Nz, depth)
-
 grid = LatitudeLongitudeGrid(arch;
                              size = (Nx, Ny, Nz),
                              halo = (7, 7, 7),
-                             z = z_faces,
+                             z = (-6000, 0),
                              latitude  = (-75, 75),
                              longitude = (0, 360))
 
@@ -28,12 +26,12 @@ ocean = ocean_simulation(grid)
 #                   S=ECCOMetadata(:salinity; dates=date))
 
 radiation = Radiation(arch)
-
+=#
 atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(41))
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 
-simulation = Simulation(coupled_model; Δt=10, stop_iteration=10)
+simulation = Simulation(coupled_model; Δt=10, stop_iteration=50)
 
 wall_time = Ref(time_ns())
 
@@ -75,7 +73,7 @@ simulation.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
 output_dir = "."
 prefix = "checkpointer_mwe"
 
-simulation.output_writers[:checkpoint] = Checkpointer(ocean.model;
+ocean.output_writers[:checkpoint] = Checkpointer(ocean.model;
                                                       schedule = IterationInterval(2),
                                                       prefix = prefix,
                                                       dir = output_dir,
@@ -84,10 +82,22 @@ simulation.output_writers[:checkpoint] = Checkpointer(ocean.model;
 
 # @show simulation
 
-run!(simulation)
+using ClimaOcean.OceanSeaIceModels: OceanSeaIceModel, OSIMSIM
+import Oceananigans.OutputWriters: write_output!
+import Oceananigans.Simulations: pickup!
 
-@info "simulation run for 10 iterations; you should have a checkpointer at 8"
+write_output!(c::Checkpointer, model::OceanSeaIceModel) = write_output!(c::Checkpointer, model.ocean.model)
 
-simulation.stop_iteration = 20
+function pickup!(sim::OSIMSIM, pickup)
+    @info "i try to properly pick up"
+    set!(sim.model.ocean, pickup)
+    return nothing
+end
+
+# run!(simulation)
+
+# @info "simulation run for 10 iterations; you should have a checkpointer at 8"
+
+# simulation.stop_iteration = 20
 
 run!(simulation, pickup=true)
