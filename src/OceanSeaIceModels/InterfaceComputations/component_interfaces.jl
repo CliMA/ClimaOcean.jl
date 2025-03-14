@@ -28,6 +28,8 @@ using Oceananigans.Operators: ℑxᶜᵃᵃ, ℑyᵃᶜᵃ, ℑxᶠᵃᵃ, ℑy�
 
 using KernelAbstractions: @kernel, @index
 
+import Oceananigans.Simulations: initialize!
+
 #####
 ##### Container for organizing information related to fluxes
 #####
@@ -100,11 +102,21 @@ function atmosphere_exchanger(atmosphere::PrescribedAtmosphere, exchange_grid)
     fj = TY() isa Flat ? nothing : Field{Center, Center, Nothing}(exchange_grid, FT)
     frac_indices = (i=fi, j=fj) # no k needed, only horizontal interpolation
 
+    return frac_indices
+end
+
+initialize!(exchanger::StateExchanger, ::Nothing) = nothing
+
+function initialize!(exchanger::StateExchanger, atmosphere)
+    atmos_grid = atmosphere.grid
+    grid = exchanger.exchange_grid
+    arch = architecture(grid)
+    frac_indices = exchanger.atmosphere_exchanger
+    atmos_grid = 
     kernel_parameters = interface_kernel_parameters(exchange_grid)
     launch!(arch, exchange_grid, kernel_parameters,
             _compute_fractional_indices!, frac_indices, exchange_grid, atmos_grid)
-
-    return frac_indices
+    return nothing
 end
 
 @kernel function _compute_fractional_indices!(indices_tuple, exchange_grid, atmos_grid)

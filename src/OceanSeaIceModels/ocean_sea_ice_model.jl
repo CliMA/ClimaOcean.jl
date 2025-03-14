@@ -70,6 +70,7 @@ end
 
 function initialize!(model::OSIM)
     initialize!(model.ocean)
+    initialize!(model.interfaces.exchanger, model.atmosphere)
     return nothing
 end
 
