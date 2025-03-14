@@ -4,6 +4,7 @@ using Oceananigans.Units
 using CFTime
 using Dates
 using Printf
+using ClimaOcean.ECCO
 
 arch = CPU()
 
@@ -23,9 +24,9 @@ grid = LatitudeLongitudeGrid(arch;
 
 ocean = ocean_simulation(grid)
 
-# date = DateTimeProlepticGregorian(1993, 1, 1)
-# set!(ocean.model, T=ECCOMetadata(:temperature; dates=date),
-#                   S=ECCOMetadata(:salinity; dates=date))
+date = DateTimeProlepticGregorian(1993, 1, 1)
+set!(ocean.model, T=Metadata(:temperature; dates=date, dataset=ECCO4Monthly()),
+                  S=Metadata(:salinity; dates=date, dataset=ECCO4Monthly()))
 
 radiation = Radiation(arch)
 
@@ -33,7 +34,7 @@ atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(41))
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 
-simulation = Simulation(coupled_model; Δt=10, stop_iteration=10)
+simulation = Simulation(coupled_model; Δt=30minutes, stop_time=30days)
 
 wall_time = Ref(time_ns())
 
@@ -60,19 +61,43 @@ function progress(sim)
     wall_time[] = time_ns()
 end
 
-simulation.callbacks[:progress] = Callback(progress, IterationInterval(1))
+simulation.callbacks[:progress] = Callback(progress, TimeInterval(1days))
 
 outputs = merge(ocean.model.tracers, ocean.model.velocities)
 
-ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
-                                                  schedule = IterationInterval(2),
-                                                  filename = "averaging_mwe_surface",
+avg = []
+int = []
+
+ρₒ = simulation.model.interfaces.ocean_properties.reference_density
+cₚ = simulation.model.interfaces.ocean_properties.heat_capacity
+
+
+for key in keys(ocean.model.tracers)
+    push!(avg, Field(Average(ocean.model.tracers[key])))
+    push!(int, Field(Integral(ocean.model.tracers[key])))
+end
+c = CenterField(grid)
+volmask =  set!(c, 1)
+
+dv = Field(Integral(volmask))
+
+avg_tracer_outputs = merge((; T_avg=avg[1], S_avg=avg[2], e_avg=avg[3]))
+int_tracer_outputs = merge((; OHC=ρₒ*cₚ*int[1], S_int=int[2], e_int=int[3], vol_int = dv))
+
+simulation.output_writers[:global_avg] = JLD2OutputWriter(ocean.model, avg_tracer_outputs;
+                                                  schedule = TimeInterval(1days),
+                                                  filename = "averaged_tracer_data",
+                                                  overwrite_existing = true)#=
                                                   indices = (:, :, grid.Nz),
                                                   with_halos = true,
-                                                  overwrite_existing = true,
+                                                  ,
                                                   array_type = Array{Float32})
+=#
 
-
+simulation.output_writers[:global_int] = JLD2OutputWriter(ocean.model, int_tracer_outputs;
+                                                  schedule = TimeInterval(1days),
+                                                  filename = "integrated_tracer_data",
+                                                  overwrite_existing = true)
 
 run!(simulation)
 
