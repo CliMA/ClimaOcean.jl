@@ -221,7 +221,7 @@ Base.summary(::PATP{FT}) where FT = "PrescribedAtmosphereThermodynamicsParameter
 function Base.show(io::IO, p::PrescribedAtmosphereThermodynamicsParameters)
     FT = eltype(p)
 
-    cp = p.constitutive 
+    cp = p.constitutive
     hc = p.heat_capacity
     pt = p.phase_transitions
 
@@ -238,9 +238,9 @@ function Base.show(io::IO, p::PrescribedAtmosphereThermodynamicsParameters)
         "└── PhaseTransitionParameters{$FT}", '\n',
         "    ├── reference_vaporization_enthalpy (ℒᵛ⁰): ", prettysummary(pt.reference_vaporization_enthalpy), '\n',
         "    ├── reference_sublimation_enthalpy  (ℒˢ⁰): ", prettysummary(pt.reference_sublimation_enthalpy), '\n',
-        "    ├── reference_temperature (T⁰):            ", prettysummary(pt.reference_temperature), '\n',    
+        "    ├── reference_temperature (T⁰):            ", prettysummary(pt.reference_temperature), '\n',
         "    ├── triple_point_temperature (Tᵗʳ):        ", prettysummary(pt.triple_point_temperature), '\n',
-        "    ├── triple_point_pressure (pᵗʳ):           ", prettysummary(pt.triple_point_pressure), '\n',   
+        "    ├── triple_point_pressure (pᵗʳ):           ", prettysummary(pt.triple_point_pressure), '\n',
         "    ├── water_freezing_temperature (Tᶠ):       ", prettysummary(pt.water_freezing_temperature), '\n',
         "    └── total_ice_nucleation_temperature (Tⁱ): ", prettysummary(pt.total_ice_nucleation_temperature))
 end
@@ -318,6 +318,20 @@ function Base.show(io::IO, pa::PrescribedAtmosphere)
     print(io, "└── boundary_layer_height: ", prettysummary(pa.boundary_layer_height))
 end
 
+"""
+    set_clock!(sim, clock)
+
+Set the clock of `sim`ulation to match the values of `clock`.
+"""
+function set_clock!(sim::PrescribedAtmosphere, clock)
+    sim.clock.time = clock.time
+    sim.clock.iteration = clock.iteration
+    sim.clock.last_Δt = clock.last_Δt
+    sim.clock.last_stage_Δt = clock.last_stage_Δt
+    sim.clock.stage = clock.stage
+    return nothing
+end
+
 function default_atmosphere_velocities(grid, times)
     ua = FieldTimeSeries{Center, Center, Nothing}(grid, times)
     va = FieldTimeSeries{Center, Center, Nothing}(grid, times)
@@ -357,14 +371,14 @@ end
 
     for fts in ftses
         update_field_time_series!(fts, time)
-    end    
-    
+    end
+
     return nothing
 end
 
 @inline thermodynamics_parameters(atmos::PrescribedAtmosphere) = atmos.thermodynamics_parameters
 @inline surface_layer_height(atmos::PrescribedAtmosphere) = atmos.surface_layer_height
-@inline boundary_layer_height(atmos::PrescribedAtmosphere) = atmos.boundary_layer_height    
+@inline boundary_layer_height(atmos::PrescribedAtmosphere) = atmos.boundary_layer_height
 
 """
     PrescribedAtmosphere(grid, times;

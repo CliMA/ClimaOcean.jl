@@ -170,6 +170,14 @@ ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
                                                   overwrite_existing = true,
                                                   array_type = Array{Float32})
 
+# We also save a series of Checkpointers that will enable us to restart the simulation
+# from a later point; ideal for longer runs.
+
+simulation.output_writers[:checkpoint] = Checkpointer(ocean.model;
+                                                      schedule = TimeInterval(5days),
+                                                      prefix = "one_degree_checkpointer",
+                                                      overwrite_existing = true)
+
 # ### Ready to run
 
 # We are ready to press the big red button and run the simulation.
@@ -183,6 +191,16 @@ simulation.Δt = 20minutes
 simulation.stop_time = 360days
 
 run!(simulation)
+
+# After we had run long-enough to produce at least one checkpointer file, if we want to restart the
+# simulation we call
+#
+# ```julia
+# run!(simulation, pickup=true)
+# ```
+#
+# Doing so, simulation will be picked up from the latest checkpointer.
+
 
 # ### A pretty movie
 #

@@ -27,7 +27,7 @@ export
     Metadata,
     all_dates,
     JRA55FieldTimeSeries,
-    ECCO_field, 
+    ECCO_field,
     ECCORestoring,
     LinearlyTaperedPolarMask,
     ocean_simulation,
@@ -51,7 +51,7 @@ const SKOFTS = SomeKindOfFieldTimeSeries
 @inline stateindex(a::SKOFTS, i, j, k, grid, time, args...) = @inbounds a[i, j, k, time]
 
 @inline function stateindex(a::Function, i, j, k, grid, time, loc)
-    LX, LY, LZ = loc 
+    LX, LY, LZ = loc
     λ, φ, z = node(i, j, k, grid, LX(), LY(), LZ())
     return a(λ, φ, z, time)
 end

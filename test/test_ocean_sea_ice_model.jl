@@ -43,15 +43,15 @@ using ClimaSeaIce.Rheologies
                             halo = (7, 7, 7),
                             z = (-6000, 0))
 
-        bottom_height = regrid_bathymetry(grid; 
+        bottom_height = regrid_bathymetry(grid;
                                           minimum_depth = 10,
                                           interpolation_passes = 20,
                                           major_basins = 1)
-        
+
         grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
         free_surface = SplitExplicitFreeSurface(grid; substeps=20)
-        ocean = ocean_simulation(grid; free_surface) 
+        ocean = ocean_simulation(grid; free_surface)
 
         backend = JRA55NetCDFBackend(4)
         atmosphere = JRA55PrescribedAtmosphere(arch; backend)
@@ -80,7 +80,7 @@ using ClimaSeaIce.Rheologies
 
         sea_ice  = sea_ice_simulation(grid; dynamics, advection=WENO(order=7)) 
         liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
-        
+
         # Set the ocean temperature and salinity
         set!(ocean.model, T=temperature_metadata[1], S=salinity_metadata[1])
         above_freezing_ocean_temperature!(ocean, sea_ice)
@@ -102,3 +102,55 @@ using ClimaSeaIce.Rheologies
     end
 end
 
+"""
+    testbed_coupled_simulation(grid; stop_iteration=8)
+
+Return a test-bed coupled simulation with a Checkpointer.
+"""
+function testbed_coupled_simulation(grid; stop_iteration=8)
+    ocean = ocean_simulation(grid)
+
+    radiation = Radiation(arch)
+
+    atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(4))
+
+    coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
+
+    simulation = Simulation(coupled_model; Δt=10, stop_iteration)
+
+    simulation.output_writers[:checkpoint] = Checkpointer(ocean.model;
+                                                          schedule = IterationInterval(3),
+                                                          prefix = "checkpointer",
+                                                          dir = ".",
+                                                          verbose = true,
+                                                          overwrite_existing = true)
+
+    return simulation
+end
+
+@testset "Checkpointer test" begin
+    for arch in test_architectures
+
+        Nx, Ny, Nz = 40, 25, 10
+
+        grid = LatitudeLongitudeGrid(arch;
+                                     size = (Nx, Ny, Nz),
+                                     halo = (7, 7, 7),
+                                     z = (-6000, 0),
+                                     latitude  = (-75, 75),
+                                     longitude = (0, 360))
+
+        simulation = testbed_coupled_simulation(grid; stop_iteration=8)
+
+        run!(simulation)
+
+        # create a new simulation and pick up from the last checkpointer
+        new_simulation = testbed_coupled_simulation(grid; stop_iteration=13)
+
+        run!(new_simulation, pickup=true)
+
+        # ensure the ocean and atmosphere time step and iteration are the same
+        @test new_simulation.model.atmosphere.clock.iteration ≈ new_simulation.model.ocean.model.clock.iteration
+        @test new_simulation.model.atmosphere.clock.time ≈ new_simulation.model.ocean.model.clock.time
+    end
+end

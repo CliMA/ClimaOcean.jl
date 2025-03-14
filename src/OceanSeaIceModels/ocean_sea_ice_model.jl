@@ -1,9 +1,9 @@
 using Oceananigans
+using Oceananigans.OutputWriters: checkpoint_path
 using Oceananigans.TimeSteppers: Clock
 using Oceananigans: SeawaterBuoyancy
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 using KernelAbstractions: @kernel, @index
-
 using SeawaterPolynomials: TEOS10EquationOfState
 
 import Thermodynamics as AtmosphericThermodynamics
@@ -13,11 +13,13 @@ import Oceananigans: fields, prognostic_fields
 import Oceananigans.Architectures: architecture
 import Oceananigans.Fields: set!
 import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker
-import Oceananigans.OutputWriters: default_included_properties
-import Oceananigans.Simulations: reset!, initialize!, iteration
+import Oceananigans.OutputWriters: default_included_properties, checkpointer_address,
+                                   write_output!, initialize_jld2_file!
+import Oceananigans.Simulations: reset!, initialize!, iteration, run!
 import Oceananigans.TimeSteppers: time_step!, update_state!, time
 import Oceananigans.Utils: prettytime
-import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker
+
+import .PrescribedAtmospheres: set_clock!
 
 struct OceanSeaIceModel{I, A, O, F, C, Arch} <: AbstractModel{Nothing, Arch}
     architecture :: Arch
@@ -29,6 +31,8 @@ struct OceanSeaIceModel{I, A, O, F, C, Arch} <: AbstractModel{Nothing, Arch}
 end
 
 const OSIM = OceanSeaIceModel
+const OSIMSIM = Simulation{<:OceanSeaIceModel}
+const OSIMSIMPA = Simulation{<:OceanSeaIceModel{<:Any, <:PrescribedAtmosphere}}
 
 function Base.summary(model::OSIM)
     A = nameof(typeof(architecture(model)))
@@ -59,17 +63,45 @@ prettytime(model::OSIM)             = prettytime(model.clock.time)
 iteration(model::OSIM)              = model.clock.iteration
 timestepper(::OSIM)                 = nothing
 default_included_properties(::OSIM) = tuple()
-prognostic_fields(cm::OSIM)         = nothing
+prognostic_fields(::OSIM)           = nothing
 fields(::OSIM)                      = NamedTuple()
 default_clock(TT)                   = Oceananigans.TimeSteppers.Clock{TT}(0, 0, 1)
+time(model::OSIM)                   = model.clock.time
+checkpointer_address(::OSIM)        = "HydrostaticFreeSurfaceModel"
 
-function reset!(model::OSIM)
-    reset!(model.ocean)
+reset!(model::OSIM) = reset!(model.ocean)
+
+initialize!(model::OSIM) = initialize!(model.ocean)
+
+initialize_jld2_file!(filepath, init, jld2_kw, including, outputs, model::OSIM) =
+    initialize_jld2_file!(filepath, init, jld2_kw, including, outputs, model.ocean.model)
+
+write_output!(c::Checkpointer, model::OSIM) = write_output!(c, model.ocean.model)
+
+"""
+    set_clock!(sim, clock)
+
+Set the clock of `sim`ulation to match the values of `clock`.
+"""
+function set_clock!(sim::OSIMSIM, clock)
+    sim.model.clock.time = clock.time
+    sim.model.clock.iteration = clock.iteration
+    sim.model.clock.last_Δt = clock.last_Δt
+    sim.model.clock.last_stage_Δt = clock.last_stage_Δt
+    sim.model.clock.stage = clock.stage
     return nothing
 end
 
-function initialize!(model::OSIM)
-    initialize!(model.ocean)
+function set!(sim::OSIMSIMPA, pickup::Union{Bool, Integer, String})
+    checkpoint_file_path = checkpoint_path(pickup, sim.output_writers)
+
+    set!(sim.model.ocean.model, checkpoint_file_path)
+
+    clock = sim.model.ocean.model.clock
+
+    set_clock!(sim, clock)
+    set_clock!(sim.model.atmosphere, clock)
+
     return nothing
 end
 
@@ -114,7 +146,7 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(
         pop!(ocean.callbacks, :wall_time_limit_exceeded, nothing)
         pop!(ocean.callbacks, :nan_checker, nothing)
     end
-    
+
     if sea_ice isa SeaIceSimulation
         if !isnothing(sea_ice.callbacks)
             pop!(sea_ice.callbacks, :stop_time_exceeded, nothing)
@@ -151,10 +183,8 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(
     return ocean_sea_ice_model
 end
 
-time(coupled_model::OceanSeaIceModel) = coupled_model.clock.time
-
 # Check for NaNs in the first prognostic field (generalizes to prescribed velocities).
-function default_nan_checker(model::OceanSeaIceModel)
+function default_nan_checker(model::OSIM)
     u_ocean = model.ocean.model.velocities.u
     nan_checker = NaNChecker((; u_ocean))
     return nan_checker
