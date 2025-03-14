@@ -17,7 +17,7 @@ import Oceananigans.OutputWriters: default_included_properties
 import Oceananigans.Simulations: reset!, initialize!, iteration
 import Oceananigans.TimeSteppers: time_step!, update_state!, time
 import Oceananigans.Utils: prettytime
-import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker
+import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker, initialization_update_state!
 
 struct OceanSeaIceModel{I, A, O, F, C, Arch} <: AbstractModel{Nothing, Arch}
     architecture :: Arch
@@ -68,8 +68,16 @@ function reset!(model::OSIM)
     return nothing
 end
 
+# Make sure to initialize the exchanger here
+function initialization_update_state!(model::OSIM)
+    initialize!(model.interfaces.exchanger, model.atmosphere)
+    update_state!(model)
+    return nothing
+end
+
 function initialize!(model::OSIM)
     initialize!(model.ocean)
+    initialize!(model.interfaces.exchanger, model.atmosphere)
     return nothing
 end
 
@@ -146,7 +154,7 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(
     # Make sure the initial temperature of the ocean
     # is not below freezing and above melting near the surface
     above_freezing_ocean_temperature!(ocean, sea_ice)
-    update_state!(ocean_sea_ice_model)
+    initialization_update_state!(ocean_sea_ice_model)
 
     return ocean_sea_ice_model
 end
@@ -191,3 +199,4 @@ function above_freezing_ocean_temperature!(ocean, sea_ice::SeaIceSimulation)
 
     return nothing
 end
+
