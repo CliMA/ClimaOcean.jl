@@ -76,12 +76,6 @@ initialize_jld2_file!(filepath, init, jld2_kw, including, outputs, model::OSIM) 
 
 write_output!(c::Checkpointer, model::OSIM) = write_output!(c, model.ocean.model)
 
-function set_clock!(sim::PrescribedAtmosphere, time, iter)
-    sim.clock.time = time
-    sim.clock.iteration = iter
-    return nothing
-end
-
 function set_clock!(sim::OSIMSIM, time, iter)
     sim.model.clock.time = time
     sim.model.clock.iteration = iter
