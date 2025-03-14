@@ -100,8 +100,7 @@ ocean = ocean_simulation(grid;
 
 # We initialize the ocean from the ECCO state estimate.
 
-set!(ocean.model, T=Metadata(:temperature; dates=first(dates), dataset=ECCO4Monthly()),
-                  S=Metadata(:salinity;    dates=first(dates), dataset=ECCO4Monthly()))
+set!(ocean.model, T=temperature[1], S=salinity[1])
 
 # ### Atmospheric forcing
 

@@ -23,15 +23,15 @@ Arguments
 
 Keyword Arguments
 =================
-- `dates`: The dates of the dataset, in a `AbstractCFDateTime` format.. Note this can either be a single date,
-           representing a snapshot, or a range of dates, representing a time-series.
+- `dates`: The dates of the dataset, in a `AbstractCFDateTime` format.. Note this can either be a range or a vector of dates, 
+           representing a time-series. For a single date, use the [`Metadatum`](@ref) constructor .
 - `dataset`: The dataset of the dataset. Supported datasets are `ECCO2Monthly()`, `ECCO2Daily()`, `ECCO4Monthly()`,
              `JRA55RepeatYear()`, or `JRA55MultipleYears()`.
 - `dir`: The directory where the dataset is stored.
 """
 function Metadata(variable_name;
                   dataset,
-                  dates=all_dates(dataset, variable_name)[1],
+                  dates=all_dates(dataset, variable_name)[1:1],
                   dir=default_download_folder(dataset))
 
     return Metadata(variable_name, dates, dataset, dir)
@@ -39,6 +39,22 @@ end
 
 const AnyDateTime = Union{AbstractCFDateTime, Dates.AbstractDateTime}
 const Metadatum   = Metadata{<:AnyDateTime}
+
+"""
+    Metadatum(variable_name;
+                   dataset,
+                   date=first_date(dataset, variable_name),
+                   dir=default_download_folder(dataset))
+
+Specific constructor for a `Metadata` object with a single date, representative of a snapshot in time.
+"""
+function Metadatum(variable_name;
+                   dataset,
+                   date=first_date(dataset, variable_name),
+                   dir=default_download_folder(dataset))
+
+    return Metadata(variable_name, date, dataset, dir)
+end
 
 default_download_folder(dataset) = "./"
 
@@ -104,6 +120,10 @@ function native_times(metadata; start_time=first(metadata).dates)
     return times
 end
 
+####
+#### Some utilities
+####
+
 """
     all_dates(metadata)
 
@@ -112,7 +132,26 @@ Needs to be extended by any new dataset dataset.
 """
 all_dates(metadata) = all_dates(metadata.dataset, metadata.name)
 
-# File names of metadata containing multiple dates
+"""
+    first_date(dataset, variable_name)
+
+Extracts the first date of the given dataset and variable name formatted using the `DateTime` type.
+"""
+first_date(dataset, variable_name) = first(all_dates(dataset, variable_name))
+
+"""
+    last_date(dataset, variable_name)
+
+Extracts the last date of the given dataset and variable name formatted using the `DateTime` type.
+"""
+last_date(dataset, variable_name) = last(all_dates(dataset, variable_name))
+
+"""
+    metadata_filename(metadata)
+
+File names of metadata containing multiple dates. The specific version for a `Metadatum` object is 
+extended in the data specific modules.
+"""
 metadata_filename(metadata) = [metadata_filename(metadatum) for metadatum in metadata]
 
 """
