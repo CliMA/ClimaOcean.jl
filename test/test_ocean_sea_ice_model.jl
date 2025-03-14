@@ -41,15 +41,15 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
                             halo = (7, 7, 7),
                             z = (-6000, 0))
 
-        bottom_height = regrid_bathymetry(grid; 
+        bottom_height = regrid_bathymetry(grid;
                                           minimum_depth = 10,
                                           interpolation_passes = 20,
                                           major_basins = 1)
-        
+
         grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
         free_surface = SplitExplicitFreeSurface(grid; substeps=20)
-        ocean = ocean_simulation(grid; free_surface) 
+        ocean = ocean_simulation(grid; free_surface)
 
         backend = JRA55NetCDFBackend(4)
         atmosphere = JRA55PrescribedAtmosphere(arch; backend)
@@ -69,9 +69,9 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
         sea_ice_grid = TripolarGrid(arch; size=(50, 50, 1), z = (-10, 0))
         sea_ice_grid = ImmersedBoundaryGrid(sea_ice_grid, GridFittedBottom(bottom_height))
 
-        sea_ice  = sea_ice_simulation(sea_ice_grid) 
+        sea_ice  = sea_ice_simulation(sea_ice_grid)
         liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
-        
+
         # Set the ocean temperature and salinity
         set!(ocean.model, T=temperature_metadata[1], S=salinity_metadata[1])
         above_freezing_ocean_temperature!(ocean, sea_ice)
@@ -100,13 +100,13 @@ Return a test-bed coupled simulation with a Checkpointer.
 """
 function testbed_coupled_simulation(grid; stop_iteration=8)
     ocean = ocean_simulation(grid)
-        
+
     radiation = Radiation(arch)
-    
+
     atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(4))
-    
+
     coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
-    
+
     simulation = Simulation(coupled_model; Δt=10, stop_iteration)
 
     simulation.output_writers[:checkpoint] = Checkpointer(ocean.model;
@@ -115,6 +115,7 @@ function testbed_coupled_simulation(grid; stop_iteration=8)
                                                           dir = ".",
                                                           verbose = true,
                                                           overwrite_existing = true)
+
     return simulation
 end
 
@@ -122,17 +123,17 @@ end
     for arch in test_architectures
 
         Nx, Ny, Nz = 40, 25, 10
-        
+
         grid = LatitudeLongitudeGrid(arch;
                                      size = (Nx, Ny, Nz),
                                      halo = (7, 7, 7),
                                      z = (-6000, 0),
                                      latitude  = (-75, 75),
                                      longitude = (0, 360))
-        
+
         simulation = testbed_coupled_simulation(grid; stop_iteration=8)
 
-        run!(simulation, pickup=true)
+        run!(simulation)
 
         # create a new simulation and pick up from the last checkpointer
         new_simulation = testbed_coupled_simulation(grid; stop_iteration=13)
