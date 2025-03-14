@@ -93,6 +93,11 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
     end
 end
 
+"""
+    testbed_coupled_simulation(grid; stop_iteration=8)
+
+Return a test-bed coupled simulation with a Checkpointer.
+"""
 function testbed_coupled_simulation(grid; stop_iteration=8)
     ocean = ocean_simulation(grid)
         
@@ -134,8 +139,8 @@ end
 
         run!(new_simulation, pickup=true)
 
-        # test that ocean tiem step and iteration is the same as the atmosphere
-        @test     new_simulation.model.atmosphere.clock.iteration ≈ new_simulation.model.ocean.model.clock.iteration
-        @test     new_simulation.model.atmosphere.clock.time ≈ new_simulation.model.ocean.model.clock.time
+        # ensure the ocean and atmosphere time step and iteration are the same
+        @test new_simulation.model.atmosphere.clock.iteration ≈ new_simulation.model.ocean.model.clock.iteration
+        @test new_simulation.model.atmosphere.clock.time ≈ new_simulation.model.ocean.model.clock.time
     end
 end

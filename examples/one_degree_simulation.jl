@@ -170,17 +170,12 @@ ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
                                                   overwrite_existing = true,
                                                   array_type = Array{Float32})
 
-# We also save a series of Checkpointers which will enable the simulation to be restarted
-# from a later point; ideal for longer runs
-
-directory_checkpointer = "."
-prefix_checkpointer = "one_degree_checkpointer"
+# We also save a series of Checkpointers that will enable us to restart the simulation
+# from a later point; ideal for longer runs.
 
 simulation.output_writers[:checkpoint] = Checkpointer(ocean.model;
                                                       schedule = TimeInterval(5days),
-                                                      prefix = prefix_checkpointer,
-                                                      dir = directory_checkpointer,
-                                                      verbose = true,
+                                                      prefix = "one_degree_checkpointer",
                                                       overwrite_existing = true)
 
 # ### Ready to run
