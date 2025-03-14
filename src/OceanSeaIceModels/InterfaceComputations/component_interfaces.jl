@@ -63,6 +63,26 @@ mutable struct StateExchanger{G, AST, AEX}
     atmosphere_exchanger :: AEX
 end
 
+mutable struct ExchangeAtmosphereState{F}
+    u  :: F
+    v  :: F
+    T  :: F
+    q  :: F
+    p  :: F
+    Qs :: F
+    Qℓ :: F
+    Mp :: F
+end
+
+ExchangeAtmosphereState(grid) = ExchangeAtmosphereState(Field{Center, Center, Nothing}(grid),
+                                                        Field{Center, Center, Nothing}(grid),
+                                                        Field{Center, Center, Nothing}(grid),
+                                                        Field{Center, Center, Nothing}(grid),
+                                                        Field{Center, Center, Nothing}(grid),
+                                                        Field{Center, Center, Nothing}(grid),
+                                                        Field{Center, Center, Nothing}(grid),
+                                                        Field{Center, Center, Nothing}(grid))
+
 # Note that Field location can also affect fractional index type.
 # Here we assume that we know the location of Fields that will be interpolated.
 fractional_index_type(FT, Topo) = FT
@@ -71,16 +91,7 @@ fractional_index_type(FT, ::Flat) = Nothing
 function StateExchanger(ocean::Simulation, atmosphere)
     # TODO: generalize this
     exchange_grid = ocean.model.grid
-
-    exchange_atmosphere_state = (u  = Field{Center, Center, Nothing}(exchange_grid),
-                                 v  = Field{Center, Center, Nothing}(exchange_grid),
-                                 T  = Field{Center, Center, Nothing}(exchange_grid),
-                                 q  = Field{Center, Center, Nothing}(exchange_grid),
-                                 p  = Field{Center, Center, Nothing}(exchange_grid),
-                                 Qs = Field{Center, Center, Nothing}(exchange_grid),
-                                 Qℓ = Field{Center, Center, Nothing}(exchange_grid),
-                                 Mp = Field{Center, Center, Nothing}(exchange_grid))
-
+    exchange_atmosphere_state = ExchangeAtmosphereState(exchange_grid)
     exchanger = atmosphere_exchanger(atmosphere, exchange_grid)
 
     return StateExchanger(ocean.model.grid, exchange_atmosphere_state, exchanger)
