@@ -19,6 +19,8 @@ import Oceananigans.Simulations: reset!, initialize!, iteration, run!
 import Oceananigans.TimeSteppers: time_step!, update_state!, time
 import Oceananigans.Utils: prettytime
 
+import .PrescribedAtmospheres: set_clock!
+
 struct OceanSeaIceModel{I, A, O, F, C, Arch} <: AbstractModel{Nothing, Arch}
     architecture :: Arch
     clock :: C
@@ -76,9 +78,17 @@ initialize_jld2_file!(filepath, init, jld2_kw, including, outputs, model::OSIM) 
 
 write_output!(c::Checkpointer, model::OSIM) = write_output!(c, model.ocean.model)
 
-function set_clock!(sim::OSIMSIM, time, iter)
-    sim.model.clock.time = time
-    sim.model.clock.iteration = iter
+"""
+    set_clock!(sim, clock)
+
+Set the clock of `sim`ulation to match the values of `clock`.
+"""
+function set_clock!(sim::OSIMSIM, clock)
+    sim.model.clock.time = clock.time
+    sim.model.clock.iteration = clock.iteration
+    sim.model.clock.last_Δt = clock.last_Δt
+    sim.model.clock.last_stage_Δt = clock.last_stage_Δt
+    sim.model.clock.stage = clock.stage
     return nothing
 end
 
@@ -87,9 +97,10 @@ function set!(sim::OSIMSIMPA, pickup::Union{Bool, Integer, String})
 
     set!(sim.model.ocean.model, checkpoint_file_path)
 
-    iteration, time = sim.model.ocean.model.clock.iteration, sim.model.ocean.model.clock.time
-    set_clock!(sim, time, iteration)
-    set_clock!(sim.model.atmosphere, time, iteration)
+    clock = sim.model.ocean.model.clock
+
+    set_clock!(sim, clock)
+    set_clock!(sim.model.atmosphere, clock)
 
     return nothing
 end

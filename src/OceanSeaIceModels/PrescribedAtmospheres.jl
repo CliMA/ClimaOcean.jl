@@ -318,9 +318,17 @@ function Base.show(io::IO, pa::PrescribedAtmosphere)
     print(io, "└── boundary_layer_height: ", prettysummary(pa.boundary_layer_height))
 end
 
-function set_clock!(sim::PrescribedAtmosphere, time, iter)
-    sim.clock.time = time
-    sim.clock.iteration = iter
+"""
+    set_clock!(sim, clock)
+
+Set the clock of `sim`ulation to match the values of `clock`.
+"""
+function set_clock!(sim::PrescribedAtmosphere, clock)
+    sim.clock.time = clock.time
+    sim.clock.iteration = clock.iteration
+    sim.clock.last_Δt = clock.last_Δt
+    sim.clock.last_stage_Δt = clock.last_stage_Δt
+    sim.clock.stage = clock.stage
     return nothing
 end
 
