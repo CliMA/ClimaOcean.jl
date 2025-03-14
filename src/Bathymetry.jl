@@ -143,9 +143,7 @@ function regrid_bathymetry(target_grid;
     close(dataset)
 
     # Diagnose target grid information
-    arch   = architecture(target_grid)
-    λ_data = λ_data |> Array{BigFloat}
-    φ_data = φ_data |> Array{BigFloat}
+    arch = architecture(target_grid)
 
     if !isnothing(height_above_water)
         # Overwrite the height of cells above water.
