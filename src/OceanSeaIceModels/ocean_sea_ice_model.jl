@@ -73,25 +73,6 @@ function initialize!(model::OSIM)
     return nothing
 end
 
-reference_density(unsupported) =
-    throw(ArgumentError("Cannot extract reference density from $(typeof(unsupported))"))
-
-heat_capacity(unsupported) =
-    throw(ArgumentError("Cannot deduce the heat capacity from $(typeof(unsupported))"))
-
-reference_density(ocean::Simulation) = reference_density(ocean.model.buoyancy.formulation)
-reference_density(buoyancy_formulation::SeawaterBuoyancy) = reference_density(buoyancy_formulation.equation_of_state)
-reference_density(eos::TEOS10EquationOfState) = eos.reference_density
-reference_density(sea_ice::SeaIceSimulation) = sea_ice.model.ice_thermodynamics.phase_transitions.ice_density
-
-heat_capacity(ocean::Simulation) = heat_capacity(ocean.model.buoyancy.formulation)
-heat_capacity(buoyancy_formulation::SeawaterBuoyancy) = heat_capacity(buoyancy_formulation.equation_of_state)
-heat_capacity(sea_ice::SeaIceSimulation) = sea_ice.model.ice_thermodynamics.phase_transitions.ice_heat_capacity
-
-# Does not really matter if there is no model
-reference_density(::Nothing) = 0
-heat_capacity(::Nothing) = 0
-
 function heat_capacity(::TEOS10EquationOfState{FT}) where FT
     cₚ⁰ = SeawaterPolynomials.TEOS10.teos10_reference_heat_capacity
     return convert(FT, cₚ⁰)
@@ -160,19 +141,15 @@ function default_nan_checker(model::OceanSeaIceModel)
     return nan_checker
 end
 
-@kernel function _above_freezing_ocean_temperature!(T, grid, S, ℵ, liquidus)
+@kernel function _above_freezing_ocean_temperature!(T, grid, S, liquidus)
     i, j = @index(Global, NTuple)
     Nz = size(grid, 3)
 
     @inbounds begin
-        for k in 1:Nz-1
+        for k in 1:Nz
             Tm = melting_temperature(liquidus, S[i, j, k])
             T[i, j, k] = max(T[i, j, k], Tm)
         end
-
-        ℵi = ℵ[i, j, 1]
-        Tm = melting_temperature(liquidus, S[i, j, Nz])
-        T[i, j, Nz] = ifelse(ℵi > 0, Tm, T[i, j, Nz])
     end
 end
 
@@ -187,7 +164,7 @@ function above_freezing_ocean_temperature!(ocean, sea_ice::SeaIceSimulation)
 
     grid = ocean.model.grid
     arch = architecture(grid)
-    launch!(arch, grid, :xy, _above_freezing_ocean_temperature!, T, grid, S, ℵ, liquidus)
+    launch!(arch, grid, :xy, _above_freezing_ocean_temperature!, T, grid, S, liquidus)
 
     return nothing
 end

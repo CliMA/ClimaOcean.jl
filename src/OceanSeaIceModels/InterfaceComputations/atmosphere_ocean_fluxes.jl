@@ -1,5 +1,6 @@
 using Oceananigans.Operators: intrinsic_vector
 using Oceananigans.Grids: inactive_node
+using ClimaOcean.OceanSimulations
 using ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres: thermodynamics_parameters,
                                                           surface_layer_height,
                                                           boundary_layer_height
@@ -70,7 +71,6 @@ end
 
     i, j = @index(Global, NTuple)
     kᴺ   = size(grid, 3) # index of the top ocean cell
-    time = Time(clock.time)
 
     @inbounds begin
         uₐ = atmosphere_state.u[i, j, 1]

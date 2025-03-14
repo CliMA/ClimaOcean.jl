@@ -174,6 +174,7 @@ function compute_net_sea_ice_fluxes!(coupled_model)
     kernel_parameters = interface_kernel_parameters(grid)
 
     sea_ice_surface_temperature = coupled_model.interfaces.atmosphere_sea_ice_interface.temperature
+    ice_concentration = sea_ice_concentration(sea_ice)
 
     launch!(arch, grid, kernel_parameters, 
             _assemble_net_sea_ice_fluxes!,
@@ -186,6 +187,7 @@ function compute_net_sea_ice_fluxes!(coupled_model)
             freshwater_flux,
             sea_ice_surface_temperature,
             downwelling_radiation,
+            ice_concentration,
             sea_ice_properties,
             atmos_sea_ice_properties)
 
@@ -201,6 +203,7 @@ end
                                                freshwater_flux, # Where do we add this one?
                                                surface_temperature,
                                                downwelling_radiation,
+                                               ice_concentration,
                                                sea_ice_properties,
                                                atmos_sea_ice_properties)
 
@@ -211,13 +214,13 @@ end
     @inbounds begin
         Ts = surface_temperature[i, j, kᴺ]
         Ts = convert_to_kelvin(sea_ice_properties.temperature_units, Ts)
-
+        ℵi = ice_concentration[i, j, 1]
         Qs = downwelling_radiation.Qs[i, j, 1]
         Qℓ = downwelling_radiation.Qℓ[i, j, 1]
         Qc = atmosphere_sea_ice_fluxes.sensible_heat[i, j, 1] # sensible or "conductive" heat flux
         Qv = atmosphere_sea_ice_fluxes.latent_heat[i, j, 1]   # latent heat flux
         Qf = sea_ice_ocean_fluxes.frazil_heat[i, j, 1]        # frazil heat flux
-        Qi = sea_ice_ocean_fluxes.interface_heat[i, j, 1]   # interfacial heat flux
+        Qi = sea_ice_ocean_fluxes.interface_heat[i, j, 1]     # interfacial heat flux
     end
 
     ρτx = atmosphere_sea_ice_fluxes.x_momentum  # zonal momentum flux                      
@@ -230,8 +233,8 @@ end
     Qu = upwelling_radiation(Ts, σ, ϵ)
     Qd = net_downwelling_radiation(i, j, grid, time, α, ϵ, Qs, Qℓ)
 
-    ΣQt = Qd + Qu + Qc + Qv
-    ΣQb = Qf + Qi
+    ΣQt = (Qd + Qu + Qc + Qv) * ℵi # We need to multiply these times the concentration?
+    ΣQb = Qf + Qi 
 
     # Mask fluxes over land for convenience
     inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
