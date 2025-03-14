@@ -21,19 +21,11 @@ ocean = ocean_simulation(grid)
 
 radiation = Radiation(arch)
 
-<<<<<<< HEAD
-atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(41))
-
-coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
-
-simulation = Simulation(coupled_model; Δt=10, stop_iteration=10)
-=======
 atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(4))
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 
 simulation = Simulation(coupled_model; Δt=10, stop_iteration=8)
->>>>>>> ba2521ae81a7ccc6e5e94762aa12b150e647c11c
 
 wall_time = Ref(time_ns())
 
