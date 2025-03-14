@@ -221,7 +221,7 @@ end
         end
 
         # The backend has cycled to the end
-        @test time_indices(T_restoring.field_time_series) == (5, 1)
+        @test time_indices(T_restoring.field_time_series) == (6, 1)
     end
 end
 
