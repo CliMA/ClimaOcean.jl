@@ -266,9 +266,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              radiation = Radiation(),
                              freshwater_density = 1000,
                              atmosphere_ocean_flux_formulation = SimilarityTheoryFluxes(eltype(ocean.model.grid)),
-                             atmosphere_sea_ice_flux_formulation = CoefficientBasedFluxes(drag_coefficient=2e-3,
-                                                                                          heat_transfer_coefficient=1e-4,
-                                                                                          vapor_flux_coefficient=1e-4),
+                             atmosphere_sea_ice_flux_formulation = SimilarityTheoryFluxes(eltype(ocean.model.grid)),
                              atmosphere_ocean_interface_temperature = BulkTemperature(),
                              atmosphere_ocean_velocity_difference = RelativeVelocity(),
                              atmosphere_ocean_interface_specific_humidity = default_ao_specific_humidity(ocean),
@@ -319,7 +317,17 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                               liquidus           = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus,
                               temperature_units  = sea_ice_temperature_units)
 
-        net_top_sea_ice_fluxes = (; heat=sea_ice.model.external_heat_fluxes.top)
+        net_momentum_fluxes = if sea_ice.model.dynamics isa Nothing 
+            u = Field{Face, Center, Nothing}(sea_ice.model.grid)
+            v = Field{Center, Face, Nothing}(sea_ice.model.grid)
+            (; u, v) 
+        else
+            u = sea_ice.model.dynamics.external_momentum_stresses.top.u
+            v = sea_ice.model.dynamics.external_momentum_stresses.top.v
+            (; u, v)
+        end
+
+        net_top_sea_ice_fluxes = merge((; heat=sea_ice.model.external_heat_fluxes.top), net_momentum_fluxes)
         net_bottom_sea_ice_fluxes = (; heat=sea_ice.model.external_heat_fluxes.bottom)
     else
         sea_ice_properties = nothing
