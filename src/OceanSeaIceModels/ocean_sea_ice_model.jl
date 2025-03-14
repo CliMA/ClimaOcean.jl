@@ -133,7 +133,7 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(
     end
 
     # Contains information about flux contributions: bulk formula, prescribed fluxes, etc.
-    if isnothing(interfaces)
+    if isnothing(interfaces) && !(isnothing(atmosphere) && isnothing(sea_ice))
         interfaces = ComponentInterfaces(atmosphere, ocean, sea_ice;
                                          ocean_reference_density,
                                          ocean_heat_capacity,
