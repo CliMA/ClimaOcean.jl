@@ -36,7 +36,7 @@ using Oceananigans.Units
 using Dates, CFTime
 import ClimaOcean
 
-arch = GPU()
+arch = CPU()
 grid = LatitudeLongitudeGrid(arch,
                              size = (1440, 560, 10),
                              halo = (7, 7, 7),
@@ -56,8 +56,7 @@ set!(ocean.model,
 
 # Build and run an OceanSeaIceModel (with no sea ice component) forced by JRA55 reanalysis
 atmosphere = ClimaOcean.JRA55PrescribedAtmosphere(arch)
-radiation  = ClimaOcean.Radiation(arch)
-coupled_model = ClimaOcean.OceanSeaIceModel(ocean; atmosphere, radiation)
+coupled_model = ClimaOcean.OceanSeaIceModel(ocean)
 simulation = Simulation(coupled_model, Δt=5minutes, stop_time=30days)
 run!(simulation)
 ```
