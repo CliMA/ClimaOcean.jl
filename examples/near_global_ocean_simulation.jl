@@ -105,7 +105,10 @@ radiation = Radiation(arch)
 # The number of snapshots that are loaded into memory is determined by
 # the `backend`. Here, we load 41 snapshots at a time into memory.
 
-atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(41))
+tidal_potential = FieldTimeSeries("tidal_potential.jld2", "Φ"; architecture=GPU(), backend=InMemory(41))
+tidal_potential = FieldTimeSeries("tidal_potential.jld2", "Φ"; architecture=GPU(), backend=InMemory(41), boundary_conditions=FieldBoundaryConditions(tidal_potential.grid, (Center, Center, Nothing)))
+Oceananigans.BoundaryConditions.fill_halo_regions!(tidal_potential)
+atmosphere = JRA55PrescribedAtmosphere(arch; tidal_potential, backend=JRA55NetCDFBackend(41))
 
 # ## The coupled simulation
 
@@ -117,7 +120,7 @@ coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 # We then create a coupled simulation. We start with a small-ish time step of 90 seconds.
 # We run the simulation for 10 days with this small-ish time step.
 
-simulation = Simulation(coupled_model; Δt=90, stop_time=10days)
+simulation = Simulation(coupled_model; Δt=60, stop_time=30days)
 
 # We define a callback function to monitor the simulation's progress,
 
@@ -176,7 +179,7 @@ run!(simulation)
 
 # After the initial spin up of 10 days, we can increase the time-step and run for longer.
 
-simulation.stop_time = 60days
+simulation.stop_time = 120days
 simulation.Δt = 10minutes
 run!(simulation)
 

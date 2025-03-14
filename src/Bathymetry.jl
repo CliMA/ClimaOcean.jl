@@ -205,6 +205,7 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     Nλt, Nφt = Nt = size(target_grid)
     Nλn, Nφn = Nn = size(native_z)
 
+    #=
     resxt = minimum_xspacing(target_grid)
     resyt = minimum_yspacing(target_grid)
 
@@ -222,10 +223,11 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
                      "is finer than the target grid in both horizontal directions.")
         return target_z
     end
-
+    =#
+ 
     # Interpolate in passes
-    latitude  = y_domain(native_z.grid)
     longitude = x_domain(native_z.grid)
+    latitude  = y_domain(native_z.grid)
 
     ΔNλ = floor((Nλn - Nλt) / passes)
     ΔNφ = floor((Nφn - Nφt) / passes)
@@ -241,7 +243,6 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
 
     for pass = 1:passes - 1
         new_size = (Nλ[pass], Nφ[pass], 1)
-
         @debug "Bathymetry interpolation pass $pass with size $new_size"
 
         new_grid = LatitudeLongitudeGrid(architecture(target_grid), Float32,

@@ -3,6 +3,7 @@ module PrescribedAtmospheres
 using Oceananigans.Grids: grid_name
 using Oceananigans.Utils: prettysummary, Time
 using Oceananigans.Fields: Center
+using Oceananigans.BoundaryConditions: FieldBoundaryConditions
 using Oceananigans.OutputReaders: FieldTimeSeries, update_field_time_series!, extract_field_time_series
 using Oceananigans.TimeSteppers: Clock, tick!
 
@@ -289,7 +290,7 @@ const PATP = PrescribedAtmosphereThermodynamicsParameters
 ##### Prescribed atmosphere (as opposed to dynamically evolving / prognostic)
 #####
 
-struct PrescribedAtmosphere{FT, G, T, U, P, C, F, I, R, TP, TI}
+mutable struct PrescribedAtmosphere{FT, M, G, T, U, P, C, F, I, ΦT, R, TP, TI}
     grid :: G
     clock :: Clock{T}
     velocities :: U
@@ -297,6 +298,7 @@ struct PrescribedAtmosphere{FT, G, T, U, P, C, F, I, R, TP, TI}
     tracers :: C
     freshwater_flux :: F
     auxiliary_freshwater_flux :: I
+    tidal_potential :: ΦT # this really belongs elsewhere, but we put it here for now
     downwelling_radiation :: R
     thermodynamics_parameters :: TP
     times :: TI
@@ -319,32 +321,37 @@ function Base.show(io::IO, pa::PrescribedAtmosphere)
 end
 
 function default_atmosphere_velocities(grid, times)
-    ua = FieldTimeSeries{Center, Center, Nothing}(grid, times)
-    va = FieldTimeSeries{Center, Center, Nothing}(grid, times)
+    bcs = FieldBoundaryConditions(grid, (Center, Center, Nothing))
+    ua  = FieldTimeSeries{Center, Center, Nothing}(grid, times; boundary_conditions=bcs)
+    va  = FieldTimeSeries{Center, Center, Nothing}(grid, times; boundary_conditions=bcs)
     return (u=ua, v=va)
 end
 
 function default_atmosphere_tracers(grid, times)
-    Ta = FieldTimeSeries{Center, Center, Nothing}(grid, times)
-    qa = FieldTimeSeries{Center, Center, Nothing}(grid, times)
+    bcs = FieldBoundaryConditions(grid, (Center, Center, Nothing))
+    Ta  = FieldTimeSeries{Center, Center, Nothing}(grid, times; boundary_conditions=bcs)
+    qa  = FieldTimeSeries{Center, Center, Nothing}(grid, times; boundary_conditions=bcs)
     parent(Ta) .= 273.15 + 20
     return (T=Ta, q=qa)
 end
 
 function default_downwelling_radiation(grid, times)
-    Qℓ = FieldTimeSeries{Center, Center, Nothing}(grid, times)
-    Qs = FieldTimeSeries{Center, Center, Nothing}(grid, times)
+    bcs = FieldBoundaryConditions(grid, (Center, Center, Nothing))
+    Qℓ  = FieldTimeSeries{Center, Center, Nothing}(grid, times; boundary_conditions=bcs)
+    Qs  = FieldTimeSeries{Center, Center, Nothing}(grid, times; boundary_conditions=bcs)
     return TwoBandDownwellingRadiation(shortwave=Qs, longwave=Qℓ)
 end
 
 function default_freshwater_flux(grid, times)
-    rain = FieldTimeSeries{Center, Center, Nothing}(grid, times)
-    snow = FieldTimeSeries{Center, Center, Nothing}(grid, times)
+    bcs  = FieldBoundaryConditions(grid, (Center, Center, Nothing))
+    rain = FieldTimeSeries{Center, Center, Nothing}(grid, times; boundary_conditions=bcs)
+    snow = FieldTimeSeries{Center, Center, Nothing}(grid, times; boundary_conditions=bcs)
     return (; rain, snow)
 end
 
 function default_atmosphere_pressure(grid, times)
-    pa = FieldTimeSeries{Center, Center, Nothing}(grid, times)
+    bcs = FieldBoundaryConditions(grid, (Center, Center, Nothing))
+    pa  = FieldTimeSeries{Center, Center, Nothing}(grid, times; boundary_conditions=bcs)
     parent(pa) .= 101325
     return pa
 end
@@ -373,6 +380,7 @@ end
                          boundary_layer_height = 600 # meters,
                          thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT),
                          auxiliary_freshwater_flux = nothing,
+                         tidal_potential = nothing,
                          velocities            = default_atmosphere_velocities(grid, times),
                          tracers               = default_atmosphere_tracers(grid, times),
                          pressure              = default_atmosphere_pressure(grid, times),
@@ -388,6 +396,7 @@ function PrescribedAtmosphere(grid, times;
                               boundary_layer_height = convert(eltype(grid), 600),
                               thermodynamics_parameters = nothing,
                               auxiliary_freshwater_flux = nothing,
+                              tidal_potential = nothing,
                               velocities            = default_atmosphere_velocities(grid, times),
                               tracers               = default_atmosphere_tracers(grid, times),
                               pressure              = default_atmosphere_pressure(grid, times),
@@ -406,6 +415,7 @@ function PrescribedAtmosphere(grid, times;
                                 tracers,
                                 freshwater_flux,
                                 auxiliary_freshwater_flux,
+                                tidal_potential,
                                 downwelling_radiation,
                                 thermodynamics_parameters,
                                 times,

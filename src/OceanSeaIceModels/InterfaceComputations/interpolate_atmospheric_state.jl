@@ -1,10 +1,11 @@
 using Oceananigans.Operators: intrinsic_vector
-using Oceananigans.Grids: _node
+using Oceananigans.Grids: _node, AbstractGrid   
 using Oceananigans.Fields: FractionalIndices
 using Oceananigans.OutputReaders: TimeInterpolator
 
 using ...OceanSimulations: forcing_barotropic_potential
 
+using ClimaOcean.OceanSimulations: BarotropicPotentialForcing, forcing_barotropic_potential
 using ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres: PrescribedAtmosphere
 import ClimaOcean.OceanSeaIceModels: interpolate_atmosphere_state!
 
@@ -12,7 +13,6 @@ import ClimaOcean.OceanSeaIceModels: interpolate_atmosphere_state!
 """Interpolate the atmospheric state onto the ocean / sea-ice grid."""
 function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosphere, coupled_model)
     ocean = coupled_model.ocean
-    atmosphere_grid = atmosphere.grid
 
     # Basic model properties
     grid = ocean.model.grid
@@ -40,13 +40,12 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
 
     # Extract info for time-interpolation
     u = atmosphere.velocities.u # for example
-    atmosphere_times = u.times
     atmosphere_backend = u.backend
     atmosphere_time_indexing = u.time_indexing
 
-    atmosphere_fields = coupled_model.interfaces.exchanger.exchange_atmosphere_state
-    space_fractional_indices = coupled_model.interfaces.exchanger.atmosphere_exchanger
-    exchange_grid = coupled_model.interfaces.exchanger.exchange_grid
+    atmosphere_fields = interfaces.exchanger.exchange_atmosphere_state
+    space_fractional_indices = interfaces.exchanger.atmosphere_exchanger
+    exchange_grid = interfaces.exchanger.exchange_grid
 
     # Simplify NamedTuple to reduce parameter space consumption.
     # See https://github.com/CliMA/ClimaOcean.jl/issues/116.
@@ -106,12 +105,32 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
                 auxiliary_time_indexing)
     end
 
-    # Set ocean barotropic pressure forcing
-    barotropic_potential = forcing_barotropic_potential(ocean)
-    ρₒ = coupled_model.interfaces.ocean_properties.reference_density
-    if !isnothing(barotropic_potential)
-        parent(barotropic_potential) .= parent(atmosphere_data.p) ./ ρₒ
+    # barotropic potential in PrescribedAtmosphere?
+    atmosphere_pressure = atmosphere.pressure.data
+    tidal_potential = atmosphere.tidal_potential
+
+    if !isnothing(tidal_potential)
+        tidal_potential_data = tidal_potential.data
+    else
+        tidal_potential_data = nothing
     end
+
+    # Which forcing is this going to be?
+    barotropic_potential = forcing_barotropic_potential(ocean)
+    
+    launch!(arch, grid, kernel_parameters,
+            _compute_barotropic_potential!,
+            barotropic_potential,
+            grid,
+            space_fractional_indices,
+            time_interpolator,
+            atmosphere_pressure,
+            tidal_potential_data,
+            interfaces.ocean_properties.reference_density,
+            atmosphere_backend,
+            atmosphere_time_indexing)
+
+    return nothing
 end
 
 @inline get_fractional_index(i, j, ::Nothing) = nothing
@@ -169,6 +188,41 @@ end
     end
 end
 
+@inline interpolate_tidal_potential(::Nothing,       grid, args) = zero(grid)
+@inline interpolate_tidal_potential(tidal_potential, grid, args) = interp_atmos_time_series(tidal_potential, args...)
+
+# Fallback
+@kernel _compute_barotropic_potential!(::Nothing, args...) = nothing
+
+@kernel function _compute_barotropic_potential!(barotropic_potential,
+                                                grid,
+                                                space_fractional_indices,
+                                                time_interpolator,
+                                                atmos_pressure,
+                                                tidal_potential,
+                                                ocean_reference_density,
+                                                atmos_backend,
+                                                atmos_time_indexing)
+
+    i, j = @index(Global, NTuple)
+
+    ρₒ = ocean_reference_density
+
+    ii = space_fractional_indices.i
+    jj = space_fractional_indices.j
+    fi = get_fractional_index(i, j, ii)
+    fj = get_fractional_index(i, j, jj)
+
+    x_itp = FractionalIndices(fi, fj, nothing)
+    t_itp = time_interpolator
+    atmos_args = (x_itp, t_itp, atmos_backend, atmos_time_indexing)
+
+    pa = interp_atmos_time_series(atmos_pressure,  atmos_args...) # yes this is a re-interpolation
+    Φt = interpolate_tidal_potential(tidal_potential, grid, atmos_args)
+
+    @inbounds barotropic_potential[i, j, 1] = pa / ρₒ + Φt / ρₒ
+end
+
 @kernel function _interpolate_auxiliary_freshwater_flux!(freshwater_flux,
                                                          interface_grid,
                                                          clock,
@@ -197,6 +251,9 @@ end
 #####
 ##### Utility for interpolating tuples of fields
 #####
+
+# Assumption: a Nothing object interpolates to zero!!
+@inline interp_atmos_time_series(::Nothing, X, time, grid::AbstractGrid, args...) = zero(grid)
 
 # Note: assumes loc = (c, c, nothing) (and the third location should not matter.)
 @inline interp_atmos_time_series(J::AbstractArray, x_itp::FractionalIndices, t_itp, args...) =

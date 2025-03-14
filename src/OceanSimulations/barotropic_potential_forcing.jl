@@ -24,6 +24,15 @@ const YDirectionBPF = BarotropicPotentialForcing{<:YDirection}
 forcing_barotropic_potential(something) = nothing
 forcing_barotropic_potential(f::BarotropicPotentialForcing) = f.potential.data
 
+function forcing_barotropic_potential(tf::Tuple)
+    n = findfirst(f -> f isa BarotropicPotentialForcing, tf)
+    if isnothing(n)
+        return nothing
+    else
+        return forcing_barotropic_potential(tf[n])
+    end
+end
+
 function forcing_barotropic_potential(mf::MultipleForcings)
     n = findfirst(f -> f isa BarotropicPotentialForcing, mf.forcings)
     if isnothing(n)
