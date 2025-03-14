@@ -32,8 +32,8 @@ using Printf
 
 arch = CPU()
 
-Nx = 144
-Ny = 60
+Nx = 1440
+Ny = 600
 Nz = 40
 
 depth = 6000meters
@@ -53,21 +53,21 @@ grid = LatitudeLongitudeGrid(arch;
 # (i) all the minor enclosed basins except the 3 largest `major_basins`, as well as
 # (ii) regions that are shallower than `minimum_depth`.
 
-# bottom_height = regrid_bathymetry(grid;
-#                                   minimum_depth = 10meters,
-#                                   interpolation_passes = 5,
-#                                   major_basins = 3)
+bottom_height = regrid_bathymetry(grid;
+                                  minimum_depth = 10meters,
+                                  interpolation_passes = 5,
+                                  major_basins = 3)
 
-# grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
+grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
 # Let's see what the bathymetry looks like:
 
-# h = grid.immersed_boundary.bottom_height
+h = grid.immersed_boundary.bottom_height
 
-# fig, ax, hm = heatmap(h, colormap=:deep, colorrange=(-depth, 0))
-# Colorbar(fig[0, 1], hm, label="Bottom height (m)", vertical=false)
-# save("bathymetry.png", fig)
-# nothing #hide
+fig, ax, hm = heatmap(h, colormap=:deep, colorrange=(-depth, 0))
+Colorbar(fig[0, 1], hm, label="Bottom height (m)", vertical=false)
+save("bathymetry.png", fig)
+nothing #hide
 
 # ![](bathymetry.png)
 
@@ -83,9 +83,9 @@ ocean.model
 
 # We initialize the ocean model with ECCO2 temperature and salinity for January 1, 1993.
 
-# date = DateTimeProlepticGregorian(1993, 1, 1)
-# set!(ocean.model, T=ECCOMetadata(:temperature; dates=date),
-#                   S=ECCOMetadata(:salinity; dates=date))
+date = DateTimeProlepticGregorian(1993, 1, 1)
+set!(ocean.model, T=Metadata(:temperature; dates=date, dataset=ECCO4Monthly()),
+                  S=Metadata(:salinity; dates=date, dataset=ECCO4Monthly()))
 
 # ### Prescribed atmosphere and radiation
 #
@@ -117,7 +117,7 @@ coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 # We then create a coupled simulation. We start with a small-ish time step of 90 seconds.
 # We run the simulation for 10 days with this small-ish time step.
 
-simulation = Simulation(coupled_model; Δt=90, stop_iteration=10)
+simulation = Simulation(coupled_model; Δt=90, stop_time=10days)
 
 # We define a callback function to monitor the simulation's progress,
 
@@ -146,7 +146,7 @@ function progress(sim)
     wall_time[] = time_ns()
 end
 
-simulation.callbacks[:progress] = Callback(progress, IterationInterval(1))
+simulation.callbacks[:progress] = Callback(progress, TimeInterval(5days))
 
 # ### Set up output writers
 #
@@ -156,23 +156,13 @@ simulation.callbacks[:progress] = Callback(progress, IterationInterval(1))
 # Below, we use `indices` to save only the values of the variables at the surface, which corresponds to `k = grid.Nz`
 
 outputs = merge(ocean.model.tracers, ocean.model.velocities)
-# ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
-#                                                   schedule = IterationInterval(1),
-#                                                   filename = "near_global_surface_fields",
-#                                                   indices = (:, :, grid.Nz),
-#                                                   with_halos = true,
-#                                                   overwrite_existing = true,
-#                                                   array_type = Array{Float32})
-
-output_dir = "."
-prefix = "near_global"
-
-ocean.output_writers[:checkpoint] = Checkpointer(ocean.model;
-                                                schedule = TimeInterval(3minutes),
-                                                prefix = prefix,
-                                                dir = output_dir)#,
-                                                # verbose = true,
-                                                # overwrite_existing = true)
+ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
+                                                  schedule = TimeInterval(1days),
+                                                  filename = "near_global_surface_fields",
+                                                  indices = (:, :, grid.Nz),
+                                                  with_halos = true,
+                                                  overwrite_existing = true,
+                                                  array_type = Array{Float32})
 
 # ### Spinning up the simulation
 #
@@ -185,11 +175,10 @@ run!(simulation)
 # ### Running the simulation for real
 
 # After the initial spin up of 10 days, we can increase the time-step and run for longer.
-#=
+
 simulation.stop_time = 60days
 simulation.Δt = 10minutes
 run!(simulation)
-
 
 # ## A pretty movie
 #
@@ -270,4 +259,3 @@ end
 nothing #hide
 
 # ![](near_global_ocean_surface.mp4)
-=#
