@@ -76,17 +76,21 @@ initialize_jld2_file!(filepath, init, jld2_kw, including, outputs, model::OSIM) 
 
 write_output!(c::Checkpointer, model::OSIM) = write_output!(c, model.ocean.model)
 
-function set!(sim::OSIMSIMPA, pickup::Union{Bool, Integer, String})
-    checkpoint_file_path = checkpoint_path(pickup, sim.output_writers)
-
-    set!(sim.model.ocean.model, checkpoint_file_path)
-
+function set_clock!(sim)
     sim.model.clock.iteration = sim.model.ocean.model.clock.iteration
     sim.model.clock.time = sim.model.ocean.model.clock.time
 
     # Setting the atmosphere time to the ocean time
     sim.model.atmosphere.clock.iteration = sim.model.ocean.model.clock.iteration
     sim.model.atmosphere.clock.time = sim.model.ocean.model.clock.time
+    return nothing
+end
+
+function set!(sim::OSIMSIMPA, pickup::Union{Bool, Integer, String})
+    checkpoint_file_path = checkpoint_path(pickup, sim.output_writers)
+
+    set!(sim.model.ocean.model, checkpoint_file_path)
+    set_clock!(sim)
 
     return nothing
 end

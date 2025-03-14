@@ -93,3 +93,49 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
     end
 end
 
+function testbed_coupled_simulation(grid; stop_iteration=8)
+    ocean = ocean_simulation(grid)
+        
+    radiation = Radiation(arch)
+    
+    atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(4))
+    
+    coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
+    
+    simulation = Simulation(coupled_model; Δt=10, stop_iteration)
+
+    simulation.output_writers[:checkpoint] = Checkpointer(ocean.model;
+                                                          schedule = IterationInterval(3),
+                                                          prefix = "checkpointer",
+                                                          dir = ".",
+                                                          verbose = true,
+                                                          overwrite_existing = true)
+    return simulation
+end
+
+@testset "Checkpointer test" begin
+    for arch in test_architectures
+
+        Nx, Ny, Nz = 40, 25, 10
+        
+        grid = LatitudeLongitudeGrid(arch;
+                                     size = (Nx, Ny, Nz),
+                                     halo = (7, 7, 7),
+                                     z = (-6000, 0),
+                                     latitude  = (-75, 75),
+                                     longitude = (0, 360))
+        
+        simulation = testbed_coupled_simulation(grid; stop_iteration=8)
+
+        run!(simulation, pickup=true)
+
+        # create a new simulation and pick up from the last checkpointer
+        new_simulation = testbed_coupled_simulation(grid; stop_iteration=13)
+
+        run!(new_simulation, pickup=true)
+
+        # test that ocean tiem step and iteration is the same as the atmosphere
+        @test     new_simulation.model.atmosphere.clock.iteration ≈ new_simulation.model.ocean.model.clock.iteration
+        @test     new_simulation.model.atmosphere.clock.time ≈ new_simulation.model.ocean.model.clock.time
+    end
+end
