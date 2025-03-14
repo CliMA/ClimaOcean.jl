@@ -34,21 +34,21 @@ import Oceananigans.Simulations: initialize!
 ##### Container for organizing information related to fluxes
 #####
 
-struct AtmosphereInterface{J, F, ST, P}
+mutable struct AtmosphereInterface{J, F, ST, P}
     fluxes :: J
     flux_formulation :: F
     temperature :: ST
     properties :: P
 end
 
-struct SeaIceOceanInterface{J, P, H, A}
+mutable struct SeaIceOceanInterface{J, P, H, A}
     fluxes :: J
     properties :: P
     previous_ice_thickness :: H
     previous_ice_concentration :: A
 end
 
-struct ComponentInterfaces{AO, ASI, SIO, C, AP, OP, SIP, EX}
+mutable struct ComponentInterfaces{AO, ASI, SIO, C, AP, OP, SIP, EX}
     atmosphere_ocean_interface :: AO
     atmosphere_sea_ice_interface :: ASI
     sea_ice_ocean_interface :: SIO
@@ -59,11 +59,31 @@ struct ComponentInterfaces{AO, ASI, SIO, C, AP, OP, SIP, EX}
     net_fluxes :: C
 end
 
-struct StateExchanger{G, AST, AEX}
+mutable struct StateExchanger{G, AST, AEX}
     exchange_grid :: G
     exchange_atmosphere_state :: AST
     atmosphere_exchanger :: AEX
 end
+
+mutable struct ExchangeAtmosphereState{F}
+    u  :: F
+    v  :: F
+    T  :: F
+    q  :: F
+    p  :: F
+    Qs :: F
+    Qℓ :: F
+    Mp :: F
+end
+
+ExchangeAtmosphereState(grid) = ExchangeAtmosphereState(Field{Center, Center, Nothing}(grid),
+                                                        Field{Center, Center, Nothing}(grid),
+                                                        Field{Center, Center, Nothing}(grid),
+                                                        Field{Center, Center, Nothing}(grid),
+                                                        Field{Center, Center, Nothing}(grid),
+                                                        Field{Center, Center, Nothing}(grid),
+                                                        Field{Center, Center, Nothing}(grid),
+                                                        Field{Center, Center, Nothing}(grid))
 
 # Note that Field location can also affect fractional index type.
 # Here we assume that we know the location of Fields that will be interpolated.
@@ -73,16 +93,7 @@ fractional_index_type(FT, ::Flat) = Nothing
 function StateExchanger(ocean::Simulation, atmosphere)
     # TODO: generalize this
     exchange_grid = ocean.model.grid
-
-    exchange_atmosphere_state = (u  = Field{Center, Center, Nothing}(exchange_grid),
-                                 v  = Field{Center, Center, Nothing}(exchange_grid),
-                                 T  = Field{Center, Center, Nothing}(exchange_grid),
-                                 q  = Field{Center, Center, Nothing}(exchange_grid),
-                                 p  = Field{Center, Center, Nothing}(exchange_grid),
-                                 Qs = Field{Center, Center, Nothing}(exchange_grid),
-                                 Qℓ = Field{Center, Center, Nothing}(exchange_grid),
-                                 Mp = Field{Center, Center, Nothing}(exchange_grid))
-
+    exchange_atmosphere_state = ExchangeAtmosphereState(exchange_grid)
     exchanger = atmosphere_exchanger(atmosphere, exchange_grid)
 
     return StateExchanger(ocean.model.grid, exchange_atmosphere_state, exchanger)

@@ -289,7 +289,7 @@ const PATP = PrescribedAtmosphereThermodynamicsParameters
 ##### Prescribed atmosphere (as opposed to dynamically evolving / prognostic)
 #####
 
-struct PrescribedAtmosphere{FT, G, T, U, P, C, F, I, R, TP, TI}
+mutable struct PrescribedAtmosphere{FT, G, T, U, P, C, F, I, R, TP, TI}
     grid :: G
     clock :: Clock{T}
     velocities :: U
