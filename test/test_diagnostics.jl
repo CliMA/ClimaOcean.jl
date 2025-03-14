@@ -25,8 +25,8 @@ using ClimaOcean.Diagnostics: MixedLayerDepthField, MixedLayerDepthOperand
         stop  = DateTimeProlepticGregorian(1993, 2, 1)
         dates = range(start; stop, step=Month(1))
 
-        Tmeta = ECCOMetadata(:temperature; dates)
-        Smeta = ECCOMetadata(:salinity; dates)
+        Tmeta = Metadata(:temperature; dataset=ECCO4Monthly(), dates)
+        Smeta = Metadata(:salinity; dataset=ECCO4Monthly(), dates)
 
         Tt = ECCOFieldTimeSeries(Tmeta, grid; time_indices_in_memory=2)
         St = ECCOFieldTimeSeries(Smeta, grid; time_indices_in_memory=2)
@@ -42,11 +42,11 @@ using ClimaOcean.Diagnostics: MixedLayerDepthField, MixedLayerDepthOperand
         @test h.operand.buoyancy_perturbation isa KernelFunctionOperation
 
         compute!(h)
-        @test @allowscalar h[1, 1, 1] ≈ 16.255836 # m
+        @test @allowscalar h[1, 1, 1] ≈ 16.2558363 # m
 
         tracers = (T=Tt[2], S=St[2])
         h.operand.buoyancy_perturbation = buoyancy(sb, grid, tracers)
         compute!(h)
-        @test @allowscalar h[1, 1, 1] ≈ 9.295890287 # m
+        @test @allowscalar h[1, 1, 1] ≈ 9.2957298 # m
     end
 end

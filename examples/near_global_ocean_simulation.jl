@@ -14,6 +14,7 @@
 # including grid setup, physical processes modeling, and data visualization.
 
 using ClimaOcean
+using ClimaOcean.ECCO
 using Oceananigans
 using Oceananigans.Units
 using CairoMakie
@@ -83,18 +84,18 @@ ocean.model
 # We initialize the ocean model with ECCO2 temperature and salinity for January 1, 1993.
 
 date = DateTimeProlepticGregorian(1993, 1, 1)
-set!(ocean.model, T=ECCOMetadata(:temperature; dates=date),
-                  S=ECCOMetadata(:salinity; dates=date))
+set!(ocean.model, T=Metadatum(:temperature; date, dataset=ECCO4Monthly()),
+                  S=Metadatum(:salinity;    date, dataset=ECCO4Monthly()))
 
 # ### Prescribed atmosphere and radiation
 #
 # Next we build a prescribed atmosphere state and radiation model,
 # which will drive the ocean simulation. We use the default `Radiation` model,
 
-## The radiation model specifies an ocean albedo emissivity to compute the net radiative
-## fluxes. The default ocean albedo is based on Payne (1982) and depends on cloud cover
-## (calculated from the ratio of maximum possible incident solar radiation to actual
-## incident solar radiation) and latitude. The ocean emissivity is set to 0.97.
+# The radiation model specifies an ocean albedo emissivity to compute the net radiative
+# fluxes. The default ocean albedo is based on Payne (1982) and depends on cloud cover
+# (calculated from the ratio of maximum possible incident solar radiation to actual
+# incident solar radiation) and latitude. The ocean emissivity is set to 0.97.
 
 radiation = Radiation(arch)
 

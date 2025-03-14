@@ -120,7 +120,7 @@ end
 function ECCOFieldTimeSeries(metadata::ECCOMetadata, grid::AbstractGrid;
                              time_indices_in_memory = 2,	
                              time_indexing = Cyclical(),
-                             inpainting = nothing,
+                             inpainting = default_inpainting(metadata),
                              cache_inpainted_data = true)
 
     # Make sure all the required individual files are downloaded
@@ -138,8 +138,19 @@ function ECCOFieldTimeSeries(metadata::ECCOMetadata, grid::AbstractGrid;
     return fts	
 end
 
-ECCOFieldTimeSeries(variable_name::Symbol, version=ECCO4Monthly(); kw...) = 
-    ECCOFieldTimeSeries(ECCOMetadata(variable_name, all_dates(version), version); kw...)
+function ECCOFieldTimeSeries(variable_name::Symbol; 
+                             dataset = ECCO4Monthly(),
+                             architecture = CPU(),
+                             start_date = first_date(dataset, variable_name),
+                             end_date = first_date(dataset, variable_name),
+                             dir = download_ECCO_cache,
+                             kw...)
+
+    native_dates = all_dates(dataset, variable_name)
+    dates = compute_native_date_range(native_dates, start_date, end_date)                          
+    metadata = Metadata(variable_name, dates, dataset, dir)
+    return ECCOFieldTimeSeries(metadata, architecture; kw...)
+end
 
 # Variable names for restorable data
 struct Temperature end
@@ -211,8 +222,8 @@ end
 
 """
     ECCORestoring(variable_name::Symbol, [ arch_or_grid = CPU(), ];
-                  version = ECCO4Monthly(),
-                  dates = all_dates(version),
+                  dataset = ECCO4Monthly(),
+                  dates = all_dates(dataset, variable_name),
                   time_indices_in_memory = 2,
                   time_indexing = Cyclical(),
                   mask = 1,
@@ -251,14 +262,16 @@ Arguments
 
 !!! info "Providing `ECCOMetadata` instead of `variable_name`"
     Note that `ECCOMetadata` may be provided as the first argument instead of `variable_name`.
-    In this case the `version` and `dates` kwargs (described below) cannot be provided.
+    In this case the `dataset` and `dates` kwargs (described below) cannot be provided.
 
 Keyword Arguments
 =================
 
-- `version`: The version of the ECCO dataset. Default: `ECCO4Monthly()`.
+- `dataset`: The dataset of the ECCO dataset. Default: `ECCO4Monthly()`.
 
-- `dates`: The dates to use for the ECCO dataset. Default: `all_dates(version)`.
+- `start_date`: The starting date to use for the ECCO dataset. Default: `first_date(dataset, variable_name)`.
+
+- `end_date`: The ending date to use for the ECCO dataset. Default: `end_date(dataset, variable_name)`.
 
 - `time_indices_in_memory`: The number of time indices to keep in memory. The number is chosen based on 
                             a trade-off between increased performance (more indices in memory) and reduced
@@ -280,12 +293,16 @@ Keyword Arguments
 """
 function ECCORestoring(variable_name::Symbol,
                        arch_or_grid = CPU();
-                       version = ECCO4Monthly(),
-                       dates = all_dates(version),
+                       dataset = ECCO4Monthly(),
+                       start_date = first_date(dataset, variable_name),
+                       end_date = last_date(dataset, variable_name),       
                        dir = download_ECCO_cache,
                        kw...)
 
-    metadata = ECCOMetadata(variable_name, dates, version, dir)
+    native_dates = all_dates(dataset, variable_name)
+    dates = compute_native_date_range(native_dates, start_date, end_date)                          
+    metadata = Metadata(variable_name, dates, dataset, dir)
+
     return ECCORestoring(metadata, arch_or_grid; kw...)
 end
 

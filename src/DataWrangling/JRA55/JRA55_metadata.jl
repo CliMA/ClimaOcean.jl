@@ -2,42 +2,63 @@ using CFTime
 using Dates
 using Downloads
 
+using Oceananigans.DistributedComputations
+
 using ClimaOcean.DataWrangling
-using ClimaOcean.DataWrangling: Metadata, metadata_path, download_progress
+using ClimaOcean.DataWrangling: Metadata, metadata_path, download_progress, AnyDateTime
 
 import Dates: year, month, day
 import Oceananigans.Fields: set!
 import Base
-import ClimaOcean.DataWrangling: all_dates, metadata_filename
 
 import Oceananigans.Fields: set!, location
-import ClimaOcean.DataWrangling: all_dates, metadata_filename
+import ClimaOcean.DataWrangling: all_dates, metadata_filename, default_download_folder
 
 struct JRA55MultipleYears end
 struct JRA55RepeatYear end
 
-const JRA55Metadata{T, V} = Metadata{T, V} where {T, V<:Union{<:JRA55MultipleYears, <:JRA55RepeatYear}}
+const JRA55Metadata{D} = Metadata{D, <:Union{<:JRA55MultipleYears, <:JRA55RepeatYear}} where {D}
+const JRA55Metadatum   = JRA55Metadata{<:AnyDateTime}
+
+default_download_folder(::Union{<:JRA55MultipleYears, <:JRA55RepeatYear}) = download_JRA55_cache
 
 Base.size(data::JRA55Metadata) = (640, 320, length(data.dates))
-Base.size(::JRA55Metadata{<:AbstractCFDateTime}) = (640, 320, 1)
+Base.size(::JRA55Metadatum)    = (640, 320, 1)
 
-# The whole range of dates in the different dataset versions
-all_dates(::JRA55RepeatYear)    = DateTimeProlepticGregorian(1990, 1, 1) : Hour(3) : DateTimeProlepticGregorian(1991, 1, 1)
-all_dates(::JRA55MultipleYears) = DateTimeProlepticGregorian(1958, 1, 1) : Hour(3) : DateTimeProlepticGregorian(2021, 1, 1)
+# The whole range of dates in the different dataset datasets
+# NOTE! rivers and icebergs have a different frequency! (typical JRA55 data is three-hourly while rivers and icebergs are daily)
+function all_dates(::JRA55RepeatYear, name)   
+    if name == :river_freshwater_flux || name == :iceberg_freshwater_flux
+        return DateTime(1990, 1, 1) : Day(1) : DateTime(1990, 12, 31)
+    else
+        return DateTime(1990, 1, 1) : Hour(3) : DateTime(1990, 12, 31, 23, 59, 59)
+    end
+end
 
-function JRA55_time_indices(version, dates)
-    all_JRA55_dates = all_dates(version)
+function all_dates(::JRA55MultipleYears, name)
+    if name == :river_freshwater_flux || name == :iceberg_freshwater_flux
+        return DateTime(1958, 1, 1) : Day(1) : DateTime(2021, 1, 1)
+    else
+        return DateTime(1958, 1, 1) : Hour(3) : DateTime(2021, 1, 1)
+    end
+end
+
+# Fallback, if we not provide the name, take the highest frequency 
+all_dates(dataset::Union{<:JRA55MultipleYears, <:JRA55RepeatYear}) = all_dates(dataset, :temperature)
+
+function JRA55_time_indices(dataset, dates, name)
+    all_JRA55_dates = all_dates(dataset, name)
     indices = Int[]
     
     for date in dates
         index = findfirst(x -> x == date, all_JRA55_dates)
-        push!(indices, index)
+        !isnothing(index) && push!(indices, index)
     end
 
     return indices
 end
 
-# File name generation specific to each Dataset version
+# File name generation specific to each Dataset dataset
 function metadata_filename(metadata::Metadata{<:Any, <:JRA55RepeatYear}) # No difference 
     shortname = short_name(metadata)
     return "RYF." * shortname * ".1990_1991.nc"
@@ -133,18 +154,23 @@ JRA55_repeat_year_urls = Dict(
 
 variable_is_three_dimensional(data::JRA55Metadata) = false
 
-urls(metadata::Metadata{<:Any, <:JRA55RepeatYear}) = JRA55_repeat_year_urls[metadata.name]  
-urls(metadata::Metadata{<:Any, <:JRA55MultipleYears}) = "https://esgf-data2.llnl.gov/thredds/fileServer/user_pub_work/input4MIPs/CMIP6/OMIP/MRI/MRI-JRA55-do-1-5-0/atmos/3hrPt"
+metadata_url(metadata::Metadata{<:Any, <:JRA55RepeatYear}) = JRA55_repeat_year_urls[metadata.name]  
 
-metadata_url(prefix, m::Metadata{<:Any, <:JRA55RepeatYear})    = prefix # No specific name for this url
-metadata_url(prefix, m::Metadata{<:Any, <:JRA55MultipleYears}) = prefix * "/" * short_name(m) * "/gr/v20200916/" * metadata_filename(m)
+function url(metadata::Metadata{<:Any, <:JRA55MultipleYears}) 
+    if metadata.name isa String
+        return "https://esgf-data2.llnl.gov/thredds/fileServer/user_pub_work/input4MIPs/CMIP6/OMIP/MRI/MRI-JRA55-do-1-5-0/atmos/3hrPt"
+    else
+        return "https://esgf-data2.llnl.gov/thredds/fileServer/user_pub_work/input4MIPs/CMIP6/OMIP/MRI/MRI-JRA55-do-1-5-0/atmos/3hrPt"
+    end
+end
 
-# TODO: This will need to change when we add a method for JRA55MultipleYears
-function download_dataset!(metadata::JRA55Metadata; url = urls(metadata))
+metadata_url(prefix, m::Metadata{<:Any, <:JRA55MultipleYears}) = url(metadata) * "/" * short_name(m) * "/gr/v20200916/" * metadata_filename(m)
 
-    for metadatum in metadata # Distribute the download among tasks
+function download_dataset(metadata::JRA55Metadata)
 
-        fileurl  = metadata_url(url, metadatum) 
+    @root for metadatum in metadata
+
+        fileurl  = metadata_url(metadatum) 
         filepath = metadata_path(metadatum)
 
         if !isfile(filepath)

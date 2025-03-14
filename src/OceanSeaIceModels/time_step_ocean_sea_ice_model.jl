@@ -1,15 +1,23 @@
-using .CrossRealmFluxes: compute_atmosphere_ocean_fluxes!, compute_sea_ice_ocean_fluxes!
+using .InterfaceComputations:
+    compute_atmosphere_ocean_fluxes!,
+    compute_sea_ice_ocean_fluxes!,
+    compute_net_ocean_fluxes!,
+    compute_net_sea_ice_fluxes!,
+    interpolate_atmosphere_state!
 
-using ClimaSeaIce: SeaIceModel
+using ClimaSeaIce: SeaIceModel, SeaIceThermodynamics
+using Oceananigans.Grids: φnode
 
-const SeaIceSimulation = Simulation{<:SeaIceModel}
+using Printf
 
 function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_tendencies=true)
     ocean = coupled_model.ocean
     sea_ice = coupled_model.sea_ice
+    atmosphere = coupled_model.atmosphere
+    clock = coupled_model.clock
 
     # Be paranoid and update state at iteration 0
-    coupled_model.clock.iteration == 0 && update_state!(coupled_model, callbacks)
+    #coupled_model.clock.iteration == 0 && update_state!(coupled_model, callbacks)
 
     # Eventually, split out into OceanOnlyModel
     if sea_ice isa SeaIceSimulation
@@ -19,19 +27,20 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
         # Initialization
         if coupled_model.clock.iteration == 0
             @info "Initializing coupled model ice thickness..."
-            h⁻ = coupled_model.fluxes.previous_ice_thickness
+            h⁻ = coupled_model.interfaces.sea_ice_ocean_interface.previous_ice_thickness
             hⁿ = coupled_model.sea_ice.model.ice_thickness
             parent(h⁻) .= parent(hⁿ)
         end
 
-        sea_ice.Δt = Δt
-        time_step!(sea_ice)
+        time_step!(sea_ice, Δt)
     end
 
     # TODO after ice time-step:
     #  - Adjust ocean heat flux if the ice completely melts?
-    ocean.Δt = Δt
-    time_step!(ocean)
+    time_step!(ocean, Δt)
+
+    # Time step the atmosphere
+    time_step!(atmosphere, Δt)
 
     # TODO:
     # - Store fractional ice-free / ice-covered _time_ for more
@@ -43,10 +52,19 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
 end
 
 function update_state!(coupled_model::OceanSeaIceModel, callbacks=[]; compute_tendencies=true)
-    time = Time(coupled_model.clock.time)
-    update_model_field_time_series!(coupled_model.atmosphere, time)
+    
+    # This function needs to be specialized to allow different atmospheric models
+    interpolate_atmosphere_state!(coupled_model.interfaces, coupled_model.atmosphere, coupled_model) 
+
+    # Compute interface states
     compute_atmosphere_ocean_fluxes!(coupled_model)
+    compute_atmosphere_sea_ice_fluxes!(coupled_model)
     compute_sea_ice_ocean_fluxes!(coupled_model)
-    # compute_atmosphere_sea_ice_fluxes!(coupled_model)
+
+    # This function needs to be specialized to allow different atmospheric models
+    compute_net_atmosphere_fluxes!(coupled_model)
+    compute_net_ocean_fluxes!(coupled_model)
+    compute_net_sea_ice_fluxes!(coupled_model)
+
     return nothing
 end

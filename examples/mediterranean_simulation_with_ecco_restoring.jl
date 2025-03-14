@@ -23,8 +23,6 @@ using ClimaOcean.ECCO
 using ClimaOcean.ECCO: ECCO4Monthly
 using Oceananigans.Units
 using Printf
-
-using CFTime
 using Dates
 
 # ## Grid Configuration for the Mediterranean Sea
@@ -73,13 +71,11 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 # using the function `ECCO_restoring_forcing` to apply restoring forcings for these tracers. 
 # This allows us to nudge the model towards realistic temperature and salinity profiles.
 
-dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 12, 1)
+start_date = DateTime(1993, 1, 1) 
+end_date   = DateTime(1993, 12, 1)
 
-temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
-salinity    = ECCOMetadata(:salinity,    dates, ECCO4Monthly())
-
-FT = ECCO_restoring_forcing(temperature; architecture = GPU(), timescale = 2days)
-FS = ECCO_restoring_forcing(salinity;    architecture = GPU(), timescale = 2days)
+FT = ECCO_restoring_forcing(:temperature; start_date, end_date, architecture = GPU(), timescale = 2days)
+FS = ECCO_restoring_forcing(:salinity;    start_date, end_date, architecture = GPU(), timescale = 2days)
 
 # Constructing the Simulation
 #
@@ -94,7 +90,8 @@ ocean = ocean_simulation(grid; forcing = (T = FT, S = FS))
 # In this case, our ECCO dataset has access to a temperature and a salinity
 # field, so we initialize temperature T and salinity S from ECCO.
 
-set!(ocean.model, T = temperature[1], S = salinity[1])
+set!(ocean.model, T = Metadatum(:temperature; date=start_date), 
+                  S = Metadatum(:salinity;    date=start_date))
 
 fig = Figure()
 ax  = Axis(fig[1, 1])

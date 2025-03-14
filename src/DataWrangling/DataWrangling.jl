@@ -1,6 +1,6 @@
 module DataWrangling
 
-export Metadata
+export Metadata, Metadatum, all_dates, first_date, last_date
 
 using Oceananigans
 using Downloads
@@ -14,6 +14,8 @@ using Oceananigans.Fields: interpolate
 using Oceananigans: pretty_filesize, location
 using Oceananigans.Utils: launch!
 using KernelAbstractions: @kernel, @index
+
+using Oceananigans.DistributedComputations
 
 #####
 ##### Downloading utilities

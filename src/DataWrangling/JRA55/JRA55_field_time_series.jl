@@ -1,5 +1,7 @@
 using ClimaOcean.DataWrangling: all_dates, native_times
+using ClimaOcean.DataWrangling: compute_native_date_range
 using Oceananigans.Grids: AbstractGrid
+using Oceananigans.OutputReaders: PartlyInMemory
 
 download_JRA55_cache::String = ""
 
@@ -39,7 +41,7 @@ function compute_bounding_indices(bounds::Tuple, hc)
     # |         |         |         |         |         |
     # |    x  ᵒ |    x    |    x    |    x  ᵒ |    x    |
     # |         |         |         |         |         |
-    # 1         2         3         4         5         6 
+    # 1         2         3         4         5         6
     #
     # then for example, we should find that (iᵢ, i₂) = (1, 5).
     # So we want to reduce the first index by one, and limit them
@@ -188,13 +190,15 @@ Keyword arguments
 
 - `architecture`: Architecture for the `FieldTimeSeries`. Default: CPU()
 
-- `dates`: The date(s) of the metadata. Note this can either be a single date,
-           representing a snapshot, or a range of dates, representing a time-series.
-           Default: `all_dates(version)` (see `all_dates`).
+- `start_date`: The starting date to use for the ECCO dataset. Default: `first_date(dataset, variable_name)`.
 
-- `version`: The data version. The only supported versions is `JRA55RepeatYear()`
+- `end_date`: The ending date to use for the ECCO dataset. Default: `end_date(dataset, variable_name)`.
+
+- `dataset`: The data dataset. The only supported datasets is `JRA55RepeatYear()`
 
 - `dir`: The directory of the data file. Default: `ClimaOcean.JRA55.download_JRA55_cache`.
+
+- `time_indexing`: The time indexing scheme for the field time series. Default: `Cyclical()`.
 
 - `latitude`: Guiding latitude bounds for the resulting grid.
               Used to slice the data when loading into memory.
@@ -204,44 +208,54 @@ Keyword arguments
               Used to slice the data when loading into memory.
               Default: nothing, which retains the longitude range of the native grid.
 
-- `backend`: Backend for the `FieldTimeSeries`. The two options are 
+- `backend`: Backend for the `FieldTimeSeries`. The two options are
              * `InMemory()`: the whole time series is loaded into memory.
              * `JRA55NetCDFBackend(total_time_instances_in_memory)`: only a subset of the time series is loaded into memory.
              Default: `InMemory()`.
 """
-function JRA55FieldTimeSeries(variable_name::Symbol,
-                              architecture = CPU();
-                              version = JRA55RepeatYear(),
-                              dates = all_dates(version),
+function JRA55FieldTimeSeries(variable_name::Symbol, architecture = CPU(), FT=Float32;
+                              dataset = JRA55RepeatYear(),
+                              start_date = first_date(dataset, variable_name),
+                              end_date = last_date(dataset, variable_name),
                               dir = download_JRA55_cache,
                               kw...)
 
-    metadata = Metadata(variable_name, dates, version, dir)
+    native_dates = all_dates(dataset, variable_name)
+    dates = compute_native_date_range(native_dates, start_date, end_date)                          
 
-    return JRA55FieldTimeSeries(metadata, architecture; kw...)
+    metadata = Metadata(variable_name, dates, dataset, dir)
+
+    return JRA55FieldTimeSeries(metadata, architecture, FT; kw...)
 end
 
-function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture = CPU(); 
+function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Float32;
                               latitude = nothing,
                               longitude = nothing,
                               backend = InMemory(),
                               time_indexing = Cyclical())
 
     # First thing: we download the dataset!
-    download_dataset!(metadata)
+    download_dataset(metadata)
 
     # Unpack metadata details
-    time_indices = JRA55_time_indices(metadata.version, metadata.dates)
+    dataset = metadata.dataset
+    name    = metadata.name
+    time_indices = JRA55_time_indices(dataset, metadata.dates, name)
+
+    # Change the metadata to reflect the actual time indices
+    dates    = all_dates(dataset, name)[time_indices]
+    metadata = Metadata(metadata.name, dates, metadata.dataset, metadata.dir)
+
     shortname = short_name(metadata)
     variable_name = metadata.name
-    
+
     filepath = metadata_path(metadata) # Might be multiple paths!!!
     filepath = filepath isa AbstractArray ? first(filepath) : filepath
 
     # OnDisk backends do not support time interpolation!
-    # Disallow OnDisk for JRA55 dataset loading 
-    if !(backend isa JRA55NetCDFBackend) && !(backend isa TotallyInMemory)
-        msg = string("We cannot load the JRA55 dataset with an `OnDisk` or a `PartiallyInMemory` backend")
+    # Disallow OnDisk for JRA55 dataset loading
+    if ((backend isa InMemory) && !isnothing(backend.length)) || backend isa OnDisk
+        msg = string("We cannot load the JRA55 dataset with a $(backend) backend. Use `InMemory()` or `JRA55NetCDFBackend(N)` instead.")
         throw(ArgumentError(msg))
     end
 
@@ -282,7 +296,7 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture = CPU();
     ds = Dataset(filepath)
 
     # Note that each file should have the variables
-    #   - ds["time"]:     time coordinate 
+    #   - ds["time"]:     time coordinate
     #   - ds["lon"]:      longitude at the location of the variable
     #   - ds["lat"]:      latitude at the location of the variable
     #   - ds["lon_bnds"]: bounding longitudes between which variables are averaged
@@ -313,7 +327,7 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture = CPU();
     N = (Nrx, Nry)
     H = min.(N, (3, 3))
 
-    JRA55_native_grid = LatitudeLongitudeGrid(native_fts_architecture, Float32;
+    JRA55_native_grid = LatitudeLongitudeGrid(native_fts_architecture, FT;
                                               halo = H,
                                               size = N,
                                               longitude = λr,
@@ -339,7 +353,7 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture = CPU();
     else
         native_fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times;
                                                               time_indexing,
-                                                              backend, 
+                                                              backend,
                                                               boundary_conditions)
 
         # Fill the data in a GPU-friendly manner

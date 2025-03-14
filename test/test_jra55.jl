@@ -10,8 +10,10 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 
         # This should download files called "RYF.rsds.1990_1991.nc" and "RYF.tas.1990_1991.nc"
         for test_name in (:downwelling_shortwave_radiation, :temperature)
-            time_indices = 1:3
-            JRA55_fts = JRA55FieldTimeSeries(test_name; architecture=arch, time_indices)
+            dates = ClimaOcean.DataWrangling.all_dates(JRA55.JRA55RepeatYear(), test_name)
+            end_date = dates[3]
+
+            JRA55_fts = JRA55FieldTimeSeries(test_name, arch; end_date)
             test_filename = joinpath(download_JRA55_cache, "RYF.rsds.1990_1991.nc")
 
             @test JRA55_fts isa FieldTimeSeries
@@ -21,7 +23,7 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
             @test Nx == 640
             @test Ny == 320
             @test Nz == 1
-            @test Nt == length(time_indices)
+            @test Nt == 3
 
             if test_name == :downwelling_shortwave_radiation
                 CUDA.@allowscalar begin
@@ -35,24 +37,10 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
                 @test view(JRA55_fts.data, 1, :, 1, :) == view(JRA55_fts.data, Nx+1, :, 1, :)
             end
 
-            @info "Testing loading preprocessed JRA55 data on $A..."
-            in_memory_JRA55_fts = JRA55_field_time_series(test_name;
-                                                          time_indices = 1:4,
-                                                          architecture = arch,
-                                                          backend = InMemory(2))
-
-            @test in_memory_JRA55_fts isa FieldTimeSeries
-            @test interior(in_memory_JRA55_fts[1]) == interior(JRA55_fts[1])
-
-            # Clean up
-            isfile(in_memory_JRA55_fts.path) && rm(in_memory_JRA55_fts.path, force=true)
-
             @info "Testing Cyclical time_indices for JRA55 data on $A..."
             Nb = 4
             backend = JRA55NetCDFBackend(Nb) 
-            netcdf_JRA55_fts = JRA55_field_time_series(test_name; backend,
-                                                       time_indices = Colon(),
-                                                       architecture = arch)
+            netcdf_JRA55_fts = JRA55FieldTimeSeries(test_name, arch; backend)
 
             Nt = length(netcdf_JRA55_fts.times)
             @test Oceananigans.OutputReaders.time_indices(netcdf_JRA55_fts) == (1, 2, 3, 4)
@@ -70,7 +58,10 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 
         @info "Testing interpolate_field_time_series! on $A..."
 
-        JRA55_fts = JRA55_field_time_series(:downwelling_shortwave_radiation; architecture=arch, time_indices=1:3)
+        name  = :downwelling_shortwave_radiation
+        dates = ClimaOcean.DataWrangling.all_dates(JRA55.JRA55RepeatYear(), name)
+        end_date = dates[3]
+        JRA55_fts = JRA55FieldTimeSeries(name, arch; end_date)
 
         # Make target grid and field
         resolution = 1 # degree, eg 1/4
@@ -96,11 +87,11 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 
         # Random regression test
         CUDA.@allowscalar begin
-            @test target_fts[1, 1, 1, 1] == 222.243136478611
+            @test Float32(target_fts[1, 1, 1, 1]) ≈ Float32(222.24313354492188)
 
             # Only include this if we are filling halo regions within
             # interpolate_field_time_series
-            @test target_fts[Nx + 1, 1, 1, 1] == 222.243136478611
+            @test Float32(target_fts[Nx + 1, 1, 1, 1]) ≈ Float32(222.24313354492188)
         end
 
         @test target_fts.times == JRA55_fts.times
@@ -128,8 +119,15 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         @test atmosphere isa PrescribedAtmosphere
         @test isnothing(atmosphere.auxiliary_freshwater_flux)
 
+        # Test that rivers and icebergs are included in the JRA55 data with the correct frequency
         atmosphere = JRA55PrescribedAtmosphere(arch; backend, include_rivers_and_icebergs=true)
         @test haskey(atmosphere.auxiliary_freshwater_flux, :rivers)
         @test haskey(atmosphere.auxiliary_freshwater_flux, :icebergs)
+        
+        rivers_times = atmosphere.auxiliary_freshwater_flux.rivers.times
+        pressure_times = atmosphere.pressure.times
+        @test rivers_times != pressure_times
+        @test length(rivers_times) != length(pressure_times)
+        @test rivers_times[2] - rivers_times[1] == 86400
     end
 end

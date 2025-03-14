@@ -2,17 +2,18 @@ module ECCO
 
 export ECCOMetadata, ECCO_field, ECCO_mask, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
-export ECCORestoring, LinearlyTaperedPolarMask
+export ECCOFieldTimeSeries, ECCORestoring, LinearlyTaperedPolarMask
 
 using ClimaOcean
 using ClimaOcean.DataWrangling
-using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, download_progress
+using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, download_progress, compute_native_date_range
 using ClimaOcean.InitialConditions: three_dimensional_regrid!, interpolate!
 
 using Oceananigans
 using Oceananigans: location
 using Oceananigans.Architectures: architecture, child_architecture
 using Oceananigans.BoundaryConditions
+using Oceananigans.DistributedComputations
 using Oceananigans.DistributedComputations: DistributedField, all_reduce, barrier!
 using Oceananigans.Utils
 
@@ -31,7 +32,6 @@ end
 
 include("ECCO_metadata.jl")
 include("ECCO_mask.jl")
-include("ECCO_restoring.jl")
 
 # Vertical coordinate
 const ECCO_z = [
@@ -88,7 +88,7 @@ const ECCO_z = [
       0.0,
 ]
 
-empty_ECCO_field(variable_name::Symbol; kw...) = empty_ECCO_field(ECCOMetadata(variable_name); kw...)
+empty_ECCO_field(variable_name::Symbol; kw...) = empty_ECCO_field(Metadatum(variable_name, dataset=ECCO4Monthly()); kw...)
 
 function empty_ECCO_field(metadata::ECCOMetadata;
                           architecture = CPU(), 
@@ -114,11 +114,24 @@ function empty_ECCO_field(metadata::ECCOMetadata;
         sz = (Nx, Ny)
     end
 
-    grid = LatitudeLongitudeGrid(architecture; halo, longitude, latitude, z,
+    grid = LatitudeLongitudeGrid(architecture, Float32; halo, longitude, latitude, z,
                                  size = sz,
                                  topology = (TX, TY, TZ))
 
     return Field{loc...}(grid)
+end
+
+# Only temperature and salinity need a thorough inpainting because of stability,
+# other variables can do with only a couple of passes. Sea ice variables 
+# cannot be inpainted because zeros in the data are physical, not missing values.
+function default_inpainting(metadata::ECCOMetadata)
+    if metadata.name in [:temperature, :salinity]
+        return NearestNeighborInpainting(Inf)
+    elseif metadata.name in [:sea_ice_fraction, :sea_ice_thickness]
+        return nothing
+    else
+        return NearestNeighborInpainting(5)
+    end
 end
 
 """
@@ -137,11 +150,11 @@ within the specified `mask`. `mask` is set to `ECCO_mask` for non-nothing
 """
 function ECCO_field(metadata::ECCOMetadata;
                     architecture = CPU(),
-                    inpainting = NearestNeighborInpainting(Inf),
+                    inpainting = default_inpainting(metadata),
                     mask = nothing,
                     horizontal_halo = (7, 7),
                     cache_inpainted_data = true)
-
+                    
     field = empty_ECCO_field(metadata; architecture, horizontal_halo)
     inpainted_path = inpainted_metadata_path(metadata)
 
@@ -188,7 +201,7 @@ function ECCO_field(metadata::ECCOMetadata;
     # ECCO4 data is on a -180, 180 longitude grid as opposed to ECCO2 data that
     # is on a 0, 360 longitude grid. To make the data consistent, we shift ECCO4
     # data by 180 degrees in longitude
-    if metadata.version isa ECCO4Monthly 
+    if metadata.dataset isa ECCO4Monthly 
         Nx = size(data, 1)
         if variable_is_three_dimensional(metadata)
             shift = (Nx ÷ 2, 0, 0)
@@ -210,8 +223,8 @@ function ECCO_field(metadata::ECCOMetadata;
         # Make sure all values are extended properly
         name = string(metadata.name)
         date = string(metadata.dates)
-        version = summary(metadata.version)
-        @info string("Inpainting ", version, " ", name, " data from ", date, "...")
+        dataset = summary(metadata.dataset)
+        @info string("Inpainting ", dataset, " ", name, " data from ", date, "...")
         start_time = time_ns()
         
         inpaint_mask!(field, mask; inpainting)
@@ -243,7 +256,7 @@ end
 
 inpainted_metadata_path(metadata::ECCOMetadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
 
-function set!(field::Field, ECCO_metadata::ECCOMetadata; kw...)
+function set!(field::Field, ECCO_metadata::ECCOMetadatum; kw...)
 
     # Fields initialized from ECCO
     grid = field.grid
@@ -258,6 +271,8 @@ function set!(field::Field, ECCO_metadata::ECCOMetadata; kw...)
 
     return field
 end
+
+include("ECCO_restoring.jl")
 
 end # Module 
 
