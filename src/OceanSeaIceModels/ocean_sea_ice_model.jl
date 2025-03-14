@@ -99,7 +99,7 @@ end
 
 function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(ocean.model));
                           atmosphere = nothing,
-                          radiation = nothing,
+                          radiation = Radiation(architecture(ocean.model)),
                           clock = deepcopy(ocean.model.clock),
                           ocean_reference_density = reference_density(ocean),
                           ocean_heat_capacity = heat_capacity(ocean),
@@ -114,7 +114,7 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(
         pop!(ocean.callbacks, :wall_time_limit_exceeded, nothing)
         pop!(ocean.callbacks, :nan_checker, nothing)
     end
-    
+
     if sea_ice isa SeaIceSimulation
         if !isnothing(sea_ice.callbacks)
             pop!(sea_ice.callbacks, :stop_time_exceeded, nothing)
