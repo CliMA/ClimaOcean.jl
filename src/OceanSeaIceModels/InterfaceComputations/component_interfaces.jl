@@ -109,10 +109,9 @@ initialize!(exchanger::StateExchanger, ::Nothing) = nothing
 
 function initialize!(exchanger::StateExchanger, atmosphere)
     atmos_grid = atmosphere.grid
-    grid = exchanger.exchange_grid
-    arch = architecture(grid)
+    exchange_grid = exchanger.exchange_grid
+    arch = architecture(exchange_grid)
     frac_indices = exchanger.atmosphere_exchanger
-    atmos_grid = 
     kernel_parameters = interface_kernel_parameters(exchange_grid)
     launch!(arch, exchange_grid, kernel_parameters,
             _compute_fractional_indices!, frac_indices, exchange_grid, atmos_grid)
