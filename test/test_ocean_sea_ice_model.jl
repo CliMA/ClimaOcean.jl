@@ -93,6 +93,11 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
     end
 end
 
+"""
+    testbed_coupled_simulation(grid; stop_iteration=8)
+
+Return a test-bed coupled simulation with a Checkpointer.
+"""
 function testbed_coupled_simulation(grid; stop_iteration=8)
     ocean = ocean_simulation(grid)
         
