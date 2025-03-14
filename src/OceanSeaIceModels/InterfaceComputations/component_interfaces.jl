@@ -32,21 +32,21 @@ using KernelAbstractions: @kernel, @index
 ##### Container for organizing information related to fluxes
 #####
 
-struct AtmosphereInterface{J, F, ST, P}
+mutable struct AtmosphereInterface{J, F, ST, P}
     fluxes :: J
     flux_formulation :: F
     temperature :: ST
     properties :: P
 end
 
-struct SeaIceOceanInterface{J, P, H, A}
+mutable struct SeaIceOceanInterface{J, P, H, A}
     fluxes :: J
     properties :: P
     previous_ice_thickness :: H
     previous_ice_concentration :: A
 end
 
-struct ComponentInterfaces{AO, ASI, SIO, C, AP, OP, SIP, EX}
+mutable struct ComponentInterfaces{AO, ASI, SIO, C, AP, OP, SIP, EX}
     atmosphere_ocean_interface :: AO
     atmosphere_sea_ice_interface :: ASI
     sea_ice_ocean_interface :: SIO
@@ -57,7 +57,7 @@ struct ComponentInterfaces{AO, ASI, SIO, C, AP, OP, SIP, EX}
     net_fluxes :: C
 end
 
-struct StateExchanger{G, AST, AEX}
+mutable struct StateExchanger{G, AST, AEX}
     exchange_grid :: G
     exchange_atmosphere_state :: AST
     atmosphere_exchanger :: AEX
