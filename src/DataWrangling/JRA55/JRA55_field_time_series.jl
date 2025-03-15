@@ -95,10 +95,12 @@ JRA55NetCDFBackend(length, metadata) = JRA55NetCDFBackend(1, length, metadata)
 Base.length(backend::JRA55NetCDFBackend) = backend.length
 Base.summary(backend::JRA55NetCDFBackend) = string("JRA55NetCDFBackend(", backend.start, ", ", backend.length, ")")
 
-const JRA55NetCDFFTS = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend}
+const JRA55NetCDFFTS              = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend}
+const JRA55NetCDFFTSRepeatYear    = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend{<:JRA55RepeatYear}}
+const JRA55NetCDFFTSMultipleYears = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend{<:JRA55NetCDFFTSMultipleYears}}
 
 # TODO: This will need to change when we add a method for JRA55MultipleYears
-function set!(fts::JRA55NetCDFFTS) 
+function set!(fts::JRA55NetCDFFTSMultipleYears) 
 
     backend  = fts.backend
     metadata = backend.metadata
