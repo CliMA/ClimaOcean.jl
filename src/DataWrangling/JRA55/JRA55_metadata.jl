@@ -40,9 +40,11 @@ end
 
 function all_dates(::JRA55MultipleYears, name)
     if name == :river_freshwater_flux || name == :iceberg_freshwater_flux
-        return DateTime(1958, 1, 1) : Day(1) : DateTime(2021, 1, 1)
+        return DateTime(1958, 1, 1) : Day(1) : DateTime(2021, 12, 31)
+    elseif name ∈ multiple_year_time_displaced_variables
+        return DateTime(1958, 1, 1, 1, 30) : Hour(3) : DateTime(2021, 12, 31, 22, 30)
     else
-        return DateTime(1958, 1, 1) : Hour(3) : DateTime(2021, 1, 1)
+        return DateTime(1958, 1, 1) : Hour(3) : DateTime(2021, 12, 31, 21)
     end
 end
 
