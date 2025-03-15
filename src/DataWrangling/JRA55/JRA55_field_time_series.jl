@@ -3,6 +3,8 @@ using ClimaOcean.DataWrangling: compute_native_date_range
 using Oceananigans.Grids: AbstractGrid
 using Oceananigans.OutputReaders: PartlyInMemory
 
+using Adapt
+
 download_JRA55_cache::String = ""
 
 function __init__()
