@@ -169,10 +169,10 @@ function compute_native_date_range(native_dates, start_date, end_date)
     end
 
     start_idx = findfirst(x -> x ≥ start_date, native_dates)
-    end_idx = findfirst(x -> x ≥ end_date, native_dates)
+    end_idx   = findfirst(x -> x ≥ end_date, native_dates)
     
     start_idx = start_idx > 1 ? start_idx - 1 : start_idx
-    end_idx = isnothing(end_idx) ? length(native_dates) : end_idx
+    end_idx   = isnothing(end_idx) ? length(native_dates) : end_idx
 
     return native_dates[start_idx:end_idx]
 end

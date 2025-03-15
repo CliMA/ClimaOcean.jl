@@ -103,9 +103,12 @@ function set!(fts::JRA55NetCDFFTS)
     backend  = fts.backend
     metadata = backend.metadata
 
-    filepath = metadata_path(metadata)
-    
-    for path in filepath
+    filename = metadata_filename(metadata)
+    filename = unique(filename)
+
+    for name in filename
+
+        path = joinpath(metadata.dir, name)
         ds = Dataset(path)
 
         # Note that each file should have the variables
@@ -347,16 +350,13 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
                                                        path = filepath,
                                                        name = shortname)
 
-        # Fill the data in a GPU-friendly manner
-        copyto!(interior(fts, :, :, 1, :), data)
-        fill_halo_regions!(fts)
-
+        set!(fts)
         return fts
     else
-        native_fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times;
-                                                              time_indexing,
-                                                              backend,
-                                                              boundary_conditions)
+        fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times;
+                                                       time_indexing,
+                                                       backend,
+                                                       boundary_conditions)
 
         # Fill the data in a GPU-friendly manner
         copyto!(interior(native_fts, :, :, 1, :), data)
