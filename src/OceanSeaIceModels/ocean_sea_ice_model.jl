@@ -11,7 +11,7 @@ import Thermodynamics as AtmosphericThermodynamics
 import Oceananigans: fields, prognostic_fields
 import Oceananigans.Architectures: architecture
 import Oceananigans.Fields: set!
-import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker
+import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker, initialization_update_state!
 import Oceananigans.OutputWriters: default_included_properties, checkpointer_address,
                                    write_output!, initialize_jld2_file!
 import Oceananigans.Simulations: reset!, initialize!, iteration, run!
@@ -20,7 +20,7 @@ import Oceananigans.Utils: prettytime
 
 import .PrescribedAtmospheres: set_clock!
 
-struct OceanSeaIceModel{I, A, O, F, C, Arch} <: AbstractModel{Nothing, Arch}
+mutable struct OceanSeaIceModel{I, A, O, F, C, Arch} <: AbstractModel{Nothing, Arch}
     architecture :: Arch
     clock :: C
     atmosphere :: A
@@ -70,7 +70,18 @@ checkpointer_address(::OSIM)        = "HydrostaticFreeSurfaceModel"
 
 reset!(model::OSIM) = reset!(model.ocean)
 
-initialize!(model::OSIM) = initialize!(model.ocean)
+# Make sure to initialize the exchanger here
+function initialization_update_state!(model::OSIM)
+    initialize!(model.interfaces.exchanger, model.atmosphere)
+    update_state!(model)
+    return nothing
+end
+
+function initialize!(model::OSIM)
+    initialize!(model.ocean)
+    initialize!(model.interfaces.exchanger, model.atmosphere)
+    return nothing
+end
 
 initialize_jld2_file!(filepath, init, jld2_kw, including, outputs, model::OSIM) =
     initialize_jld2_file!(filepath, init, jld2_kw, including, outputs, model.ocean.model)
@@ -96,7 +107,7 @@ function set!(model::OSIM, checkpoint_file_path::AbstractString)
     clock = ocean.clock
     set_clock!(model, clock)
     set_clock!(atmosphere, clock)
-
+    
     return nothing
 end
 
@@ -126,7 +137,7 @@ end
 
 function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(ocean.model));
                           atmosphere = nothing,
-                          radiation = nothing,
+                          radiation = Radiation(architecture(ocean.model)),
                           clock = deepcopy(ocean.model.clock),
                           ocean_reference_density = reference_density(ocean),
                           ocean_heat_capacity = heat_capacity(ocean),
@@ -152,7 +163,7 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(
     end
 
     # Contains information about flux contributions: bulk formula, prescribed fluxes, etc.
-    if isnothing(interfaces)
+    if isnothing(interfaces) && !(isnothing(atmosphere) && isnothing(sea_ice))
         interfaces = ComponentInterfaces(atmosphere, ocean, sea_ice;
                                          ocean_reference_density,
                                          ocean_heat_capacity,
@@ -173,7 +184,7 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(
     # Make sure the initial temperature of the ocean
     # is not below freezing and above melting near the surface
     above_freezing_ocean_temperature!(ocean, sea_ice)
-    update_state!(ocean_sea_ice_model)
+    initialization_update_state!(ocean_sea_ice_model)
 
     return ocean_sea_ice_model
 end
@@ -216,3 +227,4 @@ function above_freezing_ocean_temperature!(ocean, sea_ice::SeaIceSimulation)
 
     return nothing
 end
+
