@@ -7,8 +7,11 @@ using Oceananigans.OutputReaders: FieldTimeSeries, update_field_time_series!, ex
 using Oceananigans.TimeSteppers: Clock, tick!
 
 using Adapt
+using JLD2
 using Thermodynamics.Parameters: AbstractThermodynamicsParameters
 
+import Oceananigans.Fields: set!
+import Oceananigans.OutputWriters: checkpointer_address
 import Oceananigans.TimeSteppers: time_step!
 
 import Thermodynamics.Parameters:
@@ -22,7 +25,7 @@ import Thermodynamics.Parameters:
     T_0,            # Enthalpy reference temperature
     LH_v0,          # Vaporization enthalpy at the reference temperature
     LH_s0,          # Sublimation enthalpy at the reference temperature
-    LH_f0,          # Fusionn enthalpy at the reference temperature
+    LH_f0,          # Fusion enthalpy at the reference temperature
     cp_d,           # Heat capacity of dry air at constant pressure
     cp_v,           # Isobaric specific heat capacity of gaseous water vapor
     cp_l,           # Isobaric specific heat capacity of liquid water
@@ -30,7 +33,7 @@ import Thermodynamics.Parameters:
     cv_v,           # Heat capacity of dry air at constant volume
     cv_l,           # Isobaric specific heat capacity of liquid water
     cv_i,           # Isobaric specific heat capacity of liquid water
-    e_int_v0,       # what? someting about reference internal energy of water vapor
+    e_int_v0,       # what? something about reference internal energy of water vapor
     T_freeze,       # Freezing temperature of _pure_ water
     T_triple,       # Triple point temperature of _pure_ water
     press_triple,   # Triple point pressure of pure water
@@ -75,7 +78,7 @@ Construct a set of parameters that define the density of moist air,
 ```
 
 where ``p`` is pressure, ``T`` is temperature, ``q`` defines the partition
-of total mass into vapor, liqiud, and ice mass fractions, and
+of total mass into vapor, liquid, and ice mass fractions, and
 ``Rᵐ`` is the effective specific gas constant for the mixture,
 
 ```math
@@ -318,6 +321,22 @@ function Base.show(io::IO, pa::PrescribedAtmosphere)
     print(io, "└── boundary_layer_height: ", prettysummary(pa.boundary_layer_height))
 end
 
+# set the clock to be the same as the ocean model
+function set!(model::PrescribedAtmosphere, checkpoint_file_path)
+    addr = checkpointer_address(model)
+
+    jldopen(checkpoint_file_path, "r") do file
+        checkpointed_clock = file["$addr/clock"]
+
+        # Update model clock
+        set_clock!(model, checkpointed_clock)
+    end
+
+    return nothing
+end
+
+checkpointer_address(::PrescribedAtmosphere) = "HydrostaticFreeSurfaceModel"
+
 """
     set_clock!(sim, clock)
 
@@ -434,7 +453,7 @@ struct TwoBandDownwellingRadiation{SW, LW}
 end
 
 """
-    TwoBandDownwellingRadiation(shortwave=nothing, longwave=nothing)
+    TwoBandDownwellingRadiation(; shortwave=nothing, longwave=nothing)
 
 Return a two-band model for downwelling radiation (split in a shortwave band
 and a longwave band) that passes through the atmosphere and arrives at the surface of ocean
@@ -448,4 +467,3 @@ Adapt.adapt_structure(to, tsdr::TwoBandDownwellingRadiation) =
                                 adapt(to, tsdr.longwave))
 
 end # module
-
