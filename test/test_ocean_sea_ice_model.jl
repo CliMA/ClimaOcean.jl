@@ -147,8 +147,11 @@ end
 
         run!(new_simulation, pickup=true)
 
-        # ensure the ocean and atmosphere time step and iteration are the same
-        @test new_simulation.model.atmosphere.clock.iteration ≈ new_simulation.model.ocean.model.clock.iteration
-        @test new_simulation.model.atmosphere.clock.time ≈ new_simulation.model.ocean.model.clock.time
+        # ensure the ocean, atmosphere, and coupled model are all at same time and iteration
+        clock = new_simulation.model.ocean.model.clock
+        @test new_simulation.model.atmosphere.clock.iteration ≈ clock.iteration
+        @test new_simulation.model.atmosphere.clock.time ≈ clock.time
+        @test new_simulation.model.clock.iteration ≈ clock.iteration
+        @test new_simulation.model.clock.time ≈ clock.time
     end
 end
