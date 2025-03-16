@@ -100,7 +100,6 @@ using PrecompileTools: @setup_workload, @compile_workload
         grid = Oceananigans.OrthogonalSphericalShellGrids.TripolarGrid(CPU(); size=(Nx, Ny, Nz), halo=(7, 7, 7), z)
         grid = ImmersedBoundaryGrid(grid, GridFittedBottom((x, y) -> -5000))
         ocean = ocean_simulation(grid)
-        model = OceanSeaIceModel(ocean)
     end
 end
 
