@@ -102,12 +102,10 @@ function set!(model::OSIM, checkpoint_file_path::AbstractString)
     ocean = model.ocean.model
 
     set!(ocean, checkpoint_file_path)
+    set!(atmosphere, checkpoint_file_path)
 
-    # ensure all clocks follow the ocean model clock
-    clock = ocean.clock
-    set_clock!(model, clock)
-    set_clock!(atmosphere, clock)
-    
+    set_clock!(model, ocean.clock)
+
     return nothing
 end
 
@@ -227,4 +225,3 @@ function above_freezing_ocean_temperature!(ocean, sea_ice::SeaIceSimulation)
 
     return nothing
 end
-
