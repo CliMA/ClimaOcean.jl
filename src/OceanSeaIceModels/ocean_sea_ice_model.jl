@@ -30,8 +30,6 @@ mutable struct OceanSeaIceModel{I, A, O, F, C, Arch} <: AbstractModel{Nothing, A
 end
 
 const OSIM = OceanSeaIceModel
-const OSIMSIM = Simulation{<:OceanSeaIceModel}
-const OSIMSIMPA = Simulation{<:OceanSeaIceModel{<:Any, <:PrescribedAtmosphere}}
 
 function Base.summary(model::OSIM)
     A = nameof(typeof(architecture(model)))
