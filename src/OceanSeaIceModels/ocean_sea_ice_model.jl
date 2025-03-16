@@ -1,5 +1,4 @@
 using Oceananigans
-using Oceananigans.OutputWriters: checkpoint_path
 using Oceananigans.TimeSteppers: Clock
 using Oceananigans: SeawaterBuoyancy
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
@@ -78,29 +77,25 @@ initialize_jld2_file!(filepath, init, jld2_kw, including, outputs, model::OSIM) 
 
 write_output!(c::Checkpointer, model::OSIM) = write_output!(c, model.ocean.model)
 
-"""
-    set_clock!(sim, clock)
-
-Set the clock of `sim`ulation to match the values of `clock`.
-"""
-function set_clock!(sim::OSIMSIM, clock)
-    sim.model.clock.time = clock.time
-    sim.model.clock.iteration = clock.iteration
-    sim.model.clock.last_Δt = clock.last_Δt
-    sim.model.clock.last_stage_Δt = clock.last_stage_Δt
-    sim.model.clock.stage = clock.stage
+function set_clock!(model::OSIM, clock)
+    model.clock.time = clock.time
+    model.clock.iteration = clock.iteration
+    model.clock.last_Δt = clock.last_Δt
+    model.clock.last_stage_Δt = clock.last_stage_Δt
+    model.clock.stage = clock.stage
     return nothing
 end
 
-function set!(sim::OSIMSIMPA, pickup::Union{Bool, Integer, String})
-    checkpoint_file_path = checkpoint_path(pickup, sim.output_writers)
+function set!(model::OSIM, checkpoint_file_path::AbstractString)
+    atmosphere = model.atmosphere
+    ocean = model.ocean.model
 
-    set!(sim.model.ocean.model, checkpoint_file_path)
+    set!(ocean, checkpoint_file_path)
 
-    clock = sim.model.ocean.model.clock
-
-    set_clock!(sim, clock)
-    set_clock!(sim.model.atmosphere, clock)
+    # ensure all clocks follow the ocean model clock
+    clock = ocean.clock
+    set_clock!(model, clock)
+    set_clock!(atmosphere, clock)
 
     return nothing
 end
