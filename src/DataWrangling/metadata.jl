@@ -55,7 +55,6 @@ function Metadatum(variable_name;
                    dir=default_download_directory(dataset))
 
     # TODO: validate that `date` is actually a single date?
-
     return Metadata(variable_name, date, dataset, dir)
 end
 
