@@ -149,8 +149,8 @@ function ocean_simulation(grid;
         u_immersed_drag = FluxBoundaryCondition(u_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
         v_immersed_drag = FluxBoundaryCondition(v_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
         
-        u_immersed_bc = ImmersedBoundaryCondition(bottom = u_immersed_drag)
-        v_immersed_bc = ImmersedBoundaryCondition(bottom = v_immersed_drag)
+        u_immersed_bc = ImmersedBoundaryCondition(bottom=u_immersed_drag)
+        v_immersed_bc = ImmersedBoundaryCondition(bottom=v_immersed_drag)
 
         # Forcing for u, v
         barotropic_potential = Field{Center, Center, Nothing}(grid)

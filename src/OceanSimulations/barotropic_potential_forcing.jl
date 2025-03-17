@@ -25,11 +25,11 @@ forcing_barotropic_potential(something) = nothing
 forcing_barotropic_potential(f::BarotropicPotentialForcing) = f.potential.data
 
 function forcing_barotropic_potential(mf::MultipleForcings)
-    n = findfirst(f -> f isa BarotropicPotentialForcing, mf.forcing)
+    n = findfirst(f -> f isa BarotropicPotentialForcing, mf.forcings)
     if isnothing(n)
         return nothing
     else
-        return forcing_barotropic_potential(mf.forcing[n])
+        return forcing_barotropic_potential(mf.forcings[n])
     end
 end
 
