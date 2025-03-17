@@ -2,14 +2,7 @@ using ClimaOcean.DataWrangling: all_dates, native_times
 using ClimaOcean.DataWrangling: compute_native_date_range
 using Oceananigans.Grids: AbstractGrid
 using Oceananigans.OutputReaders: PartlyInMemory
-
 using Adapt
-
-download_JRA55_cache::String = ""
-
-function __init__()
-    global download_JRA55_cache = @get_scratch!("JRA55")
-end
 
 compute_bounding_nodes(::Nothing, ::Nothing, LH, hnodes) = nothing
 compute_bounding_nodes(bounds, ::Nothing, LH, hnodes) = bounds

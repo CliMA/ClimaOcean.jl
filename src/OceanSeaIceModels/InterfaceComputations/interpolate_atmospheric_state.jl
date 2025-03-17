@@ -63,13 +63,14 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
 
     # Assumption, should be generalized
     ua = atmosphere.velocities.u
-    time_interpolator = TimeInterpolator(ua, clock.time)
     
     launch!(arch, grid, kernel_parameters,
             _interpolate_primary_atmospheric_state!,
             atmosphere_data,
             space_fractional_indices,
-            time_interpolator,
+            clock.time,
+            ua.times,
+            ua.time_indexing,
             exchange_grid,
             atmosphere_velocities,
             atmosphere_tracers,
@@ -119,7 +120,9 @@ end
     
 @kernel function _interpolate_primary_atmospheric_state!(surface_atmos_state,
                                                          space_fractional_indices,
-                                                         time_interpolator,
+                                                         time,
+                                                         atmos_times,
+                                                         time_indexing,
                                                          exchange_grid,
                                                          atmos_velocities,
                                                          atmos_tracers,
@@ -137,7 +140,7 @@ end
     fj = get_fractional_index(i, j, jj)
 
     x_itp = FractionalIndices(fi, fj, nothing)
-    t_itp = time_interpolator
+    t_itp = TimeInterpolator(time_indexing, atmos_times, time)
     atmos_args = (x_itp, t_itp, atmos_backend, atmos_time_indexing)
 
     uₐ = interp_atmos_time_series(atmos_velocities.u, atmos_args...)
