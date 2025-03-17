@@ -5,10 +5,10 @@
 
 <!-- description -->
 <p align="center">
-  <strong>🌎 A framework for realistic ocean-only and coupled ocean + sea-ice simulations driven by prescribed atmospheres and based on <a href=https://github.com/CliMA/Oceananigans.jl>Oceananigans</a> and <a href=https://github.com/CliMA/ClimaSeaIce.jl>ClimaSeaIce</a></strong>. 
+  <strong>🌎 A framework for realistic ocean-only and coupled ocean + sea-ice simulations driven by prescribed atmospheres and based on <a href=https://github.com/CliMA/Oceananigans.jl>Oceananigans</a> and <a href=https://github.com/CliMA/ClimaSeaIce.jl>ClimaSeaIce</a></strong>.
 </p>
 
-### 
+###
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7677442.svg?style=flat-square)](https://doi.org/10.5281/zenodo.7677442)
 [![Build status](https://badge.buildkite.com/3113cca353b83df3b5855d3f0d69827124614aef7017c835d2.svg?style=flat-square)](https://buildkite.com/clima/climaocean-ci)
@@ -32,7 +32,7 @@ For more information, see the [documentation for `Pkg.jl`](https://pkgdocs.julia
 
 ## Why? What's the difference between ClimaOcean and [Oceananigans](https://github.com/CliMA/Oceananigans.jl)?
 
-Oceananigans is a general-purpose library for ocean-flavored fluid dynamics. 
+Oceananigans is a general-purpose library for ocean-flavored fluid dynamics.
 ClimaOcean implements a framework for driving realistic Oceananigans simulations with prescribed atmospheres, and coupling them to prognostic sea ice simulations.
 
 ### A core abstraction: `ClimaOcean.OceanSeaIceModel`
@@ -59,9 +59,10 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bathymetry))
 
 # Build an ocean simulation initialized to the ECCO state estimate on Jan 1, 1993
 ocean = ClimaOcean.ocean_simulation(grid)
-dates = DateTimeProlepticGregorian(1993, 1, 1)
-set!(ocean.model, T = ClimaOcean.ECCOMetadata(:temperature; dates),
-                  S = ClimaOcean.ECCOMetadata(:salinity; dates))
+dates = DateTime(1993, 1, 1) : Month(1) : DateTime(1994, 1, 1)
+set!(ocean.model,
+     T=ClimaOcean.Metadata(:temperature; dates=first(dates), dataset=ClimaOcean.ECCO4Monthly()),
+     S=ClimaOcean.Metadata(:salinity;    dates=first(dates), dataset=ClimaOcean.ECCO4Monthly()))
 
 # Build and run an OceanSeaIceModel (with no sea ice component) forced by JRA55 reanalysis
 atmosphere = ClimaOcean.JRA55PrescribedAtmosphere(arch)

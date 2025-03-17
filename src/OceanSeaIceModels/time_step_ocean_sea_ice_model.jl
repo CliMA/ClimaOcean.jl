@@ -16,9 +16,6 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
     atmosphere = coupled_model.atmosphere
     clock = coupled_model.clock
 
-    # Be paranoid and update state at iteration 0
-    #coupled_model.clock.iteration == 0 && update_state!(coupled_model, callbacks)
-
     # Eventually, split out into OceanOnlyModel
     if sea_ice isa SeaIceSimulation
         h = sea_ice.model.ice_thickness
