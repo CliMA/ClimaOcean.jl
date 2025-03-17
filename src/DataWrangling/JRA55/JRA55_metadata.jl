@@ -38,19 +38,12 @@ function all_dates(::JRA55RepeatYear, name)
     end
 end
 
-function all_dates(::JRA55MultipleYears, name)
-    if name == :river_freshwater_flux || name == :iceberg_freshwater_flux
-        return DateTime(1958, 1, 1) : Day(1) : DateTime(2021, 12, 31)
-    elseif name ∈ multiple_year_time_displaced_variables
-        return DateTime(1958, 1, 1, 1, 30) : Hour(3) : DateTime(2021, 12, 31, 22, 30)
-    else
-        return DateTime(1958, 1, 1) : Hour(3) : DateTime(2021, 12, 31, 21)
-    end
-end
+all_dates(::JRA55MultipleYears, name) = JRA55_multiple_years_dates[name]
 
 # Fallback, if we not provide the name, take the highest frequency
 all_dates(dataset::Union{<:JRA55MultipleYears, <:JRA55RepeatYear}) = all_dates(dataset, :temperature)
 
+# Valid for all JRA55 datasets
 function JRA55_time_indices(dataset, dates, name)
     all_JRA55_dates = all_dates(dataset, name)
     indices = Int[]
@@ -79,10 +72,13 @@ function metadata_filename(metadata::Metadatum{<:Any, <:JRA55MultipleYears})
     shortname = short_name(metadata)
     year      = Dates.year(metadata.dates)
     suffix    = "_input4MIPs_atmosphericState_OMIP_MRI-JRA55-do-1-5-0_gr_"
-    
+
     if metadata.name ∈ [:river_freshwater_flux, :iceberg_freshwater_flux]
         dates = "$(year)0101-$(year)1231"
-    elseif metadata.name ∈ multiple_year_time_displaced_variables
+    elseif metadata.name ∈ [:rain_freshwater_flux, 
+                            :snow_freshwater_flux, 
+                            :downwelling_shortwave_radiation, 
+                            :downwelling_longwave_radiation]
         dates = "$(year)01010130-$(year)12312230"
     else
         dates = "$(year)01010000-$(year)12312100"
@@ -93,7 +89,7 @@ end
 
 # Convenience functions
 short_name(data::JRA55Metadata) = JRA55_short_names[data.name]
-location(::JRA55Metadata)   = (Center, Center, Center)
+location(::JRA55Metadata) = (Center, Center, Center)
 
 # A list of all variables provided in the JRA55 dataset:
 JRA55_variable_names = (:river_freshwater_flux,
@@ -120,6 +116,36 @@ JRA55_short_names = Dict(
     :temperature                     => "tas",      # Near-surface air temperature
     :eastward_velocity               => "uas",      # Eastward near-surface wind
     :northward_velocity              => "vas",      # Northward near-surface wind
+)
+
+JRA55_multiple_year_url = "https://esgf-data2.llnl.gov/thredds/fileServer/user_pub_work/input4MIPs/CMIP6/OMIP/MRI/MRI-JRA55-do-1-5-0/"
+
+JRA55_multiple_year_prefix = Dict(
+    :river_freshwater_flux           => "land/day",
+    :rain_freshwater_flux            => "atmos/3hr",
+    :snow_freshwater_flux            => "atmos/3hr",
+    :iceberg_freshwater_flux         => "landIce/day",
+    :specific_humidity               => "atmos/3hrPt",
+    :sea_level_pressure              => "atmos/3hrPt",
+    :downwelling_longwave_radiation  => "atmos/3hr",
+    :downwelling_shortwave_radiation => "atmos/3hr",
+    :temperature                     => "atmos/3hrPt",
+    :eastward_velocity               => "atmos/3hrPt",
+    :northward_velocity              => "atmos/3hrPt",
+)
+
+JRA55_multiple_year_dates = Dict(
+    :river_freshwater_flux           => DateTime(1958, 1, 1)        : Day(1)  : DateTime(2021, 12, 31),
+    :rain_freshwater_flux            => DateTime(1958, 1, 1, 1, 30) : Hour(3) : DateTime(2021, 12, 31, 22, 30)
+    :snow_freshwater_flux            => DateTime(1958, 1, 1, 1, 30) : Hour(3) : DateTime(2021, 12, 31, 22, 30)
+    :iceberg_freshwater_flux         => DateTime(1958, 1, 1)        : Day(1)  : DateTime(2021, 12, 31),
+    :specific_humidity               => DateTime(1958, 1, 1)        : Hour(3) : DateTime(2021, 12, 31, 21),
+    :sea_level_pressure              => DateTime(1958, 1, 1)        : Hour(3) : DateTime(2021, 12, 31, 21),
+    :downwelling_longwave_radiation  => DateTime(1958, 1, 1, 1, 30) : Hour(3) : DateTime(2021, 12, 31, 22, 30),
+    :downwelling_shortwave_radiation => DateTime(1958, 1, 1, 1, 30) : Hour(3) : DateTime(2021, 12, 31, 22, 30),
+    :temperature                     => DateTime(1958, 1, 1)        : Hour(3) : DateTime(2021, 12, 31, 21),
+    :eastward_velocity               => DateTime(1958, 1, 1)        : Hour(3) : DateTime(2021, 12, 31, 21),
+    :northward_velocity              => DateTime(1958, 1, 1)        : Hour(3) : DateTime(2021, 12, 31, 21)
 )
 
 JRA55_repeat_year_urls = Dict(
@@ -162,21 +188,9 @@ JRA55_repeat_year_urls = Dict(
 
 metadata_url(metadata::Metadata{<:Any, <:JRA55RepeatYear}) = JRA55_repeat_year_urls[metadata.name]  
 
-const JRA55_multiple_year_url = "https://esgf-data2.llnl.gov/thredds/fileServer/user_pub_work/input4MIPs/CMIP6/OMIP/MRI/MRI-JRA55-do-1-5-0/"
-
 function metadata_url(m::Metadata{<:Any, <:JRA55MultipleYears}) 
-    
-    if m.name == :iceberg_freshwater_flux
-        url = JRA55_multiple_year_url * "landIce/day"
-    elseif m.name == :river_freshwater_flux
-        url = JRA55_multiple_year_url * "land/day"
-    elseif m.name ∈ multiple_year_time_displaced_variables
-        url = JRA55_multiple_year_url * "atmos/3hr"
-    else
-        url = JRA55_multiple_year_url * "atmos/3hrPt"
-    end
-
-    return url * "/" * short_name(m) * "/gr/v20200916/" * metadata_filename(m)
+    prefix = JRA55_multiple_year_prefix[m.name]
+    return url * prefix * "/" * short_name(m) * "/gr/v20200916/" * metadata_filename(m)
 end
 
 function download_dataset(metadata::JRA55Metadata)
