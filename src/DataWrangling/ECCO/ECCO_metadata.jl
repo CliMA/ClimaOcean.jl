@@ -9,7 +9,7 @@ using Downloads
 
 import Oceananigans.Fields: set!, location
 import Base
-import ClimaOcean.DataWrangling: all_dates, metadata_filename, default_download_folder
+import ClimaOcean.DataWrangling: all_dates, metadata_filename, default_download_directory
 
 struct ECCO2Monthly end
 struct ECCO2Daily end
@@ -18,15 +18,7 @@ struct ECCO4Monthly end
 const ECCOMetadata{D} = Metadata{D, <:Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}} where {D}
 const ECCOMetadatum   = ECCOMetadata{<:AnyDateTime}
 
-# Alias for ECCOMetadatum
-function ECCOMetadatum(name; 
-                       date=first_date(ECCO4Monthly(), variable_name),
-                       dir=download_ECCO_cache)
-                       
-    return ECCOMetadatum(name, dates, dir, ECCO2Monthly())
-end
-
-default_download_folder(::Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}) = download_ECCO_cache
+default_download_directory(::Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}) = download_ECCO_cache
 
 datasetstr(md::ECCOMetadata) = string(md.dataset)
 
@@ -49,7 +41,7 @@ all_dates(::ECCO4Monthly, name) = DateTime(1992, 1, 1) : Month(1) : DateTime(202
 all_dates(::ECCO2Monthly, name) = DateTime(1992, 1, 1) : Month(1) : DateTime(2023, 12, 1)
 all_dates(::ECCO2Daily, name)   = DateTime(1992, 1, 4) : Day(1)   : DateTime(2023, 12, 31)
 
-# Fallback, actually, we do not really need the name for ECCO since all 
+# Fallback, actually, we do not really need the name for ECCO since all
 # variables have the same frequency and the same time-range, differently from JRA55
 all_dates(dataset::Union{<:ECCO4Monthly, <:ECCO2Monthly, <:ECCO2Daily}) = all_dates(dataset, :temperature)
 
@@ -67,7 +59,7 @@ function metadata_filename(metadata::Metadata{<:AnyDateTime, <:Union{ECCO2Daily,
     monthstr = string(Dates.month(metadata.dates), pad=2)
     postfix = variable_is_three_dimensional(metadata) ? ".1440x720x50." : ".1440x720."
 
-    if metadata.dataset isa ECCO2Monthly 
+    if metadata.dataset isa ECCO2Monthly
         return shortname * postfix * yearstr * monthstr * ".nc"
     elseif metadata.dataset isa ECCO2Daily
         daystr = string(Dates.day(metadata.dates), pad=2)
@@ -83,8 +75,8 @@ short_name(data::Metadata{<:Any, <:ECCO4Monthly}) = ECCO4_short_names[data.name]
 location(data::ECCOMetadata) = ECCO_location[data.name]
 
 variable_is_three_dimensional(data::ECCOMetadata) =
-    data.name == :temperature || 
-    data.name == :salinity || 
+    data.name == :temperature ||
+    data.name == :salinity ||
     data.name == :u_velocity ||
     data.name == :v_velocity
 
@@ -136,13 +128,13 @@ end
 """
     download_dataset(metadata::ECCOMetadata; url = urls(metadata))
 
-Download the dataset specified by `ECCOMetadata`. If `ECCOMetadata.dates` is a single date,
-the dataset is downloaded directly. If `ECCOMetadata.dates` is a vector of dates, each date
+Download the dataset specified by the `metadata::ECCOMetadata`. If `metadata.dates` is a single date,
+the dataset is downloaded directly. If `metadata.dates` is a vector of dates, each date
 is downloaded individually.
 
 The data download requires a username and password to be provided in the `ECCO_USERNAME` and
-`ECCO_PASSWORD` environment variables. This can be done by exporting the environment variables
-in the shell before running the script, or by launching julia with
+`ECCO_PASSWORD` environment variables respectively. This can be done by exporting the
+environment variables in the shell before running the script, or by launching julia with
 
 ```
 ECCO_USERNAME=myusername ECCO_PASSWORD=mypassword julia
@@ -175,12 +167,10 @@ function download_dataset(metadata::ECCOMetadata)
         # Write down the username and password in a .netrc file
         downloader = netrc_downloader(username, password, "ecco.jpl.nasa.gov", tmp)
         ntasks = Threads.nthreads()
-       
-        missing_files = false
 
         asyncmap(metadata; ntasks) do metadatum # Distribute the download among tasks
 
-            fileurl  = metadata_url(metadatum) 
+            fileurl  = metadata_url(metadatum)
             filepath = metadata_path(metadatum)
 
             if !isfile(filepath)
@@ -201,10 +191,6 @@ function download_dataset(metadata::ECCOMetadata)
                 Downloads.download(fileurl, filepath; downloader, progress=download_progress)
             end
         end
-        
-	    if !missing_files
-            @info "Note: ECCO $(metadata.name) data is in $(metadata.dir)."
-	    end
     end
 
     return nothing
