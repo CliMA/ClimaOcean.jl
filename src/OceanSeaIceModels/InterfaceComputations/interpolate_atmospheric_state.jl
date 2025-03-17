@@ -63,6 +63,7 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
 
     # Assumption, should be generalized
     ua = atmosphere.velocities.u
+    @assert ua.times isa StepRangeLen
     
     launch!(arch, grid, kernel_parameters,
             _interpolate_primary_atmospheric_state!,
