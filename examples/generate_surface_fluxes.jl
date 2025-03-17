@@ -52,8 +52,8 @@ ocean = ocean_simulation(grid, closure=nothing)
 # Now that we have an atmosphere and ocean, we `set!` the ocean temperature and salinity
 # to the ECCO2 data by first creating T, S metadata objects,
 
-T_metadata = Metadatum(:temperature; date=DateTime(1993, 1, 1), dataset=ECCO4Monthly())
-S_metadata = Metadatum(:salinity;    date=DateTime(1993, 1, 1), dataset=ECCO4Monthly())
+T_metadata = ECCOMetadatum(:temperature; date=DateTime(1993, 1, 1))
+S_metadata = ECCOMetadatum(:salinity;    date=DateTime(1993, 1, 1))
 
 # Note that if a date is not provided to `Metadata`, then the default Jan 1st, 1992 is used.
 # To copy the ECCO state into `ocean.model`, we use `set!`,

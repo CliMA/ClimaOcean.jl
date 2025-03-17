@@ -90,8 +90,8 @@ ocean = ocean_simulation(grid; forcing = (T = FT, S = FS))
 # In this case, our ECCO dataset has access to a temperature and a salinity
 # field, so we initialize temperature T and salinity S from ECCO.
 
-set!(ocean.model, T = Metadatum(:temperature; date=start_date), 
-                  S = Metadatum(:salinity;    date=start_date))
+set!(ocean.model, T = ECCOMetadatum(:temperature; date=start_date), 
+                  S = ECCOMetadatum(:salinity;    date=start_date))
 
 fig = Figure()
 ax  = Axis(fig[1, 1])

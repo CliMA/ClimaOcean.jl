@@ -18,6 +18,14 @@ struct ECCO4Monthly end
 const ECCOMetadata{D} = Metadata{D, <:Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}} where {D}
 const ECCOMetadatum   = ECCOMetadata{<:AnyDateTime}
 
+# Alias for ECCOMetadatum
+function ECCOMetadatum(name; 
+                       date=first_date(ECCO4Monthly(), variable_name),
+                       dir=download_ECCO_cache)
+                       
+    return ECCOMetadatum(name, dates, dir, ECCO2Monthly())
+end
+
 default_download_folder(::Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}) = download_ECCO_cache
 
 datasetstr(md::ECCOMetadata) = string(md.dataset)

@@ -26,6 +26,7 @@ export
     exponential_z_faces,
     Metadata,
     Metadatum,
+    ECCOMetadatum,
     first_date,
     last_date,
     all_dates,
