@@ -9,7 +9,7 @@ using Downloads
 
 import Oceananigans.Fields: set!, location
 import Base
-import ClimaOcean.DataWrangling: all_dates, metadata_filename, default_download_directory
+import ClimaOcean.DataWrangling: all_dates, metadata_filename, download_dataset, default_download_directory
 
 struct ECCO2Monthly end
 struct ECCO2Daily end

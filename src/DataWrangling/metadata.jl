@@ -58,7 +58,8 @@ function Metadatum(variable_name;
     return Metadata(variable_name, date, dataset, dir)
 end
 
-default_download_directory(dataset) = "./"
+# Just the current directory
+default_download_directory(dataset) = pwd()
 
 Base.show(io::IO, metadata::Metadata) =
     print(io, "ECCOMetadata:", '\n',
