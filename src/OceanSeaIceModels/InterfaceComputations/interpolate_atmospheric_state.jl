@@ -63,7 +63,11 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
 
     # Assumption, should be generalized
     ua = atmosphere.velocities.u
-    time_interpolator = TimeInterpolator(ua.time_indexing, ua.times, clock.time)
+    times = ua.times
+    time_indexing = ua.time_indexing
+    t = clock.time
+    @assert times isa StepRangeLen
+    time_interpolator = TimeInterpolator(ua.time_indexing, times, clock.time)
     
     launch!(arch, grid, kernel_parameters,
             _interpolate_primary_atmospheric_state!,
