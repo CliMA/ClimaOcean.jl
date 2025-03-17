@@ -18,6 +18,9 @@ struct ECCO4Monthly end
 const ECCOMetadata{D} = Metadata{D, <:Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}} where {D}
 const ECCOMetadatum   = ECCOMetadata{<:AnyDateTime}
 
+const ECCO2_url = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/"
+const ECCO4_url = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly/"
+
 default_download_directory(::Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}) = download_ECCO_cache
 
 datasetstr(md::ECCOMetadata) = string(md.dataset)
@@ -113,16 +116,13 @@ ECCO_location = Dict(
     :v_velocity            => (Center, Face,   Center),
 )
 
-const ECCO2_url = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/"
-
 # URLs for the ECCO datasets specific to each dataset
 metadata_url(m::Metadata{<:Any, <:ECCO2Daily})   = ECCO2_url *  "monthly/" * short_name(m) * "/" * metadata_filename(m)
 metadata_url(m::Metadata{<:Any, <:ECCO2Monthly}) = ECCO2_url *  "daily/"   * short_name(m) * "/" * metadata_filename(m)
 
 function metadata_url(m::Metadata{<:Any, <:ECCO4Monthly})
     year = string(Dates.year(m.dates))
-    prefix =  "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly/"
-    return prefix * short_name(m) * "/" * year * "/" * metadata_filename(m)
+    return ECCO4_url * short_name(m) * "/" * year * "/" * metadata_filename(m)
 end
 
 """
@@ -174,7 +174,6 @@ function download_dataset(metadata::ECCOMetadata)
             filepath = metadata_path(metadatum)
 
             if !isfile(filepath)
-                missing_files = true
                 instructions_msg = "\n See ClimaOcean.jl/src/DataWrangling/ECCO/README.md for instructions."
                 if isnothing(username)
                     msg = "Could not find the ECCO_PASSWORD environment variable. \
