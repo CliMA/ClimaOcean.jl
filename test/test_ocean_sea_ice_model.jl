@@ -100,5 +100,24 @@ using ClimaSeaIce.Rheologies
             true
         end
     end
+
+    @testset "Test a prescribed ocean model" begin 
+        grid = LatitudeLongitudeGrid(size = (10, 10, 10), latitude = (20, 30), longitude = (40, 50), z = (-100, 0))
+        T = ECCOFieldTimeSeries(:temperature, grid; time_indices_in_memory = 2)
+        S = ECCOFieldTimeSeries(:salinity, grid; time_indices_in_memory = 2)
+        ocean_model = PrescribedOcean((; T, S); grid)
+
+        time_step!(ocean_model, T.times[2])
+
+        @test ocean_model.clock.time == T.times[2]
+        @test ocean_model.tracers.T.data == T[2].data
+        @test ocean_model.tracers.S.data == S[2].data
+
+        time_step!(ocean_model, 10days)
+
+        @test ocean_model.clock.time == 10days
+        @test T.backend.start == 2
+        @test ocean_model.tracers.T.data != T[3].data 
+    end
 end
 
