@@ -36,4 +36,3 @@ function run!(coupled_model::OceanSeaIceModel; schedule,
     
         return nothing
     end
-    
