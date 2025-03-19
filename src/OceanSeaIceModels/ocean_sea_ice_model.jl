@@ -13,7 +13,8 @@ import Oceananigans.Architectures: architecture
 import Oceananigans.Fields: set!
 import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker, initialization_update_state!
 import Oceananigans.OutputWriters: default_included_properties, checkpointer_address,
-                                   write_output!, initialize_jld2_file!
+                                   write_output!, initialize_jld2_file!,
+                                   required_checkpointed_properties, default_checkpointed_properties
 import Oceananigans.Simulations: reset!, initialize!, iteration, run!
 import Oceananigans.TimeSteppers: time_step!, update_state!, time
 import Oceananigans.Utils: prettytime
@@ -30,6 +31,7 @@ mutable struct OceanSeaIceModel{I, A, O, F, C, Arch} <: AbstractModel{Nothing, A
 end
 
 const OSIM = OceanSeaIceModel
+const OSIMPA = OceanSeaIceModel{<:Any, <:PrescribedAtmosphere}
 
 function Base.summary(model::OSIM)
     A = nameof(typeof(architecture(model)))
@@ -54,17 +56,18 @@ function Base.show(io::IO, cm::OSIM)
 end
 
 # Assumption: We have an ocean!
-architecture(model::OSIM)           = architecture(model.ocean.model)
-Base.eltype(model::OSIM)            = Base.eltype(model.ocean.model)
-prettytime(model::OSIM)             = prettytime(model.clock.time)
-iteration(model::OSIM)              = model.clock.iteration
-timestepper(::OSIM)                 = nothing
-default_included_properties(::OSIM) = tuple()
-prognostic_fields(::OSIM)           = nothing
-fields(::OSIM)                      = NamedTuple()
-default_clock(TT)                   = Oceananigans.TimeSteppers.Clock{TT}(0, 0, 1)
-time(model::OSIM)                   = model.clock.time
-checkpointer_address(::OSIM)        = "HydrostaticFreeSurfaceModel"
+architecture(model::OSIM)                = architecture(model.ocean.model)
+Base.eltype(model::OSIM)                 = Base.eltype(model.ocean.model)
+prettytime(model::OSIM)                  = prettytime(model.clock.time)
+iteration(model::OSIM)                   = model.clock.iteration
+timestepper(::OSIM)                      = nothing
+default_included_properties(::OSIM)      = tuple()
+prognostic_fields(::OSIM)                = nothing
+fields(::OSIM)                           = NamedTuple()
+default_clock(TT)                        = Oceananigans.TimeSteppers.Clock{TT}(0, 0, 1)
+time(model::OSIM)                        = model.clock.time
+required_checkpointed_properties(::OSIM) = [:clock]
+default_checkpointed_properties(::OSIM)  = [:clock]
 
 reset!(model::OSIM) = reset!(model.ocean)
 
@@ -81,10 +84,26 @@ function initialize!(model::OSIM)
     return nothing
 end
 
-initialize_jld2_file!(filepath, init, jld2_kw, including, outputs, model::OSIM) =
-    initialize_jld2_file!(filepath, init, jld2_kw, including, outputs, model.ocean.model)
+checkpointer_address(::OceanSeaIceModel) = "OceanSeaIceModel"
 
-write_output!(c::Checkpointer, model::OSIM) = write_output!(c, model.ocean.model)
+# initialize_jld2_file!(filepath, init, jld2_kw, including, outputs, model::OSIM) =
+#     initialize_jld2_file!(filepath, init, jld2_kw, including, outputs, model.ocean.model)
+
+# for prescribed atmosphere just checkpoint the ocean model
+# write_output!(c::Checkpointer, model::OSIMPA) = write_output!(c, model.ocean.model)
+
+# function write_output!(c::Checkpointer, model::OSIMPA)
+#     atmosphere = model.atmosphere
+#     ocean = model.ocean.model
+
+#     write_output!(c, model) # just saves the clock
+
+#     # deals with model components
+#     write_output!(c, atmosphere)
+#     write_output!(c, ocean)
+
+#     return nothing
+# end
 
 function set_clock!(model::OSIM, clock)
     model.clock.time = clock.time
@@ -95,17 +114,18 @@ function set_clock!(model::OSIM, clock)
     return nothing
 end
 
-function set!(model::OSIM, checkpoint_file_path::AbstractString)
-    atmosphere = model.atmosphere
-    ocean = model.ocean.model
+# function set!(model::OSIM, checkpoint_file_path::AbstractString)
+#     atmosphere = model.atmosphere
+#     ocean = model.ocean.model
 
-    set!(ocean, checkpoint_file_path)
-    set!(atmosphere, checkpoint_file_path)
+#     set!(model, checkpoint_file_path)
 
-    set_clock!(model, ocean.clock)
+#     # deals with model components
+#     set!(ocean, checkpoint_file_path)
+#     set!(atmosphere, checkpoint_file_path)
 
-    return nothing
-end
+#     return nothing
+# end
 
 reference_density(unsupported) =
     throw(ArgumentError("Cannot extract reference density from $(typeof(unsupported))"))

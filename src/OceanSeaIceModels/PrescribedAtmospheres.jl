@@ -1,17 +1,19 @@
 module PrescribedAtmospheres
 
 using Oceananigans.Grids: grid_name
-using Oceananigans.Utils: prettysummary, Time
+using Oceananigans.Utils: prettysummary, pretty_filesize, prettytime, Time
 using Oceananigans.Fields: Center
 using Oceananigans.OutputReaders: FieldTimeSeries, update_field_time_series!, extract_field_time_series
+using Oceananigans.OutputWriters: Checkpointer, checkpoint_path, serializeproperties!
 using Oceananigans.TimeSteppers: Clock, tick!
 
 using Adapt
 using JLD2
 using Thermodynamics.Parameters: AbstractThermodynamicsParameters
 
+import Oceananigans: prognostic_fields
 import Oceananigans.Fields: set!
-import Oceananigans.OutputWriters: checkpointer_address
+import Oceananigans.OutputWriters: checkpointer_address, write_output!, initialize_jld2_file!
 import Oceananigans.TimeSteppers: time_step!
 
 import Thermodynamics.Parameters:
@@ -321,33 +323,26 @@ function Base.show(io::IO, pa::PrescribedAtmosphere)
     print(io, "└── boundary_layer_height: ", prettysummary(pa.boundary_layer_height))
 end
 
-# set the clock to be the same as the ocean model
-function set!(model::PrescribedAtmosphere, checkpoint_file_path)
-    addr = checkpointer_address(model)
+checkpointer_address(::PrescribedAtmosphere) = "PrescribedAtmosphere"
 
-    jldopen(checkpoint_file_path, "r") do file
-        checkpointed_clock = file["$addr/clock"]
-
-        # Update model clock
-        set_clock!(model, checkpointed_clock)
-    end
-
-    return nothing
+function default_checkpointed_properties(model::PrescribedAtmosphere)
+    properties = [:clock,]
+    return properties
 end
 
-checkpointer_address(::PrescribedAtmosphere) = "HydrostaticFreeSurfaceModel"
+prognostic_fields(model::PrescribedAtmosphere) = ()
 
 """
-    set_clock!(sim, clock)
+    set_clock!(model, clock)
 
-Set the clock of `sim`ulation to match the values of `clock`.
+Set the clock of a `model` to match the values of `clock`.
 """
-function set_clock!(sim::PrescribedAtmosphere, clock)
-    sim.clock.time = clock.time
-    sim.clock.iteration = clock.iteration
-    sim.clock.last_Δt = clock.last_Δt
-    sim.clock.last_stage_Δt = clock.last_stage_Δt
-    sim.clock.stage = clock.stage
+function set_clock!(model::PrescribedAtmosphere, clock)
+    model.clock.time = clock.time
+    model.clock.iteration = clock.iteration
+    model.clock.last_Δt = clock.last_Δt
+    model.clock.last_stage_Δt = clock.last_stage_Δt
+    model.clock.stage = clock.stage
     return nothing
 end
 
