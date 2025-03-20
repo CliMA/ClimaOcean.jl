@@ -8,13 +8,15 @@ using SeawaterPolynomials: TEOS10EquationOfState
 import Thermodynamics as AtmosphericThermodynamics
 
 # Simulations interface
-import Oceananigans: fields, prognostic_fields
+import Oceananigans: fields,
+                     prognostic_fields
 import Oceananigans.Architectures: architecture
 import Oceananigans.Fields: set!
 import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker, initialization_update_state!
-import Oceananigans.OutputWriters: default_included_properties, checkpointer_address,
-                                   write_output!, initialize_jld2_file!,
-                                   required_checkpointed_properties, default_checkpointed_properties
+import Oceananigans.OutputWriters: checkpointer_address,
+                                   required_checkpointed_properties,
+                                   default_checkpointed_properties
+
 import Oceananigans.Simulations: reset!, initialize!, iteration, run!
 import Oceananigans.TimeSteppers: time_step!, update_state!, time
 import Oceananigans.Utils: prettytime
@@ -62,12 +64,13 @@ prettytime(model::OSIM)                  = prettytime(model.clock.time)
 iteration(model::OSIM)                   = model.clock.iteration
 timestepper(::OSIM)                      = nothing
 default_included_properties(::OSIM)      = tuple()
-prognostic_fields(::OSIM)                = nothing
+prognostic_fields(::OSIM)                = tuple()
 fields(::OSIM)                           = NamedTuple()
 default_clock(TT)                        = Oceananigans.TimeSteppers.Clock{TT}(0, 0, 1)
 time(model::OSIM)                        = model.clock.time
 required_checkpointed_properties(::OSIM) = [:clock]
 default_checkpointed_properties(::OSIM)  = [:clock]
+checkpointer_address(::OSIM)             = "OceanSeaIceModel"
 
 reset!(model::OSIM) = reset!(model.ocean)
 
@@ -83,8 +86,6 @@ function initialize!(model::OSIM)
     initialize!(model.interfaces.exchanger, model.atmosphere)
     return nothing
 end
-
-checkpointer_address(::OceanSeaIceModel) = "OceanSeaIceModel"
 
 # initialize_jld2_file!(filepath, init, jld2_kw, including, outputs, model::OSIM) =
 #     initialize_jld2_file!(filepath, init, jld2_kw, including, outputs, model.ocean.model)

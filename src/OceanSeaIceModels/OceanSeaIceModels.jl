@@ -26,6 +26,11 @@ using ClimaOcean: stateindex
 using KernelAbstractions: @kernel, @index
 using KernelAbstractions.Extras.LoopInfo: @unroll
 
+import Oceananigans.OutputWriters: checkpointer_address,
+                                   required_checkpointed_properties,
+                                   default_checkpointed_properties,
+                                   prognostic_fields
+
 function downwelling_radiation end
 function freshwater_flux end
 function reference_density end
@@ -69,6 +74,7 @@ import .InterfaceComputations:
     compute_sea_ice_ocean_fluxes!
 
 include("ocean_sea_ice_model.jl")
+include("output_writers.jl")
 include("freezing_limited_ocean_temperature.jl")
 include("time_step_ocean_sea_ice_model.jl")
 
