@@ -82,6 +82,7 @@ heat_capacity(unsupported) =
 reference_density(ocean::Simulation) = reference_density(ocean.model.buoyancy.formulation)
 reference_density(buoyancy_formulation::SeawaterBuoyancy) = reference_density(buoyancy_formulation.equation_of_state)
 reference_density(eos::TEOS10EquationOfState) = eos.reference_density
+reference_density(eos::LinearEquationOfState{FT}) where FT = FT(1020.0)
 reference_density(sea_ice::SeaIceSimulation) = sea_ice.model.ice_thermodynamics.phase_transitions.ice_density
 
 heat_capacity(ocean::Simulation) = heat_capacity(ocean.model.buoyancy.formulation)
@@ -92,7 +93,7 @@ heat_capacity(sea_ice::SeaIceSimulation) = sea_ice.model.ice_thermodynamics.phas
 reference_density(::Nothing) = 0
 heat_capacity(::Nothing) = 0
 
-function heat_capacity(::TEOS10EquationOfState{FT}) where FT
+function heat_capacity(::Union{TEOS10EquationOfState{FT}, LinearEquationOfState{FT}}) where FT
     cₚ⁰ = SeawaterPolynomials.TEOS10.teos10_reference_heat_capacity
     return convert(FT, cₚ⁰)
 end
@@ -145,7 +146,7 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(
 
     # Make sure the initial temperature of the ocean
     # is not below freezing and above melting near the surface
-    above_freezing_ocean_temperature!(ocean, sea_ice)
+    # above_freezing_ocean_temperature!(ocean, sea_ice)
     update_state!(ocean_sea_ice_model)
 
     return ocean_sea_ice_model
@@ -169,10 +170,6 @@ end
             Tm = melting_temperature(liquidus, S[i, j, k])
             T[i, j, k] = max(T[i, j, k], Tm)
         end
-
-        ℵi = ℵ[i, j, 1]
-        Tm = melting_temperature(liquidus, S[i, j, Nz])
-        T[i, j, Nz] = ifelse(ℵi > 0, Tm, T[i, j, Nz])
     end
 end
 

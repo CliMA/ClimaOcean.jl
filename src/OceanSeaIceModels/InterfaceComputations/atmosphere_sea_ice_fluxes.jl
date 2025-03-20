@@ -117,7 +117,7 @@ end
                               h_bℓ = atmosphere_state.h_bℓ)
 
     downwelling_radiation = (; Qs, Qℓ)
-    local_interior_state = (u=uᵢ, v=vᵢ, T=Tᵢ, S=Sᵢ, h=hᵢ)
+    local_interior_state = (u=uᵢ, v=vᵢ, T=Tᵢ, S=Sᵢ, h=hᵢ, ℵ=ℵᵢ)
 
     # Estimate initial interface state
     u★ = convert(FT, 1e-4)

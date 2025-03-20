@@ -17,6 +17,7 @@ grid = RectilinearGrid(size=(Nx, Ny, 1),
 
 μf = 5.4e-2
 Tf = - μf * 30
+τR = 2592000
 
 #  parabolic profile in Y, max @ j=4, min @ j=ny, amplitude=1.K
 function T_restoring(i, j, k, grid, clock, fields, p)  
@@ -27,7 +28,7 @@ function T_restoring(i, j, k, grid, clock, fields, p)
     return p.rate * (Tr - Ti)
 end
 
-FT = Forcing(T_restoring, discrete_form=true, parameters=(; rate=1/2days, Tf))
+FT = Forcing(T_restoring, discrete_form=true, parameters=(; rate=1/τR, Tf))
 
 ocean = ocean_simulation(grid;
                          momentum_advection = nothing,
@@ -44,7 +45,7 @@ ocean.model.timestepper.χ = - 0.5
 
 # Ocean initial conditions
 
-set!(ocean.model, T=Tf, u=0.2)
+set!(ocean.model, T=Tf, u=0.2, S=30)
 
 ####
 #### Sea ice simulation
@@ -80,6 +81,8 @@ for t in eachindex(atmos_times)
     set!(atmosphere.tracers.T[t],    Ta)
     set!(atmosphere.tracers.q[t],    qa)
     set!(atmosphere.velocities.u[t], 10)
+    set!(atmosphere.downwelling_radiation.longwave[t],  250)
+    set!(atmosphere.downwelling_radiation.shortwave[t], 100)
 
     Oceananigans.BoundaryConditions.fill_halo_regions!(atmosphere.tracers.T[t])
     Oceananigans.BoundaryConditions.fill_halo_regions!(atmosphere.tracers.q[t])
