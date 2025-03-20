@@ -40,7 +40,7 @@ function write_output!(c::Checkpointer, model::OSIM)
     # write OceanSeaIceModel
     mode = "w"
     properties = validate_properties(model, default_checkpointed_properties(model))
-    write_output!(c, model, filepath, mode, properties)
+    write_output!(c, model, filepath, mode; properties)
 
     # write the OceanSeaIceModel components
     components = (model.atmosphere, model.ocean.model)
@@ -48,7 +48,7 @@ function write_output!(c::Checkpointer, model::OSIM)
     mode = "a" # to append in the file already written above
     for component in components
         component_properties = validate_properties(component, default_checkpointed_properties(component))
-        write_output!(c, component, filepath, mode, component_properties)
+        write_output!(c, component, filepath, mode, properties = component_properties)
     end
 
     t2, sz = time_ns(), filesize(filepath)
