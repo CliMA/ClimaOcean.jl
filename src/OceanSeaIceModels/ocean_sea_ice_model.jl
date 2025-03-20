@@ -87,25 +87,6 @@ function initialize!(model::OSIM)
     return nothing
 end
 
-# initialize_jld2_file!(filepath, init, jld2_kw, including, outputs, model::OSIM) =
-#     initialize_jld2_file!(filepath, init, jld2_kw, including, outputs, model.ocean.model)
-
-# for prescribed atmosphere just checkpoint the ocean model
-# write_output!(c::Checkpointer, model::OSIMPA) = write_output!(c, model.ocean.model)
-
-# function write_output!(c::Checkpointer, model::OSIMPA)
-#     atmosphere = model.atmosphere
-#     ocean = model.ocean.model
-
-#     write_output!(c, model) # just saves the clock
-
-#     # deals with model components
-#     write_output!(c, atmosphere)
-#     write_output!(c, ocean)
-
-#     return nothing
-# end
-
 function set_clock!(model::OSIM, clock)
     model.clock.time = clock.time
     model.clock.iteration = clock.iteration
