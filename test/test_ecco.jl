@@ -59,7 +59,7 @@ end
 
 @testset "Inpainting algorithm" begin
     for arch in test_architectures
-        T_metadatum = Metadatum(:temperature; date=start_date, dataset=ECCO4Monthly())
+        T_metadatum = ECCOMetadatum(:temperature; date=start_date)
 
         grid = LatitudeLongitudeGrid(arch,
                                      size = (100, 100, 10),
