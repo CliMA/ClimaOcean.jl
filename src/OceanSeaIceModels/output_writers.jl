@@ -3,7 +3,7 @@ using JLD2
 using Oceananigans.Utils: pretty_filesize
 using Oceananigans.OutputWriters: checkpoint_path,
                                   cleanup_checkpoints,
-                                  validate_properties
+                                  validate_checkpointed_properties
 
 import Oceananigans.Fields: set!
 import Oceananigans.OutputWriters: write_output!
@@ -39,7 +39,7 @@ function write_output!(c::Checkpointer, model::OSIM)
 
     # write OceanSeaIceModel
     mode = "w"
-    properties = validate_properties(model, default_checkpointed_properties(model))
+    properties = validate_checkpointed_properties(model, default_checkpointed_properties(model))
     write_output!(c, model, filepath, mode; properties)
 
     # write the OceanSeaIceModel components
@@ -47,7 +47,7 @@ function write_output!(c::Checkpointer, model::OSIM)
 
     mode = "a" # to append in the file already written above
     for component in components
-        component_properties = validate_properties(component, default_checkpointed_properties(component))
+        component_properties = validate_checkpointed_properties(component, default_checkpointed_properties(component))
         write_output!(c, component, filepath, mode, properties = component_properties)
     end
 
