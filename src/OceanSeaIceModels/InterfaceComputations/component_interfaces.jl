@@ -266,7 +266,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              radiation = Radiation(),
                              freshwater_density = 1000,
                              atmosphere_ocean_flux_formulation = SimilarityTheoryFluxes(eltype(ocean.model.grid)),
-                             atmosphere_sea_ice_flux_formulation = SimilarityTheoryFluxes(eltype(ocean.model.grid), solver_maxiter=10000, stability_functions=atmosphere_sea_ice_stability_functions()),
+                             atmosphere_sea_ice_flux_formulation = default_ai_flux_formulation(sea_ice),
                              atmosphere_ocean_interface_temperature = BulkTemperature(),
                              atmosphere_ocean_velocity_difference = RelativeVelocity(),
                              atmosphere_ocean_interface_specific_humidity = default_ao_specific_humidity(ocean),
@@ -361,6 +361,19 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                                sea_ice_properties,
                                exchanger,
                                net_fluxes)
+end
+
+default_ai_flux_formulation(sea_ice) = nothing
+
+function default_ai_flux_formulation(sea_ice::SeaIceSimulation) 
+    FT = eltype(sea_ice.model.grid)
+
+    solver_tolerance = convert(FT, 1e-8)
+    solver_maxiter = 100
+    solver_stop_criteria = SeaIceConvergenceStopCriteria(solver_tolerance, solver_maxiter)
+    stability_functions = atmosphere_sea_ice_stability_functions(FT)
+
+    return SimilarityTheoryFluxes(FT; solver_stop_criteria, stability_functions)
 end
 
 sea_ice_similarity_theory(sea_ice) = nothing

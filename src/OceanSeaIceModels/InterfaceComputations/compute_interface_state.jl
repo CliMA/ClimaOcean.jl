@@ -2,12 +2,13 @@
 ##### Solver stop criteria
 #####
 
+# Standard convergence stop criteria
 struct ConvergenceStopCriteria{FT}
     tolerance :: FT
     maxiter :: Int
 end
 
-@inline function iterating(Ψⁿ, Ψ⁻, iteration, convergence::ConvergenceStopCriteria)
+@inline function iterating(Ψⁿ, Ψ⁻, ℙᵢ, iteration, convergence::ConvergenceStopCriteria)
     maxiter = convergence.maxiter
     tolerance = convergence.tolerance
     hasnt_started = iteration == 0
@@ -17,11 +18,31 @@ end
     return !(converged | reached_maxiter) | hasnt_started
 end
 
+# Fixed number of iterations
 struct FixedIterations
     iterations :: Int
 end
 
-@inline iterating(Ψⁿ, Ψ⁻, iteration, fixed::FixedIterations) = iteration < fixed.iterations
+@inline iterating(Ψⁿ, Ψ⁻, ℙᵢ, iteration, fixed::FixedIterations) = iteration < fixed.iterations
+
+# Stop if the surface temperature is above freezing
+struct SeaIceConvergenceStopCriteria{FT}
+    tolerance :: FT
+    maxiter :: Int
+end
+
+@inline function iterating(Ψⁿ, Ψ⁻, ℙᵢ, iteration, convergence::SeaIceConvergenceStopCriteria)
+    maxiter = convergence.maxiter
+    tolerance = convergence.tolerance
+    hasnt_started = iteration == 0
+    reached_maxiter = iteration ≥ maxiter
+    drift = abs(Ψⁿ.u★ - Ψ⁻.u★) + abs(Ψⁿ.θ★ - Ψ⁻.θ★) + abs(Ψⁿ.q★ - Ψ⁻.q★)
+    Tₘ = ℙᵢ.liquidus.freshwater_melting_temperature
+    Tₘ = convert_to_kelvin(ℙᵢ.temperature_units, Tₘ)
+    above_melting = Ψⁿ.T ≥ Tₘ
+    converged = drift < tolerance
+    return !(converged | reached_maxiter | above_melting) | hasnt_started 
+end
 
 #####
 ##### The solver
@@ -43,7 +64,7 @@ end
     stop_criteria = flux_formulation.solver_stop_criteria
     iteration = 0
 
-    while iterating(Ψₛⁿ, Ψₛ⁻, iteration, stop_criteria)
+    while iterating(Ψₛⁿ, Ψₛ⁻, interior_properties, iteration, stop_criteria)
         Ψₛ⁻ = Ψₛⁿ
         Ψₛⁿ = iterate_interface_state(flux_formulation,
                                       Ψₛ⁻, Ψₐ, Ψᵢ,
