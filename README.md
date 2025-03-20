@@ -97,3 +97,34 @@ ClimaOcean also provides convenience features for wrangling datasets of bathymet
 
 ClimaOcean is built on top of Oceananigans and [ClimaSeaIce](https://github.com/CliMA/ClimaSeaIce.jl), so it's important that ClimaOcean users become proficient with [Oceananigans](https://github.com/CliMA/Oceananigans.jl).
 Note that though ClimaOcean is currently focused on hydrostatic modeling with `Oceananigans.HydrostaticFreeSurfaceModel`, realistic nonhydrostatic modeling is also within the scope of this package.
+
+
+### Citing
+
+If you use ClimaOcean for your research, teaching, or fun 🤩, everyone in our community will be grateful
+if you give credit by citing the corresponding Zenodo record, e.g.,
+
+> Wagner, G. L. et al. (2025). CliMA/ClimaOcean.jl: v0.5.4 (v0.5.4). Zenodo. https://doi.org/10.5281/zenodo.15042648
+
+and also the recent [preprint submitted to the Journal of Advances in Modeling Earth Systems](https://arxiv.org/abs/2502.14148) that presents an overview of all the things that make Oceananigans unique:
+
+> "High-level, high-resolution ocean modeling at all scales with Oceananigans"
+>
+> by Gregory L. Wagner, Simone Silvestri, Navid C. Constantinou, Ali Ramadhan, Jean-Michel Campin,
+> Chris Hill, Tomas Chor, Jago Strong-Wright, Xin Kai Lee, Francis Poulin, Andre Souza, Keaton J. Burns,
+> John Marshall, Raffaele Ferrari
+>
+> submitted to the Journal of Advances in Modeling Earth Systems, arXiv 2502.14148
+
+<details><summary>bibtex</summary>
+  <pre><code>@article{Oceananigans-overview-paper-2025,
+  title = {{High-level, high-resolution ocean modeling at all scales with Oceananigans}},
+  author = {G. L. Wagner and S. Silvestri and N. C. Constantinou and A. Ramadhan and J.-M. Campin and C. Hill and T. Chor and J. Strong-Wright and X. K. Lee and F. Poulin and A. Souza and K. J. Burns and J. Marshall and R. Ferrari},
+  journal = {arXiv preprint},
+  year = {2025},
+  archivePrefix = {arXiv},
+  eprint = {2502.14148},
+  doi = {10.48550/arXiv.2502.14148},
+  notes = {submitted to the Journal of Advances in Modeling Earth Systems},
+}</code></pre>
+</details>

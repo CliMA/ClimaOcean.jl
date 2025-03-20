@@ -162,13 +162,13 @@ add_callback!(simulation, progress, IterationInterval(10))
 # also uses a prognostic turbulent kinetic energy, `e`, to diagnose the vertical mixing length.
 
 outputs = merge(ocean.model.tracers, ocean.model.velocities)
-ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
-                                                  schedule = TimeInterval(5days),
-                                                  filename = "global_surface_fields",
-                                                  indices = (:, :, grid.Nz),
-                                                  with_halos = true,
-                                                  overwrite_existing = true,
-                                                  array_type = Array{Float32})
+ocean.output_writers[:surface] = JLD2Writer(ocean.model, outputs;
+                                            schedule = TimeInterval(5days),
+                                            filename = "global_surface_fields",
+                                            indices = (:, :, grid.Nz),
+                                            with_halos = true,
+                                            overwrite_existing = true,
+                                            array_type = Array{Float32})
 
 # ### Ready to run
 
