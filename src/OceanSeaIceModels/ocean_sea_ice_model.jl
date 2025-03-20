@@ -96,19 +96,6 @@ function set_clock!(model::OSIM, clock)
     return nothing
 end
 
-# function set!(model::OSIM, checkpoint_file_path::AbstractString)
-#     atmosphere = model.atmosphere
-#     ocean = model.ocean.model
-
-#     set!(model, checkpoint_file_path)
-
-#     # deals with model components
-#     set!(ocean, checkpoint_file_path)
-#     set!(atmosphere, checkpoint_file_path)
-
-#     return nothing
-# end
-
 reference_density(unsupported) =
     throw(ArgumentError("Cannot extract reference density from $(typeof(unsupported))"))
 
