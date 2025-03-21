@@ -16,7 +16,11 @@ using ClimaOcean.OceanSeaIceModels.InterfaceComputations: InterfaceState,
 u★ = 1e-4
 Ψs = InterfaceState(u★, u★, u★, 0.0, 0.0, 268.97, 0.0, 0.00268863)
 Ψi = (; u = 0.0, v = 0.0, T = 271.53, S = 30.0, h = 0.2, ℵ = 1.0)
-Ψa = (; z = 10.0, u = 10.0, v = 0.0, 𝒬 = Thermodynamics.PhaseEquil{Float64}(1.2910431086728036, 101325.0, -71648.65771694925, 0.0028001374147162287, 272.9929607369637), h_bℓ = 600.0)
+Ψa = (; z = 10.0, 
+        u = 10.0, 
+        v = 0.0, 
+        𝒬 = Thermodynamics.PhaseEquil{Float64}(1.2910431086728036, 101325.0, -71648.65771694925, 0.0028001374147162287, 272.9929607369637), 
+        h_bℓ = 600.0)
 
 # Downwelling radiation
 Rd = (; Qs = 100.0, Qℓ = 250.0)
@@ -42,5 +46,5 @@ solver_maxiter = 1000000
 stability_functions = atmosphere_sea_ice_stability_functions()
 solver = SimilarityTheoryFluxes(; solver_tolerance, solver_maxiter, stability_functions)
 
-# Compute the interface state
+# Compute the interface state and check for convergence
 compute_interface_state(solver, Ψs, Ψa, Ψi, Rd, Ps, Pa, Pi)
