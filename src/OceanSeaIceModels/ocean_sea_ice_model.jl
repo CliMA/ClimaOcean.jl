@@ -3,21 +3,25 @@ using Oceananigans.TimeSteppers: Clock
 using Oceananigans: SeawaterBuoyancy
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 using KernelAbstractions: @kernel, @index
-
 using SeawaterPolynomials: TEOS10EquationOfState
 
 import Thermodynamics as AtmosphericThermodynamics
 
 # Simulations interface
-import Oceananigans: fields, prognostic_fields
+import Oceananigans: fields,
+                     prognostic_fields
 import Oceananigans.Architectures: architecture
 import Oceananigans.Fields: set!
-import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker
-import Oceananigans.OutputWriters: default_included_properties
-import Oceananigans.Simulations: reset!, initialize!, iteration
+import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker, initialization_update_state!
+import Oceananigans.OutputWriters: checkpointer_address,
+                                   required_checkpointed_properties,
+                                   default_checkpointed_properties
+
+import Oceananigans.Simulations: reset!, initialize!, iteration, run!
 import Oceananigans.TimeSteppers: time_step!, update_state!, time
 import Oceananigans.Utils: prettytime
-import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker, initialization_update_state!
+
+import .PrescribedAtmospheres: set_clock!
 
 mutable struct OceanSeaIceModel{I, A, O, F, C, Arch} <: AbstractModel{Nothing, Arch}
     architecture :: Arch
@@ -29,6 +33,7 @@ mutable struct OceanSeaIceModel{I, A, O, F, C, Arch} <: AbstractModel{Nothing, A
 end
 
 const OSIM = OceanSeaIceModel
+const OSIMPA = OceanSeaIceModel{<:Any, <:PrescribedAtmosphere}
 
 function Base.summary(model::OSIM)
     A = nameof(typeof(architecture(model)))
@@ -53,20 +58,21 @@ function Base.show(io::IO, cm::OSIM)
 end
 
 # Assumption: We have an ocean!
-architecture(model::OSIM)           = architecture(model.ocean.model)
-Base.eltype(model::OSIM)            = Base.eltype(model.ocean.model)
-prettytime(model::OSIM)             = prettytime(model.clock.time)
-iteration(model::OSIM)              = model.clock.iteration
-timestepper(::OSIM)                 = nothing
-default_included_properties(::OSIM) = tuple()
-prognostic_fields(cm::OSIM)         = nothing
-fields(::OSIM)                      = NamedTuple()
-default_clock(TT)                   = Oceananigans.TimeSteppers.Clock{TT}(0, 0, 1)
+architecture(model::OSIM)                = architecture(model.ocean.model)
+Base.eltype(model::OSIM)                 = Base.eltype(model.ocean.model)
+prettytime(model::OSIM)                  = prettytime(model.clock.time)
+iteration(model::OSIM)                   = model.clock.iteration
+timestepper(::OSIM)                      = nothing
+default_included_properties(::OSIM)      = tuple()
+prognostic_fields(::OSIM)                = tuple()
+fields(::OSIM)                           = NamedTuple()
+default_clock(TT)                        = Oceananigans.TimeSteppers.Clock{TT}(0, 0, 1)
+time(model::OSIM)                        = model.clock.time
+required_checkpointed_properties(::OSIM) = [:clock]
+default_checkpointed_properties(::OSIM)  = [:clock]
+checkpointer_address(::OSIM)             = "OceanSeaIceModel"
 
-function reset!(model::OSIM)
-    reset!(model.ocean)
-    return nothing
-end
+reset!(model::OSIM) = reset!(model.ocean)
 
 # Make sure to initialize the exchanger here
 function initialization_update_state!(model::OSIM)
@@ -78,6 +84,15 @@ end
 function initialize!(model::OSIM)
     initialize!(model.ocean)
     initialize!(model.interfaces.exchanger, model.atmosphere)
+    return nothing
+end
+
+function set_clock!(model::OSIM, clock)
+    model.clock.time = clock.time
+    model.clock.iteration = clock.iteration
+    model.clock.last_Δt = clock.last_Δt
+    model.clock.last_stage_Δt = clock.last_stage_Δt
+    model.clock.stage = clock.stage
     return nothing
 end
 
@@ -159,10 +174,8 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(
     return ocean_sea_ice_model
 end
 
-time(coupled_model::OceanSeaIceModel) = coupled_model.clock.time
-
 # Check for NaNs in the first prognostic field (generalizes to prescribed velocities).
-function default_nan_checker(model::OceanSeaIceModel)
+function default_nan_checker(model::OSIM)
     u_ocean = model.ocean.model.velocities.u
     nan_checker = NaNChecker((; u_ocean))
     return nan_checker
@@ -199,4 +212,3 @@ function above_freezing_ocean_temperature!(ocean, sea_ice::SeaIceSimulation)
 
     return nothing
 end
-
