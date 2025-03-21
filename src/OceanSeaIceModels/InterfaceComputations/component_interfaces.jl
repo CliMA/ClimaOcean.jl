@@ -406,7 +406,7 @@ function default_ai_flux_formulation(sea_ice::SeaIceSimulation)
     solver_maxiter = 100
     stability_functions = atmosphere_sea_ice_stability_functions(FT)
 
-    return SimilarityTheoryFluxesFluxes(FT; solver_tolerance, solver_maxiter, stability_functions)
+    return SimilarityTheoryFluxes(FT; solver_tolerance, solver_maxiter, stability_functions)
 end
 
 sea_ice_similarity_theory(sea_ice) = nothing
