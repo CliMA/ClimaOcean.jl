@@ -59,7 +59,7 @@ end
 
 @testset "Inpainting algorithm" begin
     for arch in test_architectures
-        T_metadatum = Metadatum(:temperature; date=start_date, dataset=ECCO4Monthly())
+        T_metadatum = ECCOMetadatum(:temperature; date=start_date)
 
         grid = LatitudeLongitudeGrid(arch,
                                      size = (100, 100, 10),
@@ -151,8 +151,8 @@ end
         field = CenterField(grid)
 
         @test begin
-            set!(field, Metadatum(:temperature, date=start_date, dataset=ECCO4Monthly()))
-            set!(field, Metadatum(:salinity,    date=start_date, dataset=ECCO4Monthly()))
+            set!(field, ECCOMetadatum(:temperature, date=start_date))
+            set!(field, ECCOMetadatum(:salinity,    date=start_date))
             true
         end
 
@@ -179,8 +179,8 @@ end
 
         ocean = ocean_simulation(grid)
         date = DateTime(1993, 1, 1)
-        set!(ocean.model, T=Metadatum(:temperature; date=start_date, dataset=ECCO4Monthly()), 
-                          S=Metadatum(:salinity; date=start_date, dataset=ECCO4Monthly()))
+        set!(ocean.model, T=ECCOMetadatum(:temperature; date=start_date), 
+                          S=ECCOMetadatum(:salinity;    date=start_date))
     end
 end
 
