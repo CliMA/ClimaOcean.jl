@@ -30,6 +30,12 @@ import Oceananigans.Fields: set!
 import Oceananigans.OutputReaders: new_backend, update_field_time_series!
 using Downloads: download
 
+download_JRA55_cache::String = ""
+
+function __init__()
+    global download_JRA55_cache = @get_scratch!("JRA55")
+end
+
 include("JRA55_metadata.jl")
 include("JRA55_field_time_series.jl")
 include("JRA55_prescribed_atmosphere.jl")

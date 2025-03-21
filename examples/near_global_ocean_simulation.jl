@@ -22,7 +22,7 @@ using CFTime
 using Dates
 using Printf
 
-# ### Grid configuration 
+# ### Grid configuration
 #
 # We define a global grid with a horizontal resolution of 1/4 degree and 40 vertical levels.
 # The grid is a `LatitudeLongitudeGrid` spanning latitudes from 75°S to 75°N.
@@ -81,11 +81,10 @@ ocean = ocean_simulation(grid)
 
 ocean.model
 
-# We initialize the ocean model with ECCO2 temperature and salinity for January 1, 1993.
+# We initialize the ocean model with ECCO4 temperature and salinity for January 1, 1992.
 
-date = DateTimeProlepticGregorian(1993, 1, 1)
-set!(ocean.model, T=Metadata(:temperature; dates=date, dataset=ECCO4Monthly()),
-                  S=Metadata(:salinity; dates=date, dataset=ECCO4Monthly()))
+set!(ocean.model, T=ECCOMetadatum(:temperature),
+                  S=ECCOMetadatum(:salinity))
 
 # ### Prescribed atmosphere and radiation
 #
@@ -141,7 +140,7 @@ function progress(sim)
     msg *= @sprintf(", max|u|: (%.2e, %.2e, %.2e) m s⁻¹, extrema(T): (%.2f, %.2f) ᵒC, wall time: %s",
                     umax..., Tmax, Tmin, prettytime(step_time))
 
-    @info msg 
+    @info msg
 
     wall_time[] = time_ns()
 end
@@ -156,13 +155,13 @@ simulation.callbacks[:progress] = Callback(progress, TimeInterval(5days))
 # Below, we use `indices` to save only the values of the variables at the surface, which corresponds to `k = grid.Nz`
 
 outputs = merge(ocean.model.tracers, ocean.model.velocities)
-ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
-                                                  schedule = TimeInterval(1days),
-                                                  filename = "near_global_surface_fields",
-                                                  indices = (:, :, grid.Nz),
-                                                  with_halos = true,
-                                                  overwrite_existing = true,
-                                                  array_type = Array{Float32})
+ocean.output_writers[:surface] = JLD2Writer(ocean.model, outputs;
+                                            schedule = TimeInterval(1days),
+                                            filename = "near_global_surface_fields",
+                                            indices = (:, :, grid.Nz),
+                                            with_halos = true,
+                                            overwrite_existing = true,
+                                            array_type = Array{Float32})
 
 # ### Spinning up the simulation
 #
