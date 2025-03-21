@@ -2,12 +2,13 @@
 ##### Solver stop criteria
 #####
 
+# Standard convergence stop criteria
 struct ConvergenceStopCriteria{FT}
     tolerance :: FT
     maxiter :: Int
 end
 
-@inline function iterating(Ψⁿ, Ψ⁻, iteration, convergence::ConvergenceStopCriteria)
+@inline function iterating(Ψⁿ, Ψ⁻, ℙᵢ, iteration, convergence::ConvergenceStopCriteria)
     maxiter = convergence.maxiter
     tolerance = convergence.tolerance
     hasnt_started = iteration == 0
@@ -17,11 +18,12 @@ end
     return !(converged | reached_maxiter) | hasnt_started
 end
 
+# Fixed number of iterations
 struct FixedIterations
     iterations :: Int
 end
 
-@inline iterating(Ψⁿ, Ψ⁻, iteration, fixed::FixedIterations) = iteration < fixed.iterations
+@inline iterating(Ψⁿ, Ψ⁻, ℙᵢ, iteration, fixed::FixedIterations) = iteration < fixed.iterations
 
 #####
 ##### The solver
@@ -43,7 +45,7 @@ end
     stop_criteria = flux_formulation.solver_stop_criteria
     iteration = 0
 
-    while iterating(Ψₛⁿ, Ψₛ⁻, iteration, stop_criteria)
+    while iterating(Ψₛⁿ, Ψₛ⁻, interior_properties, iteration, stop_criteria)
         Ψₛ⁻ = Ψₛⁿ
         Ψₛⁿ = iterate_interface_state(flux_formulation,
                                       Ψₛ⁻, Ψₐ, Ψᵢ,
