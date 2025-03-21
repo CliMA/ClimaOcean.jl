@@ -157,12 +157,8 @@ new_backend(b::JRA55NetCDFBackend, start, length) = JRA55NetCDFBackend(start, le
                          latitude = nothing,
                          longitude = nothing,
                          dir = download_JRA55_cache,
-                         filename = nothing,
-                         shortname = nothing,
                          backend = InMemory(),
-                         time_indexing = Cyclical(),
-                         preprocess_chunk_size = 10,
-                         preprocess_architecture = CPU())
+                         time_indexing = Cyclical())
 
 Return a `FieldTimeSeries` containing atmospheric reanalysis data for `variable_name`,
 which describes one of the variables in the "repeat year forcing" dataset derived
