@@ -4,7 +4,6 @@ using ClimaOcean.DataWrangling.ECCO: ECCO_field, ECCOFieldTimeSeries, ECCO4Month
 using Oceananigans
 using CairoMakie
 using Printf
-using CFTime
 using Dates
 
 using SeawaterPolynomials: TEOS10EquationOfState
@@ -30,15 +29,11 @@ bottom_height = regrid_bathymetry(grid;
 
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
-start = DateTimeProlepticGregorian(1993, 1, 1)
-stop  = DateTimeProlepticGregorian(2003, 1, 1)
-dates = range(start; stop, step=Month(1))
+start_date = DateTime(1993, 1, 1)
+end_date   = DateTime(2003, 1, 1)
 
-Tmeta = Metadata(:temperature; dates, dataset=ECCO4Monthly())
-Smeta = Metadata(:salinity; dates, dataset=ECCO4Monthly())
-
-Tt = ECCOFieldTimeSeries(Tmeta, grid; time_indices_in_memory=2)
-St = ECCOFieldTimeSeries(Smeta, grid; time_indices_in_memory=2)
+Tt = ECCOFieldTimeSeries(:temprature, grid; start_date, end_date, time_indices_in_memory=2)
+St = ECCOFieldTimeSeries(:salinity,   grid; start_date, end_date, time_indices_in_memory=2)
 ht = FieldTimeSeries{Center, Center, Nothing}(grid, Tt.times)
 
 equation_of_state = TEOS10EquationOfState()
