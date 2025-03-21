@@ -25,25 +25,6 @@ end
 
 @inline iterating(Ψⁿ, Ψ⁻, ℙᵢ, iteration, fixed::FixedIterations) = iteration < fixed.iterations
 
-# Stop if the surface temperature is above freezing
-struct SeaIceConvergenceStopCriteria{FT}
-    tolerance :: FT
-    maxiter :: Int
-end
-
-@inline function iterating(Ψⁿ, Ψ⁻, ℙᵢ, iteration, convergence::SeaIceConvergenceStopCriteria)
-    maxiter = convergence.maxiter
-    tolerance = convergence.tolerance
-    hasnt_started = iteration == 0
-    reached_maxiter = iteration ≥ maxiter
-    drift = abs(Ψⁿ.u★ - Ψ⁻.u★) + abs(Ψⁿ.θ★ - Ψ⁻.θ★) + abs(Ψⁿ.q★ - Ψ⁻.q★)
-    Tₘ = ℙᵢ.liquidus.freshwater_melting_temperature
-    Tₘ = convert_to_kelvin(ℙᵢ.temperature_units, Tₘ)
-    above_melting = Ψⁿ.T ≥ Tₘ
-    converged = drift < tolerance
-    return !(converged | reached_maxiter | above_melting) | hasnt_started 
-end
-
 #####
 ##### The solver
 #####
@@ -73,6 +54,33 @@ end
                                       atmosphere_properties,
                                       interior_properties)
         iteration += 1
+        
+        ℂₐ = atmosphere_properties.thermodynamics_parameters
+        𝒬ₐ = Ψₐ.𝒬
+        ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
+        cₐ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
+
+        # TODO: this depends on the phase of the interface
+        ℰs = AtmosphericThermodynamics.latent_heat_sublim(ℂₐ, 𝒬ₐ)
+
+        # upwelling radiation is calculated explicitly
+        Tₛ⁻ = Ψₛⁿ.T # approximate interface temperature from previous iteration
+        σ = interface_properties.radiation.σ
+        ϵ = interface_properties.radiation.ϵ
+        α = interface_properties.radiation.α
+
+        Qu = upwelling_radiation(Tₛ⁻, σ, ϵ)
+        Qd = net_downwelling_radiation(downwelling_radiation, α, ϵ)
+        Qr = Qd + Qu # Net radiation (positive out of the ocean)
+
+        u★ = Ψₛⁿ.u★
+        θ★ = Ψₛⁿ.θ★
+        q★ = Ψₛⁿ.q★
+
+        # Turbulent heat fluxes, sensible + latent (positive out of the ocean)
+        Qc = - ρₐ * cₐ * u★ * θ★ # = - ρₐ cₐ u★ Ch / sqrt(Cd) * (θₐ - Tₛ)
+        Qv = - ρₐ * ℰs * u★ * q★
+        @show iteration, Tₛ⁻, u★, θ★, q★, Qc, Qv, Qr
     end
 
     return Ψₛⁿ
