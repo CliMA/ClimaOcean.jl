@@ -41,7 +41,7 @@ tu = ClimaOcean.OceanSeaIceModels.InterfaceComputations.DegreesCelsius()
 Pi = (; reference_density = 900.0, heat_capacity = 2100.0, freshwater_density = 1000.0, liquidus = lq, temperature_units = tu)
 
 # Flux solver
-solver_tolerance = 1e-8
+solver_tolerance = 1e-6
 solver_maxiter = 1000000
 stability_functions = atmosphere_sea_ice_stability_functions()
 solver = SimilarityTheoryFluxes(; solver_tolerance, solver_maxiter, stability_functions)
