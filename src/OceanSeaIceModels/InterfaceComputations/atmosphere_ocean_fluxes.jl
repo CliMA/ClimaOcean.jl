@@ -108,7 +108,7 @@ end
     downwelling_radiation = (; Qs, Qℓ)
 
     # Estimate initial interface state
-    FT = eltype(grid)
+    FT = typeof(Tᵢ)
     u★ = convert(FT, 1e-4)
 
     # Estimate interface specific humidity using interior temperature
