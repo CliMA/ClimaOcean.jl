@@ -1,6 +1,8 @@
 using Test
 using Reactant
 using Oceananigans.Models: initialization_update_state!
+using Oceananigans.Architectures: ReactantState
+using ClimaOcean
 
 gpu_test = get(ENV, "GPU_TEST", "false") == "true"
 
