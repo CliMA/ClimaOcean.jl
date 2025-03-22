@@ -158,5 +158,44 @@ steps:
       slurm_cpus_per_task: 1
       slurm_ntasks: 4
 
+  - label: "CPU Reactant tests"
+    key: "cpu_reactant_tests"
+    env:
+      TEST_GROUP: "reactant"
+      GPU_TEST: "false"
+  commands: |
+      touch LocalPreferences.toml
+
+      echo "[Reactant]" >> LocalPreferences.toml
+      echo "xla_runtime = \"IFRT\"" >> LocalPreferences.toml
+
+      cat LocalPreferences.toml
+
+      srun julia --project -e 'using Pkg; Pkg.test()'
+    agents:
+      slurm_mem: 10G
+      slurm_cpus_per_task: 1
+      slurm_ntasks: 4
+
+  - label: "GPU Reactant tests"
+    key: "gpu_reactant_tests"
+    env:
+      TEST_GROUP: "reactant"
+      GPU_TEST: "true"
+    commands:
+      touch LocalPreferences.toml
+
+      echo "[Reactant]" >> LocalPreferences.toml
+      echo "xla_runtime = \"IFRT\"" >> LocalPreferences.toml
+
+      cat LocalPreferences.toml
+
+      srun julia --project -e 'using Pkg; Pkg.test()'
+    agents:
+      slurm_mem: 10G
+      slurm_cpus_per_task: 1
+      slurm_ntasks: 4
+
   - wait: ~
     continue_on_failure: true
+
