@@ -163,15 +163,8 @@ steps:
     env:
       TEST_GROUP: "reactant"
       GPU_TEST: "false"
-    command: |
-      touch LocalPreferences.toml
-
-      echo "[Reactant]" >> LocalPreferences.toml
-      echo "xla_runtime = \"IFRT\"" >> LocalPreferences.toml
-
-      cat LocalPreferences.toml
-
-      srun julia --project -e 'using Pkg; Pkg.test()'
+    commands:
+      - "srun julia --project -e 'using Pkg; Pkg.test()'"
     agents:
       slurm_mem: 10G
       slurm_cpus_per_task: 1
@@ -183,14 +176,7 @@ steps:
       TEST_GROUP: "reactant"
       GPU_TEST: "true"
     commands:
-      touch LocalPreferences.toml
-
-      echo "[Reactant]" >> LocalPreferences.toml
-      echo "xla_runtime = \"IFRT\"" >> LocalPreferences.toml
-
-      cat LocalPreferences.toml
-
-      srun julia --project -e 'using Pkg; Pkg.test()'
+      - "srun julia --project -e 'using Pkg; Pkg.test()'"
     agents:
       slurm_mem: 10G
       slurm_cpus_per_task: 1
