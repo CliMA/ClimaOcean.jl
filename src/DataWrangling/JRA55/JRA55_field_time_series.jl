@@ -2,6 +2,7 @@ using ClimaOcean.DataWrangling: all_dates, native_times
 using ClimaOcean.DataWrangling: compute_native_date_range
 using Oceananigans.Grids: AbstractGrid
 using Oceananigans.OutputReaders: PartlyInMemory
+using Adapt
 
 compute_bounding_nodes(::Nothing, ::Nothing, LH, hnodes) = nothing
 compute_bounding_nodes(bounds, ::Nothing, LH, hnodes) = bounds
@@ -69,75 +70,90 @@ function compute_bounding_indices(longitude, latitude, grid, LX, LY, λc, φc)
     return i₁, i₂, j₁, j₂, TX
 end
 
-struct JRA55NetCDFBackend <: AbstractInMemoryBackend{Int}
+struct JRA55NetCDFBackend{M} <: AbstractInMemoryBackend{Int}
     start :: Int
     length :: Int
+    metadata :: M
 end
+
+Adapt.adapt_structure(to, b::JRA55NetCDFBackend) = JRA55NetCDFBackend(b.start, b.length, nothing)
 
 """
     JRA55NetCDFBackend(length)
 
 Represents a JRA55 FieldTimeSeries backed by JRA55 native .nc files.
 """
-JRA55NetCDFBackend(length) = JRA55NetCDFBackend(1, length)
+JRA55NetCDFBackend(length, metadata) = JRA55NetCDFBackend(1, length, metadata)
 
 Base.length(backend::JRA55NetCDFBackend) = backend.length
 Base.summary(backend::JRA55NetCDFBackend) = string("JRA55NetCDFBackend(", backend.start, ", ", backend.length, ")")
 
-const JRA55NetCDFFTS = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend}
+const JRA55NetCDFFTS              = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend}
+const JRA55NetCDFFTSRepeatYear    = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend{<:JRA55RepeatYear}}
+const JRA55NetCDFFTSMultipleYears = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend{<:JRA55NetCDFFTSMultipleYears}}
 
 # TODO: This will need to change when we add a method for JRA55MultipleYears
-function set!(fts::JRA55NetCDFFTS, path::String=fts.path, name::String=fts.name)
+function set!(fts::JRA55NetCDFFTSMultipleYears) 
 
-    ds = Dataset(path)
+    backend  = fts.backend
+    metadata = backend.metadata
 
-    # Note that each file should have the variables
-    #   - ds["time"]:     time coordinate
-    #   - ds["lon"]:      longitude at the location of the variable
-    #   - ds["lat"]:      latitude at the location of the variable
-    #   - ds["lon_bnds"]: bounding longitudes between which variables are averaged
-    #   - ds["lat_bnds"]: bounding latitudes between which variables are averaged
-    #   - ds[shortname]:  the variable data
+    filename = metadata_filename(metadata)
+    filename = unique(filename)
 
-    # Nodes at the variable location
-    λc = ds["lon"][:]
-    φc = ds["lat"][:]
-    LX, LY, LZ = location(fts)
-    i₁, i₂, j₁, j₂, TX = compute_bounding_indices(nothing, nothing, fts.grid, LX, LY, λc, φc)
+    for name in filename
 
-    nn = time_indices(fts)
-    nn = collect(nn)
+        path = joinpath(metadata.dir, name)
+        ds = Dataset(path)
 
-    if issorted(nn)
-        data = ds[name][i₁:i₂, j₁:j₂, nn]
-    else
-        # The time indices may be cycling past 1; eg ti = [6, 7, 8, 1].
-        # However, DiskArrays does not seem to support loading data with unsorted
-        # indices. So to handle this, we load the data in chunks, where each chunk's
-        # indices are sorted, and then glue the data together.
-        m = findfirst(n -> n == 1, nn)
-        n1 = nn[1:m-1]
-        n2 = nn[m:end]
+        # Note that each file should have the variables
+        #   - ds["time"]:     time coordinate 
+        #   - ds["lon"]:      longitude at the location of the variable
+        #   - ds["lat"]:      latitude at the location of the variable
+        #   - ds["lon_bnds"]: bounding longitudes between which variables are averaged
+        #   - ds["lat_bnds"]: bounding latitudes between which variables are averaged
+        #   - ds[shortname]:  the variable data
 
-        data1 = ds[name][i₁:i₂, j₁:j₂, n1]
-        data2 = ds[name][i₁:i₂, j₁:j₂, n2]
-        data = cat(data1, data2, dims=3)
+        # Nodes at the variable location
+        λc = ds["lon"][:]
+        φc = ds["lat"][:]
+        LX, LY, LZ = location(fts)
+        i₁, i₂, j₁, j₂, TX = compute_bounding_indices(nothing, nothing, fts.grid, LX, LY, λc, φc)
+
+        nn = time_indices(fts)
+        nn = collect(nn)
+
+        if issorted(nn)
+            data = ds[name][i₁:i₂, j₁:j₂, nn]
+        else
+            # The time indices may be cycling past 1; eg ti = [6, 7, 8, 1].
+            # However, DiskArrays does not seem to support loading data with unsorted
+            # indices. So to handle this, we load the data in chunks, where each chunk's
+            # indices are sorted, and then glue the data together.
+            m = findfirst(n -> n == 1, nn)
+            n1 = nn[1:m-1]
+            n2 = nn[m:end]
+
+            data1 = ds[name][i₁:i₂, j₁:j₂, n1]
+            data2 = ds[name][i₁:i₂, j₁:j₂, n2]
+            data = cat(data1, data2, dims=3)
+        end
+
+        close(ds)
+
+        copyto!(interior(fts, :, :, 1, :), data)
+        fill_halo_regions!(fts)
     end
-
-    close(ds)
-
-    copyto!(interior(fts, :, :, 1, :), data)
-    fill_halo_regions!(fts)
-
+    
     return nothing
 end
 
-new_backend(::JRA55NetCDFBackend, start, length) = JRA55NetCDFBackend(start, length)
+new_backend(b::JRA55NetCDFBackend, start, length) = JRA55NetCDFBackend(start, length, b.metadata)
 
 """
-    JRA55FieldTimeSeries(variable_name, [FT = Float32];
-                         dataset = JRA55RepeatYear(),
-                         dates = all_JRA55_dates(dataset),
+    JRA55FieldTimeSeries(variable_name [, arch_or_grid=CPU() ]; 
+                         version = JRA55RepeatYear(),
+                         dates = all_JRA55_dates(version),
                          latitude = nothing,
                          longitude = nothing,
                          dir = download_JRA55_cache,
@@ -325,16 +341,13 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
                                                        path = filepath,
                                                        name = shortname)
 
-        # Fill the data in a GPU-friendly manner
-        copyto!(interior(fts, :, :, 1, :), data)
-        fill_halo_regions!(fts)
-
+        set!(fts)
         return fts
     else
-        native_fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times;
-                                                              time_indexing,
-                                                              backend,
-                                                              boundary_conditions)
+        fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times;
+                                                       time_indexing,
+                                                       backend,
+                                                       boundary_conditions)
 
         # Fill the data in a GPU-friendly manner
         copyto!(interior(native_fts, :, :, 1, :), data)
