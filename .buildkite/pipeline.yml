@@ -163,7 +163,7 @@ steps:
     env:
       TEST_GROUP: "reactant"
       GPU_TEST: "false"
-  command: |
+    command: |
       touch LocalPreferences.toml
 
       echo "[Reactant]" >> LocalPreferences.toml
