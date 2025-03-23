@@ -14,11 +14,11 @@ using CUDA
 CUDA.device!(1)
 arch = GPU()
 
-r_faces = ClimaOcean.exponential_z_faces(; Nz=30, h=10, depth=2000)
+r_faces = ClimaOcean.exponential_z_faces(; Nz=30, h=10, depth=1000)
 z_faces = MutableVerticalDiscretization(r_faces)
 
-Nx = 180 # longitudinal direction -> 250 points is about 1.5ᵒ resolution
-Ny = 180 # meridional direction -> same thing, 48 points is about 1.5ᵒ resolution
+Nx = 540 # longitudinal direction -> 250 points is about 1.5ᵒ resolution
+Ny = 540 # meridional direction -> same thing, 48 points is about 1.5ᵒ resolution
 Nz = length(r_faces) - 1
 
 grid = RotatedLatitudeLongitudeGrid(arch, size = (Nx, Ny, Nz),
@@ -98,7 +98,7 @@ radiation  = Radiation()
 #####
 
 arctic = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-arctic = Simulation(arctic, Δt=5minutes, stop_time=365days)
+arctic = Simulation(arctic, Δt=2minutes, stop_time=365days)
 
 # Sea-ice variables
 h = sea_ice.model.ice_thickness
