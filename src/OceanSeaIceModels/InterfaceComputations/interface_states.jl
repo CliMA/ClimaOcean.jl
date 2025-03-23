@@ -227,8 +227,8 @@ end
     ℂₐ = ℙₐ.thermodynamics_parameters
     Tₐ = AtmosphericThermodynamics.air_temperature(ℂₐ, 𝒬ₐ)
     ΔT = Tₐ - Tₛ⁻
-    Ωc = ifelse(ΔT == 0, zero(h), Qc / ΔT) # Sensible heat transfer coefficient (W/m²K)
-    Qa = Qv + Qu + Qd # Net flux excluding sensible heat (positive out of the ocean)
+    Ωc = ifelse(ΔT == 0, zero(h), Qc / ΔT) * ℵ # Sensible heat transfer coefficient (W/m²K)
+    Qa = (Qv + Qu + Qd) * ℵ # Net flux excluding sensible heat (positive out of the ocean)
 
     # Computing the flux balance temperature
     T★ = (Tᵢ * k - (Qa + Ωc * Tₐ) * h) / (k - Ωc * h)
