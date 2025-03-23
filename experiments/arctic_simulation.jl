@@ -52,8 +52,8 @@ ocean = ocean_simulation(grid;
 
 dataset = ECCO4Monthly()
 
-set!(ocean.model, T=Metadata(:temperature; dataset),
-                  S=Metadata(:salinity;    dataset))
+set!(ocean.model, T=Metadatum(:temperature; dataset),
+                  S=Metadatum(:salinity;    dataset))
 
 #####
 ##### A Prognostic Sea-ice model
