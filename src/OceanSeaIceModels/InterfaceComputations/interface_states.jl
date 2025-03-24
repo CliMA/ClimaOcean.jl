@@ -47,7 +47,8 @@ SpecificHumidityFormulation(phase) = SpecificHumidityFormulation(phase, nothing)
     q★ = Thermodynamics.q_vap_saturation_from_density(ℂₐ, convert(CT, Tₛ), convert(CT, ρₛ), p★)
 
     # Compute saturation specific humidity according to Raoult's law
-    return q★ * x_H₂O
+    FT = eltype(Tₛ)
+    return convert(FT, q★ * x_H₂O)
 end
 
 struct SalinityConstituent{FT}
@@ -309,7 +310,7 @@ struct InterfaceState{FT}
     melting :: Bool
 end
 
-InterfaceState(u★, θ★, q★, u, v, T, S, q) =
+@inline InterfaceState(u★, θ★, q★, u, v, T, S, q) =
     InterfaceState(u★, θ★, q★, u, v, T, S, q, false)
 
 Base.eltype(::InterfaceState{FT}) where FT = FT
