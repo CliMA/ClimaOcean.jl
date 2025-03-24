@@ -1,0 +1,14 @@
+ nDims = [   2 ];
+ dimList = [
+    80,    1,   80,
+    42,    1,   42
+ ];
+ dataprec = [ 'float64' ];
+ nrecords = [         10 ];
+ timeStepNumber = [        695 ];
+ timeInterval = [  2.502000000000E+06 ];
+ missingValue = [ -9.99000000000000E+02 ];
+ nFlds = [   10 ];
+ fldList = {
+ 'SIarea  ' 'SIheff  ' 'THETA   ' 'SItices ' 'SIqnet  ' 'SIqsw   ' 'SIempmr ' 'oceSflux' 'SIatmQnt' 'SIatmFW '
+ };

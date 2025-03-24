@@ -1,0 +1,240 @@
+ Total Nb of available Diagnostics: ndiagt=   227
+------------------------------------------------------------------------------------
+  Num  |<-Name->|Levs|  mate |<- code ->|<--  Units   -->|<- Tile (max=80c)         
+------------------------------------------------------------------------------------
+     1 |SDIAG1  |  1 |       |SM      L1|user-defined    |User-Defined   Surface   Diagnostic  #1
+     2 |SDIAG2  |  1 |       |SM      L1|user-defined    |User-Defined   Surface   Diagnostic  #2
+     3 |SDIAG3  |  1 |       |SM      L1|user-defined    |User-Defined   Surface   Diagnostic  #3
+     4 |SDIAG4  |  1 |       |SM      L1|user-defined    |User-Defined   Surface   Diagnostic  #4
+     5 |SDIAG5  |  1 |       |SM      L1|user-defined    |User-Defined   Surface   Diagnostic  #5
+     6 |SDIAG6  |  1 |       |SM      L1|user-defined    |User-Defined   Surface   Diagnostic  #6
+     7 |SDIAG7  |  1 |       |SU      L1|user-defined    |User-Defined U.pt Surface Diagnostic #7
+     8 |SDIAG8  |  1 |       |SV      L1|user-defined    |User-Defined V.pt Surface Diagnostic #8
+     9 |SDIAG9  |  1 |    10 |UU      L1|user-defined    |User-Defined U.vector Surface Diag.  #9
+    10 |SDIAG10 |  1 |     9 |VV      L1|user-defined    |User-Defined V.vector Surface Diag. #10
+    11 |UDIAG1  |  1 |       |SM      MR|user-defined    |User-Defined Model-Level Diagnostic  #1
+    12 |UDIAG2  |  1 |       |SM      MR|user-defined    |User-Defined Model-Level Diagnostic  #2
+    13 |UDIAG3  |  1 |       |SMR     MR|user-defined    |User-Defined Model-Level Diagnostic  #3
+    14 |UDIAG4  |  1 |       |SMR     MR|user-defined    |User-Defined Model-Level Diagnostic  #4
+    15 |UDIAG5  |  1 |       |SU      MR|user-defined    |User-Defined U.pt Model-Level Diag.  #5
+    16 |UDIAG6  |  1 |       |SV      MR|user-defined    |User-Defined V.pt Model-Level Diag.  #6
+    17 |UDIAG7  |  1 |    18 |UUR     MR|user-defined    |User-Defined U.vector Model-Lev Diag.#7
+    18 |UDIAG8  |  1 |    17 |VVR     MR|user-defined    |User-Defined V.vector Model-Lev Diag.#8
+    19 |UDIAG9  |  1 |       |SM      ML|user-defined    |User-Defined Phys-Level  Diagnostic  #9
+    20 |UDIAG10 |  1 |       |SM      ML|user-defined    |User-Defined Phys-Level  Diagnostic #10
+    21 |SDIAGC  |  1 |    22 |SM  C   L1|user-defined    |User-Defined Counted Surface Diagnostic
+    22 |SDIAGCC |  1 |       |SM      L1|count           |User-Defined Surface Diagnostic Counter
+    23 |ETAN    |  1 |       |SM      M1|m               |Surface Height Anomaly
+    24 |ETANSQ  |  1 |       |SM P    M1|m^2             |Square of Surface Height Anomaly
+    25 |DETADT2 |  1 |       |SM      M1|m^2/s^2         |Square of Surface Height Anomaly Tendency
+    26 |THETA   |  1 |       |SMR     MR|degC            |Potential Temperature
+    27 |SALT    |  1 |       |SMR     MR|g/kg            |Salinity
+    28 |RELHUM  |  1 |       |SMR     MR|percent         |Relative Humidity
+    29 |SALTanom|  1 |       |SMR     MR|g/kg            |Salt anomaly (=SALT-35; g/kg)
+    30 |UVEL    |  1 |    31 |UUR     MR|m/s             |Zonal Component of Velocity (m/s)
+    31 |VVEL    |  1 |    30 |VVR     MR|m/s             |Meridional Component of Velocity (m/s)
+    32 |WVEL    |  1 |       |WM      LR|m/s             |Vertical Component of Velocity (r_units/s)
+    33 |THETASQ |  1 |       |SMRP    MR|degC^2          |Square of Potential Temperature
+    34 |SALTSQ  |  1 |       |SMRP    MR|(g/kg)^2        |Square of Salinity
+    35 |SALTSQan|  1 |       |SMRP    MR|(g/kg)^2        |Square of Salt anomaly (=(SALT-35)^2 (g^2/kg^2)
+    36 |UVELSQ  |  1 |    37 |UURP    MR|m^2/s^2         |Square of Zonal Comp of Velocity (m^2/s^2)
+    37 |VVELSQ  |  1 |    36 |VVRP    MR|m^2/s^2         |Square of Meridional Comp of Velocity (m^2/s^2)
+    38 |WVELSQ  |  1 |       |WM P    LR|m^2/s^2         |Square of Vertical Comp of Velocity
+    39 |UE_VEL_C|  1 |    40 |UMR     MR|m/s             |Eastward Velocity (m/s) (cell center)
+    40 |VN_VEL_C|  1 |    39 |VMR     MR|m/s             |Northward Velocity (m/s) (cell center)
+    41 |UV_VEL_C|  1 |    41 |UMR     MR|m^2/s^2         |Product of horizontal Comp of velocity (cell center)
+    42 |UV_VEL_Z|  1 |    42 |UZR     MR|m^2/s^2         |Meridional Transport of Zonal Momentum (m^2/s^2)
+    43 |WU_VEL  |  1 |       |WU      LR|m.m/s^2         |Vertical Transport of Zonal Momentum
+    44 |WV_VEL  |  1 |       |WV      LR|m.m/s^2         |Vertical Transport of Meridional Momentum
+    45 |UVELMASS|  1 |    46 |UUr     MR|m/s             |Zonal Mass-Weighted Comp of Velocity (m/s)
+    46 |VVELMASS|  1 |    45 |VVr     MR|m/s             |Meridional Mass-Weighted Comp of Velocity (m/s)
+    47 |WVELMASS|  1 |       |WM      LR|m/s             |Vertical Mass-Weighted Comp of Velocity
+    48 |PhiVEL  |  1 |    45 |SMR P   MR|m^2/s           |Horizontal Velocity Potential (m^2/s)
+    49 |PsiVEL  |  1 |    48 |SZ  P   MR|m.m^2/s         |Horizontal Velocity Stream-Function
+    50 |UTHMASS |  1 |    51 |UUr     MR|degC.m/s        |Zonal Mass-Weight Transp of Pot Temp
+    51 |VTHMASS |  1 |    50 |VVr     MR|degC.m/s        |Meridional Mass-Weight Transp of Pot Temp
+    52 |WTHMASS |  1 |       |WM      LR|degC.m/s        |Vertical Mass-Weight Transp of Pot Temp
+    53 |USLTMASS|  1 |    54 |UUr     MR|g/kg.m/s        |Zonal Mass-Weight Transp of Salinity
+    54 |VSLTMASS|  1 |    53 |VVr     MR|g/kg.m/s        |Meridional Mass-Weight Transp of Salinity
+    55 |WSLTMASS|  1 |       |WM      LR|g/kg.m/s        |Vertical Mass-Weight Transp of Salinity
+    56 |UVELTH  |  1 |    57 |UUR     MR|degC.m/s        |Zonal Transport of Pot Temp
+    57 |VVELTH  |  1 |    56 |VVR     MR|degC.m/s        |Meridional Transport of Pot Temp
+    58 |WVELTH  |  1 |       |WM      LR|degC.m/s        |Vertical Transport of Pot Temp
+    59 |UVELSLT |  1 |    60 |UUR     MR|g/kg.m/s        |Zonal Transport of Salinity
+    60 |VVELSLT |  1 |    59 |VVR     MR|g/kg.m/s        |Meridional Transport of Salinity
+    61 |WVELSLT |  1 |       |WM      LR|g/kg.m/s        |Vertical Transport of Salinity
+    62 |UVELPHI |  1 |    63 |UUr     MR|m^3/s^3         |Zonal Mass-Weight Transp of Pressure Pot.(p/rho) Anomaly
+    63 |VVELPHI |  1 |    62 |VVr     MR|m^3/s^3         |Merid. Mass-Weight Transp of Pressure Pot.(p/rho) Anomaly
+    64 |RHOAnoma|  1 |       |SMR     MR|kg/m^3          |Density Anomaly (=Rho-rhoConst)
+    65 |RHOANOSQ|  1 |       |SMRP    MR|kg^2/m^6        |Square of Density Anomaly (=(Rho-rhoConst)^2)
+    66 |URHOMASS|  1 |    67 |UUr     MR|kg/m^2/s        |Zonal Transport of Density
+    67 |VRHOMASS|  1 |    66 |VVr     MR|kg/m^2/s        |Meridional Transport of Density
+    68 |WRHOMASS|  1 |       |WM      LR|kg/m^2/s        |Vertical Transport of Density
+    69 |WdRHO_P |  1 |       |WM      LR|kg/m^2/s        |Vertical velocity times delta^k(Rho)_at-const-P
+    70 |WdRHOdP |  1 |       |WM      LR|kg/m^2/s        |Vertical velocity times delta^k(Rho)_at-const-T,S
+    71 |PHIHYD  |  1 |       |SMR     MR|m^2/s^2         |Hydrostatic Pressure Pot.(p/rho) Anomaly
+    72 |PHIHYDSQ|  1 |       |SMRP    MR|m^4/s^4         |Square of Hyd. Pressure Pot.(p/rho) Anomaly
+    73 |PHIBOT  |  1 |       |SM      M1|m^2/s^2         |Bottom Pressure Pot.(p/rho) Anomaly
+    74 |PHIBOTSQ|  1 |       |SM P    M1|m^4/s^4         |Square of Bottom Pressure Pot.(p/rho) Anomaly
+    75 |PHI_SURF|  1 |       |SM      M1|m^2/s^2         |Surface Dynamical Pressure Pot.(p/rho)
+    76 |MXLDEPTH|  1 |       |SM      M1|m               |Mixed-Layer Depth (>0)
+    77 |DRHODR  |  1 |       |SM      LR|kg/m^4          |Stratification: d.Sigma/dr (kg/m3/r_unit)
+    78 |CONVADJ |  1 |       |SMR     LR|fraction        |Convective Adjustment Index [0-1]
+    79 |GCM_SST |  1 |       |SM      M1|degC            |Ocean model Sea Surface Temperature (degC)
+    80 |oceTAUX |  1 |    81 |UU      U1|N/m^2           |zonal surface wind stress, >0 increases uVel
+    81 |oceTAUY |  1 |    80 |VV      U1|N/m^2           |meridional surf. wind stress, >0 increases vVel
+    82 |atmPload|  1 |       |SM      U1|Pa              |Atmospheric pressure loading anomaly (vs surf_pRef)
+    83 |sIceLoad|  1 |       |SM      U1|kg/m^2          |sea-ice loading (in Mass of ice+snow / area unit)
+    84 |oceFWflx|  1 |       |SM      U1|kg/m^2/s        |net surface Fresh-Water flux into the ocean (+=down), >0 decreases salinity
+    85 |oceSflux|  1 |       |SM      U1|g/m^2/s         |net surface Salt flux into the ocean (+=down), >0 increases salinity
+    86 |oceQnet |  1 |       |SM      U1|W/m^2           |net surface heat flux into the ocean (+=down), >0 increases theta
+    87 |oceQsw  |  1 |       |SM      U1|W/m^2           |net Short-Wave radiation (+=down), >0 increases theta
+    88 |oceFreez|  1 |       |SM      U1|W/m^2           |heating from freezing of sea-water (allowFreezing=T)
+    89 |TRELAX  |  1 |       |SM      U1|W/m^2           |surface temperature relaxation, >0 increases theta
+    90 |SRELAX  |  1 |       |SM      U1|g/m^2/s         |surface salinity relaxation, >0 increases salt
+    91 |surForcT|  1 |       |SM      U1|W/m^2           |model surface forcing for Temperature, >0 increases theta
+    92 |surForcS|  1 |       |SM      U1|g/m^2/s         |model surface forcing for Salinity, >0 increases salinity
+    93 |TFLUX   |  1 |       |SM      U1|W/m^2           |total heat flux (match heat-content variations), >0 increases theta
+    94 |SFLUX   |  1 |       |SM      U1|g/m^2/s         |total salt flux (match salt-content variations), >0 increases salt
+    95 |RCENTER |  1 |       |SM      MR|m               |Cell-Center Height
+    96 |RSURF   |  1 |       |SM      M1|m               |Surface Height
+    97 |TOTUTEND|  1 |    98 |UUR     MR|m/s/day         |Tendency of Zonal Component of Velocity
+    98 |TOTVTEND|  1 |    97 |VVR     MR|m/s/day         |Tendency of Meridional Component of Velocity
+    99 |TOTTTEND|  1 |       |SMR     MR|degC/day        |Tendency of Potential Temperature
+------------------------------------------------------------------------------------
+  Num  |<-Name->|Levs|  mate |<- code ->|<--  Units   -->|<- Tile (max=80c)         
+------------------------------------------------------------------------------------
+   100 |TOTSTEND|  1 |       |SMR     MR|g/kg/day        |Tendency of Salinity
+   101 |MoistCor|  1 |       |SM      MR|W/m^2           |Heating correction due to moist thermodynamics
+   102 |gT_Forc |  1 |       |SMR     MR|degC/s          |Potential Temp. forcing tendency
+   103 |gS_Forc |  1 |       |SMR     MR|g/kg/s          |Salinity forcing tendency
+   104 |AB_gT   |  1 |       |SMR     MR|degC/s          |Potential Temp. tendency from Adams-Bashforth
+   105 |AB_gS   |  1 |       |SMR     MR|g/kg/s          |Salinity tendency from Adams-Bashforth
+   106 |gTinAB  |  1 |       |SMR     MR|degC/s          |Potential Temp. tendency going in Adams-Bashforth
+   107 |gSinAB  |  1 |       |SMR     MR|g/kg/s          |Salinity tendency going in Adams-Bashforth
+   108 |AB_gU   |  1 |   109 |UUR     MR|m/s^2           |U momentum tendency from Adams-Bashforth
+   109 |AB_gV   |  1 |   108 |VVR     MR|m/s^2           |V momentum tendency from Adams-Bashforth
+   110 |ADVr_TH |  1 |       |WM      LR|degC.m^3/s      |Vertical   Advective Flux of Pot.Temperature
+   111 |ADVx_TH |  1 |   112 |UU      MR|degC.m^3/s      |Zonal      Advective Flux of Pot.Temperature
+   112 |ADVy_TH |  1 |   111 |VV      MR|degC.m^3/s      |Meridional Advective Flux of Pot.Temperature
+   113 |DFrE_TH |  1 |       |WM      LR|degC.m^3/s      |Vertical Diffusive Flux of Pot.Temperature (Explicit part)
+   114 |DFxE_TH |  1 |   115 |UU      MR|degC.m^3/s      |Zonal      Diffusive Flux of Pot.Temperature
+   115 |DFyE_TH |  1 |   114 |VV      MR|degC.m^3/s      |Meridional Diffusive Flux of Pot.Temperature
+   116 |DFrI_TH |  1 |       |WM      LR|degC.m^3/s      |Vertical Diffusive Flux of Pot.Temperature (Implicit part)
+   117 |ADVr_SLT|  1 |       |WM      LR|g/kg.m^3/s      |Vertical   Advective Flux of Salinity
+   118 |ADVx_SLT|  1 |   119 |UU      MR|g/kg.m^3/s      |Zonal      Advective Flux of Salinity
+   119 |ADVy_SLT|  1 |   118 |VV      MR|g/kg.m^3/s      |Meridional Advective Flux of Salinity
+   120 |DFrE_SLT|  1 |       |WM      LR|g/kg.m^3/s      |Vertical Diffusive Flux of Salinity    (Explicit part)
+   121 |DFxE_SLT|  1 |   122 |UU      MR|g/kg.m^3/s      |Zonal      Diffusive Flux of Salinity
+   122 |DFyE_SLT|  1 |   121 |VV      MR|g/kg.m^3/s      |Meridional Diffusive Flux of Salinity
+   123 |DFrI_SLT|  1 |       |WM      LR|g/kg.m^3/s      |Vertical Diffusive Flux of Salinity    (Implicit part)
+   124 |SALTFILL|  1 |       |SM      MR|g/kg.m^3/s      |Filling of Negative Values of Salinity
+   125 |EXFhs   |  1 |       |SM      U1|W/m^2           |Sensible heat flux into ocean, >0 increases theta
+   126 |EXFhl   |  1 |       |SM      U1|W/m^2           |Latent heat flux into ocean, >0 increases theta
+   127 |EXFlwnet|  1 |       |SM      U1|W/m^2           |Net upward longwave radiation, >0 decreases theta
+   128 |EXFswnet|  1 |       |SM      U1|W/m^2           |Net upward shortwave radiation, >0 decreases theta
+   129 |EXFlwdn |  1 |       |SM      U1|W/m^2           |Downward longwave radiation, >0 increases theta
+   130 |EXFswdn |  1 |       |SM      U1|W/m^2           |Downward shortwave radiation, >0 increases theta
+   131 |EXFqnet |  1 |       |SM      U1|W/m^2           |Net upward heat flux (turb+rad), >0 decreases theta
+   132 |EXFtaux |  1 |       |UM      U1|N/m^2           |zonal surface wind stress, >0 increases uVel
+   133 |EXFtauy |  1 |       |VM      U1|N/m^2           |meridional surface wind stress, >0 increases vVel
+   134 |EXFuwind|  1 |       |UM      U1|m/s             |zonal 10-m wind speed, >0 eastward
+   135 |EXFvwind|  1 |       |VM      U1|m/s             |meridional 10-m wind speed, >0 northward
+   136 |EXFurelw|  1 |       |UM      U1|m/s             |zonal relative 10-m wind speed, >0 eastward
+   137 |EXFvrelw|  1 |       |VM      U1|m/s             |meridional relative 10-m wind speed, >0 northward
+   138 |EXFwspee|  1 |       |SM      U1|m/s             |10-m wind speed modulus ( >= 0 )
+   139 |EXFatemp|  1 |       |SM      U1|degK            |surface (2-m) air temperature
+   140 |EXFaqh  |  1 |       |SM      U1|kg/kg           |surface (2-m) specific humidity
+   141 |EXFevap |  1 |       |SM      U1|m/s             |evaporation, > 0 increases salinity
+   142 |EXFpreci|  1 |       |SM      U1|m/s             |precipitation, > 0 decreases salinity
+   143 |EXFsnow |  1 |       |SM      U1|m/s             |snow precipitation, > 0 decreases salinity
+   144 |EXFempmr|  1 |       |SM      U1|m/s             |net upward freshwater flux, > 0 increases salinity
+   145 |EXFpress|  1 |       |SM      U1|N/m^2           |atmospheric pressure field
+   146 |EXFroff |  1 |       |SM      U1|m/s             |river runoff, > 0 decreases salinity
+   147 |EXFroft |  1 |       |SM      U1|deg C           |river runoff temperature
+   148 |EXFsalfx|  1 |       |SM      U1|g/m^2/s         |upward salt flux, > 0 decreases salinity
+   149 |SIarea  |  1 |       |SM      M1|m^2/m^2         |SEAICE fractional ice-covered area [0 to 1]
+   150 |SIareaPR|  1 |       |SM      M1|m^2/m^2         |SIarea preceeding ridging process
+   151 |SIareaPT|  1 |       |SM      M1|m^2/m^2         |SIarea preceeding thermodynamic growth/melt
+   152 |SIheff  |  1 |       |SM      M1|m               |SEAICE effective ice thickness
+   153 |SIheffPT|  1 |       |SM      M1|m               |SIheff preceeeding thermodynamic growth/melt
+   154 |SIhsnow |  1 |       |SM      M1|m               |SEAICE effective snow thickness
+   155 |SIhsnoPT|  1 |       |SM      M1|m               |SIhsnow preceeeding thermodynamic growth/melt
+   156 |SIhsalt |  1 |       |SM      M1|g/m^2           |SEAICE effective salinity
+   157 |SIenpa  |  1 |       |SM      M1|W/m^2           |SEAICE power input by surface wind stresses
+   158 |SIenpw  |  1 |       |SM      M1|W/m^2           |SEAICE work done by ocean drag
+   159 |SIenph  |  1 |       |SM      M1|W/m^2           |SEAICE power due to change in inertia
+   160 |SIenpg  |  1 |       |SM      M1|W/m^2           |SEAICE work generated by gravity
+   161 |SIenpi  |  1 |       |SM      M1|W/m^2           |SEAICE work done by internal stress
+   162 |SIenpot |  1 |       |SM      M1|W/m^2           |SEAICE work done to change potential energy
+   163 |SIpRfric|  1 |       |SM      M1|W/m^2           |SEAICE dissipation in ridging by internal stresses
+   164 |SIpSfric|  1 |       |SM      M1|W/m^2           |SEAICE dissipation in shearing by internal stresses
+   165 |SItices |  1 |   149 |SM  C   M1|K               |Surface Temperature over Sea-Ice (area weighted)
+   166 |SIuice  |  1 |   167 |UU      M1|m/s             |SEAICE zonal ice velocity, >0 from West to East
+   167 |SIvice  |  1 |   166 |VV      M1|m/s             |SEAICE merid. ice velocity, >0 from South to North
+   168 |SItaux  |  1 |   169 |UU      U1|N/m^2           |SEAICE zonal surface wind stress, >0 increases uIce
+   169 |SItauy  |  1 |   168 |VV      U1|N/m^2           |SEAICE merid surface wind stress, >0 increases vIce
+   170 |SIatmTx |  1 |   171 |UU      U1|N/m^2           |Zonal surface wind stress over Ocean+SeaIce
+   171 |SIatmTy |  1 |   170 |VV      U1|N/m^2           |Merid surface wind stress over Ocean+SeaIce
+   172 |SIqnet  |  1 |       |SM      U1|W/m^2           |Ocean surface heatflux, turb+rad, >0 decreases theta
+   173 |SIqsw   |  1 |       |SM      U1|W/m^2           |Ocean surface shortwave radiat., >0 decreases theta
+   174 |SIatmQnt|  1 |       |SM      U1|W/m^2           |Net atmospheric heat flux, >0 decreases theta
+   175 |SItflux |  1 |       |SM      U1|W/m^2           |Same as TFLUX but incl seaice (>0 incr T decr H)
+   176 |SIaaflux|  1 |       |SM      U1|W/m^2           |conservative ocn<->seaice adv. heat flux adjust.
+   177 |SIhl    |  1 |       |SM      U1|W/m^2           |Latent heat flux into ocean, >0 increases theta
+   178 |SIqneto |  1 |       |SM      U1|W/m^2           |Open Ocean Part of SIqnet, turb+rad, >0 decr theta
+   179 |SIqneti |  1 |       |SM      U1|W/m^2           |Ice Covered Part of SIqnet, turb+rad, >0 decr theta
+   180 |SIempmr |  1 |       |SM      U1|kg/m^2/s        |Ocean surface freshwater flux, > 0 increases salt
+   181 |SIatmFW |  1 |       |SM      U1|kg/m^2/s        |Net freshwater flux from atmosphere & land (+=down)
+   182 |SIsnPrcp|  1 |       |SM      U1|kg/m^2/s        |Snow precip. (+=dw) over Sea-Ice (area weighted)
+   183 |SIfwSubl|  1 |       |SM      U1|kg/m^2/s        |Potential sublimation freshwater flux, >0 decr. ice
+   184 |SIacSubl|  1 |       |SM      U1|kg/m^2/s        |Actual sublimation freshwater flux, >0 decr. ice
+   185 |SIrsSubl|  1 |       |SM      U1|kg/m^2/s        |Residual subl. freshwater flux, >0 taken from ocn
+   186 |SIactLHF|  1 |       |SM      U1|W/m^2           |Actual latent heat flux over ice
+   187 |SImaxLHF|  1 |       |SM      U1|W/m^2           |Maximum latent heat flux over ice
+   188 |SIaQbOCN|  1 |       |SM      M1|m/s             |Potential HEFF rate of change by ocean ice flux
+   189 |SIaQbATC|  1 |       |SM      M1|m/s             |Potential HEFF rate of change by atm flux over ice
+   190 |SIaQbATO|  1 |       |SM      M1|m/s             |Potential HEFF rate of change by open ocn atm flux
+   191 |SIdHbOCN|  1 |       |SM      M1|m/s             |HEFF rate of change by ocean ice flux
+   192 |SIdSbATC|  1 |       |SM      M1|m/s             |HSNOW rate of change by atm flux over sea ice
+   193 |SIdSbOCN|  1 |       |SM      M1|m/s             |HSNOW rate of change by ocean ice flux
+   194 |SIdHbATC|  1 |       |SM      M1|m/s             |HEFF rate of change by atm flux over sea ice
+   195 |SIdHbATO|  1 |       |SM      M1|m/s             |HEFF rate of change by open ocn atm flux
+   196 |SIdHbFLO|  1 |       |SM      M1|m/s             |HEFF rate of change by flooding snow
+   197 |SIdAbATO|  1 |       |SM      M1|m^2/m^2/s       |Potential AREA rate of change by open ocn atm flux
+   198 |SIdAbATC|  1 |       |SM      M1|m^2/m^2/s       |Potential AREA rate of change by atm flux over ice
+   199 |SIdAbOCN|  1 |       |SM      M1|m^2/m^2/s       |Potential AREA rate of change by ocean ice flux
+------------------------------------------------------------------------------------
+  Num  |<-Name->|Levs|  mate |<- code ->|<--  Units   -->|<- Tile (max=80c)         
+------------------------------------------------------------------------------------
+   200 |SIdA    |  1 |       |SM      M1|m^2/m^2/s       |AREA rate of change (net)
+   201 |ADVxHEFF|  1 |   202 |UU      M1|m.m^2/s         |Zonal      Advective Flux of eff ice thickn
+   202 |ADVyHEFF|  1 |   201 |VV      M1|m.m^2/s         |Meridional Advective Flux of eff ice thickn
+   203 |DFxEHEFF|  1 |   204 |UU      M1|m.m^2/s         |Zonal      Diffusive Flux of eff ice thickn
+   204 |DFyEHEFF|  1 |   203 |VV      M1|m.m^2/s         |Meridional Diffusive Flux of eff ice thickn
+   205 |ADVxAREA|  1 |   206 |UU      M1|m^2/m^2.m^2/s   |Zonal      Advective Flux of fract area
+   206 |ADVyAREA|  1 |   205 |VV      M1|m^2/m^2.m^2/s   |Meridional Advective Flux of fract area
+   207 |DFxEAREA|  1 |   208 |UU      M1|m^2/m^2.m^2/s   |Zonal      Diffusive Flux of fract area
+   208 |DFyEAREA|  1 |   207 |VV      M1|m^2/m^2.m^2/s   |Meridional Diffusive Flux of fract area
+   209 |ADVxSNOW|  1 |   210 |UU      M1|m.m^2/s         |Zonal      Advective Flux of eff snow thickn
+   210 |ADVySNOW|  1 |   209 |VV      M1|m.m^2/s         |Meridional Advective Flux of eff snow thickn
+   211 |DFxESNOW|  1 |   212 |UU      M1|m.m^2/s         |Zonal      Diffusive Flux of eff snow thickn
+   212 |DFyESNOW|  1 |   211 |VV      M1|m.m^2/s         |Meridional Diffusive Flux of eff snow thickn
+   213 |ADVxSSLT|  1 |   214 |UU      M1|g/kg.m^2/s      |Zonal      Advective Flux of seaice salinity
+   214 |ADVySSLT|  1 |   213 |VV      M1|g/kg.m^2/s      |Meridional Advective Flux of seaice salinity
+   215 |DFxESSLT|  1 |   216 |UU      M1|g/kg.m^2/s      |Zonal      Diffusive Flux of seaice salinity
+   216 |DFyESSLT|  1 |   215 |VV      M1|g/kg.m^2/s      |Meridional Diffusive Flux of seaice salinity
+   217 |SIuheff |  1 |   218 |UU      M1|m^2/s           |Zonal      Transport of eff ice thickn (centered)
+   218 |SIvheff |  1 |   217 |VV      M1|m^2/s           |Meridional Transport of eff ice thickn (centered)
+   219 |SIpress |  1 |       |SM      M1|N/m             |SEAICE strength (with upper and lower limit)
+   220 |SIzeta  |  1 |       |SM      M1|kg/s            |SEAICE nonlinear bulk viscosity
+   221 |SIeta   |  1 |       |SM      M1|kg/s            |SEAICE nonlinear shear viscosity
+   222 |SIsig1  |  1 |       |SM      M1|no units        |SEAICE normalized principle stress, component one
+   223 |SIsig2  |  1 |       |SM      M1|no units        |SEAICE normalized principle stress, component two
+   224 |SIshear |  1 |       |SM      M1|1/s             |SEAICE shear deformation rate
+   225 |SIdelta |  1 |       |SM      M1|1/s             |SEAICE Delta deformation rate
+   226 |SItensil|  1 |       |SM      M1|N/m             |SEAICE maximal tensile strength
+   227 |SIlsrRe |  1 |       |SM      M1|N/m             |SEAICE LSR residual norm
+------------------------------------------------------------------------------------
+  Num  |<-Name->|Levs|  mate |<- code ->|<--  Units   -->|<- Tile (max=80c)         
+------------------------------------------------------------------------------------
