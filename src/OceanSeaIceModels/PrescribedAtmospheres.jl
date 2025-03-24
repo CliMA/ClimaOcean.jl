@@ -289,7 +289,7 @@ const PATP = PrescribedAtmosphereThermodynamicsParameters
 ##### Prescribed atmosphere (as opposed to dynamically evolving / prognostic)
 #####
 
-struct PrescribedAtmosphere{FT, G, T, U, P, C, F, I, R, TP, TI}
+mutable struct PrescribedAtmosphere{FT, G, T, U, P, C, F, I, R, TP, TI}
     grid :: G
     clock :: Clock{T}
     velocities :: U
@@ -362,6 +362,7 @@ end
     return nothing
 end
 
+@inline thermodynamics_parameters(atmos::Nothing) = nothing
 @inline thermodynamics_parameters(atmos::PrescribedAtmosphere) = atmos.thermodynamics_parameters
 @inline surface_layer_height(atmos::PrescribedAtmosphere) = atmos.surface_layer_height
 @inline boundary_layer_height(atmos::PrescribedAtmosphere) = atmos.boundary_layer_height    

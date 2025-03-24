@@ -3,12 +3,6 @@ using ClimaOcean.DataWrangling: compute_native_date_range
 using Oceananigans.Grids: AbstractGrid
 using Oceananigans.OutputReaders: PartlyInMemory
 
-download_JRA55_cache::String = ""
-
-function __init__()
-    global download_JRA55_cache = @get_scratch!("JRA55")
-end
-
 compute_bounding_nodes(::Nothing, ::Nothing, LH, hnodes) = nothing
 compute_bounding_nodes(bounds, ::Nothing, LH, hnodes) = bounds
 
@@ -147,12 +141,8 @@ new_backend(::JRA55NetCDFBackend, start, length) = JRA55NetCDFBackend(start, len
                          latitude = nothing,
                          longitude = nothing,
                          dir = download_JRA55_cache,
-                         filename = nothing,
-                         shortname = nothing,
                          backend = InMemory(),
-                         time_indexing = Cyclical(),
-                         preprocess_chunk_size = 10,
-                         preprocess_architecture = CPU())
+                         time_indexing = Cyclical())
 
 Return a `FieldTimeSeries` containing atmospheric reanalysis data for `variable_name`,
 which describes one of the variables in the "repeat year forcing" dataset derived
@@ -180,13 +170,15 @@ Keyword arguments
 
 - `architecture`: Architecture for the `FieldTimeSeries`. Default: CPU()
 
-- `dates`: The date(s) of the metadata. Note this can either be a single date,
-           representing a snapshot, or a range of dates, representing a time-series.
-           Default: `all_dates(dataset, name)` (see `all_dates`).
+- `start_date`: The starting date to use for the ECCO dataset. Default: `first_date(dataset, variable_name)`.
+
+- `end_date`: The ending date to use for the ECCO dataset. Default: `end_date(dataset, variable_name)`.
 
 - `dataset`: The data dataset. The only supported datasets is `JRA55RepeatYear()`
 
 - `dir`: The directory of the data file. Default: `ClimaOcean.JRA55.download_JRA55_cache`.
+
+- `time_indexing`: The time indexing scheme for the field time series. Default: `Cyclical()`.
 
 - `latitude`: Guiding latitude bounds for the resulting grid.
               Used to slice the data when loading into memory.
@@ -203,9 +195,13 @@ Keyword arguments
 """
 function JRA55FieldTimeSeries(variable_name::Symbol, architecture = CPU(), FT=Float32;
                               dataset = JRA55RepeatYear(),
-                              dates = all_dates(dataset, variable_name),
+                              start_date = first_date(dataset, variable_name),
+                              end_date = last_date(dataset, variable_name),
                               dir = download_JRA55_cache,
                               kw...)
+
+    native_dates = all_dates(dataset, variable_name)
+    dates = compute_native_date_range(native_dates, start_date, end_date)                          
 
     metadata = Metadata(variable_name, dates, dataset, dir)
 

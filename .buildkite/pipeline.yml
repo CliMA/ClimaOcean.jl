@@ -1,7 +1,7 @@
 agents:
   queue: new-central
   slurm_mem: 8G
-  modules: climacommon/2024_10_10
+  modules: climacommon/2025_03_18
 
 timeout_in_minutes: 1440
 
@@ -134,9 +134,9 @@ steps:
       slurm_gpus_per_task: 1
       
   - label: "Run simulation tests"
-    key: "test_simulations"
+    key: "test_ocean_sea_ice_model"
     env:
-      TEST_GROUP: "simulations"
+      TEST_GROUP: "ocean_sea_ice_model"
       GPU_TEST: "true"
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"

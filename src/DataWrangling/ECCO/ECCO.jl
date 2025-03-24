@@ -1,12 +1,12 @@
 module ECCO
 
-export ECCOMetadata, ECCO_field, ECCO_mask, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
+export ECCOMetadatum, ECCO_field, ECCO_mask, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
 export ECCOFieldTimeSeries, ECCORestoring, LinearlyTaperedPolarMask
 
 using ClimaOcean
 using ClimaOcean.DataWrangling
-using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, download_progress
+using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, download_progress, compute_native_date_range
 using ClimaOcean.InitialConditions: three_dimensional_regrid!, interpolate!
 
 using Oceananigans
@@ -88,7 +88,7 @@ const ECCO_z = [
       0.0,
 ]
 
-empty_ECCO_field(variable_name::Symbol; kw...) = empty_ECCO_field(ECCOMetadata(variable_name); kw...)
+empty_ECCO_field(variable_name::Symbol; kw...) = empty_ECCO_field(Metadatum(variable_name, dataset=ECCO4Monthly()); kw...)
 
 function empty_ECCO_field(metadata::ECCOMetadata;
                           architecture = CPU(), 
@@ -256,7 +256,7 @@ end
 
 inpainted_metadata_path(metadata::ECCOMetadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
 
-function set!(field::Field, ECCO_metadata::ECCOMetadata; kw...)
+function set!(field::Field, ECCO_metadata::ECCOMetadatum; kw...)
 
     # Fields initialized from ECCO
     grid = field.grid
