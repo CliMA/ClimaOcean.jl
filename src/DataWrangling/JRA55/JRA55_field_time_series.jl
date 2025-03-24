@@ -145,11 +145,16 @@ new_backend(::JRA55NetCDFBackend, start, length) = JRA55NetCDFBackend(start, len
                          time_indexing = Cyclical())
 
 Return a `FieldTimeSeries` containing atmospheric reanalysis data for `variable_name`,
-which describes one of the variables in the "repeat year forcing" dataset derived
+which describes one of the variables in the "repeat-year forcing" dataset derived
 from the Japanese 55-year atmospheric reanalysis for driving ocean-sea ice models (JRA55-do).
 For more information about the derivation of the repeat-year forcing dataset, see
 
-> Stewart et al. (2020). JRA55-do-based repeat year forcing datasets for driving ocean–sea-ice models, _Ocean Modelling_, **147**, 101557, https://doi.org/10.1016/j.ocemod.2019.101557.
+> Stewart et al. (2020). JRA55-do-based repeat-year forcing datasets for driving ocean–sea-ice models, _Ocean Modelling_, **147**, 101557, https://doi.org/10.1016/j.ocemod.2019.101557.
+
+The repeat year used here corresponds to May 1st, 1990 until April 30th, 1991. However, the
+returned dataset here has dates that range from January 1st to December 31st. This implies
+that the first 4 months of the `JRA55RepeatYear()` dataset are from year 1991 from the JRE55
+reanalysis and the rest 8 months from 1990.
 
 The `variable_name`s (and their `shortname`s used in NetCDF files) available from the JRA55-do are:
 - `:river_freshwater_flux`              ("friver")
@@ -201,7 +206,7 @@ function JRA55FieldTimeSeries(variable_name::Symbol, architecture = CPU(), FT=Fl
                               kw...)
 
     native_dates = all_dates(dataset, variable_name)
-    dates = compute_native_date_range(native_dates, start_date, end_date)                          
+    dates = compute_native_date_range(native_dates, start_date, end_date)
 
     metadata = Metadata(variable_name, dates, dataset, dir)
 
