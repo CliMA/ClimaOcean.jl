@@ -153,7 +153,7 @@ For more information about the derivation of the repeat-year forcing dataset, se
 
 The repeat year used here corresponds to May 1st, 1990 until April 30th, 1991. However, the
 returned dataset here has dates that range from January 1st to December 31st. This implies
-that the first 4 months of the `JRA55RepeatYear()` dataset are from year 1991 from the JRE55
+that the first 4 months of the `JRA55RepeatYear()` dataset are from year 1991 from the JRA55
 reanalysis and the rest 8 months from 1990.
 
 The `variable_name`s (and their `shortname`s used in NetCDF files) available from the JRA55-do are:
