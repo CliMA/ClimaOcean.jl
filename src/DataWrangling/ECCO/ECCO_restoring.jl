@@ -173,21 +173,50 @@ struct Temperature end
 struct Salinity end
 struct UVelocity end
 struct VVelocity end
+struct Fe end
+struct PO₄ end
+struct NO₃ end
+struct DIC end
+struct ALK end
+struct DOP end
+struct POP end
 
 const oceananigans_fieldnames = Dict(:temperature => Temperature(), 
                                      :salinity    => Salinity(), 
                                      :u_velocity  => UVelocity(), 
-                                     :v_velocity  => VVelocity())
+                                     :v_velocity  => VVelocity(),
+				                     :Fe          => Fe(),
+				                     :PO₄         => PO₄(),
+                                     :NO₃         => NO₃(),
+                                     :DIC         => DIC(),
+                                     :ALK         => ALK(),
+                                     :DOP         => DOP(),
+                                     :POP         => POP(),
+                                     )
 
 @inline Base.getindex(fields, i, j, k, ::Temperature) = @inbounds fields.T[i, j, k]
 @inline Base.getindex(fields, i, j, k, ::Salinity)    = @inbounds fields.S[i, j, k]
 @inline Base.getindex(fields, i, j, k, ::UVelocity)   = @inbounds fields.u[i, j, k]
 @inline Base.getindex(fields, i, j, k, ::VVelocity)   = @inbounds fields.v[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::Fe)          = @inbounds fields.Fe[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::PO₄)         = @inbounds fields.PO₄[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::NO₃)         = @inbounds fields.NO₃[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::DIC)         = @inbounds fields.DIC[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::ALK)         = @inbounds fields.ALK[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::DOP)         = @inbounds fields.DOP[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::POP)         = @inbounds fields.POP[i, j, k]
 
 Base.summary(::Temperature) = "temperature"
 Base.summary(::Salinity)    = "salinity"
 Base.summary(::UVelocity)   = "u_velocity"
 Base.summary(::VVelocity)   = "v_velocity"
+Base.summary(::Fe)          = "Fe"
+Base.summary(::PO₄)         = "PO₄"
+Base.summary(::NO₃)         = "NO₃"
+Base.summary(::DIC)         = "DIC"
+Base.summary(::ALK)         = "ALK"
+Base.summary(::DOP)         = "DOP"
+Base.summary(::POP)         = "POP"
 
 struct ECCORestoring{FTS, G, M, V, N}
     field_time_series :: FTS
@@ -269,7 +298,14 @@ Arguments
   * `:u_velocity`,
   * `:v_velocity`,
   * `:sea_ice_thickness`,
-  * `:sea_ice_area_fraction`.
+  * `:sea_ice_area_fraction`,
+  * `:Fe`,
+  * `:PO₄`,
+  * `:NO₃`,
+  * `:DIC`,
+  * `:ALK`,
+  * `:DOP`,
+  * `:POP`.
 
 - `arch_or_grid`: Either the architecture of the simulation, or a grid on which the ECCO data
                   is pre-interpolated when loaded. If an `arch`itecture is provided, such as
