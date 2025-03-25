@@ -60,17 +60,17 @@ if rank == 0 && initialization
 
     model = test_simulation.model
 
-    test_simulation.output_writers[:d3] = JLD2OutputWriter(model, model.tracers,
-                                                           schedule = IterationInterval(100),
-                                                           filename = prefix * "_fields",
-                                                           overwrite_existing = true)
+    test_simulation.output_writers[:d3] = JLD2Writer(model, model.tracers,
+                                                     schedule = IterationInterval(100),
+                                                     filename = prefix * "_fields",
+                                                     overwrite_existing = true)
 
     slice_indices = (11, :, :)
-    test_simulation.output_writers[:d2] = JLD2OutputWriter(model, model.tracers,
-                                                           schedule = IterationInterval(100),
-                                                           filename = prefix * "_slices",
-                                                           indices = slice_indices,
-                                                           overwrite_existing = true)
+    test_simulation.output_writers[:d2] = JLD2Writer(model, model.tracers,
+                                                     schedule = IterationInterval(100),
+                                                     filename = prefix * "_slices",
+                                                     indices = slice_indices,
+                                                     overwrite_existing = true)
 
 
     @info "Running simulation..."; timer = time_ns()
@@ -79,7 +79,7 @@ if rank == 0 && initialization
 
     @info "... finished. (" * prettytime(1e-9 * (time_ns() - timer)) * ")"
     stop_time = [time(test_simulation)]
-else 
+else
     stop_time = stop_iteration * 20minutes + start_time
 end
 
@@ -94,13 +94,13 @@ end
 #####
 ##### On all ranks
 #####
-          
-simulation = one_degree_near_global_simulation(arch; simulation_kw...) 
+
+simulation = one_degree_near_global_simulation(arch; simulation_kw...)
 
 priors = (κ_skew      = ScaledLogitNormal(bounds=(0.0, 2000.0)),
           κ_symmetric = ScaledLogitNormal(bounds=(0.0, 2000.0)))
 
-free_parameters = FreeParameters(priors) 
+free_parameters = FreeParameters(priors)
 
 obspath = prefix * "_slices.jld2"
 
@@ -131,11 +131,11 @@ function slice_collector(sim)
     return FieldTimeSeriesCollector((T=T_slice, S=S_slice), times, architecture = CPU())
 end
 
-##### 
+#####
 ##### Building the distributed inverse problem
 #####
 
-time_series_collector = slice_collector(simulation) 
+time_series_collector = slice_collector(simulation)
 
 ip = InverseProblem(observations, simulation, free_parameters;
                     time_series_collector,
@@ -147,7 +147,7 @@ dip = DistributedInverseProblem(ip)
 eki = EnsembleKalmanInversion(dip; pseudo_stepping=ConstantConvergence(0.2))
 @info "finished setting up eki"
 
-##### 
+#####
 ##### Let's run!
 #####
 

@@ -66,7 +66,6 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
     times = ua.times
     time_indexing = ua.time_indexing
     t = clock.time
-    @assert times isa StepRangeLen
     time_interpolator = TimeInterpolator(ua.time_indexing, times, clock.time)
     
     launch!(arch, grid, kernel_parameters,

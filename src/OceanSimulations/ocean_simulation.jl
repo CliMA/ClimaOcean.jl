@@ -47,7 +47,7 @@ function default_free_surface(grid::TripolarOfSomeKind;
 end
 
 function default_free_surface(grid::DistributedGrid; 
-                              fixed_Δt = compute_maximum_Δt(grid),
+                              fixed_Δt = estimate_maximum_Δt(grid),
                               cfl = 0.7) 
     
     free_surface = SplitExplicitFreeSurface(grid; cfl, fixed_Δt)

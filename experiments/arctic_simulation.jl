@@ -21,7 +21,7 @@ Nx = 180 # longitudinal direction -> 250 points is about 1.5ᵒ resolution
 Ny = 180 # meridional direction -> same thing, 48 points is about 1.5ᵒ resolution
 Nz = length(r_faces) - 1
 
-grid = RotatedLatitudeLongitudeGrid(arch, size = (Nx, Ny, Nz), 
+grid = RotatedLatitudeLongitudeGrid(arch, size = (Nx, Ny, Nz),
                                           latitude = (-45, 45),
                                           longitude = (-45, 45),
                                           z = r_faces,
@@ -38,15 +38,15 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 #####
 
 # A very diffusive ocean
-momentum_advection = WENOVectorInvariant(order=3) 
+momentum_advection = WENOVectorInvariant(order=3)
 tracer_advection   = WENO(order=3)
 
-free_surface = SplitExplicitFreeSurface(grid; cfl=0.7) 
+free_surface = SplitExplicitFreeSurface(grid; cfl=0.7)
 closure = ClimaOcean.OceanSimulations.default_ocean_closure()
 
-ocean = ocean_simulation(grid; 
-                         momentum_advection, 
-                         tracer_advection, 
+ocean = ocean_simulation(grid;
+                         momentum_advection,
+                         tracer_advection,
                          free_surface,
                          closure)
 
@@ -70,10 +70,10 @@ SSU = view(ocean.model.velocities.u, :, :, grid.Nz)
 SSV = view(ocean.model.velocities.u, :, :, grid.Nz)
 
 τo  = SemiImplicitStress(uₑ=SSU, vₑ=SSV)
-τua = Field{Face, Center, Nothing}(grid) 
+τua = Field{Face, Center, Nothing}(grid)
 τva = Field{Center, Face, Nothing}(grid)
 
-dynamics = SeaIceMomentumEquation(grid; 
+dynamics = SeaIceMomentumEquation(grid;
                                   coriolis = ocean.model.coriolis,
                                   top_momentum_stress = (u=τua, v=τva),
                                   bottom_momentum_stress = τo,
@@ -81,12 +81,12 @@ dynamics = SeaIceMomentumEquation(grid;
                                   rheology = ElastoViscoPlasticRheology(),
                                   solver = SplitExplicitSolver(120))
 
-sea_ice = sea_ice_simulation(grid; bottom_heat_boundary_condition, dynamics, advection=WENO(order=7)) 
+sea_ice = sea_ice_simulation(grid; bottom_heat_boundary_condition, dynamics, advection=WENO(order=7))
 
-set!(sea_ice.model, h=Metadata(:sea_ice_thickness;     dataset), 
+set!(sea_ice.model, h=Metadata(:sea_ice_thickness;     dataset),
                     ℵ=Metadata(:sea_ice_concentration; dataset))
 
-##### 
+#####
 ##### A Prescribed Atmosphere model
 #####
 
@@ -118,15 +118,15 @@ Qᴮ = arctic.model.interfaces.net_fluxes.sea_ice_bottom.heat
 τy = arctic.model.interfaces.net_fluxes.sea_ice_top.v
 
 # Output writers
-arctic.output_writers[:vars] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, u, v, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ, τx, τy),
-                                                 filename = "sea_ice_quantities.jld2",
-                                                 schedule = IterationInterval(12),
-                                                 overwrite_existing=true)
+arctic.output_writers[:vars] = JLD2Writer(sea_ice.model, (; h, ℵ, u, v, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ, τx, τy),
+                                          filename = "sea_ice_quantities.jld2",
+                                          schedule = IterationInterval(12),
+                                          overwrite_existing=true)
 
-arctic.output_writers[:averages] = JLD2OutputWriter(sea_ice.model, (; h, ℵ, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ, u, v, τx, τy),
-                                                    filename = "averaged_sea_ice_quantities.jld2",
-                                                    schedule = AveragedTimeInterval(1days),
-                                                    overwrite_existing=true)
+arctic.output_writers[:averages] = JLD2Writer(sea_ice.model, (; h, ℵ, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ, u, v, τx, τy),
+                                              filename = "averaged_sea_ice_quantities.jld2",
+                                              schedule = AveragedTimeInterval(1days),
+                                              overwrite_existing=true)
 
 wall_time = Ref(time_ns())
 

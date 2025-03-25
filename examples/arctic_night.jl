@@ -49,10 +49,10 @@ Fv = model.interfaces.atmosphere_ocean_interface.fluxes.water_vapor
 
 fluxes = (; Q, Ql, Qs, τx, τy, Fv)
 outputs = merge(ocean.model.velocities, ocean.model.tracers, fluxes)
-ow = JLD2OutputWriter(ocean.model, outputs,
-                      schedule = TimeInterval(10minutes),
-                      filename = "idealized_atmosphere.jld2",
-                      overwrite_existing = true)
+ow = JLD2Writer(ocean.model, outputs,
+                schedule = TimeInterval(10minutes),
+                filename = "idealized_atmosphere.jld2",
+                overwrite_existing = true)
 
 simulation.output_writers[:ow] = ow
 

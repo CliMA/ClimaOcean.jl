@@ -17,8 +17,8 @@ end
     return !(converged | reached_maxiter) | hasnt_started
 end
 
-struct FixedIterations
-    iterations :: Int
+struct FixedIterations{I}
+    iterations :: I
 end
 
 @inline iterating(Ψⁿ, Ψ⁻, iteration, fixed::FixedIterations) = iteration < fixed.iterations

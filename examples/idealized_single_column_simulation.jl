@@ -43,7 +43,7 @@ sea_ice_grid = RectilinearGrid(size=(), topology=(Flat, Flat, Flat))
 top_sea_ice_temperature = Field{Center, Center, Nothing}(sea_ice_grid)
 top_heat_boundary_condition = PrescribedTemperature(top_sea_ice_temperature)
 ice_thermodynamics = SlabSeaIceThermodynamics(sea_ice_grid; top_heat_boundary_condition)
-                                              
+
 top_sea_ice_heat_flux = Field{Center, Center, Nothing}(sea_ice_grid)
 bottom_sea_ice_heat_flux = Field{Center, Center, Nothing}(sea_ice_grid)
 
@@ -68,7 +68,7 @@ Fv  = model.interfaces.atmosphere_ocean_interface.fluxes.water_vapor
 Qib = sea_ice_model.external_heat_fluxes.bottom
 
 # TODO: the total fluxes are defined on _interfaces_ between components:
-# atmopshere_ocean, atmosphere_sea_ice, ocean_sea_ice. They aren't defined wrt to 
+# atmopshere_ocean, atmosphere_sea_ice, ocean_sea_ice. They aren't defined wrt to
 # just one component
 Qo = model.interfaces.net_fluxes.ocean_surface.Q
 Qi = sea_ice_model.external_heat_fluxes.top
@@ -78,13 +78,13 @@ ocean_outputs = merge(ocean.model.velocities, ocean.model.tracers)
 sea_ice_outputs = (h = sea_ice.model.ice_thickness,
                    Ti = sea_ice.model.ice_thermodynamics.top_surface_temperature,
                    ℵ = sea_ice.model.ice_concentration)
-                   
+
 outputs = merge(ocean_outputs, sea_ice_outputs, fluxes)
 
-ow = JLD2OutputWriter(ocean.model, outputs,
-                      schedule = IterationInterval(1), #TimeInterval(1hour),
-                      filename = "idealized_atmosphere.jld2",
-                      overwrite_existing = true)
+ow = JLD2Writer(ocean.model, outputs,
+                schedule = IterationInterval(1), #TimeInterval(1hour),
+                filename = "idealized_atmosphere.jld2",
+                overwrite_existing = true)
 
 simulation.output_writers[:ow] = ow
 
