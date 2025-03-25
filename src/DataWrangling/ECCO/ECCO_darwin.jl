@@ -66,12 +66,20 @@ function ECCO_darwin_model_data(metadata, path)
     read!(path, native_data)
     native_data = bswap.(native_data)
 
-    meshed_data = read(reshape(native_data, native_size...), native_grid)
+    meshed_data   = read(reshape(native_data, native_size...), native_grid)
     Nx, Ny, Nz, _ = size(metadata)
-    coeffs = interpolation_setup() # from MeshArrays LLC90 easy regridding
-    data = zeros(Float32, Nx, Ny, Nz) # Native LLC90 grid at precision of the input binary file
+    data          = zeros(Float32, Nx, Ny, Nz) # Native LLC90 grid at precision of the input binary file
 
-    # Get a continental mask on the native model grid 
+    # Download the native grid data from MeshArrays repo (only if not in already in datadeps)
+    native_grid_coords = GridLoad(native_grid; option="full")
+    
+    # Calculate coefficients to interpolate from native grid to 0.5 degree regular lat-lon grid
+    coeffs = interpolation_setup(
+        Γ   = native_grid_coords,
+        lon = [i for i = -179.5:0.5:179.5, j = -89.5:0.5:89.5], 
+        lat = [j for i = -179.5:0.5:179.5, j = -89.5:0.5:89.5],
+    )
+    # Read continental mask on the native model grid 
     native_grid_fac_center = GridLoadVar("hFacC", native_grid)
 
     # Interpolate each masked layer
