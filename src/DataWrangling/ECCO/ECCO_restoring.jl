@@ -165,8 +165,15 @@ function ECCOFieldTimeSeries(metadata::ECCOMetadata, grid::AbstractGrid;
     return fts	
 end
 
-ECCOFieldTimeSeries(variable_name::Symbol, version=ECCO4Monthly(); kw...) = 
-    ECCOFieldTimeSeries(ECCOMetadata(variable_name, all_ECCO_dates(version), version); kw...)
+function ECCOFieldTimeSeries(variable_name::Symbol, version=ECCO4Monthly(); 
+                             architecture = CPU(),
+                             dates = all_ECCO_dates(version),
+                             dir = download_ECCO_cache,
+                             kw...)
+
+    metadata = ECCOMetadata(variable_name, dates, version, dir)
+    return ECCOFieldTimeSeries(metadata, architecture; kw...)
+end
 
 # Variable names for restorable data
 struct Temperature end
@@ -282,7 +289,7 @@ The restoring is applied as a forcing on the right hand side of the evolution
 equations calculated as:
 
 ```math
-Fψ = r μ (ψ_{ECCO} - ψ)
+F_ψ = r μ (ψ_{ECCO} - ψ)
 ```
 
 where ``μ`` is the mask, ``r`` is the restoring rate, ``ψ`` is the simulation variable,

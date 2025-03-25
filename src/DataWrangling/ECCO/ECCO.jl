@@ -3,9 +3,10 @@ module ECCO
 export ECCOMetadata, ECCO_field, ECCO_mask, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
 export ECCO4DarwinMonthly
-export ECCORestoring, LinearlyTaperedPolarMask
+export ECCOFieldTimeSeries, ECCORestoring, LinearlyTaperedPolarMask
 
 using ClimaOcean
+using ClimaOcean.DistributedUtils: @root
 using ClimaOcean.DataWrangling
 using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, download_progress
 using ClimaOcean.InitialConditions: three_dimensional_regrid!, interpolate!
@@ -116,11 +117,24 @@ function empty_ECCO_field(metadata::ECCOMetadata;
         sz = (Nx, Ny)
     end
 
-    grid = LatitudeLongitudeGrid(architecture; halo, longitude, latitude, z,
+    grid = LatitudeLongitudeGrid(architecture, Float32; halo, longitude, latitude, z,
                                  size = sz,
                                  topology = (TX, TY, TZ))
 
     return Field{loc...}(grid)
+end
+
+# Only temperature and salinity need a thorough inpainting because of stability,
+# other variables can do with only a couple of passes. Sea ice variables 
+# cannot be inpainted because zeros in the data are physical, not missing values.
+function default_inpainting(metadata::ECCOMetadata)
+    if metadata.name in [:temperature, :salinity]
+        return NearestNeighborInpainting(Inf)
+    elseif metadata.name in [:sea_ice_fraction, :sea_ice_thickness]
+        return nothing
+    else
+        return NearestNeighborInpainting(5)
+    end
 end
 
 """
@@ -159,7 +173,7 @@ within the specified `mask`. `mask` is set to `ECCO_mask` for non-nothing
 """
 function ECCO_field(metadata::ECCOMetadata;
                     architecture = CPU(),
-                    inpainting = NearestNeighborInpainting(Inf),
+                    inpainting = default_inpainting(metadata),
                     mask = nothing,
                     horizontal_halo = (7, 7),
                     cache_inpainted_data = true)

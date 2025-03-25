@@ -27,7 +27,7 @@ julia> Pkg.add("ClimaOcean")
 julia> Pkg.instantiate()
 ```
 
-Use `Pkg.add("url=https://github.com/CliMA/ClimaOcean.jl.git", rev="main")` to install the latest version of `ClimaOcean`.
+Use `Pkg.add(url="https://github.com/CliMA/ClimaOcean.jl.git", rev="main")` to install the latest version of `ClimaOcean`.
 For more information, see the [documentation for `Pkg.jl`](https://pkgdocs.julialang.org).
 
 ## Why? What's the difference between ClimaOcean and [Oceananigans](https://github.com/CliMA/Oceananigans.jl)?
@@ -59,9 +59,9 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bathymetry))
 
 # Build an ocean simulation initialized to the ECCO state estimate on Jan 1, 1993
 ocean = ClimaOcean.ocean_simulation(grid)
-date  = DateTimeProlepticGregorian(1993, 1, 1)
-set!(ocean.model, T = ClimaOcean.ECCOMetadata(:temperature; date),
-                  S = ClimaOcean.ECCOMetadata(:salinity; date))
+dates = DateTimeProlepticGregorian(1993, 1, 1)
+set!(ocean.model, T = ClimaOcean.ECCOMetadata(:temperature; dates),
+                  S = ClimaOcean.ECCOMetadata(:salinity; dates))
 
 # Build and run an OceanSeaIceModel (with no sea ice component) forced by JRA55 reanalysis
 atmosphere = ClimaOcean.JRA55PrescribedAtmosphere(arch)
