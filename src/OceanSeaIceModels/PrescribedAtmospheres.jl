@@ -10,9 +10,9 @@ using Adapt
 using JLD2
 using Thermodynamics.Parameters: AbstractThermodynamicsParameters
 
-import Oceananigans: prognostic_fields
+import Oceananigans: initialize!, prognostic_fields
 import Oceananigans.Fields: set!
-import Oceananigans.TimeSteppers: time_step!
+import Oceananigans.TimeSteppers: time_step!, set_clock!
 import Oceananigans.OutputWriters: checkpointer_address,
                                    required_checkpointed_properties,
                                    default_checkpointed_properties
@@ -332,30 +332,20 @@ prognostic_fields(::PrescribedAtmosphere)                = ()
 function set!(model::PrescribedAtmosphere, checkpoint_file_path::AbstractString)
     addr = checkpointer_address(model)
 
+    checkpointed_clock = nothing
     jldopen(checkpoint_file_path, "r") do file
         checkpointed_clock = file["$addr/clock"]
-
-        # Update model clock
-        set_clock!(model, checkpointed_clock)
     end
 
+    # Update model clock
+    set_clock!(model, checkpointed_clock)
+
+    @info "hi, I set the clock of the atmosphere"
     return nothing
 end
 
-
-"""
-    set_clock!(model, clock)
-
-Set the clock of a `model` to match the values of `clock`.
-"""
-function set_clock!(model::PrescribedAtmosphere, clock)
-    model.clock.time = clock.time
-    model.clock.iteration = clock.iteration
-    model.clock.last_Δt = clock.last_Δt
-    model.clock.last_stage_Δt = clock.last_stage_Δt
-    model.clock.stage = clock.stage
-    return nothing
-end
+set_clock!(atmos::PrescribedAtmosphere, new_clock) =
+    set_clock!(atmos.clock, new_clock)
 
 function default_atmosphere_velocities(grid, times)
     ua = FieldTimeSeries{Center, Center, Nothing}(grid, times)
@@ -366,7 +356,7 @@ end
 function default_atmosphere_tracers(grid, times)
     Ta = FieldTimeSeries{Center, Center, Nothing}(grid, times)
     qa = FieldTimeSeries{Center, Center, Nothing}(grid, times)
-    parent(Ta) .= 273.15 + 20
+    parent(Ta) .= 273.15 + 20 # ᵒK
     return (T=Ta, q=qa)
 end
 
@@ -384,13 +374,20 @@ end
 
 function default_atmosphere_pressure(grid, times)
     pa = FieldTimeSeries{Center, Center, Nothing}(grid, times)
-    parent(pa) .= 101325
+    parent(pa) .= 101325 # Pa
     return pa
 end
 
 @inline function time_step!(atmos::PrescribedAtmosphere, Δt)
     tick!(atmos.clock, Δt)
+    update_state!(atmos)
 
+    return nothing
+end
+
+initialize!(atmos::PrescribedAtmosphere) = update_state!(atmos)
+
+function update_state!(atmos::PrescribedAtmosphere)
     time = Time(atmos.clock.time)
     ftses = extract_field_time_series(atmos)
 
