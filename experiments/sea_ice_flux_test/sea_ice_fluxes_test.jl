@@ -1,6 +1,9 @@
 using ClimaOcean
 using Oceananigans
 using Oceananigans.Units
+using ClimaSeaIce.SeaIceThermodynamics: IceWaterThermalEquilibrium
+using ClimaSeaIce.SeaIceMomentumEquations
+using ClimaSeaIce.Rheologies
 
 Ny = 41
 Nx = 80
@@ -73,7 +76,7 @@ dynamics = SeaIceMomentumEquation(grid;
                                   rheology = ElastoViscoPlasticRheology(),
                                   solver = SplitExplicitSolver(120))
 
-sea_ice = sea_ice_simulation(grid; bottom_heat_boundary_condition, ice_salinity=4) # dynamics, advection=WENO(order=7))
+sea_ice = sea_ice_simulation(grid; bottom_heat_boundary_condition, ice_salinity=4) #, dynamics, advection=WENO(order=7))
 
 ℵi = ones(size(grid))
 ℵi[:, 1]    .= 0.0
@@ -161,7 +164,7 @@ end
 
 mitgmc_thermo = load_mitgcm_results("mitgcm_results/run_thermo/res_30d", 719)
 
-indices = (:, 35, 1)
+indices = (:, 10, 1)
 fig = Figure()
 ax  = Axis(fig[1, 1])
 lines!(ax, mitgmc_thermo.T[indices...], color=:blue, label="MITgcm")
