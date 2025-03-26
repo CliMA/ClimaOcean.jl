@@ -14,8 +14,8 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
                       v = ZeroField(),
                       h = sea_ice.model.ice_thickness,
                       ℵ = sea_ice.model.ice_concentration,
-                      Tₒ = ocean.model.tracers.T,
-                      Sₒ = ocean.model.tracers.S)
+                      T = ocean.model.tracers.T,
+                      S = sea_ice.model.ice_salinity)
 
     atmosphere_fields = coupled_model.interfaces.exchanger.exchange_atmosphere_state
 
@@ -88,9 +88,9 @@ end
 
         # Extract state variables at cell centers
         # Ocean properties below sea ice
-        Tᵢ = interior_state.Tₒ[i, j, kᴺ]
+        Tᵢ = interior_state.T[i, j, kᴺ]
         Tᵢ = convert_to_kelvin(ocean_properties.temperature_units, Tᵢ)
-        Sᵢ = interior_state.Sₒ[i, j, kᴺ]
+        Sᵢ = interior_state.S[i, j, kᴺ]
 
         # Sea ice properties
         uᵢ = zero(FT) # ℑxᶜᵃᵃ(i, j, 1, grid, interior_state.u)
