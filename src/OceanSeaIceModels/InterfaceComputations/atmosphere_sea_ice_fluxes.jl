@@ -38,8 +38,9 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
     sea_ice_properties = coupled_model.interfaces.sea_ice_properties
     ocean_properties = coupled_model.interfaces.ocean_properties
 
-    atmosphere_properties = (thermodynamics_parameters = atmosphere.thermodynamics_parameters,
-                             surface_layer_height = atmosphere.surface_layer_height)
+    atmosphere_properties = (thermodynamics_parameters = thermodynamics_parameters(atmosphere),
+                             surface_layer_height = surface_layer_height(atmosphere),
+                             gravitational_acceleration = coupled_model.interfaces.gravitational_acceleration)
 
     kernel_parameters = interface_kernel_parameters(grid)
 
@@ -55,8 +56,7 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
             interface_properties,
             atmosphere_properties,
             sea_ice_properties,
-            ocean_properties,
-            coupled_model.interfaces.gravitational_acceleration)
+            ocean_properties)
 
     return nothing
 end
@@ -72,8 +72,7 @@ end
                                                               interface_properties,
                                                               atmosphere_properties,
                                                               sea_ice_properties,
-                                                              ocean_properties,
-                                                              gravitational_acceleration)
+                                                              ocean_properties)
 
     i, j = @index(Global, NTuple)
     kᴺ   = size(grid, 3) # index of the top ocean cell
@@ -115,7 +114,6 @@ end
                               u = uₐ,
                               v = vₐ,
                               𝒬 = 𝒬ₐ,
-                              g = gravitational_acceleration,
                               h_bℓ = atmosphere_state.h_bℓ)
 
     downwelling_radiation = (; Qs, Qℓ)

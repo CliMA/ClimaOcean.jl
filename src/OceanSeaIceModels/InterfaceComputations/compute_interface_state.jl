@@ -119,11 +119,11 @@ end
 # Temperature increment including the ``lapse rate'' `α = g / cₚ`
 function surface_atmosphere_temperature(Ψₐ, ℙₐ)
     ℂₐ = ℙₐ.thermodynamics_parameters
+    g  = ℙₐ.gravitational_acceleration
     𝒬ₐ = Ψₐ.𝒬
     zₐ = Ψₐ.z
     Δh = zₐ # Assumption! The surface is at z = 0 -> Δh = zₐ - 0
     Tₐ = AtmosphericThermodynamics.air_temperature(ℂₐ, 𝒬ₐ)
     cₐ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ)
-    g  = Ψₐ.g
     return Tₐ + g * Δh / cₐ
 end
