@@ -51,7 +51,8 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             atmosphere_data,
             interface_properties,
             atmosphere_properties,
-            ocean_properties)
+            ocean_properties,
+            coupled_model.interfaces.gravitational_acceleration)
 
     return nothing
 end
@@ -66,7 +67,8 @@ end
                                                             atmosphere_state,
                                                             interface_properties,
                                                             atmosphere_properties,
-                                                            ocean_properties)
+                                                            ocean_properties,
+                                                            gravitational_acceleration)
 
     i, j = @index(Global, NTuple)
     kᴺ   = size(grid, 3) # index of the top ocean cell
@@ -102,6 +104,7 @@ end
                               u = uₐ,
                               v = vₐ,
                               𝒬 = 𝒬ₐ,
+                              g = gravitational_acceleration,
                               h_bℓ = atmosphere_state.h_bℓ)
 
     local_interior_state = (u=uᵢ, v=vᵢ, T=Tᵢ, S=Sᵢ)

@@ -23,7 +23,6 @@ import Thermodynamics.Parameters: molmass_ratio
 #####
 
 struct SimilarityTheoryFluxes{FT, UF, R, B, S}
-    gravitational_acceleration :: FT # parameter
     von_karman_constant :: FT        # parameter
     turbulent_prandtl_number :: FT   # parameter
     gustiness_parameter :: FT        # bulk velocity parameter
@@ -34,8 +33,7 @@ struct SimilarityTheoryFluxes{FT, UF, R, B, S}
 end
 
 Adapt.adapt_structure(to, fluxes::SimilarityTheoryFluxes) =
-    SimilarityTheoryFluxes(adapt(to, fluxes.gravitational_acceleration),
-                           adapt(to, fluxes.von_karman_constant),
+    SimilarityTheoryFluxes(adapt(to, fluxes.von_karman_constant),
                            adapt(to, fluxes.turbulent_prandtl_number),
                            adapt(to, fluxes.gustiness_parameter),
                            adapt(to, fluxes.stability_functions),
@@ -77,7 +75,6 @@ air-interface turbulent fluxes using Monin-Obukhov similarity theory.
 Keyword Arguments
 ==================
 
-- `gravitational_acceleration`: Gravitational acceleration.
 - `von_karman_constant`: The von Karman constant. Default: 0.4.
 - `turbulent_prandtl_number`: The turbulent Prandtl number. Default: 1.
 - `gustiness_parameter`: The gustiness parameter that accounts for low wind speed areas. Default: 6.5.
@@ -91,7 +88,6 @@ Keyword Arguments
 - `solver_maxiter`: The maximum number of iterations. Default: 100.
 """
 function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
-                                gravitational_acceleration = g_Earth,
                                 von_karman_constant = 0.4,
                                 turbulent_prandtl_number = 1,
                                 gustiness_parameter = 6.5,
@@ -107,8 +103,7 @@ function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
         solver_stop_criteria = ConvergenceStopCriteria(solver_tolerance, solver_maxiter)
     end
 
-    return SimilarityTheoryFluxes(convert(FT, gravitational_acceleration),
-                                  convert(FT, von_karman_constant),
+    return SimilarityTheoryFluxes(convert(FT, von_karman_constant),
                                   convert(FT, turbulent_prandtl_number),
                                   convert(FT, gustiness_parameter),
                                   stability_functions,
@@ -158,6 +153,7 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
 
     ℂₐ = atmosphere_properties.thermodynamics_parameters
     𝒬ₐ = atmosphere_state.𝒬
+    g  = atmosphere_state.g
 
     # "initial" scales because we will recompute them
     u★ = approximate_interface_state.u★
@@ -173,13 +169,12 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
     ℓu = flux_formulation.roughness_lengths.momentum
     ℓθ = flux_formulation.roughness_lengths.temperature
     ℓq = flux_formulation.roughness_lengths.water_vapor
-    β = flux_formulation.gustiness_parameter
+    β  = flux_formulation.gustiness_parameter
 
     # Compute surface thermodynamic state
     𝒬ₛ = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, 𝒬ₐ.p, Tₛ, qₛ)
 
     # Compute Monin-Obukhov length scale depending on a `buoyancy flux`
-    g = flux_formulation.gravitational_acceleration
     b★ = buoyancy_scale(θ★, q★, 𝒬ₛ, ℂₐ, g)
 
     # Monin-Obhukov characteristic length scale and non-dimensional height
@@ -196,12 +191,6 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
     χu = ϰ / similarity_profile(form, ψu, Δh, ℓu₀, L★)
     χθ = ϰ / similarity_profile(form, ψθ, Δh, ℓθ₀, L★)
     χq = ϰ / similarity_profile(form, ψq, Δh, ℓq₀, L★)
-
-    #=
-    Pr = flux_formulation.turbulent_prandtl_number
-    χθ = χθ / Pr
-    χq = χq / Pr
-    =#
 
     # Buoyancy flux characteristic scale for gustiness (Edson 2013)
     h_bℓ = atmosphere_state.h_bℓ
