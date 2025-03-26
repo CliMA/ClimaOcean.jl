@@ -18,7 +18,7 @@ function ECCO_mask(metadata, architecture = CPU();
 
     # ECCO4 has zeros in place of the missing values, while
     # ECCO2 expresses missing values with values < -1e5
-    if metadata.version isa ECCO4Monthly || metadata.version isa ECCO4DarwinMonthly
+    if metadata.dataset isa Union{ECCO4Monthly, ECCO4DarwinMonthly}
         _set_mask! = _set_ECCO4_mask!
     else
         _set_mask! = _set_ECCO2_mask!

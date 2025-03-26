@@ -213,7 +213,7 @@ function ECCO_field(metadata::ECCOMetadata;
     # ECCO4 data is on a -180, 180 longitude grid as opposed to ECCO2 data that
     # is on a 0, 360 longitude grid. To make the data consistent, we shift ECCO4
     # data by 180 degrees in longitude
-    if metadata.version isa Union{ECCO4Monthly, ECCO4DarwinMonthly}
+    if metadata.dataset isa Union{ECCO4Monthly, ECCO4DarwinMonthly}
         Nx = size(data, 1)
         if variable_is_three_dimensional(metadata)
             shift = (Nx ÷ 2, 0, 0)
