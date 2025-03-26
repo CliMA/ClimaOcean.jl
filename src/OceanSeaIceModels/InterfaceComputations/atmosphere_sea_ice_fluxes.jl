@@ -130,22 +130,17 @@ end
     initial_interface_state = InterfaceState(u★, u★, u★, uᵢ, vᵢ, Tₛ, Sₛ, convert(FT, qₛ))
     not_water = inactive_node(i, j, kᴺ, grid, Center(), Center(), Center())
     ice_free = ℵᵢ == 0
+    is_ice = !(not_water || ice_free)
 
-    stop_criteria = turbulent_flux_formulation.solver_stop_criteria
-    needs_to_converge = stop_criteria isa ConvergenceStopCriteria
-
-    if (needs_to_converge && not_water) || ice_free
-        interface_state = InterfaceState(zero(FT), zero(FT), zero(FT), uᵢ, vᵢ, Tᵢ, Sₛ, zero(FT))
-    else
-        interface_state = compute_interface_state(turbulent_flux_formulation,
-                                                  initial_interface_state,
-                                                  local_atmosphere_state,
-                                                  local_interior_state,
-                                                  downwelling_radiation,
-                                                  interface_properties,
-                                                  atmosphere_properties,
-                                                  sea_ice_properties)
-    end
+    interface_state = compute_interface_state(turbulent_flux_formulation,
+                                              is_ice,
+                                              initial_interface_state,
+                                              local_atmosphere_state,
+                                              local_interior_state,
+                                              downwelling_radiation,
+                                              interface_properties,
+                                              atmosphere_properties,
+                                              sea_ice_properties)
 
     u★ = interface_state.u★
     θ★ = interface_state.θ★

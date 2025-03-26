@@ -1,6 +1,6 @@
 using Oceananigans.BuoyancyFormulations: g_Earth
 
-struct CoefficientBasedFluxes{CD, CH, CQ, FT, S}
+struct CoefficientBasedFluxes{CD, CH, CQ, FT, S} <: AbstractIterativeSolver{S}
     drag_coefficient :: CD
     gravitational_acceleration :: FT
     heat_transfer_coefficient :: CH
