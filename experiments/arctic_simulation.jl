@@ -67,7 +67,7 @@ SSS = view(ocean.model.tracers.S, :, :, grid.Nz)
 bottom_heat_boundary_condition = IceWaterThermalEquilibrium(SSS)
 
 SSU = view(ocean.model.velocities.u, :, :, grid.Nz)
-SSV = view(ocean.model.velocities.u, :, :, grid.Nz)
+SSV = view(ocean.model.velocities.v, :, :, grid.Nz)
 
 τo  = SemiImplicitStress(uₑ=SSU, vₑ=SSV)
 τua = Field{Face, Center, Nothing}(grid)

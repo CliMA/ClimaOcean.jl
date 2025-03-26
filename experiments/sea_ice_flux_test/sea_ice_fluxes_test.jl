@@ -47,16 +47,33 @@ ocean.model.timestepper.χ = - 0.5
 
 set!(ocean.model, T=Tf, u=0.2, S=30)
 
-fix_salinity!(sim) = 
-    fill!(sim.model.tracers.S, 30)
-    
+fix_salinity!(sim) = fill!(sim.model.tracers.S, 30)    
 add_callback!(ocean, fix_salinity!, IterationInterval(1))
 
 ####
 #### Sea ice simulation
 ####
 
-sea_ice = sea_ice_simulation(grid; ice_salinity=4)
+# Remember to pass the SSS as a bottom bc to the sea ice!
+SSS = view(ocean.model.tracers.S, :, :, grid.Nz)
+bottom_heat_boundary_condition = IceWaterThermalEquilibrium(SSS)
+
+SSU = view(ocean.model.velocities.u, :, :, grid.Nz)
+SSV = view(ocean.model.velocities.v, :, :, grid.Nz)
+
+τo  = SemiImplicitStress(uₑ=SSU, vₑ=SSV)
+τua = Field{Face, Center, Nothing}(grid)
+τva = Field{Center, Face, Nothing}(grid)
+
+dynamics = SeaIceMomentumEquation(grid;
+                                  coriolis = ocean.model.coriolis,
+                                  top_momentum_stress = (u=τua, v=τva),
+                                  bottom_momentum_stress = τo,
+                                  ocean_velocities = (u=SSU, v=SSV),
+                                  rheology = ElastoViscoPlasticRheology(),
+                                  solver = SplitExplicitSolver(120))
+
+sea_ice = sea_ice_simulation(grid; bottom_heat_boundary_condition, ice_salinity=4) # dynamics, advection=WENO(order=7))
 
 ℵi = ones(size(grid))
 ℵi[:, 1]    .= 0.0
