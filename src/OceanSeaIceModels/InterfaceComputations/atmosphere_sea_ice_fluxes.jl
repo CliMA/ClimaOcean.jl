@@ -15,7 +15,7 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
                       h = sea_ice.model.ice_thickness,
                       ℵ = sea_ice.model.ice_concentration,
                       T = ocean.model.tracers.T,
-                      S = sea_ice.model.tracers.S)
+                      S = ocean.model.tracers.S)
 
     atmosphere_fields = coupled_model.interfaces.exchanger.exchange_atmosphere_state
 
