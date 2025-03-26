@@ -214,7 +214,6 @@ end
     F = st.internal_flux
     k = F.conductivity
     h = Ψᵢ.h
-    ℵ = Ψᵢ.ℵ
 
     # Bottom temperature at the melting temperature
     Tᵢ = ClimaSeaIce.SeaIceThermodynamics.melting_temperature(ℙᵢ.liquidus, Ψᵢ.S)
@@ -223,12 +222,19 @@ end
 
     # Calculating the atmospheric temperature
     # We use to compute the sensible heat flux 
+    # TODO: fix this mess
     𝒬ₐ = Ψₐ.𝒬
     ℂₐ = ℙₐ.thermodynamics_parameters
     Tₐ = AtmosphericThermodynamics.air_temperature(ℂₐ, 𝒬ₐ)
-    ΔT = Tₐ - Tₛ⁻
-    Ωc = ifelse(ΔT == 0, zero(h), Qc / ΔT) * ℵ # Sensible heat transfer coefficient (W/m²K)
-    Qa = (Qv + Qu + Qd) * ℵ # Net flux excluding sensible heat (positive out of the ocean)
+    zₐ = Ψₐ.z
+    zₛ = zero(zₐ)
+    Δh = zₐ - zₛ
+    Tₐ = AtmosphericThermodynamics.air_temperature(ℂₐ, 𝒬ₐ)
+    g  = 9.80665 # m/s²
+    cₐ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ)
+    ΔT = Tₐ + g * Δh / cₐ - Tₛ⁻
+    Ωc = ifelse(ΔT == 0, zero(h), Qc / ΔT) # Sensible heat transfer coefficient (W/m²K)
+    Qa = (Qv + Qu + Qd) # Net flux excluding sensible heat (positive out of the ocean)
 
     # Computing the flux balance temperature
     T★ = (Tᵢ * k - (Qa + Ωc * Tₐ) * h) / (k - Ωc * h)
@@ -244,9 +250,7 @@ end
     Tₛ⁺ = Tₛ⁻ + abs_ΔT * sign(ΔT★)
 
     # Under heating fluxes, cap surface temperature by melting temperature
-    Tₘ = ℙᵢ.liquidus.freshwater_melting_temperature
-    Tₘ = convert_to_kelvin(ℙᵢ.temperature_units, Tₘ)
-    Tₛ⁺ = min(Tₛ⁺, Tₘ)
+    Tₛ⁺ = min(Tₛ⁺, Tᵢ)
 
     return Tₛ⁺
 end

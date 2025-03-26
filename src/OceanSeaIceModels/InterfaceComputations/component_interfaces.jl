@@ -238,7 +238,7 @@ end
 sea_ice_ocean_interface(sea_ice, ocean) = nothing
 
 function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean;
-                                 characteristic_melting_speed = 1e-5)
+                                 characteristic_melting_speed = 1e-4)
 
     previous_ice_thickness = deepcopy(sea_ice.model.ice_thickness)
     previous_ice_concentration = deepcopy(sea_ice.model.ice_concentration)
