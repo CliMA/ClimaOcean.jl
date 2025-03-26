@@ -11,7 +11,7 @@ function compute_sea_ice_ocean_fluxes!(coupled_model)
     Δt = ocean.Δt
     Tₒ = ocean.model.tracers.T
     Sₒ = ocean.model.tracers.S
-    Sᵢ = sea_ice.model.ice_salinity
+    Sᵢ = sea_ice.model.tracers.S
     ℵᵢ = sea_ice.model.ice_concentration
     hᵢ = sea_ice.model.ice_thickness
     h⁻ = coupled_model.interfaces.sea_ice_ocean_interface.previous_ice_thickness
