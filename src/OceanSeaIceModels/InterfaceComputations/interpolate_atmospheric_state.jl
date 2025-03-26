@@ -110,10 +110,12 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
     end
 
     # Set ocean barotropic pressure forcing
-    barotropic_potential = forcing_barotropic_potential(ocean)
+    u_potential = forcing_barotropic_potential(ocean.model.forcing.u)
+    v_potential = forcing_barotropic_potential(ocean.model.forcing.v)
     ρₒ = coupled_model.interfaces.ocean_properties.reference_density
     if !isnothing(barotropic_potential)
-        parent(barotropic_potential) .= parent(atmosphere_data.p) ./ ρₒ
+        parent(u_potential) .= parent(atmosphere_data.p) ./ ρₒ
+        parent(v_potential) .= parent(atmosphere_data.p) ./ ρₒ
     end
 end
 
