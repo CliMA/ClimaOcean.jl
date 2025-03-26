@@ -80,7 +80,7 @@ dynamics = SeaIceMomentumEquation(grid;
                                   coriolis = ocean.model.coriolis,
                                   top_momentum_stress = (u=τua, v=τva),
                                   bottom_momentum_stress = τo,
-                                  ocean_velocities = (u=SSU, v=SSV),
+                                  ocean_velocities = (u=0.1*SSU, v=0.1*SSV),
                                   rheology = ElastoViscoPlasticRheology(),
                                   solver = SplitExplicitSolver(120))
 
