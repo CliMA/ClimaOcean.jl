@@ -17,7 +17,7 @@ struct ECCO4Monthly end
 
 struct ECCO4DarwinMonthly end
 
-const ECCOMetadata{D} = Metadata{D, <:Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}} where {D}
+const ECCOMetadata{D} = Metadata{D, <:Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly, <:ECCO4DarwinMonthly}} where {D}
 const ECCOMetadatum   = ECCOMetadata{<:AnyDateTime}
 
 const ECCO2_url = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/"
@@ -37,7 +37,7 @@ function ECCOMetadatum(name;
     return Metadatum(name; date, dir, dataset=ECCO4Monthly())
 end
 
-default_download_directory(::Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}) = download_ECCO_cache
+default_download_directory(::Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly, <:ECCO4DarwinMonthly}) = download_ECCO_cache
 
 datasetstr(md::ECCOMetadata) = string(md.dataset)
 

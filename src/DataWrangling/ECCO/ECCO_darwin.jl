@@ -1,10 +1,16 @@
 using MeshArrays
 
-Base.size(::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4DarwinMonthly})   = (720, 360, 50, 1)
-Base.size(data::ECCOMetadata{<:Any, <:ECCO4DarwinMonthly}) = (720, 360, 50, length(data.dates))
+# URLs for the ECCO datasets specific to each version
+const ECCO4Darwin_url = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/LLC90/ECCO-Darwin/"
 
-# File name generation specific to each Dataset version
-function metadata_filename(metadata::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4DarwinMonthly})
+Base.size(::Metadata{<:AnyDateTime, <:ECCO4DarwinMonthly}) = (720,  360, 50, 1)
+Base.size(data::Metadata{<:Any, <:ECCO4DarwinMonthly}) = (720,  360, 50, length(data.dates))
+
+# The whole range of dates in the different dataset datasets
+all_dates(::ECCO4DarwinMonthly, name) = DateTime(1992, 1, 1) : Month(1) : DateTime(2023, 12, 1)
+
+# File name generation specific to each Dataset dataset
+function metadata_filename(metadata::ECCOMetadata{<:AnyDateTime, <:ECCO4DarwinMonthly})
     shortname = short_name(metadata)
     
     reference_date = DateTimeProlepticGregorian(1992, 1, 1, 12, 0, 0)
@@ -17,9 +23,7 @@ function metadata_filename(metadata::ECCOMetadata{<:AbstractCFDateTime, <:ECCO4D
 end
 
 # Convenience functions
-short_name(data::ECCOMetadata{<:Any, <:ECCO4DarwinMonthly}) = ECCO_darwin_short_names[data.name]
-
-metadata_url(prefix, m::ECCOMetadata{<:Any, <:ECCO4DarwinMonthly}) = prefix * "/" * short_name(m) * "/" * metadata_filename(m)
+short_name(data::Metadata{<:Any, <:ECCO4DarwinMonthly}) = ECCO_darwin_short_names[data.name]
 
 location(::ECCOMetadata{<:Any, <:ECCO4DarwinMonthly}) = (Center, Center, Center)
 
@@ -47,8 +51,7 @@ ECCO_darwin_scale_factor = Dict(
     :Siᵀ => 1e-3,
 )
 
-# URLs for the ECCO datasets specific to each version
-urls(::ECCOMetadata{<:Any, <:ECCO4DarwinMonthly}) = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/LLC90/ECCO-Darwin/monthly/"
+metadata_url(m::Metadata{<:Any, <:ECCO4DarwinMonthly}) = ECCO4Darwin_url * "monthly/" * short_name(m) * "/" * metadata_filename(m)
 
 ECCO_darwin_native_grid(::ECCO4DarwinMonthly) = GridSpec("LatLonCap", MeshArrays.GRID_LLC90)
 ECCO_darwin_native_size(::ECCO4DarwinMonthly) = (90, 1170, 50)
@@ -73,7 +76,7 @@ function ECCO_darwin_model_data(metadata, path)
     # Download the native grid data from MeshArrays repo (only if not in already in datadeps)
     native_grid_coords = GridLoad(native_grid; option="full")
     
-    # Calculate coefficients to interpolate from native grid to 0.5 degree regular lat-lon grid
+    # Calculate coefficients to interpolate from native grid to 0.5 degree regular lat-lon grid (as in the physical ECCOv4 netcdf files)
     coeffs = interpolation_setup(
         Γ   = native_grid_coords,
         lon = [i for i = -179.5:0.5:179.5, j = -89.5:0.5:89.5], 
@@ -97,9 +100,8 @@ function ECCO_darwin_model_data(metadata, path)
     # Fill NaNs in Antarctica with zeros
     data[isnan.(data)] .= 0.f0
 
-    scale_factor = ECCO_darwin_scale_factor[metadata.name]
     # Scale data according to metadata.scale_factor
-    return data .* scale_factor
+    return data .* ECCO_darwin_scale_factor[metadata.name]
 end
 
 retrieve_data(metadata::ECCOMetadata{<:Any, <:ECCO4DarwinMonthly}, path) = ECCO_darwin_model_data(metadata, path)
