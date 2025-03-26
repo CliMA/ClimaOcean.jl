@@ -240,7 +240,7 @@ end
     inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
 
     @inbounds top_fluxes.heat[i, j, 1]  = ifelse(inactive, zero(grid), ΣQt)
-    @inbounds top_fluxes.u[i, j, 1]     = ifelse(inactive, zero(grid), ℑxᶠᵃᵃ(i, j, 1, grid, ρτx))
-    @inbounds top_fluxes.v[i, j, 1]     = ifelse(inactive, zero(grid), ℑyᵃᶠᵃ(i, j, 1, grid, ρτy))
+    @inbounds top_fluxes.u[i, j, 1]     = ifelse(inactive, zero(grid), ℑxyᶠᶠᵃ(i, j, 1, grid, ρτx))
+    @inbounds top_fluxes.v[i, j, 1]     = ifelse(inactive, zero(grid), ℑxyᶠᶠᵃ(i, j, 1, grid, ρτy))
     @inbounds bottom_heat_flux[i, j, 1] = ifelse(inactive, zero(grid), ΣQb)
 end

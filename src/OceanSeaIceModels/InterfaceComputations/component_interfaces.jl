@@ -352,8 +352,8 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                               temperature_units  = sea_ice_temperature_units)
 
         net_momentum_fluxes = if sea_ice.model.dynamics isa Nothing 
-            u = Field{Face, Center, Nothing}(sea_ice.model.grid)
-            v = Field{Center, Face, Nothing}(sea_ice.model.grid)
+            u = Field{Face, Face, Nothing}(sea_ice.model.grid)
+            v = Field{Face, Face, Nothing}(sea_ice.model.grid)
             (; u, v) 
         else
             u = sea_ice.model.dynamics.external_momentum_stresses.top.u

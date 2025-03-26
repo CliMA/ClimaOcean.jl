@@ -50,8 +50,8 @@ function sea_ice_simulation(grid;
     bottom_heat_flux = Field{Center, Center, Nothing}(grid)
     top_heat_flux    = Field{Center, Center, Nothing}(grid)
 
-    # top_momentum_stress = (u = Field{Face, Center, Nothing}(grid),
-    #                        v = Field{Center, Face, Nothing}(grid))
+    # top_momentum_stress = (u = Field{Face, Face, Nothing}(grid),
+    #                        v = Field{Face, Face, Nothing}(grid))
 
     # Build the sea ice model
     sea_ice_model = SeaIceModel(grid;

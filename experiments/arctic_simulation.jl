@@ -69,9 +69,12 @@ bottom_heat_boundary_condition = IceWaterThermalEquilibrium(SSS)
 SSU = view(ocean.model.velocities.u, :, :, grid.Nz)
 SSV = view(ocean.model.velocities.v, :, :, grid.Nz)
 
+SSU = @at((Face, Face, Center), SSU)
+SSV = @at((Face, Face, Center), SSV)
+
 τo  = SemiImplicitStress(uₑ=SSU, vₑ=SSV)
-τua = Field{Face, Center, Nothing}(grid)
-τva = Field{Center, Face, Nothing}(grid)
+τua = Field{Face, Face, Nothing}(grid)
+τva = Field{Face, Face, Nothing}(grid)
 
 dynamics = SeaIceMomentumEquation(grid;
                                   coriolis = ocean.model.coriolis,
