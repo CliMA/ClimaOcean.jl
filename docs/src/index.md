@@ -25,7 +25,7 @@ julia> Pkg.add("ClimaOcean")
 
 !!! compat "Julia 1.10 is required"
     ClimaOcean requires Julia 1.10 or later.
-    
+
 ## Quick start
 
 The following script implements a near-global ocean simulation initialized from the [ECCO state estimate](https://gmd.copernicus.org/articles/8/3071/2015/) and coupled to a prescribed atmosphere derived from the [JRA55-do reanalysis](https://www.sciencedirect.com/science/article/pii/S146350031830235X):
@@ -49,9 +49,10 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bathymetry))
 
 # Build an ocean simulation initialized to the ECCO state estimate on Jan 1, 1993
 ocean = ClimaOcean.ocean_simulation(grid)
-date  = DateTimeProlepticGregorian(1993, 1, 1)
-set!(ocean.model, T = ClimaOcean.ECCOMetadata(:temperature; date),
-                  S = ClimaOcean.ECCOMetadata(:salinity; date))
+start_date = DateTime(1993, 1, 1)
+set!(ocean.model,
+     T=ClimaOcean.Metadata(:temperature; dates=start_date, dataset=ClimaOcean.ECCO4Monthly()),
+     S=ClimaOcean.Metadata(:salinity;    dates=start_date, dataset=ClimaOcean.ECCO4Monthly()))
 
 # Build and run an OceanSeaIceModel (with no sea ice component) forced by JRA55 reanalysis
 atmosphere = ClimaOcean.JRA55PrescribedAtmosphere(arch)

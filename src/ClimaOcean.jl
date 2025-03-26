@@ -24,18 +24,19 @@ export
     exponential_z_faces,
     PowerLawStretching, LinearStretching,
     exponential_z_faces,
-    JRA55_field_time_series,
+    Metadata,
+    Metadatum,
+    ECCOMetadatum,
+    first_date,
+    last_date,
+    all_dates,
+    JRA55FieldTimeSeries,
     ECCO_field, 
-    ECCOMetadata,
     ECCORestoring,
     LinearlyTaperedPolarMask,
     ocean_simulation,
     sea_ice_simulation,
-    initialize!,
-    @root, 
-    @onrank,
-    @distribute,
-    @handshake
+    initialize!
 
 using Oceananigans
 using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
@@ -72,17 +73,15 @@ end
     return NamedTuple{names}(vals)
 end
 
-include("DistributedUtils.jl")
+include("OceanSimulations/OceanSimulations.jl")
+include("SeaIceSimulations.jl")
 include("OceanSeaIceModels/OceanSeaIceModels.jl")
 include("VerticalGrids.jl")
 include("InitialConditions/InitialConditions.jl")
 include("DataWrangling/DataWrangling.jl")
 include("Bathymetry.jl")
 include("Diagnostics/Diagnostics.jl")
-include("OceanSimulations.jl")
-include("SeaIceSimulations.jl")
 
-using .DistributedUtils
 using .VerticalGrids
 using .Bathymetry
 using .DataWrangling
@@ -95,6 +94,19 @@ using .DataWrangling: JRA55, ECCO
 using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 using ClimaOcean.DataWrangling.JRA55: JRA55PrescribedAtmosphere, JRA55NetCDFBackend
 using ClimaOcean.DataWrangling.ECCO
+
+using PrecompileTools: @setup_workload, @compile_workload
+
+@setup_workload begin
+    Nx, Ny, Nz = 32, 32, 10
+    @compile_workload begin
+        z = exponential_z_faces(Nz=Nz, depth=6000, h=34)
+        grid = Oceananigans.OrthogonalSphericalShellGrids.TripolarGrid(CPU(); size=(Nx, Ny, Nz), halo=(7, 7, 7), z)
+        grid = ImmersedBoundaryGrid(grid, GridFittedBottom((x, y) -> -5000))
+        ocean = ocean_simulation(grid)
+        model = OceanSeaIceModel(ocean)
+    end
+end
 
 end # module
 
