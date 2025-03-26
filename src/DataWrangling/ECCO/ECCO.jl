@@ -33,7 +33,6 @@ end
 
 include("ECCO_metadata.jl")
 include("ECCO_mask.jl")
-include("ECCO_restoring.jl")
 include("ECCO_darwin.jl")
 
 # Vertical coordinate
