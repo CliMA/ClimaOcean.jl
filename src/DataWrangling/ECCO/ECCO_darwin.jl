@@ -80,6 +80,8 @@ function ECCO_darwin_model_data(metadata, path)
     resolution_X = 360/Nx
     resolution_Y = 180/Ny
 
+    # This is for ECCOv4 which uses a hemispheric coordinate system (-180:180), but 
+    # ECCO2 uses a circular coordinate system (0:360)
     lon = [i for i = -180+resolution_X/2:resolution_X:180-resolution_X/2, 
                  j = -90+resolution_Y/2:resolution_Y:90-resolution_Y/2]
     lat = [j for i = -180+resolution_X/2:resolution_X:180-resolution_X/2, 
