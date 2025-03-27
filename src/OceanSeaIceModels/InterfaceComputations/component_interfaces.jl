@@ -49,7 +49,7 @@ mutable struct SeaIceOceanInterface{J, P, H, A}
     previous_ice_concentration :: A
 end
 
-mutable struct ComponentInterfaces{AO, ASI, SIO, C, AP, OP, SIP, EX, FT}
+mutable struct ComponentInterfaces{AO, ASI, SIO, C, AP, OP, SIP, EX, P}
     atmosphere_ocean_interface :: AO
     atmosphere_sea_ice_interface :: ASI
     sea_ice_ocean_interface :: SIO
@@ -58,7 +58,7 @@ mutable struct ComponentInterfaces{AO, ASI, SIO, C, AP, OP, SIP, EX, FT}
     sea_ice_properties :: SIP
     exchanger :: EX
     net_fluxes :: C
-    gravitational_acceleration :: FT
+    properties :: P
 end
 
 mutable struct StateExchanger{G, AST, AEX}
@@ -390,6 +390,8 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
 
     exchanger = StateExchanger(ocean, atmosphere)
 
+    properties = (; gravitational_acceleration)
+
     return ComponentInterfaces(ao_interface,
                                ai_interface,
                                io_interface,
@@ -398,7 +400,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                                sea_ice_properties,
                                exchanger,
                                net_fluxes,
-                               gravitational_acceleration)
+                               properties)
 end
 
 sea_ice_similarity_theory(sea_ice) = nothing

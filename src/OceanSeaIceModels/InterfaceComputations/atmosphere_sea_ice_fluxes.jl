@@ -40,7 +40,7 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
 
     atmosphere_properties = (thermodynamics_parameters = thermodynamics_parameters(atmosphere),
                              surface_layer_height = surface_layer_height(atmosphere),
-                             gravitational_acceleration = coupled_model.interfaces.gravitational_acceleration)
+                             gravitational_acceleration = coupled_model.interfaces.properties.gravitational_acceleration)
 
     kernel_parameters = interface_kernel_parameters(grid)
 
