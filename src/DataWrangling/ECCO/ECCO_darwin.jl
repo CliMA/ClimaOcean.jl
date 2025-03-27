@@ -75,13 +75,19 @@ function ECCO_darwin_model_data(metadata, path)
 
     # Download the native grid data from MeshArrays repo (only if not in already in datadeps)
     native_grid_coords = GridLoad(native_grid; option="full")
+
+    # Calculate coefficients to interpolate from native grid to regular lat-lon grid (as in the ECCO netcdf files)
+    resolution_X = 360/Nx
+    resolution_Y = 180/Ny
+
+    lon = [i for i = -180+resolution_X/2:resolution_X:180-resolution_X/2, 
+                 j = -90+resolution_Y/2:resolution_Y:90-resolution_Y/2]
+    lat = [j for i = -180+resolution_X/2:resolution_X:180-resolution_X/2, 
+                 j = -90+resolution_Y/2:resolution_Y:90-resolution_Y/2]
     
-    # Calculate coefficients to interpolate from native grid to 0.5 degree regular lat-lon grid (as in the physical ECCOv4 netcdf files)
-    coeffs = interpolation_setup(
-        Γ   = native_grid_coords,
-        lon = [i for i = -179.5:0.5:179.5, j = -89.5:0.5:89.5], 
-        lat = [j for i = -179.5:0.5:179.5, j = -89.5:0.5:89.5],
-    )
+    (f, i, j, w, _, _, _) = InterpolationFactors(native_grid_coords, vec(lon), vec(lat))
+    coeffs = (lon=lon, lat=lat, f=f, i=i, j=j, w=w)
+
     # Read continental mask on the native model grid 
     native_grid_fac_center = GridLoadVar("hFacC", native_grid)
 
