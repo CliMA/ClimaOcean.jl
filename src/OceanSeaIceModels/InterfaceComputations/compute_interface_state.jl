@@ -19,8 +19,8 @@ end
 end
 
 # Fixed number of iterations
-struct FixedIterations
-    iterations :: Int
+struct FixedIterations{I}
+    iterations :: I
 end
 
 @inline iterating(Ψⁿ, Ψ⁻, ℙᵢ, iteration, fixed::FixedIterations) = iteration < fixed.iterations
