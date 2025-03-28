@@ -20,8 +20,8 @@ on:
       - 'Project.toml'
 
 jobs:
-  test:
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+  downloading:
+    name: Downloading - Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     strategy:
@@ -51,6 +51,41 @@ jobs:
           TEST_GROUP: "downloading"
           ECCO_USERNAME: ${{ secrets.ECCO_USERNAME }} # To download ECCO data from the podaac website
           ECCO_PASSWORD: ${{ secrets.ECCO_PASSWORD }} # To download ECCO data from the podaac website
+      - uses: julia-actions/julia-processcoverage@v1
+      - uses: codecov/codecov-action@v5
+        with:
+          files: lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  reactant:
+    name: Reactant extension - Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - '1.10'
+        os:
+          - ubuntu-latest
+        arch:
+          - x64
+        include:
+          - os: macOS-latest
+            arch: aarch64
+            version: '1.10'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@latest
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@v1
+      - uses: julia-actions/julia-runtest@v1
+        env:
+          TEST_GROUP: "reactant"
+          GPU_TEST: "false"
       - uses: julia-actions/julia-processcoverage@v1
       - uses: codecov/codecov-action@v5
         with:
