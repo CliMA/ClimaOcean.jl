@@ -102,6 +102,11 @@ function StateExchanger(ocean::Simulation, atmosphere)
     return StateExchanger(ocean.model.grid, exchange_atmosphere_state, exchanger)
 end
 
+mutable struct PrescribedAtmosphereExchanger{X, Y}
+    i :: X
+    j :: Y
+end
+
 function atmosphere_exchanger(atmosphere::PrescribedAtmosphere, exchange_grid)
     atmos_grid = atmosphere.grid
     arch = architecture(exchange_grid)
@@ -114,7 +119,8 @@ function atmosphere_exchanger(atmosphere::PrescribedAtmosphere, exchange_grid)
     TX, TY, TZ = topology(exchange_grid)
     fi = TX() isa Flat ? nothing : Field{Center, Center, Nothing}(exchange_grid, FT)
     fj = TY() isa Flat ? nothing : Field{Center, Center, Nothing}(exchange_grid, FT)
-    frac_indices = (i=fi, j=fj) # no k needed, only horizontal interpolation
+    # frac_indices = (i=fi, j=fj) # no k needed, only horizontal interpolation
+    frac_indices = PrescribedAtmosphereExchanger(i, j)
 
     return frac_indices
 end
