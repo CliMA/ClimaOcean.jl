@@ -25,6 +25,9 @@ default_download_directory(::Union{<:JRA55MultipleYears, <:JRA55RepeatYear}) = d
 Base.size(data::JRA55Metadata) = (640, 320, length(data.dates))
 Base.size(::JRA55Metadatum)    = (640, 320, 1)
 
+# JRA55 is a spatially 2D dataset
+variable_is_three_dimensional(data::JRA55Metadata) = false
+
 # The whole range of dates in the different dataset datasets
 # NOTE! rivers and icebergs have a different frequency! (typical JRA55 data is three-hourly while rivers and icebergs are daily)
 function all_dates(::JRA55RepeatYear, name)
@@ -35,17 +38,12 @@ function all_dates(::JRA55RepeatYear, name)
     end
 end
 
-function all_dates(::JRA55MultipleYears, name)
-    if name == :river_freshwater_flux || name == :iceberg_freshwater_flux
-        return DateTime(1958, 1, 1) : Day(1) : DateTime(2021, 1, 1)
-    else
-        return DateTime(1958, 1, 1) : Hour(3) : DateTime(2021, 1, 1)
-    end
-end
+all_dates(::JRA55MultipleYears, name) = JRA55_multiple_years_dates[name]
 
 # Fallback, if we not provide the name, take the highest frequency
 all_dates(dataset::Union{<:JRA55MultipleYears, <:JRA55RepeatYear}) = all_dates(dataset, :temperature)
 
+# Valid for all JRA55 datasets
 function JRA55_time_indices(dataset, dates, name)
     all_JRA55_dates = all_dates(dataset, name)
     indices = Int[]
@@ -59,24 +57,39 @@ function JRA55_time_indices(dataset, dates, name)
 end
 
 # File name generation specific to each Dataset dataset
-function metadata_filename(metadata::Metadata{<:Any, <:JRA55RepeatYear}) # No difference
+function metadata_filename(metadata::Metadatum{<:Any, <:JRA55RepeatYear}) # No difference 
     shortname = short_name(metadata)
     return "RYF." * shortname * ".1990_1991.nc"
 end
 
-# TODO: Implement this function for JRA55MultipleYears
-# function metadata_filename(metadata::Metadata{<:AbstractCFDateTime, <:JRA55MultipleYears})
-#     # fix the filename
-#     shortname = short_name(metadata)
-#     year      = Dates.year(metadata.dates)
-#     suffix    = "_input4MIPs_atmosphericState_OMIP_MRI-JRA55-do-1-5-0_gr_"
-#     dates     = "($year)01010130-($year)12312330.nc"
-#     return shortname * suffix * dates * ".nc"
-# end
+multiple_year_time_displaced_variables = [:rain_freshwater_flux, 
+                                          :snow_freshwater_flux,
+                                          :downwelling_shortwave_radiation, 
+                                          :downwelling_longwave_radiation]
+
+function metadata_filename(metadata::Metadatum{<:Any, <:JRA55MultipleYears})
+    # fix the filename
+    shortname = short_name(metadata)
+    year      = Dates.year(metadata.dates)
+    suffix    = "_input4MIPs_atmosphericState_OMIP_MRI-JRA55-do-1-5-0_gr_"
+
+    if metadata.name ∈ [:river_freshwater_flux, :iceberg_freshwater_flux]
+        dates = "$(year)0101-$(year)1231"
+    elseif metadata.name ∈ [:rain_freshwater_flux, 
+                            :snow_freshwater_flux, 
+                            :downwelling_shortwave_radiation, 
+                            :downwelling_longwave_radiation]
+        dates = "$(year)01010130-$(year)12312230"
+    else
+        dates = "$(year)01010000-$(year)12312100"
+    end
+
+    return shortname * suffix * dates * ".nc"
+end
 
 # Convenience functions
 short_name(data::JRA55Metadata) = JRA55_short_names[data.name]
-location(::JRA55Metadata)       = (Center, Center, Center)
+location(::JRA55Metadata) = (Center, Center, Center)
 
 # A list of all variables provided in the JRA55 dataset:
 JRA55_variable_names = (:river_freshwater_flux,
@@ -85,7 +98,6 @@ JRA55_variable_names = (:river_freshwater_flux,
                         :iceberg_freshwater_flux,
                         :specific_humidity,
                         :sea_level_pressure,
-                        :relative_humidity,
                         :downwelling_longwave_radiation,
                         :downwelling_shortwave_radiation,
                         :temperature,
@@ -99,12 +111,41 @@ JRA55_short_names = Dict(
     :iceberg_freshwater_flux         => "licalvf",  # Freshwater flux from calving icebergs
     :specific_humidity               => "huss",     # Surface specific humidity
     :sea_level_pressure              => "psl",      # Sea level pressure
-    :relative_humidity               => "rhuss",    # Surface relative humidity
     :downwelling_longwave_radiation  => "rlds",     # Downwelling longwave radiation
     :downwelling_shortwave_radiation => "rsds",     # Downwelling shortwave radiation
     :temperature                     => "tas",      # Near-surface air temperature
     :eastward_velocity               => "uas",      # Eastward near-surface wind
     :northward_velocity              => "vas",      # Northward near-surface wind
+)
+
+JRA55_multiple_year_url = "https://esgf-data2.llnl.gov/thredds/fileServer/user_pub_work/input4MIPs/CMIP6/OMIP/MRI/MRI-JRA55-do-1-5-0/"
+
+JRA55_multiple_year_prefix = Dict(
+    :river_freshwater_flux           => "land/day",
+    :rain_freshwater_flux            => "atmos/3hr",
+    :snow_freshwater_flux            => "atmos/3hr",
+    :iceberg_freshwater_flux         => "landIce/day",
+    :specific_humidity               => "atmos/3hrPt",
+    :sea_level_pressure              => "atmos/3hrPt",
+    :downwelling_longwave_radiation  => "atmos/3hr",
+    :downwelling_shortwave_radiation => "atmos/3hr",
+    :temperature                     => "atmos/3hrPt",
+    :eastward_velocity               => "atmos/3hrPt",
+    :northward_velocity              => "atmos/3hrPt",
+)
+
+JRA55_multiple_year_dates = Dict(
+    :river_freshwater_flux           => DateTime(1958, 1, 1)        : Day(1)  : DateTime(2021, 12, 31),
+    :rain_freshwater_flux            => DateTime(1958, 1, 1, 1, 30) : Hour(3) : DateTime(2021, 12, 31, 22, 30),
+    :snow_freshwater_flux            => DateTime(1958, 1, 1, 1, 30) : Hour(3) : DateTime(2021, 12, 31, 22, 30),
+    :iceberg_freshwater_flux         => DateTime(1958, 1, 1)        : Day(1)  : DateTime(2021, 12, 31),
+    :specific_humidity               => DateTime(1958, 1, 1)        : Hour(3) : DateTime(2021, 12, 31, 21),
+    :sea_level_pressure              => DateTime(1958, 1, 1)        : Hour(3) : DateTime(2021, 12, 31, 21),
+    :downwelling_longwave_radiation  => DateTime(1958, 1, 1, 1, 30) : Hour(3) : DateTime(2021, 12, 31, 22, 30),
+    :downwelling_shortwave_radiation => DateTime(1958, 1, 1, 1, 30) : Hour(3) : DateTime(2021, 12, 31, 22, 30),
+    :temperature                     => DateTime(1958, 1, 1)        : Hour(3) : DateTime(2021, 12, 31, 21),
+    :eastward_velocity               => DateTime(1958, 1, 1)        : Hour(3) : DateTime(2021, 12, 31, 21),
+    :northward_velocity              => DateTime(1958, 1, 1)        : Hour(3) : DateTime(2021, 12, 31, 21)
 )
 
 JRA55_repeat_year_urls = Dict(
@@ -129,9 +170,6 @@ JRA55_repeat_year_urls = Dict(
     :sea_level_pressure => "https://www.dropbox.com/scl/fi/0fk332027oru1iiseykgp/" *
                            "RYF.psl.1990_1991.nc?rlkey=4xpr9uah741483aukok6d7ctt&dl=0",
 
-    :relative_humidity => "https://www.dropbox.com/scl/fi/1agwsp0lzvntuyf8bm9la/" *
-                          "RYF.rhuss.1990_1991.nc?rlkey=8cd0vs7iy1rw58b9pc9t68gtz&dl=0",
-
     :downwelling_longwave_radiation  => "https://www.dropbox.com/scl/fi/y6r62szkirrivua5nqq61/" *
                                         "RYF.rlds.1990_1991.nc?rlkey=wt9yq3cyrvs2rbowoirf4nkum&dl=0",
 
@@ -148,11 +186,12 @@ JRA55_repeat_year_urls = Dict(
                            "RYF.vas.1990_1991.nc?rlkey=f9y3e57kx8xrb40gbstarf0x6&dl=0",
 )
 
-variable_is_three_dimensional(data::JRA55Metadata) = false
+metadata_url(metadata::Metadata{<:Any, <:JRA55RepeatYear}) = JRA55_repeat_year_urls[metadata.name]  
 
-metadata_url(metadata::Metadata{<:Any, <:JRA55RepeatYear}) = JRA55_repeat_year_urls[metadata.name]
-# TODO:
-# metadata_url(metadata::Metadata{<:Any, <:JRA55MultipleYears}) = ...
+function metadata_url(m::Metadata{<:Any, <:JRA55MultipleYears}) 
+    prefix = JRA55_multiple_year_prefix[m.name]
+    return url * prefix * "/" * short_name(m) * "/gr/v20200916/" * metadata_filename(m)
+end
 
 function download_dataset(metadata::JRA55Metadata)
 
