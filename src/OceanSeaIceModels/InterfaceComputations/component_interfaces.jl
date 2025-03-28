@@ -245,14 +245,18 @@ function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean;
     io_bottom_heat_flux = Field{Center, Center, Nothing}(ocean.model.grid)
     io_frazil_heat_flux = Field{Center, Center, Nothing}(ocean.model.grid)
     io_salt_flux = Field{Center, Center, Nothing}(ocean.model.grid)
+    x_momentum = Field{Face, Face, Center}(ocean.model.grid)
+    y_momentum = Field{Face, Face, Center}(ocean.model.grid)
 
     @assert io_frazil_heat_flux isa Field{Center, Center, Nothing}
     @assert io_bottom_heat_flux isa Field{Center, Center, Nothing}
     @assert io_salt_flux isa Field{Center, Center, Nothing}
 
-    io_fluxes = (interface_heat=io_bottom_heat_flux,
-                 frazil_heat=io_frazil_heat_flux,
-                 salt=io_salt_flux)
+    io_fluxes = (; interface_heat=io_bottom_heat_flux,
+                   frazil_heat=io_frazil_heat_flux,
+                   salt=io_salt_flux,
+                   x_momentum, 
+                   y_momentum)
 
     io_properties = (; characteristic_melting_speed)
 
@@ -281,9 +285,7 @@ end
                         radiation = Radiation(),
                         freshwater_density = 1000,
                         atmosphere_ocean_flux_formulation = SimilarityTheoryFluxes(),
-                        atmosphere_sea_ice_flux_formulation = CoefficientBasedFluxes(drag_coefficient=2e-3,
-                                                                                     heat_transfer_coefficient=1e-4,
-                                                                                     vapor_flux_coefficient=1e-4),
+                        atmosphere_sea_ice_flux_formulation = default_ai_flux_formulation(sea_ice),
                         atmosphere_ocean_interface_temperature = BulkTemperature(),
                         atmosphere_ocean_interface_specific_humidity = default_ao_specific_humidity(ocean),
                         atmosphere_sea_ice_interface_temperature = default_ai_temperature(sea_ice),
