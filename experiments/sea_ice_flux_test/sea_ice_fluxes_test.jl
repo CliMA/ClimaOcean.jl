@@ -22,22 +22,23 @@ grid = RectilinearGrid(size=(Nx, Ny, 1),
 Tf = - μf * 30
 τR = 2592000 
 
+RT = [Tf + 0.5 * (j - 4)^2 / (Ny - 4)^2 for j in 1:Ny]
+
 #  parabolic profile in Y, max @ j=4, min @ j=ny, amplitude=1.K
 function T_restoring(i, j, k, grid, clock, fields, p)  
-    Ny = size(grid, 2)
-    j′ = (Ny - j + 4) / (Ny - 4) 
-    Tr = p.Tf + 0.5 * j′^2
+    Tr = @inbounds p.RT[j]
     Ti = @inbounds fields.T[i, j, k]
-    return p.rate * (Tr - Ti)
+    return p.rate * (Ti - Tr)
 end
 
-FT = Forcing(T_restoring, discrete_form=true, parameters=(; rate=1/τR, Tf))
+FT = Forcing(T_restoring, discrete_form=true, parameters=(; rate=1/τR, RT))
 
 ocean = ocean_simulation(grid;
                          momentum_advection = nothing,
                          tracer_advection = nothing,
                          free_surface = nothing,
                          closure = nothing,
+                         coriolis = nothing,
                          bottom_drag_coefficient = 0,
                          equation_of_state = LinearEquationOfState(thermal_expansion=2e-4, haline_contraction=0),
                          forcing = (; T=FT,)
@@ -50,8 +51,13 @@ ocean.model.timestepper.χ = - 0.5
 
 set!(ocean.model, T=Tf, u=0.2, S=30)
 
-fix_salinity!(sim) = fill!(sim.model.tracers.S, 30)    
-add_callback!(ocean, fix_salinity!, IterationInterval(1))
+function reset_ocean!(sim) 
+    fill!(sim.model.tracers.S, 30)    
+    fill!(sim.model.velocities.u, 0.2)
+    fill!(sim.model.velocities.v, 0.0)
+end
+
+add_callback!(ocean, reset_ocean!, IterationInterval(1))
 
 ####
 #### Sea ice simulation
@@ -61,8 +67,8 @@ add_callback!(ocean, fix_salinity!, IterationInterval(1))
 SSS = view(ocean.model.tracers.S, :, :, grid.Nz)
 bottom_heat_boundary_condition = IceWaterThermalEquilibrium(SSS)
 
-SSU = view(ocean.model.velocities.u, :, :, grid.Nz)
-SSV = view(ocean.model.velocities.v, :, :, grid.Nz)
+SSU = @at((Face, Face, Center), view(ocean.model.velocities.u, :, :, grid.Nz))
+SSV = @at((Face, Face, Center), view(ocean.model.velocities.v, :, :, grid.Nz))
 
 τo  = SemiImplicitStress(uₑ=SSU, vₑ=SSV)
 τua = Field{Face, Center, Nothing}(grid)
@@ -72,7 +78,7 @@ dynamics = SeaIceMomentumEquation(grid;
                                   coriolis = ocean.model.coriolis,
                                   top_momentum_stress = (u=τua, v=τva),
                                   bottom_momentum_stress = τo,
-                                  ocean_velocities = (u=SSU, v=SSV),
+                                  # ocean_velocities = (u=0.01*SSU, v=0.01*SSV),
                                   rheology = ElastoViscoPlasticRheology(),
                                   solver = SplitExplicitSolver(120))
 
@@ -118,9 +124,9 @@ end
 #### Coupling
 ####
 
-radiation = Radiation(sea_ice_albedo=0.6, ocean_albedo=0.05)
+radiation = Radiation(sea_ice_albedo=0.6, ocean_albedo=0.1)
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-coupled_simulation = Simulation(coupled_model, Δt=1hour, stop_time=30days)
+coupled_simulation = Simulation(coupled_model, Δt=1hours, stop_time=30days)
 
 progress(sim) = 
     @info "Time: " * prettytime(sim)
@@ -162,7 +168,7 @@ function load_mitgcm_results(path, iter)
     return (ℵ=ℵ, h=h, T=T, Ts=Ts, Q=Q, Qsw=Qsw, emp=emp, Jˢ=Jˢ, Qˢ=Qˢ, Fˢ=Fˢ)
 end
 
-mitgmc_thermo = load_mitgcm_results("mitgcm_results/run_thermo/res_30d", 719)
+mitgmc_thermo = load_mitgcm_results("res_30d/", 719)
 
 indices = (:, 10, 1)
 fig = Figure()
