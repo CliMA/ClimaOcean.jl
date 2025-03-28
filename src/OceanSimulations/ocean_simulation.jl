@@ -153,9 +153,10 @@ function ocean_simulation(grid;
         v_immersed_bc = ImmersedBoundaryCondition(bottom=v_immersed_drag)
 
         # Forcing for u, v
-        barotropic_potential = Field{Center, Center, Nothing}(grid)
-        u_forcing = BarotropicPotentialForcing(XDirection(), barotropic_potential)
-        v_forcing = BarotropicPotentialForcing(YDirection(), barotropic_potential)
+        u_barotropic_potential = Field{Center, Center, Nothing}(grid)
+        v_barotropic_potential = Field{Center, Center, Nothing}(grid)
+        u_forcing = BarotropicPotentialForcing(XDirection(), u_barotropic_potential)
+        v_forcing = BarotropicPotentialForcing(YDirection(), v_barotropic_potential)
 
         :u ∈ keys(forcing) && (u_forcing = (u_forcing, forcing[:u]))
         :v ∈ keys(forcing) && (v_forcing = (v_forcing, forcing[:v]))
