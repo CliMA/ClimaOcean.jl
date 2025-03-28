@@ -238,21 +238,25 @@ end
 sea_ice_ocean_interface(sea_ice, ocean) = nothing
 
 function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean;
-                                 characteristic_melting_speed = 1e-5)
+                                 characteristic_melting_speed = 1e-4)
 
     previous_ice_thickness = deepcopy(sea_ice.model.ice_thickness)
     previous_ice_concentration = deepcopy(sea_ice.model.ice_concentration)
     io_bottom_heat_flux = Field{Center, Center, Nothing}(ocean.model.grid)
     io_frazil_heat_flux = Field{Center, Center, Nothing}(ocean.model.grid)
     io_salt_flux = Field{Center, Center, Nothing}(ocean.model.grid)
+    x_momentum = Field{Face, Face, Center}(ocean.model.grid)
+    y_momentum = Field{Face, Face, Center}(ocean.model.grid)
 
     @assert io_frazil_heat_flux isa Field{Center, Center, Nothing}
     @assert io_bottom_heat_flux isa Field{Center, Center, Nothing}
     @assert io_salt_flux isa Field{Center, Center, Nothing}
 
-    io_fluxes = (interface_heat=io_bottom_heat_flux,
-                 frazil_heat=io_frazil_heat_flux,
-                 salt=io_salt_flux)
+    io_fluxes = (; interface_heat=io_bottom_heat_flux,
+                   frazil_heat=io_frazil_heat_flux,
+                   salt=io_salt_flux,
+                   x_momentum, 
+                   y_momentum)
 
     io_properties = (; characteristic_melting_speed)
 
@@ -281,9 +285,7 @@ end
                         radiation = Radiation(),
                         freshwater_density = 1000,
                         atmosphere_ocean_flux_formulation = SimilarityTheoryFluxes(),
-                        atmosphere_sea_ice_flux_formulation = CoefficientBasedFluxes(drag_coefficient=2e-3,
-                                                                                     heat_transfer_coefficient=1e-4,
-                                                                                     vapor_flux_coefficient=1e-4),
+                        atmosphere_sea_ice_flux_formulation = default_ai_flux_formulation(sea_ice),
                         atmosphere_ocean_interface_temperature = BulkTemperature(),
                         atmosphere_ocean_interface_specific_humidity = default_ao_specific_humidity(ocean),
                         atmosphere_sea_ice_interface_temperature = default_ai_temperature(sea_ice),
@@ -298,7 +300,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              radiation = Radiation(),
                              freshwater_density = 1000,
                              atmosphere_ocean_flux_formulation = SimilarityTheoryFluxes(eltype(ocean.model.grid)),
-                             atmosphere_sea_ice_flux_formulation = SimilarityTheoryFluxes(eltype(ocean.model.grid)),
+                             atmosphere_sea_ice_flux_formulation = default_ai_flux_formulation(sea_ice),
                              atmosphere_ocean_interface_temperature = BulkTemperature(),
                              atmosphere_ocean_velocity_difference = RelativeVelocity(),
                              atmosphere_ocean_interface_specific_humidity = default_ao_specific_humidity(ocean),
@@ -352,8 +354,8 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                               temperature_units  = sea_ice_temperature_units)
 
         net_momentum_fluxes = if sea_ice.model.dynamics isa Nothing 
-            u = Field{Face, Center, Nothing}(sea_ice.model.grid)
-            v = Field{Center, Face, Nothing}(sea_ice.model.grid)
+            u = Field{Face, Face, Nothing}(sea_ice.model.grid)
+            v = Field{Face, Face, Nothing}(sea_ice.model.grid)
             (; u, v) 
         else
             u = sea_ice.model.dynamics.external_momentum_stresses.top.u
@@ -395,6 +397,18 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                                sea_ice_properties,
                                exchanger,
                                net_fluxes)
+end
+
+default_ai_flux_formulation(sea_ice) = nothing
+
+function default_ai_flux_formulation(sea_ice::SeaIceSimulation) 
+    FT = eltype(sea_ice.model.grid)
+
+    solver_tolerance = convert(FT, 1e-8)
+    solver_maxiter = 100
+    stability_functions = atmosphere_sea_ice_stability_functions(FT)
+
+    return SimilarityTheoryFluxes(FT; solver_tolerance, solver_maxiter, stability_functions)
 end
 
 sea_ice_similarity_theory(sea_ice) = nothing

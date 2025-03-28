@@ -14,11 +14,11 @@ using CUDA
 CUDA.device!(1)
 arch = GPU()
 
-r_faces = ClimaOcean.exponential_z_faces(; Nz=30, h=10, depth=2000)
+r_faces = ClimaOcean.exponential_z_faces(; Nz=30, h=10, depth=1000)
 z_faces = MutableVerticalDiscretization(r_faces)
 
-Nx = 180 # longitudinal direction -> 250 points is about 1.5ᵒ resolution
-Ny = 180 # meridional direction -> same thing, 48 points is about 1.5ᵒ resolution
+Nx = 540 # longitudinal direction -> 250 points is about 1.5ᵒ resolution
+Ny = 540 # meridional direction -> same thing, 48 points is about 1.5ᵒ resolution
 Nz = length(r_faces) - 1
 
 grid = RotatedLatitudeLongitudeGrid(arch, size = (Nx, Ny, Nz),
@@ -52,8 +52,8 @@ ocean = ocean_simulation(grid;
 
 dataset = ECCO4Monthly()
 
-set!(ocean.model, T=Metadata(:temperature; dataset),
-                  S=Metadata(:salinity;    dataset))
+set!(ocean.model, T=Metadatum(:temperature; dataset),
+                  S=Metadatum(:salinity;    dataset))
 
 #####
 ##### A Prognostic Sea-ice model
@@ -67,24 +67,27 @@ SSS = view(ocean.model.tracers.S, :, :, grid.Nz)
 bottom_heat_boundary_condition = IceWaterThermalEquilibrium(SSS)
 
 SSU = view(ocean.model.velocities.u, :, :, grid.Nz)
-SSV = view(ocean.model.velocities.u, :, :, grid.Nz)
+SSV = view(ocean.model.velocities.v, :, :, grid.Nz)
+
+SSU = @at((Face, Face, Center), SSU)
+SSV = @at((Face, Face, Center), SSV)
 
 τo  = SemiImplicitStress(uₑ=SSU, vₑ=SSV)
-τua = Field{Face, Center, Nothing}(grid)
-τva = Field{Center, Face, Nothing}(grid)
+τua = Field{Face, Face, Nothing}(grid)
+τva = Field{Face, Face, Nothing}(grid)
 
 dynamics = SeaIceMomentumEquation(grid;
                                   coriolis = ocean.model.coriolis,
                                   top_momentum_stress = (u=τua, v=τva),
                                   bottom_momentum_stress = τo,
-                                  ocean_velocities = (u=SSU, v=SSV),
+                                  ocean_velocities = (u=0.1*SSU, v=0.1*SSV),
                                   rheology = ElastoViscoPlasticRheology(),
                                   solver = SplitExplicitSolver(120))
 
 sea_ice = sea_ice_simulation(grid; bottom_heat_boundary_condition, dynamics, advection=WENO(order=7))
 
-set!(sea_ice.model, h=Metadata(:sea_ice_thickness;     dataset),
-                    ℵ=Metadata(:sea_ice_concentration; dataset))
+set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset),
+                    ℵ=Metadatum(:sea_ice_concentration; dataset))
 
 #####
 ##### A Prescribed Atmosphere model
@@ -98,7 +101,7 @@ radiation  = Radiation()
 #####
 
 arctic = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-arctic = Simulation(arctic, Δt=5minutes, stop_time=365days)
+arctic = Simulation(arctic, Δt=2minutes, stop_time=365days)
 
 # Sea-ice variables
 h = sea_ice.model.ice_thickness
