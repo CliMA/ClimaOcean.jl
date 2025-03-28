@@ -215,13 +215,23 @@ end
 # Tₛⁿ⁺¹ = = (Tᵢ - δ / κ * (Jᵃ - 4 α Tₛⁿ⁴)) / (1 + 4 δ σ ϵ Tₛⁿ³ / ρ c κ)
 #
 # corresponding to a linearization of the outgoing longwave radiation term.
-@inline function flux_balance_temperature(st::SkinTemperature{<:DiffusiveFlux}, Ψₛ, ℙₛ, Qc, Qv, Qu, Qd, Ψᵢ, ℙᵢ, args...)
-    Qa = Qc + Qv + Qu + Qd # Net flux (positive out of the ocean)
+@inline function flux_balance_temperature(st::SkinTemperature{<:DiffusiveFlux}, Ψₛ, ℙₛ, Qc, Qv, Qu, Qd, Ψᵢ, ℙᵢ, Ψₐ, ℙₐ)
+    Qa = Qv + Qu + Qd # Net flux (positive out of the ocean)
     F  = st.internal_flux
     ρ  = ℙᵢ.reference_density
     c  = ℙᵢ.heat_capacity
-    Jᵀ = Qa / (ρ * c)
-    return Ψᵢ.T - Jᵀ * F.δ / F.κ
+    Qa = (Qv + Qu + Qd) # Net flux excluding sensible heat (positive out of the ocean)
+    λ  = 1 / (ρ * c) # m³/kg/K
+    Jᵀ = Qa * λ
+
+    # Calculating the atmospheric temperature
+    # We use to compute the sensible heat flux 
+    Tₐ = surface_atmosphere_temperature(Ψₐ, ℙₐ)
+    ΔT = Tₐ - Tₛ⁻
+    Ωc = ifelse(ΔT == 0, zero(h), Qc / ΔT * λ) # Sensible heat transfer coefficient (W/m²K)
+
+    # Computing the flux balance temperature
+    return (Ψᵢ.Tᵢ * F.κ - (Jᵀ + Ωc * Tₐ) * F.δ) / (F.κ - Ωc * F.δ)
 end
 
 # Qv + Qu + Qd + Ωc * (Tₐ - Tˢ) + k / h * (Tˢ - Tᵢ) = 0
