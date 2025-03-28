@@ -385,7 +385,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                   sea_ice_top    = net_top_sea_ice_fluxes,
                   sea_ice_bottom = net_bottom_sea_ice_fluxes)
 
-    exchanger = StateExchanger(ocean, atmosphere)
+    exchanger = state_exchanger(ocean, atmosphere)
 
     return ComponentInterfaces(ao_interface,
                                ai_interface,
@@ -396,6 +396,9 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                                exchanger,
                                net_fluxes)
 end
+
+# To extend if we have a prognostic atmosphere
+state_exchanger(ocean, atmosphere) = StateExchanger(ocean, atmosphere)
 
 sea_ice_similarity_theory(sea_ice) = nothing
 
