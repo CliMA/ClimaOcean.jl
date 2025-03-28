@@ -49,10 +49,10 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bathymetry))
 
 # Build an ocean simulation initialized to the ECCO state estimate on Jan 1, 1993
 ocean = ClimaOcean.ocean_simulation(grid)
-dates = DateTime(1993, 1, 1) : Month(1) : DateTime(1994, 1, 1)
+start_date = DateTime(1993, 1, 1)
 set!(ocean.model,
-     T=ClimaOcean.Metadata(:temperature; dates=first(dates), dataset=ClimaOcean.ECCO4Monthly()),
-     S=ClimaOcean.Metadata(:salinity;    dates=first(dates), dataset=ClimaOcean.ECCO4Monthly()))
+     T=ClimaOcean.Metadata(:temperature; dates=start_date, dataset=ClimaOcean.ECCO4Monthly()),
+     S=ClimaOcean.Metadata(:salinity;    dates=start_date, dataset=ClimaOcean.ECCO4Monthly()))
 
 # Build and run an OceanSeaIceModel (with no sea ice component) forced by JRA55 reanalysis
 atmosphere = ClimaOcean.JRA55PrescribedAtmosphere(arch)
