@@ -22,7 +22,7 @@ end
                                  z = (-6000, 0))
 
     free_surface = SplitExplicitFreeSurface(substeps=10)
-    ocean = ocean_simulation(grid; free_surface)
+    ocean = ocean_simulation(grid; Δt=300, free_surface)
     backend = JRA55NetCDFBackend(4)
     atmosphere = JRA55PrescribedAtmosphere(arch; backend)
     radiation = Radiation(arch)
