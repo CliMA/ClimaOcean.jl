@@ -21,7 +21,8 @@ end
                                  halo = (7, 7, 7),
                                  z = (-6000, 0))
 
-    ocean = ocean_simulation(grid)
+    free_surface = SplitExplicitFreeSurface(substeps=10)
+    ocean = ocean_simulation(grid; free_surface)
     backend = JRA55NetCDFBackend(4)
     atmosphere = JRA55PrescribedAtmosphere(arch; backend)
     radiation = Radiation(arch)
