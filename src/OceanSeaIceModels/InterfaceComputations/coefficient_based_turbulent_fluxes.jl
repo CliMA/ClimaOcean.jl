@@ -1,8 +1,7 @@
 using Oceananigans.BuoyancyFormulations: g_Earth
 
-struct CoefficientBasedFluxes{CD, CH, CQ, FT, S}
+struct CoefficientBasedFluxes{CD, CH, CQ, S}
     drag_coefficient :: CD
-    gravitational_acceleration :: FT
     heat_transfer_coefficient :: CH
     vapor_flux_coefficient :: CQ
     solver_stop_criteria :: S
@@ -13,7 +12,6 @@ convert_if_number(FT, a) = a
 
 function CoefficientBasedFluxes(FT = Oceananigans.defaults.FloatType;
                                 drag_coefficient = 1e-3,
-                                gravitational_acceleration = g_Earth,
                                 heat_transfer_coefficient = drag_coefficient,
                                 vapor_flux_coefficient = drag_coefficient,
                                 solver_stop_criteria = nothing,
@@ -30,7 +28,6 @@ function CoefficientBasedFluxes(FT = Oceananigans.defaults.FloatType;
     vapor_flux_coefficient = convert_if_number(FT, vapor_flux_coefficient)
 
     return CoefficientBasedFluxes(drag_coefficient,
-                                  gravitational_acceleration,
                                   heat_transfer_coefficient,
                                   vapor_flux_coefficient,
                                   solver_stop_criteria)
