@@ -152,7 +152,7 @@ end
 
         # Update previous ice thickness
         h⁻[i, j, 1] = hᵢ[i, j, 1]
-        τx[i, j, 1] = ℑyᵃᶜᵃ(i, j, 1, grid, x_momentum_stress, τₒᵢ, clock, sea_ice_fields)
-        τy[i, j, 1] = ℑxᶜᵃᵃ(i, j, 1, grid, y_momentum_stress, τₒᵢ, clock, sea_ice_fields)
+        τx[i, j, 1] = x_momentum_stress(i, j, 1, grid, τₒᵢ, clock, sea_ice_fields)
+        τy[i, j, 1] = y_momentum_stress(i, j, 1, grid, τₒᵢ, clock, sea_ice_fields)
     end
 end

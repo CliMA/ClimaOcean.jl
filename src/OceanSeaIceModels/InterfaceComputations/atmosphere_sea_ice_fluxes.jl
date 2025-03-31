@@ -162,12 +162,12 @@ end
     ℰs = AtmosphericThermodynamics.latent_heat_sublim(ℂₐ, 𝒬ₐ)
 
     # Store fluxes
-    Qv = interface_fluxes.latent_heat
-    Qc = interface_fluxes.sensible_heat
-    Fv = interface_fluxes.water_vapor
+    Qv  = interface_fluxes.latent_heat
+    Qc  = interface_fluxes.sensible_heat
+    Fv  = interface_fluxes.water_vapor
     ρτx = interface_fluxes.x_momentum
     ρτy = interface_fluxes.y_momentum
-    Ts = interface_temperature
+    Ts  = interface_temperature
 
     @inbounds begin
         # +0: cooling, -0: heating

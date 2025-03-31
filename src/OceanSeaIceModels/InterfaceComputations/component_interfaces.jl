@@ -245,8 +245,8 @@ function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean;
     io_bottom_heat_flux = Field{Center, Center, Nothing}(ocean.model.grid)
     io_frazil_heat_flux = Field{Center, Center, Nothing}(ocean.model.grid)
     io_salt_flux = Field{Center, Center, Nothing}(ocean.model.grid)
-    x_momentum = Field{Face, Face, Center}(ocean.model.grid)
-    y_momentum = Field{Face, Face, Center}(ocean.model.grid)
+    x_momentum = Field{Center, Center, Nothing}(ocean.model.grid)
+    y_momentum = Field{Center, Center, Nothing}(ocean.model.grid)
 
     @assert io_frazil_heat_flux isa Field{Center, Center, Nothing}
     @assert io_bottom_heat_flux isa Field{Center, Center, Nothing}
@@ -354,8 +354,8 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                               temperature_units  = sea_ice_temperature_units)
 
         net_momentum_fluxes = if sea_ice.model.dynamics isa Nothing 
-            u = Field{Face, Face, Nothing}(sea_ice.model.grid)
-            v = Field{Face, Face, Nothing}(sea_ice.model.grid)
+            u = Field{Face, Center, Nothing}(sea_ice.model.grid)
+            v = Field{Center, Face, Nothing}(sea_ice.model.grid)
             (; u, v) 
         else
             u = sea_ice.model.dynamics.external_momentum_stresses.top.u

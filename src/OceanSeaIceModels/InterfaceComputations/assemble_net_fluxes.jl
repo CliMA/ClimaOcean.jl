@@ -58,7 +58,7 @@ function compute_net_ocean_fluxes!(coupled_model)
     return nothing
 end
 
-@inline τᶜᶜᶜ(i, j, k, grid, ρₒ⁻¹, ℵ, ρτᶜᶜᶜ) = @inbounds ρₒ⁻¹ * (1 - ℵ[i, j, k]) * ρτᶜᶜᶜ[i, j, k]
+@inline τaoᶜᶜᶜ(i, j, k, grid, ρₒ⁻¹, ℵ, ρτᶜᶜᶜ) = @inbounds ρₒ⁻¹ * (1 - ℵ[i, j, k]) * ρτᶜᶜᶜ[i, j, k]
 
 @kernel function _assemble_net_ocean_fluxes!(net_ocean_fluxes,
                                              grid,
@@ -76,8 +76,10 @@ end
     i, j = @index(Global, NTuple)
     kᴺ = size(grid, 3)
     time = Time(clock.time)
-    ρτx = atmos_ocean_fluxes.x_momentum  # zonal momentum flux                      
-    ρτy = atmos_ocean_fluxes.y_momentum  # meridional momentum flux
+    ρτxao = atmos_ocean_fluxes.x_momentum  # zonal momentum flux                      
+    ρτyao = atmos_ocean_fluxes.y_momentum  # meridional momentum flux
+    ρτxio = sea_ice_ocean_fluxes.x_momentum  # zonal momentum flux                      
+    ρτyio = sea_ice_ocean_fluxes.y_momentum  # meridional momentum flux
 
     @inbounds begin
         Sₒ = ocean_salinity[i, j, kᴺ]
@@ -121,8 +123,6 @@ end
     ρₒ⁻¹ = 1 / ocean_properties.reference_density
     cₒ   = ocean_properties.heat_capacity
 
-    τxao = ℑxᶠᵃᵃ(i, j, 1, grid, τᶜᶜᶜ, ρₒ⁻¹, ℵ, ρτx)
-    τyao = ℑyᵃᶠᵃ(i, j, 1, grid, τᶜᶜᶜ, ρₒ⁻¹, ℵ, ρτy)
     Jᵀao = ΣQao  * ρₒ⁻¹ / cₒ
     Jˢao = - Sₒ * ΣFao
 
@@ -130,14 +130,16 @@ end
         ℵᵢ   = ℵ[i, j, 1]
         Qio  = sea_ice_ocean_fluxes.interface_heat[i, j, 1]
         Jˢio = sea_ice_ocean_fluxes.salt[i, j, 1]
-        Jᵀio = Qio * ρₒ⁻¹ / cₒ
+        Jᵀio = Qio * ρₒ⁻¹ / cₒ # This is not added in the ice-bath approximation
 
-        τxio = sea_ice_ocean_fluxes.x_momentum[i, j, 1] * ℑxᶠᵃᵃ(i, j, 1, grid, ℵ) * ρₒ⁻¹
-        τyio = sea_ice_ocean_fluxes.y_momentum[i, j, 1] * ℑyᵃᶠᵃ(i, j, 1, grid, ℵ) * ρₒ⁻¹
+        τxao = ℑxᶠᵃᵃ(i, j, 1, grid, τaoᶜᶜᶜ, ρₒ⁻¹, ℵ, ρτxao)
+        τyao = ℑyᵃᶠᵃ(i, j, 1, grid, τaoᶜᶜᶜ, ρₒ⁻¹, ℵ, ρτyao)
+        τxio = ρτxio[i, j, 1] * ρₒ⁻¹ * ℑxᶠᵃᵃ(i, j, 1, grid, ℵ)
+        τyio = ρτyio[i, j, 1] * ρₒ⁻¹ * ℑyᵃᶠᵃ(i, j, 1, grid, ℵ)
 
         τx[i, j, 1] = τxao + τxio
         τy[i, j, 1] = τyao + τyio
-        Jᵀ[i, j, 1] = (1 - ℵᵢ) * Jᵀao # + Jᵀio
+        Jᵀ[i, j, 1] = (1 - ℵᵢ) * Jᵀao
         Jˢ[i, j, 1] = (1 - ℵᵢ) * Jˢao + Jˢio
     end
 end
@@ -240,7 +242,7 @@ end
     inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
 
     @inbounds top_fluxes.heat[i, j, 1]  = ifelse(inactive, zero(grid), ΣQt)
-    @inbounds top_fluxes.u[i, j, 1]     = ifelse(inactive, zero(grid), ℑxyᶠᶠᵃ(i, j, 1, grid, ρτx))
-    @inbounds top_fluxes.v[i, j, 1]     = ifelse(inactive, zero(grid), ℑxyᶠᶠᵃ(i, j, 1, grid, ρτy))
+    @inbounds top_fluxes.u[i, j, 1]     = ifelse(inactive, zero(grid), ℑxᶠᵃᵃ(i, j, 1, grid, ρτx))
+    @inbounds top_fluxes.v[i, j, 1]     = ifelse(inactive, zero(grid), ℑyᵃᶠᵃ(i, j, 1, grid, ρτy))
     @inbounds bottom_heat_flux[i, j, 1] = ifelse(inactive, zero(grid), ΣQb)
 end
