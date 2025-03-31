@@ -64,11 +64,11 @@ add_callback!(ocean, reset_ocean!, IterationInterval(1))
 ####
 
 # Remember to pass the SSS as a bottom bc to the sea ice!
-SSS = view(ocean.model.tracers.S, :, :, grid.Nz)
+SSS = view(ocean.model.tracers.S.data, :, :, grid.Nz)
 bottom_heat_boundary_condition = IceWaterThermalEquilibrium(SSS)
 
-SSU = @at((Face, Face, Center), view(ocean.model.velocities.u, :, :, grid.Nz))
-SSV = @at((Face, Face, Center), view(ocean.model.velocities.v, :, :, grid.Nz))
+SSU = view(ocean.model.velocities.u, :, :, grid.Nz)
+SSV = view(ocean.model.velocities.v, :, :, grid.Nz)
 
 τo  = SemiImplicitStress(uₑ=SSU, vₑ=SSV)
 τua = Field{Face, Center, Nothing}(grid)
@@ -78,7 +78,7 @@ dynamics = SeaIceMomentumEquation(grid;
                                   coriolis = ocean.model.coriolis,
                                   top_momentum_stress = (u=τua, v=τva),
                                   bottom_momentum_stress = τo,
-                                  # ocean_velocities = (u=0.01*SSU, v=0.01*SSV),
+                                  ocean_velocities = (u=0.01*SSU, v=0.01*SSV),
                                   rheology = ElastoViscoPlasticRheology(),
                                   solver = SplitExplicitSolver(120))
 

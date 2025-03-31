@@ -139,7 +139,7 @@ end
 
         τx[i, j, 1] = τxao + τxio
         τy[i, j, 1] = τyao + τyio
-        Jᵀ[i, j, 1] = (1 - ℵᵢ) * Jᵀao
+        Jᵀ[i, j, 1] = (1 - ℵᵢ) * Jᵀao + Jᵀio
         Jˢ[i, j, 1] = (1 - ℵᵢ) * Jˢao + Jˢio
     end
 end

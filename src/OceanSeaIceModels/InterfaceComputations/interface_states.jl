@@ -251,8 +251,10 @@ end
     Tₛ⁺ = Tₛ⁻ + abs_ΔT * sign(ΔT★)
 
     # Under heating fluxes, cap surface temperature by melting temperature
-    Tₛ⁺ = min(Tₛ⁺, Tᵢ)
-
+    Tₘ = ℙᵢ.liquidus.freshwater_melting_temperature
+    Tₘ = convert_to_kelvin(ℙᵢ.temperature_units, Tₘ)
+    Tₛ⁺ = min(Tₛ⁺, Tₘ)
+    
     return Tₛ⁺
 end
 

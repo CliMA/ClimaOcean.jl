@@ -124,15 +124,15 @@ end
     δE_ice_bath = ρₒ * cₒ *  (Tₘ - Tᴺ)
 
     # Ice bath approximation
-    adjust_temperature = (Tᴺ > Tₘ) & (ℵ > 0)
-    @inbounds Tₒ[i, j, Nz] = ifelse(adjust_temperature, Tₘ, Tᴺ)
+    # adjust_temperature = (Tᴺ > Tₘ) & (ℵ > 0)
+    # @inbounds Tₒ[i, j, Nz] = ifelse(adjust_temperature, Tₘ, Tᴺ)
 
     # Compute the heat flux from ocean into ice due to sea ice melting.
     # A positive value δQ_melting > 0 corresponds to ocean cooling; ie
     # is fluxing upwards, into the ice. This occurs when applying the
     # ice bath equilibrium condition to cool down a warm ocean (δEₒ < 0).
-    Δz = Δzᶜᶜᶜ(i, j, Nz, grid)
-    δQ_melting = - δE_ice_bath * Δz / Δt #  uₘ★
+    # Δz = Δzᶜᶜᶜ(i, j, Nz, grid)
+    δQ_melting = - δE_ice_bath * uₘ★
 
     # Store column-integrated ice-ocean heat flux
     @inbounds Qᶠₒ[i, j, 1] = δQ_frazil
