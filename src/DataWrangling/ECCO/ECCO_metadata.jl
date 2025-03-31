@@ -16,7 +16,7 @@ struct ECCO2Daily end
 struct ECCO4Monthly end
 
 const ECCOMetadata{D} = Metadata{<:Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}, D} where {D}
-const ECCOMetadatum   = ECCOMetadata{<:AnyDateTime}
+const ECCOMetadatum   = Metadatum{<:Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}}
 
 const ECCO2_url = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/"
 const ECCO4_url = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly/"

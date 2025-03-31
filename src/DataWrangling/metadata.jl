@@ -38,8 +38,8 @@ function Metadata(variable_name;
     return Metadata(variable_name, dates, dataset, dir)
 end
 
-const AnyDateTime = Union{AbstractCFDateTime, Dates.AbstractDateTime}
-const Metadatum   = Metadata{<:Any, <:AnyDateTime}
+const AnyDateTime  = Union{AbstractCFDateTime, Dates.AbstractDateTime}
+const Metadatum{V} = Metadata{V, <:AnyDateTime} where V
 
 """
     Metadatum(variable_name;
