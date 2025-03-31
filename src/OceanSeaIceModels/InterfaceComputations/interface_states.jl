@@ -227,7 +227,7 @@ end
     # Calculating the atmospheric temperature
     # We use to compute the sensible heat flux 
     Tₐ = surface_atmosphere_temperature(Ψₐ, ℙₐ)
-    ΔT = Tₐ - Tₛ⁻
+    ΔT = Tₐ - Ψₛ.Tᵢ
     Ωc = ifelse(ΔT == 0, zero(h), Qc / ΔT * λ) # Sensible heat transfer coefficient (W/m²K)
 
     # Computing the flux balance temperature
