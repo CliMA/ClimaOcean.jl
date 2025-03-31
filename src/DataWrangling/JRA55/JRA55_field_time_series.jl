@@ -177,7 +177,8 @@ function set!(fts::JRA55NetCDFFTSMultipleYears)
         ftsn = collect(ftsn)
 
         # Intersect the time indices with the file times
-        nn = findall(n -> file_times[n] ∈ fts.times[ftsn], file_indices)
+        nn   = findall(n -> file_times[n] ∈ fts.times[ftsn], file_indices)
+        ftsn = findall(n -> fts.times[n] ∈ file_times[nn], ftsn) 
 
         if !isempty(nn)
             # Nodes at the variable location
@@ -186,6 +187,7 @@ function set!(fts::JRA55NetCDFFTSMultipleYears)
             LX, LY, LZ = location(fts)
             i₁, i₂, j₁, j₂, TX = compute_bounding_indices(nothing, nothing, fts.grid, LX, LY, λc, φc)
 
+        
             if issorted(nn)
                 data = ds[name][i₁:i₂, j₁:j₂, nn]
             else
@@ -205,8 +207,9 @@ function set!(fts::JRA55NetCDFFTSMultipleYears)
             close(ds)
 
             # We need to set the time index for each file
-            for n in 1:length(ftsn)
-                copyto!(interior(fts, :, :, 1, n), data[:, :, n])
+            # Find start index corresponding to the underlying data
+            for n in 1:length(nn)
+                copyto!(interior(fts, :, :, 1, ftsn[n]), data[:, :, n])
             end
         end
     end
