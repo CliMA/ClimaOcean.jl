@@ -57,7 +57,9 @@ function JRA55_time_indices(dataset, dates, name)
 end
 
 # File name generation specific to each Dataset dataset
-function metadata_filename(metadata::Metadatum{<:JRA55RepeatYear}) # No difference 
+# Note that `JRA55RepeatYear` has only one file associated, so we can define
+# the filename directly for the whole `Metadata` object, independent of the `dates`
+function metadata_filename(metadata::Metadata{<:JRA55RepeatYear}) # No difference 
     shortname = short_name(metadata)
     return "RYF." * shortname * ".1990_1991.nc"
 end
