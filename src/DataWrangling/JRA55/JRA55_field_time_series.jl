@@ -90,7 +90,7 @@ Base.summary(backend::JRA55NetCDFBackend) = string("JRA55NetCDFBackend(", backen
 
 const JRA55NetCDFFTS              = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend}
 const JRA55NetCDFFTSRepeatYear    = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend{<:JRA55RepeatYear}}
-const JRA55NetCDFFTSMultipleYears = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend{<:JRA55NetCDFFTSMultipleYears}}
+const JRA55NetCDFFTSMultipleYears = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend{<:JRA55MultipleYears}}
 
 # Note that each file should have the variables
 #   - ds["time"]:     time coordinate 
