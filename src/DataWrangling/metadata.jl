@@ -2,7 +2,7 @@ using CFTime
 using Dates
 using Base: @propagate_inbounds
 
-struct Metadata{D, V}
+struct Metadata{V, D}
     name  :: Symbol
     dates :: D
     dataset :: V
@@ -39,7 +39,7 @@ function Metadata(variable_name;
 end
 
 const AnyDateTime = Union{AbstractCFDateTime, Dates.AbstractDateTime}
-const Metadatum   = Metadata{<:AnyDateTime}
+const Metadatum   = Metadata{<:Any, <:AnyDateTime}
 
 """
     Metadatum(variable_name;

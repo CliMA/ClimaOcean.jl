@@ -17,7 +17,7 @@ import ClimaOcean.DataWrangling: all_dates, metadata_filename, download_dataset,
 struct JRA55MultipleYears end
 struct JRA55RepeatYear end
 
-const JRA55Metadata{D} = Metadata{D, <:Union{<:JRA55MultipleYears, <:JRA55RepeatYear}} where {D}
+const JRA55Metadata{D} = Metadata{<:Union{<:JRA55MultipleYears, <:JRA55RepeatYear}, D} where {D}
 const JRA55Metadatum   = JRA55Metadata{<:AnyDateTime}
 
 default_download_directory(::Union{<:JRA55MultipleYears, <:JRA55RepeatYear}) = download_JRA55_cache
@@ -59,7 +59,7 @@ function JRA55_time_indices(dataset, dates, name)
 end
 
 # File name generation specific to each Dataset dataset
-function metadata_filename(metadata::Metadata{<:Any, <:JRA55RepeatYear}) # No difference
+function metadata_filename(metadata::Metadata{<:JRA55RepeatYear}) # No difference
     shortname = short_name(metadata)
     return "RYF." * shortname * ".1990_1991.nc"
 end
@@ -150,7 +150,7 @@ JRA55_repeat_year_urls = Dict(
 
 variable_is_three_dimensional(data::JRA55Metadata) = false
 
-metadata_url(metadata::Metadata{<:Any, <:JRA55RepeatYear}) = JRA55_repeat_year_urls[metadata.name]
+metadata_url(metadata::Metadata{<:JRA55RepeatYear}) = JRA55_repeat_year_urls[metadata.name]
 # TODO:
 # metadata_url(metadata::Metadata{<:Any, <:JRA55MultipleYears}) = ...
 
