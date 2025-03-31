@@ -92,7 +92,64 @@ const JRA55NetCDFFTS              = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JR
 const JRA55NetCDFFTSRepeatYear    = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend{<:JRA55RepeatYear}}
 const JRA55NetCDFFTSMultipleYears = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend{<:JRA55NetCDFFTSMultipleYears}}
 
-# TODO: This will need to change when we add a method for JRA55MultipleYears
+# Note that each file should have the variables
+#   - ds["time"]:     time coordinate 
+#   - ds["lon"]:      longitude at the location of the variable
+#   - ds["lat"]:      latitude at the location of the variable
+#   - ds["lon_bnds"]: bounding longitudes between which variables are averaged
+#   - ds["lat_bnds"]: bounding latitudes between which variables are averaged
+#   - ds[shortname]:  the variable data
+@inline function load_JRA55_data(ds, fts)
+    λc = ds["lon"][:]
+    φc = ds["lat"][:]
+    LX, LY, LZ = location(fts)
+    i₁, i₂, j₁, j₂, TX = compute_bounding_indices(nothing, nothing, fts.grid, LX, LY, λc, φc)
+
+    nn = time_indices(fts)
+    nn = collect(nn)
+
+    if issorted(nn)
+        data = ds[name][i₁:i₂, j₁:j₂, nn]
+    else
+        # The time indices may be cycling past 1; eg ti = [6, 7, 8, 1].
+        # However, DiskArrays does not seem to support loading data with unsorted
+        # indices. So to handle this, we load the data in chunks, where each chunk's
+        # indices are sorted, and then glue the data together.
+        m = findfirst(n -> n == 1, nn)
+        n1 = nn[1:m-1]
+        n2 = nn[m:end]
+
+        data1 = ds[name][i₁:i₂, j₁:j₂, n1]
+        data2 = ds[name][i₁:i₂, j₁:j₂, n2]
+        data = cat(data1, data2, dims=3)
+    end
+
+    return data
+end
+
+# Simple case, only one file per variable, no need to deal with multiple files
+function set!(fts::JRA55NetCDFFTSRepeatYear) 
+
+    backend  = fts.backend
+    metadata = backend.metadata
+
+    filename = metadata_filename(metadata)
+    path = joinpath(metadata.dir, filename)
+    ds = Dataset(path)
+
+    # Nodes at the variable location
+    data = load_JRA55_data(ds, fts)
+
+    close(ds)
+
+    copyto!(interior(fts, :, :, 1, :), data)
+    fill_halo_regions!(fts)
+
+    return nothing
+end
+
+# Tricky case: multiple files per variable -- one file per year --
+# we need to infer the file name from the metadata and split the data loading
 function set!(fts::JRA55NetCDFFTSMultipleYears) 
 
     backend  = fts.backend
@@ -105,14 +162,6 @@ function set!(fts::JRA55NetCDFFTSMultipleYears)
 
         path = joinpath(metadata.dir, name)
         ds = Dataset(path)
-
-        # Note that each file should have the variables
-        #   - ds["time"]:     time coordinate 
-        #   - ds["lon"]:      longitude at the location of the variable
-        #   - ds["lat"]:      latitude at the location of the variable
-        #   - ds["lon_bnds"]: bounding longitudes between which variables are averaged
-        #   - ds["lat_bnds"]: bounding latitudes between which variables are averaged
-        #   - ds[shortname]:  the variable data
 
         # Nodes at the variable location
         λc = ds["lon"][:]
