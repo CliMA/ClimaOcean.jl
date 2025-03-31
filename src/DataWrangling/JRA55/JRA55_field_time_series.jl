@@ -73,7 +73,7 @@ end
 struct JRA55NetCDFBackend{M} <: AbstractInMemoryBackend{Int}
     start :: Int
     length :: Int
-    metadata :: Metadata{M}
+    metadata :: M
 end
 
 Adapt.adapt_structure(to, b::JRA55NetCDFBackend) = JRA55NetCDFBackend(b.start, b.length, nothing)
@@ -85,12 +85,15 @@ Represents a JRA55 FieldTimeSeries backed by JRA55 native .nc files.
 """
 JRA55NetCDFBackend(length, metadata) = JRA55NetCDFBackend(1, length, metadata)
 
+# Metadata - agnostic constructor
+JRA55NetCDFBackend(length) = JRA55NetCDFBackend(length, nothing)
+
 Base.length(backend::JRA55NetCDFBackend) = backend.length
 Base.summary(backend::JRA55NetCDFBackend) = string("JRA55NetCDFBackend(", backend.start, ", ", backend.length, ")")
 
 const JRA55NetCDFFTS              = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend}
-const JRA55NetCDFFTSRepeatYear    = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend{<:JRA55RepeatYear}}
-const JRA55NetCDFFTSMultipleYears = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend{<:JRA55MultipleYears}}
+const JRA55NetCDFFTSRepeatYear    = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend{<:Metadata{<:JRA55RepeatYear}}}
+const JRA55NetCDFFTSMultipleYears = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend{<:Metadata{<:JRA55MultipleYears}}}
 
 # Note that each file should have the variables
 #   - ds["time"]:     time coordinate 
@@ -303,6 +306,11 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
 
     # First thing: we download the dataset!
     download_dataset(metadata)
+
+    # Regularize the backend in case of `JRA55NetCDFBackend` 
+    if backend isa JRA55NetCDFBackend && backend.metadata isa Nothing
+        backend = JRA55NetCDFBackend(backend.length, metadata)
+    end
 
     # Unpack metadata details
     dataset = metadata.dataset
