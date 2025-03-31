@@ -99,14 +99,27 @@ const JRA55NetCDFFTSMultipleYears = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JR
 #   - ds["lon_bnds"]: bounding longitudes between which variables are averaged
 #   - ds["lat_bnds"]: bounding latitudes between which variables are averaged
 #   - ds[shortname]:  the variable data
-@inline function load_JRA55_data(ds, fts)
+
+# Simple case, only one file per variable, no need to deal with multiple files
+function set!(fts::JRA55NetCDFFTSRepeatYear) 
+
+    backend  = fts.backend
+    metadata = backend.metadata
+
+    filename = metadata_filename(metadata)
+    path = joinpath(metadata.dir, filename)
+    ds = Dataset(path)
+
+    # Nodes at the variable location
+
     λc = ds["lon"][:]
     φc = ds["lat"][:]
     LX, LY, LZ = location(fts)
     i₁, i₂, j₁, j₂, TX = compute_bounding_indices(nothing, nothing, fts.grid, LX, LY, λc, φc)
 
-    nn = time_indices(fts)
-    nn = collect(nn)
+    nn   = time_indices(fts)
+    nn   = collect(nn)
+    name = short_name(fts.backend.metadata)
 
     if issorted(nn)
         data = ds[name][i₁:i₂, j₁:j₂, nn]
@@ -124,22 +137,6 @@ const JRA55NetCDFFTSMultipleYears = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JR
         data = cat(data1, data2, dims=3)
     end
 
-    return data
-end
-
-# Simple case, only one file per variable, no need to deal with multiple files
-function set!(fts::JRA55NetCDFFTSRepeatYear) 
-
-    backend  = fts.backend
-    metadata = backend.metadata
-
-    filename = metadata_filename(metadata)
-    path = joinpath(metadata.dir, filename)
-    ds = Dataset(path)
-
-    # Nodes at the variable location
-    data = load_JRA55_data(ds, fts)
-
     close(ds)
 
     copyto!(interior(fts, :, :, 1, :), data)
@@ -155,22 +152,37 @@ function set!(fts::JRA55NetCDFFTSMultipleYears)
     backend  = fts.backend
     metadata = backend.metadata
 
-    filename = metadata_filename(metadata)
-    filename = unique(filename)
+    filename   = metadata_filename(metadata)
+    filename   = unique(filename)
+    name       = short_name(metadata)
+    start_date = first_date(metadata, name)
 
-    for name in filename
+    for file in filename
 
-        path = joinpath(metadata.dir, name)
+        path = joinpath(metadata.dir, file)
         ds = Dataset(path)
+
+        # This can be simplified once we start supporting a
+        # datetime `Clock` in Oceananigans
+        file_dates = ds["times"][:]
+        file_times = zeros(length(file_dates))
+        for (t, date) in enumerate(file_dates)
+            delta = date - start_date
+            delta = Second(delta).value
+            file_times[t] = delta
+        end
+
+        ftsn = time_indices(fts)
+        ftsn = collect(ftsn)
+
+        # Intersect the time indices with the file times
+        nn = findall(n -> fts.times[n] ∈ file_times, ftsn)
 
         # Nodes at the variable location
         λc = ds["lon"][:]
         φc = ds["lat"][:]
         LX, LY, LZ = location(fts)
         i₁, i₂, j₁, j₂, TX = compute_bounding_indices(nothing, nothing, fts.grid, LX, LY, λc, φc)
-
-        nn = time_indices(fts)
-        nn = collect(nn)
 
         if issorted(nn)
             data = ds[name][i₁:i₂, j₁:j₂, nn]
@@ -189,11 +201,14 @@ function set!(fts::JRA55NetCDFFTSMultipleYears)
         end
 
         close(ds)
-
-        copyto!(interior(fts, :, :, 1, :), data)
-        fill_halo_regions!(fts)
+        for n in 1:length(ftsn)
+            # We need to set the time index for each file
+            copyto!(interior(fts, :, :, 1, n), data[:, :, n])
+        end
     end
-    
+
+    fill_halo_regions!(fts)
+
     return nothing
 end
 
