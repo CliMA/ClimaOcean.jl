@@ -38,7 +38,7 @@ function all_dates(::JRA55RepeatYear, name)
     end
 end
 
-all_dates(::JRA55MultipleYears, name) = JRA55_multiple_years_dates[name]
+all_dates(::JRA55MultipleYears, name) = JRA55_multiple_year_dates[name]
 
 # Fallback, if we not provide the name, take the highest frequency
 all_dates(dataset::Union{<:JRA55MultipleYears, <:JRA55RepeatYear}) = all_dates(dataset, :temperature)
@@ -190,7 +190,7 @@ metadata_url(metadata::Metadata{<:Any, <:JRA55RepeatYear}) = JRA55_repeat_year_u
 
 function metadata_url(m::Metadata{<:Any, <:JRA55MultipleYears}) 
     prefix = JRA55_multiple_year_prefix[m.name]
-    return url * prefix * "/" * short_name(m) * "/gr/v20200916/" * metadata_filename(m)
+    return JRA55_multiple_year_url * prefix * "/" * short_name(m) * "/gr/v20200916/" * metadata_filename(m)
 end
 
 function download_dataset(metadata::JRA55Metadata)

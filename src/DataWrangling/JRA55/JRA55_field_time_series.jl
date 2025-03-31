@@ -201,8 +201,9 @@ function set!(fts::JRA55NetCDFFTSMultipleYears)
         end
 
         close(ds)
+
+        # We need to set the time index for each file
         for n in 1:length(ftsn)
-            # We need to set the time index for each file
             copyto!(interior(fts, :, :, 1, n), data[:, :, n])
         end
     end
