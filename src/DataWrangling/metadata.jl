@@ -4,8 +4,8 @@ using Base: @propagate_inbounds
 
 struct Metadata{V, D}
     name  :: Symbol
-    dates :: D
     dataset :: V
+    dates :: D
     dir :: String
 end
 
@@ -35,7 +35,7 @@ function Metadata(variable_name;
                   dates=all_dates(dataset, variable_name)[1:1],
                   dir=default_download_directory(dataset))
 
-    return Metadata(variable_name, dates, dataset, dir)
+    return Metadata(variable_name, dataset, dates, dir)
 end
 
 const AnyDateTime  = Union{AbstractCFDateTime, Dates.AbstractDateTime}
@@ -55,7 +55,7 @@ function Metadatum(variable_name;
                    dir=default_download_directory(dataset))
 
     # TODO: validate that `date` is actually a single date?
-    return Metadata(variable_name, date, dataset, dir)
+    return Metadata(variable_name, dataset, date, dir)
 end
 
 # Just the current directory
