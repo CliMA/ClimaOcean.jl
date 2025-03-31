@@ -17,7 +17,7 @@ import ClimaOcean.DataWrangling: all_dates, metadata_filename, download_dataset,
 struct JRA55MultipleYears end
 struct JRA55RepeatYear end
 
-const JRA55Metadata{D} = Metadata{D, <:Union{<:JRA55MultipleYears, <:JRA55RepeatYear}} where {D}
+const JRA55Metadata{D} = Metadata{<:Union{<:JRA55MultipleYears, <:JRA55RepeatYear}, D} where {D}
 const JRA55Metadatum   = JRA55Metadata{<:AnyDateTime}
 
 default_download_directory(::Union{<:JRA55MultipleYears, <:JRA55RepeatYear}) = download_JRA55_cache
@@ -57,7 +57,7 @@ function JRA55_time_indices(dataset, dates, name)
 end
 
 # File name generation specific to each Dataset dataset
-function metadata_filename(metadata::Metadatum{<:Any, <:JRA55RepeatYear}) # No difference 
+function metadata_filename(metadata::Metadatum{<:JRA55RepeatYear}) # No difference 
     shortname = short_name(metadata)
     return "RYF." * shortname * ".1990_1991.nc"
 end
@@ -67,7 +67,7 @@ multiple_year_time_displaced_variables = [:rain_freshwater_flux,
                                           :downwelling_shortwave_radiation, 
                                           :downwelling_longwave_radiation]
 
-function metadata_filename(metadata::Metadatum{<:Any, <:JRA55MultipleYears})
+function metadata_filename(metadata::Metadatum{<:JRA55MultipleYears})
     # fix the filename
     shortname = short_name(metadata)
     year      = Dates.year(metadata.dates)
@@ -186,9 +186,9 @@ JRA55_repeat_year_urls = Dict(
                            "RYF.vas.1990_1991.nc?rlkey=f9y3e57kx8xrb40gbstarf0x6&dl=0",
 )
 
-metadata_url(metadata::Metadata{<:Any, <:JRA55RepeatYear}) = JRA55_repeat_year_urls[metadata.name]  
+metadata_url(metadata::Metadata{<:JRA55RepeatYear}) = JRA55_repeat_year_urls[metadata.name]  
 
-function metadata_url(m::Metadata{<:Any, <:JRA55MultipleYears}) 
+function metadata_url(m::Metadata{<:JRA55MultipleYears}) 
     prefix = JRA55_multiple_year_prefix[m.name]
     return JRA55_multiple_year_url * prefix * "/" * short_name(m) * "/gr/v20200916/" * metadata_filename(m)
 end

@@ -2,7 +2,7 @@ using CFTime
 using Dates
 using Base: @propagate_inbounds
 
-struct Metadata{D, V}
+struct Metadata{V, D}
     name  :: Symbol
     dates :: D
     dataset :: V
@@ -39,7 +39,7 @@ function Metadata(variable_name;
 end
 
 const AnyDateTime = Union{AbstractCFDateTime, Dates.AbstractDateTime}
-const Metadatum   = Metadata{<:AnyDateTime}
+const Metadatum   = Metadata{<:Any, <:AnyDateTime}
 
 """
     Metadatum(variable_name;
@@ -97,7 +97,8 @@ Base.last(metadata::Metadatum)    = metadata
 Base.iterate(metadata::Metadatum) = (metadata, nothing)
 Base.iterate(::Metadatum, ::Any)  = nothing
 
-metadata_path(metadata) = joinpath(metadata.dir, metadata_filename(metadata))
+metadata_path(metadata::Metadatum) = joinpath(metadata.dir, metadata_filename(metadata))
+metadata_path(metadata) = [metadata_path(metadatum) for metadatum in metadata]
 
 """
     native_times(metadata; start_time=first(metadata).dates)

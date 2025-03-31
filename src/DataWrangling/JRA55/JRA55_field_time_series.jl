@@ -73,7 +73,7 @@ end
 struct JRA55NetCDFBackend{M} <: AbstractInMemoryBackend{Int}
     start :: Int
     length :: Int
-    metadata :: M
+    metadata :: Metadata{M}
 end
 
 Adapt.adapt_structure(to, b::JRA55NetCDFBackend) = JRA55NetCDFBackend(b.start, b.length, nothing)
@@ -155,7 +155,7 @@ function set!(fts::JRA55NetCDFFTSMultipleYears)
     filename   = metadata_filename(metadata)
     filename   = unique(filename)
     name       = short_name(metadata)
-    start_date = first_date(metadata, name)
+    start_date = first_date(metadata.dataset, metadata.name)
 
     for file in filename
 
@@ -164,7 +164,8 @@ function set!(fts::JRA55NetCDFFTSMultipleYears)
 
         # This can be simplified once we start supporting a
         # datetime `Clock` in Oceananigans
-        file_dates = ds["times"][:]
+        file_dates = ds["time"][:]
+        file_indices = 1:length(file_dates)
         file_times = zeros(length(file_dates))
         for (t, date) in enumerate(file_dates)
             delta = date - start_date
@@ -176,35 +177,37 @@ function set!(fts::JRA55NetCDFFTSMultipleYears)
         ftsn = collect(ftsn)
 
         # Intersect the time indices with the file times
-        nn = findall(n -> fts.times[n] ∈ file_times, ftsn)
+        nn = findall(n -> file_times[n] ∈ fts.times[ftsn], file_indices)
 
-        # Nodes at the variable location
-        λc = ds["lon"][:]
-        φc = ds["lat"][:]
-        LX, LY, LZ = location(fts)
-        i₁, i₂, j₁, j₂, TX = compute_bounding_indices(nothing, nothing, fts.grid, LX, LY, λc, φc)
+        if !isempty(nn)
+            # Nodes at the variable location
+            λc = ds["lon"][:]
+            φc = ds["lat"][:]
+            LX, LY, LZ = location(fts)
+            i₁, i₂, j₁, j₂, TX = compute_bounding_indices(nothing, nothing, fts.grid, LX, LY, λc, φc)
 
-        if issorted(nn)
-            data = ds[name][i₁:i₂, j₁:j₂, nn]
-        else
-            # The time indices may be cycling past 1; eg ti = [6, 7, 8, 1].
-            # However, DiskArrays does not seem to support loading data with unsorted
-            # indices. So to handle this, we load the data in chunks, where each chunk's
-            # indices are sorted, and then glue the data together.
-            m = findfirst(n -> n == 1, nn)
-            n1 = nn[1:m-1]
-            n2 = nn[m:end]
+            if issorted(nn)
+                data = ds[name][i₁:i₂, j₁:j₂, nn]
+            else
+                # The time indices may be cycling past 1; eg ti = [6, 7, 8, 1].
+                # However, DiskArrays does not seem to support loading data with unsorted
+                # indices. So to handle this, we load the data in chunks, where each chunk's
+                # indices are sorted, and then glue the data together.
+                m = findfirst(n -> n == 1, nn)
+                n1 = nn[1:m-1]
+                n2 = nn[m:end]
 
-            data1 = ds[name][i₁:i₂, j₁:j₂, n1]
-            data2 = ds[name][i₁:i₂, j₁:j₂, n2]
-            data = cat(data1, data2, dims=3)
-        end
+                data1 = ds[name][i₁:i₂, j₁:j₂, n1]
+                data2 = ds[name][i₁:i₂, j₁:j₂, n2]
+                data = cat(data1, data2, dims=3)
+            end
 
-        close(ds)
+            close(ds)
 
-        # We need to set the time index for each file
-        for n in 1:length(ftsn)
-            copyto!(interior(fts, :, :, 1, n), data[:, :, n])
+            # We need to set the time index for each file
+            for n in 1:length(ftsn)
+                copyto!(interior(fts, :, :, 1, n), data[:, :, n])
+            end
         end
     end
 
@@ -292,7 +295,7 @@ end
 function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Float32;
                               latitude = nothing,
                               longitude = nothing,
-                              backend = InMemory(),
+                              backend = JRA55NetCDFBackend(10, metadata),
                               time_indexing = Cyclical())
 
     # First thing: we download the dataset!
@@ -369,20 +372,20 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
     φc = ds["lat"][:]
 
     # Interfaces for the "native" JRA55 grid
-    λn = ds["lon_bnds"][1, :]
-    φn = ds["lat_bnds"][1, :]
+    λn = Array(ds["lon_bnds"][1, :])
+    φn = Array(ds["lat_bnds"][1, :])
 
     # The .nc coordinates lon_bnds and lat_bnds do not include
     # the last interface, so we push them here.
-    push!(φn, 90)
+    push!(φn, 90.0)
     push!(λn, λn[1] + 360)
 
     i₁, i₂, j₁, j₂, TX = compute_bounding_indices(longitude, latitude, nothing, Center, Center, λc, φc)
 
-    data = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
     λr = λn[i₁:i₂+1]
     φr = φn[j₁:j₂+1]
-    Nrx, Nry, Nt = size(data)
+    Nrx = length(λr) - 1
+    Nry = length(φr) - 1
     close(ds)
 
     N = (Nrx, Nry)
@@ -396,7 +399,8 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
                                               topology = (TX, Bounded, Flat))
 
     boundary_conditions = FieldBoundaryConditions(JRA55_native_grid, (Center, Center, Nothing))
-    times = native_times(metadata)
+    start_time = first_date(metadata.dataset, metadata.name)
+    times = native_times(metadata; start_time)
 
     if backend isa JRA55NetCDFBackend
         fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times;
