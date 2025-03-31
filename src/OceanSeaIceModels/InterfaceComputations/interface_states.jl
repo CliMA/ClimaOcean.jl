@@ -221,7 +221,7 @@ end
     ρ  = ℙᵢ.reference_density
     c  = ℙᵢ.heat_capacity
     Qa = (Qv + Qu + Qd) # Net flux excluding sensible heat (positive out of the ocean)
-    λ  = 1 / (ρ * c) # m³/kg/K
+    λ  = 1 / (ρ * c) # m³K/J
     Jᵀ = Qa * λ
 
     # Calculating the atmospheric temperature
@@ -268,8 +268,10 @@ end
     Tₛ⁺ = Tₛ⁻ + abs_ΔT * sign(ΔT★)
 
     # Under heating fluxes, cap surface temperature by melting temperature
-    Tₛ⁺ = min(Tₛ⁺, Tᵢ)
-
+    Tₘ = ℙᵢ.liquidus.freshwater_melting_temperature
+    Tₘ = convert_to_kelvin(ℙᵢ.temperature_units, Tₘ)
+    Tₛ⁺ = min(Tₛ⁺, Tₘ)
+    
     return Tₛ⁺
 end
 
