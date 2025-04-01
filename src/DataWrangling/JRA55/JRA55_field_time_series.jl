@@ -83,7 +83,8 @@ Adapt.adapt_structure(to, b::JRA55NetCDFBackend) = JRA55NetCDFBackend(b.start, b
 
 Represents a JRA55 FieldTimeSeries backed by JRA55 native .nc files.
 """
-JRA55NetCDFBackend(length, metadata) = JRA55NetCDFBackend(1, length, metadata)
+JRA55NetCDFBackend(length, metadata::Metadata) = JRA55NetCDFBackend(1, length, metadata)
+JRA55NetCDFBackend(start::Integer, length::Integer) = JRA55NetCDFBackend(start, length, nothing)
 
 # Metadata - agnostic constructor
 JRA55NetCDFBackend(length) = JRA55NetCDFBackend(1, length, nothing)
