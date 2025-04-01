@@ -10,15 +10,13 @@ using ClimaOcean.DataWrangling
 using ClimaSeaIce.SeaIceThermodynamics: IceWaterThermalEquilibrium
 using Printf
 
-using CUDA
-CUDA.device!(1)
-arch = GPU()
+arch = CPU()
 
 r_faces = ClimaOcean.exponential_z_faces(; Nz=30, h=10, depth=1000)
 z_faces = MutableVerticalDiscretization(r_faces)
 
-Nx = 540 # longitudinal direction -> 250 points is about 1.5ᵒ resolution
-Ny = 540 # meridional direction -> same thing, 48 points is about 1.5ᵒ resolution
+Nx = 180 # longitudinal direction -> 250 points is about 1.5ᵒ resolution
+Ny = 180 # meridional direction -> same thing, 48 points is about 1.5ᵒ resolution
 Nz = length(r_faces) - 1
 
 grid = RotatedLatitudeLongitudeGrid(arch, size = (Nx, Ny, Nz),
@@ -63,22 +61,37 @@ using ClimaSeaIce.SeaIceMomentumEquations
 using ClimaSeaIce.Rheologies
 
 # Remember to pass the SSS as a bottom bc to the sea ice!
-SSS = view(ocean.model.tracers.S, :, :, grid.Nz)
+SSS = view(ocean.model.tracers.S.data, :, :, grid.Nz)
 bottom_heat_boundary_condition = IceWaterThermalEquilibrium(SSS)
 
 SSU = view(ocean.model.velocities.u, :, :, grid.Nz)
 SSV = view(ocean.model.velocities.v, :, :, grid.Nz)
 
-τo  = SemiImplicitStress(uₑ=SSU, vₑ=SSV)
+τo  = SemiImplicitStress(uₑ=SSU, vₑ=SSV, ρₑ=1020)
 τua = Field{Face, Center, Nothing}(grid)
 τva = Field{Center, Face, Nothing}(grid)
+
+struct MitigatedOceanVelocities{U, V}
+    u :: U
+    v :: V
+end
+
+using Adapt
+
+Adapt.adapt_structure(to, o::MitigatedOceanVelocities) = MitigatedOceanVelocities(Adapt.adapt(to, o.u), Adapt.adapt(to, o.v))
+
+import ClimaSeaIce.SeaIceMomentumEquations: free_drift_v, free_drift_u
+
+# Passing no velocities
+@inline free_drift_u(i, j, k, grid, o::MitigatedOceanVelocities) = @inbounds o.u[i, j, k] * 0.1
+@inline free_drift_v(i, j, k, grid, o::MitigatedOceanVelocities) = @inbounds o.v[i, j, k] * 0.1
 
 dynamics = SeaIceMomentumEquation(grid;
                                   coriolis = ocean.model.coriolis,
                                   top_momentum_stress = (u=τua, v=τva),
                                   bottom_momentum_stress = τo,
-                                  ocean_velocities = (u=0.1*SSU, v=0.1*SSV),
-                                  rheology = ElastoViscoPlasticRheology(),
+                                  ocean_velocities = MitigatedOceanVelocities(SSU, SSV),
+                                  rheology = ElastoViscoPlasticRheology(min_relaxation_parameter=120, max_relaxation_parameter=120),
                                   solver = SplitExplicitSolver(120))
 
 sea_ice = sea_ice_simulation(grid; bottom_heat_boundary_condition, dynamics, advection=WENO(order=7))
@@ -98,7 +111,7 @@ radiation  = Radiation()
 #####
 
 arctic = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-arctic = Simulation(arctic, Δt=2minutes, stop_time=365days)
+arctic = Simulation(arctic, Δt=5minutes, stop_time=365days)
 
 # Sea-ice variables
 h = sea_ice.model.ice_thickness
