@@ -4,7 +4,7 @@ using Dates
 using ClimaOcean
 
 using ClimaOcean.ECCO
-using ClimaOcean.ECCO: ECCO_field, metadata_path, native_times
+using ClimaOcean.ECCO: ECCO_field, metadata_path, native_times, ECCO4DarwinMonthly
 using ClimaOcean.DataWrangling: NearestNeighborInpainting
 
 using Oceananigans.Grids: topology
@@ -133,6 +133,11 @@ end
         @test begin
             set!(field, ECCOMetadatum(:temperature, date=start_date))
             set!(field, ECCOMetadatum(:salinity,    date=start_date))
+            true
+        end
+
+        @test begin
+            set!(field, ECCOMetadatum(:DIC; version=ECCO4DarwinMonthly(), date=start_date))
             true
         end
     end
