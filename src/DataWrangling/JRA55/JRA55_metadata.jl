@@ -17,7 +17,7 @@ import ClimaOcean.DataWrangling: all_dates, metadata_filename, download_dataset,
 struct JRA55MultipleYears end
 struct JRA55RepeatYear end
 
-const JRA55Metadata{D} = Metadata{<:Union{<:JRA55MultipleYears, <:JRA55RepeatYear}, D} where {D}
+const JRA55Metadata{D} = Metadata{<:Union{<:JRA55MultipleYears, <:JRA55RepeatYear}, D}
 const JRA55Metadatum   = Metadatum{<:Union{<:JRA55MultipleYears, <:JRA55RepeatYear}}
 
 default_download_directory(::Union{<:JRA55MultipleYears, <:JRA55RepeatYear}) = download_JRA55_cache
