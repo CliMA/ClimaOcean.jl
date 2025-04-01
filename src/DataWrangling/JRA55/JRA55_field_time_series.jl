@@ -283,7 +283,7 @@ Keyword arguments
              * `JRA55NetCDFBackend(total_time_instances_in_memory)`: only a subset of the time series is loaded into memory.
              Default: `InMemory()`.
 """
-function JRA55FieldTimeSeries(variable_name::Symbol, architecture = CPU(), FT=Float32;
+function JRA55FieldTimeSeries(variable_name::Symbol, architecture=CPU(), FT=Float32;
                               dataset = JRA55RepeatYear(),
                               start_date = first_date(dataset, variable_name),
                               end_date = last_date(dataset, variable_name),
@@ -293,7 +293,7 @@ function JRA55FieldTimeSeries(variable_name::Symbol, architecture = CPU(), FT=Fl
     native_dates = all_dates(dataset, variable_name)
     dates = compute_native_date_range(native_dates, start_date, end_date)                          
 
-    metadata = Metadata(variable_name, dates, dataset, dir)
+    metadata = Metadata(variable_name, dataset, dates, dir)
 
     return JRA55FieldTimeSeries(metadata, architecture, FT; kw...)
 end
@@ -319,7 +319,7 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
 
     # Change the metadata to reflect the actual time indices
     dates    = all_dates(dataset, name)[time_indices]
-    metadata = Metadata(metadata.name, dates, metadata.dataset, metadata.dir)
+    metadata = Metadata(metadata.name, metadata.dataset, dates, metadata.dir)
 
     shortname = short_name(metadata)
     variable_name = metadata.name

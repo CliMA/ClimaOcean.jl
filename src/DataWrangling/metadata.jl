@@ -4,8 +4,8 @@ using Base: @propagate_inbounds
 
 struct Metadata{V, D}
     name  :: Symbol
-    dates :: D
     dataset :: V
+    dates :: D
     dir :: String
 end
 
@@ -35,11 +35,11 @@ function Metadata(variable_name;
                   dates=all_dates(dataset, variable_name)[1:1],
                   dir=default_download_directory(dataset))
 
-    return Metadata(variable_name, dates, dataset, dir)
+    return Metadata(variable_name, dataset, dates, dir)
 end
 
-const AnyDateTime = Union{AbstractCFDateTime, Dates.AbstractDateTime}
-const Metadatum   = Metadata{<:Any, <:AnyDateTime}
+const AnyDateTime  = Union{AbstractCFDateTime, Dates.AbstractDateTime}
+const Metadatum{V} = Metadata{V, <:AnyDateTime} where V
 
 """
     Metadatum(variable_name;
@@ -55,7 +55,7 @@ function Metadatum(variable_name;
                    dir=default_download_directory(dataset))
 
     # TODO: validate that `date` is actually a single date?
-    return Metadata(variable_name, date, dataset, dir)
+    return Metadata(variable_name, dataset, date, dir)
 end
 
 # Just the current directory
@@ -67,8 +67,8 @@ download_dataset(metadata) = nothing
 Base.show(io::IO, metadata::Metadata) =
     print(io, "Metadata:", '\n',
     "├── name: $(metadata.name)", '\n',
-    "├── dates: $(metadata.dates)", '\n',
     "├── dataset: $(metadata.dataset)", '\n',
+    "├── dates: $(metadata.dates)", '\n',
     "└── data directory: $(metadata.dir)")
 
 # Treat Metadata as an array to allow iteration over the dates.
@@ -78,13 +78,13 @@ Base.eltype(metadata::Metadata) = Base.eltype(metadata.dates)
 # If only one date, it's a single element array
 Base.length(metadata::Metadatum) = 1
 
-@propagate_inbounds Base.getindex(m::Metadata, i::Int) = Metadata(m.name, m.dates[i],   m.dataset, m.dir)
-@propagate_inbounds Base.first(m::Metadata)            = Metadata(m.name, m.dates[1],   m.dataset, m.dir)
-@propagate_inbounds Base.last(m::Metadata)             = Metadata(m.name, m.dates[end], m.dataset, m.dir)
+@propagate_inbounds Base.getindex(m::Metadata, i::Int) = Metadata(m.name, m.dataset, m.dates[i],   m.dir)
+@propagate_inbounds Base.first(m::Metadata)            = Metadata(m.name, m.dataset, m.dates[1],   m.dir)
+@propagate_inbounds Base.last(m::Metadata)             = Metadata(m.name, m.dataset, m.dates[end], m.dir)
 
 @inline function Base.iterate(m::Metadata, i=1)
     if (i % UInt) - 1 < length(m)
-        return Metadata(m.name, m.dates[i], m.dataset, m.dir), i + 1
+        return Metadata(m.name, m.dataset, m.dates[i], m.dir), i + 1
     else
         return nothing
     end
