@@ -47,13 +47,13 @@ datestr(md::ECCOMetadatum) = string(md.dates)
 Base.summary(md::ECCOMetadata) = string("ECCOMetadata{", datasetstr(md), "} of ",
                                         md.name, " for ", datestr(md))
 
-Base.size(data::Metadata{<:Any, <:ECCO2Daily})   = (1440, 720, 50, length(data.dates))
-Base.size(data::Metadata{<:Any, <:ECCO2Monthly}) = (1440, 720, 50, length(data.dates))
-Base.size(data::Metadata{<:Any, <:ECCO4Monthly}) = (720,  360, 50, length(data.dates))
+Base.size(data::Metadata{<:ECCO2Daily})   = (1440, 720, 50, length(data.dates))
+Base.size(data::Metadata{<:ECCO2Monthly}) = (1440, 720, 50, length(data.dates))
+Base.size(data::Metadata{<:ECCO4Monthly}) = (720,  360, 50, length(data.dates))
 
-Base.size(::Metadata{<:AnyDateTime, <:ECCO2Daily})   = (1440, 720, 50, 1)
-Base.size(::Metadata{<:AnyDateTime, <:ECCO2Monthly}) = (1440, 720, 50, 1)
-Base.size(::Metadata{<:AnyDateTime, <:ECCO4Monthly}) = (720,  360, 50, 1)
+Base.size(::Metadatum{<:ECCO2Daily})   = (1440, 720, 50, 1)
+Base.size(::Metadatum{<:ECCO2Monthly}) = (1440, 720, 50, 1)
+Base.size(::Metadatum{<:ECCO4Monthly}) = (720,  360, 50, 1)
 
 # The whole range of dates in the different dataset datasets
 all_dates(::ECCO4Monthly, name) = DateTime(1992, 1, 1) : Month(1) : DateTime(2023, 12, 1)
@@ -65,14 +65,14 @@ all_dates(::ECCO2Daily, name)   = DateTime(1992, 1, 4) : Day(1)   : DateTime(202
 all_dates(dataset::Union{<:ECCO4Monthly, <:ECCO2Monthly, <:ECCO2Daily}) = all_dates(dataset, :temperature)
 
 # File name generation specific to each Dataset dataset
-function metadata_filename(metadata::Metadata{<:AnyDateTime, <:ECCO4Monthly})
+function metadata_filename(metadata::Metadatum{<:ECCO4Monthly})
     shortname = short_name(metadata)
     yearstr  = string(Dates.year(metadata.dates))
     monthstr = string(Dates.month(metadata.dates), pad=2)
     return shortname * "_" * yearstr * "_" * monthstr * ".nc"
 end
 
-function metadata_filename(metadata::Metadata{<:AnyDateTime, <:Union{ECCO2Daily, ECCO2Monthly}})
+function metadata_filename(metadata::Metadatum{<:Union{ECCO2Daily, ECCO2Monthly}})
     shortname   = short_name(metadata)
     yearstr  = string(Dates.year(metadata.dates))
     monthstr = string(Dates.month(metadata.dates), pad=2)
@@ -87,9 +87,9 @@ function metadata_filename(metadata::Metadata{<:AnyDateTime, <:Union{ECCO2Daily,
 end
 
 # Convenience functions
-short_name(data::Metadata{<:Any, <:ECCO2Daily})   = ECCO2_short_names[data.name]
-short_name(data::Metadata{<:Any, <:ECCO2Monthly}) = ECCO2_short_names[data.name]
-short_name(data::Metadata{<:Any, <:ECCO4Monthly}) = ECCO4_short_names[data.name]
+short_name(data::Metadata{<:ECCO2Daily})   = ECCO2_short_names[data.name]
+short_name(data::Metadata{<:ECCO2Monthly}) = ECCO2_short_names[data.name]
+short_name(data::Metadata{<:ECCO4Monthly}) = ECCO4_short_names[data.name]
 
 location(data::ECCOMetadata) = ECCO_location[data.name]
 
@@ -133,10 +133,10 @@ ECCO_location = Dict(
 )
 
 # URLs for the ECCO datasets specific to each dataset
-metadata_url(m::Metadata{<:Any, <:ECCO2Daily})   = ECCO2_url *  "monthly/" * short_name(m) * "/" * metadata_filename(m)
-metadata_url(m::Metadata{<:Any, <:ECCO2Monthly}) = ECCO2_url *  "daily/"   * short_name(m) * "/" * metadata_filename(m)
+metadata_url(m::Metadata{<:ECCO2Daily})   = ECCO2_url *  "monthly/" * short_name(m) * "/" * metadata_filename(m)
+metadata_url(m::Metadata{<:ECCO2Monthly}) = ECCO2_url *  "daily/"   * short_name(m) * "/" * metadata_filename(m)
 
-function metadata_url(m::Metadata{<:Any, <:ECCO4Monthly})
+function metadata_url(m::Metadata{<:ECCO4Monthly})
     year = string(Dates.year(m.dates))
     return ECCO4_url * short_name(m) * "/" * year * "/" * metadata_filename(m)
 end

@@ -148,7 +148,7 @@ function ECCOFieldTimeSeries(variable_name::Symbol;
 
     native_dates = all_dates(dataset, variable_name)
     dates = compute_native_date_range(native_dates, start_date, end_date)                          
-    metadata = Metadata(variable_name, dates, dataset, dir)
+    metadata = Metadata(variable_name, dataset, dates, dir)
     return ECCOFieldTimeSeries(metadata, architecture; kw...)
 end
 
@@ -337,7 +337,7 @@ function ECCORestoring(variable_name::Symbol,
 
     native_dates = all_dates(dataset, variable_name)
     dates = compute_native_date_range(native_dates, start_date, end_date)                          
-    metadata = Metadata(variable_name, dates, dataset, dir)
+    metadata = Metadata(variable_name, dataset, dates, dir)
 
     return ECCORestoring(metadata, arch_or_grid; kw...)
 end
