@@ -389,7 +389,7 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
 
     # The .nc coordinates lon_bnds and lat_bnds do not include
     # the last interface, so we push them here.
-    push!(φn, 90.0)
+    push!(φn, 90)
     push!(λn, λn[1] + 360)
 
     i₁, i₂, j₁, j₂, TX = compute_bounding_indices(longitude, latitude, nothing, Center, Center, λc, φc)
