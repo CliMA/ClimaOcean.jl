@@ -47,7 +47,7 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
             f₁ = view(parent(netcdf_JRA55_fts), :, :, 1, 1)
             f₁ = Array(f₁)
 
-            netcdf_JRA55_fts.backend = JRA55NetCDFBackend(Nt-2, Nb)
+            netcdf_JRA55_fts.backend = Oceananigans.OutputReaders.new_backend(netcdf_JRA55_fts.backend, Nt-2, Nb)
             @test Oceananigans.OutputReaders.time_indices(netcdf_JRA55_fts) == (Nt-2, Nt-1, Nt, 1)
             set!(netcdf_JRA55_fts)
 

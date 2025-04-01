@@ -86,7 +86,7 @@ Represents a JRA55 FieldTimeSeries backed by JRA55 native .nc files.
 JRA55NetCDFBackend(length, metadata) = JRA55NetCDFBackend(1, length, metadata)
 
 # Metadata - agnostic constructor
-JRA55NetCDFBackend(length) = JRA55NetCDFBackend(length, nothing)
+JRA55NetCDFBackend(length) = JRA55NetCDFBackend(1, length, nothing)
 
 Base.length(backend::JRA55NetCDFBackend) = backend.length
 Base.summary(backend::JRA55NetCDFBackend) = string("JRA55NetCDFBackend(", backend.start, ", ", backend.length, ")")

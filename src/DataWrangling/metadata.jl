@@ -65,7 +65,7 @@ default_download_directory(dataset) = pwd()
 download_dataset(metadata) = nothing
 
 Base.show(io::IO, metadata::Metadata) =
-    print(io, "ECCOMetadata:", '\n',
+    print(io, "Metadata:", '\n',
     "├── name: $(metadata.name)", '\n',
     "├── dates: $(metadata.dates)", '\n',
     "├── dataset: $(metadata.dataset)", '\n',
