@@ -414,26 +414,14 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
     start_time = first_date(metadata.dataset, metadata.name)
     times = native_times(metadata; start_time)
 
-    if backend isa JRA55NetCDFBackend
-        fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times;
-                                                       backend,
-                                                       time_indexing,
-                                                       boundary_conditions,
-                                                       path = filepath,
-                                                       name = shortname)
+    fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times;
+                                                   backend,
+                                                   time_indexing,
+                                                   boundary_conditions,
+                                                   path = filepath,
+                                                   name = shortname)
 
-        set!(fts)
-        return fts
-    else
-        fts = FieldTimeSeries{Center, Center, Nothing}(JRA55_native_grid, times;
-                                                       time_indexing,
-                                                       backend,
-                                                       boundary_conditions)
+    set!(fts)
 
-        # Fill the data in a GPU-friendly manner
-        copyto!(interior(fts, :, :, 1, :), data)
-        fill_halo_regions!(fts)
-
-        return fts
-    end
+    return fts
 end
