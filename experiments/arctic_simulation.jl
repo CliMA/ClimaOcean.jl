@@ -67,7 +67,7 @@ bottom_heat_boundary_condition = IceWaterThermalEquilibrium(SSS)
 SSU = view(ocean.model.velocities.u, :, :, grid.Nz)
 SSV = view(ocean.model.velocities.v, :, :, grid.Nz)
 
-τo  = SemiImplicitStress(uₑ=SSU, vₑ=SSV, ρₑ=1020)
+τo  = SemiImplicitStress(uₑ=SSU, vₑ=SSV, ρₑ=1020, Cᴰ=1e-4)
 τua = Field{Face, Center, Nothing}(grid)
 τva = Field{Center, Face, Nothing}(grid)
 
@@ -111,7 +111,7 @@ radiation  = Radiation()
 #####
 
 arctic = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-arctic = Simulation(arctic, Δt=5minutes, stop_time=365days)
+arctic = Simulation(arctic, Δt=5minutes, stop_time=365days) #, stop_iteration=5)
 
 # Sea-ice variables
 h = sea_ice.model.ice_thickness
