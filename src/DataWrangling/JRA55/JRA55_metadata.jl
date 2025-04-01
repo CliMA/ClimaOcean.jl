@@ -152,7 +152,7 @@ variable_is_three_dimensional(data::JRA55Metadata) = false
 
 metadata_url(metadata::Metadata{<:JRA55RepeatYear}) = JRA55_repeat_year_urls[metadata.name]
 # TODO:
-# metadata_url(metadata::Metadata{<:Any, <:JRA55MultipleYears}) = ...
+# metadata_url(metadata::Metadata{<:JRA55MultipleYears}) = ...
 
 function download_dataset(metadata::JRA55Metadata)
 

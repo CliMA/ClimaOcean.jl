@@ -67,8 +67,8 @@ download_dataset(metadata) = nothing
 Base.show(io::IO, metadata::Metadata) =
     print(io, "ECCOMetadata:", '\n',
     "├── name: $(metadata.name)", '\n',
-    "├── dates: $(metadata.dates)", '\n',
     "├── dataset: $(metadata.dataset)", '\n',
+    "├── dates: $(metadata.dates)", '\n',
     "└── data directory: $(metadata.dir)")
 
 # Treat Metadata as an array to allow iteration over the dates.
@@ -78,13 +78,13 @@ Base.eltype(metadata::Metadata) = Base.eltype(metadata.dates)
 # If only one date, it's a single element array
 Base.length(metadata::Metadatum) = 1
 
-@propagate_inbounds Base.getindex(m::Metadata, i::Int) = Metadata(m.name, m.dates[i],   m.dataset, m.dir)
-@propagate_inbounds Base.first(m::Metadata)            = Metadata(m.name, m.dates[1],   m.dataset, m.dir)
-@propagate_inbounds Base.last(m::Metadata)             = Metadata(m.name, m.dates[end], m.dataset, m.dir)
+@propagate_inbounds Base.getindex(m::Metadata, i::Int) = Metadata(m.name, m.dataset, m.dates[i],   m.dir)
+@propagate_inbounds Base.first(m::Metadata)            = Metadata(m.name, m.dataset, m.dates[1],   m.dir)
+@propagate_inbounds Base.last(m::Metadata)             = Metadata(m.name, m.dataset, m.dates[end], m.dir)
 
 @inline function Base.iterate(m::Metadata, i=1)
     if (i % UInt) - 1 < length(m)
-        return Metadata(m.name, m.dates[i], m.dataset, m.dir), i + 1
+        return Metadata(m.name, m.dataset, m.dates[i], m.dir), i + 1
     else
         return nothing
     end
