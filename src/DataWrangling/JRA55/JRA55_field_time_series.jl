@@ -203,7 +203,7 @@ function JRA55FieldTimeSeries(variable_name::Symbol, architecture = CPU(), FT=Fl
     native_dates = all_dates(dataset, variable_name)
     dates = compute_native_date_range(native_dates, start_date, end_date)                          
 
-    metadata = Metadata(variable_name, dates, dataset, dir)
+    metadata = Metadata(variable_name, dataset, dates, dir)
 
     return JRA55FieldTimeSeries(metadata, architecture, FT; kw...)
 end
