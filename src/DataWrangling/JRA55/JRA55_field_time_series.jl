@@ -430,9 +430,9 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
                                                        boundary_conditions)
 
         # Fill the data in a GPU-friendly manner
-        copyto!(interior(native_fts, :, :, 1, :), data)
-        fill_halo_regions!(native_fts)
+        copyto!(interior(fts, :, :, 1, :), data)
+        fill_halo_regions!(fts)
 
-        return native_fts
+        return fts
     end
 end
