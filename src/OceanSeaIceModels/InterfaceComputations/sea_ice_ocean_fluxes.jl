@@ -19,8 +19,9 @@ function compute_sea_ice_ocean_fluxes!(coupled_model)
     
     ocean_properties = coupled_model.interfaces.ocean_properties
     liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
-    grid = ocean.model.grid
-    arch = architecture(grid)
+    grid  = ocean.model.grid
+    clock = ocean.model.clock
+    arch  = architecture(grid)
 
     uᵢ, vᵢ = sea_ice.model.velocities
     dynamics = sea_ice.model.dynamics
