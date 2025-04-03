@@ -4,7 +4,11 @@ using Oceananigans.Operators: ℑxᶠᵃᵃ, ℑyᵃᶠᵃ
 using ClimaOcean.OceanSeaIceModels: sea_ice_concentration
 
 @inline computed_sea_ice_ocean_fluxes(interface) = interface.fluxes
-@inline computed_sea_ice_ocean_fluxes(::Nothing) = (interface_heat = ZeroField(), frazil_heat = ZeroField(), salt = ZeroField())
+@inline computed_sea_ice_ocean_fluxes(::Nothing) = (interface_heat = ZeroField(), 
+                                                    frazil_heat = ZeroField(), 
+                                                    salt = ZeroField(),
+                                                    x_momentum = ZeroField(),
+                                                    y_momentum = ZeroField())
 
 function compute_net_ocean_fluxes!(coupled_model)
     ocean = coupled_model.ocean
