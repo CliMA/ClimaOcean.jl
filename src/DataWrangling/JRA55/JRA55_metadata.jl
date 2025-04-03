@@ -132,17 +132,17 @@ JRA55_multiple_year_prefix = Dict(
 )
 
 JRA55_multiple_year_dates = Dict(
-    :river_freshwater_flux           => DateTime(1958, 1, 1)        : Day(1)  : DateTime(2021, 12, 31),
-    :rain_freshwater_flux            => DateTime(1958, 1, 1, 1, 30) : Hour(3) : DateTime(2021, 12, 31, 22, 30),
-    :snow_freshwater_flux            => DateTime(1958, 1, 1, 1, 30) : Hour(3) : DateTime(2021, 12, 31, 22, 30),
-    :iceberg_freshwater_flux         => DateTime(1958, 1, 1)        : Day(1)  : DateTime(2021, 12, 31),
-    :specific_humidity               => DateTime(1958, 1, 1)        : Hour(3) : DateTime(2021, 12, 31, 21),
-    :sea_level_pressure              => DateTime(1958, 1, 1)        : Hour(3) : DateTime(2021, 12, 31, 21),
-    :downwelling_longwave_radiation  => DateTime(1958, 1, 1, 1, 30) : Hour(3) : DateTime(2021, 12, 31, 22, 30),
-    :downwelling_shortwave_radiation => DateTime(1958, 1, 1, 1, 30) : Hour(3) : DateTime(2021, 12, 31, 22, 30),
-    :temperature                     => DateTime(1958, 1, 1)        : Hour(3) : DateTime(2021, 12, 31, 21),
-    :eastward_velocity               => DateTime(1958, 1, 1)        : Hour(3) : DateTime(2021, 12, 31, 21),
-    :northward_velocity              => DateTime(1958, 1, 1)        : Hour(3) : DateTime(2021, 12, 31, 21)
+    :river_freshwater_flux           => DateTime(1958, 1, 1)        : Day(1)  : DateTime(2019, 12, 31),
+    :rain_freshwater_flux            => DateTime(1958, 1, 1, 1, 30) : Hour(3) : DateTime(2019, 12, 31, 22, 30),
+    :snow_freshwater_flux            => DateTime(1958, 1, 1, 1, 30) : Hour(3) : DateTime(2019, 12, 31, 22, 30),
+    :iceberg_freshwater_flux         => DateTime(1958, 1, 1)        : Day(1)  : DateTime(2019, 12, 31),
+    :specific_humidity               => DateTime(1958, 1, 1)        : Hour(3) : DateTime(2019, 12, 31, 21),
+    :sea_level_pressure              => DateTime(1958, 1, 1)        : Hour(3) : DateTime(2019, 12, 31, 21),
+    :downwelling_longwave_radiation  => DateTime(1958, 1, 1, 1, 30) : Hour(3) : DateTime(2019, 12, 31, 22, 30),
+    :downwelling_shortwave_radiation => DateTime(1958, 1, 1, 1, 30) : Hour(3) : DateTime(2019, 12, 31, 22, 30),
+    :temperature                     => DateTime(1958, 1, 1)        : Hour(3) : DateTime(2019, 12, 31, 21),
+    :eastward_velocity               => DateTime(1958, 1, 1)        : Hour(3) : DateTime(2019, 12, 31, 21),
+    :northward_velocity              => DateTime(1958, 1, 1)        : Hour(3) : DateTime(2019, 12, 31, 21)
 )
 
 JRA55_repeat_year_urls = Dict(
