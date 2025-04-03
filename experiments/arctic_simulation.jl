@@ -63,7 +63,7 @@ using ClimaSeaIce.SeaIceMomentumEquations
 using ClimaSeaIce.Rheologies
 
 # Remember to pass the SSS as a bottom bc to the sea ice!
-SSS = view(ocean.model.tracers.S, :, :, grid.Nz)
+SSS = view(ocean.model.tracers.S.data, :, :, grid.Nz)
 bottom_heat_boundary_condition = IceWaterThermalEquilibrium(SSS)
 
 SSU = view(ocean.model.velocities.u, :, :, grid.Nz)
@@ -77,7 +77,7 @@ dynamics = SeaIceMomentumEquation(grid;
                                   coriolis = ocean.model.coriolis,
                                   top_momentum_stress = (u=τua, v=τva),
                                   bottom_momentum_stress = τo,
-                                  ocean_velocities = (u=SSU, v=SSV),
+                                  ocean_velocities = (u=0.1*SSU, v=0.1*SSV),
                                   rheology = ElastoViscoPlasticRheology(),
                                   solver = SplitExplicitSolver(120))
 
