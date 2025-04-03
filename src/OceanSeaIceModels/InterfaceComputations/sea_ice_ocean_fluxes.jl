@@ -147,7 +147,7 @@ end
         h⁻[i, j, 1] = hᵢ[i, j, 1]
 
         # Momentum stresses
-        τx[i, j, 1] = x_momentum_stress(i, j, 1, grid, τₒᵢ, clock, sea_ice_fields)
-        τy[i, j, 1] = y_momentum_stress(i, j, 1, grid, τₒᵢ, clock, sea_ice_fields)
+        τx[i, j, 1] = x_momentum_stress(i, j, Nz, grid, τₒᵢ, clock, sea_ice_fields)
+        τy[i, j, 1] = y_momentum_stress(i, j, Nz, grid, τₒᵢ, clock, sea_ice_fields)
     end
 end
