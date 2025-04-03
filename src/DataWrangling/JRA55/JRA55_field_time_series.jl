@@ -302,7 +302,7 @@ end
 function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Float32;
                               latitude = nothing,
                               longitude = nothing,
-                              backend = JRA55NetCDFBackend(10, metadata),
+                              backend = InMemory(),
                               time_indexing = Cyclical())
 
     # First thing: we download the dataset!
