@@ -305,6 +305,13 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
                               backend = InMemory(),
                               time_indexing = Cyclical())
 
+
+    # Cannot use `TotallyInMemory` backend with JRA55MultipleYear dataset
+    if metadata.dataset isa JRA55MultipleYears && backend isa TotallyInMemory
+        msg = string("The `InMemory` backend is not supported for the JRA55MultipleYears dataset.")
+        throw(ArgumentError(msg))
+    end
+
     # First thing: we download the dataset!
     download_dataset(metadata)
 

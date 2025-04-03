@@ -1,6 +1,6 @@
 include("runtests_setup.jl")
 
-using ClimaOcean.JRA55: download_JRA55_cache
+using ClimaOcean.JRA55: download_JRA55_cache, JRA55MultipleYears
 using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 
 @testset "JRA55 and data wrangling utilities" begin
@@ -129,5 +129,22 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         @test rivers_times != pressure_times
         @test length(rivers_times) != length(pressure_times)
         @test rivers_times[2] - rivers_times[1] == 86400
+
+        @info "Testing multi year JRA55 data on $A..."
+        dataset = JRA55MultipleYears()
+        dates = ClimaOcean.DataWrangling.all_dates(JRA55MultipleYears(), :temperature)
+        
+        # These dates correspond to a metadata that crosses between year 1958 and 1959.
+        # Therefore, this will download two files for the two years and concatenate them
+        # when reading the data.
+        start_date = dates[2800]
+        end_date   = dates[3600]
+        backend = JRA55NetCDFBackend(10)
+        Ta = JRA55FieldTimeSeries(:temperature; dataset=JRA55MultipleYears(), start_date, end_date, backend)
+
+        # Test we can access all the data
+        for t in Ta.times
+            @test Ta[t] isa Field
+        end
     end
 end
