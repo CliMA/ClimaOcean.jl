@@ -133,19 +133,20 @@ using Statistics
 
 function progress(sim)
     sea_ice = sim.model.sea_ice
-    hmax = maximum(sea_ice.model.ice_thickness)
-    ℵmax = maximum(sea_ice.model.ice_concentration)
-    hmean = mean(sea_ice.model.ice_thickness)
-    ℵmean = mean(sea_ice.model.ice_concentration)
-    Tmax = maximum(sim.model.interfaces.atmosphere_sea_ice_interface.temperature)
-    Tmin = minimum(sim.model.interfaces.atmosphere_sea_ice_interface.temperature)
+    ocean   = sim.model.ocean
+    hmax  = maximum(sea_ice.model.ice_thickness)
+    ℵmax  = maximum(sea_ice.model.ice_concentration)
+    uimax = maximum(abs, sea_ice.model.velocities.u)
+    vimax = maximum(abs, sea_ice.model.velocities.v)
+    uomax = maximum(abs, ocean.model.velocities.u)
+    vomax = maximum(abs, ocean.model.velocities.v)
 
     step_time = 1e-9 * (time_ns() - wall_time[])
 
     msg1 = @sprintf("time: %s, iteration: %d, Δt: %s, ", prettytime(sim), iteration(sim), prettytime(sim.Δt))
     msg2 = @sprintf("max(h): %.2e m, max(ℵ): %.2e ", hmax, ℵmax)
-    msg3 = @sprintf("mean(h): %.2e m, mean(ℵ): %.2e ", hmean, ℵmean)
-    msg4 = @sprintf("extrema(T): (%.2f, %.2f) ᵒC, ", Tmax, Tmin)
+    msg3 = @sprintf("max i-U: (%.2f, %.2f) ᵒC, ", uimax, vimax)
+    msg4 = @sprintf("max o-U: (%.2f, %.2f) ᵒC, ", uomax, vomax)
     msg5 = @sprintf("wall time: %s \n", prettytime(step_time))
 
     @info msg1 * msg2 * msg3 * msg4 * msg5
@@ -182,16 +183,6 @@ h = FieldTimeSeries("averaged_sea_ice_quantities.jld2", "h")
 hm = FieldTimeSeries{Center, Center, Nothing}(grid, hE.times; backend=InMemory())
 ℵm = FieldTimeSeries{Center, Center, Nothing}(grid, hE.times; backend=InMemory())
 
-for (i, time) in enumerate(hm.times)
-    counter = 0
-    for (j, t) in enumerate(h.times)
-        if t ≤ time
-            hm[i] .+= h[j]
-            ℵm[i] .+= ℵ[j]
-            counter += 1
-        end
-    end
-    @show counter
-    hm[i] ./= counter
-    ℵm[i] ./= counter
-end
+hMe = [mean(h[t]) for t in 1:length(h.times)]
+ℵMe = [mean(ℵ[t]) for t in 1:length(ℵ.times)]
+
