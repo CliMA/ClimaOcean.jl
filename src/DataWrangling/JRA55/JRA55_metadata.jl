@@ -64,23 +64,18 @@ function metadata_filename(metadata::Metadata{<:JRA55RepeatYear}) # No differenc
     return "RYF." * shortname * ".1990_1991.nc"
 end
 
-multiple_year_time_displaced_variables = [:rain_freshwater_flux, 
-                                          :snow_freshwater_flux,
-                                          :downwelling_shortwave_radiation, 
-                                          :downwelling_longwave_radiation]
-
 function metadata_filename(metadata::Metadatum{<:JRA55MultipleYears})
     # fix the filename
     shortname = short_name(metadata)
     year      = Dates.year(metadata.dates)
     suffix    = "_input4MIPs_atmosphericState_OMIP_MRI-JRA55-do-1-5-0_gr_"
 
-    if metadata.name ∈ [:river_freshwater_flux, :iceberg_freshwater_flux]
+    end_date = last(JRA55_multiple_year_dates[metadata.name])
+    end_hour = Hour(end_date)
+
+    if end_hour == Hour(0)
         dates = "$(year)0101-$(year)1231"
-    elseif metadata.name ∈ [:rain_freshwater_flux, 
-                            :snow_freshwater_flux, 
-                            :downwelling_shortwave_radiation, 
-                            :downwelling_longwave_radiation]
+    elseif end_hour == Hour(22)
         dates = "$(year)01010130-$(year)12312230"
     else
         dates = "$(year)01010000-$(year)12312100"
