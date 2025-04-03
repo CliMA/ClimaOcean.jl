@@ -17,6 +17,8 @@ using Oceananigans.Operators
 using ClimaSeaIce
 using ClimaSeaIce: SeaIceModel, SlabSeaIceThermodynamics, PhaseTransitions, ConductiveFlux
 using ClimaSeaIce.SeaIceThermodynamics: IceWaterThermalEquilibrium
+using ClimaSeaIce.SeaIceMomentumEquations
+using ClimaSeaIce.Rheologies
 
 using ClimaOcean.OceanSimulations: Default
 
@@ -71,6 +73,24 @@ function sea_ice_simulation(grid;
     sea_ice = Simulation(sea_ice_model; Δt, verbose)
 
     return sea_ice
+end
+
+function default_sea_ice_dynamics(grid; ocean)
+
+    SSU = view(ocean.model.velocities.u, :, :, grid.Nz)
+    SSV = view(ocean.model.velocities.u, :, :, grid.Nz)
+
+    τo  = SemiImplicitStress(uₑ=SSU, vₑ=SSV)
+    τua = Field{Face, Center, Nothing}(grid)
+    τva = Field{Center, Face, Nothing}(grid)
+
+    return SeaIceMomentumEquation(grid;
+                                  coriolis = ocean.model.coriolis,
+                                  top_momentum_stress = (u=τua, v=τva),
+                                  bottom_momentum_stress = τo,
+                                  ocean_velocities = (u=0.1*SSU, v=0.1*SSV),
+                                  rheology = ElastoViscoPlasticRheology(),
+                                  solver = SplitExplicitSolver(120))
 end
 
 end
