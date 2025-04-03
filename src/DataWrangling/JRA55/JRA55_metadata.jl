@@ -70,7 +70,7 @@ function metadata_filename(metadata::Metadatum{<:JRA55MultipleYears})
     year      = Dates.year(metadata.dates)
     suffix    = "_input4MIPs_atmosphericState_OMIP_MRI-JRA55-do-1-5-0_gr_"
 
-    end_date = JRA55_multiple_year_dates[metadata.name][end]
+    end_date = last(JRA55_multiple_year_dates[metadata.name])
     end_hour = Hour(end_date)
 
     if end_hour == Hour(0)
