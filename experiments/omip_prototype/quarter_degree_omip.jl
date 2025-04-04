@@ -77,7 +77,7 @@ atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(40))
 radiation  = Radiation()
 
 #####
-##### Arctic coupled model
+##### An ocean-sea ice coupled model
 #####
 
 omip = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
