@@ -59,10 +59,12 @@ set!(ocean.model, T=Metadatum(:temperature; dataset),
 SSS = view(ocean.model.tracers.S.data, :, :, grid.Nz)
 bottom_heat_boundary_condition = IceWaterThermalEquilibrium(SSS)
 
-# Default dynamics
-dynamics = ClimaOcean.SeaIceSimulations.default_sea_ice_dynamics(grid; ocean)
+# Default sea-ice dynamics
+sea_ice_dynamics = ClimaOcean.SeaIceSimulations.default_sea_ice_dynamics(grid; ocean)
 
-sea_ice = sea_ice_simulation(grid; bottom_heat_boundary_condition, dynamics, advection=WENO(order=7))
+sea_ice = sea_ice_simulation(grid; bottom_heat_boundary_condition,
+                             dynamics = sea_ice_dynamics,
+                             advection=WENO(order=7))
 
 set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset),
                     ℵ=Metadatum(:sea_ice_concentration; dataset))
