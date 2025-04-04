@@ -247,6 +247,8 @@ function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean;
     io_bottom_heat_flux = Field{Center, Center, Nothing}(ocean.model.grid)
     io_frazil_heat_flux = Field{Center, Center, Nothing}(ocean.model.grid)
     io_salt_flux = Field{Center, Center, Nothing}(ocean.model.grid)
+    x_momentum = Field{Face, Center, Nothing}(ocean.model.grid)
+    y_momentum = Field{Center, Face, Nothing}(ocean.model.grid)
 
     @assert io_frazil_heat_flux isa Field{Center, Center, Nothing}
     @assert io_bottom_heat_flux isa Field{Center, Center, Nothing}
@@ -254,7 +256,9 @@ function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean;
 
     io_fluxes = (interface_heat=io_bottom_heat_flux,
                  frazil_heat=io_frazil_heat_flux,
-                 salt=io_salt_flux)
+                 salt=io_salt_flux,
+                 x_momentum=x_momentum,
+                 y_momentum=y_momentum)
 
     io_properties = (; characteristic_melting_speed)
 

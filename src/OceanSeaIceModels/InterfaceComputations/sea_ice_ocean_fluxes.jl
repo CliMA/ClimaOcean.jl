@@ -1,5 +1,6 @@
 using Oceananigans.Operators: Δzᶜᶜᶜ
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
+using ClimaSeaIce.SeaIceMomentumEquations: x_momentum_stress, y_momentum_stress
 
 function compute_sea_ice_ocean_fluxes!(coupled_model)
     ocean = coupled_model.ocean
@@ -18,46 +19,65 @@ function compute_sea_ice_ocean_fluxes!(coupled_model)
     
     ocean_properties = coupled_model.interfaces.ocean_properties
     liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
-    grid = ocean.model.grid
-    arch = architecture(grid)
+    grid  = ocean.model.grid
+    clock = ocean.model.clock
+    arch  = architecture(grid)
+
+    uᵢ, vᵢ = sea_ice.model.velocities
+    dynamics = sea_ice.model.dynamics
+
+    τs = if isnothing(dynamics)
+        nothing
+    else
+        dynamics.external_momentum_stresses.bottom
+    end
 
     # What about the latent heat removed from the ocean when ice forms?
     # Is it immediately removed from the ocean? Or is it stored in the ice?
-    launch!(arch, grid, :xy, _compute_sea_ice_ocean_latent_heat_flux!,
-            sea_ice_ocean_fluxes, grid, hᵢ, h⁻, ℵᵢ, Sᵢ, Tₒ, Sₒ, liquidus, ocean_properties, interface_properties, Δt)
+    launch!(arch, grid, :xy, _compute_sea_ice_ocean_fluxes!,
+            sea_ice_ocean_fluxes, grid, clock, hᵢ, h⁻, ℵᵢ, Sᵢ, Tₒ, Sₒ, uᵢ, vᵢ, 
+            τs, liquidus, ocean_properties, interface_properties, Δt)
 
     return nothing
 end
 
-@kernel function _compute_sea_ice_ocean_latent_heat_flux!(sea_ice_ocean_fluxes,
-                                                          grid,
-                                                          ice_thickness,
-                                                          previous_ice_thickness,
-                                                          ice_concentration,
-                                                          ice_salinity,
-                                                          ocean_temperature,
-                                                          ocean_salinity,
-                                                          liquidus,
-                                                          ocean_properties,
-                                                          interface_properties,
-                                                          Δt)
-
+@kernel function _compute_sea_ice_ocean_fluxes!(sea_ice_ocean_fluxes,
+                                                grid,
+                                                clock, 
+                                                ice_thickness,
+                                                previous_ice_thickness,
+                                                ice_concentration,
+                                                ice_salinity,
+                                                ocean_temperature,
+                                                ocean_salinity,
+                                                sea_ice_u_velocity, 
+                                                sea_ice_v_velocity, 
+                                                sea_ice_ocean_stresses,
+                                                liquidus,
+                                                ocean_properties,
+                                                interface_properties,
+                                                Δt)
+                                                
     i, j = @index(Global, NTuple)
 
     Nz  = size(grid, 3)
     Qᶠₒ = sea_ice_ocean_fluxes.frazil_heat
     Qᵢₒ = sea_ice_ocean_fluxes.interface_heat
     Jˢ  = sea_ice_ocean_fluxes.salt
+    τx  = sea_ice_ocean_fluxes.x_momentum
+    τy  = sea_ice_ocean_fluxes.y_momentum
+    uᵢ  = sea_ice_u_velocity
+    vᵢ  = sea_ice_v_velocity
     Tₒ  = ocean_temperature
     Sₒ  = ocean_salinity
     Sᵢ  = ice_salinity
     hᵢ  = ice_thickness
+    ℵᵢ  = ice_concentration
     h⁻  = previous_ice_thickness
     ρₒ  = ocean_properties.reference_density
     cₒ  = ocean_properties.heat_capacity
     uₘ★ = interface_properties.characteristic_melting_speed
 
-    ℵ = @inbounds ice_concentration[i, j, 1]
     δQ_frazil = zero(grid)
 
     for k = Nz:-1:1
@@ -94,6 +114,7 @@ end
     @inbounds begin
         Tᴺ = Tₒ[i, j, Nz]
         Sᴺ = Sₒ[i, j, Nz]
+        ℵ  = ℵᵢ[i, j, 1]
     end
 
     # Compute total heat associated with temperature adjustment
@@ -111,6 +132,9 @@ end
     @inbounds Qᶠₒ[i, j, 1] = δQ_frazil
     @inbounds Qᵢₒ[i, j, 1] = δQ_melting * ℵ # Melting depends on concentration
 
+    sea_ice_fields = (; u = uᵢ, v = vᵢ, h = hᵢ, ℵ = ℵᵢ)
+    τₒᵢ = sea_ice_ocean_stresses
+
     @inbounds begin
         # Change in thickness
         Δh = hᵢ[i, j, 1] - h⁻[i, j, 1]
@@ -122,5 +146,9 @@ end
 
         # Update previous ice thickness
         h⁻[i, j, 1] = hᵢ[i, j, 1]
+
+        # Momentum stresses
+        τx[i, j, 1] = x_momentum_stress(i, j, Nz, grid, τₒᵢ, clock, sea_ice_fields)
+        τy[i, j, 1] = y_momentum_stress(i, j, Nz, grid, τₒᵢ, clock, sea_ice_fields)
     end
 end
