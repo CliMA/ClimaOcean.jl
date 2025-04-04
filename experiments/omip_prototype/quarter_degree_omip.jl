@@ -73,7 +73,7 @@ set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset),
 ##### A Prescribed Atmosphere model
 #####
 
-atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(40))
+atmosphere = JRA55PrescribedAtmosphere(arch; dataset=JRA55MultipleYears(), backend=JRA55NetCDFBackend(40), include_rivers_and_icebergs=true)
 radiation  = Radiation()
 
 #####
@@ -84,6 +84,17 @@ omip = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 omip = Simulation(arctic, Δt=1minutes, stop_time=30days)
 
 # Figure out the outputs....
+
+ocean.output_writer[:checkpointer] = Checkpointer(ocean.model,
+                                                  schedule = IterationInterval(10000),
+                                                  prefix = "ocean_checkpoint",
+                                                  overwrite_existing = true)
+
+
+sea_ice.output_writer[:checkpointer] = Checkpointer(sea_ice.model,
+                                                    schedule = IterationInterval(10000),
+                                                    prefix = "sea_ice_checkpoint",
+                                                    overwrite_existing = true)
 
 wall_time = Ref(time_ns())
 
