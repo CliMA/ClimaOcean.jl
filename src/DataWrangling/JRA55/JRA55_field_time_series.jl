@@ -93,8 +93,8 @@ Base.length(backend::JRA55NetCDFBackend) = backend.length
 Base.summary(backend::JRA55NetCDFBackend) = string("JRA55NetCDFBackend(", backend.start, ", ", backend.length, ")")
 
 const JRA55NetCDFFTS              = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend}
-const JRA55NetCDFFTSRepeatYear    = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend{<:Metadata{<:JRA55RepeatYear}}}
-const JRA55NetCDFFTSMultipleYears = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend{<:Metadata{<:JRA55MultipleYears}}}
+const JRA55NetCDFFTSRepeatYear    = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend{<:Metadata{<:RepeatYearJRA55}}}
+const JRA55NetCDFFTSMultipleYears = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend{<:Metadata{<:MultiYearJRA55}}}
 
 # Note that each file should have the variables
 #   - ds["time"]:     time coordinate 
@@ -227,7 +227,7 @@ new_backend(b::JRA55NetCDFBackend, start, length) = JRA55NetCDFBackend(start, le
 
 """
     JRA55FieldTimeSeries(variable_name [, arch_or_grid=CPU() ]; 
-                         version = JRA55RepeatYear(),
+                         version = RepeatYearJRA55(),
                          dates = all_JRA55_dates(version),
                          latitude = nothing,
                          longitude = nothing,
@@ -265,7 +265,7 @@ Keyword arguments
 
 - `end_date`: The ending date to use for the ECCO dataset. Default: `end_date(dataset, variable_name)`.
 
-- `dataset`: The data dataset. The only supported datasets is `JRA55RepeatYear()`
+- `dataset`: The data dataset. The only supported datasets is `RepeatYearJRA55()`
 
 - `dir`: The directory of the data file. Default: `ClimaOcean.JRA55.download_JRA55_cache`.
 
@@ -285,7 +285,7 @@ Keyword arguments
              Default: `InMemory()`.
 """
 function JRA55FieldTimeSeries(variable_name::Symbol, architecture=CPU(), FT=Float32;
-                              dataset = JRA55RepeatYear(),
+                              dataset = RepeatYearJRA55(),
                               start_date = first_date(dataset, variable_name),
                               end_date = last_date(dataset, variable_name),
                               dir = download_JRA55_cache,
@@ -307,8 +307,8 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
 
 
     # Cannot use `TotallyInMemory` backend with JRA55MultipleYear dataset
-    if metadata.dataset isa JRA55MultipleYears && backend isa TotallyInMemory
-        msg = string("The `InMemory` backend is not supported for the JRA55MultipleYears dataset.")
+    if metadata.dataset isa MultiYearJRA55 && backend isa TotallyInMemory
+        msg = string("The `InMemory` backend is not supported for the MultiYearJRA55 dataset.")
         throw(ArgumentError(msg))
     end
 

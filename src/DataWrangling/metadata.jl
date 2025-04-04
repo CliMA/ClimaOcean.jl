@@ -25,7 +25,7 @@ Arguments
 Keyword Arguments
 =================
 - `dataset`: The dataset of the dataset. Supported datasets are `ECCO2Monthly()`, `ECCO2Daily()`,
-             `ECCO4Monthly()`, `JRA55RepeatYear()`, or `JRA55MultipleYears()`.
+             `ECCO4Monthly()`, `RepeatYearJRA55()`, or `MultiYearJRA55()`.
 - `dates`: The dates of the dataset, in a `AbstractCFDateTime` format. Note this can either be a range
            or a vector of dates, representing a time-series. For a single date, use [`Metadatum`](@ref).
 - `dir`: The directory where the dataset is stored.
