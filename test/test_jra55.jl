@@ -138,8 +138,9 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         # and concatenated when reading the data.
         start_date = DateTime("1959-01-01T00:00:00") - 15 * Day(1) # sometime in 1958
         end_date   = DateTime("1959-01-01T00:00:00") + 85 * Day(1) # sometime in 1959
+
         backend = JRA55NetCDFBackend(10)
-        Ta = JRA55FieldTimeSeries(:temperature; dataset=MultiYearJRA55(), start_date, end_date, backend)
+        Ta = JRA55FieldTimeSeries(:temperature; dataset, start_date, end_date, backend)
 
         @test Second(end_date - start_date).value ≈ Ta.times[end-1] - Ta.times[1]
 
