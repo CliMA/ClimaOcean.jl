@@ -46,7 +46,7 @@ end
                                  closure = nothing,
                                  bottom_drag_coefficient = 0.0)
 
-        dates = all_dates(JRA55RepeatYear(), :temperature)
+        dates = all_dates(RepeatYearJRA55(), :temperature)
         atmosphere = JRA55PrescribedAtmosphere(arch, Float64; end_date=dates[2], backend = InMemory()) 
         
         CUDA.@allowscalar begin
@@ -190,7 +190,7 @@ end
                                                 closure = nothing,
                                 bottom_drag_coefficient = 0.0)
 
-        dates = all_dates(JRA55RepeatYear(), :temperature)
+        dates = all_dates(RepeatYearJRA55(), :temperature)
         atmosphere = JRA55PrescribedAtmosphere(arch; end_date=dates[2], backend = InMemory()) 
 
         fill!(ocean.model.tracers.T, -2.0)
@@ -238,7 +238,7 @@ end
 
         set!(ocean.model; T=T_metadata, S=S_metadata)
 
-        end_date   = all_dates(JRA55RepeatYear(), :temperature)[10]
+        end_date   = all_dates(RepeatYearJRA55(), :temperature)[10]
         atmosphere = JRA55PrescribedAtmosphere(arch; end_date, backend = InMemory())
         radiation  = Radiation(ocean_albedo=0.1, ocean_emissivity=1.0)
         sea_ice    = nothing

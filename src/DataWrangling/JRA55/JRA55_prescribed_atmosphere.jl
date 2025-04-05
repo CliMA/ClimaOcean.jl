@@ -6,7 +6,7 @@ JRA55PrescribedAtmosphere(arch::Distributed, FT = Float32; kw...) =
 
 """
     JRA55PrescribedAtmosphere([architecture = CPU(), FT = Float32];
-                              dataset = JRA55RepeatYear(),
+                              dataset = RepeatYearJRA55(),
                               start_date = first_date(dataset, :temperature),
                               end_date = last_date(dataset, :temperature),
                               backend = JRA55NetCDFBackend(10),
@@ -20,10 +20,10 @@ The atmospheric data will be held in `JRA55FieldTimeSeries` objects containing.
 For a detailed description of the keyword arguments, see the [`JRA55FieldTimeSeries`](@ref) constructor.
 """
 function JRA55PrescribedAtmosphere(architecture = CPU(), FT = Float32;
-                                   dataset = JRA55RepeatYear(),
+                                   dataset = RepeatYearJRA55(),
                                    start_date = first_date(dataset, :temperature),
                                    end_date = last_date(dataset, :temperature),
-                                   backend = JRA55NetCDFBackend(10),
+                                   backend = InMemory(),
                                    time_indexing = Cyclical(),
                                    surface_layer_height = 10,  # meters
                                    include_rivers_and_icebergs = false,

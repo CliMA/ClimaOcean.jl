@@ -25,7 +25,7 @@ Arguments
 Keyword Arguments
 =================
 - `dataset`: The dataset of the dataset. Supported datasets are `ECCO2Monthly()`, `ECCO2Daily()`,
-             `ECCO4Monthly()`, `JRA55RepeatYear()`, or `JRA55MultipleYears()`.
+             `ECCO4Monthly()`, `RepeatYearJRA55()`, or `MultiYearJRA55()`.
 - `dates`: The dates of the dataset, in a `AbstractCFDateTime` format. Note this can either be a range
            or a vector of dates, representing a time-series. For a single date, use [`Metadatum`](@ref).
 - `dir`: The directory where the dataset is stored.
@@ -65,7 +65,7 @@ default_download_directory(dataset) = pwd()
 download_dataset(metadata) = nothing
 
 Base.show(io::IO, metadata::Metadata) =
-    print(io, "ECCOMetadata:", '\n',
+    print(io, "Metadata:", '\n',
     "├── name: $(metadata.name)", '\n',
     "├── dataset: $(metadata.dataset)", '\n',
     "├── dates: $(metadata.dates)", '\n',
@@ -97,7 +97,8 @@ Base.last(metadata::Metadatum)    = metadata
 Base.iterate(metadata::Metadatum) = (metadata, nothing)
 Base.iterate(::Metadatum, ::Any)  = nothing
 
-metadata_path(metadata) = joinpath(metadata.dir, metadata_filename(metadata))
+metadata_path(metadata::Metadatum) = joinpath(metadata.dir, metadata_filename(metadata))
+metadata_path(metadata) = [metadata_path(metadatum) for metadatum in metadata]
 
 """
     native_times(metadata; start_time=first(metadata).dates)
@@ -171,10 +172,9 @@ function compute_native_date_range(native_dates, start_date, end_date)
     end
 
     start_idx = findfirst(x -> x ≥ start_date, native_dates)
-    end_idx = findfirst(x -> x ≥ end_date, native_dates)
-
+    end_idx   = findfirst(x -> x ≥ end_date,   native_dates)
     start_idx = start_idx > 1 ? start_idx - 1 : start_idx
-    end_idx = isnothing(end_idx) ? length(native_dates) : end_idx
+    end_idx   = isnothing(end_idx) ? length(native_dates) : end_idx
 
     return native_dates[start_idx:end_idx]
 end
