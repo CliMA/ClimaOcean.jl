@@ -97,7 +97,7 @@ const JRA55NetCDFFTSRepeatYear    = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JR
 const JRA55NetCDFFTSMultipleYears = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JRA55NetCDFBackend{<:Metadata{<:MultiYearJRA55}}}
 
 # Note that each file should have the variables
-#   - ds["time"]:     time coordinate 
+#   - ds["time"]:     time coordinate
 #   - ds["lon"]:      longitude at the location of the variable
 #   - ds["lat"]:      latitude at the location of the variable
 #   - ds["lon_bnds"]: bounding longitudes between which variables are averaged
@@ -105,7 +105,7 @@ const JRA55NetCDFFTSMultipleYears = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:JR
 #   - ds[shortname]:  the variable data
 
 # Simple case, only one file per variable, no need to deal with multiple files
-function set!(fts::JRA55NetCDFFTSRepeatYear, backend=fts.backend) 
+function set!(fts::JRA55NetCDFFTSRepeatYear, backend=fts.backend)
 
     metadata = backend.metadata
 
@@ -150,7 +150,7 @@ end
 
 # Tricky case: multiple files per variable -- one file per year --
 # we need to infer the file name from the metadata and split the data loading
-function set!(fts::JRA55NetCDFFTSMultipleYears, backend=fts.backend) 
+function set!(fts::JRA55NetCDFFTSMultipleYears, backend=fts.backend)
 
     metadata = backend.metadata
 
@@ -180,7 +180,7 @@ function set!(fts::JRA55NetCDFFTSMultipleYears, backend=fts.backend)
 
         # Intersect the time indices with the file times
         nn   = findall(n -> file_times[n] ∈ fts.times[ftsn], file_indices)
-        ftsn = findall(n -> fts.times[n] ∈ file_times[nn], ftsn) 
+        ftsn = findall(n -> fts.times[n] ∈ file_times[nn], ftsn)
 
         if !isempty(nn)
             # Nodes at the variable location
@@ -189,7 +189,7 @@ function set!(fts::JRA55NetCDFFTSMultipleYears, backend=fts.backend)
             LX, LY, LZ = location(fts)
             i₁, i₂, j₁, j₂, TX = compute_bounding_indices(nothing, nothing, fts.grid, LX, LY, λc, φc)
 
-        
+
             if issorted(nn)
                 data = ds[name][i₁:i₂, j₁:j₂, nn]
             else
@@ -224,8 +224,8 @@ end
 new_backend(b::JRA55NetCDFBackend, start, length) = JRA55NetCDFBackend(start, length, b.metadata)
 
 """
-    JRA55FieldTimeSeries(variable_name [, arch_or_grid=CPU() ]; 
-                         version = RepeatYearJRA55(),
+    JRA55FieldTimeSeries(variable_name, architecture=CPU(), FT=Float32;
+                         dataset = RepeatYearJRA55(),
                          dates = all_JRA55_dates(version),
                          latitude = nothing,
                          longitude = nothing,
@@ -234,11 +234,8 @@ new_backend(b::JRA55NetCDFBackend, start, length) = JRA55NetCDFBackend(start, le
                          time_indexing = Cyclical())
 
 Return a `FieldTimeSeries` containing atmospheric reanalysis data for `variable_name`,
-which describes one of the variables in the "repeat year forcing" dataset derived
-from the Japanese 55-year atmospheric reanalysis for driving ocean-sea ice models (JRA55-do).
-For more information about the derivation of the repeat-year forcing dataset, see
-
-> Stewart et al. (2020). JRA55-do-based repeat year forcing datasets for driving ocean–sea-ice models, _Ocean Modelling_, **147**, 101557, https://doi.org/10.1016/j.ocemod.2019.101557.
+which describes one of the variables from the Japanese 55-year atmospheric reanalysis
+for driving ocean-sea ice models (JRA55-do).
 
 The `variable_name`s (and their `shortname`s used in NetCDF files) available from the JRA55-do are:
 - `:river_freshwater_flux`              ("friver")
@@ -259,11 +256,18 @@ Keyword arguments
 
 - `architecture`: Architecture for the `FieldTimeSeries`. Default: CPU()
 
-- `start_date`: The starting date to use for the ECCO dataset. Default: `first_date(dataset, variable_name)`.
+- `dataset`: The data dataset; supported datasets are: `RepeatYearJRA55()` and `MultiYearJRA55()`.
+            `MultiYearJRA55()` refers to the full length of the JRA55-do dataset; `RepeatYearJRA55()`
+            refers to the "repeat-year forcing" dataset derived from JRA55-do. For more information
+            about the derivation of the repeat-year forcing dataset, see:
 
-- `end_date`: The ending date to use for the ECCO dataset. Default: `end_date(dataset, variable_name)`.
+   > Stewart et al. (2020). JRA55-do-based repeat year forcing datasets for driving ocean–sea-ice models, _Ocean Modelling_, **147**, 101557, https://doi.org/10.1016/j.ocemod.2019.101557.
 
-- `dataset`: The data dataset. The only supported datasets is `RepeatYearJRA55()`
+   Default: `RepeatYearJRA55()`.
+
+- `start_date`: The starting date to use for the dataset. Default: `first_date(dataset, variable_name)`.
+
+- `end_date`: The ending date to use for the dataset. Default: `end_date(dataset, variable_name)`.
 
 - `dir`: The directory of the data file. Default: `ClimaOcean.JRA55.download_JRA55_cache`.
 
@@ -290,7 +294,7 @@ function JRA55FieldTimeSeries(variable_name::Symbol, architecture=CPU(), FT=Floa
                               kw...)
 
     native_dates = all_dates(dataset, variable_name)
-    dates = compute_native_date_range(native_dates, start_date, end_date)                          
+    dates = compute_native_date_range(native_dates, start_date, end_date)
 
     metadata = Metadata(variable_name, dataset, dates, dir)
 
@@ -313,7 +317,7 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
     # First thing: we download the dataset!
     download_dataset(metadata)
 
-    # Regularize the backend in case of `JRA55NetCDFBackend` 
+    # Regularize the backend in case of `JRA55NetCDFBackend`
     if backend isa JRA55NetCDFBackend && backend.metadata isa Nothing
         backend = JRA55NetCDFBackend(backend.length, metadata)
     end
@@ -439,7 +443,7 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
         ds = Dataset(filepath)
         data = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
         close(ds)
-        
+
         copyto!(interior(fts, :, :, 1, :), data)
         fill_halo_regions!(fts)
 
