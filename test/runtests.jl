@@ -10,10 +10,12 @@ using ClimaOcean.ECCO: download_dataset
 
 if test_group == :init || test_group == :all
     using CUDA
+    CUDA.set_runtime_version!(v"12.6"; local_toolkit = true)
+    CUDA.precompile_runtime()
 
-    #### 
-    ####  Download bathymetry data
-    #### 
+    ###
+    ### Download bathymetry data
+    ###
     
     download_bathymetry() 
 
