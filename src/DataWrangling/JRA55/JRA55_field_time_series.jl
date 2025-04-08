@@ -318,8 +318,14 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
     download_dataset(metadata)
 
     # Regularize the backend in case of `JRA55NetCDFBackend`
-    if backend isa JRA55NetCDFBackend && backend.metadata isa Nothing
-        backend = JRA55NetCDFBackend(backend.length, metadata)
+    if backend isa JRA55NetCDFBackend 
+        if backend.metadata isa Nothing
+            backend = JRA55NetCDFBackend(backend.length, metadata)
+        end
+
+        if backend.length > length(metadata)
+            backend = JRA55NetCDFBackend(backend.start, length(metadata), metadata)
+        end
     end
 
     # Unpack metadata details
