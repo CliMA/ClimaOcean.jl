@@ -14,6 +14,7 @@
 # including grid setup, physical processes modeling, and data visualization.
 
 using ClimaOcean
+using ClimaOcean.ECCO
 using Oceananigans
 using Oceananigans.Units
 using CairoMakie
@@ -80,11 +81,10 @@ ocean = ocean_simulation(grid)
 
 ocean.model
 
-# We initialize the ocean model with ECCO2 temperature and salinity for January 1, 1993.
+# We initialize the ocean model with ECCO4 temperature and salinity for January 1, 1992.
 
-date = DateTimeProlepticGregorian(1993, 1, 1)
-set!(ocean.model, T=ECCOMetadata(:temperature; dates=date),
-                  S=ECCOMetadata(:salinity; dates=date))
+set!(ocean.model, T=ECCOMetadatum(:temperature),
+                  S=ECCOMetadatum(:salinity))
 
 # ### Prescribed atmosphere and radiation
 #
@@ -155,13 +155,13 @@ simulation.callbacks[:progress] = Callback(progress, TimeInterval(5days))
 # Below, we use `indices` to save only the values of the variables at the surface, which corresponds to `k = grid.Nz`
 
 outputs = merge(ocean.model.tracers, ocean.model.velocities)
-ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
-                                                  schedule = TimeInterval(1days),
-                                                  filename = "near_global_surface_fields",
-                                                  indices = (:, :, grid.Nz),
-                                                  with_halos = true,
-                                                  overwrite_existing = true,
-                                                  array_type = Array{Float32})
+ocean.output_writers[:surface] = JLD2Writer(ocean.model, outputs;
+                                            schedule = TimeInterval(1days),
+                                            filename = "near_global_surface_fields",
+                                            indices = (:, :, grid.Nz),
+                                            with_halos = true,
+                                            overwrite_existing = true,
+                                            array_type = Array{Float32})
 
 # ### Spinning up the simulation
 #

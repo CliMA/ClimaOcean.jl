@@ -2,7 +2,7 @@ using Oceananigans.DistributedComputations: DistributedGrid, all_reduce
 using Oceananigans.Architectures: architecture
 using Oceananigans.BoundaryConditions: DefaultBoundaryCondition
 using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node, MutableGridOfSomeKind
-using OrthogonalSphericalShellGrids
+using Oceananigans.OrthogonalSphericalShellGrids
 
 using Oceananigans.TurbulenceClosures: VerticallyImplicitTimeDiscretization
 
@@ -16,6 +16,8 @@ using Statistics: mean
 
 # Some defaults
 default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
+
+estimate_maximum_Δt(grid::RectilinearGrid) = 30minutes # ?
 
 function estimate_maximum_Δt(grid)
     arch = architecture(grid)
@@ -45,7 +47,7 @@ function default_free_surface(grid::TripolarOfSomeKind;
 end
 
 function default_free_surface(grid::DistributedGrid; 
-                              fixed_Δt = compute_maximum_Δt(grid),
+                              fixed_Δt = estimate_maximum_Δt(grid),
                               cfl = 0.7) 
     
     free_surface = SplitExplicitFreeSurface(grid; cfl, fixed_Δt)
@@ -147,8 +149,8 @@ function ocean_simulation(grid;
         u_immersed_drag = FluxBoundaryCondition(u_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
         v_immersed_drag = FluxBoundaryCondition(v_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
         
-        u_immersed_bc = ImmersedBoundaryCondition(bottom = u_immersed_drag)
-        v_immersed_bc = ImmersedBoundaryCondition(bottom = v_immersed_drag)
+        u_immersed_bc = ImmersedBoundaryCondition(bottom=u_immersed_drag)
+        v_immersed_bc = ImmersedBoundaryCondition(bottom=v_immersed_drag)
 
         # Forcing for u, v
         barotropic_potential = Field{Center, Center, Nothing}(grid)

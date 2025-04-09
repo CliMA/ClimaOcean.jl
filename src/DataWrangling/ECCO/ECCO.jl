@@ -1,19 +1,19 @@
 module ECCO
 
-export ECCOMetadata, ECCO_field, ECCO_mask, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
+export ECCOMetadatum, ECCO_field, ECCO_mask, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
 export ECCOFieldTimeSeries, ECCORestoring, LinearlyTaperedPolarMask
 
 using ClimaOcean
-using ClimaOcean.DistributedUtils: @root
 using ClimaOcean.DataWrangling
-using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, download_progress
+using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, download_progress, compute_native_date_range
 using ClimaOcean.InitialConditions: three_dimensional_regrid!, interpolate!
 
 using Oceananigans
 using Oceananigans: location
 using Oceananigans.Architectures: architecture, child_architecture
 using Oceananigans.BoundaryConditions
+using Oceananigans.DistributedComputations
 using Oceananigans.DistributedComputations: DistributedField, all_reduce, barrier!
 using Oceananigans.Utils
 
@@ -88,7 +88,7 @@ const ECCO_z = [
       0.0,
 ]
 
-empty_ECCO_field(variable_name::Symbol; kw...) = empty_ECCO_field(ECCOMetadata(variable_name); kw...)
+empty_ECCO_field(variable_name::Symbol; kw...) = empty_ECCO_field(Metadatum(variable_name, dataset=ECCO4Monthly()); kw...)
 
 function empty_ECCO_field(metadata::ECCOMetadata;
                           architecture = CPU(), 
@@ -201,7 +201,7 @@ function ECCO_field(metadata::ECCOMetadata;
     # ECCO4 data is on a -180, 180 longitude grid as opposed to ECCO2 data that
     # is on a 0, 360 longitude grid. To make the data consistent, we shift ECCO4
     # data by 180 degrees in longitude
-    if metadata.version isa ECCO4Monthly 
+    if metadata.dataset isa ECCO4Monthly 
         Nx = size(data, 1)
         if variable_is_three_dimensional(metadata)
             shift = (Nx ÷ 2, 0, 0)
@@ -223,8 +223,8 @@ function ECCO_field(metadata::ECCOMetadata;
         # Make sure all values are extended properly
         name = string(metadata.name)
         date = string(metadata.dates)
-        version = summary(metadata.version)
-        @info string("Inpainting ", version, " ", name, " data from ", date, "...")
+        dataset = summary(metadata.dataset)
+        @info string("Inpainting ", dataset, " ", name, " data from ", date, "...")
         start_time = time_ns()
         
         inpaint_mask!(field, mask; inpainting)
@@ -256,7 +256,7 @@ end
 
 inpainted_metadata_path(metadata::ECCOMetadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
 
-function set!(field::Field, ECCO_metadata::ECCOMetadata; kw...)
+function set!(field::Field, ECCO_metadata::ECCOMetadatum; kw...)
 
     # Fields initialized from ECCO
     grid = field.grid

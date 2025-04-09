@@ -3,15 +3,14 @@
 # This example configures a global ocean--sea ice simulation at 1ᵒ horizontal resolution with
 # realistic bathymetry and some closures.
 #
-# For this example, we need Oceananigans, ClimaOcean, OrthogonalSphericalShellGrids, and
+# For this example, we need Oceananigans, ClimaOcean, and
 # CairoMakie to visualize the simulation. Also we need CFTime and Dates for date handling.
 
 using ClimaOcean
 using ClimaOcean.ECCO
 using Oceananigans
 using Oceananigans.Units
-using OrthogonalSphericalShellGrids
-using CFTime
+using Oceananigans.OrthogonalSphericalShellGrids
 using Dates
 using Printf
 using ClimaOcean.ECCO: download_dataset
@@ -22,9 +21,9 @@ arch = GPU()
 
 # ### ECCO files
 
-dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1994, 1, 1)
-temperature = ECCOMetadata(:temperature; dates, version=ECCO4Monthly(), dir="./")
-salinity    = ECCOMetadata(:salinity;    dates, version=ECCO4Monthly(), dir="./")
+dates = DateTime(1993, 1, 1) : Month(1) : DateTime(1994, 1, 1)
+temperature = Metadata(:temperature; dates, dataset=ECCO4Monthly(), dir="./")
+salinity    = Metadata(:salinity;    dates, dataset=ECCO4Monthly(), dir="./")
 
 download_dataset(temperature)
 download_dataset(salinity)
@@ -51,7 +50,7 @@ bottom_height = regrid_bathymetry(underlying_grid;
                                   major_basins = 2)
 
 # For this bathymetry at this horizontal resolution we need to manually open the Gibraltar strait.
-view(bottom_height, 102:103, 124, 1) .= -400
+# view(bottom_height, 102:103, 124, 1) .= -400
 grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
 # ### Restoring
@@ -101,8 +100,7 @@ ocean = ocean_simulation(grid;
 
 # We initialize the ocean from the ECCO state estimate.
 
-set!(ocean.model, T=ECCOMetadata(:temperature; dates=first(dates)),
-                  S=ECCOMetadata(:salinity; dates=first(dates)))
+set!(ocean.model, T=temperature[1], S=salinity[1])
 
 # ### Atmospheric forcing
 
@@ -163,13 +161,13 @@ add_callback!(simulation, progress, IterationInterval(10))
 # also uses a prognostic turbulent kinetic energy, `e`, to diagnose the vertical mixing length.
 
 outputs = merge(ocean.model.tracers, ocean.model.velocities)
-ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
-                                                  schedule = TimeInterval(5days),
-                                                  filename = "global_surface_fields",
-                                                  indices = (:, :, grid.Nz),
-                                                  with_halos = true,
-                                                  overwrite_existing = true,
-                                                  array_type = Array{Float32})
+ocean.output_writers[:surface] = JLD2Writer(ocean.model, outputs;
+                                            schedule = TimeInterval(5days),
+                                            filename = "global_surface_fields",
+                                            indices = (:, :, grid.Nz),
+                                            with_halos = true,
+                                            overwrite_existing = true,
+                                            array_type = Array{Float32})
 
 # ### Ready to run
 
