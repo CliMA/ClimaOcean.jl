@@ -145,8 +145,8 @@ function progress(sim)
 
     msg1 = @sprintf("time: %s, iteration: %d, Δt: %s, ", prettytime(sim), iteration(sim), prettytime(sim.Δt))
     msg2 = @sprintf("max(h): %.2e m, max(ℵ): %.2e ", hmax, ℵmax)
-    msg3 = @sprintf("max i-U: (%.2f, %.2f) ᵒC, ", uimax, vimax)
-    msg4 = @sprintf("max o-U: (%.2f, %.2f) ᵒC, ", uomax, vomax)
+    msg3 = @sprintf("max uᵢ: (%.2f, %.2f) m s⁻¹, ", uimax, vimax)
+    msg4 = @sprintf("max uₒ: (%.2f, %.2f) m s⁻¹, ", uomax, vomax)
     msg5 = @sprintf("wall time: %s \n", prettytime(step_time))
 
     @info msg1 * msg2 * msg3 * msg4 * msg5
