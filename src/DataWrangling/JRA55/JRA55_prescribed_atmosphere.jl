@@ -23,7 +23,7 @@ function JRA55PrescribedAtmosphere(architecture = CPU(), FT = Float32;
                                    dataset = RepeatYearJRA55(),
                                    start_date = first_date(dataset, :temperature),
                                    end_date = last_date(dataset, :temperature),
-                                   backend = InMemory(),
+                                   backend = JRA55NetCDFBackend(10),
                                    time_indexing = Cyclical(),
                                    surface_layer_height = 10,  # meters
                                    include_rivers_and_icebergs = false,
