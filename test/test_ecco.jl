@@ -21,12 +21,18 @@ dates = start_date : Month(1) : end_date
 # Inpaint only the first two cells inside the missing mask
 inpainting = NearestNeighborInpainting(2)
 
+ECCO_dataset_name = Dict(
+    :temperature => ECCO4Monthly(), 
+    :salinity    => ECCO4Monthly(),
+    :PO₄         => ECCO4DarwinMonthly(),
+)
+
 @testset "ECCO fields utilities" begin
     for arch in test_architectures
         A = typeof(arch)
-        for name in (:temperature, :salinity)
+        for name in (:temperature, :salinity, :PO₄)
             @info "Testing ECCO_field on $A..."
-            metadata = Metadata(name; dates, dataset=ECCO4Monthly())
+            metadata = Metadata(name; dates, dataset=ECCO_dataset_name[name])
             restoring = ECCORestoring(metadata; rate=1/1000, inpainting)
 
             for datum in metadata 
@@ -133,11 +139,7 @@ end
         @test begin
             set!(field, ECCOMetadatum(:temperature, date=start_date))
             set!(field, ECCOMetadatum(:salinity,    date=start_date))
-            true
-        end
-
-        @test begin
-            set!(field, ECCOMetadatum(:DIC; version=ECCO4DarwinMonthly(), date=start_date))
+            set!(field,     Metadatum(:PO₄; date=start_date, dataset=ECCO4DarwinMonthly()))
             true
         end
     end
@@ -158,12 +160,17 @@ end
         @test begin
             set!(field, ECCOMetadatum(:temperature, date=start_date))
             set!(field, ECCOMetadatum(:salinity,    date=start_date))
+            set!(field,     Metadatum(:PO₄; date=start_date, dataset=ECCO4DarwinMonthly()))
             true
         end
 
         forcing_T = ECCORestoring(:temperature, arch; start_date, end_date, inpainting, rate=1/1000)
-
-        ocean = ocean_simulation(grid; forcing = (; T = forcing_T), verbose=false)
+        forcing_P = ECCORestoring(:PO₄,         arch; start_date, end_date, inpainting, rate=1/1000, dataset=ECCO4DarwinMonthly())
+        ocean = ocean_simulation(grid; 
+                                tracers = (:T, :S, :e, :PO₄), 
+                                forcing = (; T = forcing_T, PO₄ = forcing_P), 
+                                verbose=false,
+                                )
 
         @test begin
             time_step!(ocean)
@@ -182,10 +189,13 @@ end
                                      z = (-200, 0),
                                      halo = (7, 7, 7))
 
-        ocean = ocean_simulation(grid)
+        ocean = ocean_simulation(grid,
+                                 tracers = (:T, :S, :e, :PO₄),
+                                )
         date = DateTime(1993, 1, 1)
-        set!(ocean.model, T=ECCOMetadatum(:temperature; date=start_date), 
-                          S=ECCOMetadatum(:salinity;    date=start_date))
+        set!(ocean.model, T  =ECCOMetadatum(:temperature; date=start_date), 
+                          S  =ECCOMetadatum(:salinity;    date=start_date),
+                          PO₄=Metadatum(:PO₄; date=start_date, dataset=ECCO4DarwinMonthly()))
     end
 end
 
@@ -203,14 +213,19 @@ end
         dates = start_date : Month(1) : end_date
 
         T_restoring = ECCORestoring(:temperature, arch; start_date, end_date, inpainting, rate=1/1000)
-
+        P_restoring = ECCORestoring(:PO₄, arch; start_date, end_date, inpainting, rate=1/1000, dataset=ECCO4DarwinMonthly())
+        
         times = native_times(T_restoring.field_time_series.backend.metadata)
-        ocean = ocean_simulation(grid, forcing = (; T = T_restoring))
+        ocean = ocean_simulation(grid, 
+                                 tracers = (:T, :S, :e, :PO₄),
+                                 forcing = (; T = T_restoring, PO₄ = P_restoring),
+                                )
 
         ocean.model.clock.time = times[3] + 2 * Units.days
         update_state!(ocean.model)
 
         @test T_restoring.field_time_series.backend.start == 3
+        @test P_restoring.field_time_series.backend.start == 3
 
         # Compile
         time_step!(ocean)
@@ -227,6 +242,7 @@ end
 
         # The backend has cycled to the end
         @test time_indices(T_restoring.field_time_series) == (6, 1)
+        @test time_indices(P_restoring.field_time_series) == (6, 1)
     end
 end
 

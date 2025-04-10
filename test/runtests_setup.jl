@@ -28,6 +28,7 @@ dates      = start_date : Month(1) : end_date
 
 temperature_metadata = Metadata(:temperature; dates, dataset=ECCO4Monthly())
 salinity_metadata    = Metadata(:salinity; dates, dataset=ECCO4Monthly())
+phosphate_metadata    = Metadata(:PO₄; dates, dataset=ECCO4DarwinMonthly())
 
 # Fictitious grid that triggers bathymetry download
 function download_bathymetry(; dir = download_bathymetry_cache, 
