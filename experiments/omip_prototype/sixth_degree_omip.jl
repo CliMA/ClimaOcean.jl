@@ -12,6 +12,15 @@ using ClimaSeaIce.SeaIceThermodynamics: IceWaterThermalEquilibrium
 using Printf
 using CUDA
 
+function synch!(clock1::Clock, clock2)
+    # Synchronize the clocks
+    clock1.time = clock2.time
+    clock1.iteration = clock2.iteration
+    clock1.last_Δt = clock2.last_Δt
+end
+
+synch!(model1, model2) = synch!(model1.clock, model2.clock)
+
 arch    = GPU()
 r_faces = ClimaOcean.exponential_z_faces(; Nz=60, depth=6200)
 z_faces = MutableVerticalDiscretization(r_faces)
@@ -87,6 +96,12 @@ radiation  = Radiation()
 
 omip = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 omip = Simulation(omip, Δt=10minutes, stop_time=60*365days)
+
+synch!(atmosphere, ocean.model)
+synch!(sea_ice.model, ocean.model)
+synch!(omip.model, atmosphere)
+
+@show omip.model.clock
 
 # Figure out the outputs....
 
