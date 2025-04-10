@@ -6,19 +6,18 @@ using Oceananigans.Units
 using Oceananigans.OrthogonalSphericalShellGrids
 using ClimaOcean.OceanSimulations
 using ClimaOcean.ECCO
+using ClimaOcean.JRA55: JRA55MultipleYears
 using ClimaOcean.DataWrangling
 using ClimaSeaIce.SeaIceThermodynamics: IceWaterThermalEquilibrium
 using Printf
-
 using CUDA
-CUDA.device!(1)
-arch = GPU()
 
-r_faces = ClimaOcean.exponential_z_faces(; Nz=100, h=30, depth=6200)
+arch    = GPU()
+r_faces = ClimaOcean.exponential_z_faces(; Nz=60, depth=6200)
 z_faces = MutableVerticalDiscretization(r_faces)
 
-Nx = 1440 # longitudinal direction 
-Ny = 700  # meridional direction 
+Nx = 2160 # longitudinal direction 
+Ny = 1080 # meridional direction 
 Nz = length(r_faces) - 1
 
 grid = TripolarGrid(arch;
@@ -35,12 +34,12 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_
 
 # A very diffusive ocean
 momentum_advection = WENOVectorInvariant()
-tracer_advection   = WENO(order=7)
+tracer_advection   = FluxFormAdvection(WENO(order=7), WENO(order=7), Centered())
 
 free_surface = SplitExplicitFreeSurface(grid; substeps=70)
 closure = ClimaOcean.OceanSimulations.default_ocean_closure()
 
-ocean = ocean_simulation(grid;
+ocean = ocean_simulation(grid; Δt=1minutes,
                          momentum_advection,
                          tracer_advection,
                          free_surface,
@@ -73,7 +72,7 @@ set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset),
 ##### A Prescribed Atmosphere model
 #####
 
-atmosphere = JRA55PrescribedAtmosphere(arch; dataset=JRA55MultipleYears(), backend=JRA55NetCDFBackend(40), include_rivers_and_icebergs=true)
+atmosphere = JRA55PrescribedAtmosphere(arch; dir="./forcing_data", dataset=JRA55MultipleYears(), backend=JRA55NetCDFBackend(40), include_rivers_and_icebergs=true)
 radiation  = Radiation()
 
 #####
@@ -81,20 +80,14 @@ radiation  = Radiation()
 #####
 
 omip = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-omip = Simulation(arctic, Δt=1minutes, stop_time=30days)
+omip = Simulation(omip, Δt=20, stop_time=30days)
 
 # Figure out the outputs....
 
-ocean.output_writer[:checkpointer] = Checkpointer(ocean.model,
+ocean.output_writers[:checkpointer] = Checkpointer(ocean.model,
                                                   schedule = IterationInterval(10000),
                                                   prefix = "ocean_checkpoint",
                                                   overwrite_existing = true)
-
-
-sea_ice.output_writer[:checkpointer] = Checkpointer(sea_ice.model,
-                                                    schedule = IterationInterval(10000),
-                                                    prefix = "sea_ice_checkpoint",
-                                                    overwrite_existing = true)
 
 wall_time = Ref(time_ns())
 
@@ -104,8 +97,6 @@ function progress(sim)
     sea_ice = sim.model.sea_ice
     hmax = maximum(sea_ice.model.ice_thickness)
     ℵmax = maximum(sea_ice.model.ice_concentration)
-    hmean = mean(sea_ice.model.ice_thickness)
-    ℵmean = mean(sea_ice.model.ice_concentration)
     Tmax = maximum(sim.model.interfaces.atmosphere_sea_ice_interface.temperature)
     Tmin = minimum(sim.model.interfaces.atmosphere_sea_ice_interface.temperature)
 
@@ -113,11 +104,10 @@ function progress(sim)
 
     msg1 = @sprintf("time: %s, iteration: %d, Δt: %s, ", prettytime(sim), iteration(sim), prettytime(sim.Δt))
     msg2 = @sprintf("max(h): %.2e m, max(ℵ): %.2e ", hmax, ℵmax)
-    msg3 = @sprintf("mean(h): %.2e m, mean(ℵ): %.2e ", hmean, ℵmean)
     msg4 = @sprintf("extrema(T): (%.2f, %.2f) ᵒC, ", Tmax, Tmin)
     msg5 = @sprintf("wall time: %s \n", prettytime(step_time))
 
-    @info msg1 * msg2 * msg3 * msg4 * msg5
+    @info msg1 * msg2 * msg4 * msg5
 
      wall_time[] = time_ns()
 
