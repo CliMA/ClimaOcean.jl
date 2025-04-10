@@ -2,6 +2,7 @@ module ECCO
 
 export ECCOMetadatum, ECCO_field, ECCO_mask, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
+export ECCO4DarwinMonthly
 export ECCOFieldTimeSeries, ECCORestoring, LinearlyTaperedPolarMask
 
 using ClimaOcean
@@ -32,6 +33,7 @@ end
 
 include("ECCO_metadata.jl")
 include("ECCO_mask.jl")
+include("ECCO_darwin.jl")
 
 # Vertical coordinate
 const ECCO_z = [
@@ -135,6 +137,26 @@ function default_inpainting(metadata::ECCOMetadata)
 end
 
 """
+    retrieve_data(metadata, path)
+
+Retrieve data from `path` according to `metadata`.
+"""
+function retrieve_data(metadata, path)
+    ds = Dataset(path)
+    shortname = short_name(metadata)
+
+    if variable_is_three_dimensional(metadata)
+        data = ds[shortname][:, :, :, 1]
+        data = reverse(data, dims=3)
+    else
+        data = ds[shortname][:, :, 1]
+    end        
+
+    close(ds)
+    return data
+end
+
+"""
     ECCO_field(metadata::ECCOMetadata;
                architecture = CPU(),
                inpainting = nothing,
@@ -175,17 +197,7 @@ function ECCO_field(metadata::ECCOMetadata;
 
     download_dataset(metadata)
     path = metadata_path(metadata)
-    ds = Dataset(path)
-    shortname = short_name(metadata)
-
-    if variable_is_three_dimensional(metadata)
-        data = ds[shortname][:, :, :, 1]
-        data = reverse(data, dims=3)
-    else
-        data = ds[shortname][:, :, 1]
-    end        
-
-    close(ds)
+    data = retrieve_data(metadata, path)
     
     # Convert data from Union(FT, missing} to FT
     FT = eltype(field)
@@ -201,7 +213,7 @@ function ECCO_field(metadata::ECCOMetadata;
     # ECCO4 data is on a -180, 180 longitude grid as opposed to ECCO2 data that
     # is on a 0, 360 longitude grid. To make the data consistent, we shift ECCO4
     # data by 180 degrees in longitude
-    if metadata.dataset isa ECCO4Monthly 
+    if metadata.dataset isa Union{ECCO4Monthly, ECCO4DarwinMonthly}
         Nx = size(data, 1)
         if variable_is_three_dimensional(metadata)
             shift = (Nx ÷ 2, 0, 0)
