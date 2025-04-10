@@ -214,10 +214,10 @@ end
 
         @info "Testing Surface Fluxes with sea ice..."
 
-        grid = ReactilinearGrid(arch;
-                                size = (2, 2, 2), 
-                              extent = (1, 1, 1),
-                            topology = (Periodic, Periodic, Bounded))
+        grid = RectilinearGrid(arch;
+                               size = (2, 2, 2), 
+                             extent = (1, 1, 1),
+                           topology = (Periodic, Periodic, Bounded))
 
         ocean = ocean_simulation(grid; momentum_advection = nothing, 
                                          tracer_advection = nothing, 
