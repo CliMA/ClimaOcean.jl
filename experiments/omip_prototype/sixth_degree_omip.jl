@@ -10,6 +10,7 @@ using ClimaOcean.JRA55
 using ClimaOcean.DataWrangling
 using ClimaSeaIce.SeaIceThermodynamics: IceWaterThermalEquilibrium
 using Printf
+using Dates
 using CUDA
 
 function synch!(clock1::Clock, clock2)
@@ -55,8 +56,10 @@ ocean = ocean_simulation(grid; Δt=1minutes,
                          free_surface,
                          closure)
 
-restart_file = "ocean_checkpoint_iteration130000.jld2"
-set!(ocean.model, restart_file)
+dataset = ECCO4Monthly()
+
+set!(ocean.model, T=Metadatum(:temperature; dataset),
+                  S=Metadatum(:salinity;    dataset))
 
 #####
 ##### A Prognostic Sea-ice model
@@ -73,18 +76,15 @@ sea_ice = sea_ice_simulation(grid; bottom_heat_boundary_condition,
                              dynamics = sea_ice_dynamics,
                              advection=WENO(order=7))
 
-dataset = ECCO4Monthly()
-date = DateTime(1992, 2, 1) # 1st Feb 1992
-
-set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     date, dataset),
-                    ℵ=Metadatum(:sea_ice_concentration; date, dataset))
+set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset),
+                    ℵ=Metadatum(:sea_ice_concentration; dataset))
 
 #####
 ##### A Prescribed Atmosphere model
 #####
 
 dir = "./forcing_data"
-dataset = MultiyearJRA55()
+dataset = MultiYearJRA55()
 backend = JRA55NetCDFBackend(40)
 
 atmosphere = JRA55PrescribedAtmosphere(arch; dir, dataset, backend, include_rivers_and_icebergs=true)
@@ -95,13 +95,7 @@ radiation  = Radiation()
 #####
 
 omip = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-omip = Simulation(omip, Δt=10minutes, stop_time=60*365days)
-
-synch!(atmosphere, ocean.model)
-synch!(sea_ice.model, ocean.model)
-synch!(omip.model, atmosphere)
-
-@show omip.model.clock
+omip = Simulation(omip, Δt=20, stop_time=30days)
 
 # Figure out the outputs....
 
@@ -147,5 +141,10 @@ end
 
 # And add it as a callback to the simulation.
 add_callback!(omip, progress, IterationInterval(50))
+
+run!(omip)
+
+omip.Δt = 10minutes
+omip.stop_time = 58 * 365days
 
 run!(omip)
