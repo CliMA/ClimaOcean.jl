@@ -2,6 +2,23 @@ import SpeedyWeather
 import ClimaOcean
 using Oceananigans
 using Dates
+using Test
+
+ClimaOceanSpeedyWeatherExt = Base.get_extension(ClimaOcean, :ClimaOceanSpeedyWeatherExt)
+@test !isnothing(ClimaOceanSpeedyWeatherExt)
+
+spectral_grid = SpeedyWeather.SpectralGrid(trunc=31, nlayers=10)
+oceananigans_grid = ClimaOceanSpeedyWeatherExt.clenshaw_latitude_longitude_grid(CPU(), spectral_grid)
+λd_sw, φd_sw = SpeedyWeather.RingGrids.get_londlatds(spectral_grid.Grid, spectral_grid.nlat_half)
+λd_oc = λnodes(oceananigans_grid, Center(), Center(), Center())
+φd_oc = φnodes(oceananigans_grid, Center(), Center(), Center())
+
+@test λd_sw ≈ λd_oc
+@test φd_sw ≈ φd_oc
+
+# SpeedyWeather.RingGrids.update_locator!(interpolator, londs, latds)
+
+#=
 
 arch = CPU()
 Nx = 180
@@ -23,3 +40,4 @@ SpeedyWeather.set!(atmosphere.model.time_stepping, Δt=Minute(10))
 # const LandOnlyModel = 
 
 model = ClimaOcean.OceanSeaIceModel(ocean; atmosphere)
+=#

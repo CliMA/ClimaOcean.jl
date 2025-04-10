@@ -6,11 +6,15 @@ import ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres:
 
 import ClimaOcean: atmosphere_simulation
 
+const SpeedySimulation = SpeedyWeather.Simulation
+const SpeedyCoupledModel = ClimaOcean.OceanSeaIceModel{<:Any, <:SpeedySimulation}
+Base.summary(::SpeedySimulation) = "SpeedyWeather.Simulation"
+
 # This can be left blank:
-update_model_field_time_series!(::SpeedySimulation, time) = nothing
+Oceananigans.Models.update_model_field_time_series!(::SpeedySimulation, time) = nothing
 
 # Take one time-step
-time_step!(atmos::SpeedySimulation, Δt) = SpeedyWeather.timestep!(atmos)
+Oceananigans.TimeSteppers.time_step!(atmos::SpeedySimulation, Δt) = SpeedyWeather.timestep!(atmos)
 
 function atmosphere_simulation(grid::SpeedyWeather.SpectralGrid)
                                # orography = zeros(grid.Grid, grid.nlat_half))

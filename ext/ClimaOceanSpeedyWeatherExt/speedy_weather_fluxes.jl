@@ -1,7 +1,5 @@
 # This document lays out the functions that must be extended to
 # use an atmospheric simulation in ClimaOcean.
-import Oceananigans.TimeSteppers: time_step!
-import Oceananigans.Models: update_model_field_time_series!
 
 import ClimaOcean.OceanSeaIceModels:
     compute_net_atmosphere_fluxes!
@@ -13,11 +11,6 @@ import ClimaOcean.OceanSeaIceModels.InterfaceComputations:
     interpolate_atmosphere_state!
 
 using ClimaOcean.OceanSeaIceModels: OceanSeaIceModel
-
-const SpeedySimulation = SpeedyWeather.Simulation
-const SpeedyCoupledModel = OceanSeaIceModel{<:Any, <:SpeedySimulation}
-Base.summary(::SpeedySimulation) = "SpeedyWeather.Simulation"
-
 using Oceananigans
 using Thermodynamics
 
