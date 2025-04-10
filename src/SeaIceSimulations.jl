@@ -78,7 +78,7 @@ end
 function default_sea_ice_dynamics(grid; ocean)
 
     SSU = view(ocean.model.velocities.u, :, :, grid.Nz)
-    SSV = view(ocean.model.velocities.u, :, :, grid.Nz)
+    SSV = view(ocean.model.velocities.v, :, :, grid.Nz)
 
     τo  = SemiImplicitStress(uₑ=SSU, vₑ=SSV)
     τua = Field{Face, Center, Nothing}(grid)
