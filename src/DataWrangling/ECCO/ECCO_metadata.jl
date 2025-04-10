@@ -37,7 +37,9 @@ function ECCOMetadatum(name;
     return Metadatum(name; date, dir, dataset=ECCO4Monthly())
 end
 
-default_download_directory(::Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly, <:ECCO4DarwinMonthly}) = download_ECCO_cache
+default_download_directory(
+    ::Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly, <:ECCO4DarwinMonthly}
+    ) = download_ECCO_cache
 
 datasetstr(md::ECCOMetadata) = string(md.dataset)
 
@@ -62,7 +64,7 @@ all_dates(::ECCO2Daily, name)   = DateTime(1992, 1, 4) : Day(1)   : DateTime(202
 
 # Fallback, actually, we do not really need the name for ECCO since all
 # variables have the same frequency and the same time-range, differently from JRA55
-all_dates(dataset::Union{<:ECCO4Monthly, <:ECCO2Monthly, <:ECCO2Daily}) = all_dates(dataset, :temperature)
+all_dates(dataset::Union{<:ECCO4Monthly, <:ECCO2Monthly, <:ECCO2Daily, <:ECCO4DarwinMonthly}) = all_dates(dataset, :temperature)
 
 # File name generation specific to each Dataset dataset
 function metadata_filename(metadata::Metadatum{<:ECCO4Monthly})
@@ -91,9 +93,11 @@ short_name(data::Metadata{<:ECCO2Daily})   = ECCO2_short_names[data.name]
 short_name(data::Metadata{<:ECCO2Monthly}) = ECCO2_short_names[data.name]
 short_name(data::Metadata{<:ECCO4Monthly}) = ECCO4_short_names[data.name]
 
-location(data::ECCOMetadata) = ECCO_location[data.name]
+location(data::Metadata{<:Union{<:ECCO4Monthly, <:ECCO2Monthly, <:ECCO2Daily}}) = ECCO_location[data.name]
 
-variable_is_three_dimensional(data::ECCOMetadata) =
+variable_is_three_dimensional(
+    data::Metadata{<:Union{<:ECCO4Monthly, <:ECCO2Monthly, <:ECCO2Daily}}
+    ) =
     data.name == :temperature ||
     data.name == :salinity ||
     data.name == :u_velocity ||

@@ -25,9 +25,9 @@ end
 # Convenience functions
 short_name(data::Metadata{<:ECCO4DarwinMonthly}) = ECCO_darwin_short_names[data.name]
 
-location(::ECCOMetadata{<:ECCO4DarwinMonthly}) = (Center, Center, Center)
+location(::Metadata{<:ECCO4DarwinMonthly}) = (Center, Center, Center)
 
-variable_is_three_dimensional(data::ECCOMetadata{<:ECCO4DarwinMonthly}) = true
+variable_is_three_dimensional(::Metadata{<:ECCO4DarwinMonthly, <:Any}) = true
 
 ECCO_darwin_short_names = Dict(
     :DIC => "DIC",
