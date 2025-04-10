@@ -1,17 +1,5 @@
-module ClimaOceanSpeedyWeatherExt
-
-using OffsetArrays
-using KernelAbstractions
-using Statistics
-
-import SpeedyWeather as SW
-import ClimaOcean as CO
-import Oceananigans as OC
-import CUDA
-
 # This document lays out the functions that must be extended to
 # use an atmospheric simulation in ClimaOcean.
-
 import Oceananigans.TimeSteppers: time_step!
 import Oceananigans.Models: update_model_field_time_series!
 
@@ -33,7 +21,7 @@ import ClimaOcean.OceanSeaIceModels.InterfaceComputations:
 using ClimaOcean.OceanSeaIceModels: OceanSeaIceModel
 
 const SpeedySimulation = SpeedyWeather.Simulation
-const ClimaCoupledModel = OceanSeaIceModel{<:Any, <:SpeedySimulation}
+const SpeedyCoupledModel = OceanSeaIceModel{<:Any, <:SpeedySimulation}
 Base.summary(::SpeedySimulation) = "SpeedyWeather.Simulation"
 
 # This can be left blank:
@@ -59,7 +47,7 @@ end
 # It probably should not be here but in the similarity theory type.
 boundary_layer_height(atmos::SpeedySimulation) = 600
 
-Base.eltype(::EarthAtmosphere{FT}) where FT = FT
+# Base.eltype(::EarthAtmosphere{FT}) where FT = FT
 
 # This is a _hack_!! The parameters should be consistent with what is specified in SpeedyWeather
 thermodynamics_parameters(atmos::SpeedyWeather.Simulation) = 
@@ -100,20 +88,20 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::SpeedySimulation,
     # RingGrids.interpolate!(vec(view(Qℓ, :, :, 1)), atmos.diagnostic_variables.physics.surface_longwave_down,  interpolator)
     # RingGrids.interpolate!(vec(view(Mp, :, :, 1)), atmosphere_precipitation,                                  interpolator)
 
-    interpolator = interfaces.exchanger.atmosphere_exchanger.to_exchange_interp
-    exchange_atmosphere_state = interfaces.exchanger.exchange_atmosphere_state
+    # interpolator = interfaces.exchanger.atmosphere_exchanger.to_exchange_interp
+    # exchange_atmosphere_state = interfaces.exchanger.exchange_atmosphere_state
 
-    ue  = parent(exchange_atmosphere_state.u)
-    ve  = parent(exchange_atmosphere_state.v)
-    Te  = parent(exchange_atmosphere_state.T)
-    qe  = parent(exchange_atmosphere_state.q)
-    pe  = parent(exchange_atmosphere_state.p)
+    # ue  = parent(exchange_atmosphere_state.u)
+    # ve  = parent(exchange_atmosphere_state.v)
+    # Te  = parent(exchange_atmosphere_state.T)
+    # qe  = parent(exchange_atmosphere_state.q)
+    # pe  = parent(exchange_atmosphere_state.p)
 
-    ue = dropdims(ue, dims=3)
-    ve = dropdims(ve, dims=3)
-    Te = dropdims(Te, dims=3)
-    qe = dropdims(qe, dims=3)
-    pe = dropdims(pe, dims=3)
+    # ue = dropdims(ue, dims=3)
+    # ve = dropdims(ve, dims=3)
+    # Te = dropdims(Te, dims=3)
+    # qe = dropdims(qe, dims=3)
+    # pe = dropdims(pe, dims=3)
 
     return nothing
 end
@@ -140,5 +128,3 @@ initialize!(::StateExchanger, ::SpeedySimulation) = nothing
 function compute_net_atmosphere_fluxes!(coupled_model::SpeedyCoupledModel)
     return nothing
 end
-
-end # module ClimaOceanSpeedyWeatherExt
