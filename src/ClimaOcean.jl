@@ -73,6 +73,8 @@ end
     return NamedTuple{names}(vals)
 end
 
+function atmosphere_simulation end
+
 include("OceanSimulations/OceanSimulations.jl")
 include("SeaIceSimulations.jl")
 include("OceanSeaIceModels/OceanSeaIceModels.jl")
