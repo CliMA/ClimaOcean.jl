@@ -240,8 +240,8 @@ end
         τy = earth.interfaces.sea_ice_ocean_interface.fluxes.y_momentum
 
         CUDA.@alloscalar begin
-            @test τx[1, 1, 1] == 0.1
-            @test τy[1, 1, 1] == 0.2
+            @test τx[1, 1, 1] == sqrt(0.1^2 + 0.2^2) * 0.1
+            @test τy[1, 1, 1] == sqrt(0.1^2 + 0.2^2) * 0.2
         end
     end
 end
