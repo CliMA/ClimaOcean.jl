@@ -3,12 +3,6 @@
 import Oceananigans.TimeSteppers: time_step!
 import Oceananigans.Models: update_model_field_time_series!
 
-# Make sure the atmospheric parameters from SpeedyWeather can be used in the compute fluxes function
-import ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres: 
-    thermodynamics_parameters, 
-    boundary_layer_height, 
-    surface_layer_height
-
 import ClimaOcean.OceanSeaIceModels:
     compute_net_atmosphere_fluxes!
 
@@ -24,37 +18,7 @@ const SpeedySimulation = SpeedyWeather.Simulation
 const SpeedyCoupledModel = OceanSeaIceModel{<:Any, <:SpeedySimulation}
 Base.summary(::SpeedySimulation) = "SpeedyWeather.Simulation"
 
-# This can be left blank:
-update_model_field_time_series!(::SpeedySimulation, time) = nothing
-
-# Take one time-step
-function time_step!(atmos::SpeedySimulation, Δt)
-    # TODO: check if the time-step can be changed.
-    @assert Δt == atmos.integrator.dt
-    CA.SciMLBase.step!(atmos.integrator)
-    return nothing
-end
-
-# The height of near-surface variables used in the turbulent flux solver
-function surface_layer_height(s::SpeedySimulation)
-    T = s.model.atmosphere.temp_ref
-    g = s.model.planet.gravity
-    Φ = s.model.geopotential.Δp_geopot_full
-    return Φ[end] * T / g
-end
-
-# This is a parameter that is used in the computation of the fluxes,
-# It probably should not be here but in the similarity theory type.
-boundary_layer_height(atmos::SpeedySimulation) = 600
-
-# Base.eltype(::EarthAtmosphere{FT}) where FT = FT
-
-# This is a _hack_!! The parameters should be consistent with what is specified in SpeedyWeather
-thermodynamics_parameters(atmos::SpeedyWeather.Simulation) = 
-    PrescribedAtmosphereThermodynamicsParameters(eltype(atmos.model.atmosphere))
-
-using Oceananigans.Grids: λnodes, φnodes, LatitudeLongitudeGrid
-using Oceananigans.Fields: Center
+using Oceananigans
 using Thermodynamics
 
 """
@@ -68,6 +32,18 @@ the collection of `Field`s needed to compute turbulent fluxes.
 """
 function interpolate_atmosphere_state!(interfaces, atmosphere::SpeedySimulation, coupled_model)
 
+    # Plan:
+    # 1. transfer atmos data to GPU (req ability to represent atmos on GPU)
+    # 2. interpolate from atmos grid to ocean grid
+
+    # RingGrids.interpolate!(vec(view(ua, :, :, 1)), atmos.diagnostic_variables.grid.u_grid[:, end],            interpolator)
+    # RingGrids.interpolate!(vec(view(va, :, :, 1)), atmos.diagnostic_variables.grid.v_grid[:, end],            interpolator)
+    # RingGrids.interpolate!(vec(view(Ta, :, :, 1)), atmos.diagnostic_variables.grid.temp_grid[:, end],         interpolator)
+    # RingGrids.interpolate!(vec(view(qa, :, :, 1)), atmos.diagnostic_variables.grid.humid_grid[:, end],        interpolator)
+    # RingGrids.interpolate!(vec(view(pa, :, :, 1)), exp.(atmos.diagnostic_variables.grid.pres_grid[:, end]),   interpolator)
+    # RingGrids.interpolate!(vec(view(Qs, :, :, 1)), atmos.diagnostic_variables.physics.surface_shortwave_down, interpolator)
+    # RingGrids.interpolate!(vec(view(Qℓ, :, :, 1)), atmos.diagnostic_variables.physics.surface_longwave_down,  interpolator)
+
     # Get the atmospheric state on the ocean grid
     # ua = on_architecture(Oceananigans.CPU(), surface_atmosphere_state.u)
     # va = on_architecture(Oceananigans.CPU(), surface_atmosphere_state.v)
@@ -78,15 +54,6 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::SpeedySimulation,
     # Qℓ = on_architecture(Oceananigans.CPU(), surface_atmosphere_state.Qℓ)
     # Mp = on_architecture(Oceananigans.CPU(), interpolated_prescribed_freshwater_flux)
     # ρf = fluxes.freshwater_density
-
-    # RingGrids.interpolate!(vec(view(ua, :, :, 1)), atmos.diagnostic_variables.grid.u_grid[:, end],            interpolator)
-    # RingGrids.interpolate!(vec(view(va, :, :, 1)), atmos.diagnostic_variables.grid.v_grid[:, end],            interpolator)
-    # RingGrids.interpolate!(vec(view(Ta, :, :, 1)), atmos.diagnostic_variables.grid.temp_grid[:, end],         interpolator)
-    # RingGrids.interpolate!(vec(view(qa, :, :, 1)), atmos.diagnostic_variables.grid.humid_grid[:, end],        interpolator)
-    # RingGrids.interpolate!(vec(view(pa, :, :, 1)), exp.(atmos.diagnostic_variables.grid.pres_grid[:, end]),   interpolator)
-    # RingGrids.interpolate!(vec(view(Qs, :, :, 1)), atmos.diagnostic_variables.physics.surface_shortwave_down, interpolator)
-    # RingGrids.interpolate!(vec(view(Qℓ, :, :, 1)), atmos.diagnostic_variables.physics.surface_longwave_down,  interpolator)
-    # RingGrids.interpolate!(vec(view(Mp, :, :, 1)), atmosphere_precipitation,                                  interpolator)
 
     # interpolator = interfaces.exchanger.atmosphere_exchanger.to_exchange_interp
     # exchange_atmosphere_state = interfaces.exchanger.exchange_atmosphere_state
@@ -117,6 +84,17 @@ function atmosphere_exchanger(atmosphere::SpeedySimulation, exchange_grid)
         Qs = Field{Center, Center, Nothing}(cpu_grid),
         Qℓ = Field{Center, Center, Nothing}(cpu_grid),
     )
+
+    # Figure this out:
+    spectral_grid = atmosphere.model.spectral_grid
+    # 1/4 degree?
+    interpolator = SpeedyWeather.RingGrids.AnvilInterpolator(Float32,
+        SpeedyWeather.FullClenshawGrid, 90, spectral_grid.npoints)
+
+    arch = exchange_grid.architecture
+    tmp_grid   = LatitudeLongitudeGrid(arch; size=(360, 179, 1), latitude=(-89.5, 89.5), longitude=(0, 360), z = (0, 1))
+    londs, latds = SpeedyWeather.RingGrids.get_londlatds(spectral_grid.Grid, spectral_grid.nlat_half)
+    SpeedyWeather.RingGrids.update_locator!(interpolator, londs, latds)
 
     exchanger = (; cpu_surface_state)
 

@@ -8,7 +8,8 @@ import SpeedyWeather
 import ClimaOcean 
 import Oceananigans 
 
-include("conservative_regridding.jl")
+# include("conservative_regridding.jl")
+include("speedy_atmosphere_simulations.jl")
 include("speedy_weather_fluxes.jl")
 
 end # module ClimaOceanSpeedyWeatherExt

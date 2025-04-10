@@ -9,7 +9,6 @@ Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 CFTime = "179af706-886a-5703-950a-314cd64e0468"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 ClimaSeaIce = "6ba0ff68-24e6-4315-936c-2e99227c95a4"
-ConservativeRegridding = "8e50ac2c-eb48-49bc-a402-07c87b949343"
 CubicSplines = "9c784101-8907-5a6d-9be6-98f00873c89b"
 DataDeps = "124859b0-ceae-595e-8997-d05f6a7a8dfe"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
@@ -59,7 +58,7 @@ PrecompileTools = "1"
 Reactant = "0.2.45"
 Scratch = "1"
 SeawaterPolynomials = "0.3.5"
-SpeedyWeather = "0.13.0"
+SpeedyWeather = "0.14.0"
 StaticArrays = "1"
 Statistics = "1.9"
 SurfaceFluxes = "0.11, 0.12"
@@ -73,4 +72,4 @@ MPIPreferences = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Coverage", "Test", "MPIPreferences", "CUDA_Runtime_jll", "Reactant"]
+test = ["Coverage", "Test", "MPIPreferences", "CUDA_Runtime_jll"]
