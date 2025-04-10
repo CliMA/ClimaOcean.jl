@@ -214,8 +214,20 @@ end
 
         @info "Testing Surface Fluxes with sea ice..."
 
+        grid = ReactilinearGrid(arch;
+                                size = (2, 2, 2), 
+                              extent = (1, 1, 1),
+                            topology = (Periodic, Periodic, Bounded))
+
+        ocean = ocean_simulation(grid; momentum_advection = nothing, 
+                                         tracer_advection = nothing, 
+                                                 coriolis = nothing,
+                                                  closure = nothing,
+                                  bottom_drag_coefficient = 0.0)
+
         SSU = view(ocean.model.velocities.u, :, :, grid.Nz)
-        SSV = view(ocean.model.velocities.u, :, :, grid.Nz)
+        SSV = view(ocean.model.velocities.v, :, :, grid.Nz)
+
         τo  = SemiImplicitStress(uₑ=SSU, vₑ=SSV, Cᴰ=0.001, ρₑ=1000.0)
         τua = Field{Face, Center, Nothing}(grid)
         τva = Field{Center, Face, Nothing}(grid)
@@ -223,18 +235,18 @@ end
         dynamics = SeaIceMomentumEquation(grid;
                                           top_momentum_stress = (u=τua, v=τva),
                                           bottom_momentum_stress = τo,
-                                          rheology = ElastoViscoPlasticRheology(),
+                                          rheology = nothing,
                                           solver = ExplicitSolver())
-        
 
         sea_ice = sea_ice_simulation(grid; dynamics, advection=Centered())
 
         # Set a velocity for the ocean
         fill!(ocean.model.velocities.u, 0.1)
         fill!(ocean.model.velocities.v, 0.2)
+        fill!(ocean.model.tracers.T,   -2.0)
 
         # Test that we populate the sea-ice ocean stress
-        earth = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+        earth = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation=Radiation())
 
         τx = earth.interfaces.sea_ice_ocean_interface.fluxes.x_momentum
         τy = earth.interfaces.sea_ice_ocean_interface.fluxes.y_momentum
