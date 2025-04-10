@@ -230,7 +230,8 @@ end
         sea_ice = sea_ice_simulation(grid; dynamics, advection=Centered())
 
         # Set a velocity for the ocean
-        set!(ocean.model, u=0.1, v=0.2)
+        fill!(ocean.model.velocities.u, 0.1)
+        fill!(ocean.model.velocities.v, 0.2)
 
         # Test that we populate the sea-ice ocean stress
         earth = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
