@@ -186,9 +186,10 @@ end
                                 topology = (Bounded, Bounded, Bounded))
 
         ocean = ocean_simulation(grid; momentum_advection = nothing, 
-                                        tracer_advection = nothing, 
-                                                closure = nothing,
-                                bottom_drag_coefficient = 0.0)
+                                         tracer_advection = nothing, 
+                                                 coriolis = nothing,
+                                                  closure = nothing,
+                                  bottom_drag_coefficient = 0.0)
 
         dates = all_dates(RepeatYearJRA55(), :temperature)
         atmosphere = JRA55PrescribedAtmosphere(arch; end_date=dates[2], backend = InMemory()) 
@@ -210,6 +211,35 @@ end
             # Test that the temperature has snapped up to freezing
             @test minimum(ocean.model.tracers.T) == 0
         end
+
+        @info "Testing Surface Fluxes with sea ice..."
+
+        SSU = view(ocean.model.velocities.u, :, :, grid.Nz)
+        SSV = view(ocean.model.velocities.u, :, :, grid.Nz)
+        τo  = SemiImplicitStress(uₑ=SSU, vₑ=SSV, Cᴰ=0.001, ρₑ=1000.0)
+        τua = Field{Face, Center, Nothing}(grid)
+        τva = Field{Center, Face, Nothing}(grid)
+        
+        dynamics = SeaIceMomentumEquation(grid;
+                                          top_momentum_stress = (u=τua, v=τva),
+                                          bottom_momentum_stress = τo,
+                                          rheology = ElastoViscoPlasticRheology(),
+                                          solver = ExplicitSolver())
+        
+
+        sea_ice = sea_ice_simulation(grid; dynamics, advection=Centered())
+
+        # Set a velocity for the ocean
+        set!(ocean.model, u=0.1, v=0.2)
+
+        # Test that we populate the sea-ice ocean stress
+        earth = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+
+        τx = earth.interfaces.sea_ice_ocean_interface.fluxes.x_momentum
+        τy = earth.interfaces.sea_ice_ocean_interface.fluxes.y_momentum
+
+        @test τx[1, 1, 1] == 0.1
+        @test τy[1, 1, 1] == 0.2
     end
 end
 
