@@ -141,10 +141,11 @@ end
         τxio = ρτxio[i, j, 1] * ρₒ⁻¹ * ℑxᶠᵃᵃ(i, j, 1, grid, ℵ)
         τyio = ρτyio[i, j, 1] * ρₒ⁻¹ * ℑyᵃᶠᵃ(i, j, 1, grid, ℵ)
 
+        # Stresses
         τx[i, j, 1] = τxao + τxio
         τy[i, j, 1] = τyao + τyio
-        τx[i, j, 1] = τxao
-        τy[i, j, 1] = τyao
+
+        # Tracer fluxes
         Jᵀ[i, j, 1] = (1 - ℵᵢ) * Jᵀao + Jᵀio
         Jˢ[i, j, 1] = (1 - ℵᵢ) * Jˢao + Jˢio
     end
