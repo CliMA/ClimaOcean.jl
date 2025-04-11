@@ -9,12 +9,13 @@
 
 using ClimaOcean
 using ClimaOcean.ECCO
+using ClimaOcean.ECCO: download_dataset
+using CUDA
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.OrthogonalSphericalShellGrids
 using Dates
 using Printf
-using ClimaOcean.ECCO: download_dataset
 
 # ### Download necessary files to run the code
 
@@ -45,13 +46,13 @@ bottom_height = regrid_bathymetry(underlying_grid;
 
 # For this bathymetry at this horizontal resolution we need to manually open the Gibraltar strait.
 grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); active_cells_map=true)
-nothing; 
+nothing;
 
 # ### Restoring
 #
 # We include temperature and salinity surface restoring to ECCO data.
 restoring_rate  = 1 / 10days
-z_below_surface = r_faces[end-1]
+z_below_surface = CUDA.@allowscalar grid.underlying_grid.z.cᵃᵃᶠ[grid.Nz]
 
 mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(z_below_surface, 0))
 
