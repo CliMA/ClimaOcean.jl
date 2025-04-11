@@ -80,7 +80,7 @@ using CairoMakie
 
 set_theme!(Theme(linewidth=3, fontsize=24))
 
-fig = Figure(size=(800, 600))
+fig = Figure(size=(800, 1000))
 axu = Axis(fig[2, 1], xlabel="Days since Jan 1 1990", ylabel="Atmosphere \n velocity (m s⁻¹)")
 axT = Axis(fig[3, 1], xlabel="Days since Jan 1 1990", ylabel="Atmosphere \n temperature (ᵒK)")
 axq = Axis(fig[4, 1], xlabel="Days since Jan 1 1990", ylabel="Atmosphere \n specific humidity")

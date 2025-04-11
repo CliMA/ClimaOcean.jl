@@ -41,7 +41,7 @@ underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), z, halo = (5, 5, 4))
 bottom_height = regrid_bathymetry(underlying_grid;
                                   minimum_depth = 20,
                                   interpolation_passes = 75,
-				                  major_basins = 2)
+                                  major_basins = 2)
 
 # For this bathymetry at this horizontal resolution we need to manually open the Gibraltar strait.
 grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); active_cells_map=true)
