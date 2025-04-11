@@ -35,9 +35,7 @@ Ny = 170
 Nz = 50
 
 r_faces = exponential_z_faces(; Nz, depth=5000, h=34)
-z_faces = Oceananigans.Grids.MutableVerticalDiscretization(r_faces)
-
-underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), z = z_faces, halo = (5, 5, 4))
+underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), z = r_faces, halo = (5, 5, 4))
 
 ## 75 interpolation passes smooth the bathymetry near Florida so that the Gulf Stream is able to flow:
 bottom_height = regrid_bathymetry(underlying_grid;
