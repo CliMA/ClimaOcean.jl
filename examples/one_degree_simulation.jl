@@ -21,31 +21,29 @@ using ClimaOcean.ECCO: download_dataset
 # ### ECCO files
 
 dates = DateTime(1993, 1, 1) : Month(1) : DateTime(1994, 1, 1)
-temperature = Metadata(:temperature; dates, dataset=ECCO4Monthly(), dir="./")
-salinity    = Metadata(:salinity;    dates, dataset=ECCO4Monthly(), dir="./")
+ecco_temperature = Metadata(:temperature; dates, dataset=ECCO4Monthly())
+ecco_salinity    = Metadata(:salinity;    dates, dataset=ECCO4Monthly())
 
-download_dataset(temperature)
-download_dataset(salinity)
+download_dataset(ecco_temperature)
+download_dataset(ecco_salinity)
 
 # ### Grid and Bathymetry
 
-arch = GPU()
-Nx = 360
-Ny = 170
-Nz = 50
+arch = CPU()
+Nx = 256
+Ny = 128
+Nz = 40
 
-r_faces = exponential_z_faces(; Nz, depth=5000, h=34)
+r_faces = exponential_z_faces(; Nz, depth=4000, h=34)
 underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), z = r_faces, halo = (5, 5, 4))
 
 ## 75 interpolation passes smooth the bathymetry near Florida so that the Gulf Stream is able to flow:
-bottom_height = regrid_bathymetry(underlying_grid;
-                                  minimum_depth = 20,
-                                  interpolation_passes = 75,
+bottom_height = regrid_bathymetry(underlying_grid; minimum_depth = 20,
+                                  interpolation_passes = 10,
                                   major_basins = 2)
 
 # For this bathymetry at this horizontal resolution we need to manually open the Gibraltar strait.
 grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); active_cells_map=true)
-nothing; 
 
 # ### Restoring
 #
@@ -55,8 +53,8 @@ z_below_surface = r_faces[end-1]
 
 mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(z_below_surface, 0))
 
-FT = ECCORestoring(temperature, grid; mask, rate=restoring_rate)
-FS = ECCORestoring(salinity,    grid; mask, rate=restoring_rate)
+FT = ECCORestoring(ecco_temperature, grid; mask, rate=restoring_rate)
+FS = ECCORestoring(ecco_salinity,    grid; mask, rate=restoring_rate)
 forcing = (T=FT, S=FS)
 
 # ### Closures
@@ -65,9 +63,7 @@ forcing = (T=FT, S=FS)
 # eddy fluxes. For vertical mixing at the upper-ocean boundary layer we include the CATKE
 # parameterization. We also include some explicit horizontal diffusivity.
 
-using Oceananigans.TurbulenceClosures: IsopycnalSkewSymmetricDiffusivity
-
-eddy_closure = IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
+eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
 vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
 horizontal_viscosity = HorizontalScalarDiffusivity(ν=2000)
 closure = (eddy_closure, horizontal_viscosity, vertical_mixing)
@@ -78,7 +74,6 @@ closure = (eddy_closure, horizontal_viscosity, vertical_mixing)
 # mode.
 
 free_surface = SplitExplicitFreeSurface(grid; substeps=50)
-
 momentum_advection = VectorInvariant()
 tracer_advection   = WENO(order=5)
 
@@ -93,7 +88,7 @@ ocean = ocean_simulation(grid;
 
 # We initialize the ocean from the ECCO state estimate.
 
-set!(ocean.model, T=temperature[1], S=salinity[1])
+set!(ocean.model, T=ecco_temperature[1], S=ecco_salinity[1])
 
 # ### Atmospheric forcing
 
@@ -158,9 +153,7 @@ ocean.output_writers[:surface] = JLD2Writer(ocean.model, outputs;
                                             schedule = TimeInterval(5days),
                                             filename = "global_surface_fields",
                                             indices = (:, :, grid.Nz),
-                                            with_halos = true,
-                                            overwrite_existing = true,
-                                            array_type = Array{Float32})
+                                            overwrite_existing = true)
 
 # ### Ready to run
 
@@ -173,7 +166,6 @@ run!(simulation)
 
 simulation.Δt = 20minutes
 simulation.stop_time = 360days
-
 run!(simulation)
 
 # ### A pretty movie
