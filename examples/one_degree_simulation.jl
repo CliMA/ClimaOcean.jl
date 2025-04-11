@@ -1,7 +1,8 @@
 # # One-degree global ocean simulation
 #
 # This example configures a global ocean--sea ice simulation at 1ᵒ horizontal resolution with
-# realistic bathymetry and some closures.
+# realistic bathymetry, few closures. The simulation is forced by JRA55 atmospheric reanalysis
+# and initialized by temperature and salinity from ECCO2 state estimate.
 #
 # For this example, we need Oceananigans, ClimaOcean, and
 # CairoMakie to visualize the simulation. Also we need CFTime and Dates for date handling.
@@ -14,8 +15,6 @@ using Oceananigans.OrthogonalSphericalShellGrids
 using Dates
 using Printf
 using ClimaOcean.ECCO: download_dataset
-
-arch = GPU()
 
 # ### Download necessary files to run the code
 
@@ -30,29 +29,23 @@ download_dataset(salinity)
 
 # ### Grid and Bathymetry
 
+arch = GPU()
 Nx = 360
-Ny = 180
-Nz = 100
+Ny = 170
+Nz = 50
 
-r_faces = exponential_z_faces(; Nz, depth=5000, h=34)
-z_faces = Oceananigans.MutableVerticalDiscretization(r_faces)
+z = exponential_z_faces(; Nz, depth=5000, h=34)
+underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), z, halo = (5, 5, 4))
 
-underlying_grid = TripolarGrid(arch;
-                               size = (Nx, Ny, Nz),
-                               z = z_faces,
-                               halo = (5, 5, 4),
-                               first_pole_longitude = 70,
-                               north_poles_latitude = 55)
-
+## 75 interpolation passes smooth the bathymetry near Florida so that the Gulf Stream is able to flow:
 bottom_height = regrid_bathymetry(underlying_grid;
-                                  minimum_depth = 10,
-                                  interpolation_passes = 75, # 75 interpolation passes smooth the bathymetry near Florida so that the Gulf Stream is able to flow
+                                  minimum_depth = 20,
+                                  interpolation_passes = 75,
 				                  major_basins = 2)
 
 # For this bathymetry at this horizontal resolution we need to manually open the Gibraltar strait.
-# view(bottom_height, 102:103, 124, 1) .= -400
-grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); active_cells_map=true);
-nothing
+grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); active_cells_map=true)
+nothing; 
 
 # ### Restoring
 #
@@ -67,28 +60,27 @@ FS = ECCORestoring(salinity,    grid; mask, rate=restoring_rate)
 forcing = (T=FT, S=FS)
 
 # ### Closures
-# We include a Gent-McWilliam isopycnal diffusivity as a parameterization for the mesoscale
+#
+# We include a Gent-McWilliams isopycnal diffusivity as a parameterization for the mesoscale
 # eddy fluxes. For vertical mixing at the upper-ocean boundary layer we include the CATKE
 # parameterization. We also include some explicit horizontal diffusivity.
 
-using Oceananigans.TurbulenceClosures: IsopycnalSkewSymmetricDiffusivity,
-                                       DiffusiveFormulation
+using Oceananigans.TurbulenceClosures: IsopycnalSkewSymmetricDiffusivity
 
-eddy_closure = IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3,
-                                                 skew_flux_formulation=DiffusiveFormulation())
+eddy_closure = IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
 vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
-
-closure = (eddy_closure, vertical_mixing)
+horizontal_viscosity = HorizontalScalarDiffusivity(ν=2000)
+closure = (eddy_closure, horizontal_viscosity, vertical_mixing)
 
 # ### Ocean simulation
 # Now we bring everything together to construct the ocean simulation.
 # We use a split-explicit timestepping with 30 substeps for the barotropic
 # mode.
 
-free_surface = SplitExplicitFreeSurface(grid; substeps=30)
+free_surface = SplitExplicitFreeSurface(grid; substeps=50)
 
-momentum_advection = WENOVectorInvariant(vorticity_order=3)
-tracer_advection   = Centered()
+momentum_advection = VectorInvariant()
+tracer_advection   = WENO(order=5)
 
 ocean = ocean_simulation(grid;
                          momentum_advection,
@@ -141,7 +133,7 @@ function progress(sim)
 
     msg1 = @sprintf("time: %s, iteration: %d, Δt: %s, ", prettytime(sim), iteration(sim), prettytime(sim.Δt))
     msg2 = @sprintf("max|u|: (%.2e, %.2e, %.2e) m s⁻¹, ", umax...)
-    msg3 = @sprintf("extrema(T): (%.2f, %.2f) ᵒC, ", Tmax, Tmin)
+    msg3 = @sprintf("extrema(T): (%.2f, %.2f) ᵒC, ", Tmin, Tmax)
     msg4 = @sprintf("wall time: %s \n", prettytime(step_time))
 
     @info msg1 * msg2 * msg3 * msg4
@@ -232,9 +224,11 @@ end
 # eddy kinetic energy from the CATKE vertical mixing parameterization.
 fig = Figure(size = (800, 1200))
 
-axs = Axis(fig[1, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
-axT = Axis(fig[2, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
-axe = Axis(fig[3, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
+title = @lift string("Global 1ᵒ ocean simulation after ", prettytime(times[$n] - times[1]))
+
+axs = Axis(fig[1, 1])
+axT = Axis(fig[2, 1])
+axe = Axis(fig[3, 1])
 
 hm = heatmap!(axs, sn, colorrange = (0, 0.5), colormap = :deep, nan_color=:lightgray)
 Colorbar(fig[1, 2], hm, label = "Surface speed (m s⁻¹)")
@@ -244,6 +238,12 @@ Colorbar(fig[2, 2], hm, label = "Surface Temperature (ᵒC)")
 
 hm = heatmap!(axe, en, colorrange = (0, 1e-3), colormap = :solar, nan_color=:lightgray)
 Colorbar(fig[3, 2], hm, label = "Turbulent Kinetic Energy (m² s⁻²)")
+
+for ax in (axs, axT, axe)
+    hidedecorations!(ax)
+end
+
+Label(fig[0, :], title)
 
 save("global_snapshot.png", fig)
 nothing #hide
