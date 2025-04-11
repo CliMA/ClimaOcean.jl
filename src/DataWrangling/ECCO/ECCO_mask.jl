@@ -62,7 +62,7 @@ function ECCO_immersed_grid(metadata, architecture = CPU())
 end
 
 # Default
-ECCO_immersed_grid(arch::AbstractArchitecture=CPU()) = ECCO_immersed_grid(Metadata(:temperature, dataset=ECCO4Monthly()), arch)
+ECCO_immersed_grid(arch::AbstractArchitecture=CPU()) = ECCO_immersed_grid(Metadatum(:temperature, dataset=ECCO4Monthly()), arch)
 
 @kernel function _set_height_from_mask!(bottom, grid, mask)
     i, j = @index(Global, NTuple)

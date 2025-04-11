@@ -55,7 +55,7 @@ using ClimaOcean.Bathymetry: remove_minor_basins!
                                      z = (-6000, 0))
 
         control_bottom_height = regrid_bathymetry(grid)
-        interpolated_bottom_height = regrid_bathymetry(grid; interpolation_passes=100)
+        interpolated_bottom_height = regrid_bathymetry(grid; regridding_criteria=100)
 
         # Testing that multiple passes do not change the solution when refining the grid
         @test parent(control_bottom_height) == parent(interpolated_bottom_height)
@@ -67,7 +67,7 @@ using ClimaOcean.Bathymetry: remove_minor_basins!
                                      z = (-6000, 0))
 
         control_bottom_height = regrid_bathymetry(grid)
-        interpolated_bottom_height = regrid_bathymetry(grid; interpolation_passes=10)
+        interpolated_bottom_height = regrid_bathymetry(grid; regridding_criteria=10)
 
         # Testing that multiple passes _do_ change the solution when coarsening the grid
         @test parent(control_bottom_height) != parent(interpolated_bottom_height)
