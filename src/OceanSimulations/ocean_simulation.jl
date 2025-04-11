@@ -33,15 +33,15 @@ function estimate_maximum_Δt(grid)
     # - 1.875 minutes for a 1/32 degree ocean
 
     Δt = 30minutes / Δθ
-    
+
     return all_reduce(min, Δt, arch)
 end
 
 const TripolarOfSomeKind = Union{TripolarGrid, ImmersedBoundaryGrid{<:Any, <:Any, <:Any, <:Any, <:TripolarGrid}}
 
-function default_free_surface(grid::TripolarOfSomeKind; 
+function default_free_surface(grid::TripolarOfSomeKind;
                               fixed_Δt = estimate_maximum_Δt(grid),
-                              cfl = 0.7) 
+                              cfl = 0.7)
     free_surface = SplitExplicitFreeSurface(grid; cfl, fixed_Δt)
     return free_surface
 end
@@ -84,8 +84,8 @@ default_tracer_advection() = FluxFormAdvection(WENO(order=7),
 @inline v_quadratic_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, 1] * spᶜᶠᶜ(i, j, 1, grid, Φ)
 
 # Keep a constant linear drag parameter independent on vertical level
-@inline u_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.u[i, j, k] * spᶠᶜᶜ(i, j, k, grid, fields) 
-@inline v_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.v[i, j, k] * spᶜᶠᶜ(i, j, k, grid, fields) 
+@inline u_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.u[i, j, k] * spᶠᶜᶜ(i, j, k, grid, fields)
+@inline v_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.v[i, j, k] * spᶜᶠᶜ(i, j, k, grid, fields)
 
 # TODO: Specify the grid to a grid on the sphere; otherwise we can provide a different
 # function that requires latitude and longitude etc for computing coriolis=FPlane...
@@ -145,7 +145,7 @@ function ocean_simulation(grid;
         end
 
         bottom_drag_coefficient = default_or_override(bottom_drag_coefficient)
-        
+
         u_immersed_drag = FluxBoundaryCondition(u_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
         v_immersed_drag = FluxBoundaryCondition(v_immersed_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
         
@@ -175,7 +175,7 @@ function ocean_simulation(grid;
     v_top_bc = FluxBoundaryCondition(τy)
     T_top_bc = FluxBoundaryCondition(Jᵀ)
     S_top_bc = FluxBoundaryCondition(Jˢ)
-        
+
     u_bot_bc = FluxBoundaryCondition(u_quadratic_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
     v_bot_bc = FluxBoundaryCondition(v_quadratic_bottom_drag, discrete_form=true, parameters=bottom_drag_coefficient)
 

@@ -62,7 +62,7 @@ set!(ocean.model, T=ECCOMetadatum(:temperature),
 atmosphere = JRA55PrescribedAtmosphere(longitude = λ★,
                                        latitude = φ★,
                                        end_date = DateTime(1990, 1, 31), # Last day of the simulation
-                                       backend = JRA55NetCDFBackend(30))
+                                       backend  = InMemory())
 
 # This builds a representation of the atmosphere on the small grid
 
