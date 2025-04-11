@@ -38,8 +38,9 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
     sea_ice_properties = coupled_model.interfaces.sea_ice_properties
     ocean_properties = coupled_model.interfaces.ocean_properties
 
-    atmosphere_properties = (thermodynamics_parameters = atmosphere.thermodynamics_parameters,
-                             surface_layer_height = atmosphere.surface_layer_height)
+    atmosphere_properties = (thermodynamics_parameters = thermodynamics_parameters(atmosphere),
+                             surface_layer_height = surface_layer_height(atmosphere),
+                             gravitational_acceleration = coupled_model.interfaces.properties.gravitational_acceleration)
 
     kernel_parameters = interface_kernel_parameters(grid)
 
@@ -75,8 +76,7 @@ end
 
     i, j = @index(Global, NTuple)
     kᴺ   = size(grid, 3) # index of the top ocean cell
-    time = Time(clock.time)
-    FT = eltype(grid)
+    FT   = eltype(grid)
 
     @inbounds begin
         uₐ = atmosphere_state.u[i, j, 1]
@@ -135,7 +135,7 @@ end
     stop_criteria = turbulent_flux_formulation.solver_stop_criteria
     needs_to_converge = stop_criteria isa ConvergenceStopCriteria
 
-    if needs_to_converge && not_water || ice_free
+    if (needs_to_converge && not_water) || ice_free
         interface_state = InterfaceState(zero(FT), zero(FT), zero(FT), uᵢ, vᵢ, Tᵢ, Sₛ, zero(FT))
     else
         interface_state = compute_interface_state(turbulent_flux_formulation,
@@ -153,7 +153,7 @@ end
     q★ = interface_state.q★
     Ψₛ = interface_state
     Ψₐ = local_atmosphere_state
-    Δu, Δv = velocity_difference(turbulent_flux_formulation.bulk_velocity, Ψₐ, Ψₛ)
+    Δu, Δv = velocity_difference(interface_properties.velocity_formulation, Ψₐ, Ψₛ)
     ΔU = sqrt(Δu^2 + Δv^2)
     τx = - u★^2 * Δu / ΔU
     τy = - u★^2 * Δv / ΔU

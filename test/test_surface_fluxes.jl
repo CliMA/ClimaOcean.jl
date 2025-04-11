@@ -16,6 +16,10 @@ using CUDA
 using KernelAbstractions: @kernel, @index
 using Oceananigans.TimeSteppers: update_state!
 using Oceananigans.Units: hours, days
+using ClimaOcean.DataWrangling: all_dates
+
+using ClimaSeaIce.SeaIceMomentumEquations
+using ClimaSeaIce.Rheologies
 
 import ClimaOcean.OceanSeaIceModels.InterfaceComputations: saturation_specific_humidity
 
@@ -42,19 +46,26 @@ end
                                  closure = nothing,
                                  bottom_drag_coefficient = 0.0)
 
-        atmosphere = JRA55PrescribedAtmosphere(1:2; grid, architecture=arch, backend=InMemory()) 
+        dates = all_dates(RepeatYearJRA55(), :temperature)
+        atmosphere = JRA55PrescribedAtmosphere(arch, Float64; end_date=dates[2], backend = InMemory()) 
         
         CUDA.@allowscalar begin
             h  = atmosphere.surface_layer_height
             pₐ = atmosphere.pressure[1][1, 1, 1]
 
-            Tₐ = atmosphere.tracers.T[1][1, 1, 1]
-            qₐ = atmosphere.tracers.q[1][1, 1, 1]
+            Tₐ = 15 + celsius_to_kelvin
+            qₐ = 0.003
             
             uₐ = atmosphere.velocities.u[1][1, 1, 1]
             vₐ = atmosphere.velocities.v[1][1, 1, 1]
 
             ℂₐ = atmosphere.thermodynamics_parameters
+
+            fill!(parent(atmosphere.tracers.T),    Tₐ)
+            fill!(parent(atmosphere.tracers.q),    qₐ)
+            fill!(parent(atmosphere.velocities.u), uₐ)
+            fill!(parent(atmosphere.velocities.v), vₐ)
+            fill!(parent(atmosphere.pressure),     pₐ)
 
             # Force the saturation humidity of the ocean to be 
             # equal to the atmospheric saturation humidity
@@ -84,7 +95,9 @@ end
                 # Note that the Δθ accounts for the "lapse rate" at height h
                 Tₒ = Tₐ - celsius_to_kelvin + h / cp * g
                 
-                set!(ocean.model, u=uₐ, v=vₐ, T=Tₒ)
+                fill!(parent(ocean.model.velocities.u), uₐ)
+                fill!(parent(ocean.model.velocities.v), vₐ)
+                fill!(parent(ocean.model.tracers.T), Tₒ)
 
                 # Compute the turbulent fluxes (neglecting radiation)
                 coupled_model    = OceanSeaIceModel(ocean; atmosphere, interfaces)
@@ -177,7 +190,8 @@ end
                                                 closure = nothing,
                                 bottom_drag_coefficient = 0.0)
 
-        atmosphere = JRA55PrescribedAtmosphere(1:2; architecture = arch, backend = InMemory())
+        dates = all_dates(RepeatYearJRA55(), :temperature)
+        atmosphere = JRA55PrescribedAtmosphere(arch; end_date=dates[2], backend = InMemory()) 
 
         fill!(ocean.model.tracers.T, -2.0)
 
@@ -219,12 +233,13 @@ end
 
         ocean = ocean_simulation(grid; momentum_advection, tracer_advection, closure, tracers, coriolis)
 
-        T_metadata = ECCOMetadata(:temperature)
-        S_metadata = ECCOMetadata(:salinity)
+        T_metadata = Metadatum(:temperature, date=DateTimeProlepticGregorian(1993, 1, 1), dataset=ECCO4Monthly())
+        S_metadata = Metadatum(:salinity,    date=DateTimeProlepticGregorian(1993, 1, 1), dataset=ECCO4Monthly())
 
         set!(ocean.model; T=T_metadata, S=S_metadata)
 
-        atmosphere = JRA55PrescribedAtmosphere(1:10; grid, architecture = arch, backend = InMemory())
+        end_date   = all_dates(RepeatYearJRA55(), :temperature)[10]
+        atmosphere = JRA55PrescribedAtmosphere(arch; end_date, backend = InMemory())
         radiation  = Radiation(ocean_albedo=0.1, ocean_emissivity=1.0)
         sea_ice    = nothing
 

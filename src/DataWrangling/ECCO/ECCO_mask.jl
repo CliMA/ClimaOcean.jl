@@ -18,7 +18,7 @@ function ECCO_mask(metadata, architecture = CPU();
 
     # ECCO4 has zeros in place of the missing values, while
     # ECCO2 expresses missing values with values < -1e5
-    if metadata.version isa ECCO4Monthly 
+    if metadata.dataset isa ECCO4Monthly 
         _set_mask! = _set_ECCO4_mask!
     else
         _set_mask! = _set_ECCO2_mask!
@@ -31,7 +31,7 @@ function ECCO_mask(metadata, architecture = CPU();
 end
 
 # Default
-ECCO_mask(arch::AbstractArchitecture=CPU()) = ECCO_mask(ECCOMetadata(:temperature), arch)
+ECCO_mask(arch::AbstractArchitecture=CPU()) = ECCO_mask(Metadata(:temperature, dataset=ECCO4Monthly()), arch)
 
 @kernel function _set_ECCO2_mask!(mask, Tᵢ, minimum_value, maximum_value)
     i, j, k = @index(Global, NTuple)
@@ -62,7 +62,7 @@ function ECCO_immersed_grid(metadata, architecture = CPU())
 end
 
 # Default
-ECCO_immersed_grid(arch::AbstractArchitecture=CPU()) = ECCO_immersed_grid(ECCOMetadata(:temperature), arch)
+ECCO_immersed_grid(arch::AbstractArchitecture=CPU()) = ECCO_immersed_grid(Metadatum(:temperature, dataset=ECCO4Monthly()), arch)
 
 @kernel function _set_height_from_mask!(bottom, grid, mask)
     i, j = @index(Global, NTuple)

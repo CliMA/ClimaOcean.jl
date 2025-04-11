@@ -4,55 +4,47 @@
 # realistic bathymetry, few closures. The simulation is forced by JRA55 atmospheric reanalysis
 # and initialized by temperature and salinity from ECCO2 state estimate.
 #
-# For this example, we need Oceananigans, ClimaOcean, OrthogonalSphericalShellGrids, and
+# For this example, we need Oceananigans, ClimaOcean, and
 # CairoMakie to visualize the simulation. Also we need CFTime and Dates for date handling.
 
 using ClimaOcean
 using ClimaOcean.ECCO
 using Oceananigans
 using Oceananigans.Units
-using OrthogonalSphericalShellGrids
-using CFTime
+using Oceananigans.OrthogonalSphericalShellGrids
 using Dates
 using Printf
 using ClimaOcean.ECCO: download_dataset
-
-arch = GPU()
 
 # ### Download necessary files to run the code
 
 # ### ECCO files
 
-dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1994, 1, 1)
-temperature = ECCOMetadata(:temperature; dates, version=ECCO4Monthly(), dir="./")
-salinity    = ECCOMetadata(:salinity;    dates, version=ECCO4Monthly(), dir="./")
+dates = DateTime(1993, 1, 1) : Month(1) : DateTime(1994, 1, 1)
+temperature = Metadata(:temperature; dates, dataset=ECCO4Monthly(), dir="./")
+salinity    = Metadata(:salinity;    dates, dataset=ECCO4Monthly(), dir="./")
 
 download_dataset(temperature)
 download_dataset(salinity)
 
 # ### Grid and Bathymetry
 
+arch = GPU()
 Nx = 360
-Ny = 180
-Nz = 100
+Ny = 170
+Nz = 50
 
-r_faces = exponential_z_faces(; Nz, depth=5000, h=34)
-z_faces = Oceananigans.MutableVerticalDiscretization(r_faces)
+z = exponential_z_faces(; Nz, depth=5000, h=34)
+underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), z, halo = (5, 5, 4))
 
-underlying_grid = TripolarGrid(arch;
-                               size = (Nx, Ny, Nz),
-                               z = z_faces,
-                               halo = (5, 5, 4),
-                               first_pole_longitude = 70,
-                               north_poles_latitude = 55)
-
+## 75 interpolation passes smooth the bathymetry near Florida so that the Gulf Stream is able to flow:
 bottom_height = regrid_bathymetry(underlying_grid;
-                                  minimum_depth = 10,
-                                  interpolation_passes = 75, # 75 interpolation passes smooth the bathymetry near Florida so that the Gulf Stream is able to flow
+                                  minimum_depth = 20,
+                                  interpolation_passes = 75,
 				  major_basins = 2)
 
 # For this bathymetry at this horizontal resolution we need to manually open the Gibraltar strait.
-view(bottom_height, 102:103, 124, 1) .= -400
+interior(bottom_height, 102:103, 124, 1) .= -400
 grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
 # ### Restoring
@@ -73,24 +65,22 @@ forcing = (T=FT, S=FS)
 # eddy fluxes. For vertical mixing at the upper-ocean boundary layer we include the CATKE
 # parameterization. We also include some explicit horizontal diffusivity.
 
-using Oceananigans.TurbulenceClosures: IsopycnalSkewSymmetricDiffusivity,
-                                       DiffusiveFormulation
+using Oceananigans.TurbulenceClosures: IsopycnalSkewSymmetricDiffusivity
 
-eddy_closure = IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3,
-                                                 skew_flux_formulation=DiffusiveFormulation())
+eddy_closure = IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
 vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
-
-closure = (eddy_closure, vertical_mixing)
+horizontal_viscosity = HorizontalScalarDiffusivity(ν=2000)
+closure = (eddy_closure, horizontal_viscosity, vertical_mixing)
 
 # ### Ocean simulation
 # Now we bring everything together to construct the ocean simulation.
 # We use a split-explicit timestepping with 30 substeps for the barotropic
 # mode.
 
-free_surface = SplitExplicitFreeSurface(grid; substeps=30)
+free_surface = SplitExplicitFreeSurface(grid; substeps=50)
 
-momentum_advection = WENOVectorInvariant(vorticity_order=3)
-tracer_advection   = Centered()
+momentum_advection = VectorInvariant()
+tracer_advection   = WENO(order=5)
 
 ocean = ocean_simulation(grid;
                          momentum_advection,
@@ -103,8 +93,7 @@ ocean = ocean_simulation(grid;
 
 # We initialize the ocean from the ECCO state estimate.
 
-set!(ocean.model, T=ECCOMetadata(:temperature; dates=first(dates)),
-                  S=ECCOMetadata(:salinity; dates=first(dates)))
+set!(ocean.model, T=temperature[1], S=salinity[1])
 
 # ### Atmospheric forcing
 
@@ -165,13 +154,13 @@ add_callback!(simulation, progress, IterationInterval(10))
 # also uses a prognostic turbulent kinetic energy, `e`, to diagnose the vertical mixing length.
 
 outputs = merge(ocean.model.tracers, ocean.model.velocities)
-ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
-                                                  schedule = TimeInterval(5days),
-                                                  filename = "global_surface_fields",
-                                                  indices = (:, :, grid.Nz),
-                                                  with_halos = true,
-                                                  overwrite_existing = true,
-                                                  array_type = Array{Float32})
+ocean.output_writers[:surface] = JLD2Writer(ocean.model, outputs;
+                                            schedule = TimeInterval(5days),
+                                            filename = "global_surface_fields",
+                                            indices = (:, :, grid.Nz),
+                                            with_halos = true,
+                                            overwrite_existing = true,
+                                            array_type = Array{Float32})
 
 # ### Ready to run
 
