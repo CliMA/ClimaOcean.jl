@@ -40,7 +40,7 @@ grid = RectilinearGrid(size = 200,
 
 # # An "ocean simulation"
 #
-# Next, we use ClimaOcean's ocean_simulation constructor to build a realistic
+# Next, we use ClimaOcean's `ocean_simulation` constructor to build a realistic
 # ocean simulation on the single-column grid,
 
 ocean = ocean_simulation(grid; Δt=10minutes, coriolis=FPlane(latitude = φ★))
@@ -50,9 +50,9 @@ ocean = ocean_simulation(grid; Δt=10minutes, coriolis=FPlane(latitude = φ★))
 ocean.model
 
 # We set initial conditions from ECCO:
-
-set!(ocean.model, T=ECCOMetadatum(:temperature),
-                  S=ECCOMetadatum(:salinity))
+start_date = DateTime(1992, 10, 1)
+set!(ocean.model, T=ECCOMetadatum(:temperature; date = start_date),
+                  S=ECCOMetadatum(:salinity; date = start_date))
 
 # # A prescribed atmosphere based on JRA55 re-analysis
 #
@@ -61,10 +61,10 @@ set!(ocean.model, T=ECCOMetadatum(:temperature),
 
 atmosphere = JRA55PrescribedAtmosphere(longitude = λ★,
                                        latitude = φ★,
-                                       end_date = DateTime(1990, 1, 31), # Last day of the simulation
+                                       end_date = start_date + Month(1),
                                        backend  = InMemory())
 
-# This builds a representation of the atmosphere on the small grid
+# This builds a representation of the atmosphere on the small grid.
 
 atmosphere.grid
 
@@ -81,9 +81,9 @@ using CairoMakie
 set_theme!(Theme(linewidth=3, fontsize=24))
 
 fig = Figure(size=(800, 1000))
-axu = Axis(fig[2, 1], xlabel="Days since Jan 1 1990", ylabel="Atmosphere \n velocity (m s⁻¹)")
-axT = Axis(fig[3, 1], xlabel="Days since Jan 1 1990", ylabel="Atmosphere \n temperature (ᵒK)")
-axq = Axis(fig[4, 1], xlabel="Days since Jan 1 1990", ylabel="Atmosphere \n specific humidity")
+axu = Axis(fig[2, 1], xlabel="Days since $(Date(start_date))", ylabel="Atmosphere \n velocity (m s⁻¹)")
+axT = Axis(fig[3, 1], xlabel="Days since $(Date(start_date))", ylabel="Atmosphere \n temperature (ᵒK)")
+axq = Axis(fig[4, 1], xlabel="Days since $(Date(start_date))", ylabel="Atmosphere \n specific humidity")
 Label(fig[1, 1], "Atmospheric state over ocean station Papa", tellwidth=false)
 
 lines!(axu, t_days, ua, label="Zonal velocity")
@@ -222,12 +222,12 @@ end
 
 fig = Figure(size=(1800, 1800))
 
-axτ = Axis(fig[1, 1:3], xlabel="Days since Oct 1 1992", ylabel="Wind stress (N m⁻²)")
-axQ = Axis(fig[1, 4:6], xlabel="Days since Oct 1 1992", ylabel="Heat flux (W m⁻²)")
-axu = Axis(fig[2, 1:3], xlabel="Days since Oct 1 1992", ylabel="Velocities (m s⁻¹)")
-axT = Axis(fig[2, 4:6], xlabel="Days since Oct 1 1992", ylabel="Surface temperature (ᵒC)")
-axF = Axis(fig[3, 1:3], xlabel="Days since Oct 1 1992", ylabel="Freshwater volume flux (m s⁻¹)")
-axS = Axis(fig[3, 4:6], xlabel="Days since Oct 1 1992", ylabel="Surface salinity (g kg⁻¹)")
+axτ = Axis(fig[1, 1:3], xlabel="Days since $(Date(start_date))", ylabel="Wind stress (N m⁻²)")
+axQ = Axis(fig[1, 4:6], xlabel="Days since $(Date(start_date))", ylabel="Heat flux (W m⁻²)")
+axu = Axis(fig[2, 1:3], xlabel="Days since $(Date(start_date))", ylabel="Velocities (m s⁻¹)")
+axT = Axis(fig[2, 4:6], xlabel="Days since $(Date(start_date))", ylabel="Surface temperature (ᵒC)")
+axF = Axis(fig[3, 1:3], xlabel="Days since $(Date(start_date))", ylabel="Freshwater volume flux (m s⁻¹)")
+axS = Axis(fig[3, 4:6], xlabel="Days since $(Date(start_date))", ylabel="Surface salinity (g kg⁻¹)")
 
 axuz = Axis(fig[4:5, 1:2], xlabel="Velocities (m s⁻¹)",                ylabel="z (m)")
 axTz = Axis(fig[4:5, 3:4], xlabel="Temperature (ᵒC)",                  ylabel="z (m)")

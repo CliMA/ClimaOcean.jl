@@ -91,7 +91,7 @@ const ECCO_z = [
 empty_ECCO_field(variable_name::Symbol; kw...) = empty_ECCO_field(Metadatum(variable_name, dataset=ECCO4Monthly()); kw...)
 
 function empty_ECCO_field(metadata::ECCOMetadata;
-                          architecture = CPU(), 
+                          architecture = CPU(),
                           horizontal_halo = (7, 7))
 
     Nx, Ny, Nz, _ = size(metadata)
@@ -122,7 +122,7 @@ function empty_ECCO_field(metadata::ECCOMetadata;
 end
 
 # Only temperature and salinity need a thorough inpainting because of stability,
-# other variables can do with only a couple of passes. Sea ice variables 
+# other variables can do with only a couple of passes. Sea ice variables
 # cannot be inpainted because zeros in the data are physical, not missing values.
 function default_inpainting(metadata::ECCOMetadata)
     if metadata.name in [:temperature, :salinity]
@@ -154,7 +154,7 @@ function ECCO_field(metadata::ECCOMetadata;
                     mask = nothing,
                     horizontal_halo = (7, 7),
                     cache_inpainted_data = true)
-                    
+
     field = empty_ECCO_field(metadata; architecture, horizontal_halo)
     inpainted_path = inpainted_metadata_path(metadata)
 
@@ -183,25 +183,25 @@ function ECCO_field(metadata::ECCOMetadata;
         data = reverse(data, dims=3)
     else
         data = ds[shortname][:, :, 1]
-    end        
+    end
 
     close(ds)
-    
+
     # Convert data from Union(FT, missing} to FT
     FT = eltype(field)
     data[ismissing.(data)] .= 1e10 # Artificially large number!
     data = if location(field)[2] == Face # ?
         new_data = zeros(FT, size(field))
         new_data[:, 1:end-1, :] .= data
-        new_data    
+        new_data
     else
         data = Array{FT}(data)
     end
-    
+
     # ECCO4 data is on a -180, 180 longitude grid as opposed to ECCO2 data that
     # is on a 0, 360 longitude grid. To make the data consistent, we shift ECCO4
     # data by 180 degrees in longitude
-    if metadata.dataset isa ECCO4Monthly 
+    if metadata.dataset isa ECCO4Monthly
         Nx = size(data, 1)
         if variable_is_three_dimensional(metadata)
             shift = (Nx ÷ 2, 0, 0)
@@ -226,13 +226,13 @@ function ECCO_field(metadata::ECCOMetadata;
         dataset = summary(metadata.dataset)
         @info string("Inpainting ", dataset, " ", name, " data from ", date, "...")
         start_time = time_ns()
-        
+
         inpaint_mask!(field, mask; inpainting)
         fill_halo_regions!(field)
 
         elapsed = 1e-9 * (time_ns() - start_time)
         @info string(" ... (", prettytime(elapsed), ")")
-    
+
         # We cache the inpainted data to avoid recomputing it
         @root if cache_inpainted_data
             file = jldopen(inpainted_path, "w+")
@@ -274,5 +274,4 @@ end
 
 include("ECCO_restoring.jl")
 
-end # Module 
-
+end # Module
