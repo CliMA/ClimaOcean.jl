@@ -11,7 +11,7 @@ using Oceananigans.Architectures: architecture, on_architecture
 using Oceananigans.DistributedComputations: DistributedGrid, reconstruct_global_grid, barrier!, all_reduce
 using Oceananigans.Grids: halo_size, λnodes, φnodes
 using Oceananigans.Grids: x_domain, y_domain
-using Oceananigans.Grids: topology
+using Oceananigans.Grids: topology, XRegularLLG, YRegularLLG
 using Oceananigans.Utils: pretty_filesize, launch!
 using Oceananigans.Fields: interpolate!
 using Oceananigans.BoundaryConditions
@@ -36,6 +36,36 @@ end
 
 etopo_url = "https://www.dropbox.com/scl/fi/6pwalcuuzgtpanysn4h6f/" *
             "ETOPO_2022_v1_60s_N90W180_surface.nc?rlkey=2t7890ruyk4nd5t5eov5768lt&st=yfxsy1lu&dl=0"
+
+struct InterpolationPasses
+    passes :: Int
+end
+
+interpolating(interp::InterpolationPasses, pass, z₁, grid₁, z₀, grid₀) = pass > interp.passes
+interpolating(criteria::Tuple, args...) = any(interpolating(crit, args...) for crit in criteria)
+
+struct MustRefine end
+
+function interpolating(::MustRefine, p, z₁, grid₁, z₀, grid₀)
+    both_x_regular = grid₁ isa XRegularLLG && grid₀ isa XRegularLLG
+    both_y_regular = grid₁ isa YRegularLLG && grid₀ isa YRegularLLG
+
+    min_Δx₁ = minimum_xspacing(grid₁)
+    min_Δx₀ = minimum_xspacing(grid₀)
+    min_Δy₁ = minimum_yspacing(grid₁)
+    min_Δy₀ = minimum_yspacing(grid₀)
+
+    refining_in_x = both_x_regular && (min_Δx₁ < min_Δx₀)
+    refining_in_y = both_y_regular && (min_Δy₁ < min_Δy₀)
+
+    # Let us interpolate one time (pass == 1). Then, shut it down if
+    # we are refining the grid in _either_ x or y.
+    return pass == 1 || !(refining_in_x || refining_in_y)
+end
+
+tupleit(a) = tuple(a)
+tupleit(a::Tuple) = a
+tupleit(a::Vector) = tuple(a...)
 
 """
     download_bathymetry(; dir = download_bathymetry_cache,
@@ -66,7 +96,7 @@ end
                       dir = download_bathymetry_cache,
                       url = ClimaOcean.Bathymetry.etopo_url,
                       filename = "ETOPO_2022_v1_60s_N90W180_surface.nc",
-                      interpolation_passes = 1,
+                      regridding_criteria = default_criteria(grid),
                       major_basins = 1)
 
 Return bathymetry associated with the NetCDF file at `path = joinpath(dir, filename)` regridded onto `target_grid`.
@@ -117,13 +147,13 @@ Keyword Arguments
                   the smallest basins are removed first. `major_basins = 1` retains only the largest basin.
                   If `Inf` then no basins are removed. Default: 1.
 """
-function regrid_bathymetry(target_grid;
+function regrid_bathymetry(target_grid::AbstractGrid;
                            height_above_water = nothing,
                            minimum_depth = 0,
                            dir = download_bathymetry_cache,
                            url = etopo_url,
                            filename = "ETOPO_2022_v1_60s_N90W180_surface.nc",
-                           interpolation_passes = 1,
+                           regridding_criteria = InterpolationPasses(1),
                            major_basins = 1) # Allow an `Inf` number of "lakes"
 
     filepath = download_bathymetry(; url, dir, filename)
@@ -179,8 +209,13 @@ function regrid_bathymetry(target_grid;
     set!(native_z, z_data)
     fill_halo_regions!(native_z)
 
-    target_z = interpolate_bathymetry_in_passes(native_z, target_grid;
-                                                passes = interpolation_passes)
+    if regridding_criteria isa Number
+        regridding_criteria = InterpolationPasses(regridding_criteria)
+    end
+    
+    regridding_criteria = tuple(MustRefine(), tupleit(regridding_criteria)...)
+    target_z = regrid_bathymetry(native_z, target_grid, regridding_criteria)
+
 
     if minimum_depth > 0
         zi = interior(target_z, :, :, 1)
@@ -199,31 +234,14 @@ function regrid_bathymetry(target_grid;
     return target_z
 end
 
-# Here we can either use `regrid!` (three dimensional version) or `interpolate!`.
-function interpolate_bathymetry_in_passes(native_z, target_grid;
-                                          passes = 10)
+# Here we can either use `regrid!` (three dimensional version) or `interpolate`
+function regrid_bathymetry(native_z::Field, target_grid::AbstractGrid, regridding_criteria)
+                                          
     Nλt, Nφt = Nt = size(target_grid)
     Nλn, Nφn = Nn = size(native_z)
-
-    resxt = minimum_xspacing(target_grid)
-    resyt = minimum_yspacing(target_grid)
-
-    resxn = minimum_xspacing(native_z.grid)
-    resyn = minimum_yspacing(native_z.grid)
-
-    # Check whether we are refining the grid in any directions.
-    # If so, skip interpolation passes, as they are not needed.
-    if resxt < resxn || resyt < resyn
-        target_z = Field{Center, Center, Nothing}(target_grid)
-        interpolate!(target_z, native_z)
-        @info string("Skipping passes for interpolating bathymetry of size $Nn ", '\n',
-                     "to target grid of size $Nt. Interpolation passes may only ", '\n',
-                     "be used to coarsen bathymetry and require that the bathymetry ", '\n',
-                     "is finer than the target grid in both horizontal directions.")
-        return target_z
-    end
-
+  
     # Interpolate in passes
+    native_grid = native_z.grid
     latitude  = y_domain(native_z.grid)
     longitude = x_domain(native_z.grid)
 
@@ -236,14 +254,13 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     Nλ = Int[Nλ..., Nλt]
     Nφ = Int[Nφ..., Nφt]
 
-    old_z  = native_z
     TX, TY = topology(target_grid)
+    target_z = native_z
+    pass = 1
 
-    for pass = 1:passes - 1
+    while interpolating(regridding_criteria, pass, target_z, target_grid, native_z, native_grid)
         new_size = (Nλ[pass], Nφ[pass], 1)
-
         @debug "Bathymetry interpolation pass $pass with size $new_size"
-
         new_grid = LatitudeLongitudeGrid(architecture(target_grid), Float32,
                                          size = new_size,
                                          latitude = (latitude[1],  latitude[2]),
@@ -251,14 +268,11 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
                                          z = (0, 1),
                                          topology = (TX, TY, Bounded))
 
-        new_z = Field{Center, Center, Nothing}(new_grid)
-
-        interpolate!(new_z, old_z)
-        old_z = new_z
+        old_z = target_z
+        target_z = Field{Center, Center, Nothing}(new_grid)
+        interpolate!(target_z, old_z)
+        pass += 1
     end
-
-    target_z = Field{Center, Center, Nothing}(target_grid)
-    interpolate!(target_z, old_z)
 
     return target_z
 end
