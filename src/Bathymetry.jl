@@ -9,7 +9,7 @@ using Oceananigans.DistributedComputations
 using Oceananigans
 using Oceananigans.Architectures: architecture, on_architecture
 using Oceananigans.DistributedComputations: DistributedGrid, reconstruct_global_grid, barrier!, all_reduce
-using Oceananigans.Grids: halo_size, λnodes, φnodes, x_domain, y_domain
+using Oceananigans.Grids: halo_size, λnodes, φnodes, x_domain, y_domain, topology
 using Oceananigans.Grids: AbstractGrid, XRegularLLG, YRegularLLG
 using Oceananigans.Utils: pretty_filesize, launch!
 using Oceananigans.Fields: interpolate!
@@ -30,22 +30,25 @@ function __init__()
     global download_bathymetry_cache = @get_scratch!("Bathymetry")
 end
 
-# etopo_url = "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_surface_elev_netcdf/" *
-#              "ETOPO_2022_v1_60s_N90W180_surface.nc"
+etopo_url = "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_surface_elev_netcdf/" *
+             "ETOPO_2022_v1_60s_N90W180_surface.nc"
 
-etopo_url = "https://www.dropbox.com/scl/fi/6pwalcuuzgtpanysn4h6f/" *
-            "ETOPO_2022_v1_60s_N90W180_surface.nc?rlkey=2t7890ruyk4nd5t5eov5768lt&st=yfxsy1lu&dl=0"
+#####
+##### Regridding methods
+#####
 
 struct InterpolationPasses
     passes :: Int
 end
 
-interpolating(interp::InterpolationPasses, pass, z₁, grid₁, z₀, grid₀) = pass > interp.passes
-interpolating(criteria::Tuple, args...) = any(interpolating(crit, args...) for crit in criteria)
+number_of_passes(interp::InterpolationPasses) = interp.passes
+interpolating(interp::InterpolationPasses, pass, z₁, grid₁, z₀, grid₀) = pass <= interp.passes
 
 struct MustRefine end
 
-function interpolating(::MustRefine, p, z₁, grid₁, z₀, grid₀)
+number_of_passes(::MustRefine) = 1
+
+function interpolating(::MustRefine, pass, z₁, grid₁, z₀, grid₀)
     both_x_regular = grid₁ isa XRegularLLG && grid₀ isa XRegularLLG
     both_y_regular = grid₁ isa YRegularLLG && grid₀ isa YRegularLLG
 
@@ -62,9 +65,17 @@ function interpolating(::MustRefine, p, z₁, grid₁, z₀, grid₀)
     return pass == 1 || !(refining_in_x || refining_in_y)
 end
 
+# Tuples of criteria
 tupleit(a) = tuple(a)
 tupleit(a::Tuple) = a
 tupleit(a::Vector) = tuple(a...)
+
+interpolating(criteria::Tuple, args...) = all(interpolating(crit, args...) for crit in criteria)
+number_of_passes(interp_tuple::Tuple) = maximum(number_of_passes(interp) for interp in interp_tuple)
+
+#####
+##### Downloading bathymetry
+#####
 
 """
     download_bathymetry(; dir = download_bathymetry_cache,
@@ -122,9 +133,9 @@ Keyword Arguments
   2. `lon` vector of longitude nodes
   3. `z` matrix of depth values
 
-- `regridding_criteria`: regridding/interpolation passes. The bathymetry is interpolated in
-                          `regridding_criteria - 1` intermediate steps. The more the interpolation
-                          steps the smoother the final bathymetry becomes.
+- `regridding_criteria`: Criteria to use when regridding. If Number, the bathymetry is interpolated in
+                         `regridding_criteria` additional times. Repeated interpolation
+                         acts to smoothen the bathymetry.
 
   Example
   =======
@@ -221,7 +232,7 @@ function regrid_bathymetry(target_grid::AbstractGrid;
 
         # Set the height of cells with z > -mininum_depth to z=0.
         # (In-place + GPU-friendly)
-        zi .*= zi .<= - minimum_depth
+        zi .*= (zi .<= - minimum_depth)
     end
 
     if major_basins < Inf
@@ -239,10 +250,12 @@ function regrid_bathymetry(native_z::Field, target_grid::AbstractGrid, regriddin
     Nλt, Nφt = Nt = size(target_grid)
     Nλn, Nφn = Nn = size(native_z)
   
-    # Interpolate in passes
     native_grid = native_z.grid
     latitude  = y_domain(native_z.grid)
     longitude = x_domain(native_z.grid)
+
+    # Build intermediate grid parameters for multiple-pass regridding
+    passes = number_of_passes(regridding_criteria)
 
     ΔNλ = floor((Nλn - Nλt) / passes)
     ΔNφ = floor((Nφn - Nφt) / passes)
