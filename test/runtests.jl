@@ -23,7 +23,7 @@ if test_group == :init || test_group == :all
     #### Download JRA55 data 
     ####
     
-    atmosphere = JRA55PrescribedAtmosphere()
+    atmosphere = JRA55PrescribedAtmosphere(backend=JRA55NetCDFBackend(2))
 
     ####
     #### Download ECCO data 
@@ -34,7 +34,7 @@ if test_group == :init || test_group == :all
 end
 
 # Tests JRA55 utilities, plus some DataWrangling utilities
-if test_group == :jra55 || test_group == :all
+if test_group == :JRA55 || test_group == :all
     include("test_jra55.jl")
 end
 
@@ -55,13 +55,16 @@ if test_group == :bathymetry || test_group == :all
     include("test_bathymetry.jl")
 end
 
-if test_group == :simulations || test_group == :all
-    CUDA.set_runtime_version!(v"12.2", local_toolkit = true) # Seems to help in finding the correct CUDA version
-    include("test_simulations.jl")
+if test_group == :ocean_sea_ice_model || test_group == :all
+    include("test_ocean_sea_ice_model.jl")
     include("test_diagnostics.jl")
 end
 
 if test_group == :distributed || test_group == :all
     include("test_distributed_utils.jl")
+end
+
+if test_group == :reactant || test_group == :all
+    include("test_reactant.jl")
 end
 

@@ -14,6 +14,7 @@ using ClimaOcean.ECCO
 using ClimaOcean.JRA55
 using ClimaOcean.OceanSimulations
 using Oceananigans
+using Dates
 using CairoMakie
 
 # # Computing fluxes on the ECCO2 grid
@@ -24,10 +25,10 @@ grid = ECCO_immersed_grid()
 
 # We visualize the bottom height of the ECCO grid using CairoMakie.
 
-fig = Figure()
-ax  = Axis(fig[1, 1])
-heatmap!(ax, interior(grid.immersed_boundary.bottom_height, :, :, 1))
-save("ECCO_continents.png", fig) #hide
+fig, ax, hm = heatmap(grid.immersed_boundary.bottom_height)
+Colorbar(fig[1, 2], hm, height = Relative(3/4), label = "Depth (m)")
+
+save("ECCO_continents.png", fig)
 
 # ![](ECCO_continents.png)
 
@@ -43,19 +44,19 @@ save("ECCO_continents.png", fig) #hide
 # - downwelling shortwave radiation
 # - downwelling longwave radiation
 #
-# We invoke the constructor with only the first two time indices, corresponding to 
-# January 1st (at 00:00 AM and 03:00 AM).
+# We load in memory only the first two time indices, corresponding to January 1st
+# (at 00:00 AM and 03:00 AM), by using `JRA55NetCDFBackend(2)`.
 
-atmosphere = JRA55PrescribedAtmosphere(1:2; backend = InMemory())
+atmosphere = JRA55PrescribedAtmosphere(; backend = JRA55NetCDFBackend(2))
 ocean = ocean_simulation(grid, closure=nothing)
 
 # Now that we have an atmosphere and ocean, we `set!` the ocean temperature and salinity
 # to the ECCO2 data by first creating T, S metadata objects,
 
-T_metadata = ECCOMetadata(:temperature)
-S_metadata = ECCOMetadata(:salinity)
+T_metadata = ECCOMetadatum(:temperature; date=DateTime(1993, 1, 1))
+S_metadata = ECCOMetadatum(:salinity;    date=DateTime(1993, 1, 1))
 
-# Note that if a date is not provided to `ECCOMetadata`, then the default Jan 1st, 1992 is used.
+# Note that if a date is not provided to `Metadata`, then the default Jan 1st, 1992 is used.
 # To copy the ECCO state into `ocean.model`, we use `set!`,
 
 set!(ocean.model; T=T_metadata, S=S_metadata)
@@ -65,12 +66,12 @@ set!(ocean.model; T=T_metadata, S=S_metadata)
 # uses the two-band shortwave (visible and UV) + longwave (mid and far infrared)
 # decomposition of the radiation spectrum.
 
-coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation=Radiation())
+coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation=Radiation(eltype))
 
-# # Now that the surface fluxes are computed, we can extract and visualize them.
-# # The turbulent fluxes are stored in `coupled_modelinterfaces.atmosphere_ocean_interface.fluxes`.
+# Now that the surface fluxes are computed, we can extract and visualize them.
+# The turbulent fluxes are stored in `coupled_model.interfaces.atmosphere_ocean_interface.fluxes`.
 
-fluxes  = coupled_model.interfaces.atmosphere_ocean_interface.fluxes
+fluxes = coupled_model.interfaces.atmosphere_ocean_interface.fluxes
 λ, φ, z = nodes(fluxes.sensible_heat)
 
 fig = Figure(size = (800, 800), fontsize = 15)
@@ -90,5 +91,6 @@ heatmap!(ax, λ, φ, interior(fluxes.y_momentum, :, :, 1); colormap = :bwr)
 ax = Axis(fig[3, 1], title = "Water vapor flux (kg m⁻² s⁻¹)", xlabel = "Longitude", ylabel = "Latitude")
 heatmap!(ax, λ, φ, interior(fluxes.water_vapor, :, :, 1); colormap = :bwr)
 
-save("fluxes.png", fig)
-![](fluxes.png)
+save("surface_fluxes.png", fig)
+
+# ![](surface_fluxes.png)

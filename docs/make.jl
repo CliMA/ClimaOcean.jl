@@ -14,12 +14,12 @@ const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
 
 to_be_literated = [
     # "ecco_inspect_temperature_salinity.jl",
-    "generate_bathymetry.jl",
-    "generate_surface_fluxes.jl",
-    "single_column_os_papa_simulation.jl",
+    # "generate_bathymetry.jl",
+    # "generate_surface_fluxes.jl",
+    # "single_column_os_papa_simulation.jl",
     "one_degree_simulation.jl",
     # "mediterranean_simulation_with_ecco_restoring.jl",
-    "near_global_ocean_simulation.jl"
+    # "near_global_ocean_simulation.jl"
 ]
 
 for file in to_be_literated

@@ -38,17 +38,17 @@ if initialization
 
     model = test_simulation.model
 
-    test_simulation.output_writers[:d3] = JLD2OutputWriter(model, model.tracers,
-                                                            schedule = IterationInterval(100),
-                                                            filename = prefix * "_fields",
-                                                            overwrite_existing = true)
+    test_simulation.output_writers[:d3] = JLD2Writer(model, model.tracers,
+                                                     schedule = IterationInterval(100),
+                                                     filename = prefix * "_fields",
+                                                     overwrite_existing = true)
 
     slice_indices = (11, :, :)
-    test_simulation.output_writers[:d2] = JLD2OutputWriter(model, model.tracers,
-                                                            schedule = IterationInterval(100),
-                                                            filename = prefix * "_slices",
-                                                            indices = slice_indices,
-                                                            overwrite_existing = true)
+    test_simulation.output_writers[:d2] = JLD2Writer(model, model.tracers,
+                                                     schedule = IterationInterval(100),
+                                                     filename = prefix * "_slices",
+                                                     indices = slice_indices,
+                                                     overwrite_existing = true)
 
 
     @info "Running simulation..."; timer = time_ns()
@@ -63,10 +63,10 @@ simulation_ensemble = [one_degree_near_global_simulation(arch; simulation_kw...)
 priors = (κ_skew      = ScaledLogitNormal(bounds=(0.0, 2000.0)),
           κ_symmetric = ScaledLogitNormal(bounds=(0.0, 2000.0)))
 
-free_parameters = FreeParameters(priors) 
+free_parameters = FreeParameters(priors)
 
 obspath = prefix * "_slices.jld2"
- 
+
 T₀ = FieldTimeSeries(prefix * "_fields.jld2", "T")
 S₀ = FieldTimeSeries(prefix * "_fields.jld2", "S")
 
@@ -101,7 +101,7 @@ function slice_collector(sim)
     return FieldTimeSeriesCollector((T=T_slice, S=S_slice), times, architecture = CPU())
 end
 
-##### 
+#####
 ##### Building the inverse problem
 #####
 
@@ -114,7 +114,7 @@ ip = InverseProblem(observations, simulation_ensemble, free_parameters;
 
 eki = EnsembleKalmanInversion(ip; pseudo_stepping=ConstantConvergence(0.2))
 
-##### 
+#####
 ##### Let's run!
 #####
 

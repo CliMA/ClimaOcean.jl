@@ -3,7 +3,7 @@
 #####
 
 struct ConvergenceStopCriteria{FT}
-    tolerance :: FT     
+    tolerance :: FT
     maxiter :: Int
 end
 
@@ -17,8 +17,8 @@ end
     return !(converged | reached_maxiter) | hasnt_started
 end
 
-struct FixedIterations
-    iterations :: Int
+struct FixedIterations{I}
+    iterations :: I
 end
 
 @inline iterating(Ψⁿ, Ψ⁻, iteration, fixed::FixedIterations) = iteration < fixed.iterations
@@ -74,7 +74,7 @@ and interior properties `ℙₛ`, `ℙₐ`, and `ℙᵢ`.
                                          interface_properties,
                                          atmosphere_properties,
                                          interior_properties)
-    
+
     Tₛ = compute_interface_temperature(interface_properties.temperature_formulation,
                                        approximate_interface_state,
                                        atmosphere_state,
@@ -99,20 +99,15 @@ and interior properties `ℙₛ`, `ℙₐ`, and `ℙᵢ`.
     qₐ = AtmosphericThermodynamics.vapor_specific_humidity(ℂₐ, 𝒬ₐ)
     Δq = qₐ - qₛ
 
-    # Temperature increment including the ``lapse rate'' `α = g / cₚ`
-    zₐ = atmosphere_state.z
-    zₛ = zero(FT)
-    Δh = zₐ - zₛ
-    Tₐ = AtmosphericThermodynamics.air_temperature(ℂₐ, 𝒬ₐ)
-    g  = flux_formulation.gravitational_acceleration
-    cₐ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ)
-    θₐ = Tₐ + g * Δh / cₐ
+    θₐ = surface_atmosphere_temperature(atmosphere_state, atmosphere_properties)
     Δθ = θₐ - Tₛ
+    Δh = atmosphere_state.z # Assumption! The surface is at z = 0 -> Δh = zₐ - 0 
 
     u★, θ★, q★ = iterate_interface_fluxes(flux_formulation,
                                           Tₛ, qₛ, Δθ, Δq, Δh,
                                           approximate_interface_state,
                                           atmosphere_state,
+                                          interface_properties,
                                           atmosphere_properties)
 
     u = approximate_interface_state.u
@@ -121,4 +116,3 @@ and interior properties `ℙₛ`, `ℙₐ`, and `ℙᵢ`.
 
     return InterfaceState(u★, θ★, q★, u, v, Tₛ, S, convert(FT, qₛ))
 end
-

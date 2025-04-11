@@ -4,7 +4,11 @@ using Oceananigans.Operators: ℑxᶠᵃᵃ, ℑyᵃᶠᵃ
 using ClimaOcean.OceanSeaIceModels: sea_ice_concentration
 
 @inline computed_sea_ice_ocean_fluxes(interface) = interface.fluxes
-@inline computed_sea_ice_ocean_fluxes(::Nothing) = (interface_heat = ZeroField(), frazil_heat = ZeroField(), salt = ZeroField())
+@inline computed_sea_ice_ocean_fluxes(::Nothing) = (interface_heat = ZeroField(), 
+                                                    frazil_heat = ZeroField(), 
+                                                    salt = ZeroField(),
+                                                    x_momentum = ZeroField(),
+                                                    y_momentum = ZeroField())
 
 function compute_net_ocean_fluxes!(coupled_model)
     ocean = coupled_model.ocean
@@ -76,8 +80,10 @@ end
     i, j = @index(Global, NTuple)
     kᴺ = size(grid, 3)
     time = Time(clock.time)
-    ρτx = atmos_ocean_fluxes.x_momentum  # zonal momentum flux                      
-    ρτy = atmos_ocean_fluxes.y_momentum  # meridional momentum flux
+    ρτxao = atmos_ocean_fluxes.x_momentum # atmosphere - ocean zonal momentum flux                      
+    ρτyao = atmos_ocean_fluxes.y_momentum # atmosphere - ocean meridional momentum flux
+    ρτxio = sea_ice_ocean_fluxes.x_momentum # sea_ice - ocean zonal momentum flux                      
+    ρτyio = sea_ice_ocean_fluxes.y_momentum # sea_ice - ocean meridional momentum flux
 
     @inbounds begin
         Sₒ = ocean_salinity[i, j, kᴺ]
@@ -121,22 +127,25 @@ end
     ρₒ⁻¹ = 1 / ocean_properties.reference_density
     cₒ   = ocean_properties.heat_capacity
 
-    τxao = ℑxᶠᵃᵃ(i, j, 1, grid, τᶜᶜᶜ, ρₒ⁻¹, ℵ, ρτx)
-    τyao = ℑyᵃᶠᵃ(i, j, 1, grid, τᶜᶜᶜ, ρₒ⁻¹, ℵ, ρτy)
-    Jᵀao = ΣQao  * ρₒ⁻¹ / cₒ
-    Jˢao = - Sₒ * ΣFao
-
-    ρₒ⁻¹ = 1 / ocean_properties.reference_density
-    cₒ   = ocean_properties.heat_capacity
-
     @inbounds begin
         ℵᵢ   = ℵ[i, j, 1]
         Qio  = sea_ice_ocean_fluxes.interface_heat[i, j, 1]
-        Jˢio = sea_ice_ocean_fluxes.salt[i, j, 1]
-        Jᵀio = Qio * ρₒ⁻¹ / cₒ
 
-        τx[i, j, 1] = τxao
-        τy[i, j, 1] = τyao
+        Jᵀao = ΣQao  * ρₒ⁻¹ / cₒ
+        Jˢao = - Sₒ * ΣFao
+        Jᵀio = Qio * ρₒ⁻¹ / cₒ
+        Jˢio = sea_ice_ocean_fluxes.salt[i, j, 1]
+
+        τxao = ℑxᶠᵃᵃ(i, j, 1, grid, τᶜᶜᶜ, ρₒ⁻¹, ℵ, ρτxao)
+        τyao = ℑyᵃᶠᵃ(i, j, 1, grid, τᶜᶜᶜ, ρₒ⁻¹, ℵ, ρτyao)
+        τxio = ρτxio[i, j, 1] * ρₒ⁻¹ * ℑxᶠᵃᵃ(i, j, 1, grid, ℵ)
+        τyio = ρτyio[i, j, 1] * ρₒ⁻¹ * ℑyᵃᶠᵃ(i, j, 1, grid, ℵ)
+
+        # Stresses
+        τx[i, j, 1] = τxao + τxio
+        τy[i, j, 1] = τyao + τyio
+
+        # Tracer fluxes
         Jᵀ[i, j, 1] = (1 - ℵᵢ) * Jᵀao + Jᵀio
         Jˢ[i, j, 1] = (1 - ℵᵢ) * Jˢao + Jˢio
     end
@@ -154,7 +163,7 @@ function compute_net_sea_ice_fluxes!(coupled_model)
     arch  = architecture(grid)
     clock = coupled_model.clock
 
-    top_heat_flux = coupled_model.interfaces.net_fluxes.sea_ice_top.heat
+    top_fluxes = coupled_model.interfaces.net_fluxes.sea_ice_top
     bottom_heat_flux = coupled_model.interfaces.net_fluxes.sea_ice_bottom.heat
     sea_ice_ocean_fluxes = coupled_model.interfaces.sea_ice_ocean_interface.fluxes
     atmosphere_sea_ice_fluxes = coupled_model.interfaces.atmosphere_sea_ice_interface.fluxes
@@ -173,11 +182,11 @@ function compute_net_sea_ice_fluxes!(coupled_model)
 
     kernel_parameters = interface_kernel_parameters(grid)
 
-    sea_ice_surface_temperature = coupled_model.interfaces.atmosphere_ocean_interface.temperature
+    sea_ice_surface_temperature = coupled_model.interfaces.atmosphere_sea_ice_interface.temperature
 
     launch!(arch, grid, kernel_parameters, 
             _assemble_net_sea_ice_fluxes!,
-            top_heat_flux,
+            top_fluxes,
             bottom_heat_flux, 
             grid,
             clock,
@@ -192,7 +201,7 @@ function compute_net_sea_ice_fluxes!(coupled_model)
     return nothing
 end
 
-@kernel function _assemble_net_sea_ice_fluxes!(top_heat_flux,
+@kernel function _assemble_net_sea_ice_fluxes!(top_fluxes,
                                                bottom_heat_flux, 
                                                grid,
                                                clock,
@@ -220,6 +229,9 @@ end
         Qi = sea_ice_ocean_fluxes.interface_heat[i, j, 1]   # interfacial heat flux
     end
 
+    ρτx = atmosphere_sea_ice_fluxes.x_momentum  # zonal momentum flux                      
+    ρτy = atmosphere_sea_ice_fluxes.y_momentum  # meridional momentum flux
+
     # Compute radiation fluxes
     σ = atmos_sea_ice_properties.radiation.σ
     α = stateindex(atmos_sea_ice_properties.radiation.α, i, j, kᴺ, grid, time)
@@ -233,6 +245,8 @@ end
     # Mask fluxes over land for convenience
     inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
 
-    @inbounds top_heat_flux[i, j, 1] = ifelse(inactive, zero(grid), ΣQt)
+    @inbounds top_fluxes.heat[i, j, 1]  = ifelse(inactive, zero(grid), ΣQt)
+    @inbounds top_fluxes.u[i, j, 1]     = ifelse(inactive, zero(grid), ℑxᶠᵃᵃ(i, j, 1, grid, ρτx))
+    @inbounds top_fluxes.v[i, j, 1]     = ifelse(inactive, zero(grid), ℑyᵃᶠᵃ(i, j, 1, grid, ρτy))
     @inbounds bottom_heat_flux[i, j, 1] = ifelse(inactive, zero(grid), ΣQb)
 end
