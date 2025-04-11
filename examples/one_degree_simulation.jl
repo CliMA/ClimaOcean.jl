@@ -15,8 +15,6 @@ using Dates
 using Printf
 using ClimaOcean.ECCO: download_dataset
 
-arch = GPU()
-
 # ### Download necessary files to run the code
 
 # ### ECCO files
@@ -30,27 +28,22 @@ download_dataset(salinity)
 
 # ### Grid and Bathymetry
 
+arch = GPU()
 Nx = 360
-Ny = 180
-Nz = 100
+Ny = 170
+Nz = 50
 
-r_faces = exponential_z_faces(; Nz, depth=5000, h=34)
-z_faces = Oceananigans.MutableVerticalDiscretization(r_faces)
+z = exponential_z_faces(; Nz, depth=5000, h=34)
+underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), z, halo = (5, 5, 4))
 
-underlying_grid = TripolarGrid(arch;
-                               size = (Nx, Ny, Nz),
-                               z = z_faces,
-                               halo = (5, 5, 4),
-                               first_pole_longitude = 70,
-                               north_poles_latitude = 55)
-
+## 75 interpolation passes smooth the bathymetry near Florida so that the Gulf Stream is able to flow:
 bottom_height = regrid_bathymetry(underlying_grid;
-                                  minimum_depth = 10,
-                                  interpolation_passes = 75, # 75 interpolation passes smooth the bathymetry near Florida so that the Gulf Stream is able to flow
-				                  major_basins = 2)
+                                  minimum_depth = 20,
+                                  interpolation_passes = 75,
+				  major_basins = 2)
 
 # For this bathymetry at this horizontal resolution we need to manually open the Gibraltar strait.
-# view(bottom_height, 102:103, 124, 1) .= -400
+interior(bottom_height, 102:103, 124, 1) .= -400
 grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
 # ### Restoring
@@ -70,24 +63,22 @@ forcing = (T=FT, S=FS)
 # eddy fluxes. For vertical mixing at the upper-ocean boundary layer we include the CATKE
 # parameterization. We also include some explicit horizontal diffusivity.
 
-using Oceananigans.TurbulenceClosures: IsopycnalSkewSymmetricDiffusivity,
-                                       DiffusiveFormulation
+using Oceananigans.TurbulenceClosures: IsopycnalSkewSymmetricDiffusivity
 
-eddy_closure = IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3,
-                                                 skew_flux_formulation=DiffusiveFormulation())
+eddy_closure = IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
 vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
-
-closure = (eddy_closure, vertical_mixing)
+horizontal_viscosity = HorizontalScalarDiffusivity(ν=2000)
+closure = (eddy_closure, horizontal_viscosity, vertical_mixing)
 
 # ### Ocean simulation
 # Now we bring everything together to construct the ocean simulation.
 # We use a split-explicit timestepping with 30 substeps for the barotropic
 # mode.
 
-free_surface = SplitExplicitFreeSurface(grid; substeps=30)
+free_surface = SplitExplicitFreeSurface(grid; substeps=50)
 
-momentum_advection = WENOVectorInvariant(vorticity_order=3)
-tracer_advection   = Centered()
+momentum_advection = VectorInvariant()
+tracer_advection   = WENO(order=5)
 
 ocean = ocean_simulation(grid;
                          momentum_advection,
