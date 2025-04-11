@@ -15,7 +15,7 @@ Nz = 32
 z_faces = exponential_z_faces(; Nz, depth=6000, h=34)
 underlying_grid = TripolarGrid(arch; size=(Nx, Ny, Nz), z=z_faces)
 
-bottom_height = regrid_bathymetry(underlying_grid; minimum_depth=30, interpolation_passes=20, major_basins=1)
+bottom_height = regrid_bathymetry(underlying_grid; minimum_depth=30, regridding_criteria=20, major_basins=1)
 view(bottom_height, 73:78, 88:89, 1) .= -1000 # open Gibraltar strait 
 
 grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); active_cells_map=true)

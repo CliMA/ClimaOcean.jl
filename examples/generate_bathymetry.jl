@@ -43,7 +43,7 @@ grid = LatitudeLongitudeGrid(size = (Nλ, Nφ, 1),
 #    and fills them with land.
 
 h_rough = regrid_bathymetry(grid)
-h_smooth = regrid_bathymetry(grid; interpolation_passes = 40)
+h_smooth = regrid_bathymetry(grid; regridding_criteria = 40)
 h_one_basin = regrid_bathymetry(grid; major_basins = 1)
 nothing #hide
 

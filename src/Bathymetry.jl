@@ -9,9 +9,8 @@ using Oceananigans.DistributedComputations
 using Oceananigans
 using Oceananigans.Architectures: architecture, on_architecture
 using Oceananigans.DistributedComputations: DistributedGrid, reconstruct_global_grid, barrier!, all_reduce
-using Oceananigans.Grids: halo_size, λnodes, φnodes
-using Oceananigans.Grids: x_domain, y_domain
-using Oceananigans.Grids: topology, XRegularLLG, YRegularLLG
+using Oceananigans.Grids: halo_size, λnodes, φnodes, x_domain, y_domain
+using Oceananigans.Grids: AbstractGrid, XRegularLLG, YRegularLLG
 using Oceananigans.Utils: pretty_filesize, launch!
 using Oceananigans.Fields: interpolate!
 using Oceananigans.BoundaryConditions
@@ -123,8 +122,8 @@ Keyword Arguments
   2. `lon` vector of longitude nodes
   3. `z` matrix of depth values
 
-- `interpolation_passes`: regridding/interpolation passes. The bathymetry is interpolated in
-                          `interpolation_passes - 1` intermediate steps. The more the interpolation
+- `regridding_criteria`: regridding/interpolation passes. The bathymetry is interpolated in
+                          `regridding_criteria - 1` intermediate steps. The more the interpolation
                           steps the smoother the final bathymetry becomes.
 
   Example
