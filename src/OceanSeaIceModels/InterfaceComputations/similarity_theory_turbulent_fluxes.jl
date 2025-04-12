@@ -58,10 +58,10 @@ end
 
 """
     SimilarityTheoryFluxes(FT::DataType = Float64;
-                           gravitational_acceleration = convert(FT, 9.81),
-                           von_karman_constant = convert(FT, 0.4),
-                           turbulent_prandtl_number = convert(FT, 1),
-                           gustiness_parameter = convert(FT, 6.5),
+                           gravitational_acceleration = 9.81,
+                           von_karman_constant = 0.4,
+                           turbulent_prandtl_number = 1,
+                           gustiness_parameter = 0,
                            stability_functions = default_stability_functions(FT),
                            roughness_lengths = default_roughness_lengths(FT),
                            similarity_form = LogarithmicSimilarityProfile(),
@@ -77,7 +77,7 @@ Keyword Arguments
 
 - `von_karman_constant`: The von Karman constant. Default: 0.4.
 - `turbulent_prandtl_number`: The turbulent Prandtl number. Default: 1.
-- `gustiness_parameter`: The gustiness parameter that accounts for low wind speed areas. Default: 6.5.
+- `gustiness_parameter`: Increases surface fluxes in low wind conditions. Default: 0.
 - `stability_functions`: The stability functions. Default: `default_stability_functions(FT)` that follow the
                          formulation of Edson et al. (2013).
 - `roughness_lengths`: The roughness lengths used to calculate the characteristic scales for momentum, temperature and
@@ -90,7 +90,7 @@ Keyword Arguments
 function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                 von_karman_constant = 0.4,
                                 turbulent_prandtl_number = 1,
-                                gustiness_parameter = 6.5,
+                                gustiness_parameter = 0,
                                 stability_functions = edson_stability_functions(FT),
                                 roughness_lengths = default_roughness_lengths(FT),
                                 similarity_form = LogarithmicSimilarityProfile(),
