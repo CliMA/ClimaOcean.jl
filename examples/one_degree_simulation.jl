@@ -20,9 +20,11 @@ using ClimaOcean.ECCO: download_dataset
 
 # ### ECCO files
 
-dates = DateTime(1993, 1, 1) : Month(1) : DateTime(1994, 1, 1)
+start_date = DateTime(1993, 1, 1) 
+stop_date = DateTime(1993, 12, 1) 
+dates = range(start_date, step=Month(1), stop=stop_date)
 ecco_temperature = Metadata(:temperature; dates, dataset=ECCO4Monthly())
-ecco_salinity    = Metadata(:salinity;    dates, dataset=ECCO4Monthly())
+ecco_salinity = Metadata(:salinity; dates, dataset=ECCO4Monthly())
 
 download_dataset(ecco_temperature)
 download_dataset(ecco_salinity)
@@ -30,15 +32,16 @@ download_dataset(ecco_salinity)
 # ### Grid and Bathymetry
 
 arch = CPU()
-Nx = 256
-Ny = 128
+Nx = 360
+Ny = 170
 Nz = 40
 
 r_faces = exponential_z_faces(; Nz, depth=4000, h=34)
 underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), z = r_faces, halo = (5, 5, 4))
 
 ## 75 interpolation passes smooth the bathymetry near Florida so that the Gulf Stream is able to flow:
-bottom_height = regrid_bathymetry(underlying_grid; minimum_depth = 20,
+bottom_height = regrid_bathymetry(underlying_grid;
+                                  minimum_depth = 20,
                                   interpolation_passes = 10,
                                   major_basins = 2)
 
@@ -151,7 +154,7 @@ add_callback!(simulation, progress, IterationInterval(10))
 outputs = merge(ocean.model.tracers, ocean.model.velocities)
 ocean.output_writers[:surface] = JLD2Writer(ocean.model, outputs;
                                             schedule = TimeInterval(5days),
-                                            filename = "global_surface_fields",
+                                            filename = "one_degree_surface_fields",
                                             indices = (:, :, grid.Nz),
                                             overwrite_existing = true)
 
@@ -173,10 +176,10 @@ run!(simulation)
 # We load the saved output and make a pretty movie of the simulation. First we plot a snapshot:
 using CairoMakie
 
-u = FieldTimeSeries("global_surface_fields.jld2", "u"; backend = OnDisk())
-v = FieldTimeSeries("global_surface_fields.jld2", "v"; backend = OnDisk())
-T = FieldTimeSeries("global_surface_fields.jld2", "T"; backend = OnDisk())
-e = FieldTimeSeries("global_surface_fields.jld2", "e"; backend = OnDisk())
+u = FieldTimeSeries("one_degree_surface_fields.jld2", "u"; backend = OnDisk())
+v = FieldTimeSeries("one_degree_surface_fields.jld2", "v"; backend = OnDisk())
+T = FieldTimeSeries("one_degree_surface_fields.jld2", "T"; backend = OnDisk())
+e = FieldTimeSeries("one_degree_surface_fields.jld2", "e"; backend = OnDisk())
 
 times = u.times
 Nt = length(times)
