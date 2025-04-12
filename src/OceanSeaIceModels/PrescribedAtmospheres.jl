@@ -343,6 +343,8 @@ function default_freshwater_flux(grid, times)
     return (; rain, snow)
 end
 
+""" The standard unit of atmospheric pressure; 1 standard atmosphere (atm) = 101,325 Pascals (Pa) in SI units.
+This is approximately equal to the mean sea-level atmospheric pressure on Earth. """
 function default_atmosphere_pressure(grid, times)
     pa = FieldTimeSeries{Center, Center, Nothing}(grid, times)
     parent(pa) .= 101325
@@ -422,7 +424,7 @@ end
 """
     TwoBandDownwellingRadiation(shortwave=nothing, longwave=nothing)
 
-Return a two-band model for downwelling radiation (split in a shortwave band
+Return a two-band model for downwelling radiation (split into a shortwave band
 and a longwave band) that passes through the atmosphere and arrives at the surface of ocean
 or sea ice.
 """
@@ -434,4 +436,3 @@ Adapt.adapt_structure(to, tsdr::TwoBandDownwellingRadiation) =
                                 adapt(to, tsdr.longwave))
 
 end # module
-
