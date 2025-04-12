@@ -10,7 +10,7 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 
         # This should download files called "RYF.rsds.1990_1991.nc" and "RYF.tas.1990_1991.nc"
         for test_name in (:downwelling_shortwave_radiation, :temperature)
-            dates = ClimaOcean.DataWrangling.all_dates(JRA55.JRA55RepeatYear(), test_name)
+            dates = ClimaOcean.DataWrangling.all_dates(JRA55.RepeatYearJRA55(), test_name)
             end_date = dates[3]
 
             JRA55_fts = JRA55FieldTimeSeries(test_name, arch; end_date)
@@ -18,7 +18,7 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 
             @test JRA55_fts isa FieldTimeSeries
             @test JRA55_fts.grid isa LatitudeLongitudeGrid
-            
+
             Nx, Ny, Nz, Nt = size(JRA55_fts)
             @test Nx == 640
             @test Ny == 320
@@ -39,7 +39,7 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 
             @info "Testing Cyclical time_indices for JRA55 data on $A..."
             Nb = 4
-            backend = JRA55NetCDFBackend(Nb) 
+            backend = JRA55NetCDFBackend(Nb)
             netcdf_JRA55_fts = JRA55FieldTimeSeries(test_name, arch; backend)
 
             Nt = length(netcdf_JRA55_fts.times)
@@ -47,7 +47,7 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
             f₁ = view(parent(netcdf_JRA55_fts), :, :, 1, 1)
             f₁ = Array(f₁)
 
-            netcdf_JRA55_fts.backend = JRA55NetCDFBackend(Nt-2, Nb)
+            netcdf_JRA55_fts.backend = Oceananigans.OutputReaders.new_backend(netcdf_JRA55_fts.backend, Nt-2, Nb)
             @test Oceananigans.OutputReaders.time_indices(netcdf_JRA55_fts) == (Nt-2, Nt-1, Nt, 1)
             set!(netcdf_JRA55_fts)
 
@@ -59,7 +59,7 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         @info "Testing interpolate_field_time_series! on $A..."
 
         name  = :downwelling_shortwave_radiation
-        dates = ClimaOcean.DataWrangling.all_dates(JRA55.JRA55RepeatYear(), name)
+        dates = ClimaOcean.DataWrangling.all_dates(JRA55.RepeatYearJRA55(), name)
         end_date = dates[3]
         JRA55_fts = JRA55FieldTimeSeries(name, arch; end_date)
 
@@ -114,7 +114,7 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         ##### JRA55 prescribed atmosphere
         #####
 
-        backend    = JRA55NetCDFBackend(2) 
+        backend    = JRA55NetCDFBackend(2)
         atmosphere = JRA55PrescribedAtmosphere(arch; backend, include_rivers_and_icebergs=false)
         @test atmosphere isa PrescribedAtmosphere
         @test isnothing(atmosphere.auxiliary_freshwater_flux)
@@ -123,11 +123,30 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         atmosphere = JRA55PrescribedAtmosphere(arch; backend, include_rivers_and_icebergs=true)
         @test haskey(atmosphere.auxiliary_freshwater_flux, :rivers)
         @test haskey(atmosphere.auxiliary_freshwater_flux, :icebergs)
-        
+
         rivers_times = atmosphere.auxiliary_freshwater_flux.rivers.times
         pressure_times = atmosphere.pressure.times
         @test rivers_times != pressure_times
         @test length(rivers_times) != length(pressure_times)
         @test rivers_times[2] - rivers_times[1] == 86400
+
+        @info "Testing multi year JRA55 data on $A..."
+        dataset = JRA55.MultiYearJRA55()
+        dates = ClimaOcean.DataWrangling.all_dates(dataset, :temperature)
+
+        # Test that when date range spans two years both netCDF files are downloaded
+        # and concatenated when reading the data.
+        start_date = DateTime("1959-01-01T00:00:00") - 15 * Day(1) # sometime in 1958
+        end_date   = DateTime("1959-01-01T00:00:00") + 85 * Day(1) # sometime in 1959
+
+        backend = JRA55NetCDFBackend(10)
+        Ta = JRA55FieldTimeSeries(:temperature; dataset, start_date, end_date, backend)
+
+        @test Second(end_date - start_date).value ≈ Ta.times[end-1] - Ta.times[1]
+
+        # Test we can access all the data
+        for t in eachindex(Ta.times)
+            @test Ta[t] isa Field
+        end
     end
 end
