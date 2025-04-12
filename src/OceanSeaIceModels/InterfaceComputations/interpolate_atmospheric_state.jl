@@ -71,7 +71,6 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
             ua.times,
             ua.time_indexing,
             clock.time,
-            time_interpolator,
             exchange_grid,
             atmosphere_velocities,
             atmosphere_tracers,
