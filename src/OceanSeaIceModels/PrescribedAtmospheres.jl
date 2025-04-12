@@ -400,9 +400,6 @@ function PrescribedAtmosphere(grid, times;
         thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT)
     end
 
-    boundary_layer_height = convert(FT, boundary_layer_height)
-    surface_layer_height = convert(FT, surface_layer_height)
-
     return PrescribedAtmosphere(grid,
                                 clock,
                                 velocities,
