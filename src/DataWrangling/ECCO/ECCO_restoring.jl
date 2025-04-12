@@ -111,7 +111,7 @@ Keyword Arguments
 
 """
 function ECCOFieldTimeSeries(metadata::ECCOMetadata, architecture::AbstractArchitecture=CPU(); kw...)
-    download_dataset(metadata)
+    download_dataset!(metadata)
     ftmp = empty_ECCO_field(first(metadata); architecture)
     grid = ftmp.grid
     return ECCOFieldTimeSeries(metadata, grid; kw...)
@@ -124,7 +124,7 @@ function ECCOFieldTimeSeries(metadata::ECCOMetadata, grid::AbstractGrid;
                              cache_inpainted_data = true)
 
     # Make sure all the required individual files are downloaded
-    download_dataset(metadata)
+    download_dataset!(metadata)
 
     inpainting isa Int && (inpainting = NearestNeighborInpainting(inpainting))
     backend = ECCONetCDFBackend(time_indices_in_memory, metadata; on_native_grid, inpainting, cache_inpainted_data)

@@ -9,7 +9,7 @@
 
 using ClimaOcean
 using ClimaOcean.ECCO
-using ClimaOcean.ECCO: download_dataset
+using ClimaOcean.ECCO: download_dataset!
 using CUDA
 using Oceananigans
 using Oceananigans.Units
@@ -21,12 +21,12 @@ using Printf
 
 # ### ECCO files
 
-dates = DateTime(1993, 1, 1) : Month(1) : DateTime(1994, 1, 1)
+dates = range(DateTime(1993, 1, 1) step=Month(1), stop=DateTime(1994, 1, 1))
 ecco_temperature = Metadata(:temperature; dates, dataset=ECCO4Monthly())
-ecco_salinity    = Metadata(:salinity;    dates, dataset=ECCO4Monthly())
+ecco_salinity = Metadata(:salinity; dates, dataset=ECCO4Monthly())
 
-download_dataset(ecco_temperature)
-download_dataset(ecco_salinity)
+download_dataset!(ecco_temperature)
+download_dataset!(ecco_salinity)
 
 # ### Grid and Bathymetry
 

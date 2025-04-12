@@ -16,7 +16,7 @@ end
         metadata = Metadata(variable, dates=DateTimeProlepticGregorian(1993, 1, 1), dataset=ECCO4Monthly())
         filepath = metadata_path(metadata)
         isfile(filepath) && rm(filepath; force=true)
-        ClimaOcean.ECCO.download_dataset(metadata)
+        ClimaOcean.ECCO.download_dataset!(metadata)
     end
 end
 

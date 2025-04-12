@@ -12,7 +12,7 @@ import Oceananigans.Fields: set!
 import Base
 
 import Oceananigans.Fields: set!, location
-import ClimaOcean.DataWrangling: all_dates, metadata_filename, download_dataset, default_download_directory
+import ClimaOcean.DataWrangling: all_dates, metadata_filename, download_dataset!, default_download_directory
 
 struct MultiYearJRA55 end
 struct RepeatYearJRA55 end
@@ -190,7 +190,7 @@ function metadata_url(m::Metadata{<:MultiYearJRA55})
     return JRA55_multiple_year_url * prefix * "/" * short_name(m) * "/gr/v20200916/" * metadata_filename(m)
 end
 
-function download_dataset(metadata::JRA55Metadata)
+function download_dataset!(metadata::JRA55Metadata)
 
     @root for metadatum in metadata
 

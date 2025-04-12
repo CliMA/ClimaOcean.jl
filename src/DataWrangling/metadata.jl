@@ -62,7 +62,7 @@ end
 default_download_directory(dataset) = pwd()
 
 # Default download function for a metadata object, to be extended by each dataset
-download_dataset(metadata) = nothing
+download_dataset!(metadata) = nothing
 
 Base.show(io::IO, metadata::Metadata) =
     print(io, "Metadata:", '\n',

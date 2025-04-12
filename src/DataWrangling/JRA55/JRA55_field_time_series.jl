@@ -315,7 +315,7 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
     end
 
     # First thing: we download the dataset!
-    download_dataset(metadata)
+    download_dataset!(metadata)
 
     # Regularize the backend in case of `JRA55NetCDFBackend`
     if backend isa JRA55NetCDFBackend 

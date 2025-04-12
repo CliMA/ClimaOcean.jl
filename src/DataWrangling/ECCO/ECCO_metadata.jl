@@ -9,7 +9,7 @@ using Downloads
 
 import Oceananigans.Fields: set!, location
 import Base
-import ClimaOcean.DataWrangling: all_dates, metadata_filename, download_dataset, default_download_directory
+import ClimaOcean.DataWrangling: all_dates, metadata_filename, download_dataset!, default_download_directory
 
 struct ECCO2Monthly end
 struct ECCO2Daily end
@@ -140,7 +140,7 @@ function metadata_url(m::Metadata{<:ECCO4Monthly})
 end
 
 """
-    download_dataset(metadata::ECCOMetadata; url = urls(metadata))
+    download_dataset!(metadata::ECCOMetadata; url = urls(metadata))
 
 Download the dataset specified by the `metadata::ECCOMetadata`. If `metadata.dates` is a single date,
 the dataset is downloaded directly. If `metadata.dates` is a vector of dates, each date
@@ -169,7 +169,7 @@ Arguments
 =========
 - `metadata::ECCOMetadata`: The metadata specifying the dataset to be downloaded.
 """
-function download_dataset(metadata::ECCOMetadata)
+function download_dataset!(metadata::ECCOMetadata)
     username = get(ENV, "ECCO_USERNAME", nothing)
     password = get(ENV, "ECCO_PASSWORD", nothing)
     dir = metadata.dir

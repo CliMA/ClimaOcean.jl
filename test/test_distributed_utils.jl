@@ -4,7 +4,7 @@ using MPI
 MPI.Init()
 
 using NCDatasets
-using ClimaOcean.ECCO: download_dataset, metadata_path
+using ClimaOcean.ECCO: download_dataset!, metadata_path
 using Oceananigans.DistributedComputations
 using Oceananigans.DistributedComputations: reconstruct_global_grid
 using CFTime
@@ -13,7 +13,7 @@ using Dates
 @testset "Distributed ECCO download" begin
     dates = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(1994, 4, 1)
     metadata = Metadata(:u_velocity; dataset=ECCO4Monthly(), dates)
-    download_dataset(metadata)
+    download_dataset!(metadata)
 
     @root for metadatum in metadata
         @test isfile(metadata_path(metadatum))

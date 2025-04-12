@@ -173,7 +173,7 @@ function ECCO_field(metadata::ECCOMetadata;
         close(file)
     end
 
-    download_dataset(metadata)
+    download_dataset!(metadata)
     path = metadata_path(metadata)
     ds = Dataset(path)
     shortname = short_name(metadata)
