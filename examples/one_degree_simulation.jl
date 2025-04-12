@@ -45,6 +45,8 @@ bottom_height = regrid_bathymetry(underlying_grid; minimum_depth = 20,
 # For this bathymetry at this horizontal resolution we need to manually open the Gibraltar strait.
 grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
+@show grid
+
 # ### Restoring
 #
 # We include temperature and salinity surface restoring to ECCO data.
