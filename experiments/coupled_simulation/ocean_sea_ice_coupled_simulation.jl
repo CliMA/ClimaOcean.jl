@@ -32,7 +32,7 @@ sea_ice_grid = TripolarGrid(arch, Float64; size=(Nx, Ny, 1), z = (-10, 0))
 # ## Adding a bathymetry to the grid
 url = "https://www.dropbox.com/scl/fi/zy1cu64ybn93l67rjgiq0/Downsampled_ETOPO_2022.nc?rlkey=5upqvoxrnljj205amqf663vcw&st=ou8b32tt&dl=0"
 filename = isfile("Downsampled_ETOPO_2022.nc") ? "Downsampled_ETOPO_2022.nc" : download(url, "Downsampled_ETOPO_2022.nc")
-bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1, filename, dir="./")
+bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1, filename,)
 
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
 sea_ice_grid = ImmersedBoundaryGrid(sea_ice_grid, GridFittedBottom(bottom_height))
@@ -75,11 +75,11 @@ sea_ice = sea_ice_simulation(sea_ice_grid; dynamics=nothing, advection=nothing)
 ##### Initialize Ocean and Sea ice models
 #####
 
-temperature = ECCOMetadata(:temperature; dir="./")
-salinity    = ECCOMetadata(:salinity;    dir="./")
+temperature = ECCOMetadata(:temperature;)
+salinity    = ECCOMetadata(:salinity;   )
 
-ice_thickness     = ECCOMetadata(:sea_ice_thickness; dir="./")
-ice_concentration = ECCOMetadata(:sea_ice_concentration; dir="./")
+ice_thickness     = ECCOMetadata(:sea_ice_thickness;)
+ice_concentration = ECCOMetadata(:sea_ice_concentration;)
 
 atmosphere  = JRA55PrescribedAtmosphere(arch, backend=JRA55NetCDFBackend(20))
 radiation   = Radiation(ocean_albedo = LatitudeDependentAlbedo(), sea_ice_albedo=0.6)
