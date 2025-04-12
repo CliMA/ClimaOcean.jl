@@ -90,7 +90,7 @@ Keyword Arguments
 function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                 von_karman_constant = 0.4,
                                 turbulent_prandtl_number = 1,
-                                gustiness_parameter = 0,
+                                gustiness_parameter = 1,
                                 stability_functions = edson_stability_functions(FT),
                                 roughness_lengths = default_roughness_lengths(FT),
                                 similarity_form = LogarithmicSimilarityProfile(),
