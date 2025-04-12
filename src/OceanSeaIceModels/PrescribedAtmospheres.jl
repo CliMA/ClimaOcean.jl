@@ -386,7 +386,7 @@ state with data given at `times`.
 function PrescribedAtmosphere(grid, times;
                               clock = Clock{Float64}(time = 0),
                               surface_layer_height = 10,
-                              boundary_layer_height = 0,
+                              boundary_layer_height = 512,
                               thermodynamics_parameters = nothing,
                               auxiliary_freshwater_flux = nothing,
                               velocities            = default_atmosphere_velocities(grid, times),
