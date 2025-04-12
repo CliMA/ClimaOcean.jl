@@ -107,6 +107,8 @@ mutable struct PrescribedAtmosphereExchanger{X, Y}
     j :: Y
 end
 
+Adapt.adapt_structure(to, pae::PrescribedAtmosphereExchanger) = (i=pae.i, j=pae.j)
+
 function atmosphere_exchanger(atmosphere::PrescribedAtmosphere, exchange_grid)
     atmos_grid = atmosphere.grid
     arch = architecture(exchange_grid)
