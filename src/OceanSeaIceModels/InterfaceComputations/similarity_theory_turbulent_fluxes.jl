@@ -61,7 +61,7 @@ end
                            gravitational_acceleration = 9.81,
                            von_karman_constant = 0.4,
                            turbulent_prandtl_number = 1,
-                           gustiness_parameter = 0,
+                           gustiness_parameter = 1,
                            stability_functions = default_stability_functions(FT),
                            roughness_lengths = default_roughness_lengths(FT),
                            similarity_form = LogarithmicSimilarityProfile(),
