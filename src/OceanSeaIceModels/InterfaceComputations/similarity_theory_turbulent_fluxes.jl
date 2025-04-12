@@ -77,7 +77,7 @@ Keyword Arguments
 
 - `von_karman_constant`: The von Karman constant. Default: 0.4.
 - `turbulent_prandtl_number`: The turbulent Prandtl number. Default: 1.
-- `gustiness_parameter`: Increases surface fluxes in low wind conditions. Default: 0.
+- `gustiness_parameter`: Increases surface fluxes in low wind conditions. Default: 1.
 - `stability_functions`: The stability functions. Default: `default_stability_functions(FT)` that follow the
                          formulation of Edson et al. (2013).
 - `roughness_lengths`: The roughness lengths used to calculate the characteristic scales for momentum, temperature and
