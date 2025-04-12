@@ -13,11 +13,11 @@ const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
 const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
 
 to_be_literated = [
-    # "ecco_inspect_temperature_salinity.jl",
+    "ecco_inspect_temperature_salinity.jl",
     # "generate_bathymetry.jl",
     # "generate_surface_fluxes.jl",
     # "single_column_os_papa_simulation.jl",
-    "one_degree_simulation.jl",
+    # "one_degree_simulation.jl",
     # "mediterranean_simulation_with_ecco_restoring.jl",
     # "near_global_ocean_simulation.jl"
 ]
@@ -51,7 +51,7 @@ pages = [
         "Near-global Ocean simulation" => "literated/near_global_ocean_simulation.md",
         ],
 
-    "Library" => [ 
+    "Library" => [
         "Contents"       => "library/outline.md",
         "Public"         => "library/public.md",
         "Private"        => "library/internals.md",

@@ -9,12 +9,13 @@
 
 using ClimaOcean
 using ClimaOcean.ECCO
+using ClimaOcean.ECCO: download_dataset
+using CUDA
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.OrthogonalSphericalShellGrids
 using Dates
 using Printf
-using ClimaOcean.ECCO: download_dataset
 
 # ### Download necessary files to run the code
 
@@ -44,6 +45,7 @@ bottom_height = regrid_bathymetry(underlying_grid; minimum_depth = 20,
 
 # For this bathymetry at this horizontal resolution we need to manually open the Gibraltar strait.
 grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); active_cells_map=true)
+nothing #hide
 
 @show grid
 
@@ -51,7 +53,7 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); ac
 #
 # We include temperature and salinity surface restoring to ECCO data.
 restoring_rate  = 1 / 10days
-z_below_surface = r_faces[end-1]
+z_below_surface = CUDA.@allowscalar grid.underlying_grid.z.cᵃᵃᶠ[grid.Nz]
 
 mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(z_below_surface, 0))
 
@@ -72,10 +74,11 @@ closure = (eddy_closure, horizontal_viscosity, vertical_mixing)
 
 # ### Ocean simulation
 # Now we bring everything together to construct the ocean simulation.
-# We use a split-explicit timestepping with 30 substeps for the barotropic
+# We use a split-explicit timestepping with 50 substeps for the barotropic
 # mode.
 
 free_surface = SplitExplicitFreeSurface(grid; substeps=50)
+
 momentum_advection = VectorInvariant()
 tracer_advection   = WENO(order=5)
 
@@ -95,7 +98,6 @@ set!(ocean.model, T=ecco_temperature[1], S=ecco_salinity[1])
 # ### Atmospheric forcing
 
 # We force the simulation with an JRA55-do atmospheric reanalysis.
-radiation  = Radiation(arch)
 atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(20))
 
 # ### Coupled simulation

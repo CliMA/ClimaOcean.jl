@@ -21,7 +21,7 @@ grid = LatitudeLongitudeGrid(arch; z,
                              latitude  = (-80, 80),
                              longitude = (0, 360))
 
-bottom_height = regrid_bathymetry(grid; 
+bottom_height = regrid_bathymetry(grid;
                                   minimum_depth = 10,
                                   regridding_criteria = 5,
                                   major_basins = 1)
@@ -39,11 +39,16 @@ sb = SeawaterBuoyancy(; equation_of_state)
 tracers = (T=T, S=S)
 b = Field(buoyancy(sb, grid, tracers))
 
+length_in_months = 72
 start_date = DateTime(1993, 1, 1)
-end_date   = DateTime(1999, 1, 1)
+end_date   = start_date + Month(72)
 
-Tt = ECCOFieldTimeSeries(:temperature, grid; start_date, end_date, time_indices_in_memory=length(dates))
-St = ECCOFieldTimeSeries(:salinity,    grid; start_date, end_date, time_indices_in_memory=length(dates))
+Tt = ECCOFieldTimeSeries(:temperature, grid;
+                         start_date, end_date,
+                         time_indices_in_memory=length_in_months+1)
+St = ECCOFieldTimeSeries(:salinity,    grid;
+                         start_date, end_date,
+                         time_indices_in_memory=length_in_months+1)
 
 fig = Figure(size=(900, 1050))
 
