@@ -72,24 +72,23 @@ coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation=Radiation(eltype))
 # The turbulent fluxes are stored in `coupled_model.interfaces.atmosphere_ocean_interface.fluxes`.
 
 fluxes = coupled_model.interfaces.atmosphere_ocean_interface.fluxes
-λ, φ, z = nodes(fluxes.sensible_heat)
 
 fig = Figure(size = (800, 800), fontsize = 15)
 
 ax = Axis(fig[1, 1], title = "Sensible heat flux (W m⁻²)", ylabel = "Latitude")
-heatmap!(ax, λ, φ, interior(fluxes.sensible_heat, :, :, 1); colormap = :bwr)
+heatmap!(ax, view(fluxes.sensible_heat, :, :, 1); colormap = :bwr, nan_color=:lightgray)
 
 ax = Axis(fig[1, 2], title = "Latent heat flux (W m⁻²)")
-heatmap!(ax, λ, φ, interior(fluxes.latent_heat, :, :, 1); colormap = :bwr)
+heatmap!(ax, view(fluxes.latent_heat, :, :, 1); colormap = :bwr, nan_color=:lightgray)
 
 ax = Axis(fig[2, 1], title = "Zonal wind stress (N m)", ylabel = "Latitude")
-heatmap!(ax, λ, φ, interior(fluxes.x_momentum, :, :, 1); colormap = :bwr)
+heatmap!(ax, view(fluxes.x_momentum, :, :, 1); colormap = :bwr, nan_color=:lightgray)
 
 ax = Axis(fig[2, 2], title = "Meridional wind stress (N m)", xlabel = "Longitude")
-heatmap!(ax, λ, φ, interior(fluxes.y_momentum, :, :, 1); colormap = :bwr)
+heatmap!(ax, view(fluxes.y_momentum, :, :, 1); colormap = :bwr, nan_color=:lightgray)
 
 ax = Axis(fig[3, 1], title = "Water vapor flux (kg m⁻² s⁻¹)", xlabel = "Longitude", ylabel = "Latitude")
-heatmap!(ax, λ, φ, interior(fluxes.water_vapor, :, :, 1); colormap = :bwr)
+heatmap!(ax, view(fluxes.water_vapor, :, :, 1); colormap = :bwr, nan_color=:lightgray)
 
 save("surface_fluxes.png", fig)
 
