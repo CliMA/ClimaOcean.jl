@@ -31,7 +31,7 @@ download_dataset(ecco_salinity)
 
 # ### Grid and Bathymetry
 
-arch = CPU()
+arch = GPU()
 Nx = 360
 Ny = 170
 Nz = 40
