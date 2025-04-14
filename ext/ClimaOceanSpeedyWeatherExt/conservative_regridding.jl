@@ -11,10 +11,10 @@ using KernelAbstractions: @kernel, @index
     list_cell_vertices(grid)
 
 Returns a list representing all horizontal grid cells in a curvilinear `grid`. 
-The output is an Array of 6 * M `Point2` elements where `M = Nx * Ny`. Each row lists the vertices associated with a
-horizontal cell in clockwise order starting from the southwest (bottom left) corner.
+The output is an Array of 5 * M `Point2` elements where `M = Nx * Ny`. Each column lists the vertices 
+associated with a horizontal cell in clockwise order starting from the southwest (bottom left) corner.
 """
-function list_cell_vertices(grid; add_nans=true)
+function list_cell_vertices(grid)
     Nx, Ny, _ = size(grid)
     FT = eltype(grid)
 
@@ -24,16 +24,11 @@ function list_cell_vertices(grid; add_nans=true)
     nw  = fill(Point2{FT}(0, 0),     1, Nx*Ny)
     ne  = fill(Point2{FT}(0, 0),     1, Nx*Ny)
     se  = fill(Point2{FT}(0, 0),     1, Nx*Ny)
-    nan = fill(Point2{FT}(NaN, NaN), 1, Nx*Ny)
 
     launch!(Oceananigans.CPU(), cpu_grid, :xy, _get_vertices!, sw, nw, ne, se, grid)
     
     vertices = vcat(sw, nw, ne, se, sw)
     
-    if add_nans
-        vertices = vcat(vertices, nan)
-    end
-
     return vertices
 end
 
@@ -57,3 +52,4 @@ end
     ne[i+(j-1)*Nx] = Point2{FT}(λ⁺⁺, φ⁺⁺)
     se[i+(j-1)*Nx] = Point2{FT}(λ⁺⁻, φ⁺⁻)
 end
+
