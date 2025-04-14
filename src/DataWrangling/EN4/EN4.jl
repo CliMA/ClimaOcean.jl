@@ -167,8 +167,7 @@ function EN4_field(metadata::EN4Metadata;
 
     download_dataset(metadata)
     path = metadata_path(metadata)
-    @info path[2]
-    ds = Dataset(path[2])
+    ds = Dataset(path)
     shortname = short_name(metadata)
 
     if variable_is_three_dimensional(metadata)

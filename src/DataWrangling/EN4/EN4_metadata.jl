@@ -17,7 +17,8 @@ struct EN4Monthly end
 const EN4Metadata{D} = Metadata{<:EN4Monthly, D}
 const EN4Metadatum   = Metadatum{<:EN4Monthly}
 
-const EN4_url = "http://www.metoffice.gov.uk/hadobs/en4/data/en4-2-1/EN.4.2.2/EN.4.2.2.analyses.g10."
+const EN4_url_pre2021 = "http://www.metoffice.gov.uk/hadobs/en4/data/en4-2-1/EN.4.2.2/EN.4.2.2.analyses.g10."
+const EN4_url_post2021 = "http://www.metoffice.gov.uk/hadobs/en4/data/en4-2-1/EN.4.2.2.analyses.g10."
 
 """
     EN4Metadatum(name; 
@@ -83,10 +84,14 @@ EN4_location = Dict(
 
 function metadata_url(m::Metadata{<:EN4Monthly})
     year = string(Dates.year(m.dates))
-    return EN4_url * year * ".zip"
+    if Dates.year(m.dates) < 2021
+        return EN4_url_pre2021 * year * ".zip"
+    else
+        return EN4_url_post2021 * year * ".zip"
+    end
 end
 
-function metadata_path(m::Metadata{<:EN4Monthly})
+function metadata_path_EN4(m::Metadata{<:EN4Monthly})
     year = string(Dates.year(m.dates))
     month = string(Dates.month(m.dates))
     zipfile = m.dir * "EN4_" * year * ".zip"
@@ -151,8 +156,8 @@ function download_dataset(metadata::Metadata{<:EN4Monthly})
 
         asyncmap(metadata; ntasks) do metadatum # Distribute the download among tasks
             fileurl  = metadata_url(metadatum)
-            zippath = metadata_path(metadatum)[1]
-            extracted_file = metadata_path(metadatum)[2]
+            zippath = metadata_path_EN4(metadatum)[1]
+            extracted_file = metadata_path_EN4(metadatum)[2]
                 if !isfile(extracted_file) & !isfile(zippath)
                     push!(missingzips, zippath)
                     instructions_msg = "\n See ClimaOcean.jl/src/DataWrangling/EN4/README.md for instructions."
