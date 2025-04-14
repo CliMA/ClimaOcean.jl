@@ -13,6 +13,8 @@ using Printf
 using Dates
 using CUDA
 
+import Oceananigans.OutputWriters: checkpointer_address
+
 function synch!(clock1::Clock, clock2)
     # Synchronize the clocks
     clock1.time = clock2.time
@@ -42,13 +44,19 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_
 ##### A Propgnostic Ocean model
 #####
 
-# A very diffusive ocean
+using Oceananigans.TurbulenceClosures: ExplicitTimeDiscretization
+using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities: CATKEVerticalDiffusivity, CATKEMixingLength, CATKEEquation
+
 momentum_advection = WENOVectorInvariant()
 tracer_advection   = WENO(order=7)
 
 free_surface = SplitExplicitFreeSurface(grid; substeps=70)
-closure = (ClimaOcean.OceanSimulations.default_ocean_closure(), 
-           VerticalScalarDiffusivity(κ=1e-5, ν=1e-5))
+
+mixing_length = CATKEMixingLength(Cᵇ=0.01)
+turbulent_kinetic_energy_equation = CATKEEquation(Cᵂϵ=1.0)
+
+catke_closure = CATKEVerticalDiffusivity(ExplicitTimeDiscretization(); mixing_length, turbulent_kinetic_energy_equation) 
+closure = (catke_closure, VerticalScalarDiffusivity(κ=1e-5, ν=1e-5))
 
 ocean = ocean_simulation(grid; Δt=1minutes,
                          momentum_advection,
@@ -93,11 +101,13 @@ radiation  = Radiation()
 #####
 ##### An ocean-sea ice coupled model
 #####
-
+ 
 omip = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-omip = Simulation(omip, Δt=20, stop_time=30days)
+omip = Simulation(omip, Δt=20, stop_time=60days)
 
 # Figure out the outputs....
+
+checkpointer_address(::SeaIceModel) = "SeaIceModel"
 
 ocean.output_writers[:checkpointer] = Checkpointer(ocean.model,
                                                   schedule = IterationInterval(10000),
