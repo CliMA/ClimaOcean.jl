@@ -36,8 +36,8 @@ Nx = 360
 Ny = 170
 Nz = 40
 
-r_faces = exponential_z_faces(; Nz, depth=4000, h=34)
-underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), z = r_faces, halo = (5, 5, 4))
+z = exponential_z_faces(; Nz, depth=4000, h=34)
+underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 
 ## 75 interpolation passes smooth the bathymetry near Florida so that the Gulf Stream is able to flow:
 bottom_height = regrid_bathymetry(underlying_grid;
@@ -52,12 +52,9 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); ac
 #
 # We include temperature and salinity surface restoring to ECCO data.
 restoring_rate  = 1 / 10days
-z_below_surface = r_faces[end-1]
-
-mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(z_below_surface, 0))
-
-FT = ECCORestoring(ecco_temperature, grid; mask, rate=restoring_rate)
-FS = ECCORestoring(ecco_salinity,    grid; mask, rate=restoring_rate)
+mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(z[1], 0))
+FT = ECCORestoring(ecco_temperature, arch; mask, rate=restoring_rate)
+FS = ECCORestoring(ecco_salinity, arch; mask, rate=restoring_rate)
 forcing = (T=FT, S=FS)
 
 # ### Closures
@@ -183,7 +180,6 @@ e = FieldTimeSeries("one_degree_surface_fields.jld2", "e"; backend = OnDisk())
 
 times = u.times
 Nt = length(times)
-
 n = Observable(Nt)
 
 # We create a land mask and use it to fill land points with `NaN`s.
