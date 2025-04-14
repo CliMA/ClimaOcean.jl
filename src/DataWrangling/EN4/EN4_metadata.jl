@@ -9,7 +9,7 @@ using Downloads
 
 import Oceananigans.Fields: set!, location
 import Base
-import ClimaOcean.DataWrangling: all_dates, metadata_filename, download_dataset, default_download_directory
+import ClimaOcean.DataWrangling: all_dates, metadata_filename, download_dataset, default_download_directory, metadata_path
 using ZipFile
 
 struct EN4Monthly end
@@ -59,7 +59,7 @@ function metadata_filename(metadata::Metadatum{<:EN4Monthly})
     shortname = short_name(metadata)
     yearstr  = string(Dates.year(metadata.dates))
     monthstr = string(Dates.month(metadata.dates), pad=2)
-    return shortname * "_" * yearstr * "_" * monthstr * ".nc"
+    return "EN.4.2.2.f.analysis.g10." * yearstr * lpad(string(monthstr), 2, '0') * ".nc"
 end
 
 # Convenience functions
@@ -90,8 +90,25 @@ function metadata_path(m::Metadata{<:EN4Monthly})
     year = string(Dates.year(m.dates))
     month = string(Dates.month(m.dates))
     zipfile = m.dir * "EN4_" * year * ".zip"
-    extracted_file = m.dir * "EN4_" * year * "_" * month * ".nc"
+    extracted_file = m.dir * "EN.4.2.2.f.analysis.g10." * year * lpad(string(month), 2, '0') * ".nc"
     return zipfile, extracted_file
+end
+
+function unzip(file,exdir="")
+    fileFullPath = isabspath(file) ?  file : joinpath(pwd(),file)
+    basePath = dirname(fileFullPath)
+    outPath = (exdir == "" ? basePath : (isabspath(exdir) ? exdir : joinpath(pwd(),exdir)))
+    isdir(outPath) ? "" : mkdir(outPath)
+    zarchive = ZipFile.Reader(fileFullPath)
+    for f in zarchive.files
+        fullFilePath = joinpath(outPath,f.name)
+        if (endswith(f.name,"/") || endswith(f.name,"\\"))
+            mkdir(fullFilePath)
+        else
+            write(fullFilePath, read(f))
+        end
+    end
+    close(zarchive)
 end
 
 """
@@ -126,7 +143,7 @@ Arguments
 """
 function download_dataset(metadata::Metadata{<:EN4Monthly})
     dir = metadata.dir
-
+    missingzips = []
     # Create a temporary directory to store the .netrc file
     # The directory will be deleted after the download is complete
     @root mktempdir(dir) do tmp
@@ -136,14 +153,19 @@ function download_dataset(metadata::Metadata{<:EN4Monthly})
             fileurl  = metadata_url(metadatum)
             zippath = metadata_path(metadatum)[1]
             extracted_file = metadata_path(metadatum)[2]
-            if !isfile(zippath) & !isfile(extracted_file)
-                instructions_msg = "\n See ClimaOcean.jl/src/DataWrangling/EN4/README.md for instructions."
-                @info "Downloading EN4 data: $(metadatum.name) in $(metadatum.dir)..."
-                Downloads.download(fileurl, zippath; progress=download_progress)
-            end
-        ZipFile.extract(metadata.dir*"*.zip", metadata.dir)
+                if !isfile(extracted_file) & !isfile(zippath)
+                    push!(missingzips, zippath)
+                    instructions_msg = "\n See ClimaOcean.jl/src/DataWrangling/EN4/README.md for instructions."
+                    @info "Downloading EN4 data: $(metadatum.name) in $(metadatum.dir)..."
+                    Downloads.download(fileurl, zippath; progress=download_progress)
+                elseif !isfile(extracted_file) & isfile(zippath)
+                    push!(missingzips, zippath)
+                end
+        end
+        for zips in unique(missingzips)
+            unzip(zips, dir)
         end
     end
-
     return nothing
 end
+
