@@ -89,11 +89,12 @@ using .InitialConditions
 using .OceanSeaIceModels
 using .OceanSimulations
 using .SeaIceSimulations
-using .DataWrangling: JRA55, ECCO
+using .DataWrangling: JRA55, ECCO, WOA, EN4
 
 using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 using ClimaOcean.DataWrangling.JRA55: JRA55PrescribedAtmosphere, JRA55NetCDFBackend
 using ClimaOcean.DataWrangling.ECCO
+using ClimaOcean.DataWrangling.WOA
 
 using PrecompileTools: @setup_workload, @compile_workload
 
