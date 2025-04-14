@@ -20,10 +20,10 @@ function list_cell_vertices(grid)
 
     cpu_grid = on_architecture(Oceananigans.CPU(), grid)
 
-    sw  = fill(Point2{FT}(0, 0),     1, Nx*Ny)
-    nw  = fill(Point2{FT}(0, 0),     1, Nx*Ny)
-    ne  = fill(Point2{FT}(0, 0),     1, Nx*Ny)
-    se  = fill(Point2{FT}(0, 0),     1, Nx*Ny)
+    sw  = fill(Point2{FT}(0, 0), 1, Nx*Ny)
+    nw  = fill(Point2{FT}(0, 0), 1, Nx*Ny)
+    ne  = fill(Point2{FT}(0, 0), 1, Nx*Ny)
+    se  = fill(Point2{FT}(0, 0), 1, Nx*Ny)
 
     launch!(Oceananigans.CPU(), cpu_grid, :xy, _get_vertices!, sw, nw, ne, se, grid)
     
