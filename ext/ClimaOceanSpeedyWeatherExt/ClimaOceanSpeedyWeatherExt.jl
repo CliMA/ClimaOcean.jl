@@ -18,8 +18,8 @@ function clenshaw_latitude_longitude_grid(arch, spectral_grid)
 end
 
 include("conservative_regridding.jl")
-include("speedy_atmosphere_simulations.jl")
 include("speedy_weather_exchanger.jl")
+include("speedy_atmosphere_simulations.jl")
 # include("speedy_weather_fluxes.jl")
 
 end # module ClimaOceanSpeedyWeatherExt

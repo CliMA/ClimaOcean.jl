@@ -3,6 +3,15 @@ using GeometryOps: CutAtAntimeridianAndPoles, ClosedRing
 using GeoInterface: Polygon, LinearRing
 using Oceananigans
 
+import ClimaOcean.OceanSeaIceModels:
+    compute_net_atmosphere_fluxes!
+
+import ClimaOcean.OceanSeaIceModels.InterfaceComputations:
+    atmosphere_exchanger,
+    initialize!,
+    StateExchanger,
+    interpolate_atmosphere_state!
+
 function atmosphere_exchanger(atmosphere::SpeedySimulation, exchange_grid, exchange_atmosphere_state)
 
     # Figure this out:
