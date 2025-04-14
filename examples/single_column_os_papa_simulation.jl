@@ -16,6 +16,7 @@
 
 using ClimaOcean
 using ClimaOcean.ECCO
+using ClimaOcean.ECCO: download_dataset
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.BuoyancyFormulations: buoyancy_frequency
@@ -50,9 +51,16 @@ ocean = ocean_simulation(grid; Δt=10minutes, coriolis=FPlane(latitude = φ★))
 ocean.model
 
 # We set initial conditions from ECCO:
+dates = DateTime(1993, 1, 1) : Month(1) : DateTime(1994, 1, 1)
+temperature = Metadata(:temperature; dates, dataset=ECCO4Monthly(), dir="./")
+salinity    = Metadata(:salinity;    dates, dataset=ECCO4Monthly(), dir="./")
 
-set!(ocean.model, T=ECCOMetadatum(:temperature),
-                  S=ECCOMetadatum(:salinity))
+download_dataset(temperature)
+download_dataset(salinity)
+
+set!(ocean.model, T=temperature[1],
+                  S=salinity[1],
+		  )
 
 # # A prescribed atmosphere based on JRA55 re-analysis
 #
@@ -62,7 +70,7 @@ set!(ocean.model, T=ECCOMetadatum(:temperature),
 atmosphere = JRA55PrescribedAtmosphere(longitude = λ★,
                                        latitude = φ★,
                                        end_date = DateTime(1990, 1, 31), # Last day of the simulation
-                                       backend = JRA55NetCDFBackend(30))
+                                       backend = JRA55NetCDFBackend(31))
 
 # This builds a representation of the atmosphere on the small grid
 
