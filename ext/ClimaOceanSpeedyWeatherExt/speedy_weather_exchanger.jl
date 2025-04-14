@@ -2,6 +2,7 @@ using ConservativeRegridding
 using GeometryOps: CutAtAntimeridianAndPoles, ClosedRing
 using GeoInterface: Polygon, LinearRing
 using Oceananigans
+using Oceananigans.Grids: architecture
 
 import ClimaOcean.OceanSeaIceModels:
     compute_net_atmosphere_fluxes!
@@ -12,15 +13,21 @@ import ClimaOcean.OceanSeaIceModels.InterfaceComputations:
     StateExchanger,
     interpolate_atmosphere_state!
 
+# For the moment the workflow is:
+# 1. Perform the regridding on the CPU
+# 2. Eventually copy the regridded fields to the GPU
+# If this work we can
+# 1. Copy speedyweather gridarrays to the GPU
+# 2. Perform the regridding on the GPU
 function atmosphere_exchanger(atmosphere::SpeedySimulation, exchange_grid, exchange_atmosphere_state)
 
     # Figure this out:
     spectral_grid = atmosphere.model.spectral_grid
-    grid_faces = ConservativeRegridding.get_faces(spectral_grid)
-    exchange_faces = list_cell_vertices(exchange_grid)
+    grid_faces = get_faces(spectral_grid)
+    exchange_faces = get_faces(exchange_grid)
     arch = architecture(exchange_grid)
 
-    if arch isa CPU # In case of a CPU grid, we reuse the already allocated fields
+    if arch isa Oceananigans.CPU # In case of a CPU grid, we reuse the already allocated fields
         cpu_surface_state = (
             u  = vec(interior(exchange_atmosphere_state.u)),
             v  = vec(interior(exchange_atmosphere_state.v)),
@@ -42,11 +49,9 @@ function atmosphere_exchanger(atmosphere::SpeedySimulation, exchange_grid, excha
         )
     end
     
-    regularizing_function = ClosedRing() ∘ CutAtAntimeridianAndPoles()
-
     # Magical incantation from ConservativeRegridding
-    polys1 = map(regularizing_function, (Polygon([LinearRing(f)]) for f in eachcol(grid_faces)))
-    polys2 = map(regularizing_function, (Polygon([LinearRing(f)]) for f in eachcol(exchange_faces)))
+    polys1 = map(ClosedRing() ∘ CutAtAntimeridianAndPoles(), (Polygon([LinearRing(f)]) for f in eachcol(grid_faces)))
+    polys2 = map(ClosedRing() ∘ CutAtAntimeridianAndPoles(), (Polygon([LinearRing(f)]) for f in eachcol(exchange_faces)))
 
     regridder = ConservativeRegridding.intersection_areas(polys1, polys2)
 
@@ -90,13 +95,13 @@ function interpolate_atmosphere_state!(interfaces, atmos::SpeedySimulation, coup
     Qse = exchanger.cpu_surface_state.Qs
     Qle = exchanger.cpu_surface_state.Qℓ
 
-    regrid!(ua,  ue,  regridder, exchange_areas)
-    regrid!(va,  ve,  regridder, exchange_areas)
-    regrid!(Ta,  Te,  regridder, exchange_areas)
-    regrid!(qa,  qe,  regridder, exchange_areas)
-    regrid!(pa,  pe,  regridder, exchange_areas)
-    regrid!(Qsa, Qse, regridder, exchange_areas)
-    regrid!(Qla, Qle, regridder, exchange_areas)
+    ConservativeRegridding.regrid!(ua,  ue,  regridder, exchange_areas)
+    ConservativeRegridding.regrid!(va,  ve,  regridder, exchange_areas)
+    ConservativeRegridding.regrid!(Ta,  Te,  regridder, exchange_areas)
+    ConservativeRegridding.regrid!(qa,  qe,  regridder, exchange_areas)
+    ConservativeRegridding.regrid!(pa,  pe,  regridder, exchange_areas)
+    ConservativeRegridding.regrid!(Qsa, Qse, regridder, exchange_areas)
+    ConservativeRegridding.regrid!(Qla, Qle, regridder, exchange_areas)
     
     arch = architecture(exchange_grid)
     fill_exchange_fields!(arch, exchange_state, exchanger.cpu_surface_state)
