@@ -6,7 +6,7 @@ using CUDA
 test_group = get(ENV, "TEST_GROUP", :all)
 test_group = Symbol(test_group)
 
-using ClimaOcean.ECCO: download_dataset
+using ClimaOcean.DataWrangling: download_dataset
 
 if test_group == :init || test_group == :all
     using CUDA
