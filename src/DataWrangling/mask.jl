@@ -1,3 +1,5 @@
+import ClimaOcean: stateindex
+
 struct LinearlyTaperedPolarMask{N, S, Z}
     northern :: N
     southern :: S
