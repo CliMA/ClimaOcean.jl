@@ -28,7 +28,7 @@ using Dates
 using Adapt
 using Scratch
 
-import ..z_faces, ..empty_field,
+import ..vertical_interfaces, ..empty_field,
        ..variable_is_three_dimensional
 
 download_EN4_cache::String = ""

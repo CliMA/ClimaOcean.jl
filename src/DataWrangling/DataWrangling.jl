@@ -125,8 +125,7 @@ function save_field_time_series!(fts; path, name, overwrite_existing=false)
 end
 
 include("metadata.jl")
-include("mask.jl")
-include("inpaint_mask.jl")
+include("masking.jl")
 include("JRA55/JRA55.jl")
 include("ECCO/ECCO.jl")
 include("EN4/EN4.jl")

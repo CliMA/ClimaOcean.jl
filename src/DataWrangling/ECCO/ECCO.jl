@@ -25,7 +25,7 @@ using Dates
 using Adapt
 using Scratch
 
-import ..z_faces, ..empty_field,
+import ..vertical_interfaces, ..empty_field,
        ..variable_is_three_dimensional,
        ..shift_longitude_to_0_360
 
