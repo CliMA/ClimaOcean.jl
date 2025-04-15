@@ -28,8 +28,7 @@ using Dates
 using Adapt
 using Scratch
 
-import ..vertical_interfaces, ..empty_field,
-       ..variable_is_three_dimensional
+import ClimaOcean.DataWrangling: vertical_interfaces, empty_field, variable_is_three_dimensional
 
 download_EN4_cache::String = ""
 function __init__()
