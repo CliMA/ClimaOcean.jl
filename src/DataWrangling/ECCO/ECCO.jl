@@ -7,7 +7,6 @@ export ECCOFieldTimeSeries, ECCORestoring, LinearlyTaperedPolarMask
 using ClimaOcean
 using ClimaOcean.DataWrangling
 using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, download_progress, compute_native_date_range
-using ClimaOcean.InitialConditions: three_dimensional_regrid!, interpolate!
 
 using Oceananigans
 using Oceananigans: location
