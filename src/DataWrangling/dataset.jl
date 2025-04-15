@@ -6,7 +6,19 @@ using JLD2
 import Oceananigans.Fields: set!
 
 function inpainted_metadata_path end
-function default_inpainting end
+
+# Only temperature and salinity need a thorough inpainting because of stability,
+# other variables can do with only a couple of passes. Sea ice variables
+# cannot be inpainted because zeros in the data are physical, not missing values.
+function default_inpainting(metadata)
+    if metadata.name in [:temperature, :salinity]
+        return NearestNeighborInpainting(Inf)
+    elseif metadata.name in [:sea_ice_fraction, :sea_ice_thickness]
+        return nothing
+    else
+        return NearestNeighborInpainting(5)
+    end
+end
 
 """
     dataset_field(metadata::Metadatum;

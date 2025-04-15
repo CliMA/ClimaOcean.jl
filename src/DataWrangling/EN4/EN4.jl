@@ -11,10 +11,7 @@ using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting,
                                 compute_native_date_range,
                                 shift_longitude_to_0_360, Kelvin, Celsius
 
-using ClimaOcean.InitialConditions: three_dimensional_regrid!
-
 using Oceananigans
-using Oceananigans: location
 using Oceananigans.Architectures: architecture, child_architecture
 using Oceananigans.BoundaryConditions
 using Oceananigans.DistributedComputations
@@ -30,7 +27,7 @@ using Adapt
 using Scratch
 
 import ClimaOcean.DataWrangling: vertical_interfaces, empty_field, variable_is_three_dimensional,
-                                 inpainted_metadata_path, default_inpainting
+                                 inpainted_metadata_path
 
 download_EN4_cache::String = ""
 function __init__()
@@ -84,23 +81,9 @@ vertical_interfaces(metadata::Metadata{<:EN4Monthly}) =
     -30.214,
     -20.1158,
     -10.0475,
-    -0.0,
+      0.0,
     ]
 
-empty_EN4_field(variable_name::Symbol; kw...) = empty_field(Metadatum(variable_name, dataset=EN4Monthly()); kw...)
-
-# Only temperature and salinity need a thorough inpainting because of stability,
-# other variables can do with only a couple of passes. Sea ice variables
-# cannot be inpainted because zeros in the data are physical, not missing values.
-function default_inpainting(metadata::EN4Metadata)
-    if metadata.name in [:temperature, :salinity]
-        return NearestNeighborInpainting(Inf)
-    elseif metadata.name in [:sea_ice_fraction, :sea_ice_thickness]
-        return nothing
-    else
-        return NearestNeighborInpainting(5)
-    end
-end
 
 # Fallback
 EN4_field(var_name::Symbol; kw...) = EN4_field(EN4Metadata(var_name); kw...)

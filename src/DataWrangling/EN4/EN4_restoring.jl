@@ -10,7 +10,7 @@ using JLD2
 
 using Dates: Second
 using ClimaOcean: stateindex
-using ClimaOcean.DataWrangling: NearestNeighborInpainting, native_times
+using ClimaOcean.DataWrangling: NearestNeighborInpainting, native_times, default_inpainting
 
 import Oceananigans.Fields: set!
 import Oceananigans.Forcings: regularize_forcing
@@ -36,7 +36,7 @@ Adapt.adapt_structure(to, b::EN4NetCDFBackend{N, C}) where {N, C} = EN4NetCDFBac
 
 """
     EN4NetCDFBackend(length, metadata;
-                      on_native_grid = false, 
+                      on_native_grid = false,
                       cache_inpainted_data = false,
                       inpainting = NearestNeighborInpainting(Inf))
 
@@ -44,7 +44,7 @@ Represent an EN4 FieldTimeSeries backed by EN4 native netCDF files.
 Each time instance is stored in an individual file.
 """
 function EN4NetCDFBackend(length, metadata;
-                           on_native_grid = false, 
+                           on_native_grid = false,
                            cache_inpainted_data = false,
                            inpainting = NearestNeighborInpainting(Inf))
 
@@ -62,14 +62,14 @@ new_backend(b::EN4NetCDFBackend{native, cache_data}, start, length) where {nativ
 on_native_grid(::EN4NetCDFBackend{native}) where native = native
 cache_inpainted_data(::EN4NetCDFBackend{native, cache_data}) where {native, cache_data} = cache_data
 
-function set!(fts::EN4FieldTimeSeries) 
+function set!(fts::EN4FieldTimeSeries)
     backend = fts.backend
     inpainting = backend.inpainting
     cache_data = cache_inpainted_data(backend)
 
     for t in time_indices(fts)
         # Set each element of the time-series to the associated file
-        metadatum = @inbounds backend.metadata[t] 
+        metadatum = @inbounds backend.metadata[t]
         set!(fts[t], metadatum; inpainting, cache_inpainted_data=cache_data)
     end
 
@@ -103,25 +103,25 @@ Keyword Arguments
 - `time_indexing`: The time indexing scheme to use. Default: `Cyclical()`.
 
 - `inpainting`: The inpainting algorithm to use for EN4 interpolation.
-                The only option is `NearestNeighborInpainting(maxiter)`, 
+                The only option is `NearestNeighborInpainting(maxiter)`,
                 where an average of the valid surrounding values is used `maxiter` times.
 
-- `cache_inpainted_data`: If `true`, the data is cached to disk after inpainting for later retrieving. 
+- `cache_inpainted_data`: If `true`, the data is cached to disk after inpainting for later retrieving.
                           Default: `true`.
 
 """
 function EN4FieldTimeSeries(metadata::EN4Metadata, architecture::AbstractArchitecture=CPU(); kw...)
     download_dataset(metadata)
-    ftmp = empty_EN4_field(first(metadata); architecture)
+    ftmp = empty_field(first(metadata); architecture)
     grid = ftmp.grid
     return EN4FieldTimeSeries(metadata, grid; kw...)
 end
 
 function EN4FieldTimeSeries(metadata::EN4Metadata, grid::AbstractGrid;
-                             time_indices_in_memory = 2,	
-                             time_indexing = Cyclical(),
-                             inpainting = default_inpainting(metadata),
-                             cache_inpainted_data = true)
+                            time_indices_in_memory = 2,
+                            time_indexing = Cyclical(),
+                            inpainting = default_inpainting(metadata),
+                            cache_inpainted_data = true)
 
     # Make sure all the required individual files are downloaded
     download_dataset(metadata)
@@ -133,21 +133,21 @@ function EN4FieldTimeSeries(metadata::EN4Metadata, grid::AbstractGrid;
     loc = LX, LY, LZ = location(metadata)
     boundary_conditions = FieldBoundaryConditions(grid, loc)
     fts = FieldTimeSeries{LX, LY, LZ}(grid, times; backend, time_indexing, boundary_conditions)
-    set!(fts)	
+    set!(fts)
 
-    return fts	
+    return fts
 end
 
-function EN4FieldTimeSeries(variable_name::Symbol; 
-                             dataset = EN4Monthly(),
-                             architecture = CPU(),
-                             start_date = first_date(dataset, variable_name),
-                             end_date = first_date(dataset, variable_name),
-                             dir = download_EN4_cache,
-                             kw...)
+function EN4FieldTimeSeries(variable_name::Symbol;
+                            dataset = EN4Monthly(),
+                            architecture = CPU(),
+                            start_date = first_date(dataset, variable_name),
+                            end_date = first_date(dataset, variable_name),
+                            dir = download_EN4_cache,
+                            kw...)
 
     native_dates = all_dates(dataset, variable_name)
-    dates = compute_native_date_range(native_dates, start_date, end_date)                          
+    dates = compute_native_date_range(native_dates, start_date, end_date)
     metadata = Metadata(variable_name, dataset, dates, dir)
     return EN4FieldTimeSeries(metadata, architecture; kw...)
 end
@@ -156,7 +156,7 @@ end
 struct Temperature end
 struct Salinity end
 
-const oceananigans_fieldnames = Dict(:temperature => Temperature(), 
+const oceananigans_fieldnames = Dict(:temperature => Temperature(),
                                      :salinity    => Salinity())
 
 @inline Base.getindex(fields, i, j, k, ::Temperature) = @inbounds fields.T[i, j, k]
@@ -192,7 +192,7 @@ Adapt.adapt_structure(to, p::EN4Restoring) = EN4Restoring(Adapt.adapt(to, p.fiel
     else
         ψ_EN4 = interpolate_to_grid(p.field_time_series, i, j, k, p.native_grid, grid, time)
     end
-    
+
     ψ = @inbounds fields[i, j, k, p.variable_name]
     μ = stateindex(p.mask, i, j, k, grid, clock.time, loc)
     r = p.rate
@@ -210,7 +210,7 @@ end
 
     # Interpolate field time series data onto the current node and time
     return interpolate(X, time, data, loc, native_grid, times, backend, time_indexing)
-end    
+end
 
 """
     EN4Restoring(variable_name::Symbol, [ arch_or_grid = CPU(), ];
@@ -265,7 +265,7 @@ Keyword Arguments
 
 - `end_date`: The ending date to use for the EN4 dataset. Default: `end_date(dataset, variable_name)`.
 
-- `time_indices_in_memory`: The number of time indices to keep in memory. The number is chosen based on 
+- `time_indices_in_memory`: The number of time indices to keep in memory. The number is chosen based on
                             a trade-off between increased performance (more indices in memory) and reduced
                             memory footprint (fewer indices in memory). Default: 2.
 
@@ -280,19 +280,19 @@ Keyword Arguments
 
 - `inpainting`: inpainting algorithm, see [`inpaint_mask!`](@ref). Default: `NearestNeighborInpainting(Inf)`.
 
-- `cache_inpainted_data`: If `true`, the data is cached to disk after inpainting for later retrieving. 
+- `cache_inpainted_data`: If `true`, the data is cached to disk after inpainting for later retrieving.
                           Default: `true`.
 """
 function EN4Restoring(variable_name::Symbol,
                        arch_or_grid = CPU();
                        dataset = EN4Monthly(),
                        start_date = first_date(dataset, variable_name),
-                       end_date = last_date(dataset, variable_name),       
+                       end_date = last_date(dataset, variable_name),
                        dir = download_EN4_cache,
                        kw...)
 
     native_dates = all_dates(dataset, variable_name)
-    dates = compute_native_date_range(native_dates, start_date, end_date)                          
+    dates = compute_native_date_range(native_dates, start_date, end_date)
     metadata = Metadata(variable_name, dataset, dates, dir)
 
     return EN4Restoring(metadata, arch_or_grid; kw...)
@@ -308,8 +308,8 @@ function EN4Restoring(metadata::EN4Metadata,
                        cache_inpainted_data = true)
 
     fts = EN4FieldTimeSeries(metadata, arch_or_grid;
-                              time_indices_in_memory, 
-                              time_indexing, 
+                              time_indices_in_memory,
+                              time_indexing,
                               inpainting,
                               cache_inpainted_data)
 

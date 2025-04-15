@@ -8,10 +8,8 @@ using ClimaOcean
 using ClimaOcean.DataWrangling
 using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, download_progress,
                                 compute_native_date_range, dataset_field
-using ClimaOcean.InitialConditions: three_dimensional_regrid!
 
 using Oceananigans
-using Oceananigans: location
 using Oceananigans.Architectures: architecture, child_architecture
 using Oceananigans.BoundaryConditions
 using Oceananigans.DistributedComputations
@@ -27,7 +25,7 @@ using Adapt
 using Scratch
 
 import ClimaOcean.DataWrangling: vertical_interfaces, empty_field, variable_is_three_dimensional,
-                                 shift_longitude_to_0_360, inpainted_metadata_path, default_inpainting
+                                 shift_longitude_to_0_360, inpainted_metadata_path
 
 download_ECCO_cache::String = ""
 function __init__()
@@ -91,23 +89,8 @@ vertical_interfaces(metadata::Metadata{<:SomeECCODataset}) =
     -30.0,
     -20.0,
     -10.0,
-        0.0,
+      0.0,
     ]
-
-empty_ECCO_field(variable_name::Symbol; kw...) = empty_field(Metadatum(variable_name, dataset=ECCO4Monthly()); kw...)
-
-# Only temperature and salinity need a thorough inpainting because of stability,
-# other variables can do with only a couple of passes. Sea ice variables
-# cannot be inpainted because zeros in the data are physical, not missing values.
-function default_inpainting(metadata::ECCOMetadata)
-    if metadata.name in [:temperature, :salinity]
-        return NearestNeighborInpainting(Inf)
-    elseif metadata.name in [:sea_ice_fraction, :sea_ice_thickness]
-        return nothing
-    else
-        return NearestNeighborInpainting(5)
-    end
-end
 
 # ECCO4 data is on a -180, 180 longitude grid as opposed to ECCO2 data that
 # is on a 0, 360 longitude grid. To make the data consistent, we shift ECCO4

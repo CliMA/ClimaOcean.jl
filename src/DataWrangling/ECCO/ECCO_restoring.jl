@@ -10,7 +10,7 @@ using JLD2
 
 using Dates: Second
 using ClimaOcean: stateindex
-using ClimaOcean.DataWrangling: NearestNeighborInpainting, native_times
+using ClimaOcean.DataWrangling: NearestNeighborInpainting, native_times, default_inpainting
 
 import Oceananigans.Fields: set!
 import Oceananigans.Forcings: regularize_forcing
@@ -36,7 +36,7 @@ Adapt.adapt_structure(to, b::ECCONetCDFBackend{N, C}) where {N, C} = ECCONetCDFB
 
 """
     ECCONetCDFBackend(length, metadata;
-                      on_native_grid = false, 
+                      on_native_grid = false,
                       cache_inpainted_data = false,
                       inpainting = NearestNeighborInpainting(Inf))
 
@@ -44,7 +44,7 @@ Represent an ECCO FieldTimeSeries backed by ECCO native netCDF files.
 Each time instance is stored in an individual file.
 """
 function ECCONetCDFBackend(length, metadata;
-                           on_native_grid = false, 
+                           on_native_grid = false,
                            cache_inpainted_data = false,
                            inpainting = NearestNeighborInpainting(Inf))
 
@@ -62,14 +62,14 @@ new_backend(b::ECCONetCDFBackend{native, cache_data}, start, length) where {nati
 on_native_grid(::ECCONetCDFBackend{native}) where native = native
 cache_inpainted_data(::ECCONetCDFBackend{native, cache_data}) where {native, cache_data} = cache_data
 
-function set!(fts::ECCOFieldTimeSeries) 
+function set!(fts::ECCOFieldTimeSeries)
     backend = fts.backend
     inpainting = backend.inpainting
     cache_data = cache_inpainted_data(backend)
 
     for t in time_indices(fts)
         # Set each element of the time-series to the associated file
-        metadatum = @inbounds backend.metadata[t] 
+        metadatum = @inbounds backend.metadata[t]
         set!(fts[t], metadatum; inpainting, cache_inpainted_data=cache_data)
     end
 
@@ -103,22 +103,22 @@ Keyword Arguments
 - `time_indexing`: The time indexing scheme to use. Default: `Cyclical()`.
 
 - `inpainting`: The inpainting algorithm to use for ECCO interpolation.
-                The only option is `NearestNeighborInpainting(maxiter)`, 
+                The only option is `NearestNeighborInpainting(maxiter)`,
                 where an average of the valid surrounding values is used `maxiter` times.
 
-- `cache_inpainted_data`: If `true`, the data is cached to disk after inpainting for later retrieving. 
+- `cache_inpainted_data`: If `true`, the data is cached to disk after inpainting for later retrieving.
                           Default: `true`.
 
 """
 function ECCOFieldTimeSeries(metadata::ECCOMetadata, architecture::AbstractArchitecture=CPU(); kw...)
     download_dataset(metadata)
-    ftmp = empty_ECCO_field(first(metadata); architecture)
+    ftmp = empty_field(first(metadata); architecture)
     grid = ftmp.grid
     return ECCOFieldTimeSeries(metadata, grid; kw...)
 end
 
 function ECCOFieldTimeSeries(metadata::ECCOMetadata, grid::AbstractGrid;
-                             time_indices_in_memory = 2,	
+                             time_indices_in_memory = 2,
                              time_indexing = Cyclical(),
                              inpainting = default_inpainting(metadata),
                              cache_inpainted_data = true)
@@ -133,12 +133,12 @@ function ECCOFieldTimeSeries(metadata::ECCOMetadata, grid::AbstractGrid;
     loc = LX, LY, LZ = location(metadata)
     boundary_conditions = FieldBoundaryConditions(grid, loc)
     fts = FieldTimeSeries{LX, LY, LZ}(grid, times; backend, time_indexing, boundary_conditions)
-    set!(fts)	
+    set!(fts)
 
-    return fts	
+    return fts
 end
 
-function ECCOFieldTimeSeries(variable_name::Symbol; 
+function ECCOFieldTimeSeries(variable_name::Symbol;
                              dataset = ECCO4Monthly(),
                              architecture = CPU(),
                              start_date = first_date(dataset, variable_name),
@@ -147,7 +147,7 @@ function ECCOFieldTimeSeries(variable_name::Symbol;
                              kw...)
 
     native_dates = all_dates(dataset, variable_name)
-    dates = compute_native_date_range(native_dates, start_date, end_date)                          
+    dates = compute_native_date_range(native_dates, start_date, end_date)
     metadata = Metadata(variable_name, dataset, dates, dir)
     return ECCOFieldTimeSeries(metadata, architecture; kw...)
 end
@@ -158,9 +158,9 @@ struct Salinity end
 struct UVelocity end
 struct VVelocity end
 
-const oceananigans_fieldnames = Dict(:temperature => Temperature(), 
-                                     :salinity    => Salinity(), 
-                                     :u_velocity  => UVelocity(), 
+const oceananigans_fieldnames = Dict(:temperature => Temperature(),
+                                     :salinity    => Salinity(),
+                                     :u_velocity  => UVelocity(),
                                      :v_velocity  => VVelocity())
 
 @inline Base.getindex(fields, i, j, k, ::Temperature) = @inbounds fields.T[i, j, k]
@@ -218,7 +218,7 @@ end
 
     # Interpolate field time series data onto the current node and time
     return interpolate(X, time, data, loc, native_grid, times, backend, time_indexing)
-end    
+end
 
 """
     ECCORestoring(variable_name::Symbol, [ arch_or_grid = CPU(), ];
@@ -273,7 +273,7 @@ Keyword Arguments
 
 - `end_date`: The ending date to use for the ECCO dataset. Default: `end_date(dataset, variable_name)`.
 
-- `time_indices_in_memory`: The number of time indices to keep in memory. The number is chosen based on 
+- `time_indices_in_memory`: The number of time indices to keep in memory. The number is chosen based on
                             a trade-off between increased performance (more indices in memory) and reduced
                             memory footprint (fewer indices in memory). Default: 2.
 
@@ -288,19 +288,19 @@ Keyword Arguments
 
 - `inpainting`: inpainting algorithm, see [`inpaint_mask!`](@ref). Default: `NearestNeighborInpainting(Inf)`.
 
-- `cache_inpainted_data`: If `true`, the data is cached to disk after inpainting for later retrieving. 
+- `cache_inpainted_data`: If `true`, the data is cached to disk after inpainting for later retrieving.
                           Default: `true`.
 """
 function ECCORestoring(variable_name::Symbol,
                        arch_or_grid = CPU();
                        dataset = ECCO4Monthly(),
                        start_date = first_date(dataset, variable_name),
-                       end_date = last_date(dataset, variable_name),       
+                       end_date = last_date(dataset, variable_name),
                        dir = download_ECCO_cache,
                        kw...)
 
     native_dates = all_dates(dataset, variable_name)
-    dates = compute_native_date_range(native_dates, start_date, end_date)                          
+    dates = compute_native_date_range(native_dates, start_date, end_date)
     metadata = Metadata(variable_name, dataset, dates, dir)
 
     return ECCORestoring(metadata, arch_or_grid; kw...)
@@ -316,8 +316,8 @@ function ECCORestoring(metadata::ECCOMetadata,
                        cache_inpainted_data = true)
 
     fts = ECCOFieldTimeSeries(metadata, arch_or_grid;
-                              time_indices_in_memory, 
-                              time_indexing, 
+                              time_indices_in_memory,
+                              time_indexing,
                               inpainting,
                               cache_inpainted_data)
 
