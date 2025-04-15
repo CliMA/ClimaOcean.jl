@@ -2,7 +2,7 @@ module ECCO
 
 export ECCOMetadatum, ECCO_field, ECCO_mask, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
-export ECCOFieldTimeSeries, ECCORestoring, LinearlyTaperedPolarMask
+export ECCOFieldTimeSeries, ECCORestoring
 
 using ClimaOcean
 using ClimaOcean.DataWrangling
