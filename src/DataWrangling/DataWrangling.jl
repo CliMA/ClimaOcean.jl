@@ -127,7 +127,6 @@ include("metadata.jl")
 include("inpaint_mask.jl")
 include("JRA55/JRA55.jl")
 include("ECCO/ECCO.jl")
-include("WOA/WOA.jl")
 include("EN4/EN4.jl")
 
 using .ECCO
