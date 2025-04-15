@@ -124,6 +124,7 @@ function save_field_time_series!(fts; path, name, overwrite_existing=false)
 end
 
 include("metadata.jl")
+include("linearly_tapered_polar_mask.jl")
 include("inpaint_mask.jl")
 include("JRA55/JRA55.jl")
 include("ECCO/ECCO.jl")
