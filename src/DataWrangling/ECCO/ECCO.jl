@@ -7,7 +7,7 @@ export ECCOFieldTimeSeries, ECCORestoring
 using ClimaOcean
 using ClimaOcean.DataWrangling
 using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, download_progress,
-                                compute_native_date_range, dataset_field
+                                compute_native_date_range
 
 using Oceananigans
 using Oceananigans.Architectures: architecture, child_architecture

@@ -7,8 +7,7 @@ export EN4FieldTimeSeries, EN4Restoring, LinearlyTaperedPolarMask
 using ClimaOcean
 using ClimaOcean.DataWrangling
 using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting,
-                                download_progress, dataset_field,
-                                compute_native_date_range,
+                                download_progress, compute_native_date_range,
                                 shift_longitude_to_0_360, Kelvin, Celsius
 
 using Oceananigans

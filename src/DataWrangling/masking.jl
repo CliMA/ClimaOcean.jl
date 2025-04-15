@@ -5,7 +5,7 @@ using Oceananigans.Grids: peripheral_node
 using Oceananigans.Utils: launch!
 using Oceananigans.Fields: instantiated_location, interior, CenterField
 using Oceananigans.Architectures: architecture, device, GPU
-using ClimaOcean.DataWrangling: dataset_field
+using ClimaOcean.DataWrangling: Field
 using KernelAbstractions: @kernel, @index
 
 import ClimaOcean: stateindex
@@ -232,14 +232,14 @@ function default_set_dataset_mask end
 
 """
     dataset_mask(metadata, architecture = CPU();
-                 data_field = dataset_field(metadata; architecture, inpainting=nothing),
+                 data_field = Field(metadata; architecture, inpainting=nothing),
                  minimum_value = Float32(-1e5),
                  maximum_value = Float32(1e5))
 
 A boolean field where `true` represents a missing value in the dataset.
 """
 function dataset_mask(metadata, architecture = CPU();
-                      data_field = dataset_field(metadata; architecture, inpainting=nothing),
+                      data_field = Field(metadata; architecture, inpainting=nothing),
                       minimum_value = Float32(-1e5),
                       maximum_value = Float32(1e5))
 

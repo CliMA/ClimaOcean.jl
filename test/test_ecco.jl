@@ -50,7 +50,7 @@ inpainting = NearestNeighborInpainting(2)
             @test fts.times[end] == native_times(metadata)[end]
 
             datum = first(metadata)
-            ψ = ClimaOcean.DataWrangling.dataset_field(datum, architecture=arch, inpainting=NearestNeighborInpainting(2))
+            ψ = ClimaOcean.DataWrangling.Field(datum, architecture=arch, inpainting=NearestNeighborInpainting(2))
             datapath = ClimaOcean.DataWrangling.ECCO.inpainted_metadata_path(datum)
             @test isfile(datapath)
         end

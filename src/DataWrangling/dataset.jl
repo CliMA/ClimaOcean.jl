@@ -3,7 +3,7 @@ using ClimaOcean.InitialConditions: interpolate!
 using NCDatasets
 using JLD2
 
-import Oceananigans.Fields: set!
+import Oceananigans.Fields: set!, Field
 
 function inpainted_metadata_path end
 
@@ -21,25 +21,24 @@ function default_inpainting(metadata)
 end
 
 """
-    dataset_field(metadata::Metadatum;
-                  architecture = CPU(),
-                  inpainting = nothing,
-                  mask = nothing,
-                  horizontal_halo = (7, 7),
-                  cache_inpainted_data = false)
+    Field(metadata::Metadatum;
+          architecture = CPU(),
+          inpainting = nothing,
+          mask = nothing,
+          horizontal_halo = (7, 7),
+          cache_inpainted_data = false)
 
-Return a `Field` on `architecture` described by `metadata` with
-`horizontal_halo` size.
+Return a `Field` on `architecture` described by `metadata` with `horizontal_halo` size.
 If not `nothing`, the `inpainting` method is used to fill the cells
 within the specified `mask`. `mask` is set to `Dataset_mask` for non-nothing
 `inpainting`.
 """
-function dataset_field(metadata::Metadatum;
-                       architecture = CPU(),
-                       inpainting = default_inpainting(metadata),
-                       mask = nothing,
-                       horizontal_halo = (7, 7),
-                       cache_inpainted_data = true)
+function Field(metadata::Metadatum;
+               architecture = CPU(),
+               inpainting = default_inpainting(metadata),
+               mask = nothing,
+               horizontal_halo = (7, 7),
+               cache_inpainted_data = true)
 
     field = empty_field(metadata; architecture, horizontal_halo)
     inpainted_path = inpainted_metadata_path(metadata)
@@ -131,9 +130,9 @@ function set!(field::Field, metadata::Metadatum; kw...)
     arch = child_architecture(grid)
     mask = dataset_mask(metadata, arch)
 
-    f = dataset_field(metadata; mask,
-                      architecture = arch,
-                      kw...)
+    f = Field(metadata; mask,
+              architecture = arch,
+              kw...)
 
     interpolate!(field, f)
 
