@@ -6,7 +6,8 @@ export ECCOFieldTimeSeries, ECCORestoring
 
 using ClimaOcean
 using ClimaOcean.DataWrangling
-using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, download_progress, compute_native_date_range
+using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, download_progress,
+                                compute_native_date_range, dataset_field
 using ClimaOcean.InitialConditions: three_dimensional_regrid!, interpolate!
 
 using Oceananigans
@@ -25,7 +26,8 @@ using Dates
 using Adapt
 using Scratch
 
-import ClimaOcean.DataWrangling: vertical_interfaces, empty_field, variable_is_three_dimensional, shift_longitude_to_0_360
+import ClimaOcean.DataWrangling: vertical_interfaces, empty_field, variable_is_three_dimensional,
+                                 shift_longitude_to_0_360, inpainted_metadata_path, default_inpainting
 
 download_ECCO_cache::String = ""
 function __init__()
@@ -122,106 +124,6 @@ function shift_longitude_to_0_360(data, metadata::Metadata{<:ECCO4Monthly})
     return data
 end
 
-"""
-    ECCO_field(metadata::ECCOMetadatum;
-               architecture = CPU(),
-               inpainting = nothing,
-               mask = nothing,
-               horizontal_halo = (7, 7),
-               cache_inpainted_data = false)
-
-Return a `Field` on `architecture` described by `ECCOMetadata` with
-`horizontal_halo` size.
-If not `nothing`, the `inpainting` method is used to fill the cells
-within the specified `mask`. `mask` is set to `ECCO_mask` for non-nothing
-`inpainting`.
-"""
-function ECCO_field(metadata::ECCOMetadatum;
-                    architecture = CPU(),
-                    inpainting = default_inpainting(metadata),
-                    mask = nothing,
-                    horizontal_halo = (7, 7),
-                    cache_inpainted_data = true)
-
-    field = empty_field(metadata; architecture, horizontal_halo)
-    inpainted_path = inpainted_metadata_path(metadata)
-
-    if !isnothing(inpainting) && isfile(inpainted_path)
-        file = jldopen(inpainted_path, "r")
-        maxiter = file["inpainting_maxiter"]
-
-        # read data if generated with the same inpainting
-        if maxiter == inpainting.maxiter
-            data = file["data"]
-            close(file)
-            copyto!(parent(field), data)
-            return field
-        end
-
-        close(file)
-    end
-
-    download_dataset(metadata)
-    path = metadata_path(metadata)
-    ds = Dataset(path)
-    shortname = short_name(metadata)
-
-    if variable_is_three_dimensional(metadata)
-        data = ds[shortname][:, :, :, 1]
-        data = reverse(data, dims=3)
-    else
-        data = ds[shortname][:, :, 1]
-    end
-
-    close(ds)
-
-    # Convert data from Union{FT, missing} to FT
-    FT = eltype(field)
-    data[ismissing.(data)] .= 1e10 # Artificially large number!
-    data = if location(field)[2] == Face # ?
-        new_data = zeros(FT, size(field))
-        new_data[:, 1:end-1, :] .= data
-        new_data
-    else
-        Array{FT}(data)
-    end
-
-    data = shift_longitude_to_0_360(data, metadata)
-
-    set!(field, data)
-    fill_halo_regions!(field)
-
-    if !isnothing(inpainting)
-        # Respect user-supplied mask, but otherwise build default ECCO mask.
-        if isnothing(mask)
-            mask = ECCO_mask(metadata, architecture; data_field=field)
-        end
-
-        # Make sure all values are extended properly
-        name = string(metadata.name)
-        date = string(metadata.dates)
-        dataset = summary(metadata.dataset)
-        @info string("Inpainting ", dataset, " ", name, " data from ", date, "...")
-        start_time = time_ns()
-
-        inpaint_mask!(field, mask; inpainting)
-        fill_halo_regions!(field)
-
-        elapsed = 1e-9 * (time_ns() - start_time)
-        @info string(" ... (", prettytime(elapsed), ")")
-
-        # We cache the inpainted data to avoid recomputing it
-        @root if cache_inpainted_data
-            file = jldopen(inpainted_path, "w+")
-            file["data"] = on_architecture(CPU(), parent(field))
-            file["inpainting_maxiter"] = inpainting.maxiter
-            close(file)
-        end
-    end
-
-    return field
-end
-
 # Fallback
 ECCO_field(var_name::Symbol; kw...) = ECCO_field(ECCOMetadata(var_name); kw...)
 
@@ -238,11 +140,11 @@ function set!(field::Field, ECCO_metadata::ECCOMetadatum; kw...)
     # Fields initialized from ECCO
     grid = field.grid
     arch = child_architecture(grid)
-    mask = ECCO_mask(ECCO_metadata, arch)
+    mask = dataset_mask(ECCO_metadata, arch)
 
-    f = ECCO_field(ECCO_metadata; mask,
-                   architecture = arch,
-                   kw...)
+    f = dataset_field(ECCO_metadata; mask,
+                      architecture = arch,
+                      kw...)
 
     interpolate!(field, f)
 

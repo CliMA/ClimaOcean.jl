@@ -100,6 +100,8 @@ Base.iterate(::Metadatum, ::Any)  = nothing
 metadata_path(metadata::Metadatum) = joinpath(metadata.dir, metadata_filename(metadata))
 metadata_path(metadata) = [metadata_path(metadatum) for metadatum in metadata]
 
+function short_name end
+
 """
     native_times(metadata; start_time=first(metadata).dates)
 
@@ -182,7 +184,8 @@ end
 """
     vertical_interfaces(metadata)
 
-Return an array with the ``z``-faces of the dataset that `metadata` corresponds to.
+Return an array with the vertical interfaces (``z``-faces) of the dataset
+that `metadata` corresponds to.
 """
 vertical_interfaces(metadata::Metadata{V}) where V =
     error("vertical_interfaces not implemented for $V")

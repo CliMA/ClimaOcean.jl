@@ -12,7 +12,7 @@ import Base
 import Oceananigans.Fields: set!, location
 import ClimaOcean.DataWrangling: all_dates, metadata_filename, download_dataset,
                                  default_download_directory, metadata_path,
-                                 dataset_temperature_units
+                                 dataset_temperature_units, short_name
 
 struct EN4Monthly end
 

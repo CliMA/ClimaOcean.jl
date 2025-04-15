@@ -1,43 +1,23 @@
 using Oceananigans: location
 using Oceananigans.Architectures: AbstractArchitecture
 using Oceananigans.Grids: znode
+using ClimaOcean.DataWrangling: dataset_mask, _set_height_from_mask!
 
-using ClimaOcean.DataWrangling: _set_height_from_mask!
-
-"""
-    ECCO_mask(architecture = CPU(); minimum_value = Float32(-1e5))
-
-A boolean field where `true` represents a missing value in the ECCO dataset.
-"""
-function ECCO_mask(metadata, architecture = CPU();
-                   data_field = ECCO_field(metadata; architecture, inpainting=nothing),
-                   minimum_value = Float32(-1e5),
-                   maximum_value = Float32(1e5))
-
-    mask  = Field{location(data_field)...}(data_field.grid, Bool)
-
-    # ECCO4 has zeros in place of the missing values, while
-    # ECCO2 expresses missing values with values < -1e5
-    if metadata.dataset isa ECCO4Monthly
-        _set_mask! = _set_ECCO4_mask!
-    else
-        _set_mask! = _set_ECCO2_mask!
-    end
-
-    # Set the mask with zeros where field is defined
-    launch!(architecture, data_field.grid, :xyz, _set_mask!, mask, data_field, minimum_value, maximum_value)
-
-    return mask
-end
+import ClimaOcean.DataWrangling: default_set_dataset_mask
 
 # Default
-ECCO_mask(arch::AbstractArchitecture=CPU()) = ECCO_mask(Metadata(:temperature, dataset=ECCO4Monthly()), arch)
+ECCO_mask(arch::AbstractArchitecture=CPU()) = dataset_mask(Metadata(:temperature, dataset=ECCO4Monthly()), arch)
 
+default_set_dataset_mask(metadata::Metadata{<:ECCO4Monthly}) = ClimaOcean.DataWrangling.ECCO._set_ECCO4_mask!
+default_set_dataset_mask(metadata::Metadata{<:Union{ECCO2Monthly, ECCO2Daily}}) = ClimaOcean.DataWrangling.ECCO._set_ECCO2_mask!
+
+# ECCO2 expresses missing values with values < -1e5
 @kernel function _set_ECCO2_mask!(mask, Tᵢ, minimum_value, maximum_value)
     i, j, k = @index(Global, NTuple)
     @inbounds mask[i, j, k] = (Tᵢ[i, j, k] < minimum_value) | (Tᵢ[i, j, k] > maximum_value)
 end
 
+# ECCO4 has zeros in place of the missing values, while
 @kernel function _set_ECCO4_mask!(mask, Tᵢ, args...)
     i, j, k = @index(Global, NTuple)
     @inbounds mask[i, j, k] = (Tᵢ[i, j, k] == 0)
@@ -51,7 +31,7 @@ by the first non-missing value from the bottom up.
 """
 function ECCO_immersed_grid(metadata, architecture = CPU())
 
-    mask = ECCO_mask(metadata, architecture)
+    mask = dataset_mask(metadata, architecture)
     grid = mask.grid
     bottom = Field{Center, Center, Nothing}(grid)
 

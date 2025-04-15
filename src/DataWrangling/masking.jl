@@ -5,6 +5,7 @@ using Oceananigans.Grids: peripheral_node
 using Oceananigans.Utils: launch!
 using Oceananigans.Fields: instantiated_location, interior, CenterField
 using Oceananigans.Architectures: architecture, device, GPU
+using ClimaOcean.DataWrangling: dataset_field
 using KernelAbstractions: @kernel, @index
 
 import ClimaOcean: stateindex
@@ -225,4 +226,29 @@ function inpaint_mask!(field, mask; inpainting=NearestNeighborInpainting(Inf))
     propagate_horizontally!(inpainting, field, mask)
 
     return field
+end
+
+function default_set_dataset_mask end
+
+"""
+    dataset_mask(metadata, architecture = CPU();
+                 data_field = dataset_field(metadata; architecture, inpainting=nothing),
+                 minimum_value = Float32(-1e5),
+                 maximum_value = Float32(1e5))
+
+A boolean field where `true` represents a missing value in the dataset.
+"""
+function dataset_mask(metadata, architecture = CPU();
+                      data_field = dataset_field(metadata; architecture, inpainting=nothing),
+                      minimum_value = Float32(-1e5),
+                      maximum_value = Float32(1e5))
+
+    mask  = Field{location(data_field)...}(data_field.grid, Bool)
+
+    _set_mask! = default_set_dataset_mask(metadata)
+
+    # Set the mask with zeros where field is defined
+    launch!(architecture, data_field.grid, :xyz, _set_mask!, mask, data_field, minimum_value, maximum_value)
+
+    return mask
 end

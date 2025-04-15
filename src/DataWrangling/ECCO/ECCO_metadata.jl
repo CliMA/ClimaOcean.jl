@@ -10,7 +10,8 @@ import Base
 import Dates: year, month, day
 import Oceananigans.Fields: set!, location
 import ClimaOcean.DataWrangling: all_dates, metadata_filename, download_dataset,
-                                 default_download_directory, dataset_temperature_units
+                                 default_download_directory, dataset_temperature_units,
+                                 short_name
 
 struct ECCO2Monthly end
 struct ECCO2Daily end
