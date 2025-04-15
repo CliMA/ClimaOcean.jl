@@ -13,6 +13,12 @@ import ClimaOcean.OceanSeaIceModels.InterfaceComputations:
     StateExchanger,
     interpolate_atmosphere_state!
 
+const OCRExt = Base.get_extension(Oceananigans, :OceananigansConservativeRegriddingExt)
+const SWGExt = Base.get_extension(SpeedyWeather, :SpeedyWeatherGeoMakieExt)
+
+get_cell_matrix(grid::SpeedyWeather.SpectralGrid) = SWGExt.get_faces(grid; add_nans=false)
+get_cell_matrix(grid::Oceananigans.AbstractGrid)  = OCRExt.compute_cell_matrix(grid, Center(), Center(), nothing)
+
 # For the moment the workflow is:
 # 1. Perform the regridding on the CPU
 # 2. Eventually copy the regridded fields to the GPU
@@ -23,8 +29,8 @@ function atmosphere_exchanger(atmosphere::SpeedySimulation, exchange_grid, excha
 
     # Figure this out:
     spectral_grid = atmosphere.model.spectral_grid
-    grid_faces = get_faces(spectral_grid)
-    exchange_faces = get_faces(exchange_grid)
+    atmosphere_cell_matrix = get_cell_matrix(spectral_grid)
+    exchange_cell_matrix = get_cell_matrix(exchange_grid)
     arch = architecture(exchange_grid)
 
     if arch isa Oceananigans.CPU # In case of a CPU grid, we reuse the already allocated fields
@@ -39,26 +45,19 @@ function atmosphere_exchanger(atmosphere::SpeedySimulation, exchange_grid, excha
         )
     else # Otherwise we allocate new CPU fields
         cpu_surface_state = (
-            u  = zeros(Float32, length(exchange_faces)),
-            v  = zeros(Float32, length(exchange_faces)),
-            T  = zeros(Float32, length(exchange_faces)),
-            q  = zeros(Float32, length(exchange_faces)),
-            p  = zeros(Float32, length(exchange_faces)),
-            Qs = zeros(Float32, length(exchange_faces)),
-            Qℓ = zeros(Float32, length(exchange_faces)),
+            u  = zeros(Float32, length(exchange_cell_matrix)),
+            v  = zeros(Float32, length(exchange_cell_matrix)),
+            T  = zeros(Float32, length(exchange_cell_matrix)),
+            q  = zeros(Float32, length(exchange_cell_matrix)),
+            p  = zeros(Float32, length(exchange_cell_matrix)),
+            Qs = zeros(Float32, length(exchange_cell_matrix)),
+            Qℓ = zeros(Float32, length(exchange_cell_matrix)),
         )
     end
     
-    # Magical incantation from ConservativeRegridding
-    polys1 = map(ClosedRing() ∘ CutAtAntimeridianAndPoles(), (Polygon([LinearRing(f)]) for f in eachcol(grid_faces)))
-    polys2 = map(ClosedRing() ∘ CutAtAntimeridianAndPoles(), (Polygon([LinearRing(f)]) for f in eachcol(exchange_faces)))
+    regridder = ConservativeRegridding.Regridder(exchange_cell_matrix, atmosphere_cell_matrix)
 
-    regridder = ConservativeRegridding.intersection_areas(polys1, polys2)
-
-    exchange_areas   = vec(sum(A, dims=2))
-    atmosphere_areas = vec(sum(A, dims=1))
-
-    exchanger = (; cpu_surface_state, regridder, exchange_areas, atmosphere_areas)
+    exchanger = (; cpu_surface_state, regridder)
 
     return exchanger
 end
@@ -85,8 +84,6 @@ function interpolate_atmosphere_state!(interfaces, atmos::SpeedySimulation, coup
     Qsa = atmos.diagnostic_variables.physics.surface_shortwave_down
     Qla = atmos.diagnostic_variables.physics.surface_longwave_down 
 
-    exchange_areas = exchanger.exchange_areas
-
     ue  = exchanger.cpu_surface_state.u
     ve  = exchanger.cpu_surface_state.v
     Te  = exchanger.cpu_surface_state.T
@@ -95,16 +92,33 @@ function interpolate_atmosphere_state!(interfaces, atmos::SpeedySimulation, coup
     Qse = exchanger.cpu_surface_state.Qs
     Qle = exchanger.cpu_surface_state.Qℓ
 
-    ConservativeRegridding.regrid!(ua,  ue,  regridder, exchange_areas)
-    ConservativeRegridding.regrid!(va,  ve,  regridder, exchange_areas)
-    ConservativeRegridding.regrid!(Ta,  Te,  regridder, exchange_areas)
-    ConservativeRegridding.regrid!(qa,  qe,  regridder, exchange_areas)
-    ConservativeRegridding.regrid!(pa,  pe,  regridder, exchange_areas)
-    ConservativeRegridding.regrid!(Qsa, Qse, regridder, exchange_areas)
-    ConservativeRegridding.regrid!(Qla, Qle, regridder, exchange_areas)
+    ConservativeRegridding.regrid!(ue,  regridder, ua)
+    ConservativeRegridding.regrid!(ve,  regridder, va)
+    ConservativeRegridding.regrid!(Te,  regridder, Ta)
+    ConservativeRegridding.regrid!(qe,  regridder, qa)
+    ConservativeRegridding.regrid!(pe,  regridder, pa)
+    ConservativeRegridding.regrid!(Qse, regridder, Qsa)
+    ConservativeRegridding.regrid!(Qle, regridder, Qla)
     
     arch = architecture(exchange_grid)
     fill_exchange_fields!(arch, exchange_state, exchanger.cpu_surface_state)
+
+    return nothing
+end
+
+function compute_net_atmosphere_fluxes!(coupled_model::SpeedyCoupledModel)
+    atmos = coupled_model.atmosphere
+
+    # All the location of these fluxes will change
+    Qs = similarity_theory_fields.sensible_heat
+    Mv = similarity_theory_fields.water_vapor
+    Qu = total_fluxes.ocean.heat.upwelling_radiation 
+
+    regridder = coupled_model.interfaces.exchanger.regridder
+
+    ConservativeRegridding.regrid!(atmos.diagnostic_variables.physics.sensible_heat_flux,  transpose(regridder), vec(interior(Qs)))
+    ConservativeRegridding.regrid!(atmos.diagnostic_variables.physics.evaporative_flux,    transpose(regridder), vec(interior(Mv)))
+    ConservativeRegridding.regrid!(atmos.diagnostic_variables.physics.surface_longwave_up, transpose(regridder), vec(interior(Qu)))
 
     return nothing
 end
