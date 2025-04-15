@@ -25,6 +25,8 @@ using Dates
 using Adapt
 using Scratch
 
+import ..z_faces, ..empty_field, ..variable_is_three_dimensional
+
 download_ECCO_cache::String = ""
 function __init__()
     global download_ECCO_cache = @get_scratch!("ECCO")
@@ -33,8 +35,10 @@ end
 include("ECCO_metadata.jl")
 include("ECCO_mask.jl")
 
-# Vertical coordinate
-const ECCO_z = [
+const SomeECCODataset = Union{ECCO2Monthly, ECCO4Monthly, ECCO2Daily}
+
+z_faces(metadata::Metadata{<:SomeECCODataset}) =
+    [
     -6128.75,
     -5683.75,
     -5250.25,
@@ -85,44 +89,13 @@ const ECCO_z = [
     -30.0,
     -20.0,
     -10.0,
-      0.0,
-]
+        0.0,
+    ]
 
-empty_ECCO_field(variable_name::Symbol; kw...) = empty_ECCO_field(Metadatum(variable_name, dataset=ECCO4Monthly()); kw...)
-
-function empty_ECCO_field(metadata::ECCOMetadata;
-                          architecture = CPU(), 
-                          horizontal_halo = (7, 7))
-
-    Nx, Ny, Nz, _ = size(metadata)
-    loc = location(metadata)
-    longitude = (0, 360)
-    latitude = (-90, 90)
-    TX, TY = (Periodic, Bounded)
-
-    if variable_is_three_dimensional(metadata)
-        TZ = Bounded
-        LZ = Center
-        z = ECCO_z
-        halo = (horizontal_halo..., 3)
-        sz = (Nx, Ny, Nz)
-    else # the variable is two-dimensional
-        TZ = Flat
-        LZ = Nothing
-        z = nothing
-        halo = horizontal_halo
-        sz = (Nx, Ny)
-    end
-
-    grid = LatitudeLongitudeGrid(architecture, Float32; halo, longitude, latitude, z,
-                                 size = sz,
-                                 topology = (TX, TY, TZ))
-
-    return Field{loc...}(grid)
-end
+empty_ECCO_field(variable_name::Symbol; kw...) = empty_field(Metadatum(variable_name, dataset=ECCO4Monthly()); kw...)
 
 # Only temperature and salinity need a thorough inpainting because of stability,
-# other variables can do with only a couple of passes. Sea ice variables 
+# other variables can do with only a couple of passes. Sea ice variables
 # cannot be inpainted because zeros in the data are physical, not missing values.
 function default_inpainting(metadata::ECCOMetadata)
     if metadata.name in [:temperature, :salinity]
@@ -154,7 +127,7 @@ function ECCO_field(metadata::ECCOMetadata;
                     mask = nothing,
                     horizontal_halo = (7, 7),
                     cache_inpainted_data = true)
-                    
+
     field = empty_ECCO_field(metadata; architecture, horizontal_halo)
     inpainted_path = inpainted_metadata_path(metadata)
 
@@ -183,25 +156,25 @@ function ECCO_field(metadata::ECCOMetadata;
         data = reverse(data, dims=3)
     else
         data = ds[shortname][:, :, 1]
-    end        
+    end
 
     close(ds)
-    
+
     # Convert data from Union(FT, missing} to FT
     FT = eltype(field)
     data[ismissing.(data)] .= 1e10 # Artificially large number!
     data = if location(field)[2] == Face # ?
         new_data = zeros(FT, size(field))
         new_data[:, 1:end-1, :] .= data
-        new_data    
+        new_data
     else
         data = Array{FT}(data)
     end
-    
+
     # ECCO4 data is on a -180, 180 longitude grid as opposed to ECCO2 data that
     # is on a 0, 360 longitude grid. To make the data consistent, we shift ECCO4
     # data by 180 degrees in longitude
-    if metadata.dataset isa ECCO4Monthly 
+    if metadata.dataset isa ECCO4Monthly
         Nx = size(data, 1)
         if variable_is_three_dimensional(metadata)
             shift = (Nx ÷ 2, 0, 0)
@@ -226,13 +199,13 @@ function ECCO_field(metadata::ECCOMetadata;
         dataset = summary(metadata.dataset)
         @info string("Inpainting ", dataset, " ", name, " data from ", date, "...")
         start_time = time_ns()
-        
+
         inpaint_mask!(field, mask; inpainting)
         fill_halo_regions!(field)
 
         elapsed = 1e-9 * (time_ns() - start_time)
         @info string(" ... (", prettytime(elapsed), ")")
-    
+
         # We cache the inpainted data to avoid recomputing it
         @root if cache_inpainted_data
             file = jldopen(inpainted_path, "w+")
@@ -274,5 +247,5 @@ end
 
 include("ECCO_restoring.jl")
 
-end # Module 
+end # Module
 

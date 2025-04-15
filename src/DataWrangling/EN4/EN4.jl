@@ -25,6 +25,8 @@ using Dates
 using Adapt
 using Scratch
 
+import ..z_faces, ..empty_field, ..variable_is_three_dimensional
+
 download_EN4_cache::String = ""
 function __init__()
     global download_EN4_cache = @get_scratch!("EN4")
@@ -33,8 +35,8 @@ end
 include("EN4_metadata.jl")
 include("EN4_mask.jl")
 
-# Vertical coordinate
-const EN4_z = [
+z_faces(metadata::Metadata{<:EN4Monthly}) =
+    [
     -5500.0,
     -5200.5986,
     -4901.459,
@@ -78,43 +80,12 @@ const EN4_z = [
     -20.1158,
     -10.0475,
     -0.0,
-]
+    ]
 
-empty_EN4_field(variable_name::Symbol; kw...) = empty_EN4_field(Metadatum(variable_name, dataset=EN4Monthly()); kw...)
-
-function empty_EN4_field(metadata::EN4Metadata;
-                          architecture = CPU(), 
-                          horizontal_halo = (7, 7))
-
-    Nx, Ny, Nz, _ = size(metadata)
-    loc = location(metadata)
-    longitude = (0, 360)
-    latitude = (-90, 90)
-    TX, TY = (Periodic, Bounded)
-
-    if variable_is_three_dimensional(metadata)
-        TZ = Bounded
-        LZ = Center
-        z = EN4_z
-        halo = (horizontal_halo..., 3)
-        sz = (Nx, Ny, Nz)
-    else # the variable is two-dimensional
-        TZ = Flat
-        LZ = Nothing
-        z = nothing
-        halo = horizontal_halo
-        sz = (Nx, Ny)
-    end
-
-    grid = LatitudeLongitudeGrid(architecture, Float32; halo, longitude, latitude, z,
-                                 size = sz,
-                                 topology = (TX, TY, TZ))
-
-    return Field{loc...}(grid)
-end
+empty_EN4_field(variable_name::Symbol; kw...) = empty_field(Metadatum(variable_name, dataset=EN4Monthly()); kw...)
 
 # Only temperature and salinity need a thorough inpainting because of stability,
-# other variables can do with only a couple of passes. Sea ice variables 
+# other variables can do with only a couple of passes. Sea ice variables
 # cannot be inpainted because zeros in the data are physical, not missing values.
 function default_inpainting(metadata::EN4Metadata)
     if metadata.name in [:temperature, :salinity]
@@ -146,7 +117,7 @@ function EN4_field(metadata::EN4Metadata;
                     mask = nothing,
                     horizontal_halo = (7, 7),
                     cache_inpainted_data = true)
-                    
+
     field = empty_EN4_field(metadata; architecture, horizontal_halo)
     inpainted_path = inpainted_metadata_path(metadata)
 
@@ -175,21 +146,21 @@ function EN4_field(metadata::EN4Metadata;
         data = reverse(data, dims=3)
     else
         data = ds[shortname][:, :, 1]
-    end        
+    end
 
     close(ds)
-    
+
     # Convert data from Union(FT, missing} to FT
     FT = eltype(field)
     data[ismissing.(data)] .= 1e10 # Artificially large number!
     data = if location(field)[2] == Face # ?
         new_data = zeros(FT, size(field))
         new_data[:, 1:end-1, :] .= data
-        new_data    
+        new_data
     else
         data = Array{FT}(data)
     end
-    
+
     set!(field, data)
     fill_halo_regions!(field)
 
@@ -205,13 +176,13 @@ function EN4_field(metadata::EN4Metadata;
         dataset = summary(metadata.dataset)
         @info string("Inpainting ", dataset, " ", name, " data from ", date, "...")
         start_time = time_ns()
-        
+
         inpaint_mask!(field, mask; inpainting)
         fill_halo_regions!(field)
 
         elapsed = 1e-9 * (time_ns() - start_time)
         @info string(" ... (", prettytime(elapsed), ")")
-    
+
         # We cache the inpainted data to avoid recomputing it
         @root if cache_inpainted_data
             file = jldopen(inpainted_path, "w+")
@@ -254,5 +225,5 @@ end
 
 include("EN4_restoring.jl")
 
-end # Module 
+end # Module
 
