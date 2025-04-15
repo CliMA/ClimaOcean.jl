@@ -13,7 +13,7 @@ import ClimaOcean.OceanSeaIceModels.InterfaceComputations:
     StateExchanger,
     interpolate_atmosphere_state!
 
-const OCRExt = Base.get_extension(Oceananigans, :OceananigansConservativeRegriddingExt)
+const OCRExt = Base.get_extension(Oceananigans,  :OceananigansConservativeRegriddingExt)
 const SWGExt = Base.get_extension(SpeedyWeather, :SpeedyWeatherGeoMakieExt)
 
 get_cell_matrix(grid::SpeedyWeather.SpectralGrid) = SWGExt.get_faces(grid; add_nans=false)
