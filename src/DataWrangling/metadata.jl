@@ -178,3 +178,45 @@ function compute_native_date_range(native_dates, start_date, end_date)
 
     return native_dates[start_idx:end_idx]
 end
+
+"""
+    z_faces(metadata)
+
+Return an array with the ``z``-faces of the dataset that `metadata` corresponds to.
+"""
+z_faces(metadata::Metadata{V}) where V =
+    error("z_faces not implemented for $V")
+
+variable_is_three_dimensional(metadata::Metadata{V}) where V =
+    error("z_faces not implemented for $V")
+
+function empty_field(metadata::Metadata;
+                     architecture = CPU(),
+                     horizontal_halo = (7, 7))
+
+    Nx, Ny, Nz, _ = size(metadata)
+    loc = location(metadata)
+    longitude = (0, 360)
+    latitude = (-90, 90)
+    TX, TY = (Periodic, Bounded)
+
+    if variable_is_three_dimensional(metadata)
+        TZ = Bounded
+        LZ = Center
+        z = z_faces(metadata)
+        halo = (horizontal_halo..., 3)
+        sz = (Nx, Ny, Nz)
+    else # the variable is two-dimensional
+        TZ = Flat
+        LZ = Nothing
+        z = nothing
+        halo = horizontal_halo
+        sz = (Nx, Ny)
+    end
+
+    grid = LatitudeLongitudeGrid(architecture, Float32; halo, longitude, latitude, z,
+                                 size = sz,
+                                 topology = (TX, TY, TZ))
+
+    return Field{loc...}(grid)
+end

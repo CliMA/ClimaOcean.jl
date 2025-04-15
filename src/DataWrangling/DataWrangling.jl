@@ -30,7 +30,7 @@ download_start_time = Ref(time_ns())
 function download_progress(total, now; filename="")
     messages = 10
 
-    if total > 0 
+    if total > 0
         fraction = now / total
 
         if fraction < 1 / messages && next_fraction[] == 0
@@ -61,8 +61,8 @@ end
     netrc_downloader(username, password, machine, dir)
 
 Create a downloader that uses a netrc file to authenticate with the given machine.
-This downlader writes the username and password in a file named `auth.netrc` (for Unix) and 
-`auth_netrc` (for Windows), located in the directory `dir`. 
+This downlader writes the username and password in a file named `auth.netrc` (for Unix) and
+`auth_netrc` (for Windows), located in the directory `dir`.
 To avoid leaving the password on disk after the downloader has been used,
 it is recommended to initialize the downloader in a temporary directory, which will be removed
 after the download is complete.
@@ -96,7 +96,7 @@ function netrc_permission_file(username, password, machine, dir)
     open(filepath, "a") do f
         write(f, "machine $machine login $username password $password\n")
     end
-    
+
     return filepath
 end
 
@@ -109,7 +109,7 @@ function save_field_time_series!(fts; path, name, overwrite_existing=false)
 
     times = on_architecture(CPU(), fts.times)
     grid  = on_architecture(CPU(), fts.grid)
-    
+
     LX, LY, LZ = location(fts)
     ondisk_fts = FieldTimeSeries{LX, LY, LZ}(grid, times;
                                              backend = OnDisk(), path, name)
@@ -117,7 +117,7 @@ function save_field_time_series!(fts; path, name, overwrite_existing=false)
     Nt = length(times)
     for n = 1:Nt
         fill_halo_regions!(fts[n])
-        set!(ondisk_fts, fts[n], n) 
+        set!(ondisk_fts, fts[n], n)
     end
 
     return nothing
