@@ -343,6 +343,8 @@ function default_freshwater_flux(grid, times)
     return (; rain, snow)
 end
 
+""" The standard unit of atmospheric pressure; 1 standard atmosphere (atm) = 101,325 Pascals (Pa) in SI units.
+This is approximately equal to the mean sea-level atmospheric pressure on Earth. """
 function default_atmosphere_pressure(grid, times)
     pa = FieldTimeSeries{Center, Center, Nothing}(grid, times)
     parent(pa) .= 101325
@@ -371,7 +373,7 @@ end
     PrescribedAtmosphere(grid, times;
                          clock = Clock{Float64}(time = 0),
                          surface_layer_height = 10, # meters
-                         boundary_layer_height = 600 # meters,
+                         boundary_layer_height = 512 # meters,
                          thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT),
                          auxiliary_freshwater_flux = nothing,
                          velocities            = default_atmosphere_velocities(grid, times),
@@ -385,8 +387,8 @@ state with data given at `times`.
 """
 function PrescribedAtmosphere(grid, times;
                               clock = Clock{Float64}(time = 0),
-                              surface_layer_height = convert(eltype(grid), 10),
-                              boundary_layer_height = convert(eltype(grid), 600),
+                              surface_layer_height = 10,
+                              boundary_layer_height = 512,
                               thermodynamics_parameters = nothing,
                               auxiliary_freshwater_flux = nothing,
                               velocities            = default_atmosphere_velocities(grid, times),
@@ -422,7 +424,7 @@ end
 """
     TwoBandDownwellingRadiation(shortwave=nothing, longwave=nothing)
 
-Return a two-band model for downwelling radiation (split in a shortwave band
+Return a two-band model for downwelling radiation (split into a shortwave band
 and a longwave band) that passes through the atmosphere and arrives at the surface of ocean
 or sea ice.
 """
@@ -434,4 +436,3 @@ Adapt.adapt_structure(to, tsdr::TwoBandDownwellingRadiation) =
                                 adapt(to, tsdr.longwave))
 
 end # module
-
