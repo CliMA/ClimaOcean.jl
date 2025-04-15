@@ -16,21 +16,28 @@ if test_group == :init || test_group == :all
     ###
     ### Download bathymetry data
     ###
-    
-    download_bathymetry() 
+
+    download_bathymetry()
 
     ####
-    #### Download JRA55 data 
+    #### Download JRA55 data
     ####
-    
+
     atmosphere = JRA55PrescribedAtmosphere(backend=JRA55NetCDFBackend(2))
 
     ####
-    #### Download ECCO data 
+    #### Download Dataset data
     ####
 
-    download_dataset(temperature_metadata)
-    download_dataset(salinity_metadata)
+    # Metadata for tests
+
+    for dataset in test_datasets
+        temperature_metadata = Metadata(:temperature; dataset, dates)
+        salinity_metadata    = Metadata(:salinity; dataset, dates)
+
+        download_dataset(temperature_metadata)
+        download_dataset(salinity_metadata)
+    end
 end
 
 # Tests JRA55 utilities, plus some DataWrangling utilities
@@ -38,8 +45,8 @@ if test_group == :JRA55 || test_group == :all
     include("test_jra55.jl")
 end
 
-if test_group == :ecco || test_group == :all
-    include("test_ecco.jl")
+if test_group == :datasets || test_group == :all
+    include("test_datasets.jl")
 end
 
 # Tests that we can download JRA55 utilities
@@ -67,4 +74,3 @@ end
 if test_group == :reactant || test_group == :all
     include("test_reactant.jl")
 end
-
