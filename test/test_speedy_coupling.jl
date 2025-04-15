@@ -13,3 +13,4 @@ oceananigans_grid = LatitudeLongitudeGrid(Oceananigans.CPU(); size=(200, 100, 1)
 ocean = ClimaOcean.OceanSimulations.ocean_simulation(oceananigans_grid; momentum_advection=nothing, tracer_advection=nothing, closure=nothing)
 atmos = ClimaOcean.atmosphere_simulation(spectral_grid)
 earth = OceanSeaIceModel(ocean; atmosphere=atmos)
+

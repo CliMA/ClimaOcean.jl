@@ -101,24 +101,26 @@ function interpolate_atmosphere_state!(interfaces, atmos::SpeedySimulation, coup
     ConservativeRegridding.regrid!(Qle, regridder, Qla)
     
     arch = architecture(exchange_grid)
-    fill_exchange_fields!(arch, exchange_state, exchanger.cpu_surface_state)
+    fill_exchange_fields!(arch, exchange_state, atmosphere_exchanger.cpu_surface_state)
 
     return nothing
 end
 
+# TODO: For the moment this is just ciupling between ocean and atmosphere.
+# we will also need to add the coupling with the sea-ice model
 function compute_net_atmosphere_fluxes!(coupled_model::SpeedyCoupledModel)
     atmos = coupled_model.atmosphere
 
     # All the location of these fluxes will change
-    Qs = similarity_theory_fields.sensible_heat
-    Mv = similarity_theory_fields.water_vapor
-    Qu = total_fluxes.ocean.heat.upwelling_radiation 
+    Qs = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.sensible_heat
+    Mv = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.water_vapor
 
-    regridder = coupled_model.interfaces.exchanger.atmosphere_exchanger.regridder
+    regridder = transpose(coupled_model.interfaces.exchanger.atmosphere_exchanger.regridder)
 
-    ConservativeRegridding.regrid!(atmos.diagnostic_variables.physics.sensible_heat_flux,  transpose(regridder), vec(interior(Qs)))
-    ConservativeRegridding.regrid!(atmos.diagnostic_variables.physics.evaporative_flux,    transpose(regridder), vec(interior(Mv)))
-    ConservativeRegridding.regrid!(atmos.diagnostic_variables.physics.surface_longwave_up, transpose(regridder), vec(interior(Qu)))
+    ConservativeRegridding.regrid!(atmos.diagnostic_variables.physics.sensible_heat_flux,  regridder, vec(interior(Qs)))
+    ConservativeRegridding.regrid!(atmos.diagnostic_variables.physics.evaporative_flux,    regridder, vec(interior(Mv)))
+
+    # TODO: Figure out how we are going to deal with upwelling radiation
 
     return nothing
 end
