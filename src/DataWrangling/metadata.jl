@@ -220,3 +220,5 @@ function empty_field(metadata::Metadata;
 
     return Field{loc...}(grid)
 end
+
+shift_longitude_to_0_360(data, metadata) = nothing
