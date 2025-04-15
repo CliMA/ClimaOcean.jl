@@ -4,7 +4,7 @@ using Dates
 using ClimaOcean
 
 using ClimaOcean.ECCO
-using ClimaOcean.ECCO: ECCO_field, metadata_path, native_times
+using ClimaOcean.ECCO: metadata_path, native_times
 using ClimaOcean.DataWrangling: NearestNeighborInpainting
 
 using Oceananigans.Grids: topology
@@ -29,7 +29,7 @@ inpainting = NearestNeighborInpainting(2)
             metadata = Metadata(name; dates, dataset=ECCO4Monthly())
             restoring = ECCORestoring(metadata; rate=1/1000, inpainting)
 
-            for datum in metadata 
+            for datum in metadata
                 @test isfile(metadata_path(datum))
             end
 
@@ -50,7 +50,7 @@ inpainting = NearestNeighborInpainting(2)
             @test fts.times[end] == native_times(metadata)[end]
 
             datum = first(metadata)
-            ψ = ECCO_field(datum, architecture=arch, inpainting=NearestNeighborInpainting(2))
+            ψ = ClimaOcean.DataWrangling.dataset_field(datum, architecture=arch, inpainting=NearestNeighborInpainting(2))
             datapath = ClimaOcean.DataWrangling.ECCO.inpainted_metadata_path(datum)
             @test isfile(datapath)
         end
@@ -170,7 +170,7 @@ end
 
 @testset "Setting temperature and salinity to ECCO" begin
     for arch in test_architectures
-        grid = LatitudeLongitudeGrid(arch; 
+        grid = LatitudeLongitudeGrid(arch;
                                      size = (10, 10, 10),
                                      latitude = (-60, -40),
                                      longitude = (10, 15),
@@ -179,7 +179,7 @@ end
 
         ocean = ocean_simulation(grid)
         date = DateTime(1993, 1, 1)
-        set!(ocean.model, T=ECCOMetadatum(:temperature; date=start_date), 
+        set!(ocean.model, T=ECCOMetadatum(:temperature; date=start_date),
                           S=ECCOMetadatum(:salinity;    date=start_date))
     end
 end
@@ -214,7 +214,7 @@ end
         ocean.model.clock.time = last(times) + 2 * Units.days
 
         update_state!(ocean.model)
-        
+
         @test begin
             time_step!(ocean)
             true

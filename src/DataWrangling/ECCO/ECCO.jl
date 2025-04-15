@@ -1,6 +1,6 @@
 module ECCO
 
-export ECCOMetadatum, ECCO_field, ECCO_mask, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
+export ECCOMetadatum, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
 export ECCOFieldTimeSeries, ECCORestoring
 
@@ -106,9 +106,6 @@ function shift_longitude_to_0_360(data, metadata::Metadata{<:ECCO4Monthly})
 
     return data
 end
-
-# Fallback
-ECCO_field(var_name::Symbol; kw...) = ECCO_field(ECCOMetadata(var_name); kw...)
 
 function inpainted_metadata_filename(metadata::ECCOMetadata)
     original_filename = metadata_filename(metadata)

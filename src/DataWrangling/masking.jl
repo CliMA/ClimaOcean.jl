@@ -252,3 +252,21 @@ function dataset_mask(metadata, architecture = CPU();
 
     return mask
 end
+
+"""
+    dataset_immersed_grid(metadata, architecture = CPU())
+
+Compute the `ImmersedBoundaryGrid` for `metadata` with a bottom height field that is defined
+by the first non-missing value from the bottom up.
+"""
+function dataset_immersed_grid(metadata, architecture = CPU())
+
+    mask = dataset_mask(metadata, architecture)
+    grid = mask.grid
+    bottom = Field{Center, Center, Nothing}(grid)
+
+    # Set the mask with zeros where field is defined
+    launch!(architecture, grid, :xy, _set_height_from_mask!, bottom, grid, mask)
+
+    return ImmersedBoundaryGrid(grid, GridFittedBottom(bottom))
+end

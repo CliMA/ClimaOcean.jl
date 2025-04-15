@@ -3,7 +3,7 @@ include("runtests_setup.jl")
 using SeawaterPolynomials: TEOS10EquationOfState
 using Oceananigans.BuoyancyFormulations: buoyancy
 using Oceananigans: location
-using ClimaOcean.DataWrangling.ECCO: ECCO_field, ECCOFieldTimeSeries
+using ClimaOcean.DataWrangling.ECCO: ECCOFieldTimeSeries
 using ClimaOcean.Diagnostics: MixedLayerDepthField, MixedLayerDepthOperand
 
 @testset "MixedLayerDepthField" begin
@@ -14,7 +14,7 @@ using ClimaOcean.Diagnostics: MixedLayerDepthField, MixedLayerDepthOperand
                                      longitude = (150, 180),
                                      z = (-1000, 0))
 
-        bottom_height = regrid_bathymetry(grid; 
+        bottom_height = regrid_bathymetry(grid;
                                           minimum_depth = 10,
                                           interpolation_passes = 5,
                                           major_basins = 1)

@@ -1,6 +1,6 @@
 module EN4
 
-export EN4Metadatum, EN4_field, EN4_mask, EN4_immersed_grid, adjusted_EN4_tracers, initialize!
+export EN4Metadatum, EN4_immersed_grid, adjusted_EN4_tracers, initialize!
 export EN4Monthly
 export EN4FieldTimeSeries, EN4Restoring, LinearlyTaperedPolarMask
 
@@ -83,10 +83,6 @@ vertical_interfaces(metadata::Metadata{<:EN4Monthly}) =
     -10.0475,
       0.0,
     ]
-
-
-# Fallback
-EN4_field(var_name::Symbol; kw...) = EN4_field(EN4Metadata(var_name); kw...)
 
 function inpainted_metadata_filename(metadata::EN4Metadata)
     original_filename = metadata_filename(metadata)
