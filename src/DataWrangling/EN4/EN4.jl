@@ -112,13 +112,13 @@ within the specified `mask`. `mask` is set to `EN4_mask` for non-nothing
 `inpainting`.
 """
 function EN4_field(metadata::EN4Metadata;
-                    architecture = CPU(),
-                    inpainting = default_inpainting(metadata),
-                    mask = nothing,
-                    horizontal_halo = (7, 7),
-                    cache_inpainted_data = true)
+                   architecture = CPU(),
+                   inpainting = default_inpainting(metadata),
+                   mask = nothing,
+                   horizontal_halo = (7, 7),
+                   cache_inpainted_data = true)
 
-    field = empty_EN4_field(metadata; architecture, horizontal_halo)
+    field = empty_field(metadata; architecture, horizontal_halo)
     inpainted_path = inpainted_metadata_path(metadata)
 
     if !isnothing(inpainting) && isfile(inpainted_path)
@@ -160,6 +160,8 @@ function EN4_field(metadata::EN4Metadata;
     else
         data = Array{FT}(data)
     end
+
+    shift_longitude_to_0_360!(data, metadata)
 
     set!(field, data)
     fill_halo_regions!(field)
@@ -214,8 +216,8 @@ function set!(field::Field, EN4_metadata::EN4Metadatum; kw...)
     mask = EN4_mask(EN4_metadata, arch)
 
     f = EN4_field(EN4_metadata; mask,
-                   architecture = arch,
-                   kw...)
+                  architecture = arch,
+                  kw...)
 
     interpolate!(field, f)
 
@@ -225,4 +227,3 @@ end
 include("EN4_restoring.jl")
 
 end # Module
-
