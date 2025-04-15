@@ -164,37 +164,23 @@ function download_dataset(metadata::Metadata{<:EN4Monthly})
         ntasks = Threads.nthreads()
 
         asyncmap(metadata; ntasks) do metadatum # Distribute the download among tasks
-            fileurl  = metadata_url(metadatum)
-            zippath = metadata_path_EN4(metadatum)[1]
-            extracted_file = metadata_path_EN4(metadatum)[2]
-                if !isfile(extracted_file) & !isfile(zippath)
-                    push!(missingzips, zippath)
-                    push!(missingfiles, extracted_file)
-                    instructions_msg = "\n See ClimaOcean.jl/src/DataWrangling/EN4/README.md for instructions."
-                    @info "Downloading EN4 data: $(metadatum.name) in $(metadatum.dir)..."
-                    Downloads.download(fileurl, zippath; progress=download_progress)
-                elseif !isfile(extracted_file) & isfile(zippath)
-                    push!(missingzips, zippath)
-                    push!(missingfiles, extracted_file)
-                end
+            fileurl = metadata_url(metadatum)
+            zippath, extracted_file = metadata_path_EN4(metadatum)
+            if !isfile(extracted_file) & !isfile(zippath)
+                push!(missingzips, zippath)
+                push!(missingfiles, extracted_file)
+                instructions_msg = "\n See ClimaOcean.jl/src/DataWrangling/EN4/README.md for instructions."
+                @info "Downloading EN4 data: $(metadatum.name) in $(metadatum.dir)..."
+                Downloads.download(fileurl, zippath; progress=download_progress)
+            elseif !isfile(extracted_file) & isfile(zippath)
+                push!(missingzips, zippath)
+                push!(missingfiles, extracted_file)
+            end
         end
 
         for zips in unique(missingzips)
             unzip(zips, dir)
         end
-        ## This loop is for subtracting 273.15 from temperature upon downloading. It takes ~20sec per month, so is a bit slow. Perhaps there's a better way to do this?
-        ## At least it only happens once (in theory) when the data is first downloaded. 
-        for files in unique(missingfiles)
-            @info files
-            ds = Dataset(files, "a")  # open in append mode
-            temp = ds["temperature"]
-            data = temp[:, :, :, 1]
-            data .= ifelse.(ismissing.(data), data, data .- 273.15)
-            temp[:, :, :, 1] .= data
-            temp.attrib["units"] = "degree_Celsius"
-            close(ds)
-        end
-
     end
     return nothing
 end
