@@ -32,6 +32,7 @@ function atmosphere_exchanger(atmosphere::SpeedySimulation, exchange_grid, excha
     atmosphere_cell_matrix = get_cell_matrix(spectral_grid)
     exchange_cell_matrix = get_cell_matrix(exchange_grid)
     arch = architecture(exchange_grid)
+    FT = eltype(exchange_atmosphere_state.u)
 
     if arch isa Oceananigans.CPU # In case of a CPU grid, we reuse the already allocated fields
         cpu_surface_state = (
@@ -45,13 +46,13 @@ function atmosphere_exchanger(atmosphere::SpeedySimulation, exchange_grid, excha
         )
     else # Otherwise we allocate new CPU fields
         cpu_surface_state = (
-            u  = zeros(Float32, length(exchange_cell_matrix)),
-            v  = zeros(Float32, length(exchange_cell_matrix)),
-            T  = zeros(Float32, length(exchange_cell_matrix)),
-            q  = zeros(Float32, length(exchange_cell_matrix)),
-            p  = zeros(Float32, length(exchange_cell_matrix)),
-            Qs = zeros(Float32, length(exchange_cell_matrix)),
-            Qℓ = zeros(Float32, length(exchange_cell_matrix)),
+            u  = zeros(FT, length(exchange_cell_matrix)),
+            v  = zeros(FT, length(exchange_cell_matrix)),
+            T  = zeros(FT, length(exchange_cell_matrix)),
+            q  = zeros(FT, length(exchange_cell_matrix)),
+            p  = zeros(FT, length(exchange_cell_matrix)),
+            Qs = zeros(FT, length(exchange_cell_matrix)),
+            Qℓ = zeros(FT, length(exchange_cell_matrix)),
         )
     end
     
@@ -112,13 +113,13 @@ function compute_net_atmosphere_fluxes!(coupled_model::SpeedyCoupledModel)
     atmos = coupled_model.atmosphere
 
     # All the location of these fluxes will change
-    Qs = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.sensible_heat
+    Qc = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.sensible_heat
     Mv = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.water_vapor
 
     regridder = transpose(coupled_model.interfaces.exchanger.atmosphere_exchanger.regridder)
 
     # TODO: Figure out how we are going to deal with upwelling radiation
-    ConservativeRegridding.regrid!(atmos.diagnostic_variables.physics.sensible_heat_flux,  regridder, vec(interior(Qs)))
+    ConservativeRegridding.regrid!(atmos.diagnostic_variables.physics.sensible_heat_flux,  regridder, vec(interior(Qc)))
     ConservativeRegridding.regrid!(atmos.diagnostic_variables.physics.evaporative_flux,    regridder, vec(interior(Mv)))
 
     return nothing
