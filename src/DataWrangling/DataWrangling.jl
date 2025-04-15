@@ -61,7 +61,7 @@ end
     netrc_downloader(username, password, machine, dir)
 
 Create a downloader that uses a netrc file to authenticate with the given machine.
-This downlader writes the username and password in a file named `auth.netrc` (for Unix) and
+This downloader writes the username and password in a file named `auth.netrc` (for Unix) and
 `auth_netrc` (for Windows), located in the directory `dir`.
 To avoid leaving the password on disk after the downloader has been used,
 it is recommended to initialize the downloader in a temporary directory, which will be removed
@@ -124,6 +124,7 @@ function save_field_time_series!(fts; path, name, overwrite_existing=false)
 end
 
 include("metadata.jl")
+include("mask.jl")
 include("inpaint_mask.jl")
 include("JRA55/JRA55.jl")
 include("ECCO/ECCO.jl")
