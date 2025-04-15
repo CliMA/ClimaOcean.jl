@@ -1,7 +1,6 @@
 include("runtests_setup.jl")
 
-using ClimaOcean.ECCO: metadata_path, ECCO4Monthly
-using ClimaOcean.DataWrangling: short_name
+using ClimaOcean.DataWrangling: metadata_path
 using ClimaOcean.JRA55: JRA55NetCDFBackend
 
 @testset "Availability of JRA55 data" begin
