@@ -24,7 +24,7 @@ using Dates
 using Adapt
 using Scratch
 
-import ClimaOcean.DataWrangling: vertical_interfaces, empty_field, variable_is_three_dimensional,
+import ClimaOcean.DataWrangling: vertical_interfaces, variable_is_three_dimensional,
                                  shift_longitude_to_0_360, inpainted_metadata_path
 
 download_ECCO_cache::String = ""

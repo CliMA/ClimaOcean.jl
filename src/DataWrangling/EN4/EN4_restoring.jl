@@ -36,17 +36,17 @@ Adapt.adapt_structure(to, b::EN4NetCDFBackend{N, C}) where {N, C} = EN4NetCDFBac
 
 """
     EN4NetCDFBackend(length, metadata;
-                      on_native_grid = false,
-                      cache_inpainted_data = false,
-                      inpainting = NearestNeighborInpainting(Inf))
+                     on_native_grid = false,
+                     cache_inpainted_data = false,
+                     inpainting = NearestNeighborInpainting(Inf))
 
 Represent an EN4 FieldTimeSeries backed by EN4 native netCDF files.
 Each time instance is stored in an individual file.
 """
 function EN4NetCDFBackend(length, metadata;
-                           on_native_grid = false,
-                           cache_inpainted_data = false,
-                           inpainting = NearestNeighborInpainting(Inf))
+                          on_native_grid = false,
+                          cache_inpainted_data = false,
+                          inpainting = NearestNeighborInpainting(Inf))
 
     return EN4NetCDFBackend{on_native_grid, cache_inpainted_data}(1, length, inpainting, metadata)
 end
@@ -80,10 +80,10 @@ end
 
 """
     EN4FieldTimeSeries(metadata::EN4Metadata [, arch_or_grid=CPU() ];
-                        time_indices_in_memory = 2,
-                        time_indexing = Cyclical(),
-                        inpainting = nothing,
-                        cache_inpainted_data = true)
+                       time_indices_in_memory = 2,
+                       time_indexing = Cyclical(),
+                       inpainting = nothing,
+                       cache_inpainted_data = true)
 
 Create a field time series object for EN4 data.
 

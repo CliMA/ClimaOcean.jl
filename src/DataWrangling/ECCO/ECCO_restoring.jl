@@ -10,7 +10,7 @@ using JLD2
 
 using Dates: Second
 using ClimaOcean: stateindex
-using ClimaOcean.DataWrangling: NearestNeighborInpainting, native_times, default_inpainting
+using ClimaOcean.DataWrangling: NearestNeighborInpainting, native_times, default_inpainting, empty_field
 
 import Oceananigans.Fields: set!
 import Oceananigans.Forcings: regularize_forcing
