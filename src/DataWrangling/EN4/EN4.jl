@@ -161,8 +161,6 @@ function EN4_field(metadata::EN4Metadata;
         data = Array{FT}(data)
     end
 
-    shift_longitude_to_0_360!(data, metadata)
-
     set!(field, data)
     fill_halo_regions!(field)
 
