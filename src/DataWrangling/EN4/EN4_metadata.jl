@@ -106,7 +106,7 @@ function metadata_path_EN4(m::Metadata{<:EN4Monthly})
     return zipfile, extracted_file
 end
 
-function unzip(file,exdir="")
+function unzip(file, exdir="")
     fileFullPath = isabspath(file) ?  file : joinpath(pwd(),file)
     basePath = dirname(fileFullPath)
     outPath = (exdir == "" ? basePath : (isabspath(exdir) ? exdir : joinpath(pwd(),exdir)))
@@ -114,7 +114,7 @@ function unzip(file,exdir="")
     zarchive = ZipFile.Reader(fileFullPath)
     for f in zarchive.files
         fullFilePath = joinpath(outPath,f.name)
-        if (endswith(f.name,"/") || endswith(f.name,"\\"))
+        if (endswith(f.name, "/") || endswith(f.name, "\\"))
             mkdir(fullFilePath)
         else
             write(fullFilePath, read(f))
