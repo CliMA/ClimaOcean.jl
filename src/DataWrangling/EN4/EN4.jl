@@ -200,13 +200,14 @@ end
 # Fallback
 EN4_field(var_name::Symbol; kw...) = EN4_field(EN4Metadata(var_name); kw...)
 
-function inpainted_metadata_filename(metadata::EN4Metadata, var::AbstractString)
+function inpainted_metadata_filename(metadata::EN4Metadata)
     original_filename = metadata_filename(metadata)
     without_extension = original_filename[1:end-3]
+    var = string(metadata.name)
     return without_extension * "_" * var *"_inpainted.jld2"
 end
 
-inpainted_metadata_path(metadata::EN4Metadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata, string(metadata.name)))
+inpainted_metadata_path(metadata::EN4Metadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
 
 function set!(field::Field, EN4_metadata::EN4Metadatum; kw...)
 

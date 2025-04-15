@@ -27,7 +27,7 @@ EN4_mask(arch::AbstractArchitecture=CPU()) = EN4_mask(Metadata(:temperature, dat
 
 @kernel function _set_EN4_mask!(mask, Tᵢ, args...)
     i, j, k = @index(Global, NTuple)
-    @inbounds mask[i, j, k] = ismissing(Tᵢ[i, j, k])
+    @inbounds mask[i, j, k] = (Tᵢ[i, j, k] == 1e10)
 end
 
 """
