@@ -1,6 +1,4 @@
-using Oceananigans: location
 using Oceananigans.Architectures: AbstractArchitecture
-using Oceananigans.Grids: znode
 using ClimaOcean.DataWrangling: dataset_mask, dataset_immersed_grid
 
 import ClimaOcean.DataWrangling: default_set_dataset_mask

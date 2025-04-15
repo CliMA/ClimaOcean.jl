@@ -1,9 +1,5 @@
-using Oceananigans: location
 using Oceananigans.Architectures: AbstractArchitecture
-using Oceananigans.Grids: znode
 using ClimaOcean.DataWrangling: dataset_mask, dataset_immersed_grid
-
-import ClimaOcean: stateindex
 
 import ClimaOcean.DataWrangling: default_set_dataset_mask
 
@@ -17,4 +13,3 @@ default_set_dataset_mask(metadata::Metadata{<:EN4Monthly}) = ClimaOcean.DataWran
     i, j, k = @index(Global, NTuple)
     @inbounds mask[i, j, k] = (Tᵢ[i, j, k] == 1e10)
 end
-
