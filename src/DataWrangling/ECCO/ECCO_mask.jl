@@ -2,8 +2,6 @@ using Oceananigans: location
 using Oceananigans.Architectures: AbstractArchitecture
 using Oceananigans.Grids: znode
 
-import ClimaOcean: stateindex
-
 """
     ECCO_mask(architecture = CPU(); minimum_value = Float32(-1e5))
 
