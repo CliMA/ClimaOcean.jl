@@ -123,7 +123,7 @@ end
 
 initialize!(exchanger::StateExchanger, ::Nothing) = nothing
 
-function initialize!(exchanger::StateExchanger, atmosphere)
+function initialize!(exchanger::StateExchanger, atmosphere::PrescribedAtmosphere)
     atmos_grid = atmosphere.grid
     exchange_grid = exchanger.exchange_grid
     arch = architecture(exchange_grid)

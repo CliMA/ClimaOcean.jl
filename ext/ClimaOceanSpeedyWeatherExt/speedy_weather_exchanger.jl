@@ -13,11 +13,11 @@ import ClimaOcean.OceanSeaIceModels.InterfaceComputations:
     StateExchanger,
     interpolate_atmosphere_state!
 
-const OCRExt = Base.get_extension(Oceananigans,  :OceananigansConservativeRegriddingExt)
+const OCRExt = Base.get_extension(Oceananigans, :OceananigansConservativeRegriddingExt)
 const SWGExt = Base.get_extension(SpeedyWeather, :SpeedyWeatherGeoMakieExt)
 
-get_cell_matrix(grid::SpeedyWeather.SpectralGrid) = SWGExt.get_faces(grid; add_nans=false)
-get_cell_matrix(grid::Oceananigans.AbstractGrid)  = OCRExt.compute_cell_matrix(grid, Center(), Center(), nothing)
+get_cell_matrix(grid::SpeedyWeather.SpectralGrid) = get_faces(grid.Grid, grid.nlat_half; add_nan=false)
+get_cell_matrix(grid::Oceananigans.AbstractGrid)  = OCRExt.compute_cell_matrix(grid, (Center, Center, Nothing))
 
 # For the moment the workflow is:
 # 1. Perform the regridding on the CPU
@@ -71,10 +71,10 @@ end
 
 # Regrid the atmospheric state on the exchange grid
 function interpolate_atmosphere_state!(interfaces, atmos::SpeedySimulation, coupled_model)
-    exchanger = interfaces.exchanger
-    regridder = exchanger.regridder
+    atmosphere_exchanger = interfaces.exchanger.atmosphere_exchanger
+    regridder = atmosphere_exchanger.regridder
     exchange_grid = interfaces.exchanger.exchange_grid
-    exchange_state = exchanger.exchange_atmosphere_state
+    exchange_state = interfaces.exchanger.exchange_atmosphere_state
 
     ua  = atmos.diagnostic_variables.grid.u_grid[:, end]           
     va  = atmos.diagnostic_variables.grid.v_grid[:, end]           
@@ -84,13 +84,13 @@ function interpolate_atmosphere_state!(interfaces, atmos::SpeedySimulation, coup
     Qsa = atmos.diagnostic_variables.physics.surface_shortwave_down
     Qla = atmos.diagnostic_variables.physics.surface_longwave_down 
 
-    ue  = exchanger.cpu_surface_state.u
-    ve  = exchanger.cpu_surface_state.v
-    Te  = exchanger.cpu_surface_state.T
-    qe  = exchanger.cpu_surface_state.q
-    pe  = exchanger.cpu_surface_state.p
-    Qse = exchanger.cpu_surface_state.Qs
-    Qle = exchanger.cpu_surface_state.Qℓ
+    ue  = atmosphere_exchanger.cpu_surface_state.u
+    ve  = atmosphere_exchanger.cpu_surface_state.v
+    Te  = atmosphere_exchanger.cpu_surface_state.T
+    qe  = atmosphere_exchanger.cpu_surface_state.q
+    pe  = atmosphere_exchanger.cpu_surface_state.p
+    Qse = atmosphere_exchanger.cpu_surface_state.Qs
+    Qle = atmosphere_exchanger.cpu_surface_state.Qℓ
 
     ConservativeRegridding.regrid!(ue,  regridder, ua)
     ConservativeRegridding.regrid!(ve,  regridder, va)
@@ -114,7 +114,7 @@ function compute_net_atmosphere_fluxes!(coupled_model::SpeedyCoupledModel)
     Mv = similarity_theory_fields.water_vapor
     Qu = total_fluxes.ocean.heat.upwelling_radiation 
 
-    regridder = coupled_model.interfaces.exchanger.regridder
+    regridder = coupled_model.interfaces.exchanger.atmosphere_exchanger.regridder
 
     ConservativeRegridding.regrid!(atmos.diagnostic_variables.physics.sensible_heat_flux,  transpose(regridder), vec(interior(Qs)))
     ConservativeRegridding.regrid!(atmos.diagnostic_variables.physics.evaporative_flux,    transpose(regridder), vec(interior(Mv)))
