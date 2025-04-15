@@ -118,7 +118,7 @@ function EN4_field(metadata::EN4Metadata;
                     horizontal_halo = (7, 7),
                     cache_inpainted_data = true)
 
-    field = empty_EN4_field(metadata; architecture, horizontal_halo)
+    field = empty_field(metadata; architecture, horizontal_halo)
     inpainted_path = inpainted_metadata_path(metadata)
 
     if !isnothing(inpainting) && isfile(inpainted_path)
