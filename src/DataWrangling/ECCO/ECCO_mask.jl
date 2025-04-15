@@ -2,8 +2,6 @@ using Oceananigans: location
 using Oceananigans.Architectures: AbstractArchitecture
 using Oceananigans.Grids: znode
 
-import ClimaOcean: stateindex
-
 """
     ECCO_mask(architecture = CPU(); minimum_value = Float32(-1e5))
 
@@ -63,3 +61,16 @@ end
 
 # Default
 ECCO_immersed_grid(arch::AbstractArchitecture=CPU()) = ECCO_immersed_grid(Metadata(:temperature, dataset=ECCO4Monthly()), arch)
+
+@kernel function _set_height_from_mask!(bottom, grid, mask)
+    i, j = @index(Global, NTuple)
+
+    # Starting from the bottom
+    @inbounds bottom[i, j, 1] = znode(i, j, 1, grid, Center(), Center(), Face())
+
+    # Sweep up
+    for k in 1:grid.Nz
+        z⁺ = znode(i, j, k+1, grid, Center(), Center(), Face())
+        @inbounds bottom[i, j, k] = ifelse(mask[i, j, k], z⁺, bottom[i, j, k])
+    end
+end
