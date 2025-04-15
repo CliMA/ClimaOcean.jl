@@ -1,5 +1,9 @@
+using ClimaOcean.InitialConditions: interpolate!
+
 using NCDatasets
 using JLD2
+
+import Oceananigans.Fields: set!
 
 function inpainted_metadata_path end
 function default_inpainting end
@@ -104,6 +108,22 @@ function dataset_field(metadata::Metadatum;
             close(file)
         end
     end
+
+    return field
+end
+
+function set!(field::Field, metadata::Metadatum; kw...)
+
+    # Fields initialized from metadata.dataset
+    grid = field.grid
+    arch = child_architecture(grid)
+    mask = dataset_mask(metadata, arch)
+
+    f = dataset_field(metadata; mask,
+                      architecture = arch,
+                      kw...)
+
+    interpolate!(field, f)
 
     return field
 end

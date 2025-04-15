@@ -8,7 +8,7 @@ using ClimaOcean
 using ClimaOcean.DataWrangling
 using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, download_progress,
                                 compute_native_date_range, dataset_field
-using ClimaOcean.InitialConditions: three_dimensional_regrid!, interpolate!
+using ClimaOcean.InitialConditions: three_dimensional_regrid!
 
 using Oceananigans
 using Oceananigans: location
@@ -135,23 +135,6 @@ end
 
 inpainted_metadata_path(metadata::ECCOMetadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
 
-function set!(field::Field, ECCO_metadata::ECCOMetadatum; kw...)
-
-    # Fields initialized from ECCO
-    grid = field.grid
-    arch = child_architecture(grid)
-    mask = dataset_mask(ECCO_metadata, arch)
-
-    f = dataset_field(ECCO_metadata; mask,
-                      architecture = arch,
-                      kw...)
-
-    interpolate!(field, f)
-
-    return field
-end
-
 include("ECCO_restoring.jl")
 
 end # Module
-

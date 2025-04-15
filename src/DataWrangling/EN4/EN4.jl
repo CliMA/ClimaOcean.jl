@@ -11,7 +11,7 @@ using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting,
                                 compute_native_date_range,
                                 shift_longitude_to_0_360, Kelvin, Celsius
 
-using ClimaOcean.InitialConditions: three_dimensional_regrid!, interpolate!
+using ClimaOcean.InitialConditions: three_dimensional_regrid!
 
 using Oceananigans
 using Oceananigans: location
@@ -113,22 +113,6 @@ function inpainted_metadata_filename(metadata::EN4Metadata)
 end
 
 inpainted_metadata_path(metadata::EN4Metadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
-
-function set!(field::Field, EN4_metadata::EN4Metadatum; kw...)
-
-    # Fields initialized from EN4
-    grid = field.grid
-    arch = child_architecture(grid)
-    mask = dataset_mask(EN4_metadata, arch)
-
-    f = dataset_field(EN4_metadata; mask,
-                      architecture = arch,
-                      kw...)
-
-    interpolate!(field, f)
-
-    return field
-end
 
 include("EN4_restoring.jl")
 
