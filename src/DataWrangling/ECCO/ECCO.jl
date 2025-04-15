@@ -25,7 +25,9 @@ using Dates
 using Adapt
 using Scratch
 
-import ..z_faces, ..empty_field, ..variable_is_three_dimensional
+import ..z_faces, ..empty_field,
+       ..variable_is_three_dimensional,
+       ..shift_longitude_to_0_360!
 
 download_ECCO_cache::String = ""
 function __init__()
@@ -107,6 +109,18 @@ function default_inpainting(metadata::ECCOMetadata)
     end
 end
 
+function shift_longitude_to_0_360!(data, metadata::Metadata{<:ECCO4Monthly})
+    Nx = size(data, 1)
+    if variable_is_three_dimensional(metadata)
+        shift = (Nx ÷ 2, 0, 0)
+    else
+        shift = (Nx ÷ 2, 0)
+    end
+    data = circshift(data, shift)
+
+    return nothing
+end
+
 """
     ECCO_field(metadata::ECCOMetadata;
                architecture = CPU(),
@@ -128,7 +142,7 @@ function ECCO_field(metadata::ECCOMetadata;
                     horizontal_halo = (7, 7),
                     cache_inpainted_data = true)
 
-    field = empty_ECCO_field(metadata; architecture, horizontal_halo)
+    field = empty_field(metadata; architecture, horizontal_halo)
     inpainted_path = inpainted_metadata_path(metadata)
 
     if !isnothing(inpainting) && isfile(inpainted_path)
@@ -171,18 +185,7 @@ function ECCO_field(metadata::ECCOMetadata;
         data = Array{FT}(data)
     end
 
-    # ECCO4 data is on a -180, 180 longitude grid as opposed to ECCO2 data that
-    # is on a 0, 360 longitude grid. To make the data consistent, we shift ECCO4
-    # data by 180 degrees in longitude
-    if metadata.dataset isa ECCO4Monthly
-        Nx = size(data, 1)
-        if variable_is_three_dimensional(metadata)
-            shift = (Nx ÷ 2, 0, 0)
-        else
-            shift = (Nx ÷ 2, 0)
-        end
-        data = circshift(data, shift)
-    end
+    shift_longitude_to_0_360!(data, metadata)
 
     set!(field, data)
     fill_halo_regions!(field)
