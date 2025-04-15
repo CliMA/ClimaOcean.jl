@@ -188,8 +188,15 @@ z_faces(metadata::Metadata{V}) where V =
     error("z_faces not implemented for $V")
 
 variable_is_three_dimensional(metadata::Metadata{V}) where V =
-    error("z_faces not implemented for $V")
+    error("variable_is_three_dimensional not implemented for $V")
 
+"""
+    empty_field(metadata::Metadata;
+                architecture = CPU(),
+                horizontal_halo = (7, 7))
+
+Return an empty field of `metadata` on `architecture` and with `horizontal_halo`s.
+"""
 function empty_field(metadata::Metadata;
                      architecture = CPU(),
                      horizontal_halo = (7, 7))
@@ -221,4 +228,9 @@ function empty_field(metadata::Metadata;
     return Field{loc...}(grid)
 end
 
-shift_longitude_to_0_360(data, metadata) = nothing
+shift_longitude_to_0_360(data, metadata) = data
+
+struct Celsius end
+struct Kelvin end
+
+dataset_temperature_units(metadata) = nothing

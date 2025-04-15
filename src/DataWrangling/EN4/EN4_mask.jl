@@ -10,9 +10,9 @@ import ClimaOcean: stateindex
 A boolean field where `true` represents a missing value in the EN4 dataset.
 """
 function EN4_mask(metadata, architecture = CPU();
-                   data_field = EN4_field(metadata; architecture, inpainting=nothing),
-                   minimum_value = Float32(-1e5),
-                   maximum_value = Float32(1e5))
+                  data_field = EN4_field(metadata; architecture, inpainting=nothing),
+                  minimum_value = Float32(-1e5),
+                  maximum_value = Float32(1e5))
 
     mask  = Field{location(data_field)...}(data_field.grid, Bool)
 

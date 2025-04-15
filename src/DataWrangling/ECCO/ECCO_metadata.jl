@@ -1,15 +1,16 @@
 using CFTime
 using Dates
+using Downloads
 using ClimaOcean.DataWrangling
-using ClimaOcean.DataWrangling: netrc_downloader, metadata_path, AnyDateTime
+using ClimaOcean.DataWrangling: netrc_downloader, metadata_path, AnyDateTime,
+                                Celsius, Kelvin
 using Oceananigans.DistributedComputations
 
-import Dates: year, month, day
-using Downloads
-
-import Oceananigans.Fields: set!, location
 import Base
-import ClimaOcean.DataWrangling: all_dates, metadata_filename, download_dataset, default_download_directory
+import Dates: year, month, day
+import Oceananigans.Fields: set!, location
+import ClimaOcean.DataWrangling: all_dates, metadata_filename, download_dataset,
+                                 default_download_directory, dataset_temperature_units
 
 struct ECCO2Monthly end
 struct ECCO2Daily end
@@ -90,6 +91,8 @@ short_name(data::Metadata{<:ECCO2Monthly}) = ECCO2_short_names[data.name]
 short_name(data::Metadata{<:ECCO4Monthly}) = ECCO4_short_names[data.name]
 
 location(data::ECCOMetadata) = ECCO_location[data.name]
+
+dataset_temperature_units(data::ECCOMetadata) = Celsius()
 
 variable_is_three_dimensional(data::ECCOMetadata) =
     data.name == :temperature ||

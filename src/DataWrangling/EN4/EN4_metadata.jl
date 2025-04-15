@@ -1,16 +1,18 @@
 using CFTime
-using Dates
 using ClimaOcean.DataWrangling
-using ClimaOcean.DataWrangling: AnyDateTime
+using ClimaOcean.DataWrangling: AnyDateTime, Celsius, Kelvin
+using Dates
+using Downloads
 using Oceananigans.DistributedComputations
+using ZipFile
 
 import Dates: year, month, day
-using Downloads
 
-import Oceananigans.Fields: set!, location
 import Base
-import ClimaOcean.DataWrangling: all_dates, metadata_filename, download_dataset, default_download_directory, metadata_path
-using ZipFile
+import Oceananigans.Fields: set!, location
+import ClimaOcean.DataWrangling: all_dates, metadata_filename, download_dataset,
+                                 default_download_directory, metadata_path,
+                                 dataset_temperature_units
 
 struct EN4Monthly end
 
@@ -21,16 +23,16 @@ const EN4_url_pre2021 = "http://www.metoffice.gov.uk/hadobs/en4/data/en4-2-1/EN.
 const EN4_url_post2021 = "http://www.metoffice.gov.uk/hadobs/en4/data/en4-2-1/EN.4.2.2.analyses.g10."
 
 """
-    EN4Metadatum(name; 
-                  date = first_date(EN4Monthly()), 
+    EN4Metadatum(name;
+                  date = first_date(EN4Monthly()),
                   dir = download_EN4_cache)
 
 an alias to construct a [`Metadatum`](@ref) of [`EN4Montly`](@ref)
 """
-function EN4Metadatum(name; 
-                       date = first_date(EN4Monthly()), 
-                       dir = download_EN4_cache)
-  
+function EN4Metadatum(name;
+                      date = first_date(EN4Monthly()),
+                      dir = download_EN4_cache)
+
     return Metadatum(name; date, dir, dataset=EN4Monthly())
 end
 
@@ -68,6 +70,8 @@ short_name(data::Metadata{<:EN4Monthly}) = EN4_short_names[data.name]
 
 location(data::EN4Metadata) = EN4_location[data.name]
 
+dataset_temperature_units(data::Metadata{<:EN4Monthly}) = Kelvin()
+
 variable_is_three_dimensional(data::EN4Metadata) =
     data.name == :temperature ||
     data.name == :salinity
@@ -91,8 +95,8 @@ function metadata_url(m::Metadata{<:EN4Monthly})
     end
 end
 
-## This function is explicitly for the downloader to check if the zip file/extracted file exists, 
-## then to download the relevant URL (from above) 
+## This function is explicitly for the downloader to check if the zip file/extracted file exists,
+## then to download the relevant URL (from above)
 
 function metadata_path_EN4(m::Metadata{<:EN4Monthly})
     year = string(Dates.year(m.dates))
@@ -176,4 +180,3 @@ function download_dataset(metadata::Metadata{<:EN4Monthly})
     end
     return nothing
 end
-

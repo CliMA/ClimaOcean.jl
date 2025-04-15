@@ -6,7 +6,10 @@ export EN4FieldTimeSeries, EN4Restoring, LinearlyTaperedPolarMask
 
 using ClimaOcean
 using ClimaOcean.DataWrangling
-using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, download_progress, compute_native_date_range
+using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting,
+                                download_progress, compute_native_date_range,
+                                shift_longitude_to_0_360, Kelvin, Celsius
+
 using ClimaOcean.InitialConditions: three_dimensional_regrid!, interpolate!
 
 using Oceananigans
@@ -25,7 +28,8 @@ using Dates
 using Adapt
 using Scratch
 
-import ..z_faces, ..empty_field, ..variable_is_three_dimensional
+import ..z_faces, ..empty_field,
+       ..variable_is_three_dimensional
 
 download_EN4_cache::String = ""
 function __init__()
@@ -98,12 +102,12 @@ function default_inpainting(metadata::EN4Metadata)
 end
 
 """
-    EN4_field(metadata::EN4Metadata;
-               architecture = CPU(),
-               inpainting = nothing,
-               mask = nothing,
-               horizontal_halo = (7, 7),
-               cache_inpainted_data = false)
+    EN4_field(metadata::EN4Metadatum;
+              architecture = CPU(),
+              inpainting = nothing,
+              mask = nothing,
+              horizontal_halo = (7, 7),
+              cache_inpainted_data = false)
 
 Return a `Field` on `architecture` described by `EN4Metadata` with
 `horizontal_halo` size.
@@ -111,7 +115,7 @@ If not `nothing`, the `inpainting` method is used to fill the cells
 within the specified `mask`. `mask` is set to `EN4_mask` for non-nothing
 `inpainting`.
 """
-function EN4_field(metadata::EN4Metadata;
+function EN4_field(metadata::EN4Metadatum;
                    architecture = CPU(),
                    inpainting = default_inpainting(metadata),
                    mask = nothing,
@@ -150,7 +154,7 @@ function EN4_field(metadata::EN4Metadata;
 
     close(ds)
 
-    # Convert data from Union(FT, missing} to FT
+    # Convert data from Union{Missing, FT} to FT
     FT = eltype(field)
     data[ismissing.(data)] .= 1e10 # Artificially large number!
     data = if location(field)[2] == Face # ?
@@ -158,10 +162,14 @@ function EN4_field(metadata::EN4Metadata;
         new_data[:, 1:end-1, :] .= data
         new_data
     else
-        data = Array{FT}(data)
+        Array{FT}(data)
     end
 
-    shift_longitude_to_0_360!(data, metadata)
+    if metadata.name == :temperature && dataset_temperature_units(metadata) isa Kelvin
+        data[data .!= FT(1e10)] .-= FT(273.15) # convert to Celsius
+    end
+
+    data = shift_longitude_to_0_360(data, metadata)
 
     set!(field, data)
     fill_halo_regions!(field)

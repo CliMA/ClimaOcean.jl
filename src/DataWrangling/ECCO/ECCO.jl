@@ -2,7 +2,7 @@ module ECCO
 
 export ECCOMetadatum, ECCO_field, ECCO_mask, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
-export ECCOFieldTimeSeries, ECCORestoring, LinearlyTaperedPolarMask
+export ECCOFieldTimeSeries, ECCORestoring
 
 using ClimaOcean
 using ClimaOcean.DataWrangling
@@ -27,7 +27,7 @@ using Scratch
 
 import ..z_faces, ..empty_field,
        ..variable_is_three_dimensional,
-       ..shift_longitude_to_0_360!
+       ..shift_longitude_to_0_360
 
 download_ECCO_cache::String = ""
 function __init__()
@@ -109,7 +109,10 @@ function default_inpainting(metadata::ECCOMetadata)
     end
 end
 
-function shift_longitude_to_0_360!(data, metadata::Metadata{<:ECCO4Monthly})
+# ECCO4 data is on a -180, 180 longitude grid as opposed to ECCO2 data that
+# is on a 0, 360 longitude grid. To make the data consistent, we shift ECCO4
+# data by 180 degrees in longitude
+function shift_longitude_to_0_360(data, metadata::Metadata{<:ECCO4Monthly})
     Nx = size(data, 1)
     if variable_is_three_dimensional(metadata)
         shift = (Nx ÷ 2, 0, 0)
@@ -118,11 +121,11 @@ function shift_longitude_to_0_360!(data, metadata::Metadata{<:ECCO4Monthly})
     end
     data = circshift(data, shift)
 
-    return nothing
+    return data
 end
 
 """
-    ECCO_field(metadata::ECCOMetadata;
+    ECCO_field(metadata::ECCOMetadatum;
                architecture = CPU(),
                inpainting = nothing,
                mask = nothing,
@@ -135,7 +138,7 @@ If not `nothing`, the `inpainting` method is used to fill the cells
 within the specified `mask`. `mask` is set to `ECCO_mask` for non-nothing
 `inpainting`.
 """
-function ECCO_field(metadata::ECCOMetadata;
+function ECCO_field(metadata::ECCOMetadatum;
                     architecture = CPU(),
                     inpainting = default_inpainting(metadata),
                     mask = nothing,
@@ -174,7 +177,7 @@ function ECCO_field(metadata::ECCOMetadata;
 
     close(ds)
 
-    # Convert data from Union(FT, missing} to FT
+    # Convert data from Union{FT, missing} to FT
     FT = eltype(field)
     data[ismissing.(data)] .= 1e10 # Artificially large number!
     data = if location(field)[2] == Face # ?
@@ -182,10 +185,10 @@ function ECCO_field(metadata::ECCOMetadata;
         new_data[:, 1:end-1, :] .= data
         new_data
     else
-        data = Array{FT}(data)
+        Array{FT}(data)
     end
 
-    shift_longitude_to_0_360!(data, metadata)
+    data = shift_longitude_to_0_360(data, metadata)
 
     set!(field, data)
     fill_halo_regions!(field)
