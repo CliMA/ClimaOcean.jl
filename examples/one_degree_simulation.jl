@@ -37,7 +37,7 @@ Ny = 170
 Nz = 40
 
 z = exponential_z_faces(; Nz, depth=4000, h=34)
-underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
+# underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 underlying_grid = LatitudeLongitudeGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z, longitude=(0, 360), latitude=(-80, 80))
 
 ## 75 interpolation passes smooth the bathymetry near Florida so that the Gulf Stream is able to flow:
