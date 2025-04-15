@@ -19,7 +19,7 @@ struct NearestNeighborInpainting{M}
     maxiter :: M
 end
 
-# Maybe we can remove this propagate field in lieu of a diffusion, 
+# Maybe we can remove this propagate field in lieu of a diffusion,
 # Still we'll need to do this a couple of steps on the original grid
 @kernel function _propagate_field!(field, ::NearestNeighborInpainting, tmp_field)
     i, j, k = @index(Global, NTuple)
@@ -66,7 +66,7 @@ end
     @inbounds field[i, j, k] = ifelse(isnan(field[i, j, k]), 0, field[i, j, k])
 end
 
-""" 
+"""
     propagate_horizontally!(inpainting, field, mask [, tmp_field=deepcopy(field)])
 
 Horizontally propagate the values of `field` into the `mask`.
@@ -75,11 +75,11 @@ and cells where `mask[i, j, k] == true` are painted over.
 
 The first argument `inpainting` is the inpainting algorithm to use in the `_propagate_field!` step.
 """
-function propagate_horizontally!(inpainting::NearestNeighborInpainting, field, mask, tmp_field=deepcopy(field)) 
+function propagate_horizontally!(inpainting::NearestNeighborInpainting, field, mask, tmp_field=deepcopy(field))
     iter  = 0
     grid  = field.grid
     arch  = architecture(grid)
-    
+
     launch!(arch, grid, size(field), _nan_mask!, field, mask)
     fill_halo_regions!(field)
 
@@ -102,7 +102,7 @@ end
 
 continue_downwards!(field, ::Nothing) = field
 
-""" 
+"""
     continue_downwards!(field, mask)
 
 Continue downwards a field with missing values within `mask`.
@@ -137,8 +137,9 @@ Arguments
 - `field`: `Field` to be inpainted.
 - `mask`: Boolean-valued `Field`, values where
           `mask[i, j, k] == true` are inpainted.
-- `inpainting`: The inpainting algorithm to use. For the moment, the only option is `NearestNeighborInpainting(maxiter)`, 
-                where an average of the valid surrounding values is used `maxiter` times.
+- `inpainting`: The inpainting algorithm to use. The only option is
+                `NearestNeighborInpainting(maxiter)`, where an average
+                of the valid surrounding values is used `maxiter` times.
 """
 function inpaint_mask!(field, mask; inpainting=NearestNeighborInpainting(Inf))
 
@@ -156,4 +157,3 @@ function inpaint_mask!(field, mask; inpainting=NearestNeighborInpainting(Inf))
 
     return field
 end
-
