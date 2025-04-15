@@ -233,4 +233,4 @@ shift_longitude_to_0_360(data, metadata) = data
 struct Celsius end
 struct Kelvin end
 
-dataset_temperature_units(metadata) = nothing
+function dataset_temperature_units end
