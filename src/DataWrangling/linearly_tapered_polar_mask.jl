@@ -1,4 +1,4 @@
-struct LinearlyTaperedPolarMask{N, S, Z} 
+struct LinearlyTaperedPolarMask{N, S, Z}
     northern :: N
     southern :: S
     z :: Z
@@ -37,7 +37,7 @@ end
 @inline function (mask::LinearlyTaperedPolarMask)(φ, z)
     n = 1 / (mask.northern[2] - mask.northern[1]) * (φ - mask.northern[1])
     s = 1 / (mask.southern[1] - mask.southern[2]) * (φ - mask.southern[2])
-    
+
     # The mask is active only between `mask.z[1]` and `mask.z[2]`
     valid_depth = (mask.z[1] < z < mask.z[2])
 
@@ -48,7 +48,7 @@ end
 end
 
 @inline function stateindex(mask::LinearlyTaperedPolarMask, i, j, k, grid, time, loc)
-    LX, LY, LZ = loc 
+    LX, LY, LZ = loc
     λ, φ, z = node(i, j, k, grid, LX(), LY(), LZ())
     return mask(φ, z)
 end
