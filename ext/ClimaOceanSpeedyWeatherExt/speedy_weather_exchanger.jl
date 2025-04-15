@@ -117,10 +117,9 @@ function compute_net_atmosphere_fluxes!(coupled_model::SpeedyCoupledModel)
 
     regridder = transpose(coupled_model.interfaces.exchanger.atmosphere_exchanger.regridder)
 
+    # TODO: Figure out how we are going to deal with upwelling radiation
     ConservativeRegridding.regrid!(atmos.diagnostic_variables.physics.sensible_heat_flux,  regridder, vec(interior(Qs)))
     ConservativeRegridding.regrid!(atmos.diagnostic_variables.physics.evaporative_flux,    regridder, vec(interior(Mv)))
-
-    # TODO: Figure out how we are going to deal with upwelling radiation
 
     return nothing
 end

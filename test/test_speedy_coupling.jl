@@ -14,3 +14,9 @@ ocean = ClimaOcean.OceanSimulations.ocean_simulation(oceananigans_grid; momentum
 atmos = ClimaOcean.atmosphere_simulation(spectral_grid)
 earth = OceanSeaIceModel(ocean; atmosphere=atmos)
 
+fluxes = earth.interfaces.atmosphere_ocean_interface.fluxes
+
+Oceananigans.set!(fluxes.sensible_heat, (x, y) -> exp(- y^2 / 10^2))
+
+# Regridding to speedy
+ClimaOcean.OceanSeaIceModel.InterfaceComputations.compute_net_atmosphere_fluxes!(earth)
