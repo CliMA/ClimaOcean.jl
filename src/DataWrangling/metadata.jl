@@ -180,12 +180,12 @@ function compute_native_date_range(native_dates, start_date, end_date)
 end
 
 """
-    z_faces(metadata)
+    vertical_interfaces(metadata)
 
 Return an array with the ``z``-faces of the dataset that `metadata` corresponds to.
 """
-z_faces(metadata::Metadata{V}) where V =
-    error("z_faces not implemented for $V")
+vertical_interfaces(metadata::Metadata{V}) where V =
+    error("vertical_interfaces not implemented for $V")
 
 variable_is_three_dimensional(metadata::Metadata{V}) where V =
     error("variable_is_three_dimensional not implemented for $V")
@@ -210,7 +210,7 @@ function empty_field(metadata::Metadata;
     if variable_is_three_dimensional(metadata)
         TZ = Bounded
         LZ = Center
-        z = z_faces(metadata)
+        z = vertical_interfaces(metadata)
         halo = (horizontal_halo..., 3)
         sz = (Nx, Ny, Nz)
     else # the variable is two-dimensional

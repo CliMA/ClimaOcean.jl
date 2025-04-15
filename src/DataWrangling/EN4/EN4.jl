@@ -39,7 +39,7 @@ end
 include("EN4_metadata.jl")
 include("EN4_mask.jl")
 
-z_faces(metadata::Metadata{<:EN4Monthly}) =
+vertical_interfaces(metadata::Metadata{<:EN4Monthly}) =
     [
     -5500.0,
     -5200.5986,

@@ -39,7 +39,7 @@ include("ECCO_mask.jl")
 
 const SomeECCODataset = Union{ECCO2Monthly, ECCO4Monthly, ECCO2Daily}
 
-z_faces(metadata::Metadata{<:SomeECCODataset}) =
+vertical_interfaces(metadata::Metadata{<:SomeECCODataset}) =
     [
     -6128.75,
     -5683.75,
