@@ -17,7 +17,7 @@ function EN4_mask(metadata, architecture = CPU();
     mask  = Field{location(data_field)...}(data_field.grid, Bool)
 
     # Set the mask with zeros where field is defined
-    launch!(architecture, data_field.grid, :xyz, _set_mask!, mask, data_field, minimum_value, maximum_value)
+    launch!(architecture, data_field.grid, :xyz, _set_EN4_mask!, mask, data_field, minimum_value, maximum_value)
 
     return mask
 end
@@ -25,7 +25,7 @@ end
 # Default
 EN4_mask(arch::AbstractArchitecture=CPU()) = EN4_mask(Metadata(:temperature, dataset=EN4Monthly()), arch)
 
-@kernel function _set_mask!(mask, Tᵢ, args...)
+@kernel function _set_EN4_mask!(mask, Tᵢ, args...)
     i, j, k = @index(Global, NTuple)
     @inbounds mask[i, j, k] = ismissing(Tᵢ[i, j, k])
 end

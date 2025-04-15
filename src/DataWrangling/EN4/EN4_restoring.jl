@@ -192,7 +192,7 @@ Adapt.adapt_structure(to, p::EN4Restoring) = EN4Restoring(Adapt.adapt(to, p.fiel
     else
         ψ_EN4 = interpolate_to_grid(p.field_time_series, i, j, k, p.native_grid, grid, time)
     end
-
+    
     ψ = @inbounds fields[i, j, k, p.variable_name]
     μ = stateindex(p.mask, i, j, k, grid, clock.time, loc)
     r = p.rate

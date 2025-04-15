@@ -91,6 +91,9 @@ function metadata_url(m::Metadata{<:EN4Monthly})
     end
 end
 
+## This function is explicitly for the downloader to check if the zip file/extracted file exists, 
+## then to download the relevant URL (from above) 
+
 function metadata_path_EN4(m::Metadata{<:EN4Monthly})
     year = string(Dates.year(m.dates))
     month = string(Dates.month(m.dates))
