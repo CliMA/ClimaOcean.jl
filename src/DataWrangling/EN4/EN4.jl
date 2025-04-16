@@ -92,6 +92,4 @@ end
 
 inpainted_metadata_path(metadata::EN4Metadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
 
-include("EN4_restoring.jl")
-
 end # Module
