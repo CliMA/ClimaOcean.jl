@@ -24,8 +24,8 @@ const EN4_url_post2021 = "http://www.metoffice.gov.uk/hadobs/en4/data/en4-2-1/EN
 
 """
     EN4Metadatum(name;
-                  date = first_date(EN4Monthly()),
-                  dir = download_EN4_cache)
+                 date = first_date(EN4Monthly()),
+                 dir = download_EN4_cache)
 
 an alias to construct a [`Metadatum`](@ref) of [`EN4Montly`](@ref)
 """
@@ -123,36 +123,6 @@ function unzip(file, exdir="")
     close(zarchive)
 end
 
-"""
-    download_dataset(metadata::EN4Metadata; url = urls(metadata))
-
-Download the dataset specified by the `metadata::EN4Metadata`. If `metadata.dates` is a single date,
-the dataset is downloaded directly. If `metadata.dates` is a vector of dates, each date
-is downloaded individually.
-
-The data download requires a username and password to be provided in the `EN4_USERNAME` and
-`EN4_PASSWORD` environment variables respectively. This can be done by exporting the
-environment variables in the shell before running the script, or by launching julia with
-
-```
-EN4_USERNAME=myusername EN4_PASSWORD=mypassword julia
-```
-
-or by invoking
-
-```julia
-julia> ENV["EN4_USERNAME"] = "myusername"
-
-julia> ENV["EN4_PASSWORD"] = "mypassword"
-```
-
-within julia.
-
-
-Arguments
-=========
-- `metadata::EN4Metadata`: The metadata specifying the dataset to be downloaded.
-"""
 function download_dataset(metadata::Metadata{<:EN4Monthly})
     dir = metadata.dir
     missingzips = []

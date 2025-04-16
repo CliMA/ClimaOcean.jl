@@ -124,6 +124,41 @@ function save_field_time_series!(fts; path, name, overwrite_existing=false)
     return nothing
 end
 
+"""
+    download_dataset(metadata; url = urls(metadata))
+
+Download the dataset specified by the `metadata::ECCOMetadata`. If `metadata.dates` is a single date,
+the dataset is downloaded directly. If `metadata.dates` is a vector of dates, each date
+is downloaded individually.
+
+Arguments
+=========
+- `metadata`: The metadata specifying the dataset to be downloaded. Available options are metadata for
+              ECCO4, ECCO2, EN4, and JRA55 datasets.
+
+!!! info "Credential setup requirements for ECCO datasets"
+
+    For ECCO datasets, the data download requires a username and password to be provided in
+    the `ECCO_USERNAME` and `ECCO_PASSWORD` environment variables respectively. This can be
+    done by exporting the environment variables in the shell before running the script, or by
+    launching julia with
+
+    ```
+    ECCO_USERNAME=myusername ECCO_PASSWORD=mypassword julia
+    ```
+
+    or by invoking
+
+    ```julia
+    julia> ENV["ECCO_USERNAME"] = "myusername"
+
+    julia> ENV["ECCO_PASSWORD"] = "mypassword"
+    ```
+
+    within julia.
+"""
+function download_dataset end # methods specific to datasets are added within each dataset module
+
 include("metadata.jl")
 include("dataset.jl")
 include("masking.jl")
