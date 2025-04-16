@@ -19,7 +19,7 @@ struct EN4Monthly end
 const EN4Metadata{D} = Metadata{<:EN4Monthly, D}
 const EN4Metadatum   = Metadatum{<:EN4Monthly}
 
-const EN4_url_pre2021 = "http://www.metoffice.gov.uk/hadobs/en4/data/en4-2-1/EN.4.2.2/EN.4.2.2.analyses.g10."
+const EN4_url_pre2021  = "http://www.metoffice.gov.uk/hadobs/en4/data/en4-2-1/EN.4.2.2/EN.4.2.2.analyses.g10."
 const EN4_url_post2021 = "http://www.metoffice.gov.uk/hadobs/en4/data/en4-2-1/EN.4.2.2.analyses.g10."
 
 """
@@ -27,7 +27,7 @@ const EN4_url_post2021 = "http://www.metoffice.gov.uk/hadobs/en4/data/en4-2-1/EN
                  date = first_date(EN4Monthly()),
                  dir = download_EN4_cache)
 
-an alias to construct a [`Metadatum`](@ref) of [`EN4Montly`](@ref)
+An alias to construct a [`Metadatum`](@ref) of `EN4Monthly`.
 """
 function EN4Metadatum(name;
                       date = first_date(EN4Monthly()),
@@ -52,10 +52,6 @@ Base.size(::Metadatum{<:EN4Monthly}) = (360, 173, 42, 1)
 
 # The whole range of dates in the different dataset datasets
 all_dates(::EN4Monthly, name) = DateTime(1900, 1, 1) : Month(1) : DateTime(2024, 12, 1)
-
-# Fallback, actually, we do not really need the name for EN4 since all
-# variables have the same frequency and the same time-range, differently from JRA55
-# all_dates(dataset::Union{<:EN4Monthly, <:EN42Monthly, <:EN42Daily}) = all_dates(dataset, :temperature)
 
 # File name generation specific to each Dataset dataset
 function metadata_filename(metadata::Metadatum{<:EN4Monthly})
@@ -88,7 +84,7 @@ EN4_location = Dict(
     :salinity              => (Center, Center, Center)
 )
 
-function metadata_url(m::Metadata{<:EN4Monthly})
+function metadata_url(m::EN4Metadata)
     year = string(Dates.year(m.dates))
     if Dates.year(m.dates) < 2021
         return EN4_url_pre2021 * year * ".zip"
@@ -100,7 +96,7 @@ end
 ## This function is explicitly for the downloader to check if the zip file/extracted file exists,
 ## then to download the relevant URL (from above)
 
-function metadata_path_EN4(m::Metadata{<:EN4Monthly})
+function metadata_path(m::EN4Metadata)
     year = string(Dates.year(m.dates))
     month = string(Dates.month(m.dates))
     zipfile = m.dir * "EN4_" * year * ".zip"
@@ -109,13 +105,13 @@ function metadata_path_EN4(m::Metadata{<:EN4Monthly})
 end
 
 function unzip(file, exdir="")
-    fileFullPath = isabspath(file) ?  file : joinpath(pwd(),file)
+    fileFullPath = isabspath(file) ? file : joinpath(pwd(), file)
     basePath = dirname(fileFullPath)
-    outPath = (exdir == "" ? basePath : (isabspath(exdir) ? exdir : joinpath(pwd(),exdir)))
+    outPath = (exdir == "" ? basePath : (isabspath(exdir) ? exdir : joinpath(pwd(), exdir)))
     isdir(outPath) ? "" : mkdir(outPath)
     zarchive = ZipFile.Reader(fileFullPath)
     for f in zarchive.files
-        fullFilePath = joinpath(outPath,f.name)
+        fullFilePath = joinpath(outPath, f.name)
         if (endswith(f.name, "/") || endswith(f.name, "\\"))
             mkdir(fullFilePath)
         else
@@ -129,17 +125,14 @@ function download_dataset(metadata::Metadata{<:EN4Monthly})
     dir = metadata.dir
     missingzips = []
 
-    # Create a temporary directory to store the .netrc file
-    # The directory will be deleted after the download is complete
-    @root mktempdir(dir) do tmp
+    @root begin
         ntasks = Threads.nthreads()
 
         asyncmap(metadata; ntasks) do metadatum # Distribute the download among tasks
             fileurl = metadata_url(metadatum)
-            zippath, extracted_file = metadata_path_EN4(metadatum)
+            zippath, extracted_file = metadata_path(metadatum)
             if !isfile(extracted_file) & !isfile(zippath)
                 push!(missingzips, zippath)
-                instructions_msg = "\n See ClimaOcean.jl/src/DataWrangling/EN4/README.md for instructions."
                 @info "Downloading EN4 data: $(metadatum.name) in $(metadatum.dir)..."
                 Downloads.download(fileurl, zippath; progress=download_progress)
             elseif !isfile(extracted_file) & isfile(zippath)
@@ -151,5 +144,6 @@ function download_dataset(metadata::Metadata{<:EN4Monthly})
             unzip(zips, dir)
         end
     end
+
     return nothing
 end
