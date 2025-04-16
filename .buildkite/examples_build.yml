@@ -1,8 +1,5 @@
 agents:
-  queue: new-central
-  slurm_mem: 8G
-  modules: climacommon/2024_10_10
-  slurm_time: 48:00:00
+  queue: ClimaOcean-docs
 
 env:
   JULIA_LOAD_PATH: "${JULIA_LOAD_PATH}:${BUILDKITE_BUILD_CHECKOUT_PATH}/.buildkite"
