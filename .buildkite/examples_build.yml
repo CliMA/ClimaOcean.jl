@@ -1,8 +1,9 @@
 
 env:
-  JULIA_LOAD_PATH: "${JULIA_LOAD_PATH}:${BUILDKITE_BUILD_CHECKOUT_PATH}/.buildkite"
-  OPENBLAS_NUM_THREADS: 1
-  OMPI_MCA_opal_warn_on_missing_libcuda: 0
+  JULIA_VERSION: "1.10.8"
+  JULIA_MINOR_VERSION: "1.10"
+  TARTARUS_HOME: "/storage5/buildkite-agent"
+  JULIA_PKG_SERVER_REGISTRY_PREFERENCE: eager
   JULIA_NUM_PRECOMPILE_TASKS: 8
   JULIA_NUM_THREADS: 8
   CUDA_VISIBLE_DEVICES: "2" # Device for building ClimaOcean docs
@@ -10,6 +11,12 @@ env:
 steps:
   - label: "initialize"
     key: "init"
+    env:
+      JULIA_DEPOT_PATH: "$TARTARUS_HOME/.julia-$BUILDKITE_BUILD_NUMBER"
+      TEST_GROUP: "init"
+      CUDA_VISIBLE_DEVICES: "3"
+      JULIA_BINDIR: "$TARTARUS_HOME/julia-$JULIA_VERSION/bin"
+      TMPDIR: "$TARTARUS_HOME/tmp"
     command:
       - "echo '--- Instantiate project'"
       - "julia --project -e -O0 'using Pkg; Pkg.instantiate(; verbose=true); Pkg.precompile(; strict=true)'"
@@ -29,6 +36,8 @@ steps:
       queue: ClimaOcean-docs
 
     env:
+      TMPDIR: "$TARTARUS_HOME/tmp"
+      JULIA_DEPOT_PATH: "$TARTARUS_HOME/.julia-$BUILDKITE_BUILD_NUMBER"
       JULIA_DEBUG: "Documenter"
       # This environment variable is needed to avoid SSL verification errors when Downloads.jl 
       # tries to download the bathymetry data. It should not be required so we need to fix our certificates
