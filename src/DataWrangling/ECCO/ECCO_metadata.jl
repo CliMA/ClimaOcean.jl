@@ -143,36 +143,6 @@ function metadata_url(m::Metadata{<:ECCO4Monthly})
     return ECCO4_url * short_name(m) * "/" * year * "/" * metadata_filename(m)
 end
 
-"""
-    download_dataset(metadata::ECCOMetadata; url = urls(metadata))
-
-Download the dataset specified by the `metadata::ECCOMetadata`. If `metadata.dates` is a single date,
-the dataset is downloaded directly. If `metadata.dates` is a vector of dates, each date
-is downloaded individually.
-
-The data download requires a username and password to be provided in the `ECCO_USERNAME` and
-`ECCO_PASSWORD` environment variables respectively. This can be done by exporting the
-environment variables in the shell before running the script, or by launching julia with
-
-```
-ECCO_USERNAME=myusername ECCO_PASSWORD=mypassword julia
-```
-
-or by invoking
-
-```julia
-julia> ENV["ECCO_USERNAME"] = "myusername"
-
-julia> ENV["ECCO_PASSWORD"] = "mypassword"
-```
-
-within julia.
-
-
-Arguments
-=========
-- `metadata::ECCOMetadata`: The metadata specifying the dataset to be downloaded.
-"""
 function download_dataset(metadata::ECCOMetadata)
     username = get(ENV, "ECCO_USERNAME", nothing)
     password = get(ENV, "ECCO_PASSWORD", nothing)
