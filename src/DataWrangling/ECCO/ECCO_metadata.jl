@@ -28,7 +28,7 @@ const ECCO4_url = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/inter
                   date = first_date(ECCO4Monthly()),
                   dir = download_ECCO_cache)
 
-an alias to construct a [`Metadatum`](@ref) of [`ECCO4Montly`](@ref)
+An alias to construct a [`Metadatum`](@ref) of `ECCO4Monthly()`.
 """
 function ECCOMetadatum(name;
                        date = first_date(ECCO4Monthly()),
@@ -137,8 +137,8 @@ ECCO_location = Dict(
 )
 
 # URLs for the ECCO datasets specific to each dataset
-metadata_url(m::Metadata{<:ECCO2Daily})   = ECCO2_url *  "monthly/" * short_name(m) * "/" * metadata_filename(m)
-metadata_url(m::Metadata{<:ECCO2Monthly}) = ECCO2_url *  "daily/"   * short_name(m) * "/" * metadata_filename(m)
+metadata_url(m::Metadata{<:ECCO2Monthly}) = ECCO2_url * "monthly/" * short_name(m) * "/" * metadata_filename(m)
+metadata_url(m::Metadata{<:ECCO2Daily})   = ECCO2_url * "daily/"   * short_name(m) * "/" * metadata_filename(m)
 
 function metadata_url(m::Metadata{<:ECCO4Monthly})
     year = string(Dates.year(m.dates))
