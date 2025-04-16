@@ -126,7 +126,6 @@ end
 function download_dataset(metadata::Metadata{<:EN4Monthly})
     dir = metadata.dir
     missingzips = []
-    missingfiles = []
 
     # Create a temporary directory to store the .netrc file
     # The directory will be deleted after the download is complete
@@ -138,13 +137,11 @@ function download_dataset(metadata::Metadata{<:EN4Monthly})
             zippath, extracted_file = metadata_path_EN4(metadatum)
             if !isfile(extracted_file) & !isfile(zippath)
                 push!(missingzips, zippath)
-                push!(missingfiles, extracted_file)
                 instructions_msg = "\n See ClimaOcean.jl/src/DataWrangling/EN4/README.md for instructions."
                 @info "Downloading EN4 data: $(metadatum.name) in $(metadatum.dir)..."
                 Downloads.download(fileurl, zippath; progress=download_progress)
             elseif !isfile(extracted_file) & isfile(zippath)
                 push!(missingzips, zippath)
-                push!(missingfiles, extracted_file)
             end
         end
 
