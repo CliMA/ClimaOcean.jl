@@ -7,9 +7,15 @@ using Oceananigans.OutputReaders: FieldTimeSeries, update_field_time_series!, ex
 using Oceananigans.TimeSteppers: Clock, tick!
 
 using Adapt
+using JLD2
 using Thermodynamics.Parameters: AbstractThermodynamicsParameters
 
-import Oceananigans.TimeSteppers: time_step!
+import Oceananigans: initialize!, prognostic_fields
+import Oceananigans.Fields: set!
+import Oceananigans.TimeSteppers: time_step!, set_clock!
+import Oceananigans.OutputWriters: checkpointer_address,
+                                   required_checkpointed_properties,
+                                   default_checkpointed_properties
 
 import Thermodynamics.Parameters:
     gas_constant,   #
@@ -22,7 +28,7 @@ import Thermodynamics.Parameters:
     T_0,            # Enthalpy reference temperature
     LH_v0,          # Vaporization enthalpy at the reference temperature
     LH_s0,          # Sublimation enthalpy at the reference temperature
-    LH_f0,          # Fusionn enthalpy at the reference temperature
+    LH_f0,          # Fusion enthalpy at the reference temperature
     cp_d,           # Heat capacity of dry air at constant pressure
     cp_v,           # Isobaric specific heat capacity of gaseous water vapor
     cp_l,           # Isobaric specific heat capacity of liquid water
@@ -30,7 +36,7 @@ import Thermodynamics.Parameters:
     cv_v,           # Heat capacity of dry air at constant volume
     cv_l,           # Isobaric specific heat capacity of liquid water
     cv_i,           # Isobaric specific heat capacity of liquid water
-    e_int_v0,       # what? someting about reference internal energy of water vapor
+    e_int_v0,       # what? something about reference internal energy of water vapor
     T_freeze,       # Freezing temperature of _pure_ water
     T_triple,       # Triple point temperature of _pure_ water
     press_triple,   # Triple point pressure of pure water
@@ -75,7 +81,7 @@ Construct a set of parameters that define the density of moist air,
 ```
 
 where ``p`` is pressure, ``T`` is temperature, ``q`` defines the partition
-of total mass into vapor, liqiud, and ice mass fractions, and
+of total mass into vapor, liquid, and ice mass fractions, and
 ``Rᵐ`` is the effective specific gas constant for the mixture,
 
 ```math
@@ -221,7 +227,7 @@ Base.summary(::PATP{FT}) where FT = "PrescribedAtmosphereThermodynamicsParameter
 function Base.show(io::IO, p::PrescribedAtmosphereThermodynamicsParameters)
     FT = eltype(p)
 
-    cp = p.constitutive 
+    cp = p.constitutive
     hc = p.heat_capacity
     pt = p.phase_transitions
 
@@ -238,9 +244,9 @@ function Base.show(io::IO, p::PrescribedAtmosphereThermodynamicsParameters)
         "└── PhaseTransitionParameters{$FT}", '\n',
         "    ├── reference_vaporization_enthalpy (ℒᵛ⁰): ", prettysummary(pt.reference_vaporization_enthalpy), '\n',
         "    ├── reference_sublimation_enthalpy  (ℒˢ⁰): ", prettysummary(pt.reference_sublimation_enthalpy), '\n',
-        "    ├── reference_temperature (T⁰):            ", prettysummary(pt.reference_temperature), '\n',    
+        "    ├── reference_temperature (T⁰):            ", prettysummary(pt.reference_temperature), '\n',
         "    ├── triple_point_temperature (Tᵗʳ):        ", prettysummary(pt.triple_point_temperature), '\n',
-        "    ├── triple_point_pressure (pᵗʳ):           ", prettysummary(pt.triple_point_pressure), '\n',   
+        "    ├── triple_point_pressure (pᵗʳ):           ", prettysummary(pt.triple_point_pressure), '\n',
         "    ├── water_freezing_temperature (Tᶠ):       ", prettysummary(pt.water_freezing_temperature), '\n',
         "    └── total_ice_nucleation_temperature (Tⁱ): ", prettysummary(pt.total_ice_nucleation_temperature))
 end
@@ -318,6 +324,29 @@ function Base.show(io::IO, pa::PrescribedAtmosphere)
     print(io, "└── boundary_layer_height: ", prettysummary(pa.boundary_layer_height))
 end
 
+checkpointer_address(::PrescribedAtmosphere)             = "PrescribedAtmosphere"
+default_checkpointed_properties(::PrescribedAtmosphere)  = [:clock]
+required_checkpointed_properties(::PrescribedAtmosphere) = [:clock]
+prognostic_fields(::PrescribedAtmosphere)                = ()
+
+function set!(model::PrescribedAtmosphere, checkpoint_file_path::AbstractString)
+    addr = checkpointer_address(model)
+
+    checkpointed_clock = nothing
+    jldopen(checkpoint_file_path, "r") do file
+        checkpointed_clock = file["$addr/clock"]
+    end
+
+    # Update model clock
+    set_clock!(model, checkpointed_clock)
+
+    @info "hi, I set the clock of the atmosphere"
+    return nothing
+end
+
+set_clock!(atmos::PrescribedAtmosphere, new_clock) =
+    set_clock!(atmos.clock, new_clock)
+
 function default_atmosphere_velocities(grid, times)
     ua = FieldTimeSeries{Center, Center, Nothing}(grid, times)
     va = FieldTimeSeries{Center, Center, Nothing}(grid, times)
@@ -327,7 +356,7 @@ end
 function default_atmosphere_tracers(grid, times)
     Ta = FieldTimeSeries{Center, Center, Nothing}(grid, times)
     qa = FieldTimeSeries{Center, Center, Nothing}(grid, times)
-    parent(Ta) .= 273.15 + 20
+    parent(Ta) .= 273.15 + 20 # ᵒK
     return (T=Ta, q=qa)
 end
 
@@ -347,27 +376,34 @@ end
 This is approximately equal to the mean sea-level atmospheric pressure on Earth. """
 function default_atmosphere_pressure(grid, times)
     pa = FieldTimeSeries{Center, Center, Nothing}(grid, times)
-    parent(pa) .= 101325
+    parent(pa) .= 101325 # Pa
     return pa
 end
 
 @inline function time_step!(atmos::PrescribedAtmosphere, Δt)
     tick!(atmos.clock, Δt)
+    update_state!(atmos)
 
+    return nothing
+end
+
+initialize!(atmos::PrescribedAtmosphere) = update_state!(atmos)
+
+function update_state!(atmos::PrescribedAtmosphere)
     time = Time(atmos.clock.time)
     ftses = extract_field_time_series(atmos)
 
     for fts in ftses
         update_field_time_series!(fts, time)
-    end    
-    
+    end
+
     return nothing
 end
 
 @inline thermodynamics_parameters(atmos::Nothing) = nothing
 @inline thermodynamics_parameters(atmos::PrescribedAtmosphere) = atmos.thermodynamics_parameters
 @inline surface_layer_height(atmos::PrescribedAtmosphere) = atmos.surface_layer_height
-@inline boundary_layer_height(atmos::PrescribedAtmosphere) = atmos.boundary_layer_height    
+@inline boundary_layer_height(atmos::PrescribedAtmosphere) = atmos.boundary_layer_height
 
 """
     PrescribedAtmosphere(grid, times;
@@ -422,7 +458,7 @@ struct TwoBandDownwellingRadiation{SW, LW}
 end
 
 """
-    TwoBandDownwellingRadiation(shortwave=nothing, longwave=nothing)
+    TwoBandDownwellingRadiation(; shortwave=nothing, longwave=nothing)
 
 Return a two-band model for downwelling radiation (split into a shortwave band
 and a longwave band) that passes through the atmosphere and arrives at the surface of ocean
