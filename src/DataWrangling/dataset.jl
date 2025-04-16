@@ -49,7 +49,7 @@ end
 
 Return a `Field` on `architecture` described by `metadata` with `horizontal_halo` size.
 If not `nothing`, the `inpainting` method is used to fill the cells
-within the specified `mask`. `mask` is set to `Dataset_mask` for non-nothing
+within the specified `mask`. `mask` is set to `dataset_mask` for non-nothing
 `inpainting`.
 """
 function Field(metadata::Metadatum;
