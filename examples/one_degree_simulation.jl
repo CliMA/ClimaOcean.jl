@@ -161,7 +161,6 @@ ocean.output_writers[:surface] = JLD2Writer(ocean.model, outputs;
 
 run!(simulation)
 
-#=
 simulation.Δt = 20minutes
 simulation.stop_time = 360days
 run!(simulation)
@@ -247,4 +246,3 @@ end
 nothing #hide
 
 # ![](one_degree_global_ocean_surface.mp4)
-=#
