@@ -1,6 +1,6 @@
 
 env:
-  JULIA_VERSION: "1.10.8"
+  JULIA_VERSION: "1.10.9"
   JULIA_MINOR_VERSION: "1.10"
   TARTARUS_HOME: "/storage5/buildkite-agent"
   JULIA_PKG_SERVER_REGISTRY_PREFERENCE: eager
@@ -14,7 +14,6 @@ steps:
     env:
       JULIA_DEPOT_PATH: "$TARTARUS_HOME/.julia-$BUILDKITE_BUILD_NUMBER"
       TEST_GROUP: "init"
-      CUDA_VISIBLE_DEVICES: "3"
       JULIA_BINDIR: "$TARTARUS_HOME/julia-$JULIA_VERSION/bin"
       TMPDIR: "$TARTARUS_HOME/tmp"
     command:
