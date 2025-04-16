@@ -2,13 +2,11 @@ module EN4
 
 export EN4Metadatum, EN4_immersed_grid, adjusted_EN4_tracers, initialize!
 export EN4Monthly
-export EN4FieldTimeSeries, EN4Restoring, LinearlyTaperedPolarMask
 
 using ClimaOcean
 using ClimaOcean.DataWrangling
-using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting,
-                                download_progress, compute_native_date_range,
-                                shift_longitude_to_0_360, Kelvin, Celsius
+using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, download_progress,
+                                compute_native_date_range, Kelvin, Celsius
 
 using Oceananigans
 using Oceananigans.Architectures: architecture, child_architecture
