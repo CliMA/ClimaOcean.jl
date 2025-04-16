@@ -7,6 +7,25 @@ import Oceananigans.Fields: set!, Field
 
 function inpainted_metadata_path end
 
+""" Amount to shift the data in longitude (in degrees East). """
+longitude_shift(metadata) = 0
+
+function shift_longitude_to_0_360(data, metadata)
+    Nx = size(data, 1)
+
+    degrees = longitude_shift(metadata)
+    Nshift = Integer(degrees / 360 * Nx)
+
+    if variable_is_three_dimensional(metadata)
+        shift = (Nshift, 0, 0)
+    else
+        shift = (Nshift, 0)
+    end
+    data = circshift(data, shift)
+
+    return data
+end
+
 # Only temperature and salinity need a thorough inpainting because of stability,
 # other variables can do with only a couple of passes. Sea ice variables
 # cannot be inpainted because zeros in the data are physical, not missing values.

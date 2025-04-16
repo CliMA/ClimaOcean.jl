@@ -25,7 +25,8 @@ using Adapt
 using Scratch
 
 import ClimaOcean.DataWrangling: vertical_interfaces, variable_is_three_dimensional,
-                                 shift_longitude_to_0_360, inpainted_metadata_path
+                                 shift_longitude_to_0_360, inpainted_metadata_path,
+                                 longitude_shift
 
 download_ECCO_cache::String = ""
 function __init__()
@@ -95,17 +96,7 @@ vertical_interfaces(metadata::Metadata{<:SomeECCODataset}) =
 # ECCO4 data is on a -180, 180 longitude grid as opposed to ECCO2 data that
 # is on a 0, 360 longitude grid. To make the data consistent, we shift ECCO4
 # data by 180 degrees in longitude
-function shift_longitude_to_0_360(data, metadata::Metadata{<:ECCO4Monthly})
-    Nx = size(data, 1)
-    if variable_is_three_dimensional(metadata)
-        shift = (Nx ÷ 2, 0, 0)
-    else
-        shift = (Nx ÷ 2, 0)
-    end
-    data = circshift(data, shift)
-
-    return data
-end
+longitude_shift(metadata::Metadata{<:ECCO4Monthly}) = 180
 
 function inpainted_metadata_filename(metadata::ECCOMetadata)
     original_filename = metadata_filename(metadata)

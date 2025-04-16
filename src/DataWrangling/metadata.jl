@@ -193,6 +193,8 @@ vertical_interfaces(metadata::Metadata{V}) where V =
 variable_is_three_dimensional(metadata::Metadata{V}) where V =
     error("variable_is_three_dimensional not implemented for $V")
 
+function dataset_latitude_extent end
+
 """
     empty_field(metadata::Metadata;
                 architecture = CPU(),
@@ -207,7 +209,7 @@ function empty_field(metadata::Metadata;
     Nx, Ny, Nz, _ = size(metadata)
     loc = location(metadata)
     longitude = (0, 360)
-    latitude = (-90, 90)
+    latitude = dataset_latitude_extent(metadata)
     TX, TY = (Periodic, Bounded)
 
     if variable_is_three_dimensional(metadata)
@@ -227,11 +229,8 @@ function empty_field(metadata::Metadata;
     grid = LatitudeLongitudeGrid(architecture, Float32; halo, longitude, latitude, z,
                                  size = sz,
                                  topology = (TX, TY, TZ))
-
     return Field{loc...}(grid)
 end
-
-shift_longitude_to_0_360(data, metadata) = data
 
 struct Celsius end
 struct Kelvin end

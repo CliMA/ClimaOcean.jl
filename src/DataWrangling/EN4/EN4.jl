@@ -24,7 +24,7 @@ using Adapt
 using Scratch
 
 import ClimaOcean.DataWrangling: vertical_interfaces, empty_field, variable_is_three_dimensional,
-                                 inpainted_metadata_path
+                                 inpainted_metadata_path, longitude_shift
 
 download_EN4_cache::String = ""
 function __init__()
@@ -80,6 +80,10 @@ vertical_interfaces(metadata::Metadata{<:EN4Monthly}) =
     -10.0475,
       0.0,
     ]
+
+# EN4 data is shifted East by 1 degree in longitude so to make the data consistent,
+# we shift EN4.
+longitude_shift(metadata::Metadata{<:EN4Monthly}) = 1
 
 function inpainted_metadata_filename(metadata::EN4Metadata)
     original_filename = metadata_filename(metadata)
