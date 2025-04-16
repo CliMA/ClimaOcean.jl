@@ -32,13 +32,13 @@ download_dataset(ecco_salinity)
 # ### Grid and Bathymetry
 
 arch = GPU()
-Nx = 360
-Ny = 170
+Nx = 180
+Ny = 85
 Nz = 40
 
 z = exponential_z_faces(; Nz, depth=4000, h=34)
-# underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
-underlying_grid = LatitudeLongitudeGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z, longitude=(0, 360), latitude=(-80, 80))
+underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
+# underlying_grid = LatitudeLongitudeGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z, longitude=(0, 360), latitude=(-80, 80))
 
 ## 75 interpolation passes smooth the bathymetry near Florida so that the Gulf Stream is able to flow:
 bottom_height = regrid_bathymetry(underlying_grid;
@@ -102,7 +102,7 @@ atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(20))
 # flow fields.
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
-simulation = Simulation(coupled_model; Δt=1minutes, stop_time=10days)
+simulation = Simulation(coupled_model; Δt=5minutes, stop_time=10days)
 
 # ### A progress messenger
 #
@@ -114,18 +114,19 @@ function progress(sim)
     ocean = sim.model.ocean
     u, v, w = ocean.model.velocities
     T = ocean.model.tracers.T
-    Tmax = maximum(interior(T))
-    Tmin = minimum(interior(T))
-    umax = (maximum(abs, interior(u)),
-            maximum(abs, interior(v)),
-            maximum(abs, interior(w)))
+    e = ocean.model.tracers.e
+    Tmin, Tmax = minimum(T), maximum(T)
+    emin, emax = minimum(e), maximum(e)
+    umax = (maximum(abs, u), maximum(abs, v), maximum(abs, w))
+            
 
     step_time = 1e-9 * (time_ns() - wall_time[])
 
     msg1 = @sprintf("time: %s, iteration: %d, Δt: %s, ", prettytime(sim), iteration(sim), prettytime(sim.Δt))
     msg2 = @sprintf("max|u|: (%.2e, %.2e, %.2e) m s⁻¹, ", umax...)
     msg3 = @sprintf("extrema(T): (%.2f, %.2f) ᵒC, ", Tmin, Tmax)
-    msg4 = @sprintf("wall time: %s \n", prettytime(step_time))
+    msg4 = @sprintf("extrema(e): (%.2f, %.2f) m2 s-2, ", emin, emax)
+    msg5 = @sprintf("wall time: %s \n", prettytime(step_time))
 
     @info msg1 * msg2 * msg3 * msg4
 
@@ -135,7 +136,7 @@ function progress(sim)
 end
 
 # And add it as a callback to the simulation.
-add_callback!(simulation, progress, IterationInterval(10))
+add_callback!(simulation, progress, IterationInterval(100))
 
 # ### Output
 #
@@ -160,6 +161,7 @@ ocean.output_writers[:surface] = JLD2Writer(ocean.model, outputs;
 
 run!(simulation)
 
+#=
 simulation.Δt = 20minutes
 simulation.stop_time = 360days
 run!(simulation)
@@ -245,3 +247,4 @@ end
 nothing #hide
 
 # ![](one_degree_global_ocean_surface.mp4)
+=#
