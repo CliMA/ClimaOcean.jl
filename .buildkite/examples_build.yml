@@ -1,25 +1,22 @@
-agents:
-  queue: ClimaOcean-docs
 
 env:
   JULIA_LOAD_PATH: "${JULIA_LOAD_PATH}:${BUILDKITE_BUILD_CHECKOUT_PATH}/.buildkite"
   OPENBLAS_NUM_THREADS: 1
   OMPI_MCA_opal_warn_on_missing_libcuda: 0
   JULIA_NUM_PRECOMPILE_TASKS: 8
+  JULIA_NUM_THREADS: 8
+  CUDA_VISIBLE_DEVICES: "2" # Device for building ClimaOcean docs
 
 steps:
   - label: "initialize"
     key: "init"
     command:
       - "echo '--- Instantiate project'"
-      - "julia --project -e 'using Pkg; Pkg.instantiate(; verbose=true); Pkg.precompile(; strict=true)'"
+      - "julia --project -e -O0 'using Pkg; Pkg.instantiate(; verbose=true); Pkg.precompile(; strict=true)'"
       # force the initialization of the CUDA runtime as it is lazily loaded by default
-      - "julia --project -e 'using CUDA; CUDA.precompile_runtime()'"
-
+      - "julia --project -e -O0 'using CUDA; CUDA.precompile_runtime()'"
     agents:
-      slurm_mem: 120G
-      slurm_gpus: 1
-      slurm_cpus_per_task: 8
+      queue: ClimaOcean-docs
 
   - wait
 
@@ -28,14 +25,8 @@ steps:
     commands:
       - "julia --color=yes -O0 --project=docs/ -e 'using Pkg; Pkg.instantiate(); Pkg.develop(PackageSpec(path=pwd()))'"
       - "julia --color=yes -O0 --project=docs/ docs/make.jl"
-
     agents:
-      slurm_mem: 120G
-      slurm_gpus: 1
-      slurm_cpus_per_task: 8
-      slurm_ntasks: 1
-      slurm_gpus_per_task: 1
-      slurm_time: 48:00:00
+      queue: ClimaOcean-docs
 
     env:
       JULIA_DEBUG: "Documenter"
