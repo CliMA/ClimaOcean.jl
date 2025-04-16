@@ -45,8 +45,8 @@ if test_group == :JRA55 || test_group == :all
     include("test_jra55.jl")
 end
 
-if test_group == :datasets || test_group == :all
-    include("test_datasets.jl")
+if test_group == :ecco4_en4 || test_group == :all
+    include("test_ecco4_en4.jl")
 end
 
 # Tests that we can download JRA55 utilities
