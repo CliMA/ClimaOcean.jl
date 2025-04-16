@@ -12,6 +12,7 @@ import Oceananigans.Fields: location
 import ClimaOcean.DataWrangling: all_dates, metadata_filename, download_dataset,
                                  default_download_directory, dataset_temperature_units,
                                  short_name, dataset_latitude_extent
+import ClimaOcean.DataWrangling.ECCO: download_ECCO_cache
 
 struct ECCO2Monthly end
 struct ECCO2Daily end
@@ -25,13 +26,13 @@ const ECCO4_url = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/inter
 
 """
     ECCOMetadatum(name;
-                  date = first_date(ECCO4Monthly()),
+                  date = first_date(ECCO4Monthly(), name),
                   dir = download_ECCO_cache)
 
 An alias to construct a [`Metadatum`](@ref) of `ECCO4Monthly()`.
 """
 function ECCOMetadatum(name;
-                       date = first_date(ECCO4Monthly()),
+                       date = first_date(ECCO4Monthly(), name),
                        dir = download_ECCO_cache)
 
     return Metadatum(name; date, dir, dataset=ECCO4Monthly())
