@@ -149,7 +149,6 @@ function download_dataset(metadata::Metadata{<:EN4Monthly})
         end
 
         for zips in unique(missingzips)
-            @info zips
             unzip(zips, dir)
         end
     end
