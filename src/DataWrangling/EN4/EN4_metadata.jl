@@ -115,9 +115,8 @@ function unzip(file, exdir="")
     filepath = isabspath(file) ? file : joinpath(pwd(), file)
     basepath = dirname(filepath)
     outpath = (exdir == "" ? basepath : (isabspath(exdir) ? exdir : joinpath(pwd(), exdir)))
-    @show outpath
     isdir(outpath) ? "" : mkdir(outpath)
-    zarchive = ZipFile.Reader(basepath)
+    zarchive = ZipFile.Reader(filepath)
     for f in zarchive.files
         filepath = joinpath(outpath, f.name)
         if endswith(f.name, "/") || endswith(f.name, "\\")
@@ -150,6 +149,7 @@ function download_dataset(metadata::Metadata{<:EN4Monthly})
         end
 
         for zips in unique(missingzips)
+            @info zips
             unzip(zips, dir)
         end
     end
