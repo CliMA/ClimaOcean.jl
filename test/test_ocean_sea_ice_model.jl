@@ -23,7 +23,7 @@ using ClimaSeaIce.Rheologies
             λ★, φ★ = 35.1, 50.1
 
             grid = RectilinearGrid(arch, size = 200, x = λ★, y = φ★,
-                                z = (-400, 0), topology = (Flat, Flat, Bounded))
+                                   z = (-400, 0), topology = (Flat, Flat, Bounded))
 
             ocean = ocean_simulation(grid)
             data = Int[]
@@ -51,9 +51,9 @@ using ClimaSeaIce.Rheologies
                                 z = (-6000, 0))
 
             bottom_height = regrid_bathymetry(grid;
-                                            minimum_depth = 10,
-                                            interpolation_passes = 20,
-                                            major_basins = 1)
+                                              minimum_depth = 10,
+                                              interpolation_passes = 20,
+                                              major_basins = 1)
 
             grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
@@ -80,10 +80,10 @@ using ClimaSeaIce.Rheologies
             τva = Field{Center, Face, Nothing}(grid)
 
             dynamics = SeaIceMomentumEquation(grid;
-                                            coriolis = ocean.model.coriolis,
-                                            top_momentum_stress = (u=τua, v=τva),
-                                            rheology = ElastoViscoPlasticRheology(),
-                                            solver = SplitExplicitSolver(120))
+                                              coriolis = ocean.model.coriolis,
+                                              top_momentum_stress = (u=τua, v=τva),
+                                              rheology = ElastoViscoPlasticRheology(),
+                                              solver = SplitExplicitSolver(120))
 
             sea_ice  = sea_ice_simulation(grid; dynamics, advection=WENO(order=7))
             liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
@@ -97,7 +97,7 @@ using ClimaSeaIce.Rheologies
             S = on_architecture(CPU(), ocean.model.tracers.S)
 
             Tm = KernelFunctionOperation{Center, Center, Center}(kernel_melting_temperature, grid, liquidus, S)
-            @test all(T .>= Tm)
+            @test all(T .≥ Tm)
 
             # Fluxes are computed when the model is constructed, so we just test that this works.
             # And that we can time step with sea ice
