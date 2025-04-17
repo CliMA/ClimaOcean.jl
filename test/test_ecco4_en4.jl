@@ -1,12 +1,11 @@
 include("runtests_setup.jl")
 
-using Dates
 using ClimaOcean
-
 using ClimaOcean.ECCO
-using ClimaOcean.ECCO: ECCO_field, metadata_path, native_times
-using ClimaOcean.DataWrangling: NearestNeighborInpainting
+using ClimaOcean.EN4
+using ClimaOcean.DataWrangling: NearestNeighborInpainting, metadata_path, native_times
 
+using Dates
 using Oceananigans.Grids: topology
 using Oceananigans.OutputReaders: time_indices
 using Oceananigans.TimeSteppers: update_state!
@@ -21,45 +20,33 @@ dates = start_date : Month(1) : end_date
 # Inpaint only the first two cells inside the missing mask
 inpainting = NearestNeighborInpainting(2)
 
-@testset "ECCO fields utilities" begin
-    for arch in test_architectures
+@testset "Fields utilities" begin
+    for arch in test_architectures, dataset in test_datasets
         A = typeof(arch)
+        @info "Testing field utilities of $(typeof(dataset)) on $A"
         for name in (:temperature, :salinity)
-            @info "Testing ECCO_field on $A..."
-            metadata = Metadata(name; dates, dataset=ECCO4Monthly())
-            restoring = ECCORestoring(metadata; rate=1/1000, inpainting)
+            @info "Testing $(typeof(dataset)) Field on $A..."
+            metadata = Metadata(name; dates, dataset)
 
-            for datum in metadata 
+            for datum in metadata
                 @test isfile(metadata_path(datum))
             end
 
-            fts = restoring.field_time_series
-            @test fts isa FieldTimeSeries
-            @test fts.grid isa LatitudeLongitudeGrid
-            @test topology(fts.grid) == (Periodic, Bounded, Bounded)
-
-            Nx, Ny, Nz = size(interior(fts))
-            Nt = length(fts.times)
-
-            @test Nx == size(metadata)[1]
-            @test Ny == size(metadata)[2]
-            @test Nz == size(metadata)[3]
-            @test Nt == size(metadata)[4]
-
-            @test fts.times[1] == native_times(metadata)[1]
-            @test fts.times[end] == native_times(metadata)[end]
-
             datum = first(metadata)
-            ψ = ECCO_field(datum, architecture=arch, inpainting=NearestNeighborInpainting(2))
-            datapath = ClimaOcean.DataWrangling.ECCO.inpainted_metadata_path(datum)
+            ψ = Field(datum, architecture=arch, inpainting=NearestNeighborInpainting(2))
+            @test ψ isa Field
+            datapath = ClimaOcean.DataWrangling.inpainted_metadata_path(datum)
             @test isfile(datapath)
         end
     end
 end
 
 @testset "Inpainting algorithm" begin
-    for arch in test_architectures
-        T_metadatum = ECCOMetadatum(:temperature; date=start_date)
+    for arch in test_architectures, dataset in test_datasets
+        A = typeof(arch)
+        @info "Testing $(typeof(dataset)) on $A"
+
+        T_metadatum = Metadatum(:temperature; dataset, date=start_date)
 
         grid = LatitudeLongitudeGrid(arch,
                                      size = (100, 100, 10),
@@ -82,7 +69,113 @@ end
     end
 end
 
-@testset "LinearlyTaperedPolarMask" begin
+@testset "Setting a field from a dataset" begin
+    for arch in test_architectures, dataset in test_datasets
+        A = typeof(arch)
+        @info "Testing setting a field from $(typeof(dataset)) on $A"
+        grid = LatitudeLongitudeGrid(arch;
+                                     size=(10, 10, 10),
+                                     latitude=(-60, -40),
+                                     longitude=(10, 15), z=(-200, 0))
+
+        field = CenterField(grid)
+
+        @test begin
+            set!(field, Metadatum(:temperature; dataset, date=start_date))
+            set!(field, Metadatum(:salinity;    dataset, date=start_date))
+            true
+        end
+    end
+end
+
+@testset "Setting temperature and salinity from dataset" begin
+    for arch in test_architectures, dataset in test_datasets
+        A = typeof(arch)
+        @info "Testing setting temperature and salinity from $(typeof(dataset)) on $A"
+        grid = LatitudeLongitudeGrid(arch;
+                                     size = (10, 10, 10),
+                                     latitude = (-60, -40),
+                                     longitude = (10, 15),
+                                     z = (-200, 0),
+                                     halo = (7, 7, 7))
+
+        ocean = ocean_simulation(grid)
+        date = DateTime(1993, 1, 1)
+        set!(ocean.model, T=Metadatum(:temperature; dataset, date=start_date),
+                          S=Metadatum(:salinity;    dataset, date=start_date))
+    end
+end
+
+@testset "Timestepping with fields from Dataset" begin
+    for arch in test_architectures, dataset in test_datasets
+        A = typeof(arch)
+        @info "Testing timestepping with fields from $(typeof(dataset)) on $A"
+        grid  = LatitudeLongitudeGrid(arch;
+                                      size = (10, 10, 10),
+                                      latitude = (-60, -40),
+                                      longitude = (10, 15),
+                                      z = (-200, 0),
+                                      halo = (6, 6, 6))
+
+        field = CenterField(grid)
+
+        @test begin
+            set!(field, Metadatum(:temperature; dataset, date=start_date))
+            set!(field, Metadatum(:salinity;    dataset, date=start_date))
+            true
+        end
+
+        ocean = ocean_simulation(grid; verbose=false)
+
+        @test begin
+            time_step!(ocean)
+            time_step!(ocean)
+            true
+        end
+    end
+end
+
+####
+#### TODO: Generalize the below ECCO-specific restoring tests for any dataset
+####
+
+@testset "ECCO-specific field utilities" begin
+    for arch in test_architectures
+        A = typeof(arch)
+        for name in (:temperature, :salinity)
+            @info "Testing ECCO_field on $A..."
+            metadata = Metadata(name; dates, dataset=ECCO4Monthly())
+            restoring = ECCORestoring(metadata; rate=1/1000, inpainting)
+
+            for datum in metadata
+                @test isfile(metadata_path(datum))
+            end
+
+            fts = restoring.field_time_series
+            @test fts isa FieldTimeSeries
+            @test fts.grid isa LatitudeLongitudeGrid
+            @test topology(fts.grid) == (Periodic, Bounded, Bounded)
+
+            Nx, Ny, Nz = size(interior(fts))
+            Nt = length(fts.times)
+
+            @test Nx == size(metadata)[1]
+            @test Ny == size(metadata)[2]
+            @test Nz == size(metadata)[3]
+            @test Nt == size(metadata)[4]
+
+            @test fts.times[1] == native_times(metadata)[1]
+            @test fts.times[end] == native_times(metadata)[end]
+
+            datum = first(metadata)
+            ψ = Field(datum, architecture=arch, inpainting=NearestNeighborInpainting(2))
+            datapath = ClimaOcean.DataWrangling.ECCO.inpainted_metadata_path(datum)
+            @test isfile(datapath)
+        end
+    end
+end
+
+@testset "ECCORestoring with LinearlyTaperedPolarMask" begin
     for arch in test_architectures
         grid = LatitudeLongitudeGrid(arch;
                                      size = (100, 100, 10),
@@ -121,23 +214,6 @@ end
     end
 end
 
-@testset "Setting a field with ECCO" begin
-    for arch in test_architectures
-        grid = LatitudeLongitudeGrid(arch;
-                                     size=(10, 10, 10),
-                                     latitude=(-60, -40),
-                                     longitude=(10, 15), z=(-200, 0))
-
-        field = CenterField(grid)
-
-        @test begin
-            set!(field, ECCOMetadatum(:temperature, date=start_date))
-            set!(field, ECCOMetadatum(:salinity,    date=start_date))
-            true
-        end
-    end
-end
-
 @testset "Timestepping with ECCORestoring" begin
     for arch in test_architectures
 
@@ -168,23 +244,7 @@ end
     end
 end
 
-@testset "Setting temperature and salinity to ECCO" begin
-    for arch in test_architectures
-        grid = LatitudeLongitudeGrid(arch; 
-                                     size = (10, 10, 10),
-                                     latitude = (-60, -40),
-                                     longitude = (10, 15),
-                                     z = (-200, 0),
-                                     halo = (7, 7, 7))
-
-        ocean = ocean_simulation(grid)
-        date = DateTime(1993, 1, 1)
-        set!(ocean.model, T=ECCOMetadatum(:temperature; date=start_date), 
-                          S=ECCOMetadatum(:salinity;    date=start_date))
-    end
-end
-
-@testset "ECCO dataset cycling boundaries" begin
+@testset "ECCO-specific dataset cycling boundaries" begin
     for arch in test_architectures
         grid = LatitudeLongitudeGrid(arch;
                                      size = (10, 10, 10),
@@ -214,7 +274,7 @@ end
         ocean.model.clock.time = last(times) + 2 * Units.days
 
         update_state!(ocean.model)
-        
+
         @test begin
             time_step!(ocean)
             true
@@ -224,4 +284,3 @@ end
         @test time_indices(T_restoring.field_time_series) == (6, 1)
     end
 end
-

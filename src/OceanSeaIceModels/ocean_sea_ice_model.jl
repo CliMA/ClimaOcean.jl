@@ -199,4 +199,3 @@ function above_freezing_ocean_temperature!(ocean, sea_ice::SeaIceSimulation)
 
     return nothing
 end
-

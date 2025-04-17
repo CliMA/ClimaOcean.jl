@@ -59,7 +59,7 @@ end
 # File name generation specific to each Dataset dataset
 # Note that `RepeatYearJRA55` has only one file associated, so we can define
 # the filename directly for the whole `Metadata` object, independent of the `dates`
-function metadata_filename(metadata::Metadata{<:RepeatYearJRA55}) # No difference 
+function metadata_filename(metadata::Metadata{<:RepeatYearJRA55}) # No difference
     shortname = short_name(metadata)
     return "RYF." * shortname * ".1990_1991.nc"
 end
@@ -183,9 +183,9 @@ JRA55_repeat_year_urls = Dict(
                            "RYF.vas.1990_1991.nc?rlkey=f9y3e57kx8xrb40gbstarf0x6&dl=0",
 )
 
-metadata_url(metadata::Metadata{<:RepeatYearJRA55}) = JRA55_repeat_year_urls[metadata.name]  
+metadata_url(metadata::Metadata{<:RepeatYearJRA55}) = JRA55_repeat_year_urls[metadata.name]
 
-function metadata_url(m::Metadata{<:MultiYearJRA55}) 
+function metadata_url(m::Metadata{<:MultiYearJRA55})
     prefix = JRA55_multiple_year_prefix[m.name]
     return JRA55_multiple_year_url * prefix * "/" * short_name(m) * "/gr/v20200916/" * metadata_filename(m)
 end
