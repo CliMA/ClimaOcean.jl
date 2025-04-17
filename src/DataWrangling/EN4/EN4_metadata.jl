@@ -117,7 +117,7 @@ function unzip(file, exdir="")
     outpath = (exdir == "" ? basepath : (isabspath(exdir) ? exdir : joinpath(pwd(), exdir)))
     @show outpath
     isdir(outpath) ? "" : mkdir(outath)
-    zarchive = ZipFile.Reader(baseath)
+    zarchive = ZipFile.Reader(basepath)
     for f in zarchive.files
         filepath = joinpath(outpath, f.name)
         if endswith(f.name, "/") || endswith(f.name, "\\")
