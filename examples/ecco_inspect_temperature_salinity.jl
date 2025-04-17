@@ -4,7 +4,7 @@ using Oceananigans.ImmersedBoundaries: mask_immersed_field!
 using CairoMakie
 using Printf
 using ClimaOcean
-using ClimaOcean.DataWrangling.ECCO: ECCO_field, ECCOFieldTimeSeries, ECCO4Monthly
+using ClimaOcean.DataWrangling.ECCO: ECCOFieldTimeSeries, ECCO4Monthly
 using CFTime
 using Dates
 
@@ -21,7 +21,7 @@ grid = LatitudeLongitudeGrid(arch; z,
                              latitude  = (-80, 80),
                              longitude = (0, 360))
 
-bottom_height = regrid_bathymetry(grid; 
+bottom_height = regrid_bathymetry(grid;
                                   minimum_depth = 10,
                                   interpolation_passes = 5,
                                   major_basins = 1)
