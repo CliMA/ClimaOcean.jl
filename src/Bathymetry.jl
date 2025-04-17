@@ -209,9 +209,6 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     resxn = minimum_xspacing(native_z.grid)
     resyn = minimum_yspacing(native_z.grid)
 
-    resxt < resxn
-    resyt < resyn
-
     # Check whether we are refining the grid in any directions.
     # If so, skip interpolation passes, as they are not needed.
     if resxt < resxn || resyt < resyn
