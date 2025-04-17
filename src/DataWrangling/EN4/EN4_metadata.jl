@@ -116,7 +116,7 @@ function unzip(file, exdir="")
     basepath = dirname(filepath)
     outpath = (exdir == "" ? basepath : (isabspath(exdir) ? exdir : joinpath(pwd(), exdir)))
     @show outpath
-    isdir(outpath) ? "" : mkdir(outath)
+    isdir(outpath) ? "" : mkdir(outpath)
     zarchive = ZipFile.Reader(basepath)
     for f in zarchive.files
         filepath = joinpath(outpath, f.name)
