@@ -113,7 +113,7 @@ end
 
 function unzip(file, exdir="")
     filepath = isabspath(file) ? file : joinpath(pwd(), file)
-    basepath = dirname(basepath)
+    basepath = dirname(filepath)
     outpath = (exdir == "" ? basepath : (isabspath(exdir) ? exdir : joinpath(pwd(), exdir)))
     @show outpath
     isdir(outpath) ? "" : mkdir(outath)
