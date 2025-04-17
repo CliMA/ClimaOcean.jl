@@ -62,19 +62,19 @@ Public = false
 
 ```@autodocs
 Modules = [ClimaOcean.VerticalGrids]
-Private = false
+Public = false
 ```
 
 ## OceanSeaIceModels
 
 ```@autodocs
 Modules = [ClimaOcean.OceanSeaIceModels]
-Private = false
+Public = false
 ```
 
 ## InterfaceComputations
 
 ```@autodocs
 Modules = [ClimaOcean.OceanSeaIceModels.InterfaceComputations]
-Private = false
+Public = false
 ```
