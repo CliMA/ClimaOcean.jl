@@ -216,7 +216,8 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
 
         gridtype = target_grid isa TripolarGrid ? "TripolarGrid" :
                    target_grid isa LatitudeLongitudeGrid ? "LatitudeLongitudeGrid" :
-                   target_grid isa RectilinearGrid ? "RectilinearGrid" : error("unknown type of target grid")
+                   target_grid isa RectilinearGrid ? "RectilinearGrid" :
+                   error("unknown target grid type")
 
         @info "Interpolating bathymetry onto a $gridtype target grid of size $(size(target_grid))"
         interpolate!(target_z, native_z)
