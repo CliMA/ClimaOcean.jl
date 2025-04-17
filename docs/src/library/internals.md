@@ -16,7 +16,6 @@ Modules = [ClimaOcean.Diagnostics]
 Public = false
 ```
 
-
 ## InitialConditions
 
 ```@autodocs
@@ -35,6 +34,13 @@ Public = false
 
 ```@autodocs
 Modules = [ClimaOcean.ECCO]
+Public = false
+```
+
+## EN4
+
+```@autodocs
+Modules = [ClimaOcean.EN4]
 Public = false
 ```
 
@@ -66,9 +72,9 @@ Modules = [ClimaOcean.OceanSeaIceModels]
 Private = false
 ```
 
-## CrossRealmFluxes
+## InterfaceComputations
 
 ```@autodocs
-Modules = [ClimaOcean.OceanSeaIceModels.CrossRealmFluxes]
+Modules = [ClimaOcean.OceanSeaIceModels.InterfaceComputations]
 Private = false
 ```
