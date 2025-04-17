@@ -96,26 +96,34 @@ end
 ## This function is explicitly for the downloader to check if the zip file/extracted file exists,
 ## then to download the relevant URL (from above)
 
-function metadata_path(m::EN4Metadata)
+function metadata_path(m::Metadata{V, <:Union{AbstractCFDateTime, Dates.AbstractDateTime}}) where V<:EN4Monthly
     year = string(Dates.year(m.dates))
     month = string(Dates.month(m.dates))
-    zipfile = m.dir * "EN4_" * year * ".zip"
-    extracted_file = m.dir * "EN.4.2.2.f.analysis.g10." * year * lpad(string(month), 2, '0') * ".nc"
-    return zipfile, extracted_file
+    filename = "EN.4.2.2.f.analysis.g10." * year * lpad(string(month), 2, '0') * ".nc"
+    unzipped_filepath = joinpath(m.dir, filename)
+    return unzipped_filepath
+end
+
+function metadata_zippath(m::Metadata{V, <:Union{AbstractCFDateTime, Dates.AbstractDateTime}}) where V<:EN4Monthly
+    year = string(Dates.year(m.dates))
+    month = string(Dates.month(m.dates))
+    zippath = joinpath(m.dir, "EN4_" * year * ".zip")
+    return zippath
 end
 
 function unzip(file, exdir="")
-    fileFullPath = isabspath(file) ? file : joinpath(pwd(), file)
-    basePath = dirname(fileFullPath)
-    outPath = (exdir == "" ? basePath : (isabspath(exdir) ? exdir : joinpath(pwd(), exdir)))
-    isdir(outPath) ? "" : mkdir(outPath)
-    zarchive = ZipFile.Reader(fileFullPath)
+    filepath = isabspath(file) ? file : joinpath(pwd(), file)
+    basepath = dirname(basepath)
+    outpath = (exdir == "" ? basepath : (isabspath(exdir) ? exdir : joinpath(pwd(), exdir)))
+    @show outpath
+    isdir(outpath) ? "" : mkdir(outath)
+    zarchive = ZipFile.Reader(baseath)
     for f in zarchive.files
-        fullFilePath = joinpath(outPath, f.name)
-        if (endswith(f.name, "/") || endswith(f.name, "\\"))
-            mkdir(fullFilePath)
+        filepath = joinpath(outpath, f.name)
+        if endswith(f.name, "/") || endswith(f.name, "\\")
+            mkdir(filepath)
         else
-            write(fullFilePath, read(f))
+            write(filepath, read(f))
         end
     end
     close(zarchive)
@@ -130,7 +138,8 @@ function download_dataset(metadata::Metadata{<:EN4Monthly})
 
         asyncmap(metadata; ntasks) do metadatum # Distribute the download among tasks
             fileurl = metadata_url(metadatum)
-            zippath, extracted_file = metadata_path(metadatum)
+            zippath = metadata_zippath(metadatum)
+            extracted_file = metadata_path(metadatum)
             if !isfile(extracted_file) & !isfile(zippath)
                 push!(missingzips, zippath)
                 @info "Downloading EN4 data: $(metadatum.name) in $(metadatum.dir)..."

@@ -81,8 +81,8 @@ vertical_interfaces(metadata::Metadata{<:EN4Monthly}) =
       0.0,
     ]
 
-# EN4 data is shifted East by 1 degree in longitude so to make the data consistent,
-# we shift EN4.
+# EN4 data is shifted in longitude by 1 degree to the east.
+# So to make the data consistent, we apply longitude shift.
 longitude_shift(metadata::Metadata{<:EN4Monthly}) = 1
 
 function inpainted_metadata_filename(metadata::EN4Metadata)

@@ -98,7 +98,7 @@ Base.iterate(metadata::Metadatum) = (metadata, nothing)
 Base.iterate(::Metadatum, ::Any)  = nothing
 
 metadata_path(metadata::Metadatum) = joinpath(metadata.dir, metadata_filename(metadata))
-metadata_path(metadata) = [metadata_path(metadatum) for metadatum in metadata]
+metadata_path(metadata::Metadata) = [metadata_path(metadatum) for metadatum in metadata]
 
 function short_name end
 
