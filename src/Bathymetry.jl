@@ -198,10 +198,10 @@ function regrid_bathymetry(target_grid;
 end
 
 # Here we can either use `regrid!` (three dimensional version) or `interpolate!`.
-function interpolate_bathymetry(native_z, target_grid, smoothing)
+function interpolate_bathymetry(user_z, target_grid, smoothing)
     target_z = Field{Center, Center, Nothing}(target_grid)
-    interpolate!(target_z, old_z)
-    smooth_z = smooth_bathymetry(target_z, smoothing)
+    interpolate!(z, user_z)
+    smooth_z = smooth_bathymetry(z, smoothing)
     return smooth_z
 end
 
