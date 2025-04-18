@@ -25,13 +25,13 @@ const ECCO4_url = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/inter
 
 """
     ECCOMetadatum(name;
-                  date = first_date(ECCO4Monthly()),
+                  date = first_date(ECCO4Monthly(), name),
                   dir = download_ECCO_cache)
 
 An alias to construct a [`Metadatum`](@ref) of `ECCO4Monthly()`.
 """
 function ECCOMetadatum(name;
-                       date = first_date(ECCO4Monthly()),
+                       date = first_date(ECCO4Monthly(), name),
                        dir = download_ECCO_cache)
 
     return Metadatum(name; date, dir, dataset=ECCO4Monthly())
