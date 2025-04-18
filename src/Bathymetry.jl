@@ -124,6 +124,14 @@ function regrid_bathymetry(target_grid;
                            interpolation_passes = 1,
                            major_basins = 1) # Allow an `Inf` number of "lakes"
 
+    if isinteger(interpolation_passes)
+        interpolation_passes = convert(Int, interpolation_passes)
+    end
+
+    if interpolation_passes isa Nothing || !isa(interpolation_passes, Int) || interpolation_passes ≤ 0
+        return throw(ArgumentError("interpolation_passes has to be an integer ≥ 1"))
+    end
+
     filepath = download_bathymetry(; url, dir, filename)
     dataset = Dataset(filepath, "r")
 
@@ -200,10 +208,6 @@ end
 # Here we can either use `regrid!` (three dimensional version) or `interpolate!`.
 function interpolate_bathymetry_in_passes(native_z, target_grid;
                                           passes = 10)
-
-    if passes isa Nothing || passes == 0
-        return throw(ArgumentError("interpolation_passes has to be an integer ≥ 1"))
-    end
 
     gridtype = target_grid isa TripolarGrid ? "TripolarGrid" :
                target_grid isa LatitudeLongitudeGrid ? "LatitudeLongitudeGrid" :
