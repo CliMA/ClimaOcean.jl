@@ -1,6 +1,6 @@
 module Bathymetry
 
-export regrid_bathymetry, retrieve_bathymetry, download_bathymetry
+export regrid_bathymetry, retrieve_bathymetry, download_bathymetry, InterpolationPasses
 
 using ImageMorphology
 using ..DataWrangling: download_progress
@@ -199,10 +199,10 @@ end
 
 # Here we can either use `regrid!` (three dimensional version) or `interpolate!`.
 function interpolate_bathymetry(user_z, target_grid, smoothing)
+    smooth_z = smooth_bathymetry(user_z, target_grid, smoothing)
     target_z = Field{Center, Center, Nothing}(target_grid)
-    interpolate!(z, user_z)
-    smooth_z = smooth_bathymetry(z, smoothing)
-    return smooth_z
+    interpolate!(target_z, smooth_z)
+    return target_z
 end
 
 smooth_bathymetry(z, ::Nothing) = z
@@ -221,7 +221,7 @@ struct InterpolationPasses
     end
 end
 
-function smooth_bathymetry(z, smoothing::InterpolationPasses)
+function smooth_bathymetry(user_z, target_grid, smoothing::InterpolationPasses)
     passes = smoothing.passes
     grid = z.grid
     Nλt, Nφt = Nt = size(grid)
@@ -231,14 +231,11 @@ function smooth_bathymetry(z, smoothing::InterpolationPasses)
     longitude = x_domain(grid)
     latitude  = y_domain(grid)
 
-    ΔNλ = floor((Nλn - Nλt) / (passes + 1))
-    ΔNφ = floor((Nφn - Nφt) / (passes + 1))
+    ΔNλ = floor((Nλn - Nλt) / passes)
+    ΔNφ = floor((Nφn - Nφt) / passes)
 
     Nλ = [Nλn - ΔNλ * pass for pass in 1:passes]
     Nφ = [Nφn - ΔNφ * pass for pass in 1:passes]
-
-    Nλ = Int[Nλ..., Nλt]
-    Nφ = Int[Nφ..., Nφt]
 
     old_z  = native_z
     TX, TY = topology(target_grid)
