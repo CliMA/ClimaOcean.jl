@@ -201,6 +201,10 @@ end
 function interpolate_bathymetry_in_passes(native_z, target_grid;
                                           passes = 10)
 
+    if passes isa Nothing || passes == 0
+        return throw(ArgumentError("interpolation_passes has to be an integer ≥ 1"))
+    end
+
     gridtype = target_grid isa TripolarGrid ? "TripolarGrid" :
                target_grid isa LatitudeLongitudeGrid ? "LatitudeLongitudeGrid" :
                target_grid isa RectilinearGrid ? "RectilinearGrid" :
@@ -248,19 +252,19 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     ΔNλ = floor((Nλn - Nλt) / passes)
     ΔNφ = floor((Nφn - Nφt) / passes)
 
-    Nλ = [Nλn - ΔNλ * pass for pass in 1:passes]
-    Nφ = [Nφn - ΔNφ * pass for pass in 1:passes]
+    Nλ = [Nλn - ΔNλ * pass for pass in 1:passes-1]
+    Nφ = [Nφn - ΔNφ * pass for pass in 1:passes-1]
 
-    @show Nλ = Int[Nλ..., Nλt]
-    @show Nφ = Int[Nφ..., Nφt]
+    Nλ = Int[Nλ..., Nλt]
+    Nφ = Int[Nφ..., Nφt]
 
     old_z  = native_z
     TX, TY = topology(target_grid)
 
-    for pass = 1:passes
+    for pass = 1:passes - 1
         new_size = (Nλ[pass], Nφ[pass], 1)
 
-        @debug "Bathymetry extra interpolation pass $pass with size $new_size"
+        @info "Bathymetry extra interpolation pass $pass with size $new_size"
 
         new_grid = LatitudeLongitudeGrid(architecture(target_grid), Float32,
                                          size = new_size,
