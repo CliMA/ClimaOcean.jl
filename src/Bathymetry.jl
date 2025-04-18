@@ -230,8 +230,13 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
                         "Extra interpolation passes may only be used to coarsen bathymetry", '\n',
                         "and require that the bathymetry is finer than the target grid in", '\n',
                         "both horizontal directions.", '\n',
-                        "minimum x-spacings: target grid ", @sprintf("%.3e", resxt), " m; bathymetry grid ", @sprintf("%.3e", resxn), " m", '\n',
-                        "minimum y-spacings: target grid ", @sprintf("%.3e", resyt), " m; bathymetry grid ", @sprintf("%.3e", resyn), " m")
+                        "Grid info:", '\n',
+                        "target grid", '\n',
+                        "├── minimum x-spacings ", @sprintf("%.3e", resxt), " m", '\n',
+                        "└── minimum x-spacings ", @sprintf("%.3e", resyt), " m", '\n',
+                        "bathymetry grid", '\n',
+                        "├── minimum x-spacings ", @sprintf("%.3e", resxn), " m", '\n',
+                        "└── minimum x-spacings ", @sprintf("%.3e", resyn), " m")
         end
         return target_z
     end
