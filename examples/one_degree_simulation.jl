@@ -43,7 +43,7 @@ underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 ## 75 interpolation passes smooth the bathymetry near Florida so that the Gulf Stream is able to flow:
 bottom_height = regrid_bathymetry(underlying_grid;
                                   minimum_depth = 20,
-                                  interpolation_passes = 10,
+                                  interpolation_passes = 100,
                                   major_basins = 2)
 
 # For this bathymetry at this horizontal resolution we need to manually open the Gibraltar strait.
@@ -52,11 +52,15 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); ac
 # ### Restoring
 #
 # We include temperature and salinity surface restoring to ECCO data.
-# restoring_rate  = 1 / 10days
-# mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(z[1], 0))
-# FT = ECCORestoring(ecco_temperature, arch; mask, rate=restoring_rate)
-# FS = ECCORestoring(ecco_salinity, arch; mask, rate=restoring_rate)
-# forcing = (T=FT, S=FS)
+restoring_rate  = 1 / 10days
+mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(z[1], 0))
+@inline damping(x, y, z, u, p) = - p.r * p.mask(y, z) * u
+ecco_temperature = Field(ecco_temperature; grid, mask, damping)
+FT = ECCORestoring(ecco_temperature, arch; mask, rate=restoring_rate)
+FS = ECCORestoring(ecco_salinity, arch; mask, rate=restoring_rate)
+Fu = Forcing(damping, field_dependencies=:u, parameters=(r=restoring_rate; mask))
+Fv = Forcing(damping, field_dependencies=:v, parameters=(r=restoring_rate; mask))
+forcing = (T=FT, S=FS, u=Fu, v=Fv)
 
 # ### Closures
 #
@@ -78,7 +82,7 @@ free_surface = SplitExplicitFreeSurface(grid; substeps=50)
 momentum_advection = VectorInvariant()
 tracer_advection   = WENO(order=5)
 
-ocean = ocean_simulation(grid; momentum_advection, tracer_advection, closure, free_surface)
+ocean = ocean_simulation(grid; momentum_advection, tracer_advection, closure, forcing, free_surface)
 
 # ### Initial condition
 
@@ -161,6 +165,7 @@ ocean.output_writers[:surface] = JLD2Writer(ocean.model, outputs;
 
 run!(simulation)
 
+#=
 simulation.Δt = 20minutes
 simulation.stop_time = 360days
 run!(simulation)
@@ -246,3 +251,4 @@ end
 nothing #hide
 
 # ![](one_degree_global_ocean_surface.mp4)
+=#
