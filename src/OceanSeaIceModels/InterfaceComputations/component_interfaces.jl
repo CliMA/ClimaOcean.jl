@@ -129,8 +129,12 @@ function initialize!(exchanger::StateExchanger, atmosphere)
     arch = architecture(exchange_grid)
     frac_indices = exchanger.atmosphere_exchanger
     kernel_parameters = interface_kernel_parameters(exchange_grid)
-    launch!(arch, exchange_grid, kernel_parameters,
-            _compute_fractional_indices!, frac_indices, exchange_grid, atmos_grid)
+
+    if topology(atmos_grid) != (Flat, Flat, Flat)
+        launch!(arch, exchange_grid, kernel_parameters,
+                _compute_fractional_indices!, frac_indices, exchange_grid, atmos_grid)
+    end
+
     return nothing
 end
 
