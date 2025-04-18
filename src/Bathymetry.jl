@@ -223,31 +223,29 @@ end
 
 function smooth_bathymetry(user_z, target_grid, smoothing::InterpolationPasses)
     passes = smoothing.passes
-    grid = z.grid
-    Nλt, Nφt = Nt = size(grid)
-    Nλn, Nφn = Nn = size(z)
+    Nλt, Nφt = Nt = size(target_grid)
+    Nλn, Nφn = Nn = size(user_z)
 
     # Interpolate in passes
-    longitude = x_domain(grid)
-    latitude  = y_domain(grid)
+    longitude = x_domain(user_z.grid)
+    latitude  = y_domain(user_z.grid)
 
-    ΔNλ = floor((Nλn - Nλt) / passes)
-    ΔNφ = floor((Nφn - Nφt) / passes)
+    ΔNλ = floor((Nλn - Nλt) / (passes - 1))
+    ΔNφ = floor((Nφn - Nφt) / (passes - 1))
 
     Nλ = [Nλn - ΔNλ * pass for pass in 1:passes]
     Nφ = [Nφn - ΔNφ * pass for pass in 1:passes]
 
-    old_z  = native_z
+    old_z = user_z
     TX, TY = topology(target_grid)
 
     for pass = 1:passes
         new_size = (Nλ[pass], Nφ[pass], 1)
-
         @debug "Bathymetry interpolation pass $pass with size $new_size"
 
         new_grid = LatitudeLongitudeGrid(architecture(target_grid), Float32,
                                          size = new_size,
-                                         latitude = (latitude[1],  latitude[2]),
+                                         latitude = (latitude[1], latitude[2]),
                                          longitude = (longitude[1], longitude[2]),
                                          z = (0, 1),
                                          topology = (TX, TY, Bounded))
