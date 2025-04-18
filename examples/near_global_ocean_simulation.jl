@@ -1,7 +1,7 @@
 # # Near-global ocean simulation
 #
 # This example sets up and runs a near-global ocean simulation using the Oceananigans.jl and
-# ClimaOcean.jl. The simulation covers latitudes from 75°S to 75°N with a horizontal
+# ClimaOcean.jl. The simulation covers latitudes from 75°S to 75°N, with a horizontal
 # resolution of 1/4 degree and 40 vertical levels.
 #
 # The simulation's results are visualized with the CairoMakie.jl package.
@@ -30,8 +30,7 @@ using Printf
 # The total depth of the domain is set to 6000 meters.
 # Finally, we specify the architecture for the simulation, which in this case is a GPU.
 
-arch = GPU()
-
+arch = CPU()
 Nx = 1440
 Ny = 600
 Nz = 40
@@ -50,8 +49,8 @@ grid = LatitudeLongitudeGrid(arch;
 #
 # We use `regrid_bathymetry` to derive the bottom height from ETOPO1 data.
 # To smooth the interpolated data we use 5 interpolation passes. We also fill in
-# (i) all the minor enclosed basins except the 3 largest `major_basins`, as well as
-# (ii) regions that are shallower than `minimum_depth`.
+# * all the minor enclosed basins except the 3 largest `major_basins`, as well as
+# * regions that are shallower than `minimum_depth`.
 
 bottom_height = regrid_bathymetry(grid;
                                   minimum_depth = 10meters,

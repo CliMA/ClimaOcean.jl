@@ -138,6 +138,13 @@ Note: This methods needs to be extended for any new dataset.
 all_dates(metadata) = all_dates(metadata.dataset, metadata.name)
 
 """
+    first_date(dataset)
+
+Extracts the first date of the given dataset using the `DateTime` type.
+"""
+first_date(dataset) = first(all_dates(dataset))
+
+"""
     first_date(dataset, variable_name)
 
 Extracts the first date of the given dataset and variable name formatted using the `DateTime` type.
