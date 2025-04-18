@@ -54,8 +54,7 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); ac
 # We include temperature and salinity surface restoring to ECCO data.
 restoring_rate  = 1 / 10days
 mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(z[1], 0))
-@inline damping(x, y, z, u, p) = - p.r * p.mask(y, z) * u
-ecco_temperature = Field(ecco_temperature; grid, mask, damping)
+@inline damping(x, y, z, t, u, p) = - p.r * p.mask(y, z) * u
 FT = ECCORestoring(ecco_temperature, arch; mask, rate=restoring_rate)
 FS = ECCORestoring(ecco_salinity, arch; mask, rate=restoring_rate)
 Fu = Forcing(damping, field_dependencies=:u, parameters=(r=restoring_rate; mask))
