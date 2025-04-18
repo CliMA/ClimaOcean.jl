@@ -200,6 +200,12 @@ end
 # Here we can either use `regrid!` (three dimensional version) or `interpolate!`.
 function interpolate_bathymetry_in_passes(native_z, target_grid;
                                           passes = 10)
+
+    gridtype = target_grid isa TripolarGrid ? "TripolarGrid" :
+               target_grid isa LatitudeLongitudeGrid ? "LatitudeLongitudeGrid" :
+               target_grid isa RectilinearGrid ? "RectilinearGrid" :
+               error("unknown target grid type")
+
     Nλt, Nφt = Nt = size(target_grid)
     Nλn, Nφn = Nn = size(native_z)
 
@@ -214,19 +220,13 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     if resxt < resxn || resyt < resyn
         target_z = Field{Center, Center, Nothing}(target_grid)
 
-        gridtype = target_grid isa TripolarGrid ? "TripolarGrid" :
-                   target_grid isa LatitudeLongitudeGrid ? "LatitudeLongitudeGrid" :
-                   target_grid isa RectilinearGrid ? "RectilinearGrid" :
-                   error("unknown target grid type")
-
-        @info "Interpolating bathymetry onto a $gridtype target grid of size $(size(target_grid))"
+        @info "Interpolating bathymetry of size $Nn onto a $gridtype target grid of size $Nt"
         interpolate!(target_z, native_z)
 
         if passes > 0
             passes_str = passes == 1 ? "1 interpolation pass" : "$passes interpolation passes"
 
-            @info string("Skipping extra $passes_str for bathymetry of size $Nn to", '\n',
-                        "target grid of size $Nt.", '\n',
+            @info string("Skipping extra $passes_str for bathymetry.", '\n',
                         "Extra interpolation passes may only be used to coarsen bathymetry", '\n',
                         "and require that the bathymetry is finer than the target grid in", '\n',
                         "both horizontal directions.", '\n',
@@ -248,16 +248,16 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     ΔNλ = floor((Nλn - Nλt) / passes)
     ΔNφ = floor((Nφn - Nφt) / passes)
 
-    Nλ = [Nλn - ΔNλ * pass for pass in 1:passes-1]
-    Nφ = [Nφn - ΔNφ * pass for pass in 1:passes-1]
+    Nλ = [Nλn - ΔNλ * pass for pass in 1:passes]
+    Nφ = [Nφn - ΔNφ * pass for pass in 1:passes]
 
-    Nλ = Int[Nλ..., Nλt]
-    Nφ = Int[Nφ..., Nφt]
+    @show Nλ = Int[Nλ..., Nλt]
+    @show Nφ = Int[Nφ..., Nφt]
 
     old_z  = native_z
     TX, TY = topology(target_grid)
 
-    for pass = 1:passes - 1
+    for pass = 1:passes
         new_size = (Nλ[pass], Nφ[pass], 1)
 
         @debug "Bathymetry extra interpolation pass $pass with size $new_size"
@@ -275,8 +275,7 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
         old_z = new_z
     end
 
-    new_size = (Nλ[end], Nφ[end], 1)
-    @debug "Bathymetry extra interpolation pass $passes with size $new_size"
+    @info "Interpolating bathymetry of size $Nn onto a $gridtype target grid of size $Nt"
     target_z = Field{Center, Center, Nothing}(target_grid)
     interpolate!(target_z, old_z)
 
