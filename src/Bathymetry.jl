@@ -121,7 +121,7 @@ function regrid_bathymetry(target_grid;
                            dir = download_bathymetry_cache,
                            url = etopo_url,
                            filename = "ETOPO_2022_v1_60s_N90W180_surface.nc",
-                           interpolation_passes = 1,
+                           smoothing = InterpolationPasses(0),
                            major_basins = 1) # Allow an `Inf` number of "lakes"
 
     if isinteger(interpolation_passes)
