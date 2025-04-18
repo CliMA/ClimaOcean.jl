@@ -55,7 +55,6 @@ grid = LatitudeLongitudeGrid(arch;
 
 bottom_height = regrid_bathymetry(grid;
                                   minimum_depth = 10meters,
-                                  interpolation_passes = 5,
                                   major_basins = 3)
 
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)

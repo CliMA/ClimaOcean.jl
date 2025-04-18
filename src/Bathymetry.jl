@@ -66,7 +66,7 @@ end
                       dir = download_bathymetry_cache,
                       url = ClimaOcean.Bathymetry.etopo_url,
                       filename = "ETOPO_2022_v1_60s_N90W180_surface.nc",
-                      interpolation_passes = 1,
+                      smoothing = nothing
                       major_basins = 1)
 
 Return bathymetry associated with the NetCDF file at `path = joinpath(dir, filename)` regridded onto `target_grid`.
@@ -93,9 +93,8 @@ Keyword Arguments
   2. `lon` vector of longitude nodes
   3. `z` matrix of depth values
 
-- `interpolation_passes`: regridding/interpolation passes. The bathymetry is interpolated in
-                          `interpolation_passes - 1` intermediate steps. The more the interpolation
-                          steps the smoother the final bathymetry becomes.
+- `smoothing`: smoothing method for bathymetry.
+               Default: nothing.
 
   Example
   =======
@@ -123,7 +122,7 @@ function regrid_bathymetry(target_grid;
                            dir = download_bathymetry_cache,
                            url = etopo_url,
                            filename = "ETOPO_2022_v1_60s_N90W180_surface.nc",
-                           interpolation_passes = 1,
+                           smoothing = nothing,
                            major_basins = 1) # Allow an `Inf` number of "lakes"
 
     filepath = download_bathymetry(; url, dir, filename)
@@ -179,8 +178,7 @@ function regrid_bathymetry(target_grid;
     set!(native_z, z_data)
     fill_halo_regions!(native_z)
 
-    target_z = interpolate_bathymetry_in_passes(native_z, target_grid;
-                                                passes = interpolation_passes)
+    target_z = interpolate_bathymetry(native_z, target_grid, smoothing)
 
     if minimum_depth > 0
         zi = interior(target_z, :, :, 1)
@@ -200,38 +198,44 @@ function regrid_bathymetry(target_grid;
 end
 
 # Here we can either use `regrid!` (three dimensional version) or `interpolate!`.
-function interpolate_bathymetry_in_passes(native_z, target_grid;
-                                          passes = 10)
-    Nλt, Nφt = Nt = size(target_grid)
-    Nλn, Nφn = Nn = size(native_z)
+function interpolate_bathymetry(native_z, target_grid, smoothing)
+    target_z = Field{Center, Center, Nothing}(target_grid)
+    interpolate!(target_z, old_z)
+    smooth_z = smooth_bathymetry(target_z, smoothing)
+    return smooth_z
+end
 
-    resxt = minimum_xspacing(target_grid)
-    resyt = minimum_yspacing(target_grid)
+smooth_bathymetry(z, ::Nothing) = z
 
-    resxn = minimum_xspacing(native_z.grid)
-    resyn = minimum_yspacing(native_z.grid)
+struct InterpolationPasses
+    passes :: Int
 
-    # Check whether we are refining the grid in any directions.
-    # If so, skip interpolation passes, as they are not needed.
-    if resxt < resxn || resyt < resyn
-        target_z = Field{Center, Center, Nothing}(target_grid)
-        interpolate!(target_z, native_z)
-        @info string("Skipping passes for interpolating bathymetry of size $Nn ", '\n',
-                     "to target grid of size $Nt. Interpolation passes may only ", '\n',
-                     "be used to coarsen bathymetry and require that the bathymetry ", '\n',
-                     "is finer than the target grid in both horizontal directions.")
-        return target_z
+    function InterpolationPasses(passes)
+        if passes < 1
+            throw(ArgumentError("`passes` must be larger than 0"))
+        elseif !isinteger(passes)
+            throw(ArgumentError("`passes` must be an integer"))
+        end
+
+        return new(passes)
     end
+end
+
+function smooth_bathymetry(z, smoothing::InterpolationPasses)
+    passes = smoothing.passes
+    grid = z.grid
+    Nλt, Nφt = Nt = size(grid)
+    Nλn, Nφn = Nn = size(z)
 
     # Interpolate in passes
-    latitude  = y_domain(native_z.grid)
-    longitude = x_domain(native_z.grid)
+    longitude = x_domain(grid)
+    latitude  = y_domain(grid)
 
-    ΔNλ = floor((Nλn - Nλt) / passes)
-    ΔNφ = floor((Nφn - Nφt) / passes)
+    ΔNλ = floor((Nλn - Nλt) / (passes + 1))
+    ΔNφ = floor((Nφn - Nφt) / (passes + 1))
 
-    Nλ = [Nλn - ΔNλ * pass for pass in 1:passes-1]
-    Nφ = [Nφn - ΔNφ * pass for pass in 1:passes-1]
+    Nλ = [Nλn - ΔNλ * pass for pass in 1:passes]
+    Nφ = [Nφn - ΔNφ * pass for pass in 1:passes]
 
     Nλ = Int[Nλ..., Nλt]
     Nφ = Int[Nφ..., Nφt]
@@ -239,7 +243,7 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     old_z  = native_z
     TX, TY = topology(target_grid)
 
-    for pass = 1:passes - 1
+    for pass = 1:passes
         new_size = (Nλ[pass], Nφ[pass], 1)
 
         @debug "Bathymetry interpolation pass $pass with size $new_size"
@@ -252,15 +256,11 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
                                          topology = (TX, TY, Bounded))
 
         new_z = Field{Center, Center, Nothing}(new_grid)
-
         interpolate!(new_z, old_z)
         old_z = new_z
     end
 
-    target_z = Field{Center, Center, Nothing}(target_grid)
-    interpolate!(target_z, old_z)
-
-    return target_z
+    return new_z
 end
 
 # Regridding bathymetry for distributed grids, we handle the whole process

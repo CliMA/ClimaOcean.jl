@@ -54,13 +54,11 @@ grid = LatitudeLongitudeGrid(GPU();
 # ### Bathymetry Interpolation
 #
 # The script interpolates bathymetric data onto the grid, ensuring that the model accurately represents
-# the sea floor's topography. Parameters such as `minimum_depth` and `interpolation_passes`
-# are adjusted to refine the bathymetry representation.
+# the sea floor's topography. `minimum_depth` is adjusted to refine the bathymetry representation.
 
 bottom_height = regrid_bathymetry(grid,
                                   height_above_water = 1,
                                   minimum_depth = 10,
-                                  interpolation_passes = 25,
                                   connected_regions_allowed = 1)
 
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))

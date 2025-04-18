@@ -21,11 +21,7 @@ grid = LatitudeLongitudeGrid(arch; z,
                              latitude  = (-80, 80),
                              longitude = (0, 360))
 
-bottom_height = regrid_bathymetry(grid;
-                                  minimum_depth = 10,
-                                  interpolation_passes = 5,
-                                  major_basins = 1)
-
+bottom_height = regrid_bathymetry(grid; minimum_depth = 10, major_basins = 1)
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
 T = CenterField(grid)
