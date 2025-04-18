@@ -1,16 +1,15 @@
 module ECCO
 
-export ECCOMetadatum, ECCO_field, ECCO_mask, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
+export ECCOMetadatum, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
-export ECCOFieldTimeSeries, ECCORestoring, LinearlyTaperedPolarMask
+export ECCOFieldTimeSeries, ECCORestoring
 
 using ClimaOcean
 using ClimaOcean.DataWrangling
-using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, download_progress, compute_native_date_range
-using ClimaOcean.InitialConditions: three_dimensional_regrid!, interpolate!
+using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, download_progress,
+                                compute_native_date_range
 
 using Oceananigans
-using Oceananigans: location
 using Oceananigans.Architectures: architecture, child_architecture
 using Oceananigans.BoundaryConditions
 using Oceananigans.DistributedComputations
@@ -25,6 +24,10 @@ using Dates
 using Adapt
 using Scratch
 
+import ClimaOcean.DataWrangling: vertical_interfaces, variable_is_three_dimensional,
+                                 shift_longitude_to_0_360, inpainted_metadata_path,
+                                 longitude_shift
+
 download_ECCO_cache::String = ""
 function __init__()
     global download_ECCO_cache = @get_scratch!("ECCO")
@@ -33,8 +36,10 @@ end
 include("ECCO_metadata.jl")
 include("ECCO_mask.jl")
 
-# Vertical coordinate
-const ECCO_z = [
+const SomeECCODataset = Union{ECCO2Monthly, ECCO4Monthly, ECCO2Daily}
+
+vertical_interfaces(metadata::Metadata{<:SomeECCODataset}) =
+    [
     -6128.75,
     -5683.75,
     -5250.25,
@@ -86,167 +91,12 @@ const ECCO_z = [
     -20.0,
     -10.0,
       0.0,
-]
+    ]
 
-empty_ECCO_field(variable_name::Symbol; kw...) = empty_ECCO_field(Metadatum(variable_name, dataset=ECCO4Monthly()); kw...)
-
-function empty_ECCO_field(metadata::ECCOMetadata;
-                          architecture = CPU(), 
-                          horizontal_halo = (7, 7))
-
-    Nx, Ny, Nz, _ = size(metadata)
-    loc = location(metadata)
-    longitude = (0, 360)
-    latitude = (-90, 90)
-    TX, TY = (Periodic, Bounded)
-
-    if variable_is_three_dimensional(metadata)
-        TZ = Bounded
-        LZ = Center
-        z = ECCO_z
-        halo = (horizontal_halo..., 3)
-        sz = (Nx, Ny, Nz)
-    else # the variable is two-dimensional
-        TZ = Flat
-        LZ = Nothing
-        z = nothing
-        halo = horizontal_halo
-        sz = (Nx, Ny)
-    end
-
-    grid = LatitudeLongitudeGrid(architecture, Float32; halo, longitude, latitude, z,
-                                 size = sz,
-                                 topology = (TX, TY, TZ))
-
-    return Field{loc...}(grid)
-end
-
-# Only temperature and salinity need a thorough inpainting because of stability,
-# other variables can do with only a couple of passes. Sea ice variables 
-# cannot be inpainted because zeros in the data are physical, not missing values.
-function default_inpainting(metadata::ECCOMetadata)
-    if metadata.name in [:temperature, :salinity]
-        return NearestNeighborInpainting(Inf)
-    elseif metadata.name in [:sea_ice_fraction, :sea_ice_thickness]
-        return nothing
-    else
-        return NearestNeighborInpainting(5)
-    end
-end
-
-"""
-    ECCO_field(metadata::ECCOMetadata;
-               architecture = CPU(),
-               inpainting = nothing,
-               mask = nothing,
-               horizontal_halo = (7, 7),
-               cache_inpainted_data = false)
-
-Return a `Field` on `architecture` described by `ECCOMetadata` with
-`horizontal_halo` size.
-If not `nothing`, the `inpainting` method is used to fill the cells
-within the specified `mask`. `mask` is set to `ECCO_mask` for non-nothing
-`inpainting`.
-"""
-function ECCO_field(metadata::ECCOMetadata;
-                    architecture = CPU(),
-                    inpainting = default_inpainting(metadata),
-                    mask = nothing,
-                    horizontal_halo = (7, 7),
-                    cache_inpainted_data = true)
-                    
-    field = empty_ECCO_field(metadata; architecture, horizontal_halo)
-    inpainted_path = inpainted_metadata_path(metadata)
-
-    if !isnothing(inpainting) && isfile(inpainted_path)
-        file = jldopen(inpainted_path, "r")
-        maxiter = file["inpainting_maxiter"]
-
-        # read data if generated with the same inpainting
-        if maxiter == inpainting.maxiter
-            data = file["data"]
-            close(file)
-            copyto!(parent(field), data)
-            return field
-        end
-
-        close(file)
-    end
-
-    download_dataset(metadata)
-    path = metadata_path(metadata)
-    ds = Dataset(path)
-    shortname = short_name(metadata)
-
-    if variable_is_three_dimensional(metadata)
-        data = ds[shortname][:, :, :, 1]
-        data = reverse(data, dims=3)
-    else
-        data = ds[shortname][:, :, 1]
-    end        
-
-    close(ds)
-    
-    # Convert data from Union(FT, missing} to FT
-    FT = eltype(field)
-    data[ismissing.(data)] .= 1e10 # Artificially large number!
-    data = if location(field)[2] == Face # ?
-        new_data = zeros(FT, size(field))
-        new_data[:, 1:end-1, :] .= data
-        new_data    
-    else
-        data = Array{FT}(data)
-    end
-    
-    # ECCO4 data is on a -180, 180 longitude grid as opposed to ECCO2 data that
-    # is on a 0, 360 longitude grid. To make the data consistent, we shift ECCO4
-    # data by 180 degrees in longitude
-    if metadata.dataset isa ECCO4Monthly 
-        Nx = size(data, 1)
-        if variable_is_three_dimensional(metadata)
-            shift = (Nx ÷ 2, 0, 0)
-        else
-            shift = (Nx ÷ 2, 0)
-        end
-        data = circshift(data, shift)
-    end
-
-    set!(field, data)
-    fill_halo_regions!(field)
-
-    if !isnothing(inpainting)
-        # Respect user-supplied mask, but otherwise build default ECCO mask.
-        if isnothing(mask)
-            mask = ECCO_mask(metadata, architecture; data_field=field)
-        end
-
-        # Make sure all values are extended properly
-        name = string(metadata.name)
-        date = string(metadata.dates)
-        dataset = summary(metadata.dataset)
-        @info string("Inpainting ", dataset, " ", name, " data from ", date, "...")
-        start_time = time_ns()
-        
-        inpaint_mask!(field, mask; inpainting)
-        fill_halo_regions!(field)
-
-        elapsed = 1e-9 * (time_ns() - start_time)
-        @info string(" ... (", prettytime(elapsed), ")")
-    
-        # We cache the inpainted data to avoid recomputing it
-        @root if cache_inpainted_data
-            file = jldopen(inpainted_path, "w+")
-            file["data"] = on_architecture(CPU(), parent(field))
-            file["inpainting_maxiter"] = inpainting.maxiter
-            close(file)
-        end
-    end
-
-    return field
-end
-
-# Fallback
-ECCO_field(var_name::Symbol; kw...) = ECCO_field(ECCOMetadata(var_name); kw...)
+# ECCO4 data is on a -180, 180 longitude grid as opposed to ECCO2 data that
+# is on a 0, 360 longitude grid. To make the data consistent, we shift ECCO4
+# data by 180 degrees in longitude
+longitude_shift(metadata::Metadata{<:ECCO4Monthly}) = 180
 
 function inpainted_metadata_filename(metadata::ECCOMetadata)
     original_filename = metadata_filename(metadata)
@@ -256,23 +106,6 @@ end
 
 inpainted_metadata_path(metadata::ECCOMetadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
 
-function set!(field::Field, ECCO_metadata::ECCOMetadatum; kw...)
-
-    # Fields initialized from ECCO
-    grid = field.grid
-    arch = child_architecture(grid)
-    mask = ECCO_mask(ECCO_metadata, arch)
-
-    f = ECCO_field(ECCO_metadata; mask,
-                   architecture = arch,
-                   kw...)
-
-    interpolate!(field, f)
-
-    return field
-end
-
 include("ECCO_restoring.jl")
 
-end # Module 
-
+end # Module
