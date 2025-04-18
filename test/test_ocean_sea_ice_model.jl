@@ -52,7 +52,6 @@ using ClimaSeaIce.Rheologies
 
             bottom_height = regrid_bathymetry(grid;
                                               minimum_depth = 10,
-                                              interpolation_passes = 20,
                                               major_basins = 1)
 
             grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)

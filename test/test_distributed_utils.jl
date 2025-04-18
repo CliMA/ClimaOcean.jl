@@ -59,8 +59,7 @@ end
 
     global_height = regrid_bathymetry(global_grid;
                                       dir = "./",
-                                      filename = "trivial_bathymetry.nc",
-                                      interpolation_passes=10)
+                                      filename = "trivial_bathymetry.nc")
 
     arch_x  = Distributed(CPU(), partition=Partition(4, 1))
     arch_y  = Distributed(CPU(), partition=Partition(1, 4))
@@ -75,8 +74,7 @@ end
 
         local_height = regrid_bathymetry(local_grid;
                                          dir = "./",
-                                         filename = "trivial_bathymetry.nc",
-                                         interpolation_passes=10)
+                                         filename = "trivial_bathymetry.nc")
 
         Nx, Ny, _ = size(local_grid)
         rx, ry, _ = arch.local_index
