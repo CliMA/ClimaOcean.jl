@@ -217,7 +217,7 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     Nλt, Nφt = Nt = size(target_grid)
     Nλn, Nφn = Nn = size(native_z)
 
-    if passes == 0
+    if passes == 1
         target_z = Field{Center, Center, Nothing}(target_grid)
 
         @info "Interpolating bathymetry of size $Nn onto a $gridtype target grid of size $Nt"
@@ -241,7 +241,7 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     old_z  = native_z
     TX, TY = topology(target_grid)
 
-    @info "Interpolating bathymetry of size $Nn onto a $gridtype target grid of size $Nt via $passes passes
+    @info "Interpolating bathymetry of size $Nn onto a $gridtype target grid of size $Nt via $passes passes"
 
     for pass = 1:passes - 1
         new_size = (Nλ[pass], Nφ[pass], 1)
