@@ -60,7 +60,7 @@ Base.size(::Metadatum{<:ECCO4Monthly}) = (720,  360, 50, 1)
 # The whole range of dates in the different dataset datasets
 all_dates(::ECCO4Monthly, name) = DateTime(1992, 1, 1) : Month(1) : DateTime(2017, 12, 1)
 all_dates(::ECCO2Monthly, name) = DateTime(1992, 1, 1) : Month(1) : DateTime(2024, 12, 1)
-all_dates(::ECCO2Daily,   name) = DateTime(1992, 1, 1) : Month(1) : DateTime(2024, 12, 31)
+all_dates(::ECCO2Daily,   name) = DateTime(1992, 1, 1) : Day(1) : DateTime(2024, 12, 31)
 
 # Fallback, actually, we do not really need the name for ECCO since all
 # variables have the same frequency and the same time-range, differently from JRA55
