@@ -44,10 +44,10 @@ steps:
       slurm_cpus_per_task: 8
       slurm_ntasks: 1
 
-  - label: "CPU ECCO4/EN4 tests"
-    key: "cpu_ecco4_en4_tests"
+  - label: "CPU ECCO/EN4 tests"
+    key: "cpu_ecco_en4_tests"
     env:
-      TEST_GROUP: "ecco4_en4"
+      TEST_GROUP: "ecco_en4"
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
     agents:
@@ -91,10 +91,10 @@ steps:
       slurm_ntasks: 1
       slurm_gpus_per_task: 1
 
-  - label: "GPU ECCO4/EN4 tests"
-    key: "gpu_ecco4_en4_tests"
+  - label: "GPU ECCO/EN4 tests"
+    key: "gpu_ecco_en4_tests"
     env:
-      TEST_GROUP: "ecco4_en4"
+      TEST_GROUP: "ecco_en4"
       GPU_TEST: "true"
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
