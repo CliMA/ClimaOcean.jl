@@ -127,8 +127,6 @@ end
 #### TODO: Generalize the ECCO-specific restoring tests below for any dataset
 ####
 
-test_ECCO_datasets = (ECCO4Monthly(), ECCO2Daily(), ECCO2Monthly())
-
 for dataset in test_ECCO_datasets, arch in test_architectures
     A = typeof(arch)
     @info "Testing $(typeof(dataset)) on $A..."

@@ -42,4 +42,5 @@ end
 arch = first(test_architectures)
 atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(41))
 
-test_datasets = (ECCO2Monthly(), ECCO2Daily(), ECCO4Monthly(), EN4Monthly())
+test_ECCO_datasets = (ECCO4Monthly(), ECCO2Daily(), ECCO2Monthly())
+test_datasets = (test_ECCO_datasets..., EN4Monthly())
