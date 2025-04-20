@@ -14,18 +14,22 @@ using Oceananigans.Units
 using CUDA: @allowscalar
 
 start_date = DateTime(1993, 1, 1)
-end_date = DateTime(1993, 2, 1)
+end_date = DateTime(1993, 3, 1)
 dates = start_date : Month(1) : end_date
 
 # Inpaint only the first two cells inside the missing mask
 inpainting = NearestNeighborInpainting(2)
 
-@testset "Fields utilities" begin
-    for arch in test_architectures, dataset in test_datasets
-        A = typeof(arch)
-        @info "Testing field utilities of $(typeof(dataset)) on $A"
+for arch in test_architectures, dataset in test_datasets, name in (:temperature, :salinity)
+    download_dataset(metadata)
+end
+
+for dataset in test_datasets, arch in test_architectures
+    A = typeof(arch)
+    @info "Testing $(typeof(dataset)) on $A..."
+
+    @testset "Fields utilities" begin
         for name in (:temperature, :salinity)
-            @info "Testing $(typeof(dataset)) Field on $A..."
             metadata = Metadata(name; dates, dataset)
 
             for datum in metadata
@@ -39,13 +43,8 @@ inpainting = NearestNeighborInpainting(2)
             @test isfile(datapath)
         end
     end
-end
 
-@testset "Inpainting algorithm" begin
-    for arch in test_architectures, dataset in test_datasets
-        A = typeof(arch)
-        @info "Testing $(typeof(dataset)) on $A"
-
+    @testset "Inpainting algorithm" begin
         T_metadatum = Metadatum(:temperature; dataset, date=start_date)
 
         grid = LatitudeLongitudeGrid(arch,
@@ -67,12 +66,8 @@ end
         @test all(fully_inpainted_interior .!= 0)
         @test any(partially_inpainted_interior .== 0)
     end
-end
 
-@testset "Setting a field from a dataset" begin
-    for arch in test_architectures, dataset in test_datasets
-        A = typeof(arch)
-        @info "Testing setting a field from $(typeof(dataset)) on $A"
+    @testset "Setting a field from a dataset" begin
         grid = LatitudeLongitudeGrid(arch;
                                      size=(10, 10, 10),
                                      latitude=(-60, -40),
@@ -86,12 +81,8 @@ end
             true
         end
     end
-end
 
-@testset "Setting temperature and salinity from dataset" begin
-    for arch in test_architectures, dataset in test_datasets
-        A = typeof(arch)
-        @info "Testing setting temperature and salinity from $(typeof(dataset)) on $A"
+    @testset "Setting temperature and salinity from dataset" begin
         grid = LatitudeLongitudeGrid(arch;
                                      size = (10, 10, 10),
                                      latitude = (-60, -40),
@@ -104,11 +95,8 @@ end
         set!(ocean.model, T=Metadatum(:temperature; dataset, date=start_date),
                           S=Metadatum(:salinity;    dataset, date=start_date))
     end
-end
 
-@testset "Timestepping with fields from Dataset" begin
-    for arch in test_architectures, dataset in test_datasets
-        A = typeof(arch)
+    @testset "Timestepping with fields from Dataset" begin
         @info "Testing timestepping with fields from $(typeof(dataset)) on $A"
         grid  = LatitudeLongitudeGrid(arch;
                                       size = (10, 10, 10),
@@ -136,12 +124,16 @@ end
 end
 
 ####
-#### TODO: Generalize the below ECCO-specific restoring tests for any dataset
+#### TODO: Generalize the ECCO-specific restoring tests below for any dataset
 ####
 
-@testset "ECCO-specific field utilities" begin
-    for arch in test_architectures
-        A = typeof(arch)
+test_ECCO_datasets = (ECCO4Monthly(), ECCO2Daily(), ECCO2Monthly())
+
+for dataset in test_ECCO_datasets, arch in test_architectures
+    A = typeof(arch)
+    @info "Testing $(typeof(dataset)) on $A..."
+
+    @testset "ECCO-specific field utilities" begin
         for name in (:temperature, :salinity)
             @info "Testing ECCO_field on $A..."
             metadata = Metadata(name; dates, dataset=ECCO4Monthly())
@@ -173,10 +165,8 @@ end
             @test isfile(datapath)
         end
     end
-end
 
-@testset "ECCORestoring with LinearlyTaperedPolarMask" begin
-    for arch in test_architectures
+    @testset "ECCORestoring with LinearlyTaperedPolarMask" begin
         grid = LatitudeLongitudeGrid(arch;
                                      size = (100, 100, 10),
                                      latitude = (-75, 75),
@@ -192,7 +182,7 @@ end
 
         mask = LinearlyTaperedPolarMask(northern = (φ₃, φ₄),
                                         southern = (φ₁, φ₂),
-                                               z = (z₁, 0))
+                                            z = (z₁, 0))
 
         T_restoring = ECCORestoring(:temperature, arch; start_date, end_date, mask, inpainting, rate=1/1000)
 
@@ -212,11 +202,8 @@ end
         @test @allowscalar T_restoring(1, 1,   5,  grid, clock, fields) == 0
         @test @allowscalar T_restoring(1, 10,  5,  grid, clock, fields) == 0
     end
-end
 
-@testset "Timestepping with ECCORestoring" begin
-    for arch in test_architectures
-
+    @testset "Timestepping with ECCORestoring" begin
         grid  = LatitudeLongitudeGrid(arch;
                                       size = (10, 10, 10),
                                       latitude = (-60, -40),
@@ -242,10 +229,8 @@ end
             true
         end
     end
-end
 
-@testset "ECCO-specific dataset cycling boundaries" begin
-    for arch in test_architectures
+    @testset "ECCO-specific dataset cycling boundaries" begin
         grid = LatitudeLongitudeGrid(arch;
                                      size = (10, 10, 10),
                                      latitude = (-60, -40),
