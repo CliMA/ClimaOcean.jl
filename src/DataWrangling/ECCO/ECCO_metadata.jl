@@ -66,7 +66,7 @@ all_dates(::ECCO2Daily,   name) = DateTime(1992, 1, 1) : Day(1) : DateTime(2024,
 # variables have the same frequency and the same time-range, differently from JRA55
 all_dates(dataset::Union{<:ECCO4Monthly, <:ECCO2Monthly, <:ECCO2Daily}) = all_dates(dataset, :temperature)
 
-# File name generation specific to each Dataset dataset
+# File name generation specific to each dataset
 function metadata_filename(metadata::Metadatum{<:ECCO4Monthly})
     shortname = short_name(metadata)
     yearstr  = string(Dates.year(metadata.dates))
