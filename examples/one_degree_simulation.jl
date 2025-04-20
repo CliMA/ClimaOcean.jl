@@ -71,7 +71,7 @@ closure = (eddy_closure, horizontal_viscosity, vertical_mixing)
 
 # ### Ocean simulation
 # Now we bring everything together to construct the ocean simulation.
-# We use a split-explicit timestepping with 30 substeps for the barotropic
+# We use a split-explicit timestepping with 50 substeps for the barotropic
 # mode.
 
 free_surface = SplitExplicitFreeSurface(grid; substeps=50)
