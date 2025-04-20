@@ -182,7 +182,7 @@ for dataset in test_ECCO_datasets, arch in test_architectures
 
         mask = LinearlyTaperedPolarMask(northern = (φ₃, φ₄),
                                         southern = (φ₁, φ₂),
-                                            z = (z₁, 0))
+                                        z = (z₁, 0))
 
         T_restoring = ECCORestoring(:temperature, arch; start_date, end_date, mask, inpainting, rate=1/1000)
 
