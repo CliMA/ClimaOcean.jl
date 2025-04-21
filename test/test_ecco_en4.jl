@@ -21,7 +21,7 @@ dates = start_date : Month(1) : end_date
 inpainting = NearestNeighborInpainting(2)
 
 for arch in test_architectures, dataset in test_datasets, name in (:temperature, :salinity)
-    download_dataset(metadata)
+    download_dataset(Metadata(name; dates, dataset))
 end
 
 for dataset in test_datasets, arch in test_architectures
