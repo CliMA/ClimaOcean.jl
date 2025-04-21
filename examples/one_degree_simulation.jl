@@ -32,9 +32,9 @@ download_dataset(ecco_salinity)
 # ### Grid and Bathymetry
 
 arch = GPU()
-Nx = 180
-Ny = 85
-Nz = 40
+Nx = 360
+Ny = 180
+Nz = 75
 
 z = exponential_z_faces(; Nz, depth=4000, h=34)
 underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
@@ -43,7 +43,7 @@ underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 ## 75 interpolation passes smooth the bathymetry near Florida so that the Gulf Stream is able to flow:
 bottom_height = regrid_bathymetry(underlying_grid;
                                   minimum_depth = 20,
-                                  interpolation_passes = 100,
+                                  interpolation_passes = 75,
                                   major_basins = 2)
 
 # For this bathymetry at this horizontal resolution we need to manually open the Gibraltar strait.
