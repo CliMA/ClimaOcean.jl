@@ -34,7 +34,7 @@ download_dataset(ecco_salinity)
 arch = GPU()
 Nx = 360
 Ny = 180
-Nz = 75
+Nz = 100
 
 z = exponential_z_faces(; Nz, depth=4000, h=34)
 underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
