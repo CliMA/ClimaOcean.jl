@@ -34,7 +34,7 @@ download_dataset(ecco_salinity)
 arch = GPU()
 Nx = 360
 Ny = 180
-Nz = 100
+Nz = 50
 
 z = exponential_z_faces(; Nz, depth=4000, h=34)
 underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
@@ -124,7 +124,7 @@ function progress(sim)
     msg1 = @sprintf("time: %s, iteration: %d, Δt: %s, ", prettytime(sim), iteration(sim), prettytime(sim.Δt))
     msg2 = @sprintf("max|u|: (%.2e, %.2e, %.2e) m s⁻¹, ", umax...)
     msg3 = @sprintf("extrema(T): (%.2f, %.2f) ᵒC, ", Tmin, Tmax)
-    msg4 = @sprintf("extrema(e): (%.2f, %.2f) m2 s-2, ", emin, emax)
+    msg4 = @sprintf("extrema(e): (%.2f, %.2f) m² s⁻², ", emin, emax)
     msg5 = @sprintf("wall time: %s \n", prettytime(step_time))
 
     @info msg1 * msg2 * msg3 * msg4
