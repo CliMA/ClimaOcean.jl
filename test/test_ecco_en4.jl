@@ -127,7 +127,7 @@ end
 #### TODO: Generalize the ECCO-specific restoring tests below for any dataset
 ####
 
-for dataset in test_ECCO_datasets, arch in test_architectures
+for dataset in test_ecco_datasets, arch in test_architectures
     A = typeof(arch)
     @info "Testing $(typeof(dataset)) on $A..."
 

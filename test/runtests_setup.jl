@@ -41,3 +41,10 @@ end
 # Trigger downloading JRA55
 arch = first(test_architectures)
 atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(41))
+
+test_datasets = (ECCO2Monthly(), ECCO2Daily(), ECCO4Monthly(), EN4Monthly())
+
+test_ecco2_datasets = tuple((ds for ds in test_datasets if startswith(string(typeof(ds)), "ECCO2"))...)
+test_ecco4_en4_datasets = tuple((ds for ds in test_datasets if !startswith(string(typeof(ds)), "ECCO2"))...)
+
+test_ecco_datasets = tuple((ds for ds in test_datasets if startswith(string(typeof(ds)), "ECCO"))...)

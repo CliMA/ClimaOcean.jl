@@ -46,14 +46,14 @@ if test_group == :JRA55 || test_group == :all
 end
 
 if test_group == :ecco2 || test_group == :all
-    test_datasets = (ECCO2Monthly(), ECCO2Daily())
-    test_ECCO_datasets = test_datasets
+    test_datasets = test_ecco2_datasets
+    test_ecco_datasets = tuple((ds for ds in test_ecco4_en4_datasets if startswith(string(typeof(ds)), "ECCO"))...)
     include("test_ecco_en4.jl")
 end
 
 if test_group == :ecco4_en4 || test_group == :all
-    test_datasets = (ECCO4Monthly(), EN4Monthly())
-    test_ECCO_datasets = (ECCO4Monthly(),)
+    test_datasets = test_ecco4_en4_datasets
+    test_ecco_datasets = tuple((ds for ds in test_ecco4_en4_datasets if startswith(string(typeof(ds)), "ECCO"))...)
     include("test_ecco_en4.jl")
 end
 
