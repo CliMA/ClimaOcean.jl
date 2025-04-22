@@ -45,7 +45,15 @@ if test_group == :JRA55 || test_group == :all
     include("test_jra55.jl")
 end
 
-if test_group == :ecco_en4 || test_group == :all
+if test_group == :ecco2 || test_group == :all
+    test_datasets = (ECCO2Monthly(), ECCO2Daily())
+    test_ECCO_datasets = test_datasets
+    include("test_ecco_en4.jl")
+end
+
+if test_group == :ecco4_en4 || test_group == :all
+    test_datasets = (ECCO4Monthly(), EN4Monthly())
+    test_ECCO_datasets = (ECCO4Monthly(),)
     include("test_ecco_en4.jl")
 end
 

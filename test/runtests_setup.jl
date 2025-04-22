@@ -41,6 +41,3 @@ end
 # Trigger downloading JRA55
 arch = first(test_architectures)
 atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(41))
-
-test_ECCO_datasets = (ECCO4Monthly(), ECCO2Daily(), ECCO2Monthly())
-test_datasets = (test_ECCO_datasets..., EN4Monthly())
