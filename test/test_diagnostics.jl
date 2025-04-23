@@ -7,7 +7,12 @@ using ClimaOcean.DataWrangling: FieldTimeSeries
 using ClimaOcean.Diagnostics: MixedLayerDepthField, MixedLayerDepthOperand
 
 @testset "MixedLayerDepthField" begin
-    for arch in test_architectures, dataset in test_datasets
+
+    for arch in test_architectures
+        dataset = ECCO4Monthly() # the test below hardcodes the mixed-layer depth expected from ECCO4Monthly()
+        A = typeof(arch)
+        @info "Testing $(typeof(dataset)) on $A"
+
         grid = LatitudeLongitudeGrid(arch;
                                      size = (3, 3, 100),
                                      latitude  = (0, 30),
@@ -42,6 +47,7 @@ using ClimaOcean.Diagnostics: MixedLayerDepthField, MixedLayerDepthOperand
         @test h.operand.buoyancy_perturbation isa KernelFunctionOperation
 
         compute!(h)
+        @show h[1, 1, 1]
         @test @allowscalar h[1, 1, 1] ≈ 16.2558363 # m
 
         tracers = (T=Tt[2], S=St[2])
