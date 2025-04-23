@@ -125,7 +125,7 @@ for arch in test_architectures, dataset in test_datasets
     @testset "Field utilities" begin
         for name in (:temperature, :salinity)
             metadata = Metadata(name; dates, dataset)
-            restoring = Restoring(metadata; rate=1/1000, inpainting)
+            restoring = DatasetRestoring(metadata; rate=1/1000, inpainting)
 
             for datum in metadata
                 @test isfile(metadata_path(datum))
@@ -154,7 +154,7 @@ for arch in test_architectures, dataset in test_datasets
         end
     end
 
-    @testset "Restoring with LinearlyTaperedPolarMask" begin
+    @testset "DatasetRestoring with LinearlyTaperedPolarMask" begin
         grid = LatitudeLongitudeGrid(arch;
                                      size = (100, 100, 10),
                                      latitude = (-75, 75),
@@ -173,7 +173,7 @@ for arch in test_architectures, dataset in test_datasets
                                                z = (z₁, 0))
 
         for name in (:temperature, :salinity)
-            var_restoring = Restoring(name; dataset, start_date, end_date, mask, inpainting, rate=1/1000)
+            var_restoring = DatasetRestoring(name; dataset, start_date, end_date, mask, inpainting, rate=1/1000)
 
             fill!(var_restoring.field_time_series[1], 1.0)
             fill!(var_restoring.field_time_series[2], 1.0)
@@ -194,7 +194,7 @@ for arch in test_architectures, dataset in test_datasets
         end
     end
 
-    @testset "Timestepping with Restoring" begin
+    @testset "Timestepping with DatasetRestoring" begin
         grid = LatitudeLongitudeGrid(arch;
                                      size = (10, 10, 10),
                                      latitude = (-60, -40),
@@ -210,7 +210,7 @@ for arch in test_architectures, dataset in test_datasets
             true
         end
 
-        forcing_T = Restoring(:temperature;  dataset, start_date, end_date, inpainting, rate=1/1000)
+        forcing_T = DatasetRestoring(:temperature;  dataset, start_date, end_date, inpainting, rate=1/1000)
 
         ocean = ocean_simulation(grid; forcing = (; T = forcing_T), verbose=false)
 
@@ -233,7 +233,7 @@ for arch in test_architectures, dataset in test_datasets
         end_date = DateTime(1993, 5, 1)
         dates = start_date : Month(1) : end_date
 
-        T_restoring = Restoring(:temperature; dataset, start_date, end_date, inpainting, rate=1/1000)
+        T_restoring = DatasetRestoring(:temperature; dataset, start_date, end_date, inpainting, rate=1/1000)
 
         times = native_times(T_restoring.field_time_series.backend.metadata)
         ocean = ocean_simulation(grid, forcing = (; T = T_restoring))
