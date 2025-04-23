@@ -3,7 +3,6 @@ include("runtests_setup.jl")
 using SeawaterPolynomials: TEOS10EquationOfState
 using Oceananigans.BuoyancyFormulations: buoyancy
 using Oceananigans: location
-using ClimaOcean.DataWrangling: FieldTimeSeries
 using ClimaOcean.Diagnostics: MixedLayerDepthField, MixedLayerDepthOperand
 
 
