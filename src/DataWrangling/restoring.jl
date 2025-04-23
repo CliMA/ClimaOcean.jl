@@ -264,11 +264,9 @@ Arguments
 Keyword Arguments
 =================
 
-- `dataset` (required): The dataset.
+- `dataset`: The dataset; required kwarg if `variable_name` argument is provide.
 
-- `start_date`: The starting date to use for the dataset. Default: `first_date(dataset, variable_name)`.
-
-- `end_date`: The ending date to use for the dataset. Default: `end_date(dataset, variable_name)`.
+- `dates`: The date range to use for the dataset. Default: `all_dates(dataset, variable_name)`.
 
 - `time_indices_in_memory`: The number of time indices to keep in memory. The number is chosen based on
                             a trade-off between increased performance (more indices in memory) and reduced
@@ -280,8 +278,8 @@ Keyword Arguments
 
 - `rate`: The restoring rate, i.e., the inverse of the restoring timescale (in s⁻¹).
 
-- `dir` (required): The directory where the native data is located. If the data does not exist it will
-         be automatically downloaded.
+- `dir`: The directory where the native data is located. If the data does not exist it will
+         be automatically downloaded. Default: `default_download_directory(dataset)`.
 
 - `inpainting`: inpainting algorithm, see [`inpaint_mask!`](@ref). Default: `NearestNeighborInpainting(Inf)`.
 
