@@ -56,7 +56,7 @@ Base.length(backend::NetCDFBackend)  = backend.length
 Base.summary(backend::NetCDFBackend) = string("NetCDFBackend(", backend.start, ", ", backend.length, ")")
 
 new_backend(b::NetCDFBackend{native, cache_data}, start, length) where {native, cache_data} =
-NetCDFBackend{native, cache_data}(start, length, b.inpainting, b.metadata)
+    NetCDFBackend{native, cache_data}(start, length, b.inpainting, b.metadata)
 
 on_native_grid(::NetCDFBackend{native}) where native = native
 cache_inpainted_data(::NetCDFBackend{native, cache_data}) where {native, cache_data} = cache_data
