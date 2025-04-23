@@ -19,46 +19,48 @@ import Oceananigans.OutputReaders: new_backend, update_field_time_series!, Field
 @inline instantiate(T::DataType) = T()
 @inline instantiate(T) = T
 
-struct NetCDFBackend{N, C, I, M} <: AbstractInMemoryBackend{Int}
+struct DatasetNetCDFBackend{N, C, I, M} <: AbstractInMemoryBackend{Int}
     start :: Int
     length :: Int
     inpainting :: I
     metadata :: M
 
-    function NetCDFBackend{N, C}(start::Int, length::Int, inpainting, metadata) where {N, C}
+    function DatasetNetCDFBackend{N, C}(start::Int, length::Int, inpainting, metadata) where {N, C}
         M = typeof(metadata)
         I = typeof(inpainting)
         return new{N, C, I, M}(start, length, inpainting, metadata)
     end
 end
 
-Adapt.adapt_structure(to, b::NetCDFBackend{N, C}) where {N, C} = NetCDFBackend{N, C}(b.start, b.length, nothing, nothing)
+Adapt.adapt_structure(to, b::DatasetBackend{N, C}) where {N, C} =
+    DatasetBackend{N, C}(b.start, b.length, nothing, nothing)
 
 """
-    NetCDFBackend(length, metadata;
-                  on_native_grid = false,
-                  cache_inpainted_data = false,
-                  inpainting = NearestNeighborInpainting(Inf))
+    DatasetBackend(length, metadata;
+                   on_native_grid = false,
+                   cache_inpainted_data = false,
+                   inpainting = NearestNeighborInpainting(Inf))
 
-Represent a FieldTimeSeries backed by native netCDF files.
-Each time instance is stored in an individual file.
+Represent a FieldTimeSeries backed by the backend that corresponds to the
+dataset with `metadata` (e.g., netCDF). Each time instance is stored in an
+individual file.
 """
-function NetCDFBackend(length, metadata;
-                       on_native_grid = false,
-                       cache_inpainted_data = false,
-                       inpainting = NearestNeighborInpainting(Inf))
+function DatasetBackend(length, metadata;
+                        on_native_grid = false,
+                        cache_inpainted_data = false,
+                        inpainting = NearestNeighborInpainting(Inf))
 
-    return NetCDFBackend{on_native_grid, cache_inpainted_data}(1, length, inpainting, metadata)
+    return DatasetBackend{on_native_grid, cache_inpainted_data}(1, length, inpainting, metadata)
 end
 
-Base.length(backend::NetCDFBackend)  = backend.length
-Base.summary(backend::NetCDFBackend) = string("NetCDFBackend(", backend.start, ", ", backend.length, ")")
+Base.length(backend::DatasetBackend)  = backend.length
+Base.summary(backend::DatasetBackend) = string("DatasetBackend(", backend.start, ", ", backend.length, ")")
 
-new_backend(b::NetCDFBackend{native, cache_data}, start, length) where {native, cache_data} =
-    NetCDFBackend{native, cache_data}(start, length, b.inpainting, b.metadata)
+new_backend(b::DatasetBackend{native, cache_data}, start, length) where {native, cache_data} =
+    DatasetBackend{native, cache_data}(start, length, b.inpainting, b.metadata)
 
-on_native_grid(::NetCDFBackend{native}) where native = native
-cache_inpainted_data(::NetCDFBackend{native, cache_data}) where {native, cache_data} = cache_data
+on_native_grid(::DatasetBackend{native}) where native = native
+cache_inpainted_data(::DatasetBackend{native, cache_data}) where {native, cache_data} = cache_data
 
 const DatasetFieldTimeSeries{N} = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:NetCDFBackend{N}} where N
 
@@ -125,7 +127,7 @@ function FieldTimeSeries(metadata::Metadata, grid::AbstractGrid;
     download_dataset(metadata)
 
     inpainting isa Int && (inpainting = NearestNeighborInpainting(inpainting))
-    backend = NetCDFBackend(time_indices_in_memory, metadata; on_native_grid, inpainting, cache_inpainted_data)
+    backend = DatasetBackend(time_indices_in_memory, metadata; on_native_grid, inpainting, cache_inpainted_data)
 
     times = native_times(metadata)
     loc = LX, LY, LZ = location(metadata)
@@ -190,7 +192,7 @@ Adapt.adapt_structure(to, p::Restoring) = Restoring(Adapt.adapt(to, p.field_time
     time = Time(clock.time)
     loc = location(p.field_time_series)
 
-    # Possibly interpolate ECCO data from the ECCO grid to simulation grid.
+    # Possibly interpolate dataset's data from their native grid to simulation grid.
     # Otherwise, simply extract the pre-interpolated data from p.field_time_series.
     if p.native_grid isa Nothing
         ψ_dataset = @inbounds p.field_time_series[i, j, k, time]
