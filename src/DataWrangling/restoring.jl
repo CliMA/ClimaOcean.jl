@@ -19,13 +19,13 @@ import Oceananigans.OutputReaders: new_backend, update_field_time_series!, Field
 @inline instantiate(T::DataType) = T()
 @inline instantiate(T) = T
 
-struct DatasetNetCDFBackend{N, C, I, M} <: AbstractInMemoryBackend{Int}
+struct DatasetBackend{N, C, I, M} <: AbstractInMemoryBackend{Int}
     start :: Int
     length :: Int
     inpainting :: I
     metadata :: M
 
-    function DatasetNetCDFBackend{N, C}(start::Int, length::Int, inpainting, metadata) where {N, C}
+    function DatasetBackend{N, C}(start::Int, length::Int, inpainting, metadata) where {N, C}
         M = typeof(metadata)
         I = typeof(inpainting)
         return new{N, C, I, M}(start, length, inpainting, metadata)
