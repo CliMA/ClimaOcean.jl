@@ -86,7 +86,7 @@ end
                         inpainting = nothing,
                         cache_inpainted_data = true)
 
-Create a field time series object for obs/reanalysis data.
+Create a FieldTimeSeries from a dataset that corresponds to `metadata`..
 
 Arguments
 =========
