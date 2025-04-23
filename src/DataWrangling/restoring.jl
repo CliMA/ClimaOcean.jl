@@ -172,7 +172,7 @@ Base.summary(::Salinity)    = "salinity"
 Base.summary(::UVelocity)   = "u_velocity"
 Base.summary(::VVelocity)   = "v_velocity"
 
-struct Restoring{FTS, G, M, V, N}
+struct DatasetRestoring{FTS, G, M, V, N}
     field_time_series :: FTS
     native_grid :: G
     mask :: M
@@ -180,13 +180,14 @@ struct Restoring{FTS, G, M, V, N}
     rate :: N
 end
 
-Adapt.adapt_structure(to, p::Restoring) = Restoring(Adapt.adapt(to, p.field_time_series),
-                                                    Adapt.adapt(to, p.native_grid),
-                                                    Adapt.adapt(to, p.mask),
-                                                    Adapt.adapt(to, p.variable_name),
-                                                    Adapt.adapt(to, p.rate))
+Adapt.adapt_structure(to, p::DatasetRestoring) =
+    DatasetRestoring(Adapt.adapt(to, p.field_time_series),
+                     Adapt.adapt(to, p.native_grid),
+                     Adapt.adapt(to, p.mask),
+                     Adapt.adapt(to, p.variable_name),
+                     Adapt.adapt(to, p.rate))
 
-@inline function (p::Restoring)(i, j, k, grid, clock, fields)
+@inline function (p::DatasetRestoring)(i, j, k, grid, clock, fields)
 
     # Figure out all the inputs: time, location, and node
     time = Time(clock.time)
@@ -220,20 +221,20 @@ end
 end
 
 """
-    Restoring(variable_name::Symbol, [ arch_or_grid = CPU(), ];
-              dataset,
-              dates = all_dates(dataset, variable_name),
-              time_indices_in_memory = 2,
-              time_indexing = Cyclical(),
-              mask = 1,
-              rate = 1,
-              dir = default_download_directory(dataset),
-              inpainting = NearestNeighborInpainting(Inf),
-              cache_inpainted_data = true)
+    DatasetRestoring(variable_name::Symbol, [ arch_or_grid = CPU(), ];
+                     dataset,
+                     start_date = first_date(dataset, variable_name),
+                     end_date = last_date(dataset, variable_name),
+                     time_indices_in_memory = 2,
+                     time_indexing = Cyclical(),
+                     mask = 1,
+                     rate = 1,
+                     dir = default_download_directory(dataset),
+                     inpainting = NearestNeighborInpainting(Inf),
+                     cache_inpainted_data = true)
 
-Return a forcing term that restores to values stored in a FieldTimeSeries.
-The restoring is applied as a forcing on the right hand side of the evolution
-equations, calculated as:
+Return a forcing term that restores to data from a dataset. The restoring is applied
+as a forcing on the right hand side of the evolution equations, calculated as:
 
 ```math
 F_ψ = r μ (ψ_{dataset} - ψ)
@@ -261,14 +262,17 @@ Arguments
 
 !!! info "Providing `Metadata` instead of `variable_name`"
     Note that `Metadata` may be provided as the first argument instead of `variable_name`.
-    In this case the `dataset` and `dates` kwargs (described below) cannot be provided.
+    In this case the `dataset`, `start_date`, and `end_date` kwargs (described below)
+    cannot be provided since they are inferred from `Metadata`.
 
 Keyword Arguments
 =================
 
-- `dataset`: The dataset; required kwarg if `variable_name` argument is provide.
+- `dataset`: The dataset; required keyword argument if `variable_name` argument is provided.
 
-- `dates`: The date range to use for the dataset. Default: `all_dates(dataset, variable_name)`.
+- `start_date`: The starting date to use for the dataset. Default: `first_date(dataset, variable_name)`.
+
+- `end_date`: The ending date to use for the dataset. Default: `end_date(dataset, variable_name)`.
 
 - `time_indices_in_memory`: The number of time indices to keep in memory. The number is chosen based on
                             a trade-off between increased performance (more indices in memory) and reduced
@@ -288,29 +292,29 @@ Keyword Arguments
 - `cache_inpainted_data`: If `true`, the data is cached to disk after inpainting for later retrieving.
                           Default: `true`.
 """
-function Restoring(variable_name::Symbol,
-                   arch_or_grid = CPU();
-                   dataset,
-                   dir = default_download_directory(dataset),
-                   start_date = first_date(dataset, variable_name),
-                   end_date = last_date(dataset, variable_name),
-                   kw...)
+function DatasetRestoring(variable_name::Symbol,
+                          arch_or_grid = CPU();
+                          dataset,
+                          dir = default_download_directory(dataset),
+                          start_date = first_date(dataset, variable_name),
+                          end_date = last_date(dataset, variable_name),
+                          kw...)
 
     native_dates = all_dates(dataset, variable_name)
     dates = compute_native_date_range(native_dates, start_date, end_date)
     metadata = Metadata(variable_name, dataset, dates, dir)
 
-    return Restoring(metadata, arch_or_grid; kw...)
+    return DatasetRestoring(metadata, arch_or_grid; kw...)
 end
 
-function Restoring(metadata,
-                   arch_or_grid = CPU();
-                   rate,
-                   mask = 1,
-                   time_indices_in_memory = 2, # Not more than this if we want to use GPU!
-                   time_indexing = Cyclical(),
-                   inpainting = NearestNeighborInpainting(Inf),
-                   cache_inpainted_data = true)
+function DatasetRestoring(metadata,
+                          arch_or_grid = CPU();
+                          rate,
+                          mask = 1,
+                          time_indices_in_memory = 2, # Not more than this if we want to use GPU!
+                          time_indexing = Cyclical(),
+                          inpainting = NearestNeighborInpainting(Inf),
+                          cache_inpainted_data = true)
 
     fts = FieldTimeSeries(metadata, arch_or_grid;
                           time_indices_in_memory,
@@ -327,11 +331,11 @@ function Restoring(metadata,
     on_native_grid = arch_or_grid isa AbstractArchitecture
     maybe_native_grid = on_native_grid ? fts.grid : nothing
 
-    return Restoring(fts, maybe_native_grid, mask, field_name, rate)
+    return DatasetRestoring(fts, maybe_native_grid, mask, field_name, rate)
 end
 
-function Base.show(io::IO, p::Restoring)
-    print(io, "Restoring:", '\n',
+function Base.show(io::IO, p::DatasetRestoring)
+    print(io, "DatasetRestoring:", '\n',
               "├── restored variable: ", summary(p.variable_name), '\n',
               "├── restoring dataset: ", summary(p.field_time_series.backend.metadata), '\n',
               "├── restoring rate: ", p.rate, '\n',
@@ -339,4 +343,4 @@ function Base.show(io::IO, p::Restoring)
               "└── grid: ", summary(p.native_grid))
 end
 
-regularize_forcing(forcing::Restoring, field, field_name, model_field_names) = forcing
+regularize_forcing(forcing::DatasetRestoring, field, field_name, model_field_names) = forcing
