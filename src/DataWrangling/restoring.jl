@@ -5,9 +5,8 @@ using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBac
 using Oceananigans.Utils: Time
 using Oceananigans.Architectures: AbstractArchitecture
 
-using Base
-using NCDatasets
 using JLD2
+using NCDatasets
 
 using Dates: Second
 using ClimaOcean: stateindex
@@ -90,10 +89,10 @@ Create a FieldTimeSeries from a dataset that corresponds to `metadata`.
 Arguments
 =========
 
-- `metadata`: `Metadata` containing information about the obs/reanalysis dataset.
+- `metadata`: `Metadata` containing information about the dataset.
 
-- `arch_or_grid`: Either a grid to interpolate the obs/reanalysis data to, or an `arch`itecture
-                  to use for the native obs/reanalysis grid. Default: CPU().
+- `arch_or_grid`: Either a grid to interpolate the data to, or an `arch`itecture
+                  to use for the native grid. Default: CPU().
 
 Keyword Arguments
 =================
@@ -102,7 +101,7 @@ Keyword Arguments
 
 - `time_indexing`: The time indexing scheme to use. Default: `Cyclical()`.
 
-- `inpainting`: The inpainting algorithm to use for obs/reanalysis interpolation.
+- `inpainting`: The inpainting algorithm to use for the interpolation.
                 The only option is `NearestNeighborInpainting(maxiter)`,
                 where an average of the valid surrounding values is used `maxiter` times.
 
@@ -194,16 +193,16 @@ Adapt.adapt_structure(to, p::Restoring) = Restoring(Adapt.adapt(to, p.field_time
     # Possibly interpolate ECCO data from the ECCO grid to simulation grid.
     # Otherwise, simply extract the pre-interpolated data from p.field_time_series.
     if p.native_grid isa Nothing
-        ψ_obs = @inbounds p.field_time_series[i, j, k, time]
+        ψ_dataset = @inbounds p.field_time_series[i, j, k, time]
     else
-        ψ_obs = interpolate_to_grid(p.field_time_series, i, j, k, p.native_grid, grid, time)
+        ψ_dataset = interpolate_to_grid(p.field_time_series, i, j, k, p.native_grid, grid, time)
     end
 
     ψ = @inbounds fields[i, j, k, p.variable_name]
     μ = stateindex(p.mask, i, j, k, grid, clock.time, loc)
     r = p.rate
 
-    return r * μ * (ψ_obs - ψ)
+    return r * μ * (ψ_dataset - ψ)
 end
 
 @inline function interpolate_to_grid(fts, i, j, k, native_grid, grid, time)
@@ -226,21 +225,21 @@ end
               time_indexing = Cyclical(),
               mask = 1,
               rate = 1,
-              dir = download_ECCO_cache,
+              dir = default_download_directory(dataset),
               inpainting = NearestNeighborInpainting(Inf),
               cache_inpainted_data = true)
 
-Return a forcing term that restores to values stored in an obs/reanalysis field time series.
+Return a forcing term that restores to values stored in a FieldTimeSeries.
 The restoring is applied as a forcing on the right hand side of the evolution
-equations calculated as:
+equations, calculated as:
 
 ```math
-F_ψ = r μ (ψ_{obs} - ψ)
+F_ψ = r μ (ψ_{dataset} - ψ)
 ```
 
 where ``μ`` is the mask, ``r`` is the restoring rate, ``ψ`` is the simulation variable,
-and ``ψ_{obs}`` is the obs/reanalysis variable that is linearly interpolated in space and time
-from the obs/reanalysis dataset of choice to the simulation grid and time.
+and ``ψ_{dataset}`` is the dataset variable that is linearly interpolated in space and time
+from the dataset of choice to the simulation grid and time.
 
 Arguments
 =========
@@ -253,9 +252,9 @@ Arguments
   * `:sea_ice_thickness`,
   * `:sea_ice_area_fraction`.
 
-- `arch_or_grid`: Either the architecture of the simulation, or a grid on which the obs/reanalysis data
+- `arch_or_grid`: Either the architecture of the simulation, or a grid on which the data
                   is pre-interpolated when loaded. If an `arch`itecture is provided, such as
-                  `arch_or_grid = CPU()` or `arch_or_grid = GPU()`, obs/reanalysis data are interpolated
+                  `arch_or_grid = CPU()` or `arch_or_grid = GPU()`, data is interpolated
                   on-the-fly when the forcing tendency is computed. Default: CPU().
 
 !!! info "Providing `Metadata` instead of `variable_name`"
@@ -267,9 +266,9 @@ Keyword Arguments
 
 - `dataset` (required): The dataset.
 
-- `start_date`: The starting date to use for the obs/reanalysis dataset. Default: `first_date(dataset, variable_name)`.
+- `start_date`: The starting date to use for the dataset. Default: `first_date(dataset, variable_name)`.
 
-- `end_date`: The ending date to use for the obs/reanalysis dataset. Default: `end_date(dataset, variable_name)`.
+- `end_date`: The ending date to use for the dataset. Default: `end_date(dataset, variable_name)`.
 
 - `time_indices_in_memory`: The number of time indices to keep in memory. The number is chosen based on
                             a trade-off between increased performance (more indices in memory) and reduced
