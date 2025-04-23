@@ -45,9 +45,9 @@ Represent a FieldTimeSeries backed by native netCDF files.
 Each time instance is stored in an individual file.
 """
 function NetCDFBackend(length, metadata;
-                           on_native_grid = false,
-                           cache_inpainted_data = false,
-                           inpainting = NearestNeighborInpainting(Inf))
+                       on_native_grid = false,
+                       cache_inpainted_data = false,
+                       inpainting = NearestNeighborInpainting(Inf))
 
     return NetCDFBackend{on_native_grid, cache_inpainted_data}(1, length, inpainting, metadata)
 end
@@ -73,20 +73,19 @@ function set!(fts::DatasetFieldTimeSeries)
         metadatum = @inbounds backend.metadata[t]
         set!(fts[t], metadatum; inpainting, cache_inpainted_data=cache_data)
     end
-
-    fill_halo_regions!(fts)
+ fill_halo_regions!(fts)
 
     return nothing
 end
 
 """
     FieldTimeSeries(metadata::Metadata [, arch_or_grid=CPU() ];
-                        time_indices_in_memory = 2,
-                        time_indexing = Cyclical(),
-                        inpainting = nothing,
-                        cache_inpainted_data = true)
+                    time_indices_in_memory = 2,
+                    time_indexing = Cyclical(),
+                    inpainting = nothing,
+                    cache_inpainted_data = true)
 
-Create a FieldTimeSeries from a dataset that corresponds to `metadata`..
+Create a FieldTimeSeries from a dataset that corresponds to `metadata`.
 
 Arguments
 =========
@@ -109,7 +108,6 @@ Keyword Arguments
 
 - `cache_inpainted_data`: If `true`, the data is cached to disk after inpainting for later retrieving.
                           Default: `true`.
-
 """
 function FieldTimeSeries(metadata::Metadata, architecture::AbstractArchitecture=CPU(); kw...)
     download_dataset(metadata)
@@ -119,10 +117,10 @@ function FieldTimeSeries(metadata::Metadata, architecture::AbstractArchitecture=
 end
 
 function FieldTimeSeries(metadata::Metadata, grid::AbstractGrid;
-                             time_indices_in_memory = 2,
-                             time_indexing = Cyclical(),
-                             inpainting = default_inpainting(metadata),
-                             cache_inpainted_data = true)
+                         time_indices_in_memory = 2,
+                         time_indexing = Cyclical(),
+                         inpainting = default_inpainting(metadata),
+                         cache_inpainted_data = true)
 
     # Make sure all the required individual files are downloaded
     download_dataset(metadata)
@@ -140,11 +138,11 @@ function FieldTimeSeries(metadata::Metadata, grid::AbstractGrid;
 end
 
 function FieldTimeSeries(variable_name::Symbol;
-                             dataset, dir,
-                             architecture = CPU(),
-                             start_date = first_date(dataset, variable_name),
-                             end_date = first_date(dataset, variable_name),
-                             kw...)
+                         dataset, dir,
+                         architecture = CPU(),
+                         start_date = first_date(dataset, variable_name),
+                         end_date = first_date(dataset, variable_name),
+                         kw...)
 
     native_dates = all_dates(dataset, variable_name)
     dates = compute_native_date_range(native_dates, start_date, end_date)
@@ -182,10 +180,10 @@ struct Restoring{FTS, G, M, V, N}
 end
 
 Adapt.adapt_structure(to, p::Restoring) = Restoring(Adapt.adapt(to, p.field_time_series),
-                                                            Adapt.adapt(to, p.native_grid),
-                                                            Adapt.adapt(to, p.mask),
-                                                            Adapt.adapt(to, p.variable_name),
-                                                            Adapt.adapt(to, p.rate))
+                                                    Adapt.adapt(to, p.native_grid),
+                                                    Adapt.adapt(to, p.mask),
+                                                    Adapt.adapt(to, p.variable_name),
+                                                    Adapt.adapt(to, p.rate))
 
 @inline function (p::Restoring)(i, j, k, grid, clock, fields)
 
@@ -222,15 +220,15 @@ end
 
 """
     Restoring(variable_name::Symbol, [ arch_or_grid = CPU(), ];
-                  dataset,
-                  dates = all_dates(dataset, variable_name),
-                  time_indices_in_memory = 2,
-                  time_indexing = Cyclical(),
-                  mask = 1,
-                  rate = 1,
-                  dir,
-                  inpainting = NearestNeighborInpainting(Inf),
-                  cache_inpainted_data = true)
+              dataset,
+              dates = all_dates(dataset, variable_name),
+              time_indices_in_memory = 2,
+              time_indexing = Cyclical(),
+              mask = 1,
+              rate = 1,
+              dir = download_ECCO_cache,
+              inpainting = NearestNeighborInpainting(Inf),
+              cache_inpainted_data = true)
 
 Return a forcing term that restores to values stored in an obs/reanalysis field time series.
 The restoring is applied as a forcing on the right hand side of the evolution
@@ -267,7 +265,7 @@ Arguments
 Keyword Arguments
 =================
 
-- `dataset`: The dataset. No default, must be provided.
+- `dataset` (required): The dataset.
 
 - `start_date`: The starting date to use for the obs/reanalysis dataset. Default: `first_date(dataset, variable_name)`.
 
@@ -292,12 +290,12 @@ Keyword Arguments
                           Default: `true`.
 """
 function Restoring(variable_name::Symbol,
-                       arch_or_grid = CPU();
-                       dataset,
-                       dir = default_download_directory(dataset),
-                       start_date = first_date(dataset, variable_name),
-                       end_date = last_date(dataset, variable_name),
-                       kw...)
+                   arch_or_grid = CPU();
+                   dataset,
+                   dir = default_download_directory(dataset),
+                   start_date = first_date(dataset, variable_name),
+                   end_date = last_date(dataset, variable_name),
+                   kw...)
 
     native_dates = all_dates(dataset, variable_name)
     dates = compute_native_date_range(native_dates, start_date, end_date)
@@ -307,19 +305,19 @@ function Restoring(variable_name::Symbol,
 end
 
 function Restoring(metadata,
-                       arch_or_grid = CPU();
-                       rate,
-                       mask = 1,
-                       time_indices_in_memory = 2, # Not more than this if we want to use GPU!
-                       time_indexing = Cyclical(),
-                       inpainting = NearestNeighborInpainting(Inf),
-                       cache_inpainted_data = true)
+                   arch_or_grid = CPU();
+                   rate,
+                   mask = 1,
+                   time_indices_in_memory = 2, # Not more than this if we want to use GPU!
+                   time_indexing = Cyclical(),
+                   inpainting = NearestNeighborInpainting(Inf),
+                   cache_inpainted_data = true)
 
     fts = FieldTimeSeries(metadata, arch_or_grid;
-                              time_indices_in_memory,
-                              time_indexing,
-                              inpainting,
-                              cache_inpainted_data)
+                          time_indices_in_memory,
+                          time_indexing,
+                          inpainting,
+                          cache_inpainted_data)
 
     # Grab the correct Oceananigans field to restore
     variable_name = metadata.name
