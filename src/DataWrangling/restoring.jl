@@ -86,7 +86,7 @@ end
                         inpainting = nothing,
                         cache_inpainted_data = true)
 
-Create a field time series object for obs/reanalysis data.
+Create a FieldTimeSeries from a dataset that corresponds to `metadata`..
 
 Arguments
 =========
@@ -283,8 +283,8 @@ Keyword Arguments
 
 - `rate`: The restoring rate, i.e., the inverse of the restoring timescale (in s⁻¹).
 
-- `dir`: The directory where the native obs/reanalysis data is located. If the data does not exist it will
-         be automatically downloaded. No default, must be provided.
+- `dir` (required): The directory where the native data is located. If the data does not exist it will
+         be automatically downloaded.
 
 - `inpainting`: inpainting algorithm, see [`inpaint_mask!`](@ref). Default: `NearestNeighborInpainting(Inf)`.
 

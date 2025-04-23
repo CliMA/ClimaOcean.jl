@@ -6,13 +6,12 @@ using Oceananigans: location
 using ClimaOcean.DataWrangling: FieldTimeSeries
 using ClimaOcean.Diagnostics: MixedLayerDepthField, MixedLayerDepthOperand
 
-@testset "MixedLayerDepthField" begin
 
-    for arch in test_architectures
-        dataset = ECCO4Monthly() # the test below hardcodes the mixed-layer depth expected from ECCO4Monthly()
-        A = typeof(arch)
-        @info "Testing $(typeof(dataset)) on $A"
+for arch in test_architectures, dataset in test_datasets
+    A = typeof(arch)
+    @info "Testing MixedLayerDepthField with $(typeof(dataset)) on $A"
 
+    @testset "MixedLayerDepthField" begin
         grid = LatitudeLongitudeGrid(arch;
                                      size = (3, 3, 100),
                                      latitude  = (0, 30),
@@ -30,8 +29,8 @@ using ClimaOcean.Diagnostics: MixedLayerDepthField, MixedLayerDepthOperand
         stop  = DateTimeProlepticGregorian(1993, 2, 1)
         dates = range(start; stop, step=Month(1))
 
-        Tmeta = Metadata(:temperature; dataset=dataset, dates)
-        Smeta = Metadata(:salinity; dataset=dataset, dates)
+        Tmeta = Metadata(:temperature; dataset, dates)
+        Smeta = Metadata(:salinity; dataset, dates)
 
         Tt = FieldTimeSeries(Tmeta, grid; time_indices_in_memory=2)
         St = FieldTimeSeries(Smeta, grid; time_indices_in_memory=2)
@@ -47,12 +46,15 @@ using ClimaOcean.Diagnostics: MixedLayerDepthField, MixedLayerDepthOperand
         @test h.operand.buoyancy_perturbation isa KernelFunctionOperation
 
         compute!(h)
-        @show h[1, 1, 1]
-        @test @allowscalar h[1, 1, 1] ≈ 16.2558363 # m
+        if dataset isa ECCO4Monthly
+            @test @allowscalar h[1, 1, 1] ≈ 16.2558363 # m
+        end
 
         tracers = (T=Tt[2], S=St[2])
         h.operand.buoyancy_perturbation = buoyancy(sb, grid, tracers)
         compute!(h)
-        @test @allowscalar h[1, 1, 1] ≈ 9.2957298 # m
+        if dataset isa ECCO4Monthly
+            @test @allowscalar h[1, 1, 1] ≈ 9.2957298 # m
+        end
     end
 end
