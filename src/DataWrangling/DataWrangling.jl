@@ -2,7 +2,7 @@ module DataWrangling
 
 export Metadata, Metadatum, ECCOMetadatum, EN4Metadatum, all_dates, first_date, last_date
 export LinearlyTaperedPolarMask
-export Restoring
+export DatasetRestoring
 
 using Oceananigans
 using Downloads
