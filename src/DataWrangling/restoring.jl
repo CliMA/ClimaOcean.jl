@@ -37,9 +37,9 @@ Adapt.adapt_structure(to, b::NetCDFBackend{N, C}) where {N, C} = NetCDFBackend{N
 
 """
     NetCDFBackend(length, metadata;
-                      on_native_grid = false,
-                      cache_inpainted_data = false,
-                      inpainting = NearestNeighborInpainting(Inf))
+                  on_native_grid = false,
+                  cache_inpainted_data = false,
+                  inpainting = NearestNeighborInpainting(Inf))
 
 Represent an observational/reanalysis FieldTimeSeries backed by native netCDF files.
 Each time instance is stored in an individual file.
