@@ -32,7 +32,7 @@ export
     all_dates,
     JRA55FieldTimeSeries,
     LinearlyTaperedPolarMask,
-    Restoring,
+    DatasetRestoring,
     ocean_simulation,
     sea_ice_simulation,
     initialize!
