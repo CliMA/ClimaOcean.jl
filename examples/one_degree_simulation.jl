@@ -61,8 +61,8 @@ z_below_surface = r_faces[end-1]
 
 mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(z_below_surface, 0))
 
-FT = Restoring(temperature, grid; mask, rate=restoring_rate)
-FS = Restoring(salinity,    grid; mask, rate=restoring_rate)
+FT = DatasetRestoring(temperature, grid; mask, rate=restoring_rate)
+FS = DatasetRestoring(salinity,    grid; mask, rate=restoring_rate)
 forcing = (T=FT, S=FS)
 
 # ### Closures

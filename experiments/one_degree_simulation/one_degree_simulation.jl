@@ -32,8 +32,8 @@ mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(-100,
 temperature = Metadata(:temperature; dates, dateset=ECCO4Monthly())
 salinity    = Metadata(:salinity;    dates, dateset=ECCO4Monthly())
 rate = 1/10days
-FT = Restoring(temperature, grid; mask, rate)
-FS = Restoring(salinity, grid; mask, rate)
+FT = DatasetRestoring(temperature, grid; mask, rate)
+FS = DatasetRestoring(salinity, grid; mask, rate)
 forcing = (T=FT, S=FS)
 
 momentum_advection = VectorInvariant()
