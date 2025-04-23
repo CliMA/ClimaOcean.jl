@@ -1,7 +1,7 @@
 using Oceananigans: location
 using Oceananigans.Grids: AbstractGrid, node, on_architecture
 using Oceananigans.Fields: interpolate!, interpolate, location, instantiated_location
-using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBackend, FlavorOfFTS, time_indices, FieldTimeSeries
+using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBackend, FlavorOfFTS, time_indices
 using Oceananigans.Utils: Time
 using Oceananigans.Architectures: AbstractArchitecture
 
@@ -15,7 +15,7 @@ using ClimaOcean.DataWrangling: NearestNeighborInpainting, native_times, default
 
 import Oceananigans.Fields: set!
 import Oceananigans.Forcings: regularize_forcing
-import Oceananigans.OutputReaders: new_backend, update_field_time_series!
+import Oceananigans.OutputReaders: new_backend, update_field_time_series!, FieldTimeSeries
 
 @inline instantiate(T::DataType) = T()
 @inline instantiate(T) = T
