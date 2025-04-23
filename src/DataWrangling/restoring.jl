@@ -62,7 +62,7 @@ new_backend(b::DatasetBackend{native, cache_data}, start, length) where {native,
 on_native_grid(::DatasetBackend{native}) where native = native
 cache_inpainted_data(::DatasetBackend{native, cache_data}) where {native, cache_data} = cache_data
 
-const DatasetFieldTimeSeries{N} = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:NetCDFBackend{N}} where N
+const DatasetFieldTimeSeries{N} = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:DatasetBackend{N}} where N
 
 function set!(fts::DatasetFieldTimeSeries)
     backend = fts.backend
