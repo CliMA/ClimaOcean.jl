@@ -61,7 +61,9 @@ new_backend(b::NetCDFBackend{native, cache_data}, start, length) where {native, 
 on_native_grid(::NetCDFBackend{native}) where native = native
 cache_inpainted_data(::NetCDFBackend{native, cache_data}) where {native, cache_data} = cache_data
 
-function set!(fts::FieldTimeSeries)
+const DatasetFieldTimeSeries{N} = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:NetCDFBackend{N}} where N
+
+function set!(fts::DatasetFieldTimeSeries)
     backend = fts.backend
     inpainting = backend.inpainting
     cache_data = cache_inpainted_data(backend)
@@ -292,7 +294,7 @@ Keyword Arguments
 function Restoring(variable_name::Symbol,
                        arch_or_grid = CPU();
                        dataset,
-                       dir = default_download_directory(dataset), 
+                       dir = default_download_directory(dataset),
                        start_date = first_date(dataset, variable_name),
                        end_date = last_date(dataset, variable_name),
                        kw...)
