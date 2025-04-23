@@ -29,8 +29,8 @@ closure = (catke, viscous_closure)
 
 dates = DateTime(1993, 1, 1) : Month(1) : DateTime(1993, 11, 1)
 mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(-100, 0))
-temperature = ECCOMetadata(:temperature; dates, version=ECCO4Monthly())
-salinity    = ECCOMetadata(:salinity;    dates, version=ECCO4Monthly())
+temperature = Metadata(:temperature; dates, dateset=ECCO4Monthly())
+salinity    = Metadata(:salinity;    dates, dateset=ECCO4Monthly())
 rate = 1/10days
 FT = Restoring(temperature, grid; mask, rate)
 FS = Restoring(salinity, grid; mask, rate)

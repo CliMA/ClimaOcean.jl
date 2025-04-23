@@ -22,8 +22,8 @@ arch = GPU()
 # ### ECCO files
 
 dates = DateTime(1993, 1, 1) : Month(1) : DateTime(1994, 1, 1)
-temperature = Metadata(:temperature; dates, dataset=ECCO4Monthly(), dir="./")
-salinity    = Metadata(:salinity;    dates, dataset=ECCO4Monthly(), dir="./")
+temperature = Metadata(:temperature; dates, dataset=ECCO4Monthly())
+salinity    = Metadata(:salinity;    dates, dataset=ECCO4Monthly())
 
 download_dataset(temperature)
 download_dataset(salinity)
