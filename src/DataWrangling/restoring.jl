@@ -1,7 +1,7 @@
 using Oceananigans: location
 using Oceananigans.Grids: AbstractGrid, node, on_architecture
 using Oceananigans.Fields: interpolate!, interpolate, location, instantiated_location
-using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBackend, FlavorOfFTS, time_indices
+using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBackend, FlavorOfFTS, time_indices, FieldTimeSeries
 using Oceananigans.Utils: Time
 using Oceananigans.Architectures: AbstractArchitecture
 
@@ -55,15 +55,13 @@ end
 Base.length(backend::NetCDFBackend)  = backend.length
 Base.summary(backend::NetCDFBackend) = string("NetCDFBackend(", backend.start, ", ", backend.length, ")")
 
-const ObsFieldTimeSeries{N} = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:NetCDFBackend{N}} where N
-
 new_backend(b::NetCDFBackend{native, cache_data}, start, length) where {native, cache_data} =
 NetCDFBackend{native, cache_data}(start, length, b.inpainting, b.metadata)
 
 on_native_grid(::NetCDFBackend{native}) where native = native
 cache_inpainted_data(::NetCDFBackend{native, cache_data}) where {native, cache_data} = cache_data
 
-function set!(fts::ObsFieldTimeSeries)
+function set!(fts::FieldTimeSeries)
     backend = fts.backend
     inpainting = backend.inpainting
     cache_data = cache_inpainted_data(backend)
@@ -80,7 +78,7 @@ function set!(fts::ObsFieldTimeSeries)
 end
 
 """
-    ObsFieldTimeSeries(metadata::Metadata [, arch_or_grid=CPU() ];
+    FieldTimeSeries(metadata::Metadata [, arch_or_grid=CPU() ];
                         time_indices_in_memory = 2,
                         time_indexing = Cyclical(),
                         inpainting = nothing,
@@ -111,14 +109,14 @@ Keyword Arguments
                           Default: `true`.
 
 """
-function ObsFieldTimeSeries(metadata::Metadata, architecture::AbstractArchitecture=CPU(); kw...)
+function FieldTimeSeries(metadata::Metadata, architecture::AbstractArchitecture=CPU(); kw...)
     download_dataset(metadata)
     ftmp = empty_field(first(metadata); architecture)
     grid = ftmp.grid
-    return ObsFieldTimeSeries(metadata, grid; kw...)
+    return FieldTimeSeries(metadata, grid; kw...)
 end
 
-function ObsFieldTimeSeries(metadata::Metadata, grid::AbstractGrid;
+function FieldTimeSeries(metadata::Metadata, grid::AbstractGrid;
                              time_indices_in_memory = 2,
                              time_indexing = Cyclical(),
                              inpainting = default_inpainting(metadata),
@@ -139,7 +137,7 @@ function ObsFieldTimeSeries(metadata::Metadata, grid::AbstractGrid;
     return fts
 end
 
-function ObsFieldTimeSeries(variable_name::Symbol;
+function FieldTimeSeries(variable_name::Symbol;
                              dataset, dir,
                              architecture = CPU(),
                              start_date = first_date(dataset, variable_name),
@@ -149,7 +147,7 @@ function ObsFieldTimeSeries(variable_name::Symbol;
     native_dates = all_dates(dataset, variable_name)
     dates = compute_native_date_range(native_dates, start_date, end_date)
     metadata = Metadata(variable_name, dataset, dates, dir)
-    return ObsFieldTimeSeries(metadata, architecture; kw...)
+    return FieldTimeSeries(metadata, architecture; kw...)
 end
 
 # Variable names for restorable data
@@ -293,7 +291,8 @@ Keyword Arguments
 """
 function Restoring(variable_name::Symbol,
                        arch_or_grid = CPU();
-                       dataset, dir,
+                       dataset,
+                       dir = default_download_directory(dataset), 
                        start_date = first_date(dataset, variable_name),
                        end_date = last_date(dataset, variable_name),
                        kw...)
@@ -314,7 +313,7 @@ function Restoring(metadata,
                        inpainting = NearestNeighborInpainting(Inf),
                        cache_inpainted_data = true)
 
-    fts = ObsFieldTimeSeries(metadata, arch_or_grid;
+    fts = FieldTimeSeries(metadata, arch_or_grid;
                               time_indices_in_memory,
                               time_indexing,
                               inpainting,

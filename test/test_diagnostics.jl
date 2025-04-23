@@ -3,11 +3,11 @@ include("runtests_setup.jl")
 using SeawaterPolynomials: TEOS10EquationOfState
 using Oceananigans.BuoyancyFormulations: buoyancy
 using Oceananigans: location
-using ClimaOcean.DataWrangling.ECCO: ECCOFieldTimeSeries
+using ClimaOcean.DataWrangling: FieldTimeSeries
 using ClimaOcean.Diagnostics: MixedLayerDepthField, MixedLayerDepthOperand
 
 @testset "MixedLayerDepthField" begin
-    for arch in test_architectures
+    for arch in test_architectures, dataset in test_datasets
         grid = LatitudeLongitudeGrid(arch;
                                      size = (3, 3, 100),
                                      latitude  = (0, 30),
@@ -25,11 +25,11 @@ using ClimaOcean.Diagnostics: MixedLayerDepthField, MixedLayerDepthOperand
         stop  = DateTimeProlepticGregorian(1993, 2, 1)
         dates = range(start; stop, step=Month(1))
 
-        Tmeta = Metadata(:temperature; dataset=ECCO4Monthly(), dates)
-        Smeta = Metadata(:salinity; dataset=ECCO4Monthly(), dates)
+        Tmeta = Metadata(:temperature; dataset=dataset, dates)
+        Smeta = Metadata(:salinity; dataset=dataset, dates)
 
-        Tt = ECCOFieldTimeSeries(Tmeta, grid; time_indices_in_memory=2)
-        St = ECCOFieldTimeSeries(Smeta, grid; time_indices_in_memory=2)
+        Tt = FieldTimeSeries(Tmeta, grid; time_indices_in_memory=2)
+        St = FieldTimeSeries(Smeta, grid; time_indices_in_memory=2)
 
         equation_of_state = TEOS10EquationOfState()
         sb = SeawaterBuoyancy(; equation_of_state)
