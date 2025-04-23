@@ -2,7 +2,6 @@ module ECCO
 
 export ECCOMetadatum, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
-export ECCOFieldTimeSeries, ECCORestoring
 
 using ClimaOcean
 using ClimaOcean.DataWrangling
@@ -105,7 +104,5 @@ function inpainted_metadata_filename(metadata::ECCOMetadata)
 end
 
 inpainted_metadata_path(metadata::ECCOMetadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
-
-include("ECCO_restoring.jl")
 
 end # Module

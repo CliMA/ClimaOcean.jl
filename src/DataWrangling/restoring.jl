@@ -3,6 +3,7 @@ using Oceananigans.Grids: AbstractGrid, node, on_architecture
 using Oceananigans.Fields: interpolate!, interpolate, location, instantiated_location
 using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBackend, FlavorOfFTS, time_indices
 using Oceananigans.Utils: Time
+using Oceananigans.Architectures: AbstractArchitecture
 
 using Base
 using NCDatasets
@@ -19,50 +20,50 @@ import Oceananigans.OutputReaders: new_backend, update_field_time_series!
 @inline instantiate(T::DataType) = T()
 @inline instantiate(T) = T
 
-struct ECCONetCDFBackend{N, C, I, M} <: AbstractInMemoryBackend{Int}
+struct NetCDFBackend{N, C, I, M} <: AbstractInMemoryBackend{Int}
     start :: Int
     length :: Int
     inpainting :: I
     metadata :: M
 
-    function ECCONetCDFBackend{N, C}(start::Int, length::Int, inpainting, metadata) where {N, C}
+    function NetCDFBackend{N, C}(start::Int, length::Int, inpainting, metadata) where {N, C}
         M = typeof(metadata)
         I = typeof(inpainting)
         return new{N, C, I, M}(start, length, inpainting, metadata)
     end
 end
 
-Adapt.adapt_structure(to, b::ECCONetCDFBackend{N, C}) where {N, C} = ECCONetCDFBackend{N, C}(b.start, b.length, nothing, nothing)
+Adapt.adapt_structure(to, b::NetCDFBackend{N, C}) where {N, C} = NetCDFBackend{N, C}(b.start, b.length, nothing, nothing)
 
 """
-    ECCONetCDFBackend(length, metadata;
+    NetCDFBackend(length, metadata;
                       on_native_grid = false,
                       cache_inpainted_data = false,
                       inpainting = NearestNeighborInpainting(Inf))
 
-Represent an ECCO FieldTimeSeries backed by ECCO native netCDF files.
+Represent an observational/reanalysis FieldTimeSeries backed by native netCDF files.
 Each time instance is stored in an individual file.
 """
-function ECCONetCDFBackend(length, metadata;
+function NetCDFBackend(length, metadata;
                            on_native_grid = false,
                            cache_inpainted_data = false,
                            inpainting = NearestNeighborInpainting(Inf))
 
-    return ECCONetCDFBackend{on_native_grid, cache_inpainted_data}(1, length, inpainting, metadata)
+    return NetCDFBackend{on_native_grid, cache_inpainted_data}(1, length, inpainting, metadata)
 end
 
-Base.length(backend::ECCONetCDFBackend)  = backend.length
-Base.summary(backend::ECCONetCDFBackend) = string("ECCONetCDFBackend(", backend.start, ", ", backend.length, ")")
+Base.length(backend::NetCDFBackend)  = backend.length
+Base.summary(backend::NetCDFBackend) = string("NetCDFBackend(", backend.start, ", ", backend.length, ")")
 
-const ECCOFieldTimeSeries{N} = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:ECCONetCDFBackend{N}} where N
+const ObsFieldTimeSeries{N} = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:NetCDFBackend{N}} where N
 
-new_backend(b::ECCONetCDFBackend{native, cache_data}, start, length) where {native, cache_data} =
-    ECCONetCDFBackend{native, cache_data}(start, length, b.inpainting, b.metadata)
+new_backend(b::NetCDFBackend{native, cache_data}, start, length) where {native, cache_data} =
+NetCDFBackend{native, cache_data}(start, length, b.inpainting, b.metadata)
 
-on_native_grid(::ECCONetCDFBackend{native}) where native = native
-cache_inpainted_data(::ECCONetCDFBackend{native, cache_data}) where {native, cache_data} = cache_data
+on_native_grid(::NetCDFBackend{native}) where native = native
+cache_inpainted_data(::NetCDFBackend{native, cache_data}) where {native, cache_data} = cache_data
 
-function set!(fts::ECCOFieldTimeSeries)
+function set!(fts::ObsFieldTimeSeries)
     backend = fts.backend
     inpainting = backend.inpainting
     cache_data = cache_inpainted_data(backend)
@@ -79,21 +80,21 @@ function set!(fts::ECCOFieldTimeSeries)
 end
 
 """
-    ECCOFieldTimeSeries(metadata::ECCOMetadata [, arch_or_grid=CPU() ];
+    ObsFieldTimeSeries(metadata::Metadata [, arch_or_grid=CPU() ];
                         time_indices_in_memory = 2,
                         time_indexing = Cyclical(),
                         inpainting = nothing,
                         cache_inpainted_data = true)
 
-Create a field time series object for ECCO data.
+Create a field time series object for obs/reanalysis data.
 
 Arguments
 =========
 
-- `metadata`: `ECCOMetadata` containing information about the ECCO dataset.
+- `metadata`: `Metadata` containing information about the obs/reanalysis dataset.
 
-- `arch_or_grid`: Either a grid to interpolate the ECCO data to, or an `arch`itecture
-                  to use for the native ECCO grid. Default: CPU().
+- `arch_or_grid`: Either a grid to interpolate the obs/reanalysis data to, or an `arch`itecture
+                  to use for the native obs/reanalysis grid. Default: CPU().
 
 Keyword Arguments
 =================
@@ -102,7 +103,7 @@ Keyword Arguments
 
 - `time_indexing`: The time indexing scheme to use. Default: `Cyclical()`.
 
-- `inpainting`: The inpainting algorithm to use for ECCO interpolation.
+- `inpainting`: The inpainting algorithm to use for obs/reanalysis interpolation.
                 The only option is `NearestNeighborInpainting(maxiter)`,
                 where an average of the valid surrounding values is used `maxiter` times.
 
@@ -110,14 +111,14 @@ Keyword Arguments
                           Default: `true`.
 
 """
-function ECCOFieldTimeSeries(metadata::ECCOMetadata, architecture::AbstractArchitecture=CPU(); kw...)
+function ObsFieldTimeSeries(metadata::Metadata, architecture::AbstractArchitecture=CPU(); kw...)
     download_dataset(metadata)
     ftmp = empty_field(first(metadata); architecture)
     grid = ftmp.grid
-    return ECCOFieldTimeSeries(metadata, grid; kw...)
+    return ObsFieldTimeSeries(metadata, grid; kw...)
 end
 
-function ECCOFieldTimeSeries(metadata::ECCOMetadata, grid::AbstractGrid;
+function ObsFieldTimeSeries(metadata::Metadata, grid::AbstractGrid;
                              time_indices_in_memory = 2,
                              time_indexing = Cyclical(),
                              inpainting = default_inpainting(metadata),
@@ -127,7 +128,7 @@ function ECCOFieldTimeSeries(metadata::ECCOMetadata, grid::AbstractGrid;
     download_dataset(metadata)
 
     inpainting isa Int && (inpainting = NearestNeighborInpainting(inpainting))
-    backend = ECCONetCDFBackend(time_indices_in_memory, metadata; on_native_grid, inpainting, cache_inpainted_data)
+    backend = NetCDFBackend(time_indices_in_memory, metadata; on_native_grid, inpainting, cache_inpainted_data)
 
     times = native_times(metadata)
     loc = LX, LY, LZ = location(metadata)
@@ -138,18 +139,17 @@ function ECCOFieldTimeSeries(metadata::ECCOMetadata, grid::AbstractGrid;
     return fts
 end
 
-function ECCOFieldTimeSeries(variable_name::Symbol;
-                             dataset = ECCO4Monthly(),
+function ObsFieldTimeSeries(variable_name::Symbol;
+                             dataset, dir,
                              architecture = CPU(),
                              start_date = first_date(dataset, variable_name),
                              end_date = first_date(dataset, variable_name),
-                             dir = download_ECCO_cache,
                              kw...)
 
     native_dates = all_dates(dataset, variable_name)
     dates = compute_native_date_range(native_dates, start_date, end_date)
     metadata = Metadata(variable_name, dataset, dates, dir)
-    return ECCOFieldTimeSeries(metadata, architecture; kw...)
+    return ObsFieldTimeSeries(metadata, architecture; kw...)
 end
 
 # Variable names for restorable data
@@ -173,7 +173,7 @@ Base.summary(::Salinity)    = "salinity"
 Base.summary(::UVelocity)   = "u_velocity"
 Base.summary(::VVelocity)   = "v_velocity"
 
-struct ECCORestoring{FTS, G, M, V, N}
+struct Restoring{FTS, G, M, V, N}
     field_time_series :: FTS
     native_grid :: G
     mask :: M
@@ -181,13 +181,13 @@ struct ECCORestoring{FTS, G, M, V, N}
     rate :: N
 end
 
-Adapt.adapt_structure(to, p::ECCORestoring) = ECCORestoring(Adapt.adapt(to, p.field_time_series),
+Adapt.adapt_structure(to, p::Restoring) = Restoring(Adapt.adapt(to, p.field_time_series),
                                                             Adapt.adapt(to, p.native_grid),
                                                             Adapt.adapt(to, p.mask),
                                                             Adapt.adapt(to, p.variable_name),
                                                             Adapt.adapt(to, p.rate))
 
-@inline function (p::ECCORestoring)(i, j, k, grid, clock, fields)
+@inline function (p::Restoring)(i, j, k, grid, clock, fields)
 
     # Figure out all the inputs: time, location, and node
     time = Time(clock.time)
@@ -196,16 +196,16 @@ Adapt.adapt_structure(to, p::ECCORestoring) = ECCORestoring(Adapt.adapt(to, p.fi
     # Possibly interpolate ECCO data from the ECCO grid to simulation grid.
     # Otherwise, simply extract the pre-interpolated data from p.field_time_series.
     if p.native_grid isa Nothing
-        ψ_ecco = @inbounds p.field_time_series[i, j, k, time]
+        ψ_obs = @inbounds p.field_time_series[i, j, k, time]
     else
-        ψ_ecco = interpolate_to_grid(p.field_time_series, i, j, k, p.native_grid, grid, time)
+        ψ_obs = interpolate_to_grid(p.field_time_series, i, j, k, p.native_grid, grid, time)
     end
 
     ψ = @inbounds fields[i, j, k, p.variable_name]
     μ = stateindex(p.mask, i, j, k, grid, clock.time, loc)
     r = p.rate
 
-    return r * μ * (ψ_ecco - ψ)
+    return r * μ * (ψ_obs - ψ)
 end
 
 @inline function interpolate_to_grid(fts, i, j, k, native_grid, grid, time)
@@ -221,28 +221,28 @@ end
 end
 
 """
-    ECCORestoring(variable_name::Symbol, [ arch_or_grid = CPU(), ];
-                  dataset = ECCO4Monthly(),
+    Restoring(variable_name::Symbol, [ arch_or_grid = CPU(), ];
+                  dataset,
                   dates = all_dates(dataset, variable_name),
                   time_indices_in_memory = 2,
                   time_indexing = Cyclical(),
                   mask = 1,
                   rate = 1,
-                  dir = download_ECCO_cache,
+                  dir,
                   inpainting = NearestNeighborInpainting(Inf),
                   cache_inpainted_data = true)
 
-Return a forcing term that restores to values stored in an ECCO field time series.
+Return a forcing term that restores to values stored in an obs/reanalysis field time series.
 The restoring is applied as a forcing on the right hand side of the evolution
 equations calculated as:
 
 ```math
-F_ψ = r μ (ψ_{ECCO} - ψ)
+F_ψ = r μ (ψ_{obs} - ψ)
 ```
 
 where ``μ`` is the mask, ``r`` is the restoring rate, ``ψ`` is the simulation variable,
-and ``ψ_{ECCO}`` is the ECCO variable that is linearly interpolated in space and time
-from the ECCO dataset of choice to the simulation grid and time.
+and ``ψ_{obs}`` is the obs/reanalysis variable that is linearly interpolated in space and time
+from the obs/reanalysis dataset of choice to the simulation grid and time.
 
 Arguments
 =========
@@ -255,23 +255,23 @@ Arguments
   * `:sea_ice_thickness`,
   * `:sea_ice_area_fraction`.
 
-- `arch_or_grid`: Either the architecture of the simulation, or a grid on which the ECCO data
+- `arch_or_grid`: Either the architecture of the simulation, or a grid on which the obs/reanalysis data
                   is pre-interpolated when loaded. If an `arch`itecture is provided, such as
-                  `arch_or_grid = CPU()` or `arch_or_grid = GPU()`, ECCO data are interpolated
+                  `arch_or_grid = CPU()` or `arch_or_grid = GPU()`, obs/reanalysis data are interpolated
                   on-the-fly when the forcing tendency is computed. Default: CPU().
 
-!!! info "Providing `ECCOMetadata` instead of `variable_name`"
-    Note that `ECCOMetadata` may be provided as the first argument instead of `variable_name`.
+!!! info "Providing `Metadata` instead of `variable_name`"
+    Note that `Metadata` may be provided as the first argument instead of `variable_name`.
     In this case the `dataset` and `dates` kwargs (described below) cannot be provided.
 
 Keyword Arguments
 =================
 
-- `dataset`: The dataset of the ECCO dataset. Default: `ECCO4Monthly()`.
+- `dataset`: The dataset. No default, must be provided.
 
-- `start_date`: The starting date to use for the ECCO dataset. Default: `first_date(dataset, variable_name)`.
+- `start_date`: The starting date to use for the obs/reanalysis dataset. Default: `first_date(dataset, variable_name)`.
 
-- `end_date`: The ending date to use for the ECCO dataset. Default: `end_date(dataset, variable_name)`.
+- `end_date`: The ending date to use for the obs/reanalysis dataset. Default: `end_date(dataset, variable_name)`.
 
 - `time_indices_in_memory`: The number of time indices to keep in memory. The number is chosen based on
                             a trade-off between increased performance (more indices in memory) and reduced
@@ -283,30 +283,29 @@ Keyword Arguments
 
 - `rate`: The restoring rate, i.e., the inverse of the restoring timescale (in s⁻¹).
 
-- `dir`: The directory where the native ECCO data is located. If the data does not exist it will
-         be automatically downloaded. Default: `download_ECCO_cache`.
+- `dir`: The directory where the native obs/reanalysis data is located. If the data does not exist it will
+         be automatically downloaded. No default, must be provided.
 
 - `inpainting`: inpainting algorithm, see [`inpaint_mask!`](@ref). Default: `NearestNeighborInpainting(Inf)`.
 
 - `cache_inpainted_data`: If `true`, the data is cached to disk after inpainting for later retrieving.
                           Default: `true`.
 """
-function ECCORestoring(variable_name::Symbol,
+function Restoring(variable_name::Symbol,
                        arch_or_grid = CPU();
-                       dataset = ECCO4Monthly(),
+                       dataset, dir,
                        start_date = first_date(dataset, variable_name),
                        end_date = last_date(dataset, variable_name),
-                       dir = download_ECCO_cache,
                        kw...)
 
     native_dates = all_dates(dataset, variable_name)
     dates = compute_native_date_range(native_dates, start_date, end_date)
     metadata = Metadata(variable_name, dataset, dates, dir)
 
-    return ECCORestoring(metadata, arch_or_grid; kw...)
+    return Restoring(metadata, arch_or_grid; kw...)
 end
 
-function ECCORestoring(metadata::ECCOMetadata,
+function Restoring(metadata,
                        arch_or_grid = CPU();
                        rate,
                        mask = 1,
@@ -315,7 +314,7 @@ function ECCORestoring(metadata::ECCOMetadata,
                        inpainting = NearestNeighborInpainting(Inf),
                        cache_inpainted_data = true)
 
-    fts = ECCOFieldTimeSeries(metadata, arch_or_grid;
+    fts = ObsFieldTimeSeries(metadata, arch_or_grid;
                               time_indices_in_memory,
                               time_indexing,
                               inpainting,
@@ -330,11 +329,11 @@ function ECCORestoring(metadata::ECCOMetadata,
     on_native_grid = arch_or_grid isa AbstractArchitecture
     maybe_native_grid = on_native_grid ? fts.grid : nothing
 
-    return ECCORestoring(fts, maybe_native_grid, mask, field_name, rate)
+    return Restoring(fts, maybe_native_grid, mask, field_name, rate)
 end
 
-function Base.show(io::IO, p::ECCORestoring)
-    print(io, "ECCORestoring:", '\n',
+function Base.show(io::IO, p::Restoring)
+    print(io, "Restoring:", '\n',
               "├── restored variable: ", summary(p.variable_name), '\n',
               "├── restoring dataset: ", summary(p.field_time_series.backend.metadata), '\n',
               "├── restoring rate: ", p.rate, '\n',
@@ -342,4 +341,4 @@ function Base.show(io::IO, p::ECCORestoring)
               "└── grid: ", summary(p.native_grid))
 end
 
-regularize_forcing(forcing::ECCORestoring, field, field_name, model_field_names) = forcing
+regularize_forcing(forcing::Restoring, field, field_name, model_field_names) = forcing
