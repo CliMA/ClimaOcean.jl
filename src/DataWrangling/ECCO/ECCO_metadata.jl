@@ -39,19 +39,19 @@ end
 
 function default_download_directory(::ECCO2Monthly)
     path = joinpath(download_ECCO_cache, "v2", "monthly")
-    !isdir(path) && mkpath(dir)
+    !isdir(path) && mkpath(path)
     return path
 end
 
 function default_download_directory(::ECCO2Daily)
     path = joinpath(download_ECCO_cache, "v2", "daily")
-    !isdir(path) && mkpath(dir)
+    !isdir(path) && mkpath(path)
     return path
 end
 
 function default_download_directory(::ECCO4Monthly)
     path = joinpath(download_ECCO_cache, "v4")
-    !isdir(path) && mkpath(dir)
+    !isdir(path) && mkpath(path)
     return path
 end
 
