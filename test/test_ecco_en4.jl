@@ -98,10 +98,6 @@ for arch in test_architectures, dataset in test_datasets
     end
 
     @testset "Timestepping with fields from Dataset" begin
-<<<<<<< HEAD:test/test_ecco_en4.jl
-        @info "Testing timestepping with fields from $(typeof(dataset)) on $A"
-=======
->>>>>>> main:test/test_ecco4_en4.jl
         grid  = LatitudeLongitudeGrid(arch;
                                       size = (10, 10, 10),
                                       latitude = (-60, -40),
@@ -126,19 +122,7 @@ for arch in test_architectures, dataset in test_datasets
         end
     end
 
-<<<<<<< HEAD:test/test_ecco_en4.jl
-####
-#### TODO: Generalize the ECCO-specific restoring tests below for any dataset
-####
-
-for dataset in test_ecco_datasets, arch in test_architectures
-    A = typeof(arch)
-    @info "Testing $(typeof(dataset)) on $A..."
-
-    @testset "ECCO-specific field utilities" begin
-=======
     @testset "Field utilities" begin
->>>>>>> main:test/test_ecco4_en4.jl
         for name in (:temperature, :salinity)
             metadata = Metadata(name; dates, dataset)
             restoring = DatasetRestoring(metadata, arch; rate=1/1000, inpainting)
