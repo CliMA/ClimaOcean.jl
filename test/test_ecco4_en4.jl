@@ -210,7 +210,7 @@ for arch in test_architectures, dataset in test_datasets
             true
         end
 
-        forcing_T = DatasetRestoring(:temperature;  dataset, start_date, end_date, inpainting, rate=1/1000)
+        forcing_T = DatasetRestoring(:temperature, arch;  dataset, start_date, end_date, inpainting, rate=1/1000)
 
         ocean = ocean_simulation(grid; forcing = (; T = forcing_T), verbose=false)
 
@@ -233,7 +233,7 @@ for arch in test_architectures, dataset in test_datasets
         end_date = DateTime(1993, 5, 1)
         dates = start_date : Month(1) : end_date
 
-        T_restoring = DatasetRestoring(:temperature; dataset, start_date, end_date, inpainting, rate=1/1000)
+        T_restoring = DatasetRestoring(:temperature, arch; dataset, start_date, end_date, inpainting, rate=1/1000)
 
         times = native_times(T_restoring.field_time_series.backend.metadata)
         ocean = ocean_simulation(grid, forcing = (; T = T_restoring))
