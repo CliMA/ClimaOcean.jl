@@ -147,7 +147,7 @@ end
 
         # Tracer fluxes
         Jᵀ[i, j, 1] = (1 - ℵᵢ) * Jᵀao + Jᵀio
-        Jˢ[i, j, 1] = (1 - ℵᵢ) * Jˢao + ℵᵢ * Jˢio
+        Jˢ[i, j, 1] = (1 - ℵᵢ) * Jˢao + Jˢio
     end
 end
 
