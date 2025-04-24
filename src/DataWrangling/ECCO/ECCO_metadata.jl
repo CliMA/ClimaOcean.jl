@@ -37,9 +37,24 @@ function ECCOMetadatum(name;
     return Metadatum(name; date, dir, dataset=ECCO4Monthly())
 end
 
-default_download_directory(::Union{<:ECCO2Monthly}) = joinpath(download_ECCO_cache, "v2", "monthly")
-default_download_directory(::Union{<:ECCO2Daily})   = joinpath(download_ECCO_cache, "v2", "daily")
-default_download_directory(::Union{<:ECCO4Monthly}) = joinpath(download_ECCO_cache, "v4")
+function default_download_directory(::Union{<:ECCO2Monthly})
+    path = joinpath(download_ECCO_cache, "v2", "monthly")
+    !isdir(path) && mkpath(dir)
+    return path
+end
+
+function default_download_directory(::Union{<:ECCO2Daily})
+    path = joinpath(download_ECCO_cache, "v2", "daily")
+    !isdir(path) && mkpath(dir)
+    return path
+end
+
+function default_download_directory(::Union{<:ECCO4Monthly})
+    path = joinpath(download_ECCO_cache, "v4")
+    !isdir(path) && mkpath(dir)
+    return path
+end
+
 
 datasetstr(md::ECCOMetadata) = string(md.dataset)
 
@@ -151,10 +166,6 @@ function download_dataset(metadata::ECCOMetadata)
     username = get(ENV, "ECCO_USERNAME", nothing)
     password = get(ENV, "ECCO_PASSWORD", nothing)
     dir = metadata.dir
-
-    if !isdir(dir)
-        mkpath(dir)
-    end
 
     # Create a temporary directory to store the .netrc file
     # The directory will be deleted after the download is complete
