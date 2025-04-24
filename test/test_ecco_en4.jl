@@ -208,7 +208,7 @@ for arch in test_architectures, dataset in test_datasets
                                      halo = (7, 7, 7))
 
         start_date = DateTime(1993, 1, 1)
-        duration = dataset isa ECCODaily ? Day(4) : Month(4)
+        duration = dataset isa ECCO2Daily ? Day(4) : Month(4)
         end_data = start_date + duration
 
         time_indices_in_memory = 2
@@ -217,7 +217,7 @@ for arch in test_architectures, dataset in test_datasets
         times = native_times(T_restoring.field_time_series.backend.metadata)
         ocean = ocean_simulation(grid, forcing = (; T = T_restoring))
 
-        time_interval = dataset isa ECCODaily ? 2 * Units.hours : 2 * Units.days
+        time_interval = dataset isa ECCO2Daily ? 2 * Units.hours : 2 * Units.days
 
         ocean.model.clock.time = times[3] + time_interval
         update_state!(ocean.model)
