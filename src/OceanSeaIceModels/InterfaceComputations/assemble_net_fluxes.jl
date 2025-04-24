@@ -134,8 +134,8 @@ end
         Jᵀao = ΣQao  * ρₒ⁻¹ / cₒ
         Jˢao = - Sₒ * ΣFao
         Jᵀio = Qio * ρₒ⁻¹ / cₒ
-        Jˢio = sea_ice_ocean_fluxes.salt[i, j, 1]
-
+        Jˢio = sea_ice_ocean_fluxes.salt[i, j, 1] * ℵᵢ
+ 
         τxao = ℑxᶠᵃᵃ(i, j, 1, grid, τᶜᶜᶜ, ρₒ⁻¹, ℵ, ρτxao)
         τyao = ℑyᵃᶠᵃ(i, j, 1, grid, τᶜᶜᶜ, ρₒ⁻¹, ℵ, ρτyao)
         τxio = ρτxio[i, j, 1] * ρₒ⁻¹ * ℑxᶠᵃᵃ(i, j, 1, grid, ℵ)
