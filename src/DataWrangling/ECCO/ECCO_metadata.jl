@@ -37,19 +37,19 @@ function ECCOMetadatum(name;
     return Metadatum(name; date, dir, dataset=ECCO4Monthly())
 end
 
-function default_download_directory(::Union{<:ECCO2Monthly})
+function default_download_directory(::ECCO2Monthly)
     path = joinpath(download_ECCO_cache, "v2", "monthly")
     !isdir(path) && mkpath(dir)
     return path
 end
 
-function default_download_directory(::Union{<:ECCO2Daily})
+function default_download_directory(::ECCO2Daily)
     path = joinpath(download_ECCO_cache, "v2", "daily")
     !isdir(path) && mkpath(dir)
     return path
 end
 
-function default_download_directory(::Union{<:ECCO4Monthly})
+function default_download_directory(::ECCO4Monthly)
     path = joinpath(download_ECCO_cache, "v4")
     !isdir(path) && mkpath(dir)
     return path
