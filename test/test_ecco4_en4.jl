@@ -125,7 +125,7 @@ for arch in test_architectures, dataset in test_datasets
     @testset "Field utilities" begin
         for name in (:temperature, :salinity)
             metadata = Metadata(name; dates, dataset)
-            restoring = DatasetRestoring(metadata; rate=1/1000, inpainting)
+            restoring = DatasetRestoring(metadata, arch; rate=1/1000, inpainting)
 
             for datum in metadata
                 @test isfile(metadata_path(datum))
@@ -173,7 +173,7 @@ for arch in test_architectures, dataset in test_datasets
                                                z = (z₁, 0))
 
         for name in (:temperature, :salinity)
-            var_restoring = DatasetRestoring(name; dataset, start_date, end_date, mask, inpainting, rate=1/1000)
+            var_restoring = DatasetRestoring(name, arch; dataset, start_date, end_date, mask, inpainting, rate=1/1000)
 
             fill!(var_restoring.field_time_series[1], 1.0)
             fill!(var_restoring.field_time_series[2], 1.0)
