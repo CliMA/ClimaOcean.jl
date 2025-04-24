@@ -75,13 +75,13 @@ variable_is_three_dimensional(data::EN4Metadata) =
     data.name == :salinity
 
 EN4_short_names = Dict(
-    :temperature           => "temperature",
-    :salinity              => "salinity"
+    :temperature => "temperature",
+    :salinity    => "salinity"
 )
 
 EN4_location = Dict(
-    :temperature           => (Center, Center, Center),
-    :salinity              => (Center, Center, Center)
+    :temperature => (Center, Center, Center),
+    :salinity    => (Center, Center, Center)
 )
 
 function metadata_url(m::EN4Metadata)

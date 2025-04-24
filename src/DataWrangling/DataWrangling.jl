@@ -2,6 +2,7 @@ module DataWrangling
 
 export Metadata, Metadatum, ECCOMetadatum, EN4Metadatum, all_dates, first_date, last_date
 export LinearlyTaperedPolarMask
+export DatasetRestoring
 
 using Oceananigans
 using Downloads
@@ -17,6 +18,7 @@ using Oceananigans.Utils: launch!
 using KernelAbstractions: @kernel, @index
 
 using Oceananigans.DistributedComputations
+using Adapt
 
 #####
 ##### Downloading utilities
@@ -162,6 +164,7 @@ function download_dataset end # methods specific to datasets are added within ea
 include("metadata.jl")
 include("dataset.jl")
 include("masking.jl")
+include("restoring.jl")
 include("JRA55/JRA55.jl")
 include("ECCO/ECCO.jl")
 include("EN4/EN4.jl")
