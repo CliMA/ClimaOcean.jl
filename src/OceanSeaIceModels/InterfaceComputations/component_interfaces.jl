@@ -17,6 +17,7 @@ using ..OceanSeaIceModels.PrescribedAtmospheres:
 
 using ClimaSeaIce: SeaIceModel
 
+using Oceananigans.BuoyancyFormulations: g_Earth
 using Oceananigans: HydrostaticFreeSurfaceModel, architecture
 using Oceananigans.Grids: inactive_node, node, topology
 using Oceananigans.BoundaryConditions: fill_halo_regions!
@@ -48,7 +49,7 @@ mutable struct SeaIceOceanInterface{J, P, H, A}
     previous_ice_concentration :: A
 end
 
-mutable struct ComponentInterfaces{AO, ASI, SIO, C, AP, OP, SIP, EX}
+mutable struct ComponentInterfaces{AO, ASI, SIO, C, AP, OP, SIP, EX, P}
     atmosphere_ocean_interface :: AO
     atmosphere_sea_ice_interface :: ASI
     sea_ice_ocean_interface :: SIO
@@ -57,6 +58,7 @@ mutable struct ComponentInterfaces{AO, ASI, SIO, C, AP, OP, SIP, EX}
     sea_ice_properties :: SIP
     exchanger :: EX
     net_fluxes :: C
+    properties :: P
 end
 
 mutable struct StateExchanger{G, AST, AEX}
@@ -245,6 +247,8 @@ function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean;
     io_bottom_heat_flux = Field{Center, Center, Nothing}(ocean.model.grid)
     io_frazil_heat_flux = Field{Center, Center, Nothing}(ocean.model.grid)
     io_salt_flux = Field{Center, Center, Nothing}(ocean.model.grid)
+    x_momentum = Field{Face, Center, Nothing}(ocean.model.grid)
+    y_momentum = Field{Center, Face, Nothing}(ocean.model.grid)
 
     @assert io_frazil_heat_flux isa Field{Center, Center, Nothing}
     @assert io_bottom_heat_flux isa Field{Center, Center, Nothing}
@@ -252,7 +256,9 @@ function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean;
 
     io_fluxes = (interface_heat=io_bottom_heat_flux,
                  frazil_heat=io_frazil_heat_flux,
-                 salt=io_salt_flux)
+                 salt=io_salt_flux,
+                 x_momentum=x_momentum,
+                 y_momentum=y_momentum)
 
     io_properties = (; characteristic_melting_speed)
 
@@ -281,9 +287,7 @@ end
                         radiation = Radiation(),
                         freshwater_density = 1000,
                         atmosphere_ocean_flux_formulation = SimilarityTheoryFluxes(),
-                        atmosphere_sea_ice_flux_formulation = CoefficientBasedFluxes(drag_coefficient=2e-3,
-                                                                                     heat_transfer_coefficient=1e-4,
-                                                                                     vapor_flux_coefficient=1e-4),
+                        atmosphere_sea_ice_flux_formulation = SimilarityTheoryFluxes(eltype(ocean.model.grid)),
                         atmosphere_ocean_interface_temperature = BulkTemperature(),
                         atmosphere_ocean_interface_specific_humidity = default_ao_specific_humidity(ocean),
                         atmosphere_sea_ice_interface_temperature = default_ai_temperature(sea_ice),
@@ -292,7 +296,8 @@ end
                         ocean_temperature_units = DegreesCelsius(),
                         sea_ice_temperature_units = DegreesCelsius(),
                         sea_ice_reference_density = reference_density(sea_ice),
-                        sea_ice_heat_capacity = heat_capacity(sea_ice))
+                        sea_ice_heat_capacity = heat_capacity(sea_ice),
+                        gravitational_acceleration = g_Earth)
 """
 function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              radiation = Radiation(),
@@ -309,16 +314,18 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              ocean_temperature_units = DegreesCelsius(),
                              sea_ice_temperature_units = DegreesCelsius(),
                              sea_ice_reference_density = reference_density(sea_ice),
-                             sea_ice_heat_capacity = heat_capacity(sea_ice))
+                             sea_ice_heat_capacity = heat_capacity(sea_ice),
+                             gravitational_acceleration = g_Earth)
 
     ocean_grid = ocean.model.grid
     FT = eltype(ocean_grid)
-
-    ocean_reference_density   = convert(FT, ocean_reference_density)
-    ocean_heat_capacity       = convert(FT, ocean_heat_capacity)
-    sea_ice_reference_density = convert(FT, sea_ice_reference_density)
-    sea_ice_heat_capacity     = convert(FT, sea_ice_heat_capacity)
-    freshwater_density        = convert(FT, freshwater_density)
+ 
+    ocean_reference_density    = convert(FT, ocean_reference_density)
+    ocean_heat_capacity        = convert(FT, ocean_heat_capacity)
+    sea_ice_reference_density  = convert(FT, sea_ice_reference_density)
+    sea_ice_heat_capacity      = convert(FT, sea_ice_heat_capacity)
+    freshwater_density         = convert(FT, freshwater_density)
+    gravitational_acceleration = convert(FT, gravitational_acceleration)
 
     atmosphere_properties = thermodynamics_parameters(atmosphere)
 
@@ -387,6 +394,8 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
 
     exchanger = StateExchanger(ocean, atmosphere)
 
+    properties = (; gravitational_acceleration)
+
     return ComponentInterfaces(ao_interface,
                                ai_interface,
                                io_interface,
@@ -394,7 +403,8 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                                ocean_properties,
                                sea_ice_properties,
                                exchanger,
-                               net_fluxes)
+                               net_fluxes,
+                               properties)
 end
 
 sea_ice_similarity_theory(sea_ice) = nothing

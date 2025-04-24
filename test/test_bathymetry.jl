@@ -1,3 +1,5 @@
+include("runtests_setup.jl")
+
 using Oceananigans
 using Statistics
 using ClimaOcean
@@ -26,10 +28,10 @@ using ClimaOcean.Bathymetry: remove_minor_basins!
         # Test that remove_minor_basins!(Z, 2) remove the correct number of Basins
         bottom_height = Field{Center, Center, Nothing}(grid)
         control_bottom_height = Field{Center, Center, Nothing}(grid)
-        
-        # A two basins bathymetry
+
+        # A two-basins bathymetry
         bottom(x, y) = - 1000 * Int((x < 10) | (x > 50))
-        
+
         set!(bottom_height, bottom)
         set!(control_bottom_height, bottom)
 
@@ -39,12 +41,12 @@ using ClimaOcean.Bathymetry: remove_minor_basins!
 
         # This should have removed the left basin
         remove_minor_basins!(bottom_height, 1)
-        
-        # The remaning bottom cells that are not immersed should be only on the right hand side
+
+        # The remaining bottom cells that are not immersed should be only on the right hand side
         # The left half of the domain should be fully immersed, i.e., bottom == 0
         @test sum(view(bottom_height, 1:50, :, 1)) == 0
 
-        # While the right side should be not immersed, with a mean bottom depth 
+        # While the right side should be not immersed, with a mean bottom depth
         # of -1000 meters
         @test mean(view(bottom_height, 51:100, :, 1)) == -1000
 

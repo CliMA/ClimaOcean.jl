@@ -11,100 +11,107 @@ using ClimaSeaIce.SeaIceMomentumEquations
 using ClimaSeaIce.Rheologies
 
 @inline kernel_melting_temperature(i, j, k, grid, liquidus, S) = @inbounds melting_temperature(liquidus, S[i, j, k])
-#=
+
 @testset "Time stepping test" begin
+    for dataset in test_datasets
+        temperature_metadata = Metadata(:temperature; dataset, dates)
+        salinity_metadata    = Metadata(:salinity; dataset, dates)
 
-    for arch in test_architectures
+        for arch in test_architectures
 
-        λ★, φ★ = 35.1, 50.1
+            A = typeof(arch)
 
-        grid = RectilinearGrid(arch, size = 200, x = λ★, y = φ★,
-                               z = (-400, 0), topology = (Flat, Flat, Bounded))
+            @info "Testing timestepping with $(typeof(dataset)) on $A"
 
-        ocean = ocean_simulation(grid)
-        data = Int[]
-        pushdata(sim) = push!(data, iteration(sim))
-        add_callback!(ocean, pushdata)
-        backend = JRA55NetCDFBackend(4)
-        atmosphere = JRA55PrescribedAtmosphere(arch; backend)
-        radiation = Radiation(arch)
-        coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
-        Δt = 60
-        for n = 1:3
-            time_step!(coupled_model, Δt)
-        end
-        @test data == [0, 1, 2, 3]
+            λ★, φ★ = 35.1, 50.1
 
-        # TODO: do the same for a SeaIceSimulation, and eventually prognostic Atmos
+            grid = RectilinearGrid(arch, size = 200, x = λ★, y = φ★,
+                                   z = (-400, 0), topology = (Flat, Flat, Bounded))
 
-        #####
-        ##### Ocean and prescribed atmosphere
-        #####
-
-        grid = TripolarGrid(arch;
-                            size = (50, 50, 10),
-                            halo = (7, 7, 7),
-                            z = (-6000, 0))
-
-        bottom_height = regrid_bathymetry(grid;
-                                          minimum_depth = 10,
-                                          interpolation_passes = 20,
-                                          major_basins = 1)
-
-        grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
-
-        free_surface = SplitExplicitFreeSurface(grid; substeps=20)
-        ocean = ocean_simulation(grid; free_surface)
-
-        backend = JRA55NetCDFBackend(4)
-        atmosphere = JRA55PrescribedAtmosphere(arch; backend)
-        radiation = Radiation(arch)
-
-        # Fluxes are computed when the model is constructed, so we just test that this works.
-        @test begin
+            ocean = ocean_simulation(grid)
+            data = Int[]
+            pushdata(sim) = push!(data, iteration(sim))
+            add_callback!(ocean, pushdata)
+            backend = JRA55NetCDFBackend(4)
+            atmosphere = JRA55PrescribedAtmosphere(arch; backend)
+            radiation = Radiation(arch)
             coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
-            time_step!(coupled_model, 1)
-            true
-        end
+            Δt = 60
+            for n = 1:3
+                time_step!(coupled_model, Δt)
+            end
+            @test data == [0, 1, 2, 3]
 
-        #####
-        ##### Coupled ocean-sea ice and prescribed atmosphere
-        #####
+            # TODO: do the same for a SeaIceSimulation, and eventually prognostic Atmos
 
-        # Adding a sea ice model to the coupled model
-        τua = Field{Face, Center, Nothing}(grid)
-        τva = Field{Center, Face, Nothing}(grid)
+            #####
+            ##### Ocean and prescribed atmosphere
+            #####
 
-        dynamics = SeaIceMomentumEquation(grid;
-                                          coriolis = ocean.model.coriolis,
-                                          top_momentum_stress = (u=τua, v=τva),
-                                          rheology = ElastoViscoPlasticRheology(),
-                                          solver = SplitExplicitSolver(120))
+            grid = TripolarGrid(arch;
+                                size = (50, 50, 10),
+                                halo = (7, 7, 7),
+                                z = (-6000, 0))
 
-        sea_ice  = sea_ice_simulation(grid; dynamics, advection=WENO(order=7))
-        liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
+            bottom_height = regrid_bathymetry(grid;
+                                            minimum_depth = 10,
+                                            interpolation_passes = 20,
+                                            major_basins = 1)
 
-        # Set the ocean temperature and salinity
-        set!(ocean.model, T=temperature_metadata[1], S=salinity_metadata[1])
-        above_freezing_ocean_temperature!(ocean, sea_ice)
+            grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
-        # Test that ocean temperatures are above freezing
-        T = on_architecture(CPU(), ocean.model.tracers.T)
-        S = on_architecture(CPU(), ocean.model.tracers.S)
+            free_surface = SplitExplicitFreeSurface(grid; substeps=20)
+            ocean = ocean_simulation(grid; free_surface)
 
-        Tm = KernelFunctionOperation{Center, Center, Center}(kernel_melting_temperature, grid, liquidus, S)
-        @test all(T .>= Tm)
+            backend = JRA55NetCDFBackend(4)
+            atmosphere = JRA55PrescribedAtmosphere(arch; backend)
+            radiation = Radiation(arch)
 
-        # Fluxes are computed when the model is constructed, so we just test that this works.
-        # And that we can time step with sea ice
-        @test begin
-            coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-            time_step!(coupled_model, 1)
-            true
+            # Fluxes are computed when the model is constructed, so we just test that this works.
+            @test begin
+                coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
+                time_step!(coupled_model, 1)
+                true
+            end
+
+            #####
+            ##### Coupled ocean-sea ice and prescribed atmosphere
+            #####
+
+            # Adding a sea ice model to the coupled model
+            τua = Field{Face, Center, Nothing}(grid)
+            τva = Field{Center, Face, Nothing}(grid)
+
+            dynamics = SeaIceMomentumEquation(grid;
+                                            coriolis = ocean.model.coriolis,
+                                            top_momentum_stress = (u=τua, v=τva),
+                                            rheology = ElastoViscoPlasticRheology(),
+                                            solver = SplitExplicitSolver(120))
+
+            sea_ice  = sea_ice_simulation(grid; dynamics, advection=WENO(order=7))
+            liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
+
+            # Set the ocean temperature and salinity
+            set!(ocean.model, T=temperature_metadata[1], S=salinity_metadata[1])
+            above_freezing_ocean_temperature!(ocean, sea_ice)
+
+            # Test that ocean temperatures are above freezing
+            T = on_architecture(CPU(), ocean.model.tracers.T)
+            S = on_architecture(CPU(), ocean.model.tracers.S)
+
+            Tm = KernelFunctionOperation{Center, Center, Center}(kernel_melting_temperature, grid, liquidus, S)
+            @test all(T .≥ Tm)
+
+            # Fluxes are computed when the model is constructed, so we just test that this works.
+            # And that we can time step with sea ice
+            @test begin
+                coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+                time_step!(coupled_model, 1)
+                true
+            end
         end
     end
 end
-=#
 
 """
     test_ocean_sea_ice_model_checkpointer(grid)
@@ -140,7 +147,7 @@ function test_clock_equality(clock1::Clock, clock2::Clock)
     @test clock1.iteration == clock2.iteration
     @test clock1.time == clock2.time
     @test clock1.last_Δt == clock2.last_Δt
-return nothing
+    return nothing
 end
 
 function test_model_equality(test_model::HydrostaticFreeSurfaceModel, true_model::HydrostaticFreeSurfaceModel)

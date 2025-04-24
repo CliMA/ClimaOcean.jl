@@ -4,7 +4,7 @@ using Oceananigans.ImmersedBoundaries: mask_immersed_field!
 using CairoMakie
 using Printf
 using ClimaOcean
-using ClimaOcean.DataWrangling.ECCO: ECCO_field, ECCOFieldTimeSeries, ECCO4Monthly
+using ClimaOcean.DataWrangling.ECCO: ECCOFieldTimeSeries, ECCO4Monthly
 using CFTime
 using Dates
 
@@ -21,7 +21,7 @@ grid = LatitudeLongitudeGrid(arch; z,
                              latitude  = (-80, 80),
                              longitude = (0, 360))
 
-bottom_height = regrid_bathymetry(grid; 
+bottom_height = regrid_bathymetry(grid;
                                   minimum_depth = 10,
                                   interpolation_passes = 5,
                                   major_basins = 1)
@@ -39,15 +39,11 @@ sb = SeawaterBuoyancy(; equation_of_state)
 tracers = (T=T, S=S)
 b = Field(buoyancy(sb, grid, tracers))
 
-start = DateTime(1993, 1, 1)
-stop  = DateTime(1999, 1, 1)
-dates = range(start; stop, step=Month(1))
+start_date = DateTime(1993, 1, 1)
+end_date   = DateTime(1999, 1, 1)
 
-Tmeta = Metadata(:temperature; dates, dataset=ECCO4Monthly())
-Smeta = Metadata(:salinity; dates, dataset=ECCO4Monthly())
-
-Tt = ECCOFieldTimeSeries(Tmeta, grid; time_indices_in_memory=length(dates))
-St = ECCOFieldTimeSeries(Smeta, grid; time_indices_in_memory=length(dates))
+Tt = ECCOFieldTimeSeries(:temperature, grid; start_date, end_date, time_indices_in_memory=length(dates))
+St = ECCOFieldTimeSeries(:salinity,    grid; start_date, end_date, time_indices_in_memory=length(dates))
 
 fig = Figure(size=(900, 1050))
 

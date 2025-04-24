@@ -81,11 +81,10 @@ ocean = ocean_simulation(grid)
 
 ocean.model
 
-# We initialize the ocean model with ECCO2 temperature and salinity for January 1, 1993.
+# We initialize the ocean model with ECCO4 temperature and salinity for January 1, 1992.
 
-date = DateTimeProlepticGregorian(1993, 1, 1)
-set!(ocean.model, T=Metadata(:temperature; dates=date, dataset=ECCO4Monthly()),
-                  S=Metadata(:salinity; dates=date, dataset=ECCO4Monthly()))
+set!(ocean.model, T=ECCOMetadatum(:temperature),
+                  S=ECCOMetadatum(:salinity))
 
 # ### Prescribed atmosphere and radiation
 #

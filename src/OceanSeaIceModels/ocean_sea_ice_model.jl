@@ -194,7 +194,7 @@ end
     Nz = size(grid, 3)
 
     @inbounds begin
-        for k in 1:Nz-1
+        for k in 1:Nz
             Tm = melting_temperature(liquidus, S[i, j, k])
             T[i, j, k] = max(T[i, j, k], Tm)
         end

@@ -63,17 +63,14 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
 
     # Assumption, should be generalized
     ua = atmosphere.velocities.u
-    times = ua.times
-    time_indexing = ua.time_indexing
-    t = clock.time
-    @assert times isa StepRangeLen
-    time_interpolator = TimeInterpolator(ua.time_indexing, times, clock.time)
     
     launch!(arch, grid, kernel_parameters,
             _interpolate_primary_atmospheric_state!,
             atmosphere_data,
             space_fractional_indices,
-            time_interpolator,
+            ua.times,
+            ua.time_indexing,
+            clock.time,
             exchange_grid,
             atmosphere_velocities,
             atmosphere_tracers,
@@ -111,10 +108,19 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
     end
 
     # Set ocean barotropic pressure forcing
-    barotropic_potential = forcing_barotropic_potential(ocean)
+    #
+    # TODO: find a better design for this that doesn't have redundant
+    # arrays for the barotropic potential
+    u_potential = forcing_barotropic_potential(ocean.model.forcing.u)
+    v_potential = forcing_barotropic_potential(ocean.model.forcing.v)
     ρₒ = coupled_model.interfaces.ocean_properties.reference_density
-    if !isnothing(barotropic_potential)
-        parent(barotropic_potential) .= parent(atmosphere_data.p) ./ ρₒ
+
+    if !isnothing(u_potential)
+        parent(u_potential) .= parent(atmosphere_data.p) ./ ρₒ
+    end
+
+    if !isnothing(v_potential)
+        parent(v_potential) .= parent(atmosphere_data.p) ./ ρₒ
     end
 end
 
@@ -123,7 +129,9 @@ end
     
 @kernel function _interpolate_primary_atmospheric_state!(surface_atmos_state,
                                                          space_fractional_indices,
-                                                         time_interpolator,
+                                                         times,
+                                                         time_indexing,
+                                                         t,
                                                          exchange_grid,
                                                          atmos_velocities,
                                                          atmos_tracers,
@@ -139,6 +147,7 @@ end
     jj = space_fractional_indices.j
     fi = get_fractional_index(i, j, ii)
     fj = get_fractional_index(i, j, jj)
+    time_interpolator = TimeInterpolator(time_indexing, times, t)
 
     x_itp = FractionalIndices(fi, fj, nothing)
     t_itp = time_interpolator

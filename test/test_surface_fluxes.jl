@@ -18,6 +18,9 @@ using Oceananigans.TimeSteppers: update_state!
 using Oceananigans.Units: hours, days
 using ClimaOcean.DataWrangling: all_dates
 
+using ClimaSeaIce.SeaIceMomentumEquations
+using ClimaSeaIce.Rheologies
+
 import ClimaOcean.OceanSeaIceModels.InterfaceComputations: saturation_specific_humidity
 
 using Statistics: mean, std
@@ -43,7 +46,7 @@ end
                                  closure = nothing,
                                  bottom_drag_coefficient = 0.0)
 
-        dates = all_dates(JRA55RepeatYear(), :temperature)
+        dates = all_dates(RepeatYearJRA55(), :temperature)
         atmosphere = JRA55PrescribedAtmosphere(arch, Float64; end_date=dates[2], backend = InMemory()) 
         
         CUDA.@allowscalar begin
@@ -183,12 +186,13 @@ end
                                 topology = (Bounded, Bounded, Bounded))
 
         ocean = ocean_simulation(grid; momentum_advection = nothing, 
-                                        tracer_advection = nothing, 
-                                                closure = nothing,
-                                bottom_drag_coefficient = 0.0)
+                                         tracer_advection = nothing, 
+                                                 coriolis = nothing,
+                                                  closure = nothing,
+                                  bottom_drag_coefficient = 0.0)
 
-        dates = all_dates(JRA55RepeatYear(), :temperature)[1:2]
-        atmosphere = JRA55PrescribedAtmosphere(arch; dates, backend = InMemory()) 
+        dates = all_dates(RepeatYearJRA55(), :temperature)
+        atmosphere = JRA55PrescribedAtmosphere(arch; end_date=dates[2], backend = InMemory()) 
 
         fill!(ocean.model.tracers.T, -2.0)
 
@@ -206,6 +210,50 @@ end
 
             # Test that the temperature has snapped up to freezing
             @test minimum(ocean.model.tracers.T) == 0
+        end
+
+        @info "Testing Surface Fluxes with sea ice..."
+
+        grid = RectilinearGrid(arch;
+                               size = (2, 2, 2), 
+                             extent = (1, 1, 1),
+                           topology = (Periodic, Periodic, Bounded))
+
+        ocean = ocean_simulation(grid; momentum_advection = nothing, 
+                                         tracer_advection = nothing, 
+                                                 coriolis = nothing,
+                                                  closure = nothing,
+                                  bottom_drag_coefficient = 0.0)
+
+        SSU = view(ocean.model.velocities.u, :, :, grid.Nz)
+        SSV = view(ocean.model.velocities.v, :, :, grid.Nz)
+
+        τo  = SemiImplicitStress(uₑ=SSU, vₑ=SSV, Cᴰ=0.001, ρₑ=1000.0)
+        τua = Field{Face, Center, Nothing}(grid)
+        τva = Field{Center, Face, Nothing}(grid)
+        
+        dynamics = SeaIceMomentumEquation(grid;
+                                          top_momentum_stress = (u=τua, v=τva),
+                                          bottom_momentum_stress = τo,
+                                          rheology = nothing,
+                                          solver = ExplicitSolver())
+
+        sea_ice = sea_ice_simulation(grid; dynamics, advection=Centered())
+
+        # Set a velocity for the ocean
+        fill!(ocean.model.velocities.u, 0.1)
+        fill!(ocean.model.velocities.v, 0.2)
+        fill!(ocean.model.tracers.T,   -2.0)
+
+        # Test that we populate the sea-ice ocean stress
+        earth = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation=Radiation())
+
+        τx = earth.interfaces.sea_ice_ocean_interface.fluxes.x_momentum
+        τy = earth.interfaces.sea_ice_ocean_interface.fluxes.y_momentum
+
+        CUDA.@allowscalar begin
+            @test τx[1, 1, 1] == sqrt(0.1^2 + 0.2^2) * 0.1
+            @test τy[1, 1, 1] == sqrt(0.1^2 + 0.2^2) * 0.2
         end
     end
 end
@@ -230,13 +278,13 @@ end
 
         ocean = ocean_simulation(grid; momentum_advection, tracer_advection, closure, tracers, coriolis)
 
-        T_metadata = Metadata(:temperature, dates=DateTimeProlepticGregorian(1993, 1, 1), dataset=ECCO4Monthly())
-        S_metadata = Metadata(:salinity,  dates=DateTimeProlepticGregorian(1993, 1, 1), dataset=ECCO4Monthly())
+        T_metadata = Metadatum(:temperature, date=DateTimeProlepticGregorian(1993, 1, 1), dataset=ECCO4Monthly())
+        S_metadata = Metadatum(:salinity,    date=DateTimeProlepticGregorian(1993, 1, 1), dataset=ECCO4Monthly())
 
         set!(ocean.model; T=T_metadata, S=S_metadata)
 
-        dates = all_dates(JRA55RepeatYear(), :temperature)[1:10]
-        atmosphere = JRA55PrescribedAtmosphere(arch; dates, backend = InMemory())
+        end_date   = all_dates(RepeatYearJRA55(), :temperature)[10]
+        atmosphere = JRA55PrescribedAtmosphere(arch; end_date, backend = InMemory())
         radiation  = Radiation(ocean_albedo=0.1, ocean_emissivity=1.0)
         sea_ice    = nothing
 

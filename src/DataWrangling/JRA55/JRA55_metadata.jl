@@ -12,22 +12,25 @@ import Oceananigans.Fields: set!
 import Base
 
 import Oceananigans.Fields: set!, location
-import ClimaOcean.DataWrangling: all_dates, metadata_filename, default_download_folder
+import ClimaOcean.DataWrangling: all_dates, metadata_filename, download_dataset, default_download_directory
 
-struct JRA55MultipleYears end
-struct JRA55RepeatYear end
+struct MultiYearJRA55 end
+struct RepeatYearJRA55 end
 
-const JRA55Metadata{D} = Metadata{D, <:Union{<:JRA55MultipleYears, <:JRA55RepeatYear}} where {D}
-const JRA55Metadatum   = JRA55Metadata{<:AnyDateTime}
+const JRA55Metadata{D} = Metadata{<:Union{<:MultiYearJRA55, <:RepeatYearJRA55}, D}
+const JRA55Metadatum   = Metadatum{<:Union{<:MultiYearJRA55, <:RepeatYearJRA55}}
 
-default_download_folder(::Union{<:JRA55MultipleYears, <:JRA55RepeatYear}) = download_JRA55_cache
+default_download_directory(::Union{<:MultiYearJRA55, <:RepeatYearJRA55}) = download_JRA55_cache
 
 Base.size(data::JRA55Metadata) = (640, 320, length(data.dates))
 Base.size(::JRA55Metadatum)    = (640, 320, 1)
 
+# JRA55 is a spatially 2D dataset
+variable_is_three_dimensional(data::JRA55Metadata) = false
+
 # The whole range of dates in the different dataset datasets
 # NOTE! rivers and icebergs have a different frequency! (typical JRA55 data is three-hourly while rivers and icebergs are daily)
-function all_dates(::JRA55RepeatYear, name)   
+function all_dates(::RepeatYearJRA55, name)
     if name == :river_freshwater_flux || name == :iceberg_freshwater_flux
         return DateTime(1990, 1, 1) : Day(1) : DateTime(1990, 12, 31)
     else
@@ -35,21 +38,16 @@ function all_dates(::JRA55RepeatYear, name)
     end
 end
 
-function all_dates(::JRA55MultipleYears, name)
-    if name == :river_freshwater_flux || name == :iceberg_freshwater_flux
-        return DateTime(1958, 1, 1) : Day(1) : DateTime(2021, 1, 1)
-    else
-        return DateTime(1958, 1, 1) : Hour(3) : DateTime(2021, 1, 1)
-    end
-end
+all_dates(::MultiYearJRA55, name) = JRA55_multiple_year_dates[name]
 
-# Fallback, if we not provide the name, take the highest frequency 
-all_dates(dataset::Union{<:JRA55MultipleYears, <:JRA55RepeatYear}) = all_dates(dataset, :temperature)
+# Fallback, if we not provide the name, take the highest frequency
+all_dates(dataset::Union{<:MultiYearJRA55, <:RepeatYearJRA55}) = all_dates(dataset, :temperature)
 
+# Valid for all JRA55 datasets
 function JRA55_time_indices(dataset, dates, name)
     all_JRA55_dates = all_dates(dataset, name)
     indices = Int[]
-    
+
     for date in dates
         index = findfirst(x -> x == date, all_JRA55_dates)
         !isnothing(index) && push!(indices, index)
@@ -59,24 +57,36 @@ function JRA55_time_indices(dataset, dates, name)
 end
 
 # File name generation specific to each Dataset dataset
-function metadata_filename(metadata::Metadata{<:Any, <:JRA55RepeatYear}) # No difference 
+# Note that `RepeatYearJRA55` has only one file associated, so we can define
+# the filename directly for the whole `Metadata` object, independent of the `dates`
+function metadata_filename(metadata::Metadata{<:RepeatYearJRA55}) # No difference
     shortname = short_name(metadata)
     return "RYF." * shortname * ".1990_1991.nc"
 end
 
-# TODO: Implement this function for JRA55MultipleYears
-# function metadata_filename(metadata::Metadata{<:AbstractCFDateTime, <:JRA55MultipleYears})
-#     # fix the filename
-#     shortname = short_name(metadata)
-#     year      = Dates.year(metadata.dates)
-#     suffix    = "_input4MIPs_atmosphericState_OMIP_MRI-JRA55-do-1-5-0_gr_"
-#     dates     = "($year)01010130-($year)12312330.nc"
-#     return shortname * suffix * dates * ".nc"
-# end
+function metadata_filename(metadata::Metadatum{<:MultiYearJRA55})
+    # fix the filename
+    shortname = short_name(metadata)
+    year      = Dates.year(metadata.dates)
+    suffix    = "_input4MIPs_atmosphericState_OMIP_MRI-JRA55-do-1-5-0_gr_"
+
+    end_date = last(JRA55_multiple_year_dates[metadata.name])
+    end_hour = Hour(end_date)
+
+    if end_hour == Hour(0)
+        dates = "$(year)0101-$(year)1231"
+    elseif end_hour == Hour(22)
+        dates = "$(year)01010130-$(year)12312230"
+    else
+        dates = "$(year)01010000-$(year)12312100"
+    end
+
+    return shortname * suffix * dates * ".nc"
+end
 
 # Convenience functions
 short_name(data::JRA55Metadata) = JRA55_short_names[data.name]
-location(::JRA55Metadata)       = (Center, Center, Center)
+location(::JRA55Metadata) = (Center, Center, Center)
 
 # A list of all variables provided in the JRA55 dataset:
 JRA55_variable_names = (:river_freshwater_flux,
@@ -85,7 +95,6 @@ JRA55_variable_names = (:river_freshwater_flux,
                         :iceberg_freshwater_flux,
                         :specific_humidity,
                         :sea_level_pressure,
-                        :relative_humidity,
                         :downwelling_longwave_radiation,
                         :downwelling_shortwave_radiation,
                         :temperature,
@@ -99,7 +108,6 @@ JRA55_short_names = Dict(
     :iceberg_freshwater_flux         => "licalvf",  # Freshwater flux from calving icebergs
     :specific_humidity               => "huss",     # Surface specific humidity
     :sea_level_pressure              => "psl",      # Sea level pressure
-    :relative_humidity               => "rhuss",    # Surface relative humidity
     :downwelling_longwave_radiation  => "rlds",     # Downwelling longwave radiation
     :downwelling_shortwave_radiation => "rsds",     # Downwelling shortwave radiation
     :temperature                     => "tas",      # Near-surface air temperature
@@ -107,11 +115,41 @@ JRA55_short_names = Dict(
     :northward_velocity              => "vas",      # Northward near-surface wind
 )
 
+JRA55_multiple_year_url = "https://esgf-data2.llnl.gov/thredds/fileServer/user_pub_work/input4MIPs/CMIP6/OMIP/MRI/MRI-JRA55-do-1-5-0/"
+
+JRA55_multiple_year_prefix = Dict(
+    :river_freshwater_flux           => "land/day",
+    :rain_freshwater_flux            => "atmos/3hr",
+    :snow_freshwater_flux            => "atmos/3hr",
+    :iceberg_freshwater_flux         => "landIce/day",
+    :specific_humidity               => "atmos/3hrPt",
+    :sea_level_pressure              => "atmos/3hrPt",
+    :downwelling_longwave_radiation  => "atmos/3hr",
+    :downwelling_shortwave_radiation => "atmos/3hr",
+    :temperature                     => "atmos/3hrPt",
+    :eastward_velocity               => "atmos/3hrPt",
+    :northward_velocity              => "atmos/3hrPt",
+)
+
+JRA55_multiple_year_dates = Dict(
+    :river_freshwater_flux           => DateTime(1958, 1, 1)        : Day(1)  : DateTime(2019, 12, 31),
+    :rain_freshwater_flux            => DateTime(1958, 1, 1, 1, 30) : Hour(3) : DateTime(2019, 12, 31, 22, 30),
+    :snow_freshwater_flux            => DateTime(1958, 1, 1, 1, 30) : Hour(3) : DateTime(2019, 12, 31, 22, 30),
+    :iceberg_freshwater_flux         => DateTime(1958, 1, 1)        : Day(1)  : DateTime(2019, 12, 31),
+    :specific_humidity               => DateTime(1958, 1, 1)        : Hour(3) : DateTime(2019, 12, 31, 21),
+    :sea_level_pressure              => DateTime(1958, 1, 1)        : Hour(3) : DateTime(2019, 12, 31, 21),
+    :downwelling_longwave_radiation  => DateTime(1958, 1, 1, 1, 30) : Hour(3) : DateTime(2019, 12, 31, 22, 30),
+    :downwelling_shortwave_radiation => DateTime(1958, 1, 1, 1, 30) : Hour(3) : DateTime(2019, 12, 31, 22, 30),
+    :temperature                     => DateTime(1958, 1, 1)        : Hour(3) : DateTime(2019, 12, 31, 21),
+    :eastward_velocity               => DateTime(1958, 1, 1)        : Hour(3) : DateTime(2019, 12, 31, 21),
+    :northward_velocity              => DateTime(1958, 1, 1)        : Hour(3) : DateTime(2019, 12, 31, 21)
+)
+
 JRA55_repeat_year_urls = Dict(
     :shortwave_radiation => "https://www.dropbox.com/scl/fi/z6fkvmd9oe3ycmaxta131/" *
                             "RYF.rsds.1990_1991.nc?rlkey=r7q6zcbj6a4fxsq0f8th7c4tc&dl=0",
 
-    :river_freshwater_flux => "https://www.dropbox.com/scl/fi/21ggl4p74k4zvbf04nb67/" * 
+    :river_freshwater_flux => "https://www.dropbox.com/scl/fi/21ggl4p74k4zvbf04nb67/" *
                               "RYF.friver.1990_1991.nc?rlkey=ny2qcjkk1cfijmwyqxsfm68fz&dl=0",
 
     :rain_freshwater_flux => "https://www.dropbox.com/scl/fi/5icl1gbd7f5hvyn656kjq/" *
@@ -129,9 +167,6 @@ JRA55_repeat_year_urls = Dict(
     :sea_level_pressure => "https://www.dropbox.com/scl/fi/0fk332027oru1iiseykgp/" *
                            "RYF.psl.1990_1991.nc?rlkey=4xpr9uah741483aukok6d7ctt&dl=0",
 
-    :relative_humidity => "https://www.dropbox.com/scl/fi/1agwsp0lzvntuyf8bm9la/" *
-                          "RYF.rhuss.1990_1991.nc?rlkey=8cd0vs7iy1rw58b9pc9t68gtz&dl=0",
-
     :downwelling_longwave_radiation  => "https://www.dropbox.com/scl/fi/y6r62szkirrivua5nqq61/" *
                                         "RYF.rlds.1990_1991.nc?rlkey=wt9yq3cyrvs2rbowoirf4nkum&dl=0",
 
@@ -148,20 +183,18 @@ JRA55_repeat_year_urls = Dict(
                            "RYF.vas.1990_1991.nc?rlkey=f9y3e57kx8xrb40gbstarf0x6&dl=0",
 )
 
-variable_is_three_dimensional(data::JRA55Metadata) = false
+metadata_url(metadata::Metadata{<:RepeatYearJRA55}) = JRA55_repeat_year_urls[metadata.name]
 
-urls(metadata::Metadata{<:Any, <:JRA55RepeatYear}) = JRA55_repeat_year_urls[metadata.name]  
-# TODO: 
-# urls(metadata::Metadata{<:Any, <:JRA55MultipleYears}) = ...
+function metadata_url(m::Metadata{<:MultiYearJRA55})
+    prefix = JRA55_multiple_year_prefix[m.name]
+    return JRA55_multiple_year_url * prefix * "/" * short_name(m) * "/gr/v20200916/" * metadata_filename(m)
+end
 
-metadata_url(prefix, ::Metadata{<:Any, <:JRA55RepeatYear}) = prefix # No specific name for this url
-
-# TODO: This will need to change when we add a method for JRA55MultipleYears
-function download_dataset(metadata::JRA55Metadata; url = urls(metadata))
+function download_dataset(metadata::JRA55Metadata)
 
     @root for metadatum in metadata
 
-        fileurl  = metadata_url(url, metadatum) 
+        fileurl  = metadata_url(metadatum)
         filepath = metadata_path(metadatum)
 
         if !isfile(filepath)
