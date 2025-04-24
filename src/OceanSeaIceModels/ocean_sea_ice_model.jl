@@ -18,7 +18,7 @@ import Oceananigans.OutputWriters: checkpointer_address,
                                    default_checkpointed_properties
 
 import Oceananigans.Simulations: reset!, initialize!, iteration, run!
-import Oceananigans.TimeSteppers: time_step!, update_state!, time
+import Oceananigans.TimeSteppers: time_step!, update_state!, time, set_clock!
 import Oceananigans.Utils: prettytime
 
 import .PrescribedAtmospheres: set_clock!
@@ -74,6 +74,8 @@ checkpointer_address(::OSIM)             = "OceanSeaIceModel"
 
 reset!(model::OSIM) = reset!(model.ocean)
 
+components(model::OSIM) = (model.atmosphere, model.ocean.model)
+
 # Make sure to initialize the exchanger here
 function initialization_update_state!(model::OSIM)
     initialize!(model.interfaces.exchanger, model.atmosphere)
@@ -83,18 +85,24 @@ end
 
 function initialize!(model::OSIM)
     initialize!(model.ocean)
+    initialize!(model.atmosphere)
     initialize!(model.interfaces.exchanger, model.atmosphere)
     return nothing
 end
 
 function set_clock!(model::OSIM, clock)
-    model.clock.time = clock.time
-    model.clock.iteration = clock.iteration
-    model.clock.last_Δt = clock.last_Δt
-    model.clock.last_stage_Δt = clock.last_stage_Δt
-    model.clock.stage = clock.stage
+
+    set_clock!(model.clock, clock)
+
+    # set the component clocks
+    atmos, ocean = model.atmosphere, model.ocean
+    set_clock!(atmos, clock)
+    set_clock!(ocean, clock)
+
     return nothing
 end
+
+set_clock!(sim::Simulation, new_clock) = set_clock!(sim.model, new_clock)
 
 reference_density(unsupported) =
     throw(ArgumentError("Cannot extract reference density from $(typeof(unsupported))"))

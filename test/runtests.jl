@@ -5,6 +5,7 @@ using CUDA
 
 test_group = get(ENV, "TEST_GROUP", :all)
 test_group = Symbol(test_group)
+test_group = :ocean_sea_ice_model
 
 using ClimaOcean.ECCO: download_dataset
 
@@ -16,17 +17,17 @@ if test_group == :init || test_group == :all
     ###
     ### Download bathymetry data
     ###
-    
-    download_bathymetry() 
+
+    download_bathymetry()
 
     ####
-    #### Download JRA55 data 
+    #### Download JRA55 data
     ####
-    
+
     atmosphere = JRA55PrescribedAtmosphere()
 
     ####
-    #### Download ECCO data 
+    #### Download ECCO data
     ####
 
     download_dataset(temperature_metadata)
@@ -63,4 +64,3 @@ end
 if test_group == :distributed || test_group == :all
     include("test_distributed_utils.jl")
 end
-

@@ -10,19 +10,22 @@ import Oceananigans.OutputWriters: write_output!
 
 wall_time = Ref(time_ns())
 
-function set!(model::OSIMPA, checkpoint_file_path::AbstractString)
+function set!(model::OSIM, checkpoint_file_path::AbstractString)
     addr = checkpointer_address(model)
 
+    checkpointed_clock = nothing
     jldopen(checkpoint_file_path, "r") do file
         checkpointed_clock = file["$addr/clock"]
-
-        # Update model clock
-        set_clock!(model, checkpointed_clock)
     end
+
+    @show checkpointed_clock
+
+    # Update model clock
+    set_clock!(model, checkpointed_clock)
 
     # deal with model components
 
-    for component in (model.ocean.model, model.atmosphere)
+    for component in components(model)
         set!(component, checkpoint_file_path)
     end
 
@@ -43,10 +46,8 @@ function write_output!(c::Checkpointer, model::OSIM)
                   properties = default_checkpointed_properties(model))
 
     # write the OceanSeaIceModel components
-    components = (model.atmosphere, model.ocean.model)
-
     mode = "a" # to append in the file already written above
-    for component in components
+    for component in components(model)
         write_output!(c, component, filepath, mode,
                       properties = default_checkpointed_properties(component))
     end
