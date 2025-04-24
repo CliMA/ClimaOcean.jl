@@ -46,15 +46,11 @@ if test_group == :JRA55 || test_group == :all
 end
 
 if test_group == :ecco2 || test_group == :all
-    test_datasets = test_ecco2_datasets
-    test_ecco_datasets = tuple((ds for ds in test_datasets if startswith(string(typeof(ds)), "ECCO"))...)
-    include("test_ecco_en4.jl")
+    include("test_ecco2.jl")
 end
 
 if test_group == :ecco4_en4 || test_group == :all
-    test_datasets = test_ecco4_en4_datasets
-    test_ecco_datasets = tuple((ds for ds in test_datasets if startswith(string(typeof(ds)), "ECCO"))...)
-    include("test_ecco_en4.jl")
+    include("test_ecco4_en4.jl")
 end
 
 # Tests that we can download JRA55 utilities

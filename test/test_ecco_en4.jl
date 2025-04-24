@@ -1,25 +1,3 @@
-include("runtests_setup.jl")
-
-using ClimaOcean
-using ClimaOcean.ECCO
-using ClimaOcean.EN4
-using ClimaOcean.DataWrangling: NearestNeighborInpainting, metadata_path, native_times, download_dataset
-
-using Dates
-using Oceananigans.Grids: topology
-using Oceananigans.OutputReaders: time_indices
-using Oceananigans.TimeSteppers: update_state!
-using Oceananigans.Units
-
-using CUDA: @allowscalar
-
-start_date = DateTime(1993, 1, 1)
-end_date = DateTime(1993, 2, 1)
-dates = start_date : Month(1) : end_date
-
-# Inpaint only the first two cells inside the missing mask
-inpainting = NearestNeighborInpainting(2)
-
 for arch in test_architectures, dataset in test_datasets, name in (:temperature, :salinity)
     download_dataset(Metadata(name; dates, dataset))
 end
@@ -230,14 +208,18 @@ for arch in test_architectures, dataset in test_datasets
                                      halo = (7, 7, 7))
 
         start_date = DateTime(1993, 1, 1)
-        end_date = DateTime(1993, 5, 1)
+        duration = dataset isa ECCODaily ? Day(4) : Month(4)
+        end_data = start_date + duration
 
-        T_restoring = DatasetRestoring(:temperature, arch; dataset, start_date, end_date, inpainting, rate=1/1000)
+        time_indices_in_memory = 2
+        T_restoring = DatasetRestoring(:temperature, arch; dataset, start_date, end_date, inpainting, rate=1/1000, time_indices_in_memory)
 
         times = native_times(T_restoring.field_time_series.backend.metadata)
         ocean = ocean_simulation(grid, forcing = (; T = T_restoring))
 
-        ocean.model.clock.time = times[3] + 2 * Units.days
+        time_interval = dataset isa ECCODaily ? 2 * Units.hours : 2 * Units.days
+
+        ocean.model.clock.time = times[3] + time_interval
         update_state!(ocean.model)
 
         @test T_restoring.field_time_series.backend.start == 3
@@ -246,7 +228,7 @@ for arch in test_architectures, dataset in test_datasets
         time_step!(ocean)
 
         # Try stepping out of the dataset bounds
-        ocean.model.clock.time = last(times) + 2 * Units.days
+        ocean.model.clock.time = last(times) + time_interval
 
         update_state!(ocean.model)
 
