@@ -106,12 +106,15 @@ function short_name end
 """
     native_times(metadata; start_time=first(metadata).dates)
 
-Extract the time values from the given `metadata` and calculate the time difference
-from the `start_time` and return as an array of time differences in seconds.
+Extract the time values from the given `metadata`, calculate the time difference
+from the `start_time`, and return an array of time differences in seconds.
 
-Arguments
-=========
+Argument
+========
 - `metadata`: The metadata containing the date information.
+
+Keyword Argument
+================
 - `start_time`: The start time for calculating the time difference. Defaults to the first date in the metadata.
 """
 function native_times(metadata; start_time=first(metadata).dates)
