@@ -209,10 +209,11 @@ for arch in test_architectures, dataset in test_datasets
 
         start_date = DateTime(1993, 1, 1)
         duration = dataset isa ECCO2Daily ? Day(4) : Month(4)
-        end_data = start_date + duration
+        end_date = start_date + duration
 
         time_indices_in_memory = 2
-        T_restoring = DatasetRestoring(:temperature, arch; dataset, start_date, end_date, inpainting, rate=1/1000, time_indices_in_memory)
+        T_restoring = DatasetRestoring(:temperature, arch;
+                                       dataset, time_indices_in_memory, start_date, end_date, inpainting, rate=1/1000)
 
         times = native_times(T_restoring.field_time_series.backend.metadata)
         ocean = ocean_simulation(grid, forcing = (; T = T_restoring))
