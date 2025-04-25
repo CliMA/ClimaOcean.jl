@@ -81,8 +81,8 @@ all_dates(dataset::Union{<:ECCO4Monthly, <:ECCO2Monthly, <:ECCO2Daily}) = all_da
 # File name generation specific to each dataset
 function metadata_filename(metadata::Metadatum{<:ECCO4Monthly})
     shortname = short_name(metadata)
-    yearstr  = string(Dates.year(metadata.dates))
-    monthstr = string(Dates.month(metadata.dates), pad=2)
+    yearstr   = string(Dates.year(metadata.dates))
+    monthstr  = string(Dates.month(metadata.dates), pad=2)
     return shortname * "_" * yearstr * "_" * monthstr * ".nc"
 end
 
