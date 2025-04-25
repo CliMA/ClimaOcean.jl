@@ -42,15 +42,16 @@ end
 """
     Field(metadata::Metadatum;
           architecture = CPU(),
-          inpainting = nothing,
+          inpainting = default_inpainting(metadata),
           mask = nothing,
           horizontal_halo = (7, 7),
-          cache_inpainted_data = false)
+          cache_inpainted_data = true)
 
 Return a `Field` on `architecture` described by `metadata` with `horizontal_halo` size.
 If not `nothing`, the `inpainting` method is used to fill the cells
 within the specified `mask`. `mask` is set to `dataset_mask` for non-nothing
-`inpainting`.
+`inpainting`. Keyword argument `cache_inpainted_data` dictates whether the inpainted
+data is cached to avoid recomputing it; default `true`.
 """
 function Field(metadata::Metadatum;
                architecture = CPU(),
