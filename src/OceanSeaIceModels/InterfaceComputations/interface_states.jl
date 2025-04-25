@@ -47,7 +47,8 @@ SpecificHumidityFormulation(phase) = SpecificHumidityFormulation(phase, nothing)
     q★ = Thermodynamics.q_vap_saturation_from_density(ℂₐ, convert(CT, Tₛ), convert(CT, ρₛ), p★)
 
     # Compute saturation specific humidity according to Raoult's law
-    return q★ * x_H₂O
+    FT = eltype(Tₛ)
+    return convert(FT, q★ * x_H₂O)
 end
 
 struct SalinityConstituent{FT}
@@ -115,6 +116,22 @@ struct RelativeVelocity end
 end
 
 @inline velocity_difference(::WindVelocity, 𝒰₁, 𝒰₀) = 𝒰₁.u, 𝒰₁.v
+
+####
+#### Atmospheric temperature
+####
+
+# Temperature increment including the ``lapse rate'' `α = g / cₚ`
+function surface_atmosphere_temperature(Ψₐ, ℙₐ)
+    ℂₐ = ℙₐ.thermodynamics_parameters
+    g  = ℙₐ.gravitational_acceleration
+    𝒬ₐ = Ψₐ.𝒬
+    zₐ = Ψₐ.z
+    Δh = zₐ # Assumption! The surface is at z = 0 -> Δh = zₐ - 0
+    Tₐ = AtmosphericThermodynamics.air_temperature(ℂₐ, 𝒬ₐ)
+    cₐ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ)
+    return Tₐ + g * Δh / cₐ
+end
 
 ####
 #### Interface temperature formulations
@@ -198,34 +215,47 @@ end
 # Tₛⁿ⁺¹ = = (Tᵢ - δ / κ * (Jᵃ - 4 α Tₛⁿ⁴)) / (1 + 4 δ σ ϵ Tₛⁿ³ / ρ c κ)
 #
 # corresponding to a linearization of the outgoing longwave radiation term.
-@inline function flux_balance_temperature(st::SkinTemperature{<:DiffusiveFlux}, Qₐ, Ψₛ, ℙₛ, Ψᵢ, ℙᵢ)
-    F = st.internal_flux
-    ρ = ℙᵢ.reference_density
-    c = ℙᵢ.heat_capacity
-    Jᵀ = Qₐ / (ρ * c)
-    return Ψᵢ.T - Jᵀ * F.δ / F.κ
+@inline function flux_balance_temperature(st::SkinTemperature{<:DiffusiveFlux}, Ψₛ, ℙₛ, Qc, Qv, Qu, Qd, Ψᵢ, ℙᵢ, Ψₐ, ℙₐ)
+    Qa = Qv + Qu + Qd # Net flux (positive out of the ocean)
+    F  = st.internal_flux
+    ρ  = ℙᵢ.reference_density
+    c  = ℙᵢ.heat_capacity
+    Qa = (Qv + Qu + Qd) # Net flux excluding sensible heat (positive out of the ocean)
+    λ  = 1 / (ρ * c) # m³K/J
+    Jᵀ = Qa * λ
+
+    # Calculating the atmospheric temperature
+    # We use to compute the sensible heat flux 
+    Tₐ = surface_atmosphere_temperature(Ψₐ, ℙₐ)
+    ΔT = Tₐ - Ψₛ.T
+    Ωc = ifelse(ΔT == 0, zero(ΔT), Qc / ΔT * λ) # Sensible heat transfer coefficient (W/m²K)
+
+    # Computing the flux balance temperature
+    return (Ψᵢ.T * F.κ - (Jᵀ + Ωc * Tₐ) * F.δ) / (F.κ - Ωc * F.δ)
 end
 
-# Q + k / h * (Tˢ - Tᵢ) = 0
-# ⟹  Tₛ = Tᵢ - Q * h / k
-@inline function flux_balance_temperature(st::SkinTemperature{<:ClimaSeaIce.ConductiveFlux}, Qₐ, Ψₛ, ℙₛ, Ψᵢ, ℙᵢ)
+# Qv + Qu + Qd + Ωc * (Tₐ - Tˢ) + k / h * (Tˢ - Tᵢ) = 0
+# where Ωc (the sensible heat transfer coefficient) is given by Ωc = Qc / (Tₐ - Tˢ)
+# ⟹  Tₛ = (Tᵢ * k - (Qv + Qu + Qd + Ωc * Tₐ) * h / (k - Ωc * h)
+@inline function flux_balance_temperature(st::SkinTemperature{<:ClimaSeaIce.ConductiveFlux}, Ψₛ, ℙₛ, Qc, Qv, Qu, Qd, Ψᵢ, ℙᵢ, Ψₐ, ℙₐ)
     F = st.internal_flux
     k = F.conductivity
     h = Ψᵢ.h
 
     # Bottom temperature at the melting temperature
-    Tᵢ  = ClimaSeaIce.SeaIceThermodynamics.melting_temperature(ℙᵢ.liquidus, Ψᵢ.S)
-    Tᵢ  = convert_to_kelvin(ℙᵢ.temperature_units, Tᵢ)
+    Tᵢ = ClimaSeaIce.SeaIceThermodynamics.melting_temperature(ℙᵢ.liquidus, Ψᵢ.S)
+    Tᵢ = convert_to_kelvin(ℙᵢ.temperature_units, Tᵢ)
     Tₛ⁻ = Ψₛ.T
 
-    #=
-    σ = ℙₛ.radiation.σ
-    ϵ = ℙₛ.radiation.ϵ
-    α = σ * ϵ
-    Tₛ = (Tᵢ - h / k * (Qₐ + 4α * Tₛ⁻^4)) / (1 + 4α * h * Tₛ⁻^3 / k)
-    =#
+    # Calculating the atmospheric temperature
+    # We use to compute the sensible heat flux 
+    Tₐ = surface_atmosphere_temperature(Ψₐ, ℙₐ)
+    ΔT = Tₐ - Tₛ⁻
+    Ωc = ifelse(ΔT == 0, zero(h), Qc / ΔT) # Sensible heat transfer coefficient (W/m²K)
+    Qa = (Qv + Qu + Qd) # Net flux excluding sensible heat (positive out of the ocean)
 
-    T★ = Tᵢ - Qₐ * h / k
+    # Computing the flux balance temperature
+    T★ = (Tᵢ * k - (Qa + Ωc * Tₐ) * h) / (k - Ωc * h)
 
     # Fix a NaN
     T★ = ifelse(isnan(T★), Tₛ⁻, T★)
@@ -241,7 +271,7 @@ end
     Tₘ = ℙᵢ.liquidus.freshwater_melting_temperature
     Tₘ = convert_to_kelvin(ℙᵢ.temperature_units, Tₘ)
     Tₛ⁺ = min(Tₛ⁺, Tₘ)
-
+    
     return Tₛ⁺
 end
 
@@ -271,7 +301,6 @@ end
 
     Qu = upwelling_radiation(Tₛ⁻, σ, ϵ)
     Qd = net_downwelling_radiation(downwelling_radiation, α, ϵ)
-    Qr = Qd + Qu # Net radiation (positive out of the ocean)
 
     u★ = interface_state.u★
     θ★ = interface_state.θ★
@@ -281,14 +310,14 @@ end
     Qc = - ρₐ * cₐ * u★ * θ★ # = - ρₐ cₐ u★ Ch / sqrt(Cd) * (θₐ - Tₛ)
     Qv = - ρₐ * ℰs * u★ * q★
 
-    # Net heat flux
-    Qa = Qr + Qc + Qv
-
-    Tₛ = flux_balance_temperature(st, Qa,
+    Tₛ = flux_balance_temperature(st,
                                   interface_state,
                                   interface_properties,
+                                  Qc, Qv, Qu, Qd,
                                   interior_state,
-                                  interior_properties)
+                                  interior_properties,
+                                  atmosphere_state,
+                                  atmosphere_properties)
 
     return Tₛ
 end
@@ -309,7 +338,7 @@ struct InterfaceState{FT}
     melting :: Bool
 end
 
-InterfaceState(u★, θ★, q★, u, v, T, S, q) =
+@inline InterfaceState(u★, θ★, q★, u, v, T, S, q) =
     InterfaceState(u★, θ★, q★, u, v, T, S, q, false)
 
 Base.eltype(::InterfaceState{FT}) where FT = FT

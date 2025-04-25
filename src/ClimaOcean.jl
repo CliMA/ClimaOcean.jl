@@ -31,9 +31,8 @@ export
     last_date,
     all_dates,
     JRA55FieldTimeSeries,
-    ECCO_field, 
-    ECCORestoring,
     LinearlyTaperedPolarMask,
+    DatasetRestoring,
     ocean_simulation,
     sea_ice_simulation,
     initialize!
@@ -55,7 +54,7 @@ const SKOFTS = SomeKindOfFieldTimeSeries
 @inline stateindex(a::SKOFTS, i, j, k, grid, time, args...) = @inbounds a[i, j, k, time]
 
 @inline function stateindex(a::Function, i, j, k, grid, time, loc)
-    LX, LY, LZ = loc 
+    LX, LY, LZ = loc
     λ, φ, z = node(i, j, k, grid, LX(), LY(), LZ())
     return a(λ, φ, z, time)
 end
@@ -89,7 +88,7 @@ using .InitialConditions
 using .OceanSeaIceModels
 using .OceanSimulations
 using .SeaIceSimulations
-using .DataWrangling: JRA55, ECCO
+using .DataWrangling: JRA55, ECCO, EN4
 
 using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 using ClimaOcean.DataWrangling.JRA55: JRA55PrescribedAtmosphere, JRA55NetCDFBackend
@@ -103,8 +102,8 @@ using PrecompileTools: @setup_workload, @compile_workload
         z = exponential_z_faces(Nz=Nz, depth=6000, h=34)
         grid = Oceananigans.OrthogonalSphericalShellGrids.TripolarGrid(CPU(); size=(Nx, Ny, Nz), halo=(7, 7, 7), z)
         grid = ImmersedBoundaryGrid(grid, GridFittedBottom((x, y) -> -5000))
-        ocean = ocean_simulation(grid)
-        model = OceanSeaIceModel(ocean)
+        # ocean = ocean_simulation(grid)
+        # model = OceanSeaIceModel(ocean)
     end
 end
 

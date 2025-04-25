@@ -2,18 +2,18 @@ using CFTime
 using Dates
 using Base: @propagate_inbounds
 
-struct Metadata{D, V}
+struct Metadata{V, D}
     name  :: Symbol
-    dates :: D
     dataset :: V
+    dates :: D
     dir :: String
 end
 
 """
-   Metadata(variable_name;
-            dataset,
-            dates = all_dates(dataset, variable_name),
-            dir = default_download_directory(dataset))
+    Metadata(variable_name;
+             dataset,
+             dates = all_dates(dataset, variable_name),
+             dir = default_download_directory(dataset))
 
 Metadata holding a specific dataset information.
 
@@ -25,7 +25,7 @@ Arguments
 Keyword Arguments
 =================
 - `dataset`: The dataset of the dataset. Supported datasets are `ECCO2Monthly()`, `ECCO2Daily()`,
-             `ECCO4Monthly()`, `JRA55RepeatYear()`, or `JRA55MultipleYears()`.
+             `ECCO4Monthly()`, `EN4Monthly(), `RepeatYearJRA55()`, or `MultiYearJRA55()`.
 - `dates`: The dates of the dataset, in a `AbstractCFDateTime` format. Note this can either be a range
            or a vector of dates, representing a time-series. For a single date, use [`Metadatum`](@ref).
 - `dir`: The directory where the dataset is stored.
@@ -35,11 +35,11 @@ function Metadata(variable_name;
                   dates=all_dates(dataset, variable_name)[1:1],
                   dir=default_download_directory(dataset))
 
-    return Metadata(variable_name, dates, dataset, dir)
+    return Metadata(variable_name, dataset, dates, dir)
 end
 
-const AnyDateTime = Union{AbstractCFDateTime, Dates.AbstractDateTime}
-const Metadatum   = Metadata{<:AnyDateTime}
+const AnyDateTime  = Union{AbstractCFDateTime, Dates.AbstractDateTime}
+const Metadatum{V} = Metadata{V, <:AnyDateTime} where V
 
 """
     Metadatum(variable_name;
@@ -55,7 +55,7 @@ function Metadatum(variable_name;
                    dir=default_download_directory(dataset))
 
     # TODO: validate that `date` is actually a single date?
-    return Metadata(variable_name, date, dataset, dir)
+    return Metadata(variable_name, dataset, date, dir)
 end
 
 # Just the current directory
@@ -65,10 +65,10 @@ default_download_directory(dataset) = pwd()
 download_dataset(metadata) = nothing
 
 Base.show(io::IO, metadata::Metadata) =
-    print(io, "ECCOMetadata:", '\n',
+    print(io, "Metadata:", '\n',
     "├── name: $(metadata.name)", '\n',
-    "├── dates: $(metadata.dates)", '\n',
     "├── dataset: $(metadata.dataset)", '\n',
+    "├── dates: $(metadata.dates)", '\n',
     "└── data directory: $(metadata.dir)")
 
 # Treat Metadata as an array to allow iteration over the dates.
@@ -78,13 +78,13 @@ Base.eltype(metadata::Metadata) = Base.eltype(metadata.dates)
 # If only one date, it's a single element array
 Base.length(metadata::Metadatum) = 1
 
-@propagate_inbounds Base.getindex(m::Metadata, i::Int) = Metadata(m.name, m.dates[i],   m.dataset, m.dir)
-@propagate_inbounds Base.first(m::Metadata)            = Metadata(m.name, m.dates[1],   m.dataset, m.dir)
-@propagate_inbounds Base.last(m::Metadata)             = Metadata(m.name, m.dates[end], m.dataset, m.dir)
+@propagate_inbounds Base.getindex(m::Metadata, i::Int) = Metadata(m.name, m.dataset, m.dates[i],   m.dir)
+@propagate_inbounds Base.first(m::Metadata)            = Metadata(m.name, m.dataset, m.dates[1],   m.dir)
+@propagate_inbounds Base.last(m::Metadata)             = Metadata(m.name, m.dataset, m.dates[end], m.dir)
 
 @inline function Base.iterate(m::Metadata, i=1)
     if (i % UInt) - 1 < length(m)
-        return Metadata(m.name, m.dates[i], m.dataset, m.dir), i + 1
+        return Metadata(m.name, m.dataset, m.dates[i], m.dir), i + 1
     else
         return nothing
     end
@@ -97,7 +97,10 @@ Base.last(metadata::Metadatum)    = metadata
 Base.iterate(metadata::Metadatum) = (metadata, nothing)
 Base.iterate(::Metadatum, ::Any)  = nothing
 
-metadata_path(metadata) = joinpath(metadata.dir, metadata_filename(metadata))
+metadata_path(metadata::Metadatum) = joinpath(metadata.dir, metadata_filename(metadata))
+metadata_path(metadata::Metadata) = [metadata_path(metadatum) for metadatum in metadata]
+
+function short_name end
 
 """
     native_times(metadata; start_time=first(metadata).dates)
@@ -171,10 +174,65 @@ function compute_native_date_range(native_dates, start_date, end_date)
     end
 
     start_idx = findfirst(x -> x ≥ start_date, native_dates)
-    end_idx = findfirst(x -> x ≥ end_date, native_dates)
-
+    end_idx   = findfirst(x -> x ≥ end_date,   native_dates)
     start_idx = start_idx > 1 ? start_idx - 1 : start_idx
-    end_idx = isnothing(end_idx) ? length(native_dates) : end_idx
+    end_idx   = isnothing(end_idx) ? length(native_dates) : end_idx
 
     return native_dates[start_idx:end_idx]
 end
+
+"""
+    vertical_interfaces(metadata)
+
+Return an array with the vertical interfaces (``z``-faces) of the dataset
+that `metadata` corresponds to.
+"""
+vertical_interfaces(metadata::Metadata{V}) where V =
+    error("vertical_interfaces not implemented for $V")
+
+variable_is_three_dimensional(metadata::Metadata{V}) where V =
+    error("variable_is_three_dimensional not implemented for $V")
+
+function dataset_latitude_extent end
+
+"""
+    empty_field(metadata::Metadata;
+                architecture = CPU(),
+                horizontal_halo = (7, 7))
+
+Return an empty field of `metadata` on `architecture` and with `horizontal_halo`s.
+"""
+function empty_field(metadata::Metadata;
+                     architecture = CPU(),
+                     horizontal_halo = (7, 7))
+
+    Nx, Ny, Nz, _ = size(metadata)
+    loc = location(metadata)
+    longitude = (0, 360)
+    latitude = dataset_latitude_extent(metadata)
+    TX, TY = (Periodic, Bounded)
+
+    if variable_is_three_dimensional(metadata)
+        TZ = Bounded
+        LZ = Center
+        z = vertical_interfaces(metadata)
+        halo = (horizontal_halo..., 3)
+        sz = (Nx, Ny, Nz)
+    else # the variable is two-dimensional
+        TZ = Flat
+        LZ = Nothing
+        z = nothing
+        halo = horizontal_halo
+        sz = (Nx, Ny)
+    end
+
+    grid = LatitudeLongitudeGrid(architecture, Float32; halo, longitude, latitude, z,
+                                 size = sz,
+                                 topology = (TX, TY, TZ))
+    return Field{loc...}(grid)
+end
+
+struct Celsius end
+struct Kelvin end
+
+function dataset_temperature_units end
