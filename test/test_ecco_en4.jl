@@ -239,6 +239,6 @@ for arch in test_architectures, dataset in test_datasets
         end
 
         # The backend has cycled to the end
-        @test time_indices(T_restoring.field_time_series) == (6, 1)
+        @test Oceananigans.OutputReaders.time_indices(T_restoring.field_time_series) == (6, 1)
     end
 end
