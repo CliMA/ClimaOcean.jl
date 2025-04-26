@@ -7,6 +7,7 @@ for arch in test_architectures, dataset in test_datasets
         for name in (:temperature, :salinity)
             metadata = Metadata(name; dates, dataset)
 
+            download_dataset(metadata) # just in case is not downloaded
             for datum in metadata
                 @test isfile(metadata_path(datum))
             end
@@ -66,7 +67,7 @@ for arch in test_architectures, dataset in test_datasets
                                      halo = (7, 7, 7))
 
         ocean = ocean_simulation(grid)
-        date = DateTime(1993, 1, 1)
+
         set!(ocean.model, T=Metadatum(:temperature; dataset, date=start_date),
                           S=Metadatum(:salinity;    dataset, date=start_date))
     end
@@ -205,15 +206,15 @@ for arch in test_architectures, dataset in test_datasets
 
         start_date = DateTime(1993, 1, 1)
         time_resolution = dataset isa ECCO2Daily ? Day(1) : Month(1)
-        duration = 4 * time_resolution
-        end_date = start_date + duration
-
-        Tmetadata = Metadata(:temperature; dates=start_date:time_resolution:end_date, dataset)
-        download_dataset(Tmetadata)
+        end_date = start_date + 4 * time_resolution
 
         time_indices_in_memory = 2
+
+        # create a T_restoring using both constructors
         T_restoring1 = DatasetRestoring(:temperature, arch; dataset, start_date, end_date, inpainting, rate=1/1000)
-        T_restoring2 = DatasetRestoring(Tmetadata; time_indices_in_memory, inpainting, rate=1/1000)
+
+        Tmetadata = Metadata(:temperature; dates=start_date:time_resolution:end_date, dataset)
+        T_restoring2 = DatasetRestoring(Tmetadata, arch; time_indices_in_memory, inpainting, rate=1/1000)
 
         for T_restoring in (T_restoring1, T_restoring2)
             times = native_times(T_restoring.field_time_series.backend.metadata)

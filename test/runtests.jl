@@ -29,10 +29,12 @@ if test_group == :init || test_group == :all
     #### Download Dataset data
     ####
 
-    # Metadata for tests
-
+    # Download few datasets for tests
     for dataset in test_datasets
-        dates = start_date : Month(1) : end_date
+        time_resolution = dataset isa ECCO2Daily ? Day(1) : Month(1)
+        end_date = start_date + 2 * time_resolution
+        dates = start_date:time_resolution:end_date
+
         temperature_metadata = Metadata(:temperature; dataset, dates)
         salinity_metadata    = Metadata(:salinity; dataset, dates)
 
