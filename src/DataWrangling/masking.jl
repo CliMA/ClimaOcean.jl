@@ -1,11 +1,9 @@
 using Oceananigans
 using Oceananigans.BoundaryConditions
-using Oceananigans.Fields: OneField
+using Oceananigans.Architectures: architecture, device, GPU
+using Oceananigans.Fields: Field, OneField, instantiated_location, interior, CenterField
 using Oceananigans.Grids: peripheral_node, znode
 using Oceananigans.Utils: launch!
-using Oceananigans.Fields: instantiated_location, interior, CenterField
-using Oceananigans.Architectures: architecture, device, GPU
-using ClimaOcean.DataWrangling: Field
 using KernelAbstractions: @kernel, @index
 
 import ClimaOcean: stateindex
@@ -195,7 +193,7 @@ end
 end
 
 """
-    inpaint_mask!(field, mask; max_iter = Inf)
+    inpaint_mask!(field, mask; inpainting=NearestNeighborInpainting(Inf))
 
 Inpaint `field` within `mask`, using values outside `mask`.
 In other words, regions where `mask[i, j, k] == 1` is inpainted
@@ -210,6 +208,7 @@ Arguments
 - `inpainting`: The inpainting algorithm to use. The only option is
                 `NearestNeighborInpainting(maxiter)`, where an average
                 of the valid surrounding values is used `maxiter` times.
+                Default: `NearestNeighborInpainting(Inf)`.
 """
 function inpaint_mask!(field, mask; inpainting=NearestNeighborInpainting(Inf))
 
