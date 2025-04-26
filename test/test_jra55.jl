@@ -142,7 +142,7 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         backend = JRA55NetCDFBackend(10)
         Ta = JRA55FieldTimeSeries(:temperature; dataset, start_date, end_date, backend)
 
-        @test Second(end_date - start_date).value ≈ Ta.times[end-1] - Ta.times[1]
+        @test Second(end_date - start_date).value ≈ Ta.times[end] - Ta.times[1]
 
         # Test we can access all the data
         for t in eachindex(Ta.times)
