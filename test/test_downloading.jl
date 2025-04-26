@@ -10,7 +10,7 @@ using ClimaOcean.JRA55: JRA55NetCDFBackend
     end
 end
 
-@testset "Availability of Dataset data" begin
+@testset "Availability of ECCO/EN4 data" begin
     for dataset in test_datasets
 
         @info "Testing that we can download $(typeof(dataset)) data..."

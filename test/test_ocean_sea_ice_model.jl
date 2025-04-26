@@ -7,6 +7,9 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 using ClimaSeaIce.SeaIceMomentumEquations
 using ClimaSeaIce.Rheologies
 
+end_date = DateTime(1993, 2, 1)
+dates = start_date : Month(1) : end_date
+
 @inline kernel_melting_temperature(i, j, k, grid, liquidus, S) = @inbounds melting_temperature(liquidus, S[i, j, k])
 
 @testset "Time stepping test" begin
