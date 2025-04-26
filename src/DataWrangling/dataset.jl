@@ -51,7 +51,7 @@ Return a `Field` on `architecture` described by `metadata` with `horizontal_halo
 If not `nothing`, the `inpainting` method is used to fill the cells
 within the specified `mask`. `mask` is set to `dataset_mask` for non-nothing
 `inpainting`. Keyword argument `cache_inpainted_data` dictates whether the inpainted
-data is cached to avoid recomputing it; default `true`.
+data is cached to avoid recomputing it; default: `true`.
 """
 function Field(metadata::Metadatum;
                architecture = CPU(),

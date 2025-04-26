@@ -52,7 +52,6 @@ function default_download_directory(::ECCO4Monthly)
     return mkpath(path)
 end
 
-
 datasetstr(md::ECCOMetadata) = string(md.dataset)
 
 datestr(md::ECCOMetadata) = string(first(md.dates), "--", last(md.dates))
