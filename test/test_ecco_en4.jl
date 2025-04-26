@@ -3,6 +3,11 @@ for arch in test_architectures, dataset in test_datasets
     A = typeof(arch)
     @info "Testing $(typeof(dataset)) on $A"
 
+    start_date = DateTime(1993, 1, 1)
+    time_resolution = dataset isa ECCO2Daily ? Day(1) : Month(1)
+    end_date = start_date + 4 * time_resolution
+    dates = start_date : time_resolution : end_date
+
     @testset "Fields utilities" begin
         for name in (:temperature, :salinity)
             metadata = Metadata(name; dates, dataset)

@@ -36,8 +36,7 @@ function download_bathymetry(; dir = download_bathymetry_cache,
     return nothing
 end
 
-# test_datasets = (ECCO2Monthly(), ECCO2Daily(), ECCO4Monthly(), EN4Monthly())
-test_datasets = (ECCO2Monthly(), ECCO4Monthly(), EN4Monthly())
+test_datasets = (ECCO2Monthly(), ECCO2Daily(), ECCO4Monthly(), EN4Monthly())
 
 test_ecco2_datasets = tuple((ds for ds in test_datasets if startswith(string(typeof(ds)), "ECCO2"))...)
 test_ecco4_en4_datasets = tuple((ds for ds in test_datasets if !startswith(string(typeof(ds)), "ECCO2"))...)

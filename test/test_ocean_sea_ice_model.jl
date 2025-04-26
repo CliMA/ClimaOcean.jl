@@ -7,13 +7,16 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 using ClimaSeaIce.SeaIceMomentumEquations
 using ClimaSeaIce.Rheologies
 
-end_date = DateTimeProlepticGregorian(1993, 2, 1)
-dates = start_date : Month(1) : end_date
-
 @inline kernel_melting_temperature(i, j, k, grid, liquidus, S) = @inbounds melting_temperature(liquidus, S[i, j, k])
 
 @testset "Time stepping test" begin
     for dataset in test_datasets
+
+        start = DateTimeProlepticGregorian(1993, 1, 1)
+        time_resolution = dataset isa ECCO2Daily ? Day(1) : Month(1)
+        end_date = DateTimeProlepticGregorian(1993, 2, 1)
+        dates = start_date : time_resolution : end_date
+
         temperature_metadata = Metadata(:temperature; dataset, dates)
         salinity_metadata    = Metadata(:salinity; dataset, dates)
 

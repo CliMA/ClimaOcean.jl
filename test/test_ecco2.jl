@@ -13,10 +13,6 @@ using Oceananigans.Units
 
 using CUDA: @allowscalar
 
-start_date = DateTime(1993, 1, 1)
-end_date = DateTime(1993, 2, 1)
-dates = start_date : Month(1) : end_date
-
 # Inpaint only the first two cells inside the missing mask
 inpainting = NearestNeighborInpainting(2)
 
