@@ -1,7 +1,7 @@
 using Oceananigans
 using Oceananigans.BoundaryConditions
 using Oceananigans.Fields: OneField
-using Oceananigans.Grids: peripheral_node
+using Oceananigans.Grids: peripheral_node, znode
 using Oceananigans.Utils: launch!
 using Oceananigans.Fields: instantiated_location, interior, CenterField
 using Oceananigans.Architectures: architecture, device, GPU
