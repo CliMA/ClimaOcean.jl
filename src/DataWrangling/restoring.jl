@@ -304,17 +304,17 @@ function DatasetRestoring(metadata::Metadata,
     return DatasetRestoring(fts, maybe_native_grid, mask, field_name, rate)
 end
 
-function Base.show(io::IO, p::DatasetRestoring)
+function Base.show(io::IO, dsr::DatasetRestoring)
     print(io, "DatasetRestoring:", '\n',
-              "├── variable_name: ", summary(p.variable_name), '\n',
-              "├── field_time_series: ", summary(p.field_time_series), '\n',
-              "│    ├── dataset: ", summary(p.field_time_series.backend.metadata.dataset), '\n',
-              "│    ├── dates: ", p.field_time_series.backend.metadata.dates, '\n',
-              "│    ├── time_indexing: ", summary(p.field_time_series.time_indexing), '\n',
-              "│    └── dir: ", p.field_time_series.backend.metadata.dir, '\n',
-              "├── rate: ", p.rate, '\n',
-              "├── mask: ", summary(p.mask), '\n',
-              "└── native_grid: ", summary(p.native_grid))
+              "├── variable_name: ", summary(dsr.variable_name), '\n',
+              "├── rate: ", dsr.rate, '\n',
+              "├── field_time_series: ", summary(dsr.field_time_series), '\n',
+              "│    ├── dataset: ", summary(dsr.field_time_series.backend.metadata.dataset), '\n',
+              "│    ├── dates: ", dsr.field_time_series.backend.metadata.dates, '\n',
+              "│    ├── time_indexing: ", summary(dsr.field_time_series.time_indexing), '\n',
+              "│    └── dir: ", dsr.field_time_series.backend.metadata.dir, '\n',
+              "├── mask: ", summary(dsr.mask), '\n',
+              "└── native_grid: ", summary(dsr.native_grid))
 end
 
 regularize_forcing(forcing::DatasetRestoring, field, field_name, model_field_names) = forcing
