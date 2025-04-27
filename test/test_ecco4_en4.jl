@@ -236,38 +236,43 @@ for arch in test_architectures, dataset in test_datasets
         dates = start_date : Month(1) : end_date
 
         time_indices_in_memory = 2
-        Tmetadata = Metadata(:temperature; dates, dataset)
-        T_restoring = DatasetRestoring(Tmetadata, arch; time_indices_in_memory, inpainting, rate=1/1000)
 
-        times = native_times(T_restoring.field_time_series.backend.metadata)
-        ocean = ocean_simulation(grid, forcing = (; T = T_restoring))
+        Tmetadata1 = Metadata(:temperature; dates, dataset)
+        Tmetadata2 = Metadata(:temperature; start_date, end_date, dataset)
 
-        # start a bit after time_index
-        time_index = 3
-        ocean.model.clock.time = times[time_index] + 2 * Units.days
-        update_state!(ocean.model)
+        for Tmetadata in (Tmetadata1, Tmetadata2)
+            T_restoring = DatasetRestoring(Tmetadata, arch; time_indices_in_memory, inpainting, rate=1/1000)
 
-        @test time_indices(T_restoring.field_time_series) ==
-            Tuple(range(time_index, length=time_indices_in_memory))
+            times = native_times(T_restoring.field_time_series.backend.metadata)
+            ocean = ocean_simulation(grid, forcing = (; T = T_restoring))
 
-        @test T_restoring.field_time_series.backend.start == time_index
+            # start a bit after time_index
+            time_index = 3
+            ocean.model.clock.time = times[time_index] + 2 * Units.days
+            update_state!(ocean.model)
 
-        # Compile
-        time_step!(ocean)
+            @test time_indices(T_restoring.field_time_series) ==
+                Tuple(range(time_index, length=time_indices_in_memory))
 
-        # Try stepping out of the dataset bounds
-        # start a bit after last time_index
-        ocean.model.clock.time = last(times) + 2 * Units.days
+            @test T_restoring.field_time_series.backend.start == time_index
 
-        update_state!(ocean.model)
-
-        @test begin
+            # Compile
             time_step!(ocean)
-            true
-        end
 
-        # The backend has cycled to the end
-        @test time_indices(T_restoring.field_time_series) ==
-            mod1.(Tuple(range(length(times), length=time_indices_in_memory)), length(times))
+            # Try stepping out of the dataset bounds
+            # start a bit after last time_index
+            ocean.model.clock.time = last(times) + 2 * Units.days
+
+            update_state!(ocean.model)
+
+            @test begin
+                time_step!(ocean)
+                true
+            end
+
+            # The backend has cycled to the end
+            @test time_indices(T_restoring.field_time_series) ==
+                mod1.(Tuple(range(length(times), length=time_indices_in_memory)), length(times))
+        end
     end
 end
