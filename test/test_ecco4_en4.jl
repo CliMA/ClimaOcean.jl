@@ -235,21 +235,28 @@ for arch in test_architectures, dataset in test_datasets
         end_date = DateTime(1993, 5, 1)
         dates = start_date : Month(1) : end_date
 
+        time_indices_in_memory = 2
         Tmetadata = Metadata(:temperature; dates, dataset)
-        T_restoring = DatasetRestoring(Tmetadata, arch; inpainting, rate=1/1000)
+        T_restoring = DatasetRestoring(Tmetadata, arch; time_indices_in_memory, inpainting, rate=1/1000)
 
         times = native_times(T_restoring.field_time_series.backend.metadata)
         ocean = ocean_simulation(grid, forcing = (; T = T_restoring))
 
-        ocean.model.clock.time = times[3] + 2 * Units.days
+        # start a bit after time_index
+        time_index = 3
+        ocean.model.clock.time = times[time_index] + 2 * Units.days
         update_state!(ocean.model)
 
-        @test T_restoring.field_time_series.backend.start == 3
+        @test time_indices(T_restoring.field_time_series) ==
+            Tuple(range(time_index, length=time_indices_in_memory))
+
+        @test T_restoring.field_time_series.backend.start == time_index
 
         # Compile
         time_step!(ocean)
 
         # Try stepping out of the dataset bounds
+        # start a bit after last time_index
         ocean.model.clock.time = last(times) + 2 * Units.days
 
         update_state!(ocean.model)
@@ -260,6 +267,7 @@ for arch in test_architectures, dataset in test_datasets
         end
 
         # The backend has cycled to the end
-        @test time_indices(T_restoring.field_time_series) == (6, 1)
+        @test time_indices(T_restoring.field_time_series) ==
+            mod1.(Tuple(range(length(times), length=time_indices_in_memory)), length(times))
     end
 end
