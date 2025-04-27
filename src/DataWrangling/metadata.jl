@@ -44,17 +44,9 @@ function Metadata(variable_name;
                   start_date = nothing,
                   end_date = nothing)
 
-    if !isnothing(dates) && !isnothing(start_date)
-        throw(ArgumentError("both dates and start_date kwargs were provided"))
-    end
-
-    if !isnothing(dates) && !isnothing(end_date)
-        throw(ArgumentError("both dates and end_date kwargs were provided"))
-    end
-
-    if isnothing(dates) && (!isnothing(start_date) && !isnothing(end_date))
-        native_dates = all_dates(dataset, variable_name)
-        dates = compute_native_date_range(native_dates, start_date, end_date)
+    if !isnothing(start_date) && !isnothing(end_date)
+        @info "Slicing date range within $start_date and $end_date"
+        dates = compute_native_date_range(dates, start_date, end_date)
     end
 
     return Metadata(variable_name, dataset, dates, dir)
@@ -76,7 +68,9 @@ function Metadatum(variable_name;
                    date=first_date(dataset, variable_name),
                    dir=default_download_directory(dataset))
 
-    # TODO: validate that `date` is actually a single date?
+    date isa Union{CFTime.AbstractCFDateTime, Dates.AbstractDateTime} ||
+        throw(ArgumentError("date must be Union{Dates.AbstractDateTime, CFTime.AbstractCFDateTime}"))
+
     return Metadata(variable_name, dataset, date, dir)
 end
 
