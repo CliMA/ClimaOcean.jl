@@ -47,6 +47,7 @@ function Metadata(variable_name;
     if !isnothing(dates) && !nothing(start_date)
         throw(ArgumentError("both dates and start_date kwargs were provided"))
     end
+
     if !isnothing(dates) && !nothing(end_date)
         throw(ArgumentError("both dates and end_date kwargs were provided"))
     end
@@ -183,7 +184,7 @@ metadata_filename(metadata) = [metadata_filename(metadatum) for metadatum in met
 """
     compute_native_date_range(native_dates, start_date, end_date)
 
-Compute the range of dates that fall within the specified start and end date.
+Compute the range of `native_dates` that fall within the specified `start_date` and `end_date`.
 """
 function compute_native_date_range(native_dates, start_date, end_date)
     if last(native_dates) < end_date
