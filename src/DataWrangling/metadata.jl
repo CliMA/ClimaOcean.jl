@@ -29,48 +29,25 @@ Keyword Arguments
 - `dates`: The dates of the dataset (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`).
            Note this can either be a range or a vector of dates, representing a time-series.
            For a single date, use [`Metadatum`](@ref).
+- `start_date`: If `dates = nothing`, we can prescribe the first date of metadata as a date
+                (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`). `start_date` should lie
+                within the date range of the dataset. Default: nothing.
+- `end_date`: If `dates = nothing`, we can prescribe the last date of metadata as a date
+              (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`). `end_date` should lie
+                within the date range of the dataset. Default: nothing.
 - `dir`: The directory where the dataset is stored.
 """
 function Metadata(variable_name;
                   dataset,
-                  dates=all_dates(dataset, variable_name)[1:1],
-                  dir=default_download_directory(dataset))
+                  dates = all_dates(dataset, variable_name),
+                  dir = default_download_directory(dataset),
+                  start_date = nothing,
+                  end_date = nothing)
 
-    return Metadata(variable_name, dataset, dates, dir)
-end
-
-"""
-    Metadata(variable_name;
-             dataset,
-             start_date = first_date(dataset, variable_name),
-             end_date = last_date(dataset, variable_name),
-             dir = default_download_directory(dataset))
-
-Metadata holding a specific dataset information.
-
-Argument
-========
-- `variable_name`: a symbol representing the name of the variable (for example, `:temperature`,
-                   `:salinity`, `:u_velocity`, etc)
-
-Keyword Arguments
-=================
-- `dataset`: Supported datasets are `ECCO2Monthly()`, `ECCO2Daily()`, `ECCO4Monthly()`, `EN4Monthly(),
-             `RepeatYearJRA55()`, or `MultiYearJRA55()`.
-- `start_date`: The first date of metadata (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`).
-                Should be within the date range of the dataset. Default: `first_date(dataset, variable_name)`.
-- `end_date`: The last date of metadata  (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`).
-              Should be within the date range of the dataset. Default: `last_date(dataset, variable_name)`.
-- `dir`: The directory where the dataset is stored.
-"""
-function Metadata(variable_name;
-                  dataset,
-                  start_date = first_date(dataset, variable_name),
-                  end_date = last_date(dataset, variable_name),
-                  dir = default_download_directory(dataset))
-
-    native_dates = all_dates(dataset, variable_name)
-    dates = compute_native_date_range(native_dates, start_date, end_date)
+    if isnothing(dates) && (!nothing(start_date) && !isnothing(end_date))
+        native_dates = all_dates(dataset, variable_name)
+        dates = compute_native_date_range(native_dates, start_date, end_date)
+    end
 
     return Metadata(variable_name, dataset, dates, dir)
 end
