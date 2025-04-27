@@ -64,9 +64,11 @@ function Field(metadata::Metadatum;
     inpainted_path = inpainted_metadata_path(metadata)
 
     if !isnothing(inpainting) && isfile(inpainted_path)
+        @show "open inpainted_path"
         file = jldopen(inpainted_path, "r")
         maxiter = file["inpainting_maxiter"]
 
+        maxiter != inpainting.maxiter && @show "but maxiter != inpainting.maxiter"
         # read data if generated with the same inpainting
         if maxiter == inpainting.maxiter
             data = file["data"]
