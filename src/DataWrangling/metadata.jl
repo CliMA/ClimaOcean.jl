@@ -17,23 +17,60 @@ end
 
 Metadata holding a specific dataset information.
 
-Arguments
-=========
+Argument
+========
 - `variable_name`: a symbol representing the name of the variable (for example, `:temperature`,
                    `:salinity`, `:u_velocity`, etc)
 
 Keyword Arguments
 =================
-- `dataset`: The dataset of the dataset. Supported datasets are `ECCO2Monthly()`, `ECCO2Daily()`,
-             `ECCO4Monthly()`, `EN4Monthly(), `RepeatYearJRA55()`, or `MultiYearJRA55()`.
-- `dates`: The dates of the dataset, in a `AbstractCFDateTime` format. Note this can either be a range
-           or a vector of dates, representing a time-series. For a single date, use [`Metadatum`](@ref).
+- `dataset`: Supported datasets are `ECCO2Monthly()`, `ECCO2Daily()`, `ECCO4Monthly()`, `EN4Monthly(),
+             `RepeatYearJRA55()`, or `MultiYearJRA55()`.
+- `dates`: The dates of the dataset (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`).
+           Note this can either be a range or a vector of dates, representing a time-series.
+           For a single date, use [`Metadatum`](@ref).
 - `dir`: The directory where the dataset is stored.
 """
 function Metadata(variable_name;
                   dataset,
                   dates=all_dates(dataset, variable_name)[1:1],
                   dir=default_download_directory(dataset))
+
+    return Metadata(variable_name, dataset, dates, dir)
+end
+
+"""
+    Metadata(variable_name;
+             dataset,
+             start_date = first_date(dataset, variable_name),
+             end_date = last_date(dataset, variable_name),
+             dir = default_download_directory(dataset))
+
+Metadata holding a specific dataset information.
+
+Argument
+========
+- `variable_name`: a symbol representing the name of the variable (for example, `:temperature`,
+                   `:salinity`, `:u_velocity`, etc)
+
+Keyword Arguments
+=================
+- `dataset`: Supported datasets are `ECCO2Monthly()`, `ECCO2Daily()`, `ECCO4Monthly()`, `EN4Monthly(),
+             `RepeatYearJRA55()`, or `MultiYearJRA55()`.
+- `start_date`: The first date of metadata (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`).
+                Should be within the date range of the dataset. Default: `first_date(dataset, variable_name)`.
+- `end_date`: The last date of metadata  (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`).
+              Should be within the date range of the dataset. Default: `last_date(dataset, variable_name)`.
+- `dir`: The directory where the dataset is stored.
+"""
+function Metadata(variable_name;
+                  dataset,
+                  start_date = first_date(dataset, variable_name),
+                  end_date = last_date(dataset, variable_name),
+                  dir = default_download_directory(dataset))
+
+    native_dates = all_dates(dataset, variable_name)
+    dates = compute_native_date_range(native_dates, start_date, end_date)
 
     return Metadata(variable_name, dataset, dates, dir)
 end
@@ -175,7 +212,7 @@ function compute_native_date_range(native_dates, start_date, end_date)
 
     start_idx = findfirst(x -> x ≥ start_date, native_dates)
     end_idx   = findfirst(x -> x ≥ end_date,   native_dates)
-    start_idx = start_idx > 1 ? start_idx - 1 : start_idx
+    start_idx = (start_idx > 1 && native_dates[start_idx] > start_date) ? start_idx - 1 : start_idx
     end_idx   = isnothing(end_idx) ? length(native_dates) : end_idx
 
     return native_dates[start_idx:end_idx]
