@@ -221,7 +221,7 @@ end
 end
 
 """
-    DatasetRestoring(metadata,
+    DatasetRestoring(metadata::Metadata,
                      arch_or_grid = CPU();
                      rate,
                      mask = 1,
@@ -275,7 +275,7 @@ Keyword Arguments
 - `cache_inpainted_data`: If `true`, the data is cached to disk after inpainting for later retrieving.
                           Default: `true`.
 """
-function DatasetRestoring(metadata,
+function DatasetRestoring(metadata::Metadata,
                           arch_or_grid = CPU();
                           rate,
                           mask = 1,
