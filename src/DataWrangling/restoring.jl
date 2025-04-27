@@ -221,15 +221,12 @@ end
 end
 
 """
-    DatasetRestoring(variable_name::Symbol, [ arch_or_grid = CPU(), ];
-                     dataset,
-                     start_date = first_date(dataset, variable_name),
-                     end_date = last_date(dataset, variable_name),
-                     time_indices_in_memory = 2,
-                     time_indexing = Cyclical(),
+    DatasetRestoring(metadata,
+                     arch_or_grid = CPU();
+                     rate,
                      mask = 1,
-                     rate = 1,
-                     dir = default_download_directory(dataset),
+                     time_indices_in_memory = 2, # Not more than this if we want to use GPU!
+                     time_indexing = Cyclical(),
                      inpainting = NearestNeighborInpainting(Inf),
                      cache_inpainted_data = true)
 
@@ -247,7 +244,7 @@ from the dataset of choice to the simulation grid and time.
 Arguments
 =========
 
-- `variable_name`: The name of the variable to restore. Choices include:
+- `metadata`: The medatada for a dataset variable to restore. Choices for variables include:
   * `:temperature`,
   * `:salinity`,
   * `:u_velocity`,
@@ -260,53 +257,24 @@ Arguments
                   `arch_or_grid = CPU()` or `arch_or_grid = GPU()`, data is interpolated
                   on-the-fly when the forcing tendency is computed. Default: CPU().
 
-!!! info "Providing `Metadata` instead of `variable_name`"
-    Note that `Metadata` may be provided as the first argument instead of `variable_name`.
-    In this case the `dataset`, `start_date`, and `end_date` kwargs (described below)
-    cannot be provided since they are inferred from `Metadata`.
-
 Keyword Arguments
 =================
 
-- `dataset`: The dataset; required keyword argument if `variable_name` argument is provided.
+- `rate`: The restoring rate, i.e., the inverse of the restoring timescale (in s⁻¹).
 
-- `start_date`: The starting date to use for the dataset. Default: `first_date(dataset, variable_name)`.
-
-- `end_date`: The ending date to use for the dataset. Default: `end_date(dataset, variable_name)`.
+- `mask`: The mask value. Can be a function of `(x, y, z, time)`, an array, or a number.
 
 - `time_indices_in_memory`: The number of time indices to keep in memory. The number is chosen based on
                             a trade-off between increased performance (more indices in memory) and reduced
                             memory footprint (fewer indices in memory). Default: 2.
 
-- `time_indexing`: The time indexing scheme for the field time series.
-
-- `mask`: The mask value. Can be a function of `(x, y, z, time)`, an array, or a number.
-
-- `rate`: The restoring rate, i.e., the inverse of the restoring timescale (in s⁻¹).
-
-- `dir`: The directory where the native data is located. If the data does not exist it will
-         be automatically downloaded. Default: `default_download_directory(dataset)`.
+- `time_indexing`: The time indexing scheme for the field time series. Default: `Cyclical()`.
 
 - `inpainting`: inpainting algorithm, see [`inpaint_mask!`](@ref). Default: `NearestNeighborInpainting(Inf)`.
 
 - `cache_inpainted_data`: If `true`, the data is cached to disk after inpainting for later retrieving.
                           Default: `true`.
 """
-function DatasetRestoring(variable_name::Symbol,
-                          arch_or_grid = CPU();
-                          dataset,
-                          dir = default_download_directory(dataset),
-                          start_date = first_date(dataset, variable_name),
-                          end_date = last_date(dataset, variable_name),
-                          kw...)
-
-    native_dates = all_dates(dataset, variable_name)
-    dates = compute_native_date_range(native_dates, start_date, end_date)
-    metadata = Metadata(variable_name, dataset, dates, dir)
-
-    return DatasetRestoring(metadata, arch_or_grid; kw...)
-end
-
 function DatasetRestoring(metadata,
                           arch_or_grid = CPU();
                           rate,
@@ -315,6 +283,8 @@ function DatasetRestoring(metadata,
                           time_indexing = Cyclical(),
                           inpainting = NearestNeighborInpainting(Inf),
                           cache_inpainted_data = true)
+
+    download_dataset(metadata)
 
     fts = FieldTimeSeries(metadata, arch_or_grid;
                           time_indices_in_memory,

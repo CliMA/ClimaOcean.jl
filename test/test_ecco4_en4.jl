@@ -173,7 +173,8 @@ for arch in test_architectures, dataset in test_datasets
                                                z = (z₁, 0))
 
         for name in (:temperature, :salinity)
-            var_restoring = DatasetRestoring(name, arch; dataset, start_date, end_date, mask, inpainting, rate=1/1000)
+            metadata = Metadata(:name; dates, dataset)
+            var_restoring = DatasetRestoring(metadata, arch; mask, inpainting, rate=1/1000)
 
             fill!(var_restoring.field_time_series[1], 1.0)
             fill!(var_restoring.field_time_series[2], 1.0)
@@ -210,7 +211,8 @@ for arch in test_architectures, dataset in test_datasets
             true
         end
 
-        forcing_T = DatasetRestoring(:temperature, arch;  dataset, start_date, end_date, inpainting, rate=1/1000)
+        Tmetadata = Metadata(:temperature; dates, dataset)
+        forcing_T = DatasetRestoring(Tmetadata, arch; inpainting, rate=1/1000)
 
         ocean = ocean_simulation(grid; forcing = (; T = forcing_T), verbose=false)
 
@@ -233,7 +235,8 @@ for arch in test_architectures, dataset in test_datasets
         end_date = DateTime(1993, 5, 1)
         dates = start_date : Month(1) : end_date
 
-        T_restoring = DatasetRestoring(:temperature, arch; dataset, start_date, end_date, inpainting, rate=1/1000)
+        Tmetadata = Metadata(:temperature; dates, dataset)
+        T_restoring = DatasetRestoring(Tmetadata, arch; inpainting, rate=1/1000)
 
         times = native_times(T_restoring.field_time_series.backend.metadata)
         ocean = ocean_simulation(grid, forcing = (; T = T_restoring))
