@@ -306,11 +306,14 @@ end
 
 function Base.show(io::IO, p::DatasetRestoring)
     print(io, "DatasetRestoring:", '\n',
-              "├── restored variable: ", summary(p.variable_name), '\n',
-              "├── restoring dataset: ", summary(p.field_time_series.backend.metadata), '\n',
-              "├── restoring rate: ", p.rate, '\n',
+              "├── field_time_series: ", summary(p.field_time_series), '\n',
+              "│    ├── dataset: ", summary(p.field_time_series.backend.metadata.dataset), '\n',
+              "│    ├── dates: ", p.field_time_series.backend.metadata.dates, '\n',
+              "│    └── dir: ", p.field_time_series.backend.metadata.dir, '\n',
+              "├── variable_name: ", summary(p.variable_name), '\n',
+              "├── rate: ", p.rate, '\n',
               "├── mask: ", summary(p.mask), '\n',
-              "└── grid: ", summary(p.native_grid))
+              "└── native_grid: ", summary(p.native_grid))
 end
 
 regularize_forcing(forcing::DatasetRestoring, field, field_name, model_field_names) = forcing

@@ -69,7 +69,7 @@ Base.show(io::IO, metadata::Metadata) =
     "├── name: $(metadata.name)", '\n',
     "├── dataset: $(metadata.dataset)", '\n',
     "├── dates: $(metadata.dates)", '\n',
-    "└── data directory: $(metadata.dir)")
+    "└── dir: $(metadata.dir)")
 
 # Treat Metadata as an array to allow iteration over the dates.
 Base.length(metadata::Metadata) = length(metadata.dates)
