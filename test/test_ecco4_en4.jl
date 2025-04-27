@@ -173,7 +173,7 @@ for arch in test_architectures, dataset in test_datasets
                                                z = (z₁, 0))
 
         for name in (:temperature, :salinity)
-            metadata = Metadata(:name; dates, dataset)
+            metadata = Metadata(name; dates, dataset)
             var_restoring = DatasetRestoring(metadata, arch; mask, inpainting, rate=1/1000)
 
             fill!(var_restoring.field_time_series[1], 1.0)
