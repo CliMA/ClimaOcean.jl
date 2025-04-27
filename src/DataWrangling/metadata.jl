@@ -44,15 +44,15 @@ function Metadata(variable_name;
                   start_date = nothing,
                   end_date = nothing)
 
-    if !isnothing(dates) && !nothing(start_date)
+    if !isnothing(dates) && !isnothing(start_date)
         throw(ArgumentError("both dates and start_date kwargs were provided"))
     end
 
-    if !isnothing(dates) && !nothing(end_date)
+    if !isnothing(dates) && !isnothing(end_date)
         throw(ArgumentError("both dates and end_date kwargs were provided"))
     end
 
-    if isnothing(dates) && (!nothing(start_date) && !isnothing(end_date))
+    if isnothing(dates) && (!isnothing(start_date) && !isnothing(end_date))
         native_dates = all_dates(dataset, variable_name)
         dates = compute_native_date_range(native_dates, start_date, end_date)
     end
