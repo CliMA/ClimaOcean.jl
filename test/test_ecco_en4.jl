@@ -25,29 +25,6 @@ for arch in test_architectures, dataset in test_datasets
         end
     end
 
-    @testset "Inpainting algorithm" begin
-        T_metadatum = Metadatum(:temperature; dataset, date=start_date)
-
-        grid = LatitudeLongitudeGrid(arch,
-                                     size = (100, 100, 10),
-                                     latitude = (-75, 75),
-                                     longitude = (0, 360),
-                                     z = (-200, 0),
-                                     halo = (6, 6, 6))
-
-        fully_inpainted_field = CenterField(grid)
-        partially_inpainted_field = CenterField(grid)
-
-        set!(fully_inpainted_field,     T_metadatum; inpainting = NearestNeighborInpainting(Inf))
-        set!(partially_inpainted_field, T_metadatum; inpainting = NearestNeighborInpainting(1))
-
-        fully_inpainted_interior = on_architecture(CPU(), interior(fully_inpainted_field))
-        partially_inpainted_interior = on_architecture(CPU(), interior(partially_inpainted_field))
-
-        @test all(fully_inpainted_interior .!= 0)
-        @test any(partially_inpainted_interior .== 0)
-    end
-
     @testset "Setting a field from a dataset" begin
         grid = LatitudeLongitudeGrid(arch;
                                      size=(10, 10, 10),
@@ -57,24 +34,10 @@ for arch in test_architectures, dataset in test_datasets
         field = CenterField(grid)
 
         @test begin
-            set!(field, Metadatum(:temperature; dataset, date=start_date))
-            set!(field, Metadatum(:salinity;    dataset, date=start_date))
+            set!(field, Metadatum(:temperature; dataset, date=start_date); inpainting)
+            set!(field, Metadatum(:salinity;    dataset, date=start_date); inpainting)
             true
         end
-    end
-
-    @testset "Setting temperature and salinity from dataset" begin
-        grid = LatitudeLongitudeGrid(arch;
-                                     size = (10, 10, 10),
-                                     latitude = (-60, -40),
-                                     longitude = (10, 15),
-                                     z = (-200, 0),
-                                     halo = (7, 7, 7))
-
-        ocean = ocean_simulation(grid)
-
-        set!(ocean.model, T=Metadatum(:temperature; dataset, date=start_date),
-                          S=Metadatum(:salinity;    dataset, date=start_date))
     end
 
     @testset "Timestepping with fields from Dataset" begin
@@ -88,8 +51,8 @@ for arch in test_architectures, dataset in test_datasets
         field = CenterField(grid)
 
         @test begin
-            set!(field, Metadatum(:temperature; dataset, date=start_date))
-            set!(field, Metadatum(:salinity;    dataset, date=start_date))
+            set!(field, Metadatum(:temperature; dataset, date=start_date); inpainting)
+            set!(field, Metadatum(:salinity;    dataset, date=start_date); inpainting)
             true
         end
 
@@ -124,8 +87,8 @@ for arch in test_architectures, dataset in test_datasets
             @test Nz == size(metadata)[3]
             @test Nt == size(metadata)[4]
 
-            @test fts.times[1] == native_times(metadata)[1]
-            @test fts.times[end] == native_times(metadata)[end]
+            @test @allowscalar fts.times[1] == native_times(metadata)[1]
+            @test @allowscalar fts.times[end] == native_times(metadata)[end]
 
             datum = first(metadata)
             ψ = Field(datum, architecture=arch, inpainting=NearestNeighborInpainting(2))
@@ -153,7 +116,8 @@ for arch in test_architectures, dataset in test_datasets
                                         z = (z₁, 0))
 
         for name in (:temperature, :salinity)
-            var_restoring = DatasetRestoring(name, arch; dataset, start_date, end_date, mask, inpainting, rate=1/1000)
+            metadata = Metadata(name; dates, dataset)
+            var_restoring = DatasetRestoring(metadata, arch; mask, inpainting, rate=1/1000)
 
             fill!(var_restoring.field_time_series[1], 1.0)
             fill!(var_restoring.field_time_series[2], 1.0)
@@ -185,12 +149,13 @@ for arch in test_architectures, dataset in test_datasets
         field = CenterField(grid)
 
         @test begin
-            set!(field, Metadatum(:temperature; dataset, date=start_date))
-            set!(field, Metadatum(:salinity;    dataset, date=start_date))
+            set!(field, Metadatum(:temperature; dataset, date=start_date); inpainting)
+            set!(field, Metadatum(:salinity;    dataset, date=start_date); inpainting)
             true
         end
 
-        forcing_T = DatasetRestoring(:temperature, arch; dataset, start_date, end_date, inpainting, rate=1/1000)
+        Tmetadata = Metadata(:temperature; dates, dataset)
+        forcing_T = DatasetRestoring(Tmetadata, arch; inpainting, rate=1/1000)
 
         ocean = ocean_simulation(grid; forcing = (; T = forcing_T), verbose=false)
 
@@ -248,5 +213,42 @@ for arch in test_architectures, dataset in test_datasets
             # The backend has cycled to the end
             @test Oceananigans.OutputReaders.time_indices(T_restoring.field_time_series) == (5, 1)
         end
+    end
+
+    @testset "Inpainting algorithm" begin
+        T_metadatum = Metadatum(:temperature; dataset, date=start_date)
+
+        grid = LatitudeLongitudeGrid(arch,
+                                     size = (100, 100, 10),
+                                     latitude = (-75, 75),
+                                     longitude = (0, 360),
+                                     z = (-200, 0),
+                                     halo = (6, 6, 6))
+
+        fully_inpainted_field = CenterField(grid)
+        partially_inpainted_field = CenterField(grid)
+
+        set!(fully_inpainted_field,     T_metadatum; inpainting = NearestNeighborInpainting(Inf))
+        set!(partially_inpainted_field, T_metadatum; inpainting = NearestNeighborInpainting(1))
+
+        fully_inpainted_interior = on_architecture(CPU(), interior(fully_inpainted_field))
+        partially_inpainted_interior = on_architecture(CPU(), interior(partially_inpainted_field))
+
+        @test all(fully_inpainted_interior .!= 0)
+        @test any(partially_inpainted_interior .== 0)
+    end
+
+    @testset "Setting temperature and salinity from dataset" begin
+        grid = LatitudeLongitudeGrid(arch;
+                                     size = (10, 10, 10),
+                                     latitude = (-60, -40),
+                                     longitude = (10, 15),
+                                     z = (-200, 0),
+                                     halo = (7, 7, 7))
+
+        ocean = ocean_simulation(grid)
+
+        set!(ocean.model, T=Metadatum(:temperature; dataset, date=start_date),
+                          S=Metadatum(:salinity;    dataset, date=start_date))
     end
 end
