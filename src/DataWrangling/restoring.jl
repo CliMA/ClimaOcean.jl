@@ -306,11 +306,12 @@ end
 
 function Base.show(io::IO, p::DatasetRestoring)
     print(io, "DatasetRestoring:", '\n',
+              "├── variable_name: ", summary(p.variable_name), '\n',
               "├── field_time_series: ", summary(p.field_time_series), '\n',
               "│    ├── dataset: ", summary(p.field_time_series.backend.metadata.dataset), '\n',
               "│    ├── dates: ", p.field_time_series.backend.metadata.dates, '\n',
+              "│    ├── time_indexing: ", summary(p.field_time_series.time_indexing), '\n',
               "│    └── dir: ", p.field_time_series.backend.metadata.dir, '\n',
-              "├── variable_name: ", summary(p.variable_name), '\n',
               "├── rate: ", p.rate, '\n',
               "├── mask: ", summary(p.mask), '\n',
               "└── native_grid: ", summary(p.native_grid))
