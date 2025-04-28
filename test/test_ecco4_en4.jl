@@ -173,7 +173,8 @@ for arch in test_architectures, dataset in test_datasets
                                                z = (z₁, 0))
 
         for name in (:temperature, :salinity)
-            var_restoring = DatasetRestoring(name, arch; dataset, start_date, end_date, mask, inpainting, rate=1/1000)
+            metadata = Metadata(name; dates, dataset)
+            var_restoring = DatasetRestoring(metadata, arch; mask, inpainting, rate=1/1000)
 
             fill!(var_restoring.field_time_series[1], 1.0)
             fill!(var_restoring.field_time_series[2], 1.0)
@@ -210,7 +211,8 @@ for arch in test_architectures, dataset in test_datasets
             true
         end
 
-        forcing_T = DatasetRestoring(:temperature, arch;  dataset, start_date, end_date, inpainting, rate=1/1000)
+        Tmetadata = Metadata(:temperature; dates, dataset)
+        forcing_T = DatasetRestoring(Tmetadata, arch; inpainting, rate=1/1000)
 
         ocean = ocean_simulation(grid; forcing = (; T = forcing_T), verbose=false)
 
@@ -233,30 +235,44 @@ for arch in test_architectures, dataset in test_datasets
         end_date = DateTime(1993, 5, 1)
         dates = start_date : Month(1) : end_date
 
-        T_restoring = DatasetRestoring(:temperature, arch; dataset, start_date, end_date, inpainting, rate=1/1000)
+        time_indices_in_memory = 2
 
-        times = native_times(T_restoring.field_time_series.backend.metadata)
-        ocean = ocean_simulation(grid, forcing = (; T = T_restoring))
+        Tmetadata1 = Metadata(:temperature; dates, dataset)
+        Tmetadata2 = Metadata(:temperature; start_date, end_date, dataset)
 
-        ocean.model.clock.time = times[3] + 2 * Units.days
-        update_state!(ocean.model)
+        for Tmetadata in (Tmetadata1, Tmetadata2)
+            T_restoring = DatasetRestoring(Tmetadata, arch; time_indices_in_memory, inpainting, rate=1/1000)
 
-        @test T_restoring.field_time_series.backend.start == 3
+            times = native_times(T_restoring.field_time_series.backend.metadata)
+            ocean = ocean_simulation(grid, forcing = (; T = T_restoring))
 
-        # Compile
-        time_step!(ocean)
+            # start a bit after time_index
+            time_index = 3
+            ocean.model.clock.time = times[time_index] + 2 * Units.days
+            update_state!(ocean.model)
 
-        # Try stepping out of the dataset bounds
-        ocean.model.clock.time = last(times) + 2 * Units.days
+            @test time_indices(T_restoring.field_time_series) ==
+                Tuple(range(time_index, length=time_indices_in_memory))
 
-        update_state!(ocean.model)
+            @test T_restoring.field_time_series.backend.start == time_index
 
-        @test begin
+            # Compile
             time_step!(ocean)
-            true
-        end
 
-        # The backend has cycled to the end
-        @test time_indices(T_restoring.field_time_series) == (6, 1)
+            # Try stepping out of the dataset bounds
+            # start a bit after last time_index
+            ocean.model.clock.time = last(times) + 2 * Units.days
+
+            update_state!(ocean.model)
+
+            @test begin
+                time_step!(ocean)
+                true
+            end
+
+            # The backend has cycled to the end
+            @test time_indices(T_restoring.field_time_series) ==
+                mod1.(Tuple(range(length(times), length=time_indices_in_memory)), length(times))
+        end
     end
 end

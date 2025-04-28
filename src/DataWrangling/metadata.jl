@@ -17,23 +17,37 @@ end
 
 Metadata holding a specific dataset information.
 
-Arguments
-=========
+Argument
+========
 - `variable_name`: a symbol representing the name of the variable (for example, `:temperature`,
                    `:salinity`, `:u_velocity`, etc)
 
 Keyword Arguments
 =================
-- `dataset`: The dataset of the dataset. Supported datasets are `ECCO2Monthly()`, `ECCO2Daily()`,
-             `ECCO4Monthly()`, `EN4Monthly(), `RepeatYearJRA55()`, or `MultiYearJRA55()`.
-- `dates`: The dates of the dataset, in a `AbstractCFDateTime` format. Note this can either be a range
-           or a vector of dates, representing a time-series. For a single date, use [`Metadatum`](@ref).
+- `dataset`: Supported datasets are `ECCO2Monthly()`, `ECCO2Daily()`, `ECCO4Monthly()`, `EN4Monthly(),
+             `RepeatYearJRA55()`, or `MultiYearJRA55()`.
+- `dates`: The dates of the dataset (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`).
+           Note this can either be a range or a vector of dates, representing a time-series.
+           For a single date, use [`Metadatum`](@ref).
+- `start_date`: If `dates = nothing`, we can prescribe the first date of metadata as a date
+                (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`). `start_date` should lie
+                within the date range of the dataset. Default: nothing.
+- `end_date`: If `dates = nothing`, we can prescribe the last date of metadata as a date
+              (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`). `end_date` should lie
+                within the date range of the dataset. Default: nothing.
 - `dir`: The directory where the dataset is stored.
 """
 function Metadata(variable_name;
                   dataset,
-                  dates=all_dates(dataset, variable_name)[1:1],
-                  dir=default_download_directory(dataset))
+                  dates = all_dates(dataset, variable_name),
+                  dir = default_download_directory(dataset),
+                  start_date = nothing,
+                  end_date = nothing)
+
+    if !isnothing(start_date) && !isnothing(end_date)
+        @info "Slicing date range within $start_date and $end_date"
+        dates = compute_native_date_range(dates, start_date, end_date)
+    end
 
     return Metadata(variable_name, dataset, dates, dir)
 end
@@ -54,7 +68,9 @@ function Metadatum(variable_name;
                    date=first_date(dataset, variable_name),
                    dir=default_download_directory(dataset))
 
-    # TODO: validate that `date` is actually a single date?
+    date isa Union{CFTime.AbstractCFDateTime, Dates.AbstractDateTime} ||
+        throw(ArgumentError("date must be Union{Dates.AbstractDateTime, CFTime.AbstractCFDateTime}"))
+
     return Metadata(variable_name, dataset, date, dir)
 end
 
@@ -69,7 +85,7 @@ Base.show(io::IO, metadata::Metadata) =
     "├── name: $(metadata.name)", '\n',
     "├── dataset: $(metadata.dataset)", '\n',
     "├── dates: $(metadata.dates)", '\n',
-    "└── data directory: $(metadata.dir)")
+    "└── dir: $(metadata.dir)")
 
 # Treat Metadata as an array to allow iteration over the dates.
 Base.length(metadata::Metadata) = length(metadata.dates)
@@ -162,7 +178,7 @@ metadata_filename(metadata) = [metadata_filename(metadatum) for metadatum in met
 """
     compute_native_date_range(native_dates, start_date, end_date)
 
-Compute the range of dates that fall within the specified start and end date.
+Compute the range of `native_dates` that fall within the specified `start_date` and `end_date`.
 """
 function compute_native_date_range(native_dates, start_date, end_date)
     if last(native_dates) < end_date
@@ -175,7 +191,7 @@ function compute_native_date_range(native_dates, start_date, end_date)
 
     start_idx = findfirst(x -> x ≥ start_date, native_dates)
     end_idx   = findfirst(x -> x ≥ end_date,   native_dates)
-    start_idx = start_idx > 1 ? start_idx - 1 : start_idx
+    start_idx = (start_idx > 1 && native_dates[start_idx] > start_date) ? start_idx - 1 : start_idx
     end_idx   = isnothing(end_idx) ? length(native_dates) : end_idx
 
     return native_dates[start_idx:end_idx]
