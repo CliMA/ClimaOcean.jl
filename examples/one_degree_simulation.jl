@@ -72,12 +72,12 @@ closure = (eddy_closure, horizontal_viscosity, vertical_mixing)
 
 # ### Ocean simulation
 # Now we bring everything together to construct the ocean simulation.
-# We use a split-explicit timestepping with 50 substeps for the barotropic
+# We use a split-explicit timestepping with 70 substeps for the barotropic
 # mode.
 
-free_surface = SplitExplicitFreeSurface(grid; substeps=50)
-momentum_advection = VectorInvariant()
-tracer_advection = WENO(order=5)
+free_surface       = SplitExplicitFreeSurface(grid; substeps=70)
+momentum_advection = WENOVectorInvariant(order=5)
+tracer_advection   = WENO(order=5)
 
 ocean = ocean_simulation(grid; momentum_advection, tracer_advection, closure, forcing, free_surface)
 
