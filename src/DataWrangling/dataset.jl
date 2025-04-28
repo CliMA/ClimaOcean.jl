@@ -40,6 +40,25 @@ function default_inpainting(metadata)
 end
 
 """
+    retrieve_data(metadata, path)
+Retrieve data from `path` according to `metadata`.
+"""
+function retrieve_data(metadata)
+    ds = Dataset(metadata_path(metadata))
+    shortname = short_name(metadata)
+
+    if variable_is_three_dimensional(metadata)
+        data = ds[shortname][:, :, :, 1]
+        data = reverse(data, dims=3)
+    else
+        data = ds[shortname][:, :, 1]
+    end        
+
+    close(ds)
+    return data
+end
+
+"""
     Field(metadata::Metadatum;
           architecture = CPU(),
           inpainting = nothing,
@@ -78,18 +97,7 @@ function Field(metadata::Metadatum;
     end
 
     download_dataset(metadata)
-    path = metadata_path(metadata)
-    ds = Dataset(path)
-    shortname = short_name(metadata)
-
-    if variable_is_three_dimensional(metadata)
-        data = ds[shortname][:, :, :, 1]
-        data = reverse(data, dims=3)
-    else
-        data = ds[shortname][:, :, 1]
-    end
-
-    close(ds)
+    data = retrieve_data(metadata)
 
     # Convert data from Union{Missing, FT} to FT
     FT = eltype(field)

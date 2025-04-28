@@ -61,12 +61,12 @@ ECCO_darwin_native_size(::ECCO4DarwinMonthly) = (90, 1170, 50)
 
 Read a ECCO4DarwinMonthly data file and regrid using MeshArrays on to regular lat-lon grid
 """
-function ECCO_darwin_model_data(metadata, path)
+function ECCO_darwin_model_data(metadata)
     native_size = ECCO_darwin_native_size(metadata.dataset)
     native_grid = ECCO_darwin_native_grid(metadata.dataset)
     native_data = zeros(Float32, prod(native_size)) # Native LLC90 grid at precision of the input binary file
 
-    read!(path, native_data)
+    read!(metadata_path(metadata), native_data)
     native_data = bswap.(native_data)
 
     meshed_data   = read(reshape(native_data, native_size...), native_grid)
@@ -112,4 +112,4 @@ function ECCO_darwin_model_data(metadata, path)
     return data .* ECCO_darwin_scale_factor[metadata.name]
 end
 
-retrieve_data(metadata::Metadata{<:ECCO4DarwinMonthly}, path) = ECCO_darwin_model_data(metadata, path)
+retrieve_data(metadata::Metadata{<:ECCO4DarwinMonthly}) = ECCO_darwin_model_data(metadata)

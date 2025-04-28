@@ -97,7 +97,7 @@ vertical_interfaces(metadata::Metadata{<:SomeECCODataset}) =
 # ECCO4 data is on a -180, 180 longitude grid as opposed to ECCO2 data that
 # is on a 0, 360 longitude grid. To make the data consistent, we shift ECCO4
 # data by 180 degrees in longitude
-longitude_shift(metadata::Metadata{<:ECCO4Monthly}) = 180
+longitude_shift(metadata::Metadata{<:Union{<:ECCO4Monthly, <:ECCO4DarwinMonthly}}) = 180
 
 function inpainted_metadata_filename(metadata::ECCOMetadata)
     original_filename = metadata_filename(metadata)
