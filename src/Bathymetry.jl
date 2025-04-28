@@ -9,9 +9,7 @@ using Oceananigans.DistributedComputations
 using Oceananigans
 using Oceananigans.Architectures: architecture, on_architecture
 using Oceananigans.DistributedComputations: DistributedGrid, reconstruct_global_grid, barrier!, all_reduce
-using Oceananigans.Grids: halo_size, λnodes, φnodes
-using Oceananigans.Grids: x_domain, y_domain
-using Oceananigans.Grids: topology
+using Oceananigans.Grids: halo_size, λnodes, φnodes, x_domain, y_domain, topology
 using Oceananigans.Utils: pretty_filesize, launch!
 using Oceananigans.Fields: interpolate!
 using Oceananigans.BoundaryConditions
@@ -126,6 +124,14 @@ function regrid_bathymetry(target_grid;
                            interpolation_passes = 1,
                            major_basins = 1) # Allow an `Inf` number of "lakes"
 
+    if isinteger(interpolation_passes)
+        interpolation_passes = convert(Int, interpolation_passes)
+    end
+
+    if interpolation_passes isa Nothing || !isa(interpolation_passes, Int) || interpolation_passes ≤ 0
+        return throw(ArgumentError("interpolation_passes has to be an integer ≥ 1"))
+    end
+
     filepath = download_bathymetry(; url, dir, filename)
     dataset = Dataset(filepath, "r")
 
@@ -202,6 +208,12 @@ end
 # Here we can either use `regrid!` (three dimensional version) or `interpolate!`.
 function interpolate_bathymetry_in_passes(native_z, target_grid;
                                           passes = 10)
+
+    gridtype = target_grid isa TripolarGrid ? "TripolarGrid" :
+               target_grid isa LatitudeLongitudeGrid ? "LatitudeLongitudeGrid" :
+               target_grid isa RectilinearGrid ? "RectilinearGrid" :
+               error("unknown target grid type")
+
     Nλt, Nφt = Nt = size(target_grid)
     Nλn, Nφn = Nn = size(native_z)
 
@@ -215,11 +227,25 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     # If so, skip interpolation passes, as they are not needed.
     if resxt < resxn || resyt < resyn
         target_z = Field{Center, Center, Nothing}(target_grid)
+
+        @info "Interpolating bathymetry of size $Nn onto a $gridtype target grid of size $Nt"
         interpolate!(target_z, native_z)
-        @info string("Skipping passes for interpolating bathymetry of size $Nn ", '\n',
-                     "to target grid of size $Nt. Interpolation passes may only ", '\n',
-                     "be used to coarsen bathymetry and require that the bathymetry ", '\n',
-                     "is finer than the target grid in both horizontal directions.")
+
+        if passes > 0
+            passes_str = passes == 1 ? "1 interpolation pass" : "$passes interpolation passes"
+
+            @info string("Skipping extra $passes_str for bathymetry.", '\n',
+                        "Extra interpolation passes may only be used to coarsen bathymetry", '\n',
+                        "and require that the bathymetry is finer than the target grid in", '\n',
+                        "both horizontal directions.", '\n',
+                        "Grid info:", '\n',
+                        "target grid", '\n',
+                        "├── minimum x-spacings ", @sprintf("%.3e", resxt), " m", '\n',
+                        "└── minimum y-spacings ", @sprintf("%.3e", resyt), " m", '\n',
+                        "bathymetry grid", '\n',
+                        "├── minimum x-spacings ", @sprintf("%.3e", resxn), " m", '\n',
+                        "└── minimum y-spacings ", @sprintf("%.3e", resyn), " m")
+        end
         return target_z
     end
 
@@ -239,10 +265,10 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     old_z  = native_z
     TX, TY = topology(target_grid)
 
+    @info "Interpolation passes of bathymetry size $(size(old_z)) onto a $gridtype target grid of size $Nt:"
     for pass = 1:passes - 1
         new_size = (Nλ[pass], Nφ[pass], 1)
-
-        @debug "Bathymetry interpolation pass $pass with size $new_size"
+        @info "    pass $pass to size $new_size"
 
         new_grid = LatitudeLongitudeGrid(architecture(target_grid), Float32,
                                          size = new_size,
@@ -257,6 +283,8 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
         old_z = new_z
     end
 
+    new_size = (Nλ[passes], Nφ[passes], 1)
+    @info "    pass $passes to size $new_size"
     target_z = Field{Center, Center, Nothing}(target_grid)
     interpolate!(target_z, old_z)
 

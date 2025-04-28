@@ -171,10 +171,10 @@ Base.show(io::IO, crf::ComponentInterfaces) = print(io, summary(crf))
 atmosphere_ocean_interface(::Nothing, args...) = nothing
 
 function atmosphere_ocean_interface(atmos,
-                                    ocean, 
-                                    radiation, 
+                                    ocean,
+                                    radiation,
                                     ao_flux_formulation,
-                                    temperature_formulation, 
+                                    temperature_formulation,
                                     velocity_formulation,
                                     specific_humidity_formulation)
 
@@ -206,8 +206,8 @@ atmosphere_sea_ice_interface(::Nothing, ::Nothing, args...) = nothing
 atmosphere_sea_ice_interface(::Nothing, ::SeaIceSimulation, args...) = nothing
 
 function atmosphere_sea_ice_interface(atmos,
-                                      sea_ice::SeaIceSimulation, 
-                                      radiation, 
+                                      sea_ice::SeaIceSimulation,
+                                      radiation,
                                       ai_flux_formulation,
                                       temperature_formulation,
                                       velocity_formulation)
@@ -319,7 +319,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
 
     ocean_grid = ocean.model.grid
     FT = eltype(ocean_grid)
- 
+
     ocean_reference_density    = convert(FT, ocean_reference_density)
     ocean_heat_capacity        = convert(FT, ocean_heat_capacity)
     sea_ice_reference_density  = convert(FT, sea_ice_reference_density)
@@ -358,10 +358,10 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                               liquidus           = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus,
                               temperature_units  = sea_ice_temperature_units)
 
-        net_momentum_fluxes = if sea_ice.model.dynamics isa Nothing 
+        net_momentum_fluxes = if sea_ice.model.dynamics isa Nothing
             u = Field{Face, Center, Nothing}(sea_ice.model.grid)
             v = Field{Center, Face, Nothing}(sea_ice.model.grid)
-            (; u, v) 
+            (; u, v)
         else
             u = sea_ice.model.dynamics.external_momentum_stresses.top.u
             v = sea_ice.model.dynamics.external_momentum_stresses.top.v

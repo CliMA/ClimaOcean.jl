@@ -235,9 +235,11 @@ new_backend(b::JRA55NetCDFBackend, start, length) = JRA55NetCDFBackend(start, le
 
 Return a `FieldTimeSeries` containing atmospheric reanalysis data for `variable_name`,
 which describes one of the variables from the Japanese 55-year atmospheric reanalysis
-for driving ocean-sea ice models (JRA55-do).
+for driving ocean-sea ice models (JRA55-do). The JRA55-do dataset is described by:
 
-The `variable_name`s (and their `shortname`s used in NetCDF files) available from the JRA55-do are:
+> Tsujino et al. (2018). JRA-55 based surface dataset for driving ocean-sea-ice models (JRA55-do), _Ocean Modelling_, **130(1)**, 79-139
+
+The `variable_name`s (and their `shortname`s used in the netCDF files) available from the JRA55-do are:
 - `:river_freshwater_flux`              ("friver")
 - `:rain_freshwater_flux`               ("prra")
 - `:snow_freshwater_flux`               ("prsn")
@@ -257,13 +259,19 @@ Keyword arguments
 - `architecture`: Architecture for the `FieldTimeSeries`. Default: CPU()
 
 - `dataset`: The data dataset; supported datasets are: `RepeatYearJRA55()` and `MultiYearJRA55()`.
-            `MultiYearJRA55()` refers to the full length of the JRA55-do dataset; `RepeatYearJRA55()`
-            refers to the "repeat-year forcing" dataset derived from JRA55-do. For more information
-            about the derivation of the repeat-year forcing dataset, see:
+             `MultiYearJRA55()` refers to the full length of the JRA55-do dataset; `RepeatYearJRA55()`
+             refers to the "repeat-year forcing" dataset derived from JRA55-do. Default: `RepeatYearJRA55()`.
 
-   > Stewart et al. (2020). JRA55-do-based repeat year forcing datasets for driving ocean–sea-ice models, _Ocean Modelling_, **147**, 101557, https://doi.org/10.1016/j.ocemod.2019.101557.
+   !!! info "Repeat-year forcing"
 
-   Default: `RepeatYearJRA55()`.
+       For more information about the derivation of the repeat-year forcing dataset, see:
+
+       > Stewart et al. (2020). JRA55-do-based repeat year forcing datasets for driving ocean–sea-ice models, _Ocean Modelling_, **147**, 101557, https://doi.org/10.1016/j.ocemod.2019.101557.
+
+       The repeat year in `RepeatYearJRA55()` corresponds to May 1st, 1990 - April 30th, 1991. However, the
+       returned dataset has dates that range from January 1st to December 31st. This implies
+       that the first 4 months of the `JRA55RepeatYear()` dataset correspond to year 1991 from the JRA55
+       reanalysis and the rest 8 months from 1990.
 
 - `start_date`: The starting date to use for the dataset. Default: `first_date(dataset, variable_name)`.
 
@@ -278,8 +286,8 @@ Keyword arguments
               Default: nothing, which retains the latitude range of the native grid.
 
 - `longitude`: Guiding longitude bounds for the resulting grid.
-              Used to slice the data when loading into memory.
-              Default: nothing, which retains the longitude range of the native grid.
+               Used to slice the data when loading into memory.
+               Default: nothing, which retains the longitude range of the native grid.
 
 - `backend`: Backend for the `FieldTimeSeries`. The two options are
              * `InMemory()`: the whole time series is loaded into memory.
@@ -307,8 +315,7 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
                               backend = InMemory(),
                               time_indexing = Cyclical())
 
-
-    # Cannot use `TotallyInMemory` backend with JRA55MultipleYear dataset
+    # Cannot use `TotallyInMemory` backend with MultiYearJRA55 dataset
     if metadata.dataset isa MultiYearJRA55 && backend isa TotallyInMemory
         msg = string("The `InMemory` backend is not supported for the MultiYearJRA55 dataset.")
         throw(ArgumentError(msg))
@@ -318,7 +325,7 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
     download_dataset(metadata)
 
     # Regularize the backend in case of `JRA55NetCDFBackend`
-    if backend isa JRA55NetCDFBackend 
+    if backend isa JRA55NetCDFBackend
         if backend.metadata isa Nothing
             backend = JRA55NetCDFBackend(backend.length, metadata)
         end
@@ -402,8 +409,8 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
     λn = Array(ds["lon_bnds"][1, :])
     φn = Array(ds["lat_bnds"][1, :])
 
-    # The .nc coordinates lon_bnds and lat_bnds do not include
-    # the last interface, so we push them here.
+    # The netCDF coordinates lon_bnds and lat_bnds do not include
+    # the last interfaces, so we push them here.
     push!(φn, 90)
     push!(λn, λn[1] + 360)
 

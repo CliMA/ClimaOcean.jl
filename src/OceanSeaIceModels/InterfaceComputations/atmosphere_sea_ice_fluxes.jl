@@ -172,11 +172,11 @@ end
 
     @inbounds begin
         # +0: cooling, -0: heating
-        Qv[i, j, 1]  = - ρₐ * u★ * q★ * ℰs 
-        Qc[i, j, 1]  = - ρₐ * cₚ * u★ * θ★ 
-        Fv[i, j, 1]  = - ρₐ * u★ * q★ 
-        ρτx[i, j, 1] = + ρₐ * τx 
-        ρτy[i, j, 1] = + ρₐ * τy 
+        Qv[i, j, 1]  = - ρₐ * u★ * q★ * ℰs
+        Qc[i, j, 1]  = - ρₐ * cₚ * u★ * θ★
+        Fv[i, j, 1]  = - ρₐ * u★ * q★
+        ρτx[i, j, 1] = + ρₐ * τx
+        ρτy[i, j, 1] = + ρₐ * τy
         Ts[i, j, 1]  = convert_from_kelvin(sea_ice_properties.temperature_units, Ψₛ.T)
     end
 end

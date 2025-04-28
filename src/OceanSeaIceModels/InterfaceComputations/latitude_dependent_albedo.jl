@@ -26,16 +26,16 @@ Keyword Arguments
 - `diffuse`: The diffuse albedo value. Default is `0.069`.
 - `direct`: The direct albedo value. Default is `0.011`.
 """
-function LatitudeDependentAlbedo(FT::DataType=Float64; 
-                                 diffuse = 0.069, 
-                                 direct = 0.011) 
-    
+function LatitudeDependentAlbedo(FT::DataType=Float64;
+                                 diffuse = 0.069,
+                                 direct = 0.011)
+
     return LatitudeDependentAlbedo(convert(FT, direct),
                                    convert(FT, diffuse))
 end
 
-Adapt.adapt_structure(to, α::LatitudeDependentAlbedo) = 
-    LatitudeDependentAlbedo(Adapt.adapt(to, α.direct),                       
+Adapt.adapt_structure(to, α::LatitudeDependentAlbedo) =
+    LatitudeDependentAlbedo(Adapt.adapt(to, α.direct),
                             Adapt.adapt(to, α.diffuse))
 
 function Base.summary(α::LatitudeDependentAlbedo{FT}) where FT
@@ -45,7 +45,7 @@ end
 
 Base.show(io::IO, α::LatitudeDependentAlbedo) = print(io, summary(α))
 
-@inline function stateindex(α::LatitudeDependentAlbedo, i, j, k, grid, time) 
+@inline function stateindex(α::LatitudeDependentAlbedo, i, j, k, grid, time)
     φ = ηnode(i, j, k, grid, Center(), Center(), Center())
     α₀ = α.diffuse
     α₁ = α.direct

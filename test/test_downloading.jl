@@ -1,6 +1,6 @@
 include("runtests_setup.jl")
 
-using ClimaOcean.ECCO: metadata_path, ECCO4Monthly
+using ClimaOcean.DataWrangling: metadata_path
 using ClimaOcean.JRA55: JRA55NetCDFBackend
 
 @testset "Availability of JRA55 data" begin
@@ -10,13 +10,23 @@ using ClimaOcean.JRA55: JRA55NetCDFBackend
     end
 end
 
-@testset "Availability of ECCO data" begin
-    @info "Testing that we can download ECCO data..."
-    for variable in keys(ClimaOcean.ECCO.ECCO4_short_names)
-        metadata = Metadata(variable, dates=DateTimeProlepticGregorian(1993, 1, 1), dataset=ECCO4Monthly())
-        filepath = metadata_path(metadata)
-        isfile(filepath) && rm(filepath; force=true)
-        ClimaOcean.ECCO.download_dataset(metadata)
+@testset "Availability of ECCO/EN4 data" begin
+    for dataset in test_datasets
+
+        @info "Testing that we can download $(typeof(dataset)) data..."
+
+        variables = dataset isa ECCO4Monthly ? keys(ClimaOcean.ECCO.ECCO4_short_names) :
+                    dataset isa ECCO2Monthly ? keys(ClimaOcean.ECCO.ECCO2_short_names) :
+                    dataset isa ECCO2Daily ? keys(ClimaOcean.ECCO.ECCO2_short_names) :
+                    dataset isa EN4Monthly ? keys(ClimaOcean.EN4.EN4_short_names) :
+                    error("what am I supposed to download?")
+
+        for variable in variables
+            metadata = Metadata(variable; dates=DateTimeProlepticGregorian(1993, 1, 1), dataset)
+            filepath = metadata_path(metadata)
+            isfile(filepath) && rm(filepath; force=true)
+            ClimaOcean.DataWrangling.download_dataset(metadata)
+        end
     end
 end
 
@@ -28,4 +38,3 @@ end
     isfile(filepath) && rm(filepath; force=true)
     download_bathymetry(; dir, filename)
 end
-

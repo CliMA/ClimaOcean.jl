@@ -71,7 +71,7 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 # using the function `ECCO_restoring_forcing` to apply restoring forcings for these tracers.
 # This allows us to nudge the model towards realistic temperature and salinity profiles.
 
-start_date = DateTime(1993, 1, 1) 
+start_date = DateTime(1993, 1, 1)
 end_date   = DateTime(1993, 12, 1)
 
 FT = ECCO_restoring_forcing(:temperature; start_date, end_date, architecture = GPU(), timescale = 2days)
@@ -90,7 +90,7 @@ ocean = ocean_simulation(grid; forcing = (T = FT, S = FS))
 # In this case, our ECCO dataset has access to a temperature and a salinity
 # field, so we initialize temperature T and salinity S from ECCO.
 
-set!(ocean.model, T = ECCOMetadatum(:temperature; date=start_date), 
+set!(ocean.model, T = ECCOMetadatum(:temperature; date=start_date),
                   S = ECCOMetadatum(:salinity;    date=start_date))
 
 fig = Figure()

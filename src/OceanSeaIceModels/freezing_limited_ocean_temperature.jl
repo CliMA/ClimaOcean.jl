@@ -13,11 +13,11 @@ end
 
 The minimal possible sea ice representation, clipping the temperature below to the freezing point.
 Not really a "model"' per se, however, it is the most simple way to make sure that temperature
-does not dip below freezing. 
+does not dip below freezing.
 
 The melting temperature is a function of salinity and is controlled by the `liquidus`.
 """
-FreezingLimitedOceanTemperature(FT::DataType=Oceananigans.defaults.FloatType; liquidus=LinearLiquidus(FT)) = 
+FreezingLimitedOceanTemperature(FT::DataType=Oceananigans.defaults.FloatType; liquidus=LinearLiquidus(FT)) =
     FreezingLimitedOceanTemperature(liquidus)
 
 const FreezingLimitedCoupledModel = OceanSeaIceModel{<:FreezingLimitedOceanTemperature}
@@ -39,7 +39,7 @@ function compute_sea_ice_ocean_fluxes!(cm::FreezingLimitedCoupledModel)
     Tₒ = ocean.model.tracers.T
 
     launch!(arch, grid, :xyz, _above_freezing_ocean_temperature!, Tₒ, Sₒ, liquidus)
-   
+
     return nothing
 end
 
@@ -55,4 +55,3 @@ end
     Tₘ = melting_temperature(liquidus, Sᵢ)
     @inbounds Tₒ[i, j, k] = ifelse(Tᵢ < Tₘ, Tₘ, Tᵢ)
 end
-
