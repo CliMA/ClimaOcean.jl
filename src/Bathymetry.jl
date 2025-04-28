@@ -222,6 +222,7 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
 
         @info "Interpolating bathymetry of size $Nn onto a $gridtype target grid of size $Nt"
         interpolate!(target_z, native_z)
+
         return target_z
     end
 
@@ -417,8 +418,8 @@ Arguments
 - `filename`: The name of the file to read or save the bathymetry data.
 - `kw...`: Additional keyword arguments.
 
-Returns
-=======
+Return
+======
 
 - `bottom_height`: The retrieved or generated bathymetry data.
 

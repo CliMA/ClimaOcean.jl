@@ -4,8 +4,8 @@ using ClimaOcean.DataWrangling: dataset_mask, dataset_immersed_grid
 import ClimaOcean.DataWrangling: default_set_dataset_mask
 
 # Defaults
-ECCO_mask(arch::AbstractArchitecture=CPU()) = dataset_mask(Metadata(:temperature, dataset=ECCO4Monthly()), arch)
-ECCO_immersed_grid(arch::AbstractArchitecture=CPU()) = dataset_immersed_grid(Metadata(:temperature, dataset=ECCO4Monthly()), arch)
+ECCO_mask(arch::AbstractArchitecture=CPU()) = dataset_mask(Metadatum(:temperature, dataset=ECCO4Monthly()), arch)
+ECCO_immersed_grid(arch::AbstractArchitecture=CPU()) = dataset_immersed_grid(Metadatum(:temperature, dataset=ECCO4Monthly()), arch)
 
 default_set_dataset_mask(metadata::Metadata{<:ECCO4Monthly}) = ClimaOcean.DataWrangling.ECCO._set_ECCO4_mask!
 default_set_dataset_mask(metadata::Metadata{<:Union{ECCO2Monthly, ECCO2Daily}}) = ClimaOcean.DataWrangling.ECCO._set_ECCO2_mask!

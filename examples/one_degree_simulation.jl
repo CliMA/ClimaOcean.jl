@@ -34,7 +34,7 @@ download_dataset(ecco_salinity)
 arch = GPU()
 Nx = 360
 Ny = 180
-Nz = 50
+Nz = 40
 
 z = exponential_z_faces(; Nz, depth=4000, h=34)
 underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
@@ -52,9 +52,13 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); ac
 #
 # We include temperature and salinity surface restoring to ECCO data near the surface.
 restoring_rate  = 1 / 10days
-mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(-100, 0))
-FT = ECCORestoring(ecco_temperature, arch; mask, rate=restoring_rate)
-FS = ECCORestoring(ecco_salinity, arch; mask, rate=restoring_rate)
+z_below_surface = r_faces[end-1]
+
+mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(z_below_surface, 0))
+
+FT = DatasetRestoring(temperature, grid; mask, rate=restoring_rate)
+FS = DatasetRestoring(salinity,    grid; mask, rate=restoring_rate)
+
 forcing = (T=FT, S=FS)
 
 # ### Closures

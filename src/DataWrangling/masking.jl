@@ -1,11 +1,9 @@
 using Oceananigans
 using Oceananigans.BoundaryConditions
-using Oceananigans.Fields: OneField
-using Oceananigans.Grids: peripheral_node
-using Oceananigans.Utils: launch!
-using Oceananigans.Fields: instantiated_location, interior, CenterField
 using Oceananigans.Architectures: architecture, device, GPU
-using ClimaOcean.DataWrangling: Field
+using Oceananigans.Fields: Field, OneField, instantiated_location, interior, CenterField
+using Oceananigans.Grids: peripheral_node, znode
+using Oceananigans.Utils: launch!
 using KernelAbstractions: @kernel, @index
 
 import ClimaOcean: stateindex
@@ -199,7 +197,7 @@ end
 end
 
 """
-    inpaint_mask!(field, mask; max_iter = Inf)
+    inpaint_mask!(field, mask; inpainting=NearestNeighborInpainting(Inf))
 
 Inpaint `field` within `mask`, using values outside `mask`.
 In other words, regions where `mask[i, j, k] == 1` is inpainted
@@ -214,6 +212,7 @@ Arguments
 - `inpainting`: The inpainting algorithm to use. The only option is
                 `NearestNeighborInpainting(maxiter)`, where an average
                 of the valid surrounding values is used `maxiter` times.
+                Default: `NearestNeighborInpainting(Inf)`.
 """
 function inpaint_mask!(field, mask; inpainting=NearestNeighborInpainting(Inf))
 
@@ -235,19 +234,19 @@ end
 function default_set_dataset_mask end
 
 """
-    dataset_mask(metadata, architecture = CPU();
+    dataset_mask(metadata::Metadatum, architecture = CPU();
                  data_field = Field(metadata; architecture, inpainting=nothing),
                  minimum_value = Float32(-1e5),
                  maximum_value = Float32(1e5))
 
 A boolean field where `true` represents a missing value in the dataset.
 """
-function dataset_mask(metadata, architecture = CPU();
+function dataset_mask(metadata::Metadatum, architecture = CPU();
                       data_field = Field(metadata; architecture, inpainting=nothing),
                       minimum_value = Float32(-1e5),
                       maximum_value = Float32(1e5))
 
-    mask  = Field{location(data_field)...}(data_field.grid, Bool)
+    mask = Field{location(data_field)...}(data_field.grid, Bool)
 
     _set_mask! = default_set_dataset_mask(metadata)
 
@@ -265,7 +264,7 @@ by the first non-missing value from the bottom up.
 """
 function dataset_immersed_grid(metadata, architecture = CPU())
 
-    mask = dataset_mask(metadata, architecture)
+    mask = dataset_mask(first(metadata), architecture)
     grid = mask.grid
     bottom = Field{Center, Center, Nothing}(grid)
 

@@ -10,12 +10,14 @@ using ClimaOcean.JRA55: JRA55NetCDFBackend
     end
 end
 
-@testset "Availability of Dataset data" begin
+@testset "Availability of ECCO/EN4 data" begin
     for dataset in test_datasets
 
         @info "Testing that we can download $(typeof(dataset)) data..."
 
         variables = dataset isa ECCO4Monthly ? keys(ClimaOcean.ECCO.ECCO4_short_names) :
+                    dataset isa ECCO2Monthly ? keys(ClimaOcean.ECCO.ECCO2_short_names) :
+                    dataset isa ECCO2Daily ? keys(ClimaOcean.ECCO.ECCO2_short_names) :
                     dataset isa EN4Monthly ? keys(ClimaOcean.EN4.EN4_short_names) :
                     error("what am I supposed to download?")
 
