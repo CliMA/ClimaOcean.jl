@@ -34,15 +34,15 @@ download_dataset(ecco_salinity)
 arch = GPU()
 Nx = 360
 Ny = 180
-Nz = 40
+Nz = 60
 
 z = exponential_z_faces(; Nz, depth=4000, h=34)
 underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 
 ## 75 interpolation passes smooth the bathymetry near Florida so that the Gulf Stream is able to flow:
 bottom_height = regrid_bathymetry(underlying_grid;
-                                  minimum_depth = 20,
-                                  interpolation_passes = 75,
+                                  minimum_depth = 10,
+                                  interpolation_passes = 10,
                                   major_basins = 2)
 
 # For this bathymetry at this horizontal resolution we need to manually open the Gibraltar strait.
@@ -56,7 +56,6 @@ mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(-100,
 
 FT = DatasetRestoring(ecco_temperature, grid; mask, rate=restoring_rate)
 FS = DatasetRestoring(ecco_salinity,    grid; mask, rate=restoring_rate)
-
 forcing = (T=FT, S=FS)
 
 # ### Closures
@@ -66,7 +65,7 @@ forcing = (T=FT, S=FS)
 # parameterization. We also include some explicit horizontal diffusivity.
 
 eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
-vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
+vertical_mixing = Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivity(minimum_tke=1e-6)
 horizontal_viscosity = HorizontalScalarDiffusivity(ν=2000)
 closure = (eddy_closure, horizontal_viscosity, vertical_mixing)
 
@@ -129,7 +128,7 @@ function progress(sim)
     msg4 = @sprintf("extrema(e): (%.2f, %.2f) m² s⁻², ", emin, emax)
     msg5 = @sprintf("wall time: %s \n", prettytime(step_time))
 
-    @info msg1 * msg2 * msg3 * msg4
+    @info msg1 * msg2 * msg3 * msg4 * msg5
 
      wall_time[] = time_ns()
 
@@ -162,6 +161,7 @@ ocean.output_writers[:surface] = JLD2Writer(ocean.model, outputs;
 
 run!(simulation)
 
+#=
 simulation.Δt = 20minutes
 simulation.stop_time = 360days
 run!(simulation)
@@ -247,3 +247,4 @@ end
 nothing #hide
 
 # ![](one_degree_global_ocean_surface.mp4)
+=#
