@@ -67,17 +67,22 @@ function Metadatum(variable_name;
                    date = first_date(dataset, variable_name),
                    dir = default_download_directory(dataset))
 
-    date isa Union{CFTime.AbstractCFDateTime, Dates.AbstractDateTime} ||
+    date isa AnyDateTime ||
         throw(ArgumentError("date must be Union{Dates.AbstractDateTime, CFTime.AbstractCFDateTime}"))
 
     return Metadata(variable_name, dataset, date, dir)
 end
 
 # Just the current directory
-default_download_directory(dataset) = pwd()
+function default_download_directory end
 
 # Default download function for a metadata object, to be extended by each dataset
-download_dataset(metadata) = nothing
+function download_dataset end
+
+datestr(md::Metadata) = string(first(md.dates), "--", last(md.dates))
+datestr(md::Metadatum) = string(md.dates)
+datasetstr(md::Metadata) = string(md.dataset)
+metaprefix(md::Metadata) = string("Metadata{", md.dataset, "}")
 
 Base.show(io::IO, metadata::Metadata) =
     print(io, "Metadata:", '\n',
@@ -89,6 +94,10 @@ Base.show(io::IO, metadata::Metadata) =
 # Treat Metadata as an array to allow iteration over the dates.
 Base.length(metadata::Metadata) = length(metadata.dates)
 Base.eltype(metadata::Metadata) = Base.eltype(metadata.dates)
+
+Base.summary(md::Metadata) = string(metaprefix(md),
+                                    "{", datasetstr(md), "} of ",
+                                    md.name, " for ", datestr(md))
 
 # If only one date, it's a single element array
 Base.length(metadata::Metadatum) = 1
@@ -208,10 +217,10 @@ that `metadata` corresponds to.
 vertical_interfaces(metadata::Metadata{V}) where V =
     error("vertical_interfaces not implemented for $V")
 
-variable_is_three_dimensional(metadata::Metadata{V}) where V =
-    error("variable_is_three_dimensional not implemented for $V")
+is_three_dimensional(metadata::Metadata{V}) where V =
+    error("is_three_dimensional not implemented for $V")
 
-function dataset_latitude_extent end
+function latitude_bounds end
 
 """
     empty_field(metadata::Metadata;
@@ -222,25 +231,24 @@ Return an empty field of `metadata` on `architecture` and with `horizontal_halo`
 """
 function empty_field(metadata::Metadata;
                      architecture = CPU(),
-                     horizontal_halo = (7, 7))
+                     halo = (7, 7, 3))
 
     Nx, Ny, Nz, _ = size(metadata)
     loc = location(metadata)
     longitude = (0, 360)
-    latitude = dataset_latitude_extent(metadata)
+    latitude = latitude_bounds(metadata)
     TX, TY = (Periodic, Bounded)
 
-    if variable_is_three_dimensional(metadata)
+    if is_three_dimensional(metadata)
         TZ = Bounded
         LZ = Center
         z = vertical_interfaces(metadata)
-        halo = (horizontal_halo..., 3)
         sz = (Nx, Ny, Nz)
     else # the variable is two-dimensional
         TZ = Flat
         LZ = Nothing
         z = nothing
-        halo = horizontal_halo
+        halo = halo[1:2]
         sz = (Nx, Ny)
     end
 

@@ -1,18 +1,24 @@
-using CFTime
 using ClimaOcean.DataWrangling
-using ClimaOcean.DataWrangling: AnyDateTime, Celsius, Kelvin
-using Dates
-using Downloads
-using Oceananigans.DistributedComputations
-using ZipFile
+using ClimaOcean.DataWrangling: AnyDateTime, Kelvin, Metadata, Metadatum
+using Dates: year, month, day
+using Oceananigans.DistributedComputations: @root
 
-import Dates: year, month, day
+using Dates
+import Downloads
+import ZipFile
 
 import Base
 import Oceananigans.Fields: location
-import ClimaOcean.DataWrangling: all_dates, metadata_filename, download_dataset,
-                                 default_download_directory, metadata_path,
-                                 dataset_temperature_units, short_name, dataset_latitude_extent
+import ClimaOcean.DataWrangling:
+    all_dates,
+    metadata_filename,
+    download_dataset,
+    default_download_directory,
+    metadata_path,
+    dataset_temperature_units,
+    short_name,
+    latitude_bounds,
+    metaprefix
 
 struct EN4Monthly end
 
@@ -38,16 +44,8 @@ end
 
 default_download_directory(::EN4Monthly) = download_EN4_cache
 
-datasetstr(md::EN4Metadata) = string(md.dataset)
-
-datestr(md::EN4Metadata) = string(first(md.dates), "--", last(md.dates))
-datestr(md::EN4Metadatum) = string(md.dates)
-
-Base.summary(md::EN4Metadata) = string("EN4Metadata{", datasetstr(md), "} of ",
-                                        md.name, " for ", datestr(md))
-
+metaprefix(::EN4Monthly) = "EN4Metadata"
 Base.size(data::Metadata{<:EN4Monthly}) = (360, 173, 42, length(data.dates))
-
 Base.size(::Metadatum{<:EN4Monthly}) = (360, 173, 42, 1)
 
 # The whole range of dates in the different dataset datasets
@@ -62,15 +60,12 @@ function metadata_filename(metadata::Metadatum{<:EN4Monthly})
 end
 
 # Convenience functions
-short_name(data::Metadata{<:EN4Monthly}) = EN4_short_names[data.name]
-
+short_name(data::EN4Metadata) = EN4_short_names[data.name]
 location(data::EN4Metadata) = EN4_location[data.name]
+dataset_temperature_units(data::EN4Metadata) = Kelvin()
+latitude_bounds(data::Metadata{<:EN4Monthly, <:Any}) = (-83.5, 89.5)
 
-dataset_temperature_units(data::Metadata{<:EN4Monthly}) = Kelvin()
-
-dataset_latitude_extent(data::Metadata{<:EN4Monthly, <:Any}) = (-83.5, 89.5)
-
-variable_is_three_dimensional(data::EN4Metadata) =
+is_three_dimensional(data::EN4Metadata) =
     data.name == :temperature ||
     data.name == :salinity
 

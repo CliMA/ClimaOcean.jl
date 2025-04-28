@@ -7,6 +7,13 @@ import Oceananigans.Fields: set!, Field
 
 function inpainted_metadata_path end
 
+"""
+    reversed_vertical_axis(metadata)
+
+Return `true` if the vertical axis is reversed, `false` otherwise.
+"""
+reversed_vertical_axis(metadata) = false
+
 """ Amount to shift the data in longitude (in degrees East). """
 longitude_shift(metadata) = 0
 
@@ -16,7 +23,7 @@ function shift_longitude_to_0_360(data, metadata)
     degrees = longitude_shift(metadata)
     Nshift = Integer(degrees / 360 * Nx)
 
-    if variable_is_three_dimensional(metadata)
+    if is_three_dimensional(metadata)
         shift = (Nshift, 0, 0)
     else
         shift = (Nshift, 0)
@@ -44,10 +51,10 @@ end
           architecture = CPU(),
           inpainting = default_inpainting(metadata),
           mask = nothing,
-          horizontal_halo = (7, 7),
+          halo = (7, 7, 7),
           cache_inpainted_data = true)
 
-Return a `Field` on `architecture` described by `metadata` with `horizontal_halo` size.
+Return a `Field` on `architecture` described by `metadata` with `halo` size.
 If not `nothing`, the `inpainting` method is used to fill the cells
 within the specified `mask`. `mask` is set to `dataset_mask` for non-nothing
 `inpainting`. Keyword argument `cache_inpainted_data` dictates whether the inpainted
@@ -57,10 +64,10 @@ function Field(metadata::Metadatum;
                architecture = CPU(),
                inpainting = default_inpainting(metadata),
                mask = nothing,
-               horizontal_halo = (7, 7),
+               halo = (7, 7, 7),
                cache_inpainted_data = true)
 
-    field = empty_field(metadata; architecture, horizontal_halo)
+    field = empty_field(metadata; architecture, halo)
     inpainted_path = inpainted_metadata_path(metadata)
 
     if !isnothing(inpainting) && isfile(inpainted_path)
@@ -80,12 +87,17 @@ function Field(metadata::Metadatum;
 
     download_dataset(metadata)
     path = metadata_path(metadata)
-    ds = Dataset(path)
     shortname = short_name(metadata)
 
-    if variable_is_three_dimensional(metadata)
+    # NetCDF shenanigans
+    ds = Dataset(path)
+    if is_three_dimensional(metadata)
         data = ds[shortname][:, :, :, 1]
-        data = reverse(data, dims=3)
+
+        # Some ocean datasets use a "depth convention" for their vertical axis
+        if reversed_vertical_axis(metadata)
+            data = reverse(data, dims=3)
+        end
     else
         data = ds[shortname][:, :, 1]
     end

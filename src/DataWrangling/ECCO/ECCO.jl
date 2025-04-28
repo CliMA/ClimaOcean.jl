@@ -23,9 +23,13 @@ using Dates
 using Adapt
 using Scratch
 
-import ClimaOcean.DataWrangling: vertical_interfaces, variable_is_three_dimensional,
-                                 shift_longitude_to_0_360, inpainted_metadata_path,
-                                 longitude_shift
+import ClimaOcean.DataWrangling:
+    vertical_interfaces,
+    is_three_dimensional,
+    shift_longitude_to_0_360,
+    inpainted_metadata_path,
+    longitude_shift,
+    reversed_vertical_axis
 
 download_ECCO_cache::String = ""
 function __init__()
@@ -35,10 +39,9 @@ end
 include("ECCO_metadata.jl")
 include("ECCO_mask.jl")
 
-const SomeECCODataset = Union{ECCO2Monthly, ECCO4Monthly, ECCO2Daily}
+reversed_vertical_axis(::Metadata{<:SomeECCODataset}) = true
 
-vertical_interfaces(metadata::Metadata{<:SomeECCODataset}) =
-    [
+vertical_interfaces(metadata::Metadata{<:SomeECCODataset}) = [
     -6128.75,
     -5683.75,
     -5250.25,
@@ -90,7 +93,7 @@ vertical_interfaces(metadata::Metadata{<:SomeECCODataset}) =
     -20.0,
     -10.0,
       0.0,
-    ]
+]
 
 # ECCO4 data is on a -180, 180 longitude grid as opposed to ECCO2 data that
 # is on a 0, 360 longitude grid. To make the data consistent, we shift ECCO4

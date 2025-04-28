@@ -9,7 +9,7 @@ using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, downlo
                                 compute_native_date_range, Kelvin, Celsius
 
 using Oceananigans
-using Oceananigans.Architectures: architecture, child_architecture
+using Oceananigans.Architectures: architecture
 using Oceananigans.BoundaryConditions
 using Oceananigans.DistributedComputations
 using Oceananigans.DistributedComputations: DistributedField, all_reduce, barrier!
@@ -23,7 +23,7 @@ using Dates
 using Adapt
 using Scratch
 
-import ClimaOcean.DataWrangling: vertical_interfaces, empty_field, variable_is_three_dimensional,
+import ClimaOcean.DataWrangling: vertical_interfaces, empty_field, is_three_dimensional,
                                  inpainted_metadata_path, longitude_shift
 
 download_EN4_cache::String = ""
@@ -34,8 +34,9 @@ end
 include("EN4_metadata.jl")
 include("EN4_mask.jl")
 
-vertical_interfaces(metadata::Metadata{<:EN4Monthly}) =
-    [
+reversed_vertical_axis(::Metadata{<:EN4Monthly}) = true
+
+vertical_interfaces(metadata::Metadata{<:EN4Monthly}) = [
     -5500.0,
     -5200.5986,
     -4901.459,
@@ -79,7 +80,7 @@ vertical_interfaces(metadata::Metadata{<:EN4Monthly}) =
     -20.1158,
     -10.0475,
       0.0,
-    ]
+]
 
 # EN4 data is shifted in longitude by 1 degree to the east.
 # So to make the data consistent, we apply longitude shift.

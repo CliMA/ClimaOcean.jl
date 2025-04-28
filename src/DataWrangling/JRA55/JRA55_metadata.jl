@@ -26,7 +26,7 @@ Base.size(data::JRA55Metadata) = (640, 320, length(data.dates))
 Base.size(::JRA55Metadatum)    = (640, 320, 1)
 
 # JRA55 is a spatially 2D dataset
-variable_is_three_dimensional(data::JRA55Metadata) = false
+is_three_dimensional(data::JRA55Metadata) = false
 
 # The whole range of dates in the different dataset datasets
 # NOTE! rivers and icebergs have a different frequency! (typical JRA55 data is three-hourly while rivers and icebergs are daily)
