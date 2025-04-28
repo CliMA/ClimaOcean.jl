@@ -225,7 +225,7 @@ end
     Jᵀ = Qa * λ
 
     # Calculating the atmospheric temperature
-    # We use to compute the sensible heat flux 
+    # We use to compute the sensible heat flux
     Tₐ = surface_atmosphere_temperature(Ψₐ, ℙₐ)
     ΔT = Tₐ - Ψₛ.T
     Ωc = ifelse(ΔT == 0, zero(ΔT), Qc / ΔT * λ) # Sensible heat transfer coefficient (W/m²K)
@@ -248,7 +248,7 @@ end
     Tₛ⁻ = Ψₛ.T
 
     # Calculating the atmospheric temperature
-    # We use to compute the sensible heat flux 
+    # We use to compute the sensible heat flux
     Tₐ = surface_atmosphere_temperature(Ψₐ, ℙₐ)
     ΔT = Tₐ - Tₛ⁻
     Ωc = ifelse(ΔT == 0, zero(h), Qc / ΔT) # Sensible heat transfer coefficient (W/m²K)
@@ -271,7 +271,7 @@ end
     Tₘ = ℙᵢ.liquidus.freshwater_melting_temperature
     Tₘ = convert_to_kelvin(ℙᵢ.temperature_units, Tₘ)
     Tₛ⁺ = min(Tₛ⁺, Tₘ)
-    
+
     return Tₛ⁺
 end
 
@@ -283,7 +283,7 @@ end
                                                interface_properties,
                                                atmosphere_properties,
                                                interior_properties)
-        
+
     ℂₐ = atmosphere_properties.thermodynamics_parameters
     𝒬ₐ = atmosphere_state.𝒬
     ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)

@@ -4,7 +4,7 @@ export JRA55FieldTimeSeries, JRA55PrescribedAtmosphere, RepeatYearJRA55, MultiYe
 
 using Oceananigans
 using Oceananigans.Units
- 
+
 using Oceananigans.Architectures: arch_array
 using Oceananigans.DistributedComputations
 using Oceananigans.DistributedComputations: child_architecture
@@ -22,7 +22,7 @@ using ClimaOcean.OceanSeaIceModels:
 using CUDA: @allowscalar
 
 using NCDatasets
-using JLD2 
+using JLD2
 using Dates
 using Scratch
 
