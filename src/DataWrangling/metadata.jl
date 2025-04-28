@@ -45,7 +45,6 @@ function Metadata(variable_name;
                   end_date = nothing)
 
     if !isnothing(start_date) && !isnothing(end_date)
-        @info "Slicing date range within $start_date and $end_date"
         dates = compute_native_date_range(dates, start_date, end_date)
     end
 
@@ -58,15 +57,15 @@ const Metadatum{V} = Metadata{V, <:AnyDateTime} where V
 """
     Metadatum(variable_name;
               dataset,
-              date=first_date(dataset, variable_name),
-              dir=default_download_directory(dataset))
+              date = first_date(dataset, variable_name),
+              dir = default_download_directory(dataset))
 
 A specialized constructor for a [`Metadata`](@ref) object with a single date, representative of a snapshot in time.
 """
 function Metadatum(variable_name;
                    dataset,
-                   date=first_date(dataset, variable_name),
-                   dir=default_download_directory(dataset))
+                   date = first_date(dataset, variable_name),
+                   dir = default_download_directory(dataset))
 
     date isa Union{CFTime.AbstractCFDateTime, Dates.AbstractDateTime} ||
         throw(ArgumentError("date must be Union{Dates.AbstractDateTime, CFTime.AbstractCFDateTime}"))
@@ -121,12 +120,15 @@ function short_name end
 """
     native_times(metadata; start_time=first(metadata).dates)
 
-Extract the time values from the given `metadata` and calculate the time difference
-from the `start_time` and return as an array of time differences in seconds.
+Extract the time values from the given `metadata`, calculate the time difference
+from the `start_time`, and return an array of time differences in seconds.
 
-Arguments
-=========
+Argument
+========
 - `metadata`: The metadata containing the date information.
+
+Keyword Argument
+================
 - `start_time`: The start time for calculating the time difference. Defaults to the first date in the metadata.
 """
 function native_times(metadata; start_time=first(metadata).dates)

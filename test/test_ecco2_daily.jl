@@ -16,7 +16,7 @@ using CUDA: @allowscalar
 # Inpaint only the first two cells inside the missing mask
 inpainting = NearestNeighborInpainting(2)
 
-test_datasets = test_ecco4_en4_datasets
+test_datasets = (ECCO2Daily(),)
 test_ecco_datasets = tuple((ds for ds in test_datasets if startswith(string(typeof(ds)), "ECCO"))...)
 
 include("test_ecco_en4.jl")

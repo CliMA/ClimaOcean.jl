@@ -11,6 +11,12 @@ using ClimaSeaIce.Rheologies
 
 @testset "Time stepping test" begin
     for dataset in test_datasets
+
+        start = DateTimeProlepticGregorian(1993, 1, 1)
+        time_resolution = dataset isa ECCO2Daily ? Day(1) : Month(1)
+        end_date = DateTimeProlepticGregorian(1993, 2, 1)
+        dates = start_date : time_resolution : end_date
+
         temperature_metadata = Metadata(:temperature; dataset, dates)
         salinity_metadata    = Metadata(:salinity; dataset, dates)
 
