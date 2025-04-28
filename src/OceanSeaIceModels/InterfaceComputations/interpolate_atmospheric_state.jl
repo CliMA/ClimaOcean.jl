@@ -23,7 +23,7 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
     ##### First interpolate atmosphere time series
     ##### in time and to the ocean grid.
     #####
-    
+
     # We use .data here to save parameter space (unlike Field, adapt_structure for
     # fts = FieldTimeSeries does not return fts.data)
     atmosphere_velocities = (u = atmosphere.velocities.u.data,
@@ -63,7 +63,7 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
 
     # Assumption, should be generalized
     ua = atmosphere.velocities.u
-    
+
     launch!(arch, grid, kernel_parameters,
             _interpolate_primary_atmospheric_state!,
             atmosphere_data,
@@ -126,7 +126,7 @@ end
 
 @inline get_fractional_index(i, j, ::Nothing) = nothing
 @inline get_fractional_index(i, j, frac) = @inbounds frac[i, j, 1]
-    
+
 @kernel function _interpolate_primary_atmospheric_state!(surface_atmos_state,
                                                          space_fractional_indices,
                                                          times,
@@ -165,7 +165,7 @@ end
     # Usually precipitation
     Mh = interp_atmos_time_series(prescribed_freshwater_flux, atmos_args...)
 
-    # Convert atmosphere velocities (usually defined on a latitude-longitude grid) to 
+    # Convert atmosphere velocities (usually defined on a latitude-longitude grid) to
     # the frame of reference of the native grid
     kᴺ = size(exchange_grid, 3) # index of the top ocean cell
     uₐ, vₐ = intrinsic_vector(i, j, kᴺ, exchange_grid, uₐ, vₐ)

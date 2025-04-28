@@ -51,7 +51,7 @@ pages = [
         # "Near-global Ocean simulation" => "literated/near_global_ocean_simulation.md",
         ],
 
-    "Library" => [ 
+    "Library" => [
         "Contents"       => "library/outline.md",
         "Public"         => "library/public.md",
         "Private"        => "library/internals.md",

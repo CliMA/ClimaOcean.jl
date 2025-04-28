@@ -221,7 +221,7 @@ Base.summary(::PATP{FT}) where FT = "PrescribedAtmosphereThermodynamicsParameter
 function Base.show(io::IO, p::PrescribedAtmosphereThermodynamicsParameters)
     FT = eltype(p)
 
-    cp = p.constitutive 
+    cp = p.constitutive
     hc = p.heat_capacity
     pt = p.phase_transitions
 
@@ -238,9 +238,9 @@ function Base.show(io::IO, p::PrescribedAtmosphereThermodynamicsParameters)
         "└── PhaseTransitionParameters{$FT}", '\n',
         "    ├── reference_vaporization_enthalpy (ℒᵛ⁰): ", prettysummary(pt.reference_vaporization_enthalpy), '\n',
         "    ├── reference_sublimation_enthalpy  (ℒˢ⁰): ", prettysummary(pt.reference_sublimation_enthalpy), '\n',
-        "    ├── reference_temperature (T⁰):            ", prettysummary(pt.reference_temperature), '\n',    
+        "    ├── reference_temperature (T⁰):            ", prettysummary(pt.reference_temperature), '\n',
         "    ├── triple_point_temperature (Tᵗʳ):        ", prettysummary(pt.triple_point_temperature), '\n',
-        "    ├── triple_point_pressure (pᵗʳ):           ", prettysummary(pt.triple_point_pressure), '\n',   
+        "    ├── triple_point_pressure (pᵗʳ):           ", prettysummary(pt.triple_point_pressure), '\n',
         "    ├── water_freezing_temperature (Tᶠ):       ", prettysummary(pt.water_freezing_temperature), '\n',
         "    └── total_ice_nucleation_temperature (Tⁱ): ", prettysummary(pt.total_ice_nucleation_temperature))
 end
@@ -359,15 +359,15 @@ end
 
     for fts in ftses
         update_field_time_series!(fts, time)
-    end    
-    
+    end
+
     return nothing
 end
 
 @inline thermodynamics_parameters(atmos::Nothing) = nothing
 @inline thermodynamics_parameters(atmos::PrescribedAtmosphere) = atmos.thermodynamics_parameters
 @inline surface_layer_height(atmos::PrescribedAtmosphere) = atmos.surface_layer_height
-@inline boundary_layer_height(atmos::PrescribedAtmosphere) = atmos.boundary_layer_height    
+@inline boundary_layer_height(atmos::PrescribedAtmosphere) = atmos.boundary_layer_height
 
 """
     PrescribedAtmosphere(grid, times;
