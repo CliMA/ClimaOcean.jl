@@ -9,6 +9,7 @@ Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 CFTime = "179af706-886a-5703-950a-314cd64e0468"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 ClimaSeaIce = "6ba0ff68-24e6-4315-936c-2e99227c95a4"
+CondaPkg = "992eb4ea-22a4-4c89-a5bb-47a3300528ab"
 CubicSplines = "9c784101-8907-5a6d-9be6-98f00873c89b"
 DataDeps = "124859b0-ceae-595e-8997-d05f6a7a8dfe"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
@@ -22,6 +23,7 @@ Oceananigans = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
 OffsetArrays = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
 PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
 Scratch = "6c6a2e73-6563-6170-7368-637461726353"
 SeawaterPolynomials = "d496a93d-167e-4197-9f49-d3af4ff8fe40"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
@@ -34,6 +36,7 @@ ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 Reactant = "3c362404-f566-11ee-1572-e11a4b42c853"
 
 [extensions]
+ClimaOceanPythonCallExt = ["PythonCall", "CondaPkg"]
 ClimaOceanReactantExt = "Reactant"
 
 [compat]
@@ -52,6 +55,7 @@ NCDatasets = "0.12, 0.13, 0.14"
 Oceananigans = "0.96 - 0.99"
 OffsetArrays = "1.14"
 PrecompileTools = "1"
+PythonCall = "0.9"
 Reactant = "0.2.45"
 Scratch = "1"
 SeawaterPolynomials = "0.3.5"
@@ -69,4 +73,4 @@ MPIPreferences = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Coverage", "Test", "MPIPreferences", "CUDA_Runtime_jll", "Reactant"]
+test = ["Coverage", "Test", "MPIPreferences", "CUDA_Runtime_jll", "Reactant", "PythonCall", "CondaPkg"]
