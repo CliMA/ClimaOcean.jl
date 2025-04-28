@@ -33,7 +33,7 @@ download_dataset(ecco_salinity)
 arch = GPU()
 Nx = 360
 Ny = 180
-Nz = 60
+Nz = 40
 
 z = exponential_z_faces(; Nz, depth=4000, h=34)
 underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
@@ -47,14 +47,17 @@ bottom_height = regrid_bathymetry(underlying_grid;
 # For this bathymetry at this horizontal resolution we need to manually open the Gibraltar strait.
 grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
+@info "We've built a grid:"
+@show grid
+
 # ### Restoring
 #
-# We include temperature and salinity surface restoring to ECCO data near the surface.
-restoring_rate  = 1 / 10days
-mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(-100, 0))
+# We include temperature and salinity surface restoring to ECCO data thoughout the water column.
+restoring_rate  = 1 / 3days
+mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(z[1], 0))
 
 FT = DatasetRestoring(ecco_temperature, grid; mask, rate=restoring_rate)
-FS = DatasetRestoring(ecco_salinity,    grid; mask, rate=restoring_rate)
+FS = DatasetRestoring(ecco_salinity, grid; mask, rate=restoring_rate)
 forcing = (T=FT, S=FS)
 
 # ### Closures
@@ -63,9 +66,9 @@ forcing = (T=FT, S=FS)
 # eddy fluxes. For vertical mixing at the upper-ocean boundary layer we include the CATKE
 # parameterization. We also include some explicit horizontal diffusivity.
 
-eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
+eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=2e3, κ_symmetric=2e3)
 vertical_mixing = Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivity(minimum_tke=1e-6)
-horizontal_viscosity = HorizontalScalarDiffusivity(ν=2000)
+horizontal_viscosity = HorizontalScalarDiffusivity(ν=4000)
 closure = (eddy_closure, horizontal_viscosity, vertical_mixing)
 
 # ### Ocean simulation
@@ -78,6 +81,9 @@ momentum_advection = WENOVectorInvariant(order=5)
 tracer_advection   = WENO(order=5)
 
 ocean = ocean_simulation(grid; momentum_advection, tracer_advection, closure, forcing, free_surface)
+
+@info "We've built an ocean simulation with model:"
+@show ocean.model
 
 # ### Initial condition
 
@@ -160,11 +166,11 @@ ocean.output_writers[:surface] = JLD2Writer(ocean.model, outputs;
 
 run!(simulation)
 
-#=
 simulation.Δt = 20minutes
 simulation.stop_time = 360days
 run!(simulation)
 
+#=
 # ### A pretty movie
 #
 # We load the saved output and make a pretty movie of the simulation. First we plot a snapshot:
