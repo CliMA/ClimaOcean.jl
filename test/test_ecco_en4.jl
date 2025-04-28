@@ -187,7 +187,8 @@ for arch in test_architectures, dataset in test_datasets
 
             # start a bit after time_index
             time_index = 3
-            ocean.model.clock.time = times[time_index] + 2 * Units.days
+            time_interval = dataset isa ECCO2Daily ? Units.hour : Units.day
+            ocean.model.clock.time = times[time_index] + 2 * time_interval
             update_state!(ocean.model)
 
             @test time_indices(T_restoring.field_time_series) ==
@@ -200,7 +201,7 @@ for arch in test_architectures, dataset in test_datasets
 
             # Try stepping out of the dataset bounds
             # start a bit after last time_index
-            ocean.model.clock.time = last(times) + 2 * Units.days
+            ocean.model.clock.time = last(times) + 2 * time_interval
 
             update_state!(ocean.model)
 
