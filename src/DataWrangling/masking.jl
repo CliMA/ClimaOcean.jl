@@ -230,23 +230,26 @@ end
 default_mask_value(metadata) = NaN
 
 """
-    compute_mask(metadata::Metadatum, architecture = CPU();
-                 data_field = Field(metadata; architecture, inpainting=nothing),
-                 minimum_value = Float32(-1e5),
-                 maximum_value = Float32(1e5))
+    compute_mask(metadata::Metadatum, dataset_field,
+                 mask_value = default_mask_value(metadata),
+                 minimum_value = -1f5,
+                 maximum_value = 1f5)
 
-A boolean field where `true` represents a missing value in the dataset.
+A boolean field where `true` represents a missing value in the dataset_field.
 """
 function compute_mask(metadata::Metadatum, dataset_field,
                       mask_value = default_mask_value(metadata),
-                      minimum_value = convert(Float32, -1e5),
-                      maximum_value = convert(Float32, 1e5))
+                      minimum_value = -1f5,
+                      maximum_value = 1f5)
 
-    LX, LY, LZ = location(data_field)
-    mask = Field{LX, LY, LZ}(data_field.grid, Bool)
+    grid = dataset_field.grid
+    arch = Oceananigans.Architectures.architecture(grid)
+    LX, LY, LZ = location(dataset_field)
+    mask = Field{LX, LY, LZ}(grid, Bool)
 
     # Set the mask with zeros where field is defined
-    launch!(architecture, data_field.grid, :xyz, _set_mask!, mask, data_field, minimum_value, maximum_value)
+    launch!(arch, grid, :xyz, _compute_mask!,
+            mask, dataset_field, minimum_value, maximum_value, mask_value)
 
     return mask
 end
@@ -256,11 +259,10 @@ end
     @inbounds mask[i, j, k] = is_masked(field[i, j, k], min_value, max_value, mask_value)
 end
 
-is_masked(a, min_value, max_value, mask_value) = isnan(a) |
-                                                 (a <= min_value) |
-                                                 (a >= max_value) |
-                                                 (a == mask_value)
+@inline is_masked(a, min_value, max_value, mask_value) =
+    isnan(a) | (a <= min_value) | (a >= max_value) | (a == mask_value)
 
+# TODO: do we need this interface?
 compute_mask(metadata::Metadatum, arch::AbstractArchitecture; kw...) =
     compute_mask(metadata, Field(metadata; architecture, inpainting=nothing); kw...)
 

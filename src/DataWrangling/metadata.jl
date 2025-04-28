@@ -225,14 +225,12 @@ is_three_dimensional(metadata) = true
 function latitude_bounds end
 
 """
-    empty_field(metadata::Metadata;
-                architecture = CPU(),
+    empty_field(metadata::Metadata, arch=CPU();
                 horizontal_halo = (7, 7))
 
-Return an empty field of `metadata` on `architecture` and with `horizontal_halo`s.
+Return an empty field of `metadata` on `arch`itecture and with `halo`.
 """
-function empty_field(metadata::Metadata;
-                     architecture = CPU(),
+function empty_field(metadata::Metadata, arch=CPU();
                      halo = (7, 7, 3))
 
     Nx, Ny, Nz, _ = size(metadata)
@@ -254,7 +252,7 @@ function empty_field(metadata::Metadata;
         sz = (Nx, Ny)
     end
 
-    grid = LatitudeLongitudeGrid(architecture, Float32; halo, longitude, latitude, z,
+    grid = LatitudeLongitudeGrid(arch, Float32; halo, longitude, latitude, z,
                                  size = sz,
                                  topology = (TX, TY, TZ))
     return Field{loc...}(grid)

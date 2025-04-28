@@ -61,8 +61,7 @@ within the specified `mask`. `mask` is set to `compute_mask` for non-nothing
 `inpainting`. Keyword argument `cache_inpainted_data` dictates whether the inpainted
 data is cached to avoid recomputing it; default: `true`.
 """
-function Field(metadata::Metadatum;
-               architecture = CPU(),
+function Field(metadata::Metadatum, arch=CPU();
                inpainting = default_inpainting(metadata),
                mask = nothing,
                halo = (7, 7, 7),
@@ -105,7 +104,7 @@ function Field(metadata::Metadatum;
 
     close(ds)
 
-    field = empty_field(metadata; architecture, halo)
+    field = empty_field(metadata, arch; halo)
     FT = eltype(field)
 
     # Convert data from Union{Missing, FT} to FT
@@ -137,7 +136,7 @@ function Field(metadata::Metadatum;
     if !isnothing(inpainting)
         # Respect user-supplied mask, but otherwise build default mask for this dataset.
         if isnothing(mask)
-            mask = compute_mask(metadata, architecture; data_field=field)
+            mask = compute_mask(metadata, field)
         end
 
         # Make sure all values are extended properly
@@ -172,10 +171,7 @@ function set!(field::Field, metadata::Metadatum; kw...)
     arch = child_architecture(grid)
     mask = compute_mask(metadata, arch)
 
-    f = Field(metadata; mask,
-              architecture = arch,
-              kw...)
-
+    f = Field(metadata, arch; mask, kw...)
     interpolate!(field, f)
 
     return field
