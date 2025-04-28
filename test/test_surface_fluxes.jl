@@ -1,13 +1,13 @@
 include("runtests_setup.jl")
 
-using ClimaOcean.OceanSeaIceModels.InterfaceComputations: 
+using ClimaOcean.OceanSeaIceModels.InterfaceComputations:
                                    ComponentInterfaces,
-                                   celsius_to_kelvin, 
-                                   convert_to_kelvin, 
+                                   celsius_to_kelvin,
+                                   convert_to_kelvin,
                                    SimilarityScales,
                                    saturation_specific_humidity,
                                    surface_flux,
-                                   SkinTemperature, 
+                                   SkinTemperature,
                                    BulkTemperature,
                                    DiffusiveFlux
 
@@ -34,28 +34,28 @@ end
 @testset "Test surface fluxes" begin
     for arch in test_architectures
         grid = LatitudeLongitudeGrid(arch;
-                                     size = 1, 
-                                     latitude = 10, 
+                                     size = 1,
+                                     latitude = 10,
                                      longitude = 10,
                                      z = (-1, 0),
                                      topology = (Flat, Flat, Bounded))
-        
+
         ocean = ocean_simulation(grid;
-                                 momentum_advection = nothing, 
-                                 tracer_advection = nothing, 
+                                 momentum_advection = nothing,
+                                 tracer_advection = nothing,
                                  closure = nothing,
                                  bottom_drag_coefficient = 0.0)
 
         dates = all_dates(RepeatYearJRA55(), :temperature)
-        atmosphere = JRA55PrescribedAtmosphere(arch, Float64; end_date=dates[2], backend = InMemory()) 
-        
+        atmosphere = JRA55PrescribedAtmosphere(arch, Float64; end_date=dates[2], backend = InMemory())
+
         CUDA.@allowscalar begin
             h  = atmosphere.surface_layer_height
             pₐ = atmosphere.pressure[1][1, 1, 1]
 
             Tₐ = 15 + celsius_to_kelvin
             qₐ = 0.003
-            
+
             uₐ = atmosphere.velocities.u[1][1, 1, 1]
             vₐ = atmosphere.velocities.v[1][1, 1, 1]
 
@@ -67,7 +67,7 @@ end
             fill!(parent(atmosphere.velocities.v), vₐ)
             fill!(parent(atmosphere.pressure),     pₐ)
 
-            # Force the saturation humidity of the ocean to be 
+            # Force the saturation humidity of the ocean to be
             # equal to the atmospheric saturation humidity
             atmosphere_ocean_interface_specific_humidity = FixedSpecificHumidity(qₐ)
 
@@ -84,17 +84,17 @@ end
             for atmosphere_ocean_interface_temperature in (BulkTemperature(), SkinTemperature(DiffusiveFlux(1, 1e-2)))
                 @info " Testing zero fluxes with $(atmosphere_ocean_interface_temperature)..."
 
-                interfaces = ComponentInterfaces(atmosphere, ocean; 
+                interfaces = ComponentInterfaces(atmosphere, ocean;
                                                  radiation,
                                                  atmosphere_ocean_interface_specific_humidity,
                                                  atmosphere_ocean_interface_temperature)
 
                 g = ocean.model.buoyancy.formulation.gravitational_acceleration
 
-                # Ensure that the ΔT between atmosphere and ocean is zero 
+                # Ensure that the ΔT between atmosphere and ocean is zero
                 # Note that the Δθ accounts for the "lapse rate" at height h
                 Tₒ = Tₐ - celsius_to_kelvin + h / cp * g
-                
+
                 fill!(parent(ocean.model.velocities.u), uₐ)
                 fill!(parent(ocean.model.velocities.v), vₐ)
                 fill!(parent(ocean.model.tracers.T), Tₒ)
@@ -112,30 +112,30 @@ end
             end
 
             @info " Testing neutral fluxes..."
-            
+
             # Constructing very special fluxes that do not account for stability of
             # the atmosphere, have zero gustiness and a constant roughness length of
             # `1e-4` for momentum, water vapor and temperature
             # For this case we can compute the fluxes by hand.
             ℓ = 1e-4
-            
+
             @inline zero_stability_function(ζ) = zero(ζ)
 
-            stability_functions = SimilarityScales(zero_stability_function, 
-                                                   zero_stability_function, 
+            stability_functions = SimilarityScales(zero_stability_function,
+                                                   zero_stability_function,
                                                    zero_stability_function)
 
             roughness_lengths = SimilarityScales(ℓ, ℓ, ℓ)
-            similarity_theory = SimilarityTheoryFluxes(; roughness_lengths, 
+            similarity_theory = SimilarityTheoryFluxes(; roughness_lengths,
                                                          gustiness_parameter = 0,
                                                          stability_functions)
 
-            interfaces = ComponentInterfaces(atmosphere, ocean; 
+            interfaces = ComponentInterfaces(atmosphere, ocean;
                                              atmosphere_ocean_flux_formulation=similarity_theory)
-            
+
             # mid-latitude ocean conditions
             set!(ocean.model, u = 0, v = 0, T = 15, S = 30)
-            
+
             coupled_model = OceanSeaIceModel(ocean; atmosphere, interfaces)
 
             # Now manually compute the fluxes:
@@ -144,7 +144,7 @@ end
 
             interface_properties = interfaces.atmosphere_ocean_interface.properties
             q_formulation = interface_properties.specific_humidity_formulation
-            qₒ = saturation_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ.ρ, Tₒ, Sₒ) 
+            qₒ = saturation_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ.ρ, Tₒ, Sₒ)
             g  = ocean.model.buoyancy.formulation.gravitational_acceleration
 
             # Differences!
@@ -154,7 +154,7 @@ end
             Δθ = Tₐ - Tₒ + h / cp * g
             Δq = qₐ - qₒ
             ϰ  = similarity_theory.von_karman_constant
-            
+
             # Characteristic scales
             u★ = ϰ / log(h / ℓ) * ΔU
             θ★ = ϰ / log(h / ℓ) * Δθ
@@ -176,23 +176,23 @@ end
             @test turbulent_fluxes.water_vapor[1, 1, 1]   ≈ Mv
         end
 
-        @info " Testing FreezingLimitedOceanTemperature..." 
+        @info " Testing FreezingLimitedOceanTemperature..."
 
         grid = LatitudeLongitudeGrid(arch;
-                                    size = (2, 2, 10), 
-                                latitude = (-0.5, 0.5), 
-                               longitude = (-0.5, 0.5), 
+                                    size = (2, 2, 10),
+                                latitude = (-0.5, 0.5),
+                               longitude = (-0.5, 0.5),
                                        z = (-1, 0),
                                 topology = (Bounded, Bounded, Bounded))
 
-        ocean = ocean_simulation(grid; momentum_advection = nothing, 
-                                         tracer_advection = nothing, 
+        ocean = ocean_simulation(grid; momentum_advection = nothing,
+                                         tracer_advection = nothing,
                                                  coriolis = nothing,
                                                   closure = nothing,
                                   bottom_drag_coefficient = 0.0)
 
         dates = all_dates(RepeatYearJRA55(), :temperature)
-        atmosphere = JRA55PrescribedAtmosphere(arch; end_date=dates[2], backend = InMemory()) 
+        atmosphere = JRA55PrescribedAtmosphere(arch; end_date=dates[2], backend = InMemory())
 
         fill!(ocean.model.tracers.T, -2.0)
 
@@ -205,7 +205,7 @@ end
 
             # Always cooling!
             fill!(atmosphere.tracers.T, 273.15 - 20)
-            
+
             coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 
             # Test that the temperature has snapped up to freezing
@@ -215,12 +215,12 @@ end
         @info "Testing Surface Fluxes with sea ice..."
 
         grid = RectilinearGrid(arch;
-                               size = (2, 2, 2), 
+                               size = (2, 2, 2),
                              extent = (1, 1, 1),
                            topology = (Periodic, Periodic, Bounded))
 
-        ocean = ocean_simulation(grid; momentum_advection = nothing, 
-                                         tracer_advection = nothing, 
+        ocean = ocean_simulation(grid; momentum_advection = nothing,
+                                         tracer_advection = nothing,
                                                  coriolis = nothing,
                                                   closure = nothing,
                                   bottom_drag_coefficient = 0.0)
@@ -231,7 +231,7 @@ end
         τo  = SemiImplicitStress(uₑ=SSU, vₑ=SSV, Cᴰ=0.001, ρₑ=1000.0)
         τua = Field{Face, Center, Nothing}(grid)
         τva = Field{Center, Face, Nothing}(grid)
-        
+
         dynamics = SeaIceMomentumEquation(grid;
                                           top_momentum_stress = (u=τua, v=τva),
                                           bottom_momentum_stress = τo,
@@ -262,9 +262,9 @@ end
     for arch in test_architectures
         @info "Testing fluxes regression..."
 
-        grid = LatitudeLongitudeGrid(arch; 
-                                     size = (20, 20, 20), 
-                                 latitude = (-60, 60), 
+        grid = LatitudeLongitudeGrid(arch;
+                                     size = (20, 20, 20),
+                                 latitude = (-60, 60),
                                 longitude = (0, 360),
                                         z = (-5000, 0))
 
@@ -291,7 +291,7 @@ end
         coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 
         @show coupled_model.sea_ice
-        
+
         times = 0:1hours:1days
         Ntimes = length(times)
 
@@ -310,10 +310,10 @@ end
             τʸ .+= interior(ocean.model.velocities.v.boundary_conditions.top.condition, :, :, 1) ./ Ntimes
         end
 
-        Jᵀ_mean = mean(Jᵀ) 
-        Jˢ_mean = mean(Jˢ) 
-        τˣ_mean = mean(τˣ) 
-        τʸ_mean = mean(τʸ) 
+        Jᵀ_mean = mean(Jᵀ)
+        Jˢ_mean = mean(Jˢ)
+        τˣ_mean = mean(τˣ)
+        τʸ_mean = mean(τʸ)
 
         Jᵀ_std = std(Jᵀ)
         Jˢ_std = std(Jˢ)
@@ -325,7 +325,7 @@ end
         @test_broken Jˢ_mean ≈ 1.1470078542716042e-6
         @test_broken τˣ_mean ≈ -1.0881334225579832e-5
         @test_broken τʸ_mean ≈ 5.653281786086694e-6
-            
+
         @test_broken Jᵀ_std ≈ 7.477575901188957e-5
         @test_broken Jˢ_std ≈ 3.7416720607945508e-6
         @test_broken τˣ_std ≈ 0.00011349625113971719

@@ -57,7 +57,7 @@ const f = Face()
 @kernel function _compute_mixed_layer_depth!(mld, grid, b, Δb★)
     i, j = @index(Global, NTuple)
     Nz = size(grid, 3)
-    
+
     Δb = zero(grid)
     bN = @inbounds b[i, j, Nz]
     mixed = true

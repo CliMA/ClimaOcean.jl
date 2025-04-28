@@ -30,7 +30,7 @@ function JRA55PrescribedAtmosphere(architecture = CPU(), FT = Float32;
                                    other_kw...)
 
     kw = (; time_indexing, backend, start_date, end_date, dataset)
-    kw = merge(kw, other_kw) 
+    kw = merge(kw, other_kw)
 
     ua  = JRA55FieldTimeSeries(:eastward_velocity, architecture, FT;               kw...)
     va  = JRA55FieldTimeSeries(:northward_velocity, architecture, FT;              kw...)
@@ -48,7 +48,7 @@ function JRA55PrescribedAtmosphere(architecture = CPU(), FT = Float32;
     # Remember that rivers and icebergs are on a different grid and have
     # a different frequency than the rest of the JRA55 data. We use `PrescribedAtmospheres`
     # "auxiliary_freshwater_flux" feature to represent them.
-    if include_rivers_and_icebergs    
+    if include_rivers_and_icebergs
         Fri = JRA55FieldTimeSeries(:river_freshwater_flux, architecture;   kw...)
         Fic = JRA55FieldTimeSeries(:iceberg_freshwater_flux, architecture; kw...)
         auxiliary_freshwater_flux = (rivers = Fri, icebergs = Fic)

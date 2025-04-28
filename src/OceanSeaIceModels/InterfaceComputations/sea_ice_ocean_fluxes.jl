@@ -7,8 +7,8 @@ function compute_sea_ice_ocean_fluxes!(coupled_model)
     sea_ice = coupled_model.sea_ice
 
     sea_ice_ocean_fluxes = coupled_model.interfaces.sea_ice_ocean_interface.fluxes
-    interface_properties = coupled_model.interfaces.sea_ice_ocean_interface.properties 
-   
+    interface_properties = coupled_model.interfaces.sea_ice_ocean_interface.properties
+
     Δt = ocean.Δt
     Tₒ = ocean.model.tracers.T
     Sₒ = ocean.model.tracers.S
@@ -16,7 +16,7 @@ function compute_sea_ice_ocean_fluxes!(coupled_model)
     ℵᵢ = sea_ice.model.ice_concentration
     hᵢ = sea_ice.model.ice_thickness
     h⁻ = coupled_model.interfaces.sea_ice_ocean_interface.previous_ice_thickness
-    
+
     ocean_properties = coupled_model.interfaces.ocean_properties
     liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
     grid  = ocean.model.grid
@@ -35,7 +35,7 @@ function compute_sea_ice_ocean_fluxes!(coupled_model)
     # What about the latent heat removed from the ocean when ice forms?
     # Is it immediately removed from the ocean? Or is it stored in the ice?
     launch!(arch, grid, :xy, _compute_sea_ice_ocean_fluxes!,
-            sea_ice_ocean_fluxes, grid, clock, hᵢ, h⁻, ℵᵢ, Sᵢ, Tₒ, Sₒ, uᵢ, vᵢ, 
+            sea_ice_ocean_fluxes, grid, clock, hᵢ, h⁻, ℵᵢ, Sᵢ, Tₒ, Sₒ, uᵢ, vᵢ,
             τs, liquidus, ocean_properties, interface_properties, Δt)
 
     return nothing
@@ -43,21 +43,21 @@ end
 
 @kernel function _compute_sea_ice_ocean_fluxes!(sea_ice_ocean_fluxes,
                                                 grid,
-                                                clock, 
+                                                clock,
                                                 ice_thickness,
                                                 previous_ice_thickness,
                                                 ice_concentration,
                                                 ice_salinity,
                                                 ocean_temperature,
                                                 ocean_salinity,
-                                                sea_ice_u_velocity, 
-                                                sea_ice_v_velocity, 
+                                                sea_ice_u_velocity,
+                                                sea_ice_v_velocity,
                                                 sea_ice_ocean_stresses,
                                                 liquidus,
                                                 ocean_properties,
                                                 interface_properties,
                                                 Δt)
-                                                
+
     i, j = @index(Global, NTuple)
 
     Nz  = size(grid, 3)
@@ -90,7 +90,7 @@ end
 
         # Melting / freezing temperature at the surface of the ocean
         Tₘ = melting_temperature(liquidus, Sᵏ)
-        freezing = Tᵏ < Tₘ 
+        freezing = Tᵏ < Tₘ
 
         # Compute change in ocean heat energy due to freezing.
         # When Tᵏ < Tₘ, we heat the ocean back to melting temperature by extracting heat from the ice.
@@ -141,7 +141,7 @@ end
 
         # Update surface salinity flux.
         # Note: the Δt below is the ocean time-step, eg.
-        # ΔS = ⋯ - ∮ Jˢ dt ≈ ⋯ - Δtₒ * Jˢ 
+        # ΔS = ⋯ - ∮ Jˢ dt ≈ ⋯ - Δtₒ * Jˢ
         Jˢ[i, j, 1] = Δh / Δt * (Sᵢ[i, j, 1] - Sₒ[i, j, Nz])
 
         # Update previous ice thickness
