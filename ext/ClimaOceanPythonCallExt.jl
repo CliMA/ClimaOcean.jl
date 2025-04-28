@@ -22,26 +22,35 @@ function install_copernicusmarine()
     return cli
 end
 
-
-function download_dataset(meta::CopernicusMetadata, grid=nothing; skip_existing = true, kw...)
-    start_datetime = ClimaOcean.DataWrangling.Copernicus.start_date_str(meta.dates)
-    end_datetime = ClimaOcean.DataWrangling.Copernicus.end_date_str(meta.dates)
-    dataset_id = ClimaOcean.DataWrangling.Copernicus.copernicusmarine_dataset_id(meta.dataset)
+function download_dataset(meta::CopernicusMetadata, grid=nothing; skip_existing = true, additional_kw...)
+    output_directory = meta.dir
+    output_filename = ClimaOcean.DataWrangling.metadata_filename(meta)
+    output_path = joinpath(output_directory, output_filename)
+    isfile(output_path) && return output_path
 
     toolbox = pyimport("copernicusmarine")
-    output_filename = ClimaOcean.DataWrangling.metadata_filename(meta)
-    output_directory = meta.dir
+
     variables = [
-        ClimaOcean.DataWrangling.Copernicus.copernicus_short_names[meta.name]
+        ClimaOcean.DataWrangling.Copernicus.copernicus_dataset_variable_names[meta.name]
     ]
 
-    toolbox.subset(; skip_existing, kw...,
-                   dataset_id,
-                   variables,
-                   start_datetime,
-                   end_datetime,
-                   output_filename,
-                   output_directory)
+    dataset_id = ClimaOcean.DataWrangling.Copernicus.copernicusmarine_dataset_id(meta.dataset)
+
+    kw = (; skip_existing,
+            dataset_id,
+            variables,
+            output_filename,
+            output_directory)
+
+    if !(meta.dataset isa ClimaOcean.DataWrangling.Copernicus.GLORYSStatic)
+        start_datetime = ClimaOcean.DataWrangling.Copernicus.start_date_str(meta.dates)
+        end_datetime = ClimaOcean.DataWrangling.Copernicus.end_date_str(meta.dates)
+        kw = merge(kw, (; start_datetime, end_datetime))
+    end
+
+    toolbox.subset(; kw..., additional_kw...)
+
+    return output_path
 end
 
 end # module ClimaOceanPythonCallExt 

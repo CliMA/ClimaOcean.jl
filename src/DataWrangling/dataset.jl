@@ -6,6 +6,7 @@ using JLD2
 import Oceananigans.Fields: set!, Field
 
 function inpainted_metadata_path end
+mangle_data(metadata, data) = data
 
 """
     reversed_vertical_axis(metadata)
@@ -56,7 +57,7 @@ end
 
 Return a `Field` on `architecture` described by `metadata` with `halo` size.
 If not `nothing`, the `inpainting` method is used to fill the cells
-within the specified `mask`. `mask` is set to `dataset_mask` for non-nothing
+within the specified `mask`. `mask` is set to `compute_mask` for non-nothing
 `inpainting`. Keyword argument `cache_inpainted_data` dictates whether the inpainted
 data is cached to avoid recomputing it; default: `true`.
 """
@@ -67,56 +68,65 @@ function Field(metadata::Metadatum;
                halo = (7, 7, 7),
                cache_inpainted_data = true)
 
-    field = empty_field(metadata; architecture, halo)
-    inpainted_path = inpainted_metadata_path(metadata)
+    if !isnothing(inpainting)
+        inpainted_path = inpainted_metadata_path(metadata)
+        if isfile(inpainted_path)
+            file = jldopen(inpainted_path, "r")
+            maxiter = file["inpainting_maxiter"]
 
-    if !isnothing(inpainting) && isfile(inpainted_path)
-        file = jldopen(inpainted_path, "r")
-        maxiter = file["inpainting_maxiter"]
+            # read data if generated with the same inpainting
+            if maxiter == inpainting.maxiter
+                data = file["data"]
+                close(file)
+                copyto!(parent(field), data)
+                return field
+            end
 
-        # read data if generated with the same inpainting
-        if maxiter == inpainting.maxiter
-            data = file["data"]
             close(file)
-            copyto!(parent(field), data)
-            return field
         end
-
-        close(file)
     end
 
     download_dataset(metadata)
     path = metadata_path(metadata)
-    shortname = short_name(metadata)
+    dsname = dataset_variable_name(metadata)
 
     # NetCDF shenanigans
     ds = Dataset(path)
     if is_three_dimensional(metadata)
-        data = ds[shortname][:, :, :, 1]
+        data = ds[dsname][:, :, :, 1]
 
-        # Some ocean datasets use a "depth convention" for their vertical axis
+        # Many ocean datasets use a "depth convention" for their vertical axis
         if reversed_vertical_axis(metadata)
             data = reverse(data, dims=3)
         end
     else
-        data = ds[shortname][:, :, 1]
+        data = ds[dsname][:, :, 1]
     end
 
     close(ds)
 
-    # Convert data from Union{Missing, FT} to FT
+    field = empty_field(metadata; architecture, halo)
     FT = eltype(field)
-    data[ismissing.(data)] .= 1e10 # Artificially large number!
-    data = if location(field)[2] == Face # ?
+
+    # Convert data from Union{Missing, FT} to FT
+    data[ismissing.(data)] .= NaN
+
+    # Mangle the data, sadly.
+    data = if size(data, 2) == size(field, 2)-1 # seems to happen for Face fields
         new_data = zeros(FT, size(field))
         new_data[:, 1:end-1, :] .= data
+        new_data
+    elseif size(data, 2) == size(field, 2)+1 # this happens for Copernicus...
+        new_data = zeros(FT, size(field))
+        new_data .= data[:, 1:end-1, :]
         new_data
     else
         Array{FT}(data)
     end
 
+    FT_NaN = convert(FT, NaN)
     if metadata.name == :temperature && dataset_temperature_units(metadata) isa Kelvin
-        data[data .!= FT(1e10)] .-= FT(273.15) # convert to Celsius
+        data[data .!= FT_NaN] .-= FT(273.15) # convert to Celsius
     end
 
     data = shift_longitude_to_0_360(data, metadata)
@@ -127,7 +137,7 @@ function Field(metadata::Metadatum;
     if !isnothing(inpainting)
         # Respect user-supplied mask, but otherwise build default mask for this dataset.
         if isnothing(mask)
-            mask = dataset_mask(metadata, architecture; data_field=field)
+            mask = compute_mask(metadata, architecture; data_field=field)
         end
 
         # Make sure all values are extended properly
@@ -160,7 +170,7 @@ function set!(field::Field, metadata::Metadatum; kw...)
     # Fields initialized from metadata.dataset
     grid = field.grid
     arch = child_architecture(grid)
-    mask = dataset_mask(metadata, arch)
+    mask = compute_mask(metadata, arch)
 
     f = Field(metadata; mask,
               architecture = arch,

@@ -16,7 +16,7 @@ import ClimaOcean.DataWrangling:
     default_download_directory,
     metadata_path,
     dataset_temperature_units,
-    short_name,
+    dataset_variable_name,
     latitude_bounds,
     metaprefix
 
@@ -53,14 +53,14 @@ all_dates(::EN4Monthly, name) = DateTime(1900, 1, 1) : Month(1) : DateTime(2024,
 
 # File name generation specific to each Dataset dataset
 function metadata_filename(metadata::Metadatum{<:EN4Monthly})
-    shortname = short_name(metadata)
+    shortname = dataset_variable_name(metadata)
     yearstr  = string(Dates.year(metadata.dates))
     monthstr = string(Dates.month(metadata.dates), pad=2)
     return "EN.4.2.2.f.analysis.g10." * yearstr * lpad(string(monthstr), 2, '0') * ".nc"
 end
 
 # Convenience functions
-short_name(data::EN4Metadata) = EN4_short_names[data.name]
+dataset_variable_name(data::EN4Metadata) = EN4_dataset_variable_names[data.name]
 location(data::EN4Metadata) = EN4_location[data.name]
 dataset_temperature_units(data::EN4Metadata) = Kelvin()
 latitude_bounds(data::Metadata{<:EN4Monthly, <:Any}) = (-83.5, 89.5)
@@ -69,7 +69,7 @@ is_three_dimensional(data::EN4Metadata) =
     data.name == :temperature ||
     data.name == :salinity
 
-EN4_short_names = Dict(
+EN4_dataset_variable_names = Dict(
     :temperature => "temperature",
     :salinity    => "salinity"
 )

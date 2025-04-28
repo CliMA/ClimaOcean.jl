@@ -26,7 +26,6 @@ using Scratch
 import ClimaOcean.DataWrangling:
     vertical_interfaces,
     is_three_dimensional,
-    shift_longitude_to_0_360,
     inpainted_metadata_path,
     longitude_shift,
     reversed_vertical_axis
@@ -37,8 +36,8 @@ function __init__()
 end
 
 include("ECCO_metadata.jl")
-include("ECCO_mask.jl")
 
+default_mask_value(::Metadata{<:ECCO4Monthly}) = 0
 reversed_vertical_axis(::Metadata{<:SomeECCODataset}) = true
 
 vertical_interfaces(metadata::Metadata{<:SomeECCODataset}) = [
@@ -95,9 +94,6 @@ vertical_interfaces(metadata::Metadata{<:SomeECCODataset}) = [
       0.0,
 ]
 
-# ECCO4 data is on a -180, 180 longitude grid as opposed to ECCO2 data that
-# is on a 0, 360 longitude grid. To make the data consistent, we shift ECCO4
-# data by 180 degrees in longitude
 longitude_shift(metadata::Metadata{<:ECCO4Monthly}) = 180
 
 function inpainted_metadata_filename(metadata::ECCOMetadata)

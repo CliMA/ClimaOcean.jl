@@ -122,7 +122,7 @@ function set!(fts::JRA55NetCDFFTSRepeatYear, backend=fts.backend)
 
     nn   = time_indices(fts)
     nn   = collect(nn)
-    name = short_name(fts.backend.metadata)
+    name = dataset_variable_name(fts.backend.metadata)
 
     if issorted(nn)
         data = ds[name][i₁:i₂, j₁:j₂, nn]
@@ -156,7 +156,7 @@ function set!(fts::JRA55NetCDFFTSMultipleYears, backend=fts.backend)
 
     filename   = metadata_filename(metadata)
     filename   = unique(filename)
-    name       = short_name(metadata)
+    name       = dataset_variable_name(metadata)
     start_date = first_date(metadata.dataset, metadata.name)
 
     for file in filename
@@ -344,7 +344,7 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
     dates    = all_dates(dataset, name)[time_indices]
     metadata = Metadata(metadata.name, metadata.dataset, dates, metadata.dir)
 
-    shortname = short_name(metadata)
+    shortname = dataset_variable_name(metadata)
     variable_name = metadata.name
 
     filepath = metadata_path(metadata) # Might be multiple paths!!!

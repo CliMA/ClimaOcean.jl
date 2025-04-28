@@ -227,30 +227,42 @@ function inpaint_mask!(field, mask; inpainting=NearestNeighborInpainting(Inf))
     return field
 end
 
-function default_set_dataset_mask end
+default_mask_value(metadata) = NaN
 
 """
-    dataset_mask(metadata::Metadatum, architecture = CPU();
+    compute_mask(metadata::Metadatum, architecture = CPU();
                  data_field = Field(metadata; architecture, inpainting=nothing),
                  minimum_value = Float32(-1e5),
                  maximum_value = Float32(1e5))
 
 A boolean field where `true` represents a missing value in the dataset.
 """
-function dataset_mask(metadata::Metadatum, architecture = CPU();
-                      data_field = Field(metadata; architecture, inpainting=nothing),
-                      minimum_value = Float32(-1e5),
-                      maximum_value = Float32(1e5))
+function compute_mask(metadata::Metadatum, dataset_field,
+                      mask_value = default_mask_value(metadata),
+                      minimum_value = convert(Float32, -1e5),
+                      maximum_value = convert(Float32, 1e5))
 
-    mask = Field{location(data_field)...}(data_field.grid, Bool)
-
-    _set_mask! = default_set_dataset_mask(metadata)
+    LX, LY, LZ = location(data_field)
+    mask = Field{LX, LY, LZ}(data_field.grid, Bool)
 
     # Set the mask with zeros where field is defined
     launch!(architecture, data_field.grid, :xyz, _set_mask!, mask, data_field, minimum_value, maximum_value)
 
     return mask
 end
+
+@kernel function _compute_mask!(mask, field, min_value, max_value, mask_value)
+    i, j, k = @index(Global, NTuple)
+    @inbounds mask[i, j, k] = is_masked(field[i, j, k], min_value, max_value, mask_value)
+end
+
+is_masked(a, min_value, max_value, mask_value) = isnan(a) |
+                                                 (a <= min_value) |
+                                                 (a >= max_value) |
+                                                 (a == mask_value)
+
+compute_mask(metadata::Metadatum, arch::AbstractArchitecture; kw...) =
+    compute_mask(metadata, Field(metadata; architecture, inpainting=nothing); kw...)
 
 """
     dataset_immersed_grid(metadata, architecture = CPU())
@@ -260,7 +272,7 @@ by the first non-missing value from the bottom up.
 """
 function dataset_immersed_grid(metadata, architecture = CPU())
 
-    mask = dataset_mask(first(metadata), architecture)
+    mask = compute_mask(first(metadata), architecture)
     grid = mask.grid
     bottom = Field{Center, Center, Nothing}(grid)
 

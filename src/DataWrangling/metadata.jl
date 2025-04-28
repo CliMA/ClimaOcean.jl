@@ -67,9 +67,6 @@ function Metadatum(variable_name;
                    date = first_date(dataset, variable_name),
                    dir = default_download_directory(dataset))
 
-    date isa AnyDateTime ||
-        throw(ArgumentError("date must be Union{Dates.AbstractDateTime, CFTime.AbstractCFDateTime}"))
-
     return Metadata(variable_name, dataset, date, dir)
 end
 
@@ -124,7 +121,6 @@ Base.iterate(::Metadatum, ::Any)  = nothing
 metadata_path(metadata::Metadatum) = joinpath(metadata.dir, metadata_filename(metadata))
 metadata_path(metadata::Metadata) = [metadata_path(metadatum) for metadatum in metadata]
 
-function short_name end
 
 """
     native_times(metadata; start_time=first(metadata).dates)
@@ -155,6 +151,13 @@ end
 ####
 #### Some utilities
 ####
+
+"""
+    dataset_variable_name(metadata)
+
+Return the name used for the variable metadata.name in its raw dataset file.
+"""
+function dataset_variable_name end
 
 """
     all_dates(metadata)
@@ -217,8 +220,7 @@ that `metadata` corresponds to.
 vertical_interfaces(metadata::Metadata{V}) where V =
     error("vertical_interfaces not implemented for $V")
 
-is_three_dimensional(metadata::Metadata{V}) where V =
-    error("is_three_dimensional not implemented for $V")
+is_three_dimensional(metadata) = true
 
 function latitude_bounds end
 
@@ -261,4 +263,4 @@ end
 struct Celsius end
 struct Kelvin end
 
-function dataset_temperature_units end
+dataset_temperature_units(metadata) = Celsius()

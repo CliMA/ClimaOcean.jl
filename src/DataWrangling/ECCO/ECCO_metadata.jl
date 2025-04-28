@@ -15,7 +15,7 @@ import ClimaOcean.DataWrangling:
     default_download_directory,
     dataset_temperature_units,
     latitude_bounds,
-    short_name,
+    dataset_variable_name,
     metaprefix
 
 struct ECCO2Monthly end
@@ -75,14 +75,14 @@ all_dates(::ECCO2Daily,   name) = DateTime(1992, 1, 1) : Day(1) : DateTime(2024,
 
 # File name generation specific to each dataset
 function metadata_filename(metadata::Metadatum{<:ECCO4Monthly})
-    shortname = short_name(metadata)
+    shortname = dataset_variable_name(metadata)
     yearstr   = string(Dates.year(metadata.dates))
     monthstr  = string(Dates.month(metadata.dates), pad=2)
     return shortname * "_" * yearstr * "_" * monthstr * ".nc"
 end
 
 function metadata_filename(metadata::Metadatum{<:Union{ECCO2Daily, ECCO2Monthly}})
-    shortname = short_name(metadata)
+    shortname = dataset_variable_name(metadata)
     yearstr   = string(Dates.year(metadata.dates))
     monthstr  = string(Dates.month(metadata.dates), pad=2)
     postfix   = is_three_dimensional(metadata) ? ".1440x720x50." : ".1440x720."
@@ -96,9 +96,9 @@ function metadata_filename(metadata::Metadatum{<:Union{ECCO2Daily, ECCO2Monthly}
 end
 
 # Convenience functions
-short_name(data::Metadata{<:ECCO2Daily})   = ECCO2_short_names[data.name]
-short_name(data::Metadata{<:ECCO2Monthly}) = ECCO2_short_names[data.name]
-short_name(data::Metadata{<:ECCO4Monthly}) = ECCO4_short_names[data.name]
+dataset_variable_name(data::Metadata{<:ECCO2Daily})   = ECCO2_dataset_variable_names[data.name]
+dataset_variable_name(data::Metadata{<:ECCO2Monthly}) = ECCO2_dataset_variable_names[data.name]
+dataset_variable_name(data::Metadata{<:ECCO4Monthly}) = ECCO4_dataset_variable_names[data.name]
 location(data::ECCOMetadata) = ECCO_location[data.name]
 dataset_temperature_units(data::ECCOMetadata) = Celsius()
 latitude_bounds(data::ECCOMetadatum) = (-90, 90)
@@ -109,7 +109,7 @@ is_three_dimensional(data::ECCOMetadata) =
     data.name == :u_velocity ||
     data.name == :v_velocity
 
-ECCO4_short_names = Dict(
+ECCO4_dataset_variable_names = Dict(
     :temperature           => "THETA",
     :salinity              => "SALT",
     :u_velocity            => "EVEL",
@@ -120,7 +120,7 @@ ECCO4_short_names = Dict(
     :net_heat_flux         => "oceQnet"
 )
 
-ECCO2_short_names = Dict(
+ECCO2_dataset_variable_names = Dict(
     :temperature           => "THETA",
     :salinity              => "SALT",
     :u_velocity            => "UVEL",
@@ -143,12 +143,12 @@ ECCO_location = Dict(
 )
 
 # URLs for the ECCO datasets specific to each dataset
-metadata_url(m::Metadata{<:ECCO2Monthly}) = ECCO2_url * "monthly/" * short_name(m) * "/" * metadata_filename(m)
-metadata_url(m::Metadata{<:ECCO2Daily})   = ECCO2_url * "daily/"   * short_name(m) * "/" * metadata_filename(m)
+metadata_url(m::Metadata{<:ECCO2Monthly}) = ECCO2_url * "monthly/" * dataset_variable_name(m) * "/" * metadata_filename(m)
+metadata_url(m::Metadata{<:ECCO2Daily})   = ECCO2_url * "daily/"   * dataset_variable_name(m) * "/" * metadata_filename(m)
 
 function metadata_url(m::Metadata{<:ECCO4Monthly})
     year = string(Dates.year(m.dates))
-    return ECCO4_url * short_name(m) * "/" * year * "/" * metadata_filename(m)
+    return ECCO4_url * dataset_variable_name(m) * "/" * year * "/" * metadata_filename(m)
 end
 
 function download_dataset(metadata::ECCOMetadata)
