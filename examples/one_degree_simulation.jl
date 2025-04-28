@@ -52,9 +52,7 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); ac
 #
 # We include temperature and salinity surface restoring to ECCO data near the surface.
 restoring_rate  = 1 / 10days
-z_below_surface = r_faces[end-1]
-
-mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(z_below_surface, 0))
+mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(-100, 0))
 
 FT = DatasetRestoring(temperature, grid; mask, rate=restoring_rate)
 FS = DatasetRestoring(salinity,    grid; mask, rate=restoring_rate)
