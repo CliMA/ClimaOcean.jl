@@ -241,10 +241,10 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
                         "Grid info:", '\n',
                         "target grid", '\n',
                         "├── minimum x-spacings ", @sprintf("%.3e", resxt), " m", '\n',
-                        "└── minimum x-spacings ", @sprintf("%.3e", resyt), " m", '\n',
+                        "└── minimum y-spacings ", @sprintf("%.3e", resyt), " m", '\n',
                         "bathymetry grid", '\n',
                         "├── minimum x-spacings ", @sprintf("%.3e", resxn), " m", '\n',
-                        "└── minimum x-spacings ", @sprintf("%.3e", resyn), " m")
+                        "└── minimum y-spacings ", @sprintf("%.3e", resyn), " m")
         end
         return target_z
     end
