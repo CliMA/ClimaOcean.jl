@@ -45,7 +45,6 @@ function Metadata(variable_name;
                   end_date = nothing)
 
     if !isnothing(start_date) && !isnothing(end_date)
-        @info "Slicing date range within $start_date and $end_date"
         dates = compute_native_date_range(dates, start_date, end_date)
     end
 
