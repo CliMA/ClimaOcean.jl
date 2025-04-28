@@ -170,7 +170,6 @@ simulation.Δt = 20minutes
 simulation.stop_time = 360days
 run!(simulation)
 
-#=
 # ### A pretty movie
 #
 # We load the saved output and make a pretty movie of the simulation. First we plot a snapshot:
@@ -252,4 +251,3 @@ end
 nothing #hide
 
 # ![](one_degree_global_ocean_surface.mp4)
-=#
