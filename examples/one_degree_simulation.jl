@@ -54,8 +54,8 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); ac
 restoring_rate  = 1 / 10days
 mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(-100, 0))
 
-FT = DatasetRestoring(temperature, grid; mask, rate=restoring_rate)
-FS = DatasetRestoring(salinity,    grid; mask, rate=restoring_rate)
+FT = DatasetRestoring(ecco_temperature, grid; mask, rate=restoring_rate)
+FS = DatasetRestoring(ecco_salinity,    grid; mask, rate=restoring_rate)
 
 forcing = (T=FT, S=FS)
 
