@@ -44,10 +44,21 @@ steps:
       slurm_cpus_per_task: 8
       slurm_ntasks: 1
 
-  - label: "CPU ECCO2 tests"
-    key: "cpu_ecco2_tests"
+  - label: "CPU ECCO2Monthly tests"
+    key: "cpu_ecco2_monthly_tests"
     env:
-      TEST_GROUP: "ecco2"
+      TEST_GROUP: "ecco2_monthly"
+    commands:
+      - "julia --project -e 'using Pkg; Pkg.test()'"
+    agents:
+      slurm_mem: 32G
+      slurm_cpus_per_task: 8
+      slurm_ntasks: 1
+
+  - label: "CPU ECCO2Daily tests"
+    key: "cpu_ecco2_daily_tests"
+    env:
+      TEST_GROUP: "ecco2_daily"
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"
     agents:
@@ -102,10 +113,24 @@ steps:
       slurm_ntasks: 1
       slurm_gpus_per_task: 1
 
-  - label: "GPU ECCO2 tests"
-    key: "gpu_ecco2_tests"
+  - label: "GPU ECCO2Monthly tests"
+    key: "gpu_ecco2_monthly_tests"
     env:
-      TEST_GROUP: "ecco2"
+      TEST_GROUP: "ecco2_monthly"
+      GPU_TEST: "true"
+    commands:
+      - "julia --project -e 'using Pkg; Pkg.test()'"
+    agents:
+      slurm_mem: 8G
+      slurm_gpus: 1
+      slurm_cpus_per_task: 8
+      slurm_ntasks: 1
+      slurm_gpus_per_task: 1
+
+  - label: "GPU ECCO2Daily tests"
+    key: "gpu_ecco2_daily_tests"
+    env:
+      TEST_GROUP: "ecco2_daily"
       GPU_TEST: "true"
     commands:
       - "julia --project -e 'using Pkg; Pkg.test()'"

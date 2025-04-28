@@ -48,8 +48,12 @@ if test_group == :JRA55 || test_group == :all
     include("test_jra55.jl")
 end
 
-if test_group == :ecco2 || test_group == :all
-    include("test_ecco2.jl")
+if test_group == :ecco2_monthly || test_group == :all
+    include("test_ecco2_monthly.jl")
+end
+
+if test_group == :ecco2_daily || test_group == :all
+    include("test_ecco2_daily.jl")
 end
 
 if test_group == :ecco4_en4 || test_group == :all
