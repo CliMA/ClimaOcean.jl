@@ -11,7 +11,6 @@ using ClimaOcean
 using ClimaOcean.ECCO
 using Oceananigans
 using Oceananigans.Units
-using Oceananigans.OrthogonalSphericalShellGrids
 using Dates
 using Printf
 using ClimaOcean.ECCO: download_dataset
@@ -67,7 +66,7 @@ forcing = (T=FT, S=FS)
 
 eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
 vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
-horizontal_viscosity = HorizontalScalarDiffusivity(ν=2000)
+# horizontal_viscosity = HorizontalScalarDiffusivity(ν=2000)
 closure = (eddy_closure, horizontal_viscosity, vertical_mixing)
 
 # ### Ocean simulation
