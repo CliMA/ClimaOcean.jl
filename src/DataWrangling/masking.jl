@@ -45,16 +45,20 @@ function LinearlyTaperedPolarMask(; northern = (70,   75),
 end
 
 @inline function (mask::LinearlyTaperedPolarMask)(φ, z)
-    n = 1 / (mask.northern[2] - mask.northern[1]) * (φ - mask.northern[1])
-    s = 1 / (mask.southern[1] - mask.southern[2]) * (φ - mask.southern[2])
-
     # The mask is active only between `mask.z[1]` and `mask.z[2]`
-    valid_depth = (mask.z[1] < z < mask.z[2])
+    @inbounds begin
+        northern_ramp = 1 / (mask.northern[2] - mask.northern[1]) * (φ - mask.northern[1])
+        southern_ramp = 1 / (mask.southern[1] - mask.southern[2]) * (φ - mask.southern[2])
+        within_depth_range = @inbounds (mask.z[1] < z < mask.z[2])
+    end
 
-    # we clamp the mask between 0 and 1
-    mask_value = clamp(max(n, s), 0, 1)
+    # Intersect the different mask components
+    mask_value = max(northern_ramp, southern_ramp) * within_depth_range
 
-    return ifelse(valid_depth, mask_value, zero(n))
+    # Clamp the mask between 0 and 1
+    mask_value = clamp(mask_value, 0, 1)
+
+    return mask_value
 end
 
 @inline function stateindex(mask::LinearlyTaperedPolarMask, i, j, k, grid, time, loc)

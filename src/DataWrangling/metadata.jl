@@ -24,10 +24,10 @@ Argument
 
 Keyword Arguments
 =================
-- `dataset`: Supported datasets are `ECCO2Monthly()`, `ECCO2Daily()`, `ECCO4Monthly()`, `EN4Monthly(),
-             `RepeatYearJRA55()`, or `MultiYearJRA55()`.
+- `dataset`: Supported datasets are `ECCO2Monthly()`, `ECCO2Daily()`, `ECCO4Monthly()`, `EN4Monthly()`,
+             `RepeatYearJRA55()`, and `MultiYearJRA55()`.
 - `dates`: The dates of the dataset (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`).
-           Note this can either be a range or a vector of dates, representing a time-series.
+           Note that `dates` can either be a range or a vector of dates, representing a time-series.
            For a single date, use [`Metadatum`](@ref).
 - `start_date`: If `dates = nothing`, we can prescribe the first date of metadata as a date
                 (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`). `start_date` should lie
@@ -154,6 +154,13 @@ Extract all the dates of the given `metadata` formatted using the `DateTime` typ
 Note: This methods needs to be extended for any new dataset.
 """
 all_dates(metadata) = all_dates(metadata.dataset, metadata.name)
+
+"""
+    first_date(dataset)
+
+Extract the first date of the given dataset using the `DateTime` type.
+"""
+first_date(dataset) = first(all_dates(dataset))
 
 """
     first_date(dataset, variable_name)
