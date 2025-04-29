@@ -30,7 +30,7 @@ using Printf
 # The total depth of the domain is set to 6000 meters.
 # Finally, we specify the architecture for the simulation, which in this case is a GPU.
 
-arch = CPU()
+arch = GPU()
 Nx = 1440
 Ny = 600
 Nz = 40
