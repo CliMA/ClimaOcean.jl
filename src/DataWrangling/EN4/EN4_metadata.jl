@@ -17,7 +17,7 @@ import ClimaOcean.DataWrangling:
     metadata_path,
     dataset_temperature_units,
     dataset_variable_name,
-    latitude_bounds,
+    absolute_latitude_bounds,
     metaprefix
 
 struct EN4Monthly end
@@ -51,9 +51,9 @@ Base.size(::Metadatum{<:EN4Monthly}) = (360, 173, 42, 1)
 # The whole range of dates in the different dataset datasets
 all_dates(::EN4Monthly, name) = DateTime(1900, 1, 1) : Month(1) : DateTime(2024, 12, 1)
 
-# File name generation specific to each Dataset dataset
+# Note, EN4 files contain all variables, so the filenames do not
+# depend on metadata.name.
 function metadata_filename(metadata::Metadatum{<:EN4Monthly})
-    shortname = dataset_variable_name(metadata)
     yearstr  = string(Dates.year(metadata.dates))
     monthstr = string(Dates.month(metadata.dates), pad=2)
     return "EN.4.2.2.f.analysis.g10." * yearstr * lpad(string(monthstr), 2, '0') * ".nc"
@@ -63,7 +63,7 @@ end
 dataset_variable_name(data::EN4Metadata) = EN4_dataset_variable_names[data.name]
 location(data::EN4Metadata) = EN4_location[data.name]
 dataset_temperature_units(data::EN4Metadata) = Kelvin()
-latitude_bounds(data::Metadata{<:EN4Monthly, <:Any}) = (-83.5, 89.5)
+absolute_latitude_bounds(data::Metadata{<:EN4Monthly, <:Any}) = (-83.5, 89.5)
 
 is_three_dimensional(data::EN4Metadata) =
     data.name == :temperature ||
