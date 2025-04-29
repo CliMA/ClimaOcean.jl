@@ -32,7 +32,6 @@ function __init__()
 end
 
 include("EN4_metadata.jl")
-include("EN4_mask.jl")
 
 reversed_vertical_axis(::Metadata{<:EN4Monthly}) = true
 
