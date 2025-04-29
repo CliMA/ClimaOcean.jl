@@ -45,10 +45,10 @@ pages = [
         # "Inspect ECCO2 data" => "literated/ecco_inspect_temperature_salinity.md",
         # "Generate bathymetry" => "literated/generate_bathymetry.md",
         # "Surface fluxes" => "literated/generate_surface_fluxes.md",
-        # "Single-column simulation" => "literated/single_column_os_papa_simulation.md",
+        "Single-column simulation" => "literated/single_column_os_papa_simulation.md",
         # "Mediterranean simulation with ECCO restoring" => "literated/mediterranean_simulation_with_ecco_restoring.md",
         "One-degree Ocean simulation" => "literated/one_degree_simulation.md",
-        # "Near-global Ocean simulation" => "literated/near_global_ocean_simulation.md",
+        "Near-global Ocean simulation" => "literated/near_global_ocean_simulation.md",
         ],
 
     "Library" => [
