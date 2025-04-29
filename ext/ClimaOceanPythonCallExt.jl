@@ -48,9 +48,41 @@ function download_dataset(meta::CopernicusMetadata, grid=nothing; skip_existing 
         kw = merge(kw, (; start_datetime, end_datetime))
     end
 
+    kw = with_longitude_bounds(kw, meta.bounding_box)
+    kw = with_absolute_latitude_bounds(kw, meta.bounding_box)
+    kw = with_depth_bounds(kw, meta.bounding_box)
+
     toolbox.subset(; kw..., additional_kw...)
 
     return output_path
+end
+
+with_longitude_bounds(kw, ::Nothing) = kw
+with_absolute_latitude_bounds(kw, ::Nothing) = kw
+with_depth_bounds(kw, ::Nothing) = kw
+
+const BBOX = ClimaOcean.DataWrangling.BoundingBox
+
+with_longitude_bounds(kw, bounding_box::BBOX) = with_longitude_bounds(kw, bounding_box.longitude)
+with_absolute_latitude_bounds(kw, bounding_box::BBOX) = with_absolute_latitude_bounds(kw, bounding_box.latitude)
+with_depth_bounds(kw, bounding_box::BBOX) = with_depth_bounds(kw, bounding_box.z)
+
+function with_longitude_bounds(kw, longitude)
+    minimum_longitude = longitude[1]
+    maximum_longitude = longitude[2]
+    return merge(kw, (; minimum_longitude, maximum_longitude))
+end
+
+function with_absolute_latitude_bounds(kw, latitude)
+    minimum_latitude = latitude[1]
+    maximum_latitude = latitude[2]
+    return merge(kw, (; minimum_latitude, maximum_latitude))
+end
+
+function with_depth_bounds(kw, z)
+    minimum_depth = - depth[2]
+    maximum_depth = - depth[1]
+    return merge(kw, (; minimum_depth, maximum_depth))
 end
 
 end # module ClimaOceanPythonCallExt 

@@ -2,10 +2,25 @@ using CFTime
 using Dates
 using Base: @propagate_inbounds
 
-struct Metadata{V, D}
+struct BoundingBox{X, Y, Z}
+    longitude :: X
+    latitude :: Y 
+    z :: Z
+end
+
+"""
+    BoundingBox(; longitude=nothing, latitude=nothing, z=nothing)
+
+Create a bounding box with `latitude`, `longitude`, and `z` bounds on the sphere.
+"""
+BoundingBox(; longitude=nothing, latitude=nothing, z=nothing) =
+    BoundingBox(longitude, latitude, z)
+
+struct Metadata{V, D, B}
     name  :: Symbol
     dataset :: V
     dates :: D
+    bounding_box :: B
     dir :: String
 end
 
@@ -26,21 +41,28 @@ Keyword Arguments
 =================
 - `dataset`: Supported datasets are `ECCO2Monthly()`, `ECCO2Daily()`, `ECCO4Monthly()`, `EN4Monthly(),
              `RepeatYearJRA55()`, or `MultiYearJRA55()`.
+
 - `dates`: The dates of the dataset (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`).
            Note this can either be a range or a vector of dates, representing a time-series.
            For a single date, use [`Metadatum`](@ref).
+
 - `start_date`: If `dates = nothing`, we can prescribe the first date of metadata as a date
                 (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`). `start_date` should lie
                 within the date range of the dataset. Default: nothing.
+
 - `end_date`: If `dates = nothing`, we can prescribe the last date of metadata as a date
               (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`). `end_date` should lie
                 within the date range of the dataset. Default: nothing.
+
+- `bounding_box`: Specifies the bounds of the dataset. See [`BoundingBox`](@ref).
+
 - `dir`: The directory where the dataset is stored.
 """
 function Metadata(variable_name;
                   dataset,
                   dates = all_dates(dataset, variable_name),
                   dir = default_download_directory(dataset),
+                  bounding_box = nothing,
                   start_date = nothing,
                   end_date = nothing)
 
@@ -48,7 +70,7 @@ function Metadata(variable_name;
         dates = compute_native_date_range(dates, start_date, end_date)
     end
 
-    return Metadata(variable_name, dataset, dates, dir)
+    return Metadata(variable_name, dataset, dates, bounding_box, dir)
 end
 
 const AnyDateTime  = Union{AbstractCFDateTime, Dates.AbstractDateTime}
@@ -64,17 +86,12 @@ A specialized constructor for a [`Metadata`](@ref) object with a single date, re
 """
 function Metadatum(variable_name;
                    dataset,
+                   bounding_box = nothing,
                    date = first_date(dataset, variable_name),
                    dir = default_download_directory(dataset))
 
-    return Metadata(variable_name, dataset, date, dir)
+    return Metadata(variable_name, dataset, date, bounding_box, dir)
 end
-
-# Just the current directory
-function default_download_directory end
-
-# Default download function for a metadata object, to be extended by each dataset
-function download_dataset end
 
 datestr(md::Metadata) = string(first(md.dates), "--", last(md.dates))
 datestr(md::Metadatum) = string(md.dates)
@@ -121,7 +138,6 @@ Base.iterate(::Metadatum, ::Any)  = nothing
 metadata_path(metadata::Metadatum) = joinpath(metadata.dir, metadata_filename(metadata))
 metadata_path(metadata::Metadata) = [metadata_path(metadatum) for metadatum in metadata]
 
-
 """
     native_times(metadata; start_time=first(metadata).dates)
 
@@ -149,8 +165,22 @@ function native_times(metadata; start_time=first(metadata).dates)
 end
 
 ####
-#### Some utilities
+#### Metadata interface
 ####
+
+"""
+    download_dataset(metadata)
+
+Download the dataset file(s) specified by `metadata` and return the path(s) to the downloaded file.
+"""
+function download_dataset end
+
+"""
+    default_download_directory(dataset)
+
+Return the default directory to which `dataset` is downloaded.
+"""
+function default_download_directory end
 
 """
     dataset_variable_name(metadata)
@@ -189,6 +219,15 @@ extended in the data specific modules.
 """
 metadata_filename(metadata) = [metadata_filename(metadatum) for metadatum in metadata]
 
+struct Celsius end
+struct Kelvin end
+
+dataset_temperature_units(metadata) = Celsius()
+
+#####
+##### Utilities
+#####
+
 """
     compute_native_date_range(native_dates, start_date, end_date)
 
@@ -222,7 +261,7 @@ vertical_interfaces(metadata::Metadata{V}) where V =
 
 is_three_dimensional(metadata) = true
 
-function latitude_bounds end
+function absolute_latitude_bounds end
 
 """
     empty_field(metadata::Metadata, arch=CPU();
@@ -236,7 +275,7 @@ function empty_field(metadata::Metadata, arch=CPU();
     Nx, Ny, Nz, _ = size(metadata)
     loc = location(metadata)
     longitude = (0, 360)
-    latitude = latitude_bounds(metadata)
+    latitude = absolute_latitude_bounds(metadata)
     TX, TY = (Periodic, Bounded)
 
     if is_three_dimensional(metadata)
@@ -260,7 +299,3 @@ function empty_field(metadata::Metadata, arch=CPU();
     return Field{loc...}(grid)
 end
 
-struct Celsius end
-struct Kelvin end
-
-dataset_temperature_units(metadata) = Celsius()

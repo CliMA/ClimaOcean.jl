@@ -35,7 +35,7 @@ for arch in test_architectures, dataset in test_datasets
 
         @test begin
             set!(field, Metadatum(:temperature; dataset, date=start_date); inpainting)
-            set!(field, Metadatum(:salinity;    dataset, date=start_date); inpainting)
+            set!(field, Metadatum(:salinity; dataset, date=start_date); inpainting)
             true
         end
     end

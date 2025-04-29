@@ -14,7 +14,7 @@ import ClimaOcean.DataWrangling:
     download_dataset,
     default_download_directory,
     dataset_temperature_units,
-    latitude_bounds,
+    absolute_latitude_bounds,
     dataset_variable_name,
     metaprefix
 
@@ -101,7 +101,7 @@ dataset_variable_name(data::Metadata{<:ECCO2Monthly}) = ECCO2_dataset_variable_n
 dataset_variable_name(data::Metadata{<:ECCO4Monthly}) = ECCO4_dataset_variable_names[data.name]
 location(data::ECCOMetadata) = ECCO_location[data.name]
 dataset_temperature_units(data::ECCOMetadata) = Celsius()
-latitude_bounds(data::ECCOMetadatum) = (-90, 90)
+absolute_latitude_bounds(data::ECCOMetadatum) = (-90, 90)
 
 is_three_dimensional(data::ECCOMetadata) =
     data.name == :temperature ||

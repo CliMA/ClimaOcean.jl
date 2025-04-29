@@ -14,11 +14,12 @@ import ClimaOcean.DataWrangling:
     dataset_variable_name,
     default_download_directory,
     longitude_shift,
-    latitude_bounds,
+    absolute_latitude_bounds,
     metadata_filename,
     inpainted_metadata_path,
     reversed_vertical_axis,
-    mangle_data
+    mangle_data,
+    vertical_interfaces
 
 using Scratch
 
@@ -100,7 +101,7 @@ function inpainted_metadata_path(metadata::CopernicusMetadata)
     return string(prefix, "_inpainted.jld2")
 end
 
-latitude_bounds(::Metadata{<:CopernicusDataset}) = (-80, 90)
+absolute_latitude_bounds(::Metadata{<:CopernicusDataset}) = (-80, 90)
 location(::Metadata{<:CopernicusDataset}) = (Center, Center, Center)
 
 function vertical_interfaces(metadata::Metadata{<:CopernicusDataset})
