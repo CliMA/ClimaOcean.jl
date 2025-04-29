@@ -252,9 +252,11 @@ function empty_field(metadata::Metadata, arch=CPU();
         sz = (Nx, Ny)
     end
 
-    grid = LatitudeLongitudeGrid(arch, Float32; halo, longitude, latitude, z,
+    grid = LatitudeLongitudeGrid(arch, Float32;
+                                 halo, longitude, latitude, z,
                                  size = sz,
                                  topology = (TX, TY, TZ))
+
     return Field{loc...}(grid)
 end
 

@@ -262,6 +262,7 @@ end
 @inline is_masked(a, min_value, max_value, mask_value) =
     isnan(a) | (a <= min_value) | (a >= max_value) | (a == mask_value)
 
+#=
 # TODO: do we need this interface?
 compute_mask(metadata::Metadatum, arch::AbstractArchitecture; kw...) =
     compute_mask(metadata, Field(metadata; architecture, inpainting=nothing); kw...)
@@ -283,3 +284,4 @@ function dataset_immersed_grid(metadata, architecture = CPU())
 
     return ImmersedBoundaryGrid(grid, GridFittedBottom(bottom))
 end
+=#
