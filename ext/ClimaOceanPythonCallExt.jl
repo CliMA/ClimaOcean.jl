@@ -49,7 +49,7 @@ function download_dataset(meta::CopernicusMetadata, grid=nothing; skip_existing 
     end
 
     kw = with_longitude_bounds(kw, meta.bounding_box)
-    kw = with_absolute_latitude_bounds(kw, meta.bounding_box)
+    kw = with_latitude_bounds(kw, meta.bounding_box)
     kw = with_depth_bounds(kw, meta.bounding_box)
 
     toolbox.subset(; kw..., additional_kw...)
@@ -58,13 +58,13 @@ function download_dataset(meta::CopernicusMetadata, grid=nothing; skip_existing 
 end
 
 with_longitude_bounds(kw, ::Nothing) = kw
-with_absolute_latitude_bounds(kw, ::Nothing) = kw
+with_latitude_bounds(kw, ::Nothing) = kw
 with_depth_bounds(kw, ::Nothing) = kw
 
 const BBOX = ClimaOcean.DataWrangling.BoundingBox
 
 with_longitude_bounds(kw, bounding_box::BBOX) = with_longitude_bounds(kw, bounding_box.longitude)
-with_absolute_latitude_bounds(kw, bounding_box::BBOX) = with_absolute_latitude_bounds(kw, bounding_box.latitude)
+with_latitude_bounds(kw, bounding_box::BBOX) = with_latitude_bounds(kw, bounding_box.latitude)
 with_depth_bounds(kw, bounding_box::BBOX) = with_depth_bounds(kw, bounding_box.z)
 
 function with_longitude_bounds(kw, longitude)
@@ -73,7 +73,7 @@ function with_longitude_bounds(kw, longitude)
     return merge(kw, (; minimum_longitude, maximum_longitude))
 end
 
-function with_absolute_latitude_bounds(kw, latitude)
+function with_latitude_bounds(kw, latitude)
     minimum_latitude = latitude[1]
     maximum_latitude = latitude[2]
     return merge(kw, (; minimum_latitude, maximum_latitude))
