@@ -261,27 +261,3 @@ end
 
 @inline is_masked(a, min_value, max_value, mask_value) =
     isnan(a) | (a <= min_value) | (a >= max_value) | (a == mask_value)
-
-#=
-# TODO: do we need this interface?
-compute_mask(metadata::Metadatum, arch::AbstractArchitecture; kw...) =
-    compute_mask(metadata, Field(metadata; architecture, inpainting=nothing); kw...)
-
-"""
-    dataset_immersed_grid(metadata, architecture = CPU())
-
-Compute the `ImmersedBoundaryGrid` for `metadata` with a bottom height field that is defined
-by the first non-missing value from the bottom up.
-"""
-function dataset_immersed_grid(metadata, architecture = CPU())
-
-    mask = compute_mask(first(metadata), architecture)
-    grid = mask.grid
-    bottom = Field{Center, Center, Nothing}(grid)
-
-    # Set the mask with zeros where field is defined
-    launch!(architecture, grid, :xy, _set_height_from_mask!, bottom, grid, mask)
-
-    return ImmersedBoundaryGrid(grid, GridFittedBottom(bottom))
-end
-=#
