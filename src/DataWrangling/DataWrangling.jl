@@ -175,6 +175,4 @@ using .EN4
 using .JRA55
 using .Copernicus
 
-export Copernicus
-
 end # module
