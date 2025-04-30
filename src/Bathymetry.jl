@@ -201,6 +201,17 @@ function regrid_bathymetry(target_grid;
     return target_z
 end
 
+@kernel function _enforce_minimum_depth!(target_z, minimum_depth)
+    i, j = @index(Global, NTuple)
+    z = @inbounds target_z[i, j, 1]
+
+    # Fix active cells to be at least `-minimum_depth`.
+    active = z < 0 # it's a wet cell
+    z = ifelse(active, min(z, -minimum_depth), z)
+
+    @inbounds target_z[i, j, 1] = z
+end
+
 # Here we can either use `regrid!` (three dimensional version) or `interpolate!`.
 function interpolate_bathymetry_in_passes(native_z, target_grid;
                                           passes = 10)
@@ -459,14 +470,3 @@ retrieve_bathymetry(grid, ::Nothing; kw...) = regrid_bathymetry(grid; kw...)
 retrieve_bathymetry(grid; kw...)            = regrid_bathymetry(grid; kw...)
 
 end # module
-        
-@kernel function _enforce_minimum_depth!(target_z, minimum_depth)
-    i, j = @index(Global, NTuple)
-    z = @inbounds target_z[i, j, 1]
-
-    # Fix active cells to be at least `-minimum_depth`.
-    active = z < 0 # it's a wet cell
-    z = ifelse(active, min(z, -minimum_depth), z)
-
-    @inbounds target_z[i, j, 1] = z
-end
