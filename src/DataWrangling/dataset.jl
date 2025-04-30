@@ -104,20 +104,22 @@ function Field(metadata::Metadatum, arch=CPU();
 
     close(ds)
 
-    field = empty_field(metadata, arch; halo)
-    FT = eltype(field)
-
     # Convert data from Union{Missing, FT} to FT
     data[ismissing.(data)] .= NaN
+    data = shift_longitude_to_0_360(data, metadata)
+    field = empty_field(metadata, arch; halo)
+    FT = eltype(metadata)
 
+    #=
     # Mangle the data, sadly.
-    data = if size(data, 2) == size(field, 2)-1 # seems to happen for Face fields
-        new_data = zeros(FT, size(field))
+    Nx, Ny, Nz = size(metadatum)
+    data = if size(data, 2) == Ny-1 # seems to happen for Face fields
+        # new_data = zeros(FT, Nx, Ny, Nz)
         new_data[:, 1:end-1, :] .= data
         new_data
-    elseif size(data, 2) == size(field, 2)+1 # this happens for Copernicus...
-        new_data = zeros(FT, size(field))
-        new_data .= data[:, 1:end-1, :]
+    elseif size(data, 2) == Ny+1 # this happens for Copernicus...
+        new_data = zeros(FT, Nx, Ny, Nz)
+        new_data .= (data[:, 1:end-1, :] .+ data[:, 2:end, :]) ./ 2
         new_data
     else
         Array{FT}(data)
@@ -128,9 +130,10 @@ function Field(metadata::Metadatum, arch=CPU();
         data[data .!= FT_NaN] .-= FT(273.15) # convert to Celsius
     end
 
-    data = shift_longitude_to_0_360(data, metadata)
-
     set!(field, data)
+    =#
+
+    set_metadata_field!(field, data, metadata)
     fill_halo_regions!(field)
 
     if !isnothing(inpainting)
@@ -176,3 +179,94 @@ function set!(field::Field, metadata::Metadatum; kw...)
 
     return field
 end
+
+# manglings
+struct ShiftSouth end
+struct AverageNorthSouth end
+
+mangle(i, j, data, ::Nothing) = @inbounds data[i, j]
+mangle(i, j, data, ::ShiftSouth) = @inbounds data[i, j-1]
+mangle(i, j, data, ::AverageNorthSouth) = @inbounds (data[i, j] + data[i, j-1]) / 2
+
+mangle(i, j, k, data, ::Nothing) = @inbounds data[i, j, k]
+mangle(i, j, k, data, ::ShiftSouth) = @inbounds data[i, j-1, k]
+mangle(i, j, k, data, ::AverageNorthSouth) = @inbounds (data[i, j-1, k] + data[i, j, k]) / 2
+
+function set_metadata_field!(field, data, metadatum)
+    grid = field.grid
+    arch = architecture(grid)
+
+    Nx, Ny, Nz = size(metadatum)
+    mangling = if size(data, 2) == Ny-1
+        ShiftSouth()
+    elseif size(data, 2) == Ny+1
+        AverageNorthSouth()
+    else
+        nothing
+    end
+
+    temperature_units = if metadatum.name == :temperature
+        dataset_temperature_units(metadata)
+    else
+        nothing
+    end
+
+    if ndims(data) == 2
+        _kernel = _set_2d_metadata_field!
+        spec = :xy
+    else
+        _kernel = _set_3d_metadata_field!
+        spec = :xyz
+    end
+
+    Oceananigans.Utils.launch!(arch, grid, spec, _kernel, field, data, mangling, temperature_units)
+
+    return nothing
+end
+
+@kernel function _set_2d_metadata_field!(field, data, mangling, temperature_units)
+    i, j = @index(Global, NTuple)
+    d = mangle(i, j, data, mangling)
+    d = convert_temperature(d, temperature_units)
+    @inbounds field[i, j, 1] = d
+end
+
+@kernel function _set_3d_metadata_field!(field, data, mangling, temperature_units)
+    i, j, k = @index(Global, NTuple)
+    d = mangle(i, j, k, data, mangling)
+    d = convert_temperature(d, temperature_units)
+    @inbounds field[i, j, k] = d
+end
+
+@inline convert_temperature(f, units) = f
+
+@inline function convert_temperature(f::FT, ::Kelvin) where FT
+    FTNaN = convert(FT, NaN)
+    temperature_shift = convert(FT, 273.15)
+    f = ifelse(f != FTNaN, f - temperature_shift, f)
+    return f
+end
+
+#=
+    # Mangle the data, sadly.
+    Nx, Ny, Nz = size(metadatum)
+    data = if size(data, 2) == Ny-1 # seems to happen for Face fields
+        # new_data = zeros(FT, Nx, Ny, Nz)
+        new_data[:, 1:end-1, :] .= data
+        new_data
+    elseif size(data, 2) == Ny+1 # this happens for Copernicus...
+        new_data = zeros(FT, Nx, Ny, Nz)
+        new_data .= (data[:, 1:end-1, :] .+ data[:, 2:end, :]) ./ 2
+        new_data
+    else
+        Array{FT}(data)
+    end
+
+    FT_NaN = convert(FT, NaN)
+    if metadata.name == :temperature && dataset_temperature_units(metadata) isa Kelvin
+        data[data .!= FT_NaN] .-= FT(273.15) # convert to Celsius
+    end
+
+    set!(field, data)
+end
+=#

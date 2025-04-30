@@ -116,13 +116,13 @@ Base.summary(md::Metadata) = string(metaprefix(md),
 # If only one date, it's a single element array
 Base.length(metadata::Metadatum) = 1
 
-@propagate_inbounds Base.getindex(m::Metadata, i::Int) = Metadata(m.name, m.dataset, m.dates[i],   m.dir)
-@propagate_inbounds Base.first(m::Metadata)            = Metadata(m.name, m.dataset, m.dates[1],   m.dir)
-@propagate_inbounds Base.last(m::Metadata)             = Metadata(m.name, m.dataset, m.dates[end], m.dir)
+@propagate_inbounds Base.getindex(m::Metadata, i::Int) = Metadata(m.name, m.dataset, m.dates[i],   m.bounding_box, m.dir)
+@propagate_inbounds Base.first(m::Metadata)            = Metadata(m.name, m.dataset, m.dates[1],   m.bounding_box, m.dir)
+@propagate_inbounds Base.last(m::Metadata)             = Metadata(m.name, m.dataset, m.dates[end], m.bounding_box, m.dir)
 
 @inline function Base.iterate(m::Metadata, i=1)
     if (i % UInt) - 1 < length(m)
-        return Metadata(m.name, m.dataset, m.dates[i], m.dir), i + 1
+        return Metadata(m.name, m.dataset, m.dates[i], m.bounding_box, m.dir), i + 1
     else
         return nothing
     end
