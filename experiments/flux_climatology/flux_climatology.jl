@@ -1,5 +1,6 @@
 using ClimaOcean
 using ClimaOcean.ECCO
+using Dates
 using Oceananigans
 using Oceananigans.Utils
 using Oceananigans.Fields: ZeroField, location, VelocityFields
@@ -84,7 +85,11 @@ function compute_flux_climatology(earth)
     Jᵀ = FluxStatistics(net_fluxes.T)
     Jˢ = FluxStatistics(net_fluxes.S)
 
-    stats = (; τx, τy, Jᵀ, Jˢ)
+    atmos_ocean_fluxes = earth.model.interfaces.atmosphere_ocean_interface.fluxes
+    Qc = FluxStatistics(atmos_ocean_fluxes.sensible_heat)
+    Qv = FluxStatistics(atmos_ocean_fluxes.latent_heat)
+
+    stats = (; τx, τy, Jᵀ, Jˢ, Qc, Qv)
 
     function update_flux_stats!(earth)
         Δt = earth.Δt
@@ -114,7 +119,7 @@ end
 ##### A prescribed ocean...
 #####
 
-struct PrescribedOcean{A, G, C, U, T, F} <: AbstractModel{Nothing}
+struct PrescribedOcean{A, G, C, U, T, F} <: AbstractModel{Nothing, A}
     architecture :: A
     grid :: G
     clock :: Clock{C}
@@ -232,5 +237,3 @@ end
 add_callback!(earth, progress, IterationInterval(10))
 
 stats = compute_flux_climatology(earth)
-
-
