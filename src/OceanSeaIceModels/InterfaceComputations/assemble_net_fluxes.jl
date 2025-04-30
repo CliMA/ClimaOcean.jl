@@ -243,7 +243,7 @@ end
     Qu = upwelling_radiation(Ts, σ, ϵ)
     Qd = net_downwelling_radiation(i, j, grid, time, α, ϵ, Qs, Qℓ)
 
-    ΣQt = (Qd + Qu + Qc + Qv) * ℵi
+    ΣQt = (Qd + Qu + Qc + Qv) * ℵi # If ℵi == 0 there is no heat flux from the top!
     ΣQb = Qf + Qi
 
     # Mask fluxes over land for convenience
