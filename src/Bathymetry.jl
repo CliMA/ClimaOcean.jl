@@ -189,11 +189,7 @@ function regrid_bathymetry(target_grid;
                                                 passes = interpolation_passes)
 
     if minimum_depth > 0
-        zi = interior(target_z, :, :, 1)
-
-        # Set the height of cells with z > -mininum_depth to z=0.
-        # (In-place + GPU-friendly)
-        zi .*= zi .<= - minimum_depth
+        launch!(arch, target_grid, :xy, _enforce_minimum_depth!, target_z, minimum_depth)
     end
 
     if major_basins < Inf
@@ -463,3 +459,14 @@ retrieve_bathymetry(grid, ::Nothing; kw...) = regrid_bathymetry(grid; kw...)
 retrieve_bathymetry(grid; kw...)            = regrid_bathymetry(grid; kw...)
 
 end # module
+        
+@kernel function _enforce_minimum_depth!(target_z, minimum_depth)
+    i, j = @index(Global, NTuple)
+    z = @inbounds target_z[i, j, 1]
+
+    # Fix active cells to be at least `-minimum_depth`.
+    active = z < 0 # it's a wet cell
+    z = ifelse(active, min(z, -minimum_depth), z)
+
+    @inbounds target_z[i, j, 1] = z
+end
