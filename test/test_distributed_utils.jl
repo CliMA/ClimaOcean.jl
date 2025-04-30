@@ -3,12 +3,12 @@ include("runtests_setup.jl")
 using MPI
 MPI.Init()
 
-using NCDatasets
-using ClimaOcean.ECCO: download_dataset, metadata_path
+using ClimaOcean.DataWrangling: download_dataset, metadata_path
 using Oceananigans.DistributedComputations
 using Oceananigans.DistributedComputations: reconstruct_global_grid
 using CFTime
 using Dates
+using NCDatasets
 
 @testset "Distributed ECCO download" begin
     dates = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(1994, 4, 1)
@@ -47,7 +47,7 @@ end
         ds["lon"][:] = λ
         ds["lat"][:] = φ
         z[:,:] = data
-        
+
         close(ds)
     end
 
@@ -57,7 +57,7 @@ end
                                         latitude = (0, 20),
                                         z = (0, 1))
 
-    global_height = regrid_bathymetry(global_grid; 
+    global_height = regrid_bathymetry(global_grid;
                                       dir = "./",
                                       filename = "trivial_bathymetry.nc",
                                       interpolation_passes=10)
@@ -73,7 +73,7 @@ end
                                            latitude = (0, 20),
                                             z = (0, 1))
 
-        local_height = regrid_bathymetry(local_grid; 
+        local_height = regrid_bathymetry(local_grid;
                                          dir = "./",
                                          filename = "trivial_bathymetry.nc",
                                          interpolation_passes=10)
@@ -82,7 +82,7 @@ end
         rx, ry, _ = arch.local_index
         irange    = (rx - 1) * Nx + 1 : rx * Nx
         jrange    = (ry - 1) * Ny + 1 : ry * Ny
-        
+
         @handshake begin
             @test interior(global_height, irange, jrange, 1) == interior(local_height, :, :, 1)
         end

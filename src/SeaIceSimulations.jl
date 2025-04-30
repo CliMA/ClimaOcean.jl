@@ -26,7 +26,7 @@ function sea_ice_simulation(grid;
                             Δt = 5minutes,
                             ice_salinity = 0, # psu
                             advection = nothing, # for the moment
-                            tracers = (), 
+                            tracers = (),
                             ice_heat_capacity = 2100, # J kg⁻¹ K⁻¹
                             ice_consolidation_thickness = 0.05, # m
                             ice_density = 900, # kg m⁻³

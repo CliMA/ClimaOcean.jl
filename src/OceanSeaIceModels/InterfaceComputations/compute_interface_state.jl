@@ -101,7 +101,7 @@ and interior properties `ℙₛ`, `ℙₐ`, and `ℙᵢ`.
 
     θₐ = surface_atmosphere_temperature(atmosphere_state, atmosphere_properties)
     Δθ = θₐ - Tₛ
-    Δh = atmosphere_state.z # Assumption! The surface is at z = 0 -> Δh = zₐ - 0 
+    Δh = atmosphere_state.z # Assumption! The surface is at z = 0 -> Δh = zₐ - 0
 
     u★, θ★, q★ = iterate_interface_fluxes(flux_formulation,
                                           Tₛ, qₛ, Δθ, Δq, Δh,

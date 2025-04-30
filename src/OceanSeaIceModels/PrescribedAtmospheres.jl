@@ -221,7 +221,7 @@ Base.summary(::PATP{FT}) where FT = "PrescribedAtmosphereThermodynamicsParameter
 function Base.show(io::IO, p::PrescribedAtmosphereThermodynamicsParameters)
     FT = eltype(p)
 
-    cp = p.constitutive 
+    cp = p.constitutive
     hc = p.heat_capacity
     pt = p.phase_transitions
 
@@ -238,9 +238,9 @@ function Base.show(io::IO, p::PrescribedAtmosphereThermodynamicsParameters)
         "└── PhaseTransitionParameters{$FT}", '\n',
         "    ├── reference_vaporization_enthalpy (ℒᵛ⁰): ", prettysummary(pt.reference_vaporization_enthalpy), '\n',
         "    ├── reference_sublimation_enthalpy  (ℒˢ⁰): ", prettysummary(pt.reference_sublimation_enthalpy), '\n',
-        "    ├── reference_temperature (T⁰):            ", prettysummary(pt.reference_temperature), '\n',    
+        "    ├── reference_temperature (T⁰):            ", prettysummary(pt.reference_temperature), '\n',
         "    ├── triple_point_temperature (Tᵗʳ):        ", prettysummary(pt.triple_point_temperature), '\n',
-        "    ├── triple_point_pressure (pᵗʳ):           ", prettysummary(pt.triple_point_pressure), '\n',   
+        "    ├── triple_point_pressure (pᵗʳ):           ", prettysummary(pt.triple_point_pressure), '\n',
         "    ├── water_freezing_temperature (Tᶠ):       ", prettysummary(pt.water_freezing_temperature), '\n',
         "    └── total_ice_nucleation_temperature (Tⁱ): ", prettysummary(pt.total_ice_nucleation_temperature))
 end
@@ -343,6 +343,8 @@ function default_freshwater_flux(grid, times)
     return (; rain, snow)
 end
 
+""" The standard unit of atmospheric pressure; 1 standard atmosphere (atm) = 101,325 Pascals (Pa) in SI units.
+This is approximately equal to the mean sea-level atmospheric pressure on Earth. """
 function default_atmosphere_pressure(grid, times)
     pa = FieldTimeSeries{Center, Center, Nothing}(grid, times)
     parent(pa) .= 101325
@@ -357,21 +359,21 @@ end
 
     for fts in ftses
         update_field_time_series!(fts, time)
-    end    
-    
+    end
+
     return nothing
 end
 
 @inline thermodynamics_parameters(atmos::Nothing) = nothing
 @inline thermodynamics_parameters(atmos::PrescribedAtmosphere) = atmos.thermodynamics_parameters
 @inline surface_layer_height(atmos::PrescribedAtmosphere) = atmos.surface_layer_height
-@inline boundary_layer_height(atmos::PrescribedAtmosphere) = atmos.boundary_layer_height    
+@inline boundary_layer_height(atmos::PrescribedAtmosphere) = atmos.boundary_layer_height
 
 """
     PrescribedAtmosphere(grid, times;
                          clock = Clock{Float64}(time = 0),
                          surface_layer_height = 10, # meters
-                         boundary_layer_height = 600 # meters,
+                         boundary_layer_height = 512 # meters,
                          thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT),
                          auxiliary_freshwater_flux = nothing,
                          velocities            = default_atmosphere_velocities(grid, times),
@@ -385,8 +387,8 @@ state with data given at `times`.
 """
 function PrescribedAtmosphere(grid, times;
                               clock = Clock{Float64}(time = 0),
-                              surface_layer_height = convert(eltype(grid), 10),
-                              boundary_layer_height = convert(eltype(grid), 600),
+                              surface_layer_height = 10,
+                              boundary_layer_height = 512,
                               thermodynamics_parameters = nothing,
                               auxiliary_freshwater_flux = nothing,
                               velocities            = default_atmosphere_velocities(grid, times),
@@ -422,7 +424,7 @@ end
 """
     TwoBandDownwellingRadiation(shortwave=nothing, longwave=nothing)
 
-Return a two-band model for downwelling radiation (split in a shortwave band
+Return a two-band model for downwelling radiation (split into a shortwave band
 and a longwave band) that passes through the atmosphere and arrives at the surface of ocean
 or sea ice.
 """
@@ -434,4 +436,3 @@ Adapt.adapt_structure(to, tsdr::TwoBandDownwellingRadiation) =
                                 adapt(to, tsdr.longwave))
 
 end # module
-
