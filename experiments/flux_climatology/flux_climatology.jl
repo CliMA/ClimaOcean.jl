@@ -1,6 +1,5 @@
 using ClimaOcean
 using ClimaOcean.ECCO
-using ClimaOcean.ECCO: all_ECCO_dates
 using Oceananigans
 using Oceananigans.Utils
 using Oceananigans.Fields: ZeroField, location, VelocityFields
@@ -142,15 +141,21 @@ function PrescribedOcean(timeseries;
 end
 
 # ...with prescribed velocity and tracer fields
-version = ECCO4Monthly()
-dates   = all_ECCO_dates(version)[1:24]
+dataset = ECCO4Monthly()
+arch    = CPU()
 
-arch = CPU()
+start_date = DateTime(1992, 1, 1)
+end_date   = DateTime(1993, 1, 1)
 
-u = ECCOFieldTimeSeries(:u_velocity,  version; time_indices_in_memory = 13, architecture = arch, dates)
-v = ECCOFieldTimeSeries(:v_velocity,  version; time_indices_in_memory = 13, architecture = arch, dates)
-T = ECCOFieldTimeSeries(:temperature, version; time_indices_in_memory = 13, architecture = arch, dates)
-S = ECCOFieldTimeSeries(:salinity,    version; time_indices_in_memory = 13, architecture = arch, dates)
+T_meta = Metadata(:temperature; start_date, end_date, dataset)
+S_meta = Metadata(:salinity;    start_date, end_date, dataset)
+u_meta = Metadata(:u_velocity;  start_date, end_date, dataset)
+v_meta = Metadata(:v_velocity;  start_date, end_date, dataset)
+
+u = FieldTimeSeries(u_meta, arch; time_indices_in_memory = 13)
+v = FieldTimeSeries(v_meta, arch; time_indices_in_memory = 13)
+T = FieldTimeSeries(T_meta, arch; time_indices_in_memory = 13)
+S = FieldTimeSeries(S_meta, arch; time_indices_in_memory = 13)
 
 grid = ECCO.ECCO_immersed_grid(arch)
 
