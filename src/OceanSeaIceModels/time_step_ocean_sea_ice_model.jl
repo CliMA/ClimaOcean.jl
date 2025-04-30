@@ -49,9 +49,9 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
 end
 
 function update_state!(coupled_model::OceanSeaIceModel, callbacks=[]; compute_tendencies=true)
-    
+
     # This function needs to be specialized to allow different atmospheric models
-    interpolate_atmosphere_state!(coupled_model.interfaces, coupled_model.atmosphere, coupled_model) 
+    interpolate_atmosphere_state!(coupled_model.interfaces, coupled_model.atmosphere, coupled_model)
 
     # Compute interface states
     compute_atmosphere_ocean_fluxes!(coupled_model)

@@ -154,7 +154,7 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
     ℂₐ = atmosphere_properties.thermodynamics_parameters
     g  = atmosphere_properties.gravitational_acceleration
     𝒬ₐ = atmosphere_state.𝒬
-    
+
     # "initial" scales because we will recompute them
     u★ = approximate_interface_state.u★
     θ★ = approximate_interface_state.θ★

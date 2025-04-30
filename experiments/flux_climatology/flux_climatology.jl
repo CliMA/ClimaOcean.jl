@@ -116,17 +116,17 @@ end
 #####
 
 struct PrescribedOcean{A, G, C, U, T, F} <: AbstractModel{Nothing}
-    architecture :: A       
-    grid :: G        
+    architecture :: A
+    grid :: G
     clock :: Clock{C}
     velocities :: U
     tracers :: T
     timeseries :: F
 end
 
-function PrescribedOcean(timeseries; 
-                         grid, 
-                         clock=Clock{Float64}(time = 0)) 
+function PrescribedOcean(timeseries;
+                         grid,
+                         clock=Clock{Float64}(time = 0))
 
     τx = Field{Face, Center, Nothing}(grid)
     τy = Field{Center, Face, Nothing}(grid)
@@ -219,7 +219,7 @@ function progress(sim)
     msg *= @sprintf(", max|u|: (%.2e, %.2e) m s⁻¹, extrema(T): (%.2f, %.2f) ᵒC, wall time: %s",
                     umax..., Tmax, Tmin, prettytime(step_time))
 
-    @info msg 
+    @info msg
 
     wall_time[] = time_ns()
 end

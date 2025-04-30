@@ -19,7 +19,7 @@ end
                           maximum_roughness_length = 1.6e-4)
 
 Constructs a `ScalarRoughnessLength` object that represents the scalar roughness length
-that regulates the exchange of heat and water vapor between the ocean and the atmosphere.   
+that regulates the exchange of heat and water vapor between the ocean and the atmosphere.
 
 Keyword Arguments
 ==================
@@ -95,7 +95,7 @@ end
                                       C₃ = - C₀ * 4.84e-9])
 
 Constructs a `TemperatureDependentAirViscosity` object that calculates the kinematic
-viscosity of air as 
+viscosity of air as
 ```math
 C₀ + C₁ T + C₂ T^2 + C₃ T^3.
 ```
@@ -110,7 +110,7 @@ function TemperatureDependentAirViscosity(FT = Oceananigans.defaults.FloatType;
                                             convert(FT, C₁),
                                             convert(FT, C₂),
                                             convert(FT, C₃))
-end   
+end
 
 """ Calculate the air viscosity based on the temperature θ in Celsius. """
 @inline function (ν::TemperatureDependentAirViscosity)(θ)
@@ -137,8 +137,8 @@ end
     # We need to prevent `Inf` that pops up when `u★ == 0`.
     # For this reason, if `u★ == 0` we prescribe the roughness length to be
     # equal to a `maximum` roughness length
-    ℓᴿ = ifelse(u★ == 0, ℓm, β * ν / u★) 
-    
+    ℓᴿ = ifelse(u★ == 0, ℓm, β * ν / u★)
+
     return min(α * u★^2 / g + ℓᴿ, ℓm)
 end
 
@@ -156,7 +156,7 @@ Edson et al. (2013), equation (28).
     ℓs = A / R★ ^ b
 ```
 """
-ReynoldsScalingFunction(FT = Oceananigans.defaults.FloatType; A = 5.85e-5, b = 0.72) = 
+ReynoldsScalingFunction(FT = Oceananigans.defaults.FloatType; A = 5.85e-5, b = 0.72) =
     ReynoldsScalingFunction(convert(FT, A), convert(FT, b))
 
 @inline (s::ReynoldsScalingFunction)(R★, args...) = ifelse(R★ == 0, convert(eltype(R★), 0), s.A / R★ ^ s.b)
@@ -164,7 +164,7 @@ ReynoldsScalingFunction(FT = Oceananigans.defaults.FloatType; A = 5.85e-5, b = 0
 # Edson 2013 formulation of scalar roughness length
 @inline function roughness_length(ℓ::ScalarRoughnessLength{FT}, ℓu, u★, 𝒬, ℂ) where FT
     ℓm = ℓ.maximum_roughness_length
-    
+
     scaling_function = ℓ.reynolds_number_scaling_function
 
     θ₀ = AtmosphericThermodynamics.air_temperature(ℂ, 𝒬)
@@ -176,6 +176,6 @@ ReynoldsScalingFunction(FT = Oceananigans.defaults.FloatType; A = 5.85e-5, b = 0
     # implementation of scalar roughness length
     ℓq = scaling_function(R★, ℓu, u★, ν)
 
-    return min(ℓq, ℓm) 
+    return min(ℓq, ℓm)
 end
 

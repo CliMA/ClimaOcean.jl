@@ -319,7 +319,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
 
     ocean_grid = ocean.model.grid
     FT = eltype(ocean_grid)
- 
+
     ocean_reference_density    = convert(FT, ocean_reference_density)
     ocean_heat_capacity        = convert(FT, ocean_heat_capacity)
     sea_ice_reference_density  = convert(FT, sea_ice_reference_density)

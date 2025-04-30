@@ -262,16 +262,16 @@ Keyword arguments
              `MultiYearJRA55()` refers to the full length of the JRA55-do dataset; `RepeatYearJRA55()`
              refers to the "repeat-year forcing" dataset derived from JRA55-do. Default: `RepeatYearJRA55()`.
 
-   !!! info "Repeat-year forcing"
+  !!! info "Repeat-year forcing"
 
-       For more information about the derivation of the repeat-year forcing dataset, see:
+  For more information about the derivation of the repeat-year forcing dataset, see:
 
-       > Stewart et al. (2020). JRA55-do-based repeat year forcing datasets for driving ocean–sea-ice models, _Ocean Modelling_, **147**, 101557, https://doi.org/10.1016/j.ocemod.2019.101557.
+  > Stewart et al. (2020). JRA55-do-based repeat year forcing datasets for driving ocean–sea-ice models, _Ocean Modelling_, **147**, 101557, https://doi.org/10.1016/j.ocemod.2019.101557.
 
-       The repeat year in `RepeatYearJRA55()` corresponds to May 1st, 1990 - April 30th, 1991. However, the
-       returned dataset has dates that range from January 1st to December 31st. This implies
-       that the first 4 months of the `JRA55RepeatYear()` dataset correspond to year 1991 from the JRA55
-       reanalysis and the rest 8 months from 1990.
+  The repeat year in `RepeatYearJRA55()` corresponds to May 1st, 1990 - April 30th, 1991. However, the
+  returned dataset has dates that range from January 1st to December 31st. This implies
+  that the first 4 months of the `JRA55RepeatYear()` dataset correspond to year 1991 from the JRA55
+  reanalysis and the rest 8 months from 1990.
 
 - `start_date`: The starting date to use for the dataset. Default: `first_date(dataset, variable_name)`.
 
@@ -289,10 +289,10 @@ Keyword arguments
                Used to slice the data when loading into memory.
                Default: nothing, which retains the longitude range of the native grid.
 
-- `backend`: Backend for the `FieldTimeSeries`. The two options are
-             * `InMemory()`: the whole time series is loaded into memory.
-             * `JRA55NetCDFBackend(total_time_instances_in_memory)`: only a subset of the time series is loaded into memory.
-             Default: `InMemory()`.
+- `backend`: Backend for the `FieldTimeSeries`. The two options are:
+  * `InMemory()`: the whole time series is loaded into memory.
+  * `JRA55NetCDFBackend(total_time_instances_in_memory)`: only a subset of the time series
+  is loaded into memory. Default: `InMemory()`.
 """
 function JRA55FieldTimeSeries(variable_name::Symbol, architecture=CPU(), FT=Float32;
                               dataset = RepeatYearJRA55(),
@@ -325,7 +325,7 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
     download_dataset(metadata)
 
     # Regularize the backend in case of `JRA55NetCDFBackend`
-    if backend isa JRA55NetCDFBackend 
+    if backend isa JRA55NetCDFBackend
         if backend.metadata isa Nothing
             backend = JRA55NetCDFBackend(backend.length, metadata)
         end
