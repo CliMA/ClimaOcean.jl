@@ -28,7 +28,8 @@ import ClimaOcean.DataWrangling:
     is_three_dimensional,
     inpainted_metadata_path,
     longitude_shift,
-    reversed_vertical_axis
+    reversed_vertical_axis,
+    default_mask_value
 
 download_ECCO_cache::String = ""
 function __init__()

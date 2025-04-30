@@ -235,6 +235,9 @@ for arch in test_architectures, dataset in test_datasets
         fully_inpainted_interior = on_architecture(CPU(), interior(fully_inpainted_field))
         partially_inpainted_interior = on_architecture(CPU(), interior(partially_inpainted_field))
 
+        @show dataset
+        @show all(fully_inpainted_interior .!= 0)
+        #@show fully_inpainted_interior
         @test all(fully_inpainted_interior .!= 0)
         @test any(partially_inpainted_interior .== 0)
     end
