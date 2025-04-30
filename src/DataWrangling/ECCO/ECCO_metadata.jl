@@ -1,7 +1,7 @@
 using Dates
 using Downloads
 using ClimaOcean.DataWrangling
-using ClimaOcean.DataWrangling: netrc_downloader, metadata_path, AnyDateTime
+using ClimaOcean.DataWrangling: netrc_downloader, metadata_path, AnyDateTime, Celsius
 using Oceananigans.DistributedComputations: @root
 
 using Dates: year, month, day

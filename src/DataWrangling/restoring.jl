@@ -110,9 +110,9 @@ Keyword Arguments
 - `cache_inpainted_data`: If `true`, the data is cached to disk after inpainting for later retrieving.
                           Default: `true`.
 """
-function FieldTimeSeries(metadata::Metadata, architecture::AbstractArchitecture=CPU(); kw...)
+function FieldTimeSeries(metadata::Metadata, arch::AbstractArchitecture=CPU(); kw...)
     download_dataset(metadata)
-    ftmp = empty_field(first(metadata); architecture)
+    ftmp = empty_field(first(metadata), arch)
     grid = ftmp.grid
     return FieldTimeSeries(metadata, grid; kw...)
 end

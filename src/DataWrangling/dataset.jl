@@ -67,6 +67,8 @@ function Field(metadata::Metadatum, arch=CPU();
                halo = (7, 7, 7),
                cache_inpainted_data = true)
 
+    field = empty_field(metadata, arch; halo)
+
     if !isnothing(inpainting)
         inpainted_path = inpainted_metadata_path(metadata)
         if isfile(inpainted_path)
@@ -107,7 +109,6 @@ function Field(metadata::Metadatum, arch=CPU();
     # Convert data from Union{Missing, FT} to FT
     data[ismissing.(data)] .= NaN
     data = shift_longitude_to_0_360(data, metadata)
-    field = empty_field(metadata, arch; halo)
     FT = eltype(metadata)
 
     #=
@@ -172,9 +173,9 @@ function set!(field::Field, metadata::Metadatum; kw...)
     # Fields initialized from metadata.dataset
     grid = field.grid
     arch = child_architecture(grid)
-    mask = compute_mask(metadata, arch)
-
-    f = Field(metadata, arch; mask, kw...)
+    # mask = compute_mask(metadata, arch)
+    #f = Field(metadata, arch; mask, kw...)
+    f = Field(metadata, arch; kw...)
     interpolate!(field, f)
 
     return field
@@ -206,7 +207,7 @@ function set_metadata_field!(field, data, metadatum)
     end
 
     temperature_units = if metadatum.name == :temperature
-        dataset_temperature_units(metadata)
+        dataset_temperature_units(metadatum)
     else
         nothing
     end

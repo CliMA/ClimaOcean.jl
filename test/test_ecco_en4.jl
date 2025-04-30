@@ -18,7 +18,7 @@ for arch in test_architectures, dataset in test_datasets
             end
 
             datum = first(metadata)
-            ψ = Field(datum, architecture=arch, inpainting=NearestNeighborInpainting(2))
+            ψ = Field(datum, arch, inpainting=NearestNeighborInpainting(2))
             @test ψ isa Field
             datapath = ClimaOcean.DataWrangling.inpainted_metadata_path(datum)
             @test isfile(datapath)
@@ -91,7 +91,7 @@ for arch in test_architectures, dataset in test_datasets
             @test @allowscalar fts.times[end] == native_times(metadata)[end]
 
             datum = first(metadata)
-            ψ = Field(datum, architecture=arch, inpainting=NearestNeighborInpainting(2))
+            ψ = Field(datum, arch, inpainting=NearestNeighborInpainting(2))
             datapath = ClimaOcean.DataWrangling.inpainted_metadata_path(datum)
             @test isfile(datapath)
         end

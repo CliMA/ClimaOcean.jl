@@ -281,7 +281,7 @@ function empty_field(metadata::Metadata, arch=CPU();
                      halo = (7, 7, 3))
 
     Nx, Ny, Nz, _ = size(metadata)
-    loc = location(metadata)
+    LX, LY, LZ = location(metadata)
     longitude = (0, 360)
     latitude = absolute_latitude_bounds(metadata)
     TX, TY = (Periodic, Bounded)
@@ -304,6 +304,6 @@ function empty_field(metadata::Metadata, arch=CPU();
                                  size = sz,
                                  topology = (TX, TY, TZ))
 
-    return Field{loc...}(grid)
+    return Field{LX, LY, LZ}(grid)
 end
 
