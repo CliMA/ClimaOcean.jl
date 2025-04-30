@@ -6,7 +6,6 @@ arch = CPU()
 Nx = 20 * 12
 Ny = 20 * 12
 Nz = 50
-
 depth = 6000
 z_faces = exponential_z_faces(; Nz, depth)
 
@@ -27,13 +26,18 @@ bounding_box = ClimaOcean.DataWrangling.BoundingBox(;
 # coords_path = ClimaOcean.DataWrangling.download_dataset(static_meta)
 # @info "Downloaded coordinates data to $coords_path"
 
-T_ecco= ClimaOcean.DataWrangling.ECCOetadatum(:temperature; dataset, bounding_box)
+#T_ecco = ClimaOcean.DataWrangling.ECCOMetadatum(:temperature; dataset, bounding_box)
+T_en4_meta = ClimaOcean.DataWrangling.EN4Metadatum(:temperature)
+T_en4_path = ClimaOcean.DataWrangling.download_dataset(T_en4_meta)
+T_en4 = Field(T_en4_meta)
 
+#=
 dataset = ClimaOcean.DataWrangling.Copernicus.GLORYSDaily()
 T_meta = ClimaOcean.DataWrangling.Metadatum(:temperature; dataset, bounding_box)
 T_path = ClimaOcean.DataWrangling.download_dataset(T_meta)
 @info "Downloaded temperature data to $T_path"
 T = Field(T_meta, inpainting=nothing)
+=#
 
 #=
 u_meta = ClimaOcean.DataWrangling.Metadatum(:u_velocity; dataset)

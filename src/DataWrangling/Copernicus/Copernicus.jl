@@ -19,7 +19,7 @@ import ClimaOcean.DataWrangling:
     inpainted_metadata_path,
     reversed_vertical_axis,
     mangle_data,
-    vertical_interfaces
+    z_interfaces
 
 using Scratch
 
@@ -104,7 +104,7 @@ end
 absolute_latitude_bounds(::Metadata{<:CopernicusDataset}) = (-80, 90)
 location(::Metadata{<:CopernicusDataset}) = (Center, Center, Center)
 
-function vertical_interfaces(metadata::Metadata{<:CopernicusDataset})
+function z_interfaces(metadata::Metadata{<:CopernicusDataset})
     path = metadata_path(metadata)
     ds = Dataset(path)
     zc = - reverse(ds["depth"][:])

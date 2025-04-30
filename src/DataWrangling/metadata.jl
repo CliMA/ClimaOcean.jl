@@ -24,6 +24,9 @@ struct Metadata{V, D, B}
     dir :: String
 end
 
+is_three_dimensional(::Metadata) = true
+Base.eltype(::Metadata) = Float32
+
 """
     Metadata(variable_name;
              dataset,
@@ -76,6 +79,16 @@ end
 
 const AnyDateTime  = Union{AbstractCFDateTime, Dates.AbstractDateTime}
 const Metadatum{V} = Metadata{V, <:AnyDateTime} where V
+
+function Base.size(metadata::Metadata)
+    Nx, Ny, Nz = size(metadata.dataset, metadata.name)
+    if metadata.dates isa AbstractArray
+        Nt = length(metadata.dates)
+    else
+        Nt = 1
+    end
+    return (Nx, Ny, Nz, Nt)
+end
 
 """
     Metadatum(variable_name;
@@ -199,13 +212,6 @@ Note: This methods needs to be extended for any new dataset.
 all_dates(metadata) = all_dates(metadata.dataset, metadata.name)
 
 """
-    first_date(dataset)
-
-Extract the first date of the given dataset using the `DateTime` type.
-"""
-first_date(dataset) = first(all_dates(dataset))
-
-"""
     first_date(dataset, variable_name)
 
 Extracts the first date of the given dataset and variable name formatted using the `DateTime` type.
@@ -230,7 +236,7 @@ metadata_filename(metadata) = [metadata_filename(metadatum) for metadatum in met
 struct Celsius end
 struct Kelvin end
 
-dataset_temperature_units(metadata) = Celsius()
+temperature_units(metadata) = Celsius()
 
 #####
 ##### Utilities
@@ -257,53 +263,3 @@ function compute_native_date_range(native_dates, start_date, end_date)
 
     return native_dates[start_idx:end_idx]
 end
-
-"""
-    vertical_interfaces(metadata)
-
-Return an array with the vertical interfaces (``z``-faces) of the dataset
-that `metadata` corresponds to.
-"""
-vertical_interfaces(metadata::Metadata{V}) where V =
-    error("vertical_interfaces not implemented for $V")
-
-is_three_dimensional(metadata) = true
-
-function absolute_latitude_bounds end
-
-"""
-    empty_field(metadata::Metadata, arch=CPU();
-                horizontal_halo = (7, 7))
-
-Return an empty field of `metadata` on `arch`itecture and with `halo`.
-"""
-function empty_field(metadata::Metadata, arch=CPU();
-                     halo = (7, 7, 3))
-
-    Nx, Ny, Nz, _ = size(metadata)
-    LX, LY, LZ = location(metadata)
-    longitude = (0, 360)
-    latitude = absolute_latitude_bounds(metadata)
-    TX, TY = (Periodic, Bounded)
-
-    if is_three_dimensional(metadata)
-        TZ = Bounded
-        LZ = Center
-        z = vertical_interfaces(metadata)
-        sz = (Nx, Ny, Nz)
-    else # the variable is two-dimensional
-        TZ = Flat
-        LZ = Nothing
-        z = nothing
-        halo = halo[1:2]
-        sz = (Nx, Ny)
-    end
-
-    grid = LatitudeLongitudeGrid(arch, Float32;
-                                 halo, longitude, latitude, z,
-                                 size = sz,
-                                 topology = (TX, TY, TZ))
-
-    return Field{LX, LY, LZ}(grid)
-end
-
