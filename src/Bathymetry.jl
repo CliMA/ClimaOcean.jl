@@ -44,17 +44,10 @@ Download the bathymetry from `url` and saves it under `filename` in the director
 return the full filepath where the bathymetry is saved.
 """
 function download_bathymetry(; url = etopo_url,
-                             dir = download_bathymetry_cache,
-                             filename = "ETOPO_2022_v1_60s_N90W180_surface.nc")
+                             filepath = joinpath(download_bathymetry_cache, "ETOPO_2022_v1_60s_N90W180_surface.nc"))
 
-    filepath = joinpath(dir, filename)
-
-    #TODO: embed this into a @root macro; see failed attempts in https://github.com/CliMA/ClimaOcean.jl/pull/391
-    if !isfile(filepath)
         Downloads.download(url, filepath; progress=download_progress)
-    end
-
-    return filepath
+    return
 end
 
 """
@@ -118,9 +111,8 @@ Keyword Arguments
 function regrid_bathymetry(target_grid;
                            height_above_water = nothing,
                            minimum_depth = 0,
-                           dir = download_bathymetry_cache,
                            url = etopo_url,
-                           filename = "ETOPO_2022_v1_60s_N90W180_surface.nc",
+                           filepath = joinpath(download_bathymetry_cache, "ETOPO_2022_v1_60s_N90W180_surface.nc"),
                            interpolation_passes = 1,
                            major_basins = 1) # Allow an `Inf` number of "lakes"
 
@@ -131,8 +123,9 @@ function regrid_bathymetry(target_grid;
     if interpolation_passes isa Nothing || !isa(interpolation_passes, Int) || interpolation_passes ≤ 0
         return throw(ArgumentError("interpolation_passes has to be an integer ≥ 1"))
     end
-
-    filepath = download_bathymetry(; url, dir, filename)
+    if !isfile(filepath)
+        download_bathymetry(; url, filepath)
+    end
     dataset = Dataset(filepath, "r")
 
     FT = eltype(target_grid)
