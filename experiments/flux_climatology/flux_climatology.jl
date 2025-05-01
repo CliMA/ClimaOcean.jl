@@ -147,7 +147,7 @@ end
 
 # ...with prescribed velocity and tracer fields
 dataset = ECCO4Monthly()
-arch    = CPU()
+arch    = GPU()
 
 start_date = DateTime(1992, 1, 1)
 end_date   = DateTime(1993, 1, 1)
@@ -173,7 +173,7 @@ ocean = Simulation(ocean_model, Δt=3hours, stop_time=365days)
 
 function time_step!(model::PrescribedOcean, Δt; callbacks=[], euler=true)
     tick!(model.clock, Δt)
-    time = Time(model.clock.time)
+    time = Oceananigans.Units.Time(model.clock.time)
 
     possible_fts = merge(model.velocities, model.tracers)
     time_series_tuple = extract_field_time_series(possible_fts)
