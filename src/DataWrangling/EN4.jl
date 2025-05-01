@@ -47,8 +47,7 @@ import ClimaOcean.DataWrangling:
     latitude_interfaces,
     empty_field,
     is_three_dimensional,
-    inpainted_metadata_path,
-    longitude_shift
+    inpainted_metadata_path
 
 import Oceananigans.Fields: location
 
@@ -118,9 +117,6 @@ z_interfaces(::EN4Monthly) = [
     -10.0475,
       0.0,
 ]
-
-# EN4 data is shifted in longitude by 1 degree to the east.
-longitude_shift(::EN4Monthly) = 1
 
 const EN4Metadata{D} = Metadata{<:EN4Monthly, D}
 const EN4Metadatum   = Metadatum{<:EN4Monthly}

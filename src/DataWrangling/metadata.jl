@@ -26,6 +26,9 @@ end
 
 is_three_dimensional(::Metadata) = true
 Base.eltype(::Metadata) = Float32
+z_interfaces(md::Metadata) = z_interfaces(md.dataset)
+longitude_interfaces(md::Metadata) = longitude_interfaces(md.dataset)
+latitude_interfaces(md::Metadata) = latitude_interfaces(md.dataset)
 
 """
     Metadata(variable_name;
