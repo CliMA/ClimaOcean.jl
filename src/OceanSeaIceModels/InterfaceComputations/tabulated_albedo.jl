@@ -7,7 +7,7 @@ using ClimaOcean.OceanSeaIceModels:
     PrescribedAtmosphere,
     TwoBandDownwellingRadiation
 
-# Bilinear interpolation of the albedo α in α_table based on a 
+# Bilinear interpolation of the albedo α in α_table based on a
 # transmissivity value (𝓉_values) and latitude (φ_values)
 struct TabulatedAlbedo{FT, M, P, T}
     α_table :: M
@@ -18,7 +18,7 @@ struct TabulatedAlbedo{FT, M, P, T}
     noon_in_seconds :: Int
 end
 
-Adapt.adapt_structure(to, α::TabulatedAlbedo) = 
+Adapt.adapt_structure(to, α::TabulatedAlbedo) =
     TabulatedAlbedo(Adapt.adapt(to, α.α_table),
                     Adapt.adapt(to, α.φ_values),
                     Adapt.adapt(to, α.𝓉_values),
@@ -59,7 +59,7 @@ const α_payne = [ 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0.061 0
 Constructs a `TabulatedAlbedo` object that interpolated the albedo from a value table `α_table` that
 is function of latitude `φ` and atmospheric transimissivity `𝓉`.
 
-Note: `TabulatedAlbedo` assumes that the latitude and the transissivity in the table are uniformly spaced. 
+Note: `TabulatedAlbedo` assumes that the latitude and the transissivity in the table are uniformly spaced.
 
 The transmissivity of the atmosphere is calculated as the ratio of the downwelling solar radiation to the
 maximum possible downwelling solar radiation for a transparent atmosphere, function of hour of the day, latitude,
@@ -84,12 +84,12 @@ function TabulatedAlbedo(arch = CPU(), FT = Oceananigans.defaults.FloatType;
                          α_table  = α_payne,
                          φ_values = (0:2:90) ./ 180 * π,
                          𝓉_values = 0:0.05:1,
-                         day_to_radians  = convert(FT, 2π / 86400), 
+                         day_to_radians  = convert(FT, 2π / 86400),
                          noon_in_seconds = 86400 ÷ 2) # assumes that midnight is at t = 0 seconds
 
     # Make everything GPU - ready
     α_table  = on_architecture(arch, convert.(FT, α_table))
-    φ_values = on_architecture(arch, convert.(FT, φ_values)) 
+    φ_values = on_architecture(arch, convert.(FT, φ_values))
     𝓉_values = on_architecture(arch, convert.(FT, 𝓉_values))
 
     return TabulatedAlbedo(α_table,
@@ -105,17 +105,17 @@ Base.summary(::TabulatedAlbedo{FT}) where FT = "TabulatedAlbedo{$FT}"
 Base.show(io::IO, α::TabulatedAlbedo) = print(io, summary(α))
 
 @inline ϕ₁(ξ, η) = (1 - ξ) * (1 - η)
-@inline ϕ₂(ξ, η) = (1 - ξ) *      η 
+@inline ϕ₂(ξ, η) = (1 - ξ) *      η
 @inline ϕ₃(ξ, η) =      ξ  * (1 - η)
-@inline ϕ₄(ξ, η) =      ξ  *      η 
+@inline ϕ₄(ξ, η) =      ξ  *      η
 
-# Assumption: if the time is represented by a number it is defined in seconds. 
+# Assumption: if the time is represented by a number it is defined in seconds.
 # TODO: extend these functions for `DateTime` times when these are supported in
 # Oceananigans.
 @inline simulation_day(time::Time{<:Number})      = time.time ÷ 86400
 @inline seconds_in_day(time::Time{<:Number}, day) = time.time - day * 86400
 
-@inline function net_downwelling_radiation(i, j, grid, time, radiation::Radiation{<:Any, <:Any, <:SurfaceProperties{<:TabulatedAlbedo}}, Qs, Qℓ) 
+@inline function net_downwelling_radiation(i, j, grid, time, radiation::Radiation{<:Any, <:Any, <:SurfaceProperties{<:TabulatedAlbedo}}, Qs, Qℓ)
     α = radiation.reflection.ocean
     FT = eltype(α)
     λ, φ, z = _node(i, j, 1, grid, Center(), Center(), Center())
@@ -141,7 +141,7 @@ Base.show(io::IO, α::TabulatedAlbedo) = print(io, summary(α))
 
     # Maximum downwelling solar radiation for
     # a transparent atmosphere
-    Qmax = α.S₀ * cosθₛ 
+    Qmax = α.S₀ * cosθₛ
 
     # Finding the transmissivity and capping it to 1
     𝓉 = ifelse(Qmax > 0, min(1, Qs / Qmax), 0)

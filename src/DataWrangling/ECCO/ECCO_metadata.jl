@@ -39,9 +39,20 @@ function ECCOMetadatum(name;
     return Metadatum(name; date, dir, dataset=ECCO4Monthly())
 end
 
-default_download_directory(
-    ::Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly, <:ECCO4DarwinMonthly}
-    ) = download_ECCO_cache
+function default_download_directory(::ECCO2Monthly)
+    path = joinpath(download_ECCO_cache, "v2", "monthly")
+    return mkpath(path)
+end
+
+function default_download_directory(::ECCO2Daily)
+    path = joinpath(download_ECCO_cache, "v2", "daily")
+    return mkpath(path)
+end
+
+function default_download_directory(::ECCO4Monthly)
+    path = joinpath(download_ECCO_cache, "v4")
+    return mkpath(path)
+end
 
 datasetstr(md::ECCOMetadata) = string(md.dataset)
 
@@ -60,32 +71,32 @@ Base.size(::Metadatum{<:ECCO2Monthly}) = (1440, 720, 50, 1)
 Base.size(::Metadatum{<:ECCO4Monthly}) = (720,  360, 50, 1)
 
 # The whole range of dates in the different dataset datasets
-all_dates(::ECCO4Monthly, name) = DateTime(1992, 1, 1) : Month(1) : DateTime(2023, 12, 1)
-all_dates(::ECCO2Monthly, name) = DateTime(1992, 1, 1) : Month(1) : DateTime(2023, 12, 1)
-all_dates(::ECCO2Daily, name)   = DateTime(1992, 1, 4) : Day(1)   : DateTime(2023, 12, 31)
+all_dates(::ECCO4Monthly, name) = DateTime(1992, 1, 1) : Month(1) : DateTime(2017, 12, 1)
+all_dates(::ECCO2Monthly, name) = DateTime(1992, 1, 1) : Month(1) : DateTime(2024, 12, 1)
+all_dates(::ECCO2Daily,   name) = DateTime(1992, 1, 1) : Day(1) : DateTime(2024, 12, 31)
 
 # Fallback, actually, we do not really need the name for ECCO since all
 # variables have the same frequency and the same time-range, differently from JRA55
 all_dates(dataset::Union{<:ECCO4Monthly, <:ECCO2Monthly, <:ECCO2Daily, <:ECCO4DarwinMonthly}) = all_dates(dataset, :temperature)
 
-# File name generation specific to each Dataset dataset
+# File name generation specific to each dataset
 function metadata_filename(metadata::Metadatum{<:ECCO4Monthly})
     shortname = short_name(metadata)
-    yearstr  = string(Dates.year(metadata.dates))
-    monthstr = string(Dates.month(metadata.dates), pad=2)
+    yearstr   = string(Dates.year(metadata.dates))
+    monthstr  = string(Dates.month(metadata.dates), pad=2)
     return shortname * "_" * yearstr * "_" * monthstr * ".nc"
 end
 
 function metadata_filename(metadata::Metadatum{<:Union{ECCO2Daily, ECCO2Monthly}})
-    shortname   = short_name(metadata)
-    yearstr  = string(Dates.year(metadata.dates))
-    monthstr = string(Dates.month(metadata.dates), pad=2)
-    postfix = variable_is_three_dimensional(metadata) ? ".1440x720x50." : ".1440x720."
+    shortname = short_name(metadata)
+    yearstr   = string(Dates.year(metadata.dates))
+    monthstr  = string(Dates.month(metadata.dates), pad=2)
+    postfix   = variable_is_three_dimensional(metadata) ? ".1440x720x50." : ".1440x720."
 
     if metadata.dataset isa ECCO2Monthly
         return shortname * postfix * yearstr * monthstr * ".nc"
     elseif metadata.dataset isa ECCO2Daily
-        daystr = string(Dates.day(metadata.dates), pad=2)
+        daystr = variable_is_three_dimensional(metadata) ? string(Dates.day(metadata.dates), pad=2) : ""
         return shortname * postfix * yearstr * monthstr * daystr * ".nc"
     end
 end

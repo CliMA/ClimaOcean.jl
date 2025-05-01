@@ -29,9 +29,12 @@ if gpu_test && test_group == :init || gpu_test && test_group == :all
     #### Download Dataset data
     ####
 
-    # Metadata for tests
-
+    # Download few datasets for tests
     for dataset in test_datasets
+        time_resolution = dataset isa ECCO2Daily ? Day(1) : Month(1)
+        end_date = start_date + 2 * time_resolution
+        dates = start_date:time_resolution:end_date
+
         temperature_metadata = Metadata(:temperature; dataset, dates)
         salinity_metadata    = Metadata(:salinity; dataset, dates)
 
@@ -43,6 +46,14 @@ end
 # Tests JRA55 utilities, plus some DataWrangling utilities
 if test_group == :JRA55 || test_group == :all
     include("test_jra55.jl")
+end
+
+if test_group == :ecco2_monthly || test_group == :all
+    include("test_ecco2_monthly.jl")
+end
+
+if test_group == :ecco2_daily || test_group == :all
+    include("test_ecco2_daily.jl")
 end
 
 if test_group == :ecco4_en4 || test_group == :all

@@ -1,11 +1,9 @@
 using Oceananigans
 using Oceananigans.BoundaryConditions
-using Oceananigans.Fields: OneField
-using Oceananigans.Grids: peripheral_node
-using Oceananigans.Utils: launch!
-using Oceananigans.Fields: instantiated_location, interior, CenterField
 using Oceananigans.Architectures: architecture, device, GPU
-using ClimaOcean.DataWrangling: Field
+using Oceananigans.Fields: Field, OneField, instantiated_location, interior, CenterField
+using Oceananigans.Grids: peripheral_node, znode
+using Oceananigans.Utils: launch!
 using KernelAbstractions: @kernel, @index
 
 import ClimaOcean: stateindex
@@ -47,16 +45,20 @@ function LinearlyTaperedPolarMask(; northern = (70,   75),
 end
 
 @inline function (mask::LinearlyTaperedPolarMask)(φ, z)
-    n = 1 / (mask.northern[2] - mask.northern[1]) * (φ - mask.northern[1])
-    s = 1 / (mask.southern[1] - mask.southern[2]) * (φ - mask.southern[2])
-
     # The mask is active only between `mask.z[1]` and `mask.z[2]`
-    valid_depth = (mask.z[1] < z < mask.z[2])
+    @inbounds begin
+        northern_ramp = 1 / (mask.northern[2] - mask.northern[1]) * (φ - mask.northern[1])
+        southern_ramp = 1 / (mask.southern[1] - mask.southern[2]) * (φ - mask.southern[2])
+        within_depth_range = @inbounds (mask.z[1] < z < mask.z[2])
+    end
 
-    # we clamp the mask between 0 and 1
-    mask_value = clamp(max(n, s), 0, 1)
+    # Intersect the different mask components
+    mask_value = max(northern_ramp, southern_ramp) * within_depth_range
 
-    return ifelse(valid_depth, mask_value, zero(n))
+    # Clamp the mask between 0 and 1
+    mask_value = clamp(mask_value, 0, 1)
+
+    return mask_value
 end
 
 @inline function stateindex(mask::LinearlyTaperedPolarMask, i, j, k, grid, time, loc)
@@ -195,7 +197,7 @@ end
 end
 
 """
-    inpaint_mask!(field, mask; max_iter = Inf)
+    inpaint_mask!(field, mask; inpainting=NearestNeighborInpainting(Inf))
 
 Inpaint `field` within `mask`, using values outside `mask`.
 In other words, regions where `mask[i, j, k] == 1` is inpainted
@@ -210,6 +212,7 @@ Arguments
 - `inpainting`: The inpainting algorithm to use. The only option is
                 `NearestNeighborInpainting(maxiter)`, where an average
                 of the valid surrounding values is used `maxiter` times.
+                Default: `NearestNeighborInpainting(Inf)`.
 """
 function inpaint_mask!(field, mask; inpainting=NearestNeighborInpainting(Inf))
 
@@ -231,19 +234,19 @@ end
 function default_set_dataset_mask end
 
 """
-    dataset_mask(metadata, architecture = CPU();
+    dataset_mask(metadata::Metadatum, architecture = CPU();
                  data_field = Field(metadata; architecture, inpainting=nothing),
                  minimum_value = Float32(-1e5),
                  maximum_value = Float32(1e5))
 
 A boolean field where `true` represents a missing value in the dataset.
 """
-function dataset_mask(metadata, architecture = CPU();
+function dataset_mask(metadata::Metadatum, architecture = CPU();
                       data_field = Field(metadata; architecture, inpainting=nothing),
                       minimum_value = Float32(-1e5),
                       maximum_value = Float32(1e5))
 
-    mask  = Field{location(data_field)...}(data_field.grid, Bool)
+    mask = Field{location(data_field)...}(data_field.grid, Bool)
 
     _set_mask! = default_set_dataset_mask(metadata)
 
@@ -261,7 +264,7 @@ by the first non-missing value from the bottom up.
 """
 function dataset_immersed_grid(metadata, architecture = CPU())
 
-    mask = dataset_mask(metadata, architecture)
+    mask = dataset_mask(first(metadata), architecture)
     grid = mask.grid
     bottom = Field{Center, Center, Nothing}(grid)
 

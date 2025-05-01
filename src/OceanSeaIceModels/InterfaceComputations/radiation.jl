@@ -78,7 +78,7 @@ struct SurfaceProperties{O, I}
     sea_ice :: I
 end
 
-Adapt.adapt_structure(to, s :: SurfaceProperties) = 
+Adapt.adapt_structure(to, s :: SurfaceProperties) =
     SurfaceProperties(Adapt.adapt(to, s.ocean),
                       Adapt.adapt(to, s.sea_ice))
 
