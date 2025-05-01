@@ -26,7 +26,7 @@ using Scratch
 
 import ClimaOcean.DataWrangling: vertical_interfaces, variable_is_three_dimensional,
                                  shift_longitude_to_0_360, inpainted_metadata_path,
-                                 longitude_shift
+                                 longitude_shift, retrieve_data
 
 download_ECCO_cache::String = ""
 function __init__()

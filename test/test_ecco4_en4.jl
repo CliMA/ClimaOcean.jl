@@ -20,7 +20,7 @@ dates = start_date : Month(1) : end_date
 # Inpaint only the first two cells inside the missing mask
 inpainting = NearestNeighborInpainting(2)
 
-for arch in test_architectures, dataset in test_datasets, name in (:temperature, :salinity)
+for arch in test_architectures, dataset in test_datasets, name in test_names[dataset]
     download_dataset(Metadata(name; dates, dataset))
 end
 
@@ -30,7 +30,7 @@ for arch in test_architectures, dataset in test_datasets
     @info "Testing $(typeof(dataset)) on $A"
 
     @testset "Fields utilities" begin
-        for name in (:temperature, :salinity)
+        for name in test_names[dataset]
             metadata = Metadata(name; dates, dataset)
 
             for datum in metadata
@@ -46,7 +46,7 @@ for arch in test_architectures, dataset in test_datasets
     end
 
     @testset "Inpainting algorithm" begin
-        T_metadatum = Metadatum(:temperature; dataset, date=start_date)
+        metadatum = Metadatum(test_names[dataset][end]; dataset, date=start_date)
 
         grid = LatitudeLongitudeGrid(arch,
                                      size = (100, 100, 10),
@@ -58,8 +58,8 @@ for arch in test_architectures, dataset in test_datasets
         fully_inpainted_field = CenterField(grid)
         partially_inpainted_field = CenterField(grid)
 
-        set!(fully_inpainted_field,     T_metadatum; inpainting = NearestNeighborInpainting(Inf))
-        set!(partially_inpainted_field, T_metadatum; inpainting = NearestNeighborInpainting(1))
+        set!(fully_inpainted_field,     metadatum; inpainting = NearestNeighborInpainting(Inf))
+        set!(partially_inpainted_field, metadatum; inpainting = NearestNeighborInpainting(1))
 
         fully_inpainted_interior = on_architecture(CPU(), interior(fully_inpainted_field))
         partially_inpainted_interior = on_architecture(CPU(), interior(partially_inpainted_field))
@@ -77,13 +77,24 @@ for arch in test_architectures, dataset in test_datasets
         field = CenterField(grid)
 
         @test begin
-            set!(field, Metadatum(:temperature; dataset, date=start_date))
-            set!(field, Metadatum(:salinity;    dataset, date=start_date))
+            for name in test_names[dataset]
+                set!(field, Metadatum(name; dataset, date=start_date))
+            end
             true
         end
     end
 
-    @testset "Setting temperature and salinity from dataset" begin
+    @testset "Setting ocean.model initial conditions from dataset" begin
+        tracers = (:T, :S, :e)
+        initial_conditions = (T = Metadatum(:temperature; dataset, date=start_date),
+                              S = Metadatum(:salinity;    dataset, date=start_date))
+        
+        if Symbol("PO₄") ∈ test_names[dataset]
+            tracers = (tracers..., :PO₄)
+            initial_conditions = (initial_conditions...,
+                                  PO₄ = Metadatum(:PO₄; dataset, date=start_date))
+        end
+
         grid = LatitudeLongitudeGrid(arch;
                                      size = (10, 10, 10),
                                      latitude = (-60, -40),
@@ -91,10 +102,12 @@ for arch in test_architectures, dataset in test_datasets
                                      z = (-200, 0),
                                      halo = (7, 7, 7))
 
-        ocean = ocean_simulation(grid)
+        ocean = ocean_simulation(grid; tracers)
         date = DateTime(1993, 1, 1)
-        set!(ocean.model, T=Metadatum(:temperature; dataset, date=start_date),
-                          S=Metadatum(:salinity;    dataset, date=start_date))
+        @test begin
+            set!(ocean.model; initial_conditions...)
+            true
+        end
     end
 
     @testset "Timestepping with fields from Dataset" begin
@@ -108,8 +121,9 @@ for arch in test_architectures, dataset in test_datasets
         field = CenterField(grid)
 
         @test begin
-            set!(field, Metadatum(:temperature; dataset, date=start_date))
-            set!(field, Metadatum(:salinity;    dataset, date=start_date))
+            for name in test_names[dataset]
+                set!(field, Metadatum(name; dataset, date=start_date))
+            end
             true
         end
 
@@ -123,7 +137,7 @@ for arch in test_architectures, dataset in test_datasets
     end
 
     @testset "Field utilities" begin
-        for name in (:temperature, :salinity)
+        for name in test_names[dataset]
             metadata = Metadata(name; dates, dataset)
             restoring = DatasetRestoring(metadata, arch; rate=1/1000, inpainting)
 
@@ -172,15 +186,13 @@ for arch in test_architectures, dataset in test_datasets
                                         southern = (φ₁, φ₂),
                                                z = (z₁, 0))
 
-        for name in (:temperature, :salinity)
+        for name in test_names[dataset]
             var_restoring = DatasetRestoring(name, arch; dataset, start_date, end_date, mask, inpainting, rate=1/1000)
 
             fill!(var_restoring.field_time_series[1], 1.0)
             fill!(var_restoring.field_time_series[2], 1.0)
 
-            T = CenterField(grid)
-            S = CenterField(grid)
-            fields = (; T, S)
+            fields = NamedTuple{test_fields[dataset]}(ntuple(i->CenterField(grid), length(test_fields[dataset])))
             clock  = Clock(; time = 0)
 
             @test @allowscalar var_restoring(1, 1,   10, grid, clock, fields) == var_restoring.rate
@@ -205,14 +217,21 @@ for arch in test_architectures, dataset in test_datasets
         field = CenterField(grid)
 
         @test begin
-            set!(field, Metadatum(:temperature; dataset, date=start_date))
-            set!(field, Metadatum(:salinity;    dataset, date=start_date))
+            for name in test_names[dataset]
+                set!(field, Metadatum(name; dataset, date=start_date))
+            end
             true
         end
 
-        forcing_T = DatasetRestoring(:temperature, arch;  dataset, start_date, end_date, inpainting, rate=1/1000)
+        tracers = (:T, :S, :e)
+        if Symbol("PO₄") ∈ test_names[dataset]
+            tracers = tuple(unique(tuple(tracers...,test_fields[dataset]...))...)
+        end
 
-        ocean = ocean_simulation(grid; forcing = (; T = forcing_T), verbose=false)
+        # Dynamically create name of forcing based on dataset field name
+        forcing = NamedTuple{(test_fields[dataset][end],)}((DatasetRestoring(test_names[dataset][end], arch;  dataset, start_date, end_date, inpainting, rate=1/1000),))
+
+        ocean = ocean_simulation(grid; tracers, forcing, verbose=false)
 
         @test begin
             time_step!(ocean)
@@ -233,19 +252,21 @@ for arch in test_architectures, dataset in test_datasets
         end_date = DateTime(1993, 5, 1)
         dates = start_date : Month(1) : end_date
 
-        T_restoring = DatasetRestoring(:temperature, arch; dataset, start_date, end_date, inpainting, rate=1/1000)
+        tracers = (:T, :S, :e)
+        if Symbol("PO₄") ∈ test_names[dataset]
+            tracers = tuple(unique(tuple(tracers...,test_fields[dataset]...))...)
+        end
 
-        times = native_times(T_restoring.field_time_series.backend.metadata)
-        ocean = ocean_simulation(grid, 
-                                 tracers = (:T, :S, :e, :PO₄),
-                                 forcing = (; T = T_restoring, PO₄ = P_restoring),
-                                )
+        # Dynamically create name of forcing based on dataset field name
+        forcing = NamedTuple{(test_fields[dataset][end],)}((DatasetRestoring(test_names[dataset][end], arch;  dataset, start_date, end_date, inpainting, rate=1/1000),))
+
+        times = native_times(forcing[1].field_time_series.backend.metadata)
+        ocean = ocean_simulation(grid; tracers, forcing)
 
         ocean.model.clock.time = times[3] + 2 * Units.days
         update_state!(ocean.model)
 
-        @test T_restoring.field_time_series.backend.start == 3
-        @test P_restoring.field_time_series.backend.start == 3
+        @test forcing[1].field_time_series.backend.start == 3
 
         # Compile
         time_step!(ocean)
@@ -261,7 +282,6 @@ for arch in test_architectures, dataset in test_datasets
         end
 
         # The backend has cycled to the end
-        @test time_indices(T_restoring.field_time_series) == (6, 1)
-        @test time_indices(P_restoring.field_time_series) == (6, 1)
+        @test time_indices(forcing[1].field_time_series) == (6, 1)
     end
 end

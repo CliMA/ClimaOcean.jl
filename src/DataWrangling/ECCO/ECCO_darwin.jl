@@ -30,6 +30,8 @@ location(::Metadata{<:ECCO4DarwinMonthly}) = (Center, Center, Center)
 variable_is_three_dimensional(::Metadata{<:ECCO4DarwinMonthly, <:Any}) = true
 
 ECCO_darwin_short_names = Dict(
+    :temperature => "THETA",
+    :salinity    => "SALTanom",
     :DIC => "DIC",
     :ALK => "ALK",
     :PO₄ => "PO4",
@@ -41,6 +43,8 @@ ECCO_darwin_short_names = Dict(
 )
 
 ECCO_darwin_scale_factor = Dict(
+    :temperature => 1,
+    :salinity    => 1,
     :DIC => 1e-3,
     :ALK => 1e-3,
     :PO₄ => 1e-3,
@@ -51,17 +55,30 @@ ECCO_darwin_scale_factor = Dict(
     :Siᵀ => 1e-3,
 )
 
+ECCO_darwin_offset_factor = Dict(
+    :temperature => 0,
+    :salinity    => 35,
+    :DIC => 0,
+    :ALK => 0,
+    :PO₄ => 0,
+    :NO₃ => 0,
+    :DOP => 0,
+    :POP => 0,
+    :Fe  => 0,
+    :Siᵀ => 0,
+)
+
 metadata_url(m::Metadata{<:ECCO4DarwinMonthly}) = ECCO4Darwin_url * "monthly/" * short_name(m) * "/" * metadata_filename(m)
 
 ECCO_darwin_native_grid(::ECCO4DarwinMonthly) = GridSpec("LatLonCap", MeshArrays.GRID_LLC90)
 ECCO_darwin_native_size(::ECCO4DarwinMonthly) = (90, 1170, 50)
 
 """
-    ECCO_darwin_model_data(metafile)
+    retrieve_data(metadata::Metadatum{<:ECCO4DarwinMonthly})
 
 Read a ECCO4DarwinMonthly data file and regrid using MeshArrays on to regular lat-lon grid
 """
-function ECCO_darwin_model_data(metadata)
+function retrieve_data(metadata::Metadatum{<:ECCO4DarwinMonthly})
     native_size = ECCO_darwin_native_size(metadata.dataset)
     native_grid = ECCO_darwin_native_grid(metadata.dataset)
     native_data = zeros(Float32, prod(native_size)) # Native LLC90 grid at precision of the input binary file
@@ -109,7 +126,5 @@ function ECCO_darwin_model_data(metadata)
     data[isnan.(data)] .= 0.f0
 
     # Scale data according to metadata.scale_factor
-    return data .* ECCO_darwin_scale_factor[metadata.name]
+    return data .* ECCO_darwin_scale_factor[metadata.name] .+ ECCO_darwin_offset_factor[metadata.name]
 end
-
-retrieve_data(metadata::Metadata{<:ECCO4DarwinMonthly}) = ECCO_darwin_model_data(metadata)

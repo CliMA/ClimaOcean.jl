@@ -43,7 +43,7 @@ end
     retrieve_data(metadata, path)
 Retrieve data from `path` according to `metadata`.
 """
-function retrieve_data(metadata)
+function retrieve_data(metadata::Metadatum)
     ds = Dataset(metadata_path(metadata))
     shortname = short_name(metadata)
 

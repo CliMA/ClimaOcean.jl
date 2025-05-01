@@ -24,7 +24,7 @@ using Adapt
 using Scratch
 
 import ClimaOcean.DataWrangling: vertical_interfaces, empty_field, variable_is_three_dimensional,
-                                 inpainted_metadata_path, longitude_shift
+                                 inpainted_metadata_path, longitude_shift, retrieve_data
 
 download_EN4_cache::String = ""
 function __init__()

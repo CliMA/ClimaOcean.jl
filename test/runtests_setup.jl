@@ -42,4 +42,16 @@ end
 arch = first(test_architectures)
 atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(41))
 
-test_datasets = (ECCO4Monthly(), EN4Monthly())
+test_datasets = (ECCO4Monthly(), ECCO4DarwinMonthly(), EN4Monthly())
+
+test_names = Dict(
+    ECCO4Monthly() => (:temperature, :salinity),
+    ECCO4DarwinMonthly() => (:temperature, :salinity, :PO₄),
+    EN4Monthly() => (:temperature, :salinity),
+)
+
+test_fields = Dict(
+    ECCO4Monthly() => (:T, :S),
+    ECCO4DarwinMonthly() => (:T, :S, :PO₄),
+    EN4Monthly() => (:T, :S),
+)
