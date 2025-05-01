@@ -40,8 +40,8 @@ function default_inpainting(metadata)
 end
 
 """
-    retrieve_data(metadata, path)
-Retrieve data from `path` according to `metadata`.
+    retrieve_data(metadata)
+Retrieve data from according to `metadata`.
 """
 function retrieve_data(metadata::Metadatum)
     ds = Dataset(metadata_path(metadata))

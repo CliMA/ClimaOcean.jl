@@ -27,7 +27,7 @@ short_name(data::Metadata{<:ECCO4DarwinMonthly}) = ECCO_darwin_short_names[data.
 
 location(::Metadata{<:ECCO4DarwinMonthly}) = (Center, Center, Center)
 
-variable_is_three_dimensional(::Metadata{<:ECCO4DarwinMonthly, <:Any}) = true
+variable_is_three_dimensional(::Metadata{<:ECCO4DarwinMonthly}) = true
 
 ECCO_darwin_short_names = Dict(
     :temperature => "THETA",
@@ -67,6 +67,11 @@ ECCO_darwin_offset_factor = Dict(
     :Fe  => 0,
     :Siᵀ => 0,
 )
+
+function default_download_directory(::ECCO4DarwinMonthly)
+    path = joinpath(download_ECCO_cache, "darwin")
+    return mkpath(path)
+end
 
 metadata_url(m::Metadata{<:ECCO4DarwinMonthly}) = ECCO4Darwin_url * "monthly/" * short_name(m) * "/" * metadata_filename(m)
 

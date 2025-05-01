@@ -36,7 +36,7 @@ function download_bathymetry(; dir = download_bathymetry_cache,
     return nothing
 end
 
-test_datasets = (ECCO2Monthly(), ECCO2Daily(), ECCO4Monthly(), EN4Monthly())
+test_datasets = (ECCO2Monthly(), ECCO2Daily(), ECCO4Monthly(), ECCO4DarwinMonthly(), EN4Monthly())
 
 test_ecco2_datasets = tuple((ds for ds in test_datasets if startswith(string(typeof(ds)), "ECCO2"))...)
 test_ecco4_en4_datasets = tuple((ds for ds in test_datasets if !startswith(string(typeof(ds)), "ECCO2"))...)
@@ -44,12 +44,16 @@ test_ecco4_en4_datasets = tuple((ds for ds in test_datasets if !startswith(strin
 test_ecco_datasets = tuple((ds for ds in test_datasets if startswith(string(typeof(ds)), "ECCO"))...)
 
 test_names = Dict(
+    ECCO2Monthly() => (:temperature, :salinity),
+    ECCO2Daily() => (:temperature, :salinity),
     ECCO4Monthly() => (:temperature, :salinity),
     ECCO4DarwinMonthly() => (:temperature, :salinity, :PO₄),
     EN4Monthly() => (:temperature, :salinity),
 )
 
 test_fields = Dict(
+    ECCO2Monthly() => (:T, :S),
+    ECCO2Daily() => (:T, :S),
     ECCO4Monthly() => (:T, :S),
     ECCO4DarwinMonthly() => (:T, :S, :PO₄),
     EN4Monthly() => (:T, :S),
