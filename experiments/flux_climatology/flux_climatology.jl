@@ -165,7 +165,7 @@ S = FieldTimeSeries(S_meta, arch; time_indices_in_memory=13)
 grid = ECCO.ECCO_immersed_grid(arch)
 
 ocean_model = PrescribedOcean((; u, v, T, S); grid)
-ocean = Simulation(ocean_model, Δt=3hour, stop_time=365days)
+ocean = Simulation(ocean_model, Δt=3hours, stop_time=365days)
 
 #####
 ##### Need to extend a couple of methods
