@@ -1,5 +1,8 @@
 include("runtests_setup.jl")
 
+using PythonCall
+using CondaPkg
+
 @testset "Downloading Copernicus data" begin
     variables = (:temperature, :salinity, :u_velocity, :v_velocity)
     bounding_box = ClimaOcean.DataWrangling.BoundingBox(longitude=(200, 202), latitude=(35, 37))
