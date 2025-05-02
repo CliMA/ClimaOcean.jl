@@ -34,6 +34,8 @@ import ClimaOcean.DataWrangling:
     temperature_units,
     dataset_variable_name,
     metaprefix,
+    longitude_interfaces,
+    latitude_interfaces,
     z_interfaces,
     is_three_dimensional,
     inpainted_metadata_path,
