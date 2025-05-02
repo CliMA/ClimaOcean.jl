@@ -18,7 +18,7 @@ end
         variables = dataset isa ECCO2Daily ? keys(ClimaOcean.ECCO.ECCO2_short_names) :
                     dataset isa ECCO2Monthly ? keys(ClimaOcean.ECCO.ECCO2_short_names) :
                     dataset isa ECCO4Monthly ? keys(ClimaOcean.ECCO.ECCO4_short_names) :
-                    dataset isa ECCO4DarwinMonthly ? keys(ClimaOcean.ECCO.ECCO4DarwinMonthly_short_names) :
+                    dataset isa ECCO4DarwinMonthly ? keys(ClimaOcean.ECCO.ECCO_darwin_short_names) :
                     dataset isa EN4Monthly ? keys(ClimaOcean.EN4.EN4_short_names) :
                     error("what am I supposed to download?")
 
