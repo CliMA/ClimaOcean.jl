@@ -22,7 +22,6 @@ Oceananigans = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
 OffsetArrays = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
 PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
-PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
 Scratch = "6c6a2e73-6563-6170-7368-637461726353"
 SeawaterPolynomials = "d496a93d-167e-4197-9f49-d3af4ff8fe40"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
@@ -32,6 +31,7 @@ Thermodynamics = "b60c26fb-14c3-4610-9d3e-2d17fe7ff00c"
 ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 
 [weakdeps]
+PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
 CondaPkg = "992eb4ea-22a4-4c89-a5bb-47a3300528ab"
 Reactant = "3c362404-f566-11ee-1572-e11a4b42c853"
 
