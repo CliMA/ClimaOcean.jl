@@ -13,7 +13,6 @@ import ClimaOcean.DataWrangling:
     all_dates,
     dataset_variable_name,
     default_download_directory,
-    longitude_shift,
     absolute_latitude_bounds,
     metadata_filename,
     inpainted_metadata_path,
@@ -101,20 +100,21 @@ function inpainted_metadata_path(metadata::CopernicusMetadata)
     return string(prefix, "_inpainted.jld2")
 end
 
-absolute_latitude_bounds(::Metadata{<:CopernicusDataset}) = (-80, 90)
-location(::Metadata{<:CopernicusDataset}) = (Center, Center, Center)
+absolute_latitude_bounds(::CopernicusMetadata) = (-80, 90)
+location(::CopernicusMetadata) = (Center, Center, Center)
+longitude_interfaces(::CopernicusMetadata) = (0, 360)
+latitude_interfaces(::CopernicusMetadata) = (-80, 90)
 
-function z_interfaces(metadata::Metadata{<:CopernicusDataset})
+function z_interfaces(metadata::CopernicusMetadata)
     path = metadata_path(metadata)
     ds = Dataset(path)
     zc = - reverse(ds["depth"][:])
+    close(ds)
     dz = zc[2] - zc[1]
     zf = zc[1:end-1] .+ zc[2:end]
     push!(zf, 0)
     pushfirst!(zf, zf[1] - dz)
     return zf
 end
-
-longitude_shift(::CopernicusMetadata) = 180
 
 end # module Copernicus 

@@ -9,6 +9,7 @@ using NCDatasets
 using Dates
 using Adapt
 using Scratch
+using Downloads
 
 using Oceananigans.DistributedComputations: @root
 
@@ -22,7 +23,6 @@ using ClimaOcean.DataWrangling:
     download_progress
 
 using KernelAbstractions: @kernel, @index
-using Downloads: download
 
 using Dates: year, month, day
 

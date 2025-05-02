@@ -303,8 +303,7 @@ function JRA55FieldTimeSeries(variable_name::Symbol, architecture=CPU(), FT=Floa
 
     native_dates = all_dates(dataset, variable_name)
     dates = compute_native_date_range(native_dates, start_date, end_date)
-
-    metadata = Metadata(variable_name, dataset, dates, dir)
+    metadata = Metadata(variable_name; dataset, dates, dir)
 
     return JRA55FieldTimeSeries(metadata, architecture, FT; kw...)
 end
@@ -342,7 +341,7 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
 
     # Change the metadata to reflect the actual time indices
     dates    = all_dates(dataset, name)[time_indices]
-    metadata = Metadata(metadata.name, metadata.dataset, dates, metadata.dir)
+    metadata = Metadata(metadata.name; dataset=metadata.dataset, dates, dir=metadata.dir)
 
     shortname = dataset_variable_name(metadata)
     variable_name = metadata.name

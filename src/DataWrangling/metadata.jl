@@ -25,7 +25,6 @@ struct Metadata{V, D, B}
 end
 
 is_three_dimensional(::Metadata) = true
-Base.eltype(::Metadata) = Float32
 z_interfaces(md::Metadata) = z_interfaces(md.dataset)
 longitude_interfaces(md::Metadata) = longitude_interfaces(md.dataset)
 latitude_interfaces(md::Metadata) = latitude_interfaces(md.dataset)
@@ -124,7 +123,7 @@ Base.show(io::IO, metadata::Metadata) =
 
 # Treat Metadata as an array to allow iteration over the dates.
 Base.length(metadata::Metadata) = length(metadata.dates)
-Base.eltype(metadata::Metadata) = Base.eltype(metadata.dates)
+Base.eltype(metadata::Metadata) = Float32
 
 Base.summary(md::Metadata) = string(metaprefix(md),
                                     "{", datasetstr(md), "} of ",

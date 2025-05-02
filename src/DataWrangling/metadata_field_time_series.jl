@@ -101,8 +101,7 @@ Keyword Arguments
 """
 function FieldTimeSeries(metadata::Metadata, arch::AbstractArchitecture=CPU(); kw...)
     download_dataset(metadata)
-    ftmp = empty_field(first(metadata), arch)
-    grid = ftmp.grid
+    grid = native_grid(metadata, arch)
     return FieldTimeSeries(metadata, grid; kw...)
 end
 
