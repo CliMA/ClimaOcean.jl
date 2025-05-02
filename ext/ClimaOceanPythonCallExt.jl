@@ -16,9 +16,10 @@ Install the Copernicus Marine CLI using CondaPkg.
 Returns a NamedTuple containing package information if successful.
 """
 function install_copernicusmarine()
+    @info "Installing the copernicusmarine CLI..."
     CondaPkg.add("copernicusmarine"; channel = "conda-forge")
     cli = CondaPkg.which("copernicusmarine")
-    @info "The copernicusmarine CLI has been installed at $(cli)."
+    @info "... the copernicusmarine CLI has been installed at $(cli)."
     return cli
 end
 
@@ -29,7 +30,12 @@ function download_dataset(meta::CopernicusMetadata, grid=nothing; skip_existing 
     isfile(output_path) && return output_path
     # rm(output_path, force=true)
 
-    toolbox = pyimport("copernicusmarine")
+    toolbox = try 
+        pyimport("copernicusmarine")
+    catch
+        install_copernicusmarine()
+        pyimport("copernicusmarine")
+    end
 
     variables = [
         ClimaOcean.DataWrangling.Copernicus.copernicus_dataset_variable_names[meta.name]
