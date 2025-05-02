@@ -45,7 +45,7 @@ dataset_name(::GLORYSDaily) = "GLORYSDaily"
 dataset_name(::GLORYSMonthly) = "GLORYSMonthly"
 
 all_dates(::GLORYSStatic, var) = [nothing]
-all_dates(::GLORYSDaily, var) = range(DateTime("1993-01-01"), stop=DateTime("2025-03-24"), step=Day(1))
+all_dates(::GLORYSDaily, var) = range(DateTime("1993-01-01"), stop=DateTime("2021-06-30"), step=Day(1))
 all_dates(::GLORYSMonthly, var) = range(DateTime("1993-01-01"), stop=DateTime("2024-12-01"), step=Month(1))
 
 copernicusmarine_dataset_id(::GLORYSStatic) = "cmems_mod_glo_phy_my_0.083deg_static"
