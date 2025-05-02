@@ -1,12 +1,21 @@
 using CFTime
 using Dates
 using Base: @propagate_inbounds
+using Oceananigans.Utils: prettysummary
 
 struct BoundingBox{X, Y, Z}
     longitude :: X
     latitude :: Y 
     z :: Z
 end
+
+latitude_summary(::Nothing) = "latitude=nothing"
+longitude_summary(::Nothing) = "longitude=nothing"
+latitude_summary(lat) = string("latitude=(", prettysummary(lat[1]), ", ", prettysummary(lat[2]), ")")
+longitude_summary(lon) = string("longitude=(", prettysummary(lon[1]), ", ", prettysummary(lon[2]), ")")
+Base.summary(bbox::BoundingBox) = string("BoundingBox(",
+                                         longitude_summary(bbox.longitude), ", ",
+                                         latitude_summary(bbox.latitude), ")")
 
 """
     BoundingBox(; longitude=nothing, latitude=nothing, z=nothing)
@@ -95,6 +104,7 @@ end
 """
     Metadatum(variable_name;
               dataset,
+              bounding_box = nothing,
               date = first_date(dataset, variable_name),
               dir = default_download_directory(dataset))
 
@@ -114,12 +124,19 @@ datestr(md::Metadatum) = string(md.dates)
 datasetstr(md::Metadata) = string(md.dataset)
 metaprefix(md::Metadata) = string("Metadata{", md.dataset, "}")
 
-Base.show(io::IO, metadata::Metadata) =
+function Base.show(io::IO, metadata::Metadata)
     print(io, "Metadata:", '\n',
     "├── name: $(metadata.name)", '\n',
     "├── dataset: $(metadata.dataset)", '\n',
-    "├── dates: $(metadata.dates)", '\n',
-    "└── dir: $(metadata.dir)")
+    "├── dates: $(metadata.dates)", '\n')
+
+    bbox = metadata.bounding_box
+    if !isnothing(bbox)
+        print(io, "├── bounding_box: ", summary(bbox), '\n')
+    end
+
+    print(io, "└── dir: $(metadata.dir)")
+end
 
 # Treat Metadata as an array to allow iteration over the dates.
 Base.length(metadata::Metadata) = length(metadata.dates)

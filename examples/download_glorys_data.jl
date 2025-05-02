@@ -16,10 +16,7 @@ grid = LatitudeLongitudeGrid(arch;
                              latitude  = (35, 55),
                              longitude = (200, 220))
 
-bounding_box = ClimaOcean.DataWrangling.BoundingBox(;
-    longitude = (200, 220),
-    latitude  = (35, 55),
-    z         = (0, 6000))
+bounding_box = ClimaOcean.DataWrangling.BoundingBox(longitude=(200, 220), latitude=(35, 55))
 
 # dataset = ClimaOcean.DataWrangling.Copernicus.GLORYSStatic()
 # static_meta = ClimaOcean.DataWrangling.Metadatum(:depth; dataset, bounding_box)
@@ -27,17 +24,15 @@ bounding_box = ClimaOcean.DataWrangling.BoundingBox(;
 # @info "Downloaded coordinates data to $coords_path"
 
 #T_ecco = ClimaOcean.DataWrangling.ECCOMetadatum(:temperature; dataset, bounding_box)
-T_en4_meta = ClimaOcean.DataWrangling.EN4Metadatum(:temperature)
-T_en4_path = ClimaOcean.DataWrangling.download_dataset(T_en4_meta)
-T_en4 = Field(T_en4_meta)
+# T_en4_meta = ClimaOcean.DataWrangling.EN4Metadatum(:temperature)
+# T_en4_path = ClimaOcean.DataWrangling.download_dataset(T_en4_meta)
+# T_en4 = Field(T_en4_meta)
 
-#=
 dataset = ClimaOcean.DataWrangling.Copernicus.GLORYSDaily()
 T_meta = ClimaOcean.DataWrangling.Metadatum(:temperature; dataset, bounding_box)
 T_path = ClimaOcean.DataWrangling.download_dataset(T_meta)
 @info "Downloaded temperature data to $T_path"
 T = Field(T_meta, inpainting=nothing)
-=#
 
 #=
 u_meta = ClimaOcean.DataWrangling.Metadatum(:u_velocity; dataset)

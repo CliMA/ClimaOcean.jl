@@ -27,6 +27,7 @@ function download_dataset(meta::CopernicusMetadata, grid=nothing; skip_existing 
     output_filename = ClimaOcean.DataWrangling.metadata_filename(meta)
     output_path = joinpath(output_directory, output_filename)
     isfile(output_path) && return output_path
+    # rm(output_path, force=true)
 
     toolbox = pyimport("copernicusmarine")
 
@@ -36,11 +37,12 @@ function download_dataset(meta::CopernicusMetadata, grid=nothing; skip_existing 
 
     dataset_id = ClimaOcean.DataWrangling.Copernicus.copernicusmarine_dataset_id(meta.dataset)
 
-    kw = (; skip_existing,
-            dataset_id,
-            variables,
-            output_filename,
-            output_directory)
+    kw = (; coordinates_selection_method = "outside",
+          skip_existing,
+          dataset_id,
+          variables,
+          output_filename,
+          output_directory)
 
     if !(meta.dataset isa ClimaOcean.DataWrangling.Copernicus.GLORYSStatic)
         start_datetime = ClimaOcean.DataWrangling.Copernicus.start_date_str(meta.dates)
@@ -51,6 +53,8 @@ function download_dataset(meta::CopernicusMetadata, grid=nothing; skip_existing 
     kw = with_longitude_bounds(kw, meta.bounding_box)
     kw = with_latitude_bounds(kw, meta.bounding_box)
     kw = with_depth_bounds(kw, meta.bounding_box)
+
+    @show kw
 
     toolbox.subset(; kw..., additional_kw...)
 
@@ -80,8 +84,8 @@ function with_latitude_bounds(kw, latitude)
 end
 
 function with_depth_bounds(kw, z)
-    minimum_depth = - depth[2]
-    maximum_depth = - depth[1]
+    minimum_depth = - z[2]
+    maximum_depth = - z[1]
     return merge(kw, (; minimum_depth, maximum_depth))
 end
 

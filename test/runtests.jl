@@ -10,6 +10,9 @@ using ClimaOcean.DataWrangling: download_dataset
 
 if test_group == :init || test_group == :all
     using CUDA
+    using PythonCall
+    using CondaPkg
+
     CUDA.set_runtime_version!(v"12.6"; local_toolkit = true)
     CUDA.precompile_runtime()
 
@@ -63,6 +66,11 @@ end
 # Tests that we can download JRA55 utilities
 if test_group == :downloading || test_group == :all
     include("test_downloading.jl")
+end
+
+# Tests that we can download JRA55 utilities
+if test_group == :downloading_copernicus || test_group == :all
+    include("test_downloading_copernicus.jl")
 end
 
 if test_group == :fluxes || test_group == :all

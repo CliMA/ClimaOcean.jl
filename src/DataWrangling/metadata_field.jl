@@ -4,20 +4,35 @@ using ClimaOcean.InitialConditions: interpolate!
 
 import Oceananigans.Fields: set!, Field
 
+restrict(::Nothing, interfaces, N) = interfaces, N
+
+# TODO support stretched native grids
+function restrict(bbox_interfaces, interfaces, N)
+    Δ = interfaces[2] - interfaces[1]
+    rΔ = bbox_interfaces[2] - bbox_interfaces[1]
+    ϵ = rΔ / Δ
+    rN = Integer(ϵ * N)
+    return bbox_interfaces, rN
+end
+
 function native_grid(metadata::Metadata, arch=CPU(); halo = (3, 3, 3))
     Nx, Ny, Nz = size(metadata)
     FT = eltype(metadata)
 
-    longitude = longitude_interfaces(metadata.dataset)
-    latitude = latitude_interfaces(metadata.dataset)
-    z = z_interfaces(metadata.dataset)
+    longitude = longitude_interfaces(metadata)
+    latitude = latitude_interfaces(metadata)
+    z = z_interfaces(metadata)
 
     # Restrict with BoundingBox
-    z_bounds = metadata.bounding_box.z
+    bbox = metadata.bounding_box
+    if !isnothing(bbox)
+        longitude, Nx = restrict(bbox.longitude, longitude, Nx) 
+        latitude, Ny = restrict(bbox.latitude, latitude, Ny) 
+        # TODO: restrict in z too
+    end
 
     grid = LatitudeLongitudeGrid(arch, FT; halo, longitude, latitude, z,
-                                 size = (Nx, Ny, Nz),
-                                 topology = (Periodic, Bounded, Bounded))
+                                 size = (Nx, Ny, Nz))
 
     return grid
 end
@@ -43,6 +58,7 @@ function Field(metadata::Metadatum, arch=CPU();
                cache_inpainted_data = true)
 
     grid = native_grid(metadata, arch; halo)
+    @show grid
     LX, LY, LZ = location(metadata)
     field = Field{LX, LY, LZ}(grid)
 

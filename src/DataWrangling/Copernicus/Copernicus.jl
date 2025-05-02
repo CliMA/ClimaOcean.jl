@@ -1,6 +1,7 @@
 module Copernicus
 
 using NCDatasets
+using Printf
 
 using Oceananigans.Fields: Center
 using ClimaOcean.DataWrangling: Metadata, Metadatum, metadata_path
@@ -13,7 +14,9 @@ import ClimaOcean.DataWrangling:
     all_dates,
     dataset_variable_name,
     default_download_directory,
-    absolute_latitude_bounds,
+    longitude_interfaces,
+    latitude_interfaces,
+    z_interfaces,
     metadata_filename,
     inpainted_metadata_path,
     reversed_vertical_axis,
@@ -79,15 +82,31 @@ end_date_str(dates::Vector) = last(dates) |> string
 
 dataset_variable_name(metadata::CopernicusMetadata) = copernicus_dataset_variable_names[metadata.name]
 
+bbox_strs(::Nothing) = "_nothing", "_nothing"
+
+function bbox_strs(c)
+    first = @sprintf("_%.1f", c[1])
+    second = @sprintf("_%.1f", c[2])
+    return first, second
+end
+
 function metadata_prefix(metadata::CopernicusMetadata)
     var = copernicus_dataset_variable_names[metadata.name]
     dataset = dataset_name(metadata.dataset)
     start_date = start_date_str(metadata.dates)
     end_date = end_date_str(metadata.dates)
+    bbox = metadata.bounding_box
+    if !isnothing(bbox)
+        w, e = bbox_strs(bbox.longitude)
+        s, n = bbox_strs(bbox.latitude)
+        suffix = string(w, e, s, n)
+    else
+        suffix = ""
+    end
     return string(var, "_",
                   dataset, "_",
                   start_date, "_",
-                  end_date)
+                  end_date, suffix)
 end
 
 function metadata_filename(metadata::CopernicusMetadata)
@@ -100,7 +119,6 @@ function inpainted_metadata_path(metadata::CopernicusMetadata)
     return string(prefix, "_inpainted.jld2")
 end
 
-absolute_latitude_bounds(::CopernicusMetadata) = (-80, 90)
 location(::CopernicusMetadata) = (Center, Center, Center)
 longitude_interfaces(::CopernicusMetadata) = (0, 360)
 latitude_interfaces(::CopernicusMetadata) = (-80, 90)
