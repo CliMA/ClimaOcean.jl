@@ -77,8 +77,8 @@ copernicus_dataset_variable_names = Dict(
 
 start_date_str(date) = string(date)
 end_date_str(date) = string(date)
-start_date_str(dates::Vector) = first(dates) |> string
-end_date_str(dates::Vector) = last(dates) |> string
+start_date_str(dates::AbstractVector) = first(dates) |> string
+end_date_str(dates::AbstractVector) = last(dates) |> string
 
 dataset_variable_name(metadata::CopernicusMetadata) = copernicus_dataset_variable_names[metadata.name]
 

@@ -60,8 +60,6 @@ function download_dataset(meta::CopernicusMetadata, grid=nothing; skip_existing 
     kw = with_latitude_bounds(kw, meta.bounding_box)
     kw = with_depth_bounds(kw, meta.bounding_box)
 
-    @show kw
-
     toolbox.subset(; kw..., additional_kw...)
 
     return output_path
