@@ -69,8 +69,8 @@ if test_group == :downloading || test_group == :all
 end
 
 # Tests that we can download JRA55 utilities
-if test_group == :downloading_copernicus || test_group == :all
-    include("test_downloading_copernicus.jl")
+if test_group == :copernicus_downloading || test_group == :all
+    include("test_copernicus_downloading.jl")
 end
 
 if test_group == :fluxes || test_group == :all
