@@ -58,7 +58,6 @@ function Field(metadata::Metadatum, arch=CPU();
                cache_inpainted_data = true)
 
     grid = native_grid(metadata, arch; halo)
-    @show grid
     LX, LY, LZ = location(metadata)
     field = Field{LX, LY, LZ}(grid)
 
@@ -72,8 +71,14 @@ function Field(metadata::Metadatum, arch=CPU();
             if maxiter == inpainting.maxiter
                 data = file["data"]
                 close(file)
-                copyto!(parent(field), data)
-                return field
+                try
+                    copyto!(parent(field), data)
+                    return field
+                catch
+                    @warn "Could not load existing inpainted data at $inpainted_path.\n" *
+                          "Re-inpainting and saving data..."
+                    rm(inpainted_path, force=true)
+                end
             end
 
             close(file)
@@ -137,6 +142,8 @@ function set!(target_field::Field, metadata::Metadatum; kw...)
     grid = target_field.grid
     arch = child_architecture(grid)
     meta_field = Field(metadata, arch; kw...)
+    @show meta_field
+    @show target_field
     interpolate!(target_field, meta_field)
     return target_field
 end

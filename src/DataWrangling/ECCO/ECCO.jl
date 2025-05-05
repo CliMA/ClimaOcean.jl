@@ -26,6 +26,8 @@ using KernelAbstractions: @kernel, @index
 
 using Dates: year, month, day
 
+import Oceananigans: location
+
 import ClimaOcean.DataWrangling:
     default_download_directory,
     all_dates,
