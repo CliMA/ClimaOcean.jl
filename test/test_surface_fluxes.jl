@@ -278,8 +278,10 @@ end
 
         ocean = ocean_simulation(grid; momentum_advection, tracer_advection, closure, tracers, coriolis)
 
-        T_metadata = Metadatum(:temperature, date=DateTimeProlepticGregorian(1993, 1, 1), dataset=ECCO4Monthly())
-        S_metadata = Metadatum(:salinity,    date=DateTimeProlepticGregorian(1993, 1, 1), dataset=ECCO4Monthly())
+        date = DateTimeProlepticGregorian(1993, 1, 1)
+        dataset = ECCO4Monthly()
+        T_metadata = Metadatum(:temperature; date, dataset)
+        S_metadata = Metadatum(:salinity; date, dataset)
 
         set!(ocean.model; T=T_metadata, S=S_metadata)
 
