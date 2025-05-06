@@ -185,6 +185,7 @@ function set_metadata_field!(field, data, metadatum)
         spec = :xyz
     end
 
+    data = on_architecture(arch, data)
     Oceananigans.Utils.launch!(arch, grid, spec, _kernel, field, data, mangling, temp_units)
 
     return nothing
