@@ -65,9 +65,6 @@ function update_stats!(stats::FluxStatistics, flux, iteration)
     grid = flux.grid
     arch = architecture(grid)
     launch!(arch, grid, :xy, _update_stats!, stats, flux, iteration)
-
-    parent(stats.std) .= sqrt.(parent(stats.meansq) .- parent(stats.mean).^2)
-
     return nothing
 end
 
@@ -77,13 +74,15 @@ end
     inverse_iteration = 1 / (iteration + 1)
 
     # use iterative averaging via
-    # mean = mean * (1 - 1/iteration) + xn / iteration
+    # mean_n = (x1 + ... + xn) / n ->
+    # -> mean_{n+1} = mean_n * (1 - 1/(n+1)) * x_{n+1} / (n+1)
     @inbounds begin
         f = flux[i, j, 1]
         stats.mean[i, j, 1] *= 1 - inverse_iteration
         stats.mean[i, j, 1] += f * inverse_iteration
         stats.meansq[i, j, 1] *= 1 - inverse_iteration
         stats.meansq[i, j, 1] += f^2 * inverse_iteration
+        stats.std[i, j, 1] = sqrt(stats.meansq[i, j, 1] - stats.mean[i, j, 1]^2)
         stats.max[i, j, 1] = max(stats.max[i, j, 1], f)
         stats.min[i, j, 1] = min(stats.min[i, j, 1], f)
     end
