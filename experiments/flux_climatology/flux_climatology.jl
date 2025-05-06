@@ -49,8 +49,6 @@ function FluxStatistics(f::Field)
     return FluxStatistics(mean, meansq, std, max, min)
 end
 
-compute_std!(f::FluxStatistics) = parent(f.std) .= sqrt.(parent(f.meansq) .- parent(f.mean).^2)
-
 Adapt.adapt_structure(to, f::FluxStatistics) = FluxStatistics(Adapt.adapt(to, f.mean),
                                                               Adapt.adapt(to, f.meansq),
                                                               Adapt.adapt(to, f.std),
@@ -67,6 +65,10 @@ function update_stats!(stats::FluxStatistics, flux, iteration)
     grid = flux.grid
     arch = architecture(grid)
     launch!(arch, grid, :xy, _update_stats!, stats, flux, iteration)
+
+    parent(stats.std) .= sqrt.(parent(stats.meansq) .- parent(stats.mean).^2)
+
+    return nothing
 end
 
 @kernel function _update_stats!(stats, flux, iteration)
@@ -74,6 +76,8 @@ end
 
     inverse_iteration = 1 / (iteration + 1)
 
+    # use iterative averaging via
+    # mean = mean * (1 - 1/iteration) + xn / iteration
     @inbounds begin
         f = flux[i, j, 1]
         stats.mean[i, j, 1] *= 1 - inverse_iteration
@@ -117,13 +121,6 @@ function compute_flux_climatology(earth)
     add_callback!(earth, update_flux_stats!, IterationInterval(1))
 
     run!(earth)
-
-    compute_std!(τx)
-    compute_std!(τy)
-    compute_std!(Jᵀ)
-    compute_std!(Jˢ)
-    update_stats!(Qc)
-    update_stats!(Qv)
 
     return stats
 end
