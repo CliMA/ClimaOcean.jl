@@ -20,6 +20,8 @@ using KernelAbstractions: @kernel, @index
 using Oceananigans.DistributedComputations
 using Adapt
 
+const dataset_defaults = Oceananigans.Defaults(FloatType=Float32)
+
 #####
 ##### Downloading utilities
 #####
