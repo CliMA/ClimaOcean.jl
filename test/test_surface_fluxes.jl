@@ -44,7 +44,7 @@ end
                                  momentum_advection = nothing,
                                  tracer_advection = nothing,
                                  closure = nothing,
-                                 bottom_drag_coefficient = 0.0)
+                                 bottom_drag_coefficient = 0)
 
         dates = all_dates(RepeatYearJRA55(), :temperature)
         atmosphere = JRA55PrescribedAtmosphere(arch, Float64; end_date=dates[2], backend = InMemory())
@@ -291,9 +291,6 @@ end
         sea_ice    = nothing
 
         coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-
-        @show coupled_model.sea_ice
-
         times = 0:1hours:1days
         Ntimes = length(times)
 

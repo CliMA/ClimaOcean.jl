@@ -142,8 +142,6 @@ function set!(target_field::Field, metadata::Metadatum; kw...)
     grid = target_field.grid
     arch = child_architecture(grid)
     meta_field = Field(metadata, arch; kw...)
-    @show meta_field
-    @show target_field
     interpolate!(target_field, meta_field)
     return target_field
 end

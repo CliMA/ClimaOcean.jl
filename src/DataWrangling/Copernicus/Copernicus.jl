@@ -19,9 +19,7 @@ import ClimaOcean.DataWrangling:
     z_interfaces,
     metadata_filename,
     inpainted_metadata_path,
-    reversed_vertical_axis,
-    mangle_data,
-    z_interfaces
+    reversed_vertical_axis
 
 using Scratch
 

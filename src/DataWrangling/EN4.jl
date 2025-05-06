@@ -45,7 +45,6 @@ import ClimaOcean.DataWrangling:
     z_interfaces,
     longitude_interfaces,
     latitude_interfaces,
-    empty_field,
     is_three_dimensional,
     inpainted_metadata_path
 
@@ -165,7 +164,7 @@ is_three_dimensional(::EN4Metadata) = true
 
 ## This function is explicitly for the downloader to check if the zip file/extracted file exists,
 ## then to download the relevant URL (from above)
-function metadata_zippath(m::EN4Metadata) where V<:EN4Monthly
+function metadata_zippath(m::EN4Metadata)
     year = string(Dates.year(m.dates))
     month = string(Dates.month(m.dates))
     zippath = joinpath(m.dir, "EN4_" * year * ".zip")
