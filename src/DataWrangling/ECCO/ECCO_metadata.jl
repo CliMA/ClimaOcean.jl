@@ -125,11 +125,11 @@ ECCO4_short_names = Dict(
     :sea_ice_thickness     => "SIheff",
     :sea_ice_concentration => "SIarea",
     :net_heat_flux         => "oceQnet",
-    :downwelling_shortwave => "oceQsw",
     :sensible_heat_flux    => "EXFhs",
     :latent_heat_flux      => "EXFhl",
-    :downwelling_longwave  => "EXFlwdn",
     :upwelling_longwave    => "EXFlwnet"
+    :downwelling_shortwave => "oceQsw",
+    :downwelling_longwave  => "EXFlwdn",
 )
 
 ECCO2_short_names = Dict(
@@ -150,11 +150,11 @@ ECCO_location = Dict(
     :sea_ice_thickness     => (Center, Center, Nothing),
     :sea_ice_concentration => (Center, Center, Nothing),
     :net_heat_flux         => (Center, Center, Nothing),
-    :downwelling_shortwave => (Center, Center, Nothing),
     :sensible_heat_flux    => (Center, Center, Nothing),
     :latent_heat_flux      => (Center, Center, Nothing),
-    :downwelling_longwave  => (Center, Center, Nothing),
     :upwelling_longwave    => (Center, Center, Nothing),
+    :downwelling_longwave  => (Center, Center, Nothing),
+    :downwelling_shortwave => (Center, Center, Nothing),
     :u_velocity            => (Face,   Center, Center),
     :v_velocity            => (Center, Face,   Center),
 )    
