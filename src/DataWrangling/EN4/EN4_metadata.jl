@@ -1,6 +1,6 @@
 using CFTime
 using ClimaOcean.DataWrangling
-using ClimaOcean.DataWrangling: AnyDateTime, Celsius, Kelvin
+using ClimaOcean.DataWrangling: AnyDateTime
 using Dates
 using Downloads
 using Oceananigans.DistributedComputations

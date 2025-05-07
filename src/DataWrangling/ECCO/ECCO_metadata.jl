@@ -2,8 +2,7 @@ using CFTime
 using Dates
 using Downloads
 using ClimaOcean.DataWrangling
-using ClimaOcean.DataWrangling: netrc_downloader, metadata_path, AnyDateTime,
-                                Celsius, Kelvin
+using ClimaOcean.DataWrangling: netrc_downloader, metadata_path, AnyDateTime
 using Oceananigans.DistributedComputations
 
 import Base
