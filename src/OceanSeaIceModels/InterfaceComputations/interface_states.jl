@@ -299,8 +299,10 @@ end
     ϵ = interface_properties.radiation.ϵ
     α = interface_properties.radiation.α
 
+    Qs = downwelling_radiation.Qs
+    Qℓ = downwelling_radiation.Qℓ
     Qu = upwelling_radiation(Tₛ⁻, σ, ϵ)
-    Qd = net_downwelling_radiation(downwelling_radiation, α, ϵ)
+    Qd = net_downwelling_radiation(Qs, Qℓ, α, ϵ)
 
     u★ = interface_state.u★
     θ★ = interface_state.θ★

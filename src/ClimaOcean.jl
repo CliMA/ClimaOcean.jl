@@ -53,21 +53,20 @@ const SKOFTS = SomeKindOfFieldTimeSeries
 @inline stateindex(a::AbstractArray, i, j, k, args...) = @inbounds a[i, j, k]
 @inline stateindex(a::SKOFTS, i, j, k, grid, time, args...) = @inbounds a[i, j, k, time]
 
-@inline function stateindex(a::Function, i, j, k, grid, time, loc)
-    LX, LY, LZ = loc
+@inline function stateindex(a::Function, i, j, k, grid, time, (LX, LY, LZ), args...)
     λ, φ, z = node(i, j, k, grid, LX(), LY(), LZ())
     return a(λ, φ, z, time)
 end
 
-@inline function stateindex(a::Tuple, i, j, k, grid, time)
+@inline function stateindex(a::Tuple, i, j, k, grid, time, args...)
     N = length(a)
     ntuple(Val(N)) do n
-        stateindex(a[n], i, j, k, grid, time)
+        stateindex(a[n], i, j, k, grid, time, args...)
     end
 end
 
-@inline function stateindex(a::NamedTuple, i, j, k, grid, time)
-    vals = stateindex(values(a), i, j, k, grid, time)
+@inline function stateindex(a::NamedTuple, i, j, k, grid, time, args...)
+    vals = stateindex(values(a), i, j, k, grid, time, args...)
     names = keys(a)
     return NamedTuple{names}(vals)
 end
