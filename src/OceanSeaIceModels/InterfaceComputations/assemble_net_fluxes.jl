@@ -103,9 +103,16 @@ end
     α = stateindex(atmos_ocean_properties.radiation.α, i, j, kᴺ, grid, time)
     ϵ = stateindex(atmos_ocean_properties.radiation.ϵ, i, j, kᴺ, grid, time)
     Qu = upwelling_radiation(Tₛ, σ, ϵ)
-    Qr = (; Qs, Qℓ)
-    Qd = net_downwelling_radiation(Qr, α, ϵ)
-    ΣQao = Qd + Qu + Qc + Qv
+    Qdℓ = downwelling_longwave_radiation(Qℓ, ϵ)
+    Qds = downwelling_shortwave_radiation(Qs, α)
+    ΣQao = Qu + Qc + Qv + Qdℓ + Qds
+
+    @inbounds begin
+        # Write radiative components of the heat flux for diagnostic purposes
+        atmos_ocean_fluxes.upwelling_longwave[i, j, 1] = Qu
+        atmos_ocean_fluxes.downwelling_longwave[i, j, 1] = Qdℓ
+        atmos_ocean_fluxes.downwelling_shortwave[i, j, 1] = Qds
+    end
 
     # Convert from a mass flux to a volume flux (aka velocity)
     # by dividing with the density of freshwater.
