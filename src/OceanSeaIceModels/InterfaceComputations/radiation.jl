@@ -112,7 +112,8 @@ end
     downwelling_shortwave_radiation(i, j, k, grid, time, α, Qs) + 
     downwelling_longwave_radiation(i, j, k, grid, time, ϵ, Qℓ)
 
-# Inside the solver we lose the grid and time information 
+# Inside the solver we lose both spatial and temporal information, but the
+# radiative properties have already been computed correctly
 @inline net_downwelling_radiation(Qs, Qℓ, α, ϵ) = - (1 - α) * Qs - ϵ * Qℓ
 
 @inline upwelling_radiation(T, σ, ϵ) = σ * ϵ * T^4
