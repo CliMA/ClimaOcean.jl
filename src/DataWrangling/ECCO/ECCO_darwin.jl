@@ -14,7 +14,7 @@ ECCO_Darwin_timestep(::Metadatum{<:ECCO4DarwinMonthly}) = 3600
 ECCO_Darwin_timeref(::Metadatum{<:ECCO4DarwinMonthly}) = DateTimeProlepticGregorian(1992, 1, 1, 12, 0, 0)
 
 # File name generation specific to each Dataset dataset
-function metadata_filename(metadata::Metadatum{<:Union{ECCO2DarwinMonthly, ECCO4DarwinMonthly}})
+function metadata_filename(metadata::Metadatum{<:ECCO4DarwinMonthly})
     shortname = short_name(metadata)
     
     reference_date = ECCO_Darwin_timeref(metadata)
