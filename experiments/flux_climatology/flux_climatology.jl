@@ -26,6 +26,7 @@ ClimaOcean.DataWrangling.dataset_defaults.FloatType = Float64
 #####
 
 struct FluxStatistics{F}
+    flux :: F
     mean :: F
     meansq :: F
     std :: F
@@ -46,29 +47,31 @@ function FluxStatistics(f::Field)
     fill!(max, 0)
     fill!(min, 0)
 
-    return FluxStatistics(mean, meansq, std, max, min)
+    return FluxStatistics(f, mean, meansq, std, max, min)
 end
 
-Adapt.adapt_structure(to, f::FluxStatistics) = FluxStatistics(Adapt.adapt(to, f.mean),
+Adapt.adapt_structure(to, f::FluxStatistics) = FluxStatistics(Adapt.adapt(to, f.flux),
+                                                              Adapt.adapt(to, f.mean),
                                                               Adapt.adapt(to, f.meansq),
                                                               Adapt.adapt(to, f.std),
                                                               Adapt.adapt(to, f.max),
                                                               Adapt.adapt(to, f.min))
 
-on_architecture(arch, f::FluxStatistics) = FluxStatistics(on_architecture(arch, f.mean),
+on_architecture(arch, f::FluxStatistics) = FluxStatistics(on_architecture(arch, f.flux),
+                                                          on_architecture(arch, f.mean),
                                                           on_architecture(arch, f.meansq),
                                                           on_architecture(arch, f.std),
                                                           on_architecture(arch, f.max),
                                                           on_architecture(arch, f.min))
 
-function update_stats!(stats::FluxStatistics, flux, iteration)
+function update_stats!(stats::FluxStatistics, iteration)
     grid = flux.grid
     arch = architecture(grid)
-    launch!(arch, grid, :xy, _update_stats!, stats, flux, iteration)
+    launch!(arch, grid, :xy, _update_stats!, stats, iteration)
     return nothing
 end
 
-@kernel function _update_stats!(stats, flux, iteration)
+@kernel function _update_stats!(stats, iteration)
     i, j = @index(Global, NTuple)
 
     inverse_iteration = 1 / (iteration + 1)
@@ -77,7 +80,7 @@ end
     # mean_n = (x1 + ... + xn) / n ->
     # -> mean_{n+1} = mean_n * (1 - 1/(n+1)) * x_{n+1} / (n+1)
     @inbounds begin
-        f = flux[i, j, 1]
+        f = stats.flux[i, j, 1]
         stats.mean[i, j, 1] *= 1 - inverse_iteration
         stats.mean[i, j, 1] += f * inverse_iteration
         stats.meansq[i, j, 1] *= 1 - inverse_iteration
@@ -107,12 +110,12 @@ function compute_flux_climatology(earth)
 
     function update_flux_stats!(earth)
         iteration = earth.model.clock.iteration
-        update_stats!(τx, net_fluxes.u, iteration)
-        update_stats!(τy, net_fluxes.v, iteration)
-        update_stats!(Jᵀ, net_fluxes.T, iteration)
-        update_stats!(Jˢ, net_fluxes.S, iteration)
-        update_stats!(Qc, atmos_ocean_fluxes.sensible_heat, iteration)
-        update_stats!(Qv, atmos_ocean_fluxes.latent_heat, iteration)
+        update_stats!(τx, iteration)
+        update_stats!(τy, iteration)
+        update_stats!(Jᵀ, iteration)
+        update_stats!(Jˢ, iteration)
+        update_stats!(Qc, iteration)
+        update_stats!(Qv, iteration)
 
         return nothing
     end
