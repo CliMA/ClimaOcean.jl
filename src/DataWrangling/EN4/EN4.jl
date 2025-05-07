@@ -24,7 +24,7 @@ using Adapt
 using Scratch
 
 import ClimaOcean.DataWrangling: vertical_interfaces, empty_field, variable_is_three_dimensional,
-                                 inpainted_metadata_path, longitude_shift, maybe_massage_data
+                                 inpainted_metadata_path, longitude_shift, enforce_data_conventions
 
 download_EN4_cache::String = ""
 function __init__()
@@ -94,11 +94,7 @@ end
 
 inpainted_metadata_path(metadata::EN4Metadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
 
-function maybe_massage_data(metadata::Metadata{<:EN4Monthly}, data) 
-    if metadata.name == :temperature
-        data = data .- 273.15 # Convert from Kelvin to Celsius
-    end
-    return data
-end
+# The EN4 dataset is in Kelvin, so we need to convert it to Celsius.
+enforce_data_conventions(data, ::EN4Monthly, ::Val{:temperature}) = data .- 273.15 
 
 end # Module
