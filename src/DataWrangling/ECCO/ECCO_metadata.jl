@@ -127,7 +127,7 @@ ECCO4_short_names = Dict(
     :net_heat_flux         => "oceQnet",
     :sensible_heat_flux    => "EXFhs",
     :latent_heat_flux      => "EXFhl",
-    :upwelling_longwave    => "EXFlwnet"
+    :upwelling_longwave    => "EXFlwnet",
     :downwelling_shortwave => "oceQsw",
     :downwelling_longwave  => "EXFlwdn",
 )
