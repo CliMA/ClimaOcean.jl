@@ -25,7 +25,7 @@ using Scratch
 
 import ClimaOcean.DataWrangling: vertical_interfaces, variable_is_three_dimensional,
                                  shift_longitude_to_0_360, inpainted_metadata_path,
-                                 longitude_shift
+                                 longitude_shift, maybe_massage_data
 
 download_ECCO_cache::String = ""
 function __init__()
@@ -34,6 +34,7 @@ end
 
 include("ECCO_metadata.jl")
 include("ECCO_mask.jl")
+include("ECCO_atmosphere.jl")
 
 const SomeECCODataset = Union{ECCO2Monthly, ECCO4Monthly, ECCO2Daily}
 
@@ -104,5 +105,12 @@ function inpainted_metadata_filename(metadata::ECCOMetadata)
 end
 
 inpainted_metadata_path(metadata::ECCOMetadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
+
+function maybe_massage_data(metadata::Metadata{<:ECCO4Monthly}, data) 
+    if metadata.name == :downwelling_longwave || metadata.name == :downwelling_shortwave
+        data = - data
+    end
+    return data
+end
 
 end # Module

@@ -24,7 +24,7 @@ using Adapt
 using Scratch
 
 import ClimaOcean.DataWrangling: vertical_interfaces, empty_field, variable_is_three_dimensional,
-                                 inpainted_metadata_path, longitude_shift
+                                 inpainted_metadata_path, longitude_shift, maybe_massage_data
 
 download_EN4_cache::String = ""
 function __init__()
@@ -93,5 +93,12 @@ function inpainted_metadata_filename(metadata::EN4Metadata)
 end
 
 inpainted_metadata_path(metadata::EN4Metadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
+
+function maybe_massage_data(metadata::Metadata{<:EN4Monthly}, data) 
+    if metadata.name == :temperature
+        data = data .- 273.15 # Convert from Kelvin to Celsius
+    end
+    return data
+end
 
 end # Module

@@ -39,6 +39,11 @@ function default_inpainting(metadata)
     end
 end
 
+# Will be extended by the metadata of choice to
+# make sure the data is in the right format and follows the
+# ClimaOcean conventions.
+maybe_massage_data(metadata, data) = data
+
 """
     Field(metadata::Metadatum;
           architecture = CPU(),
@@ -103,10 +108,7 @@ function Field(metadata::Metadatum;
         Array{FT}(data)
     end
 
-    if metadata.name == :temperature && dataset_temperature_units(metadata) isa Kelvin
-        data[data .!= FT(1e10)] .-= FT(273.15) # convert to Celsius
-    end
-
+    data = maybe_massage_data(metadata, data)
     data = shift_longitude_to_0_360(data, metadata)
 
     set!(field, data)
