@@ -97,4 +97,3 @@ end
 @inline downwelling_shortwave_radiation(Qs, α) = - (1 - α) * Qs 
 
 @inline net_downwelling_radiation(i, j, grid, time, α, ϵ, Qs, Qℓ) = downwelling_shortwave_radiation(Qs, α) + downwelling_longwave_radiation(Qℓ, ϵ)
-@inline net_downwelling_radiation(r, α, ϵ) = downwelling_shortwave_radiation(r.Qs, α) + downwelling_longwave_radiation(r.Qℓ, ϵ)
