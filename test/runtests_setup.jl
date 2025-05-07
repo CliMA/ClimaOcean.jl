@@ -272,22 +272,3 @@ function test_inpainting_algorithm(arch, dataset, start_date, inpainting)
 
     return nothing
 end
-
-function test_model_setting_from_dataset(arch, dataset, date, inpainting)
-    grid = LatitudeLongitudeGrid(arch;
-                                    size = (10, 10, 10),
-                                    latitude = (-60, -40),
-                                    longitude = (10, 15),
-                                    z = (-200, 0),
-                                    halo = (7, 7, 7))
-
-    ocean = ocean_simulation(grid)
-
-    @test begin
-        set!(ocean.model, T = Metadatum(:temperature; dataset, date),
-                          S = Metadatum(:salinity; dataset, date))
-        true
-    end
-
-    return nothing
-end

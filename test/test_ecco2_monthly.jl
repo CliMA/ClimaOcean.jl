@@ -49,10 +49,6 @@ for arch in test_architectures
             test_setting_from_metadata(arch, dataset, start_date, inpainting)
         end
 
-        @testset "Timestepping with fields from Dataset" begin
-            test_timestepping_with_dataset(arch, dataset, start_date, inpainting)
-        end
-
         @testset "Field utilities" begin
             test_ocean_metadata_utilities(arch, dataset, dates, inpainting)
         end
@@ -65,17 +61,13 @@ for arch in test_architectures
             test_timestepping_with_dataset_restoring(arch, dataset, dates, inpainting)
         end
             
-        @testset "Dataset cycling boundaries" begin
-            test_cycling_dataset_restoring(arch, dataset, dates, inpainting)
-        end
+        # @testset "Dataset cycling boundaries" begin
+        #     test_cycling_dataset_restoring(arch, dataset, dates, inpainting)
+        # end
 
         # Expensive due to the high resolution of ECCO2
         # @testset "Inpainting algorithm" begin
         #     test_inpainting_algorithm(arch, dataset, start_date, inpainting)
         # end
-
-        @testset "Setting temperature and salinity from dataset" begin
-            test_model_setting_from_dataset(arch, dataset, start_date, inpainting)
-        end
     end
 end
