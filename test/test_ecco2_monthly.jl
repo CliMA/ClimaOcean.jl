@@ -66,7 +66,7 @@ for arch in test_architectures
         end
             
         @testset "Dataset cycling boundaries" begin
-            test_cycling_dataset_restoring(arch, dataset, dates, start_date, end_date, inpainting)
+            test_cycling_dataset_restoring(arch, dataset, dates, inpainting)
         end
 
         # Expensive due to the high resolution of ECCO2
