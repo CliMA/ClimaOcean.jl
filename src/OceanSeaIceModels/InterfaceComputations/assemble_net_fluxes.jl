@@ -102,7 +102,7 @@ end
     σ = atmos_ocean_properties.radiation.σ
     α = atmos_ocean_properties.radiation.α
     ϵ = atmos_ocean_properties.radiation.ϵ
-    Qu  = upwelling_radiation(i, j, kᴺ, grid, time, T, σ, ϵ) 
+    Qu  = upwelling_radiation(i, j, kᴺ, grid, time, Tₛ, σ, ϵ) 
     Qdℓ = downwelling_longwave_radiation(i, j, kᴺ, grid, time, ϵ, Qℓ)
     Qds = downwelling_shortwave_radiation(i, j, kᴺ, grid, time, α, Qs)
     ΣQao = Qu + Qc + Qv + Qdℓ + Qds
