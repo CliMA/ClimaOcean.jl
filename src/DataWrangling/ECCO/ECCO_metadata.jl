@@ -10,7 +10,7 @@ import Base
 import Dates: year, month, day
 import Oceananigans.Fields: location
 import ClimaOcean.DataWrangling: all_dates, metadata_filename, download_dataset,
-                                 default_download_directory, dataset_temperature_units,
+                                 default_download_directory,
                                  short_name, dataset_latitude_extent
 
 struct ECCO2Monthly end
@@ -105,8 +105,6 @@ short_name(data::Metadata{<:ECCO2Monthly}) = ECCO2_short_names[data.name]
 short_name(data::Metadata{<:ECCO4Monthly}) = ECCO4_short_names[data.name]
 
 location(data::ECCOMetadata) = ECCO_location[data.name]
-
-dataset_temperature_units(data::ECCOMetadata) = Celsius()
 
 dataset_latitude_extent(data::ECCOMetadatum) = (-90, 90)
 

@@ -12,7 +12,7 @@ import Base
 import Oceananigans.Fields: location
 import ClimaOcean.DataWrangling: all_dates, metadata_filename, download_dataset,
                                  default_download_directory, metadata_path,
-                                 dataset_temperature_units, short_name, dataset_latitude_extent
+                                 short_name, dataset_latitude_extent
 
 struct EN4Monthly end
 
@@ -65,8 +65,6 @@ end
 short_name(data::Metadata{<:EN4Monthly}) = EN4_short_names[data.name]
 
 location(data::EN4Metadata) = EN4_location[data.name]
-
-dataset_temperature_units(data::Metadata{<:EN4Monthly}) = Kelvin()
 
 dataset_latitude_extent(data::Metadata{<:EN4Monthly, <:Any}) = (-83.5, 89.5)
 
