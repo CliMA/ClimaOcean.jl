@@ -46,8 +46,8 @@ end
 
 Base.show(io::IO, α::LatitudeDependentAlbedo) = print(io, summary(α))
 
-@inline function stateindex(α::LatitudeDependentAlbedo, i, j, k, grid, time, loc, args...)
-    φ = ηnode(i, j, k, grid, instantiate.(loc))
+@inline function stateindex(α::LatitudeDependentAlbedo, i, j, k, grid, time, (LX, LY, LZ), args...)
+    φ = ηnode(i, j, k, grid, LX(), LY(), LZ())
     α₀ = α.diffuse
     α₁ = α.direct
     return α₀ - α₁ * hack_cosd(2φ)

@@ -53,8 +53,7 @@ const SKOFTS = SomeKindOfFieldTimeSeries
 @inline stateindex(a::AbstractArray, i, j, k, args...) = @inbounds a[i, j, k]
 @inline stateindex(a::SKOFTS, i, j, k, grid, time, args...) = @inbounds a[i, j, k, time]
 
-@inline function stateindex(a::Function, i, j, k, grid, time, loc)
-    LX, LY, LZ = loc
+@inline function stateindex(a::Function, i, j, k, grid, time, (LX, LY, LZ), args...)
     λ, φ, z = node(i, j, k, grid, LX(), LY(), LZ())
     return a(λ, φ, z, time)
 end
