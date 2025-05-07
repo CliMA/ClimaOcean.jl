@@ -108,6 +108,7 @@ end
     ΣQao = Qu + Qc + Qv + Qdℓ + Qds
 
     @inbounds begin
+        # Write radiative components of the heat flux for diagnostic purposes
         atmos_ocean_fluxes.upwelling_longwave[i, j, 1] = Qu
         atmos_ocean_fluxes.downwelling_longwave[i, j, 1] = Qdℓ
         atmos_ocean_fluxes.downwelling_shortwave[i, j, 1] = Qds
