@@ -160,37 +160,6 @@ function PrescribedOcean(timeseries;
     PrescribedOcean(architecture(grid), grid, clock, (; u, v, w=ZeroField()), (; T, S), timeseries)
 end
 
-# ...with prescribed velocity and tracer fields
-dataset = ECCO4Monthly()
-arch    = CPU()
-
-start_date = DateTime(1992, 1, 1)
-end_date   = DateTime(1992, 1, 2)
-
-stop_time = Day(end_date - start_date).value * Oceananigans.Units.days 
-
-time_indices_in_memory = 13
-
-u_meta = Metadata(:u_velocity;  start_date, end_date, dataset)
-v_meta = Metadata(:v_velocity;  start_date, end_date, dataset)
-T_meta = Metadata(:temperature; start_date, end_date, dataset)
-S_meta = Metadata(:salinity;    start_date, end_date, dataset)
-
-u = FieldTimeSeries(u_meta, arch; time_indices_in_memory)
-v = FieldTimeSeries(v_meta, arch; time_indices_in_memory)
-T = FieldTimeSeries(T_meta, arch; time_indices_in_memory)
-S = FieldTimeSeries(S_meta, arch; time_indices_in_memory)
-
-grid = u.grid
-
-ocean_model = PrescribedOcean((; u, v, T, S); grid)
-ocean = Simulation(ocean_model; Δt=3hours, stop_time)
-
-set!(ocean_model.tracers.T,    first(T_meta))
-set!(ocean_model.tracers.S,    first(S_meta))
-set!(ocean_model.velocities.u, first(u_meta))
-set!(ocean_model.velocities.v, first(v_meta))
-
 #####
 ##### Need to extend a couple of methods
 #####
@@ -221,17 +190,52 @@ reference_density(ocean::Simulation{<:PrescribedOcean}) = 1025.6
 heat_capacity(ocean::Simulation{<:PrescribedOcean}) = 3995.6
 
 #####
+##### A prescribed ocean...
+#####
+
+# ...with prescribed velocity and tracer fields
+dataset = ECCO4Monthly()
+arch    = CPU()
+
+start_date = DateTime(1992, 1,  1)
+end_date   = DateTime(1992, 12, 1)
+
+stop_time = Day(end_date - start_date).value * Oceananigans.Units.days 
+
+time_indices_in_memory = 12
+
+u_meta = Metadata(:u_velocity;  start_date, end_date, dataset)
+v_meta = Metadata(:v_velocity;  start_date, end_date, dataset)
+T_meta = Metadata(:temperature; start_date, end_date, dataset)
+S_meta = Metadata(:salinity;    start_date, end_date, dataset)
+
+u = FieldTimeSeries(u_meta, arch; time_indices_in_memory)
+v = FieldTimeSeries(v_meta, arch; time_indices_in_memory)
+T = FieldTimeSeries(T_meta, arch; time_indices_in_memory)
+S = FieldTimeSeries(S_meta, arch; time_indices_in_memory)
+
+grid = u.grid
+
+ocean_model = PrescribedOcean((; u, v, T, S); grid)
+ocean = Simulation(ocean_model; Δt=3hours, stop_time)
+
+set!(ocean_model.tracers.T,    first(T_meta))
+set!(ocean_model.tracers.S,    first(S_meta))
+set!(ocean_model.velocities.u, first(u_meta))
+set!(ocean_model.velocities.v, first(v_meta))
+
+#####
 ##### A prescribed atmosphere...
 #####
 
-atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(1000))
+atmosphere = ClimaOcean.ECCO.ECCOPrescribedAtmosphere(arch; start_date, end_date, time_indices_in_memory, dataset)
 
 #####
 ##### A prescribed earth...
-#####
+#####         
 
 earth_model = OceanSeaIceModel(ocean, nothing; atmosphere, radiation = Radiation(arch))
-earth = Simulation(earth_model; Δt=3hours, stop_time)
+earth = Simulation(earth_model; Δt=5days, stop_time)
 
 wall_time = Ref(time_ns())
 
@@ -266,14 +270,14 @@ function progress(sim)
     wall_time[] = time_ns()
 end
 
-add_callback!(earth, progress, IterationInterval(16))
+add_callback!(earth, progress, IterationInterval(10))
 
 stats = compute_flux_climatology(earth)
 
 Qtecco = Metadata(:net_heat_flux; start_date, end_date, dataset)
 Qcecco = Metadata(:sensible_heat_flux; start_date, end_date, dataset)
 Qvecco = Metadata(:latent_heat_flux; start_date, end_date, dataset)
-Qℓecco = Metadata(:upwelling_longwave; start_date, end_date, dataset)
+Qℓecco = Metadata(:net_longwave; start_date, end_date, dataset)
 Qsecco = Metadata(:downwelling_shortwave; start_date, end_date, dataset)
 
 Qℓecco = FieldTimeSeries(Qℓecco, arch; time_indices_in_memory)

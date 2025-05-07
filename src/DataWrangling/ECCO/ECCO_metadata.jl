@@ -130,6 +130,12 @@ ECCO4_short_names = Dict(
     :net_longwave          => "EXFlwnet",
     :downwelling_shortwave => "oceQsw",
     :downwelling_longwave  => "EXFlwdn",
+    :air_temperature       => "EXFatemp",
+    :air_specific_humidity => "EXFaqh",
+    :sea_level_pressure    => "EXFpress",
+    :eastward_wind         => "EXFewind",
+    :northward_wind        => "EXFnwind",
+    :rain_freshwater_flux  => "EXFpreci",
 )
 
 ECCO2_short_names = Dict(
@@ -146,6 +152,8 @@ ECCO2_short_names = Dict(
 ECCO_location = Dict(
     :temperature           => (Center, Center, Center),
     :salinity              => (Center, Center, Center),
+    :u_velocity            => (Face,   Center, Center),
+    :v_velocity            => (Center, Face,   Center),
     :free_surface          => (Center, Center, Nothing),
     :sea_ice_thickness     => (Center, Center, Nothing),
     :sea_ice_concentration => (Center, Center, Nothing),
@@ -155,8 +163,12 @@ ECCO_location = Dict(
     :net_longwave          => (Center, Center, Nothing),
     :downwelling_longwave  => (Center, Center, Nothing),
     :downwelling_shortwave => (Center, Center, Nothing),
-    :u_velocity            => (Face,   Center, Center),
-    :v_velocity            => (Center, Face,   Center),
+    :air_temperature       => (Center, Center, Nothing),
+    :air_specific_humidity => (Center, Center, Nothing),
+    :sea_level_pressure    => (Center, Center, Nothing),
+    :eastward_wind         => (Center, Center, Nothing),
+    :northward_wind        => (Center, Center, Nothing),
+    :rain_freshwater_flux  => (Center, Center, Nothing),
 )    
 
 # URLs for the ECCO datasets specific to each dataset
@@ -206,4 +218,27 @@ function download_dataset(metadata::ECCOMetadata)
     end
 
     return nothing
+end
+
+
+function set!(field::Field, metadata::ECCOMetadatum; kw...)
+
+    # Fields initialized from metadata.dataset
+    grid = field.grid
+    arch = child_architecture(grid)
+    mask = dataset_mask(metadata, arch)
+
+    f = Field(metadata; mask,
+              architecture = arch,
+              kw...)
+
+    if metadata.name == :downwelling_longwave || 
+       metadata.name == :downwelling_shortwave 
+        # ECCO4 data is in W/m2, convert to K/day
+        f.data .= .- f.data
+    end
+
+    interpolate!(field, f)
+    
+    return field
 end

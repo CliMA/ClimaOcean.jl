@@ -74,7 +74,8 @@ function set!(fts::DatasetFieldTimeSeries)
         metadatum = @inbounds backend.metadata[t]
         set!(fts[t], metadatum; inpainting, cache_inpainted_data=cache_data)
     end
- fill_halo_regions!(fts)
+    
+    fill_halo_regions!(fts)
 
     return nothing
 end

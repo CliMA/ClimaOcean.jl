@@ -211,7 +211,6 @@ end
 ##### Utility for interpolating tuples of fields
 #####
 
-# Note: assumes loc = (c, c, nothing) (and the third location should not matter.)
 @inline interp_atmos_time_series(J::AbstractArray, x_itp::FractionalIndices, t_itp, args...) =
     interpolate(x_itp, t_itp, J, args...)
 
@@ -222,8 +221,7 @@ end
     interp_atmos_time_series(values(ΣJ), args...)
 
 @inline interp_atmos_time_series(ΣJ::Tuple{<:Any}, args...) =
-    interp_atmos_time_series(ΣJ[1], args...) +
-    interp_atmos_time_series(ΣJ[2], args...)
+    interp_atmos_time_series(ΣJ[1], args...)
 
 @inline interp_atmos_time_series(ΣJ::Tuple{<:Any, <:Any}, args...) =
     interp_atmos_time_series(ΣJ[1], args...) +

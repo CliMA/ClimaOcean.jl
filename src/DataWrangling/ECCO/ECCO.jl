@@ -34,6 +34,7 @@ end
 
 include("ECCO_metadata.jl")
 include("ECCO_mask.jl")
+include("ECCO_atmosphere.jl")
 
 const SomeECCODataset = Union{ECCO2Monthly, ECCO4Monthly, ECCO2Daily}
 
