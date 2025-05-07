@@ -1,4 +1,5 @@
 using MeshArrays
+using Glob
 
 # URLs for the ECCO datasets specific to each version
 const ECCO4Darwin_url = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/LLC90/ECCO-Darwin/"
@@ -9,12 +10,15 @@ Base.size(::Metadatum{<:ECCO4DarwinMonthly})    = (720,  360, 50, 1)
 # The whole range of dates in the different dataset datasets
 all_dates(::ECCO4DarwinMonthly, name) = DateTime(1992, 1, 1) : Month(1) : DateTime(2023, 12, 1)
 
+ECCO_Darwin_timestep(::Metadatum{<:ECCO4DarwinMonthly}) = 3600
+ECCO_Darwin_timeref(::Metadatum{<:ECCO4DarwinMonthly}) = DateTimeProlepticGregorian(1992, 1, 1, 12, 0, 0)
+
 # File name generation specific to each Dataset dataset
-function metadata_filename(metadata::Metadatum{<:ECCO4DarwinMonthly})
+function metadata_filename(metadata::Metadatum{<:Union{ECCO2DarwinMonthly, ECCO4DarwinMonthly}})
     shortname = short_name(metadata)
     
-    reference_date = DateTimeProlepticGregorian(1992, 1, 1, 12, 0, 0)
-    timestep_size  = 3600
+    reference_date = ECCO_Darwin_timeref(metadata)
+    timestep_size  = ECCO_Darwin_timestep(metadata)
 
     iternum = Dates.value((metadata.dates - reference_date) / (timestep_size * 1e3))
     iterstr = string(iternum, pad=10)
@@ -69,13 +73,13 @@ ECCO_darwin_offset_factor = Dict(
 )
 
 function default_download_directory(::ECCO4DarwinMonthly)
-    path = joinpath(download_ECCO_cache, "darwin")
+    path = joinpath(download_ECCO_cache, "ecco4_darwin")
     return mkpath(path)
 end
 
 metadata_url(m::Metadata{<:ECCO4DarwinMonthly}) = ECCO4Darwin_url * "monthly/" * short_name(m) * "/" * metadata_filename(m)
 
-ECCO_darwin_native_grid(::ECCO4DarwinMonthly) = GridSpec("LatLonCap", MeshArrays.GRID_LLC90)
+ECCO_darwin_native_grid(::ECCO4DarwinMonthly) = GridSpec(ID=:LLC90)
 ECCO_darwin_native_size(::ECCO4DarwinMonthly) = (90, 1170, 50)
 
 """
@@ -94,28 +98,45 @@ function retrieve_data(metadata::Metadatum{<:ECCO4DarwinMonthly})
     meshed_data   = read(reshape(native_data, native_size...), native_grid)
     Nx, Ny, Nz, _ = size(metadata)
     data          = zeros(Float32, Nx, Ny, Nz) # Native LLC90 grid at precision of the input binary file
-
+    
     # Download the native grid data from MeshArrays repo (only if not in already in datadeps)
     native_grid_coords = GridLoad(native_grid; option="full")
 
-    # Calculate coefficients to interpolate from native grid to regular lat-lon grid (as in the ECCO netcdf files)
-    resolution_X = 360/Nx
-    resolution_Y = 180/Ny
-
-    # This is for ECCOv4 which uses a hemispheric coordinate system (-180:180), but 
-    # ECCO2 uses a circular coordinate system (0:360)
-    lon = [i for i = -180+resolution_X/2:resolution_X:180-resolution_X/2, 
-                 j = -90+resolution_Y/2:resolution_Y:90-resolution_Y/2]
-    lat = [j for i = -180+resolution_X/2:resolution_X:180-resolution_X/2, 
-                 j = -90+resolution_Y/2:resolution_Y:90-resolution_Y/2]
     
-    (f, i, j, w, _, _, _) = InterpolationFactors(native_grid_coords, vec(lon), vec(lat))
-    coeffs = (lon=lon, lat=lat, f=f, i=i, j=j, w=w)
+    # Check if the interpolation coefficients are already calculated
+    interp_file = joinpath(dirname(metadata_path(metadata)),"native_interp_coeffs.jld2")
+    if !isfile(interp_file)
+        # Calculate coefficients to interpolate from native grid to regular lat-lon grid (as in the ECCO netcdf files)
+        resolution_X = 360/Nx
+        resolution_Y = 180/Ny
+
+        # This is for ECCOv4 which uses a hemispheric coordinate system (-180:180), but 
+        # ECCO2 uses a circular coordinate system (0:360)
+        lon = [i for i = -180+resolution_X/2:resolution_X:180-resolution_X/2, 
+                     j = -90+resolution_Y/2:resolution_Y:90-resolution_Y/2]
+        lat = [j for i = -180+resolution_X/2:resolution_X:180-resolution_X/2, 
+                     j = -90+resolution_Y/2:resolution_Y:90-resolution_Y/2]
+        
+        # Interpolation factors for the native grid
+        coeffs = interpolation_setup(; Γ=native_grid_coords, lat, lon)
+
+        # Now find and rescue the interp_file for later use (it's the most recent one in the temp dir)
+        tmp_interp_file = argmax(mtime, glob("*interp_coeffs.jld2", tempdir()))
+
+        # Move the file to the right location
+        mv(tmp_interp_file, interp_file)
+        ## old way, without saving the file ##
+        #(f, i, j, w, _, _, _) = InterpolationFactors(native_grid_coords, vec(lon), vec(lat))
+        #coeffs = (lon=lon, lat=lat, f=f, i=i, j=j, w=w)
+    else
+        # Read the coefficients from the file
+        coeffs = interpolation_setup(interp_file)
+    end
 
     # Read continental mask on the native model grid 
     native_grid_fac_center = GridLoadVar("hFacC", native_grid)
 
-    # Interpolate each masked layer
+    # Interpolate each masked layer on to the native lat lon grid
     for k in 1:Nz
         i, j, c = MeshArrays.Interpolate(
             meshed_data[:, k] * land_mask(native_grid_fac_center[:, k]), 
