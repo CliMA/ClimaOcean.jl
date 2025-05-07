@@ -88,11 +88,10 @@ end
     # -> mean_{n+1} = mean_n * (1 - 1/(n+1)) * x_{n+1} / (n+1)
     @inbounds begin
         f = stats.flux[i, j, 1]
-        stats.mean[i, j, 1] *= 1 - inverse_iteration
-        stats.mean[i, j, 1] += f * inverse_iteration
+        stats.mean[i, j, 1]   *= 1 - inverse_iteration
+        stats.mean[i, j, 1]   += f * inverse_iteration
         stats.meansq[i, j, 1] *= 1 - inverse_iteration
         stats.meansq[i, j, 1] += f^2 * inverse_iteration
-        stats.std[i, j, 1] = sqrt(stats.meansq[i, j, 1] - stats.mean[i, j, 1]^2)
         stats.max[i, j, 1] = max(stats.max[i, j, 1], f)
         stats.min[i, j, 1] = min(stats.min[i, j, 1], f)
     end
@@ -112,8 +111,11 @@ function compute_flux_climatology(earth)
     atmos_ocean_fluxes = earth.model.interfaces.atmosphere_ocean_interface.fluxes
     Qc = FluxStatistics(atmos_ocean_fluxes.sensible_heat)
     Qv = FluxStatistics(atmos_ocean_fluxes.latent_heat)
+    Qu = FluxStatistics(atmos_ocean_fluxes.upwelling_longwave)
+    Qs = FluxStatistics(atmos_ocean_fluxes.downwelling_shortwave)
+    Qℓ = FluxStatistics(atmos_ocean_fluxes.downwelling_longwave)
 
-    stats = (; τx, τy, Jᵀ, Jˢ, Qc, Qv)
+    stats = (; τx, τy, Jᵀ, Jˢ, Qc, Qv, Qu, Qs, Qℓ)
 
     function update_flux_stats!(earth)
         iteration = earth.model.clock.iteration
@@ -163,9 +165,9 @@ dataset = ECCO4Monthly()
 arch    = CPU()
 
 start_date = DateTime(1992, 1, 1)
-end_date   = DateTime(1992, 12, 31)
+end_date   = DateTime(1992, 1, 2)
 
-stop_time = Day(end_date - start_date).value * Oceananigans.Units.days
+stop_time = Day(end_date - start_date).value * Oceananigans.Units.days 
 
 time_indices_in_memory = 13
 
@@ -179,10 +181,15 @@ v = FieldTimeSeries(v_meta, arch; time_indices_in_memory)
 T = FieldTimeSeries(T_meta, arch; time_indices_in_memory)
 S = FieldTimeSeries(S_meta, arch; time_indices_in_memory)
 
-grid = ECCO.ECCO_immersed_grid(arch)
+grid = u.grid
 
 ocean_model = PrescribedOcean((; u, v, T, S); grid)
 ocean = Simulation(ocean_model; Δt=3hours, stop_time)
+
+set!(ocean_model.tracers.T,    first(T_meta))
+set!(ocean_model.tracers.S,    first(S_meta))
+set!(ocean_model.velocities.u, first(u_meta))
+set!(ocean_model.velocities.v, first(v_meta))
 
 #####
 ##### Need to extend a couple of methods
@@ -262,3 +269,29 @@ end
 add_callback!(earth, progress, IterationInterval(16))
 
 stats = compute_flux_climatology(earth)
+
+Qtecco = Metadata(:net_heat_flux; start_date, end_date, dataset)
+Qcecco = Metadata(:sensible_heat_flux; start_date, end_date, dataset)
+Qvecco = Metadata(:latent_heat_flux; start_date, end_date, dataset)
+Qℓecco = Metadata(:upwelling_longwave; start_date, end_date, dataset)
+Qsecco = Metadata(:downwelling_shortwave; start_date, end_date, dataset)
+
+Qℓecco = FieldTimeSeries(Qℓecco, arch; time_indices_in_memory)
+Qtecco = FieldTimeSeries(Qtecco, arch; time_indices_in_memory)
+Qcecco = FieldTimeSeries(Qcecco, arch; time_indices_in_memory)
+Qvecco = FieldTimeSeries(Qvecco, arch; time_indices_in_memory)
+Qsecco = FieldTimeSeries(Qsecco, arch; time_indices_in_memory)
+
+Q̄tecco = Field{Center, Center, Nothing}(Qtecco.grid)
+Q̄cecco = Field{Center, Center, Nothing}(Qtecco.grid)
+Q̄vecco = Field{Center, Center, Nothing}(Qtecco.grid)
+Q̄ℓecco = Field{Center, Center, Nothing}(Qtecco.grid)
+Q̄secco = Field{Center, Center, Nothing}(Qtecco.grid)
+
+for i in 1:length(Qtecco.times)
+    Q̄tecco .+= Qtecco[i] ./ length(Qtecco.times)
+    Q̄cecco .+= Qcecco[i] ./ length(Qcecco.times)
+    Q̄vecco .+= Qvecco[i] ./ length(Qvecco.times)
+    Q̄ℓecco .+= Qℓecco[i] ./ length(Qℓecco.times)
+    Q̄secco .+= Qsecco[i] ./ length(Qsecco.times)
+end
