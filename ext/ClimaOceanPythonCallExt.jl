@@ -27,8 +27,8 @@ function download_dataset(meta::CopernicusMetadata, grid=nothing; skip_existing 
     output_directory = meta.dir
     output_filename = ClimaOcean.DataWrangling.metadata_filename(meta)
     output_path = joinpath(output_directory, output_filename)
+    rm(output_path, force=true)
     isfile(output_path) && return output_path
-    # rm(output_path, force=true)
 
     toolbox = try 
         pyimport("copernicusmarine")
@@ -37,11 +37,21 @@ function download_dataset(meta::CopernicusMetadata, grid=nothing; skip_existing 
         pyimport("copernicusmarine")
     end
 
-    variables = [
-        ClimaOcean.DataWrangling.Copernicus.copernicus_dataset_variable_names[meta.name]
-    ]
+    variable_name = ClimaOcean.DataWrangling.Copernicus.copernicus_dataset_variable_names[meta.name]
+    variables = PythonCall.pylist([variable_name])
 
     dataset_id = ClimaOcean.DataWrangling.Copernicus.copernicusmarine_dataset_id(meta.dataset)
+    datetime_kw = if meta.dataset isa ClimaOcean.DataWrangling.Copernicus.GLORYSStatic
+        NamedTuple()
+    else
+        start_datetime = ClimaOcean.DataWrangling.Copernicus.start_date_str(meta.dates)
+        end_datetime = ClimaOcean.DataWrangling.Copernicus.end_date_str(meta.dates)
+        (; start_datetime, end_datetime)
+    end
+
+    lon_kw = longitude_bounds_kw(meta.bounding_box)
+    lat_kw = latitude_bounds_kw(meta.bounding_box)
+    z_kw = depth_bounds_kw(meta.bounding_box)
 
     kw = (; coordinates_selection_method = "outside",
           skip_existing,
@@ -50,47 +60,40 @@ function download_dataset(meta::CopernicusMetadata, grid=nothing; skip_existing 
           output_filename,
           output_directory)
 
-    if !(meta.dataset isa ClimaOcean.DataWrangling.Copernicus.GLORYSStatic)
-        start_datetime = ClimaOcean.DataWrangling.Copernicus.start_date_str(meta.dates)
-        end_datetime = ClimaOcean.DataWrangling.Copernicus.end_date_str(meta.dates)
-        kw = merge(kw, (; start_datetime, end_datetime))
-    end
-
-    kw = with_longitude_bounds(kw, meta.bounding_box)
-    kw = with_latitude_bounds(kw, meta.bounding_box)
-    kw = with_depth_bounds(kw, meta.bounding_box)
-
-    toolbox.subset(; kw..., additional_kw...)
+    additional_kw = NamedTuple(name => value for (name, value) in additional_kw)
+    kw = merge(kw, datetime_kw, lon_kw, lat_kw, z_kw, additional_kw)
+    @show kw
+    toolbox.subset(; kw...)
 
     return output_path
 end
 
-with_longitude_bounds(kw, ::Nothing) = kw
-with_latitude_bounds(kw, ::Nothing) = kw
-with_depth_bounds(kw, ::Nothing) = kw
+longitude_bounds_kw(::Nothing) = NamedTuple()
+latitude_bounds_kw(::Nothing) = NamedTuple()
+depth_bounds_kw(::Nothing) = NamedTuple()
 
 const BBOX = ClimaOcean.DataWrangling.BoundingBox
 
-with_longitude_bounds(kw, bounding_box::BBOX) = with_longitude_bounds(kw, bounding_box.longitude)
-with_latitude_bounds(kw, bounding_box::BBOX) = with_latitude_bounds(kw, bounding_box.latitude)
-with_depth_bounds(kw, bounding_box::BBOX) = with_depth_bounds(kw, bounding_box.z)
+longitude_bounds_kw(bounding_box::BBOX) = longitude_bounds_kw(bounding_box.longitude)
+latitude_bounds_kw(bounding_box::BBOX) = latitude_bounds_kw(bounding_box.latitude)
+depth_bounds_kw(bounding_box::BBOX) = depth_bounds_kw(bounding_box.z)
 
-function with_longitude_bounds(kw, longitude)
+function longitude_bounds_kw(longitude)
     minimum_longitude = longitude[1]
     maximum_longitude = longitude[2]
-    return merge(kw, (; minimum_longitude, maximum_longitude))
+    return (; minimum_longitude, maximum_longitude)
 end
 
-function with_latitude_bounds(kw, latitude)
+function latitude_bounds_kw(latitude)
     minimum_latitude = latitude[1]
     maximum_latitude = latitude[2]
-    return merge(kw, (; minimum_latitude, maximum_latitude))
+    return (; minimum_latitude, maximum_latitude)
 end
 
-function with_depth_bounds(kw, z)
+function depth_bounds_kw(z)
     minimum_depth = - z[2]
     maximum_depth = - z[1]
-    return merge(kw, (; minimum_depth, maximum_depth))
+    return (; minimum_depth, maximum_depth)
 end
 
 end # module ClimaOceanPythonCallExt 
