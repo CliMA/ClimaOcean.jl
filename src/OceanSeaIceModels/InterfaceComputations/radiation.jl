@@ -91,19 +91,9 @@ function Base.show(io::IO, properties::SurfaceProperties)
 end
 
 @inline upwelling_radiation(T, σ, ϵ) = σ * ϵ * T^4
-@inline net_downwelling_radiation(i, j, k, grid, time, α, ϵ, Qs, Qℓ) = - (1 - α) * Qs - ϵ * Qℓ
+@inline net_downwelling_radiation(i, j, grid, time, α, ϵ, Qs, Qℓ) = - (1 - α) * Qs - ϵ * Qℓ
 @inline net_downwelling_radiation(r, α, ϵ) = - (1 - α) * r.Qs - ϵ * r.Qℓ
 
 # Split the individual bands
-@inline function downwelling_longwave_radiation(i, j, k, grid, time, ϵ, Qℓ) 
-    ϵi = stateindex(ϵ, i, j, k, grid, time)
-    return - ϵi * Qℓ
-end
-
-@inline function downwelling_shortwave_radiation(i, j, k, grid, time, α, Qs) = - (1 - α) * Qs
-    αi = stateindex(α, i, j, 1, grid, time)
-    return - (1 - αi) * Qs
-end
-
 @inline downwelling_longwave_radiation(Qℓ, ϵ) = - ϵ * Qℓ
 @inline downwelling_shortwave_radiation(Qs, α) = - (1 - α) * Qs 
