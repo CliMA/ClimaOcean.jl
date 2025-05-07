@@ -90,7 +90,7 @@ Keyword Arguments
 function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                 von_karman_constant = 0.4,
                                 turbulent_prandtl_number = 1,
-                                gustiness_parameter = 1,
+                                gustiness_parameter = 6.5,
                                 stability_functions = edson_stability_functions(FT),
                                 roughness_lengths = default_roughness_lengths(FT),
                                 similarity_form = LogarithmicSimilarityProfile(),
@@ -302,7 +302,7 @@ stability function for _stable_ or _unstable_ atmospheric conditions, respective
     Aˢ   :: FT = 0.35
     Bˢ   :: FT = 0.7
     Cˢ   :: FT = 0.75
-    Dˢ   :: FT = 5/0.35
+    Dˢ   :: FT = 5 / 0.35
     Aᵘ   :: FT = 15.0
     Bᵘ   :: FT = 2.0
     Cᵘ   :: FT = π/2
@@ -326,10 +326,10 @@ end
 
     ζ⁻ = min(zero(ζ), ζ)
     ζ⁺ = max(zero(ζ), ζ)
-    dζ = min(ζmax, Aˢ * ζ⁺)
+    dζ = min(ζmax, Aˢ * ζ⁺) # ok
 
     # Stability parameter for _stable_ atmospheric conditions
-    ψₛ = - (Bˢ * ζ⁺ + Cˢ * (ζ⁺ - Dˢ)) * exp(- dζ) - Cˢ * Dˢ
+    ψₛ = - Bˢ * ζ⁺ - Cˢ * (ζ⁺ - Dˢ) * exp(- dζ) - Cˢ * Dˢ
 
     # Stability parameter for _unstable_ atmospheric conditions
     fᵤ₁ = sqrt(sqrt(1 - Aᵘ * ζ⁻))
