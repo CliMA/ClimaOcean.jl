@@ -94,3 +94,6 @@ end
 @inline net_downwelling_radiation(i, j, grid, time, α, ϵ, Qs, Qℓ) = - (1 - α) * Qs - ϵ * Qℓ
 @inline net_downwelling_radiation(r, α, ϵ) = - (1 - α) * r.Qs - ϵ * r.Qℓ
 
+# Split the individual bands
+@inline downwelling_longwave_radiation(Qℓ, ϵ) = - ϵ * Qℓ
+@inline downwelling_shortwave_radiation(Qℓ, ϵ) = - (1 - α) * Qs 
