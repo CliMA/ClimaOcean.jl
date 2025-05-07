@@ -17,7 +17,7 @@ Adapt.adapt_structure(to, r :: Radiation) =  Radiation(Adapt.adapt(to, r.emissio
     Radiation([arch = CPU(), FT=Float64];
               ocean_emissivity = 0.97,
               sea_ice_emissivity = 1.0,
-              ocean_albedo = LatitudeDependentAlbedo(FT),
+              ocean_albedo = 0.05,
               sea_ice_albedo = 0.7,
               stefan_boltzmann_constant = 5.67e-8)
 
@@ -34,14 +34,14 @@ Keyword Arguments
 
 - `ocean_emissivity`: The emissivity of the ocean surface. Default: `0.97`.
 - `sea_ice_emissivity`: The emissivity of the sea ice surface. Default: `1.0`.
-- `ocean_albedo`: The albedo of the ocean surface. Default: `LatitudeDependentAlbedo(FT)`.
+- `ocean_albedo`: The albedo of the ocean surface. Default: `0.05`.
 - `sea_ice_albedo`: The albedo of the sea ice surface. Default: `0.7`.
 - `stefan_boltzmann_constant`: The Stefan-Boltzmann constant. Default: `5.67e-8`.
 """
 function Radiation(arch = CPU(), FT=Oceananigans.defaults.FloatType;
                    ocean_emissivity = 0.97,
                    sea_ice_emissivity = 1.0,
-                   ocean_albedo = LatitudeDependentAlbedo(FT),
+                   ocean_albedo = 0.05,
                    sea_ice_albedo = 0.7,
                    stefan_boltzmann_constant = 5.67e-8)
 
@@ -90,14 +90,29 @@ function Base.show(io::IO, properties::SurfaceProperties)
     print(io, "└── sea_ice: ", summary(properties.sea_ice))
 end
 
-@inline upwelling_radiation(T, σ, ϵ) = σ * ϵ * T^4
+const CCC = (Center, Center, Center)
+
+@inline function upwelling_radiation(i, j, k, grid, time, T, σ, ϵ) 
+    ϵi = stateindex(ϵ, i, j, k, grid, time, CCC)
+    return σ * ϵi * T^4
+end
 
 # Split the individual bands
-@inline downwelling_longwave_radiation(Qℓ, ϵ) = - ϵ * Qℓ
-@inline downwelling_shortwave_radiation(Qs, α) = - (1 - α) * Qs 
+@inline function downwelling_longwave_radiation(i, j, k, grid, time, ϵ, Qℓ)  
+    ϵi = stateindex(ϵ, i, j, k, grid, time, CCC)
+    return - ϵi * Qℓ
+end
 
-@inline net_downwelling_radiation(i, j, grid, time, α, ϵ, Qs, Qℓ) =
-    downwelling_shortwave_radiation(Qs, α) + downwelling_longwave_radiation(Qℓ, ϵ)
+@inline function downwelling_shortwave_radiation(i, j, k, grid, time, α, Qs)  
+    αi = stateindex(α, i, j, k, grid, time, CCC, Qs) 
+    return - (1 - αi) * Qs 
+end
 
-@inline net_downwelling_radiation(radiation, α, ϵ) =
-    downwelling_shortwave_radiation(radiation.Qs, α) + downwelling_longwave_radiation(radiation.Qℓ, ϵ)
+@inline net_downwelling_radiation(i, j, k, grid, time, α, ϵ, Qs, Qℓ) = 
+    downwelling_shortwave_radiation(i, j, k, grid, time, α, Qs) + 
+    downwelling_longwave_radiation(i, j, k, grid, time, ϵ, Qℓ)
+
+# Inside the solver we lose both spatial and temporal information, but the
+# radiative properties have already been computed correctly
+@inline net_downwelling_radiation(Qs, Qℓ, α, ϵ) = - (1 - α) * Qs - ϵ * Qℓ
+@inline upwelling_radiation(T, σ, ϵ) = σ * ϵ * T^4
