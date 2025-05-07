@@ -127,7 +127,7 @@ ECCO4_short_names = Dict(
     :net_heat_flux         => "oceQnet",
     :sensible_heat_flux    => "EXFhs",
     :latent_heat_flux      => "EXFhl",
-    :upwelling_longwave    => "EXFlwnet"
+    :net_longwave          => "EXFlwnet",
     :downwelling_shortwave => "oceQsw",
     :downwelling_longwave  => "EXFlwdn",
 )
@@ -152,7 +152,7 @@ ECCO_location = Dict(
     :net_heat_flux         => (Center, Center, Nothing),
     :sensible_heat_flux    => (Center, Center, Nothing),
     :latent_heat_flux      => (Center, Center, Nothing),
-    :upwelling_longwave    => (Center, Center, Nothing),
+    :net_longwave          => (Center, Center, Nothing),
     :downwelling_longwave  => (Center, Center, Nothing),
     :downwelling_shortwave => (Center, Center, Nothing),
     :u_velocity            => (Face,   Center, Center),

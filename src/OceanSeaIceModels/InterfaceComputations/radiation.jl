@@ -96,4 +96,4 @@ end
 
 # Split the individual bands
 @inline downwelling_longwave_radiation(Qℓ, ϵ) = - ϵ * Qℓ
-@inline downwelling_shortwave_radiation(Qℓ, ϵ) = - (1 - α) * Qs 
+@inline downwelling_shortwave_radiation(Qs, α) = - (1 - α) * Qs 
