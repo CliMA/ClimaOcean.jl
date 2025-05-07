@@ -65,9 +65,16 @@ on_architecture(arch, f::FluxStatistics) = FluxStatistics(on_architecture(arch, 
                                                           on_architecture(arch, f.min))
 
 function update_stats!(stats::FluxStatistics, iteration)
-    grid = flux.grid
+    grid = stats.flux.grid
     arch = architecture(grid)
     launch!(arch, grid, :xy, _update_stats!, stats, iteration)
+    return nothing
+end
+
+function update_stats!(stats::NamedTuple, iteration)
+    for stat in stats
+        update_stats!(stat, iteration)
+    end
     return nothing
 end
 
@@ -110,13 +117,7 @@ function compute_flux_climatology(earth)
 
     function update_flux_stats!(earth)
         iteration = earth.model.clock.iteration
-        update_stats!(τx, iteration)
-        update_stats!(τy, iteration)
-        update_stats!(Jᵀ, iteration)
-        update_stats!(Jˢ, iteration)
-        update_stats!(Qc, iteration)
-        update_stats!(Qv, iteration)
-
+        update_stats!(stats, iteration)
         return nothing
     end
 
