@@ -144,7 +144,7 @@ ECCO2_short_names = Dict(
     :free_surface          => "SSH",
     :sea_ice_thickness     => "SIheff",
     :sea_ice_concentration => "SIarea",
-    :net_heat_flux         => "oceQnet"
+    :net_heat_flux         => "oceQnet",
 )
 
 ECCO_location = Dict(
