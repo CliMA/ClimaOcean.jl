@@ -8,6 +8,7 @@ using ClimaOcean.DataWrangling: NearestNeighborInpainting, metadata_path, native
 using Dates
 using Oceananigans.Grids: topology
 using Oceananigans.OutputReaders: time_indices
+
 using Oceananigans.TimeSteppers: update_state!
 using Oceananigans.Units
 
@@ -15,8 +16,65 @@ using CUDA: @allowscalar
 
 # Inpaint only the first two cells inside the missing mask
 inpainting = NearestNeighborInpainting(2)
+start_date = DateTime(1993, 1, 1)
 
-test_datasets = test_ecco4_en4_datasets
-test_ecco_datasets = tuple((ds for ds in test_datasets if startswith(string(typeof(ds)), "ECCO"))...)
+for arch in test_architectures, dataset in test_ecco4_en4_datasets
+    A = typeof(arch)
+    D = typeof(dataset)
+    @testset "$A metadata tests for $D" begin
+        @info "Running Metadata tests for $D on $A..."
 
-include("test_ecco_en4.jl")
+        time_resolution = dataset isa ECCO2Daily ? Day(1) : Month(1)
+        end_date = start_date + 4 * time_resolution
+        dates = start_date : time_resolution : end_date
+
+        @testset "Fields utilities" begin
+            for name in (:temperature, :salinity)
+                metadata = Metadata(name; dates, dataset)
+
+                download_dataset(metadata) # just in case is not downloaded
+                for datum in metadata
+                    @test isfile(metadata_path(datum))
+                end
+
+                datum = first(metadata)
+                ψ = Field(datum, arch, inpainting=NearestNeighborInpainting(2))
+                @test ψ isa Field
+                datapath = ClimaOcean.DataWrangling.inpainted_metadata_path(datum)
+                @test isfile(datapath)
+            end
+        end
+
+        @testset "Setting a field from a dataset" begin
+            test_setting_from_metadata(arch, dataset, start_date, inpainting)
+        end
+
+        @testset "Timestepping with fields from Dataset" begin
+            test_timestepping_with_dataset(arch, dataset, start_date, inpainting)
+        end
+
+        @testset "Field utilities" begin
+            test_ocean_metadata_utilities(arch, dataset, dates, inpainting)
+        end
+
+        @testset "DatasetRestoring with LinearlyTaperedPolarMask" begin
+            test_dataset_restoring(arch, dataset, dates, inpainting)
+        end
+
+        @testset "Timestepping with DatasetRestoring" begin
+            test_timestepping_with_dataset_restoring(arch, dataset, dates, inpainting)
+        end
+            
+        @testset "Dataset cycling boundaries" begin
+            test_dataset_cycling_boundaries(arch, dataset, dates, start_date, end_date, inpainting)
+        end
+
+        @testset "Inpainting algorithm" begin
+            test_inpainting_algorithm(arch, dataset, start_date, inpainting)
+        end
+
+        @testset "Setting temperature and salinity from dataset" begin
+            test_model_setting_from_dataset(arch, dataset, start_date, inpainting)
+        end
+    end
+end

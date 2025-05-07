@@ -82,6 +82,9 @@ end
     return interpolate(X, time, data, loc, native_grid, times, backend, time_indexing)
 end
 
+default_time_indices_in_memory(metadata) = min(2, length(metadata))
+default_time_indices_in_memory(::Metadatum) = 1
+
 """
     DatasetRestoring(metadata::Metadata,
                      arch_or_grid = CPU();
@@ -141,7 +144,7 @@ function DatasetRestoring(metadata::Metadata,
                           arch_or_grid = CPU();
                           rate,
                           mask = 1,
-                          time_indices_in_memory = 2, # Not more than this if we want to use GPU!
+                          time_indices_in_memory = default_time_indices_in_memory(metadata),
                           time_indexing = Cyclical(),
                           inpainting = NearestNeighborInpainting(Inf),
                           cache_inpainted_data = true)

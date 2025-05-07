@@ -11,15 +11,15 @@ struct NearestNeighborInpainting{M}
     maxiter :: M
 end
 
-propagate_horizontally!(field, ::Nothing, tmp_field=deepcopy(field); kw...) = field
+propagate_horizontally!(field, ::Nothing, substituting_field=deepcopy(field); kw...) = field
 
 function propagating(field, mask, iter, inpainting::NearestNeighborInpainting)
-    mask_sum = sum(field; condition=interior(mask))
-    return isnan(mask_sum) && iter < inpainting.maxiter
+    nans = sum(isnan, field; condition=interior(mask))
+    return nans > 0 && iter < inpainting.maxiter
 end
 
 """
-    propagate_horizontally!(inpainting, field, mask [, tmp_field=deepcopy(field)])
+    propagate_horizontally!(inpainting, field, mask [, substituting_field=deepcopy(field)])
 
 Horizontally propagate the values of `field` into the `mask`.
 In other words, cells where `mask[i, j, k] == false` are preserved,
@@ -28,7 +28,7 @@ and cells where `mask[i, j, k] == true` are painted over.
 The first argument `inpainting` is the inpainting algorithm to use in the `_propagate_field!` step.
 """
 function propagate_horizontally!(inpainting::NearestNeighborInpainting, field, mask,
-                                 tmp_field=deepcopy(field))
+                                 substituting_field=deepcopy(field))
     iter  = 0
     grid  = field.grid
     arch  = architecture(grid)
@@ -37,17 +37,16 @@ function propagate_horizontally!(inpainting::NearestNeighborInpainting, field, m
     fill_halo_regions!(field)
 
     # Need temporary field to avoid a race condition
-    parent(tmp_field) .= parent(field)
+    parent(substituting_field) .= parent(field)
 
     while propagating(field, mask, iter, inpainting)
-        launch!(arch, grid, size(field), _propagate_field!,   field, inpainting, tmp_field)
-        launch!(arch, grid, size(field), _substitute_values!, field, tmp_field)
+        launch!(arch, grid, size(field), _propagate_field!, substituting_field, inpainting, field)
+        launch!(arch, grid, size(field), _substitute_values!, field, substituting_field)
+        @debug "Propagate pass $iter with sum $(sum(interior(field)))"
         iter += 1
-        @debug "Propagate pass $iter with sum $(sum(parent(field)))"
     end
 
     launch!(arch, grid, size(field), _fill_nans!, field)
-
     fill_halo_regions!(field)
 
     return field
@@ -55,7 +54,7 @@ end
 
 # Maybe we can remove this propagate field in lieu of a diffusion,
 # Still we'll need to do this a couple of steps on the original grid
-@kernel function _propagate_field!(field, ::NearestNeighborInpainting, tmp_field)
+@kernel function _propagate_field!(substituting_field, ::NearestNeighborInpainting, field)
     i, j, k = @index(Global, NTuple)
 
     @inbounds begin
@@ -63,34 +62,39 @@ end
         ns = field[i, j - 1, k]
         ne = field[i + 1, j, k]
         nn = field[i, j + 1, k]
-        nb = (nw, ne, nn, ns)
     end
 
-    counter = 0
-    cumsum  = zero(eltype(field))
+    neighbors = (nw, ne, nn, ns)
+    FT = eltype(field)
+    donors = 0
+    value = zero(FT)
 
-    for n in nb
-        counter += ifelse(isnan(n), 0, 1)
-        cumsum  += ifelse(isnan(n), 0, n)
+    for n in neighbors
+        donors += isnan(n)
+        value += !isnan(n) * n
     end
 
-    @inbounds tmp_field[i, j, k] = ifelse(cumsum == 0, NaN, cumsum / counter)
+    FT_NaN = convert(FT, NaN)
+    @inbounds substituting_field[i, j, k] = ifelse(value == 0, FT_NaN, value / donors)
 end
 
-@kernel function _substitute_values!(field, tmp_field)
+@kernel function _substitute_values!(field, substituting_field)
     i, j, k = @index(Global, NTuple)
-    @inbounds needs_inpainting = isnan(field[i, j, k])
-    @inbounds field[i, j, k] = ifelse(needs_inpainting, tmp_field[i, j, k], field[i, j, k])
+    @inbounds begin
+        needs_inpainting = isnan(field[i, j, k])
+        field[i, j, k] = ifelse(needs_inpainting, substituting_field[i, j, k], field[i, j, k])
+    end
 end
 
 @kernel function _nan_mask!(field, mask)
     i, j, k = @index(Global, NTuple)
-    @inbounds field[i, j, k] = ifelse(mask[i, j, k], NaN, field[i, j, k])
+    FT_NaN = convert(eltype(field), NaN)
+    @inbounds field[i, j, k] = ifelse(mask[i, j, k], FT_NaN, field[i, j, k])
 end
 
 @kernel function _fill_nans!(field)
     i, j, k = @index(Global, NTuple)
-    @inbounds field[i, j, k] *= isnan(field[i, j, k])
+    @inbounds field[i, j, k] *= !isnan(field[i, j, k])
 end
 
 """
