@@ -59,15 +59,15 @@ const SKOFTS = SomeKindOfFieldTimeSeries
     return a(λ, φ, z, time)
 end
 
-@inline function stateindex(a::Tuple, i, j, k, grid, time)
+@inline function stateindex(a::Tuple, i, j, k, grid, time, args...)
     N = length(a)
     ntuple(Val(N)) do n
-        stateindex(a[n], i, j, k, grid, time)
+        stateindex(a[n], i, j, k, grid, time, args...)
     end
 end
 
-@inline function stateindex(a::NamedTuple, i, j, k, grid, time)
-    vals = stateindex(values(a), i, j, k, grid, time)
+@inline function stateindex(a::NamedTuple, i, j, k, grid, time, args...)
+    vals = stateindex(values(a), i, j, k, grid, time, args...)
     names = keys(a)
     return NamedTuple{names}(vals)
 end

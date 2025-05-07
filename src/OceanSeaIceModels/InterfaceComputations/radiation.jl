@@ -90,10 +90,29 @@ function Base.show(io::IO, properties::SurfaceProperties)
     print(io, "└── sea_ice: ", summary(properties.sea_ice))
 end
 
-@inline upwelling_radiation(T, σ, ϵ) = σ * ϵ * T^4
+const CCC = (Center, Center, Center)
+
+@inline function upwelling_radiation(i, j, k, grid, time, T, σ, ϵ) 
+    ϵi = stateindex(ϵ, i, j, k, grid, time, CCC)
+    return σ * ϵi * T^4
+end
 
 # Split the individual bands
-@inline downwelling_longwave_radiation(Qℓ, ϵ) = - ϵ * Qℓ
-@inline downwelling_shortwave_radiation(Qs, α) = - (1 - α) * Qs 
+@inline function downwelling_longwave_radiation(i, j, k, grid, time, ϵ, Qℓ)  
+    ϵi = stateindex(ϵ, i, j, k, grid, time, CCC)
+    return - ϵi * Qℓ
+end
 
-@inline net_downwelling_radiation(i, j, grid, time, α, ϵ, Qs, Qℓ) = downwelling_shortwave_radiation(Qs, α) + downwelling_longwave_radiation(Qℓ, ϵ)
+@inline function downwelling_shortwave_radiation(i, j, k, grid, time, α, Qs)  
+    αi = stateindex(α, i, j, k, grid, time, CCC, Qs) 
+    return - (1 - αi) * Qs 
+end
+
+@inline net_downwelling_radiation(i, j, k, grid, time, α, ϵ, Qs, Qℓ) = 
+    downwelling_shortwave_radiation(i, j, k, grid, time, α, Qs) + 
+    downwelling_longwave_radiation(i, j, k, grid, time, ϵ, Qℓ)
+
+# Inside the solver we lose the grid and time information 
+@inline net_downwelling_radiation(Qs, Qℓ, α, ϵ) = - (1 - α) * Qs - ϵ * Qℓ
+
+@inline upwelling_radiation(T, σ, ϵ) = σ * ϵ * T^4
