@@ -66,7 +66,7 @@ for arch in test_architectures
         end
             
         @testset "Dataset cycling boundaries" begin
-            test_dataset_cycling_boundaries(arch, dataset, dates, start_date, end_date, inpainting)
+            test_cycling_dataset_restoring(arch, dataset, dates, inpainting)
         end
 
         # This is expensive, so we omit for now

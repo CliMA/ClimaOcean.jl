@@ -196,7 +196,7 @@ function test_timestepping_with_dataset_restoring(arch, dataset, dates, inpainti
     return nothing
 end
 
-function test_dataset_cycling_boundaries(arch, dataset, dates, inpainting)
+function test_cycling_dataset_restoring(arch, dataset, dates, inpainting)
     grid = LatitudeLongitudeGrid(arch;
                                  size = (10, 10, 10),
                                  latitude = (-60, -40),
