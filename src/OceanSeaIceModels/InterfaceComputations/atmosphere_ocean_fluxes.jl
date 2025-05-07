@@ -123,8 +123,8 @@ end
     not_water = inactive_node(i, j, kᴺ, grid, Center(), Center(), Center())
 
     # Compute local radiative properties and rebuild the interface properties
-    α = stateindex(interface_properties.α, i, j, kᴺ, grid, time, (Center, Center, Center), Qs)
-    ϵ = stateindex(interface_properties.ϵ, i, j, kᴺ, grid, time, (Center, Center, Center))
+    α = stateindex(interface_properties.radiation.α, i, j, kᴺ, grid, time, (Center, Center, Center), Qs)
+    ϵ = stateindex(interface_properties.radiation.ϵ, i, j, kᴺ, grid, time, (Center, Center, Center))
     σ = interface_properties.radiation.σ
 
     interface_properties = InterfaceProperties((; α, ϵ, σ),
