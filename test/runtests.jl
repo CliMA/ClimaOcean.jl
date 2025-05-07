@@ -40,6 +40,11 @@ if gpu_test && test_group == :init || gpu_test && test_group == :all
 
         download_dataset(temperature_metadata)
         download_dataset(salinity_metadata)
+
+        if dataset isa ECCO4DarwinMonthly
+            PO₄_metadata = Metadata(:PO₄; dataset, dates)
+            download_dataset(PO₄_metadata)
+        end
     end
 end
 
