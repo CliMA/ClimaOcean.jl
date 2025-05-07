@@ -247,7 +247,7 @@ end
     σ = atmos_sea_ice_properties.radiation.σ
     α = atmos_sea_ice_properties.radiation.α
     ϵ = atmos_sea_ice_properties.radiation.ϵ
-    Qu = upwelling_radiation(i, j, kᴺ, grid, time, T, σ, ϵ) 
+    Qu = upwelling_radiation(i, j, kᴺ, grid, time, Ts, σ, ϵ) 
     Qd = net_downwelling_radiation(i, j, kᴺ, grid, time, α, ϵ, Qs, Qℓ)
 
     ΣQt = (Qd + Qu + Qc + Qv) * ℵi # If ℵi == 0 there is no heat flux from the top!
