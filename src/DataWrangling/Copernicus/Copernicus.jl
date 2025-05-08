@@ -1,5 +1,7 @@
 module Copernicus
 
+export GLORYSStatic, GLORYSDaily, GLORYSMonthly
+
 using NCDatasets
 using Printf
 
@@ -71,7 +73,7 @@ copernicus_dataset_variable_names = Dict(
     :sea_ice_u_velocity => "usi",
     :sea_ice_v_velocity => "vsi",
     :free_surface => "zos",
-)       
+)
 
 start_date_str(date) = string(date)
 end_date_str(date) = string(date)
@@ -133,4 +135,4 @@ function z_interfaces(metadata::CopernicusMetadata)
     return zf
 end
 
-end # module Copernicus 
+end # module Copernicus
