@@ -23,7 +23,7 @@ bounding_box = ClimaOcean.DataWrangling.BoundingBox(longitude=(200, 220), latitu
 # coords_path = ClimaOcean.DataWrangling.download_dataset(static_meta)
 # @info "Downloaded coordinates data to $coords_path"
 
-#T_ecco = ClimaOcean.DataWrangling.ECCOMetadatum(:temperature; dataset, bounding_box)
+# T_ecco = ClimaOcean.DataWrangling.ECCOMetadatum(:temperature; dataset, bounding_box)
 # T_en4_meta = ClimaOcean.DataWrangling.EN4Metadatum(:temperature)
 # T_en4_path = ClimaOcean.DataWrangling.download_dataset(T_en4_meta)
 # T_en4 = Field(T_en4_meta)
@@ -56,5 +56,5 @@ S = Field(S_meta)
 # account: https://cds.climate.copernicus.eu/how-to-api
 CondaPkg.add("cdsapi"; channel = "conda-forge")
 cds = pyimport("cdsapi")          # should succeed instantly
-client = cds.Client()   
+client = cds.Client()
 =#
