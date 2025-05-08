@@ -100,14 +100,15 @@ end
 
     # Compute radiation fluxes
     σ = atmos_ocean_properties.radiation.σ
-    α = stateindex(atmos_ocean_properties.radiation.α, i, j, kᴺ, grid, time)
-    ϵ = stateindex(atmos_ocean_properties.radiation.ϵ, i, j, kᴺ, grid, time)
-    Qu = upwelling_radiation(Tₛ, σ, ϵ)
-    Qdℓ = downwelling_longwave_radiation(Qℓ, ϵ)
-    Qds = downwelling_shortwave_radiation(Qs, α)
+    α = atmos_ocean_properties.radiation.α
+    ϵ = atmos_ocean_properties.radiation.ϵ
+    Qu  = upwelling_radiation(i, j, kᴺ, grid, time, Tₛ, σ, ϵ) 
+    Qdℓ = downwelling_longwave_radiation(i, j, kᴺ, grid, time, ϵ, Qℓ)
+    Qds = downwelling_shortwave_radiation(i, j, kᴺ, grid, time, α, Qs)
     ΣQao = Qu + Qc + Qv + Qdℓ + Qds
 
     @inbounds begin
+        # Write radiative components of the heat flux for diagnostic purposes
         atmos_ocean_fluxes.upwelling_longwave[i, j, 1] = Qu
         atmos_ocean_fluxes.downwelling_longwave[i, j, 1] = Qdℓ
         atmos_ocean_fluxes.downwelling_shortwave[i, j, 1] = Qds
@@ -244,10 +245,10 @@ end
 
     # Compute radiation fluxes
     σ = atmos_sea_ice_properties.radiation.σ
-    α = stateindex(atmos_sea_ice_properties.radiation.α, i, j, kᴺ, grid, time)
-    ϵ = stateindex(atmos_sea_ice_properties.radiation.ϵ, i, j, kᴺ, grid, time)
-    Qu = upwelling_radiation(Ts, σ, ϵ)
-    Qd = net_downwelling_radiation(i, j, grid, time, α, ϵ, Qs, Qℓ)
+    α = atmos_sea_ice_properties.radiation.α
+    ϵ = atmos_sea_ice_properties.radiation.ϵ
+    Qu = upwelling_radiation(i, j, kᴺ, grid, time, Ts, σ, ϵ) 
+    Qd = net_downwelling_radiation(i, j, kᴺ, grid, time, α, ϵ, Qs, Qℓ)
 
     ΣQt = (Qd + Qu + Qc + Qv) * ℵi # If ℵi == 0 there is no heat flux from the top!
     ΣQb = Qf + Qi

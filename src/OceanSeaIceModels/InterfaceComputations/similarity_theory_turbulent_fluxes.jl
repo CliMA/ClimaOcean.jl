@@ -277,7 +277,7 @@ These stability functions are obtained by regression to experimental data.
 The stability parameter for stable atmospheric conditions is defined as
 ```math
 dζ = min(ζmax, Aˢζ)
-ψₛ = - (Bˢ ζ + Cˢ ( ζ - Dˢ ) ) exp( - dζ) - Cˢ Dˢ
+ψₛ = - Bˢ * ζ⁺ - Cˢ * (ζ⁺ - Dˢ) * exp(- dζ) - Cˢ * Dˢ
 ```
 
 While the stability parameter for unstable atmospheric conditions is calculated
