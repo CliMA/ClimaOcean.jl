@@ -2,6 +2,7 @@ module ECCO
 
 export ECCOMetadatum, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
+export ECCO4DarwinMonthly
 
 using ClimaOcean
 using ClimaOcean.DataWrangling
@@ -25,7 +26,7 @@ using Scratch
 
 import ClimaOcean.DataWrangling: vertical_interfaces, variable_is_three_dimensional,
                                  shift_longitude_to_0_360, inpainted_metadata_path,
-                                 longitude_shift
+                                 longitude_shift, retrieve_data
 
 download_ECCO_cache::String = ""
 function __init__()
@@ -34,8 +35,9 @@ end
 
 include("ECCO_metadata.jl")
 include("ECCO_mask.jl")
+include("ECCO_darwin.jl")
 
-const SomeECCODataset = Union{ECCO2Monthly, ECCO4Monthly, ECCO2Daily}
+const SomeECCODataset = Union{ECCO2Monthly, ECCO4Monthly, ECCO2Daily, ECCO4DarwinMonthly}
 
 vertical_interfaces(metadata::Metadata{<:SomeECCODataset}) =
     [
@@ -95,7 +97,7 @@ vertical_interfaces(metadata::Metadata{<:SomeECCODataset}) =
 # ECCO4 data is on a -180, 180 longitude grid as opposed to ECCO2 data that
 # is on a 0, 360 longitude grid. To make the data consistent, we shift ECCO4
 # data by 180 degrees in longitude
-longitude_shift(metadata::Metadata{<:ECCO4Monthly}) = 180
+longitude_shift(metadata::Metadata{<:Union{<:ECCO4Monthly, <:ECCO4DarwinMonthly}}) = 180
 
 function inpainted_metadata_filename(metadata::ECCOMetadata)
     original_filename = metadata_filename(metadata)

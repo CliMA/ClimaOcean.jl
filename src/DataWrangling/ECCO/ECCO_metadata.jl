@@ -17,8 +17,10 @@ struct ECCO2Monthly end
 struct ECCO2Daily end
 struct ECCO4Monthly end
 
-const ECCOMetadata{D} = Metadata{<:Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}, D}
-const ECCOMetadatum   = Metadatum{<:Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly}}
+struct ECCO4DarwinMonthly end
+
+const ECCOMetadata{D} = Metadata{<:Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly, <:ECCO4DarwinMonthly}, D}
+const ECCOMetadatum   = Metadatum{<:Union{<:ECCO2Monthly, <:ECCO2Daily, <:ECCO4Monthly, <:ECCO4DarwinMonthly}}
 
 const ECCO2_url = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/"
 const ECCO4_url = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly/"
@@ -75,7 +77,7 @@ all_dates(::ECCO2Daily,   name) = DateTime(1992, 1, 1) : Day(1) : DateTime(2024,
 
 # Fallback, actually, we do not really need the name for ECCO since all
 # variables have the same frequency and the same time-range, differently from JRA55
-all_dates(dataset::Union{<:ECCO4Monthly, <:ECCO2Monthly, <:ECCO2Daily}) = all_dates(dataset, :temperature)
+all_dates(dataset::Union{<:ECCO4Monthly, <:ECCO2Monthly, <:ECCO2Daily, <:ECCO4DarwinMonthly}) = all_dates(dataset, :temperature)
 
 # File name generation specific to each dataset
 function metadata_filename(metadata::Metadatum{<:ECCO4Monthly})
@@ -104,13 +106,15 @@ short_name(data::Metadata{<:ECCO2Daily})   = ECCO2_short_names[data.name]
 short_name(data::Metadata{<:ECCO2Monthly}) = ECCO2_short_names[data.name]
 short_name(data::Metadata{<:ECCO4Monthly}) = ECCO4_short_names[data.name]
 
-location(data::ECCOMetadata) = ECCO_location[data.name]
+location(data::Metadata{<:Union{<:ECCO4Monthly, <:ECCO2Monthly, <:ECCO2Daily}}) = ECCO_location[data.name]
 
 dataset_temperature_units(data::ECCOMetadata) = Celsius()
 
 dataset_latitude_extent(data::ECCOMetadatum) = (-90, 90)
 
-variable_is_three_dimensional(data::ECCOMetadata) =
+variable_is_three_dimensional(
+    data::Metadata{<:Union{<:ECCO4Monthly, <:ECCO2Monthly, <:ECCO2Daily}}
+    ) =
     data.name == :temperature ||
     data.name == :salinity ||
     data.name == :u_velocity ||

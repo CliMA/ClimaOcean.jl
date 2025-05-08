@@ -8,7 +8,7 @@ test_group = Symbol(test_group)
 
 using ClimaOcean.DataWrangling: download_dataset
 
-if test_group == :init || test_group == :all
+if gpu_test && test_group == :init || gpu_test && test_group == :all
     using CUDA
     CUDA.set_runtime_version!(v"12.6"; local_toolkit = true)
     CUDA.precompile_runtime()
@@ -40,6 +40,11 @@ if test_group == :init || test_group == :all
 
         download_dataset(temperature_metadata)
         download_dataset(salinity_metadata)
+
+        if dataset isa ECCO4DarwinMonthly
+            PO₄_metadata = Metadata(:PO₄; dataset, dates)
+            download_dataset(PO₄_metadata)
+        end
     end
 end
 

@@ -7,9 +7,14 @@ for arch in test_architectures, dataset in test_datasets
     time_resolution = dataset isa ECCO2Daily ? Day(1) : Month(1)
     end_date = start_date + 4 * time_resolution
     dates = start_date : time_resolution : end_date
+    tracers = (:T, :S, :e)
+    if length(test_names[dataset]) > 2
+        # merge default tracer names with additional tracers from test set (e.g. bgc)
+        tracers = tuple(unique(tuple(tracers...,test_fields[dataset]...))...)
+    end
 
     @testset "Fields utilities" begin
-        for name in (:temperature, :salinity)
+        for name in test_names[dataset]
             metadata = Metadata(name; dates, dataset)
 
             download_dataset(metadata) # just in case is not downloaded
@@ -34,8 +39,9 @@ for arch in test_architectures, dataset in test_datasets
         field = CenterField(grid)
 
         @test begin
-            set!(field, Metadatum(:temperature; dataset, date=start_date); inpainting)
-            set!(field, Metadatum(:salinity;    dataset, date=start_date); inpainting)
+            for name in test_names[dataset]
+                set!(field, Metadatum(name; dataset, date=start_date); inpainting)
+            end
             true
         end
     end
@@ -51,12 +57,13 @@ for arch in test_architectures, dataset in test_datasets
         field = CenterField(grid)
 
         @test begin
-            set!(field, Metadatum(:temperature; dataset, date=start_date); inpainting)
-            set!(field, Metadatum(:salinity;    dataset, date=start_date); inpainting)
+            for name in test_names[dataset]
+                set!(field, Metadatum(name; dataset, date=start_date); inpainting)
+            end
             true
         end
 
-        ocean = ocean_simulation(grid; verbose=false)
+        ocean = ocean_simulation(grid; tracers, verbose=false)
 
         @test begin
             time_step!(ocean)
@@ -65,8 +72,8 @@ for arch in test_architectures, dataset in test_datasets
         end
     end
 
-    @testset "Field utilities" begin
-        for name in (:temperature, :salinity)
+    @testset "Field Time Series" begin
+        for name in test_names[dataset]
             metadata = Metadata(name; dates, dataset)
             restoring = DatasetRestoring(metadata, arch; rate=1/1000, inpainting)
 
@@ -87,8 +94,8 @@ for arch in test_architectures, dataset in test_datasets
             @test Nz == size(metadata)[3]
             @test Nt == size(metadata)[4]
 
-            @test @allowscalar fts.times[1] == native_times(metadata)[1]
-            @test @allowscalar fts.times[end] == native_times(metadata)[end]
+            @test fts.times[1] == native_times(metadata)[1]
+            @test fts.times[end] == native_times(metadata)[end]
 
             datum = first(metadata)
             ψ = Field(datum, architecture=arch, inpainting=NearestNeighborInpainting(2))
@@ -115,16 +122,14 @@ for arch in test_architectures, dataset in test_datasets
                                         southern = (φ₁, φ₂),
                                         z = (z₁, 0))
 
-        for name in (:temperature, :salinity)
+        for name in test_names[dataset]
             metadata = Metadata(name; dates, dataset)
             var_restoring = DatasetRestoring(metadata, arch; mask, inpainting, rate=1/1000)
 
             fill!(var_restoring.field_time_series[1], 1.0)
             fill!(var_restoring.field_time_series[2], 1.0)
 
-            T = CenterField(grid)
-            S = CenterField(grid)
-            fields = (; T, S)
+            fields = NamedTuple{test_fields[dataset]}(ntuple(i->CenterField(grid), length(test_fields[dataset])))
             clock  = Clock(; time = 0)
 
             @test @allowscalar var_restoring(1, 1,   10, grid, clock, fields) == var_restoring.rate
@@ -149,15 +154,20 @@ for arch in test_architectures, dataset in test_datasets
         field = CenterField(grid)
 
         @test begin
-            set!(field, Metadatum(:temperature; dataset, date=start_date); inpainting)
-            set!(field, Metadatum(:salinity;    dataset, date=start_date); inpainting)
+            for name in test_names[dataset]
+                set!(field, Metadatum(name; dataset, date=start_date); inpainting)
+            end
             true
         end
 
-        Tmetadata = Metadata(:temperature; dates, dataset)
-        forcing_T = DatasetRestoring(Tmetadata, arch; inpainting, rate=1/1000)
+        # Dynamically create name of forcing based on dataset field name
+        forcing = NamedTuple{
+                (test_fields[dataset])
+            }(
+                ntuple(i->DatasetRestoring(Metadata(test_names[dataset][i]; dates, dataset), arch;  inpainting, rate=1/1000), length(test_names[dataset]))
+            )
 
-        ocean = ocean_simulation(grid; forcing = (; T = forcing_T), verbose=false)
+        ocean = ocean_simulation(grid; tracers, forcing, verbose=false)
 
         @test begin
             time_step!(ocean)
@@ -176,14 +186,20 @@ for arch in test_architectures, dataset in test_datasets
 
         time_indices_in_memory = 2
 
-        Tmetadata1 = Metadata(:temperature; dates, dataset)
-        Tmetadata2 = Metadata(:temperature; start_date, end_date, dataset)
+        metadata1 = Metadata(test_names[dataset][end]; dates, dataset)
+        metadata2 = Metadata(test_names[dataset][end]; start_date, end_date, dataset)
 
-        for Tmetadata in (Tmetadata1, Tmetadata2)
-            T_restoring = DatasetRestoring(Tmetadata, arch; time_indices_in_memory, inpainting, rate=1/1000)
+        for metadata in (metadata1, metadata2)
+            # Dynamically create name of forcing based on dataset field name
+            forcing = NamedTuple{
+                    (test_fields[dataset][end],)
+                }(
+                    (DatasetRestoring(metadata, arch;  time_indices_in_memory, inpainting, rate=1/1000),)
+                )
 
-            times = native_times(T_restoring.field_time_series.backend.metadata)
-            ocean = ocean_simulation(grid, forcing = (; T = T_restoring))
+            times = native_times(forcing[1].field_time_series.backend.metadata)
+
+            ocean = ocean_simulation(grid; tracers, forcing)
 
             # start a bit after time_index
             time_index = 3
@@ -191,10 +207,10 @@ for arch in test_architectures, dataset in test_datasets
             ocean.model.clock.time = times[time_index] + 2 * time_interval
             update_state!(ocean.model)
 
-            @test time_indices(T_restoring.field_time_series) ==
+            @test time_indices(forcing[1].field_time_series) ==
                 Tuple(range(time_index, length=time_indices_in_memory))
 
-            @test T_restoring.field_time_series.backend.start == time_index
+            @test forcing[1].field_time_series.backend.start == time_index
 
             # Compile
             time_step!(ocean)
@@ -211,13 +227,13 @@ for arch in test_architectures, dataset in test_datasets
             end
 
             # The backend has cycled to the end
-            @test time_indices(T_restoring.field_time_series) ==
+            @test time_indices(forcing[1].field_time_series) ==
                 mod1.(Tuple(range(length(times), length=time_indices_in_memory)), length(times))
         end
     end
 
     @testset "Inpainting algorithm" begin
-        T_metadatum = Metadatum(:temperature; dataset, date=start_date)
+        metadatum = Metadatum(test_names[dataset][end]; dataset, date=start_date)
 
         grid = LatitudeLongitudeGrid(arch,
                                      size = (100, 100, 10),
@@ -229,8 +245,8 @@ for arch in test_architectures, dataset in test_datasets
         fully_inpainted_field = CenterField(grid)
         partially_inpainted_field = CenterField(grid)
 
-        set!(fully_inpainted_field,     T_metadatum; inpainting = NearestNeighborInpainting(Inf))
-        set!(partially_inpainted_field, T_metadatum; inpainting = NearestNeighborInpainting(1))
+        set!(fully_inpainted_field,     metadatum; inpainting = NearestNeighborInpainting(Inf))
+        set!(partially_inpainted_field, metadatum; inpainting = NearestNeighborInpainting(1))
 
         fully_inpainted_interior = on_architecture(CPU(), interior(fully_inpainted_field))
         partially_inpainted_interior = on_architecture(CPU(), interior(partially_inpainted_field))
@@ -239,7 +255,7 @@ for arch in test_architectures, dataset in test_datasets
         @test any(partially_inpainted_interior .== 0)
     end
 
-    @testset "Setting temperature and salinity from dataset" begin
+    @testset "Setting ocean.model initial conditions from dataset" begin
         grid = LatitudeLongitudeGrid(arch;
                                      size = (10, 10, 10),
                                      latitude = (-60, -40),
@@ -247,9 +263,18 @@ for arch in test_architectures, dataset in test_datasets
                                      z = (-200, 0),
                                      halo = (7, 7, 7))
 
-        ocean = ocean_simulation(grid)
+        ocean = ocean_simulation(grid; tracers)
 
-        set!(ocean.model, T=Metadatum(:temperature; dataset, date=start_date),
-                          S=Metadatum(:salinity;    dataset, date=start_date))
+        # Dynamically create name of initial_condition based on dataset field name
+        initial_conditions = NamedTuple{
+            (test_fields[dataset])
+        }(
+            ntuple(i->Metadatum(test_names[dataset][i]; dataset, date=start_date), length(test_names[dataset]))
+        )
+
+        @test begin
+            set!(ocean.model; initial_conditions...)
+            true
+        end
     end
 end
