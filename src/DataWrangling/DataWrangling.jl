@@ -173,8 +173,8 @@ that `metadata` corresponds to.
 function z_interfaces end
 function longitude_interfaces end
 function latitude_interfaces end
+function reversed_vertical_axis end
 
-reversed_vertical_axis(metadata) = false
 default_mask_value(dataset) = NaN
 
 # Fundamentals
