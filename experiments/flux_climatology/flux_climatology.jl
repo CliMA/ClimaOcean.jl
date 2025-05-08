@@ -109,7 +109,7 @@ function compute_flux_climatology(earth)
     Jˢ = FluxStatistics(net_fluxes.S)
 
     atmos_ocean_fluxes = earth.model.interfaces.atmosphere_ocean_interface.fluxes
-    Qc = FluxStatistics(atmos_ocean_fluxes.sensible_heat)
+    Qc = FluxStatistics(atmos_ocean_fluxes.sensible_heat) 
     Qv = FluxStatistics(atmos_ocean_fluxes.latent_heat)
     Qu = FluxStatistics(atmos_ocean_fluxes.upwelling_longwave)
     Qs = FluxStatistics(atmos_ocean_fluxes.downwelling_shortwave)
