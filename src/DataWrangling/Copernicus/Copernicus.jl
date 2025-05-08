@@ -60,7 +60,7 @@ CopernicusMetadata{D} = Metadata{<:CopernicusDataset, D}
 CopernicusMetadatum = Metadatum{<:CopernicusDataset}
 
 Base.size(::CopernicusMetadatum) = (4320, 2040, 50, 1)
-reversed_vertical_axis(::CopernicusMetadata) = true
+reversed_vertical_axis(::CopernicusDataset) = true
 
 copernicus_dataset_variable_names = Dict(
     :temperature => "thetao",

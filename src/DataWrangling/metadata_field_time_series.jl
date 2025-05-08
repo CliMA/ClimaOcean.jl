@@ -54,11 +54,10 @@ cache_inpainted_data(::DatasetBackend{native, cache_data}) where {native, cache_
 const DatasetFieldTimeSeries{N} = FlavorOfFTS{<:Any, <:Any, <:Any, <:Any, <:DatasetBackend{N}} where N
 
 function set!(fts::DatasetFieldTimeSeries)
-    @show backend = fts.backend
-    @show inpainting = backend.inpainting
+    backend = fts.backend
+    inpainting = backend.inpainting
     cache_data = cache_inpainted_data(backend)
 
-    @show time_indices(fts)
     for t in time_indices(fts)
         # Set each element of the time-series to the associated file
         metadatum = @inbounds backend.metadata[t]

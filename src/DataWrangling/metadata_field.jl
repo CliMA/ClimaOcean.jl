@@ -95,7 +95,7 @@ function Field(metadata::Metadatum, arch=CPU();
         data = ds[dsname][:, :, :, 1]
 
         # Many ocean datasets use a "depth convention" for their vertical axis
-        if reversed_vertical_axis(metadata)
+        if reversed_vertical_axis(metadata.dataset)
             data = reverse(data, dims=3)
         end
     else
