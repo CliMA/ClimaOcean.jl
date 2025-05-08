@@ -227,7 +227,7 @@ function dataset_latitude_extent end
 
 Return an empty field of `metadata` on `architecture` and with `horizontal_halo`s.
 """
-function empty_field(metadata::Metadata;
+function empty_field(metadata::Metadata, FT=dataset_defaults.FloatType;
                      architecture = CPU(),
                      horizontal_halo = (7, 7))
 
@@ -251,7 +251,7 @@ function empty_field(metadata::Metadata;
         sz = (Nx, Ny)
     end
 
-    grid = LatitudeLongitudeGrid(architecture, Float32; halo, longitude, latitude, z,
+    grid = LatitudeLongitudeGrid(architecture, FT; halo, longitude, latitude, z,
                                  size = sz,
                                  topology = (TX, TY, TZ))
     return Field{loc...}(grid)
