@@ -111,8 +111,8 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
     #
     # TODO: find a better design for this that doesn't have redundant
     # arrays for the barotropic potential
-    u_potential = forcing_barotropic_potential(ocean)
-    v_potential = forcing_barotropic_potential(ocean)
+    u_potential = forcing_barotropic_potential(ocean.model.forcing.u)
+    v_potential = forcing_barotropic_potential(ocean.model.forcing.v)
     ρₒ = coupled_model.interfaces.ocean_properties.reference_density
 
     if !isnothing(u_potential)
