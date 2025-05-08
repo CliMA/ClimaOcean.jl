@@ -60,12 +60,12 @@ for arch in test_architectures
         @testset "Timestepping with DatasetRestoring" begin
             test_timestepping_with_dataset_restoring(arch, dataset, dates, inpainting)
         end
-            
+
         # @testset "Dataset cycling boundaries" begin
         #     test_cycling_dataset_restoring(arch, dataset, dates, inpainting)
         # end
 
-        # This is expensive, so we omit for now
+        # Expensive due to the high resolution of ECCO2
         # @testset "Inpainting algorithm" begin
         #     test_inpainting_algorithm(arch, dataset, start_date, inpainting)
         # end

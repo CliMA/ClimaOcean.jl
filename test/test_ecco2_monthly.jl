@@ -45,7 +45,7 @@ for arch in test_architectures
             end
         end
 
-        @testset "Setting a field from $dataset" begin
+        @testset "Setting a field from a dataset" begin
             test_setting_from_metadata(arch, dataset, start_date, inpainting)
         end
 
@@ -60,7 +60,7 @@ for arch in test_architectures
         @testset "Timestepping with DatasetRestoring" begin
             test_timestepping_with_dataset_restoring(arch, dataset, dates, inpainting)
         end
-            
+
         # @testset "Dataset cycling boundaries" begin
         #     test_cycling_dataset_restoring(arch, dataset, dates, inpainting)
         # end

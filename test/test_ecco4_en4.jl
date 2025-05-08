@@ -64,7 +64,7 @@ for arch in test_architectures, dataset in test_ecco4_en4_datasets
         @testset "Timestepping with DatasetRestoring" begin
             test_timestepping_with_dataset_restoring(arch, dataset, dates, inpainting)
         end
-            
+
         @testset "Dataset cycling boundaries" begin
             test_cycling_dataset_restoring(arch, dataset, dates, inpainting)
         end
