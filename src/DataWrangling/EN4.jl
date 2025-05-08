@@ -46,6 +46,7 @@ import ClimaOcean.DataWrangling:
     longitude_interfaces,
     latitude_interfaces,
     is_three_dimensional,
+    reversed_vertical_axis,
     inpainted_metadata_path
 
 import Oceananigans.Fields: location
