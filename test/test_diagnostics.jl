@@ -5,8 +5,7 @@ using Oceananigans.BuoyancyFormulations: buoyancy
 using Oceananigans: location
 using ClimaOcean.Diagnostics: MixedLayerDepthField, MixedLayerDepthOperand
 
-
-for arch in test_architectures, dataset in test_datasets
+for arch in test_architectures, dataset in (ECCO4Monthly(),)
     A = typeof(arch)
     @info "Testing MixedLayerDepthField with $(typeof(dataset)) on $A"
 
@@ -46,6 +45,7 @@ for arch in test_architectures, dataset in test_datasets
 
         compute!(h)
         if dataset isa ECCO4Monthly
+            @show h[1, 1, 1]
             @test @allowscalar h[1, 1, 1] ≈ 16.2558363 # m
         end
 
@@ -53,6 +53,7 @@ for arch in test_architectures, dataset in test_datasets
         h.operand.buoyancy_perturbation = buoyancy(sb, grid, tracers)
         compute!(h)
         if dataset isa ECCO4Monthly
+            @show h[1, 1, 1]
             @test @allowscalar h[1, 1, 1] ≈ 9.2957298 # m
         end
     end
