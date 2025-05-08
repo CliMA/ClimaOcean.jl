@@ -26,8 +26,8 @@ function native_grid(metadata::Metadata, arch=CPU(); halo = (3, 3, 3))
     # Restrict with BoundingBox
     bbox = metadata.bounding_box
     if !isnothing(bbox)
-        longitude, Nx = restrict(bbox.longitude, longitude, Nx) 
-        latitude, Ny = restrict(bbox.latitude, latitude, Ny) 
+        longitude, Nx = restrict(bbox.longitude, longitude, Nx)
+        latitude, Ny = restrict(bbox.latitude, latitude, Ny)
         # TODO: restrict in z too
     end
 

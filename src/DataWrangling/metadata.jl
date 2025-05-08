@@ -5,7 +5,7 @@ using Oceananigans.Utils: prettysummary
 
 struct BoundingBox{X, Y, Z}
     longitude :: X
-    latitude :: Y 
+    latitude :: Y
     z :: Z
 end
 
@@ -42,7 +42,10 @@ latitude_interfaces(md::Metadata) = latitude_interfaces(md.dataset)
     Metadata(variable_name;
              dataset,
              dates = all_dates(dataset, variable_name),
-             dir = default_download_directory(dataset))
+             dir = default_download_directory(dataset),
+             bounding_box = nothing,
+             start_date = nothing,
+             end_date = nothing)
 
 Metadata holding a specific dataset information.
 
@@ -67,7 +70,7 @@ Keyword Arguments
 
 - `end_date`: If `dates = nothing`, we can prescribe the last date of metadata as a date
               (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`). `end_date` should lie
-                within the date range of the dataset. Default: nothing.
+              within the date range of the dataset. Default: nothing.
 
 - `bounding_box`: Specifies the bounds of the dataset. See [`BoundingBox`](@ref).
 
@@ -183,7 +186,8 @@ Argument
 
 Keyword Argument
 ================
-- `start_time`: The start time for calculating the time difference. Defaults to the first date in the metadata.
+- `start_time`: The start time for calculating the time difference. Defaults to the first
+                date in the metadata.
 """
 function native_times(metadata; start_time=first(metadata).dates)
     times = zeros(length(metadata))
@@ -218,7 +222,7 @@ function default_download_directory end
 """
     dataset_variable_name(metadata)
 
-Return the name used for the variable metadata.name in its raw dataset file.
+Return the name used for the variable `metadata.name` in its raw dataset file.
 """
 function dataset_variable_name end
 
@@ -233,7 +237,7 @@ all_dates(metadata) = all_dates(metadata.dataset, metadata.name)
 """
     first_date(dataset, variable_name)
 
-Extracts the first date of the given dataset and variable name formatted using the `DateTime` type.
+Extracts the first date of the given `dataset` and variable name formatted using the `DateTime` type.
 """
 first_date(dataset, variable_name) = first(all_dates(dataset, variable_name))
 
