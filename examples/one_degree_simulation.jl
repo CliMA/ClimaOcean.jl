@@ -25,9 +25,6 @@ dates = range(start_date, step=Month(1), stop=stop_date)
 ecco_temperature = Metadata(:temperature; dates, dataset=ECCO4Monthly())
 ecco_salinity = Metadata(:salinity; dates, dataset=ECCO4Monthly())
 
-download_dataset(ecco_temperature)
-download_dataset(ecco_salinity)
-
 # ### Grid and Bathymetry
 
 arch = GPU()
