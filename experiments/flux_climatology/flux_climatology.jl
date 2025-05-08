@@ -242,7 +242,7 @@ atmosphere_ocean_flux_formulation = InterfaceComputations.CoefficientBasedFluxes
 
 interfaces = ComponentInterfaces(atmosphere, ocean; atmosphere_ocean_flux_formulation)
 
-earth_model = OceanSeaIceModel(ocean, nothing; atmosphere, interfaces, radiation = Radiation(arch))
+earth_model = OceanSeaIceModel(ocean, nothing; atmosphere, radiation = Radiation(arch))
 
 Qtecco = Metadata(:net_heat_flux; start_date, end_date, dataset)
 Qcecco = Metadata(:sensible_heat_flux; start_date, end_date, dataset)
