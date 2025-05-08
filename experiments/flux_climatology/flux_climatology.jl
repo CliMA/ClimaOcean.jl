@@ -101,7 +101,7 @@ end
 ##### A function to compute flux statistics
 #####
 
-function compute_flux_climatology(earth)
+function compute_flux_colorrangeatology(earth)
     net_fluxes = earth.model.interfaces.net_fluxes.ocean_surface
     τx = FluxStatistics(net_fluxes.u)
     τy = FluxStatistics(net_fluxes.v)
@@ -234,45 +234,15 @@ atmosphere = ClimaOcean.ECCO.ECCOPrescribedAtmosphere(arch; start_date, end_date
 ##### A prescribed earth...
 #####         
 
-earth_model = OceanSeaIceModel(ocean, nothing; atmosphere, radiation = Radiation(arch))
-earth = Simulation(earth_model; Δt=5days, stop_time)
+using ClimaOcean.OceanSeaIceModels.InterfaceComputations
 
-wall_time = Ref(time_ns())
+atmosphere_ocean_flux_formulation = InterfaceComputations.CoefficientBasedFluxes(drag_coefficient = 1.5e-3,
+                                                                                   heat_transfer_coefficient = 2e-3,
+                                                                                   vapor_flux_coefficient = 2.0e-3)
 
-# Just checking that the ocean evolves as expected
-function progress(sim)
-    net_fluxes = sim.model.interfaces.net_fluxes.ocean_surface
-    atmos_ocean_fluxes = sim.model.interfaces.atmosphere_ocean_interface.fluxes
+interfaces = ComponentInterfaces(atmosphere, ocean; atmosphere_ocean_flux_formulation)
 
-    Q = net_fluxes.Q
-    Qc = atmos_ocean_fluxes.sensible_heat
-    Qv = atmos_ocean_fluxes.latent_heat
-
-    τx = net_fluxes.u
-    τy = net_fluxes.v
-
-    Qmax = maximum(Q)
-    Qmin = minimum(Q)
-    Qcmax = maximum(Qc)
-    Qcmin = minimum(Qc)
-    Qvmax = maximum(Qv)
-    Qvmin = minimum(Qv)
-    τmax = (maximum(abs, τx), maximum(abs, τy))
-
-    step_time = 1e-9 * (time_ns() - wall_time[])
-
-    msg = @sprintf("Iter: %d, time: %s", iteration(sim), prettytime(sim))
-    msg *= @sprintf(", max|τ|: (%.2e, %.2e) m² s⁻², extrema(Q): (%.2f, %.2f) W m⁻², extrema(Qc): (%.2f, %.2f) W m⁻², extrema(Qv): (%.2f, %.2f) W m⁻², wall time: %s",
-                    τmax..., Qmin, Qmax, Qcmin, Qcmax, Qvmin, Qvmax, prettytime(step_time))
-
-    @info msg
-
-    wall_time[] = time_ns()
-end
-
-add_callback!(earth, progress, IterationInterval(10))
-
-stats = compute_flux_climatology(earth)
+earth_model = OceanSeaIceModel(ocean, nothing; atmosphere, interfaces, radiation = Radiation(arch))
 
 Qtecco = Metadata(:net_heat_flux; start_date, end_date, dataset)
 Qcecco = Metadata(:sensible_heat_flux; start_date, end_date, dataset)
@@ -286,16 +256,51 @@ Qcecco = FieldTimeSeries(Qcecco, arch; time_indices_in_memory)
 Qvecco = FieldTimeSeries(Qvecco, arch; time_indices_in_memory)
 Qsecco = FieldTimeSeries(Qsecco, arch; time_indices_in_memory)
 
-Q̄tecco = Field{Center, Center, Nothing}(Qtecco.grid)
-Q̄cecco = Field{Center, Center, Nothing}(Qtecco.grid)
-Q̄vecco = Field{Center, Center, Nothing}(Qtecco.grid)
-Q̄ℓecco = Field{Center, Center, Nothing}(Qtecco.grid)
-Q̄secco = Field{Center, Center, Nothing}(Qtecco.grid)
+Qt = earth_model.interfaces.net_fluxes.ocean_surface.Q
+Qc = earth_model.interfaces.atmosphere_ocean_interface.fluxes.sensible_heat
+Qv = earth_model.interfaces.atmosphere_ocean_interface.fluxes.latent_heat
+Qℓ = earth_model.interfaces.atmosphere_ocean_interface.fluxes.downwelling_longwave + 
+     earth_model.interfaces.atmosphere_ocean_interface.fluxes.upwelling_longwave 
+Qs = earth_model.interfaces.atmosphere_ocean_interface.fluxes.downwelling_shortwave
 
-for i in 1:length(Qtecco.times)
-    Q̄tecco .+= Qtecco[i] ./ length(Qtecco.times)
-    Q̄cecco .+= Qcecco[i] ./ length(Qcecco.times)
-    Q̄vecco .+= Qvecco[i] ./ length(Qvecco.times)
-    Q̄ℓecco .+= Qℓecco[i] ./ length(Qℓecco.times)
-    Q̄secco .+= Qsecco[i] ./ length(Qsecco.times)
-end
+import Oceananigans.Fields: interior
+
+interior(b::Oceananigans.AbstractOperations.BinaryOperation, idx...) = 
+    interior(compute!(Field(b)), idx...)    
+
+fig = Figure()
+ax = Axis(fig[1, 1], title = "ECCO net heat flux")
+heatmap!(ax, Qtecco[1], colorrange=(-150, 150), colormap=:balance)
+ax = Axis(fig[1, 2], title = "CO net heat flux")
+hm = heatmap!(ax, -Qt, colorrange=(-150, 150), colormap=:balance)
+Colorbar(fig[1, 3], hm)
+ax = Axis(fig[1, 4], title = "ECCO - CO")
+hm = heatmap!(ax, interior(Qtecco[1], :, :, 1) .+ interior(Qt, :, :, 1), colorrange=(-20, 20), colormap=:balance)
+Colorbar(fig[1, 5], hm)
+
+ax = Axis(fig[2, 1], title = "ECCO sensible flux")
+heatmap!(ax, Qcecco[1], colorrange=(-100, 100), colormap=:balance)
+ax = Axis(fig[2, 2], title = "CO sensible flux")
+hm = heatmap!(ax, -Qc, colorrange=(-100, 100), colormap=:balance)
+Colorbar(fig[2, 3], hm)
+ax = Axis(fig[2, 4], title = "ECCO - CO")
+hm = heatmap!(ax, interior(Qcecco[1], :, :, 1) .+ interior(Qc, :, :, 1), colorrange=(-20, 20), colormap=:balance)
+Colorbar(fig[2, 5], hm)
+
+ax = Axis(fig[3, 1], title = "ECCO latent flux")
+heatmap!(ax, Qvecco[1], colorrange=(-150, 150), colormap=:balance)
+ax = Axis(fig[3, 2], title = "CO latent flux")
+heatmap!(ax, -Qv, colorrange=(-150, 150), colormap=:balance)
+hm = Colorbar(fig[3, 3], hm)
+ax = Axis(fig[3, 4], title = "ECCO - CO")
+hm = heatmap!(ax, interior(Qvecco[1], :, :, 1) .+ interior(Qv, :, :, 1), colorrange=(-20, 20), colormap=:balance)
+Colorbar(fig[3, 5], hm)
+
+ax = Axis(fig[4, 1], title = "ECCO longwave flux")
+heatmap!(ax, Qℓecco[1], colorrange=(-100, 100), colormap=:balance)
+ax = Axis(fig[4, 2], title = "CO longwave flux")
+hm = heatmap!(ax, Qℓ, colorrange=(-100, 100), colormap=:balance)
+Colorbar(fig[4, 3], hm)
+ax = Axis(fig[4, 4], title = "ECCO - CO")
+hm = heatmap!(ax, interior(Qℓecco[1], :, :, 1) .- interior(Qℓ, :, :, 1), colorrange=(-1, 1), colormap=:balance)
+Colorbar(fig[4, 5], hm)
