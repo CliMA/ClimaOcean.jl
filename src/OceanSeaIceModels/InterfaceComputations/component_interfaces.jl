@@ -429,4 +429,3 @@ function sea_ice_similarity_theory(sea_ice::SeaIceSimulation)
     interface_temperature_type = SkinTemperature(internal_flux)
     return SimilarityTheoryFluxes(; interface_temperature_type)
 end
-

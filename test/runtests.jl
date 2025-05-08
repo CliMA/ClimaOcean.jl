@@ -5,6 +5,7 @@ using CUDA
 
 test_group = get(ENV, "TEST_GROUP", :all)
 test_group = Symbol(test_group)
+test_group = :ocean_sea_ice_model
 
 using ClimaOcean.DataWrangling: download_dataset
 

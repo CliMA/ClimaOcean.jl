@@ -1,6 +1,9 @@
 using ClimaOcean
 using Oceananigans
+
 using CUDA
+using CFTime
+using Dates
 using Test
 
 using ClimaOcean.Bathymetry: download_bathymetry_cache
@@ -11,9 +14,6 @@ using ClimaOcean.JRA55
 
 using Oceananigans.Architectures: architecture, on_architecture
 using Oceananigans.OutputReaders: interpolate!
-
-using CFTime
-using Dates
 
 using CUDA: @allowscalar
 
