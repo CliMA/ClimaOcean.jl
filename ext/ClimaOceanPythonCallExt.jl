@@ -62,7 +62,6 @@ function download_dataset(meta::CopernicusMetadata, grid=nothing; skip_existing 
 
     additional_kw = NamedTuple(name => value for (name, value) in additional_kw)
     kw = merge(kw, datetime_kw, lon_kw, lat_kw, z_kw, additional_kw)
-    @show kw
     toolbox.subset(; kw...)
 
     return output_path
