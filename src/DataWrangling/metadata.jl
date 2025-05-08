@@ -256,8 +256,3 @@ function empty_field(metadata::Metadata;
                                  topology = (TX, TY, TZ))
     return Field{loc...}(grid)
 end
-
-struct Celsius end
-struct Kelvin end
-
-function dataset_temperature_units end

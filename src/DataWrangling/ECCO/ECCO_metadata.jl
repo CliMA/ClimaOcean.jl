@@ -2,15 +2,14 @@ using CFTime
 using Dates
 using Downloads
 using ClimaOcean.DataWrangling
-using ClimaOcean.DataWrangling: netrc_downloader, metadata_path, AnyDateTime,
-                                Celsius, Kelvin
+using ClimaOcean.DataWrangling: netrc_downloader, metadata_path, AnyDateTime
 using Oceananigans.DistributedComputations
 
 import Base
 import Dates: year, month, day
 import Oceananigans.Fields: location
 import ClimaOcean.DataWrangling: all_dates, metadata_filename, download_dataset,
-                                 default_download_directory, dataset_temperature_units,
+                                 default_download_directory,
                                  short_name, dataset_latitude_extent
 
 struct ECCO2Monthly end
@@ -106,8 +105,6 @@ short_name(data::Metadata{<:ECCO4Monthly}) = ECCO4_short_names[data.name]
 
 location(data::ECCOMetadata) = ECCO_location[data.name]
 
-dataset_temperature_units(data::ECCOMetadata) = Celsius()
-
 dataset_latitude_extent(data::ECCOMetadatum) = (-90, 90)
 
 variable_is_three_dimensional(data::ECCOMetadata) =
@@ -130,6 +127,12 @@ ECCO4_short_names = Dict(
     :net_longwave          => "EXFlwnet",
     :downwelling_shortwave => "oceQsw",
     :downwelling_longwave  => "EXFlwdn",
+    :air_temperature       => "EXFatemp",
+    :air_specific_humidity => "EXFaqh",
+    :sea_level_pressure    => "EXFpress",
+    :eastward_wind         => "EXFewind",
+    :northward_wind        => "EXFnwind",
+    :rain_freshwater_flux  => "EXFpreci",
 )
 
 ECCO2_short_names = Dict(
@@ -140,12 +143,14 @@ ECCO2_short_names = Dict(
     :free_surface          => "SSH",
     :sea_ice_thickness     => "SIheff",
     :sea_ice_concentration => "SIarea",
-    :net_heat_flux         => "oceQnet"
+    :net_heat_flux         => "oceQnet",
 )
 
 ECCO_location = Dict(
     :temperature           => (Center, Center, Center),
     :salinity              => (Center, Center, Center),
+    :u_velocity            => (Face,   Center, Center),
+    :v_velocity            => (Center, Face,   Center),
     :free_surface          => (Center, Center, Nothing),
     :sea_ice_thickness     => (Center, Center, Nothing),
     :sea_ice_concentration => (Center, Center, Nothing),
@@ -155,8 +160,12 @@ ECCO_location = Dict(
     :net_longwave          => (Center, Center, Nothing),
     :downwelling_longwave  => (Center, Center, Nothing),
     :downwelling_shortwave => (Center, Center, Nothing),
-    :u_velocity            => (Face,   Center, Center),
-    :v_velocity            => (Center, Face,   Center),
+    :air_temperature       => (Center, Center, Nothing),
+    :air_specific_humidity => (Center, Center, Nothing),
+    :sea_level_pressure    => (Center, Center, Nothing),
+    :eastward_wind         => (Center, Center, Nothing),
+    :northward_wind        => (Center, Center, Nothing),
+    :rain_freshwater_flux  => (Center, Center, Nothing),
 )    
 
 # URLs for the ECCO datasets specific to each dataset

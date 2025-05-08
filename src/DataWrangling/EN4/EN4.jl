@@ -6,7 +6,7 @@ export EN4Monthly
 using ClimaOcean
 using ClimaOcean.DataWrangling
 using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, download_progress,
-                                compute_native_date_range, Kelvin, Celsius
+                                compute_native_date_range
 
 using Oceananigans
 using Oceananigans.Architectures: architecture, child_architecture
@@ -24,7 +24,7 @@ using Adapt
 using Scratch
 
 import ClimaOcean.DataWrangling: vertical_interfaces, empty_field, variable_is_three_dimensional,
-                                 inpainted_metadata_path, longitude_shift
+                                 inpainted_metadata_path, longitude_shift, enforce_data_conventions
 
 download_EN4_cache::String = ""
 function __init__()
@@ -93,5 +93,8 @@ function inpainted_metadata_filename(metadata::EN4Metadata)
 end
 
 inpainted_metadata_path(metadata::EN4Metadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
+
+# The EN4 dataset is in Kelvin, so we need to convert it to Celsius.
+enforce_data_conventions(data, ::EN4Monthly, ::Val{:temperature}) = data .- 273.15 
 
 end # Module
