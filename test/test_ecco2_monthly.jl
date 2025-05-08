@@ -15,8 +15,9 @@ using CUDA: @allowscalar
 
 # Inpaint only the first two cells inside the missing mask
 inpainting = NearestNeighborInpainting(2)
-start_date = DateTime(1993, 1, 1)
+
 dataset = ECCO2Monthly()
+start_date = DateTime(1993, 1, 1)
 
 for arch in test_architectures
     A = typeof(arch)

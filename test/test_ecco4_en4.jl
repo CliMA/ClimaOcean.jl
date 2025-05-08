@@ -18,7 +18,7 @@ using CUDA: @allowscalar
 inpainting = NearestNeighborInpainting(2)
 start_date = DateTime(1993, 1, 1)
 
-for arch in test_architectures, dataset in test_ecco4_en4_datasets
+for arch in test_architectures, dataset in (ECCO4Monthly(), EN4Monthly())
     A = typeof(arch)
     D = typeof(dataset)
     @testset "$A metadata tests for $D" begin
