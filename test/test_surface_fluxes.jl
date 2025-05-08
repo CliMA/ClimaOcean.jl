@@ -115,8 +115,8 @@ end
 
             # Constructing very special fluxes that do not account for stability of
             # the atmosphere, have zero gustiness and a constant roughness length of
-            # `1e-4` for momentum, water vapor and temperature
-            # For this case we can compute the fluxes by hand.
+            # `1e-4` for momentum, water vapor and temperature.
+            # For this case, we can compute the fluxes by hand.
             ℓ = 1e-4
 
             @inline zero_stability_function(ζ) = zero(ζ)
@@ -331,4 +331,3 @@ end
         @test_broken τʸ_std ≈ 7.627885224680635e-5
     end
 end
-
