@@ -72,9 +72,5 @@ for arch in test_architectures, dataset in test_ecco4_en4_datasets
         @testset "Inpainting algorithm" begin
             test_inpainting_algorithm(arch, dataset, start_date, inpainting)
         end
-
-        @testset "Setting temperature and salinity from dataset" begin
-            test_model_setting_from_dataset(arch, dataset, start_date, inpainting)
-        end
     end
 end

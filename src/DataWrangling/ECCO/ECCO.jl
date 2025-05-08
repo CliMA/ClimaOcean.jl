@@ -152,7 +152,12 @@ ECCO4_dataset_variable_names = Dict(
     :free_surface          => "SSH",
     :sea_ice_thickness     => "SIheff",
     :sea_ice_concentration => "SIarea",
-    :net_heat_flux         => "oceQnet"
+    :net_heat_flux         => "oceQnet",
+    :sensible_heat_flux    => "EXFhs",
+    :latent_heat_flux      => "EXFhl",
+    :net_longwave          => "EXFlwnet",
+    :downwelling_shortwave => "oceQsw",
+    :downwelling_longwave  => "EXFlwdn",
 )
 
 ECCO2_dataset_variable_names = Dict(

@@ -178,12 +178,23 @@ function atmosphere_ocean_interface(atmos,
                                     velocity_formulation,
                                     specific_humidity_formulation)
 
-    water_vapor   = Field{Center, Center, Nothing}(ocean.model.grid)
-    latent_heat   = Field{Center, Center, Nothing}(ocean.model.grid)
-    sensible_heat = Field{Center, Center, Nothing}(ocean.model.grid)
-    x_momentum    = Field{Center, Center, Nothing}(ocean.model.grid)
-    y_momentum    = Field{Center, Center, Nothing}(ocean.model.grid)
-    ao_fluxes = (; latent_heat, sensible_heat, water_vapor, x_momentum, y_momentum)
+    water_vapor           = Field{Center, Center, Nothing}(ocean.model.grid)
+    latent_heat           = Field{Center, Center, Nothing}(ocean.model.grid)
+    sensible_heat         = Field{Center, Center, Nothing}(ocean.model.grid)
+    x_momentum            = Field{Center, Center, Nothing}(ocean.model.grid)
+    y_momentum            = Field{Center, Center, Nothing}(ocean.model.grid)
+    upwelling_longwave    = Field{Center, Center, Nothing}(ocean.model.grid)
+    downwelling_longwave  = Field{Center, Center, Nothing}(ocean.model.grid)
+    downwelling_shortwave = Field{Center, Center, Nothing}(ocean.model.grid)
+
+    ao_fluxes = (; latent_heat, 
+                   sensible_heat, 
+                   water_vapor, 
+                   x_momentum,
+                   y_momentum, 
+                   upwelling_longwave,
+                   downwelling_longwave,
+                   downwelling_shortwave)
 
     σ = radiation.stefan_boltzmann_constant
     αₐₒ = radiation.reflection.ocean

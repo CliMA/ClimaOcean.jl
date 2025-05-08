@@ -117,7 +117,6 @@ function Field(metadata::Metadatum, arch=CPU();
         name = string(metadata.name)
         date = string(metadata.dates)
         dataset = summary(metadata.dataset)
-        @show inpainted_path
         @info string("Inpainting ", dataset, " ", name, " data from ", date, "...")
         start_time = time_ns()
 
