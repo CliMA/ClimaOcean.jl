@@ -180,6 +180,11 @@ ECCO_location = Dict(
     :net_heat_flux         => (Center, Center, Nothing),
     :u_velocity            => (Face,   Center, Center),
     :v_velocity            => (Center, Face,   Center),
+    :sensible_heat_flux    => (Center, Center, Nothing),
+    :latent_heat_flux      => (Center, Center, Nothing),
+    :net_longwave          => (Center, Center, Nothing),
+    :downwelling_shortwave => (Center, Center, Nothing),
+    :downwelling_longwave  => (Center, Center, Nothing),
 )
 
 const ECCOMetadata{D} = Metadata{<:SomeECCODataset, D}
@@ -291,6 +296,5 @@ function inpainted_metadata_filename(metadata::ECCOMetadata)
 end
 
 inpainted_metadata_path(metadata::ECCOMetadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
-
 
 end # Module
