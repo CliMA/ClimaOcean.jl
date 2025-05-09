@@ -17,6 +17,27 @@ if test_group == :init || test_group == :all
     CUDA.precompile_runtime()
 
     ###
+    ### Delete inpainted files
+    ###
+
+    using Scratch
+
+    function delete_inpainted_files(dir)
+        @info "Cleaning inpainted files..."
+        for (root, _, files) in walkdir(dir)
+            for file in files
+                if endswith(file, "_inpainted.jld2")
+                    filepath = joinpath(root, file)
+                    rm(filepath; force=true)
+                    @info "    Deleted: $filepath"
+                end
+            end
+        end
+    end
+
+    delete_inpainted_files(@get_scratch!("."))
+
+    ###
     ### Download bathymetry data
     ###
 
