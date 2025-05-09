@@ -42,7 +42,12 @@ function propagate_horizontally!(inpainting::NearestNeighborInpainting, field, m
     while propagating(field, mask, iter, inpainting)
         launch!(arch, grid, size(field), _propagate_field!, substituting_field, inpainting, field)
         launch!(arch, grid, size(field), _substitute_values!, field, substituting_field)
-        @debug "Propagate pass $iter with sum $(sum(interior(field)))"
+
+        @debug begin
+            nans = sum(isnan, field; condition=interior(mask))
+            "Propagate pass: $iter, remaining NaNs: $nans"
+        end
+
         iter += 1
     end
 
@@ -70,7 +75,7 @@ end
     value = zero(FT)
 
     for n in neighbors
-        donors += isnan(n)
+        donors += !isnan(n)
         value += !isnan(n) * n
     end
 
