@@ -2,7 +2,7 @@ name = "ClimaOcean"
 uuid = "0376089a-ecfe-4b0e-a64f-9c555d74d754"
 license = "MIT"
 authors = ["Climate Modeling Alliance and contributors"]
-version = "0.6.6"
+version = "0.6.7"
 
 [deps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
