@@ -134,7 +134,7 @@ function ocean_simulation(grid;
         u_immersed_bc = DefaultBoundaryCondition()
         v_immersed_bc = DefaultBoundaryCondition()
     else
-        if warn && !(grid isa ImmersedBoundaryGrid)
+        if warn && !(grid isa ImmersedBoundaryGrid) && verbose
             msg = """Are you totally, 100% sure that you want to build a simulation on
 
                    $(summary(grid))
