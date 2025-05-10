@@ -2,56 +2,55 @@
 include("runtests_setup.jl")
 
 using CUDA
+using PythonCall
+using CondaPkg
+using Scratch
 
 test_group = get(ENV, "TEST_GROUP", :all)
 test_group = Symbol(test_group)
 
 using ClimaOcean.DataWrangling: download_dataset
 
+function delete_inpainted_files(dir)
+    @info "Cleaning inpainted files..."
+    for (root, _, files) in walkdir(dir)
+        for file in files
+            if endswith(file, "_inpainted.jld2")
+                filepath = joinpath(root, file)
+                rm(filepath; force=true)
+                @info "    Deleted: $filepath"
+            end
+        end
+    end
+end
+
+
 if test_group == :init || test_group == :all
-    using CUDA
-    using PythonCall
-    using CondaPkg
 
     CUDA.set_runtime_version!(v"12.6"; local_toolkit = true)
     CUDA.precompile_runtime()
 
-    ###
-    ### Delete inpainted files
-    ###
-
-    using Scratch
-
-    function delete_inpainted_files(dir)
-        @info "Cleaning inpainted files..."
-        for (root, _, files) in walkdir(dir)
-            for file in files
-                if endswith(file, "_inpainted.jld2")
-                    filepath = joinpath(root, file)
-                    rm(filepath; force=true)
-                    @info "    Deleted: $filepath"
-                end
-            end
-        end
-    end
+    #####
+    ##### Delete inpainted files
+    #####
 
     delete_inpainted_files(@get_scratch!("."))
 
-    ###
-    ### Download bathymetry data
-    ###
+    #####
+    ##### Download bathymetry data
+    #####
 
     download_bathymetry()
 
-    ####
-    #### Download JRA55 data
-    ####
+    #####
+    ##### Download JRA55 data
+    #####
 
     atmosphere = JRA55PrescribedAtmosphere(backend=JRA55NetCDFBackend(2))
 
-    ####
-    #### Download Dataset data
-    ####
+    #####
+    ##### Download Dataset data
+    #####
 
     # Download few datasets for tests
     for dataset in test_datasets
