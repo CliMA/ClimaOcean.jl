@@ -115,5 +115,4 @@ end
 # Inside the solver we lose both spatial and temporal information, but the
 # radiative properties have already been computed correctly
 @inline net_downwelling_radiation(Qs, Qℓ, α, ϵ) = - (1 - α) * Qs - ϵ * Qℓ
-
 @inline upwelling_radiation(T, σ, ϵ) = σ * ϵ * T^4
