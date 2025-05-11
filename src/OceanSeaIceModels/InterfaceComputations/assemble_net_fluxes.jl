@@ -100,12 +100,19 @@ end
 
     # Compute radiation fluxes
     σ = atmos_ocean_properties.radiation.σ
-    α = stateindex(atmos_ocean_properties.radiation.α, i, j, kᴺ, grid, time)
-    ϵ = stateindex(atmos_ocean_properties.radiation.ϵ, i, j, kᴺ, grid, time)
-    Qu = upwelling_radiation(Tₛ, σ, ϵ)
-    Qr = (; Qs, Qℓ)
-    Qd = net_downwelling_radiation(Qr, α, ϵ)
-    ΣQao = Qd + Qu + Qc + Qv
+    α = atmos_ocean_properties.radiation.α
+    ϵ = atmos_ocean_properties.radiation.ϵ
+    Qu  = upwelling_radiation(i, j, kᴺ, grid, time, Tₛ, σ, ϵ) 
+    Qdℓ = downwelling_longwave_radiation(i, j, kᴺ, grid, time, ϵ, Qℓ)
+    Qds = downwelling_shortwave_radiation(i, j, kᴺ, grid, time, α, Qs)
+    ΣQao = Qu + Qc + Qv + Qdℓ + Qds
+
+    @inbounds begin
+        # Write radiative components of the heat flux for diagnostic purposes
+        atmos_ocean_fluxes.upwelling_longwave[i, j, 1] = Qu
+        atmos_ocean_fluxes.downwelling_longwave[i, j, 1] = Qdℓ
+        atmos_ocean_fluxes.downwelling_shortwave[i, j, 1] = Qds
+    end
 
     # Convert from a mass flux to a volume flux (aka velocity)
     # by dividing with the density of freshwater.
@@ -183,7 +190,8 @@ function compute_net_sea_ice_fluxes!(coupled_model)
     kernel_parameters = interface_kernel_parameters(grid)
 
     sea_ice_surface_temperature = coupled_model.interfaces.atmosphere_sea_ice_interface.temperature
-
+    ice_concentration = sea_ice_concentration(sea_ice)
+    
     launch!(arch, grid, kernel_parameters,
             _assemble_net_sea_ice_fluxes!,
             top_fluxes,
@@ -193,6 +201,7 @@ function compute_net_sea_ice_fluxes!(coupled_model)
             atmosphere_sea_ice_fluxes,
             sea_ice_ocean_fluxes,
             freshwater_flux,
+            ice_concentration,
             sea_ice_surface_temperature,
             downwelling_radiation,
             sea_ice_properties,
@@ -208,6 +217,7 @@ end
                                                atmosphere_sea_ice_fluxes,
                                                sea_ice_ocean_fluxes,
                                                freshwater_flux, # Where do we add this one?
+                                               ice_concentration,
                                                surface_temperature,
                                                downwelling_radiation,
                                                sea_ice_properties,
@@ -220,7 +230,8 @@ end
     @inbounds begin
         Ts = surface_temperature[i, j, kᴺ]
         Ts = convert_to_kelvin(sea_ice_properties.temperature_units, Ts)
-
+        ℵi = ice_concentration[i, j, 1]
+        
         Qs = downwelling_radiation.Qs[i, j, 1]
         Qℓ = downwelling_radiation.Qℓ[i, j, 1]
         Qc = atmosphere_sea_ice_fluxes.sensible_heat[i, j, 1] # sensible or "conductive" heat flux
@@ -234,12 +245,12 @@ end
 
     # Compute radiation fluxes
     σ = atmos_sea_ice_properties.radiation.σ
-    α = stateindex(atmos_sea_ice_properties.radiation.α, i, j, kᴺ, grid, time)
-    ϵ = stateindex(atmos_sea_ice_properties.radiation.ϵ, i, j, kᴺ, grid, time)
-    Qu = upwelling_radiation(Ts, σ, ϵ)
-    Qd = net_downwelling_radiation(i, j, grid, time, α, ϵ, Qs, Qℓ)
+    α = atmos_sea_ice_properties.radiation.α
+    ϵ = atmos_sea_ice_properties.radiation.ϵ
+    Qu = upwelling_radiation(i, j, kᴺ, grid, time, Ts, σ, ϵ) 
+    Qd = net_downwelling_radiation(i, j, kᴺ, grid, time, α, ϵ, Qs, Qℓ)
 
-    ΣQt = Qd + Qu + Qc + Qv
+    ΣQt = (Qd + Qu + Qc + Qv) * ℵi # If ℵi == 0 there is no heat flux from the top!
     ΣQb = Qf + Qi
 
     # Mask fluxes over land for convenience
