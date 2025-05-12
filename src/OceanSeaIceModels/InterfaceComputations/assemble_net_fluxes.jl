@@ -1,5 +1,6 @@
 using Printf
 using Oceananigans.Operators: ℑxᶠᵃᵃ, ℑyᵃᶠᵃ
+using Oceananigans.Forcings: MultipleForcings
 
 using ClimaOcean.OceanSeaIceModels: sea_ice_concentration
 
@@ -9,6 +10,24 @@ using ClimaOcean.OceanSeaIceModels: sea_ice_concentration
                                                     salt = ZeroField(),
                                                     x_momentum = ZeroField(),
                                                     y_momentum = ZeroField())
+
+@inline shortwave_radiative_forcing(i, j, grid, Fᵀ, Qts, ocean_properties) = Qts
+
+@inline function shortwave_radiative_forcing(i, j, grid, tcr::TwoColorRadiation, Iˢʷ, ocean_properties)
+    ρₒ = ocean_properties.reference_density
+    cₒ = ocean_properties.heat_capacity
+    J₀ = tcr.surface_flux
+    @inbounds J₀[i, j,  1] = Iˢʷ / (ρₒ * cₒ)
+    return zero(Iˢʷ)
+end
+
+get_radiative_forcing(FT) = FT
+function get_radiative_forcing(FT::MultipleForcings)
+    for forcing in FT.forcings
+        forcing isa TwoColorRadiation && return forcing
+    end
+    return nothing
+end
 
 function compute_net_ocean_fluxes!(coupled_model)
     ocean = coupled_model.ocean
@@ -43,10 +62,12 @@ function compute_net_ocean_fluxes!(coupled_model)
     kernel_parameters = interface_kernel_parameters(grid)
 
     ocean_surface_temperature = coupled_model.interfaces.atmosphere_ocean_interface.temperature
+    penetrating_radiation = get_radiative_forcing(ocean.model.forcing.T)
 
     launch!(arch, grid, kernel_parameters,
             _assemble_net_ocean_fluxes!,
             net_ocean_fluxes,
+            penetrating_radiation,
             grid,
             clock,
             atmos_ocean_fluxes,
@@ -65,6 +86,7 @@ end
 @inline τᶜᶜᶜ(i, j, k, grid, ρₒ⁻¹, ℵ, ρτᶜᶜᶜ) = @inbounds ρₒ⁻¹ * (1 - ℵ[i, j, k]) * ρτᶜᶜᶜ[i, j, k]
 
 @kernel function _assemble_net_ocean_fluxes!(net_ocean_fluxes,
+                                             penetrating_radiation,
                                              grid,
                                              clock,
                                              atmos_ocean_fluxes,
@@ -102,16 +124,21 @@ end
     σ = atmos_ocean_properties.radiation.σ
     α = atmos_ocean_properties.radiation.α
     ϵ = atmos_ocean_properties.radiation.ϵ
-    Qu  = upwelling_radiation(i, j, kᴺ, grid, time, Tₛ, σ, ϵ) 
-    Qdℓ = downwelling_longwave_radiation(i, j, kᴺ, grid, time, ϵ, Qℓ)
-    Qds = downwelling_shortwave_radiation(i, j, kᴺ, grid, time, α, Qs)
-    ΣQao = Qu + Qc + Qv + Qdℓ + Qds
+    Qu = emitted_longwave_radiation(i, j, kᴺ, grid, time, Tₛ, σ, ϵ) 
+    Qaℓ = absorbed_longwave_radiation(i, j, kᴺ, grid, time, ϵ, Qℓ)
+
+    # Compute the interior + surface absorbed shortwave radiation
+    Qts = transmitted_shortwave_radiation(i, j, kᴺ, grid, time, α, Qs)
+    Qss = shortwave_radiative_forcing(i, j, grid, penetrating_radiation, Qts, ocean_properties)
+
+    # Compute the total radiation
+    ΣQao = Qu + Qc + Qv + Qaℓ + Qss
 
     @inbounds begin
         # Write radiative components of the heat flux for diagnostic purposes
         atmos_ocean_fluxes.upwelling_longwave[i, j, 1] = Qu
-        atmos_ocean_fluxes.downwelling_longwave[i, j, 1] = Qdℓ
-        atmos_ocean_fluxes.downwelling_shortwave[i, j, 1] = Qds
+        atmos_ocean_fluxes.downwelling_longwave[i, j, 1] = - Qaℓ
+        atmos_ocean_fluxes.downwelling_shortwave[i, j, 1] = - Qts
     end
 
     # Convert from a mass flux to a volume flux (aka velocity)
@@ -247,8 +274,8 @@ end
     σ = atmos_sea_ice_properties.radiation.σ
     α = atmos_sea_ice_properties.radiation.α
     ϵ = atmos_sea_ice_properties.radiation.ϵ
-    Qu = upwelling_radiation(i, j, kᴺ, grid, time, Ts, σ, ϵ) 
-    Qd = net_downwelling_radiation(i, j, kᴺ, grid, time, α, ϵ, Qs, Qℓ)
+    Qu = emitted_longwave_radiation(i, j, kᴺ, grid, time, Ts, σ, ϵ) 
+    Qd = net_absorbed_interface_radiation(i, j, kᴺ, grid, time, α, ϵ, Qs, Qℓ)
 
     ΣQt = (Qd + Qu + Qc + Qv) * ℵi # If ℵi == 0 there is no heat flux from the top!
     ΣQb = Qf + Qi
