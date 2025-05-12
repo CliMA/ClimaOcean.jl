@@ -57,6 +57,11 @@ function Field(metadata::Metadatum, arch=CPU();
                halo = (3, 3, 3),
                cache_inpainted_data = true)
 
+    # Make data available
+    download_dataset(metadata)
+    path = metadata_path(metadata)
+    dsname = dataset_variable_name(metadata)
+
     grid = native_grid(metadata, arch; halo)
     LX, LY, LZ = location(metadata)
     field = Field{LX, LY, LZ}(grid)
@@ -84,10 +89,6 @@ function Field(metadata::Metadatum, arch=CPU();
             close(file)
         end
     end
-
-    download_dataset(metadata)
-    path = metadata_path(metadata)
-    dsname = dataset_variable_name(metadata)
 
     # NetCDF shenanigans
     ds = Dataset(path)
