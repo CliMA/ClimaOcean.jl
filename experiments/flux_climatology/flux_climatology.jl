@@ -19,8 +19,6 @@ import Oceananigans.Models: timestepper, update_model_field_time_series!
 import ClimaOcean.OceanSeaIceModels: reference_density, heat_capacity
 import Oceananigans.Architectures: on_architecture
 
-ClimaOcean.DataWrangling.dataset_defaults.FloatType = Float64
-
 #####
 ##### A Data structure that holds flux statistics
 #####
@@ -101,7 +99,7 @@ end
 ##### A function to compute flux statistics
 #####
 
-function compute_flux_colorrangeatology(earth)
+function compute_flux_climatology(earth)
     net_fluxes = earth.model.interfaces.net_fluxes.ocean_surface
     τx = FluxStatistics(net_fluxes.u)
     τy = FluxStatistics(net_fluxes.v)
@@ -197,12 +195,12 @@ heat_capacity(ocean::Simulation{<:PrescribedOcean}) = 3995.6
 dataset = ECCO4Monthly()
 arch    = CPU()
 
-start_date = DateTime(1992, 1,  1)
-end_date   = DateTime(1992, 12, 1)
+start_date = DateTime(1992, 1, 1)
+end_date   = DateTime(1992, 1, 2)
 
 stop_time = Day(end_date - start_date).value * Oceananigans.Units.days 
 
-time_indices_in_memory = 12
+time_indices_in_memory = 2
 
 u_meta = Metadata(:u_velocity;  start_date, end_date, dataset)
 v_meta = Metadata(:v_velocity;  start_date, end_date, dataset)
@@ -233,14 +231,6 @@ atmosphere = ClimaOcean.ECCO.ECCOPrescribedAtmosphere(arch; start_date, end_date
 #####
 ##### A prescribed earth...
 #####         
-
-using ClimaOcean.OceanSeaIceModels.InterfaceComputations
-
-atmosphere_ocean_flux_formulation = InterfaceComputations.CoefficientBasedFluxes(drag_coefficient = 1.5e-3,
-                                                                                   heat_transfer_coefficient = 2e-3,
-                                                                                   vapor_flux_coefficient = 2.0e-3)
-
-interfaces = ComponentInterfaces(atmosphere, ocean; atmosphere_ocean_flux_formulation)
 
 earth_model = OceanSeaIceModel(ocean, nothing; atmosphere, radiation = Radiation(arch))
 
