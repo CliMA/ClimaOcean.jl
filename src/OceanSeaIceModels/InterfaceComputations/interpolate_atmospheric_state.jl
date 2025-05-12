@@ -8,7 +8,7 @@ using ...OceanSimulations: forcing_barotropic_potential, TwoColorRadiation
 using ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres: PrescribedAtmosphere
 import ClimaOcean.OceanSeaIceModels: interpolate_atmosphere_state!
 
-compute_radiative_forcing!(::Nothing, downwelling_shortwave_radiation, coupled_model) = nothing
+compute_radiative_forcing!(T_forcing, downwelling_shortwave_radiation, coupled_model) = nothing #fallback
 
 function compute_radiative_forcing!(tcr::TwoColorRadiation, downwelling_shortwave_radiation, coupled_model)
     ρₒ = coupled_model.interfaces.ocean_properties.reference_density
