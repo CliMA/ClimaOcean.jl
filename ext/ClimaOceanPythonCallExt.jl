@@ -27,7 +27,6 @@ function download_dataset(meta::CopernicusMetadata, grid=nothing; skip_existing 
     output_directory = meta.dir
     output_filename = ClimaOcean.DataWrangling.metadata_filename(meta)
     output_path = joinpath(output_directory, output_filename)
-    rm(output_path, force=true)
     isfile(output_path) && return output_path
 
     toolbox = try 
