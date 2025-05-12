@@ -159,6 +159,7 @@ struct DegreesCelsius end
 struct DegreesKelvin end
 
 const celsius_to_kelvin = 273.15
+
 @inline convert_to_kelvin(::DegreesCelsius, T::FT) where FT = T + convert(FT, celsius_to_kelvin)
 @inline convert_to_kelvin(::DegreesKelvin, T) = T
 

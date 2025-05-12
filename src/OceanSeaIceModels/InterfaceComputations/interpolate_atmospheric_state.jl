@@ -64,13 +64,16 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
     # Assumption, should be generalized
     ua = atmosphere.velocities.u
 
+    times = ua.times
+    time_indexing = ua.time_indexing
+    t = clock.time
+    time_interpolator = TimeInterpolator(ua.time_indexing, times, clock.time)
+    
     launch!(arch, grid, kernel_parameters,
             _interpolate_primary_atmospheric_state!,
             atmosphere_data,
             space_fractional_indices,
-            ua.times,
-            ua.time_indexing,
-            clock.time,
+            time_interpolator,
             exchange_grid,
             atmosphere_velocities,
             atmosphere_tracers,
@@ -129,9 +132,7 @@ end
 
 @kernel function _interpolate_primary_atmospheric_state!(surface_atmos_state,
                                                          space_fractional_indices,
-                                                         times,
-                                                         time_indexing,
-                                                         t,
+                                                         time_interpolator,
                                                          exchange_grid,
                                                          atmos_velocities,
                                                          atmos_tracers,
@@ -147,7 +148,6 @@ end
     jj = space_fractional_indices.j
     fi = get_fractional_index(i, j, ii)
     fj = get_fractional_index(i, j, jj)
-    time_interpolator = TimeInterpolator(time_indexing, times, t)
 
     x_itp = FractionalIndices(fi, fj, nothing)
     t_itp = time_interpolator
@@ -221,7 +221,7 @@ end
     interp_atmos_time_series(values(ΣJ), args...)
 
 @inline interp_atmos_time_series(ΣJ::Tuple{<:Any}, args...) =
-    interp_atmos_time_series(ΣJ[1], args...)
+    interp_atmos_time_series(ΣJ[1], args...) 
 
 @inline interp_atmos_time_series(ΣJ::Tuple{<:Any, <:Any}, args...) =
     interp_atmos_time_series(ΣJ[1], args...) +
