@@ -41,7 +41,7 @@ ClimaOceanReactantExt = "Reactant"
 
 [compat]
 Adapt = "4"
-CFTime = "0.1"
+CFTime = "0.1, 0.2"
 CUDA = "4, 5"
 ClimaSeaIce = "0.2.6"
 CondaPkg = "0.2.28"
