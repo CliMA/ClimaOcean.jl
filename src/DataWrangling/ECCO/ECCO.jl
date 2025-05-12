@@ -20,7 +20,6 @@ using ClimaOcean.DataWrangling:
     Celsius,
     Metadata,
     Metadatum,
-    ReverseSign,
     download_progress
 
 using KernelAbstractions: @kernel, @index
