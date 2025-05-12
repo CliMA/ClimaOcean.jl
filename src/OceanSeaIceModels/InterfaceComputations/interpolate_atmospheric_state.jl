@@ -3,10 +3,21 @@ using Oceananigans.Grids: _node
 using Oceananigans.Fields: FractionalIndices
 using Oceananigans.OutputReaders: TimeInterpolator
 
-using ...OceanSimulations: forcing_barotropic_potential
+using ...OceanSimulations: forcing_barotropic_potential, TwoColorRadiation
 
 using ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres: PrescribedAtmosphere
 import ClimaOcean.OceanSeaIceModels: interpolate_atmosphere_state!
+
+compute_radiative_forcing!(::Nothing, downwelling_shortwave_radiation, coupled_model) = nothing
+
+function compute_radiative_forcing!(tcr::TwoColorRadiation, downwelling_shortwave_radiation, coupled_model)
+    ρₒ = coupled_model.interfaces.ocean_properties.reference_density
+    cₒ = coupled_model.interfaces.ocean_properties.heat_capacity
+    J⁰ = tcr.surface_flux
+    Qs = downwelling_shortwave_radiation
+    parent(J⁰) .= - parent(Qs) ./ (ρₒ * cₒ)
+    return nothing
+end
 
 # TODO: move to PrescribedAtmospheres
 """Interpolate the atmospheric state onto the ocean / sea-ice grid."""
@@ -125,6 +136,9 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
     if !isnothing(v_potential)
         parent(v_potential) .= parent(atmosphere_data.p) ./ ρₒ
     end
+
+    # Set ocean radiative forcing
+    compute_radiative_forcing!(ocean.model.forcing.T, atmosphere_data.Qs, coupled_model)
 end
 
 @inline get_fractional_index(i, j, ::Nothing) = nothing
