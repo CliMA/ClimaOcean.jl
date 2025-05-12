@@ -45,9 +45,9 @@ end
 const c = Center()
 const f = Face()
 
-@inline function beers_law_radiation(i, j, k, grid, J⁰, κ)
+@inline function beers_law_radiation(i, j, k, grid, J₀ , κ)
     z = Oceananigans.Grids.znode(i, j, k, grid, c, c, f)
-    return J⁰ * exp(κ * z)
+    return J₀ * exp(κ * z)
 end
 
 @inline function (R::TwoColorRadiation)(i, j, k, grid, clock, fields)
