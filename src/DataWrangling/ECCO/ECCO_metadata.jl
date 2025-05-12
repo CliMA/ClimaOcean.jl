@@ -136,6 +136,8 @@ ECCO4_short_names = Dict(
     :eastward_wind         => "EXFewind",
     :northward_wind        => "EXFnwind",
     :rain_freshwater_flux  => "EXFpreci",
+    :eastward_wind_stress  => "EXFtaue", 
+    :northward_wind_stress => "EXFtaun",
 )
 
 ECCO2_short_names = Dict(
@@ -169,6 +171,8 @@ ECCO_location = Dict(
     :eastward_wind         => (Center, Center, Nothing),
     :northward_wind        => (Center, Center, Nothing),
     :rain_freshwater_flux  => (Center, Center, Nothing),
+    :eastward_wind_stress  => (Center, Center, Nothing),
+    :northward_wind_stress => (Center, Center, Nothing),
 )    
 
 # URLs for the ECCO datasets specific to each dataset
