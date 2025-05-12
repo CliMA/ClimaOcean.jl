@@ -169,6 +169,17 @@ ECCO4_dataset_variable_names = Dict(
     :rain_freshwater_flux  => "EXFpreci",
 )
 
+ECCO2_dataset_variable_names = Dict(
+    :temperature           => "THETA",
+    :salinity              => "SALT",
+    :u_velocity            => "EVEL",
+    :v_velocity            => "NVEL",
+    :free_surface          => "SSH",
+    :sea_ice_thickness     => "SIheff",
+    :sea_ice_concentration => "SIarea",
+    :net_heat_flux         => "oceQnet",
+)
+
 ECCO_location = Dict(
     :temperature           => (Center, Center, Center),
     :salinity              => (Center, Center, Center),
