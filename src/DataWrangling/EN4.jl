@@ -51,6 +51,11 @@ import ClimaOcean.DataWrangling:
 
 import Oceananigans.Fields: location
 
+download_EN4_cache::String = ""
+function __init__()
+    global download_EN4_cache = @get_scratch!("EN4")
+end
+
 EN4_dataset_variable_names = Dict(
     :temperature => "temperature",
     :salinity    => "salinity"
@@ -60,6 +65,7 @@ struct EN4Monthly end
 
 default_download_directory(::EN4Monthly) = download_EN4_cache
 Base.size(::EN4Monthly, variable) = (360, 173, 42)
+all_dates(::EN4Monthly, variable) = DateTime(1900, 1, 1) : Month(1) : DateTime(2024, 12, 1)
 temperature_units(::EN4Monthly) = Kelvin()
 reversed_vertical_axis(::EN4Monthly) = true
 
