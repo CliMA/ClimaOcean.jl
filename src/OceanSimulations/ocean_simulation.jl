@@ -95,9 +95,9 @@ default_tracer_advection() = FluxFormAdvection(WENO(order=7),
                                                Centered())
 
 function default_radiative_forcing(grid)
-    ϵᵇ = 0.6 # blue fraction
-    λᵇ = 1  # blue decay scale
-    λʳ = 16 # red decay scale
+    ϵʳ = 0.6 # red fraction
+    λʳ = 1  # red decay scale
+    λᵇ = 16 # blue decay scale
     forcing = TwoColorRadiation(grid;
                                 first_color_fraction = ϵᵇ,
                                 first_absorption_coefficient = 1/λᵇ,
