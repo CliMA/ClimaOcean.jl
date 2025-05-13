@@ -200,7 +200,7 @@ end
 # Datasets
 include("JRA55/JRA55.jl")
 include("ECCO/ECCO.jl")
-include("EN4.jl")
+include("EN4/EN4.jl")
 include("Copernicus/Copernicus.jl")
 
 using .ECCO

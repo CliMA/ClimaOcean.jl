@@ -77,7 +77,7 @@ include("OceanSeaIceModels/OceanSeaIceModels.jl")
 include("VerticalGrids.jl")
 include("InitialConditions/InitialConditions.jl")
 include("DataWrangling/DataWrangling.jl")
-include("Bathymetry.jl")
+include("Bathymetry/Bathymetry.jl")
 include("Diagnostics/Diagnostics.jl")
 
 using .VerticalGrids
