@@ -1,7 +1,7 @@
-struct MomentumRoughnessLength{FT, V}
+struct MomentumRoughnessLength{FT, G, V}
     gravitational_acceleration :: FT
     air_kinematic_viscosity :: V
-    gravity_wave_parameter :: FT
+    gravity_wave_parameter :: G
     laminar_parameter :: FT
     maximum_roughness_length :: FT
 end
@@ -11,6 +11,25 @@ struct ScalarRoughnessLength{FT, V, R}
     reynolds_number_scaling_function :: R
     maximum_roughness_length :: FT
 end
+
+struct WindDependentGravityWaveParameter{FT}
+    umax :: FT
+    a₁ :: FT
+    a₂ :: FT
+end
+
+"""
+    WindDependentGravityWaveParameter(FT = Float64;
+                                      umax = 10.0,
+                                      a₁ = 0.011,
+                                      a₂ = 0.11)
+
+compute the gravity wave parameter based on the wind speed `ΔU` with the formula `α = a₁ max(ΔU, umax) + a₂`
+"""
+WindDependentGravityWaveParameter(FT=Oceananigans.defaults.FloatType; umax = 19, a₁ = 0.011, a₂ = 0.11) =
+    WindDependentGravityWaveParameter(convert(FT, umax),
+                                      convert(FT, a₁),
+                                      convert(FT, a₂))
 
 """
     ScalarRoughnessLength(FT = Float64;
