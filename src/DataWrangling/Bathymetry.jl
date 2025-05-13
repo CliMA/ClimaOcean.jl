@@ -2,7 +2,8 @@ module Bathymetry
 
 # export regrid_bathymetry, retrieve_bathymetry, download_bathymetry
 export download_bathymetry
-export Metadata
+import ClimaOcean.DataWrangling: Metadata
+import ..DataWrangling: Metadata
 
 # using ImageMorphology
 # using ..DataWrangling: download_progress, Metadata
@@ -41,15 +42,14 @@ return the full filepath where the bathymetry is saved.
 function download_bathymetry end 
 # methods specific to bathymetries are added within each bathymetry module
 
+
 function Metadata(variable_name;
     dataset::ETOPOBathy,
     dir = default_download_directory(dataset),
     bounding_box = nothing)
 
-    return Metadata(variable_name, dataset, bounding_box, dir)
+    return Metadata(variable_name, dataset, nothing, bounding_box, dir)
 end
-
-
 
 #=
 """

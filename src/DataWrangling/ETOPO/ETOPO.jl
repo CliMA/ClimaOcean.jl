@@ -8,9 +8,7 @@ import ClimaOcean.DataWrangling:
     default_download_directory,
     metadata_path,
     Metadata,
-    Metadatum
-
-import ClimaOcean.Bathymetry:
+    Metadatum,
     download_bathymetry
 
 download_ETOPO_cache::String = ""

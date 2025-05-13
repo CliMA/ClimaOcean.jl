@@ -183,6 +183,7 @@ include("metadata_field.jl")
 include("metadata_field_time_series.jl")
 include("inpainting.jl")
 include("restoring.jl")
+include("bathymetry.jl")
 
 # Only temperature and salinity need a thorough inpainting because of stability,
 # other variables can do with only a couple of passes. Sea ice variables
@@ -202,10 +203,12 @@ include("JRA55/JRA55.jl")
 include("ECCO/ECCO.jl")
 include("EN4/EN4.jl")
 include("Copernicus/Copernicus.jl")
+include("ETOPO/ETOPO.jl")
 
 using .ECCO
 using .EN4
 using .JRA55
 using .Copernicus
+using .ETOPO
 
 end # module
