@@ -126,10 +126,14 @@ end
     α = atmos_ocean_properties.radiation.α
     ϵ = atmos_ocean_properties.radiation.ϵ
     Qu = emitted_longwave_radiation(i, j, kᴺ, grid, time, Tₛ, σ, ϵ) 
-    Qaℓ = absorbed_longwave_radiation(i, j, kᴺ, grid, time, ϵ, Qℓ) * (1 - ℵᵢ)
-
+    Qaℓ = absorbed_longwave_radiation(i, j, kᴺ, grid, time, ϵ, Qℓ) 
+  
     # Compute the interior + surface absorbed shortwave radiation
-    Qts = transmitted_shortwave_radiation(i, j, kᴺ, grid, time, α, Qs) * (1 - ℵᵢ)
+    Qts = transmitted_shortwave_radiation(i, j, kᴺ, grid, time, α, Qs)
+
+    Qaℓ *= (1 - ℵᵢ)
+    Qts *= (1 - ℵᵢ)
+  
     Qss = shortwave_radiative_forcing(i, j, grid, penetrating_radiation, Qts, ocean_properties)
 
     # Compute the total heat flux
