@@ -125,11 +125,14 @@ end
 
 # Momentum roughness length should be different from scalar roughness length.
 # Temperature and water vapor can be considered the same (Edson et al 2013)
-@inline function roughness_length(ℓ::MomentumRoughnessLength{FT}, u★, 𝒬, ℂ) where FT
+@inline function roughness_length(ℓ::MomentumRoughnessLength{FT}, ΔU, u★, 𝒬, ℂ) where FT
     g  = ℓ.gravitational_acceleration
     α  = ℓ.gravity_wave_parameter
     β  = ℓ.laminar_parameter
     ℓm = ℓ.maximum_roughness_length
+
+    𝒰 = max(ΔU, 19.0)
+    α = convert(FT, 0.0017 * 𝒰 - 0.005)
 
     θ₀ = AtmosphericThermodynamics.air_temperature(ℂ, 𝒬)
     ν  = ℓ.air_kinematic_viscosity(θ₀)

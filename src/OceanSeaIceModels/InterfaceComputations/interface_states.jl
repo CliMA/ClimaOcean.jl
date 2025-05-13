@@ -46,10 +46,10 @@ SpecificHumidityFormulation(phase) = SpecificHumidityFormulation(phase, nothing)
     # Extrapolate to get surface density
     cvₘ = Thermodynamics.cv_m(ℂₐ, 𝒬ₐ)
     Rₐ = Thermodynamics.gas_constant_air(ℂₐ, 𝒬ₐ)
-    γₐ = cvₘ / Rₐ
+    κₐ = cvₘ / Rₐ # 1 / (γ - 1)
     ρₐ = Thermodynamics.air_density(ℂₐ, 𝒬ₐ)
     Tₐ = Thermodynamics.air_temperature(ℂₐ, 𝒬ₐ)
-    ρₛ = ρₐ * (Tₛ / Tₐ)^γₐ
+    ρₛ = ρₐ * (Tₛ / Tₐ)^κₐ
 
     p★ = Thermodynamics.saturation_vapor_pressure(ℂₐ, convert(CT, Tₛ), phase)
     q★ = Thermodynamics.q_vap_saturation_from_density(ℂₐ, convert(CT, Tₛ), convert(CT, ρₛ), p★)

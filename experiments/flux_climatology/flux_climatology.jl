@@ -237,8 +237,8 @@ include("coare_flux_computations.jl")
 atmosphere_ocean_flux_formulation = PyCOAREFluxFormulation()
 interfaces = ClimaOcean.OceanSeaIceModels.InterfaceComputations.ComponentInterfaces(atmosphere, ocean; atmosphere_ocean_flux_formulation)
 
-@info "doing earth 1"
-earth_model = OceanSeaIceModel(ocean, nothing; atmosphere, interfaces, radiation = Radiation(arch))
+# @info "doing earth 1"
+# earth_model = OceanSeaIceModel(ocean, nothing; atmosphere, interfaces, radiation = Radiation(arch))
 
 @info "doing earth 2"
 earth_model2 = OceanSeaIceModel(ocean, nothing; atmosphere, radiation = Radiation(arch))
@@ -255,23 +255,23 @@ Qcecco = FieldTimeSeries(Qcecco, arch; time_indices_in_memory)
 Qvecco = FieldTimeSeries(Qvecco, arch; time_indices_in_memory)
 Qsecco = FieldTimeSeries(Qsecco, arch; time_indices_in_memory)
 
-Qt = earth_model.interfaces.net_fluxes.ocean_surface.Q
+# Qt = earth_model.interfaces.net_fluxes.ocean_surface.Q
 Qc = earth_model.interfaces.atmosphere_ocean_interface.fluxes.sensible_heat
 Qv = earth_model.interfaces.atmosphere_ocean_interface.fluxes.latent_heat
 Qℓ = earth_model.interfaces.atmosphere_ocean_interface.fluxes.downwelling_longwave + 
      earth_model.interfaces.atmosphere_ocean_interface.fluxes.upwelling_longwave 
 Qs = earth_model.interfaces.atmosphere_ocean_interface.fluxes.downwelling_shortwave
-τx = earth_model.interfaces.net_fluxes.ocean_surface.u
-τy = earth_model.interfaces.net_fluxes.ocean_surface.v
+τx = earth_model.interfaces.atmosphere_ocean_interface.fluxes.x_momentum
+τy = earth_model.interfaces.atmosphere_ocean_interface.fluxes.y_momentum
 
-Qt2 = earth_model2.interfaces.net_fluxes.ocean_surface.Q
+# Qt2 = earth_model2.interfaces.net_fluxes.ocean_surface.Q
 Qc2 = earth_model2.interfaces.atmosphere_ocean_interface.fluxes.sensible_heat
 Qv2 = earth_model2.interfaces.atmosphere_ocean_interface.fluxes.latent_heat
 Qℓ2 = earth_model2.interfaces.atmosphere_ocean_interface.fluxes.downwelling_longwave + 
       earth_model2.interfaces.atmosphere_ocean_interface.fluxes.upwelling_longwave 
 Qs2 = earth_model2.interfaces.atmosphere_ocean_interface.fluxes.downwelling_shortwave
-τx2 = earth_model2.interfaces.net_fluxes.ocean_surface.u
-τy2 = earth_model2.interfaces.net_fluxes.ocean_surface.v
+τx2 = earth_model2.interfaces.atmosphere_ocean_interface.fluxes.x_momentum
+τy2 = earth_model2.interfaces.atmosphere_ocean_interface.fluxes.y_momentum
 
 import Oceananigans.Fields: interior
 
@@ -279,14 +279,14 @@ interior(b::Oceananigans.AbstractOperations.BinaryOperation, idx...) =
     interior(compute!(Field(b)), idx...)    
 
 fig = Figure()
-ax = Axis(fig[1, 1], title = "ECCO net heat flux")
-heatmap!(ax, Qt2, colorrange=(-150, 150), colormap=:balance)
-ax = Axis(fig[1, 2], title = "CO net heat flux")
-hm = heatmap!(ax, Qt, colorrange=(-150, 150), colormap=:balance)
-Colorbar(fig[1, 3], hm)
-ax = Axis(fig[1, 4], title = "ECCO - CO")
-hm = heatmap!(ax, interior(Qt2, :, :, 1) .- interior(Qt, :, :, 1), colorrange=(-1, 1), colormap=:balance)
-Colorbar(fig[1, 5], hm)
+# ax = Axis(fig[1, 1], title = "ECCO net heat flux")
+# heatmap!(ax, Qt2, colorrange=(-150, 150), colormap=:balance)
+# ax = Axis(fig[1, 2], title = "CO net heat flux")
+# hm = heatmap!(ax, Qt, colorrange=(-150, 150), colormap=:balance)
+# Colorbar(fig[1, 3], hm)
+# ax = Axis(fig[1, 4], title = "ECCO - CO")
+# hm = heatmap!(ax, interior(Qt2, :, :, 1) .- interior(Qt, :, :, 1), colorrange=(-1, 1), colormap=:balance)
+# Colorbar(fig[1, 5], hm)
 
 ax = Axis(fig[2, 1], title = "ECCO sensible flux")
 heatmap!(ax, Qc2, colorrange=(-100, 100), colormap=:balance)
@@ -314,3 +314,24 @@ Colorbar(fig[4, 3], hm)
 ax = Axis(fig[4, 4], title = "ECCO - CO")
 hm = heatmap!(ax, interior(Qℓ2, :, :, 1) .- interior(Qℓ, :, :, 1), colorrange=(-1, 1), colormap=:balance)
 Colorbar(fig[4, 5], hm)
+
+#
+#
+# [ Info: doing earth 1
+# (i, j, kᴺ) = (410, 100, 50)
+# (u★, θ★, q★) = (0.9191517f0, -0.19667861f0, -0.00019537334f0)
+# (τx, τy) = (-0.61358494f0, -0.5807478f0)
+# (Qs, Qℓ) = (0.0f0, 315.4688f0)
+# (i, j, kᴺ) = (410, 100, 50)
+# (Jᵀao, Qc, Qv) = (0.0002105929316293838, 222.21265f0, 540.3504f0)
+# (τx[i, j, 1], τy[i, j, 1]) = (-0.000709258f0, -0.000697745f0)
+#
+#
+# [ Info: doing earth 2
+# (i, j, kᴺ) = (410, 100, 50)
+# (u★, θ★, q★) = (0.7617353f0, -0.21432279f0, -0.00016996033f0)
+# (τx, τy) = (-0.42141354f0, -0.3988608f0)
+# (Qs, Qℓ) = (0.0f0, 315.4688f0)
+# (i, j, kᴺ) = (410, 100, 50)
+# (Jᵀao, Qc, Qv) = (0.00016854048906369735, 200.67667f0, 389.5602f0)
+# (τx[i, j, 1], τy[i, j, 1]) = (-0.00048802124f0, -0.0004815535f0)
