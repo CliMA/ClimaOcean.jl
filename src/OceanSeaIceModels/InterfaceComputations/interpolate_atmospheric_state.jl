@@ -136,9 +136,6 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
     if !isnothing(v_potential)
         parent(v_potential) .= parent(atmosphere_data.p) ./ ρₒ
     end
-
-    # Set ocean radiative forcing
-    compute_radiative_forcing!(ocean.model.forcing.T, atmosphere_data.Qs, coupled_model)
 end
 
 @inline get_fractional_index(i, j, ::Nothing) = nothing
