@@ -108,6 +108,7 @@ end
     ρτyio = sea_ice_ocean_fluxes.y_momentum # sea_ice - ocean meridional momentum flux
 
     @inbounds begin
+        ℵᵢ = sea_ice_concentration[i, j, 1]
         Sₒ = ocean_salinity[i, j, kᴺ]
         Tₛ = ocean_surface_temperature[i, j, 1]
         Tₛ = convert_to_kelvin(ocean_properties.temperature_units, Tₛ)
@@ -120,19 +121,19 @@ end
         Mv  = atmos_ocean_fluxes.water_vapor[i, j, 1]   # mass flux of water vapor
     end
 
-    # Compute radiation fluxes
+    # Compute radiation fluxes (radiation is multiplied by the fraction of ocean, 1 - sea ice concentration)
     σ = atmos_ocean_properties.radiation.σ
     α = atmos_ocean_properties.radiation.α
     ϵ = atmos_ocean_properties.radiation.ϵ
     Qu = emitted_longwave_radiation(i, j, kᴺ, grid, time, Tₛ, σ, ϵ) 
-    Qaℓ = absorbed_longwave_radiation(i, j, kᴺ, grid, time, ϵ, Qℓ)
+    Qaℓ = absorbed_longwave_radiation(i, j, kᴺ, grid, time, ϵ, Qℓ) * (1 - ℵᵢ)
 
     # Compute the interior + surface absorbed shortwave radiation
-    Qts = transmitted_shortwave_radiation(i, j, kᴺ, grid, time, α, Qs)
+    Qts = transmitted_shortwave_radiation(i, j, kᴺ, grid, time, α, Qs) * (1 - ℵᵢ)
     Qss = shortwave_radiative_forcing(i, j, grid, penetrating_radiation, Qts, ocean_properties)
 
-    # Compute the total radiation
-    ΣQao = Qu + Qc + Qv + Qaℓ + Qss
+    # Compute the total heat flux
+    ΣQao = (Qu + Qc + Qv) * (1 - ℵᵢ) + Qaℓ + Qss
 
     @inbounds begin
         # Write radiative components of the heat flux for diagnostic purposes
@@ -152,7 +153,7 @@ end
     Fv = Mv * ρf⁻¹
     ΣFao += Fv
 
-    # Compute fluxes for u, v, T, S from momentum, heat, and freshwater fluxes
+    # Compute fluxes for u, v, T, and S from momentum, heat, and freshwater fluxes
     τx = net_ocean_fluxes.u
     τy = net_ocean_fluxes.v
     Jᵀ = net_ocean_fluxes.T
@@ -162,7 +163,6 @@ end
     cₒ   = ocean_properties.heat_capacity
 
     @inbounds begin
-        ℵᵢ   = ℵ[i, j, 1]
         Qio  = sea_ice_ocean_fluxes.interface_heat[i, j, 1]
 
         Jᵀao = ΣQao  * ρₒ⁻¹ / cₒ
@@ -180,7 +180,7 @@ end
         τy[i, j, 1] = τyao + τyio
 
         # Tracer fluxes
-        Jᵀ[i, j, 1] = (1 - ℵᵢ) * Jᵀao + Jᵀio
+        Jᵀ[i, j, 1] = Jᵀao + Jᵀio # Jᵀao is already multiplied by the sea ice concentration
         Jˢ[i, j, 1] = (1 - ℵᵢ) * Jˢao + Jˢio
     end
 end
