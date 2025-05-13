@@ -57,7 +57,6 @@ function Field(metadata::Metadatum, arch=CPU();
                halo = (3, 3, 3),
                cache_inpainted_data = true)
 
-    # Ensure data is available
     download_dataset(metadata)
 
     grid = native_grid(metadata, arch; halo)
