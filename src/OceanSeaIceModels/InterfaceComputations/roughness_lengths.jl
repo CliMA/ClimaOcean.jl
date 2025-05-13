@@ -1,7 +1,7 @@
 struct MomentumRoughnessLength{FT, G, V}
     gravitational_acceleration :: FT
     air_kinematic_viscosity :: V
-    gravity_wave_parameter :: G
+    gravity_waves :: G
     laminar_parameter :: FT
     maximum_roughness_length :: FT
 end
@@ -14,12 +14,12 @@ end
 
 struct WindDependentGravityWaveParameter{FT}
     umax :: FT
-    a₁ :: FT
-    a₂ :: FT
+    ℂ₁ :: FT
+    ℂ₂ :: FT
 end
 
-compute_charnock_parameter(α::Number, args...) = α
-compute_charnock_parameter(α::WindDependentGravityWaveParameter, ΔU) = α.a₁ * max(ΔU, α.umax) + α.a₂
+gravity_wave_parameter(α::Number, args...) = α
+gravity_wave_parameter(α::WindDependentGravityWaveParameter, ΔU) = α.ℂ₁ * max(ΔU, α.umax) + α.ℂ₂
 
 """
     WindDependentGravityWaveParameter(FT = Float64;
@@ -151,7 +151,7 @@ end
     g  = ℓ.gravitational_acceleration
     β  = ℓ.laminar_parameter
     ℓm = ℓ.maximum_roughness_length
-    α  = compute_charnock_parameter(ℓ.gravity_wave_parameter, ΔU)
+    α  = gravity_wave_parameter(ℓ.gravity_waves, ΔU)
 
     θ₀ = AtmosphericThermodynamics.air_temperature(ℂ, 𝒬)
     ν  = ℓ.air_kinematic_viscosity(θ₀)
