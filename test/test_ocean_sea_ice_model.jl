@@ -19,11 +19,12 @@ using ClimaSeaIce.Rheologies
 
         temperature_metadata = Metadata(:temperature; dataset, dates)
         salinity_metadata    = Metadata(:salinity; dataset, dates)
+        backend = JRA55NetCDFBackend(4)
 
         for arch in test_architectures
+            for atmosphere in (JRA55PrescribedAtmosphere(arch; backend), nothing)
 
             A = typeof(arch)
-
             @info "Testing timestepping with $(typeof(dataset)) on $A"
 
             λ★, φ★ = 35.1, 50.1
@@ -35,8 +36,6 @@ using ClimaSeaIce.Rheologies
             data = Int[]
             pushdata(sim) = push!(data, iteration(sim))
             add_callback!(ocean, pushdata)
-            backend = JRA55NetCDFBackend(4)
-            atmosphere = JRA55PrescribedAtmosphere(arch; backend)
             radiation = Radiation(arch)
             coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
             Δt = 60
