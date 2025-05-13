@@ -18,6 +18,9 @@ struct WindDependentGravityWaveParameter{FT}
     a₂ :: FT
 end
 
+compute_charnock_parameter(α::Number, args...) = α
+compute_charnock_parameter(α::WindDependentGravityWaveParameter, ΔU) = α.a₁ * max(ΔU, α.umax) + α.a₂
+
 """
     WindDependentGravityWaveParameter(FT = Float64;
                                       umax = 10.0,
@@ -144,11 +147,11 @@ end
 
 # Momentum roughness length should be different from scalar roughness length.
 # Temperature and water vapor can be considered the same (Edson et al 2013)
-@inline function roughness_length(ℓ::MomentumRoughnessLength{FT}, u★, 𝒬, ℂ) where FT
+@inline function roughness_length(ℓ::MomentumRoughnessLength{FT}, ΔU, u★, 𝒬, ℂ) where FT
     g  = ℓ.gravitational_acceleration
-    α  = ℓ.gravity_wave_parameter
     β  = ℓ.laminar_parameter
     ℓm = ℓ.maximum_roughness_length
+    α  = compute_charnock_parameter(ℓ.gravity_wave_parameter, ΔU)
 
     θ₀ = AtmosphericThermodynamics.air_temperature(ℂ, 𝒬)
     ν  = ℓ.air_kinematic_viscosity(θ₀)
