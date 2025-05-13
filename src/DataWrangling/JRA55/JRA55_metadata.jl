@@ -94,6 +94,7 @@ JRA55_variable_names = (:river_freshwater_flux,
                         :snow_freshwater_flux,
                         :iceberg_freshwater_flux,
                         :specific_humidity,
+                        :relative_humidity,
                         :sea_level_pressure,
                         :downwelling_longwave_radiation,
                         :downwelling_shortwave_radiation,
@@ -107,6 +108,7 @@ JRA55_dataset_variable_names = Dict(
     :snow_freshwater_flux            => "prsn",     # Freshwater flux from snowfall
     :iceberg_freshwater_flux         => "licalvf",  # Freshwater flux from calving icebergs
     :specific_humidity               => "huss",     # Surface specific humidity
+    :relative_humidity               => "rhuss",    # Surface relative humidity
     :sea_level_pressure              => "psl",      # Sea level pressure
     :downwelling_longwave_radiation  => "rlds",     # Downwelling longwave radiation
     :downwelling_shortwave_radiation => "rsds",     # Downwelling shortwave radiation
@@ -163,6 +165,9 @@ JRA55_repeat_year_urls = Dict(
 
     :specific_humidity => "https://www.dropbox.com/scl/fi/66z6ymfr4ghkynizydc29/" *
                           "RYF.huss.1990_1991.nc?rlkey=107yq04aew8lrmfyorj68v4td&dl=0",
+
+    :relative_humidity => "https://www.dropbox.com/scl/fi/66z6ymfr4ghkynizydc29/" *
+                          "RYF.russ.1990_1991.nc?rlkey=107yq04aew8lrmfyorj68v4td&dl=0",
 
     :sea_level_pressure => "https://www.dropbox.com/scl/fi/0fk332027oru1iiseykgp/" *
                            "RYF.psl.1990_1991.nc?rlkey=4xpr9uah741483aukok6d7ctt&dl=0",

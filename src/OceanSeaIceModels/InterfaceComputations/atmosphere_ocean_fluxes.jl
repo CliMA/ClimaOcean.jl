@@ -25,6 +25,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
                        T = atmosphere_fields.T.data,
                        p = atmosphere_fields.p.data,
                        q = atmosphere_fields.q.data,
+                       r = atmosphere_fields.r.data,
                        Qs = atmosphere_fields.Qs.data,
                        Qℓ = atmosphere_fields.Qℓ.data,
                        Mp = atmosphere_fields.Mp.data,
@@ -79,6 +80,7 @@ end
         Tₐ = atmosphere_state.T[i, j, 1]
         pₐ = atmosphere_state.p[i, j, 1]
         qₐ = atmosphere_state.q[i, j, 1]
+        rₐ = atmosphere_state.r[i, j, 1]
         Qs = atmosphere_state.Qs[i, j, 1]
         Qℓ = atmosphere_state.Qℓ[i, j, 1]
 
@@ -103,6 +105,7 @@ end
                               u = uₐ,
                               v = vₐ,
                               𝒬 = 𝒬ₐ,
+                              r = rₐ,
                               h_bℓ = atmosphere_state.h_bℓ)
 
     local_interior_state = (u=uᵢ, v=vᵢ, T=Tᵢ, S=Sᵢ)
@@ -114,7 +117,7 @@ end
 
     # Estimate interface specific humidity using interior temperature
     q_formulation = interface_properties.specific_humidity_formulation
-    qₛ = saturation_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ.ρ, Tᵢ, Sᵢ)
+    qₛ = saturation_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ, Tᵢ, Sᵢ)
     initial_interface_state = InterfaceState(u★, u★, u★, uᵢ, vᵢ, Tᵢ, Sᵢ, qₛ)
 
     # Don't use convergence criteria in an inactive cell
@@ -171,6 +174,13 @@ end
     ρτx = interface_fluxes.x_momentum
     ρτy = interface_fluxes.y_momentum
     Ts  = interface_temperature
+
+    if i == 410 && j == 100
+        @show i, j, kᴺ
+        @show u★, θ★, q★
+        @show τx, τy
+        @show Qs, Qℓ
+    end
 
     @inbounds begin
         # +0: cooling, -0: heating

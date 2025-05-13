@@ -159,7 +159,7 @@ Edson et al. (2013), equation (28).
 ReynoldsScalingFunction(FT = Oceananigans.defaults.FloatType; A = 5.85e-5, b = 0.72) =
     ReynoldsScalingFunction(convert(FT, A), convert(FT, b))
 
-@inline (s::ReynoldsScalingFunction)(R★, args...) = ifelse(R★ == 0, convert(eltype(R★), 0), s.A / R★ ^ s.b)
+@inline (s::ReynoldsScalingFunction)(R★, args...) = ifelse(R★ == 0, zero(R★), s.A / R★ ^ s.b)
 
 # Edson 2013 formulation of scalar roughness length
 @inline function roughness_length(ℓ::ScalarRoughnessLength{FT}, ℓu, u★, 𝒬, ℂ) where FT

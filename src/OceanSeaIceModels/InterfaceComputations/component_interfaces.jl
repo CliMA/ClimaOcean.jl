@@ -72,6 +72,7 @@ mutable struct ExchangeAtmosphereState{F}
     v  :: F
     T  :: F
     q  :: F
+    r  :: F
     p  :: F
     Qs :: F
     Qℓ :: F
@@ -79,6 +80,7 @@ mutable struct ExchangeAtmosphereState{F}
 end
 
 ExchangeAtmosphereState(grid) = ExchangeAtmosphereState(Field{Center, Center, Nothing}(grid),
+                                                        Field{Center, Center, Nothing}(grid),
                                                         Field{Center, Center, Nothing}(grid),
                                                         Field{Center, Center, Nothing}(grid),
                                                         Field{Center, Center, Nothing}(grid),

@@ -226,13 +226,22 @@ set!(ocean_model.velocities.v, first(v_meta))
 ##### A prescribed atmosphere...
 #####
 
-atmosphere = ClimaOcean.ECCO.ECCOPrescribedAtmosphere(arch; start_date, end_date, time_indices_in_memory, dataset)
+atmosphere = ClimaOcean.JRA55.JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(10))
 
 #####
 ##### A prescribed earth...
 #####         
 
-earth_model = OceanSeaIceModel(ocean, nothing; atmosphere, radiation = Radiation(arch))
+include("coare_flux_computations.jl")
+
+atmosphere_ocean_flux_formulation = PyCOAREFluxFormulation()
+interfaces = ClimaOcean.OceanSeaIceModels.InterfaceComputations.ComponentInterfaces(atmosphere, ocean; atmosphere_ocean_flux_formulation)
+
+@info "doing earth 1"
+earth_model = OceanSeaIceModel(ocean, nothing; atmosphere, interfaces, radiation = Radiation(arch))
+
+@info "doing earth 2"
+earth_model2 = OceanSeaIceModel(ocean, nothing; atmosphere, radiation = Radiation(arch))
 
 Qtecco = Metadata(:net_heat_flux; start_date, end_date, dataset)
 Qcecco = Metadata(:sensible_heat_flux; start_date, end_date, dataset)
@@ -252,6 +261,17 @@ Qv = earth_model.interfaces.atmosphere_ocean_interface.fluxes.latent_heat
 Qℓ = earth_model.interfaces.atmosphere_ocean_interface.fluxes.downwelling_longwave + 
      earth_model.interfaces.atmosphere_ocean_interface.fluxes.upwelling_longwave 
 Qs = earth_model.interfaces.atmosphere_ocean_interface.fluxes.downwelling_shortwave
+τx = earth_model.interfaces.net_fluxes.ocean_surface.u
+τy = earth_model.interfaces.net_fluxes.ocean_surface.v
+
+Qt2 = earth_model2.interfaces.net_fluxes.ocean_surface.Q
+Qc2 = earth_model2.interfaces.atmosphere_ocean_interface.fluxes.sensible_heat
+Qv2 = earth_model2.interfaces.atmosphere_ocean_interface.fluxes.latent_heat
+Qℓ2 = earth_model2.interfaces.atmosphere_ocean_interface.fluxes.downwelling_longwave + 
+      earth_model2.interfaces.atmosphere_ocean_interface.fluxes.upwelling_longwave 
+Qs2 = earth_model2.interfaces.atmosphere_ocean_interface.fluxes.downwelling_shortwave
+τx2 = earth_model2.interfaces.net_fluxes.ocean_surface.u
+τy2 = earth_model2.interfaces.net_fluxes.ocean_surface.v
 
 import Oceananigans.Fields: interior
 
@@ -260,37 +280,37 @@ interior(b::Oceananigans.AbstractOperations.BinaryOperation, idx...) =
 
 fig = Figure()
 ax = Axis(fig[1, 1], title = "ECCO net heat flux")
-heatmap!(ax, Qtecco[1], colorrange=(-150, 150), colormap=:balance)
+heatmap!(ax, Qt2, colorrange=(-150, 150), colormap=:balance)
 ax = Axis(fig[1, 2], title = "CO net heat flux")
-hm = heatmap!(ax, -Qt, colorrange=(-150, 150), colormap=:balance)
+hm = heatmap!(ax, Qt, colorrange=(-150, 150), colormap=:balance)
 Colorbar(fig[1, 3], hm)
 ax = Axis(fig[1, 4], title = "ECCO - CO")
-hm = heatmap!(ax, interior(Qtecco[1], :, :, 1) .+ interior(Qt, :, :, 1), colorrange=(-20, 20), colormap=:balance)
+hm = heatmap!(ax, interior(Qt2, :, :, 1) .- interior(Qt, :, :, 1), colorrange=(-1, 1), colormap=:balance)
 Colorbar(fig[1, 5], hm)
 
 ax = Axis(fig[2, 1], title = "ECCO sensible flux")
-heatmap!(ax, Qcecco[1], colorrange=(-100, 100), colormap=:balance)
+heatmap!(ax, Qc2, colorrange=(-100, 100), colormap=:balance)
 ax = Axis(fig[2, 2], title = "CO sensible flux")
-hm = heatmap!(ax, -Qc, colorrange=(-100, 100), colormap=:balance)
+hm = heatmap!(ax, Qc, colorrange=(-100, 100), colormap=:balance)
 Colorbar(fig[2, 3], hm)
 ax = Axis(fig[2, 4], title = "ECCO - CO")
-hm = heatmap!(ax, interior(Qcecco[1], :, :, 1) .+ interior(Qc, :, :, 1), colorrange=(-20, 20), colormap=:balance)
+hm = heatmap!(ax, interior(Qc2, :, :, 1) .- interior(Qc, :, :, 1), colorrange=(-20, 20), colormap=:balance)
 Colorbar(fig[2, 5], hm)
 
 ax = Axis(fig[3, 1], title = "ECCO latent flux")
-heatmap!(ax, Qvecco[1], colorrange=(-150, 150), colormap=:balance)
+heatmap!(ax, Qv2, colorrange=(-150, 150), colormap=:balance)
 ax = Axis(fig[3, 2], title = "CO latent flux")
-heatmap!(ax, -Qv, colorrange=(-150, 150), colormap=:balance)
+hm = heatmap!(ax, Qv, colorrange=(-150, 150), colormap=:balance)
 hm = Colorbar(fig[3, 3], hm)
 ax = Axis(fig[3, 4], title = "ECCO - CO")
-hm = heatmap!(ax, interior(Qvecco[1], :, :, 1) .+ interior(Qv, :, :, 1), colorrange=(-20, 20), colormap=:balance)
+hm = heatmap!(ax, interior(Qv2, :, :, 1) .- interior(Qv, :, :, 1), colorrange=(-20, 20), colormap=:balance)
 Colorbar(fig[3, 5], hm)
 
 ax = Axis(fig[4, 1], title = "ECCO longwave flux")
-heatmap!(ax, Qℓecco[1], colorrange=(-100, 100), colormap=:balance)
+heatmap!(ax, Qℓ2, colorrange=(-100, 100), colormap=:balance)
 ax = Axis(fig[4, 2], title = "CO longwave flux")
 hm = heatmap!(ax, Qℓ, colorrange=(-100, 100), colormap=:balance)
 Colorbar(fig[4, 3], hm)
 ax = Axis(fig[4, 4], title = "ECCO - CO")
-hm = heatmap!(ax, interior(Qℓecco[1], :, :, 1) .- interior(Qℓ, :, :, 1), colorrange=(-1, 1), colormap=:balance)
+hm = heatmap!(ax, interior(Qℓ2, :, :, 1) .- interior(Qℓ, :, :, 1), colorrange=(-1, 1), colormap=:balance)
 Colorbar(fig[4, 5], hm)

@@ -36,6 +36,7 @@ function JRA55PrescribedAtmosphere(architecture = CPU(), FT = Float32;
     va  = JRA55FieldTimeSeries(:northward_velocity, architecture, FT;              kw...)
     Ta  = JRA55FieldTimeSeries(:temperature, architecture, FT;                     kw...)
     qa  = JRA55FieldTimeSeries(:specific_humidity, architecture, FT;               kw...)
+    ra  = JRA55FieldTimeSeries(:relative_humidity, architecture, FT;               kw...)
     pa  = JRA55FieldTimeSeries(:sea_level_pressure, architecture, FT;              kw...)
     Fra = JRA55FieldTimeSeries(:rain_freshwater_flux, architecture, FT;            kw...)
     Fsn = JRA55FieldTimeSeries(:snow_freshwater_flux, architecture, FT;            kw...)
@@ -63,7 +64,8 @@ function JRA55PrescribedAtmosphere(architecture = CPU(), FT = Float32;
                   v = va)
 
     tracers = (T = Ta,
-               q = qa)
+               q = qa,
+               r = ra)
 
     pressure = pa
 

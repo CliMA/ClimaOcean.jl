@@ -30,7 +30,8 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
                              v = atmosphere.velocities.v.data)
 
     atmosphere_tracers = (T = atmosphere.tracers.T.data,
-                          q = atmosphere.tracers.q.data)
+                          q = atmosphere.tracers.q.data,
+                          r = atmosphere.tracers.r.data)
 
     Qs = atmosphere.downwelling_radiation.shortwave
     Qℓ = atmosphere.downwelling_radiation.longwave
@@ -55,6 +56,7 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
                        T = atmosphere_fields.T.data,
                        p = atmosphere_fields.p.data,
                        q = atmosphere_fields.q.data,
+                       r = atmosphere_fields.r.data,
                        Qs = atmosphere_fields.Qs.data,
                        Qℓ = atmosphere_fields.Qℓ.data,
                        Mp = atmosphere_fields.Mp.data)
@@ -157,6 +159,7 @@ end
     vₐ = interp_atmos_time_series(atmos_velocities.v, atmos_args...)
     Tₐ = interp_atmos_time_series(atmos_tracers.T,    atmos_args...)
     qₐ = interp_atmos_time_series(atmos_tracers.q,    atmos_args...)
+    rₐ = interp_atmos_time_series(atmos_tracers.r,    atmos_args...)
     pₐ = interp_atmos_time_series(atmos_pressure,     atmos_args...)
 
     Qs = interp_atmos_time_series(downwelling_radiation.shortwave, atmos_args...)
@@ -176,6 +179,7 @@ end
         surface_atmos_state.T[i, j, 1] = Tₐ
         surface_atmos_state.p[i, j, 1] = pₐ
         surface_atmos_state.q[i, j, 1] = qₐ
+        surface_atmos_state.r[i, j, 1] = rₐ
         surface_atmos_state.Qs[i, j, 1] = Qs
         surface_atmos_state.Qℓ[i, j, 1] = Qℓ
         surface_atmos_state.Mp[i, j, 1] = Mh
