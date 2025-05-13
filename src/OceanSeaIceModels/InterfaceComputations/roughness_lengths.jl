@@ -13,21 +13,21 @@ struct ScalarRoughnessLength{FT, V, R}
 end
 
 struct WindDependentGravityWaveParameter{FT}
-    umax :: FT
+    Umax :: FT
     ℂ₁ :: FT
     ℂ₂ :: FT
 end
 
 gravity_wave_parameter(α::Number, args...) = α
-gravity_wave_parameter(α::WindDependentGravityWaveParameter, ΔU) = α.ℂ₁ * max(ΔU, α.umax) + α.ℂ₂
+gravity_wave_parameter(α::WindDependentGravityWaveParameter, ΔU) = α.ℂ₁ * max(ΔU, α.Umax) + α.ℂ₂
 
 """
-    WindDependentGravityWaveParameter(FT = Float64; umax = 19, ℂ₁ = 0.011, ℂ₂ = 0.11)
+    WindDependentGravityWaveParameter(FT = Float64; Umax = 19, ℂ₁ = 0.011, ℂ₂ = 0.11)
 
 compute the gravity wave parameter based on the wind speed `ΔU` with the formula `α = ℂ₁ max(ΔU, umax) + ℂ₂`
 """
-WindDependentGravityWaveParameter(FT=Oceananigans.defaults.FloatType; umax = 19, ℂ₁ = 0.011, ℂ₂ = 0.11) =
-    WindDependentGravityWaveParameter(convert(FT, umax),
+WindDependentGravityWaveParameter(FT=Oceananigans.defaults.FloatType; Umax = 19, ℂ₁ = 0.011, ℂ₂ = 0.11) =
+    WindDependentGravityWaveParameter(convert(FT, Umax),
                                       convert(FT, ℂ₁),
                                       convert(FT, ℂ₂))
 
