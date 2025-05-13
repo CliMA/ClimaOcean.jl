@@ -17,7 +17,7 @@ using ClimaOcean.OceanSeaIceModels: sea_ice_concentration
     ρₒ = ocean_properties.reference_density
     cₒ = ocean_properties.heat_capacity
     J₀ = tcr.surface_flux
-    @inbounds J₀[i, j,  1] = Iˢʷ / (ρₒ * cₒ)
+    @inbounds J₀[i, j,  1] = - Iˢʷ / (ρₒ * cₒ)
     return zero(Iˢʷ)
 end
 
