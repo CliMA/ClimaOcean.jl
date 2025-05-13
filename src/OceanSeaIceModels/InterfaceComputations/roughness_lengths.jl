@@ -86,7 +86,7 @@ function MomentumRoughnessLength(FT=Oceananigans.defaults.FloatType;
 
     return MomentumRoughnessLength(convert(FT, gravitational_acceleration),
                                    air_kinematic_viscosity,
-                                   gravity_wave_parameter),
+                                   gravity_wave_parameter,
                                    convert(FT, laminar_parameter),
                                    convert(FT, maximum_roughness_length))
 end
