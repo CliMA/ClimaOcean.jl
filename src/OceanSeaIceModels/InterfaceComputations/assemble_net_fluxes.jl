@@ -279,9 +279,10 @@ end
     α = atmos_sea_ice_properties.radiation.α
     ϵ = atmos_sea_ice_properties.radiation.ϵ
     Qu = emitted_longwave_radiation(i, j, kᴺ, grid, time, Ts, σ, ϵ) 
-    Qd = net_absorbed_interface_radiation(i, j, kᴺ, grid, time, α, ϵ, Qs, Qℓ)
+    Qs = transmitted_shortwave_radiation(i, j, kᴺ, grid, time, α, Qs)
+    Qℓ = absorbed_longwave_radiation(i, j, kᴺ, grid, time, ϵ, Qℓ)
 
-    ΣQt = (Qd + Qu + Qc + Qv) * ℵi # If ℵi == 0 there is no heat flux from the top!
+    ΣQt = (Qs + Qℓ + Qu + Qc + Qv) * ℵi # If ℵi == 0 there is no heat flux from the top!
     ΣQb = Qf + Qi
 
     # Mask fluxes over land for convenience
