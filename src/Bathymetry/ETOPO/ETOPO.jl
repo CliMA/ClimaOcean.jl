@@ -1,6 +1,7 @@
 module ETOPO
 
 using Scratch
+export ETOPOBathy
 
 import ClimaOcean.DataWrangling:
     metadata_filename,

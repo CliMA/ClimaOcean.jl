@@ -88,6 +88,7 @@ using .OceanSeaIceModels
 using .OceanSimulations
 using .SeaIceSimulations
 using .DataWrangling: JRA55, ECCO, EN4, Copernicus
+using .Bathymetry: ETOPO
 
 using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 using ClimaOcean.DataWrangling.JRA55: JRA55PrescribedAtmosphere, JRA55NetCDFBackend
