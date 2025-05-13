@@ -92,7 +92,7 @@ function Metadata(variable_name;
 end
 
 const AnyDateTime  = Union{AbstractCFDateTime, Dates.AbstractDateTime}
-const Metadatum{V} = Metadata{V, <:AnyDateTime} where V
+const Metadatum{V} = Metadata{V, <:AnyDateTime, <:Any} where V
 
 function Base.size(metadata::Metadata)
     Nx, Ny, Nz = size(metadata.dataset, metadata.name)

@@ -9,7 +9,10 @@ import ClimaOcean.DataWrangling:
     metadata_path,
     Metadata,
     Metadatum,
-    download_bathymetry
+    all_dates,
+    download_dataset
+
+using Oceananigans.DistributedComputations: @root
 
 download_ETOPO_cache::String = ""
 function __init__()
@@ -29,14 +32,17 @@ reversed_vertical_axis(::ETOPOBathy) = true
 longitude_interfaces(::ETOPOBathy) = (0.5, 360.5)
 latitude_interfaces(::ETOPOBathy) = (-83.5, 89.5)
 
-const ETOPOMetadatum = Metadatum{<:ETOPOBathy}
+all_dates(dataset::ETOPOBathy) = nothing
+all_dates(dataset::ETOPOBathy, variable) = nothing
+
+const ETOPOMetadatum = Metadata{<:ETOPOBathy, <:Any, <:Any} #Metadatum{<:ETOPOBathy}
 const ETOPO_url  = "https://www.dropbox.com/scl/fi/6pwalcuuzgtpanysn4h6f/" *
 "ETOPO_2022_v1_60s_N90W180_surface.nc?rlkey=2t7890ruyk4nd5t5eov5768lt&st=yfxsy1lu&dl=0"
 
-function ETOPOMetadatum(name;
-    dir = download_ETOPO_cache)
-    return Metadatum(name; dir, dataset=ETOPOBathy())
-end
+# function ETOPOMetadatum(name;
+#     dir = download_ETOPO_cache)
+#     return Metadatum(name; dir, dataset=ETOPOBathy())
+# end
 
 function metadata_url(m::ETOPOMetadatum)
     return ETOPO_url
@@ -46,17 +52,30 @@ function metadata_filename(metadatum::ETOPOMetadatum)
     return "ETOPO_2022_v1_60s_N90W180_surface.nc"
 end
 
-function download_bathymetry(metadatum::ETOPOMetadatum)
+function download_dataset(metadata::ETOPOMetadatum)
+    dir = metadata.dir
 
-    filepath = metadata_path(metadatum)
-    fileurl  = metadata_url(metadatum)
+    # Create a temporary directory to store the .netrc file
+    # The directory will be deleted after the download is complete
+    @root mktempdir(dir) do tmp
 
-    #TODO: embed this into a @root macro; see failed attempts in https://github.com/CliMA/ClimaOcean.jl/pull/391
-    if !isfile(filepath)
-        Downloads.download(fileurl, filepath; downloader, progress=download_progress)
+        # Write down the username and password in a .netrc file
+        ntasks = Threads.nthreads()
+
+        asyncmap(metadata; ntasks) do metadatum # Distribute the download among tasks
+
+            fileurl  = metadata_url(metadatum)
+            filepath = metadata_path(metadatum)
+
+            if !isfile(filepath)
+                @info "Downloading ETOPO data: $(metadatum.name) in $(metadatum.dir)..."
+                Downloads.download(fileurl, filepath; downloader, progress=download_progress)
+            end
+        end
     end
 
     return nothing
 end
+
 
 end #module
