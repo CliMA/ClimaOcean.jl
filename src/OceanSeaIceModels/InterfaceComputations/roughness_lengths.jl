@@ -1,7 +1,7 @@
 struct MomentumRoughnessLength{FT, G, V}
     gravitational_acceleration :: FT
     air_kinematic_viscosity :: V
-    gravity_waves :: G
+    wave_formulation :: G
     laminar_parameter :: FT
     maximum_roughness_length :: FT
 end
@@ -12,7 +12,7 @@ struct ScalarRoughnessLength{FT, V, R}
     maximum_roughness_length :: FT
 end
 
-struct WindDependentGravityWaveParameter{FT}
+struct WindDependentWaveFormulation{FT}
     Umax :: FT
     ℂ₁ :: FT
     ℂ₂ :: FT
