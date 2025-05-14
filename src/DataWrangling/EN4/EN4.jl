@@ -30,7 +30,7 @@ using Dates: year, month, day
 using Oceananigans.DistributedComputations: @root
 
 using Dates
-import Downloads
+using Downloads
 import ZipFile
 
 import ClimaOcean.DataWrangling:

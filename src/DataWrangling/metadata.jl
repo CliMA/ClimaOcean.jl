@@ -92,7 +92,7 @@ function Metadata(variable_name;
 end
 
 const AnyDateTime  = Union{AbstractCFDateTime, Dates.AbstractDateTime}
-const Metadatum{V} = Metadata{V, <:AnyDateTime, <:Any} where V
+const Metadatum{V} = Metadata{V, <:Union{AnyDateTime, Nothing}, <:Any} where V
 
 function Base.size(metadata::Metadata)
     Nx, Ny, Nz = size(metadata.dataset, metadata.name)
@@ -118,7 +118,6 @@ function Metadatum(variable_name;
                    bounding_box = nothing,
                    date = first_date(dataset, variable_name),
                    dir = default_download_directory(dataset))
-
     return Metadata(variable_name, dataset, date, bounding_box, dir)
 end
 
@@ -142,7 +141,7 @@ function Base.show(io::IO, metadata::Metadata)
 end
 
 # Treat Metadata as an array to allow iteration over the dates.
-Base.length(metadata::Metadata) = length(metadata.dates)
+Base.length(metadata::Metadata) = isnothing(metadata.dates) ? 1 : length(metadata.dates)
 Base.eltype(metadata::Metadata) = Float32
 
 Base.summary(md::Metadata) = string(metaprefix(md),
@@ -157,8 +156,12 @@ Base.length(metadata::Metadatum) = 1
 @propagate_inbounds Base.last(m::Metadata)             = Metadata(m.name, m.dataset, m.dates[end], m.bounding_box, m.dir)
 
 @inline function Base.iterate(m::Metadata, i=1)
-    if (i % UInt) - 1 < length(m)
-        return Metadata(m.name, m.dataset, m.dates[i], m.bounding_box, m.dir), i + 1
+    if i - 1 < length(m)
+        if m.dates == nothing
+            return m, i + 1
+        else
+            return Metadata(m.name, m.dataset, m.dates[i], m.bounding_box, m.dir), i + 1
+        end
     else
         return nothing
     end
