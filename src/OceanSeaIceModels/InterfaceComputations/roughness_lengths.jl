@@ -63,7 +63,7 @@ end
                             gravitational_acceleration = default_gravitational_acceleration,
                             maximum_roughness_length = 1.0,
                             air_kinematic_viscosity = TemperatureDependentAirViscosity(FT),
-                            gravity_wave_parameter = WindDependentWaveFormulation(FT),
+                            wave_formulation = WindDependentWaveFormulation(FT),
                             laminar_parameter = 0.11)
 
 Construct a `MomentumRoughnessLength` object that represents the momentum roughness length that
@@ -75,19 +75,19 @@ Keyword Arguments
 - `gravitational_acceleration`: The gravitational acceleration. Default: `default_gravitational_acceleration`.
 - `maximum_roughness_length`: The maximum roughness length. Default: 1.0.
 - `air_kinematic_viscosity`: The air kinematic viscosity. Default: `TemperatureDependentAirViscosity(FT)`.
-- `gravity_wave_parameter`: The wave parameter. Default: `WindDependentGravityWaveParameter(FT)`.
+- `wave_formulation`: The wave parameter. Default: `WindDependentWaveFormulation(FT)`.
 - `laminar_parameter`: The laminar parameter. Default: 0.11.
 """
 function MomentumRoughnessLength(FT=Oceananigans.defaults.FloatType;
                                  gravitational_acceleration = default_gravitational_acceleration,
                                  maximum_roughness_length = 1.0, # An estimate?
                                  air_kinematic_viscosity = TemperatureDependentAirViscosity(FT),
-                                 gravity_wave_parameter = WindDependentWaveFormulation(FT),
+                                 wave_formulation = WindDependentWaveFormulation(FT),
                                  laminar_parameter = 0.11)
 
     return MomentumRoughnessLength(convert(FT, gravitational_acceleration),
                                    air_kinematic_viscosity,
-                                   gravity_wave_parameter,
+                                   wave_formulation,
                                    convert(FT, laminar_parameter),
                                    convert(FT, maximum_roughness_length))
 end
