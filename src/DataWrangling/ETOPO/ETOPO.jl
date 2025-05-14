@@ -14,6 +14,10 @@ import ClimaOcean.DataWrangling:
     last_date,
     download_dataset,
     download_progress
+    longitude_interfaces,
+    latitude_interfaces,
+    is_three_dimensional,
+    reversed_vertical_axis
 
 using Downloads
 
