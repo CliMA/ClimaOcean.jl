@@ -92,27 +92,23 @@ end
 
 const CCC = (Center, Center, Center)
 
-@inline function upwelling_radiation(i, j, k, grid, time, T, σ, ϵ) 
+@inline function emitted_longwave_radiation(i, j, k, grid, time, T, σ, ϵ) 
     ϵi = stateindex(ϵ, i, j, k, grid, time, CCC)
     return σ * ϵi * T^4
 end
 
 # Split the individual bands
-@inline function downwelling_longwave_radiation(i, j, k, grid, time, ϵ, Qℓ)  
+@inline function absorbed_longwave_radiation(i, j, k, grid, time, ϵ, Qℓ)  
     ϵi = stateindex(ϵ, i, j, k, grid, time, CCC)
     return - ϵi * Qℓ
 end
 
-@inline function downwelling_shortwave_radiation(i, j, k, grid, time, α, Qs)  
+@inline function transmitted_shortwave_radiation(i, j, k, grid, time, α, Qs)  
     αi = stateindex(α, i, j, k, grid, time, CCC, Qs) 
     return - (1 - αi) * Qs 
 end
 
-@inline net_downwelling_radiation(i, j, k, grid, time, α, ϵ, Qs, Qℓ) = 
-    downwelling_shortwave_radiation(i, j, k, grid, time, α, Qs) + 
-    downwelling_longwave_radiation(i, j, k, grid, time, ϵ, Qℓ)
-
 # Inside the solver we lose both spatial and temporal information, but the
 # radiative properties have already been computed correctly
-@inline net_downwelling_radiation(Qs, Qℓ, α, ϵ) = - (1 - α) * Qs - ϵ * Qℓ
-@inline upwelling_radiation(T, σ, ϵ) = σ * ϵ * T^4
+@inline net_absorbed_interface_radiation(Qs, Qℓ, α, ϵ) = - (1 - α) * Qs - ϵ * Qℓ
+@inline emitted_longwave_radiation(T, σ, ϵ) = σ * ϵ * T^4
