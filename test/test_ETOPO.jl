@@ -7,7 +7,7 @@ using Oceananigans
 
 data_path = expanduser("/Users/tsohail/Library/CloudStorage/OneDrive-TheUniversityofMelbourne/uom/ocean-ensembles/data/")
 
-ETOPOmetadata = Metadatum(:temperature, dataset=ETOPOBathymetry(), dir = data_path)
+ETOPOmetadata = Metadatum(:bottom_height, dataset=ETOPOBathymetry(), dir = data_path)
 
 download_dataset(ETOPOmetadata)
 

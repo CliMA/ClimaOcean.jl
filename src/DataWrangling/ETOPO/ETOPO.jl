@@ -37,12 +37,12 @@ ETOPO_bathymetry_variable_names = Dict(
 struct ETOPOBathymetry end
 
 default_download_directory(::ETOPOBathymetry) = download_ETOPO_cache
-Base.size(metadata::ETOPOBathymetry, variable) = (21600, 10800)
-Base.size(metadata::ETOPOBathymetry) = (21600, 10800)
 reversed_vertical_axis(::ETOPOBathymetry) = true
 longitude_interfaces(::ETOPOBathymetry) = (-180,180)
 latitude_interfaces(::ETOPOBathymetry) = (-90,90)
 is_three_dimensional(::ETOPOBathymetry) = false
+Base.size(::ETOPOBathymetry, variable) = (21600, 10800)
+Base.size(::ETOPOBathymetry) = (21600, 10800)
 
 all_dates(dataset::ETOPOBathymetry) = nothing
 all_dates(dataset::ETOPOBathymetry, variable) = nothing
@@ -52,7 +52,7 @@ end
 last_date(dataset::ETOPOBathymetry, variable) = nothing
 
 const ETOPOMetadatum = Metadatum{<:ETOPOBathymetry, <:Any, <:Any}
-@info ETOPOMetadatum
+
 const ETOPO_url  = "https://www.dropbox.com/scl/fi/6pwalcuuzgtpanysn4h6f/" *
 "ETOPO_2022_v1_60s_N90W180_surface.nc?rlkey=2t7890ruyk4nd5t5eov5768lt&st=yfxsy1lu&dl=0"
 

@@ -3,7 +3,6 @@ module Bathymetry
 import ClimaOcean.DataWrangling:
     Metadata,
     Metadatum,
-    native_grid,
     metadata_path
 
 import ClimaOcean: native_grid
@@ -11,7 +10,6 @@ using KernelAbstractions: @kernel, @index
 export regrid_bathymetry, retrieve_bathymetry, download_bathymetry
 
 using ImageMorphology
-using ..DataWrangling: download_progress, Metadata
 using Oceananigans.DistributedComputations
 
 using Oceananigans
@@ -106,12 +104,14 @@ function regrid_bathymetry(target_grid, m::Metadatum;
         return throw(ArgumentError("interpolation_passes has to be an integer ≥ 1"))
     end
 
-    filepath = metadata_path(m)
-    dataset = Dataset(filepath, "r")
+    arch = architecture(target_grid)
 
-    grid = native_grid(m, architecture(target_grid); halo = (10, 10, 1))
+    grid = native_grid(m, arch; halo = (10, 10, 1))
     FT = eltype(target_grid)
 
+    filepath = metadata_path(m)
+    dataset = Dataset(filepath, "r")
+    
     z_data = convert(Array{FT}, dataset["z"][:, :])
     close(dataset)
 
@@ -123,7 +123,7 @@ function regrid_bathymetry(target_grid, m::Metadatum;
         z_data[land] .= height_above_water
     end
 
-    native_z = Field{Center, Center, Nothing}(native_grid)
+    native_z = Field{Center, Center, Nothing}(grid)
     set!(native_z, z_data)
     fill_halo_regions!(native_z)
 
