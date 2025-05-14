@@ -42,7 +42,8 @@ import ClimaOcean.DataWrangling:
     is_three_dimensional,
     inpainted_metadata_path,
     reversed_vertical_axis,
-    default_mask_value
+    default_mask_value,
+    reversed_sign
 
 download_ECCO_cache::String = ""
 function __init__()
@@ -77,6 +78,8 @@ Base.size(::ECCO4Monthly, variable) = (720,  360, 50)
 temperature_units(::SomeECCODataset) = Celsius()
 default_mask_value(::ECCO4Monthly) = 0
 reversed_vertical_axis(::SomeECCODataset) = true
+reversed_sign(::SomeECCODataset, ::Val{:downwelling_longwave}) = true
+reversed_sign(::SomeECCODataset, ::Val{:downwelling_shortwave}) = true
 
 const ECCO2_url = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/"
 const ECCO4_url = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly/"
@@ -157,7 +160,13 @@ ECCO4_dataset_variable_names = Dict(
     :latent_heat_flux      => "EXFhl",
     :net_longwave          => "EXFlwnet",
     :downwelling_shortwave => "oceQsw",
-    :downwelling_longwave  => "EXFlwdn",
+    :downwelling_longwave  => "EXFlwdn",    
+    :air_temperature       => "EXFatemp",
+    :air_specific_humidity => "EXFaqh",
+    :sea_level_pressure    => "EXFpress",
+    :eastward_wind         => "EXFewind",
+    :northward_wind        => "EXFnwind",
+    :rain_freshwater_flux  => "EXFpreci",
 )
 
 ECCO2_dataset_variable_names = Dict(
@@ -168,24 +177,30 @@ ECCO2_dataset_variable_names = Dict(
     :free_surface          => "SSH",
     :sea_ice_thickness     => "SIheff",
     :sea_ice_concentration => "SIarea",
-    :net_heat_flux         => "oceQnet"
+    :net_heat_flux         => "oceQnet",
 )
 
 ECCO_location = Dict(
     :temperature           => (Center, Center, Center),
     :salinity              => (Center, Center, Center),
+    :u_velocity            => (Face,   Center, Center),
+    :v_velocity            => (Center, Face,   Center),
     :free_surface          => (Center, Center, Nothing),
     :sea_ice_thickness     => (Center, Center, Nothing),
     :sea_ice_concentration => (Center, Center, Nothing),
     :net_heat_flux         => (Center, Center, Nothing),
-    :u_velocity            => (Face,   Center, Center),
-    :v_velocity            => (Center, Face,   Center),
     :sensible_heat_flux    => (Center, Center, Nothing),
     :latent_heat_flux      => (Center, Center, Nothing),
     :net_longwave          => (Center, Center, Nothing),
-    :downwelling_shortwave => (Center, Center, Nothing),
     :downwelling_longwave  => (Center, Center, Nothing),
-)
+    :downwelling_shortwave => (Center, Center, Nothing),
+    :air_temperature       => (Center, Center, Nothing),
+    :air_specific_humidity => (Center, Center, Nothing),
+    :sea_level_pressure    => (Center, Center, Nothing),
+    :eastward_wind         => (Center, Center, Nothing),
+    :northward_wind        => (Center, Center, Nothing),
+    :rain_freshwater_flux  => (Center, Center, Nothing),
+)    
 
 const ECCOMetadata{D} = Metadata{<:SomeECCODataset, D}
 const ECCOMetadatum   = Metadatum{<:SomeECCODataset}
@@ -296,5 +311,7 @@ function inpainted_metadata_filename(metadata::ECCOMetadata)
 end
 
 inpainted_metadata_path(metadata::ECCOMetadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
+
+include("ECCO_atmosphere.jl")
 
 end # Module
