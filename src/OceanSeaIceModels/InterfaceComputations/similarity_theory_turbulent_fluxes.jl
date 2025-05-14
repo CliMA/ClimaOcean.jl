@@ -135,13 +135,7 @@ which is a logarithmic profile adjusted by the stability function ``ψ`` and dep
 the Monin-Obukhov length ``L`` and the roughness length ``ℓ``.
 """
 struct LogarithmicSimilarityProfile end
-struct NeutralSimilarityProfile end
 struct COARELogarithmicSimilarityProfile end
-
-@inline function similarity_profile(::NeutralSimilarityProfile, stability_function, h, ℓ, L)
-    ψh = stability_profile(stability_function, zero(L))
-    return log(h / ℓ) + ψh
-end
 
 @inline function similarity_profile(::LogarithmicSimilarityProfile, stability_function, h, ℓ, L)
     ζ = h / L
@@ -288,9 +282,7 @@ Base.summary(ss::SimilarityScales) =
 
 Base.show(io, ss::SimilarityScales) = print(io, summary(ss))
 
-abstract type AbstractStabilityFunction end
-
-stability_profile(ψ::AbstractStabilityFunction, ζ) = ψ(ζ)
+@inline stability_profile(ψ, ζ) = ψ(ζ)
 
 """
     EdsonMomentumStabilityFunction{FT}
@@ -324,7 +316,7 @@ f  = ζ² / (1 + ζ²)
 The superscripts ``ˢ`` and ``ᵘ`` indicate if the parameter applies to the
 stability function for _stable_ or _unstable_ atmospheric conditions, respectively.
 """
-@kwdef struct EdsonMomentumStabilityFunction{FT} <: AbstractStabilityFunction
+@kwdef struct EdsonMomentumStabilityFunction{FT}
     ζmax :: FT = 50.0
     Aˢ   :: FT = 0.35
     Bˢ   :: FT = 0.7
@@ -338,7 +330,7 @@ stability function for _stable_ or _unstable_ atmospheric conditions, respective
     Fᵘ   :: FT = π / sqrt(3)
 end
 
-@inline function (ψ::EdsonMomentumStabilityFunction)(ζ) 
+@inline function stability_profile(ψ::EdsonMomentumStabilityFunction, ζ) 
     ζmax = ψ.ζmax
     Aˢ   = ψ.Aˢ
     Bˢ   = ψ.Bˢ
@@ -402,7 +394,7 @@ f  = ζ² / (1 + ζ²)
 The superscripts ``ˢ`` and ``ᵘ`` indicate if the parameter applies to the
 stability function for _stable_ or _unstable_ atmospheric conditions, respectively.
 """
-@kwdef struct EdsonScalarStabilityFunction{FT} <: AbstractStabilityFunction
+@kwdef struct EdsonScalarStabilityFunction{FT}
     ζmax :: FT = 50.0
     Aˢ   :: FT = 0.35
     Bˢ   :: FT = 2/3
@@ -417,7 +409,7 @@ stability function for _stable_ or _unstable_ atmospheric conditions, respective
     Fᵘ   :: FT = π / sqrt(3)
 end
 
-@inline function (ψ::EdsonScalarStabilityFunction)(ζ)
+@inline function stability_profile(ψ::EdsonScalarStabilityFunction, ζ)
     ζmax = ψ.ζmax
     Aˢ   = ψ.Aˢ
     Bˢ   = ψ.Bˢ
@@ -452,7 +444,7 @@ end
 end
 
 # Edson et al. (2013)
-function edson_stability_functions(FT=Oceananigans.defaults.FloatType)
+function atmosphere_ocean_stability_functions(FT=Oceananigans.defaults.FloatType)
     ψu = EdsonMomentumStabilityFunction{FT}()
     ψc = EdsonScalarStabilityFunction{FT}()
     return SimilarityScales(ψu, ψc, ψc)
@@ -468,14 +460,14 @@ Base.show(io, ::EdsonScalarStabilityFunction{FT}) where FT = print(io, "EdsonSca
 ##### From Grachev et al 2007, for stable boundary layers
 #####
 
-@kwdef struct ShebaMomentumStabilityFunction{FT} <: AbstractStabilityFunction
+@kwdef struct ShebaMomentumStabilityFunction{FT}
     a :: FT = 6.5
     b :: FT = 1.3
 end
 
 # @inline (ψ::ShebaMomentumStabilityFunction)(ζ) = 1 + ψ.a * ζ * cbrt(1 + ζ) / (ψ.b + ζ)
-@inline function (Ψ::ShebaMomentumStabilityFunction)(ζ)
-    a = Ψ.a
+@inline function stability_profile(ψ::ShebaMomentumStabilityFunction, ζ)
+    a = ψ.a
     b = Ψ.b
     ζ⁺ = max(zero(ζ), ζ)
     z = cbrt(1 + ζ⁺)
@@ -496,10 +488,10 @@ end
     c :: FT = 3.0
 end
 
-@inline function (Ψ::ShebaScalarStabilityFunction)(ζ)
-    a = Ψ.a
-    b = Ψ.b
-    c = Ψ.c
+@inline function stability_profile(ψ::ShebaScalarStabilityFunction, ζ)
+    a = ψ.a
+    b = ψ.b
+    c = ψ.c
     B = sqrt(c^2 - 4)
     ζ⁺ = max(zero(ζ), ζ)
 
@@ -514,14 +506,14 @@ end
 ##### From Paulson 1970 for unstable boundary layers
 ####
 
-@kwdef struct PaulsonMomentumStabilityFunction{FT} <: AbstractStabilityFunction
+@kwdef struct PaulsonMomentumStabilityFunction{FT}
     a :: FT = 16.0
     b :: FT = π/2
 end
 
-@inline function (Ψ::PaulsonMomentumStabilityFunction)(ζ)
-    a = Ψ.a
-    b = Ψ.b
+@inline function stability_profile(ψ::PaulsonMomentumStabilityFunction, ζ)
+    a = ψ.a
+    b = ψ.b
     ζ⁻ = min(zero(ζ), ζ)
     z = sqrt(sqrt((1 - a * ζ⁻)))
 
@@ -536,21 +528,21 @@ end
     a :: FT = 16.0
 end
 
-@inline function (Ψ::PaulsonScalarStabilityFunction)(ζ)
-    a = Ψ.a
+@inline function stability_profile(ψ::PaulsonScalarStabilityFunction, ζ)
+    a = ψ.a
     ζ⁻ = min(zero(ζ), ζ)
     z = sqrt(sqrt((1 - a * ζ⁻)))
     return 2 * log((1 + z^2) / 2)
 end
 
-struct SplitStabilityFunction{S, U} <: AbstractStabilityFunction
+struct SplitStabilityFunction{S, U}
     stable :: S
     unstable :: U
 end
 
-@inline function (Ψ::SplitStabilityFunction)(ζ)
-    Ψ_stable = Ψ.stable(ζ)
-    Ψ_unstable = Ψ.unstable(ζ)
+@inline function stability_profile(ψ::SplitStabilityFunction, ζ)
+    Ψ_stable = stability_profile(ψ.stable, ζ)
+    Ψ_unstable = stability_profile(ψ.unstable, ζ)
     stable = ζ > 0
     return ifelse(stable, Ψ_stable, Ψ_unstable)
 end
