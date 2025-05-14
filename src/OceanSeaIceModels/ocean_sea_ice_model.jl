@@ -48,7 +48,7 @@ function Base.show(io::IO, cm::OSIM)
     print(io, "├── ocean: ", summary(cm.ocean.model), "\n")
     print(io, "├── atmosphere: ", summary(cm.atmosphere), "\n")
     print(io, "├── sea_ice: ", sea_ice_summary, "\n")
-    print(io, "└── interface: ", summary(cm.interfaces))
+    print(io, "└── interfaces: ", summary(cm.interfaces))
     return nothing
 end
 
@@ -166,7 +166,7 @@ OceanSeaIceModel{CPU}(time = 0 seconds, iteration = 0)
 ├── ocean: HydrostaticFreeSurfaceModel{CPU, RectilinearGrid}(time = 0 seconds, iteration = 0)
 ├── atmosphere: Nothing
 ├── sea_ice: FreezingLimitedOceanTemperature{ClimaSeaIce.SeaIceThermodynamics.LinearLiquidus{Float64}}
-└── interface: ComponentInterfaces
+└── interfaces: ComponentInterfaces
 ```
 
 The available stability function options include:

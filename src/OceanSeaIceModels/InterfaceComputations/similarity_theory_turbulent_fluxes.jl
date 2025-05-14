@@ -102,6 +102,11 @@ function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
         solver_stop_criteria = ConvergenceStopCriteria(solver_tolerance, solver_maxiter)
     end
 
+    if isnothing(stability_functions)
+        returns_zero = Returns(zero(FT))
+        stability_functions = SimilarityScales(returns_zero, returns_zero, returns_zero)
+    end
+
     return SimilarityTheoryFluxes(convert(FT, von_karman_constant),
                                   convert(FT, turbulent_prandtl_number),
                                   convert(FT, gustiness_parameter),
@@ -280,7 +285,7 @@ Base.summary(ss::SimilarityScales) =
            ", temperature=", prettysummary(ss.temperature),
            ", water_vapor=", prettysummary(ss.water_vapor), ")")
 
-Base.show(io, ss::SimilarityScales) = print(io, summary(ss))
+Base.show(io::IO, ss::SimilarityScales) = print(io, summary(ss))
 
 @inline stability_profile(ψ, ζ) = ψ(ζ)
 
@@ -457,7 +462,7 @@ Base.show(io, ::EdsonMomentumStabilityFunction{FT}) where FT = print(io, "EdsonM
 Base.show(io, ::EdsonScalarStabilityFunction{FT}) where FT = print(io, "EdsonScalarStabilityFunction{$FT}")
 
 #####
-##### From Grachev et al 2007, for stable boundary layers
+##### From Grachev et al. (2007), for stable boundary layers
 #####
 
 @kwdef struct ShebaMomentumStabilityFunction{FT}
@@ -496,14 +501,14 @@ end
     ζ⁺ = max(zero(ζ), ζ)
 
     Ψ₁ = - b/2 * log(1 + c * ζ⁺ + ζ⁺^2)
-    Ψ₂ = (b * c / 2B - a / B) * (log((2ζ⁺ + c - B) / (2ζ⁺ + c + B))
-                                 + log((c - B) / (c + B)))
+    Ψ₂ = (b * c / 2B - a / B) *
+        (log((2ζ⁺ + c - B) / (2ζ⁺ + c + B)) + log((c - B) / (c + B)))
 
     return Ψ₁ + Ψ₂
 end
 
 #####
-##### From Paulson 1970 for unstable boundary layers
+##### From Paulson (1970), for unstable boundary layers
 ####
 
 @kwdef struct PaulsonMomentumStabilityFunction{FT}
@@ -539,6 +544,9 @@ struct SplitStabilityFunction{S, U}
     stable :: S
     unstable :: U
 end
+
+Base.summary(ss::SplitStabilityFunction) = "SplitStabilityFunction"
+Base.show(io::IO, ss::SplitStabilityFunction) = print(io, "SplitStabilityFunction")
 
 @inline function stability_profile(ψ::SplitStabilityFunction, ζ)
     Ψ_stable = stability_profile(ψ.stable, ζ)
