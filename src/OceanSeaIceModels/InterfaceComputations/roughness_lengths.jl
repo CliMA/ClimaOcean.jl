@@ -24,10 +24,10 @@ end
 
 A gravity wave parameter based on the wind speed `ΔU` with the formula `ℂ₁ * max(ΔU, Umax) + ℂ₂`.
 """
-WindDependentGravityWaveParameter(FT=Oceananigans.defaults.FloatType; Umax = 19, ℂ₁ = 0.0017, ℂ₂ = -0.005) =
-    WindDependentGravityWaveParameter(convert(FT, Umax),
-                                      convert(FT, ℂ₁),
-                                      convert(FT, ℂ₂))
+WindDependentWaveFormulation(FT=Oceananigans.defaults.FloatType; Umax = 19, ℂ₁ = 0.0017, ℂ₂ = -0.005) =
+    WindDependentWaveFormulation(convert(FT, Umax),
+                                 convert(FT, ℂ₁),
+                                 convert(FT, ℂ₂))
 
 gravity_wave_parameter(α::Number, args...) = α
 gravity_wave_parameter(α::WindDependentWaveFormulation, ΔU) = α.ℂ₁ * max(ΔU, α.Umax) + α.ℂ₂
