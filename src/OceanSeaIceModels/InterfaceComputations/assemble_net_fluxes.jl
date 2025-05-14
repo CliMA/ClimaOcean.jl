@@ -1,5 +1,5 @@
 using Printf
-using Oceananigans.Operators: ℑxᶠᵃᵃ, ℑyᵃᶠᵃ
+using Oceananigans.Operators: ℑxᶠᵃᵃ, ℑyᵃᶠᵃ, ℑxyᶠᶠᵃ
 using Oceananigans.Forcings: MultipleForcings
 
 using ClimaOcean.OceanSeaIceModels: sea_ice_concentration
