@@ -1,33 +1,39 @@
 module Bathymetry
 
-# export regrid_bathymetry, retrieve_bathymetry, download_bathymetry
+import ClimaOcean.DataWrangling:
+    Metadata,
+    Metadatum,
+    native_grid,
+    metadata_path
 
-# using ImageMorphology
-# using ..DataWrangling: download_progress, Metadata
-# using Oceananigans.DistributedComputations
+import ClimaOcean: native_grid
+using KernelAbstractions: @kernel, @index
+export regrid_bathymetry, retrieve_bathymetry, download_bathymetry
 
-# using Oceananigans
-# using Oceananigans.Architectures: architecture, on_architecture
-# using Oceananigans.DistributedComputations: DistributedGrid, reconstruct_global_grid, barrier!, all_reduce
-# using Oceananigans.Grids: halo_size, λnodes, φnodes, x_domain, y_domain, topology
-# using Oceananigans.Utils: pretty_filesize, launch!
-# using Oceananigans.Fields: interpolate!
-# using Oceananigans.BoundaryConditions
-# using KernelAbstractions: @kernel, @index
-# using JLD2
+using ImageMorphology
+using ..DataWrangling: download_progress, Metadata
+using Oceananigans.DistributedComputations
 
-# using OffsetArrays
-# using ClimaOcean
+using Oceananigans
+using Oceananigans.Architectures: architecture, on_architecture
+using Oceananigans.DistributedComputations: DistributedGrid, reconstruct_global_grid, barrier!, all_reduce
+using Oceananigans.Grids: halo_size, λnodes, φnodes, x_domain, y_domain, topology
+using Oceananigans.Utils: pretty_filesize, launch!
+using Oceananigans.Fields: interpolate!
+using Oceananigans.BoundaryConditions
+using JLD2
 
-# using NCDatasets
-# using Downloads
-# using Printf
-# using Scratch
-# Datasets
+using OffsetArrays
+using ClimaOcean
+
+using NCDatasets
+using Downloads
+using Printf
+using Scratch
 
 # methods specific to bathymetries are added within each bathymetry module
 
-#=
+
 """
     regrid_bathymetry(target_grid;
                       height_above_water = nothing,
@@ -86,12 +92,9 @@ Keyword Arguments
                   the smallest basins are removed first. `major_basins = 1` retains only the largest basin.
                   If `Inf` then no basins are removed. Default: 1.
 """
-function regrid_bathymetry(target_grid;
+function regrid_bathymetry(target_grid, m::Metadatum;
                            height_above_water = nothing,
                            minimum_depth = 0,
-                           dir = download_bathymetry_cache,
-                           url = etopo_url,
-                           filename = "ETOPO_2022_v1_60s_N90W180_surface.nc",
                            interpolation_passes = 1,
                            major_basins = 1) # Allow an `Inf` number of "lakes"
 
@@ -103,20 +106,16 @@ function regrid_bathymetry(target_grid;
         return throw(ArgumentError("interpolation_passes has to be an integer ≥ 1"))
     end
 
-    filepath = download_bathymetry(; url, dir, filename)
+    filepath = metadata_path(m)
+    @show filepath
     dataset = Dataset(filepath, "r")
 
+    grid = native_grid(m, arch; halo = (3, 3, 3))
+    @show grid
     FT = eltype(target_grid)
+    @show FT
 
-    φ_data = dataset["lat"][:]
-    λ_data = dataset["lon"][:]
     z_data = convert(Array{FT}, dataset["z"][:, :])
-
-    # Convert longitude from (-180, 180) to (0, 360)
-    λ_data .+= 180
-    Nhx    = size(z_data, 1)
-    z_data = circshift(z_data, (Nhx ÷ 2, 0))
-
     close(dataset)
 
     # Diagnose target grid information
@@ -404,6 +403,5 @@ function remove_minor_basins!(zb, keep_major_basins)
 
     return nothing
 end
-=#
 
 end # module

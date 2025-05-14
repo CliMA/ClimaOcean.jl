@@ -174,6 +174,7 @@ function z_interfaces end
 function longitude_interfaces end
 function latitude_interfaces end
 function reversed_vertical_axis end
+function native_grid end
 
 default_mask_value(dataset) = NaN
 

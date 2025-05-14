@@ -33,10 +33,12 @@ ETOPO_bathymetry_variable_names = Dict(
 struct ETOPOBathymetry end
 
 default_download_directory(::ETOPOBathymetry) = download_ETOPO_cache
-Base.size(::ETOPOBathymetry, variable) = (360, 173, 42)
+Base.size(metadata::ETOPOBathymetry, variable) = (21600, 10800)
+Base.size(metadata::ETOPOBathymetry) = (21600, 10800)
 reversed_vertical_axis(::ETOPOBathymetry) = true
-longitude_interfaces(::ETOPOBathymetry) = (0.5, 360.5)
-latitude_interfaces(::ETOPOBathymetry) = (-83.5, 89.5)
+longitude_interfaces(::ETOPOBathymetry) = (-180,180)
+latitude_interfaces(::ETOPOBathymetry) = (-90,90)
+is_three_dimensional(::ETOPOBathymetry) = false
 
 all_dates(dataset::ETOPOBathymetry) = nothing
 all_dates(dataset::ETOPOBathymetry, variable) = nothing
@@ -65,6 +67,7 @@ function download_dataset(metadatum::ETOPOMetadatum)
     # The directory will be deleted after the download is complete
     fileurl  = metadata_url(metadatum)
     filepath = metadata_path(metadatum)
+    @show filepath
 
     if !isfile(filepath)
         @info "Downloading ETOPO data: $(metadatum.name) in $(metadatum.dir)..."
