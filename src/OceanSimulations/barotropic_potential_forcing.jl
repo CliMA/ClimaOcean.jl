@@ -41,4 +41,3 @@ function forcing_barotropic_potential(model::HydrostaticFreeSurfaceModel)
     @assert u_potential === v_potential
     return u_potential
 end
-

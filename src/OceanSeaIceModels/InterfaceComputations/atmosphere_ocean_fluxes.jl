@@ -122,6 +122,16 @@ end
     needs_to_converge = stop_criteria isa ConvergenceStopCriteria
     not_water = inactive_node(i, j, kᴺ, grid, Center(), Center(), Center())
 
+    # Compute local radiative properties and rebuild the interface properties
+    α = stateindex(interface_properties.radiation.α, i, j, kᴺ, grid, time, (Center, Center, Center), Qs)
+    ϵ = stateindex(interface_properties.radiation.ϵ, i, j, kᴺ, grid, time, (Center, Center, Center))
+    σ = interface_properties.radiation.σ
+
+    interface_properties = InterfaceProperties((; α, ϵ, σ),
+                                               interface_properties.specific_humidity_formulation,
+                                               interface_properties.temperature_formulation,
+                                               interface_properties.velocity_formulation)
+
     if needs_to_converge && not_water
         interface_state = zero_interface_state(FT)
     else
