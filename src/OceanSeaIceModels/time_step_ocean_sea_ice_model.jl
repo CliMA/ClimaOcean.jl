@@ -10,6 +10,11 @@ using Oceananigans.Grids: φnode
 
 using Printf
 
+import Oceananigans.TimeSteppers: time_step!
+
+# Supports nothing components
+time_step!(::Nothing, Δt) = nothing
+
 function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_tendencies=true)
     ocean = coupled_model.ocean
     sea_ice = coupled_model.sea_ice
