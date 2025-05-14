@@ -38,8 +38,8 @@ struct ETOPOBathymetry end
 
 default_download_directory(::ETOPOBathymetry) = download_ETOPO_cache
 reversed_vertical_axis(::ETOPOBathymetry) = true
-longitude_interfaces(::ETOPOBathymetry) = (-180,180)
-latitude_interfaces(::ETOPOBathymetry) = (-90,90)
+longitude_interfaces(::ETOPOBathymetry) = (-180, 180)
+latitude_interfaces(::ETOPOBathymetry) = (-90, 90)
 Base.size(dataset::ETOPOBathymetry, variable) = (21600, 10800)
 Base.size(dataset::ETOPOBathymetry) = (21600, 10800)
 is_three_dimensional(::ETOPOBathymetry) = false
