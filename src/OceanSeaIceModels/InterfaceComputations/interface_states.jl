@@ -301,8 +301,8 @@ end
 
     Qs = downwelling_radiation.Qs
     Qℓ = downwelling_radiation.Qℓ
-    Qu = upwelling_radiation(Tₛ⁻, σ, ϵ)
-    Qd = net_downwelling_radiation(Qs, Qℓ, α, ϵ)
+    Qu = emitted_longwave_radiation(Tₛ⁻, σ, ϵ)
+    Qd = net_absorbed_interface_radiation(Qs, Qℓ, α, ϵ)
 
     u★ = interface_state.u★
     θ★ = interface_state.θ★
