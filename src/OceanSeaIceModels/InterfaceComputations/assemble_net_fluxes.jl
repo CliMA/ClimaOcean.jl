@@ -231,7 +231,6 @@ function compute_net_sea_ice_fluxes!(coupled_model)
             clock,
             atmosphere_sea_ice_fluxes,
             sea_ice_ocean_fluxes,
-            ice_concentration,
             freshwater_flux,
             ice_concentration,
             sea_ice_surface_temperature,
@@ -248,7 +247,6 @@ end
                                                clock,
                                                atmosphere_sea_ice_fluxes,
                                                sea_ice_ocean_fluxes,
-                                               ice_concentration,
                                                freshwater_flux, # Where do we add this one?
                                                ice_concentration,
                                                surface_temperature,
