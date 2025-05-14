@@ -44,6 +44,8 @@ dataset_name(::GLORYSStatic) = "GLORYSStatic"
 dataset_name(::GLORYSDaily) = "GLORYSDaily"
 dataset_name(::GLORYSMonthly) = "GLORYSMonthly"
 
+Base.size(::CopernicusDataset, variable) = (4320, 2040, 50)
+
 all_dates(::GLORYSStatic, var) = [nothing]
 all_dates(::GLORYSDaily, var) = range(DateTime("1993-01-01"), stop=DateTime("2021-06-30"), step=Day(1))
 all_dates(::GLORYSMonthly, var) = range(DateTime("1993-01-01"), stop=DateTime("2024-12-01"), step=Month(1))
@@ -60,6 +62,7 @@ CopernicusMetadata{D} = Metadata{<:CopernicusDataset, D}
 CopernicusMetadatum = Metadatum{<:CopernicusDataset}
 
 Base.size(::CopernicusMetadatum) = (4320, 2040, 50, 1)
+
 reversed_vertical_axis(::CopernicusDataset) = true
 
 copernicus_dataset_variable_names = Dict(

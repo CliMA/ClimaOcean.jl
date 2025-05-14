@@ -16,7 +16,7 @@ function restrict(bbox_interfaces, interfaces, N)
 end
 
 function native_grid(metadata::Metadata, arch=CPU(); halo = (3, 3, 3))
-    Nx, Ny, Nz = size(metadata)
+    Nx, Ny, Nz, _ = size(metadata)
     FT = eltype(metadata)
 
     longitude = longitude_interfaces(metadata)
