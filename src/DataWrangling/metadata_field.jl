@@ -16,12 +16,10 @@ function restrict(bbox_interfaces, interfaces, N)
 end
 
 function native_grid(metadata::Metadata, arch=CPU(); halo = (3, 3, 3))
+    Nx, Ny, Nz = size(metadata)
     if is_three_dimensional(metadata)
-        Nx, Ny, Nz = size(metadata)
         z = z_interfaces(metadata)
     else
-        Nx, Ny = size(metadata)
-        Nz = 1
         z = (0,1)
     end
 
