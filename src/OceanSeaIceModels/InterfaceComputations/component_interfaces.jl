@@ -35,7 +35,7 @@ import Oceananigans.Simulations: initialize!
 ##### Container for organizing information related to fluxes
 #####
 
-mutable struct AtmosphereInterface{J, F, ST, P}
+mutable struct AtmosphereSurface{J, F, ST, P}
     fluxes :: J
     flux_formulation :: F
     temperature :: ST
@@ -212,7 +212,7 @@ function atmosphere_ocean_interface(atmos,
 
     interface_temperature = Field{Center, Center, Nothing}(ocean.model.grid)
 
-    return AtmosphereInterface(ao_fluxes, ao_flux_formulation, interface_temperature, ao_properties)
+    return AtmosphereSurface(ao_fluxes, ao_flux_formulation, interface_temperature, ao_properties)
 end
 
 atmosphere_sea_ice_interface(atmos, sea_ice, args...) = nothing
@@ -249,7 +249,7 @@ function atmosphere_sea_ice_interface(atmos,
 
     interface_temperature = sea_ice.model.ice_thermodynamics.top_surface_temperature
 
-    return AtmosphereInterface(fluxes, ai_flux_formulation, interface_temperature, properties)
+    return AtmosphereSurface(fluxes, ai_flux_formulation, interface_temperature, properties)
 end
 
 sea_ice_ocean_interface(sea_ice, ocean) = nothing
@@ -373,7 +373,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                               liquidus           = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus,
                               temperature_units  = sea_ice_temperature_units)
 
-        net_momentum_fluxes = if sea_ice.model.dynamics isa Nothing
+        net_momentum_fluxes = if isnothing(sea_ice.model.dynamics)
             u = Field{Face, Center, Nothing}(sea_ice.model.grid)
             v = Field{Center, Face, Nothing}(sea_ice.model.grid)
             (; u, v)
