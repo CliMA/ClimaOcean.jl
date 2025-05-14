@@ -282,7 +282,7 @@ end
     Qs = transmitted_shortwave_radiation(i, j, kᴺ, grid, time, α, Qs)
     Qℓ = absorbed_longwave_radiation(i, j, kᴺ, grid, time, ϵ, Qℓ)
 
-    ΣQt = (Qs + Qℓ + Qu + Qc + Qv) * ℵi # If ℵi == 0 there is no heat flux from the top!
+    ΣQt = (Qs + Qℓ + Qu + Qc + Qv) * (ℵi > 0) # If ℵi == 0 there is no heat flux from the top!
     ΣQb = Qf + Qi
 
     # Mask fluxes over land for convenience
