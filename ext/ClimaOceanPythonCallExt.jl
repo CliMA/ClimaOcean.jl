@@ -3,7 +3,7 @@ module ClimaOceanPythonCallExt
 using ClimaOcean
 using CondaPkg
 using PythonCall
-using Oceananigans.DistributedComputations: @root
+using Oceananigans
 
 using Dates: DateTime
 using ClimaOcean.DataWrangling.Copernicus: CopernicusMetadata
