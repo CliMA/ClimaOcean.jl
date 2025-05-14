@@ -107,21 +107,13 @@ function regrid_bathymetry(target_grid, m::Metadatum;
     end
 
     filepath = metadata_path(m)
-    @show filepath
     dataset = Dataset(filepath, "r")
 
-    grid = native_grid(m, arch; halo = (3, 3, 3))
-    @show grid
+    grid = native_grid(m, architecture(target_grid); halo = (10, 10, 1))
     FT = eltype(target_grid)
-    @show FT
 
     z_data = convert(Array{FT}, dataset["z"][:, :])
     close(dataset)
-
-    # Diagnose target grid information
-    arch   = architecture(target_grid)
-    λ_data = λ_data |> Array{BigFloat}
-    φ_data = φ_data |> Array{BigFloat}
 
     if !isnothing(height_above_water)
         # Overwrite the height of cells above water.
@@ -131,29 +123,11 @@ function regrid_bathymetry(target_grid, m::Metadatum;
         z_data[land] .= height_above_water
     end
 
-    # Infer the "native grid" of the bathymetry data and make a bathymetry field.
-    Δλ = λ_data[2] - λ_data[1]
-    Δφ = φ_data[2] - φ_data[1]
-
-    λ₁_data = convert(Float64, λ_data[1]   - Δλ / 2)
-    λ₂_data = convert(Float64, λ_data[end] + Δλ / 2)
-    φ₁_data = convert(Float64, φ_data[1]   - Δφ / 2)
-    φ₂_data = convert(Float64, φ_data[end] + Δφ / 2)
-
-    Nxn = length(λ_data)
-    Nyn = length(φ_data)
-    Nzn = 1
-
-    native_grid = LatitudeLongitudeGrid(arch, Float32;
-                                        size = (Nxn, Nyn, Nzn),
-                                        latitude  = (φ₁_data, φ₂_data),
-                                        longitude = (λ₁_data, λ₂_data),
-                                        z = (0, 1),
-                                        halo = (10, 10, 1))
-
     native_z = Field{Center, Center, Nothing}(native_grid)
     set!(native_z, z_data)
     fill_halo_regions!(native_z)
+
+    ### We still need to fix the grids so they are the same - how did Greg do this?
 
     target_z = interpolate_bathymetry_in_passes(native_z, target_grid;
                                                 passes = interpolation_passes)
