@@ -155,7 +155,7 @@ stability_functions = nothing
 stability_functions = ClimaOcean.OceanSeaIceModels.atmosphere_sea_ice_stability_functions(Float64)
 
 # Edson et al. (2013) stability functions
-stability_functions = ClimaOcean.OceanSeaIceModels.edson_stability_functions(Float64)
+stability_functions = ClimaOcean.OceanSeaIceModels.atmosphere_ocean_stability_functions(Float64)
 
 atmosphere_ocean_flux_formulation = SimilarityTheoryFluxes(; stability_functions)
 interfaces = ClimaOcean.OceanSeaIceModels.ComponentInterfaces(nothing, ocean; atmosphere_ocean_flux_formulation)
@@ -170,7 +170,7 @@ OceanSeaIceModel{CPU}(time = 0 seconds, iteration = 0)
 ```
 
 The available stability function options include:
-- `edson_stability_functions`: Based on Edson et al. (2013)
+- `atmosphere_ocean_stability_functions`: Based on Edson et al. (2013)
 - `atmosphere_sea_ice_stability_functions`: Specifically designed for atmosphere-sea ice interactions
 - `nothing`: No stability functions will be used
 - Custom stability functions can be created by defining functions of the "stability parameter" 
