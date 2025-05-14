@@ -101,10 +101,10 @@ end
 
 # Temperature-dependent viscosity law
 struct TemperatureDependentAirViscosity{FT}
-    C₀ :: FT
-    C₁ :: FT
-    C₂ :: FT
-    C₃ :: FT
+    ℂ₀ :: FT
+    ℂ₁ :: FT
+    ℂ₂ :: FT
+    ℂ₃ :: FT
 end
 
 """
