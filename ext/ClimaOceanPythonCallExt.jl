@@ -3,6 +3,7 @@ module ClimaOceanPythonCallExt
 using ClimaOcean
 using CondaPkg
 using PythonCall
+using Oceananigans.DistributedComputations: @root
 
 using Dates: DateTime
 using ClimaOcean.DataWrangling.Copernicus: CopernicusMetadata
@@ -61,7 +62,8 @@ function download_dataset(meta::CopernicusMetadata, grid=nothing; skip_existing 
 
     additional_kw = NamedTuple(name => value for (name, value) in additional_kw)
     kw = merge(kw, datetime_kw, lon_kw, lat_kw, z_kw, additional_kw)
-    toolbox.subset(; kw...)
+
+    @root toolbox.subset(; kw...)
 
     return output_path
 end
