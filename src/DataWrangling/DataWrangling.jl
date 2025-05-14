@@ -20,6 +20,8 @@ using KernelAbstractions: @kernel, @index
 using Oceananigans.DistributedComputations
 using Adapt
 
+import Oceananigans.Fields: set!
+
 #####
 ##### Downloading utilities
 #####
@@ -160,17 +162,50 @@ Arguments
     within julia.
 """
 function download_dataset end # methods specific to datasets are added within each dataset module
+function inpainted_metadata_path end
 
+"""
+    z_interfaces(dataset)
+
+Return an array with the vertical interfaces (``z``-faces) of the dataset
+that `metadata` corresponds to.
+"""
+function z_interfaces end
+function longitude_interfaces end
+function latitude_interfaces end
+function reversed_vertical_axis end
+
+default_mask_value(dataset) = NaN
+
+# Fundamentals
 include("metadata.jl")
-include("dataset.jl")
-include("masking.jl")
+include("metadata_field.jl")
+include("metadata_field_time_series.jl")
+include("inpainting.jl")
 include("restoring.jl")
+
+# Only temperature and salinity need a thorough inpainting because of stability,
+# other variables can do with only a couple of passes. Sea ice variables
+# cannot be inpainted because zeros in the data are physical, not missing values.
+function default_inpainting(metadata)
+    if metadata.name in (:temperature, :salinity)
+        return NearestNeighborInpainting(Inf)
+    elseif metadata.name in (:sea_ice_thickness, :sea_ice_concentration)
+        return nothing
+    else
+        return NearestNeighborInpainting(5)
+    end
+end
+
+# Datasets
 include("JRA55/JRA55.jl")
 include("ECCO/ECCO.jl")
-include("EN4/EN4.jl")
+include("EN4.jl")
+include("Copernicus/Copernicus.jl")
 
 using .ECCO
 using .EN4
 using .JRA55
+using .Copernicus
 
 end # module
