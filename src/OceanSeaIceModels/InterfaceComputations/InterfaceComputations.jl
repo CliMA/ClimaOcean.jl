@@ -11,7 +11,9 @@ export
     LatitudeDependentAlbedo,
     SimilarityTheoryFluxes,
     SkinTemperature,
-    BulkTemperature
+    BulkTemperature,
+    edson_stability_functions,
+    atmosphere_sea_ice_stability_functions
 
 using ..OceanSeaIceModels: default_gravitational_acceleration
 

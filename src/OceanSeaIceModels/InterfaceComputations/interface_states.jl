@@ -221,7 +221,7 @@ end
     ρ  = ℙᵢ.reference_density
     c  = ℙᵢ.heat_capacity
     Qa = (Qv + Qu + Qd) # Net flux excluding sensible heat (positive out of the ocean)
-    λ  = 1 / (ρ * c) # m³K/J
+    λ  = 1 / (ρ * c) # m³ K J⁻¹
     Jᵀ = Qa * λ
 
     # Calculating the atmospheric temperature

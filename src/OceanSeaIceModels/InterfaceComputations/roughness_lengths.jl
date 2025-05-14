@@ -6,11 +6,17 @@ struct MomentumRoughnessLength{FT, V}
     maximum_roughness_length :: FT
 end
 
+Base.summary(::MomentumRoughnessLength{FT}) where FT = "MomentumRoughnessLength{$FT}"
+Base.show(io, ::MomentumRoughnessLength{FT}) where FT = print(io, "MomentumRoughnessLength{$FT}")
+
 struct ScalarRoughnessLength{FT, V, R}
     air_kinematic_viscosity :: V
     reynolds_number_scaling_function :: R
     maximum_roughness_length :: FT
 end
+
+Base.summary(::ScalarRoughnessLength{FT}) where FT = "ScalarRoughnessLength{$FT}"
+Base.show(io, ::ScalarRoughnessLength{FT}) where FT = print(io, "ScalarRoughnessLength{$FT}")
 
 """
     ScalarRoughnessLength(FT = Float64;

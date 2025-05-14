@@ -105,6 +105,78 @@ function heat_capacity(::TEOS10EquationOfState{FT}) where FT
     return convert(FT, cₚ⁰)
 end
 
+"""
+    OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(ocean.model));
+                     atmosphere = nothing,
+                     radiation = Radiation(architecture(ocean.model)),
+                     clock = deepcopy(ocean.model.clock),
+                     ocean_reference_density = reference_density(ocean),
+                     ocean_heat_capacity = heat_capacity(ocean),
+                     sea_ice_reference_density = reference_density(sea_ice),
+                     sea_ice_heat_capacity = heat_capacity(sea_ice),
+                     interfaces = nothing)
+
+Construct a coupled ocean-sea ice model that simulates the interaction between ocean and sea ice components.
+
+# Arguments
+- `ocean`: A representation of a possibly time-dependent ocean state. Currently, only `Oceananigans.Simulation`s
+           of `Oceananigans.HydrostaticFreeSurfaceModel` are tested.
+- `sea_ice`: A representation of a possibly time-dependent sea ice state.
+             For example, the minimalist `FreezingLimitedOceanTemperature` represents
+             oceanic latent heating during freezing only, but does not evolve sea ice variables.
+             For prognostica sea ice use an `Oceananigans.Simulation`s of `ClimaSeaIce.SeaIceModel`.
+
+# Keyword Arguments
+- `atmosphere`: A representation of a possibly time-dependent atmospheric state. Default: `nothing`.
+- `radiation`: Radiation component used to compute surface fluxes at the bottom of the atmosphere.
+- `clock`: Keeps track of time.
+- `ocean_reference_density`: Reference density for the ocean. Defaults to value from ocean model
+- `ocean_heat_capacity`: Heat capacity for the ocean. Defaults to value from ocean model
+- `sea_ice_reference_density`: Reference density for sea ice. Defaults to value from sea ice model
+- `sea_ice_heat_capacity`: Heat capacity for sea ice. Defaults to value from sea ice model
+- `interfaces`: Component interfaces for coupling. Defaults to `nothing` and will be constructed automatically
+
+# Stability Functions
+The model uses similarity theory for turbulent fluxes between components. You can customize the stability functions
+by creating a new `SimilarityTheoryFluxes` object with your desired stability functions. For example:
+
+```jldoctest ocean_sea_ice_model
+using ClimaOcean
+using Oceananigans
+
+grid = RectilinearGrid(size=10, z=(-100, 0), topology=(Flat, Flat, Bounded))
+ocean = ocean_simulation(grid)
+
+# Three choices for stability function:
+# "No stability function", which also apply to neutral boundary layers
+stability_functions = nothing
+
+# Atmosphere-sea ice specific stability functions
+stability_functions = ClimaOcean.OceanSeaIceModels.atmosphere_sea_ice_stability_functions(Float64)
+
+# Edson et al. (2013) stability functions
+stability_functions = ClimaOcean.OceanSeaIceModels.edson_stability_functions(Float64)
+
+atmosphere_ocean_flux_formulation = SimilarityTheoryFluxes(; stability_functions)
+interfaces = ClimaOcean.OceanSeaIceModels.ComponentInterfaces(nothing, ocean; atmosphere_ocean_flux_formulation)
+model = OceanSeaIceModel(ocean; interfaces)
+
+# output
+OceanSeaIceModel{CPU}(time = 0 seconds, iteration = 0)
+├── ocean: HydrostaticFreeSurfaceModel{CPU, RectilinearGrid}(time = 0 seconds, iteration = 0)
+├── atmosphere: Nothing
+├── sea_ice: FreezingLimitedOceanTemperature{ClimaSeaIce.SeaIceThermodynamics.LinearLiquidus{Float64}}
+└── interface: ComponentInterfaces
+```
+
+The available stability function options include:
+- `edson_stability_functions`: Based on Edson et al. (2013)
+- `atmosphere_sea_ice_stability_functions`: Specifically designed for atmosphere-sea ice interactions
+- `nothing`: No stability functions will be used
+- Custom stability functions can be created by defining functions of the "stability parameter" 
+  (the flux Richardson number), `ζ`.
+```
+"""
 function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(ocean.model));
                           atmosphere = nothing,
                           radiation = Radiation(architecture(ocean.model)),
