@@ -135,8 +135,6 @@ Download the dataset specified by the `metadata::ECCOMetadata`. If `metadata.dat
 the dataset is downloaded directly. If `metadata.dates` is a vector of dates, each date
 is downloaded individually.
 
-Note: if called by multiple processes via MPI, `download_dataset` should only run on the root process.
-
 Arguments
 =========
 - `metadata`: The metadata specifying the dataset to be downloaded. Available options are metadata for
