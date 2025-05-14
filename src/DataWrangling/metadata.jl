@@ -209,13 +209,6 @@ end
 ####
 
 """
-    download_dataset(metadata)
-
-Download the dataset file(s) specified by `metadata` and return the path(s) to the downloaded file.
-"""
-function download_dataset end
-
-"""
     default_download_directory(dataset)
 
 Return the default directory to which `dataset` is downloaded.

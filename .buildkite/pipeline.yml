@@ -23,8 +23,7 @@ steps:
       - "julia --project -e 'using Pkg; Pkg.precompile(strict=true)'"
       - "julia --project -e 'using Pkg; Pkg.status()'"
 
-      # Force the initialization of the CUDA runtime as it is lazily loaded by default:
-      - "echo '--- Initialize the CUDA runtime'"
+      - "echo '--- Initialize ClimaOcean test suite'"
       - "julia --project -e 'using CUDA; CUDA.precompile_runtime()'"
       - "julia --project -e 'using Pkg; Pkg.test()'"
     agents:
