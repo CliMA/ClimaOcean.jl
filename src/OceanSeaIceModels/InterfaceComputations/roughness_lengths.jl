@@ -150,7 +150,7 @@ end
     g  = ℓ.gravitational_acceleration
     β  = ℓ.laminar_parameter
     ℓm = ℓ.maximum_roughness_length
-    α  = gravity_wave_parameter(ℓ.gravity_waves, ΔU)
+    α  = gravity_wave_parameter(ℓ.wave_formulation, ΔU)
 
     θ₀ = AtmosphericThermodynamics.air_temperature(ℂ, 𝒬)
     ν  = ℓ.air_kinematic_viscosity(θ₀)
