@@ -172,15 +172,9 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
     q★ = approximate_interface_state.q★
 
     # Stability functions for momentum, heat, and vapor
-    if isnothing(flux_formulation.stability_functions)
-        ψu = Returns(zero(u★))
-        ψθ = Returns(zero(u★))
-        ψq = Returns(zero(u★))
-    else
-        ψu = flux_formulation.stability_functions.momentum
-        ψθ = flux_formulation.stability_functions.temperature
-        ψq = flux_formulation.stability_functions.water_vapor
-    end
+    ψu = flux_formulation.stability_functions.momentum
+    ψθ = flux_formulation.stability_functions.temperature
+    ψq = flux_formulation.stability_functions.water_vapor
 
     # Extract roughness lengths
     ℓu = flux_formulation.roughness_lengths.momentum

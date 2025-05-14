@@ -51,6 +51,8 @@ pages = [
         "Near-global ocean simulation" => "literated/near_global_ocean_simulation.md",
         ],
 
+    "Interface fluxes" => "interface_fluxes.md",
+
     "Library" => [
         "Contents"       => "library/outline.md",
         "Public"         => "library/public.md",
