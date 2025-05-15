@@ -1,8 +1,14 @@
 module OceanSeaIceModels
 
-export OceanSeaIceModel, SimilarityTheoryFluxes, FreezingLimitedOceanTemperature
-export Radiation, LatitudeDependentAlbedo
-export SkinTemperature, BulkTemperature
+export
+    OceanSeaIceModel,
+    SimilarityTheoryFluxes,
+    CoefficientBasedFluxes,
+    FreezingLimitedOceanTemperature,
+    Radiation,
+    LatitudeDependentAlbedo,
+    SkinTemperature,
+    BulkTemperature
 
 using Oceananigans
 using SeawaterPolynomials

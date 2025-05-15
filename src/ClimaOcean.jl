@@ -13,6 +13,7 @@ export
     Radiation,
     LatitudeDependentAlbedo,
     SimilarityTheoryFluxes,
+    CoefficientBasedFluxes,
     ComponentInterfaces,
     SkinTemperature,
     BulkTemperature,

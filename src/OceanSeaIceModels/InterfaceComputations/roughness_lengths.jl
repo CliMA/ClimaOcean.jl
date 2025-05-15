@@ -66,7 +66,7 @@ Keyword Arguments
 """
 function MomentumRoughnessLength(FT=Oceananigans.defaults.FloatType;
                                  gravitational_acceleration = default_gravitational_acceleration,
-                                 maximum_roughness_length = 1.0, # An estimate?
+                                 maximum_roughness_length = 1e-2,
                                  #air_kinematic_viscosity = TemperatureDependentAirViscosity(FT),
                                  air_kinematic_viscosity = 1.5e-6, #TemperatureDependentAirViscosity(FT),
                                  gravity_wave_parameter = 0.011,

@@ -1,5 +1,49 @@
 using Oceananigans.BuoyancyFormulations: g_Earth
 
+"""
+    CoefficientBasedFluxes(FT = Oceananigans.defaults.FloatType;
+                          drag_coefficient = 1e-3,
+                          heat_transfer_coefficient = drag_coefficient,
+                          vapor_flux_coefficient = drag_coefficient,
+                          solver_stop_criteria = nothing,
+                          solver_tolerance = 1e-8,
+                          solver_maxiter = 20)
+
+A structure for computing turbulent fluxes using constant bulk transfer coefficients.
+
+# Arguments
+- `FT`: (optional) Float type for the coefficients, defaults to Oceananigans.defaults.FloatType
+- `drag_coefficient`: Coefficient for momentum transfer (Cᵈ), defaults to 1e-3
+- `heat_transfer_coefficient`: Coefficient for heat transfer (Cʰ), defaults to drag_coefficient
+- `vapor_flux_coefficient`: Coefficient for moisture transfer (Cᵍ), defaults to drag_coefficient
+- `solver_stop_criteria`: Criteria for iterative solver convergence. If nothing, creates new criteria using tolerance and maxiter
+- `solver_tolerance`: Tolerance for solver convergence when creating new stop criteria, defaults to 1e-8
+- `solver_maxiter`: Maximum iterations for solver when creating new stop criteria, defaults to 20
+
+# Fields
+- `drag_coefficient`: Coefficient for momentum transfer
+- `heat_transfer_coefficient`: Coefficient for sensible heat transfer
+- `vapor_flux_coefficient`: Coefficient for latent heat transfer
+- `solver_stop_criteria`: Criteria for iterative solver convergence
+
+Used in bulk flux calculations to determine the exchange of momentum, heat, and moisture 
+between the ocean/ice surface and the atmosphere using constant transfer coefficients.
+
+# Example
+```jldoctest
+using Oceananigans
+using ClimaOcean
+
+grid = RectilinearGrid(size=3, z=(-1, 0), topology=(Flat, Flat, Bounded))
+ocean = ocean_simulation(grid)
+
+ao_fluxes = CoefficientBasedFluxes(drag_coefficient = 1e-2,
+                                   heat_transfer_coefficient = 1e-3,
+                                   vapor_flux_coefficient = 1e-3)
+
+interfaces = ComponentInterfaces(nothing, ocean; atmosphere_ocean_flux_formulation=ao_fluxes)
+```
+"""
 struct CoefficientBasedFluxes{CD, CH, CQ, S}
     drag_coefficient :: CD
     heat_transfer_coefficient :: CH

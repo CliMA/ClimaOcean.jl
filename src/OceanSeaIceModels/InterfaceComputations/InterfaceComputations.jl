@@ -10,6 +10,7 @@ export
     ComponentInterfaces,
     LatitudeDependentAlbedo,
     SimilarityTheoryFluxes,
+    CoefficientBasedFluxes,
     SkinTemperature,
     BulkTemperature,
     atmosphere_ocean_stability_functions,
