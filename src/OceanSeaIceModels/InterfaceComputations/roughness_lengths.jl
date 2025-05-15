@@ -7,7 +7,7 @@ struct MomentumRoughnessLength{FT, V}
 end
 
 Base.summary(::MomentumRoughnessLength{FT}) where FT = "MomentumRoughnessLength{$FT}"
-Base.show(io, ::MomentumRoughnessLength{FT}) where FT = print(io, "MomentumRoughnessLength{$FT}")
+Base.show(io::IO, ::MomentumRoughnessLength{FT}) where FT = print(io, "MomentumRoughnessLength{$FT}")
 
 struct ScalarRoughnessLength{FT, V, R}
     air_kinematic_viscosity :: V
@@ -16,7 +16,7 @@ struct ScalarRoughnessLength{FT, V, R}
 end
 
 Base.summary(::ScalarRoughnessLength{FT}) where FT = "ScalarRoughnessLength{$FT}"
-Base.show(io, ::ScalarRoughnessLength{FT}) where FT = print(io, "ScalarRoughnessLength{$FT}")
+Base.show(io::IO, ::ScalarRoughnessLength{FT}) where FT = print(io, "ScalarRoughnessLength{$FT}")
 
 """
     ScalarRoughnessLength(FT = Float64;
@@ -67,15 +67,16 @@ Keyword Arguments
 function MomentumRoughnessLength(FT=Oceananigans.defaults.FloatType;
                                  gravitational_acceleration = default_gravitational_acceleration,
                                  maximum_roughness_length = 1.0, # An estimate?
-                                 air_kinematic_viscosity = TemperatureDependentAirViscosity(FT),
+                                 #air_kinematic_viscosity = TemperatureDependentAirViscosity(FT),
+                                 air_kinematic_viscosity = 1.5e-6, #TemperatureDependentAirViscosity(FT),
                                  gravity_wave_parameter = 0.011,
                                  laminar_parameter = 0.11)
 
     return MomentumRoughnessLength(convert(FT, gravitational_acceleration),
-                                          air_kinematic_viscosity,
-                                          convert(FT, gravity_wave_parameter),
-                                          convert(FT, laminar_parameter),
-                                          convert(FT, maximum_roughness_length))
+                                   air_kinematic_viscosity,
+                                   convert(FT, gravity_wave_parameter),
+                                   convert(FT, laminar_parameter),
+                                   convert(FT, maximum_roughness_length))
 end
 
 function default_roughness_lengths(FT=Oceananigans.defaults.FloatType)
@@ -118,34 +119,35 @@ function TemperatureDependentAirViscosity(FT = Oceananigans.defaults.FloatType;
                                             convert(FT, C₃))
 end
 
+@inline compute_air_kinematic_viscosity(ν::Number, ℂ, 𝒬) = ν
+
 """ Calculate the air viscosity based on the temperature θ in Celsius. """
-@inline function (ν::TemperatureDependentAirViscosity)(θ)
+@inline function compute_air_kinematic_viscosity(ν::TemperatureDependentAirViscosity, ℂ, 𝒬)
+    T₀ = AtmosphericThermodynamics.air_temperature(ℂ, 𝒬)
     FT = eltype(ν.C₀)
-    T  = convert(FT, θ - celsius_to_kelvin)
-    return ν.C₀ + ν.C₁ * T + ν.C₂ * T^2 + ν.C₃ * T^3
+    T′ = convert(FT, T₀ - celsius_to_kelvin)
+    return ν.C₀ + ν.C₁ * T′ + ν.C₂ * T′^2 + ν.C₃ * T′^3
 end
 
-# Fallbacks for constant roughness length!
-@inline roughness_length(ℓ, u★, args...)     = ℓ(u★, args...)
+# Fallbacks for constant roughness length
+@inline roughness_length(ℓ, u★, args...) = ℓ(u★, args...)
 @inline roughness_length(ℓ::Number, args...) = ℓ
 
 # Momentum roughness length should be different from scalar roughness length.
 # Temperature and water vapor can be considered the same (Edson et al 2013)
-@inline function roughness_length(ℓ::MomentumRoughnessLength{FT}, u★, 𝒬, ℂ) where FT
-    g  = ℓ.gravitational_acceleration
-    α  = ℓ.gravity_wave_parameter
-    β  = ℓ.laminar_parameter
-    ℓm = ℓ.maximum_roughness_length
+@inline function roughness_length(ℓ::MomentumRoughnessLength{FT}, u★, ℂ, 𝒬) where FT
+    ν = compute_air_kinematic_viscosity(ℓ.air_kinematic_viscosity, ℂ, 𝒬)
+    g = ℓ.gravitational_acceleration
+    α = ℓ.gravity_wave_parameter
+    β = ℓ.laminar_parameter
 
-    θ₀ = AtmosphericThermodynamics.air_temperature(ℂ, 𝒬)
-    ν  = ℓ.air_kinematic_viscosity(θ₀)
+    ℓᵂ = α * u★^2 / g # gravity wave roughness length
+    ℓᴿ = β * ν / u★ * (β > 0) # viscous sublayer roughness length
+    ℓ★ = ℓᵂ + ℓᴿ # arbitrary way of combining the two
 
-    # We need to prevent `Inf` that pops up when `u★ == 0`.
-    # For this reason, if `u★ == 0` we prescribe the roughness length to be
-    # equal to a `maximum` roughness length
-    ℓᴿ = ifelse(u★ == 0, ℓm, β * ν / u★)
-
-    return min(α * u★^2 / g + ℓᴿ, ℓm)
+    # Clip to ℓ_max, deals with u★ = 0
+    ℓ_max = ℓ.maximum_roughness_length
+    return min(ℓ★, ℓ_max)
 end
 
 struct ReynoldsScalingFunction{FT}
@@ -158,6 +160,7 @@ end
 
 Empirical fit of the scalar roughness length with roughness Reynolds number `R★ = u★ ℓu / ν`.
 Edson et al. (2013), equation (28).
+
 ```math
     ℓs = A / R★ ^ b
 ```
@@ -167,21 +170,17 @@ ReynoldsScalingFunction(FT = Oceananigans.defaults.FloatType; A = 5.85e-5, b = 0
 
 @inline (s::ReynoldsScalingFunction)(R★, args...) = ifelse(R★ == 0, convert(eltype(R★), 0), s.A / R★ ^ s.b)
 
-# Edson 2013 formulation of scalar roughness length
-@inline function roughness_length(ℓ::ScalarRoughnessLength{FT}, ℓu, u★, 𝒬, ℂ) where FT
-    ℓm = ℓ.maximum_roughness_length
-
-    scaling_function = ℓ.reynolds_number_scaling_function
-
-    θ₀ = AtmosphericThermodynamics.air_temperature(ℂ, 𝒬)
-    ν  = ℓ.air_kinematic_viscosity(θ₀)
-
+# Edson 2013 formulation of scalar roughness length in terms of momentum roughness length ℓu
+@inline function roughness_length(ℓ::ScalarRoughnessLength{FT}, ℓu, u★, ℂ, 𝒬) where FT
     # Roughness Reynolds number
+    ν = compute_air_kinematic_viscosity(ℓ.air_kinematic_viscosity, ℂ, 𝒬)
     R★ = ℓu * u★ / ν
 
     # implementation of scalar roughness length
-    ℓq = scaling_function(R★, ℓu, u★, ν)
+    scaling_function = ℓ.reynolds_number_scaling_function
+    ℓs = scaling_function(R★, ℓu, u★, ν)
 
-    return min(ℓq, ℓm)
+    # Clip
+    ℓ_max = ℓ.maximum_roughness_length
+    return min(ℓs, ℓ_max)
 end
-

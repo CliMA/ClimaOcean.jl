@@ -180,5 +180,9 @@ end
         ρτx[i, j, 1] = + ρₐ * τx
         ρτy[i, j, 1] = + ρₐ * τy
         Ts[i, j, 1]  = convert_from_kelvin(ocean_properties.temperature_units, Ψₛ.T)
+
+        interface_fluxes.friction_velocity[i, j, 1] = u★
+        interface_fluxes.temperature_scale[i, j, 1] = θ★
+        interface_fluxes.water_vapor_scale[i, j, 1] = q★
     end
 end

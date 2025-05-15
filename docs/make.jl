@@ -16,10 +16,10 @@ to_be_literated = [
     # "ecco_inspect_temperature_salinity.jl",
     # "generate_bathymetry.jl",
     # "generate_surface_fluxes.jl",
-    "single_column_os_papa_simulation.jl",
-    "one_degree_simulation.jl",
+    # "single_column_os_papa_simulation.jl",
+    # "one_degree_simulation.jl",
     # "mediterranean_simulation_with_ecco_restoring.jl",
-    "near_global_ocean_simulation.jl"
+    # "near_global_ocean_simulation.jl"
 ]
 
 for file in to_be_literated
@@ -45,10 +45,10 @@ pages = [
         # "Inspect ECCO2 data" => "literated/ecco_inspect_temperature_salinity.md",
         # "Generate bathymetry" => "literated/generate_bathymetry.md",
         # "Surface fluxes" => "literated/generate_surface_fluxes.md",
-        "Single-column ocean simulation" => "literated/single_column_os_papa_simulation.md",
+        # "Single-column ocean simulation" => "literated/single_column_os_papa_simulation.md",
         # "Mediterranean simulation with ECCO restoring" => "literated/mediterranean_simulation_with_ecco_restoring.md",
-        "One-degree ocean simulation" => "literated/one_degree_simulation.md",
-        "Near-global ocean simulation" => "literated/near_global_ocean_simulation.md",
+        #"One-degree ocean simulation" => "literated/one_degree_simulation.md",
+        # "Near-global ocean simulation" => "literated/near_global_ocean_simulation.md",
         ],
 
     "Interface fluxes" => "interface_fluxes.md",

@@ -186,14 +186,14 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
     𝒬ₛ = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, 𝒬ₐ.p, Tₛ, qₛ)
 
     # Compute Monin-Obukhov length scale depending on a `buoyancy flux`
-    b★ = buoyancy_scale(θ★, q★, 𝒬ₛ, ℂₐ, g)
+    b★ = buoyancy_scale(θ★, q★, ℂₐ, 𝒬ₛ, g)
     ϰ = flux_formulation.von_karman_constant
     L★ = ifelse(b★ == 0, Inf, - u★^2 / (ϰ * b★))
 
     # Compute roughness length scales
-    ℓu₀ = roughness_length(ℓu, u★, 𝒬ₛ, ℂₐ)
-    ℓq₀ = roughness_length(ℓq, ℓu₀, u★, 𝒬ₛ, ℂₐ)
-    ℓθ₀ = roughness_length(ℓθ, ℓu₀, u★, 𝒬ₛ, ℂₐ)
+    ℓu₀ = roughness_length(ℓu, u★, ℂₐ, 𝒬ₛ)
+    ℓq₀ = roughness_length(ℓq, ℓu₀, u★, ℂₐ, 𝒬ₛ)
+    ℓθ₀ = roughness_length(ℓθ, ℓu₀, u★, ℂₐ, 𝒬ₛ)
 
     # Transfer coefficients at height `h`
     form = flux_formulation.similarity_form
@@ -221,7 +221,7 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
 end
 
 """
-    buoyancy_scale(θ★, q★, 𝒬, ℂ, g)
+    buoyancy_scale(θ★, q★, ℂ, 𝒬, g)
 
 Return the characteristic buoyancy scale `b★` associated with
 the characteristic temperature `θ★`, specific humidity scale `q★`,
@@ -251,7 +251,7 @@ in terms of `b★` and additionally the Von Karman constant `ϰ`,
 L★ = - u★² / ϰ b★ .
 ```
 """
-@inline function buoyancy_scale(θ★, q★, 𝒬, ℂ, g)
+@inline function buoyancy_scale(θ★, q★, ℂ, 𝒬, g)
     𝒯ₐ = AtmosphericThermodynamics.virtual_temperature(ℂ, 𝒬)
     qₐ = AtmosphericThermodynamics.vapor_specific_humidity(ℂ, 𝒬)
     ε  = AtmosphericThermodynamics.Parameters.molmass_ratio(ℂ)

@@ -35,7 +35,7 @@ import Oceananigans.Simulations: initialize!
 ##### Container for organizing information related to fluxes
 #####
 
-mutable struct AtmosphereSurface{J, F, ST, P}
+mutable struct AtmosphereInterface{J, F, ST, P}
     fluxes :: J
     flux_formulation :: F
     temperature :: ST
@@ -187,6 +187,9 @@ function atmosphere_ocean_interface(atmos,
     sensible_heat         = Field{Center, Center, Nothing}(ocean.model.grid)
     x_momentum            = Field{Center, Center, Nothing}(ocean.model.grid)
     y_momentum            = Field{Center, Center, Nothing}(ocean.model.grid)
+    friction_velocity     = Field{Center, Center, Nothing}(ocean.model.grid)
+    temperature_scale     = Field{Center, Center, Nothing}(ocean.model.grid)
+    water_vapor_scale     = Field{Center, Center, Nothing}(ocean.model.grid)
     upwelling_longwave    = Field{Center, Center, Nothing}(ocean.model.grid)
     downwelling_longwave  = Field{Center, Center, Nothing}(ocean.model.grid)
     downwelling_shortwave = Field{Center, Center, Nothing}(ocean.model.grid)
@@ -196,6 +199,9 @@ function atmosphere_ocean_interface(atmos,
                    water_vapor, 
                    x_momentum,
                    y_momentum, 
+                   friction_velocity,
+                   temperature_scale,
+                   water_vapor_scale,
                    upwelling_longwave,
                    downwelling_longwave,
                    downwelling_shortwave)
@@ -212,7 +218,7 @@ function atmosphere_ocean_interface(atmos,
 
     interface_temperature = Field{Center, Center, Nothing}(ocean.model.grid)
 
-    return AtmosphereSurface(ao_fluxes, ao_flux_formulation, interface_temperature, ao_properties)
+    return AtmosphereInterface(ao_fluxes, ao_flux_formulation, interface_temperature, ao_properties)
 end
 
 atmosphere_sea_ice_interface(atmos, sea_ice, args...) = nothing
@@ -249,7 +255,7 @@ function atmosphere_sea_ice_interface(atmos,
 
     interface_temperature = sea_ice.model.ice_thermodynamics.top_surface_temperature
 
-    return AtmosphereSurface(fluxes, ai_flux_formulation, interface_temperature, properties)
+    return AtmosphereInterface(fluxes, ai_flux_formulation, interface_temperature, properties)
 end
 
 sea_ice_ocean_interface(sea_ice, ocean) = nothing
