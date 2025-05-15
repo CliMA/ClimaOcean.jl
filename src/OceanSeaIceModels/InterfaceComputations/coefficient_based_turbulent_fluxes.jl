@@ -42,6 +42,9 @@ ao_fluxes = CoefficientBasedFluxes(drag_coefficient = 1e-2,
                                    vapor_flux_coefficient = 1e-3)
 
 interfaces = ComponentInterfaces(nothing, ocean; atmosphere_ocean_flux_formulation=ao_fluxes)
+
+# output
+ComponentInterfaces
 ```
 """
 struct CoefficientBasedFluxes{CD, CH, CQ, S}
