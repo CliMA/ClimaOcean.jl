@@ -63,6 +63,8 @@ and``u_\star`` is the friction velocity.
 
 ```@example interface_fluxes
 using CairoMakie
+set_theme!(Theme(fontsize=16, linewidth=2))
+
 u★ = similarity_model.interfaces.atmosphere_ocean_interface.fluxes.friction_velocity
 u★ = interior(u★, :, 1, 1)
 
@@ -81,14 +83,14 @@ u★_EC = @. sqrt(Cᴰ_EC) * uₐ
 fig = Figure(size=(800, 600))
 axu = Axis(fig[1, 1], xlabel="uₐ (m s⁻¹) at 10 m", ylabel="u★ (m s⁻¹)")
 lines!(axu, uₐ, u★, label="SimilarityTheoryFluxes")
-# lines!(axu, uₐ, u★_LY, label="Polynomial fit \n from Large and Yeager (2009)")
+lines!(axu, uₐ, u★_LY, label="Polynomial fit \n from Large and Yeager (2009)")
 lines!(axu, uₐ, u★_EC, label="ECMWF Polynomial fit \n from Edson et al (2013)")
 
 axd = Axis(fig[2, 1], xlabel="uₐ (m s⁻¹) at 10 m", ylabel="1000 × Cᴰ")
 Cᴰ = @. (u★ / uₐ)^2
 Cᴰ_LY = @. (u★_LY / uₐ)^2
 lines!(axd, uₐ, 1000 .* Cᴰ, label="SimilarityTheoryFluxes")
-# lines!(axd, uₐ, 1000 .* Cᴰ_LY, label="Polynomial fit \n from Large and Yeager (2009)")
+lines!(axd, uₐ, 1000 .* Cᴰ_LY, label="Polynomial fit \n from Large and Yeager (2009)")
 lines!(axd, uₐ, 1000 .* Cᴰ_EC, label="ECMWF Polynomial fit \n from Edson et al (2013)")
 
 u★_coeff = coefficient_model.interfaces.atmosphere_ocean_interface.fluxes.friction_velocity
@@ -97,8 +99,7 @@ Cᴰ_coeff = @. (u★_coeff / uₐ)^2
 lines!(axu, uₐ, u★_coeff, label="CoefficientBasedFluxes")
 lines!(axd, uₐ, 1000 .* Cᴰ_coeff, label="CoefficientBasedFluxes")
 
-axislegend(axu, position=:lt)
-axislegend(axd, position=:lt)
+fig[1:2, 2] = Legend(fig, axu)
 
 fig
 ```
