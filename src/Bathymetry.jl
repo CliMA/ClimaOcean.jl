@@ -1,13 +1,8 @@
 module Bathymetry
 
-import ClimaOcean.DataWrangling:
-    Metadata,
-    Metadatum,
-    metadata_path,
-    native_grid
+export regrid_bathymetry
 
 using KernelAbstractions: @kernel, @index
-export regrid_bathymetry, retrieve_bathymetry, download_bathymetry
 
 using ImageMorphology
 using Oceananigans.DistributedComputations
@@ -21,16 +16,21 @@ using Oceananigans.Fields: interpolate!
 using Oceananigans.BoundaryConditions
 using JLD2
 
-using OffsetArrays
 using ClimaOcean
-
+using OffsetArrays
 using NCDatasets
 using Downloads
 using Printf
 using Scratch
 
-# methods specific to bathymetries are added within each bathymetry module
+using ..DataWrangling: native_grid
 
+import ClimaOcean.DataWrangling:
+    Metadata,
+    Metadatum,
+    metadata_path
+
+# methods specific to bathymetric datasets are added within dataset modules
 
 """
     regrid_bathymetry(target_grid;
@@ -90,7 +90,7 @@ Keyword Arguments
                   the smallest basins are removed first. `major_basins = 1` retains only the largest basin.
                   If `Inf` then no basins are removed. Default: 1.
 """
-function regrid_bathymetry(target_grid, m::Metadatum;
+function regrid_bathymetry(target_grid, bathymetry::Metadatum;
                            height_above_water = nothing,
                            minimum_depth = 0,
                            interpolation_passes = 1,
@@ -106,12 +106,12 @@ function regrid_bathymetry(target_grid, m::Metadatum;
 
     arch = architecture(target_grid)
 
-    grid = native_grid(m, arch; halo = (10, 10, 1))
+    bathymetry_native_grid = native_grid(bathymetry, arch; halo = (10, 10, 1))
     FT = eltype(target_grid)
 
-    filepath = metadata_path(m)
+    filepath = metadata_path(bathymetry)
     dataset = Dataset(filepath, "r")
-    
+
     z_data = convert(Array{FT}, dataset["z"][:, :])
     close(dataset)
 
@@ -123,7 +123,7 @@ function regrid_bathymetry(target_grid, m::Metadatum;
         z_data[land] .= height_above_water
     end
 
-    native_z = Field{Center, Center, Nothing}(grid)
+    native_z = Field{Center, Center, Nothing}(bathymetry_native_grid)
     set!(native_z, z_data)
     fill_halo_regions!(native_z)
 
