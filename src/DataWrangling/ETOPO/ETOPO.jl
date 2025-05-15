@@ -1,6 +1,6 @@
 module ETOPO
 
-export ETOPOBathymetry
+export ETOPO2022
 
 using Downloads
 using Oceananigans
@@ -34,21 +34,21 @@ ETOPO_bathymetry_variable_names = Dict(
     :salinity    => "salinity"
 )
 
-struct ETOPOBathymetry end
+struct ETOPO2022 end
 
-default_download_directory(::ETOPOBathymetry) = download_ETOPO_cache
-reversed_vertical_axis(::ETOPOBathymetry) = true
-longitude_interfaces(::ETOPOBathymetry) = (-180, 180)
-latitude_interfaces(::ETOPOBathymetry) = (-90, 90)
-Base.size(::ETOPOBathymetry, variable) = (21600, 10800, 1)
-Base.size(::ETOPOBathymetry) = (21600, 10800, 1)
+default_download_directory(::ETOPO2022) = download_ETOPO_cache
+reversed_vertical_axis(::ETOPO2022) = true
+longitude_interfaces(::ETOPO2022) = (-180, 180)
+latitude_interfaces(::ETOPO2022) = (-90, 90)
+Base.size(::ETOPO2022, variable) = (21600, 10800, 1)
+Base.size(::ETOPO2022) = (21600, 10800, 1)
 
-all_dates(::ETOPOBathymetry) = nothing
-all_dates(::ETOPOBathymetry, variable) = nothing
-first_date(::ETOPOBathymetry, variable) = nothing
-last_date(::ETOPOBathymetry, variable) = nothing
+all_dates(::ETOPO2022) = nothing
+all_dates(::ETOPO2022, variable) = nothing
+first_date(::ETOPO2022, variable) = nothing
+last_date(::ETOPO2022, variable) = nothing
 
-const ETOPOMetadatum = Metadatum{<:ETOPOBathymetry, <:Any, <:Any}
+const ETOPOMetadatum = Metadatum{<:ETOPO2022, <:Any, <:Any}
 
 const ETOPO_url = "https://www.dropbox.com/scl/fi/6pwalcuuzgtpanysn4h6f/" *
     "ETOPO_2022_v1_60s_N90W180_surface.nc?rlkey=2t7890ruyk4nd5t5eov5768lt&st=yfxsy1lu&dl=0"

@@ -140,7 +140,7 @@ function regrid_bathymetry(target_grid, bathymetry::Metadatum;
     return target_z
 end
 
-function regrid_bathymetry(target_grid; dataset = ClimaOcean.ETOPO.ETOPOBathymetry(), kw...)
+function regrid_bathymetry(target_grid; dataset = ClimaOcean.ETOPO.ETOPO2022(), kw...)
     metadatum = Metadatum(:bottom_height; dataset)
 
     return regrid_bathymetry(target_grid, metadatum; kw...)

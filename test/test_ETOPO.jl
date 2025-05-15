@@ -25,7 +25,7 @@ bottom_height = regrid_bathymetry(underlying_grid;
                                   major_basins = 2)
 
 @info "Bathymetry using Metadata..."
-ETOPOmetadata = Metadatum(:bottom_height, dataset=ETOPOBathymetry())
+ETOPOmetadata = Metadatum(:bottom_height, dataset=ETOPO2022())
 
 filepath = ClimaOcean.DataWrangling.download_dataset(ETOPOmetadata)
 

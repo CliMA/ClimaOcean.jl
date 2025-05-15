@@ -10,7 +10,7 @@ using ClimaOcean.DataWrangling.ETOPO
 @testset "Availability of Bathymetry" begin
     @info "Testing Bathymetry utils..."
     for arch in test_architectures
-        ETOPOmetadata = Metadatum(:bottom_height, dataset=ETOPOBathymetry())
+        ETOPOmetadata = Metadatum(:bottom_height, dataset=ETOPO2022())
 
         # Testing downloading
         download_dataset(ETOPOmetadata)
