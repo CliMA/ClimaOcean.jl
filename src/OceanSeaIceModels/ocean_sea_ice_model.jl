@@ -173,9 +173,8 @@ The available stability function options include:
 - `atmosphere_ocean_stability_functions`: Based on Edson et al. (2013)
 - `atmosphere_sea_ice_stability_functions`: Specifically designed for atmosphere-sea ice interactions
 - `nothing`: No stability functions will be used
-- Custom stability functions can be created by defining functions of the "stability parameter" 
+- Custom stability functions can be created by defining functions of the "stability parameter"
   (the flux Richardson number), `ζ`.
-```
 """
 function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(ocean.model));
                           atmosphere = nothing,

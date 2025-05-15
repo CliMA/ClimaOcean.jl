@@ -1,10 +1,11 @@
 # Interface fluxes
 
 `ClimaOcean`'s `OceanSeaIceModel` has essentially two goals:
-    1. Manage time-stepping multiple component models forward simulatneously,
-    2. Compute and/or pass fluxes between the component models.
 
-This page describes how OceanSeaIceModel computes fluxes at the interfaces between
+1. Manage time-stepping multiple component models forward simultaneously,
+2. Compute and/or pass fluxes between the component models.
+
+This page describes how [`OceanSeaIceModel`](@ref) computes fluxes at the interfaces between
 component models.
 
 ## Computing the neutral drag coefficient
@@ -51,14 +52,14 @@ coefficient_model = OceanSeaIceModel(ocean; atmosphere, interfaces)
 The drag coefficient is defined as
 
 ```math
-C^D \equiv \frac{u_\star^2}{| \Delta \bm{u} |^2}
+C^D \equiv \frac{u_\star^2}{| \Delta \bm{u} |^2},
 \qquad \text{where} \qquad
 \Delta \bm{u} \equiv \left ( u_a - u_o \right ) \bm{\hat x} + \left ( v_a - v_o \right ) \bm{\hat y} \, .
 ```
 
 is the difference between the atmosphere velocity at the
 prescribed `surface_layer_height` and the ocean surface velocity,
-and``u_\star`` is the friction velocity. 
+and``u_\star`` is the friction velocity.
 
 ```@example interface_fluxes
 using CairoMakie
@@ -77,13 +78,13 @@ p₂ = 0.21
 Cᴰ_EC = @. (c₁ + c₂ * uₐ^p₁) / uₐ^p₂
 u★_EC = @. sqrt(Cᴰ_EC) * uₐ
 
-fig = Figure(size=(800, 400))
+fig = Figure(size=(800, 600))
 axu = Axis(fig[1, 1], xlabel="uₐ (m s⁻¹) at 10 m", ylabel="u★ (m s⁻¹)")
 lines!(axu, uₐ, u★, label="SimilarityTheoryFluxes")
 # lines!(axu, uₐ, u★_LY, label="Polynomial fit \n from Large and Yeager (2009)")
 lines!(axu, uₐ, u★_EC, label="ECMWF Polynomial fit \n from Edson et al (2013)")
 
-axd = Axis(fig[1, 2], xlabel="uₐ (m s⁻¹) at 10 m", ylabel="1000 × Cᴰ")
+axd = Axis(fig[2, 1], xlabel="uₐ (m s⁻¹) at 10 m", ylabel="1000 × Cᴰ")
 Cᴰ = @. (u★ / uₐ)^2
 Cᴰ_LY = @. (u★_LY / uₐ)^2
 lines!(axd, uₐ, 1000 .* Cᴰ, label="SimilarityTheoryFluxes")
@@ -97,7 +98,7 @@ lines!(axu, uₐ, u★_coeff, label="CoefficientBasedFluxes")
 lines!(axd, uₐ, 1000 .* Cᴰ_coeff, label="CoefficientBasedFluxes")
 
 axislegend(axu, position=:lt)
-axislegend(axd, position=:rt)
+axislegend(axd, position=:lt)
 
 fig
 ```
