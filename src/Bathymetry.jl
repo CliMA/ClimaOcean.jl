@@ -5,10 +5,10 @@ export regrid_bathymetry
 using KernelAbstractions: @kernel, @index
 
 using ImageMorphology
-using Oceananigans.DistributedComputations
 
 using Oceananigans
 using Oceananigans.Architectures: architecture, on_architecture
+using Oceananigans.DistributedComputations
 using Oceananigans.DistributedComputations: DistributedGrid, reconstruct_global_grid, barrier!, all_reduce
 using Oceananigans.Grids: halo_size, λnodes, φnodes, x_domain, y_domain, topology
 using Oceananigans.Utils: pretty_filesize, launch!
@@ -23,12 +23,7 @@ using Downloads
 using Printf
 using Scratch
 
-using ..DataWrangling: native_grid
-
-import ClimaOcean.DataWrangling:
-    Metadata,
-    Metadatum,
-    metadata_path
+using ..DataWrangling: Metadatum, native_grid, metadata_path
 
 # methods specific to bathymetric datasets are added within dataset modules
 
@@ -143,6 +138,12 @@ function regrid_bathymetry(target_grid, bathymetry::Metadatum;
     fill_halo_regions!(target_z)
 
     return target_z
+end
+
+function regrid_bathymetry(target_grid; dataset = ClimaOcean.ETOPO.ETOPOBathymetry(), kw...)
+    metadatum = Metadatum(:bottom_height; dataset)
+
+    return regrid_bathymetry(target_grid, metadatum; kw...)
 end
 
 @kernel function _enforce_minimum_depth!(target_z, minimum_depth)

@@ -82,16 +82,17 @@ include("Diagnostics/Diagnostics.jl")
 
 using .VerticalGrids
 using .DataWrangling
+using .DataWrangling: JRA55, ECCO, EN4, Copernicus, ETOPO
 using .Bathymetry
 using .InitialConditions
 using .OceanSeaIceModels
 using .OceanSimulations
 using .SeaIceSimulations
-using .DataWrangling: JRA55, ECCO, EN4, Copernicus, ETOPO
 
 using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 using ClimaOcean.DataWrangling.JRA55: JRA55PrescribedAtmosphere, JRA55NetCDFBackend
 using ClimaOcean.DataWrangling.ECCO
+using ClimaOcean.DataWrangling.ETOPO
 
 using PrecompileTools: @setup_workload, @compile_workload
 
@@ -107,4 +108,3 @@ using PrecompileTools: @setup_workload, @compile_workload
 end
 
 end # module
-

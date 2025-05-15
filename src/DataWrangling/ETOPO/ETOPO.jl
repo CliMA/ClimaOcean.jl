@@ -1,7 +1,11 @@
 module ETOPO
 
-using Scratch
 export ETOPOBathymetry
+
+using Downloads
+using Oceananigans
+using Oceananigans.DistributedComputations: @root
+using Scratch
 
 import ClimaOcean.DataWrangling:
     metadata_filename,
@@ -19,11 +23,6 @@ import ClimaOcean.DataWrangling:
     is_three_dimensional,
     z_interfaces,
     reversed_vertical_axis
-
-using Downloads
-
-using Oceananigans
-using Oceananigans.DistributedComputations: @root
 
 download_ETOPO_cache::String = ""
 function __init__()
