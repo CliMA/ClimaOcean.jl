@@ -5,10 +5,16 @@ using Statistics
 using ClimaOcean
 
 using ClimaOcean.Bathymetry: remove_minor_basins!
+using ClimaOcean.DataWrangling.ETOPO
 
 @testset "Availability of Bathymetry" begin
     @info "Testing Bathymetry utils..."
     for arch in test_architectures
+        ETOPOmetadata = Metadatum(:bottom_height, dataset=ETOPOBathymetry())
+
+        # Testing downloading
+        download_dataset(ETOPOmetadata)
+        @test isfile(metadata_path(ETOPOmetadata))
 
         grid = LatitudeLongitudeGrid(arch;
                                      size = (100, 100, 10),
@@ -17,7 +23,7 @@ using ClimaOcean.Bathymetry: remove_minor_basins!
                                      z = (-6000, 0))
 
         # Test that remove_minor_basins!(Z, Inf) does nothing
-        control_bottom_height = regrid_bathymetry(grid)
+        control_bottom_height = regrid_bathymetry(grid, ETOPOmetadata)
         bottom_height = deepcopy(control_bottom_height)
         @test_throws ArgumentError remove_minor_basins!(bottom_height, Inf)
 
@@ -56,8 +62,8 @@ using ClimaOcean.Bathymetry: remove_minor_basins!
                                      latitude = (-0.1, 0.1),
                                      z = (-6000, 0))
 
-        control_bottom_height = regrid_bathymetry(grid)
-        interpolated_bottom_height = regrid_bathymetry(grid; interpolation_passes=100)
+        control_bottom_height = regrid_bathymetry(grid, ETOPOmetadata)
+        interpolated_bottom_height = regrid_bathymetry(grid, ETOPOmetadata; interpolation_passes=100)
 
         # Testing that multiple passes do not change the solution when refining the grid
         @test parent(control_bottom_height) == parent(interpolated_bottom_height)
@@ -68,8 +74,8 @@ using ClimaOcean.Bathymetry: remove_minor_basins!
                                      latitude = (-10, 50),
                                      z = (-6000, 0))
 
-        control_bottom_height = regrid_bathymetry(grid)
-        interpolated_bottom_height = regrid_bathymetry(grid; interpolation_passes=10)
+        control_bottom_height = regrid_bathymetry(grid, ETOPOmetadata)
+        interpolated_bottom_height = regrid_bathymetry(grid, ETOPOmetadata; interpolation_passes=10)
 
         # Testing that multiple passes _do_ change the solution when coarsening the grid
         @test parent(control_bottom_height) != parent(interpolated_bottom_height)

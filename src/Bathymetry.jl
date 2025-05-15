@@ -3,9 +3,9 @@ module Bathymetry
 import ClimaOcean.DataWrangling:
     Metadata,
     Metadatum,
-    metadata_path
+    metadata_path,
+    native_grid
 
-import ClimaOcean: native_grid
 using KernelAbstractions: @kernel, @index
 export regrid_bathymetry, retrieve_bathymetry, download_bathymetry
 

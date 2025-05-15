@@ -3,8 +3,8 @@ using Oceananigans
 using CUDA
 using Test
 
-using ClimaOcean.Bathymetry: download_bathymetry_cache
 using ClimaOcean.DataWrangling
+using ClimaOcean.DataWrangling: metadata_path
 using ClimaOcean.EN4
 using ClimaOcean.ECCO
 using ClimaOcean.JRA55

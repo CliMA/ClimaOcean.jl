@@ -95,13 +95,7 @@ const AnyDateTime  = Union{AbstractCFDateTime, Dates.AbstractDateTime}
 const Metadatum{V} = Metadata{V, <:Union{AnyDateTime, Nothing}, <:Any} where V
 
 function Base.size(metadata::Metadata)
-    if is_three_dimensional(metadata)
-        @show is_three_dimensional(metadata), metadata
-        Nx, Ny, Nz = size(metadata.dataset, metadata.name)
-    else
-        Nx, Ny = size(metadata.dataset, metadata.name)
-        Nz = 1
-    end
+    Nx, Ny, Nz = size(metadata.dataset, metadata.name)
 
     if metadata.dates isa AbstractArray
         Nt = length(metadata.dates)

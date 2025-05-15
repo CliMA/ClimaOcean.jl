@@ -13,10 +13,11 @@ import ClimaOcean.DataWrangling:
     first_date,
     last_date,
     download_dataset,
-    download_progress
+    download_progress,
     longitude_interfaces,
     latitude_interfaces,
     is_three_dimensional,
+    z_interfaces,
     reversed_vertical_axis
 
 using Downloads
@@ -40,9 +41,8 @@ default_download_directory(::ETOPOBathymetry) = download_ETOPO_cache
 reversed_vertical_axis(::ETOPOBathymetry) = true
 longitude_interfaces(::ETOPOBathymetry) = (-180, 180)
 latitude_interfaces(::ETOPOBathymetry) = (-90, 90)
-Base.size(dataset::ETOPOBathymetry, variable) = (21600, 10800)
-Base.size(dataset::ETOPOBathymetry) = (21600, 10800)
-is_three_dimensional(::ETOPOBathymetry) = false
+Base.size(dataset::ETOPOBathymetry, variable) = (21600, 10800, 1)
+Base.size(dataset::ETOPOBathymetry) = (21600, 10800, 1)
 
 all_dates(dataset::ETOPOBathymetry) = nothing
 all_dates(dataset::ETOPOBathymetry, variable) = nothing
@@ -55,6 +55,8 @@ const ETOPOMetadatum = Metadatum{<:ETOPOBathymetry, <:Any, <:Any}
 
 const ETOPO_url  = "https://www.dropbox.com/scl/fi/6pwalcuuzgtpanysn4h6f/" *
 "ETOPO_2022_v1_60s_N90W180_surface.nc?rlkey=2t7890ruyk4nd5t5eov5768lt&st=yfxsy1lu&dl=0"
+
+z_interfaces(::ETOPOMetadatum)= [0,1]
 
 function metadata_url(m::ETOPOMetadatum)
     return ETOPO_url

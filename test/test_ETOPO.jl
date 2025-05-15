@@ -33,3 +33,14 @@ bottom_height = regrid_bathymetry(underlying_grid, ETOPOmetadata;
                                   minimum_depth = 10,
                                   interpolation_passes = 75, # 75 interpolation passes smooth the bathymetry near Florida so that the Gulf Stream is able to flow
 				                  major_basins = 2)                              
+
+using GLMakie
+# Create the figure and axis
+fig = Figure()
+
+# Create an axis in the figure
+ax = Axis(fig[1, 1])
+
+im = heatmap!(ax, interior(bottom_height, :, :, 1).>-10)
+Colorbar(fig[1,2], im)# Show the plot
+display(fig)
