@@ -4,14 +4,10 @@ using ClimaOcean
 using NCDatasets
 using Oceananigans
 
+ETOPOmetadata = Metadatum(:bottom_height, dataset=ETOPOBathymetry())
 
-data_path = expanduser("/Users/tsohail/Library/CloudStorage/OneDrive-TheUniversityofMelbourne/uom/ocean-ensembles/data/")
+filepath = download_dataset(ETOPOmetadata)
 
-ETOPOmetadata = Metadatum(:bottom_height, dataset=ETOPOBathymetry(), dir = data_path)
-
-download_dataset(ETOPOmetadata)
-
-filepath = "/Users/tsohail/Library/CloudStorage/OneDrive-TheUniversityofMelbourne/uom/ocean-ensembles/data/ETOPO_2022_v1_60s_N90W180_surface.nc"
 dataset = Dataset(filepath, "r")
 
 Nx = Integer(360)
@@ -32,15 +28,11 @@ underlying_grid = TripolarGrid(arch;
 bottom_height = regrid_bathymetry(underlying_grid, ETOPOmetadata;
                                   minimum_depth = 10,
                                   interpolation_passes = 75, # 75 interpolation passes smooth the bathymetry near Florida so that the Gulf Stream is able to flow
-				                  major_basins = 2)                              
+				                  major_basins = 2)
 
 using GLMakie
-# Create the figure and axis
 fig = Figure()
-
-# Create an axis in the figure
 ax = Axis(fig[1, 1])
-
-im = heatmap!(ax, interior(bottom_height, :, :, 1).>-10)
-Colorbar(fig[1,2], im)# Show the plot
+hm = heatmap!(ax, interior(bottom_height, :, :, 1))
+Colorbar(fig[1, 2], hm)
 display(fig)
