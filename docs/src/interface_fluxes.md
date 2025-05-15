@@ -35,9 +35,17 @@ ocean = ocean_simulation(ocean_grid, momentum_advection=nothing,
                          tracer_advection=nothing, closure=nothing)
 set!(ocean.model, T=T₀, S=S₀)
 
-atmosphere_ocean_flux_formulation = SimilarityTheoryFluxes(stability_functions=nothing)
-interfaces = ComponentInterfaces(atmosphere, ocean; atmosphere_ocean_flux_formulation)
-model = OceanSeaIceModel(ocean; atmosphere)
+similarity_formulation = SimilarityTheoryFluxes(stability_functions=nothing)
+
+interfaces = ComponentInterfaces(atmosphere, ocean;
+                                 atmosphere_ocean_flux_formulation = similarity_formulation)
+similarity_model = OceanSeaIceModel(ocean; atmosphere, interfaces)
+
+coefficient_formulation = CoefficientBasedFluxes(drag_coefficient=2e-3)
+interfaces = ComponentInterfaces(atmosphere, ocean;
+                                 atmosphere_ocean_flux_formulation = coefficient_formulation)
+
+coefficient_model = OceanSeaIceModel(ocean; atmosphere, interfaces)
 ```
 
 The drag coefficient is defined as
@@ -54,7 +62,7 @@ and``u_\star`` is the friction velocity.
 
 ```@example interface_fluxes
 using CairoMakie
-u★ = model.interfaces.atmosphere_ocean_interface.fluxes.friction_velocity
+u★ = similarity_model.interfaces.atmosphere_ocean_interface.fluxes.friction_velocity
 u★ = interior(u★, :, 1, 1)
 
 c₁ = 0.0027
@@ -62,17 +70,33 @@ c₂ = 0.000142
 c₃ = 0.0000764
 u★_LY = @. sqrt(c₁ * uₐ + c₂ * uₐ^2 + c₃ * uₐ^3)
 
+c₁ = 1.03e-3
+c₂ = 4e-5
+p₁ = 1.48
+p₂ = 0.21
+Cᴰ_EC = @. (c₁ + c₂ * uₐ^p₁) / uₐ^p₂
+u★_EC = @. sqrt(Cᴰ_EC) * uₐ
+
 fig = Figure(size=(800, 400))
 axu = Axis(fig[1, 1], xlabel="uₐ (m s⁻¹) at 10 m", ylabel="u★ (m s⁻¹)")
 lines!(axu, uₐ, u★, label="SimilarityTheoryFluxes")
-lines!(axu, uₐ, u★_LY, label="Polynomial fit \n from Large and Yeager (2009)")
-axislegend(axu, position=:lt)
+# lines!(axu, uₐ, u★_LY, label="Polynomial fit \n from Large and Yeager (2009)")
+lines!(axu, uₐ, u★_EC, label="ECMWF Polynomial fit \n from Edson et al (2013)")
 
 axd = Axis(fig[1, 2], xlabel="uₐ (m s⁻¹) at 10 m", ylabel="1000 × Cᴰ")
 Cᴰ = @. (u★ / uₐ)^2
 Cᴰ_LY = @. (u★_LY / uₐ)^2
 lines!(axd, uₐ, 1000 .* Cᴰ, label="SimilarityTheoryFluxes")
-lines!(axd, uₐ, 1000 .* Cᴰ_LY, label="Polynomial fit \n from Large and Yeager (2009)")
+# lines!(axd, uₐ, 1000 .* Cᴰ_LY, label="Polynomial fit \n from Large and Yeager (2009)")
+lines!(axd, uₐ, 1000 .* Cᴰ_EC, label="ECMWF Polynomial fit \n from Edson et al (2013)")
+
+u★_coeff = coefficient_model.interfaces.atmosphere_ocean_interface.fluxes.friction_velocity
+u★_coeff = interior(u★_coeff, :, 1, 1)
+Cᴰ_coeff = @. (u★_coeff / uₐ)^2
+lines!(axu, uₐ, u★_coeff, label="CoefficientBasedFluxes")
+lines!(axd, uₐ, 1000 .* Cᴰ_coeff, label="CoefficientBasedFluxes")
+
+axislegend(axu, position=:lt)
 axislegend(axd, position=:rt)
 
 fig
