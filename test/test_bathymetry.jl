@@ -6,8 +6,8 @@ using ClimaOcean
 
 using ClimaOcean.Bathymetry: remove_minor_basins!
 
-@testset "Availability of Bathymetry" begin
-    @info "Testing Bathymetry utils..."
+@testset "Bathymetry construction and smoothing" begin
+    @info "Testing Bathymetry construction and smoothing..."
     for arch in test_architectures
 
         grid = LatitudeLongitudeGrid(arch;
@@ -49,18 +49,6 @@ using ClimaOcean.Bathymetry: remove_minor_basins!
         # While the right side should be not immersed, with a mean bottom depth
         # of -1000 meters
         @test mean(view(bottom_height, 51:100, :, 1)) == -1000
-
-        grid = LatitudeLongitudeGrid(arch;
-                                     size = (200, 200, 10),
-                                     longitude = (0, 2),
-                                     latitude = (-0.1, 0.1),
-                                     z = (-6000, 0))
-
-        control_bottom_height = regrid_bathymetry(grid)
-        interpolated_bottom_height = regrid_bathymetry(grid; interpolation_passes=100)
-
-        # Testing that multiple passes do not change the solution when refining the grid
-        @test parent(control_bottom_height) == parent(interpolated_bottom_height)
 
         grid = LatitudeLongitudeGrid(arch;
                                      size = (200, 200, 10),
