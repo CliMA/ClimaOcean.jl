@@ -19,7 +19,7 @@ using Printf
 using Scratch
 
 using ..DataWrangling: Metadatum, native_grid, metadata_path, download_dataset
-using ..ETOPO: ETOPO2022
+using ..DataWrangling.ETOPO: ETOPO2022
 
 # methods specific to bathymetric datasets live within dataset modules
 
