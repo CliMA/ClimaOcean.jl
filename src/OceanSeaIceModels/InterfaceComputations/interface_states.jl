@@ -38,11 +38,21 @@ SpecificHumidityFormulation(phase) = SpecificHumidityFormulation(phase, nothing)
 @inline compute_water_mole_fraction(::Nothing, salinity) = 1
 @inline compute_water_mole_fraction(x_H₂O::Number, salinity) = x_H₂O
 
-@inline function saturation_specific_humidity(formulation::SpecificHumidityFormulation, ℂₐ, ρₛ, Tₛ, Sₛ=zero(Tₛ))
+@inline function saturation_specific_humidity(formulation::SpecificHumidityFormulation, ℂₐ, 𝒬ₐ, Tₛ, Sₛ=zero(Tₛ))
     x_H₂O = compute_water_mole_fraction(formulation.water_mole_fraction, Sₛ)
     phase = formulation.phase
 
     CT = eltype(ℂₐ)
+
+    # Extrapolate air density to the surface temperature
+    # following an adiabatic ideal gas transformation
+    cvₘ = Thermodynamics.cv_m(ℂₐ, 𝒬ₐ)
+    Rₐ = Thermodynamics.gas_constant_air(ℂₐ, 𝒬ₐ)
+    κₐ = cvₘ / Rₐ # 1 / (γ - 1)
+    ρₐ = Thermodynamics.air_density(ℂₐ, 𝒬ₐ)
+    Tₐ = Thermodynamics.air_temperature(ℂₐ, 𝒬ₐ)
+    ρₛ = ρₐ * (Tₛ / Tₐ)^κₐ
+
     p★ = Thermodynamics.saturation_vapor_pressure(ℂₐ, convert(CT, Tₛ), phase)
     q★ = Thermodynamics.q_vap_saturation_from_density(ℂₐ, convert(CT, Tₛ), convert(CT, ρₛ), p★)
 
