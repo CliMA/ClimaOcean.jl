@@ -28,17 +28,13 @@ using ..DataWrangling: Metadatum, native_grid, metadata_path, download_dataset
 # methods specific to bathymetric datasets are added within dataset modules
 
 """
-    regrid_bathymetry(target_grid;
+    regrid_bathymetry(target_grid, metadata;
                       height_above_water = nothing,
                       minimum_depth = 0,
-                      dir = download_bathymetry_cache,
-                      url = ClimaOcean.Bathymetry.etopo_url,
-                      filename = "ETOPO_2022_v1_60s_N90W180_surface.nc",
-                      interpolation_passes = 1,
-                      major_basins = 1)
+                      major_basins = 1
+                      interpolation_passes = 1)
 
-Return bathymetry associated with the NetCDF file at `path = joinpath(dir, filename)` regridded onto `target_grid`.
-If `path` does not exist, then a download is attempted from `joinpath(url, filename)`.
+Return bathymetry that corresponds to  `metadata` onto `target_grid`.
 
 Arguments
 =========
@@ -53,13 +49,6 @@ Keyword Arguments
 
 - `minimum_depth`: minimum depth for the shallow regions, defined as a positive value.
                    `h > - minimum_depth` is considered land. Default: 0.
-
-- `dir`: directory of the bathymetry-containing file. Default: `download_bathymetry_cache`.
-
-- `filename`: file containing bathymetric data. Must be netCDF with fields:
-  1. `lat` vector of latitude nodes
-  2. `lon` vector of longitude nodes
-  3. `z` matrix of depth values
 
 - `interpolation_passes`: regridding/interpolation passes. The bathymetry is interpolated in
                           `interpolation_passes - 1` intermediate steps. The more the interpolation
@@ -124,7 +113,6 @@ function regrid_bathymetry(target_grid, metadata;
     set!(native_z, z_data)
     fill_halo_regions!(native_z)
 
-
     target_z = interpolate_bathymetry_in_passes(native_z, target_grid;
                                                 passes = interpolation_passes)
 
@@ -141,9 +129,13 @@ function regrid_bathymetry(target_grid, metadata;
     return target_z
 end
 
+"""
+    regrid_bathymetry(target_grid; dataset=ETOPO2022(), kw...)
+
+Regrid bathymetry from `dataset` onto `target_grid`. Default: `dataset = ETOPO2022()`.
+"""
 function regrid_bathymetry(target_grid; dataset = ClimaOcean.ETOPO.ETOPO2022(), kw...)
     metadatum = Metadatum(:bottom_height; dataset)
-
     return regrid_bathymetry(target_grid, metadatum; kw...)
 end
 
