@@ -13,7 +13,7 @@ using ClimaOcean.DataWrangling.ETOPO
         ETOPOmetadata = Metadatum(:bottom_height, dataset=ETOPO2022())
 
         # Testing downloading
-        download_dataset(ETOPOmetadata)
+        ClimaOcean.DataWrangling.download_dataset(ETOPOmetadata)
         @test isfile(metadata_path(ETOPOmetadata))
 
         grid = LatitudeLongitudeGrid(arch;
@@ -23,7 +23,7 @@ using ClimaOcean.DataWrangling.ETOPO
                                      z = (-6000, 0))
 
         # Test that remove_minor_basins!(Z, Inf) does nothing
-        control_bottom_height = regrid_bathymetry(grid)
+        control_bottom_height = regrid_bathymetry(grid, ETOPOmetadata)
         bottom_height = deepcopy(control_bottom_height)
         @test_throws ArgumentError remove_minor_basins!(bottom_height, Inf)
 
