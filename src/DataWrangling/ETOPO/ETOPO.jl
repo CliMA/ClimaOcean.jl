@@ -39,8 +39,8 @@ default_download_directory(::ETOPO2022) = download_ETOPO_cache
 reversed_vertical_axis(::ETOPO2022) = true
 longitude_interfaces(::ETOPO2022) = (-180, 180)
 latitude_interfaces(::ETOPO2022) = (-90, 90)
-Base.size(::ETOPO2022, variable) = (21600, 10800, 1)
 Base.size(::ETOPO2022) = (21600, 10800, 1)
+Base.size(dataset::ETOPO2022, variable) = size(dataset)
 
 all_dates(::ETOPO2022) = nothing
 all_dates(::ETOPO2022, variable) = nothing
