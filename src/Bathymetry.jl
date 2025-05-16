@@ -78,6 +78,19 @@ function regrid_bathymetry(target_grid, metadata;
 
     download_dataset(metadata)
 
+    return _regrid_bathymetry(target_grid, metadata;
+                              height_above_water,
+                              minimum_depth,
+                              interpolation_passes,
+                              major_basins)
+end
+
+# same as regrid_bathymetry but without downloading
+function _regrid_bathymetry(target_grid, metadata;
+                            height_above_water,
+                            minimum_depth,
+                            interpolation_passes,
+                            major_basins)
     if isinteger(interpolation_passes)
         interpolation_passes = convert(Int, interpolation_passes)
     end
@@ -133,6 +146,38 @@ Regrid bathymetry from `dataset` onto `target_grid`. Default: `dataset = ETOPO20
 function regrid_bathymetry(target_grid; dataset = ETOPO2022(), kw...)
     metadatum = Metadatum(:bottom_height; dataset)
     return regrid_bathymetry(target_grid, metadatum; kw...)
+end
+
+# Regridding bathymetry for distributed grids, we handle the whole process
+# on just one rank, and share the results with the other processors.
+function regrid_bathymetry(target_grid::DistributedGrid, args...; kw...)
+    global_grid = reconstruct_global_grid(target_grid)
+    global_grid = on_architecture(CPU(), global_grid)
+    arch = architecture(target_grid)
+    Nx, Ny, _ = size(global_grid)
+
+    # If all ranks open a gigantic bathymetry and the memory is
+    # shared, we could easily have OOM errors.
+    # We perform the reconstruction only on rank 0 and share the result.
+    bottom_height = if arch.local_rank == 0
+        bottom_field = _regrid_bathymetry(global_grid, args...; kw...)
+        bottom_field.data[1:Nx, 1:Ny, 1]
+    else
+        zeros(Nx, Ny)
+    end
+
+    # Synchronize
+    Oceananigans.DistributedComputations.global_barrier(arch.communicator)
+
+    # Share the result (can we share SubArrays?)
+    bottom_height = all_reduce(+, bottom_height, arch)
+
+    # Partition the result
+    local_bottom_height = Field{Center, Center, Nothing}(target_grid)
+    set!(local_bottom_height, bottom_height)
+    fill_halo_regions!(local_bottom_height)
+
+    return local_bottom_height
 end
 
 @kernel function _enforce_minimum_depth!(target_z, minimum_depth)
@@ -231,39 +276,6 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
 
     return target_z
 end
-
-# Regridding bathymetry for distributed grids, we handle the whole process
-# on just one rank, and share the results with the other processors.
-function regrid_bathymetry(target_grid::DistributedGrid, args...; kw...)
-    global_grid = reconstruct_global_grid(target_grid)
-    global_grid = on_architecture(CPU(), global_grid)
-    arch = architecture(target_grid)
-    Nx, Ny, _ = size(global_grid)
-
-    # If all ranks open a gigantic bathymetry and the memory is
-    # shared, we could easily have OOM errors.
-    # We perform the reconstruction only on rank 0 and share the result.
-    bottom_height = if arch.local_rank == 0
-        bottom_field = regrid_bathymetry(global_grid, args...; kw...)
-        bottom_field.data[1:Nx, 1:Ny, 1]
-    else
-        zeros(Nx, Ny)
-    end
-
-    # Synchronize
-    Oceananigans.DistributedComputations.global_barrier(arch.communicator)
-
-    # Share the result (can we share SubArrays?)
-    bottom_height = all_reduce(+, bottom_height, arch)
-
-    # Partition the result
-    local_bottom_height = Field{Center, Center, Nothing}(target_grid)
-    set!(local_bottom_height, bottom_height)
-    fill_halo_regions!(local_bottom_height)
-
-    return local_bottom_height
-end
-
 
 """
     remove_minor_basins!(z_data, keep_major_basins)
