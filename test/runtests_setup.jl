@@ -23,20 +23,6 @@ test_architectures = gpu_test ? [GPU()] : [CPU()]
 
 start_date = DateTimeProlepticGregorian(1993, 1, 1)
 
-# Fictitious grid that triggers bathymetry download
-function download_bathymetry(; dir = download_bathymetry_cache,
-                             filename = "ETOPO_2022_v1_60s_N90W180_surface.nc")
-
-    grid = LatitudeLongitudeGrid(size = (10, 10, 1),
-                                 longitude = (0, 100),
-                                 latitude = (0, 50),
-                                 z = (-6000, 0))
-
-    bottom = regrid_bathymetry(grid; dir, filename)
-
-    return nothing
-end
-
 test_datasets = (ECCO2Monthly(), ECCO2Daily(), ECCO4Monthly(), EN4Monthly())
 
 #####
