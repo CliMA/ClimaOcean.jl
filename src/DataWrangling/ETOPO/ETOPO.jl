@@ -57,14 +57,10 @@ metadata_url(::ETOPOMetadatum) = ETOPO_url
 metadata_filename(metadatum::ETOPOMetadatum) = "ETOPO_2022_v1_60s_N90W180_surface.nc"
 
 function download_dataset(metadatum::ETOPOMetadatum)
-    dir = metadatum.dir
-
-    # Create a temporary directory to store the .netrc file
-    # The directory will be deleted after the download is complete
     fileurl  = metadata_url(metadatum)
     filepath = metadata_path(metadatum)
 
-    if !isfile(filepath)
+    @root if !isfile(filepath)
         @info "Downloading ETOPO data: $(metadatum.name) in $(metadatum.dir)..."
         Downloads.download(fileurl, filepath; progress=download_progress)
     end

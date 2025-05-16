@@ -267,7 +267,7 @@ function download_dataset(metadata::ECCOMetadata)
             fileurl  = metadata_url(metadatum)
             filepath = metadata_path(metadatum)
 
-            if !isfile(filepath)
+            @root if !isfile(filepath)
                 instructions_msg = "\n See ClimaOcean.jl/src/DataWrangling/ECCO/README.md for instructions."
                 if isnothing(username)
                     msg = "Could not find the ECCO_PASSWORD environment variable. \
