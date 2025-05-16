@@ -138,7 +138,11 @@ end
     i, j = @index(Global, NTuple)
     kᴺ = size(exchange_grid, 3) # index of the top ocean cell
     X = _node(i, j, kᴺ + 1, exchange_grid, c, c, f)
-    fractional_indices_ij = FractionalIndices(X, atmos_grid, c, c, nothing)
+    if topology(atmos_grid) == (Flat, Flat, Flat)
+        fractional_indices_ij = FractionalIndices(nothing, nothing, nothing)
+    else
+        fractional_indices_ij = FractionalIndices(X, atmos_grid, c, c, c)
+    end
     fi = indices_tuple.i
     fj = indices_tuple.j
     @inbounds begin
@@ -183,6 +187,9 @@ function atmosphere_ocean_interface(atmos,
     sensible_heat         = Field{Center, Center, Nothing}(ocean.model.grid)
     x_momentum            = Field{Center, Center, Nothing}(ocean.model.grid)
     y_momentum            = Field{Center, Center, Nothing}(ocean.model.grid)
+    friction_velocity     = Field{Center, Center, Nothing}(ocean.model.grid)
+    temperature_scale     = Field{Center, Center, Nothing}(ocean.model.grid)
+    water_vapor_scale     = Field{Center, Center, Nothing}(ocean.model.grid)
     upwelling_longwave    = Field{Center, Center, Nothing}(ocean.model.grid)
     downwelling_longwave  = Field{Center, Center, Nothing}(ocean.model.grid)
     downwelling_shortwave = Field{Center, Center, Nothing}(ocean.model.grid)
@@ -192,6 +199,9 @@ function atmosphere_ocean_interface(atmos,
                    water_vapor, 
                    x_momentum,
                    y_momentum, 
+                   friction_velocity,
+                   temperature_scale,
+                   water_vapor_scale,
                    upwelling_longwave,
                    downwelling_longwave,
                    downwelling_shortwave)
@@ -369,7 +379,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                               liquidus           = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus,
                               temperature_units  = sea_ice_temperature_units)
 
-        net_momentum_fluxes = if sea_ice.model.dynamics isa Nothing
+        net_momentum_fluxes = if isnothing(sea_ice.model.dynamics)
             u = Field{Face, Center, Nothing}(sea_ice.model.grid)
             v = Field{Center, Face, Nothing}(sea_ice.model.grid)
             (; u, v)

@@ -385,7 +385,7 @@ end
 Return a representation of a prescribed time-evolving atmospheric
 state with data given at `times`.
 """
-function PrescribedAtmosphere(grid, times;
+function PrescribedAtmosphere(grid, times=[zero(grid)];
                               clock = Clock{Float64}(time = 0),
                               surface_layer_height = 10,
                               boundary_layer_height = 512,
