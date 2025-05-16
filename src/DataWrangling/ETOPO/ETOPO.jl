@@ -7,14 +7,12 @@ using Oceananigans
 using Oceananigans.DistributedComputations: @root
 using Scratch
 
-using ..DataWrangling: download_progress
+using ..DataWrangling: download_progress, Metadatum
 
 import ClimaOcean.DataWrangling:
     metadata_filename,
     default_download_directory,
     metadata_path,
-    Metadata,
-    Metadatum,
     all_dates,
     first_date,
     last_date,
@@ -22,7 +20,6 @@ import ClimaOcean.DataWrangling:
     download_dataset,
     longitude_interfaces,
     latitude_interfaces,
-    is_three_dimensional,
     z_interfaces,
     reversed_vertical_axis
 
@@ -44,10 +41,9 @@ latitude_interfaces(::ETOPO2022) = (-90, 90)
 Base.size(::ETOPO2022) = (21600, 10800, 1)
 Base.size(dataset::ETOPO2022, variable) = size(dataset)
 
-all_dates(::ETOPO2022) = nothing
-all_dates(::ETOPO2022, variable) = nothing
-first_date(::ETOPO2022, variable) = nothing
-last_date(::ETOPO2022, variable) = nothing
+all_dates(::ETOPO2022, args...) = nothing
+first_date(::ETOPO2022, args...) = nothing
+last_date(::ETOPO2022, args...) = nothing
 
 const ETOPOMetadatum = Metadatum{<:ETOPO2022, <:Any, <:Any}
 
