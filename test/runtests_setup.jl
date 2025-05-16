@@ -7,6 +7,7 @@ using ClimaOcean.DataWrangling
 using ClimaOcean.DataWrangling: metadata_path
 using ClimaOcean.EN4
 using ClimaOcean.ECCO
+using ClimaOcean.ETOPO
 using ClimaOcean.JRA55
 
 using Oceananigans.Architectures: architecture, on_architecture
