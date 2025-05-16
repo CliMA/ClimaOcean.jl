@@ -157,12 +157,8 @@ Base.length(metadata::Metadatum) = 1
 @propagate_inbounds Base.last(m::Metadata)             = Metadata(m.name, m.dataset, m.dates[end], m.bounding_box, m.dir)
 
 @inline function Base.iterate(m::Metadata, i=1)
-    if i - 1 < length(m)
-        if m.dates == nothing
-            return m, i + 1
-        else
-            return Metadata(m.name, m.dataset, m.dates[i], m.bounding_box, m.dir), i + 1
-        end
+   if (i % UInt) - 1 < length(m)
+        return Metadata(m.name, m.dataset, m.dates[i], m.bounding_box, m.dir), i + 1
     else
         return nothing
     end
