@@ -63,7 +63,7 @@ end
                             gravitational_acceleration = default_gravitational_acceleration,
                             maximum_roughness_length = 1.0,
                             air_kinematic_viscosity = TemperatureDependentAirViscosity(FT),
-                            wave_formulation = WindDependentWaveFormulation(FT),
+                            wave_formulation = 0.011,
                             laminar_parameter = 0.11)
 
 Construct a `MomentumRoughnessLength` object that represents the momentum roughness length that
@@ -82,7 +82,7 @@ function MomentumRoughnessLength(FT=Oceananigans.defaults.FloatType;
                                  gravitational_acceleration = default_gravitational_acceleration,
                                  maximum_roughness_length = 1.0, # An estimate?
                                  air_kinematic_viscosity = TemperatureDependentAirViscosity(FT),
-                                 wave_formulation = WindDependentWaveFormulation(FT),
+                                 wave_formulation = 0.011,
                                  laminar_parameter = 0.11)
 
     return MomentumRoughnessLength(convert(FT, gravitational_acceleration),
