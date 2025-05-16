@@ -47,7 +47,7 @@ all_dates(::ETOPO2022, variable) = nothing
 first_date(::ETOPO2022, variable) = nothing
 last_date(::ETOPO2022, variable) = nothing
 
-const ETOPOMetadatum = Metadatum{<:ETOPO2022, <:Any, <:Any}
+const ETOPOMetadatum = Metadatum{<:ETOPO2022}
 
 const ETOPO_url = "https://www.dropbox.com/scl/fi/6pwalcuuzgtpanysn4h6f/" *
     "ETOPO_2022_v1_60s_N90W180_surface.nc?rlkey=2t7890ruyk4nd5t5eov5768lt&st=yfxsy1lu&dl=0"
