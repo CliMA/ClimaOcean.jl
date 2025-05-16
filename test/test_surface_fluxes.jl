@@ -44,7 +44,7 @@ end
                                  momentum_advection = nothing,
                                  tracer_advection = nothing,
                                  closure = nothing,
-                                 bottom_drag_coefficient = 0.0)
+                                 bottom_drag_coefficient = 0)
 
         dates = all_dates(RepeatYearJRA55(), :temperature)
         atmosphere = JRA55PrescribedAtmosphere(arch, Float64; end_date=dates[2], backend = InMemory())
@@ -115,8 +115,8 @@ end
 
             # Constructing very special fluxes that do not account for stability of
             # the atmosphere, have zero gustiness and a constant roughness length of
-            # `1e-4` for momentum, water vapor and temperature
-            # For this case we can compute the fluxes by hand.
+            # `1e-4` for momentum, water vapor and temperature.
+            # For this case, we can compute the fluxes by hand.
             ℓ = 1e-4
 
             @inline zero_stability_function(ζ) = zero(ζ)
@@ -144,7 +144,7 @@ end
 
             interface_properties = interfaces.atmosphere_ocean_interface.properties
             q_formulation = interface_properties.specific_humidity_formulation
-            qₒ = saturation_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ.ρ, Tₒ, Sₒ)
+            qₒ = saturation_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ, Tₒ, Sₒ)
             g  = ocean.model.buoyancy.formulation.gravitational_acceleration
 
             # Differences!
@@ -278,8 +278,10 @@ end
 
         ocean = ocean_simulation(grid; momentum_advection, tracer_advection, closure, tracers, coriolis)
 
-        T_metadata = Metadatum(:temperature, date=DateTimeProlepticGregorian(1993, 1, 1), dataset=ECCO4Monthly())
-        S_metadata = Metadatum(:salinity,    date=DateTimeProlepticGregorian(1993, 1, 1), dataset=ECCO4Monthly())
+        date = DateTimeProlepticGregorian(1993, 1, 1)
+        dataset = ECCO4Monthly()
+        T_metadata = Metadatum(:temperature; date, dataset)
+        S_metadata = Metadatum(:salinity; date, dataset)
 
         set!(ocean.model; T=T_metadata, S=S_metadata)
 
@@ -289,9 +291,6 @@ end
         sea_ice    = nothing
 
         coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-
-        @show coupled_model.sea_ice
-
         times = 0:1hours:1days
         Ntimes = length(times)
 
@@ -332,4 +331,3 @@ end
         @test_broken τʸ_std ≈ 7.627885224680635e-5
     end
 end
-

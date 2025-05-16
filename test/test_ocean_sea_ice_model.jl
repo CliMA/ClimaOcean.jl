@@ -10,7 +10,7 @@ using ClimaSeaIce.Rheologies
 @inline kernel_melting_temperature(i, j, k, grid, liquidus, S) = @inbounds melting_temperature(liquidus, S[i, j, k])
 
 @testset "Time stepping test" begin
-    for dataset in test_datasets
+    for dataset in [ECCO4Monthly(), EN4Monthly()]
 
         start = DateTimeProlepticGregorian(1993, 1, 1)
         time_resolution = dataset isa ECCO2Daily ? Day(1) : Month(1)

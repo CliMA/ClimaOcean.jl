@@ -181,16 +181,6 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
     ϰ = flux_formulation.von_karman_constant
     L★ = ifelse(b★ == 0, Inf, - u★^2 / (ϰ * b★))
 
-    # Compute roughness length scales
-    ℓu₀ = roughness_length(ℓu, u★, 𝒬ₛ, ℂₐ)
-    ℓq₀ = roughness_length(ℓq, ℓu₀, u★, 𝒬ₛ, ℂₐ)
-    ℓθ₀ = roughness_length(ℓθ, ℓu₀, u★, 𝒬ₛ, ℂₐ)
-
-    # Transfer coefficients at height `h`
-    form = flux_formulation.similarity_form
-    χu = ϰ / similarity_profile(form, ψu, Δh, ℓu₀, L★)
-    χθ = ϰ / similarity_profile(form, ψθ, Δh, ℓθ₀, L★)
-    χq = ϰ / similarity_profile(form, ψq, Δh, ℓq₀, L★)
 
     # Buoyancy flux characteristic scale for gustiness (Edson 2013)
     h_bℓ = atmosphere_state.h_bℓ
@@ -201,7 +191,19 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
     Δu, Δv = velocity_difference(interface_properties.velocity_formulation,
                                  atmosphere_state,
                                  approximate_interface_state)
+
     ΔU = sqrt(Δu^2 + Δv^2 + Uᴳ^2)
+
+    # Compute roughness length scales
+    ℓu₀ = roughness_length(ℓu, ΔU,  u★, 𝒬ₛ, ℂₐ)
+    ℓq₀ = roughness_length(ℓq, ℓu₀, u★, 𝒬ₛ, ℂₐ)
+    ℓθ₀ = roughness_length(ℓθ, ℓu₀, u★, 𝒬ₛ, ℂₐ)
+
+    # Transfer coefficients at height `h`
+    form = flux_formulation.similarity_form
+    χu = ϰ / similarity_profile(form, ψu, Δh, ℓu₀, L★)
+    χθ = ϰ / similarity_profile(form, ψθ, Δh, ℓθ₀, L★)
+    χq = ϰ / similarity_profile(form, ψq, Δh, ℓq₀, L★)
 
     # Recompute
     u★ = χu * ΔU
@@ -277,7 +279,7 @@ These stability functions are obtained by regression to experimental data.
 The stability parameter for stable atmospheric conditions is defined as
 ```math
 dζ = min(ζmax, Aˢζ)
-ψₛ = - (Bˢ ζ + Cˢ ( ζ - Dˢ ) ) exp( - dζ) - Cˢ Dˢ
+ψₛ = - Bˢ * ζ⁺ - Cˢ * (ζ⁺ - Dˢ) * exp(- dζ) - Cˢ * Dˢ
 ```
 
 While the stability parameter for unstable atmospheric conditions is calculated
@@ -329,7 +331,7 @@ end
     dζ = min(ζmax, Aˢ * ζ⁺)
 
     # Stability parameter for _stable_ atmospheric conditions
-    ψₛ = - (Bˢ * ζ⁺ + Cˢ * (ζ⁺ - Dˢ)) * exp(- dζ) - Cˢ * Dˢ
+    ψₛ = - Bˢ * ζ⁺ - Cˢ * (ζ⁺ - Dˢ) * exp(- dζ) - Cˢ * Dˢ
 
     # Stability parameter for _unstable_ atmospheric conditions
     fᵤ₁ = sqrt(sqrt(1 - Aᵘ * ζ⁻))
