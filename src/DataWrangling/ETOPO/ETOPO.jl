@@ -30,8 +30,7 @@ function __init__()
 end
 
 ETOPO_bathymetry_variable_names = Dict(
-    :temperature => "temperature",
-    :salinity    => "salinity"
+    :bottom_height => "z",
 )
 
 struct ETOPO2022 end

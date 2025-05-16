@@ -23,7 +23,7 @@ using Downloads
 using Printf
 using Scratch
 
-using ..DataWrangling: Metadatum, native_grid, metadata_path
+using ..DataWrangling: Metadatum, native_grid, metadata_path, download_dataset
 
 # methods specific to bathymetric datasets are added within dataset modules
 
@@ -85,16 +85,14 @@ Keyword Arguments
                   the smallest basins are removed first. `major_basins = 1` retains only the largest basin.
                   If `Inf` then no basins are removed. Default: 1.
 """
-function regrid_bathymetry(target_grid;
-                           metadata = nothing,
+function regrid_bathymetry(target_grid, metadata;
                            height_above_water = nothing,
                            minimum_depth = 0,
                            interpolation_passes = 1,
                            major_basins = 1) # Allow an `Inf` number of "lakes"
 
-    if isnothing(metadata)
-        throw(ArgumentError("Metadata must be provided"))
-    end
+    download_dataset(metadata)
+
     if isinteger(interpolation_passes)
         interpolation_passes = convert(Int, interpolation_passes)
     end
