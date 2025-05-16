@@ -32,7 +32,7 @@ end
 
 @testset "Availability of the ETOPO2022 Bathymetry" begin
     @info "Testing that we can download the bathymetry..."
-    ETOPOmetadata = Metadatum(:bottom_height, dataset=ETOPO2022())
+    metadata = Metadatum(:bottom_height, dataset=ETOPO2022())
     filepath = metadata_path(metadata)
     isfile(filepath) && rm(filepath; force=true)
     ClimaOcean.DataWrangling.download_dataset(metadata)
