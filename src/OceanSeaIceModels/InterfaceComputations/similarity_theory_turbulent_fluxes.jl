@@ -90,7 +90,7 @@ Keyword Arguments
 function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                 von_karman_constant = 0.4,
                                 turbulent_prandtl_number = 1,
-                                gustiness_parameter = 1.2,
+                                gustiness_parameter = 1,
                                 stability_functions = edson_stability_functions(FT),
                                 roughness_lengths = default_roughness_lengths(FT),
                                 similarity_form = LogarithmicSimilarityProfile(),
@@ -191,7 +191,7 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
     Δu, Δv = velocity_difference(interface_properties.velocity_formulation,
                                  atmosphere_state,
                                  approximate_interface_state)
-    
+
     ΔU = sqrt(Δu^2 + Δv^2 + Uᴳ^2)
 
     # Compute roughness length scales
