@@ -11,7 +11,7 @@ using Downloads: download
 using Adapt
 using Scratch
 
-using ClimaOcean.DataWrangling:
+using ..DataWrangling:
     Metadata,
     Metadatum,
     BoundingBox,
