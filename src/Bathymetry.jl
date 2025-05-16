@@ -150,7 +150,10 @@ end
 
 # Regridding bathymetry for distributed grids, we handle the whole process
 # on just one rank, and share the results with the other processors.
-function regrid_bathymetry(target_grid::DistributedGrid, args...; kw...)
+function regrid_bathymetry(target_grid::DistributedGrid, metadata; kw...)
+
+    download_dataset(metadata)
+
     global_grid = reconstruct_global_grid(target_grid)
     global_grid = on_architecture(CPU(), global_grid)
     arch = architecture(target_grid)
