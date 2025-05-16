@@ -53,18 +53,14 @@ The drag coefficient is defined as
 
 ```math
 C^D \equiv \frac{u_\star^2}{| \Delta \bm{u} |^2},
-\qquad \text{where} \qquad
-\Delta \bm{u} \equiv \left ( u_a - u_o \right ) \bm{\hat x} + \left ( v_a - v_o \right ) \bm{\hat y} \, .
 ```
 
-is the difference between the atmosphere velocity at the
-prescribed `surface_layer_height` and the ocean surface velocity,
-and``u_\star`` is the friction velocity.
+where ``u_\star`` is the friction velocity and
+``\Delta \bm{u} \equiv \left ( u_a - u_o \right ) \bm{\hat x} + \left ( v_a - v_o \right ) \bm{\hat y}``
+is the difference between the atmosphere velocity at the prescribed `surface_layer_height`
+and the ocean surface velocity.
 
 ```@example interface_fluxes
-using CairoMakie
-set_theme!(Theme(fontsize=16, linewidth=2))
-
 u★ = similarity_model.interfaces.atmosphere_ocean_interface.fluxes.friction_velocity
 u★ = interior(u★, :, 1, 1)
 
@@ -80,13 +76,33 @@ p₂ = 0.21
 Cᴰ_EC = @. (c₁ + c₂ * uₐ^p₁) / uₐ^p₂
 u★_EC = @. sqrt(Cᴰ_EC) * uₐ
 
-fig = Figure(size=(800, 600))
-axu = Axis(fig[1, 1], xlabel="uₐ (m s⁻¹) at 10 m", ylabel="u★ (m s⁻¹)")
+using CairoMakie
+set_theme!(Theme(fontsize=14, linewidth=2))
+
+u★ = similarity_model.interfaces.atmosphere_ocean_interface.fluxes.friction_velocity
+u★ = interior(u★, :, 1, 1)
+
+# from Large and Yeager (2009)
+c₁ = 0.0027
+c₂ = 0.000142
+c₃ = 0.0000764
+u★_LY = @. sqrt(c₁ * uₐ + c₂ * uₐ^2 + c₃ * uₐ^3)
+
+# from Edson et al (2013)
+c₁ = 1.03e-3
+c₂ = 4e-5
+p₁ = 1.48
+p₂ = 0.21
+Cᴰ_EC = @. (c₁ + c₂ * uₐ^p₁) / uₐ^p₂
+u★_EC = @. sqrt(Cᴰ_EC) * uₐ
+
+fig = Figure(size=(800, 400))
+axu = Axis(fig[1:2, 1], xlabel="uₐ (m s⁻¹) at 10 m", ylabel="u★ (m s⁻¹)")
 lines!(axu, uₐ, u★, label="SimilarityTheoryFluxes")
 lines!(axu, uₐ, u★_LY, label="Polynomial fit \n from Large and Yeager (2009)")
 lines!(axu, uₐ, u★_EC, label="ECMWF Polynomial fit \n from Edson et al (2013)")
 
-axd = Axis(fig[2, 1], xlabel="uₐ (m s⁻¹) at 10 m", ylabel="1000 × Cᴰ")
+axd = Axis(fig[1:2, 2], xlabel="uₐ (m s⁻¹) at 10 m", ylabel="1000 × Cᴰ")
 Cᴰ = @. (u★ / uₐ)^2
 Cᴰ_LY = @. (u★_LY / uₐ)^2
 lines!(axd, uₐ, 1000 .* Cᴰ, label="SimilarityTheoryFluxes")
@@ -99,7 +115,7 @@ Cᴰ_coeff = @. (u★_coeff / uₐ)^2
 lines!(axu, uₐ, u★_coeff, label="CoefficientBasedFluxes")
 lines!(axd, uₐ, 1000 .* Cᴰ_coeff, label="CoefficientBasedFluxes")
 
-fig[1:2, 2] = Legend(fig, axu)
+Legend(fig[3, 1:2], axu, nbanks = 2)
 
 fig
 ```
