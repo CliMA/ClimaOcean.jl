@@ -124,7 +124,6 @@ function regrid_bathymetry(target_grid, metadata;
     set!(native_z, z_data)
     fill_halo_regions!(native_z)
 
-    ### We still need to fix the grids so they are the same - how did Greg do this?
 
     target_z = interpolate_bathymetry_in_passes(native_z, target_grid;
                                                 passes = interpolation_passes)
