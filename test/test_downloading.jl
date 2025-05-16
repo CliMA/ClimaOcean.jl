@@ -30,11 +30,10 @@ end
     end
 end
 
-@testset "Availability of the Bathymetry" begin
+@testset "Availability of the ETOPO2022 Bathymetry" begin
     @info "Testing that we can download the bathymetry..."
-    dir = "./"
-    filename = "ETOPO_2022_v1_60s_N90W180_surface.nc"
-    filepath = joinpath(dir, filename)
+    ETOPOmetadata = Metadatum(:bottom_height, dataset=ETOPO2022())
+    filepath = metadata_path(metadata)
     isfile(filepath) && rm(filepath; force=true)
-    download_bathymetry(; dir, filename)
+    ClimaOcean.DataWrangling.download_dataset(metadata)
 end
