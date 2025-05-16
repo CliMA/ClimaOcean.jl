@@ -2,28 +2,24 @@ module Bathymetry
 
 export regrid_bathymetry
 
-using KernelAbstractions: @kernel, @index
-
+using Downloads
 using ImageMorphology
-
+using KernelAbstractions: @kernel, @index
 using Oceananigans
 using Oceananigans.Architectures: architecture, on_architecture
-using Oceananigans.DistributedComputations
-using Oceananigans.DistributedComputations: DistributedGrid, reconstruct_global_grid, barrier!, all_reduce
-using Oceananigans.Grids: halo_size, λnodes, φnodes, x_domain, y_domain, topology
-using Oceananigans.Utils: pretty_filesize, launch!
-using Oceananigans.Fields: interpolate!
 using Oceananigans.BoundaryConditions
-using JLD2
-
-using ClimaOcean
+using Oceananigans.DistributedComputations
+using Oceananigans.DistributedComputations: DistributedGrid, reconstruct_global_grid, all_reduce
+using Oceananigans.Fields: interpolate!
+using Oceananigans.Grids: x_domain, y_domain, topology
+using Oceananigans.Utils: launch!
 using OffsetArrays
 using NCDatasets
-using Downloads
 using Printf
 using Scratch
 
 using ..DataWrangling: Metadatum, native_grid, metadata_path, download_dataset
+using ..ETOPO: ETOPO2022
 
 # methods specific to bathymetric datasets are added within dataset modules
 
@@ -134,7 +130,7 @@ end
 
 Regrid bathymetry from `dataset` onto `target_grid`. Default: `dataset = ETOPO2022()`.
 """
-function regrid_bathymetry(target_grid; dataset = ClimaOcean.ETOPO.ETOPO2022(), kw...)
+function regrid_bathymetry(target_grid; dataset = ETOPO2022(), kw...)
     metadatum = Metadatum(:bottom_height; dataset)
     return regrid_bathymetry(target_grid, metadatum; kw...)
 end
