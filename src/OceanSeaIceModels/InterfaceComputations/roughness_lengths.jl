@@ -75,7 +75,7 @@ Keyword Arguments
 - `gravitational_acceleration`: The gravitational acceleration. Default: `default_gravitational_acceleration`.
 - `maximum_roughness_length`: The maximum roughness length. Default: 1.0.
 - `air_kinematic_viscosity`: The air kinematic viscosity. Default: `TemperatureDependentAirViscosity(FT)`.
-- `wave_formulation`: The wave parameter. Default: `WindDependentWaveFormulation(FT)`.
+- `wave_formulation`: The wave parameter. Either constant or `WindDependentWaveFormulation(FT)`. Default: 0.011.
 - `laminar_parameter`: The laminar parameter. Default: 0.11.
 """
 function MomentumRoughnessLength(FT=Oceananigans.defaults.FloatType;
