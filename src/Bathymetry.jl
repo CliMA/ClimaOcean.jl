@@ -85,12 +85,16 @@ Keyword Arguments
                   the smallest basins are removed first. `major_basins = 1` retains only the largest basin.
                   If `Inf` then no basins are removed. Default: 1.
 """
-function regrid_bathymetry(target_grid, bathymetry::Metadatum;
+function regrid_bathymetry(target_grid;
+                           metadata = nothing,
                            height_above_water = nothing,
                            minimum_depth = 0,
                            interpolation_passes = 1,
                            major_basins = 1) # Allow an `Inf` number of "lakes"
 
+    if isnothing(metadata)
+        throw(ArgumentError("Metadata must be provided"))
+    end
     if isinteger(interpolation_passes)
         interpolation_passes = convert(Int, interpolation_passes)
     end
@@ -101,10 +105,10 @@ function regrid_bathymetry(target_grid, bathymetry::Metadatum;
 
     arch = architecture(target_grid)
 
-    bathymetry_native_grid = native_grid(bathymetry, arch; halo = (10, 10, 1))
+    bathymetry_native_grid = native_grid(metadata, arch; halo = (10, 10, 1))
     FT = eltype(target_grid)
 
-    filepath = metadata_path(bathymetry)
+    filepath = metadata_path(metadata)
     dataset = Dataset(filepath, "r")
 
     z_data = convert(Array{FT}, dataset["z"][:, :])

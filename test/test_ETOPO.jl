@@ -18,11 +18,11 @@ underlying_grid = TripolarGrid(arch;
                                first_pole_longitude = 70,
                                north_poles_latitude = 55)
 
-@info "Bathymetry using default dataset..."
-bottom_height = regrid_bathymetry(underlying_grid;
-                                  minimum_depth = 10,
-                                  interpolation_passes = 2,
-                                  major_basins = 2)
+# @info "Bathymetry using default dataset..."
+# bottom_height = regrid_bathymetry(underlying_grid;
+#                                   minimum_depth = 10,
+#                                   interpolation_passes = 2,
+#                                   major_basins = 2)
 
 @info "Bathymetry using Metadata..."
 ETOPOmetadata = Metadatum(:bottom_height, dataset=ETOPO2022())
@@ -32,7 +32,7 @@ filepath = ClimaOcean.DataWrangling.download_dataset(ETOPOmetadata)
 dataset = Dataset(filepath, "r")
 
 
-bottom_height = regrid_bathymetry(underlying_grid, ETOPOmetadata;
+bottom_height = regrid_bathymetry(underlying_grid; metadata = ETOPOmetadata,
                                   minimum_depth = 10,
                                   interpolation_passes = 2,
 				                  major_basins = 2)
