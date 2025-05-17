@@ -6,7 +6,7 @@ using NCDatasets
 using Printf
 
 using Oceananigans.Fields: Center
-using ClimaOcean.DataWrangling: Metadata, Metadatum, metadata_path
+using ClimaOcean.DataWrangling: Metadata, Metadatum
 using Dates: DateTime, Day, Month
 
 import Oceananigans.Fields:
@@ -20,6 +20,7 @@ import ClimaOcean.DataWrangling:
     latitude_interfaces,
     z_interfaces,
     metadata_filename,
+    metadata_path,
     inpainted_metadata_path,
     reversed_vertical_axis
 
@@ -44,6 +45,8 @@ dataset_name(::GLORYSStatic) = "GLORYSStatic"
 dataset_name(::GLORYSDaily) = "GLORYSDaily"
 dataset_name(::GLORYSMonthly) = "GLORYSMonthly"
 
+Base.size(::CopernicusDataset, variable) = (4320, 2040, 50)
+
 all_dates(::GLORYSStatic, var) = [nothing]
 all_dates(::GLORYSDaily, var) = range(DateTime("1993-01-01"), stop=DateTime("2021-06-30"), step=Day(1))
 all_dates(::GLORYSMonthly, var) = range(DateTime("1993-01-01"), stop=DateTime("2024-12-01"), step=Month(1))
@@ -60,6 +63,7 @@ CopernicusMetadata{D} = Metadata{<:CopernicusDataset, D}
 CopernicusMetadatum = Metadatum{<:CopernicusDataset}
 
 Base.size(::CopernicusMetadatum) = (4320, 2040, 50, 1)
+
 reversed_vertical_axis(::CopernicusDataset) = true
 
 copernicus_dataset_variable_names = Dict(
@@ -113,6 +117,10 @@ function metadata_filename(metadata::CopernicusMetadata)
     prefix = metadata_prefix(metadata)
     return string(prefix, ".nc")
 end
+
+# Only one path, as the Dataset is one file for all dates
+metadata_path(metadata::CopernicusMetadata)  = joinpath(metadata.dir, metadata_filename(metadata))
+metadata_path(metadata::CopernicusMetadatum) = joinpath(metadata.dir, metadata_filename(metadata))
 
 function inpainted_metadata_path(metadata::CopernicusMetadata)
     prefix = metadata_prefix(metadata)
