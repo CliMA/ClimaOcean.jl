@@ -39,11 +39,13 @@ SpecificHumidityFormulation(phase) = SpecificHumidityFormulation(phase, nothing)
 @inline compute_water_mole_fraction(x_H₂O::Number, salinity) = x_H₂O
 
 @inline function saturation_specific_humidity(formulation::SpecificHumidityFormulation, ℂₐ, 𝒬ₐ, Tₛ, Sₛ=zero(Tₛ))
-    CT = eltype(ℂₐ)
     x_H₂O = compute_water_mole_fraction(formulation.water_mole_fraction, Sₛ)
     phase = formulation.phase
 
-    # Extrapolate to get surface density
+    CT = eltype(ℂₐ)
+
+    # Extrapolate air density to the surface temperature
+    # following an adiabatic ideal gas transformation
     cvₘ = Thermodynamics.cv_m(ℂₐ, 𝒬ₐ)
     Rₐ = Thermodynamics.gas_constant_air(ℂₐ, 𝒬ₐ)
     κₐ = cvₘ / Rₐ # 1 / (γ - 1)
@@ -309,8 +311,8 @@ end
 
     Qs = downwelling_radiation.Qs
     Qℓ = downwelling_radiation.Qℓ
-    Qu = upwelling_radiation(Tₛ⁻, σ, ϵ)
-    Qd = net_downwelling_radiation(Qs, Qℓ, α, ϵ)
+    Qu = emitted_longwave_radiation(Tₛ⁻, σ, ϵ)
+    Qd = net_absorbed_interface_radiation(Qs, Qℓ, α, ϵ)
 
     u★ = interface_state.u★
     θ★ = interface_state.θ★

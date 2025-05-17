@@ -57,6 +57,8 @@ function Field(metadata::Metadatum, arch=CPU();
                halo = (3, 3, 3),
                cache_inpainted_data = true)
 
+    download_dataset(metadata)
+
     grid = native_grid(metadata, arch; halo)
     LX, LY, LZ = location(metadata)
     field = Field{LX, LY, LZ}(grid)
@@ -85,7 +87,6 @@ function Field(metadata::Metadatum, arch=CPU();
         end
     end
 
-    download_dataset(metadata)
     path = metadata_path(metadata)
     dsname = dataset_variable_name(metadata)
 

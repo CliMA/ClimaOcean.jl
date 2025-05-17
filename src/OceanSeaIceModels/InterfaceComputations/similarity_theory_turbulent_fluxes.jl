@@ -181,11 +181,11 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
     ϰ = flux_formulation.von_karman_constant
     L★ = ifelse(b★ == 0, Inf, - u★^2 / (ϰ * b★))
 
+
     # Buoyancy flux characteristic scale for gustiness (Edson 2013)
     h_bℓ = atmosphere_state.h_bℓ
     Jᵇ = - u★ * b★
-    U★ = eltype(ℂₐ)(1 // 5)
-    Uᴳ = ifelse(Jᵇ > 0, β * cbrt(Jᵇ * h_bℓ), U★)
+    Uᴳ = β * cbrt(Jᵇ * h_bℓ)
 
     # New velocity difference accounting for gustiness
     Δu, Δv = velocity_difference(interface_properties.velocity_formulation,
