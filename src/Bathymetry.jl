@@ -225,7 +225,7 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     @info "Interpolation passes of bathymetry size $(size(old_z)) onto a $gridtype target grid of size $Nt:"
     for pass = 1:passes - 1
         new_size = (Nλ[pass], Nφ[pass], 1)
-        @info "    Performing pass $pass to size $new_size."
+        @info "    pass $pass to size $new_size"
 
         new_grid = LatitudeLongitudeGrid(architecture(target_grid), Float32,
                                          size = new_size,
