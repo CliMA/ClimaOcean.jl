@@ -36,7 +36,9 @@ if test_group == :init || test_group == :all
     ##### Download bathymetry data
     #####
 
-    download_bathymetry()
+    ETOPOmetadata = Metadatum(:bottom_height, dataset=ClimaOcean.ETOPO.ETOPO2022())
+    ClimaOcean.DataWrangling.download_dataset(ETOPOmetadata)
+
 
     #####
     ##### Download JRA55 data

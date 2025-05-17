@@ -5,10 +5,16 @@ using Statistics
 using ClimaOcean
 
 using ClimaOcean.Bathymetry: remove_minor_basins!
+using ClimaOcean.DataWrangling.ETOPO
 
 @testset "Bathymetry construction and smoothing" begin
     @info "Testing Bathymetry construction and smoothing..."
     for arch in test_architectures
+        ETOPOmetadata = Metadatum(:bottom_height, dataset=ETOPO2022())
+
+        # Testing downloading
+        ClimaOcean.DataWrangling.download_dataset(ETOPOmetadata)
+        @test isfile(metadata_path(ETOPOmetadata))
 
         grid = LatitudeLongitudeGrid(arch;
                                      size = (100, 100, 10),
@@ -17,7 +23,7 @@ using ClimaOcean.Bathymetry: remove_minor_basins!
                                      z = (-6000, 0))
 
         # Test that remove_minor_basins!(Z, Inf) does nothing
-        control_bottom_height = regrid_bathymetry(grid)
+        control_bottom_height = regrid_bathymetry(grid, ETOPOmetadata)
         bottom_height = deepcopy(control_bottom_height)
         @test_throws ArgumentError remove_minor_basins!(bottom_height, Inf)
 

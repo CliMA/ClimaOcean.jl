@@ -176,6 +176,7 @@ function z_interfaces end
 function longitude_interfaces end
 function latitude_interfaces end
 function reversed_vertical_axis end
+function native_grid end
 
 default_mask_value(dataset) = NaN
 
@@ -202,12 +203,14 @@ end
 # Datasets
 include("JRA55/JRA55.jl")
 include("ECCO/ECCO.jl")
-include("EN4.jl")
+include("EN4/EN4.jl")
 include("Copernicus/Copernicus.jl")
+include("ETOPO/ETOPO.jl")
 
 using .ECCO
 using .EN4
 using .JRA55
 using .Copernicus
+using .ETOPO
 
 end # module
