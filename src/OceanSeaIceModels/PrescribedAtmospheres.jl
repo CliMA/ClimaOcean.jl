@@ -1,5 +1,6 @@
 module PrescribedAtmospheres
 
+using Oceananigans
 using Oceananigans.Grids: grid_name
 using Oceananigans.Utils: prettysummary, Time
 using Oceananigans.Fields: Center
@@ -203,22 +204,22 @@ const PTP{FT} = PhaseTransitionParameters{FT} where FT
 @inline press_triple(p::PTP) = p.triple_point_pressure
 @inline T_0(p::PTP)          = p.reference_temperature
 
-struct PrescribedAtmosphereThermodynamicsParameters{FT} <: AbstractThermodynamicsParameters{FT}
+struct AtmosphereThermodynamicsParameters{FT} <: AbstractThermodynamicsParameters{FT}
     constitutive      :: ConstitutiveParameters{FT}
     heat_capacity     :: HeatCapacityParameters{FT}
     phase_transitions :: PhaseTransitionParameters{FT}
 end
 
-const PATP{FT} = PrescribedAtmosphereThermodynamicsParameters{FT} where FT
+const ATP{FT} = AtmosphereThermodynamicsParameters{FT} where FT
 
-Base.eltype(::PATP{FT}) where FT = FT
+Base.eltype(::ATP{FT}) where FT = FT
 Base.eltype(::CP{FT})   where FT = FT
 Base.eltype(::HCP{FT})  where FT = FT
 Base.eltype(::PTP{FT})  where FT = FT
 
-Base.summary(::PATP{FT}) where FT = "PrescribedAtmosphereThermodynamicsParameters{$FT}"
+Base.summary(::ATP{FT}) where FT = "AtmosphereThermodynamicsParameters{$FT}"
 
-function Base.show(io::IO, p::PrescribedAtmosphereThermodynamicsParameters)
+function Base.show(io::IO, p::AtmosphereThermodynamicsParameters)
     FT = eltype(p)
 
     cp = p.constitutive
@@ -245,45 +246,45 @@ function Base.show(io::IO, p::PrescribedAtmosphereThermodynamicsParameters)
         "    └── total_ice_nucleation_temperature (Tⁱ): ", prettysummary(pt.total_ice_nucleation_temperature))
 end
 
-function PrescribedAtmosphereThermodynamicsParameters(FT = Oceananigans.defaults.FloatType;
+function AtmosphereThermodynamicsParameters(FT = Oceananigans.defaults.FloatType;
                                                       constitutive = ConstitutiveParameters(FT),
                                                       phase_transitions = PhaseTransitionParameters(FT),
                                                       heat_capacity = HeatCapacityParameters(FT))
 
-    return PrescribedAtmosphereThermodynamicsParameters(constitutive, heat_capacity, phase_transitions)
+    return AtmosphereThermodynamicsParameters(constitutive, heat_capacity, phase_transitions)
 end
 
-const PATP = PrescribedAtmosphereThermodynamicsParameters
+const ATP = AtmosphereThermodynamicsParameters
 
-@inline R_d(p::PATP)            = R_d(p.constitutive)
-@inline R_v(p::PATP)            = R_v(p.constitutive)
-@inline gas_constant(p::PATP)   = gas_constant(p.constitutive)
-@inline molmass_dryair(p::PATP) = molmass_dryair(p.constitutive)
-@inline molmass_water(p::PATP)  = molmass_water(p.constitutive)
-@inline molmass_ratio(p::PATP)  = molmass_ratio(p.constitutive)
-@inline LH_v0(p::PATP)          = LH_v0(p.phase_transitions)
-@inline LH_s0(p::PATP)          = LH_s0(p.phase_transitions)
-@inline LH_f0(p::PATP)          = LH_f0(p.phase_transitions)
-@inline T_freeze(p::PATP)       = T_freeze(p.phase_transitions)
-@inline T_triple(p::PATP)       = T_triple(p.phase_transitions)
-@inline T_icenuc(p::PATP)       = T_icenuc(p.phase_transitions)
-@inline pow_icenuc(p::PATP)     = pow_icenuc(p.phase_transitions)
-@inline press_triple(p::PATP)   = press_triple(p.phase_transitions)
-@inline T_0(p::PATP)            = T_0(p.phase_transitions)
+@inline R_d(p::ATP)            = R_d(p.constitutive)
+@inline R_v(p::ATP)            = R_v(p.constitutive)
+@inline gas_constant(p::ATP)   = gas_constant(p.constitutive)
+@inline molmass_dryair(p::ATP) = molmass_dryair(p.constitutive)
+@inline molmass_water(p::ATP)  = molmass_water(p.constitutive)
+@inline molmass_ratio(p::ATP)  = molmass_ratio(p.constitutive)
+@inline LH_v0(p::ATP)          = LH_v0(p.phase_transitions)
+@inline LH_s0(p::ATP)          = LH_s0(p.phase_transitions)
+@inline LH_f0(p::ATP)          = LH_f0(p.phase_transitions)
+@inline T_freeze(p::ATP)       = T_freeze(p.phase_transitions)
+@inline T_triple(p::ATP)       = T_triple(p.phase_transitions)
+@inline T_icenuc(p::ATP)       = T_icenuc(p.phase_transitions)
+@inline pow_icenuc(p::ATP)     = pow_icenuc(p.phase_transitions)
+@inline press_triple(p::ATP)   = press_triple(p.phase_transitions)
+@inline T_0(p::ATP)            = T_0(p.phase_transitions)
 
-@inline e_int_v0(p::PATP)       = LH_v0(p) - R_v(p) * T_0(p)
+@inline e_int_v0(p::ATP)       = LH_v0(p) - R_v(p) * T_0(p)
 
-@inline cp_v(p::PATP)           = cp_v(p.heat_capacity)
-@inline cp_l(p::PATP)           = cp_l(p.heat_capacity)
-@inline cp_i(p::PATP)           = cp_i(p.heat_capacity)
+@inline cp_v(p::ATP)           = cp_v(p.heat_capacity)
+@inline cp_l(p::ATP)           = cp_l(p.heat_capacity)
+@inline cp_i(p::ATP)           = cp_i(p.heat_capacity)
 
-@inline cv_l(p::PATP)           = cv_l(p.heat_capacity)
-@inline cv_i(p::PATP)           = cv_i(p.heat_capacity)
+@inline cv_l(p::ATP)           = cv_l(p.heat_capacity)
+@inline cv_i(p::ATP)           = cv_i(p.heat_capacity)
 
-@inline kappa_d(p::PATP)        = kappa_d(p.heat_capacity)
-@inline cp_d(p::PATP)           = R_d(p) / kappa_d(p)
-@inline cv_d(p::PATP)           = cp_d(p) - R_d(p)
-@inline cv_v(p::PATP)           = cp_v(p) - R_v(p)
+@inline kappa_d(p::ATP)        = kappa_d(p.heat_capacity)
+@inline cp_d(p::ATP)           = R_d(p) / kappa_d(p)
+@inline cv_d(p::ATP)           = cp_d(p) - R_d(p)
+@inline cv_v(p::ATP)           = cp_v(p) - R_v(p)
 
 #####
 ##### Prescribed atmosphere (as opposed to dynamically evolving / prognostic)
@@ -374,7 +375,7 @@ end
                          clock = Clock{Float64}(time = 0),
                          surface_layer_height = 10, # meters
                          boundary_layer_height = 512 # meters,
-                         thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT),
+                         thermodynamics_parameters = AtmosphereThermodynamicsParameters(FT),
                          auxiliary_freshwater_flux = nothing,
                          velocities            = default_atmosphere_velocities(grid, times),
                          tracers               = default_atmosphere_tracers(grid, times),
@@ -399,7 +400,7 @@ function PrescribedAtmosphere(grid, times=[zero(grid)];
 
     FT = eltype(grid)
     if isnothing(thermodynamics_parameters)
-        thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT)
+        thermodynamics_parameters = AtmosphereThermodynamicsParameters(FT)
     end
 
     return PrescribedAtmosphere(grid,

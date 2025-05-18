@@ -27,10 +27,12 @@ The problem of modeling property exchange then turns to the task of modeling tur
 
 ## Bulk formula and similarity theory
 
-Within each grid cell, we represent atmosphere-surface turbulent fluxes of some quantity $\psi$ as
+Within in each grid cell at horizontal position $x, y, t$, the atmosphere-surface
+turbulent fluxes of some quantity $\psi$ --- at the bottom of the similarity layer, and thus throughout
+the constant flux layer and across the surface --- is defined as
 
 ```math
-J^ψ = \overline{w' \psi'}
+J_\psi(x, y, t) = \overline{w' \psi'}
 ```
 
 where $w$ is the atmospheric vertical velocity, the overline $\overline{( \, )}$ denotes a horizontal average over a grid cell,
@@ -39,14 +41,16 @@ and primes denote deviations from the horizontal average.
 !!! note
     Arguably, the averaging operator $\overline{( \, )}$ should also represent an average in time,
     which is implicit in the context of typical global Earth system modeling.
-    Including time-averaging in the averaging operator is explicit required for analyzing obvservations,
-    however, and may also be needed for very high resolution coupled modeling, and should be the subject
-    of future research.
+    Explicit time-averaging is required to evaluate flux observations, however,
+    and may also be warranted for high resolution coupled modeling.
+    Flux computations in ClimaOcean currently compute fluxes in terms of the instantaneous states
+    of its components, but spatial coarse-graining and time-averaging for computing fluxes at high
+    resolution should be the subject of future research.
 
 The essential turbulent fluxes that couple the ocean and atmosphere are
 
 1. Momentum fluxes $\rho_a \overline{\bm{u}'w'}$,
-   where $\rho_a$ is the atmosphere density at the air-sea interface, $\bm{u}$ is horizontal velocity, and $w$ is vertical velocity.
+   where $\rho_a$ is the atmosphere density at the air-sea interface and $\bm{u}$ is horizontal velocity.
 
 1. Sensible heat fluxes $\rho_a c_{a} \overline{w'\theta'}$ due to fluid dynamical heat transport, 
    where $\rho_a$ is the atmosphere density at the air-sea interface,
@@ -62,27 +66,63 @@ The essential turbulent fluxes that couple the ocean and atmosphere are
 
 There are two ways by which turbulent fluxes may be computed: by specifying "transfer coefficients",
 or by using Monin-Obukhov similarity theory.
+In all cases, computing turbulent fluxes requires:
+
+1. Atmosphere-surface differences in velocity, $\Delta \bm{u}$,
+2. Atmosphere-surface differences in temperature, $\Delta \theta$,
+3. The skin surface temperature $T_s$, which is used to compute the surface specific humidity $q_s$ and the 
+   atmosphere-surface specific humidity difference $\Delta q$,
+4. Additional atmosphere-surface trace gas differences for computing trace gas fluxes,
+5. Possibly, additional "bulk" properties of the surface media and radiation fluxes
+   in order to compute an equilibrium "skin" surface temperature that differs from the
+   bulk temperature below the surface.
+
+!!! note
+    In general, the surface specific humidity is typically related to the saturation specific humidity
+    at the the surface temperature $T_s$, according to the Clausius-Claperyon relation.
+    For example, for ocean surfaces, the surface specific humidity is computed
+    according to via [Raoult's law](https://en.wikipedia.org/wiki/Raoult%27s_law) as
+
+    ```math
+    q^\dagger(\rho, S, T) = x_{H_2O}(S) \frac{p_v^\dagger}{\rho R_v T}
+    ```
+
+    where $x_{H_2O}(S)$ is the mole fraction of pure water in seawater with salinity $S$,
+    and $p_v^\dagger$ is the saturation vapor pressure,
+
+    ```math
+    p_v^\dagger(T) = p_{tr} \left ( \frac{T}{T_{tr}} \right )^{\Delta c_p / R_v} \exp \left \{ \frac{ℒ_{v0} - Δc_p T₀}{R_v} \left (\frac{1}{T_{tr}} - \frac{1}{T} \right ) \right \}
+    \quad \text{where} \quad
+    Δc_p = c_{p \ell} - c_{pv} \, .
+    ```
+
+    Many flux solvers (and the OMIP protocol) use a constant $x_{H_2O} = 0.98$, which is equivalent to assuming
+    that the surface salinity is $S \approx 35 \, \mathrm{g \, kg^{-1}}$, along with a reference seawater salinity composition.
+    Other surface specific humidity models may be used that take into account, for example, the microscopic structure
+    of snow, or the presence of a "dry skin" that buffers saturated soil from the atmosphere in a land model.
+
+    Default values for the atmosphere thermodynamic parameters used to compute the saturation vapor pressure
+    and atmospheric equation of state are
+
+    ```@example interface_fluxes
+    using ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres: AtmosphereThermodynamicsParameters
+    AtmosphereThermodynamicsParameters()
+    ```
 
 ### Coefficient-based fluxes
 
-The simplest method for computing fluxes prescribes "transfer coefficients" that relate differences
-between the near-surface atmosphere and the ocean surface to fluxes via scaling arguments,
+Turbulent fluxes may be computed by prescribing "transfer coefficients" that relate differences
+between the near-surface atmosphere and the ocean surface to fluxes,
 
 ```math
 \overline{\bm{u}' w'} ≈ C_D      \, Δ \bm{u} \, U \\
 \overline{w' \theta'} ≈ C_\theta \, Δ \theta \, U \\
 \overline{w' q'}      ≈ C_q      \, Δ q \, U
 ```
-where $Δ \bm{u}$ is the velocity difference between the atmosphere and the ocean surface,
-$Δ \theta$ is the difference between the atmosphere and ocean temperature,
-and $Δ q$ is the
-and $q$ is the difference between the atmosphere specific humidity and the
-saturation specific humidity computed using the ocean sea surface temperature and
-accounting for ocean sea surface salinity via [Raoult's law](https://en.wikipedia.org/wiki/Raoult%27s_law).
 
-The variable $U$ is a characteristic velocity scale, which is most simply just $U = | Δ \bm{u}|$.
-However, an important class of parameterizations introduce an additional model for $U$ that
-produces non-vanishing heat and moisture fluxes in zero-mean-wind conditions.
+The variable $U$ is a characteristic velocity scale, which is most simply formulated as $U = | Δ \bm{u}|$.
+However, some parameterizations use formulations for $U$ that
+produce non-vanishing heat and moisture fluxes in zero-mean-wind conditions.
 Usually these parameterizations are formulated as models for "gustiness" associated with atmospheric convection;
 but more generally a common-thread is that $U$ may include contributions from turbulent motions
 in addition to the relative mean velocity, $Δ \bm{u}$.
@@ -104,10 +144,10 @@ coefficient_fluxes = CoefficientBasedFluxes(drag_coefficient=2e-3,
 
 ### Similarity theory for neutral boundary layers
 
-Another way to compute fluxes is to use Monin-Obukhov similarity theory.
-The formulation of similarity theory, which is based on dimensional arguments,
-begins with the definition of "characteristic scales" which are related to momentum,
-heat, and vapor fluxes through
+The standard method for computing fluxes in realistic Earth system modeling contexts
+uses a model for the structure of the near-surface atmosphere based on Monin-Obukhov similarity theory.
+Similarity theory is essentially a dimensional argument and begins with the definition of "characteristic scales"
+which are related to momentum, heat, and vapor fluxes through
 
 ```math
 u_\star^2 ≡ | \overline{\bm{u}' w'} |  \\
@@ -145,8 +185,8 @@ The inner length scale $\ell_u$, which is called the "momentum roughness length"
 can be interpted as producing a characteristic upper value for the boundary layer shear, $u_⋆ / \ell_u$
 in the region where similarity theory must be matched with the inner boundary layer (such as a viscous sublayer)
 below.
-Note that we take the inner velocity scale $u_a(\ell_u)$ as being equal to the velocity of the interface,
-so $u_a(\ell_u) = u_o(0)$.
+Note that we take the inner velocity scale $u_a(\ell_u)$ as being equal to the velocity of the surface,
+so $u_a(\ell_u) = u_s$.
 
 !!! note
     We currently assume that the input to the surface flux computation is the 
@@ -250,7 +290,7 @@ For this we use a $200 × 200$ horizontal grid and start with atmospheric winds 
 the relatively calm $u_a(10 \, \mathrm{m}) = 0.5 \, \mathrm{m \, s^{-1}}$ to a
 blustery $u_a(10 \, \mathrm{m}) = 40 \, \mathrm{m \, s^{-1}}$.
 We also initialize the ocean at rest with surface temperature $T_o = 20 \, \mathrm{{}^∘ C}$ and 
-surface salinity $S_o = 35 $g \, kg^{-1}$ --- but the surface temperature and salinity won't matter until later.
+surface salinity $S_o = 35 $\mathrm{g \, kg^{-1}}$ --- but the surface temperature and salinity won't matter until later.
 
 ```@example interface_fluxes
 using Oceananigans
@@ -393,112 +433,77 @@ for modeling the effect of buoyancy fluxes on turbulent exchange.
 Our next objective is to characterize the atmospheric statbility in terms of the buoyancy flux, $\overline{w' b'}$,
 which requires a bit of thermodynamics background to define the buoyancy perturbation, $b'$.
 
-#### The ideal gas law
+#### Buoyancy for a non-condensing mixture of dry air and water vapor
 
-To define the buoyancy perturbation $b'$, we start by writing down the ideal gas law for a mixture of 
-dry air (subscript $d$, itself a composite of gases) and water vapor (subscript $v$) that coexist in equilibrium at the same temperature $T$,
-
-```math
-p = \rho_d R_d T + \rho_v R_v T \, ,
-```
-
-where $R_d$ is the gas constant for dry air,
-$R_v$ is the gas constant for water vapor, $\rho_d$ is the density of the dry air component,
-$\rho_v$ is the density of the water vapor.
-Note that atmospheric thermodynamics constants are stored in `atmosphere_properties` of `OceanSeaIceModel.interfaces`,
-
-```@example interface_fluxes
-default_model.interfaces.atmosphere_properties
-```
-
-The total specific humidity, $q$, is defined as the mass ratio of total water,
-including the vapor density $\rho_v$ and density of liquid and ice condensate $\rho_c$, 
-to the total mixture density $\rho$,
+The atmosphere is generally a mix of dry air, water vapor, non-vapor forms of water such as liquid droplets,
+ice particles, rain, snow, hail, sleet, graupel, and more, and trace gases.
+In the definition of buoyancy that follows, we neglect both the mass and volume of non-vapor water,
+so that the specific humidity may be written
 
 ```math
-q = \frac{\rho_v + \rho_c}{\rho} ≈ \frac{\rho_v}{\rho}
+q \approx \frac{\rho_v}{\rho_v + \rho_d} \approx \frac{\rho_v}{\rho} \, ,
 ```
 
-The second expression above introduces the approximation that $q_c ≡ \rho_c / ρ ≪ q$,
-which we make hereafter for the purpose of evaluating stability during surface flux computations.
+where $\rho_v$ is the density of water vapor, $\rho_d$ is the density of dry air, and $\rho \approx \rho_v + \rho_d$
+is the total density neglecting the mass of hypothetical condensed water species.
 
 !!! note
-    It'd be nice to comment further on the validity of this approximation, and its practicality when working with atmospheric data products.)
+    We endeavor to provide more information about the impact of this approximation.
+    Also, note that atmospheric data products like JRA55 do not explicitly provide
+    the mass ratio of condensed water, so the approximation is required in at least
+    some situations (such as simulations following the protocol of the Ocean Model
+    Intercomparison Project, OMIP).
+    On the other hand, generalizing the buoyancy formula that follow below to account
+    for the mass of condensed water is straightforward.
 
-
-Putting the pieces together, we write the ideal gas law as
+The ideal gas law for a mixture of dry air and water vapor is then
 
 ```math
-p = ρ R_m T
+p = \rho R_m(q) T \, 
 \qquad \text{where} \qquad
-R_m(q) ≈ R_d \left (1 - q \right ) + R_v q = R_d \left ( 1 - δ q \right ) \, 
+R_m(q) ≈ R_d \left (1 - q \right ) + R_v q = R_d \left ( 1 - \mathscr{M} q \right ) \, .
 ```
 
-with $δ ≡ \frac{R_v}{R_d} - 1$. For water vapor and a standard dry air composite, $\delta ≈ 0.61$.
+where ``\mathscr{M} = \frac{R_v}{R_d} - 1`` and $R_m(q)$ is the effective mixture gas "constant" which varies with specific humidity $q$,
+and the ``\approx`` indicates that its form neglects the mass of condensed species.
 
-#### The buoyancy perturbation
-
-Our next objective is to compute the buoyancy perturbation $b'$ in terms of
-surface temperature $T$, specific humidity $q$, and thermodynamic constants.
-The subgrid buoyancy perturbation $b'$ is defined 
+The buoyant perturbation experienced by air parcels advected by subgrid turbulent motions is then
 
 ```math
 b' ≡ - g \left ( \rho - \bar{\rho} \right ) = g \frac{\alpha - \bar{\alpha}}{\bar{\alpha}}
 \qquad \text{where} \qquad
-α = \frac{1}{\rho} = \frac{R_m T}{p}
+α = \frac{1}{\rho} = \frac{R_m T}{p} \, .
 ```
 
-We then neglect pressure perturbations so that $p = \bar{p}$, which simplifies the specific volume perturbation to,
+We neglect the effect of pressure perturbations to compute the buoyancy flux, so that $p = \bar{p}$ and
 
 ```math
-α - \bar{\alpha} = \frac{1}{p} \left [ R_d (1 - δ q ) T' - δ q' T \right ]
+\alpha - \bar{\alpha} = \frac{R_d}{p} \left [ T' - \mathscr{M} \left ( q' \bar{T} + \bar{q} T' + q' T' - \overline{q' T'} \right ) \right ] \, .
 ```
 
+#### Buoyancy flux and the characteristic buoyancy scale
 
-in terms of the dry air gas constant $R_d$ (assuming dry air is a composite of nitrogen, oxygen, argon, and other trace gases),
-and $R_v$, the gas constant for water vapor, and $q_c$, the mass fraction of liquid and ice water condensates.
-This formula assumes also that the condenstate volume is negligible, so that condensates do not contribute to the mixture total pressure.
-Conditions in Earth's atmosphere are such that usually $q_c ≪ q$, which motivates the approximation
+Our next objective is to compute the buoyancy flux, $\overline{w' b'}$.
+An intermediate result along the way is 
 
 ```math
-R_m(q) ≈ R_d \left (1 - q \right ) + R_v q = R_d \left ( 1 - δ q \right ) \, 
-\qquad \text{where} \qquad δ ≡ \frac{R_v}{R_d} - 1 ≈ 0.61 \, .
+\frac{p}{R_d} \overline{w' \left ( \alpha - \bar{\alpha} \right )} = \overline{w'T'} - \mathscr{M} \left ( \overline{w' q'} \bar{T} + \bar{q} \overline{w' T'} + \overline{w' q' T'} \right ) \, .
 ```
 
-We've thus shown why the number "0.61" (or 1.61) appears frequently in texts on turbulent fluxes.
-Another reason to neglect $q_c$ is that atmospheric data products often do not
-provide $q_c$ separately from $q$.
-
-If we neglect pressure perturbations so that $p = \bar{p}$ and use $\bar{\alpha} = \bar{p} / {R_m(\bar{q}) \bar{T}}$, then
-the buoyancy perturbation may be computed via
+Neglecting both $\overline{q' T'}$ and $\overline{w' q' T'}$, we find the approximate form
 
 ```math
-b' ≡ - g \frac{\tilde{T}' - \overline{\tilde{T}}}{\overline{\tilde{T}}}
+\overline{w' b'} \approx g \frac{\overline{w'T'} - \mathscr{M} \left ( \overline{w' q'} \bar{T} + \bar{q} \overline{w' T'} \right )}{\bar{T} \left ( 1 - \mathscr{M} \bar q \right )} \, .
 ```
 
-The characteristic buoyancy scale is then
+The characteristic buoyancy scale $b_\star$, defined via $u_\star b_\star \equiv \overline{w'b'}|_0$, is defined analogously to the temperature and vapor scales $u_\star \theta_\star \equiv \overline{w' T'}$ and $u_\star q_\star \equiv \overline{w' q'}$.
+We therefore find
 
 ```math
-b_⋆ ≡ \frac{g}{T̃₀} \left [ \theta_⋆ \left ( 1 + δ q₀ \right ) + δ θ₀ q_⋆ \right ]
+b_⋆ ≡ g \frac{\theta_\star - \mathscr{M} \left ( q_\star T_s + q_s \theta_\star \right ) }{ T_s \left (1 + \mathscr{M} q_s \right )} \, .
 ```
 
-where
-
-```math
-T̃ = \frac{R_m(q)}{R_d} T ≈ T + δ q T \, ,
-```
-
-Virtual temperature plays the role of temperature in the computation of buoyancy
-for moist air. More specifically, virtual temperature accounts for the fact that moist air
-with $q > 0$ is heavier than perfectly dry air (because water vapor is heavier than dry air).
-
-We begin by defining the characteristic buoyancy scale $b_\star$ in termms of the air-sea buoyancy flux,
-
-```math
-u_⋆ b_⋆ = \overline{w' b'}
-```
-
-
+##### Stability of the near-surface atmosphere
 
 To measure the stability of the atmosphere at $z=h$, we consider the ratio between shear production
 and buoyancy production, which oceanographers usually call the "flux Richardson number",
