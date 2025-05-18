@@ -224,38 +224,6 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     Nλt, Nφt = Nt = size(target_grid)
     Nλn, Nφn = Nn = size(native_z)
 
-    resxt = minimum_xspacing(target_grid)
-    resyt = minimum_yspacing(target_grid)
-
-    resxn = minimum_xspacing(native_z.grid)
-    resyn = minimum_yspacing(native_z.grid)
-
-    # Check whether we are refining the grid in any directions.
-    # If so, skip interpolation passes, as they are not needed.
-    if resxt < resxn || resyt < resyn
-        target_z = Field{Center, Center, Nothing}(target_grid)
-
-        @info "Interpolating bathymetry of size $Nn onto a $gridtype target grid of size $Nt"
-        interpolate!(target_z, native_z)
-
-        if passes > 0
-            passes_str = passes == 1 ? "1 interpolation pass" : "$passes interpolation passes"
-
-            @info string("Skipping extra $passes_str for bathymetry.", '\n',
-                        "Extra interpolation passes may only be used to coarsen bathymetry", '\n',
-                        "and require that the bathymetry is finer than the target grid in", '\n',
-                        "both horizontal directions.", '\n',
-                        "Grid info:", '\n',
-                        "target grid", '\n',
-                        "├── minimum x-spacings ", @sprintf("%.3e", resxt), " m", '\n',
-                        "└── minimum y-spacings ", @sprintf("%.3e", resyt), " m", '\n',
-                        "bathymetry grid", '\n',
-                        "├── minimum x-spacings ", @sprintf("%.3e", resxn), " m", '\n',
-                        "└── minimum y-spacings ", @sprintf("%.3e", resyn), " m")
-        end
-        return target_z
-    end
-
     # Interpolate in passes
     latitude  = y_domain(native_z.grid)
     longitude = x_domain(native_z.grid)
@@ -275,7 +243,7 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
     @info "Interpolation passes of bathymetry size $(size(old_z)) onto a $gridtype target grid of size $Nt:"
     for pass = 1:passes - 1
         new_size = (Nλ[pass], Nφ[pass], 1)
-        @info "    pass $pass to size $new_size"
+        @info "    Performing pass $pass to size $new_size."
 
         new_grid = LatitudeLongitudeGrid(architecture(target_grid), Float32,
                                          size = new_size,
