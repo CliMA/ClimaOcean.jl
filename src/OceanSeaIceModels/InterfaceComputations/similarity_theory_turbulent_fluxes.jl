@@ -91,11 +91,17 @@ function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                 turbulent_prandtl_number = 1,
                                 gustiness_parameter = 1,
                                 stability_functions = atmosphere_ocean_stability_functions(FT),
-                                roughness_lengths = default_roughness_lengths(FT),
+                                momentum_roughness_length = MomentumRoughnessLength(FT),
+                                temperature_roughness_length = ScalarRoughnessLength(FT),
+                                water_vapor_roughness_length = ScalarRoughnessLength(FT),
                                 similarity_form = LogarithmicSimilarityProfile(),
                                 solver_stop_criteria = nothing,
                                 solver_tolerance = 1e-8,
                                 solver_maxiter = 100)
+
+    roughness_lengths = SimilarityScales(momentum_roughness_length,
+                                         temperature_roughness_length,
+                                         water_vapor_roughness_length)
 
     if isnothing(solver_stop_criteria)
         solver_tolerance = convert(FT, solver_tolerance)

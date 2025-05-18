@@ -41,7 +41,7 @@ ao_fluxes = CoefficientBasedFluxes(drag_coefficient = 1e-2,
                                    heat_transfer_coefficient = 1e-3,
                                    vapor_flux_coefficient = 1e-3)
 
-interfaces = ComponentInterfaces(nothing, ocean; atmosphere_ocean_flux_formulation=ao_fluxes)
+interfaces = ComponentInterfaces(nothing, ocean; atmosphere_ocean_fluxes=ao_fluxes)
 
 # output
 ComponentInterfaces
@@ -52,6 +52,15 @@ struct CoefficientBasedFluxes{CD, CH, CQ, S}
     heat_transfer_coefficient :: CH
     vapor_flux_coefficient :: CQ
     solver_stop_criteria :: S
+end
+
+Base.summary(flux_formulation::CoefficientBasedFluxes) = "CoefficientBasedFluxes"
+
+function Base.show(io::IO, flux_formulation::CoefficientBasedFluxes)
+    print(io, summary(flux_formulation), '\n')
+    print(io, "├── drag_coefficient: ", prettysummary(flux_formulation.drag_coefficient), '\n')
+    print(io, "├── heat_transfer_coefficient: ", prettysummary(flux_formulation.heat_transfer_coefficient), '\n')
+    print(io, "└── vapor_flux_coefficient: ", prettysummary(flux_formulation.vapor_flux_coefficient), '\n')
 end
 
 convert_if_number(FT, a::Number) = convert(FT, a)

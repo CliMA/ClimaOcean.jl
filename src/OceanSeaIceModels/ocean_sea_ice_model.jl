@@ -157,8 +157,8 @@ stability_functions = ClimaOcean.OceanSeaIceModels.atmosphere_sea_ice_stability_
 # Edson et al. (2013) stability functions
 stability_functions = ClimaOcean.OceanSeaIceModels.atmosphere_ocean_stability_functions(Float64)
 
-atmosphere_ocean_flux_formulation = SimilarityTheoryFluxes(; stability_functions)
-interfaces = ClimaOcean.OceanSeaIceModels.ComponentInterfaces(nothing, ocean; atmosphere_ocean_flux_formulation)
+atmosphere_ocean_fluxes = SimilarityTheoryFluxes(; stability_functions)
+interfaces = ClimaOcean.OceanSeaIceModels.ComponentInterfaces(nothing, ocean; atmosphere_ocean_fluxes)
 model = OceanSeaIceModel(ocean; interfaces)
 
 # output

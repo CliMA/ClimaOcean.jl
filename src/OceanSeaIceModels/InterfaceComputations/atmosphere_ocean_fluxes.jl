@@ -162,7 +162,8 @@ end
 
     ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
     cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
-    ℰv = AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
+    ℒv = AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
+    
 
     # Store fluxes
     Qv  = interface_fluxes.latent_heat
@@ -174,7 +175,7 @@ end
 
     @inbounds begin
         # +0: cooling, -0: heating
-        Qv[i, j, 1]  = - ρₐ * u★ * q★ * ℰv
+        Qv[i, j, 1]  = - ρₐ * ℒv * u★ * q★ 
         Qc[i, j, 1]  = - ρₐ * cₚ * u★ * θ★
         Fv[i, j, 1]  = - ρₐ * u★ * q★
         ρτx[i, j, 1] = + ρₐ * τx

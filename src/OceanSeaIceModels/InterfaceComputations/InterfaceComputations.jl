@@ -10,6 +10,8 @@ export
     ComponentInterfaces,
     LatitudeDependentAlbedo,
     SimilarityTheoryFluxes,
+    MomentumRoughnessLength,
+    ScalarRoughnessLength,
     CoefficientBasedFluxes,
     SkinTemperature,
     BulkTemperature,

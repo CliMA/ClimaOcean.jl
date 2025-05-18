@@ -307,8 +307,8 @@ end
     ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                         radiation = Radiation(),
                         freshwater_density = 1000,
-                        atmosphere_ocean_flux_formulation = SimilarityTheoryFluxes(),
-                        atmosphere_sea_ice_flux_formulation = SimilarityTheoryFluxes(eltype(ocean.model.grid)),
+                        atmosphere_ocean_fluxes = SimilarityTheoryFluxes(),
+                        atmosphere_sea_ice_fluxes = SimilarityTheoryFluxes(eltype(ocean.model.grid)),
                         atmosphere_ocean_interface_temperature = BulkTemperature(),
                         atmosphere_ocean_interface_specific_humidity = default_ao_specific_humidity(ocean),
                         atmosphere_sea_ice_interface_temperature = default_ai_temperature(sea_ice),
@@ -323,8 +323,8 @@ end
 function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              radiation = Radiation(),
                              freshwater_density = 1000,
-                             atmosphere_ocean_flux_formulation = SimilarityTheoryFluxes(eltype(ocean.model.grid)),
-                             atmosphere_sea_ice_flux_formulation = SimilarityTheoryFluxes(eltype(ocean.model.grid)),
+                             atmosphere_ocean_fluxes = SimilarityTheoryFluxes(eltype(ocean.model.grid)),
+                             atmosphere_sea_ice_fluxes = SimilarityTheoryFluxes(eltype(ocean.model.grid)),
                              atmosphere_ocean_interface_temperature = BulkTemperature(),
                              atmosphere_ocean_velocity_difference = RelativeVelocity(),
                              atmosphere_ocean_interface_specific_humidity = default_ao_specific_humidity(ocean),
@@ -358,7 +358,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
     ao_interface = atmosphere_ocean_interface(atmosphere,
                                               ocean,
                                               radiation,
-                                              atmosphere_ocean_flux_formulation,
+                                              atmosphere_ocean_fluxes,
                                               atmosphere_ocean_interface_temperature,
                                               atmosphere_ocean_velocity_difference,
                                               atmosphere_ocean_interface_specific_humidity)
@@ -368,7 +368,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
     ai_interface = atmosphere_sea_ice_interface(atmosphere,
                                                 sea_ice,
                                                 radiation,
-                                                atmosphere_sea_ice_flux_formulation,
+                                                atmosphere_sea_ice_fluxes,
                                                 atmosphere_sea_ice_interface_temperature,
                                                 atmosphere_sea_ice_velocity_difference)
 
@@ -440,3 +440,8 @@ function sea_ice_similarity_theory(sea_ice::SeaIceSimulation)
     return SimilarityTheoryFluxes(; interface_temperature_type)
 end
 
+@inline function air_sea_saturation_specific_humidity(interfaces::ComponentInterfaces, ρₛ, Tₛ, Sₛ=zero(Tₛ))
+    formulation = interfaces.atmosphere_ocean_interface.properties.specific_humidity_formulation
+    ℂₐ = interfaces.atmosphere_properties.thermodynamics_parameters
+    return saturation_specific_humidity(formulation, ρₛ, Tₛ, Sₛ)
+end
