@@ -54,8 +54,6 @@ longitude_interfaces(::TrivalBathymetry) = (-180, 180)
 latitude_interfaces(::TrivalBathymetry) = (0, 50)
 metadata_filename(metadatum::Metadatum{<:TrivalBathymetry, Nothing, Nothing}) = "trivial_bathymetry.nc"
 
-TrivialBathymetry_metadata = Metadata(:z, TrivalBathymetry(), nothing, nothing, ".")
-
 @testset "Distributed ECCO download" begin
     dates = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(1994, 4, 1)
     metadata = Metadata(:u_velocity; dataset=ECCO4Monthly(), dates)
