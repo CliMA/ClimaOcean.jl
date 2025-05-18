@@ -56,15 +56,15 @@ metadata_filename(metadatum::Metadatum{<:TrivalBathymetry, Nothing, Nothing}) = 
 
 TrivialBathymetry_metadata = Metadata(:z, TrivalBathymetry(), nothing, nothing, ".")
 
-# @testset "Distributed ECCO download" begin
-#     dates = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(1994, 4, 1)
-#     metadata = Metadata(:u_velocity; dataset=ECCO4Monthly(), dates)
-#     download_dataset(metadata)
+@testset "Distributed ECCO download" begin
+    dates = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(1994, 4, 1)
+    metadata = Metadata(:u_velocity; dataset=ECCO4Monthly(), dates)
+    download_dataset(metadata)
 
-#     @root for metadatum in metadata
-#         @test isfile(metadata_path(metadatum))
-#     end
-# end
+    @root for metadatum in metadata
+        @test isfile(metadata_path(metadatum))
+    end
+end
 
 @testset "Distributed Bathymetry interpolation" begin
     TrivialBathymetry_metadata = Metadata(:z, TrivalBathymetry(), nothing, nothing, ".")
