@@ -16,7 +16,32 @@ focus on atmosphere-ocean fluxes.
 Future expansions of this tutorial should cover atmosphere-sea-ice fluxes, ocean-sea-ice fluxes, ocean-land fluxes,
 and surface optical computations for radiation.
 
+## Turbulent exchanges between the atmosphere and underlying media
+
+Exchanges of properties like momentum, heat, water vapor, and trace gases between the fluid atmosphere and its underlying surfaces ---
+ocean, sea ice, snow, land --- mediate the evolution of the Earth system.
+Microscopic property exchange is mediated by a complex panolpy of processes including heat conduction, viscous and pressure form drag over rough surface elements, plunging breakers, and more.
+To represent atmosphere-surface exchanges, we construct a model of the near-surface atmosphere that connects a turbulent "similarity layer", usually a few meters thick, with a "constant flux layer"
+that buffers free atmospheric turbulence from microscopic surface exchange processes beneath.
+The problem of modeling property exchange then turns to the task of modeling turbulent atmospheric fluxes just above the constant flux layer.
+
 ## Bulk formula and similarity theory
+
+Within each grid cell, we represent atmosphere-surface turbulent fluxes of some quantity $\psi$ as
+
+```math
+J^ψ = \overline{w' \psi'}
+```
+
+where $w$ is the atmospheric vertical velocity, the overline $\overline{( \, )}$ denotes a horizontal average over a grid cell,
+and primes denote deviations from the horizontal average.
+
+!!! note
+    Arguably, the averaging operator $\overline{( \, )}$ should also represent an average in time,
+    which is implicit in the context of typical global Earth system modeling.
+    Including time-averaging in the averaging operator is explicit required for analyzing obvservations,
+    however, and may also be needed for very high resolution coupled modeling, and should be the subject
+    of future research.
 
 The essential turbulent fluxes that couple the ocean and atmosphere are
 
