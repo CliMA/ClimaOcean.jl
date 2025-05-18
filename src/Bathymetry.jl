@@ -163,7 +163,10 @@ function regrid_bathymetry(target_grid::DistributedGrid, metadata; kw...)
     # shared, we could easily have OOM errors.
     # We perform the reconstruction only on rank 0 and share the result.
     bottom_height = if arch.local_rank == 0
-        bottom_field = _regrid_bathymetry(global_grid, args...; kw...)
+        @show args
+        @show kw
+         # use regrid method that assumes data is downloaded
+         bottom_field = _regrid_bathymetry(global_grid, args...; kw...)
         bottom_field.data[1:Nx, 1:Ny, 1]
     else
         zeros(Nx, Ny)
