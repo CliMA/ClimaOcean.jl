@@ -7,12 +7,11 @@ using Oceananigans
 using Oceananigans.DistributedComputations: @root
 using Scratch
 
-using ..DataWrangling: download_progress, Metadatum
+using ..DataWrangling: download_progress, Metadatum, metadata_path
 
 import ClimaOcean.DataWrangling:
     metadata_filename,
     default_download_directory,
-    metadata_path,
     all_dates,
     first_date,
     last_date,

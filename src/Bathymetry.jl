@@ -150,7 +150,11 @@ end
 
 # Regridding bathymetry for distributed grids, we handle the whole process
 # on just one rank, and share the results with the other processors.
-function regrid_bathymetry(target_grid::DistributedGrid, metadata; kw...)
+function regrid_bathymetry(target_grid::DistributedGrid, metadata;
+                           height_above_water = nothing,
+                           minimum_depth = 0,
+                           interpolation_passes = 1,
+                           major_basins = 1)
 
     download_dataset(metadata)
 
@@ -163,10 +167,9 @@ function regrid_bathymetry(target_grid::DistributedGrid, metadata; kw...)
     # shared, we could easily have OOM errors.
     # We perform the reconstruction only on rank 0 and share the result.
     bottom_height = if arch.local_rank == 0
-        @show args
-        @show kw
         # use regrid method that assumes data is downloaded
-        bottom_field = _regrid_bathymetry(global_grid, args...; kw...)
+        bottom_field = _regrid_bathymetry(global_grid, metadata;
+                                          height_above_water, minimum_depth, interpolation_passes, major_basins)
         bottom_field.data[1:Nx, 1:Ny, 1]
     else
         zeros(Nx, Ny)

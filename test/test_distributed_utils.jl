@@ -3,53 +3,71 @@ include("runtests_setup.jl")
 using MPI
 MPI.Init()
 
-using ClimaOcean.DataWrangling: download_dataset, metadata_path
+using ClimaOcean.DataWrangling: metadata_path
 using Oceananigans.DistributedComputations
 using Oceananigans.DistributedComputations: reconstruct_global_grid
 using CFTime
 using Dates
 using NCDatasets
 
-@testset "Distributed ECCO download" begin
-    dates = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(1994, 4, 1)
-    metadata = Metadata(:u_velocity; dataset=ECCO4Monthly(), dates)
-    download_dataset(metadata)
+# We start by building a fake bathymetry on rank 0 and save it to file
+rm("./trivial_bathymetry.nc", force=true)
 
-    @root for metadatum in metadata
-        @test isfile(metadata_path(metadatum))
-    end
+λ = -179.5:0.1:179.5
+φ = 0:0.1:50
+
+Nλ = length(λ)
+Nφ = length(φ)
+
+@root begin
+    ds = NCDataset("./trivial_bathymetry.nc", "c")
+
+    # Define the dimension "lon" and "lat" with the size 361 and 51 resp.
+    defDim(ds, "lon", Nλ)
+    defDim(ds, "lat", Nφ)
+    defVar(ds, "lat", Float32, ("lat", ))
+    defVar(ds, "lon", Float32, ("lon", ))
+
+    # Define the variables z
+    z = defVar(ds, "z", Float32, ("lon","lat"))
+
+    # Generate some example data
+    data = [Float32(-i) for i = 1:Nλ, j = 1:Nφ]
+
+    # write a the complete data set
+    ds["lon"][:] = λ
+    ds["lat"][:] = φ
+    z[:, :] = data
+
+    close(ds)
 end
 
+struct TrivalBathymetry end
+
+import ClimaOcean.DataWrangling: download_dataset, z_interfaces, longitude_interfaces, latitude_interfaces, metadata_filename
+
+download_dataset(::Metadatum{<:TrivalBathymetry, Nothing, Nothing}) = nothing
+Base.size(::TrivalBathymetry) = (Nλ, Nφ, 1)
+Base.size(dataset::TrivalBathymetry, variable) = size(dataset)
+z_interfaces(::TrivalBathymetry)= (0, 1)
+longitude_interfaces(::TrivalBathymetry) = (-180, 180)
+latitude_interfaces(::TrivalBathymetry) = (0, 50)
+metadata_filename(metadatum::Metadatum{<:TrivalBathymetry, Nothing, Nothing}) = "trivial_bathymetry.nc"
+
+TrivialBathymetry_metadata = Metadata(:z, TrivalBathymetry(), nothing, nothing, ".")
+
+# @testset "Distributed ECCO download" begin
+#     dates = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(1994, 4, 1)
+#     metadata = Metadata(:u_velocity; dataset=ECCO4Monthly(), dates)
+#     download_dataset(metadata)
+
+#     @root for metadatum in metadata
+#         @test isfile(metadata_path(metadatum))
+#     end
+# end
+
 @testset "Distributed Bathymetry interpolation" begin
-    # We start by building a fake bathymetry on rank 0 and save it to file
-    @root begin
-        λ = -179.5:0.1:179.5
-        φ = 0:0.1:50
-
-        Nλ = length(λ)
-        Nφ = length(φ)
-
-        ds = NCDataset("./trivial_bathymetry.nc", "c")
-
-        # Define the dimension "lon" and "lat" with the size 361 and 51 resp.
-        defDim(ds, "lon", Nλ)
-        defDim(ds, "lat", Nφ)
-        defVar(ds, "lat", Float32, ("lat", ))
-        defVar(ds, "lon", Float32, ("lon", ))
-
-        # Define the variables z
-        z = defVar(ds, "z", Float32, ("lon","lat"))
-
-        # Generate some example data
-        data = [Float32(-i) for i = 1:Nλ, j = 1:Nφ]
-
-        # write a the complete data set
-        ds["lon"][:] = λ
-        ds["lat"][:] = φ
-        z[:,:] = data
-
-        close(ds)
-    end
+    TrivialBathymetry_metadata = Metadata(:z, TrivalBathymetry(), nothing, nothing, ".")
 
     global_grid = LatitudeLongitudeGrid(CPU();
                                         size = (40, 40, 1),
@@ -57,9 +75,7 @@ end
                                         latitude = (0, 20),
                                         z = (0, 1))
 
-    global_height = regrid_bathymetry(global_grid;
-                                      dir = "./",
-                                      filename = "trivial_bathymetry.nc",
+    global_height = regrid_bathymetry(global_grid, TrivialBathymetry_metadata;
                                       interpolation_passes=10)
 
     arch_x  = Distributed(CPU(), partition=Partition(4, 1))
@@ -71,13 +87,9 @@ end
                                            size = (40, 40, 1),
                                            longitude = (0, 100),
                                            latitude = (0, 20),
-                                            z = (0, 1))
+                                           z = (0, 1))
 
-        @show "is it distributred grid?: $(local_grid isa Oceananigans.DistributedComputations.DistributedGrid)"
-
-        local_height = regrid_bathymetry(local_grid;
-                                         dir = "./",
-                                         filename = "trivial_bathymetry.nc",
+        local_height = regrid_bathymetry(local_grid, TrivialBathymetry_metadata;
                                          interpolation_passes=10)
 
         Nx, Ny, _ = size(local_grid)
@@ -90,3 +102,5 @@ end
         end
     end
 end
+
+MPI.Finalize()

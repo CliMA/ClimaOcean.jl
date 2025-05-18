@@ -31,8 +31,8 @@ Thermodynamics = "b60c26fb-14c3-4610-9d3e-2d17fe7ff00c"
 ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 
 [weakdeps]
-PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
 CondaPkg = "992eb4ea-22a4-4c89-a5bb-47a3300528ab"
+PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
 Reactant = "3c362404-f566-11ee-1572-e11a4b42c853"
 
 [extensions]
