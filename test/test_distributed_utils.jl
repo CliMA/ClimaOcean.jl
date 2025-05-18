@@ -73,6 +73,8 @@ end
                                            latitude = (0, 20),
                                             z = (0, 1))
 
+        @show "is it distributred grid?: $(local_grid isa Oceananigans.DistributedComputations.DistributedGrid)"
+
         local_height = regrid_bathymetry(local_grid;
                                          dir = "./",
                                          filename = "trivial_bathymetry.nc",
