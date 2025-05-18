@@ -13,8 +13,9 @@ using NCDatasets
 # We start by building a fake bathymetry on rank 0 and save it to file
 rm("./trivial_bathymetry.nc", force=true)
 
-λ = -179.5:0.1:179.5
-φ = 0:0.1:50
+res = 0.5 # degrees
+λ = -180+res/2:res:180-res/2
+φ = 0:res:50
 
 Nλ = length(λ)
 Nφ = length(φ)
@@ -22,14 +23,14 @@ Nφ = length(φ)
 @root begin
     ds = NCDataset("./trivial_bathymetry.nc", "c")
 
-    # Define the dimension "lon" and "lat" with the size 361 and 51 resp.
+    # Define the dimension "lon" and "lat" with the size Nλ and Nφ respectively
     defDim(ds, "lon", Nλ)
     defDim(ds, "lat", Nφ)
     defVar(ds, "lat", Float32, ("lat", ))
     defVar(ds, "lon", Float32, ("lon", ))
 
     # Define the variables z
-    z = defVar(ds, "z", Float32, ("lon","lat"))
+    z = defVar(ds, "z", Float32, ("lon", "lat"))
 
     # Generate some example data
     data = [Float32(-i) for i = 1:Nλ, j = 1:Nφ]
@@ -49,7 +50,7 @@ import ClimaOcean.DataWrangling: download_dataset, z_interfaces, longitude_inter
 download_dataset(::Metadatum{<:TrivalBathymetry, Nothing, Nothing}) = nothing
 Base.size(::TrivalBathymetry) = (Nλ, Nφ, 1)
 Base.size(dataset::TrivalBathymetry, variable) = size(dataset)
-z_interfaces(::TrivalBathymetry)= (0, 1)
+z_interfaces(::TrivalBathymetry) = (0, 1)
 longitude_interfaces(::TrivalBathymetry) = (-180, 180)
 latitude_interfaces(::TrivalBathymetry) = (0, 50)
 metadata_filename(metadatum::Metadatum{<:TrivalBathymetry, Nothing, Nothing}) = "trivial_bathymetry.nc"
