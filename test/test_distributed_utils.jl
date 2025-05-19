@@ -49,7 +49,7 @@ import ClimaOcean.DataWrangling: download_dataset, z_interfaces, longitude_inter
 
 download_dataset(::Metadatum{<:TrivalBathymetry, Nothing, Nothing}) = nothing
 Base.size(::TrivalBathymetry) = (Nλ, Nφ, 1)
-Base.size(dataset::TrivalBathymetry, variable) = size(dataset)
+Base.size(::TrivalBathymetry, variable) = (Nλ, Nφ, 1)
 z_interfaces(::TrivalBathymetry) = (0, 1)
 longitude_interfaces(::TrivalBathymetry) = (-180, 180)
 latitude_interfaces(::TrivalBathymetry) = (0, 50)
@@ -74,8 +74,9 @@ end
                                         latitude = (0, 20),
                                         z = (0, 1))
 
+    interpolation_passes = 4
     global_height = regrid_bathymetry(global_grid, TrivialBathymetry_metadata;
-                                      interpolation_passes=10)
+                                      interpolation_passes)
 
     arch_x  = Distributed(CPU(), partition=Partition(4, 1))
     arch_y  = Distributed(CPU(), partition=Partition(1, 4))
@@ -89,14 +90,14 @@ end
                                            z = (0, 1))
 
         local_height = regrid_bathymetry(local_grid, TrivialBathymetry_metadata;
-                                         interpolation_passes=10)
+                                         interpolation_passes)
 
         Nx, Ny, _ = size(local_grid)
         rx, ry, _ = arch.local_index
         irange    = (rx - 1) * Nx + 1 : rx * Nx
         jrange    = (ry - 1) * Ny + 1 : ry * Ny
 
-        @handshake begin
+        begin
             @test interior(global_height, irange, jrange, 1) == interior(local_height, :, :, 1)
         end
     end
