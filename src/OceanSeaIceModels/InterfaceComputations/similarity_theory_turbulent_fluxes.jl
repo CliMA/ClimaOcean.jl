@@ -475,7 +475,7 @@ end
 # @inline (ψ::ShebaMomentumStabilityFunction)(ζ) = 1 + ψ.a * ζ * cbrt(1 + ζ) / (ψ.b + ζ)
 @inline function stability_profile(ψ::ShebaMomentumStabilityFunction, ζ)
     a = ψ.a
-    b = Ψ.b
+    b = ψ.b
     ζ⁺ = max(zero(ζ), ζ)
     z = cbrt(1 + ζ⁺)
     B = cbrt((1 - b) / b)
