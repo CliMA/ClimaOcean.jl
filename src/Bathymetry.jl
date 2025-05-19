@@ -85,7 +85,7 @@ function regrid_bathymetry(target_grid, metadata;
                               major_basins)
 end
 
-# same as regrid_bathymetry but without downloading
+# regrid the bathymetry assuming the data is already downloaded
 function _regrid_bathymetry(target_grid, metadata;
                             height_above_water,
                             minimum_depth,
