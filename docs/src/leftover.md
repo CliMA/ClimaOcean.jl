@@ -104,3 +104,16 @@ T̃ = \frac{R_m(q)}{R_d} T ≈ T + δ q T \, ,
 Virtual temperature plays the role of temperature in the computation of buoyancy
 for moist air. More specifically, virtual temperature accounts for the fact that moist air
 with $q > 0$ is lighter than perfectly dry air (because water vapor is lighter than dry air).
+
+Our next objective is to compute the buoyancy flux, $\overline{w' b'}$.
+An intermediate result along the way is 
+
+```math
+\frac{p}{R_d} \overline{w' \left ( \alpha - \bar{\alpha} \right )} = \overline{w'T'} - \mathscr{M} \left ( \overline{w' q'} \bar{T} + \bar{q} \overline{w' T'} + \overline{w' q' T'} \right ) \, .
+```
+
+Neglecting both $\overline{q' T'}$ and $\overline{w' q' T'}$, we find the approximate form
+
+```math
+\overline{w' b'} \approx g \frac{\overline{w'T'} - \mathscr{M} \left ( \overline{w' q'} \bar{T} + \bar{q} \overline{w' T'} \right )}{\bar{T} \left ( 1 - \mathscr{M} \bar q \right )} \, .
+```

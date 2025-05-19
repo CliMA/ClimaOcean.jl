@@ -470,7 +470,7 @@ and the ``\approx`` indicates that its form neglects the mass of condensed speci
 The buoyant perturbation experienced by air parcels advected by subgrid turbulent motions is then
 
 ```math
-b' ≡ - g \left ( \rho - \bar{\rho} \right ) = g \frac{\alpha - \bar{\alpha}}{\bar{\alpha}}
+b' ≡ - g \frac{\rho - \bar{\rho}}{\rho} = g \frac{\alpha - \bar{\alpha}}{\bar{\alpha}}
 \qquad \text{where} \qquad
 α = \frac{1}{\rho} = \frac{R_m T}{p} \, .
 ```
@@ -483,14 +483,8 @@ We neglect the effect of pressure perturbations to compute the buoyancy flux, so
 
 #### Buoyancy flux and the characteristic buoyancy scale
 
-Our next objective is to compute the buoyancy flux, $\overline{w' b'}$.
-An intermediate result along the way is 
-
-```math
-\frac{p}{R_d} \overline{w' \left ( \alpha - \bar{\alpha} \right )} = \overline{w'T'} - \mathscr{M} \left ( \overline{w' q'} \bar{T} + \bar{q} \overline{w' T'} + \overline{w' q' T'} \right ) \, .
-```
-
-Neglecting both $\overline{q' T'}$ and $\overline{w' q' T'}$, we find the approximate form
+In a computation whose details are reserved for an appendix, and which neglects $\overline{q'T'}$ and the triple correlation $\overline{w' q' T'}$,
+we find that the buoyancy flux is approximately 
 
 ```math
 \overline{w' b'} \approx g \frac{\overline{w'T'} - \mathscr{M} \left ( \overline{w' q'} \bar{T} + \bar{q} \overline{w' T'} \right )}{\bar{T} \left ( 1 - \mathscr{M} \bar q \right )} \, .
@@ -505,17 +499,16 @@ b_⋆ ≡ g \frac{\theta_\star - \mathscr{M} \left ( q_\star T_s + q_s \theta_\s
 
 ##### Stability of the near-surface atmosphere
 
-To measure the stability of the atmosphere at $z=h$, we consider the ratio between shear production
-and buoyancy production, which oceanographers usually call the "flux Richardson number",
+We use the ratio between the buoyancy flux and shear production at $z=h$ --- which oceanographers often call 
+the "flux Richardson number", $Ri_f$ --- to diagnose the stability of the atmosphere,
 
 ```math
-Ri_f(z=h) ≡ - \frac{\overline{w' b'}}{\partial_z \bar{\bm{u}} \, ⋅ \, \overline{\bm{u}' w'}} = \frac{ϰ \, h \, b_⋆}{u_\star^2} = \frac{h}{L}
+Ri_f(z) ≡ ζ(z) \equiv - \frac{\overline{w' b'}}{\partial_z \bar{\bm{u}} \, ⋅ \, \overline{\bm{u}' w'}} = - \frac{ϰ \, z}{u_\star^2} b_⋆ = \frac{z}{L_\star}
 \qquad \text{where} \qquad
-L ≡ - \frac{u_\star^2}{ϰ b_\star} \, ,
+L_\star ≡ - \frac{u_\star^2}{ϰ b_\star} \, ,
 ```
 
-is called the "Monin-Obhukhov length scale".
-In the air-sea flux literature, the symbol $ζ = h / L$ is used in place of $Ri_f$, and referred to as the "stability parameter".
+``\zeta`` is called the "stability parameter" and $L_\star$ is called the "Monin-Obhukhov length scale".
 
 ### The Monin-Obhukhov "stability functions"
 
@@ -523,36 +516,81 @@ The fundamental premise of Monin-Obhkhov stability theory is that the relationsh
 between air-surface differences and turbulent fluxes can be expressed by
 
 ```math
-\frac{ϰ z}{u_\star} \partial_z \bar{u} = \phi_u(\zeta) \, ,
+\frac{ϰ \, z}{u_\star} \partial_z \bar{u} = \tilde{\psi}_u(\zeta) \, ,
 ```
 
-where $\phi_u(\zeta)$ is called the "stability function", and we recall that $\zeta$ is the flux Richardson number.
-$\phi(\zeta)$ must be $> 1$ when turbulent fluxes are destabilizing and $ζ > 0$, representing enhanced fluxes,
-and $< 1$ in the presence of stabilizing buoyancy fluxes with $ζ > 0$, representing a suppression of fluxes.
-For convenience we introduce the transformation
+where $\tilde{\psi}_u(\zeta)$, which may mathematically interpreted as a "dimensionless shear", is called the "stability function" (and is often denoted $\phi$ in the micrometerological literature).
+Comparing the Monin-Obukhov scaling to the neutral case expounded above, we find that $\tilde{\psi}(0) = 1$ in neutral conditions with $\zeta=0$.
+In the presence of destabilizing fluxes, when $ζ < 0$, observations show that $\tilde{\psi}_u(\zeta) < 1$ (e.g. Businger 1971) --- representing an enhancement of turbulent exchange between the surface and atmosphere.
+Conversely, $\tilde{\psi}_u > 1$ when $ζ > 0$, representing a suppression of turbulent fluxes by stable density stratification, or alternatively, an increase in the shear required to sustain a given friction velocity $u_\star$.
+
+Monin and Obhukov's dimensional argument is also extended to potential temperature, so that for example
 
 ```math
-\phi_u(\zeta) = 1 - ζ \psi_u'(\zeta) \, ,
+\frac{ϰ \, z}{\theta_\star} \partial_z \bar{\theta} = \tilde{\psi}_\theta (\zeta) \, .
 ```
 
-where $\psi'$ denote the derivative of $\psi$.
-Then integrating from $z=\ell_u$ to $z=h$ as for the neutral case, we find that
+Within the context of Monin-Obukhov stabilty theory, it can be shown that the neutral value $\tilde{\psi}(0)$ is equal to the neutral turbulent Prandtl number,
 
 ```math
-u_a(h) - u_a(\ell_u) = Δ u = \frac{u_\star}{\varkappa} \left [ \log \left (\frac{h}{\ell_u} \right ) + ψ_u \left ( \frac{h}{L} \right ) - ψ_u \left (\frac{\ell_u}{L} \right ) \right ]
+Pr(\zeta=0) \equiv \frac{\tilde{\psi}_\theta(0)}{\tilde{\psi}_u(0)} = \tilde{\psi}_\theta(0) \, ,
 ```
 
-Note that the last term, $\psi_u(\ell_u / L)$, is often neglected because $\ell_u / L$ is miniscule and $\psi_u(0) = 0$.
+and observations suggest that $\tilde{\psi}_θ(0) ≈ 0.7$.
+Otherwise, the interpretation of variations in $\tilde{\psi}_\theta$ (increased by stability, decreased by instability)is similar as for momentum.
+We typically use the same "scalar" stability function to scale the vertical profiles of both temperature and water vapor, but neverthless ClimaOcean retains the possibility of an independent $\tilde{\psi}_q$.
+
+### The Monin-Obhukhov self-similar vertical profiles
+
+To determine the implications of Monin-Obukhov similarity theory on the vertical profiles
+of $u$, $\theta$, and $q$, and therefore the implications for computing fluxes based on
+the given differences $Δ\bm{u}$, $Δ \theta$, and $Δ q$, we introduce the transformation
+
+```math
+\tilde{\psi}_u(\zeta) ↦ 1 - ζ \psi_u'(\zeta) \, .
+```
+
+where $\psi_u(\zeta)$ is the "auxiliary stability function", and $\psi'_u(\zeta)$ is the derivative of $\psi_u$.
+Inserting this transformation into the Monin-Obukhov scaling argument and rearranging terms yields
+
+```math
+\partial_z u = \frac{u_\star}{ϰ \, z} + \frac{b_\star}{u_⋆} ψ' \left ( \frac{z}{L_⋆} \right ) \, ,
+```
+
+which when integrated from $z=\ell_u$ to $z=h$, as for the neutral case, then produces
+
+```math
+u_a(h) - u_a(\ell_u) = Δ u = \frac{u_\star}{\varkappa} \left [ \log \left (\frac{h}{\ell_u} \right ) + ψ_u \left ( \frac{h}{L_\star} \right ) - ψ_u \left (\frac{\ell_u}{L_\star} \right ) \right ] \, .
+```
+
+The term $\psi_u(\ell_u / L_\star)$ is often neglected because $\ell_u / L_\star$ is miniscule and because by definition, $\psi_u(0) = 0$.
 Similar formula hold for temperature and water vapor,
 
 ```math
-Δ \theta = \frac{\theta_\star}{\varkappa} \left [ \log \left (\frac{h}{\ell_\theta} \right ) + ψ_\theta \left ( \frac{h}{L} \right ) - ψ_\theta \left (\frac{\ell_\theta}{L} \right ) \right ] \\
-Δ q = \frac{q_\star}{\varkappa} \left [ \log \left (\frac{h}{\ell_q} \right ) + ψ_q \left ( \frac{h}{L} \right ) - ψ_q \left (\frac{\ell_q}{L} \right ) \right ]
+Δ \theta = \frac{\theta_\star}{\varkappa} \left [ \log \left (\frac{h}{\ell_\theta} \right ) + ψ_\theta \left ( \frac{h}{L_\star} \right ) - ψ_\theta \left (\frac{\ell_\theta}{L_\star} \right ) \right ] \, , \\[2ex]
+Δ q = \frac{q_\star}{\varkappa} \left [ \log \left (\frac{h}{\ell_q} \right ) + ψ_q \left ( \frac{h}{L_\star} \right ) - ψ_q \left (\frac{\ell_q}{L_\star} \right ) \right ] \, .
 ```
+
+Let's plot some stability functions:
+
+```@example interface_fluxes
+using ClimaOcean.OceanSeaIceModels.InterfaceComputations: saturation_specific_humidity
+ρₐ = 1.2 # guess
+Tₒ = 273.15 + 20 # in Kelvin
+Sₒ = 35
+interfaces = default_model.interfaces
+ℂₐ = interfaces.atmosphere_properties
+q_formulation = interfaces.atmosphere_ocean_interface.properties.specific_humidity_formulation
+qₛ = saturation_specific_humidity(q_formulation, ℂₐ, ρₐ, Tₒ, Sₒ)
+```
+
+
+
+#### Computing fluxes given atmopshere, surface, and bulk interior states
 
 We rearrange these into expresssions for $u_\star$, $\theta_\star$, and $q_\star$ in terms of $Δ u$, $Δ \theta$, and $Δ q$, and solve
 the resulting system of three equations using fixed-point iteration.
-At each iterate, both the roughness lengths and the Monin-Obhukhov length $L = - u_\star^2 / ϰ b_\star$ are estimated using the values of $u_\star$, $\theta_\star$, and $q_\star$
+At each iterate, both the roughness lengths and the Monin-Obhukhov length $L_\star = - u_\star^2 / ϰ b_\star$ are estimated using the values of $u_\star$, $\theta_\star$, and $q_\star$
 from the previous iterate.
 
 ```@example interface_fluxes
