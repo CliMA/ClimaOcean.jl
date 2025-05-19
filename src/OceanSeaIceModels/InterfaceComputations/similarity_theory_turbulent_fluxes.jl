@@ -46,7 +46,6 @@ Base.summary(::SimilarityTheoryFluxes{FT}) where FT = "SimilarityTheoryFluxes{$F
 
 function Base.show(io::IO, fluxes::SimilarityTheoryFluxes)
     print(io, summary(fluxes), '\n',
-          "├── gravitational_acceleration: ", prettysummary(fluxes.gravitational_acceleration), '\n',
           "├── von_karman_constant: ",        prettysummary(fluxes.von_karman_constant), '\n',
           "├── turbulent_prandtl_number: ",   prettysummary(fluxes.turbulent_prandtl_number), '\n',
           "├── gustiness_parameter: ",        prettysummary(fluxes.gustiness_parameter), '\n',
