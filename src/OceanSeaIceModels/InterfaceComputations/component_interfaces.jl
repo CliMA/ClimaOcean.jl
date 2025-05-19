@@ -156,8 +156,6 @@ end
     end
 end
 
-const PATP = PrescribedAtmosphereThermodynamicsParameters
-
 # Possible units for temperature and salinity
 struct DegreesCelsius end
 struct DegreesKelvin end
@@ -246,7 +244,7 @@ function atmosphere_sea_ice_interface(atmos,
     radiation = (σ=σ, α=αₐᵢ, ϵ=ϵₐᵢ)
 
     phase = AtmosphericThermodynamics.Ice()
-    specific_humidity_formulation = SpecificHumidityFormulation(phase)
+    specific_humidity_formulation = ImpureSaturationSpecificHumidity(phase)
 
     properties = InterfaceProperties(radiation,
                                      specific_humidity_formulation,
@@ -300,7 +298,7 @@ function default_ao_specific_humidity(ocean)
     FT = eltype(ocean.model.grid)
     phase = AtmosphericThermodynamics.Liquid()
     x_H₂O = convert(FT, 0.98)
-    return SpecificHumidityFormulation(phase, x_H₂O)
+    return ImpureSaturationSpecificHumidity(phase, x_H₂O)
 end
 
 """
@@ -440,8 +438,8 @@ function sea_ice_similarity_theory(sea_ice::SeaIceSimulation)
     return SimilarityTheoryFluxes(; interface_temperature_type)
 end
 
-@inline function air_sea_saturation_specific_humidity(interfaces::ComponentInterfaces, ρₛ, Tₛ, Sₛ=zero(Tₛ))
+@inline function air_sea_surface_specific_humidity(interfaces::ComponentInterfaces, ρₛ, Tₛ, Sₛ=zero(Tₛ))
     formulation = interfaces.atmosphere_ocean_interface.properties.specific_humidity_formulation
     ℂₐ = interfaces.atmosphere_properties.thermodynamics_parameters
-    return saturation_specific_humidity(formulation, ρₛ, Tₛ, Sₛ)
+    return surface_specific_humidity(formulation, ρₛ, Tₛ, Sₛ)
 end

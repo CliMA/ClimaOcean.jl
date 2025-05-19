@@ -5,7 +5,7 @@ using ClimaOcean.OceanSeaIceModels.InterfaceComputations:
                                    celsius_to_kelvin,
                                    convert_to_kelvin,
                                    SimilarityScales,
-                                   saturation_specific_humidity,
+                                   surface_specific_humidity,
                                    surface_flux,
                                    SkinTemperature,
                                    BulkTemperature,
@@ -21,7 +21,7 @@ using ClimaOcean.DataWrangling: all_dates
 using ClimaSeaIce.SeaIceMomentumEquations
 using ClimaSeaIce.Rheologies
 
-import ClimaOcean.OceanSeaIceModels.InterfaceComputations: saturation_specific_humidity
+import ClimaOcean.OceanSeaIceModels.InterfaceComputations: surface_specific_humidity
 
 using Statistics: mean, std
 
@@ -29,7 +29,7 @@ struct FixedSpecificHumidity{FT}
     qₒ :: FT
 end
 
-@inline saturation_specific_humidity(h::FixedSpecificHumidity, args...) = h.qₒ
+@inline surface_specific_humidity(h::FixedSpecificHumidity, args...) = h.qₒ
 
 @testset "Test surface fluxes" begin
     for arch in test_architectures
@@ -144,7 +144,7 @@ end
 
             interface_properties = interfaces.atmosphere_ocean_interface.properties
             q_formulation = interface_properties.specific_humidity_formulation
-            qₒ = saturation_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ.ρ, Tₒ, Sₒ)
+            qₒ = surface_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ.ρ, Tₒ, Sₒ)
             g  = ocean.model.buoyancy.formulation.gravitational_acceleration
 
             # Differences!

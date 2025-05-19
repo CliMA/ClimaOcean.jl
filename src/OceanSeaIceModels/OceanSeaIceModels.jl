@@ -61,7 +61,7 @@ include("PrescribedAtmospheres.jl")
 
 using .PrescribedAtmospheres:
     PrescribedAtmosphere,
-    PrescribedAtmosphereThermodynamicsParameters,
+    AtmosphereThermodynamicsParameters,
     TwoBandDownwellingRadiation
 
 include("InterfaceComputations/InterfaceComputations.jl")

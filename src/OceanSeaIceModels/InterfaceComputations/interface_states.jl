@@ -22,23 +22,37 @@ end
 
 # TODO: allow different saturation models
 # struct ClasiusClapyeronSaturation end
-struct SpecificHumidityFormulation{Φ, X}
+struct ImpureSaturationSpecificHumidity{Φ, X}
     # saturation :: S
     phase :: Φ
     water_mole_fraction :: X
 end
 
+function Base.summary(q★::ImpureSaturationSpecificHumidity)
+    phase_str = if q★.phase == AtmosphericThermodynamics.Ice()
+        "Ice"
+    elseif q★.phase == AtmosphericThermodynamics.Liquid()
+        "Liquid"
+    end
+
+
+    return string("ImpureSaturationSpecificHumidity{$phase_str}(water_mole_fraction=",
+                  prettysummary(q★.water_mole_fraction), ")") 
+end
+
+Base.show(io::IO, q★::ImpureSaturationSpecificHumidity) = print(io, summary(q★))
+
 """
-    SpecificHumidityFormulation(phase [, water_mole_fraction=1])
+    ImpureSaturationSpecificHumidity(phase [, water_mole_fraction=1])
 
 Return the formulation for computing specific humidity at an interface.
 """
-SpecificHumidityFormulation(phase) = SpecificHumidityFormulation(phase, nothing)
+ImpureSaturationSpecificHumidity(phase) = ImpureSaturationSpecificHumidity(phase, nothing)
 
 @inline compute_water_mole_fraction(::Nothing, salinity) = 1
 @inline compute_water_mole_fraction(x_H₂O::Number, salinity) = x_H₂O
 
-@inline function saturation_specific_humidity(formulation::SpecificHumidityFormulation, ℂₐ, ρₛ, Tₛ, Sₛ=zero(Tₛ))
+@inline function surface_specific_humidity(formulation::ImpureSaturationSpecificHumidity, ℂₐ, ρₛ, Tₛ, Sₛ=zero(Tₛ))
     x_H₂O = compute_water_mole_fraction(formulation.water_mole_fraction, Sₛ)
     phase = formulation.phase
 

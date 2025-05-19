@@ -170,15 +170,15 @@ height above the boundary, such that by dimensional analysis,
 ```math
 \partial_z u \sim \frac{u_\star}{z} \, ,
 \qquad \text{and thus} \qquad
-\partial_z u = \frac{u_\star}{ϰ z} \, ,
+\partial_z u = \frac{u_\star}{\kappa z} \, ,
 ```
 
-where the second expression forms an equality by introducing the "Von Karman constant" $\varkappa$,
+where the second expression forms an equality by introducing the "Von Karman constant" $\kappa$,
 which is placed in the denominator by convention.
 We can then integrate this expression from an inner scale $z=\ell$ up to $z=h$ to obtain
 
 ```math
-u_a(h) - u_a(\ell_u) = \frac{u_⋆}{\varkappa} \log \left ( \frac{h}{\ell_u} \right )  
+u_a(h) - u_a(\ell_u) = \frac{u_⋆}{\kappa} \log \left ( \frac{h}{\ell_u} \right )  
 ```
 
 The inner length scale $\ell_u$, which is called the "momentum roughness length",
@@ -267,7 +267,7 @@ This formulation produces a nonlinear equation for $u_\star$, in terms of $Δ u 
 which we emphasize by rearranging the similarity profile 
 
 ```math
-u_\star = \frac{ϰ \, Δ u}{\log \left [ h / \ell_u(u_\star) \right ]} \, . 
+u_\star = \frac{\kappa \, Δ u}{\log \left [ h / \ell_u(u_\star) \right ]} \, . 
 ```
 
 This equation is solved for $u_\star$ using fixed-point iteration initialized with a reasonable
@@ -275,7 +275,7 @@ guess for $u_\star$.
 Once $u_\star$ is obtained, the similarity drag coeffient may then be computed via
 
 ```math
-C_D(h) ≡ \frac{u_\star^2}{|Δ u(h)|^2} = \frac{\varkappa^2}{\left ( \log \left [ h / \ell_u \right ] \right )^2} \,
+C_D(h) ≡ \frac{u_\star^2}{|Δ u(h)|^2} = \frac{\kappa^2}{\left ( \log \left [ h / \ell_u \right ] \right )^2} \,
 ```
 
 where we have used the simple bulk velocity scale $U = Δ u$.
@@ -503,23 +503,22 @@ We use the ratio between the buoyancy flux and shear production at $z=h$ --- whi
 the "flux Richardson number", $Ri_f$ --- to diagnose the stability of the atmosphere,
 
 ```math
-Ri_f(z) ≡ ζ(z) \equiv - \frac{\overline{w' b'}}{\partial_z \bar{\bm{u}} \, ⋅ \, \overline{\bm{u}' w'}} = - \frac{ϰ \, z}{u_\star^2} b_⋆ = \frac{z}{L_\star}
+Ri_f(z) ≡ ζ(z) \equiv - \frac{\overline{w' b'}}{\partial_z \bar{\bm{u}} \, ⋅ \, \overline{\bm{u}' w'}} = - \frac{\kappa \, z}{u_\star^2} b_⋆ = \frac{z}{L_\star}
 \qquad \text{where} \qquad
-L_\star ≡ - \frac{u_\star^2}{ϰ b_\star} \, ,
+L_\star ≡ - \frac{u_\star^2}{\kappa b_\star} \, ,
 ```
 
 ``\zeta`` is called the "stability parameter" and $L_\star$ is called the "Monin-Obhukhov length scale".
 
 ### The Monin-Obhukhov "stability functions"
 
-The fundamental premise of Monin-Obhkhov stability theory is that the relationship
-between air-surface differences and turbulent fluxes can be expressed by
+The fundamental premise of Monin-Obhkhov stability theory is that shear within a similarity layer affected by buoyancy fluxes may written
 
 ```math
-\frac{ϰ \, z}{u_\star} \partial_z \bar{u} = \tilde{\psi}_u(\zeta) \, ,
+\frac{\kappa \, z}{u_\star} \partial_z \bar{u} = \tilde{\psi}_u(\zeta) \, ,
 ```
 
-where $\tilde{\psi}_u(\zeta)$, which may mathematically interpreted as a "dimensionless shear", is called the "stability function" (and is often denoted $\phi$ in the micrometerological literature).
+where $\tilde{\psi}_u(\zeta)$ is called the "stability function" (aka "dimensionless shear", and often denoted $\phi$).
 Comparing the Monin-Obukhov scaling to the neutral case expounded above, we find that $\tilde{\psi}(0) = 1$ in neutral conditions with $\zeta=0$.
 In the presence of destabilizing fluxes, when $ζ < 0$, observations show that $\tilde{\psi}_u(\zeta) < 1$ (e.g. Businger 1971) --- representing an enhancement of turbulent exchange between the surface and atmosphere.
 Conversely, $\tilde{\psi}_u > 1$ when $ζ > 0$, representing a suppression of turbulent fluxes by stable density stratification, or alternatively, an increase in the shear required to sustain a given friction velocity $u_\star$.
@@ -527,10 +526,10 @@ Conversely, $\tilde{\psi}_u > 1$ when $ζ > 0$, representing a suppression of tu
 Monin and Obhukov's dimensional argument is also extended to potential temperature, so that for example
 
 ```math
-\frac{ϰ \, z}{\theta_\star} \partial_z \bar{\theta} = \tilde{\psi}_\theta (\zeta) \, .
+\frac{κ \, z}{\theta_\star} \partial_z \bar{\theta} = \tilde{\psi}_\theta (\zeta) \, .
 ```
 
-Within the context of Monin-Obukhov stabilty theory, it can be shown that the neutral value $\tilde{\psi}(0)$ is equal to the neutral turbulent Prandtl number,
+Within the context of Monin-Obukhov stabilty theory, it can be shown that the neutral value $\tilde{\psi}_\theta(0)$ is equal to the neutral turbulent Prandtl number,
 
 ```math
 Pr(\zeta=0) \equiv \frac{\tilde{\psi}_\theta(0)}{\tilde{\psi}_u(0)} = \tilde{\psi}_\theta(0) \, ,
@@ -544,64 +543,117 @@ We typically use the same "scalar" stability function to scale the vertical prof
 
 To determine the implications of Monin-Obukhov similarity theory on the vertical profiles
 of $u$, $\theta$, and $q$, and therefore the implications for computing fluxes based on
-the given differences $Δ\bm{u}$, $Δ \theta$, and $Δ q$, we introduce the transformation
+the given differences $Δ\bm{u}$, $Δ \theta$, and $Δ q$, we introduce "auxiliary stability functions" $\psi_u(\zeta)$, which have derivatives $\psi_u'(\zeta)$ and are related to $\tilde{\psi}_u$ via
 
 ```math
-\tilde{\psi}_u(\zeta) ↦ 1 - ζ \psi_u'(\zeta) \, .
+\tilde{ψ}_u(ζ) \equiv 1 - ζ ψ_u'(ζ) \, .
 ```
 
-where $\psi_u(\zeta)$ is the "auxiliary stability function", and $\psi'_u(\zeta)$ is the derivative of $\psi_u$.
 Inserting this transformation into the Monin-Obukhov scaling argument and rearranging terms yields
 
 ```math
-\partial_z u = \frac{u_\star}{ϰ \, z} + \frac{b_\star}{u_⋆} ψ' \left ( \frac{z}{L_⋆} \right ) \, ,
+\partial_z u = \frac{u_\star}{\kappa \, z} + \frac{b_\star}{u_⋆} ψ' \left ( \frac{z}{L_⋆} \right ) \, ,
 ```
 
 which when integrated from $z=\ell_u$ to $z=h$, as for the neutral case, then produces
 
 ```math
-u_a(h) - u_a(\ell_u) = Δ u = \frac{u_\star}{\varkappa} \left [ \log \left (\frac{h}{\ell_u} \right ) + ψ_u \left ( \frac{h}{L_\star} \right ) - ψ_u \left (\frac{\ell_u}{L_\star} \right ) \right ] \, .
+u_a(h) - u_a(\ell_u) = Δ u = \frac{u_\star}{\kappa}
+    \left [ \log \left (\frac{h}{\ell_u} \right ) + ψ_u \left ( \frac{h}{L_\star} \right ) - ψ_u \left (\frac{\ell_u}{L_\star} \right ) \right ] \, .
 ```
 
 The term $\psi_u(\ell_u / L_\star)$ is often neglected because $\ell_u / L_\star$ is miniscule and because by definition, $\psi_u(0) = 0$.
 Similar formula hold for temperature and water vapor,
 
 ```math
-Δ \theta = \frac{\theta_\star}{\varkappa} \left [ \log \left (\frac{h}{\ell_\theta} \right ) + ψ_\theta \left ( \frac{h}{L_\star} \right ) - ψ_\theta \left (\frac{\ell_\theta}{L_\star} \right ) \right ] \, , \\[2ex]
-Δ q = \frac{q_\star}{\varkappa} \left [ \log \left (\frac{h}{\ell_q} \right ) + ψ_q \left ( \frac{h}{L_\star} \right ) - ψ_q \left (\frac{\ell_q}{L_\star} \right ) \right ] \, .
+Δ \theta = \frac{\theta_\star}{\kappa} \left [ \log \left (\frac{h}{\ell_\theta} \right ) + ψ_\theta \left ( \frac{h}{L_\star} \right ) - ψ_\theta \left (\frac{\ell_\theta}{L_\star} \right ) \right ] \, , \\[2ex]
+Δ q = \frac{q_\star}{\kappa} \left [ \log \left (\frac{h}{\ell_q} \right ) + ψ_q \left ( \frac{h}{L_\star} \right ) - ψ_q \left (\frac{\ell_q}{L_\star} \right ) \right ] \, .
 ```
 
 Let's plot some stability functions:
 
+
+
 ```@example interface_fluxes
-using ClimaOcean.OceanSeaIceModels.InterfaceComputations: saturation_specific_humidity
+using ClimaOcean.OceanSeaIceModels.InterfaceComputations:
+    EdsonMomentumStabilityFunction,     # Edson et al 2013
+    EdsonScalarStabilityFunction,       # Edson et al 2013
+    ShebaMomentumStabilityFunction,     # Grachev et al 2007
+    ShebaScalarStabilityFunction,       # Grachev et al 2007
+    PaulsonMomentumStabilityFunction,   # Paulson 1970
+    PaulsonScalarStabilityFunction      # Paulson 1970
+
+edson_momentum   = EdsonMomentumStabilityFunction()
+edson_scalar     = EdsonScalarStabilityFunction()
+sheba_momentum   = ShebaMomentumStabilityFunction()
+sheba_scalar     = ShebaScalarStabilityFunction()
+paulson_momentum = PaulsonMomentumStabilityFunction()
+paulson_scalar   = PaulsonScalarStabilityFunction()
+
+ζ = -4:0.01:4
+
+lines(ζ, edson_momentum.(ζ))
+lines!(ζ, edson_scalar.(ζ))
+lines!(ζ, sheba_momentum.(ζ))
+lines!(ζ, sheba_scalar.(ζ))
+lines!(ζ, paulson_momentum.(ζ))
+lines!(ζ, paulson_scalar.(ζ))
+```
+
+```@example interface_fluxes
+using ClimaOcean.OceanSeaIceModels.InterfaceComputations: surface_specific_humidity
+
 ρₐ = 1.2 # guess
 Tₒ = 273.15 + 20 # in Kelvin
 Sₒ = 35
 interfaces = default_model.interfaces
 ℂₐ = interfaces.atmosphere_properties
 q_formulation = interfaces.atmosphere_ocean_interface.properties.specific_humidity_formulation
-qₛ = saturation_specific_humidity(q_formulation, ℂₐ, ρₐ, Tₒ, Sₒ)
+qₛ = surface_specific_humidity(q_formulation, ℂₐ, ρₐ, Tₒ, Sₒ)
 ```
-
-
 
 #### Computing fluxes given atmopshere, surface, and bulk interior states
 
-We rearrange these into expresssions for $u_\star$, $\theta_\star$, and $q_\star$ in terms of $Δ u$, $Δ \theta$, and $Δ q$, and solve
-the resulting system of three equations using fixed-point iteration.
-At each iterate, both the roughness lengths and the Monin-Obhukhov length $L_\star = - u_\star^2 / ϰ b_\star$ are estimated using the values of $u_\star$, $\theta_\star$, and $q_\star$
-from the previous iterate.
+We compute surface fluxes by solving the nonlinear set of equations for $u_\star$, $\theta_\star$.
+We use fixed point iteration of the following three-variable system,
+
+```math
+u_⋆^{n+1} = \, Δ u \, \, Ξ_u \left (h, \ell_u^n, L_⋆^n \right ) \\[2ex]
+θ_⋆^{n+1} = \, Δ θ \, \, Ξ_θ \left (h, \ell_θ^n, L_⋆^n \right ) \\[2ex]
+q_⋆^{n+1} = \, Δ q \, \, Ξ_q \left (h, \ell_q^n, L_⋆^n \right )
+```
+
+where, for example,
+
+```math
+\Xi_u \left ( h, \ell_u, L_⋆ \right ) ≡ \frac{κ}{\log \left ( \frac{h}{\ell_u} \right ) + \psi_u \left ( \frac{h}{L_\star} \right ) + \psi_u \left ( \frac{\ell_u}{L_\star} \right )} \, ,
+```
+
+These equations indicate how $\ell_u, \ell_\theta, \ell_q,$ and  $L_⋆ = - u_\star^2 / κ b_\star$ are all functions of $u_\star, \theta_\star, q_\star$; estimating the
+right side requires using values at the previous iterate $n$.
+Note that if a skin temperature model is used, then we obtain a four-variable system,
+
+```math
+u_⋆^{n+1} = \, Δ u \, \, Ξ_u \left (h, \ell_u^n, L_⋆^n \right ) \\[2ex]
+θ_⋆^{n+1} = \, Δ θ^n \, \, Ξ_θ \left (h, \ell_θ^n, L_⋆^n \right ) \\[2ex]
+q_⋆^{n+1} = \, Δ q^n \, \, Ξ_q \left (h, \ell_q^n, L_⋆^n \right ) \\[2ex]
+T_s^{n+1} = F_T \left (θ_⋆, q_⋆, I_{sw}, I_{lw}, \cdots \right )
+```
+
+where $F_T$ denotes an esimate of the surface temperature that in general requires all incoming heat fluxes
+including shortwave and longwave radiation $I_{sw}$ and $I_{lw}$.
+In the skin temperature case, the air-surface temperature difference $Δ \theta$ and the saturation specific humidity
+that enters into the air-surface specific humidity difference $Δ q$ also change each iterate.
 
 ```@example interface_fluxes
-using ClimaOcean.OceanSeaIceModels.InterfaceComputations: saturation_specific_humidity
+using ClimaOcean.OceanSeaIceModels.InterfaceComputations: surface_specific_humidity
 ρₐ = 1.2 # guess
 Tₒ = 273.15 + 20 # in Kelvin
 Sₒ = 35
 interfaces = default_model.interfaces
 ℂₐ = interfaces.atmosphere_properties
 q_formulation = interfaces.atmosphere_ocean_interface.properties.specific_humidity_formulation
-qₛ = saturation_specific_humidity(q_formulation, ℂₐ, ρₐ, Tₒ, Sₒ)
+qₛ = surface_specific_humidity(q_formulation, ℂₐ, ρₐ, Tₒ, Sₒ)
 ```
 
 We then set the atmos state:

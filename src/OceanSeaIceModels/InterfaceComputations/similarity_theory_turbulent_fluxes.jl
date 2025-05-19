@@ -11,8 +11,6 @@ using Printf
 using Thermodynamics: PhasePartition
 using KernelAbstractions.Extras.LoopInfo: @unroll
 
-using ..PrescribedAtmospheres: PrescribedAtmosphereThermodynamicsParameters
-
 using Statistics: norm
 
 import Thermodynamics as AtmosphericThermodynamics
@@ -289,6 +287,10 @@ Base.show(io::IO, ss::SimilarityScales) = print(io, summary(ss))
 
 @inline stability_profile(ψ, ζ) = ψ(ζ)
 
+# Convenience
+abstract type AbstractStabilityFunction end
+@inline (ψ::AbstractStabilityFunction)(ζ) = stability_profile(ψ, ζ)
+
 """
     EdsonMomentumStabilityFunction{FT}
 
@@ -321,7 +323,7 @@ f  = ζ² / (1 + ζ²)
 The superscripts ``ˢ`` and ``ᵘ`` indicate if the parameter applies to the
 stability function for _stable_ or _unstable_ atmospheric conditions, respectively.
 """
-@kwdef struct EdsonMomentumStabilityFunction{FT}
+@kwdef struct EdsonMomentumStabilityFunction{FT} <: AbstractStabilityFunction
     ζmax :: FT = 50.0
     Aˢ   :: FT = 0.35
     Bˢ   :: FT = 0.7
@@ -399,7 +401,7 @@ f  = ζ² / (1 + ζ²)
 The superscripts ``ˢ`` and ``ᵘ`` indicate if the parameter applies to the
 stability function for _stable_ or _unstable_ atmospheric conditions, respectively.
 """
-@kwdef struct EdsonScalarStabilityFunction{FT}
+@kwdef struct EdsonScalarStabilityFunction{FT} <: AbstractStabilityFunction
     ζmax :: FT = 50.0
     Aˢ   :: FT = 0.35
     Bˢ   :: FT = 2/3
@@ -465,7 +467,7 @@ Base.show(io, ::EdsonScalarStabilityFunction{FT}) where FT = print(io, "EdsonSca
 ##### From Grachev et al. (2007), for stable boundary layers
 #####
 
-@kwdef struct ShebaMomentumStabilityFunction{FT}
+@kwdef struct ShebaMomentumStabilityFunction{FT} <: AbstractStabilityFunction
     a :: FT = 6.5
     b :: FT = 1.3
 end
@@ -487,7 +489,7 @@ end
     return Ψ₁ + Ψ₂
 end
 
-@kwdef struct ShebaScalarStabilityFunction{FT}
+@kwdef struct ShebaScalarStabilityFunction{FT} <: AbstractStabilityFunction
     a :: FT = 5.0
     b :: FT = 5.0
     c :: FT = 3.0
@@ -509,9 +511,9 @@ end
 
 #####
 ##### From Paulson (1970), for unstable boundary layers
-####
+#####
 
-@kwdef struct PaulsonMomentumStabilityFunction{FT}
+@kwdef struct PaulsonMomentumStabilityFunction{FT} <: AbstractStabilityFunction
     a :: FT = 16.0
     b :: FT = π/2
 end
@@ -529,7 +531,7 @@ end
     return Ψ₁ + Ψ₂ + Ψ₃ + b
 end
 
-@kwdef struct PaulsonScalarStabilityFunction{FT}
+@kwdef struct PaulsonScalarStabilityFunction{FT} <: AbstractStabilityFunction
     a :: FT = 16.0
 end
 
