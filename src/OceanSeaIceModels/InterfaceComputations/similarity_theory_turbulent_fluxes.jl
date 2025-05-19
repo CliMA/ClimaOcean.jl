@@ -558,12 +558,12 @@ Base.show(io::IO, ss::SplitStabilityFunction) = print(io, "SplitStabilityFunctio
 end
 
 function atmosphere_sea_ice_stability_functions(FT=Oceananigans.defaults.FloatType)
-    stable_momentum = PaulsonMomentumStabilityFunction{FT}()
-    unstable_momentum = ShebaMomentumStabilityFunction{FT}()
+    unstable_momentum = PaulsonMomentumStabilityFunction{FT}()
+    stable_momentum = ShebaMomentumStabilityFunction{FT}()
     momentum = SplitStabilityFunction(stable_momentum, unstable_momentum)
 
-    stable_scalar = PaulsonScalarStabilityFunction{FT}()
-    unstable_scalar = ShebaScalarStabilityFunction{FT}()
+    unstable_scalar = PaulsonScalarStabilityFunction{FT}()
+    stable_scalar = ShebaScalarStabilityFunction{FT}()
     scalar = SplitStabilityFunction(stable_scalar, unstable_scalar)
 
     return SimilarityScales(momentum, scalar, scalar)

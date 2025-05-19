@@ -591,13 +591,24 @@ paulson_momentum = PaulsonMomentumStabilityFunction()
 paulson_scalar   = PaulsonScalarStabilityFunction()
 
 ζ = -4:0.01:4
+ζ⁺ = 0:0.01:4
+ζ⁻ = -4:0.01:0.0
 
-lines(ζ, edson_momentum.(ζ))
-lines!(ζ, edson_scalar.(ζ))
-lines!(ζ, sheba_momentum.(ζ))
-lines!(ζ, sheba_scalar.(ζ))
-lines!(ζ, paulson_momentum.(ζ))
-lines!(ζ, paulson_scalar.(ζ))
+fig = Figure(size=(800, 400))
+
+axm = Axis(fig[1, 1], xlabel="Stability parameter ζ", ylabel="Stability function")
+axs = Axis(fig[1, 2], xlabel="Stability parameter ζ", ylabel="Stability function")
+
+lines!(axm, ζ,  edson_momentum.(ζ), label="Edson et al. (2013)")
+lines!(axm, ζ⁺, sheba_momentum.(ζ⁺), label="Grachev et al. (2007)")
+lines!(axm, ζ⁻, paulson_momentum.(ζ⁻), label="Paulson (1970)")
+axislegend(axm, position=:lb)
+
+lines!(axs, ζ,  edson_scalar.(ζ), label="Edson et al. (2013)")
+lines!(axs, ζ⁺, sheba_scalar.(ζ⁺), label="Grachev et al. (2007)")
+lines!(axs, ζ⁻, paulson_scalar.(ζ⁻), label="Paulson (1970)")
+
+fig
 ```
 
 ```@example interface_fluxes
