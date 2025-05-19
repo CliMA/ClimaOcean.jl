@@ -141,7 +141,7 @@ end
     β = ℓ.smooth_wall_parameter
 
     ℓᵂ = α * u★^2 / g # gravity wave roughness length
-    ℓᴿ = β * ν / u★ * (β > 0) # viscous sublayer roughness length
+    ℓᴿ = ifelse(β == 0, zero(u★), β * ν / u★) # viscous sublayer roughness length
     ℓ★ = ℓᵂ + ℓᴿ # arbitrary way of combining the two
 
     # Clip to ℓ_max, deals with u★ = 0
