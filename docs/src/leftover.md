@@ -103,4 +103,4 @@ T̃ = \frac{R_m(q)}{R_d} T ≈ T + δ q T \, ,
 
 Virtual temperature plays the role of temperature in the computation of buoyancy
 for moist air. More specifically, virtual temperature accounts for the fact that moist air
-with $q > 0$ is heavier than perfectly dry air (because water vapor is heavier than dry air).
+with $q > 0$ is lighter than perfectly dry air (because water vapor is lighter than dry air).
