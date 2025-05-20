@@ -5,41 +5,41 @@ To motivate this tutorial, we first note that `ClimaOcean`'s [`OceanSeaIceModel`
 1. Manage time-stepping multiple component models forward simultaneously,
 2. Compute and communicate fluxes between the component models.
 
-This tutorial therefore touches on one of the two main purposes of `OceanSeaIceModel`:
+This tutorial therefore touches on the latter of the two main purposes of `OceanSeaIceModel`:
 computing turbulent fluxes between model components.
 
 ## Component interfaces we consider
 
 The `OceanSeaIceModel` has atmosphere, ocean, and sea ice components (and will someday also have land and radiation components).
-This tutorial will hopefully eventually cover all turbulent flux computations, but for the time being we
+We envision that the tutorial will eventually cover all turbulent flux computations; for the time being we
 focus on atmosphere-ocean fluxes.
-Future expansions of this tutorial should cover atmosphere-sea-ice fluxes, ocean-sea-ice fluxes, ocean-land fluxes,
+Future expansions of this tutorial should cover atmosphere-sea ice fluxes, ocean-sea ice fluxes, ocean-land fluxes,
 and surface optical computations for radiation.
 
 ## Turbulent exchanges between the atmosphere and underlying media
 
-Exchanges of properties like momentum, heat, water vapor, and trace gases between the fluid atmosphere and its underlying surfaces ---
-ocean, sea ice, snow, land --- mediate the evolution of the Earth system.
+Exchanges of properties like momentum, heat, water vapor, and trace gases between the fluid atmosphere and its underlying surfaces --
+ocean, sea ice, snow, land -- mediate the evolution of the Earth system.
 Microscopic property exchange is mediated by a complex panolpy of processes including heat conduction, viscous and pressure form drag over rough surface elements, plunging breakers, and more.
-To represent atmosphere-surface exchanges, we construct a model of the near-surface atmosphere that connects a turbulent "similarity layer", usually a few meters thick, with a "constant flux layer"
-that buffers free atmospheric turbulence from microscopic surface exchange processes beneath.
+To represent atmosphere-surface exchanges, we construct a model of the near-surface atmosphere that connects a turbulent "similarity layer",
+which is usually a few meters thick, with a "constant flux layer"that buffers free atmospheric turbulence from microscopic surface exchange processes beneath.
 The problem of modeling property exchange then turns to the task of modeling turbulent atmospheric fluxes just above the constant flux layer.
 
 ## Bulk formula and similarity theory
 
 Within in each grid cell at horizontal position $x, y, t$, the atmosphere-surface
-turbulent fluxes of some quantity $\psi$ --- at the bottom of the similarity layer, and thus throughout
-the constant flux layer and across the surface --- is defined as
+turbulent fluxes of some quantity $\psi$ -- at the bottom of the similarity layer, and thus throughout
+the constant flux layer and across the surface -- is defined as
 
 ```math
 J_\psi(x, y, t) = \overline{w' \psi'}
 ```
 
-where $w$ is the atmospheric vertical velocity, the overline $\overline{( \, )}$ denotes a horizontal average over a grid cell,
+where $w$ is the atmospheric vertical velocity, the overline $\overline{( \; )}$ denotes a horizontal average over a grid cell,
 and primes denote deviations from the horizontal average.
 
 !!! note
-    Arguably, the averaging operator $\overline{( \, )}$ should also represent an average in time,
+    Arguably, the averaging operator $\overline{( \; )}$ should also represent an average in time,
     which is implicit in the context of typical global Earth system modeling.
     Explicit time-averaging is required to evaluate flux observations, however,
     and may also be warranted for high resolution coupled modeling.
@@ -54,21 +54,21 @@ The essential turbulent fluxes that couple the ocean and atmosphere are
 
 1. Sensible heat fluxes $\rho_a c_{a} \overline{w'\theta'}$ due to fluid dynamical heat transport,
    where $\rho_a$ is the atmosphere density at the air-sea interface,
-   $c_a$ is the atmosphere specific heat at constant pressure,
-   $\theta$ is the atmosphere potential temperature, and the atmosphere specific heat at constant pressure.
+   $c_a$ is the atmosphere specific heat at constant pressure, and
+   $\theta$ is the atmosphere potential temperature.
 
-1. Water vapor fluxes $\overline{w' q'}$ due to evaporation and condensation,
+2. Water vapor fluxes $\overline{w' q'}$ due to evaporation and condensation,
    where $q$ is the atmosphere specific humidity at the air-sea interface (the ratio between the mass of water and the total mass of an air parcel).
 
-1. Latent heat fluxes $\rho_a \mathscr{L}_v \overline{w' q'}$ due to the conversion of liquid ocean water into
+3. Latent heat fluxes $\rho_a \mathscr{L}_v \overline{w' q'}$ due to the conversion of liquid ocean water into
    water vapor during evaporation, and vice versa during condensation, where
    $\mathscr{L}_v$ is the latent heat of vaporization at the air-sea interface.
 
 There are two ways by which turbulent fluxes may be computed: by specifying "transfer coefficients",
 or by using Monin-Obukhov similarity theory.
-In all cases, computing turbulent fluxes requires:
+In both cases, computing turbulent fluxes requires:
 
-1. Atmosphere-surface differences in velocity, $\Delta \bm{u}$,
+1. Atmosphere-surface differences in horizontal velocity, $\Delta \bm{u}$,
 2. Atmosphere-surface differences in temperature, $\Delta \theta$,
 3. The skin surface temperature $T_s$, which is used to compute the surface specific humidity $q_s$ and the
    atmosphere-surface specific humidity difference $\Delta q$,
@@ -91,7 +91,7 @@ In all cases, computing turbulent fluxes requires:
     and $p_v^\dagger$ is the saturation vapor pressure,
 
     ```math
-    p_v^\dagger(T) = p_{tr} \left ( \frac{T}{T_{tr}} \right )^{\Delta c_p / R_v} \exp \left \{ \frac{ℒ_{v0} - Δc_p T₀}{R_v} \left (\frac{1}{T_{tr}} - \frac{1}{T} \right ) \right \}
+    p_v^\dagger(T) = p_{tr} \left ( \frac{T}{T_{tr}} \right )^{\Delta c_p / R_v} \exp \left [ \frac{ℒ_{v0} - Δc_p T₀}{R_v} \left (\frac{1}{T_{tr}} - \frac{1}{T} \right ) \right ]
     \quad \text{where} \quad
     Δc_p = c_{p \ell} - c_{pv} \, .
     ```
@@ -124,14 +124,14 @@ The variable $U$ is a characteristic velocity scale, which is most simply formul
 However, some parameterizations use formulations for $U$ that
 produce non-vanishing heat and moisture fluxes in zero-mean-wind conditions.
 Usually these parameterizations are formulated as models for "gustiness" associated with atmospheric convection;
-but more generally a common-thread is that $U$ may include contributions from turbulent motions
+but more generally a common thread is that $U$ may include contributions from unresolved turbulent motions
 in addition to the relative mean velocity, $Δ \bm{u}$.
 
 The variable $C_D$ is often called the drag coefficient, while $C_\theta$ and $C_q$ are the heat transfer
 coefficient and vapor flux coefficient.
 The simplest method for computing fluxes is merely to prescribe $C_D$, $C_\theta$, and $C_q$
-as constants --- typically with a magnitude around $5 × 10^{-4}$--$2 × 10^{-3}$.
-A comprehensive example will be given below, but we note briefly here that
+as constants -- typically with a magnitude around $5 × 10^{-4}$--$2 × 10^{-3}$.
+A comprehensive example is given below, but we note briefly here that
 `ClimaOcean` supports the computation of turbulent fluxes with constant coefficients via
 
 ```@example interface_fluxes
@@ -214,23 +214,24 @@ For air-water interfaces that develop a wind-forced spectrum of surface gravity 
 
 where $g$ is gravitational acceleration, has been repeatedly (and perhaps shockingly due to its simplicity) confirmed by field campaigns.
 The free parameter $\mathbb{C}_g$ is often called the "Charnock parameter" and takes typical values
-between $0$ and $0.03$ (cite Edson et al 2013).
+between $0$ and $0.03$ (Edson et al 2013).
 
 ```@example
 using ClimaOcean
 using CairoMakie
+set_theme!(Theme(fontsize=14, linewidth=2))
 
-charnock_length = MomentumRoughnessLength(gravity_wave_parameter = 0.02,
+charnock_length = MomentumRoughnessLength(wave_formulation = 0.02,
                                           smooth_wall_parameter = 0,
                                           maximum_roughness_length = Inf)
 
-smooth_wall_length = MomentumRoughnessLength(gravity_wave_parameter = 0,
+smooth_wall_length = MomentumRoughnessLength(wave_formulation = 0,
                                              smooth_wall_parameter = 0.11)
 
 default_roughness_length = MomentumRoughnessLength()
-modified_default_length = MomentumRoughnessLength(gravity_wave_parameter = 0.011)
+modified_default_length = MomentumRoughnessLength(wave_formulation = 0.011)
 
-u★ = 1e-2:1e-2:3e-1
+u★ = 1e-2:5e-3:3e-1
 ℓg = charnock_length.(u★)
 ℓν = smooth_wall_length.(u★)
 ℓd = default_roughness_length.(u★)
@@ -270,9 +271,9 @@ which we emphasize by rearranging the similarity profile
 u_\star = \frac{\kappa \, Δ u}{\log \left [ h / \ell_u(u_\star) \right ]} \, .
 ```
 
-This equation is solved for $u_\star$ using fixed-point iteration initialized with a reasonable
+The above equation is solved for $u_\star$ using fixed-point iteration initialized with a reasonable
 guess for $u_\star$.
-Once $u_\star$ is obtained, the similarity drag coeffient may then be computed via
+Once $u_\star$ is obtained, the similarity drag coefficient may then be computed via
 
 ```math
 C_D(h) ≡ \frac{u_\star^2}{|Δ u(h)|^2} = \frac{\kappa^2}{\left ( \log \left [ h / \ell_u \right ] \right )^2} \,
@@ -280,17 +281,17 @@ C_D(h) ≡ \frac{u_\star^2}{|Δ u(h)|^2} = \frac{\kappa^2}{\left ( \log \left [ 
 
 where we have used the simple bulk velocity scale $U = Δ u$.
 We have also indicated that, the effective similarity drag "coefficient" depends on the height $z=h$
-at which the atmosphere velocity is computed to form the relative velocity $Δ u = u_a(h) - u_o$.
+at which the atmospheric velocity is computed to form the relative velocity $Δ u = u_a(h) - u_o$.
 Most observational campaigns use $h = 10 \, \mathrm{m}$ and most drag coefficients reported in the
 literature pertain to $h=10 \, \mathrm{m}$.
 
-To compute fluxes with ClimaOcean, we build an `OceanSeaIceModel` with an atmosphere an ocean state
+To compute fluxes with ClimaOcean, we build an `OceanSeaIceModel` with an atmosphere and ocean state
 concocted such that we can evaluate fluxes over a range of relative atmosphere and oceanic conditions.
 For this we use a $200 × 200$ horizontal grid and start with atmospheric winds that vary from
 the relatively calm $u_a(10 \, \mathrm{m}) = 0.5 \, \mathrm{m \, s^{-1}}$ to a
 blustery $u_a(10 \, \mathrm{m}) = 40 \, \mathrm{m \, s^{-1}}$.
 We also initialize the ocean at rest with surface temperature $T_o = 20 \, \mathrm{{}^∘ C}$ and
-surface salinity $S_o = 35 $\mathrm{g \, kg^{-1}}$ --- but the surface temperature and salinity won't matter until later.
+surface salinity $S_o = 35 \mathrm{g \, kg^{-1}}$ -- but the surface temperature and salinity won't matter until later.
 
 ```@example interface_fluxes
 using Oceananigans
@@ -319,7 +320,7 @@ ocean = ocean_simulation(ocean_grid; kw...)
 set!(ocean.model, T=T₀, S=S₀)
 ```
 
-Next we build two models with different flux formulations --- the default  "similarity model"
+Next we build two models with different flux formulations -- the default  "similarity model"
 that uses similarity theory with "Charnock" gravity wave parameter $\mathbb{C}_g = 0.02$,
 and a "coefficient model" with a constant drag coefficient $C_D = 2 × 10^{-3}$:
 
@@ -423,7 +424,7 @@ fig
 ## Non-neutral boundary layers and stability functions
 
 The relationship between the relative air-sea state and turbulent fluxes
-is modified by the presence of buoyancy fluxes --- "destabilizing" fluxes, which stimulate convection,
+is modified by the presence of buoyancy fluxes -- "destabilizing" fluxes, which stimulate convection,
 tend to increase turbulent exchange, while stabilizing fluxes suppress turbulence and turbulent exchange.
 Monin-Obhukhov stability theory provides a scaling-argument-based framework
 for modeling the effect of buoyancy fluxes on turbulent exchange.
@@ -499,8 +500,8 @@ b_⋆ ≡ g \frac{\theta_\star - \mathscr{M} \left ( q_\star T_s + q_s \theta_\s
 
 ##### Stability of the near-surface atmosphere
 
-We use the ratio between the buoyancy flux and shear production at $z=h$ --- which oceanographers often call
-the "flux Richardson number", $Ri_f$ --- to diagnose the stability of the atmosphere,
+We use the ratio between the buoyancy flux and shear production at $z=h$ -- which oceanographers often call
+the "flux Richardson number", $Ri_f$ -- to diagnose the stability of the atmosphere,
 
 ```math
 Ri_f(z) ≡ ζ(z) \equiv - \frac{\overline{w' b'}}{\partial_z \bar{\bm{u}} \, ⋅ \, \overline{\bm{u}' w'}} = - \frac{\kappa \, z}{u_\star^2} b_⋆ = \frac{z}{L_\star}
@@ -520,7 +521,7 @@ The fundamental premise of Monin-Obhkhov stability theory is that shear within a
 
 where $\tilde{\psi}_u(\zeta)$ is called the "stability function" (aka "dimensionless shear", and often denoted $\phi$).
 Comparing the Monin-Obukhov scaling to the neutral case expounded above, we find that $\tilde{\psi}(0) = 1$ in neutral conditions with $\zeta=0$.
-In the presence of destabilizing fluxes, when $ζ < 0$, observations show that $\tilde{\psi}_u(\zeta) < 1$ (e.g. Businger 1971) --- representing an enhancement of turbulent exchange between the surface and atmosphere.
+In the presence of destabilizing fluxes, when $ζ < 0$, observations show that $\tilde{\psi}_u(\zeta) < 1$ (e.g. Businger 1971) -- representing an enhancement of turbulent exchange between the surface and atmosphere.
 Conversely, $\tilde{\psi}_u > 1$ when $ζ > 0$, representing a suppression of turbulent fluxes by stable density stratification, or alternatively, an increase in the shear required to sustain a given friction velocity $u_\star$.
 
 Monin and Obhukov's dimensional argument is also extended to potential temperature, so that for example
@@ -663,11 +664,13 @@ interfaces = default_model.interfaces
 ℂₐ = interfaces.atmosphere_properties
 q_formulation = interfaces.atmosphere_ocean_interface.properties.specific_humidity_formulation
 qₛ = surface_specific_humidity(q_formulation, ℂₐ, ρₐ, Tₒ, Sₒ)
+@show qₛ
 ```
 
-We then set the atmos state:
+We then set the atmospheric state:
 
 ```@example interface_fluxes
+@show qₛ
 interior(atmosphere.pressure) .= 101352
 interior(atmosphere.tracers.q) .= qₛ
 
@@ -710,7 +713,7 @@ ylims!(axC, 0, 4)
 fig
 ```
 
-The coefficient-based formula then take the form
+The coefficient-based formula then takes the form
 
 ```math
 u_\star = \sqrt{C_D | Δ \bm{u} | \, U} \\
