@@ -682,17 +682,20 @@ Oceananigans.TimeSteppers.update_state!(default_model)
 u★ = default_model.interfaces.atmosphere_ocean_interface.fluxes.friction_velocity
 θ★ = default_model.interfaces.atmosphere_ocean_interface.fluxes.temperature_scale
 
-fig = Figure(size=(800, 400))
-axu = Axis(fig[1, 1], xlabel="Wind speed uₐ (m s⁻¹)", ylabel="Air-sea temperature difference (K)")
-axθ = Axis(fig[1, 2], xlabel="Wind speed uₐ (m s⁻¹)", ylabel="Air-sea temperature difference (K)")
-axC = Axis(fig[2, 1:2], xlabel="Wind speed uₐ (m s⁻¹)", ylabel="Cᴰ / neutral Cᴰ")
+fig = Figure(size=(800, 600))
+axu = Axis(fig[2, 1], xlabel="Wind speed uₐ (m s⁻¹)", ylabel="Air-sea temperature difference (K)")
+axθ = Axis(fig[2, 2], xlabel="Wind speed uₐ (m s⁻¹)", ylabel="Air-sea temperature difference (K)")
+axC = Axis(fig[3, 1:2], xlabel="Wind speed uₐ (m s⁻¹)", ylabel="Cᴰ / neutral Cᴰ")
 
 ΔT = Tₐ .- Tₒ
 ΔT = reshape(ΔT, Ny, 1)
 ΔT = dropdims(ΔT, dims=2)
 
-heatmap!(axu, uₐ, ΔT, interior(u★, :, :))
-heatmap!(axθ, uₐ, ΔT, interior(θ★, :, :))
+hmu = heatmap!(axu, uₐ, ΔT, interior(u★, :, :), colormap=:speed)
+hmθ = heatmap!(axθ, uₐ, ΔT, interior(θ★, :, :), colormap=:thermal)
+
+Colorbar(fig[1, 1], hmu, label="u★", vertical=false)
+Colorbar(fig[1, 2], hmθ, label="θ★", vertical=false)
 
 u★ = interior(u★, :, :)
 uₐ = reshape(uₐ, Nx, 1)
