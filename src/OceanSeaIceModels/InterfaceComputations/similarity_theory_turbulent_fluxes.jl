@@ -191,19 +191,6 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
 
     # Compute Monin-Obukhov length scale depending on a `buoyancy flux`
     b★ = buoyancy_scale(θ★, q★, ℂₐ, 𝒬ₛ, g)
-    ϰ = flux_formulation.von_karman_constant
-    L★ = ifelse(b★ == 0, Inf, - u★^2 / (ϰ * b★))
-
-    # Compute roughness length scales
-    ℓu₀ = roughness_length(ℓu, u★, ℂₐ, 𝒬ₛ)
-    ℓq₀ = roughness_length(ℓq, ℓu₀, u★, ℂₐ, 𝒬ₛ)
-    ℓθ₀ = roughness_length(ℓθ, ℓu₀, u★, ℂₐ, 𝒬ₛ)
-
-    # Transfer coefficients at height `h`
-    form = flux_formulation.similarity_form
-    χu = ϰ / similarity_profile(form, ψu, Δh, ℓu₀, L★)
-    χθ = ϰ / similarity_profile(form, ψθ, Δh, ℓθ₀, L★)
-    χq = ϰ / similarity_profile(form, ψq, Δh, ℓq₀, L★)
 
     # Buoyancy flux characteristic scale for gustiness (Edson 2013)
     h_bℓ = atmosphere_state.h_bℓ
@@ -214,7 +201,22 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
     Δu, Δv = velocity_difference(interface_properties.velocity_formulation,
                                  atmosphere_state,
                                  approximate_interface_state)
+
     ΔU = sqrt(Δu^2 + Δv^2 + Uᴳ^2)
+
+    # Compute roughness length scales
+    ℓu₀ = roughness_length(ℓu, ΔU,  u★, 𝒬ₛ, ℂₐ)
+    ℓq₀ = roughness_length(ℓq, ℓu₀, u★, 𝒬ₛ, ℂₐ)
+    ℓθ₀ = roughness_length(ℓθ, ℓu₀, u★, 𝒬ₛ, ℂₐ)
+
+    # Transfer coefficients at height `h`
+    ϰ = flux_formulation.von_karman_constant
+    L★ = ifelse(b★ == 0, Inf, - u★^2 / (ϰ * b★))
+    form = flux_formulation.similarity_form
+  
+    χu = ϰ / similarity_profile(form, ψu, Δh, ℓu₀, L★)
+    χθ = ϰ / similarity_profile(form, ψθ, Δh, ℓθ₀, L★)
+    χq = ϰ / similarity_profile(form, ψq, Δh, ℓq₀, L★)
 
     # Recompute
     u★ = χu * ΔU

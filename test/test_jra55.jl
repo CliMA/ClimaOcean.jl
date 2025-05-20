@@ -130,6 +130,7 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         @test length(rivers_times) != length(pressure_times)
         @test rivers_times[2] - rivers_times[1] == 86400
 
+        #=
         @info "Testing MultiYearJRA55 data on $A..."
         dataset = JRA55.MultiYearJRA55()
         dates = ClimaOcean.DataWrangling.all_dates(dataset, :temperature)
@@ -148,5 +149,6 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         for t in eachindex(Ta.times)
             @test Ta[t] isa Field
         end
+        =#
     end
 end

@@ -144,7 +144,7 @@ end
 
             interface_properties = interfaces.atmosphere_ocean_interface.properties
             q_formulation = interface_properties.specific_humidity_formulation
-            qₒ = surface_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ.ρ, Tₒ, Sₒ)
+            qₒ = surface_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ, Tₒ, Sₒ)
             g  = ocean.model.buoyancy.formulation.gravitational_acceleration
 
             # Differences!
