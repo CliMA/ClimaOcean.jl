@@ -687,7 +687,7 @@ axu = Axis(fig[1, 1], xlabel="Wind speed uₐ (m s⁻¹)", ylabel="Air-sea tempe
 axθ = Axis(fig[1, 2], xlabel="Wind speed uₐ (m s⁻¹)", ylabel="Air-sea temperature difference (K)")
 axC = Axis(fig[2, 1:2], xlabel="Wind speed uₐ (m s⁻¹)", ylabel="Cᴰ / neutral Cᴰ")
 
-ΔT = Tₐ .- 293.15
+ΔT = Tₐ .- Tₒ
 ΔT = reshape(ΔT, Ny, 1)
 ΔT = dropdims(ΔT, dims=2)
 
