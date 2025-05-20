@@ -145,7 +145,7 @@ end
 @inline roughness_length(ℓ::Number, args...) = ℓ
 
 # Momentum roughness length should be different from scalar roughness length.
-# Temperature and water vapor can be considered the same (Edson et al 2013)
+# Temperature and water vapor can be considered the same (Edson et al. 2013)
 @inline function roughness_length(ℓ::MomentumRoughnessLength{FT}, ΔU, u★, 𝒬, ℂ) where FT
     g  = ℓ.gravitational_acceleration
     β  = ℓ.laminar_parameter
@@ -171,11 +171,13 @@ end
 """
     ReynoldsScalingFunction(FT=Float64; A=5.85e-5, b=0.72)
 
-Empirical fit of the scalar roughness length with roughness Reynolds number `R★ = u★ ℓu / ν`.
-Edson et al. (2013), equation (28).
+Empirical fit of the scalar roughness length with roughness Reynolds number `R★ = u★ ℓu / ν`
+
 ```math
     ℓs = A / R★ ^ b
 ```
+
+See equation (28) by [edson2013exchange](@citet).
 """
 ReynoldsScalingFunction(FT = Oceananigans.defaults.FloatType; A = 5.85e-5, b = 0.72) =
     ReynoldsScalingFunction(convert(FT, A), convert(FT, b))
