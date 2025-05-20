@@ -327,129 +327,129 @@ stability function for _stable_ or _unstable_ atmospheric conditions, respective
 """
 @kwdef struct EdsonMomentumStabilityFunction{FT} <: AbstractStabilityFunction
     ζmax :: FT = 50.0
-    Aˢ   :: FT = 0.35
-    Bˢ   :: FT = 0.7
-    Cˢ   :: FT = 0.75
-    Dˢ   :: FT = 5/0.35
-    Aᵘ   :: FT = 15.0
-    Bᵘ   :: FT = 2.0
-    Cᵘ   :: FT = π/2
-    Dᵘ   :: FT = 10.15
-    Eᵘ   :: FT = 3.0
-    Fᵘ   :: FT = π / sqrt(3)
+    A⁺   :: FT = 0.35
+    B⁺   :: FT = 0.7
+    C⁺   :: FT = 0.75
+    D⁺   :: FT = 5/0.35
+    A⁻   :: FT = 15.0
+    B⁻   :: FT = 2.0
+    C⁻   :: FT = π/2
+    D⁻   :: FT = 10.15
+    E⁻   :: FT = 3.0
+    F⁻   :: FT = π / sqrt(3)
 end
 
 @inline function stability_profile(ψ::EdsonMomentumStabilityFunction, ζ) 
     ζmax = ψ.ζmax
-    Aˢ   = ψ.Aˢ
-    Bˢ   = ψ.Bˢ
-    Cˢ   = ψ.Cˢ
-    Dˢ   = ψ.Dˢ
-    Aᵘ   = ψ.Aᵘ
-    Bᵘ   = ψ.Bᵘ
-    Cᵘ   = ψ.Cᵘ
-    Dᵘ   = ψ.Dᵘ
-    Eᵘ   = ψ.Eᵘ
-    Fᵘ   = ψ.Fᵘ
+    A⁺   = ψ.A⁺
+    B⁺   = ψ.B⁺
+    C⁺   = ψ.C⁺
+    D⁺   = ψ.D⁺
+    A⁻   = ψ.A⁻
+    B⁻   = ψ.B⁻
+    C⁻   = ψ.C⁻
+    D⁻   = ψ.D⁻
+    E⁻   = ψ.E⁻
+    F⁻   = ψ.F⁻
 
     ζ⁻ = min(zero(ζ), ζ)
     ζ⁺ = max(zero(ζ), ζ)
-    dζ = min(ζmax, Aˢ * ζ⁺)
+    dζ = min(ζmax, A⁺ * ζ⁺)
 
     # Stability parameter for _stable_ atmospheric conditions
-    ψₛ = - Bˢ * ζ⁺ - Cˢ * (ζ⁺ - Dˢ) * exp(- dζ) - Cˢ * Dˢ
+    ψ⁺ = - B⁺ * ζ⁺ - C⁺ * (ζ⁺ - D⁺) * exp(- dζ) - C⁺ * D⁺
 
     # Stability parameter for _unstable_ atmospheric conditions
-    fᵤ₁ = sqrt(sqrt(1 - Aᵘ * ζ⁻))
-    ψᵤ₁ = Bᵘ * log((1 + fᵤ₁) / Bᵘ) + log((1 + fᵤ₁^2) / Bᵘ) - Bᵘ * atan(fᵤ₁) + Cᵘ
+    f⁻₁ = sqrt(sqrt(1 - A⁻ * ζ⁻))
+    ψ⁻₁ = B⁻ * log((1 + f⁻₁) / B⁻) + C⁻
 
-    fᵤ₂ = cbrt(1 - Dᵘ * ζ⁻)
-    ψᵤ₂ = Eᵘ / 2 * log((1 + fᵤ₂ + fᵤ₂^2) / Eᵘ) - sqrt(Eᵘ) * atan( (1 + 2fᵤ₂) / sqrt(Eᵘ)) + Fᵘ
+    f⁻₂ = cbrt(1 - D⁻ * ζ⁻)
+    ψ⁻₂ = E⁻ / 2 * log((1 + f⁻₂ + f⁻₂^2) / E⁻) - sqrt(E⁻) * atan( (1 + 2f⁻₂) / sqrt(E⁻)) + F⁻
 
     f  = ζ⁻^2 / (1 + ζ⁻^2)
-    ψᵤ = (1 - f) * ψᵤ₁ + f * ψᵤ₂
+    ψ⁻ = (1 - f) * ψ⁻₁ + f * ψ⁻₂
 
-    return ifelse(ζ < 0, ψᵤ, ψₛ)
+    return ifelse(ζ < 0, ψ⁻, ψ⁺)
 end
 
 """
     EdsonScalarStabilityFunction{FT}
 
 A struct representing the scalar stability function detailed in Edson et al (2013).
-The formulation hinges on the definition of three different functions:
-one for stable atmospheric conditions ``(ζ > 0)``, named ``ψₛ`` and two for unstable conditions,
-named ``ψᵤ₁`` and ``ψᵤ₂``.
+The formulation hinges on the definition of two different functions:
+one for stable atmospheric conditions ``(ζ > 0)``, named ``ψ⁺`` and one for unstable conditions,
+named ``ψ⁻``.
 These stability functions are obtained by regression to experimental data.
 
 The stability parameter for stable atmospheric conditions is defined as
 ```math
-dζ = min(ζmax, Aˢζ)
-ψₛ = - (1 + Bˢ ζ) ^ Cₛ - Bˢ ( ζ - Dˢ ) * exp( - dζ) - Eˢ
+dζ = min(ζmax, A⁺ζ)
+ψ⁺ = - (1 + B⁺ ζ) ^ C⁺ - B⁺ ( ζ - D⁺ ) * exp( - dζ) - E⁺
 ```
 
 While the stability parameter for unstable atmospheric conditions is calculated
 as a function of the two individual stability functions as follows
 ```math
-fᵤ₁ = √(1 - Aᵘζ)
-ψᵤ₁ = Bᵘ ⋅ log((1 + fᵤ₁) / Bᵘ) + Cᵤ
+f⁻₁ = √(1 - A⁻ζ)
+ψ⁻₁ = B⁻ ⋅ log((1 + f⁻₁) / B⁻) + C⁻
 
-fᵤ₂ = ∛(1 - Dᵘζ)
-ψᵤ₂ = Eᵘ / 2 ⋅ log((1 + fᵤ₂ + fᵤ₂²) / Eᵘ) - √Eᵘ atan( (1 + 2fᵤ₂) / √Eᵘ) + Fᵘ
+f⁻₂ = ∛(1 - D⁻ζ)
+ψ⁻₂ = E⁻ / 2 ⋅ log((1 + f⁻₂ + f⁻₂²) / E⁻) - √E⁻ atan( (1 + 2f⁻₂) / √E⁻) + F⁻
 
 f  = ζ² / (1 + ζ²)
-ψᵤ = (1 - f) ψᵤ₁ + f ψᵤ₂
+ψ⁻ = (1 - f) ψ⁻₁ + f ψ⁻₂
 ```
 
-The superscripts ``ˢ`` and ``ᵘ`` indicate if the parameter applies to the
+The superscripts ``⁺`` and ``⁻`` indicate if the parameter applies to the
 stability function for _stable_ or _unstable_ atmospheric conditions, respectively.
 """
 @kwdef struct EdsonScalarStabilityFunction{FT} <: AbstractStabilityFunction
     ζmax :: FT = 50.0
-    Aˢ   :: FT = 0.35
-    Bˢ   :: FT = 2/3
-    Cˢ   :: FT = 3/2
-    Dˢ   :: FT = 14.28
-    Eˢ   :: FT = 8.525
-    Aᵘ   :: FT = 15.0
-    Bᵘ   :: FT = 2.0
-    Cᵘ   :: FT = 0.0
-    Dᵘ   :: FT = 34.15
-    Eᵘ   :: FT = 3.0
-    Fᵘ   :: FT = π / sqrt(3)
+    A⁺   :: FT = 0.35
+    B⁺   :: FT = 2/3
+    C⁺   :: FT = 3/2
+    D⁺   :: FT = 14.28
+    E⁺   :: FT = 8.525
+    A⁻   :: FT = 15.0
+    B⁻   :: FT = 2.0
+    C⁻   :: FT = 0.0
+    D⁻   :: FT = 34.15
+    E⁻   :: FT = 3.0
+    F⁻   :: FT = π / sqrt(3)
 end
 
 @inline function stability_profile(ψ::EdsonScalarStabilityFunction, ζ)
     ζmax = ψ.ζmax
-    Aˢ   = ψ.Aˢ
-    Bˢ   = ψ.Bˢ
-    Cˢ   = ψ.Cˢ
-    Dˢ   = ψ.Dˢ
-    Eˢ   = ψ.Eˢ
-    Aᵘ   = ψ.Aᵘ
-    Bᵘ   = ψ.Bᵘ
-    Cᵘ   = ψ.Cᵘ
-    Dᵘ   = ψ.Dᵘ
-    Eᵘ   = ψ.Eᵘ
-    Fᵘ   = ψ.Fᵘ
+    A⁺   = ψ.A⁺
+    B⁺   = ψ.B⁺
+    C⁺   = ψ.C⁺
+    D⁺   = ψ.D⁺
+    E⁺   = ψ.E⁺
+    A⁻   = ψ.A⁻
+    B⁻   = ψ.B⁻
+    C⁻   = ψ.C⁻
+    D⁻   = ψ.D⁻
+    E⁻   = ψ.E⁻
+    F⁻   = ψ.F⁻
 
     ζ⁻ = min(zero(ζ), ζ)
     ζ⁺ = max(zero(ζ), ζ)
-    dζ = min(ζmax, Aˢ * ζ⁺)
+    dζ = min(ζmax, A⁺ * ζ⁺)
 
     # stability function for stable atmospheric conditions
-    ψₛ = - (1 + Bˢ * ζ⁺)^Cˢ - Bˢ * (ζ⁺ - Dˢ) * exp(-dζ) - Eˢ
+    ψ⁺ = - (1 + B⁺ * ζ⁺)^C⁺ - B⁺ * (ζ⁺ - D⁺) * exp(-dζ) - E⁺
 
     # Stability parameter for _unstable_ atmospheric conditions
-    fᵤ₁ = sqrt(1 - Aᵘ * ζ⁻)
-    ψᵤ₁ = Bᵘ * log((1 + fᵤ₁) / Bᵘ) + Cᵘ
+    f⁻₁ = sqrt(1 - A⁻ * ζ⁻)
+    ψ⁻₁ = B⁻ * log((1 + f⁻₁) / B⁻) + C⁻
 
-    fᵤ₂ = cbrt(1 - Dᵘ * ζ⁻)
-    ψᵤ₂ = Eᵘ / 2 * log((1 + fᵤ₂ + fᵤ₂^2) / Eᵘ) - sqrt(Eᵘ) * atan((1 + 2fᵤ₂) / sqrt(Eᵘ)) + Fᵘ
+    f⁻₂ = cbrt(1 - D⁻ * ζ⁻)
+    ψ⁻₂ = E⁻ / 2 * log((1 + f⁻₂ + f⁻₂^2) / E⁻) - sqrt(E⁻) * atan((1 + 2f⁻₂) / sqrt(E⁻)) + F⁻
 
     f  = ζ⁻^2 / (1 + ζ⁻^2)
-    ψᵤ = (1 - f) * ψᵤ₁ + f * ψᵤ₂
+    ψ⁻ = (1 - f) * ψ⁻₁ + f * ψ⁻₂
 
-    return ifelse(ζ < 0, ψᵤ, ψₛ)
+    return ifelse(ζ < 0, ψ⁻, ψ⁺)
 end
 
 # Edson et al. (2013)
