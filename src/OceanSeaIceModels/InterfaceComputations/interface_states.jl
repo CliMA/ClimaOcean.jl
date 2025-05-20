@@ -52,12 +52,9 @@ ImpureSaturationSpecificHumidity(phase) = ImpureSaturationSpecificHumidity(phase
 @inline compute_water_mole_fraction(::Nothing, salinity) = 1
 @inline compute_water_mole_fraction(x_H₂O::Number, salinity) = x_H₂O
 
-@inline function surface_specific_humidity(formulation::ImpureSaturationSpecificHumidity, ℂₐ, 𝒬ₐ, Tₛ, Sₛ=zero(Tₛ))
-    x_H₂O = compute_water_mole_fraction(formulation.water_mole_fraction, Sₛ)
-    phase = formulation.phase
-
-    CT = eltype(ℂₐ)
-
+@inline function surface_specific_humidity(formulation::ImpureSaturationSpecificHumidity,
+                                            ℂₐ, 𝒬ₐ::Thermodynamics.PhaseEquil,
+                                            Tₛ, Sₛ=zero(Tₛ))
     # Extrapolate air density to the surface temperature
     # following an adiabatic ideal gas transformation
     cvₘ = Thermodynamics.cv_m(ℂₐ, 𝒬ₐ)
@@ -66,13 +63,23 @@ ImpureSaturationSpecificHumidity(phase) = ImpureSaturationSpecificHumidity(phase
     ρₐ = Thermodynamics.air_density(ℂₐ, 𝒬ₐ)
     Tₐ = Thermodynamics.air_temperature(ℂₐ, 𝒬ₐ)
     ρₛ = ρₐ * (Tₛ / Tₐ)^κₐ
+    return surface_specific_humidity(formulation, ℂₐ, ρₛ, Tₛ, Sₛ)
+end
 
-    p★ = Thermodynamics.saturation_vapor_pressure(ℂₐ, convert(CT, Tₛ), phase)
-    q★ = Thermodynamics.q_vap_saturation_from_density(ℂₐ, convert(CT, Tₛ), convert(CT, ρₛ), p★)
+@inline function surface_specific_humidity(formulation::ImpureSaturationSpecificHumidity, ℂₐ, ρₛ::Number, Tₛ, Sₛ=zero(Tₛ))
+    FT = eltype(Tₛ)
+    CT = eltype(ℂₐ)
+    Tₛ = convert(CT, Tₛ)
+    ρₛ = convert(CT, ρₛ)
+    phase = formulation.phase
+    p★ = Thermodynamics.saturation_vapor_pressure(ℂₐ, Tₛ, phase)
+    q★ = Thermodynamics.q_vap_saturation_from_density(ℂₐ, Tₛ, ρₛ, p★)
 
     # Compute saturation specific humidity according to Raoult's law
-    FT = eltype(Tₛ)
-    return convert(FT, q★ * x_H₂O)
+    χ_H₂O = compute_water_mole_fraction(formulation.water_mole_fraction, Sₛ)
+    qₛ = χ_H₂O * q★
+
+    return convert(FT, qₛ)
 end
 
 struct SalinityConstituent{FT}
