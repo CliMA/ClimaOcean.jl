@@ -76,9 +76,9 @@ Keyword Arguments
 - `turbulent_prandtl_number`: The turbulent Prandtl number. Default: 1.
 - `gustiness_parameter`: Increases surface fluxes in low wind conditions. Default: 1.
 - `stability_functions`: The stability functions. Default: `default_stability_functions(FT)` that follow the
-                         formulation of Edson et al. (2013).
+                         formulation of [edson2013exchange](@citet).
 - `roughness_lengths`: The roughness lengths used to calculate the characteristic scales for momentum, temperature and
-                       water vapor. Default: `default_roughness_lengths(FT)`, formulation taken from Edson et al (2013).
+                       water vapor. Default: `default_roughness_lengths(FT)`, formulation taken from [edson2013exchange](@citet).
 - `similarity_form`: The type of similarity profile used to relate the atmospheric state to the
                              interface fluxes / characteristic scales.
 - `solver_tolerance`: The tolerance for convergence. Default: 1e-8.
@@ -192,7 +192,7 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
     # Compute Monin-Obukhov length scale depending on a `buoyancy flux`
     b★ = buoyancy_scale(θ★, q★, ℂₐ, 𝒬ₛ, g)
 
-    # Buoyancy flux characteristic scale for gustiness (Edson 2013)
+    # Buoyancy flux characteristic scale for gustiness (Edson et al. 2013)
     h_bℓ = atmosphere_state.h_bℓ
     Jᵇ = - u★ * b★
     Uᴳ = β * cbrt(Jᵇ * h_bℓ)
@@ -296,7 +296,7 @@ abstract type AbstractStabilityFunction end
 """
     EdsonMomentumStabilityFunction{FT}
 
-A struct representing the momentum stability function detailed in Edson et al (2013).
+A struct representing the momentum stability function detailed in paper by [edson2013exchange](@citet).
 The formulation hinges on the definition of three different functions:
 one for stable atmospheric conditions ``(ζ > 0)``, named ``ψₛ`` and two for unstable conditions,
 named ``ψᵤ₁`` and ``ψᵤ₂``.
@@ -379,9 +379,11 @@ A struct representing the scalar stability function detailed in Edson et al (201
 The formulation hinges on the definition of two different functions:
 one for stable atmospheric conditions ``(ζ > 0)``, named ``ψ⁺`` and one for unstable conditions,
 named ``ψ⁻``.
+
 These stability functions are obtained by regression to experimental data.
 
 The stability parameter for stable atmospheric conditions is defined as
+
 ```math
 dζ = min(ζmax, A⁺ζ)
 ψ⁺ = - (1 + B⁺ ζ) ^ C⁺ - B⁺ ( ζ - D⁺ ) * exp( - dζ) - E⁺
