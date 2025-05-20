@@ -52,7 +52,7 @@ The essential turbulent fluxes that couple the ocean and atmosphere are
 1. Momentum fluxes $\rho_a \overline{\bm{u}'w'}$,
    where $\rho_a$ is the atmosphere density at the air-sea interface and $\bm{u}$ is horizontal velocity.
 
-1. Sensible heat fluxes $\rho_a c_{a} \overline{w'\theta'}$ due to fluid dynamical heat transport, 
+1. Sensible heat fluxes $\rho_a c_{a} \overline{w'\theta'}$ due to fluid dynamical heat transport,
    where $\rho_a$ is the atmosphere density at the air-sea interface,
    $c_a$ is the atmosphere specific heat at constant pressure,
    $\theta$ is the atmosphere potential temperature, and the atmosphere specific heat at constant pressure.
@@ -70,7 +70,7 @@ In all cases, computing turbulent fluxes requires:
 
 1. Atmosphere-surface differences in velocity, $\Delta \bm{u}$,
 2. Atmosphere-surface differences in temperature, $\Delta \theta$,
-3. The skin surface temperature $T_s$, which is used to compute the surface specific humidity $q_s$ and the 
+3. The skin surface temperature $T_s$, which is used to compute the surface specific humidity $q_s$ and the
    atmosphere-surface specific humidity difference $\Delta q$,
 4. Additional atmosphere-surface trace gas differences for computing trace gas fluxes,
 5. Possibly, additional "bulk" properties of the surface media and radiation fluxes
@@ -162,7 +162,7 @@ for water vapor.
 To introduce similarity theory, we first consider momentum fluxes in "neutral" conditions,
 or with zero buoyancy flux.
 We further simplify the situation by considering unidirectional flow with $\bm{u} = u \, \bm{\hat x}$.
-(To generalize our results to any flow direction, we simpliy rotate fluxes into the direction of the
+(To generalize our results to any flow direction, we simply rotate fluxes into the direction of the
 relative velocity $Δ \bm{u}$.)
 The fundamental supposition of similarity theory is that the vertical shear depends only on
 height above the boundary, such that by dimensional analysis,
@@ -178,22 +178,22 @@ which is placed in the denominator by convention.
 We can then integrate this expression from an inner scale $z=\ell$ up to $z=h$ to obtain
 
 ```math
-u_a(h) - u_a(\ell_u) = \frac{u_⋆}{\kappa} \log \left ( \frac{h}{\ell_u} \right )  
+u_a(h) - u_a(\ell_u) = \frac{u_⋆}{\kappa} \log \left ( \frac{h}{\ell_u} \right )
 ```
 
 The inner length scale $\ell_u$, which is called the "momentum roughness length",
-can be interpted as producing a characteristic upper value for the boundary layer shear, $u_⋆ / \ell_u$
+can be interpreted as producing a characteristic upper value for the boundary layer shear, $u_⋆ / \ell_u$
 in the region where similarity theory must be matched with the inner boundary layer (such as a viscous sublayer)
 below.
 Note that we take the inner velocity scale $u_a(\ell_u)$ as being equal to the velocity of the surface,
 so $u_a(\ell_u) = u_s$.
 
 !!! note
-    We currently assume that the input to the surface flux computation is the 
+    We currently assume that the input to the surface flux computation is the
     atmospheric velocity at $z=h$. However, in coupled modeling context we are typically
     instead given the atmosphere velocity _averaged_ over the height of the first layer,
     or $⟨u_a⟩_h = \frac{1}{h} \int_0^h \, u_a \, \mathrm{d} z$.
-    Formulating the flux computation in terms of $⟨u_a⟩_h$ rather than $u_a(h)$ 
+    Formulating the flux computation in terms of $⟨u_a⟩_h$ rather than $u_a(h)$
     (e.g. [Nishizawa and Kitamura 2018](https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2018MS001534))
     is a minor modification to the algorithm and an important avenue for future work.
 
@@ -264,10 +264,10 @@ fig
 ClimaOcean's default roughness length for air-sea fluxes is a function of the
 friction velocity $u_\star$.
 This formulation produces a nonlinear equation for $u_\star$, in terms of $Δ u = u_a(h) - u_o$,
-which we emphasize by rearranging the similarity profile 
+which we emphasize by rearranging the similarity profile
 
 ```math
-u_\star = \frac{\kappa \, Δ u}{\log \left [ h / \ell_u(u_\star) \right ]} \, . 
+u_\star = \frac{\kappa \, Δ u}{\log \left [ h / \ell_u(u_\star) \right ]} \, .
 ```
 
 This equation is solved for $u_\star$ using fixed-point iteration initialized with a reasonable
@@ -289,7 +289,7 @@ concocted such that we can evaluate fluxes over a range of relative atmosphere a
 For this we use a $200 × 200$ horizontal grid and start with atmospheric winds that vary from
 the relatively calm $u_a(10 \, \mathrm{m}) = 0.5 \, \mathrm{m \, s^{-1}}$ to a
 blustery $u_a(10 \, \mathrm{m}) = 40 \, \mathrm{m \, s^{-1}}$.
-We also initialize the ocean at rest with surface temperature $T_o = 20 \, \mathrm{{}^∘ C}$ and 
+We also initialize the ocean at rest with surface temperature $T_o = 20 \, \mathrm{{}^∘ C}$ and
 surface salinity $S_o = 35 $\mathrm{g \, kg^{-1}}$ --- but the surface temperature and salinity won't matter until later.
 
 ```@example interface_fluxes
@@ -358,7 +358,7 @@ extrema(Cᴰ_default)
 ```
 
 We'll also re-compute the drag coefficient for the coefficent model
-(which we specified as constant), which verifies that the coefficient was correctly 
+(which we specified as constant), which verifies that the coefficient was correctly
 specified:
 
 ```@example interface_fluxes
@@ -459,7 +459,7 @@ is the total density neglecting the mass of hypothetical condensed water species
 The ideal gas law for a mixture of dry air and water vapor is then
 
 ```math
-p = \rho R_m(q) T \, 
+p = \rho R_m(q) T \,
 \qquad \text{where} \qquad
 R_m(q) ≈ R_d \left (1 - q \right ) + R_v q = R_d \left ( 1 - \mathscr{M} q \right ) \, .
 ```
@@ -484,7 +484,7 @@ We neglect the effect of pressure perturbations to compute the buoyancy flux, so
 #### Buoyancy flux and the characteristic buoyancy scale
 
 In a computation whose details are reserved for an appendix, and which neglects $\overline{q'T'}$ and the triple correlation $\overline{w' q' T'}$,
-we find that the buoyancy flux is approximately 
+we find that the buoyancy flux is approximately
 
 ```math
 \overline{w' b'} \approx g \frac{\overline{w'T'} - \mathscr{M} \left ( \overline{w' q'} \bar{T} + \bar{q} \overline{w' T'} \right )}{\bar{T} \left ( 1 - \mathscr{M} \bar q \right )} \, .
@@ -499,7 +499,7 @@ b_⋆ ≡ g \frac{\theta_\star - \mathscr{M} \left ( q_\star T_s + q_s \theta_\s
 
 ##### Stability of the near-surface atmosphere
 
-We use the ratio between the buoyancy flux and shear production at $z=h$ --- which oceanographers often call 
+We use the ratio between the buoyancy flux and shear production at $z=h$ --- which oceanographers often call
 the "flux Richardson number", $Ri_f$ --- to diagnose the stability of the atmosphere,
 
 ```math
@@ -711,9 +711,9 @@ fig
 ```
 
 The coefficient-based formula then take the form
- 
+
 ```math
 u_\star = \sqrt{C_D | Δ \bm{u} | \, U} \\
-\theta_\star = \frac{C_θ}{\sqrt{C_D}} \, Δ θ \, \sqrt{\frac{U}{|Δ \bm{u} |}} \\ 
-q_\star = \frac{C_q}{\sqrt{C_D}} \, Δ q \, \sqrt{\frac{U}{| Δ \bm{u} |}} \\ 
+\theta_\star = \frac{C_θ}{\sqrt{C_D}} \, Δ θ \, \sqrt{\frac{U}{|Δ \bm{u} |}} \\
+q_\star = \frac{C_q}{\sqrt{C_D}} \, Δ q \, \sqrt{\frac{U}{| Δ \bm{u} |}} \\
 ```
