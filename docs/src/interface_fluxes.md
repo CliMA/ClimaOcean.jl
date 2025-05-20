@@ -209,7 +209,7 @@ parameter which was found to be $≈ 0.11$.
 For air-water interfaces that develop a wind-forced spectrum of surface gravity waves, the alternative scaling
 
 ```math
-\ell_g = \mathbb{C}_g \frac{g}{u_\star^2} \, ,
+\ell_g = \mathbb{C}_g \frac{u_\star^2}{g} \, ,
 ```
 
 where $g$ is gravitational acceleration, has been repeatedly (and perhaps shockingly due to its simplicity) confirmed by field campaigns.
