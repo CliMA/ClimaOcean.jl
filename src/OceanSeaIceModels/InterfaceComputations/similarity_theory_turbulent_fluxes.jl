@@ -205,9 +205,9 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
     U = sqrt(Δu^2 + Δv^2 + Uᴳ^2)
 
     # Compute roughness length scales
-    ℓu₀ = roughness_length(ℓu, U, u★, 𝒬ₛ, ℂₐ)
-    ℓq₀ = roughness_length(ℓq, ℓu₀, u★, 𝒬ₛ, ℂₐ)
-    ℓθ₀ = roughness_length(ℓθ, ℓu₀, u★, 𝒬ₛ, ℂₐ)
+    ℓu₀ = roughness_length(ℓu, u★, U, 𝒬ₛ, ℂₐ)
+    ℓq₀ = roughness_length(ℓq, ℓu₀, u★, U, 𝒬ₛ, ℂₐ)
+    ℓθ₀ = roughness_length(ℓθ, ℓu₀, u★, U, 𝒬ₛ, ℂₐ)
 
     # Transfer coefficients at height `h`
     ϰ = flux_formulation.von_karman_constant

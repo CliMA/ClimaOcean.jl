@@ -159,7 +159,7 @@ end
 
 # Momentum roughness length should be different from scalar roughness length.
 # Temperature and water vapor can be considered the same (Edson et al 2013)
-@inline function roughness_length(ℓ::MomentumRoughnessLength{FT}, U, u★, ℂₐ=nothing, 𝒬ₐ=nothing) where FT
+@inline function roughness_length(ℓ::MomentumRoughnessLength{FT}, u★, U, ℂₐ=nothing, 𝒬ₐ=nothing) where FT
     ν = compute_air_kinematic_viscosity(ℓ.air_kinematic_viscosity, ℂₐ, 𝒬ₐ)
     g = ℓ.gravitational_acceleration
     ℂg = gravity_wave_parameter(ℓ.wave_formulation, U)
@@ -195,7 +195,7 @@ ReynoldsScalingFunction(FT = Oceananigans.defaults.FloatType; A = 5.85e-5, b = 0
 @inline (s::ReynoldsScalingFunction)(R★, args...) = ifelse(R★ == 0, convert(eltype(R★), 0), s.A / R★ ^ s.b)
 
 # Edson 2013 formulation of scalar roughness length in terms of momentum roughness length ℓu
-@inline function roughness_length(ℓ::ScalarRoughnessLength{FT}, ℓu, u★, ℂ=nothing, 𝒬=nothing) where FT
+@inline function roughness_length(ℓ::ScalarRoughnessLength{FT}, ℓu, u★, U, ℂ=nothing, 𝒬=nothing) where FT
     # Roughness Reynolds number
     ν = compute_air_kinematic_viscosity(ℓ.air_kinematic_viscosity, ℂ, 𝒬)
     R★ = ℓu * u★ / ν
@@ -210,10 +210,10 @@ ReynoldsScalingFunction(FT = Oceananigans.defaults.FloatType; A = 5.85e-5, b = 0
 end
 
 # Convenience for users
-@inline function (ℓ::MomentumRoughnessLength{FT})(u★, ℂ=nothing, 𝒬=nothing) where FT
+@inline function (ℓ::MomentumRoughnessLength{FT})(u★, U=nothing, ℂ=nothing, 𝒬=nothing) where FT
     return roughness_length(ℓ, u★, ℂ, 𝒬)
 end
 
-@inline function (ℓ::ScalarRoughnessLength{FT})(u★, ℂ=nothing, 𝒬=nothing) where FT
+@inline function (ℓ::ScalarRoughnessLength{FT})(u★, U=nothing, ℂ=nothing, 𝒬=nothing) where FT
     return roughness_length(ℓ, u★, ℂ, 𝒬)
 end
