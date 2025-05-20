@@ -3,7 +3,7 @@ using Printf
 
 import ClimaSeaIce
 import Thermodynamics as AtmosphericThermodynamics
-using Thermodynamics: Liquid, Ice
+using Thermodynamics: Liquid, Ice, PhaseEquil
 
 #####
 ##### Interface properties
@@ -53,7 +53,7 @@ ImpureSaturationSpecificHumidity(phase) = ImpureSaturationSpecificHumidity(phase
 @inline compute_water_mole_fraction(x_H₂O::Number, salinity) = x_H₂O
 
 @inline function surface_specific_humidity(formulation::ImpureSaturationSpecificHumidity,
-                                            ℂₐ, 𝒬ₐ::Thermodynamics.PhaseEquil,
+                                            ℂₐ, 𝒬ₐ::PhaseEquil,
                                             Tₛ, Sₛ=zero(Tₛ))
     # Extrapolate air density to the surface temperature
     # following an adiabatic ideal gas transformation
