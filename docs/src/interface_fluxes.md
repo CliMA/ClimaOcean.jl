@@ -219,7 +219,7 @@ between $0$ and $0.03$ (Edson et al 2013).
 ```@example
 using ClimaOcean
 using CairoMakie
-set_theme!(Theme(fontsize=14, linewidth=3))
+set_theme!(Theme(fontsize=14, linewidth=4))
 
 charnock_length = MomentumRoughnessLength(wave_formulation = 0.02,
                                           smooth_wall_parameter = 0,
@@ -396,7 +396,7 @@ drag coefficient from the polynomials expressions with the two `OceanSeaIceModel
 
 ```@example interface_fluxes
 using CairoMakie
-set_theme!(Theme(fontsize=14, linewidth=3))
+set_theme!(Theme(fontsize=14, linewidth=4))
 
 # Extract u★ and compute Cᴰ for increased roughness model
 u★_rough = increased_roughness_model.interfaces.atmosphere_ocean_interface.fluxes.friction_velocity
@@ -598,14 +598,18 @@ fig = Figure(size=(800, 400))
 axm = Axis(fig[1, 1], xlabel="Stability parameter ζ", ylabel="Momentum auxiliary stability function ψₘ")
 axs = Axis(fig[1, 2], xlabel="Stability parameter ζ", ylabel="Scalar auxiliary stability function ψₛ")
 
-lines!(axm, ζ,  edson_momentum.(ζ), label="Edson et al. (2013)")
-lines!(axm, ζ⁺, sheba_momentum.(ζ⁺), label="Grachev et al. (2007)")
-lines!(axm, ζ⁻, paulson_momentum.(ζ⁻), label="Paulson (1970)")
+lines!(axm, ζ,  edson_momentum.(ζ), label="Edson et al. (2013)", alpha=0.7)
+lines!(axm, ζ⁺, sheba_momentum.(ζ⁺), label="Grachev et al. (2007)", alpha=0.7)
+lines!(axm, ζ⁻, paulson_momentum.(ζ⁻), label="Paulson (1970)", alpha=0.7)
 axislegend(axm, position=:lb)
 
-lines!(axs, ζ,  edson_scalar.(ζ), label="Edson et al. (2013)")
-lines!(axs, ζ⁺, sheba_scalar.(ζ⁺), label="Grachev et al. (2007)")
-lines!(axs, ζ⁻, paulson_scalar.(ζ⁻), label="Paulson (1970)")
+lines!(axs, ζ,  edson_scalar.(ζ), label="Edson et al. (2013)", alpha=0.7)
+lines!(axs, ζ⁺, sheba_scalar.(ζ⁺), label="Grachev et al. (2007)", alpha=0.7)
+lines!(axs, ζ⁻, paulson_scalar.(ζ⁻), label="Paulson (1970)", alpha=0.7)
+
+for ax in (axm, axs)
+    ylims!(ax, -14, 4)
+end
 
 fig
 ```
@@ -670,7 +674,6 @@ qₛ = surface_specific_humidity(q_formulation, ℂₐ, ρₐ, Tₒ, Sₒ)
 We then set the atmospheric state:
 
 ```@example interface_fluxes
-@show qₛ
 interior(atmosphere.pressure) .= 101352
 interior(atmosphere.tracers.q) .= qₛ
 
@@ -688,27 +691,21 @@ axθ = Axis(fig[2, 2], xlabel="Wind speed uₐ (m s⁻¹)", ylabel="Air-sea temp
 axC = Axis(fig[3, 1:2], xlabel="Wind speed uₐ (m s⁻¹)", ylabel="Cᴰ / neutral Cᴰ")
 
 ΔT = Tₐ .- Tₒ
-ΔT = reshape(ΔT, Ny, 1)
-ΔT = dropdims(ΔT, dims=2)
+ΔT = dropdims(ΔT, dims=1)
 
-hmu = heatmap!(axu, uₐ, ΔT, interior(u★, :, :), colormap=:speed)
-hmθ = heatmap!(axθ, uₐ, ΔT, interior(θ★, :, :), colormap=:balance)
+hmu = heatmap!(axu, uₐ, ΔT, u★, colormap=:speed)
+hmθ = heatmap!(axθ, uₐ, ΔT, θ★, colormap=:balance)
 
 Colorbar(fig[1, 1], hmu, label="u★ (m s⁻¹)", vertical=false)
 Colorbar(fig[1, 2], hmθ, label="θ★ (K)", vertical=false)
 
-u★ = interior(u★, :, :)
-uₐ = reshape(uₐ, Nx, 1)
-Cᴰ = @. (u★ / uₐ)^2
+Cᴰ = [(u★[i, j] / uₐ[i])^2 for i in 1:Nx, j in 1:Ny]
 
-uₐ = uₐ[:]
-#lines!(ax★, uₐ, Cᴰ[:, 1:10:end])
-lines!(axC, uₐ, Cᴰ[:, 1]   ./ Cᴰ_default)
-lines!(axC, uₐ, Cᴰ[:, 20]  ./ Cᴰ_default)
-lines!(axC, uₐ, Cᴰ[:, 50]  ./ Cᴰ_default)
-lines!(axC, uₐ, Cᴰ[:, 100] ./ Cᴰ_default)
-lines!(axC, uₐ, Cᴰ[:, 150] ./ Cᴰ_default)
-lines!(axC, uₐ, Cᴰ[:, 200] ./ Cᴰ_default)
+for j in (1, 20, 50, 100, 150, 200)
+    lines!(axC, uₐ, Cᴰ[:, j] ./ Cᴰ_default, label="ΔT = $(round(ΔT[j], digits=1)) K", alpha=0.8)
+end
+
+axislegend(axC, orientation=:horizontal, nbanks=2, label="navid")
 
 xlims!(axC, 0, 10)
 ylims!(axC, 0, 4)
