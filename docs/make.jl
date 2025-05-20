@@ -1,9 +1,13 @@
 using
   ClimaOcean,
   Documenter,
+  DocumenterCitations,
   Literate
 
 ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
+
+bib_filepath = joinpath(dirname(@__FILE__), "climaocean.bib")
+bib = CitationBibliography(bib_filepath, style=:authoryear)
 
 #####
 ##### Generate examples
@@ -57,11 +61,13 @@ pages = [
         "Private"        => "library/internals.md",
         "Function index" => "library/function_index.md",
         ],
+    "References" => "references.md",
 ]
 
 makedocs(sitename = "ClimaOcean.jl";
          format,
          pages,
+         plugins = [bib],
          modules = [ClimaOcean],
          doctest = true,
          clean = true,
