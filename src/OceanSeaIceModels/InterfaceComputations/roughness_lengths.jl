@@ -162,7 +162,7 @@ end
 @inline function roughness_length(ℓ::MomentumRoughnessLength{FT}, u★, ℂ=nothing, 𝒬=nothing) where FT
     ν = compute_air_kinematic_viscosity(ℓ.air_kinematic_viscosity, ℂ, 𝒬)
     g = ℓ.gravitational_acceleration
-    α = ℓ.gravity_wave_parameter
+    α = ℓ.wave_formulation
     β = ℓ.smooth_wall_parameter
 
     ℓᵂ = α * u★^2 / g # gravity wave roughness length
@@ -217,4 +217,3 @@ end
 @inline function (ℓ::ScalarRoughnessLength{FT})(u★, ℂ=nothing, 𝒬=nothing) where FT
     return roughness_length(ℓ, u★, ℂ, 𝒬)
 end
-
