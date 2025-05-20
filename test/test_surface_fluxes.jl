@@ -125,13 +125,14 @@ end
                                                    zero_stability_function,
                                                    zero_stability_function)
 
-            roughness_lengths = SimilarityScales(ℓ, ℓ, ℓ)
-            similarity_theory = SimilarityTheoryFluxes(; roughness_lengths,
+            similarity_theory = SimilarityTheoryFluxes(; momentum_roughness_length = ℓ,
+                                                         temperature_roughness_length = ℓ,
+                                                         water_vapor_roughness_length = ℓ,
                                                          gustiness_parameter = 0,
                                                          stability_functions)
 
             interfaces = ComponentInterfaces(atmosphere, ocean;
-                                             atmosphere_ocean_flux_formulation=similarity_theory)
+                                             atmosphere_ocean_fluxes=similarity_theory)
 
             # mid-latitude ocean conditions
             set!(ocean.model, u = 0, v = 0, T = 15, S = 30)
