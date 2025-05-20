@@ -692,7 +692,7 @@ axC = Axis(fig[3, 1:2], xlabel="Wind speed uₐ (m s⁻¹)", ylabel="Cᴰ / neut
 ΔT = dropdims(ΔT, dims=2)
 
 hmu = heatmap!(axu, uₐ, ΔT, interior(u★, :, :), colormap=:speed)
-hmθ = heatmap!(axθ, uₐ, ΔT, interior(θ★, :, :), colormap=:thermal)
+hmθ = heatmap!(axθ, uₐ, ΔT, interior(θ★, :, :), colormap=:balance)
 
 Colorbar(fig[1, 1], hmu, label="u★ (m s⁻¹)", vertical=false)
 Colorbar(fig[1, 2], hmθ, label="θ★ (K)", vertical=false)
