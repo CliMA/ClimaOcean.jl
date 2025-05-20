@@ -91,9 +91,13 @@ function MomentumRoughnessLength(FT=Oceananigans.defaults.FloatType;
                                  wave_formulation = 0.02,
                                  smooth_wall_parameter = 0.11)
 
+    if wave_formulation isa Number
+        wave_formulation = convert(FT, wave_formulation)
+    end
+
     return MomentumRoughnessLength(convert(FT, gravitational_acceleration),
                                    air_kinematic_viscosity,
-                                   convert(FT, gravity_wave_parameter),
+                                   wave_formulation,
                                    convert(FT, smooth_wall_parameter),
                                    convert(FT, maximum_roughness_length))
 end
