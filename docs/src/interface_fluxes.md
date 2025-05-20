@@ -559,20 +559,18 @@ which when integrated from $z=\ell_u$ to $z=h$, as for the neutral case, then pr
 
 ```math
 u_a(h) - u_a(\ell_u) = Δ u = \frac{u_\star}{\kappa}
-    \left [ \log \left (\frac{h}{\ell_u} \right ) + ψ_u \left ( \frac{h}{L_\star} \right ) - ψ_u \left (\frac{\ell_u}{L_\star} \right ) \right ] \, .
+    \left [ \log \left (\frac{h}{\ell_u} \right ) - ψ_u \left ( \frac{h}{L_\star} \right ) + ψ_u \left (\frac{\ell_u}{L_\star} \right ) \right ] \, .
 ```
 
 The term $\psi_u(\ell_u / L_\star)$ is often neglected because $\ell_u / L_\star$ is miniscule and because by definition, $\psi_u(0) = 0$.
 Similar formula hold for temperature and water vapor,
 
 ```math
-Δ \theta = \frac{\theta_\star}{\kappa} \left [ \log \left (\frac{h}{\ell_\theta} \right ) + ψ_\theta \left ( \frac{h}{L_\star} \right ) - ψ_\theta \left (\frac{\ell_\theta}{L_\star} \right ) \right ] \, , \\[2ex]
-Δ q = \frac{q_\star}{\kappa} \left [ \log \left (\frac{h}{\ell_q} \right ) + ψ_q \left ( \frac{h}{L_\star} \right ) - ψ_q \left (\frac{\ell_q}{L_\star} \right ) \right ] \, .
+Δ \theta = \frac{\theta_\star}{\kappa} \left [ \log \left (\frac{h}{\ell_\theta} \right ) - ψ_\theta \left ( \frac{h}{L_\star} \right ) + ψ_\theta \left (\frac{\ell_\theta}{L_\star} \right ) \right ] \, , \\[2ex]
+Δ q = \frac{q_\star}{\kappa} \left [ \log \left (\frac{h}{\ell_q} \right ) - ψ_q \left ( \frac{h}{L_\star} \right ) + ψ_q \left (\frac{\ell_q}{L_\star} \right ) \right ] \, .
 ```
 
 Let's plot some stability functions:
-
-
 
 ```@example interface_fluxes
 using ClimaOcean.OceanSeaIceModels.InterfaceComputations:
@@ -596,8 +594,8 @@ paulson_scalar   = PaulsonScalarStabilityFunction()
 
 fig = Figure(size=(800, 400))
 
-axm = Axis(fig[1, 1], xlabel="Stability parameter ζ", ylabel="Stability function")
-axs = Axis(fig[1, 2], xlabel="Stability parameter ζ", ylabel="Stability function")
+axm = Axis(fig[1, 1], xlabel="Stability parameter ζ", ylabel="Momentum auxiliary stability function ψₘ")
+axs = Axis(fig[1, 2], xlabel="Stability parameter ζ", ylabel="Scalar auxiliary stability function ψₛ")
 
 lines!(axm, ζ,  edson_momentum.(ζ), label="Edson et al. (2013)")
 lines!(axm, ζ⁺, sheba_momentum.(ζ⁺), label="Grachev et al. (2007)")
@@ -637,7 +635,7 @@ q_⋆^{n+1} = \, Δ q \, \, Ξ_q \left (h, \ell_q^n, L_⋆^n \right )
 where, for example,
 
 ```math
-\Xi_u \left ( h, \ell_u, L_⋆ \right ) ≡ \frac{κ}{\log \left ( \frac{h}{\ell_u} \right ) + \psi_u \left ( \frac{h}{L_\star} \right ) + \psi_u \left ( \frac{\ell_u}{L_\star} \right )} \, ,
+\Xi_u \left ( h, \ell_u, L_⋆ \right ) ≡ \frac{κ}{\log \left ( \frac{h}{\ell_u} \right ) - \psi_u \left ( \frac{h}{L_\star} \right ) + \psi_u \left ( \frac{\ell_u}{L_\star} \right )} \, ,
 ```
 
 These equations indicate how $\ell_u, \ell_\theta, \ell_q,$ and  $L_⋆ = - u_\star^2 / κ b_\star$ are all functions of $u_\star, \theta_\star, q_\star$; estimating the
