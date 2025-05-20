@@ -202,10 +202,10 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
                                  atmosphere_state,
                                  approximate_interface_state)
 
-    ΔU = sqrt(Δu^2 + Δv^2 + Uᴳ^2)
+    U = sqrt(Δu^2 + Δv^2 + Uᴳ^2)
 
     # Compute roughness length scales
-    ℓu₀ = roughness_length(ℓu, ΔU,  u★, 𝒬ₛ, ℂₐ)
+    ℓu₀ = roughness_length(ℓu, U, u★, 𝒬ₛ, ℂₐ)
     ℓq₀ = roughness_length(ℓq, ℓu₀, u★, 𝒬ₛ, ℂₐ)
     ℓθ₀ = roughness_length(ℓθ, ℓu₀, u★, 𝒬ₛ, ℂₐ)
 
@@ -219,7 +219,7 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
     χq = ϰ / similarity_profile(form, ψq, Δh, ℓq₀, L★)
 
     # Recompute
-    u★ = χu * ΔU
+    u★ = χu * U
     θ★ = χθ * Δθ
     q★ = χq * Δq
 

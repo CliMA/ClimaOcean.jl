@@ -159,14 +159,14 @@ end
 
 # Momentum roughness length should be different from scalar roughness length.
 # Temperature and water vapor can be considered the same (Edson et al 2013)
-@inline function roughness_length(ℓ::MomentumRoughnessLength{FT}, u★, ℂ=nothing, 𝒬=nothing) where FT
-    ν = compute_air_kinematic_viscosity(ℓ.air_kinematic_viscosity, ℂ, 𝒬)
+@inline function roughness_length(ℓ::MomentumRoughnessLength{FT}, U, u★, ℂₐ=nothing, 𝒬ₐ=nothing) where FT
+    ν = compute_air_kinematic_viscosity(ℓ.air_kinematic_viscosity, ℂₐ, 𝒬ₐ)
     g = ℓ.gravitational_acceleration
-    α = ℓ.wave_formulation
-    β = ℓ.smooth_wall_parameter
+    ℂg = gravity_wave_parameter(ℓ.wave_formulation, U)
+    ℂν = ℓ.smooth_wall_parameter
 
-    ℓᵂ = α * u★^2 / g # gravity wave roughness length
-    ℓᴿ = ifelse(β == 0, zero(u★), β * ν / u★) # viscous sublayer roughness length
+    ℓᵂ = ℂg * u★^2 / g # gravity wave roughness length
+    ℓᴿ = ifelse(ℂν == 0, zero(u★), ℂν * ν / u★) # viscous sublayer roughness length
     ℓ★ = ℓᵂ + ℓᴿ # arbitrary way of combining the two
 
     # Clip to ℓ_max, deals with u★ = 0
