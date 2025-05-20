@@ -329,7 +329,7 @@ neutral_similarity_fluxes = SimilarityTheoryFluxes(stability_functions=nothing)
 interfaces = ComponentInterfaces(atmosphere, ocean; atmosphere_ocean_fluxes=neutral_similarity_fluxes)
 default_model = OceanSeaIceModel(ocean; atmosphere, interfaces)
 
-momentum_roughness_length = MomentumRoughnessLength(gravity_wave_parameter=0.04)
+momentum_roughness_length = MomentumRoughnessLength(wave_formulation=0.04)
 neutral_similarity_fluxes = SimilarityTheoryFluxes(stability_functions=nothing; momentum_roughness_length)
 interfaces = ComponentInterfaces(atmosphere, ocean; atmosphere_ocean_fluxes=neutral_similarity_fluxes)
 increased_roughness_model = OceanSeaIceModel(ocean; atmosphere, interfaces)

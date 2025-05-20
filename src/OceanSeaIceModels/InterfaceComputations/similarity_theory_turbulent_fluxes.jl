@@ -506,7 +506,7 @@ end
 
     Ψ₁ = - b/2 * log(1 + c * ζ⁺ + ζ⁺^2)
     Ψ₂ = (b * c / 2B - a / B) *
-        (log((2ζ⁺ + c - B) / (2ζ⁺ + c + B)) + log((c - B) / (c + B)))
+        (log((2ζ⁺ + c - B) / (2ζ⁺ + c + B)) - log((c - B) / (c + B)))
 
     return Ψ₁ + Ψ₂
 end
