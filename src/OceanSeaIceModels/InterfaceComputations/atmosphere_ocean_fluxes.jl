@@ -114,7 +114,7 @@ end
 
     # Estimate interface specific humidity using interior temperature
     q_formulation = interface_properties.specific_humidity_formulation
-    qₛ = surface_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ.ρ, Tᵢ, Sᵢ)
+    qₛ = surface_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ, Tᵢ, Sᵢ)
     initial_interface_state = InterfaceState(u★, u★, u★, uᵢ, vᵢ, Tᵢ, Sᵢ, qₛ)
 
     # Don't use convergence criteria in an inactive cell
