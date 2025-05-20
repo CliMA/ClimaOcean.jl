@@ -219,7 +219,7 @@ between $0$ and $0.03$ (Edson et al 2013).
 ```@example
 using ClimaOcean
 using CairoMakie
-set_theme!(Theme(fontsize=14, linewidth=2))
+set_theme!(Theme(fontsize=14, linewidth=3))
 
 charnock_length = MomentumRoughnessLength(wave_formulation = 0.02,
                                           smooth_wall_parameter = 0,
@@ -396,7 +396,7 @@ drag coefficient from the polynomials expressions with the two `OceanSeaIceModel
 
 ```@example interface_fluxes
 using CairoMakie
-set_theme!(Theme(fontsize=14, linewidth=2))
+set_theme!(Theme(fontsize=14, linewidth=3))
 
 # Extract u★ and compute Cᴰ for increased roughness model
 u★_rough = increased_roughness_model.interfaces.atmosphere_ocean_interface.fluxes.friction_velocity
@@ -412,7 +412,7 @@ lines!(axu, uₐ, u★_EC, label="ECMWF polynomial fit (Edson et al 2013)")
 
 axd = Axis(fig[1:2, 2], xlabel="uₐ (m s⁻¹) at 10 m", ylabel="1000 × Cᴰ")
 lines!(axd, uₐ, 1000 .* Cᴰ_default, label="ClimaOcean default")
-lines!(axd, uₐ, 1000 .* Cᴰ_rough, label="ClimaOcean default")
+lines!(axd, uₐ, 1000 .* Cᴰ_rough, label="Increased roughness model")
 lines!(axd, uₐ, 1000 .* Cᴰ_LY, label="Large and Yeager (2009) polynomial fit")
 lines!(axd, uₐ, 1000 .* Cᴰ_EC, label="ECMWF polynomial fit (Edson et al 2013)")
 
@@ -462,7 +462,7 @@ The ideal gas law for a mixture of dry air and water vapor is then
 ```math
 p = \rho R_m(q) T \,
 \qquad \text{where} \qquad
-R_m(q) ≈ R_d \left (1 - q \right ) + R_v q = R_d \left ( 1 - \mathscr{M} q \right ) \, .
+R_m(q) ≈ R_d \left (1 - q \right ) + R_v q = R_d \left ( 1 - \mathscr{M} q \right ) \, ,
 ```
 
 where ``\mathscr{M} = \frac{R_v}{R_d} - 1`` and $R_m(q)$ is the effective mixture gas "constant" which varies with specific humidity $q$,
