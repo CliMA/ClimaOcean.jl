@@ -148,9 +148,9 @@ end
 """ Calculate the air viscosity based on the temperature θ in Celsius. """
 @inline function compute_air_kinematic_viscosity(ν::TemperatureDependentAirViscosity, ℂ, 𝒬)
     T₀ = AtmosphericThermodynamics.air_temperature(ℂ, 𝒬)
-    FT = eltype(ν.C₀)
+    FT = eltype(ν.ℂ₀)
     T′ = convert(FT, T₀ - celsius_to_kelvin)
-    return ν.C₀ + ν.C₁ * T′ + ν.C₂ * T′^2 + ν.C₃ * T′^3
+    return ν.ℂ₀ + ν.ℂ₁ * T′ + ν.ℂ₂ * T′^2 + ν.ℂ₃ * T′^3
 end
 
 # Fallbacks for constant roughness length
