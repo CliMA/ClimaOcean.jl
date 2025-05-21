@@ -25,7 +25,15 @@ function install_copernicusmarine()
     return cli
 end
 
-function download_dataset(meta::CopernicusMetadata, grid=nothing; skip_existing = true, additional_kw...)
+function download_dataset(metadata::CopernicusMetadata, grid=nothing; kwargs...)
+    paths = Array{String}(undef, length(metadata))
+    for m in eachindex(metadata)
+        paths[m] = download_dataset(metadata[m], grid; kwargs...)
+    end
+    return paths
+end
+
+function download_dataset(meta::CopernicusMetadatum, grid=nothing; skip_existing = true, additional_kw...)
     output_directory = meta.dir
     output_filename = ClimaOcean.DataWrangling.metadata_filename(meta)
     output_path = joinpath(output_directory, output_filename)

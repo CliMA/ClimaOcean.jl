@@ -118,10 +118,6 @@ function metadata_filename(metadata::CopernicusMetadata)
     return string(prefix, ".nc")
 end
 
-# Only one path, as the Dataset is one file for all dates
-metadata_path(metadata::CopernicusMetadata)  = joinpath(metadata.dir, metadata_filename(metadata))
-metadata_path(metadata::CopernicusMetadatum) = joinpath(metadata.dir, metadata_filename(metadata))
-
 function inpainted_metadata_path(metadata::CopernicusMetadata)
     prefix = metadata_prefix(metadata)
     return string(prefix, "_inpainted.jld2")
