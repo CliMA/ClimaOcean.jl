@@ -57,7 +57,7 @@ Argument
 Keyword Arguments
 =================
 
-- `dataset`: Supported datasets are `ECCO2Monthly()`, `ECCO2Daily()`, `ECCO4Monthly()`, `EN4Monthly()`,
+- `dataset`: Supported datasets are `ETOPO2022()`, `ECCO2Monthly()`, `ECCO2Daily()`, `ECCO4Monthly()`, `EN4Monthly()`,
              `RepeatYearJRA55()`, and `MultiYearJRA55()`.
 
 - `dates`: The dates of the dataset (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`).

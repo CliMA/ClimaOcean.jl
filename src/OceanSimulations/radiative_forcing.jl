@@ -24,7 +24,7 @@ Return `TwoColorRadiation` that computes the radiative flux divergence associate
 a two-color radiation flux that decays according to Beer's law,
 
 ```math
-I(z) = ϵ₁ * I₀ * exp(κ₁ * z) + (1 - ϵ₁) * I₀ * exp(κ₂ * z)
+I(z) = ϵ₁ I₀ \\exp(κ₁ z) + (1 - ϵ₁) I₀ \\exp(κ₂ z)
 ```
 
 where ``I₀`` is the surface flux, ``ϵ₁`` is the "first color" fraction of the total radiation,

@@ -124,7 +124,7 @@ end
 
     # Estimate interface specific humidity using interior temperature
     q_formulation = interface_properties.specific_humidity_formulation
-    qₛ = saturation_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ, Tₛ, Sᵢ)
+    qₛ = surface_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ, Tₛ, Sᵢ)
 
     # Guess
     Sₛ = zero(FT) # what should we use for interface salinity?

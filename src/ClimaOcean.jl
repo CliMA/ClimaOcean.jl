@@ -13,6 +13,10 @@ export
     Radiation,
     LatitudeDependentAlbedo,
     SimilarityTheoryFluxes,
+    CoefficientBasedFluxes,
+    MomentumRoughnessLength,
+    ScalarRoughnessLength,
+    ComponentInterfaces,
     SkinTemperature,
     BulkTemperature,
     PrescribedAtmosphere,
@@ -89,7 +93,7 @@ using .OceanSeaIceModels
 using .OceanSimulations
 using .SeaIceSimulations
 
-using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
+using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere, ComponentInterfaces, MomentumRoughnessLength, ScalarRoughnessLength
 using ClimaOcean.DataWrangling.JRA55: JRA55PrescribedAtmosphere, JRA55NetCDFBackend
 using ClimaOcean.DataWrangling.ECCO
 using ClimaOcean.DataWrangling.ETOPO
