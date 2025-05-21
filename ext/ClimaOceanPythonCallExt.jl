@@ -25,10 +25,12 @@ function install_copernicusmarine()
     return cli
 end
 
+# Download each date individually, instead of downloading the entire dataset at once.
+# This is useful for a possible extension of the temporal horizon of the dataset.
 function download_dataset(metadata::CopernicusMetadata, grid=nothing; kwargs...)
     paths = Array{String}(undef, length(metadata))
-    for m in eachindex(metadata)
-        paths[m] = download_dataset(metadata[m], grid; kwargs...)
+    for (m, metadatum) in enumerate(metadata)
+        paths[m] = download_dataset(metadatum, grid; kwargs...)
     end
     return paths
 end
