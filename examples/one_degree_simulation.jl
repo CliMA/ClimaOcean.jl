@@ -15,16 +15,6 @@ using Dates
 using Printf
 using ClimaOcean.ECCO: download_dataset
 
-# ### Download necessary files to run the code
-
-# ### ECCO files
-
-start_date = DateTime(1993, 1, 1) 
-stop_date = DateTime(1993, 12, 1) 
-dates = range(start_date, step=Month(1), stop=stop_date)
-ecco_temperature = Metadata(:temperature; dates, dataset=ECCO4Monthly())
-ecco_salinity = Metadata(:salinity; dates, dataset=ECCO4Monthly())
-
 # ### Grid and Bathymetry
 
 # We start by constructing an underlying TripolarGrid at ~1 degree resolution,
@@ -53,7 +43,14 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height);
 
 # ### Restoring
 #
-# We include temperature and salinity surface restoring to ECCO data thoughout the water column.
+# We include temperature and salinity surface restoring to ECCO data from 2008, thoughout the water column.
+
+start_date = DateTime(2008, 1, 1) 
+stop_date = DateTime(2008, 12, 1) 
+dates = range(start_date, step=Month(1), stop=stop_date)
+ecco_temperature = Metadata(:temperature; dates, dataset=ECCO4Monthly())
+ecco_salinity = Metadata(:salinity; dates, dataset=ECCO4Monthly())
+
 restoring_rate  = 1 / 3days
 mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(z[1], 0))
 
