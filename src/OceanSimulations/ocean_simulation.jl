@@ -107,6 +107,31 @@ end
 
 # TODO: Specify the grid to a grid on the sphere; otherwise we can provide a different
 # function that requires latitude and longitude etc for computing coriolis=FPlane...
+"""
+    ocean_simulation(grid;
+                     Δt = estimate_maximum_Δt(grid),
+                     closure = default_ocean_closure(),
+                     tracers = (:T, :S),
+                     free_surface = default_free_surface(grid),
+                     reference_density = 1020,
+                     rotation_rate = Ω_Earth,
+                     gravitational_acceleration = g_Earth,
+                     bottom_drag_coefficient = Default(0.003),
+                     forcing = NamedTuple(),
+                     biogeochemistry = nothing,
+                     timestepper = :QuasiAdamsBashforth2,
+                     coriolis = Default(HydrostaticSphericalCoriolis(; rotation_rate)),
+                     momentum_advection = default_momentum_advection(),
+                     equation_of_state = TEOS10EquationOfState(; reference_density),
+                     boundary_conditions::NamedTuple = NamedTuple(),
+                     tracer_advection = default_tracer_advection(),
+                     vertical_coordinate = default_vertical_coordinate(grid),
+                     radiative_forcing = default_radiative_forcing(grid),
+                     warn = true,
+                     verbose = false)
+
+Return an ocean simulation.
+"""
 function ocean_simulation(grid;
                           Δt = estimate_maximum_Δt(grid),
                           closure = default_ocean_closure(),
@@ -257,4 +282,3 @@ end
 
 hasclosure(closure, ClosureType) = closure isa ClosureType
 hasclosure(closure_tuple::Tuple, ClosureType) = any(hasclosure(c, ClosureType) for c in closure_tuple)
-
