@@ -1,19 +1,18 @@
 # # One-degree global ocean simulation
 #
 # This example configures a global ocean--sea ice simulation at 1ᵒ horizontal resolution with
-# realistic bathymetry, few closures. The simulation is forced by JRA55 atmospheric reanalysis
-# and initialized by temperature and salinity from ECCO2 state estimate.
+# realistic bathymetry and a few closures including the "Gent-McWilliams" `IsopycnalSkewSymmetricDiffusivity`.
+# The simulation is forced by JRA55 atmospheric reanalysis
+# and initialized by temperature and salinity from the ECCO state estimate.
 #
-# For this example, we need Oceananigans, ClimaOcean, and
-# CairoMakie to visualize the simulation. Also we need CFTime and Dates for date handling.
+# For this example, we need Oceananigans, ClimaOcean, Dates, and
+# CairoMakie to visualize the simulation.
 
 using ClimaOcean
-using ClimaOcean.ECCO
 using Oceananigans
 using Oceananigans.Units
 using Dates
 using Printf
-using ClimaOcean.ECCO: download_dataset
 
 # ### Grid and Bathymetry
 
@@ -43,10 +42,10 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height);
 
 # ### Restoring
 #
-# We include temperature and salinity surface restoring to ECCO data from 2008, thoughout the water column.
+# We include temperature and salinity surface restoring to ECCO data from 1993 thoughout the water column.
 
-start_date = DateTime(2008, 1, 1) 
-stop_date = DateTime(2008, 12, 1) 
+start_date = DateTime(1993, 1, 1) 
+stop_date = DateTime(1993, 12, 1) 
 dates = range(start_date, step=Month(1), stop=stop_date)
 ecco_temperature = Metadata(:temperature; dates, dataset=ECCO4Monthly())
 ecco_salinity = Metadata(:salinity; dates, dataset=ECCO4Monthly())
