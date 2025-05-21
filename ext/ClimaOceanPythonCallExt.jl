@@ -27,15 +27,15 @@ end
 
 # Download each date individually, instead of downloading the entire dataset at once.
 # This is useful for a possible extension of the temporal horizon of the dataset.
-function download_dataset(metadata::CopernicusMetadata, grid=nothing; kwargs...)
+function download_dataset(metadata::CopernicusMetadata; kwargs...)
     paths = Array{String}(undef, length(metadata))
     for (m, metadatum) in enumerate(metadata)
-        paths[m] = download_dataset(metadatum, grid; kwargs...)
+        paths[m] = download_dataset(metadatum; kwargs...)
     end
     return paths
 end
 
-function download_dataset(meta::CopernicusMetadatum, grid=nothing; skip_existing = true, additional_kw...)
+function download_dataset(meta::CopernicusMetadatum; skip_existing = true, additional_kw...)
     output_directory = meta.dir
     output_filename = ClimaOcean.DataWrangling.metadata_filename(meta)
     output_path = joinpath(output_directory, output_filename)
