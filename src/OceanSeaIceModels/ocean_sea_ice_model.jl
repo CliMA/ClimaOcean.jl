@@ -170,7 +170,7 @@ OceanSeaIceModel{CPU}(time = 0 seconds, iteration = 0)
 ```
 
 The available stability function options include:
-- `atmosphere_ocean_stability_functions`: Based on Edson et al. (2013)
+- `atmosphere_ocean_stability_functions`: Based on [edson2013exchange](@citet)
 - `atmosphere_sea_ice_stability_functions`: Specifically designed for atmosphere-sea ice interactions
 - `nothing`: No stability functions will be used
 - Custom stability functions can be created by defining functions of the "stability parameter"

@@ -158,7 +158,7 @@ end
 @inline roughness_length(ℓ::Number, args...) = ℓ
 
 # Momentum roughness length should be different from scalar roughness length.
-# Temperature and water vapor can be considered the same (Edson et al 2013)
+# Temperature and water vapor can be considered the same (Edson et al. 2013)
 @inline function roughness_length(ℓ::MomentumRoughnessLength{FT}, u★, U, ℂₐ=nothing, 𝒬ₐ=nothing) where FT
     ν = compute_air_kinematic_viscosity(ℓ.air_kinematic_viscosity, ℂₐ, 𝒬ₐ)
     g = ℓ.gravitational_acceleration

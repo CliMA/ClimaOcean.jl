@@ -10,7 +10,7 @@ end
     LatitudeDependentAlbedo([FT::DataType=Float64]; diffuse = 0.069, direct = 0.011)
 
 Constructs a `LatitudeDependentAlbedo` object. The albedo of the ocean surface is assumed to be a function of the latitude,
-obeying the following formula (Large and Yeager, 2009):
+obeying the following formula [large2009global](@citep):
 
     α(φ) = α.diffuse - α.direct * cos(2φ)
 

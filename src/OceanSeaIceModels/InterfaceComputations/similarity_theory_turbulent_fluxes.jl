@@ -296,7 +296,7 @@ abstract type AbstractStabilityFunction end
 """
     EdsonMomentumStabilityFunction{FT}
 
-A struct representing the momentum stability function detailed in paper by [edson2013exchange](@citet).
+A struct representing the momentum stability function detailed by [edson2013exchange](@citet).
 The formulation hinges on the definition of three different functions:
 one for stable atmospheric conditions ``(ζ > 0)``, named ``ψₛ`` and two for unstable conditions,
 named ``ψᵤ₁`` and ``ψᵤ₂``.
@@ -375,7 +375,7 @@ end
 """
     EdsonScalarStabilityFunction{FT}
 
-A struct representing the scalar stability function detailed in Edson et al (2013).
+A struct representing the scalar stability function detailed by [edson2013exchange](@citet).
 The formulation hinges on the definition of two different functions:
 one for stable atmospheric conditions ``(ζ > 0)``, named ``ψ⁺`` and one for unstable conditions,
 named ``ψ⁻``.

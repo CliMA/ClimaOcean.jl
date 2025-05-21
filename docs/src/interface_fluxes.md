@@ -576,10 +576,10 @@ Let's plot some stability functions:
 
 ```@example interface_fluxes
 using ClimaOcean.OceanSeaIceModels.InterfaceComputations:
-    EdsonMomentumStabilityFunction,     # Edson et al 2013
-    EdsonScalarStabilityFunction,       # Edson et al 2013
-    ShebaMomentumStabilityFunction,     # Grachev et al 2007
-    ShebaScalarStabilityFunction,       # Grachev et al 2007
+    EdsonMomentumStabilityFunction,     # Edson et al. 2013
+    EdsonScalarStabilityFunction,       # Edson et al. 2013
+    ShebaMomentumStabilityFunction,     # Grachev et al. 2007
+    ShebaScalarStabilityFunction,       # Grachev et al. 2007
     PaulsonMomentumStabilityFunction,   # Paulson 1970
     PaulsonScalarStabilityFunction      # Paulson 1970
 
