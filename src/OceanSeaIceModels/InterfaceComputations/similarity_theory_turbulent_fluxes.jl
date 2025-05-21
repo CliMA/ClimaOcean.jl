@@ -361,7 +361,7 @@ end
 
     # Stability parameter for _unstable_ atmospheric conditions
     f⁻₁ = sqrt(sqrt(1 - A⁻ * ζ⁻))
-    ψ⁻₁ = B⁻ * log((1 + f⁻₁) / B⁻) + C⁻
+    ψ⁻₁ = B⁻ * log((1 + f⁻₁) / B⁻) + log((1 + f⁻₁^2) / B⁻) - B⁻ * atan(f⁻₁) + C⁻
 
     f⁻₂ = cbrt(1 - D⁻ * ζ⁻)
     ψ⁻₂ = E⁻ / 2 * log((1 + f⁻₂ + f⁻₂^2) / E⁻) - sqrt(E⁻) * atan( (1 + 2f⁻₂) / sqrt(E⁻)) + F⁻
