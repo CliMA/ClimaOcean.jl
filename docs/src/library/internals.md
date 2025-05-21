@@ -44,6 +44,13 @@ Modules = [ClimaOcean.EN4]
 Public = false
 ```
 
+## ETOPO
+
+```@autodocs
+Modules = [ClimaOcean.ETOPO]
+Public = false
+```
+
 ## JRA55
 
 ```@autodocs
@@ -62,6 +69,13 @@ Public = false
 
 ```@autodocs
 Modules = [ClimaOcean.VerticalGrids]
+Public = false
+```
+
+## OceanSimulations
+
+```@autodocs
+Modules = [ClimaOcean.OceanSimulations]
 Public = false
 ```
 
