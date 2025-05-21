@@ -17,11 +17,12 @@ end
 
 function native_grid(metadata::Metadata, arch=CPU(); halo = (3, 3, 3))
     Nx, Ny, Nz, _ = size(metadata)
+    z = z_interfaces(metadata)
+
     FT = eltype(metadata)
 
     longitude = longitude_interfaces(metadata)
     latitude = latitude_interfaces(metadata)
-    z = z_interfaces(metadata)
 
     # Restrict with BoundingBox
     bbox = metadata.bounding_box
