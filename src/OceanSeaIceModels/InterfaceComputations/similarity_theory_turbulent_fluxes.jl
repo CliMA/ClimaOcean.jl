@@ -46,7 +46,6 @@ Base.summary(::SimilarityTheoryFluxes{FT}) where FT = "SimilarityTheoryFluxes{$F
 
 function Base.show(io::IO, fluxes::SimilarityTheoryFluxes)
     print(io, summary(fluxes), '\n',
-          "├── gravitational_acceleration: ", prettysummary(fluxes.gravitational_acceleration), '\n',
           "├── von_karman_constant: ",        prettysummary(fluxes.von_karman_constant), '\n',
           "├── turbulent_prandtl_number: ",   prettysummary(fluxes.turbulent_prandtl_number), '\n',
           "├── gustiness_parameter: ",        prettysummary(fluxes.gustiness_parameter), '\n',
@@ -79,9 +78,9 @@ Keyword Arguments
 - `turbulent_prandtl_number`: The turbulent Prandtl number. Default: 1.
 - `gustiness_parameter`: Increases surface fluxes in low wind conditions. Default: 1.
 - `stability_functions`: The stability functions. Default: `default_stability_functions(FT)` that follow the
-                         formulation of Edson et al. (2013).
+                         formulation of [edson2013exchange](@citet).
 - `roughness_lengths`: The roughness lengths used to calculate the characteristic scales for momentum, temperature and
-                       water vapor. Default: `default_roughness_lengths(FT)`, formulation taken from Edson et al (2013).
+                       water vapor. Default: `default_roughness_lengths(FT)`, formulation taken from [edson2013exchange](@citet).
 - `similarity_form`: The type of similarity profile used to relate the atmospheric state to the
                              interface fluxes / characteristic scales.
 - `solver_tolerance`: The tolerance for convergence. Default: 1e-8.
@@ -182,7 +181,7 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
     L★ = ifelse(b★ == 0, Inf, - u★^2 / (ϰ * b★))
 
 
-    # Buoyancy flux characteristic scale for gustiness (Edson 2013)
+    # Buoyancy flux characteristic scale for gustiness (Edson et al. 2013)
     h_bℓ = atmosphere_state.h_bℓ
     Jᵇ = - u★ * b★
     Uᴳ = β * cbrt(Jᵇ * h_bℓ)
@@ -270,7 +269,7 @@ end
 """
     EdsonMomentumStabilityFunction{FT}
 
-A struct representing the momentum stability function detailed in Edson et al (2013).
+A struct representing the momentum stability function detailed in paper by [edson2013exchange](@citet).
 The formulation hinges on the definition of three different functions:
 one for stable atmospheric conditions ``(ζ > 0)``, named ``ψₛ`` and two for unstable conditions,
 named ``ψᵤ₁`` and ``ψᵤ₂``.
@@ -349,7 +348,7 @@ end
 """
     EdsonScalarStabilityFunction{FT}
 
-A struct representing the scalar stability function detailed in Edson et al (2013).
+A struct representing the scalar stability function detailed by [edson2013exchange](@citet).
 The formulation hinges on the definition of three different functions:
 one for stable atmospheric conditions ``(ζ > 0)``, named ``ψₛ`` and two for unstable conditions,
 named ``ψᵤ₁`` and ``ψᵤ₂``.

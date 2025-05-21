@@ -11,7 +11,7 @@ using Downloads: download
 using Adapt
 using Scratch
 
-using ClimaOcean.DataWrangling:
+using ..DataWrangling:
     Metadata,
     Metadatum,
     BoundingBox,
@@ -30,7 +30,7 @@ using Dates: year, month, day
 using Oceananigans.DistributedComputations: @root
 
 using Dates
-import Downloads
+using Downloads
 import ZipFile
 
 import ClimaOcean.DataWrangling:
