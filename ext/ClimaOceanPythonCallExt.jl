@@ -7,7 +7,7 @@ using Oceananigans
 using Oceananigans.DistributedComputations: @root
 
 using Dates: DateTime
-using ClimaOcean.DataWrangling.Copernicus: CopernicusMetadata
+using ClimaOcean.DataWrangling.Copernicus: CopernicusMetadata, CopernicusMetadatum
 
 import ClimaOcean.DataWrangling: download_dataset
 

@@ -58,8 +58,8 @@ copernicusmarine_dataset_id(::GLORYSMonthly) = "cmems_mod_glo_phy_my_0.083deg_P1
 struct CMEMSHourlyAnalysis <: CopernicusDataset end
 copernicusmarine_dataset_id(::CMEMSHourlyAnalysis) = "cmems_mod_glo_phy_anfc_0.083deg_PT1H-m"
 
-CopernicusMetadata{D} = Metadata{<:CopernicusDataset, D}
-CopernicusMetadatum = Metadatum{<:CopernicusDataset}
+const CopernicusMetadata{D} = Metadata{<:CopernicusDataset, D}
+const CopernicusMetadatum = Metadatum{<:CopernicusDataset}
 
 Base.size(::CopernicusMetadatum) = (4320, 2040, 50, 1)
 
