@@ -99,7 +99,7 @@ radiation = Radiation(arch)
 
 # The atmospheric data is prescribed using the JRA55 dataset.
 # The JRA55 dataset provides atmospheric data such as temperature, humidity, and winds
-# to calculate turbulent fluxes using bulk formulae, see [`CrossRealmFluxes`](@ref).
+# to calculate turbulent fluxes using bulk formulae, see [`InterfaceComputations`](@ref ClimaOcean.OceanSeaIceModels.InterfaceComputations).
 # The number of snapshots that are loaded into memory is determined by
 # the `backend`. Here, we load 41 snapshots at a time into memory.
 
