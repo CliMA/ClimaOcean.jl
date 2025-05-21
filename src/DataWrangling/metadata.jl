@@ -249,6 +249,13 @@ extended in the data specific modules.
 """
 metadata_filename(metadata) = [metadata_filename(metadatum) for metadatum in metadata]
 
+"""
+    available_variables(metadata)
+
+Return the available variables in the dataset.
+"""
+available_variables(metadata) = available_variables(metadata.dataset)
+
 struct Celsius end
 struct Kelvin end
 

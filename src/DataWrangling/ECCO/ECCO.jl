@@ -42,7 +42,8 @@ import ClimaOcean.DataWrangling:
     is_three_dimensional,
     inpainted_metadata_path,
     reversed_vertical_axis,
-    default_mask_value
+    default_mask_value,
+    available_variables
 
 download_ECCO_cache::String = ""
 function __init__()
@@ -143,6 +144,10 @@ z_interfaces(::SomeECCODataset) = [
     -10.0,
       0.0,
 ]
+
+available_variables(::ECCO2Monthly) = ECCO2_dataset_variable_names
+available_variables(::ECCO2Daily)   = ECCO2_dataset_variable_names
+available_variables(::ECCO4Monthly) = ECCO4_dataset_variable_names
 
 ECCO4_dataset_variable_names = Dict(
     :temperature           => "THETA",
