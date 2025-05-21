@@ -9,6 +9,7 @@
 # CairoMakie to visualize the simulation.
 
 using ClimaOcean
+using ClimaOcean.ECCO
 using Oceananigans
 using Oceananigans.Units
 using Dates
@@ -44,8 +45,8 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height);
 #
 # We include temperature and salinity surface restoring to ECCO data from 1993 thoughout the water column.
 
-start_date = DateTime(1993, 1, 1) 
-stop_date = DateTime(1993, 12, 1) 
+start_date = DateTime(1993, 1, 1)
+stop_date = DateTime(1993, 12, 1)
 dates = range(start_date, step=Month(1), stop=stop_date)
 ecco_temperature = Metadata(:temperature; dates, dataset=ECCO4Monthly())
 ecco_salinity = Metadata(:salinity; dates, dataset=ECCO4Monthly())
