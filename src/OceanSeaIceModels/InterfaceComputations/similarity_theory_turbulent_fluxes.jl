@@ -213,7 +213,7 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
     ϰ = flux_formulation.von_karman_constant
     L★ = ifelse(b★ == 0, Inf, - u★^2 / (ϰ * b★))
     form = flux_formulation.similarity_form
-  
+
     χu = ϰ / similarity_profile(form, ψu, Δh, ℓu₀, L★)
     χθ = ϰ / similarity_profile(form, ψθ, Δh, ℓθ₀, L★)
     χq = ϰ / similarity_profile(form, ψq, Δh, ℓq₀, L★)
@@ -280,7 +280,7 @@ struct SimilarityScales{U, T, Q}
     water_vapor :: Q
 end
 
-Base.summary(ss::SimilarityScales) = 
+Base.summary(ss::SimilarityScales) =
     string("SimilarityScales(momentum=", prettysummary(ss.momentum),
            ", temperature=", prettysummary(ss.temperature),
            ", water_vapor=", prettysummary(ss.water_vapor), ")")
@@ -339,7 +339,7 @@ stability function for _stable_ or _unstable_ atmospheric conditions, respective
     F⁻   :: FT = π / sqrt(3)
 end
 
-@inline function stability_profile(ψ::EdsonMomentumStabilityFunction, ζ) 
+@inline function stability_profile(ψ::EdsonMomentumStabilityFunction, ζ)
     ζmax = ψ.ζmax
     A⁺   = ψ.A⁺
     B⁺   = ψ.B⁺
@@ -361,7 +361,7 @@ end
 
     # Stability parameter for _unstable_ atmospheric conditions
     f⁻₁ = sqrt(sqrt(1 - A⁻ * ζ⁻))
-    ψ⁻₁ = B⁻ * log((1 + f⁻₁) / B⁻) + C⁻
+    ψ⁻₁ = B⁻ * log((1 + f⁻₁) / B⁻) + log((1 + f⁻₁^2) / B⁻) - B⁻ * atan(f⁻₁) + C⁻
 
     f⁻₂ = cbrt(1 - D⁻ * ζ⁻)
     ψ⁻₂ = E⁻ / 2 * log((1 + f⁻₂ + f⁻₂^2) / E⁻) - sqrt(E⁻) * atan( (1 + 2f⁻₂) / sqrt(E⁻)) + F⁻
