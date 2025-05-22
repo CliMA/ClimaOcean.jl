@@ -81,16 +81,18 @@ end
 function sea_ice_dynamics(grid, ocean=nothing;
                           sea_ice_ocean_drag_coefficient = 5.5e-3,
                           rheology = ElastoViscoPlasticRheology(pressure_formulation = IceStrength()),
+                          coriolis = nothing,
                           solver = SplitExplicitSolver(120))
 
     if isnothing(ocean)
         SSU = Oceananigans.Fields.ZeroField()
         SSV = Oceananigans.Fields.ZeroField()
-        coriolis = nothing
     else
         SSU = view(ocean.model.velocities.u, :, :, grid.Nz)
         SSV = view(ocean.model.velocities.v, :, :, grid.Nz)
-        coriolis = ocean.model.coriolis
+        if isnothing(coriolis)
+            coriolis = ocean.model.coriolis
+        end
     end
 
     τo  = SemiImplicitStress(uₑ=SSU, vₑ=SSV, Cᴰ=sea_ice_ocean_drag_coefficient)
