@@ -18,7 +18,7 @@ using Oceananigans.TimeSteppers: update_state!
 using Oceananigans.Units: hours, days
 using ClimaOcean.DataWrangling: all_dates
 
-using ClimaSeaIce.SeaIceMomentumEquations
+using ClimaSeaIce.SeaIceDynamics
 using ClimaSeaIce.Rheologies
 
 import ClimaOcean.OceanSeaIceModels.InterfaceComputations: surface_specific_humidity

@@ -4,7 +4,7 @@ using CUDA
 using Oceananigans.OrthogonalSphericalShellGrids
 using ClimaOcean.OceanSeaIceModels: above_freezing_ocean_temperature!
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
-using ClimaSeaIce.SeaIceMomentumEquations
+using ClimaSeaIce.SeaIceDynamics
 using ClimaSeaIce.Rheologies
 
 @inline kernel_melting_temperature(i, j, k, grid, liquidus, S) = @inbounds melting_temperature(liquidus, S[i, j, k])
