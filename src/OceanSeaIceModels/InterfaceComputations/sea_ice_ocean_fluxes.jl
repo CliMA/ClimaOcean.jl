@@ -15,7 +15,7 @@ function compute_sea_ice_ocean_fluxes!(coupled_model)
     Sᵢ = sea_ice.model.tracers.S
     ℵᵢ = sea_ice.model.ice_concentration
     hᵢ = sea_ice.model.ice_thickness
-    Gt = sea_ice.model.ice_thermodynamics.thermodynamic_tendency
+    Gh = sea_ice.model.ice_thermodynamics.thermodynamic_tendency
 
     ocean_properties = coupled_model.interfaces.ocean_properties
     liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
