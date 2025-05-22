@@ -105,6 +105,7 @@ using ClimaOcean.DataWrangling.ECCO
 using ClimaOcean.DataWrangling.Copernicus
 using ClimaOcean.DataWrangling.EN4
 using ClimaOcean.DataWrangling.JRA55
+using ClimaOcean.DataWrangling.JRA55: JRA55NetCDFBackend
 
 using PrecompileTools: @setup_workload, @compile_workload
 
