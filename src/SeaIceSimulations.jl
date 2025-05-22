@@ -20,7 +20,7 @@ using ClimaSeaIce.SeaIceThermodynamics: IceWaterThermalEquilibrium
 
 using ClimaOcean.OceanSimulations: Default
 
-function sea_ice_simulation(grid;
+function sea_ice_simulation(grid, ocean=nothing;
                             Δt = 5minutes,
                             ice_salinity = 0, # psu
                             advection = nothing, # for the moment
@@ -28,8 +28,8 @@ function sea_ice_simulation(grid;
                             ice_heat_capacity = 2100, # J kg⁻¹ K⁻¹
                             ice_consolidation_thickness = 0.05, # m
                             ice_density = 900, # kg m⁻³
-                            dynamics = nothing,
-                            bottom_heat_boundary_condition = IceWaterThermalEquilibrium(),
+                            dynamics = default_sea_ice_dynamics(grid, ocean),
+                            bottom_heat_boundary_condition = nothing,
                             phase_transitions = PhaseTransitions(; ice_heat_capacity, ice_density),
                             conductivity = 2, # kg m s⁻³ K⁻¹
                             internal_heat_flux = ConductiveFlux(; conductivity))
@@ -41,6 +41,15 @@ function sea_ice_simulation(grid;
     top_surface_temperature = Field{Center, Center, Nothing}(grid)
     top_heat_boundary_condition = PrescribedTemperature(top_surface_temperature)
 
+    if isnothing(bottom_heat_boundary_condition)
+        if isnothing(ocean)
+            surface_ocean_salinity = 0
+        else
+            surface_ocean_salinity = view(ocean.model.tracers.S, :, :, size(ocean.model.grid, 3))
+        end
+        bottom_heat_boundary_condition = IceWaterThermalEquilibrium(surface_ocean_salinity)
+    end
+
     ice_thermodynamics = SlabSeaIceThermodynamics(grid;
                                                   internal_heat_flux,
                                                   phase_transitions,
@@ -50,16 +59,12 @@ function sea_ice_simulation(grid;
     bottom_heat_flux = Field{Center, Center, Nothing}(grid)
     top_heat_flux    = Field{Center, Center, Nothing}(grid)
 
-    # top_momentum_stress = (u = Field{Face, Center, Nothing}(grid),
-    #                        v = Field{Center, Face, Nothing}(grid))
-
     # Build the sea ice model
     sea_ice_model = SeaIceModel(grid;
                                 ice_salinity,
                                 advection,
                                 tracers,
                                 ice_consolidation_thickness,
-                                # top_momentum_stress,
                                 ice_thermodynamics,
                                 dynamics,
                                 bottom_heat_flux,
@@ -71,6 +76,31 @@ function sea_ice_simulation(grid;
     sea_ice = Simulation(sea_ice_model; Δt, verbose)
 
     return sea_ice
+end
+
+function default_sea_ice_dynamics(grid, ocean=nothing; # Cannot do it without an ocean
+                                  sea_ice_ocean_drag_coefficient = 5.5e-3,
+                                  rheology = ElastoViscoPlasticRheology(),
+                                  solver = SplitExplicitSolver(120))
+
+    if isnothing(ocean)
+        SSU = Oceananigans.Fields.ZeroField()
+        SSV = Oceananigans.Fields.ZeroField()
+    else
+        SSU = view(ocean.model.velocities.u, :, :, grid.Nz)
+        SSV = view(ocean.model.velocities.v, :, :, grid.Nz)
+    end
+
+    τo  = SemiImplicitStress(uₑ=SSU, vₑ=SSV, Cᴰ=sea_ice_ocean_drag_coefficient)
+    τua = Field{Face, Center, Nothing}(grid)
+    τva = Field{Center, Face, Nothing}(grid)
+
+    return SeaIceMomentumEquation(grid;
+                                  coriolis = ocean.model.coriolis,
+                                  top_momentum_stress = (u=τua, v=τva),
+                                  bottom_momentum_stress = τo,
+                                  rheology,
+                                  solver)
 end
 
 end

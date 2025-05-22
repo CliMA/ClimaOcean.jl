@@ -81,17 +81,7 @@ using ClimaSeaIce.Rheologies
             ##### Coupled ocean-sea ice and prescribed atmosphere
             #####
 
-            # Adding a sea ice model to the coupled model
-            τua = Field{Face, Center, Nothing}(grid)
-            τva = Field{Center, Face, Nothing}(grid)
-
-            dynamics = SeaIceMomentumEquation(grid;
-                                              coriolis = ocean.model.coriolis,
-                                              top_momentum_stress = (u=τua, v=τva),
-                                              rheology = ElastoViscoPlasticRheology(),
-                                              solver = SplitExplicitSolver(120))
-
-            sea_ice  = sea_ice_simulation(grid; dynamics, advection=WENO(order=7))
+            sea_ice  = sea_ice_simulation(grid, ocean; advection=WENO(order=7))
             liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
 
             # Set the ocean temperature and salinity
