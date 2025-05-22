@@ -1,11 +1,12 @@
 # # One-degree global ocean simulation
 #
 # This example configures a global ocean--sea ice simulation at 1ᵒ horizontal resolution with
-# realistic bathymetry, few closures. The simulation is forced by JRA55 atmospheric reanalysis
-# and initialized by temperature and salinity from ECCO2 state estimate.
+# realistic bathymetry and a few closures including the "Gent-McWilliams" `IsopycnalSkewSymmetricDiffusivity`.
+# The simulation is forced by JRA55 atmospheric reanalysis
+# and initialized by temperature and salinity from the ECCO state estimate.
 #
-# For this example, we need Oceananigans, ClimaOcean, and
-# CairoMakie to visualize the simulation. Also we need CFTime and Dates for date handling.
+# For this example, we need Oceananigans, ClimaOcean, Dates, and
+# CairoMakie to visualize the simulation.
 
 using ClimaOcean
 using ClimaOcean.ECCO
@@ -13,19 +14,10 @@ using Oceananigans
 using Oceananigans.Units
 using Dates
 using Printf
-using ClimaOcean.ECCO: download_dataset
-
-# ### Download necessary files to run the code
-
-# ### ECCO files
-
-start_date = DateTime(1993, 1, 1) 
-stop_date = DateTime(1993, 12, 1) 
-dates = range(start_date, step=Month(1), stop=stop_date)
-ecco_temperature = Metadata(:temperature; dates, dataset=ECCO4Monthly())
-ecco_salinity = Metadata(:salinity; dates, dataset=ECCO4Monthly())
 
 # ### Grid and Bathymetry
+
+# We start by constructing an underlying TripolarGrid at ~1 degree resolution,
 
 arch = GPU()
 Nx = 360
@@ -35,21 +27,30 @@ Nz = 40
 z = exponential_z_faces(; Nz, depth=4000, h=34)
 underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 
-## 75 interpolation passes smooth the bathymetry near Florida so that the Gulf Stream is able to flow:
+# Next, we build bathymetry on this grid, using interpolation passes to smooth the bathymetry.
+# With 2 major basins, we keep the Mediterranean (though we need to manually open the Gibraltar
+# Strait to connect it to the Atlantic):
+
 bottom_height = regrid_bathymetry(underlying_grid;
                                   minimum_depth = 10,
                                   interpolation_passes = 10,
                                   major_basins = 2)
 
-# For this bathymetry at this horizontal resolution we need to manually open the Gibraltar strait.
-grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); active_cells_map=true)
+# We then incorporate the bathymetry into an ImmersedBoundaryGrid,
 
-@info "We've built a grid:"
-@show grid
+grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height);
+                            active_cells_map=true)
 
 # ### Restoring
 #
-# We include temperature and salinity surface restoring to ECCO data thoughout the water column.
+# We include temperature and salinity surface restoring to ECCO data from 1993 thoughout the water column.
+
+start_date = DateTime(1993, 1, 1)
+stop_date = DateTime(1993, 12, 1)
+dates = range(start_date, step=Month(1), stop=stop_date)
+ecco_temperature = Metadata(:temperature; dates, dataset=ECCO4Monthly())
+ecco_salinity = Metadata(:salinity; dates, dataset=ECCO4Monthly())
+
 restoring_rate  = 1 / 3days
 mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(z[1], 0))
 
@@ -64,9 +65,8 @@ forcing = (T=FT, S=FS)
 # parameterization. We also include some explicit horizontal diffusivity.
 
 eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=2e3, κ_symmetric=2e3)
-vertical_mixing = Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivity(minimum_tke=1e-6)
 horizontal_viscosity = HorizontalScalarDiffusivity(ν=4000)
-closure = (eddy_closure, horizontal_viscosity, vertical_mixing)
+vertical_mixing = Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivity(minimum_tke=1e-6)
 
 # ### Ocean simulation
 # Now we bring everything together to construct the ocean simulation.
@@ -77,7 +77,8 @@ free_surface       = SplitExplicitFreeSurface(grid; substeps=70)
 momentum_advection = WENOVectorInvariant(order=5)
 tracer_advection   = WENO(order=5)
 
-ocean = ocean_simulation(grid; momentum_advection, tracer_advection, closure, forcing, free_surface)
+ocean = ocean_simulation(grid; momentum_advection, tracer_advection, forcing, free_surface,
+                         closure=(eddy_closure, horizontal_viscosity, vertical_mixing))
 
 @info "We've built an ocean simulation with model:"
 @show ocean.model
@@ -118,17 +119,16 @@ function progress(sim)
     T = ocean.model.tracers.T
     e = ocean.model.tracers.e
     Tmin, Tmax = minimum(T), maximum(T)
-    emin, emax = minimum(e), maximum(e)
+    emax = maximum(e)
     umax = (maximum(abs, u), maximum(abs, v), maximum(abs, w))
             
-
     step_time = 1e-9 * (time_ns() - wall_time[])
 
-    msg1 = @sprintf("time: %s, iteration: %d, Δt: %s, ", prettytime(sim), iteration(sim), prettytime(sim.Δt))
-    msg2 = @sprintf("max|u|: (%.2e, %.2e, %.2e) m s⁻¹, ", umax...)
-    msg3 = @sprintf("extrema(T): (%.2f, %.2f) ᵒC, ", Tmin, Tmax)
-    msg4 = @sprintf("extrema(e): (%.2f, %.2f) m² s⁻², ", emin, emax)
-    msg5 = @sprintf("wall time: %s \n", prettytime(step_time))
+    msg1 = @sprintf("Time: %s, iter: %d", prettytime(sim), iteration(sim))
+    msg2 = @sprintf(", max|u|: (%.1e, %.1e, %.1e) m s⁻¹, ", umax...)
+    msg3 = @sprintf(", extrema(T): (%.1f, %.1f) ᵒC, ", Tmin, Tmax)
+    msg4 = @sprintf(", maximum(e): %.2f m² s⁻², ", emax)
+    msg5 = @sprintf(", wall time: %s \n", prettytime(step_time))
 
     @info msg1 * msg2 * msg3 * msg4 * msg5
 
@@ -138,7 +138,7 @@ function progress(sim)
 end
 
 # And add it as a callback to the simulation.
-add_callback!(simulation, progress, IterationInterval(100))
+add_callback!(simulation, progress, IterationInterval(1000))
 
 # ### Output
 #
