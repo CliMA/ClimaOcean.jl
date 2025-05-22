@@ -4,7 +4,7 @@ using Oceananigans.ImmersedBoundaries: mask_immersed_field!
 using CairoMakie
 using Printf
 using ClimaOcean
-using ClimaOcean.DataWrangling.ECCO: ECCOFieldTimeSeries, ECCO4Monthly
+using ClimaOcean.DataWrangling.ECCO: ECCOFieldTimeSeries
 using CFTime
 using Dates
 

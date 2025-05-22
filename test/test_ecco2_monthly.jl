@@ -2,7 +2,6 @@ include("runtests_setup.jl")
 
 using ClimaOcean
 using ClimaOcean.ECCO
-using ClimaOcean.EN4
 using ClimaOcean.DataWrangling: NearestNeighborInpainting, metadata_path, native_times, download_dataset
 
 using Dates
