@@ -304,25 +304,29 @@ These stability functions are obtained by regression to experimental data.
 
 The stability parameter for stable atmospheric conditions is defined as
 ```math
-dζ = min(ζmax, Aˢζ)
-ψₛ = - Bˢ * ζ⁺ - Cˢ * (ζ⁺ - Dˢ) * exp(- dζ) - Cˢ * Dˢ
+\\begin{align*}
+dζ &= \\min(ζ_{\\max}, A⁺ ζ) \\\\
+ψ⁺ &= - B⁺ ζ⁺ - C⁺ (ζ⁺ - D⁺) \\exp(- dζ) - C⁺ D⁺
+\\end{align*}
 ```
 
 While the stability parameter for unstable atmospheric conditions is calculated
 as a function of the two individual stability functions as follows
 
 ```math
-fᵤ₁ = √√(1 - Aᵘζ)
-ψᵤ₁ = Bᵘ / 2 ⋅ log((1 + fᵤ₁ + fᵤ₁² + fᵤ₁³) / Bᵘ) - √Bᵘ atan(fᵤ₁) - Cᵘ
-
-fᵤ₂ = ∛(1 - Dᵘζ)
-ψᵤ₂ = Eᵘ / 2 ⋅ log((1 + fᵤ₂ + fᵤ₂²) / Eᵘ) - √Eᵘ atan( (1 + 2fᵤ₂) / √Eᵘ) + Fᵘ
-
-f  = ζ² / (1 + ζ²)
-ψᵤ = (1 - f) ψᵤ₁ + f ψᵤ₂
+\\begin{align*}
+f⁻₁ &= (1 - A⁻ζ)^{1/4} \\\\
+ψ⁻₁ &= (B⁻ / 2) \\log[(1 + f⁻₁ + f⁻₁² + f⁻₁³) / B⁻] - √B⁻ \\mathrm{atan}(f⁻₁) - C⁻ \\\\
+\\\\
+f⁻₂ &= ∛(1 - D⁻ζ) \\\\
+ψ⁻₂ &= (E⁻ / 2) \\log[(1 + f⁻₂ + f⁻₂²) / E⁻]- √E⁻ \\mathrm{atan}[(1 + 2f⁻₂) / √E⁻] + F⁻ \\\\
+\\\\
+f   &= ζ² / (1 + ζ²) \\\\
+ψ⁻  &= (1 - f) ψ⁻₁ + f ψ⁻₂
+\\end{align*}
 ```
 
-The superscripts ``ˢ`` and ``ᵘ`` indicate if the parameter applies to the
+The superscripts ``+`` and ``-`` indicate if the parameter applies to the
 stability function for _stable_ or _unstable_ atmospheric conditions, respectively.
 """
 @kwdef struct EdsonMomentumStabilityFunction{FT} <: AbstractStabilityFunction
@@ -385,24 +389,28 @@ These stability functions are obtained by regression to experimental data.
 The stability parameter for stable atmospheric conditions is defined as
 
 ```math
-dζ = min(ζmax, A⁺ζ)
-ψ⁺ = - (1 + B⁺ ζ) ^ C⁺ - B⁺ ( ζ - D⁺ ) * exp( - dζ) - E⁺
+\\begin{align*}
+dζ &= \\min(ζ_{\\max}, A⁺ζ) \\\\
+ψ⁺ &= - (1 + B⁺ ζ)^{C⁺} - B⁺ (ζ - D⁺) \\exp( - dζ) - E⁺
+\\end{align*}
 ```
 
 While the stability parameter for unstable atmospheric conditions is calculated
 as a function of the two individual stability functions as follows
 ```math
-f⁻₁ = √(1 - A⁻ζ)
-ψ⁻₁ = B⁻ ⋅ log((1 + f⁻₁) / B⁻) + C⁻
-
-f⁻₂ = ∛(1 - D⁻ζ)
-ψ⁻₂ = E⁻ / 2 ⋅ log((1 + f⁻₂ + f⁻₂²) / E⁻) - √E⁻ atan( (1 + 2f⁻₂) / √E⁻) + F⁻
-
-f  = ζ² / (1 + ζ²)
-ψ⁻ = (1 - f) ψ⁻₁ + f ψ⁻₂
+\\begin{align*}
+f⁻₁ &= √(1 - A⁻ζ) \\\\
+ψ⁻₁ &= B⁻ \\log[(1 + f⁻₁) / B⁻] + C⁻ \\\\
+\\\\
+f⁻₂ &= ∛(1 - D⁻ζ) \\\\
+ψ⁻₂ &= (E⁻ / 2) \\log[(1 + f⁻₂ + f⁻₂²) / E⁻] - √E⁻ \\mathrm{atan}[(1 + 2f⁻₂) / √E⁻] + F⁻ \\\\
+\\\\
+f   &= ζ² / (1 + ζ²) \\\\
+ψ⁻  &= (1 - f) ψ⁻₁ + f ψ⁻₂
+\\end{align*}
 ```
 
-The superscripts ``⁺`` and ``⁻`` indicate if the parameter applies to the
+The superscripts ``+`` and ``-`` indicate if the parameter applies to the
 stability function for _stable_ or _unstable_ atmospheric conditions, respectively.
 """
 @kwdef struct EdsonScalarStabilityFunction{FT} <: AbstractStabilityFunction
