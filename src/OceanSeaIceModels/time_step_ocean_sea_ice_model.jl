@@ -14,24 +14,10 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
     ocean = coupled_model.ocean
     sea_ice = coupled_model.sea_ice
     atmosphere = coupled_model.atmosphere
-    clock = coupled_model.clock
 
     # Eventually, split out into OceanOnlyModel
-    if sea_ice isa SeaIceSimulation
-        h = sea_ice.model.ice_thickness
-        fill_halo_regions!(h)
-
-        # Initialization
-        if coupled_model.clock.iteration == 0
-            @info "Initializing coupled model ice thickness..."
-            h⁻ = coupled_model.interfaces.sea_ice_ocean_interface.previous_ice_thickness
-            hⁿ = coupled_model.sea_ice.model.ice_thickness
-            parent(h⁻) .= parent(hⁿ)
-        end
-
-        time_step!(sea_ice, Δt)
-    end
-
+    time_step!(sea_ice, Δt)
+    
     # TODO after ice time-step:
     #  - Adjust ocean heat flux if the ice completely melts?
     time_step!(ocean, Δt)

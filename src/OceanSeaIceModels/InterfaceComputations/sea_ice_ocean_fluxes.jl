@@ -15,7 +15,7 @@ function compute_sea_ice_ocean_fluxes!(coupled_model)
     Sᵢ = sea_ice.model.tracers.S
     ℵᵢ = sea_ice.model.ice_concentration
     hᵢ = sea_ice.model.ice_thickness
-    h⁻ = coupled_model.interfaces.sea_ice_ocean_interface.previous_ice_thickness
+    Gt = sea_ice.model.ice_thermodynamics.thermodynamic_tendency
 
     ocean_properties = coupled_model.interfaces.ocean_properties
     liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
@@ -35,7 +35,7 @@ function compute_sea_ice_ocean_fluxes!(coupled_model)
     # What about the latent heat removed from the ocean when ice forms?
     # Is it immediately removed from the ocean? Or is it stored in the ice?
     launch!(arch, grid, :xy, _compute_sea_ice_ocean_fluxes!,
-            sea_ice_ocean_fluxes, grid, clock, hᵢ, h⁻, ℵᵢ, Sᵢ, Tₒ, Sₒ, uᵢ, vᵢ,
+            sea_ice_ocean_fluxes, grid, clock, hᵢ, ℵᵢ, Sᵢ, Gt, Tₒ, Sₒ, uᵢ, vᵢ,
             τs, liquidus, ocean_properties, interface_properties, Δt)
 
     return nothing
@@ -45,9 +45,9 @@ end
                                                 grid,
                                                 clock,
                                                 ice_thickness,
-                                                previous_ice_thickness,
                                                 ice_concentration,
                                                 ice_salinity,
+                                                thermodynamic_tendency,
                                                 ocean_temperature,
                                                 ocean_salinity,
                                                 sea_ice_u_velocity,
@@ -73,7 +73,6 @@ end
     Sᵢ  = ice_salinity
     hᵢ  = ice_thickness
     ℵᵢ  = ice_concentration
-    h⁻  = previous_ice_thickness
     ρₒ  = ocean_properties.reference_density
     cₒ  = ocean_properties.heat_capacity
     uₘ★ = interface_properties.characteristic_melting_speed
@@ -136,16 +135,10 @@ end
     τₒᵢ = sea_ice_ocean_stresses
 
     @inbounds begin
-        # Change in thickness
-        Δh = hᵢ[i, j, 1] - h⁻[i, j, 1]
-
         # Update surface salinity flux.
         # Note: the Δt below is the ocean time-step, eg.
         # ΔS = ⋯ - ∮ Jˢ dt ≈ ⋯ - Δtₒ * Jˢ
-        Jˢ[i, j, 1] = Δh / Δt * (Sᵢ[i, j, 1] - Sₒ[i, j, Nz])
-
-        # Update previous ice thickness
-        h⁻[i, j, 1] = hᵢ[i, j, 1]
+        Jˢ[i, j, 1] = thermodynamic_tendency[i, j, 1] * (Sᵢ[i, j, 1] - Sₒ[i, j, Nz])
 
         # Momentum stresses
         τx[i, j, 1] = x_momentum_stress(i, j, Nz, grid, τₒᵢ, clock, sea_ice_fields)
