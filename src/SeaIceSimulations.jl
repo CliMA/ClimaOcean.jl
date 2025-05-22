@@ -28,7 +28,7 @@ function sea_ice_simulation(grid, ocean=nothing;
                             ice_heat_capacity = 2100, # J kg⁻¹ K⁻¹
                             ice_consolidation_thickness = 0.05, # m
                             ice_density = 900, # kg m⁻³
-                            dynamics = default_sea_ice_dynamics(grid, ocean),
+                            dynamics = sea_ice_dynamics(grid, ocean),
                             bottom_heat_boundary_condition = nothing,
                             phase_transitions = PhaseTransitions(; ice_heat_capacity, ice_density),
                             conductivity = 2, # kg m s⁻³ K⁻¹
@@ -78,17 +78,19 @@ function sea_ice_simulation(grid, ocean=nothing;
     return sea_ice
 end
 
-function default_sea_ice_dynamics(grid, ocean=nothing;
-                                  sea_ice_ocean_drag_coefficient = 5.5e-3,
-                                  rheology = ElastoViscoPlasticRheology(pressure_formulation = IceStrength()),
-                                  solver = SplitExplicitSolver(120))
+function sea_ice_dynamics(grid, ocean=nothing;
+                          sea_ice_ocean_drag_coefficient = 5.5e-3,
+                          rheology = ElastoViscoPlasticRheology(pressure_formulation = IceStrength()),
+                          solver = SplitExplicitSolver(120))
 
     if isnothing(ocean)
         SSU = Oceananigans.Fields.ZeroField()
         SSV = Oceananigans.Fields.ZeroField()
+        coriolis = nothing
     else
         SSU = view(ocean.model.velocities.u, :, :, grid.Nz)
         SSV = view(ocean.model.velocities.v, :, :, grid.Nz)
+        coriolis = ocean.model.coriolis
     end
 
     τo  = SemiImplicitStress(uₑ=SSU, vₑ=SSV, Cᴰ=sea_ice_ocean_drag_coefficient)
@@ -96,7 +98,7 @@ function default_sea_ice_dynamics(grid, ocean=nothing;
     τva = Field{Center, Face, Nothing}(grid)
 
     return SeaIceMomentumEquation(grid;
-                                  coriolis = ocean.model.coriolis,
+                                  coriolis,
                                   top_momentum_stress = (u=τua, v=τva),
                                   bottom_momentum_stress = τo,
                                   rheology,
