@@ -135,6 +135,8 @@ Download the dataset specified by the `metadata::ECCOMetadata`. If `metadata.dat
 the dataset is downloaded directly. If `metadata.dates` is a vector of dates, each date
 is downloaded individually.
 
+Note: if called by multiple processes via MPI, `download_dataset` should only run on the root process.
+
 Arguments
 =========
 - `metadata`: The metadata specifying the dataset to be downloaded. Available options are metadata for
@@ -174,6 +176,7 @@ function z_interfaces end
 function longitude_interfaces end
 function latitude_interfaces end
 function reversed_vertical_axis end
+function native_grid end
 
 default_mask_value(dataset) = NaN
 
@@ -200,12 +203,14 @@ end
 # Datasets
 include("JRA55/JRA55.jl")
 include("ECCO/ECCO.jl")
-include("EN4.jl")
+include("EN4/EN4.jl")
 include("Copernicus/Copernicus.jl")
+include("ETOPO/ETOPO.jl")
 
 using .ECCO
 using .EN4
 using .JRA55
 using .Copernicus
+using .ETOPO
 
 end # module
