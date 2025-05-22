@@ -140,7 +140,7 @@ Note: if called by multiple processes via MPI, `download_dataset` should only ru
 Arguments
 =========
 - `metadata`: The metadata specifying the dataset to be downloaded. Available options are metadata for
-              ECCO4, ECCO2, EN4, and JRA55 datasets.
+              ETOPO, ECCO4, ECCO2, EN4, and JRA55 datasets.
 
 !!! info "Credential setup requirements for ECCO datasets"
 
