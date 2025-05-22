@@ -201,16 +201,16 @@ function default_inpainting(metadata)
 end
 
 # Datasets
-include("JRA55/JRA55.jl")
-include("ECCO/ECCO.jl")
-include("EN4/EN4.jl")
-include("Copernicus/Copernicus.jl")
 include("ETOPO/ETOPO.jl")
+include("ECCO/ECCO.jl")
+include("Copernicus/Copernicus.jl")
+include("EN4/EN4.jl")
+include("JRA55/JRA55.jl")
 
+using .ETOPO
 using .ECCO
+using .Copernicus
 using .EN4
 using .JRA55
-using .Copernicus
-using .ETOPO
 
 end # module
