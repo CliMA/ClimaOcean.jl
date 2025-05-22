@@ -78,7 +78,7 @@ function sea_ice_simulation(grid, ocean=nothing;
     return sea_ice
 end
 
-function default_sea_ice_dynamics(grid, ocean=nothing; # Cannot do it without an ocean
+function default_sea_ice_dynamics(grid, ocean=nothing;
                                   sea_ice_ocean_drag_coefficient = 5.5e-3,
                                   rheology = ElastoViscoPlasticRheology(),
                                   solver = SplitExplicitSolver(120))
