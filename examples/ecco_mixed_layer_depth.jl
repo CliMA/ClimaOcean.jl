@@ -1,6 +1,5 @@
 using ClimaOcean
 using ClimaOcean.Diagnostics: MixedLayerDepthField
-using ClimaOcean.DataWrangling.ECCO: ECCOFieldTimeSeries
 using Oceananigans
 using CairoMakie
 using Printf
