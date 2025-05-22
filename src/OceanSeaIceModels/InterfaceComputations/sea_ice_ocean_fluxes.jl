@@ -35,7 +35,7 @@ function compute_sea_ice_ocean_fluxes!(coupled_model)
     # What about the latent heat removed from the ocean when ice forms?
     # Is it immediately removed from the ocean? Or is it stored in the ice?
     launch!(arch, grid, :xy, _compute_sea_ice_ocean_fluxes!,
-            sea_ice_ocean_fluxes, grid, clock, hᵢ, ℵᵢ, Sᵢ, Gt, Tₒ, Sₒ, uᵢ, vᵢ,
+            sea_ice_ocean_fluxes, grid, clock, hᵢ, ℵᵢ, Sᵢ, Gh, Tₒ, Sₒ, uᵢ, vᵢ,
             τs, liquidus, ocean_properties, interface_properties, Δt)
 
     return nothing
