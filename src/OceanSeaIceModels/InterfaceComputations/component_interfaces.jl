@@ -42,11 +42,9 @@ mutable struct AtmosphereInterface{J, F, ST, P}
     properties :: P
 end
 
-mutable struct SeaIceOceanInterface{J, P, H, A}
+mutable struct SeaIceOceanInterface{J, P}
     fluxes :: J
     properties :: P
-    previous_ice_thickness :: H
-    previous_ice_concentration :: A
 end
 
 mutable struct ComponentInterfaces{AO, ASI, SIO, C, AP, OP, SIP, EX, P}
@@ -261,8 +259,6 @@ sea_ice_ocean_interface(sea_ice, ocean) = nothing
 function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean;
                                  characteristic_melting_speed = 1e-5)
 
-    previous_ice_thickness = deepcopy(sea_ice.model.ice_thickness)
-    previous_ice_concentration = deepcopy(sea_ice.model.ice_concentration)
     io_bottom_heat_flux = Field{Center, Center, Nothing}(ocean.model.grid)
     io_frazil_heat_flux = Field{Center, Center, Nothing}(ocean.model.grid)
     io_salt_flux = Field{Center, Center, Nothing}(ocean.model.grid)
@@ -281,10 +277,7 @@ function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean;
 
     io_properties = (; characteristic_melting_speed)
 
-    return SeaIceOceanInterface(io_fluxes,
-                                io_properties,
-                                previous_ice_thickness,
-                                previous_ice_concentration)
+    return SeaIceOceanInterface(io_fluxes, io_properties)
 end
 
 default_ai_temperature(sea_ice) = nothing
