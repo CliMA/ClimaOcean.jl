@@ -126,7 +126,7 @@ function progress(sim)
 
     msg1 = @sprintf("Time: %s, iter: %d", prettytime(sim), iteration(sim))
     msg2 = @sprintf(", max|u|: (%.1e, %.1e, %.1e) m s⁻¹, ", umax...)
-    msg3 = @sprintf(", extrema(T): (%.1f, %.1f) ᵒC, mean(T): %.1f", Tmin, Tmax, Tavg)
+    msg3 = @sprintf(", extrema(T): (%.1f, %.1f) ᵒC, mean(T(z=0)): %.1f", Tmin, Tmax, Tavg)
     msg4 = @sprintf(", maximum(e): %.2f m² s⁻², ", emax)
     msg5 = @sprintf(", wall time: %s \n", prettytime(step_time))
 
