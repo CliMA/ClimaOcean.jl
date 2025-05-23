@@ -14,7 +14,25 @@ using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities:
 using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 using Statistics: mean
 
-# Some defaults
+#####
+##### Utilities
+#####
+
+@inline ϕ²(i, j, k, grid, ϕ)    = @inbounds ϕ[i, j, k]^2
+@inline spᶠᶜᶜ(i, j, k, grid, Φ) = @inbounds sqrt(Φ.u[i, j, k]^2 + ℑxyᶠᶜᵃ(i, j, k, grid, ϕ², Φ.v))
+@inline spᶜᶠᶜ(i, j, k, grid, Φ) = @inbounds sqrt(Φ.v[i, j, k]^2 + ℑxyᶜᶠᵃ(i, j, k, grid, ϕ², Φ.u))
+
+@inline u_quadratic_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.u[i, j, 1] * spᶠᶜᶜ(i, j, 1, grid, Φ)
+@inline v_quadratic_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, 1] * spᶜᶠᶜ(i, j, 1, grid, Φ)
+
+# Keep a constant linear drag parameter independent on vertical level
+@inline u_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.u[i, j, k] * spᶠᶜᶜ(i, j, k, grid, fields)
+@inline v_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.v[i, j, k] * spᶜᶠᶜ(i, j, k, grid, fields)
+
+#####
+##### Defaults
+#####
+
 default_free_surface(grid) = SplitExplicitFreeSurface(grid; cfl=0.7)
 
 estimate_maximum_Δt(grid::RectilinearGrid) = 30minutes # ?
@@ -76,19 +94,44 @@ default_tracer_advection() = FluxFormAdvection(WENO(order=7),
                                                WENO(order=7),
                                                Centered())
 
-@inline ϕ²(i, j, k, grid, ϕ)    = @inbounds ϕ[i, j, k]^2
-@inline spᶠᶜᶜ(i, j, k, grid, Φ) = @inbounds sqrt(Φ.u[i, j, k]^2 + ℑxyᶠᶜᵃ(i, j, k, grid, ϕ², Φ.v))
-@inline spᶜᶠᶜ(i, j, k, grid, Φ) = @inbounds sqrt(Φ.v[i, j, k]^2 + ℑxyᶜᶠᵃ(i, j, k, grid, ϕ², Φ.u))
-
-@inline u_quadratic_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.u[i, j, 1] * spᶠᶜᶜ(i, j, 1, grid, Φ)
-@inline v_quadratic_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, 1] * spᶜᶠᶜ(i, j, 1, grid, Φ)
-
-# Keep a constant linear drag parameter independent on vertical level
-@inline u_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.u[i, j, k] * spᶠᶜᶜ(i, j, k, grid, fields)
-@inline v_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.v[i, j, k] * spᶜᶠᶜ(i, j, k, grid, fields)
+function default_radiative_forcing(grid)
+    ϵʳ = 0.6 # red fraction
+    λʳ = 1  # red decay scale
+    λᵇ = 16 # blue decay scale
+    forcing = TwoColorRadiation(grid;
+                                first_color_fraction = ϵʳ,
+                                first_absorption_coefficient = 1/λᵇ,
+                                second_absorption_coefficient = 1/λʳ)
+    return forcing
+end
 
 # TODO: Specify the grid to a grid on the sphere; otherwise we can provide a different
 # function that requires latitude and longitude etc for computing coriolis=FPlane...
+"""
+    ocean_simulation(grid;
+                     Δt = estimate_maximum_Δt(grid),
+                     closure = default_ocean_closure(),
+                     tracers = (:T, :S),
+                     free_surface = default_free_surface(grid),
+                     reference_density = 1020,
+                     rotation_rate = Ω_Earth,
+                     gravitational_acceleration = g_Earth,
+                     bottom_drag_coefficient = Default(0.003),
+                     forcing = NamedTuple(),
+                     biogeochemistry = nothing,
+                     timestepper = :QuasiAdamsBashforth2,
+                     coriolis = Default(HydrostaticSphericalCoriolis(; rotation_rate)),
+                     momentum_advection = default_momentum_advection(),
+                     equation_of_state = TEOS10EquationOfState(; reference_density),
+                     boundary_conditions::NamedTuple = NamedTuple(),
+                     tracer_advection = default_tracer_advection(),
+                     vertical_coordinate = default_vertical_coordinate(grid),
+                     radiative_forcing = default_radiative_forcing(grid),
+                     warn = true,
+                     verbose = false)
+
+Return an ocean simulation.
+"""
 function ocean_simulation(grid;
                           Δt = estimate_maximum_Δt(grid),
                           closure = default_ocean_closure(),
@@ -107,6 +150,7 @@ function ocean_simulation(grid;
                           boundary_conditions::NamedTuple = NamedTuple(),
                           tracer_advection = default_tracer_advection(),
                           vertical_coordinate = default_vertical_coordinate(grid),
+                          radiative_forcing = default_radiative_forcing(grid),
                           warn = true,
                           verbose = false)
 
@@ -161,6 +205,15 @@ function ocean_simulation(grid;
         :u ∈ keys(forcing) && (u_forcing = (u_forcing, forcing[:u]))
         :v ∈ keys(forcing) && (v_forcing = (v_forcing, forcing[:v]))
         forcing = merge(forcing, (u=u_forcing, v=v_forcing))
+    end
+
+    if !isnothing(radiative_forcing)
+        if :T ∈ keys(forcing)
+            T_forcing = (forcing.T, radiative_forcing)
+        else
+            T_forcing = radiative_forcing
+        end
+        forcing = merge(forcing, (; T=T_forcing))
     end
 
     bottom_drag_coefficient = convert(FT, bottom_drag_coefficient)
@@ -229,4 +282,3 @@ end
 
 hasclosure(closure, ClosureType) = closure isa ClosureType
 hasclosure(closure_tuple::Tuple, ClosureType) = any(hasclosure(c, ClosureType) for c in closure_tuple)
-

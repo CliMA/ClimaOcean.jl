@@ -3,7 +3,7 @@ using Printf
 
 import ClimaSeaIce
 import Thermodynamics as AtmosphericThermodynamics
-using Thermodynamics: Liquid, Ice
+using Thermodynamics: Liquid, Ice, PhaseEquil
 
 #####
 ##### Interface properties
@@ -22,33 +22,64 @@ end
 
 # TODO: allow different saturation models
 # struct ClasiusClapyeronSaturation end
-struct SpecificHumidityFormulation{Φ, X}
+struct ImpureSaturationSpecificHumidity{Φ, X}
     # saturation :: S
     phase :: Φ
     water_mole_fraction :: X
 end
 
+function Base.summary(q★::ImpureSaturationSpecificHumidity)
+    phase_str = if q★.phase == AtmosphericThermodynamics.Ice()
+        "Ice"
+    elseif q★.phase == AtmosphericThermodynamics.Liquid()
+        "Liquid"
+    end
+
+
+    return string("ImpureSaturationSpecificHumidity{$phase_str}(water_mole_fraction=",
+                  prettysummary(q★.water_mole_fraction), ")") 
+end
+
+Base.show(io::IO, q★::ImpureSaturationSpecificHumidity) = print(io, summary(q★))
+
 """
-    SpecificHumidityFormulation(phase [, water_mole_fraction=1])
+    ImpureSaturationSpecificHumidity(phase [, water_mole_fraction=1])
 
 Return the formulation for computing specific humidity at an interface.
 """
-SpecificHumidityFormulation(phase) = SpecificHumidityFormulation(phase, nothing)
+ImpureSaturationSpecificHumidity(phase) = ImpureSaturationSpecificHumidity(phase, nothing)
 
 @inline compute_water_mole_fraction(::Nothing, salinity) = 1
 @inline compute_water_mole_fraction(x_H₂O::Number, salinity) = x_H₂O
 
-@inline function saturation_specific_humidity(formulation::SpecificHumidityFormulation, ℂₐ, ρₛ, Tₛ, Sₛ=zero(Tₛ))
-    x_H₂O = compute_water_mole_fraction(formulation.water_mole_fraction, Sₛ)
-    phase = formulation.phase
+@inline function surface_specific_humidity(formulation::ImpureSaturationSpecificHumidity,
+                                            ℂₐ, 𝒬ₐ::PhaseEquil,
+                                            Tₛ, Sₛ=zero(Tₛ))
+    # Extrapolate air density to the surface temperature
+    # following an adiabatic ideal gas transformation
+    cvₘ = Thermodynamics.cv_m(ℂₐ, 𝒬ₐ)
+    Rₐ = Thermodynamics.gas_constant_air(ℂₐ, 𝒬ₐ)
+    κₐ = cvₘ / Rₐ # 1 / (γ - 1)
+    ρₐ = Thermodynamics.air_density(ℂₐ, 𝒬ₐ)
+    Tₐ = Thermodynamics.air_temperature(ℂₐ, 𝒬ₐ)
+    ρₛ = ρₐ * (Tₛ / Tₐ)^κₐ
+    return surface_specific_humidity(formulation, ℂₐ, ρₛ, Tₛ, Sₛ)
+end
 
+@inline function surface_specific_humidity(formulation::ImpureSaturationSpecificHumidity, ℂₐ, ρₛ::Number, Tₛ, Sₛ=zero(Tₛ))
+    FT = eltype(Tₛ)
     CT = eltype(ℂₐ)
-    p★ = Thermodynamics.saturation_vapor_pressure(ℂₐ, convert(CT, Tₛ), phase)
-    q★ = Thermodynamics.q_vap_saturation_from_density(ℂₐ, convert(CT, Tₛ), convert(CT, ρₛ), p★)
+    Tₛ = convert(CT, Tₛ)
+    ρₛ = convert(CT, ρₛ)
+    phase = formulation.phase
+    p★ = Thermodynamics.saturation_vapor_pressure(ℂₐ, Tₛ, phase)
+    q★ = Thermodynamics.q_vap_saturation_from_density(ℂₐ, Tₛ, ρₛ, p★)
 
     # Compute saturation specific humidity according to Raoult's law
-    FT = eltype(Tₛ)
-    return convert(FT, q★ * x_H₂O)
+    χ_H₂O = compute_water_mole_fraction(formulation.water_mole_fraction, Sₛ)
+    qₛ = χ_H₂O * q★
+
+    return convert(FT, qₛ)
 end
 
 struct SalinityConstituent{FT}
@@ -221,7 +252,7 @@ end
     ρ  = ℙᵢ.reference_density
     c  = ℙᵢ.heat_capacity
     Qa = (Qv + Qu + Qd) # Net flux excluding sensible heat (positive out of the ocean)
-    λ  = 1 / (ρ * c) # m³K/J
+    λ  = 1 / (ρ * c) # m³ K J⁻¹
     Jᵀ = Qa * λ
 
     # Calculating the atmospheric temperature
@@ -301,8 +332,8 @@ end
 
     Qs = downwelling_radiation.Qs
     Qℓ = downwelling_radiation.Qℓ
-    Qu = upwelling_radiation(Tₛ⁻, σ, ϵ)
-    Qd = net_downwelling_radiation(Qs, Qℓ, α, ϵ)
+    Qu = emitted_longwave_radiation(Tₛ⁻, σ, ϵ)
+    Qd = net_absorbed_interface_radiation(Qs, Qℓ, α, ϵ)
 
     u★ = interface_state.u★
     θ★ = interface_state.θ★

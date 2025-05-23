@@ -2,7 +2,7 @@ name = "ClimaOcean"
 uuid = "0376089a-ecfe-4b0e-a64f-9c555d74d754"
 license = "MIT"
 authors = ["Climate Modeling Alliance and contributors"]
-version = "0.6.7"
+version = "0.6.9"
 
 [deps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
@@ -12,6 +12,7 @@ ClimaSeaIce = "6ba0ff68-24e6-4315-936c-2e99227c95a4"
 CubicSplines = "9c784101-8907-5a6d-9be6-98f00873c89b"
 DataDeps = "124859b0-ceae-595e-8997-d05f6a7a8dfe"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 Downloads = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 ImageMorphology = "787d08f9-d448-5407-9aad-5290dd7ab264"
 JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
@@ -31,8 +32,8 @@ Thermodynamics = "b60c26fb-14c3-4610-9d3e-2d17fe7ff00c"
 ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 
 [weakdeps]
-PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
 CondaPkg = "992eb4ea-22a4-4c89-a5bb-47a3300528ab"
+PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
 Reactant = "3c362404-f566-11ee-1572-e11a4b42c853"
 
 [extensions]
@@ -41,12 +42,13 @@ ClimaOceanReactantExt = "Reactant"
 
 [compat]
 Adapt = "4"
-CFTime = "0.1"
+CFTime = "0.1, 0.2"
 CUDA = "4, 5"
 ClimaSeaIce = "0.2.6"
 CondaPkg = "0.2.28"
 CubicSplines = "0.2"
 DataDeps = "0.7"
+DocStringExtensions = "0.9"
 Downloads = "1.6"
 ImageMorphology = "0.4"
 JLD2 = "0.4, 0.5"

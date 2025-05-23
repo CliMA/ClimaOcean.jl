@@ -20,7 +20,6 @@ using Oceananigans
 using Oceananigans: architecture
 using ClimaOcean
 using ClimaOcean.ECCO
-using ClimaOcean.ECCO: ECCO4Monthly
 using Oceananigans.Units
 using Printf
 using Dates
