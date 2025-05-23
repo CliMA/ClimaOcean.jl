@@ -59,7 +59,7 @@ set!(ocean.model, T=Metadatum(:temperature; dataset),
 ##### A Prognostic Sea-ice model
 #####
 
-using ClimaSeaIce.SeaIceMomentumEquations
+using ClimaSeaIce.SeaIceDynamics
 using ClimaSeaIce.Rheologies
 
 # Remember to pass the SSS as a bottom bc to the sea ice!

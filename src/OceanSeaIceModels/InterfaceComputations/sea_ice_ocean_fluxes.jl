@@ -1,6 +1,6 @@
 using Oceananigans.Operators: Δzᶜᶜᶜ
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
-using ClimaSeaIce.SeaIceMomentumEquations: x_momentum_stress, y_momentum_stress
+using ClimaSeaIce.SeaIceDynamics: x_momentum_stress, y_momentum_stress
 
 function compute_sea_ice_ocean_fluxes!(coupled_model)
     ocean = coupled_model.ocean
