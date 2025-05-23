@@ -13,6 +13,7 @@ using Oceananigans
 using Oceananigans.Units
 using Dates
 using Printf
+using Statistics
 
 # ### Grid and Bathymetry
 
