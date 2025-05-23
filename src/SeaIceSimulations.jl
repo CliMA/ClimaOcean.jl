@@ -17,7 +17,7 @@ using Oceananigans.Operators
 using ClimaSeaIce
 using ClimaSeaIce: SeaIceModel, SlabSeaIceThermodynamics, PhaseTransitions, ConductiveFlux
 using ClimaSeaIce.SeaIceThermodynamics: IceWaterThermalEquilibrium
-using ClimaSeaIce.SeaIceDynamics: SplitExplicitSolver, SemiImplicitStress, SeaIceMomentumEquation
+using ClimaSeaIce.SeaIceDynamics: SplitExplicitSolver, SemiImplicitStress, SeaIceMomentumEquation, StressBalanceFreeDrift
 using ClimaSeaIce.Rheologies: IceStrength, ElastoViscoPlasticRheology
 
 using ClimaOcean.OceanSimulations: Default
@@ -85,6 +85,7 @@ function sea_ice_dynamics(grid, ocean=nothing;
                           sea_ice_ocean_drag_coefficient = 5.5e-3,
                           rheology = ElastoViscoPlasticRheology(pressure_formulation = IceStrength()),
                           coriolis = nothing,
+                          free_drift = nothing,
                           solver = SplitExplicitSolver(120))
 
     if isnothing(ocean)
@@ -103,6 +104,10 @@ function sea_ice_dynamics(grid, ocean=nothing;
     τo  = SemiImplicitStress(uₑ=SSU, vₑ=SSV, Cᴰ=sea_ice_ocean_drag_coefficient)
     τua = Field{Face, Center, Nothing}(grid)
     τva = Field{Center, Face, Nothing}(grid)
+
+    if isnothing(free_drift)
+        free_drift = StressBalanceFreeDrift((u=τua, v=τva), τo)
+    end
 
     return SeaIceMomentumEquation(grid;
                                   coriolis,
