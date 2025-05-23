@@ -45,7 +45,8 @@ function sea_ice_simulation(grid, ocean=nothing;
         if isnothing(ocean)
             surface_ocean_salinity = 0
         else
-            surface_ocean_salinity = view(ocean.model.tracers.S, :, :, size(ocean.model.grid, 3))
+            kᴺ = size(grid, 3)
+            surface_ocean_salinity = interior(ocean.model.tracers.S, :, :, kᴺ:kᴺ)
         end
         bottom_heat_boundary_condition = IceWaterThermalEquilibrium(surface_ocean_salinity)
     end
