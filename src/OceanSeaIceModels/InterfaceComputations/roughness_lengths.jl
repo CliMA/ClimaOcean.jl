@@ -88,7 +88,7 @@ function MomentumRoughnessLength(FT=Oceananigans.defaults.FloatType;
                                  gravitational_acceleration = default_gravitational_acceleration,
                                  maximum_roughness_length = 1,
                                  air_kinematic_viscosity = 1.5e-5,
-                                 wave_formulation = 0.02,
+                                 wave_formulation = 0.04,
                                  smooth_wall_parameter = 0.11)
 
     if wave_formulation isa Number
