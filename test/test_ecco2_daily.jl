@@ -1,8 +1,6 @@
 include("runtests_setup.jl")
 
 using ClimaOcean
-using ClimaOcean.ECCO
-using ClimaOcean.EN4
 using ClimaOcean.DataWrangling: NearestNeighborInpainting, metadata_path, native_times, download_dataset
 
 using Dates
@@ -62,13 +60,15 @@ for arch in test_architectures
             test_timestepping_with_dataset_restoring(arch, dataset, dates, inpainting)
         end
 
-        # @testset "Dataset cycling boundaries" begin
-        #     test_cycling_dataset_restoring(arch, dataset, dates, inpainting)
-        # end
+        #=
+        @testset "Dataset cycling boundaries" begin
+            test_cycling_dataset_restoring(arch, dataset, dates, inpainting)
+        end
 
-        # Expensive due to the high resolution of ECCO2
-        # @testset "Inpainting algorithm" begin
-        #     test_inpainting_algorithm(arch, dataset, start_date, inpainting)
-        # end
+        Expensive due to the high resolution of ECCO2
+        @testset "Inpainting algorithm" begin
+            test_inpainting_algorithm(arch, dataset, start_date, inpainting)
+        end
+        =#
     end
 end

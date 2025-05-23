@@ -9,7 +9,6 @@
 # CairoMakie to visualize the simulation.
 
 using ClimaOcean
-using ClimaOcean.ECCO
 using Oceananigans
 using Oceananigans.Units
 using Dates
@@ -121,7 +120,7 @@ function progress(sim)
     Tmin, Tmax = minimum(T), maximum(T)
     emax = maximum(e)
     umax = (maximum(abs, u), maximum(abs, v), maximum(abs, w))
-            
+
     step_time = 1e-9 * (time_ns() - wall_time[])
 
     msg1 = @sprintf("Time: %s, iter: %d", prettytime(sim), iteration(sim))
