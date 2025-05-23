@@ -209,7 +209,7 @@ ReynoldsScalingFunction(FT = Oceananigans.defaults.FloatType; A = 5.85e-5, b = 0
 
     # Clip
     ℓ_max = ℓ.maximum_roughness_length
-    return min(ℓs, ℓ_max)
+    ℓu #return min(ℓs, ℓ_max)
 end
 
 # Convenience for users
