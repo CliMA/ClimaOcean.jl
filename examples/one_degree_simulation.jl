@@ -44,8 +44,8 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height);
 #
 # We include temperature and salinity surface restoring to ECCO data from 1993 thoughout the water column.
 
-start_date = DateTime(1993, 1, 1)
-stop_date = DateTime(1993, 12, 1)
+start_date = DateTime(1993, 6, 1)
+stop_date = DateTime(1994, 5, 1)
 dates = range(start_date, step=Month(1), stop=stop_date)
 ecco_temperature = Metadata(:temperature; dates, dataset=ECCO4Monthly())
 ecco_salinity = Metadata(:salinity; dates, dataset=ECCO4Monthly())
@@ -117,7 +117,7 @@ function progress(sim)
     u, v, w = ocean.model.velocities
     T = ocean.model.tracers.T
     e = ocean.model.tracers.e
-    Tmin, Tmax = minimum(T), maximum(T)
+    Tmin, Tmax, Tavg = minimum(T), maximum(T), mean(T)
     emax = maximum(e)
     umax = (maximum(abs, u), maximum(abs, v), maximum(abs, w))
 
@@ -125,7 +125,7 @@ function progress(sim)
 
     msg1 = @sprintf("Time: %s, iter: %d", prettytime(sim), iteration(sim))
     msg2 = @sprintf(", max|u|: (%.1e, %.1e, %.1e) m s⁻¹, ", umax...)
-    msg3 = @sprintf(", extrema(T): (%.1f, %.1f) ᵒC, ", Tmin, Tmax)
+    msg3 = @sprintf(", extrema(T): (%.1f, %.1f) ᵒC, mean(T): %.1f", Tmin, Tmax, Tavg)
     msg4 = @sprintf(", maximum(e): %.2f m² s⁻², ", emax)
     msg5 = @sprintf(", wall time: %s \n", prettytime(step_time))
 
