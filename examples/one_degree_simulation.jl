@@ -117,7 +117,7 @@ function progress(sim)
     u, v, w = ocean.model.velocities
     T = ocean.model.tracers.T
     e = ocean.model.tracers.e
-    Tmin, Tmax, Tavg = minimum(T), maximum(T), mean(T)
+    Tmin, Tmax, Tavg = minimum(T), maximum(T), mean(view(T, :, :, ocean.model.grid.Nz))
     emax = maximum(e)
     umax = (maximum(abs, u), maximum(abs, v), maximum(abs, w))
 
