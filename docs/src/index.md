@@ -1,11 +1,11 @@
 # ClimaOcean.jl
 
-🌎 Realistic ocean-only and coupled ocean + sea-ice simulations driven by prescribed atmospheres and based on [Oceananigans](https://github.com/CliMA/Oceananigans.jl) and [ClimaSeaIce](https://github.com/CliMA/ClimaSeaIce.jl).
+🌎 Realistic ocean-only and coupled ocean-sea ice simulations driven by prescribed atmospheres and based on [Oceananigans](https://github.com/CliMA/Oceananigans.jl) and [ClimaSeaIce](https://github.com/CliMA/ClimaSeaIce.jl).
 
 ClimaOcean implements a framework for coupling prescribed or prognostic representations of the ocean, sea ice, and atmosphere state.
 Fluxes of heat, momentum, and freshwater are computed across the interfaces of its component models according to either Monin-Obukhov similarity theory,
 or coefficient-based "bulk formula".
-ClimaOcean builds off Oceananigans, which provides tools for gridded finite volume computations on CPUs and GPUs and building ocean-flavored fluid dynamics simulations. ClimaSeaIce, which provides software for both stand-alone and coupled sea ice simulations, is also built with Oceananigans.
+ClimaOcean builds off Oceananigans, which provides tools for gridded finite-volume computations on CPUs and GPUs and building ocean-flavored fluid dynamics simulations. ClimaSeaIce, which provides software for both stand-alone and coupled sea ice simulations, is also built with Oceananigans.
 
 ClimaOcean's core abstraction is [`OceanSeaIceModel`](@ref), which encapsulates the ocean, sea ice, and atmosphere state, and interfacial flux parameterizations.
 ClimaOcean also implements [`ocean_simulation`](@ref), a utility for building realistic, hydrostatic ocean simulations with Oceananigans ensuring compatibility with `OceanSeaIceModel`.
