@@ -126,7 +126,7 @@ function progress(sim)
 
     msg1 = @sprintf("Time: %s, iter: %d", prettytime(sim), iteration(sim))
     msg2 = @sprintf(", max|u|: (%.1e, %.1e, %.1e) m s⁻¹, ", umax...)
-    msg3 = @sprintf(", extrema(T): (%.1f, %.1f) ᵒC, mean(T(z=0)): %.1f", Tmin, Tmax, Tavg)
+    msg3 = @sprintf(", extrema(T): (%.1f, %.1f) ᵒC, mean(T(z=0)): %.1f ᵒC", Tmin, Tmax, Tavg)
     msg4 = @sprintf(", maximum(e): %.2f m² s⁻², ", emax)
     msg5 = @sprintf(", wall time: %s \n", prettytime(step_time))
 
@@ -158,7 +158,7 @@ ocean.output_writers[:surface] = JLD2Writer(ocean.model, outputs;
 
 # We are ready to press the big red button and run the simulation.
 
-# After we run for a short time (here we set up the simulation with `stop_time = 10days`),
+# After we run for a short time (here we set up the simulation with `stop_time = 20days`),
 # we increase the timestep and run for longer.
 
 run!(simulation)
