@@ -32,12 +32,12 @@ julia> Pkg.add("ClimaOcean")
 
 ## Quick start
 
-The following script implements a near-global ocean simulation initialized from the [ECCO state estimate](https://gmd.copernicus.org/articles/8/3071/2015/) and coupled to a prescribed atmosphere derived from the [JRA55-do reanalysis](https://www.sciencedirect.com/science/article/pii/S146350031830235X):
+The following script implements a near-global ocean simulation initialized from the [ECCO4 state estimate](https://doi.org/10.5194/gmd-8-3071-2015) and coupled to a prescribed atmosphere derived from the [JRA55-do reanalysis](https://www.sciencedirect.com/science/article/pii/S146350031830235X):
 
-```julia
+```@example hello-global-ocean
 using Oceananigans
 using Oceananigans.Units
-using Dates, CFTime
+using Dates
 import ClimaOcean
 
 arch = GPU()
@@ -69,13 +69,11 @@ The simulation above achieves approximately 8 simulated years per day of wall ti
 
 We can leverage `Oceananigans` features to plot the surface speed at the end of the simulation:
 
-```julia
+```@example hello-global-ocean
 u, v, w = ocean.model.velocities
 speed = Field(sqrt(u^2 + v^2))
 compute!(speed)
 
-using GLMakie
+using CairoMakie
 heatmap(view(speed, :, :, ocean.model.grid.Nz), colorrange=(0, 0.5), colormap=:magma, nan_color=:lightgray)
 ```
-
-![image](https://github.com/user-attachments/assets/4c484b93-38fe-4840-bf7d-63a3a59d29e1)
