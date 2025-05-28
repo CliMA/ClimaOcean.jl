@@ -160,8 +160,6 @@ struct AverageNorthSouth end
 @inline mangle(i, j, k, data, ::ShiftSouth) = @inbounds data[i, j-1, k]
 @inline mangle(i, j, k, data, ::AverageNorthSouth) = @inbounds (data[i, j+1, k] + data[i, j, k]) / 2
 
-@inline maybe_reverse_sign(datum, reverse::Bool) = ifelse(reverse, - datum, datum)
-
 function set_metadata_field!(field, data, metadatum)
     grid = field.grid
     arch = architecture(grid)
