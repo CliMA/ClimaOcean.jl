@@ -43,7 +43,7 @@ import ClimaOcean.DataWrangling:
     inpainted_metadata_path,
     reversed_vertical_axis,
     default_mask_value,
-    reversed_sign
+    reversed_sign,
     available_variables
 
 download_ECCO_cache::String = ""
