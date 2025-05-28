@@ -43,7 +43,6 @@ import ClimaOcean.DataWrangling:
     inpainted_metadata_path,
     reversed_vertical_axis,
     default_mask_value,
-    reversed_sign,
     available_variables
 
 download_ECCO_cache::String = ""
@@ -79,8 +78,6 @@ Base.size(::ECCO4Monthly, variable) = (720,  360, 50)
 temperature_units(::SomeECCODataset) = Celsius()
 default_mask_value(::ECCO4Monthly) = 0
 reversed_vertical_axis(::SomeECCODataset) = true
-reversed_sign(::SomeECCODataset, ::Val{:downwelling_longwave}) = true
-reversed_sign(::SomeECCODataset, ::Val{:downwelling_shortwave}) = true
 
 const ECCO2_url = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/"
 const ECCO4_url = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly/"
