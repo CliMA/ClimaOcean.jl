@@ -160,6 +160,8 @@ struct AverageNorthSouth end
 @inline mangle(i, j, k, data, ::ShiftSouth) = @inbounds data[i, j-1, k]
 @inline mangle(i, j, k, data, ::AverageNorthSouth) = @inbounds (data[i, j+1, k] + data[i, j, k]) / 2
 
+inverted_sign(dataset, val_name) = false
+
 function set_metadata_field!(field, data, metadatum)
     grid = field.grid
     arch = architecture(grid)
@@ -172,6 +174,8 @@ function set_metadata_field!(field, data, metadatum)
     else
         nothing
     end
+
+    invert_sign = inverted_sign(metadatum.dataset, Val(metadatum.name))
 
     temp_units = if metadatum.name == :temperature
         temperature_units(metadatum.dataset)
@@ -188,27 +192,31 @@ function set_metadata_field!(field, data, metadatum)
     end
 
     data = on_architecture(arch, data)
-    Oceananigans.Utils.launch!(arch, grid, spec, _kernel, field, data, mangling, temp_units)
+    Oceananigans.Utils.launch!(arch, grid, spec, _kernel, field, data, invert_sign, mangling, temp_units)
 
     return nothing
 end
 
-@kernel function _set_2d_metadata_field!(field, data, mangling, temp_units)
+@inline maybe_invert_sign(d, invert_sign) = ifelse(invert_sign, -d, d)
+
+@kernel function _set_2d_metadata_field!(field, data, invert_sign, mangling, temp_units)
     i, j = @index(Global, NTuple)
     d = mangle(i, j, data, mangling)
     d = convert_temperature(d, temp_units)
+    d = maybe_invert_sign(d, invert_sign)
     @inbounds field[i, j, 1] = d
 end
 
 @inline nan_convert_missing(FT, ::Missing) = convert(FT, NaN)
 @inline nan_convert_missing(FT, d::Number) = convert(FT, d)
 
-@kernel function _set_3d_metadata_field!(field, data, mangling, temp_units)
+@kernel function _set_3d_metadata_field!(field, data, invert_sign, mangling, temp_units)
     i, j, k = @index(Global, NTuple)
     FT = eltype(field)
     d = mangle(i, j, k, data, mangling)
     d = nan_convert_missing(FT, d)
     d = convert_temperature(d, temp_units)
+    d = maybe_invert_sign(d, invert_sign)
     @inbounds field[i, j, k] = d
 end
 
