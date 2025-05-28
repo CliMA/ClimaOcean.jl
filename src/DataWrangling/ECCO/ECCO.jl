@@ -91,7 +91,8 @@ all_dates(::ECCO4Monthly, variable) = DateTime(1992, 1, 1) : Month(1) : DateTime
 all_dates(::ECCO2Monthly, variable) = DateTime(1992, 1, 1) : Month(1) : DateTime(2024, 12, 1)
 all_dates(::ECCO2Daily,   variable) = DateTime(1992, 1, 1) : Day(1)   : DateTime(2024, 12, 31)
 
-longitude_interfaces(::SomeECCODataset) = (-180, 180)
+longitude_interfaces(::SomeECCODataset) = (0, 360)
+longitude_interfaces(::ECCO4Monthly) = (-180, 180)
 latitude_interfaces(::SomeECCODataset) = (-90, 90)
 
 z_interfaces(::SomeECCODataset) = [
