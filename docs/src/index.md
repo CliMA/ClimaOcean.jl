@@ -55,8 +55,8 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bathymetry))
 ocean = ClimaOcean.ocean_simulation(grid)
 start_date = DateTime(1993, 1, 1)
 set!(ocean.model,
-     T=ClimaOcean.Metadata(:temperature; dates=start_date, dataset=ClimaOcean.ECCO4Monthly()),
-     S=ClimaOcean.Metadata(:salinity;    dates=start_date, dataset=ClimaOcean.ECCO4Monthly()))
+     T=ClimaOcean.Metadata(:temperature; dates=start_date, dataset=ClimaOcean.ECCO2Daily()),
+     S=ClimaOcean.Metadata(:salinity;    dates=start_date, dataset=ClimaOcean.ECCO2Daily()))
 
 # Build and run an OceanSeaIceModel (with no sea ice component) forced by JRA55 reanalysis
 atmosphere = ClimaOcean.JRA55PrescribedAtmosphere(arch)
