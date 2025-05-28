@@ -202,12 +202,14 @@ end
 
 # Datasets
 include("ETOPO/ETOPO.jl")
+include("ACCESS/ACCESS.jl")
 include("ECCO/ECCO.jl")
 include("Copernicus/Copernicus.jl")
 include("EN4/EN4.jl")
 include("JRA55/JRA55.jl")
 
 using .ETOPO
+using .ACCESS
 using .ECCO
 using .Copernicus
 using .EN4

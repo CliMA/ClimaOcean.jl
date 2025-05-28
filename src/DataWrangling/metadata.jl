@@ -119,6 +119,7 @@ function Metadatum(variable_name;
                    bounding_box = nothing,
                    date = first_date(dataset, variable_name),
                    dir = default_download_directory(dataset))
+                   @show dir
     return Metadata(variable_name, dataset, date, bounding_box, dir)
 end
 

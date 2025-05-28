@@ -33,6 +33,7 @@ export
     ECCOMetadatum,
     EN4Metadatum,
     ETOPO2022,
+    ACCESS1deg, ACCESS025deg,
     ECCO2Daily, ECCO2Monthly, ECCO4Monthly,
     EN4Monthly,
     GLORYSDaily, GLORYSMonthly, GLORYSStatic,

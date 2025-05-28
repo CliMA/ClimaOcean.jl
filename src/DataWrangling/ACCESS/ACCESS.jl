@@ -5,6 +5,7 @@ export ACCESS1deg, ACCESS025deg
 using Downloads
 using Oceananigans
 using Scratch
+using Oceananigans.DistributedComputations: @root
 
 using ..DataWrangling: Metadatum, metadata_path
 
@@ -22,16 +23,22 @@ import ClimaOcean.DataWrangling:
     reversed_vertical_axis
 
 
+download_ACCESS_cache::String = ""
+function __init__()
+    global download_ACCESS_cache = @get_scratch!("ACCESS")
+end
+    
+
 ACCESS_bathymetry_variable_names = Dict(
     :bottom_height => "depth",
 )
 
-abstract type ACCESSBathymetry end
+struct ACCESS1deg end
+struct ACCESS025deg end
 
-struct ACCESS1deg <: ACCESSBathymetry end
-struct ACCESS025deg <: ACCESSBathymetry end
+const ACCESSBathymetry = Union{ACCESS1deg, ACCESS025deg}
 
-default_download_directory(::ACCESSBathymetry) = nothing
+default_download_directory(::ACCESSBathymetry) = download_ACCESS_cache
 
 reversed_vertical_axis(::ACCESSBathymetry) = false
 
