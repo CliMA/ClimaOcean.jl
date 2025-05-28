@@ -180,14 +180,12 @@ struct ReynoldsScalingFunction{FT}
 end
 
 """
-    ReynoldsScalingFunction(FT=Float64; A=5.85e-5, b=0.72)
+    ReynoldsScalingFunction(FT = Oceananigans.defaults.FloatType; A = 5.85e-5, b = 0.72)
 
-
-Empirical fit of the scalar roughness length with roughness Reynolds number `R★ = u★ ℓu / ν`.
-Edson et al. (2013), equation (28).
+Empirical fit of the scalar roughness length with roughness Reynolds number `R_★ = u_★ ℓu / ν`.
 
 ```math
-    ℓs = A / R★ ^ b
+    ℓs = A / R_★ ^ b
 ```
 
 See equation (28) by [edson2013exchange](@citet).
