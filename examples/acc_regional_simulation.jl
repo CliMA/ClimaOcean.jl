@@ -79,8 +79,8 @@ ocean = ocean_simulation(grid; forcing, momentum_advection, tracer_advection)
 model = ocean.model
 
 set!(model, 
-     T = Metadatum(:temperature; date=start_date),
-     S = Metadatum(:salinity;    date=start_date))
+     T = Metadatum(:temperature; date=start_date, dataset=ECCO2Daily()),
+     S = Metadatum(:salinity;    date=start_date, dataset=ECCO2Daily()))
      
 backend    = JRA55NetCDFBackend(41) 
 atmosphere = JRA55PrescribedAtmosphere(arch; backend)
