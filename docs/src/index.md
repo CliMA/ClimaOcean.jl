@@ -36,7 +36,6 @@ The following script implements a near-global ocean simulation initialized from 
 
 ```@example hello-global-ocean
 using Oceananigans
-using Oceananigans.Units
 using Dates
 import ClimaOcean
 
@@ -51,12 +50,12 @@ grid = LatitudeLongitudeGrid(arch,
 bathymetry = ClimaOcean.regrid_bathymetry(grid) # builds gridded bathymetry based on ETOPO1
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bathymetry))
 
-# Build an ocean simulation initialized to the ECCO state estimate on Jan 1, 1993
+# Build an ocean simulation initialized to the ECCO state estimate version 2 on Jan 1, 1993
 ocean = ClimaOcean.ocean_simulation(grid)
 start_date = DateTime(1993, 1, 1)
 set!(ocean.model,
-     T=ClimaOcean.Metadata(:temperature; dates=start_date, dataset=ClimaOcean.ECCO2Daily()),
-     S=ClimaOcean.Metadata(:salinity;    dates=start_date, dataset=ClimaOcean.ECCO2Daily()))
+     T=ClimaOcean.Metadatum(:temperature; date=start_date, dataset=ClimaOcean.ECCO2Daily()),
+     S=ClimaOcean.Metadatum(:salinity;    date=start_date, dataset=ClimaOcean.ECCO2Daily()))
 
 # Build and run an OceanSeaIceModel (with no sea ice component) forced by JRA55 reanalysis
 atmosphere = ClimaOcean.JRA55PrescribedAtmosphere(arch)
