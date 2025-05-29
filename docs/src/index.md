@@ -32,10 +32,11 @@ julia> Pkg.add("ClimaOcean")
 
 ## Quick start
 
-The following script implements a near-global ocean simulation initialized from the [ECCO4 state estimate](https://doi.org/10.5194/gmd-8-3071-2015) and coupled to a prescribed atmosphere derived from the [JRA55-do reanalysis](https://www.sciencedirect.com/science/article/pii/S146350031830235X):
+The following script implements a near-global ocean simulation initialized from the [ECCO state estimate](https://doi.org/10.5194/gmd-8-3071-2015) and coupled to a prescribed atmosphere derived from the [JRA55-do reanalysis](https://www.sciencedirect.com/science/article/pii/S146350031830235X):
 
 ```@example hello-global-ocean
 using Oceananigans
+using Oceananigans.Units
 using Dates
 import ClimaOcean
 

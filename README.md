@@ -42,6 +42,7 @@ To illustrate how `OceanSeaIceModel` works we set up a simulation on a grid with
 
 ```julia
 using Oceananigans
+using Oceananigans.Units
 using Dates
 import ClimaOcean
 
