@@ -15,7 +15,7 @@ Nx = 1440
 Ny = 600
 Nz = 40  
 
-z_faces = exponential_z_faces(Nz=Nz+1, depth=6000)
+z_faces = exponential_z_faces(; Nz, depth=6000)
 
 grid = LatitudeLongitudeGrid(arch;
                              size = (Nx, Ny, Nz),
@@ -26,7 +26,7 @@ grid = LatitudeLongitudeGrid(arch;
 
 bottom_height = regrid_bathymetry(grid; 
                                   minimum_depth = 10,
-                                  interpolation_passes = 5,
+                                  interpolation_passes = 7,
                                   major_basins = 1)
  
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height), active_cells_map=true) 
