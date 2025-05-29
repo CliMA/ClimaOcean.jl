@@ -31,7 +31,8 @@ bottom_height = regrid_bathymetry(grid;
  
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height), active_cells_map=true) 
 
-dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 12, 1)
+start_date = DateTime(1993, 1, 1)
+end_date   = DateTime(1993, 12, 1) 
 
 #
 # Restoring force 
@@ -66,17 +67,20 @@ end
      return - p.rate * fields.v[i, j, k] * northern_mask(φ)
 end
 
-forcing = (T=ECCORestoring(:temperature, grid; dates, rate=1/5days, mask=tracer_mask),
-	      S=ECCORestoring(:salinity,    grid; dates, rate=1/5days, mask=tracer_mask),
+forcing = (T=DatasetRestoring(:temperature, grid; start_date, end_date, rate=1/5days, mask=tracer_mask),
+	      S=DatasetRestoring(:salinity,    grid; start_date, end_date, rate=1/5days, mask=tracer_mask),
 	      u=Forcing(u_restoring; discrete_form=true, parameters=(; rate=1/5days)),
 	      v=Forcing(v_restoring; discrete_form=true, parameters=(; rate=1/5days)))
 
-ocean = ocean_simulation(grid; forcing)
+momentum_advection = WENOVectorInvariant()
+tracer_advection   = WENO(order=7)
+
+ocean = ocean_simulation(grid; forcing, momentum_advection, tracer_advection)
 model = ocean.model
 
 set!(model, 
-     T = ECCOMetadata(:temperature; dates = dates[1]),
-     S = ECCOMetadata(:salinity;    dates = dates[1]))
+     T = Metadatum(:temperature; date=start_date),
+     S = Metadatum(:salinity;    date=start_date))
      
 backend    = JRA55NetCDFBackend(41) 
 atmosphere = JRA55PrescribedAtmosphere(arch; backend)
