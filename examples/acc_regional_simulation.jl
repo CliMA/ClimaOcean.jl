@@ -67,8 +67,11 @@ end
      return - p.rate * fields.v[i, j, k] * northern_mask(φ)
 end
 
-forcing = (T=DatasetRestoring(:temperature, grid; start_date, end_date, rate=1/5days, mask=tracer_mask),
-	      S=DatasetRestoring(:salinity,    grid; start_date, end_date, rate=1/5days, mask=tracer_mask),
+T_meta = Metadata(:temperature; start_date, end_date, dataset=ECCO4Monthly())
+S_meta = Metadata(:temperature; start_date, end_date, dataset=ECCO4Monthly())
+
+forcing = (T=DatasetRestoring(T_meta; rate=1/5days, mask=tracer_mask),
+	      S=DatasetRestoring(S_meta; rate=1/5days, mask=tracer_mask),
 	      u=Forcing(u_restoring; discrete_form=true, parameters=(; rate=1/5days)),
 	      v=Forcing(v_restoring; discrete_form=true, parameters=(; rate=1/5days)))
 
