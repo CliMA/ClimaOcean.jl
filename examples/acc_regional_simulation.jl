@@ -99,8 +99,8 @@ function progress(sim)
     u, v, w = ocean.model.velocities
     T = ocean.model.tracers.T
 
-    Tmax, Tmin = maximum(interior(T)), minimum(interior(T))
-    umax = maximum(abs, interior(u)), maximum(abs, interior(v)), maximum(abs, interior(w))
+    Tmax, Tmin = maximum(T), minimum(T)
+    umax = maximum(abs, u), maximum(abs, v), maximum(abs, w)
     step_time = 1e-9 * (time_ns() - wall_time[1])
 
     @info @sprintf("Time: %s, Iteration %d, Δt %s, max(vel): (%.2e, %.2e, %.2e), max(T): %.2f, min(T): %.2f, wtime: %s \n",
