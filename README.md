@@ -45,7 +45,7 @@ using Oceananigans
 using Dates
 import ClimaOcean
 
-arch = CPU()
+arch = GPU()
 grid = LatitudeLongitudeGrid(arch,
                              size = (1440, 560, 10),
                              halo = (7, 7, 7),
