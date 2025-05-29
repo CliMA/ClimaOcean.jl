@@ -12,7 +12,7 @@ using Dates
 arch = GPU() 
 
 Nx = 1440
-Ny = 600
+Ny = 400
 Nz = 40  
 
 z_faces = exponential_z_faces(; Nz, depth=6000)
