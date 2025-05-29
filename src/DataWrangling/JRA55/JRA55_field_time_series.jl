@@ -81,7 +81,7 @@ Adapt.adapt_structure(to, b::JRA55NetCDFBackend) = JRA55NetCDFBackend(b.start, b
 """
     JRA55NetCDFBackend(length)
 
-Represents a JRA55 FieldTimeSeries backed by JRA55 native .nc files.
+Represents a JRA55 FieldTimeSeries backed by JRA55 native netCDF files.
 """
 JRA55NetCDFBackend(length, metadata::Metadata) = JRA55NetCDFBackend(1, length, metadata)
 JRA55NetCDFBackend(start::Integer, length::Integer) = JRA55NetCDFBackend(start, length, nothing)
@@ -234,9 +234,7 @@ new_backend(b::JRA55NetCDFBackend, start, length) = JRA55NetCDFBackend(start, le
 
 Return a `FieldTimeSeries` containing atmospheric reanalysis data for `variable_name`,
 which describes one of the variables from the Japanese 55-year atmospheric reanalysis
-for driving ocean-sea ice models (JRA55-do). The JRA55-do dataset is described by:
-
-> Tsujino et al. (2018). JRA-55 based surface dataset for driving ocean-sea-ice models (JRA55-do), _Ocean Modelling_, **130(1)**, 79-139
+for driving ocean-sea ice models (JRA55-do). The JRA55-do dataset is described by [tsujino2018jra](@citet).
 
 The `variable_name`s (and their `shortname`s used in the netCDF files) available from the JRA55-do are:
 - `:river_freshwater_flux`              ("friver")
@@ -263,9 +261,7 @@ Keyword arguments
 
   !!! info "Repeat-year forcing"
 
-  For more information about the derivation of the repeat-year forcing dataset, see:
-
-  > Stewart et al. (2020). JRA55-do-based repeat year forcing datasets for driving ocean–sea-ice models, _Ocean Modelling_, **147**, 101557, https://doi.org/10.1016/j.ocemod.2019.101557.
+      For more information about the derivation of the repeat-year forcing dataset, see [stewart2020jra55](@citet).
 
   The repeat year in `RepeatYearJRA55()` corresponds to May 1st, 1990 - April 30th, 1991. However, the
   returned dataset has dates that range from January 1st to December 31st. This implies
@@ -291,7 +287,14 @@ Keyword arguments
 - `backend`: Backend for the `FieldTimeSeries`. The two options are:
   * `InMemory()`: the whole time series is loaded into memory.
   * `JRA55NetCDFBackend(total_time_instances_in_memory)`: only a subset of the time series
-  is loaded into memory. Default: `InMemory()`.
+                                                          is loaded into memory. Default: `InMemory()`.
+
+References
+==========
+
+- Tsujino et al. (2018). JRA-55 based surface dataset for driving ocean-sea-ice models (JRA55-do), _Ocean Modelling_, **130(1)**, 79-139.
+
+- Stewart et al. (2020). JRA55-do-based repeat year forcing datasets for driving ocean–sea-ice models, _Ocean Modelling_, **147**, 101557.
 """
 function JRA55FieldTimeSeries(variable_name::Symbol, architecture=CPU(), FT=Float32;
                               dataset = RepeatYearJRA55(),
