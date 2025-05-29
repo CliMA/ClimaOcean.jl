@@ -114,12 +114,12 @@ end
 
 coupled_simulation.callbacks[:progress] = Callback(progress, TimeInterval(4hours)) 
 
-ocean.output_writers[:surface] = JLD2OutputWriter(model, merge(model.tracers, model.velocities);
-                                                  schedule = TimeInterval(5days),
-                                                  filename = "surface",
-                                                  indices = (:, :, grid.Nz),
-                                                  overwrite_existing = true,
-                                                  array_type = Array{Float32})
+ocean.output_writers[:surface] = JLD2Writer(model, merge(model.tracers, model.velocities);
+                                            schedule = TimeInterval(5days),
+                                            filename = "surface",
+                                            indices = (:, :, grid.Nz),
+                                            overwrite_existing = true,
+                                            array_type = Array{Float32})
 nothing #hide
 
 # ### Spinning up the simulation
