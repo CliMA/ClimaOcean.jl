@@ -1,46 +1,42 @@
-agents:
-  queue: new-central
-  slurm_mem: 8G
-  modules: climacommon/2024_05_27
-  slurm_time: 48:00:00
 
 env:
-  JULIA_LOAD_PATH: "${JULIA_LOAD_PATH}:${BUILDKITE_BUILD_CHECKOUT_PATH}/.buildkite"
-  OPENBLAS_NUM_THREADS: 1
-  OMPI_MCA_opal_warn_on_missing_libcuda: 0
+  JULIA_VERSION: "1.10.9"
+  JULIA_MINOR_VERSION: "1.10"
+  TARTARUS_HOME: "/storage5/buildkite-agent"
+  JULIA_PKG_SERVER_REGISTRY_PREFERENCE: eager
   JULIA_NUM_PRECOMPILE_TASKS: 8
+  JULIA_NUM_THREADS: 8
+  CUDA_VISIBLE_DEVICES: "2" # Device for building ClimaOcean docs
 
 steps:
   - label: "initialize"
     key: "init"
+    env:
+      JULIA_DEPOT_PATH: "$TARTARUS_HOME/.julia-$BUILDKITE_BUILD_NUMBER"
+      TEST_GROUP: "init"
+      JULIA_BINDIR: "$TARTARUS_HOME/julia-$JULIA_VERSION/bin"
+      TMPDIR: "$TARTARUS_HOME/tmp"
     command:
       - "echo '--- Instantiate project'"
-      - "julia --project -e 'using Pkg; Pkg.instantiate(; verbose=true); Pkg.precompile(; strict=true)'"
+      - "$TARTARUS_HOME/julia-$JULIA_VERSION/bin/julia --color=yes -O0 --project -e 'using Pkg; Pkg.instantiate(; verbose=true); Pkg.precompile(; strict=true)'"
       # force the initialization of the CUDA runtime as it is lazily loaded by default
-      - "julia --project -e 'using CUDA; CUDA.precompile_runtime()'"
-
+      - "$TARTARUS_HOME/julia-$JULIA_VERSION/bin/julia --color=yes -O0 --project -e 'using CUDA; CUDA.precompile_runtime()'"
     agents:
-      slurm_mem: 120G
-      slurm_gpus: 1
-      slurm_cpus_per_task: 8
+      queue: ClimaOcean-docs
 
   - wait
 
   - label: "Run documentation"
     key: "build_documentation"
     commands:
-      - "julia --color=yes --project=docs/ -e 'using Pkg; Pkg.instantiate(); Pkg.develop(PackageSpec(path=pwd()))'"
-      - "julia --color=yes --project=docs/ docs/make.jl"
-
+      - "$TARTARUS_HOME/julia-$JULIA_VERSION/bin/julia --color=yes -O0 --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'"
+      - "$TARTARUS_HOME/julia-$JULIA_VERSION/bin/julia --color=yes -O0 --project=docs/ docs/make.jl"
     agents:
-      slurm_mem: 120G
-      slurm_gpus: 1
-      slurm_cpus_per_task: 8
-      slurm_ntasks: 1
-      slurm_gpus_per_task: 1
-      slurm_time: 48:00:00
+      queue: ClimaOcean-docs
 
     env:
+      TMPDIR: "$TARTARUS_HOME/tmp"
+      JULIA_DEPOT_PATH: "$TARTARUS_HOME/.julia-$BUILDKITE_BUILD_NUMBER"
       JULIA_DEBUG: "Documenter"
       # This environment variable is needed to avoid SSL verification errors when Downloads.jl 
       # tries to download the bathymetry data. It should not be required so we need to fix our certificates

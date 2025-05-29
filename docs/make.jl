@@ -1,9 +1,13 @@
 using
   ClimaOcean,
   Documenter,
+  DocumenterCitations,
   Literate
 
 ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
+
+bib_filepath = joinpath(dirname(@__FILE__), "climaocean.bib")
+bib = CitationBibliography(bib_filepath, style=:authoryear)
 
 #####
 ##### Generate examples
@@ -13,10 +17,8 @@ const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
 const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
 
 to_be_literated = [
-    "generate_bathymetry.jl",
-    "generate_surface_fluxes.jl",
     "single_column_os_papa_simulation.jl",
-    # "mediterranean_simulation_with_ecco_restoring.jl",
+    "one_degree_simulation.jl",
     "near_global_ocean_simulation.jl"
 ]
 
@@ -40,24 +42,26 @@ pages = [
     "Home" => "index.md",
 
     "Examples" => [
-        "Generate bathymetry" => "literated/generate_bathymetry.md",
-        "Surface fluxes" => "literated/generate_surface_fluxes.md",
-        "Single-column simulation" => "literated/single_column_os_papa_simulation.md",
-        # "Mediterranean simulation with ECCO restoring" => "literated/mediterranean_simulation_with_ecco_restoring.md",
-        "Near-global Ocean simulation" => "literated/near_global_ocean_simulation.md",
+        "Single-column ocean simulation" => "literated/single_column_os_papa_simulation.md",
+        "One-degree ocean simulation" => "literated/one_degree_simulation.md",
+        "Near-global ocean simulation" => "literated/near_global_ocean_simulation.md",
         ],
 
-    "Library" => [ 
+    "Interface fluxes" => "interface_fluxes.md",
+
+    "Library" => [
         "Contents"       => "library/outline.md",
         "Public"         => "library/public.md",
         "Private"        => "library/internals.md",
         "Function index" => "library/function_index.md",
         ],
+    "References" => "references.md",
 ]
 
 makedocs(sitename = "ClimaOcean.jl";
          format,
          pages,
+         plugins = [bib],
          modules = [ClimaOcean],
          doctest = true,
          clean = true,

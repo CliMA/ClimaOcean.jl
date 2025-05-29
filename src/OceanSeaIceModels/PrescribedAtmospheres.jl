@@ -1,14 +1,16 @@
 module PrescribedAtmospheres
 
+using Oceananigans
 using Oceananigans.Grids: grid_name
-using Oceananigans.Utils: prettysummary
+using Oceananigans.Utils: prettysummary, Time
 using Oceananigans.Fields: Center
 using Oceananigans.OutputReaders: FieldTimeSeries, update_field_time_series!, extract_field_time_series
+using Oceananigans.TimeSteppers: Clock, tick!
 
 using Adapt
 using Thermodynamics.Parameters: AbstractThermodynamicsParameters
 
-import Oceananigans.Models: update_model_field_time_series!
+import Oceananigans.TimeSteppers: time_step!
 
 import Thermodynamics.Parameters:
     gas_constant,   #
@@ -62,9 +64,10 @@ end
 Base.show(io::IO, p::ConstitutiveParameters) = print(io, summary(p))
 
 """
-    ConstitutiveParameters(FT; gas_constant       = 8.3144598,
-                               dry_air_molar_mass = 0.02897,
-                               water_molar_mass   = 0.018015)
+    ConstitutiveParameters(FT = Float64;
+                           gas_constant       = 8.3144598,
+                           dry_air_molar_mass = 0.02897,
+                           water_molar_mass   = 0.018015)
 
 Construct a set of parameters that define the density of moist air,
 
@@ -84,7 +87,7 @@ where
 
 For more information see [reference docs].
 """
-function ConstitutiveParameters(FT = Float64;
+function ConstitutiveParameters(FT = Oceananigans.defaults.FloatType;
                                 gas_constant       = 8.3144598,
                                 dry_air_molar_mass = 0.02897,
                                 water_molar_mass   = 0.018015)
@@ -129,7 +132,7 @@ Base.show(io::IO, p::HeatCapacityParameters) = print(io, summary(p))
 
 Isobaric heat capacities.
 """
-function HeatCapacityParameters(FT = Float64;
+function HeatCapacityParameters(FT = Oceananigans.defaults.FloatType;
                                 dry_air_adiabatic_exponent = 2/7,
                                 water_vapor_heat_capacity = 1859,
                                 liquid_water_heat_capacity = 4181,
@@ -172,7 +175,7 @@ end
 
 Base.show(io::IO, p::PhaseTransitionParameters) = print(io, summary(p))
 
-function PhaseTransitionParameters(FT = Float64;
+function PhaseTransitionParameters(FT = Oceananigans.defaults.FloatType;
                                    reference_vaporization_enthalpy = 2500800,
                                    reference_sublimation_enthalpy = 2834400,
                                    reference_temperature = 273.16,
@@ -201,25 +204,25 @@ const PTP{FT} = PhaseTransitionParameters{FT} where FT
 @inline press_triple(p::PTP) = p.triple_point_pressure
 @inline T_0(p::PTP)          = p.reference_temperature
 
-struct PrescribedAtmosphereThermodynamicsParameters{FT} <: AbstractThermodynamicsParameters{FT}
+struct AtmosphereThermodynamicsParameters{FT} <: AbstractThermodynamicsParameters{FT}
     constitutive      :: ConstitutiveParameters{FT}
     heat_capacity     :: HeatCapacityParameters{FT}
     phase_transitions :: PhaseTransitionParameters{FT}
 end
 
-const PATP{FT} = PrescribedAtmosphereThermodynamicsParameters{FT} where FT
+const ATP{FT} = AtmosphereThermodynamicsParameters{FT} where FT
 
-Base.eltype(::PATP{FT}) where FT = FT
+Base.eltype(::ATP{FT}) where FT = FT
 Base.eltype(::CP{FT})   where FT = FT
 Base.eltype(::HCP{FT})  where FT = FT
 Base.eltype(::PTP{FT})  where FT = FT
 
-Base.summary(::PATP{FT}) where FT = "PrescribedAtmosphereThermodynamicsParameters{$FT}"
+Base.summary(::ATP{FT}) where FT = "AtmosphereThermodynamicsParameters{$FT}"
 
-function Base.show(io::IO, p::PrescribedAtmosphereThermodynamicsParameters)
+function Base.show(io::IO, p::AtmosphereThermodynamicsParameters)
     FT = eltype(p)
 
-    cp = p.constitutive 
+    cp = p.constitutive
     hc = p.heat_capacity
     pt = p.phase_transitions
 
@@ -236,60 +239,60 @@ function Base.show(io::IO, p::PrescribedAtmosphereThermodynamicsParameters)
         "└── PhaseTransitionParameters{$FT}", '\n',
         "    ├── reference_vaporization_enthalpy (ℒᵛ⁰): ", prettysummary(pt.reference_vaporization_enthalpy), '\n',
         "    ├── reference_sublimation_enthalpy  (ℒˢ⁰): ", prettysummary(pt.reference_sublimation_enthalpy), '\n',
-        "    ├── reference_temperature (T⁰):            ", prettysummary(pt.reference_temperature), '\n',    
+        "    ├── reference_temperature (T⁰):            ", prettysummary(pt.reference_temperature), '\n',
         "    ├── triple_point_temperature (Tᵗʳ):        ", prettysummary(pt.triple_point_temperature), '\n',
-        "    ├── triple_point_pressure (pᵗʳ):           ", prettysummary(pt.triple_point_pressure), '\n',   
+        "    ├── triple_point_pressure (pᵗʳ):           ", prettysummary(pt.triple_point_pressure), '\n',
         "    ├── water_freezing_temperature (Tᶠ):       ", prettysummary(pt.water_freezing_temperature), '\n',
         "    └── total_ice_nucleation_temperature (Tⁱ): ", prettysummary(pt.total_ice_nucleation_temperature))
 end
 
-function PrescribedAtmosphereThermodynamicsParameters(FT = Float64;
+function AtmosphereThermodynamicsParameters(FT = Oceananigans.defaults.FloatType;
                                                       constitutive = ConstitutiveParameters(FT),
                                                       phase_transitions = PhaseTransitionParameters(FT),
                                                       heat_capacity = HeatCapacityParameters(FT))
 
-    return PrescribedAtmosphereThermodynamicsParameters(constitutive, heat_capacity, phase_transitions)
+    return AtmosphereThermodynamicsParameters(constitutive, heat_capacity, phase_transitions)
 end
 
-const PATP = PrescribedAtmosphereThermodynamicsParameters
+const ATP = AtmosphereThermodynamicsParameters
 
-@inline R_d(p::PATP)            = R_d(p.constitutive)
-@inline R_v(p::PATP)            = R_v(p.constitutive)
-@inline gas_constant(p::PATP)   = gas_constant(p.constitutive)
-@inline molmass_dryair(p::PATP) = molmass_dryair(p.constitutive)
-@inline molmass_water(p::PATP)  = molmass_water(p.constitutive)
-@inline molmass_ratio(p::PATP)  = molmass_ratio(p.constitutive)
-@inline LH_v0(p::PATP)          = LH_v0(p.phase_transitions)
-@inline LH_s0(p::PATP)          = LH_s0(p.phase_transitions)
-@inline LH_f0(p::PATP)          = LH_f0(p.phase_transitions)
-@inline T_freeze(p::PATP)       = T_freeze(p.phase_transitions)
-@inline T_triple(p::PATP)       = T_triple(p.phase_transitions)
-@inline T_icenuc(p::PATP)       = T_icenuc(p.phase_transitions)
-@inline pow_icenuc(p::PATP)     = pow_icenuc(p.phase_transitions)
-@inline press_triple(p::PATP)   = press_triple(p.phase_transitions)
-@inline T_0(p::PATP)            = T_0(p.phase_transitions)
+@inline R_d(p::ATP)            = R_d(p.constitutive)
+@inline R_v(p::ATP)            = R_v(p.constitutive)
+@inline gas_constant(p::ATP)   = gas_constant(p.constitutive)
+@inline molmass_dryair(p::ATP) = molmass_dryair(p.constitutive)
+@inline molmass_water(p::ATP)  = molmass_water(p.constitutive)
+@inline molmass_ratio(p::ATP)  = molmass_ratio(p.constitutive)
+@inline LH_v0(p::ATP)          = LH_v0(p.phase_transitions)
+@inline LH_s0(p::ATP)          = LH_s0(p.phase_transitions)
+@inline LH_f0(p::ATP)          = LH_f0(p.phase_transitions)
+@inline T_freeze(p::ATP)       = T_freeze(p.phase_transitions)
+@inline T_triple(p::ATP)       = T_triple(p.phase_transitions)
+@inline T_icenuc(p::ATP)       = T_icenuc(p.phase_transitions)
+@inline pow_icenuc(p::ATP)     = pow_icenuc(p.phase_transitions)
+@inline press_triple(p::ATP)   = press_triple(p.phase_transitions)
+@inline T_0(p::ATP)            = T_0(p.phase_transitions)
 
-@inline e_int_v0(p::PATP)       = LH_v0(p) - R_v(p) * T_0(p)
+@inline e_int_v0(p::ATP)       = LH_v0(p) - R_v(p) * T_0(p)
 
-@inline cp_v(p::PATP)           = cp_v(p.heat_capacity)
-@inline cp_l(p::PATP)           = cp_l(p.heat_capacity)
-@inline cp_i(p::PATP)           = cp_i(p.heat_capacity)
+@inline cp_v(p::ATP)           = cp_v(p.heat_capacity)
+@inline cp_l(p::ATP)           = cp_l(p.heat_capacity)
+@inline cp_i(p::ATP)           = cp_i(p.heat_capacity)
 
-@inline cv_l(p::PATP)           = cv_l(p.heat_capacity)
-@inline cv_i(p::PATP)           = cv_i(p.heat_capacity)
+@inline cv_l(p::ATP)           = cv_l(p.heat_capacity)
+@inline cv_i(p::ATP)           = cv_i(p.heat_capacity)
 
-@inline kappa_d(p::PATP)        = kappa_d(p.heat_capacity)
-@inline cp_d(p::PATP)           = R_d(p) / kappa_d(p)
-@inline cv_d(p::PATP)           = cp_d(p) - R_d(p)
-@inline cv_v(p::PATP)           = cp_v(p) - R_v(p)
+@inline kappa_d(p::ATP)        = kappa_d(p.heat_capacity)
+@inline cp_d(p::ATP)           = R_d(p) / kappa_d(p)
+@inline cv_d(p::ATP)           = cp_d(p) - R_d(p)
+@inline cv_v(p::ATP)           = cp_v(p) - R_v(p)
 
 #####
 ##### Prescribed atmosphere (as opposed to dynamically evolving / prognostic)
 #####
 
-struct PrescribedAtmosphere{FT, M, G, U, P, C, F, I, R, TP, TI}
+mutable struct PrescribedAtmosphere{FT, G, T, U, P, C, F, I, R, TP, TI}
     grid :: G
-    metadata :: M
+    clock :: Clock{T}
     velocities :: U
     pressure :: P
     tracers :: C
@@ -298,7 +301,7 @@ struct PrescribedAtmosphere{FT, M, G, U, P, C, F, I, R, TP, TI}
     downwelling_radiation :: R
     thermodynamics_parameters :: TP
     times :: TI
-    reference_height :: FT
+    surface_layer_height :: FT
     boundary_layer_height :: FT
 end
 
@@ -312,7 +315,7 @@ end
 function Base.show(io::IO, pa::PrescribedAtmosphere)
     print(io, summary(pa), " on ", grid_name(pa.grid), ":", '\n')
     print(io, "├── times: ", prettysummary(pa.times), '\n')
-    print(io, "├── reference_height: ", prettysummary(pa.reference_height), '\n')
+    print(io, "├── surface_layer_height: ", prettysummary(pa.surface_layer_height), '\n')
     print(io, "└── boundary_layer_height: ", prettysummary(pa.boundary_layer_height))
 end
 
@@ -341,32 +344,52 @@ function default_freshwater_flux(grid, times)
     return (; rain, snow)
 end
 
+""" The standard unit of atmospheric pressure; 1 standard atmosphere (atm) = 101,325 Pascals (Pa) in SI units.
+This is approximately equal to the mean sea-level atmospheric pressure on Earth. """
 function default_atmosphere_pressure(grid, times)
     pa = FieldTimeSeries{Center, Center, Nothing}(grid, times)
     parent(pa) .= 101325
     return pa
 end
 
+@inline function time_step!(atmos::PrescribedAtmosphere, Δt)
+    tick!(atmos.clock, Δt)
+
+    time = Time(atmos.clock.time)
+    ftses = extract_field_time_series(atmos)
+
+    for fts in ftses
+        update_field_time_series!(fts, time)
+    end
+
+    return nothing
+end
+
+@inline thermodynamics_parameters(atmos::Nothing) = nothing
+@inline thermodynamics_parameters(atmos::PrescribedAtmosphere) = atmos.thermodynamics_parameters
+@inline surface_layer_height(atmos::PrescribedAtmosphere) = atmos.surface_layer_height
+@inline boundary_layer_height(atmos::PrescribedAtmosphere) = atmos.boundary_layer_height
+
 """
     PrescribedAtmosphere(grid, times;
-                         metadata = nothing,
-                         reference_height = 10, # meters
-                         boundary_layer_height = 600 # meters,
-                         thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT),
-                              auxiliary_freshwater_flux = nothing,
-                              velocities            = default_atmosphere_velocities(grid, times),
-                              tracers               = default_atmosphere_tracers(grid, times),
-                              pressure              = default_atmosphere_pressure(grid, times),
-                              freshwater_flux       = default_freshwater_flux(grid, times),
-                              downwelling_radiation = default_downwelling_radiation(grid, times))
+                         clock = Clock{Float64}(time = 0),
+                         surface_layer_height = 10, # meters
+                         boundary_layer_height = 512 # meters,
+                         thermodynamics_parameters = AtmosphereThermodynamicsParameters(FT),
+                         auxiliary_freshwater_flux = nothing,
+                         velocities            = default_atmosphere_velocities(grid, times),
+                         tracers               = default_atmosphere_tracers(grid, times),
+                         pressure              = default_atmosphere_pressure(grid, times),
+                         freshwater_flux       = default_freshwater_flux(grid, times),
+                         downwelling_radiation = default_downwelling_radiation(grid, times))
 
 Return a representation of a prescribed time-evolving atmospheric
 state with data given at `times`.
 """
-function PrescribedAtmosphere(grid, times;
-                              metadata = nothing,  
-                              reference_height = convert(eltype(grid), 10),
-                              boundary_layer_height = convert(eltype(grid), 600),
+function PrescribedAtmosphere(grid, times=[zero(grid)];
+                              clock = Clock{Float64}(time = 0),
+                              surface_layer_height = 10,
+                              boundary_layer_height = 512,
                               thermodynamics_parameters = nothing,
                               auxiliary_freshwater_flux = nothing,
                               velocities            = default_atmosphere_velocities(grid, times),
@@ -377,11 +400,11 @@ function PrescribedAtmosphere(grid, times;
 
     FT = eltype(grid)
     if isnothing(thermodynamics_parameters)
-        thermodynamics_parameters = PrescribedAtmosphereThermodynamicsParameters(FT)
+        thermodynamics_parameters = AtmosphereThermodynamicsParameters(FT)
     end
 
     return PrescribedAtmosphere(grid,
-                                metadata,
+                                clock,
                                 velocities,
                                 pressure,
                                 tracers,
@@ -390,19 +413,8 @@ function PrescribedAtmosphere(grid, times;
                                 downwelling_radiation,
                                 thermodynamics_parameters,
                                 times,
-                                convert(FT, reference_height),
+                                convert(FT, surface_layer_height),
                                 convert(FT, boundary_layer_height))
-end
-
-update_model_field_time_series!(::Nothing, time) = nothing
-
-function update_model_field_time_series!(atmos::PrescribedAtmosphere, time)
-    ftses = extract_field_time_series(atmos)
-    for fts in ftses
-        update_field_time_series!(fts, time)
-    end
-
-    return nothing
 end
 
 struct TwoBandDownwellingRadiation{SW, LW}
@@ -413,7 +425,7 @@ end
 """
     TwoBandDownwellingRadiation(shortwave=nothing, longwave=nothing)
 
-Return a two-band model for downwelling radiation (split in a shortwave band
+Return a two-band model for downwelling radiation (split into a shortwave band
 and a longwave band) that passes through the atmosphere and arrives at the surface of ocean
 or sea ice.
 """
@@ -425,4 +437,3 @@ Adapt.adapt_structure(to, tsdr::TwoBandDownwellingRadiation) =
                                 adapt(to, tsdr.longwave))
 
 end # module
-

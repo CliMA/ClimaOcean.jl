@@ -1,7 +1,7 @@
 # # Near-global ocean simulation
 #
 # This example sets up and runs a near-global ocean simulation using the Oceananigans.jl and
-# ClimaOcean.jl. The simulation covers latitudes from 75°S to 75°N with a horizontal
+# ClimaOcean.jl. The simulation covers latitudes from 75°S to 75°N, with a horizontal
 # resolution of 1/4 degree and 40 vertical levels.
 #
 # The simulation's results are visualized with the CairoMakie.jl package.
@@ -21,7 +21,7 @@ using CFTime
 using Dates
 using Printf
 
-# ### Grid configuration 
+# ### Grid configuration
 #
 # We define a global grid with a horizontal resolution of 1/4 degree and 40 vertical levels.
 # The grid is a `LatitudeLongitudeGrid` spanning latitudes from 75°S to 75°N.
@@ -30,7 +30,6 @@ using Printf
 # Finally, we specify the architecture for the simulation, which in this case is a GPU.
 
 arch = GPU()
-
 Nx = 1440
 Ny = 600
 Nz = 40
@@ -49,8 +48,8 @@ grid = LatitudeLongitudeGrid(arch;
 #
 # We use `regrid_bathymetry` to derive the bottom height from ETOPO1 data.
 # To smooth the interpolated data we use 5 interpolation passes. We also fill in
-# (i) all the minor enclosed basins except the 3 largest `major_basins`, as well as
-# (ii) regions that are shallower than `minimum_depth`.
+# * all the minor enclosed basins except the 3 largest `major_basins`, as well as
+# * regions that are shallower than `minimum_depth`.
 
 bottom_height = regrid_bathymetry(grid;
                                   minimum_depth = 10meters,
@@ -80,27 +79,26 @@ ocean = ocean_simulation(grid)
 
 ocean.model
 
-# We initialize the ocean model with ECCO2 temperature and salinity for January 1, 1993.
+# We initialize the ocean model with ECCO4 temperature and salinity for January 1, 1992.
 
-date = DateTimeProlepticGregorian(1993, 1, 1)
-set!(ocean.model, T=ECCOMetadata(:temperature; dates=date),
-                  S=ECCOMetadata(:salinity; dates=date))
+set!(ocean.model, T=Metadatum(:temperature, dataset=ECCO4Monthly()),
+                  S=Metadatum(:salinity, dataset=ECCO4Monthly()))
 
 # ### Prescribed atmosphere and radiation
 #
 # Next we build a prescribed atmosphere state and radiation model,
 # which will drive the ocean simulation. We use the default `Radiation` model,
 
-## The radiation model specifies an ocean albedo emissivity to compute the net radiative
-## fluxes. The default ocean albedo is based on Payne (1982) and depends on cloud cover
-## (calculated from the ratio of maximum possible incident solar radiation to actual
-## incident solar radiation) and latitude. The ocean emissivity is set to 0.97.
+# The radiation model specifies an ocean albedo emissivity to compute the net radiative
+# fluxes. The default ocean albedo is based on Payne (1982) and depends on cloud cover
+# (calculated from the ratio of maximum possible incident solar radiation to actual
+# incident solar radiation) and latitude. The ocean emissivity is set to 0.97.
 
 radiation = Radiation(arch)
 
 # The atmospheric data is prescribed using the JRA55 dataset.
 # The JRA55 dataset provides atmospheric data such as temperature, humidity, and winds
-# to calculate turbulent fluxes using bulk formulae, see [`CrossRealmFluxes`](@ref).
+# to calculate turbulent fluxes using bulk formulae, see [`InterfaceComputations`](@ref ClimaOcean.OceanSeaIceModels.InterfaceComputations).
 # The number of snapshots that are loaded into memory is determined by
 # the `backend`. Here, we load 41 snapshots at a time into memory.
 
@@ -140,7 +138,7 @@ function progress(sim)
     msg *= @sprintf(", max|u|: (%.2e, %.2e, %.2e) m s⁻¹, extrema(T): (%.2f, %.2f) ᵒC, wall time: %s",
                     umax..., Tmax, Tmin, prettytime(step_time))
 
-    @info msg 
+    @info msg
 
     wall_time[] = time_ns()
 end
@@ -155,13 +153,13 @@ simulation.callbacks[:progress] = Callback(progress, TimeInterval(5days))
 # Below, we use `indices` to save only the values of the variables at the surface, which corresponds to `k = grid.Nz`
 
 outputs = merge(ocean.model.tracers, ocean.model.velocities)
-ocean.output_writers[:surface] = JLD2OutputWriter(ocean.model, outputs;
-                                                  schedule = TimeInterval(1days),
-                                                  filename = "near_global_surface_fields",
-                                                  indices = (:, :, grid.Nz),
-                                                  with_halos = true,
-                                                  overwrite_existing = true,
-                                                  array_type = Array{Float32})
+ocean.output_writers[:surface] = JLD2Writer(ocean.model, outputs;
+                                            schedule = TimeInterval(1days),
+                                            filename = "near_global_surface_fields",
+                                            indices = (:, :, grid.Nz),
+                                            with_halos = true,
+                                            overwrite_existing = true,
+                                            array_type = Array{Float32})
 
 # ### Spinning up the simulation
 #

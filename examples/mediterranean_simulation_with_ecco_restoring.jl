@@ -3,7 +3,7 @@
 # This example is a comprehensive example of setting up and running a high-resolution ocean
 # simulation for the Mediterranean Sea using the Oceananigans and ClimaOcean packages, with
 # a focus on restoring temperature and salinity fields from the ECCO (Estimating the Circulation
-# and Climate of the Ocean) dataset. 
+# and Climate of the Ocean) dataset.
 #
 # The example is divided into several sections, each handling a specific part of the simulation
 # setup and execution process.
@@ -11,8 +11,8 @@
 # ## Initial Setup with Package Imports
 #
 # We begin by importing necessary Julia packages for visualization (CairoMakie), ocean modeling
-# (Oceananigans, ClimaOcean), and handling of dates and times (CFTime, Dates). 
-# These packages provide the foundational tools for creating the simulation environment, 
+# (Oceananigans, ClimaOcean), and handling of dates and times (CFTime, Dates).
+# These packages provide the foundational tools for creating the simulation environment,
 # including grid setup, physical processes modeling, and data visualization.
 
 using CairoMakie
@@ -20,26 +20,23 @@ using Oceananigans
 using Oceananigans: architecture
 using ClimaOcean
 using ClimaOcean.ECCO
-using ClimaOcean.ECCO: ECCO4Monthly
 using Oceananigans.Units
 using Printf
-
-using CFTime
 using Dates
 
 # ## Grid Configuration for the Mediterranean Sea
 #
-# The script defines a high-resolution grid to represent the Mediterranean Sea, specifying the domain in terms of longitude (λ₁, λ₂), 
-# latitude (φ₁, φ₂), and a stretched vertical grid to capture the depth variation (`z_faces`). 
-# The grid resolution is set to approximately 1/15th of a degree, which translates to a spatial resolution of about 7 km. 
+# The script defines a high-resolution grid to represent the Mediterranean Sea, specifying the domain in terms of longitude (λ₁, λ₂),
+# latitude (φ₁, φ₂), and a stretched vertical grid to capture the depth variation (`z_faces`).
+# The grid resolution is set to approximately 1/15th of a degree, which translates to a spatial resolution of about 7 km.
 # This section demonstrates the use of the LatitudeLongitudeGrid function to create a grid that matches the
 # Mediterranean's geographical and bathymetric features.
 
 λ₁, λ₂  = ( 0, 42) # domain in longitude
 φ₁, φ₂  = (30, 45) # domain in latitude
-z_faces = stretched_vertical_faces(depth = 5000, 
-                                   surface_layer_Δz = 2.5, 
-                                   stretching = PowerLawStretching(1.070), 
+z_faces = stretched_vertical_faces(depth = 5000,
+                                   surface_layer_Δz = 2.5,
+                                   stretching = PowerLawStretching(1.070),
                                    surface_layer_height = 50)
 
 Nx = 15 * Int(λ₂ - λ₁) # 1/15 th of a degree resolution
@@ -55,11 +52,11 @@ grid = LatitudeLongitudeGrid(GPU();
 
 # ### Bathymetry Interpolation
 #
-# The script interpolates bathymetric data onto the grid, ensuring that the model accurately represents 
+# The script interpolates bathymetric data onto the grid, ensuring that the model accurately represents
 # the sea floor's topography. Parameters such as `minimum_depth` and `interpolation_passes`
 # are adjusted to refine the bathymetry representation.
 
-bottom_height = regrid_bathymetry(grid, 
+bottom_height = regrid_bathymetry(grid,
                                   height_above_water = 1,
                                   minimum_depth = 10,
                                   interpolation_passes = 25,
@@ -69,22 +66,20 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
 # ## Downloading ECCO data
 #
-# The model is initialized with temperature and salinity fields from the ECCO dataset, 
-# using the function `ECCO_restoring_forcing` to apply restoring forcings for these tracers. 
+# The model is initialized with temperature and salinity fields from the ECCO dataset,
+# using the function `ECCO_restoring_forcing` to apply restoring forcings for these tracers.
 # This allows us to nudge the model towards realistic temperature and salinity profiles.
 
-dates = DateTimeProlepticGregorian(1993, 1, 1) : Month(1) : DateTimeProlepticGregorian(1993, 12, 1)
+start_date = DateTime(1993, 1, 1)
+end_date   = DateTime(1993, 12, 1)
 
-temperature = ECCOMetadata(:temperature, dates, ECCO4Monthly())
-salinity    = ECCOMetadata(:salinity,    dates, ECCO4Monthly())
-
-FT = ECCO_restoring_forcing(temperature; architecture = GPU(), timescale = 2days)
-FS = ECCO_restoring_forcing(salinity;    architecture = GPU(), timescale = 2days)
+FT = ECCO_restoring_forcing(:temperature; start_date, end_date, architecture = GPU(), timescale = 2days)
+FS = ECCO_restoring_forcing(:salinity;    start_date, end_date, architecture = GPU(), timescale = 2days)
 
 # Constructing the Simulation
 #
 # We construct an ocean simulation that evolves two tracers, temperature (:T), salinity (:S)
-# and we pass the previously defined forcing that nudge these tracers 
+# and we pass the previously defined forcing that nudge these tracers
 
 ocean = ocean_simulation(grid; forcing = (T = FT, S = FS))
 
@@ -94,7 +89,8 @@ ocean = ocean_simulation(grid; forcing = (T = FT, S = FS))
 # In this case, our ECCO dataset has access to a temperature and a salinity
 # field, so we initialize temperature T and salinity S from ECCO.
 
-set!(ocean.model, T = temperature[1], S = salinity[1])
+set!(ocean.model, T = ECCOMetadatum(:temperature; date=start_date),
+                  S = ECCOMetadatum(:salinity;    date=start_date))
 
 fig = Figure()
 ax  = Axis(fig[1, 1])
@@ -102,7 +98,7 @@ heatmap!(ax, interior(model.tracers.T, :, :, Nz), colorrange = (10, 20), colorma
 ax  = Axis(fig[1, 2])
 heatmap!(ax, interior(model.tracers.S, :, :, Nz), colorrange = (35, 40), colormap = :haline)
 
-function progress(sim) 
+function progress(sim)
     u, v, w = sim.model.velocities
     T, S = sim.model.tracers
 
@@ -141,11 +137,11 @@ ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 ocean.stop_iteration = Inf
 ocean.stop_time = 200days
 
-ocean.output_writers[:surface_fields] = JLD2OutputWriter(model, merge(model.velocities, model.tracers);
-                                                         indices = (:, :, Nz),
-                                                         schedule = TimeInterval(1days),
-                                                         overwrite_existing = true,
-                                                         filename = "med_surface_field")
+ocean.output_writers[:surface_fields] = JLD2Writer(model, merge(model.velocities, model.tracers);
+                                                   indices = (:, :, Nz),
+                                                   schedule = TimeInterval(1days),
+                                                   overwrite_existing = true,
+                                                   filename = "med_surface_field")
 
 run!(ocean)
 
@@ -204,5 +200,5 @@ heatmap!(c)
 
 CairoMakie.record(fig, "mediterranean_video.mp4", 1:length(u_series.times); framerate = 5) do i
     @info "recording iteration $i"
-    iter[] = i    
+    iter[] = i
 end

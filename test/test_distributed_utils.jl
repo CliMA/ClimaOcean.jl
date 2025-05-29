@@ -3,73 +3,61 @@ include("runtests_setup.jl")
 using MPI
 MPI.Init()
 
-using NCDatasets
-using ClimaOcean.ECCO: download_dataset, metadata_path
+using ClimaOcean.DataWrangling: metadata_path
+using Oceananigans.DistributedComputations
 using Oceananigans.DistributedComputations: reconstruct_global_grid
 using CFTime
 using Dates
+using NCDatasets
 
-@testset begin
-    rank = MPI.Comm_rank(MPI.COMM_WORLD)
+# We start by building a fake bathymetry on rank 0 and save it to file
+rm("./trivial_bathymetry.nc", force=true)
 
-    @onrank 0 begin
-        @test rank == 0
-    end
+res = 0.5 # degrees
+λ = -180+res/2:res:180-res/2
+φ = 0:res:50
 
-    @root begin
-        @test rank == 0
-    end
+Nλ = length(λ)
+Nφ = length(φ)
 
-    @onrank 1 begin
-        @test rank == 1
-    end
+@root begin
+    ds = NCDataset("./trivial_bathymetry.nc", "c")
 
-    @onrank 2 begin
-        @test rank == 2
-    end
+    # Define the dimension "lon" and "lat" with the size Nλ and Nφ respectively
+    defDim(ds, "lon", Nλ)
+    defDim(ds, "lat", Nφ)
+    defVar(ds, "lat", Float32, ("lat", ))
+    defVar(ds, "lon", Float32, ("lon", ))
 
-    @onrank 3 begin
-        @test rank == 3
-    end
+    # Define the variables z
+    z = defVar(ds, "z", Float32, ("lon", "lat"))
 
-    a = Int[]
-    
-    @distribute for i in 1:10
-        push!(a, i)
-    end
+    # Generate some example data
+    data = [Float32(-i) for i = 1:Nλ, j = 1:Nφ]
 
-    @root begin
-        @test a == [1, 5, 9]
-    end
+    # write a the complete data set
+    ds["lon"][:] = λ
+    ds["lat"][:] = φ
+    z[:, :] = data
 
-    @onrank 1 begin
-        @test a == [2, 6, 10]
-    end
-
-    @onrank 2 begin
-        @test a == [3, 7]
-    end
-
-    @onrank 3 begin
-        @test a == [4, 8]
-    end
-  
-
-    split_comm = MPI.Comm_split(MPI.COMM_WORLD, rank % 2, rank)
-
-    a = Int[]
-    
-    @distribute split_comm for i in 1:10
-        push!(a, i)
-    end
-
-    @onrank split_comm 0 @test a == [1, 3, 5, 7, 9]
-    @onrank split_comm 1 @test a == [2, 4, 6, 8, 10]
+    close(ds)
 end
+
+struct TrivalBathymetry end
+
+import ClimaOcean.DataWrangling: download_dataset, z_interfaces, longitude_interfaces, latitude_interfaces, metadata_filename
+
+download_dataset(::Metadatum{<:TrivalBathymetry, Nothing, Nothing}) = nothing
+Base.size(::TrivalBathymetry) = (Nλ, Nφ, 1)
+Base.size(::TrivalBathymetry, variable) = (Nλ, Nφ, 1)
+z_interfaces(::TrivalBathymetry) = (0, 1)
+longitude_interfaces(::TrivalBathymetry) = (-180, 180)
+latitude_interfaces(::TrivalBathymetry) = (0, 50)
+metadata_filename(metadatum::Metadatum{<:TrivalBathymetry, Nothing, Nothing}) = "trivial_bathymetry.nc"
 
 @testset "Distributed ECCO download" begin
     dates = DateTimeProlepticGregorian(1992, 1, 1) : Month(1) : DateTimeProlepticGregorian(1994, 4, 1)
-    metadata = ECCOMetadata(:u_velocity; dates)
+    metadata = Metadata(:u_velocity; dataset=ECCO4Monthly(), dates)
     download_dataset(metadata)
 
     @root for metadatum in metadata
@@ -78,35 +66,7 @@ end
 end
 
 @testset "Distributed Bathymetry interpolation" begin
-    # We start by building a fake bathyemtry on rank 0 and save it to file
-    @root begin
-        λ = -180:0.1:180
-        φ = 0:0.1:50
-
-        Nλ = length(λ)
-        Nφ = length(φ)
-
-        ds = NCDataset("./trivial_bathymetry.nc", "c")
-
-        # Define the dimension "lon" and "lat" with the size 361 and 51 resp.
-        defDim(ds, "lon", Nλ)
-        defDim(ds, "lat", Nφ)
-        defVar(ds, "lat", Float32, ("lat", ))
-        defVar(ds, "lon", Float32, ("lon", ))
-
-        # Define the variables z
-        z = defVar(ds, "z", Float32, ("lon","lat"))
-
-        # Generate some example data
-        data = [Float32(-i) for i = 1:Nλ, j = 1:Nφ]
-
-        # write a the complete data set
-        ds["lon"][:] = λ
-        ds["lat"][:] = φ
-        z[:,:] = data
-        
-        close(ds)
-    end
+    TrivialBathymetry_metadata = Metadata(:z, TrivalBathymetry(), nothing, nothing, ".")
 
     global_grid = LatitudeLongitudeGrid(CPU();
                                         size = (40, 40, 1),
@@ -114,10 +74,9 @@ end
                                         latitude = (0, 20),
                                         z = (0, 1))
 
-    global_height = regrid_bathymetry(global_grid; 
-                                    dir = "./",
-                                    filename = "trivial_bathymetry.nc",
-                                    interpolation_passes=10)
+    interpolation_passes = 4
+    global_height = regrid_bathymetry(global_grid, TrivialBathymetry_metadata;
+                                      interpolation_passes)
 
     arch_x  = Distributed(CPU(), partition=Partition(4, 1))
     arch_y  = Distributed(CPU(), partition=Partition(1, 4))
@@ -128,20 +87,20 @@ end
                                            size = (40, 40, 1),
                                            longitude = (0, 100),
                                            latitude = (0, 20),
-                                            z = (0, 1))
+                                           z = (0, 1))
 
-        local_height = regrid_bathymetry(local_grid; 
-                                         dir = "./",
-                                         filename = "trivial_bathymetry.nc",
-                                         interpolation_passes=10)
+        local_height = regrid_bathymetry(local_grid, TrivialBathymetry_metadata;
+                                         interpolation_passes)
 
         Nx, Ny, _ = size(local_grid)
         rx, ry, _ = arch.local_index
         irange    = (rx - 1) * Nx + 1 : rx * Nx
         jrange    = (ry - 1) * Ny + 1 : ry * Ny
-        
-        @handshake begin
+
+        begin
             @test interior(global_height, irange, jrange, 1) == interior(local_height, :, :, 1)
         end
     end
 end
+
+MPI.Finalize()

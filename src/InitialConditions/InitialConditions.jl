@@ -16,30 +16,30 @@ using KernelAbstractions.Extras.LoopInfo: @unroll
 using JLD2
 
 # Implementation of 3-dimensional regridding
-# TODO: move all the following to Oceananigans! 
+# TODO: move all the following to Oceananigans!
 
 using Oceananigans.Fields: regrid!, interpolate!
-using Oceananigans.Grids: cpu_face_constructor_x, 
-                          cpu_face_constructor_y, 
+using Oceananigans.Grids: cpu_face_constructor_x,
+                          cpu_face_constructor_y,
                           cpu_face_constructor_z,
                           topology
 
 # Should we move this to grids??
-construct_grid(::Type{<:RectilinearGrid}, arch, size, extent, topology) = 
+construct_grid(::Type{<:RectilinearGrid}, arch, size, extent, topology) =
     RectilinearGrid(arch; size, x = extent[1], y = extent[2], z = extent[2], topology)
 
-construct_grid(::Type{<:LatitudeLongitudeGrid}, arch, size, extent, topology) = 
+construct_grid(::Type{<:LatitudeLongitudeGrid}, arch, size, extent, topology) =
     LatitudeLongitudeGrid(arch; size, longitude = extent[1], latitude = extent[2], z = extent[3], topology)
 
 # Regrid a field in three dimensions
 function three_dimensional_regrid!(a, b)
     target_grid = a.grid isa ImmersedBoundaryGrid ? a.grid.underlying_grid : a.grid
-    source_grid = b.grid isa ImmersedBoundaryGrid ? b.grid.underlying_grid : b.grid 
+    source_grid = b.grid isa ImmersedBoundaryGrid ? b.grid.underlying_grid : b.grid
 
     topo = topology(target_grid)
     arch = architecture(target_grid)
     arch = child_architecture(arch)
-    
+
     target_y = yt = cpu_face_constructor_y(target_grid)
     target_z = zt = cpu_face_constructor_z(target_grid)
 
@@ -56,7 +56,7 @@ function three_dimensional_regrid!(a, b)
     field_z = Field(location(b), zgrid)
     regrid!(field_z, zgrid, source_grid, b)
 
-    # regrid in y 
+    # regrid in y
     @debug "Regridding in y"
     ygrid   = construct_grid(typeof(target_grid), arch, (Ns[1], Nt[2], Nt[3]), (xs, yt, zt), topo)
     field_y = Field(location(b), ygrid);

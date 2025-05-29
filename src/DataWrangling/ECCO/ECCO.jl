@@ -1,40 +1,97 @@
 module ECCO
 
-export ECCOMetadata, ECCO_field, ECCO_mask, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
+export ECCOMetadatum, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
-export ECCORestoring, LinearlyTaperedPolarMask
-
-using ClimaOcean
-using ClimaOcean.DataWrangling
-using ClimaOcean.DataWrangling: inpaint_mask!, NearestNeighborInpainting, download_progress
-using ClimaOcean.InitialConditions: three_dimensional_regrid!, interpolate!
 
 using Oceananigans
-using Oceananigans: location
-using Oceananigans.Architectures: architecture, child_architecture
-using Oceananigans.BoundaryConditions
-using Oceananigans.DistributedComputations: DistributedField, all_reduce, barrier!
-using Oceananigans.Utils
-
-using KernelAbstractions: @kernel, @index
+using ClimaOcean
 using NCDatasets
-using JLD2
-using Downloads: download
 using Dates
 using Adapt
 using Scratch
+using Downloads
+
+using Oceananigans.DistributedComputations: @root
+
+using ClimaOcean.DataWrangling:
+    netrc_downloader,
+    BoundingBox,
+    metadata_path,
+    Celsius,
+    Metadata,
+    Metadatum,
+    download_progress
+
+using KernelAbstractions: @kernel, @index
+
+using Dates: year, month, day
+
+import Oceananigans: location
+
+import ClimaOcean.DataWrangling:
+    default_download_directory,
+    all_dates,
+    metadata_filename,
+    download_dataset,
+    temperature_units,
+    dataset_variable_name,
+    metaprefix,
+    longitude_interfaces,
+    latitude_interfaces,
+    z_interfaces,
+    is_three_dimensional,
+    inpainted_metadata_path,
+    reversed_vertical_axis,
+    default_mask_value,
+    available_variables
 
 download_ECCO_cache::String = ""
 function __init__()
     global download_ECCO_cache = @get_scratch!("ECCO")
 end
 
-include("ECCO_metadata.jl")
-include("ECCO_mask.jl")
-include("ECCO_restoring.jl")
+# Datasets
+struct ECCO2Monthly end
+struct ECCO2Daily end
+struct ECCO4Monthly end
+const SomeECCODataset = Union{ECCO2Monthly, ECCO4Monthly, ECCO2Daily}
 
-# Vertical coordinate
-const ECCO_z = [
+function default_download_directory(::ECCO2Monthly)
+    path = joinpath(download_ECCO_cache, "v2", "monthly")
+    return mkpath(path)
+end
+
+function default_download_directory(::ECCO2Daily)
+    path = joinpath(download_ECCO_cache, "v2", "daily")
+    return mkpath(path)
+end
+
+function default_download_directory(::ECCO4Monthly)
+    path = joinpath(download_ECCO_cache, "v4")
+    return mkpath(path)
+end
+
+Base.size(::ECCO2Daily, variable)   = (1440, 720, 50)
+Base.size(::ECCO2Monthly, variable) = (1440, 720, 50)
+Base.size(::ECCO4Monthly, variable) = (720,  360, 50)
+
+temperature_units(::SomeECCODataset) = Celsius()
+default_mask_value(::ECCO4Monthly) = 0
+reversed_vertical_axis(::SomeECCODataset) = true
+
+const ECCO2_url = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/"
+const ECCO4_url = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly/"
+
+# The whole range of dates in the different dataset datasets
+all_dates(dataset::SomeECCODataset) = all_dates(dataset, nothing)
+all_dates(::ECCO4Monthly, variable) = DateTime(1992, 1, 1) : Month(1) : DateTime(2017, 12, 1)
+all_dates(::ECCO2Monthly, variable) = DateTime(1992, 1, 1) : Month(1) : DateTime(2024, 12, 1)
+all_dates(::ECCO2Daily,   variable) = DateTime(1992, 1, 1) : Day(1)   : DateTime(2024, 12, 31)
+
+longitude_interfaces(::SomeECCODataset) = (-180, 180)
+latitude_interfaces(::SomeECCODataset) = (-90, 90)
+
+z_interfaces(::SomeECCODataset) = [
     -6128.75,
     -5683.75,
     -5250.25,
@@ -88,152 +145,154 @@ const ECCO_z = [
       0.0,
 ]
 
-empty_ECCO_field(variable_name::Symbol; kw...) = empty_ECCO_field(ECCOMetadata(variable_name); kw...)
+available_variables(::ECCO2Monthly) = ECCO2_dataset_variable_names
+available_variables(::ECCO2Daily)   = ECCO2_dataset_variable_names
+available_variables(::ECCO4Monthly) = ECCO4_dataset_variable_names
 
-function empty_ECCO_field(metadata::ECCOMetadata;
-                          architecture = CPU(), 
-                          horizontal_halo = (7, 7))
+ECCO4_dataset_variable_names = Dict(
+    :temperature           => "THETA",
+    :salinity              => "SALT",
+    :u_velocity            => "EVEL",
+    :v_velocity            => "NVEL",
+    :free_surface          => "SSH",
+    :sea_ice_thickness     => "SIheff",
+    :sea_ice_concentration => "SIarea",
+    :net_heat_flux         => "oceQnet",
+    :sensible_heat_flux    => "EXFhs",
+    :latent_heat_flux      => "EXFhl",
+    :net_longwave          => "EXFlwnet",
+    :downwelling_shortwave => "oceQsw",
+    :downwelling_longwave  => "EXFlwdn",
+)
 
-    Nx, Ny, Nz, _ = size(metadata)
-    loc = location(metadata)
-    longitude = (0, 360)
-    latitude = (-90, 90)
-    TX, TY = (Periodic, Bounded)
+ECCO2_dataset_variable_names = Dict(
+    :temperature           => "THETA",
+    :salinity              => "SALT",
+    :u_velocity            => "UVEL",
+    :v_velocity            => "VVEL",
+    :free_surface          => "SSH",
+    :sea_ice_thickness     => "SIheff",
+    :sea_ice_concentration => "SIarea",
+    :net_heat_flux         => "oceQnet"
+)
 
-    if variable_is_three_dimensional(metadata)
-        TZ = Bounded
-        LZ = Center
-        z = ECCO_z
-        halo = (horizontal_halo..., 3)
-        sz = (Nx, Ny, Nz)
-    else # the variable is two-dimensional
-        TZ = Flat
-        LZ = Nothing
-        z = nothing
-        halo = horizontal_halo
-        sz = (Nx, Ny)
-    end
+ECCO_location = Dict(
+    :temperature           => (Center, Center, Center),
+    :salinity              => (Center, Center, Center),
+    :free_surface          => (Center, Center, Nothing),
+    :sea_ice_thickness     => (Center, Center, Nothing),
+    :sea_ice_concentration => (Center, Center, Nothing),
+    :net_heat_flux         => (Center, Center, Nothing),
+    :u_velocity            => (Face,   Center, Center),
+    :v_velocity            => (Center, Face,   Center),
+    :sensible_heat_flux    => (Center, Center, Nothing),
+    :latent_heat_flux      => (Center, Center, Nothing),
+    :net_longwave          => (Center, Center, Nothing),
+    :downwelling_shortwave => (Center, Center, Nothing),
+    :downwelling_longwave  => (Center, Center, Nothing),
+)
 
-    grid = LatitudeLongitudeGrid(architecture; halo, longitude, latitude, z,
-                                 size = sz,
-                                 topology = (TX, TY, TZ))
-
-    return Field{loc...}(grid)
-end
+const ECCOMetadata{D} = Metadata{<:SomeECCODataset, D}
+const ECCOMetadatum   = Metadatum{<:SomeECCODataset}
 
 """
-    ECCO_field(metadata::ECCOMetadata;
-               architecture = CPU(),
-               inpainting = nothing,
-               mask = nothing,
-               horizontal_halo = (7, 7),
-               cache_inpainted_data = false)
+    ECCOMetadatum(name;
+                  date = first_date(ECCO4Monthly(), name),
+                  dir = download_ECCO_cache)
 
-Return a `Field` on `architecture` described by `ECCOMetadata` with
-`horizontal_halo` size.
-If not `nothing`, the `inpainting` method is used to fill the cells
-within the specified `mask`. `mask` is set to `ECCO_mask` for non-nothing
-`inpainting`.
+An alias to construct a [`Metadatum`](@ref) of `ECCO4Monthly()`.
 """
-function ECCO_field(metadata::ECCOMetadata;
-                    architecture = CPU(),
-                    inpainting = NearestNeighborInpainting(Inf),
-                    mask = nothing,
-                    horizontal_halo = (7, 7),
-                    cache_inpainted_data = true)
+function ECCOMetadatum(name;
+                       date = first_date(ECCO4Monthly(), name),
+                       dir = download_ECCO_cache)
 
-    field = empty_ECCO_field(metadata; architecture, horizontal_halo)
-    inpainted_path = inpainted_metadata_path(metadata)
-
-    if !isnothing(inpainting) && isfile(inpainted_path)
-        file = jldopen(inpainted_path, "r")
-        maxiter = file["inpainting_maxiter"]
-
-        # read data if generated with the same inpainting
-        if maxiter == inpainting.maxiter
-            data = file["data"]
-            close(file)
-            copyto!(parent(field), data)
-            return field
-        end
-
-        close(file)
-    end
-
-    download_dataset(metadata)
-    path = metadata_path(metadata)
-    ds = Dataset(path)
-    shortname = short_name(metadata)
-
-    if variable_is_three_dimensional(metadata)
-        data = ds[shortname][:, :, :, 1]
-        data = reverse(data, dims=3)
-    else
-        data = ds[shortname][:, :, 1]
-    end        
-
-    close(ds)
-    
-    # Convert data from Union(FT, missing} to FT
-    FT = eltype(field)
-    data[ismissing.(data)] .= 1e10 # Artificially large number!
-    data = if location(field)[2] == Face # ?
-        new_data = zeros(FT, size(field))
-        new_data[:, 1:end-1, :] .= data
-        new_data    
-    else
-        data = Array{FT}(data)
-    end
-    
-    # ECCO4 data is on a -180, 180 longitude grid as opposed to ECCO2 data that
-    # is on a 0, 360 longitude grid. To make the data consistent, we shift ECCO4
-    # data by 180 degrees in longitude
-    if metadata.version isa ECCO4Monthly 
-        Nx = size(data, 1)
-        if variable_is_three_dimensional(metadata)
-            shift = (Nx ÷ 2, 0, 0)
-        else
-            shift = (Nx ÷ 2, 0)
-        end
-        data = circshift(data, shift)
-    end
-
-    set!(field, data)
-    fill_halo_regions!(field)
-
-    if !isnothing(inpainting)
-        # Respect user-supplied mask, but otherwise build default ECCO mask.
-        if isnothing(mask)
-            mask = ECCO_mask(metadata, architecture; data_field=field)
-        end
-
-        # Make sure all values are extended properly
-        name = string(metadata.name)
-        date = string(metadata.dates)
-        version = summary(metadata.version)
-        @info string("Inpainting ", version, " ", name, " data from ", date, "...")
-        start_time = time_ns()
-        
-        inpaint_mask!(field, mask; inpainting)
-        fill_halo_regions!(field)
-
-        elapsed = 1e-9 * (time_ns() - start_time)
-        @info string(" ... (", prettytime(elapsed), ")")
-    
-        # We cache the inpainted data to avoid recomputing it
-        @root if cache_inpainted_data
-            file = jldopen(inpainted_path, "w+")
-            file["data"] = on_architecture(CPU(), parent(field))
-            file["inpainting_maxiter"] = inpainting.maxiter
-            close(file)
-        end
-    end
-
-    return field
+    return Metadatum(name; date, dir, dataset=ECCO4Monthly())
 end
 
-# Fallback
-ECCO_field(var_name::Symbol; kw...) = ECCO_field(ECCOMetadata(var_name); kw...)
+metaprefix(::ECCOMetadata) = "ECCOMetadata"
+
+# File name generation specific to each dataset
+function metadata_filename(metadata::Metadatum{<:ECCO4Monthly})
+    shortname = dataset_variable_name(metadata)
+    yearstr   = string(Dates.year(metadata.dates))
+    monthstr  = string(Dates.month(metadata.dates), pad=2)
+    return shortname * "_" * yearstr * "_" * monthstr * ".nc"
+end
+
+function metadata_filename(metadata::Metadatum{<:Union{ECCO2Daily, ECCO2Monthly}})
+    shortname = dataset_variable_name(metadata)
+    yearstr   = string(Dates.year(metadata.dates))
+    monthstr  = string(Dates.month(metadata.dates), pad=2)
+    postfix   = is_three_dimensional(metadata) ? ".1440x720x50." : ".1440x720."
+
+    if metadata.dataset isa ECCO2Monthly
+        return shortname * postfix * yearstr * monthstr * ".nc"
+    elseif metadata.dataset isa ECCO2Daily
+        daystr = is_three_dimensional(metadata) ? string(Dates.day(metadata.dates), pad=2) : ""
+        return shortname * postfix * yearstr * monthstr * daystr * ".nc"
+    end
+end
+
+# Convenience functions
+dataset_variable_name(data::Metadata{<:ECCO2Daily})   = ECCO2_dataset_variable_names[data.name]
+dataset_variable_name(data::Metadata{<:ECCO2Monthly}) = ECCO2_dataset_variable_names[data.name]
+dataset_variable_name(data::Metadata{<:ECCO4Monthly}) = ECCO4_dataset_variable_names[data.name]
+location(data::ECCOMetadata) = ECCO_location[data.name]
+
+is_three_dimensional(data::ECCOMetadata) =
+    data.name == :temperature ||
+    data.name == :salinity ||
+    data.name == :u_velocity ||
+    data.name == :v_velocity
+
+# URLs for the ECCO datasets specific to each dataset
+metadata_url(m::Metadata{<:ECCO2Monthly}) = ECCO2_url * "monthly/" * dataset_variable_name(m) * "/" * metadata_filename(m)
+metadata_url(m::Metadata{<:ECCO2Daily})   = ECCO2_url * "daily/"   * dataset_variable_name(m) * "/" * metadata_filename(m)
+
+function metadata_url(m::Metadata{<:ECCO4Monthly})
+    year = string(Dates.year(m.dates))
+    return ECCO4_url * dataset_variable_name(m) * "/" * year * "/" * metadata_filename(m)
+end
+
+function download_dataset(metadata::ECCOMetadata)
+    username = get(ENV, "ECCO_USERNAME", nothing)
+    password = get(ENV, "ECCO_PASSWORD", nothing)
+    dir = metadata.dir
+
+    # Create a temporary directory to store the .netrc file
+    # The directory will be deleted after the download is complete
+    @root mktempdir(dir) do tmp
+
+        # Write down the username and password in a .netrc file
+        downloader = netrc_downloader(username, password, "ecco.jpl.nasa.gov", tmp)
+        ntasks = Threads.nthreads()
+
+        asyncmap(metadata; ntasks) do metadatum # Distribute the download among tasks
+
+            fileurl  = metadata_url(metadatum)
+            filepath = metadata_path(metadatum)
+
+            if !isfile(filepath)
+                instructions_msg = "\n See ClimaOcean.jl/src/DataWrangling/ECCO/README.md for instructions."
+                if isnothing(username)
+                    msg = "Could not find the ECCO_PASSWORD environment variable. \
+                            See ClimaOcean.jl/src/DataWrangling/ECCO/README.md for instructions on obtaining \
+                            and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
+                    throw(ArgumentError(msg))
+                elseif isnothing(password)
+                    msg = "Could not find the ECCO_PASSWORD environment variable. \
+                            See ClimaOcean.jl/src/DataWrangling/ECCO/README.md for instructions on obtaining \
+                            and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
+                    throw(ArgumentError(msg))
+                end
+                @info "Downloading ECCO data: $(metadatum.name) in $(metadatum.dir)..."
+                Downloads.download(fileurl, filepath; downloader, progress=download_progress)
+            end
+        end
+    end
+
+    return nothing
+end
 
 function inpainted_metadata_filename(metadata::ECCOMetadata)
     original_filename = metadata_filename(metadata)
@@ -243,21 +302,4 @@ end
 
 inpainted_metadata_path(metadata::ECCOMetadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
 
-function set!(field::Field, ECCO_metadata::ECCOMetadata; kw...)
-
-    # Fields initialized from ECCO
-    grid = field.grid
-    arch = child_architecture(grid)
-    mask = ECCO_mask(ECCO_metadata, arch)
-
-    f = ECCO_field(ECCO_metadata; mask,
-                   architecture = arch,
-                   kw...)
-
-    interpolate!(field, f)
-
-    return field
-end
-
-end # Module 
-
+end # Module
