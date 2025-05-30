@@ -67,7 +67,7 @@ end
                            solver_maxiter = 100)
 
 `SimilarityTheoryFluxes` contains parameters and settings to calculate
-air-interface turbulent fluxes using Monin-Obukhov similarity theory.
+air-interface turbulent fluxes using Monin--Obukhov similarity theory.
 
 Keyword Arguments
 ==================
@@ -127,21 +127,21 @@ end
 """
     LogarithmicSimilarityProfile()
 
-Represent the classic Monin-Obukhov similarity profile, which finds that
+Represent the classic Monin--Obukhov similarity profile, which finds that
 
 ```math
-ϕ(z) = Π(z) ϕ★ / ϰ
+ϕ(z) = Π(z) ϕ_★ / ϰ
 ```
 
-where ``ϰ`` is the Von Karman constant, ``ϕ★`` is the characteristic scale for ``ϕ``,
+where ``ϰ`` is the Von Karman constant, ``ϕ_★`` is the characteristic scale for ``ϕ``,
 and ``Π`` is the "similarity profile",
 
 ```math
-Π(h) = log(h / ℓ) - ψ(h / L) + ψ(ℓ / L)
+Π(h) = \\log(h / ℓ) - ψ(h / L) + ψ(ℓ / L)
 ```
 
 which is a logarithmic profile adjusted by the stability function ``ψ`` and dependent on
-the Monin-Obukhov length ``L`` and the roughness length ``ℓ``.
+the Monin--Obukhov length ``L`` and the roughness length ``ℓ``.
 """
 struct LogarithmicSimilarityProfile end
 struct COARELogarithmicSimilarityProfile end
@@ -189,7 +189,7 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
     # Compute surface thermodynamic state
     𝒬ₛ = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, 𝒬ₐ.p, Tₛ, qₛ)
 
-    # Compute Monin-Obukhov length scale depending on a `buoyancy flux`
+    # Compute Monin--Obukhov length scale depending on a `buoyancy flux`
     b★ = buoyancy_scale(θ★, q★, ℂₐ, 𝒬ₛ, g)
 
     # Buoyancy flux characteristic scale for gustiness (Edson et al. 2013)
@@ -231,30 +231,29 @@ end
 
 Return the characteristic buoyancy scale `b★` associated with
 the characteristic temperature `θ★`, specific humidity scale `q★`,
-surface thermodynamic state `𝒬`, thermodynamic
-parameters `ℂ`, and gravitational acceleration `g`.
+surface thermodynamic state `𝒬`, thermodynamic parameters `ℂ`,
+and gravitational acceleration `g`.
 
 The buoyancy scale is defined in terms of the interface buoyancy flux,
 
 ```math
-u★ b★ ≡ w′b′,
+u_★ b_★ ≡ w'b',
 ```
 
-where `u★` is the friction velocity.
+where `u_★` is the friction velocity.
 Using the definition of buoyancy for clear air without condensation, we find that
 
 ```math
-b★ = g / 𝒯ₛ * (θ★ * (1 + δ * qₐ) + δ * 𝒯ₛ * q★),
+b_★ = (g / 𝒯ₛ) [θ_★ (1 + δ qₐ) + δ 𝒯ₛ q_★] ,
 ```
-where ``𝒯ₐ`` is the virtual temperature at the surface,
-and ``δ = Rᵥ / R_d - 1``, where ``Rᵥ`` is the molar mass of water vapor and
-``R_d`` is the molar mass of dry air.
+where ``𝒯ₐ`` is the virtual temperature at the surface, and ``δ = Rᵥ / R_d - 1``,
+where ``Rᵥ`` is the molar mass of water vapor and ``R_d`` is the molar mass of dry air.
 
-Note that the Monin-Obukhov characteristic length scale is defined
-in terms of `b★` and additionally the Von Karman constant `ϰ`,
+Note that the Monin--Obukhov characteristic length scale is defined
+in terms of ``b_★`` and additionally the Von Karman constant ``ϰ``,
 
 ```math
-L★ = - u★² / ϰ b★ .
+L_★ = - u_★² / ϰ b_★ .
 ```
 """
 @inline function buoyancy_scale(θ★, q★, ℂ, 𝒬, g)
