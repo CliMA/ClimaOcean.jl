@@ -70,8 +70,8 @@ end
 T_meta = Metadata(:temperature; start_date, end_date, dataset=ECCO4Monthly())
 S_meta = Metadata(:temperature; start_date, end_date, dataset=ECCO4Monthly())
 
-forcing = (T=DatasetRestoring(T_meta; rate=1/5days, mask=tracer_mask),
-	      S=DatasetRestoring(S_meta; rate=1/5days, mask=tracer_mask),
+forcing = (T=DatasetRestoring(T_meta; arch_or_grid=grid, rate=1/5days, mask=tracer_mask),
+	      S=DatasetRestoring(S_meta; arch_or_grid=grid, rate=1/5days, mask=tracer_mask),
 	      u=Forcing(u_restoring; discrete_form=true, parameters=(; rate=1/5days)),
 	      v=Forcing(v_restoring; discrete_form=true, parameters=(; rate=1/5days)))
 
