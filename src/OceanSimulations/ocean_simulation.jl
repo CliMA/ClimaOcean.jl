@@ -86,14 +86,6 @@ function default_ocean_closure(FT=Oceananigans.defaults.FloatType)
     return CATKEVerticalDiffusivity(VerticallyImplicitTimeDiscretization(), FT; mixing_length, turbulent_kinetic_energy_equation)
 end
 
-default_momentum_advection() = VectorInvariant(; vorticity_scheme = WENO(order=9),
-                                                  vertical_scheme = Centered(),
-                                                divergence_scheme = WENO(order=5))
-
-default_tracer_advection() = FluxFormAdvection(WENO(order=7),
-                                               WENO(order=7),
-                                               Centered())
-
 function default_radiative_forcing(grid)
     ϵʳ = 0.6 # red fraction
     λʳ = 1  # red decay scale
@@ -121,10 +113,10 @@ end
                      biogeochemistry = nothing,
                      timestepper = :QuasiAdamsBashforth2,
                      coriolis = Default(HydrostaticSphericalCoriolis(; rotation_rate)),
-                     momentum_advection = default_momentum_advection(),
+                     momentum_advection = WENOVectorInvariant(),
+                     tracer_advection = WENO(order=7),
                      equation_of_state = TEOS10EquationOfState(; reference_density),
                      boundary_conditions::NamedTuple = NamedTuple(),
-                     tracer_advection = default_tracer_advection(),
                      vertical_coordinate = default_vertical_coordinate(grid),
                      radiative_forcing = default_radiative_forcing(grid),
                      warn = true,
@@ -145,10 +137,10 @@ function ocean_simulation(grid;
                           biogeochemistry = nothing,
                           timestepper = :QuasiAdamsBashforth2,
                           coriolis = Default(HydrostaticSphericalCoriolis(; rotation_rate)),
-                          momentum_advection = default_momentum_advection(),
+                          momentum_advection = WENOVectorInvariant(),
+                          tracer_advection = WENO(order=7),
                           equation_of_state = TEOS10EquationOfState(; reference_density),
                           boundary_conditions::NamedTuple = NamedTuple(),
-                          tracer_advection = default_tracer_advection(),
                           vertical_coordinate = default_vertical_coordinate(grid),
                           radiative_forcing = default_radiative_forcing(grid),
                           warn = true,
