@@ -43,7 +43,7 @@ To illustrate how `OceanSeaIceModel` works we set up a simulation on a grid with
 ```julia
 using Oceananigans
 using Oceananigans.Units
-using Dates, CFTime
+using Dates
 import ClimaOcean
 
 arch = GPU()
@@ -57,12 +57,12 @@ grid = LatitudeLongitudeGrid(arch,
 bathymetry = ClimaOcean.regrid_bathymetry(grid) # builds gridded bathymetry based on ETOPO1
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bathymetry))
 
-# Build an ocean simulation initialized to the ECCO state estimate on Jan 1, 1993
+# Build an ocean simulation initialized to the ECCO state estimate version 2 on Jan 1, 1993
 ocean = ClimaOcean.ocean_simulation(grid)
 start_date = DateTime(1993, 1, 1)
 set!(ocean.model,
-     T=ClimaOcean.Metadata(:temperature; dates=start_date, dataset=ClimaOcean.ECCO4Monthly()),
-     S=ClimaOcean.Metadata(:salinity;    dates=start_date, dataset=ClimaOcean.ECCO4Monthly()))
+     T=ClimaOcean.Metadatum(:temperature; date=start_date, dataset=ClimaOcean.ECCO2Daily()),
+     S=ClimaOcean.Metadatum(:salinity;    date=start_date, dataset=ClimaOcean.ECCO2Daily()))
 
 # Build and run an OceanSeaIceModel (with no sea ice component) forced by JRA55 reanalysis
 atmosphere = ClimaOcean.JRA55PrescribedAtmosphere(arch)
@@ -104,7 +104,7 @@ Note that though ClimaOcean is currently focused on hydrostatic modeling with `O
 If you use ClimaOcean for your research, teaching, or fun 🤩, everyone in our community will be grateful
 if you give credit by citing the corresponding Zenodo record, e.g.,
 
-> Wagner, G. L. et al. (2025). CliMA/ClimaOcean.jl: v0.5.4 (v0.5.4). Zenodo. https://doi.org/10.5281/zenodo.15042648
+> Wagner, G. L. et al. (2025). CliMA/ClimaOcean.jl: v0.6.9 (v0.6.9). Zenodo. https://doi.org/10.5281/zenodo.7677442
 
 and also the recent [preprint submitted to the Journal of Advances in Modeling Earth Systems](https://arxiv.org/abs/2502.14148) that presents an overview of all the things that make Oceananigans unique:
 
