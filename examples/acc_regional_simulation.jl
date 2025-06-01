@@ -26,8 +26,8 @@ grid = LatitudeLongitudeGrid(arch;
 
 bottom_height = regrid_bathymetry(grid; 
                                   minimum_depth = 10,
-                                  interpolation_passes = 7,
-                                  major_basins = 1)
+                                  interpolation_passes = 5,
+                                  major_basins = 3)
  
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height), active_cells_map=true) 
 
@@ -116,7 +116,7 @@ coupled_simulation.callbacks[:progress] = Callback(progress, TimeInterval(4hours
 
 ocean.output_writers[:surface] = JLD2Writer(model, merge(model.tracers, model.velocities);
                                             schedule = TimeInterval(5days),
-                                            filename = "surface",
+                                            filename = "acc_surface_fields",
                                             indices = (:, :, grid.Nz),
                                             overwrite_existing = true,
                                             array_type = Array{Float32})
@@ -133,7 +133,7 @@ nothing #hide
 # integration with a maximum time step of 1 minute should be sufficient to dissipate spurious
 # initialization shocks.
 
-coupled_simulation.stop_time = 10days
+coupled_simulation.stop_time = 60days
 coupled_simulation.Δt = 2minutes
 run!(coupled_simulation)
 nothing #hide
@@ -192,7 +192,7 @@ hm = heatmap!(ax, si, colorrange = (0, 0.5), colormap = :deep)
 cb = Colorbar(fig[0, 1], hm, vertical = false, label = "Surface speed (ms⁻¹)")
 hidedecorations!(ax)
 
-CairoMakie.record(fig, "near_global_ocean_surface_s.mp4", 1:Nt, framerate = 8) do i
+CairoMakie.record(fig, "acc_surface_s.mp4", 1:Nt, framerate = 8) do i
     iter[] = i
 end
 nothing #hide
@@ -205,7 +205,7 @@ hm = heatmap!(ax, Ti, colorrange = (-1, 30), colormap = :magma)
 cb = Colorbar(fig[0, 1], hm, vertical = false, label = "Surface Temperature (Cᵒ)")
 hidedecorations!(ax)
 
-CairoMakie.record(fig, "near_global_ocean_surface_T.mp4", 1:Nt, framerate = 8) do i
+CairoMakie.record(fig, "acc_surface_T.mp4", 1:Nt, framerate = 8) do i
     iter[] = i
 end
 nothing #hide
@@ -218,7 +218,7 @@ hm = heatmap!(ax, ei, colorrange = (0, 1e-3), colormap = :solar)
 cb = Colorbar(fig[0, 1], hm, vertical = false, label = "Turbulent Kinetic Energy (m²s⁻²)")
 hidedecorations!(ax)
 
-CairoMakie.record(fig, "near_global_ocean_surface_e.mp4", 1:Nt, framerate = 8) do i
+CairoMakie.record(fig, "acc_surface_e.mp4", 1:Nt, framerate = 8) do i
     iter[] = i
 end
 nothing #hide
