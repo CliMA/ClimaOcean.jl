@@ -90,7 +90,7 @@ atmosphere = JRA55PrescribedAtmosphere(arch; backend)
 radiation  = Radiation()
 
 coupled_model      = OceanSeaIceModel(ocean; atmosphere, radiation)
-coupled_simulation = Simulation(coupled_model; Δt=10minutes, stop_time = 10days)
+coupled_simulation = Simulation(coupled_model; Δt=5minutes, stop_time = 60days)
 
 wall_time = [time_ns()]
 
@@ -197,7 +197,7 @@ CairoMakie.record(fig, "acc_surface_s.mp4", 1:Nt, framerate = 8) do i
 end
 nothing #hide
  
- # ![](near_global_ocean_surface_s.mp4)
+ # ![](acc_surface_s.mp4)
  
 fig = Figure(size = (800, 400))
 ax = Axis(fig[1, 1])
@@ -210,7 +210,7 @@ CairoMakie.record(fig, "acc_surface_T.mp4", 1:Nt, framerate = 8) do i
 end
 nothing #hide
  
-# ![](near_global_ocean_surface_T.mp4)
+# ![](acc_surface_T.mp4)
 
 fig = Figure(size = (800, 400))
 ax = Axis(fig[1, 1])
@@ -223,4 +223,4 @@ CairoMakie.record(fig, "acc_surface_e.mp4", 1:Nt, framerate = 8) do i
 end
 nothing #hide
 
-# ![](near_global_ocean_surface_e.mp4)
+# ![](acc_surface_e.mp4)
