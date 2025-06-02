@@ -26,8 +26,8 @@ grid = LatitudeLongitudeGrid(arch;
 
 bottom_height = regrid_bathymetry(grid; 
                                   minimum_depth = 10,
-                                  interpolation_passes = 5,
-                                  major_basins = 3)
+                                  interpolation_passes = 7,
+                                  major_basins = 1)
  
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height), active_cells_map=true) 
 
@@ -70,8 +70,8 @@ end
 T_meta = Metadata(:temperature; start_date, end_date, dataset=ECCO4Monthly())
 S_meta = Metadata(:temperature; start_date, end_date, dataset=ECCO4Monthly())
 
-forcing = (T=DatasetRestoring(T_meta, arch; rate=1/5days, mask=tracer_mask),
-	      S=DatasetRestoring(S_meta, arch; rate=1/5days, mask=tracer_mask),
+forcing = (T=DatasetRestoring(T_meta, grid; rate=1/5days, mask=tracer_mask),
+	      S=DatasetRestoring(S_meta, grid; rate=1/5days, mask=tracer_mask),
 	      u=Forcing(u_restoring; discrete_form=true, parameters=(; rate=1/5days)),
 	      v=Forcing(v_restoring; discrete_form=true, parameters=(; rate=1/5days)))
 
