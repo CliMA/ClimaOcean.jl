@@ -71,9 +71,9 @@ T_meta = Metadata(:temperature; start_date, end_date, dataset = ECCO4Monthly())
 S_meta = Metadata(:temperature; start_date, end_date, dataset = ECCO4Monthly())
 
 forcing = (T = DatasetRestoring(T_meta, grid; rate=1/5days, mask=tracer_mask),
-	      S = DatasetRestoring(S_meta, grid; rate=1/5days, mask=tracer_mask),
-	      u = Forcing(u_restoring; discrete_form=true, parameters=(; rate=1/5days)),
-	      v = Forcing(v_restoring; discrete_form=true, parameters=(; rate=1/5days)))
+	       S = DatasetRestoring(S_meta, grid; rate=1/5days, mask=tracer_mask),
+	       u = Forcing(u_restoring; discrete_form=true, parameters=(; rate=1/5days)),
+	       v = Forcing(v_restoring; discrete_form=true, parameters=(; rate=1/5days)))
 
 momentum_advection = WENOVectorInvariant()
 tracer_advection   = WENO(order=7)
@@ -82,8 +82,8 @@ ocean      = ocean_simulation(grid; forcing, momentum_advection, tracer_advectio
 atmosphere = JRA55PrescribedAtmosphere(arch; JRA55NetCDFBackend(41))
 radiation  = Radiation()
 
-coupled_model      = OceanSeaIceModel(ocean; atmosphere, radiation)
-simulation = Simulation(coupled_model; Δt=5minutes, stop_time = 20days)
+coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
+simulation    = Simulation(coupled_model; Δt=5minutes, stop_time = 20days)
 
 wall_time = [time_ns()]
 
