@@ -82,6 +82,7 @@ ocean      = ocean_simulation(grid; forcing, momentum_advection, tracer_advectio
 backend    = JRA55NetCDFBackend(41) 
 atmosphere = JRA55PrescribedAtmosphere(arch; backend)
 radiation  = Radiation()
+model      = ocean.model 
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 simulation    = Simulation(coupled_model; Δt=5minutes, stop_time = 20days)
