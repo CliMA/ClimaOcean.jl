@@ -10,8 +10,13 @@ export
     ComponentInterfaces,
     LatitudeDependentAlbedo,
     SimilarityTheoryFluxes,
+    MomentumRoughnessLength,
+    ScalarRoughnessLength,
+    CoefficientBasedFluxes,
     SkinTemperature,
-    BulkTemperature
+    BulkTemperature,
+    atmosphere_ocean_stability_functions,
+    atmosphere_sea_ice_stability_functions
 
 using ..OceanSeaIceModels: default_gravitational_acceleration
 

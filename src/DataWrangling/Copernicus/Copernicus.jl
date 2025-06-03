@@ -21,7 +21,8 @@ import ClimaOcean.DataWrangling:
     z_interfaces,
     metadata_filename,
     inpainted_metadata_path,
-    reversed_vertical_axis
+    reversed_vertical_axis,
+    available_variables
 
 using Scratch
 
@@ -64,6 +65,8 @@ const CopernicusMetadatum = Metadatum{<:CopernicusDataset}
 Base.size(::CopernicusMetadatum) = (4320, 2040, 50, 1)
 
 reversed_vertical_axis(::CopernicusDataset) = true
+
+available_variables(::CopernicusDataset) = copernicus_dataset_variable_names
 
 copernicus_dataset_variable_names = Dict(
     :temperature => "thetao",

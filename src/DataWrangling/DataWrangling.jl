@@ -140,7 +140,7 @@ Note: if called by multiple processes via MPI, `download_dataset` should only ru
 Arguments
 =========
 - `metadata`: The metadata specifying the dataset to be downloaded. Available options are metadata for
-              ECCO4, ECCO2, EN4, and JRA55 datasets.
+              ETOPO, ECCO4, ECCO2, EN4, and JRA55 datasets.
 
 !!! info "Credential setup requirements for ECCO datasets"
 
@@ -201,16 +201,16 @@ function default_inpainting(metadata)
 end
 
 # Datasets
-include("JRA55/JRA55.jl")
-include("ECCO/ECCO.jl")
-include("EN4/EN4.jl")
-include("Copernicus/Copernicus.jl")
 include("ETOPO/ETOPO.jl")
+include("ECCO/ECCO.jl")
+include("Copernicus/Copernicus.jl")
+include("EN4/EN4.jl")
+include("JRA55/JRA55.jl")
 
+using .ETOPO
 using .ECCO
+using .Copernicus
 using .EN4
 using .JRA55
-using .Copernicus
-using .ETOPO
 
 end # module

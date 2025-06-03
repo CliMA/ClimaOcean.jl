@@ -57,8 +57,8 @@ Argument
 Keyword Arguments
 =================
 
-- `dataset`: Supported datasets are `ECCO2Monthly()`, `ECCO2Daily()`, `ECCO4Monthly()`, `EN4Monthly()`,
-             `RepeatYearJRA55()`, and `MultiYearJRA55()`.
+- `dataset`: Supported datasets are `ETOPO2022()`, `ECCO2Monthly()`, `ECCO2Daily()`, `ECCO4Monthly()`, `EN4Monthly()`,
+             `GLORYSDaily()`, `GLORYSMonthly()`, `RepeatYearJRA55()`, and `MultiYearJRA55()`.
 
 - `dates`: The dates of the dataset (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`).
            Note that `dates` can either be a range or a vector of dates, representing a time-series.
@@ -248,6 +248,13 @@ File names of metadata containing multiple dates. The specific version for a `Me
 extended in the data specific modules.
 """
 metadata_filename(metadata) = [metadata_filename(metadatum) for metadatum in metadata]
+
+"""
+    available_variables(metadata)
+
+Return the available variables in the dataset.
+"""
+available_variables(metadata) = available_variables(metadata.dataset)
 
 struct Celsius end
 struct Kelvin end
