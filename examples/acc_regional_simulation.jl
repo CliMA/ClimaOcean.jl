@@ -90,7 +90,7 @@ atmosphere = JRA55PrescribedAtmosphere(arch; backend)
 radiation  = Radiation()
 
 coupled_model      = OceanSeaIceModel(ocean; atmosphere, radiation)
-coupled_simulation = Simulation(coupled_model; Δt=5minutes, stop_time = 60days)
+coupled_simulation = Simulation(coupled_model; Δt=5minutes, stop_time = 20days)
 
 wall_time = [time_ns()]
 
@@ -133,7 +133,7 @@ nothing #hide
 # integration with a maximum time step of 1 minute should be sufficient to dissipate spurious
 # initialization shocks.
 
-coupled_simulation.stop_time = 60days
+coupled_simulation.stop_time = 20days
 coupled_simulation.Δt = 2minutes
 run!(coupled_simulation)
 nothing #hide
