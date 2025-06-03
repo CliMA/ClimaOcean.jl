@@ -82,12 +82,8 @@ ocean      = ocean_simulation(grid; forcing, momentum_advection, tracer_advectio
 atmosphere = JRA55PrescribedAtmosphere(arch; JRA55NetCDFBackend(41))
 radiation  = Radiation()
 
-set!(ocean.model, 
-     T = Metadatum(:temperature; date = start_date, dataset = ECCO4Monthly()),
-     S = Metadatum(:salinity;    date = start_date, dataset = ECCO4Monthly()))
-     
-coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
-simulation    = Simulation(coupled_model; Δt=2minutes, stop_time = 10days)
+coupled_model      = OceanSeaIceModel(ocean; atmosphere, radiation)
+simulation = Simulation(coupled_model; Δt=5minutes, stop_time = 20days)
 
 wall_time = [time_ns()]
 
@@ -130,6 +126,8 @@ nothing #hide
 # integration with a maximum time step of 1 minute should be sufficient to dissipate spurious
 # initialization shocks.
 
+simulation.stop_time = 20days
+simulation.Δt = 2minutes
 run!(simulation)
 nothing #hide
 
