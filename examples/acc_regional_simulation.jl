@@ -67,30 +67,27 @@ end
      return - p.rate * fields.v[i, j, k] * northern_mask(φ)
 end
 
-T_meta = Metadata(:temperature; start_date, end_date, dataset=ECCO4Monthly())
-S_meta = Metadata(:temperature; start_date, end_date, dataset=ECCO4Monthly())
+T_meta = Metadata(:temperature; start_date, end_date, dataset = ECCO4Monthly())
+S_meta = Metadata(:temperature; start_date, end_date, dataset = ECCO4Monthly())
 
-forcing = (T=DatasetRestoring(T_meta, grid; rate=1/5days, mask=tracer_mask),
-	      S=DatasetRestoring(S_meta, grid; rate=1/5days, mask=tracer_mask),
-	      u=Forcing(u_restoring; discrete_form=true, parameters=(; rate=1/5days)),
-	      v=Forcing(v_restoring; discrete_form=true, parameters=(; rate=1/5days)))
+forcing = (T = DatasetRestoring(T_meta, grid; rate=1/5days, mask=tracer_mask),
+	      S = DatasetRestoring(S_meta, grid; rate=1/5days, mask=tracer_mask),
+	      u = Forcing(u_restoring; discrete_form=true, parameters=(; rate=1/5days)),
+	      v = Forcing(v_restoring; discrete_form=true, parameters=(; rate=1/5days)))
 
 momentum_advection = WENOVectorInvariant()
 tracer_advection   = WENO(order=7)
 
-ocean = ocean_simulation(grid; forcing, momentum_advection, tracer_advection)
-model = ocean.model
-
-set!(model, 
-     T = Metadatum(:temperature; date=start_date, dataset=ECCO4Monthly()),
-     S = Metadatum(:salinity;    date=start_date, dataset=ECCO4Monthly()))
-     
-backend    = JRA55NetCDFBackend(41) 
-atmosphere = JRA55PrescribedAtmosphere(arch; backend)
+ocean      = ocean_simulation(grid; forcing, momentum_advection, tracer_advection)
+atmosphere = JRA55PrescribedAtmosphere(arch; JRA55NetCDFBackend(41))
 radiation  = Radiation()
 
-coupled_model      = OceanSeaIceModel(ocean; atmosphere, radiation)
-coupled_simulation = Simulation(coupled_model; Δt=5minutes, stop_time = 60days)
+set!(ocean.model, 
+     T = Metadatum(:temperature; date = start_date, dataset = ECCO4Monthly()),
+     S = Metadatum(:salinity;    date = start_date, dataset = ECCO4Monthly()))
+     
+coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
+simulation    = Simulation(coupled_model; Δt=2minutes, stop_time = 10days)
 
 wall_time = [time_ns()]
 
@@ -112,7 +109,7 @@ function progress(sim)
      wall_time[1] = time_ns()
 end
 
-coupled_simulation.callbacks[:progress] = Callback(progress, TimeInterval(4hours)) 
+simulation.callbacks[:progress] = Callback(progress, TimeInterval(4hours)) 
 
 ocean.output_writers[:surface] = JLD2Writer(model, merge(model.tracers, model.velocities);
                                             schedule = TimeInterval(5days),
@@ -133,9 +130,7 @@ nothing #hide
 # integration with a maximum time step of 1 minute should be sufficient to dissipate spurious
 # initialization shocks.
 
-coupled_simulation.stop_time = 60days
-coupled_simulation.Δt = 2minutes
-run!(coupled_simulation)
+run!(simulation)
 nothing #hide
 
 # ### Running the simulation
@@ -143,9 +138,9 @@ nothing #hide
 # Now that the simulation has spun up, we can run it for the full 2 years.
 # We increase the maximum time step size to 10 minutes and let the simulation run for 2 years.
 
-coupled_simulation.stop_time = 2*365days
-coupled_simulation.Δt = 10minutes
-run!(coupled_simulation)
+simulation.stop_time = 2*365days
+simulation.Δt = 10minutes
+run!(simulation)
 nothing #hide
 
 # ## Visualizing the results
@@ -163,64 +158,69 @@ e = FieldTimeSeries("surface.jld2", "e"; backend = OnDisk())
 times = u.times
 Nt = length(times)
 
-iter = Observable(Nt)
+n = Observable(Nt)
 
-Ti = @lift begin
-     Ti = interior(T[$iter], :, :, 1)
-     Ti[Ti .== 0] .= NaN
-     Ti
+land = interior(T.grid.immersed_boundary.bottom_height) .>= 0
+
+Tn = @lift begin
+    Tn = interior(T[$n])
+    Tn[land] .= NaN
+    view(Tn, :, :, 1)
 end
 
-ei = @lift begin
-     ei = interior(e[$iter], :, :, 1)
-     ei[ei .== 0] .= NaN
-     ei
+en = @lift begin
+    en = interior(e[$n])
+    en[land] .= NaN
+    view(en, :, :, 1)
 end
 
-si = @lift begin
-     s = Field(sqrt(u[$iter]^2 + v[$iter]^2))
-     compute!(s)
-     s = interior(s, :, :, 1)
-     s[s .== 0] .= NaN
-     s
+un = Field{Face, Center, Nothing}(u.grid)
+vn = Field{Center, Face, Nothing}(v.grid)
+
+s = @at (Center, Center, Nothing) sqrt(un^2 + vn^2) 
+s = Field(s)
+
+sn = @lift begin
+    parent(un) .= parent(u[$n])
+    parent(vn) .= parent(v[$n])
+    compute!(s)
+    sn = interior(s)
+    sn[land] .= NaN
+    view(sn, :, :, 1)
 end
 
+title = @lift string("ACC regional ocean simulation after ",
+                     prettytime(times[$n] - times[1]))
 
-fig = Figure(size = (800, 400))
-ax = Axis(fig[1, 1])
-hm = heatmap!(ax, si, colorrange = (0, 0.5), colormap = :deep)
-cb = Colorbar(fig[0, 1], hm, vertical = false, label = "Surface speed (ms⁻¹)")
-hidedecorations!(ax)
+λ, φ, _ = nodes(T)
 
-CairoMakie.record(fig, "acc_surface_s.mp4", 1:Nt, framerate = 8) do i
-    iter[] = i
-end
-nothing #hide
- 
- # ![](acc_surface_s.mp4)
- 
-fig = Figure(size = (800, 400))
-ax = Axis(fig[1, 1])
-hm = heatmap!(ax, Ti, colorrange = (-1, 30), colormap = :magma)
-cb = Colorbar(fig[0, 1], hm, vertical = false, label = "Surface Temperature (Cᵒ)")
-hidedecorations!(ax)
+fig = Figure(size = (1000, 1500))
 
-CairoMakie.record(fig, "acc_surface_T.mp4", 1:Nt, framerate = 8) do i
-    iter[] = i
-end
-nothing #hide
- 
-# ![](acc_surface_T.mp4)
+axs = Axis(fig[1, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
+axT = Axis(fig[2, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
+axe = Axis(fig[3, 1], xlabel="Longitude (deg)", ylabel="Latitude (deg)")
 
-fig = Figure(size = (800, 400))
-ax = Axis(fig[1, 1])
-hm = heatmap!(ax, ei, colorrange = (0, 1e-3), colormap = :solar)
-cb = Colorbar(fig[0, 1], hm, vertical = false, label = "Turbulent Kinetic Energy (m²s⁻²)")
-hidedecorations!(ax)
+hm = heatmap!(axs, λ, φ, sn, colorrange = (0, 0.5), colormap = :deep, nan_color=:lightgray)
+Colorbar(fig[1, 2], hm, label = "Surface Speed (m s⁻¹)")
 
-CairoMakie.record(fig, "acc_surface_e.mp4", 1:Nt, framerate = 8) do i
-    iter[] = i
-end
+hm = heatmap!(axT, λ, φ, Tn, colorrange = (-1, 30), colormap = :magma, nan_color=:lightgray)
+Colorbar(fig[2, 2], hm, label = "Surface Temperature (ᵒC)")
+
+hm = heatmap!(axe, λ, φ, en, colorrange = (0, 1e-3), colormap = :solar, nan_color=:lightgray)
+Colorbar(fig[3, 2], hm, label = "Turbulent Kinetic Energy (m² s⁻²)")
+
+Label(fig[0, :], title)
+
+save("snapshot_acc.png", fig)
 nothing #hide
 
-# ![](acc_surface_e.mp4)
+# ![](snapshot.png)
+
+# And now we make a movie:
+
+record(fig, "acc_region_surface.mp4", 1:Nt, framerate = 8) do nn
+    n[] = nn
+end
+nothing #hide
+
+# ![](near_global_ocean_surface.mp4)
