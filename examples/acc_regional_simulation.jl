@@ -126,8 +126,6 @@ nothing #hide
 # integration with a maximum time step of 1 minute should be sufficient to dissipate spurious
 # initialization shocks.
 
-simulation.stop_time = 20days
-simulation.Δt = 2minutes
 run!(simulation)
 nothing #hide
 
