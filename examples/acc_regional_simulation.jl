@@ -79,7 +79,8 @@ momentum_advection = WENOVectorInvariant()
 tracer_advection   = WENO(order=7)
 
 ocean      = ocean_simulation(grid; forcing, momentum_advection, tracer_advection)
-atmosphere = JRA55PrescribedAtmosphere(arch; JRA55NetCDFBackend(41))
+backend    = JRA55NetCDFBackend(41) 
+atmosphere = JRA55PrescribedAtmosphere(arch; backend)
 radiation  = Radiation()
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
