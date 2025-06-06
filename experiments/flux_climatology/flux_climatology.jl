@@ -234,8 +234,8 @@ atmosphere = ClimaOcean.JRA55.JRA55PrescribedAtmosphere(arch; backend=JRA55NetCD
 
 include("coare_flux_computations.jl")
 
-atmosphere_ocean_flux_formulation = PyCOAREFluxFormulation()
-interfaces = ClimaOcean.OceanSeaIceModels.InterfaceComputations.ComponentInterfaces(atmosphere, ocean; atmosphere_ocean_flux_formulation)
+atmosphere_ocean_fluxes = PyCOAREFluxFormulation()
+interfaces = ClimaOcean.OceanSeaIceModels.InterfaceComputations.ComponentInterfaces(atmosphere, ocean; atmosphere_ocean_fluxes)
 
 # @info "doing earth 1"
 # earth_model = OceanSeaIceModel(ocean, nothing; atmosphere, interfaces, radiation = Radiation(arch))

@@ -258,9 +258,10 @@ L_★ = - u_★² / ϰ b_★ .
 """
 @inline function buoyancy_scale(θ★, q★, ℂ, 𝒬, g)
     𝒯ₐ = AtmosphericThermodynamics.virtual_temperature(ℂ, 𝒬)
+    qₐ = AtmosphericThermodynamics.vapor_specific_humidity(ℂ, 𝒬)
     ε  = AtmosphericThermodynamics.Parameters.molmass_ratio(ℂ)
     δ  = ε - 1 # typically equal to 0.608
-    b★ = g / 𝒯ₐ * (θ★ * (1 + δ * qᵢ) + δ * 𝒯ₐ * q★)
+    b★ = g / 𝒯ₐ * (θ★ * (1 + δ * qₐ) + δ * 𝒯ₐ * q★)
 
     return b★
 end
