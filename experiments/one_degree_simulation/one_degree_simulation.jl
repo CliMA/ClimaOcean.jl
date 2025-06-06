@@ -1,5 +1,4 @@
 using ClimaOcean
-using ClimaOcean.ECCO: ECCO4Monthly
 using Oceananigans.OrthogonalSphericalShellGrids
 using Oceananigans
 using Oceananigans.Units

@@ -11,8 +11,6 @@ using Printf
 using Thermodynamics: PhasePartition
 using KernelAbstractions.Extras.LoopInfo: @unroll
 
-using ..PrescribedAtmospheres: PrescribedAtmosphereThermodynamicsParameters
-
 using Statistics: norm
 
 import Thermodynamics as AtmosphericThermodynamics
@@ -46,7 +44,6 @@ Base.summary(::SimilarityTheoryFluxes{FT}) where FT = "SimilarityTheoryFluxes{$F
 
 function Base.show(io::IO, fluxes::SimilarityTheoryFluxes)
     print(io, summary(fluxes), '\n',
-          "├── gravitational_acceleration: ", prettysummary(fluxes.gravitational_acceleration), '\n',
           "├── von_karman_constant: ",        prettysummary(fluxes.von_karman_constant), '\n',
           "├── turbulent_prandtl_number: ",   prettysummary(fluxes.turbulent_prandtl_number), '\n',
           "├── gustiness_parameter: ",        prettysummary(fluxes.gustiness_parameter), '\n',
@@ -70,7 +67,7 @@ end
                            solver_maxiter = 100)
 
 `SimilarityTheoryFluxes` contains parameters and settings to calculate
-air-interface turbulent fluxes using Monin-Obukhov similarity theory.
+air-interface turbulent fluxes using Monin--Obukhov similarity theory.
 
 Keyword Arguments
 ==================
@@ -79,9 +76,9 @@ Keyword Arguments
 - `turbulent_prandtl_number`: The turbulent Prandtl number. Default: 1.
 - `gustiness_parameter`: Increases surface fluxes in low wind conditions. Default: 1.
 - `stability_functions`: The stability functions. Default: `default_stability_functions(FT)` that follow the
-                         formulation of Edson et al. (2013).
+                         formulation of [edson2013exchange](@citet).
 - `roughness_lengths`: The roughness lengths used to calculate the characteristic scales for momentum, temperature and
-                       water vapor. Default: `default_roughness_lengths(FT)`, formulation taken from Edson et al (2013).
+                       water vapor. Default: `default_roughness_lengths(FT)`, formulation taken from [edson2013exchange](@citet).
 - `similarity_form`: The type of similarity profile used to relate the atmospheric state to the
                              interface fluxes / characteristic scales.
 - `solver_tolerance`: The tolerance for convergence. Default: 1e-8.
@@ -90,17 +87,28 @@ Keyword Arguments
 function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                 von_karman_constant = 0.4,
                                 turbulent_prandtl_number = 1,
-                                gustiness_parameter = 1.2,
-                                stability_functions = edson_stability_functions(FT),
-                                roughness_lengths = default_roughness_lengths(FT),
+                                gustiness_parameter = 1,
+                                stability_functions = atmosphere_ocean_stability_functions(FT),
+                                momentum_roughness_length = MomentumRoughnessLength(FT),
+                                temperature_roughness_length = ScalarRoughnessLength(FT),
+                                water_vapor_roughness_length = ScalarRoughnessLength(FT),
                                 similarity_form = LogarithmicSimilarityProfile(),
                                 solver_stop_criteria = nothing,
                                 solver_tolerance = 1e-8,
                                 solver_maxiter = 100)
 
+    roughness_lengths = SimilarityScales(momentum_roughness_length,
+                                         temperature_roughness_length,
+                                         water_vapor_roughness_length)
+
     if isnothing(solver_stop_criteria)
         solver_tolerance = convert(FT, solver_tolerance)
         solver_stop_criteria = ConvergenceStopCriteria(solver_tolerance, solver_maxiter)
+    end
+
+    if isnothing(stability_functions)
+        returns_zero = Returns(zero(FT))
+        stability_functions = SimilarityScales(returns_zero, returns_zero, returns_zero)
     end
 
     return SimilarityTheoryFluxes(convert(FT, von_karman_constant),
@@ -119,30 +127,37 @@ end
 """
     LogarithmicSimilarityProfile()
 
-Represent the classic Monin-Obukhov similarity profile, which finds that
+Represent the classic Monin--Obukhov similarity profile, which finds that
 
 ```math
-ϕ(z) = Π(z) ϕ★ / ϰ
+ϕ(z) = Π(z) ϕ_★ / ϰ
 ```
 
-where ``ϰ`` is the Von Karman constant, ``ϕ★`` is the characteristic scale for ``ϕ``,
+where ``ϰ`` is the Von Karman constant, ``ϕ_★`` is the characteristic scale for ``ϕ``,
 and ``Π`` is the "similarity profile",
 
 ```math
-Π(h) = log(h / ℓ) - ψ(h / L) + ψ(ℓ / L)
+Π(h) = \\log(h / ℓ) - ψ(h / L) + ψ(ℓ / L)
 ```
 
 which is a logarithmic profile adjusted by the stability function ``ψ`` and dependent on
-the Monin-Obukhov length ``L`` and the roughness length ``ℓ``.
+the Monin--Obukhov length ``L`` and the roughness length ``ℓ``.
 """
 struct LogarithmicSimilarityProfile end
 struct COARELogarithmicSimilarityProfile end
 
-@inline similarity_profile(::LogarithmicSimilarityProfile, ψ, h, ℓ, L) =
-    log(h / ℓ) - ψ(h / L) + ψ(ℓ / L)
+@inline function similarity_profile(::LogarithmicSimilarityProfile, stability_function, h, ℓ, L)
+    ζ = h / L
+    ψh = stability_profile(stability_function, ζ)
+    ψℓ = stability_profile(stability_function, ℓ / L)
+    return log(h / ℓ) - ψh + ψℓ
+end
 
-@inline similarity_profile(::COARELogarithmicSimilarityProfile, ψ, h, ℓ, L) =
-    log(h / ℓ) - ψ(h / L)
+@inline function similarity_profile(::COARELogarithmicSimilarityProfile, stability_function, h, ℓ, L)
+    ζ = h / L
+    ψh = stability_profile(stability_function, ζ)
+    return log(h / ℓ) - ψh
+end
 
 function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
                                   Tₛ, qₛ, Δθ, Δq, Δh,
@@ -160,7 +175,7 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
     θ★ = approximate_interface_state.θ★
     q★ = approximate_interface_state.q★
 
-    # Similarity functions from Edson et al. (2013)
+    # Stability functions for momentum, heat, and vapor
     ψu = flux_formulation.stability_functions.momentum
     ψθ = flux_formulation.stability_functions.temperature
     ψq = flux_formulation.stability_functions.water_vapor
@@ -174,15 +189,10 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
     # Compute surface thermodynamic state
     𝒬ₛ = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, 𝒬ₐ.p, Tₛ, qₛ)
 
-    # Compute Monin-Obukhov length scale depending on a `buoyancy flux`
-    b★ = buoyancy_scale(θ★, q★, 𝒬ₛ, ℂₐ, g, qₛ)
+    # Compute Monin--Obukhov length scale depending on a `buoyancy flux`
+    b★ = buoyancy_scale(θ★, q★, ℂₐ, 𝒬ₛ, g)
 
-    # Monin-Obhukov characteristic length scale and non-dimensional height
-    ϰ = flux_formulation.von_karman_constant
-    L★ = ifelse(b★ == 0, Inf, - u★^2 / (ϰ * b★))
-
-
-    # Buoyancy flux characteristic scale for gustiness (Edson 2013)
+    # Buoyancy flux characteristic scale for gustiness (Edson et al. 2013)
     h_bℓ = atmosphere_state.h_bℓ
     Jᵇ = - u★ * b★
     Uᴳ = β * cbrt(Jᵇ * h_bℓ)
@@ -192,21 +202,24 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
                                  atmosphere_state,
                                  approximate_interface_state)
 
-    ΔU = sqrt(Δu^2 + Δv^2 + Uᴳ^2)
+    U = sqrt(Δu^2 + Δv^2 + Uᴳ^2)
 
     # Compute roughness length scales
-    ℓu₀ = roughness_length(ℓu, ΔU,  u★, 𝒬ₛ, ℂₐ)
-    ℓq₀ = roughness_length(ℓq, ℓu₀, u★, 𝒬ₛ, ℂₐ)
-    ℓθ₀ = roughness_length(ℓθ, ℓu₀, u★, 𝒬ₛ, ℂₐ)
+    ℓu₀ = roughness_length(ℓu, u★, U, 𝒬ₛ, ℂₐ)
+    ℓq₀ = roughness_length(ℓq, ℓu₀, u★, U, 𝒬ₛ, ℂₐ)
+    ℓθ₀ = roughness_length(ℓθ, ℓu₀, u★, U, 𝒬ₛ, ℂₐ)
 
     # Transfer coefficients at height `h`
+    ϰ = flux_formulation.von_karman_constant
+    L★ = ifelse(b★ == 0, Inf, - u★^2 / (ϰ * b★))
     form = flux_formulation.similarity_form
+
     χu = ϰ / similarity_profile(form, ψu, Δh, ℓu₀, L★)
     χθ = ϰ / similarity_profile(form, ψθ, Δh, ℓθ₀, L★)
     χq = ϰ / similarity_profile(form, ψq, Δh, ℓq₀, L★)
 
     # Recompute
-    u★ = χu * ΔU
+    u★ = χu * U
     θ★ = χθ * Δθ
     q★ = χq * Δq
 
@@ -214,37 +227,36 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
 end
 
 """
-    buoyancy_scale(θ★, q★, 𝒬, ℂ, g)
+    buoyancy_scale(θ★, q★, ℂ, 𝒬, g)
 
 Return the characteristic buoyancy scale `b★` associated with
 the characteristic temperature `θ★`, specific humidity scale `q★`,
-surface thermodynamic state `𝒬`, thermodynamic
-parameters `ℂ`, and gravitational acceleration `g`.
+surface thermodynamic state `𝒬`, thermodynamic parameters `ℂ`,
+and gravitational acceleration `g`.
 
 The buoyancy scale is defined in terms of the interface buoyancy flux,
 
 ```math
-u★ b★ ≡ w′b′,
+u_★ b_★ ≡ w'b',
 ```
 
-where `u★` is the friction velocity.
-Using the definition of buoyancy for non-condensing air, we find that
+where `u_★` is the friction velocity.
+Using the definition of buoyancy for clear air without condensation, we find that
 
 ```math
-b★ = g / 𝒯ₛ * (θ★ * (1 + δ * qₐ) + δ * 𝒯ₛ * q★),
+b_★ = (g / 𝒯ₛ) [θ_★ (1 + δ qₐ) + δ 𝒯ₛ q_★] ,
 ```
-where ``𝒯ₐ`` is the virtual temperature at the surface,
-and ``δ = Rᵥ / R_d - 1``, where ``Rᵥ`` is the molar mass of water vapor and
-``R_d`` is the molar mass of dry air.
+where ``𝒯ₐ`` is the virtual temperature at the surface, and ``δ = Rᵥ / R_d - 1``,
+where ``Rᵥ`` is the molar mass of water vapor and ``R_d`` is the molar mass of dry air.
 
-Note that the Monin-Obukhov characteristic length scale is defined
-in terms of `b★` and additionally the Von Karman constant `ϰ`,
+Note that the Monin--Obukhov characteristic length scale is defined
+in terms of ``b_★`` and additionally the Von Karman constant ``ϰ``,
 
 ```math
-L★ = - u★² / ϰ b★ .
+L_★ = - u_★² / ϰ b_★ .
 ```
 """
-@inline function buoyancy_scale(θ★, q★, 𝒬, ℂ, g, qᵢ)
+@inline function buoyancy_scale(θ★, q★, ℂ, 𝒬, g)
     𝒯ₐ = AtmosphericThermodynamics.virtual_temperature(ℂ, 𝒬)
     ε  = AtmosphericThermodynamics.Parameters.molmass_ratio(ℂ)
     δ  = ε - 1 # typically equal to 0.608
@@ -265,10 +277,23 @@ struct SimilarityScales{U, T, Q}
     water_vapor :: Q
 end
 
+Base.summary(ss::SimilarityScales) =
+    string("SimilarityScales(momentum=", prettysummary(ss.momentum),
+           ", temperature=", prettysummary(ss.temperature),
+           ", water_vapor=", prettysummary(ss.water_vapor), ")")
+
+Base.show(io::IO, ss::SimilarityScales) = print(io, summary(ss))
+
+@inline stability_profile(ψ, ζ) = ψ(ζ)
+
+# Convenience
+abstract type AbstractStabilityFunction end
+@inline (ψ::AbstractStabilityFunction)(ζ) = stability_profile(ψ, ζ)
+
 """
     EdsonMomentumStabilityFunction{FT}
 
-A struct representing the momentum stability function detailed in Edson et al (2013).
+A struct representing the momentum stability function detailed by [edson2013exchange](@citet).
 The formulation hinges on the definition of three different functions:
 one for stable atmospheric conditions ``(ζ > 0)``, named ``ψₛ`` and two for unstable conditions,
 named ``ψᵤ₁`` and ``ψᵤ₂``.
@@ -276,174 +301,190 @@ These stability functions are obtained by regression to experimental data.
 
 The stability parameter for stable atmospheric conditions is defined as
 ```math
-dζ = min(ζmax, Aˢζ)
-ψₛ = - Bˢ * ζ⁺ - Cˢ * (ζ⁺ - Dˢ) * exp(- dζ) - Cˢ * Dˢ
+\\begin{align*}
+dζ &= \\min(ζ_{\\max}, A⁺ ζ) \\\\
+ψ⁺ &= - B⁺ ζ⁺ - C⁺ (ζ⁺ - D⁺) \\exp(- dζ) - C⁺ D⁺
+\\end{align*}
 ```
 
 While the stability parameter for unstable atmospheric conditions is calculated
 as a function of the two individual stability functions as follows
 
 ```math
-fᵤ₁ = √√(1 - Aᵘζ)
-ψᵤ₁ = Bᵘ / 2 ⋅ log((1 + fᵤ₁ + fᵤ₁² + fᵤ₁³) / Bᵘ) - √Bᵘ atan(fᵤ₁) - Cᵘ
-
-fᵤ₂ = ∛(1 - Dᵘζ)
-ψᵤ₂ = Eᵘ / 2 ⋅ log((1 + fᵤ₂ + fᵤ₂²) / Eᵘ) - √Eᵘ atan( (1 + 2fᵤ₂) / √Eᵘ) + Fᵘ
-
-f  = ζ² / (1 + ζ²)
-ψᵤ = (1 - f) ψᵤ₁ + f ψᵤ₂
+\\begin{align*}
+f⁻₁ &= (1 - A⁻ζ)^{1/4} \\\\
+ψ⁻₁ &= (B⁻ / 2) \\log[(1 + f⁻₁ + f⁻₁² + f⁻₁³) / B⁻] - √B⁻ \\mathrm{atan}(f⁻₁) - C⁻ \\\\
+\\\\
+f⁻₂ &= ∛(1 - D⁻ζ) \\\\
+ψ⁻₂ &= (E⁻ / 2) \\log[(1 + f⁻₂ + f⁻₂²) / E⁻]- √E⁻ \\mathrm{atan}[(1 + 2f⁻₂) / √E⁻] + F⁻ \\\\
+\\\\
+f   &= ζ² / (1 + ζ²) \\\\
+ψ⁻  &= (1 - f) ψ⁻₁ + f ψ⁻₂
+\\end{align*}
 ```
 
-The superscripts ``ˢ`` and ``ᵘ`` indicate if the parameter applies to the
+The superscripts ``+`` and ``-`` indicate if the parameter applies to the
 stability function for _stable_ or _unstable_ atmospheric conditions, respectively.
 """
-@kwdef struct EdsonMomentumStabilityFunction{FT}
+@kwdef struct EdsonMomentumStabilityFunction{FT} <: AbstractStabilityFunction
     ζmax :: FT = 50.0
-    Aˢ   :: FT = 0.35
-    Bˢ   :: FT = 0.7
-    Cˢ   :: FT = 0.75
-    Dˢ   :: FT = 5 / 0.35
-    Aᵘ   :: FT = 15.0
-    Bᵘ   :: FT = 2.0
-    Cᵘ   :: FT = π/2
-    Dᵘ   :: FT = 10.15
-    Eᵘ   :: FT = 3.0
-    Fᵘ   :: FT = π / sqrt(3)
+    A⁺   :: FT = 0.35
+    B⁺   :: FT = 0.7
+    C⁺   :: FT = 0.75
+    D⁺   :: FT = 5/0.35
+    A⁻   :: FT = 15.0
+    B⁻   :: FT = 2.0
+    C⁻   :: FT = π/2
+    D⁻   :: FT = 10.15
+    E⁻   :: FT = 3.0
+    F⁻   :: FT = π / sqrt(3)
 end
 
-@inline function (ψ::EdsonMomentumStabilityFunction)(ζ)
+@inline function stability_profile(ψ::EdsonMomentumStabilityFunction, ζ)
     ζmax = ψ.ζmax
-    Aˢ   = ψ.Aˢ
-    Bˢ   = ψ.Bˢ
-    Cˢ   = ψ.Cˢ
-    Dˢ   = ψ.Dˢ
-    Aᵘ   = ψ.Aᵘ
-    Bᵘ   = ψ.Bᵘ
-    Cᵘ   = ψ.Cᵘ
-    Dᵘ   = ψ.Dᵘ
-    Eᵘ   = ψ.Eᵘ
-    Fᵘ   = ψ.Fᵘ
+    A⁺   = ψ.A⁺
+    B⁺   = ψ.B⁺
+    C⁺   = ψ.C⁺
+    D⁺   = ψ.D⁺
+    A⁻   = ψ.A⁻
+    B⁻   = ψ.B⁻
+    C⁻   = ψ.C⁻
+    D⁻   = ψ.D⁻
+    E⁻   = ψ.E⁻
+    F⁻   = ψ.F⁻
 
     ζ⁻ = min(zero(ζ), ζ)
     ζ⁺ = max(zero(ζ), ζ)
-    dζ = min(ζmax, Aˢ * ζ⁺) # ok
+    dζ = min(ζmax, A⁺ * ζ⁺)
 
     # Stability parameter for _stable_ atmospheric conditions
-    ψₛ = - Bˢ * ζ⁺ - Cˢ * (ζ⁺ - Dˢ) * exp(- dζ) - Cˢ * Dˢ
+    ψ⁺ = - B⁺ * ζ⁺ - C⁺ * (ζ⁺ - D⁺) * exp(- dζ) - C⁺ * D⁺
 
     # Stability parameter for _unstable_ atmospheric conditions
-    fᵤ₁ = sqrt(sqrt(1 - Aᵘ * ζ⁻))
-    ψᵤ₁ = Bᵘ * log((1 + fᵤ₁) / Bᵘ) + log((1 + fᵤ₁^2) / Bᵘ) - Bᵘ * atan(fᵤ₁) + Cᵘ
+    f⁻₁ = sqrt(sqrt(1 - A⁻ * ζ⁻))
+    ψ⁻₁ = B⁻ * log((1 + f⁻₁) / B⁻) + log((1 + f⁻₁^2) / B⁻) - B⁻ * atan(f⁻₁) + C⁻
 
-    fᵤ₂ = cbrt(1 - Dᵘ * ζ⁻)
-    ψᵤ₂ = Eᵘ / 2 * log((1 + fᵤ₂ + fᵤ₂^2) / Eᵘ) - sqrt(Eᵘ) * atan( (1 + 2fᵤ₂) / sqrt(Eᵘ)) + Fᵘ
+    f⁻₂ = cbrt(1 - D⁻ * ζ⁻)
+    ψ⁻₂ = E⁻ / 2 * log((1 + f⁻₂ + f⁻₂^2) / E⁻) - sqrt(E⁻) * atan( (1 + 2f⁻₂) / sqrt(E⁻)) + F⁻
 
     f  = ζ⁻^2 / (1 + ζ⁻^2)
-    ψᵤ = (1 - f) * ψᵤ₁ + f * ψᵤ₂
+    ψ⁻ = (1 - f) * ψ⁻₁ + f * ψ⁻₂
 
-    return ifelse(ζ < 0, ψᵤ, ψₛ)
+    return ifelse(ζ < 0, ψ⁻, ψ⁺)
 end
 
 """
     EdsonScalarStabilityFunction{FT}
 
-A struct representing the scalar stability function detailed in Edson et al (2013).
-The formulation hinges on the definition of three different functions:
-one for stable atmospheric conditions ``(ζ > 0)``, named ``ψₛ`` and two for unstable conditions,
-named ``ψᵤ₁`` and ``ψᵤ₂``.
+A struct representing the scalar stability function detailed by [edson2013exchange](@citet).
+The formulation hinges on the definition of two different functions:
+one for stable atmospheric conditions ``(ζ > 0)``, named ``ψ⁺`` and one for unstable conditions,
+named ``ψ⁻``.
+
 These stability functions are obtained by regression to experimental data.
 
 The stability parameter for stable atmospheric conditions is defined as
+
 ```math
-dζ = min(ζmax, Aˢζ)
-ψₛ = - (1 + Bˢ ζ) ^ Cₛ - Bˢ ( ζ - Dˢ ) * exp( - dζ) - Eˢ
+\\begin{align*}
+dζ &= \\min(ζ_{\\max}, A⁺ζ) \\\\
+ψ⁺ &= - (1 + B⁺ ζ)^{C⁺} - B⁺ (ζ - D⁺) \\exp( - dζ) - E⁺
+\\end{align*}
 ```
 
 While the stability parameter for unstable atmospheric conditions is calculated
 as a function of the two individual stability functions as follows
 ```math
-fᵤ₁ = √(1 - Aᵘζ)
-ψᵤ₁ = Bᵘ ⋅ log((1 + fᵤ₁) / Bᵘ) + Cᵤ
-
-fᵤ₂ = ∛(1 - Dᵘζ)
-ψᵤ₂ = Eᵘ / 2 ⋅ log((1 + fᵤ₂ + fᵤ₂²) / Eᵘ) - √Eᵘ atan( (1 + 2fᵤ₂) / √Eᵘ) + Fᵘ
-
-f  = ζ² / (1 + ζ²)
-ψᵤ = (1 - f) ψᵤ₁ + f ψᵤ₂
+\\begin{align*}
+f⁻₁ &= √(1 - A⁻ζ) \\\\
+ψ⁻₁ &= B⁻ \\log[(1 + f⁻₁) / B⁻] + C⁻ \\\\
+\\\\
+f⁻₂ &= ∛(1 - D⁻ζ) \\\\
+ψ⁻₂ &= (E⁻ / 2) \\log[(1 + f⁻₂ + f⁻₂²) / E⁻] - √E⁻ \\mathrm{atan}[(1 + 2f⁻₂) / √E⁻] + F⁻ \\\\
+\\\\
+f   &= ζ² / (1 + ζ²) \\\\
+ψ⁻  &= (1 - f) ψ⁻₁ + f ψ⁻₂
+\\end{align*}
 ```
 
-The superscripts ``ˢ`` and ``ᵘ`` indicate if the parameter applies to the
+The superscripts ``+`` and ``-`` indicate if the parameter applies to the
 stability function for _stable_ or _unstable_ atmospheric conditions, respectively.
 """
-@kwdef struct EdsonScalarStabilityFunction{FT}
+@kwdef struct EdsonScalarStabilityFunction{FT} <: AbstractStabilityFunction
     ζmax :: FT = 50.0
-    Aˢ   :: FT = 0.35
-    Bˢ   :: FT = 2/3
-    Cˢ   :: FT = 3/2
-    Dˢ   :: FT = 14.28
-    Eˢ   :: FT = 8.525
-    Aᵘ   :: FT = 15.0
-    Bᵘ   :: FT = 2.0
-    Cᵘ   :: FT = 0.0
-    Dᵘ   :: FT = 34.15
-    Eᵘ   :: FT = 3.0
-    Fᵘ   :: FT = π / sqrt(3)
+    A⁺   :: FT = 0.35
+    B⁺   :: FT = 2/3
+    C⁺   :: FT = 3/2
+    D⁺   :: FT = 14.28
+    E⁺   :: FT = 8.525
+    A⁻   :: FT = 15.0
+    B⁻   :: FT = 2.0
+    C⁻   :: FT = 0.0
+    D⁻   :: FT = 34.15
+    E⁻   :: FT = 3.0
+    F⁻   :: FT = π / sqrt(3)
 end
 
-@inline function (ψ::EdsonScalarStabilityFunction)(ζ)
+@inline function stability_profile(ψ::EdsonScalarStabilityFunction, ζ)
     ζmax = ψ.ζmax
-    Aˢ   = ψ.Aˢ
-    Bˢ   = ψ.Bˢ
-    Cˢ   = ψ.Cˢ
-    Dˢ   = ψ.Dˢ
-    Eˢ   = ψ.Eˢ
-    Aᵘ   = ψ.Aᵘ
-    Bᵘ   = ψ.Bᵘ
-    Cᵘ   = ψ.Cᵘ
-    Dᵘ   = ψ.Dᵘ
-    Eᵘ   = ψ.Eᵘ
-    Fᵘ   = ψ.Fᵘ
+    A⁺   = ψ.A⁺
+    B⁺   = ψ.B⁺
+    C⁺   = ψ.C⁺
+    D⁺   = ψ.D⁺
+    E⁺   = ψ.E⁺
+    A⁻   = ψ.A⁻
+    B⁻   = ψ.B⁻
+    C⁻   = ψ.C⁻
+    D⁻   = ψ.D⁻
+    E⁻   = ψ.E⁻
+    F⁻   = ψ.F⁻
 
     ζ⁻ = min(zero(ζ), ζ)
     ζ⁺ = max(zero(ζ), ζ)
-    dζ = min(ζmax, Aˢ * ζ⁺)
+    dζ = min(ζmax, A⁺ * ζ⁺)
 
     # stability function for stable atmospheric conditions
-    ψₛ = - (1 + Bˢ * ζ⁺)^Cˢ - Bˢ * (ζ⁺ - Dˢ) * exp(-dζ) - Eˢ
+    ψ⁺ = - (1 + B⁺ * ζ⁺)^C⁺ - B⁺ * (ζ⁺ - D⁺) * exp(-dζ) - E⁺
 
     # Stability parameter for _unstable_ atmospheric conditions
-    fᵤ₁ = sqrt(1 - Aᵘ * ζ⁻)
-    ψᵤ₁ = Bᵘ * log((1 + fᵤ₁) / Bᵘ) + Cᵘ
+    f⁻₁ = sqrt(1 - A⁻ * ζ⁻)
+    ψ⁻₁ = B⁻ * log((1 + f⁻₁) / B⁻) + C⁻
 
-    fᵤ₂ = cbrt(1 - Dᵘ * ζ⁻)
-    ψᵤ₂ = Eᵘ / 2 * log((1 + fᵤ₂ + fᵤ₂^2) / Eᵘ) - sqrt(Eᵘ) * atan((1 + 2fᵤ₂) / sqrt(Eᵘ)) + Fᵘ
+    f⁻₂ = cbrt(1 - D⁻ * ζ⁻)
+    ψ⁻₂ = E⁻ / 2 * log((1 + f⁻₂ + f⁻₂^2) / E⁻) - sqrt(E⁻) * atan((1 + 2f⁻₂) / sqrt(E⁻)) + F⁻
 
     f  = ζ⁻^2 / (1 + ζ⁻^2)
-    ψᵤ = (1 - f) * ψᵤ₁ + f * ψᵤ₂
+    ψ⁻ = (1 - f) * ψ⁻₁ + f * ψ⁻₂
 
-    return ifelse(ζ < 0, ψᵤ, ψₛ)
+    return ifelse(ζ < 0, ψ⁻, ψ⁺)
 end
 
 # Edson et al. (2013)
-function edson_stability_functions(FT=Oceananigans.defaults.FloatType)
+function atmosphere_ocean_stability_functions(FT=Oceananigans.defaults.FloatType)
     ψu = EdsonMomentumStabilityFunction{FT}()
     ψc = EdsonScalarStabilityFunction{FT}()
     return SimilarityScales(ψu, ψc, ψc)
 end
 
+Base.summary(::EdsonMomentumStabilityFunction{FT}) where FT = "EdsonMomentumStabilityFunction{$FT}"
+Base.summary(::EdsonScalarStabilityFunction{FT}) where FT = "EdsonScalarStabilityFunction{$FT}"
+
+Base.show(io, ::EdsonMomentumStabilityFunction{FT}) where FT = print(io, "EdsonMomentumStabilityFunction{$FT}")
+Base.show(io, ::EdsonScalarStabilityFunction{FT}) where FT = print(io, "EdsonScalarStabilityFunction{$FT}")
+
 #####
-##### From Grachev et al 2007, for stable boundary layers
+##### From Grachev et al. (2007), for stable boundary layers
 #####
 
-@kwdef struct ShebaMomentumStabilityFunction{FT}
+@kwdef struct ShebaMomentumStabilityFunction{FT} <: AbstractStabilityFunction
     a :: FT = 6.5
     b :: FT = 1.3
 end
 
 # @inline (ψ::ShebaMomentumStabilityFunction)(ζ) = 1 + ψ.a * ζ * cbrt(1 + ζ) / (ψ.b + ζ)
-@inline function (Ψ::ShebaMomentumStabilityFunction)(ζ)
-    a = Ψ.a
-    b = Ψ.b
+@inline function stability_profile(ψ::ShebaMomentumStabilityFunction, ζ)
+    a = ψ.a
+    b = ψ.b
     ζ⁺ = max(zero(ζ), ζ)
     z = cbrt(1 + ζ⁺)
     B = cbrt((1 - b) / b)
@@ -457,38 +498,38 @@ end
     return Ψ₁ + Ψ₂
 end
 
-@kwdef struct ShebaScalarStabilityFunction{FT}
+@kwdef struct ShebaScalarStabilityFunction{FT} <: AbstractStabilityFunction
     a :: FT = 5.0
     b :: FT = 5.0
     c :: FT = 3.0
 end
 
-@inline function (Ψ::ShebaScalarStabilityFunction)(ζ)
-    a = Ψ.a
-    b = Ψ.b
-    c = Ψ.c
+@inline function stability_profile(ψ::ShebaScalarStabilityFunction, ζ)
+    a = ψ.a
+    b = ψ.b
+    c = ψ.c
     B = sqrt(c^2 - 4)
     ζ⁺ = max(zero(ζ), ζ)
 
     Ψ₁ = - b/2 * log(1 + c * ζ⁺ + ζ⁺^2)
-    Ψ₂ = (b * c / 2B - a / B) * (log((2ζ⁺ + c - B) / (2ζ⁺ + c + B))
-                                 + log((c - B) / (c + B)))
+    Ψ₂ = (b * c / 2B - a / B) *
+        (log((2ζ⁺ + c - B) / (2ζ⁺ + c + B)) - log((c - B) / (c + B)))
 
     return Ψ₁ + Ψ₂
 end
 
 #####
-##### From Paulson 1970 for unstable boundary layers
-####
+##### From Paulson (1970), for unstable boundary layers
+#####
 
-@kwdef struct PaulsonMomentumStabilityFunction{FT}
+@kwdef struct PaulsonMomentumStabilityFunction{FT} <: AbstractStabilityFunction
     a :: FT = 16.0
     b :: FT = π/2
 end
 
-@inline function (Ψ::PaulsonMomentumStabilityFunction)(ζ)
-    a = Ψ.a
-    b = Ψ.b
+@inline function stability_profile(ψ::PaulsonMomentumStabilityFunction, ζ)
+    a = ψ.a
+    b = ψ.b
     ζ⁻ = min(zero(ζ), ζ)
     z = sqrt(sqrt((1 - a * ζ⁻)))
 
@@ -499,12 +540,12 @@ end
     return Ψ₁ + Ψ₂ + Ψ₃ + b
 end
 
-@kwdef struct PaulsonScalarStabilityFunction{FT}
+@kwdef struct PaulsonScalarStabilityFunction{FT} <: AbstractStabilityFunction
     a :: FT = 16.0
 end
 
-@inline function (Ψ::PaulsonScalarStabilityFunction)(ζ)
-    a = Ψ.a
+@inline function stability_profile(ψ::PaulsonScalarStabilityFunction, ζ)
+    a = ψ.a
     ζ⁻ = min(zero(ζ), ζ)
     z = sqrt(sqrt((1 - a * ζ⁻)))
     return 2 * log((1 + z^2) / 2)
@@ -515,22 +556,24 @@ struct SplitStabilityFunction{S, U}
     unstable :: U
 end
 
-@inline function (Ψ::SplitStabilityFunction)(ζ)
-    Ψ_stable = Ψ.stable(ζ)
-    Ψ_unstable = Ψ.unstable(ζ)
+Base.summary(ss::SplitStabilityFunction) = "SplitStabilityFunction"
+Base.show(io::IO, ss::SplitStabilityFunction) = print(io, "SplitStabilityFunction")
+
+@inline function stability_profile(ψ::SplitStabilityFunction, ζ)
+    Ψ_stable = stability_profile(ψ.stable, ζ)
+    Ψ_unstable = stability_profile(ψ.unstable, ζ)
     stable = ζ > 0
     return ifelse(stable, Ψ_stable, Ψ_unstable)
 end
 
 function atmosphere_sea_ice_stability_functions(FT=Oceananigans.defaults.FloatType)
-    stable_momentum = PaulsonMomentumStabilityFunction{FT}()
-    unstable_momentum = ShebaMomentumStabilityFunction{FT}()
+    unstable_momentum = PaulsonMomentumStabilityFunction{FT}()
+    stable_momentum = ShebaMomentumStabilityFunction{FT}()
     momentum = SplitStabilityFunction(stable_momentum, unstable_momentum)
 
-    stable_scalar = PaulsonScalarStabilityFunction{FT}()
-    unstable_scalar = ShebaScalarStabilityFunction{FT}()
+    unstable_scalar = PaulsonScalarStabilityFunction{FT}()
+    stable_scalar = ShebaScalarStabilityFunction{FT}()
     scalar = SplitStabilityFunction(stable_scalar, unstable_scalar)
 
     return SimilarityScales(momentum, scalar, scalar)
 end
-

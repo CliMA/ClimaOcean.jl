@@ -13,6 +13,10 @@ export
     Radiation,
     LatitudeDependentAlbedo,
     SimilarityTheoryFluxes,
+    CoefficientBasedFluxes,
+    MomentumRoughnessLength,
+    ScalarRoughnessLength,
+    ComponentInterfaces,
     SkinTemperature,
     BulkTemperature,
     PrescribedAtmosphere,
@@ -27,6 +31,12 @@ export
     Metadata,
     Metadatum,
     ECCOMetadatum,
+    EN4Metadatum,
+    ETOPO2022,
+    ECCO2Daily, ECCO2Monthly, ECCO4Monthly,
+    EN4Monthly,
+    GLORYSDaily, GLORYSMonthly, GLORYSStatic,
+    RepeatYearJRA55, MultiYearJRA55,
     first_date,
     last_date,
     all_dates,
@@ -81,17 +91,21 @@ include("Bathymetry.jl")
 include("Diagnostics/Diagnostics.jl")
 
 using .VerticalGrids
-using .Bathymetry
 using .DataWrangling
+using .DataWrangling: ETOPO, ECCO, Copernicus, EN4, JRA55
+using .Bathymetry
 using .InitialConditions
 using .OceanSeaIceModels
 using .OceanSimulations
 using .SeaIceSimulations
-using .DataWrangling: JRA55, ECCO, EN4, Copernicus
 
-using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
-using ClimaOcean.DataWrangling.JRA55: JRA55PrescribedAtmosphere, JRA55NetCDFBackend
+using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere, ComponentInterfaces, MomentumRoughnessLength, ScalarRoughnessLength
+using ClimaOcean.DataWrangling.ETOPO
 using ClimaOcean.DataWrangling.ECCO
+using ClimaOcean.DataWrangling.Copernicus
+using ClimaOcean.DataWrangling.EN4
+using ClimaOcean.DataWrangling.JRA55
+using ClimaOcean.DataWrangling.JRA55: JRA55NetCDFBackend
 
 using PrecompileTools: @setup_workload, @compile_workload
 
@@ -107,4 +121,3 @@ using PrecompileTools: @setup_workload, @compile_workload
 end
 
 end # module
-

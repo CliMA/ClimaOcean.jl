@@ -12,7 +12,7 @@ import Oceananigans.Fields: set!
 import Base
 
 import Oceananigans.Fields: set!, location
-import ClimaOcean.DataWrangling: all_dates, metadata_filename, download_dataset, default_download_directory
+import ClimaOcean.DataWrangling: all_dates, metadata_filename, download_dataset, default_download_directory, available_variables
 
 struct MultiYearJRA55 end
 struct RepeatYearJRA55 end
@@ -87,6 +87,9 @@ end
 # Convenience functions
 dataset_variable_name(data::JRA55Metadata) = JRA55_dataset_variable_names[data.name]
 location(::JRA55Metadata) = (Center, Center, Center)
+
+available_variables(::MultiYearJRA55)  = JRA55_variable_names
+available_variables(::RepeatYearJRA55) = JRA55_variable_names
 
 # A list of all variables provided in the JRA55 dataset:
 JRA55_variable_names = (:river_freshwater_flux,
