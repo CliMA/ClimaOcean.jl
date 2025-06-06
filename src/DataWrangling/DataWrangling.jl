@@ -20,7 +20,7 @@ using KernelAbstractions: @kernel, @index
 using Oceananigans.DistributedComputations
 using Adapt
 
-const dataset_defaults = Oceananigans.Defaults(FloatType=Float32)
+import Oceananigans.Fields: set!
 
 #####
 ##### Downloading utilities
@@ -135,10 +135,12 @@ Download the dataset specified by the `metadata::ECCOMetadata`. If `metadata.dat
 the dataset is downloaded directly. If `metadata.dates` is a vector of dates, each date
 is downloaded individually.
 
+Note: if called by multiple processes via MPI, `download_dataset` should only run on the root process.
+
 Arguments
 =========
 - `metadata`: The metadata specifying the dataset to be downloaded. Available options are metadata for
-              ECCO4, ECCO2, EN4, and JRA55 datasets.
+              ETOPO, ECCO4, ECCO2, EN4, and JRA55 datasets.
 
 !!! info "Credential setup requirements for ECCO datasets"
 
@@ -162,16 +164,52 @@ Arguments
     within julia.
 """
 function download_dataset end # methods specific to datasets are added within each dataset module
+function inpainted_metadata_path end
 
+"""
+    z_interfaces(dataset)
+
+Return an array with the vertical interfaces (``z``-faces) of the dataset
+that `metadata` corresponds to.
+"""
+function z_interfaces end
+function longitude_interfaces end
+function latitude_interfaces end
+function reversed_vertical_axis end
+function native_grid end
+
+default_mask_value(dataset) = NaN
+
+# Fundamentals
 include("metadata.jl")
-include("dataset.jl")
-include("masking.jl")
+include("metadata_field.jl")
+include("metadata_field_time_series.jl")
+include("inpainting.jl")
 include("restoring.jl")
-include("JRA55/JRA55.jl")
-include("ECCO/ECCO.jl")
-include("EN4/EN4.jl")
 
+# Only temperature and salinity need a thorough inpainting because of stability,
+# other variables can do with only a couple of passes. Sea ice variables
+# cannot be inpainted because zeros in the data are physical, not missing values.
+function default_inpainting(metadata)
+    if metadata.name in (:temperature, :salinity)
+        return NearestNeighborInpainting(Inf)
+    elseif metadata.name in (:sea_ice_thickness, :sea_ice_concentration)
+        return nothing
+    else
+        return NearestNeighborInpainting(5)
+    end
+end
+
+# Datasets
+include("ETOPO/ETOPO.jl")
+include("ECCO/ECCO.jl")
+include("Copernicus/Copernicus.jl")
+include("EN4/EN4.jl")
+include("JRA55/JRA55.jl")
+
+using .ETOPO
 using .ECCO
+using .Copernicus
 using .EN4
 using .JRA55
 
