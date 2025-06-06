@@ -132,13 +132,14 @@ end
 ##### A prescribed ocean...
 #####
 
-struct PrescribedOcean{A, G, C, U, T, F} <: AbstractModel{Nothing, A}
+struct PrescribedOcean{A, G, C, U, T, F, X} <: AbstractModel{Nothing, A}
     architecture :: A
     grid :: G
     clock :: Clock{C}
     velocities :: U
     tracers :: T
     timeseries :: F
+    forcing :: X 
 end
 
 function PrescribedOcean(timeseries;
@@ -155,7 +156,7 @@ function PrescribedOcean(timeseries;
     T = CenterField(grid, boundary_conditions=FieldBoundaryConditions(grid, (Center, Center, Center), top = FluxBoundaryCondition(Jᵀ)))
     S = CenterField(grid, boundary_conditions=FieldBoundaryConditions(grid, (Center, Center, Center), top = FluxBoundaryCondition(Jˢ)))
 
-    PrescribedOcean(architecture(grid), grid, clock, (; u, v, w=ZeroField()), (; T, S), timeseries)
+    PrescribedOcean(architecture(grid), grid, clock, (; u, v, w=ZeroField()), (; T, S), timeseries, (T=nothing, S=nothing, u=nothing, v=nothing))
 end
 
 #####
@@ -237,8 +238,8 @@ include("coare_flux_computations.jl")
 atmosphere_ocean_fluxes = PyCOAREFluxFormulation()
 interfaces = ClimaOcean.OceanSeaIceModels.InterfaceComputations.ComponentInterfaces(atmosphere, ocean; atmosphere_ocean_fluxes)
 
-# @info "doing earth 1"
-# earth_model = OceanSeaIceModel(ocean, nothing; atmosphere, interfaces, radiation = Radiation(arch))
+@info "doing earth 1"
+earth_model = OceanSeaIceModel(ocean, nothing; atmosphere, interfaces, radiation = Radiation(arch))
 
 @info "doing earth 2"
 earth_model2 = OceanSeaIceModel(ocean, nothing; atmosphere, radiation = Radiation(arch))
