@@ -145,19 +145,22 @@ add_callback!(simulation, progress, IterationInterval(1000))
 # also uses a prognostic turbulent kinetic energy, `e`, to diagnose the vertical mixing length.
 
 ocean_outputs = merge(ocean.model.tracers, ocean.model.velocities)
-seaice_outputs = merge((h = seaice.model.ice_thickness, ℵ=seaice.model.ice_concentration), seaice.model.velocities)
+seaice_outputs = merge((h = seaice.model.ice_thickness, 
+                        ℵ = seaice.model.ice_concentration,
+                        T = seaice.model.ice_thermodynamics.top_surface_temperature), 
+                       seaice.model.velocities)
 
-ocean.output_writers[:surface] = JLD2Writer(ocean.model, outputs;
+ocean.output_writers[:surface] = JLD2Writer(ocean.model, ocean_outputs;
                                             schedule = TimeInterval(5days),
                                             filename = "ocean_one_degree_surface_fields",
                                             indices = (:, :, grid.Nz),
                                             overwrite_existing = true)
 
-seaice.output_writers[:surface] = JLD2Writer(ocean.model, outputs;
+seaice.output_writers[:surface] = JLD2Writer(ocean.model, seaice_outputs;
                                              schedule = TimeInterval(5days),
                                              filename = "seaice_one_degree_surface_fields",
-                                             indices = (:, :, grid.Nz),
                                              overwrite_existing = true)
+                                             
 # ### Ready to run
 
 # We are ready to press the big red button and run the simulation.
@@ -176,46 +179,61 @@ run!(simulation)
 # We load the saved output and make a pretty movie of the simulation. First we plot a snapshot:
 using CairoMakie
 
-uo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2", "u"; backend = OnDisk())
-vo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2", "v"; backend = OnDisk())
+uo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "u"; backend = OnDisk())
+vo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "v"; backend = OnDisk())
 ui = FieldTimeSeries("seaice_one_degree_surface_fields.jld2", "u"; backend = OnDisk())
 vi = FieldTimeSeries("seaice_one_degree_surface_fields.jld2", "v"; backend = OnDisk())
 hi = FieldTimeSeries("seaice_one_degree_surface_fields.jld2", "h"; backend = OnDisk())
 ℵi = FieldTimeSeries("seaice_one_degree_surface_fields.jld2", "ℵ"; backend = OnDisk())
-To = FieldTimeSeries("ocean_one_degree_surface_fields.jld2", "T"; backend = OnDisk())
-eo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2", "e"; backend = OnDisk())
+Ti = FieldTimeSeries("seaice_one_degree_surface_fields.jld2", "T"; backend = OnDisk())
+To = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "T"; backend = OnDisk())
+eo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "e"; backend = OnDisk())
 
-times = u.times
+times = uo.times
 Nt = length(times)
 n = Observable(Nt)
 
 # We create a land mask and use it to fill land points with `NaN`s.
-land = interior(T.grid.immersed_boundary.bottom_height) .≥ 0
+land = interior(To.grid.immersed_boundary.bottom_height) .≥ 0
 
 Tn = @lift begin
-    Tn = interior(T[$n])
+    Tn = interior(To[$n])
     Tn[land] .= NaN
     view(Tn, :, :, 1)
 end
 
 en = @lift begin
-    en = interior(e[$n])
+    en = interior(eo[$n])
     en[land] .= NaN
     view(en, :, :, 1)
 end
 
 # We compute the surface speed.
-un = Field{Face, Center, Nothing}(u.grid)
-vn = Field{Center, Face, Nothing}(v.grid)
-s = Field(sqrt(un^2 + vn^2))
+uon = Field{Face, Center, Nothing}(uo.grid)
+von = Field{Center, Face, Nothing}(vo.grid)
 
-sn = @lift begin
-    parent(un) .= parent(u[$n])
-    parent(vn) .= parent(v[$n])
-    compute!(s)
-    sn = interior(s)
-    sn[land] .= NaN
-    view(sn, :, :, 1)
+uin = Field{Face, Center, Nothing}(ui.grid)
+vin = Field{Center, Face, Nothing}(vi.grid)
+
+so = Field(sqrt(uon^2 + von^2))
+si = Field(sqrt(uin^2 + vin^2))
+
+son = @lift begin
+    parent(uon) .= parent(uo[$n])
+    parent(von) .= parent(vo[$n])
+    compute!(so)
+    son = interior(so)
+    son[land] .= NaN
+    view(son, :, :, 1)
+end
+
+sin = @lift begin
+    parent(uin) .= parent(ui[$n])
+    parent(vin) .= parent(vi[$n])
+    compute!(si)
+    sin = interior(si)
+    sin[land] .= NaN
+    view(sin, :, :, 1)
 end
 
 # Finally, we plot a snapshot of the surface speed, temperature, and the turbulent
@@ -228,13 +246,15 @@ axs = Axis(fig[1, 1])
 axT = Axis(fig[2, 1])
 axe = Axis(fig[3, 1])
 
-hm = heatmap!(axs, sn, colorrange = (0, 0.5), colormap = :deep, nan_color=:lightgray)
-Colorbar(fig[1, 2], hm, label = "Surface speed (m s⁻¹)")
+hmo = heatmap!(axs, son, colorrange = (0, 0.5), colormap = :deep,  nan_color=:lightgray)
+hmi = heatmap!(axs, sin, colorrange = (0, 0.5), colormap = :greys, nan_color=:lightgray)
+Colorbar(fig[1, 2], hmo, label = "Surface speed (m s⁻¹)")
+Colorbar(fig[1, 3], hmi, label = "Surface speed (m s⁻¹)")
 
-hm = heatmap!(axT, Tn, colorrange = (-1, 32), colormap = :magma, nan_color=:lightgray)
+hm = heatmap!(axT, Ton, colorrange = (-1, 32), colormap = :magma, nan_color=:lightgray)
 Colorbar(fig[2, 2], hm, label = "Surface Temperature (ᵒC)")
 
-hm = heatmap!(axe, en, colorrange = (0, 1e-3), colormap = :solar, nan_color=:lightgray)
+hm = heatmap!(axe, eon, colorrange = (0, 1e-3), colormap = :solar, nan_color=:lightgray)
 Colorbar(fig[3, 2], hm, label = "Turbulent Kinetic Energy (m² s⁻²)")
 
 for ax in (axs, axT, axe)
