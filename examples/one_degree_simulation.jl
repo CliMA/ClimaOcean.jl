@@ -196,13 +196,13 @@ n = Observable(Nt)
 # We create a land mask and use it to fill land points with `NaN`s.
 land = interior(To.grid.immersed_boundary.bottom_height) .≥ 0
 
-Tn = @lift begin
+Ton = @lift begin
     Tn = interior(To[$n])
     Tn[land] .= NaN
     view(Tn, :, :, 1)
 end
 
-en = @lift begin
+eon = @lift begin
     en = interior(eo[$n])
     en[land] .= NaN
     view(en, :, :, 1)
