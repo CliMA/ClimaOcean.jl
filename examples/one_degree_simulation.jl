@@ -60,7 +60,7 @@ free_surface       = SplitExplicitFreeSurface(grid; substeps=70)
 momentum_advection = WENOVectorInvariant(order=5)
 tracer_advection   = WENO(order=5)
 
-ocean = ocean_simulation(grid; momentum_advection, tracer_advection, forcing, free_surface,
+ocean = ocean_simulation(grid; momentum_advection, tracer_advection, free_surface,
                          closure=(eddy_closure, horizontal_viscosity, vertical_mixing))
 
 @info "We've built an ocean simulation with model:"
