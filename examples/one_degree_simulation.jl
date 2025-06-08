@@ -41,23 +41,6 @@ bottom_height = regrid_bathymetry(underlying_grid;
 grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height);
                             active_cells_map=true)
 
-# ### Restoring
-#
-# We include temperature and salinity surface restoring to ECCO data from 1993 thoughout the water column.
-
-start_date = DateTime(1993, 6, 1)
-stop_date = DateTime(1994, 5, 1)
-dates = range(start_date, step=Month(1), stop=stop_date)
-ecco_temperature = Metadata(:temperature; dates, dataset=ECCO4Monthly())
-ecco_salinity = Metadata(:salinity; dates, dataset=ECCO4Monthly())
-
-restoring_rate  = 1 / 3days
-mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(z[1], 0))
-
-FT = DatasetRestoring(ecco_temperature, grid; mask, rate=restoring_rate)
-FS = DatasetRestoring(ecco_salinity, grid; mask, rate=restoring_rate)
-forcing = (T=FT, S=FS)
-
 # ### Closures
 #
 # We include a Gent-McWilliams isopycnal diffusivity as a parameterization for the mesoscale
@@ -83,11 +66,23 @@ ocean = ocean_simulation(grid; momentum_advection, tracer_advection, forcing, fr
 @info "We've built an ocean simulation with model:"
 @show ocean.model
 
+# ### Sea Ice simulation
+# We also need to build a sea ice simulation 
+
+seaice = sea_ice_simulation(grid, ocean; advection=tracer_advection) 
+
 # ### Initial condition
 
-# We initialize the ocean from the ECCO state estimate.
+# We initialize the ocean and sea ice model with data from the ECCO state estimate.
 
-set!(ocean.model, T=ecco_temperature[1], S=ecco_salinity[1])
+date = DateTime(1993, 6, 1)
+ecco_temperature = Metadatum(:temperature; date, dataset=ECCO4Monthly())
+ecco_salinity = Metadatum(:salinity; date, dataset=ECCO4Monthly())
+ecco_sea_ice_thickness = Metadatum(:sea_ice_thickness; date, dataset=ECCO4Monthly())
+ecco_sea_ice_concentration = Metadatum(:sea_ice_concentration; date, dataset=ECCO4Monthly())
+
+set!(ocean.model, T=ecco_temperature, S=ecco_salinity)
+set!(seaice.model, h=ecco_sea_ice_thickness, ℵ=ecco_sea_ice_concentration)
 
 # ### Atmospheric forcing
 
@@ -104,7 +99,7 @@ atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(20))
 # avoid numerical instabilities from the initial "shock" of the adjustment of the
 # flow fields.
 
-coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
+coupled_model = OceanSeaIceModel(ocean, seaice; atmosphere, radiation)
 simulation = Simulation(coupled_model; Δt=5minutes, stop_time=20days)
 
 # ### A progress messenger
@@ -147,13 +142,20 @@ add_callback!(simulation, progress, IterationInterval(1000))
 # Note, that besides temperature and salinity, the CATKE vertical mixing parameterization
 # also uses a prognostic turbulent kinetic energy, `e`, to diagnose the vertical mixing length.
 
-outputs = merge(ocean.model.tracers, ocean.model.velocities)
+ocean_outputs = merge(ocean.model.tracers, ocean.model.velocities)
+seaice_outputs = merge((h = seaice.model.ice_thickness, ℵ=seaice.model.ice_concentration), seaice.model.velocities)
+
 ocean.output_writers[:surface] = JLD2Writer(ocean.model, outputs;
                                             schedule = TimeInterval(5days),
-                                            filename = "one_degree_surface_fields",
+                                            filename = "ocean_one_degree_surface_fields",
                                             indices = (:, :, grid.Nz),
                                             overwrite_existing = true)
 
+seaice.output_writers[:surface] = JLD2Writer(ocean.model, outputs;
+                                             schedule = TimeInterval(5days),
+                                             filename = "seaice_one_degree_surface_fields",
+                                             indices = (:, :, grid.Nz),
+                                             overwrite_existing = true)
 # ### Ready to run
 
 # We are ready to press the big red button and run the simulation.
@@ -172,10 +174,14 @@ run!(simulation)
 # We load the saved output and make a pretty movie of the simulation. First we plot a snapshot:
 using CairoMakie
 
-u = FieldTimeSeries("one_degree_surface_fields.jld2", "u"; backend = OnDisk())
-v = FieldTimeSeries("one_degree_surface_fields.jld2", "v"; backend = OnDisk())
-T = FieldTimeSeries("one_degree_surface_fields.jld2", "T"; backend = OnDisk())
-e = FieldTimeSeries("one_degree_surface_fields.jld2", "e"; backend = OnDisk())
+uo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2", "u"; backend = OnDisk())
+vo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2", "v"; backend = OnDisk())
+ui = FieldTimeSeries("seaice_one_degree_surface_fields.jld2", "u"; backend = OnDisk())
+vi = FieldTimeSeries("seaice_one_degree_surface_fields.jld2", "v"; backend = OnDisk())
+hi = FieldTimeSeries("seaice_one_degree_surface_fields.jld2", "h"; backend = OnDisk())
+ℵi = FieldTimeSeries("seaice_one_degree_surface_fields.jld2", "ℵ"; backend = OnDisk())
+To = FieldTimeSeries("ocean_one_degree_surface_fields.jld2", "T"; backend = OnDisk())
+eo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2", "e"; backend = OnDisk())
 
 times = u.times
 Nt = length(times)
