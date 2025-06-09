@@ -83,7 +83,7 @@ end
 
 function sea_ice_dynamics(grid, ocean=nothing;
                           sea_ice_ocean_drag_coefficient = 5.5e-3,
-                          rheology = ElastoViscoPlasticRheology(pressure_formulation = IceStrength()),
+                          rheology = ElastoViscoPlasticRheology(),
                           coriolis = nothing,
                           free_drift = nothing,
                           solver = SplitExplicitSolver(120))
