@@ -24,7 +24,7 @@ Nx = 360
 Ny = 180
 Nz = 40
 
-z = exponential_z_faces(; Nz, depth=4000, h=34)
+z = exponential_z_faces(; Nz, depth=4000)
 underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 
 # Next, we build bathymetry on this grid, using interpolation passes to smooth the bathymetry.
@@ -208,6 +208,13 @@ eon = @lift begin
     view(en, :, :, 1)
 end
 
+hen = @lift begin
+    hn = interior(hi[$n])
+    ℵn = interior(ℵi[$n])
+    hn[land] .= NaN
+    view(hn, :, :, 1) .* view(ℵn, :, :, 1)
+end
+
 # We compute the surface speed.
 uon = Field{Face, Center, Nothing}(uo.grid)
 von = Field{Center, Face, Nothing}(vo.grid)
@@ -233,31 +240,36 @@ sin = @lift begin
     compute!(si)
     sin = interior(si)
     sin[land] .= NaN
+    sin[sin .== 0] .= NaN 
     view(sin, :, :, 1)
 end
 
 # Finally, we plot a snapshot of the surface speed, temperature, and the turbulent
 # eddy kinetic energy from the CATKE vertical mixing parameterization.
-fig = Figure(size = (800, 1200))
+fig = Figure(size = (1200, 1200))
 
 title = @lift string("Global 1ᵒ ocean simulation after ", prettytime(times[$n] - times[1]))
 
-axs = Axis(fig[1, 1])
-axT = Axis(fig[2, 1])
-axe = Axis(fig[3, 1])
+axso = Axis(fig[1, 1])
+axsi = Axis(fig[1, 2])
+axTo = Axis(fig[3, 1])
+axhi = Axis(fig[3, 2])
+axeo = Axis(fig[5, 1])
 
-hmo = heatmap!(axs, son, colorrange = (0, 0.5), colormap = :deep,  nan_color=:lightgray)
-hmi = heatmap!(axs, sin, colorrange = (0, 0.5), colormap = :greys, nan_color=:lightgray)
-Colorbar(fig[1, 2], hmo, label = "Surface speed (m s⁻¹)")
-Colorbar(fig[1, 3], hmi, label = "Surface speed (m s⁻¹)")
+hmo = heatmap!(axso, son, colorrange = (0, 0.5), colormap = :deep,  nan_color=:lightgray)
+hmi = heatmap!(axsi, sin, colorrange = (0, 0.5), colormap = :greys, nan_color=:lightgray)
+Colorbar(fig[2, 2], hmo, label = "Ocean Surface speed (m s⁻¹)", vertical = false)
+Colorbar(fig[2, 3], hmi, label = "Sea ice speed (m s⁻¹)",       vertical = false)
 
-hm = heatmap!(axT, Ton, colorrange = (-1, 32), colormap = :magma, nan_color=:lightgray)
-Colorbar(fig[2, 2], hm, label = "Surface Temperature (ᵒC)")
+hmo = heatmap!(axTo, Ton, colorrange = (-1, 32), colormap = :magma, nan_color=:lightgray)
+hmi = heatmap!(axTi, hen, colorrange =  (0, 4),  colormap = :blues, nan_color=:lightgray)
+Colorbar(fig[4, 2], hmo, label = "Surface Temperature (ᵒC)")
+Colorbar(fig[4, 2], hmi, label = "Effective ice thickness (m)")
 
-hm = heatmap!(axe, eon, colorrange = (0, 1e-3), colormap = :solar, nan_color=:lightgray)
-Colorbar(fig[3, 2], hm, label = "Turbulent Kinetic Energy (m² s⁻²)")
+hm = heatmap!(axeo, eon, colorrange = (0, 1e-3), colormap = :solar, nan_color=:lightgray)
+Colorbar(fig[6, 2], hm, label = "Turbulent Kinetic Energy (m² s⁻²)")
 
-for ax in (axs, axT, axe)
+for ax in (axso, axsi, axTo, axhi, axeo)
     hidedecorations!(ax)
 end
 
