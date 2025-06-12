@@ -258,16 +258,16 @@ axeo = Axis(fig[5, 1])
 
 hmo = heatmap!(axso, son, colorrange = (0, 0.5), colormap = :deep,  nan_color=:lightgray)
 hmi = heatmap!(axsi, sin, colorrange = (0, 0.5), colormap = :greys, nan_color=:lightgray)
-Colorbar(fig[2, 2], hmo, label = "Ocean Surface speed (m s⁻¹)", vertical = false)
-Colorbar(fig[2, 3], hmi, label = "Sea ice speed (m s⁻¹)",       vertical = false)
+Colorbar(fig[2, 1], hmo, label = "Ocean Surface speed (m s⁻¹)", vertical = false)
+Colorbar(fig[2, 2], hmi, label = "Sea ice speed (m s⁻¹)",       vertical = false)
 
 hmo = heatmap!(axTo, Ton, colorrange = (-1, 32), colormap = :magma, nan_color=:lightgray)
 hmi = heatmap!(axhi, hen, colorrange =  (0, 4),  colormap = :blues, nan_color=:lightgray)
-Colorbar(fig[4, 2], hmo, label = "Surface Temperature (ᵒC)")
+Colorbar(fig[4, 1], hmo, label = "Surface Temperature (ᵒC)")
 Colorbar(fig[4, 2], hmi, label = "Effective ice thickness (m)")
 
 hm = heatmap!(axeo, eon, colorrange = (0, 1e-3), colormap = :solar, nan_color=:lightgray)
-Colorbar(fig[6, 2], hm, label = "Turbulent Kinetic Energy (m² s⁻²)")
+Colorbar(fig[6, 1], hm, label = "Turbulent Kinetic Energy (m² s⁻²)")
 
 for ax in (axso, axsi, axTo, axhi, axeo)
     hidedecorations!(ax)
