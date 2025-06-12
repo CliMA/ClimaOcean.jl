@@ -262,7 +262,7 @@ Colorbar(fig[2, 2], hmo, label = "Ocean Surface speed (m s⁻¹)", vertical = fa
 Colorbar(fig[2, 3], hmi, label = "Sea ice speed (m s⁻¹)",       vertical = false)
 
 hmo = heatmap!(axTo, Ton, colorrange = (-1, 32), colormap = :magma, nan_color=:lightgray)
-hmi = heatmap!(axTi, hen, colorrange =  (0, 4),  colormap = :blues, nan_color=:lightgray)
+hmi = heatmap!(axhi, hen, colorrange =  (0, 4),  colormap = :blues, nan_color=:lightgray)
 Colorbar(fig[4, 2], hmo, label = "Surface Temperature (ᵒC)")
 Colorbar(fig[4, 2], hmi, label = "Effective ice thickness (m)")
 
