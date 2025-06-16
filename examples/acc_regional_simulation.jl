@@ -79,12 +79,13 @@ momentum_advection = WENOVectorInvariant()
 tracer_advection   = WENO(order=7)
 
 ocean      = ocean_simulation(grid; forcing, momentum_advection, tracer_advection)
+set!(ocean.model, T=0, S=0)
 backend    = JRA55NetCDFBackend(41) 
 atmosphere = JRA55PrescribedAtmosphere(arch; backend)
 radiation  = Radiation()
 model      = ocean.model 
 
-coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
+coupled_model = OceanSeaIceModel(ocean; atmosphere=nothing, radiation)
 simulation    = Simulation(coupled_model; Δt=2minutes, stop_time = 10days)
 
 wall_time = [time_ns()]
