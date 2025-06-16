@@ -68,7 +68,7 @@ ocean = ocean_simulation(grid; momentum_advection, tracer_advection, free_surfac
 
 # ### Sea Ice simulation
 # We also need to build a sea ice simulation. We use the default configuration:
-# and EVP rheology and a zero-layer thermodynamic model that advances thickness
+# EVP rheology and a zero-layer thermodynamic model that advances thickness
 # and concentration.
 
 seaice = sea_ice_simulation(grid, ocean; advection=tracer_advection) 
