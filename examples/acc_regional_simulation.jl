@@ -4,6 +4,8 @@ using Oceananigans.Grids: φnode
 using ClimaOcean
 using ClimaOcean.ECCO
 
+Oceananigans.TimeSteppers.time_step!(::Nothing, dt) = nothing
+
 using Printf
 using CairoMakie
 using CFTime
