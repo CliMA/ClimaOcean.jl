@@ -114,6 +114,7 @@ function sea_ice_dynamics(grid, ocean=nothing;
                                   top_momentum_stress = (u=τua, v=τva),
                                   bottom_momentum_stress = τo,
                                   rheology,
+                                  free_drift,
                                   solver)
 end
 
