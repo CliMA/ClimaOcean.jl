@@ -1,9 +1,10 @@
-# # One-degree global ocean simulation
+# # One-degree global ocean--sea ice simulation
 #
-# This example configures a global ocean--sea ice simulation at 1ᵒ horizontal resolution with
+# This example configures a global ocean--sea ice simulation at a 1ᵒ horizontal resolution with
 # realistic bathymetry and a few closures including the "Gent-McWilliams" `IsopycnalSkewSymmetricDiffusivity`.
 # The simulation is forced by JRA55 atmospheric reanalysis
-# and initialized by temperature and salinity from the ECCO state estimate.
+# and initialized by temperature, salinity, sea ice concentration and sea ice thickness
+# from the ECCO state estimate.
 #
 # For this example, we need Oceananigans, ClimaOcean, Dates, and
 # CairoMakie to visualize the simulation.
