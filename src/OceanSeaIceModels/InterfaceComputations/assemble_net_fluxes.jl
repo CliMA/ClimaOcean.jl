@@ -261,7 +261,7 @@ end
     @inbounds begin
         Ts = surface_temperature[i, j, kᴺ]
         Ts = convert_to_kelvin(sea_ice_properties.temperature_units, Ts)
-        ℵi = ice_concentration[i, j, 1]
+        ℵi = ice_concentration[i, j, kᴺ]
         
         Qs = downwelling_radiation.Qs[i, j, 1]
         Qℓ = downwelling_radiation.Qℓ[i, j, 1]
