@@ -240,12 +240,13 @@ sin = @lift begin
     compute!(si)
     sin = interior(si)
     sin[land] .= NaN
-    sin[sin .== 0] .= NaN 
+    sin[h .== 0] .= NaN 
     view(sin, :, :, 1)
 end
 
 # Finally, we plot a snapshot of the surface speed, temperature, and the turbulent
-# eddy kinetic energy from the CATKE vertical mixing parameterization.
+# eddy kinetic energy from the CATKE vertical mixing parameterization as well as the
+# sea-ice speed and the effective sea ice thickness.
 fig = Figure(size = (1200, 1200))
 
 title = @lift string("Global 1ᵒ ocean simulation after ", prettytime(times[$n] - times[1]))
