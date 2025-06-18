@@ -78,7 +78,7 @@ seaice = sea_ice_simulation(grid, ocean; advection=tracer_advection)
 
 # We initialize the ocean and sea ice model with data from the ECCO state estimate.
 
-date = DateTime(1993, 6, 1)
+date = DateTime(1993, 1, 1)
 dataset = ECCO4Monthly()
 ecco_temperature = Metadatum(:temperature; date, dataset)
 ecco_salinity = Metadatum(:salinity; date, dataset)
