@@ -78,8 +78,7 @@ function stretched_vertical_faces(; surface_layer_Δz = 5.0,
     return z
 end
 
-@inline exponential_profile(z, Lz, h) = (exp(z / h) - exp(-Lz / h)) / (1 - exp(-Lz / h))
-# @inline exponential_profile(z, Lz, h) = (1 - exp((z + Lz) / h)) / (1 - exp(Lz / h))
+@inline exponential_profile(z, Lz, h) = expm1((z + Lz) / h) / expm1(Lz / h)
 
 function exponential_z_faces_old(; Nz, depth, h = Nz / 4.5)
 
@@ -94,7 +93,6 @@ function exponential_z_faces_old(; Nz, depth, h = Nz / 4.5)
 
     return reverse(z_faces)
 end
-
 
 """
     exponential_z_faces(; Nz, depth, scale = depth / 5)
