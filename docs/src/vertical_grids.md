@@ -42,9 +42,7 @@ axz2 = Axis(fig[1, 6])
 linkaxes!(axΔz2, axz2)
 
 scatter!(axΔz2, Δz, zc)
-xlims!(axΔz2, -10.2, 10.2)
-
-# hidespines!(axΔz2, :t, :r)
+hidespines!(axΔz2, :t, :r)
 
 lines!(axz2, [0, 0], [-depth, 0], color=:gray)
 scatter!(axz2, 0 * zf, zf, marker=:hline, color=:gray, markersize=20)
