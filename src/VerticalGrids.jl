@@ -79,8 +79,9 @@ function stretched_vertical_faces(; surface_layer_Δz = 5.0,
 end
 
 @inline exponential_profile(z, Lz, h) = (exp(z / h) - exp(-Lz / h)) / (1 - exp(-Lz / h))
+# @inline exponential_profile(z, Lz, h) = (1 - exp((z + Lz) / h)) / (1 - exp(Lz / h))
 
-function exponential_z_faces(; Nz, depth, h = Nz / 4.5)
+function exponential_z_faces_old(; Nz, depth, h = Nz / 4.5)
 
     k = collect(1:Nz+1)
     z_faces = exponential_profile.(k, Nz, h)
@@ -90,6 +91,30 @@ function exponential_z_faces(; Nz, depth, h = Nz / 4.5)
     z_faces .*= - depth / z_faces[end]
 
     z_faces[1] = 0.0
+
+    return reverse(z_faces)
+end
+
+
+"""
+    exponential_z_faces(; Nz, depth, scale = depth / 5)
+
+Return an array of ``z``-faces of length `Nz + 1` with exponential spacing.
+"""
+function exponential_z_faces(; Nz, depth, scale = depth / 5)
+
+    scale_index = Nz * scale / depth
+
+    k = collect(1:Nz+1)
+    z_faces = exponential_profile.(k, Nz, scale_index)
+
+    # Normalize
+    z_faces .-= z_faces[1]
+    z_faces .*= - depth / z_faces[end]
+
+    if abs(z_faces[1]) < 10eps(Float32)
+        z_faces[1] = 0.0
+    end
 
     return reverse(z_faces)
 end

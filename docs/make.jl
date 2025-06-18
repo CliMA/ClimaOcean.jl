@@ -17,9 +17,9 @@ const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
 const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
 
 to_be_literated = [
-    "single_column_os_papa_simulation.jl",
-    "one_degree_simulation.jl",
-    "near_global_ocean_simulation.jl"
+    # "single_column_os_papa_simulation.jl",
+    # "one_degree_simulation.jl",
+    # "near_global_ocean_simulation.jl"
 ]
 
 for file in to_be_literated
@@ -35,17 +35,18 @@ end
 
 format = Documenter.HTML(collapselevel = 2,
                          size_threshold = nothing,
-                         prettyurls = get(ENV, "CI", nothing) == "true",
                          canonical = "https://clima.github.io/ClimaOceanDocumentation/dev/")
 
 pages = [
     "Home" => "index.md",
 
     "Examples" => [
-        "Single-column ocean simulation" => "literated/single_column_os_papa_simulation.md",
-        "One-degree ocean simulation" => "literated/one_degree_simulation.md",
-        "Near-global ocean simulation" => "literated/near_global_ocean_simulation.md",
+        # "Single-column ocean simulation" => "literated/single_column_os_papa_simulation.md",
+        # "One-degree ocean simulation" => "literated/one_degree_simulation.md",
+        # "Near-global ocean simulation" => "literated/near_global_ocean_simulation.md",
         ],
+
+    "Vertical grids" => "vertical_grids.md",
 
     "Interface fluxes" => "interface_fluxes.md",
 
