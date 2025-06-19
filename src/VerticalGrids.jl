@@ -1,3 +1,6 @@
+"""
+Implementation of several vertical grid options.
+"""
 module VerticalGrids
 
 export stretched_vertical_faces,
