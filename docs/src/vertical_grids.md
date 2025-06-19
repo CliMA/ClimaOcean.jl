@@ -103,8 +103,8 @@ The [`stretched_vertical_faces`](@ref) method allows a tigher control on the ver
 That is, we can have a constant spacing over the top `surface_layer_height` and then the grid spacing
 increase following a prescribed stretching law.
 The downside is that neither the final grid depth nor the number of faces can be prescribed.
-The final depth we get will be ``\ge`` what we prescribed via the keyword argument `depth` and the total number
-of faces depends on the stretching law.
+The final depth we get is greater or equal from what we prescribed via the keyword argument `depth`
+and also the total number of faces depends on the stretching law.
 
 The two grids below have constant 20-meter spacing for the top 120 meters and then we apply power-law stretching.
 The bigger the power-law stretching factor is, the further does the last face go beyond the prescribed depth and/or with less cells.
