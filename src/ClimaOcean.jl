@@ -112,7 +112,7 @@ using PrecompileTools: @setup_workload, @compile_workload
 @setup_workload begin
     Nx, Ny, Nz = 32, 32, 10
     @compile_workload begin
-        z = exponential_z_faces_old(; Nz, depth=6000)
+        z = exponential_z_faces(; Nz, depth=6000)
         grid = Oceananigans.OrthogonalSphericalShellGrids.TripolarGrid(CPU(); size=(Nx, Ny, Nz), halo=(7, 7, 7), z)
         grid = ImmersedBoundaryGrid(grid, GridFittedBottom((x, y) -> -5000))
         # ocean = ocean_simulation(grid)
