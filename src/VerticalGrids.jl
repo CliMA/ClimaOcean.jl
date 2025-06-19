@@ -38,7 +38,7 @@ end
 Return an array of cell interfaces with `surface_layer_Δz` spacing in
 a surface layer of height `surface_layer_height`, and stretched according to
 the function `stretching(Δz_above, z_above)` down to `depth`.
-The interfaces extends from `Lz = -z[1]` to `0 = z[end]`, where `Lz ≥ depth`.
+The interfaces extend from `Lz = -z[1]` to `0 = z[end]`, where `Lz ≥ depth`.
 
 The grid spacing `Δz` is limited to be less than `maximum_Δz`.
 The grid is also uniformly-spaced below `constant_bottom_spacing_depth`.
