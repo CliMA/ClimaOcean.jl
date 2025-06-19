@@ -94,3 +94,7 @@ A ridiculously large value of ``h / L_z`` (approaching infinity) gives a uniform
 ```@example vgrids
 exponential_z_faces(; Nz, depth, scale = 1e20*depth)
 ```
+
+A downside of the above grid is that we don't have tight control on the minimum spacing at the surface.
+To prescribe the surface spacing we need to play around with the scale `h` and the number of grid points `N_z`.
+
