@@ -18,9 +18,8 @@ arch = CPU()
 
 depth = 1000meters
 Nz    = 10
-h     = 3
 
-r_faces = ClimaOcean.exponential_z_faces(; Nz, h, depth)
+r_faces = ClimaOcean.exponential_z_faces(; Nz, depth, scale=0.3*depth)
 z_faces = MutableVerticalDiscretization(r_faces)
 
 Nx = 256 # longitudinal direction -> 250 points is about 1.5ᵒ resolution

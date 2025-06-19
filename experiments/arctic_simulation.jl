@@ -14,7 +14,8 @@ using CUDA
 CUDA.device!(1)
 arch = GPU()
 
-r_faces = ClimaOcean.exponential_z_faces(; Nz=30, h=10, depth=2000)
+depth = 2000meters
+r_faces = ClimaOcean.exponential_z_faces(; Nz=30, depth, scale=depth/3)
 z_faces = MutableVerticalDiscretization(r_faces)
 
 Nx = 180 # longitudinal direction -> 250 points is about 1.5ᵒ resolution
