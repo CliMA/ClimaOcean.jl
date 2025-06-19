@@ -100,7 +100,8 @@ end
 """
     exponential_z_faces(; Nz, depth, scale = depth / 5)
 
-Return an array of ``z``-faces of length `Nz + 1` with exponential spacing.
+Return an array of ``z``-faces of length `Nz + 1` with exponential spacing that spans
+the range from the surface (``z=0``) down to ``z = -```depth`.
 """
 function exponential_z_faces(; Nz, depth, scale = depth / 5)
 
