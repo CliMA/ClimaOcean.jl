@@ -87,7 +87,7 @@ Keyword Arguments
 function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                 von_karman_constant = 0.4,
                                 turbulent_prandtl_number = 1,
-                                gustiness_parameter = 1,
+                                gustiness_parameter = 1.2,
                                 stability_functions = atmosphere_ocean_stability_functions(FT),
                                 momentum_roughness_length = MomentumRoughnessLength(FT),
                                 temperature_roughness_length = ScalarRoughnessLength(FT),
@@ -195,7 +195,7 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
     # Buoyancy flux characteristic scale for gustiness (Edson et al. 2013)
     h_bℓ = atmosphere_state.h_bℓ
     Jᵇ = - u★ * b★
-    Uᴳ = β * cbrt(Jᵇ * h_bℓ)
+    Uᴳ = max(0.5, β * cbrt(Jᵇ * h_bℓ))
 
     # New velocity difference accounting for gustiness
     Δu, Δv = velocity_difference(interface_properties.velocity_formulation,
