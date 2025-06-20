@@ -17,8 +17,8 @@ which for ``h / L \to \infty`` it reduces to
 1 + z / L_z
 ```
 
-The above implies that the vertical spacings grow linearly with depth, with the smallest spacing being near the surface.
-For ``h / L \to \infty``, the grid becomes uniform.
+The above implies that the vertical spacings grow linearly with depth at a rate inversely proportional to ``h / L_z ``, with the smallest spacing being near the surface.
+For ``h / L \to \infty``, the grid thus becomes uniform.
 
 To showcase how the scale ``h`` affects the grid, we construct below two such exponential grids,
 one with ``h / L = 1/5`` and the second with ``h / L = 1/2``.
@@ -48,6 +48,7 @@ axΔz1 = Axis(fig[1, 1]; xlabel = "z-spacing (m)", ylabel = "z (m)", title = "sc
 axz1 = Axis(fig[1, 2])
 linkaxes!(axΔz1, axz1)
 
+lΔz = lines!(axΔz1, - zf * (depth/scale) / Nz, zf, color=(:grey, 0.5))
 scatter!(axΔz1, Δz, zc)
 hidespines!(axΔz1, :t, :r)
 
@@ -67,6 +68,7 @@ axΔz2 = Axis(fig[1, 3]; xlabel = "z-spacing (m)", ylabel = "z (m)", title = "sc
 axz2 = Axis(fig[1, 4])
 linkaxes!(axΔz2, axz2)
 
+lΔz = lines!(axΔz2, - zf * (depth/scale) / Nz, zf, color=(:grey, 0.5))
 scatter!(axΔz2, Δz, zc)
 hidespines!(axΔz2, :t, :r)
 
@@ -82,6 +84,8 @@ Label(fig[0, :], "z-grid", fontsize = 18)
 colsize!(fig.layout, 2, Relative(0.1))
 colsize!(fig.layout, 4, Relative(0.1))
 
+legend = Legend(fig[2, :], [lΔz], ["slope = (depth / scale) / Nz"], orientation = :horizontal)
+
 fig
 ```
 
@@ -95,11 +99,11 @@ exponential_z_faces(; Nz, depth, scale = 1e20*depth)
 ```
 
 A downside of the above grid is that we don't have tight control on the minimum spacing at the surface.
-To prescribe the surface spacing we need to play around with the scale `h` and the number of grid points `N_z`.
+To prescribe the surface spacing we need to play around with the scale ``h`` and the number of grid points ``N_z``.
 
 ### Stretched ``z`` faces
 
-The [`stretched_vertical_faces`](@ref) method allows a tigher control on the vertical spacing at the surface.
+The [`stretched_vertical_faces`](@ref) method allows a tighter control on the vertical spacing at the surface.
 That is, we can have a constant spacing over the top `surface_layer_height` and then the grid spacing
 increase following a prescribed stretching law.
 The downside is that neither the final grid depth nor the number of faces can be prescribed.
