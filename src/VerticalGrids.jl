@@ -78,7 +78,7 @@ function stretched_vertical_faces(; depth = 5000,
 end
 
 """
-    z_faces(zgrid; rounding_digits = 2)
+    z_centers(zgrid; rounding_digits = 2)
 
 Return an array of ``z``-centers for a grid of `zgrid` type.
 """
@@ -148,7 +148,7 @@ Return a type that describes a one-dimensional vertical grid with faces that are
 spaced (or, equivalently, with spacings that grow linearly with depth) that has `Nz` cells,
 goes down to `depth`, and the exponential scaling is controlled by `scale`.
 """
-exponential_vertical_faces(; Nz, depth, scale=extent/5) = ExponentialFaces(Nz, depth, scale)
+exponential_vertical_faces(; Nz, depth, scale=depth/5) = ExponentialFaces(Nz, depth, scale)
 
 function z_faces(zgrid::ExponentialFaces; rounding_digits = 2)
 
