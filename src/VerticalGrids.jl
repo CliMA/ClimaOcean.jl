@@ -181,23 +181,6 @@ function z_faces(zgrid::ExponentialFaces; rounding_digits = 2)
     return reverse(z_faces)
 end
 
-# function KDS_z_faces(; depth,
-#                      surface_layer_Δz = 5.0,
-#                      maximum_layer_Δz = 100.0)
-
-#     ε = 1e-3 # m
-#     s = 1
-#     spacing(z) = maximum_layer_Δz * tanh( -z * π / (s * depth)) + ε
-
-#     z_faces = Float64[]
-#     Δz = Float64[]
-
-#     push!(z_faces, 0.0)
-#     push!(Δz, ε)
-
-#     return z_faces, Δz
-# end
-
 # Vertical grid with 49 levels.
 # Stretched from 10 meters spacing at surface
 # to 400 meter at the bottom.
