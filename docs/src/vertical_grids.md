@@ -38,9 +38,9 @@ depth = 1000
 
 scale = depth / 5
 zgrid = exponential_vertical_faces(; Nz, depth, scale)
-zf = z_faces(zgrid)       # z-faces
-zc = z_centers(zgrid)     # z-centers
-Δz = diff(zf)             # spacing between z-faces
+zf = z_faces(zgrid)
+zc = z_centers(zgrid)
+Δz = diff(zf)           # spacing between z-faces
 
 using CairoMakie
 
@@ -63,9 +63,9 @@ hidespines!(axz1)
 
 scale = depth / 2
 zgrid = exponential_vertical_faces(; Nz, depth, scale)
-zf = z_faces(zgrid)       # z-faces
-zc = z_centers(zgrid)     # z-centers
-Δz = diff(zf)             # spacing between z-faces
+zf = z_faces(zgrid)
+zc = z_centers(zgrid)
+Δz = diff(zf)           # spacing between z-faces
 
 axΔz2 = Axis(fig[1, 3]; xlabel = "z-spacing (m)", ylabel = "z (m)", title = "scale = depth / 2")
 axz2 = Axis(fig[1, 4])
@@ -126,9 +126,9 @@ zgrid = stretched_vertical_faces(; depth,
                                  surface_layer_Δz,
                                  surface_layer_height,
                                  stretching = PowerLawStretching(1.15))
-zf = z_faces(zgrid)       # z-faces
-zc = z_centers(zgrid)     # z-centers
-Δz = diff(zf)             # spacing between z-faces
+zf = z_faces(zgrid)
+zc = z_centers(zgrid)
+Δz = diff(zf)           # spacing between z-faces
 
 fig = Figure()
 
@@ -153,9 +153,9 @@ zgrid = stretched_vertical_faces(; depth,
                                  surface_layer_Δz,
                                  surface_layer_height,
                                  stretching = PowerLawStretching(1.05))
-zf = z_faces(zgrid)       # z-faces
-zc = z_centers(zgrid)     # z-centers
-Δz = diff(zf)             # spacing between z-faces
+zf = z_faces(zgrid)
+zc = z_centers(zgrid)
+Δz = diff(zf)           # spacing between z-faces
 
 axΔz2 = Axis(fig[1, 3];
              xlabel = "z-spacing (m)",
