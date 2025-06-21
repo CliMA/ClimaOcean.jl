@@ -24,10 +24,13 @@ export
     JRA55NetCDFBackend,
     regrid_bathymetry,
     retrieve_bathymetry,
+    z_faces,
+    z_centers,
+    exponential_vertical_faces,
     stretched_vertical_faces,
-    exponential_z_faces,
+    ExponentialFaces,
+    StretchedFaces,
     PowerLawStretching, LinearStretching,
-    exponential_z_faces,
     Metadata,
     Metadatum,
     ECCOMetadatum,
@@ -112,7 +115,8 @@ using PrecompileTools: @setup_workload, @compile_workload
 @setup_workload begin
     Nx, Ny, Nz = 32, 32, 10
     @compile_workload begin
-        z = exponential_z_faces(; Nz, depth=6000)
+        depth = 6000
+        z = z_faces(exponential_faces(; N=Nz, extent=depth))
         grid = Oceananigans.OrthogonalSphericalShellGrids.TripolarGrid(CPU(); size=(Nx, Ny, Nz), halo=(7, 7, 7), z)
         grid = ImmersedBoundaryGrid(grid, GridFittedBottom((x, y) -> -5000))
         # ocean = ocean_simulation(grid)

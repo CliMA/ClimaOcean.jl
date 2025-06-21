@@ -4,14 +4,15 @@ A few vertical grids are implemented within the [VerticalGrids](@ref ClimaOcean.
 
 ### Exponential spacing
 
-The [`exponential_z_faces`](@ref) method returns a vertical grid with an exponentially growing spacing.
+The [`exponential_vertical_faces`](@ref) method returns a vertical grid with an exponentially growing spacing.
 The faces are distributed in the range ``[-L_z, 0]`` using the scaling
 
 ```math
 \frac{\exp{[(z + L_z) / h]} - 1}{\exp{(L_z / h)} - 1}
 ```
 
-which for ``h / L \to \infty`` it reduces to
+which varies from 0 (at ``z = -L_z``) to 1 (at the surface, ``z = 0``).
+At the limit ``h / L \to \infty`` the scaling above reduces to
 
 ```math
 1 + z / L_z
@@ -36,9 +37,11 @@ Nz = 10
 depth = 1000
 
 scale = depth / 5
-zf = exponential_z_faces(; Nz, depth, scale)  # z-faces
-zc = [(zf[k] + zf[k+1])/2 for k in 1:Nz]      # z-centers
-Δz = diff(zf)                                 # spacing between z-faces
+zgrid = exponential_vertical_faces(; Nz, depth, scale)
+
+zf = z_faces(zgrid)       # z-faces
+zc = z_centers(zgrid)     # z-centers
+Δz = diff(zf)             # spacing between z-faces
 
 using CairoMakie
 
@@ -60,9 +63,11 @@ hidespines!(axz1)
 
 
 scale = depth / 2
-zf = exponential_z_faces(; Nz, depth, scale)  # z-faces
-zc = [(zf[k] + zf[k+1])/2 for k in 1:Nz]      # z-centers
-Δz = diff(zf)                                 # spacing between z-faces
+zgrid = exponential_vertical_faces(; Nz, depth, scale)
+
+zf = z_faces(zgrid)       # z-faces
+zc = z_centers(zgrid)     # z-centers
+Δz = diff(zf)             # spacing between z-faces
 
 axΔz2 = Axis(fig[1, 3]; xlabel = "z-spacing (m)", ylabel = "z (m)", title = "scale = depth / 2")
 axz2 = Axis(fig[1, 4])
@@ -95,7 +100,7 @@ But with the larger ``h / L_z`` is, the smaller the rate the spacings increase w
 A ridiculously large value of ``h / L_z`` (approaching infinity) gives a uniform grid:
 
 ```@example vgrids
-exponential_z_faces(; Nz, depth, scale = 1e20*depth)
+exponential_vertical_faces(; Nz, depth, scale = 1e20*depth)
 ```
 
 A downside of the above grid is that we don't have tight control on the minimum spacing at the surface.
@@ -119,10 +124,13 @@ depth = 750
 surface_layer_Δz = 20
 surface_layer_height = 120
 
-zf = stretched_vertical_faces(; depth, surface_layer_Δz, surface_layer_height,
-                                stretching = PowerLawStretching(1.15))           # z-faces
-zc = [(zf[k] + zf[k+1])/2 for k in 1:length(zf)-1]                               # z-centers
-Δz = diff(zf)                                                                    # spacing between z-faces
+zgrid = stretched_vertical_faces(; depth,
+                                 surface_layer_Δz,
+                                 surface_layer_height,
+                                 stretching = PowerLawStretching(1.15))
+zf = z_faces(zgrid)       # z-faces
+zc = z_centers(zgrid)     # z-centers
+Δz = diff(zf)             # spacing between z-faces
 
 fig = Figure()
 
@@ -143,10 +151,13 @@ hidedecorations!(axz1)
 hidespines!(axz1)
 
 
-zf = stretched_vertical_faces(; depth, surface_layer_Δz, surface_layer_height,
-                                stretching = PowerLawStretching(1.05))           # z-faces
-zc = [(zf[k] + zf[k+1])/2 for k in 1:length(zf)-1]                               # z-centers
-Δz = diff(zf)                                                                    # spacing between z-faces
+zgrid = stretched_vertical_faces(; depth,
+                                 surface_layer_Δz,
+                                 surface_layer_height,
+                                 stretching = PowerLawStretching(1.05))
+zf = z_faces(zgrid)       # z-faces
+zc = z_centers(zgrid)     # z-centers
+Δz = diff(zf)             # spacing between z-faces
 
 axΔz2 = Axis(fig[1, 3];
              xlabel = "z-spacing (m)",
