@@ -11,7 +11,9 @@ arch = CPU()
 Nx = 256
 Ny = 128
 Nz = 32
-z_faces = exponential_z_faces(; Nz, depth=6000, h=34)
+
+depth = 6000meters
+z_faces = exponential_z_faces(; Nz, depth=6000, scale=(34/Nz)*depth)
 underlying_grid = TripolarGrid(arch; size=(Nx, Ny, Nz), z=z_faces)
 
 bottom_height = regrid_bathymetry(underlying_grid; minimum_depth=30, interpolation_passes=20, major_basins=1)

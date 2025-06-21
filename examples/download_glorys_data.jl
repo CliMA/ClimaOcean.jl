@@ -6,8 +6,9 @@ arch = CPU()
 Nx = 20 * 12
 Ny = 20 * 12
 Nz = 50
+
 depth = 6000
-z_faces = exponential_z_faces(; Nz, depth)
+z_faces = exponential_z_faces(; Nz, depth, scale=depth/4.5)
 
 grid = LatitudeLongitudeGrid(arch;
                              size = (Nx, Ny, Nz),
