@@ -105,8 +105,6 @@ hidedecorations!(axz2)
 hidespines!(axz2)
 
 
-Label(fig[0, :], "z-grid", fontsize = 18)
-
 colsize!(fig.layout, 2, Relative(0.1))
 colsize!(fig.layout, 4, Relative(0.1))
 
@@ -121,7 +119,8 @@ But with the larger ``h / L`` is, the smaller the rate the spacings increase wit
 A ridiculously large value of ``h / L`` (approaching infinity) gives a uniform grid:
 
 ```@example vgrids
-z_faces(exponential_vertical_faces(; Nz, depth, scale = 1e20*depth))
+zgrid = exponential_vertical_faces(; Nz, depth, scale = 1e20*depth)
+z_faces(zgrid)
 ```
 
 A downside of the above grid is that we don't have tight control on the minimum spacing at the surface.
@@ -148,20 +147,22 @@ surface_layer_height = 120
 zgrid = stretched_vertical_faces(; depth,
                                  surface_layer_Δz,
                                  surface_layer_height,
-                                 stretching = PowerLawStretching(1.15))
+                                 stretching = PowerLawStretching(1.08))
 zf = z_faces(zgrid)
 zc = z_centers(zgrid)
 Δz = diff(zf)           # spacing between z-faces
 
-fig = Figure()
+fig = Figure(size=(800, 550))
 
 axΔz1 = Axis(fig[1, 1];
              xlabel = "z-spacing (m)",
              ylabel = "z (m)",
-             title = "PowerLawStretching(1.15)\n $(length(zf)-1) cells\n bottom face at z = $(zf[1]) m")
+             title = "PowerLawStretching(1.09)\n $(length(zf)-1) cells\n bottom face at z = $(zf[1]) m\n ")
 
 axz1 = Axis(fig[1, 2])
 
+ldepth = hlines!(axΔz1, -depth, color = :salmon, linestyle=:dash)
+lzbottom = hlines!(axΔz1, zf[1], color = :grey)
 scatter!(axΔz1, Δz, zc)
 hidespines!(axΔz1, :t, :r)
 
@@ -175,7 +176,7 @@ hidespines!(axz1)
 zgrid = stretched_vertical_faces(; depth,
                                  surface_layer_Δz,
                                  surface_layer_height,
-                                 stretching = PowerLawStretching(1.05))
+                                 stretching = PowerLawStretching(1.04))
 zf = z_faces(zgrid)
 zc = z_centers(zgrid)
 Δz = diff(zf)           # spacing between z-faces
@@ -183,9 +184,11 @@ zc = z_centers(zgrid)
 axΔz2 = Axis(fig[1, 3];
              xlabel = "z-spacing (m)",
              ylabel = "z (m)",
-             title = "PowerLawStretching(1.05)\n $(length(zf)-1) cells\n bottom face at z = $(zf[1]) m")
+             title = "PowerLawStretching(1.04)\n $(length(zf)-1) cells\n bottom face at z = $(zf[1]) m\n ")
 axz2 = Axis(fig[1, 4])
 
+ldepth = hlines!(axΔz2, -depth, color = :salmon, linestyle=:dash)
+lzbottom = hlines!(axΔz2, zf[1], color = :grey)
 scatter!(axΔz2, Δz, zc)
 hidespines!(axΔz2, :t, :r)
 
@@ -195,11 +198,42 @@ scatter!(axz2, 0 * zc, zc)
 hidedecorations!(axz2)
 hidespines!(axz2)
 
-linkaxes!(axΔz1, axz1, axΔz2, axz2)
-Label(fig[0, :], "z-grid", fontsize = 18)
+
+zgrid = stretched_vertical_faces(; depth,
+                                 surface_layer_Δz,
+                                 surface_layer_height,
+                                 stretching = PowerLawStretching(1.04),
+                                 constant_bottom_spacing_depth = 500)
+zf = z_faces(zgrid)
+zc = z_centers(zgrid)
+Δz = diff(zf)           # spacing between z-faces
+
+axΔz3 = Axis(fig[1, 5];
+             xlabel = "z-spacing (m)",
+             ylabel = "z (m)",
+             title = "PowerLawStretching(1.04)\n $(length(zf)-1) cells\n bottom face at z = $(zf[1]) m\n constant spacing below 500 m")
+axz3 = Axis(fig[1, 6])
+
+ldepth = hlines!(axΔz3, -depth, color = :salmon, linestyle=:dash)
+lzbottom = hlines!(axΔz3, zf[1], color = :grey)
+scatter!(axΔz3, Δz, zc)
+
+hidespines!(axΔz3, :t, :r)
+
+lines!(axz3, [0, 0], [zf[1], 0], color=:gray)
+scatter!(axz3, 0 * zf, zf, marker=:hline, color=:gray, markersize=20)
+scatter!(axz3, 0 * zc, zc)
+hidedecorations!(axz3)
+hidespines!(axz3)
+
+
+linkaxes!(axΔz1, axz1, axΔz2, axz2, axΔz3, axz3)
+
+Legend(fig[2, :], [ldepth, lzbottom], ["prescribed depth", "bottom-most z-face"], orientation = :horizontal)
 
 colsize!(fig.layout, 2, Relative(0.1))
 colsize!(fig.layout, 4, Relative(0.1))
+colsize!(fig.layout, 6, Relative(0.1))
 
 fig
 ```
