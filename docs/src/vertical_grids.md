@@ -38,7 +38,6 @@ depth = 1000
 
 scale = depth / 5
 zgrid = exponential_vertical_faces(; Nz, depth, scale)
-
 zf = z_faces(zgrid)       # z-faces
 zc = z_centers(zgrid)     # z-centers
 Δz = diff(zf)             # spacing between z-faces
@@ -64,7 +63,6 @@ hidespines!(axz1)
 
 scale = depth / 2
 zgrid = exponential_vertical_faces(; Nz, depth, scale)
-
 zf = z_faces(zgrid)       # z-faces
 zc = z_centers(zgrid)     # z-centers
 Δz = diff(zf)             # spacing between z-faces
