@@ -100,7 +100,7 @@ But with the larger ``h / L_z`` is, the smaller the rate the spacings increase w
 A ridiculously large value of ``h / L_z`` (approaching infinity) gives a uniform grid:
 
 ```@example vgrids
-exponential_vertical_faces(; Nz, depth, scale = 1e20*depth)
+z_faces(exponential_vertical_faces(; Nz, depth, scale = 1e20*depth))
 ```
 
 A downside of the above grid is that we don't have tight control on the minimum spacing at the surface.
