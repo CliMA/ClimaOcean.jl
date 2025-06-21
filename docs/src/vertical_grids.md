@@ -5,30 +5,53 @@ A few vertical grids are implemented within the [VerticalGrids](@ref ClimaOcean.
 ### Exponential spacing
 
 The [`exponential_vertical_faces`](@ref) method returns a vertical grid with an exponentially growing spacing.
-The faces are distributed in the range ``[-L_z, 0]`` using the scaling
+The faces are distributed in the range ``[-L, 0]`` using the scaling
 
 ```math
-\frac{\exp{[(z + L_z) / h]} - 1}{\exp{(L_z / h)} - 1}
+\frac{\exp{[(z + L) / h]} - 1}{\exp{(L / h)} - 1}
 ```
 
-which varies from 0 (at ``z = -L_z``) to 1 (at the surface, ``z = 0``).
-At the limit ``h / L \to \infty`` the scaling above reduces to
+which varies from 0 (at ``z = -L``) to 1 (at the surface, ``z = 0``).
 
-```math
-1 + z / L_z
-```
+The exponential scaling above implies that the vertical spacings grow linearly with depth at a rate inversely proportional to ``h / L``, with the smallest spacing being near the surface.
 
-The above implies that the vertical spacings grow linearly with depth at a rate inversely proportional to ``h / L_z ``, with the smallest spacing being near the surface.
-For ``h / L \to \infty``, the grid thus becomes uniform.
-
-To showcase how the scale ``h`` affects the grid, we construct below two such exponential grids,
-one with ``h / L = 1/5`` and the second with ``h / L = 1/2``.
+At the limit ``h / L \to \infty`` the scaling reduces to ``1 + z/L`` and thus the grid becomes uniformly spaced.
 
 
 ```@setup vgrids
 using CairoMakie
+set_theme!(Theme(Lines = (linewidth = 3,)))
 CairoMakie.activate!(type="svg")
 ```
+
+```@example vgrids
+using ClimaOcean
+using ClimaOcean.VerticalGrids: exponential_profile
+
+using CairoMakie
+
+depth = 1000
+z = range(-depth, stop=0, length=501)
+
+fig = Figure()
+ax = Axis(fig[1, 1], ylabel="z/L")
+
+scale = depth / 20
+lines!(ax, exponential_profile.(z, depth, scale), z / depth, label="h / L = $(scale / depth)")
+scale = depth / 5
+lines!(ax, exponential_profile.(z, depth, scale), z / depth, label="h / L = $(scale / depth)")
+scale = depth / 2
+lines!(ax, exponential_profile.(z, depth, scale), z / depth, label="h / L = $(scale / depth)")
+scale = 1e20 * depth
+lines!(ax, exponential_profile.(z, depth, scale), z / depth, label="h / L → ∞")
+
+axislegend(ax, position=:rb)
+
+fig
+```
+
+To showcase how the scale ``h`` affects the grid, we construct below two such exponential grids,
+one with ``h / L = 1/5`` and the second with ``h / L = 1/2``.
 
 ```@example vgrids
 using ClimaOcean
@@ -93,9 +116,9 @@ fig
 ```
 
 Both grid spacings grow linearly and when summed up give the total depth.
-But with the larger ``h / L_z`` is, the smaller the rate the spacings increase with depth becomes.
+But with the larger ``h / L`` is, the smaller the rate the spacings increase with depth becomes.
 
-A ridiculously large value of ``h / L_z`` (approaching infinity) gives a uniform grid:
+A ridiculously large value of ``h / L`` (approaching infinity) gives a uniform grid:
 
 ```@example vgrids
 z_faces(exponential_vertical_faces(; Nz, depth, scale = 1e20*depth))

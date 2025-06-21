@@ -129,7 +129,7 @@ function z_faces(zgrid::StretchedFaces; rounding_digits = 2)
     return z_faces
 end
 
-@inline exponential_profile(z, L, h) = expm1((z + L) / h) / expm1(L / h)
+@inline exponential_profile(z, L, h) = @. expm1((z + L) / h) / expm1(L / h)
 
 struct ExponentialFaces{FT}
     size :: Int
