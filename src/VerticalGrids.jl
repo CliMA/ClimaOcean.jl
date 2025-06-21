@@ -7,6 +7,7 @@ export z_faces,
        z_centers,
        ExponentialFaces,
        exponential_vertical_faces,
+       StretchedFaces,
        stretched_vertical_faces,
        PowerLawStretching,
        LinearStretching
