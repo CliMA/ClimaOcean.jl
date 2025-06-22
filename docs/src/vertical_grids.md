@@ -123,8 +123,8 @@ zgrid = exponential_vertical_faces(; Nz, depth, scale = 1e20*depth)
 z_faces(zgrid)
 ```
 
-A downside of the above grid is that we don't have tight control on the minimum spacing at the surface.
-To prescribe the surface spacing we need to play around with the scale ``h`` and the number of grid points ``N_z``.
+A downside of the above ais that we don't have tight control on the minimum spacing at the surface.
+To prescribe the surface spacing we need to play around with the scale ``h`` and the number of vertical cells ``N_z``.
 
 ### Stretched ``z`` faces
 
