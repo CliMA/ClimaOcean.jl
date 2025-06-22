@@ -113,10 +113,10 @@ legend = Legend(fig[2, :], [lΔz], ["slope = (depth / scale) / Nz"], orientation
 fig
 ```
 
-Both grid spacings grow linearly and when summed up give the total depth.
-But with the larger ``h / L`` is, the smaller the rate the spacings increase with depth becomes.
+For both grids, the spacings grow linearly with depth and sum up to the total depth.
+But with the larger ``h / L`` is, the smaller the rate is that the spacings increase with depth.
 
-A ridiculously large value of ``h / L`` (approaching infinity) gives a uniform grid:
+A ridiculously large value of ``h / L`` (approximating infinity) gives a uniform grid:
 
 ```@example vgrids
 zgrid = exponential_vertical_faces(; Nz, depth, scale = 1e20*depth)
@@ -129,14 +129,14 @@ To prescribe the surface spacing we need to play around with the scale ``h`` and
 ### Stretched ``z`` faces
 
 The [`stretched_vertical_faces`](@ref) method allows a tighter control on the vertical spacing at the surface.
-That is, we can have a constant spacing over the top `surface_layer_height` and then the grid spacing
-increase following a prescribed stretching law.
-The downside is that neither the final grid depth nor the number of faces can be prescribed.
+That is, we can prescribe a constant spacing over the top `surface_layer_height`  below which the grid spacing
+increases following a prescribed stretching law.
+The downside is that neither the final grid depth nor the total number of vertical cells can be prescribed.
 The final depth we get is greater or equal from what we prescribed via the keyword argument `depth`
 and also the total number of faces depends on the stretching law.
 
-The two grids below have constant 20-meter spacing for the top 120 meters.
-We prescribe to both `depth = 750` meters and we apply power-law stretching for depths below 120 meters.
+The three grids below have constant 20-meter spacing for the top 120 meters.
+We prescribe to all `depth = 750` meters and we apply power-law stretching for depths below 120 meters.
 The bigger the power-law stretching factor is, the further the last face goes beyond the prescribed depth and/or with less total number of cells.
 
 ```@example vgrids
