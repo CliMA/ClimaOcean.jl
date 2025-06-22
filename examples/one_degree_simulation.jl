@@ -26,8 +26,8 @@ Ny = 180
 Nz = 40
 
 depth = 4000meters
-z = exponential_z_faces(; Nz, depth, scale = 0.85*depth)
-underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
+vertical_grid = exponential_vertical_faces(; Nz, depth, scale = 0.85*depth)
+underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z=z_faces(vertical_grid))
 
 # Next, we build bathymetry on this grid, using interpolation passes to smooth the bathymetry.
 # With 2 major basins, we keep the Mediterranean (though we need to manually open the Gibraltar

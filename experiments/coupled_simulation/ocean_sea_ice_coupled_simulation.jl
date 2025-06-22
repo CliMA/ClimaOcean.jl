@@ -19,13 +19,13 @@ arch = CPU()
 depth = 1000meters
 Nz    = 10
 
-r_faces = ClimaOcean.exponential_z_faces(; Nz, depth, scale=0.3*depth)
-z_faces = MutableVerticalDiscretization(r_faces)
+vertical_grid = exponential_vertical_faces(; Nz, depth, scale=0.3*depth)
+z = MutableVerticalDiscretization(z_faces(vertical_grid))
 
 Nx = 256 # longitudinal direction -> 250 points is about 1.5ᵒ resolution
 Ny = 128 # meridional direction -> same thing, 48 points is about 1.5ᵒ resolution
 Nz   = length(r_faces) - 1
-grid = TripolarGrid(arch, Float64; size=(Nx, Ny, Nz), z=z_faces)
+grid = TripolarGrid(arch, Float64; size=(Nx, Ny, Nz), z)
 sea_ice_grid = TripolarGrid(arch, Float64; size=(Nx, Ny, 1), z = (-10, 0))
 
 # ## Adding a bathymetry to the grid

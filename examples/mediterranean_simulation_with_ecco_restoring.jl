@@ -34,10 +34,12 @@ using Dates
 
 λ₁, λ₂  = ( 0, 42) # domain in longitude
 φ₁, φ₂  = (30, 45) # domain in latitude
-z_faces = stretched_vertical_faces(depth = 5000,
-                                   surface_layer_Δz = 2.5,
-                                   stretching = PowerLawStretching(1.070),
-                                   surface_layer_height = 50)
+
+zgrid = stretched_vertical_faces(; depth = 5000,
+                                 surface_layer_Δz = 2.5,
+                                 stretching = PowerLawStretching(1.070),
+                                 surface_layer_height = 50)
+z = z_faces(zgrid)
 
 Nx = 15 * Int(λ₂ - λ₁) # 1/15 th of a degree resolution
 Ny = 15 * Int(φ₂ - φ₁) # 1/15 th of a degree resolution
@@ -47,7 +49,7 @@ grid = LatitudeLongitudeGrid(GPU();
                              size = (Nx, Ny, Nz),
                              latitude  = (φ₁, φ₂),
                              longitude = (λ₁, λ₂),
-                             z = z_faces,
+                             z,
                              halo = (7, 7, 7))
 
 # ### Bathymetry Interpolation

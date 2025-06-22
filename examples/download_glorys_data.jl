@@ -8,7 +8,8 @@ Ny = 20 * 12
 Nz = 50
 
 depth = 6000
-z_faces = exponential_z_faces(; Nz, depth, scale=depth/4.5)
+zgrid = exponential_vertical_faces(; Nz, depth, scale=depth/4.5)
+zf = z_faces(zgrid)
 
 grid = LatitudeLongitudeGrid(arch;
                              size = (Nx, Ny, Nz),

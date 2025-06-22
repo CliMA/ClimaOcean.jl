@@ -13,8 +13,8 @@ Ny = 128
 Nz = 32
 
 depth = 6000meters
-z_faces = exponential_z_faces(; Nz, depth=6000, scale=(34/Nz)*depth)
-underlying_grid = TripolarGrid(arch; size=(Nx, Ny, Nz), z=z_faces)
+vertical_grid = exponential_vertical_faces(; Nz, depth=6000, scale=(34/Nz)*depth)
+underlying_grid = TripolarGrid(arch; size=(Nx, Ny, Nz), z=z_faces(vertical_grid))
 
 bottom_height = regrid_bathymetry(underlying_grid; minimum_depth=30, interpolation_passes=20, major_basins=1)
 view(bottom_height, 73:78, 88:89, 1) .= -1000 # open Gibraltar strait
