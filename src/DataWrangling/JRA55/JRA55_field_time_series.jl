@@ -418,8 +418,15 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
 
     i₁, i₂, j₁, j₂, TX = compute_bounding_indices(longitude, latitude, nothing, Center, Center, λc, φc)
 
+    Δλ = (λn[2] - λn[1]) / 2
+    Δφ = (φn[2] - φn[1]) / 2
+
     λr = λn[i₁:i₂+1]
     φr = φn[j₁:j₂+1]
+
+    λr = [λr[1] - Δλ, λr..., λr[end] + Δλ]
+    φr = [φr[1] - Δφ, φr..., φr[end] + Δφ]
+
     Nrx = length(λr) - 1
     Nry = length(φr) - 1
     close(ds)
