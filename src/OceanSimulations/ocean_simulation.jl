@@ -86,7 +86,7 @@ function default_ocean_closure(FT=Oceananigans.defaults.FloatType)
 end
 
 function default_radiative_forcing(grid)
-    ϵʳ = 0.6 # red fraction
+    ϵʳ = 0.0 # red fraction
     λʳ = 1  # red decay scale
     λᵇ = 16 # blue decay scale
     forcing = TwoColorRadiation(grid;
