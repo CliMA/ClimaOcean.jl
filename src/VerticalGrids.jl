@@ -3,12 +3,8 @@ Implementation of several vertical grid options.
 """
 module VerticalGrids
 
-export z_faces,
-       z_centers,
-       ExponentialFaces,
-       exponential_vertical_faces,
+export ExponentialFaces,
        StretchedFaces,
-       stretched_vertical_faces,
        PowerLawStretching,
        LinearStretching
 
@@ -30,92 +26,62 @@ function (stretching::LinearStretching)(Δz, z)
     return (1 + c) * Δz
 end
 
-struct StretchedFaces{FT, S}
+struct StretchedFaces{FT, S, A} <: Function
     extent :: FT
     top_layer_minimum_spacing :: FT
     top_layer_height :: FT
     constant_bottom_spacing_depth :: FT
     maximum_spacing :: FT
     stretching :: S
+    faces :: A
 
     function StretchedFaces(extent,
                             top_layer_minimum_spacing,
                             top_layer_height,
                             constant_bottom_spacing_depth,
                             maximum_spacing,
-                            stretching)
+                            stretching;
+                            rounding_digits=2)
+
+        z_faces = calculate_stretched_faces(; extent,
+                                            top_layer_minimum_spacing,
+                                            top_layer_height,
+                                            constant_bottom_spacing_depth,
+                                            maximum_spacing,
+                                            stretching,
+                                            rounding_digits)
 
         FT = typeof(extent/2)
         S = typeof(stretching)
-        return new{FT, S}(extent, top_layer_minimum_spacing, top_layer_height, constant_bottom_spacing_depth, maximum_spacing, stretching)
+        A = typeof(z_faces)
+        return new{FT, S, A}(extent, top_layer_minimum_spacing, top_layer_height,
+                             constant_bottom_spacing_depth, maximum_spacing, stretching, z_faces)
     end
 end
 
-"""
-    stretched_vertical_faces(; depth = 5000,
-                             surface_layer_Δz = 5.0,
-                             surface_layer_height = 100.0,
-                             constant_bottom_spacing_depth = Inf,
-                             maximum_spacing = Inf,
-                             stretching = PowerLawStretching(1.02))
+function calculate_stretched_faces(; extent = 5000,
+                                   top_layer_minimum_spacing = 5.0,
+                                   top_layer_height = 100.0,
+                                   constant_bottom_spacing_depth = Inf,
+                                   maximum_spacing = Inf,
+                                   stretching = PowerLawStretching(1.02),
+                                   rounding_digits = 2)
 
-Return a type that describes a one-dimensional grid with `surface_layer_Δz` spacing
-in a surface layer of extent `surface_layer_height`, and stretched according to
-the `stretching` down to `depth`.
-The interfaces extend from `depth = -z[1]` to `0 = z[end]`, where `Lz ≥ depth`.
-
-The grid spacing `Δz` is limited to be less than `maximum_Δz`.
-The grid is also uniformly-spaced below `constant_bottom_spacing_depth`.
-"""
-function stretched_vertical_faces(; depth = 5000,
-                                  surface_layer_Δz = 5.0,
-                                  surface_layer_height = 100.0,
-                                  constant_bottom_spacing_depth = Inf,
-                                  maximum_Δz = Inf,
-                                  stretching = PowerLawStretching(1.02))
-
-    return StretchedFaces(depth, surface_layer_Δz, surface_layer_height,
-                          constant_bottom_spacing_depth, maximum_Δz, stretching)
-end
-
-"""
-    z_centers(zgrid; rounding_digits = 2)
-
-Return an array of ``z``-centers for a grid of `zgrid` type.
-"""
-function z_centers(zgrid; rounding_digits = 2)
-    zf = z_faces(zgrid; rounding_digits)
-    zc = [(zf[k] + zf[k+1])/2 for k in 1:length(zf)-1]
-    return zc
-end
-
-"""
-    z_faces(zgrid; rounding_digits = 2)
-
-Return an array of ``z``-centers for a grid of `zgrid` type.
-"""
-function z_faces(zgrid::StretchedFaces; rounding_digits = 2)
-
-    constant_bottom_spacing_depth = zgrid.constant_bottom_spacing_depth
-    maximum_Δz = zgrid.maximum_spacing
-    stretching = zgrid.stretching
-    depth = zgrid.extent
-
-    Δz₀ = zgrid.top_layer_minimum_spacing
-    h₀  = zgrid.top_layer_height
+    Δz₀ = top_layer_minimum_spacing
+    h₀  = top_layer_height
 
     # Generate surface layer grid
     z_faces = [-Δz₀ * (k-1) for k = 1:ceil(h₀ / Δz₀)]
 
     # Generate stretched interior grid
-    Lz₀ = depth
+    Lz₀ = extent
 
     while z_faces[end] > - Lz₀
         Δz_above = z_faces[end-1] - z_faces[end]
 
         if z_faces[end] > - constant_bottom_spacing_depth
             Δz = stretching(Δz_above, z_faces[end])
-            Δz = min(maximum_Δz, Δz)
+            Δz = min(maximum_spacing, Δz)
         else
             Δz = Δz_above
         end
@@ -129,57 +95,101 @@ function z_faces(zgrid::StretchedFaces; rounding_digits = 2)
     return z_faces
 end
 
+"""
+    StretchedFaces(; depth = 5000,
+                   surface_layer_Δz = 5.0,
+                   surface_layer_height = 100.0,
+                   constant_bottom_spacing_depth = Inf,
+                   maximum_spacing = Inf,
+                   stretching = PowerLawStretching(1.02),
+                   rounding_digits = 2)
+
+Return a type that describes a one-dimensional grid with `surface_layer_Δz` spacing
+in a surface layer of extent `surface_layer_height`, and stretched according to
+the `stretching` down to `depth`.
+The interfaces extend from `depth = -z[1]` to `0 = z[end]`, where `Lz ≥ depth`.
+
+The grid spacing `Δz` is limited to be less than `maximum_Δz`.
+The grid is also uniformly-spaced below `constant_bottom_spacing_depth`.
+
+`rounding_digits` controls the accuracy with which the grid face positions are saved.
+"""
+function StretchedFaces(; depth = 5000,
+                        surface_layer_Δz = 5.0,
+                        surface_layer_height = 100.0,
+                        constant_bottom_spacing_depth = Inf,
+                        maximum_Δz = Inf,
+                        stretching = PowerLawStretching(1.02),
+                        rounding_digits = 2)
+
+    return StretchedFaces(depth,
+                          surface_layer_Δz,
+                          surface_layer_height,
+                          constant_bottom_spacing_depth,
+                          maximum_Δz,
+                          stretching;
+                          rounding_digits)
+end
+
+(g::StretchedFaces)(k) = @inbounds g.faces[k]
+
+Base.length(g::StretchedFaces) = length(g.faces)-1
+
 @inline exponential_profile(z, L, h) = @. expm1((z + L) / h) / expm1(L / h)
 
-struct ExponentialFaces{FT}
+struct ExponentialFaces{FT} <: Function
     size :: Int
     extent :: FT
     scale :: FT
 
-    function ExponentialFaces(size::Int, extent, scale)
+    @doc """
+        ExponentialFaces(size::Int, extent; scale=extent/5)
+
+    Return a type that describes a one-dimensional coordinate with `N+1` faces (i.e., `N` cells) that
+    are exponentially spaced (or, equivalently, with spacings that grow linearly with depth)
+    with `extent`. The coordinate spans `[-depth, 0]`. The exponential scaling is controlled by
+    keyword argument `scale` (default: `extent/5`).
+    """
+    function ExponentialFaces(size::Int, extent; scale=extent/5)
         FT = typeof(scale)
         return new{FT}(size, extent, scale)
     end
 end
 
-"""
-    exponential_vertical_faces(; Nz, depth, scale=depth/5)
+Base.summary(g::ExponentialFaces) = "ExponentialFaces"
 
-Return a type that describes a one-dimensional vertical grid with faces that are exponentially
-spaced (or, equivalently, with spacings that grow linearly with depth) that has `Nz` cells,
-goes down to `depth`, and the exponential scaling is controlled by `scale`.
-"""
-exponential_vertical_faces(; Nz, depth, scale=depth/5) = ExponentialFaces(Nz, depth, scale)
+function Base.show(io::IO, g::ExponentialFaces)
+    print(io, summary(g), '\n')
+    print(io, "├── size: ", prettysummary(g.size), '\n')
+    print(io, "├── extent: ", prettysummary(g.extent), '\n')
+    print(io, "└── scale: ", prettysummary(g.scale), '\n')
+end
 
-function z_faces(zgrid::ExponentialFaces; rounding_digits = 2)
+function (g::ExponentialFaces)(k)
+    Nz = g.size
+    depth, scale = g.extent, g.scale
 
-    if rounding_digits ≥ 6
-        @warn "rounding_digits = $(rounding_digits) seems excessive. It's beyond Float32 accuracy. Reducing rounding_digits to 5."
-        rounding_digits=5
-    end
-
-    Nz = zgrid.size
-    depth, scale = zgrid.extent, zgrid.scale
-
-    k = collect(1:Nz+1)
     scale_index = Nz * scale / depth
-    z_faces = exponential_profile.(k, Nz, scale_index)
+
+    ztop = exponential_profile(1, Nz, scale_index)
+    zbottom = exponential_profile(Nz+1, Nz, scale_index)
+
+    # use reverse index so that, e.g., k = Nz + 1 corresponds to the top
+    z = exponential_profile(Nz+2-k, Nz, scale_index)
 
     # Normalize
-    z_faces .-= z_faces[1]
-    z_faces .*= - depth / z_faces[end]
+    z -= ztop
+    z *= - depth / (zbottom - ztop)
 
-    if abs(z_faces[1]) < 10eps(Float32)
-        z_faces[1] = 0.0
+    if abs(z[1]) < 10eps(Float32)
+        z = 0.0
     end
 
-    if abs(z_faces[end] + depth) < 10eps(Float32)
-        z_faces[end] = - depth
+    if abs(z + depth) < 10eps(Float32)
+        z = - depth
     end
 
-    @. z_faces = round(z_faces, digits=rounding_digits)
-
-    return reverse(z_faces)
+    return z
 end
 
 # Vertical grid with 49 levels.
