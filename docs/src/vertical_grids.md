@@ -58,7 +58,7 @@ using ClimaOcean
 Nz = 10
 depth = 1000
 
-z = ExponentialFaces(Nz, depth; scale)
+z = ExponentialFaces(Nz, depth)
 ```
 
 The above returns a callable object which gives that ``k``-th face, e.g.,
