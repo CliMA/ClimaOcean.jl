@@ -13,7 +13,7 @@ z \mapsto w(z) = - L \frac{\exp{(-z / h)} - 1}{\exp{(L / h)} - 1}
 
 The exponential mapping above implies that the vertical spacings grow linearly with depth at a rate inversely proportional to ``h / L``, with the smallest spacing being near the surface.
 
-At the limit ``h / L \to \infty`` the mapping reduces to ``z \mapsto 1 + z / L`` and thus the grid becomes uniformly spaced.
+At the limit ``h / L \to \infty`` the mapping reduces to identity (``w \to z``) and thus the grid becomes uniformly spaced.
 
 
 ```@setup vgrids
