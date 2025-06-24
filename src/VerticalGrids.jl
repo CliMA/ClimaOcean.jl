@@ -36,12 +36,12 @@ struct StretchedInterfaces{FT, S, A} <: Function
     faces :: A
 
     function StretchedInterfaces(extent,
-                            top_layer_minimum_spacing,
-                            top_layer_height,
-                            constant_bottom_spacing_depth,
-                            maximum_spacing,
-                            stretching;
-                            rounding_digits=2)
+                                 top_layer_minimum_spacing,
+                                 top_layer_height,
+                                 constant_bottom_spacing_depth,
+                                 maximum_spacing,
+                                 stretching;
+                                 rounding_digits=2)
 
         z_faces = calculate_stretched_faces(; extent,
                                             top_layer_minimum_spacing,
@@ -50,7 +50,6 @@ struct StretchedInterfaces{FT, S, A} <: Function
                                             maximum_spacing,
                                             stretching,
                                             rounding_digits)
-
         FT = typeof(extent/2)
         S = typeof(stretching)
         A = typeof(z_faces)
@@ -97,12 +96,12 @@ end
 
 """
     StretchedInterfaces(; depth = 5000,
-                   surface_layer_Δz = 5.0,
-                   surface_layer_height = 100.0,
-                   constant_bottom_spacing_depth = Inf,
-                   maximum_spacing = Inf,
-                   stretching = PowerLawStretching(1.02),
-                   rounding_digits = 2)
+                        surface_layer_Δz = 5.0,
+                        surface_layer_height = 100.0,
+                        constant_bottom_spacing_depth = Inf,
+                        maximum_spacing = Inf,
+                        stretching = PowerLawStretching(1.02),
+                        rounding_digits = 2)
 
 Return a type that describes a one-dimensional grid with `surface_layer_Δz` spacing
 in a surface layer of extent `surface_layer_height`, and stretched according to
@@ -112,30 +111,30 @@ The interfaces extend from `depth = -z[1]` to `0 = z[end]`, where `Lz ≥ depth`
 The grid spacing `Δz` is limited to be less than `maximum_Δz`.
 The grid is also uniformly-spaced below `constant_bottom_spacing_depth`.
 
-`rounding_digits` controls the accuracy with which the grid face positions are saved.
+`rounding_digits` controls the accuracy with which the grid interface positions are saved.
 """
 function StretchedInterfaces(; depth = 5000,
-                        surface_layer_Δz = 5.0,
-                        surface_layer_height = 100.0,
-                        constant_bottom_spacing_depth = Inf,
-                        maximum_Δz = Inf,
-                        stretching = PowerLawStretching(1.02),
-                        rounding_digits = 2)
+                             surface_layer_Δz = 5.0,
+                             surface_layer_height = 100.0,
+                             constant_bottom_spacing_depth = Inf,
+                             maximum_Δz = Inf,
+                             stretching = PowerLawStretching(1.02),
+                             rounding_digits = 2)
 
     return StretchedInterfaces(depth,
-                          surface_layer_Δz,
-                          surface_layer_height,
-                          constant_bottom_spacing_depth,
-                          maximum_Δz,
-                          stretching;
-                          rounding_digits)
+                               surface_layer_Δz,
+                               surface_layer_height,
+                               constant_bottom_spacing_depth,
+                               maximum_Δz,
+                               stretching;
+                               rounding_digits)
 end
 
 (g::StretchedInterfaces)(k) = @inbounds g.faces[k]
 
 Base.length(g::StretchedInterfaces) = length(g.faces)-1
 
-@inline exponential_profile(z, L, h) = @. expm1((z + L) / h) / expm1(L / h)
+@inline exponential_profile(z, L, h) = @. - L * expm1(- z/ h) / expm1(L / h)
 
 struct ExponentialInterfaces{FT} <: Function
     size :: Int
@@ -171,11 +170,10 @@ function (g::ExponentialInterfaces)(k)
 
     scale_index = Nz * scale / depth
 
-    ztop = exponential_profile(1, Nz, scale_index)
-    zbottom = exponential_profile(Nz+1, Nz, scale_index)
+    zbottom = exponential_profile(1, Nz, scale_index)
+    ztop = exponential_profile(Nz+1, Nz, scale_index)
 
-    # use reverse index so that, e.g., k = Nz + 1 corresponds to the top
-    z = exponential_profile(Nz+2-k, Nz, scale_index)
+    z = exponential_profile(k, Nz, scale_index)
 
     # Normalize
     z -= ztop
