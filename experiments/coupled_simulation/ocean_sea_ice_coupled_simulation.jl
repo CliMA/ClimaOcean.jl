@@ -19,8 +19,8 @@ arch = CPU()
 depth = 1000meters
 Nz    = 10
 
-vertical_grid = exponential_vertical_faces(; Nz, depth, scale=0.3*depth)
-z = MutableVerticalDiscretization(z_faces(vertical_grid))
+z = ExponentialFaces(Nz, depth; scale=0.3*depth)
+z = MutableVerticalDiscretization([z(k) for k in 1:Nz+1])
 
 Nx = 256 # longitudinal direction -> 250 points is about 1.5ᵒ resolution
 Ny = 128 # meridional direction -> same thing, 48 points is about 1.5ᵒ resolution

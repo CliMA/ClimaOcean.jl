@@ -35,13 +35,12 @@ Ny = 600
 Nz = 40
 
 depth = 6000meters
-vertical_grid = exponential_vertical_faces(; Nz, depth)
-z = z_faces(vertical_grid)
+z = ExponentialFaces(Nz, depth)
 
 grid = LatitudeLongitudeGrid(arch;
                              size = (Nx, Ny, Nz),
                              halo = (7, 7, 7),
-                             z = z,
+                             z,
                              latitude  = (-75, 75),
                              longitude = (0, 360))
 

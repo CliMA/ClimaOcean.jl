@@ -15,8 +15,9 @@ CUDA.device!(1)
 arch = GPU()
 
 depth = 2000meters
-vertical_grid = exponential_vertical_faces(; Nz=30, depth, scale=depth/3)
-z = MutableVerticalDiscretization(z_faces(vertical_grid))
+Nz = 30
+z = ExponentialFaces(Nz, depth; scale=depth/3)
+z = MutableVerticalDiscretization([z(k) for k in 1:Nz+1])
 
 Nx = 180 # longitudinal direction -> 250 points is about 1.5ᵒ resolution
 Ny = 180 # meridional direction -> same thing, 48 points is about 1.5ᵒ resolution
