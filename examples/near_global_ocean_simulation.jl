@@ -35,7 +35,7 @@ Ny = 600
 Nz = 40
 
 depth = 6000meters
-z = ExponentialFaces(Nz, depth)
+z = ExponentialInterfaces(Nz, depth)
 
 grid = LatitudeLongitudeGrid(arch;
                              size = (Nx, Ny, Nz),

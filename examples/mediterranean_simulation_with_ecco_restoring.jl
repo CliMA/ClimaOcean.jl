@@ -35,16 +35,16 @@ using Dates
 λ₁, λ₂  = ( 0, 42) # domain in longitude
 φ₁, φ₂  = (30, 45) # domain in latitude
 
-z = StretchedFaces(; depth = 5000,
+z = StretchedInterfaces(; depth = 5000,
                    surface_layer_Δz = 2.5,
                    stretching = PowerLawStretching(1.070),
                    surface_layer_height = 50)
 
-Nx = 15 * Int(λ₂ - λ₁) # 1/15 th of a degree resolution
+Nx = 15 * Int(λ₂ - λ₁) # 1/1G5 th of a degree resolution
 Ny = 15 * Int(φ₂ - φ₁) # 1/15 th of a degree resolution
 Nz = length(z)
 
-grid = LatitudeLongitudeGrid(GPU();
+grid = LatitudeLongitudeGrid(PU();
                              size = (Nx, Ny, Nz),
                              latitude  = (φ₁, φ₂),
                              longitude = (λ₁, λ₂),

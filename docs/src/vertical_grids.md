@@ -4,7 +4,7 @@ A few vertical grids are implemented within the [VerticalGrids](@ref ClimaOcean.
 
 ### Exponential spacing
 
-The [`ExponentialFaces`](@ref) method returns a vertical grid with faces at depths following an exponential profile.
+The [`ExponentialInterfaces`](@ref) method returns a vertical grid with faces at depths following an exponential profile.
 The faces are distributed in the range ``[-L, 0]`` using the scaling
 
 ```math
@@ -50,7 +50,7 @@ axislegend(ax, position=:rb)
 fig
 ```
 
-Let's see how [`ExponentialFaces`](@ref) works:
+Let's see how [`ExponentialInterfaces`](@ref) works:
 
 ```@example vgrids
 using ClimaOcean
@@ -58,7 +58,7 @@ using ClimaOcean
 Nz = 10
 depth = 1000
 
-z = ExponentialFaces(Nz, depth)
+z = ExponentialInterfaces(Nz, depth)
 ```
 
 The above returns a callable object which gives that ``k``-th face, e.g.,
@@ -78,7 +78,7 @@ Nz = 10
 depth = 1000
 
 scale = depth / 5
-z = ExponentialFaces(Nz, depth; scale)
+z = ExponentialInterfaces(Nz, depth; scale)
 grid = RectilinearGrid(; size=Nz, z, topology=(Flat, Flat, Bounded))
 zf = znodes(grid, Face())
 zc = znodes(grid, Center())
@@ -105,7 +105,7 @@ hidespines!(axz1)
 
 
 scale = depth / 2
-z = ExponentialFaces(Nz, depth; scale)
+z = ExponentialInterfaces(Nz, depth; scale)
 grid = RectilinearGrid(; size=Nz, z, topology=(Flat, Flat, Bounded))
 zf = znodes(grid, Face())
 zc = znodes(grid, Center())
@@ -141,7 +141,7 @@ But with the larger ``h / L`` is, the smaller the rate is that the spacings incr
 A ridiculously large value of ``h / L`` (approximating infinity) gives a uniform grid:
 
 ```@example vgrids
-z = ExponentialFaces(Nz, depth, scale = 1e20*depth)
+z = ExponentialInterfaces(Nz, depth, scale = 1e20*depth)
 [z(k) for k in 1:Nz+1]
 ```
 
@@ -150,7 +150,7 @@ To prescribe the surface spacing we need to play around with the scale ``h`` and
 
 ### Stretched ``z`` faces
 
-The [`stretched_vertical_faces`](@ref) method allows a tighter control on the vertical spacing at the surface.
+The [`StretchedInterfaces`](@ref) method allows a tighter control on the vertical spacing at the surface.
 That is, we can prescribe a constant spacing over the top `surface_layer_height`  below which the grid spacing
 increases following a prescribed stretching law.
 The downside is that neither the final grid depth nor the total number of vertical cells can be prescribed.
@@ -166,7 +166,7 @@ depth = 750
 surface_layer_Δz = 20
 surface_layer_height = 120
 
-z = StretchedFaces(; depth,
+z = StretchedInterfaces(; depth,
                    surface_layer_Δz,
                    surface_layer_height,
                    stretching = PowerLawStretching(1.08))
@@ -197,7 +197,7 @@ hidedecorations!(axz1)
 hidespines!(axz1)
 
 
-z = StretchedFaces(; depth,
+z = StretchedInterfaces(; depth,
                    surface_layer_Δz,
                    surface_layer_height,
                    stretching = PowerLawStretching(1.04))
@@ -225,7 +225,7 @@ hidedecorations!(axz2)
 hidespines!(axz2)
 
 
-z = StretchedFaces(; depth,
+z = StretchedInterfaces(; depth,
                    surface_layer_Δz,
                    surface_layer_height,
                    stretching = PowerLawStretching(1.04),

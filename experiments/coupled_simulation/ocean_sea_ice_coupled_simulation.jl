@@ -19,7 +19,7 @@ arch = CPU()
 depth = 1000meters
 Nz    = 10
 
-z = ExponentialFaces(Nz, depth; scale=0.3*depth)
+z = ExponentialInterfaces(Nz, depth; scale=0.3*depth)
 z = MutableVerticalDiscretization([z(k) for k in 1:Nz+1])
 
 Nx = 256 # longitudinal direction -> 250 points is about 1.5ᵒ resolution

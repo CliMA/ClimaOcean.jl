@@ -16,7 +16,7 @@ arch = GPU()
 
 depth = 2000meters
 Nz = 30
-z = ExponentialFaces(Nz, depth; scale=depth/3)
+z = ExponentialInterfaces(Nz, depth; scale=depth/3)
 z = MutableVerticalDiscretization([z(k) for k in 1:Nz+1])
 
 Nx = 180 # longitudinal direction -> 250 points is about 1.5ᵒ resolution

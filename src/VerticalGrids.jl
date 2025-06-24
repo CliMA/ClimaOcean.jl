@@ -3,8 +3,8 @@ Implementation of several vertical grid options.
 """
 module VerticalGrids
 
-export ExponentialFaces,
-       StretchedFaces,
+export ExponentialInterfaces,
+       StretchedInterfaces,
        PowerLawStretching,
        LinearStretching
 
@@ -26,7 +26,7 @@ function (stretching::LinearStretching)(Δz, z)
     return (1 + c) * Δz
 end
 
-struct StretchedFaces{FT, S, A} <: Function
+struct StretchedInterfaces{FT, S, A} <: Function
     extent :: FT
     top_layer_minimum_spacing :: FT
     top_layer_height :: FT
@@ -35,7 +35,7 @@ struct StretchedFaces{FT, S, A} <: Function
     stretching :: S
     faces :: A
 
-    function StretchedFaces(extent,
+    function StretchedInterfaces(extent,
                             top_layer_minimum_spacing,
                             top_layer_height,
                             constant_bottom_spacing_depth,
@@ -96,7 +96,7 @@ function calculate_stretched_faces(; extent = 5000,
 end
 
 """
-    StretchedFaces(; depth = 5000,
+    StretchedInterfaces(; depth = 5000,
                    surface_layer_Δz = 5.0,
                    surface_layer_height = 100.0,
                    constant_bottom_spacing_depth = Inf,
@@ -114,7 +114,7 @@ The grid is also uniformly-spaced below `constant_bottom_spacing_depth`.
 
 `rounding_digits` controls the accuracy with which the grid face positions are saved.
 """
-function StretchedFaces(; depth = 5000,
+function StretchedInterfaces(; depth = 5000,
                         surface_layer_Δz = 5.0,
                         surface_layer_height = 100.0,
                         constant_bottom_spacing_depth = Inf,
@@ -122,7 +122,7 @@ function StretchedFaces(; depth = 5000,
                         stretching = PowerLawStretching(1.02),
                         rounding_digits = 2)
 
-    return StretchedFaces(depth,
+    return StretchedInterfaces(depth,
                           surface_layer_Δz,
                           surface_layer_height,
                           constant_bottom_spacing_depth,
@@ -131,41 +131,41 @@ function StretchedFaces(; depth = 5000,
                           rounding_digits)
 end
 
-(g::StretchedFaces)(k) = @inbounds g.faces[k]
+(g::StretchedInterfaces)(k) = @inbounds g.faces[k]
 
-Base.length(g::StretchedFaces) = length(g.faces)-1
+Base.length(g::StretchedInterfaces) = length(g.faces)-1
 
 @inline exponential_profile(z, L, h) = @. expm1((z + L) / h) / expm1(L / h)
 
-struct ExponentialFaces{FT} <: Function
+struct ExponentialInterfaces{FT} <: Function
     size :: Int
     extent :: FT
     scale :: FT
 
     @doc """
-        ExponentialFaces(size::Int, extent; scale=extent/5)
+        ExponentialInterfaces(size::Int, extent; scale=extent/5)
 
     Return a type that describes a one-dimensional coordinate with `N+1` faces (i.e., `N` cells) that
     are exponentially spaced (or, equivalently, with spacings that grow linearly with depth)
     with `extent`. The coordinate spans `[-depth, 0]`. The exponential scaling is controlled by
     keyword argument `scale` (default: `extent/5`).
     """
-    function ExponentialFaces(size::Int, extent; scale=extent/5)
+    function ExponentialInterfaces(size::Int, extent; scale=extent/5)
         FT = typeof(scale)
         return new{FT}(size, extent, scale)
     end
 end
 
-Base.summary(g::ExponentialFaces) = "ExponentialFaces"
+Base.summary(g::ExponentialInterfaces) = "ExponentialInterfaces"
 
-function Base.show(io::IO, g::ExponentialFaces)
+function Base.show(io::IO, g::ExponentialInterfaces)
     print(io, summary(g), '\n')
     print(io, "├── size: ", prettysummary(g.size), '\n')
     print(io, "├── extent: ", prettysummary(g.extent), '\n')
     print(io, "└── scale: ", prettysummary(g.scale), '\n')
 end
 
-function (g::ExponentialFaces)(k)
+function (g::ExponentialInterfaces)(k)
     Nz = g.size
     depth, scale = g.extent, g.scale
 
