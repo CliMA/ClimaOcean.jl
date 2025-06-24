@@ -165,29 +165,22 @@ function Base.show(io::IO, g::ExponentialInterfaces)
 end
 
 function (g::ExponentialInterfaces)(k)
-    Nz = g.size
-    depth, scale = g.extent, g.scale
+    Nz, depth, scale = g.size, g.extent, g.scale
 
-    scale_index = Nz * scale / depth
+    uniform_coord = -depth + (k-1) * depth / Nz
 
-    zbottom = exponential_profile(1, Nz, scale_index)
-    ztop = exponential_profile(Nz+1, Nz, scale_index)
+    # mapped coordinate
+    zₖ = exponential_profile(uniform_coord, depth, scale)
 
-    z = exponential_profile(k, Nz, scale_index)
-
-    # Normalize
-    z -= ztop
-    z *= - depth / (zbottom - ztop)
-
-    if abs(z[1]) < 10eps(Float32)
-        z = 0.0
+    if abs(zₖ) < 10eps(Float32)
+        zₖ = 0.0
     end
 
-    if abs(z + depth) < 10eps(Float32)
-        z = - depth
+    if abs(zₖ + depth) < 10eps(Float32)
+        zₖ = - depth
     end
 
-    return z
+    return zₖ
 end
 
 # Vertical grid with 49 levels.
