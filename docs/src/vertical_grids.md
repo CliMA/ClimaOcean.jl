@@ -143,7 +143,8 @@ z = ExponentialInterfaces(Nz, depth, scale = 1e12*depth)
 [z(k) for k in 1:Nz+1]
 ```
 
-A downside of the above ais that we don't have tight control on the minimum spacing at the surface.
+A downside of [`ExponentialInterfaces`](@ref) is that we don't have tight control on the minimum
+spacing at the surface.
 To prescribe the surface spacing we need to play around with the scale ``h`` and the number of vertical cells ``N_z``.
 
 ### Stretched ``z`` faces
@@ -151,12 +152,12 @@ To prescribe the surface spacing we need to play around with the scale ``h`` and
 The [`StretchedInterfaces`](@ref) method allows a tighter control on the vertical spacing at the surface.
 That is, we can prescribe a constant spacing over the top `surface_layer_height`  below which the grid spacing
 increases following a prescribed stretching law.
-The downside is that neither the final grid depth nor the total number of vertical cells can be prescribed.
-The final depth we get is greater or equal from what we prescribed via the keyword argument `depth`
-and also the total number of faces depends on the stretching law.
+The downside here is that neither the final grid depth nor the total number of vertical cells can be prescribed.
+The final depth we get is greater or equal from what we prescribe via the keyword argument `depth`.
+Also, the total number of cells we end up with depends on the stretching law.
 
 The three grids below have constant 20-meter spacing for the top 120 meters.
-We prescribe to all `depth = 750` meters and we apply power-law stretching for depths below 120 meters.
+We prescribe to all three a `depth = 750` meters and we apply power-law stretching for depths below 120 meters.
 The bigger the power-law stretching factor is, the further the last face goes beyond the prescribed depth and/or with less total number of cells.
 
 ```@example vgrids
