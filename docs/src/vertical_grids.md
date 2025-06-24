@@ -4,7 +4,7 @@ A few vertical grids are implemented within the [VerticalGrids](@ref ClimaOcean.
 
 ### Exponential spacing
 
-The [`exponential_vertical_faces`](@ref) method returns a vertical grid with an exponentially growing spacing.
+The [`ExponentialFaces`](@ref) method returns a vertical grid with faces at depths following an exponential profile.
 The faces are distributed in the range ``[-L, 0]`` using the scaling
 
 ```math
@@ -50,8 +50,7 @@ axislegend(ax, position=:rb)
 fig
 ```
 
-To showcase how the scale ``h`` affects the grid, we construct below two such exponential grids,
-one with ``h / L = 1/5`` and the second with ``h / L = 1/2``.
+Let's see how [`ExponentialFaces`](@ref) works:
 
 ```@example vgrids
 using ClimaOcean
@@ -59,11 +58,32 @@ using ClimaOcean
 Nz = 10
 depth = 1000
 
+z = ExponentialFaces(Nz, depth; scale)
+```
+
+The above returns a callable object which gives that ``k``-th face, e.g.,
+
+```@example vgrids
+[z(k) for k in 1:Nz+1]
+```
+
+To showcase how the scale ``h`` affects the grid, we construct below two such exponential grids,
+one with ``h / L = 1/5`` and the second with ``h / L = 1/2``.
+
+```@example vgrids
+using ClimaOcean
+using Oceananigans
+
+Nz = 10
+depth = 1000
+
 scale = depth / 5
-zgrid = exponential_vertical_faces(; Nz, depth, scale)
-zf = z_faces(zgrid)
-zc = z_centers(zgrid)
-Δz = diff(zf)           # spacing between z-faces
+z = ExponentialFaces(Nz, depth; scale)
+grid = RectilinearGrid(; size=Nz, z, topology=(Flat, Flat, Bounded))
+zf = znodes(grid, Face())
+zc = znodes(grid, Center())
+Δz = zspacings(grid, Center())
+Δz = view(Δz, 1, 1, :)  # for plotting
 
 using CairoMakie
 
@@ -85,10 +105,12 @@ hidespines!(axz1)
 
 
 scale = depth / 2
-zgrid = exponential_vertical_faces(; Nz, depth, scale)
-zf = z_faces(zgrid)
-zc = z_centers(zgrid)
-Δz = diff(zf)           # spacing between z-faces
+z = ExponentialFaces(Nz, depth; scale)
+grid = RectilinearGrid(; size=Nz, z, topology=(Flat, Flat, Bounded))
+zf = znodes(grid, Face())
+zc = znodes(grid, Center())
+Δz = zspacings(grid, Center())
+Δz = view(Δz, 1, 1, :)  # for plotting
 
 axΔz2 = Axis(fig[1, 3]; xlabel = "z-spacing (m)", ylabel = "z (m)", title = "scale = depth / 2")
 axz2 = Axis(fig[1, 4])
@@ -119,8 +141,8 @@ But with the larger ``h / L`` is, the smaller the rate is that the spacings incr
 A ridiculously large value of ``h / L`` (approximating infinity) gives a uniform grid:
 
 ```@example vgrids
-zgrid = exponential_vertical_faces(; Nz, depth, scale = 1e20*depth)
-z_faces(zgrid)
+z = ExponentialFaces(Nz, depth, scale = 1e20*depth)
+[z(k) for k in 1:Nz+1]
 ```
 
 A downside of the above ais that we don't have tight control on the minimum spacing at the surface.
@@ -144,13 +166,15 @@ depth = 750
 surface_layer_Δz = 20
 surface_layer_height = 120
 
-zgrid = stretched_vertical_faces(; depth,
-                                 surface_layer_Δz,
-                                 surface_layer_height,
-                                 stretching = PowerLawStretching(1.08))
-zf = z_faces(zgrid)
-zc = z_centers(zgrid)
-Δz = diff(zf)           # spacing between z-faces
+z = StretchedFaces(; depth,
+                   surface_layer_Δz,
+                   surface_layer_height,
+                   stretching = PowerLawStretching(1.08))
+grid = RectilinearGrid(; size=length(z), z, topology=(Flat, Flat, Bounded))
+zf = znodes(grid, Face())
+zc = znodes(grid, Center())
+Δz = zspacings(grid, Center())
+Δz = view(Δz, 1, 1, :)  # for plotting
 
 fig = Figure(size=(800, 550))
 
@@ -173,13 +197,15 @@ hidedecorations!(axz1)
 hidespines!(axz1)
 
 
-zgrid = stretched_vertical_faces(; depth,
-                                 surface_layer_Δz,
-                                 surface_layer_height,
-                                 stretching = PowerLawStretching(1.04))
-zf = z_faces(zgrid)
-zc = z_centers(zgrid)
-Δz = diff(zf)           # spacing between z-faces
+z = StretchedFaces(; depth,
+                   surface_layer_Δz,
+                   surface_layer_height,
+                   stretching = PowerLawStretching(1.04))
+grid = RectilinearGrid(; size=length(z), z, topology=(Flat, Flat, Bounded))
+zf = znodes(grid, Face())
+zc = znodes(grid, Center())
+Δz = zspacings(grid, Center())
+Δz = view(Δz, 1, 1, :)  # for plotting
 
 axΔz2 = Axis(fig[1, 3];
              xlabel = "z-spacing (m)",
@@ -199,14 +225,16 @@ hidedecorations!(axz2)
 hidespines!(axz2)
 
 
-zgrid = stretched_vertical_faces(; depth,
-                                 surface_layer_Δz,
-                                 surface_layer_height,
-                                 stretching = PowerLawStretching(1.04),
-                                 constant_bottom_spacing_depth = 500)
-zf = z_faces(zgrid)
-zc = z_centers(zgrid)
-Δz = diff(zf)           # spacing between z-faces
+z = StretchedFaces(; depth,
+                   surface_layer_Δz,
+                   surface_layer_height,
+                   stretching = PowerLawStretching(1.04),
+                   constant_bottom_spacing_depth = 500)
+grid = RectilinearGrid(; size=length(z), z, topology=(Flat, Flat, Bounded))
+zf = znodes(grid, Face())
+zc = znodes(grid, Center())
+Δz = zspacings(grid, Center())
+Δz = view(Δz, 1, 1, :)  # for plotting
 
 axΔz3 = Axis(fig[1, 5];
              xlabel = "z-spacing (m)",
