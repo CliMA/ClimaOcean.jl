@@ -5,17 +5,15 @@ A few vertical grids are implemented within the [VerticalGrids](@ref ClimaOcean.
 ### Exponential spacing
 
 The [`ExponentialInterfaces`](@ref) method returns a vertical grid with faces at depths following an exponential profile.
-The faces are distributed in the range ``[-L, 0]`` using the scaling
+By that, we mean that a uniformly discretized domain in the range ``[-L, 0]`` is mapped back onto itself via
 
 ```math
-\frac{\exp{[(z + L) / h]} - 1}{\exp{(L / h)} - 1}
+z \mapsto w(z) = - L \frac{\exp{(-z / h)} - 1}{\exp{(L / h)} - 1}
 ```
 
-which varies from 0 (at ``z = -L``) to 1 (at the surface, ``z = 0``).
+The exponential mapping above implies that the vertical spacings grow linearly with depth at a rate inversely proportional to ``h / L``, with the smallest spacing being near the surface.
 
-The exponential scaling above implies that the vertical spacings grow linearly with depth at a rate inversely proportional to ``h / L``, with the smallest spacing being near the surface.
-
-At the limit ``h / L \to \infty`` the scaling reduces to ``1 + z/L`` and thus the grid becomes uniformly spaced.
+At the limit ``h / L \to \infty`` the mapping reduces to ``z \mapsto 1 + z / L`` and thus the grid becomes uniformly spaced.
 
 
 ```@setup vgrids
@@ -31,24 +29,24 @@ using ClimaOcean.VerticalGrids: exponential_profile
 using CairoMakie
 
 depth = 1000
-z = range(-depth, stop=0, length=501)
+z  = range(-depth, stop=0, length=501)
+zp = range(-depth, stop=0, length=6) # coarser for plotting
 
 fig = Figure()
-ax = Axis(fig[1, 1], ylabel="z/L")
+ax = Axis(fig[1, 1], xlabel="uniform coordinate z/L", ylabel="mapped coordinate w/L")
 
-scale = depth / 20
-lines!(ax, exponential_profile.(z, depth, scale), z / depth, label="h / L = $(scale / depth)")
-scale = depth / 5
-lines!(ax, exponential_profile.(z, depth, scale), z / depth, label="h / L = $(scale / depth)")
-scale = depth / 2
-lines!(ax, exponential_profile.(z, depth, scale), z / depth, label="h / L = $(scale / depth)")
-scale = 1e20 * depth
-lines!(ax, exponential_profile.(z, depth, scale), z / depth, label="h / L → ∞")
+for scale in [depth/20, depth/5, depth/2, 1e12*depth]
+    lines!(ax, z / depth, exponential_profile.(z, depth, scale) / depth, label="h / L = $(scale / depth)")
+    scatter!(ax, zp / depth, exponential_profile.(zp, depth, scale) / depth)
+end
 
 axislegend(ax, position=:rb)
 
 fig
 ```
+
+Note that the smallest the ratio ``h/L`` is, the more finely-packed are the mapped points near the surface.
+
 
 Let's see how [`ExponentialInterfaces`](@ref) works:
 
@@ -141,7 +139,7 @@ But with the larger ``h / L`` is, the smaller the rate is that the spacings incr
 A ridiculously large value of ``h / L`` (approximating infinity) gives a uniform grid:
 
 ```@example vgrids
-z = ExponentialInterfaces(Nz, depth, scale = 1e20*depth)
+z = ExponentialInterfaces(Nz, depth, scale = 1e12*depth)
 [z(k) for k in 1:Nz+1]
 ```
 
@@ -167,9 +165,9 @@ surface_layer_Δz = 20
 surface_layer_height = 120
 
 z = StretchedInterfaces(; depth,
-                   surface_layer_Δz,
-                   surface_layer_height,
-                   stretching = PowerLawStretching(1.08))
+                        surface_layer_Δz,
+                        surface_layer_height,
+                        stretching = PowerLawStretching(1.08))
 grid = RectilinearGrid(; size=length(z), z, topology=(Flat, Flat, Bounded))
 zf = znodes(grid, Face())
 zc = znodes(grid, Center())
@@ -198,9 +196,9 @@ hidespines!(axz1)
 
 
 z = StretchedInterfaces(; depth,
-                   surface_layer_Δz,
-                   surface_layer_height,
-                   stretching = PowerLawStretching(1.04))
+                        surface_layer_Δz,
+                        surface_layer_height,
+                        stretching = PowerLawStretching(1.04))
 grid = RectilinearGrid(; size=length(z), z, topology=(Flat, Flat, Bounded))
 zf = znodes(grid, Face())
 zc = znodes(grid, Center())
@@ -226,10 +224,10 @@ hidespines!(axz2)
 
 
 z = StretchedInterfaces(; depth,
-                   surface_layer_Δz,
-                   surface_layer_height,
-                   stretching = PowerLawStretching(1.04),
-                   constant_bottom_spacing_depth = 500)
+                        surface_layer_Δz,
+                        surface_layer_height,
+                        stretching = PowerLawStretching(1.04),
+                        constant_bottom_spacing_depth = 500)
 grid = RectilinearGrid(; size=length(z), z, topology=(Flat, Flat, Bounded))
 zf = znodes(grid, Face())
 zc = znodes(grid, Center())
