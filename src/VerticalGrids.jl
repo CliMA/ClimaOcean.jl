@@ -26,12 +26,12 @@ function (stretching::LinearStretching)(Δz, z)
     return (1 + c) * Δz
 end
 
-struct StretchedInterfaces{FT, S, A} <: Function
-    extent :: FT
-    top_layer_minimum_spacing :: FT
-    top_layer_height :: FT
-    constant_bottom_spacing_depth :: FT
-    maximum_spacing :: FT
+struct StretchedInterfaces{S, A} <: Function
+    extent :: Float64
+    top_layer_minimum_spacing :: Float64
+    top_layer_height :: Float64
+    constant_bottom_spacing_depth :: Float64
+    maximum_spacing :: Float64
     stretching :: S
     faces :: A
 
@@ -50,11 +50,10 @@ struct StretchedInterfaces{FT, S, A} <: Function
                                             maximum_spacing,
                                             stretching,
                                             rounding_digits)
-        FT = typeof(extent/2)
         S = typeof(stretching)
         A = typeof(z_faces)
-        return new{FT, S, A}(extent, top_layer_minimum_spacing, top_layer_height,
-                             constant_bottom_spacing_depth, maximum_spacing, stretching, z_faces)
+        return new{S, A}(extent, top_layer_minimum_spacing, top_layer_height,
+                         constant_bottom_spacing_depth, maximum_spacing, stretching, z_faces)
     end
 end
 
@@ -130,54 +129,103 @@ function StretchedInterfaces(; depth = 5000,
                                rounding_digits)
 end
 
-(g::StretchedInterfaces)(k) = @inbounds g.faces[k]
+(g::StretchedInterfaces)(k) = g.faces[k]
 
 Base.length(g::StretchedInterfaces) = length(g.faces)-1
 
-@inline exponential_profile(z, L, h) = @. - L * expm1(- z/ h) / expm1(L / h)
+@inline rightbiased_exponential_mapping(z, l, r, h) = @. r - (r - l) * expm1((r - z) / h) / expm1((r - l) / h)
+@inline leftbiased_exponential_mapping(z, l, r, h)  = @. l + (r - l) * expm1((z - l) / h) / expm1((r - l) / h)
 
-struct ExponentialInterfaces{FT} <: Function
+struct ExponentialInterfaces <: Function
     size :: Int
-    extent :: FT
-    scale :: FT
-
-    @doc """
-        ExponentialInterfaces(size::Int, extent; scale=extent/5)
-
-    Return a type that describes a one-dimensional coordinate with `N+1` faces (i.e., `N` cells) that
-    are exponentially spaced (or, equivalently, with spacings that grow linearly with depth)
-    with `extent`. The coordinate spans `[-depth, 0]`. The exponential scaling is controlled by
-    keyword argument `scale` (default: `extent/5`).
-    """
-    function ExponentialInterfaces(size::Int, extent; scale=extent/5)
-        FT = typeof(scale)
-        return new{FT}(size, extent, scale)
-    end
+    left :: Float64
+    right :: Float64
+    scale :: Float64
+    bias :: Symbol
 end
 
-Base.summary(g::ExponentialInterfaces) = "ExponentialInterfaces"
+"""
+    ExponentialInterfaces(size::Int, left, right=0; scale=(right-left)/5, bias=:right)
 
-function Base.show(io::IO, g::ExponentialInterfaces)
-    print(io, summary(g), '\n')
-    print(io, "├── size: ", prettysummary(g.size), '\n')
-    print(io, "├── extent: ", prettysummary(g.extent), '\n')
-    print(io, "└── scale: ", prettysummary(g.scale), '\n')
-end
+Return a type that describes a one-dimensional coordinate with `N+1` faces (i.e., `N` cells) that
+are exponentially spaced (or, equivalently, with spacings that grow linearly).
+The coordinate spans `[left, right]`. The exponential scaling is controlled by
+keyword argument `scale` (default: `extent/5`). The coordinates are exponentially stacked
+on the `bias`-side of the domain (default: `:right`).
+
+Examples
+========
+
+```jldoctest exponentialinterfaces
+using ClimaOcean
+
+Nz = 10
+left = -1000
+right = 100
+
+z = ExponentialInterfaces(Nz, left, right)
+
+[z(k) for k in 1:Nz+1]
+
+# output
+
+11-element Vector{Float64}:
+ -1000.0
+  -564.247649441104
+  -299.95048878528615
+  -139.64615757253702
+   -42.41666580727582
+    16.55600197663209
+    52.324733072619736
+    74.0195651413529
+    87.17814594835643
+    95.15922864611028
+   100.0
+```
+
+Above, the default `bias` is `:right`. We can get a left-biased grid via:
+
+```jldoctest exponentialinterfaces
+z = ExponentialInterfaces(Nz, left, right, bias=:left)
+
+[z(k) for k in 1:Nz+1]
+
+# output
+
+11-element Vector{Float64}:
+ -1000.0
+  -995.1592286461103
+  -987.1781459483565
+  -974.0195651413529
+  -952.3247330726198
+  -916.556001976632
+  -857.5833341927241
+  -760.353842427463
+  -600.0495112147139
+  -335.75235055889596
+   100.0
+```
+"""
+ExponentialInterfaces(size::Int, left, right=0; scale=(right-left)/5, bias=:right) =
+    ExponentialInterfaces(size, left, right, scale, bias)
 
 function (g::ExponentialInterfaces)(k)
-    Nz, depth, scale = g.size, g.extent, g.scale
+    Nz, left, right, scale = g.size, g.left, g.right, g.scale
 
-    uniform_coord = -depth + (k-1) * depth / Nz
+    # uniform coordinate
+    ξₖ = left + (k-1) * (right - left) / Nz
 
     # mapped coordinate
-    zₖ = exponential_profile(uniform_coord, depth, scale)
-
-    if abs(zₖ) < 10eps(Float32)
-        zₖ = 0.0
+    if g.bias === :right
+       zₖ = rightbiased_exponential_mapping(ξₖ, left, right, scale)
+    elseif g.bias === :left
+       zₖ = leftbiased_exponential_mapping(ξₖ, left, right, scale)
     end
 
-    if abs(zₖ + depth) < 10eps(Float32)
-        zₖ = - depth
+    if abs(zₖ - left) < 10eps(Float32)
+        zₖ = left
+    elseif abs(zₖ - right) < 10eps(Float32)
+        zₖ = right
     end
 
     return zₖ

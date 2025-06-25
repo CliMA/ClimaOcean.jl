@@ -5,15 +5,24 @@ A few vertical grids are implemented within the [VerticalGrids](@ref ClimaOcean.
 ### Exponential spacing
 
 The [`ExponentialInterfaces`](@ref) method returns a vertical grid with faces at depths following an exponential profile.
-By that, we mean that a uniformly discretized domain in the range ``[-L, 0]`` is mapped back onto itself via
+By that, we mean that a uniformly discretized domain in the range ``[a, b]`` is mapped back onto itself via either
 
 ```math
-z \mapsto w(z) = - L \frac{\exp{(-z / h)} - 1}{\exp{(L / h)} - 1}
+z \mapsto w(z) = b - (b - a) \frac{\exp{[(b - z) / h]} - 1}{\exp{[(b - a) / h]} - 1} \quad \text{(right biased)}
 ```
 
-The exponential mapping above implies that the vertical spacings grow linearly with depth at a rate inversely proportional to ``h / L``, with the smallest spacing being near the surface.
+or
 
-At the limit ``h / L \to \infty`` the mapping reduces to identity (``w \to z``) and thus the grid becomes uniformly spaced.
+```math
+z \mapsto w(z) = a + (b - a) \frac{\exp{[(z - a) / h]} - 1}{\exp{[(b - a) / h]} - 1} \quad \text{(left biased)}
+```
+
+The exponential mappings above implies that the vertical spacings grow linearly with depth at a rate inversely proportional to ``h / (b - a)``.
+
+The former biases the interfaces towards ``b`` while the latter biases them towards ``a``.
+For oceanographic purposes, the right-biased exponential mapping is relevant as, usually, we want to have finer vertical resolution closer to the ocean's surface.
+
+At the limit ``h / (b - a) \to \infty`` both mappings reduce to identity (``w \to z``) and thus the grid becomes uniformly spaced.
 
 
 ```@setup vgrids
@@ -24,20 +33,26 @@ CairoMakie.activate!(type="svg")
 
 ```@example vgrids
 using ClimaOcean
-using ClimaOcean.VerticalGrids: exponential_profile
+using ClimaOcean.VerticalGrids: rightbiased_exponential_mapping
 
 using CairoMakie
 
 depth = 1000
-z  = range(-depth, stop=0, length=501)
-zp = range(-depth, stop=0, length=6) # coarser for plotting
+
+zb = - depth
+zt = 0
+z  = range(zb, stop=zt, length=501)
+zp = range(zb, stop=zt, length=6) # coarser for plotting
 
 fig = Figure()
-ax = Axis(fig[1, 1], xlabel="uniform coordinate z/L", ylabel="mapped coordinate w/L")
+ax = Axis(fig[1, 1],
+          xlabel="uniform coordinate z / (b-a)",
+          ylabel="mapped coordinate w / (b-a)",
+          title="right biased map")
 
 for scale in [depth/20, depth/5, depth/2, 1e12*depth]
-    lines!(ax, z / depth, exponential_profile.(z, depth, scale) / depth, label="h / L = $(scale / depth)")
-    scatter!(ax, zp / depth, exponential_profile.(zp, depth, scale) / depth)
+    lines!(ax, z / depth, rightbiased_exponential_mapping.(z, zb, zt, scale) / depth, label="h / (b-a) = $(scale / depth)")
+    scatter!(ax, zp / depth, rightbiased_exponential_mapping.(zp, zb, zt, scale) / depth)
 end
 
 axislegend(ax, position=:rb)
@@ -45,7 +60,7 @@ axislegend(ax, position=:rb)
 fig
 ```
 
-Note that the smallest the ratio ``h/L`` is, the more finely-packed are the mapped points near the surface.
+Note that the smallest the ratio ``h / (b-a)`` is, the more finely-packed are the mapped points towards the right or left side of the domain.
 
 
 Let's see how [`ExponentialInterfaces`](@ref) works:
@@ -55,8 +70,9 @@ using ClimaOcean
 
 Nz = 10
 depth = 1000
+zb = -depth
 
-z = ExponentialInterfaces(Nz, depth)
+z = ExponentialInterfaces(Nz, -depth)
 ```
 
 The above returns a callable object which gives that ``k``-th face, e.g.,
@@ -76,7 +92,7 @@ Nz = 10
 depth = 1000
 
 scale = depth / 5
-z = ExponentialInterfaces(Nz, depth; scale)
+z = ExponentialInterfaces(Nz, -depth; scale)
 grid = RectilinearGrid(; size=Nz, z, topology=(Flat, Flat, Bounded))
 zf = znodes(grid, Face())
 zc = znodes(grid, Center())
@@ -103,7 +119,7 @@ hidespines!(axz1)
 
 
 scale = depth / 2
-z = ExponentialInterfaces(Nz, depth; scale)
+z = ExponentialInterfaces(Nz, -depth; scale)
 grid = RectilinearGrid(; size=Nz, z, topology=(Flat, Flat, Bounded))
 zf = znodes(grid, Face())
 zc = znodes(grid, Center())
