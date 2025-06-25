@@ -111,6 +111,33 @@ The grid spacing `Δz` is limited to be less than `maximum_Δz`.
 The grid is also uniformly-spaced below `constant_bottom_spacing_depth`.
 
 `rounding_digits` controls the accuracy with which the grid interface positions are saved.
+
+Example
+=======
+
+```jldoctest stretchedinterfaces
+using ClimaOcean
+
+z = StretchedInterfaces(depth = 200,
+                        surface_layer_Δz = 20.0,
+                        surface_layer_height = 100.0)
+
+[z(k) for k in 1:length(z)+1]
+
+# output
+
+10-element Vector{Float64}:
+ -200.74
+ -173.42
+ -147.82
+ -123.8
+ -101.23
+  -80.0
+  -60.0
+  -40.0
+  -20.0
+   -0.0
+```
 """
 function StretchedInterfaces(; depth = 5000,
                              surface_layer_Δz = 5.0,
@@ -147,11 +174,21 @@ end
 """
     ExponentialInterfaces(size::Int, left, right=0; scale=(right-left)/5, bias=:right)
 
-Return a type that describes a one-dimensional coordinate with `N+1` faces (i.e., `N` cells) that
+Return a type that describes a one-dimensional coordinate with `N + 1` faces (i.e., `N` cells) that
 are exponentially spaced (or, equivalently, with spacings that grow linearly).
-The coordinate spans `[left, right]`. The exponential scaling is controlled by
-keyword argument `scale` (default: `extent/5`). The coordinates are exponentially stacked
-on the `bias`-side of the domain (default: `:right`).
+The coordinate spans `[left, right]`. The exponential e-folding is controlled by `scale`.
+The coordinate interfaces are stacked on the `bias`-side of the domain.
+
+Arguments
+=========
+- `size`: The number of cells in the coordinate.
+- `left`: The left-most interface of the coordinate.
+- `right`: The right-most interface of the coordinate. Default: 0.
+
+Keyword Arguments
+=================
+- `scale` :: The length scale of the exponential e-folding. Default: `(right - left) / 5`
+- `bias :: Symbol`: Determine whether left or right biased. Default: `:right`.
 
 Examples
 ========
