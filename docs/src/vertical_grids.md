@@ -17,7 +17,8 @@ or
 z \mapsto w(z) = a + (b - a) \frac{\exp{[(z - a) / h]} - 1}{\exp{[(b - a) / h]} - 1} \quad \text{(left biased)}
 ```
 
-The exponential mappings above implies that the vertical spacings grow linearly at a rate inversely proportional to ``h / (b - a)``.
+The exponential mappings above have an e-folding controlled by scale ``h``.
+Furthermore, it worths noting that the exponential maps impy that the cell widths (distance between interfaces) grow linearly at a rate inversely proportional to ``h / (b - a)``.
 
 The right-biased map biases the interfaces towards ``b`` while the left-biased map biases the interfaces towards ``a``.
 
@@ -35,7 +36,7 @@ CairoMakie.activate!(type="svg")
 
 ```@example vgrids
 using ClimaOcean
-using ClimaOcean.VerticalGrids: rightbiased_exponential_mapping
+using ClimaOcean.VerticalGrids: rightbiased_exponential_mapping, leftbiased_exponential_mapping
 
 using CairoMakie
 
@@ -46,45 +47,57 @@ zt = 0
 z  = range(zb, stop=zt, length=501)
 zp = range(zb, stop=zt, length=6) # coarser for plotting
 
-fig = Figure()
-ax = Axis(fig[1, 1],
+fig = Figure(size=(800, 350))
+ax1 = Axis(fig[1, 1],
           xlabel="uniform coordinate z / (b-a)",
           ylabel="mapped coordinate w / (b-a)",
           title="right biased map")
+ax2 = Axis(fig[1, 2],
+          xlabel="uniform coordinate z / (b-a)",
+          ylabel="mapped coordinate w / (b-a)",
+          title="left biased map")
 
 for scale in [depth/20, depth/5, depth/2, 1e12*depth]
-    lines!(ax, z / depth, rightbiased_exponential_mapping.(z, zb, zt, scale) / depth, label="h / (b-a) = $(scale / depth)")
-    scatter!(ax, zp / depth, rightbiased_exponential_mapping.(zp, zb, zt, scale) / depth)
+    lines!(ax1, z / depth, leftbiased_exponential_mapping.(z, zb, zt, scale) / depth, label="h / (b-a) = $(scale / depth)")
+    scatter!(ax1, zp / depth, leftbiased_exponential_mapping.(zp, zb, zt, scale) / depth)
+
+    lines!(ax2, z / depth, rightbiased_exponential_mapping.(z, zb, zt, scale) / depth, label="h / (b-a) = $(scale / depth)")
+    scatter!(ax2, zp / depth, rightbiased_exponential_mapping.(zp, zb, zt, scale) / depth)
 end
 
-axislegend(ax, position=:rb)
+Legend(fig[2, :], ax1, orientation = :horizontal)
 
 fig
 ```
 
-Note that the smallest the ratio ``h / (b-a)`` is, the more finely-packed are the mapped points towards the right or left side of the domain.
+Note that the smallest the ratio ``h / (b-a)`` is, the more finely-packed are the mapped points towards the left or right side of the domain.
 
 
-Let's see how [`ExponentialInterfaces`](@ref) works:
+Let's see to use [`ExponentialInterfaces`](@ref) works.
+
 
 ```@example vgrids
 using ClimaOcean
 
 Nz = 10
 depth = 1000
-zb = -depth
+left = zb = -depth
+right = 0
 
-z = ExponentialInterfaces(Nz, -depth)
+z = ExponentialInterfaces(Nz, left, right)
 ```
 
-The above returns a callable object which gives that ``k``-th face, e.g.,
+Note that above the default e-folding scale was used, which is `scale = (right - left) / 5`.
+If we don't prescribe `right` then its default oceanographically-appropriate value of 0 is used.
+
+The above returns a callable object which gives that ``k``-th interface, e.g.,
 
 ```@example vgrids
 [z(k) for k in 1:Nz+1]
 ```
 
 To showcase how the scale ``h`` affects the grid, we construct below two such exponential grids,
-one with ``h / L = 1/5`` and the second with ``h / L = 1/2``.
+one with ``h / (b - a) = 1/5`` and the second with ``h / (b - a) = 1/2``.
 
 ```@example vgrids
 using ClimaOcean
