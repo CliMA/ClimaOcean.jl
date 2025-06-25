@@ -17,10 +17,12 @@ or
 z \mapsto w(z) = a + (b - a) \frac{\exp{[(z - a) / h]} - 1}{\exp{[(b - a) / h]} - 1} \quad \text{(left biased)}
 ```
 
-The exponential mappings above implies that the vertical spacings grow linearly with depth at a rate inversely proportional to ``h / (b - a)``.
+The exponential mappings above implies that the vertical spacings grow linearly at a rate inversely proportional to ``h / (b - a)``.
 
-The former biases the interfaces towards ``b`` while the latter biases them towards ``a``.
-For oceanographic purposes, the right-biased exponential mapping is relevant as, usually, we want to have finer vertical resolution closer to the ocean's surface.
+The right-biased map biases the interfaces towards ``b`` while the left-biased map biases the interfaces towards ``a``.
+
+!!! note "Oceanography-related bias"
+    For oceanographic purposes, the right-biased exponential mapping is usually more relevant as it implies finer vertical resolution closer to the ocean's surface.
 
 At the limit ``h / (b - a) \to \infty`` both mappings reduce to identity (``w \to z``) and thus the grid becomes uniformly spaced.
 
