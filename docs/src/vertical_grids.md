@@ -4,7 +4,7 @@ A few vertical grids are implemented within the [VerticalGrids](@ref ClimaOcean.
 
 ### Exponential spacing
 
-The [`ExponentialInterfaces`](@ref) method returns a vertical grid with faces at depths following an exponential profile.
+The [`ExponentialInterfaces`](@ref) method returns a coordinate with interfaces that lie on an exponential profile.
 By that, we mean that a uniformly discretized domain in the range ``[a, b]`` is mapped back onto itself via either
 
 ```math
@@ -18,15 +18,15 @@ z \mapsto w(z) = a + (b - a) \frac{\exp{[(z - a) / h]} - 1}{\exp{[(b - a) / h]} 
 ```
 
 The exponential mappings above have an e-folding controlled by scale ``h``.
-Furthermore, it worths noting that the exponential maps impy that the cell widths (distance between interfaces) grow linearly at a rate inversely proportional to ``h / (b - a)``.
+It worths noting that the exponential maps imply that the cell widths (distances between interfaces) grow linearly at a rate inversely proportional to ``h / (b - a)``.
 
-The right-biased map biases the interfaces towards ``b`` while the left-biased map biases the interfaces towards ``a``.
-
-!!! note "Oceanography-related bias"
-    For oceanographic purposes, the right-biased exponential mapping is usually more relevant as it implies finer vertical resolution closer to the ocean's surface.
+The right-biased map biases the interfaces being closer towards ``b``; the left-biased map biases the interfaces towards ``a``.
 
 At the limit ``h / (b - a) \to \infty`` both mappings reduce to identity (``w \to z``) and thus the grid becomes uniformly spaced.
 
+
+!!! note "Oceanography-related bias"
+    For oceanographic purposes, the right-biased exponential mapping is usually more relevant as it implies finer vertical resolution closer to the ocean's surface.
 
 ```@setup vgrids
 using CairoMakie
@@ -42,30 +42,28 @@ using CairoMakie
 
 depth = 1000
 
-zb = - depth
-zt = 0
+zb = - depth  # left
+zt = 0        # right
 z  = range(zb, stop=zt, length=501)
-zp = range(zb, stop=zt, length=6) # coarser for plotting
+zp = range(zb, stop=zt, length=6)   # coarser for plotting
+
+axis_labels = (xlabel="uniform coordinate z / (b-a)",
+               ylabel="mapped coordinate w / (b-a)")
 
 fig = Figure(size=(800, 350))
-ax1 = Axis(fig[1, 1],
-          xlabel="uniform coordinate z / (b-a)",
-          ylabel="mapped coordinate w / (b-a)",
-          title="right biased map")
-ax2 = Axis(fig[1, 2],
-          xlabel="uniform coordinate z / (b-a)",
-          ylabel="mapped coordinate w / (b-a)",
-          title="left biased map")
+axl = Axis(fig[1, 1]; title="right-biased map", axis_labels...)
+axr = Axis(fig[1, 2]; title="left-biased map", axis_labels...)
 
 for scale in [depth/20, depth/5, depth/2, 1e12*depth]
-    lines!(ax1, z / depth, leftbiased_exponential_mapping.(z, zb, zt, scale) / depth, label="h / (b-a) = $(scale / depth)")
-    scatter!(ax1, zp / depth, leftbiased_exponential_mapping.(zp, zb, zt, scale) / depth)
+    label = "h / (b-a) = $(scale / depth)"
+    lines!(axl, z / depth, leftbiased_exponential_mapping.(z, zb, zt, scale) / depth; label)
+    scatter!(axl, zp / depth, leftbiased_exponential_mapping.(zp, zb, zt, scale) / depth)
 
-    lines!(ax2, z / depth, rightbiased_exponential_mapping.(z, zb, zt, scale) / depth, label="h / (b-a) = $(scale / depth)")
-    scatter!(ax2, zp / depth, rightbiased_exponential_mapping.(zp, zb, zt, scale) / depth)
+    lines!(axr, z / depth, rightbiased_exponential_mapping.(z, zb, zt, scale) / depth; label)
+    scatter!(axr, zp / depth, rightbiased_exponential_mapping.(zp, zb, zt, scale) / depth)
 end
 
-Legend(fig[2, :], ax1, orientation = :horizontal)
+Legend(fig[2, :], axl, orientation = :horizontal)
 
 fig
 ```
@@ -74,7 +72,6 @@ Note that the smallest the ratio ``h / (b-a)`` is, the more finely-packed are th
 
 
 Let's see to use [`ExponentialInterfaces`](@ref) works.
-
 
 ```@example vgrids
 using ClimaOcean
@@ -87,17 +84,17 @@ right = 0
 z = ExponentialInterfaces(Nz, left, right)
 ```
 
-Note that above the default e-folding scale was used, which is `scale = (right - left) / 5`.
+Note that above, the default e-folding scale (`scale = (right - left) / 5`) was used.
 If we don't prescribe `right` then its default oceanographically-appropriate value of 0 is used.
 
-The above returns a callable object which gives that ``k``-th interface, e.g.,
+We can inspect the interfaces of the coordinate via
 
 ```@example vgrids
 [z(k) for k in 1:Nz+1]
 ```
 
-To showcase how the scale ``h`` affects the grid, we construct below two such exponential grids,
-one with ``h / (b - a) = 1/5`` and the second with ``h / (b - a) = 1/2``.
+To demonstrate how the scale ``h`` affects the coordinate, we construct below two such exponential
+coordinates: the first with ``h / (b - a) = 1/5`` and the second with ``h / (b - a) = 1/2``.
 
 ```@example vgrids
 using ClimaOcean
