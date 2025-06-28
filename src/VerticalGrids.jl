@@ -3,8 +3,8 @@ Implementation of several vertical grid options.
 """
 module VerticalGrids
 
-export ExponentialInterfaces,
-       StretchedInterfaces,
+export ExponentialCoordinate,
+       StretchedCoordinate,
        PowerLawStretching,
        LinearStretching
 
@@ -26,7 +26,7 @@ function (stretching::LinearStretching)(Δz, z)
     return (1 + c) * Δz
 end
 
-struct StretchedInterfaces{S, A} <: Function
+struct StretchedCoordinate{S, A} <: Function
     extent :: Float64
     top_layer_minimum_spacing :: Float64
     top_layer_height :: Float64
@@ -35,7 +35,7 @@ struct StretchedInterfaces{S, A} <: Function
     stretching :: S
     faces :: A
 
-    function StretchedInterfaces(extent,
+    function StretchedCoordinate(extent,
                                  top_layer_minimum_spacing,
                                  top_layer_height,
                                  constant_bottom_spacing_depth,
@@ -43,7 +43,7 @@ struct StretchedInterfaces{S, A} <: Function
                                  stretching;
                                  rounding_digits=2)
 
-        z_faces = calculate_stretched_faces(; extent,
+        z_faces = compute_stretched_faces(; extent,
                                             top_layer_minimum_spacing,
                                             top_layer_height,
                                             constant_bottom_spacing_depth,
@@ -57,13 +57,13 @@ struct StretchedInterfaces{S, A} <: Function
     end
 end
 
-function calculate_stretched_faces(; extent = 5000,
-                                   top_layer_minimum_spacing = 5.0,
-                                   top_layer_height = 100.0,
-                                   constant_bottom_spacing_depth = Inf,
-                                   maximum_spacing = Inf,
+function compute_stretched_faces(; extent,
+                                   top_layer_minimum_spacing,
+                                   top_layer_height,
+                                   constant_bottom_spacing_depth,
+                                   maximum_spacing,
                                    stretching = PowerLawStretching(1.02),
-                                   rounding_digits = 2)
+                                   rounding_digits)
 
     Δz₀ = top_layer_minimum_spacing
     h₀  = top_layer_height
@@ -94,9 +94,9 @@ function calculate_stretched_faces(; extent = 5000,
 end
 
 """
-    StretchedInterfaces(; depth = 5000,
-                        surface_layer_Δz = 5.0,
-                        surface_layer_height = 100.0,
+    StretchedCoordinate(; depth = 5000,
+                        surface_layer_Δz = 5,
+                        surface_layer_height = 100,
                         constant_bottom_spacing_depth = Inf,
                         maximum_spacing = Inf,
                         stretching = PowerLawStretching(1.02),
@@ -115,12 +115,12 @@ The grid is also uniformly-spaced below `constant_bottom_spacing_depth`.
 Example
 =======
 
-```jldoctest stretchedinterfaces
+```jldoctest StretchedCoordinate
 using ClimaOcean
 
-z = StretchedInterfaces(depth = 200,
-                        surface_layer_Δz = 20.0,
-                        surface_layer_height = 100.0)
+z = StretchedCoordinate(depth = 200,
+                        surface_layer_Δz = 20,
+                        surface_layer_height = 100)
 
 [z(k) for k in 1:length(z)+1]
 
@@ -139,15 +139,15 @@ z = StretchedInterfaces(depth = 200,
    -0.0
 ```
 """
-function StretchedInterfaces(; depth = 5000,
-                             surface_layer_Δz = 5.0,
-                             surface_layer_height = 100.0,
+function StretchedCoordinate(; depth = 5000,
+                             surface_layer_Δz = 5,
+                             surface_layer_height = 100,
                              constant_bottom_spacing_depth = Inf,
                              maximum_Δz = Inf,
                              stretching = PowerLawStretching(1.02),
                              rounding_digits = 2)
 
-    return StretchedInterfaces(depth,
+    return StretchedCoordinate(depth,
                                surface_layer_Δz,
                                surface_layer_height,
                                constant_bottom_spacing_depth,
@@ -156,14 +156,11 @@ function StretchedInterfaces(; depth = 5000,
                                rounding_digits)
 end
 
-(g::StretchedInterfaces)(k) = g.faces[k]
+(coord::StretchedCoordinate)(k) = coord.faces[k]
 
-Base.length(g::StretchedInterfaces) = length(g.faces)-1
+Base.length(coord::StretchedCoordinate) = length(coord.faces)-1
 
-@inline rightbiased_exponential_mapping(z, l, r, h) = @. r - (r - l) * expm1((r - z) / h) / expm1((r - l) / h)
-@inline leftbiased_exponential_mapping(z, l, r, h)  = @. l + (r - l) * expm1((z - l) / h) / expm1((r - l) / h)
-
-struct ExponentialInterfaces <: Function
+struct ExponentialCoordinate <: Function
     size :: Int
     left :: Float64
     right :: Float64
@@ -172,16 +169,16 @@ struct ExponentialInterfaces <: Function
 end
 
 """
-    ExponentialInterfaces(size::Int, left, right=0; scale=(right-left)/5, bias=:right)
+    ExponentialCoordinate(N::Int, left, right=0; scale=(right-left)/5, bias=:right)
 
-Return a type that describes a one-dimensional coordinate with `N + 1` faces (i.e., `N` cells) that
-are exponentially spaced (or, equivalently, with spacings that grow linearly).
+Return a one-dimensional coordinate with `N` cells that are exponentially spaced
+(or, equivalently, with spacings that grow linearly).
 The coordinate spans `[left, right]`. The exponential e-folding is controlled by `scale`.
 The coordinate interfaces are stacked on the `bias`-side of the domain.
 
 Arguments
 =========
-- `size`: The number of cells in the coordinate.
+- `N`: The number of cells in the coordinate.
 - `left`: The left-most interface of the coordinate.
 - `right`: The right-most interface of the coordinate. Default: 0.
 
@@ -193,14 +190,14 @@ Keyword Arguments
 Examples
 ========
 
-```jldoctest exponentialinterfaces
+```jldoctest ExponentialCoordinate
 using ClimaOcean
 
 Nz = 10
 left = -1000
 right = 100
 
-z = ExponentialInterfaces(Nz, left, right)
+z = ExponentialCoordinate(Nz, left, right)
 
 [z(k) for k in 1:Nz+1]
 
@@ -222,8 +219,8 @@ z = ExponentialInterfaces(Nz, left, right)
 
 Above, the default `bias` is `:right`. We can get a left-biased grid via:
 
-```jldoctest exponentialinterfaces
-z = ExponentialInterfaces(Nz, left, right, bias=:left)
+```jldoctest ExponentialCoordinate
+z = ExponentialCoordinate(Nz, left, right, bias=:left)
 
 [z(k) for k in 1:Nz+1]
 
@@ -243,19 +240,22 @@ z = ExponentialInterfaces(Nz, left, right, bias=:left)
    100.0
 ```
 """
-ExponentialInterfaces(size::Int, left, right=0; scale=(right-left)/5, bias=:right) =
-    ExponentialInterfaces(size, left, right, scale, bias)
+ExponentialCoordinate(N::Int, left, right=0; scale=(right-left)/5, bias=:right) =
+    ExponentialCoordinate(N, left, right, scale, bias)
 
-function (g::ExponentialInterfaces)(k)
-    Nz, left, right, scale = g.size, g.left, g.right, g.scale
+@inline rightbiased_exponential_mapping(z, l, r, h) = @. r - (r - l) * expm1((r - z) / h) / expm1((r - l) / h)
+@inline  leftbiased_exponential_mapping(z, l, r, h) = @. l + (r - l) * expm1((z - l) / h) / expm1((r - l) / h)
+
+function (coord::ExponentialCoordinate)(k)
+    Nz, left, right, scale = coord.size, coord.left, coord.right, coord.scale
 
     # uniform coordinate
     ξₖ = left + (k-1) * (right - left) / Nz
 
     # mapped coordinate
-    if g.bias === :right
+    if coord.bias === :right
        zₖ = rightbiased_exponential_mapping(ξₖ, left, right, scale)
-    elseif g.bias === :left
+    elseif coord.bias === :left
        zₖ = leftbiased_exponential_mapping(ξₖ, left, right, scale)
     end
 
