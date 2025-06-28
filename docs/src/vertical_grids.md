@@ -4,7 +4,7 @@ A few vertical grids are implemented within the [VerticalGrids](@ref ClimaOcean.
 
 ### Exponential spacing
 
-The [`ExponentialInterfaces`](@ref) method returns a coordinate with interfaces that lie on an exponential profile.
+The [`ExponentialCoordinate`](@ref) method returns a coordinate with interfaces that lie on an exponential profile.
 By that, we mean that a uniformly discretized domain in the range ``[a, b]`` is mapped back onto itself via either
 
 ```math
@@ -71,7 +71,7 @@ fig
 Note that the smallest the ratio ``h / (b-a)`` is, the more finely-packed are the mapped points towards the left or right side of the domain.
 
 
-Let's see to use [`ExponentialInterfaces`](@ref) works.
+Let's see to use [`ExponentialCoordinate`](@ref) works.
 
 ```@example vgrids
 using ClimaOcean
@@ -81,7 +81,7 @@ depth = 1000
 left = zb = -depth
 right = 0
 
-z = ExponentialInterfaces(Nz, left, right)
+z = ExponentialCoordinate(Nz, left, right)
 ```
 
 Note that above, the default e-folding scale (`scale = (right - left) / 5`) was used.
@@ -104,7 +104,7 @@ Nz = 10
 depth = 1000
 
 scale = depth / 5
-z = ExponentialInterfaces(Nz, -depth; scale)
+z = ExponentialCoordinate(Nz, -depth; scale)
 grid = RectilinearGrid(; size=Nz, z, topology=(Flat, Flat, Bounded))
 zf = znodes(grid, Face())
 zc = znodes(grid, Center())
@@ -131,7 +131,7 @@ hidespines!(axz1)
 
 
 scale = depth / 2
-z = ExponentialInterfaces(Nz, -depth; scale)
+z = ExponentialCoordinate(Nz, -depth; scale)
 grid = RectilinearGrid(; size=Nz, z, topology=(Flat, Flat, Bounded))
 zf = znodes(grid, Face())
 zc = znodes(grid, Center())
@@ -167,17 +167,17 @@ But with the larger ``h / L`` is, the smaller the rate is that the spacings incr
 A ridiculously large value of ``h / L`` (approximating infinity) gives a uniform grid:
 
 ```@example vgrids
-z = ExponentialInterfaces(Nz, depth, scale = 1e12*depth)
+z = ExponentialCoordinate(Nz, depth, scale = 1e12*depth)
 [z(k) for k in 1:Nz+1]
 ```
 
-A downside of [`ExponentialInterfaces`](@ref) is that we don't have tight control on the minimum
+A downside of [`ExponentialCoordinate`](@ref) is that we don't have tight control on the minimum
 spacing at the surface.
 To prescribe the surface spacing we need to play around with the scale ``h`` and the number of vertical cells ``N_z``.
 
 ### Stretched ``z`` faces
 
-The [`StretchedInterfaces`](@ref) method allows a tighter control on the vertical spacing at the surface.
+The [`StretchedCoordinate`](@ref) method allows a tighter control on the vertical spacing at the surface.
 That is, we can prescribe a constant spacing over the top `surface_layer_height`  below which the grid spacing
 increases following a prescribed stretching law.
 The downside here is that neither the final grid depth nor the total number of vertical cells can be prescribed.
@@ -193,7 +193,7 @@ depth = 750
 surface_layer_Δz = 20
 surface_layer_height = 120
 
-z = StretchedInterfaces(; depth,
+z = StretchedCoordinate(; depth,
                         surface_layer_Δz,
                         surface_layer_height,
                         stretching = PowerLawStretching(1.08))
@@ -224,7 +224,7 @@ hidedecorations!(axz1)
 hidespines!(axz1)
 
 
-z = StretchedInterfaces(; depth,
+z = StretchedCoordinate(; depth,
                         surface_layer_Δz,
                         surface_layer_height,
                         stretching = PowerLawStretching(1.04))
@@ -252,7 +252,7 @@ hidedecorations!(axz2)
 hidespines!(axz2)
 
 
-z = StretchedInterfaces(; depth,
+z = StretchedCoordinate(; depth,
                         surface_layer_Δz,
                         surface_layer_height,
                         stretching = PowerLawStretching(1.04),
