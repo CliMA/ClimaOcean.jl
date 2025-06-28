@@ -8,7 +8,7 @@ Ny = 20 * 12
 Nz = 50
 
 depth = 6000
-z = ExponentialInterfaces(Nz, -depth; scale=depth/4.5)
+z = ExponentialCoordinate(Nz, -depth; scale=depth/4.5)
 
 grid = LatitudeLongitudeGrid(arch;
                              size = (Nx, Ny, Nz),

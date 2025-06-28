@@ -13,7 +13,7 @@ Ny = 128
 Nz = 32
 
 depth = 6000meters
-z = ExponentialInterfaces(Nz, depth, scale=(34/Nz)*depth)
+z = ExponentialCoordinate(Nz, depth, scale=(34/Nz)*depth)
 underlying_grid = TripolarGrid(arch; size=(Nx, Ny, Nz), z)
 
 bottom_height = regrid_bathymetry(underlying_grid; minimum_depth=30, interpolation_passes=20, major_basins=1)

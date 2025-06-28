@@ -16,15 +16,15 @@ using KernelAbstractions: @kernel, @index
 
 arch = CPU()
 
-depth = 1000meters
-Nz    = 10
-
-z = ExponentialInterfaces(Nz, depth; scale=0.3*depth)
-z = MutableVerticalDiscretization([z(k) for k in 1:Nz+1])
-
 Nx = 256 # longitudinal direction -> 250 points is about 1.5ᵒ resolution
 Ny = 128 # meridional direction -> same thing, 48 points is about 1.5ᵒ resolution
-Nz   = length(r_faces) - 1
+
+Nz = 10
+depth = 1000meters
+
+z = ExponentialCoordinate(Nz, depth; scale=0.3*depth)
+z = MutableVerticalDiscretization(z)
+
 grid = TripolarGrid(arch, Float64; size=(Nx, Ny, Nz), z)
 sea_ice_grid = TripolarGrid(arch, Float64; size=(Nx, Ny, 1), z = (-10, 0))
 
