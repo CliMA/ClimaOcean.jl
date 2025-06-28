@@ -27,7 +27,7 @@ using Dates
 # ## Grid Configuration for the Mediterranean Sea
 #
 # The script defines a high-resolution grid to represent the Mediterranean Sea, specifying the domain
-# in terms of longitude (λ₁, λ₂), latitude (φ₁, φ₂), and a stretched vertical grid (via `StretchedInterfaces`)
+# in terms of longitude (λ₁, λ₂), latitude (φ₁, φ₂), and a stretched vertical grid (via `StretchedCoordinate`)
 # to capture the depth variation.
 # The grid resolution is set to approximately 1/15th of a degree, which corresponds to about 7 km.
 #
@@ -37,7 +37,7 @@ using Dates
 λ₁, λ₂  = ( 0, 42) # domain in longitude
 φ₁, φ₂  = (30, 45) # domain in latitude
 
-z = StretchedInterfaces(; depth = 5000,
+z = StretchedCoordinate(; depth = 5000,
                         surface_layer_Δz = 2.5,
                         stretching = PowerLawStretching(1.07),
                         surface_layer_height = 50)
