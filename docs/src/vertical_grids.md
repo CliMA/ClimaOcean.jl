@@ -1,6 +1,6 @@
 # Vertical grids
 
-A few vertical grids are implemented within the [VerticalGrids](@ref ClimaOcean.VerticalGrids) module.
+A few vertical grids are implemented within the [Grid Utilities](@ref ClimaOcean.GridUtils) module.
 
 ### Exponential spacing
 
@@ -36,7 +36,7 @@ CairoMakie.activate!(type="svg")
 
 ```@example vgrids
 using ClimaOcean
-using ClimaOcean.VerticalGrids: rightbiased_exponential_mapping, leftbiased_exponential_mapping
+using ClimaOcean.GridUtils: rightbiased_exponential_mapping, leftbiased_exponential_mapping
 
 using CairoMakie
 
@@ -51,8 +51,8 @@ axis_labels = (xlabel="uniform coordinate z / (b-a)",
                ylabel="mapped coordinate w / (b-a)")
 
 fig = Figure(size=(800, 350))
-axl = Axis(fig[1, 1]; title="right-biased map", axis_labels...)
-axr = Axis(fig[1, 2]; title="left-biased map", axis_labels...)
+axl = Axis(fig[1, 1]; title="left-biased map", axis_labels...)
+axr = Axis(fig[1, 2]; title="right-biased map", axis_labels...)
 
 for scale in [depth/20, depth/5, depth/2, 1e12*depth]
     label = "h / (b-a) = $(scale / depth)"
@@ -71,7 +71,7 @@ fig
 Note that the smallest the ratio ``h / (b-a)`` is, the more finely-packed are the mapped points towards the left or right side of the domain.
 
 
-Let's see to use [`ExponentialCoordinate`](@ref) works.
+Let's see to use [`ExponentialCoordinate`](@ref) works. Here we construct a vertical grid with 10 cells that goes down to 1000 meters depth.
 
 ```@example vgrids
 using ClimaOcean
@@ -84,8 +84,9 @@ right = 0
 z = ExponentialCoordinate(Nz, left, right)
 ```
 
-Note that above, the default e-folding scale (`scale = (right - left) / 5`) was used.
-If we don't prescribe `right` then its default oceanographically-appropriate value of 0 is used.
+By default, the oceanographically-relevant right-biased map was used.
+Also note above, that the default e-folding scale (`scale = (right - left) / 5`) was used.
+If we don't prescribe a value for `right` then its default oceanographically-appropriate value of 0 is used.
 
 We can inspect the interfaces of the coordinate via
 
@@ -103,23 +104,24 @@ using Oceananigans
 Nz = 10
 depth = 1000
 
-scale = depth / 5
-z = ExponentialCoordinate(Nz, -depth; scale)
-grid = RectilinearGrid(; size=Nz, z, topology=(Flat, Flat, Bounded))
-zf = znodes(grid, Face())
-zc = znodes(grid, Center())
-Δz = zspacings(grid, Center())
-Δz = view(Δz, 1, 1, :)  # for plotting
 
 using CairoMakie
 
 fig = Figure()
 
+scale = depth / 5
+z = ExponentialCoordinate(Nz, -depth; scale)
+grid = RectilinearGrid(; size=Nz, z, topology=(Flat, Flat, Bounded))
+zf = znodes(grid, Face())
+zc = znodes(grid, Center())
+Δz = zspacings(grid, Center())[1, 1, 1:Nz]
+
+
 axΔz1 = Axis(fig[1, 1]; xlabel = "z-spacing (m)", ylabel = "z (m)", title = "scale = depth / 5")
 axz1 = Axis(fig[1, 2])
 linkaxes!(axΔz1, axz1)
 
-lΔz = lines!(axΔz1, - zf * (depth/scale) / Nz, zf, color=(:grey, 0.5))
+lΔz = lines!(axΔz1, - zf * (depth/scale) / Nz, zf, color=(:purple, 0.3))
 scatter!(axΔz1, Δz, zc)
 hidespines!(axΔz1, :t, :r)
 
@@ -135,14 +137,13 @@ z = ExponentialCoordinate(Nz, -depth; scale)
 grid = RectilinearGrid(; size=Nz, z, topology=(Flat, Flat, Bounded))
 zf = znodes(grid, Face())
 zc = znodes(grid, Center())
-Δz = zspacings(grid, Center())
-Δz = view(Δz, 1, 1, :)  # for plotting
+Δz = zspacings(grid, Center())[1, 1, 1:Nz]
 
 axΔz2 = Axis(fig[1, 3]; xlabel = "z-spacing (m)", ylabel = "z (m)", title = "scale = depth / 2")
 axz2 = Axis(fig[1, 4])
 linkaxes!(axΔz2, axz2)
 
-lΔz = lines!(axΔz2, - zf * (depth/scale) / Nz, zf, color=(:grey, 0.5))
+lΔz = lines!(axΔz2, - zf * (depth/scale) / Nz, zf, color=(:purple, 0.3))
 scatter!(axΔz2, Δz, zc)
 hidespines!(axΔz2, :t, :r)
 
@@ -186,7 +187,7 @@ Also, the total number of cells we end up with depends on the stretching law.
 
 The three grids below have constant 20-meter spacing for the top 120 meters.
 We prescribe to all three a `depth = 750` meters and we apply power-law stretching for depths below 120 meters.
-The bigger the power-law stretching factor is, the further the last face goes beyond the prescribed depth and/or with less total number of cells.
+The bigger the power-law stretching factor is, the further the last interface goes beyond the prescribed depth and/or with less total number of cells.
 
 ```@example vgrids
 depth = 750
@@ -208,7 +209,7 @@ fig = Figure(size=(800, 550))
 axΔz1 = Axis(fig[1, 1];
              xlabel = "z-spacing (m)",
              ylabel = "z (m)",
-             title = "PowerLawStretching(1.09)\n $(length(zf)-1) cells\n bottom face at z = $(zf[1]) m\n ")
+             title = "PowerLawStretching(1.09)\n $(length(zf)-1) cells\n bottom interface at z = $(zf[1]) m\n ")
 
 axz1 = Axis(fig[1, 2])
 
@@ -237,7 +238,7 @@ zc = znodes(grid, Center())
 axΔz2 = Axis(fig[1, 3];
              xlabel = "z-spacing (m)",
              ylabel = "z (m)",
-             title = "PowerLawStretching(1.04)\n $(length(zf)-1) cells\n bottom face at z = $(zf[1]) m\n ")
+             title = "PowerLawStretching(1.04)\n $(length(zf)-1) cells\n bottom interface at z = $(zf[1]) m\n ")
 axz2 = Axis(fig[1, 4])
 
 ldepth = hlines!(axΔz2, -depth, color = :salmon, linestyle=:dash)
@@ -266,7 +267,7 @@ zc = znodes(grid, Center())
 axΔz3 = Axis(fig[1, 5];
              xlabel = "z-spacing (m)",
              ylabel = "z (m)",
-             title = "PowerLawStretching(1.04)\n $(length(zf)-1) cells\n bottom face at z = $(zf[1]) m\n constant spacing below 500 m")
+             title = "PowerLawStretching(1.04)\n $(length(zf)-1) cells\n bottom interface at z = $(zf[1]) m\n constant spacing below 500 m")
 axz3 = Axis(fig[1, 6])
 
 ldepth = hlines!(axΔz3, -depth, color = :salmon, linestyle=:dash)
@@ -284,7 +285,7 @@ hidespines!(axz3)
 
 linkaxes!(axΔz1, axz1, axΔz2, axz2, axΔz3, axz3)
 
-Legend(fig[2, :], [ldepth, lzbottom], ["prescribed depth", "bottom-most z-face"], orientation = :horizontal)
+Legend(fig[2, :], [ldepth, lzbottom], ["prescribed depth", "bottom-most z interface"], orientation = :horizontal)
 
 colsize!(fig.layout, 2, Relative(0.1))
 colsize!(fig.layout, 4, Relative(0.1))

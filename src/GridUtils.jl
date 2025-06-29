@@ -1,7 +1,7 @@
 """
 Implementation of several vertical grid options.
 """
-module VerticalGrids
+module GridUtils
 
 export ExponentialCoordinate,
        StretchedCoordinate,
@@ -102,7 +102,7 @@ end
                         stretching = PowerLawStretching(1.02),
                         rounding_digits = 2)
 
-Return a type that describes a one-dimensional grid with `surface_layer_Δz` spacing
+Return a one-dimensional coordinate with `surface_layer_Δz` spacing
 in a surface layer of extent `surface_layer_height`, and stretched according to
 the `stretching` down to `depth`.
 The interfaces extend from `depth = -z[1]` to `0 = z[end]`, where `Lz ≥ depth`.
@@ -267,6 +267,8 @@ function (coord::ExponentialCoordinate)(k)
 
     return zₖ
 end
+
+Base.length(coord::ExponentialCoordinate) = coord.size
 
 # Vertical grid with 49 levels.
 # Stretched from 10 meters spacing at surface

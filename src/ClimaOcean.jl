@@ -82,13 +82,13 @@ end
 include("OceanSimulations/OceanSimulations.jl")
 include("SeaIceSimulations.jl")
 include("OceanSeaIceModels/OceanSeaIceModels.jl")
-include("VerticalGrids.jl")
+include("GridUtils.jl")
 include("InitialConditions/InitialConditions.jl")
 include("DataWrangling/DataWrangling.jl")
 include("Bathymetry.jl")
 include("Diagnostics/Diagnostics.jl")
 
-using .VerticalGrids
+using .GridUtils
 using .DataWrangling
 using .DataWrangling: ETOPO, ECCO, Copernicus, EN4, JRA55
 using .Bathymetry
