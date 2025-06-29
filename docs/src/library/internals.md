@@ -65,10 +65,10 @@ Modules = [ClimaOcean.Bathymetry]
 Public = false
 ```
 
-## VerticalGrids
+## GridUtils
 
 ```@autodocs
-Modules = [ClimaOcean.VerticalGrids]
+Modules = [ClimaOcean.GridUtils]
 Public = false
 ```
 

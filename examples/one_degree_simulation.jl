@@ -25,7 +25,8 @@ Nx = 360
 Ny = 180
 Nz = 40
 
-z = exponential_z_faces(; Nz, depth=4000, h=34)
+depth = 4000meters
+z = ExponentialCoordinate(Nz, -depth; scale = 0.85*depth)
 underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 
 # Next, we build bathymetry on this grid, using interpolation passes to smooth the bathymetry.
