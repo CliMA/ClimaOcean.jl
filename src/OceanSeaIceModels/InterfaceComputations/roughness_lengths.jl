@@ -20,23 +20,25 @@ Base.show(io::IO, ::ScalarRoughnessLength{FT}) where FT = print(io, "ScalarRough
 
 struct WindDependentWaveFormulation{FT}
     Umax :: FT
+    αmin :: FT
     ℂ₁ :: FT
     ℂ₂ :: FT
 end
 
 """
     WindDependentWaveFormulation(FT = Oceananigans.defaults.FloatType;
-                                 Umax = 19, ℂ₁ = 0.0017, ℂ₂ = -0.005)
+                                 Umax = 19, αmin = 0.011, ℂ₁ = 0.0017, ℂ₂ = -0.005)
 
-A gravity wave parameter based on the wind speed `ΔU` with the formula `ℂ₁ * max(ΔU, Umax) + ℂ₂`.
+A gravity wave parameter based on the wind speed `ΔU` with the formula `max(αmin, ℂ₁ * min(ΔU, Umax) + ℂ₂`).
 """
-WindDependentWaveFormulation(FT=Oceananigans.defaults.FloatType; Umax = 19, ℂ₁ = 0.0017, ℂ₂ = -0.005) =
+WindDependentWaveFormulation(FT=Oceananigans.defaults.FloatType; Umax = 19, αmin = 0.011, ℂ₁ = 0.0017, ℂ₂ = -0.005) =
     WindDependentWaveFormulation(convert(FT, Umax),
+                                 convert(FT, αmin),  
                                  convert(FT, ℂ₁),
                                  convert(FT, ℂ₂))
 
 gravity_wave_parameter(α::Number, args...) = α
-gravity_wave_parameter(α::WindDependentWaveFormulation, ΔU) = α.ℂ₁ * max(ΔU, α.Umax) + α.ℂ₂
+gravity_wave_parameter(α::WindDependentWaveFormulation, ΔU) = max(α.αmin, α.ℂ₁ * min(ΔU, α.Umax) + α.ℂ₂)
 
 """
     ScalarRoughnessLength(FT = Float64;
@@ -88,7 +90,7 @@ function MomentumRoughnessLength(FT=Oceananigans.defaults.FloatType;
                                  gravitational_acceleration = default_gravitational_acceleration,
                                  maximum_roughness_length = 1,
                                  air_kinematic_viscosity = 1.5e-5,
-                                 wave_formulation = 0.02,
+                                 wave_formulation = WindDependentWaveFormulation(FT),
                                  smooth_wall_parameter = 0.11)
 
     if wave_formulation isa Number
