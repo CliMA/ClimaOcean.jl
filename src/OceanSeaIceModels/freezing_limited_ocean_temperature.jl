@@ -12,7 +12,7 @@ end
     FreezingLimitedOceanTemperature(FT=Float64; liquidus=LinearLiquidus(FT))
 
 The minimal possible sea ice representation, clipping the temperature below to the freezing point.
-Not really a "model"' per se, however, it is the most simple way to make sure that temperature
+Not really a "model" per se, however, it is the most simple way to make sure that temperature
 does not dip below freezing.
 
 The melting temperature is a function of salinity and is controlled by the `liquidus`.

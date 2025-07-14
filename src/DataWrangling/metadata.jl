@@ -219,11 +219,11 @@ Return the name used for the variable `metadata.name` in its raw dataset file.
 """
 function dataset_variable_name end
 
+# Note: all_dates needs to be extended for any new dataset.
 """
     all_dates(metadata)
 
 Extract all the dates of the given `metadata` formatted using the `DateTime` type.
-Note: This methods needs to be extended for any new dataset.
 """
 all_dates(metadata) = all_dates(metadata.dataset, metadata.name)
 
