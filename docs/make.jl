@@ -35,7 +35,6 @@ end
 
 format = Documenter.HTML(collapselevel = 2,
                          size_threshold = nothing,
-                         prettyurls = get(ENV, "CI", nothing) == "true",
                          canonical = "https://clima.github.io/ClimaOceanDocumentation/dev/")
 
 pages = [
@@ -43,11 +42,13 @@ pages = [
 
     "Examples" => [
         "Single-column ocean simulation" => "literated/single_column_os_papa_simulation.md",
-        "One-degree ocean simulation" => "literated/one_degree_simulation.md",
+        "One-degree ocean--sea ice simulation" => "literated/one_degree_simulation.md",
         "Near-global ocean simulation" => "literated/near_global_ocean_simulation.md",
         ],
 
-    "Interface fluxes" => "interface_fluxes.md",
+    "Vertical grids" => "vertical_grids.md",
+
+    # "Interface fluxes" => "interface_fluxes.md",
 
     "Library" => [
         "Contents"       => "library/outline.md",
