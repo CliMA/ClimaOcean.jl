@@ -174,7 +174,7 @@ seaice.output_writers[:surface] = JLD2Writer(ocean.model, seaice_outputs;
 run!(simulation)
 
 simulation.Δt = 20minutes
-simulation.stop_time = 365days
+simulation.stop_time = 5 * 365days
 run!(simulation)
 
 # ### A pretty movie
