@@ -74,16 +74,8 @@ set!(ocean.model, T=Metadatum(:temperature; dataset),
 ##### A Prognostic Sea-ice model
 #####
 
-# Remember to pass the SSS as a bottom bc to the sea ice!
-SSS = view(ocean.model.tracers.S.data, :, :, grid.Nz)
-bottom_heat_boundary_condition = IceWaterThermalEquilibrium(SSS)
-
-# Default sea-ice dynamics
-sea_ice_dynamics = ClimaOcean.SeaIceSimulations.default_sea_ice_dynamics(grid; ocean)
-
-sea_ice = sea_ice_simulation(grid; bottom_heat_boundary_condition,
-                             dynamics = sea_ice_dynamics,
-                             advection=WENO(order=7))
+# Default sea-ice dynamics and salinity coupling are included in the defaults
+sea_ice = sea_ice_simulation(grid; advection=WENO(order=7))
 
 set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset),
                     ℵ=Metadatum(:sea_ice_concentration; dataset))
