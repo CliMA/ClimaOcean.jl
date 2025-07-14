@@ -14,8 +14,10 @@ using CUDA
 CUDA.device!(1)
 arch = GPU()
 
-r_faces = ClimaOcean.exponential_z_faces(; Nz=30, h=10, depth=2000)
-z_faces = MutableVerticalDiscretization(r_faces)
+depth = 2000meters
+Nz = 30
+z = ExponentialCoordinate(Nz, depth; scale=depth/3)
+z = MutableVerticalDiscretization(z)
 
 Nx = 180 # longitudinal direction -> 250 points is about 1.5ᵒ resolution
 Ny = 180 # meridional direction -> same thing, 48 points is about 1.5ᵒ resolution
@@ -24,7 +26,7 @@ Nz = length(r_faces) - 1
 grid = RotatedLatitudeLongitudeGrid(arch, size = (Nx, Ny, Nz),
                                           latitude = (-45, 45),
                                           longitude = (-45, 45),
-                                          z = r_faces,
+                                          z,
                                           north_pole = (180, 0),
                                           halo = (5, 5, 4),
                                           topology = (Bounded, Bounded, Bounded))
