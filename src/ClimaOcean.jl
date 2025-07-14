@@ -24,10 +24,8 @@ export
     JRA55NetCDFBackend,
     regrid_bathymetry,
     retrieve_bathymetry,
-    stretched_vertical_faces,
-    exponential_z_faces,
+    ExponentialCoordinate, StretchedCoordinate,
     PowerLawStretching, LinearStretching,
-    exponential_z_faces,
     Metadata,
     Metadatum,
     ECCOMetadatum,
@@ -84,13 +82,13 @@ end
 include("OceanSimulations/OceanSimulations.jl")
 include("SeaIceSimulations.jl")
 include("OceanSeaIceModels/OceanSeaIceModels.jl")
-include("VerticalGrids.jl")
+include("GridUtils.jl")
 include("InitialConditions/InitialConditions.jl")
 include("DataWrangling/DataWrangling.jl")
 include("Bathymetry.jl")
 include("Diagnostics/Diagnostics.jl")
 
-using .VerticalGrids
+using .GridUtils
 using .DataWrangling
 using .DataWrangling: ETOPO, ECCO, Copernicus, EN4, JRA55
 using .Bathymetry
@@ -112,7 +110,8 @@ using PrecompileTools: @setup_workload, @compile_workload
 @setup_workload begin
     Nx, Ny, Nz = 32, 32, 10
     @compile_workload begin
-        z = exponential_z_faces(Nz=Nz, depth=6000, h=34)
+        depth = 6000
+        z = ExponentialCoordinate(Nz, -depth)
         grid = Oceananigans.OrthogonalSphericalShellGrids.TripolarGrid(CPU(); size=(Nx, Ny, Nz), halo=(7, 7, 7), z)
         grid = ImmersedBoundaryGrid(grid, GridFittedBottom((x, y) -> -5000))
         # ocean = ocean_simulation(grid)
