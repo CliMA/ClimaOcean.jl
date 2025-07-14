@@ -26,35 +26,38 @@ using Dates
 
 # ## Grid Configuration for the Mediterranean Sea
 #
-# The script defines a high-resolution grid to represent the Mediterranean Sea, specifying the domain in terms of longitude (λ₁, λ₂),
-# latitude (φ₁, φ₂), and a stretched vertical grid to capture the depth variation (`z_faces`).
-# The grid resolution is set to approximately 1/15th of a degree, which translates to a spatial resolution of about 7 km.
-# This section demonstrates the use of the LatitudeLongitudeGrid function to create a grid that matches the
+# The script defines a high-resolution grid to represent the Mediterranean Sea, specifying the domain
+# in terms of longitude (λ₁, λ₂), latitude (φ₁, φ₂), and a stretched vertical grid (via `StretchedCoordinate`)
+# to capture the depth variation.
+# The grid resolution is set to approximately 1/15th of a degree, which corresponds to about 7 km.
+#
+# This section demonstrates using the `LatitudeLongitudeGrid` to create a grid that matches the
 # Mediterranean's geographical and bathymetric features.
 
 λ₁, λ₂  = ( 0, 42) # domain in longitude
 φ₁, φ₂  = (30, 45) # domain in latitude
-z_faces = stretched_vertical_faces(depth = 5000,
-                                   surface_layer_Δz = 2.5,
-                                   stretching = PowerLawStretching(1.070),
-                                   surface_layer_height = 50)
+
+z = StretchedCoordinate(; depth = 5000,
+                        surface_layer_Δz = 2.5,
+                        stretching = PowerLawStretching(1.07),
+                        surface_layer_height = 50)
 
 Nx = 15 * Int(λ₂ - λ₁) # 1/15 th of a degree resolution
 Ny = 15 * Int(φ₂ - φ₁) # 1/15 th of a degree resolution
-Nz = length(z_faces) - 1
+Nz = length(z)
 
 grid = LatitudeLongitudeGrid(GPU();
                              size = (Nx, Ny, Nz),
                              latitude  = (φ₁, φ₂),
                              longitude = (λ₁, λ₂),
-                             z = z_faces,
+                             z,
                              halo = (7, 7, 7))
 
 # ### Bathymetry Interpolation
 #
-# The script interpolates bathymetric data onto the grid, ensuring that the model accurately represents
-# the sea floor's topography. Parameters such as `minimum_depth` and `interpolation_passes`
-# are adjusted to refine the bathymetry representation.
+# The `regrid_bathymetry` method interpolates bathymetric data onto the grid, ensuring that
+# the model accurately represents the sea floor's topography. Keyword arguments such as
+# `minimum_depth` and `interpolation_passes` are adjusted to refine the bathymetry representation.
 
 bottom_height = regrid_bathymetry(grid,
                                   height_above_water = 1,
@@ -79,15 +82,15 @@ FS = ECCO_restoring_forcing(:salinity;    start_date, end_date, architecture = G
 # Constructing the Simulation
 #
 # We construct an ocean simulation that evolves two tracers, temperature (:T), salinity (:S)
-# and we pass the previously defined forcing that nudge these tracers
+# and we pass the previously defined forcing that nudge these tracers.
 
 ocean = ocean_simulation(grid; forcing = (T = FT, S = FS))
 
 # Initializing the model
 #
-# The model can be initialized with custom values or with ecco fields.
+# The model can be initialized with custom values or with ECCO fields.
 # In this case, our ECCO dataset has access to a temperature and a salinity
-# field, so we initialize temperature T and salinity S from ECCO.
+# field, so we initialize temperature and salinity from ECCO.
 
 set!(ocean.model, T = ECCOMetadatum(:temperature; date=start_date),
                   S = ECCOMetadatum(:salinity;    date=start_date))
@@ -147,11 +150,11 @@ run!(ocean)
 
 # Record a video
 #
-# Let's read the data and record a video of the Mediterranean Sea's surface
-# (1) Zonal velocity (u)
-# (2) Meridional velocity (v)
-# (3) Temperature (T)
-# (4) Salinity (S)
+# Let's read the data and record a video of the Mediterranean Sea's surface:
+# 1. Zonal velocity (`u`)
+# 2. Meridional velocity (`v`)
+# 3. Temperature (`T`)
+# 4. Salinity (`S`)
 
 u_series = FieldTimeSeries("med_surface_field.jld2", "u")
 v_series = FieldTimeSeries("med_surface_field.jld2", "v")
@@ -187,9 +190,9 @@ c = @lift begin
 end
 
 fig = Figure()
-ax  = Axis(fig[1, 1], title = "surface zonal velocity ms⁻¹")
+ax  = Axis(fig[1, 1], title = "surface zonal velocity m s⁻¹")
 heatmap!(u)
-ax  = Axis(fig[1, 2], title = "surface meridional velocity ms⁻¹")
+ax  = Axis(fig[1, 2], title = "surface meridional velocity m s⁻¹")
 heatmap!(v)
 ax  = Axis(fig[2, 1], title = "surface temperature ᵒC")
 heatmap!(T)
@@ -199,6 +202,6 @@ ax  = Axis(fig[2, 3], title = "passive tracer -")
 heatmap!(c)
 
 CairoMakie.record(fig, "mediterranean_video.mp4", 1:length(u_series.times); framerate = 5) do i
-    @info "recording iteration $i"
+    @info "animating iteration $i"
     iter[] = i
 end

@@ -61,13 +61,16 @@ const f = Face()
     Δb = zero(grid)
     bN = @inbounds b[i, j, Nz]
     mixed = true
+    minus_k = 1
     k = Nz - 1
     inactive = inactive_cell(i, j, k, grid)
 
-    while !inactive & mixed & (k > 0)
+    # Run minus_k forward to facilitate Reactantification
+    while !inactive & mixed & (minus_k < Nz-1)
         Δb = @inbounds bN - b[i, j, k]
         mixed = Δb < Δb★
-        k -= 1
+        minus_k += 1
+        k = Nz - minus_k
         inactive = inactive_cell(i, j, k, grid)
     end
 
