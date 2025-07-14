@@ -50,7 +50,7 @@ using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities: CATKEVertic
 momentum_advection = WENOVectorInvariant()
 tracer_advection   = WENO(order=7)
 
-free_surface = SplitExplicitFreeSurface(grid; substeps=70)
+free_surface = SplitExplicitFreeSurface(grid; cfl=0.7, fixed_Δt=10minutes)
 
 mixing_length = CATKEMixingLength(Cᵇ=0.01)
 turbulent_kinetic_energy_equation = CATKEEquation(Cᵂϵ=1.0)
