@@ -25,19 +25,20 @@ end
 synch!(model1, model2) = synch!(model1.clock, model2.clock)
 
 arch    = GPU()
-r_faces = ClimaOcean.exponential_z_faces(; Nz=60, depth=6200)
-z_faces = MutableVerticalDiscretization(r_faces)
 
 Nx = 2160 # longitudinal direction 
 Ny = 1080 # meridional direction 
-Nz = length(r_faces) - 1
+Nz = 60
+
+r_faces = ClimaOcean.ExponentialCoordinate(Nz, -6000)
+z_faces = MutableVerticalDiscretization(r_faces)
 
 grid = TripolarGrid(arch;
                     size = (Nx, Ny, Nz),
                     z = z_faces,
                     halo = (7, 7, 7))
 
-bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1)
+bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1, interpolation_passes=15)
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
 #####
