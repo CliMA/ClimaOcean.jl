@@ -93,7 +93,7 @@ set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset),
 
 dir = "./forcing_data"
 dataset = MultiYearJRA55()
-backend = JRA55NetCDFBackend(40)
+backend = JRA55NetCDFBackend(100)
 
 atmosphere = JRA55PrescribedAtmosphere(arch; dir, dataset, backend, include_rivers_and_icebergs=true)
 radiation  = Radiation()
@@ -154,7 +154,7 @@ add_callback!(omip, progress, IterationInterval(50))
 
 run!(omip)
 
-omip.Δt = 10minutes
+omip.Δt = 6minutes
 omip.stop_time = 58 * 365days
 
 run!(omip)
