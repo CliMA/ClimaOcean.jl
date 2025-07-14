@@ -55,7 +55,7 @@ free_surface = SplitExplicitFreeSurface(grid; substeps=70)
 mixing_length = CATKEMixingLength(Cᵇ=0.01)
 turbulent_kinetic_energy_equation = CATKEEquation(Cᵂϵ=1.0)
 
-catke_closure = CATKEVerticalDiffusivity(ExplicitTimeDiscretization(); mixing_length, turbulent_kinetic_energy_equation) 
+catke_closure = CATKEVerticalDiffusivity(; mixing_length, turbulent_kinetic_energy_equation) 
 closure = (catke_closure, VerticalScalarDiffusivity(κ=1e-5, ν=1e-5))
 
 ocean = ocean_simulation(grid; Δt=1minutes,
