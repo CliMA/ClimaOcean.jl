@@ -26,7 +26,8 @@ Ny = 180
 Nz = 40
 
 depth = 4000meters
-z = ExponentialCoordinate(Nz, -depth; scale = 0.85*depth)
+r = ExponentialCoordinate(Nz, -depth; scale = 0.85*depth)
+z = Oceananigans.Grids.MutableVerticalDiscretization(r)
 underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 
 # Next, we build bathymetry on this grid, using interpolation passes to smooth the bathymetry.
