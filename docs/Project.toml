@@ -15,6 +15,3 @@ Documenter = "1"
 DocumenterCitations = "1.3"
 Oceananigans = "0.96 - 0.99"
 SeawaterPolynomials = "0.3.5"
-
-[sources]
-Oceananigans = {url = "https://github.com/CliMA/Oceananigans.jl", rev = "ss/fix-zstar-bc"}

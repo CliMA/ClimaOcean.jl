@@ -4,6 +4,21 @@ using
   DocumenterCitations,
   Literate
 
+using Pkg
+
+# Force Oceananigans to use a specific branch
+Pkg.add(PackageSpec(
+    name = "Oceananigans",
+    url = "https://github.com/CliMA/Oceananigans.jl",
+    rev = "ss/fix-zstar-bc"
+))
+
+Pkg.resolve()  # Optional: ensure consistent dependency resolution
+
+@show Pkg.status()
+
+asdf
+
 ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
 
 bib_filepath = joinpath(dirname(@__FILE__), "climaocean.bib")
