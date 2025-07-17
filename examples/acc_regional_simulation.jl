@@ -70,7 +70,7 @@ end
 end
 
 T_meta = Metadata(:temperature; start_date, end_date, dataset = ECCO4Monthly())
-S_meta = Metadata(:temperature; start_date, end_date, dataset = ECCO4Monthly())
+S_meta = Metadata(:salinity;    start_date, end_date, dataset = ECCO4Monthly())
 
 forcing = (T = DatasetRestoring(T_meta, grid; rate=1/5days, mask=tracer_mask),
 	       S = DatasetRestoring(S_meta, grid; rate=1/5days, mask=tracer_mask),
@@ -80,8 +80,11 @@ forcing = (T = DatasetRestoring(T_meta, grid; rate=1/5days, mask=tracer_mask),
 momentum_advection = WENOVectorInvariant()
 tracer_advection   = WENO(order=7)
 
-ocean      = ocean_simulation(grid; forcing, momentum_advection, tracer_advection)
-set!(ocean.model, T=0, S=0)
+ocean = ocean_simulation(grid; forcing, momentum_advection, tracer_advection)
+
+set!(ocean.model, T=T_meta[1], S=S_meta[1])
+
+
 backend    = JRA55NetCDFBackend(41) 
 atmosphere = JRA55PrescribedAtmosphere(arch; backend)
 radiation  = Radiation()
