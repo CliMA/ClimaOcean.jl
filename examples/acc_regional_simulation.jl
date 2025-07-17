@@ -155,10 +155,10 @@ nothing #hide
 # In particular, we generate an animation of the evolution of surface fields:
 # surface speed (s), surface temperature (T), and turbulent kinetic energy (e).
 
-u = FieldTimeSeries("surface.jld2", "u"; backend = OnDisk())
-v = FieldTimeSeries("surface.jld2", "v"; backend = OnDisk())
-T = FieldTimeSeries("surface.jld2", "T"; backend = OnDisk())
-e = FieldTimeSeries("surface.jld2", "e"; backend = OnDisk())
+u = FieldTimeSeries("acc_surface_fields.jld2", "u"; backend = OnDisk())
+v = FieldTimeSeries("acc_surface_fields.jld2", "v"; backend = OnDisk())
+T = FieldTimeSeries("acc_surface_fields.jld2", "T"; backend = OnDisk())
+e = FieldTimeSeries("acc_surface_fields.jld2", "e"; backend = OnDisk())
 
 times = u.times
 Nt = length(times)
