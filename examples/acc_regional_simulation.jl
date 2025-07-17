@@ -10,6 +10,7 @@ using Printf
 using CairoMakie
 using CFTime
 using Dates
+using CUDA
 
 arch = GPU() 
 
