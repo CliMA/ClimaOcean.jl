@@ -36,7 +36,6 @@ end
 
 format = Documenter.HTML(collapselevel = 2,
                          size_threshold = nothing,
-                         prettyurls = get(ENV, "CI", nothing) == "true",
                          canonical = "https://clima.github.io/ClimaOceanDocumentation/dev/")
 
 pages = [
@@ -49,7 +48,9 @@ pages = [
         "Regional ACC simulation" => "literated/acc_regional_simulation.md",
         ],
 
-    "Interface fluxes" => "interface_fluxes.md",
+    "Vertical grids" => "vertical_grids.md",
+
+    # "Interface fluxes" => "interface_fluxes.md",
 
     "Library" => [
         "Contents"       => "library/outline.md",
