@@ -52,7 +52,7 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height);
 
 eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=2e3, κ_symmetric=2e3)
 horizontal_viscosity = HorizontalScalarDiffusivity(ν=4000)
-vertical_mixing = Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivity(minimum_tke=1e-6)
+vertical_mixing = Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivity(Oceananigans.TurbulenceClosures.ExplicitTimeDiscretization(), minimum_tke=1e-6)
 
 # ### Ocean simulation
 # Now we bring everything together to construct the ocean simulation.
