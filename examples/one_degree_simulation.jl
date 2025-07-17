@@ -15,6 +15,7 @@ using Oceananigans.Units
 using Dates
 using Printf
 using Statistics
+using CUDA
 
 # ### Grid and Bathymetry
 
