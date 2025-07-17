@@ -72,7 +72,7 @@ snapshot_interval = 3hours  # JRE55 time-resolution
 rotation_period = 60days
 rotation_rate = 2π / rotation_period
 
-record(fig, "JRA55_data.mp4", 1:Nt, framerate=16) do nn
+CairoMakie.record(fig, "JRA55_data.mp4", 1:Nt, framerate=16) do nn
     @info nn/Nt
 
     n[] = nn
