@@ -17,7 +17,7 @@ steps:
       TEST_GROUP: "init"
     command:
       - "echo '--- Instantiate project'"
-      - "julia --project -e 'using Pkg; pkg.add("CUDA"); Pkg.instantiate(verbose=true)'"
+      - "julia --project -e 'using Pkg; Pkg.add("CUDA"); Pkg.instantiate(verbose=true)'"
 
       - "echo '--- Precompile project'"
       - "julia --project -e 'using Pkg; Pkg.precompile(strict=true)'"
