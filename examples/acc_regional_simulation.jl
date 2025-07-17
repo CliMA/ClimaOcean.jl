@@ -18,7 +18,7 @@ Nx = 1440
 Ny = 400
 Nz = 40  
 
-z_faces = exponential_z_faces(; Nz, depth=6000)
+z_faces = ExponentialCoordinate(Nz, -6000)
 
 grid = LatitudeLongitudeGrid(arch;
                              size = (Nx, Ny, Nz),
