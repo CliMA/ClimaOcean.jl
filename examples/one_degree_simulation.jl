@@ -294,7 +294,7 @@ nothing #hide
 
 # And now a movie:
 
-record(fig, "one_degree_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
+CairoMakie.record(fig, "one_degree_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
     n[] = nn
 end
 nothing #hide
