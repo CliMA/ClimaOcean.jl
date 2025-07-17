@@ -5,7 +5,6 @@ export JRA55FieldTimeSeries, JRA55PrescribedAtmosphere, RepeatYearJRA55, MultiYe
 using Oceananigans
 using Oceananigans.Units
 
-using Oceananigans.Architectures: arch_array
 using Oceananigans.DistributedComputations
 using Oceananigans.DistributedComputations: child_architecture
 using Oceananigans.BoundaryConditions: fill_halo_regions!
