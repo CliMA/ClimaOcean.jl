@@ -1,5 +1,4 @@
 using Oceananigans
-using Oceananigans.Architectures: arch_array
 using Oceananigans.Units
 using Oceananigans.Utils: WallTimeInterval
 using Oceananigans.BuoyancyFormulations: buoyancy

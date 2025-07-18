@@ -6,7 +6,7 @@
 # and initialized by temperature, salinity, sea ice concentration, and sea ice thickness
 # from the ECCO state estimate.
 #
-# For this example, we need Oceananigans, ClimaOcean, Dates, and
+# For this example, we need Oceananigans, ClimaOcean, Dates, CUDA, and
 # CairoMakie to visualize the simulation.
 
 using ClimaOcean
@@ -15,6 +15,7 @@ using Oceananigans.Units
 using Dates
 using Printf
 using Statistics
+using CUDA
 
 # ### Grid and Bathymetry
 
@@ -292,7 +293,7 @@ nothing #hide
 
 # And now a movie:
 
-record(fig, "one_degree_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
+CairoMakie.record(fig, "one_degree_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
     n[] = nn
 end
 nothing #hide

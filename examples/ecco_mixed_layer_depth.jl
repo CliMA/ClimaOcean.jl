@@ -71,7 +71,7 @@ fig
 
 # And record a movie
 
-record(fig, "ecco_mld.mp4", 1:Nt-1, framerate=4) do nn
+CairoMakie.record(fig, "ecco_mld.mp4", 1:Nt-1, framerate=4) do nn
     @info "Drawing frame $nn of $Nt..."
     n[] = nn
 end
