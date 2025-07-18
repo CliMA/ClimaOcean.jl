@@ -227,7 +227,7 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
     θ★ = χθ * Δθ
     q★ = χq * Δq
 
-    return u★, θ★, q★
+    return u★, θ★, q★, U
 end
 
 """

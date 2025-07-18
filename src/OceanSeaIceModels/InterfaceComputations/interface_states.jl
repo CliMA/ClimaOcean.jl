@@ -363,6 +363,7 @@ struct InterfaceState{FT}
     u★ :: FT # friction velocity
     θ★ :: FT # flux characteristic temperature
     q★ :: FT # flux characteristic specific humidity
+    ΔU :: FT # velocity difference magnitude
     u :: FT  # interface x-velocity
     v :: FT  # interface y-velocity
     T :: FT  # interface temperature
@@ -389,6 +390,7 @@ function Base.show(io::IO, is::InterfaceState)
 end
 
 @inline zero_interface_state(FT) = InterfaceState(zero(FT),
+                                                  zero(FT),
                                                   zero(FT),
                                                   zero(FT),
                                                   zero(FT),
