@@ -53,8 +53,8 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height);
 
 eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=2e3, κ_symmetric=2e3)
 horizontal_viscosity = HorizontalScalarDiffusivity(ν=4000)
-vertical_mixing = Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivity(Oceananigans.TurbulenceClosures.ExplicitTimeDiscretization(), minimum_tke=1e-6)
-
+vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
+          
 # ### Ocean simulation
 # Now we bring everything together to construct the ocean simulation.
 # We use a split-explicit timestepping with 70 substeps for the barotropic
@@ -294,7 +294,7 @@ nothing #hide
 
 # And now a movie:
 
-record(fig, "one_degree_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
+CairoMakie.record(fig, "one_degree_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
     n[] = nn
 end
 nothing #hide
