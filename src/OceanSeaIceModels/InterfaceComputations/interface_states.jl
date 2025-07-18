@@ -372,8 +372,8 @@ struct InterfaceState{FT}
     melting :: Bool
 end
 
-@inline InterfaceState(u★, θ★, q★, u, v, T, S, q) =
-    InterfaceState(u★, θ★, q★, u, v, T, S, q, false)
+@inline InterfaceState(u★, θ★, q★, ΔU, u, v, T, S, q) =
+    InterfaceState(u★, θ★, q★, ΔU, u, v, T, S, q, false)
 
 Base.eltype(::InterfaceState{FT}) where FT = FT
 

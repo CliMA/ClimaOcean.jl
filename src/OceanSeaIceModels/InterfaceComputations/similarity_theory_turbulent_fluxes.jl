@@ -35,6 +35,7 @@ Adapt.adapt_structure(to, fluxes::SimilarityTheoryFluxes) =
     SimilarityTheoryFluxes(adapt(to, fluxes.von_karman_constant),
                            adapt(to, fluxes.turbulent_prandtl_number),
                            adapt(to, fluxes.gustiness_parameter),
+                           adapt(to, fluxes.minimum_velocity_scale),
                            adapt(to, fluxes.stability_functions),
                            adapt(to, fluxes.roughness_lengths),
                            adapt(to, fluxes.similarity_form),
