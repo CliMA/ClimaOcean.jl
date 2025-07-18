@@ -20,6 +20,7 @@ using CairoMakie
 using CFTime
 using Dates
 using Printf
+using CUDA
 
 # ### Grid configuration
 #
@@ -36,6 +37,7 @@ Nz = 40
 
 depth = 6000meters
 z = ExponentialCoordinate(Nz, -depth)
+z = Oceananigans.Grids.MutableVerticalDiscretization(z)
 
 grid = LatitudeLongitudeGrid(arch;
                              size = (Nx, Ny, Nz),
@@ -250,7 +252,7 @@ nothing #hide
 
 # And now we make a movie:
 
-record(fig, "near_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
+CairoMakie.record(fig, "near_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
     n[] = nn
 end
 nothing #hide

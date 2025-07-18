@@ -33,6 +33,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     flux_formulation = coupled_model.interfaces.atmosphere_ocean_interface.flux_formulation
     interface_fluxes = coupled_model.interfaces.atmosphere_ocean_interface.fluxes
     interface_temperature = coupled_model.interfaces.atmosphere_ocean_interface.temperature
+    interface_humidity = coupled_model.interfaces.atmosphere_ocean_interface.humidity
     interface_properties = coupled_model.interfaces.atmosphere_ocean_interface.properties
     ocean_properties = coupled_model.interfaces.ocean_properties
     atmosphere_properties = (thermodynamics_parameters = thermodynamics_parameters(atmosphere),
@@ -45,6 +46,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
             _compute_atmosphere_ocean_interface_state!,
             interface_fluxes,
             interface_temperature,
+            interface_humidity,
             grid,
             clock,
             flux_formulation,
@@ -60,6 +62,7 @@ end
 """ Compute turbulent fluxes between an atmosphere and a interface state using similarity theory """
 @kernel function _compute_atmosphere_ocean_interface_state!(interface_fluxes,
                                                             interface_temperature,
+                                                            interface_humidity, 
                                                             grid,
                                                             clock,
                                                             turbulent_flux_formulation,
@@ -115,7 +118,7 @@ end
     # Estimate interface specific humidity using interior temperature
     q_formulation = interface_properties.specific_humidity_formulation
     qₛ = surface_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ, Tᵢ, Sᵢ)
-    initial_interface_state = InterfaceState(u★, u★, u★, uᵢ, vᵢ, Tᵢ, Sᵢ, qₛ)
+    initial_interface_state = InterfaceState(u★, u★, u★, uᵢ, uᵢ, vᵢ, Tᵢ, Sᵢ, qₛ)
 
     # Don't use convergence criteria in an inactive cell
     stop_criteria = turbulent_flux_formulation.solver_stop_criteria
@@ -164,7 +167,6 @@ end
     cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
     ℒv = AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
     
-
     # Store fluxes
     Qv  = interface_fluxes.latent_heat
     Qc  = interface_fluxes.sensible_heat
@@ -172,6 +174,7 @@ end
     ρτx = interface_fluxes.x_momentum
     ρτy = interface_fluxes.y_momentum
     Ts  = interface_temperature
+    qs  = interface_humidity
 
     @inbounds begin
         # +0: cooling, -0: heating
@@ -181,6 +184,7 @@ end
         ρτx[i, j, 1] = + ρₐ * τx
         ρτy[i, j, 1] = + ρₐ * τy
         Ts[i, j, 1]  = convert_from_kelvin(ocean_properties.temperature_units, Ψₛ.T)
+        qs[i, j, 1]  = Ψₛ.q
 
         interface_fluxes.friction_velocity[i, j, 1] = u★
         interface_fluxes.temperature_scale[i, j, 1] = θ★

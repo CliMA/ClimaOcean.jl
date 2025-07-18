@@ -39,6 +39,7 @@ mutable struct AtmosphereInterface{J, F, ST, P}
     fluxes :: J
     flux_formulation :: F
     temperature :: ST
+    humidity :: ST
     properties :: P
 end
 
@@ -213,8 +214,9 @@ function atmosphere_ocean_interface(atmos,
                                         velocity_formulation)
 
     interface_temperature = Field{Center, Center, Nothing}(ocean.model.grid)
+    interface_humidity    = Field{Center, Center, Nothing}(ocean.model.grid)
 
-    return AtmosphereInterface(ao_fluxes, ao_flux_formulation, interface_temperature, ao_properties)
+    return AtmosphereInterface(ao_fluxes, ao_flux_formulation, interface_temperature, interface_humidity, ao_properties)
 end
 
 atmosphere_sea_ice_interface(atmos, sea_ice, args...) = nothing
@@ -250,8 +252,9 @@ function atmosphere_sea_ice_interface(atmos,
                                      velocity_formulation)
 
     interface_temperature = sea_ice.model.ice_thermodynamics.top_surface_temperature
+    interface_humidity    = Field{Center, Center, Nothing}(sea_ice.model.grid)
 
-    return AtmosphereInterface(fluxes, ai_flux_formulation, interface_temperature, properties)
+    return AtmosphereInterface(fluxes, ai_flux_formulation, interface_temperature, interface_humidity, properties)
 end
 
 sea_ice_ocean_interface(sea_ice, ocean) = nothing

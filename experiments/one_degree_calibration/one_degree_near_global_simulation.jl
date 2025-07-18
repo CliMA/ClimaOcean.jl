@@ -10,6 +10,7 @@ using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities:
 
 #using ParameterEstimocean.Parameters: closure_with_parameters
 using JLD2
+using CUDA
 
 const years = 365days
 
@@ -147,4 +148,3 @@ simulation.Δt = 20minutes
 run!(simulation)
 
 @info "Simulation took $(prettytime(simulation.run_wall_time))."
-

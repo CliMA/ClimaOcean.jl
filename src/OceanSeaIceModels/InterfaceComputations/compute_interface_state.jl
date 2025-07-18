@@ -102,7 +102,7 @@ and interior properties `ℙₛ`, `ℙₐ`, and `ℙᵢ`.
     Δθ = θₐ - Tₛ
     Δh = atmosphere_state.z # Assumption! The surface is at z = 0 -> Δh = zₐ - 0
 
-    u★, θ★, q★ = iterate_interface_fluxes(flux_formulation,
+    u★, θ★, q★, U = iterate_interface_fluxes(flux_formulation,
                                           Tₛ, qₛ, Δθ, Δq, Δh,
                                           approximate_interface_state,
                                           atmosphere_state,
@@ -116,6 +116,7 @@ and interior properties `ℙₛ`, `ℙₐ`, and `ℙᵢ`.
     return InterfaceState(convert(FT, u★),
                           convert(FT, θ★),
                           convert(FT, q★), 
+                          convert(FT, U), 
                           convert(FT, u), 
                           convert(FT, v), 
                           convert(FT, Tₛ), 

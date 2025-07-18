@@ -15,6 +15,7 @@ using Oceananigans.Units
 using Dates
 using Printf
 using Statistics
+using CUDA
 
 # ### Grid and Bathymetry
 
@@ -27,6 +28,7 @@ Nz = 40
 
 depth = 4000meters
 z = ExponentialCoordinate(Nz, -depth; scale = 0.85*depth)
+z = Oceananigans.Grids.MutableVerticalDiscretization(z)
 underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 
 # Next, we build bathymetry on this grid, using interpolation passes to smooth the bathymetry.
@@ -51,8 +53,8 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height);
 
 eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=2e3, κ_symmetric=2e3)
 horizontal_viscosity = HorizontalScalarDiffusivity(ν=4000)
-vertical_mixing = Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivity(minimum_tke=1e-6)
-
+vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
+          
 # ### Ocean simulation
 # Now we bring everything together to construct the ocean simulation.
 # We use a split-explicit timestepping with 70 substeps for the barotropic
@@ -292,7 +294,7 @@ nothing #hide
 
 # And now a movie:
 
-record(fig, "one_degree_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
+CairoMakie.record(fig, "one_degree_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
     n[] = nn
 end
 nothing #hide

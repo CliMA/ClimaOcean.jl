@@ -1,5 +1,4 @@
 using Oceananigans
-using Oceananigans.Architectures: arch_array
 using Oceananigans.Units
 using Oceananigans.Utils: WallTimeInterval
 using Oceananigans.BuoyancyFormulations: buoyancy
@@ -10,6 +9,7 @@ using ParameterEstimocean.Utils: map_gpus_to_ranks!
 using ParameterEstimocean.Observations: FieldTimeSeriesCollector
 using ParameterEstimocean.Parameters: closure_with_parameters
 using JLD2
+using CUDA
 
 arch = GPU()
 
