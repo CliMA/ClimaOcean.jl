@@ -154,7 +154,7 @@ end
     Ψₛ = interface_state
     Ψₐ = local_atmosphere_state
     Δu, Δv = velocity_difference(interface_properties.velocity_formulation, Ψₐ, Ψₛ)
-    ΔU = interface_state.ΔU
+    ΔU = sqrt(Δu^2 + Δv^2)
     τx = - u★^2 * Δu / ΔU
     τy = - u★^2 * Δv / ΔU
 
