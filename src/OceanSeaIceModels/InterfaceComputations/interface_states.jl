@@ -363,7 +363,6 @@ struct InterfaceState{FT}
     u★ :: FT # friction velocity
     θ★ :: FT # flux characteristic temperature
     q★ :: FT # flux characteristic specific humidity
-    ΔU :: FT # velocity difference magnitude
     u :: FT  # interface x-velocity
     v :: FT  # interface y-velocity
     T :: FT  # interface temperature
@@ -372,8 +371,8 @@ struct InterfaceState{FT}
     melting :: Bool
 end
 
-@inline InterfaceState(u★, θ★, q★, ΔU, u, v, T, S, q) =
-    InterfaceState(u★, θ★, q★, ΔU, u, v, T, S, q, false)
+@inline InterfaceState(u★, θ★, q★, u, v, T, S, q) =
+    InterfaceState(u★, θ★, q★, u, v, T, S, q, false)
 
 Base.eltype(::InterfaceState{FT}) where FT = FT
 
@@ -390,7 +389,6 @@ function Base.show(io::IO, is::InterfaceState)
 end
 
 @inline zero_interface_state(FT) = InterfaceState(zero(FT),
-                                                  zero(FT),
                                                   zero(FT),
                                                   zero(FT),
                                                   zero(FT),

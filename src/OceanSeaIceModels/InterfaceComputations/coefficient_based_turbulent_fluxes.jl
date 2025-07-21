@@ -117,5 +117,5 @@ end
     θ★ = Ch / sqrt(Cd) * Δθ
     q★ = Cq / sqrt(Cd) * Δq
 
-    return u★, θ★, q★, ΔU
+    return u★, θ★, q★
 end
