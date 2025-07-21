@@ -128,7 +128,7 @@ end
 
     # Guess
     Sₛ = zero(FT) # what should we use for interface salinity?
-    initial_interface_state = InterfaceState(u★, u★, u★, uᵢ, uᵢ, vᵢ, Tₛ, Sₛ, convert(FT, qₛ))
+    initial_interface_state = InterfaceState(u★, u★, u★, uᵢ, vᵢ, Tₛ, Sₛ, convert(FT, qₛ))
     not_water = inactive_node(i, j, kᴺ, grid, Center(), Center(), Center())
     ice_free = ℵᵢ == 0
 
@@ -136,7 +136,7 @@ end
     needs_to_converge = stop_criteria isa ConvergenceStopCriteria
 
     if (needs_to_converge && not_water) || ice_free
-        interface_state = InterfaceState(zero(FT), zero(FT), zero(FT), uᵢ, uᵢ, vᵢ, Tᵢ, Sₛ, zero(FT))
+        interface_state = InterfaceState(zero(FT), zero(FT), zero(FT), uᵢ, vᵢ, Tᵢ, Sₛ, zero(FT))
     else
         interface_state = compute_interface_state(turbulent_flux_formulation,
                                                   initial_interface_state,
