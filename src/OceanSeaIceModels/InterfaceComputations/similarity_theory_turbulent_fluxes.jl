@@ -35,6 +35,7 @@ Adapt.adapt_structure(to, fluxes::SimilarityTheoryFluxes) =
     SimilarityTheoryFluxes(adapt(to, fluxes.von_karman_constant),
                            adapt(to, fluxes.turbulent_prandtl_number),
                            adapt(to, fluxes.gustiness_parameter),
+                           adapt(to, fluxes.minimum_velocity_scale),
                            adapt(to, fluxes.stability_functions),
                            adapt(to, fluxes.roughness_lengths),
                            adapt(to, fluxes.similarity_form),
@@ -59,7 +60,7 @@ end
                            gravitational_acceleration = 9.81,
                            von_karman_constant = 0.4,
                            turbulent_prandtl_number = 1,
-                           gustiness_parameter = 3.5,
+                           gustiness_parameter = 1,
                            stability_functions = default_stability_functions(FT),
                            roughness_lengths = default_roughness_lengths(FT),
                            similarity_form = LogarithmicSimilarityProfile(),
@@ -88,7 +89,7 @@ Keyword Arguments
 function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                 von_karman_constant = 0.4,
                                 turbulent_prandtl_number = 1,
-                                gustiness_parameter = 3.5,
+                                gustiness_parameter = 2,
                                 stability_functions = atmosphere_ocean_stability_functions(FT),
                                 momentum_roughness_length = MomentumRoughnessLength(FT),
                                 temperature_roughness_length = ScalarRoughnessLength(FT),
@@ -215,7 +216,7 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
 
     # Transfer coefficients at height `h`
     ϰ = flux_formulation.von_karman_constant
-    L★ = ifelse(b★ == 0, Inf, - u★^2 / (ϰ * b★))
+    L★ = ifelse(b★ == 0, Inf, u★^2 / (ϰ * b★))
     form = flux_formulation.similarity_form
 
     χu = ϰ / similarity_profile(form, ψu, Δh, ℓu₀, L★)
