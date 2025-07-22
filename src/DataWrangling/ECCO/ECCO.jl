@@ -257,7 +257,7 @@ end
 
 function download_dataset(metadata::ECCOMetadata)
     username = get(ENV, "ECCO_USERNAME", nothing)
-    ecco_tkn = get(ENV, "ECCO_TOKEN", nothing)
+    password = get(ENV, "ECCO_PASSWORD", nothing)
     dir = metadata.dir
 
     # Create a temporary directory to store the .netrc file
@@ -265,7 +265,7 @@ function download_dataset(metadata::ECCOMetadata)
     @root mktempdir(dir) do tmp
 
         # Write down the username and password in a .netrc file
-        downloader = netrc_downloader(username, ecco_tkn, "ecco.jpl.nasa.gov", tmp)
+        downloader = netrc_downloader(username, password, "ecco.jpl.nasa.gov", tmp)
         ntasks = Threads.nthreads()
 
         asyncmap(metadata; ntasks) do metadatum # Distribute the download among tasks
@@ -276,14 +276,14 @@ function download_dataset(metadata::ECCOMetadata)
             if !isfile(filepath)
                 instructions_msg = "\n See ClimaOcean.jl/src/DataWrangling/ECCO/README.md for instructions."
                 if isnothing(username)
-                    msg = "Could not find the ECCO_TOKEN environment variable. \
+                    msg = "Could not find the ECCO_PASSWORD environment variable. \
                             See ClimaOcean.jl/src/DataWrangling/ECCO/README.md for instructions on obtaining \
-                            and setting your ECCO_USERNAME and ECCO_TOKEN." * instructions_msg
+                            and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
                     throw(ArgumentError(msg))
-                elseif isnothing(ecco_tkn)
-                    msg = "Could not find the ECCO_TOKEN environment variable. \
+                elseif isnothing(password)
+                    msg = "Could not find the ECCO_PASSWORD environment variable. \
                             See ClimaOcean.jl/src/DataWrangling/ECCO/README.md for instructions on obtaining \
-                            and setting your ECCO_USERNAME and ECCO_TOKEN." * instructions_msg
+                            and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
                     throw(ArgumentError(msg))
                 end
                 @info "Downloading ECCO data: $(metadatum.name) in $(metadatum.dir)..."
