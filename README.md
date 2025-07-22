@@ -44,6 +44,7 @@ To illustrate how `OceanSeaIceModel` works we set up a simulation on a grid with
 using Oceananigans
 using Oceananigans.Units
 using Dates
+using CUDA
 import ClimaOcean
 
 arch = GPU()

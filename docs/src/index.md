@@ -38,6 +38,8 @@ The following script implements a near-global ocean simulation initialized from 
 using Oceananigans
 using Oceananigans.Units
 using Dates
+using CUDA
+
 import ClimaOcean
 
 arch = GPU()

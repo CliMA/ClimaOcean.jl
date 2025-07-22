@@ -4,6 +4,16 @@ using
   DocumenterCitations,
   Literate
 
+# temporary to enforce Oceananigans to use a specific branch
+using Pkg
+Pkg.add(PackageSpec(
+    name = "Oceananigans",
+    url = "https://github.com/CliMA/Oceananigans.jl",
+    rev = "ss/fix-zstar-bc"
+))
+Pkg.resolve()
+@show Pkg.status()
+
 ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
 
 bib_filepath = joinpath(dirname(@__FILE__), "climaocean.bib")
@@ -48,7 +58,7 @@ pages = [
 
     "Vertical grids" => "vertical_grids.md",
 
-    # "Interface fluxes" => "interface_fluxes.md",
+    "Interface fluxes" => "interface_fluxes.md",
 
     "Library" => [
         "Contents"       => "library/outline.md",
