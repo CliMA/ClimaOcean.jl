@@ -54,18 +54,19 @@ function update_state!(coupled_model::OceanSeaIceModel, callbacks=[]; compute_te
 end
 
 function (wizard::TimeStepWizard)(simulation::Simulation{<:OceanSeaIceModel}) 
-    ocean_Δt = wizard(simulation.ocean)
+    model = simulation.model
+    ocean_Δt = wizard(model.ocean)
     
-    sea_ice_Δt = if isnothing(simulation.sea_ice) 
+    sea_ice_Δt = if isnothing(model.sea_ice) 
         Inf 
     else
-        wizard(simulation.sea_ice)
+        wizard(model.sea_ice)
     end
 
-    atmosphere_Δt = if isnothing(simulation.atmosphere) 
+    atmosphere_Δt = if isnothing(model.atmosphere) 
         Inf 
     else
-        wizard(simulation.atmosphere)
+        wizard(model.atmosphere)
     end
 
     return min(ocean_Δt, sea_ice_Δt, atmosphere_Δt)
