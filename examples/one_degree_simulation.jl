@@ -178,9 +178,9 @@ simulation.Δt = 20minutes
 simulation.stop_time = 365days
 run!(simulation)
 
-# ### A pretty movie
+# ### A movie
 #
-# We load the saved output and make a pretty movie of the simulation. First we plot a snapshot:
+# We load the saved output and make a movie of the simulation. First we plot a snapshot:
 using CairoMakie
 
 # We suffix the ocean fields with "o":
@@ -257,7 +257,7 @@ end
 # Finally, we plot a snapshot of the surface speed, temperature, and the turbulent
 # eddy kinetic energy from the CATKE vertical mixing parameterization as well as the
 # sea ice speed and the effective sea ice thickness.
-fig = Figure(size = (1200, 1200))
+fig = Figure(size=(1200, 900))
 
 title = @lift string("Global 1ᵒ ocean simulation after ", prettytime(times[$n] - times[1]))
 
