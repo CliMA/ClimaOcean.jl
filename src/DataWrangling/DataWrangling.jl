@@ -148,12 +148,12 @@ Arguments
 !!! info "Credential setup requirements for ECCO datasets"
 
     For ECCO datasets, the data download requires a username and password to be provided in
-    the `ECCO_USERNAME` and `ECCO_PASSWORD` environment variables respectively. This can be
+    the `ECCO_USERNAME` and `ECCO_TOKEN` environment variables respectively. This can be
     done by exporting the environment variables in the shell before running the script, or by
     launching julia with
 
     ```
-    ECCO_USERNAME=myusername ECCO_PASSWORD=mypassword julia
+    ECCO_USERNAME=myusername ECCO_TOKEN=mytoken julia
     ```
 
     or by invoking
@@ -161,7 +161,7 @@ Arguments
     ```julia
     julia> ENV["ECCO_USERNAME"] = "myusername"
 
-    julia> ENV["ECCO_PASSWORD"] = "mypassword"
+    julia> ENV["ECCO_TOKEN"] = "mytoken"
     ```
 
     within julia.
