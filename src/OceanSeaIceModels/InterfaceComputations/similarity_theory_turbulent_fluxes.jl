@@ -258,7 +258,7 @@ Note that the Monin--Obukhov characteristic length scale is defined
 in terms of ``b_★`` and additionally the Von Karman constant ``ϰ``,
 
 ```math
-L_★ = - u_★² / ϰ b_★ .
+L_★ = u_★² / ϰ b_★ .
 ```
 """
 @inline function buoyancy_scale(θ★, q★, ℂ, 𝒬, g)
