@@ -15,6 +15,7 @@ using Oceananigans.Units
 using Dates
 using Printf
 using Statistics
+using CUDA
 
 # ### Grid and Bathymetry
 
@@ -27,6 +28,7 @@ Nz = 40
 
 depth = 4000meters
 z = ExponentialCoordinate(Nz, -depth; scale = 0.85*depth)
+z = Oceananigans.Grids.MutableVerticalDiscretization(z)
 underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 
 # Next, we build bathymetry on this grid, using interpolation passes to smooth the bathymetry.
@@ -51,8 +53,8 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height);
 
 eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=2e3, κ_symmetric=2e3)
 horizontal_viscosity = HorizontalScalarDiffusivity(ν=4000)
-vertical_mixing = Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivity(minimum_tke=1e-6)
-
+vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
+          
 # ### Ocean simulation
 # Now we bring everything together to construct the ocean simulation.
 # We use a split-explicit timestepping with 70 substeps for the barotropic
@@ -177,9 +179,9 @@ simulation.Δt = 20minutes
 simulation.stop_time = 365days
 run!(simulation)
 
-# ### A pretty movie
+# ### A movie
 #
-# We load the saved output and make a pretty movie of the simulation. First we plot a snapshot:
+# We load the saved output and make a movie of the simulation. First we plot a snapshot:
 using CairoMakie
 
 # We suffix the ocean fields with "o":
@@ -256,7 +258,7 @@ end
 # Finally, we plot a snapshot of the surface speed, temperature, and the turbulent
 # eddy kinetic energy from the CATKE vertical mixing parameterization as well as the
 # sea ice speed and the effective sea ice thickness.
-fig = Figure(size = (1200, 1200))
+fig = Figure(size=(1200, 900))
 
 title = @lift string("Global 1ᵒ ocean simulation after ", prettytime(times[$n] - times[1]))
 
@@ -292,7 +294,7 @@ nothing #hide
 
 # And now a movie:
 
-record(fig, "one_degree_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
+CairoMakie.record(fig, "one_degree_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
     n[] = nn
 end
 nothing #hide
