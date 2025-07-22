@@ -211,7 +211,7 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
 
     # Transfer coefficients at height `h`
     ϰ = flux_formulation.von_karman_constant
-    L★ = ifelse(b★ == 0, Inf, - u★^2 / (ϰ * b★))
+    L★ = ifelse(b★ == 0, Inf, u★^2 / (ϰ * b★))
     form = flux_formulation.similarity_form
 
     χu = ϰ / similarity_profile(form, ψu, Δh, ℓu₀, L★)
@@ -253,7 +253,7 @@ Note that the Monin--Obukhov characteristic length scale is defined
 in terms of ``b_★`` and additionally the Von Karman constant ``ϰ``,
 
 ```math
-L_★ = - u_★² / ϰ b_★ .
+L_★ = u_★² / ϰ b_★ .
 ```
 """
 @inline function buoyancy_scale(θ★, q★, ℂ, 𝒬, g)
