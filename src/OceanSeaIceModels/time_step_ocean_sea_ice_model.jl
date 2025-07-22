@@ -69,6 +69,10 @@ function (wizard::TimeStepWizard)(simulation::Simulation{<:OceanSeaIceModel})
         wizard(model.atmosphere)
     end
 
-    return min(ocean_Δt, sea_ice_Δt, atmosphere_Δt)
+    Δt = min(ocean_Δt, sea_ice_Δt, atmosphere_Δt)
+
+    simulation.Δt = Δt
+    
+    return nothing
 end
 
