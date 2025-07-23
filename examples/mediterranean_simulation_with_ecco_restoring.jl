@@ -27,9 +27,9 @@ using CUDA
 # ## Grid Configuration for the Mediterranean Sea
 #
 # The script defines a high-resolution grid to represent the Mediterranean Sea, specifying the domain
-# in terms of longitude (λ₁, λ₂), latitude (φ₁, φ₂), and a stretched vertical grid (via `StretchedCoordinate`)
-# to capture the depth variation.
-# The grid resolution is set to approximately 1/15th of a degree, which corresponds to about 7 km.
+# in terms of longitude (λ₁, λ₂), latitude (φ₁, φ₂), and a stretched vertical grid (constructed via
+# `Oceananigans.ConstantToStretchedCoordinate`) to capture the depth variation.
+# The grid resolution is set to approximately 1/15th of a degree, which corresponds to about 7 kilometers.
 #
 # This section demonstrates using the `LatitudeLongitudeGrid` to create a grid that matches the
 # Mediterranean's geographical and bathymetric features.
@@ -37,10 +37,10 @@ using CUDA
 λ₁, λ₂  = ( 0, 42) # domain in longitude
 φ₁, φ₂  = (30, 45) # domain in latitude
 
-z = StretchedCoordinate(; depth = 5000,
-                        surface_layer_Δz = 2.5,
-                        stretching = PowerLawStretching(1.07),
-                        surface_layer_height = 50)
+z = ConstantToStretchedCoordinate(; extent = 5000,
+                                  constant_spacing = 2.5,
+                                  constant_spacing_extent = 50,
+                                  stretching = PowerLawStretching(1.07))
 
 Nx = 15 * Int(λ₂ - λ₁) # 1/15 th of a degree resolution
 Ny = 15 * Int(φ₂ - φ₁) # 1/15 th of a degree resolution
