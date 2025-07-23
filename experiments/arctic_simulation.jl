@@ -11,7 +11,6 @@ using ClimaSeaIce.SeaIceThermodynamics: IceWaterThermalEquilibrium
 using Printf
 
 using CUDA
-CUDA.device!(1)
 arch = GPU()
 
 depth = 2000meters

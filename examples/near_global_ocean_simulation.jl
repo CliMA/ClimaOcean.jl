@@ -9,7 +9,8 @@
 # ## Initial setup with package imports
 #
 # We begin by importing the necessary Julia packages for visualization (CairoMakie),
-# ocean modeling (Oceananigans, ClimaOcean), and handling dates and times (CFTime, Dates).
+# ocean modeling (Oceananigans, ClimaOcean), handling dates and times (CFTime, Dates),
+# and CUDA for running on CUDA-enabled GPUs.
 # These packages provide the foundational tools for setting up the simulation environment,
 # including grid setup, physical processes modeling, and data visualization.
 
@@ -251,7 +252,7 @@ nothing #hide
 
 # And now we make a movie:
 
-record(fig, "near_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
+CairoMakie.record(fig, "near_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
     n[] = nn
 end
 nothing #hide

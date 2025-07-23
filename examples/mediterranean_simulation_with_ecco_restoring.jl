@@ -17,12 +17,12 @@
 
 using CairoMakie
 using Oceananigans
-using Oceananigans: architecture
+using Oceananigans.Units
 using ClimaOcean
 using ClimaOcean.ECCO
-using Oceananigans.Units
 using Printf
 using Dates
+using CUDA
 
 # ## Grid Configuration for the Mediterranean Sea
 #
