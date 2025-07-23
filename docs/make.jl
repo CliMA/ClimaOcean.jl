@@ -2,8 +2,7 @@ using
   ClimaOcean,
   Documenter,
   DocumenterCitations,
-  Literate,
-  CUDA
+  Literate
 
 ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
 
