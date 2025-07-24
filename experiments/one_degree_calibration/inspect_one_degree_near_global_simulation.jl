@@ -129,4 +129,3 @@ display(fig)
 CairoMakie.record(fig, "one_degree_near_global_simulation_$(closure_name).mp4", 1:Nt, framerate=24) do nn
     n[] = nn
 end
-

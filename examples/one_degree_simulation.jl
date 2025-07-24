@@ -6,7 +6,7 @@
 # and initialized by temperature, salinity, sea ice concentration, and sea ice thickness
 # from the ECCO state estimate.
 #
-# For this example, we need Oceananigans, ClimaOcean, Dates, and
+# For this example, we need Oceananigans, ClimaOcean, Dates, CUDA, and
 # CairoMakie to visualize the simulation.
 
 using ClimaOcean
