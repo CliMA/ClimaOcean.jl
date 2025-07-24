@@ -54,7 +54,7 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height);
 eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=2e3, κ_symmetric=2e3)
 horizontal_viscosity = HorizontalScalarDiffusivity(ν=4000)
 vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
-          
+
 # ### Ocean simulation
 # Now we bring everything together to construct the ocean simulation.
 # We use a split-explicit timestepping with 70 substeps for the barotropic
@@ -153,7 +153,7 @@ ocean_outputs = merge(ocean.model.tracers, ocean.model.velocities)
 seaice_outputs = merge((h = seaice.model.ice_thickness,
                         ℵ = seaice.model.ice_concentration,
                         T = seaice.model.ice_thermodynamics.top_surface_temperature),
-                       seaice.model.velocities)
+                        seaice.model.velocities)
 
 ocean.output_writers[:surface] = JLD2Writer(ocean.model, ocean_outputs;
                                             schedule = TimeInterval(5days),
