@@ -15,7 +15,7 @@ arch = GPU()
 
 depth = 2000meters
 Nz = 30
-z = ExponentialCoordinate(Nz, -depth; scale=depth/3)
+z = ClimaOcean.ExponentialCoordinate(Nz, -depth; scale=depth/3)
 z = MutableVerticalDiscretization(z)
 
 Nx = 180 # longitudinal direction -> 250 points is about 1.5ᵒ resolution

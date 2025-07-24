@@ -37,7 +37,7 @@ Ny = 600
 Nz = 40
 
 depth = 6000meters
-z = ExponentialCoordinate(Nz, -depth)
+z = ClimaOcean.ExponentialCoordinate(Nz, -depth)
 z = Oceananigans.Grids.MutableVerticalDiscretization(z)
 
 grid = LatitudeLongitudeGrid(arch;

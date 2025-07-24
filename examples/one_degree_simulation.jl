@@ -27,7 +27,7 @@ Ny = 180
 Nz = 40
 
 depth = 4000meters
-z = ExponentialCoordinate(Nz, -depth; scale = 0.85*depth)
+z = ClimaOcean.ExponentialCoordinate(Nz, -depth; scale = 0.85*depth)
 z = Oceananigans.Grids.MutableVerticalDiscretization(z)
 underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 

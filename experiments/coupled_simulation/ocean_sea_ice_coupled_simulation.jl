@@ -22,7 +22,7 @@ Ny = 128 # meridional direction -> same thing, 48 points is about 1.5ᵒ resolut
 Nz = 10
 depth = 1000meters
 
-z = ExponentialCoordinate(Nz, -depth; scale=0.3*depth)
+z = ClimaOcean.ExponentialCoordinate(Nz, -depth; scale=0.3*depth)
 z = MutableVerticalDiscretization(z)
 
 grid = TripolarGrid(arch, Float64; size=(Nx, Ny, Nz), z)
