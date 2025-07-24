@@ -169,7 +169,7 @@ struct ExponentialCoordinate <: Function
 end
 
 """
-    ExponentialCoordinate(N::Int, left, right=0; scale=(right-left)/5, bias=:right)
+    ClimaOcean.GridUtils.ExponentialCoordinate(N::Int, left, right=0; scale=(right-left)/5, bias=:right)
 
 Return a one-dimensional coordinate with `N` cells that are exponentially spaced
 (or, equivalently, with spacings that grow linearly).
@@ -197,7 +197,7 @@ Nz = 10
 left = -1000
 right = 100
 
-z = ExponentialCoordinate(Nz, left, right)
+z = ClimaOcean.GridUtils.ExponentialCoordinate(Nz, left, right)
 
 [z(k) for k in 1:Nz+1]
 
@@ -220,7 +220,7 @@ z = ExponentialCoordinate(Nz, left, right)
 Above, the default `bias` is `:right`. We can get a left-biased grid via:
 
 ```jldoctest ExponentialCoordinate
-z = ExponentialCoordinate(Nz, left, right, bias=:left)
+z = ClimaOcean.GridUtils.ExponentialCoordinate(Nz, left, right, bias=:left)
 
 [z(k) for k in 1:Nz+1]
 
@@ -241,7 +241,7 @@ z = ExponentialCoordinate(Nz, left, right, bias=:left)
 ```
 """
 ExponentialCoordinate(N::Int, left, right=0; scale=(right-left)/5, bias=:right) =
-    ExponentialCoordinate(N, left, right, scale, bias)
+    ClimaOcean.GridUtils.ExponentialCoordinate(N, left, right, scale, bias)
 
 @inline rightbiased_exponential_mapping(z, l, r, h) = @. r - (r - l) * expm1((r - z) / h) / expm1((r - l) / h)
 @inline  leftbiased_exponential_mapping(z, l, r, h) = @. l + (r - l) * expm1((z - l) / h) / expm1((r - l) / h)
