@@ -27,7 +27,7 @@ Ny = 180
 Nz = 40
 
 depth = 4000meters
-z = ClimaOcean.GridUtils.ExponentialCoordinate(Nz, -depth; scale = 0.85*depth)
+z = ExponentialCoordinate(Nz, -depth, 0; scale = 0.85*depth)
 underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 
 # Next, we build bathymetry on this grid, using interpolation passes to smooth the bathymetry.
