@@ -52,8 +52,8 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height);
 # parameterization. We also include some explicit horizontal diffusivity.
 
 eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=2e3, κ_symmetric=2e3)
-horizontal_viscosity = HorizontalScalarDiffusivity(ν=4000)
 vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
+horizontal_viscosity = HorizontalScalarDiffusivity(ν=4000)
 
 # ### Ocean simulation
 # Now we bring everything together to construct the ocean simulation.
@@ -79,7 +79,7 @@ seaice = sea_ice_simulation(grid, ocean; advection=tracer_advection)
 
 # ### Initial condition
 
-# We initialize the ocean and sea ice model with data from the ECCO state estimate.
+# We initialize the ocean and sea ice models with data from the ECCO state estimate.
 
 date = DateTime(1993, 1, 1)
 dataset = ECCO4Monthly()
@@ -93,9 +93,9 @@ set!(seaice.model, h=ecco_sea_ice_thickness, ℵ=ecco_sea_ice_concentration)
 
 # ### Atmospheric forcing
 
-# We force the simulation with an JRA55-do atmospheric reanalysis.
+# We force the simulation with a JRA55-do atmospheric reanalysis.
 radiation  = Radiation(arch)
-atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(20))
+atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(80))
 
 # ### Coupled simulation
 
@@ -107,7 +107,7 @@ atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(20))
 # flow fields.
 
 coupled_model = OceanSeaIceModel(ocean, seaice; atmosphere, radiation)
-simulation = Simulation(coupled_model; Δt=5minutes, stop_time=20days)
+simulation = Simulation(coupled_model; Δt=8minutes, stop_time=20days)
 
 # ### A progress messenger
 #
@@ -127,7 +127,7 @@ function progress(sim)
     step_time = 1e-9 * (time_ns() - wall_time[])
 
     msg1 = @sprintf("time: %s, iter: %d", prettytime(sim), iteration(sim))
-    msg2 = @sprintf(", max|uo|: (%.1e, %.1e, %.1e) m s⁻¹, ", umax...)
+    msg2 = @sprintf(", max|uo|: (%.1e, %.1e, %.1e) m s⁻¹", umax...)
     msg3 = @sprintf(", extrema(To): (%.1f, %.1f) ᵒC, mean(To(z=0)): %.1f ᵒC", Tmin, Tmax, Tavg)
     msg4 = @sprintf(", max(e): %.2f m² s⁻²", emax)
     msg5 = @sprintf(", wall time: %s \n", prettytime(step_time))
@@ -145,7 +145,7 @@ add_callback!(simulation, progress, IterationInterval(1000))
 # ### Output
 #
 # We are almost there! We need to save some output. Below we choose to save _only surface_
-# fields using the `indices` keyword argument. We save all velocity and tracer components.
+# fields using the `indices` keyword argument. We save all the velocity and tracer components.
 # Note, that besides temperature and salinity, the CATKE vertical mixing parameterization
 # also uses a prognostic turbulent kinetic energy, `e`, to diagnose the vertical mixing length.
 
@@ -175,7 +175,7 @@ seaice.output_writers[:surface] = JLD2Writer(ocean.model, seaice_outputs;
 
 run!(simulation)
 
-simulation.Δt = 20minutes
+simulation.Δt = 30minutes
 simulation.stop_time = 365days
 run!(simulation)
 
@@ -258,7 +258,7 @@ end
 # Finally, we plot a snapshot of the surface speed, temperature, and the turbulent
 # eddy kinetic energy from the CATKE vertical mixing parameterization as well as the
 # sea ice speed and the effective sea ice thickness.
-fig = Figure(size=(1200, 900))
+fig = Figure(size=(1200, 1000))
 
 title = @lift string("Global 1ᵒ ocean simulation after ", prettytime(times[$n] - times[1]))
 
