@@ -92,7 +92,7 @@ set!(seaice.model, h=ecco_sea_ice_thickness, ℵ=ecco_sea_ice_concentration)
 
 # ### Atmospheric forcing
 
-# We force the simulation with the JRA55-do atmospheric reanalysis.
+# We force the simulation with a JRA55-do atmospheric reanalysis.
 radiation  = Radiation(arch)
 atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(80))
 
