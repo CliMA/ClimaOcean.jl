@@ -9,7 +9,8 @@
 # ## Initial setup with package imports
 #
 # We begin by importing the necessary Julia packages for visualization (CairoMakie),
-# ocean modeling (Oceananigans, ClimaOcean), and handling dates and times (CFTime, Dates).
+# ocean modeling (Oceananigans, ClimaOcean), handling dates and times (CFTime, Dates),
+# and CUDA for running on CUDA-enabled GPUs.
 # These packages provide the foundational tools for setting up the simulation environment,
 # including grid setup, physical processes modeling, and data visualization.
 
@@ -36,7 +37,7 @@ Ny = 600
 Nz = 40
 
 depth = 6000meters
-z = ExponentialCoordinate(Nz, -depth)
+z = ExponentialCoordinate(Nz, -depth, 0)
 z = Oceananigans.Grids.MutableVerticalDiscretization(z)
 
 grid = LatitudeLongitudeGrid(arch;

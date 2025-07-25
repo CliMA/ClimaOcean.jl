@@ -39,7 +39,6 @@ using Oceananigans
 using Oceananigans.Units
 using Dates
 using CUDA
-
 import ClimaOcean
 
 arch = GPU()

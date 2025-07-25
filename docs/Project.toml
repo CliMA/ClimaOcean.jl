@@ -10,9 +10,6 @@ Oceananigans = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
 SeawaterPolynomials = "d496a93d-167e-4197-9f49-d3af4ff8fe40"
 
 [compat]
-CairoMakie = "0.10.12, 0.11, 0.12, 0.13"
-DataDeps = "0.7"
 Documenter = "1"
 DocumenterCitations = "1.3"
-Oceananigans = "0.96 - 0.99"
-SeawaterPolynomials = "0.3.5"
+Literate = "2.2"
