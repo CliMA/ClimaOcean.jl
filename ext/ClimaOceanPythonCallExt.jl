@@ -1,6 +1,7 @@
 module ClimaOceanPythonCallExt
 
 using ClimaOcean
+using CondaPkg
 using PythonCall
 using Oceananigans
 using Oceananigans.DistributedComputations: @root
@@ -13,20 +14,13 @@ import ClimaOcean.DataWrangling: download_dataset
 """
     install_copernicusmarine()
 
-Installs the `copernicusmarine` Python CLI tool via `pip` using PythonCall.jl.
-
-This function ensures the latest version of the `copernicusmarine` command-line interface
-is installed and available in the current Python environment. It returns the absolute path
-to the installed `copernicusmarine` executable.
+Install the Copernicus Marine CLI using CondaPkg.
+Returns a NamedTuple containing package information if successful.
 """
 function install_copernicusmarine()
-    using PythonCall
-    @info "Installing the copernicusmarine CLI via pip..."
-    py"""
-    import subprocess
-    subprocess.run(["pip", "install", "--upgrade", "copernicusmarine"], check=True)
-    """
-    cli = PythonCall.pyimport("shutil").which("copernicusmarine")
+    @info "Installing the copernicusmarine CLI..."
+    CondaPkg.add("copernicusmarine"; channel = "conda-forge")
+    cli = CondaPkg.which("copernicusmarine")
     @info "... the copernicusmarine CLI has been installed at $(cli)."
     return cli
 end

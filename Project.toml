@@ -36,7 +36,7 @@ PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
 Reactant = "3c362404-f566-11ee-1572-e11a4b42c853"
 
 [extensions]
-ClimaOceanPythonCallExt = "PythonCall"
+ClimaOceanPythonCallExt = ["PythonCall", "CondaPkg"]
 ClimaOceanReactantExt = "Reactant"
 
 [compat]
@@ -44,6 +44,7 @@ Adapt = "4"
 CFTime = "0.1, 0.2"
 CUDA = "4, 5"
 ClimaSeaIce = "0.3.1"
+CondaPkg = "0.2.28"
 CubicSplines = "0.2"
 DataDeps = "0.7"
 DocStringExtensions = "0.9"
@@ -74,4 +75,4 @@ MPIPreferences = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Coverage", "Test", "MPIPreferences", "CUDA_Runtime_jll", "Reactant", "PythonCall"]
+test = ["Coverage", "Test", "MPIPreferences", "CUDA_Runtime_jll", "Reactant", "PythonCall", "CondaPkg"]
