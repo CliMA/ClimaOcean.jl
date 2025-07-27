@@ -17,12 +17,12 @@ T_meta = Metadata(:temperature, dataset=EN4Monthly())
 ```
 
 We can use `start_date` and `end_date` keyword arguments to select only some of the data
-available in the dataset. For example, to get only the first half of 2010 we do
+available in the dataset. For example, to get only the first quarter of 2010 we do
 
 ```@example metadata
 T_meta = Metadata(:temperature, dataset=EN4Monthly(),
                   start_date = Date(2010, 1),
-                  end_date = Date(2010, 6))
+                  end_date = Date(2010, 3))
 ```
 
 We can use `set!` on a field or a model
