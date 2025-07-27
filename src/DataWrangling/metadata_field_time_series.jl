@@ -101,12 +101,10 @@ Keyword Arguments
                           Default: `true`.
 """
 function FieldTimeSeries(metadata::Metadata, arch::AbstractArchitecture=CPU(); kw...)
-    grid = native_grid(metadata, arch)T
+    download_dataset(metadata)
+    grid = native_grid(metadata, arch)
     return FieldTimeSeries(metadata, grid; kw...)
 end
-
-instantiate(T::Type) = T()
-instantiate(t) = t
 
 function FieldTimeSeries(metadata::Metadata, grid::AbstractGrid;
                          time_indices_in_memory = 2,

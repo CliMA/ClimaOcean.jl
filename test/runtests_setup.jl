@@ -39,7 +39,8 @@ function test_setting_from_metadata(arch, dataset, start_date, inpainting,
                                  longitude = (10, 15),
                                  z = (-200, 0))
 
-    field = Field(loc, grid)
+
+    field = Field{loc...}(grid)
 
     @test begin
         for name in names
