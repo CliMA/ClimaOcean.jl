@@ -1,6 +1,7 @@
 include("runtests_setup.jl")
 
 using PythonCall
+using CondaPkg
 
 @testset "Downloading Copernicus data" begin
     variables = (:temperature, :salinity, :u_velocity, :v_velocity)
