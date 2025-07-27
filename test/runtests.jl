@@ -3,7 +3,6 @@ include("runtests_setup.jl")
 
 using CUDA
 using PythonCall
-using CondaPkg
 using Scratch
 
 test_group = get(ENV, "TEST_GROUP", :all)
