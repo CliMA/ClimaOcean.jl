@@ -101,10 +101,12 @@ Keyword Arguments
                           Default: `true`.
 """
 function FieldTimeSeries(metadata::Metadata, arch::AbstractArchitecture=CPU(); kw...)
-    download_dataset(metadata)
-    grid = native_grid(metadata, arch)
+    grid = native_grid(metadata, arch)T
     return FieldTimeSeries(metadata, grid; kw...)
 end
+
+instantiate(T::Type) = T()
+instantiate(t) = t
 
 function FieldTimeSeries(metadata::Metadata, grid::AbstractGrid;
                          time_indices_in_memory = 2,
@@ -120,7 +122,7 @@ function FieldTimeSeries(metadata::Metadata, grid::AbstractGrid;
 
     times = native_times(metadata)
     loc = LX, LY, LZ = location(metadata)
-    boundary_conditions = FieldBoundaryConditions(grid, loc)
+    boundary_conditions = FieldBoundaryConditions(grid, instantiate.(loc))
     fts = FieldTimeSeries{LX, LY, LZ}(grid, times; backend, time_indexing, boundary_conditions)
     set!(fts)
 
