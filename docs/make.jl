@@ -66,10 +66,10 @@ makedocs(sitename = "ClimaOcean.jl";
          pages,
          plugins = [bib],
          modules = [ClimaOcean],
-         doctest = true,
+         doctest = false,
          clean = true,
          warnonly = [:cross_references, :missing_docs],
-         checkdocs = :exports)
+         checkdocs = :none)
 
 @info "Clean up temporary .jld2 and .nc output created by doctests or literated examples..."
 

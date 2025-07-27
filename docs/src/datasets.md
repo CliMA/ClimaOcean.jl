@@ -30,11 +30,11 @@ We can use `set!` on a field or a model
 ```@example metadata
 using Oceananigans
 
-Nx, Ny, Nz = 180, 90, 10
+Nx, Ny, Nz = 720, 360, 4
 underlying_grid = LatitudeLongitudeGrid(size=(Nx, Ny, Nz),
-                                        longitude=(0, 360),
-                                        latitude=(-90, 90),
-                                        z=(-5000, 0))
+                                        longitude = (0, 360),
+                                        latitude = (-90, 90),
+                                        z = (-5000, 0))
 
 bottom_height = regrid_bathymetry(underlying_grid)
 
