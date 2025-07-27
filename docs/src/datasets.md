@@ -1,6 +1,6 @@
 # Datasets
 
-The [`DataWrangling`](@ref ClimaOcean.DataWrangling) module enables using various datasets
+The [`DataWrangling`](@ref ClimaOcean.DataWrangling) module allows us to use various datasets
 in ClimaOcean simulations.
 
 A central concept in the `DataWrangling` module is that of [`Metadata`](@ref).
