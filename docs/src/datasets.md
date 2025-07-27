@@ -11,6 +11,7 @@ For example, below we construct a metadata for the temperature variable from the
 
 ```@example metadata
 using ClimaOcean
+using Dates
 
 T_meta = Metadata(:temperature, dataset=EN4Monthly())
 ```
@@ -30,7 +31,14 @@ We can use `set!` on a field or a model
 using Oceananigans
 
 Nx, Ny, Nz = 180, 90, 10
-grid = LatitudeLongitudeGrid(size=(Nx, Ny, Nz), longitude=(0, 360), latitude=(-90, 90), z=(-5000, 0))
+underlying_grid = LatitudeLongitudeGrid(size=(Nx, Ny, Nz),
+                                        longitude=(0, 360),
+                                        latitude=(-90, 90),
+                                        z=(-5000, 0))
+
+bottom_height = regrid_bathymetry(underlying_grid)
+
+grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height))
 
 T = CenterField(grid)
 ```
@@ -49,5 +57,3 @@ using CairoMakie
 
 heatmap(view(T, :, :, grid.Nz))
 ```
-
-What? Why it looks so strange?
