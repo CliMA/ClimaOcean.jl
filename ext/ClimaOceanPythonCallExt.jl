@@ -1,7 +1,6 @@
 module ClimaOceanPythonCallExt
 
 using ClimaOcean
-using CondaPkg
 using PythonCall
 using Oceananigans
 using Oceananigans.DistributedComputations: @root
@@ -14,13 +13,20 @@ import ClimaOcean.DataWrangling: download_dataset
 """
     install_copernicusmarine()
 
-Install the Copernicus Marine CLI using CondaPkg.
-Returns a NamedTuple containing package information if successful.
+Installs the `copernicusmarine` Python CLI tool via `pip` using PythonCall.jl.
+
+This function ensures the latest version of the `copernicusmarine` command-line interface
+is installed and available in the current Python environment. It returns the absolute path
+to the installed `copernicusmarine` executable.
 """
 function install_copernicusmarine()
-    @info "Installing the copernicusmarine CLI..."
-    CondaPkg.add("copernicusmarine"; channel = "conda-forge")
-    cli = CondaPkg.which("copernicusmarine")
+    using PythonCall
+    @info "Installing the copernicusmarine CLI via pip..."
+    py"""
+    import subprocess
+    subprocess.run(["pip", "install", "--upgrade", "copernicusmarine"], check=True)
+    """
+    cli = PythonCall.pyimport("shutil").which("copernicusmarine")
     @info "... the copernicusmarine CLI has been installed at $(cli)."
     return cli
 end
@@ -31,7 +37,7 @@ function download_dataset(meta::CopernicusMetadata, grid=nothing; skip_existing 
     output_path = joinpath(output_directory, output_filename)
     isfile(output_path) && return output_path
 
-    toolbox = try 
+    toolbox = try
         pyimport("copernicusmarine")
     catch
         install_copernicusmarine()
@@ -97,4 +103,4 @@ function depth_bounds_kw(z)
     return (; minimum_depth, maximum_depth)
 end
 
-end # module ClimaOceanPythonCallExt 
+end # module ClimaOceanPythonCallExt
