@@ -1,4 +1,4 @@
-using Oceananigans.Operators: intrinsic_vector
+using Oceananigans.Operators: intrinsic_vector, ℑxyᶜᶜᵃ
 using Oceananigans.Grids: inactive_node
 using Oceananigans.Fields: ZeroField
 
