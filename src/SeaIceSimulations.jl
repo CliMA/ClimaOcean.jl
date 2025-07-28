@@ -21,7 +21,7 @@ using ClimaSeaIce.Rheologies
 using ClimaSeaIce.SeaIceDynamics: SplitExplicitSolver, SemiImplicitStress, SeaIceMomentumEquation, StressBalanceFreeDrift
 using ClimaSeaIce.Rheologies: IceStrength, ElastoViscoPlasticRheology
 
-using ClimaOcean.OceanSimulations: Default
+using ClimaOcean.OceanSimulations: Default, u_immersed_bottom_drag, v_immersed_bottom_drag
 
 function sea_ice_simulation(grid, ocean=nothing;
                             Δt = 5minutes,
@@ -63,6 +63,12 @@ function sea_ice_simulation(grid, ocean=nothing;
     bottom_heat_flux = Field{Center, Center, Nothing}(grid)
     top_heat_flux    = Field{Center, Center, Nothing}(grid)
 
+    immersed_u_bc = FluxBoundaryCondition(u_immersed_bottom_drag, discrete_form=true, parameters=1e-1)
+    immersed_v_bc = FluxBoundaryCondition(v_immersed_bottom_drag, discrete_form=true, parameters=1e-1)
+    
+    u_bcs = FieldBoundaryConditions(grid, (Face, Center, Nothing); immersed = immersed_u_bc)
+    v_bcs = FieldBoundaryConditions(grid, (Center, Face, Nothing); immersed = immersed_v_bc)
+
     # Build the sea ice model
     sea_ice_model = SeaIceModel(grid;
                                 ice_salinity,
@@ -82,12 +88,17 @@ function sea_ice_simulation(grid, ocean=nothing;
     return sea_ice
 end
 
+default_solver(::Nothing) = SplitExplicitSolver(120)
+default_solver(ocean::Simulation) = default_solver(ocean.model.timestepper)
+default_solver(::Oceananigans.TimeSteppers.QuasiAdamsBashforth2TimeStepper) = SplitExplicitSolver(120)
+default_solver(::Oceananigans.TimeSteppers.SplitRungeKutta3TimeStepper) = SplitExplicitSolver(360)
+
 function sea_ice_dynamics(grid, ocean=nothing;
-                          sea_ice_ocean_drag_coefficient = 5.5e-3,
+                          sea_ice_ocean_drag_coefficient = 2.5e-3,
                           rheology = ElastoViscoPlasticRheology(),
                           coriolis = nothing,
                           free_drift = nothing,
-                          solver = SplitExplicitSolver(120))
+                          solver = default_solver(ocean))
 
     if isnothing(ocean)
         SSU = Oceananigans.Fields.ZeroField()
