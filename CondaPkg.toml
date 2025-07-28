@@ -1,0 +1,7 @@
+
+[pip.deps]
+copernicusmarine = ">=2.0.0"
+xarray = ">=2024.7.0"
+numpy = ">=2.0.0"
+jax = ">=0.6"
+tensorflow = ">=2.17"

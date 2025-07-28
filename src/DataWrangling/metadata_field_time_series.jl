@@ -120,7 +120,7 @@ function FieldTimeSeries(metadata::Metadata, grid::AbstractGrid;
 
     times = native_times(metadata)
     loc = LX, LY, LZ = location(metadata)
-    boundary_conditions = FieldBoundaryConditions(grid, loc)
+    boundary_conditions = FieldBoundaryConditions(grid, instantiate.(loc))
     fts = FieldTimeSeries{LX, LY, LZ}(grid, times; backend, time_indexing, boundary_conditions)
     set!(fts)
 
