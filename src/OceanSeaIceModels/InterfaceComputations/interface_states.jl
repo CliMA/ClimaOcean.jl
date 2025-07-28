@@ -103,7 +103,7 @@ function WaterMoleFraction(FT=Oceananigans.defaults.FloatType)
         magnesium = SalinityConstituent{FT}(24.31, 0.05),
     )
 
-    return SeawaterComposition(water_molar_mass, salinity_constituents)
+    return WaterMoleFraction(water_molar_mass, salinity_constituents)
 end
 
 @inline function compute_water_mole_fraction(wmf::WaterMoleFraction, S)

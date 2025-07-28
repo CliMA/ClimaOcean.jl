@@ -28,6 +28,7 @@ Nz = 40
 
 depth = 4000meters
 z = ExponentialCoordinate(Nz, -depth, 0; scale = 0.85*depth)
+z = Oceananigans.Grids.MutableVerticalDiscretization(z)
 underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 
 # Next, we build bathymetry on this grid, using interpolation passes to smooth the bathymetry.
@@ -51,7 +52,7 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height);
 # parameterization. We also include some explicit horizontal diffusivity.
 
 eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=2e3, κ_symmetric=2e3)
-vertical_mixing = Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivity(minimum_tke=1e-6)
+vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
 horizontal_viscosity = HorizontalScalarDiffusivity(ν=4000)
 
 # ### Ocean simulation
