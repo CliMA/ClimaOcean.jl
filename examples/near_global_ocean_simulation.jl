@@ -9,18 +9,19 @@
 # ## Initial setup with package imports
 #
 # We begin by importing the necessary Julia packages for visualization (CairoMakie),
-# ocean modeling (Oceananigans, ClimaOcean), and handling dates and times (CFTime, Dates).
+# ocean modeling (Oceananigans, ClimaOcean), handling dates and times (CFTime, Dates),
+# and CUDA for running on CUDA-enabled GPUs.
 # These packages provide the foundational tools for setting up the simulation environment,
 # including grid setup, physical processes modeling, and data visualization.
 
 using ClimaOcean
-using ClimaOcean.ECCO
 using Oceananigans
 using Oceananigans.Units
 using CairoMakie
 using CFTime
 using Dates
 using Printf
+using CUDA
 
 # ### Grid configuration
 #
@@ -36,12 +37,12 @@ Ny = 600
 Nz = 40
 
 depth = 6000meters
-z_faces = exponential_z_faces(; Nz, depth)
+z = ExponentialCoordinate(Nz, -depth, 0)
 
 grid = LatitudeLongitudeGrid(arch;
                              size = (Nx, Ny, Nz),
                              halo = (7, 7, 7),
-                             z = z_faces,
+                             z,
                              latitude  = (-75, 75),
                              longitude = (0, 360))
 
@@ -82,8 +83,8 @@ ocean.model
 
 # We initialize the ocean model with ECCO4 temperature and salinity for January 1, 1992.
 
-set!(ocean.model, T=ECCOMetadatum(:temperature),
-                  S=ECCOMetadatum(:salinity))
+set!(ocean.model, T=Metadatum(:temperature, dataset=ECCO4Monthly()),
+                  S=Metadatum(:salinity, dataset=ECCO4Monthly()))
 
 # ### Prescribed atmosphere and radiation
 #
@@ -99,7 +100,7 @@ radiation = Radiation(arch)
 
 # The atmospheric data is prescribed using the JRA55 dataset.
 # The JRA55 dataset provides atmospheric data such as temperature, humidity, and winds
-# to calculate turbulent fluxes using bulk formulae, see [`CrossRealmFluxes`](@ref).
+# to calculate turbulent fluxes using bulk formulae, see [`InterfaceComputations`](@ref ClimaOcean.OceanSeaIceModels.InterfaceComputations).
 # The number of snapshots that are loaded into memory is determined by
 # the `backend`. Here, we load 41 snapshots at a time into memory.
 
@@ -251,7 +252,7 @@ nothing #hide
 
 # And now we make a movie:
 
-record(fig, "near_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
+CairoMakie.record(fig, "near_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
     n[] = nn
 end
 nothing #hide

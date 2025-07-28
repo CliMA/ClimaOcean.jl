@@ -1,8 +1,14 @@
 module OceanSeaIceModels
 
-export OceanSeaIceModel, SimilarityTheoryFluxes, FreezingLimitedOceanTemperature
-export Radiation, LatitudeDependentAlbedo
-export SkinTemperature, BulkTemperature
+export
+    OceanSeaIceModel,
+    SimilarityTheoryFluxes,
+    CoefficientBasedFluxes,
+    FreezingLimitedOceanTemperature,
+    Radiation,
+    LatitudeDependentAlbedo,
+    SkinTemperature,
+    BulkTemperature
 
 using Oceananigans
 using SeawaterPolynomials
@@ -55,7 +61,7 @@ include("PrescribedAtmospheres.jl")
 
 using .PrescribedAtmospheres:
     PrescribedAtmosphere,
-    PrescribedAtmosphereThermodynamicsParameters,
+    AtmosphereThermodynamicsParameters,
     TwoBandDownwellingRadiation
 
 include("InterfaceComputations/InterfaceComputations.jl")

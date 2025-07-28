@@ -1,6 +1,5 @@
 using ClimaOcean
 using ClimaOcean.Diagnostics: MixedLayerDepthField
-using ClimaOcean.DataWrangling.ECCO: ECCOFieldTimeSeries, ECCO4Monthly
 using Oceananigans
 using CairoMakie
 using Printf
@@ -72,7 +71,7 @@ fig
 
 # And record a movie
 
-record(fig, "ecco_mld.mp4", 1:Nt-1, framerate=4) do nn
+CairoMakie.record(fig, "ecco_mld.mp4", 1:Nt-1, framerate=4) do nn
     @info "Drawing frame $nn of $Nt..."
     n[] = nn
 end

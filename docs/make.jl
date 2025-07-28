@@ -1,9 +1,13 @@
 using
   ClimaOcean,
   Documenter,
+  DocumenterCitations,
   Literate
 
 ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
+
+bib_filepath = joinpath(dirname(@__FILE__), "climaocean.bib")
+bib = CitationBibliography(bib_filepath, style=:authoryear)
 
 #####
 ##### Generate examples
@@ -13,12 +17,8 @@ const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
 const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
 
 to_be_literated = [
-    # "ecco_inspect_temperature_salinity.jl",
-    # "generate_bathymetry.jl",
-    # "generate_surface_fluxes.jl",
     "single_column_os_papa_simulation.jl",
     "one_degree_simulation.jl",
-    # "mediterranean_simulation_with_ecco_restoring.jl",
     "near_global_ocean_simulation.jl"
 ]
 
@@ -35,21 +35,20 @@ end
 
 format = Documenter.HTML(collapselevel = 2,
                          size_threshold = nothing,
-                         prettyurls = get(ENV, "CI", nothing) == "true",
                          canonical = "https://clima.github.io/ClimaOceanDocumentation/dev/")
 
 pages = [
     "Home" => "index.md",
 
     "Examples" => [
-        # "Inspect ECCO2 data" => "literated/ecco_inspect_temperature_salinity.md",
-        # "Generate bathymetry" => "literated/generate_bathymetry.md",
-        # "Surface fluxes" => "literated/generate_surface_fluxes.md",
         "Single-column ocean simulation" => "literated/single_column_os_papa_simulation.md",
-        # "Mediterranean simulation with ECCO restoring" => "literated/mediterranean_simulation_with_ecco_restoring.md",
-        "One-degree ocean simulation" => "literated/one_degree_simulation.md",
+        "One-degree ocean--sea ice simulation" => "literated/one_degree_simulation.md",
         "Near-global ocean simulation" => "literated/near_global_ocean_simulation.md",
         ],
+
+    "Vertical grids" => "vertical_grids.md",
+
+    "Interface fluxes" => "interface_fluxes.md",
 
     "Library" => [
         "Contents"       => "library/outline.md",
@@ -57,11 +56,13 @@ pages = [
         "Private"        => "library/internals.md",
         "Function index" => "library/function_index.md",
         ],
+    "References" => "references.md",
 ]
 
 makedocs(sitename = "ClimaOcean.jl";
          format,
          pages,
+         plugins = [bib],
          modules = [ClimaOcean],
          doctest = true,
          clean = true,
