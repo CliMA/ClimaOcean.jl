@@ -176,8 +176,8 @@ end
 
         τxao = ℑxᶠᵃᵃ(i, j, 1, grid, τᶜᶜᶜ, ρₒ⁻¹, ℵ, ρτxao)
         τyao = ℑyᵃᶠᵃ(i, j, 1, grid, τᶜᶜᶜ, ρₒ⁻¹, ℵ, ρτyao)
-        τxio = ρτxio[i, j, 1] * ρₒ⁻¹ * ℑxᶠᵃᵃ(i, j, 1, grid, ℵ)
-        τyio = ρτyio[i, j, 1] * ρₒ⁻¹ * ℑyᵃᶠᵃ(i, j, 1, grid, ℵ)
+        τxio = ℑyᵃᶜᵃ(i, j, 1, grid, ρτxio) * ρₒ⁻¹ * ℑxᶠᵃᵃ(i, j, 1, grid, ℵ)
+        τyio = ℑxᶜᵃᵃ(i, j, 1, grid, ρτyio) * ρₒ⁻¹ * ℑyᵃᶠᵃ(i, j, 1, grid, ℵ)
 
         # Stresses
         τx[i, j, 1] = τxao + τxio
