@@ -141,7 +141,7 @@ end
         Jˢ[i, j, 1] = thermodynamic_tendency[i, j, 1] * (Sᵢ[i, j, 1] - Sₒ[i, j, Nz])
 
         # Momentum stresses
-        τx[i, j, 1] = ℑxᶜᵃᵃ(i, j, Nz, grid, x_momentum_stress, τₒᵢ, clock, sea_ice_fields)
-        τy[i, j, 1] = ℑyᵃᶜᵃ(i, j, Nz, grid, y_momentum_stress, τₒᵢ, clock, sea_ice_fields)
+        τx[i, j, 1] = ℑyᵃᶜᵃ(i, j, Nz, grid, x_momentum_stress, τₒᵢ, clock, sea_ice_fields)
+        τy[i, j, 1] = ℑxᶜᵃᵃ(i, j, Nz, grid, y_momentum_stress, τₒᵢ, clock, sea_ice_fields)
     end
 end
