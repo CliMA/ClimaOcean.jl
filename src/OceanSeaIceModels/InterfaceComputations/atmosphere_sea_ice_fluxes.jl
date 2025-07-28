@@ -94,8 +94,8 @@ end
         Sᵢ = interior_state.Sₒ[i, j, kᴺ]
 
         # Sea ice properties
-        uᵢ = zero(FT) # ℑxᶜᵃᵃ(i, j, 1, grid, interior_state.u)
-        vᵢ = zero(FT) # ℑyᵃᶜᵃ(i, j, 1, grid, interior_state.v)
+        uᵢ = ℑxyᶜᶜᵃ(i, j, 1, grid, interior_state.u)
+        vᵢ = ℑxyᶜᶜᵃ(i, j, 1, grid, interior_state.v)
         hᵢ = interior_state.h[i, j, 1]
         ℵᵢ = interior_state.ℵ[i, j, 1]
         Tₛ = interface_temperature[i, j, 1]
