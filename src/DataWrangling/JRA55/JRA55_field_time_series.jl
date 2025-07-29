@@ -433,7 +433,7 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
                                               latitude = φr,
                                               topology = (TX, Bounded, Flat))
 
-    boundary_conditions = FieldBoundaryConditions(JRA55_native_grid, (Center, Center, Nothing))
+    boundary_conditions = FieldBoundaryConditions(JRA55_native_grid, (Center(), Center(), nothing))
     start_time = first_date(metadata.dataset, metadata.name)
     times = native_times(metadata; start_time)
 
