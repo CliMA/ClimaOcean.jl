@@ -156,13 +156,13 @@ seaice_outputs = merge((h = seaice.model.ice_thickness,
                         seaice.model.velocities)
 
 ocean.output_writers[:surface] = JLD2Writer(ocean.model, ocean_outputs;
-                                            schedule = TimeInterval(5days),
+                                            schedule = TimeInterval(1day),
                                             filename = "ocean_one_degree_surface_fields",
                                             indices = (:, :, grid.Nz),
                                             overwrite_existing = true)
 
 seaice.output_writers[:surface] = JLD2Writer(ocean.model, seaice_outputs;
-                                             schedule = TimeInterval(5days),
+                                             schedule = TimeInterval(1day),
                                              filename = "seaice_one_degree_surface_fields",
                                              overwrite_existing = true)
 
@@ -175,7 +175,7 @@ seaice.output_writers[:surface] = JLD2Writer(ocean.model, seaice_outputs;
 
 run!(simulation)
 
-simulation.Δt = 30minutes
+simulation.Δt = 20minutes
 simulation.stop_time = 365days
 run!(simulation)
 
@@ -187,6 +187,7 @@ using CairoMakie
 # We suffix the ocean fields with "o":
 uo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "u"; backend = OnDisk())
 vo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "v"; backend = OnDisk())
+wo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "w"; backend = OnDisk())
 To = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "T"; backend = OnDisk())
 eo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "e"; backend = OnDisk())
 
@@ -203,6 +204,12 @@ n = Observable(Nt)
 
 # We create a land mask and use it to fill land points with `NaN`s.
 land = interior(To.grid.immersed_boundary.bottom_height) .≥ 0
+
+woₙ = @lift begin
+    wₙ = interior(wo[$n])
+    wₙ[land] .= NaN
+    view(wₙ, :, :, 1)
+end
 
 Toₙ = @lift begin
     Tₙ = interior(To[$n])
@@ -267,6 +274,10 @@ axsi = Axis(fig[1, 3])
 axTo = Axis(fig[2, 1])
 axhi = Axis(fig[2, 3])
 axeo = Axis(fig[3, 1])
+axwo = Axis(fig[3, 3])
+
+hmo = heatmap!(axwo, woₙ, colorrange = (-2e-3, 2e-3), colormap = :balance,  nan_color=:lightgray)
+Colorbar(fig[3, 4], hmo, label = "w (m s⁻¹)")
 
 hmo = heatmap!(axso, soₙ, colorrange = (0, 0.5), colormap = :deep,  nan_color=:lightgray)
 hmi = heatmap!(axsi, siₙ, colorrange = (0, 0.5), colormap = :greys, nan_color=:lightgray)
