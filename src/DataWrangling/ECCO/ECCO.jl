@@ -163,7 +163,13 @@ ECCO4_dataset_variable_names = Dict(
     :latent_heat_flux      => "EXFhl",
     :net_longwave          => "EXFlwnet",
     :downwelling_shortwave => "oceQsw",
-    :downwelling_longwave  => "EXFlwdn",
+    :downwelling_longwave  => "EXFlwdn",    
+    :air_temperature       => "EXFatemp",
+    :air_specific_humidity => "EXFaqh",
+    :sea_level_pressure    => "EXFpress",
+    :eastward_wind         => "EXFewind",
+    :northward_wind        => "EXFnwind",
+    :rain_freshwater_flux  => "EXFpreci",
 )
 
 ECCO2_dataset_variable_names = Dict(
@@ -174,24 +180,30 @@ ECCO2_dataset_variable_names = Dict(
     :free_surface          => "SSH",
     :sea_ice_thickness     => "SIheff",
     :sea_ice_concentration => "SIarea",
-    :net_heat_flux         => "oceQnet"
+    :net_heat_flux         => "oceQnet",
 )
 
 ECCO_location = Dict(
     :temperature           => (Center, Center, Center),
     :salinity              => (Center, Center, Center),
+    :u_velocity            => (Face,   Center, Center),
+    :v_velocity            => (Center, Face,   Center),
     :free_surface          => (Center, Center, Nothing),
     :sea_ice_thickness     => (Center, Center, Nothing),
     :sea_ice_concentration => (Center, Center, Nothing),
     :net_heat_flux         => (Center, Center, Nothing),
-    :u_velocity            => (Face,   Center, Center),
-    :v_velocity            => (Center, Face,   Center),
     :sensible_heat_flux    => (Center, Center, Nothing),
     :latent_heat_flux      => (Center, Center, Nothing),
     :net_longwave          => (Center, Center, Nothing),
-    :downwelling_shortwave => (Center, Center, Nothing),
     :downwelling_longwave  => (Center, Center, Nothing),
-)
+    :downwelling_shortwave => (Center, Center, Nothing),
+    :air_temperature       => (Center, Center, Nothing),
+    :air_specific_humidity => (Center, Center, Nothing),
+    :sea_level_pressure    => (Center, Center, Nothing),
+    :eastward_wind         => (Center, Center, Nothing),
+    :northward_wind        => (Center, Center, Nothing),
+    :rain_freshwater_flux  => (Center, Center, Nothing),
+)    
 
 const ECCOMetadata{D} = Metadata{<:SomeECCODataset, D}
 const ECCOMetadatum   = Metadatum{<:SomeECCODataset}
@@ -302,5 +314,7 @@ function inpainted_metadata_filename(metadata::ECCOMetadata)
 end
 
 inpainted_metadata_path(metadata::ECCOMetadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
+
+include("ECCO_atmosphere.jl")
 
 end # Module
