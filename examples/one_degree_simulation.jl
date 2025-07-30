@@ -27,7 +27,7 @@ Ny = 180
 Nz = 40
 
 depth = 4000meters
-z = ExponentialCoordinate(Nz, -depth, 0; scale = 0.85*depth)
+z = ExponentialCoordinate(Nz, -depth, 0; scale = depth/4)
 z = Oceananigans.Grids.MutableVerticalDiscretization(z)
 underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 
@@ -107,7 +107,7 @@ atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(80))
 # flow fields.
 
 coupled_model = OceanSeaIceModel(ocean, seaice; atmosphere, radiation)
-simulation = Simulation(coupled_model; Δt=8minutes, stop_time=20days)
+simulation = Simulation(coupled_model; Δt=5minutes, stop_time=30days)
 
 # ### A progress messenger
 #
