@@ -107,7 +107,7 @@ atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(80))
 # flow fields.
 
 coupled_model = OceanSeaIceModel(ocean, seaice; atmosphere, radiation)
-simulation = Simulation(coupled_model; Δt=5minutes, stop_time=30days)
+simulation = Simulation(coupled_model; Δt=6minutes, stop_time=30days)
 
 # ### A progress messenger
 #
