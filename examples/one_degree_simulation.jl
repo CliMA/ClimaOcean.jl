@@ -36,7 +36,7 @@ underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 # Strait to connect it to the Atlantic):
 
 bottom_height = regrid_bathymetry(underlying_grid;
-                                  minimum_depth = 10,
+                                  minimum_depth = z.cᵃᵃᶠ(Nz-1),
                                   interpolation_passes = 10,
                                   major_basins = 2)
 
@@ -107,7 +107,7 @@ atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(80))
 # flow fields.
 
 coupled_model = OceanSeaIceModel(ocean, seaice; atmosphere, radiation)
-simulation = Simulation(coupled_model; Δt=6minutes, stop_time=30days)
+simulation = Simulation(coupled_model; Δt=6minutes, stop_time=60days)
 
 # ### A progress messenger
 #
@@ -140,7 +140,7 @@ function progress(sim)
 end
 
 # And add it as a callback to the simulation.
-add_callback!(simulation, progress, IterationInterval(1000))
+add_callback!(simulation, progress, TimeInterval(12hours))
 
 # ### Output
 #
