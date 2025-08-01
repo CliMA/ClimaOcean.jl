@@ -95,7 +95,8 @@ set!(seaice.model, h=ecco_sea_ice_thickness, ℵ=ecco_sea_ice_concentration)
 
 # We force the simulation with a JRA55-do atmospheric reanalysis.
 radiation  = Radiation(arch)
-atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(80))
+atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(80),
+                                       include_rivers_and_icebergs = false)
 
 # ### Coupled simulation
 
