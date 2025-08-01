@@ -27,7 +27,7 @@ Ny = 180
 Nz = 40
 
 depth = 4000meters
-z = ExponentialCoordinate(Nz, -depth, 0; scale = 0.85*depth)
+z = ExponentialCoordinate(Nz, -depth, 0; scale = depth/4)
 z = Oceananigans.Grids.MutableVerticalDiscretization(z)
 underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 
@@ -36,7 +36,7 @@ underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 # Strait to connect it to the Atlantic):
 
 bottom_height = regrid_bathymetry(underlying_grid;
-                                  minimum_depth = 10,
+                                  minimum_depth = z.cᵃᵃᶠ(Nz-1),
                                   interpolation_passes = 10,
                                   major_basins = 2)
 
@@ -107,7 +107,7 @@ atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(80))
 # flow fields.
 
 coupled_model = OceanSeaIceModel(ocean, seaice; atmosphere, radiation)
-simulation = Simulation(coupled_model; Δt=8minutes, stop_time=20days)
+simulation = Simulation(coupled_model; Δt=6minutes, stop_time=60days)
 
 # ### A progress messenger
 #
@@ -140,7 +140,7 @@ function progress(sim)
 end
 
 # And add it as a callback to the simulation.
-add_callback!(simulation, progress, IterationInterval(1000))
+add_callback!(simulation, progress, TimeInterval(12hours))
 
 # ### Output
 #
@@ -156,13 +156,13 @@ seaice_outputs = merge((h = seaice.model.ice_thickness,
                         seaice.model.velocities)
 
 ocean.output_writers[:surface] = JLD2Writer(ocean.model, ocean_outputs;
-                                            schedule = TimeInterval(5days),
+                                            schedule = TimeInterval(1days),
                                             filename = "ocean_one_degree_surface_fields",
                                             indices = (:, :, grid.Nz),
                                             overwrite_existing = true)
 
 seaice.output_writers[:surface] = JLD2Writer(ocean.model, seaice_outputs;
-                                             schedule = TimeInterval(5days),
+                                             schedule = TimeInterval(1days),
                                              filename = "seaice_one_degree_surface_fields",
                                              overwrite_existing = true)
 
@@ -175,7 +175,7 @@ seaice.output_writers[:surface] = JLD2Writer(ocean.model, seaice_outputs;
 
 run!(simulation)
 
-simulation.Δt = 30minutes
+simulation.Δt = 20minutes
 simulation.stop_time = 365days
 run!(simulation)
 
@@ -187,6 +187,7 @@ using CairoMakie
 # We suffix the ocean fields with "o":
 uo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "u"; backend = OnDisk())
 vo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "v"; backend = OnDisk())
+wo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "w"; backend = OnDisk())
 To = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "T"; backend = OnDisk())
 eo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "e"; backend = OnDisk())
 
@@ -203,6 +204,12 @@ n = Observable(Nt)
 
 # We create a land mask and use it to fill land points with `NaN`s.
 land = interior(To.grid.immersed_boundary.bottom_height) .≥ 0
+
+woₙ = @lift begin
+    wₙ = interior(wo[$n])
+    wₙ[land] .= NaN
+    view(wₙ, :, :, 1)
+end
 
 Toₙ = @lift begin
     Tₙ = interior(To[$n])
@@ -267,6 +274,10 @@ axsi = Axis(fig[1, 3])
 axTo = Axis(fig[2, 1])
 axhi = Axis(fig[2, 3])
 axeo = Axis(fig[3, 1])
+axwo = Axis(fig[3, 3])
+
+hmo = heatmap!(axwo, woₙ, colorrange = (-2e-3, 2e-3), colormap = :balance,  nan_color=:lightgray)
+Colorbar(fig[3, 4], hmo, label = "w (m s⁻¹)")
 
 hmo = heatmap!(axso, soₙ, colorrange = (0, 0.5), colormap = :deep,  nan_color=:lightgray)
 hmi = heatmap!(axsi, siₙ, colorrange = (0, 0.5), colormap = :greys, nan_color=:lightgray)
