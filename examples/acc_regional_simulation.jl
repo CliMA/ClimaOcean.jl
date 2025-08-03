@@ -1,38 +1,43 @@
+using ClimaOcean
+using ClimaOcean.ECCO
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.Grids: φnode
-using ClimaOcean
-using ClimaOcean.ECCO
-
-Oceananigans.TimeSteppers.time_step!(::Nothing, dt) = nothing
-
-using Printf
 using CairoMakie
 using CFTime
 using Dates
+using Printf
 using CUDA
 
-arch = GPU() 
+Oceananigans.TimeSteppers.time_step!(::Nothing, dt) = nothing
 
+arch = GPU()
 Nx = 1440
 Ny = 400
-Nz = 40  
+Nz = 40
 
-depth = 6000
+depth = 6000meters
+z = ExponentialCoordinate(Nz, -depth)
 
 grid = LatitudeLongitudeGrid(arch;
                              size = (Nx, Ny, Nz),
                              halo = (7, 7, 7),
-                             z = ExponentialCoordinate(Nz, -depth), 
+                             z = z,
                              latitude  = (-80, -20),
                              longitude = (0, 360))
 
-bottom_height = regrid_bathymetry(grid; 
-                                  minimum_depth = 10,
+bottom_height = regrid_bathymetry(grid;
+                                  minimum_depth = 10meters,
                                   interpolation_passes = 7,
                                   major_basins = 1)
  
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height), active_cells_map=true) 
+grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
+
+h = grid.immersed_boundary.bottom_height
+
+fig, ax, hm = heatmap(h, colormap=:deep, colorrange=(-depth, 0))
+Colorbar(fig[0, 1], hm, label="Bottom height (m)", vertical=false)
+save("acc_bathymetry.png", fig)
 
 start_date = DateTime(1993, 1, 1)
 end_date   = DateTime(1993, 12, 1) 
@@ -85,18 +90,17 @@ ocean = ocean_simulation(grid; forcing, momentum_advection, tracer_advection)
 
 set!(ocean.model, T=T_meta[1], S=S_meta[1])
 
-
 backend    = JRA55NetCDFBackend(41) 
 atmosphere = JRA55PrescribedAtmosphere(arch; backend)
 radiation  = Radiation()
 model      = ocean.model 
 
-coupled_model = OceanSeaIceModel(ocean; atmosphere=nothing, radiation)
+coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 simulation    = Simulation(coupled_model; Δt=2minutes, stop_time = 10days)
 
 wall_time = [time_ns()]
 
-function progress(sim) 
+function progress(sim)
     ocean = sim.model.ocean
     u, v, w = ocean.model.velocities
     T = ocean.model.tracers.T
@@ -114,10 +118,10 @@ function progress(sim)
      wall_time[1] = time_ns()
 end
 
-simulation.callbacks[:progress] = Callback(progress, TimeInterval(4hours)) 
+simulation.callbacks[:progress] = Callback(progress, TimeInterval(6hours)) 
 
 ocean.output_writers[:surface] = JLD2Writer(model, merge(model.tracers, model.velocities);
-                                            schedule = TimeInterval(5days),
+                                            schedule = TimeInterval(1days),
                                             filename = "acc_surface_fields",
                                             indices = (:, :, grid.Nz),
                                             overwrite_existing = true,
@@ -143,10 +147,12 @@ nothing #hide
 # Now that the simulation has spun up, we can run it for the full 2 years.
 # We increase the maximum time step size to 10 minutes and let the simulation run for 2 years.
 
+#=
 simulation.stop_time = 2*365days
 simulation.Δt = 10minutes
 run!(simulation)
 nothing #hide
+=#
 
 # ## Visualizing the results
 # 
@@ -216,7 +222,7 @@ Colorbar(fig[3, 2], hm, label = "Turbulent Kinetic Energy (m² s⁻²)")
 
 Label(fig[0, :], title)
 
-save("snapshot_acc.png", fig)
+save("acc_snapshot.png", fig)
 nothing #hide
 
 # ![](snapshot.png)
