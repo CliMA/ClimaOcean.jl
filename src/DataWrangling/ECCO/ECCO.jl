@@ -257,7 +257,7 @@ end
 
 function download_dataset(metadata::ECCOMetadata)
     username = get(ENV, "ECCO_USERNAME", nothing)
-    password = get(ENV, "ECCO_PASSWORD", nothing)
+    password = get(ENV, "ECCO_WEBDAV_PASSWORD", nothing)
     dir = metadata.dir
 
     # Create a temporary directory to store the .netrc file
@@ -276,14 +276,14 @@ function download_dataset(metadata::ECCOMetadata)
             if !isfile(filepath)
                 instructions_msg = "\n See ClimaOcean.jl/src/DataWrangling/ECCO/README.md for instructions."
                 if isnothing(username)
-                    msg = "Could not find the ECCO_PASSWORD environment variable. \
+                    msg = "Could not find the ECCO_USERNAME environment variable. \
                             See ClimaOcean.jl/src/DataWrangling/ECCO/README.md for instructions on obtaining \
-                            and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
+                            and setting your ECCO_USERNAME and ECCO_WEBDAV_PASSWORD." * instructions_msg
                     throw(ArgumentError(msg))
                 elseif isnothing(password)
-                    msg = "Could not find the ECCO_PASSWORD environment variable. \
+                    msg = "Could not find the ECCO_WEBDAV_PASSWORD environment variable. \
                             See ClimaOcean.jl/src/DataWrangling/ECCO/README.md for instructions on obtaining \
-                            and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
+                            and setting your ECCO_USERNAME and ECCO_WEBDAV_PASSWORD." * instructions_msg
                     throw(ArgumentError(msg))
                 end
                 @info "Downloading ECCO data: $(metadatum.name) in $(metadatum.dir)..."
