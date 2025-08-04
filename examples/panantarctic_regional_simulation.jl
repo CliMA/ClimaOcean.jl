@@ -88,7 +88,7 @@ tracer_advection   = WENO(order=7)
 
 ocean = ocean_simulation(grid; forcing, momentum_advection, tracer_advection)
 
-set!(ocean.model, T=T_meta[1], S=S_meta[1])
+set!(ocean.model, T=first(T_meta), S=first(S_meta))
 
 backend    = JRA55NetCDFBackend(41) 
 atmosphere = JRA55PrescribedAtmosphere(arch; backend)
