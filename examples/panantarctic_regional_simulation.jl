@@ -229,9 +229,9 @@ nothing #hide
 
 # And now we make a movie:
 
-CairoMakie.record(fig, "acc_region_surface.mp4", 1:Nt, framerate = 8) do nn
+CairoMakie.record(fig, "panantarctic_regional_surface.mp4", 1:Nt, framerate = 8) do nn
     n[] = nn
 end
 nothing #hide
 
-# ![](near_global_ocean_surface.mp4)
+# ![](panantarctic_regional_surface.mp4)
