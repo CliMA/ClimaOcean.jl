@@ -45,7 +45,7 @@ pages = [
         # "Single-column ocean simulation" => "literated/single_column_os_papa_simulation.md",
         # "One-degree ocean simulation" => "literated/one_degree_simulation.md",
         # "Near-global ocean simulation" => "literated/near_global_ocean_simulation.md",
-        "Regional ACC simulation" => "literated/acc_regional_simulation.md",
+        "Panantarctic regional simulation" => "literated/panantarctic_regional_simulation.md",
         ],
 
     "Vertical grids" => "vertical_grids.md",
