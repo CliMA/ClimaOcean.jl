@@ -17,7 +17,7 @@ Ny = 400
 Nz = 40
 
 depth = 6000meters
-z = ExponentialCoordinate(Nz, -depth)
+z = ExponentialCoordinate(Nz, -depth, 0)
 
 grid = LatitudeLongitudeGrid(arch;
                              size = (Nx, Ny, Nz),
