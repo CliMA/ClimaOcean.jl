@@ -9,8 +9,6 @@ using Dates
 using Printf
 using CUDA
 
-Oceananigans.TimeSteppers.time_step!(::Nothing, dt) = nothing
-
 arch = GPU()
 Nx = 1440
 Ny = 400
