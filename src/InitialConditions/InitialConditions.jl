@@ -18,7 +18,7 @@ using JLD2
 # Implementation of 3-dimensional regridding
 # TODO: move all the following to Oceananigans!
 
-using Oceananigans.Fields: regrid!, interpolate!
+using Oceananigans.Fields: integral_regrid!, interpolate!
 using Oceananigans.Grids: cpu_face_constructor_x,
                           cpu_face_constructor_y,
                           cpu_face_constructor_z,
@@ -54,17 +54,17 @@ function three_dimensional_regrid!(a, b)
     @debug "Regridding in z"
     zgrid   = construct_grid(typeof(target_grid), arch, (Ns[1], Ns[2], Nt[3]), (xs, ys, zt), topo)
     field_z = Field(location(b), zgrid)
-    regrid!(field_z, zgrid, source_grid, b)
+    integral_regrid!(field_z, zgrid, source_grid, b)
 
     # regrid in y
     @debug "Regridding in y"
     ygrid   = construct_grid(typeof(target_grid), arch, (Ns[1], Nt[2], Nt[3]), (xs, yt, zt), topo)
     field_y = Field(location(b), ygrid);
-    regrid!(field_y, ygrid, zgrid, field_z);
+    integral_regrid!(field_y, ygrid, zgrid, field_z);
 
     # Finally regrid in x
     @debug "Regridding in x"
-    regrid!(a, target_grid, ygrid, field_y)
+    integral_regrid!(a, target_grid, ygrid, field_y)
 
     return a
 end
