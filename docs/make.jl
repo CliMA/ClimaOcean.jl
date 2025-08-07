@@ -48,7 +48,7 @@ pages = [
 
     "Vertical grids" => "vertical_grids.md",
 
-    # "Interface fluxes" => "interface_fluxes.md",
+    "Interface fluxes" => "interface_fluxes.md",
 
     "Library" => [
         "Contents"       => "library/outline.md",

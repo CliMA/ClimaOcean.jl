@@ -1,5 +1,4 @@
 using Oceananigans
-using Oceananigans.Architectures: arch_array
 using Oceananigans.Units
 using Oceananigans.Grids: on_architecture
 using Oceananigans.Utils: WallTimeInterval
