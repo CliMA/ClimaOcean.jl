@@ -11,7 +11,7 @@ using Oceananigans.Simulations: TimeStepWizard
 using Adapt
 using Thermodynamics.Parameters: AbstractThermodynamicsParameters
 
-import Oceananigans.TimeSteppers: time_step!
+import Oceananigans.TimeSteppers: time_step!, update_state!
 
 import Thermodynamics.Parameters:
     gas_constant,   #
@@ -353,15 +353,21 @@ function default_atmosphere_pressure(grid, times)
     return pa
 end
 
-@inline function time_step!(atmos::PrescribedAtmosphere, Δt)
-    tick!(atmos.clock, Δt)
 
+@inline function update_state!(atmos::PrescribedAtmosphere)
     time = Time(atmos.clock.time)
     ftses = extract_field_time_series(atmos)
 
     for fts in ftses
         update_field_time_series!(fts, time)
     end
+    return nothing
+end
+
+@inline function time_step!(atmos::PrescribedAtmosphere, Δt)
+    tick!(atmos.clock, Δt)
+
+    update_state!(atmos)
 
     return nothing
 end
