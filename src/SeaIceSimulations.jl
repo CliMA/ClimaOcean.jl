@@ -63,12 +63,6 @@ function sea_ice_simulation(grid, ocean=nothing;
     bottom_heat_flux = Field{Center, Center, Nothing}(grid)
     top_heat_flux    = Field{Center, Center, Nothing}(grid)
 
-    immersed_u_bc = FluxBoundaryCondition(u_immersed_bottom_drag, discrete_form=true, parameters=1e-1)
-    immersed_v_bc = FluxBoundaryCondition(v_immersed_bottom_drag, discrete_form=true, parameters=1e-1)
-    
-    u_bcs = FieldBoundaryConditions(grid, (Face, Center, Nothing); immersed = immersed_u_bc)
-    v_bcs = FieldBoundaryConditions(grid, (Center, Face, Nothing); immersed = immersed_v_bc)
-
     # Build the sea ice model
     sea_ice_model = SeaIceModel(grid;
                                 ice_salinity,
