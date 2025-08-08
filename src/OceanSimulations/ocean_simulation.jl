@@ -76,9 +76,6 @@ function default_free_surface(grid::DistributedGrid;
     return free_surface
 end
 
-default_vertical_coordinate(grid) = Oceananigans.Models.ZCoordinate()
-default_vertical_coordinate(::MutableGridOfSomeKind) = Oceananigans.Models.ZStar()
-
 function default_ocean_closure(FT=Oceananigans.defaults.FloatType)
     mixing_length = CATKEMixingLength(Cᵇ=0.01)
     turbulent_kinetic_energy_equation = CATKEEquation(Cᵂϵ=1.0)
@@ -116,7 +113,6 @@ end
                      tracer_advection = WENO(order=7),
                      equation_of_state = TEOS10EquationOfState(; reference_density),
                      boundary_conditions::NamedTuple = NamedTuple(),
-                     vertical_coordinate = default_vertical_coordinate(grid),
                      radiative_forcing = default_radiative_forcing(grid),
                      warn = true,
                      verbose = false)
@@ -140,7 +136,6 @@ function ocean_simulation(grid;
                           tracer_advection = WENO(order=7),
                           equation_of_state = TEOS10EquationOfState(; reference_density),
                           boundary_conditions::NamedTuple = NamedTuple(),
-                          vertical_coordinate = default_vertical_coordinate(grid),
                           radiative_forcing = default_radiative_forcing(grid),
                           warn = true,
                           verbose = false)
@@ -263,8 +258,7 @@ function ocean_simulation(grid;
                                               free_surface,
                                               coriolis,
                                               forcing,
-                                              boundary_conditions,
-                                              vertical_coordinate)
+                                              boundary_conditions)
 
     ocean = Simulation(ocean_model; Δt, verbose)
 
