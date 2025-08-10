@@ -145,7 +145,7 @@ nothing #hide
 # Now that the simulation has spun up, we can run it for the full 2 years.
 # We increase the maximum time step size to 10 minutes and let the simulation run for 2 years.
 
-simulation.stop_time = 2*365days
+simulation.stop_time = 60days
 simulation.Δt = 10minutes
 run!(simulation)
 nothing #hide
