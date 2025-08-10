@@ -35,7 +35,7 @@ h = grid.immersed_boundary.bottom_height
 
 fig, ax, hm = heatmap(h, colormap=:deep, colorrange=(-depth, 0))
 Colorbar(fig[0, 1], hm, label="Bottom height (m)", vertical=false)
-save("acc_bathymetry.png", fig)
+save("panantarctic_bathymetry.png", fig)
 
 start_date = DateTime(1993, 1, 1)
 end_date   = DateTime(1993, 12, 1) 
@@ -90,7 +90,7 @@ set!(ocean.model, T=first(T_meta), S=first(S_meta))
 
 backend    = JRA55NetCDFBackend(41) 
 atmosphere = JRA55PrescribedAtmosphere(arch; backend)
-radiation  = Radiation()
+radiation  = Radiation(arch)
 model      = ocean.model 
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
@@ -120,7 +120,7 @@ simulation.callbacks[:progress] = Callback(progress, TimeInterval(6hours))
 
 ocean.output_writers[:surface] = JLD2Writer(model, merge(model.tracers, model.velocities);
                                             schedule = TimeInterval(1days),
-                                            filename = "acc_surface_fields",
+                                            filename = "panantarctic_surface_fields",
                                             indices = (:, :, grid.Nz),
                                             overwrite_existing = true,
                                             array_type = Array{Float32})
@@ -157,10 +157,10 @@ nothing #hide
 # In particular, we generate an animation of the evolution of surface fields:
 # surface speed (s), surface temperature (T), and turbulent kinetic energy (e).
 
-u = FieldTimeSeries("acc_surface_fields.jld2", "u"; backend = OnDisk())
-v = FieldTimeSeries("acc_surface_fields.jld2", "v"; backend = OnDisk())
-T = FieldTimeSeries("acc_surface_fields.jld2", "T"; backend = OnDisk())
-e = FieldTimeSeries("acc_surface_fields.jld2", "e"; backend = OnDisk())
+u = FieldTimeSeries("panantarctic_surface_fields.jld2", "u"; backend = OnDisk())
+v = FieldTimeSeries("panantarctic_surface_fields.jld2", "v"; backend = OnDisk())
+T = FieldTimeSeries("panantarctic_surface_fields.jld2", "T"; backend = OnDisk())
+e = FieldTimeSeries("panantarctic_surface_fields.jld2", "e"; backend = OnDisk())
 
 times = u.times
 Nt = length(times)
