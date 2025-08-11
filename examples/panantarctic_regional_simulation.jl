@@ -73,8 +73,11 @@ end
      return - p.rate * fields.v[i, j, k] * northern_mask(φ)
 end
 
-T_meta = Metadata(:temperature; start_date, end_date, dataset = ECCO4Monthly())
-S_meta = Metadata(:salinity;    start_date, end_date, dataset = ECCO4Monthly())
+dataset = ECCO2Monthly()
+T_meta = Metadata(:temperature; start_date, end_date, dataset)
+S_meta = Metadata(:salinity;    start_date, end_date, dataset)
+u_meta = Metadata(:u_velocity;  start_date, end_date, dataset)
+v_meta = Metadata(:v_velocity;  start_date, end_date, dataset)
 
 forcing = (T = DatasetRestoring(T_meta, grid; rate=1/5days, mask=tracer_mask),
 	       S = DatasetRestoring(S_meta, grid; rate=1/5days, mask=tracer_mask),
@@ -86,7 +89,11 @@ tracer_advection   = WENO(order=7)
 
 ocean = ocean_simulation(grid; forcing, momentum_advection, tracer_advection)
 
-set!(ocean.model, T=first(T_meta), S=first(S_meta))
+set!(ocean.model,
+	 T=first(T_meta),
+	 S=first(S_meta),
+     u=first(u_meta),
+     v=first(v_meta))
 
 backend    = JRA55NetCDFBackend(41) 
 atmosphere = JRA55PrescribedAtmosphere(arch; backend)
