@@ -142,7 +142,7 @@ nothing #hide
 #
 # Therefore, we spin up the simulation with a small time step to ensure that the interpolated initial
 # conditions adapt to the model numerics and parameterization without causing instability. A 10-day
-# integration with a maximum time step of 1 minute should be sufficient to dissipate spurious
+# integration with a time step of 1 minute should be sufficient to dissipate spurious
 # initialization shocks.
 
 run!(simulation)
