@@ -51,9 +51,8 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height);
 # eddy fluxes. For vertical mixing at the upper-ocean boundary layer we include the CATKE
 # parameterization. We also include some explicit horizontal diffusivity.
 
-eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=2e3, κ_symmetric=2e3)
+eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
 vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
-horizontal_viscosity = HorizontalScalarDiffusivity(ν=4000)
 
 # ### Ocean simulation
 # Now we bring everything together to construct the ocean simulation.
@@ -65,7 +64,7 @@ momentum_advection = WENOVectorInvariant(order=5)
 tracer_advection   = WENO(order=5)
 
 ocean = ocean_simulation(grid; momentum_advection, tracer_advection, free_surface,
-                         closure=(eddy_closure, horizontal_viscosity, vertical_mixing))
+                         closure=(eddy_closure, vertical_mixing))
 
 @info "We've built an ocean simulation with model:"
 @show ocean.model
@@ -96,7 +95,7 @@ set!(seaice.model, h=ecco_sea_ice_thickness, ℵ=ecco_sea_ice_concentration)
 # We force the simulation with a JRA55-do atmospheric reanalysis.
 radiation  = Radiation(arch)
 atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(80),
-                                       include_rivers_and_icebergs = false)
+                                       include_rivers_and_icebergs = true)
 
 # ### Coupled simulation
 
