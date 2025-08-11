@@ -79,10 +79,11 @@ S_meta = Metadata(:salinity;    start_date, end_date, dataset)
 u_meta = Metadata(:u_velocity;  start_date, end_date, dataset)
 v_meta = Metadata(:v_velocity;  start_date, end_date, dataset)
 
-forcing = (T = DatasetRestoring(T_meta, grid; rate=1/5days, mask=tracer_mask),
-	       S = DatasetRestoring(S_meta, grid; rate=1/5days, mask=tracer_mask),
-	       u = Forcing(u_restoring; discrete_form=true, parameters=(; rate=1/5days)),
-	       v = Forcing(v_restoring; discrete_form=true, parameters=(; rate=1/5days)))
+rate = 1/5days
+forcing = (T = DatasetRestoring(T_meta, grid; rate, mask=tracer_mask),
+           S = DatasetRestoring(S_meta, grid; rate, mask=tracer_mask),
+           u = Forcing(u_restoring; discrete_form=true, parameters=(; rate)),
+           v = Forcing(v_restoring; discrete_form=true, parameters=(; rate)))
 
 momentum_advection = WENOVectorInvariant()
 tracer_advection   = WENO(order=7)
