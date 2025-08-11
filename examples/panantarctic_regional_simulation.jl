@@ -1,13 +1,33 @@
+# # Panantarctic regional ocean simulation
+#
+# This example sets up and runs a regional ocean simulation for a domain around Antarctica
+# using the Oceananigans.jl and ClimaOcean.jl. The simulation covers latitudes from 80°S to 20°S,
+# with a horizontal resolution of 1/4 degree and 60 vertical levels.
+#
+# The simulation's results are visualized with the CairoMakie.jl package.
+#
+# The example showcases how we can use
+#
+# ## Initial setup with package imports
+#
+# We begin by importing the necessary Julia packages for visualization (CairoMakie),
+# ocean modeling (Oceananigans, ClimaOcean), handling dates and times (Dates),
+# and CUDA for running on CUDA-enabled GPUs.
+# These packages provide the foundational tools for setting up the simulation environment,
+# including grid setup, physical processes modeling, and data visualization.
+
 using ClimaOcean
 using ClimaOcean.ECCO
 using Oceananigans
 using Oceananigans.Units
-using Oceananigans.Grids: φnode
+using CUDA
 using CairoMakie
-using CFTime
 using Dates
 using Printf
-using CUDA
+
+# ### Grid and Bathymetry
+
+# We start by constructing a the grid around Antarctica.
 
 arch = GPU()
 Nx = 1440
@@ -17,35 +37,47 @@ Nz = 40
 depth = 6000meters
 z = ExponentialCoordinate(Nz, -depth, 0)
 
-grid = LatitudeLongitudeGrid(arch;
-                             size = (Nx, Ny, Nz),
-                             halo = (7, 7, 7),
-                             z = z,
-                             latitude  = (-80, -20),
-                             longitude = (0, 360))
+underlying_grid = LatitudeLongitudeGrid(arch;
+                                        size = (Nx, Ny, Nz),
+                                        halo = (7, 7, 7),
+                                        z = z,
+                                        latitude  = (-80, -20),
+                                        longitude = (0, 360))
 
-bottom_height = regrid_bathymetry(grid;
+# ### Bathymetry and immersed boundary
+#
+# We add the bottom height from ETOPO1 data on our grid via `regrid_bathymetry`:
+
+bottom_height = regrid_bathymetry(underlying_grid;
                                   minimum_depth = 10meters,
                                   interpolation_passes = 7,
                                   major_basins = 1)
- 
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
-h = grid.immersed_boundary.bottom_height
+grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
-fig, ax, hm = heatmap(h, colormap=:deep, colorrange=(-depth, 0))
+# and visualise it:
+
+fig, ax, hm = heatmap(grid.immersed_boundary.bottom_height,
+                      colormap=:deep, colorrange=(-depth, 0))
 Colorbar(fig[0, 1], hm, label="Bottom height (m)", vertical=false)
 save("panantarctic_bathymetry.png", fig)
+nothing #hide
 
-start_date = DateTime(1993, 1, 1)
-end_date   = DateTime(1993, 12, 1) 
+# ![](panantarctic_bathymetry.png)
 
+# ### Restoring force
 #
-# Restoring force 
+# We need to add restoring forces (both for tracers and for velocities) at the
+# northern part of the domain to mimic the effect of the part of the ocean north
+# of 20°S that we are not including in our domain.
+#
+# First we create some mask that have the following form:
+#
+# ```julia
 #               φS                   φN             -20
 # -------------- | ------------------ | ------------ |
 # no restoring   0    linear mask     1   mask = 1   1
-#
+# ```
 
 const φN₁ = -23
 const φN₂ = -25
@@ -53,8 +85,8 @@ const φS₁ = -78
 const φS₂ = -75
 
 @inline northern_mask(φ)    = min(max((φ - φN₂) / (φN₁ - φN₂), zero(φ)), one(φ))
-@inline southern_mask(φ, z) = ifelse(z > -20, 
-                                     min(max((φ - φS₂) / (φS₁ - φS₂), zero(φ)), one(φ)), 
+@inline southern_mask(φ, z) = ifelse(z > -20,
+                                     min(max((φ - φS₂) / (φS₁ - φS₂), zero(φ)), one(φ)),
                                      zero(φ))
 
 @inline function tracer_mask(λ, φ, z, t)
@@ -64,16 +96,23 @@ const φS₂ = -75
 end
 
 @inline function u_restoring(i, j, k, grid, clock, fields, p)
-     φ = φnode(i, j, k, grid, Face(), Center(), Center())
+     φ = Oceananigans.Grids.φnode(i, j, k, grid, Face(), Center(), Center())
      return - p.rate * fields.u[i, j, k] * northern_mask(φ)
 end
 
 @inline function v_restoring(i, j, k, grid, clock, fields, p)
-     φ = φnode(i, j, k, grid, Center(), Face(), Center())
+     φ = Oceananigans.Grids.φnode(i, j, k, grid, Center(), Face(), Center())
      return - p.rate * fields.v[i, j, k] * northern_mask(φ)
 end
 
-dataset = ECCO2Monthly()
+# Now we are ready to construct the forcing. We relax temperature, salinity and
+# the horizontal velocities to data from the ECCO4 dataset at a
+# timescale of 5 days.
+
+start_date = DateTime(1993, 1, 1)
+end_date   = DateTime(1993, 4, 1)
+
+dataset = ECCO4Monthly()
 T_meta = Metadata(:temperature; start_date, end_date, dataset)
 S_meta = Metadata(:salinity;    start_date, end_date, dataset)
 u_meta = Metadata(:u_velocity;  start_date, end_date, dataset)
@@ -85,24 +124,46 @@ forcing = (T = DatasetRestoring(T_meta, grid; rate, mask=tracer_mask),
            u = Forcing(u_restoring; discrete_form=true, parameters=(; rate)),
            v = Forcing(v_restoring; discrete_form=true, parameters=(; rate)))
 
+# ### Ocean model configuration
+#
+# We build our ocean model using `ocean_simulation`,
+
 momentum_advection = WENOVectorInvariant()
 tracer_advection   = WENO(order=7)
 
 ocean = ocean_simulation(grid; forcing, momentum_advection, tracer_advection)
 
-set!(ocean.model,
-	 T=first(T_meta),
-	 S=first(S_meta),
-     u=first(u_meta),
-     v=first(v_meta))
+# We initialize the ocean model with eddy-resolving ECCO2 temperature, salinity,
+# and horizontal velocities.
 
-backend    = JRA55NetCDFBackend(41) 
+dataset = ECCO2Monthly()
+T_meta = Metadatum(:temperature; date=start_date, dataset)
+S_meta = Metadatum(:salinity;    date=start_date, dataset)
+u_meta = Metadatum(:u_velocity;  date=start_date, dataset)
+v_meta = Metadatum(:v_velocity;  date=start_date, dataset)
+
+set!(ocean.model, T=T_meta, S=S_meta, u=u_meta, v=v_meta)
+
+# ### Prescribed atmosphere and radiation
+#
+# Next we build a prescribed atmosphere state and radiation model,
+# which will drive the ocean simulation.
+
+backend    = JRA55NetCDFBackend(41)
 atmosphere = JRA55PrescribedAtmosphere(arch; backend)
 radiation  = Radiation(arch)
-model      = ocean.model 
+
+# ## The coupled simulation
+
+# We put all the pieces together (ocean, atmosphere, and radiation)
+# into a coupled model and a coupled simulation.
+# We start with a small-ish time step of 2 minutes.
+# We run the simulation for 10 days with this small-ish time step.
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 simulation    = Simulation(coupled_model; Δt=2minutes, stop_time = 10days)
+
+# A callback function to monitor the simulation's progress is always useful.
 
 wall_time = [time_ns()]
 
@@ -124,25 +185,24 @@ function progress(sim)
      wall_time[1] = time_ns()
 end
 
-simulation.callbacks[:progress] = Callback(progress, TimeInterval(5days)) 
+simulation.callbacks[:progress] = Callback(progress, TimeInterval(5days))
 
-ocean.output_writers[:surface] = JLD2Writer(model, merge(model.tracers, model.velocities);
+# ### Output
+#
+# We use output writers to save the simulation data at regular intervals.
+
+ocean.output_writers[:surface] = JLD2Writer(model, merge(ocean.model.tracers, ocean.model.velocities);
                                             schedule = TimeInterval(1days),
                                             filename = "panantarctic_surface_fields",
                                             indices = (:, :, grid.Nz),
                                             overwrite_existing = true,
                                             array_type = Array{Float32})
-nothing #hide
 
 # ### Spinning up the simulation
 #
-# As an initial condition, we have interpolated ECCO tracer fields onto our custom grid.
-# The bathymetry of the original ECCO data may differ from our grid, so the initialization of the velocity
-# field might cause shocks if a large time step is used.
-#
-# Therefore, we spin up the simulation with a small time step to ensure that the interpolated initial
-# conditions adapt to the model numerics and parameterization without causing instability. A 10-day
-# integration with a time step of 1 minute should be sufficient to dissipate spurious
+# We spin up the simulation with a small time step to ensure that the interpolated initial
+# conditions adapt to the model numerics and parameterization without causing instability.
+# A 10-day integration with a time step of 1 minute should be sufficient to dissipate spurious
 # initialization shocks.
 
 run!(simulation)
@@ -150,8 +210,8 @@ nothing #hide
 
 # ### Running the simulation
 #
-# Now that the simulation has spun up, we can run it for the full 2 years.
-# We increase the maximum time step size to 10 minutes and let the simulation run for 2 years.
+# Now that the simulation has spun up, we can run increase the timestep and run for longer;
+# here we choose 60 days.
 
 simulation.stop_time = 60days
 simulation.Δt = 10minutes
@@ -159,7 +219,7 @@ run!(simulation)
 nothing #hide
 
 # ## Visualizing the results
-# 
+#
 # The simulation has finished, let's visualize the results.
 # In this section we pull up the saved data and create visualizations using the CairoMakie.jl package.
 # In particular, we generate an animation of the evolution of surface fields:
@@ -192,7 +252,7 @@ end
 un = Field{Face, Center, Nothing}(u.grid)
 vn = Field{Center, Face, Nothing}(v.grid)
 
-s = @at (Center, Center, Nothing) sqrt(un^2 + vn^2) 
+s = @at (Center, Center, Nothing) sqrt(un^2 + vn^2)
 s = Field(s)
 
 sn = @lift begin
@@ -204,7 +264,7 @@ sn = @lift begin
     view(sn, :, :, 1)
 end
 
-title = @lift string("ACC regional ocean simulation after ",
+title = @lift string("Panantarctic regional ocean simulation after ",
                      prettytime(times[$n] - times[1]))
 
 λ, φ, _ = nodes(T)
