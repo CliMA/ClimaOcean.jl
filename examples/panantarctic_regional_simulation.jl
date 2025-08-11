@@ -123,7 +123,7 @@ function progress(sim)
      wall_time[1] = time_ns()
 end
 
-simulation.callbacks[:progress] = Callback(progress, TimeInterval(6hours)) 
+simulation.callbacks[:progress] = Callback(progress, TimeInterval(5days)) 
 
 ocean.output_writers[:surface] = JLD2Writer(model, merge(model.tracers, model.velocities);
                                             schedule = TimeInterval(1days),
