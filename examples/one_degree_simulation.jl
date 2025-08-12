@@ -152,9 +152,9 @@ add_callback!(simulation, progress, IterationInterval(1000))
 
 ocean_outputs = merge(ocean.model.tracers, ocean.model.velocities)
 sea_ice_outputs = merge((h = sea_ice.model.ice_thickness,
-                        ℵ = sea_ice.model.ice_concentration,
-                        T = sea_ice.model.ice_thermodynamics.top_surface_temperature),
-                        sea_ice.model.velocities)
+                         ℵ = sea_ice.model.ice_concentration,
+                         T = sea_ice.model.ice_thermodynamics.top_surface_temperature),
+                         sea_ice.model.velocities)
 
 ocean.output_writers[:surface] = JLD2Writer(ocean.model, ocean_outputs;
                                             schedule = TimeInterval(5days),
