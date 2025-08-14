@@ -107,7 +107,7 @@ end
 
 # Now we are ready to construct the forcing. We relax temperature, salinity and
 # the horizontal velocities to data from the ECCO4 dataset at a
-# timescale of 5 days.
+# timescale of 5 days.  A sponge layer is used for the velocities in the north.
 
 start_date = DateTime(1993, 1, 1)
 end_date   = DateTime(1993, 4, 1)
