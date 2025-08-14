@@ -191,7 +191,7 @@ simulation.callbacks[:progress] = Callback(progress, TimeInterval(5days))
 #
 # We use output writers to save the simulation data at regular intervals.
 
-ocean.output_writers[:surface] = JLD2Writer(model, merge(ocean.model.tracers, ocean.model.velocities);
+ocean.output_writers[:surface] = JLD2Writer(ocean.model, merge(ocean.model.tracers, ocean.model.velocities);
                                             schedule = TimeInterval(1days),
                                             filename = "panantarctic_surface_fields",
                                             indices = (:, :, grid.Nz),
