@@ -84,8 +84,11 @@ end
 function netrc_downloader(username, password, machine, dir)
     netrc_file = netrc_permission_file(username, password, machine, dir)
     downloader = Downloads.Downloader()
-    easy_hook  = (easy, _) -> Downloads.Curl.setopt(easy, Downloads.Curl.CURLOPT_NETRC_FILE, netrc_file)
-
+    easy_hook  = (easy, _) -> begin
+        Downloads.Curl.setopt(easy, Downloads.Curl.CURLOPT_NETRC_FILE, netrc_file)
+        # Bypass certificate verification because ecco.jpl.nasa.gov is using an untrusted CA certificate
+        Downloads.Curl.setopt(easy, Downloads.Curl.CURLOPT_SSL_VERIFYPEER, false)
+    end
     downloader.easy_hook = easy_hook
     return downloader
 end
@@ -144,13 +147,14 @@ Arguments
 
 !!! info "Credential setup requirements for ECCO datasets"
 
-    For ECCO datasets, the data download requires a username and password to be provided in
-    the `ECCO_USERNAME` and `ECCO_PASSWORD` environment variables respectively. This can be
+    For ECCO datasets, the data download requires "WebDAV/Programmatic API" credentials from
+    NASA's Earthdrive. The WebDAV/Programmatic API username and password need to be provided in
+    the `ECCO_USERNAME` and `ECCO_WEBDAV_PASSWORD` environment variables respectively. This can be
     done by exporting the environment variables in the shell before running the script, or by
     launching julia with
 
     ```
-    ECCO_USERNAME=myusername ECCO_PASSWORD=mypassword julia
+    ECCO_USERNAME=myusername ECCO_WEBDAV_PASSWORD=mypassword julia
     ```
 
     or by invoking
@@ -158,10 +162,12 @@ Arguments
     ```julia
     julia> ENV["ECCO_USERNAME"] = "myusername"
 
-    julia> ENV["ECCO_PASSWORD"] = "mypassword"
+    julia> ENV["ECCO_WEBDAV_PASSWORD"] = "mypassword"
     ```
 
-    within julia.
+    within julia. More detailed instructions for obtaining WebDAV credentials are at:
+
+        https://github.com/CliMA/ClimaOcean.jl/blob/main/src/DataWrangling/ECCO/README.md
 """
 function download_dataset end # methods specific to datasets are added within each dataset module
 function inpainted_metadata_path end

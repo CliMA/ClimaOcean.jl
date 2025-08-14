@@ -113,5 +113,12 @@ and interior properties `ℙₛ`, `ℙₐ`, and `ℙᵢ`.
     v = approximate_interface_state.v
     S = approximate_interface_state.S
 
-    return InterfaceState(u★, θ★, q★, u, v, Tₛ, S, convert(FT, qₛ))
+    return InterfaceState(convert(FT, u★),
+                          convert(FT, θ★),
+                          convert(FT, q★), 
+                          convert(FT, u), 
+                          convert(FT, v), 
+                          convert(FT, Tₛ), 
+                          convert(FT, S), 
+                          convert(FT, qₛ))
 end

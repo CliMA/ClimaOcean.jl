@@ -9,7 +9,8 @@
 # ## Initial setup with package imports
 #
 # We begin by importing the necessary Julia packages for visualization (CairoMakie),
-# ocean modeling (Oceananigans, ClimaOcean), and handling dates and times (CFTime, Dates).
+# ocean modeling (Oceananigans, ClimaOcean), handling dates and times (CFTime, Dates),
+# and CUDA for running on CUDA-enabled GPUs.
 # These packages provide the foundational tools for setting up the simulation environment,
 # including grid setup, physical processes modeling, and data visualization.
 
@@ -20,6 +21,7 @@ using CairoMakie
 using CFTime
 using Dates
 using Printf
+using CUDA
 
 # ### Grid configuration
 #
@@ -35,12 +37,13 @@ Ny = 600
 Nz = 40
 
 depth = 6000meters
-z_faces = exponential_z_faces(; Nz, depth)
+z = ExponentialCoordinate(Nz, -depth, 0)
+z = Oceananigans.Grids.MutableVerticalDiscretization(z)
 
 grid = LatitudeLongitudeGrid(arch;
                              size = (Nx, Ny, Nz),
                              halo = (7, 7, 7),
-                             z = z_faces,
+                             z,
                              latitude  = (-75, 75),
                              longitude = (0, 360))
 
@@ -102,7 +105,8 @@ radiation = Radiation(arch)
 # The number of snapshots that are loaded into memory is determined by
 # the `backend`. Here, we load 41 snapshots at a time into memory.
 
-atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(41))
+atmosphere = JRA55PrescribedAtmosphere(arch; backend = JRA55NetCDFBackend(41),
+                                       include_rivers_and_icebergs = false)
 
 # ## The coupled simulation
 
@@ -250,7 +254,7 @@ nothing #hide
 
 # And now we make a movie:
 
-record(fig, "near_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
+CairoMakie.record(fig, "near_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
     n[] = nn
 end
 nothing #hide

@@ -124,7 +124,7 @@ Construct a coupled ocean-sea ice model that simulates the interaction between o
 - `sea_ice`: A representation of a possibly time-dependent sea ice state.
              For example, the minimalist `FreezingLimitedOceanTemperature` represents
              oceanic latent heating during freezing only, but does not evolve sea ice variables.
-             For prognostica sea ice use an `Oceananigans.Simulation`s of `ClimaSeaIce.SeaIceModel`.
+             For prognostic sea ice use an `Oceananigans.Simulation` of `ClimaSeaIce.SeaIceModel`.
 
 # Keyword Arguments
 - `atmosphere`: A representation of a possibly time-dependent atmospheric state. Default: `nothing`.

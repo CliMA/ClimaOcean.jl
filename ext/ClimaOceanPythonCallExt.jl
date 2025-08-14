@@ -41,7 +41,7 @@ function download_dataset(meta::CopernicusMetadatum; skip_existing = true, addit
     output_path = joinpath(output_directory, output_filename)
     isfile(output_path) && return output_path
 
-    toolbox = try 
+    toolbox = try
         pyimport("copernicusmarine")
     catch
         install_copernicusmarine()
@@ -107,4 +107,4 @@ function depth_bounds_kw(z)
     return (; minimum_depth, maximum_depth)
 end
 
-end # module ClimaOceanPythonCallExt 
+end # module ClimaOceanPythonCallExt

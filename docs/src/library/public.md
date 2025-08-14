@@ -66,12 +66,6 @@ Private = false
 Modules = [ClimaOcean.Bathymetry]
 Private = false
 ```
-## VerticalGrids
-
-```@autodocs
-Modules = [ClimaOcean.VerticalGrids]
-Private = false
-```
 
 ## OceanSimulations
 
