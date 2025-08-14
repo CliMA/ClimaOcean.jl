@@ -6,7 +6,8 @@
 #
 # The simulation's results are visualized with the CairoMakie.jl package.
 #
-# The example showcases how we can use
+# The example showcases how we can use DatasetRestoring functionality to restore to a given dataset
+# and also how to add custom masks on forcings.
 #
 # ## Initial setup with package imports
 #
@@ -95,19 +96,9 @@ const φS₂ = -75
      return max(s, n)
 end
 
-@inline function u_restoring(i, j, k, grid, clock, fields, p)
-     φ = Oceananigans.Grids.φnode(i, j, k, grid, Face(), Center(), Center())
-     return - p.rate * fields.u[i, j, k] * northern_mask(φ)
-end
-
-@inline function v_restoring(i, j, k, grid, clock, fields, p)
-     φ = Oceananigans.Grids.φnode(i, j, k, grid, Center(), Face(), Center())
-     return - p.rate * fields.v[i, j, k] * northern_mask(φ)
-end
-
-# Now we are ready to construct the forcing. We relax temperature, salinity and
-# the horizontal velocities to data from the ECCO4 dataset at a
-# timescale of 5 days.  A sponge layer is used for the velocities in the north.
+# Now we are ready to construct the forcing. We relax temperature, salinity to
+# data from the ECCO4 dataset at a timescale of 5 days. For the velocities at the
+# northern part of the domain, we apply a sponge layer (i.e., we relax them to zero).
 
 start_date = DateTime(1993, 1, 1)
 end_date   = DateTime(1993, 4, 1)
@@ -115,14 +106,22 @@ end_date   = DateTime(1993, 4, 1)
 dataset = ECCO4Monthly()
 T_meta = Metadata(:temperature; start_date, end_date, dataset)
 S_meta = Metadata(:salinity;    start_date, end_date, dataset)
-u_meta = Metadata(:u_velocity;  start_date, end_date, dataset)
-v_meta = Metadata(:v_velocity;  start_date, end_date, dataset)
+
+@inline function u_sponge(i, j, k, grid, clock, fields, p)
+     φ = Oceananigans.Grids.φnode(i, j, k, grid, Face(), Center(), Center())
+     return - p.rate * fields.u[i, j, k] * northern_mask(φ)
+end
+
+@inline function v_sponge(i, j, k, grid, clock, fields, p)
+     φ = Oceananigans.Grids.φnode(i, j, k, grid, Center(), Face(), Center())
+     return - p.rate * fields.v[i, j, k] * northern_mask(φ)
+end
 
 rate = 1/5days
 forcing = (T = DatasetRestoring(T_meta, grid; rate, mask=tracer_mask),
            S = DatasetRestoring(S_meta, grid; rate, mask=tracer_mask),
-           u = Forcing(u_restoring; discrete_form=true, parameters=(; rate)),
-           v = Forcing(v_restoring; discrete_form=true, parameters=(; rate)))
+           u = Forcing(u_sponge; discrete_form=true, parameters=(; rate)),
+           v = Forcing(v_sponge; discrete_form=true, parameters=(; rate)))
 
 # ### Ocean model configuration
 #
