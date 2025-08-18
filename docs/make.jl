@@ -9,7 +9,7 @@ using Pkg
 Pkg.add(PackageSpec(
     name = "Oceananigans",
     url = "https://github.com/CliMA/Oceananigans.jl",
-    rev = "ss/fix-zstar-bc"
+    rev = "ss/omip-branch-2"
 ))
 Pkg.resolve()
 @show Pkg.status()
