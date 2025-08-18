@@ -75,7 +75,7 @@ ocean = ocean_simulation(grid; momentum_advection, tracer_advection, free_surfac
 # EVP rheology and a zero-layer thermodynamic model that advances thickness
 # and concentration.
 
-seaice = sea_ice_simulation(grid, ocean; advection=tracer_advection)
+sea_ice = sea_ice_simulation(grid, ocean; advection=tracer_advection)
 
 # ### Initial condition
 
@@ -89,7 +89,7 @@ ecco_sea_ice_thickness = Metadatum(:sea_ice_thickness; date, dataset)
 ecco_sea_ice_concentration = Metadatum(:sea_ice_concentration; date, dataset)
 
 set!(ocean.model, T=ecco_temperature, S=ecco_salinity)
-set!(seaice.model, h=ecco_sea_ice_thickness, ℵ=ecco_sea_ice_concentration)
+set!(sea_ice.model, h=ecco_sea_ice_thickness, ℵ=ecco_sea_ice_concentration)
 
 # ### Atmospheric forcing
 
@@ -107,7 +107,7 @@ atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(80),
 # avoid numerical instabilities from the initial "shock" of the adjustment of the
 # flow fields.
 
-coupled_model = OceanSeaIceModel(ocean, seaice; atmosphere, radiation)
+coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 simulation = Simulation(coupled_model; Δt=8minutes, stop_time=20days)
 
 # ### A progress messenger
@@ -151,10 +151,10 @@ add_callback!(simulation, progress, IterationInterval(1000))
 # also uses a prognostic turbulent kinetic energy, `e`, to diagnose the vertical mixing length.
 
 ocean_outputs = merge(ocean.model.tracers, ocean.model.velocities)
-seaice_outputs = merge((h = seaice.model.ice_thickness,
-                        ℵ = seaice.model.ice_concentration,
-                        T = seaice.model.ice_thermodynamics.top_surface_temperature),
-                        seaice.model.velocities)
+sea_ice_outputs = merge((h = sea_ice.model.ice_thickness,
+                         ℵ = sea_ice.model.ice_concentration,
+                         T = sea_ice.model.ice_thermodynamics.top_surface_temperature),
+                         sea_ice.model.velocities)
 
 ocean.output_writers[:surface] = JLD2Writer(ocean.model, ocean_outputs;
                                             schedule = TimeInterval(5days),
@@ -162,10 +162,10 @@ ocean.output_writers[:surface] = JLD2Writer(ocean.model, ocean_outputs;
                                             indices = (:, :, grid.Nz),
                                             overwrite_existing = true)
 
-seaice.output_writers[:surface] = JLD2Writer(ocean.model, seaice_outputs;
-                                             schedule = TimeInterval(5days),
-                                             filename = "seaice_one_degree_surface_fields",
-                                             overwrite_existing = true)
+sea_ice.output_writers[:surface] = JLD2Writer(ocean.model, sea_ice_outputs;
+                                              schedule = TimeInterval(5days),
+                                              filename = "sea_ice_one_degree_surface_fields",
+                                              overwrite_existing = true)
 
 # ### Ready to run
 
@@ -192,11 +192,11 @@ To = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "T"; backend = OnD
 eo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "e"; backend = OnDisk())
 
 # and sea ice fields with "i":
-ui = FieldTimeSeries("seaice_one_degree_surface_fields.jld2", "u"; backend = OnDisk())
-vi = FieldTimeSeries("seaice_one_degree_surface_fields.jld2", "v"; backend = OnDisk())
-hi = FieldTimeSeries("seaice_one_degree_surface_fields.jld2", "h"; backend = OnDisk())
-ℵi = FieldTimeSeries("seaice_one_degree_surface_fields.jld2", "ℵ"; backend = OnDisk())
-Ti = FieldTimeSeries("seaice_one_degree_surface_fields.jld2", "T"; backend = OnDisk())
+ui = FieldTimeSeries("sea_ice_one_degree_surface_fields.jld2", "u"; backend = OnDisk())
+vi = FieldTimeSeries("sea_ice_one_degree_surface_fields.jld2", "v"; backend = OnDisk())
+hi = FieldTimeSeries("sea_ice_one_degree_surface_fields.jld2", "h"; backend = OnDisk())
+ℵi = FieldTimeSeries("sea_ice_one_degree_surface_fields.jld2", "ℵ"; backend = OnDisk())
+Ti = FieldTimeSeries("sea_ice_one_degree_surface_fields.jld2", "T"; backend = OnDisk())
 
 times = uo.times
 Nt = length(times)
