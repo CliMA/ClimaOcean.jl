@@ -30,15 +30,15 @@ Nx = 360 # longitudinal direction
 Ny = 180 # meridional direction 
 Nz = 60
 
-r_faces = ClimaOcean.ExponentialCoordinate(Nz, -6000)
-z_faces = MutableVerticalDiscretization(r_faces)
+z_faces = ExponentialCoordinate(Nz, -6000, 0)
+# z_faces = MutableVerticalDiscretization(z_faces)
 
 grid = TripolarGrid(arch;
                     size = (Nx, Ny, Nz),
                     z = z_faces,
                     halo = (7, 7, 7))
 
-bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1, interpolation_passes=15)
+bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1, interpolation_passes=75)
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
 #####
@@ -51,34 +51,44 @@ using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities: CATKEVertic
 momentum_advection = WENOVectorInvariant(order=5)
 tracer_advection   = WENO(order=5)
 
-free_surface = SplitExplicitFreeSurface(grid; cfl=0.7, fixed_Δt=20minutes)
+free_surface = SplitExplicitFreeSurface(grid; cfl=0.8, fixed_Δt=45minutes)
 
-mixing_length = CATKEMixingLength(Cᵇ=0.01)
-turbulent_kinetic_energy_equation = CATKEEquation(Cᵂϵ=1.0)
+eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
+catke_closure = ClimaOcean.OceanSimulations.default_ocean_closure() # RiBasedVerticalDiffusivity() #  
+closure = (catke_closure, VerticalScalarDiffusivity(κ=1e-5, ν=1e-4), eddy_closure)
 
-catke_closure = CATKEVerticalDiffusivity(; mixing_length, turbulent_kinetic_energy_equation) 
-closure = (catke_closure, VerticalScalarDiffusivity(κ=1e-5, ν=1e-5))
+dataset = EN4Monthly()
+date = DateTime(1958, 1, 1)
+@inline mask(x, y, z, t) = z ≥ z_surf - 1
+Smetadata = Metadata(:salinity; dataset)
+
+FS = DatasetRestoring(Smetadata, grid; rate = 1/18days, mask, time_indices_in_memory = 10)
 
 ocean = ocean_simulation(grid; Δt=1minutes,
                          momentum_advection,
                          tracer_advection,
+                         timestepper = :SplitRungeKutta3,
                          free_surface,
+                         forcing = (; S = FS),
                          closure)
 
-dataset = ECCO4Monthly()
+dataset = EN4Monthly()
+date = DateTime(1958, 1, 1)
 
-set!(ocean.model, T=Metadatum(:temperature; dataset),
-                  S=Metadatum(:salinity;    dataset))
+set!(ocean.model, T=Metadatum(:temperature; dataset, date),
+                  S=Metadatum(:salinity;    dataset, date))
+
+@info ocean.model.clock
 
 #####
 ##### A Prognostic Sea-ice model
 #####
 
 # Default sea-ice dynamics and salinity coupling are included in the defaults
-sea_ice = sea_ice_simulation(grid; advection=WENO(order=7))
+sea_ice = sea_ice_simulation(grid, ocean; advection=WENO(order=7)) 
 
-set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset),
-                    ℵ=Metadatum(:sea_ice_concentration; dataset))
+set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=ECCO4Monthly()),
+                    ℵ=Metadatum(:sea_ice_concentration; dataset=ECCO4Monthly()))
 
 #####
 ##### A Prescribed Atmosphere model
@@ -94,21 +104,20 @@ radiation  = Radiation()
 #####
 ##### An ocean-sea ice coupled model
 #####
- 
+
 omip = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-omip = Simulation(omip, Δt=30, stop_time=60days)
+omip = Simulation(omip, Δt=30minutes, stop_time=60days) 
 
 # Figure out the outputs....
-
 checkpointer_address(::SeaIceModel) = "SeaIceModel"
 
 ocean.output_writers[:checkpointer] = Checkpointer(ocean.model,
-                                                  schedule = IterationInterval(10000),
+                                                  schedule = IterationInterval(1000),
                                                   prefix = "ocean_checkpoint_onedegree",
                                                   overwrite_existing = true)
 
 sea_ice.output_writers[:checkpointer] = Checkpointer(sea_ice.model,
-                                                     schedule = IterationInterval(10000),
+                                                     schedule = IterationInterval(1000),
                                                      prefix = "sea_ice_checkpoint_onedegree",
                                                      overwrite_existing = true)
 
@@ -143,11 +152,11 @@ function progress(sim)
 end
 
 # And add it as a callback to the simulation.
-add_callback!(omip, progress, IterationInterval(50))
+add_callback!(omip, progress, IterationInterval(1))
 
 run!(omip)
 
-omip.Δt = 15minutes
+omip.Δt = 40minutes
 omip.stop_time = 58 * 365days
 
 run!(omip)
