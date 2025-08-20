@@ -15,15 +15,6 @@ using CUDA
 
 import Oceananigans.OutputWriters: checkpointer_address
 
-function synch!(clock1::Clock, clock2)
-    # Synchronize the clocks
-    clock1.time = clock2.time
-    clock1.iteration = clock2.iteration
-    clock1.last_Δt = clock2.last_Δt
-end
-
-synch!(model1, model2) = synch!(model1.clock, model2.clock)
-
 arch = GPU()
 
 Nx = 360 # longitudinal direction 
@@ -54,7 +45,7 @@ tracer_advection   = WENO(order=5)
 free_surface = SplitExplicitFreeSurface(grid; cfl=0.8, fixed_Δt=45minutes)
 
 eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
-catke_closure = ClimaOcean.OceanSimulations.default_ocean_closure() # RiBasedVerticalDiffusivity() #  
+catke_closure = ClimaOcean.OceanSimulations.default_ocean_closure()  
 closure = (catke_closure, VerticalScalarDiffusivity(κ=1e-5, ν=1e-4), eddy_closure)
 
 dataset = EN4Monthly()
