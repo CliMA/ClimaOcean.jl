@@ -24,6 +24,8 @@ Nz = 60
 z_faces = ExponentialCoordinate(Nz, -6000, 0)
 # z_faces = MutableVerticalDiscretization(z_faces)
 
+const z_surf = z_faces(Nz)
+
 grid = TripolarGrid(arch;
                     size = (Nx, Ny, Nz),
                     z = z_faces,
