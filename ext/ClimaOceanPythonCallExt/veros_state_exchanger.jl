@@ -1,0 +1,84 @@
+import ClimaOcean.OceanSeaIceModels.InterfaceComputations: 
+    state_exchanger, 
+    sea_ice_ocean_interface, 
+    atmosphere_ocean_interface, 
+    initialize!,
+    get_ocean_state,
+    ocean_surface_fluxes,
+    get_radiative_forcing,
+    fill_up_net_fluxes!
+
+
+mutable struct VerosStateExchanger{G, OST, AST, AEX}
+    exchange_grid :: G
+    exchange_ocean_state :: OST
+    exchange_atmosphere_state :: AST
+    atmosphere_exchanger :: AEX
+end
+
+mutable struct ExchangeOceanState{FC, CF, CC}
+    u  :: FC
+    v  :: CF
+    T  :: CC
+    S  :: CC
+end
+
+ExchangeOceanState(grid) = ExchangeOceanState(Field{Face, Center, Nothing}(grid),
+                                              Field{Center, Face, Nothing}(grid),
+                                              Field{Center, Center, Nothing}(grid),
+                                              Field{Center, Center, Nothing}(grid))
+
+function state_exchanger(ocean::VerosOceanSimulation, atmosphere)
+    exchange_grid = surface_grid(ocean)
+    exchange_ocean_state = ExchangeOceanState(exchange_grid)
+    exchange_atmosphere_state = ExchangeAtmosphereState(exchange_grid)
+
+    atmosphere_exchanger = AtmosphereExchanger(atmosphere, exchange_grid)
+
+    return VerosStateExchanger(exchange_grid,
+                               exchange_ocean_state,
+                               exchange_atmosphere_state,
+                               atmosphere_exchanger)
+end
+
+atmosphere_ocean_interface(ocean::VerosOceanSimulation, args...) = 
+    atmosphere_ocean_interface(surface_grid(ocean), args...)
+
+sea_ice_ocean_interface(ocean::VerosOceanSimulation, args...) = 
+    sea_ice_ocean_interface(surface_grid(ocean), args...)
+
+initialize!(exchanger::VerosStateExchanger, atmosphere) = 
+    initialize!(exchanger.atmosphere_exchanger, exchanger.exchange_grid, atmosphere)
+
+@inline function get_ocean_state(ocean::VerosOceanSimulation, exchanger::VerosStateExchanger)
+    u = exchanger.exchange_ocean_state.u
+    v = exchanger.exchange_ocean_state.v
+    T = exchanger.exchange_ocean_state.T
+    S = exchanger.exchange_ocean_state.S
+
+    set!(u, ocean.setup.state.variables.u)
+    set!(v, ocean.setup.state.variables.v)
+    set!(T, ocean.setup.state.variables.temp)
+    set!(S, ocean.setup.state.variables.salt)
+
+    return (; u, v, T, S)
+end
+
+@inline function ocean_surface_fluxes(ocean::VerosOceanSimulation)
+    grid = surface_grid(ocean)
+    u = Field{Face, Center, Nothing}(grid)
+    v = Field{Center, Face, Nothing}(grid)
+    T = Field{Center, Center, Nothing}(grid)
+    S = Field{Center, Center, Nothing}(grid)
+
+    return (; u, v, T, S)
+end
+
+@inline get_radiative_forcing(ocean::VerosOceanSimulation) = nothing
+
+function fill_up_net_fluxes!(ocean::VerosOceanSimulation, net_ocean_fluxes)
+    veros_set!(ocean, "surface_taux", net_ocean_fluxes.u)
+    veros_set!(ocean, "surface_tauy", net_ocean_fluxes.v)
+    
+    return nothing
+end

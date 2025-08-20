@@ -21,18 +21,22 @@ using ClimaOcean.OceanSeaIceModels: sea_ice_concentration
     return zero(Iˢʷ)
 end
 
-get_radiative_forcing(FT) = FT
-function get_radiative_forcing(FT::MultipleForcings)
+@inline get_radiative_forcing(ocean::Simulation{<:HydrostaticFreeSurfaceModel}) = get_radiative_forcing(ocean.model.forcing.T)
+@inline get_radiative_forcing(FT) = FT
+
+@inline function get_radiative_forcing(FT::MultipleForcings)
     for forcing in FT.forcings
         forcing isa TwoColorRadiation && return forcing
     end
     return nothing
 end
 
+# No need to do this for an Oceananigans Simulation
+fill_up_net_fluxes!(ocean, net_ocean_fluxes) = nothing
+
 function compute_net_ocean_fluxes!(coupled_model)
-    ocean = coupled_model.ocean
     sea_ice = coupled_model.sea_ice
-    grid = ocean.model.grid
+    grid = coupled_model.exchanger.exchange_grid
     arch = architecture(grid)
     clock = coupled_model.clock
 
@@ -62,7 +66,7 @@ function compute_net_ocean_fluxes!(coupled_model)
     kernel_parameters = interface_kernel_parameters(grid)
 
     ocean_surface_temperature = coupled_model.interfaces.atmosphere_ocean_interface.temperature
-    penetrating_radiation = get_radiative_forcing(ocean.model.forcing.T)
+    penetrating_radiation = get_radiative_forcing(ocean)
 
     launch!(arch, grid, kernel_parameters,
             _assemble_net_ocean_fluxes!,
@@ -79,6 +83,8 @@ function compute_net_ocean_fluxes!(coupled_model)
             freshwater_flux,
             atmos_ocean_properties,
             ocean_properties)
+
+    fill_up_net_fluxes!(ocean, net_ocean_fluxes)
 
     return nothing
 end

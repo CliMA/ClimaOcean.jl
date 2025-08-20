@@ -4,19 +4,21 @@ using ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres: thermodynamics_paramet
                                                           surface_layer_height,
                                                           boundary_layer_height
 
-function compute_atmosphere_ocean_fluxes!(coupled_model)
-    ocean = coupled_model.ocean
-    atmosphere = coupled_model.atmosphere
-    grid = ocean.model.grid
-    arch = architecture(grid)
-    clock = coupled_model.clock
-
-    ocean_state = (u = ocean.model.velocities.u,
+@inline get_ocean_state(ocean::Simulation{<:HydrostaticFreeSurfaceModel}, coupled_model) = 
+                  (u = ocean.model.velocities.u,
                    v = ocean.model.velocities.v,
                    T = ocean.model.tracers.T,
                    S = ocean.model.tracers.S)
 
-    atmosphere_fields = coupled_model.interfaces.exchanger.exchange_atmosphere_state
+function compute_atmosphere_ocean_fluxes!(coupled_model)
+    ocean = coupled_model.ocean
+    atmosphere = coupled_model.atmosphere
+    exchanger  = coupled_model.interfaces.exchanger
+    grid  = exchanger.exchange_grid
+    arch  = architecture(grid)
+    clock = coupled_model.clock
+    ocean_state = get_ocean_state(ocean, exchanger)
+    atmosphere_fields = exchanger.exchange_atmosphere_state
 
     # Simplify NamedTuple to reduce parameter space consumption.
     # See https://github.com/CliMA/ClimaOcean.jl/issues/116.
