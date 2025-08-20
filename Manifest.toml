@@ -2,7 +2,7 @@
 
 julia_version = "1.10.10"
 manifest_format = "2.0"
-project_hash = "9146dada698eda5ffee4e42d71b36798d21b236d"
+project_hash = "f57e0b9bc9bbdd1cb6d317ebea00412e67510515"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -100,9 +100,9 @@ uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 
 [[deps.Atomix]]
 deps = ["UnsafeAtomics"]
-git-tree-sha1 = "b5bb4dc6248fde467be2a863eb8452993e74d402"
+git-tree-sha1 = "29bb0eb6f578a587a49da16564705968667f5fa8"
 uuid = "a9b6321e-bd34-4604-b9c9-b65b8de01458"
-version = "1.1.1"
+version = "1.1.2"
 
     [deps.Atomix.extensions]
     AtomixCUDAExt = "CUDA"
@@ -185,9 +185,9 @@ version = "5.8.3"
 
 [[deps.CUDA_Compiler_jll]]
 deps = ["Artifacts", "CUDA_Driver_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "TOML"]
-git-tree-sha1 = "144046baf05523e2e8510505d45e50fe5d18feef"
+git-tree-sha1 = "fdb9ddf3e08e2aca4c84b3252df2dea046caadee"
 uuid = "d1e2174e-dfdc-576e-b43e-73b79eb1aca8"
-version = "0.2.0+0"
+version = "0.2.0+1"
 
 [[deps.CUDA_Driver_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -209,8 +209,8 @@ version = "0.19.0+0"
 
 [[deps.ClimaSeaIce]]
 deps = ["Adapt", "KernelAbstractions", "Oceananigans", "RootSolvers", "Roots", "SeawaterPolynomials"]
-git-tree-sha1 = "03be9bbf454f4cefd81b80eaa9af79efb23fc7e9"
-repo-rev = "ss/no-heat-flux-when-unconsolidated"
+git-tree-sha1 = "f5b45114d7c47faa799ac72cc0a07c1e86ac0e29"
+repo-rev = "ss/omip-branch-2"
 repo-url = "https://github.com/CliMA/ClimaSeaIce.jl.git"
 uuid = "6ba0ff68-24e6-4315-936c-2e99227c95a4"
 version = "0.3.5"
@@ -391,9 +391,9 @@ version = "1.15.1"
 
 [[deps.DiskArrays]]
 deps = ["ConstructionBase", "LRUCache", "Mmap", "OffsetArrays"]
-git-tree-sha1 = "16d93ff95ecc421463eaefd694e6746bb1c0919e"
+git-tree-sha1 = "bfde0790720fcac006a3d62149309a685fc3aa13"
 uuid = "3c3547ce-8d99-4f5e-a174-61eb10b00ae3"
-version = "0.4.14"
+version = "0.4.15"
 
 [[deps.Distances]]
 deps = ["LinearAlgebra", "Statistics", "StatsAPI"]
@@ -515,9 +515,9 @@ version = "1.3.1"
 
 [[deps.Graphs]]
 deps = ["ArnoldiMethod", "DataStructures", "Distributed", "Inflate", "LinearAlgebra", "Random", "SharedArrays", "SimpleTraits", "SparseArrays", "Statistics"]
-git-tree-sha1 = "c5abfa0ae0aaee162a3fbb053c13ecda39be545b"
+git-tree-sha1 = "7a98c6502f4632dbe9fb1973a4244eaa3324e84d"
 uuid = "86223c79-3864-5bf0-83f7-82e725a168b6"
-version = "1.13.0"
+version = "1.13.1"
 
 [[deps.HDF5_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "LazyArtifacts", "LibCURL_jll", "Libdl", "MPICH_jll", "MPIPreferences", "MPItrampoline_jll", "MicrosoftMPI_jll", "OpenMPI_jll", "OpenSSL_jll", "TOML", "Zlib_jll", "libaec_jll"]
@@ -974,11 +974,11 @@ version = "1.2.0"
 
 [[deps.Oceananigans]]
 deps = ["Adapt", "Crayons", "CubedSphere", "Dates", "Distances", "DocStringExtensions", "FFTW", "GPUArrays", "GPUArraysCore", "Glob", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "Krylov", "KrylovPreconditioners", "LinearAlgebra", "Logging", "MPI", "MuladdMacro", "OffsetArrays", "OrderedCollections", "Pkg", "Printf", "Random", "ReactantCore", "Rotations", "SeawaterPolynomials", "SparseArrays", "StaticArrays", "Statistics", "StructArrays"]
-git-tree-sha1 = "54321f75f4ea124802a16c0d1e17ea488f867e03"
+git-tree-sha1 = "e5f3d3ec8343b3e0f7434f8d7b590a7d7f94fde8"
 repo-rev = "ss/omip-branch-2"
 repo-url = "https://github.com/CliMA/Oceananigans.jl.git"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
-version = "0.97.6"
+version = "0.97.7"
 
     [deps.Oceananigans.extensions]
     OceananigansAMDGPUExt = "AMDGPU"
@@ -1087,9 +1087,9 @@ version = "1.2.1"
 
 [[deps.Preferences]]
 deps = ["TOML"]
-git-tree-sha1 = "9306f6085165d270f7e3db02af26a400d580f5c6"
+git-tree-sha1 = "0f27480397253da18fe2c12a4ba4eb9eb208bf3d"
 uuid = "21216c6a-2e73-6563-6e65-726566657250"
-version = "1.4.3"
+version = "1.5.0"
 
 [[deps.PrettyTables]]
 deps = ["Crayons", "LaTeXStrings", "Markdown", "PrecompileTools", "Printf", "Reexport", "StringManipulation", "Tables"]
@@ -1354,9 +1354,9 @@ version = "7.2.1+1"
 
 [[deps.SurfaceFluxes]]
 deps = ["DocStringExtensions", "RootSolvers", "Thermodynamics"]
-git-tree-sha1 = "aee530bde85cd41374273568cb649e72d82921e7"
+git-tree-sha1 = "eb96fea9de18a3935a836ee8634af3c126d6b77f"
 uuid = "49b00bb7-8bd4-4f2b-b78c-51cd0450215f"
-version = "0.12.0"
+version = "0.12.1"
 
     [deps.SurfaceFluxes.extensions]
     CreateParametersExt = "ClimaParams"
@@ -1415,10 +1415,10 @@ deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[deps.Thermodynamics]]
-deps = ["DocStringExtensions", "KernelAbstractions", "Random", "RootSolvers"]
-git-tree-sha1 = "bff801ad0a9bbb5c1bf38ffe89a83907a1b145cd"
+deps = ["DocStringExtensions", "ForwardDiff", "KernelAbstractions", "Random", "RootSolvers"]
+git-tree-sha1 = "edce99e94489c25f5c7f5b4065c06ffb5adb1317"
 uuid = "b60c26fb-14c3-4610-9d3e-2d17fe7ff00c"
-version = "0.12.15"
+version = "0.13.1"
 
     [deps.Thermodynamics.extensions]
     CreateParametersExt = "ClimaParams"
