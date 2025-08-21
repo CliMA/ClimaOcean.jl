@@ -117,8 +117,8 @@ end
         Qs  = downwelling_radiation.Qs[i, j, 1] # Downwelling shortwave radiation
         Qℓ  = downwelling_radiation.Qℓ[i, j, 1] # Downwelling longwave radiation
         Qc  = atmos_ocean_fluxes.sensible_heat[i, j, 1] # sensible or "conductive" heat flux
-        Qv  = atmos_ocean_fluxes.latent_heat[i, j, 1]   # latent heat flux
-        Mv  = atmos_ocean_fluxes.water_vapor[i, j, 1]   # mass flux of water vapor
+        Qv  = atmos_ocean_fluxes.latent_heat[i, j, 1] # latent heat flux
+        Mv  = atmos_ocean_fluxes.water_vapor[i, j, 1] # mass flux of water vapor
     end
 
     # Compute radiation fluxes (radiation is multiplied by the fraction of ocean, 1 - sea ice concentration)
@@ -170,7 +170,7 @@ end
         Qio  = sea_ice_ocean_fluxes.interface_heat[i, j, 1]
 
         Jᵀao = ΣQao  * ρₒ⁻¹ / cₒ
-        Jˢao = - Sₒ * ΣFao
+        Jˢao = - Sₒ * ΣFao # salinity flux is the opposite of a water vapor flux
         Jᵀio = Qio * ρₒ⁻¹ / cₒ
         Jˢio = sea_ice_ocean_fluxes.salt[i, j, 1] * ℵᵢ
 

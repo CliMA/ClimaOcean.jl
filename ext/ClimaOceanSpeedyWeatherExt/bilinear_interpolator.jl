@@ -1,0 +1,136 @@
+using PyCall
+using Oceananigans.Grids: AbstractGrid
+using SparseArrays
+using LinearAlgebra
+
+const Grids = Union{SpeedyWeather.SpectralGrid, AbstractGrid}
+
+struct BilinearInterpolator{W1, W2}
+    set1 :: W1
+    set2 :: W2
+end
+
+function BilinearInterpolator(grid1::Grids, grid2::Grids) 
+    W1 = regridder_weights(grid1, grid2; method="bilinear")
+    W2 = regridder_weights(grid2, grid1; method="bilinear")
+    return BilinearInterpolator(W1, W2)
+end
+
+regrid!(dst, weights, scr) = LinearAlgebra.mul!(vec(dst), weights, vec(scr))
+
+# Import and store as constants for submodules
+const numpy  = Ref(pyimport("numpy"))
+const xesmf  = Ref(pyimport("xesmf"))
+const xarray = Ref(pyimport("xarray"))
+
+two_dimensionalize(lat::Matrix, lon::Matrix) = lat, lon
+
+function two_dimensionalize(lat::AbstractVector, lon::AbstractVector) 
+    Nx = length(lon)
+    Ny = length(lat)
+    lat = repeat(lat', Nx)
+    lon = repeat(lon, 1, Ny)
+    return lat, lon
+end
+
+coordinate_dataset(grid::SpeedyWeather.SpectralGrid) = coordinate_dataset(grid.grid)
+    
+function coordinate_dataset(grid::SpeedyWeather.RingGrids.AbstractGrid)
+    lon, lat = RingGrids.get_londlatds(grid)
+    return numpy[].array(PyObject(Dict("lat" => lat, "lon" => lon)))
+end
+
+function coordinate_dataset(grid::SpeedyWeather.RingGrids.AbstractFullGrid)
+    lon = RingGrids.get_lond(grid)
+    lat = RingGrids.get_latd(grid)
+    return numpy[].array(PyObject(Dict("lat" => lat, "lon" => lon)))
+end
+
+function coordinate_dataset(grid::AbstractGrid)
+    lat = Array(φnodes(grid, Center(), Center(), Center()))
+    lon = Array(λnodes(grid, Center(), Center(), Center()))
+
+    lat_b = Array(φnodes(grid, Face(), Face(), Center()))
+    lon_b = Array(λnodes(grid, Face(), Face(), Center()))
+
+    lat,   lon   = two_dimensionalize(lat,   lon)
+    lat_b, lon_b = two_dimensionalize(lat_b, lon_b)
+
+    lat_np = numpy[].array(lat)
+    lon_np = numpy[].array(lon)
+
+    lat_b_np = numpy[].array(lat_b)
+    lon_b_np = numpy[].array(lon_b)
+
+    return structure_coordinate_dataset(lat_np, lon_np, lat_b_np, lon_b_np)
+end
+
+function structure_coordinate_dataset(lat, lon, lat_b, lon_b)
+
+    ds_lat = xarray[].DataArray(
+        lat',
+        dims=["y", "x"],
+        coords= PyObject(Dict(
+            "lat" => (["y", "x"], lat'),
+            "lon" => (["y", "x"], lon')
+        )),
+        name="latitude"
+    )
+    
+    ds_lon = xarray[].DataArray(
+        lon',
+        dims=["y", "x"],
+        coords= PyObject(Dict(
+            "lat" => (["y", "x"], lat'),
+            "lon" => (["y", "x"], lon')
+        )),
+        name="longitude"
+    )
+    
+    ds_lat_b = xarray[].DataArray(
+        lat_b',
+        dims=["y_b", "x_b"],
+        coords= PyObject(Dict(
+            "lat_b" => (["y_b", "x_b"], lat_b'),
+            "lon_b" => (["y_b", "x_b"], lon_b')
+        )),
+    )
+
+    ds_lon_b = xarray[].DataArray(
+        lon_b',
+        dims=["y_b", "x_b"],
+        coords= PyObject(Dict(
+            "lat_b" => (["y_b", "x_b"], lat_b'),
+            "lon_b" => (["y_b", "x_b"], lon_b')
+        )),
+    )
+
+    return  xarray[].Dataset(
+        PyObject(
+            Dict("lat"   => ds_lat, 
+                 "lon"   => ds_lon,
+                 "lat_b" => ds_lat_b,
+                 "lon_b" => ds_lon_b))
+    )
+end
+
+function regridder_weights(dst::Grids, src::Grids; method::String="bilinear")
+
+    src_ds = coordinate_dataset(src)
+    dst_ds = coordinate_dataset(dst)
+
+    regridder = xesmf[].Regridder(src_ds, dst_ds, method) 
+
+    # Move back to Julia
+    # Convert the regridder weights to a Julia sparse matrix
+    coords = regridder.weights.data
+    shape  = Tuple(Int.(coords[:shape]))
+    vals   = Float64.(coords[:data])
+    coords = coords[:coords]
+    rows = coords[1,:].+1
+    cols = coords[2,:].+1
+
+    W = sparse(rows, cols, vals, shape[1], shape[2])
+
+    return W
+end
