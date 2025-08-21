@@ -19,6 +19,8 @@ import Oceananigans.TimeSteppers: time_step!, update_state!, time
 import Oceananigans.Utils: prettytime
 import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker, initialization_update_state!
 
+import Base
+
 mutable struct OceanSeaIceModel{I, A, O, F, C, Arch} <: AbstractModel{Nothing, Arch}
     architecture :: Arch
     clock :: C

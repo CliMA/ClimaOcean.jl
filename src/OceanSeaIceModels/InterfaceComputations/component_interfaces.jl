@@ -291,7 +291,7 @@ function default_ai_temperature(sea_ice::SeaIceSimulation)
 end
 
 function default_ao_specific_humidity(ocean)
-    FT = Float64
+    FT = eltype(ocean)
     phase = AtmosphericThermodynamics.Liquid()
     x_H₂O = convert(FT, 0.98)
     return ImpureSaturationSpecificHumidity(phase, x_H₂O)
@@ -345,7 +345,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              sea_ice_heat_capacity = heat_capacity(sea_ice),
                              gravitational_acceleration = g_Earth)
 
-    FT = Float64
+    FT = eltype(ocean)
 
     ocean_reference_density    = convert(FT, ocean_reference_density)
     ocean_heat_capacity        = convert(FT, ocean_heat_capacity)
