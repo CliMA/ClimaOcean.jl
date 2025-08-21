@@ -124,7 +124,7 @@ end
 
     # Estimate interface specific humidity using interior temperature
     q_formulation = interface_properties.specific_humidity_formulation
-    qₛ = saturation_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ.ρ, Tₛ, Sᵢ)
+    qₛ = surface_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ, Tₛ, Sᵢ)
 
     # Guess
     Sₛ = zero(FT) # what should we use for interface salinity?
@@ -172,11 +172,11 @@ end
 
     @inbounds begin
         # +0: cooling, -0: heating
-        Qv[i, j, 1]  = - ρₐ * u★ * q★ * ℰs 
-        Qc[i, j, 1]  = - ρₐ * cₚ * u★ * θ★ 
-        Fv[i, j, 1]  = - ρₐ * u★ * q★ 
-        ρτx[i, j, 1] = + ρₐ * τx 
-        ρτy[i, j, 1] = + ρₐ * τy 
+        Qv[i, j, 1]  = - ρₐ * u★ * q★ * ℰs
+        Qc[i, j, 1]  = - ρₐ * cₚ * u★ * θ★
+        Fv[i, j, 1]  = - ρₐ * u★ * q★
+        ρτx[i, j, 1] = + ρₐ * τx
+        ρτy[i, j, 1] = + ρₐ * τy
         Ts[i, j, 1]  = convert_from_kelvin(sea_ice_properties.temperature_units, Ψₛ.T)
     end
 end

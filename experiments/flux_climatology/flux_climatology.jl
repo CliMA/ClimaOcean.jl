@@ -116,27 +116,27 @@ end
 #####
 
 struct PrescribedOcean{A, G, C, U, T, F} <: AbstractModel{Nothing}
-    architecture :: A       
-    grid :: G        
+    architecture :: A
+    grid :: G
     clock :: Clock{C}
     velocities :: U
     tracers :: T
     timeseries :: F
 end
 
-function PrescribedOcean(timeseries; 
-                         grid, 
-                         clock=Clock{Float64}(time = 0)) 
+function PrescribedOcean(timeseries;
+                         grid,
+                         clock=Clock{Float64}(time = 0))
 
     τx = Field{Face, Center, Nothing}(grid)
     τy = Field{Center, Face, Nothing}(grid)
     Jᵀ = Field{Center, Center, Nothing}(grid)
     Jˢ = Field{Center, Center, Nothing}(grid)
 
-    u = XFaceField(grid,  boundary_conditions=FieldBoundaryConditions(grid, (Face,   Center, Center), top = FluxBoundaryCondition(τx)))
-    v = YFaceField(grid,  boundary_conditions=FieldBoundaryConditions(grid, (Center, Face,   Center), top = FluxBoundaryCondition(τy)))
-    T = CenterField(grid, boundary_conditions=FieldBoundaryConditions(grid, (Center, Center, Center), top = FluxBoundaryCondition(Jᵀ)))
-    S = CenterField(grid, boundary_conditions=FieldBoundaryConditions(grid, (Center, Center, Center), top = FluxBoundaryCondition(Jˢ)))
+    u = XFaceField(grid,  boundary_conditions=FieldBoundaryConditions(grid, (Face(),   Center(), Center()), top = FluxBoundaryCondition(τx)))
+    v = YFaceField(grid,  boundary_conditions=FieldBoundaryConditions(grid, (Center(), Face(),   Center()), top = FluxBoundaryCondition(τy)))
+    T = CenterField(grid, boundary_conditions=FieldBoundaryConditions(grid, (Center(), Center(), Center()), top = FluxBoundaryCondition(Jᵀ)))
+    S = CenterField(grid, boundary_conditions=FieldBoundaryConditions(grid, (Center(), Center(), Center()), top = FluxBoundaryCondition(Jˢ)))
 
     PrescribedOcean(architecture(grid), grid, clock, (; u, v, w=ZeroField()), (; T, S), timeseries)
 end
@@ -219,7 +219,7 @@ function progress(sim)
     msg *= @sprintf(", max|u|: (%.2e, %.2e) m s⁻¹, extrema(T): (%.2f, %.2f) ᵒC, wall time: %s",
                     umax..., Tmax, Tmin, prettytime(step_time))
 
-    @info msg 
+    @info msg
 
     wall_time[] = time_ns()
 end

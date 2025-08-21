@@ -38,4 +38,3 @@ end
     ue = exchange_state.u
     @test all(ue .== 0) # not initialized with Reactant
 end
-

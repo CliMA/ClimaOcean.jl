@@ -3,15 +3,20 @@ module InterfaceComputations
 using Oceananigans
 using Oceananigans.Fields: AbstractField
 using Oceananigans.Utils: KernelParameters
-using Adapt 
+using Adapt
 
 export
     Radiation,
     ComponentInterfaces,
     LatitudeDependentAlbedo,
     SimilarityTheoryFluxes,
-    SkinTemperature, 
-    BulkTemperature
+    MomentumRoughnessLength,
+    ScalarRoughnessLength,
+    CoefficientBasedFluxes,
+    SkinTemperature,
+    BulkTemperature,
+    atmosphere_ocean_stability_functions,
+    atmosphere_sea_ice_stability_functions
 
 using ..OceanSeaIceModels: default_gravitational_acceleration
 

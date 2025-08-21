@@ -16,7 +16,6 @@ Modules = [ClimaOcean.Diagnostics]
 Public = false
 ```
 
-
 ## InitialConditions
 
 ```@autodocs
@@ -38,6 +37,20 @@ Modules = [ClimaOcean.ECCO]
 Public = false
 ```
 
+## EN4
+
+```@autodocs
+Modules = [ClimaOcean.EN4]
+Public = false
+```
+
+## ETOPO
+
+```@autodocs
+Modules = [ClimaOcean.ETOPO]
+Public = false
+```
+
 ## JRA55
 
 ```@autodocs
@@ -52,23 +65,23 @@ Modules = [ClimaOcean.Bathymetry]
 Public = false
 ```
 
-## VerticalGrids
+## OceanSimulations
 
 ```@autodocs
-Modules = [ClimaOcean.VerticalGrids]
-Private = false
+Modules = [ClimaOcean.OceanSimulations]
+Public = false
 ```
 
 ## OceanSeaIceModels
 
 ```@autodocs
 Modules = [ClimaOcean.OceanSeaIceModels]
-Private = false
+Public = false
 ```
 
-## CrossRealmFluxes
+## InterfaceComputations
 
 ```@autodocs
-Modules = [ClimaOcean.OceanSeaIceModels.CrossRealmFluxes]
-Private = false
+Modules = [ClimaOcean.OceanSeaIceModels.InterfaceComputations]
+Public = false
 ```

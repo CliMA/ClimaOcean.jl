@@ -1,6 +1,5 @@
 using ClimaOcean
 using ClimaOcean.Diagnostics: MixedLayerDepthField
-using ClimaOcean.DataWrangling.ECCO: ECCO_field, ECCOFieldTimeSeries, ECCO4Monthly
 using Oceananigans
 using CairoMakie
 using Printf
@@ -10,8 +9,8 @@ using SeawaterPolynomials: TEOS10EquationOfState
 using Oceananigans.BuoyancyFormulations: buoyancy
 
 arch = CPU()
-Nx = 360 
-Ny = 160 
+Nx = 360
+Ny = 160
 
 z = ClimaOcean.DataWrangling.ECCO.ECCO_z
 z = z[20:end]
@@ -72,7 +71,7 @@ fig
 
 # And record a movie
 
-record(fig, "ecco_mld.mp4", 1:Nt-1, framerate=4) do nn
+CairoMakie.record(fig, "ecco_mld.mp4", 1:Nt-1, framerate=4) do nn
     @info "Drawing frame $nn of $Nt..."
     n[] = nn
 end

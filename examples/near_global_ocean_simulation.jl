@@ -1,7 +1,7 @@
 # # Near-global ocean simulation
 #
 # This example sets up and runs a near-global ocean simulation using the Oceananigans.jl and
-# ClimaOcean.jl. The simulation covers latitudes from 75°S to 75°N with a horizontal
+# ClimaOcean.jl. The simulation covers latitudes from 75°S to 75°N, with a horizontal
 # resolution of 1/4 degree and 40 vertical levels.
 #
 # The simulation's results are visualized with the CairoMakie.jl package.
@@ -9,18 +9,19 @@
 # ## Initial setup with package imports
 #
 # We begin by importing the necessary Julia packages for visualization (CairoMakie),
-# ocean modeling (Oceananigans, ClimaOcean), and handling dates and times (CFTime, Dates).
+# ocean modeling (Oceananigans, ClimaOcean), handling dates and times (CFTime, Dates),
+# and CUDA for running on CUDA-enabled GPUs.
 # These packages provide the foundational tools for setting up the simulation environment,
 # including grid setup, physical processes modeling, and data visualization.
 
 using ClimaOcean
-using ClimaOcean.ECCO
 using Oceananigans
 using Oceananigans.Units
 using CairoMakie
 using CFTime
 using Dates
 using Printf
+using CUDA
 
 # ### Grid configuration
 #
@@ -31,18 +32,18 @@ using Printf
 # Finally, we specify the architecture for the simulation, which in this case is a GPU.
 
 arch = GPU()
-
 Nx = 1440
 Ny = 600
 Nz = 40
 
 depth = 6000meters
-z_faces = exponential_z_faces(; Nz, depth)
+z = ExponentialCoordinate(Nz, -depth, 0)
+z = Oceananigans.Grids.MutableVerticalDiscretization(z)
 
 grid = LatitudeLongitudeGrid(arch;
                              size = (Nx, Ny, Nz),
                              halo = (7, 7, 7),
-                             z = z_faces,
+                             z,
                              latitude  = (-75, 75),
                              longitude = (0, 360))
 
@@ -50,8 +51,8 @@ grid = LatitudeLongitudeGrid(arch;
 #
 # We use `regrid_bathymetry` to derive the bottom height from ETOPO1 data.
 # To smooth the interpolated data we use 5 interpolation passes. We also fill in
-# (i) all the minor enclosed basins except the 3 largest `major_basins`, as well as
-# (ii) regions that are shallower than `minimum_depth`.
+# * all the minor enclosed basins except the 3 largest `major_basins`, as well as
+# * regions that are shallower than `minimum_depth`.
 
 bottom_height = regrid_bathymetry(grid;
                                   minimum_depth = 10meters,
@@ -83,8 +84,8 @@ ocean.model
 
 # We initialize the ocean model with ECCO4 temperature and salinity for January 1, 1992.
 
-set!(ocean.model, T=ECCOMetadatum(:temperature),
-                  S=ECCOMetadatum(:salinity))
+set!(ocean.model, T=Metadatum(:temperature, dataset=ECCO4Monthly()),
+                  S=Metadatum(:salinity, dataset=ECCO4Monthly()))
 
 # ### Prescribed atmosphere and radiation
 #
@@ -100,11 +101,12 @@ radiation = Radiation(arch)
 
 # The atmospheric data is prescribed using the JRA55 dataset.
 # The JRA55 dataset provides atmospheric data such as temperature, humidity, and winds
-# to calculate turbulent fluxes using bulk formulae, see [`CrossRealmFluxes`](@ref).
+# to calculate turbulent fluxes using bulk formulae, see [`InterfaceComputations`](@ref ClimaOcean.OceanSeaIceModels.InterfaceComputations).
 # The number of snapshots that are loaded into memory is determined by
 # the `backend`. Here, we load 41 snapshots at a time into memory.
 
-atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(41))
+atmosphere = JRA55PrescribedAtmosphere(arch; backend = JRA55NetCDFBackend(41),
+                                       include_rivers_and_icebergs = false)
 
 # ## The coupled simulation
 
@@ -252,7 +254,7 @@ nothing #hide
 
 # And now we make a movie:
 
-record(fig, "near_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
+CairoMakie.record(fig, "near_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
     n[] = nn
 end
 nothing #hide
