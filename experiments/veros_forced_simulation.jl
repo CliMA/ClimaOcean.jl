@@ -12,9 +12,18 @@ VerosModule.veros_settings_set!(ocean, "dt_tracer", 1800.0)
 atmos = JRA55PrescribedAtmosphere(; backend = JRA55NetCDFBackend(10))
 radiation = Radiation()
 coupled_model = OceanSeaIceModel(ocean, nothing; atmosphere=atmos, radiation)
-simulation = Simulation(coupled_model; Δt = 1800, stop_iteration = 100)
+simulation = Simulation(coupled_model; Δt = 1800, stop_iteration = 100000)
 
 wall_time = Ref(time_ns())
+
+s  = []
+tx = []
+ty = []
+
+us = coupled_model.interfaces.exchanger.exchange_ocean_state.u
+vs = coupled_model.interfaces.exchanger.exchange_ocean_state.v
+
+stmp = Field(sqrt(us^2 + vs^2))
 
 function progress(sim)
     ocean   = sim.model.ocean
@@ -30,11 +39,16 @@ function progress(sim)
 
     @info msg1 * msg5 * msg6
 
-     wall_time[] = time_ns()
+    wall_time[] = time_ns()
 
-     return nothing
+    compute!(stmp)
+    push!(s,  deepcopy(interior(stmp, :, :, 1)))
+    push!(tx, deepcopy(interior(coupled_model.interfaces.net_fluxes.ocean_surface.u, :, :, 1) .* 1020))
+    push!(ty, deepcopy(interior(coupled_model.interfaces.net_fluxes.ocean_surface.v, :, :, 1) .* 1020))
+
+    return nothing
 end
 
-add_callback!(simulation, progress, IterationInterval(10))
+add_callback!(simulation, progress, IterationInterval(5))
 
 run!(simulation)
