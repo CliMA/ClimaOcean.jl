@@ -14,7 +14,7 @@ import Base: eltype
 """
     install_veros()
 
-Install the Copernicus Marine CLI using CondaPkg.
+Install the Veros ocean model Marine CLI using CondaPkg.
 Returns a NamedTuple containing package information if successful.
 """
 function install_veros()
@@ -70,7 +70,18 @@ function set!(field::CFField2D, pyarray::Py, k=pyconvert(Int, pyarray.shape[2]))
     return field
 end
 
-function veros_ocean_simulation(setup, setup_name)
+"""
+    VerosOceanSimulation(setup, setup_name::Symbol)
+
+Creates and initializes a preconfigured Veros ocean simulation using the 
+specified setup module and setup name.
+
+Arguments
+==========
+- `setup::AbstractString`: The name of the Veros setup module to import (e.g., `"global_4deg"`).
+- `setup_name::Symbol`: The name of the setup class or function within the module to instantiate (e.g., `:GlobalFourDegreeSetup`).
+"""
+function VerosOceanSimulation(setup, setup_name::Symbol)
     setups = pyimport("veros.setups." * setup)
     setup  = @eval $setups.$setup_name()
 
@@ -80,6 +91,18 @@ function veros_ocean_simulation(setup, setup_name)
     return VerosOceanSimulation(setup) 
 end
 
+"""
+    surface_grid(ocean::VerosOceanSimulation)
+
+Constructs a `LatitudeLongitudeGrid` representing the surface grid of the given `VerosOceanSimulation` object.
+Notes: Veros always uses a LatitudeLongitudeGrid with 2 halos in both the latitude and longitude directions.
+Both latitude and longitude can be either stretched or uniform, depending on the setup, and while the meridional
+direction (latitude) is always Bounded, the zonal direction (longitude) can be either Periodic or Bounded.
+
+Arguments
+==========
+- `ocean::VerosOceanSimulation`: The ocean simulation object containing the grid state variables.
+"""
 function surface_grid(ocean::VerosOceanSimulation)
 
     xf = Array(PyArray(ocean.setup.state.variables.xu))
@@ -109,20 +132,31 @@ function surface_grid(ocean::VerosOceanSimulation)
     return LatitudeLongitudeGrid(size=(Nx, Ny), longitude=xf, latitude=yf, topology=(TX, Bounded, Flat), halo=(2, 2))
 end
 
+"""
+    veros_set!(ocean, v, x)
+
+Set the `v` variable in the `ocean` model to the value of `x`.
+"""
 function veros_set!(ocean::VerosOceanSimulation, v, x)
-    s = ocean.setup
+    setup = ocean.setup
     pyexec("""
        with setup.state.variables.unlock():
            setup.state.variables.__setattr__(y, t)
-       """, Main, (y=v, t=x, setup=s))
+       """, Main, (y=v, t=x, setup=setup))
 end
 
-function veros_settings_set!(ocean::VerosOceanSimulation, v, x)
-    s = ocean.setup
+
+"""
+    veros_settings_set!(ocean, v, x)
+
+Set the `s` setting in the `ocean` model to the value of `x`.
+"""
+function veros_settings_set!(ocean::VerosOceanSimulation, s, x)
+    setup = ocean.setup
     pyexec("""
        with setup.state.settings.unlock():
            setup.state.settings.__setattr__(y, t)
-       """, Main, (y=v, t=x, setup=s))
+       """, Main, (y=s, t=x, setup=setup))
 end
 
 function OceanSeaIceModel(ocean::VerosOceanSimulation, sea_ice=nothing;
