@@ -3,9 +3,12 @@ using CondaPkg
 using ClimaOcean.OceanSeaIceModels: reference_density, heat_capacity, SeaIceSimulation
 
 import Oceananigans.Fields: set!
-import Oceananigans.TimeSteppers: time_step!
+import Oceananigans.TimeSteppers: time_step!, initialize!
 
-import ClimaOcean.OceanSeaIceModels: OceanSeaIceModel
+import ClimaOcean.OceanSeaIceModels: OceanSeaIceModel, default_nan_checker
+import Oceananigans.Architectures: architecture
+
+import Base: eltype
 
 """
     install_veros()
@@ -24,7 +27,12 @@ struct VerosOceanSimulation{S}
     setup :: S
 end
 
-time_step!(sim::VerosOceanSimulation, Δt) = sim.setup.step()
+default_nan_checker(model::OceanSeaIceModel{<:Any, <:Any, <:VerosOceanSimulation}) = nothing
+
+initialize!(::ClimaOceanPythonCallExt.VerosOceanSimulation{Py}) = nothing
+time_step!(ocean::VerosOceanSimulation, Δt) = ocean.setup.step(ocean.setup.state)
+architecture(model::OceanSeaIceModel{<:Any, <:Any, <:VerosOceanSimulation}) = CPU()
+eltype(model::OceanSeaIceModel{<:Any, <:Any, <:VerosOceanSimulation}) = Float64
 
 function remove_outputs(setup::Symbol)
     rm("$(setup).averages.nc", force=true)
@@ -34,12 +42,28 @@ function remove_outputs(setup::Symbol)
     return nothing
 end
 
-const Field2D = Field{<:Any, <:Any, <:Nothing}
+const CCField2D = Field{<:Center, <:Center, <:Nothing}
+const FCField2D = Field{<:Face, <:Center,   <:Nothing}
+const CFField2D = Field{<:Center, <:Face,   <:Nothing}
 
-function set!(field::Field2D, pyarray::Py, k=pyconvert(Int, pyarray.shape[2]))
+function set!(field::CCField2D, pyarray::Py, k=pyconvert(Int, pyarray.shape[2]))
     array = PyArray(pyarray)
     Nx, Ny, Nz = size(array)
     set!(field, view(array, 3:Nx-2, 3:Ny-2, k, 1))
+    return field
+end
+
+function set!(field::FCField2D, pyarray::Py, k=pyconvert(Int, pyarray.shape[2]))
+    array = PyArray(pyarray)
+    Nx, Ny, Nz = size(array)
+    set!(field, view(array, 3:Nx-2, 3:Ny-2, k, 1))
+    return field
+end
+
+function set!(field::CFField2D, pyarray::Py, k=pyconvert(Int, pyarray.shape[2]))
+    array = PyArray(pyarray)
+    Nx, Ny, Nz = size(array)
+    set!(field, view(array, 3:Nx-2, 2:Ny-2, k, 1))
     return field
 end
 
@@ -53,13 +77,13 @@ function veros_ocean_simulation(setup, setup_name)
     return VerosOceanSimulation(setup) 
 end
 
-function surface_grid(setup::VerosOceanSimulation)
+function surface_grid(ocean::VerosOceanSimulation)
 
-    xf = Array(PyArray(setup.state.variables.xu))
-    yf = Array(PyArray(setup.state.variables.yu))
+    xf = Array(PyArray(ocean.setup.state.variables.xu))
+    yf = Array(PyArray(ocean.setup.state.variables.yu))
     
-    xc = Array(PyArray(setup.state.variables.xt))
-    yc = Array(PyArray(setup.state.variables.yt))
+    xc = Array(PyArray(ocean.setup.state.variables.xt))
+    yc = Array(PyArray(ocean.setup.state.variables.yt))
     
     xf = xf[2:end-2]
     yf = yf[2:end-2]
@@ -79,7 +103,7 @@ function surface_grid(setup::VerosOceanSimulation)
     Nx = length(xc) 
     Ny = length(yc) 
 
-    return LatitudeLongitudeGrid(size=(Nx, Ny), longitude=xf, latitude=yf, topology=(TX, Bounded, Flat))
+    return LatitudeLongitudeGrid(size=(Nx, Ny), longitude=xf, latitude=yf, topology=(TX, Bounded, Flat), halo=(2, 2))
 end
 
 function veros_set!(ocean::VerosOceanSimulation, v, x)

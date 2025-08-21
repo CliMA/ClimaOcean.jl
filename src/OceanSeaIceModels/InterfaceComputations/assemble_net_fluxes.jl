@@ -36,7 +36,7 @@ fill_up_net_fluxes!(ocean, net_ocean_fluxes) = nothing
 
 function compute_net_ocean_fluxes!(coupled_model)
     sea_ice = coupled_model.sea_ice
-    grid = coupled_model.exchanger.exchange_grid
+    grid = coupled_model.interfaces.exchanger.exchange_grid
     arch = architecture(grid)
     clock = coupled_model.clock
 
@@ -60,13 +60,13 @@ function compute_net_ocean_fluxes!(coupled_model)
     freshwater_flux = atmosphere_fields.Mp.data
 
     ice_concentration = sea_ice_concentration(sea_ice)
-    ocean_salinity = ocean.model.tracers.S
+    ocean_salinity = get_ocean_state(coupled_model.ocean, coupled_model.interfaces.exchanger).S
     atmos_ocean_properties = coupled_model.interfaces.atmosphere_ocean_interface.properties
     ocean_properties = coupled_model.interfaces.ocean_properties
     kernel_parameters = interface_kernel_parameters(grid)
 
     ocean_surface_temperature = coupled_model.interfaces.atmosphere_ocean_interface.temperature
-    penetrating_radiation = get_radiative_forcing(ocean)
+    penetrating_radiation = get_radiative_forcing(coupled_model.ocean)
 
     launch!(arch, grid, kernel_parameters,
             _assemble_net_ocean_fluxes!,
@@ -84,7 +84,7 @@ function compute_net_ocean_fluxes!(coupled_model)
             atmos_ocean_properties,
             ocean_properties)
 
-    fill_up_net_fluxes!(ocean, net_ocean_fluxes)
+    fill_up_net_fluxes!(coupled_model.ocean, net_ocean_fluxes)
 
     return nothing
 end

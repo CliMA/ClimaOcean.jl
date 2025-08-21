@@ -1,3 +1,10 @@
+using Oceananigans.Models: initialization_update_state!
+
+using ClimaOcean.OceanSeaIceModels.InterfaceComputations: ExchangeAtmosphereState, 
+                                                          atmosphere_exchanger, 
+                                                          SimilarityTheoryFluxes, 
+                                                          Radiation
+
 import ClimaOcean.OceanSeaIceModels.InterfaceComputations: 
     state_exchanger, 
     sea_ice_ocean_interface, 
@@ -7,7 +14,6 @@ import ClimaOcean.OceanSeaIceModels.InterfaceComputations:
     ocean_surface_fluxes,
     get_radiative_forcing,
     fill_up_net_fluxes!
-
 
 mutable struct VerosStateExchanger{G, OST, AST, AEX}
     exchange_grid :: G
@@ -33,12 +39,12 @@ function state_exchanger(ocean::VerosOceanSimulation, atmosphere)
     exchange_ocean_state = ExchangeOceanState(exchange_grid)
     exchange_atmosphere_state = ExchangeAtmosphereState(exchange_grid)
 
-    atmosphere_exchanger = AtmosphereExchanger(atmosphere, exchange_grid)
+    atmos_exchanger = atmosphere_exchanger(atmosphere, exchange_grid)
 
     return VerosStateExchanger(exchange_grid,
                                exchange_ocean_state,
                                exchange_atmosphere_state,
-                               atmosphere_exchanger)
+                               atmos_exchanger)
 end
 
 atmosphere_ocean_interface(ocean::VerosOceanSimulation, args...) = 
@@ -77,8 +83,19 @@ end
 @inline get_radiative_forcing(ocean::VerosOceanSimulation) = nothing
 
 function fill_up_net_fluxes!(ocean::VerosOceanSimulation, net_ocean_fluxes)
-    veros_set!(ocean, "surface_taux", net_ocean_fluxes.u)
-    veros_set!(ocean, "surface_tauy", net_ocean_fluxes.v)
-    
+    nx = pyconvert(Int, ocean.state.settings.nx)
+    ny = pyconvert(Int, ocean.state.settings.ny)
+    t1 = parent(net_ocean_fluxes.u)[:, 1:44, 1]
+    t2 = parent(net_ocean_fluxes.v)[:, 1:44, 1]
+
+    ta = zeros(size(t1)..., 12)
+    tb = zeros(size(t2)..., 12)
+    for t in 1:12
+        ta[:, :, t] .= t1
+        tb[:, :, t] .= t2
+    end
+
+    veros_set!(ocean, "taux", ta)
+    veros_set!(ocean, "tauy", tb)
     return nothing
 end
