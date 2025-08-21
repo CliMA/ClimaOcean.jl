@@ -9,7 +9,8 @@ using ..OceanSeaIceModels: reference_density,
                            sea_ice_thickness,
                            downwelling_radiation,
                            freshwater_flux,
-                           SeaIceSimulation
+                           SeaIceSimulation,
+                           OceananigansSimulation
 
 using ..OceanSeaIceModels.PrescribedAtmospheres:
     PrescribedAtmosphere,
