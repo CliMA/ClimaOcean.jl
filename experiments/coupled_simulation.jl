@@ -42,6 +42,9 @@ ocean = ocean_simulation(grid;
                          timestepper = :SplitRungeKutta3,
                          closure = closures)
 
+Oceananigans.set!(ocean.model, T=Metadatum(:temperature, dataset=ECCO4Monthly()), 
+                               S=Metadatum(:salinity,    dataset=ECCO4Monthly()))
+
 #####
 ##### The Atmosphere!!!
 #####
@@ -63,6 +66,7 @@ atmosphere_model = PrimitiveWetModel(spectral_grid;
                                      sea_ice)
 
 atmosphere = initialize!(atmosphere_model)
+initialize!(atmosphere)
 
 #####
 ##### The Sea-Ice!!!
@@ -70,6 +74,9 @@ atmosphere = initialize!(atmosphere_model)
 
 dynamics = ClimaOcean.SeaIceSimulations.sea_ice_dynamics(grid, ocean; solver=ClimaSeaIce.SeaIceDynamics.SplitExplicitSolver(substeps=150))
 sea_ice = sea_ice_simulation(grid, ocean; dynamics, advection=WENO(order=7))
+
+Oceananigans.set!(sea_ice.model, h=Metadatum(:sea_ice_thickness, dataset=ECCO4Monthly()), 
+                                 ℵ=Metadatum(:sea_ice_concentration, dataset=ECCO4Monthly()))
 
 #####
 ##### Coupled model
@@ -83,6 +90,6 @@ sea_ice = sea_ice_simulation(grid, ocean; dynamics, advection=WENO(order=7))
 # is absorbed by clouds 
 radiation = Radiation()
 earth_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-earth = Simulation(earth_model; Δt, stop_time=365days)
+earth = Oceananigans.Simulation(earth_model; Δt, stop_time=20days)
 
-run!(earth)
+Oceananigans.run!(earth)

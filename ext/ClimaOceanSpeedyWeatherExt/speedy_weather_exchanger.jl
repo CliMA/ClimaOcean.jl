@@ -132,6 +132,7 @@ end
 # we will also need to add the coupling with the sea-ice model
 function compute_net_atmosphere_fluxes!(coupled_model::SpeedyCoupledModel)
     atmos = coupled_model.atmosphere
+    regridder = coupled_model.interfaces.exchanger.atmosphere_exchanger.regridder
 
     # All the location of these fluxes will change
     Qc = coupled_model.interfaces.atmosphere_ocean_interface.fluxes.sensible_heat

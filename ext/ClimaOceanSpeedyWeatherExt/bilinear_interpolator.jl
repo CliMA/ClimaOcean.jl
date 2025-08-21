@@ -119,7 +119,7 @@ function regridder_weights(dst::Grids, src::Grids; method::String="bilinear")
     src_ds = coordinate_dataset(src)
     dst_ds = coordinate_dataset(dst)
 
-    regridder = xesmf[].Regridder(src_ds, dst_ds, method) 
+    regridder = xesmf[].Regridder(src_ds, dst_ds, method, periodic=PyObject(true)) 
 
     # Move back to Julia
     # Convert the regridder weights to a Julia sparse matrix
