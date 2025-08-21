@@ -1,5 +1,6 @@
 using CondaPkg
 
+using Oceananigans.Grids: topology
 using ClimaOcean.OceanSeaIceModels: reference_density, heat_capacity, SeaIceSimulation
 
 import Oceananigans.Fields: set!
@@ -43,10 +44,10 @@ function remove_outputs(setup::Symbol)
 end
 
 const CCField2D = Field{<:Center, <:Center, <:Nothing}
-const FCField2D = Field{<:Face, <:Center,   <:Nothing}
+const FCField2D = Field{<:Face,   <:Center, <:Nothing}
 const CFField2D = Field{<:Center, <:Face,   <:Nothing}
 
-function set!(field::CCField2D, pyarray::Py, k=pyconvert(Int, pyarray.shape[2]))
+function set!(field::Field2D, pyarray::Py, k=pyconvert(Int, pyarray.shape[2]))
     array = PyArray(pyarray)
     Nx, Ny, Nz = size(array)
     set!(field, view(array, 3:Nx-2, 3:Ny-2, k, 1))
@@ -56,7 +57,9 @@ end
 function set!(field::FCField2D, pyarray::Py, k=pyconvert(Int, pyarray.shape[2]))
     array = PyArray(pyarray)
     Nx, Ny, Nz = size(array)
-    set!(field, view(array, 3:Nx-2, 3:Ny-2, k, 1))
+    TX, TY, _  = topology(field.grid)
+    i_indices  = TX == Periodic ? UnitRange(3, Nx-2) : UnitRange(2, Nx-2)
+    set!(field, view(array, i_indices, 3:Ny-2, k, 1))
     return field
 end
 

@@ -83,11 +83,13 @@ end
 @inline get_radiative_forcing(ocean::VerosOceanSimulation) = nothing
 
 function fill_up_net_fluxes!(ocean::VerosOceanSimulation, net_ocean_fluxes)
-    nx = pyconvert(Int, ocean.setup.state.settings.nx)
-    ny = pyconvert(Int, ocean.setup.state.settings.ny)
-    t1 = parent(net_ocean_fluxes.u)[:, 1:44, 1]
-    t2 = parent(net_ocean_fluxes.v)[:, 1:44, 1]
+    nx = pyconvert(Int, ocean.setup.state.settings.nx) + 4
+    ny = pyconvert(Int, ocean.setup.state.settings.ny) + 4
+    t1 = view(parent(net_ocean_fluxes.u), 1:nx, 1:ny, 1)
+    t2 = view(parent(net_ocean_fluxes.v), 1:nx, 1:ny, 1)
 
+    # TODO: Remove this when they fix veros to
+    # be able to force with an array instead of Climatology
     ta = zeros(size(t1)..., 12)
     tb = zeros(size(t2)..., 12)
     for t in 1:12
@@ -97,5 +99,16 @@ function fill_up_net_fluxes!(ocean::VerosOceanSimulation, net_ocean_fluxes)
 
     veros_set!(ocean, "taux", ta)
     veros_set!(ocean, "tauy", tb)
+
+    # TODO: Add heat flux and salinity flux when they
+    # fix veros to be able to force with prescribed boundary
+    # conditions rather than restoring
+
+    # t1 = view(parent(net_ocean_fluxes.T), 1:nx, 2:ny+1, 1)
+    # t2 = view(parent(net_ocean_fluxes.S), 1:nx, 2:ny+1, 1)
+
+    # veros_set!(ocean, "temp_flux", t1)
+    # veros_set!(ocean, "salt_flux", t2)
+
     return nothing
 end
