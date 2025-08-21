@@ -21,7 +21,7 @@ using ClimaOcean.OceanSeaIceModels: sea_ice_concentration
     return zero(Iˢʷ)
 end
 
-@inline get_radiative_forcing(ocean::Simulation{<:HydrostaticFreeSurfaceModel}) = get_radiative_forcing(ocean.model.forcing.T)
+@inline get_radiative_forcing(ocean::OceananigansSimulation) = get_radiative_forcing(ocean.model.forcing.T)
 @inline get_radiative_forcing(FT) = FT
 
 @inline function get_radiative_forcing(FT::MultipleForcings)

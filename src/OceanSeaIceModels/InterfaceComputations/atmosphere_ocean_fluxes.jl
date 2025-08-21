@@ -4,7 +4,7 @@ using ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres: thermodynamics_paramet
                                                           surface_layer_height,
                                                           boundary_layer_height
 
-@inline get_ocean_state(ocean::Simulation{<:HydrostaticFreeSurfaceModel}, coupled_model) = 
+@inline get_ocean_state(ocean::OceananigansSimulation, coupled_model) = 
                   (u = ocean.model.velocities.u,
                    v = ocean.model.velocities.v,
                    T = ocean.model.tracers.T,

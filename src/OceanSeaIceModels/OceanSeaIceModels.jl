@@ -41,6 +41,7 @@ const default_gravitational_acceleration = 9.80665
 const default_freshwater_density = 1000
 
 const SeaIceSimulation = Simulation{<:SeaIceModel}
+const OceananigansSimulation = Simulation{<:HydrostaticFreeSurfaceModel}
 
 sea_ice_thickness(::Nothing) = ZeroField()
 sea_ice_thickness(sea_ice::SeaIceSimulation) = sea_ice.model.ice_thickness
