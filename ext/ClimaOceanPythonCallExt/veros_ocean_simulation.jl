@@ -47,7 +47,7 @@ const CCField2D = Field{<:Center, <:Center, <:Nothing}
 const FCField2D = Field{<:Face,   <:Center, <:Nothing}
 const CFField2D = Field{<:Center, <:Face,   <:Nothing}
 
-function set!(field::Field2D, pyarray::Py, k=pyconvert(Int, pyarray.shape[2]))
+function set!(field::CCField2D, pyarray::Py, k=pyconvert(Int, pyarray.shape[2]))
     array = PyArray(pyarray)
     Nx, Ny, Nz = size(array)
     set!(field, view(array, 3:Nx-2, 3:Ny-2, k, 1))

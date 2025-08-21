@@ -52,9 +52,9 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height);
 # parameterization. We also include some explicit horizontal diffusivity.
 
 eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=2e3, κ_symmetric=2e3)
-horizontal_viscosity = HorizontalScalarDiffusivity(ν=4000)
 vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
-          
+horizontal_viscosity = HorizontalScalarDiffusivity(ν=4000)
+
 # ### Ocean simulation
 # Now we bring everything together to construct the ocean simulation.
 # We use a split-explicit timestepping with 70 substeps for the barotropic

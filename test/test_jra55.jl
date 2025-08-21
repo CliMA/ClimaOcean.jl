@@ -1,6 +1,5 @@
 include("runtests_setup.jl")
 
-using ClimaOcean.JRA55
 using ClimaOcean.JRA55: download_JRA55_cache
 using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
 

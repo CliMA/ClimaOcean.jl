@@ -7,7 +7,6 @@ using .InterfaceComputations:
 
 using ClimaSeaIce: SeaIceModel, SeaIceThermodynamics
 using Oceananigans.Grids: φnode
-using Oceananigans.Simulations: TimeStepWizard
 
 using Printf
 
@@ -21,10 +20,10 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
     
     # TODO after ice time-step:
     #  - Adjust ocean heat flux if the ice completely melts?
-    !isnothing(ocean) && time_step!(ocean, Δt)
+    time_step!(ocean, Δt)
 
     # Time step the atmosphere
-    !isnothing(atmosphere) && time_step!(atmosphere, Δt)
+    time_step!(atmosphere, Δt)
 
     # TODO:
     # - Store fractional ice-free / ice-covered _time_ for more
@@ -52,27 +51,3 @@ function update_state!(coupled_model::OceanSeaIceModel, callbacks=[]; compute_te
 
     return nothing
 end
-
-function (wizard::TimeStepWizard)(simulation::Simulation{<:OceanSeaIceModel}) 
-    model = simulation.model
-    ocean_Δt = wizard(model.ocean)
-    
-    sea_ice_Δt = if isnothing(model.sea_ice) 
-        Inf 
-    else
-        wizard(model.sea_ice)
-    end
-
-    atmosphere_Δt = if isnothing(model.atmosphere) 
-        Inf 
-    else
-        wizard(model.atmosphere)
-    end
-
-    Δt = min(ocean_Δt, sea_ice_Δt, atmosphere_Δt)
-
-    simulation.Δt = Δt
-    
-    return nothing
-end
-
