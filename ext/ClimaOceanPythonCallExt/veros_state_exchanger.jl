@@ -83,8 +83,8 @@ end
 @inline get_radiative_forcing(ocean::VerosOceanSimulation) = nothing
 
 function fill_up_net_fluxes!(ocean::VerosOceanSimulation, net_ocean_fluxes)
-    nx = pyconvert(Int, ocean.state.settings.nx)
-    ny = pyconvert(Int, ocean.state.settings.ny)
+    nx = pyconvert(Int, ocean.setup.state.settings.nx)
+    ny = pyconvert(Int, ocean.setup.state.settings.ny)
     t1 = parent(net_ocean_fluxes.u)[:, 1:44, 1]
     t2 = parent(net_ocean_fluxes.v)[:, 1:44, 1]
 
