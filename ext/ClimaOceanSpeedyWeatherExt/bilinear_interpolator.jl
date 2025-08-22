@@ -41,9 +41,17 @@ function coordinate_dataset(grid::SpeedyWeather.RingGrids.AbstractGrid)
 end
 
 function coordinate_dataset(grid::SpeedyWeather.RingGrids.AbstractFullGrid)
-    lon = RingGrids.get_lond(grid)
-    lat = RingGrids.get_latd(grid)
-    return numpy[].array(PyObject(Dict("lat" => lat, "lon" => lon)))
+    lon  = RingGrids.get_lond(grid)
+    lat  = RingGrids.get_latd(grid)
+    dlon = lon[2] - lon[1]
+
+    lat_b = [90, 0.5 .* (lat[1:end-1] .+ lat[2:end])..., -90]
+    lon_b = [lon[1] - dlon / 2, lon .+ dlon / 2...]
+
+    lat,   lon   = two_dimensionalize(lat,   lon)
+    lat_b, lon_b = two_dimensionalize(lat_b, lon_b)
+
+    return structured_coordinate_dataset(lat, lon, lat_b, lon_b)
 end
 
 function coordinate_dataset(grid::AbstractGrid)
@@ -56,16 +64,16 @@ function coordinate_dataset(grid::AbstractGrid)
     lat,   lon   = two_dimensionalize(lat,   lon)
     lat_b, lon_b = two_dimensionalize(lat_b, lon_b)
 
-    lat_np = numpy[].array(lat)
-    lon_np = numpy[].array(lon)
-
-    lat_b_np = numpy[].array(lat_b)
-    lon_b_np = numpy[].array(lon_b)
-
-    return structure_coordinate_dataset(lat_np, lon_np, lat_b_np, lon_b_np)
+    return structured_coordinate_dataset(lat, lon, lat_b, lon_b)
 end
 
-function structure_coordinate_dataset(lat, lon, lat_b, lon_b)
+function structured_coordinate_dataset(lat, lon, lat_b, lon_b)
+
+    lat = numpy[].array(lat)
+    lon = numpy[].array(lon)
+
+    lat_b = numpy[].array(lat_b)
+    lon_b = numpy[].array(lon_b)
 
     ds_lat = xarray[].DataArray(
         lat',

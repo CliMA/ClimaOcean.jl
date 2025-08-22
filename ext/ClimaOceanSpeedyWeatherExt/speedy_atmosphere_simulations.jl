@@ -24,8 +24,5 @@ end
 boundary_layer_height(atmos::SpeedySimulation) = 600
 
 # This is a _hack_!! The parameters should be consistent with what is specified in SpeedyWeather
-thermodynamics_parameters(atmos::SpeedyWeather.Simulation) = 
+thermodynamics_parameters(atmos::SpeedySimulation) = 
     ClimaOcean.OceanSeaIceModels.AtmosphereThermodynamicsParameters(Float32)
-
-
-

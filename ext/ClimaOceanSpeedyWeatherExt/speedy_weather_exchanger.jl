@@ -1,4 +1,5 @@
 using Oceananigans
+using Oceananigans.BoundaryConditions
 using Oceananigans.Grids: architecture
 using Oceananigans.Utils: launch!
 using Oceananigans.Operators: intrinsic_vector
@@ -108,7 +109,7 @@ function interpolate_atmosphere_state!(interfaces, atmos::SpeedySimulation, coup
     regrid!(Qse, regridder.set1, Qsa)
     regrid!(Qle, regridder.set1, Qla)
     regrid!(Mpe, regridder.set1, Mpa)
-    
+
     arch = architecture(exchange_grid)
     fill_exchange_fields!(arch, exchange_state, atmosphere_exchanger.cpu_surface_state)
 
@@ -116,6 +117,14 @@ function interpolate_atmosphere_state!(interfaces, atmos::SpeedySimulation, coup
     v = exchange_state.v
 
     launch!(arch, exchange_grid, :xy, _rotate_winds!, u, exchange_grid, v)
+
+    fill_halo_regions!((u, v))
+    fill_halo_regions!(exchange_state.T)
+    fill_halo_regions!(exchange_state.q)
+    fill_halo_regions!(exchange_state.p)
+    fill_halo_regions!(exchange_state.Qs)
+    fill_halo_regions!(exchange_state.Qℓ)
+    fill_halo_regions!(exchange_state.Mp)
 
     return nothing
 end
@@ -128,7 +137,7 @@ end
     @inbounds v[i, j, kᴺ] = vₑ
 end
 
-# TODO: For the moment this is just ciupling between ocean and atmosphere.
+# TODO: For the moment this is just coupling between ocean and atmosphere.
 # we will also need to add the coupling with the sea-ice model
 function compute_net_atmosphere_fluxes!(coupled_model::SpeedyCoupledModel)
     atmos = coupled_model.atmosphere
