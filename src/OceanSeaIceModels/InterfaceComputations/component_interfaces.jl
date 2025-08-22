@@ -301,8 +301,6 @@ function ocean_surface_fluxes(ocean::OceananigansSimulation, ρₒ, cₒ)
     τx = surface_flux(ocean.model.velocities.u)
     τy = surface_flux(ocean.model.velocities.v)
     tracers = ocean.model.tracers
-    ρₒ = ocean_reference_density
-    cₒ = ocean_heat_capacity
     Qₒ = ρₒ * cₒ * surface_flux(ocean.model.tracers.T)
     net_ocean_surface_fluxes = (u=τx, v=τy, Q=Qₒ)
 
