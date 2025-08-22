@@ -70,14 +70,15 @@ initialize!(exchanger::VerosStateExchanger, atmosphere) =
     return (; u, v, T, S)
 end
 
-@inline function ocean_surface_fluxes(ocean::VerosOceanSimulation)
+@inline function ocean_surface_fluxes(ocean::VerosOceanSimulation, ρₒ, cₒ)
     grid = surface_grid(ocean)
     u = Field{Face, Center, Nothing}(grid)
     v = Field{Center, Face, Nothing}(grid)
     T = Field{Center, Center, Nothing}(grid)
     S = Field{Center, Center, Nothing}(grid)
+    Q = ρₒ * cₒ * T
 
-    return (; u, v, T, S)
+    return (; u, v, T, S, Q)
 end
 
 @inline get_radiative_forcing(ocean::VerosOceanSimulation) = nothing

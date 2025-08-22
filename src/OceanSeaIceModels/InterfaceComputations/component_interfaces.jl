@@ -297,7 +297,7 @@ function default_ao_specific_humidity(ocean)
     return ImpureSaturationSpecificHumidity(phase, x_H₂O)
 end
 
-function ocean_surface_fluxes(ocean::OceananigansSimulation)
+function ocean_surface_fluxes(ocean::OceananigansSimulation, ρₒ, cₒ)
     τx = surface_flux(ocean.model.velocities.u)
     τy = surface_flux(ocean.model.velocities.v)
     tracers = ocean.model.tracers
@@ -403,7 +403,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
         net_bottom_sea_ice_fluxes = nothing
     end
 
-    net_ocean_surface_fluxes = ocean_surface_fluxes(ocean)
+    net_ocean_surface_fluxes = ocean_surface_fluxes(ocean, ocean_reference_density, ocean_heat_capacity)
 
     # Total interface fluxes
     net_fluxes = (ocean_surface  = net_ocean_surface_fluxes,
