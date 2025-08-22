@@ -31,29 +31,8 @@ function atmosphere_exchanger(atmosphere::SpeedySimulation, exchange_grid, excha
     arch = architecture(exchange_grid)
     FT = eltype(exchange_atmosphere_state.u)
 
-    if arch isa Oceananigans.CPU # In case of a CPU grid, we reuse the already allocated fields
-        cpu_surface_state = (
-            u  = vec(interior(exchange_atmosphere_state.u)),
-            v  = vec(interior(exchange_atmosphere_state.v)),
-            T  = vec(interior(exchange_atmosphere_state.T)),
-            q  = vec(interior(exchange_atmosphere_state.q)),
-            p  = vec(interior(exchange_atmosphere_state.p)),
-            Qs = vec(interior(exchange_atmosphere_state.Qs)),
-            Qℓ = vec(interior(exchange_atmosphere_state.Qℓ)),
-            Mp = vec(interior(exchange_atmosphere_state.Mp))
-        )
-    else # Otherwise we allocate new CPU fields
-        cpu_surface_state = (
-            u  = zeros(FT, size(exchange_grid, 1) * size(exchange_grid, 2)),
-            v  = zeros(FT, size(exchange_grid, 1) * size(exchange_grid, 2)),
-            T  = zeros(FT, size(exchange_grid, 1) * size(exchange_grid, 2)),
-            q  = zeros(FT, size(exchange_grid, 1) * size(exchange_grid, 2)),
-            p  = zeros(FT, size(exchange_grid, 1) * size(exchange_grid, 2)),
-            Qs = zeros(FT, size(exchange_grid, 1) * size(exchange_grid, 2)),
-            Qℓ = zeros(FT, size(exchange_grid, 1) * size(exchange_grid, 2)),
-            Mp = zeros(FT, size(exchange_grid, 1) * size(exchange_grid, 2))
-        )
-    end
+    # sparse matrix multiply requires contiguous memory to speed up the computation
+    wrk = zeros(FT, size(exchange_grid, 1) * size(exchange_grid, 2))
 
     # TODO: Implement a conservative regridder when ready
     regridder = BilinearInterpolator(exchange_grid, spectral_grid)
@@ -81,7 +60,7 @@ end
 function interpolate_atmosphere_state!(interfaces, atmos::SpeedySimulation, coupled_model)
     atmosphere_exchanger = interfaces.exchanger.atmosphere_exchanger
     regridder = atmosphere_exchanger.regridder
-    exchange_grid = interfaces.exchanger.exchange_grid
+    exchange_grid  = interfaces.exchanger.exchange_grid
     exchange_state = interfaces.exchanger.exchange_atmosphere_state
     surface_layer = atmos.model.spectral_grid.nlayers
 
@@ -93,27 +72,33 @@ function interpolate_atmosphere_state!(interfaces, atmos::SpeedySimulation, coup
     Qsa = atmos.diagnostic_variables.physics.surface_shortwave_down
     Qla = atmos.diagnostic_variables.physics.surface_longwave_down
     Mpa = atmos.diagnostic_variables.physics.total_precipitation_rate
+    wrk = atmosphere_exchanger.cpu_surface_state.wrk
 
-    ue  = atmosphere_exchanger.cpu_surface_state.u
-    ve  = atmosphere_exchanger.cpu_surface_state.v
-    Te  = atmosphere_exchanger.cpu_surface_state.T
-    qe  = atmosphere_exchanger.cpu_surface_state.q
-    pe  = atmosphere_exchanger.cpu_surface_state.p
-    Qse = atmosphere_exchanger.cpu_surface_state.Qs
-    Qle = atmosphere_exchanger.cpu_surface_state.Qℓ
-    Mpe = atmosphere_exchanger.cpu_surface_state.Mp
+    regrid!(wrk, regridder.set1, ua)
+    Ocenananigans.set!(exchange_state.u, reshape(wrk, size(exchange_state.u)))
 
-    regrid!(ue,  regridder.set1, ua)
-    regrid!(ve,  regridder.set1, va)
-    regrid!(Te,  regridder.set1, Ta)
-    regrid!(qe,  regridder.set1, qa)
-    regrid!(pe,  regridder.set1, pa)
-    regrid!(Qse, regridder.set1, Qsa)
-    regrid!(Qle, regridder.set1, Qla)
-    regrid!(Mpe, regridder.set1, Mpa)
+    regrid!(wrk, regridder.set1, va)
+    Ocenananigans.set!(exchange_state.v, reshape(wrk, size(exchange_state.u)))
+
+    regrid!(wrk, regridder.set1, Ta)
+    Ocenananigans.set!(exchange_state.T, reshape(wrk, size(exchange_state.u)))
+
+    regrid!(wrk, regridder.set1, qa)
+    Ocenananigans.set!(exchange_state.q, reshape(wrk, size(exchange_state.u)))
+
+    regrid!(wrk, regridder.set1, pa)
+    Ocenananigans.set!(exchange_state.p, reshape(wrk, size(exchange_state.u)))
+
+    regrid!(wrk, regridder.set1, Qsa)
+    Ocenananigans.set!(exchange_state.Qs, reshape(wrk, size(exchange_state.u)))
+
+    regrid!(wrk, regridder.set1, Qla)
+    Ocenananigans.set!(exchange_state.Qℓ, reshape(wrk, size(exchange_state.u)))
+
+    regrid!(wrk, regridder.set1, Mpa)
+    Ocenananigans.set!(exchange_state.Mp, reshape(wrk, size(exchange_state.u)))
 
     arch = architecture(exchange_grid)
-    fill_exchange_fields!(arch, exchange_state, atmosphere_exchanger.cpu_surface_state)
 
     u = exchange_state.u
     v = exchange_state.v
@@ -147,6 +132,7 @@ function compute_net_atmosphere_fluxes!(coupled_model::SpeedyCoupledModel)
     atmos = coupled_model.atmosphere
     grid  = coupled_model.interfaces.exchanger.exchange_grid
     regridder = coupled_model.interfaces.exchanger.atmosphere_exchanger.regridder
+    wrk = coupled_model.interfaces.exchanger.atmosphere_exchanger.wrk
 
     ao_fluxes = coupled_model.interfaces.atmosphere_ocean_interface.fluxes
     ai_fluxes = coupled_model.interfaces.atmosphere_sea_ice_interface.fluxes
@@ -161,9 +147,12 @@ function compute_net_atmosphere_fluxes!(coupled_model::SpeedyCoupledModel)
     Qca = atmos.prognostic_variables.ocean.sensible_heat_flux
     Mva = atmos.prognostic_variables.ocean.surface_humidity_flux
 
+    
     # TODO: Figure out how we are going to deal with upwelling radiation
-    regrid!(Qca, regridder.set2, interior(Qco) .* (1 - ℵ) .+ ℵ .* interior(Qci))
-    regrid!(Mva, regridder.set2, interior(Mvo) .* (1 - ℵ) .+ ℵ .* interior(Mvi))
+    wrk .= interior(Qco) .* (1 - ℵ) .+ ℵ .* interior(Qci)
+    regrid!(Qca, regridder.set2, wrk)
+    wrk .= interior(Mvo) .* (1 - ℵ) .+ ℵ .* interior(Mvi)
+    regrid!(Mva, regridder.set2, wrk)
 
     return nothing
 end

@@ -84,7 +84,7 @@ function initialize_atmospheric_state!(simulation::SpeedyWeather.Simulation)
 end
 
 initialize_atmospheric_state!(atmosphere)
-atmosphere.feedback.verbose = false
+atmosphere.model.feedback.verbose = false
 
 #####
 ##### The Sea-Ice!!!
@@ -109,6 +109,8 @@ radiation = Radiation(ocean_emissivity=0, sea_ice_emissivity=0)
 earth_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 earth = Oceananigans.Simulation(earth_model; Δt, stop_time=20days)
 
+wall_time = Ref(time_ns())
+
 function progress(sim)
     sea_ice = sim.model.sea_ice
     ocean   = sim.model.ocean
@@ -129,7 +131,7 @@ function progress(sim)
 
     @info msg1 * msg2 * msg3 * msg4 * msg5
 
-     wall_time[] = time_ns()
+    wall_time[] = time_ns()
 
      return nothing
 end
