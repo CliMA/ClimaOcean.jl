@@ -1,12 +1,3 @@
-module ClimaOceanPythonCallExt
-
-using ClimaOcean
-using CondaPkg
-using PythonCall
-using Oceananigans
-using Oceananigans.DistributedComputations: @root
-
-using Dates: DateTime
 using ClimaOcean.DataWrangling.Copernicus: CopernicusMetadata
 
 import ClimaOcean.DataWrangling: download_dataset
@@ -96,5 +87,3 @@ function depth_bounds_kw(z)
     maximum_depth = - z[1]
     return (; minimum_depth, maximum_depth)
 end
-
-end # module ClimaOceanPythonCallExt
