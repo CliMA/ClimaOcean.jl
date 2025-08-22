@@ -32,7 +32,7 @@ end
 end
 
 # No need to do this for an Oceananigans Simulation
-fill_up_net_fluxes!(ocean, net_ocean_fluxes) = nothing
+fill_net_fluxes!(ocean, net_ocean_fluxes) = nothing
 
 function compute_net_ocean_fluxes!(coupled_model)
     sea_ice = coupled_model.sea_ice
