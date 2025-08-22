@@ -84,7 +84,7 @@ function initialize_atmospheric_state!(simulation::SpeedyWeather.Simulation)
 end
 
 initialize_atmospheric_state!(atmosphere)
-atmosphere.model.feedback.verbose = false
+# atmosphere.model.feedback.verbose = false
 
 #####
 ##### The Sea-Ice!!!
@@ -137,7 +137,7 @@ function progress(sim)
 end
 
 # And add it as a callback to the simulation.
-add_callback!(earth, progress, IterationInterval(10))
+# add_callback!(earth, progress, IterationInterval(10))
 
 # Oceananigans.run!(earth)
 time_step!(earth)

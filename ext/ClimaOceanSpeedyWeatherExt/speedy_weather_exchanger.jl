@@ -36,24 +36,9 @@ function atmosphere_exchanger(atmosphere::SpeedySimulation, exchange_grid, excha
 
     # TODO: Implement a conservative regridder when ready
     regridder = BilinearInterpolator(exchange_grid, spectral_grid)
-    exchanger = (; cpu_surface_state, regridder)
+    exchanger = (; wrk, regridder)
 
     return exchanger
-end
-
-fill_exchange_fields!(::Oceananigans.CPU, args...) = nothing
-
-# TODO: improve GPU support
-function fill_exchange_fields!(::Oceananigans.GPU, state, cpustate)
-    set!(state.u,  reshape(cpustate.u,  size(state.u)))
-    set!(state.v,  reshape(cpustate.v,  size(state.v)))
-    set!(state.T,  reshape(cpustate.T,  size(state.T)))
-    set!(state.q,  reshape(cpustate.q,  size(state.q)))
-    set!(state.p,  reshape(cpustate.p,  size(state.p)))
-    set!(state.Qs, reshape(cpustate.Qs, size(state.Qs)))
-    set!(state.Qℓ, reshape(cpustate.Qℓ, size(state.Qℓ)))
-    set!(state.Mp, reshape(cpustate.Mp, size(state.Mp)))
-    return nothing
 end
 
 # Regrid the atmospheric state on the exchange grid
@@ -64,39 +49,39 @@ function interpolate_atmosphere_state!(interfaces, atmos::SpeedySimulation, coup
     exchange_state = interfaces.exchanger.exchange_atmosphere_state
     surface_layer = atmos.model.spectral_grid.nlayers
 
-    ua  = RingGrids.field_view(atmos.diagnostic_variables.grid.u_grid,     :, surface_layer)
-    va  = RingGrids.field_view(atmos.diagnostic_variables.grid.v_grid,     :, surface_layer)
-    Ta  = RingGrids.field_view(atmos.diagnostic_variables.grid.temp_grid,  :, surface_layer)
-    qa  = RingGrids.field_view(atmos.diagnostic_variables.grid.humid_grid, :, surface_layer)
-    pa  = exp.(atmos.diagnostic_variables.grid.pres_grid)
-    Qsa = atmos.diagnostic_variables.physics.surface_shortwave_down
-    Qla = atmos.diagnostic_variables.physics.surface_longwave_down
-    Mpa = atmos.diagnostic_variables.physics.total_precipitation_rate
-    wrk = atmosphere_exchanger.cpu_surface_state.wrk
+    ua  = RingGrids.field_view(atmos.diagnostic_variables.grid.u_grid,     :, surface_layer).data
+    va  = RingGrids.field_view(atmos.diagnostic_variables.grid.v_grid,     :, surface_layer).data
+    Ta  = RingGrids.field_view(atmos.diagnostic_variables.grid.temp_grid,  :, surface_layer).data
+    qa  = RingGrids.field_view(atmos.diagnostic_variables.grid.humid_grid, :, surface_layer).data
+    pa  = exp.(atmos.diagnostic_variables.grid.pres_grid.data)
+    Qsa = atmos.diagnostic_variables.physics.surface_shortwave_down.data
+    Qla = atmos.diagnostic_variables.physics.surface_longwave_down.data
+    Mpa = atmos.diagnostic_variables.physics.total_precipitation_rate.data
+    wrk = atmosphere_exchanger.wrk
 
     regrid!(wrk, regridder.set1, ua)
-    Ocenananigans.set!(exchange_state.u, reshape(wrk, size(exchange_state.u)))
+    Oceananigans.set!(exchange_state.u, reshape(wrk, size(exchange_state.u)))
 
     regrid!(wrk, regridder.set1, va)
-    Ocenananigans.set!(exchange_state.v, reshape(wrk, size(exchange_state.u)))
+    Oceananigans.set!(exchange_state.v, reshape(wrk, size(exchange_state.v)))
 
     regrid!(wrk, regridder.set1, Ta)
-    Ocenananigans.set!(exchange_state.T, reshape(wrk, size(exchange_state.u)))
+    Oceananigans.set!(exchange_state.T, reshape(wrk, size(exchange_state.T)))
 
     regrid!(wrk, regridder.set1, qa)
-    Ocenananigans.set!(exchange_state.q, reshape(wrk, size(exchange_state.u)))
+    Oceananigans.set!(exchange_state.q, reshape(wrk, size(exchange_state.q)))
 
     regrid!(wrk, regridder.set1, pa)
-    Ocenananigans.set!(exchange_state.p, reshape(wrk, size(exchange_state.u)))
+    Oceananigans.set!(exchange_state.p, reshape(wrk, size(exchange_state.p)))
 
     regrid!(wrk, regridder.set1, Qsa)
-    Ocenananigans.set!(exchange_state.Qs, reshape(wrk, size(exchange_state.u)))
+    Oceananigans.set!(exchange_state.Qs, reshape(wrk, size(exchange_state.Qs)))
 
     regrid!(wrk, regridder.set1, Qla)
-    Ocenananigans.set!(exchange_state.Qℓ, reshape(wrk, size(exchange_state.u)))
+    Oceananigans.set!(exchange_state.Qℓ, reshape(wrk, size(exchange_state.Qℓ)))
 
     regrid!(wrk, regridder.set1, Mpa)
-    Ocenananigans.set!(exchange_state.Mp, reshape(wrk, size(exchange_state.u)))
+    Oceananigans.set!(exchange_state.Mp, reshape(wrk, size(exchange_state.Mp)))
 
     arch = architecture(exchange_grid)
 
@@ -144,14 +129,14 @@ function compute_net_atmosphere_fluxes!(coupled_model::SpeedyCoupledModel)
     ℵ   = sea_ice_concentration(coupled_model.sea_ice)
 
     # All the location of these fluxes will change
-    Qca = atmos.prognostic_variables.ocean.sensible_heat_flux
-    Mva = atmos.prognostic_variables.ocean.surface_humidity_flux
+    Qca = atmos.prognostic_variables.ocean.sensible_heat_flux.data
+    Mva = atmos.prognostic_variables.ocean.surface_humidity_flux.data
 
     
     # TODO: Figure out how we are going to deal with upwelling radiation
-    wrk .= interior(Qco) .* (1 - ℵ) .+ ℵ .* interior(Qci)
+    copyto!(wrk, interior(Qco) .* (1 - ℵ) .+ ℵ .* interior(Qci))
     regrid!(Qca, regridder.set2, wrk)
-    wrk .= interior(Mvo) .* (1 - ℵ) .+ ℵ .* interior(Mvi)
+    copyto!(wrk, interior(Mvo) .* (1 - ℵ) .+ ℵ .* interior(Mvi))
     regrid!(Mva, regridder.set2, wrk)
 
     return nothing
