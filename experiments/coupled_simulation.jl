@@ -49,7 +49,7 @@ Oceananigans.set!(ocean.model, T=Metadatum(:temperature, dataset=ECCO4Monthly())
 ##### The Atmosphere!!!
 #####
 
-spectral_grid = SpectralGrid(trunc=31, nlayers=8, Grid=FullClenshawGrid)
+spectral_grid = SpectralGrid(trunc=63, nlayers=8, Grid=FullClenshawGrid)
 
 humidity_flux_ocean = PrescribedOceanHumidityFlux(spectral_grid)
 humidity_flux_land = SurfaceLandHumidityFlux(spectral_grid)
@@ -62,7 +62,8 @@ surface_heat_flux = SurfaceHeatFlux(ocean=ocean_heat_flux, land=land_heat_flux)
 atmosphere_model = PrimitiveWetModel(spectral_grid;
                                      surface_heat_flux,
                                      surface_humidity_flux,
-                                     sea_ice=NoSeaIce()) # This is provided by ClimaSeaIce
+                                     ocean = nothing,
+                                     sea_ice = nothing) # This is provided by ClimaSeaIce
 
 atmosphere = initialize!(atmosphere_model)
 initialize!(atmosphere)
@@ -107,7 +108,7 @@ Oceananigans.set!(sea_ice.model, h=Metadatum(:sea_ice_thickness, dataset=ECCO4Mo
 # absorbed by clouds 
 radiation = Radiation(ocean_emissivity=0, sea_ice_emissivity=0)
 earth_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-earth = Oceananigans.Simulation(earth_model; Δt, stop_time=20days)
+earth = Oceananigans.Simulation(earth_model; Δt, stop_time=60days)
 
 wall_time = Ref(time_ns())
 
@@ -139,5 +140,4 @@ end
 # And add it as a callback to the simulation.
 # add_callback!(earth, progress, IterationInterval(10))
 
-# Oceananigans.run!(earth)
-time_step!(earth)
+Oceananigans.run!(earth)
