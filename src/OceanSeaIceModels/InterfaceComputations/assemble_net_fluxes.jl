@@ -60,7 +60,8 @@ function compute_net_ocean_fluxes!(coupled_model)
     freshwater_flux = atmosphere_fields.Mp.data
 
     ice_concentration = sea_ice_concentration(sea_ice)
-    ocean_salinity = get_ocean_state(coupled_model.ocean, coupled_model.interfaces.exchanger).S
+    ocean_state = get_ocean_state(coupled_model.ocean, coupled_model.interfaces.exchanger)
+    ocean_salinity = ocean_state.S
     atmos_ocean_properties = coupled_model.interfaces.atmosphere_ocean_interface.properties
     ocean_properties = coupled_model.interfaces.ocean_properties
     kernel_parameters = interface_kernel_parameters(grid)
