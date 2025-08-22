@@ -133,30 +133,15 @@ function surface_grid(ocean::VerosOceanSimulation)
 end
 
 """
-    veros_set!(ocean, v, x)
+    set!(class::Py, v, x)
 
-Set the `v` variable in the `ocean` model to the value of `x`.
+Set the `s` property of a Python `class` to the value of `x`.
 """
-function veros_set!(ocean::VerosOceanSimulation, v, x)
-    setup = ocean.setup
+function set!(class::Py, s, x)
     pyexec("""
-       with setup.state.variables.unlock():
-           setup.state.variables.__setattr__(y, t)
-       """, Main, (y=v, t=x, setup=setup))
-end
-
-
-"""
-    veros_settings_set!(ocean, v, x)
-
-Set the `s` setting in the `ocean` model to the value of `x`.
-"""
-function veros_settings_set!(ocean::VerosOceanSimulation, s, x)
-    setup = ocean.setup
-    pyexec("""
-       with setup.state.settings.unlock():
-           setup.state.settings.__setattr__(y, t)
-       """, Main, (y=s, t=x, setup=setup))
+       with class.unlock():
+           class.__setattr__(y, t)
+       """, Main, (y=s, t=x, class=class))
 end
 
 function OceanSeaIceModel(ocean::VerosOceanSimulation, sea_ice=nothing;

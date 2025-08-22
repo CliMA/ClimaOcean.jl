@@ -13,7 +13,7 @@ import ClimaOcean.OceanSeaIceModels.InterfaceComputations:
     get_ocean_state,
     ocean_surface_fluxes,
     get_radiative_forcing,
-    fill_up_net_fluxes!
+    fill_net_fluxes!
 
 mutable struct VerosStateExchanger{G, OST, AST, AEX}
     exchange_grid :: G
@@ -97,8 +97,8 @@ function fill_net_fluxes!(ocean::VerosOceanSimulation, net_ocean_fluxes)
         tb[:, :, t] .= t2
     end
 
-    veros_set!(ocean, "taux", ta)
-    veros_set!(ocean, "tauy", tb)
+    set!(ocean.state.variables, "taux", ta)
+    set!(ocean.state.variables, "tauy", tb)
 
     # TODO: Add heat flux and salinity flux when they
     # fix veros to be able to force with prescribed boundary
@@ -107,8 +107,8 @@ function fill_net_fluxes!(ocean::VerosOceanSimulation, net_ocean_fluxes)
     # t1 = view(parent(net_ocean_fluxes.T), 1:nx, 2:ny+1, 1)
     # t2 = view(parent(net_ocean_fluxes.S), 1:nx, 2:ny+1, 1)
 
-    # veros_set!(ocean, "temp_flux", t1)
-    # veros_set!(ocean, "salt_flux", t2)
+    # set!(ocean, "temp_flux", t1)
+    # set!(ocean, "salt_flux", t2)
 
     return nothing
 end
