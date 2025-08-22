@@ -85,7 +85,7 @@ function compute_net_ocean_fluxes!(coupled_model)
             atmos_ocean_properties,
             ocean_properties)
 
-    fill_up_net_fluxes!(coupled_model.ocean, net_ocean_fluxes)
+    fill_net_fluxes!(coupled_model.ocean, net_ocean_fluxes)
 
     return nothing
 end
