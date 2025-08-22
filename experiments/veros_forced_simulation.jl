@@ -30,14 +30,50 @@ VerosModule.veros_settings_set!(ocean, "dt_mom",    1800.0)
 ##### A Prescribed Atmosphere (JRA55)
 ##### 
 
-atmos = JRA55PrescribedAtmosphere(; backend = JRA55NetCDFBackend(10))
+spectral_grid = SpectralGrid(trunc=63, nlayers=8, Grid=FullClenshawGrid)
+
+humidity_flux_ocean = PrescribedOceanHumidityFlux(spectral_grid)
+humidity_flux_land = SurfaceLandHumidityFlux(spectral_grid)
+surface_humidity_flux = SurfaceHumidityFlux(ocean=humidity_flux_ocean, land=humidity_flux_land)
+
+ocean_heat_flux = PrescribedOceanHeatFlux(spectral_grid)
+land_heat_flux = SurfaceLandHeatFlux(spectral_grid)
+surface_heat_flux = SurfaceHeatFlux(ocean=ocean_heat_flux, land=land_heat_flux)
+
+atmosphere_model = PrimitiveWetModel(spectral_grid;
+                                     surface_heat_flux,
+                                     surface_humidity_flux,
+                                     ocean = nothing,
+                                     sea_ice = nothing) # This is provided by ClimaSeaIce
+
+atmosphere = initialize!(atmosphere_model)
+initialize!(atmosphere)
+
+function initialize_atmospheric_state!(simulation::SpeedyWeather.Simulation)
+    progn, diagn, model  = SpeedyWeather.unpack(simulation)
+
+    (; time) = progn.clock                           # current time
+
+    # set the tendencies back to zero for accumulation
+    fill!(diagn.tendencies, 0, typeof(model))
+
+    if model.physics                   
+        # calculate all parameterizations
+        SpeedyWeather.parameterization_tendencies!(diagn, progn, time, model)
+    end
+    
+    return nothing
+end
+
+initialize_atmospheric_state!(atmosphere)
+# atmosphere.model.feedback.verbose = false
 
 #####
 ##### An ice-free ocean forced by a prescribed atmosphere
 #####
 
-radiation = Radiation()
-coupled_model = OceanSeaIceModel(ocean, nothing; atmosphere=atmos, radiation)
+radiation = Radiation(ocean_emissivity=0, sea_ice_emissivity=0)
+coupled_model = OceanSeaIceModel(ocean, nothing; atmosphere, radiation)
 simulation = Simulation(coupled_model; Δt = 1800, stop_iteration = 100000)
 
 #####
