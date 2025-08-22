@@ -86,30 +86,19 @@ end
 function fill_net_fluxes!(ocean::VerosOceanSimulation, net_ocean_fluxes)
     nx = pyconvert(Int, ocean.setup.state.settings.nx) + 4
     ny = pyconvert(Int, ocean.setup.state.settings.ny) + 4
-    t1 = view(parent(net_ocean_fluxes.u), 1:nx, 1:ny, 1)
-    t2 = view(parent(net_ocean_fluxes.v), 1:nx, 1:ny, 1)
+    
+    ρₒ = pyconvert(eltype(ocean), ocean.state.variables.density)
+    taux = view(parent(net_ocean_fluxes.u), 1:nx, 1:ny, 1) .* ρₒ
+    tauy = view(parent(net_ocean_fluxes.v), 1:nx, 1:ny, 1) .* ρₒ
 
-    # TODO: Remove this when they fix veros to
-    # be able to force with an array instead of Climatology
-    ta = zeros(size(t1)..., 12)
-    tb = zeros(size(t2)..., 12)
-    for t in 1:12
-        ta[:, :, t] .= t1
-        tb[:, :, t] .= t2
-    end
+    set!(ocean.state.variables, "taux", taux)
+    set!(ocean.state.variables, "tauy", tauy)
 
-    set!(ocean.state.variables, "taux", ta)
-    set!(ocean.state.variables, "tauy", tb)
+    temp_flux = view(parent(net_ocean_fluxes.T), 1:nx, 1:ny, 1)
+    salt_flux = view(parent(net_ocean_fluxes.S), 1:nx, 1:ny, 1)
 
-    # TODO: Add heat flux and salinity flux when they
-    # fix veros to be able to force with prescribed boundary
-    # conditions rather than restoring
-
-    # t1 = view(parent(net_ocean_fluxes.T), 1:nx, 2:ny+1, 1)
-    # t2 = view(parent(net_ocean_fluxes.S), 1:nx, 2:ny+1, 1)
-
-    # set!(ocean, "temp_flux", t1)
-    # set!(ocean, "salt_flux", t2)
+    set!(ocean.state.variables, "temp_flux", temp_flux)
+    set!(ocean.state.variables, "salt_flux", salt_flux)
 
     return nothing
 end
