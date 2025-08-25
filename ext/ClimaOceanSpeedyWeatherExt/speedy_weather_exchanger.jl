@@ -28,7 +28,6 @@ function atmosphere_exchanger(atmosphere::SpeedySimulation, exchange_grid, excha
 
     # Figure this out:
     spectral_grid = atmosphere.model.spectral_grid
-    arch = architecture(exchange_grid)
     FT = eltype(exchange_atmosphere_state.u)
 
     # sparse matrix multiply requires contiguous memory to speed up the computation
