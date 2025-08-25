@@ -140,7 +140,7 @@ function compute_net_atmosphere_fluxes!(coupled_model::SpeedyCoupledModel)
     regrid!(Qca, regridder.set2, wrk)
     copyto!(wrk, interior(Mvo) .* (1 - ℵ) .+ ℵ .* interior(Mvi))
     regrid!(Mva, regridder.set2, wrk)
-    copyto!(wrk, interior(To) .* (1 - ℵ) .+ ℵ .* interior(Ti))
+    copyto!(wrk, interior(To) .* (1 - ℵ) .+ ℵ .* interior(Ti) .+ 273.15)
     regrid!(sst, regridder.set2, wrk)
 
     return nothing
