@@ -131,12 +131,16 @@ function compute_net_atmosphere_fluxes!(coupled_model::SpeedyCoupledModel)
     Mva = atmos.prognostic_variables.ocean.surface_humidity_flux.data
     sst = atmos.prognostic_variables.ocean.sea_surface_temperature
     
+    To = coupled_model.interfaces.atmosphere_ocean_interface.temperature
+    Ti = coupled_model.interfaces.atmosphere_sea_ice_interface.temperature
+
     # TODO: Figure out how we are going to deal with upwelling radiation
+    # TODO: regrid longwave rather than a mixed surface temperature 
     copyto!(wrk, interior(Qco) .* (1 - ℵ) .+ ℵ .* interior(Qci))
     regrid!(Qca, regridder.set2, wrk)
     copyto!(wrk, interior(Mvo) .* (1 - ℵ) .+ ℵ .* interior(Mvi))
     regrid!(Mva, regridder.set2, wrk)
-    copyto!(wrk, interior(coupled_model.interfaces.atmosphere_ocean_interface.temperature))
+    copyto!(wrk, interior(To) .* (1 - ℵ) .+ ℵ .* interior(Ti))
     regrid!(sst, regridder.set2, wrk)
 
     return nothing
