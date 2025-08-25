@@ -109,7 +109,6 @@ end
     @inbounds v[i, j, kᴺ] = vₑ
 end
 
-
 # TODO: Fix the coupling with the sea ice model and make sure that 
 # the this function works also for sea_ice=nothing and on GPUs without
 # needing to allocate memory.
