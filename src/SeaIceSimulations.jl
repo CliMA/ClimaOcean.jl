@@ -92,8 +92,8 @@ function sea_ice_dynamics(grid, ocean=nothing;
         SSU = Oceananigans.Fields.ZeroField()
         SSV = Oceananigans.Fields.ZeroField()
     else
-        SSU = Field(@at((Face, Face, Nothing), view(ocean.model.velocities.u, :, :, grid.Nz)))
-        SSV = Field(@at((Face, Face, Nothing), view(ocean.model.velocities.v, :, :, grid.Nz)))
+        SSU = view(ocean.model.velocities.u, :, :, grid.Nz)
+        SSV = view(ocean.model.velocities.v, :, :, grid.Nz)
         if isnothing(coriolis)
             coriolis = ocean.model.coriolis
         end
