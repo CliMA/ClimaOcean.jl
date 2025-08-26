@@ -90,12 +90,13 @@ set!(ocean.model, T=Metadatum(:temperature, dataset=ECCO4Monthly()),
 # ### Prescribed atmosphere and radiation
 #
 # Next we build a prescribed atmosphere state and radiation model,
-# which will drive the ocean simulation. We use the default `Radiation` model,
+# which will drive the ocean simulation.
 
-# The radiation model specifies an ocean albedo emissivity to compute the net radiative
-# fluxes. The default ocean albedo is based on Payne (1982) and depends on cloud cover
-# (calculated from the ratio of maximum possible incident solar radiation to actual
-# incident solar radiation) and latitude. The ocean emissivity is set to 0.97.
+# We use the default `Radiation` model. The radiation model specifies an ocean albedo
+# emissivity to compute the net radiative fluxes. The default ocean albedo is based
+# on Payne (1982) and depends on cloud cover (calculated from the ratio of maximum possible
+# incident solar radiation to actual incident solar radiation) and latitude.
+# The ocean emissivity is set to 0.97.
 
 radiation = Radiation(arch)
 
