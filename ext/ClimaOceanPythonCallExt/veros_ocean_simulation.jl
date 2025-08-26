@@ -133,15 +133,27 @@ function surface_grid(ocean::VerosOceanSimulation)
 end
 
 """
-    set!(class::Py, v, x)
+    set!(ocean, v, x; path = :variable)
 
-Set the `s` property of a Python `class` to the value of `x`.
+Set the `v` variable in the `ocean` model to the value of `x`.
+the path corresponds to the path inside the class where to locate the 
+variable `v` to set. It can be either `:variables` or `:settings`.
 """
-function set!(class::Py, s, x)
-    pyexec("""
-       with class.unlock():
-           class.__setattr__(y, t)
-       """, Main, (y=s, t=x, class=class))
+function set!(ocean::VerosOceanSimulation, v, x; path = :variables)
+    setup = ocean.setup
+    if path == :variables
+        pyexec("""
+        with setup.state.variables.unlock():
+            setup.state.variables.__setattr__(y, t)
+        """, Main, (y=v, t=x, setup=setup))
+    elseif path == :settings
+        pyexec("""
+        with setup.state.settings.unlock():
+            setup.state.settings.__setattr__(y, t)
+        """, Main, (y=v, t=x, setup=setup))
+    else
+        error("path must be either :variable or :settings.")
+    end
 end
 
 function OceanSeaIceModel(ocean::VerosOceanSimulation, sea_ice=nothing;

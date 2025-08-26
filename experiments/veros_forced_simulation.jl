@@ -23,8 +23,8 @@ VerosModule.remove_outputs(:global_4deg)
 
 ocean = VerosModule.VerosOceanSimulation("global_4deg", :GlobalFourDegreeSetup)
 
-set!(ocean.setup.settings, "dt_tracer", 1800.0)
-set!(ocean.setup.settings, "dt_mom",    1800.0)
+set!(ocean, "dt_tracer", 1800.0; path=:settings)
+set!(ocean, "dt_mom",    1800.0; path=:settings)
 
 ##### 
 ##### A Prescribed Atmosphere (JRA55)

@@ -86,19 +86,19 @@ end
 function fill_net_fluxes!(ocean::VerosOceanSimulation, net_ocean_fluxes)
     nx = pyconvert(Int, ocean.setup.state.settings.nx) + 4
     ny = pyconvert(Int, ocean.setup.state.settings.ny) + 4
-    
-    ρₒ = pyconvert(eltype(ocean), ocean.state.variables.density)
+
+    ρₒ = pyconvert(eltype(ocean), ocean.setup.state.settings.rho_0)
     taux = view(parent(net_ocean_fluxes.u), 1:nx, 1:ny, 1) .* ρₒ
     tauy = view(parent(net_ocean_fluxes.v), 1:nx, 1:ny, 1) .* ρₒ
 
-    set!(ocean.state.variables, "taux", taux)
-    set!(ocean.state.variables, "tauy", tauy)
+    set!(ocean, "taux", taux; path=:variables)
+    set!(ocean, "tauy", tauy; path=:variables)
 
     temp_flux = view(parent(net_ocean_fluxes.T), 1:nx, 1:ny, 1)
     salt_flux = view(parent(net_ocean_fluxes.S), 1:nx, 1:ny, 1)
 
-    set!(ocean.state.variables, "temp_flux", temp_flux)
-    set!(ocean.state.variables, "salt_flux", salt_flux)
+    set!(ocean, "temp_flux", temp_flux; path=:variables)
+    set!(ocean, "salt_flux", salt_flux; path=:variables)
 
     return nothing
 end
