@@ -90,3 +90,24 @@ add_callback!(simulation, progress, IterationInterval(5))
 #####
 
 run!(simulation)
+
+#####
+##### Visualize
+#####
+
+iter = Observable(1)
+si  = @lift(s[$iter])
+txi = @lift(tx[$iter])
+tyi = @lift(ty[$iter])
+
+fig = Figure(resolution = (1200, 300))
+ax1 = Axis(fig[1, 1]; title = "Surface speed (m/s)", xlabel = "Longitude", ylabel = "Latitude")
+ax2 = Axis(fig[1, 2]; title = "Zonal wind stress (N/m²)", xlabel = "Longitude")
+ax3 = Axis(fig[1, 3]; title = "Meridional wind stress (N/m²)", xlabel = "Longitude")
+
+grid = coupled_model.interfaces.exchanger.exchange_grid
+λ = λnodes(grid, Center())
+φ = φnodes(grid, Center())
+heatmap!(ax1, λ, φ, si,  colormap = :ice, colorrange = (0, 0.15))
+heatmap!(ax2, λ, φ, txi, colormap = :bwr, colorrange = (-0.2, 0.2))
+heatmap!(ax3, λ, φ, tyi, colormap = :bwr, colorrange = (-0.2, 0.2))
