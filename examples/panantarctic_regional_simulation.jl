@@ -32,7 +32,7 @@ using Printf
 
 arch = GPU()
 Nx = 1440
-Ny = 400
+Ny = 240
 Nz = 40
 
 depth = 6000meters
