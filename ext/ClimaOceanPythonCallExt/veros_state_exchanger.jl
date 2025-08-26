@@ -91,14 +91,24 @@ function fill_net_fluxes!(ocean::VerosOceanSimulation, net_ocean_fluxes)
     taux = view(parent(net_ocean_fluxes.u), 1:nx, 1:ny, 1) .* ρₒ
     tauy = view(parent(net_ocean_fluxes.v), 1:nx, 1:ny, 1) .* ρₒ
 
-    set!(ocean, "taux", taux; path=:variables)
-    set!(ocean, "tauy", tauy; path=:variables)
+    # TODO: Do not do this 12 thingy when we can make sure
+    # that veros supports it
+    tx = zeros(size(taux)..., 12)
+    ty = zeros(size(tauy)..., 12)
+    for t in 1:12
+        tx[:, :, t] .= taux
+        ty[:, :, t] .= tauy
+    end
 
-    temp_flux = view(parent(net_ocean_fluxes.T), 1:nx, 1:ny, 1)
-    salt_flux = view(parent(net_ocean_fluxes.S), 1:nx, 1:ny, 1)
+    set!(ocean, "taux", tx; path=:variables)
+    set!(ocean, "tauy", ty; path=:variables)
 
-    set!(ocean, "temp_flux", temp_flux; path=:variables)
-    set!(ocean, "salt_flux", salt_flux; path=:variables)
+    # TODO: uncomment below when the new branch gets merged
+    # temp_flux = view(parent(net_ocean_fluxes.T), 1:nx, 1:ny, 1)
+    # salt_flux = view(parent(net_ocean_fluxes.S), 1:nx, 1:ny, 1)
+
+    # set!(ocean, "temp_flux", temp_flux; path=:variables)
+    # set!(ocean, "salt_flux", salt_flux; path=:variables)
 
     return nothing
 end
