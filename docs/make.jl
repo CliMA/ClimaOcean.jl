@@ -11,6 +11,12 @@ Pkg.add(PackageSpec(
     url = "https://github.com/CliMA/Oceananigans.jl",
     rev = "ss/omip-branch-2"
 ))
+
+Pkg.add(PackageSpec(
+    name = "ClimaSeaIce",
+    url = "https://github.com/CliMA/ClimaSeaIce.jl",
+    rev = "ss/omip-branch-2"
+))
 Pkg.resolve()
 @show Pkg.status()
 
