@@ -44,7 +44,7 @@ using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities: CATKEVertic
 momentum_advection = WENOVectorInvariant(order=5)
 tracer_advection   = WENO(order=5)
 
-free_surface = SplitExplicitFreeSurface(grid; cfl=0.8, fixed_Δt=45minutes)
+free_surface = SplitExplicitFreeSurface(grid; cfl=0.7, fixed_Δt=45minutes)
 
 eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
 catke_closure = ClimaOcean.OceanSimulations.default_ocean_closure()  
@@ -99,7 +99,7 @@ radiation  = Radiation()
 #####
 
 omip = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-omip = Simulation(omip, Δt=30minutes, stop_time=60days) 
+omip = Simulation(omip, Δt=20minutes, stop_time=60days) 
 
 # Figure out the outputs....
 checkpointer_address(::SeaIceModel) = "SeaIceModel"
@@ -149,7 +149,7 @@ add_callback!(omip, progress, IterationInterval(1))
 
 run!(omip)
 
-omip.Δt = 40minutes
+omip.Δt = 30minutes
 omip.stop_time = 58 * 365days
 
 run!(omip)
