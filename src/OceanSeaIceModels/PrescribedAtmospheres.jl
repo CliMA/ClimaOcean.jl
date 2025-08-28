@@ -16,7 +16,7 @@ import Thermodynamics.Parameters:
     gas_constant,   #
     molmass_dryair, # Molar mass of dry air (without moisture)
     molmass_water,  # Molar mass of gaseous water vapor
-    molmass_ratio,  # Ratio of the molar masses of dry air to water vapor
+    Rv_over_Rd,     # Ratio of the molar masses of dry air to water vapor
     R_v,            # Specific gas constant for water vapor
     R_d,            # Specific gas constant for dry air
     kappa_d,        # Ideal gas adiabatic exponent for dry air
@@ -102,7 +102,7 @@ const CP{FT} = ConstitutiveParameters{FT} where FT
 @inline gas_constant(p::CP)   = p.gas_constant
 @inline molmass_dryair(p::CP) = p.dry_air_molar_mass
 @inline molmass_water(p::CP)  = p.water_molar_mass
-@inline molmass_ratio(p::CP)  = molmass_dryair(p) / molmass_water(p)
+@inline Rv_over_Rd(p::CP)     = molmass_dryair(p) / molmass_water(p)
 @inline R_v(p::CP)            = gas_constant(p) / molmass_water(p)
 @inline R_d(p::CP)            = gas_constant(p) / molmass_dryair(p)
 
@@ -261,7 +261,7 @@ const ATP = AtmosphereThermodynamicsParameters
 @inline gas_constant(p::ATP)   = gas_constant(p.constitutive)
 @inline molmass_dryair(p::ATP) = molmass_dryair(p.constitutive)
 @inline molmass_water(p::ATP)  = molmass_water(p.constitutive)
-@inline molmass_ratio(p::ATP)  = molmass_ratio(p.constitutive)
+@inline Rv_over_Rd(p::ATP)     = Rv_over_Rd(p.constitutive)
 @inline LH_v0(p::ATP)          = LH_v0(p.phase_transitions)
 @inline LH_s0(p::ATP)          = LH_s0(p.phase_transitions)
 @inline LH_f0(p::ATP)          = LH_f0(p.phase_transitions)
