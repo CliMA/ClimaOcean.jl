@@ -64,7 +64,7 @@ end
 Base.show(io::IO, p::ConstitutiveParameters) = print(io, summary(p))
 
 """
-    ConstitutiveParameters(FT = Float64;
+    ConstitutiveParameters(FT = Oceananigans.defaults.FloatType;
                            gas_constant       = 8.3144598,
                            dry_air_molar_mass = 0.02897,
                            water_molar_mass   = 0.018015)
@@ -124,7 +124,7 @@ end
 Base.show(io::IO, p::HeatCapacityParameters) = print(io, summary(p))
 
 """
-    HeatCapacityParameters(FT = Float64,
+    HeatCapacityParameters(FT = Oceananigans.defaults.FloatType;
                            dry_air_adiabatic_exponent = 2/7,
                            water_vapor_heat_capacity = 1859,
                            liquid_water_heat_capacity = 4181,
@@ -247,9 +247,9 @@ function Base.show(io::IO, p::AtmosphereThermodynamicsParameters)
 end
 
 function AtmosphereThermodynamicsParameters(FT = Oceananigans.defaults.FloatType;
-                                                      constitutive = ConstitutiveParameters(FT),
-                                                      phase_transitions = PhaseTransitionParameters(FT),
-                                                      heat_capacity = HeatCapacityParameters(FT))
+                                            constitutive = ConstitutiveParameters(FT),
+                                            phase_transitions = PhaseTransitionParameters(FT),
+                                            heat_capacity = HeatCapacityParameters(FT))
 
     return AtmosphereThermodynamicsParameters(constitutive, heat_capacity, phase_transitions)
 end
@@ -377,11 +377,11 @@ end
 @inline boundary_layer_height(atmos::PrescribedAtmosphere) = atmos.boundary_layer_height
 
 """
-    PrescribedAtmosphere(grid, times;
+    PrescribedAtmosphere(grid, times=[zero(grid)];
                          clock = Clock{Float64}(time = 0),
                          surface_layer_height = 10, # meters
                          boundary_layer_height = 512 # meters,
-                         thermodynamics_parameters = AtmosphereThermodynamicsParameters(FT),
+                         thermodynamics_parameters = nothing,
                          auxiliary_freshwater_flux = nothing,
                          velocities            = default_atmosphere_velocities(grid, times),
                          tracers               = default_atmosphere_tracers(grid, times),
