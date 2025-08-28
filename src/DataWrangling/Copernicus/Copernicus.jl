@@ -1,6 +1,6 @@
 module Copernicus
 
-export GLORYSStatic, GLORYSDaily, GLORYSMonthly
+export GLORYSStatic, GLORYSDaily, GLORYSMonthly, GLORYSBGCDaily, GLORYSBGCMonthly
 
 using NCDatasets
 using Printf
@@ -40,18 +40,26 @@ default_download_directory(::CopernicusDataset) = download_Copernicus_cache
 struct GLORYSStatic <: CopernicusDataset end
 struct GLORYSDaily <: CopernicusDataset end
 struct GLORYSMonthly <: CopernicusDataset end
+struct GLORYSBGCDaily <: CopernicusDataset end
+struct GLORYSBGCMonthly <: CopernicusDataset end
 
 dataset_name(::GLORYSStatic) = "GLORYSStatic"
 dataset_name(::GLORYSDaily) = "GLORYSDaily"
 dataset_name(::GLORYSMonthly) = "GLORYSMonthly"
+dataset_name(::GLORYSBGCDaily) = "GLORYSBGCDaily"
+dataset_name(::GLORYSBGCMonthly) = "GLORYSBGCMonthly"
 
 all_dates(::GLORYSStatic, var) = [nothing]
 all_dates(::GLORYSDaily, var) = range(DateTime("1993-01-01"), stop=DateTime("2021-06-30"), step=Day(1))
 all_dates(::GLORYSMonthly, var) = range(DateTime("1993-01-01"), stop=DateTime("2024-12-01"), step=Month(1))
+all_dates(::GLORYSBGCdaily, var) = range(DateTime("1993-01-01"), stop=DateTime("2022-12-30"), step=Day(1))
+all_dates(::GLORYSBGCMonthly, var) = range(DateTime("1993-01-01"), stop=DateTime("2022-11-30"), step=Month(1))
 
 copernicusmarine_dataset_id(::GLORYSStatic) = "cmems_mod_glo_phy_my_0.083deg_static"
 copernicusmarine_dataset_id(::GLORYSDaily) = "cmems_mod_glo_phy_my_0.083deg_P1D-m"
 copernicusmarine_dataset_id(::GLORYSMonthly) = "cmems_mod_glo_phy_my_0.083deg_P1M-m"
+copernicusmarine_dataset_id(::GLORYSBGCDaily) = "cmems_mod_glo_bgc_my_0.25deg_P1D-m"
+copernicusmarine_dataset_id(::GLORYSBGCMonthly) = "cmems_mod_glo_bgc_my_0.25deg_P1M-m"
 # :static  => "cmems_mod_glo_phy_my_0.083deg_static",
 
 struct CMEMSHourlyAnalysis <: CopernicusDataset end
@@ -76,6 +84,15 @@ copernicus_dataset_variable_names = Dict(
     :sea_ice_u_velocity => "usi",
     :sea_ice_v_velocity => "vsi",
     :free_surface => "zos",
+    :total_chlorophyll => "chl",
+    :nitrate => "no3",
+    :phosphate => "po4",
+    :total_phytoplankton => "phyc",
+    :dissolved_silicate => "si",
+    :dissolved_oxygen => "o2",
+    :dissolved_iron => "fe",
+    :ph => "ph",
+    :surface_co2` => "spCO2"
 )
 
 start_date_str(date) = string(date)
