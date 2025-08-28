@@ -92,7 +92,7 @@ copernicus_dataset_variable_names = Dict(
     :dissolved_oxygen => "o2",
     :dissolved_iron => "fe",
     :ph => "ph",
-    :surface_co2` => "spCO2"
+    :surface_co2 => "spCO2",
 )
 
 start_date_str(date) = string(date)
