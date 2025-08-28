@@ -76,7 +76,7 @@ Construct a set of parameters that define the density of moist air,
 ```
 
 where ``p`` is pressure, ``T`` is temperature, ``q`` defines the partition
-of total mass into vapor, liqiud, and ice mass fractions, and
+of total mass into vapor, liquid, and ice mass fractions, and
 ``Rᵐ`` is the effective specific gas constant for the mixture,
 
 ```math
@@ -213,9 +213,9 @@ end
 const ATP{FT} = AtmosphereThermodynamicsParameters{FT} where FT
 
 Base.eltype(::ATP{FT}) where FT = FT
-Base.eltype(::CP{FT})   where FT = FT
-Base.eltype(::HCP{FT})  where FT = FT
-Base.eltype(::PTP{FT})  where FT = FT
+Base.eltype(::CP{FT})  where FT = FT
+Base.eltype(::HCP{FT}) where FT = FT
+Base.eltype(::PTP{FT}) where FT = FT
 
 Base.summary(::ATP{FT}) where FT = "AtmosphereThermodynamicsParameters{$FT}"
 
@@ -344,8 +344,8 @@ function default_freshwater_flux(grid, times)
     return (; rain, snow)
 end
 
-""" The standard unit of atmospheric pressure; 1 standard atmosphere (atm) = 101,325 Pascals (Pa) in SI units.
-This is approximately equal to the mean sea-level atmospheric pressure on Earth. """
+""" The standard unit of atmospheric pressure; 1 standard atmosphere (atm) = 101,325 Pascals (Pa)
+in SI units. This is approximately equal to the mean sea-level atmospheric pressure on Earth. """
 function default_atmosphere_pressure(grid, times)
     pa = FieldTimeSeries{Center, Center, Nothing}(grid, times)
     parent(pa) .= 101325
