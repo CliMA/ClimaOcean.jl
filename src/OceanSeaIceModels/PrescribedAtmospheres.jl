@@ -1,11 +1,11 @@
 module PrescribedAtmospheres
 
 using Oceananigans
-using Oceananigans.Grids: grid_name
-using Oceananigans.Utils: prettysummary, Time
 using Oceananigans.Fields: Center
+using Oceananigans.Grids: grid_name
 using Oceananigans.OutputReaders: FieldTimeSeries, update_field_time_series!, extract_field_time_series
 using Oceananigans.TimeSteppers: Clock, tick!
+using Oceananigans.Utils: prettysummary, Time
 
 using Adapt
 using Thermodynamics.Parameters: AbstractThermodynamicsParameters
@@ -13,32 +13,32 @@ using Thermodynamics.Parameters: AbstractThermodynamicsParameters
 import Oceananigans.TimeSteppers: time_step!, update_state!
 
 import Thermodynamics.Parameters:
-    gas_constant,   #
-    molmass_dryair, # Molar mass of dry air (without moisture)
-    molmass_water,  # Molar mass of gaseous water vapor
-    Rv_over_Rd,     # Ratio of the specific gas constants of water vapor over dry air
-    R_v,            # Specific gas constant for water vapor
-    R_d,            # Specific gas constant for dry air
-    kappa_d,        # Ideal gas adiabatic exponent for dry air
-    T_0,            # Enthalpy reference temperature
-    LH_v0,          # Vaporization enthalpy at the reference temperature
-    LH_s0,          # Sublimation enthalpy at the reference temperature
-    LH_f0,          # Fusionn enthalpy at the reference temperature
-    cp_d,           # Heat capacity of dry air at constant pressure
-    cp_v,           # Isobaric specific heat capacity of gaseous water vapor
-    cp_l,           # Isobaric specific heat capacity of liquid water
-    cp_i,           # Isobaric specific heat capacity of water ice
-    cv_v,           # Heat capacity of dry air at constant volume
-    cv_l,           # Isobaric specific heat capacity of liquid water
-    cv_i,           # Isobaric specific heat capacity of liquid water
-    e_int_v0,       # what? someting about reference internal energy of water vapor
-    T_freeze,       # Freezing temperature of _pure_ water
-    T_triple,       # Triple point temperature of _pure_ water
-    press_triple,   # Triple point pressure of pure water
-    T_icenuc,       # Lower temperature limit for the presence of liquid condensate
-                    # (below which homogeneous ice nucleation occurs)
-    pow_icenuc      # "Power parameter" that controls liquid/ice condensate partitioning
-                    # during partial ice nucleation
+    universal_gas_constant,   #
+    molmass_dryair,           # Molar mass of dry air (without moisture)
+    molmass_water,            # Molar mass of gaseous water vapor
+    Rv_over_Rd,               # Ratio of the specific gas constants of water vapor over dry air
+    R_v,                      # Specific gas constant for water vapor
+    R_d,                      # Specific gas constant for dry air
+    kappa_d,                  # Ideal gas adiabatic exponent for dry air
+    T_0,                      # Enthalpy reference temperature
+    LH_v0,                    # Vaporization enthalpy at the reference temperature
+    LH_s0,                    # Sublimation enthalpy at the reference temperature
+    LH_f0,                    # Fusion enthalpy at the reference temperature
+    cp_d,                     # Heat capacity of dry air at constant pressure
+    cp_v,                     # Isobaric specific heat capacity of gaseous water vapor
+    cp_l,                     # Isobaric specific heat capacity of liquid water
+    cp_i,                     # Isobaric specific heat capacity of water ice
+    cv_v,                     # Heat capacity of dry air at constant volume
+    cv_l,                     # Isobaric specific heat capacity of liquid water
+    cv_i,                     # Isobaric specific heat capacity of liquid water
+    e_int_v0,                 # what? something about reference internal energy of water vapor
+    T_freeze,                 # Freezing temperature of _pure_ water
+    T_triple,                 # Triple point temperature of _pure_ water
+    press_triple,             # Triple point pressure of pure water
+    T_icenuc,                 # Lower temperature limit for the presence of liquid condensate
+                              # (below which homogeneous ice nucleation occurs)
+    pow_icenuc                # "Power parameter" that controls liquid/ice condensate partitioning
+                              # during partial ice nucleation
 
 import ..OceanSeaIceModels:
     downwelling_radiation,
@@ -102,9 +102,9 @@ const CP{FT} = ConstitutiveParameters{FT} where FT
 @inline gas_constant(p::CP)   = p.gas_constant
 @inline molmass_dryair(p::CP) = p.dry_air_molar_mass
 @inline molmass_water(p::CP)  = p.water_molar_mass
-@inline Rv_over_Rd(p::CP)     = molmass_dryair(p) / molmass_water(p)
-@inline R_v(p::CP)            = gas_constant(p) / molmass_water(p)
-@inline R_d(p::CP)            = gas_constant(p) / molmass_dryair(p)
+@inline Rv_over_Rd(p::CP)     = p.Rv_over_Rd
+@inline R_v(p::CP)            = p.R_v
+@inline R_d(p::CP)            = p.R_d
 
 struct HeatCapacityParameters{FT} <: AbstractThermodynamicsParameters{FT}
     dry_air_adiabatic_exponent :: FT
