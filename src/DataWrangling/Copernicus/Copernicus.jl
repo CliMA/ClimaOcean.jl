@@ -1,6 +1,6 @@
 module Copernicus
 
-export GLORYSStatic, GLORYSDaily, GLORYSMonthly
+export GLORYSStatic, GLORYSDaily, GLORYSMonthly, GLORYSBGCDaily, GLORYSBGCMonthly
 
 using NCDatasets
 using Printf
@@ -40,18 +40,26 @@ default_download_directory(::CopernicusDataset) = download_Copernicus_cache
 struct GLORYSStatic <: CopernicusDataset end
 struct GLORYSDaily <: CopernicusDataset end
 struct GLORYSMonthly <: CopernicusDataset end
+struct GLORYSBGCDaily <: CopernicusDataset end
+struct GLORYSBGCMonthly <: CopernicusDataset end
 
 dataset_name(::GLORYSStatic) = "GLORYSStatic"
 dataset_name(::GLORYSDaily) = "GLORYSDaily"
 dataset_name(::GLORYSMonthly) = "GLORYSMonthly"
+dataset_name(::GLORYSBGCDaily) = "GLORYSBGCDaily"
+dataset_name(::GLORYSBGCMonthly) = "GLORYSBGCMonthly"
 
 all_dates(::GLORYSStatic, var) = [nothing]
 all_dates(::GLORYSDaily, var) = range(DateTime("1993-01-01"), stop=DateTime("2021-06-30"), step=Day(1))
 all_dates(::GLORYSMonthly, var) = range(DateTime("1993-01-01"), stop=DateTime("2024-12-01"), step=Month(1))
+all_dates(::GLORYSBGCDaily, var) = range(DateTime("1993-01-01"), stop=DateTime("2022-12-30"), step=Day(1))
+all_dates(::GLORYSBGCMonthly, var) = range(DateTime("1993-01-01"), stop=DateTime("2022-11-30"), step=Month(1))
 
 copernicusmarine_dataset_id(::GLORYSStatic) = "cmems_mod_glo_phy_my_0.083deg_static"
 copernicusmarine_dataset_id(::GLORYSDaily) = "cmems_mod_glo_phy_my_0.083deg_P1D-m"
 copernicusmarine_dataset_id(::GLORYSMonthly) = "cmems_mod_glo_phy_my_0.083deg_P1M-m"
+copernicusmarine_dataset_id(::GLORYSBGCDaily) = "cmems_mod_glo_bgc_my_0.25deg_P1D-m"
+copernicusmarine_dataset_id(::GLORYSBGCMonthly) = "cmems_mod_glo_bgc_my_0.25deg_P1M-m"
 # :static  => "cmems_mod_glo_phy_my_0.083deg_static",
 
 struct CMEMSHourlyAnalysis <: CopernicusDataset end
@@ -60,12 +68,20 @@ copernicusmarine_dataset_id(::CMEMSHourlyAnalysis) = "cmems_mod_glo_phy_anfc_0.0
 CopernicusMetadata{D} = Metadata{<:CopernicusDataset, D}
 CopernicusMetadatum = Metadatum{<:CopernicusDataset}
 
-Base.size(::CopernicusMetadatum) = (4320, 2040, 50, 1)
+Base.size(::GLORYSStatic) = (4320, 2040, 50, 1)
+Base.size(::GLORYSDaily) = (4320, 2040, 50, 1)
+Base.size(::GLORYSMonthly) = (4320, 2040, 50, 1)
+Base.size(::GLORYSBGCDaily) = (1440, 680, 75, 1)
+Base.size(::GLORYSBGCMonthly) = (1440, 680, 75, 1)
 reversed_vertical_axis(::CopernicusDataset) = true
 
-available_variables(::CopernicusDataset) = copernicus_dataset_variable_names
+available_variables(::GLORYSStatic) = copernicus_physics_dataset_variable_names
+available_variables(::GLORYSDaily) = copernicus_physics_dataset_variable_names
+available_variables(::GLORYSMonthly) = copernicus_physics_dataset_variable_names
+available_variables(::GLORYSBGCDaily) = copernicus_bgc_daily_dataset_variable_names
+available_variables(::GLORYSBGCMonthly) = copernicus_bgc_monthly_dataset_variable_names
 
-copernicus_dataset_variable_names = Dict(
+copernicus_physics_dataset_variable_names = Dict(
     :temperature => "thetao",
     :depth => "deptho",
     :salinity => "so",
@@ -78,12 +94,39 @@ copernicus_dataset_variable_names = Dict(
     :free_surface => "zos",
 )
 
+copernicus_bgc_daily_dataset_variable_names = Dict(
+    :total_chlorophyll => "chl",
+    :primary_production => "nppv",
+    :nitrate => "no3",
+    :phosphate => "po4",
+    :dissolved_silicate => "si",
+    :dissolved_oxygen => "o2",
+    :dissolved_iron => "fe",
+    :ph => "ph",
+    :surface_co2 => "spCO2",
+    :total_phytoplankton => "phyc",
+)
+
+copernicus_bgc_daily_dataset_variable_names = Dict(
+    :total_chlorophyll => "chl",
+    :primary_production => "nppv",
+    :nitrate => "no3",
+    :phosphate => "po4",
+    :dissolved_silicate => "si",
+    :dissolved_oxygen => "o2",
+)
+
 start_date_str(date) = string(date)
 end_date_str(date) = string(date)
 start_date_str(dates::AbstractVector) = first(dates) |> string
 end_date_str(dates::AbstractVector) = last(dates) |> string
 
-dataset_variable_name(metadata::CopernicusMetadata) = copernicus_dataset_variable_names[metadata.name]
+#dataset_variable_name(metadata::CopernicusMetadata) = copernicus_dataset_variable_names[metadata.name]
+dataset_variable_name(::GLORYSStatic) = copernicus_physics_dataset_variable_names[data.name]
+dataset_variable_name(::GLORYSDaily) = copernicus_physics_dataset_variable_names[data.name]
+dataset_variable_name(::GLORYSMonthly) = copernicus_physics_dataset_variable_names[data.name]
+dataset_variable_name(::GLORYSBGCDaily) = copernicus_bgc_daily_dataset_variable_names[data.name]
+dataset_variable_name(::GLORYSBGCMonthly) = copernicus_bgc_monthly_dataset_variable_names[data.name]
 
 bbox_strs(::Nothing) = "_nothing", "_nothing"
 
