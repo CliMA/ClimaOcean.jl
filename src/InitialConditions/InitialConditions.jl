@@ -17,7 +17,6 @@ using JLD2
 
 # Implementation of 3-dimensional regridding
 # TODO: move all the following to Oceananigans!
-
 using Oceananigans.Fields: regrid!, interpolate!
 using Oceananigans.Grids: cpu_face_constructor_x,
                           cpu_face_constructor_y,
