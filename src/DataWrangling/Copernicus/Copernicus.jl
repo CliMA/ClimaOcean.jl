@@ -126,7 +126,7 @@ dataset_variable_name(::GLORYSStatic) = copernicus_physics_dataset_variable_name
 dataset_variable_name(::GLORYSDaily) = copernicus_physics_dataset_variable_names[data.name]
 dataset_variable_name(::GLORYSMonthly) = copernicus_physics_dataset_variable_names[data.name]
 dataset_variable_name(::GLORYSBGCDaily) = copernicus_bgc_daily_dataset_variable_names[data.name]
-dataset_variable_name(::GLORYSBGCDMonthly) = copernicus_bgc_monthly_dataset_variable_names[data.name]
+dataset_variable_name(::GLORYSBGCMonthly) = copernicus_bgc_monthly_dataset_variable_names[data.name]
 
 bbox_strs(::Nothing) = "_nothing", "_nothing"
 
