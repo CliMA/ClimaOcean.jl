@@ -27,7 +27,7 @@ Ny = 180
 Nz = 40
 
 depth = 4000meters
-z = ExponentialCoordinate(Nz, -depth, 0; scale = 0.85*depth)
+z = ExponentialCoordinate(Nz, -depth, 0; scale = depth/4)
 z = Oceananigans.Grids.MutableVerticalDiscretization(z)
 underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 
@@ -36,7 +36,7 @@ underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 # Strait to connect it to the Atlantic):
 
 bottom_height = regrid_bathymetry(underlying_grid;
-                                  minimum_depth = 10,
+                                  minimum_depth = z.cᵃᵃᶠ(Nz-1),
                                   interpolation_passes = 10,
                                   major_basins = 2)
 
@@ -51,9 +51,8 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height);
 # eddy fluxes. For vertical mixing at the upper-ocean boundary layer we include the CATKE
 # parameterization. We also include some explicit horizontal diffusivity.
 
-eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=2e3, κ_symmetric=2e3)
+eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
 vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
-horizontal_viscosity = HorizontalScalarDiffusivity(ν=4000)
 
 # ### Ocean simulation
 # Now we bring everything together to construct the ocean simulation.
@@ -65,7 +64,7 @@ momentum_advection = WENOVectorInvariant(order=5)
 tracer_advection   = WENO(order=5)
 
 ocean = ocean_simulation(grid; momentum_advection, tracer_advection, free_surface,
-                         closure=(eddy_closure, horizontal_viscosity, vertical_mixing))
+                         closure=(eddy_closure, vertical_mixing))
 
 @info "We've built an ocean simulation with model:"
 @show ocean.model
@@ -96,7 +95,7 @@ set!(sea_ice.model, h=ecco_sea_ice_thickness, ℵ=ecco_sea_ice_concentration)
 # We force the simulation with a JRA55-do atmospheric reanalysis.
 radiation  = Radiation(arch)
 atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(80),
-                                       include_rivers_and_icebergs = false)
+                                       include_rivers_and_icebergs = true)
 
 # ### Coupled simulation
 
@@ -141,7 +140,7 @@ function progress(sim)
 end
 
 # And add it as a callback to the simulation.
-add_callback!(simulation, progress, IterationInterval(1000))
+add_callback!(simulation, progress, TimeInterval(12hours))
 
 # ### Output
 #
@@ -157,13 +156,13 @@ sea_ice_outputs = merge((h = sea_ice.model.ice_thickness,
                          sea_ice.model.velocities)
 
 ocean.output_writers[:surface] = JLD2Writer(ocean.model, ocean_outputs;
-                                            schedule = TimeInterval(5days),
+                                            schedule = TimeInterval(1days),
                                             filename = "ocean_one_degree_surface_fields",
                                             indices = (:, :, grid.Nz),
                                             overwrite_existing = true)
 
 sea_ice.output_writers[:surface] = JLD2Writer(ocean.model, sea_ice_outputs;
-                                              schedule = TimeInterval(5days),
+                                              schedule = TimeInterval(1days),
                                               filename = "sea_ice_one_degree_surface_fields",
                                               overwrite_existing = true)
 
@@ -188,6 +187,7 @@ using CairoMakie
 # We suffix the ocean fields with "o":
 uo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "u"; backend = OnDisk())
 vo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "v"; backend = OnDisk())
+wo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "w"; backend = OnDisk())
 To = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "T"; backend = OnDisk())
 eo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "e"; backend = OnDisk())
 
@@ -204,6 +204,12 @@ n = Observable(Nt)
 
 # We create a land mask and use it to fill land points with `NaN`s.
 land = interior(To.grid.immersed_boundary.bottom_height) .≥ 0
+
+woₙ = @lift begin
+    wₙ = interior(wo[$n])
+    wₙ[land] .= NaN
+    view(wₙ, :, :, 1)
+end
 
 Toₙ = @lift begin
     Tₙ = interior(To[$n])
@@ -268,6 +274,10 @@ axsi = Axis(fig[1, 3])
 axTo = Axis(fig[2, 1])
 axhi = Axis(fig[2, 3])
 axeo = Axis(fig[3, 1])
+axwo = Axis(fig[3, 3])
+
+hmo = heatmap!(axwo, woₙ, colorrange = (-2e-3, 2e-3), colormap = :balance,  nan_color=:lightgray)
+Colorbar(fig[3, 4], hmo, label = "w (m s⁻¹)")
 
 hmo = heatmap!(axso, soₙ, colorrange = (0, 0.5), colormap = :deep,  nan_color=:lightgray)
 hmi = heatmap!(axsi, siₙ, colorrange = (0, 0.5), colormap = :greys, nan_color=:lightgray)
