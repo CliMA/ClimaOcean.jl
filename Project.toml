@@ -34,16 +34,15 @@ ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 [weakdeps]
 CondaPkg = "992eb4ea-22a4-4c89-a5bb-47a3300528ab"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
-PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
 PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
 Reactant = "3c362404-f566-11ee-1572-e11a4b42c853"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 SpeedyWeather = "9e226e20-d153-4fed-8a5b-493def4f21a9"
 
 [extensions]
 ClimaOceanPythonCallExt = ["PythonCall", "CondaPkg"]
-ClimaOceanSpeedyWeatherExt = "SpeedyWeather"
 ClimaOceanReactantExt = "Reactant"
+ClimaOceanSpeedyWeatherExt = "SpeedyWeather"
 
 [compat]
 Adapt = "4"
@@ -81,4 +80,4 @@ MPIPreferences = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Coverage", "Test", "MPIPreferences", "CUDA_Runtime_jll", "PythonCall", "SpeedyWeather", "Reactant", "CondaPkg", "PyCall", "SparseArrays", "LinearAlgebra"]
+test = ["Coverage", "Test", "MPIPreferences", "CUDA_Runtime_jll", "PythonCall", "SpeedyWeather", "Reactant", "CondaPkg", "SparseArrays", "LinearAlgebra"]

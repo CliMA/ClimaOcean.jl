@@ -1,4 +1,5 @@
-using PyCall
+using PythonCall
+using CondaPkg
 using Oceananigans.Grids: AbstractGrid
 using SparseArrays
 using LinearAlgebra

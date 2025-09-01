@@ -7,4 +7,6 @@ numpy = ">=2.0.0"
 tensorflow = ">=2.17"
 [deps]
 xesmf = ""
+xarray = ""
+numpy = ""
 scipy = "==1.16.0"
