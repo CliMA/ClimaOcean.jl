@@ -19,10 +19,21 @@ end
 
 regrid!(dst, weights, scr) = LinearAlgebra.mul!(vec(dst), weights, vec(scr))
 
+function install_package(package)
+    @info "Installing the $package package..."
+    CondaPkg.add(package; channel = "conda-forge")
+    return nothing
+end
+
 # Import and store as constants for submodules
-get_numpy()  = pyimport("numpy")
-get_xesmf()  = pyimport("xesmf")
-get_xarray() = pyimport("xarray")
+function get_package(package)
+    try
+        return pyimport(package)
+    catch
+        install_package(package)
+        return pyimport(package)
+    end
+end
 
 two_dimensionalize(lat::Matrix, lon::Matrix) = lat, lon
 
@@ -37,7 +48,7 @@ end
 coordinate_dataset(grid::SpeedyWeather.SpectralGrid) = coordinate_dataset(grid.grid)
     
 function coordinate_dataset(grid::SpeedyWeather.RingGrids.AbstractGrid)
-    numpy = get_numpy()
+    numpy = get_package("numpy")
     lon, lat = RingGrids.get_londlatds(grid)
     return numpy.array(PyObject(Dict("lat" => lat, "lon" => lon)))
 end
@@ -70,8 +81,8 @@ function coordinate_dataset(grid::AbstractGrid)
 end
 
 function structured_coordinate_dataset(lat, lon, lat_b, lon_b)
-    numpy  = get_numpy()
-    xarray = get_xarray()
+    numpy  = get_package("numpy")
+    xarray = get_package("xarray")
 
     lat   = Array(lat')
     lon   = Array(lon')
@@ -87,47 +98,46 @@ function structured_coordinate_dataset(lat, lon, lat_b, lon_b)
     ds_lat = xarray.DataArray(
         lat,
         dims=["y", "x"],
-        coords= PyObject(Dict(
+        coords=Dict(
             "lat" => (["y", "x"], lat),
             "lon" => (["y", "x"], lon)
-        )),
+        ),
         name="latitude"
     )
     
     ds_lon = xarray.DataArray(
         lon,
         dims=["y", "x"],
-        coords= PyObject(Dict(
+        coords=Dict(
             "lat" => (["y", "x"], lat),
             "lon" => (["y", "x"], lon)
-        )),
+        ),
         name="longitude"
     )
     
     ds_lat_b = xarray.DataArray(
         lat_b,
         dims=["y_b", "x_b"],
-        coords= PyObject(Dict(
+        coords=Dict(
             "lat_b" => (["y_b", "x_b"], lat_b),
             "lon_b" => (["y_b", "x_b"], lon_b)
-        )),
+        ),
     )
 
     ds_lon_b = xarray.DataArray(
         lon_b,
         dims=["y_b", "x_b"],
-        coords= PyObject(Dict(
+        coords=Dict(
             "lat_b" => (["y_b", "x_b"], lat_b),
             "lon_b" => (["y_b", "x_b"], lon_b)
-        )),
+        ),
     )
 
-    return  xarray.Dataset(
-        PyObject(
-            Dict("lat"   => ds_lat, 
-                 "lon"   => ds_lon,
-                 "lat_b" => ds_lat_b,
-                 "lon_b" => ds_lon_b))
+    return xarray.Dataset(
+        Dict("lat"   => ds_lat, 
+             "lon"   => ds_lon,
+             "lat_b" => ds_lat_b,
+             "lon_b" => ds_lon_b)
     )
 end
 
@@ -136,7 +146,7 @@ function regridder_weights(dst::Grids, src::Grids; method::String="bilinear")
     src_ds = coordinate_dataset(src)
     dst_ds = coordinate_dataset(dst)
 
-    regridder = get_xesmf().Regridder(src_ds, dst_ds, method, periodic=PyObject(true)) 
+    regridder =  get_package("xesmf").Regridder(src_ds, dst_ds, method, periodic=PyObject(true)) 
 
     # Move back to Julia
     # Convert the regridder weights to a Julia sparse matrix
