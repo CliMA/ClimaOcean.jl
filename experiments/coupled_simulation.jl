@@ -10,15 +10,15 @@ using Printf, Statistics, Dates
 ##### The Ocean!!!
 #####
 
-Nx = 4320 # Longitudinal direction 
-Ny = 2160 # Meridional direction 
+Nx = 2160 # Longitudinal direction 
+Ny = 1080 # Meridional direction 
 Nz = 10  # Vertical levels
 
-r_faces = ExponentialCoordinate(Nz, -4000, 0)
+r_faces = ExponentialCoordinate(Nz, -3000, 0)
 grid    = TripolarGrid(GPU(); size=(Nx, Ny, Nz), z=r_faces, halo=(7, 7, 6))
 
 # Regridding the bathymetry...
-bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1, interpolation_passes=15)
+bottom_height = regrid_bathymetry(grid; major_basins=1, interpolation_passes=15)
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
 # Advection
