@@ -50,7 +50,7 @@ coordinate_dataset(grid::SpeedyWeather.SpectralGrid) = coordinate_dataset(grid.g
 function coordinate_dataset(grid::SpeedyWeather.RingGrids.AbstractGrid)
     numpy = get_package("numpy")
     lon, lat = RingGrids.get_londlatds(grid)
-    return numpy.array(PyObject(Dict("lat" => lat, "lon" => lon)))
+    return numpy.array(Dict("lat" => lat, "lon" => lon))
 end
 
 function coordinate_dataset(grid::SpeedyWeather.RingGrids.AbstractFullGrid)
@@ -146,14 +146,14 @@ function regridder_weights(dst::Grids, src::Grids; method::String="bilinear")
     src_ds = coordinate_dataset(src)
     dst_ds = coordinate_dataset(dst)
 
-    regridder =  get_package("xesmf").Regridder(src_ds, dst_ds, method, periodic=PyObject(true)) 
+    regridder =  get_package("xesmf").Regridder(src_ds, dst_ds, method, periodic=true)
 
     # Move back to Julia
     # Convert the regridder weights to a Julia sparse matrix
     coords = regridder.weights.data
-    shape  = Tuple(Int.(coords[:shape]))
-    vals   = Float64.(coords[:data])
-    coords = coords[:coords]
+    shape  = pyconvert(Tuple{Int, Int}, coords.shape)
+    vals   = pyconvert(Array{Float64}, coords.data)
+    coords = pyconvert(Array{Float64}, coords.coords)
     rows = coords[1,:].+1
     cols = coords[2,:].+1
 
