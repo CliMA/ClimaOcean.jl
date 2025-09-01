@@ -73,6 +73,11 @@ function structured_coordinate_dataset(lat, lon, lat_b, lon_b)
     numpy  = get_numpy()
     xarray = get_xarray()
 
+    lat   = Array(lat')
+    lon   = Array(lon')
+    lat_b = Array(lat_b')
+    lon_b = Array(lon_b')
+
     lat = numpy.array(lat)
     lon = numpy.array(lon)
 
@@ -80,40 +85,40 @@ function structured_coordinate_dataset(lat, lon, lat_b, lon_b)
     lon_b = numpy.array(lon_b)
 
     ds_lat = xarray.DataArray(
-        lat',
+        lat,
         dims=["y", "x"],
         coords= PyObject(Dict(
-            "lat" => (["y", "x"], lat'),
-            "lon" => (["y", "x"], lon')
+            "lat" => (["y", "x"], lat),
+            "lon" => (["y", "x"], lon)
         )),
         name="latitude"
     )
     
     ds_lon = xarray.DataArray(
-        lon',
+        lon,
         dims=["y", "x"],
         coords= PyObject(Dict(
-            "lat" => (["y", "x"], lat'),
-            "lon" => (["y", "x"], lon')
+            "lat" => (["y", "x"], lat),
+            "lon" => (["y", "x"], lon)
         )),
         name="longitude"
     )
     
     ds_lat_b = xarray.DataArray(
-        lat_b',
+        lat_b,
         dims=["y_b", "x_b"],
         coords= PyObject(Dict(
-            "lat_b" => (["y_b", "x_b"], lat_b'),
-            "lon_b" => (["y_b", "x_b"], lon_b')
+            "lat_b" => (["y_b", "x_b"], lat_b),
+            "lon_b" => (["y_b", "x_b"], lon_b)
         )),
     )
 
     ds_lon_b = xarray.DataArray(
-        lon_b',
+        lon_b,
         dims=["y_b", "x_b"],
         coords= PyObject(Dict(
-            "lat_b" => (["y_b", "x_b"], lat_b'),
-            "lon_b" => (["y_b", "x_b"], lon_b')
+            "lat_b" => (["y_b", "x_b"], lat_b),
+            "lon_b" => (["y_b", "x_b"], lon_b)
         )),
     )
 
