@@ -39,8 +39,7 @@ ocean = ocean_simulation(grid;
                          tracer_advection,
                          free_surface,
                          timestepper = :SplitRungeKutta3,
-                         closure = closures,
-                         radiative_forcing = nothing)
+                         closure = closures)
 
 Oceananigans.set!(ocean.model, T=Metadatum(:temperature, dataset=ECCO4Monthly()), 
                                S=Metadatum(:salinity,    dataset=ECCO4Monthly()))
@@ -110,7 +109,9 @@ Oceananigans.set!(sea_ice.model, h=Metadatum(:sea_ice_thickness, dataset=ECCO4Mo
 
 # Remember in the future that reflected radiation is computed independently by speedy 
 # so we need to communicate albedo in some way if this reflected radiation is to be
-# absorbed by clouds 
+# absorbed by clouds. At the moment, speedy does not provide longwave down, until this
+# is provided we just estimate a lower emissivity 
+# *** THIS IS A HACK TO BE REMOVED ***
 radiation = Radiation(ocean_emissivity=0.1, sea_ice_emissivity=0.1)
 earth_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 earth = Oceananigans.Simulation(earth_model; Δt, stop_time=360days)
