@@ -1,14 +1,2 @@
-
-[pip.deps]
-xarray = ">=2024.7.0"
-jax = ">=0.6"
-copernicusmarine = ">=2.0.0"
-numpy = ">=2.0.0"
-tensorflow = ">=2.17"
 [deps]
-xarray = ""
-numpy = ""
-scipy = "==1.16.0"
-
-    [deps.xesmf]
-    channel = "conda-forge"
+xesmf = "0.8.10"

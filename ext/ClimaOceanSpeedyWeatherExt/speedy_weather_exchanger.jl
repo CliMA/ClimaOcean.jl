@@ -129,7 +129,7 @@ function compute_net_atmosphere_fluxes!(coupled_model::SpeedyCoupledModel)
     # All the location of these fluxes will change
     Qca = atmos.prognostic_variables.ocean.sensible_heat_flux.data
     Mva = atmos.prognostic_variables.ocean.surface_humidity_flux.data
-    sst = atmos.prognostic_variables.ocean.sea_surface_temperature
+    sst = atmos.prognostic_variables.ocean.sea_surface_temperature.data
     
     To = coupled_model.interfaces.atmosphere_ocean_interface.temperature
     Ti = coupled_model.interfaces.atmosphere_sea_ice_interface.temperature
