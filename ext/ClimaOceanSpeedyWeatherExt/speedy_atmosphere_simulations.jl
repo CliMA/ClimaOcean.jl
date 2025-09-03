@@ -10,8 +10,19 @@ const SpeedySimulation = SpeedyWeather.Simulation
 const SpeedyCoupledModel = ClimaOcean.OceanSeaIceModel{<:Any, <:SpeedySimulation}
 Base.summary(::SpeedySimulation) = "SpeedyWeather.Simulation"
 
-# Take one time-step
-Oceananigans.TimeSteppers.time_step!(atmos::SpeedySimulation, Δt) = SpeedyWeather.timestep!(atmos)
+# Take one time-step or more depending on the global timestep
+function Oceananigans.TimeSteppers.time_step!(atmos::SpeedySimulation, Δt) 
+    Δt_atmos = atmos.model.time_stepping.Δt_sec
+    nsteps = ceil(Int, Δt / Δt_atmos)
+
+    if (Δt / Δt_atmos) % 1 != 0
+        @warn "The only atmosphere timesteps supported are intiger divisors of the global timestepping"
+    end
+
+    for _ in 1:nsteps
+        SpeedyWeather.timestep!(atmos)
+    end
+end
 
 # The height of near-surface variables used in the turbulent flux solver
 function surface_layer_height(s::SpeedySimulation)
@@ -43,7 +54,7 @@ function initialize_atmospheric_state!(simulation::SpeedyWeather.Simulation)
     return nothing
 end
 
-function atmosphere_simulation(spectral_grid::SpectralGrid; output=false)
+function atmosphere_simulation(spectral_grid::SpeedyWeather.SpectralGrid; output=false)
     # Surface fluxes
     humidity_flux_ocean = PrescribedOceanHumidityFlux(spectral_grid)
     humidity_flux_land = SurfaceLandHumidityFlux(spectral_grid)

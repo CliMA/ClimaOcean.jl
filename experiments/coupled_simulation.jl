@@ -66,7 +66,8 @@ Oceananigans.set!(sea_ice.model, h=Metadatum(:sea_ice_thickness, dataset=ECCO4Mo
 ##### Coupled model
 #####
 
-Δt = convert(eltype(grid), atmosphere_model.time_stepping.Δt_sec)
+# The ocean goes twice as slow as the atmosphere!
+Δt = 2 * convert(eltype(grid), atmosphere_model.time_stepping.Δt_sec)
 
 # Remember in the future that reflected radiation is computed independently by speedy 
 # so we need to communicate albedo in some way if this reflected radiation is to be

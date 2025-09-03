@@ -41,6 +41,7 @@ export
     DatasetRestoring,
     ocean_simulation,
     sea_ice_simulation,
+    atmosphere_simulation,
     initialize!
 
 using Oceananigans
