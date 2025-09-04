@@ -27,7 +27,7 @@ using Dates
 using Printf
 
 # ### Grid and Bathymetry
-
+#
 # We start by constructing a the grid around Antarctica.
 
 arch = GPU()
