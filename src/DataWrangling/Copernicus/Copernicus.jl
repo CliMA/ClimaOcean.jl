@@ -101,19 +101,14 @@ copernicus_bgc_daily_dataset_variable_names = Dict(
     :phosphate => "po4",
     :dissolved_silicate => "si",
     :dissolved_oxygen => "o2",
+)
+
+copernicus_bgc_daily_dataset_variable_names_extended = Dict(
+    copernicus_bgc_daily_dataset_variable_names...,  # unpack entries
     :dissolved_iron => "fe",
     :ph => "ph",
     :surface_co2 => "spCO2",
     :total_phytoplankton => "phyc",
-)
-
-copernicus_bgc_daily_dataset_variable_names = Dict(
-    :total_chlorophyll => "chl",
-    :primary_production => "nppv",
-    :nitrate => "no3",
-    :phosphate => "po4",
-    :dissolved_silicate => "si",
-    :dissolved_oxygen => "o2",
 )
 
 start_date_str(date) = string(date)
@@ -121,7 +116,6 @@ end_date_str(date) = string(date)
 start_date_str(dates::AbstractVector) = first(dates) |> string
 end_date_str(dates::AbstractVector) = last(dates) |> string
 
-#dataset_variable_name(metadata::CopernicusMetadata) = copernicus_dataset_variable_names[metadata.name]
 dataset_variable_name(::GLORYSStatic) = copernicus_physics_dataset_variable_names[data.name]
 dataset_variable_name(::GLORYSDaily) = copernicus_physics_dataset_variable_names[data.name]
 dataset_variable_name(::GLORYSMonthly) = copernicus_physics_dataset_variable_names[data.name]
