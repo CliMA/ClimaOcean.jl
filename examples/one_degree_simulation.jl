@@ -103,12 +103,10 @@ atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(80),
 # Now we are ready to build the coupled ocean--sea ice model and bring everything
 # together into a `simulation`.
 
-# We use a relatively short time step initially and only run for a few days to
-# avoid numerical instabilities from the initial "shock" of the adjustment of the
-# flow fields.
+# With Runge-Kutta 3rd order time-stepping we can safely use a timestep of 20 minutes.
 
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-simulation = Simulation(coupled_model; Δt=12minutes, stop_time=40days)
+simulation = Simulation(coupled_model; Δt=20minutes, stop_time=365days)
 
 # ### A progress messenger
 #
@@ -170,14 +168,6 @@ sea_ice.output_writers[:surface] = JLD2Writer(ocean.model, sea_ice_outputs;
 # ### Ready to run
 
 # We are ready to press the big red button and run the simulation.
-
-# After we run for a short time (here we set up the simulation with `stop_time=40days`),
-# we increase the timestep and run for longer.
-
-run!(simulation)
-
-simulation.Δt = 20minutes
-simulation.stop_time = 365days
 run!(simulation)
 
 # ### A movie
@@ -188,7 +178,6 @@ using CairoMakie
 # We suffix the ocean fields with "o":
 uo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "u"; backend = OnDisk())
 vo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "v"; backend = OnDisk())
-wo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "w"; backend = OnDisk())
 To = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "T"; backend = OnDisk())
 eo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "e"; backend = OnDisk())
 
@@ -205,12 +194,6 @@ n = Observable(Nt)
 
 # We create a land mask and use it to fill land points with `NaN`s.
 land = interior(To.grid.immersed_boundary.bottom_height) .≥ 0
-
-woₙ = @lift begin
-    wₙ = interior(wo[$n])
-    wₙ[land] .= NaN
-    view(wₙ, :, :, 1)
-end
 
 Toₙ = @lift begin
     Tₙ = interior(To[$n])
@@ -275,10 +258,6 @@ axsi = Axis(fig[1, 3])
 axTo = Axis(fig[2, 1])
 axhi = Axis(fig[2, 3])
 axeo = Axis(fig[3, 1])
-axwo = Axis(fig[3, 3])
-
-hmo = heatmap!(axwo, woₙ, colorrange = (-2e-3, 2e-3), colormap = :balance,  nan_color=:lightgray)
-Colorbar(fig[3, 4], hmo, label = "w (m s⁻¹)")
 
 hmo = heatmap!(axso, soₙ, colorrange = (0, 0.5), colormap = :deep,  nan_color=:lightgray)
 hmi = heatmap!(axsi, siₙ, colorrange = (0, 0.5), colormap = :greys, nan_color=:lightgray)
