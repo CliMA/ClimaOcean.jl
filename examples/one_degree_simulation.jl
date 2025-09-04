@@ -139,7 +139,7 @@ function progress(sim)
 end
 
 # And add it as a callback to the simulation.
-add_callback!(simulation, progress, TimeInterval(12hours))
+add_callback!(simulation, progress, TimeInterval(24hours))
 
 # ### Output
 #
@@ -174,7 +174,7 @@ sea_ice.output_writers[:surface] = JLD2Writer(ocean.model, sea_ice_outputs;
 
 run!(simulation)
 
-simulation.Δt = 30minutes
+simulation.Δt = 20minutes
 simulation.stop_time = 365days
 run!(simulation)
 
