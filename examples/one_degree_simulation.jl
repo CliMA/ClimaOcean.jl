@@ -24,11 +24,11 @@ using CUDA
 arch = GPU()
 Nx = 360
 Ny = 180
-Nz = 40
+Nz = 50
 
-depth = 4000meters
+depth = 5000meters
 z = ExponentialCoordinate(Nz, -depth, 0; scale = depth/4)
-z = Oceananigans.Grids.MutableVerticalDiscretization(z)
+
 underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 
 # Next, we build bathymetry on this grid, using interpolation passes to smooth the bathymetry.
@@ -36,7 +36,7 @@ underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 # Strait to connect it to the Atlantic):
 
 bottom_height = regrid_bathymetry(underlying_grid;
-                                  minimum_depth = z.cᵃᵃᶠ(Nz-1),
+                                  minimum_depth = 10,
                                   interpolation_passes = 10,
                                   major_basins = 2)
 
@@ -63,13 +63,15 @@ momentum_advection = WENOVectorInvariant(order=5)
 tracer_advection   = WENO(order=5)
 
 ocean = ocean_simulation(grid; momentum_advection, tracer_advection, free_surface,
+                         timestepper = :SplitRungeKutta3,
                          closure=(eddy_closure, vertical_mixing))
 
 @info "We've built an ocean simulation with model:"
 @show ocean.model
 
 # ### Sea Ice simulation
-# We also need to build a sea ice simulation. We use the default configuration:
+#
+# We also build a sea ice simulation. We use the default configuration:
 # EVP rheology and a zero-layer thermodynamic model that advances thickness
 # and concentration.
 
@@ -82,8 +84,8 @@ sea_ice = sea_ice_simulation(grid, ocean; advection=tracer_advection)
 date = DateTime(1993, 1, 1)
 dataset = ECCO4Monthly()
 ecco_temperature = Metadatum(:temperature; date, dataset)
-ecco_salinity = Metadatum(:salinity; date, dataset)
-ecco_sea_ice_thickness = Metadatum(:sea_ice_thickness; date, dataset)
+ecco_salinity              = Metadatum(:salinity; date, dataset)
+ecco_sea_ice_thickness     = Metadatum(:sea_ice_thickness; date, dataset)
 ecco_sea_ice_concentration = Metadatum(:sea_ice_concentration; date, dataset)
 
 set!(ocean.model, T=ecco_temperature, S=ecco_salinity)
@@ -106,7 +108,7 @@ atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(80),
 # flow fields.
 
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-simulation = Simulation(coupled_model; Δt=8minutes, stop_time=20days)
+simulation = Simulation(coupled_model; Δt=12minutes, stop_time=40days)
 
 # ### A progress messenger
 #
@@ -139,7 +141,7 @@ function progress(sim)
 end
 
 # And add it as a callback to the simulation.
-add_callback!(simulation, progress, TimeInterval(24hours))
+add_callback!(simulation, progress, TimeInterval(5days))
 
 # ### Output
 #
@@ -169,7 +171,7 @@ sea_ice.output_writers[:surface] = JLD2Writer(ocean.model, sea_ice_outputs;
 
 # We are ready to press the big red button and run the simulation.
 
-# After we run for a short time (here we set up the simulation with `stop_time = 20days`),
+# After we run for a short time (here we set up the simulation with `stop_time=40days`),
 # we increase the timestep and run for longer.
 
 run!(simulation)
