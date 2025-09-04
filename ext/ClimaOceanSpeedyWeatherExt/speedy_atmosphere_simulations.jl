@@ -16,7 +16,7 @@ function Oceananigans.TimeSteppers.time_step!(atmos::SpeedySimulation, Δt)
     nsteps = ceil(Int, Δt / Δt_atmos)
 
     if (Δt / Δt_atmos) % 1 != 0
-        @warn "The only atmosphere timesteps supported are intiger divisors of the global timestepping"
+        @warn "ClimaOcean only supports atmosphere timesteps that are integer divisors of the ESM timesteps"
     end
 
     for _ in 1:nsteps
@@ -56,26 +56,26 @@ end
 
 function atmosphere_simulation(spectral_grid::SpeedyWeather.SpectralGrid; output=false)
     # Surface fluxes
-    humidity_flux_ocean = PrescribedOceanHumidityFlux(spectral_grid)
-    humidity_flux_land = SurfaceLandHumidityFlux(spectral_grid)
-    surface_humidity_flux = SurfaceHumidityFlux(ocean=humidity_flux_ocean, land=humidity_flux_land)
+    humidity_flux_ocean = SpeedyWeather.PrescribedOceanHumidityFlux(spectral_grid)
+    humidity_flux_land = SpeedyWeather.SurfaceLandHumidityFlux(spectral_grid)
+    surface_humidity_flux = SpeedyWeather.SurfaceHumidityFlux(ocean=humidity_flux_ocean, land=humidity_flux_land)
 
-    ocean_heat_flux = PrescribedOceanHeatFlux(spectral_grid)
-    land_heat_flux = SurfaceLandHeatFlux(spectral_grid)
-    surface_heat_flux = SurfaceHeatFlux(ocean=ocean_heat_flux, land=land_heat_flux)
+    ocean_heat_flux = SpeedyWeather.PrescribedOceanHeatFlux(spectral_grid)
+    land_heat_flux = SpeedyWeather.SurfaceLandHeatFlux(spectral_grid)
+    surface_heat_flux = SpeedyWeather.SurfaceHeatFlux(ocean=ocean_heat_flux, land=land_heat_flux)
 
     # The atmospheric model
-    atmosphere_model = PrimitiveWetModel(spectral_grid;
-                                        surface_heat_flux,
-                                        surface_humidity_flux,
-                                        ocean = nothing,
-                                        sea_ice = nothing) # This is provided by ClimaSeaIce
+    atmosphere_model = SpeedyWeather.PrimitiveWetModel(spectral_grid;
+                                                       surface_heat_flux,
+                                                       surface_humidity_flux,
+                                                       ocean = nothing,
+                                                       sea_ice = nothing) # This is provided by ClimaSeaIce
 
     # Construct the simulation
-    atmosphere = initialize!(atmosphere_model)
+    atmosphere = SpeedyWeather.initialize!(atmosphere_model)
 
     # Initialize the simulation
-    initialize!(atmosphere; output)
+    SpeedyWeather.initialize!(atmosphere; output)
 
     # Fill in prognostic fields
     initialize_atmospheric_state!(atmosphere)

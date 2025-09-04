@@ -146,3 +146,20 @@ earth.output_writers[:fluxes] = JLD2Writer(earth.model.ocean.model, fluxes;
 add_callback!(earth, progress, IterationInterval(100))
 
 Oceananigans.run!(earth)
+
+####
+#### Visualize!!!
+####
+
+using NCDatasets, GLMakie
+
+SWO = Dataset("run_0002/output.nc")
+
+Ta = SWO["temp"][:, :, 8, :]
+qa = SWO["humid"][:, :, 8, :]
+ua = SWO["u"][:, :, 8, :]
+va = SWO["v"][:, :, 8, :]
+sp = sqrt.(ua.^2 + va.^2)
+# Surface fields
+SST = FieldTimeSeries("ocean_surface_fields.jld2", "T")
+SSS = FieldTimeSeries("ocean_surface_fields.jld2", "S")
