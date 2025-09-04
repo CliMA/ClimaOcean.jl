@@ -49,15 +49,14 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height);
 #
 # We include a Gent-McWilliams isopycnal diffusivity as a parameterization for the mesoscale
 # eddy fluxes. For vertical mixing at the upper-ocean boundary layer we include the CATKE
-# parameterization. We also include some explicit horizontal diffusivity.
+# parameterization.
 
 eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
 vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
 
 # ### Ocean simulation
 # Now we bring everything together to construct the ocean simulation.
-# We use a split-explicit timestepping with 70 substeps for the barotropic
-# mode.
+# We use a split-explicit timestepping with 70 substeps for the barotropic mode.
 
 free_surface       = SplitExplicitFreeSurface(grid; substeps=70)
 momentum_advection = WENOVectorInvariant(order=5)
@@ -95,7 +94,7 @@ set!(sea_ice.model, h=ecco_sea_ice_thickness, ℵ=ecco_sea_ice_concentration)
 # We force the simulation with a JRA55-do atmospheric reanalysis.
 radiation  = Radiation(arch)
 atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(80),
-                                       include_rivers_and_icebergs = true)
+                                       include_rivers_and_icebergs = false)
 
 # ### Coupled simulation
 
