@@ -381,7 +381,7 @@ end
                          clock = Clock{Float64}(time = 0),
                          surface_layer_height = 10, # meters
                          boundary_layer_height = 512 # meters,
-                         thermodynamics_parameters = AtmosphereThermodynamicsParameters(FT),
+                         thermodynamics_parameters = AtmosphereThermodynamicsParameters(eltype(grid)),
                          auxiliary_freshwater_flux = nothing,
                          velocities            = default_atmosphere_velocities(grid, times),
                          tracers               = default_atmosphere_tracers(grid, times),
@@ -396,7 +396,7 @@ function PrescribedAtmosphere(grid, times=[zero(grid)];
                               clock = Clock{Float64}(time = 0),
                               surface_layer_height = 10,
                               boundary_layer_height = 512,
-                              thermodynamics_parameters = AtmosphereThermodynamicsParameters(FT),
+                              thermodynamics_parameters = AtmosphereThermodynamicsParameters(eltype(grid)),
                               auxiliary_freshwater_flux = nothing,
                               velocities            = default_atmosphere_velocities(grid, times),
                               tracers               = default_atmosphere_tracers(grid, times),
