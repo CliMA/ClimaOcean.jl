@@ -140,13 +140,15 @@ using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere
         end_date   = DateTime("1959-01-01T00:00:00") + 85 * Day(1) # sometime in 1959
 
         backend = JRA55NetCDFBackend(10)
-        Ta = JRA55FieldTimeSeries(:temperature; dataset, start_date, end_date, backend)
 
-        @test Second(end_date - start_date).value ≈ Ta.times[end] - Ta.times[1]
-
-        # Test we can access all the data
-        for t in eachindex(Ta.times)
-            @test Ta[t] isa Field
+        # Use a temporary directory so different architectures don't clash
+        mktempdir("./") do dir
+            Ta = JRA55FieldTimeSeries(:temperature, arch; dataset, start_date, end_date, backend, dir)
+            @test Second(end_date - start_date).value ≈ Ta.times[end] - Ta.times[1]
+            # Test we can access all the data
+            for t in eachindex(Ta.times)
+                @test Ta[t] isa Field
+            end
         end
     end
 end
