@@ -118,7 +118,7 @@ JRA55_dataset_variable_names = Dict(
     :northward_velocity              => "vas",      # Northward near-surface wind
 )
 
-JRA55_multiple_year_url = "https://esgf-data2.llnl.gov/thredds/fileServer/user_pub_work/input4MIPs/CMIP6/OMIP/MRI/MRI-JRA55-do-1-5-0/"
+JRA55_multiple_year_url = "http://esgf-node.ornl.gov/thredds/fileServer/user_pub_work/input4MIPs/CMIP6/OMIP/MRI/MRI-JRA55-do-1-5-0/"
 
 JRA55_multiple_year_prefix = Dict(
     :river_freshwater_flux           => "land/day",
