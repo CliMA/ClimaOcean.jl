@@ -1,5 +1,6 @@
 using
   ClimaOcean,
+  CUDA,
   Documenter,
   DocumenterCitations,
   Literate
@@ -28,6 +29,8 @@ for file in to_be_literated
     withenv("JULIA_DEBUG" => "Literate") do
         Literate.markdown(filepath, OUTPUT_DIR; flavor = Literate.DocumenterFlavor(), execute = true)
     end
+    GC.gc()
+    CUDA.reclaim()
 end
 
 #####
