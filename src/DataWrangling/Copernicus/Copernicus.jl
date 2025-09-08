@@ -87,8 +87,30 @@ available_variables(::GLORYSStatic) = Dict(
     :sea_ice_v_velocity => "vsi",
     :free_surface => "zos",
 )
-available_variables(::GLORYSDaily) = available_variables(GLORYSStatic)
-available_variables(::GLORYSMonthly) = available_variables(GLORYSStatic)
+available_variables(::GLORYSDaily) = Dict(
+    :temperature => "thetao",
+    :depth => "deptho",
+    :salinity => "so",
+    :sea_ice_concentration => "siconc",
+    :sea_ice_thickness => "sithick",
+    :u_velocity=> "uo",
+    :v_velocity=> "vo",
+    :sea_ice_u_velocity => "usi",
+    :sea_ice_v_velocity => "vsi",
+    :free_surface => "zos",
+)
+available_variables(::GLORYSMonthly) = Dict(
+    :temperature => "thetao",
+    :depth => "deptho",
+    :salinity => "so",
+    :sea_ice_concentration => "siconc",
+    :sea_ice_thickness => "sithick",
+    :u_velocity=> "uo",
+    :v_velocity=> "vo",
+    :sea_ice_u_velocity => "usi",
+    :sea_ice_v_velocity => "vsi",
+    :free_surface => "zos",
+)
 available_variables(::GLORYSBGCDaily) = Dict( 
     :total_chlorophyll => "chl",
     :primary_production => "nppv",
