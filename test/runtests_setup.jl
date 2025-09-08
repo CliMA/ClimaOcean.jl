@@ -23,7 +23,13 @@ test_architectures = gpu_test ? [GPU()] : [CPU()]
 
 start_date = DateTimeProlepticGregorian(1993, 1, 1)
 
-test_datasets = (ECCO2Monthly(), ECCO2Daily(), ECCO4Monthly(), EN4Monthly())
+test_datasets = (ECCO2Monthly(), 
+                 ECCO2Daily(), 
+                 ECCO4Monthly(), 
+                 ECCO2DarwinMonthly(),
+                 ECCO4DarwinMonthly(),
+                 EN4Monthly(),
+                )
 
 #####
 ##### Test utilities
@@ -261,6 +267,7 @@ test_names = Dict(
     ECCO2Daily() => (:temperature, :salinity),
     ECCO4Monthly() => (:temperature, :salinity),
     ECCO4DarwinMonthly() => (:temperature, :salinity, :PO₄),
+    ECCO2DarwinMonthly() => (:temperature, :salinity, :PO₄),
     EN4Monthly() => (:temperature, :salinity),
 )
 
@@ -269,5 +276,6 @@ test_fields = Dict(
     ECCO2Daily() => (:T, :S),
     ECCO4Monthly() => (:T, :S),
     ECCO4DarwinMonthly() => (:T, :S, :PO₄),
+    ECCO2DarwinMonthly() => (:T, :S, :PO₄),
     EN4Monthly() => (:T, :S),
 )

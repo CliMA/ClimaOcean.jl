@@ -3,6 +3,9 @@ module ECCO
 export ECCOMetadatum, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
 
+export ECCO2DarwinMonthly, ECCO4DarwinMonthly
+export retrieve_data
+
 using Oceananigans
 using ClimaOcean
 using NCDatasets
@@ -55,6 +58,8 @@ abstract type SomeECCODataset end
 struct ECCO2Monthly <: SomeECCODataset end
 struct ECCO2Daily <: SomeECCODataset  end
 struct ECCO4Monthly <: SomeECCODataset  end
+
+include("ECCO_darwin.jl")
 
 function default_download_directory(::ECCO2Monthly)
     path = joinpath(download_ECCO_cache, "v2", "monthly")

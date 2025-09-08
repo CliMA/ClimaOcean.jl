@@ -1,39 +1,51 @@
 using MeshArrays
 using Glob
 
+struct ECCO2DarwinMonthly <: SomeECCODataset end
+struct ECCO4DarwinMonthly <: SomeECCODataset end
+
 # URLs for the ECCO datasets specific to each version
 const ECCO4Darwin_url = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/LLC90/ECCO-Darwin/"
+const ECCO2Darwin_url = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/LLC270/ECCO-Darwin_extension/"
 
 Base.size(data::Metadata{<:ECCO4DarwinMonthly}) = (720,  360, 50, length(data.dates))
 Base.size(::Metadatum{<:ECCO4DarwinMonthly})    = (720,  360, 50, 1)
+Base.size(data::Metadata{<:ECCO2DarwinMonthly}) = (1440, 720, 50, length(data.dates))
+Base.size(::Metadatum{<:ECCO2DarwinMonthly})    = (1440, 720, 50, 1)
 
 # The whole range of dates in the different dataset datasets
-all_dates(::ECCO4DarwinMonthly, name) = DateTime(1992, 1, 1) : Month(1) : DateTime(2023, 12, 1)
+all_dates(::ECCO4DarwinMonthly, name) = DateTime(1992, 1, 1) : Month(1) : DateTime(2023, 3, 1)
+all_dates(::ECCO2DarwinMonthly, name) = DateTime(1992, 1, 1) : Month(1) : DateTime(2025, 5, 1)
 
 ECCO_Darwin_timestep(::Metadatum{<:ECCO4DarwinMonthly}) = 3600
 ECCO_Darwin_timeref(::Metadatum{<:ECCO4DarwinMonthly}) = DateTimeProlepticGregorian(1992, 1, 1, 12, 0, 0)
 
+ECCO_Darwin_timestep(::Metadatum{<:ECCO2DarwinMonthly}) = 1200
+ECCO_Darwin_timeref(::Metadatum{<:ECCO2DarwinMonthly}) = DateTimeProlepticGregorian(1992, 1, 1, 0, 0, 0)
+
 # File name generation specific to each Dataset dataset
-function metadata_filename(metadata::Metadatum{<:ECCO4DarwinMonthly})
-    shortname = short_name(metadata)
+function metadata_filename(metadata::Metadatum{<:Union{ECCO2DarwinMonthly, ECCO4DarwinMonthly}})
+    shortname = dataset_variable_name(metadata)
     
     reference_date = ECCO_Darwin_timeref(metadata)
     timestep_size  = ECCO_Darwin_timestep(metadata)
 
-    iternum = Dates.value((metadata.dates - reference_date) / (timestep_size * 1e3))
+    # Explicitly convert to Int to avoid return of a float
+    iternum = Int(Dates.value((metadata.dates - reference_date) / (timestep_size * 1e3)))
     iterstr = string(iternum, pad=10)
 
     return shortname * "." * iterstr * ".data"
 end
 
 # Convenience functions
-short_name(data::Metadata{<:ECCO4DarwinMonthly}) = ECCO_darwin_short_names[data.name]
 
-location(::Metadata{<:ECCO4DarwinMonthly}) = (Center, Center, Center)
+dataset_variable_name(data::Metadata{<:Union{ECCO2DarwinMonthly,ECCO4DarwinMonthly}}) = ECCO_darwin_dataset_variable_names[data.name]
 
-variable_is_three_dimensional(::Metadata{<:ECCO4DarwinMonthly}) = true
+location(::Metadata{<:Union{ECCO2DarwinMonthly, ECCO4DarwinMonthly}}) = (Center, Center, Center)
 
-ECCO_darwin_short_names = Dict(
+variable_is_three_dimensional(::Metadata{<:Union{ECCO2DarwinMonthly, ECCO4DarwinMonthly}}) = true
+
+ECCO_darwin_dataset_variable_names = Dict(
     :temperature => "THETA",
     :salinity    => "SALTanom",
     :DIC => "DIC",
@@ -73,21 +85,31 @@ ECCO_darwin_offset_factor = Dict(
 )
 
 function default_download_directory(::ECCO4DarwinMonthly)
-    path = joinpath(download_ECCO_cache, "ecco4_darwin")
+    path = joinpath(download_ECCO_cache, "v4_darwin", "monthly")
     return mkpath(path)
 end
 
-metadata_url(m::Metadata{<:ECCO4DarwinMonthly}) = ECCO4Darwin_url * "monthly/" * short_name(m) * "/" * metadata_filename(m)
+function default_download_directory(::ECCO2DarwinMonthly)
+    path = joinpath(download_ECCO_cache, "v2_darwin", "monthly")
+    return mkpath(path)
+end
+
+metadata_url(m::Metadata{<:ECCO4DarwinMonthly}) = ECCO4Darwin_url * "monthly/" * dataset_variable_name(m) * "/" * metadata_filename(m)
+metadata_url(m::Metadata{<:ECCO2DarwinMonthly}) = ECCO2Darwin_url * "monthly/" * dataset_variable_name(m) * "/" * metadata_filename(m)
 
 ECCO_darwin_native_grid(::ECCO4DarwinMonthly) = GridSpec(ID=:LLC90)
 ECCO_darwin_native_size(::ECCO4DarwinMonthly) = (90, 1170, 50)
+ECCO_darwin_native_grid(::ECCO2DarwinMonthly) = GridSpec(ID=:LLC270)
+ECCO_darwin_native_size(::ECCO2DarwinMonthly) = (270, 3510, 50)
+
+longitude_interfaces(::ECCO4DarwinMonthly) = (-180, 180)
 
 """
     retrieve_data(metadata::Metadatum{<:ECCO4DarwinMonthly})
 
 Read a ECCO4DarwinMonthly data file and regrid using MeshArrays on to regular lat-lon grid
 """
-function retrieve_data(metadata::Metadatum{<:ECCO4DarwinMonthly})
+function retrieve_data(metadata::Metadatum{<:Union{ECCO4DarwinMonthly, ECCO2DarwinMonthly}})
     native_size = ECCO_darwin_native_size(metadata.dataset)
     native_grid = ECCO_darwin_native_grid(metadata.dataset)
     native_data = zeros(Float32, prod(native_size)) # Native LLC90 grid at precision of the input binary file
@@ -102,7 +124,6 @@ function retrieve_data(metadata::Metadatum{<:ECCO4DarwinMonthly})
     # Download the native grid data from MeshArrays repo (only if not in already in datadeps)
     native_grid_coords = GridLoad(native_grid; option="full")
 
-    
     # Check if the interpolation coefficients are already calculated
     interp_file = joinpath(dirname(metadata_path(metadata)),"native_interp_coeffs.jld2")
     if !isfile(interp_file)
@@ -110,24 +131,25 @@ function retrieve_data(metadata::Metadatum{<:ECCO4DarwinMonthly})
         resolution_X = 360/Nx
         resolution_Y = 180/Ny
 
-        # This is for ECCOv4 which uses a hemispheric coordinate system (-180:180), but 
-        # ECCO2 uses a circular coordinate system (0:360)
-        lon = [i for i = -180+resolution_X/2:resolution_X:180-resolution_X/2, 
-                     j = -90+resolution_Y/2:resolution_Y:90-resolution_Y/2]
-        lat = [j for i = -180+resolution_X/2:resolution_X:180-resolution_X/2, 
-                     j = -90+resolution_Y/2:resolution_Y:90-resolution_Y/2]
+        # Regular lat-lon grid
+        longitudes = longitude_interfaces(metadata.dataset)
+        latitudes  = latitude_interfaces(metadata.dataset)
+        lon = [i for i = longitudes[1]+resolution_X/2:resolution_X:longitudes[2]-resolution_X/2, 
+                     j = latitudes[1]+resolution_Y/2:resolution_Y:latitudes[2]-resolution_Y/2]
+        lat = [j for i = longitudes[1]+resolution_X/2:resolution_X:longitudes[2]-resolution_X/2, 
+                     j = latitudes[1]+resolution_Y/2:resolution_Y:latitudes[2]-resolution_Y/2]
         
         # Interpolation factors for the native grid
-        coeffs = interpolation_setup(; Γ=native_grid_coords, lat, lon)
+        coeffs = interpolation_setup(; Γ=native_grid_coords, lat, lon, interp_file)
 
-        # Now find and rescue the interp_file for later use (it's the most recent one in the temp dir)
-        tmp_interp_file = argmax(mtime, glob("*interp_coeffs.jld2", tempdir()))
+        ## Now find and rescue the interp_file for later use (it's the most recent one in the temp dir)
+        #tmp_interp_file = argmax(mtime, glob("*interp_coeffs.jld2", tempdir()))
 
-        # Move the file to the right location
-        mv(tmp_interp_file, interp_file)
-        ## old way, without saving the file ##
-        #(f, i, j, w, _, _, _) = InterpolationFactors(native_grid_coords, vec(lon), vec(lat))
-        #coeffs = (lon=lon, lat=lat, f=f, i=i, j=j, w=w)
+        ## Move the file to the right location
+        #mv(tmp_interp_file, interp_file)
+        ### old way, without saving the file ##
+        ##(f, i, j, w, _, _, _) = InterpolationFactors(native_grid_coords, vec(lon), vec(lat))
+        ##coeffs = (lon=lon, lat=lat, f=f, i=i, j=j, w=w)
     else
         # Read the coefficients from the file
         coeffs = interpolation_setup(interp_file)
