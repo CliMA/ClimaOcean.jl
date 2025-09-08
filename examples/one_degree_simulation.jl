@@ -1,110 +1,112 @@
-# # One-degree global ocean simulation
+# # One-degree global ocean--sea ice simulation
 #
 # This example configures a global ocean--sea ice simulation at 1ᵒ horizontal resolution with
-# realistic bathymetry, few closures. The simulation is forced by JRA55 atmospheric reanalysis
-# and initialized by temperature and salinity from ECCO2 state estimate.
+# realistic bathymetry and a few closures including the "Gent-McWilliams" `IsopycnalSkewSymmetricDiffusivity`.
+# The simulation is forced by repeat-year JRA55 atmospheric reanalysis
+# and initialized by temperature, salinity, sea ice concentration, and sea ice thickness
+# from the ECCO state estimate.
 #
-# For this example, we need Oceananigans, ClimaOcean, and
-# CairoMakie to visualize the simulation. Also we need CFTime and Dates for date handling.
+# For this example, we need Oceananigans, ClimaOcean, Dates, CUDA, and
+# CairoMakie to visualize the simulation.
 
 using ClimaOcean
-using ClimaOcean.ECCO
 using Oceananigans
 using Oceananigans.Units
 using Dates
 using Printf
-using ClimaOcean.ECCO: download_dataset
-
-# ### Download necessary files to run the code
-
-# ### ECCO files
-
-start_date = DateTime(1993, 1, 1) 
-stop_date = DateTime(1993, 12, 1) 
-dates = range(start_date, step=Month(1), stop=stop_date)
-ecco_temperature = Metadata(:temperature; dates, dataset=ECCO4Monthly())
-ecco_salinity = Metadata(:salinity; dates, dataset=ECCO4Monthly())
+using Statistics
+using CUDA
 
 # ### Grid and Bathymetry
+
+# We start by constructing an underlying TripolarGrid at ~1 degree resolution,
 
 arch = GPU()
 Nx = 360
 Ny = 180
-Nz = 40
+Nz = 50
 
-z = exponential_z_faces(; Nz, depth=4000, h=34)
+depth = 5000meters
+z = ExponentialCoordinate(Nz, -depth, 0; scale = depth/4)
+
 underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 
-## 75 interpolation passes smooth the bathymetry near Florida so that the Gulf Stream is able to flow:
+# Next, we build bathymetry on this grid, using interpolation passes to smooth the bathymetry.
+# With 2 major basins, we keep the Mediterranean (though we need to manually open the Gibraltar
+# Strait to connect it to the Atlantic):
+
 bottom_height = regrid_bathymetry(underlying_grid;
                                   minimum_depth = 10,
                                   interpolation_passes = 10,
                                   major_basins = 2)
 
-# For this bathymetry at this horizontal resolution we need to manually open the Gibraltar strait.
-grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); active_cells_map=true)
+# We then incorporate the bathymetry into an ImmersedBoundaryGrid,
 
-@info "We've built a grid:"
-@show grid
-
-# ### Restoring
-#
-# We include temperature and salinity surface restoring to ECCO data thoughout the water column.
-restoring_rate  = 1 / 3days
-mask = LinearlyTaperedPolarMask(southern=(-80, -70), northern=(70, 90), z=(z[1], 0))
-
-FT = DatasetRestoring(ecco_temperature, grid; mask, rate=restoring_rate)
-FS = DatasetRestoring(ecco_salinity, grid; mask, rate=restoring_rate)
-forcing = (T=FT, S=FS)
+grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height);
+                            active_cells_map=true)
 
 # ### Closures
 #
 # We include a Gent-McWilliams isopycnal diffusivity as a parameterization for the mesoscale
 # eddy fluxes. For vertical mixing at the upper-ocean boundary layer we include the CATKE
-# parameterization. We also include some explicit horizontal diffusivity.
+# parameterization.
 
-eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=2e3, κ_symmetric=2e3)
-vertical_mixing = Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivity(minimum_tke=1e-6)
-horizontal_viscosity = HorizontalScalarDiffusivity(ν=4000)
-closure = (eddy_closure, horizontal_viscosity, vertical_mixing)
+eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
+vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
 
 # ### Ocean simulation
 # Now we bring everything together to construct the ocean simulation.
-# We use a split-explicit timestepping with 70 substeps for the barotropic
-# mode.
+# We use a split-explicit timestepping with 70 substeps for the barotropic mode.
 
 free_surface       = SplitExplicitFreeSurface(grid; substeps=70)
 momentum_advection = WENOVectorInvariant(order=5)
 tracer_advection   = WENO(order=5)
 
-ocean = ocean_simulation(grid; momentum_advection, tracer_advection, closure, forcing, free_surface)
+ocean = ocean_simulation(grid; momentum_advection, tracer_advection, free_surface,
+                         timestepper = :SplitRungeKutta3,
+                         closure=(eddy_closure, vertical_mixing))
 
 @info "We've built an ocean simulation with model:"
 @show ocean.model
 
+# ### Sea Ice simulation
+#
+# We also build a sea ice simulation. We use the default configuration:
+# EVP rheology and a zero-layer thermodynamic model that advances thickness
+# and concentration.
+
+sea_ice = sea_ice_simulation(grid, ocean; advection=tracer_advection)
+
 # ### Initial condition
 
-# We initialize the ocean from the ECCO state estimate.
+# We initialize the ocean and sea ice models with data from the ECCO state estimate.
 
-set!(ocean.model, T=ecco_temperature[1], S=ecco_salinity[1])
+date = DateTime(1993, 1, 1)
+dataset = ECCO4Monthly()
+ecco_temperature = Metadatum(:temperature; date, dataset)
+ecco_salinity              = Metadatum(:salinity; date, dataset)
+ecco_sea_ice_thickness     = Metadatum(:sea_ice_thickness; date, dataset)
+ecco_sea_ice_concentration = Metadatum(:sea_ice_concentration; date, dataset)
+
+set!(ocean.model, T=ecco_temperature, S=ecco_salinity)
+set!(sea_ice.model, h=ecco_sea_ice_thickness, ℵ=ecco_sea_ice_concentration)
 
 # ### Atmospheric forcing
 
-# We force the simulation with an JRA55-do atmospheric reanalysis.
+# We force the simulation with a JRA55-do atmospheric reanalysis.
 radiation  = Radiation(arch)
-atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(20))
+atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(80),
+                                       include_rivers_and_icebergs = false)
 
 # ### Coupled simulation
 
 # Now we are ready to build the coupled ocean--sea ice model and bring everything
 # together into a `simulation`.
 
-# We use a relatively short time step initially and only run for a few days to
-# avoid numerical instabilities from the initial "shock" of the adjustment of the
-# flow fields.
+# With Runge-Kutta 3rd order time-stepping we can safely use a timestep of 20 minutes.
 
-coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
-simulation = Simulation(coupled_model; Δt=5minutes, stop_time=20days)
+coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+simulation = Simulation(coupled_model; Δt=20minutes, stop_time=365days)
 
 # ### A progress messenger
 #
@@ -117,119 +119,160 @@ function progress(sim)
     u, v, w = ocean.model.velocities
     T = ocean.model.tracers.T
     e = ocean.model.tracers.e
-    Tmin, Tmax = minimum(T), maximum(T)
-    emin, emax = minimum(e), maximum(e)
+    Tmin, Tmax, Tavg = minimum(T), maximum(T), mean(view(T, :, :, ocean.model.grid.Nz))
+    emax = maximum(e)
     umax = (maximum(abs, u), maximum(abs, v), maximum(abs, w))
-            
 
     step_time = 1e-9 * (time_ns() - wall_time[])
 
-    msg1 = @sprintf("time: %s, iteration: %d, Δt: %s, ", prettytime(sim), iteration(sim), prettytime(sim.Δt))
-    msg2 = @sprintf("max|u|: (%.2e, %.2e, %.2e) m s⁻¹, ", umax...)
-    msg3 = @sprintf("extrema(T): (%.2f, %.2f) ᵒC, ", Tmin, Tmax)
-    msg4 = @sprintf("extrema(e): (%.2f, %.2f) m² s⁻², ", emin, emax)
-    msg5 = @sprintf("wall time: %s \n", prettytime(step_time))
+    msg1 = @sprintf("time: %s, iter: %d", prettytime(sim), iteration(sim))
+    msg2 = @sprintf(", max|uo|: (%.1e, %.1e, %.1e) m s⁻¹", umax...)
+    msg3 = @sprintf(", extrema(To): (%.1f, %.1f) ᵒC, mean(To(z=0)): %.1f ᵒC", Tmin, Tmax, Tavg)
+    msg4 = @sprintf(", max(e): %.2f m² s⁻²", emax)
+    msg5 = @sprintf(", wall time: %s \n", prettytime(step_time))
 
     @info msg1 * msg2 * msg3 * msg4 * msg5
 
-     wall_time[] = time_ns()
+    wall_time[] = time_ns()
 
      return nothing
 end
 
 # And add it as a callback to the simulation.
-add_callback!(simulation, progress, IterationInterval(100))
+add_callback!(simulation, progress, TimeInterval(5days))
 
 # ### Output
 #
 # We are almost there! We need to save some output. Below we choose to save _only surface_
-# fields using the `indices` keyword argument. We save all velocity and tracer components.
+# fields using the `indices` keyword argument. We save all the velocity and tracer components.
 # Note, that besides temperature and salinity, the CATKE vertical mixing parameterization
 # also uses a prognostic turbulent kinetic energy, `e`, to diagnose the vertical mixing length.
 
-outputs = merge(ocean.model.tracers, ocean.model.velocities)
-ocean.output_writers[:surface] = JLD2Writer(ocean.model, outputs;
-                                            schedule = TimeInterval(5days),
-                                            filename = "one_degree_surface_fields",
+ocean_outputs = merge(ocean.model.tracers, ocean.model.velocities)
+sea_ice_outputs = merge((h = sea_ice.model.ice_thickness,
+                         ℵ = sea_ice.model.ice_concentration,
+                         T = sea_ice.model.ice_thermodynamics.top_surface_temperature),
+                         sea_ice.model.velocities)
+
+ocean.output_writers[:surface] = JLD2Writer(ocean.model, ocean_outputs;
+                                            schedule = TimeInterval(1days),
+                                            filename = "ocean_one_degree_surface_fields",
                                             indices = (:, :, grid.Nz),
                                             overwrite_existing = true)
+
+sea_ice.output_writers[:surface] = JLD2Writer(ocean.model, sea_ice_outputs;
+                                              schedule = TimeInterval(1days),
+                                              filename = "sea_ice_one_degree_surface_fields",
+                                              overwrite_existing = true)
 
 # ### Ready to run
 
 # We are ready to press the big red button and run the simulation.
-
-# After we run for a short time (here we set up the simulation with `stop_time = 10days`),
-# we increase the timestep and run for longer.
-
 run!(simulation)
 
-simulation.Δt = 20minutes
-simulation.stop_time = 360days
-run!(simulation)
-
-# ### A pretty movie
+# ### A movie
 #
-# We load the saved output and make a pretty movie of the simulation. First we plot a snapshot:
+# We load the saved output and make a movie of the simulation. First we plot a snapshot:
 using CairoMakie
 
-u = FieldTimeSeries("one_degree_surface_fields.jld2", "u"; backend = OnDisk())
-v = FieldTimeSeries("one_degree_surface_fields.jld2", "v"; backend = OnDisk())
-T = FieldTimeSeries("one_degree_surface_fields.jld2", "T"; backend = OnDisk())
-e = FieldTimeSeries("one_degree_surface_fields.jld2", "e"; backend = OnDisk())
+# We suffix the ocean fields with "o":
+uo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "u"; backend = OnDisk())
+vo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "v"; backend = OnDisk())
+To = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "T"; backend = OnDisk())
+eo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "e"; backend = OnDisk())
 
-times = u.times
+# and sea ice fields with "i":
+ui = FieldTimeSeries("sea_ice_one_degree_surface_fields.jld2", "u"; backend = OnDisk())
+vi = FieldTimeSeries("sea_ice_one_degree_surface_fields.jld2", "v"; backend = OnDisk())
+hi = FieldTimeSeries("sea_ice_one_degree_surface_fields.jld2", "h"; backend = OnDisk())
+ℵi = FieldTimeSeries("sea_ice_one_degree_surface_fields.jld2", "ℵ"; backend = OnDisk())
+Ti = FieldTimeSeries("sea_ice_one_degree_surface_fields.jld2", "T"; backend = OnDisk())
+
+times = uo.times
 Nt = length(times)
 n = Observable(Nt)
 
 # We create a land mask and use it to fill land points with `NaN`s.
-land = interior(T.grid.immersed_boundary.bottom_height) .≥ 0
+land = interior(To.grid.immersed_boundary.bottom_height) .≥ 0
 
-Tn = @lift begin
-    Tn = interior(T[$n])
-    Tn[land] .= NaN
-    view(Tn, :, :, 1)
+Toₙ = @lift begin
+    Tₙ = interior(To[$n])
+    Tₙ[land] .= NaN
+    view(Tₙ, :, :, 1)
 end
 
-en = @lift begin
-    en = interior(e[$n])
-    en[land] .= NaN
-    view(en, :, :, 1)
+eoₙ = @lift begin
+    eₙ = interior(eo[$n])
+    eₙ[land] .= NaN
+    view(eₙ, :, :, 1)
 end
 
-# We compute the surface speed.
-un = Field{Face, Center, Nothing}(u.grid)
-vn = Field{Center, Face, Nothing}(v.grid)
-s = Field(sqrt(un^2 + vn^2))
+heₙ = @lift begin
+    hₙ = interior(hi[$n])
+    ℵₙ = interior(ℵi[$n])
+    hₙ[land] .= NaN
+    view(hₙ, :, :, 1) .* view(ℵₙ, :, :, 1)
+end
 
-sn = @lift begin
-    parent(un) .= parent(u[$n])
-    parent(vn) .= parent(v[$n])
-    compute!(s)
-    sn = interior(s)
-    sn[land] .= NaN
-    view(sn, :, :, 1)
+# We compute the surface speeds for the ocean and the sea ice.
+uoₙ = Field{Face, Center, Nothing}(uo.grid)
+voₙ = Field{Center, Face, Nothing}(vo.grid)
+
+uiₙ = Field{Face, Center, Nothing}(ui.grid)
+viₙ = Field{Center, Face, Nothing}(vi.grid)
+
+so = Field(sqrt(uoₙ^2 + voₙ^2))
+si = Field(sqrt(uiₙ^2 + viₙ^2))
+
+soₙ = @lift begin
+    parent(uoₙ) .= parent(uo[$n])
+    parent(voₙ) .= parent(vo[$n])
+    compute!(so)
+    soₙ = interior(so)
+    soₙ[land] .= NaN
+    view(soₙ, :, :, 1)
+end
+
+siₙ = @lift begin
+    parent(uiₙ) .= parent(ui[$n])
+    parent(viₙ) .= parent(vi[$n])
+    compute!(si)
+    siₙ = interior(si)
+    hₙ = interior(hi[$n])
+    ℵₙ = interior(ℵi[$n])
+    he = hₙ .* ℵₙ
+    siₙ[he .< 1e-7] .= 0
+    siₙ[land] .= NaN
+    view(siₙ, :, :, 1)
 end
 
 # Finally, we plot a snapshot of the surface speed, temperature, and the turbulent
-# eddy kinetic energy from the CATKE vertical mixing parameterization.
-fig = Figure(size = (800, 1200))
+# eddy kinetic energy from the CATKE vertical mixing parameterization as well as the
+# sea ice speed and the effective sea ice thickness.
+fig = Figure(size=(1200, 1000))
 
 title = @lift string("Global 1ᵒ ocean simulation after ", prettytime(times[$n] - times[1]))
 
-axs = Axis(fig[1, 1])
-axT = Axis(fig[2, 1])
-axe = Axis(fig[3, 1])
+axso = Axis(fig[1, 1])
+axsi = Axis(fig[1, 3])
+axTo = Axis(fig[2, 1])
+axhi = Axis(fig[2, 3])
+axeo = Axis(fig[3, 1])
 
-hm = heatmap!(axs, sn, colorrange = (0, 0.5), colormap = :deep, nan_color=:lightgray)
-Colorbar(fig[1, 2], hm, label = "Surface speed (m s⁻¹)")
+hmo = heatmap!(axso, soₙ, colorrange = (0, 0.5), colormap = :deep,  nan_color=:lightgray)
+hmi = heatmap!(axsi, siₙ, colorrange = (0, 0.5), colormap = :greys, nan_color=:lightgray)
+Colorbar(fig[1, 2], hmo, label = "Ocean Surface speed (m s⁻¹)")
+Colorbar(fig[1, 4], hmi, label = "Sea ice speed (m s⁻¹)")
 
-hm = heatmap!(axT, Tn, colorrange = (-1, 30), colormap = :magma, nan_color=:lightgray)
-Colorbar(fig[2, 2], hm, label = "Surface Temperature (ᵒC)")
+hmo = heatmap!(axTo, Toₙ, colorrange = (-1, 32), colormap = :magma, nan_color=:lightgray)
+hmi = heatmap!(axhi, heₙ, colorrange =  (0, 4),  colormap = :blues, nan_color=:lightgray)
+Colorbar(fig[2, 2], hmo, label = "Surface Temperature (ᵒC)")
+Colorbar(fig[2, 4], hmi, label = "Effective ice thickness (m)")
 
-hm = heatmap!(axe, en, colorrange = (0, 1e-3), colormap = :solar, nan_color=:lightgray)
+hm = heatmap!(axeo, eoₙ, colorrange = (0, 1e-3), colormap = :solar, nan_color=:lightgray)
 Colorbar(fig[3, 2], hm, label = "Turbulent Kinetic Energy (m² s⁻²)")
 
-for ax in (axs, axT, axe)
+for ax in (axso, axsi, axTo, axhi, axeo)
     hidedecorations!(ax)
 end
 
@@ -242,7 +285,7 @@ nothing #hide
 
 # And now a movie:
 
-record(fig, "one_degree_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
+CairoMakie.record(fig, "one_degree_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
     n[] = nn
 end
 nothing #hide

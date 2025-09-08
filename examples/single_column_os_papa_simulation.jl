@@ -15,8 +15,6 @@
 # ```
 
 using ClimaOcean
-using ClimaOcean.ECCO
-using ClimaOcean.ECCO: download_dataset
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.BuoyancyFormulations: buoyancy_frequency
@@ -41,7 +39,7 @@ grid = RectilinearGrid(size = 200,
 
 # # An "ocean simulation"
 #
-# Next, we use ClimaOcean's ocean_simulation constructor to build a realistic
+# Next, we use ClimaOcean's `ocean_simulation` constructor to build a realistic
 # ocean simulation on the single-column grid,
 
 ocean = ocean_simulation(grid; Δt=10minutes, coriolis=FPlane(latitude = φ★))
@@ -50,17 +48,10 @@ ocean = ocean_simulation(grid; Δt=10minutes, coriolis=FPlane(latitude = φ★))
 
 ocean.model
 
-# We set initial conditions from ECCO:
-dates = DateTime(1993, 1, 1) : Month(1) : DateTime(1994, 1, 1)
-temperature = Metadata(:temperature; dates, dataset=ECCO4Monthly(), dir="./")
-salinity    = Metadata(:salinity;    dates, dataset=ECCO4Monthly(), dir="./")
+# We set initial conditions from ECCO4:
 
-download_dataset(temperature)
-download_dataset(salinity)
-
-set!(ocean.model, T=temperature[1],
-                  S=salinity[1],
-		  )
+set!(ocean.model, T=Metadatum(:temperature, dataset=ECCO4Monthly()),
+                  S=Metadatum(:salinity, dataset=ECCO4Monthly()))
 
 # # A prescribed atmosphere based on JRA55 re-analysis
 #
@@ -331,7 +322,7 @@ Smax = maximum(interior(S))
 Smin = minimum(interior(S))
 xlims!(axSz, Smin - 0.2, Smax + 0.2)
 
-record(fig, "single_column_profiles.mp4", 1:Nt, framerate=24) do nn
+CairoMakie.record(fig, "single_column_profiles.mp4", 1:Nt, framerate=24) do nn
     @info "Drawing frame $nn of $Nt..."
     n[] = nn
 end

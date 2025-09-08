@@ -11,7 +11,7 @@ using Downloads: download
 using Adapt
 using Scratch
 
-using ClimaOcean.DataWrangling:
+using ..DataWrangling:
     Metadata,
     Metadatum,
     BoundingBox,
@@ -30,7 +30,7 @@ using Dates: year, month, day
 using Oceananigans.DistributedComputations: @root
 
 using Dates
-import Downloads
+using Downloads
 import ZipFile
 
 import ClimaOcean.DataWrangling:
@@ -47,7 +47,8 @@ import ClimaOcean.DataWrangling:
     latitude_interfaces,
     is_three_dimensional,
     reversed_vertical_axis,
-    inpainted_metadata_path
+    inpainted_metadata_path,
+    available_variables
 
 import Oceananigans.Fields: location
 
@@ -71,6 +72,7 @@ reversed_vertical_axis(::EN4Monthly) = true
 
 longitude_interfaces(::EN4Monthly) = (0.5, 360.5)
 latitude_interfaces(::EN4Monthly) = (-83.5, 89.5)
+available_variables(::EN4Monthly) = EN4_dataset_variable_names
 
 z_interfaces(::EN4Monthly) = [
     -5500.0,

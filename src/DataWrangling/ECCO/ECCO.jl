@@ -42,7 +42,8 @@ import ClimaOcean.DataWrangling:
     is_three_dimensional,
     inpainted_metadata_path,
     reversed_vertical_axis,
-    default_mask_value
+    default_mask_value,
+    available_variables
 
 download_ECCO_cache::String = ""
 function __init__()
@@ -87,7 +88,8 @@ all_dates(::ECCO4Monthly, variable) = DateTime(1992, 1, 1) : Month(1) : DateTime
 all_dates(::ECCO2Monthly, variable) = DateTime(1992, 1, 1) : Month(1) : DateTime(2024, 12, 1)
 all_dates(::ECCO2Daily,   variable) = DateTime(1992, 1, 1) : Day(1)   : DateTime(2024, 12, 31)
 
-longitude_interfaces(::SomeECCODataset) = (-180, 180)
+longitude_interfaces(::SomeECCODataset) = (0, 360)
+longitude_interfaces(::ECCO4Monthly) = (-180, 180)
 latitude_interfaces(::SomeECCODataset) = (-90, 90)
 
 z_interfaces(::SomeECCODataset) = [
@@ -143,6 +145,10 @@ z_interfaces(::SomeECCODataset) = [
     -10.0,
       0.0,
 ]
+
+available_variables(::ECCO2Monthly) = ECCO2_dataset_variable_names
+available_variables(::ECCO2Daily)   = ECCO2_dataset_variable_names
+available_variables(::ECCO4Monthly) = ECCO4_dataset_variable_names
 
 ECCO4_dataset_variable_names = Dict(
     :temperature           => "THETA",
@@ -251,7 +257,7 @@ end
 
 function download_dataset(metadata::ECCOMetadata)
     username = get(ENV, "ECCO_USERNAME", nothing)
-    password = get(ENV, "ECCO_PASSWORD", nothing)
+    password = get(ENV, "ECCO_WEBDAV_PASSWORD", nothing)
     dir = metadata.dir
 
     # Create a temporary directory to store the .netrc file
@@ -270,14 +276,14 @@ function download_dataset(metadata::ECCOMetadata)
             if !isfile(filepath)
                 instructions_msg = "\n See ClimaOcean.jl/src/DataWrangling/ECCO/README.md for instructions."
                 if isnothing(username)
-                    msg = "Could not find the ECCO_PASSWORD environment variable. \
+                    msg = "Could not find the ECCO_USERNAME environment variable. \
                             See ClimaOcean.jl/src/DataWrangling/ECCO/README.md for instructions on obtaining \
-                            and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
+                            and setting your ECCO_USERNAME and ECCO_WEBDAV_PASSWORD." * instructions_msg
                     throw(ArgumentError(msg))
                 elseif isnothing(password)
-                    msg = "Could not find the ECCO_PASSWORD environment variable. \
+                    msg = "Could not find the ECCO_WEBDAV_PASSWORD environment variable. \
                             See ClimaOcean.jl/src/DataWrangling/ECCO/README.md for instructions on obtaining \
-                            and setting your ECCO_USERNAME and ECCO_PASSWORD." * instructions_msg
+                            and setting your ECCO_USERNAME and ECCO_WEBDAV_PASSWORD." * instructions_msg
                     throw(ArgumentError(msg))
                 end
                 @info "Downloading ECCO data: $(metadatum.name) in $(metadatum.dir)..."
