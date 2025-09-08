@@ -76,7 +76,7 @@ atmosphere.model.output.output_dt = Hour(3)
 # We decide to step the global model every 2 atmosphere time steps. (i.e. the ocean and the 
 # sea-ice will be stepped every two atmosphere time steps).
 
-Δt = 2 * convert(eltype(grid), atmosphere_model.time_stepping.Δt_sec)
+Δt = 2 * convert(eltype(grid), atmosphere.model.time_stepping.Δt_sec)
 
 # We build the complete model. Since radiation is idealized in this example, we set the emissivities to zero.
 
