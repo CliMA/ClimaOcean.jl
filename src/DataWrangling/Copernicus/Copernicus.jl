@@ -75,13 +75,7 @@ Base.size(::GLORYSBGCDaily) = (1440, 680, 75, 1)
 Base.size(::GLORYSBGCMonthly) = (1440, 680, 75, 1)
 reversed_vertical_axis(::CopernicusDataset) = true
 
-available_variables(::GLORYSStatic) = copernicus_physics_dataset_variable_names
-available_variables(::GLORYSDaily) = copernicus_physics_dataset_variable_names
-available_variables(::GLORYSMonthly) = copernicus_physics_dataset_variable_names
-available_variables(::GLORYSBGCDaily) = copernicus_bgc_daily_dataset_variable_names
-available_variables(::GLORYSBGCMonthly) = copernicus_bgc_monthly_dataset_variable_names
-
-copernicus_physics_dataset_variable_names = Dict(
+available_variables(::GLORYSStatic) = Dict(
     :temperature => "thetao",
     :depth => "deptho",
     :salinity => "so",
@@ -93,8 +87,9 @@ copernicus_physics_dataset_variable_names = Dict(
     :sea_ice_v_velocity => "vsi",
     :free_surface => "zos",
 )
-
-copernicus_bgc_daily_dataset_variable_names = Dict(
+available_variables(::GLORYSDaily) = available_variables(GLORYSStatic)
+available_variables(::GLORYSMonthly) = available_variables(GLORYSStatic)
+available_variables(::GLORYSBGCDaily) = Dict( 
     :total_chlorophyll => "chl",
     :primary_production => "nppv",
     :nitrate => "no3",
@@ -102,9 +97,36 @@ copernicus_bgc_daily_dataset_variable_names = Dict(
     :dissolved_silicate => "si",
     :dissolved_oxygen => "o2",
 )
+available_variables(::GLORYSBGCMonthly) = Dict( 
+    :total_chlorophyll => "chl",
+    :primary_production => "nppv",
+    :nitrate => "no3",
+    :phosphate => "po4",
+    :dissolved_silicate => "si",
+    :dissolved_oxygen => "o2",
+    :dissolved_iron => "fe",
+    :ph => "ph",
+    :surface_co2 => "spCO2",
+    :total_phytoplankton => "phyc",
+)
 
-copernicus_bgc_daily_dataset_variable_names_extended = Dict(
-    copernicus_bgc_daily_dataset_variable_names...,  # unpack entries
+copernicus_dataset_variable_names = Dict(
+    :temperature => "thetao",
+    :depth => "deptho",
+    :salinity => "so",
+    :sea_ice_concentration => "siconc",
+    :sea_ice_thickness => "sithick",
+    :u_velocity=> "uo",
+    :v_velocity=> "vo",
+    :sea_ice_u_velocity => "usi",
+    :sea_ice_v_velocity => "vsi",
+    :free_surface => "zos",
+    :total_chlorophyll => "chl",
+    :primary_production => "nppv",
+    :nitrate => "no3",
+    :phosphate => "po4",
+    :dissolved_silicate => "si",
+    :dissolved_oxygen => "o2",
     :dissolved_iron => "fe",
     :ph => "ph",
     :surface_co2 => "spCO2",
@@ -116,11 +138,7 @@ end_date_str(date) = string(date)
 start_date_str(dates::AbstractVector) = first(dates) |> string
 end_date_str(dates::AbstractVector) = last(dates) |> string
 
-dataset_variable_name(::GLORYSStatic) = copernicus_physics_dataset_variable_names[data.name]
-dataset_variable_name(::GLORYSDaily) = copernicus_physics_dataset_variable_names[data.name]
-dataset_variable_name(::GLORYSMonthly) = copernicus_physics_dataset_variable_names[data.name]
-dataset_variable_name(::GLORYSBGCDaily) = copernicus_bgc_daily_dataset_variable_names[data.name]
-dataset_variable_name(::GLORYSBGCMonthly) = copernicus_bgc_monthly_dataset_variable_names[data.name]
+dataset_variable_name(metadata::CopernicusMetadata) = copernicus_dataset_variable_names[metadata.name]
 
 bbox_strs(::Nothing) = "_nothing", "_nothing"
 
