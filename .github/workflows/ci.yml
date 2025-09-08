@@ -39,7 +39,7 @@ jobs:
             arch: aarch64
             version: '1.10'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: julia-actions/setup-julia@latest
         with:
           version: ${{ matrix.version }}
@@ -76,7 +76,7 @@ jobs:
             arch: aarch64
             version: '1.10'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: julia-actions/setup-julia@latest
         with:
           version: ${{ matrix.version }}
@@ -112,7 +112,7 @@ jobs:
             arch: aarch64
             version: '1.10'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: julia-actions/setup-julia@latest
         with:
           version: ${{ matrix.version }}
