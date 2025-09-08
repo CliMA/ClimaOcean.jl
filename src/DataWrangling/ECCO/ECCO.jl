@@ -51,10 +51,10 @@ function __init__()
 end
 
 # Datasets
-struct ECCO2Monthly end
-struct ECCO2Daily end
-struct ECCO4Monthly end
-const SomeECCODataset = Union{ECCO2Monthly, ECCO4Monthly, ECCO2Daily}
+abstract type SomeECCODataset end
+struct ECCO2Monthly <: SomeECCODataset end
+struct ECCO2Daily <: SomeECCODataset  end
+struct ECCO4Monthly <: SomeECCODataset  end
 
 function default_download_directory(::ECCO2Monthly)
     path = joinpath(download_ECCO_cache, "v2", "monthly")
