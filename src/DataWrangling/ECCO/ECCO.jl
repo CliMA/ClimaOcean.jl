@@ -46,7 +46,8 @@ import ClimaOcean.DataWrangling:
     inpainted_metadata_path,
     reversed_vertical_axis,
     default_mask_value,
-    available_variables
+    available_variables,
+    retrieve_data
 
 download_ECCO_cache::String = ""
 function __init__()
@@ -55,9 +56,9 @@ end
 
 # Datasets
 abstract type SomeECCODataset end
-struct ECCO2Monthly <: SomeECCODataset end
-struct ECCO2Daily <: SomeECCODataset  end
-struct ECCO4Monthly <: SomeECCODataset  end
+struct ECCO2Monthly <:SomeECCODataset end
+struct ECCO2Daily <:SomeECCODataset  end
+struct ECCO4Monthly <:SomeECCODataset  end
 
 include("ECCO_darwin.jl")
 

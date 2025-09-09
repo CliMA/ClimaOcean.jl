@@ -39,6 +39,31 @@ function native_grid(metadata::Metadata, arch=CPU(); halo = (3, 3, 3))
 end
 
 """
+    retrieve_data(metadata)
+Retrieve data from according to `metadata`.
+"""
+function retrieve_data(metadata::Metadatum)
+    path = metadata_path(metadata)
+    dsname = dataset_variable_name(metadata)
+    
+    # NetCDF shenanigans
+    ds = Dataset(path)
+
+    if is_three_dimensional(metadata)
+        data = ds[dsname][:, :, :, 1]
+
+        # Many ocean datasets use a "depth convention" for their vertical axis
+        if reversed_vertical_axis(metadata.dataset)
+            data = reverse(data, dims=3)
+        end
+        data = ds[dsname][:, :, 1]
+    end        
+
+    close(ds)
+    return data
+end
+
+"""
     Field(metadata::Metadatum;
           architecture = CPU(),
           inpainting = default_inpainting(metadata),
@@ -88,23 +113,8 @@ function Field(metadata::Metadatum, arch=CPU();
         end
     end
 
-    path = metadata_path(metadata)
-    dsname = dataset_variable_name(metadata)
-
-    # NetCDF shenanigans
-    ds = Dataset(path)
-    if is_three_dimensional(metadata)
-        data = ds[dsname][:, :, :, 1]
-
-        # Many ocean datasets use a "depth convention" for their vertical axis
-        if reversed_vertical_axis(metadata.dataset)
-            data = reverse(data, dims=3)
-        end
-    else
-        data = ds[dsname][:, :, 1]
-    end
-
-    close(ds)
+    # Retrieve data from file according to metadata type
+    data = retrieve_data(metadata)
 
     set_metadata_field!(field, data, metadata)
     fill_halo_regions!(field)
