@@ -9,6 +9,7 @@ using ParameterEstimocean.Utils: map_gpus_to_ranks!
 using ParameterEstimocean.Observations: FieldTimeSeriesCollector
 using ParameterEstimocean.Parameters: closure_with_parameters
 using JLD2
+using CUDA
 
 arch = GPU()
 

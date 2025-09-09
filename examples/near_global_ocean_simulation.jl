@@ -38,6 +38,7 @@ Nz = 40
 
 depth = 6000meters
 z = ExponentialCoordinate(Nz, -depth, 0)
+z = Oceananigans.Grids.MutableVerticalDiscretization(z)
 
 grid = LatitudeLongitudeGrid(arch;
                              size = (Nx, Ny, Nz),
@@ -104,7 +105,8 @@ radiation = Radiation(arch)
 # The number of snapshots that are loaded into memory is determined by
 # the `backend`. Here, we load 41 snapshots at a time into memory.
 
-atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(41))
+atmosphere = JRA55PrescribedAtmosphere(arch; backend = JRA55NetCDFBackend(41),
+                                       include_rivers_and_icebergs = false)
 
 # ## The coupled simulation
 

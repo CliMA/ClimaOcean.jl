@@ -1,29 +1,29 @@
 module PrescribedAtmospheres
 
 using Oceananigans
-using Oceananigans.Grids: grid_name
-using Oceananigans.Utils: prettysummary, Time
 using Oceananigans.Fields: Center
+using Oceananigans.Grids: grid_name
 using Oceananigans.OutputReaders: FieldTimeSeries, update_field_time_series!, extract_field_time_series
 using Oceananigans.TimeSteppers: Clock, tick!
+using Oceananigans.Utils: prettysummary, Time
 
 using Adapt
 using Thermodynamics.Parameters: AbstractThermodynamicsParameters
 
-import Oceananigans.TimeSteppers: time_step!
+import Oceananigans.TimeSteppers: time_step!, update_state!
 
 import Thermodynamics.Parameters:
     gas_constant,   #
     molmass_dryair, # Molar mass of dry air (without moisture)
     molmass_water,  # Molar mass of gaseous water vapor
-    molmass_ratio,  # Ratio of the molar masses of dry air to water vapor
+    Rv_over_Rd,     # Ratio of the specific gas constants of water vapor over dry air
     R_v,            # Specific gas constant for water vapor
     R_d,            # Specific gas constant for dry air
     kappa_d,        # Ideal gas adiabatic exponent for dry air
     T_0,            # Enthalpy reference temperature
     LH_v0,          # Vaporization enthalpy at the reference temperature
     LH_s0,          # Sublimation enthalpy at the reference temperature
-    LH_f0,          # Fusionn enthalpy at the reference temperature
+    LH_f0,          # Fusion enthalpy at the reference temperature
     cp_d,           # Heat capacity of dry air at constant pressure
     cp_v,           # Isobaric specific heat capacity of gaseous water vapor
     cp_l,           # Isobaric specific heat capacity of liquid water
@@ -31,7 +31,7 @@ import Thermodynamics.Parameters:
     cv_v,           # Heat capacity of dry air at constant volume
     cv_l,           # Isobaric specific heat capacity of liquid water
     cv_i,           # Isobaric specific heat capacity of liquid water
-    e_int_v0,       # what? someting about reference internal energy of water vapor
+    e_int_v0,       # what? something about reference internal energy of water vapor
     T_freeze,       # Freezing temperature of _pure_ water
     T_triple,       # Triple point temperature of _pure_ water
     press_triple,   # Triple point pressure of pure water
@@ -64,7 +64,7 @@ end
 Base.show(io::IO, p::ConstitutiveParameters) = print(io, summary(p))
 
 """
-    ConstitutiveParameters(FT = Float64;
+    ConstitutiveParameters(FT = Oceananigans.defaults.FloatType;
                            gas_constant       = 8.3144598,
                            dry_air_molar_mass = 0.02897,
                            water_molar_mass   = 0.018015)
@@ -76,7 +76,7 @@ Construct a set of parameters that define the density of moist air,
 ```
 
 where ``p`` is pressure, ``T`` is temperature, ``q`` defines the partition
-of total mass into vapor, liqiud, and ice mass fractions, and
+of total mass into vapor, liquid, and ice mass fractions, and
 ``Rᵐ`` is the effective specific gas constant for the mixture,
 
 ```math
@@ -102,7 +102,7 @@ const CP{FT} = ConstitutiveParameters{FT} where FT
 @inline gas_constant(p::CP)   = p.gas_constant
 @inline molmass_dryair(p::CP) = p.dry_air_molar_mass
 @inline molmass_water(p::CP)  = p.water_molar_mass
-@inline molmass_ratio(p::CP)  = molmass_dryair(p) / molmass_water(p)
+@inline Rv_over_Rd(p::CP)     = molmass_dryair(p) / molmass_water(p)
 @inline R_v(p::CP)            = gas_constant(p) / molmass_water(p)
 @inline R_d(p::CP)            = gas_constant(p) / molmass_dryair(p)
 
@@ -124,7 +124,7 @@ end
 Base.show(io::IO, p::HeatCapacityParameters) = print(io, summary(p))
 
 """
-    HeatCapacityParameters(FT = Float64,
+    HeatCapacityParameters(FT = Oceananigans.defaults.FloatType;
                            dry_air_adiabatic_exponent = 2/7,
                            water_vapor_heat_capacity = 1859,
                            liquid_water_heat_capacity = 4181,
@@ -213,9 +213,9 @@ end
 const ATP{FT} = AtmosphereThermodynamicsParameters{FT} where FT
 
 Base.eltype(::ATP{FT}) where FT = FT
-Base.eltype(::CP{FT})   where FT = FT
-Base.eltype(::HCP{FT})  where FT = FT
-Base.eltype(::PTP{FT})  where FT = FT
+Base.eltype(::CP{FT})  where FT = FT
+Base.eltype(::HCP{FT}) where FT = FT
+Base.eltype(::PTP{FT}) where FT = FT
 
 Base.summary(::ATP{FT}) where FT = "AtmosphereThermodynamicsParameters{$FT}"
 
@@ -247,9 +247,9 @@ function Base.show(io::IO, p::AtmosphereThermodynamicsParameters)
 end
 
 function AtmosphereThermodynamicsParameters(FT = Oceananigans.defaults.FloatType;
-                                                      constitutive = ConstitutiveParameters(FT),
-                                                      phase_transitions = PhaseTransitionParameters(FT),
-                                                      heat_capacity = HeatCapacityParameters(FT))
+                                            constitutive = ConstitutiveParameters(FT),
+                                            phase_transitions = PhaseTransitionParameters(FT),
+                                            heat_capacity = HeatCapacityParameters(FT))
 
     return AtmosphereThermodynamicsParameters(constitutive, heat_capacity, phase_transitions)
 end
@@ -261,7 +261,7 @@ const ATP = AtmosphereThermodynamicsParameters
 @inline gas_constant(p::ATP)   = gas_constant(p.constitutive)
 @inline molmass_dryair(p::ATP) = molmass_dryair(p.constitutive)
 @inline molmass_water(p::ATP)  = molmass_water(p.constitutive)
-@inline molmass_ratio(p::ATP)  = molmass_ratio(p.constitutive)
+@inline Rv_over_Rd(p::ATP)     = Rv_over_Rd(p.constitutive)
 @inline LH_v0(p::ATP)          = LH_v0(p.phase_transitions)
 @inline LH_s0(p::ATP)          = LH_s0(p.phase_transitions)
 @inline LH_f0(p::ATP)          = LH_f0(p.phase_transitions)
@@ -344,23 +344,29 @@ function default_freshwater_flux(grid, times)
     return (; rain, snow)
 end
 
-""" The standard unit of atmospheric pressure; 1 standard atmosphere (atm) = 101,325 Pascals (Pa) in SI units.
-This is approximately equal to the mean sea-level atmospheric pressure on Earth. """
+""" The standard unit of atmospheric pressure; 1 standard atmosphere (atm) = 101,325 Pascals (Pa)
+in SI units. This is approximately equal to the mean sea-level atmospheric pressure on Earth. """
 function default_atmosphere_pressure(grid, times)
     pa = FieldTimeSeries{Center, Center, Nothing}(grid, times)
     parent(pa) .= 101325
     return pa
 end
 
-@inline function time_step!(atmos::PrescribedAtmosphere, Δt)
-    tick!(atmos.clock, Δt)
 
+@inline function update_state!(atmos::PrescribedAtmosphere)
     time = Time(atmos.clock.time)
     ftses = extract_field_time_series(atmos)
 
     for fts in ftses
         update_field_time_series!(fts, time)
     end
+    return nothing
+end
+
+@inline function time_step!(atmos::PrescribedAtmosphere, Δt)
+    tick!(atmos.clock, Δt)
+
+    update_state!(atmos)
 
     return nothing
 end
@@ -371,11 +377,11 @@ end
 @inline boundary_layer_height(atmos::PrescribedAtmosphere) = atmos.boundary_layer_height
 
 """
-    PrescribedAtmosphere(grid, times;
+    PrescribedAtmosphere(grid, times=[zero(grid)];
                          clock = Clock{Float64}(time = 0),
                          surface_layer_height = 10, # meters
                          boundary_layer_height = 512 # meters,
-                         thermodynamics_parameters = AtmosphereThermodynamicsParameters(FT),
+                         thermodynamics_parameters = AtmosphereThermodynamicsParameters(eltype(grid)),
                          auxiliary_freshwater_flux = nothing,
                          velocities            = default_atmosphere_velocities(grid, times),
                          tracers               = default_atmosphere_tracers(grid, times),
@@ -390,7 +396,7 @@ function PrescribedAtmosphere(grid, times=[zero(grid)];
                               clock = Clock{Float64}(time = 0),
                               surface_layer_height = 10,
                               boundary_layer_height = 512,
-                              thermodynamics_parameters = nothing,
+                              thermodynamics_parameters = AtmosphereThermodynamicsParameters(eltype(grid)),
                               auxiliary_freshwater_flux = nothing,
                               velocities            = default_atmosphere_velocities(grid, times),
                               tracers               = default_atmosphere_tracers(grid, times),

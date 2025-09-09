@@ -24,10 +24,11 @@ using CUDA
 arch = GPU()
 Nx = 360
 Ny = 180
-Nz = 40
+Nz = 50
 
-depth = 4000meters
-z = ExponentialCoordinate(Nz, -depth, 0; scale = 0.85*depth)
+depth = 5000meters
+z = ExponentialCoordinate(Nz, -depth, 0; scale = depth/4)
+
 underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 
 # Next, we build bathymetry on this grid, using interpolation passes to smooth the bathymetry.
@@ -48,33 +49,33 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height);
 #
 # We include a Gent-McWilliams isopycnal diffusivity as a parameterization for the mesoscale
 # eddy fluxes. For vertical mixing at the upper-ocean boundary layer we include the CATKE
-# parameterization. We also include some explicit horizontal diffusivity.
+# parameterization.
 
-eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=2e3, κ_symmetric=2e3)
-vertical_mixing = Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivity(minimum_tke=1e-6)
-horizontal_viscosity = HorizontalScalarDiffusivity(ν=4000)
+eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
+vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
 
 # ### Ocean simulation
 # Now we bring everything together to construct the ocean simulation.
-# We use a split-explicit timestepping with 70 substeps for the barotropic
-# mode.
+# We use a split-explicit timestepping with 70 substeps for the barotropic mode.
 
 free_surface       = SplitExplicitFreeSurface(grid; substeps=70)
 momentum_advection = WENOVectorInvariant(order=5)
 tracer_advection   = WENO(order=5)
 
 ocean = ocean_simulation(grid; momentum_advection, tracer_advection, free_surface,
-                         closure=(eddy_closure, horizontal_viscosity, vertical_mixing))
+                         timestepper = :SplitRungeKutta3,
+                         closure=(eddy_closure, vertical_mixing))
 
 @info "We've built an ocean simulation with model:"
 @show ocean.model
 
 # ### Sea Ice simulation
-# We also need to build a sea ice simulation. We use the default configuration:
+#
+# We also build a sea ice simulation. We use the default configuration:
 # EVP rheology and a zero-layer thermodynamic model that advances thickness
 # and concentration.
 
-seaice = sea_ice_simulation(grid, ocean; advection=tracer_advection)
+sea_ice = sea_ice_simulation(grid, ocean; advection=tracer_advection)
 
 # ### Initial condition
 
@@ -83,30 +84,29 @@ seaice = sea_ice_simulation(grid, ocean; advection=tracer_advection)
 date = DateTime(1993, 1, 1)
 dataset = ECCO4Monthly()
 ecco_temperature = Metadatum(:temperature; date, dataset)
-ecco_salinity = Metadatum(:salinity; date, dataset)
-ecco_sea_ice_thickness = Metadatum(:sea_ice_thickness; date, dataset)
+ecco_salinity              = Metadatum(:salinity; date, dataset)
+ecco_sea_ice_thickness     = Metadatum(:sea_ice_thickness; date, dataset)
 ecco_sea_ice_concentration = Metadatum(:sea_ice_concentration; date, dataset)
 
 set!(ocean.model, T=ecco_temperature, S=ecco_salinity)
-set!(seaice.model, h=ecco_sea_ice_thickness, ℵ=ecco_sea_ice_concentration)
+set!(sea_ice.model, h=ecco_sea_ice_thickness, ℵ=ecco_sea_ice_concentration)
 
 # ### Atmospheric forcing
 
 # We force the simulation with a JRA55-do atmospheric reanalysis.
 radiation  = Radiation(arch)
-atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(80))
+atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(80),
+                                       include_rivers_and_icebergs = false)
 
 # ### Coupled simulation
 
 # Now we are ready to build the coupled ocean--sea ice model and bring everything
 # together into a `simulation`.
 
-# We use a relatively short time step initially and only run for a few days to
-# avoid numerical instabilities from the initial "shock" of the adjustment of the
-# flow fields.
+# With Runge-Kutta 3rd order time-stepping we can safely use a timestep of 20 minutes.
 
-coupled_model = OceanSeaIceModel(ocean, seaice; atmosphere, radiation)
-simulation = Simulation(coupled_model; Δt=8minutes, stop_time=20days)
+coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+simulation = Simulation(coupled_model; Δt=20minutes, stop_time=365days)
 
 # ### A progress messenger
 #
@@ -139,7 +139,7 @@ function progress(sim)
 end
 
 # And add it as a callback to the simulation.
-add_callback!(simulation, progress, IterationInterval(1000))
+add_callback!(simulation, progress, TimeInterval(5days))
 
 # ### Output
 #
@@ -149,33 +149,25 @@ add_callback!(simulation, progress, IterationInterval(1000))
 # also uses a prognostic turbulent kinetic energy, `e`, to diagnose the vertical mixing length.
 
 ocean_outputs = merge(ocean.model.tracers, ocean.model.velocities)
-seaice_outputs = merge((h = seaice.model.ice_thickness,
-                        ℵ = seaice.model.ice_concentration,
-                        T = seaice.model.ice_thermodynamics.top_surface_temperature),
-                        seaice.model.velocities)
+sea_ice_outputs = merge((h = sea_ice.model.ice_thickness,
+                         ℵ = sea_ice.model.ice_concentration,
+                         T = sea_ice.model.ice_thermodynamics.top_surface_temperature),
+                         sea_ice.model.velocities)
 
 ocean.output_writers[:surface] = JLD2Writer(ocean.model, ocean_outputs;
-                                            schedule = TimeInterval(5days),
+                                            schedule = TimeInterval(1days),
                                             filename = "ocean_one_degree_surface_fields",
                                             indices = (:, :, grid.Nz),
                                             overwrite_existing = true)
 
-seaice.output_writers[:surface] = JLD2Writer(ocean.model, seaice_outputs;
-                                             schedule = TimeInterval(5days),
-                                             filename = "seaice_one_degree_surface_fields",
-                                             overwrite_existing = true)
+sea_ice.output_writers[:surface] = JLD2Writer(ocean.model, sea_ice_outputs;
+                                              schedule = TimeInterval(1days),
+                                              filename = "sea_ice_one_degree_surface_fields",
+                                              overwrite_existing = true)
 
 # ### Ready to run
 
 # We are ready to press the big red button and run the simulation.
-
-# After we run for a short time (here we set up the simulation with `stop_time = 20days`),
-# we increase the timestep and run for longer.
-
-run!(simulation)
-
-simulation.Δt = 30minutes
-simulation.stop_time = 365days
 run!(simulation)
 
 # ### A movie
@@ -190,11 +182,11 @@ To = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "T"; backend = OnD
 eo = FieldTimeSeries("ocean_one_degree_surface_fields.jld2",  "e"; backend = OnDisk())
 
 # and sea ice fields with "i":
-ui = FieldTimeSeries("seaice_one_degree_surface_fields.jld2", "u"; backend = OnDisk())
-vi = FieldTimeSeries("seaice_one_degree_surface_fields.jld2", "v"; backend = OnDisk())
-hi = FieldTimeSeries("seaice_one_degree_surface_fields.jld2", "h"; backend = OnDisk())
-ℵi = FieldTimeSeries("seaice_one_degree_surface_fields.jld2", "ℵ"; backend = OnDisk())
-Ti = FieldTimeSeries("seaice_one_degree_surface_fields.jld2", "T"; backend = OnDisk())
+ui = FieldTimeSeries("sea_ice_one_degree_surface_fields.jld2", "u"; backend = OnDisk())
+vi = FieldTimeSeries("sea_ice_one_degree_surface_fields.jld2", "v"; backend = OnDisk())
+hi = FieldTimeSeries("sea_ice_one_degree_surface_fields.jld2", "h"; backend = OnDisk())
+ℵi = FieldTimeSeries("sea_ice_one_degree_surface_fields.jld2", "ℵ"; backend = OnDisk())
+Ti = FieldTimeSeries("sea_ice_one_degree_surface_fields.jld2", "T"; backend = OnDisk())
 
 times = uo.times
 Nt = length(times)
