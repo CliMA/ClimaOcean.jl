@@ -6,7 +6,7 @@
 # and initialized by temperature, salinity, sea ice concentration, and sea ice thickness
 # from the ECCO state estimate.
 #
-# For this example, we need Oceananigans (the ocean), ClimaSeaIce (the sea ice) and 
+# For this example, we need Oceananigans.HydrostaticFreeSurfaceModel (the ocean), ClimaSeaIce.SeaIceModel (the sea ice) and 
 # SpeedyWeather (the atmosphere), coupled and orchestrated by ClimaOcean (the coupled model).
 
 using Oceananigans, ClimaSeaIce, SpeedyWeather, ClimaOcean
