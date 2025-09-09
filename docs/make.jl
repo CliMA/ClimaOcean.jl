@@ -21,7 +21,7 @@ to_be_literated = [
     "single_column_os_papa_simulation.jl",
     "one_degree_simulation.jl",
     "near_global_ocean_simulation.jl",
-    "coupled_simulation.jl",
+    "atmosphere_ocean_simulation.jl",
 ]
 
 for file in to_be_literated
