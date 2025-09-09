@@ -7,7 +7,7 @@
 # from the ECCO state estimate.
 #
 # For this example, we need Oceananigans.HydrostaticFreeSurfaceModel (the ocean), ClimaSeaIce.SeaIceModel (the sea ice) and 
-# SpeedyWeather (the atmosphere), coupled and orchestrated by ClimaOcean (the coupled model).
+# SpeedyWeather (the atmosphere), coupled and orchestrated by ClimaOcean.OceanSeaIceModel (the coupled system).
 
 using Oceananigans, ClimaSeaIce, SpeedyWeather, ClimaOcean
 using NCDatasets, CairoMakie
