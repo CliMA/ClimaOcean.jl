@@ -206,6 +206,10 @@ end
 @kernel function _set_2d_metadata_field!(field, data, mangling, temp_units)
     i, j = @index(Global, NTuple)
     d = mangle(i, j, data, mangling)
+    
+    FT = eltype(field)
+    d = nan_convert_missing(FT, d)
+    
     d = convert_temperature(d, temp_units)
     @inbounds field[i, j, 1] = d
 end
