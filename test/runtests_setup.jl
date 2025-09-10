@@ -26,8 +26,8 @@ start_date = DateTimeProlepticGregorian(1993, 1, 1)
 test_datasets = (ECCO2Monthly(), 
                  ECCO2Daily(), 
                  ECCO4Monthly(), 
-                 #ECCO2DarwinMonthly(),
-                 #ECCO4DarwinMonthly(),
+                 ECCO2DarwinMonthly(),
+                 ECCO4DarwinMonthly(),
                  EN4Monthly(),
                 )
 

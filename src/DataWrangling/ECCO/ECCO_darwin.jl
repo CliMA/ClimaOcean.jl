@@ -1,4 +1,5 @@
 using MeshArrays
+using JLD2
 using Glob
 
 struct ECCO2DarwinMonthly <:SomeECCODataset end
@@ -140,7 +141,7 @@ function retrieve_data(metadata::Metadatum{<:Union{ECCO4DarwinMonthly, ECCO2Darw
                      j = latitudes[1]+resolution_Y/2:resolution_Y:latitudes[2]-resolution_Y/2]
         
         # Interpolation factors for the native grid
-        coeffs = interpolation_setup(; Γ=native_grid_coords, lat, lon, interp_file)
+        coeffs = interpolation_setup(; Γ=native_grid_coords, lat, lon, filename=interp_file)
 
         ## Now find and rescue the interp_file for later use (it's the most recent one in the temp dir)
         #tmp_interp_file = argmax(mtime, glob("*interp_coeffs.jld2", tempdir()))
