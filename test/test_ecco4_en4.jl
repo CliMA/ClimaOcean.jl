@@ -81,9 +81,9 @@ for arch in test_architectures, dataset in test_ecco_en4_datasets
                                            fldnames=test_fields[dataset])
         end
 
-        #@testset "Inpainting algorithm" begin
-        #    test_inpainting_algorithm(arch, dataset, start_date, inpainting, 
-        #                              varnames=test_names[dataset])
-        #end
+        @testset "Inpainting algorithm" begin
+            test_inpainting_algorithm(arch, dataset, start_date, inpainting, 
+                                      varnames=test_names[dataset])
+        end
     end
 end

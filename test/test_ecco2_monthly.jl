@@ -48,19 +48,25 @@ for arch in test_architectures, dataset in test_ecco_datasets
         end
 
         @testset "Setting a field from a dataset" begin
-            test_setting_from_metadata(arch, dataset, start_date, inpainting)
+            test_setting_from_metadata(arch, dataset, start_date, inpainting, 
+                                       varnames=test_names[dataset])
         end
 
         @testset "Field utilities" begin
-            test_ocean_metadata_utilities(arch, dataset, dates, inpainting)
+            test_ocean_metadata_utilities(arch, dataset, dates, inpainting,
+                                          varnames=test_names[dataset])
         end
 
         @testset "DatasetRestoring with LinearlyTaperedPolarMask" begin
-            test_dataset_restoring(arch, dataset, dates, inpainting)
+            test_dataset_restoring(arch, dataset, dates, inpainting, 
+                                   varnames=test_names[dataset],
+                                   fldnames=test_fields[dataset])
         end
 
         @testset "Timestepping with DatasetRestoring" begin
-            test_timestepping_with_dataset_restoring(arch, dataset, dates, inpainting)
+            test_timestepping_with_dataset_restoring(arch, dataset, dates, inpainting, 
+                                                     varnames=test_names[dataset], 
+                                                     fldnames=test_fields[dataset])
         end
 
         # @testset "Dataset cycling boundaries" begin

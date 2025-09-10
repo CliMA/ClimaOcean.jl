@@ -269,27 +269,28 @@ end
 function test_inpainting_algorithm(arch, dataset, start_date, inpainting; 
                                    varnames = (:temperature, :salinity),
                                   )
-    metadatum = Metadatum(varnames[end]; dataset, date=start_date)
+    for name in varnames
+        var_metadatum = Metadatum(name; dataset, date=start_date)
 
-    grid = LatitudeLongitudeGrid(arch,
+        grid = LatitudeLongitudeGrid(arch,
                                  size = (20, 20, 10),
                                  latitude = (-75, 75),
                                  longitude = (0, 360),
                                  z = (-4000, 0),
                                  halo = (6, 6, 6))
 
-    fully_inpainted_field = CenterField(grid)
-    partially_inpainted_field = CenterField(grid)
+        fully_inpainted_field = CenterField(grid)
+        partially_inpainted_field = CenterField(grid)
 
-    set!(fully_inpainted_field, metadatum; inpainting = NearestNeighborInpainting(Inf))
-    set!(partially_inpainted_field, metadatum; inpainting = NearestNeighborInpainting(1))
+        set!(fully_inpainted_field, var_metadatum; inpainting = NearestNeighborInpainting(Inf))
+        set!(partially_inpainted_field, var_metadatum; inpainting = NearestNeighborInpainting(1))
 
-    fully_inpainted_interior = on_architecture(CPU(), interior(fully_inpainted_field))
-    partially_inpainted_interior = on_architecture(CPU(), interior(partially_inpainted_field))
+        fully_inpainted_interior = on_architecture(CPU(), interior(fully_inpainted_field))
+        partially_inpainted_interior = on_architecture(CPU(), interior(partially_inpainted_field))
 
-    @test all(fully_inpainted_interior .!= 0)
-    @test any(partially_inpainted_interior .== 0)
-
+        @test all(fully_inpainted_interior .!= 0)
+         any(partially_inpainted_interior .== 0)
+    end
     return nothing
 end
 
