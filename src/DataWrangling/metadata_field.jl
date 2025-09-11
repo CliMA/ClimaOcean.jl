@@ -56,6 +56,7 @@ function retrieve_data(metadata::Metadatum)
         if reversed_vertical_axis(metadata.dataset)
             data = reverse(data, dims=3)
         end
+    else
         data = ds[dsname][:, :, 1]
     end        
 
