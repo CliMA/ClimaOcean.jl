@@ -39,6 +39,8 @@ function metadata_filename(metadata::Metadatum{<:Union{ECCO2DarwinMonthly, ECCO4
 end
 
 # Convenience functions
+default_mask_value(::ECCO4DarwinMonthly) = 0
+default_mask_value(::ECCO2DarwinMonthly) = 0
 
 dataset_variable_name(data::Metadata{<:Union{ECCO2DarwinMonthly,ECCO4DarwinMonthly}}) = ECCO_darwin_dataset_variable_names[data.name]
 
@@ -140,19 +142,10 @@ function retrieve_data(metadata::Metadatum{<:Union{ECCO4DarwinMonthly, ECCO2Darw
         lat = [j for i = longitudes[1]+resolution_X/2:resolution_X:longitudes[2]-resolution_X/2, 
                      j = latitudes[1]+resolution_Y/2:resolution_Y:latitudes[2]-resolution_Y/2]
         
-        # Interpolation factors for the native grid
+        # Interpolation factors for the native grid (writes out to a file "interp_file" for later use)
         coeffs = interpolation_setup(; Γ=native_grid_coords, lat, lon, filename=interp_file)
-
-        ## Now find and rescue the interp_file for later use (it's the most recent one in the temp dir)
-        #tmp_interp_file = argmax(mtime, glob("*interp_coeffs.jld2", tempdir()))
-
-        ## Move the file to the right location
-        #mv(tmp_interp_file, interp_file)
-        ### old way, without saving the file ##
-        ##(f, i, j, w, _, _, _) = InterpolationFactors(native_grid_coords, vec(lon), vec(lat))
-        ##coeffs = (lon=lon, lat=lat, f=f, i=i, j=j, w=w)
     else
-        # Read the coefficients from the file
+        # Read the coefficients from the file that was previously calculated
         coeffs = interpolation_setup(interp_file)
     end
 
