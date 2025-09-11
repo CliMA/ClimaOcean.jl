@@ -1,6 +1,8 @@
 module Diagnostics
 
 export MixedLayerDepthField, MixedLayerDepthOperand
+export regrid_tracers!, regridder_weights
+
 
 using Oceananigans
 using Oceananigans.Architectures: architecture
@@ -15,5 +17,8 @@ import Oceananigans.Fields: compute!
 using KernelAbstractions: @index, @kernel
 
 include("mixed_layer_depth.jl")
+include("regridder.jl")
 
-end # module
+using .Regridder
+
+end # module Diagnostics
