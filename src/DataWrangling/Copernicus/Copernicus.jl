@@ -33,7 +33,7 @@ end
 
 # Datasets
 abstract type CopernicusDataset end
-abstract type GLORYSDataset <: CopernicusDataset 
+abstract type GLORYSDataset <: CopernicusDataset end
 
 default_download_directory(::CopernicusDataset) = download_Copernicus_cache
 
