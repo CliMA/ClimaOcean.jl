@@ -31,7 +31,7 @@ test_datasets = (ECCO2Monthly(),
                  EN4Monthly(),
                 )
 
-                test_names = Dict(
+test_names = Dict(
     ECCO2Monthly() => (:temperature, :salinity),
     ECCO2Daily() => (:temperature, :salinity),
     ECCO4Monthly() => (:temperature, :salinity),
@@ -48,14 +48,14 @@ test_fields = Dict(
     ECCO2DarwinMonthly() => (:T, :S, :PO₄),
     EN4Monthly() => (:T, :S),
 )
+
 #####
 ##### Test utilities
 #####
-
 function test_setting_from_metadata(arch, dataset, start_date, inpainting;
                                     loc = (Center, Center, Center),
-                                    varnames = (:temperature, :salinity))
-
+                                    varnames = (:temperature, :salinity),
+                                   )
     grid = LatitudeLongitudeGrid(arch;
                                  size = (10, 10, 10),
                                  latitude = (-60, -40),
@@ -106,7 +106,8 @@ function test_timestepping_with_dataset(arch, dataset, start_date, inpainting;
 end
 
 function test_ocean_metadata_utilities(arch, dataset, dates, inpainting;
-                                      varnames = (:temperature, :salinity))
+                                       varnames = (:temperature, :salinity),
+                                      )
     for name in varnames
         metadata = Metadata(name; dates, dataset)
         restoring = DatasetRestoring(metadata, arch; rate=1/1000, inpainting)
@@ -168,9 +169,6 @@ function test_dataset_restoring(arch, dataset, dates, inpainting;
         fill!(var_restoring.field_time_series[1], 1.0)
         fill!(var_restoring.field_time_series[2], 1.0)
 
-        #T = CenterField(grid)
-        #S = CenterField(grid)
-        #fields = (; T, S)
         field = NamedTuple{fldnames}(ntuple(i->CenterField(grid), length(fldnames)))
         clock  = Clock(; time = 0)
 
@@ -204,8 +202,11 @@ function test_timestepping_with_dataset_restoring(arch, dataset, dates, inpainti
     forcing = NamedTuple{
                 (fldnames)
             }(
-                ntuple(i->DatasetRestoring(Metadata(varnames[i]; dates, dataset), arch;  inpainting, rate=1/1000), length(varnames))
-            )
+                ntuple(i->DatasetRestoring(
+                                           Metadata(varnames[i]; dates, dataset), 
+                                           arch; inpainting, rate=1/1000
+                                          ), length(varnames))
+             )
 
     ocean = ocean_simulation(grid; tracers=fldnames, forcing, verbose=false)
     
@@ -219,9 +220,9 @@ function test_timestepping_with_dataset_restoring(arch, dataset, dates, inpainti
 end
 
 function test_cycling_dataset_restoring(arch, dataset, dates, inpainting;
-                                       varnames = (:temperature, :salinity),
-                                       fldnames = (:T, :S),
-                                      )
+                                        varnames = (:temperature, :salinity),
+                                        fldnames = (:T, :S),
+                                       )
     grid = LatitudeLongitudeGrid(arch;
                                  size = (10, 10, 10),
                                  latitude = (-60, -40),
@@ -243,7 +244,7 @@ function test_cycling_dataset_restoring(arch, dataset, dates, inpainting;
                 (fldnames[end],)
             }(
                 (DatasetRestoring(metadata, arch;  time_indices_in_memory, inpainting, rate=1/1000),)
-            )
+             )
 
         times = native_times(forcing[1].field_time_series.backend.metadata)
         ocean = ocean_simulation(grid, tracers=fldnames, forcing=forcing)
@@ -302,7 +303,7 @@ function test_inpainting_algorithm(arch, dataset, start_date, inpainting;
         partially_inpainted_interior = on_architecture(CPU(), interior(partially_inpainted_field))
 
         @test all(fully_inpainted_interior .!= 0)
-         any(partially_inpainted_interior .== 0)
+        any(partially_inpainted_interior .== 0)
     end
     return nothing
 end
