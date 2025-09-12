@@ -115,14 +115,14 @@ Read a ECCO4DarwinMonthly data file and regrid using MeshArrays on to regular la
 function retrieve_data(metadata::Metadatum{<:Union{ECCO4DarwinMonthly, ECCO2DarwinMonthly}})
     native_size = ECCO_darwin_native_size(metadata.dataset)
     native_grid = ECCO_darwin_native_grid(metadata.dataset)
-    native_data = zeros(Float32, prod(native_size)) # Native LLC90 grid at precision of the input binary file
+    native_data = zeros(Float32, prod(native_size)) # Native LLC grid at precision of the input binary file
 
     read!(metadata_path(metadata), native_data)
     native_data = bswap.(native_data)
 
     meshed_data   = read(reshape(native_data, native_size...), native_grid)
     Nx, Ny, Nz, _ = size(metadata)
-    data          = zeros(Float32, Nx, Ny, Nz) # Native LLC90 grid at precision of the input binary file
+    data          = zeros(Float32, Nx, Ny, Nz) # Native LLC grid at precision of the input binary file
     mask          = zeros(Float32, Nx, Ny, Nz)
 
     # Download the native grid data from MeshArrays repo (only if not in already in datadeps)
@@ -156,7 +156,7 @@ function retrieve_data(metadata::Metadatum{<:Union{ECCO4DarwinMonthly, ECCO2Darw
     # Interpolate each masked layer on to the native lat lon grid
     for k in 1:Nz
         i, j, c = MeshArrays.Interpolate(
-            meshed_data[:, k] * land_mask(native_grid_fac_center[:, k]), 
+            meshed_data[:, k], 
             coeffs,
         )
         data[:, :, k] = c
@@ -169,9 +169,10 @@ function retrieve_data(metadata::Metadatum{<:Union{ECCO4DarwinMonthly, ECCO2Darw
     
     # Reverse the z-axis
     data = reverse(data, dims=3)
+    mask = reverse(mask, dims=3)
 
     # Fill NaNs in Antarctica with zeros
-    data[isnan.(data)] .= 0.f0
+    data[isnan.(data)] .= default_mask_value(metadata.dataset)
 
     # Scale data according to metadata.scale_factor
     return (data .* ECCO_darwin_scale_factor[metadata.name] .+ ECCO_darwin_offset_factor[metadata.name]) .* mask
