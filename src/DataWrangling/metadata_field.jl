@@ -44,20 +44,20 @@ Retrieve data from according to `metadata`.
 """
 function retrieve_data(metadata::Metadatum)
     path = metadata_path(metadata)
-    dsname = dataset_variable_name(metadata)
+    name = dataset_variable_name(metadata)
     
     # NetCDF shenanigans
     ds = Dataset(path)
 
     if is_three_dimensional(metadata)
-        data = ds[dsname][:, :, :, 1]
+        data = ds[name][:, :, :, 1]
 
         # Many ocean datasets use a "depth convention" for their vertical axis
         if reversed_vertical_axis(metadata.dataset)
             data = reverse(data, dims=3)
         end
     else
-        data = ds[dsname][:, :, 1]
+        data = ds[name][:, :, 1]
     end        
 
     close(ds)
