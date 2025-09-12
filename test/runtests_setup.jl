@@ -31,6 +31,23 @@ test_datasets = (ECCO2Monthly(),
                  EN4Monthly(),
                 )
 
+                test_names = Dict(
+    ECCO2Monthly() => (:temperature, :salinity),
+    ECCO2Daily() => (:temperature, :salinity),
+    ECCO4Monthly() => (:temperature, :salinity),
+    ECCO4DarwinMonthly() => (:temperature, :salinity, :PO₄),
+    ECCO2DarwinMonthly() => (:temperature, :salinity, :PO₄),
+    EN4Monthly() => (:temperature, :salinity),
+)
+
+test_fields = Dict(
+    ECCO2Monthly() => (:T, :S),
+    ECCO2Daily() => (:T, :S),
+    ECCO4Monthly() => (:T, :S),
+    ECCO4DarwinMonthly() => (:T, :S, :PO₄),
+    ECCO2DarwinMonthly() => (:T, :S, :PO₄),
+    EN4Monthly() => (:T, :S),
+)
 #####
 ##### Test utilities
 #####
@@ -293,21 +310,3 @@ function test_inpainting_algorithm(arch, dataset, start_date, inpainting;
     end
     return nothing
 end
-
-test_names = Dict(
-    ECCO2Monthly() => (:temperature, :salinity),
-    ECCO2Daily() => (:temperature, :salinity),
-    ECCO4Monthly() => (:temperature, :salinity),
-    ECCO4DarwinMonthly() => (:temperature, :salinity, :PO₄),
-    ECCO2DarwinMonthly() => (:temperature, :salinity, :PO₄),
-    EN4Monthly() => (:temperature, :salinity),
-)
-
-test_fields = Dict(
-    ECCO2Monthly() => (:T, :S),
-    ECCO2Daily() => (:T, :S),
-    ECCO4Monthly() => (:T, :S),
-    ECCO4DarwinMonthly() => (:T, :S, :PO₄),
-    ECCO2DarwinMonthly() => (:T, :S, :PO₄),
-    EN4Monthly() => (:T, :S),
-)
