@@ -123,7 +123,8 @@ function retrieve_data(metadata::Metadatum{<:Union{ECCO4DarwinMonthly, ECCO2Darw
     meshed_data   = read(reshape(native_data, native_size...), native_grid)
     Nx, Ny, Nz, _ = size(metadata)
     data          = zeros(Float32, Nx, Ny, Nz) # Native LLC90 grid at precision of the input binary file
-    
+    mask          = zeros(Float32, Nx, Ny, Nz)
+
     # Download the native grid data from MeshArrays repo (only if not in already in datadeps)
     native_grid_coords = GridLoad(native_grid; option="full")
 
@@ -159,6 +160,11 @@ function retrieve_data(metadata::Metadatum{<:Union{ECCO4DarwinMonthly, ECCO2Darw
             coeffs,
         )
         data[:, :, k] = c
+        i, j, c = MeshArrays.Interpolate(
+            land_mask(native_grid_fac_center[:, k]), 
+            coeffs,
+        )
+        mask[:, :, k] = c
     end
     
     # Reverse the z-axis
@@ -168,5 +174,5 @@ function retrieve_data(metadata::Metadatum{<:Union{ECCO4DarwinMonthly, ECCO2Darw
     data[isnan.(data)] .= 0.f0
 
     # Scale data according to metadata.scale_factor
-    return data .* ECCO_darwin_scale_factor[metadata.name] .+ ECCO_darwin_offset_factor[metadata.name]
+    return (data .* ECCO_darwin_scale_factor[metadata.name] .+ ECCO_darwin_offset_factor[metadata.name]) .* mask
 end
