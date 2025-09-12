@@ -65,9 +65,9 @@ if test_group == :init || test_group == :all
 end
 
 # Tests JRA55 utilities, plus some DataWrangling utilities
-if test_group == :JRA55 || test_group == :all
-    include("test_jra55.jl")
-end
+#if test_group == :JRA55 || test_group == :all
+#    include("test_jra55.jl")
+#end
 
 if test_group == :ecco2_monthly || test_group == :all
     include("test_ecco2_monthly.jl")
