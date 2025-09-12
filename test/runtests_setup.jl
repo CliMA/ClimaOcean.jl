@@ -200,10 +200,6 @@ function test_timestepping_with_dataset_restoring(arch, dataset, dates, inpainti
                                  z = (-200, 0),
                                  halo = (6, 6, 6))
 
-    #T_meta = Metadata(:temperature; dates, dataset)
-    #T_forcing = DatasetRestoring(T_meta, arch; inpainting, rate=1/1000)
-    #
-    #ocean = ocean_simulation(grid; forcing = (; T = T_forcing), verbose=false)
     # Dynamically create name of forcing based on dataset field name
     forcing = NamedTuple{
                 (fldnames)
@@ -241,7 +237,7 @@ function test_cycling_dataset_restoring(arch, dataset, dates, inpainting;
     metadata2 = Metadata(varnames[end]; start_date, end_date, dataset)
 
     for metadata in (metadata1, metadata2)
-        #T_restoring = DatasetRestoring(Tmetadata, arch; time_indices_in_memory, inpainting, rate=1/1000)
+        # Dynamically create name of forcing based on dataset field name
         # Dynamically create name of forcing based on dataset field name
         forcing = NamedTuple{
                 (fldnames[end],)

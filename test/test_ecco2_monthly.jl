@@ -15,7 +15,6 @@ using CUDA: @allowscalar
 # Inpaint only the first two cells inside the missing mask
 inpainting = NearestNeighborInpainting(2)
 
-#dataset = ECCO2Monthly()
 test_ecco_datasets = tuple((ds for ds in test_datasets if occursin(r"^ECCO2.*Monthly",string(typeof(ds)),))...)
 
 start_date = DateTime(1993, 1, 1)
