@@ -3,7 +3,7 @@
 The [`DataWrangling`](@ref ClimaOcean.DataWrangling) module allows us to use various datasets
 in ClimaOcean simulations.
 
-A central concept in the `DataWrangling` module is that of [`Metadata`](@ref).
+A core concept in the `DataWrangling` module is that of [`Metadata`](@ref).
 Metadata is a collection of information for the dataset, like the dataset's name, the variable
 that it involves, the date range, where the dataset is stored locally.
 
