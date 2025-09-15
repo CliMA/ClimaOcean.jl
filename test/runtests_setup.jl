@@ -303,7 +303,7 @@ function test_inpainting_algorithm(arch, dataset, start_date, inpainting;
         partially_inpainted_interior = on_architecture(CPU(), interior(partially_inpainted_field))
 
         @test all(fully_inpainted_interior .!= 0)
-        any(partially_inpainted_interior .== 0)
+        @test any(partially_inpainted_interior .== 0)
     end
     return nothing
 end
