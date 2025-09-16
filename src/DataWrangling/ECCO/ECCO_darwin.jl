@@ -69,6 +69,10 @@ ECCO_darwin_dataset_variable_names = Dict(
     :Siᵀ => "SiO2",
 )
 
+# Scale factors and offsets to convert from the output data to standard units
+# salinity = SALTanom + 35
+# concentrations of biogeochemical tracers are in mmol/m^3 in the output files
+# we convert them to mol/m^3 here
 ECCO_darwin_scale_factor = Dict(
     :temperature => 1,
     :salinity    => 1,
