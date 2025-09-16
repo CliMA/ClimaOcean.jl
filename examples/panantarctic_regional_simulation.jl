@@ -31,8 +31,8 @@ using Printf
 # We start by constructing a the grid around Antarctica.
 
 arch = GPU()
-Nx = 720
-Ny = 120
+Nx = 1440
+Ny = 240
 Nz = 40
 
 depth = 6000meters
