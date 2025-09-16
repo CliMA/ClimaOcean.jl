@@ -14,22 +14,30 @@ Base.size(::Metadatum{<:ECCO4DarwinMonthly})    = (720,  360, 50, 1)
 Base.size(data::Metadata{<:ECCO2DarwinMonthly}) = (1440, 720, 50, length(data.dates))
 Base.size(::Metadatum{<:ECCO2DarwinMonthly})    = (1440, 720, 50, 1)
 
+metadata_time_step(::Metadatum{<:ECCO4DarwinMonthly}) = 3600
+metadata_epoch(::Metadatum{<:ECCO4DarwinMonthly}) = DateTime(1992, 1, 1, 12, 0, 0)
+
+metadata_time_step(::Metadatum{<:ECCO2DarwinMonthly}) = 1200
+metadata_epoch(::Metadatum{<:ECCO2DarwinMonthly}) = DateTime(1992, 1, 1, 0, 0, 0)
+
 # The whole range of dates in the different dataset datasets
-all_dates(::ECCO4DarwinMonthly, name) = DateTime(1992, 1, 1) : Month(1) : DateTime(2023, 3, 1)
-all_dates(::ECCO2DarwinMonthly, name) = DateTime(1992, 1, 1) : Month(1) : DateTime(2025, 5, 1)
-
-ECCO_Darwin_timestep(::Metadatum{<:ECCO4DarwinMonthly}) = 3600
-ECCO_Darwin_timeref(::Metadatum{<:ECCO4DarwinMonthly}) = DateTimeProlepticGregorian(1992, 1, 1, 12, 0, 0)
-
-ECCO_Darwin_timestep(::Metadatum{<:ECCO2DarwinMonthly}) = 1200
-ECCO_Darwin_timeref(::Metadatum{<:ECCO2DarwinMonthly}) = DateTimeProlepticGregorian(1992, 1, 1, 0, 0, 0)
+all_dates(dataset::ECCO4DarwinMonthly, name) = metadata_epoch(dataset) : Month(1) : DateTime(2023, 3, 1)
+all_dates(dataset::ECCO2DarwinMonthly, name) = metadata_epoch(dataset) : Month(1) : DateTime(2025, 5, 1)
 
 # File name generation specific to each Dataset dataset
+"""
+    metadata_filename(metadata::Metadatum{<:Union{ECCO2DarwinMonthly, ECCO4DarwinMonthly}})
+
+Generate the filename for a given ECCO Darwin dataset and date.
+
+The filename is constructed using the dataset variable name, and the iteration number is calculated
+from the date and epoch.
+"""
 function metadata_filename(metadata::Metadatum{<:Union{ECCO2DarwinMonthly, ECCO4DarwinMonthly}})
     shortname = dataset_variable_name(metadata)
-    
-    reference_date = ECCO_Darwin_timeref(metadata)
-    timestep_size  = ECCO_Darwin_timestep(metadata)
+
+    reference_date = metadata_epoch(metadata)
+    timestep_size  = metadata_time_step(metadata)
 
     # Explicitly convert to Int to avoid return of a float
     iternum = Int(Dates.value((metadata.dates - reference_date) / (timestep_size * 1e3)))

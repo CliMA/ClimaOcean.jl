@@ -89,10 +89,12 @@ const ECCO2_url = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_qua
 const ECCO4_url = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly/"
 
 # The whole range of dates in the different dataset datasets
+metadata_epoch(::SomeECCODataset) = DateTime(1992, 1, 1)
+
 all_dates(dataset::SomeECCODataset) = all_dates(dataset, nothing)
-all_dates(::ECCO4Monthly, variable) = DateTime(1992, 1, 1) : Month(1) : DateTime(2017, 12, 1)
-all_dates(::ECCO2Monthly, variable) = DateTime(1992, 1, 1) : Month(1) : DateTime(2024, 12, 1)
-all_dates(::ECCO2Daily,   variable) = DateTime(1992, 1, 1) : Day(1)   : DateTime(2024, 12, 31)
+all_dates(dataset::ECCO4Monthly, variable) = metadata_epoch(dataset) : Month(1) : DateTime(2017, 12, 1)
+all_dates(dataset::ECCO2Monthly, variable) = metadata_epoch(dataset) : Month(1) : DateTime(2024, 12, 1)
+all_dates(dataset::ECCO2Daily,   variable) = metadata_epoch(dataset) : Day(1)   : DateTime(2024, 12, 31)
 
 longitude_interfaces(::SomeECCODataset) = (0, 360)
 longitude_interfaces(::ECCO4Monthly) = (-180, 180)
