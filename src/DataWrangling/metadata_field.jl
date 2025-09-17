@@ -40,6 +40,7 @@ end
 
 """
     retrieve_data(metadata)
+    
 Retrieve data from according to `metadata`.
 """
 function retrieve_data(metadata::Metadatum)
