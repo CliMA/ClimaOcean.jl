@@ -41,7 +41,7 @@ end
 """
     retrieve_data(metadata)
     
-Retrieve data from according to `metadata`.
+Retrieve data from netcdf file according to `metadata`.
 """
 function retrieve_data(metadata::Metadatum)
     path = metadata_path(metadata)
