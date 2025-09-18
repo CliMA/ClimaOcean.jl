@@ -21,6 +21,8 @@ using ClimaOcean.DataWrangling:
     BoundingBox,
     metadata_path,
     Celsius,
+    GramPerKilogramMinus35,
+    MicromolePerLiter,
     Metadata,
     Metadatum,
     download_progress
@@ -37,6 +39,7 @@ import ClimaOcean.DataWrangling:
     metadata_filename,
     download_dataset,
     temperature_units,
+    concentration_units,
     dataset_variable_name,
     metaprefix,
     longitude_interfaces,
@@ -59,8 +62,8 @@ end
 # Datasets
 abstract type ECCODataset end
 struct ECCO2Monthly <:ECCODataset end
-struct ECCO2Daily   <:ECCODataset  end
-struct ECCO4Monthly <:ECCODataset  end
+struct ECCO2Daily   <:ECCODataset end
+struct ECCO4Monthly <:ECCODataset end
 
 include("ECCO_darwin.jl")
 

@@ -191,6 +191,12 @@ function set_metadata_field!(field, data, metadatum)
         nothing
     end
 
+    conc_units = if metadatum.name != :temperature
+        concentration_units(metadatum)
+    else
+        nothing
+    end
+
     if ndims(data) == 2
         _kernel = _set_2d_metadata_field!
         spec = :xy
@@ -200,33 +206,41 @@ function set_metadata_field!(field, data, metadatum)
     end
 
     data = on_architecture(arch, data)
-    Oceananigans.Utils.launch!(arch, grid, spec, _kernel, field, data, mangling, temp_units)
+    Oceananigans.Utils.launch!(arch, grid, spec, _kernel, field, data, mangling, temp_units, conc_units)
 
     return nothing
 end
 
-@kernel function _set_2d_metadata_field!(field, data, mangling, temp_units)
+@kernel function _set_2d_metadata_field!(field, data, mangling, temp_units, conc_units)
     i, j = @index(Global, NTuple)
     d = mangle(i, j, data, mangling)
     
     FT = eltype(field)
     d = nan_convert_missing(FT, d)
     
-    d = convert_temperature(d, temp_units)
+    if !isnothing(temp_units)
+        d = convert_temperature(d, temp_units)
+    elseif !isnothing(conc_units)
+        d = convert_concentration(d, conc_units)
+    end
     @inbounds field[i, j, 1] = d
 end
 
 @inline nan_convert_missing(FT, ::Missing) = convert(FT, NaN)
 @inline nan_convert_missing(FT, d::Number) = convert(FT, d)
 
-@kernel function _set_3d_metadata_field!(field, data, mangling, temp_units)
+@kernel function _set_3d_metadata_field!(field, data, mangling, temp_units, conc_units)
     i, j, k = @index(Global, NTuple)
     d = mangle(i, j, k, data, mangling)
 
     FT = eltype(field)
     d = nan_convert_missing(FT, d)
 
-    d = convert_temperature(d, temp_units)
+    if !isnothing(temp_units)
+        d = convert_temperature(d, temp_units)
+    elseif !isnothing(conc_units)
+        d = convert_concentration(d, conc_units)
+    end
     @inbounds field[i, j, k] = d
 end
 
@@ -234,6 +248,30 @@ end
 @inline function convert_temperature(T::FT, ::Kelvin) where FT
     T₀ = convert(FT, 273.15)
     return T - T₀
+end
+
+@inline convert_concentration(C, units) = C
+@inline function convert_concentration(C::FT, ::Union{MolePerLiter, MolePerKilogram}) where FT
+    return C * convert(FT, 1e3)
+end
+@inline function convert_concentration(C::FT, ::Union{MillimolePerLiter, MillimolePerKilogram}) where FT
+    return C * convert(FT, 1)
+end
+@inline function convert_concentration(C::FT, ::Union{MicromolePerLiter, MicromolePerKilogram}) where FT
+    return C * convert(FT, 1e-3)
+end
+@inline function convert_concentration(C::FT, ::Union{NanomolePerLiter, NanomolePerKilogram}) where FT
+    return C * convert(FT, 1e-6)
+end
+@inline function convert_concentration(C::FT, ::MilliliterPerLiter) where FT
+    return C / convert(FT, 22.3916)
+end
+@inline function convert_concentration(C::FT, ::GramPerKilogramMinus35) where FT
+    if !isnan(C)
+        return C + convert(FT, 35)
+    else
+        return C
+    end
 end
 
 

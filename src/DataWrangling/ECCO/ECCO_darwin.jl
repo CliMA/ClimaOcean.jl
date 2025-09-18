@@ -70,37 +70,16 @@ ECCO_darwin_dataset_variable_names = Dict(
     :dissolved_oxygen               => "O2",
 )
 
-# Scale factors and offsets to convert from the output data to standard units
+# Set up conversion from the output data to standard units
 # salinity = SALTanom + 35
-# concentrations of biogeochemical tracers are in mmol/m^3 in the output files
-# we convert them to mol/m^3 here
-ECCO_darwin_scale_factor = Dict(
-    :temperature                    => 1,
-    :salinity                       => 1,
-    :dissolved_inorganic_carbon     => 1e-3,
-    :alkalinity                     => 1e-3,
-    :phosphate                      => 1e-3,
-    :nitrate                        => 1e-3,
-    :dissolved_organic_phosphorus   => 1e-3,
-    :particulate_organic_phosphorus => 1e-3,
-    :dissolved_iron                 => 1e-3,
-    :dissolved_silicate             => 1e-3,
-    :dissolved_oxygen               => 1e-3,
-)
-
-ECCO_darwin_offset_factor = Dict(
-    :temperature                    => 0,
-    :salinity                       => 35,
-    :dissolved_inorganic_carbon     => 0,
-    :alkalinity                     => 0,
-    :phosphate                      => 0,
-    :nitrate                        => 0,
-    :dissolved_organic_phosphorus   => 0,
-    :particulate_organic_phosphorus => 0,
-    :dissolved_iron                 => 0,
-    :dissolved_silicate             => 0,
-    :dissolved_oxygen               => 0,
-)
+# concentrations of biogeochemical tracers are in uL => umol/L in the output files
+function concentration_units(metadatum::Metadatum{<:Union{ECCO2DarwinMonthly, ECCO4DarwinMonthly}}) 
+    if dataset_variable_name(metadatum) == "SALTanom"
+        return GramPerKilogramMinus35()
+    elseif dataset_variable_name(metadatum) != "THETA"
+        return MicromolePerLiter()
+    end
+end
 
 function default_download_directory(::ECCO4DarwinMonthly)
     path = joinpath(download_ECCO_cache, "v4_darwin", "monthly")
@@ -190,6 +169,5 @@ function retrieve_data(metadata::Metadatum{<:Union{ECCO4DarwinMonthly, ECCO2Darw
     # Fill NaNs in Antarctica with zeros
     data[isnan.(data)] .= default_mask_value(metadata.dataset)
 
-    # Scale data according to metadata.scale_factor
-    return (data .* ECCO_darwin_scale_factor[metadata.name] .+ ECCO_darwin_offset_factor[metadata.name]) .* mask
+    return data .* mask
 end
