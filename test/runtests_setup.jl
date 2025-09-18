@@ -35,8 +35,8 @@ test_names = Dict(
     ECCO2Monthly() => (:temperature, :salinity),
     ECCO2Daily() => (:temperature, :salinity),
     ECCO4Monthly() => (:temperature, :salinity),
-    ECCO4DarwinMonthly() => (:temperature, :salinity, :PO₄),
-    ECCO2DarwinMonthly() => (:temperature, :salinity, :PO₄),
+    ECCO4DarwinMonthly() => (:temperature, :salinity, :phosphate),
+    ECCO2DarwinMonthly() => (:temperature, :salinity, :phosphate),
     EN4Monthly() => (:temperature, :salinity),
 )
 
