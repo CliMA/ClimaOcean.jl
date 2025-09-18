@@ -184,6 +184,8 @@ function longitude_interfaces end
 function latitude_interfaces end
 function reversed_vertical_axis end
 function native_grid end
+function binary_data_grid end
+function binary_data_size end
 
 default_mask_value(dataset) = NaN
 

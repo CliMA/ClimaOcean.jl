@@ -112,10 +112,11 @@ end
 metadata_url(m::Metadata{<:ECCO4DarwinMonthly}) = ECCO4Darwin_url * "monthly/" * dataset_variable_name(m) * "/" * metadata_filename(m)
 metadata_url(m::Metadata{<:ECCO2DarwinMonthly}) = ECCO2Darwin_url * "monthly/" * dataset_variable_name(m) * "/" * metadata_filename(m)
 
-ECCO_darwin_native_grid(::ECCO4DarwinMonthly) = GridSpec(ID=:LLC90)
-ECCO_darwin_native_size(::ECCO4DarwinMonthly) = (90, 1170, 50)
-ECCO_darwin_native_grid(::ECCO2DarwinMonthly) = GridSpec(ID=:LLC270)
-ECCO_darwin_native_size(::ECCO2DarwinMonthly) = (270, 3510, 50)
+# Functions for reading the ECCO binary files using MeshArrays
+binary_data_grid(::ECCO4DarwinMonthly) = GridSpec(ID=:LLC90)
+binary_data_size(::ECCO4DarwinMonthly) = (90, 1170, 50)
+binary_data_grid(::ECCO2DarwinMonthly) = GridSpec(ID=:LLC270)
+binary_data_size(::ECCO2DarwinMonthly) = (270, 3510, 50)
 
 longitude_interfaces(::ECCO4DarwinMonthly) = (-180, 180)
 
@@ -125,8 +126,8 @@ longitude_interfaces(::ECCO4DarwinMonthly) = (-180, 180)
 Read a ECCO4DarwinMonthly data file and regrid using MeshArrays on to regular lat-lon grid
 """
 function retrieve_data(metadata::Metadatum{<:Union{ECCO4DarwinMonthly, ECCO2DarwinMonthly}})
-    native_size = ECCO_darwin_native_size(metadata.dataset)
-    native_grid = ECCO_darwin_native_grid(metadata.dataset)
+    native_size = binary_data_size(metadata.dataset)
+    native_grid = binary_data_grid(metadata.dataset)
     native_data = zeros(Float32, prod(native_size)) # Native LLC grid at precision of the input binary file
 
     read!(metadata_path(metadata), native_data)

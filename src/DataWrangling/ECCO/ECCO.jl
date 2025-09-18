@@ -47,7 +47,9 @@ import ClimaOcean.DataWrangling:
     reversed_vertical_axis,
     default_mask_value,
     available_variables,
-    retrieve_data
+    retrieve_data,
+    binary_data_grid,
+    binary_data_size
 
 download_ECCO_cache::String = ""
 function __init__()
