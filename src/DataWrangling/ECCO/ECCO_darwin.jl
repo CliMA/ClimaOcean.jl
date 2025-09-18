@@ -70,9 +70,13 @@ ECCO_darwin_dataset_variable_names = Dict(
     :dissolved_oxygen               => "O2",
 )
 
-# Set up conversion from the output data to standard units
-# salinity = SALTanom + 35
-# concentrations of biogeochemical tracers are in uL => umol/L in the output files
+"""
+    function concentration_units(metadatum::Metadatum{<:Union{ECCO2DarwinMonthly, ECCO4DarwinMonthly}}) 
+
+Set up conversion from the ECCODarwin output data to standard units
+  -  salinity = SALTanom + 35
+  -  biogeochemical tracer concentrations are in uL => umol/L in the output files
+"""
 function concentration_units(metadatum::Metadatum{<:Union{ECCO2DarwinMonthly, ECCO4DarwinMonthly}}) 
     if dataset_variable_name(metadatum) == "SALTanom"
         return GramPerKilogramMinus35()
