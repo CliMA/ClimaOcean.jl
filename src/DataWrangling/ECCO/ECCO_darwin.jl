@@ -78,6 +78,8 @@ function concentration_units(metadatum::Metadatum{<:Union{ECCO2DarwinMonthly, EC
         return GramPerKilogramMinus35()
     elseif dataset_variable_name(metadatum) != "THETA"
         return MicromolePerLiter()
+    else
+        return nothing
     end
 end
 
