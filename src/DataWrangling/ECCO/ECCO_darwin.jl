@@ -2,8 +2,8 @@ using MeshArrays
 using JLD2
 using Glob
 
-struct ECCO2DarwinMonthly <:SomeECCODataset end
-struct ECCO4DarwinMonthly <:SomeECCODataset end
+struct ECCO2DarwinMonthly <:ECCODataset end
+struct ECCO4DarwinMonthly <:ECCODataset end
 
 # URLs for the ECCO datasets specific to each version
 const ECCO4Darwin_url = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/LLC90/ECCO-Darwin/"
