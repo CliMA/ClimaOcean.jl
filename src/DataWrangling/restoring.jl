@@ -18,51 +18,60 @@ struct Temperature end
 struct Salinity end
 struct UVelocity end
 struct VVelocity end
-# Add ECCO Darwin fields
-struct DIC end
-struct ALK end
-struct NO₃ end
-struct PO₄ end
-struct DOP end
-struct POP end
-struct Fe end
+# Add ClimaOceanBiogeochemistry fields
+struct DissolvedInorganicCarbon end
+struct Alkalinity end
+struct Nitrate end
+struct Phosphate end
+struct DissolvedOrganicPhosphorus end
+struct ParticulateOrganicPhosphorus end
+struct DissolvedIron end
+struct DissolvedSilicate end
+struct DissolvedOxygen end
 
-const oceananigans_fieldnames = Dict(:temperature => Temperature(),
-                                     :salinity    => Salinity(),
-                                     :u_velocity  => UVelocity(),
-                                     :v_velocity  => VVelocity(),
-                                     :DIC         => DIC(),
-                                     :ALK         => ALK(),
-				                     :PO₄         => PO₄(),
-                                     :NO₃         => NO₃(),                                     
-                                     :DOP         => DOP(),
-                                     :POP         => POP(),
-                                     :Fe          => Fe(),
-                                     )
+const oceananigans_fieldnames = Dict(
+    :temperature                    => Temperature(),
+    :salinity                       => Salinity(),
+    :u_velocity                     => UVelocity(),
+    :v_velocity                     => VVelocity(),
+    :dissolved_inorganic_carbon     => DissolvedInorganicCarbon(),
+    :alkalinity                     => Alkalinity(),
+	:phosphate                      => Phosphate(),
+    :nitrate                        => Nitrate(),                                     
+    :dissolved_organic_phosphorus   => DissolvedOrganicPhosphorus(),
+    :particulate_organic_phosphorus => ParticulateOrganicPhosphorus(),
+    :dissolved_iron                 => DissolvedIron(),
+    :dissolved_silicate             => DissolvedSilicate(),
+    :dissolved_oxygen               => DissolvedOxygen(),
+    )
 
-@inline Base.getindex(fields, i, j, k, ::Temperature) = @inbounds fields.T[i, j, k]
-@inline Base.getindex(fields, i, j, k, ::Salinity)    = @inbounds fields.S[i, j, k]
-@inline Base.getindex(fields, i, j, k, ::UVelocity)   = @inbounds fields.u[i, j, k]
-@inline Base.getindex(fields, i, j, k, ::VVelocity)   = @inbounds fields.v[i, j, k]
-@inline Base.getindex(fields, i, j, k, ::DIC)         = @inbounds fields.DIC[i, j, k]
-@inline Base.getindex(fields, i, j, k, ::ALK)         = @inbounds fields.ALK[i, j, k]
-@inline Base.getindex(fields, i, j, k, ::PO₄)         = @inbounds fields.PO₄[i, j, k]
-@inline Base.getindex(fields, i, j, k, ::NO₃)         = @inbounds fields.NO₃[i, j, k]
-@inline Base.getindex(fields, i, j, k, ::DOP)         = @inbounds fields.DOP[i, j, k]
-@inline Base.getindex(fields, i, j, k, ::POP)         = @inbounds fields.POP[i, j, k]
-@inline Base.getindex(fields, i, j, k, ::Fe)          = @inbounds fields.Fe[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::Temperature)                  = @inbounds fields.T[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::Salinity)                     = @inbounds fields.S[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::UVelocity)                    = @inbounds fields.u[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::VVelocity)                    = @inbounds fields.v[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::DissolvedInorganicCarbon)     = @inbounds fields.DIC[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::Alkalinity)                   = @inbounds fields.ALK[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::Phosphate)                    = @inbounds fields.PO₄[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::Nitrate)                      = @inbounds fields.NO₃[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::DissolvedOrganicPhosphorus)   = @inbounds fields.DOP[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::ParticulateOrganicPhosphorus) = @inbounds fields.POP[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::DissolvedIron)                = @inbounds fields.Fe[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::DissolvedSilicate)            = @inbounds fields.SiO2[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::DissolvedOxygen)              = @inbounds fields.O2[i, j, k]
 
-Base.summary(::Temperature) = "temperature"
-Base.summary(::Salinity)    = "salinity"
-Base.summary(::UVelocity)   = "u_velocity"
-Base.summary(::VVelocity)   = "v_velocity"
-Base.summary(::DIC)         = "DIC"
-Base.summary(::ALK)         = "ALK"
-Base.summary(::PO₄)         = "PO₄"
-Base.summary(::NO₃)         = "NO₃"
-Base.summary(::DOP)         = "DOP"
-Base.summary(::POP)         = "POP"
-Base.summary(::Fe)          = "Fe"
+Base.summary(::Temperature)                  = "temperature"
+Base.summary(::Salinity)                     = "salinity"
+Base.summary(::UVelocity)                    = "u_velocity"
+Base.summary(::VVelocity)                    = "v_velocity"
+Base.summary(::DissolvedInorganicCarbon)     = "dissolved_inorganic_carbon"
+Base.summary(::Alkalinity)                   = "alkalinity"
+Base.summary(::Phosphate)                    = "phosphate"
+Base.summary(::Nitrate)                      = "nitrate"
+Base.summary(::DissolvedOrganicPhosphorus)   = "dissolved_organic_phosphorus"
+Base.summary(::ParticulateOrganicPhosphorus) = "particulate_organic_phosphorus"
+Base.summary(::DissolvedIron)                = "dissolved_iron"
+Base.summary(::DissolvedSilicate)            = "dissolved_silicate"
+Base.summary(::DissolvedOxygen)              = "dissolved_oxygen"
 
 struct DatasetRestoring{FTS, G, M, V, N}
     field_time_series :: FTS

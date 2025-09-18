@@ -57,16 +57,17 @@ location(::Metadata{<:Union{ECCO2DarwinMonthly, ECCO4DarwinMonthly}}) = (Center,
 variable_is_three_dimensional(::Metadata{<:Union{ECCO2DarwinMonthly, ECCO4DarwinMonthly}}) = true
 
 ECCO_darwin_dataset_variable_names = Dict(
-    :temperature => "THETA",
-    :salinity    => "SALTanom",
-    :DIC => "DIC",
-    :ALK => "ALK",
-    :PO₄ => "PO4",
-    :NO₃ => "NO3",
-    :DOP => "DOP",
-    :POP => "POP",
-    :Fe  => "FeT",
-    :Siᵀ => "SiO2",
+    :temperature                    => "THETA",
+    :salinity                       => "SALTanom",
+    :dissolved_inorganic_carbon     => "DIC",
+    :alkalinity                     => "ALK",
+    :phosphate                      => "PO4",
+    :nitrate                        => "NO3",
+    :dissolved_organic_phosphorus   => "DOP",
+    :particulate_organic_phosphorus => "POP",
+    :dissolved_iron                 => "FeT",
+    :dissolved_silicate             => "SiO2",
+    :dissolved_oxygen               => "O2",
 )
 
 # Scale factors and offsets to convert from the output data to standard units
@@ -74,29 +75,31 @@ ECCO_darwin_dataset_variable_names = Dict(
 # concentrations of biogeochemical tracers are in mmol/m^3 in the output files
 # we convert them to mol/m^3 here
 ECCO_darwin_scale_factor = Dict(
-    :temperature => 1,
-    :salinity    => 1,
-    :DIC => 1e-3,
-    :ALK => 1e-3,
-    :PO₄ => 1e-3,
-    :NO₃ => 1e-3,
-    :DOP => 1e-3,
-    :POP => 1e-3,
-    :Fe  => 1e-3,
-    :Siᵀ => 1e-3,
+    :temperature                    => 1,
+    :salinity                       => 1,
+    :dissolved_inorganic_carbon     => 1e-3,
+    :alkalinity                     => 1e-3,
+    :phosphate                      => 1e-3,
+    :nitrate                        => 1e-3,
+    :dissolved_organic_phosphorus   => 1e-3,
+    :particulate_organic_phosphorus => 1e-3,
+    :dissolved_iron                 => 1e-3,
+    :dissolved_silicate             => 1e-3,
+    :dissolved_oxygen               => 1e-3,
 )
 
 ECCO_darwin_offset_factor = Dict(
-    :temperature => 0,
-    :salinity    => 35,
-    :DIC => 0,
-    :ALK => 0,
-    :PO₄ => 0,
-    :NO₃ => 0,
-    :DOP => 0,
-    :POP => 0,
-    :Fe  => 0,
-    :Siᵀ => 0,
+    :temperature                    => 0,
+    :salinity                       => 35,
+    :dissolved_inorganic_carbon     => 0,
+    :alkalinity                     => 0,
+    :phosphate                      => 0,
+    :nitrate                        => 0,
+    :dissolved_organic_phosphorus   => 0,
+    :particulate_organic_phosphorus => 0,
+    :dissolved_iron                 => 0,
+    :dissolved_silicate             => 0,
+    :dissolved_oxygen               => 0,
 )
 
 function default_download_directory(::ECCO4DarwinMonthly)
