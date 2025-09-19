@@ -93,6 +93,8 @@ function bbox_strs(c)
     return first, second
 end
 
+colon2dash(s::String) = replace(s, ":" => "-")
+
 function metadata_prefix(metadata::CopernicusMetadata)
     var = copernicus_dataset_variable_names[metadata.name]
     dataset = dataset_name(metadata.dataset)
@@ -109,7 +111,7 @@ function metadata_prefix(metadata::CopernicusMetadata)
     return string(var, "_",
                   dataset, "_",
                   start_date, "_",
-                  end_date, suffix)
+                  end_date, suffix) |> colon2dash
 end
 
 function metadata_filename(metadata::CopernicusMetadata)
