@@ -14,7 +14,7 @@ using KernelAbstractions.Extras.LoopInfo: @unroll
 using Statistics: norm
 
 import Thermodynamics as AtmosphericThermodynamics
-import Thermodynamics.Parameters: molmass_ratio
+import Thermodynamics.Parameters: Rv_over_Rd
 
 #####
 ##### Bulk turbulent fluxes based on similarity theory
@@ -264,7 +264,7 @@ L_★ = u_★² / ϰ b_★ .
 @inline function buoyancy_scale(θ★, q★, ℂ, 𝒬, g)
     𝒯ₐ = AtmosphericThermodynamics.virtual_temperature(ℂ, 𝒬)
     qₐ = AtmosphericThermodynamics.vapor_specific_humidity(ℂ, 𝒬)
-    ε  = AtmosphericThermodynamics.Parameters.molmass_ratio(ℂ)
+    ε  = AtmosphericThermodynamics.Parameters.Rv_over_Rd(ℂ)
     δ  = ε - 1 # typically equal to 0.608
 
     b★ = g / 𝒯ₐ * (θ★ * (1 + δ * qₐ) + δ * 𝒯ₐ * q★)
