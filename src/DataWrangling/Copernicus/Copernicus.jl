@@ -6,7 +6,7 @@ using NCDatasets
 using Printf
 
 using Oceananigans.Fields: Center
-using ClimaOcean.DataWrangling: Metadata, Metadatum
+using ClimaOcean.DataWrangling: Metadata, Metadatum, metadata_path
 using Dates: DateTime, Day, Month
 
 import Oceananigans.Fields:
