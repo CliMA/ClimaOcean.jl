@@ -6,7 +6,7 @@ using NCDatasets
 using Printf
 
 using Oceananigans.Fields: Center
-using ClimaOcean.DataWrangling: Metadata, Metadatum
+using ClimaOcean.DataWrangling: Metadata, Metadatum, metadata_path
 using Dates: DateTime, Day, Month
 
 import Oceananigans.Fields:
@@ -122,10 +122,12 @@ function metadata_filename(metadata::CopernicusMetadata)
     return string(prefix, ".nc")
 end
 
-function inpainted_metadata_path(metadata::CopernicusMetadata)
+function inpainted_metadata_filename(metadata::CopernicusMetadata)
     prefix = metadata_prefix(metadata)
     return string(prefix, "_inpainted.jld2")
 end
+
+inpainted_metadata_path(metadata::CopernicusMetadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
 
 location(::CopernicusMetadata) = (Center, Center, Center)
 longitude_interfaces(::CopernicusMetadata) = (0, 360)
