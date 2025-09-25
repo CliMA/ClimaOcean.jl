@@ -155,13 +155,15 @@ Arguments
   * `:v_velocity`,
   * `:sea_ice_thickness`,
   * `:sea_ice_area_fraction`,
-  * `:DIC`,
-  * `:ALK`,
-  * `:PO₄`,
-  * `:NO₃`,
-  * `:DOP`,
-  * `:POP`.
-  * `:Fe`.
+  * `:dissolved_inorganic_carbon`,
+  * `:alkalinity`,
+  * `:nitrate`,
+  * `:phosphate`,
+  * `:dissolved_organic_phosphorus`,
+  * `:particulate_organic_phosphorus`,
+  * `:dissolved_iron`,
+  * `:dissolved_silicate`,
+  * `:dissolved_oxygen`.
 
 - `arch_or_grid`: Either the architecture of the simulation, or a grid on which the data
                   is pre-interpolated when loaded. If an `arch`itecture is provided, such as
