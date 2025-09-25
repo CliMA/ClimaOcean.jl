@@ -56,8 +56,8 @@ const oceananigans_fieldnames = Dict(
 @inline Base.getindex(fields, i, j, k, ::DissolvedOrganicPhosphorus)   = @inbounds fields.DOP[i, j, k]
 @inline Base.getindex(fields, i, j, k, ::ParticulateOrganicPhosphorus) = @inbounds fields.POP[i, j, k]
 @inline Base.getindex(fields, i, j, k, ::DissolvedIron)                = @inbounds fields.Fe[i, j, k]
-@inline Base.getindex(fields, i, j, k, ::DissolvedSilicate)            = @inbounds fields.SiO2[i, j, k]
-@inline Base.getindex(fields, i, j, k, ::DissolvedOxygen)              = @inbounds fields.O2[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::DissolvedSilicate)            = @inbounds fields.SiO₂[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::DissolvedOxygen)              = @inbounds fields.O₂[i, j, k]
 
 Base.summary(::Temperature)                  = "temperature"
 Base.summary(::Salinity)                     = "salinity"
