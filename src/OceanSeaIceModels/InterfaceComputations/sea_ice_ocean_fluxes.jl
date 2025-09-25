@@ -15,7 +15,7 @@ function compute_sea_ice_ocean_fluxes!(coupled_model)
     return nothing
 end
 
-function compute_sea_ice_ocean_fluxes!(sea_ice_ocean_fluxes, ocean, sea_ice, melting_speed, ocean_properties))
+function compute_sea_ice_ocean_fluxes!(sea_ice_ocean_fluxes, ocean, sea_ice, melting_speed, ocean_properties)
     Δt = ocean.Δt
     Tₒ = ocean.model.tracers.T
     Sₒ = ocean.model.tracers.S
