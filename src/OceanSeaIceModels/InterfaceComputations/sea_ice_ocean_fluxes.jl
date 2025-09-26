@@ -42,7 +42,7 @@ function compute_sea_ice_ocean_fluxes!(sea_ice_ocean_fluxes, ocean, sea_ice, mel
     # Is it immediately removed from the ocean? Or is it stored in the ice?
     launch!(arch, grid, :xy, _compute_sea_ice_ocean_fluxes!,
             sea_ice_ocean_fluxes, grid, clock, hᵢ, ℵᵢ, Sᵢ, Gh, Tₒ, Sₒ, uᵢ, vᵢ,
-            τs, liquidus, ocean_properties, characteristic_melting_speed, Δt)
+            τs, liquidus, ocean_properties, melting_speed, Δt)
 
     return nothing
 end
