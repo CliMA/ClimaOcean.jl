@@ -51,7 +51,9 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height);
 # eddy fluxes. For vertical mixing at the upper-ocean boundary layer we include the CATKE
 # parameterization.
 
-eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
+using Oceananigans.TurbulenceClosures: IsopycnalSkewSymmetricDiffusivity, AdvectiveFormulation
+
+eddy_closure = IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3, skew_flux_formulation=AdvectiveFormulation())
 vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
 
 # ### Ocean simulation
