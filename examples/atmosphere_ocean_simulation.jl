@@ -6,8 +6,8 @@
 # and initialized by temperature, salinity, sea ice concentration, and sea ice thickness
 # from the ECCO state estimate.
 #
-# For this example, we need Oceananigans (the ocean), ClimaSeaIce (the sea ice) and 
-# SpeedyWeather (the atmosphere), coupled and orchestrated by ClimaOcean (the coupled model).
+# For this example, we need Oceananigans.HydrostaticFreeSurfaceModel (the ocean), ClimaSeaIce.SeaIceModel (the sea ice) and 
+# SpeedyWeather.PrimitiveWetModel (the atmosphere), coupled and orchestrated by ClimaOcean.OceanSeaIceModel (the coupled system).
 
 using Oceananigans, ClimaSeaIce, SpeedyWeather, ClimaOcean
 using NCDatasets, CairoMakie
@@ -21,10 +21,10 @@ using Printf, Statistics, Dates
 
 Nx = 360 
 Ny = 180 
-Nz = 40  
+Nz = 30  
 
-r_faces = ExponentialCoordinate(Nz, -6000, 0)
-grid    = TripolarGrid(CPU(); size=(Nx, Ny, Nz), z=r_faces, halo=(7, 7, 6))
+r_faces = ExponentialCoordinate(Nz, -4000, 0)
+grid    = TripolarGrid(CPU(); size=(Nx, Ny, Nz), z=r_faces, halo=(6, 6, 5))
 
 # Regridding the bathymetry...
 
@@ -163,14 +163,12 @@ Oceananigans.run!(earth)
 
 SWO = Dataset("run_0001/output.nc")
 
-Ta = SWO["temp"][:, :, 8, :]
-qa = SWO["humid"][:, :, 8, :]
-ua = SWO["u"][:, :, 8, :]
-va = SWO["v"][:, :, 8, :]
+Ta = reverse(SWO["temp"][:, :, 8, :], dims=2)
+ua = reverse(SWO["u"][:, :, 8, :],    dims=2)
+va = reverse(SWO["v"][:, :, 8, :],    dims=2)
 sp = sqrt.(ua.^2 + va.^2)
 
 SST = FieldTimeSeries("ocean_surface_fields.jld2", "T")
-SSS = FieldTimeSeries("ocean_surface_fields.jld2", "S")
 SSU = FieldTimeSeries("ocean_surface_fields.jld2", "u")
 SSV = FieldTimeSeries("ocean_surface_fields.jld2", "v")
 
@@ -221,7 +219,6 @@ record(fig, "surface_speeds.mp4", iter, framerate = 15) do i
 endnothing #hide
 
 # ![](surface_speeds.mp4)
-
 
 Tan = @lift Ta[:, :, $iter]
 Ton = @lift interior(SST[$iter * 2], :, :, 1)
