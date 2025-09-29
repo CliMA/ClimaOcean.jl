@@ -12,6 +12,7 @@ using ClimaSeaIce.SeaIceThermodynamics: IceWaterThermalEquilibrium
 using Printf
 using Dates
 using CUDA
+using PythonCall
 using Oceananigans.BuoyancyFormulations: buoyancy, buoyancy_frequency
 
 import Oceananigans.OutputWriters: checkpointer_address
