@@ -28,12 +28,16 @@ z_faces = ExponentialCoordinate(Nz, -6000, 0)
 
 const z_surf = z_faces(Nz)
 
+@info "Building grid..."
 grid = TripolarGrid(arch;
                     size = (Nx, Ny, Nz),
                     z = z_faces,
                     halo = (7, 7, 7))
 
+@info "Regridding bathymetry..."
 bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1, interpolation_passes=75)
+
+@info "Building immersed boundary grid..."
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
 #####
@@ -70,6 +74,7 @@ Smetadata = Metadata(:salinity; dataset=glorys_dataset, dir=glorys_dir)
 
 FS = DatasetRestoring(Smetadata, grid; rate = 1/18days, mask, time_indices_in_memory = 10)
 
+@info "Building ocean component..."
 ocean = ocean_simulation(grid; Δt=1minutes,
                          momentum_advection,
                          tracer_advection,
@@ -82,6 +87,7 @@ start_date = DateTime(1993, 1, 1)
 end_date   = DateTime(2003, 4, 1)
 simulation_period = Dates.value(Second(end_date - start_date))
 
+@info "Setting initial conditions..."
 set!(ocean.model, T=Metadatum(:temperature; dataset=glorys_dataset, date=start_date, dir=glorys_dir),
                   S=Metadatum(:salinity;    dataset=glorys_dataset, date=start_date, dir=glorys_dir))
 
@@ -91,10 +97,12 @@ set!(ocean.model, T=Metadatum(:temperature; dataset=glorys_dataset, date=start_d
 ##### A Prognostic Sea-ice model
 #####
 
+@info "Building sea-ice component..."
 # Default sea-ice dynamics and salinity coupling are included in the defaults
 # sea_ice = sea_ice_simulation(grid, ocean; advection=WENO(order=7))
 sea_ice = sea_ice_simulation(grid, ocean; dynamics=nothing)
 
+@info "Setting sea-ice initial conditions..."
 inpainting = NearestNeighborInpainting(5000)
 set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=glorys_dataset, dir=glorys_dir, inpainting),
                     ℵ=Metadatum(:sea_ice_concentration; dataset=glorys_dataset, dir=glorys_dir, inpainting))
@@ -109,6 +117,7 @@ mkpath(jra55_dir)
 jra55_dataset = RepeatYearJRA55()
 jra55_backend = JRA55NetCDFBackend(100)
 
+@info "Building atmospheric forcing..."
 atmosphere = JRA55PrescribedAtmosphere(arch; dir=jra55_dir, dataset=jra55_backend, backend=jra55_backend, include_rivers_and_icebergs=true)
 radiation  = Radiation()
 
@@ -116,6 +125,7 @@ radiation  = Radiation()
 ##### An ocean-sea ice coupled model
 #####
 
+@info "Building coupled ocean-sea ice model..."
 omip = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 omip = Simulation(omip, Δt=20minutes, stop_time=60days) 
 
@@ -125,6 +135,7 @@ checkpointer_address(::SeaIceModel) = "SeaIceModel"
 FILE_DIR = "./Data/$(prefix)/"
 mkpath(FILE_DIR)
 
+@info "Setting up output writers..."
 ocean.output_writers[:checkpointer] = Checkpointer(ocean.model,
                                                   schedule = SpecifiedTimes([simulation_period]),
                                                   prefix = "$(FILE_DIR)/ocean_checkpoint_onedegree",
@@ -188,8 +199,6 @@ sea_ice.output_writers[:yearly_average] = JLD2Writer(sea_ice.model, sea_ice_outp
                                                    filename = "$(FILE_DIR)/sea_ice_complete_fields_yearly_average",
                                                    overwrite_existing = true)
 
-
-
 wall_time = Ref(time_ns())
 
 using Statistics
@@ -223,6 +232,7 @@ end
 # And add it as a callback to the simulation.
 add_callback!(omip, progress, IterationInterval(100))
 
+@info "Starting simulation..."
 run!(omip)
 
 omip.Δt = 60minutes
