@@ -15,10 +15,11 @@ using CUDA: @allowscalar
 # Inpaint only the first two cells inside the missing mask
 inpainting = NearestNeighborInpainting(2)
 
-dataset = ECCO2Monthly()
+test_ecco_datasets = tuple((ds for ds in test_datasets if occursin(r"^ECCO2.*Monthly",string(typeof(ds)),))...)
+
 start_date = DateTime(1993, 1, 1)
 
-for arch in test_architectures
+for arch in test_architectures, dataset in test_ecco_datasets
     A = typeof(arch)
     D = typeof(dataset)
     @testset "$A metadata tests for $D" begin
@@ -29,7 +30,7 @@ for arch in test_architectures
         dates = start_date : time_resolution : end_date
 
         @testset "Fields utilities" begin
-            for name in (:temperature, :salinity)
+            for name in test_names[dataset]
                 metadata = Metadata(name; dates, dataset)
 
                 download_dataset(metadata) # just in case is not downloaded
@@ -46,19 +47,25 @@ for arch in test_architectures
         end
 
         @testset "Setting a field from a dataset" begin
-            test_setting_from_metadata(arch, dataset, start_date, inpainting)
+            test_setting_from_metadata(arch, dataset, start_date, inpainting, 
+                                       varnames=test_names[dataset])
         end
 
         @testset "Field utilities" begin
-            test_ocean_metadata_utilities(arch, dataset, dates, inpainting)
+            test_ocean_metadata_utilities(arch, dataset, dates, inpainting,
+                                          varnames=test_names[dataset])
         end
 
         @testset "DatasetRestoring with LinearlyTaperedPolarMask" begin
-            test_dataset_restoring(arch, dataset, dates, inpainting)
+            test_dataset_restoring(arch, dataset, dates, inpainting, 
+                                   varnames=test_names[dataset],
+                                   fldnames=test_fields[dataset])
         end
 
         @testset "Timestepping with DatasetRestoring" begin
-            test_timestepping_with_dataset_restoring(arch, dataset, dates, inpainting)
+            test_timestepping_with_dataset_restoring(arch, dataset, dates, inpainting, 
+                                                     varnames=test_names[dataset], 
+                                                     fldnames=test_fields[dataset])
         end
 
         # @testset "Dataset cycling boundaries" begin
