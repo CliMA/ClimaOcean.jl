@@ -22,7 +22,7 @@ arch = GPU()
 
 Nx = 2880 # longitudinal direction 
 Ny = 1440 # meridional direction 
-Nz = 100
+Nz = 80
 
 z_faces = ExponentialCoordinate(Nz, -6000, 0)
 # z_faces = MutableVerticalDiscretization(z_faces)
