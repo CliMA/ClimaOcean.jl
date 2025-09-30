@@ -22,7 +22,7 @@ arch = GPU()
 
 Nx = 2880 # longitudinal direction 
 Ny = 1440 # meridional direction 
-Nz = 80
+Nz = 60
 
 z_faces = ExponentialCoordinate(Nz, -6000, 0)
 # z_faces = MutableVerticalDiscretization(z_faces)
@@ -106,8 +106,8 @@ set!(ocean.model, T=Metadatum(:temperature; dataset=glorys_dataset, date=start_d
 sea_ice = sea_ice_simulation(grid, ocean; dynamics=nothing)
 
 @info "Setting sea-ice initial conditions..."
-set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=glorys_dataset, dir=glorys_dir, inpainting=nothing),
-                    ℵ=Metadatum(:sea_ice_concentration; dataset=glorys_dataset, dir=glorys_dir, inpainting=nothing))
+set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=glorys_dataset, dir=glorys_dir),
+                    ℵ=Metadatum(:sea_ice_concentration; dataset=glorys_dataset, dir=glorys_dir), inpainting = nothing)
 
 #####
 ##### A Prescribed Atmosphere model
