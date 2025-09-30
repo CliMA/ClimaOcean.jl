@@ -17,12 +17,12 @@ using Oceananigans.BuoyancyFormulations: buoyancy, buoyancy_frequency
 
 import Oceananigans.OutputWriters: checkpointer_address
 
-arch = GPU()
-# arch = Distributed(GPU(), partition=Partition(1, 4), synchronized_communication=true)
+# arch = GPU()
+arch = Distributed(GPU(), partition=Partition(1, 2), synchronized_communication=true)
 
 Nx = 2880 # longitudinal direction 
 Ny = 1440 # meridional direction 
-Nz = 60
+Nz = 100
 
 z_faces = ExponentialCoordinate(Nz, -6000, 0)
 # z_faces = MutableVerticalDiscretization(z_faces)
