@@ -91,8 +91,8 @@ simulation_period = Dates.value(Second(end_date - start_date))
 
 inpainting = NearestNeighborInpainting(50)
 @info "Setting initial conditions..."
-set!(ocean.model, T=Metadatum(:temperature; dataset=glorys_dataset, date=start_date, dir=glorys_dir, inpainting),
-                  S=Metadatum(:salinity;    dataset=glorys_dataset, date=start_date, dir=glorys_dir, inpainting))
+set!(ocean.model, T=Metadatum(:temperature; dataset=glorys_dataset, date=start_date, dir=glorys_dir),
+                  S=Metadatum(:salinity;    dataset=glorys_dataset, date=start_date, dir=glorys_dir); inpainting)
 
 @info ocean.model.clock
 
