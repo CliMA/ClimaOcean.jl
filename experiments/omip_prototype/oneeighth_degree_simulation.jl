@@ -18,10 +18,11 @@ using Oceananigans.BuoyancyFormulations: buoyancy, buoyancy_frequency
 import Oceananigans.OutputWriters: checkpointer_address
 
 arch = GPU()
+# arch = Distributed(GPU(), partition=Partition(1, 4), synchronized_communication=true)
 
 Nx = 2880 # longitudinal direction 
 Ny = 1440 # meridional direction 
-Nz = 60
+Nz = 100
 
 z_faces = ExponentialCoordinate(Nz, -6000, 0)
 # z_faces = MutableVerticalDiscretization(z_faces)
@@ -35,7 +36,7 @@ grid = TripolarGrid(arch;
                     halo = (7, 7, 7))
 
 @info "Regridding bathymetry..."
-bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1, interpolation_passes=75)
+bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1, interpolation_passes=10)
 
 @info "Building immersed boundary grid..."
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
@@ -48,10 +49,10 @@ using Oceananigans.TurbulenceClosures: ExplicitTimeDiscretization
 using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities: CATKEVerticalDiffusivity, CATKEMixingLength, CATKEEquation
 using Oceananigans.TurbulenceClosures: RiBasedVerticalDiffusivity
 
-momentum_advection = WENOVectorInvariant(order=5)
-tracer_advection   = WENO(order=5)
+momentum_advection = WENOVectorInvariant()
+tracer_advection   = WENO(order=7)
 
-free_surface = SplitExplicitFreeSurface(grid; cfl=0.8, fixed_Δt=45minutes)
+free_surface = SplitExplicitFreeSurface(grid; cfl=0.8, fixed_Δt=12minutes)
 
 obl_closure = ClimaOcean.OceanSimulations.default_ocean_closure() # CATKE
 # obl_closure = RiBasedVerticalDiffusivity()
@@ -69,10 +70,11 @@ glorys_dir = joinpath(homedir(), "GLORYS_data")
 mkpath(glorys_dir)
 
 glorys_dataset = GLORYSMonthly()
-@inline mask(x, y, z, t) = z ≥ z_surf - 1
-Smetadata = Metadata(:salinity; dataset=glorys_dataset, dir=glorys_dir)
 
-FS = DatasetRestoring(Smetadata, grid; rate = 1/18days, mask, time_indices_in_memory = 10)
+# Turn off salinity restoring for now
+# @inline mask(x, y, z, t) = z ≥ z_surf - 1
+# Smetadata = Metadata(:salinity; dataset=glorys_dataset, dir=glorys_dir)
+# FS = DatasetRestoring(Smetadata, grid; rate = 1/18days, mask, time_indices_in_memory = 3)
 
 @info "Building ocean component..."
 ocean = ocean_simulation(grid; Δt=1minutes,
@@ -80,16 +82,17 @@ ocean = ocean_simulation(grid; Δt=1minutes,
                          tracer_advection,
                          timestepper = :SplitRungeKutta3,
                          free_surface,
-                         forcing = (; S = FS),
+                        #  forcing = (; S = FS),
                          closure)
 
 start_date = DateTime(1993, 1, 1)
 end_date   = DateTime(2003, 4, 1)
 simulation_period = Dates.value(Second(end_date - start_date))
 
+inpainting = NearestNeighborInpainting(50)
 @info "Setting initial conditions..."
-set!(ocean.model, T=Metadatum(:temperature; dataset=glorys_dataset, date=start_date, dir=glorys_dir),
-                  S=Metadatum(:salinity;    dataset=glorys_dataset, date=start_date, dir=glorys_dir))
+set!(ocean.model, T=Metadatum(:temperature; dataset=glorys_dataset, date=start_date, dir=glorys_dir, inpainting),
+                  S=Metadatum(:salinity;    dataset=glorys_dataset, date=start_date, dir=glorys_dir, inpainting))
 
 @info ocean.model.clock
 
@@ -103,9 +106,8 @@ set!(ocean.model, T=Metadatum(:temperature; dataset=glorys_dataset, date=start_d
 sea_ice = sea_ice_simulation(grid, ocean; dynamics=nothing)
 
 @info "Setting sea-ice initial conditions..."
-inpainting = NearestNeighborInpainting(5000)
-set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=glorys_dataset, dir=glorys_dir, inpainting),
-                    ℵ=Metadatum(:sea_ice_concentration; dataset=glorys_dataset, dir=glorys_dir, inpainting))
+set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=glorys_dataset, dir=glorys_dir, inpainting=nothing),
+                    ℵ=Metadatum(:sea_ice_concentration; dataset=glorys_dataset, dir=glorys_dir, inpainting=nothing))
 
 #####
 ##### A Prescribed Atmosphere model
@@ -113,12 +115,12 @@ set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=glorys_dataset, 
 
 jra55_dir = joinpath(homedir(), "JRA55_data")
 mkpath(jra55_dir)
-# dataset = MultiYearJRA55()
-jra55_dataset = RepeatYearJRA55()
-jra55_backend = JRA55NetCDFBackend(100)
+dataset = MultiYearJRA55()
+# jra55_dataset = RepeatYearJRA55()
+jra55_backend = JRA55NetCDFBackend(10)
 
 @info "Building atmospheric forcing..."
-atmosphere = JRA55PrescribedAtmosphere(arch; dir=jra55_dir, dataset=jra55_backend, backend=jra55_backend, include_rivers_and_icebergs=true)
+atmosphere = JRA55PrescribedAtmosphere(arch; dir=jra55_dir, dataset=jra55_backend, backend=jra55_backend, include_rivers_and_icebergs=true, start_date)
 radiation  = Radiation()
 
 #####
@@ -127,7 +129,8 @@ radiation  = Radiation()
 
 @info "Building coupled ocean-sea ice model..."
 omip = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-omip = Simulation(omip, Δt=20minutes, stop_time=60days) 
+# omip = Simulation(omip, Δt=10minutes, stop_time=60days)
+omip = Simulation(omip, Δt=10minutes, stop_time=simulation_period)
 
 # Figure out the outputs....
 checkpointer_address(::SeaIceModel) = "SeaIceModel"
@@ -138,12 +141,17 @@ mkpath(FILE_DIR)
 @info "Setting up output writers..."
 ocean.output_writers[:checkpointer] = Checkpointer(ocean.model,
                                                   schedule = SpecifiedTimes([simulation_period]),
-                                                  prefix = "$(FILE_DIR)/ocean_checkpoint_onedegree",
+                                                  prefix = "$(FILE_DIR)/ocean_checkpoint_oneeighthdegree",
                                                   overwrite_existing = true)
 
 sea_ice.output_writers[:checkpointer] = Checkpointer(sea_ice.model,
+                                                     schedule = TimeInterval(60days),
+                                                     prefix = "$(FILE_DIR)/sea_ice_checkpoint_oneeighthdegree",
+                                                     overwrite_existing = true)
+
+sea_ice.output_writers[:checkpointer] = Checkpointer(sea_ice.model,
                                                      schedule = SpecifiedTimes([simulation_period]),
-                                                     prefix = "$(FILE_DIR)/sea_ice_checkpoint_onedegree",
+                                                     prefix = "$(FILE_DIR)/sea_ice_checkpoint_oneeighthdegree_final",
                                                      overwrite_existing = true)
                                                      
 u, v, w = ocean.model.velocities
@@ -235,8 +243,8 @@ add_callback!(omip, progress, IterationInterval(100))
 @info "Starting simulation..."
 run!(omip)
 
-omip.Δt = 60minutes
-omip.stop_time = 200 * 365days
+# omip.Δt = 10minutes
+# omip.stop_time = simulation_period
 
 run!(omip)
 
