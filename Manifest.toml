@@ -2,7 +2,7 @@
 
 julia_version = "1.11.6"
 manifest_format = "2.0"
-project_hash = "2033fc2574fe13596dbb816d1dde3aa0d3072a4d"
+project_hash = "8e07c9559cfd858e914c4c0b10f5cd8ce4bc243c"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -213,7 +213,7 @@ version = "0.19.1+0"
 
 [[deps.ClimaSeaIce]]
 deps = ["Adapt", "KernelAbstractions", "Oceananigans", "RootSolvers", "Roots", "SeawaterPolynomials"]
-git-tree-sha1 = "2dc7e793f69084fa821997a3fa97842276e220da"
+path = "/home/ext_xinkai_caltech_edu/.julia/dev/ClimaSeaIce"
 uuid = "6ba0ff68-24e6-4315-936c-2e99227c95a4"
 version = "0.3.7"
 
@@ -279,9 +279,9 @@ version = "1.0.0"
 
 [[deps.Compat]]
 deps = ["TOML", "UUIDs"]
-git-tree-sha1 = "0037835448781bb46feb39866934e243886d756a"
+git-tree-sha1 = "9d8a54ce4b17aa5bdce0ea5c34bc5e7c340d16ad"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "4.18.0"
+version = "4.18.1"
 weakdeps = ["Dates", "LinearAlgebra"]
 
     [deps.Compat.extensions]
@@ -984,9 +984,11 @@ version = "1.2.0"
 
 [[deps.Oceananigans]]
 deps = ["Adapt", "Crayons", "CubedSphere", "Dates", "Distances", "DocStringExtensions", "FFTW", "GPUArrays", "GPUArraysCore", "Glob", "InteractiveUtils", "JLD2", "KernelAbstractions", "Krylov", "KrylovPreconditioners", "LinearAlgebra", "Logging", "MPI", "MuladdMacro", "OffsetArrays", "OrderedCollections", "Pkg", "Printf", "Random", "ReactantCore", "Rotations", "SeawaterPolynomials", "SparseArrays", "StaticArrays", "Statistics", "StructArrays"]
-git-tree-sha1 = "0b4e7bbd1cdf8dec20401159598dc76c7c4d40fe"
+git-tree-sha1 = "40921ee0aa4d6fd06a19478294887c36489ab769"
+repo-rev = "ss/fix-distributed-memory-issue"
+repo-url = "https://github.com/CliMA/Oceananigans.jl.git"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
-version = "0.99.2"
+version = "0.100.0"
 
     [deps.Oceananigans.extensions]
     OceananigansAMDGPUExt = "AMDGPU"
@@ -1045,9 +1047,9 @@ version = "1.5.0"
 
 [[deps.OpenSSL_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "2ae7d4ddec2e13ad3bddf5c0796f7547cf682391"
+git-tree-sha1 = "f19301ae653233bc88b1810ae908194f07f8db9d"
 uuid = "458c3c95-2e84-50aa-8efc-19380b2a3a95"
-version = "3.5.2+0"
+version = "3.5.4+0"
 
 [[deps.OpenSpecFun_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl"]
@@ -1449,9 +1451,9 @@ version = "1.11.0"
 
 [[deps.Thermodynamics]]
 deps = ["DocStringExtensions", "ForwardDiff", "KernelAbstractions", "Random", "RootSolvers"]
-git-tree-sha1 = "14ec5f1776187fd9a1849a4f59e6d22f706a6fb5"
+git-tree-sha1 = "e3a9fe706f095c6a176a76ea4613c57900898999"
 uuid = "b60c26fb-14c3-4610-9d3e-2d17fe7ff00c"
-version = "0.14.1"
+version = "0.14.2"
 
     [deps.Thermodynamics.extensions]
     CreateParametersExt = "ClimaParams"
