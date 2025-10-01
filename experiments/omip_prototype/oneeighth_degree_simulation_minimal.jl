@@ -5,6 +5,8 @@ using Oceananigans.Grids
 using Oceananigans.Units
 using Oceananigans.OrthogonalSphericalShellGrids
 using Oceananigans.Architectures: on_architecture
+using Oceananigans.DistributedComputations: Equal
+using Oceananigans.BoundaryConditions: fill_halo_regions!
 using ClimaOcean.OceanSimulations
 using ClimaOcean.JRA55
 using ClimaOcean.DataWrangling
@@ -19,7 +21,8 @@ using Oceananigans.BuoyancyFormulations: buoyancy, buoyancy_frequency
 import Oceananigans.OutputWriters: checkpointer_address
 
 # arch = GPU()
-arch = Distributed(GPU(), partition=Partition(1, 4), synchronized_communication=true)
+# arch = Distributed(GPU(), partition=Partition(1, 4), synchronized_communication=true)
+arch = Distributed(GPU(); partition = Partition(y = Equal()), synchronized_communication=true)
 # arch = Distributed(CPU(), partition=Partition(1, 2), synchronized_communication=true)
 
 @info "Architecture $(arch)"
@@ -28,7 +31,8 @@ Nx = 2880 # longitudinal direction
 Ny = 1440 # meridional direction 
 Nz = 100
 
-z_faces = ExponentialCoordinate(Nz, -6000, 0)
+# z_faces = ExponentialCoordinate(Nz, -6000, 0)
+z_faces = ExponentialDiscretization(Nz, -6000, 0)
 
 const z_surf = z_faces(Nz)
 
@@ -60,7 +64,8 @@ using Oceananigans.TurbulenceClosures: RiBasedVerticalDiffusivity
 momentum_advection = WENOVectorInvariant()
 tracer_advection   = WENO(order=7)
 
-free_surface = SplitExplicitFreeSurface(grid; cfl=0.8, fixed_Δt=12minutes)
+# free_surface = SplitExplicitFreeSurface(grid; cfl=0.8, fixed_Δt=12minutes)
+free_surface = SplitExplicitFreeSurface(grid; substeps = 70)
 @info "Free surface", free_surface
 
 obl_closure = ClimaOcean.OceanSimulations.default_ocean_closure() # CATKE
@@ -85,8 +90,18 @@ simulation_period = Dates.value(Second(end_date - start_date))
 
 inpainting = NearestNeighborInpainting(50)
 @info "Setting initial conditions..."
-set!(ocean.model, T=Metadatum(:temperature; dataset=glorys_dataset, date=start_date, dir=glorys_dir),
-                  S=Metadatum(:salinity;    dataset=glorys_dataset, date=start_date, dir=glorys_dir); inpainting)
+
+Tᵢ = Metadatum(:temperature; dataset=glorys_dataset, date=start_date, dir=glorys_dir)
+Sᵢ = Metadatum(:salinity;    dataset=glorys_dataset, date=start_date, dir=glorys_dir)
+
+set!(ocean.model.tracers.T, Tᵢ; inpainting)
+set!(ocean.model.tracers.S, Sᵢ; inpainting)
+
+fill_halo_regions!(ocean.model.tracers.T)
+fill_halo_regions!(ocean.model.tracers.S)
+
+# set!(ocean.model, T=Metadatum(:temperature; dataset=glorys_dataset, date=start_date, dir=glorys_dir),
+                #   S=Metadatum(:salinity;    dataset=glorys_dataset, date=start_date, dir=glorys_dir); inpainting)
 
 @info ocean.model.clock
 
