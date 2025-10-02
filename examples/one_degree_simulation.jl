@@ -27,7 +27,7 @@ Ny = 180
 Nz = 50
 
 depth = 5000meters
-z = ExponentialCoordinate(Nz, -depth, 0; scale = depth/4)
+z = ExponentialDiscretization(Nz, -depth, 0; scale = depth/4)
 
 underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 
