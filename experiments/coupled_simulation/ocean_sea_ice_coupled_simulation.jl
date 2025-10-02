@@ -22,8 +22,7 @@ Ny = 128 # meridional direction -> same thing, 48 points is about 1.5ᵒ resolut
 Nz = 10
 depth = 1000meters
 
-z = ExponentialDiscretization(Nz, -depth, 0; scale=0.3*depth)
-z = MutableVerticalDiscretization(z)
+z = ExponentialDiscretization(Nz, -depth, 0; scale=0.3*depth, mutable=true)
 
 grid = TripolarGrid(arch, Float64; size=(Nx, Ny, Nz), z)
 sea_ice_grid = TripolarGrid(arch, Float64; size=(Nx, Ny, 1), z = (-10, 0))
