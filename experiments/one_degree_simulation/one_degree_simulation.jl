@@ -8,8 +8,8 @@ using GLMakie
 
 Oceananigans.defaults.FloatType = Float64
 arch = CPU()
-Nx = 256
-Ny = 128
+Nx = 360
+Ny = 180
 Nz = 32
 
 depth = 6000meters
