@@ -23,39 +23,16 @@ test_architectures = gpu_test ? [GPU()] : [CPU()]
 
 start_date = DateTimeProlepticGregorian(1993, 1, 1)
 
-test_datasets = (ECCO2Monthly(), 
-                 ECCO2Daily(), 
-                 ECCO4Monthly(), 
-                 ECCO2DarwinMonthly(),
-                 ECCO4DarwinMonthly(),
-                 EN4Monthly(),
-                )
-
-test_names = Dict(
-    ECCO2Monthly() => (:temperature, :salinity),
-    ECCO2Daily() => (:temperature, :salinity),
-    ECCO4Monthly() => (:temperature, :salinity),
-    ECCO4DarwinMonthly() => (:temperature, :salinity, :phosphate),
-    ECCO2DarwinMonthly() => (:temperature, :salinity, :phosphate),
-    EN4Monthly() => (:temperature, :salinity),
-)
-
-test_fields = Dict(
-    ECCO2Monthly() => (:T, :S),
-    ECCO2Daily() => (:T, :S),
-    ECCO4Monthly() => (:T, :S),
-    ECCO4DarwinMonthly() => (:T, :S, :PO₄),
-    ECCO2DarwinMonthly() => (:T, :S, :PO₄),
-    EN4Monthly() => (:T, :S),
-)
+test_datasets = (ECCO2Monthly(), ECCO2Daily(), ECCO4Monthly(), EN4Monthly())
 
 #####
 ##### Test utilities
 #####
-function test_setting_from_metadata(arch, dataset, start_date, inpainting;
+
+function test_setting_from_metadata(arch, dataset, start_date, inpainting,
                                     loc = (Center, Center, Center),
-                                    varnames = (:temperature, :salinity),
-                                   )
+                                    names = (:temperature, :salinity))
+
     grid = LatitudeLongitudeGrid(arch;
                                  size = (10, 10, 10),
                                  latitude = (-60, -40),
@@ -65,7 +42,7 @@ function test_setting_from_metadata(arch, dataset, start_date, inpainting;
     field = Field{loc...}(grid)
 
     @test begin
-        for name in varnames
+        for name in names
             set!(field, Metadatum(name; dataset, date=start_date); inpainting)
         end
         true
@@ -74,10 +51,7 @@ function test_setting_from_metadata(arch, dataset, start_date, inpainting;
     return nothing
 end
 
-function test_timestepping_with_dataset(arch, dataset, start_date, inpainting;
-                                        varnames  = (:temperature, :salinity),
-                                        fldnames  = (:T, :S),
-                                       )
+function test_timestepping_with_dataset(arch, dataset, start_date, inpainting)
     grid  = LatitudeLongitudeGrid(arch;
                                   size = (10, 10, 10),
                                   latitude = (-60, -40),
@@ -88,13 +62,12 @@ function test_timestepping_with_dataset(arch, dataset, start_date, inpainting;
     field = CenterField(grid)
 
     @test begin
-        for name in varnames
-            set!(field, Metadatum(name; dataset, date=start_date); inpainting)
-        end
+        set!(field, Metadatum(:temperature; dataset, date=start_date); inpainting)
+        set!(field, Metadatum(:salinity; dataset, date=start_date); inpainting)
         true
     end
 
-    ocean = ocean_simulation(grid; tracers=fldnames, verbose=false)
+    ocean = ocean_simulation(grid; verbose=false)
 
     @test begin
         time_step!(ocean)
@@ -105,10 +78,8 @@ function test_timestepping_with_dataset(arch, dataset, start_date, inpainting;
     return nothing
 end
 
-function test_ocean_metadata_utilities(arch, dataset, dates, inpainting;
-                                       varnames = (:temperature, :salinity),
-                                      )
-    for name in varnames
+function test_ocean_metadata_utilities(arch, dataset, dates, inpainting)
+    for name in (:temperature, :salinity)
         metadata = Metadata(name; dates, dataset)
         restoring = DatasetRestoring(metadata, arch; rate=1/1000, inpainting)
 
@@ -141,10 +112,7 @@ function test_ocean_metadata_utilities(arch, dataset, dates, inpainting;
     return nothing
 end
 
-function test_dataset_restoring(arch, dataset, dates, inpainting;
-                                varnames = (:temperature, :salinity),
-                                fldnames = (:T, :S),
-                               )
+function test_dataset_restoring(arch, dataset, dates, inpainting)
     grid = LatitudeLongitudeGrid(arch;
                                  size = (100, 100, 10),
                                  latitude = (-75, 75),
@@ -162,35 +130,34 @@ function test_dataset_restoring(arch, dataset, dates, inpainting;
                                     southern = (φ₁, φ₂),
                                     z = (z₁, 0))
 
-    for name in varnames
+    for name in (:temperature, :salinity)
         metadata = Metadata(name; dates, dataset)
         var_restoring = DatasetRestoring(metadata, arch; mask, inpainting, rate=1/1000)
 
         fill!(var_restoring.field_time_series[1], 1.0)
         fill!(var_restoring.field_time_series[2], 1.0)
 
-        field = NamedTuple{fldnames}(ntuple(i->CenterField(grid), length(fldnames)))
+        T = CenterField(grid)
+        S = CenterField(grid)
+        fields = (; T, S)
         clock  = Clock(; time = 0)
 
         @allowscalar begin
-            @test var_restoring(1, 1,   10, grid, clock, field) == var_restoring.rate
-            @test var_restoring(1, 11,  10, grid, clock, field) == var_restoring.rate / 2
-            @test var_restoring(1, 21,  10, grid, clock, field) == 0
-            @test var_restoring(1, 80,  10, grid, clock, field) == 0
-            @test var_restoring(1, 90,  10, grid, clock, field) == var_restoring.rate / 2
-            @test var_restoring(1, 100, 10, grid, clock, field) == var_restoring.rate
-            @test var_restoring(1, 1,   5,  grid, clock, field) == 0
-            @test var_restoring(1, 10,  5,  grid, clock, field) == 0
+            @test var_restoring(1, 1,   10, grid, clock, fields) == var_restoring.rate
+            @test var_restoring(1, 11,  10, grid, clock, fields) == var_restoring.rate / 2
+            @test var_restoring(1, 21,  10, grid, clock, fields) == 0
+            @test var_restoring(1, 80,  10, grid, clock, fields) == 0
+            @test var_restoring(1, 90,  10, grid, clock, fields) == var_restoring.rate / 2
+            @test var_restoring(1, 100, 10, grid, clock, fields) == var_restoring.rate
+            @test var_restoring(1, 1,   5,  grid, clock, fields) == 0
+            @test var_restoring(1, 10,  5,  grid, clock, fields) == 0
         end
     end
 
     return nothing
 end
 
-function test_timestepping_with_dataset_restoring(arch, dataset, dates, inpainting;
-                                                  varnames = (:temperature, :salinity),
-                                                  fldnames = (:T, :S),
-                                                 )
+function test_timestepping_with_dataset_restoring(arch, dataset, dates, inpainting)
     grid = LatitudeLongitudeGrid(arch;
                                  size = (10, 10, 10),
                                  latitude = (-60, -40),
@@ -198,18 +165,11 @@ function test_timestepping_with_dataset_restoring(arch, dataset, dates, inpainti
                                  z = (-200, 0),
                                  halo = (6, 6, 6))
 
-    # Dynamically create name of forcing based on dataset field name
-    forcing = NamedTuple{
-                (fldnames)
-            }(
-                ntuple(i->DatasetRestoring(
-                                           Metadata(varnames[i]; dates, dataset), 
-                                           arch; inpainting, rate=1/1000
-                                          ), length(varnames))
-             )
+    T_meta = Metadata(:temperature; dates, dataset)
+    T_forcing = DatasetRestoring(T_meta, arch; inpainting, rate=1/1000)
 
-    ocean = ocean_simulation(grid; tracers=fldnames, forcing, verbose=false)
-    
+    ocean = ocean_simulation(grid; forcing = (; T = T_forcing), verbose=false)
+
     @test begin
         time_step!(ocean)
         time_step!(ocean)
@@ -219,10 +179,7 @@ function test_timestepping_with_dataset_restoring(arch, dataset, dates, inpainti
     return nothing
 end
 
-function test_cycling_dataset_restoring(arch, dataset, dates, inpainting;
-                                        varnames = (:temperature, :salinity),
-                                        fldnames = (:T, :S),
-                                       )
+function test_cycling_dataset_restoring(arch, dataset, dates, inpainting)
     grid = LatitudeLongitudeGrid(arch;
                                  size = (10, 10, 10),
                                  latitude = (-60, -40),
@@ -234,20 +191,14 @@ function test_cycling_dataset_restoring(arch, dataset, dates, inpainting;
     start_date = dates[1]
     end_date = dates[end]
 
-    metadata1 = Metadata(varnames[end]; dates, dataset)
-    metadata2 = Metadata(varnames[end]; start_date, end_date, dataset)
+    Tmetadata1 = Metadata(:temperature; dates, dataset)
+    Tmetadata2 = Metadata(:temperature; start_date, end_date, dataset)
 
-    for metadata in (metadata1, metadata2)
-        # Dynamically create name of forcing based on dataset field name
-        # Dynamically create name of forcing based on dataset field name
-        forcing = NamedTuple{
-                (fldnames[end],)
-            }(
-                (DatasetRestoring(metadata, arch;  time_indices_in_memory, inpainting, rate=1/1000),)
-             )
+    for Tmetadata in (Tmetadata1, Tmetadata2)
+        T_restoring = DatasetRestoring(Tmetadata, arch; time_indices_in_memory, inpainting, rate=1/1000)
 
-        times = native_times(forcing[1].field_time_series.backend.metadata)
-        ocean = ocean_simulation(grid, tracers=fldnames, forcing=forcing)
+        times = native_times(T_restoring.field_time_series.backend.metadata)
+        ocean = ocean_simulation(grid, forcing = (; T = T_restoring))
 
         # start a bit after time_index
         time_index = 3
@@ -255,10 +206,10 @@ function test_cycling_dataset_restoring(arch, dataset, dates, inpainting;
         ocean.model.clock.time = times[time_index] + 2 * time_interval
         update_state!(ocean.model)
 
-        @test time_indices(forcing[1].field_time_series) ==
+        @test time_indices(T_restoring.field_time_series) ==
             Tuple(range(time_index, length=time_indices_in_memory))
 
-        @test forcing[1].field_time_series.backend.start == time_index
+        @test T_restoring.field_time_series.backend.start == time_index
 
         # Compile
         time_step!(ocean)
@@ -275,35 +226,32 @@ function test_cycling_dataset_restoring(arch, dataset, dates, inpainting;
         end
 
         # The backend has cycled to the end
-        @test time_indices(forcing[1].field_time_series) ==
+        @test time_indices(T_restoring.field_time_series) ==
             mod1.(Tuple(range(length(times), length=time_indices_in_memory)), length(times))
     end
 end
 
-function test_inpainting_algorithm(arch, dataset, start_date, inpainting; 
-                                   varnames = (:temperature, :salinity),
-                                  )
-    for name in varnames
-        var_metadatum = Metadatum(name; dataset, date=start_date)
+function test_inpainting_algorithm(arch, dataset, start_date, inpainting)
+    T_metadatum = Metadatum(:temperature; dataset, date=start_date)
 
-        grid = LatitudeLongitudeGrid(arch,
+    grid = LatitudeLongitudeGrid(arch,
                                  size = (20, 20, 10),
                                  latitude = (-75, 75),
                                  longitude = (0, 360),
                                  z = (-4000, 0),
                                  halo = (6, 6, 6))
 
-        fully_inpainted_field = CenterField(grid)
-        partially_inpainted_field = CenterField(grid)
+    fully_inpainted_field = CenterField(grid)
+    partially_inpainted_field = CenterField(grid)
 
-        set!(fully_inpainted_field, var_metadatum; inpainting = NearestNeighborInpainting(Inf))
-        set!(partially_inpainted_field, var_metadatum; inpainting = NearestNeighborInpainting(1))
+    set!(fully_inpainted_field, T_metadatum; inpainting = NearestNeighborInpainting(Inf))
+    set!(partially_inpainted_field, T_metadatum; inpainting = NearestNeighborInpainting(1))
 
-        fully_inpainted_interior = on_architecture(CPU(), interior(fully_inpainted_field))
-        partially_inpainted_interior = on_architecture(CPU(), interior(partially_inpainted_field))
+    fully_inpainted_interior = on_architecture(CPU(), interior(fully_inpainted_field))
+    partially_inpainted_interior = on_architecture(CPU(), interior(partially_inpainted_field))
 
-        @test all(fully_inpainted_interior .!= 0)
-        @test any(partially_inpainted_interior .== 0)
-    end
+    @test all(fully_inpainted_interior .!= 0)
+    @test any(partially_inpainted_interior .== 0)
+
     return nothing
 end

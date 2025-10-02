@@ -30,7 +30,6 @@ export
     EN4Metadatum,
     ETOPO2022,
     ECCO2Daily, ECCO2Monthly, ECCO4Monthly,
-    ECCO2DarwinMonthly, ECCO4DarwinMonthly,
     EN4Monthly,
     GLORYSDaily, GLORYSMonthly, GLORYSStatic,
     RepeatYearJRA55, MultiYearJRA55,

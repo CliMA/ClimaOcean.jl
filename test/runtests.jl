@@ -61,11 +61,6 @@ if test_group == :init || test_group == :all
 
         download_dataset(temperature_metadata)
         download_dataset(salinity_metadata)
-
-        if dataset isa Union{ECCO2DarwinMonthly, ECCO4DarwinMonthly}
-            PO₄_metadata = Metadata(:PO₄; dataset, dates)
-            download_dataset(PO₄_metadata)
-        end
     end
 end
 
