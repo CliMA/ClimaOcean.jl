@@ -116,8 +116,8 @@ sea_ice = sea_ice_simulation(grid, ocean; dynamics=nothing)
 hᵢ = Metadatum(:sea_ice_thickness;     dataset=glorys_dataset, dir=glorys_dir, date=start_date)
 ℵᵢ = Metadatum(:sea_ice_concentration; dataset=glorys_dataset, dir=glorys_dir, date=start_date)
 
-set!(sea_ice.model.tracers.h, hᵢ; inpainting)
-set!(sea_ice.model.tracers.ℵ, ℵᵢ; inpainting)
+set!(sea_ice.model.tracers.h, hᵢ; inpainting=nothing)
+set!(sea_ice.model.tracers.ℵ, ℵᵢ; inpainting=nothing)
 
 fill_halo_regions!(sea_ice.model.tracers.h)
 fill_halo_regions!(sea_ice.model.tracers.ℵ)
