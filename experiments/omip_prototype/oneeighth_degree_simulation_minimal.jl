@@ -113,8 +113,14 @@ fill_halo_regions!(ocean.model.tracers.S)
 sea_ice = sea_ice_simulation(grid, ocean; dynamics=nothing)
 
 @info "Setting sea-ice initial conditions..."
-set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=glorys_dataset, dir=glorys_dir),
-                    ℵ=Metadatum(:sea_ice_concentration; dataset=glorys_dataset, dir=glorys_dir), inpainting = nothing)
+hᵢ = Metadatum(:sea_ice_thickness;     dataset=glorys_dataset, dir=glorys_dir, date=start_date)
+ℵᵢ = Metadatum(:sea_ice_concentration; dataset=glorys_dataset, dir=glorys_dir, date=start_date)
+
+set!(sea_ice.model.tracers.h, hᵢ; inpainting)
+set!(sea_ice.model.tracers.ℵ, ℵᵢ; inpainting)
+
+fill_halo_regions!(sea_ice.model.tracers.h)
+fill_halo_regions!(sea_ice.model.tracers.ℵ)
 
 #####
 ##### A Prescribed Atmosphere model
@@ -135,7 +141,7 @@ radiation  = Radiation()
 
 @info "Building coupled ocean-sea ice model..."
 omip = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-omip = Simulation(omip, Δt=10minutes, stop_time=60days)
+omip = Simulation(omip, Δt=5minutes, stop_time=60days)
 
 wall_time = Ref(time_ns())
 
@@ -172,6 +178,7 @@ add_callback!(omip, progress, IterationInterval(1))
 @info "Starting simulation..."
 run!(omip)
 
+@info "Initialization complete. Running the rest..."
 omip.Δt = 10minutes
 omip.stop_time = simulation_period
 
