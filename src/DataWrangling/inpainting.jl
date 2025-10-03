@@ -11,12 +11,39 @@ struct NearestNeighborInpainting{M}
     maxiter :: M
 end
 
+"""
+    ValueInpainting{V}
+
+A structure representing a simple value inpainting algorithm, where all missing values are
+substituted with a specified constant value.
+
+# Fields
+- `value :: V`: The constant value to use for inpainting missing data.
+- `maxiter`: For cache compatibility (not used in the algorithm itself). Defaults to 0.
+
+# Example
+```julia
+inpainting = ValueInpainting(0.0)  # Fill missing values with 0
+inpaint_mask!(field, mask; inpainting)
+```
+"""
+struct ValueInpainting{V, M}
+    value :: V
+    maxiter :: M
+end
+
+# Convenience constructor that sets maxiter to a default value
+ValueInpainting(value) = ValueInpainting(value, 0)
+
 propagate_horizontally!(field, ::Nothing, substituting_field=deepcopy(field); kw...) = field
 
 function propagating(field, mask, iter, inpainting::NearestNeighborInpainting)
     nans = sum(isnan, field; condition=interior(mask))
     return nans > 0 && iter < inpainting.maxiter
 end
+
+# ValueInpainting doesn't need iteration
+propagating(field, mask, iter, inpainting::ValueInpainting) = false
 
 """
     propagate_horizontally!(inpainting, field, mask [, substituting_field=deepcopy(field)])
@@ -52,6 +79,17 @@ function propagate_horizontally!(inpainting::NearestNeighborInpainting, field, m
     end
 
     launch!(arch, grid, size(field), _fill_nans!, field)
+    fill_halo_regions!(field)
+
+    return field
+end
+
+function propagate_horizontally!(inpainting::ValueInpainting, field, mask,
+                                 substituting_field=deepcopy(field))
+    grid = field.grid
+    arch = architecture(grid)
+
+    launch!(arch, grid, size(field), _fill_with_number!, field, mask, inpainting.value)
     fill_halo_regions!(field)
 
     return field
@@ -102,6 +140,12 @@ end
     @inbounds field[i, j, k] *= !isnan(field[i, j, k])
 end
 
+@kernel function _fill_with_number!(field, mask, value)
+    i, j, k = @index(Global, NTuple)
+    FT_value = convert(eltype(field), value)
+    @inbounds field[i, j, k] = ifelse(mask[i, j, k], FT_value, field[i, j, k])
+end
+
 """
     inpaint_mask!(field, mask; inpainting=NearestNeighborInpainting(Inf))
 
@@ -117,10 +161,24 @@ Arguments
 - `mask`: Boolean-valued `Field`, values where
           `mask[i, j, k] == true` are inpainted.
 
-- `inpainting`: The inpainting algorithm to use. The only option is
-                `NearestNeighborInpainting(maxiter)`, where an average
-                of the valid surrounding values is used `maxiter` times.
-                Default: `NearestNeighborInpainting(Inf)`.
+- `inpainting`: The inpainting algorithm to use. Options include:
+                * `NearestNeighborInpainting(maxiter)`: Uses an average
+                  of the valid surrounding values, repeated `maxiter` times.
+                  Default: `NearestNeighborInpainting(Inf)`.
+                * `ValueInpainting(value)`: Fills all missing values with
+                  the specified constant `value`.
+
+# Examples
+```julia
+# Use nearest neighbor inpainting with default settings
+inpaint_mask!(field, mask)
+
+# Fill missing values with zero
+inpaint_mask!(field, mask; inpainting=ValueInpainting(0))
+
+# Fill missing values with a specific temperature
+inpaint_mask!(field, mask; inpainting=ValueInpainting(273.15))
+```
 """
 function inpaint_mask!(field, mask; inpainting=NearestNeighborInpainting(Inf))
 
