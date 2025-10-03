@@ -83,8 +83,7 @@ function Field(metadata::Metadatum, arch=CPU();
                inpainting = default_inpainting(metadata),
                mask = nothing,
                halo = (3, 3, 3),
-               cache_inpainted_data = true,
-               fill_nans = nothing)
+               cache_inpainted_data = true)
 
     download_dataset(metadata)
 
@@ -119,7 +118,7 @@ function Field(metadata::Metadatum, arch=CPU();
     # Retrieve data from file according to metadata type
     data = retrieve_data(metadata)
 
-    set_metadata_field!(field, data, metadata; fill_nans)
+    set_metadata_field!(field, data, metadata)
     fill_halo_regions!(field)
 
     if !isnothing(inpainting)
@@ -173,7 +172,7 @@ struct AverageNorthSouth end
 @inline mangle(i, j, k, data, ::ShiftSouth) = @inbounds data[i, j-1, k]
 @inline mangle(i, j, k, data, ::AverageNorthSouth) = @inbounds (data[i, j+1, k] + data[i, j, k]) / 2
 
-function set_metadata_field!(field, data, metadatum; fill_nans)
+function set_metadata_field!(field, data, metadatum)
     grid = field.grid
     arch = architecture(grid)
 
@@ -207,13 +206,13 @@ function set_metadata_field!(field, data, metadatum; fill_nans)
     end
 
     data = on_architecture(arch, data)
-    Oceananigans.Utils.launch!(arch, grid, spec, _kernel, field, data, mangling, temp_units, conc_units, fill_nans)
+    Oceananigans.Utils.launch!(arch, grid, spec, _kernel, field, data, mangling, temp_units, conc_units)
 
     return nothing
 end
 
 # TODO: sort out elegant way to handle NaNs for sea ice data in GLORYS
-@kernel function _set_2d_metadata_field!(field, data, mangling, temp_units, conc_units, fill_nans)
+@kernel function _set_2d_metadata_field!(field, data, mangling, temp_units, conc_units)
     i, j = @index(Global, NTuple)
     d = mangle(i, j, data, mangling)
     
@@ -225,7 +224,6 @@ end
     elseif !isnothing(conc_units)
         d = convert_concentration(d, conc_units)
     end
-    d = ifelse(isnothing(fill_nans), d, ifelse(isnan(d), convert(FT, 0), d))
 
     d = convert_temperature(d, temp_units)
     @inbounds field[i, j, 1] = d
@@ -234,7 +232,7 @@ end
 @inline nan_convert_missing(FT, ::Missing) = convert(FT, NaN)
 @inline nan_convert_missing(FT, d::Number) = convert(FT, d)
 
-@kernel function _set_3d_metadata_field!(field, data, mangling, temp_units, conc_units, fill_nans)
+@kernel function _set_3d_metadata_field!(field, data, mangling, temp_units, conc_units)
     i, j, k = @index(Global, NTuple)
     d = mangle(i, j, k, data, mangling)
 
@@ -246,7 +244,6 @@ end
     elseif !isnothing(conc_units)
         d = convert_concentration(d, conc_units)
     end
-    d = ifelse(isnothing(fill_nans), d, ifelse(isnan(d), convert(FT, 0), d))
 
     @inbounds field[i, j, k] = d
 end
