@@ -261,6 +261,20 @@ struct Kelvin end
 
 temperature_units(metadata) = Celsius()
 
+struct MolePerKilogram end
+struct MolePerLiter end
+struct MillimolePerKilogram end
+struct MillimolePerLiter end
+struct MicromolePerKilogram end
+struct MicromolePerLiter end
+struct NanomolePerKilogram end
+struct NanomolePerLiter end
+
+struct GramPerKilogramMinus35 end # Salinity anomaly
+struct MilliliterPerLiter end # Sometimes for disssolved_oxygen
+
+concentration_units(metadata) = nothing
+
 #####
 ##### Utilities
 #####

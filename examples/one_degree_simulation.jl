@@ -27,7 +27,7 @@ Ny = 180
 Nz = 50
 
 depth = 5000meters
-z = ExponentialCoordinate(Nz, -depth, 0; scale = depth/4)
+z = ExponentialDiscretization(Nz, -depth, 0; scale = depth/4)
 
 underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 
@@ -51,7 +51,9 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height);
 # eddy fluxes. For vertical mixing at the upper-ocean boundary layer we include the CATKE
 # parameterization.
 
-eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=10, κ_symmetric=10)
+using Oceananigans.TurbulenceClosures: IsopycnalSkewSymmetricDiffusivity, AdvectiveFormulation
+
+eddy_closure = IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3, skew_flux_formulation=AdvectiveFormulation()) 
 vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
 
 # ### Ocean simulation
