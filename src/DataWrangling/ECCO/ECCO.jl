@@ -3,6 +3,9 @@ module ECCO
 export ECCOMetadatum, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
 
+export ECCO2DarwinMonthly, ECCO4DarwinMonthly
+export retrieve_data
+
 using Oceananigans
 using ClimaOcean
 using NCDatasets
@@ -18,6 +21,8 @@ using ClimaOcean.DataWrangling:
     BoundingBox,
     metadata_path,
     Celsius,
+    GramPerKilogramMinus35,
+    MicromolePerLiter,
     Metadata,
     Metadatum,
     download_progress
@@ -34,6 +39,7 @@ import ClimaOcean.DataWrangling:
     metadata_filename,
     download_dataset,
     temperature_units,
+    concentration_units,
     dataset_variable_name,
     metaprefix,
     longitude_interfaces,
@@ -43,7 +49,10 @@ import ClimaOcean.DataWrangling:
     inpainted_metadata_path,
     reversed_vertical_axis,
     default_mask_value,
-    available_variables
+    available_variables,
+    retrieve_data,
+    binary_data_grid,
+    binary_data_size
 
 download_ECCO_cache::String = ""
 function __init__()
@@ -51,10 +60,12 @@ function __init__()
 end
 
 # Datasets
-struct ECCO2Monthly end
-struct ECCO2Daily end
-struct ECCO4Monthly end
-const SomeECCODataset = Union{ECCO2Monthly, ECCO4Monthly, ECCO2Daily}
+abstract type ECCODataset end
+struct ECCO2Monthly <:ECCODataset end
+struct ECCO2Daily   <:ECCODataset end
+struct ECCO4Monthly <:ECCODataset end
+
+include("ECCO_darwin.jl")
 
 function default_download_directory(::ECCO2Monthly)
     path = joinpath(download_ECCO_cache, "v2", "monthly")
@@ -75,24 +86,26 @@ Base.size(::ECCO2Daily, variable)   = (1440, 720, 50)
 Base.size(::ECCO2Monthly, variable) = (1440, 720, 50)
 Base.size(::ECCO4Monthly, variable) = (720,  360, 50)
 
-temperature_units(::SomeECCODataset) = Celsius()
+temperature_units(::ECCODataset) = Celsius()
 default_mask_value(::ECCO4Monthly) = 0
-reversed_vertical_axis(::SomeECCODataset) = true
+reversed_vertical_axis(::ECCODataset) = true
 
 const ECCO2_url = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/"
 const ECCO4_url = "https://ecco.jpl.nasa.gov/drive/files/Version4/Release4/interp_monthly/"
 
 # The whole range of dates in the different dataset datasets
-all_dates(dataset::SomeECCODataset) = all_dates(dataset, nothing)
-all_dates(::ECCO4Monthly, variable) = DateTime(1992, 1, 1) : Month(1) : DateTime(2017, 12, 1)
-all_dates(::ECCO2Monthly, variable) = DateTime(1992, 1, 1) : Month(1) : DateTime(2024, 12, 1)
-all_dates(::ECCO2Daily,   variable) = DateTime(1992, 1, 1) : Day(1)   : DateTime(2024, 12, 31)
+metadata_epoch(::ECCODataset) = DateTime(1992, 1, 1)
 
-longitude_interfaces(::SomeECCODataset) = (0, 360)
+all_dates(dataset::ECCODataset) = all_dates(dataset, nothing)
+all_dates(dataset::ECCO4Monthly, variable) = metadata_epoch(dataset) : Month(1) : DateTime(2017, 12, 1)
+all_dates(dataset::ECCO2Monthly, variable) = metadata_epoch(dataset) : Month(1) : DateTime(2024, 12, 1)
+all_dates(dataset::ECCO2Daily,   variable) = metadata_epoch(dataset) : Day(1)   : DateTime(2024, 12, 31)
+
+longitude_interfaces(::ECCODataset) = (0, 360)
 longitude_interfaces(::ECCO4Monthly) = (-180, 180)
-latitude_interfaces(::SomeECCODataset) = (-90, 90)
+latitude_interfaces(::ECCODataset) = (-90, 90)
 
-z_interfaces(::SomeECCODataset) = [
+z_interfaces(::ECCODataset) = [
     -6128.75,
     -5683.75,
     -5250.25,
@@ -193,8 +206,8 @@ ECCO_location = Dict(
     :downwelling_longwave  => (Center, Center, Nothing),
 )
 
-const ECCOMetadata{D} = Metadata{<:SomeECCODataset, D}
-const ECCOMetadatum   = Metadatum{<:SomeECCODataset}
+const ECCOMetadata{D} = Metadata{<:ECCODataset, D}
+const ECCOMetadatum   = Metadatum{<:ECCODataset}
 
 """
     ECCOMetadatum(name;

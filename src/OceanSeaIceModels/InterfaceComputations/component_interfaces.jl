@@ -1,6 +1,5 @@
 using StaticArrays
 using Thermodynamics
-using SurfaceFluxes
 using OffsetArrays
 
 using ..OceanSeaIceModels: reference_density,

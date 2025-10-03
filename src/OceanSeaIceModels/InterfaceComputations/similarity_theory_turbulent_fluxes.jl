@@ -4,8 +4,6 @@ using Oceananigans.BuoyancyFormulations: g_Earth
 
 using Adapt
 using Thermodynamics: Liquid
-using SurfaceFluxes.Parameters: SurfaceFluxesParameters
-using SurfaceFluxes.UniversalFunctions: BusingerParams, BusingerType
 
 using Printf
 using Thermodynamics: PhasePartition
