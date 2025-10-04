@@ -22,7 +22,8 @@ import ClimaOcean.DataWrangling:
     metadata_filename,
     inpainted_metadata_path,
     reversed_vertical_axis,
-    available_variables
+    available_variables,
+    is_three_dimensional
 
 using Scratch
 
@@ -129,20 +130,33 @@ end
 
 inpainted_metadata_path(metadata::CopernicusMetadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
 
-location(::CopernicusMetadata) = (Center, Center, Center)
+copernicus_location(metadata::CopernicusMetadata) = is_three_dimensional(metadata) ? (Center, Center, Center) : (Center, Center, Nothing)
+
+location(metadata::CopernicusMetadata) = copernicus_location(metadata)
 longitude_interfaces(::CopernicusMetadata) = (0, 360)
 latitude_interfaces(::CopernicusMetadata) = (-80, 90)
 
+is_three_dimensional(metadata::CopernicusMetadata) =
+    metadata.name == :temperature ||
+    metadata.name == :salinity ||
+    metadata.name == :u_velocity ||
+    metadata.name == :v_velocity
+
 function z_interfaces(metadata::CopernicusMetadata)
-    path = metadata_path(metadata)
-    ds = Dataset(path)
-    zc = - reverse(ds["depth"][:])
-    close(ds)
-    dz = zc[2] - zc[1]
-    zf = zc[1:end-1] .+ zc[2:end]
-    push!(zf, 0)
-    pushfirst!(zf, zf[1] - dz)
-    return zf
+    # Check if this is a 2D surface variable
+    if !is_three_dimensional(metadata)
+        return (0, 1)
+    else
+        path = metadata_path(metadata)
+        ds = Dataset(path)
+        zc = - reverse(ds["depth"][:])
+        close(ds)
+        dz = zc[2] - zc[1]
+        zf = zc[1:end-1] .+ zc[2:end]
+        push!(zf, 0)
+        pushfirst!(zf, zf[1] - dz)
+        return zf
+    end
 end
 
 end # module Copernicus
