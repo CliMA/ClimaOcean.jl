@@ -1,6 +1,3 @@
-ENV["ECCO_USERNAME"] = "xkykai"
-ENV["ECCO_WEBDAV_PASSWORD"] = "JyaheQ1SzR4yp1gDDkn"
-
 using ClimaOcean
 using ClimaSeaIce
 using Oceananigans
