@@ -1,8 +1,8 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.11.4"
+julia_version = "1.11.6"
 manifest_format = "2.0"
-project_hash = "8e07c9559cfd858e914c4c0b10f5cd8ce4bc243c"
+project_hash = "994bc3384548d592e0292c3b3932a8a7c535d546"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -211,9 +211,15 @@ git-tree-sha1 = "e24c6de116c0735c37e83b8bc05ed60d4d359693"
 uuid = "76a88914-d11a-5bdc-97e0-2f5a05c973a2"
 version = "0.19.1+0"
 
+[[deps.CatViews]]
+deps = ["Random", "Test"]
+git-tree-sha1 = "23d1f1e10d4e24374112fcf800ac981d14a54b24"
+uuid = "81a5f4ea-a946-549a-aa7e-2a7f63a27d31"
+version = "1.0.0"
+
 [[deps.ClimaSeaIce]]
 deps = ["Adapt", "KernelAbstractions", "Oceananigans", "RootSolvers", "Roots", "SeawaterPolynomials"]
-path = "C:\\Users\\xinle\\.julia\\dev\\ClimaSeaIce"
+git-tree-sha1 = "7ea1d7d2539199c82d65779991104652f9c1964e"
 uuid = "6ba0ff68-24e6-4315-936c-2e99227c95a4"
 version = "0.3.8"
 
@@ -901,6 +907,28 @@ deps = ["Artifacts", "Libdl"]
 uuid = "c8ffd9c3-330d-5841-b78e-0817d7145fa1"
 version = "2.28.6+0"
 
+[[deps.MeshArrays]]
+deps = ["CatViews", "Dates", "Distributed", "Glob", "LazyArtifacts", "NearestNeighbors", "Pkg", "Printf", "SharedArrays", "SparseArrays", "Statistics", "Unitful"]
+git-tree-sha1 = "fea0859c1406389b3e6657b5376b577ffffdd03a"
+uuid = "cb8c808f-1acf-59a3-9d2b-6e38d009f683"
+version = "0.3.23"
+
+    [deps.MeshArrays.extensions]
+    MeshArraysDataDepsExt = ["DataDeps"]
+    MeshArraysGeoJSONExt = ["GeoJSON"]
+    MeshArraysJLD2Ext = ["JLD2"]
+    MeshArraysMakieExt = ["Makie"]
+    MeshArraysProjExt = ["Proj"]
+    MeshArraysShapefileExt = ["Shapefile"]
+
+    [deps.MeshArrays.weakdeps]
+    DataDeps = "124859b0-ceae-595e-8997-d05f6a7a8dfe"
+    GeoJSON = "61d90e0f-e114-555e-ac52-39dfb47a3ef9"
+    JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
+    Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
+    Proj = "c94c279d-25a6-4763-9509-64d165bea63e"
+    Shapefile = "8e980c4a-a4fe-5da2-b3a7-4b4b0353a2f4"
+
 [[deps.Metis]]
 deps = ["CEnum", "LinearAlgebra", "METIS_jll", "SparseArrays"]
 git-tree-sha1 = "54aca4fd53d39dcd2c3f1bef367b6921e8178628"
@@ -972,6 +1000,12 @@ git-tree-sha1 = "9b8215b1ee9e78a293f99797cd31375471b2bcae"
 uuid = "77ba4419-2d1f-58cd-9bb1-8ffee604a2e3"
 version = "1.1.3"
 
+[[deps.NearestNeighbors]]
+deps = ["Distances", "StaticArrays"]
+git-tree-sha1 = "ca7e18198a166a1f3eb92a3650d53d94ed8ca8a1"
+uuid = "b8a86587-4115-5ab1-83bc-aa920d37bbce"
+version = "0.4.22"
+
 [[deps.NetCDF_jll]]
 deps = ["Artifacts", "Blosc_jll", "Bzip2_jll", "HDF5_jll", "JLLWrappers", "LazyArtifacts", "LibCURL_jll", "Libdl", "MPICH_jll", "MPIPreferences", "MPItrampoline_jll", "MicrosoftMPI_jll", "OpenMPI_jll", "TOML", "XML2_jll", "Zlib_jll", "Zstd_jll", "libaec_jll", "libzip_jll"]
 git-tree-sha1 = "d574803b6055116af212434460adf654ce98e345"
@@ -984,9 +1018,7 @@ version = "1.2.0"
 
 [[deps.Oceananigans]]
 deps = ["Adapt", "Crayons", "CubedSphere", "Dates", "Distances", "DocStringExtensions", "FFTW", "GPUArrays", "GPUArraysCore", "Glob", "InteractiveUtils", "JLD2", "KernelAbstractions", "Krylov", "KrylovPreconditioners", "LinearAlgebra", "Logging", "MPI", "MuladdMacro", "OffsetArrays", "OrderedCollections", "Pkg", "Printf", "Random", "ReactantCore", "Rotations", "SeawaterPolynomials", "SparseArrays", "StaticArrays", "Statistics", "StructArrays"]
-git-tree-sha1 = "40921ee0aa4d6fd06a19478294887c36489ab769"
-repo-rev = "ss/fix-distributed-memory-issue"
-repo-url = "https://github.com/CliMA/Oceananigans.jl.git"
+git-tree-sha1 = "a215a3c5d8b342b41c4968f39d780360d8ec9191"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
 version = "0.100.0"
 
@@ -1031,7 +1063,7 @@ version = "0.3.27+1"
 [[deps.OpenLibm_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "05823500-19ac-5b8b-9628-191a04bc5112"
-version = "0.8.1+4"
+version = "0.8.5+0"
 
 [[deps.OpenMPI_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Hwloc_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "MPIPreferences", "TOML", "Zlib_jll"]
@@ -1508,6 +1540,27 @@ version = "1.0.2"
 [[deps.Unicode]]
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 version = "1.11.0"
+
+[[deps.Unitful]]
+deps = ["Dates", "LinearAlgebra", "Random"]
+git-tree-sha1 = "cec2df8cf14e0844a8c4d770d12347fda5931d72"
+uuid = "1986cc42-f94f-5a68-af5c-568840ba703d"
+version = "1.25.0"
+
+    [deps.Unitful.extensions]
+    ConstructionBaseUnitfulExt = "ConstructionBase"
+    ForwardDiffExt = "ForwardDiff"
+    InverseFunctionsUnitfulExt = "InverseFunctions"
+    LatexifyExt = ["Latexify", "LaTeXStrings"]
+    PrintfExt = "Printf"
+
+    [deps.Unitful.weakdeps]
+    ConstructionBase = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
+    ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+    InverseFunctions = "3587e190-3f89-42d0-90ee-14403ec27112"
+    LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
+    Latexify = "23fbe1c1-3f47-55db-b15f-69d7ec21a316"
+    Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
 [[deps.UnsafeAtomics]]
 git-tree-sha1 = "b13c4edda90890e5b04ba24e20a310fbe6f249ff"
