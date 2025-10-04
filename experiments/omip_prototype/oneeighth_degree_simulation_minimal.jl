@@ -1,3 +1,6 @@
+ENV["ECCO_USERNAME"] = "xkykai"
+ENV["ECCO_WEBDAV_PASSWORD"] = "JyaheQ1SzR4yp1gDDkn"
+
 using ClimaOcean
 using ClimaSeaIce
 using Oceananigans
@@ -22,8 +25,8 @@ import Oceananigans.OutputWriters: checkpointer_address
 
 # arch = GPU()
 # arch = Distributed(GPU(), partition=Partition(1, 4), synchronized_communication=true)
-arch = Distributed(GPU(); partition = Partition(y = Equal()), synchronized_communication=true)
-# arch = Distributed(CPU(), partition=Partition(1, 2), synchronized_communication=true)
+# arch = Distributed(GPU(); partition = Partition(y = Equal()), synchronized_communication=true)
+arch = Distributed(CPU(), partition=Partition(1, 4), synchronized_communication=true)
 
 @info "Architecture $(arch)"
 
@@ -54,7 +57,7 @@ grid = ImmersedBoundaryGrid(grid, fitted_bottom; active_cells_map=true)
 @info "Created ImmersedBoundaryGrid"
 
 #####
-##### A Propgnostic Ocean model
+##### A Prognostic Ocean model
 #####
 
 using Oceananigans.TurbulenceClosures: ExplicitTimeDiscretization
@@ -113,11 +116,11 @@ fill_halo_regions!(ocean.model.tracers.S)
 sea_ice = sea_ice_simulation(grid, ocean; dynamics=nothing)
 
 @info "Setting sea-ice initial conditions..."
-set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=glorys_dataset, dir=glorys_dir, date=start_date),
-                    ℵ=Metadatum(:sea_ice_concentration; dataset=glorys_dataset, dir=glorys_dir, date=start_date))
+set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=ECCO4Monthly(), dir=glorys_dir, date=start_date),
+                    ℵ=Metadatum(:sea_ice_concentration; dataset=ECCO4Monthly(), dir=glorys_dir, date=start_date))
 
-fill_halo_regions!(sea_ice.model.tracers.h)
-fill_halo_regions!(sea_ice.model.tracers.ℵ)
+# set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=glorys_dataset, dir=glorys_dir, date=start_date),
+                    # ℵ=Metadatum(:sea_ice_concentration; dataset=glorys_dataset, dir=glorys_dir, date=start_date))
 
 #####
 ##### A Prescribed Atmosphere model
@@ -125,11 +128,11 @@ fill_halo_regions!(sea_ice.model.tracers.ℵ)
 
 jra55_dir = joinpath(homedir(), "JRA55_data")
 mkpath(jra55_dir)
-dataset = MultiYearJRA55()
-jra55_backend = JRA55NetCDFBackend(10)
+jra55_dataset = MultiYearJRA55()
+jra55_backend = JRA55NetCDFBackend(100)
 
 @info "Building atmospheric forcing..."
-atmosphere = JRA55PrescribedAtmosphere(arch; dir=jra55_dir, dataset=jra55_backend, backend=jra55_backend, include_rivers_and_icebergs=true, start_date)
+atmosphere = JRA55PrescribedAtmosphere(arch; dir=jra55_dir, dataset=jra55_dataset, backend=jra55_backend, include_rivers_and_icebergs=true, start_date)
 radiation  = Radiation()
 
 #####
@@ -138,6 +141,8 @@ radiation  = Radiation()
 
 @info "Building coupled ocean-sea ice model..."
 omip = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+
+@info "Built ocean-sea ice model"
 omip = Simulation(omip, Δt=5minutes, stop_time=60days)
 
 wall_time = Ref(time_ns())
