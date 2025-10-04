@@ -57,6 +57,7 @@ obl_closure = ClimaOcean.OceanSimulations.default_ocean_closure()
 closure = (obl_closure, VerticalScalarDiffusivity(κ=1e-5, ν=1e-4), eddy_closure)
 
 dir = joinpath(homedir(), "forcing_data_1deg_minimal")
+mkpath(dir)
 
 dataset = EN4Monthly()
 date = DateTime(1958, 1, 1)
