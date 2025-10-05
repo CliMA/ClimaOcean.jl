@@ -22,9 +22,9 @@ import Oceananigans.OutputWriters: checkpointer_address
 # arch = Distributed(GPU(); partition = Partition(y = Equal()), synchronized_communication=true)
 arch = Distributed(CPU(), partition=Partition(1, 4), synchronized_communication=true)
 
-Nx = 360 # longitudinal direction 
-Ny = 180 # meridional direction 
-Nz = 60
+Nx = 2880 # longitudinal direction 
+Ny = 1440 # meridional direction 
+Nz = 100
 
 z_faces = ExponentialDiscretization(Nz, -6000, 0)
 
@@ -95,7 +95,7 @@ atmosphere = JRA55PrescribedAtmosphere(arch; dir=jra55_dir, dataset, backend, in
 radiation  = Radiation()
 
 omip = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-omip = Simulation(omip, Δt=20minutes, stop_time=60days) 
+omip = Simulation(omip, Δt=10minutes, stop_time=60days) 
 
 wall_time = Ref(time_ns())
 
