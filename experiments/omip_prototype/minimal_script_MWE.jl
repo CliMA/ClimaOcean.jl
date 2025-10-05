@@ -18,9 +18,9 @@ using Oceananigans.BuoyancyFormulations: buoyancy, buoyancy_frequency
 import Oceananigans.OutputWriters: checkpointer_address
 
 # arch = GPU()
-# arch = Distributed(GPU(), partition=Partition(1, 4), synchronized_communication=true)
+arch = Distributed(GPU(), partition=Partition(1, 4), synchronized_communication=true)
 # arch = Distributed(GPU(); partition = Partition(y = Equal()), synchronized_communication=true)
-arch = Distributed(CPU(), partition=Partition(1, 4), synchronized_communication=true)
+# arch = Distributed(CPU(), partition=Partition(1, 4), synchronized_communication=true)
 
 Nx = 2880 # longitudinal direction 
 Ny = 1440 # meridional direction 
@@ -83,8 +83,8 @@ set!(ocean.model, T=Metadatum(:temperature; dataset, date, dir),
 
 sea_ice = sea_ice_simulation(grid, ocean; dynamics=nothing)
 
-set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=ECCO4Monthly(), dir),
-                    ℵ=Metadatum(:sea_ice_concentration; dataset=ECCO4Monthly(), dir))
+set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=ECCO4Monthly(), dir, date),
+                    ℵ=Metadatum(:sea_ice_concentration; dataset=ECCO4Monthly(), dir, date))
 
 jra55_dir = dir
 dataset = MultiYearJRA55()
