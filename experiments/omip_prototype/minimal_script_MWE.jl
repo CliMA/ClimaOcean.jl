@@ -18,9 +18,9 @@ using Oceananigans.BuoyancyFormulations: buoyancy, buoyancy_frequency
 import Oceananigans.OutputWriters: checkpointer_address
 
 # arch = GPU()
-# arch = Distributed(GPU(), partition=Partition(1, 4), synchronized_communication=true)
+arch = Distributed(GPU(), partition=Partition(1, 4), synchronized_communication=true)
 # arch = Distributed(GPU(); partition = Partition(y = Equal()), synchronized_communication=true)
-arch = Distributed(CPU(), partition=Partition(1, 4), synchronized_communication=true)
+# arch = Distributed(CPU(), partition=Partition(1, 4), synchronized_communication=true)
 
 Nx = 2880 # longitudinal direction 
 Ny = 1440 # meridional direction 
