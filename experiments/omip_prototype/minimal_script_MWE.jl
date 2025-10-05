@@ -18,9 +18,9 @@ using Oceananigans.BuoyancyFormulations: buoyancy, buoyancy_frequency
 import Oceananigans.OutputWriters: checkpointer_address
 
 # arch = GPU()
-arch = Distributed(GPU(), partition=Partition(1, 4), synchronized_communication=true)
+# arch = Distributed(GPU(), partition=Partition(1, 4), synchronized_communication=true)
 # arch = Distributed(GPU(); partition = Partition(y = Equal()), synchronized_communication=true)
-# arch = Distributed(CPU(), partition=Partition(1, 4), synchronized_communication=true)
+arch = Distributed(CPU(), partition=Partition(1, 4), synchronized_communication=true)
 
 Nx = 2880 # longitudinal direction 
 Ny = 1440 # meridional direction 
@@ -60,7 +60,7 @@ dir = joinpath(homedir(), "forcing_data_1deg_minimal")
 mkpath(dir)
 
 dataset = EN4Monthly()
-date = DateTime(1958, 1, 1)
+date = DateTime(1993, 1, 1)
 @inline mask(x, y, z, t) = z ≥ z_surf - 1
 Smetadata = Metadata(:salinity; dataset, dir)
 
@@ -75,7 +75,6 @@ ocean = ocean_simulation(grid; Δt=1minutes,
                          closure)
 
 dataset = EN4Monthly()
-date = DateTime(1958, 1, 1)
 
 set!(ocean.model, T=Metadatum(:temperature; dataset, date, dir),
                   S=Metadatum(:salinity;    dataset, date, dir))
@@ -88,10 +87,10 @@ set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=ECCO4Monthly(), 
                     ℵ=Metadatum(:sea_ice_concentration; dataset=ECCO4Monthly(), dir))
 
 jra55_dir = dir
-dataset = RepeatYearJRA55()
+dataset = MultiYearJRA55()
 backend = JRA55NetCDFBackend(100)
 
-atmosphere = JRA55PrescribedAtmosphere(arch; dir=jra55_dir, dataset, backend, include_rivers_and_icebergs=true)
+atmosphere = JRA55PrescribedAtmosphere(arch; dir=jra55_dir, dataset, backend, include_rivers_and_icebergs=true, start_date=date)
 radiation  = Radiation()
 
 omip = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
