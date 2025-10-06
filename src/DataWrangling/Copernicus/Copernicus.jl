@@ -130,9 +130,7 @@ end
 
 inpainted_metadata_path(metadata::CopernicusMetadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
 
-copernicus_location(metadata::CopernicusMetadata) = is_three_dimensional(metadata) ? (Center, Center, Center) : (Center, Center, Nothing)
-
-location(metadata::CopernicusMetadata) = copernicus_location(metadata)
+location(metadata::CopernicusMetadata) = is_three_dimensional(metadata) ? (Center, Center, Center) : (Center, Center, Nothing)
 longitude_interfaces(::CopernicusMetadata) = (0, 360)
 latitude_interfaces(::CopernicusMetadata) = (-80, 90)
 
