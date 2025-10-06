@@ -35,7 +35,12 @@ function download_dataset(metadata::CopernicusMetadata; kwargs...)
     return paths
 end
 
-function download_dataset(meta::CopernicusMetadatum; skip_existing = true, additional_kw...)
+function download_dataset(meta::CopernicusMetadatum; 
+                          skip_existing=true, 
+                          username=get(ENV, "copernicus_username", nothing),
+                          password=get(ENV, "copernicus_password", nothing),
+                          additional_kw...)
+
     output_directory = meta.dir
     output_filename = ClimaOcean.DataWrangling.metadata_filename(meta)
     output_path = joinpath(output_directory, output_filename)
@@ -70,6 +75,10 @@ function download_dataset(meta::CopernicusMetadatum; skip_existing = true, addit
           variables,
           output_filename,
           output_directory)
+
+    if !isnothing(username) && !isnothing(password)
+        kw = merge(kw, (; copernicus_username=username, copernicus_password=password))
+    end
 
     additional_kw = NamedTuple(name => value for (name, value) in additional_kw)
     kw = merge(kw, datetime_kw, lon_kw, lat_kw, z_kw, additional_kw)
