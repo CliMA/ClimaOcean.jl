@@ -80,9 +80,8 @@ function download_dataset(meta::CopernicusMetadatum;
         kw = merge(kw, (; username, password))
     else
         @warn "No Copernicus credentials found. \\ 
-        Set the COPERNICUS_USERNAME and COPERNICUS_PASSWORD environment variables to download data \\
-        from the Copernicus Marine Service. \\
-        You can sign up for free at: https://data.marine.copernicus.eu/register"
+        Set the COPERNICUS_USERNAME and COPERNICUS_PASSWORD environment variables to download data from the Copernicus Marine Service. \\
+        You can sign up for free at: https://data.marine.copernicus.eu/register."
     end
 
     additional_kw = NamedTuple(name => value for (name, value) in additional_kw)
