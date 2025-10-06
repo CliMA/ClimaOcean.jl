@@ -18,9 +18,8 @@ using Oceananigans.BuoyancyFormulations: buoyancy, buoyancy_frequency
 import Oceananigans.OutputWriters: checkpointer_address
 
 # arch = GPU()
-# arch = Distributed(GPU(), partition=Partition(1, 4), synchronized_communication=true)
-# arch = Distributed(GPU(); partition = Partition(y = Equal()), synchronized_communication=true)
-arch = Distributed(CPU(), partition=Partition(1, 4), synchronized_communication=true)
+arch = Distributed(GPU(), partition=Partition(1, 4), synchronized_communication=true)
+# arch = Distributed(CPU(), partition=Partition(1, 4), synchronized_communication=true)
 
 Nx = 2880 # longitudinal direction 
 Ny = 1440 # meridional direction 
@@ -35,28 +34,18 @@ grid = TripolarGrid(arch;
                     z = z_faces,
                     halo = (7, 7, 7))
 
-bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1, interpolation_passes=75)
+bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1, interpolation_passes=10)
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
-using Oceananigans.TurbulenceClosures: ExplicitTimeDiscretization
-using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities: CATKEVerticalDiffusivity, CATKEMixingLength, CATKEEquation
-using Oceananigans.TurbulenceClosures: RiBasedVerticalDiffusivity
-
-momentum_advection = WENOVectorInvariant(order=5)
-tracer_advection   = WENO(order=5)
+momentum_advection = WENOVectorInvariant()
+tracer_advection   = WENO(order=7)
 
 free_surface = SplitExplicitFreeSurface(grid; substeps = 70)
 
-κ_skew = 1e3
-κ_symmetric = 1e3
-eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=κ_skew, κ_symmetric=κ_symmetric, skew_flux_formulation=AdvectiveFormulation())
-
-@info eddy_closure
-
 obl_closure = ClimaOcean.OceanSimulations.default_ocean_closure()  
-closure = (obl_closure, VerticalScalarDiffusivity(κ=1e-5, ν=1e-4), eddy_closure)
+closure = (obl_closure, VerticalScalarDiffusivity(κ=1e-5, ν=1e-4))
 
-dir = joinpath(homedir(), "forcing_data_1deg_minimal")
+dir = joinpath(homedir(), "forcing_data_1deg_minimal_gpu")
 mkpath(dir)
 
 dataset = EN4Monthly()
@@ -64,14 +53,11 @@ date = DateTime(1993, 1, 1)
 @inline mask(x, y, z, t) = z ≥ z_surf - 1
 Smetadata = Metadata(:salinity; dataset, dir)
 
-FS = DatasetRestoring(Smetadata, grid; rate = 1/18days, mask, time_indices_in_memory = 10)
-
 ocean = ocean_simulation(grid; Δt=1minutes,
                          momentum_advection,
                          tracer_advection,
                          timestepper = :SplitRungeKutta3,
                          free_surface,
-                         forcing = (; S = FS),
                          closure)
 
 dataset = EN4Monthly()
@@ -93,7 +79,10 @@ backend = JRA55NetCDFBackend(100)
 atmosphere = JRA55PrescribedAtmosphere(arch; dir=jra55_dir, dataset, backend, include_rivers_and_icebergs=true, start_date=date)
 radiation  = Radiation()
 
+@info "Setting up Ocean-SeaIce-Atmosphere model..."
 omip = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+
+@info "Setting up OMIP simulation..."
 omip = Simulation(omip, Δt=10minutes, stop_time=60days) 
 
 wall_time = Ref(time_ns())
@@ -129,4 +118,5 @@ end
 # And add it as a callback to the simulation.
 add_callback!(omip, progress, IterationInterval(1))
 
+@info "Starting OMIP simulation..."
 run!(omip)
