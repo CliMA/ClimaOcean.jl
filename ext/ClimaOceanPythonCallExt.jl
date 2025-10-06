@@ -77,7 +77,7 @@ function download_dataset(meta::CopernicusMetadatum;
           output_directory)
 
     if !isnothing(username) && !isnothing(password)
-        kw = merge(kw, (; copernicus_username=username, copernicus_password=password))
+        kw = merge(kw, (; username, password))
     end
 
     additional_kw = NamedTuple(name => value for (name, value) in additional_kw)
