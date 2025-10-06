@@ -37,8 +37,8 @@ end
 
 function download_dataset(meta::CopernicusMetadatum; 
                           skip_existing=true, 
-                          username=get(ENV, "copernicus_username", nothing),
-                          password=get(ENV, "copernicus_password", nothing),
+                          username=get(ENV, "COPERNICUS_USERNAME", nothing),
+                          password=get(ENV, "COPERNICUS_PASSWORD", nothing),
                           additional_kw...)
 
     output_directory = meta.dir
@@ -78,6 +78,11 @@ function download_dataset(meta::CopernicusMetadatum;
 
     if !isnothing(username) && !isnothing(password)
         kw = merge(kw, (; username, password))
+    else
+        @warn "No Copernicus credentials found. \\ 
+        Set the COPERNICUS_USERNAME and COPERNICUS_PASSWORD environment variables to download data \\
+        from the Copernicus Marine Service. \\
+        You can sign up for free at: https://data.marine.copernicus.eu/register"
     end
 
     additional_kw = NamedTuple(name => value for (name, value) in additional_kw)
