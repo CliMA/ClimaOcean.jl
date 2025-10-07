@@ -69,8 +69,8 @@ ocean = ocean_simulation(grid; Δt=1minutes,
 
 dataset = EN4Monthly()
 
-set!(ocean.model, T=Metadatum(:temperature; dataset, start_date, dir),
-                  S=Metadatum(:salinity;    dataset, start_date, dir))
+set!(ocean.model, T=Metadatum(:temperature; dataset, date=start_date, dir),
+                  S=Metadatum(:salinity;    dataset, date=start_date, dir))
 
 @info ocean.model.clock
 
