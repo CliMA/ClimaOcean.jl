@@ -3,15 +3,12 @@ using ClimaSeaIce
 using Oceananigans
 using Oceananigans.Grids
 using Oceananigans.Units
-using Oceananigans.OrthogonalSphericalShellGrids
 using Oceananigans.Architectures: on_architecture
 using Oceananigans.DistributedComputations: Equal
 using Oceananigans.BoundaryConditions: fill_halo_regions!
 using ClimaOcean.OceanSimulations
-using ClimaOcean.JRA55
 using ClimaOcean.DataWrangling
 using ClimaOcean.DataWrangling: NearestNeighborInpainting
-using ClimaSeaIce.SeaIceThermodynamics: IceWaterThermalEquilibrium
 using Printf
 using Dates
 using CUDA
@@ -31,7 +28,6 @@ Nx = 2880 # longitudinal direction
 Ny = 1440 # meridional direction 
 Nz = 100
 
-# z_faces = ExponentialCoordinate(Nz, -6000, 0)
 z_faces = ExponentialDiscretization(Nz, -6000, 0)
 
 const z_surf = z_faces(Nz)
@@ -56,15 +52,9 @@ grid = ImmersedBoundaryGrid(grid, fitted_bottom; active_cells_map=true)
 #####
 ##### A Prognostic Ocean model
 #####
-
-using Oceananigans.TurbulenceClosures: ExplicitTimeDiscretization
-using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities: CATKEVerticalDiffusivity, CATKEMixingLength, CATKEEquation
-using Oceananigans.TurbulenceClosures: RiBasedVerticalDiffusivity
-
 momentum_advection = WENOVectorInvariant()
 tracer_advection   = WENO(order=7)
 
-# free_surface = SplitExplicitFreeSurface(grid; cfl=0.8, fixed_Δt=12minutes)
 free_surface = SplitExplicitFreeSurface(grid; substeps = 70)
 @info "Free surface", free_surface
 
@@ -85,7 +75,7 @@ ocean = ocean_simulation(grid; Δt=1minutes,
                          closure)
 
 start_date = DateTime(1993, 1, 1)
-end_date   = DateTime(2003, 4, 1)
+end_date   = start_date + Month(3)
 simulation_period = Dates.value(Second(end_date - start_date))
 
 inpainting = NearestNeighborInpainting(50)
@@ -100,11 +90,6 @@ set!(ocean.model.tracers.S, Sᵢ; inpainting)
 fill_halo_regions!(ocean.model.tracers.T)
 fill_halo_regions!(ocean.model.tracers.S)
 
-# set!(ocean.model, T=Metadatum(:temperature; dataset=glorys_dataset, date=start_date, dir=glorys_dir),
-                #   S=Metadatum(:salinity;    dataset=glorys_dataset, date=start_date, dir=glorys_dir); inpainting)
-
-@info ocean.model.clock
-
 #####
 ##### A Prognostic Sea-ice model
 #####
@@ -113,11 +98,8 @@ fill_halo_regions!(ocean.model.tracers.S)
 sea_ice = sea_ice_simulation(grid, ocean; dynamics=nothing)
 
 @info "Setting sea-ice initial conditions..."
-set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=ECCO4Monthly(), dir=glorys_dir, date=start_date),
-                    ℵ=Metadatum(:sea_ice_concentration; dataset=ECCO4Monthly(), dir=glorys_dir, date=start_date))
-
-# set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=glorys_dataset, dir=glorys_dir, date=start_date),
-                    # ℵ=Metadatum(:sea_ice_concentration; dataset=glorys_dataset, dir=glorys_dir, date=start_date))
+set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=glorys_dataset, dir=glorys_dir, date=start_date),
+                    ℵ=Metadatum(:sea_ice_concentration; dataset=glorys_dataset, dir=glorys_dir, date=start_date))
 
 #####
 ##### A Prescribed Atmosphere model
@@ -126,10 +108,10 @@ set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=ECCO4Monthly(), 
 jra55_dir = joinpath(homedir(), "JRA55_data")
 mkpath(jra55_dir)
 jra55_dataset = MultiYearJRA55()
-jra55_backend = JRA55NetCDFBackend(100)
+jra55_backend = JRA55NetCDFBackend(3)
 
 @info "Building atmospheric forcing..."
-atmosphere = JRA55PrescribedAtmosphere(arch; dir=jra55_dir, dataset=jra55_dataset, backend=jra55_backend, include_rivers_and_icebergs=true, start_date)
+atmosphere = JRA55PrescribedAtmosphere(arch; dir=jra55_dir, dataset=jra55_dataset, backend=jra55_backend, include_rivers_and_icebergs=true, start_date, end_date)
 radiation  = Radiation()
 
 #####
@@ -177,8 +159,8 @@ add_callback!(omip, progress, IterationInterval(1))
 @info "Starting simulation..."
 run!(omip)
 
-@info "Initialization complete. Running the rest..."
-omip.Δt = 10minutes
-omip.stop_time = simulation_period
+# @info "Initialization complete. Running the rest..."
+# omip.Δt = 10minutes
+# omip.stop_time = simulation_period
 
-run!(omip)
+# run!(omip)
