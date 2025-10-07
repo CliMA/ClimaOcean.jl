@@ -75,12 +75,11 @@ set!(ocean.model, T=Metadatum(:temperature; dataset, start_date, dir),
 
 sea_ice = sea_ice_simulation(grid, ocean; dynamics=nothing)
 
-set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=ECCO4Monthly(), dir, start_date),
-                    ℵ=Metadatum(:sea_ice_concentration; dataset=ECCO4Monthly(), dir, start_date))
+set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=ECCO4Monthly(), dir, date=start_date),
+                    ℵ=Metadatum(:sea_ice_concentration; dataset=ECCO4Monthly(), dir, date=start_date))
 
 jra55_dir = joinpath(homedir(), "JRA55_data")
 dataset = MultiYearJRA55()
-# dataset = RepeatYearJRA55()
 backend = JRA55NetCDFBackend(3)
 
 @info "dataset: $dataset"
