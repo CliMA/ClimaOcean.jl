@@ -17,9 +17,9 @@ using Oceananigans.BuoyancyFormulations: buoyancy, buoyancy_frequency
 
 import Oceananigans.OutputWriters: checkpointer_address
 
+@info "GLORYS: Running one-eighth degree simulation"
 # arch = GPU()
 # arch = Distributed(GPU(), partition=Partition(1, 4), synchronized_communication=true)
-# arch = Distributed(GPU(); partition = Partition(y = Equal()), synchronized_communication=true)
 arch = Distributed(CPU(), partition=Partition(1, 4), synchronized_communication=true)
 
 @info "Architecture $(arch)"

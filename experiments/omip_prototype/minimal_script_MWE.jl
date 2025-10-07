@@ -17,6 +17,7 @@ using Oceananigans.BuoyancyFormulations: buoyancy, buoyancy_frequency
 
 import Oceananigans.OutputWriters: checkpointer_address
 
+@info "Running one-eighth degree simulation with minimal setup"
 # arch = GPU()
 # arch = Distributed(GPU(), partition=Partition(1, 4), synchronized_communication=true)
 arch = Distributed(CPU(), partition=Partition(1, 4), synchronized_communication=true)
