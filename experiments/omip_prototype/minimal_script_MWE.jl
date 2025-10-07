@@ -18,8 +18,8 @@ using Oceananigans.BuoyancyFormulations: buoyancy, buoyancy_frequency
 import Oceananigans.OutputWriters: checkpointer_address
 
 # arch = GPU()
-arch = Distributed(GPU(), partition=Partition(1, 4), synchronized_communication=true)
-# arch = Distributed(CPU(), partition=Partition(1, 4), synchronized_communication=true)
+# arch = Distributed(GPU(), partition=Partition(1, 4), synchronized_communication=true)
+arch = Distributed(CPU(), partition=Partition(1, 4), synchronized_communication=true)
 @info "Architecture $(arch)"
 
 Nx = 2880 # longitudinal direction 
@@ -29,11 +29,14 @@ Nz = 100
 z_faces = ExponentialDiscretization(Nz, -6000, 0)
 
 const z_surf = z_faces(Nz)
+halo_size = 7
 
 grid = TripolarGrid(arch;
                     size = (Nx, Ny, Nz),
                     z = z_faces,
-                    halo = (7, 7, 7))
+                    halo = (halo_size, halo_size, halo_size))
+
+@info "halo size: $(halo_size)"
 
 bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1, interpolation_passes=10)
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
@@ -43,14 +46,16 @@ tracer_advection   = WENO(order=7)
 
 free_surface = SplitExplicitFreeSurface(grid; substeps = 70)
 
-obl_closure = ClimaOcean.OceanSimulations.default_ocean_closure()  
+obl_closure = ClimaOcean.OceanSimulations.default_ocean_closure()
 closure = (obl_closure, VerticalScalarDiffusivity(κ=1e-5, ν=1e-4))
 
-dir = joinpath(homedir(), "forcing_data_1deg_minimal_gpu")
+dir = joinpath(homedir(), "forcing_data_1deg_minimal_multi40_backend3")
 mkpath(dir)
 
 dataset = EN4Monthly()
-date = DateTime(1993, 1, 1)
+start_date = DateTime(1993, 1, 1)
+end_date = start_date + Month(3)
+
 @inline mask(x, y, z, t) = z ≥ z_surf - 1
 Smetadata = Metadata(:salinity; dataset, dir)
 
@@ -63,21 +68,26 @@ ocean = ocean_simulation(grid; Δt=1minutes,
 
 dataset = EN4Monthly()
 
-set!(ocean.model, T=Metadatum(:temperature; dataset, date, dir),
-                  S=Metadatum(:salinity;    dataset, date, dir))
+set!(ocean.model, T=Metadatum(:temperature; dataset, start_date, dir),
+                  S=Metadatum(:salinity;    dataset, start_date, dir))
 
 @info ocean.model.clock
 
 sea_ice = sea_ice_simulation(grid, ocean; dynamics=nothing)
 
-set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=ECCO4Monthly(), dir, date),
-                    ℵ=Metadatum(:sea_ice_concentration; dataset=ECCO4Monthly(), dir, date))
+set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=ECCO4Monthly(), dir, start_date),
+                    ℵ=Metadatum(:sea_ice_concentration; dataset=ECCO4Monthly(), dir, start_date))
 
-jra55_dir = dir
+jra55_dir = joinpath(homedir(), "JRA55_data")
 dataset = MultiYearJRA55()
-backend = JRA55NetCDFBackend(100)
+# dataset = RepeatYearJRA55()
+backend = JRA55NetCDFBackend(3)
 
-atmosphere = JRA55PrescribedAtmosphere(arch; dir=jra55_dir, dataset, backend, include_rivers_and_icebergs=true, start_date=date)
+@info "dataset: $dataset"
+
+atmosphere = JRA55PrescribedAtmosphere(arch; dir=jra55_dir, dataset, backend, include_rivers_and_icebergs=true, start_date, end_date)
+
+@info "atmosphere: $atmosphere"
 radiation  = Radiation()
 
 @info "Setting up Ocean-SeaIce-Atmosphere model..."
