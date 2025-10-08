@@ -17,14 +17,15 @@ using Oceananigans.BuoyancyFormulations: buoyancy, buoyancy_frequency
 
 import Oceananigans.OutputWriters: checkpointer_address
 
-@info "Running one-eighth degree simulation with minimal setup"
+ngpus = Int(length(CUDA.devices()))
+@info "$ngpus GPUs"
 # arch = GPU()
-# arch = Distributed(GPU(), partition=Partition(1, 4), synchronized_communication=true)
-arch = Distributed(CPU(), partition=Partition(1, 4), synchronized_communication=true)
+arch = Distributed(GPU(), partition=Partition(1, ngpus), synchronized_communication=true)
+# arch = Distributed(CPU(), partition=Partition(1, 4), synchronized_communication=true)
 @info "Architecture $(arch)"
 
-Nx = 2880 # longitudinal direction 
-Ny = 1440 # meridional direction 
+Nx = 1440 # longitudinal direction 
+Ny = 720 # meridional direction 
 Nz = 100
 
 z_faces = ExponentialDiscretization(Nz, -6000, 0)
@@ -81,7 +82,7 @@ set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=ECCO4Monthly(), 
 
 jra55_dir = joinpath(homedir(), "JRA55_data")
 dataset = MultiYearJRA55()
-backend = JRA55NetCDFBackend(3)
+backend = JRA55NetCDFBackend(10)
 
 @info "dataset: $dataset"
 
@@ -92,9 +93,12 @@ radiation  = Radiation()
 
 @info "Setting up Ocean-SeaIce-Atmosphere model..."
 omip = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+# omip = OceanSeaIceModel(ocean; atmosphere, radiation)
+@info "sea ice model: $(omip.model.sea_ice)"
+@info omip
 
 @info "Setting up OMIP simulation..."
-omip = Simulation(omip, Δt=10minutes, stop_time=60days) 
+omip = Simulation(omip, Δt=1minutes, stop_time=60days) 
 
 wall_time = Ref(time_ns())
 
@@ -107,6 +111,10 @@ function progress(sim)
     ℵmax = maximum(sea_ice.model.ice_concentration)
     Tmax = maximum(sim.model.interfaces.atmosphere_sea_ice_interface.temperature)
     Tmin = minimum(sim.model.interfaces.atmosphere_sea_ice_interface.temperature)
+    # Tmax = maximum(ocean.model.tracers.T)
+    # Tmin = minimum(ocean.model.tracers.T)
+    Smax = maximum(ocean.model.tracers.S)
+    Smin = minimum(ocean.model.tracers.S)
     umax = maximum(ocean.model.velocities.u)
     vmax = maximum(ocean.model.velocities.v)
     wmax = maximum(ocean.model.velocities.w)
@@ -116,10 +124,12 @@ function progress(sim)
     msg1 = @sprintf("time: %s, iteration: %d, Δt: %s, ", prettytime(sim), iteration(sim), prettytime(sim.Δt))
     msg2 = @sprintf("max(h): %.2e m, max(ℵ): %.2e ", hmax, ℵmax)
     msg4 = @sprintf("extrema(T): (%.2f, %.2f) ᵒC, ", Tmax, Tmin)
-    msg5 = @sprintf("maximum(u): (%.2f, %.2f, %.2f) m/s, ", umax, vmax, wmax)
-    msg6 = @sprintf("wall time: %s \n", prettytime(step_time))
+    msg5 = @sprintf("extrema(S): (%.2f, %.2f) psu, ", Smax, Smin)
+    msg6 = @sprintf("maximum(u): (%.2f, %.2f, %.2f) m/s, ", umax, vmax, wmax)
+    msg7 = @sprintf("wall time: %s \n", prettytime(step_time))
 
-    @info msg1 * msg2 * msg4 * msg5 * msg6
+    @info msg1 * msg2 * msg4 * msg5 * msg6 * msg7
+    # @info msg1 * msg4 * msg5 * msg6 * msg7
 
      wall_time[] = time_ns()
 
