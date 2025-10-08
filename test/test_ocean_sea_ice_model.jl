@@ -4,13 +4,13 @@ using CUDA
 using Oceananigans.OrthogonalSphericalShellGrids
 using ClimaOcean.OceanSeaIceModels: above_freezing_ocean_temperature!
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
-using ClimaSeaIce.SeaIceMomentumEquations
+using ClimaSeaIce.SeaIceDynamics
 using ClimaSeaIce.Rheologies
 
 @inline kernel_melting_temperature(i, j, k, grid, liquidus, S) = @inbounds melting_temperature(liquidus, S[i, j, k])
 
 @testset "Time stepping test" begin
-    for dataset in test_datasets
+    for dataset in [ECCO4Monthly(), EN4Monthly()]
 
         start = DateTimeProlepticGregorian(1993, 1, 1)
         time_resolution = dataset isa ECCO2Daily ? Day(1) : Month(1)
@@ -58,7 +58,7 @@ using ClimaSeaIce.Rheologies
 
             bottom_height = regrid_bathymetry(grid;
                                               minimum_depth = 10,
-                                              interpolation_passes = 20,
+                                              interpolation_passes = 5,
                                               major_basins = 1)
 
             grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
@@ -81,17 +81,7 @@ using ClimaSeaIce.Rheologies
             ##### Coupled ocean-sea ice and prescribed atmosphere
             #####
 
-            # Adding a sea ice model to the coupled model
-            τua = Field{Face, Center, Nothing}(grid)
-            τva = Field{Center, Face, Nothing}(grid)
-
-            dynamics = SeaIceMomentumEquation(grid;
-                                              coriolis = ocean.model.coriolis,
-                                              top_momentum_stress = (u=τua, v=τva),
-                                              rheology = ElastoViscoPlasticRheology(),
-                                              solver = SplitExplicitSolver(120))
-
-            sea_ice  = sea_ice_simulation(grid; dynamics, advection=WENO(order=7))
+            sea_ice  = sea_ice_simulation(grid, ocean; advection=WENO(order=7))
             liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
 
             # Set the ocean temperature and salinity

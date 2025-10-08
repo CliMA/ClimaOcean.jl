@@ -60,3 +60,6 @@ docs/src/literated/
 
 # vscode
 .vscode
+
+.CondaPkg
+CondaPkg.toml

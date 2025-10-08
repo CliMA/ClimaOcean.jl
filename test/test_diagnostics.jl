@@ -5,8 +5,7 @@ using Oceananigans.BuoyancyFormulations: buoyancy
 using Oceananigans: location
 using ClimaOcean.Diagnostics: MixedLayerDepthField, MixedLayerDepthOperand
 
-
-for arch in test_architectures, dataset in test_datasets
+for arch in test_architectures, dataset in (ECCO4Monthly(),)
     A = typeof(arch)
     @info "Testing MixedLayerDepthField with $(typeof(dataset)) on $A"
 

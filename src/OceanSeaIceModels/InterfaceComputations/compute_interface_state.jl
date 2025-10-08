@@ -88,12 +88,11 @@ and interior properties `ℙₛ`, `ℙₐ`, and `ℙᵢ`.
     FT = eltype(approximate_interface_state)
     ℂₐ = atmosphere_properties.thermodynamics_parameters
     𝒬ₐ = atmosphere_state.𝒬
-    ρₐ = 𝒬ₐ.ρ
 
     # Recompute the saturation specific humidity at the interface based on the new temperature
     q_formulation = interface_properties.specific_humidity_formulation
     Sₛ = approximate_interface_state.S
-    qₛ = saturation_specific_humidity(q_formulation, ℂₐ, ρₐ, Tₛ, Sₛ)
+    qₛ = surface_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ, Tₛ, Sₛ)
 
     # Compute the specific humidity increment
     qₐ = AtmosphericThermodynamics.vapor_specific_humidity(ℂₐ, 𝒬ₐ)
@@ -114,5 +113,12 @@ and interior properties `ℙₛ`, `ℙₐ`, and `ℙᵢ`.
     v = approximate_interface_state.v
     S = approximate_interface_state.S
 
-    return InterfaceState(u★, θ★, q★, u, v, Tₛ, S, convert(FT, qₛ))
+    return InterfaceState(convert(FT, u★),
+                          convert(FT, θ★),
+                          convert(FT, q★), 
+                          convert(FT, u), 
+                          convert(FT, v), 
+                          convert(FT, Tₛ), 
+                          convert(FT, S), 
+                          convert(FT, qₛ))
 end

@@ -5,7 +5,7 @@ using ClimaOcean.OceanSeaIceModels.InterfaceComputations:
                                    celsius_to_kelvin,
                                    convert_to_kelvin,
                                    SimilarityScales,
-                                   saturation_specific_humidity,
+                                   surface_specific_humidity,
                                    surface_flux,
                                    SkinTemperature,
                                    BulkTemperature,
@@ -18,10 +18,10 @@ using Oceananigans.TimeSteppers: update_state!
 using Oceananigans.Units: hours, days
 using ClimaOcean.DataWrangling: all_dates
 
-using ClimaSeaIce.SeaIceMomentumEquations
+using ClimaSeaIce.SeaIceDynamics
 using ClimaSeaIce.Rheologies
 
-import ClimaOcean.OceanSeaIceModels.InterfaceComputations: saturation_specific_humidity
+import ClimaOcean.OceanSeaIceModels.InterfaceComputations: surface_specific_humidity
 
 using Statistics: mean, std
 
@@ -29,7 +29,7 @@ struct FixedSpecificHumidity{FT}
     qₒ :: FT
 end
 
-@inline saturation_specific_humidity(h::FixedSpecificHumidity, args...) = h.qₒ
+@inline surface_specific_humidity(h::FixedSpecificHumidity, args...) = h.qₒ
 
 @testset "Test surface fluxes" begin
     for arch in test_architectures
@@ -44,7 +44,7 @@ end
                                  momentum_advection = nothing,
                                  tracer_advection = nothing,
                                  closure = nothing,
-                                 bottom_drag_coefficient = 0.0)
+                                 bottom_drag_coefficient = 0)
 
         dates = all_dates(RepeatYearJRA55(), :temperature)
         atmosphere = JRA55PrescribedAtmosphere(arch, Float64; end_date=dates[2], backend = InMemory())
@@ -115,8 +115,8 @@ end
 
             # Constructing very special fluxes that do not account for stability of
             # the atmosphere, have zero gustiness and a constant roughness length of
-            # `1e-4` for momentum, water vapor and temperature
-            # For this case we can compute the fluxes by hand.
+            # `1e-4` for momentum, water vapor and temperature.
+            # For this case, we can compute the fluxes by hand.
             ℓ = 1e-4
 
             @inline zero_stability_function(ζ) = zero(ζ)
@@ -125,13 +125,14 @@ end
                                                    zero_stability_function,
                                                    zero_stability_function)
 
-            roughness_lengths = SimilarityScales(ℓ, ℓ, ℓ)
-            similarity_theory = SimilarityTheoryFluxes(; roughness_lengths,
+            similarity_theory = SimilarityTheoryFluxes(; momentum_roughness_length = ℓ,
+                                                         temperature_roughness_length = ℓ,
+                                                         water_vapor_roughness_length = ℓ,
                                                          gustiness_parameter = 0,
                                                          stability_functions)
 
             interfaces = ComponentInterfaces(atmosphere, ocean;
-                                             atmosphere_ocean_flux_formulation=similarity_theory)
+                                             atmosphere_ocean_fluxes=similarity_theory)
 
             # mid-latitude ocean conditions
             set!(ocean.model, u = 0, v = 0, T = 15, S = 30)
@@ -144,7 +145,7 @@ end
 
             interface_properties = interfaces.atmosphere_ocean_interface.properties
             q_formulation = interface_properties.specific_humidity_formulation
-            qₒ = saturation_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ.ρ, Tₒ, Sₒ)
+            qₒ = surface_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ, Tₒ, Sₒ)
             g  = ocean.model.buoyancy.formulation.gravitational_acceleration
 
             # Differences!
@@ -278,8 +279,10 @@ end
 
         ocean = ocean_simulation(grid; momentum_advection, tracer_advection, closure, tracers, coriolis)
 
-        T_metadata = Metadatum(:temperature, date=DateTimeProlepticGregorian(1993, 1, 1), dataset=ECCO4Monthly())
-        S_metadata = Metadatum(:salinity,    date=DateTimeProlepticGregorian(1993, 1, 1), dataset=ECCO4Monthly())
+        date = DateTimeProlepticGregorian(1993, 1, 1)
+        dataset = ECCO4Monthly()
+        T_metadata = Metadatum(:temperature; date, dataset)
+        S_metadata = Metadatum(:salinity; date, dataset)
 
         set!(ocean.model; T=T_metadata, S=S_metadata)
 
@@ -289,9 +292,6 @@ end
         sea_ice    = nothing
 
         coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-
-        @show coupled_model.sea_ice
-
         times = 0:1hours:1days
         Ntimes = length(times)
 
@@ -332,4 +332,3 @@ end
         @test_broken τʸ_std ≈ 7.627885224680635e-5
     end
 end
-

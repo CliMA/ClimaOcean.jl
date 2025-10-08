@@ -46,6 +46,13 @@ Modules = [ClimaOcean.EN4]
 Private = false
 ```
 
+## ETOPO
+
+```@autodocs
+Modules = [ClimaOcean.ETOPO]
+Private = false
+```
+
 ## JRA55
 
 ```@autodocs
@@ -59,10 +66,17 @@ Private = false
 Modules = [ClimaOcean.Bathymetry]
 Private = false
 ```
-## VerticalGrids
+## GridUtils
 
 ```@autodocs
-Modules = [ClimaOcean.VerticalGrids]
+Modules = [ClimaOcean.GridUtils]
+Private = false
+```
+
+## OceanSimulations
+
+```@autodocs
+Modules = [ClimaOcean.OceanSimulations]
 Private = false
 ```
 
