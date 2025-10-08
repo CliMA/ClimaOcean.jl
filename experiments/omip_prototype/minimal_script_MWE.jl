@@ -94,7 +94,7 @@ radiation  = Radiation()
 @info "Setting up Ocean-SeaIce-Atmosphere model..."
 omip = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 # omip = OceanSeaIceModel(ocean; atmosphere, radiation)
-@info "sea ice model: $(omip.model.sea_ice)"
+@info "sea ice model: $(omip.sea_ice)"
 @info omip
 
 @info "Setting up OMIP simulation..."
