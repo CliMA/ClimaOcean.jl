@@ -147,7 +147,7 @@ end
 
 # ...with prescribed velocity and tracer fields
 dataset = ECCO4Monthly()
-arch    = GPU()
+arch    = CPU()
 
 start_date = DateTime(1992, 1, 1)
 end_date   = DateTime(1993, 1, 1)
@@ -157,10 +157,10 @@ S_meta = Metadata(:salinity;    start_date, end_date, dataset)
 u_meta = Metadata(:u_velocity;  start_date, end_date, dataset)
 v_meta = Metadata(:v_velocity;  start_date, end_date, dataset)
 
-u = FieldTimeSeries(u_meta, arch; time_indices_in_memory=13)
-v = FieldTimeSeries(v_meta, arch; time_indices_in_memory=13)
-T = FieldTimeSeries(T_meta, arch; time_indices_in_memory=13)
-S = FieldTimeSeries(S_meta, arch; time_indices_in_memory=13)
+u = FieldTimeSeries(u_meta, arch; time_indices_in_memory=5)
+v = FieldTimeSeries(v_meta, arch; time_indices_in_memory=5)
+T = FieldTimeSeries(T_meta, arch; time_indices_in_memory=5)
+S = FieldTimeSeries(S_meta, arch; time_indices_in_memory=5)
 
 grid = ECCO.ECCO_immersed_grid(arch)
 
