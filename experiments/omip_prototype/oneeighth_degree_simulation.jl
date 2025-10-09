@@ -217,6 +217,11 @@ function progress(sim)
     @info msg1 * msg2 * msg3
 
     CUDA.memory_status()
+
+    total_mem = Sys.total_memory()
+    free_mem = Sys.free_memory()
+    used_mem = total_mem - free_mem
+    @info msg1 * "Memory usage: $(round(100 * used_mem / total_mem, digits=1))%, $(round(used_mem / 1e9, digits=1)) / $(round(total_mem / 1e9, digits=1)) GB"
     wall_time[] = time_ns()
     return nothing
 end
