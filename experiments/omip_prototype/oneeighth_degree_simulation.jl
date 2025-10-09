@@ -4,6 +4,7 @@ using Oceananigans
 using Oceananigans.Grids
 using Oceananigans.Units
 using Oceananigans.OrthogonalSphericalShellGrids
+using Oceananigans.Architectures: on_architecture
 using ClimaOcean.OceanSimulations
 using ClimaOcean.JRA55
 using ClimaOcean.DataWrangling
@@ -17,15 +18,23 @@ using Oceananigans.BuoyancyFormulations: buoyancy, buoyancy_frequency
 
 import Oceananigans.OutputWriters: checkpointer_address
 
+CUDA.versioninfo()
+
+ngpus = Int(length(CUDA.devices()))
+@info "$ngpus GPUs"
 # arch = GPU()
-arch = Distributed(GPU(), partition=Partition(1, 2), synchronized_communication=true)
+arch = Distributed(GPU(), partition=Partition(1, ngpus), synchronized_communication=true)
+# arch = Distributed(GPU(), partition=Partition(1, ngpus))
+# arch = Distributed(CPU(), partition=Partition(1, 4), synchronized_communication=true)
+@info "Architecture $(arch)"
 
 Nx = 2880 # longitudinal direction 
 Ny = 1440 # meridional direction 
 Nz = 100
 
-z_faces = ExponentialCoordinate(Nz, -6000, 0)
-# z_faces = MutableVerticalDiscretization(z_faces)
+Δt = 10minutes
+
+z_faces = ExponentialDiscretization(Nz, -6000, 0)
 
 const z_surf = z_faces(Nz)
 
@@ -37,22 +46,22 @@ grid = TripolarGrid(arch;
 
 @info "Regridding bathymetry..."
 bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1, interpolation_passes=10)
+fitted_bottom = GridFittedBottom(bottom_height)
 
 @info "Building immersed boundary grid..."
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
+grid = ImmersedBoundaryGrid(grid, fitted_bottom; active_cells_map=true)
+# grid = ImmersedBoundaryGrid(grid, fitted_bottom)
+@info grid
+@info "Created ImmersedBoundaryGrid"
 
 #####
 ##### A Propgnostic Ocean model
 #####
-
-using Oceananigans.TurbulenceClosures: ExplicitTimeDiscretization
-using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities: CATKEVerticalDiffusivity, CATKEMixingLength, CATKEEquation
-using Oceananigans.TurbulenceClosures: RiBasedVerticalDiffusivity
-
 momentum_advection = WENOVectorInvariant()
 tracer_advection   = WENO(order=7)
 
-free_surface = SplitExplicitFreeSurface(grid; cfl=0.8, fixed_Δt=12minutes)
+free_surface = SplitExplicitFreeSurface(grid; substeps = 200)
+@info "Free surface", free_surface
 
 obl_closure = ClimaOcean.OceanSimulations.default_ocean_closure() # CATKE
 # obl_closure = RiBasedVerticalDiffusivity()
@@ -64,35 +73,29 @@ else
     prefix = "CATKE"
 end
 
-prefix *= "oneeighth_degree"
+prefix *= "oneeighth_degree_$(Δt)"
 
-glorys_dir = joinpath(homedir(), "GLORYS_data")
-mkpath(glorys_dir)
-
-glorys_dataset = GLORYSMonthly()
-
-# Turn off salinity restoring for now
-# @inline mask(x, y, z, t) = z ≥ z_surf - 1
-# Smetadata = Metadata(:salinity; dataset=glorys_dataset, dir=glorys_dir)
-# FS = DatasetRestoring(Smetadata, grid; rate = 1/18days, mask, time_indices_in_memory = 3)
+dir = joinpath(homedir(), "oneeighth_degree_forcing_data")
+mkpath(dir)
 
 @info "Building ocean component..."
-ocean = ocean_simulation(grid; Δt=1minutes,
+ocean = ocean_simulation(grid; Δt=5minutes,
                          momentum_advection,
                          tracer_advection,
                          timestepper = :SplitRungeKutta3,
                          free_surface,
-                        #  forcing = (; S = FS),
                          closure)
 
 start_date = DateTime(1993, 1, 1)
 end_date   = DateTime(2003, 4, 1)
 simulation_period = Dates.value(Second(end_date - start_date))
+monthly_times = cumsum(vcat([0.], Dates.value.(Second.(diff(start_date:Month(1):end_date)))))
 
-inpainting = NearestNeighborInpainting(50)
+dataset = EN4Monthly()
+
 @info "Setting initial conditions..."
-set!(ocean.model, T=Metadatum(:temperature; dataset=glorys_dataset, date=start_date, dir=glorys_dir),
-                  S=Metadatum(:salinity;    dataset=glorys_dataset, date=start_date, dir=glorys_dir); inpainting)
+set!(ocean.model, T=Metadatum(:temperature; dataset, date=start_date, dir),
+                  S=Metadatum(:salinity;    dataset, date=start_date, dir))
 
 @info ocean.model.clock
 
@@ -106,8 +109,8 @@ set!(ocean.model, T=Metadatum(:temperature; dataset=glorys_dataset, date=start_d
 sea_ice = sea_ice_simulation(grid, ocean; dynamics=nothing)
 
 @info "Setting sea-ice initial conditions..."
-set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=glorys_dataset, dir=glorys_dir),
-                    ℵ=Metadatum(:sea_ice_concentration; dataset=glorys_dataset, dir=glorys_dir), inpainting = nothing)
+set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=ECCO4Monthly(), dir, date=start_date),
+                    ℵ=Metadatum(:sea_ice_concentration; dataset=ECCO4Monthly(), dir, date=start_date))
 
 #####
 ##### A Prescribed Atmosphere model
@@ -116,11 +119,10 @@ set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=glorys_dataset, 
 jra55_dir = joinpath(homedir(), "JRA55_data")
 mkpath(jra55_dir)
 dataset = MultiYearJRA55()
-# jra55_dataset = RepeatYearJRA55()
-jra55_backend = JRA55NetCDFBackend(10)
+backend = JRA55NetCDFBackend(20)
 
 @info "Building atmospheric forcing..."
-atmosphere = JRA55PrescribedAtmosphere(arch; dir=jra55_dir, dataset=jra55_backend, backend=jra55_backend, include_rivers_and_icebergs=true, start_date)
+atmosphere = JRA55PrescribedAtmosphere(arch; dir=jra55_dir, dataset, backend, include_rivers_and_icebergs=true, start_date, end_date)
 radiation  = Radiation()
 
 #####
@@ -129,8 +131,7 @@ radiation  = Radiation()
 
 @info "Building coupled ocean-sea ice model..."
 omip = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-# omip = Simulation(omip, Δt=10minutes, stop_time=60days)
-omip = Simulation(omip, Δt=10minutes, stop_time=simulation_period)
+omip = Simulation(omip, Δt=5minutes, stop_time=60days)
 
 # Figure out the outputs....
 checkpointer_address(::SeaIceModel) = "SeaIceModel"
@@ -140,20 +141,15 @@ mkpath(FILE_DIR)
 
 @info "Setting up output writers..."
 ocean.output_writers[:checkpointer] = Checkpointer(ocean.model,
-                                                  schedule = SpecifiedTimes([simulation_period]),
+                                                  schedule = SpecifiedTimes(monthly_times),
                                                   prefix = "$(FILE_DIR)/ocean_checkpoint_oneeighthdegree",
                                                   overwrite_existing = true)
 
 sea_ice.output_writers[:checkpointer] = Checkpointer(sea_ice.model,
-                                                     schedule = TimeInterval(60days),
+                                                     schedule = SpecifiedTimes(monthly_times),
                                                      prefix = "$(FILE_DIR)/sea_ice_checkpoint_oneeighthdegree",
                                                      overwrite_existing = true)
 
-sea_ice.output_writers[:checkpointer] = Checkpointer(sea_ice.model,
-                                                     schedule = SpecifiedTimes([simulation_period]),
-                                                     prefix = "$(FILE_DIR)/sea_ice_checkpoint_oneeighthdegree_final",
-                                                     overwrite_existing = true)
-                                                     
 u, v, w = ocean.model.velocities
 T, S = ocean.model.tracers
 b = Field(buoyancy(ocean.model))
@@ -178,12 +174,12 @@ sea_ice.output_writers[:surface] = JLD2Writer(ocean.model, sea_ice_outputs;
                                               overwrite_existing = true)
 
 ocean.output_writers[:full] = JLD2Writer(ocean.model, ocean_outputs;
-                                         schedule = SpecifiedTimes([simulation_period]),
+                                         schedule = SpecifiedTimes(monthly_times),
                                          filename = "$(FILE_DIR)/ocean_complete_fields",
                                          overwrite_existing = true)
 
 sea_ice.output_writers[:full] = JLD2Writer(sea_ice.model, sea_ice_outputs;
-                                            schedule = SpecifiedTimes([simulation_period]),
+                                            schedule = SpecifiedTimes(monthly_times),
                                             filename = "$(FILE_DIR)/sea_ice_complete_fields",
                                             overwrite_existing = true)
 
@@ -212,146 +208,136 @@ wall_time = Ref(time_ns())
 using Statistics
 
 function progress(sim)
-    sea_ice = sim.model.sea_ice
-    ocean   = sim.model.ocean
-    hmax = maximum(sea_ice.model.ice_thickness)
-    ℵmax = maximum(sea_ice.model.ice_concentration)
-    Tmax = maximum(sim.model.interfaces.atmosphere_sea_ice_interface.temperature)
-    Tmin = minimum(sim.model.interfaces.atmosphere_sea_ice_interface.temperature)
-    umax = maximum(ocean.model.velocities.u)
-    vmax = maximum(ocean.model.velocities.v)
-    wmax = maximum(ocean.model.velocities.w)
-
     step_time = 1e-9 * (time_ns() - wall_time[])
 
-    msg1 = @sprintf("time: %s, iteration: %d, Δt: %s, ", prettytime(sim), iteration(sim), prettytime(sim.Δt))
-    msg2 = @sprintf("max(h): %.2e m, max(ℵ): %.2e ", hmax, ℵmax)
-    msg4 = @sprintf("extrema(T): (%.2f, %.2f) ᵒC, ", Tmax, Tmin)
-    msg5 = @sprintf("maximum(u): (%.2f, %.2f, %.2f) m/s, ", umax, vmax, wmax)
-    msg6 = @sprintf("wall time: %s \n", prettytime(step_time))
+    msg1 = @sprintf("local rank: %d, ", arch.local_rank)
+    msg2 = @sprintf("time: %s, iteration: %d, Δt: %s, ", prettytime(sim), iteration(sim), prettytime(sim.Δt))
+    msg3 = @sprintf("wall time: %s \n", prettytime(step_time))
 
-    @info msg1 * msg2 * msg4 * msg5 * msg6
+    @info msg1 * msg2 * msg3
 
-     wall_time[] = time_ns()
-
-     return nothing
+    CUDA.memory_status()
+    wall_time[] = time_ns()
+    return nothing
 end
 
 # And add it as a callback to the simulation.
-add_callback!(omip, progress, IterationInterval(100))
+add_callback!(omip, progress, IterationInterval(400))
 
 @info "Starting simulation..."
 run!(omip)
 
-# omip.Δt = 10minutes
-# omip.stop_time = simulation_period
+@info "Initialization complete. Running the rest..."
+
+omip.Δt = Δt
+omip.stop_time = simulation_period
 
 run!(omip)
 
-#%%
-@info "Plotting results..."
-using CairoMakie
+# #%%
+# @info "Plotting results..."
+# using CairoMakie
 
-uo = FieldTimeSeries("$(FILE_DIR)/ocean_surface_fields.jld2",  "u"; backend = OnDisk())
-vo = FieldTimeSeries("$(FILE_DIR)/ocean_surface_fields.jld2",  "v"; backend = OnDisk())
-To = FieldTimeSeries("$(FILE_DIR)/ocean_surface_fields.jld2",  "T"; backend = OnDisk())
+# uo = FieldTimeSeries("$(FILE_DIR)/ocean_surface_fields.jld2",  "u"; backend = OnDisk())
+# vo = FieldTimeSeries("$(FILE_DIR)/ocean_surface_fields.jld2",  "v"; backend = OnDisk())
+# To = FieldTimeSeries("$(FILE_DIR)/ocean_surface_fields.jld2",  "T"; backend = OnDisk())
 
-# and sea ice fields with "i":
-ui = FieldTimeSeries("$(FILE_DIR)/sea_ice_surface_fields.jld2", "u"; backend = OnDisk())
-vi = FieldTimeSeries("$(FILE_DIR)/sea_ice_surface_fields.jld2", "v"; backend = OnDisk())
-hi = FieldTimeSeries("$(FILE_DIR)/sea_ice_surface_fields.jld2", "h"; backend = OnDisk())
-ℵi = FieldTimeSeries("$(FILE_DIR)/sea_ice_surface_fields.jld2", "ℵ"; backend = OnDisk())
-Ti = FieldTimeSeries("$(FILE_DIR)/sea_ice_surface_fields.jld2", "T"; backend = OnDisk())
+# # and sea ice fields with "i":
+# ui = FieldTimeSeries("$(FILE_DIR)/sea_ice_surface_fields.jld2", "u"; backend = OnDisk())
+# vi = FieldTimeSeries("$(FILE_DIR)/sea_ice_surface_fields.jld2", "v"; backend = OnDisk())
+# hi = FieldTimeSeries("$(FILE_DIR)/sea_ice_surface_fields.jld2", "h"; backend = OnDisk())
+# ℵi = FieldTimeSeries("$(FILE_DIR)/sea_ice_surface_fields.jld2", "ℵ"; backend = OnDisk())
+# Ti = FieldTimeSeries("$(FILE_DIR)/sea_ice_surface_fields.jld2", "T"; backend = OnDisk())
 
-times = uo.times
-Nt = length(times)
-n = Observable(Nt)
+# times = uo.times
+# Nt = length(times)
+# n = Observable(Nt)
 
-# We create a land mask and use it to fill land points with `NaN`s.
-land = interior(To.grid.immersed_boundary.bottom_height) .≥ 0
+# # We create a land mask and use it to fill land points with `NaN`s.
+# land = interior(To.grid.immersed_boundary.bottom_height) .≥ 0
 
-Toₙ = @lift begin
-    Tₙ = interior(To[$n])
-    Tₙ[land] .= NaN
-    view(Tₙ, :, :, 1)
-end
+# Toₙ = @lift begin
+#     Tₙ = interior(To[$n])
+#     Tₙ[land] .= NaN
+#     view(Tₙ, :, :, 1)
+# end
 
-heₙ = @lift begin
-    hₙ = interior(hi[$n])
-    ℵₙ = interior(ℵi[$n])
-    hₙ[land] .= NaN
-    view(hₙ, :, :, 1) .* view(ℵₙ, :, :, 1)
-end
+# heₙ = @lift begin
+#     hₙ = interior(hi[$n])
+#     ℵₙ = interior(ℵi[$n])
+#     hₙ[land] .= NaN
+#     view(hₙ, :, :, 1) .* view(ℵₙ, :, :, 1)
+# end
 
-# We compute the surface speeds for the ocean and the sea ice.
-uoₙ = Field{Face, Center, Nothing}(uo.grid)
-voₙ = Field{Center, Face, Nothing}(vo.grid)
+# # We compute the surface speeds for the ocean and the sea ice.
+# uoₙ = Field{Face, Center, Nothing}(uo.grid)
+# voₙ = Field{Center, Face, Nothing}(vo.grid)
 
-uiₙ = Field{Face, Center, Nothing}(ui.grid)
-viₙ = Field{Center, Face, Nothing}(vi.grid)
+# uiₙ = Field{Face, Center, Nothing}(ui.grid)
+# viₙ = Field{Center, Face, Nothing}(vi.grid)
 
-so = Field(sqrt(uoₙ^2 + voₙ^2))
-si = Field(sqrt(uiₙ^2 + viₙ^2))
+# so = Field(sqrt(uoₙ^2 + voₙ^2))
+# si = Field(sqrt(uiₙ^2 + viₙ^2))
 
-soₙ = @lift begin
-    parent(uoₙ) .= parent(uo[$n])
-    parent(voₙ) .= parent(vo[$n])
-    compute!(so)
-    soₙ = interior(so)
-    soₙ[land] .= NaN
-    view(soₙ, :, :, 1)
-end
+# soₙ = @lift begin
+#     parent(uoₙ) .= parent(uo[$n])
+#     parent(voₙ) .= parent(vo[$n])
+#     compute!(so)
+#     soₙ = interior(so)
+#     soₙ[land] .= NaN
+#     view(soₙ, :, :, 1)
+# end
 
-siₙ = @lift begin
-    parent(uiₙ) .= parent(ui[$n])
-    parent(viₙ) .= parent(vi[$n])
-    compute!(si)
-    siₙ = interior(si)
-    hₙ = interior(hi[$n])
-    ℵₙ = interior(ℵi[$n])
-    he = hₙ .* ℵₙ
-    siₙ[he .< 1e-7] .= 0
-    siₙ[land] .= NaN
-    view(siₙ, :, :, 1)
-end
+# siₙ = @lift begin
+#     parent(uiₙ) .= parent(ui[$n])
+#     parent(viₙ) .= parent(vi[$n])
+#     compute!(si)
+#     siₙ = interior(si)
+#     hₙ = interior(hi[$n])
+#     ℵₙ = interior(ℵi[$n])
+#     he = hₙ .* ℵₙ
+#     siₙ[he .< 1e-7] .= 0
+#     siₙ[land] .= NaN
+#     view(siₙ, :, :, 1)
+# end
 
-# Finally, we plot a snapshot of the surface speed, temperature, and the turbulent
-# eddy kinetic energy from the CATKE vertical mixing parameterization as well as the
-# sea ice speed and the effective sea ice thickness.
-fig = Figure(size=(2000, 1000))
+# # Finally, we plot a snapshot of the surface speed, temperature, and the turbulent
+# # eddy kinetic energy from the CATKE vertical mixing parameterization as well as the
+# # sea ice speed and the effective sea ice thickness.
+# fig = Figure(size=(2000, 1000))
 
-title = @lift string("Global 1/8ᵒ ocean simulation after ", prettytime(times[$n] - times[1]))
+# title = @lift string("Global 1/8ᵒ ocean simulation after ", prettytime(times[$n] - times[1]))
 
-axso = Axis(fig[1, 1])
-axsi = Axis(fig[1, 3])
-axTo = Axis(fig[2, 1])
-axhi = Axis(fig[2, 3])
+# axso = Axis(fig[1, 1])
+# axsi = Axis(fig[1, 3])
+# axTo = Axis(fig[2, 1])
+# axhi = Axis(fig[2, 3])
 
-hmo = heatmap!(axso, soₙ, colorrange = (0, 0.5), colormap = :deep,  nan_color=:lightgray)
-hmi = heatmap!(axsi, siₙ, colorrange = (0, 0.5), colormap = :greys, nan_color=:lightgray)
-Colorbar(fig[1, 2], hmo, label = "Ocean Surface speed (m s⁻¹)")
-Colorbar(fig[1, 4], hmi, label = "Sea ice speed (m s⁻¹)")
+# hmo = heatmap!(axso, soₙ, colorrange = (0, 0.5), colormap = :deep,  nan_color=:lightgray)
+# hmi = heatmap!(axsi, siₙ, colorrange = (0, 0.5), colormap = :greys, nan_color=:lightgray)
+# Colorbar(fig[1, 2], hmo, label = "Ocean Surface speed (m s⁻¹)")
+# Colorbar(fig[1, 4], hmi, label = "Sea ice speed (m s⁻¹)")
 
-hmo = heatmap!(axTo, Toₙ, colorrange = (-1, 32), colormap = :magma, nan_color=:lightgray)
-hmi = heatmap!(axhi, heₙ, colorrange =  (0, 4),  colormap = :blues, nan_color=:lightgray)
-Colorbar(fig[2, 2], hmo, label = "Surface Temperature (ᵒC)")
-Colorbar(fig[2, 4], hmi, label = "Effective ice thickness (m)")
+# hmo = heatmap!(axTo, Toₙ, colorrange = (-1, 32), colormap = :magma, nan_color=:lightgray)
+# hmi = heatmap!(axhi, heₙ, colorrange =  (0, 4),  colormap = :blues, nan_color=:lightgray)
+# Colorbar(fig[2, 2], hmo, label = "Surface Temperature (ᵒC)")
+# Colorbar(fig[2, 4], hmi, label = "Effective ice thickness (m)")
 
-for ax in (axso, axsi, axTo, axhi)
-    hidedecorations!(ax)
-end
+# for ax in (axso, axsi, axTo, axhi)
+#     hidedecorations!(ax)
+# end
 
-Label(fig[0, :], title)
+# Label(fig[0, :], title)
 
-save("$(FILE_DIR)/global_snapshot.png", fig)
-nothing #hide
+# save("$(FILE_DIR)/global_snapshot.png", fig)
+# nothing #hide
 
-# ![](global_snapshot.png)
+# # ![](global_snapshot.png)
 
-# And now a movie:
+# # And now a movie:
 
-CairoMakie.record(fig, "$(FILE_DIR)/oneeighth_degree_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
-    n[] = nn
-end
-nothing
-#%%
+# CairoMakie.record(fig, "$(FILE_DIR)/oneeighth_degree_global_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
+#     n[] = nn
+# end
+# nothing
+# #%%
