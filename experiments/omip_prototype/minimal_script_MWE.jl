@@ -58,7 +58,7 @@ obl_closure = ClimaOcean.OceanSimulations.default_ocean_closure()
 # obl_closure = RiBasedVerticalDiffusivity()
 closure = (obl_closure, VerticalScalarDiffusivity(κ=1e-5, ν=1e-4))
 
-dir = joinpath(homedir(), "forcing_data_1deg_minimal_multi40_backend3")
+dir = joinpath(homedir(), "forcing_data_minimal")
 mkpath(dir)
 
 dataset = EN4Monthly()
@@ -68,7 +68,7 @@ end_date = start_date + Month(3)
 @inline mask(x, y, z, t) = z ≥ z_surf - 1
 Smetadata = Metadata(:salinity; dataset, dir)
 
-ocean = ocean_simulation(grid; Δt=1minutes,
+ocean = ocean_simulation(grid; Δt=5minutes,
                          momentum_advection,
                          tracer_advection,
                          timestepper = :SplitRungeKutta3,
@@ -105,7 +105,7 @@ omip = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 @info omip
 
 @info "Setting up OMIP simulation..."
-omip = Simulation(omip, Δt=1minutes, stop_time=60days) 
+omip = Simulation(omip, Δt=5minutes, stop_time=60days) 
 
 wall_time = Ref(time_ns())
 
@@ -114,29 +114,30 @@ using Statistics
 function progress(sim)
     sea_ice = sim.model.sea_ice
     ocean   = sim.model.ocean
-    # hmax = maximum(interior(sea_ice.model.ice_thickness))
-    # ℵmax = maximum(interior(sea_ice.model.ice_concentration))
-    # Tmax = maximum(interior(sim.model.interfaces.atmosphere_sea_ice_interface.temperature))
-    # Tmin = minimum(interior(sim.model.interfaces.atmosphere_sea_ice_interface.temperature))
-    # # Tmax = maximum(ocean.model.tracers.T)
-    # # Tmin = minimum(ocean.model.tracers.T)
-    # Smax = maximum(interior(ocean.model.tracers.S))
-    # Smin = minimum(interior(ocean.model.tracers.S))
-    # umax = maximum(interior(ocean.model.velocities.u))
-    # vmax = maximum(interior(ocean.model.velocities.v))
-    # wmax = maximum(interior(ocean.model.velocities.w))
+    hmax = maximum(interior(sea_ice.model.ice_thickness))
+    ℵmax = maximum(interior(sea_ice.model.ice_concentration))
+    Tmax = maximum(interior(sim.model.interfaces.atmosphere_sea_ice_interface.temperature))
+    Tmin = minimum(interior(sim.model.interfaces.atmosphere_sea_ice_interface.temperature))
+    # Tmax = maximum(ocean.model.tracers.T)
+    # Tmin = minimum(ocean.model.tracers.T)
+    Smax = maximum(interior(ocean.model.tracers.S))
+    Smin = minimum(interior(ocean.model.tracers.S))
+    umax = maximum(interior(ocean.model.velocities.u))
+    vmax = maximum(interior(ocean.model.velocities.v))
+    wmax = maximum(interior(ocean.model.velocities.w))
 
     step_time = 1e-9 * (time_ns() - wall_time[])
 
-    msg0 = @sprintf("local rank: %d, ", arch.local_rank)
-    # msg1 = @sprintf("time: %s, iteration: %d, Δt: %s, ", prettytime(sim), iteration(sim), prettytime(sim.Δt))
-    # msg2 = @sprintf("max(h): %.2e m, max(ℵ): %.2e ", hmax, ℵmax)
-    # msg4 = @sprintf("extrema(T): (%.2f, %.2f) ᵒC, ", Tmax, Tmin)
-    # msg5 = @sprintf("extrema(S): (%.2f, %.2f) psu, ", Smax, Smin)
-    # msg6 = @sprintf("maximum(u): (%.2f, %.2f, %.2f) m/s, ", umax, vmax, wmax)
+    # msg0 = @sprintf("local rank: %d, ", arch.local_rank)
+    msg1 = @sprintf("time: %s, iteration: %d, Δt: %s, ", prettytime(sim), iteration(sim), prettytime(sim.Δt))
+    msg2 = @sprintf("max(h): %.2e m, max(ℵ): %.2e ", hmax, ℵmax)
+    msg4 = @sprintf("extrema(T): (%.2f, %.2f) ᵒC, ", Tmax, Tmin)
+    msg5 = @sprintf("extrema(S): (%.2f, %.2f) psu, ", Smax, Smin)
+    msg6 = @sprintf("maximum(u): (%.2f, %.2f, %.2f) m/s, ", umax, vmax, wmax)
     msg7 = @sprintf("wall time: %s \n", prettytime(step_time))
 
-    @info msg1
+    # @info msg0 * msg1
+    @info msg1 * msg2 * msg4 * msg5 * msg6 * msg7
     # @info msg0 * msg1 * msg2 * msg4 * msg5 * msg6 * msg7
     # @info msg1 * msg2 * msg4 * msg5 * msg6 * msg7
     # @info msg1 * msg4 * msg5 * msg6 * msg7
