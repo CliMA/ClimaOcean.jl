@@ -412,18 +412,21 @@ function PrescribedAtmosphere(grid, times=[zero(grid)];
         thermodynamics_parameters = AtmosphereThermodynamicsParameters(FT)
     end
 
-    return PrescribedAtmosphere(grid,
-                                clock,
-                                velocities,
-                                pressure,
-                                tracers,
-                                freshwater_flux,
-                                auxiliary_freshwater_flux,
-                                downwelling_radiation,
-                                thermodynamics_parameters,
-                                times,
-                                convert(FT, surface_layer_height),
-                                convert(FT, boundary_layer_height))
+    atmosphere = PrescribedAtmosphere(grid,
+                                      clock,
+                                      velocities,
+                                      pressure,
+                                      tracers,
+                                      freshwater_flux,
+                                      auxiliary_freshwater_flux,
+                                      downwelling_radiation,
+                                      thermodynamics_parameters,
+                                      times,
+                                      convert(FT, surface_layer_height),
+                                      convert(FT, boundary_layer_height))
+    update_state!(atmosphere)
+
+    return atmosphere
 end
 
 struct TwoBandDownwellingRadiation{SW, LW}
