@@ -101,7 +101,7 @@ function _regrid_bathymetry(target_grid, metadata;
 
     arch = architecture(target_grid)
 
-    bathymetry_native_grid = native_grid(metadata, arch; halo = (10, 10, 1))
+    bathymetry_native_grid = native_grid(metadata, arch; halo = (20, 20, 1))
     FT = eltype(target_grid)
 
     filepath = metadata_path(metadata)
@@ -195,7 +195,8 @@ end
 
     # Fix active cells to be at least `-minimum_depth`.
     active = z < 0 # it's a wet cell
-    z = ifelse(active, min(z, -minimum_depth), z)
+    above_minimum_depth = z > -minimum_depth
+    z = ifelse(active, ifelse(above_minimum_depth, zero(z), z), z)
 
     @inbounds target_z[i, j, 1] = z
 end

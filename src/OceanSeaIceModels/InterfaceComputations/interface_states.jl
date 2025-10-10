@@ -269,9 +269,10 @@ end
 # where Ωc (the sensible heat transfer coefficient) is given by Ωc = Qc / (Tₐ - Tˢ)
 # ⟹  Tₛ = (Tᵢ * k - (Qv + Qu + Qd + Ωc * Tₐ) * h / (k - Ωc * h)
 @inline function flux_balance_temperature(st::SkinTemperature{<:ClimaSeaIce.ConductiveFlux}, Ψₛ, ℙₛ, Qc, Qv, Qu, Qd, Ψᵢ, ℙᵢ, Ψₐ, ℙₐ)
-    F = st.internal_flux
-    k = F.conductivity
-    h = Ψᵢ.h
+    F  = st.internal_flux
+    k  = F.conductivity
+    h  = Ψᵢ.h
+    hc = Ψᵢ.hc # Critical thickness for ice consolidation
 
     # Bottom temperature at the melting temperature
     Tᵢ = ClimaSeaIce.SeaIceThermodynamics.melting_temperature(ℙᵢ.liquidus, Ψᵢ.S)
@@ -302,6 +303,9 @@ end
     Tₘ = ℙᵢ.liquidus.freshwater_melting_temperature
     Tₘ = convert_to_kelvin(ℙᵢ.temperature_units, Tₘ)
     Tₛ⁺ = min(Tₛ⁺, Tₘ)
+
+    # If the ice is not consolidated, use the bottom temperature
+    Tₛ⁺ = ifelse(h ≥ hc, Tₛ⁺, Tᵢ)
 
     return Tₛ⁺
 end
