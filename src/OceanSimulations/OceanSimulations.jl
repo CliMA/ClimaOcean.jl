@@ -9,6 +9,7 @@ using Oceananigans.Advection: FluxFormAdvection
 using Oceananigans.BoundaryConditions: DefaultBoundaryCondition
 using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node, MutableGridOfSomeKind
 using Oceananigans.OrthogonalSphericalShellGrids
+using Oceananigans.Operators
 
 using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities:
     CATKEVerticalDiffusivity,
@@ -17,9 +18,8 @@ using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities:
 
 using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 
-using Oceananigans.BuoyancyFormulations: g_Earth
-using Oceananigans.Coriolis: Ω_Earth
-using Oceananigans.Operators
+g_Earth = Oceananigans.defaults.gravitational_acceleration
+Ω_Earth = Oceananigans.defaults.planet_rotation_rate
 
 struct Default{V}
     value :: V

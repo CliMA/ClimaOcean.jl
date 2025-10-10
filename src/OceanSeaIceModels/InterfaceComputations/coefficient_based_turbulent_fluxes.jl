@@ -1,5 +1,6 @@
 using DocStringExtensions
-using Oceananigans.BuoyancyFormulations: g_Earth
+
+g_Earth = Oceananigans.defaults.gravitational_acceleration
 
 """
     struct CoefficientBasedFluxes{CD, CH, CQ, S}
