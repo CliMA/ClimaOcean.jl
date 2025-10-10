@@ -16,19 +16,18 @@ using ..OceanSeaIceModels.PrescribedAtmospheres:
 
 using ClimaSeaIce: SeaIceModel
 
-using Oceananigans.BuoyancyFormulations: g_Earth
 using Oceananigans: HydrostaticFreeSurfaceModel, architecture
 using Oceananigans.Grids: inactive_node, node, topology
 using Oceananigans.BoundaryConditions: fill_halo_regions!
-
 using Oceananigans.Fields: ConstantField, interpolate, FractionalIndices
 using Oceananigans.Utils: launch!, Time, KernelParameters
-
 using Oceananigans.Operators: ℑxᶜᵃᵃ, ℑyᵃᶜᵃ, ℑxᶠᵃᵃ, ℑyᵃᶠᵃ
 
 using KernelAbstractions: @kernel, @index
 
 import Oceananigans.Simulations: initialize!
+
+g_Earth = Oceananigans.defaults.gravitational_acceleration
 
 #####
 ##### Container for organizing information related to fluxes
@@ -189,11 +188,11 @@ function atmosphere_ocean_interface(atmos,
     downwelling_longwave  = Field{Center, Center, Nothing}(ocean.model.grid)
     downwelling_shortwave = Field{Center, Center, Nothing}(ocean.model.grid)
 
-    ao_fluxes = (; latent_heat, 
-                   sensible_heat, 
-                   water_vapor, 
+    ao_fluxes = (; latent_heat,
+                   sensible_heat,
+                   water_vapor,
                    x_momentum,
-                   y_momentum, 
+                   y_momentum,
                    friction_velocity,
                    temperature_scale,
                    water_vapor_scale,
