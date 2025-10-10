@@ -32,6 +32,7 @@ function sea_ice_simulation(grid, ocean=nothing;
                             ice_density = 900, # kg m⁻³
                             dynamics = sea_ice_dynamics(grid, ocean),
                             bottom_heat_boundary_condition = nothing,
+                            top_heat_boundary_condition = nothing,
                             phase_transitions = PhaseTransitions(; ice_heat_capacity, ice_density),
                             conductivity = 2, # kg m s⁻³ K⁻¹
                             internal_heat_flux = ConductiveFlux(; conductivity))
@@ -40,8 +41,10 @@ function sea_ice_simulation(grid, ocean=nothing;
     # - bottom -> flux boundary condition
     # - top -> prescribed temperature boundary condition (calculated in the flux computation)
 
-    top_surface_temperature = Field{Center, Center, Nothing}(grid)
-    top_heat_boundary_condition = PrescribedTemperature(top_surface_temperature)
+    if isnothing(top_heat_boundary_condition)
+        top_surface_temperature = Field{Center, Center, Nothing}(grid)
+        top_heat_boundary_condition = PrescribedTemperature(top_surface_temperature)
+    end
 
     if isnothing(bottom_heat_boundary_condition)
         if isnothing(ocean)
