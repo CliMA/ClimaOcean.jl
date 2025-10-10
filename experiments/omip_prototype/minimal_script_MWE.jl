@@ -88,6 +88,7 @@ set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=ECCO4Monthly(), 
                     ℵ=Metadatum(:sea_ice_concentration; dataset=ECCO4Monthly(), dir, date=start_date))
 
 jra55_dir = joinpath(homedir(), "JRA55_data")
+mkpath(jra55_dir)
 dataset = MultiYearJRA55()
 backend = JRA55NetCDFBackend(10)
 
