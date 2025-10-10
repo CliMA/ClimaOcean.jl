@@ -9,9 +9,6 @@ using Oceananigans.Advection: FluxFormAdvection
 using Oceananigans.BoundaryConditions: DefaultBoundaryCondition
 using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node
 using Oceananigans.OrthogonalSphericalShellGrids
-
-using Oceananigans.BuoyancyFormulations: g_Earth
-using Oceananigans.Coriolis: Ω_Earth
 using Oceananigans.Operators
 
 using ClimaSeaIce
@@ -22,6 +19,9 @@ using ClimaSeaIce.SeaIceDynamics: SplitExplicitSolver, SemiImplicitStress, SeaIc
 using ClimaSeaIce.Rheologies: IceStrength, ElastoViscoPlasticRheology
 
 using ClimaOcean.OceanSimulations: Default, u_immersed_bottom_drag, v_immersed_bottom_drag
+
+g_Earth = Oceananigans.defaults.gravitational_acceleration
+Ω_Earth = Oceananigans.defaults.planet_rotation_rate
 
 function sea_ice_simulation(grid, ocean=nothing;
                             Δt = 5minutes,

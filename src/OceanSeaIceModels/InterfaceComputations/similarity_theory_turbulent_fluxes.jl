@@ -1,6 +1,5 @@
 using Oceananigans.Utils: prettysummary
 using Oceananigans.Grids: AbstractGrid
-using Oceananigans.BuoyancyFormulations: g_Earth
 
 using Adapt
 using Thermodynamics: Liquid
@@ -13,6 +12,8 @@ using Statistics: norm
 
 import Thermodynamics as AtmosphericThermodynamics
 import Thermodynamics.Parameters: Rv_over_Rd
+
+g_Earth = Oceananigans.defaults.gravitational_acceleration
 
 #####
 ##### Bulk turbulent fluxes based on similarity theory
