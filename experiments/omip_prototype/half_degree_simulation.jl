@@ -17,6 +17,8 @@ using ArgParse
 
 import Oceananigans.OutputWriters: checkpointer_address
 
+@info "Starting half degree simulation script..."
+
 function parse_commandline()
     s = ArgParseSettings()
   
