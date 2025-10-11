@@ -13,8 +13,6 @@ using Statistics: norm
 import Thermodynamics as AtmosphericThermodynamics
 import Thermodynamics.Parameters: Rv_over_Rd
 
-default_gravitational_acceleration = Oceananigans.defaults.gravitational_acceleration
-
 #####
 ##### Bulk turbulent fluxes based on similarity theory
 #####
