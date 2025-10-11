@@ -55,6 +55,8 @@ grid = TripolarGrid(arch;
 bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1, interpolation_passes=40)
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
+@info "Built grid $(grid)"
+
 #####
 ##### A Prognostic Ocean model
 #####
@@ -92,6 +94,7 @@ simulation_period = Dates.value(Second(end_date - start_date))
 yearly_times = cumsum(vcat([0.], Dates.value.(Second.(diff(start_date:Year(1):end_date)))))
 decadal_times = cumsum(vcat([0.], Dates.value.(Second.(diff(start_date:Year(10):end_date)))))
 
+@info "Settting up salinity restoring..."
 @inline mask(x, y, z, t) = z ≥ z_surf - 1
 Smetadata = Metadata(:salinity; dataset=EN4Monthly(), dir, start_date, end_date)
 FS = DatasetRestoring(Smetadata, grid; rate = 1/18days, mask, time_indices_in_memory = 10)
@@ -104,8 +107,11 @@ ocean = ocean_simulation(grid; Δt=1minutes,
                          forcing = (; S = FS),
                          closure)
 
+@info "Built ocean model $(ocean)"
+
 set!(ocean.model, T=Metadatum(:temperature; dataset=EN4Monthly(), date=start_date, dir),
                   S=Metadatum(:salinity;    dataset=EN4Monthly(), date=start_date, dir))
+@info "Initialized T and S"
 
 #####
 ##### A Prognostic Sea-ice model
@@ -114,9 +120,12 @@ set!(ocean.model, T=Metadatum(:temperature; dataset=EN4Monthly(), date=start_dat
 # Default sea-ice dynamics and salinity coupling are included in the defaults
 # sea_ice = sea_ice_simulation(grid, ocean; advection=WENO(order=7))
 sea_ice = sea_ice_simulation(grid, ocean; dynamics=nothing)
+@info "Built sea ice model $(sea_ice)"
 
 set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=ECCO4Monthly(), dir),
                     ℵ=Metadatum(:sea_ice_concentration; dataset=ECCO4Monthly(), dir))
+
+@info "Initialized sea ice fields"
 
 #####
 ##### A Prescribed Atmosphere model
@@ -125,15 +134,22 @@ jra55_dir = joinpath(homedir(), "JRA55_data")
 dataset = MultiYearJRA55()
 backend = JRA55NetCDFBackend(20)
 
+@info "Setting up presctibed atmosphere $(dataset)"
 atmosphere = JRA55PrescribedAtmosphere(arch; dir=jra55_dir, dataset, backend, include_rivers_and_icebergs=true, start_date, end_date)
 radiation  = Radiation()
+
+@info "Built atmosphere model $(atmosphere)"
 
 #####
 ##### An ocean-sea ice coupled model
 #####
 
 omip = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+
+@info "Built coupled model $(omip)"
+
 omip = Simulation(omip, Δt=20minutes, stop_time=60days) 
+@info "Built simulation $(omip)"
 
 # Figure out the outputs....
 checkpointer_address(::SeaIceModel) = "SeaIceModel"
