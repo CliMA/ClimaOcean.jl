@@ -17,8 +17,6 @@ using ArgParse
 
 import Oceananigans.OutputWriters: checkpointer_address
 
-@info "Starting half degree simulation script..."
-
 function parse_commandline()
     s = ArgParseSettings()
   
@@ -133,6 +131,7 @@ set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=ECCO4Monthly(), 
 ##### A Prescribed Atmosphere model
 #####
 jra55_dir = joinpath(homedir(), "JRA55_data")
+mkpath(jra55_dir)
 dataset = MultiYearJRA55()
 backend = JRA55NetCDFBackend(6)
 
