@@ -97,7 +97,7 @@ decadal_times = cumsum(vcat([0.], Dates.value.(Second.(diff(start_date:Year(10):
 @info "Settting up salinity restoring..."
 @inline mask(x, y, z, t) = z ≥ z_surf - 1
 Smetadata = Metadata(:salinity; dataset=EN4Monthly(), dir, start_date, end_date)
-FS = DatasetRestoring(Smetadata, grid; rate = 1/18days, mask, time_indices_in_memory = 10)
+FS = DatasetRestoring(Smetadata, grid; rate = 1/18days, mask, time_indices_in_memory = 3)
 
 ocean = ocean_simulation(grid; Δt=1minutes,
                          momentum_advection,
@@ -132,7 +132,7 @@ set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=ECCO4Monthly(), 
 #####
 jra55_dir = joinpath(homedir(), "JRA55_data")
 dataset = MultiYearJRA55()
-backend = JRA55NetCDFBackend(20)
+backend = JRA55NetCDFBackend(6)
 
 @info "Setting up presctibed atmosphere $(dataset)"
 atmosphere = JRA55PrescribedAtmosphere(arch; dir=jra55_dir, dataset, backend, include_rivers_and_icebergs=true, start_date, end_date)
