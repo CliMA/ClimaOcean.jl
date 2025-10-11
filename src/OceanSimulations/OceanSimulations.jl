@@ -18,8 +18,8 @@ using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities:
 
 using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 
-g_Earth = Oceananigans.defaults.gravitational_acceleration
-Ω_Earth = Oceananigans.defaults.planet_rotation_rate
+default_gravitational_acceleration = Oceananigans.defaults.gravitational_acceleration
+default_planet_rotation_rate = Oceananigans.defaults.planet_rotation_rate
 
 struct Default{V}
     value :: V
