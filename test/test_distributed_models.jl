@@ -55,5 +55,6 @@ end
         simulation = Simulation(coupled_model; Δt, verbose=false, stop_time=5Δt)
 
         run!(simulation)
+    @test coupled_model.clock.iteration == 5
     end
 end
