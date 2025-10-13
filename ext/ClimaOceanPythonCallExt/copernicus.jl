@@ -1,4 +1,13 @@
-using ClimaOcean.DataWrangling.Copernicus: CopernicusMetadata
+module ClimaOceanPythonCallExt
+
+using ClimaOcean
+using CondaPkg
+using PythonCall
+using Oceananigans
+using Oceananigans.DistributedComputations: @root
+
+using Dates: DateTime
+using ClimaOcean.DataWrangling.Copernicus: CopernicusMetadata, CopernicusMetadatum
 
 import ClimaOcean.DataWrangling: download_dataset
 
@@ -16,7 +25,22 @@ function install_copernicusmarine()
     return cli
 end
 
-function download_dataset(meta::CopernicusMetadata, grid=nothing; skip_existing = true, additional_kw...)
+# Download each date individually, instead of downloading the entire dataset at once.
+# This is useful for a possible extension of the temporal horizon of the dataset.
+function download_dataset(metadata::CopernicusMetadata; kwargs...)
+    paths = Array{String}(undef, length(metadata))
+    for (m, metadatum) in enumerate(metadata)
+        paths[m] = download_dataset(metadatum; kwargs...)
+    end
+    return paths
+end
+
+function download_dataset(meta::CopernicusMetadatum; 
+                          skip_existing=true, 
+                          username=get(ENV, "COPERNICUS_USERNAME", nothing),
+                          password=get(ENV, "COPERNICUS_PASSWORD", nothing),
+                          additional_kw...)
+
     output_directory = meta.dir
     output_filename = ClimaOcean.DataWrangling.metadata_filename(meta)
     output_path = joinpath(output_directory, output_filename)
@@ -51,6 +75,14 @@ function download_dataset(meta::CopernicusMetadata, grid=nothing; skip_existing 
           variables,
           output_filename,
           output_directory)
+
+    if !isnothing(username) && !isnothing(password)
+        kw = merge(kw, (; username, password))
+    else
+        @warn "No Copernicus credentials found. \\ 
+        Set the COPERNICUS_USERNAME and COPERNICUS_PASSWORD environment variables to download data from the Copernicus Marine Service. \\
+        You can sign up for free at: https://data.marine.copernicus.eu/register."
+    end
 
     additional_kw = NamedTuple(name => value for (name, value) in additional_kw)
     kw = merge(kw, datetime_kw, lon_kw, lat_kw, z_kw, additional_kw)

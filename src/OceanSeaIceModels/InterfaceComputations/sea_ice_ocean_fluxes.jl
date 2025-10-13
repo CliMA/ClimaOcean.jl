@@ -3,21 +3,30 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 using ClimaSeaIce.SeaIceDynamics: x_momentum_stress, y_momentum_stress
 
 function compute_sea_ice_ocean_fluxes!(coupled_model)
-    ocean       = coupled_model.ocean
-    sea_ice     = coupled_model.sea_ice
-    exchanger   = coupled_model.interfaces.exchanger
-    ocean_state = get_ocean_state(ocean, coupled_model)
+    ocean   = coupled_model.ocean
+    sea_ice = coupled_model.sea_ice
 
-    sea_ice_ocean_fluxes = coupled_model.interfaces.sea_ice_ocean_interface.fluxes
-    interface_properties = coupled_model.interfaces.sea_ice_ocean_interface.properties
+    sea_ice_ocean_fluxes = coupled_model.interfaces.sea_ice_ocean_interface.fluxes 
+    melting_speed    = coupled_model.interfaces.sea_ice_ocean_interface.properties.characteristic_melting_speed
+    ocean_properties = coupled_model.interfaces.ocean_properties
 
-    Δt = sea_ice.Δt
+    compute_sea_ice_ocean_fluxes!(sea_ice_ocean_fluxes, ocean, sea_ice, melting_speed, ocean_properties)
+    
+    return nothing
+end
+
+function compute_sea_ice_ocean_fluxes!(sea_ice_ocean_fluxes, ocean, sea_ice, melting_speed, ocean_properties)
+    Δt = ocean.Δt
+    Tₒ = ocean.model.tracers.T
+    Sₒ = ocean.model.tracers.S
     Sᵢ = sea_ice.model.tracers.S
     ℵᵢ = sea_ice.model.ice_concentration
     hᵢ = sea_ice.model.ice_thickness
     Gh = sea_ice.model.ice_thermodynamics.thermodynamic_tendency
+    Δt = sea_ice.Δt
 
-    ocean_properties = coupled_model.interfaces.ocean_properties
+    ocean_state = get_ocean_state(ocean, coupled_model)
+
     liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
     grid  = sea_ice.model.grid
     clock = sea_ice.model.clock
@@ -36,7 +45,7 @@ function compute_sea_ice_ocean_fluxes!(coupled_model)
     # Is it immediately removed from the ocean? Or is it stored in the ice?
     launch!(arch, grid, :xy, _compute_sea_ice_ocean_fluxes!,
             sea_ice_ocean_fluxes, grid, clock, hᵢ, ℵᵢ, Sᵢ, Gh, ocean_state, uᵢ, vᵢ,
-            τs, liquidus, ocean_properties, interface_properties, Δt)
+            τs, liquidus, ocean_properties, melting_speed, Δt)
 
     return nothing
 end
@@ -54,7 +63,7 @@ end
                                                 sea_ice_ocean_stresses,
                                                 liquidus,
                                                 ocean_properties,
-                                                interface_properties,
+                                                characteristic_melting_speed,
                                                 Δt)
 
     i, j = @index(Global, NTuple)
@@ -74,7 +83,7 @@ end
     ℵᵢ  = ice_concentration
     ρₒ  = ocean_properties.reference_density
     cₒ  = ocean_properties.heat_capacity
-    uₘ★ = interface_properties.characteristic_melting_speed
+    uₘ★ = characteristic_melting_speed
 
     δQ_frazil = zero(grid)
 
