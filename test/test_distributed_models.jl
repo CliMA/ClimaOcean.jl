@@ -15,7 +15,10 @@ using ClimaSeaIce.SeaIceThermodynamics: IceWaterThermalEquilibrium
 archs = [Distributed(CPU(); partition = Partition(y = DistributedComputations.Equal()), synchronized_communication=true),
          Distributed(GPU(); partition = Partition(y = DistributedComputations.Equal()), synchronized_communication=true)]
 
-function analytical_immersed_tripolar_grid(underlying_grid::TripolarGrid; radius = 5, active_cells_map = false) # degrees
+function analytical_immersed_tripolar_grid(underlying_grid::TripolarGrid;
+                                           radius = 5, # degrees
+                                           active_cells_map = false)
+
     λp = underlying_grid.conformal_mapping.first_pole_longitude
     φp = underlying_grid.conformal_mapping.north_poles_latitude
     φm = underlying_grid.conformal_mapping.southernmost_latitude
