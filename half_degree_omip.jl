@@ -56,8 +56,7 @@ Ny = 360 # meridional direction
 Nz = 100
 
 z_faces = ExponentialDiscretization(Nz, -6000, 0; scale=1800)
-
-const z_surf = z_faces.cᵃᵃᶠ(Nz)
+const z_surf = z_faces(Nz)
 
 grid = TripolarGrid(arch;
                     size = (Nx, Ny, Nz),
