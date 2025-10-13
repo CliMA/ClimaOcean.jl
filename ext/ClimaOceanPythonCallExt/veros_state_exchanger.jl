@@ -103,7 +103,7 @@ function fill_net_fluxes!(ocean::VerosOceanSimulation, net_ocean_fluxes)
     set!(ocean, "taux", tx; path=:variables)
     set!(ocean, "tauy", ty; path=:variables)
 
-    # TODO: uncomment below when the new branch gets merged
+    # TODO: uncomment below when veros supports prescribed fluxes BC for tracers
     # temp_flux = view(parent(net_ocean_fluxes.T), 1:nx, 1:ny, 1)
     # salt_flux = view(parent(net_ocean_fluxes.S), 1:nx, 1:ny, 1)
 
