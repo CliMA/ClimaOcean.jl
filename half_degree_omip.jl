@@ -38,6 +38,8 @@ args = parse_commandline()
 κ_skew = args["kappa_skew"]
 κ_symmetric = args["kappa_symmetric"]
 
+@info "Using κ_skew = $(κ_skew) m²/s and κ_symmetric = $(κ_symmetric) m²/s"
+
 function synch!(clock1::Clock, clock2)
     # Synchronize the clocks
     clock1.time = clock2.time
