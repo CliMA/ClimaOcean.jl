@@ -40,7 +40,9 @@ end
         grid = analytical_immersed_tripolar_grid(underlying_grid; active_cells_map=true)
         free_surface = SplitExplicitFreeSurface(grid; cfl=0.7, fixed_Δt=10minutes)
 
-        ocean = ocean_simulation(grid; Δt=1minutes, free_surface, timestepper = :SplitRungeKutta3)
+        Δt = 10
+
+        ocean = ocean_simulation(grid; Δt, free_surface, timestepper = :SplitRungeKutta3)
         sea_ice = sea_ice_simulation(grid, ocean; advection=WENO(order=7))
 
         set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=ECCO4Monthly()),
@@ -51,7 +53,6 @@ end
 
         coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 
-        Δt=10
         stop_iteration = 5
         simulation = Simulation(coupled_model; Δt, verbose=false, stop_time=stop_iteration * Δt)
 
