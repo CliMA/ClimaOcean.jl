@@ -82,7 +82,7 @@ using Oceananigans.Operators: Δx, Δy
 @inline Δ²ᵃᵃᵃ(i, j, k, grid, lx, ly, lz) =  2 * (1 / (1 / Δx(i, j, k, grid, lx, ly, lz)^2 + 1 / Δy(i, j, k, grid, lx, ly, lz)^2))
 @inline geometric_νhb(i, j, k, grid, lx, ly, lz, clock, fields, λ) = Δ²ᵃᵃᵃ(i, j, k, grid, lx, ly, lz)^2 / λ
 
-eddy_closure  = IsopycnalSkewSymmetricDiffusivity(κ_skew, κ_symmetric, skew_flux_formulation=AdvectiveFormulation())
+eddy_closure  = IsopycnalSkewSymmetricDiffusivity(; κ_skew, κ_symmetric, skew_flux_formulation=AdvectiveFormulation())
 # obl_closure = ClimaOcean.OceanSimulations.default_ocean_closure()
 obl_closure = RiBasedVerticalDiffusivity()
 visc_closure  = HorizontalScalarBiharmonicDiffusivity(ν=geometric_νhb, discrete_form=true, parameters=25days)
