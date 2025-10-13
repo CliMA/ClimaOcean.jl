@@ -4,7 +4,7 @@ using Oceananigans
 using Oceananigans.Grids
 using Oceananigans.Units
 using Oceananigans.OrthogonalSphericalShellGrids
-using Oceananigans.BuoyancyFormulations: buoyancy, buoyancy_frequency=
+using Oceananigans.BuoyancyFormulations: buoyancy, buoyancy_frequency
 using ClimaOcean.OceanSimulations
 using ClimaOcean.ECCO
 using ClimaOcean.JRA55
