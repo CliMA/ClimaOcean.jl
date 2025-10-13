@@ -4,6 +4,7 @@ using Oceananigans
 using Oceananigans.Grids
 using Oceananigans.Units
 using Oceananigans.OrthogonalSphericalShellGrids
+using Oceananigans.BuoyancyFormulations: buoyancy, buoyancy_frequency=
 using ClimaOcean.OceanSimulations
 using ClimaOcean.ECCO
 using ClimaOcean.JRA55
@@ -13,10 +14,9 @@ using Printf
 using Dates
 using CUDA
 using JLD2
+using ArgParse
 
 import Oceananigans.OutputWriters: checkpointer_address
-
-using ArgParse
 
 function parse_commandline()
     s = ArgParseSettings()
