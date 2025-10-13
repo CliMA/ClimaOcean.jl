@@ -52,9 +52,11 @@ end
         coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 
         Δt=10
-        simulation = Simulation(coupled_model; Δt, verbose=false, stop_time=5Δt)
+        stop_iteration = 5
+        simulation = Simulation(coupled_model; Δt, verbose=false, stop_time=stop_iteration * Δt)
 
         run!(simulation)
-    @test coupled_model.clock.iteration == 5
+
+        @test coupled_model.clock.iteration == stop_iteration
     end
 end
