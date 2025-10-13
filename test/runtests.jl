@@ -110,7 +110,7 @@ if test_group == :ocean_sea_ice_model || test_group == :all
 end
 
 if test_group == :distributed || test_group == :all
-    # include("test_distributed_utils.jl")
+    include("test_distributed_utils.jl")
     include("test_distributed_models.jl")
 end
 
