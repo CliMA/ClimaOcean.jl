@@ -23,10 +23,13 @@ function compute_sea_ice_ocean_fluxes!(sea_ice_ocean_fluxes, ocean, sea_ice, mel
     ℵᵢ = sea_ice.model.ice_concentration
     hᵢ = sea_ice.model.ice_thickness
     Gh = sea_ice.model.ice_thermodynamics.thermodynamic_tendency
+    Δt = sea_ice.Δt
+
+    ocean_state = get_ocean_state(ocean, coupled_model)
 
     liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
-    grid  = ocean.model.grid
-    clock = ocean.model.clock
+    grid  = sea_ice.model.grid
+    clock = sea_ice.model.clock
     arch  = architecture(grid)
 
     uᵢ, vᵢ = sea_ice.model.velocities
@@ -41,7 +44,7 @@ function compute_sea_ice_ocean_fluxes!(sea_ice_ocean_fluxes, ocean, sea_ice, mel
     # What about the latent heat removed from the ocean when ice forms?
     # Is it immediately removed from the ocean? Or is it stored in the ice?
     launch!(arch, grid, :xy, _compute_sea_ice_ocean_fluxes!,
-            sea_ice_ocean_fluxes, grid, clock, hᵢ, ℵᵢ, Sᵢ, Gh, Tₒ, Sₒ, uᵢ, vᵢ,
+            sea_ice_ocean_fluxes, grid, clock, hᵢ, ℵᵢ, Sᵢ, Gh, ocean_state, uᵢ, vᵢ,
             τs, liquidus, ocean_properties, melting_speed, Δt)
 
     return nothing
@@ -54,8 +57,7 @@ end
                                                 ice_concentration,
                                                 ice_salinity,
                                                 thermodynamic_tendency,
-                                                ocean_temperature,
-                                                ocean_salinity,
+                                                ocean_state,
                                                 sea_ice_u_velocity,
                                                 sea_ice_v_velocity,
                                                 sea_ice_ocean_stresses,
@@ -74,8 +76,8 @@ end
     τy  = sea_ice_ocean_fluxes.y_momentum
     uᵢ  = sea_ice_u_velocity
     vᵢ  = sea_ice_v_velocity
-    Tₒ  = ocean_temperature
-    Sₒ  = ocean_salinity
+    Tₒ  = ocean_state.T
+    Sₒ  = ocean_state.S
     Sᵢ  = ice_salinity
     hᵢ  = ice_thickness
     ℵᵢ  = ice_concentration

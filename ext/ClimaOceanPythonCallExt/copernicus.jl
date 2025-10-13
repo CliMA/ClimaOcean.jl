@@ -119,5 +119,3 @@ function depth_bounds_kw(z)
     maximum_depth = - z[1]
     return (; minimum_depth, maximum_depth)
 end
-
-end # module ClimaOceanPythonCallExt
