@@ -38,6 +38,8 @@ args = parse_commandline()
 κ_skew = args["kappa_skew"]
 κ_symmetric = args["kappa_symmetric"]
 
+CUDA.versioninfo()
+
 @info "Using κ_skew = $(κ_skew) m²/s and κ_symmetric = $(κ_symmetric) m²/s"
 
 function synch!(clock1::Clock, clock2)
