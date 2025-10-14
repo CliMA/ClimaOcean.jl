@@ -15,6 +15,7 @@ using Dates
 using CUDA
 using JLD2
 using ArgParse
+using Oceananigans.OutputWriters: AveragedSpecifiedTimes
 
 import Oceananigans.OutputWriters: checkpointer_address
 
@@ -30,6 +31,14 @@ function parse_commandline()
         help = "Isopycnal skew diffusivity (m^2/s)"
         arg_type = Float64
         default = 5e2
+      "--start_year"
+        help = "Start year of the simulation"
+        arg_type = Int
+        default = 1962
+      "--simulation_length"
+        help = "Length of the simulation in years"
+        arg_type = Int
+        default = 20
     end
     return parse_args(s)
 end
@@ -37,6 +46,8 @@ end
 args = parse_commandline()
 κ_skew = args["kappa_skew"]
 κ_symmetric = args["kappa_symmetric"]
+start_year = args["start_year"]
+simulation_length = args["simulation_length"]
 
 @info "Using κ_skew = $(κ_skew) m²/s and κ_symmetric = $(κ_symmetric) m²/s"
 
@@ -99,13 +110,15 @@ else
 end
 
 prefix *= "_$(κ_skew)_$(κ_symmetric)"
+prefix *= "_$(start_year)"
+prefix *= "_$(simulation_length)year"
 prefix *= "_advectiveGM_multiyearjra55_calibrationsamples"
 
 dir = joinpath(homedir(), "forcing_data_half_degree")
 mkpath(dir)
 
-start_date = DateTime(1962, 1, 1)
-end_date = start_date + Year(50)
+start_date = DateTime(start_year, 1, 1)
+end_date = start_date + Year(simulation_length)
 simulation_period = Dates.value(Second(end_date - start_date))
 yearly_times = cumsum(vcat([0.], Dates.value.(Second.(diff(start_date:Year(1):end_date)))))
 decadal_times = cumsum(vcat([0.], Dates.value.(Second.(diff(start_date:Year(10):end_date)))))
