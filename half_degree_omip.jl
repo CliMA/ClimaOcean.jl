@@ -18,6 +18,14 @@ using ArgParse
 
 import Oceananigans.OutputWriters: checkpointer_address
 
+using Libdl
+ucx_libs = filter(lib -> occursin("ucx", lowercase(lib)), Libdl.dllist())
+if isempty(ucx_libs)
+    @info "✓ No UCX - safe to run!"
+else
+    @warn "✗ UCX libraries detected! This can cause issues with MPI+CUDA. Detected libs:\n$(join(ucx_libs, "\n"))"
+end
+
 function parse_commandline()
     s = ArgParseSettings()
   
