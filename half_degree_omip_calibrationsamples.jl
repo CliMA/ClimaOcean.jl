@@ -19,6 +19,14 @@ using Oceananigans.OutputWriters: AveragedSpecifiedTimes
 
 import Oceananigans.OutputWriters: checkpointer_address
 
+using Libdl
+ucx_libs = filter(lib -> occursin("ucx", lowercase(lib)), Libdl.dllist())
+if isempty(ucx_libs)
+    @info "✓ No UCX - safe to run!"
+else
+    @warn "✗ UCX libraries detected! This can cause issues with MPI+CUDA. Detected libs:\n$(join(ucx_libs, "\n"))"
+end
+
 function parse_commandline()
     s = ArgParseSettings()
   
@@ -49,7 +57,7 @@ args = parse_commandline()
 start_year = args["start_year"]
 simulation_length = args["simulation_length"]
 
-@info "Using κ_skew = $(κ_skew) m²/s and κ_symmetric = $(κ_symmetric) m²/s"
+@info "Using κ_skew = $(κ_skew) m²/s and κ_symmetric = $(κ_symmetric) m²/s, starting in year $(start_year) for a length of $(simulation_length) years."
 
 function synch!(clock1::Clock, clock2)
     # Synchronize the clocks
