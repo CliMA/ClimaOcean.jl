@@ -2,12 +2,9 @@ using Oceananigans.Utils: prettysummary
 using Oceananigans.Grids: AbstractGrid
 
 using Adapt
-using Thermodynamics: Liquid
-
 using Printf
-using Thermodynamics: PhasePartition
+using Thermodynamics: Liquid, PhasePartition
 using KernelAbstractions.Extras.LoopInfo: @unroll
-
 using Statistics: norm
 
 import Thermodynamics as AtmosphericThermodynamics
