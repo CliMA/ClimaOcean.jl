@@ -5,6 +5,7 @@ using Oceananigans.Fields: Center
 using Oceananigans.Grids: grid_name
 using Oceananigans.OutputReaders: FieldTimeSeries, update_field_time_series!, extract_field_time_series
 using Oceananigans.TimeSteppers: Clock, tick!
+using Oceananigans.Simulations: TimeStepWizard
 using Oceananigans.Utils: prettysummary, Time
 
 using Adapt
@@ -370,6 +371,8 @@ end
 
     return nothing
 end
+
+(wizard::TimeStepWizard)(atmos::PrescribedAtmosphere) = Inf
 
 @inline thermodynamics_parameters(atmos::Nothing) = nothing
 @inline thermodynamics_parameters(atmos::PrescribedAtmosphere) = atmos.thermodynamics_parameters
