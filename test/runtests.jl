@@ -2,7 +2,6 @@
 include("runtests_setup.jl")
 
 using CUDA
-using PythonCall
 using CondaPkg
 using Scratch
 
