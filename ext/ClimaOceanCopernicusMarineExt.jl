@@ -36,7 +36,7 @@ function download_dataset(meta::CopernicusMetadatum;
     toolbox = CopernicusMarine.copernicusmarine
 
     variable_name = ClimaOcean.DataWrangling.Copernicus.copernicus_dataset_variable_names[meta.name]
-    variables = PythonCall.pylist([variable_name])
+    variables = CopernicusMarine.pylist([variable_name])
 
     dataset_id = ClimaOcean.DataWrangling.Copernicus.copernicusmarine_dataset_id(meta.dataset)
     datetime_kw = if meta.dataset isa ClimaOcean.DataWrangling.Copernicus.GLORYSStatic
