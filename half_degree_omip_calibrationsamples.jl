@@ -130,7 +130,8 @@ end_date = start_date + Year(simulation_length)
 simulation_period = Dates.value(Second(end_date - start_date))
 yearly_times = cumsum(vcat([0.], Dates.value.(Second.(diff(start_date:Year(1):end_date)))))
 decadal_times = cumsum(vcat([0.], Dates.value.(Second.(diff(start_date:Year(10):end_date)))))
-sampling_endtimes = decadal_times[3:end]
+# sampling_endtimes = decadal_times[3:end]
+sampling_window = Dates.value(Second(end_date - Year(10)))
 
 @info "Settting up salinity restoring..."
 @inline mask(x, y, z, t) = z ≥ z_surf - 1
@@ -244,8 +245,8 @@ sea_ice.output_writers[:time_average] = JLD2Writer(sea_ice.model, sea_ice_output
                                                    overwrite_existing = true)
 
 ocean.output_writers[:sample_decadal_average] = JLD2Writer(ocean.model, ocean_outputs;
-                                         schedule = AveragedSpecifiedTimes(sampling_endtimes, window=3650days),
-                                         filename = "$(FILE_DIR)/ocean_complete_fields_10year_average",
+                                         schedule = AveragedTimeInterval(simulation_period, window=sampling_window),
+                                         filename = "$(FILE_DIR)/ocean_complete_fields_10year_average_calibrationsample",
                                          overwrite_existing = true)
 
 wall_time = Ref(time_ns())
