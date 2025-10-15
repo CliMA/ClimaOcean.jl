@@ -1,7 +1,5 @@
 using DocStringExtensions
 
-g_Earth = Oceananigans.defaults.gravitational_acceleration
-
 """
     struct CoefficientBasedFluxes{CD, CH, CQ, S}
 
