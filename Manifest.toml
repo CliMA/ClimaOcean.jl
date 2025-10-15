@@ -2,7 +2,7 @@
 
 julia_version = "1.10.10"
 manifest_format = "2.0"
-project_hash = "f748fefc08ca7842dd24e70d6e4946003efbc336"
+project_hash = "fc5090dba0d641efaadaa43b2214980eadcc9eb9"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -1026,11 +1026,9 @@ version = "1.2.0"
 
 [[deps.Oceananigans]]
 deps = ["Adapt", "Crayons", "CubedSphere", "Dates", "Distances", "DocStringExtensions", "FFTW", "GPUArrays", "GPUArraysCore", "Glob", "InteractiveUtils", "JLD2", "KernelAbstractions", "Krylov", "KrylovPreconditioners", "LinearAlgebra", "Logging", "MPI", "MuladdMacro", "OffsetArrays", "OrderedCollections", "Pkg", "Printf", "Random", "ReactantCore", "Rotations", "SeawaterPolynomials", "SparseArrays", "StaticArrays", "Statistics", "StructArrays"]
-git-tree-sha1 = "3d3a937ad3a7a1ec9452e230b3de7f38d84f9a5c"
-repo-rev = "xk/cuda-backport-compat"
-repo-url = "https://github.com/CliMA/Oceananigans.jl.git"
+git-tree-sha1 = "4780b18e5e966c85098ed576174cdf1cc94bf10b"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
-version = "0.100.3"
+version = "0.100.5"
 
     [deps.Oceananigans.extensions]
     OceananigansAMDGPUExt = "AMDGPU"
