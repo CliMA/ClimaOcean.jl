@@ -6,12 +6,12 @@ function compute_sea_ice_ocean_fluxes!(coupled_model)
     ocean   = coupled_model.ocean
     sea_ice = coupled_model.sea_ice
 
-    sea_ice_ocean_fluxes = coupled_model.interfaces.sea_ice_ocean_interface.fluxes 
+    sea_ice_ocean_fluxes = coupled_model.interfaces.sea_ice_ocean_interface.fluxes
     melting_speed    = coupled_model.interfaces.sea_ice_ocean_interface.properties.characteristic_melting_speed
     ocean_properties = coupled_model.interfaces.ocean_properties
 
     compute_sea_ice_ocean_fluxes!(sea_ice_ocean_fluxes, ocean, sea_ice, melting_speed, ocean_properties)
-    
+
     return nothing
 end
 

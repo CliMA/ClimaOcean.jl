@@ -2,18 +2,13 @@ using Oceananigans.Utils: prettysummary
 using Oceananigans.Grids: AbstractGrid
 
 using Adapt
-using Thermodynamics: Liquid
-
 using Printf
-using Thermodynamics: PhasePartition
+using Thermodynamics: Liquid, PhasePartition
 using KernelAbstractions.Extras.LoopInfo: @unroll
-
 using Statistics: norm
 
 import Thermodynamics as AtmosphericThermodynamics
 import Thermodynamics.Parameters: Rv_over_Rd
-
-g_Earth = Oceananigans.defaults.gravitational_acceleration
 
 #####
 ##### Bulk turbulent fluxes based on similarity theory
