@@ -45,9 +45,11 @@ dataset_name(::GLORYSStatic) = "GLORYSStatic"
 dataset_name(::GLORYSDaily) = "GLORYSDaily"
 dataset_name(::GLORYSMonthly) = "GLORYSMonthly"
 
+Base.size(::CopernicusDataset, variable) = (4320, 2040, 50)
+
 all_dates(::GLORYSStatic, var) = [nothing]
 all_dates(::GLORYSDaily, var) = range(DateTime("1993-01-01"), stop=DateTime("2021-06-30"), step=Day(1))
-all_dates(::GLORYSMonthly, var) = range(DateTime("1993-01-01"), stop=DateTime("2024-12-01"), step=Month(1))
+all_dates(::GLORYSMonthly, var) = range(DateTime("1993-01-01"), stop=DateTime("2021-06-01"), step=Month(1))
 
 copernicusmarine_dataset_id(::GLORYSStatic) = "cmems_mod_glo_phy_my_0.083deg_static"
 copernicusmarine_dataset_id(::GLORYSDaily) = "cmems_mod_glo_phy_my_0.083deg_P1D-m"
@@ -57,10 +59,11 @@ copernicusmarine_dataset_id(::GLORYSMonthly) = "cmems_mod_glo_phy_my_0.083deg_P1
 struct CMEMSHourlyAnalysis <: CopernicusDataset end
 copernicusmarine_dataset_id(::CMEMSHourlyAnalysis) = "cmems_mod_glo_phy_anfc_0.083deg_PT1H-m"
 
-CopernicusMetadata{D} = Metadata{<:CopernicusDataset, D}
-CopernicusMetadatum = Metadatum{<:CopernicusDataset}
+const CopernicusMetadata{D} = Metadata{<:CopernicusDataset, D}
+const CopernicusMetadatum = Metadatum{<:CopernicusDataset}
 
 Base.size(::CopernicusMetadatum) = (4320, 2040, 50, 1)
+
 reversed_vertical_axis(::CopernicusDataset) = true
 
 available_variables(::CopernicusDataset) = copernicus_dataset_variable_names
@@ -93,6 +96,8 @@ function bbox_strs(c)
     return first, second
 end
 
+colon2dash(s::String) = replace(s, ":" => "-")
+
 function metadata_prefix(metadata::CopernicusMetadata)
     var = copernicus_dataset_variable_names[metadata.name]
     dataset = dataset_name(metadata.dataset)
@@ -109,7 +114,7 @@ function metadata_prefix(metadata::CopernicusMetadata)
     return string(var, "_",
                   dataset, "_",
                   start_date, "_",
-                  end_date, suffix)
+                  end_date, suffix) |> colon2dash
 end
 
 function metadata_filename(metadata::CopernicusMetadata)
@@ -117,10 +122,12 @@ function metadata_filename(metadata::CopernicusMetadata)
     return string(prefix, ".nc")
 end
 
-function inpainted_metadata_path(metadata::CopernicusMetadata)
+function inpainted_metadata_filename(metadata::CopernicusMetadata)
     prefix = metadata_prefix(metadata)
     return string(prefix, "_inpainted.jld2")
 end
+
+inpainted_metadata_path(metadata::CopernicusMetadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
 
 location(::CopernicusMetadata) = (Center, Center, Center)
 longitude_interfaces(::CopernicusMetadata) = (0, 360)
