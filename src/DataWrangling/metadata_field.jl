@@ -185,7 +185,7 @@ function set_metadata_field!(field, data, metadatum)
         nothing
     end
 
-    temp_units = if metadatum.name == :temperature
+    temp_units  = if metadatum.name == :temperature
         temperature_units(metadatum.dataset)
     else
         nothing
@@ -231,11 +231,9 @@ end
 
 @kernel function _set_3d_metadata_field!(field, data, mangling, temp_units, conc_units)
     i, j, k = @index(Global, NTuple)
-    d = mangle(i, j, k, data, mangling)
-
     FT = eltype(field)
+    d = mangle(i, j, k, data, mangling)
     d = nan_convert_missing(FT, d)
-
     if !isnothing(temp_units)
         d = convert_temperature(d, temp_units)
     elseif !isnothing(conc_units)
