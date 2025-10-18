@@ -47,6 +47,10 @@ function parse_commandline()
         help = "Length of the simulation in years"
         arg_type = Int
         default = 20
+      "--sampling_length"
+        help = "Length of the sampling window in years"
+        arg_type = Int
+        default = 10
     end
     return parse_args(s)
 end
@@ -56,8 +60,9 @@ args = parse_commandline()
 κ_symmetric = args["kappa_symmetric"]
 start_year = args["start_year"]
 simulation_length = args["simulation_length"]
+sampling_length = args["sampling_length"]
 
-@info "Using κ_skew = $(κ_skew) m²/s and κ_symmetric = $(κ_symmetric) m²/s, starting in year $(start_year) for a length of $(simulation_length) years."
+@info "Using κ_skew = $(κ_skew) m²/s and κ_symmetric = $(κ_symmetric) m²/s, starting in year $(start_year) for a length of $(simulation_length) years with a $(sampling_length)-year sample."
 
 function synch!(clock1::Clock, clock2)
     # Synchronize the clocks
@@ -119,7 +124,7 @@ end
 
 prefix *= "_$(κ_skew)_$(κ_symmetric)"
 prefix *= "_$(start_year)"
-prefix *= "_$(simulation_length)year"
+prefix *= "_$(simulation_length)year_$(sampling_length)yearsample"
 prefix *= "_advectiveGM_multiyearjra55_calibrationsamples"
 
 dir = joinpath(homedir(), "forcing_data_half_degree")
@@ -131,7 +136,7 @@ simulation_period = Dates.value(Second(end_date - start_date))
 yearly_times = cumsum(vcat([0.], Dates.value.(Second.(diff(start_date:Year(1):end_date)))))
 decadal_times = cumsum(vcat([0.], Dates.value.(Second.(diff(start_date:Year(10):end_date)))))
 # sampling_endtimes = decadal_times[3:end]
-sampling_start_date = end_date - Year(10)
+sampling_start_date = end_date - Year(sampling_length)
 sampling_window = Dates.value(Second(end_date - sampling_start_date))
 
 @info "Settting up salinity restoring..."
