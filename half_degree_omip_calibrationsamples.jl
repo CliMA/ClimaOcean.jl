@@ -131,7 +131,8 @@ simulation_period = Dates.value(Second(end_date - start_date))
 yearly_times = cumsum(vcat([0.], Dates.value.(Second.(diff(start_date:Year(1):end_date)))))
 decadal_times = cumsum(vcat([0.], Dates.value.(Second.(diff(start_date:Year(10):end_date)))))
 # sampling_endtimes = decadal_times[3:end]
-sampling_window = Dates.value(Second(end_date - Year(10)))
+sampling_start_date = end_date - Year(10)
+sampling_window = Dates.value(Second(end_date - sampling_start_date))
 
 @info "Settting up salinity restoring..."
 @inline mask(x, y, z, t) = z ≥ z_surf - 1
