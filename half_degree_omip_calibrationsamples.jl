@@ -252,7 +252,7 @@ sea_ice.output_writers[:time_average] = JLD2Writer(sea_ice.model, sea_ice_output
 
 ocean.output_writers[:sample_decadal_average] = JLD2Writer(ocean.model, ocean_outputs;
                                          schedule = AveragedTimeInterval(simulation_period, window=sampling_window),
-                                         filename = "$(FILE_DIR)/ocean_complete_fields_10year_average_calibrationsample",
+                                         filename = "$(FILE_DIR)/ocean_complete_fields_$(sampling_length)year_average_calibrationsample",
                                          overwrite_existing = true)
 
 wall_time = Ref(time_ns())
