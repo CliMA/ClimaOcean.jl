@@ -124,7 +124,7 @@ prefix *= "_$(start_year)"
 prefix *= "_$(simulation_length)year_$(sampling_length)yearsample"
 prefix *= "_advectiveGM_multiyearjra55_calibrationsamples"
 
-dir = joinpath(homedir(), "forcing_data_half_degree")
+dir = joinpath(homedir(), "EN4_data")
 mkpath(dir)
 
 start_date = DateTime(start_year, 1, 1)
@@ -163,6 +163,8 @@ set!(ocean.model, T=Metadatum(:temperature; dataset=EN4Monthly(), date=start_dat
 # sea_ice = sea_ice_simulation(grid, ocean; advection=WENO(order=7))
 sea_ice = sea_ice_simulation(grid, ocean; dynamics=nothing)
 @info "Built sea ice model $(sea_ice)"
+
+dir = joinpath(homedir(), "ECCO_data")
 
 set!(sea_ice.model, h=Metadatum(:sea_ice_thickness;     dataset=ECCO4Monthly(), dir),
                     ℵ=Metadatum(:sea_ice_concentration; dataset=ECCO4Monthly(), dir))
