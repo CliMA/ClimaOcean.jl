@@ -90,7 +90,7 @@ grid = TripolarGrid(arch;
                     z = z_faces,
                     halo = (7, 7, 7))
 
-bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1, interpolation_passes=55)
+bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1, interpolation_passes=75)
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
 #####
@@ -138,7 +138,7 @@ sampling_window = Dates.value(Second(end_date - sampling_start_date))
 
 @info "Settting up salinity restoring..."
 @inline mask(x, y, z, t) = z ≥ z_surf - 1
-Smetadata = Metadata(:salinity; dataset=ECCO4Monthly(), dir, start_date, end_date)
+Smetadata = Metadata(:salinity; dataset=EN4Monthly(), dir, start_date, end_date)
 FS = DatasetRestoring(Smetadata, grid; rate = 1/18days, mask, time_indices_in_memory = 10)
 
 ocean = ocean_simulation(grid; Δt=1minutes,
@@ -151,8 +151,8 @@ ocean = ocean_simulation(grid; Δt=1minutes,
 
 @info "Built ocean model $(ocean)"
 
-set!(ocean.model, T=Metadatum(:temperature; dataset=ECCO4Monthly(), date=start_date, dir),
-                  S=Metadatum(:salinity;    dataset=ECCO4Monthly(), date=start_date, dir))
+set!(ocean.model, T=Metadatum(:temperature; dataset=EN4Monthly(), date=start_date, dir),
+                  S=Metadatum(:salinity;    dataset=EN4Monthly(), date=start_date, dir))
 @info "Initialized T and S"
 
 #####
