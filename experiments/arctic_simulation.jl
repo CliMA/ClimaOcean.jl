@@ -15,8 +15,7 @@ arch = GPU()
 
 depth = 2000meters
 Nz = 30
-z = ExponentialCoordinate(Nz, -depth, 0; scale=depth/3)
-z = MutableVerticalDiscretization(z)
+z = ExponentialDiscretization(Nz, -depth, 0; scale=depth/3, mutable=true)
 
 Nx = 180 # longitudinal direction -> 250 points is about 1.5ᵒ resolution
 Ny = 180 # meridional direction -> same thing, 48 points is about 1.5ᵒ resolution
