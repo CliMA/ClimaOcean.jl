@@ -12,8 +12,11 @@ using Dates
 using ClimaSeaIce
 using ClimaSeaIce.SeaIceThermodynamics: IceWaterThermalEquilibrium
 
-archs = [Distributed(CPU(); partition = Partition(y = DistributedComputations.Equal()), synchronized_communication=true),
-         Distributed(GPU(); partition = Partition(y = DistributedComputations.Equal()), synchronized_communication=true)]
+# TODO: add a distributed GPU architecture to the list of archs... Requires making sure CUDA-aware MPI is enabled
+archs = [Distributed(CPU(); partition = Partition(y = DistributedComputations.Equal()), synchronized_communication=true)]
+
+# archs = [Distributed(CPU(); partition = Partition(y = DistributedComputations.Equal()), synchronized_communication=true),
+#         Distributed(GPU(); partition = Partition(y = DistributedComputations.Equal()), synchronized_communication=true)]
 
 function analytical_immersed_tripolar_grid(underlying_grid::TripolarGrid;
                                            radius = 5, # degrees
