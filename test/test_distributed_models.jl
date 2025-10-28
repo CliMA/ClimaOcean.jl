@@ -9,8 +9,6 @@ using Oceananigans.Units
 using Oceananigans.DistributedComputations
 using Oceananigans.Architectures: on_architecture
 using Dates
-using ClimaSeaIce
-using ClimaSeaIce.SeaIceThermodynamics: IceWaterThermalEquilibrium
 
 # TODO: add a distributed GPU architecture to the list of archs... Requires making sure CUDA-aware MPI is enabled
 archs = [Distributed(CPU(); partition = Partition(y = DistributedComputations.Equal()), synchronized_communication=true)]
