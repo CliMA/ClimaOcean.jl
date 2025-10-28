@@ -37,8 +37,7 @@ Ny = 600
 Nz = 40
 
 depth = 6000meters
-z = ExponentialCoordinate(Nz, -depth, 0)
-z = Oceananigans.Grids.MutableVerticalDiscretization(z)
+z = ExponentialDiscretization(Nz, -depth, 0, mutable=true)
 
 grid = LatitudeLongitudeGrid(arch;
                              size = (Nx, Ny, Nz),
