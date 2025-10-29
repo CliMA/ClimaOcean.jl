@@ -50,9 +50,7 @@ pages = [
         ],
 
     "Vertical grids" => "vertical_grids.md",
-
-    "Datasets" => "datasets.md",
-
+    "Metadata" => "metadata.md",
     "Interface fluxes" => "interface_fluxes.md",
 
     "Library" => [
@@ -60,7 +58,8 @@ pages = [
         "Public"         => "library/public.md",
         "Private"        => "library/internals.md",
         "Function index" => "library/function_index.md",
-        ],
+    ],
+
     "References" => "references.md",
 ]
 
@@ -74,7 +73,7 @@ makedocs(sitename = "ClimaOcean.jl";
          warnonly = [:cross_references, :missing_docs],
          checkdocs = :none)
 
-@info "Clean up temporary .jld2 and .nc output created by doctests or literated examples..."
+@info "Clean up temporary .jld2, .nc, and .mp4 output created by doctests or literated examples..."
 
 """
     recursive_find(directory, pattern)
@@ -87,7 +86,7 @@ recursive_find(directory, pattern) =
     end
 
 files = []
-for pattern in [r"\.jld2", r"\.nc"]
+for pattern in [r"\.jld2", r"\.nc", r"\.mp4"]
     global files = vcat(files, recursive_find(@__DIR__, pattern))
 end
 
