@@ -14,7 +14,7 @@ steps:
     env:
       JULIA_DEPOT_PATH: "$TARTARUS_HOME/.julia-$BUILDKITE_BUILD_NUMBER"
       TEST_GROUP: "init"
-      JULIA_BINDIR: "$TARTARUS_HOME/julia-$JULIA_VERSION/bin"
+      JULIA_BINDIR: "$TARTARUS_HOME/julia-$JULIA_VERSION/bin" 
       TMPDIR: "$TARTARUS_HOME/tmp"
     command:
       - "echo '--- Instantiate project'"
