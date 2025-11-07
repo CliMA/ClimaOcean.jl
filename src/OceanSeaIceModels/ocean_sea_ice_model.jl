@@ -3,7 +3,6 @@ using Oceananigans.TimeSteppers: Clock
 using Oceananigans: SeawaterBuoyancy
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 using KernelAbstractions: @kernel, @index
-
 using SeawaterPolynomials: TEOS10EquationOfState
 
 import Thermodynamics as AtmosphericThermodynamics
@@ -12,12 +11,11 @@ import Thermodynamics as AtmosphericThermodynamics
 import Oceananigans: fields, prognostic_fields
 import Oceananigans.Architectures: architecture
 import Oceananigans.Fields: set!
-import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker
+import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker, initialization_update_state!
 import Oceananigans.OutputWriters: default_included_properties
 import Oceananigans.Simulations: reset!, initialize!, iteration
 import Oceananigans.TimeSteppers: time_step!, update_state!, time
 import Oceananigans.Utils: prettytime
-import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker, initialization_update_state!
 
 mutable struct OceanSeaIceModel{I, A, O, F, C, Arch} <: AbstractModel{Nothing, Arch}
     architecture :: Arch

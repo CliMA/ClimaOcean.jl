@@ -16,14 +16,11 @@ using ..OceanSeaIceModels.PrescribedAtmospheres:
 
 using ClimaSeaIce: SeaIceModel
 
-using Oceananigans.BuoyancyFormulations: g_Earth
 using Oceananigans: HydrostaticFreeSurfaceModel, architecture
 using Oceananigans.Grids: inactive_node, node, topology
 using Oceananigans.BoundaryConditions: fill_halo_regions!
-
 using Oceananigans.Fields: ConstantField, interpolate, FractionalIndices
 using Oceananigans.Utils: launch!, Time, KernelParameters
-
 using Oceananigans.Operators: ℑxᶜᵃᵃ, ℑyᵃᶜᵃ, ℑxᶠᵃᵃ, ℑyᵃᶠᵃ
 
 using KernelAbstractions: @kernel, @index
@@ -189,11 +186,11 @@ function atmosphere_ocean_interface(atmos,
     downwelling_longwave  = Field{Center, Center, Nothing}(ocean.model.grid)
     downwelling_shortwave = Field{Center, Center, Nothing}(ocean.model.grid)
 
-    ao_fluxes = (; latent_heat, 
-                   sensible_heat, 
-                   water_vapor, 
+    ao_fluxes = (; latent_heat,
+                   sensible_heat,
+                   water_vapor,
                    x_momentum,
-                   y_momentum, 
+                   y_momentum,
                    friction_velocity,
                    temperature_scale,
                    water_vapor_scale,
@@ -296,7 +293,7 @@ end
 """
     ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                         radiation = Radiation(),
-                        freshwater_density = 1000,
+                        freshwater_density = default_freshwater_density,
                         atmosphere_ocean_fluxes = SimilarityTheoryFluxes(),
                         atmosphere_sea_ice_fluxes = SimilarityTheoryFluxes(eltype(ocean.model.grid)),
                         atmosphere_ocean_interface_temperature = BulkTemperature(),
@@ -308,11 +305,11 @@ end
                         sea_ice_temperature_units = DegreesCelsius(),
                         sea_ice_reference_density = reference_density(sea_ice),
                         sea_ice_heat_capacity = heat_capacity(sea_ice),
-                        gravitational_acceleration = g_Earth)
+                        gravitational_acceleration = default_gravitational_acceleration)
 """
 function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              radiation = Radiation(),
-                             freshwater_density = 1000,
+                             freshwater_density = default_freshwater_density,
                              atmosphere_ocean_fluxes = SimilarityTheoryFluxes(eltype(ocean.model.grid)),
                              atmosphere_sea_ice_fluxes = SimilarityTheoryFluxes(eltype(ocean.model.grid)),
                              atmosphere_ocean_interface_temperature = BulkTemperature(),
@@ -326,7 +323,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              sea_ice_temperature_units = DegreesCelsius(),
                              sea_ice_reference_density = reference_density(sea_ice),
                              sea_ice_heat_capacity = heat_capacity(sea_ice),
-                             gravitational_acceleration = g_Earth)
+                             gravitational_acceleration = default_gravitational_acceleration)
 
     ocean_grid = ocean.model.grid
     FT = eltype(ocean_grid)
