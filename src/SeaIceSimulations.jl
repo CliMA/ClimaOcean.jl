@@ -93,7 +93,7 @@ end
 default_solver(::Nothing) = SplitExplicitSolver(120)
 default_solver(ocean::Simulation) = default_solver(ocean.model.timestepper)
 default_solver(::Oceananigans.TimeSteppers.QuasiAdamsBashforth2TimeStepper) = SplitExplicitSolver(120)
-default_solver(::Oceananigans.TimeSteppers.SplitRungeKutta3TimeStepper) = SplitExplicitSolver(360)
+default_solver(::Oceananigans.TimeSteppers.SplitRungeKuttaTimeStepper) = SplitExplicitSolver(360)
 
 function sea_ice_dynamics(grid, ocean=nothing;
                           sea_ice_ocean_drag_coefficient = 2.5e-3,
