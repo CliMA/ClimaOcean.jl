@@ -10,11 +10,10 @@ export
     SkinTemperature,
     BulkTemperature
 
-using Oceananigans
 using SeawaterPolynomials
 
+using Oceananigans
 using Oceananigans.Operators
-
 using Oceananigans.Utils: launch!, Time, KernelParameters
 using Oceananigans.Architectures: architecture
 using Oceananigans.BoundaryConditions: fill_halo_regions!, BoundaryCondition
@@ -37,8 +36,8 @@ function freshwater_flux end
 function reference_density end
 function heat_capacity end
 
-const default_gravitational_acceleration = 9.80665
-const default_freshwater_density = 1000
+const default_gravitational_acceleration = Oceananigans.defaults.gravitational_acceleration
+const default_freshwater_density = 1000 # kg m⁻³
 
 const SeaIceSimulation = Simulation{<:SeaIceModel}
 const OceananigansSimulation = Simulation{<:HydrostaticFreeSurfaceModel}

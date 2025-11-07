@@ -28,8 +28,6 @@ using KernelAbstractions: @kernel, @index
 
 import Oceananigans.Simulations: initialize!
 
-g_Earth = Oceananigans.defaults.gravitational_acceleration
-
 #####
 ##### Container for organizing information related to fluxes
 #####
@@ -309,7 +307,7 @@ end
 """
     ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                         radiation = Radiation(),
-                        freshwater_density = 1000,
+                        freshwater_density = default_freshwater_density,
                         atmosphere_ocean_fluxes = SimilarityTheoryFluxes(),
                         atmosphere_sea_ice_fluxes = SimilarityTheoryFluxes(eltype(ocean.model.grid)),
                         atmosphere_ocean_interface_temperature = BulkTemperature(),
@@ -321,11 +319,11 @@ end
                         sea_ice_temperature_units = DegreesCelsius(),
                         sea_ice_reference_density = reference_density(sea_ice),
                         sea_ice_heat_capacity = heat_capacity(sea_ice),
-                        gravitational_acceleration = g_Earth)
+                        gravitational_acceleration = default_gravitational_acceleration)
 """
 function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              radiation = Radiation(),
-                             freshwater_density = 1000,
+                             freshwater_density = default_freshwater_density,
                              atmosphere_ocean_fluxes = SimilarityTheoryFluxes(),
                              atmosphere_sea_ice_fluxes = SimilarityTheoryFluxes(),
                              atmosphere_ocean_interface_temperature = BulkTemperature(),
@@ -339,7 +337,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              sea_ice_temperature_units = DegreesCelsius(),
                              sea_ice_reference_density = reference_density(sea_ice),
                              sea_ice_heat_capacity = heat_capacity(sea_ice),
-                             gravitational_acceleration = g_Earth)
+                             gravitational_acceleration = default_gravitational_acceleration)
 
     FT = eltype(ocean)
 
