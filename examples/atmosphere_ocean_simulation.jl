@@ -15,15 +15,15 @@ using Oceananigans.Units
 using Printf, Statistics, Dates
 
 # ## Ocean and sea-ice model configuration
-# The ocean and sea-ice are configured in accordance with the "one_degree_simulation" example
+# The ocean and sea-ice are a simplified version of the "one_degree_simulation" example
 # https://clima.github.io/ClimaOceanDocumentation/dev/literated/one_degree_simulation/
 # The first step is to create the grid with realistic bathymetry.
 
 Nx = 360 
 Ny = 180 
-Nz = 30  
+Nz = 10  
 
-r_faces = ExponentialDiscretization(Nz, -4000, 0)
+r_faces = ExponentialDiscretization(Nz, -2000, 0)
 grid    = TripolarGrid(Oceananigans.CPU(); size=(Nx, Ny, Nz), z=r_faces, halo=(6, 6, 5))
 
 # Regridding the bathymetry...
@@ -35,10 +35,10 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_
 
 momentum_advection = WENOVectorInvariant(order=5)
 tracer_advection   = WENO(order=5)
-free_surface = SplitExplicitFreeSurface(grid; substeps=80)
+free_surface = SplitExplicitFreeSurface(grid; substeps=40)
 
 catke_closure   = ClimaOcean.OceanSimulations.default_ocean_closure()
-viscous_closure = Oceananigans.TurbulenceClosures.HorizontalScalarBiharmonicDiffusivity(ν=1e11)
+viscous_closure = Oceananigans.TurbulenceClosures.HorizontalScalarBiharmonicDiffusivity(ν=1e10)
 eddy_closure    = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
 closures        = (catke_closure, eddy_closure, viscous_closure, VerticalScalarDiffusivity(ν=1e-4))
 
@@ -54,7 +54,6 @@ ocean = ocean_simulation(grid;
 Oceananigans.set!(ocean.model, T=Metadatum(:temperature, dataset=ECCO4Monthly()), 
                                S=Metadatum(:salinity,    dataset=ECCO4Monthly()))
 
-                               
 # The sea-ice simulation, complete with initial conditions for sea-ice thickness and concentration from ECCO.
 
 dynamics = ClimaOcean.SeaIceSimulations.sea_ice_dynamics(grid, ocean; solver=ClimaSeaIce.SeaIceDynamics.SplitExplicitSolver(100))
@@ -83,7 +82,7 @@ atmosphere.model.output.output_dt = Hour(3)
 
 radiation = Radiation(ocean_emissivity=0.0, sea_ice_emissivity=0.0)
 earth_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-earth = Oceananigans.Simulation(earth_model; Δt, stop_time=360days)
+earth = Oceananigans.Simulation(earth_model; Δt, stop_time=60days)
 
 # ## Running the simulation
 # We can now run the simulation. We add a callback to monitor the progress of the simulation
@@ -144,8 +143,8 @@ Qcai = earth.model.interfaces.atmosphere_sea_ice_interface.fluxes.sensible_heat
 Qvai = earth.model.interfaces.atmosphere_sea_ice_interface.fluxes.latent_heat
 τxai = earth.model.interfaces.atmosphere_sea_ice_interface.fluxes.x_momentum
 τyai = earth.model.interfaces.atmosphere_sea_ice_interface.fluxes.y_momentum
-Qoi = earth.model.interfaces.net_fluxes.sea_ice_bottom.heat
-Soi = earth.model.interfaces.sea_ice_ocean_interface.fluxes.salt
+Qoi  = earth.model.interfaces.net_fluxes.sea_ice_bottom.heat
+Soi  = earth.model.interfaces.sea_ice_ocean_interface.fluxes.salt
 fluxes = (; Qcao, Qvao, τxao, τyao, Qcai, Qvai, τxai, τyai, Qoi, Soi)
 
 earth.output_writers[:fluxes] = JLD2Writer(earth.model.ocean.model, fluxes;
@@ -162,7 +161,7 @@ Oceananigans.run!(earth)
 # as well as the 2m temperature in the atmosphere, the sea surface temperature, and the sensible and latent heat
 # fluxes at the atmosphere-ocean interface.
 
-SWO = Dataset("run_0001/output.nc")
+SWO = Dataset("run_0005/output.nc")
 
 Ta = reverse(SWO["temp"][:, :, 8, :], dims=2)
 ua = reverse(SWO["u"][:, :, 8, :],    dims=2)
@@ -180,34 +179,34 @@ SIA = FieldTimeSeries("sea_ice_fields.jld2", "ℵ")
 Qcao = FieldTimeSeries("intercomponent_fluxes.jld2", "Qcao")
 Qvao = FieldTimeSeries("intercomponent_fluxes.jld2", "Qvao")
 
-uotmp = Field{Face, Center, Nothing}(SST.grid)
-votmp = Field{Center, Face, Nothing}(SST.grid)
+uotmp = Oceananigans.Field{Face, Center, Nothing}(SST.grid)
+votmp = Oceananigans.Field{Center, Face, Nothing}(SST.grid)
 
-uitmp = Field{Face,   Center, Nothing}(SST.grid)
-vitmp = Field{Center, Face,   Nothing}(SST.grid)
-atmp  = Field{Center, Center, Nothing}(SST.grid)
+uitmp = Oceananigans.Field{Face,   Center, Nothing}(SST.grid)
+vitmp = Oceananigans.Field{Center, Face,   Nothing}(SST.grid)
+atmp  = Oceananigans.Field{Center, Center, Nothing}(SST.grid)
 
-sotmp = Field(sqrt(uotmp^2 + votmp^2))
-sitmp = Field(sqrt(uitmp^2 + vitmp^2) * atmp)
+sotmp = Oceananigans.Field(sqrt(uotmp^2 + votmp^2))
+sitmp = Oceananigans.Field(sqrt(uitmp^2 + vitmp^2) * atmp)
 
 iter = Observable(1)
 san = @lift sp[:, :, $iter]
 son  = @lift begin
-    set!(uotmp, SSU[$iter * 2])
-    set!(votmp, SSV[$iter * 2])
-    compute!(sotmp)
-    interior(sotmp, :, :, 1)
+    Oceananigans.set!(uotmp, SSU[$iter * 2])
+    Oceananigans.set!(votmp, SSV[$iter * 2])
+    Oceananigans.compute!(sotmp)
+    Oceananigans.interior(sotmp, :, :, 1)
 end
 
 ssn  = @lift begin
-    set!(uitmp, SIU[$iter * 2])
-    set!(vitmp, SIV[$iter * 2])
-    set!(atmp,  SIA[$iter * 2])
-    compute!(sitmp)
-    interior(sitmp, :, :, 1)
+    Oceananigans.set!(uitmp, SIU[$iter * 2])
+    Oceananigans.set!(vitmp, SIV[$iter * 2])
+    Oceananigans.set!(atmp,  SIA[$iter * 2])
+    Oceananigans.compute!(sitmp)
+    Oceananigans.interior(sitmp, :, :, 1)
 end
 
-fig = Figure(size = (1200, 800))
+fig = Figure(size = (1200, 400))
 ax2 = Axis(fig[1, 1], title = "Surface speed, atmosphere (m/s)")
 hm2 = heatmap!(ax2, san; colormap = :deep)
 ax1 = Axis(fig[1, 2], title = "Surface speed, ocean (m/s)")
@@ -215,9 +214,10 @@ hm = heatmap!(ax1, son; colormap = :deep)
 ax3 = Axis(fig[1, 3], title = "Surface speed, sea-ice (m/s)")
 hm = heatmap!(ax3, ssn; colormap = :deep)
 
-record(fig, "surface_speeds.mp4", iter, framerate = 15) do i
+record(fig, "surface_speeds.mp4", 1:length(sp[1, 1, :]), framerate = 15) do i
     iter[] = i
-endnothing #hide
+end
+nothing #hide
 
 # ![](surface_speeds.mp4)
 
