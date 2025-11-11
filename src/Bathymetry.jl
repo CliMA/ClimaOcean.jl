@@ -176,7 +176,7 @@ function regrid_bathymetry(target_grid::DistributedGrid, metadata;
     end
 
     # Synchronize
-    Oceananigans.DistributedComputations.global_barrier(arch.communicator)
+    Oceananigans.DistributedComputations.barrier(arch.communicator)
 
     # Share the result (can we share SubArrays?)
     bottom_height = all_reduce(+, bottom_height, arch)

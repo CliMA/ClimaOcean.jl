@@ -18,7 +18,8 @@ export
     atmosphere_ocean_stability_functions,
     atmosphere_sea_ice_stability_functions
 
-using ..OceanSeaIceModels: default_gravitational_acceleration
+using ..OceanSeaIceModels: default_gravitational_acceleration,
+                           default_freshwater_density
 
 import ClimaOcean: stateindex
 

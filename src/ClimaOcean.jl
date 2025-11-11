@@ -30,6 +30,7 @@ export
     EN4Metadatum,
     ETOPO2022,
     ECCO2Daily, ECCO2Monthly, ECCO4Monthly,
+    ECCO2DarwinMonthly, ECCO4DarwinMonthly,
     EN4Monthly,
     GLORYSDaily, GLORYSMonthly, GLORYSStatic,
     RepeatYearJRA55, MultiYearJRA55,
@@ -110,7 +111,7 @@ using PrecompileTools: @setup_workload, @compile_workload
     Nx, Ny, Nz = 32, 32, 10
     @compile_workload begin
         depth = 6000
-        z = Oceananigans.Grids.ExponentialCoordinate(Nz, -depth, 0)
+        z = Oceananigans.Grids.ExponentialDiscretization(Nz, -depth, 0)
         grid = Oceananigans.OrthogonalSphericalShellGrids.TripolarGrid(CPU(); size=(Nx, Ny, Nz), halo=(7, 7, 7), z)
         grid = ImmersedBoundaryGrid(grid, GridFittedBottom((x, y) -> -5000))
         # ocean = ocean_simulation(grid)
