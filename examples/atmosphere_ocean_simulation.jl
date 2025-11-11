@@ -23,8 +23,8 @@ Nx = 360
 Ny = 180 
 Nz = 30  
 
-r_faces = ExponentialCoordinate(Nz, -4000, 0)
-grid    = TripolarGrid(CPU(); size=(Nx, Ny, Nz), z=r_faces, halo=(6, 6, 5))
+r_faces = ExponentialDiscretization(Nz, -4000, 0)
+grid    = TripolarGrid(Oceananigans.CPU(); size=(Nx, Ny, Nz), z=r_faces, halo=(6, 6, 5))
 
 # Regridding the bathymetry...
 

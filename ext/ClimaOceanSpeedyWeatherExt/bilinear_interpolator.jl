@@ -5,8 +5,6 @@ using Oceananigans
 
 import XESMF: Regridder, xesmf_coordinates
 
-OCXESM = Base.get_extension(:Oceananigans, OceananigansXESMFext)
-
 const Grids = Union{SpeedyWeather.SpectralGrid, AbstractGrid}
 
 function Regridder(src::Grids, dst::Grids; method::String="bilinear", periodic=true)
