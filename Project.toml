@@ -33,11 +33,14 @@ Thermodynamics = "b60c26fb-14c3-4610-9d3e-2d17fe7ff00c"
 ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 
 [weakdeps]
+CondaPkg = "992eb4ea-22a4-4c89-a5bb-47a3300528ab"
+PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
 CopernicusMarine = "cd43e856-93a3-40c8-bc9e-6146cdce14fa"
 Reactant = "3c362404-f566-11ee-1572-e11a4b42c853"
 
 [extensions]
 ClimaOceanCopernicusMarineExt = "CopernicusMarine"
+ClimaOceanPythonCallExt = "PythonCall"
 ClimaOceanReactantExt = "Reactant"
 
 [compat]
@@ -45,6 +48,7 @@ Adapt = "4"
 CFTime = "0.1, 0.2"
 CUDA = "4, 5"
 ClimaSeaIce = "0.3.9"
+CondaPkg = "0.2.33"
 CopernicusMarine = "0.1.1"
 CubicSplines = "0.2"
 DataDeps = "0.7"
@@ -57,9 +61,10 @@ KernelAbstractions = "0.9"
 MPI = "0.20"
 MeshArrays = "0.3"
 NCDatasets = "0.12, 0.13, 0.14"
-Oceananigans = "0.100.4"
+Oceananigans = "0.100, 0.101"
 OffsetArrays = "1.14"
 PrecompileTools = "1"
+PythonCall = "0.9.28"
 Reactant = "0.2.45"
 Scratch = "1"
 SeawaterPolynomials = "0.3.5"
@@ -76,4 +81,4 @@ MPIPreferences = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Coverage", "Test", "MPIPreferences", "CUDA_Runtime_jll", "Reactant", "CopernicusMarine"]
+test = ["Coverage", "Test", "MPIPreferences", "CUDA_Runtime_jll", "Reactant", "CopernicusMarine", "PythonCall", "CondaPkg"]
