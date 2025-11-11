@@ -8,6 +8,9 @@
 # For this example, we need Oceananigans, ClimaOcean, Dates, CUDA, and
 # CairoMakie to visualize the simulation.
 
+using Pkg
+Pkg.add("PythonCall")
+
 using ClimaOcean
 using PythonCall
 using Oceananigans
