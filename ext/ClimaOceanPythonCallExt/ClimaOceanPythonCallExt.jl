@@ -8,7 +8,6 @@ using Oceananigans.DistributedComputations: @root
 
 using Dates: DateTime
 
-include("copernicus.jl")
 include("veros_ocean_simulation.jl")
 include("veros_state_exchanger.jl")
 
