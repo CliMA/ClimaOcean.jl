@@ -39,7 +39,7 @@ free_surface = SplitExplicitFreeSurface(grid; substeps=80)
 
 catke_closure = ClimaOcean.OceanSimulations.default_ocean_closure()
 eddy_closure  = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
-closures      = (catke_closure, eddy_closure, VerticalScalarDiffusivity(κ=1e-5, ν=1e-4))
+closures      = (catke_closure, eddy_closure, VerticalScalarDiffusivity(ν=1e-4))
 
 # The ocean simulation, complete with initial conditions for temperature and salinity from ECCO.
 

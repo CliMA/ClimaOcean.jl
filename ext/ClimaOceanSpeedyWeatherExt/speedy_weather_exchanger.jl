@@ -3,6 +3,7 @@ using Oceananigans.BoundaryConditions
 using Oceananigans.Grids: architecture
 using Oceananigans.Utils: launch!
 using Oceananigans.Operators: intrinsic_vector
+using XESMF
 
 using ClimaOcean.OceanSeaIceModels: sea_ice_concentration
 
@@ -30,12 +31,10 @@ function atmosphere_exchanger(atmosphere::SpeedySimulation, exchange_grid, excha
     spectral_grid = atmosphere.model.spectral_grid
     FT = eltype(exchange_atmosphere_state.u)
 
-    # sparse matrix multiply requires contiguous memory to speed up the computation
-    wrk = zeros(FT, size(exchange_grid, 1) * size(exchange_grid, 2))
-
     # TODO: Implement a conservative regridder when ready
-    regridder = BilinearInterpolator(exchange_grid, spectral_grid)
-    exchanger = (; wrk, regridder)
+    ocean_atmosphere_regridder = XESMF.Regridder(spectral_grid, exchange_grid)
+    atmosphere_ocean_regridder = XESMF.Regridder(exchange_grid, spectral_grid)
+    exchanger = (; ocean_atmosphere_regridder, atmosphere_ocean_regridder)
 
     return exchanger
 end
@@ -43,7 +42,7 @@ end
 # Regrid the atmospheric state on the exchange grid
 function interpolate_atmosphere_state!(interfaces, atmos::SpeedySimulation, coupled_model)
     atmosphere_exchanger = interfaces.exchanger.atmosphere_exchanger
-    regridder = atmosphere_exchanger.regridder
+    regridder = atmosphere_exchanger.atmosphere_ocean_regridder
     exchange_grid  = interfaces.exchanger.exchange_grid
     exchange_state = interfaces.exchanger.exchange_atmosphere_state
     surface_layer = atmos.model.spectral_grid.nlayers
@@ -56,31 +55,15 @@ function interpolate_atmosphere_state!(interfaces, atmos::SpeedySimulation, coup
     Qsa = atmos.diagnostic_variables.physics.surface_shortwave_down.data
     Qla = atmos.diagnostic_variables.physics.surface_longwave_down.data
     Mpa = atmos.diagnostic_variables.physics.total_precipitation_rate.data
-    wrk = atmosphere_exchanger.wrk
 
-    regrid!(wrk, regridder.set1, ua)
-    Oceananigans.set!(exchange_state.u, reshape(wrk, size(exchange_state.u)))
-
-    regrid!(wrk, regridder.set1, va)
-    Oceananigans.set!(exchange_state.v, reshape(wrk, size(exchange_state.v)))
-
-    regrid!(wrk, regridder.set1, Ta)
-    Oceananigans.set!(exchange_state.T, reshape(wrk, size(exchange_state.T)))
-
-    regrid!(wrk, regridder.set1, qa)
-    Oceananigans.set!(exchange_state.q, reshape(wrk, size(exchange_state.q)))
-
-    regrid!(wrk, regridder.set1, pa)
-    Oceananigans.set!(exchange_state.p, reshape(wrk, size(exchange_state.p)))
-
-    regrid!(wrk, regridder.set1, Qsa)
-    Oceananigans.set!(exchange_state.Qs, reshape(wrk, size(exchange_state.Qs)))
-
-    regrid!(wrk, regridder.set1, Qla)
-    Oceananigans.set!(exchange_state.Qℓ, reshape(wrk, size(exchange_state.Qℓ)))
-
-    regrid!(wrk, regridder.set1, Mpa)
-    Oceananigans.set!(exchange_state.Mp, reshape(wrk, size(exchange_state.Mp)))
+    regrid!(vec(interior(exchange_state.u)),  regridder, ua)
+    regrid!(vec(interior(exchange_state.v)),  regridder, va)
+    regrid!(vec(interior(exchange_state.T)),  regridder, Ta)
+    regrid!(vec(interior(exchange_state.q)),  regridder, qa)
+    regrid!(vec(interior(exchange_state.p)),  regridder, pa)
+    regrid!(vec(interior(exchange_state.Qs)), regridder, Qsa)
+    regrid!(vec(interior(exchange_state.Qℓ)), regridder, Qla)
+    regrid!(vec(interior(exchange_state.Mp)), regridder, Mpa)
 
     arch = architecture(exchange_grid)
 
@@ -114,9 +97,7 @@ end
 function compute_net_atmosphere_fluxes!(coupled_model::SpeedyCoupledModel)
     atmos = coupled_model.atmosphere
     grid  = coupled_model.interfaces.exchanger.exchange_grid
-    regridder = coupled_model.interfaces.exchanger.atmosphere_exchanger.regridder
-    wrk = coupled_model.interfaces.exchanger.atmosphere_exchanger.wrk
-
+    regridder = coupled_model.interfaces.exchanger.atmosphere_exchanger.ocean_atmosphere_regridder
     ao_fluxes = coupled_model.interfaces.atmosphere_ocean_interface.fluxes
     ai_fluxes = coupled_model.interfaces.atmosphere_sea_ice_interface.fluxes
 
@@ -124,24 +105,44 @@ function compute_net_atmosphere_fluxes!(coupled_model::SpeedyCoupledModel)
     Qci = ai_fluxes.sensible_heat
     Mvo = ao_fluxes.water_vapor
     Mvi = ai_fluxes.water_vapor
-    ℵ   = sea_ice_concentration(coupled_model.sea_ice)
+    ℵ   = interior(sea_ice_concentration(coupled_model.sea_ice))
 
     # All the location of these fluxes will change
     Qca = atmos.prognostic_variables.ocean.sensible_heat_flux.data
     Mva = atmos.prognostic_variables.ocean.surface_humidity_flux.data
     sst = atmos.prognostic_variables.ocean.sea_surface_temperature.data
-    
-    To = coupled_model.interfaces.atmosphere_ocean_interface.temperature
-    Ti = coupled_model.interfaces.atmosphere_sea_ice_interface.temperature
+    To  = coupled_model.interfaces.atmosphere_ocean_interface.temperature
+    Ti  = coupled_model.interfaces.atmosphere_sea_ice_interface.temperature
 
     # TODO: Figure out how we are going to deal with upwelling radiation
     # TODO: regrid longwave rather than a mixed surface temperature 
-    copyto!(wrk, interior(Qco) .* (1 - ℵ) .+ ℵ .* interior(Qci))
-    regrid!(Qca, regridder.set2, wrk)
-    copyto!(wrk, interior(Mvo) .* (1 - ℵ) .+ ℵ .* interior(Mvi))
-    regrid!(Mva, regridder.set2, wrk)
-    copyto!(wrk, interior(To) .* (1 - ℵ) .+ ℵ .* interior(Ti) .+ 273.15)
-    regrid!(sst, regridder.set2, wrk)
+    regrid!(Qca, regridder, interior(Qco) .* (1 - ℵ) .+ ℵ .* interior(Qci))
+    regrid!(Mva, regridder, interior(Mvo) .* (1 - ℵ) .+ ℵ .* interior(Mvi))
+    regrid!(sst, regridder, interior(To) .* (1 - ℵ) .+ ℵ .* interior(Ti) .+ 273.15)
+
+    return nothing
+end
+
+# Simple case -> there is no sea ice!
+function compute_net_atmosphere_fluxes!(coupled_model::SpeedyNoSeaIceCoupledModel)
+    atmos = coupled_model.atmosphere
+    grid  = coupled_model.interfaces.exchanger.exchange_grid
+    regridder = coupled_model.interfaces.exchanger.atmosphere_exchanger.ocean_atmosphere_regridder
+    ao_fluxes = coupled_model.interfaces.atmosphere_ocean_interface.fluxes
+    Qco = ao_fluxes.sensible_heat
+    Mvo = ao_fluxes.water_vapor
+
+    # All the location of these fluxes will change
+    Qca = atmos.prognostic_variables.ocean.sensible_heat_flux.data
+    Mva = atmos.prognostic_variables.ocean.surface_humidity_flux.data
+    sst = atmos.prognostic_variables.ocean.sea_surface_temperature.data
+    To  = coupled_model.interfaces.atmosphere_ocean_interface.temperature
+
+    # TODO: Figure out how we are going to deal with upwelling radiation
+    # TODO: regrid longwave rather than a mixed surface temperature 
+    regrid!(Qca, regridder, interior(Qco))
+    regrid!(Mva, regridder, interior(Mvo))
+    regrid!(sst, regridder, interior(To) .+ 273.15)
 
     return nothing
 end

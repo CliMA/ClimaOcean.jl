@@ -8,6 +8,7 @@ import ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres:
 
 const SpeedySimulation = SpeedyWeather.Simulation
 const SpeedyCoupledModel = ClimaOcean.OceanSeaIceModel{<:Any, <:SpeedySimulation}
+const SpeedyNoSeaIceCoupledModel = ClimaOcean.OceanSeaIceModel{<:Union{Nothing, ClimaOcean.FreezingLimitedOceanTemperature}, <:SpeedySimulation}
 Base.summary(::SpeedySimulation) = "SpeedyWeather.Simulation"
 
 # Take one time-step or more depending on the global timestep

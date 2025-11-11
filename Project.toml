@@ -1,8 +1,8 @@
 name = "ClimaOcean"
 uuid = "0376089a-ecfe-4b0e-a64f-9c555d74d754"
 license = "MIT"
-authors = ["Climate Modeling Alliance and contributors"]
 version = "0.8.7"
+authors = ["Climate Modeling Alliance and contributors"]
 
 [deps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
@@ -33,13 +33,12 @@ Thermodynamics = "b60c26fb-14c3-4610-9d3e-2d17fe7ff00c"
 ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 
 [weakdeps]
-CondaPkg = "992eb4ea-22a4-4c89-a5bb-47a3300528ab"
-LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
 CopernicusMarine = "cd43e856-93a3-40c8-bc9e-6146cdce14fa"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Reactant = "3c362404-f566-11ee-1572-e11a4b42c853"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 SpeedyWeather = "9e226e20-d153-4fed-8a5b-493def4f21a9"
+XESMF = "2e0b0046-e7a1-486f-88de-807ee8ffabe5"
 
 [extensions]
 ClimaOceanCopernicusMarineExt = "CopernicusMarine"
@@ -50,7 +49,6 @@ ClimaOceanSpeedyWeatherExt = "SpeedyWeather"
 Adapt = "4"
 CFTime = "0.1, 0.2"
 CUDA = "4, 5"
-CondaPkg = "0.2.28"
 ClimaSeaIce = "0.3.9"
 CopernicusMarine = "0.1.1"
 CubicSplines = "0.2"
@@ -73,6 +71,7 @@ SeawaterPolynomials = "0.3.5"
 StaticArrays = "1"
 Statistics = "1.9"
 Thermodynamics = "0.14, 0.15"
+XESMF = "0.1.5"
 ZipFile = "0.10"
 julia = "1.10"
 
@@ -83,4 +82,4 @@ MPIPreferences = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Coverage", "Test", "MPIPreferences", "CUDA_Runtime_jll", "CopernicusMarine", "PythonCall", "CondaPkg", "SpeedyWeather", "Reactant"]
+test = ["Coverage", "Test", "MPIPreferences", "CUDA_Runtime_jll", "CopernicusMarine", "SpeedyWeather", "Reactant"]
