@@ -24,9 +24,8 @@ function two_dimensionalize(lat::AbstractVector, lon::AbstractVector)
     return lat, lon
 end
 
-coordinate_dataset(grid::SpeedyWeather.SpectralGrid) = coordinate_dataset(grid.grid)
-    
-xesmf_coordinates(grid::SpeedyWeather.RingGrids.AbstractGrid) = 
+xesmf_coordinates(grid::SpeedyWeather.SpectralGrid, args...) = xesmf_coordinates(grid.grid, args...)
+xesmf_coordinates(grid::SpeedyWeather.RingGrids.AbstractGrid, args...) = 
     throw(ArgumentError("xesmf_coordinates not implemented for grid type $(typeof(grid)), maybe you meant to pass a FullGrid?"))
 
 function xesmf_coordinates(grid::SpeedyWeather.RingGrids.AbstractFullGrid, args...)
