@@ -18,7 +18,7 @@ Install the Veros ocean model Marine CLI using CondaPkg.
 Returns a NamedTuple containing package information if successful.
 """
 function install_veros()
-    CondaPkg.add_pip("veros"; channel = "conda-forge")
+    CondaPkg.add_pip("veros")
     cli = CondaPkg.which("veros")
     @info "... the veros CLI has been installed at $(cli)."
     return cli
