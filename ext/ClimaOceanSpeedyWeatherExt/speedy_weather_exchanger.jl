@@ -42,7 +42,7 @@ end
 # Regrid the atmospheric state on the exchange grid
 function interpolate_atmosphere_state!(interfaces, atmos::SpeedySimulation, coupled_model)
     atmosphere_exchanger = interfaces.exchanger.atmosphere_exchanger
-    regrid! = atmosphere_exchanger.atmosphere_ocean_regridder
+    regrid! = atmosphere_exchanger.ocean_atmosphere_regridder
     exchange_grid  = interfaces.exchanger.exchange_grid
     exchange_state = interfaces.exchanger.exchange_atmosphere_state
     surface_layer = atmos.model.spectral_grid.nlayers
@@ -97,7 +97,7 @@ end
 function compute_net_atmosphere_fluxes!(coupled_model::SpeedyCoupledModel)
     atmos = coupled_model.atmosphere
     grid  = coupled_model.interfaces.exchanger.exchange_grid
-    regrid! = coupled_model.interfaces.exchanger.atmosphere_exchanger.ocean_atmosphere_regridder
+    regrid! = coupled_model.interfaces.exchanger.atmosphere_exchanger.atmosphere_ocean_regridder
     ao_fluxes = coupled_model.interfaces.atmosphere_ocean_interface.fluxes
     ai_fluxes = coupled_model.interfaces.atmosphere_sea_ice_interface.fluxes
 
@@ -116,18 +116,19 @@ function compute_net_atmosphere_fluxes!(coupled_model::SpeedyCoupledModel)
 
     # TODO: Figure out how we are going to deal with upwelling radiation
     # TODO: regrid longwave rather than a mixed surface temperature 
-    regrid!(Qca, interior(Qco) .* (1 - ℵ) .+ ℵ .* interior(Qci))
-    regrid!(Mva, interior(Mvo) .* (1 - ℵ) .+ ℵ .* interior(Mvi))
-    regrid!(sst, interior(To) .* (1 - ℵ) .+ ℵ .* interior(Ti) .+ 273.15)
+    # TODO: This does not work on GPUs!!
+    regrid!(Qca, vec(interior(Qco) .* (1 .- ℵ) .+ ℵ .* interior(Qci)))
+    regrid!(Mva, vec(interior(Mvo) .* (1 .- ℵ) .+ ℵ .* interior(Mvi)))
+    regrid!(sst, vec(interior(To)  .* (1 .- ℵ) .+ ℵ .* interior(Ti) .+ 273.15))
 
     return nothing
 end
 
 # Simple case -> there is no sea ice!
 function compute_net_atmosphere_fluxes!(coupled_model::SpeedyNoSeaIceCoupledModel)
-    atmos = coupled_model.atmosphere
-    grid  = coupled_model.interfaces.exchanger.exchange_grid
-    regridder = coupled_model.interfaces.exchanger.atmosphere_exchanger.ocean_atmosphere_regridder
+    atmos     = coupled_model.atmosphere
+    grid      = coupled_model.interfaces.exchanger.exchange_grid
+    regrid!   = coupled_model.interfaces.exchanger.atmosphere_exchanger.atmosphere_ocean_regridder
     ao_fluxes = coupled_model.interfaces.atmosphere_ocean_interface.fluxes
     Qco = ao_fluxes.sensible_heat
     Mvo = ao_fluxes.water_vapor
@@ -139,10 +140,10 @@ function compute_net_atmosphere_fluxes!(coupled_model::SpeedyNoSeaIceCoupledMode
     To  = coupled_model.interfaces.atmosphere_ocean_interface.temperature
 
     # TODO: Figure out how we are going to deal with upwelling radiation
-    # TODO: regrid longwave rather than a mixed surface temperature 
-    regrid!(Qca, regridder, interior(Qco))
-    regrid!(Mva, regridder, interior(Mvo))
-    regrid!(sst, regridder, interior(To) .+ 273.15)
+    # TODO: This does not work on GPUs!!
+    regrid!(Qca, vec(interior(Qco)))
+    regrid!(Mva, vec(interior(Mvo)))
+    regrid!(sst, vec(interior(To) .+ 273.15))
 
     return nothing
 end
