@@ -72,8 +72,8 @@ end
 
 @inline function ocean_surface_fluxes(ocean::VerosOceanSimulation, ρₒ, cₒ)
     grid = surface_grid(ocean)
-    u = Field{Face, Center, Nothing}(grid)
-    v = Field{Center, Face, Nothing}(grid)
+    u = Field{Face,   Center, Nothing}(grid)
+    v = Field{Center, Face,   Nothing}(grid)
     T = Field{Center, Center, Nothing}(grid)
     S = Field{Center, Center, Nothing}(grid)
     Q = ρₒ * cₒ * T
