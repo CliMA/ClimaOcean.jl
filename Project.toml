@@ -1,14 +1,13 @@
 name = "ClimaOcean"
 uuid = "0376089a-ecfe-4b0e-a64f-9c555d74d754"
 license = "MIT"
-version = "0.8.7"
 authors = ["Climate Modeling Alliance and contributors"]
+version = "0.8.7"
 
 [deps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 CFTime = "179af706-886a-5703-950a-314cd64e0468"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
-CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 ClimaSeaIce = "6ba0ff68-24e6-4315-936c-2e99227c95a4"
 CubicSplines = "9c784101-8907-5a6d-9be6-98f00873c89b"
 DataDeps = "124859b0-ceae-595e-8997-d05f6a7a8dfe"
@@ -48,7 +47,6 @@ ClimaOceanSpeedyWeatherExt = ["SpeedyWeather", "XESMF"]
 Adapt = "4"
 CFTime = "0.1, 0.2"
 CUDA = "4, 5"
-CairoMakie = "0.14.0"
 ClimaSeaIce = "0.3.9"
 CopernicusMarine = "0.1.1"
 CubicSplines = "0.2"

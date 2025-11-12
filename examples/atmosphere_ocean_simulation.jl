@@ -159,9 +159,10 @@ Oceananigans.run!(earth)
 # ## Visualizing the results
 # We can visualize some of the results. Here we plot the surface speeds in the atmosphere, ocean, and sea-ice
 # as well as the 2m temperature in the atmosphere, the sea surface temperature, and the sensible and latent heat
-# fluxes at the atmosphere-ocean interface.
+# fluxes at the atmosphere-ocean interface. SpeedyWeather outputs are stored in a NetCDF file located in the `run_0001` folder,
+# while ocean and sea-ice outputs are stored in JLD2 files that can be read by Oceananigans.jl using the `FieldTimeSeries` type.
 
-SWO = Dataset("run_0005/output.nc")
+SWO = Dataset("run_0001/output.nc")
 
 Ta = reverse(SWO["temp"][:, :, 8, :], dims=2)
 ua = reverse(SWO["u"][:, :, 8, :],    dims=2)
