@@ -1,6 +1,6 @@
 # # Global coupled atmosphere and ocean--sea ice simulation
 #
-# This example configures a global ocean--sea ice simulation at 1ᵒ horizontal resolution with
+# This example configures a global ocean--sea ice simulation at 1.5ᵒ horizontal resolution with
 # realistic bathymetry and a few closures including the "Gent-McWilliams" `IsopycnalSkewSymmetricDiffusivity`.
 # The atmosphere is represented by a SpeecdyWeather model at T63 resolution (approximately 1.875ᵒ).
 # and initialized by temperature, salinity, sea ice concentration, and sea ice thickness
@@ -20,8 +20,8 @@ using Printf, Statistics, Dates
 # https://clima.github.io/ClimaOceanDocumentation/dev/literated/one_degree_simulation/
 # The first step is to create the grid with realistic bathymetry.
 
-Nx = 360 
-Ny = 180 
+Nx = 240 
+Ny = 120 
 Nz = 10  
 
 r_faces = ExponentialDiscretization(Nz, -2000, 0)
@@ -39,7 +39,7 @@ tracer_advection   = WENO(order=5)
 free_surface = SplitExplicitFreeSurface(grid; substeps=40)
 
 catke_closure   = ClimaOcean.OceanSimulations.default_ocean_closure()
-viscous_closure = Oceananigans.TurbulenceClosures.HorizontalScalarBiharmonicDiffusivity(ν=1e10)
+viscous_closure = Oceananigans.TurbulenceClosures.HorizontalScalarBiharmonicDiffusivity(ν=1e11)
 eddy_closure    = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
 closures        = (catke_closure, eddy_closure, viscous_closure, VerticalScalarDiffusivity(ν=1e-4))
 
@@ -67,9 +67,9 @@ Oceananigans.set!(sea_ice.model, h=Metadatum(:sea_ice_thickness, dataset=ECCO4Mo
 # The `atmosphere_simulation` function takes care of building an atmosphere model with appropriate 
 # hooks for ClimaOcean to compute intercomponent fluxes. We also set the output interval to 3 hours.
 
-spectral_grid = SpectralGrid(trunc=63, nlayers=8, Grid=FullClenshawGrid)
+spectral_grid = SpectralGrid(trunc=63, nlayers=4, Grid=FullClenshawGrid)
 atmosphere = atmosphere_simulation(spectral_grid; output=true)
-atmosphere.model.output.output_dt = Hour(3)
+atmosphere.model.output.output_dt = Hour(6)
 
 # ## The coupled model
 # Now we can build the coupled model. We need to specify the time step for the coupled model.
@@ -86,7 +86,7 @@ earth = Oceananigans.Simulation(earth_model; Δt, stop_time=30days)
 
 # ## Running the simulation
 # We can now run the simulation. 
-# We add callbacks to write outputs to disk every 3 hours.
+# We add callbacks to write outputs to disk every 6 hours.
 
 outputs = merge(ocean.model.velocities, ocean.model.tracers)
 sea_ice_fields = merge(sea_ice.model.velocities, sea_ice.model.dynamics.auxiliaries.fields, 
@@ -94,18 +94,18 @@ sea_ice_fields = merge(sea_ice.model.velocities, sea_ice.model.dynamics.auxiliar
 
 ocean.output_writers[:free_surf] = JLD2Writer(ocean.model, (; η=ocean.model.free_surface.η);
                                               overwrite_existing=true,
-                                              schedule=TimeInterval(3600 * 3),
+                                              schedule=TimeInterval(3600 * 6),
                                               filename="ocean_free_surface.jld2")
 
 ocean.output_writers[:surface] = JLD2Writer(ocean.model, outputs;
                                             overwrite_existing=true,
-                                            schedule=TimeInterval(3600 * 3),
+                                            schedule=TimeInterval(3600 * 6),
                                             filename="ocean_surface_fields.jld2",
                                             indices=(:, :, grid.Nz))
 
 sea_ice.output_writers[:fields] = JLD2Writer(sea_ice.model, sea_ice_fields;
                                              overwrite_existing=true,
-                                             schedule=TimeInterval(3600 * 3),
+                                             schedule=TimeInterval(3600 * 6),
                                              filename="sea_ice_fields.jld2")
 
 Qcao = earth.model.interfaces.atmosphere_ocean_interface.fluxes.sensible_heat
@@ -151,6 +151,8 @@ SIA = FieldTimeSeries("sea_ice_fields.jld2", "ℵ")
 Qcao = FieldTimeSeries("intercomponent_fluxes.jld2", "Qcao")
 Qvao = FieldTimeSeries("intercomponent_fluxes.jld2", "Qvao")
 
+Nt = min(length(sp[1,1,:]), length(Qcao))
+
 uotmp = Oceananigans.Field{Face, Center, Nothing}(SST.grid)
 votmp = Oceananigans.Field{Center, Face, Nothing}(SST.grid)
 
@@ -186,7 +188,7 @@ hm = heatmap!(ax1, son; colormap = :deep)
 ax3 = Axis(fig[1, 3], title = "Surface speed, sea-ice (m/s)")
 hm = heatmap!(ax3, ssn; colormap = :deep)
 
-record(fig, "surface_speeds.mp4", 1:length(sp[1, 1, :]), framerate = 15) do i
+record(fig, "surface_speeds.mp4", 1:Nt, framerate=8) do i
     iter[] = i
 end
 nothing #hide
@@ -194,9 +196,9 @@ nothing #hide
 # ![](surface_speeds.mp4)
 
 Tan = @lift Ta[:, :, $iter]
-Ton = @lift interior(SST[$iter * 2], :, :, 1)
-Qcn = @lift interior(Qcao[$iter * 2], :, :, 1)
-Qvn = @lift interior(Qvao[$iter * 2], :, :, 1)
+Ton = @lift interior(SST[$iter], :, :, 1)
+Qcn = @lift interior(Qcao[$iter], :, :, 1)
+Qvn = @lift interior(Qvao[$iter], :, :, 1)
 
 fig = Figure(size = (1200, 800))
 ax1 = Axis(fig[1, 1], title = "2m Temperature, atmosphere (K)")
@@ -208,7 +210,7 @@ hm3 = heatmap!(ax3, Qcn; colormap = :balance, colorrange = (-200, 200))
 ax4 = Axis(fig[2, 2], title = "Latent heat flux (W/m²)")
 hm4 = heatmap!(ax4, Qvn; colormap = :balance, colorrange = (-200, 200))
 
-record(fig, "surface_temperature_and_heat_flux.mp4", 1:length(sp[1, 1, :])) do i
+record(fig, "surface_temperature_and_heat_flux.mp4", 1:Nt, framerate=8) do i
     iter[] = i
 end
 nothing #hide
