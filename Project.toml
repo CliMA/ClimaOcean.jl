@@ -34,9 +34,7 @@ ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 
 [weakdeps]
 CopernicusMarine = "cd43e856-93a3-40c8-bc9e-6146cdce14fa"
-LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Reactant = "3c362404-f566-11ee-1572-e11a4b42c853"
-SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 XESMF = "2e0b0046-e7a1-486f-88de-807ee8ffabe5"
 SpeedyWeather = "9e226e20-d153-4fed-8a5b-493def4f21a9"
 

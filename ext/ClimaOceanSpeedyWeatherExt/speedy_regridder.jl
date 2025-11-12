@@ -1,6 +1,4 @@
 using Oceananigans.Grids: AbstractGrid
-using SparseArrays
-using LinearAlgebra
 using Oceananigans
 
 import XESMF: Regridder, xesmf_coordinates
