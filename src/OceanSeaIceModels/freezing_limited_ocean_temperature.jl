@@ -31,6 +31,9 @@ reference_density(::FreezingLimitedOceanTemperature) = 0
 heat_capacity(::FreezingLimitedOceanTemperature) = 0
 time_step!(::FreezingLimitedOceanTemperature, Δt) = nothing
 
+# No need to compute fluxes for this "sea ice model"
+compute_net_sea_ice_fluxes!(coupled_model, sea_ice::FreezingLimitedOceanTemperature) = nothing
+
 function compute_sea_ice_ocean_fluxes!(cm::FreezingLimitedCoupledModel)
     ocean = cm.ocean
     liquidus = cm.sea_ice.liquidus

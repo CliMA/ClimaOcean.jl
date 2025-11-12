@@ -29,8 +29,8 @@ function get_radiative_forcing(FT::MultipleForcings)
     return nothing
 end
 
-function compute_net_ocean_fluxes!(coupled_model)
-    ocean = coupled_model.ocean
+# A generic ocean flux assembler
+function compute_net_ocean_fluxes!(coupled_model, ocean)
     sea_ice = coupled_model.sea_ice
     grid = ocean.model.grid
     arch = architecture(grid)
@@ -189,13 +189,7 @@ end
     end
 end
 
-function compute_net_sea_ice_fluxes!(coupled_model)
-    sea_ice = coupled_model.sea_ice
-
-    if !(sea_ice isa SeaIceSimulation)
-        return nothing
-    end
-
+function compute_net_sea_ice_fluxes!(coupled_model, sea_ice::SeaIceSimulation)
     ocean = coupled_model.ocean
     grid  = ocean.model.grid
     arch  = architecture(grid)

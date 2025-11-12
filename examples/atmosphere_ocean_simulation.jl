@@ -8,8 +8,9 @@
 #
 # For this example, we need Oceananigans.HydrostaticFreeSurfaceModel (the ocean), ClimaSeaIce.SeaIceModel (the sea ice) and 
 # SpeedyWeather.PrimitiveWetModel (the atmosphere), coupled and orchestrated by ClimaOcean.OceanSeaIceModel (the coupled system).
+# The XESMF.jl package is used to regrid fields between the atmosphere and ocean--sea ice components.
 
-using Oceananigans, SpeedyWeather, ClimaOcean
+using Oceananigans, SpeedyWeather, XESMF, ClimaOcean
 using NCDatasets, CairoMakie
 using Oceananigans.Units
 using Printf, Statistics, Dates
