@@ -39,6 +39,9 @@ function atmosphere_exchanger(atmosphere::SpeedySimulation, exchange_grid, excha
     return exchanger
 end
 
+@inline (regrid!::XESMF.Regridder)(field::Oceananigans.Field, data::AbstractArray) = regrid!(vec(interior(field)), data)
+@inline (regrid!::XESMF.Regridder)(data::AbstractArray, field::Oceananigans.Field) = regrid!(data, vec(interior(field)))
+
 # Regrid the atmospheric state on the exchange grid
 function interpolate_atmosphere_state!(interfaces, atmos::SpeedySimulation, coupled_model)
     atmosphere_exchanger = interfaces.exchanger.atmosphere_exchanger
@@ -53,24 +56,24 @@ function interpolate_atmosphere_state!(interfaces, atmos::SpeedySimulation, coup
     qa  = RingGrids.field_view(atmos.diagnostic_variables.grid.humid_grid, :, surface_layer).data
     pa  = exp.(atmos.diagnostic_variables.grid.pres_grid.data)
     Qsa = atmos.diagnostic_variables.physics.surface_shortwave_down.data
-    Qla = atmos.diagnostic_variables.physics.surface_longwave_down.data
+    Qℓa = atmos.diagnostic_variables.physics.surface_longwave_down.data
     Mpa = atmos.diagnostic_variables.physics.total_precipitation_rate.data
 
-    regrid!(vec(interior(exchange_state.u)),  ua)
-    regrid!(vec(interior(exchange_state.v)),  va)
-    regrid!(vec(interior(exchange_state.T)),  Ta)
-    regrid!(vec(interior(exchange_state.q)),  qa)
-    regrid!(vec(interior(exchange_state.p)),  pa)
-    regrid!(vec(interior(exchange_state.Qs)), Qsa)
-    regrid!(vec(interior(exchange_state.Qℓ)), Qla)
-    regrid!(vec(interior(exchange_state.Mp)), Mpa)
+    regrid!(exchange_state.u,  ua)
+    regrid!(exchange_state.v,  va)
+    regrid!(exchange_state.T,  Ta)
+    regrid!(exchange_state.q,  qa)
+    regrid!(exchange_state.p,  pa)
+    regrid!(exchange_state.Qs, Qsa)
+    regrid!(exchange_state.Qℓ, Qℓa)
+    regrid!(exchange_state.Mp, Mpa)
 
     arch = architecture(exchange_grid)
 
     u = exchange_state.u
     v = exchange_state.v
 
-    launch!(arch, exchange_grid, :xy, _rotate_winds!, u, exchange_grid, v)
+    launch!(arch, exchange_grid, :xy, _rotate_winds!, u, v, exchange_grid)
 
     fill_halo_regions!((u, v))
     fill_halo_regions!(exchange_state.T)
@@ -83,7 +86,7 @@ function interpolate_atmosphere_state!(interfaces, atmos::SpeedySimulation, coup
     return nothing
 end
 
-@kernel function _rotate_winds!(u, grid, v)
+@kernel function _rotate_winds!(u, v, grid)
     i, j = @index(Global, NTuple)
     kᴺ = size(grid, 3) 
     uₑ, vₑ = intrinsic_vector(i, j, kᴺ, grid, u, v)
@@ -95,7 +98,6 @@ end
 # the this function works also for sea_ice=nothing and on GPUs without
 # needing to allocate memory.
 function compute_net_atmosphere_fluxes!(coupled_model, atmos::SpeedySimulation)
-    grid      = coupled_model.interfaces.exchanger.exchange_grid
     regrid!   = coupled_model.interfaces.exchanger.atmosphere_exchanger.atmosphere_ocean_regridder
     ao_fluxes = coupled_model.interfaces.atmosphere_ocean_interface.fluxes
     ai_fluxes = coupled_model.interfaces.atmosphere_sea_ice_interface.fluxes
@@ -125,7 +127,6 @@ end
 
 # Simple case -> there is no sea ice!
 function compute_net_atmosphere_fluxes!(coupled_model::SpeedyNoSeaIceCoupledModel, atmos::SpeedySimulation)
-    grid      = coupled_model.interfaces.exchanger.exchange_grid
     regrid!   = coupled_model.interfaces.exchanger.atmosphere_exchanger.atmosphere_ocean_regridder
     ao_fluxes = coupled_model.interfaces.atmosphere_ocean_interface.fluxes
     Qco = ao_fluxes.sensible_heat
