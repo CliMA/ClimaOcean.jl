@@ -9,7 +9,7 @@
 # For this example, we need Oceananigans.HydrostaticFreeSurfaceModel (the ocean), ClimaSeaIce.SeaIceModel (the sea ice) and 
 # SpeedyWeather.PrimitiveWetModel (the atmosphere), coupled and orchestrated by ClimaOcean.OceanSeaIceModel (the coupled system).
 
-using Oceananigans, ClimaSeaIce, SpeedyWeather, ClimaOcean
+using Oceananigans, SpeedyWeather, ClimaOcean
 using NCDatasets, CairoMakie
 using Oceananigans.Units
 using Printf, Statistics, Dates
@@ -56,8 +56,7 @@ Oceananigans.set!(ocean.model, T=Metadatum(:temperature, dataset=ECCO4Monthly())
 
 # The sea-ice simulation, complete with initial conditions for sea-ice thickness and concentration from ECCO.
 
-dynamics = ClimaOcean.SeaIceSimulations.sea_ice_dynamics(grid, ocean; solver=ClimaSeaIce.SeaIceDynamics.SplitExplicitSolver(100))
-sea_ice = sea_ice_simulation(grid, ocean; dynamics, advection=WENO(order=7))
+sea_ice = sea_ice_simulation(grid, ocean; advection=WENO(order=7))
 
 Oceananigans.set!(sea_ice.model, h=Metadatum(:sea_ice_thickness, dataset=ECCO4Monthly()), 
                                  ℵ=Metadatum(:sea_ice_concentration, dataset=ECCO4Monthly()))
