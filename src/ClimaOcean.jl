@@ -48,6 +48,7 @@ export
 using Oceananigans
 using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
 using DataDeps
+using XESMF
 
 using Oceananigans.OutputReaders: GPUAdaptedFieldTimeSeries, FieldTimeSeries
 using Oceananigans.Grids: node
