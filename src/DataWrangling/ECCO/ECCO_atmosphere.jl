@@ -7,15 +7,18 @@ using ClimaOcean.OceanSeaIceModels: TwoBandDownwellingRadiation
                               dataset = ECCO4Montly(),
                               start_date = first_date(dataset, :temperature),
                               end_date = last_date(dataset, :temperature),
-                              backend = DatasetBackend(10),
+                              time_indices_in_memory = 10,
                               time_indexing = Cyclical(),
-                              surface_layer_height = 10,  # meters
-                              include_rivers_and_icebergs = false,
+                              surface_layer_height = 2,  # meters
                               other_kw...)
 
-Return a [`PrescribedAtmosphere`](@ref) representing JRA55 reanalysis data.
-The atmospheric data will be held in `JRA55FieldTimeSeries` objects containing.
-For a detailed description of the keyword arguments, see the [`JRA55FieldTimeSeries`](@ref) constructor.
+Return a [`PrescribedAtmosphere`](@ref) representing ECCO state estimate data.
+The atmospheric data will be held in `FieldTimeSeries` objects containing
+- velocities: u, v
+- air temperature and humidity: T, q
+- surface pressure: p
+- freshwater flux: rain
+- downwelling radiation: Qs, Ql
 """
 function ECCOPrescribedAtmosphere(architecture = CPU(), FT = Float32;
                                   dataset = ECCO4Monthly(),
