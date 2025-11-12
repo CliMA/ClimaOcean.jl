@@ -170,7 +170,7 @@ end
         Qio  = sea_ice_ocean_fluxes.interface_heat[i, j, 1]
 
         Jᵀao = ΣQao  * ρₒ⁻¹ / cₒ
-        Jˢao = - Sₒ * ΣFao # salinity flux is the opposite of a water vapor flux
+        Jˢao = - Sₒ * ΣFao # salinity flux > 0 extracts salinity from the ocean --- the opposite of a water vapor flux
         Jᵀio = Qio * ρₒ⁻¹ / cₒ
         Jˢio = sea_ice_ocean_fluxes.salt[i, j, 1] * ℵᵢ
 
