@@ -8,6 +8,7 @@ DocumenterCitations = "daee34ce-89f3-4625-b898-19384cb65244"
 Literate = "98b081ad-f1c9-55d3-8b20-4c87d4299306"
 Oceananigans = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
 SeawaterPolynomials = "d496a93d-167e-4197-9f49-d3af4ff8fe40"
+PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
 
 [compat]
 Documenter = "1"

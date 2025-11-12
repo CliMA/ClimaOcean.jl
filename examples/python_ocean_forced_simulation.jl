@@ -8,9 +8,6 @@
 # For this example, we need Oceananigans, ClimaOcean, Dates, CUDA, and
 # CairoMakie to visualize the simulation.
 
-using Pkg
-Pkg.add("PythonCall")
-
 using ClimaOcean
 using PythonCall
 using Oceananigans
@@ -25,6 +22,7 @@ using Printf
 # and that every output is removed to avoid conflicts.
 
 VerosModule = Base.get_extension(ClimaOcean, :ClimaOceanPythonCallExt)
+
 VerosModule.install_veros()
 VerosModule.remove_outputs(:global_4deg)
 
@@ -49,7 +47,7 @@ atmos = JRA55PrescribedAtmosphere(; backend = JRA55NetCDFBackend(10))
 
 radiation = Radiation()
 coupled_model = OceanSeaIceModel(ocean, nothing; atmosphere=atmos, radiation)
-simulation = Simulation(coupled_model; Δt = 1800, stop_iteration = 100000)
+simulation = Simulation(coupled_model; Δt = 1800, stop_time = 60days)
 
 # We set up a progress callback that will print the current time, iteration, and maximum velocities
 # at every 5 iterations. It also collects the surface velocity fields and the net fluxes
@@ -120,7 +118,7 @@ heatmap!(ax2, λ, φ, txi, colormap = :bwr, colorrange = (-0.2, 0.2))
 heatmap!(ax3, λ, φ, tyi, colormap = :bwr, colorrange = (-0.2, 0.2))
 
 CairoMakie.record(fig, "veros_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
-    n[] = nn
+    iter[] = nn
 end
 nothing #hide
 
