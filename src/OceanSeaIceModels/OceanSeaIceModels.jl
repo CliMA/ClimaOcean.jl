@@ -39,6 +39,7 @@ function heat_capacity end
 const default_gravitational_acceleration = Oceananigans.defaults.gravitational_acceleration
 const default_freshwater_density = 1000 # kg m⁻³
 
+# Our default ocean and sea ice models
 const SeaIceSimulation = Simulation{<:SeaIceModel}
 const OceananigansSimulation = Simulation{<:HydrostaticFreeSurfaceModel}
 
@@ -56,7 +57,11 @@ sea_ice_concentration(sea_ice::SeaIceSimulation) = sea_ice.model.ice_concentrati
 
 # Atmosphere interface
 interpolate_atmosphere_state!(interfaces, atmosphere, coupled_model) = nothing
-compute_net_atmosphere_fluxes!(coupled_model) = nothing
+
+# Compute net fluxes:
+compute_net_sea_ice_fluxes!(coupled_model,    ::Nothing) = nothing
+compute_net_ocean_fluxes!(coupled_model,      ::Nothing) = nothing
+compute_net_atmosphere_fluxes!(coupled_model, ::Nothing) = nothing
 
 # TODO: import this last
 include("PrescribedAtmospheres.jl")
@@ -73,7 +78,6 @@ using .InterfaceComputations
 import .InterfaceComputations:
     compute_atmosphere_ocean_fluxes!,
     compute_atmosphere_sea_ice_fluxes!,
-    compute_net_ocean_fluxes!,
     compute_sea_ice_ocean_fluxes!
 
 include("ocean_sea_ice_model.jl")
@@ -84,9 +88,6 @@ include("time_step_ocean_sea_ice_model.jl")
 const NoAtmosphereModel = OceanSeaIceModel{<:Any, Nothing}
 compute_atmosphere_ocean_fluxes!(::NoAtmosphereModel) = nothing
 compute_atmosphere_sea_ice_fluxes!(::NoAtmosphereModel) = nothing
-
-const PrescribedAtmosphereModel = OceanSeaIceModel{<:Any, <:PrescribedAtmosphere}
-compute_net_atmosphere_fluxes!(::PrescribedAtmosphereModel) = nothing
 
 # "No sea ice" implementation
 const NoSeaIceModel = Union{OceanSeaIceModel{Nothing}, FreezingLimitedCoupledModel}
@@ -99,6 +100,5 @@ const OnlyOceanModel = Union{OceanSeaIceModel{Nothing, Nothing},
 
 compute_atmosphere_sea_ice_fluxes!(::OnlyOceanModel) = nothing
 compute_sea_ice_ocean_fluxes!(::OnlyOceanModel) = nothing
-compute_net_ocean_fluxes!(::OnlyOceanModel) = nothing
 
 end # module

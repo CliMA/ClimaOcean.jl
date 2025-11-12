@@ -23,6 +23,11 @@ using ..OceanSeaIceModels: default_gravitational_acceleration,
 
 import ClimaOcean: stateindex
 
+import ..OceanSeaIceModels:
+    compute_net_atmosphere_fluxes!,
+    compute_net_sea_ice_fluxes!,
+    compute_net_ocean_fluxes!
+
 #####
 ##### Utilities
 #####

@@ -34,7 +34,8 @@ end
 # No need to do this for an Oceananigans Simulation
 fill_net_fluxes!(ocean, net_ocean_fluxes) = nothing
 
-function compute_net_ocean_fluxes!(coupled_model)
+# A generic ocean flux assembler
+function compute_net_ocean_fluxes!(coupled_model, ocean)
     sea_ice = coupled_model.sea_ice
     grid = coupled_model.interfaces.exchanger.exchange_grid
     arch = architecture(grid)
@@ -60,7 +61,7 @@ function compute_net_ocean_fluxes!(coupled_model)
     freshwater_flux = atmosphere_fields.Mp.data
 
     ice_concentration = sea_ice_concentration(sea_ice)
-    ocean_state = get_ocean_state(coupled_model.ocean, coupled_model.interfaces.exchanger)
+    ocean_state = get_ocean_state(ocean, coupled_model.interfaces.exchanger)
     ocean_salinity = ocean_state.S
     atmos_ocean_properties = coupled_model.interfaces.atmosphere_ocean_interface.properties
     ocean_properties = coupled_model.interfaces.ocean_properties
@@ -124,8 +125,8 @@ end
         Qs  = downwelling_radiation.Qs[i, j, 1] # Downwelling shortwave radiation
         Qℓ  = downwelling_radiation.Qℓ[i, j, 1] # Downwelling longwave radiation
         Qc  = atmos_ocean_fluxes.sensible_heat[i, j, 1] # sensible or "conductive" heat flux
-        Qv  = atmos_ocean_fluxes.latent_heat[i, j, 1]   # latent heat flux
-        Mv  = atmos_ocean_fluxes.water_vapor[i, j, 1]   # mass flux of water vapor
+        Qv  = atmos_ocean_fluxes.latent_heat[i, j, 1] # latent heat flux
+        Mv  = atmos_ocean_fluxes.water_vapor[i, j, 1] # mass flux of water vapor
     end
 
     # Compute radiation fluxes (radiation is multiplied by the fraction of ocean, 1 - sea ice concentration)
@@ -177,7 +178,7 @@ end
         Qio  = sea_ice_ocean_fluxes.interface_heat[i, j, 1]
 
         Jᵀao = ΣQao  * ρₒ⁻¹ / cₒ
-        Jˢao = - Sₒ * ΣFao
+        Jˢao = - Sₒ * ΣFao # salinity flux is the opposite of a water vapor flux
         Jᵀio = Qio * ρₒ⁻¹ / cₒ
         Jˢio = sea_ice_ocean_fluxes.salt[i, j, 1] * ℵᵢ
 
@@ -196,13 +197,7 @@ end
     end
 end
 
-function compute_net_sea_ice_fluxes!(coupled_model)
-    sea_ice = coupled_model.sea_ice
-
-    if !(sea_ice isa SeaIceSimulation)
-        return nothing
-    end
-
+function compute_net_sea_ice_fluxes!(coupled_model, sea_ice::SeaIceSimulation)
     ocean = coupled_model.ocean
     grid  = ocean.model.grid
     arch  = architecture(grid)

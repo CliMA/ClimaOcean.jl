@@ -39,7 +39,7 @@ function state_exchanger(ocean::VerosOceanSimulation, atmosphere)
     exchange_ocean_state = ExchangeOceanState(exchange_grid)
     exchange_atmosphere_state = ExchangeAtmosphereState(exchange_grid)
 
-    atmos_exchanger = atmosphere_exchanger(atmosphere, exchange_grid)
+    atmos_exchanger = atmosphere_exchanger(atmosphere, exchange_grid, exchange_atmosphere_state)
 
     return VerosStateExchanger(exchange_grid,
                                exchange_ocean_state,

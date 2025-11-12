@@ -8,8 +8,8 @@
 # For this example, we need Oceananigans, ClimaOcean, Dates, CUDA, and
 # CairoMakie to visualize the simulation.
 
+using PythonCall, CondaPkg, XESMF, SpeedyWeather
 using ClimaOcean
-using PythonCall
 using Oceananigans
 using CairoMakie
 using Printf
@@ -32,22 +32,23 @@ VerosModule.remove_outputs(:global_4deg)
 
 ocean = VerosModule.VerosOceanSimulation("global_4deg", :GlobalFourDegreeSetup)
 
-set!(ocean, "dt_tracer", 1800.0; path=:settings)
-set!(ocean, "dt_mom",    1800.0; path=:settings)
+set!(ocean, "dt_tracer", 1200.0; path=:settings)
+set!(ocean, "dt_mom",    1200.0; path=:settings)
 
 # We force the 4-degree setup with a prescribed atmosphere based on the JRA-55 reanalysis data.
 # This includes 2-meter wind velocity, temperature, humidity, downwelling longwave and shortwave
 # radiation, as well as freshwater fluxes.
 
-atmos = JRA55PrescribedAtmosphere(; backend = JRA55NetCDFBackend(10))
-
+spectral_grid = SpectralGrid(trunc=63, nlayers=8, Grid=FullClenshawGrid)
+atmosphere = atmosphere_simulation(spectral_grid; output=true)
+atmosphere.model.output.output_dt = Hour(3)
 
 # The coupled ocean--atmosphere model.
 # We use the default radiation model and we do not couple an ice model for simplicity.
 
-radiation = Radiation()
+radiation = Radiation(ocean_emissivity=0.0, sea_ice_emissivity=0.0)
 coupled_model = OceanSeaIceModel(ocean, nothing; atmosphere=atmos, radiation)
-simulation = Simulation(coupled_model; Δt = 1800, stop_time = 60days)
+simulation = Simulation(coupled_model; Δt = 1200, stop_time = 60days)
 
 # We set up a progress callback that will print the current time, iteration, and maximum velocities
 # at every 5 iterations. It also collects the surface velocity fields and the net fluxes
@@ -62,7 +63,7 @@ ty = []
 us = coupled_model.interfaces.exchanger.exchange_ocean_state.u
 vs = coupled_model.interfaces.exchanger.exchange_ocean_state.v
 
-stmp = Field(sqrt(us^2 + vs^2))
+stmp = Oceananigans.Field(sqrt(us^2 + vs^2))
 
 function progress(sim)
     ocean   = sim.model.ocean
@@ -92,7 +93,7 @@ add_callback!(simulation, progress, IterationInterval(5))
 
 # Let's run the simulation!
 
-run!(simulation)
+Oceananigans.run!(simulation)
 
 # We can now visualize the surface speed and wind stress at the ocean surface
 # over the course of the simulation.
@@ -117,7 +118,7 @@ heatmap!(ax1, λ, φ, si,  colormap = :ice, colorrange = (0, 0.15))
 heatmap!(ax2, λ, φ, txi, colormap = :bwr, colorrange = (-0.2, 0.2))
 heatmap!(ax3, λ, φ, tyi, colormap = :bwr, colorrange = (-0.2, 0.2))
 
-CairoMakie.record(fig, "veros_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
+CairoMakie.record(fig, "veros_ocean_surface_2.mp4", 1:Nt, framerate = 8) do nn
     iter[] = nn
 end
 nothing #hide

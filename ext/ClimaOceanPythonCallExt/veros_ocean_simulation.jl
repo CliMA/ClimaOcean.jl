@@ -18,7 +18,8 @@ Install the Veros ocean model Marine CLI using CondaPkg.
 Returns a NamedTuple containing package information if successful.
 """
 function install_veros()
-    CondaPkg.add_pip("veros")
+    CondaPkg.add("numpy", version="==2.3.1")
+    CondaPkg.add_pip("veros", version="==1.6.0")
     cli = CondaPkg.which("veros")
     @info "... the veros CLI has been installed at $(cli)."
     return cli

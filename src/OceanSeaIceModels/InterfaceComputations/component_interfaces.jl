@@ -93,12 +93,12 @@ function state_exchanger(ocean::Simulation, atmosphere)
     # TODO: generalize this
     exchange_grid = ocean.model.grid
     exchange_atmosphere_state = ExchangeAtmosphereState(exchange_grid)
-    exchanger = atmosphere_exchanger(atmosphere, exchange_grid)
+    exchanger = atmosphere_exchanger(atmosphere, exchange_grid, exchange_atmosphere_state)
 
     return StateExchanger(ocean.model.grid, exchange_atmosphere_state, exchanger)
 end
 
-function atmosphere_exchanger(atmosphere::PrescribedAtmosphere, exchange_grid)
+function atmosphere_exchanger(atmosphere::PrescribedAtmosphere, exchange_grid, exchange_atmosphere_state)
     atmos_grid = atmosphere.grid
     arch = architecture(exchange_grid)
     Nx, Ny, Nz = size(exchange_grid)
@@ -118,7 +118,7 @@ end
 initialize!(exchanger::StateExchanger, ::Nothing) = nothing
 initialize!(exchanger::StateExchanger, atmosphere) = initialize!(exchanger.atmosphere_exchanger, exchanger.exchange_grid, atmosphere)
 
-function initialize!(frac_indices, exchange_grid::AbstractGrid, atmosphere)
+function initialize!(frac_indices, exchange_grid::AbstractGrid, atmosphere::PrescribedAtmosphere)
     atmos_grid = atmosphere.grid
     arch = architecture(exchange_grid)
     kernel_parameters = interface_kernel_parameters(exchange_grid)
