@@ -1,6 +1,6 @@
 using ClimaOcean
 using Oceananigans
-using PythonCall
+using CopernicusMarine
 
 arch = CPU()
 Nx = 20 * 12
