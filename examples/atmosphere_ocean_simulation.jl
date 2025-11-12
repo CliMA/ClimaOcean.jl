@@ -85,35 +85,8 @@ earth_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 earth = Oceananigans.Simulation(earth_model; Δt, stop_time=60days)
 
 # ## Running the simulation
-# We can now run the simulation. We add a callback to monitor the progress of the simulation
-# and write outputs to disk every 3 hours.
-
-wall_time = Ref(time_ns())
-
-function progress(sim)
-    sea_ice = sim.model.sea_ice
-    ocean   = sim.model.ocean
-    hmax  = maximum(sea_ice.model.ice_thickness)
-    ℵmax  = maximum(sea_ice.model.ice_concentration)
-    uimax = maximum(abs, sea_ice.model.velocities.u)
-    vimax = maximum(abs, sea_ice.model.velocities.v)
-    uomax = maximum(abs, ocean.model.velocities.u)
-    vomax = maximum(abs, ocean.model.velocities.v)
-
-    step_time = 1e-9 * (time_ns() - wall_time[])
-
-    msg1 = @sprintf("time: %s, iteration: %d, Δt: %s, ", prettytime(sim), iteration(sim), prettytime(sim.Δt))
-    msg2 = @sprintf("max(h): %.2e m, max(ℵ): %.2e ", hmax, ℵmax)
-    msg3 = @sprintf("max uᵢ: (%.2f, %.2f) m s⁻¹, ", uimax, vimax)
-    msg4 = @sprintf("max uₒ: (%.2f, %.2f) m s⁻¹, ", uomax, vomax)
-    msg5 = @sprintf("wall time: %s \n", prettytime(step_time))
-
-    @info msg1 * msg2 * msg3 * msg4 * msg5
-
-    wall_time[] = time_ns()
-
-     return nothing
-end
+# We can now run the simulation. 
+# We add callbacks to write outputs to disk every 3 hours.
 
 outputs = merge(ocean.model.velocities, ocean.model.tracers)
 sea_ice_fields = merge(sea_ice.model.velocities, sea_ice.model.dynamics.auxiliaries.fields, 
@@ -151,8 +124,6 @@ earth.output_writers[:fluxes] = JLD2Writer(earth.model.ocean.model, fluxes;
                                            overwrite_existing=true,
                                            schedule=TimeInterval(3600 * 3),
                                            filename="intercomponent_fluxes.jld2")
-
-add_callback!(earth, progress, IterationInterval(100))
 
 Oceananigans.run!(earth)
 

@@ -1,4 +1,4 @@
-using SpeedyWeather
+using SpeedyWeather, XESMF
 using ClimaOcean
 using Oceananigans
 using Dates
@@ -13,13 +13,11 @@ oceananigans_grid = LatitudeLongitudeGrid(Oceananigans.CPU(); size=(200, 100, 1)
 ocean = ClimaOcean.OceanSimulations.ocean_simulation(oceananigans_grid; momentum_advection=nothing, tracer_advection=nothing, closure=nothing)
 atmos = ClimaOcean.atmosphere_simulation(spectral_grid)
 
-# We initialize the atmosphere simulation with some speed and some temperature
-SpeedyWeather.initialize!(atmos)
+radiation   = Radiation(ocean_emissivity=0.0, sea_ice_emissivity=0.0)
+earth_model = OceanSeaIceModel(ocean; atmosphere=atmos, radiation)
 
-earth = OceanSeaIceModel(ocean; atmosphere=atmos)
-fluxes = earth.interfaces.atmosphere_ocean_interface.fluxes
+Qca = atmos.prognostic_variables.ocean.sensible_heat_flux.data
+Mva = atmos.prognostic_variables.ocean.surface_humidity_flux.data
 
-Oceananigans.set!(fluxes.sensible_heat, (x, y) -> exp(- y^2 / 10^2))
-
-# Regridding to speedy
-ClimaOcean.OceanSeaIceModel.InterfaceComputations.compute_net_atmosphere_fluxes!(earth)
+@test !(all(Qca .== 0.0))
+@test !(all(Mva .== 0.0))
