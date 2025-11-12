@@ -116,5 +116,5 @@ if test_group == :reactant || test_group == :all
 end
 
 if test_group == :speedy_weather || test_group == :all
-    include("test_speedy_weather.jl")
+    include("test_speedy_coupling.jl")
 end
