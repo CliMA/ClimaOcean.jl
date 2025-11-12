@@ -82,7 +82,7 @@ atmosphere.model.output.output_dt = Hour(3)
 
 radiation = Radiation(ocean_emissivity=0.0, sea_ice_emissivity=0.0)
 earth_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-earth = Oceananigans.Simulation(earth_model; Δt, stop_time=60days)
+earth = Oceananigans.Simulation(earth_model; Δt, stop_time=30days)
 
 # ## Running the simulation
 # We can now run the simulation. 
