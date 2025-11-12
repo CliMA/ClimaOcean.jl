@@ -1,6 +1,7 @@
 module DataWrangling
 
 export Metadata, Metadatum, ECCOMetadatum, EN4Metadatum, all_dates, first_date, last_date
+export metadata_time_step, metadata_epoch
 export LinearlyTaperedPolarMask
 export DatasetRestoring
 
@@ -147,13 +148,14 @@ Arguments
 
 !!! info "Credential setup requirements for ECCO datasets"
 
-    For ECCO datasets, the data download requires a username and password to be provided in
-    the `ECCO_USERNAME` and `ECCO_PASSWORD` environment variables respectively. This can be
+    For ECCO datasets, the data download requires "WebDAV/Programmatic API" credentials from
+    NASA's Earthdrive. The WebDAV/Programmatic API username and password need to be provided in
+    the `ECCO_USERNAME` and `ECCO_WEBDAV_PASSWORD` environment variables respectively. This can be
     done by exporting the environment variables in the shell before running the script, or by
     launching julia with
 
     ```
-    ECCO_USERNAME=myusername ECCO_PASSWORD=mypassword julia
+    ECCO_USERNAME=myusername ECCO_WEBDAV_PASSWORD=mypassword julia
     ```
 
     or by invoking
@@ -161,10 +163,12 @@ Arguments
     ```julia
     julia> ENV["ECCO_USERNAME"] = "myusername"
 
-    julia> ENV["ECCO_PASSWORD"] = "mypassword"
+    julia> ENV["ECCO_WEBDAV_PASSWORD"] = "mypassword"
     ```
 
-    within julia.
+    within julia. More detailed instructions for obtaining WebDAV credentials are at:
+
+        https://github.com/CliMA/ClimaOcean.jl/blob/main/src/DataWrangling/ECCO/README.md
 """
 function download_dataset end # methods specific to datasets are added within each dataset module
 function inpainted_metadata_path end
@@ -180,6 +184,8 @@ function longitude_interfaces end
 function latitude_interfaces end
 function reversed_vertical_axis end
 function native_grid end
+function binary_data_grid end
+function binary_data_size end
 
 default_mask_value(dataset) = NaN
 
@@ -189,6 +195,9 @@ include("metadata_field.jl")
 include("metadata_field_time_series.jl")
 include("inpainting.jl")
 include("restoring.jl")
+
+function metadata_time_step end
+function metadata_epoch end
 
 # Only temperature and salinity need a thorough inpainting because of stability,
 # other variables can do with only a couple of passes. Sea ice variables

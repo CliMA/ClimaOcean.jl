@@ -152,10 +152,10 @@ function PrescribedOcean(timeseries;
     Jᵀ = Field{Center, Center, Nothing}(grid)
     Jˢ = Field{Center, Center, Nothing}(grid)
 
-    u = XFaceField(grid,  boundary_conditions=FieldBoundaryConditions(grid, (Face,   Center, Center), top = FluxBoundaryCondition(τx)))
-    v = YFaceField(grid,  boundary_conditions=FieldBoundaryConditions(grid, (Center, Face,   Center), top = FluxBoundaryCondition(τy)))
-    T = CenterField(grid, boundary_conditions=FieldBoundaryConditions(grid, (Center, Center, Center), top = FluxBoundaryCondition(Jᵀ)))
-    S = CenterField(grid, boundary_conditions=FieldBoundaryConditions(grid, (Center, Center, Center), top = FluxBoundaryCondition(Jˢ)))
+    u = XFaceField(grid,  boundary_conditions=FieldBoundaryConditions(grid, (Face(),   Center(), Center()), top = FluxBoundaryCondition(τx)))
+    v = YFaceField(grid,  boundary_conditions=FieldBoundaryConditions(grid, (Center(), Face(),   Center()), top = FluxBoundaryCondition(τy)))
+    T = CenterField(grid, boundary_conditions=FieldBoundaryConditions(grid, (Center(), Center(), Center()), top = FluxBoundaryCondition(Jᵀ)))
+    S = CenterField(grid, boundary_conditions=FieldBoundaryConditions(grid, (Center(), Center(), Center()), top = FluxBoundaryCondition(Jˢ)))
 
     PrescribedOcean(architecture(grid), grid, clock, (; u, v, w=ZeroField()), (; T, S), timeseries)
 end

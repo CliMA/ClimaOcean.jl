@@ -73,7 +73,7 @@ end
     ρₛ = convert(CT, ρₛ)
     phase = formulation.phase
     p★ = Thermodynamics.saturation_vapor_pressure(ℂₐ, Tₛ, phase)
-    q★ = Thermodynamics.q_vap_saturation_from_density(ℂₐ, Tₛ, ρₛ, p★)
+    q★ = Thermodynamics.q_vap_from_p_vap(ℂₐ, Tₛ, ρₛ, p★)
 
     # Compute saturation specific humidity according to Raoult's law
     χ_H₂O = compute_water_mole_fraction(formulation.water_mole_fraction, Sₛ)
@@ -103,7 +103,7 @@ function WaterMoleFraction(FT=Oceananigans.defaults.FloatType)
         magnesium = SalinityConstituent{FT}(24.31, 0.05),
     )
 
-    return SeawaterComposition(water_molar_mass, salinity_constituents)
+    return WaterMoleFraction(water_molar_mass, salinity_constituents)
 end
 
 @inline function compute_water_mole_fraction(wmf::WaterMoleFraction, S)

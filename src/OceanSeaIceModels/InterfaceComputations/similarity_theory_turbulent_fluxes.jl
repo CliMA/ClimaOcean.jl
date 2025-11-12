@@ -1,20 +1,14 @@
 using Oceananigans.Utils: prettysummary
 using Oceananigans.Grids: AbstractGrid
-using Oceananigans.BuoyancyFormulations: g_Earth
 
 using Adapt
-using Thermodynamics: Liquid
-using SurfaceFluxes.Parameters: SurfaceFluxesParameters
-using SurfaceFluxes.UniversalFunctions: BusingerParams, BusingerType
-
 using Printf
-using Thermodynamics: PhasePartition
+using Thermodynamics: Liquid, PhasePartition
 using KernelAbstractions.Extras.LoopInfo: @unroll
-
 using Statistics: norm
 
 import Thermodynamics as AtmosphericThermodynamics
-import Thermodynamics.Parameters: molmass_ratio
+import Thermodynamics.Parameters: Rv_over_Rd
 
 #####
 ##### Bulk turbulent fluxes based on similarity theory
@@ -211,7 +205,7 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
 
     # Transfer coefficients at height `h`
     ϰ = flux_formulation.von_karman_constant
-    L★ = ifelse(b★ == 0, Inf, - u★^2 / (ϰ * b★))
+    L★ = ifelse(b★ == 0, Inf, u★^2 / (ϰ * b★))
     form = flux_formulation.similarity_form
 
     χu = ϰ / similarity_profile(form, ψu, Δh, ℓu₀, L★)
@@ -253,13 +247,13 @@ Note that the Monin--Obukhov characteristic length scale is defined
 in terms of ``b_★`` and additionally the Von Karman constant ``ϰ``,
 
 ```math
-L_★ = - u_★² / ϰ b_★ .
+L_★ = u_★² / ϰ b_★ .
 ```
 """
 @inline function buoyancy_scale(θ★, q★, ℂ, 𝒬, g)
     𝒯ₐ = AtmosphericThermodynamics.virtual_temperature(ℂ, 𝒬)
     qₐ = AtmosphericThermodynamics.vapor_specific_humidity(ℂ, 𝒬)
-    ε  = AtmosphericThermodynamics.Parameters.molmass_ratio(ℂ)
+    ε  = AtmosphericThermodynamics.Parameters.Rv_over_Rd(ℂ)
     δ  = ε - 1 # typically equal to 0.608
 
     b★ = g / 𝒯ₐ * (θ★ * (1 + δ * qₐ) + δ * 𝒯ₐ * q★)

@@ -1,7 +1,7 @@
 
 env:
-  JULIA_VERSION: "1.10.9"
-  JULIA_MINOR_VERSION: "1.10"
+  JULIA_VERSION: "1.12.1"
+  JULIA_MINOR_VERSION: "1.12"
   TARTARUS_HOME: "/storage5/buildkite-agent"
   JULIA_PKG_SERVER_REGISTRY_PREFERENCE: eager
   JULIA_NUM_PRECOMPILE_TASKS: 8
@@ -29,7 +29,7 @@ steps:
   - label: "Run documentation"
     key: "build_documentation"
     commands:
-      - "$TARTARUS_HOME/julia-$JULIA_VERSION/bin/julia --color=yes -O0 --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'"
+      - "$TARTARUS_HOME/julia-$JULIA_VERSION/bin/julia --color=yes -O0 --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate(); Pkg.precompile(; strict=true)'"
       - "$TARTARUS_HOME/julia-$JULIA_VERSION/bin/julia --color=yes -O0 --project=docs/ docs/make.jl"
     agents:
       queue: ClimaOcean-docs
@@ -38,10 +38,10 @@ steps:
       TMPDIR: "$TARTARUS_HOME/tmp"
       JULIA_DEPOT_PATH: "$TARTARUS_HOME/.julia-$BUILDKITE_BUILD_NUMBER"
       JULIA_DEBUG: "Documenter"
-      # This environment variable is needed to avoid SSL verification errors when Downloads.jl 
+      # This environment variable is needed to avoid SSL verification errors when Downloads.jl
       # tries to download the bathymetry data. It should not be required so we need to fix our certificates
       # and remove this environment variable. ref: https://github.com/JuliaLang/Downloads.jl/issues/97
-      JULIA_SSL_NO_VERIFY: "**" 
+      JULIA_SSL_NO_VERIFY: "**"
 
     timeout_in_minutes: 1440
 

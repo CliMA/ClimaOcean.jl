@@ -1,45 +1,42 @@
-module ClimaOceanPythonCallExt
+module ClimaOceanCopernicusMarineExt
 
 using ClimaOcean
-using CondaPkg
-using PythonCall
+using CopernicusMarine
+
 using Oceananigans
 using Oceananigans.DistributedComputations: @root
 
 using Dates: DateTime
-using ClimaOcean.DataWrangling.Copernicus: CopernicusMetadata
+using ClimaOcean.DataWrangling.Copernicus: CopernicusMetadata, CopernicusMetadatum
 
 import ClimaOcean.DataWrangling: download_dataset
 
-"""
-    install_copernicusmarine()
 
-Install the Copernicus Marine CLI using CondaPkg.
-Returns a NamedTuple containing package information if successful.
-"""
-function install_copernicusmarine()
-    @info "Installing the copernicusmarine CLI..."
-    CondaPkg.add("copernicusmarine"; channel = "conda-forge")
-    cli = CondaPkg.which("copernicusmarine")
-    @info "... the copernicusmarine CLI has been installed at $(cli)."
-    return cli
+# Download each date individually, instead of downloading the entire dataset at once.
+# This is useful for a possible extension of the temporal horizon of the dataset.
+function download_dataset(metadata::CopernicusMetadata; kwargs...)
+    paths = Array{String}(undef, length(metadata))
+    for (m, metadatum) in enumerate(metadata)
+        paths[m] = download_dataset(metadatum; kwargs...)
+    end
+    return paths
 end
 
-function download_dataset(meta::CopernicusMetadata, grid=nothing; skip_existing = true, additional_kw...)
+function download_dataset(meta::CopernicusMetadatum;
+                          skip_existing=true,
+                          username=get(ENV, "COPERNICUS_USERNAME", nothing),
+                          password=get(ENV, "COPERNICUS_PASSWORD", nothing),
+                          additional_kw...)
+
     output_directory = meta.dir
     output_filename = ClimaOcean.DataWrangling.metadata_filename(meta)
     output_path = joinpath(output_directory, output_filename)
     isfile(output_path) && return output_path
 
-    toolbox = try 
-        pyimport("copernicusmarine")
-    catch
-        install_copernicusmarine()
-        pyimport("copernicusmarine")
-    end
+    toolbox = CopernicusMarine.copernicusmarine
 
     variable_name = ClimaOcean.DataWrangling.Copernicus.copernicus_dataset_variable_names[meta.name]
-    variables = PythonCall.pylist([variable_name])
+    variables = CopernicusMarine.pylist([variable_name])
 
     dataset_id = ClimaOcean.DataWrangling.Copernicus.copernicusmarine_dataset_id(meta.dataset)
     datetime_kw = if meta.dataset isa ClimaOcean.DataWrangling.Copernicus.GLORYSStatic
@@ -60,6 +57,14 @@ function download_dataset(meta::CopernicusMetadata, grid=nothing; skip_existing 
           variables,
           output_filename,
           output_directory)
+
+    if !isnothing(username) && !isnothing(password)
+        kw = merge(kw, (; username, password))
+    else
+        @warn "No Copernicus credentials found.
+        Set the COPERNICUS_USERNAME and COPERNICUS_PASSWORD environment variables to download data from the Copernicus Marine Service.
+        You can sign up for free at: https://data.marine.copernicus.eu/register."
+    end
 
     additional_kw = NamedTuple(name => value for (name, value) in additional_kw)
     kw = merge(kw, datetime_kw, lon_kw, lat_kw, z_kw, additional_kw)
@@ -97,4 +102,4 @@ function depth_bounds_kw(z)
     return (; minimum_depth, maximum_depth)
 end
 
-end # module ClimaOceanPythonCallExt 
+end # module ClimaOceanCopernicusMarineExt

@@ -1,6 +1,6 @@
 using ClimaOcean
 using Oceananigans
-using PythonCall
+using CopernicusMarine
 
 arch = CPU()
 Nx = 20 * 12
@@ -8,7 +8,7 @@ Ny = 20 * 12
 Nz = 50
 
 depth = 6000
-z = ExponentialCoordinate(Nz, -depth; scale=depth/4.5)
+z = ExponentialDiscretization(Nz, -depth, 0; scale=depth/4.5)
 
 grid = LatitudeLongitudeGrid(arch;
                              size = (Nx, Ny, Nz),

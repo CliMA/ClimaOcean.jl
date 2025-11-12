@@ -1,5 +1,4 @@
 using DocStringExtensions
-using Oceananigans.BuoyancyFormulations: g_Earth
 
 """
     struct CoefficientBasedFluxes{CD, CH, CQ, S}
