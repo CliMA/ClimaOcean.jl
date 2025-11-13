@@ -4,10 +4,6 @@ using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus
 ##### A workaround when you don't have a sea ice model
 #####
 
-struct FreezingLimitedOceanTemperature{L}
-    liquidus :: L
-end
-
 """
     FreezingLimitedOceanTemperature(FT=Float64; liquidus=LinearLiquidus(FT))
 
@@ -32,7 +28,7 @@ heat_capacity(::FreezingLimitedOceanTemperature) = 0
 time_step!(::FreezingLimitedOceanTemperature, Δt) = nothing
 
 # No need to compute fluxes for this "sea ice model"
-compute_net_sea_ice_fluxes!(coupled_model, sea_ice::FreezingLimitedOceanTemperature) = nothing
+compute_net_sea_ice_fluxes!(coupled_model, ::FreezingLimitedOceanTemperature) = nothing
 
 function compute_sea_ice_ocean_fluxes!(cm::FreezingLimitedCoupledModel)
     ocean = cm.ocean
