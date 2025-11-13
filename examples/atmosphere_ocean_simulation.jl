@@ -67,7 +67,8 @@ Oceananigans.set!(sea_ice.model, h=Metadatum(:sea_ice_thickness, dataset=ECCO4Mo
 # The `atmosphere_simulation` function takes care of building an atmosphere model with appropriate 
 # hooks for ClimaOcean to compute intercomponent fluxes. We also set the output interval to 3 hours.
 
-spectral_grid = SpectralGrid(trunc=63, nlayers=4, Grid=FullClenshawGrid)
+nlayers = 4
+spectral_grid = SpectralGrid(; trunc=63, nlayers, Grid=FullClenshawGrid)
 atmosphere = atmosphere_simulation(spectral_grid; output=true)
 atmosphere.model.output.output_dt = Hour(6)
 
@@ -135,9 +136,9 @@ Oceananigans.run!(earth)
 
 SWO = Dataset("run_0001/output.nc")
 
-Ta = reverse(SWO["temp"][:, :, 8, :], dims=2)
-ua = reverse(SWO["u"][:, :, 8, :],    dims=2)
-va = reverse(SWO["v"][:, :, 8, :],    dims=2)
+Ta = reverse(SWO["temp"][:, :, nlayers, :], dims=2)
+ua = reverse(SWO["u"][:, :, nlayers, :],    dims=2)
+va = reverse(SWO["v"][:, :, nlayers, :],    dims=2)
 sp = sqrt.(ua.^2 + va.^2)
 
 SST = FieldTimeSeries("ocean_surface_fields.jld2", "T")
