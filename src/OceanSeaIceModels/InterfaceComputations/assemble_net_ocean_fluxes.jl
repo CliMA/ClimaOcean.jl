@@ -57,7 +57,7 @@ function compute_net_ocean_fluxes!(coupled_model, ocean)
 
     freshwater_flux = atmosphere_fields.Mp.data
 
-    ice_concentration = sea_ice_concentration(sea_ice.model)
+    ice_concentration = sea_ice_concentration(sea_ice)
     ocean_salinity = ocean.model.tracers.S
     atmos_ocean_properties = coupled_model.interfaces.atmosphere_ocean_interface.properties
     ocean_properties = coupled_model.interfaces.ocean_properties
