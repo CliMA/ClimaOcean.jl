@@ -36,7 +36,7 @@ nothing # hide
 
 # Now we can specify the numerical details and closures for the ocean simulation.
 
-momentum_advection = Centered()
+momentum_advection = VectorInvariant()
 tracer_advection   = WENO(order=5)
 free_surface       = SplitExplicitFreeSurface(grid; substeps=40)
 
