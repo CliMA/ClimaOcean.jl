@@ -167,16 +167,16 @@ sitmp = Oceananigans.Field(sqrt(uitmp^2 + vitmp^2) * atmp)
 iter = Observable(1)
 san = @lift sp[:, :, $iter]
 son  = @lift begin
-    Oceananigans.set!(uotmp, SSU[$iter * 2])
-    Oceananigans.set!(votmp, SSV[$iter * 2])
+    Oceananigans.set!(uotmp, SSU[$iter])
+    Oceananigans.set!(votmp, SSV[$iter])
     Oceananigans.compute!(sotmp)
     Oceananigans.interior(sotmp, :, :, 1)
 end
 
 ssn  = @lift begin
-    Oceananigans.set!(uitmp, SIU[$iter * 2])
-    Oceananigans.set!(vitmp, SIV[$iter * 2])
-    Oceananigans.set!(atmp,  SIA[$iter * 2])
+    Oceananigans.set!(uitmp, SIU[$iter])
+    Oceananigans.set!(vitmp, SIV[$iter])
+    Oceananigans.set!(atmp,  SIA[$iter])
     Oceananigans.compute!(sitmp)
     Oceananigans.interior(sitmp, :, :, 1)
 end
