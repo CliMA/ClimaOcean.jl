@@ -26,22 +26,25 @@ Nz = 10
 
 r_faces = ExponentialDiscretization(Nz, -2000, 0)
 grid    = TripolarGrid(Oceananigans.CPU(); size=(Nx, Ny, Nz), z=r_faces, halo=(6, 6, 5))
+nothing # hide
 
 # Regridding the bathymetry...
 
 bottom_height = regrid_bathymetry(grid; major_basins=1, interpolation_passes=15)
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
+nothing # hide 
 
 # Now we can specify the numerical details and closures for the ocean simulation.
 
-momentum_advection = WENOVectorInvariant(order=5)
+momentum_advection = Centered()
 tracer_advection   = WENO(order=5)
-free_surface = SplitExplicitFreeSurface(grid; substeps=40)
+free_surface       = SplitExplicitFreeSurface(grid; substeps=40)
 
 catke_closure   = ClimaOcean.OceanSimulations.default_ocean_closure()
-viscous_closure = Oceananigans.TurbulenceClosures.HorizontalScalarBiharmonicDiffusivity(ν=1e11)
+viscous_closure = Oceananigans.TurbulenceClosures.HorizontalScalarBiharmonicDiffusivity(ν=1e12)
 eddy_closure    = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
 closures        = (catke_closure, eddy_closure, viscous_closure, VerticalScalarDiffusivity(ν=1e-4))
+nothing # hide
 
 # The ocean simulation, complete with initial conditions for temperature and salinity from ECCO.
 
@@ -70,7 +73,8 @@ Oceananigans.set!(sea_ice.model, h=Metadatum(:sea_ice_thickness, dataset=ECCO4Mo
 nlayers = 4
 spectral_grid = SpectralGrid(; trunc=63, nlayers, Grid=FullClenshawGrid)
 atmosphere = atmosphere_simulation(spectral_grid; output=true)
-atmosphere.model.output.output_dt = Hour(6)
+atmosphere.model.output.output_dt = Hour(3)
+nothing # hide 
 
 # ## The coupled model
 # Now we can build the coupled model. We need to specify the time step for the coupled model.
@@ -78,12 +82,14 @@ atmosphere.model.output.output_dt = Hour(6)
 # sea-ice will be stepped every two atmosphere time steps).
 
 Δt = 2 * convert(eltype(grid), atmosphere.model.time_stepping.Δt_sec)
+nothing # hide
 
 # We build the complete model. Since radiation is idealized in this example, we set the emissivities to zero.
 
 radiation = Radiation(ocean_emissivity=0.0, sea_ice_emissivity=0.0)
 earth_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 earth = Oceananigans.Simulation(earth_model; Δt, stop_time=30days)
+nothing # hide 
 
 # ## Running the simulation
 # We can now run the simulation. 
@@ -181,12 +187,12 @@ ssn  = @lift begin
     Oceananigans.interior(sitmp, :, :, 1)
 end
 
-fig = Figure(size = (1200, 400))
+fig = Figure(size = (800, 1800))
 ax2 = Axis(fig[1, 1], title = "Surface speed, atmosphere (m/s)")
 hm2 = heatmap!(ax2, san; colormap = :deep)
-ax1 = Axis(fig[1, 2], title = "Surface speed, ocean (m/s)")
+ax1 = Axis(fig[2, 1], title = "Surface speed, ocean (m/s)")
 hm = heatmap!(ax1, son; colormap = :deep)
-ax3 = Axis(fig[1, 3], title = "Surface speed, sea-ice (m/s)")
+ax3 = Axis(fig[3, 1], title = "Surface speed, sea-ice (m/s)")
 hm = heatmap!(ax3, ssn; colormap = :deep)
 
 record(fig, "surface_speeds.mp4", 1:Nt, framerate=8) do i
@@ -201,7 +207,7 @@ Ton = @lift interior(SST[$iter], :, :, 1)
 Qcn = @lift interior(Qcao[$iter], :, :, 1)
 Qvn = @lift interior(Qvao[$iter], :, :, 1)
 
-fig = Figure(size = (1200, 800))
+fig = Figure(size = (800, 800))
 ax1 = Axis(fig[1, 1], title = "2m Temperature, atmosphere (K)")
 hm = heatmap!(ax1, Tan; colormap = :plasma)
 ax2 = Axis(fig[1, 2], title = "Sea Surface Temperature (C)")

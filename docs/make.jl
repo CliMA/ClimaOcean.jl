@@ -18,9 +18,9 @@ const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
 const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
 
 to_be_literated = [
-    # "single_column_os_papa_simulation.jl",
-    # "one_degree_simulation.jl",
-    # "near_global_ocean_simulation.jl",
+    "single_column_os_papa_simulation.jl",
+    "one_degree_simulation.jl",
+    "near_global_ocean_simulation.jl",
     "atmosphere_ocean_simulation.jl",
 ]
 
