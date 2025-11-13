@@ -18,6 +18,7 @@ struct SimilarityTheoryFluxes{FT, UF, R, B, S}
     von_karman_constant :: FT        # parameter
     turbulent_prandtl_number :: FT   # parameter
     gustiness_parameter :: FT        # bulk velocity parameter
+    minimum_velocity_scale :: FT     # minimum velocity scale 
     stability_functions :: UF        # functions for turbulent fluxes
     roughness_lengths :: R           # parameterization for turbulent fluxes
     similarity_form :: B             # similarity profile relating atmosphere to interface state
@@ -28,6 +29,7 @@ Adapt.adapt_structure(to, fluxes::SimilarityTheoryFluxes) =
     SimilarityTheoryFluxes(adapt(to, fluxes.von_karman_constant),
                            adapt(to, fluxes.turbulent_prandtl_number),
                            adapt(to, fluxes.gustiness_parameter),
+                           adapt(to, fluxes.minimum_velocity_scale),
                            adapt(to, fluxes.stability_functions),
                            adapt(to, fluxes.roughness_lengths),
                            adapt(to, fluxes.similarity_form),
@@ -81,11 +83,12 @@ Keyword Arguments
 function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                 von_karman_constant = 0.4,
                                 turbulent_prandtl_number = 1,
-                                gustiness_parameter = 1,
+                                gustiness_parameter = 2,
                                 stability_functions = atmosphere_ocean_stability_functions(FT),
                                 momentum_roughness_length = MomentumRoughnessLength(FT),
                                 temperature_roughness_length = ScalarRoughnessLength(FT),
                                 water_vapor_roughness_length = ScalarRoughnessLength(FT),
+                                minimum_velocity_scale = 0.5,
                                 similarity_form = LogarithmicSimilarityProfile(),
                                 solver_stop_criteria = nothing,
                                 solver_tolerance = 1e-8,
@@ -108,6 +111,7 @@ function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
     return SimilarityTheoryFluxes(convert(FT, von_karman_constant),
                                   convert(FT, turbulent_prandtl_number),
                                   convert(FT, gustiness_parameter),
+                                  convert(FT, minimum_velocity_scale),
                                   stability_functions,
                                   roughness_lengths,
                                   similarity_form,
@@ -197,7 +201,8 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
                                  approximate_interface_state)
 
     U = sqrt(Δu^2 + Δv^2 + Uᴳ^2)
-
+    U = max(U, flux_formulation.minimum_velocity_scale)
+    
     # Compute roughness length scales
     ℓu₀ = roughness_length(ℓu, u★, U, 𝒬ₛ, ℂₐ)
     ℓq₀ = roughness_length(ℓq, ℓu₀, u★, U, 𝒬ₛ, ℂₐ)
