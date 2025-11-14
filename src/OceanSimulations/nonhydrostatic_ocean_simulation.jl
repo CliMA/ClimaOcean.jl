@@ -1,10 +1,9 @@
 
 """
-    nonhydrostatic_ocean_simulation(; kwargs...)
+    nonhydrostatic_ocean_simulation(grid; kwargs...)
 
 Build a NonhydrostaticModel-based ocean simulation configured for high-resolution LES.
-The default configuration follows a 2D nighttime boundary-layer experiment with WENO
-advection, TEOS-10 equation of state, and no turbulence closure.
+The default configuration has WENO advection, TEOS-10 equation of state, and no turbulence closure.
 """
 function nonhydrostatic_ocean_simulation(grid; Δt=1,
                                          tracers = (:T, :S),
