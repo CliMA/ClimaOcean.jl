@@ -187,7 +187,7 @@ ssn  = @lift begin
     Oceananigans.interior(sitmp, :, :, 1)
 end
 
-fig = Figure(size = (800, 1800))
+fig = Figure(size = (800, 1300))
 ax2 = Axis(fig[1, 1], title = "Surface speed, atmosphere (m/s)")
 hm2 = heatmap!(ax2, san; colormap = :deep)
 ax1 = Axis(fig[2, 1], title = "Surface speed, ocean (m/s)")
@@ -207,7 +207,7 @@ Ton = @lift interior(SST[$iter], :, :, 1)
 Qcn = @lift interior(Qcao[$iter], :, :, 1)
 Qvn = @lift interior(Qvao[$iter], :, :, 1)
 
-fig = Figure(size = (800, 800))
+fig = Figure(size = (800, 600))
 ax1 = Axis(fig[1, 1], title = "2m Temperature, atmosphere (K)")
 hm = heatmap!(ax1, Tan; colormap = :plasma)
 ax2 = Axis(fig[1, 2], title = "Sea Surface Temperature (C)")
