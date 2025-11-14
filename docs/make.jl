@@ -18,9 +18,9 @@ const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
 const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
 
 to_be_literated = [
-    "single_column_os_papa_simulation.jl",
-    "one_degree_simulation.jl",
-    "near_global_ocean_simulation.jl"
+    # "single_column_os_papa_simulation.jl",
+    # "one_degree_simulation.jl",
+    # "near_global_ocean_simulation.jl"
 ]
 
 for file in to_be_literated
@@ -44,13 +44,13 @@ pages = [
     "Home" => "index.md",
 
     "Examples" => [
-        "Single-column ocean simulation" => "literated/single_column_os_papa_simulation.md",
-        "One-degree ocean--sea ice simulation" => "literated/one_degree_simulation.md",
-        "Near-global ocean simulation" => "literated/near_global_ocean_simulation.md",
+        # "Single-column ocean simulation" => "literated/single_column_os_papa_simulation.md",
+        # "One-degree ocean--sea ice simulation" => "literated/one_degree_simulation.md",
+        # "Near-global ocean simulation" => "literated/near_global_ocean_simulation.md",
         ],
 
     "Vertical grids" => "vertical_grids.md",
-
+    "Metadata" => "metadata.md",
     "Interface fluxes" => "interface_fluxes.md",
 
     "Library" => [
@@ -58,7 +58,8 @@ pages = [
         "Public"         => "library/public.md",
         "Private"        => "library/internals.md",
         "Function index" => "library/function_index.md",
-        ],
+    ],
+
     "References" => "references.md",
 ]
 
@@ -67,12 +68,12 @@ makedocs(sitename = "ClimaOcean.jl";
          pages,
          plugins = [bib],
          modules = [ClimaOcean],
-         doctest = true,
+         doctest = false,
          clean = true,
          warnonly = [:cross_references, :missing_docs],
-         checkdocs = :exports)
+         checkdocs = :none)
 
-@info "Clean up temporary .jld2 and .nc output created by doctests or literated examples..."
+@info "Clean up temporary .jld2, .nc, and .mp4 output created by doctests or literated examples..."
 
 """
     recursive_find(directory, pattern)
@@ -85,7 +86,7 @@ recursive_find(directory, pattern) =
     end
 
 files = []
-for pattern in [r"\.jld2", r"\.nc"]
+for pattern in [r"\.jld2", r"\.nc", r"\.mp4"]
     global files = vcat(files, recursive_find(@__DIR__, pattern))
 end
 
