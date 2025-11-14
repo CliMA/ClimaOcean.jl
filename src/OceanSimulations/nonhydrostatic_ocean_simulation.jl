@@ -1,31 +1,3 @@
-const default_nonhydrostatic_domain = (Lx = 256meters, Lz = 128meters)
-const default_nonhydrostatic_spacing = (Δx = 4meters, Δz = 2meters)
-const default_nonhydrostatic_size = (
-    Nx = Int(round(default_nonhydrostatic_domain.Lx / default_nonhydrostatic_spacing.Δx)),
-    Nz = Int(round(default_nonhydrostatic_domain.Lz / default_nonhydrostatic_spacing.Δz)),
-)
-
-"""
-    default_nonhydrostatic_grid(arch=CPU())
-
-Return a 2D RectilinearGrid (x–z slice) with 4 m horizontal spacing over a 256 m
-domain and 2 m vertical spacing over 128 m depth, configured for LES experiments.
-"""
-function default_nonhydrostatic_grid(arch=CPU())
-    Nx = default_nonhydrostatic_size.Nx
-    Nz = default_nonhydrostatic_size.Nz
-    Ny = 1
-    Ly = default_nonhydrostatic_spacing.Δx # retain a thin y-direction for 2D slice
-
-    grid = RectilinearGrid(arch;
-                           size = (Nx, Ny, Nz),
-                           x = (0, default_nonhydrostatic_domain.Lx),
-                           y = (0, Ly),
-                           z = (-default_nonhydrostatic_domain.Lz, 0),
-                           topology = (Periodic, Flat, Bounded))
-
-    return grid
-end
 
 """
     nonhydrostatic_ocean_simulation(; kwargs...)
