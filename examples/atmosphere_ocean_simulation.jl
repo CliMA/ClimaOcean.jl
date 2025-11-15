@@ -1,4 +1,4 @@
-# # Global coupled atmosphere and ocean--sea ice simulation
+# # Global climate simulation
 #
 # This example configures a global ocean--sea ice simulation at 1.5ᵒ horizontal resolution with
 # realistic bathymetry and a few closures including the "Gent-McWilliams" `IsopycnalSkewSymmetricDiffusivity`.
@@ -60,7 +60,7 @@ Oceananigans.set!(ocean.model, T=Metadatum(:temperature, dataset=ECCO4Monthly())
 
 # The sea-ice simulation, complete with initial conditions for sea-ice thickness and sea-ice concentration from ECCO.
 
-sea_ice = sea_ice_simulation(grid, ocean; advection=WENO(order=7))
+sea_ice = sea_ice_simulation(grid, ocean; advection=WENO(order=5))
 
 Oceananigans.set!(sea_ice.model, h=Metadatum(:sea_ice_thickness, dataset=ECCO4Monthly()), 
                                  ℵ=Metadatum(:sea_ice_concentration, dataset=ECCO4Monthly()))
@@ -95,7 +95,7 @@ nothing # hide
 
 # ## Running the simulation
 # We are ready to run the coupled simulation.
-# But before we do, we add callbacks to write outputs to disk every 6 hours.
+# But before we do, we add callbacks to write outputs to disk every 3 hours.
 
 outputs = merge(ocean.model.velocities, ocean.model.tracers)
 sea_ice_fields = merge(sea_ice.model.velocities, sea_ice.model.dynamics.auxiliaries.fields, 
@@ -103,18 +103,18 @@ sea_ice_fields = merge(sea_ice.model.velocities, sea_ice.model.dynamics.auxiliar
 
 ocean.output_writers[:free_surf] = JLD2Writer(ocean.model, (; η=ocean.model.free_surface.η);
                                               overwrite_existing=true,
-                                              schedule=TimeInterval(3600 * 6),
+                                              schedule=TimeInterval(3600 * 3),
                                               filename="ocean_free_surface.jld2")
 
 ocean.output_writers[:surface] = JLD2Writer(ocean.model, outputs;
                                             overwrite_existing=true,
-                                            schedule=TimeInterval(3600 * 6),
+                                            schedule=TimeInterval(3600 * 3),
                                             filename="ocean_surface_fields.jld2",
                                             indices=(:, :, grid.Nz))
 
 sea_ice.output_writers[:fields] = JLD2Writer(sea_ice.model, sea_ice_fields;
                                              overwrite_existing=true,
-                                             schedule=TimeInterval(3600 * 6),
+                                             schedule=TimeInterval(3600 * 3),
                                              filename="sea_ice_fields.jld2")
 
 Qcao = earth.model.interfaces.atmosphere_ocean_interface.fluxes.sensible_heat
@@ -160,7 +160,7 @@ SIA = FieldTimeSeries("sea_ice_fields.jld2", "ℵ")
 Qcao = FieldTimeSeries("intercomponent_fluxes.jld2", "Qcao")
 Qvao = FieldTimeSeries("intercomponent_fluxes.jld2", "Qvao")
 
-Nt = min(length(sp[1,1,:]), length(Qcao))
+Nt = min(length(sp[1, 1, :]), length(Qcao))
 
 uotmp = Oceananigans.Field{Face, Center, Nothing}(SST.grid)
 votmp = Oceananigans.Field{Center, Face, Nothing}(SST.grid)
@@ -189,13 +189,18 @@ ssn  = @lift begin
     Oceananigans.interior(sitmp, :, :, 1)
 end
 
-fig = Figure(size = (800, 1300))
-ax2 = Axis(fig[1, 1], title = "Surface speed, atmosphere (m/s)")
-hm2 = heatmap!(ax2, san; colormap = :deep)
-ax1 = Axis(fig[2, 1], title = "Surface speed, ocean (m/s)")
-hm = heatmap!(ax1, son; colormap = :deep)
+fig = Figure(size = (1000, 1500))
+ax1 = Axis(fig[1, 1], title = "Surface speed, atmosphere (m/s)")
+ax2 = Axis(fig[2, 1], title = "Surface speed, ocean (m/s)")
 ax3 = Axis(fig[3, 1], title = "Surface speed, sea-ice (m/s)")
-hm = heatmap!(ax3, ssn; colormap = :deep)
+
+hm1 = heatmap!(ax2, san; colormap = :deep,  nan_color=:lightgray)
+hm2 = heatmap!(ax1, son; colormap = :magma, nan_color=:lightgray)
+hm3 = heatmap!(ax3, ssn; colormap = :ice,   nan_color=:lightgray)
+
+Colorbar(fig[1, 2], hm1)
+Colorbar(fig[2, 2], hm2)
+Colorbar(fig[3, 2], hm3)
 
 record(fig, "surface_speeds.mp4", 1:Nt, framerate=8) do i
     iter[] = i
@@ -209,15 +214,21 @@ Ton = @lift interior(SST[$iter], :, :, 1)
 Qcn = @lift interior(Qcao[$iter], :, :, 1)
 Qvn = @lift interior(Qvao[$iter], :, :, 1)
 
-fig = Figure(size = (800, 600))
+fig = Figure(size = (1000, 2000))
 ax1 = Axis(fig[1, 1], title = "2m Temperature, atmosphere (K)")
-hm = heatmap!(ax1, Tan; colormap = :plasma)
-ax2 = Axis(fig[1, 2], title = "Sea Surface Temperature (C)")
-hm2 = heatmap!(ax2, Ton; colormap = :plasma)
-ax3 = Axis(fig[2, 1], title = "Sensible heat flux (W/m²)")
-hm3 = heatmap!(ax3, Qcn; colormap = :balance, colorrange = (-200, 200))
-ax4 = Axis(fig[2, 2], title = "Latent heat flux (W/m²)")
-hm4 = heatmap!(ax4, Qvn; colormap = :balance, colorrange = (-200, 200))
+ax2 = Axis(fig[2, 1], title = "Sea Surface Temperature (C)")
+ax3 = Axis(fig[3, 1], title = "Sensible heat flux (W/m²)")
+ax4 = Axis(fig[4, 1], title = "Latent heat flux (W/m²)")
+
+hm1 = heatmap!(ax1, Tan; colormap = :plasma,  nan_color=:lightgray)
+hm2 = heatmap!(ax2, Ton; colormap = :plasm,   nan_color=:lightgray)
+hm3 = heatmap!(ax3, Qcn; colormap = :balance, colorrange = (-200, 200),  nan_color=:lightgray)
+hm4 = heatmap!(ax4, Qvn; colormap = :balance, colorrange = (-200, 200),  nan_color=:lightgray))
+
+Colorbar(fig[1, 2], hm1)
+Colorbar(fig[2, 2], hm2)
+Colorbar(fig[3, 2], hm3)
+Colorbar(fig[4, 2], hm4)
 
 record(fig, "surface_temperature_and_heat_flux.mp4", 1:Nt, framerate=8) do i
     iter[] = i
