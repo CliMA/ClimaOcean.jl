@@ -16,8 +16,8 @@ using Oceananigans.Units
 using Printf, Statistics, Dates
 
 # ## Ocean and sea-ice model configuration
-# The ocean and sea-ice are a simplified version of the "one_degree_simulation" example
-# https://clima.github.io/ClimaOceanDocumentation/dev/literated/one_degree_simulation/
+# The ocean and sea-ice are a simplified version of the ["one_degree_simulation.jl" example](https://clima.github.io/ClimaOceanDocumentation/stable/literated/one_degree_simulation/).
+#
 # The first step is to create the grid with realistic bathymetry.
 
 Nx = 240 
@@ -28,13 +28,13 @@ r_faces = ExponentialDiscretization(Nz, -2000, 0)
 grid    = TripolarGrid(Oceananigans.CPU(); size=(Nx, Ny, Nz), z=r_faces, halo=(6, 6, 5))
 nothing # hide
 
-# Regridding the bathymetry...
+# We regrid the bathymetry.
 
 bottom_height = regrid_bathymetry(grid; major_basins=1, interpolation_passes=15)
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
 nothing # hide 
 
-# Now we can specify the numerical details and closures for the ocean simulation.
+# Now we can specify the numerical details and the closures for the ocean simulation.
 
 momentum_advection = VectorInvariant()
 tracer_advection   = WENO(order=5)
@@ -58,7 +58,7 @@ ocean = ocean_simulation(grid;
 Oceananigans.set!(ocean.model, T=Metadatum(:temperature, dataset=ECCO4Monthly()), 
                                S=Metadatum(:salinity,    dataset=ECCO4Monthly()))
 
-# The sea-ice simulation, complete with initial conditions for sea-ice thickness and concentration from ECCO.
+# The sea-ice simulation, complete with initial conditions for sea-ice thickness and sea-ice concentration from ECCO.
 
 sea_ice = sea_ice_simulation(grid, ocean; advection=WENO(order=7))
 
@@ -66,9 +66,9 @@ Oceananigans.set!(sea_ice.model, h=Metadatum(:sea_ice_thickness, dataset=ECCO4Mo
                                  ℵ=Metadatum(:sea_ice_concentration, dataset=ECCO4Monthly()))
 
 # ## Atmosphere model configuration
-# The atmosphere is provided by SpeedyWeather.jl. Here we configure a T63L8 model with a 3 hour output interval.
+# The atmosphere is provided by SpeedyWeather.jl. Here, we configure a T63L8 model with a 3-hour output interval.
 # The `atmosphere_simulation` function takes care of building an atmosphere model with appropriate 
-# hooks for ClimaOcean to compute intercomponent fluxes. We also set the output interval to 3 hours.
+# hooks so that ClimaOcean can compute intercomponent fluxes.
 
 nlayers = 4
 spectral_grid = SpectralGrid(; trunc=63, nlayers, Grid=FullClenshawGrid)
@@ -77,14 +77,16 @@ atmosphere.model.output.output_dt = Hour(3)
 nothing # hide 
 
 # ## The coupled model
-# Now we can build the coupled model. We need to specify the time step for the coupled model.
+# Now we are ready to blend everything together.
+# We need to specify the time step for the coupled model.
 # We decide to step the global model every 2 atmosphere time steps. (i.e. the ocean and the 
 # sea-ice will be stepped every two atmosphere time steps).
 
 Δt = 2 * convert(eltype(grid), atmosphere.model.time_stepping.Δt_sec)
 nothing # hide
 
-# We build the complete model. Since radiation is idealized in this example, we set the emissivities to zero.
+# We build the complete coupled `earth_model` and the coupled simulation.
+# Since radiation is idealized in this example, we set the emissivities to zero.
 
 radiation = Radiation(ocean_emissivity=0.0, sea_ice_emissivity=0.0)
 earth_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
@@ -92,8 +94,8 @@ earth = Oceananigans.Simulation(earth_model; Δt, stop_time=30days)
 nothing # hide 
 
 # ## Running the simulation
-# We can now run the simulation. 
-# We add callbacks to write outputs to disk every 6 hours.
+# We are ready to run the coupled simulation.
+# But before we do, we add callbacks to write outputs to disk every 6 hours.
 
 outputs = merge(ocean.model.velocities, ocean.model.tracers)
 sea_ice_fields = merge(sea_ice.model.velocities, sea_ice.model.dynamics.auxiliaries.fields, 
@@ -135,8 +137,8 @@ earth.output_writers[:fluxes] = JLD2Writer(earth.model.ocean.model, fluxes;
 Oceananigans.run!(earth)
 
 # ## Visualizing the results
-# We can visualize some of the results. Here we plot the surface speeds in the atmosphere, ocean, and sea-ice
-# as well as the 2m temperature in the atmosphere, the sea surface temperature, and the sensible and latent heat
+# We can visualize some of the results. Here, we plot the surface speeds in the atmosphere, ocean, and sea-ice
+# as well as the 2-meter temperature in the atmosphere, the sea surface temperature, and the sensible and latent heat
 # fluxes at the atmosphere-ocean interface. SpeedyWeather outputs are stored in a NetCDF file located in the `run_0001` folder,
 # while ocean and sea-ice outputs are stored in JLD2 files that can be read by Oceananigans.jl using the `FieldTimeSeries` type.
 
