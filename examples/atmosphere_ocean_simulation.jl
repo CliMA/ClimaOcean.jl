@@ -207,7 +207,6 @@ hidedecorations!(ax2)
 hidedecorations!(ax3)
 hidedecorations!(ax4)
 
-
 record(fig, "surface_speeds.mp4", 1:Nt, framerate=8) do i
     iter[] = i
 end
