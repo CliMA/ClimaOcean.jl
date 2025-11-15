@@ -41,7 +41,7 @@ XESMF = "2e0b0046-e7a1-486f-88de-807ee8ffabe5"
 [extensions]
 ClimaOceanCopernicusMarineExt = "CopernicusMarine"
 ClimaOceanReactantExt = "Reactant"
-ClimaOceanSpeedyWeatherExt = ["SpeedyWeather", "XESMF"]
+ClimaOceanSpeedyWeatherExt = "SpeedyWeather"
 
 [compat]
 Adapt = "4"
@@ -66,6 +66,7 @@ PrecompileTools = "1"
 Reactant = "0.2.45"
 Scratch = "1"
 SeawaterPolynomials = "0.3.5"
+SpeedyWeather = "0.17.4"
 StaticArrays = "1"
 Statistics = "1.9"
 Thermodynamics = "0.14, 0.15"
