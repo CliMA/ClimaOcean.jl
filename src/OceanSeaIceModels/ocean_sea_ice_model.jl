@@ -5,29 +5,6 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 using KernelAbstractions: @kernel, @index
 using SeawaterPolynomials: TEOS10EquationOfState
 
-import Thermodynamics as AtmosphericThermodynamics
-
-# Simulations interface
-import Oceananigans: fields, prognostic_fields
-import Oceananigans.Architectures: architecture
-import Oceananigans.Fields: set!
-import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker, initialization_update_state!
-import Oceananigans.OutputWriters: default_included_properties
-import Oceananigans.Simulations: reset!, initialize!, iteration
-import Oceananigans.TimeSteppers: time_step!, update_state!, time
-import Oceananigans.Utils: prettytime
-
-mutable struct OceanSeaIceModel{I, A, O, F, C, Arch} <: AbstractModel{Nothing, Arch}
-    architecture :: Arch
-    clock :: C
-    atmosphere :: A
-    sea_ice :: I
-    ocean :: O
-    interfaces :: F
-end
-
-const OSIM = OceanSeaIceModel
-
 function Base.summary(model::OSIM)
     A = nameof(typeof(architecture(model)))
     return string("OceanSeaIceModel{$A}",

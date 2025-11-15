@@ -23,6 +23,14 @@ using ..OceanSeaIceModels: default_gravitational_acceleration,
 
 import ClimaOcean: stateindex
 
+import ..OceanSeaIceModels:
+    compute_net_atmosphere_fluxes!,
+    compute_net_sea_ice_fluxes!,
+    compute_net_ocean_fluxes!,
+    compute_atmosphere_ocean_fluxes!,
+    compute_atmosphere_sea_ice_fluxes!,
+    compute_sea_ice_ocean_fluxes!
+
 #####
 ##### Utilities
 #####
@@ -70,6 +78,7 @@ include("interpolate_atmospheric_state.jl")
 include("atmosphere_ocean_fluxes.jl")
 include("atmosphere_sea_ice_fluxes.jl")
 include("sea_ice_ocean_fluxes.jl")
-include("assemble_net_fluxes.jl")
+include("assemble_net_ocean_fluxes.jl")
+include("assemble_net_sea_ice_fluxes.jl")
 
 end # module

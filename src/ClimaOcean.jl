@@ -42,6 +42,7 @@ export
     DatasetRestoring,
     ocean_simulation,
     sea_ice_simulation,
+    atmosphere_simulation,
     initialize!
 
 using Oceananigans
@@ -77,6 +78,8 @@ end
     names = keys(a)
     return NamedTuple{names}(vals)
 end
+
+function atmosphere_simulation end
 
 include("OceanSimulations/OceanSimulations.jl")
 include("SeaIceSimulations.jl")

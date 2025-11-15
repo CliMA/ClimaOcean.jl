@@ -29,7 +29,7 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
                        Qs = atmosphere_fields.Qs.data,
                        Qℓ = atmosphere_fields.Qℓ.data,
                        Mp = atmosphere_fields.Mp.data,
-                       h_bℓ = atmosphere.boundary_layer_height)
+                       h_bℓ = boundary_layer_height(atmosphere))
 
     flux_formulation = coupled_model.interfaces.atmosphere_sea_ice_interface.flux_formulation
     interface_fluxes = coupled_model.interfaces.atmosphere_sea_ice_interface.fluxes
