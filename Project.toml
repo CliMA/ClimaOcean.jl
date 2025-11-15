@@ -41,7 +41,7 @@ XESMF = "2e0b0046-e7a1-486f-88de-807ee8ffabe5"
 [extensions]
 ClimaOceanCopernicusMarineExt = "CopernicusMarine"
 ClimaOceanReactantExt = "Reactant"
-ClimaOceanSpeedyWeatherExt = "SpeedyWeather"
+ClimaOceanSpeedyWeatherExt = ["SpeedyWeather", "XESMF"]
 
 [compat]
 Adapt = "4"
