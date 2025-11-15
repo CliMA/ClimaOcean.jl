@@ -18,9 +18,10 @@ const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
 const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
 
 to_be_literated = [
+    "panantarctic_regional_simulation.jl",
     "single_column_os_papa_simulation.jl",
     "one_degree_simulation.jl",
-    "near_global_ocean_simulation.jl"
+    "near_global_ocean_simulation.jl",
 ]
 
 for file in to_be_literated
@@ -47,6 +48,7 @@ pages = [
         "Single-column ocean simulation" => "literated/single_column_os_papa_simulation.md",
         "One-degree ocean--sea ice simulation" => "literated/one_degree_simulation.md",
         "Near-global ocean simulation" => "literated/near_global_ocean_simulation.md",
+        "Panantarctic regional simulation" => "literated/panantarctic_regional_simulation.md",
         ],
 
     "Vertical grids" => "vertical_grids.md",
