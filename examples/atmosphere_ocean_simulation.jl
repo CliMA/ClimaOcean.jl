@@ -11,12 +11,12 @@
 # The XESMF.jl package is used to regrid fields between the atmosphere and ocean--sea ice components.
 
 using Oceananigans, SpeedyWeather, XESMF, ClimaOcean
-using NCDatasets, CairoMakie
+using XESMFNCDatasets, CairoMakie
 using Oceananigans.Units
 using Printf, Statistics, Dates
 
 # ## Ocean and sea-ice model configuration
-# The ocean and sea-ice are a simplified version of the ["one_degree_simulation.jl" example](https://clima.github.io/ClimaOceanDocumentation/stable/literated/one_degree_simulation/).
+# The ocean and sea-ice are a simplified version of the [`one_degree_simulation.jl` example](https://clima.github.io/ClimaOceanDocumentation/stable/literated/one_degree_simulation/).
 #
 # The first step is to create the grid with realistic bathymetry.
 
@@ -24,8 +24,8 @@ Nx = 240
 Ny = 120 
 Nz = 10  
 
-r_faces = ExponentialDiscretization(Nz, -2000, 0)
-grid    = TripolarGrid(Oceananigans.CPU(); size=(Nx, Ny, Nz), z=r_faces, halo=(6, 6, 5))
+z = ExponentialDiscretization(Nz, -2000, 0)
+grid = TripolarGrid(Oceananigans.CPU(); size=(Nx, Ny, Nz), z, halo=(6, 6, 5))
 nothing # hide
 
 # We regrid the bathymetry.
@@ -79,8 +79,8 @@ nothing # hide
 # ## The coupled model
 # Now we are ready to blend everything together.
 # We need to specify the time step for the coupled model.
-# We decide to step the global model every 2 atmosphere time steps. (i.e. the ocean and the 
-# sea-ice will be stepped every two atmosphere time steps).
+# We decide to step the global model every 2 atmosphere time steps (i.e., the ocean and the 
+# sea-ice are stepped every two atmosphere time steps).
 
 Δt = 2 * convert(eltype(grid), atmosphere.model.time_stepping.Δt_sec)
 nothing # hide
