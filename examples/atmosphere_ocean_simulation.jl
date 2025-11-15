@@ -11,7 +11,7 @@
 # The XESMF.jl package is used to regrid fields between the atmosphere and ocean--sea ice components.
 
 using Oceananigans, SpeedyWeather, XESMF, ClimaOcean
-using XESMFNCDatasets, CairoMakie
+using NCDatasets, CairoMakie
 using Oceananigans.Units
 using Printf, Statistics, Dates
 
