@@ -41,6 +41,7 @@ export
     LinearlyTaperedPolarMask,
     DatasetRestoring,
     ocean_simulation,
+    nonhydrostatic_ocean_simulation,
     sea_ice_simulation,
     initialize!
 
