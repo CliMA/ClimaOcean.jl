@@ -202,6 +202,12 @@ Colorbar(fig[1, 2], hm1)
 Colorbar(fig[2, 2], hm2)
 Colorbar(fig[3, 2], hm3)
 
+hidedecorations!(ax1)
+hidedecorations!(ax2)
+hidedecorations!(ax3)
+hidedecorations!(ax4)
+
+
 record(fig, "surface_speeds.mp4", 1:Nt, framerate=8) do i
     iter[] = i
 end
@@ -224,6 +230,11 @@ hm1 = heatmap!(ax1, Tan; colormap = :plasma,  nan_color=:lightgray)
 hm2 = heatmap!(ax2, Ton; colormap = :plasm,   nan_color=:lightgray)
 hm3 = heatmap!(ax3, Qcn; colormap = :balance, colorrange = (-200, 200),  nan_color=:lightgray)
 hm4 = heatmap!(ax4, Qvn; colormap = :balance, colorrange = (-200, 200),  nan_color=:lightgray))
+
+hidedecorations!(ax1)
+hidedecorations!(ax2)
+hidedecorations!(ax3)
+hidedecorations!(ax4)
 
 Colorbar(fig[1, 2], hm1)
 Colorbar(fig[2, 2], hm2)
