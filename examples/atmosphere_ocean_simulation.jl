@@ -2,7 +2,7 @@
 #
 # This example configures a global ocean--sea ice simulation at 1.5ᵒ horizontal resolution with
 # realistic bathymetry and a few closures including the "Gent-McWilliams" `IsopycnalSkewSymmetricDiffusivity`.
-# The atmosphere is represented by a SpeecdyWeather model at T63 resolution (approximately 1.875ᵒ).
+# The atmosphere is represented by a SpeedyWeather model at T63 resolution (approximately 1.875ᵒ).
 # and initialized by temperature, salinity, sea ice concentration, and sea ice thickness
 # from the ECCO state estimate.
 #
