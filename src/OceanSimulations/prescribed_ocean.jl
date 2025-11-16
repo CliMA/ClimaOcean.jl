@@ -12,17 +12,18 @@ import Oceananigans.Architectures: on_architecture
 ##### A prescribed ocean...
 #####
 
-struct PrescribedOceanModel{G, C, U, T, F, Arch} <: AbstractModel{Nothing, Arch}
-    architecture :: Arch      
+struct PrescribedOcean{G, C, U, T, F, FT} 
     grid :: G        
     clock :: Clock{C}
     velocities :: U
     tracers :: T
     timeseries :: F
+    reference_density :: FT
+    heat_capacity :: FT
 end
 
 """
-    PrescribedOceanModel(timeseries=NamedTuple(); grid, clock=Clock{Float64}(time = 0))
+    PrescribedOcean(timeseries=NamedTuple(); grid, clock=Clock{Float64}(time = 0))
 
 Create a prescribed ocean model to be used in combination with ClimaOcean's `OceanSeaIceModel` 
 on a `grid` with a `clock`.
@@ -34,9 +35,11 @@ Arguments
                 following fields: `u`, `v`, `T`, `S`. All elements provided must be of type `FieldTimeSeries` 
                 and reside on the provided `grid`.
 """
-function PrescribedOceanModel(timeseries=NamedTuple(); 
+function PrescribedOcean(timeseries=NamedTuple(); 
                          grid, 
-                         clock=Clock{Float64}(time = 0)) 
+                         clock = Clock{Float64}(time = 0),
+                         reference_density = 1029,
+                         heat_capacity = 3998) 
 
     # Make sure all elements of the timeseries are on the same grid
     # If we decide to pass a timeseries
@@ -60,14 +63,23 @@ function PrescribedOceanModel(timeseries=NamedTuple();
     T = CenterField(grid, boundary_conditions=FieldBoundaryConditions(grid, (Center, Center, Center), top = FluxBoundaryCondition(Jᵀ)))
     S = CenterField(grid, boundary_conditions=FieldBoundaryConditions(grid, (Center, Center, Center), top = FluxBoundaryCondition(Jˢ)))
 
-    return PrescribedOceanModel(architecture(grid), grid, clock, (; u, v, w=ZeroField()), (; T, S), timeseries)
+    reference_density = convert(eltype(grid), reference_density)
+    heat_capacity = convert(eltype(grid), heat_capacity)
+
+    return PrescribedOcean(grid, 
+                           clock, 
+                           (; u, v, w=ZeroField()), 
+                           (; T, S), 
+                           timeseries, 
+                           reference_density,
+                           heat_capacity)
 end
 
 #####
 ##### Need to extend a couple of methods
 #####
 
-function time_step!(model::PrescribedOceanModel, Δt; callbacks=[], euler=true)
+function time_step!(model::PrescribedOcean, Δt; callbacks=[], euler=true)
     tick!(model.clock, Δt)
     time = Time(model.clock.time)
 
@@ -79,9 +91,8 @@ function time_step!(model::PrescribedOceanModel, Δt; callbacks=[], euler=true)
     end
 
     # Time stepping the model!
-
     if haskey(model.timeseries, :u)  
-        arent(model.velocities.u) .= parent(model.timeseries.u[time])
+        parent(model.velocities.u) .= parent(model.timeseries.u[time])
     end
 
     if haskey(model.timeseries, :v)  
@@ -99,8 +110,10 @@ function time_step!(model::PrescribedOceanModel, Δt; callbacks=[], euler=true)
     return nothing
 end
 
-update_state!(::PrescribedOceanModel) = nothing
-timestepper(::PrescribedOceanModel) = nothing
+get_ocean_state()
 
-reference_density(ocean::Simulation{<:PrescribedOceanModel}) = 1025.6
-heat_capacity(ocean::Simulation{<:PrescribedOceanModel}) = 3995.6
+update_state!(::PrescribedOcean) = nothing
+timestepper(::PrescribedOcean) = nothing
+
+reference_density(ocean::PrescribedOcean) = ocean.reference_density
+heat_capacity(ocean::PrescribedOcean) = ocean.heat_capacity
