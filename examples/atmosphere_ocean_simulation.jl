@@ -134,10 +134,6 @@ earth.output_writers[:fluxes] = JLD2Writer(earth.model.ocean.model, fluxes;
                                            schedule=TimeInterval(3hours),
                                            filename="intercomponent_fluxes.jld2")
 
-Oceananigans.run!(earth)
-
-# ### A progress messenger
-#
 # We add a function that prints out a helpful progress message while the simulation runs.
 
 wall_time = Ref(time_ns())
@@ -155,7 +151,7 @@ function progress(sim)
     step_time = 1e-9 * (time_ns() - wall_time[])
 
     msg1 = @sprintf("time: %s, iter: %d", prettytime(sim), iteration(sim))
-    msg2 = @sprintf(", max|ua|: (%.1e, %.1e, %.1e) m s⁻¹", uamax...)
+    msg2 = @sprintf(", max|ua|: (%.1e, %.1e) m s⁻¹", uamax...)
     msg3 = @sprintf(", max|uo|: (%.1e, %.1e, %.1e) m s⁻¹", uomax...)
     msg4 = @sprintf(", wall time: %s \n", prettytime(step_time))
 
@@ -165,6 +161,12 @@ function progress(sim)
 
      return nothing
 end
+
+add_callback!(earth, progress, TimeInterval(2days))
+
+# and run the coupled model!
+
+Oceananigans.run!(earth)
 
 # ## Visualizing the results
 # We can visualize some of the results. Here, we plot the surface speeds in the atmosphere, ocean, and sea-ice
