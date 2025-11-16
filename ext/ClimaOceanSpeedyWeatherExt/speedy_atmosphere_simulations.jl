@@ -1,9 +1,9 @@
 import ClimaOcean: atmosphere_simulation
 
 # Make sure the atmospheric parameters from SpeedyWeather can be used in the compute fluxes function
-import ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres: 
-    thermodynamics_parameters, 
-    boundary_layer_height, 
+import ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres:
+    thermodynamics_parameters,
+    boundary_layer_height,
     surface_layer_height
 
 const SpeedySimulation = SpeedyWeather.Simulation
@@ -12,7 +12,7 @@ const SpeedyNoSeaIceCoupledModel = ClimaOcean.OceanSeaIceModel{<:Union{Nothing, 
 Base.summary(::SpeedySimulation) = "SpeedyWeather.Simulation"
 
 # Take one time-step or more depending on the global timestep
-function Oceananigans.TimeSteppers.time_step!(atmos::SpeedySimulation, Δt) 
+function Oceananigans.TimeSteppers.time_step!(atmos::SpeedySimulation, Δt)
     Δt_atmos = atmos.model.time_stepping.Δt_sec
     nsteps = ceil(Int, Δt / Δt_atmos)
 
@@ -38,7 +38,7 @@ end
 boundary_layer_height(atmos::SpeedySimulation) = 600
 
 # This is a _hack_!! The parameters should be consistent with what is specified in SpeedyWeather
-thermodynamics_parameters(atmos::SpeedySimulation) = 
+thermodynamics_parameters(atmos::SpeedySimulation) =
     ClimaOcean.OceanSeaIceModels.AtmosphereThermodynamicsParameters(Float32)
 
 function initialize_atmospheric_state!(simulation::SpeedyWeather.Simulation)
@@ -48,13 +48,18 @@ function initialize_atmospheric_state!(simulation::SpeedyWeather.Simulation)
     # set the tendencies back to zero for accumulation
     fill!(diagn.tendencies, 0, typeof(model))
 
-    if model.physics                   
+    if model.physics
         SpeedyWeather.parameterization_tendencies!(diagn, progn, time, model)
     end
-    
+
     return nothing
 end
 
+"""
+    atmosphere_simulation(spectral_grid::SpeedyWeather.SpectralGrid; output=false)
+
+Return an atmosphere simulation using `SpeedyWeather.PrimitiveWetModel` on `spectral_grid`.
+"""
 function atmosphere_simulation(spectral_grid::SpeedyWeather.SpectralGrid; output=false)
     # Surface fluxes
     humidity_flux_ocean = SpeedyWeather.PrescribedOceanHumidityFlux(spectral_grid)
