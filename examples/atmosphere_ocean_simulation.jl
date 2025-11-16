@@ -134,7 +134,7 @@ earth.output_writers[:fluxes] = JLD2Writer(earth.model.ocean.model, fluxes;
                                            schedule=TimeInterval(3hours),
                                            filename="intercomponent_fluxes.jld2")
 
-# We add a function that prints out a helpful progress message while the simulation runs.
+# We also add a callback function that prints out a helpful progress message while the simulation runs.
 
 wall_time = Ref(time_ns())
 
@@ -164,7 +164,7 @@ end
 
 add_callback!(earth, progress, TimeInterval(2days))
 
-# and run the coupled model!
+# Let's run the coupled model!
 
 Oceananigans.run!(earth)
 
