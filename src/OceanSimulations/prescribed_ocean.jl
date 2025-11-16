@@ -42,18 +42,6 @@ function PrescribedOcean(grid;
                          reference_density = 1029,
                          heat_capacity = 3998) 
 
-    # Make sure all elements of the timeseries are on the same grid
-    # If we decide to pass a timeseries
-    if !isempty(timeseries)
-        for k in keys(timeseries)
-            f = timeseries[k]
-            isa(f, FieldTimeSeries) ||
-                throw(ArgumentError("All variables in the `timeseries` argument must be `FieldTimeSeries`"))
-            f.grid == grid ||
-                throw(ArgumentError("All variables in the timeseries reside on the provided grid"))
-        end
-    end
-
     reference_density = convert(eltype(grid), reference_density)
     heat_capacity = convert(eltype(grid), heat_capacity)
 
