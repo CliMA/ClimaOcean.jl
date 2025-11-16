@@ -39,6 +39,20 @@ Modules = [ClimaOcean.ECCO]
 Private = false
 ```
 
+## EN4
+
+```@autodocs
+Modules = [ClimaOcean.EN4]
+Private = false
+```
+
+## ETOPO
+
+```@autodocs
+Modules = [ClimaOcean.ETOPO]
+Private = false
+```
+
 ## JRA55
 
 ```@autodocs
@@ -53,3 +67,23 @@ Modules = [ClimaOcean.Bathymetry]
 Private = false
 ```
 
+## OceanSimulations
+
+```@autodocs
+Modules = [ClimaOcean.OceanSimulations]
+Private = false
+```
+
+## OceanSeaIceModels
+
+```@autodocs
+Modules = [ClimaOcean.OceanSeaIceModels]
+Private = false
+```
+
+## InterfaceComputations
+
+```@autodocs
+Modules = [ClimaOcean.OceanSeaIceModels.InterfaceComputations]
+Private = false
+```

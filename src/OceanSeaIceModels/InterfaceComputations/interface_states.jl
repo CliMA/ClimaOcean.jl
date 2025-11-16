@@ -3,7 +3,7 @@ using Printf
 
 import ClimaSeaIce
 import Thermodynamics as AtmosphericThermodynamics
-using Thermodynamics: Liquid, Ice
+using Thermodynamics: Liquid, Ice, PhaseEquil
 
 #####
 ##### Interface properties
@@ -22,32 +22,64 @@ end
 
 # TODO: allow different saturation models
 # struct ClasiusClapyeronSaturation end
-struct SpecificHumidityFormulation{Φ, X}
+struct ImpureSaturationSpecificHumidity{Φ, X}
     # saturation :: S
     phase :: Φ
     water_mole_fraction :: X
 end
 
+function Base.summary(q★::ImpureSaturationSpecificHumidity)
+    phase_str = if q★.phase == AtmosphericThermodynamics.Ice()
+        "Ice"
+    elseif q★.phase == AtmosphericThermodynamics.Liquid()
+        "Liquid"
+    end
+
+
+    return string("ImpureSaturationSpecificHumidity{$phase_str}(water_mole_fraction=",
+                  prettysummary(q★.water_mole_fraction), ")") 
+end
+
+Base.show(io::IO, q★::ImpureSaturationSpecificHumidity) = print(io, summary(q★))
+
 """
-    SpecificHumidityFormulation(phase [, water_mole_fraction=1])
+    ImpureSaturationSpecificHumidity(phase [, water_mole_fraction=1])
 
 Return the formulation for computing specific humidity at an interface.
 """
-SpecificHumidityFormulation(phase) = SpecificHumidityFormulation(phase, nothing)
+ImpureSaturationSpecificHumidity(phase) = ImpureSaturationSpecificHumidity(phase, nothing)
 
 @inline compute_water_mole_fraction(::Nothing, salinity) = 1
 @inline compute_water_mole_fraction(x_H₂O::Number, salinity) = x_H₂O
 
-@inline function saturation_specific_humidity(formulation::SpecificHumidityFormulation, ℂₐ, ρₛ, Tₛ, Sₛ=zero(Tₛ))
-    x_H₂O = compute_water_mole_fraction(formulation.water_mole_fraction, Sₛ)
-    phase = formulation.phase
+@inline function surface_specific_humidity(formulation::ImpureSaturationSpecificHumidity,
+                                            ℂₐ, 𝒬ₐ::PhaseEquil,
+                                            Tₛ, Sₛ=zero(Tₛ))
+    # Extrapolate air density to the surface temperature
+    # following an adiabatic ideal gas transformation
+    cvₘ = Thermodynamics.cv_m(ℂₐ, 𝒬ₐ)
+    Rₐ = Thermodynamics.gas_constant_air(ℂₐ, 𝒬ₐ)
+    κₐ = cvₘ / Rₐ # 1 / (γ - 1)
+    ρₐ = Thermodynamics.air_density(ℂₐ, 𝒬ₐ)
+    Tₐ = Thermodynamics.air_temperature(ℂₐ, 𝒬ₐ)
+    ρₛ = ρₐ * (Tₛ / Tₐ)^κₐ
+    return surface_specific_humidity(formulation, ℂₐ, ρₛ, Tₛ, Sₛ)
+end
 
+@inline function surface_specific_humidity(formulation::ImpureSaturationSpecificHumidity, ℂₐ, ρₛ::Number, Tₛ, Sₛ=zero(Tₛ))
+    FT = eltype(Tₛ)
     CT = eltype(ℂₐ)
-    p★ = Thermodynamics.saturation_vapor_pressure(ℂₐ, convert(CT, Tₛ), phase)
-    q★ = Thermodynamics.q_vap_saturation_from_density(ℂₐ, convert(CT, Tₛ), convert(CT, ρₛ), p★)
+    Tₛ = convert(CT, Tₛ)
+    ρₛ = convert(CT, ρₛ)
+    phase = formulation.phase
+    p★ = Thermodynamics.saturation_vapor_pressure(ℂₐ, Tₛ, phase)
+    q★ = Thermodynamics.q_vap_from_p_vap(ℂₐ, Tₛ, ρₛ, p★)
 
     # Compute saturation specific humidity according to Raoult's law
-    return q★ * x_H₂O
+    χ_H₂O = compute_water_mole_fraction(formulation.water_mole_fraction, Sₛ)
+    qₛ = χ_H₂O * q★
+
+    return convert(FT, qₛ)
 end
 
 struct SalinityConstituent{FT}
@@ -71,7 +103,7 @@ function WaterMoleFraction(FT=Oceananigans.defaults.FloatType)
         magnesium = SalinityConstituent{FT}(24.31, 0.05),
     )
 
-    return SeawaterComposition(water_molar_mass, salinity_constituents)
+    return WaterMoleFraction(water_molar_mass, salinity_constituents)
 end
 
 @inline function compute_water_mole_fraction(wmf::WaterMoleFraction, S)
@@ -115,6 +147,22 @@ struct RelativeVelocity end
 end
 
 @inline velocity_difference(::WindVelocity, 𝒰₁, 𝒰₀) = 𝒰₁.u, 𝒰₁.v
+
+####
+#### Atmospheric temperature
+####
+
+# Temperature increment including the ``lapse rate'' `α = g / cₚ`
+function surface_atmosphere_temperature(Ψₐ, ℙₐ)
+    ℂₐ = ℙₐ.thermodynamics_parameters
+    g  = ℙₐ.gravitational_acceleration
+    𝒬ₐ = Ψₐ.𝒬
+    zₐ = Ψₐ.z
+    Δh = zₐ # Assumption! The surface is at z = 0 -> Δh = zₐ - 0
+    Tₐ = AtmosphericThermodynamics.air_temperature(ℂₐ, 𝒬ₐ)
+    cₐ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ)
+    return Tₐ + g * Δh / cₐ
+end
 
 ####
 #### Interface temperature formulations
@@ -198,34 +246,47 @@ end
 # Tₛⁿ⁺¹ = = (Tᵢ - δ / κ * (Jᵃ - 4 α Tₛⁿ⁴)) / (1 + 4 δ σ ϵ Tₛⁿ³ / ρ c κ)
 #
 # corresponding to a linearization of the outgoing longwave radiation term.
-@inline function flux_balance_temperature(st::SkinTemperature{<:DiffusiveFlux}, Qₐ, Ψₛ, ℙₛ, Ψᵢ, ℙᵢ)
-    F = st.internal_flux
-    ρ = ℙᵢ.reference_density
-    c = ℙᵢ.heat_capacity
-    Jᵀ = Qₐ / (ρ * c)
-    return Ψᵢ.T - Jᵀ * F.δ / F.κ
+@inline function flux_balance_temperature(st::SkinTemperature{<:DiffusiveFlux}, Ψₛ, ℙₛ, Qc, Qv, Qu, Qd, Ψᵢ, ℙᵢ, Ψₐ, ℙₐ)
+    Qa = Qv + Qu + Qd # Net flux (positive out of the ocean)
+    F  = st.internal_flux
+    ρ  = ℙᵢ.reference_density
+    c  = ℙᵢ.heat_capacity
+    Qa = (Qv + Qu + Qd) # Net flux excluding sensible heat (positive out of the ocean)
+    λ  = 1 / (ρ * c) # m³ K J⁻¹
+    Jᵀ = Qa * λ
+
+    # Calculating the atmospheric temperature
+    # We use to compute the sensible heat flux
+    Tₐ = surface_atmosphere_temperature(Ψₐ, ℙₐ)
+    ΔT = Tₐ - Ψₛ.T
+    Ωc = ifelse(ΔT == 0, zero(ΔT), Qc / ΔT * λ) # Sensible heat transfer coefficient (W/m²K)
+
+    # Computing the flux balance temperature
+    return (Ψᵢ.T * F.κ - (Jᵀ + Ωc * Tₐ) * F.δ) / (F.κ - Ωc * F.δ)
 end
 
-# Q + k / h * (Tˢ - Tᵢ) = 0
-# ⟹  Tₛ = Tᵢ - Q * h / k
-@inline function flux_balance_temperature(st::SkinTemperature{<:ClimaSeaIce.ConductiveFlux}, Qₐ, Ψₛ, ℙₛ, Ψᵢ, ℙᵢ)
+# Qv + Qu + Qd + Ωc * (Tₐ - Tˢ) + k / h * (Tˢ - Tᵢ) = 0
+# where Ωc (the sensible heat transfer coefficient) is given by Ωc = Qc / (Tₐ - Tˢ)
+# ⟹  Tₛ = (Tᵢ * k - (Qv + Qu + Qd + Ωc * Tₐ) * h / (k - Ωc * h)
+@inline function flux_balance_temperature(st::SkinTemperature{<:ClimaSeaIce.ConductiveFlux}, Ψₛ, ℙₛ, Qc, Qv, Qu, Qd, Ψᵢ, ℙᵢ, Ψₐ, ℙₐ)
     F = st.internal_flux
     k = F.conductivity
     h = Ψᵢ.h
 
     # Bottom temperature at the melting temperature
-    Tᵢ  = ClimaSeaIce.SeaIceThermodynamics.melting_temperature(ℙᵢ.liquidus, Ψᵢ.S)
-    Tᵢ  = convert_to_kelvin(ℙᵢ.temperature_units, Tᵢ)
+    Tᵢ = ClimaSeaIce.SeaIceThermodynamics.melting_temperature(ℙᵢ.liquidus, Ψᵢ.S)
+    Tᵢ = convert_to_kelvin(ℙᵢ.temperature_units, Tᵢ)
     Tₛ⁻ = Ψₛ.T
 
-    #=
-    σ = ℙₛ.radiation.σ
-    ϵ = ℙₛ.radiation.ϵ
-    α = σ * ϵ
-    Tₛ = (Tᵢ - h / k * (Qₐ + 4α * Tₛ⁻^4)) / (1 + 4α * h * Tₛ⁻^3 / k)
-    =#
+    # Calculating the atmospheric temperature
+    # We use to compute the sensible heat flux
+    Tₐ = surface_atmosphere_temperature(Ψₐ, ℙₐ)
+    ΔT = Tₐ - Tₛ⁻
+    Ωc = ifelse(ΔT == 0, zero(h), Qc / ΔT) # Sensible heat transfer coefficient (W/m²K)
+    Qa = (Qv + Qu + Qd) # Net flux excluding sensible heat (positive out of the ocean)
 
-    T★ = Tᵢ - Qₐ * h / k
+    # Computing the flux balance temperature
+    T★ = (Tᵢ * k - (Qa + Ωc * Tₐ) * h) / (k - Ωc * h)
 
     # Fix a NaN
     T★ = ifelse(isnan(T★), Tₛ⁻, T★)
@@ -253,7 +314,7 @@ end
                                                interface_properties,
                                                atmosphere_properties,
                                                interior_properties)
-        
+
     ℂₐ = atmosphere_properties.thermodynamics_parameters
     𝒬ₐ = atmosphere_state.𝒬
     ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
@@ -269,9 +330,10 @@ end
     ϵ = interface_properties.radiation.ϵ
     α = interface_properties.radiation.α
 
-    Qu = upwelling_radiation(Tₛ⁻, σ, ϵ)
-    Qd = net_downwelling_radiation(downwelling_radiation, α, ϵ)
-    Qr = Qd + Qu # Net radiation (positive out of the ocean)
+    Qs = downwelling_radiation.Qs
+    Qℓ = downwelling_radiation.Qℓ
+    Qu = emitted_longwave_radiation(Tₛ⁻, σ, ϵ)
+    Qd = net_absorbed_interface_radiation(Qs, Qℓ, α, ϵ)
 
     u★ = interface_state.u★
     θ★ = interface_state.θ★
@@ -281,14 +343,14 @@ end
     Qc = - ρₐ * cₐ * u★ * θ★ # = - ρₐ cₐ u★ Ch / sqrt(Cd) * (θₐ - Tₛ)
     Qv = - ρₐ * ℰs * u★ * q★
 
-    # Net heat flux
-    Qa = Qr + Qc + Qv
-
-    Tₛ = flux_balance_temperature(st, Qa,
+    Tₛ = flux_balance_temperature(st,
                                   interface_state,
                                   interface_properties,
+                                  Qc, Qv, Qu, Qd,
                                   interior_state,
-                                  interior_properties)
+                                  interior_properties,
+                                  atmosphere_state,
+                                  atmosphere_properties)
 
     return Tₛ
 end
@@ -309,7 +371,7 @@ struct InterfaceState{FT}
     melting :: Bool
 end
 
-InterfaceState(u★, θ★, q★, u, v, T, S, q) =
+@inline InterfaceState(u★, θ★, q★, u, v, T, S, q) =
     InterfaceState(u★, θ★, q★, u, v, T, S, q, false)
 
 Base.eltype(::InterfaceState{FT}) where FT = FT

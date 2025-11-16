@@ -9,6 +9,7 @@ using Oceananigans.Advection: FluxFormAdvection
 using Oceananigans.BoundaryConditions: DefaultBoundaryCondition
 using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node, MutableGridOfSomeKind
 using Oceananigans.OrthogonalSphericalShellGrids
+using Oceananigans.Operators
 
 using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities:
     CATKEVerticalDiffusivity,
@@ -17,9 +18,8 @@ using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities:
 
 using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 
-using Oceananigans.BuoyancyFormulations: g_Earth
-using Oceananigans.Coriolis: Ω_Earth
-using Oceananigans.Operators
+default_gravitational_acceleration = Oceananigans.defaults.gravitational_acceleration
+default_planet_rotation_rate = Oceananigans.defaults.planet_rotation_rate
 
 import ClimaOcean: reference_density, heat_capacity
 
@@ -49,6 +49,7 @@ default_or_override(default::Default, possibly_alternative_default=default.value
 default_or_override(override, alternative_default=nothing) = override
 
 include("barotropic_potential_forcing.jl")
+include("radiative_forcing.jl")
 include("ocean_simulation.jl")
 include("prescribed_ocean_model.jl")
 

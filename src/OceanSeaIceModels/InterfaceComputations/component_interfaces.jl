@@ -1,6 +1,5 @@
 using StaticArrays
 using Thermodynamics
-using SurfaceFluxes
 using OffsetArrays
 
 using ..OceanSeaIceModels: reference_density,
@@ -20,33 +19,31 @@ using ClimaSeaIce: SeaIceModel
 using Oceananigans: HydrostaticFreeSurfaceModel, architecture
 using Oceananigans.Grids: inactive_node, node, topology
 using Oceananigans.BoundaryConditions: fill_halo_regions!
-
 using Oceananigans.Fields: ConstantField, interpolate, FractionalIndices
 using Oceananigans.Utils: launch!, Time, KernelParameters
-
 using Oceananigans.Operators: ℑxᶜᵃᵃ, ℑyᵃᶜᵃ, ℑxᶠᵃᵃ, ℑyᵃᶠᵃ
 
 using KernelAbstractions: @kernel, @index
+
+import Oceananigans.Simulations: initialize!
 
 #####
 ##### Container for organizing information related to fluxes
 #####
 
-struct AtmosphereInterface{J, F, ST, P}
+mutable struct AtmosphereInterface{J, F, ST, P}
     fluxes :: J
     flux_formulation :: F
     temperature :: ST
     properties :: P
 end
 
-struct SeaIceOceanInterface{J, P, H, A}
+mutable struct SeaIceOceanInterface{J, P}
     fluxes :: J
     properties :: P
-    previous_ice_thickness :: H
-    previous_ice_concentration :: A
 end
 
-struct ComponentInterfaces{AO, ASI, SIO, C, AP, OP, SIP, EX}
+mutable struct ComponentInterfaces{AO, ASI, SIO, C, AP, OP, SIP, EX, P}
     atmosphere_ocean_interface :: AO
     atmosphere_sea_ice_interface :: ASI
     sea_ice_ocean_interface :: SIO
@@ -55,32 +52,47 @@ struct ComponentInterfaces{AO, ASI, SIO, C, AP, OP, SIP, EX}
     sea_ice_properties :: SIP
     exchanger :: EX
     net_fluxes :: C
+    properties :: P
 end
 
-struct StateExchanger{G, AST, AEX}
+mutable struct StateExchanger{G, AST, AEX}
     exchange_grid :: G
     exchange_atmosphere_state :: AST
     atmosphere_exchanger :: AEX
 end
+
+mutable struct ExchangeAtmosphereState{F}
+    u  :: F
+    v  :: F
+    T  :: F
+    q  :: F
+    p  :: F
+    Qs :: F
+    Qℓ :: F
+    Mp :: F
+end
+
+ExchangeAtmosphereState(grid) = ExchangeAtmosphereState(Field{Center, Center, Nothing}(grid),
+                                                        Field{Center, Center, Nothing}(grid),
+                                                        Field{Center, Center, Nothing}(grid),
+                                                        Field{Center, Center, Nothing}(grid),
+                                                        Field{Center, Center, Nothing}(grid),
+                                                        Field{Center, Center, Nothing}(grid),
+                                                        Field{Center, Center, Nothing}(grid),
+                                                        Field{Center, Center, Nothing}(grid))
 
 # Note that Field location can also affect fractional index type.
 # Here we assume that we know the location of Fields that will be interpolated.
 fractional_index_type(FT, Topo) = FT
 fractional_index_type(FT, ::Flat) = Nothing
 
+
+StateExchanger(ocean::Simulation, ::Nothing) = nothing
+
 function StateExchanger(ocean::Simulation, atmosphere)
     # TODO: generalize this
     exchange_grid = ocean.model.grid
-
-    exchange_atmosphere_state = (u  = Field{Center, Center, Nothing}(exchange_grid),
-                                 v  = Field{Center, Center, Nothing}(exchange_grid),
-                                 T  = Field{Center, Center, Nothing}(exchange_grid),
-                                 q  = Field{Center, Center, Nothing}(exchange_grid),
-                                 p  = Field{Center, Center, Nothing}(exchange_grid),
-                                 Qs = Field{Center, Center, Nothing}(exchange_grid),
-                                 Qℓ = Field{Center, Center, Nothing}(exchange_grid),
-                                 Mp = Field{Center, Center, Nothing}(exchange_grid))
-
+    exchange_atmosphere_state = ExchangeAtmosphereState(exchange_grid)
     exchanger = atmosphere_exchanger(atmosphere, exchange_grid)
 
     return StateExchanger(ocean.model.grid, exchange_atmosphere_state, exchanger)
@@ -100,18 +112,31 @@ function atmosphere_exchanger(atmosphere::PrescribedAtmosphere, exchange_grid)
     fj = TY() isa Flat ? nothing : Field{Center, Center, Nothing}(exchange_grid, FT)
     frac_indices = (i=fi, j=fj) # no k needed, only horizontal interpolation
 
+    return frac_indices
+end
+
+initialize!(exchanger::StateExchanger, ::Nothing) = nothing
+
+function initialize!(exchanger::StateExchanger, atmosphere)
+    atmos_grid = atmosphere.grid
+    exchange_grid = exchanger.exchange_grid
+    arch = architecture(exchange_grid)
+    frac_indices = exchanger.atmosphere_exchanger
     kernel_parameters = interface_kernel_parameters(exchange_grid)
     launch!(arch, exchange_grid, kernel_parameters,
             _compute_fractional_indices!, frac_indices, exchange_grid, atmos_grid)
-
-    return frac_indices
+    return nothing
 end
 
 @kernel function _compute_fractional_indices!(indices_tuple, exchange_grid, atmos_grid)
     i, j = @index(Global, NTuple)
     kᴺ = size(exchange_grid, 3) # index of the top ocean cell
     X = _node(i, j, kᴺ + 1, exchange_grid, c, c, f)
-    fractional_indices_ij = FractionalIndices(X, atmos_grid, c, c, nothing)
+    if topology(atmos_grid) == (Flat, Flat, Flat)
+        fractional_indices_ij = FractionalIndices(nothing, nothing, nothing)
+    else
+        fractional_indices_ij = FractionalIndices(X, atmos_grid, c, c, c)
+    end
     fi = indices_tuple.i
     fj = indices_tuple.j
     @inbounds begin
@@ -124,8 +149,6 @@ end
         end
     end
 end
-
-const PATP = PrescribedAtmosphereThermodynamicsParameters
 
 # Possible units for temperature and salinity
 struct DegreesCelsius end
@@ -141,19 +164,39 @@ const celsius_to_kelvin = 273.15
 Base.summary(crf::ComponentInterfaces) = "ComponentInterfaces"
 Base.show(io::IO, crf::ComponentInterfaces) = print(io, summary(crf))
 
-function atmosphere_ocean_interface(ocean,
+atmosphere_ocean_interface(::Nothing, args...) = nothing
+
+function atmosphere_ocean_interface(atmos,
+                                    ocean,
                                     radiation,
                                     ao_flux_formulation,
-                                    temperature_formulation, 
+                                    temperature_formulation,
                                     velocity_formulation,
                                     specific_humidity_formulation)
 
-    water_vapor   = Field{Center, Center, Nothing}(ocean.model.grid)
-    latent_heat   = Field{Center, Center, Nothing}(ocean.model.grid)
-    sensible_heat = Field{Center, Center, Nothing}(ocean.model.grid)
-    x_momentum    = Field{Center, Center, Nothing}(ocean.model.grid)
-    y_momentum    = Field{Center, Center, Nothing}(ocean.model.grid)
-    ao_fluxes = (; latent_heat, sensible_heat, water_vapor, x_momentum, y_momentum)
+    water_vapor           = Field{Center, Center, Nothing}(ocean.model.grid)
+    latent_heat           = Field{Center, Center, Nothing}(ocean.model.grid)
+    sensible_heat         = Field{Center, Center, Nothing}(ocean.model.grid)
+    x_momentum            = Field{Center, Center, Nothing}(ocean.model.grid)
+    y_momentum            = Field{Center, Center, Nothing}(ocean.model.grid)
+    friction_velocity     = Field{Center, Center, Nothing}(ocean.model.grid)
+    temperature_scale     = Field{Center, Center, Nothing}(ocean.model.grid)
+    water_vapor_scale     = Field{Center, Center, Nothing}(ocean.model.grid)
+    upwelling_longwave    = Field{Center, Center, Nothing}(ocean.model.grid)
+    downwelling_longwave  = Field{Center, Center, Nothing}(ocean.model.grid)
+    downwelling_shortwave = Field{Center, Center, Nothing}(ocean.model.grid)
+
+    ao_fluxes = (; latent_heat,
+                   sensible_heat,
+                   water_vapor,
+                   x_momentum,
+                   y_momentum,
+                   friction_velocity,
+                   temperature_scale,
+                   water_vapor_scale,
+                   upwelling_longwave,
+                   downwelling_longwave,
+                   downwelling_shortwave)
 
     σ = radiation.stefan_boltzmann_constant
     αₐₒ = radiation.reflection.ocean
@@ -170,9 +213,13 @@ function atmosphere_ocean_interface(ocean,
     return AtmosphereInterface(ao_fluxes, ao_flux_formulation, interface_temperature, ao_properties)
 end
 
-atmosphere_sea_ice_interface(sea_ice, args...) = nothing
+atmosphere_sea_ice_interface(atmos, sea_ice, args...) = nothing
+atmosphere_sea_ice_interface(::Nothing, args...) = nothing
+atmosphere_sea_ice_interface(::Nothing, ::Nothing, args...) = nothing
+atmosphere_sea_ice_interface(::Nothing, ::SeaIceSimulation, args...) = nothing
 
-function atmosphere_sea_ice_interface(sea_ice::SeaIceSimulation,
+function atmosphere_sea_ice_interface(atmos,
+                                      sea_ice::SeaIceSimulation,
                                       radiation,
                                       ai_flux_formulation,
                                       temperature_formulation,
@@ -191,7 +238,7 @@ function atmosphere_sea_ice_interface(sea_ice::SeaIceSimulation,
     radiation = (σ=σ, α=αₐᵢ, ϵ=ϵₐᵢ)
 
     phase = AtmosphericThermodynamics.Ice()
-    specific_humidity_formulation = SpecificHumidityFormulation(phase)
+    specific_humidity_formulation = ImpureSaturationSpecificHumidity(phase)
 
     properties = InterfaceProperties(radiation,
                                      specific_humidity_formulation,
@@ -208,11 +255,11 @@ sea_ice_ocean_interface(sea_ice, ocean) = nothing
 function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean;
                                  characteristic_melting_speed = 1e-5)
 
-    previous_ice_thickness = deepcopy(sea_ice.model.ice_thickness)
-    previous_ice_concentration = deepcopy(sea_ice.model.ice_concentration)
     io_bottom_heat_flux = Field{Center, Center, Nothing}(ocean.model.grid)
     io_frazil_heat_flux = Field{Center, Center, Nothing}(ocean.model.grid)
     io_salt_flux = Field{Center, Center, Nothing}(ocean.model.grid)
+    x_momentum = Field{Face, Center, Nothing}(ocean.model.grid)
+    y_momentum = Field{Center, Face, Nothing}(ocean.model.grid)
 
     @assert io_frazil_heat_flux isa Field{Center, Center, Nothing}
     @assert io_bottom_heat_flux isa Field{Center, Center, Nothing}
@@ -220,14 +267,13 @@ function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean;
 
     io_fluxes = (interface_heat=io_bottom_heat_flux,
                  frazil_heat=io_frazil_heat_flux,
-                 salt=io_salt_flux)
+                 salt=io_salt_flux,
+                 x_momentum=x_momentum,
+                 y_momentum=y_momentum)
 
     io_properties = (; characteristic_melting_speed)
 
-    return SeaIceOceanInterface(io_fluxes,
-                                io_properties,
-                                previous_ice_thickness,
-                                previous_ice_concentration)
+    return SeaIceOceanInterface(io_fluxes, io_properties)
 end
 
 default_ai_temperature(sea_ice) = nothing
@@ -241,17 +287,15 @@ function default_ao_specific_humidity(ocean)
     FT = eltype(ocean.model.grid)
     phase = AtmosphericThermodynamics.Liquid()
     x_H₂O = convert(FT, 0.98)
-    return SpecificHumidityFormulation(phase, x_H₂O)
+    return ImpureSaturationSpecificHumidity(phase, x_H₂O)
 end
 
 """
     ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                         radiation = Radiation(),
-                        freshwater_density = 1000,
-                        atmosphere_ocean_flux_formulation = SimilarityTheoryFluxes(),
-                        atmosphere_sea_ice_flux_formulation = CoefficientBasedFluxes(drag_coefficient=2e-3,
-                                                                                     heat_transfer_coefficient=1e-4,
-                                                                                     vapor_flux_coefficient=1e-4),
+                        freshwater_density = default_freshwater_density,
+                        atmosphere_ocean_fluxes = SimilarityTheoryFluxes(),
+                        atmosphere_sea_ice_fluxes = SimilarityTheoryFluxes(eltype(ocean.model.grid)),
                         atmosphere_ocean_interface_temperature = BulkTemperature(),
                         atmosphere_ocean_interface_specific_humidity = default_ao_specific_humidity(ocean),
                         atmosphere_sea_ice_interface_temperature = default_ai_temperature(sea_ice),
@@ -260,13 +304,14 @@ end
                         ocean_temperature_units = DegreesCelsius(),
                         sea_ice_temperature_units = DegreesCelsius(),
                         sea_ice_reference_density = reference_density(sea_ice),
-                        sea_ice_heat_capacity = heat_capacity(sea_ice))
+                        sea_ice_heat_capacity = heat_capacity(sea_ice),
+                        gravitational_acceleration = default_gravitational_acceleration)
 """
 function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              radiation = Radiation(),
-                             freshwater_density = 1000,
-                             atmosphere_ocean_flux_formulation = SimilarityTheoryFluxes(eltype(ocean.model.grid)),
-                             atmosphere_sea_ice_flux_formulation = SimilarityTheoryFluxes(eltype(ocean.model.grid)),
+                             freshwater_density = default_freshwater_density,
+                             atmosphere_ocean_fluxes = SimilarityTheoryFluxes(eltype(ocean.model.grid)),
+                             atmosphere_sea_ice_fluxes = SimilarityTheoryFluxes(eltype(ocean.model.grid)),
                              atmosphere_ocean_interface_temperature = BulkTemperature(),
                              atmosphere_ocean_velocity_difference = RelativeVelocity(),
                              atmosphere_ocean_interface_specific_humidity = default_ao_specific_humidity(ocean),
@@ -277,16 +322,18 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              ocean_temperature_units = DegreesCelsius(),
                              sea_ice_temperature_units = DegreesCelsius(),
                              sea_ice_reference_density = reference_density(sea_ice),
-                             sea_ice_heat_capacity = heat_capacity(sea_ice))
+                             sea_ice_heat_capacity = heat_capacity(sea_ice),
+                             gravitational_acceleration = default_gravitational_acceleration)
 
     ocean_grid = ocean.model.grid
     FT = eltype(ocean_grid)
 
-    ocean_reference_density   = convert(FT, ocean_reference_density)
-    ocean_heat_capacity       = convert(FT, ocean_heat_capacity)
-    sea_ice_reference_density = convert(FT, sea_ice_reference_density)
-    sea_ice_heat_capacity     = convert(FT, sea_ice_heat_capacity)
-    freshwater_density        = convert(FT, freshwater_density)
+    ocean_reference_density    = convert(FT, ocean_reference_density)
+    ocean_heat_capacity        = convert(FT, ocean_heat_capacity)
+    sea_ice_reference_density  = convert(FT, sea_ice_reference_density)
+    sea_ice_heat_capacity      = convert(FT, sea_ice_heat_capacity)
+    freshwater_density         = convert(FT, freshwater_density)
+    gravitational_acceleration = convert(FT, gravitational_acceleration)
 
     atmosphere_properties = thermodynamics_parameters(atmosphere)
 
@@ -295,18 +342,20 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                         freshwater_density = freshwater_density,
                         temperature_units  = ocean_temperature_units)
 
-    ao_interface = atmosphere_ocean_interface(ocean,
+    ao_interface = atmosphere_ocean_interface(atmosphere,
+                                              ocean,
                                               radiation,
-                                              atmosphere_ocean_flux_formulation,
+                                              atmosphere_ocean_fluxes,
                                               atmosphere_ocean_interface_temperature,
                                               atmosphere_ocean_velocity_difference,
                                               atmosphere_ocean_interface_specific_humidity)
 
     io_interface = sea_ice_ocean_interface(sea_ice, ocean)
 
-    ai_interface = atmosphere_sea_ice_interface(sea_ice,
+    ai_interface = atmosphere_sea_ice_interface(atmosphere,
+                                                sea_ice,
                                                 radiation,
-                                                atmosphere_sea_ice_flux_formulation,
+                                                atmosphere_sea_ice_fluxes,
                                                 atmosphere_sea_ice_interface_temperature,
                                                 atmosphere_sea_ice_velocity_difference)
 
@@ -317,10 +366,10 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                               liquidus           = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus,
                               temperature_units  = sea_ice_temperature_units)
 
-        net_momentum_fluxes = if sea_ice.model.dynamics isa Nothing 
+        net_momentum_fluxes = if isnothing(sea_ice.model.dynamics)
             u = Field{Face, Center, Nothing}(sea_ice.model.grid)
             v = Field{Center, Face, Nothing}(sea_ice.model.grid)
-            (; u, v) 
+            (; u, v)
         else
             u = sea_ice.model.dynamics.external_momentum_stresses.top.u
             v = sea_ice.model.dynamics.external_momentum_stresses.top.v
@@ -353,6 +402,8 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
 
     exchanger = StateExchanger(ocean, atmosphere)
 
+    properties = (; gravitational_acceleration)
+
     return ComponentInterfaces(ao_interface,
                                ai_interface,
                                io_interface,
@@ -360,7 +411,8 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                                ocean_properties,
                                sea_ice_properties,
                                exchanger,
-                               net_fluxes)
+                               net_fluxes,
+                               properties)
 end
 
 sea_ice_similarity_theory(sea_ice) = nothing
@@ -375,3 +427,8 @@ function sea_ice_similarity_theory(sea_ice::SeaIceSimulation)
     return SimilarityTheoryFluxes(; interface_temperature_type)
 end
 
+@inline function air_sea_surface_specific_humidity(interfaces::ComponentInterfaces, ρₛ, Tₛ, Sₛ=zero(Tₛ))
+    formulation = interfaces.atmosphere_ocean_interface.properties.specific_humidity_formulation
+    ℂₐ = interfaces.atmosphere_properties.thermodynamics_parameters
+    return surface_specific_humidity(formulation, ρₛ, Tₛ, Sₛ)
+end

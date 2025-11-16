@@ -3,10 +3,21 @@ using Oceananigans.Grids: _node
 using Oceananigans.Fields: FractionalIndices
 using Oceananigans.OutputReaders: TimeInterpolator
 
-using ...OceanSimulations: forcing_barotropic_potential
+using ...OceanSimulations: forcing_barotropic_potential, TwoColorRadiation
 
 using ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres: PrescribedAtmosphere
 import ClimaOcean.OceanSeaIceModels: interpolate_atmosphere_state!
+
+compute_radiative_forcing!(T_forcing, downwelling_shortwave_radiation, coupled_model) = nothing #fallback
+
+function compute_radiative_forcing!(tcr::TwoColorRadiation, downwelling_shortwave_radiation, coupled_model)
+    ρₒ = coupled_model.interfaces.ocean_properties.reference_density
+    cₒ = coupled_model.interfaces.ocean_properties.heat_capacity
+    J⁰ = tcr.surface_flux
+    Qs = downwelling_shortwave_radiation
+    parent(J⁰) .= - parent(Qs) ./ (ρₒ * cₒ)
+    return nothing
+end
 
 # TODO: move to PrescribedAtmospheres
 """Interpolate the atmospheric state onto the ocean / sea-ice grid."""
@@ -23,7 +34,7 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
     ##### First interpolate atmosphere time series
     ##### in time and to the ocean grid.
     #####
-    
+
     # We use .data here to save parameter space (unlike Field, adapt_structure for
     # fts = FieldTimeSeries does not return fts.data)
     atmosphere_velocities = (u = atmosphere.velocities.u.data,
@@ -63,8 +74,12 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
 
     # Assumption, should be generalized
     ua = atmosphere.velocities.u
-    time_interpolator = TimeInterpolator(ua, clock.time)
-    
+
+    times = ua.times
+    time_indexing = ua.time_indexing
+    t = clock.time
+    time_interpolator = TimeInterpolator(ua.time_indexing, times, clock.time)
+
     launch!(arch, grid, kernel_parameters,
             _interpolate_primary_atmospheric_state!,
             atmosphere_data,
@@ -107,16 +122,25 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
     end
 
     # Set ocean barotropic pressure forcing
-    barotropic_potential = forcing_barotropic_potential(ocean)
+    #
+    # TODO: find a better design for this that doesn't have redundant
+    # arrays for the barotropic potential
+    u_potential = forcing_barotropic_potential(ocean.model.forcing.u)
+    v_potential = forcing_barotropic_potential(ocean.model.forcing.v)
     ρₒ = coupled_model.interfaces.ocean_properties.reference_density
-    if !isnothing(barotropic_potential)
-        parent(barotropic_potential) .= parent(atmosphere_data.p) ./ ρₒ
+
+    if !isnothing(u_potential)
+        parent(u_potential) .= parent(atmosphere_data.p) ./ ρₒ
+    end
+
+    if !isnothing(v_potential)
+        parent(v_potential) .= parent(atmosphere_data.p) ./ ρₒ
     end
 end
 
 @inline get_fractional_index(i, j, ::Nothing) = nothing
 @inline get_fractional_index(i, j, frac) = @inbounds frac[i, j, 1]
-    
+
 @kernel function _interpolate_primary_atmospheric_state!(surface_atmos_state,
                                                          space_fractional_indices,
                                                          time_interpolator,
@@ -152,7 +176,7 @@ end
     # Usually precipitation
     Mh = interp_atmos_time_series(prescribed_freshwater_flux, atmos_args...)
 
-    # Convert atmosphere velocities (usually defined on a latitude-longitude grid) to 
+    # Convert atmosphere velocities (usually defined on a latitude-longitude grid) to
     # the frame of reference of the native grid
     kᴺ = size(exchange_grid, 3) # index of the top ocean cell
     uₐ, vₐ = intrinsic_vector(i, j, kᴺ, exchange_grid, uₐ, vₐ)
@@ -226,4 +250,3 @@ end
     interp_atmos_time_series(ΣJ[2], args...) +
     interp_atmos_time_series(ΣJ[3], args...) +
     interp_atmos_time_series(ΣJ[4], args...)
-

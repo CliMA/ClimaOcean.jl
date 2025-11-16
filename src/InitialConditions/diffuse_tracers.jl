@@ -60,7 +60,7 @@ function diffuse_tracers(initial_tracers;
     smoothing_simulation = Simulation(smoothing_model; Δt, stop_time=1)
 
     # Remove NaN checker
-    pop!(smoothing_simulation.callbacks, :nan_checker) 
+    pop!(smoothing_simulation.callbacks, :nan_checker)
 
     # Restore values to default in the masked region
     function restore_values(sim)

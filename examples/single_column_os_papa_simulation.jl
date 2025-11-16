@@ -15,7 +15,6 @@
 # ```
 
 using ClimaOcean
-using ClimaOcean.ECCO
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.BuoyancyFormulations: buoyancy_frequency
@@ -40,7 +39,7 @@ grid = RectilinearGrid(size = 200,
 
 # # An "ocean simulation"
 #
-# Next, we use ClimaOcean's ocean_simulation constructor to build a realistic
+# Next, we use ClimaOcean's `ocean_simulation` constructor to build a realistic
 # ocean simulation on the single-column grid,
 
 ocean = ocean_simulation(grid; Δt=10minutes, coriolis=FPlane(latitude = φ★))
@@ -49,10 +48,10 @@ ocean = ocean_simulation(grid; Δt=10minutes, coriolis=FPlane(latitude = φ★))
 
 ocean.model
 
-# We set initial conditions from ECCO:
+# We set initial conditions from ECCO4:
 
-set!(ocean.model, T=Metadata(:temperature, dataset=ECCO4Monthly()),
-                  S=Metadata(:salinity, dataset=ECCO4Monthly()))
+set!(ocean.model, T=Metadatum(:temperature, dataset=ECCO4Monthly()),
+                  S=Metadatum(:salinity, dataset=ECCO4Monthly()))
 
 # # A prescribed atmosphere based on JRA55 re-analysis
 #
@@ -62,7 +61,7 @@ set!(ocean.model, T=Metadata(:temperature, dataset=ECCO4Monthly()),
 atmosphere = JRA55PrescribedAtmosphere(longitude = λ★,
                                        latitude = φ★,
                                        end_date = DateTime(1990, 1, 31), # Last day of the simulation
-                                       backend = JRA55NetCDFBackend(30))
+                                       backend  = InMemory())
 
 # This builds a representation of the atmosphere on the small grid
 
@@ -80,7 +79,7 @@ using CairoMakie
 
 set_theme!(Theme(linewidth=3, fontsize=24))
 
-fig = Figure(size=(800, 600))
+fig = Figure(size=(800, 1000))
 axu = Axis(fig[2, 1], xlabel="Days since Jan 1 1990", ylabel="Atmosphere \n velocity (m s⁻¹)")
 axT = Axis(fig[3, 1], xlabel="Days since Jan 1 1990", ylabel="Atmosphere \n temperature (ᵒK)")
 axq = Axis(fig[4, 1], xlabel="Days since Jan 1 1990", ylabel="Atmosphere \n specific humidity")
@@ -165,9 +164,9 @@ outputs = merge(fields, fluxes)
 
 filename = "single_column_omip_$(location_name)"
 
-simulation.output_writers[:jld2] = JLD2OutputWriter(ocean.model, outputs; filename,
-                                                    schedule = TimeInterval(3hours),
-                                                    overwrite_existing = true)
+simulation.output_writers[:jld2] = JLD2Writer(ocean.model, outputs; filename,
+                                              schedule = TimeInterval(3hours),
+                                              overwrite_existing = true)
 
 run!(simulation)
 
@@ -323,7 +322,7 @@ Smax = maximum(interior(S))
 Smin = minimum(interior(S))
 xlims!(axSz, Smin - 0.2, Smax + 0.2)
 
-record(fig, "single_column_profiles.mp4", 1:Nt, framerate=24) do nn
+CairoMakie.record(fig, "single_column_profiles.mp4", 1:Nt, framerate=24) do nn
     @info "Drawing frame $nn of $Nt..."
     n[] = nn
 end

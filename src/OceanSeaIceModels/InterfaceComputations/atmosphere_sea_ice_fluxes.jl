@@ -38,8 +38,9 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
     sea_ice_properties = coupled_model.interfaces.sea_ice_properties
     ocean_properties = coupled_model.interfaces.ocean_properties
 
-    atmosphere_properties = (thermodynamics_parameters = atmosphere.thermodynamics_parameters,
-                             surface_layer_height = atmosphere.surface_layer_height)
+    atmosphere_properties = (thermodynamics_parameters = thermodynamics_parameters(atmosphere),
+                             surface_layer_height = surface_layer_height(atmosphere),
+                             gravitational_acceleration = coupled_model.interfaces.properties.gravitational_acceleration)
 
     kernel_parameters = interface_kernel_parameters(grid)
 
@@ -75,8 +76,7 @@ end
 
     i, j = @index(Global, NTuple)
     kᴺ   = size(grid, 3) # index of the top ocean cell
-    time = Time(clock.time)
-    FT = eltype(grid)
+    FT   = eltype(grid)
 
     @inbounds begin
         uₐ = atmosphere_state.u[i, j, 1]
@@ -124,7 +124,7 @@ end
 
     # Estimate interface specific humidity using interior temperature
     q_formulation = interface_properties.specific_humidity_formulation
-    qₛ = saturation_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ.ρ, Tₛ, Sᵢ)
+    qₛ = surface_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ, Tₛ, Sᵢ)
 
     # Guess
     Sₛ = zero(FT) # what should we use for interface salinity?
@@ -172,11 +172,11 @@ end
 
     @inbounds begin
         # +0: cooling, -0: heating
-        Qv[i, j, 1]  = - ρₐ * u★ * q★ * ℰs 
-        Qc[i, j, 1]  = - ρₐ * cₚ * u★ * θ★ 
-        Fv[i, j, 1]  = - ρₐ * u★ * q★ 
-        ρτx[i, j, 1] = + ρₐ * τx 
-        ρτy[i, j, 1] = + ρₐ * τy 
+        Qv[i, j, 1]  = - ρₐ * u★ * q★ * ℰs
+        Qc[i, j, 1]  = - ρₐ * cₚ * u★ * θ★
+        Fv[i, j, 1]  = - ρₐ * u★ * q★
+        ρτx[i, j, 1] = + ρₐ * τx
+        ρτy[i, j, 1] = + ρₐ * τy
         Ts[i, j, 1]  = convert_from_kelvin(sea_ice_properties.temperature_units, Ψₛ.T)
     end
 end

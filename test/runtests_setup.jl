@@ -4,46 +4,306 @@ using CUDA
 using Test
 
 using ClimaOcean.DataWrangling
+using ClimaOcean.DataWrangling: metadata_path
+using ClimaOcean.EN4
 using ClimaOcean.ECCO
+using ClimaOcean.ETOPO
 using ClimaOcean.JRA55
 
 using Oceananigans.Architectures: architecture, on_architecture
 using Oceananigans.OutputReaders: interpolate!
 
-using ClimaOcean
-using ClimaOcean.Bathymetry: download_bathymetry_cache
 using CFTime
-using Dates 
+using Dates
 
 using CUDA: @allowscalar
 
 gpu_test = parse(Bool, get(ENV, "GPU_TEST", "false"))
 test_architectures = gpu_test ? [GPU()] : [CPU()]
 
-# ECCO metadata for ECCO tests
-
 start_date = DateTimeProlepticGregorian(1993, 1, 1)
-end_date   = DateTimeProlepticGregorian(1993, 4, 1)
-dates      = start_date : Month(1) : end_date
 
-temperature_metadata = Metadata(:temperature; dates, dataset=ECCO4Monthly())
-salinity_metadata    = Metadata(:salinity; dates, dataset=ECCO4Monthly())
+test_datasets = (ECCO2Monthly(), 
+                 ECCO2Daily(), 
+                 ECCO4Monthly(), 
+                 ECCO2DarwinMonthly(),
+                 ECCO4DarwinMonthly(),
+                 EN4Monthly(),
+                )
 
-# Fictitious grid that triggers bathymetry download
-function download_bathymetry(; dir = download_bathymetry_cache, 
-                             filename = "ETOPO_2022_v1_60s_N90W180_surface.nc")
-                          
-    grid = LatitudeLongitudeGrid(size = (10, 10, 1), 
-                                 longitude = (0, 100), 
-                                 latitude = (0, 50),
-                                 z = (-6000, 0))
+test_names = Dict(
+    ECCO2Monthly() => (:temperature, :salinity),
+    ECCO2Daily() => (:temperature, :salinity),
+    ECCO4Monthly() => (:temperature, :salinity),
+    ECCO4DarwinMonthly() => (:temperature, :salinity, :phosphate),
+    ECCO2DarwinMonthly() => (:temperature, :salinity, :phosphate),
+    EN4Monthly() => (:temperature, :salinity),
+)
 
-    bottom = regrid_bathymetry(grid; dir, filename)
+test_fields = Dict(
+    ECCO2Monthly() => (:T, :S),
+    ECCO2Daily() => (:T, :S),
+    ECCO4Monthly() => (:T, :S),
+    ECCO4DarwinMonthly() => (:T, :S, :PO₄),
+    ECCO2DarwinMonthly() => (:T, :S, :PO₄),
+    EN4Monthly() => (:T, :S),
+)
+
+#####
+##### Test utilities
+#####
+function test_setting_from_metadata(arch, dataset, start_date, inpainting;
+                                    loc = (Center, Center, Center),
+                                    varnames = (:temperature, :salinity),
+                                   )
+    grid = LatitudeLongitudeGrid(arch;
+                                 size = (10, 10, 10),
+                                 latitude = (-60, -40),
+                                 longitude = (10, 15),
+                                 z = (-200, 0))
+
+    field = Field{loc...}(grid)
+
+    @test begin
+        for name in varnames
+            set!(field, Metadatum(name; dataset, date=start_date); inpainting)
+        end
+        true
+    end
 
     return nothing
 end
 
-# Trigger downloading JRA55
-arch = first(test_architectures)
-atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(41))
+function test_timestepping_with_dataset(arch, dataset, start_date, inpainting;
+                                        varnames  = (:temperature, :salinity),
+                                        fldnames  = (:T, :S),
+                                       )
+    grid  = LatitudeLongitudeGrid(arch;
+                                  size = (10, 10, 10),
+                                  latitude = (-60, -40),
+                                  longitude = (10, 15),
+                                  z = (-200, 0),
+                                  halo = (6, 6, 6))
 
+    field = CenterField(grid)
+
+    @test begin
+        for name in varnames
+            set!(field, Metadatum(name; dataset, date=start_date); inpainting)
+        end
+        true
+    end
+
+    ocean = ocean_simulation(grid; tracers=fldnames, verbose=false)
+
+    @test begin
+        time_step!(ocean)
+        time_step!(ocean)
+        true
+    end
+
+    return nothing
+end
+
+function test_ocean_metadata_utilities(arch, dataset, dates, inpainting;
+                                       varnames = (:temperature, :salinity),
+                                      )
+    for name in varnames
+        metadata = Metadata(name; dates, dataset)
+        restoring = DatasetRestoring(metadata, arch; rate=1/1000, inpainting)
+
+        for datum in metadata
+            @test isfile(metadata_path(datum))
+        end
+
+        fts = restoring.field_time_series
+        @test fts isa FieldTimeSeries
+        @test fts.grid isa LatitudeLongitudeGrid
+        @test topology(fts.grid) == (Periodic, Bounded, Bounded)
+
+        Nx, Ny, Nz = size(interior(fts))
+        Nt = length(fts.times)
+
+        @test Nx == size(metadata)[1]
+        @test Ny == size(metadata)[2]
+        @test Nz == size(metadata)[3]
+        @test Nt == size(metadata)[4]
+
+        @test @allowscalar fts.times[1] == native_times(metadata)[1]
+        @test @allowscalar fts.times[end] == native_times(metadata)[end]
+
+        datum = first(metadata)
+        ψ = Field(datum, arch, inpainting=NearestNeighborInpainting(2))
+        datapath = ClimaOcean.DataWrangling.inpainted_metadata_path(datum)
+        @test isfile(datapath)
+    end
+
+    return nothing
+end
+
+function test_dataset_restoring(arch, dataset, dates, inpainting;
+                                varnames = (:temperature, :salinity),
+                                fldnames = (:T, :S),
+                               )
+    grid = LatitudeLongitudeGrid(arch;
+                                 size = (100, 100, 10),
+                                 latitude = (-75, 75),
+                                 longitude = (0, 360),
+                                 z = (-200, 0),
+                                 halo = (6, 6, 6))
+
+    φ₁ = @allowscalar grid.φᵃᶜᵃ[1]
+    φ₂ = @allowscalar grid.φᵃᶜᵃ[21]
+    φ₃ = @allowscalar grid.φᵃᶜᵃ[80]
+    φ₄ = @allowscalar grid.φᵃᶜᵃ[100]
+    z₁ = @allowscalar grid.z.cᵃᵃᶜ[6]
+
+    mask = LinearlyTaperedPolarMask(northern = (φ₃, φ₄),
+                                    southern = (φ₁, φ₂),
+                                    z = (z₁, 0))
+
+    for name in varnames
+        metadata = Metadata(name; dates, dataset)
+        var_restoring = DatasetRestoring(metadata, arch; mask, inpainting, rate=1/1000)
+
+        fill!(var_restoring.field_time_series[1], 1.0)
+        fill!(var_restoring.field_time_series[2], 1.0)
+
+        field = NamedTuple{fldnames}(ntuple(i->CenterField(grid), length(fldnames)))
+        clock  = Clock(; time = 0)
+
+        @allowscalar begin
+            @test var_restoring(1, 1,   10, grid, clock, field) == var_restoring.rate
+            @test var_restoring(1, 11,  10, grid, clock, field) == var_restoring.rate / 2
+            @test var_restoring(1, 21,  10, grid, clock, field) == 0
+            @test var_restoring(1, 80,  10, grid, clock, field) == 0
+            @test var_restoring(1, 90,  10, grid, clock, field) == var_restoring.rate / 2
+            @test var_restoring(1, 100, 10, grid, clock, field) == var_restoring.rate
+            @test var_restoring(1, 1,   5,  grid, clock, field) == 0
+            @test var_restoring(1, 10,  5,  grid, clock, field) == 0
+        end
+    end
+
+    return nothing
+end
+
+function test_timestepping_with_dataset_restoring(arch, dataset, dates, inpainting;
+                                                  varnames = (:temperature, :salinity),
+                                                  fldnames = (:T, :S),
+                                                 )
+    grid = LatitudeLongitudeGrid(arch;
+                                 size = (10, 10, 10),
+                                 latitude = (-60, -40),
+                                 longitude = (10, 15),
+                                 z = (-200, 0),
+                                 halo = (6, 6, 6))
+
+    # Dynamically create name of forcing based on dataset field name
+    forcing = NamedTuple{
+                (fldnames)
+            }(
+                ntuple(i->DatasetRestoring(
+                                           Metadata(varnames[i]; dates, dataset), 
+                                           arch; inpainting, rate=1/1000
+                                          ), length(varnames))
+             )
+
+    ocean = ocean_simulation(grid; tracers=fldnames, forcing, verbose=false)
+    
+    @test begin
+        time_step!(ocean)
+        time_step!(ocean)
+        true
+    end
+
+    return nothing
+end
+
+function test_cycling_dataset_restoring(arch, dataset, dates, inpainting;
+                                        varnames = (:temperature, :salinity),
+                                        fldnames = (:T, :S),
+                                       )
+    grid = LatitudeLongitudeGrid(arch;
+                                 size = (10, 10, 10),
+                                 latitude = (-60, -40),
+                                 longitude = (10, 15),
+                                 z = (-200, 0),
+                                 halo = (7, 7, 7))
+
+    time_indices_in_memory = 2
+    start_date = dates[1]
+    end_date = dates[end]
+
+    metadata1 = Metadata(varnames[end]; dates, dataset)
+    metadata2 = Metadata(varnames[end]; start_date, end_date, dataset)
+
+    for metadata in (metadata1, metadata2)
+        # Dynamically create name of forcing based on dataset field name
+        # Dynamically create name of forcing based on dataset field name
+        forcing = NamedTuple{
+                (fldnames[end],)
+            }(
+                (DatasetRestoring(metadata, arch;  time_indices_in_memory, inpainting, rate=1/1000),)
+             )
+
+        times = native_times(forcing[1].field_time_series.backend.metadata)
+        ocean = ocean_simulation(grid, tracers=fldnames, forcing=forcing)
+
+        # start a bit after time_index
+        time_index = 3
+        time_interval = dataset isa ECCO2Daily ? Units.hour : Units.day
+        ocean.model.clock.time = times[time_index] + 2 * time_interval
+        update_state!(ocean.model)
+
+        @test time_indices(forcing[1].field_time_series) ==
+            Tuple(range(time_index, length=time_indices_in_memory))
+
+        @test forcing[1].field_time_series.backend.start == time_index
+
+        # Compile
+        time_step!(ocean)
+
+        # Try stepping out of the dataset bounds
+        # start a bit after last time_index
+        ocean.model.clock.time = last(times) + 2 * time_interval
+
+        update_state!(ocean.model)
+
+        @test begin
+            time_step!(ocean)
+            true
+        end
+
+        # The backend has cycled to the end
+        @test time_indices(forcing[1].field_time_series) ==
+            mod1.(Tuple(range(length(times), length=time_indices_in_memory)), length(times))
+    end
+end
+
+function test_inpainting_algorithm(arch, dataset, start_date, inpainting; 
+                                   varnames = (:temperature, :salinity),
+                                  )
+    for name in varnames
+        var_metadatum = Metadatum(name; dataset, date=start_date)
+
+        grid = LatitudeLongitudeGrid(arch,
+                                 size = (20, 20, 10),
+                                 latitude = (-75, 75),
+                                 longitude = (0, 360),
+                                 z = (-4000, 0),
+                                 halo = (6, 6, 6))
+
+        fully_inpainted_field = CenterField(grid)
+        partially_inpainted_field = CenterField(grid)
+
+        set!(fully_inpainted_field, var_metadatum; inpainting = NearestNeighborInpainting(Inf))
+        set!(partially_inpainted_field, var_metadatum; inpainting = NearestNeighborInpainting(1))
+
+        fully_inpainted_interior = on_architecture(CPU(), interior(fully_inpainted_field))
+        partially_inpainted_interior = on_architecture(CPU(), interior(partially_inpainted_field))
+
+        @test all(fully_inpainted_interior .!= 0)
+        @test any(partially_inpainted_interior .== 0)
+    end
+    return nothing
+end

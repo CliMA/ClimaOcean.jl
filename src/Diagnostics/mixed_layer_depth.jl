@@ -21,7 +21,7 @@ const MixedLayerDepthField = Field{<:Any, <:Any, <:Any, <:MixedLayerDepthOperand
 """
 function MixedLayerDepthField(bm, grid, tracers; difference_criterion=3e-5)
     operand = MixedLayerDepthOperand(bm, grid, tracers; difference_criterion)
-    loc = (Center, Center, Nothing)
+    loc = (Center(), Center(), nothing)
     indices = (:, :, :)
     bcs = FieldBoundaryConditions(grid, loc)
     data = new_data(grid, loc, indices)
@@ -57,17 +57,20 @@ const f = Face()
 @kernel function _compute_mixed_layer_depth!(mld, grid, b, Δb★)
     i, j = @index(Global, NTuple)
     Nz = size(grid, 3)
-    
+
     Δb = zero(grid)
     bN = @inbounds b[i, j, Nz]
     mixed = true
+    minus_k = 1
     k = Nz - 1
     inactive = inactive_cell(i, j, k, grid)
 
-    while !inactive & mixed & (k > 0)
+    # Run minus_k forward to facilitate Reactantification
+    while !inactive & mixed & (minus_k < Nz-1)
         Δb = @inbounds bN - b[i, j, k]
         mixed = Δb < Δb★
-        k -= 1
+        minus_k += 1
+        k = Nz - minus_k
         inactive = inactive_cell(i, j, k, grid)
     end
 

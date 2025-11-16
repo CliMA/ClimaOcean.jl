@@ -36,7 +36,8 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     interface_properties = coupled_model.interfaces.atmosphere_ocean_interface.properties
     ocean_properties = coupled_model.interfaces.ocean_properties
     atmosphere_properties = (thermodynamics_parameters = thermodynamics_parameters(atmosphere),
-                             surface_layer_height = surface_layer_height(atmosphere))
+                             surface_layer_height = surface_layer_height(atmosphere),
+                             gravitational_acceleration = coupled_model.interfaces.properties.gravitational_acceleration)
 
     kernel_parameters = interface_kernel_parameters(grid)
 
@@ -108,18 +109,28 @@ end
     downwelling_radiation = (; Qs, Qℓ)
 
     # Estimate initial interface state
-    FT = eltype(grid)
+    FT = typeof(Tᵢ)
     u★ = convert(FT, 1e-4)
 
     # Estimate interface specific humidity using interior temperature
     q_formulation = interface_properties.specific_humidity_formulation
-    qₛ = saturation_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ.ρ, Tᵢ, Sᵢ)
+    qₛ = surface_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ, Tᵢ, Sᵢ)
     initial_interface_state = InterfaceState(u★, u★, u★, uᵢ, vᵢ, Tᵢ, Sᵢ, qₛ)
 
     # Don't use convergence criteria in an inactive cell
     stop_criteria = turbulent_flux_formulation.solver_stop_criteria
     needs_to_converge = stop_criteria isa ConvergenceStopCriteria
     not_water = inactive_node(i, j, kᴺ, grid, Center(), Center(), Center())
+
+    # Compute local radiative properties and rebuild the interface properties
+    α = stateindex(interface_properties.radiation.α, i, j, kᴺ, grid, time, (Center, Center, Center), Qs)
+    ϵ = stateindex(interface_properties.radiation.ϵ, i, j, kᴺ, grid, time, (Center, Center, Center))
+    σ = interface_properties.radiation.σ
+
+    interface_properties = InterfaceProperties((; α, ϵ, σ),
+                                               interface_properties.specific_humidity_formulation,
+                                               interface_properties.temperature_formulation,
+                                               interface_properties.velocity_formulation)
 
     if needs_to_converge && not_water
         interface_state = zero_interface_state(FT)
@@ -151,7 +162,8 @@ end
 
     ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
     cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
-    ℰv = AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
+    ℒv = AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
+    
 
     # Store fluxes
     Qv  = interface_fluxes.latent_heat
@@ -163,11 +175,15 @@ end
 
     @inbounds begin
         # +0: cooling, -0: heating
-        Qv[i, j, 1]  = - ρₐ * u★ * q★ * ℰv
+        Qv[i, j, 1]  = - ρₐ * ℒv * u★ * q★ 
         Qc[i, j, 1]  = - ρₐ * cₚ * u★ * θ★
         Fv[i, j, 1]  = - ρₐ * u★ * q★
         ρτx[i, j, 1] = + ρₐ * τx
         ρτy[i, j, 1] = + ρₐ * τy
         Ts[i, j, 1]  = convert_from_kelvin(ocean_properties.temperature_units, Ψₛ.T)
+
+        interface_fluxes.friction_velocity[i, j, 1] = u★
+        interface_fluxes.temperature_scale[i, j, 1] = θ★
+        interface_fluxes.water_vapor_scale[i, j, 1] = q★
     end
 end

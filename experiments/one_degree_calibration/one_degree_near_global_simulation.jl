@@ -10,6 +10,7 @@ using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities:
 
 #using ParameterEstimocean.Parameters: closure_with_parameters
 using JLD2
+using CUDA
 
 const years = 365days
 
@@ -20,7 +21,7 @@ architecuture = GPU()
 #####
 
 # "Ri-based" --- uses calibrated defaults in Oceananigans
-ri_based = RiBasedVerticalDiffusivity() 
+ri_based = RiBasedVerticalDiffusivity()
 #=
 # CATKE with calibrated parameters loaded from file
 neutral_default_mixing_length_parameters = (Cᵇu = Inf, Cᵇc = Inf, Cᵇe = Inf,
@@ -29,7 +30,7 @@ neutral_default_mixing_length_parameters = (Cᵇu = Inf, Cᵇc = Inf, Cᵇe = In
 
 neutral_default_tke_parameters = (CᵂwΔ = 0.0, Cᵂu★ = 0.0,
                                   Cᴰ⁻ = 0.0, Cᴰ⁺ = 0.0, CᴰRiᶜ = Inf, CᴰRiʷ = 0.0)
-                                  
+
 mixing_length = MixingLength(; neutral_default_mixing_length_parameters...)
 turbulent_kinetic_energy_equation = TurbulentKineticEnergyEquation(; neutral_default_tke_parameters...)
 neutral_catke = CATKEVerticalDiffusivity(; mixing_length, turbulent_kinetic_energy_equation)
@@ -69,7 +70,7 @@ slices_save_interval = 2day
 fields_save_interval = 10days
 Nx, Ny, Nz = size(simulation.model.grid)
 
-dir = "." 
+dir = "."
 closure_name = typeof(boundary_layer_turbulence_closure).name.wrapper
 output_prefix = "near_global_$(Nx)_$(Ny)_$(Nz)_$closure_name"
 with_isopycnal_skew_symmetric_diffusivity || (output_prefix *= "_no_gm")
@@ -82,11 +83,11 @@ simulation.output_writers[:checkpointer] = Checkpointer(simulation.model; dir,
 
 model = simulation.model
 
-simulation.output_writers[:fields] = JLD2OutputWriter(model, merge(model.velocities, model.tracers); dir,
-                                                      schedule = TimeInterval(fields_save_interval),
-                                                      filename = output_prefix * "_fields",
-                                                      with_halos = true,
-                                                      overwrite_existing = true)
+simulation.output_writers[:fields] = JLD2Writer(model, merge(model.velocities, model.tracers); dir,
+                                                schedule = TimeInterval(fields_save_interval),
+                                                filename = output_prefix * "_fields",
+                                                with_halos = true,
+                                                overwrite_existing = true)
 
 slice_indices = [(:, :, Nz), (:, :, Nz-10)]
 output_names = [:surface, :near_surface]
@@ -107,7 +108,7 @@ for n = 1:2
     outputs[:ζ] = VerticalVorticityField(model.grid, model.velocities; indices)
 
     name = output_names[n]
-    simulation.output_writers[name] = JLD2OutputWriter(model, outputs; dir,
+    simulation.output_writers[name] = JLD2Writer(model, outputs; dir,
                                                        schedule = TimeInterval(slices_save_interval),
                                                        filename = output_prefix * "_fields_$name",
                                                        with_halos = true,
@@ -128,7 +129,7 @@ for name in keys(transects)
     outputs = Dict{Symbol, Any}(n => Field(outputs[n]; indices) for n in keys(outputs))
     outputs[:ζ] = VerticalVorticityField(model.grid, model.velocities; indices)
 
-    simulation.output_writers[:name] = JLD2OutputWriter(model, outputs; dir,
+    simulation.output_writers[:name] = JLD2Writer(model, outputs; dir,
                                                         schedule = TimeInterval(slices_save_interval),
                                                         filename = output_prefix * "_$name",
                                                         with_halos = true,
@@ -147,4 +148,3 @@ simulation.Δt = 20minutes
 run!(simulation)
 
 @info "Simulation took $(prettytime(simulation.run_wall_time))."
-
