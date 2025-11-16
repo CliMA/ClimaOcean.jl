@@ -2,8 +2,7 @@ using Oceananigans.Models: AbstractModel
 using Oceananigans.Fields: ZeroField
 using Oceananigans.OutputReaders: extract_field_time_series, update_field_time_series!
 
-import Oceananigans.TimeSteppers: time_step!, update_state!, reset!, tick!
-import Oceananigans.Models: timestepper, update_model_field_time_series!
+import Oceananigans.TimeSteppers: time_step!
 
 import ClimaOcean: reference_density, heat_capacity
 import Oceananigans.Architectures: on_architecture
@@ -74,10 +73,8 @@ function time_step!(model::PrescribedOcean, Δt; callbacks=[], euler=true)
     return nothing
 end
 
-get_ocean_state()
-
-update_state!(::PrescribedOcean) = nothing
-timestepper(::PrescribedOcean) = nothing
+# TODO: fix this one...
+get_ocean_state(::PrescribedOcean) = ....
 
 reference_density(ocean::PrescribedOcean) = ocean.reference_density
 heat_capacity(ocean::PrescribedOcean) = ocean.heat_capacity
