@@ -73,8 +73,11 @@ function time_step!(model::PrescribedOcean, Δt; callbacks=[], euler=true)
     return nothing
 end
 
-# TODO: fix this one...
-get_ocean_state(::PrescribedOcean) = ....
 
 reference_density(ocean::PrescribedOcean) = ocean.reference_density
 heat_capacity(ocean::PrescribedOcean) = ocean.heat_capacity
+
+# TODO: fix these two...
+get_ocean_state(::PrescribedOcean) = ....
+function ocean_surface_fluxes(ocean::PrescribedOcean, ρₒ, cₒ)
+end

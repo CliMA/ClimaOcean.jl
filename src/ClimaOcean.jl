@@ -89,7 +89,8 @@ end
 end
 
 include("OceanSimulations/OceanSimulations.jl")
-include("SeaIceSimulations.jl")
+include("SeaIceSimulations/SeaIceSimulations.jl")
+include("AtmosphereSimulations/AtmosphereSimulations.jl")
 include("OceanSeaIceModels/OceanSeaIceModels.jl")
 include("InitialConditions/InitialConditions.jl")
 include("DataWrangling/DataWrangling.jl")
