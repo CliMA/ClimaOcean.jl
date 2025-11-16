@@ -6,7 +6,7 @@
 # and initialized by temperature, salinity, sea ice concentration, and sea ice thickness
 # from the ECCO state estimate.
 #
-# For this example, we need Oceananigans.HydrostaticFreeSurfaceModel (the ocean), ClimaSeaIce.SeaIceModel (the sea ice) and 
+# For this example, we need Oceananigans.HydrostaticFreeSurfaceModel (the ocean), ClimaSeaIce.SeaIceModel (the sea ice) and
 # SpeedyWeather.PrimitiveWetModel (the atmosphere), coupled and orchestrated by ClimaOcean.OceanSeaIceModel (the coupled system).
 # The XESMF.jl package is used to regrid fields between the atmosphere and ocean--sea ice components.
 
@@ -20,9 +20,9 @@ using Printf, Statistics, Dates
 #
 # The first step is to create the grid with realistic bathymetry.
 
-Nx = 240 
-Ny = 120 
-Nz = 10  
+Nx = 240
+Ny = 120
+Nz = 10
 
 z = ExponentialDiscretization(Nz, -2000, 0)
 grid = TripolarGrid(Oceananigans.CPU(); size=(Nx, Ny, Nz), z, halo=(6, 6, 5))
@@ -32,7 +32,7 @@ nothing # hide
 
 bottom_height = regrid_bathymetry(grid; major_basins=1, interpolation_passes=15)
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
-nothing # hide 
+nothing # hide
 
 # Now we can specify the numerical details and the closures for the ocean simulation.
 
@@ -48,38 +48,38 @@ nothing # hide
 
 # The ocean simulation, complete with initial conditions for temperature and salinity from ECCO.
 
-ocean = ocean_simulation(grid; 
+ocean = ocean_simulation(grid;
                          momentum_advection,
                          tracer_advection,
                          free_surface,
                          timestepper = :SplitRungeKutta3,
                          closure = closures)
 
-Oceananigans.set!(ocean.model, T=Metadatum(:temperature, dataset=ECCO4Monthly()), 
+Oceananigans.set!(ocean.model, T=Metadatum(:temperature, dataset=ECCO4Monthly()),
                                S=Metadatum(:salinity,    dataset=ECCO4Monthly()))
 
 # The sea-ice simulation, complete with initial conditions for sea-ice thickness and sea-ice concentration from ECCO.
 
 sea_ice = sea_ice_simulation(grid, ocean; advection=WENO(order=5))
 
-Oceananigans.set!(sea_ice.model, h=Metadatum(:sea_ice_thickness, dataset=ECCO4Monthly()), 
+Oceananigans.set!(sea_ice.model, h=Metadatum(:sea_ice_thickness, dataset=ECCO4Monthly()),
                                  ℵ=Metadatum(:sea_ice_concentration, dataset=ECCO4Monthly()))
 
 # ## Atmosphere model configuration
-# The atmosphere is provided by SpeedyWeather.jl. Here, we configure a T63L8 model with a 3-hour output interval.
-# The `atmosphere_simulation` function takes care of building an atmosphere model with appropriate 
-# hooks so that ClimaOcean can compute intercomponent fluxes.
+# The atmosphere is provided by SpeedyWeather.jl. Here, we configure a T63L4 model with a 3-hour output interval.
+# The `atmosphere_simulation` function takes care of building an atmosphere model with appropriate
+# hooks so that ClimaOcean can compute inter-component fluxes.
 
 nlayers = 4
-spectral_grid = SpectralGrid(; trunc=63, nlayers, Grid=FullClenshawGrid)
+spectral_grid = SpeedyWeather.SpectralGrid(; trunc=63, nlayers, Grid=FullClenshawGrid)
 atmosphere = atmosphere_simulation(spectral_grid; output=true)
 atmosphere.model.output.output_dt = Hour(3)
-nothing # hide 
+nothing # hide
 
 # ## The coupled model
-# Now we are ready to blend everything together.
+# We are now ready to blend everything together.
 # We need to specify the time step for the coupled model.
-# We decide to step the global model every 2 atmosphere time steps (i.e., the ocean and the 
+# We decide to step the global model every 2 atmosphere time steps (i.e., the ocean and the
 # sea-ice are stepped every two atmosphere time steps).
 
 Δt = 2 * convert(eltype(grid), atmosphere.model.time_stepping.Δt_sec)
@@ -91,30 +91,30 @@ nothing # hide
 radiation = Radiation(ocean_emissivity=0.0, sea_ice_emissivity=0.0)
 earth_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 earth = Oceananigans.Simulation(earth_model; Δt, stop_time=30days)
-nothing # hide 
+nothing # hide
 
 # ## Running the simulation
 # We are ready to run the coupled simulation.
 # But before we do, we add callbacks to write outputs to disk every 3 hours.
 
 outputs = merge(ocean.model.velocities, ocean.model.tracers)
-sea_ice_fields = merge(sea_ice.model.velocities, sea_ice.model.dynamics.auxiliaries.fields, 
+sea_ice_fields = merge(sea_ice.model.velocities, sea_ice.model.dynamics.auxiliaries.fields,
                        (; h=sea_ice.model.ice_thickness, ℵ=sea_ice.model.ice_concentration))
 
 ocean.output_writers[:free_surf] = JLD2Writer(ocean.model, (; η=ocean.model.free_surface.η);
                                               overwrite_existing=true,
-                                              schedule=TimeInterval(3600 * 3),
+                                              schedule=TimeInterval(3hours),
                                               filename="ocean_free_surface.jld2")
 
 ocean.output_writers[:surface] = JLD2Writer(ocean.model, outputs;
                                             overwrite_existing=true,
-                                            schedule=TimeInterval(3600 * 3),
+                                            schedule=TimeInterval(3hours),
                                             filename="ocean_surface_fields.jld2",
                                             indices=(:, :, grid.Nz))
 
 sea_ice.output_writers[:fields] = JLD2Writer(sea_ice.model, sea_ice_fields;
                                              overwrite_existing=true,
-                                             schedule=TimeInterval(3600 * 3),
+                                             schedule=TimeInterval(3hours),
                                              filename="sea_ice_fields.jld2")
 
 Qcao = earth.model.interfaces.atmosphere_ocean_interface.fluxes.sensible_heat
@@ -131,10 +131,40 @@ fluxes = (; Qcao, Qvao, τxao, τyao, Qcai, Qvai, τxai, τyai, Qoi, Soi)
 
 earth.output_writers[:fluxes] = JLD2Writer(earth.model.ocean.model, fluxes;
                                            overwrite_existing=true,
-                                           schedule=TimeInterval(3600 * 3),
+                                           schedule=TimeInterval(3hours),
                                            filename="intercomponent_fluxes.jld2")
 
 Oceananigans.run!(earth)
+
+# ### A progress messenger
+#
+# We add a function that prints out a helpful progress message while the simulation runs.
+
+wall_time = Ref(time_ns())
+
+function progress(sim)
+    atmos = sim.model.atmosphere
+    ocean = sim.model.ocean
+
+    ua, va     = atmos.diagnostic_variables.dynamics.u_mean_grid, atmos.diagnostic_variables.dynamics.v_mean_grid
+    uo, vo, wo = ocean.model.velocities
+
+    uamax = (maximum(abs, ua), maximum(abs, va))
+    uomax = (maximum(abs, uo), maximum(abs, vo), maximum(abs, wo))
+
+    step_time = 1e-9 * (time_ns() - wall_time[])
+
+    msg1 = @sprintf("time: %s, iter: %d", prettytime(sim), iteration(sim))
+    msg2 = @sprintf(", max|ua|: (%.1e, %.1e, %.1e) m s⁻¹", uamax...)
+    msg3 = @sprintf(", max|uo|: (%.1e, %.1e, %.1e) m s⁻¹", uomax...)
+    msg4 = @sprintf(", wall time: %s \n", prettytime(step_time))
+
+    @info msg1 * msg2 * msg3 * msg4
+
+    wall_time[] = time_ns()
+
+     return nothing
+end
 
 # ## Visualizing the results
 # We can visualize some of the results. Here, we plot the surface speeds in the atmosphere, ocean, and sea-ice
