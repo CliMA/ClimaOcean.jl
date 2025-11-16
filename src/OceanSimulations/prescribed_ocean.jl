@@ -35,8 +35,9 @@ Arguments
                 following fields: `u`, `v`, `T`, `S`. All elements provided must be of type `FieldTimeSeries` 
                 and reside on the provided `grid`.
 """
-function PrescribedOcean(timeseries=NamedTuple(); 
-                         grid, 
+function PrescribedOcean(grid; 
+                         velocities = default_ocean_velocities(grid), 
+                         tracers = default_ocean_tracers(grid),
                          clock = Clock{Float64}(time = 0),
                          reference_density = 1029,
                          heat_capacity = 3998) 
@@ -53,27 +54,19 @@ function PrescribedOcean(timeseries=NamedTuple();
         end
     end
 
-    τx = Field{Face, Center, Nothing}(grid)
-    τy = Field{Center, Face, Nothing}(grid)
-    Jᵀ = Field{Center, Center, Nothing}(grid)
-    Jˢ = Field{Center, Center, Nothing}(grid)
-
-    u = XFaceField(grid,  boundary_conditions=FieldBoundaryConditions(grid, (Face,   Center, Center), top = FluxBoundaryCondition(τx)))
-    v = YFaceField(grid,  boundary_conditions=FieldBoundaryConditions(grid, (Center, Face,   Center), top = FluxBoundaryCondition(τy)))
-    T = CenterField(grid, boundary_conditions=FieldBoundaryConditions(grid, (Center, Center, Center), top = FluxBoundaryCondition(Jᵀ)))
-    S = CenterField(grid, boundary_conditions=FieldBoundaryConditions(grid, (Center, Center, Center), top = FluxBoundaryCondition(Jˢ)))
-
     reference_density = convert(eltype(grid), reference_density)
     heat_capacity = convert(eltype(grid), heat_capacity)
 
     return PrescribedOcean(grid, 
                            clock, 
-                           (; u, v, w=ZeroField()), 
-                           (; T, S), 
-                           timeseries, 
+                           velocities, 
+                           tracers,
                            reference_density,
                            heat_capacity)
 end
+
+default_ocean_velocities(grid) = (u = XFaceField(grid), v = YFaceField(grid))
+default_ocean_tracers(grid) = (T = CenterField(grid), S = CenterField(grid))
 
 #####
 ##### Need to extend a couple of methods
@@ -88,23 +81,6 @@ function time_step!(model::PrescribedOcean, Δt; callbacks=[], euler=true)
 
     for fts in time_series_tuple
         update_field_time_series!(fts, time)
-    end
-
-    # Time stepping the model!
-    if haskey(model.timeseries, :u)  
-        parent(model.velocities.u) .= parent(model.timeseries.u[time])
-    end
-
-    if haskey(model.timeseries, :v)  
-        parent(model.velocities.v) .= parent(model.timeseries.v[time])
-    end
-     
-    if haskey(model.timeseries, :T)  
-        parent(model.tracers.T) .= parent(model.timeseries.T[time])
-    end
-
-    if haskey(model.timeseries, :S)  
-        parent(model.tracers.S) .= parent(model.timeseries.S[time])
     end
 
     return nothing
