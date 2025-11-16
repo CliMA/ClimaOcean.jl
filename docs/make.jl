@@ -64,11 +64,19 @@ pages = [
     "References" => "references.md",
 ]
 
-makedocs(sitename = "ClimaOcean.jl";
-         format,
-         pages,
+modules = Module[]
+OceananigansNCDatasetsExt = isdefined(Base, :get_extension) ? Base.get_extension(Oceananigans, :OceananigansNCDatasetsExt) : Oceananigans.OceananigansNCDatasetsExt
+OceananigansXESMFExt = isdefined(Base, :get_extension) ? Base.get_extension(Oceananigans, :OceananigansXESMFExt) : Oceananigans.OceananigansXESMFExt
+
+for m in [ClimaOcean, ClimaOceanSpeedyWeatherExt]
+    if !isnothing(m)
+        push!(modules, m)
+    end
+end
+
+makedocs(; sitename = "ClimaOcean.jl";
+         format, pages, modules,
          plugins = [bib],
-         modules = [ClimaOcean],
          doctest = true,
          clean = true,
          warnonly = [:cross_references, :missing_docs],
