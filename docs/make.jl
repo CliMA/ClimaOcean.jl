@@ -73,7 +73,7 @@ for m in [ClimaOcean, ClimaOceanSpeedyWeatherExt]
     end
 end
 
-makedocs(; sitename = "ClimaOcean.jl";
+makedocs(; sitename = "ClimaOcean.jl",
          format, pages, modules,
          plugins = [bib],
          doctest = true,
