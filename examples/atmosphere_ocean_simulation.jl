@@ -193,6 +193,7 @@ Qcao = FieldTimeSeries("intercomponent_fluxes.jld2", "Qcao")
 Qvao = FieldTimeSeries("intercomponent_fluxes.jld2", "Qvao")
 
 Nt = min(length(sp[1, 1, :]), length(Qcao))
+times = Qcao.times
 
 uotmp = Oceananigans.Field{Face, Center, Nothing}(SST.grid)
 votmp = Oceananigans.Field{Center, Face, Nothing}(SST.grid)
@@ -205,6 +206,7 @@ sotmp = Oceananigans.Field(sqrt(uotmp^2 + votmp^2))
 sitmp = Oceananigans.Field(sqrt(uitmp^2 + vitmp^2) * atmp)
 
 iter = Observable(1)
+
 san = @lift sp[:, :, $iter]
 son  = @lift begin
     Oceananigans.set!(uotmp, SSU[$iter])
@@ -212,7 +214,6 @@ son  = @lift begin
     Oceananigans.compute!(sotmp)
     Oceananigans.interior(sotmp, :, :, 1)
 end
-
 ssn  = @lift begin
     Oceananigans.set!(uitmp, SIU[$iter])
     Oceananigans.set!(vitmp, SIV[$iter])
@@ -222,22 +223,25 @@ ssn  = @lift begin
 end
 
 fig = Figure(size = (1000, 1500))
-ax1 = Axis(fig[1, 1], title = "Surface speed, atmosphere (m/s)")
-ax2 = Axis(fig[2, 1], title = "Surface speed, ocean (m/s)")
-ax3 = Axis(fig[3, 1], title = "Surface speed, sea-ice (m/s)")
 
-hm1 = heatmap!(ax2, san; colormap = :deep,  nan_color=:lightgray)
-hm2 = heatmap!(ax1, son; colormap = :magma, nan_color=:lightgray)
-hm3 = heatmap!(ax3, ssn; colormap = :ice,   nan_color=:lightgray)
+ax1 = Axis(fig[1, 1], title = "Surface speed, atmosphere")
+ax2 = Axis(fig[2, 1], title = "Surface speed, ocean")
+ax3 = Axis(fig[3, 1], title = "Surface speed, sea-ice")
 
-Colorbar(fig[1, 2], hm1)
-Colorbar(fig[2, 2], hm2)
-Colorbar(fig[3, 2], hm3)
+hm1 = heatmap!(ax1, san; colormap = :deep,  nan_color=:lightgray, colorrange = (0, 35))
+hm2 = heatmap!(ax2, son; colormap = :magma, nan_color=:lightgray, colorrange = (0, 0.6))
+hm3 = heatmap!(ax3, ssn; colormap = :ice,   nan_color=:lightgray, colorrange = (0, 0.6))
 
-hidedecorations!(ax1)
-hidedecorations!(ax2)
-hidedecorations!(ax3)
-hidedecorations!(ax4)
+Colorbar(fig[1, 2], hm1, label="(m s⁻¹)")
+Colorbar(fig[2, 2], hm2, label="(m s⁻¹)")
+Colorbar(fig[3, 2], hm3, label="(m s⁻¹)")
+
+for ax in (ax1, ax2, ax3)
+    hidedecorations!(ax)
+end
+
+title = @lift string(prettytime(times[$iter] - times[1]))
+Label(fig[0, :], title, fontsize=18)
 
 record(fig, "surface_speeds.mp4", 1:Nt, framerate=8) do i
     iter[] = i
@@ -252,25 +256,28 @@ Qcn = @lift interior(Qcao[$iter], :, :, 1)
 Qvn = @lift interior(Qvao[$iter], :, :, 1)
 
 fig = Figure(size = (1000, 2000))
-ax1 = Axis(fig[1, 1], title = "2m Temperature, atmosphere (K)")
-ax2 = Axis(fig[2, 1], title = "Sea Surface Temperature (C)")
-ax3 = Axis(fig[3, 1], title = "Sensible heat flux (W/m²)")
-ax4 = Axis(fig[4, 1], title = "Latent heat flux (W/m²)")
 
-hm1 = heatmap!(ax1, Tan; colormap = :plasma,  nan_color=:lightgray)
-hm2 = heatmap!(ax2, Ton; colormap = :plasm,   nan_color=:lightgray)
+ax1 = Axis(fig[1, 1], title = "2m Temperature, atmosphere")
+ax2 = Axis(fig[2, 1], title = "Sea Surface Temperature")
+ax3 = Axis(fig[3, 1], title = "Sensible heat flux")
+ax4 = Axis(fig[4, 1], title = "Latent heat flux")
+
+hm1 = heatmap!(ax1, Tan; colormap = :plasma, nan_color=:lightgray, colorrange = (-45, 30))
+hm2 = heatmap!(ax2, Ton; colormap = :plasma, nan_color=:lightgray, colorrange = (-2, 32))
 hm3 = heatmap!(ax3, Qcn; colormap = :balance, colorrange = (-200, 200),  nan_color=:lightgray)
-hm4 = heatmap!(ax4, Qvn; colormap = :balance, colorrange = (-200, 200),  nan_color=:lightgray))
+hm4 = heatmap!(ax4, Qvn; colormap = :balance, colorrange = (-200, 200),  nan_color=:lightgray)
 
-hidedecorations!(ax1)
-hidedecorations!(ax2)
-hidedecorations!(ax3)
-hidedecorations!(ax4)
+Colorbar(fig[1, 2], hm1, label="(ᵒC)")
+Colorbar(fig[2, 2], hm2, label="(ᵒC)")
+Colorbar(fig[3, 2], hm3, label="(W/m²)")
+Colorbar(fig[4, 2], hm4, label="(W/m²)")
 
-Colorbar(fig[1, 2], hm1)
-Colorbar(fig[2, 2], hm2)
-Colorbar(fig[3, 2], hm3)
-Colorbar(fig[4, 2], hm4)
+for ax in (ax1, ax2, ax3, ax4)
+    hidedecorations!(ax)
+end
+
+title = @lift string(prettytime(times[$iter] - times[1]))
+Label(fig[0, :], title, fontsize=18)
 
 record(fig, "surface_temperature_and_heat_flux.mp4", 1:Nt, framerate=8) do i
     iter[] = i
