@@ -6,7 +6,7 @@ env:
   JULIA_PKG_SERVER_REGISTRY_PREFERENCE: eager
   JULIA_NUM_PRECOMPILE_TASKS: 8
   JULIA_NUM_THREADS: 8
-  CUDA_VISIBLE_DEVICES: "3" # Device for building ClimaOcean docs
+  CUDA_VISIBLE_DEVICES: "2" # Device for building ClimaOcean docs
 
 steps:
   - label: "initialize"
