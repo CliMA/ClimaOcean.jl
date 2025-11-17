@@ -105,8 +105,8 @@ function sea_ice_dynamics(grid, ocean=nothing;
     sea_ice_ocean_drag_coefficient = convert(eltype(grid), sea_ice_ocean_drag_coefficient)
 
     τo  = SemiImplicitStress(uₑ=SSU, vₑ=SSV, Cᴰ=sea_ice_ocean_drag_coefficient)
-    τua = Field{Face, Center, Nothing}(grid)
-    τva = Field{Center, Face, Nothing}(grid)
+    τua = Field{Face, Face, Nothing}(grid)
+    τva = Field{Face, Face, Nothing}(grid)
 
     if isnothing(free_drift)
         free_drift = StressBalanceFreeDrift((u=τua, v=τva), τo)
