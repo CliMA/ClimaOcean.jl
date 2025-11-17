@@ -4,6 +4,8 @@ include("runtests_setup.jl")
     @info "Testing that we can download all the JRA55 data..."
     for name in ClimaOcean.DataWrangling.JRA55.JRA55_variable_names
         fts = ClimaOcean.JRA55.JRA55FieldTimeSeries(name; backend=ClimaOcean.JRA55.JRA55NetCDFBackend(2))
+        @test isfile(fts.path)
+        rm(fts.path; force=true)
     end
 end
 
