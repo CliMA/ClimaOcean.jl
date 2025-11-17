@@ -17,6 +17,8 @@ import Oceananigans.Simulations: reset!, initialize!, iteration
 import Oceananigans.TimeSteppers: time_step!, update_state!, time
 import Oceananigans.Utils: prettytime
 
+import Base
+
 mutable struct OceanSeaIceModel{I, A, O, F, C, Arch} <: AbstractModel{Nothing, Arch}
     architecture :: Arch
     clock :: C
@@ -43,7 +45,7 @@ function Base.show(io::IO, cm::OSIM)
     end
 
     print(io, summary(cm), "\n")
-    print(io, "├── ocean: ", summary(cm.ocean.model), "\n")
+    print(io, "├── ocean: ", summary(cm.ocean), "\n")
     print(io, "├── atmosphere: ", summary(cm.atmosphere), "\n")
     print(io, "├── sea_ice: ", sea_ice_summary, "\n")
     print(io, "└── interfaces: ", summary(cm.interfaces))
