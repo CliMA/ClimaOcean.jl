@@ -22,39 +22,39 @@ ClimaOcean currently ships connectors for the following data products:
 
 - `:temperature` - Potential temperature on the ECCO2 three-dimensional grid (degC).
 - `:salinity` - Practical salinity (psu).
-- `:u_velocity` - Zonal velocity component (m s^-1).
-- `:v_velocity` - Meridional velocity component (m s^-1).
+- `:u_velocity` - Zonal velocity component (m s⁻¹).
+- `:v_velocity` - Meridional velocity component (m s⁻¹).
 - `:free_surface` - Sea surface height anomaly (m).
 - `:sea_ice_thickness` - Effective sea-ice thickness (m).
 - `:sea_ice_concentration` - Sea-ice area fraction (dimensionless).
-- `:net_heat_flux` - Net surface heat flux into the ocean (W m^-2).
+- `:net_heat_flux` - Net surface heat flux into the ocean (W m⁻²).
 
 ## [Supported variables for ECCO2Daily](@id dataset-ecco2daily-vars)
 
 - `:temperature` - Potential temperature on the ECCO2 three-dimensional grid (degC).
 - `:salinity` - Practical salinity (psu).
-- `:u_velocity` - Zonal velocity component (m s^-1).
-- `:v_velocity` - Meridional velocity component (m s^-1).
+- `:u_velocity` - Zonal velocity component (m s⁻¹).
+- `:v_velocity` - Meridional velocity component (m s⁻¹).
 - `:free_surface` - Sea surface height anomaly (m).
 - `:sea_ice_thickness` - Effective sea-ice thickness (m).
 - `:sea_ice_concentration` - Sea-ice area fraction (dimensionless).
-- `:net_heat_flux` - Net surface heat flux into the ocean (W m^-2).
+- `:net_heat_flux` - Net surface heat flux into the ocean (W m⁻²).
 
 ## [Supported variables for ECCO4Monthly](@id dataset-ecco4monthly-vars)
 
 - `:temperature` - Potential temperature on the ECCO V4 grid (degC).
 - `:salinity` - Practical salinity (psu).
-- `:u_velocity` - Zonal velocity component (m s^-1).
-- `:v_velocity` - Meridional velocity component (m s^-1).
+- `:u_velocity` - Zonal velocity component (m s⁻¹).
+- `:v_velocity` - Meridional velocity component (m s⁻¹).
 - `:free_surface` - Sea surface height anomaly (m).
 - `:sea_ice_thickness` - Effective sea-ice thickness (m).
 - `:sea_ice_concentration` - Sea-ice area fraction (dimensionless).
-- `:net_heat_flux` - Net surface heat flux into the ocean (W m^-2).
-- `:sensible_heat_flux` - Surface sensible heat flux (W m^-2).
-- `:latent_heat_flux` - Surface latent heat flux (W m^-2).
-- `:net_longwave` - Net longwave radiation at the surface (W m^-2).
-- `:downwelling_shortwave` - Downward shortwave radiation at the surface (W m^-2).
-- `:downwelling_longwave` - Downward longwave radiation at the surface (W m^-2).
+- `:net_heat_flux` - Net surface heat flux into the ocean (W m⁻²).
+- `:sensible_heat_flux` - Surface sensible heat flux (W m⁻²).
+- `:latent_heat_flux` - Surface latent heat flux (W m⁻²).
+- `:net_longwave` - Net longwave radiation at the surface (W m⁻²).
+- `:downwelling_shortwave` - Downward shortwave radiation at the surface (W m⁻²).
+- `:downwelling_longwave` - Downward longwave radiation at the surface (W m⁻²).
 
 ## [Supported variables for EN4Monthly](@id dataset-en4monthly-vars)
 
@@ -65,12 +65,12 @@ ClimaOcean currently ships connectors for the following data products:
 
 - `:temperature` - Potential temperature (degC).
 - `:salinity` - Practical salinity (psu).
-- `:u_velocity` - Zonal velocity component (m s^-1).
-- `:v_velocity` - Meridional velocity component (m s^-1).
+- `:u_velocity` - Zonal velocity component (m s⁻¹).
+- `:v_velocity` - Meridional velocity component (m s⁻¹).
 - `:sea_ice_concentration` - Sea-ice area fraction (dimensionless).
 - `:sea_ice_thickness` - Sea-ice thickness (m).
-- `:sea_ice_u_velocity` - Zonal sea-ice drift (m s^-1).
-- `:sea_ice_v_velocity` - Meridional sea-ice drift (m s^-1).
+- `:sea_ice_u_velocity` - Zonal sea-ice drift (m s⁻¹).
+- `:sea_ice_v_velocity` - Meridional sea-ice drift (m s⁻¹).
 - `:free_surface` - Sea surface height (m).
 - `:depth` - Static bathymetry/depth (m).
 
@@ -78,39 +78,39 @@ ClimaOcean currently ships connectors for the following data products:
 
 - `:temperature` - Potential temperature (degC).
 - `:salinity` - Practical salinity (psu).
-- `:u_velocity` - Zonal velocity component (m s^-1).
-- `:v_velocity` - Meridional velocity component (m s^-1).
+- `:u_velocity` - Zonal velocity component (m s⁻¹).
+- `:v_velocity` - Meridional velocity component (m s⁻¹).
 - `:sea_ice_concentration` - Sea-ice area fraction (dimensionless).
 - `:sea_ice_thickness` - Sea-ice thickness (m).
-- `:sea_ice_u_velocity` - Zonal sea-ice drift (m s^-1).
-- `:sea_ice_v_velocity` - Meridional sea-ice drift (m s^-1).
+- `:sea_ice_u_velocity` - Zonal sea-ice drift (m s⁻¹).
+- `:sea_ice_v_velocity` - Meridional sea-ice drift (m s⁻¹).
 - `:free_surface` - Sea surface height (m).
 - `:depth` - Static bathymetry/depth (m).
 
 ## [Supported variables for RepeatYearJRA55](@id dataset-repeatyearjra55-vars)
 
 - `:temperature` - 2 m air temperature (K).
-- `:specific_humidity` - 2 m specific humidity (kg kg^-1).
-- `:eastward_velocity` - 10 m eastward wind (m s^-1).
-- `:northward_velocity` - 10 m northward wind (m s^-1).
+- `:specific_humidity` - 2 m specific humidity (kg kg⁻¹).
+- `:eastward_velocity` - 10 m eastward wind (m s⁻¹).
+- `:northward_velocity` - 10 m northward wind (m s⁻¹).
 - `:sea_level_pressure` - Sea-level pressure (Pa).
-- `:downwelling_shortwave_radiation` - Downward shortwave radiation (W m^-2).
-- `:downwelling_longwave_radiation` - Downward longwave radiation (W m^-2).
-- `:rain_freshwater_flux` - Liquid precipitation flux (kg m^-2 s^-1).
-- `:snow_freshwater_flux` - Solid precipitation flux (kg m^-2 s^-1).
-- `:river_freshwater_flux` - River discharge flux (kg m^-2 s^-1).
-- `:iceberg_freshwater_flux` - Iceberg calving flux (kg m^-2 s^-1).
+- `:downwelling_shortwave_radiation` - Downward shortwave radiation (W m⁻²).
+- `:downwelling_longwave_radiation` - Downward longwave radiation (W m⁻²).
+- `:rain_freshwater_flux` - Liquid precipitation flux (kg m⁻² s⁻¹).
+- `:snow_freshwater_flux` - Solid precipitation flux (kg m⁻² s⁻¹).
+- `:river_freshwater_flux` - River discharge flux (kg m⁻² s⁻¹).
+- `:iceberg_freshwater_flux` - Iceberg calving flux (kg m⁻² s⁻¹).
 
 ## [Supported variables for MultiYearJRA55](@id dataset-multiyearjra55-vars)
 
 - `:temperature` - 2 m air temperature (K).
-- `:specific_humidity` - 2 m specific humidity (kg kg^-1).
-- `:eastward_velocity` - 10 m eastward wind (m s^-1).
-- `:northward_velocity` - 10 m northward wind (m s^-1).
+- `:specific_humidity` - 2 m specific humidity (kg kg⁻¹).
+- `:eastward_velocity` - 10 m eastward wind (m s⁻¹).
+- `:northward_velocity` - 10 m northward wind (m s⁻¹).
 - `:sea_level_pressure` - Sea-level pressure (Pa).
-- `:downwelling_shortwave_radiation` - Downwelling shortwave radiation (W m^-2).
-- `:downwelling_longwave_radiation` - Downwelling longwave radiation (W m^-2).
-- `:rain_freshwater_flux` - Precipitation flux from liquid (kg m^-2 s^-1).
-- `:snow_freshwater_flux` - Precipitation flux from snow/ice (kg m^-2 s^-1).
-- `:river_freshwater_flux` - River discharge flux (kg m^-2 s^-1).
-- `:iceberg_freshwater_flux` - Iceberg calving flux (kg m^-2 s^-1).
+- `:downwelling_shortwave_radiation` - Downwelling shortwave radiation (W m⁻²).
+- `:downwelling_longwave_radiation` - Downwelling longwave radiation (W m⁻²).
+- `:rain_freshwater_flux` - Precipitation flux from liquid (kg m⁻² s⁻¹).
+- `:snow_freshwater_flux` - Precipitation flux from snow/ice (kg m⁻² s⁻¹).
+- `:river_freshwater_flux` - River discharge flux (kg m⁻² s⁻¹).
+- `:iceberg_freshwater_flux` - Iceberg calving flux (kg m⁻² s⁻¹).
