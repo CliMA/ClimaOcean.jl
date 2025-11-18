@@ -2,15 +2,17 @@
 
 ClimaOcean currently ships connectors for the following data products:
 
-- [`ETOPO2022`](@ref) | [Supported variables](@ref dataset-etopo2022-vars) | [NOAA ETOPO 2022 overview](https://www.ncei.noaa.gov/products/etopo-global-relief-model)
-- [`ECCO2Monthly`](@ref) | [Supported variables](@ref dataset-ecco2monthly-vars) | [ECCO2 documentation](https://ecco.jpl.nasa.gov/products/all/)
-- [`ECCO2Daily`](@ref) | [Supported variables](@ref dataset-ecco2daily-vars) | [ECCO2 documentation](https://ecco.jpl.nasa.gov/products/all/)
-- [`ECCO4Monthly`](@ref) | [Supported variables](@ref dataset-ecco4monthly-vars) | [ECCO V4r4 product guide](https://ecco-group.org/products-ECCO-V4r4.htm)
-- [`EN4Monthly`](@ref) | [Supported variables](@ref dataset-en4monthly-vars) | [Met Office EN4 overview](https://www.metoffice.gov.uk/hadobs/en4/)
-- [`GLORYSDaily`](@ref) | [Supported variables](@ref dataset-glorysdaily-vars) | [Copernicus GLORYS product page](https://data.marine.copernicus.eu/product/GLOBAL_MULTIYEAR_PHY_001_030/description)
-- [`GLORYSMonthly`](@ref) | [Supported variables](@ref dataset-glorysmonthly-vars) | [Copernicus GLORYS product page](https://data.marine.copernicus.eu/product/GLOBAL_MULTIYEAR_PHY_001_030/description)
-- [`RepeatYearJRA55`](@ref) | [Supported variables](@ref dataset-repeatyearjra55-vars) | [JRA-55 Reanalysis](https://jra.kishou.go.jp/JRA-55/index_en.html)
-- [`MultiYearJRA55`](@ref) | [Supported variables](@ref dataset-multiyearjra55-vars) | [JRA-55 Reanalysis](https://jra.kishou.go.jp/JRA-55/index_en.html)
+| Dataset            | Supported Variables                                      | Documentation Link                                                                                 |
+|--------------------|-----------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
+| `ETOPO2022`        | [Supported variables](@ref dataset-etopo2022-vars)        | [NOAA ETOPO 2022 overview](https://www.ncei.noaa.gov/products/etopo-global-relief-model)           |
+| `ECCO2Monthly`     | [Supported variables](@ref dataset-ecco2monthly-vars)     | [ECCO2 documentation](https://ecco.jpl.nasa.gov/products/all/)                                     |
+| `ECCO2Daily`       | [Supported variables](@ref dataset-ecco2daily-vars)       | [ECCO2 documentation](https://ecco.jpl.nasa.gov/products/all/)                                     |
+| `ECCO4Monthly`     | [Supported variables](@ref dataset-ecco4monthly-vars)     | [ECCO V4r4 product guide](https://ecco-group.org/products-ECCO-V4r4.htm)                           |
+| `EN4Monthly`       | [Supported variables](@ref dataset-en4monthly-vars)       | [Met Office EN4 overview](https://www.metoffice.gov.uk/hadobs/en4/)                                |
+| `GLORYSDaily`      | [Supported variables](@ref dataset-glorysdaily-vars)      | [Copernicus GLORYS product page](https://data.marine.copernicus.eu/product/GLOBAL_MULTIYEAR_PHY_001_030/description) |
+| `GLORYSMonthly`    | [Supported variables](@ref dataset-glorysmonthly-vars)    | [Copernicus GLORYS product page](https://data.marine.copernicus.eu/product/GLOBAL_MULTIYEAR_PHY_001_030/description) |
+| `RepeatYearJRA55`  | [Supported variables](@ref dataset-repeatyearjra55-vars)  | [JRA-55 Reanalysis](https://jra.kishou.go.jp/JRA-55/index_en.html)                                 |
+| `MultiYearJRA55`   | [Supported variables](@ref dataset-multiyearjra55-vars)   | [JRA-55 Reanalysis](https://jra.kishou.go.jp/JRA-55/index_en.html)                                 |
 
 ## [Supported variables for ETOPO2022](@id dataset-etopo2022-vars)
 
