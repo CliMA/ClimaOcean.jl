@@ -83,6 +83,10 @@ const NoSeaIceModel = Union{OceanSeaIceModel{Nothing}, OceanSeaIceModel{<:Freezi
 ##### Some implementation
 #####
 
+import ClimaOcean: compute_net_sea_ice_fluxes!, 
+                   compute_net_ocean_fluxes!,
+                   compute_net_atmosphere_fluxes!
+
 # Atmosphere interface
 interpolate_atmosphere_state!(interfaces, atmosphere, coupled_model) = nothing
 
@@ -111,7 +115,7 @@ include("freezing_limited_ocean_temperature.jl")
 # TODO: import this last
 include("PrescribedAtmospheres.jl")
 
-using .PrescribedAtmospheres:
+using ClimaOcean.AtmosphereSimulations:
     PrescribedAtmosphere,
     AtmosphereThermodynamicsParameters,
     TwoBandDownwellingRadiation
