@@ -168,7 +168,7 @@ defaults on a per-field basis.
 - `bottom_drag_coefficient`: Bottom drag coefficient. May be a `Default` wrapper.
 - `forcing`: Named tuple of additional forcing(s) for individual fields.
 - `biogeochemistry`: A biogeochemical model or `nothing`.
-- `timestepper`: Time-stepping scheme; options are ``:SplitRungeKutta3` (default), or `:QuasiAdamsBashforth2`.
+- `timestepper`: Time-stepping scheme; options are `:SplitRungeKutta3` (default), or `:QuasiAdamsBashforth2`.
 - `coriolis`: Coriolis object or `Default(...)` wrapper.
 - `momentum_advection`: Momentum advection scheme. Defaults to `WENOVectorInvariant()`.
 - `tracer_advection`: Tracer advection scheme or named tuple of schemes. Defaults to `WENO(order=7)`.
