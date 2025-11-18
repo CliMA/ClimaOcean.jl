@@ -28,7 +28,7 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.10'
+          - '1.12'
         os:
           - ubuntu-latest
           - windows-latest
@@ -37,7 +37,7 @@ jobs:
         include:
           - os: macOS-latest
             arch: aarch64
-            version: '1.10'
+            version: '1.12'
     steps:
       - uses: actions/checkout@v5
       - uses: julia-actions/setup-julia@latest
@@ -65,7 +65,7 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.10'
+          - '1.12'
         os:
           - ubuntu-latest
           # - windows-latest
@@ -74,7 +74,7 @@ jobs:
         include:
           - os: macOS-latest
             arch: aarch64
-            version: '1.10'
+            version: '1.12'
     steps:
       - uses: actions/checkout@v5
       - uses: julia-actions/setup-julia@latest
@@ -107,10 +107,6 @@ jobs:
           - ubuntu-latest
         arch:
           - x64
-        include:
-          - os: macOS-latest
-            arch: aarch64
-            version: '1.10'
     steps:
       - uses: actions/checkout@v5
       - uses: julia-actions/setup-julia@latest
@@ -128,4 +124,4 @@ jobs:
         with:
           files: lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
-          
+
