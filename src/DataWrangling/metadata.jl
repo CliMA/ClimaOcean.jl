@@ -124,8 +124,9 @@ function Metadatum(variable_name;
         date = DateTime(date)
     end
 
-    if !isa(date, AnyDateTime)
-        throw(ArgumentError("`date` must be a `Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`"))
+    if !isnothing(date) && !(date isa AnyDateTime)
+        msg = "`date` must be `nothing`, a `Dates.AbstractDateTime`, or `CFTime.AbstractCFDateTime`, received $(typeof(date))"
+        throw(ArgumentError(msg))
     end
 
     return Metadata(variable_name, dataset, date, bounding_box, dir)

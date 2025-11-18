@@ -47,10 +47,13 @@ pages = [
         # "Single-column ocean simulation" => "literated/single_column_os_papa_simulation.md",
         # "One-degree ocean--sea ice simulation" => "literated/one_degree_simulation.md",
         # "Near-global ocean simulation" => "literated/near_global_ocean_simulation.md",
-        ],
+    ],
 
     "Vertical grids" => "vertical_grids.md",
-    "Metadata" => "metadata.md",
+    "Metadata" => [
+        "Overview" => "Metadata/metadata_overview.md",
+        "Supported variables" => "Metadata/supported_variables.md",
+    ],
     "Interface fluxes" => "interface_fluxes.md",
 
     "Library" => [
