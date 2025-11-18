@@ -2,14 +2,7 @@ using Printf
 using Oceananigans.Operators: ℑxᶠᵃᵃ, ℑyᵃᶠᵃ
 using Oceananigans.Forcings: MultipleForcings
 
-using ClimaOcean.OceanSeaIceModels: sea_ice_concentration
-
-@inline computed_sea_ice_ocean_fluxes(interface) = interface.fluxes
-@inline computed_sea_ice_ocean_fluxes(::Nothing) = (interface_heat = ZeroField(),
-                                                    frazil_heat = ZeroField(),
-                                                    salt = ZeroField(),
-                                                    x_momentum = ZeroField(),
-                                                    y_momentum = ZeroField())
+using ClimaOcean.OceanSeaIceModels: sea_ice_concentration, NoAtmosphereModel, NoSeaIceModel
 
 @inline shortwave_radiative_forcing(i, j, grid, Fᵀ, Qts, ocean_properties) = Qts
 
@@ -31,10 +24,17 @@ end
     return nothing
 end
 
-# No need to do this for an Oceananigans Simulation
-fill_net_fluxes!(ocean, net_ocean_fluxes) = nothing
+@inline τᶜᶜᶜ(i, j, k, grid, ρₒ⁻¹, ℵ, ρτᶜᶜᶜ) = @inbounds ρₒ⁻¹ * (1 - ℵ[i, j, k]) * ρτᶜᶜᶜ[i, j, k]
 
-function compute_net_ocean_fluxes!(coupled_model)
+#####
+##### Generic flux assembler
+#####
+
+computed_sea_ice_ocean_fluxes(sea_ice_ocean_interface) = sea_ice_ocean_interface.fluxes
+computed_sea_ice_ocean_fluxes(::Nothing) = nothing
+
+# A generic ocean flux assembler for a coupled model with both an atmosphere and sea ice
+function compute_net_ocean_fluxes!(coupled_model, ocean)
     sea_ice = coupled_model.sea_ice
     grid = coupled_model.interfaces.exchanger.exchange_grid
     arch = architecture(grid)
@@ -90,7 +90,8 @@ function compute_net_ocean_fluxes!(coupled_model)
     return nothing
 end
 
-@inline τᶜᶜᶜ(i, j, k, grid, ρₒ⁻¹, ℵ, ρτᶜᶜᶜ) = @inbounds ρₒ⁻¹ * (1 - ℵ[i, j, k]) * ρτᶜᶜᶜ[i, j, k]
+@inline get_possibly_zero_flux(fluxes, name)    = getfield(fluxes, name)
+@inline get_possibly_zero_flux(::Nothing, name) = ZeroField()
 
 @kernel function _assemble_net_ocean_fluxes!(net_ocean_fluxes,
                                              penetrating_radiation,
@@ -111,8 +112,8 @@ end
     time = Time(clock.time)
     ρτxao = atmos_ocean_fluxes.x_momentum # atmosphere - ocean zonal momentum flux
     ρτyao = atmos_ocean_fluxes.y_momentum # atmosphere - ocean meridional momentum flux
-    ρτxio = sea_ice_ocean_fluxes.x_momentum # sea_ice - ocean zonal momentum flux
-    ρτyio = sea_ice_ocean_fluxes.y_momentum # sea_ice - ocean meridional momentum flux
+    ρτxio = get_possibly_zero_flux(sea_ice_ocean_fluxes, :x_momentum) # sea_ice - ocean zonal momentum flux
+    ρτyio = get_possibly_zero_flux(sea_ice_ocean_fluxes, :y_momentum) # sea_ice - ocean meridional momentum flux
 
     @inbounds begin
         ℵᵢ = sea_ice_concentration[i, j, 1]
@@ -124,15 +125,15 @@ end
         Qs  = downwelling_radiation.Qs[i, j, 1] # Downwelling shortwave radiation
         Qℓ  = downwelling_radiation.Qℓ[i, j, 1] # Downwelling longwave radiation
         Qc  = atmos_ocean_fluxes.sensible_heat[i, j, 1] # sensible or "conductive" heat flux
-        Qv  = atmos_ocean_fluxes.latent_heat[i, j, 1]   # latent heat flux
-        Mv  = atmos_ocean_fluxes.water_vapor[i, j, 1]   # mass flux of water vapor
+        Qv  = atmos_ocean_fluxes.latent_heat[i, j, 1] # latent heat flux
+        Mv  = atmos_ocean_fluxes.water_vapor[i, j, 1] # mass flux of water vapor
     end
 
     # Compute radiation fluxes (radiation is multiplied by the fraction of ocean, 1 - sea ice concentration)
     σ = atmos_ocean_properties.radiation.σ
     α = atmos_ocean_properties.radiation.α
     ϵ = atmos_ocean_properties.radiation.ϵ
-    Qu = emitted_longwave_radiation(i, j, kᴺ, grid, time, Tₛ, σ, ϵ) 
+    Qu  = emitted_longwave_radiation(i, j, kᴺ, grid, time, Tₛ, σ, ϵ) 
     Qaℓ = absorbed_longwave_radiation(i, j, kᴺ, grid, time, ϵ, Qℓ) 
   
     # Compute the interior + surface absorbed shortwave radiation
@@ -174,12 +175,12 @@ end
     cₒ   = ocean_properties.heat_capacity
 
     @inbounds begin
-        Qio  = sea_ice_ocean_fluxes.interface_heat[i, j, 1]
+        Qio  = get_possibly_zero_flux(sea_ice_ocean_fluxes, :interface_heat)[i, j, 1]
 
         Jᵀao = ΣQao  * ρₒ⁻¹ / cₒ
-        Jˢao = - Sₒ * ΣFao
+        Jˢao = - Sₒ * ΣFao # salinity flux > 0 extracts salinity from the ocean --- the opposite of a water vapor flux
         Jᵀio = Qio * ρₒ⁻¹ / cₒ
-        Jˢio = sea_ice_ocean_fluxes.salt[i, j, 1] * ℵᵢ
+        Jˢio = get_possibly_zero_flux(sea_ice_ocean_fluxes, :salt)[i, j, 1] * ℵᵢ
 
         τxao = ℑxᶠᵃᵃ(i, j, 1, grid, τᶜᶜᶜ, ρₒ⁻¹, ℵ, ρτxao)
         τyao = ℑyᵃᶠᵃ(i, j, 1, grid, τᶜᶜᶜ, ρₒ⁻¹, ℵ, ρτyao)
@@ -196,107 +197,78 @@ end
     end
 end
 
-function compute_net_sea_ice_fluxes!(coupled_model)
+#####
+##### No atmosphere implementation
+#####
+
+# A generic ocean flux assembler for a coupled model with both an atmosphere and sea ice
+function compute_net_ocean_fluxes!(coupled_model::NoAtmosphereModel, ocean)
     sea_ice = coupled_model.sea_ice
-
-    if !(sea_ice isa SeaIceSimulation)
-        return nothing
-    end
-
-    ocean = coupled_model.ocean
-    grid  = ocean.model.grid
-    arch  = architecture(grid)
+    grid = ocean.model.grid
+    arch = architecture(grid)
     clock = coupled_model.clock
 
-    top_fluxes = coupled_model.interfaces.net_fluxes.sea_ice_top
-    bottom_heat_flux = coupled_model.interfaces.net_fluxes.sea_ice_bottom.heat
+    net_ocean_fluxes = coupled_model.interfaces.net_fluxes.ocean_surface
     sea_ice_ocean_fluxes = coupled_model.interfaces.sea_ice_ocean_interface.fluxes
-    atmosphere_sea_ice_fluxes = coupled_model.interfaces.atmosphere_sea_ice_interface.fluxes
 
-    # Simplify NamedTuple to reduce parameter space consumption.
-    # See https://github.com/CliMA/ClimaOcean.jl/issues/116.
-    atmosphere_fields = coupled_model.interfaces.exchanger.exchange_atmosphere_state
+    # We remove the heat flux since does not need to be assembled and bloats the parameter space.
+    net_ocean_fluxes = (u = net_ocean_fluxes.u,
+                        v = net_ocean_fluxes.v,
+                        T = net_ocean_fluxes.T,
+                        S = net_ocean_fluxes.S)
 
-    downwelling_radiation = (Qs = atmosphere_fields.Qs.data,
-                             Qℓ = atmosphere_fields.Qℓ.data)
-
-    freshwater_flux = atmosphere_fields.Mp.data
-
-    atmos_sea_ice_properties = coupled_model.interfaces.atmosphere_sea_ice_interface.properties
-    sea_ice_properties = coupled_model.interfaces.sea_ice_properties
-
+    ice_concentration = sea_ice.model.ice_concentration
+    ocean_properties = coupled_model.interfaces.ocean_properties
     kernel_parameters = interface_kernel_parameters(grid)
 
-    sea_ice_surface_temperature = coupled_model.interfaces.atmosphere_sea_ice_interface.temperature
-    ice_concentration = sea_ice_concentration(sea_ice)
-    
     launch!(arch, grid, kernel_parameters,
-            _assemble_net_sea_ice_fluxes!,
-            top_fluxes,
-            bottom_heat_flux,
+            _assemble_no_atmosphere_net_ocean_fluxes!,
+            net_ocean_fluxes,
             grid,
             clock,
-            atmosphere_sea_ice_fluxes,
             sea_ice_ocean_fluxes,
-            freshwater_flux,
             ice_concentration,
-            sea_ice_surface_temperature,
-            downwelling_radiation,
-            sea_ice_properties,
-            atmos_sea_ice_properties)
+            ocean_properties)
 
     return nothing
 end
 
-@kernel function _assemble_net_sea_ice_fluxes!(top_fluxes,
-                                               bottom_heat_flux,
-                                               grid,
-                                               clock,
-                                               atmosphere_sea_ice_fluxes,
-                                               sea_ice_ocean_fluxes,
-                                               freshwater_flux, # Where do we add this one?
-                                               ice_concentration,
-                                               surface_temperature,
-                                               downwelling_radiation,
-                                               sea_ice_properties,
-                                               atmos_sea_ice_properties)
+@kernel function _assemble_no_atmosphere_net_ocean_fluxes!(net_ocean_fluxes,
+                                                           grid,
+                                                           clock,
+                                                           sea_ice_ocean_fluxes,
+                                                           sea_ice_concentration,
+                                                           ocean_properties)
 
     i, j = @index(Global, NTuple)
     kᴺ = size(grid, 3)
-    time = Time(clock.time)
+    ρτxio = sea_ice_ocean_fluxes.x_momentum # sea_ice - ocean zonal momentum flux
+    ρτyio = sea_ice_ocean_fluxes.y_momentum # sea_ice - ocean meridional momentum flux
+
+    @inbounds ℵᵢ = sea_ice_concentration[i, j, 1]
+
+    # Compute fluxes for u, v, T, and S from momentum, heat, and freshwater fluxes
+    τx = net_ocean_fluxes.u
+    τy = net_ocean_fluxes.v
+    Jᵀ = net_ocean_fluxes.T
+    Jˢ = net_ocean_fluxes.S
+    ℵ = sea_ice_concentration
+    ρₒ⁻¹ = 1 / ocean_properties.reference_density
+    cₒ   = ocean_properties.heat_capacity
 
     @inbounds begin
-        Ts = surface_temperature[i, j, kᴺ]
-        Ts = convert_to_kelvin(sea_ice_properties.temperature_units, Ts)
-        ℵi = ice_concentration[i, j, kᴺ]
+        Qio  = sea_ice_ocean_fluxes.interface_heat[i, j, 1]
+        Jᵀio = Qio * ρₒ⁻¹ / cₒ
+        Jˢio = sea_ice_ocean_fluxes.salt[i, j, 1] * ℵᵢ
+        τxio = ρτxio[i, j, 1] * ρₒ⁻¹ * ℑxᶠᵃᵃ(i, j, 1, grid, ℵ)
+        τyio = ρτyio[i, j, 1] * ρₒ⁻¹ * ℑyᵃᶠᵃ(i, j, 1, grid, ℵ)
 
-        Qs = downwelling_radiation.Qs[i, j, 1]
-        Qℓ = downwelling_radiation.Qℓ[i, j, 1]
-        Qc = atmosphere_sea_ice_fluxes.sensible_heat[i, j, 1] # sensible or "conductive" heat flux
-        Qv = atmosphere_sea_ice_fluxes.latent_heat[i, j, 1]   # latent heat flux
-        Qf = sea_ice_ocean_fluxes.frazil_heat[i, j, 1]        # frazil heat flux
-        Qi = sea_ice_ocean_fluxes.interface_heat[i, j, 1]   # interfacial heat flux
+        # Stresses
+        τx[i, j, 1] = τxio
+        τy[i, j, 1] = τyio
+
+        # Tracer fluxes
+        Jᵀ[i, j, 1] = Jᵀio # Jᵀao is already multiplied by the sea ice concentration
+        Jˢ[i, j, 1] = Jˢio
     end
-
-    ρτx = atmosphere_sea_ice_fluxes.x_momentum  # zonal momentum flux
-    ρτy = atmosphere_sea_ice_fluxes.y_momentum  # meridional momentum flux
-
-    # Compute radiation fluxes
-    σ = atmos_sea_ice_properties.radiation.σ
-    α = atmos_sea_ice_properties.radiation.α
-    ϵ = atmos_sea_ice_properties.radiation.ϵ
-    Qu = emitted_longwave_radiation(i, j, kᴺ, grid, time, Ts, σ, ϵ) 
-    Qs = transmitted_shortwave_radiation(i, j, kᴺ, grid, time, α, Qs)
-    Qℓ = absorbed_longwave_radiation(i, j, kᴺ, grid, time, ϵ, Qℓ)
-
-    ΣQt = (Qs + Qℓ + Qu + Qc + Qv) * (ℵi > 0) # If ℵi == 0 there is no heat flux from the top!
-    ΣQb = Qf + Qi
-
-    # Mask fluxes over land for convenience
-    inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
-
-    @inbounds top_fluxes.heat[i, j, 1]  = ifelse(inactive, zero(grid), ΣQt)
-    @inbounds top_fluxes.u[i, j, 1]     = ifelse(inactive, zero(grid), ℑxᶠᵃᵃ(i, j, 1, grid, ρτx))
-    @inbounds top_fluxes.v[i, j, 1]     = ifelse(inactive, zero(grid), ℑyᵃᶠᵃ(i, j, 1, grid, ρτy))
-    @inbounds bottom_heat_flux[i, j, 1] = ifelse(inactive, zero(grid), ΣQb)
 end
