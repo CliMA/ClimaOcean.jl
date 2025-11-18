@@ -11,7 +11,7 @@ Metadata
 ```
 
 When `Metadata` represents just one date, we call it [`Metadatum`](@ref).
-For examples, consider global temperature from January 1st, 2010 from the
+For example, consider global temperature from January 1st, 2010 from the
 [EN4 dataset](https://www.metoffice.gov.uk/hadobs/en4/),
 
 ```@example metadata
