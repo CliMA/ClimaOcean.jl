@@ -1,6 +1,7 @@
 using Oceananigans.DistributedComputations: DistributedGrid, all_reduce
 using Oceananigans.Architectures: architecture
 using Oceananigans.BoundaryConditions: DefaultBoundaryCondition
+using Oceananigans.BuoyancyFormulations: BuoyancyForce
 using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node, MutableGridOfSomeKind
 using Oceananigans.OrthogonalSphericalShellGrids
 
@@ -245,20 +246,23 @@ function ocean_simulation(grid;
         # Turn off CATKE tracer advection
         tke_advection = (; e=nothing)
         tracer_advection = merge(tracer_advection, tke_advection)
+
+        # Materialize buoyancy gradients to speed up the computation
+        buoyancy = BuoyancyForce(grid, buoyancy; materialize_gradients=true)
     end
 
     ocean_model = HydrostaticFreeSurfaceModel(; grid,
-                                              buoyancy,
-                                              closure,
-                                              biogeochemistry,
-                                              tracer_advection,
-                                              momentum_advection,
-                                              tracers,
-                                              timestepper,
-                                              free_surface,
-                                              coriolis,
-                                              forcing,
-                                              boundary_conditions)
+                                                buoyancy,
+                                                closure,
+                                                biogeochemistry,
+                                                tracer_advection,
+                                                momentum_advection,
+                                                tracers,
+                                                timestepper,
+                                                free_surface,
+                                                coriolis,
+                                                forcing,
+                                                boundary_conditions)
 
     ocean = Simulation(ocean_model; Δt, verbose)
 
