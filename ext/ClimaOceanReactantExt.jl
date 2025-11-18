@@ -21,4 +21,3 @@ const ReactantOSIM{I, A, O, F, C} = Union{
 initialization_update_state!(model::ReactantOSIM) = nothing
 
 end # module ClimaOceanReactantExt
-
