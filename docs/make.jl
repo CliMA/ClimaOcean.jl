@@ -84,7 +84,7 @@ makedocs(; sitename = "ClimaOcean.jl",
          doctest = true,
          clean = true,
          warnonly = [:cross_references, :missing_docs],
-         checkdocs = :none)
+         checkdocs = :exports)
 
 @info "Clean up temporary .jld2, .nc, and .mp4 output created by doctests or literated examples..."
 
