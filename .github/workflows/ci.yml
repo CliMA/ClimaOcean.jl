@@ -28,7 +28,7 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.10'
+          - '1.12'
         os:
           - ubuntu-latest
           - windows-latest
@@ -37,7 +37,7 @@ jobs:
         include:
           - os: macOS-latest
             arch: aarch64
-            version: '1.10'
+            version: '1.12'
     steps:
       - uses: actions/checkout@v5
       - uses: julia-actions/setup-julia@latest
@@ -65,7 +65,7 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.10'
+          - '1.12'
         os:
           - ubuntu-latest
           # - windows-latest
@@ -74,7 +74,7 @@ jobs:
         include:
           - os: macOS-latest
             arch: aarch64
-            version: '1.10'
+            version: '1.12'
     steps:
       - uses: actions/checkout@v5
       - uses: julia-actions/setup-julia@latest
@@ -107,10 +107,6 @@ jobs:
           - ubuntu-latest
         arch:
           - x64
-        include:
-          - os: macOS-latest
-            arch: aarch64
-            version: '1.10'
     steps:
       - uses: actions/checkout@v5
       - uses: julia-actions/setup-julia@latest
@@ -122,6 +118,41 @@ jobs:
       - uses: julia-actions/julia-runtest@v1
         env:
           TEST_GROUP: "reactant"
+          GPU_TEST: "false"
+      - uses: julia-actions/julia-processcoverage@v1
+      - uses: codecov/codecov-action@v5
+        with:
+          files: lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+  
+  speedy_weather:
+    name: SpeedyWeather extension - Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 80
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - '1.12'
+        os:
+          - ubuntu-latest
+        arch:
+          - x64
+        include:
+          - os: macOS-latest
+            arch: aarch64
+            version: '1.12'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: julia-actions/setup-julia@latest
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@v1
+      - uses: julia-actions/julia-runtest@v1
+        env:
+          TEST_GROUP: "speedy_weather"
           GPU_TEST: "false"
       - uses: julia-actions/julia-processcoverage@v1
       - uses: codecov/codecov-action@v5

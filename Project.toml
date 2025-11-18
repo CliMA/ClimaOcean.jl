@@ -35,10 +35,13 @@ ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 [weakdeps]
 CopernicusMarine = "cd43e856-93a3-40c8-bc9e-6146cdce14fa"
 Reactant = "3c362404-f566-11ee-1572-e11a4b42c853"
+SpeedyWeather = "9e226e20-d153-4fed-8a5b-493def4f21a9"
+XESMF = "2e0b0046-e7a1-486f-88de-807ee8ffabe5"
 
 [extensions]
 ClimaOceanCopernicusMarineExt = "CopernicusMarine"
 ClimaOceanReactantExt = "Reactant"
+ClimaOceanSpeedyWeatherExt = ["SpeedyWeather", "XESMF"]
 
 [compat]
 Adapt = "4"
@@ -57,15 +60,17 @@ KernelAbstractions = "0.9"
 MPI = "0.20"
 MeshArrays = "0.3"
 NCDatasets = "0.12, 0.13, 0.14"
-Oceananigans = "0.100.5"
+Oceananigans = "0.101"
 OffsetArrays = "1.14"
 PrecompileTools = "1"
 Reactant = "0.2.45"
 Scratch = "1"
 SeawaterPolynomials = "0.3.5"
+SpeedyWeather = "0.17.4"
 StaticArrays = "1"
 Statistics = "1.9"
 Thermodynamics = "0.14, 0.15"
+XESMF = "0.1.6"
 ZipFile = "0.10"
 julia = "1.10"
 
@@ -76,4 +81,4 @@ MPIPreferences = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Coverage", "Test", "MPIPreferences", "CUDA_Runtime_jll", "Reactant", "CopernicusMarine"]
+test = ["Coverage", "Test", "MPIPreferences", "CUDA_Runtime_jll", "Reactant", "CopernicusMarine", "XESMF", "SpeedyWeather"]
