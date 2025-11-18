@@ -107,7 +107,7 @@ end
                      bottom_drag_coefficient = Default(0.003),
                      forcing = NamedTuple(),
                      biogeochemistry = nothing,
-                     timestepper = :QuasiAdamsBashforth2,
+                     timestepper = :SplitRungeKutta3,
                      coriolis = Default(HydrostaticSphericalCoriolis(; rotation_rate)),
                      momentum_advection = WENOVectorInvariant(),
                      tracer_advection = WENO(order=7),
@@ -118,6 +118,10 @@ end
                      verbose = false)
 
 Return an ocean simulation.
+
+Keyword Arguments
+=================
+- `timestepper`: `:QuasiAdamsBashforth2` or `:SplitRungeKutta3` (default).
 """
 function ocean_simulation(grid;
                           Δt = estimate_maximum_Δt(grid),
@@ -130,7 +134,7 @@ function ocean_simulation(grid;
                           bottom_drag_coefficient = Default(0.003),
                           forcing = NamedTuple(),
                           biogeochemistry = nothing,
-                          timestepper = :QuasiAdamsBashforth2,
+                          timestepper = :SplitRungeKutta3,
                           coriolis = Default(HydrostaticSphericalCoriolis(; rotation_rate)),
                           momentum_advection = WENOVectorInvariant(),
                           tracer_advection = WENO(order=7),
