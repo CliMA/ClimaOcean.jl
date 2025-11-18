@@ -247,7 +247,7 @@ function ocean_simulation(grid;
         tke_advection = (; e=nothing)
         tracer_advection = merge(tracer_advection, tke_advection)
 
-        # Materialize buoyancy gradients to speed up the computation
+        # Materialize buoyancy gradients when using CATKE to speed up the computation
         buoyancy = BuoyancyForce(grid, buoyancy; materialize_gradients=true)
     end
 
