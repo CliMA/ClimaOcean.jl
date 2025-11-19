@@ -22,17 +22,17 @@ metadatum = Metadatum(:temperature;
                       date = Date(2010, 1, 1))
 ```
 
-To materialize the data described by a `metadatum`, we wrap it in a `Field`,
+To materialize the data described by a `metadatum`, we wrap it in an Oceananigans' `Field`,
 
 ```@example metadata
+using Oceananigans
+
 T_native = Field(metadatum)
 ```
 
 we can also interpolate the data on a user-defined grid by using the function `set!`,
 
 ```@example metadata
-using Oceananigans
-
 grid = LatitudeLongitudeGrid(size = (360, 90, 1),
                              latitude = (-90, 90),
                              longitude = (0, 360),
