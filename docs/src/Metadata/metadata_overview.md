@@ -30,7 +30,7 @@ using Oceananigans
 T_native = Field(metadatum)
 ```
 
-we can also interpolate the data on a user-defined grid by using the function `set!`,
+We can also interpolate the data on a user-defined grid by using the function `set!`,
 
 ```@example metadata
 grid = LatitudeLongitudeGrid(size = (360, 90, 1),
