@@ -53,6 +53,19 @@ set!(T, metadatum)
 heatmap(T)
 ```
 
+We can also load the field on the dataset's native grid via:
+
+```@example metadata
+T_native = Field(metadatum)
+```
+
+Note that the grid in the temperature field above is different from the one we defined above.
+In particular,
+
+```@example metadata
+T_native.grid
+```
+
 The key ingredients stored in a [`Metadata`](@ref) or [`Metadatum`](@ref) object are:
 
 - the variable name (for example `:temperature` or `:u_velocity`);
