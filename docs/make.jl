@@ -84,6 +84,7 @@ makedocs(; sitename = "ClimaOcean.jl",
          doctest = true,
          doctestfilters = [
              r"┌ Warning:.*",  # remove standard warning lines
+             r"│ Use at own risk",
              r"└ @ .*",        # remove the source location of warnings
          ],
          clean = true,
