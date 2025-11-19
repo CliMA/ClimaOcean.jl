@@ -22,7 +22,13 @@ metadatum = Metadatum(:temperature;
                       date = Date(2010, 1, 1))
 ```
 
-To download and instantiate the data, we use `set!`,
+To materialize the data described by a `metadatum`, we wrap it in a `Field`,
+
+```@example metadata
+T_native = Field(metadatum)
+```
+
+we can also interpolate the data on a user-defined grid by using the function `set!`,
 
 ```@example metadata
 using Oceananigans
@@ -42,7 +48,7 @@ using CairoMakie
 heatmap(T)
 ```
 
-This looks bit odd, but less so if we download bathymetry (for which we also using `Metadata`
+This looks a bit odd, but less so if we download bathymetry (for which we also use `Metadata`
 under the hood) to create a temperature field with a land mask,
 
 ```@example metadata
@@ -51,19 +57,6 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 T = CenterField(grid)
 set!(T, metadatum)
 heatmap(T)
-```
-
-We can also load the field on the dataset's native grid via:
-
-```@example metadata
-T_native = Field(metadatum)
-```
-
-Note that the grid in the temperature field above is different from the one we defined above.
-In particular,
-
-```@example metadata
-T_native.grid
 ```
 
 The key ingredients stored in a [`Metadata`](@ref) or [`Metadatum`](@ref) object are:
