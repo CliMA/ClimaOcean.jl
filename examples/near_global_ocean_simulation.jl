@@ -75,7 +75,7 @@ nothing #hide
 #
 # We build our ocean model using `ocean_simulation`,
 
-ocean = ocean_simulation(grid, timestepper = :SplitRungeKutta3)
+ocean = ocean_simulation(grid)
 
 # which uses the default `ocean.model`,
 
