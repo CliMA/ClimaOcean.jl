@@ -116,7 +116,7 @@ coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 
 # We then create a coupled simulation.
 
-simulation = Simulation(coupled_model; Δt=30minute, stop_time=60days)
+simulation = Simulation(coupled_model; Δt=25minutes, stop_time=60days)
 
 # We define a callback function to monitor the simulation's progress,
 
