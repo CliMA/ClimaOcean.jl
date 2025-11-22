@@ -104,7 +104,7 @@ recursive_find(directory, pattern) =
     end
 
 files = []
-for pattern in [r"\.jld2", r"\.nc", r"\.mp4"]
+for pattern in [r"\.jld2", r"\.nc"]
     global files = vcat(files, recursive_find(@__DIR__, pattern))
 end
 
