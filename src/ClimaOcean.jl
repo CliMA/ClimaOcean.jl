@@ -52,6 +52,16 @@ using DataDeps
 using Oceananigans.OutputReaders: GPUAdaptedFieldTimeSeries, FieldTimeSeries
 using Oceananigans.Grids: node
 
+# Does not really matter if there is no model
+reference_density(::Nothing) = 0
+heat_capacity(::Nothing) = 0
+
+reference_density(unsupported) =
+    throw(ArgumentError("Cannot extract reference density from $(typeof(unsupported))"))
+
+heat_capacity(unsupported) =
+    throw(ArgumentError("Cannot deduce the heat capacity from $(typeof(unsupported))"))
+
 const SomeKindOfFieldTimeSeries = Union{FieldTimeSeries,
                                         GPUAdaptedFieldTimeSeries}
 
@@ -82,7 +92,8 @@ end
 function atmosphere_simulation end
 
 include("OceanSimulations/OceanSimulations.jl")
-include("SeaIceSimulations.jl")
+include("SeaIceSimulations/SeaIceSimulations.jl")
+include("AtmosphereSimulations/AtmosphereSimulations.jl")
 include("OceanSeaIceModels/OceanSeaIceModels.jl")
 include("InitialConditions/InitialConditions.jl")
 include("DataWrangling/DataWrangling.jl")
@@ -118,5 +129,8 @@ using PrecompileTools: @setup_workload, @compile_workload
         # model = OceanSeaIceModel(ocean)
     end
 end
+
+function 
+
 
 end # module

@@ -11,7 +11,7 @@ using NCDatasets
 using Dates: Second
 
 import ClimaOcean: stateindex
-import Oceananigans.Forcings: materialize_forcing
+import Oceananigans.Forcings: regularize_forcing
 
 # Variable names for restorable data
 struct Temperature end
@@ -230,7 +230,7 @@ function Base.show(io::IO, dsr::DatasetRestoring)
               "└── native_grid: ", summary(dsr.native_grid))
 end
 
-materialize_forcing(forcing::DatasetRestoring, field, field_name, model_field_names) = forcing
+regularize_forcing(forcing::DatasetRestoring, field, field_name, model_field_names) = forcing
 
 #####
 ##### Masks for restoring

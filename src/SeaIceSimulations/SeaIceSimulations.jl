@@ -19,6 +19,11 @@ using ClimaSeaIce.Rheologies: IceStrength, ElastoViscoPlasticRheology
 
 using ClimaOcean.OceanSimulations: Default
 
+import ClimaOcean: reference_density, heat_capacity
+
+reference_density(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_thermodynamics.phase_transitions.ice_density
+heat_capacity(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_thermodynamics.phase_transitions.ice_heat_capacity
+
 g_Earth = Oceananigans.defaults.gravitational_acceleration
 Ω_Earth = Oceananigans.defaults.planet_rotation_rate
 
