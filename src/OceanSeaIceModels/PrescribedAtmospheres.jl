@@ -10,6 +10,7 @@ using Oceananigans.Utils: prettysummary, Time
 using Adapt
 using Thermodynamics.Parameters: AbstractThermodynamicsParameters
 
+import Oceananigans.Fields: set!
 import Oceananigans.TimeSteppers: time_step!, update_state!
 
 import Thermodynamics.Parameters:
@@ -444,5 +445,75 @@ TwoBandDownwellingRadiation(; shortwave=nothing, longwave=nothing) =
 Adapt.adapt_structure(to, tsdr::TwoBandDownwellingRadiation) =
     TwoBandDownwellingRadiation(adapt(to, tsdr.shortwave),
                                 adapt(to, tsdr.longwave))
+
+#####
+##### set! for PrescribedAtmosphere with time-dependent functions
+#####
+
+# Map field names to their corresponding FieldTimeSeries in the atmosphere.
+# Follows the pattern: check velocities, tracers, pressure, radiation, freshwater_flux.
+function get_atmosphere_field(atmos::PrescribedAtmosphere, name::Symbol)
+    name === :p && return atmos.pressure
+    name ∈ propertynames(atmos.velocities) && return getproperty(atmos.velocities, name)
+    name ∈ propertynames(atmos.tracers) && return getproperty(atmos.tracers, name)
+    name ∈ propertynames(atmos.downwelling_radiation) && return getproperty(atmos.downwelling_radiation, name)
+    name ∈ propertynames(atmos.freshwater_flux) && return getproperty(atmos.freshwater_flux, name)
+
+    error("Unknown atmosphere field name: $name. " *
+          "Available names: :u, :v, :T, :q, :p, :shortwave, :longwave, :rain, :snow")
+end
+
+"""
+    set!(atmos::PrescribedAtmosphere; kwargs...)
+
+Set fields of a `PrescribedAtmosphere` using functions of time.
+
+Each keyword argument should be a function that takes a single argument `t` (time in seconds)
+and returns the field value at that time. The function is evaluated at each time in
+`atmos.times` and the resulting values are used to fill the corresponding `FieldTimeSeries`.
+
+Available field names:
+- `:u`, `:v` - velocity components (m/s)
+- `:T` - temperature (K)
+- `:q` - specific humidity (kg/kg)
+- `:p` - pressure (Pa)
+- `:shortwave` - downwelling shortwave radiation (W/m²)
+- `:longwave` - downwelling longwave radiation (W/m²)
+- `:rain`, `:snow` - precipitation rates (m/s)
+
+Example
+=======
+
+```jldoctest
+using Oceananigans
+using ClimaOcean
+
+grid = RectilinearGrid(size=(4, 4), x=(0, 1), y=(0, 1), topology=(Periodic, Periodic, Flat))
+times = [0.0, 3600.0, 7200.0]  # 0, 1, and 2 hours in seconds
+atmosphere = PrescribedAtmosphere(grid, times)
+
+# Set temperature as a linear function of time
+set!(atmosphere; T = t -> 300 + t / 3600)  # increases by 1 K per hour
+
+atmosphere.tracers.T[1], atmosphere.tracers.T[2], atmosphere.tracers.T[3]
+
+# output
+(300.0, 301.0, 302.0)
+```
+"""
+function set!(atmos::PrescribedAtmosphere; kwargs...)
+    times = atmos.times
+    
+    for (name, func) in pairs(kwargs)
+        fts = get_atmosphere_field(atmos, name)
+        for (n, t) in enumerate(times)
+            parent(fts)[n] = func(t)
+        end
+    end
+    
+    update_state!(atmos)
+    
+    return nothing
+end
 
 end # module
