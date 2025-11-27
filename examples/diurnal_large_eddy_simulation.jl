@@ -16,10 +16,6 @@ using CairoMakie
 # ## Parameters
 #
 # Physical and numerical parameters for the simulation.
-
-day = 86400   # seconds in a day
-latitude = 33   # degrees (San Diego)
-
 # Solar radiation parameters:
 # The solar constant (top-of-atmosphere irradiance) is ~1361 W/m².
 # Clear-sky atmospheric transmittance is about 75%, so surface irradiance is ~1020 W/m².
@@ -30,6 +26,8 @@ latitude = 33   # degrees (San Diego)
 # where ``ϕ`` is latitude and ``δ`` is the solar declination (23.5° at summer solstice).
 # Thus peak surface irradiance is approximately ``1361 × sin(80.5°) × 0.75 ≈ 1006`` W/m².
 
+day = 86400   # seconds in a day
+latitude = 33   # degrees (San Diego)
 solar_constant = 1361           # W/m², top-of-atmosphere
 clear_sky_transmittance = 0.75  # atmospheric transmittance on clear day
 surface_solar_irradiance = solar_constant * clear_sky_transmittance  # ≈ 1020 W/m²
@@ -46,12 +44,12 @@ surface_solar_irradiance = solar_constant * clear_sky_transmittance  # ≈ 1020 
 # - Minimum temperature around 6 AM (just before sunrise)
 
 """
-    solar_elevation(t, latitude, day)
+    solar_elevation(t)
 
 Compute the solar elevation angle (radians) at time `t` for a given `latitude`.
 Simplified model assuming summer solstice conditions.
 """
-function solar_elevation(t, latitude, day)
+function solar_elevation(t)
     hour_angle = 2π * (t / day - 0.5)  # 0 at noon
     δ = deg2rad(23.5)  # summer solstice declination
     ϕ = deg2rad(latitude)
@@ -60,11 +58,11 @@ function solar_elevation(t, latitude, day)
 end
 
 """
-    diurnal_shortwave(t, latitude, day, surface_solar_irradiance)
+    diurnal_shortwave(t)
 
 Clear-sky downwelling shortwave radiation (W/m²) at time `t`.
 """
-function diurnal_shortwave(t, latitude, day, surface_solar_irradiance)
+function diurnal_shortwave(t)
     elevation = solar_elevation(t, latitude, day)
     daytime_shortwave = surface_solar_irradiance * sin(elevation)
     return max(0, daytime_shortwave)
@@ -76,7 +74,7 @@ end
 Downwelling longwave radiation (W/m²) at time `t`.
 Varies with atmospheric temperature: ~300 W/m² at night, ~380 W/m² during day.
 """
-function diurnal_longwave(t, day)
+function diurnal_longwave(t)
     phase = 2π * t / day - π/2 - 2 * 2π / 24
     return 340 + 40 * sin(phase)
 end
@@ -87,7 +85,7 @@ end
 Air temperature (Kelvin) at time `t`.
 Ranges from ~17°C (290 K) before sunrise to ~24°C (297 K) in mid-afternoon.
 """
-function diurnal_temperature(t, day)
+function diurnal_temperature(t)
     T_min, T_max = 290, 297
     T_mean = (T_min + T_max) / 2
     T_amp = (T_max - T_min) / 2
@@ -101,7 +99,7 @@ end
 Specific humidity (kg/kg) at time `t`.
 Higher at night (~0.012), lower during day (~0.008).
 """
-function diurnal_humidity(t, day)
+function diurnal_humidity(t)
     q_mean, q_amp = 0.010, 0.002
     phase = 2π * (t / day - 6 / 24) - π/2
     return q_mean - q_amp * sin(phase)
@@ -125,17 +123,12 @@ diurnal_wind_v(t) = -1  # slight southward component
 # 3D grid with 4m spacing: 512m × 4m × 256m (Nx × Ny × Nz = 128 × 1 × 64).
 # The thin y-dimension makes this essentially a 2D slice for computational efficiency.
 
-Lx, Ly, Lz = 512, 4, 256  # meters
+arch = GPU()
+Lx, Ly, Lz = 512, 512, 256  # meters
 Nx, Ny, Nz = 128, 1, 64   # 4m grid spacing
 
-arch = CPU()
-grid = RectilinearGrid(arch;
-                       size = (Nx, Ny, Nz),
-                       x = (0, Lx),
-                       y = (0, Ly),
-                       z = (-Lz, 0),
-                       topology = (Periodic, Periodic, Bounded),
-                       halo = (5, 5, 5))
+grid = RectilinearGrid(arch; size = (Nx, Ny, Nz), topology = (Periodic, Periodic, Bounded),
+                       x = (0, Lx), y = (0, Ly), z = (-Lz, 0))
 
 coriolis = FPlane(; latitude)
 ocean = nonhydrostatic_ocean_simulation(grid; coriolis)
@@ -143,7 +136,7 @@ ocean = nonhydrostatic_ocean_simulation(grid; coriolis)
 # Initial conditions: warm mixed layer with small perturbations
 
 Tᵢ(x, y, z) = 22 + 0.01 * randn()  # °C, typical summer SST
-Sᵢ(x, y, z) = 33.5 + 0.001 * randn()  # psu, typical coastal salinity
+Sᵢ(x, y, z) = 33 + 0.001 * randn()  # psu, typical coastal salinity
 set!(ocean.model, T=Tᵢ, S=Sᵢ)
 
 # ## Prescribed diurnal atmosphere
@@ -151,11 +144,8 @@ set!(ocean.model, T=Tᵢ, S=Sᵢ)
 # Set up the atmosphere with time-varying fields over a full diurnal cycle.
 # We use hourly time snapshots for smooth interpolation.
 
-atmosphere_grid = RectilinearGrid(arch;
-                                  size = (Nx, Ny),
-                                  x = (0, Lx),
-                                  y = (0, Ly),
-                                  topology = (Periodic, Periodic, Flat))
+atmosphere_grid = RectilinearGrid(arch; size = (Nx, Ny), topology = (Periodic, Periodic, Flat),
+                                  x = (0, Lx), y = (0, Ly))
 
 atmosphere_times = range(0, 24hours, length=25)
 atmosphere = PrescribedAtmosphere(atmosphere_grid, collect(atmosphere_times))
@@ -164,12 +154,12 @@ atmosphere = PrescribedAtmosphere(atmosphere_grid, collect(atmosphere_times))
 # We use closures to capture the parameters.
 
 set!(atmosphere;
-     u = t -> diurnal_wind_u(t, day),
+     u = diurnal_wind_u,
      v = diurnal_wind_v,
-     T = t -> diurnal_temperature(t, day),
-     q = t -> diurnal_humidity(t, day),
-     shortwave = t -> diurnal_shortwave(t, latitude, day, surface_solar_irradiance),
-     longwave = t -> diurnal_longwave(t, day))
+     T = diurnal_temperature,
+     q = diurnal_humidity,
+     shortwave = diurnal_shortwave,
+     longwave = diurnal_longwave)
 
 # ## Coupled ocean–atmosphere model
 
@@ -191,33 +181,21 @@ Q = coupled_model.interfaces.net_fluxes.ocean_surface.Q
 
 # Snapshot output every 10 minutes
 
-snapshot_output = Dict("u" => u, "T" => T, "Q" => Q, "τx" => τx)
-simulation.output_writers[:snapshots] = JLD2OutputWriter(ocean.model, snapshot_output;
-                                                          filename = "diurnal_les_snapshots",
-                                                          schedule = TimeInterval(10minutes),
-                                                          overwrite_existing = true)
-
-# Horizontally-averaged profiles for time-averaging
-
+Nz = grid.Nz
+uˢ = view(u, :, :, Nz)
+vˢ = view(v, :, :, Nz)
+Tˢ = view(T, :, :, Nz)
 u_avg = Average(u, dims=(1, 2))
 T_avg = Average(T, dims=(1, 2))
-
-profile_output = Dict("u" => u_avg, "T" => T_avg)
-simulation.output_writers[:profiles] = JLD2OutputWriter(ocean.model, profile_output;
-                                                         filename = "diurnal_les_profiles",
-                                                         schedule = TimeInterval(10minutes),
-                                                         overwrite_existing = true)
-
-# Surface flux time-series (pointwise and averaged)
-
 Q_avg = Average(Q, dims=(1, 2))
 τx_avg = Average(τx, dims=(1, 2))
 
-flux_output = Dict("Q" => Q, "τx" => τx, "Q_avg" => Q_avg, "τx_avg" => τx_avg)
-simulation.output_writers[:fluxes] = JLD2OutputWriter(ocean.model, flux_output;
-                                                       filename = "diurnal_les_fluxes",
-                                                       schedule = TimeInterval(10minutes),
-                                                       overwrite_existing = true)
+outputs = (; uˢ, vˢ, Tˢ, Q, τx, τy, u_avg, T_avg, Q_avg, τx_avg)
+
+simulation.output_writers[:snapshots] = JLD2Writer(ocean.model, outputs;
+                                                   filename = "diurnal_les",
+                                                   schedule = TimeInterval(10minutes),
+                                                   overwrite_existing = true)
 
 # Progress callback
 
@@ -251,12 +229,12 @@ using JLD2
 
 # Load data
 
-u_snapshots = FieldTimeSeries("diurnal_les_snapshots.jld2", "u")
-T_snapshots = FieldTimeSeries("diurnal_les_snapshots.jld2", "T")
-Q_avg_ts = FieldTimeSeries("diurnal_les_fluxes.jld2", "Q_avg")
-τx_avg_ts = FieldTimeSeries("diurnal_les_fluxes.jld2", "τx_avg")
-u_profiles = FieldTimeSeries("diurnal_les_profiles.jld2", "u")
-T_profiles = FieldTimeSeries("diurnal_les_profiles.jld2", "T")
+u_snapshots = FieldTimeSeries("diurnal_les.jld2", "uˢ")
+T_snapshots = FieldTimeSeries("diurnal_les.jld2", "Tˢ")
+Q_avg_ts = FieldTimeSeries("diurnal_les.jld2", "Q_avg")
+τx_avg_ts = FieldTimeSeries("diurnal_les.jld2", "τx_avg")
+u_profiles = FieldTimeSeries("diurnal_les.jld2", "u_avg")
+T_profiles = FieldTimeSeries("diurnal_les.jld2", "T_avg")
 
 times = u_snapshots.times
 Nt = length(times)
