@@ -251,16 +251,14 @@ using JLD2
 
 # Load data
 
-snapshots = FieldTimeSeries("diurnal_les_snapshots.jld2", "u")
+u_snapshots = FieldTimeSeries("diurnal_les_snapshots.jld2", "u")
 T_snapshots = FieldTimeSeries("diurnal_les_snapshots.jld2", "T")
-Q_snapshots = FieldTimeSeries("diurnal_les_fluxes.jld2", "Q")
-τx_snapshots = FieldTimeSeries("diurnal_les_fluxes.jld2", "τx")
 Q_avg_ts = FieldTimeSeries("diurnal_les_fluxes.jld2", "Q_avg")
 τx_avg_ts = FieldTimeSeries("diurnal_les_fluxes.jld2", "τx_avg")
 u_profiles = FieldTimeSeries("diurnal_les_profiles.jld2", "u")
 T_profiles = FieldTimeSeries("diurnal_les_profiles.jld2", "T")
 
-times = snapshots.times
+times = u_snapshots.times
 Nt = length(times)
 
 # Compute time-averaged profiles
@@ -276,9 +274,8 @@ T_mean ./= Nt
 
 # Extract coordinates
 
-xc = xnodes(snapshots)
-zc = znodes(snapshots)
-zf = znodes(Q_snapshots)
+xc = xnodes(u_snapshots)
+zc = znodes(u_snapshots)
 
 # Build time-series arrays for flux plots
 
@@ -327,21 +324,19 @@ vlines!(ax_flux, time_marker, color = :black, linestyle = :dash, linewidth = 2)
 
 n = Observable(1)
 
-u_slice = @lift interior(snapshots[$n], :, 1, :)
+u_slice = @lift interior(u_snapshots[$n], :, 1, :)
 T_slice = @lift interior(T_snapshots[$n], :, 1, :)
 
 # Determine color limits from data
 
-u_max = maximum(abs, interior(snapshots[Nt]))
-T_min, T_max = minimum(interior(T_snapshots[1])), maximum(interior(T_snapshots[Nt]))
+u_lim = maximum(abs, interior(u_snapshots[Nt]))
+T_lim_min, T_lim_max = minimum(interior(T_snapshots[1])), maximum(interior(T_snapshots[Nt]))
 
-hm_u = heatmap!(ax_u, xc, zc, u_slice, colormap = :balance, colorrange = (-u_max, u_max))
-hm_T = heatmap!(ax_T, xc, zc, T_slice, colormap = :thermal, colorrange = (T_min - 0.5, T_max + 0.5))
+hm_u = heatmap!(ax_u, xc, zc, u_slice, colormap = :balance, colorrange = (-u_lim, u_lim))
+hm_T = heatmap!(ax_T, xc, zc, T_slice, colormap = :thermal, colorrange = (T_lim_min - 0.5, T_lim_max + 0.5))
 
-Colorbar(fig[2, 2], hm_u, vertical = false, label = "u (m/s)", height = 15, tellheight = false,
-         flipaxis = false, valign = :bottom)
-Colorbar(fig[2, 3], hm_T, vertical = false, label = "T (°C)", height = 15, tellheight = false,
-         flipaxis = false, valign = :bottom)
+Colorbar(fig[3, 2], hm_u, vertical = false, label = "u (m/s)")
+Colorbar(fig[3, 3], hm_T, vertical = false, label = "T (°C)")
 
 # Title with time
 
