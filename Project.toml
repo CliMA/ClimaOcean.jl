@@ -38,9 +38,6 @@ Reactant = "3c362404-f566-11ee-1572-e11a4b42c853"
 SpeedyWeather = "9e226e20-d153-4fed-8a5b-493def4f21a9"
 XESMF = "2e0b0046-e7a1-486f-88de-807ee8ffabe5"
 
-[sources]
-Oceananigans = {path = "../Oceananigans.jl-v7"}
-
 [extensions]
 ClimaOceanCopernicusMarineExt = "CopernicusMarine"
 ClimaOceanReactantExt = "Reactant"
@@ -63,7 +60,7 @@ KernelAbstractions = "0.9"
 MPI = "0.20"
 MeshArrays = "0.3"
 NCDatasets = "0.12, 0.13, 0.14"
-Oceananigans = "0.101, 0.102"
+Oceananigans = "0.102.1"
 OffsetArrays = "1.14"
 PrecompileTools = "1"
 Reactant = "0.2.45"
