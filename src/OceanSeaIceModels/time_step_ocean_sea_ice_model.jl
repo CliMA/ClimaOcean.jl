@@ -20,10 +20,10 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
     
     # TODO after ice time-step:
     #  - Adjust ocean heat flux if the ice completely melts?
-    !isnothing(sea_ice) && time_step!(ocean, Δt)
+    !isnothing(ocean) && time_step!(ocean, Δt)
 
     # Time step the atmosphere
-    !isnothing(sea_ice) && time_step!(atmosphere, Δt)
+    !isnothing(atmosphere) && time_step!(atmosphere, Δt)
 
     # TODO:
     # - Store fractional ice-free / ice-covered _time_ for more
