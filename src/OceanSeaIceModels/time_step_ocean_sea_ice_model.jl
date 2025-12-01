@@ -37,18 +37,24 @@ end
 
 function update_state!(coupled_model::OceanSeaIceModel, callbacks=[]; compute_tendencies=true)
 
+    # The three components
+    ocean      = coupled_model.ocean
+    sea_ice    = coupled_model.sea_ice
+    atmosphere = coupled_model.atmosphere
+
+    # TODO: add a `interpolate_ocean_state!` function if needed
     # This function needs to be specialized to allow different atmospheric models
-    interpolate_atmosphere_state!(coupled_model.interfaces, coupled_model.atmosphere, coupled_model)
+    interpolate_atmosphere_state!(coupled_model.interfaces, atmosphere, coupled_model)
 
     # Compute interface states
     compute_atmosphere_ocean_fluxes!(coupled_model)
     compute_atmosphere_sea_ice_fluxes!(coupled_model)
     compute_sea_ice_ocean_fluxes!(coupled_model)
 
-    # This function needs to be specialized to allow different atmospheric models
-    compute_net_atmosphere_fluxes!(coupled_model)
-    compute_net_ocean_fluxes!(coupled_model)
-    compute_net_sea_ice_fluxes!(coupled_model)
+    # This function needs to be specialized to allow different component models
+    compute_net_atmosphere_fluxes!(coupled_model, atmosphere)
+    compute_net_ocean_fluxes!(coupled_model, ocean)
+    compute_net_sea_ice_fluxes!(coupled_model, sea_ice)
 
     return nothing
 end
