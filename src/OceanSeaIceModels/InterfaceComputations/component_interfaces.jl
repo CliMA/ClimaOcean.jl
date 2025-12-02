@@ -17,10 +17,11 @@ using ..OceanSeaIceModels.PrescribedAtmospheres:
 using ClimaSeaIce: SeaIceModel
 
 using Oceananigans: HydrostaticFreeSurfaceModel, architecture
+using Oceananigans.Units: Time
 using Oceananigans.Grids: inactive_node, node, topology
 using Oceananigans.BoundaryConditions: fill_halo_regions!
 using Oceananigans.Fields: ConstantField, interpolate, FractionalIndices
-using Oceananigans.Utils: launch!, Time, KernelParameters
+using Oceananigans.Utils: launch!, KernelParameters
 using Oceananigans.Operators: ℑxᶜᵃᵃ, ℑyᵃᶜᵃ, ℑxᶠᵃᵃ, ℑyᵃᶠᵃ
 
 using KernelAbstractions: @kernel, @index
