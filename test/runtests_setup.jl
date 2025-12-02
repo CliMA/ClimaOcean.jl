@@ -238,11 +238,12 @@ function test_cycling_dataset_restoring(arch, dataset, dates, inpainting)
 
     metadata = Metadata(:salinity; dates, dataset)
     
-    FS = DatasetRestoring(metadata, arch; time_indices_in_memory=2, inpainting, rate=1/1000)
+    FS = DatasetRestoring(metadata, arch; time_indices_in_memory=2, inpainting, rate=1/10000)
     forcing =(; S = FS)
 
     times = native_times(FS.field_time_series.backend.metadata)
     ocean = ocean_simulation(grid; forcing=forcing)
+    set!(ocean.model, T=35, S=30)
 
     # start a bit after time_index
     time_index = 3
@@ -251,7 +252,7 @@ function test_cycling_dataset_restoring(arch, dataset, dates, inpainting)
     update_state!(ocean.model)
 
     @test time_indices(forcing[1].field_time_series) ==
-        Tuple(range(time_index, length=time_indices_in_memory))
+        Tuple(range(time_index, length=2))
 
     @test forcing[1].field_time_series.backend.start == time_index
 
