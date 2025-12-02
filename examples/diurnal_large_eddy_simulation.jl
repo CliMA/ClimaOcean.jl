@@ -63,7 +63,7 @@ end
 Clear-sky downwelling shortwave radiation (W/m²) at time `t`.
 """
 function diurnal_shortwave(t)
-    elevation = solar_elevation(t, latitude, day)
+    elevation = solar_elevation(t)
     daytime_shortwave = surface_solar_irradiance * sin(elevation)
     return max(0, daytime_shortwave)
 end
@@ -111,7 +111,7 @@ end
 Eastward wind component (m/s) at time `t`.
 Land-sea breeze pattern: offshore at night, onshore during day.
 """
-function diurnal_wind_u(t, day)
+function diurnal_wind_u(t)
     phase = 2π * t / day - π
     return 2 + 3 * sin(phase)
 end
