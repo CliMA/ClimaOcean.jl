@@ -65,12 +65,12 @@ Keyword Arguments
            For a single date, use [`Metadatum`](@ref).
 
 - `start_date`: If `dates = nothing`, we can prescribe the first date of metadata as a date
-                (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`). `start_date` should lie
-                within the date range of the dataset. Default: nothing.
+                (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`). If outside the 
+                date range of the dataset, the first allowable date is chosen. Default: nothing.
 
 - `end_date`: If `dates = nothing`, we can prescribe the last date of metadata as a date
-              (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`). `end_date` should lie
-              within the date range of the dataset. Default: nothing.
+              (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`). If outside the 
+                date range of the dataset, the last allowable date is chosen. Default: nothing.
 
 - `bounding_box`: Specifies the bounds of the dataset. See [`BoundingBox`](@ref).
 
