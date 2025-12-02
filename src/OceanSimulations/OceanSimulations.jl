@@ -1,6 +1,7 @@
 module OceanSimulations
 
-export ocean_simulation
+export ocean_simulation,
+       nonhydrostatic_ocean_simulation
 
 using Oceananigans
 using Oceananigans.Units
@@ -42,5 +43,6 @@ default_or_override(override, alternative_default=nothing) = override
 include("barotropic_potential_forcing.jl")
 include("radiative_forcing.jl")
 include("ocean_simulation.jl")
+include("nonhydrostatic_ocean_simulation.jl")
 
 end # module
