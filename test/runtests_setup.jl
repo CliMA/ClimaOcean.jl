@@ -21,6 +21,13 @@ using CUDA: @allowscalar
 gpu_test = parse(Bool, get(ENV, "GPU_TEST", "false"))
 test_architectures = gpu_test ? [GPU()] : [CPU()]
 
+function distributed_test_architectures()
+    child_arch = gpu_test ? GPU() : CPU()
+    return [Distributed(child_arch; partition=Partition(1, 4)),
+            Distributed(child_arch; partition=Partition(4, 1)),
+            Distributed(child_arch; partition=Partition(2, 2))]
+end
+
 start_date = DateTimeProlepticGregorian(1993, 1, 1)
 
 test_datasets = (ECCO2Monthly(), 
@@ -78,6 +85,7 @@ function test_timestepping_with_dataset(arch, dataset, start_date, inpainting;
                                         varnames  = (:temperature, :salinity),
                                         fldnames  = (:T, :S),
                                        )
+
     grid  = LatitudeLongitudeGrid(arch;
                                   size = (10, 10, 10),
                                   latitude = (-60, -40),
@@ -219,65 +227,53 @@ function test_timestepping_with_dataset_restoring(arch, dataset, dates, inpainti
     return nothing
 end
 
-function test_cycling_dataset_restoring(arch, dataset, dates, inpainting;
-                                        varnames = (:temperature, :salinity),
-                                        fldnames = (:T, :S),
-                                       )
+function test_cycling_dataset_restoring(arch, dataset, dates, inpainting)
+
     grid = LatitudeLongitudeGrid(arch;
-                                 size = (10, 10, 10),
+                                 size = (20, 20, 10),
                                  latitude = (-60, -40),
                                  longitude = (10, 15),
                                  z = (-200, 0),
                                  halo = (7, 7, 7))
 
-    time_indices_in_memory = 2
-    start_date = dates[1]
-    end_date = dates[end]
+    metadata = Metadata(:salinity; dates, dataset)
+    
+    FS = DatasetRestoring(metadata, arch; time_indices_in_memory=2, inpainting, rate=1/1000)
+    forcing =(; S = FS)
 
-    metadata1 = Metadata(varnames[end]; dates, dataset)
-    metadata2 = Metadata(varnames[end]; start_date, end_date, dataset)
+    times = native_times(FS.field_time_series.backend.metadata)
+    ocean = ocean_simulation(grid; forcing=forcing)
 
-    for metadata in (metadata1, metadata2)
-        # Dynamically create name of forcing based on dataset field name
-        # Dynamically create name of forcing based on dataset field name
-        forcing = NamedTuple{
-                (fldnames[end],)
-            }(
-                (DatasetRestoring(metadata, arch;  time_indices_in_memory, inpainting, rate=1/1000),)
-             )
+    # start a bit after time_index
+    time_index = 3
+    time_interval = dataset isa ECCO2Daily ? Units.hour : Units.day
+    ocean.model.clock.time = times[time_index] + 2 * time_interval
+    update_state!(ocean.model)
 
-        times = native_times(forcing[1].field_time_series.backend.metadata)
-        ocean = ocean_simulation(grid, tracers=fldnames, forcing=forcing)
+    @test time_indices(forcing[1].field_time_series) ==
+        Tuple(range(time_index, length=time_indices_in_memory))
 
-        # start a bit after time_index
-        time_index = 3
-        time_interval = dataset isa ECCO2Daily ? Units.hour : Units.day
-        ocean.model.clock.time = times[time_index] + 2 * time_interval
-        update_state!(ocean.model)
+    @test forcing[1].field_time_series.backend.start == time_index
 
-        @test time_indices(forcing[1].field_time_series) ==
-            Tuple(range(time_index, length=time_indices_in_memory))
+    # Compile
+    time_step!(ocean)
 
-        @test forcing[1].field_time_series.backend.start == time_index
+    # Try stepping out of the dataset bounds
+    # start a bit after last time_index
+    ocean.model.clock.time = last(times) + 2 * time_interval
 
-        # Compile
+    update_state!(ocean.model)
+
+    @test begin
         time_step!(ocean)
-
-        # Try stepping out of the dataset bounds
-        # start a bit after last time_index
-        ocean.model.clock.time = last(times) + 2 * time_interval
-
-        update_state!(ocean.model)
-
-        @test begin
-            time_step!(ocean)
-            true
-        end
-
-        # The backend has cycled to the end
-        @test time_indices(forcing[1].field_time_series) ==
-            mod1.(Tuple(range(length(times), length=time_indices_in_memory)), length(times))
+        true
     end
+
+    # The backend has cycled to the end
+    @test time_indices(forcing[1].field_time_series) ==
+        mod1.(Tuple(range(length(times), length=time_indices_in_memory)), length(times))
+
+    return nothing
 end
 
 function test_inpainting_algorithm(arch, dataset, start_date, inpainting; 

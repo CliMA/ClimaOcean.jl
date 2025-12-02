@@ -6,6 +6,7 @@ MPI.Init()
 using ClimaOcean.DataWrangling: metadata_path
 using Oceananigans.DistributedComputations
 using Oceananigans.DistributedComputations: reconstruct_global_grid
+using GPUArraysCore: allowscalar
 using CFTime
 using Dates
 using NCDatasets
@@ -78,11 +79,7 @@ end
     global_height = regrid_bathymetry(global_grid, TrivialBathymetry_metadata;
                                       interpolation_passes)
 
-    arch_x  = Distributed(CPU(), partition=Partition(4, 1))
-    arch_y  = Distributed(CPU(), partition=Partition(1, 4))
-    arch_xy = Distributed(CPU(), partition=Partition(2, 2))
-
-    for arch in (arch_x, arch_y, arch_xy)
+    for arch in distributed_archs
         local_grid = LatitudeLongitudeGrid(arch;
                                            size = (40, 40, 1),
                                            longitude = (0, 100),
@@ -90,16 +87,21 @@ end
                                            z = (0, 1))
 
         local_height = regrid_bathymetry(local_grid, TrivialBathymetry_metadata;
-                                         interpolation_passes)
+                                        interpolation_passes)
 
         Nx, Ny, _ = size(local_grid)
         rx, ry, _ = arch.local_index
         irange    = (rx - 1) * Nx + 1 : rx * Nx
         jrange    = (ry - 1) * Ny + 1 : ry * Ny
 
-        begin
-            @test interior(global_height, irange, jrange, 1) == interior(local_height, :, :, 1)
-        end
+        @allowscalar @test interior(global_height, irange, jrange, 1) == interior(local_height, :, :, 1)
+    end
+end
+
+@testset "Distributed Dataset restoring" begin
+    dates = DateTime(1958, 1, 1):Month(1):DateTime(1958, 12, 1)
+    for arch in distributed_archs
+        test_cycling_dataset_restoring(arch, EN4Monthly(), dates)
     end
 end
 
