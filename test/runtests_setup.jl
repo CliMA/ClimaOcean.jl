@@ -35,34 +35,34 @@ test_datasets = (ECCO2Monthly(),
                  ECCO4Monthly(), 
                  ECCO2DarwinMonthly(),
                  ECCO4DarwinMonthly(),
-                 EN4Monthly(),
-                )
+                 EN4Monthly())
 
 test_names = Dict(
-    ECCO2Monthly() => (:temperature, :salinity),
-    ECCO2Daily() => (:temperature, :salinity),
-    ECCO4Monthly() => (:temperature, :salinity),
+    ECCO2Monthly()       => (:temperature, :salinity),
+    ECCO2Daily()         => (:temperature, :salinity),
+    ECCO4Monthly()       => (:temperature, :salinity),
     ECCO4DarwinMonthly() => (:temperature, :salinity, :phosphate),
     ECCO2DarwinMonthly() => (:temperature, :salinity, :phosphate),
-    EN4Monthly() => (:temperature, :salinity),
+    EN4Monthly()         => (:temperature, :salinity),
 )
 
 test_fields = Dict(
-    ECCO2Monthly() => (:T, :S),
-    ECCO2Daily() => (:T, :S),
-    ECCO4Monthly() => (:T, :S),
+    ECCO2Monthly()       => (:T, :S),
+    ECCO2Daily()         => (:T, :S),
+    ECCO4Monthly()       => (:T, :S),
     ECCO4DarwinMonthly() => (:T, :S, :PO₄),
     ECCO2DarwinMonthly() => (:T, :S, :PO₄),
-    EN4Monthly() => (:T, :S),
+    EN4Monthly()         => (:T, :S),
 )
 
 #####
 ##### Test utilities
 #####
-function test_setting_from_metadata(arch, dataset, start_date, inpainting;
+
+function test_setting_from_metadata(arch, dataset, date, inpainting;
                                     loc = (Center, Center, Center),
-                                    varnames = (:temperature, :salinity),
-                                   )
+                                    varnames = (:temperature, :salinity))
+
     grid = LatitudeLongitudeGrid(arch;
                                  size = (10, 10, 10),
                                  latitude = (-60, -40),
@@ -73,7 +73,8 @@ function test_setting_from_metadata(arch, dataset, start_date, inpainting;
 
     @test begin
         for name in varnames
-            set!(field, Metadatum(name; dataset, date=start_date); inpainting)
+            metadatum = Metadatum(name; dataset, date)
+            set!(field, metadata; inpainting)
         end
         true
     end
@@ -81,10 +82,9 @@ function test_setting_from_metadata(arch, dataset, start_date, inpainting;
     return nothing
 end
 
-function test_timestepping_with_dataset(arch, dataset, start_date, inpainting;
-                                        varnames  = (:temperature, :salinity),
-                                        fldnames  = (:T, :S),
-                                       )
+function test_timestepping_with_dataset(arch, dataset, date, inpainting;
+                                        varnames = (:temperature, :salinity),
+                                        fldnames = (:T, :S))
 
     grid  = LatitudeLongitudeGrid(arch;
                                   size = (10, 10, 10),
@@ -97,7 +97,8 @@ function test_timestepping_with_dataset(arch, dataset, start_date, inpainting;
 
     @test begin
         for name in varnames
-            set!(field, Metadatum(name; dataset, date=start_date); inpainting)
+            metadatum = Metadatum(name; dataset, date)
+            set!(field, metadatum; inpainting)
         end
         true
     end
@@ -114,10 +115,10 @@ function test_timestepping_with_dataset(arch, dataset, start_date, inpainting;
 end
 
 function test_ocean_metadata_utilities(arch, dataset, dates, inpainting;
-                                       varnames = (:temperature, :salinity),
-                                      )
+                                       varnames = (:temperature, :salinity))
+
     for name in varnames
-        metadata = Metadata(name; dates, dataset)
+        metadata  = Metadata(name; dates, dataset)
         restoring = DatasetRestoring(metadata, arch; rate=1/1000, inpainting)
 
         for datum in metadata
@@ -137,7 +138,7 @@ function test_ocean_metadata_utilities(arch, dataset, dates, inpainting;
         @test Nz == size(metadata)[3]
         @test Nt == size(metadata)[4]
 
-        @test @allowscalar fts.times[1] == native_times(metadata)[1]
+        @test @allowscalar fts.times[1]   == native_times(metadata)[1]
         @test @allowscalar fts.times[end] == native_times(metadata)[end]
 
         datum = first(metadata)
@@ -151,8 +152,8 @@ end
 
 function test_dataset_restoring(arch, dataset, dates, inpainting;
                                 varnames = (:temperature, :salinity),
-                                fldnames = (:T, :S),
-                               )
+                                fldnames = (:T, :S))
+                                
     grid = LatitudeLongitudeGrid(arch;
                                  size = (100, 100, 10),
                                  latitude = (-75, 75),
