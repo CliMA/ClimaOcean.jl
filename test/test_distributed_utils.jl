@@ -22,27 +22,32 @@ Nλ = length(λ)
 Nφ = length(φ)
 
 @root begin
-    ds = NCDataset("./trivial_bathymetry.nc", "c")
+    if !isfile("./trivial_bathymetry.nc")
+        ds = NCDataset("./trivial_bathymetry.nc", "c")
 
-    # Define the dimension "lon" and "lat" with the size Nλ and Nφ respectively
-    defDim(ds, "lon", Nλ)
-    defDim(ds, "lat", Nφ)
-    defVar(ds, "lat", Float32, ("lat", ))
-    defVar(ds, "lon", Float32, ("lon", ))
+        # Define the dimension "lon" and "lat" with the size Nλ and Nφ respectively
+        defDim(ds, "lon", Nλ)
+        defDim(ds, "lat", Nφ)
+        defVar(ds, "lat", Float32, ("lat", ))
+        defVar(ds, "lon", Float32, ("lon", ))
 
-    # Define the variables z
-    z = defVar(ds, "z", Float32, ("lon", "lat"))
+        # Define the variables z
+        z = defVar(ds, "z", Float32, ("lon", "lat"))
 
-    # Generate some example data
-    data = [Float32(-i) for i = 1:Nλ, j = 1:Nφ]
+        # Generate some example data
+        data = [Float32(-i) for i = 1:Nλ, j = 1:Nφ]
 
-    # write a the complete data set
-    ds["lon"][:] = λ
-    ds["lat"][:] = φ
-    z[:, :] = data
+        # write a the complete data set
+        ds["lon"][:] = λ
+        ds["lat"][:] = φ
+        z[:, :] = data
 
-    close(ds)
+        close(ds)
+    end
 end
+
+# Make sure all ranks find this bathymetry
+MPI.Barrier(MPI.COMM_WORLD)
 
 struct TrivalBathymetry end
 
