@@ -125,7 +125,7 @@ diurnal_wind_v(t) = -1  # slight southward component
 
 arch = GPU()
 Lx, Ly, Lz = 512, 512, 256  # meters
-Nx, Ny, Nz = 128, 1, 64   # 4m grid spacing
+Nx, Ny, Nz = 128, 128, 64   # 4m grid spacing
 
 grid = RectilinearGrid(arch; size = (Nx, Ny, Nz), topology = (Periodic, Periodic, Bounded),
                        x = (0, Lx), y = (0, Ly), z = (-Lz, 0))

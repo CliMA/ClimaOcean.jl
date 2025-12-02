@@ -153,7 +153,7 @@ Q = ρₒ * cₚ * JT
 ρτx = ρₒ * τx
 ρτy = ρₒ * τy
 N² = buoyancy_frequency(ocean.model)
-κc = ocean.model.diffusivity_fields.κc
+κc = ocean.model.closure_fields.κc
 
 fluxes = (; ρτx, ρτy, E, Js, Qv, Qc)
 auxiliary_fields = (; N², κc)
