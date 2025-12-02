@@ -8,7 +8,7 @@ end
 Base.summary(mldo::MixedLayerDepthOperand) = "MixedLayerDepthOperand"
 
 function MixedLayerDepthOperand(bm, grid, tracers; difference_criterion=1e-4)
-    buoyancy_perturbation = buoyancy_force(bm, grid, tracers)
+    buoyancy_perturbation = buoyancy_operation(bm, grid, tracers)
     difference_criterion = convert(eltype(grid), difference_criterion)
     return MixedLayerDepthOperand(buoyancy_perturbation, difference_criterion)
 end
