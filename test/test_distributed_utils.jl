@@ -6,7 +6,7 @@ MPI.Init()
 using ClimaOcean.DataWrangling: metadata_path
 using Oceananigans.DistributedComputations
 using Oceananigans.DistributedComputations: reconstruct_global_grid
-using GPUArraysCore: allowscalar
+using CUDA: allowscalar
 using CFTime
 using Dates
 using NCDatasets
