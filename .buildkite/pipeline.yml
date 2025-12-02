@@ -40,7 +40,7 @@ steps:
     env:
       TEST_GROUP: "JRA55"
     commands:
-      - "julia --project -e 'using Pkg; Pkg.test()'"
+      - "julia --project --color=yes -e 'using Pkg; Pkg.test()'"
     agents:
       slurm_mem: 32G
       slurm_cpus_per_task: 8
@@ -51,7 +51,7 @@ steps:
     env:
       TEST_GROUP: "ecco2_monthly"
     commands:
-      - "julia --project -e 'using Pkg; Pkg.test()'"
+      - "julia --project --color=yes -e 'using Pkg; Pkg.test()'"
     agents:
       slurm_mem: 32G
       slurm_cpus_per_task: 8
@@ -62,7 +62,7 @@ steps:
     env:
       TEST_GROUP: "ecco2_daily"
     commands:
-      - "julia --project -e 'using Pkg; Pkg.test()'"
+      - "julia --project --color=yes -e 'using Pkg; Pkg.test()'"
     agents:
       slurm_mem: 32G
       slurm_cpus_per_task: 8
@@ -73,7 +73,7 @@ steps:
     env:
       TEST_GROUP: "ecco4_en4"
     commands:
-      - "julia --project -e 'using Pkg; Pkg.test()'"
+      - "julia --project --color=yes -e 'using Pkg; Pkg.test()'"
     agents:
       slurm_mem: 32G
       slurm_cpus_per_task: 8
@@ -84,7 +84,7 @@ steps:
     env:
       TEST_GROUP: "fluxes"
     commands:
-      - "julia --project -e 'using Pkg; Pkg.test()'"
+      - "julia --project --color=yes -e 'using Pkg; Pkg.test()'"
     agents:
       slurm_mem: 32G
       slurm_cpus_per_task: 8
@@ -95,7 +95,7 @@ steps:
     env:
       TEST_GROUP: "bathymetry"
     commands:
-      - "julia --project -e 'using Pkg; Pkg.test()'"
+      - "julia --project --color=yes -e 'using Pkg; Pkg.test()'"
     agents:
       slurm_mem: 32G
       slurm_cpus_per_task: 8
@@ -107,7 +107,7 @@ steps:
       TEST_GROUP: "JRA55"
       GPU_TEST: "true"
     commands:
-      - "julia --project -e 'using Pkg; Pkg.test()'"
+      - "julia --project --color=yes -e 'using Pkg; Pkg.test()'"
     agents:
       slurm_mem: 32G
       slurm_gpus: 1
@@ -121,7 +121,7 @@ steps:
       TEST_GROUP: "ecco2_monthly"
       GPU_TEST: "true"
     commands:
-      - "julia --project -e 'using Pkg; Pkg.test()'"
+      - "julia --project --color=yes -e 'using Pkg; Pkg.test()'"
     agents:
       slurm_mem: 8G
       slurm_gpus: 1
@@ -135,7 +135,7 @@ steps:
       TEST_GROUP: "ecco2_daily"
       GPU_TEST: "true"
     commands:
-      - "julia --project -e 'using Pkg; Pkg.test()'"
+      - "julia --project --color=yes -e 'using Pkg; Pkg.test()'"
     agents:
       slurm_mem: 8G
       slurm_gpus: 1
@@ -149,7 +149,7 @@ steps:
       TEST_GROUP: "ecco4_en4"
       GPU_TEST: "true"
     commands:
-      - "julia --project -e 'using Pkg; Pkg.test()'"
+      - "julia --project --color=yes -e 'using Pkg; Pkg.test()'"
     agents:
       slurm_mem: 8G
       slurm_gpus: 1
@@ -163,7 +163,7 @@ steps:
       TEST_GROUP: "fluxes"
       GPU_TEST: "true"
     commands:
-      - "julia --project -e 'using Pkg; Pkg.test()'"
+      - "julia --project --color=yes -e 'using Pkg; Pkg.test()'"
     agents:
       slurm_mem: 8G
       slurm_gpus: 1
@@ -177,7 +177,7 @@ steps:
       TEST_GROUP: "bathymetry"
       GPU_TEST: "true"
     commands:
-      - "julia --project -e 'using Pkg; Pkg.test()'"
+      - "julia --project --color=yes -e 'using Pkg; Pkg.test()'"
     agents:
       slurm_mem: 8G
       slurm_gpus: 1
@@ -191,7 +191,7 @@ steps:
       TEST_GROUP: "ocean_sea_ice_model"
       GPU_TEST: "true"
     commands:
-      - "julia --project -e 'using Pkg; Pkg.test()'"
+      - "julia --project --color=yes -e 'using Pkg; Pkg.test()'"
     agents:
       slurm_mem: 10G
       slurm_gpus: 1
@@ -199,16 +199,30 @@ steps:
       slurm_ntasks: 1
       slurm_gpus_per_task: 1
 
-  - label: "Run distributed tests"
-    key: "test_distributed"
+  - label: "CPU distributed tests"
+    key: "cpu_distributed_tests"
     env:
       TEST_GROUP: "distributed"
     commands:
-      - "srun julia --project -e 'using Pkg; Pkg.test()'"
+      - "srun julia --project --color=yes -e 'using Pkg; Pkg.test()'"
     agents:
       slurm_mem: 10G
       slurm_cpus_per_task: 1
       slurm_ntasks: 4
+
+  - label: "GPU distributed tests"
+    key: "gpu_distributed_test"
+    env:
+      TEST_GROUP: "distributed"
+      GPU_TEST: "true"
+    commands:
+      - "srun julia --project --color=yes -e 'using Pkg; Pkg.test()'"
+    agents:
+      slurm_mem: 50G
+      slurm_gpus: 4
+      slurm_cpus_per_task: 8
+      slurm_ntasks: 4
+      slurm_gpus_per_task: 1
 
   - wait: ~
     continue_on_failure: true
