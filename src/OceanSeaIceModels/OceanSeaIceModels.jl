@@ -27,7 +27,6 @@ using ClimaSeaIce: SeaIceModel
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 
 using ClimaOcean: stateindex
-
 using KernelAbstractions: @kernel, @index
 using KernelAbstractions.Extras.LoopInfo: @unroll
 
@@ -43,10 +42,10 @@ import Oceananigans.Simulations: reset!, initialize!, iteration
 import Oceananigans.TimeSteppers: time_step!, update_state!, time
 import Oceananigans.Utils: prettytime
 
+import ClimaOcean: reference_density, heat_capacity
+
 function downwelling_radiation end
 function freshwater_flux end
-function reference_density end
-function heat_capacity end
 
 const default_gravitational_acceleration = Oceananigans.defaults.gravitational_acceleration
 const default_freshwater_density = 1000 # kg m⁻³
@@ -54,6 +53,8 @@ const default_freshwater_density = 1000 # kg m⁻³
 # Our default ocean and sea ice models
 const SeaIceSimulation = Simulation{<:SeaIceModel}
 const OceananigansSimulation = Simulation{<:HydrostaticFreeSurfaceModel}
+
+Base.eltype(ocean::OceananigansSimulation) = eltype(ocean.model.grid)
 
 sea_ice_thickness(::Nothing) = ZeroField()
 sea_ice_thickness(sea_ice::SeaIceSimulation) = sea_ice.model.ice_thickness
@@ -81,6 +82,10 @@ const NoSeaIceModel = Union{OceanSeaIceModel{Nothing}, OceanSeaIceModel{<:Freezi
 #####
 ##### Some implementation
 #####
+
+import ClimaOcean: compute_net_sea_ice_fluxes!, 
+                   compute_net_ocean_fluxes!,
+                   compute_net_atmosphere_fluxes!
 
 # Atmosphere interface
 interpolate_atmosphere_state!(interfaces, atmosphere, coupled_model) = nothing
@@ -110,7 +115,7 @@ include("freezing_limited_ocean_temperature.jl")
 # TODO: import this last
 include("PrescribedAtmospheres.jl")
 
-using .PrescribedAtmospheres:
+using ClimaOcean.AtmosphereSimulations:
     PrescribedAtmosphere,
     AtmosphereThermodynamicsParameters,
     TwoBandDownwellingRadiation
