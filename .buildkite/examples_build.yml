@@ -18,10 +18,9 @@ steps:
       TMPDIR: "$TARTARUS_HOME/tmp"
     command:
       - "echo '--- Instantiate project'"
-      - "$TARTARUS_HOME/julia-$JULIA_VERSION/bin/julia --color=yes -O0 --project -e 'using Pkg; Pkg.instantiate(; verbose=true); Pkg.precompile(; strict=true)'"
+      - "$TARTARUS_HOME/julia-$JULIA_VERSION/bin/julia --color=yes --project -e 'using Pkg; Pkg.instantiate(; verbose=true); Pkg.precompile(; strict=true)'"
       # force the initialization of the CUDA runtime as it is lazily loaded by default
-      
-      - "$TARTARUS_HOME/julia-$JULIA_VERSION/bin/julia --color=yes -O0 --project -e 'using CUDA; CUDA.precompile_runtime()'"
+      - "$TARTARUS_HOME/julia-$JULIA_VERSION/bin/julia --color=yes --project -e 'using CUDA; CUDA.precompile_runtime()'"
     agents:
       queue: ClimaOcean-docs
 
@@ -30,8 +29,8 @@ steps:
   - label: "Run documentation"
     key: "build_documentation"
     commands:
-      - "$TARTARUS_HOME/julia-$JULIA_VERSION/bin/julia --color=yes -O0 --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate(); Pkg.precompile(; strict=true)'"
-      - "$TARTARUS_HOME/julia-$JULIA_VERSION/bin/julia --color=yes -O0 --project=docs/ docs/make.jl"
+      - "$TARTARUS_HOME/julia-$JULIA_VERSION/bin/julia --color=yes --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate(); Pkg.precompile(; strict=true)'"
+      - "$TARTARUS_HOME/julia-$JULIA_VERSION/bin/julia --color=yes --project=docs/ docs/make.jl"
     agents:
       queue: ClimaOcean-docs
 

@@ -22,6 +22,7 @@ to_be_literated = [
     # "one_degree_simulation.jl",
     # "near_global_ocean_simulation.jl",
     "python_ocean_forced_simulation.jl",
+    # "global_climate_simulation.jl",
 ]
 
 for file in to_be_literated
@@ -49,9 +50,15 @@ pages = [
         # "One-degree ocean--sea ice simulation" => "literated/one_degree_simulation.md",
         # "Near-global ocean simulation" => "literated/near_global_ocean_simulation.md",
         "Python ocean forced simulation" => "literated/python_ocean_forced_simulation.md",],
+        # "Global climate simulation" => "literated/global_climate_simulation.md",
+        ],
 
     "Vertical grids" => "vertical_grids.md",
 
+    "Metadata" => [
+        "Overview" => "Metadata/metadata_overview.md",
+        "Supported variables" => "Metadata/supported_variables.md",
+    ],
     "Interface fluxes" => "interface_fluxes.md",
 
     "Library" => [
@@ -59,21 +66,34 @@ pages = [
         "Public"         => "library/public.md",
         "Private"        => "library/internals.md",
         "Function index" => "library/function_index.md",
-        ],
+    ],
+
     "References" => "references.md",
 ]
 
-makedocs(sitename = "ClimaOcean.jl";
-         format,
-         pages,
+modules = Module[]
+ClimaOceanSpeedyWeatherExt = isdefined(Base, :get_extension) ? Base.get_extension(ClimaOcean, :ClimaOceanSpeedyWeatherExt) : ClimaOcean.ClimaOceanSpeedyWeatherExt
+
+for m in [ClimaOcean, ClimaOceanSpeedyWeatherExt]
+    if !isnothing(m)
+        push!(modules, m)
+    end
+end
+
+makedocs(; sitename = "ClimaOcean.jl",
+         format, pages, modules,
          plugins = [bib],
-         modules = [ClimaOcean],
          doctest = true,
+         doctestfilters = [
+             r"┌ Warning:.*",  # remove standard warning lines
+             r"│ Use at own risk",
+             r"└ @ .*",        # remove the source location of warnings
+         ],
          clean = true,
          warnonly = [:cross_references, :missing_docs],
          checkdocs = :exports)
 
-@info "Clean up temporary .jld2 and .nc output created by doctests or literated examples..."
+@info "Clean up temporary .jld2, .nc, and .mp4 output created by doctests or literated examples..."
 
 """
     recursive_find(directory, pattern)
