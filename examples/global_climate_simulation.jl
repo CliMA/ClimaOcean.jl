@@ -2,8 +2,9 @@
 #
 # This example configures a global ocean--sea ice simulation at 1.5ᵒ horizontal resolution with
 # realistic bathymetry and a few closures including the "Gent-McWilliams" `IsopycnalSkewSymmetricDiffusivity`.
-# The atmosphere is represented by a 4-layer SpeedyWeather model at T63 resolution (approximately 1.875ᵒ).
-# and initialized by temperature, salinity, sea ice concentration, and sea ice thickness
+# The atmosphere is represented by a 4-layer [SpeedyWeather](https://github.com/SpeedyWeather/SpeedyWeather.jl) 
+# simulation on the T63 spectral grid (this grid has approximately 1.875ᵒ resolution).
+# The climate simulation is initialized by temperature, salinity, sea ice concentration, and sea ice thickness
 # from the ECCO state estimate.
 #
 # For this example, we need Oceananigans.HydrostaticFreeSurfaceModel (the ocean), ClimaSeaIce.SeaIceModel (the sea ice) and
@@ -23,7 +24,6 @@ using Printf, Statistics, Dates
 Nx = 240
 Ny = 120
 Nz = 10
-
 z = ExponentialDiscretization(Nz, -2000, 0)
 grid = TripolarGrid(Oceananigans.CPU(); size=(Nx, Ny, Nz), z, halo=(6, 6, 5))
 nothing # hide
@@ -39,11 +39,10 @@ nothing # hide
 momentum_advection = VectorInvariant()
 tracer_advection   = WENO(order=5)
 free_surface       = SplitExplicitFreeSurface(grid; substeps=40)
-
-catke_closure   = ClimaOcean.OceanSimulations.default_ocean_closure()
-viscous_closure = Oceananigans.TurbulenceClosures.HorizontalScalarBiharmonicDiffusivity(ν=1e12)
-eddy_closure    = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
-closures        = (catke_closure, eddy_closure, viscous_closure, VerticalScalarDiffusivity(ν=1e-4))
+catke_closure      = ClimaOcean.OceanSimulations.default_ocean_closure()
+viscous_closure    = Oceananigans.TurbulenceClosures.HorizontalScalarBiharmonicDiffusivity(ν=1e12)
+eddy_closure       = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
+closures           = (catke_closure, eddy_closure, viscous_closure, VerticalScalarDiffusivity(ν=1e-4))
 nothing # hide
 
 # The ocean simulation, complete with initial conditions for temperature and salinity from ECCO.
@@ -69,9 +68,11 @@ Oceananigans.set!(sea_ice.model, h=Metadatum(:sea_ice_thickness, dataset=ECCO4Mo
 # The `atmosphere_simulation` function takes care of building an atmosphere model with appropriate
 # hooks so that ClimaOcean can compute inter-component fluxes.
 
-nlayers = 4
-spectral_grid = SpeedyWeather.SpectralGrid(; trunc=63, nlayers, Grid=FullClenshawGrid)
-atmosphere = atmosphere_simulation(spectral_grid; output=true)
+spectral_grid = SpeedyWeather.SpectralGrid(trunc=63, nlayers=4, Grid=FullClenshawGrid)
+atmosphere = atmosphere_simulation(spectral_grid, output=true)
+
+# We use a three hour time-step:
+
 atmosphere.model.output.output_dt = Hour(3)
 nothing # hide
 
@@ -89,13 +90,13 @@ nothing # hide
 
 radiation = Radiation(ocean_emissivity=0.0, sea_ice_emissivity=0.0)
 earth_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-earth = Oceananigans.Simulation(earth_model; Δt, stop_time=30days)
-nothing # hide
 
-# ## Running the simulation
-# We are ready to run the coupled simulation.
+# ## Building and running the simulation
+# 
+# We are ready to build and run the coupled simulation.
 # But before we do, we add callbacks to write outputs to disk every 3 hours.
 
+earth = Oceananigans.Simulation(earth_model; Δt, stop_time=30days)
 outputs = merge(ocean.model.velocities, ocean.model.tracers)
 sea_ice_fields = merge(sea_ice.model.velocities, sea_ice.model.dynamics.auxiliaries.fields,
                        (; h=sea_ice.model.ice_thickness, ℵ=sea_ice.model.ice_concentration))
