@@ -54,6 +54,7 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height);
 using Oceananigans.TurbulenceClosures: IsopycnalSkewSymmetricDiffusivity, AdvectiveFormulation
 
 eddy_closure = IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3, skew_flux_formulation=AdvectiveFormulation()) 
+horizontal_viscosity = ScalarDiffusivity(ν=4000) # m^2 / s
 vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
 
 # ### Ocean simulation
@@ -65,7 +66,7 @@ momentum_advection = WENOVectorInvariant(order=5)
 tracer_advection   = WENO(order=5)
 
 ocean = ocean_simulation(grid; momentum_advection, tracer_advection, free_surface,
-                         closure=(eddy_closure, vertical_mixing))
+                         closure=(eddy_closure, horizontal_viscosity, vertical_mixing))
 
 @info "We've built an ocean simulation with model:"
 @show ocean.model
