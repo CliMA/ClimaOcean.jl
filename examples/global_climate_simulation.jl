@@ -37,13 +37,14 @@ nothing #hide
 
 # Now we can specify the numerical details and the closures for the ocean simulation.
 
-momentum_advection = VectorInvariant()
-tracer_advection   = WENO(order=5)
-free_surface       = SplitExplicitFreeSurface(grid; substeps=40)
-catke_closure      = ClimaOcean.OceanSimulations.default_ocean_closure()
-viscous_closure    = Oceananigans.TurbulenceClosures.HorizontalScalarBiharmonicDiffusivity(ν=1e12)
-eddy_closure       = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
-closures           = (catke_closure, eddy_closure, viscous_closure, VerticalScalarDiffusivity(ν=1e-4))
+momentum_advection   = VectorInvariant()
+tracer_advection     = WENO(order=5)
+free_surface         = SplitExplicitFreeSurface(grid; substeps=40)
+catke_closure        = ClimaOcean.OceanSimulations.default_ocean_closure()
+eddy_closure         = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
+viscous_closure      = Oceananigans.TurbulenceClosures.HorizontalScalarBiharmonicDiffusivity(ν=1e12)
+vertical_diffusivity = Oceananigans.TurbulenceClosures.VerticalScalarDiffusivity(ν=1e-4)
+closures             = (catke_closure, eddy_closure, viscous_closure, vertical_diffusivity)
 nothing #hide
 
 # The ocean simulation, complete with initial conditions for temperature and salinity from ECCO.
