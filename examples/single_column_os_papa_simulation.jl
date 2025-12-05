@@ -17,7 +17,7 @@
 using ClimaOcean
 using Oceananigans
 using Oceananigans.Units
-using Oceananigans.BuoyancyFormulations: buoyancy_frequency
+using Oceananigans.Models: buoyancy_operation
 using Oceananigans.Units: Time
 using Dates
 using Printf
@@ -152,7 +152,7 @@ cₚ = simulation.model.interfaces.ocean_properties.heat_capacity
 Q = ρₒ * cₚ * JT
 ρτx = ρₒ * τx
 ρτy = ρₒ * τy
-N² = buoyancy_frequency(ocean.model)
+N² = ∂z(buoyancy_operation(ocean.model))
 κc = ocean.model.closure_fields.κc
 
 fluxes = (; ρτx, ρτy, E, Js, Qv, Qc)
