@@ -2,19 +2,21 @@
 #
 # This example configures a global ocean--sea ice simulation at 1.5ᵒ horizontal resolution with
 # realistic bathymetry and a few closures including the "Gent-McWilliams" `IsopycnalSkewSymmetricDiffusivity`.
-# The atmosphere is represented by a 4-layer [SpeedyWeather](https://github.com/SpeedyWeather/SpeedyWeather.jl) 
+# The atmosphere is represented by a 4-layer [SpeedyWeather](https://github.com/SpeedyWeather/SpeedyWeather.jl)
 # simulation on the T63 spectral grid (this grid has approximately 1.875ᵒ resolution).
-# The atmosphere is initialized with the Jablonowski and Williamson (2006) initial conditions,
+#
+# The atmosphere is initialized with the [jablonowski2006baroclinic](@citet) initial conditions,
 # which consist of a zonal wind centered at mid-latitudes and higher altitudes and a temperature
 # profile that is baroclinically unstable. The surface pressure is adjusted by orography for
 # approximately globally constant mean-sea level pressure. The initial specific humidity is
-# calculated from temperature for a constant relative humidity everywhere. 
-# The climate simulation is initialized by temperature, salinity, sea ice concentration, and sea ice thickness
-# from the ECCO state estimate.
+# calculated from temperature for a constant relative humidity everywhere.
+# The ocean and sea ice are initialized by ocean temperature, salinity, sea ice concentration,
+# and sea ice thickness from the ECCO state estimate.
 #
 # For this example, we need `Oceananigans.HydrostaticFreeSurfaceModel` (the ocean), `ClimaSeaIce.SeaIceModel` (the sea ice) and
 # `SpeedyWeather.PrimitiveWetModel` (the atmosphere). All these are coupled and orchestrated by the `ClimaOcean.OceanSeaIceModel`
 # (the coupled system).
+#
 # The XESMF.jl package is used to regrid fields between the atmosphere and ocean--sea ice components.
 
 using Oceananigans, SpeedyWeather, XESMF, ClimaOcean
@@ -23,7 +25,7 @@ using Oceananigans.Units
 using Printf, Statistics, Dates
 
 # ## Ocean and sea-ice model configuration
-# The ocean and sea-ice are a simplified version of the [`one_degree_simulation.jl` example](https://clima.github.io/ClimaOceanDocumentation/stable/literated/one_degree_simulation/).
+# The ocean and sea-ice are a simplified versions of the [one-degree ocean-sea ice example](@ref one-degree-ocean-seaice).
 #
 # The first step is to create the grid with realistic bathymetry.
 
@@ -78,6 +80,10 @@ Oceananigans.set!(sea_ice.model, h=Metadatum(:sea_ice_thickness, dataset=ECCO4Mo
 spectral_grid = SpeedyWeather.SpectralGrid(trunc=63, nlayers=4, Grid=FullClenshawGrid)
 atmosphere = atmosphere_simulation(spectral_grid, output=true)
 
+# The atmosphere model already includes some initial conditions as described above:
+
+atmosphere.model.initial_conditions
+
 # We use a three hour time-step:
 
 atmosphere.model.output.output_dt = Hour(3)
@@ -99,7 +105,7 @@ radiation = Radiation(ocean_emissivity=0.0, sea_ice_emissivity=0.0)
 earth_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 
 # ## Building and running the simulation
-# 
+#
 # We are ready to build and run the coupled simulation.
 # But before we do, we add callbacks to write outputs to disk every 3 hours.
 
