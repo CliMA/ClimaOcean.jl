@@ -7,8 +7,9 @@
 # The climate simulation is initialized by temperature, salinity, sea ice concentration, and sea ice thickness
 # from the ECCO state estimate.
 #
-# For this example, we need Oceananigans.HydrostaticFreeSurfaceModel (the ocean), ClimaSeaIce.SeaIceModel (the sea ice) and
-# SpeedyWeather.PrimitiveWetModel (the atmosphere), coupled and orchestrated by ClimaOcean.OceanSeaIceModel (the coupled system).
+# For this example, we need `Oceananigans.HydrostaticFreeSurfaceModel` (the ocean), `ClimaSeaIce.SeaIceModel` (the sea ice) and
+# `SpeedyWeather.PrimitiveWetModel` (the atmosphere). All these are coupled and orchestrated by the `ClimaOcean.OceanSeaIceModel`
+# (the coupled system).
 # The XESMF.jl package is used to regrid fields between the atmosphere and ocean--sea ice components.
 
 using Oceananigans, SpeedyWeather, XESMF, ClimaOcean
