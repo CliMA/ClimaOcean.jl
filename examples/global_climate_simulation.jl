@@ -26,13 +26,13 @@ Ny = 120
 Nz = 10
 z = ExponentialDiscretization(Nz, -2000, 0)
 grid = TripolarGrid(Oceananigans.CPU(); size=(Nx, Ny, Nz), z, halo=(6, 6, 5))
-nothing # hide
+nothing #hide
 
 # We regrid the bathymetry.
 
 bottom_height = regrid_bathymetry(grid; major_basins=1, interpolation_passes=15)
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
-nothing # hide
+nothing #hide
 
 # Now we can specify the numerical details and the closures for the ocean simulation.
 
@@ -43,7 +43,7 @@ catke_closure      = ClimaOcean.OceanSimulations.default_ocean_closure()
 viscous_closure    = Oceananigans.TurbulenceClosures.HorizontalScalarBiharmonicDiffusivity(ν=1e12)
 eddy_closure       = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
 closures           = (catke_closure, eddy_closure, viscous_closure, VerticalScalarDiffusivity(ν=1e-4))
-nothing # hide
+nothing #hide
 
 # The ocean simulation, complete with initial conditions for temperature and salinity from ECCO.
 
@@ -74,7 +74,7 @@ atmosphere = atmosphere_simulation(spectral_grid, output=true)
 # We use a three hour time-step:
 
 atmosphere.model.output.output_dt = Hour(3)
-nothing # hide
+nothing #hide
 
 # ## The coupled model
 # We are now ready to blend everything together.
@@ -83,7 +83,7 @@ nothing # hide
 # sea-ice are stepped every two atmosphere time steps).
 
 Δt = 2 * convert(eltype(grid), atmosphere.model.time_stepping.Δt_sec)
-nothing # hide
+nothing #hide
 
 # We build the complete coupled `earth_model` and the coupled simulation.
 # Since radiation is idealized in this example, we set the emissivities to zero.
