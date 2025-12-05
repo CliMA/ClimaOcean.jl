@@ -4,6 +4,11 @@
 # realistic bathymetry and a few closures including the "Gent-McWilliams" `IsopycnalSkewSymmetricDiffusivity`.
 # The atmosphere is represented by a 4-layer [SpeedyWeather](https://github.com/SpeedyWeather/SpeedyWeather.jl) 
 # simulation on the T63 spectral grid (this grid has approximately 1.875ᵒ resolution).
+# The atmosphere is initialized with the Jablonowski and Williamson (2006) initial conditions,
+# which consist of a zonal wind centered at mid-latitudes and higher altitudes and a temperature
+# profile that is baroclinically unstable. The surface pressure is adjusted by orography for
+# approximately globally constant mean-sea level pressure. The initial specific humidity is
+# calculated from temperature for a constant relative humidity everywhere. 
 # The climate simulation is initialized by temperature, salinity, sea ice concentration, and sea ice thickness
 # from the ECCO state estimate.
 #
