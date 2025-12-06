@@ -1,6 +1,3 @@
-module SeaIceSimulations
-
-export sea_ice_simulation
 
 using Oceananigans
 using Oceananigans.Units
@@ -119,6 +116,4 @@ function sea_ice_dynamics(grid, ocean=nothing;
                                   rheology,
                                   free_drift,
                                   solver)
-end
-
 end

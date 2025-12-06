@@ -79,11 +79,10 @@ end
     return NamedTuple{names}(vals)
 end
 
-function atmosphere_simulation end
-
-include("OceanSimulations/OceanSimulations.jl")
-include("SeaIceSimulations.jl")
 include("OceanSeaIceModels/OceanSeaIceModels.jl")
+include("OceanSimulations/OceanSimulations.jl")
+include("SeaIceSimulations/SeaIceSimulations.jl")
+include("AtmosphereSimulations/AtmosphereSimulations.jl")
 include("InitialConditions/InitialConditions.jl")
 include("DataWrangling/DataWrangling.jl")
 include("Bathymetry.jl")
