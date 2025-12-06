@@ -1,4 +1,4 @@
-module ClimaOceanPythonCallExt
+module ClimaOceanVerosExt
 
 using ClimaOcean
 using CondaPkg
@@ -8,7 +8,7 @@ using Oceananigans.DistributedComputations: @root
 
 using Dates: DateTime
 
-include("veros_ocean_simulation.jl")
+include("VerosOceanSimulations/veros_ocean_simulation.jl")
 include("veros_state_exchanger.jl")
 
-end # module ClimaOceanPythonCallExt
+end # module ClimaOceanVerosExt
