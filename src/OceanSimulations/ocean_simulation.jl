@@ -26,8 +26,8 @@ using Statistics: mean
 @inline v_quadratic_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, 1] * spᶜᶠᶜ(i, j, 1, grid, Φ)
 
 # Keep a constant linear drag parameter independent on vertical level
-@inline u_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.u[i, j, k] * spᶠᶜᶜ(i, j, k, grid, fields)
-@inline v_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.v[i, j, k] * spᶜᶠᶜ(i, j, k, grid, fields)
+@inline u_immersed_bottom_drag(i, j, k, grid, clock, Φ, μ) = @inbounds - μ * Φ.u[i, j, k] * spᶠᶜᶜ(i, j, k, grid, Φ)
+@inline v_immersed_bottom_drag(i, j, k, grid, clock, Φ, μ) = @inbounds - μ * Φ.v[i, j, k] * spᶜᶠᶜ(i, j, k, grid, Φ)
 
 #####
 ##### Defaults
@@ -107,7 +107,7 @@ end
                      bottom_drag_coefficient = Default(0.003),
                      forcing = NamedTuple(),
                      biogeochemistry = nothing,
-                     timestepper = :QuasiAdamsBashforth2,
+                     timestepper = :SplitRungeKutta3,
                      coriolis = Default(HydrostaticSphericalCoriolis(; rotation_rate)),
                      momentum_advection = WENOVectorInvariant(),
                      tracer_advection = WENO(order=7),
@@ -117,7 +117,66 @@ end
                      warn = true,
                      verbose = false)
 
-Return an ocean simulation.
+Construct and return a hydrostatic ocean simulation tailored to `grid`.
+
+This function assembles an Oceananigans's `HydrostaticFreeSurfaceModel` with physically
+consistent defaults for advection, closures, the equation of state, surface fluxes, Coriolis,
+barotropic pressure–gradient forcing, boundary conditions, and optional biogeochemistry.
+It then wraps the model into an Oceananigans's `Simulation` with the specified timestepping options.
+
+
+## Behaviour and automatic configuration
+
+### Coriolis
+- On spherical grids, a `HydrostaticSphericalCoriolis` object is used by default.
+- On rectilinear grids, Coriolis is disabled unless explicitly provided.
+
+### Single-column grids (`grid.Nx == 1 && grid.Ny == 1`)
+- Advection is turned off (`momentum_advection = nothing`, `tracer_advection = nothing`).
+- Users may override `bottom_drag_coefficient`, but its default is `0`.
+- Immersed boundaries are ignored.
+
+### Bottom drag and immersed boundaries
+For multi-column grids:
+- Quadratic bottom drag is automatically applied to both `u` and `v`.
+- Immersed-boundary bottom drag conditions are constructed for both velocity components.
+- Barotropic potential forcings for `u` and `v` are also added automatically, and
+  user forcing tuples (e.g. `forcing = (u = ..., v = ...)`) are appended if provided.
+
+### Radiative forcing
+By default, `radiative_forcing` is `TwoColorRadiation` scheme.
+
+### Tracers and closures
+- `tracers` defaults to `(:T, :S)`.
+- If the closure requires turbulent kinetic energy (e.g. `CATKEVerticalDiffusivity`),
+  the turbulent kinetic energy `:e` tracer is automatically added while its advection is disabled.
+
+### Boundary conditions
+Default boundary conditions are constructed for `u`, `v`, `T`, and `S`, including
+surface fluxes and bottom drag. User-provided boundary conditions override the
+defaults on a per-field basis.
+
+## Keyword Arguments
+
+- `Δt`: Timestep used by the `Simulation`. Defaults to the maximum stable timestep estimated from the `grid`.
+- `closure`: A turbulence or mixing closure. Defaults to `default_ocean_closure()`.
+- `tracers`: Tuple of tracer names. Defaults to `(:T, :S)`.
+- `free_surface`: Free–surface solver. Defaults to `default_free_surface(grid)`.
+- `reference_density`: Reference seawater density used by the equation of state.
+- `rotation_rate`: Planetary rotation rate used for Coriolis forcing.
+- `gravitational_acceleration`: Gravitational acceleration, passed to buoyancy.
+- `bottom_drag_coefficient`: Bottom drag coefficient. May be a `Default` wrapper.
+- `forcing`: Named tuple of additional forcing(s) for individual fields.
+- `biogeochemistry`: A biogeochemical model or `nothing`.
+- `timestepper`: Time-stepping scheme; options are `:SplitRungeKutta3` (default), or `:QuasiAdamsBashforth2`.
+- `coriolis`: Coriolis object or `Default(...)` wrapper.
+- `momentum_advection`: Momentum advection scheme. Defaults to `WENOVectorInvariant()`.
+- `tracer_advection`: Tracer advection scheme or named tuple of schemes. Defaults to `WENO(order=7)`.
+- `equation_of_state`: Equation of state object. Defaults to TEOS-10 (`TEOS10EquationOfState`).
+- `boundary_conditions`: User-supplied boundary conditions; merged with defaults.
+- `radiative_forcing`: Additional temperature forcing; merged into `forcing`.
+- `warn`: If `true`, warnings are emitted for potentially unintended setups.
+- `verbose`: If `true`, prints additional setup information.
 """
 function ocean_simulation(grid;
                           Δt = estimate_maximum_Δt(grid),
@@ -130,7 +189,7 @@ function ocean_simulation(grid;
                           bottom_drag_coefficient = Default(0.003),
                           forcing = NamedTuple(),
                           biogeochemistry = nothing,
-                          timestepper = :QuasiAdamsBashforth2,
+                          timestepper = :SplitRungeKutta3,
                           coriolis = Default(HydrostaticSphericalCoriolis(; rotation_rate)),
                           momentum_advection = WENOVectorInvariant(),
                           tracer_advection = WENO(order=7),

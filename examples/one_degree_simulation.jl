@@ -65,7 +65,6 @@ momentum_advection = WENOVectorInvariant(order=5)
 tracer_advection   = WENO(order=5)
 
 ocean = ocean_simulation(grid; momentum_advection, tracer_advection, free_surface,
-                         timestepper = :SplitRungeKutta3,
                          closure=(eddy_closure, vertical_mixing))
 
 @info "We've built an ocean simulation with model:"

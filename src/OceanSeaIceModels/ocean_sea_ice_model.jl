@@ -5,29 +5,6 @@ using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 using KernelAbstractions: @kernel, @index
 using SeawaterPolynomials: TEOS10EquationOfState
 
-import Thermodynamics as AtmosphericThermodynamics
-
-# Simulations interface
-import Oceananigans: fields, prognostic_fields
-import Oceananigans.Architectures: architecture
-import Oceananigans.Fields: set!
-import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker, initialization_update_state!
-import Oceananigans.OutputWriters: default_included_properties
-import Oceananigans.Simulations: reset!, initialize!, iteration
-import Oceananigans.TimeSteppers: time_step!, update_state!, time
-import Oceananigans.Utils: prettytime
-
-mutable struct OceanSeaIceModel{I, A, O, F, C, Arch} <: AbstractModel{Nothing, Arch}
-    architecture :: Arch
-    clock :: C
-    atmosphere :: A
-    sea_ice :: I
-    ocean :: O
-    interfaces :: F
-end
-
-const OSIM = OceanSeaIceModel
-
 function Base.summary(model::OSIM)
     A = nameof(typeof(architecture(model)))
     return string("OceanSeaIceModel{$A}",
@@ -160,6 +137,9 @@ interfaces = ClimaOcean.OceanSeaIceModels.ComponentInterfaces(nothing, ocean; at
 model = OceanSeaIceModel(ocean; interfaces)
 
 # output
+┌ Warning: Split barotropic-baroclinic time stepping with SplitRungeKutta3TimeStepper is experimental.
+│ Use at own risk, and report any issues encountered at [https://github.com/CliMA/Oceananigans.jl/issues](https://github.com/CliMA/Oceananigans.jl/issues).
+└ @ Oceananigans.TimeSteppers ~/.julia/packages/Oceananigans/fI8pm/src/TimeSteppers/split_hydrostatic_runge_kutta_3.jl:59
 OceanSeaIceModel{CPU}(time = 0 seconds, iteration = 0)
 ├── ocean: HydrostaticFreeSurfaceModel{CPU, RectilinearGrid}(time = 0 seconds, iteration = 0)
 ├── atmosphere: Nothing

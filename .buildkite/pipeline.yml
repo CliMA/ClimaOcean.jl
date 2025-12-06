@@ -1,5 +1,5 @@
 agents:
-  queue: new-central
+  queue: central
   slurm_mem: 8G
   modules: climacommon/2025_07_30
 
@@ -9,6 +9,7 @@ env:
   OPENBLAS_NUM_THREADS: 1
   OMPI_MCA_opal_warn_on_missing_libcuda: 0
   JULIA_NUM_PRECOMPILE_TASKS: 8
+  JULIA_DEPOT_PATH: "${BUILDKITE_BUILD_PATH}/${BUILDKITE_PIPELINE_SLUG}/depot/default:"
 
 steps:
   - label: "initialize"
@@ -26,6 +27,8 @@ steps:
       - "echo '--- Initialize ClimaOcean test suite'"
       - "julia --project -e 'using CUDA; CUDA.precompile_runtime()'"
       - "julia --project -e 'using Pkg; Pkg.test()'"
+    concurrency: 1
+    concurrency_group: 'depot/climaocean-ci'
     agents:
       slurm_gpus: 1
       slurm_cpus_per_task: 8
