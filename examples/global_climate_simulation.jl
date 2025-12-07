@@ -52,7 +52,6 @@ ocean = ocean_simulation(grid;
                          momentum_advection,
                          tracer_advection,
                          free_surface,
-                         timestepper = :SplitRungeKutta3,
                          closure = closures)
 
 Oceananigans.set!(ocean.model, T=Metadatum(:temperature, dataset=ECCO4Monthly()),

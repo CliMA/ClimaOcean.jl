@@ -75,7 +75,7 @@ nothing #hide
 #
 # We build our ocean model using `ocean_simulation`,
 
-ocean = ocean_simulation(grid, timestepper = :SplitRungeKutta3)
+ocean = ocean_simulation(grid)
 
 # which uses the default `ocean.model`,
 
@@ -116,7 +116,7 @@ coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 
 # We then create a coupled simulation.
 
-simulation = Simulation(coupled_model; Δt=20minutes, stop_time=60days)
+simulation = Simulation(coupled_model; Δt=25minutes, stop_time=60days)
 
 # We define a callback function to monitor the simulation's progress,
 

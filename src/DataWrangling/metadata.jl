@@ -1,7 +1,7 @@
 using CFTime
 using Dates
 using Base: @propagate_inbounds
-using Oceananigans.Utils: prettysummary
+import Oceananigans.Utils: prettysummary
 
 struct BoundingBox{X, Y, Z}
     longitude :: X
@@ -92,7 +92,7 @@ function Metadata(variable_name;
 end
 
 const AnyDateTime  = Union{AbstractCFDateTime, Dates.AbstractDateTime}
-const Metadatum{V} = Metadata{V, <:Union{AnyDateTime, Nothing}, <:Any} where V
+const Metadatum{V} = Metadata{V, <:Union{AnyDateTime, Nothing}} where V
 
 function Base.size(metadata::Metadata)
     Nx, Ny, Nz = size(metadata.dataset, metadata.name)
@@ -119,6 +119,16 @@ function Metadatum(variable_name;
                    bounding_box = nothing,
                    date = first_date(dataset, variable_name),
                    dir = default_download_directory(dataset))
+
+    if date isa Date
+        date = DateTime(date)
+    end
+
+    if !isnothing(date) && !(date isa AnyDateTime)
+        msg = "`date` must be `nothing`, a `Dates.AbstractDateTime`, or `CFTime.AbstractCFDateTime`, received $(typeof(date))"
+        throw(ArgumentError(msg))
+    end
+
     return Metadata(variable_name, dataset, date, bounding_box, dir)
 end
 
@@ -127,11 +137,22 @@ datestr(md::Metadatum) = string(md.dates)
 datasetstr(md::Metadata) = string(md.dataset)
 metaprefix(md::Metadata) = string("Metadata{", md.dataset, "}")
 
+prettysummary(dt::DateTime) = Dates.format(dt, "yyyy-mm-dd HH:MM:SS")
+
 function Base.show(io::IO, metadata::Metadata)
-    print(io, "Metadata:", '\n',
+    V = typeof(metadata.dataset)
+    D = typeof(metadata.dates)
+
+    name = if metadata isa Metadatum
+        "Metadatum"
+    else
+        "Metadata"
+    end
+
+    print(io, "$name{$V, $D}:", '\n',
     "├── name: $(metadata.name)", '\n',
-    "├── dataset: $(metadata.dataset)", '\n',
-    "├── dates: $(metadata.dates)", '\n')
+    "├── dataset: ", prettysummary(metadata.dataset), '\n',
+    "├── dates: ", prettysummary(metadata.dates), '\n')
 
     bbox = metadata.bounding_box
     if !isnothing(bbox)
