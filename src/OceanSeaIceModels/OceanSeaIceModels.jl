@@ -14,7 +14,8 @@ using SeawaterPolynomials
 
 using Oceananigans
 using Oceananigans.Operators
-using Oceananigans.Utils: launch!, Time, KernelParameters
+using Oceananigans.Utils: launch!, KernelParameters
+using Oceananigans.Units: Time
 using Oceananigans.Architectures: architecture
 using Oceananigans.BoundaryConditions: fill_halo_regions!, BoundaryCondition
 using Oceananigans.Grids: architecture

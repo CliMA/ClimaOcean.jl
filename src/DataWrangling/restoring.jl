@@ -2,7 +2,7 @@ using Oceananigans: location
 using Oceananigans.Grids: node
 using Oceananigans.Fields: interpolate, instantiated_location
 using Oceananigans.OutputReaders: Cyclical
-using Oceananigans.Utils: Time
+using Oceananigans.Units: Time
 using Oceananigans.Architectures: AbstractArchitecture
 
 using JLD2

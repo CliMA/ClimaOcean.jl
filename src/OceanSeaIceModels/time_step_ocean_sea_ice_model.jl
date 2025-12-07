@@ -7,13 +7,29 @@ using .InterfaceComputations:
 
 using ClimaSeaIce: SeaIceModel, SeaIceThermodynamics
 using Oceananigans.Grids: φnode
+using Oceananigans.Simulations: Callback, TimeStepCallsite
 
 using Printf
+
+#####
+##### Component time step utilities
+#####
+
+# Get time step from component simulation, or return Inf if not applicable
+component_Δt(::Nothing) = Inf
+component_Δt(sim::Simulation) = sim.Δt
+component_Δt(::PrescribedAtmosphere) = Inf  # prescribed atmosphere has no CFL constraint
+component_Δt(::FreezingLimitedOceanTemperature) = Inf  # not a dynamical model
 
 function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_tendencies=true)
     ocean = coupled_model.ocean
     sea_ice = coupled_model.sea_ice
     atmosphere = coupled_model.atmosphere
+
+    # Compute actual time step as minimum of passed Δt and component time steps.
+    # This allows component simulations to have their own adaptive time-stepping
+    # (e.g., via TimeStepWizard), and the coupled model uses the most restrictive.
+    Δt = min(Δt, component_Δt(ocean), component_Δt(sea_ice), component_Δt(atmosphere))
 
     # Eventually, split out into OceanOnlyModel
     !isnothing(sea_ice) && time_step!(sea_ice, Δt)

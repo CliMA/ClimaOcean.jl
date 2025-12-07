@@ -2,10 +2,11 @@ module PrescribedAtmospheres
 
 using Oceananigans
 using Oceananigans.Fields: Center
-using Oceananigans.Grids: grid_name
+using Oceananigans.Grids: grid_name, prettysummary
 using Oceananigans.OutputReaders: FieldTimeSeries, update_field_time_series!, extract_field_time_series
+using Oceananigans.BoundaryConditions: fill_halo_regions!
 using Oceananigans.TimeSteppers: Clock, tick!
-using Oceananigans.Utils: prettysummary, Time
+using Oceananigans.Units: Time
 
 using Adapt
 using Thermodynamics.Parameters: AbstractThermodynamicsParameters
@@ -502,13 +503,10 @@ atmosphere.tracers.T[1], atmosphere.tracers.T[2], atmosphere.tracers.T[3]
 ```
 """
 function set!(atmos::PrescribedAtmosphere; kwargs...)
-    times = atmos.times
-    
     for (name, func) in pairs(kwargs)
         fts = get_atmosphere_field(atmos, name)
-        for (n, t) in enumerate(times)
-            parent(fts)[n] = func(t)
-        end
+        set!(fts, func)
+        fill_halo_regions!(fts)
     end
     
     update_state!(atmos)

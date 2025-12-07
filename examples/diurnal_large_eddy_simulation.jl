@@ -62,7 +62,7 @@ end
 
 Clear-sky downwelling shortwave radiation (W/m²) at time `t`.
 """
-function diurnal_shortwave(t)
+function diurnal_shortwave(x, y, t)
     elevation = solar_elevation(t)
     daytime_shortwave = surface_solar_irradiance * sin(elevation)
     return max(0, daytime_shortwave)
@@ -74,7 +74,7 @@ end
 Downwelling longwave radiation (W/m²) at time `t`.
 Varies with atmospheric temperature: ~300 W/m² at night, ~380 W/m² during day.
 """
-function diurnal_longwave(t)
+function diurnal_longwave(x, y, t)
     phase = 2π * t / day - π/2 - 2 * 2π / 24
     return 340 + 40 * sin(phase)
 end
@@ -85,7 +85,7 @@ end
 Air temperature (Kelvin) at time `t`.
 Ranges from ~17°C (290 K) before sunrise to ~24°C (297 K) in mid-afternoon.
 """
-function diurnal_temperature(t)
+function diurnal_temperature(x, y, t)
     T_min, T_max = 290, 297
     T_mean = (T_min + T_max) / 2
     T_amp = (T_max - T_min) / 2
@@ -99,7 +99,7 @@ end
 Specific humidity (kg/kg) at time `t`.
 Higher at night (~0.012), lower during day (~0.008).
 """
-function diurnal_humidity(t)
+function diurnal_humidity(x, y, t)
     q_mean, q_amp = 0.010, 0.002
     phase = 2π * (t / day - 6 / 24) - π/2
     return q_mean - q_amp * sin(phase)
@@ -111,12 +111,12 @@ end
 Eastward wind component (m/s) at time `t`.
 Land-sea breeze pattern: offshore at night, onshore during day.
 """
-function diurnal_wind_u(t)
+function diurnal_wind_u(x, y, t)
     phase = 2π * t / day - π
     return 2 + 3 * sin(phase)
 end
 
-diurnal_wind_v(t) = -1  # slight southward component
+diurnal_wind_v(x, y, t) = -1  # slight southward component
 
 # ## Ocean LES configuration
 #
@@ -127,7 +127,8 @@ arch = GPU()
 Lx, Ly, Lz = 512, 512, 256  # meters
 Nx, Ny, Nz = 128, 128, 64   # 4m grid spacing
 
-grid = RectilinearGrid(arch; size = (Nx, Ny, Nz), topology = (Periodic, Periodic, Bounded),
+grid = RectilinearGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 5),
+                       topology = (Periodic, Periodic, Bounded),
                        x = (0, Lx), y = (0, Ly), z = (-Lz, 0))
 
 coriolis = FPlane(; latitude)
@@ -144,7 +145,8 @@ set!(ocean.model, T=Tᵢ, S=Sᵢ)
 # Set up the atmosphere with time-varying fields over a full diurnal cycle.
 # We use hourly time snapshots for smooth interpolation.
 
-atmosphere_grid = RectilinearGrid(arch; size = (Nx, Ny), topology = (Periodic, Periodic, Flat),
+atmosphere_grid = RectilinearGrid(arch; size = (Nx, Ny),
+                                  topology = (Periodic, Periodic, Flat),
                                   x = (0, Lx), y = (0, Ly))
 
 atmosphere_times = range(0, 24hours, length=25)
@@ -162,9 +164,14 @@ set!(atmosphere;
      longwave = diurnal_longwave)
 
 # ## Coupled ocean–atmosphere model
+#
+# The ocean simulation has a `TimeStepWizard` callback (added by `nonhydrostatic_ocean_simulation`)
+# that adaptively adjusts `ocean.Δt` based on CFL constraints. The coupled model automatically
+# uses the minimum of the coupled simulation's `Δt` and the component time steps (ocean, sea ice,
+# atmosphere), so we can set a large initial `Δt` here and let the wizard handle the rest.
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere)
-simulation = Simulation(coupled_model; Δt=1second, stop_time=24hours)
+simulation = Simulation(coupled_model; Δt=10.0, stop_time=12hours)
 
 # ## Output: snapshots and time-averages
 #
@@ -202,14 +209,15 @@ simulation.output_writers[:snapshots] = JLD2Writer(ocean.model, outputs;
 function progress(sim)
     t = time(sim)
     hour = t / 3600
+    ocean_Δt = sim.model.ocean.Δt
     u, v, w = sim.model.ocean.model.velocities
     T = sim.model.ocean.model.tracers.T
     Tmax, Tmin = maximum(interior(T)), minimum(interior(T))
     umax, wmax = maximum(abs, u), maximum(abs, w)
     Q = sim.model.interfaces.net_fluxes.ocean_surface.Q
     Qmax, Qmin = maximum(Q), minimum(Q)
-    @info @sprintf("Hour %5.1f | Δt: %s | SST: %.2f–%.2f°C | Q: %.0f–%.0f W/m² | max|u|: %.2e, max|w|: %.2e",
-                   hour, prettytime(sim.Δt), Tmin, Tmax, Qmin, Qmax, umax, wmax)
+    @info @sprintf("Hour %5.2f | Δt: %s (ocean: %s) | SST: %.2f–%.2f°C | Q: %.0f–%.0f W/m² | max|u|: %.2e, max|w|: %.2e",
+                   hour, prettytime(sim.Δt), prettytime(ocean_Δt), Tmin, Tmax, Qmin, Qmax, umax, wmax)
 end
 
 add_callback!(simulation, progress, IterationInterval(100))
@@ -257,7 +265,7 @@ zc = znodes(u_snapshots)
 
 # Build time-series arrays for flux plots
 
-hours = times ./ 3600
+t_hours = times ./ hours
 Q_avg_series = [interior(Q_avg_ts[n], 1, 1, 1) for n in 1:Nt]
 τx_avg_series = [interior(τx_avg_ts[n], 1, 1, 1) for n in 1:Nt]
 
@@ -291,8 +299,8 @@ lines!(ax_T_profile, T_mean, zc, color = :red, linewidth = 2)
 
 # Flux time-series (will update with vertical line marker)
 
-lines!(ax_flux, hours, Q_avg_series, label = "Heat flux Q (W/m²)", color = :red)
-lines!(ax_flux, hours, τx_avg_series .* 1000, label = "Mom. flux τx (×10³ N/m²)", color = :blue)
+lines!(ax_flux, times ./ hours, Q_avg_series, label = "Heat flux Q (W/m²)", color = :red)
+lines!(ax_flux, times ./ hours, τx_avg_series .* 1000, label = "Mom. flux τx (×10³ N/m²)", color = :blue)
 axislegend(ax_flux, position = :rt)
 
 time_marker = Observable(0)
