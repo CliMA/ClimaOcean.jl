@@ -41,7 +41,7 @@ z = ExponentialDiscretization(Nz, -depth, 0)
 underlying_grid = LatitudeLongitudeGrid(arch;
                                         size = (Nx, Ny, Nz),
                                         halo = (7, 7, 7),
-                                        z = z,
+                                        z,
                                         latitude  = (-80, -20),
                                         longitude = (0, 360))
 
@@ -156,11 +156,11 @@ radiation  = Radiation(arch)
 
 # We put all the pieces together (ocean, atmosphere, and radiation)
 # into a coupled model and a coupled simulation.
-# We start with a small-ish time step of 2 minutes.
-# We run the simulation for 10 days with this small-ish time step.
+#
+# We run the simulation for 60 days.
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
-simulation    = Simulation(coupled_model; Δt=2minutes, stop_time = 10days)
+simulation    = Simulation(coupled_model; Δt=15minutes, stop_time = 60days)
 
 # A callback function to monitor the simulation's progress is always useful.
 
@@ -197,23 +197,10 @@ ocean.output_writers[:surface] = JLD2Writer(ocean.model, merge(ocean.model.trace
                                             overwrite_existing = true,
                                             array_type = Array{Float32})
 
-# ### Spinning up the simulation
-#
-# We spin up the simulation with a small time step to ensure that the interpolated initial
-# conditions adapt to the model numerics and parameterization without causing instability.
-# A 10-day integration with a time step of 1 minute should be sufficient to dissipate spurious
-# initialization shocks.
-
-run!(simulation)
-nothing #hide
-
 # ### Running the simulation
 #
-# Now that the simulation has spun up, we can run increase the timestep and run for longer;
-# here we choose 60 days.
+# Everything is ready now!
 
-simulation.stop_time = 60days
-simulation.Δt = 10minutes
 run!(simulation)
 nothing #hide
 
