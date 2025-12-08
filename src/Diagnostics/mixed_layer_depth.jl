@@ -16,7 +16,7 @@ end
 const MixedLayerDepthField = Field{<:Any, <:Any, <:Any, <:MixedLayerDepthOperand}
 
 """
-    MixedLayerDepthField(bm, grid, tracers; difference_criterion=1e-4)
+    MixedLayerDepthField(bm, grid, tracers; difference_criterion=3e-5)
 
 """
 function MixedLayerDepthField(bm, grid, tracers; difference_criterion=3e-5)
@@ -92,4 +92,3 @@ const f = Face()
 
     @inbounds mld[i, j, 1] = h
 end
-
