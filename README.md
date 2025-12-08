@@ -120,7 +120,7 @@ and also the recent [preprint submitted to the Journal of Advances in Modeling E
 <details><summary>bibtex</summary>
   <pre><code>@article{Oceananigans-overview-paper-2025,
   title = {{High-level, high-resolution ocean modeling at all scales with Oceananigans}},
-  author = {G. L. Wagner and S. Silvestri and N. C. Constantinou and A. Ramadhan and J.-M. Campin and C. Hill and T. Chor and J. Strong-Wright and X. K. Lee and F. Poulin and A. Souza and K. J. Burns and Siddhartha Bishnu and J. Marshall and R. Ferrari},
+  author = {G. L. Wagner and S. Silvestri and N. C. Constantinou and A. Ramadhan and J.-M. Campin and C. Hill and T. Chor and J. Strong-Wright and X. K. Lee and F. Poulin and A. Souza and K. J. Burns and S. Bishnu and J. Marshall and R. Ferrari},
   journal = {arXiv preprint},
   year = {2025},
   archivePrefix = {arXiv},
