@@ -108,6 +108,7 @@ if test_group == :ocean_sea_ice_model || test_group == :all
 end
 
 if test_group == :distributed || test_group == :all
+    distributed_archs = distributed_test_architectures()
     include("test_distributed_utils.jl")
 end
 
