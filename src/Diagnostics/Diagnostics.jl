@@ -9,10 +9,9 @@ using Oceananigans.Grids: new_data, inactive_cell, znode
 using Oceananigans.BoundaryConditions: FieldBoundaryConditions, fill_halo_regions!
 using Oceananigans.Fields: FieldStatus
 using Oceananigans.Utils: launch!
+using KernelAbstractions: @index, @kernel
 
 import Oceananigans.Fields: compute!
-
-using KernelAbstractions: @index, @kernel
 
 include("mixed_layer_depth.jl")
 

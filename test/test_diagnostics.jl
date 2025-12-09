@@ -1,8 +1,8 @@
 include("runtests_setup.jl")
 
 using SeawaterPolynomials: TEOS10EquationOfState
-using Oceananigans.BuoyancyFormulations: buoyancy
 using Oceananigans: location
+using Oceananigans.Models: buoyancy_operation
 using ClimaOcean.Diagnostics: MixedLayerDepthField, MixedLayerDepthOperand
 
 for arch in test_architectures, dataset in (ECCO4Monthly(),)
@@ -49,7 +49,7 @@ for arch in test_architectures, dataset in (ECCO4Monthly(),)
         end
 
         tracers = (T=Tt[2], S=St[2])
-        h.operand.buoyancy_perturbation = buoyancy(sb, grid, tracers)
+        h.operand.buoyancy_perturbation = buoyancy_operation(sb, grid, tracers)
         compute!(h)
         if dataset isa ECCO4Monthly
             @test @allowscalar h[1, 1, 1] ≈ 9.2957298 # m
