@@ -16,15 +16,8 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
 
     # Simplify NamedTuple to reduce parameter space consumption.
     # See https://github.com/CliMA/ClimaOcean.jl/issues/116.
-    atmosphere_data = (u = atmosphere_fields.u.data,
-                       v = atmosphere_fields.v.data,
-                       T = atmosphere_fields.T.data,
-                       p = atmosphere_fields.p.data,
-                       q = atmosphere_fields.q.data,
-                       Qs = atmosphere_fields.Qs.data,
-                       Qℓ = atmosphere_fields.Qℓ.data,
-                       Mp = atmosphere_fields.Mp.data,
-                       h_bℓ = boundary_layer_height(coupled_model.atmosphere))
+    atmosphere_data = merge(atmosphere_fields, 
+                            (; h_bℓ = boundary_layer_height(coupled_model.atmosphere)))
 
     flux_formulation = coupled_model.interfaces.atmosphere_sea_ice_interface.flux_formulation
     interface_fluxes = coupled_model.interfaces.atmosphere_sea_ice_interface.fluxes
@@ -175,4 +168,3 @@ end
         Ts[i, j, 1]  = convert_from_kelvin(sea_ice_properties.temperature_units, Ψₛ.T)
     end
 end
-
