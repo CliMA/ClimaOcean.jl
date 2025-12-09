@@ -8,7 +8,7 @@ import ClimaOcean.OceanSeaIceModels:
 
 const SpeedySimulation = SpeedyWeather.Simulation
 const SpeedyCoupledModel = ClimaOcean.OceanSeaIceModel{<:Any, <:SpeedySimulation}
-const SpeedyNoSeaIceCoupledModel = ClimaOcean.OceanSeaIceModel{<:Union{Nothing, ClimaOcean.OceanSimulations.FreezingLimitedOceanTemperature}, <:SpeedySimulation}
+const SpeedyNoSeaIceCoupledModel = ClimaOcean.OceanSeaIceModel{<:Union{Nothing, ClimaOcean.SeaIceSimulations.FreezingLimitedOceanTemperature}, <:SpeedySimulation}
 
 Base.summary(::SpeedySimulation) = "SpeedyWeather.Simulation"
 
