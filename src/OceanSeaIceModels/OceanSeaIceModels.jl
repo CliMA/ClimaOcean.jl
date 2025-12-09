@@ -82,13 +82,8 @@ mutable struct OceanSeaIceModel{I, A, O, F, C, Arch} <: AbstractModel{Nothing, A
     interfaces :: F
 end
 
-struct FreezingLimitedOceanTemperature{L}
-    liquidus :: L
-end
-
 const OSIM = OceanSeaIceModel
 const NoAtmosphereModel = OceanSeaIceModel{<:Any, Nothing}
-const NoSeaIceModel = Union{OceanSeaIceModel{Nothing}, OceanSeaIceModel{<:FreezingLimitedOceanTemperature}}
 
 #####
 ##### Some implementation
@@ -116,9 +111,6 @@ const OnlyOceanModel = Union{OceanSeaIceModel{Nothing, Nothing}, OceanSeaIceMode
 compute_atmosphere_sea_ice_fluxes!(::OnlyOceanModel) = nothing
 compute_sea_ice_ocean_fluxes!(::OnlyOceanModel) = nothing
 compute_net_ocean_fluxes!(::OnlyOceanModel, ocean) = nothing
-
-using ClimaOcean.AtmosphereSimulations:
-    TwoBandDownwellingRadiation
 
 include("InterfaceComputations/InterfaceComputations.jl")
 
