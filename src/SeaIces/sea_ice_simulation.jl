@@ -9,6 +9,11 @@ using ClimaOcean.Oceans: Default
 g_Earth = Oceananigans.defaults.gravitational_acceleration
 Ω_Earth = Oceananigans.defaults.planet_rotation_rate
 
+function ocean_surface_salinity(ocean::Simulation{<:HydrostaticFreeSurfaceModel})
+    kᴺ = size(ocean.model.grid, 3)
+    return interior(ocean.model.tracers.S, :, :, kᴺ:kᴺ)
+end
+
 function sea_ice_simulation(grid, ocean=nothing;
                             Δt = 5minutes,
                             ice_salinity = 4, # psu
@@ -38,7 +43,7 @@ function sea_ice_simulation(grid, ocean=nothing;
             surface_ocean_salinity = 0
         else
             kᴺ = size(grid, 3)
-            surface_ocean_salinity = interior(ocean.model.tracers.S, :, :, kᴺ:kᴺ)
+            surface_ocean_salinity = ocean_surface_salinity(ocean)
         end
         bottom_heat_boundary_condition = IceWaterThermalEquilibrium(surface_ocean_salinity)
     end

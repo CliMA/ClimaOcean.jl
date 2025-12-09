@@ -24,28 +24,26 @@ First, we define a struct to hold the slab ocean state:
 
 ```julia
 using Oceananigans
-using Oceananigans.Fields
 
 struct SlabOcean{G, C, T, S, F, FT}
     grid :: G
     clock :: C
-    temperature :: T  # Field{Center, Center, Nothing} - single temperature per horizontal point
-    salinity :: S     # Field{Center, Center, Nothing} - single salinity per horizontal point (optional)
+    tracers :: T    # Field{Center, Center, Nothing} - single temperature per horizontal point
+    salinity :: S   # Field{Center, Center, Nothing} - single salinity per horizontal point (optional)
     fluxes :: F
-    slab_depth :: FT  # Fixed depth of the slab (meters)
+    depth :: FT     # Fixed depth of the slab (meters)
 end
 
 function SlabOcean(grid; slab_depth = 50)
     FT = eltype(grid)
     
     # Create 2D fields (no vertical dimension) for temperature and salinity
-    T = Field{Center, Center, Nothing}(grid)
-    S = Field{Center, Center, Nothing}(grid)
-    
-    fluxes = (T = Field{Center, Center, Nothing}(grid),
-              S = Field{Center, Center, Nothing}(grid))
+    tracers = (T = Field{Center, Center, Nothing}(grid),
+               S = Field{Center, Center, Nothing}(grid))
 
-    return SlabOcean(grid, T, S, convert(FT, slab_depth), arch)
+    fluxes = deepcopy(tracers)
+
+    return SlabOcean(grid, Clock(time=0), tracers, fluxes, convert(FT, slab_depth))
 end
 ```
 
@@ -62,8 +60,8 @@ function ComponentExchanger(slab_ocean::SlabOcean, grid)
     # For a slab ocean, we create views/fields that represent the "surface" state
     
     # Temperature and salinity are already 2D (no vertical dimension)
-    T = slab_ocean.temperature
-    S = slab_ocean.salinity
+    T = slab_ocean.tracers.T
+    S = slab_ocean.tracers.S
     
     # Create zero velocity fields (slab ocean has no dynamics)
     # These are needed for compatibility with the flux computation interface
@@ -75,12 +73,19 @@ function ComponentExchanger(slab_ocean::SlabOcean, grid)
 end
 ```
 
+```julia
+import ClimaOcean.SeaIceSimulations: ocean_surface_salinity
+
+ocean_surface_salinity(slab_ocean::SlabOcean) = slab_ocean.tracers.T
+
+```
+
 ## Step 4: Implement reference_density and heat_capacity
 
 These functions provide thermodynamic properties needed for flux computations:
 
 ```julia
-using ClimaOcean.OceanSeaIceModels: reference_density, heat_capacity
+import ClimaOcean.OceanSeaIceModels: reference_density, heat_capacity
 
 # Reference density for seawater (kg m⁻³)
 reference_density(::SlabOcean) = 1025.0
@@ -94,15 +99,15 @@ heat_capacity(slab_ocean::SlabOcean) = 3990.0
 The `net_fluxes` function returns the flux fields that will be updated by the coupling system. For a slab ocean, we need heat and freshwater (salinity) fluxes:
 
 ```julia
-using ClimaOcean.OceanSeaIceModels.InterfaceComputations: net_fluxes
+import ClimaOcean.OceanSeaIceModels.InterfaceComputations: net_fluxes
 
 function net_fluxes(slab_ocean::SlabOcean)
     grid = slab_ocean.grid
     
     # Create flux fields for temperature (heat) and salinity (freshwater)
     # These will be filled by update_net_fluxes!
-    Jᵀ = slab_ocean.Jᵀ # Temperature flux (K m s⁻¹)
-    Jˢ = slab_ocean.Jˢ # Salinity flux (psu m s⁻¹)
+    Jᵀ = slab_ocean.fluxes.T # Temperature flux (K m s⁻¹)
+    Jˢ = slab_ocean.fluxes.S # Salinity flux (psu m s⁻¹)
     
     # Dummy momentum fluxes for compatibilty with
     # the flux computation interface (slab ocean has no dynamics)
@@ -136,8 +141,8 @@ function time_step!(slab_ocean::SlabOcean, Δt; callbacks=[], compute_tendencies
     # Tick the clock forward
     tick!(slab_ocean.clock, Δt)
     
-    parent(slab_ocean.T) .+= (slab_ocean.Jᵀ) .* Δt
-    parent(slab_ocean.S) .+= (slab_ocean.Jˢ) .* Δt
+    parent(slab_ocean.tracers.T) .+= parent(slab_ocean.Jᵀ) .* Δt ./ slab_ocean.depth
+    parent(slab_ocean.tracers.S) .+= parent(slab_ocean.Jˢ) .* Δt ./ slab_ocean.depth
 
     return nothing
 end
@@ -156,36 +161,28 @@ using Dates
 # Create a horizontal grid with a single vertical level for slab ocean
 arch = CPU()
 grid = LatitudeLongitudeGrid(arch,
-                             size = (360, 180, 1),  # 1 degree resolution, single vertical level
+                             size = (720, 360, 1),  # 1 degree resolution, single vertical level
                              longitude = (0, 360),
                              latitude = (-90, 90),
-                             z = (-1, 0))  # Single layer from -1m to 0m (surface)
+                             z = (-50, 0))  # Single layer from -50m to 0m (surface)
 
 # Create slab ocean
-slab_ocean = SlabOcean(grid; slab_depth = 50.0, initial_temperature = 15.0)
+slab_ocean = SlabOcean(grid)
+set!(slab_ocean.tracers.T, Metadatum(:temperature, dataset=ECCO4Monthly()))
+set!(slab_ocean.tracers.S, Metadatum(:salinity,    dataset=ECCO4Monthly()))
 
 # Create prescribed atmosphere
 atmosphere = ClimaOcean.JRA55PrescribedAtmosphere(arch)
 
 # Create sea ice simulation (on the same grid)
-sea_ice = ClimaOcean.sea_ice_simulation(grid)
-
-# Create component interfaces
-interfaces = ClimaOcean.OceanSeaIceModels.ComponentInterfaces(
-    atmosphere,
-    slab_ocean,
-    sea_ice;
-    exchange_grid = grid,
-    radiation = ClimaOcean.OceanSeaIceModels.Radiation()
-)
+sea_ice = ClimaOcean.sea_ice_simulation(grid, ocean)
+set!(sea_ice.model, h=1, ℵ=1)
 
 # Create coupled model
-coupled_model = ClimaOcean.OceanSeaIceModel(slab_ocean, sea_ice;
-                                            atmosphere,
-                                            interfaces)
+coupled_model = ClimaOcean.OceanSeaIceModel(slab_ocean, sea_ice; atmosphere)
 
 # Create and run simulation
-simulation = Simulation(coupled_model, Δt = 30minutes, stop_time = 30days)
+simulation = Simulation(coupled_model, Δt = 30minutes, stop_time = 100days)
 run!(simulation)
 ```
 
