@@ -18,6 +18,11 @@ using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities:
 
 using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 
+import ClimaOcean.OceanSeaIceModels: reference_density,
+                                     heat_capacity,
+                                     interpolate_ocean_state!,
+                                     compute_net_ocean_fluxes!
+
 default_gravitational_acceleration = Oceananigans.defaults.gravitational_acceleration
 default_planet_rotation_rate = Oceananigans.defaults.planet_rotation_rate
 
