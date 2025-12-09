@@ -12,12 +12,12 @@ using Oceananigans.OrthogonalSphericalShellGrids
 using Oceananigans.Operators
 using KernelAbstractions: @kernel, @index
 
-import ClimaOcean.OceanSeaIceModels: interpolate_sea_ice_state!,
+import ClimaOcean.OceanSeaIceModels: interpolate_state!,
                                      sea_ice_concentration,
                                      sea_ice_thickness,
                                      reference_density,
                                      heat_capacity,
-                                     compute_net_sea_ice_fluxes!
+                                     compute_net_fluxes!
 
 import ClimaOcean.OceanSeaIceModels.InterfaceComputations: ComponentExchanger,
                                                            compute_atmosphere_sea_ice_fluxes!,
@@ -31,8 +31,8 @@ include("sea_ice_simulation.jl")
 include("assemble_net_sea_ice_fluxes.jl")
 
 # When using an ClimaSeaIce simulation, we assume that the exchange grid is the sea-ice grid
-interpolate_sea_ice_state!(exchanger, ::Simulation{<:SeaIceModel},       coupled_model) = nothing
-interpolate_sea_ice_state!(exchanger, ::FreezingLimitedOceanTemperature, coupled_model) = nothing
+interpolate_state!(exchanger, grid, ::Simulation{<:SeaIceModel},       coupled_model) = nothing
+interpolate_state!(exchanger, grid, ::FreezingLimitedOceanTemperature, coupled_model) = nothing
 
 # ComponentExchangers
 ComponentExchanger(sea_ice::FreezingLimitedOceanTemperature, grid) = nothing

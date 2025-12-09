@@ -5,14 +5,11 @@ using Oceananigans.OutputReaders: TimeInterpolator
 
 using ClimaOcean.OceanSimulations: forcing_barotropic_potential
 
-# TODO: move to PrescribedAtmospheres
 """Interpolate the atmospheric state onto the ocean / sea-ice grid."""
-function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosphere, coupled_model)
-    ocean = coupled_model.ocean
+function interpolate_state!(exchanger, grid, atmosphere::PrescribedAtmosphere, coupled_model)
     atmosphere_grid = atmosphere.grid
 
     # Basic model properties
-    grid = ocean.model.grid
     arch = architecture(grid)
     clock = coupled_model.clock
 
@@ -41,9 +38,8 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
     atmosphere_backend = u.backend
     atmosphere_time_indexing = u.time_indexing
 
-    atmosphere_fields = coupled_model.interfaces.exchanger.exchange_atmosphere_state
-    space_fractional_indices = coupled_model.interfaces.exchanger.atmosphere_exchanger
-    exchange_grid = coupled_model.interfaces.exchanger.exchange_grid
+    atmosphere_fields = exchanger.state
+    space_fractional_indices = exchanger.exchanger
 
     # Simplify NamedTuple to reduce parameter space consumption.
     # See https://github.com/CliMA/ClimaOcean.jl/issues/116.
@@ -71,7 +67,7 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
             atmosphere_data,
             space_fractional_indices,
             time_interpolator,
-            exchange_grid,
+            grid,
             atmosphere_velocities,
             atmosphere_tracers,
             atmosphere_pressure,
@@ -111,8 +107,8 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
     #
     # TODO: find a better design for this that doesn't have redundant
     # arrays for the barotropic potential
-    u_potential = forcing_barotropic_potential(ocean.model.forcing.u)
-    v_potential = forcing_barotropic_potential(ocean.model.forcing.v)
+    u_potential = forcing_barotropic_potential(coupled_model.ocean.model.forcing.u)
+    v_potential = forcing_barotropic_potential(coupled_model.ocean.model.forcing.v)
     ρₒ = coupled_model.interfaces.ocean_properties.reference_density
 
     if !isnothing(u_potential)

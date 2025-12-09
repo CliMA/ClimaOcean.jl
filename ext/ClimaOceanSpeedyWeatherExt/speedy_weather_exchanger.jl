@@ -10,14 +10,9 @@ using ClimaOcean.OceanSeaIceModels: sea_ice_concentration
 # TODO: Implement conservative regridding when ready
 # using ConservativeRegridding 
 # using GeoInterface: Polygon, LinearRing
-import ClimaOcean.OceanSeaIceModels:
-    compute_net_atmosphere_fluxes!
-
-import ClimaOcean.OceanSeaIceModels.InterfaceComputations:
-    atmosphere_exchanger,
-    initialize!,
-    StateExchanger,
-    interpolate_atmosphere_state!
+import ClimaOcean.OceanSeaIceModels: compute_net_atmosphere_fluxes!
+import ClimaOcean.AtmosphereSimulations: atmosphere_exchanger
+import ClimaOcean.OceanSeaIceModels.InterfaceComputations: interpolate_state!
 
 # For the moment the workflow is:
 # 1. Perform the regridding on the CPU
@@ -25,16 +20,15 @@ import ClimaOcean.OceanSeaIceModels.InterfaceComputations:
 # If this work we can
 # 1. Copy speedyweather gridarrays to the GPU
 # 2. Perform the regridding on the GPU
-function atmosphere_exchanger(atmosphere::SpeedySimulation, exchange_grid, exchange_atmosphere_state)
+function atmosphere_exchanger(atmosphere::SpeedySimulation, exchange_grid)
 
     # Figure this out:
     spectral_grid = atmosphere.model.spectral_grid
-    FT = eltype(exchange_atmosphere_state.u)
 
     # TODO: Implement a conservative regridder when ready
-    ocean_atmosphere_regridder = XESMF.Regridder(spectral_grid, exchange_grid)
-    atmosphere_ocean_regridder = XESMF.Regridder(exchange_grid, spectral_grid)
-    exchanger = (; ocean_atmosphere_regridder, atmosphere_ocean_regridder)
+    from_atmosphere_regridder = XESMF.Regridder(spectral_grid, exchange_grid)
+    to_atmosphere_regridder = XESMF.Regridder(exchange_grid, spectral_grid)
+    exchanger = (; to_atmosphere_regridder, from_atmosphere_regridder)
 
     return exchanger
 end
@@ -43,7 +37,7 @@ end
 @inline (regrid!::XESMF.Regridder)(data::AbstractArray, field::Oceananigans.Field) = regrid!(data, vec(interior(field)))
 
 # Regrid the atmospheric state on the exchange grid
-function interpolate_atmosphere_state!(interfaces, atmos::SpeedySimulation, coupled_model)
+function interpolate_state!(interfaces, atmos::SpeedySimulation, coupled_model)
     atmosphere_exchanger = interfaces.exchanger.atmosphere_exchanger
     regrid! = atmosphere_exchanger.ocean_atmosphere_regridder
     exchange_grid  = interfaces.exchanger.exchange_grid

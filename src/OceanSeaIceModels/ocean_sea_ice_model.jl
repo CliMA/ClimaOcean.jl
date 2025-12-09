@@ -3,7 +3,6 @@ using Oceananigans.TimeSteppers: Clock
 using Oceananigans: SeawaterBuoyancy
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 using KernelAbstractions: @kernel, @index
-using SeawaterPolynomials: TEOS10EquationOfState
 
 function Base.summary(model::OSIM)
     A = nameof(typeof(architecture(model)))

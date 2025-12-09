@@ -13,7 +13,7 @@ using KernelAbstractions: @kernel, @index
 
 import Oceananigans.TimeSteppers: time_step!, update_state!
 
-import ClimaOcean.OceanSeaIceModels: interpolate_atmosphere_state!
+import ClimaOcean.OceanSeaIceModels: interpolate_state!, compute_net_fluxes!
 import ClimaOcean.OceanSeaIceModels.InterfaceComputations: ComponentExchanger, initialize!, net_fluxes
 
 include("thermodynamic_parameters.jl")

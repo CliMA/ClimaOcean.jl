@@ -1,6 +1,6 @@
 function ComponentExchanger(atmosphere::PrescribedAtmosphere, grid) 
 
-    exchanger = prescribed_atmosphere_exchanger(atmosphere, grid)
+    exchanger = atmosphere_exchanger(atmosphere, grid)
 
     state = (; u  = Field{Center, Center, Nothing}(grid),
                v  = Field{Center, Center, Nothing}(grid),
@@ -19,7 +19,7 @@ end
 fractional_index_type(FT, Topo) = FT
 fractional_index_type(FT, ::Flat) = Nothing
 
-function prescribed_atmosphere_exchanger(atmosphere::PrescribedAtmosphere, exchange_grid)
+function atmosphere_exchanger(atmosphere::PrescribedAtmosphere, exchange_grid)
     atmos_grid = atmosphere.grid
     arch = architecture(exchange_grid)
     Nx, Ny, Nz = size(exchange_grid)

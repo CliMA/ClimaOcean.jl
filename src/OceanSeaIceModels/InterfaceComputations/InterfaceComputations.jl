@@ -57,15 +57,6 @@ end
 # Needs to be extended by each component model
 net_fluxes(::Nothing) = nothing
 
-function surface_flux(f::AbstractField)
-    top_bc = f.boundary_conditions.top
-    if top_bc isa BoundaryCondition{<:Oceananigans.BoundaryConditions.Flux}
-        return top_bc.condition
-    else
-        return nothing
-    end
-end
-
 # Radiation
 include("radiation.jl")
 include("latitude_dependent_albedo.jl")

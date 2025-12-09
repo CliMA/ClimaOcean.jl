@@ -11,7 +11,7 @@ using ClimaOcean.OceanSeaIceModels.InterfaceComputations: computed_fluxes, get_p
 #####
 
 # A generic ocean flux assembler for a coupled model with both an atmosphere and sea ice
-function compute_net_ocean_fluxes!(coupled_model, ocean::Simulation{<:HydrostaticFreeSurfaceModel})
+function compute_net_fluxes!(coupled_model, ocean::Simulation{<:HydrostaticFreeSurfaceModel})
     sea_ice = coupled_model.sea_ice
     grid = ocean.model.grid
     arch = architecture(grid)

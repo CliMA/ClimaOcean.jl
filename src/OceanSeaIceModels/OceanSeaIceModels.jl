@@ -13,8 +13,6 @@ export
     compute_atmosphere_sea_ice_fluxes!,
     compute_sea_ice_ocean_fluxes!
 
-using SeawaterPolynomials
-
 using Oceananigans
 using Oceananigans.Operators
 using Oceananigans.Utils: launch!, Time, KernelParameters
@@ -52,7 +50,6 @@ import Oceananigans.Utils: prettytime
 
 reference_density(::Nothing) = 0
 heat_capacity(::Nothing) = 0
-function interpolate_ocean_state! end
 
 #####
 ##### Functions extended by sea-ice models
@@ -60,7 +57,6 @@ function interpolate_ocean_state! end
 
 sea_ice_thickness(::Nothing) = ZeroField()
 sea_ice_concentration(::Nothing) = ZeroField()
-function interpolate_sea_ice_state! end
 
 #####
 ##### Functions extended by atmosphere models
@@ -71,7 +67,13 @@ function freshwater_flux end
 function thermodynamics_parameters end
 function surface_layer_height end
 function boundary_layer_height end
-function interpolate_atmosphere_state! end
+
+#####
+##### Functions extended by all component models
+#####
+
+function interpolate_state! end
+function compute_net_fluxes! end
 
 #####
 ##### The coupled model

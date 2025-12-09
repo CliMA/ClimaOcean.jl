@@ -39,7 +39,7 @@ mutable struct SeaIceOceanInterface{J, P}
     properties :: P
 end
 
-# Get the computed fluxes
+# Utilities to get the computed fluxes
 @inline computed_fluxes(interface::AtmosphereInterface)  = interface.fluxes
 @inline computed_fluxes(interface::SeaIceOceanInterface) = interface.fluxes
 @inline computed_fluxes(::Nothing) = nothing
@@ -72,6 +72,10 @@ const celsius_to_kelvin = 273.15
 
 Base.summary(crf::ComponentInterfaces) = "ComponentInterfaces"
 Base.show(io::IO, crf::ComponentInterfaces) = print(io, summary(crf))
+
+#####
+##### Atmosphere-Ocean Interface
+#####
 
 atmosphere_ocean_interface(grid, ::Nothing,   ocean,    args...) = nothing
 atmosphere_ocean_interface(grid, ::Nothing,  ::Nothing, args...) = nothing
@@ -125,6 +129,10 @@ function atmosphere_ocean_interface(grid,
     return AtmosphereInterface(ao_fluxes, ao_flux_formulation, interface_temperature, ao_properties)
 end
 
+#####
+##### Atmosphere-Sea Ice Interface
+#####
+
 atmosphere_sea_ice_interface(grid, atmos, ::Nothing,     args...) = nothing
 atmosphere_sea_ice_interface(grid, ::Nothing, sea_ice,   args...) = nothing
 atmosphere_sea_ice_interface(grid, ::Nothing, ::Nothing, args...) = nothing
@@ -162,6 +170,10 @@ function atmosphere_sea_ice_interface(grid,
     return AtmosphereInterface(fluxes, ai_flux_formulation, interface_temperature, properties)
 end
 
+#####
+##### Sea Ice-Ocean Interface
+#####
+
 sea_ice_ocean_interface(grid, ::Nothing, ocean;     kwargs...) = nothing
 sea_ice_ocean_interface(grid, ::Nothing, ::Nothing; kwargs...) = nothing
 sea_ice_ocean_interface(grid, sea_ice,   ::Nothing; kwargs...) = nothing
@@ -184,6 +196,10 @@ function sea_ice_ocean_interface(grid, sea_ice, ocean; characteristic_melting_sp
 
     return SeaIceOceanInterface(io_fluxes, io_properties)
 end
+
+#####
+##### Component Interfaces
+#####
 
 default_ai_temperature(::Nothing) = nothing
 
@@ -245,6 +261,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
     freshwater_density         = convert(FT, freshwater_density)
     gravitational_acceleration = convert(FT, gravitational_acceleration)
 
+    # Component properties
     atmosphere_properties = thermodynamics_parameters(atmosphere)
 
     ocean_properties = (reference_density  = ocean_reference_density,
@@ -252,6 +269,13 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                         freshwater_density = freshwater_density,
                         temperature_units  = ocean_temperature_units)
 
+    sea_ice_properties = (reference_density  = sea_ice_reference_density,
+                          heat_capacity      = sea_ice_heat_capacity,
+                          freshwater_density = freshwater_density,
+                          liquidus           = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus,
+                          temperature_units  = sea_ice_temperature_units)
+
+    # Component interfaces
     ao_interface = atmosphere_ocean_interface(exchange_grid,
                                               atmosphere,
                                               ocean,
@@ -270,14 +294,6 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                                                 atmosphere_sea_ice_fluxes,
                                                 atmosphere_sea_ice_interface_temperature,
                                                 atmosphere_sea_ice_velocity_difference)
-
-    # TODO: Generalize this to work with any sea ice model
-    sea_ice_properties = (reference_density  = sea_ice_reference_density,
-                          heat_capacity      = sea_ice_heat_capacity,
-                          freshwater_density = freshwater_density,
-                          liquidus           = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus,
-                          temperature_units  = sea_ice_temperature_units)
-
     # Total interface fluxes
     total_fluxes = (ocean      = net_fluxes(ocean),
                     sea_ice    = net_fluxes(sea_ice),
@@ -296,10 +312,4 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                                exchanger,
                                total_fluxes,
                                properties)
-end
-
-@inline function air_sea_surface_specific_humidity(interfaces::ComponentInterfaces, ρₛ, Tₛ, Sₛ=zero(Tₛ))
-    formulation = interfaces.atmosphere_ocean_interface.properties.specific_humidity_formulation
-    ℂₐ = interfaces.atmosphere_properties.thermodynamics_parameters
-    return surface_specific_humidity(formulation, ρₛ, Tₛ, Sₛ)
 end
