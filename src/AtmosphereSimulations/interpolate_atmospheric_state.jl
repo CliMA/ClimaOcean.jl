@@ -39,7 +39,7 @@ function interpolate_state!(exchanger, grid, atmosphere::PrescribedAtmosphere, c
     atmosphere_time_indexing = u.time_indexing
 
     atmosphere_fields = exchanger.state
-    space_fractional_indices = exchanger.exchanger
+    space_fractional_indices = exchanger.regridder
 
     # Simplify NamedTuple to reduce parameter space consumption.
     # See https://github.com/CliMA/ClimaOcean.jl/issues/116.

@@ -11,7 +11,7 @@ using ClimaOcean.OceanSeaIceModels: sea_ice_concentration
 # using ConservativeRegridding 
 # using GeoInterface: Polygon, LinearRing
 import ClimaOcean.OceanSeaIceModels: compute_net_fluxes!
-import ClimaOcean.AtmosphereSimulations: atmosphere_exchanger
+import ClimaOcean.AtmosphereSimulations: atmosphere_regridder
 import ClimaOcean.OceanSeaIceModels.InterfaceComputations: interpolate_state!
 
 # For the moment the workflow is:
@@ -20,7 +20,7 @@ import ClimaOcean.OceanSeaIceModels.InterfaceComputations: interpolate_state!
 # If this work we can
 # 1. Copy speedyweather gridarrays to the GPU
 # 2. Perform the regridding on the GPU
-function atmosphere_exchanger(atmosphere::SpeedySimulation, exchange_grid)
+function atmosphere_regridder(atmosphere::SpeedySimulation, exchange_grid)
 
     # Figure this out:
     spectral_grid = atmosphere.model.spectral_grid
@@ -28,9 +28,9 @@ function atmosphere_exchanger(atmosphere::SpeedySimulation, exchange_grid)
     # TODO: Implement a conservative regridder when ready
     from_atmosphere_regridder = XESMF.Regridder(spectral_grid, exchange_grid)
     to_atmosphere_regridder = XESMF.Regridder(exchange_grid, spectral_grid)
-    exchanger = (; to_atmosphere_regridder, from_atmosphere_regridder)
+    regridder = (; to_atmosphere, from_atmosphere)
 
-    return exchanger
+    return regridder
 end
 
 @inline (regrid!::XESMF.Regridder)(field::Oceananigans.Field, data::AbstractArray) = regrid!(vec(interior(field)), data)
@@ -38,11 +38,11 @@ end
 
 # Regrid the atmospheric state on the exchange grid
 function interpolate_state!(interfaces, atmos::SpeedySimulation, coupled_model)
-    atmosphere_exchanger = interfaces.exchanger.atmosphere_exchanger
-    regrid! = atmosphere_exchanger.ocean_atmosphere_regridder
-    exchange_grid  = interfaces.exchanger.exchange_grid
-    exchange_state = interfaces.exchanger.exchange_atmosphere_state
-    surface_layer = atmos.model.spectral_grid.nlayers
+    atmosphere_exchanger = interfaces.exchanger.atmosphere
+    regrid!        = atmosphere_exchanger.regridder.from_atmosphere
+    exchange_state = atmosphere_exchanger.state
+    exchange_grid  = interfaces.exchanger.grid
+    surface_layer  = atmos.model.spectral_grid.nlayers
 
     ua  = RingGrids.field_view(atmos.diagnostic_variables.grid.u_grid,     :, surface_layer).data
     va  = RingGrids.field_view(atmos.diagnostic_variables.grid.v_grid,     :, surface_layer).data
@@ -92,7 +92,7 @@ end
 # the this function works also for sea_ice=nothing and on GPUs without
 # needing to allocate memory.
 function compute_net_fluxes!(coupled_model, atmos::SpeedySimulation)
-    regrid!   = coupled_model.interfaces.exchanger.atmosphere_exchanger.atmosphere_ocean_regridder
+    regrid!   = coupled_model.interfaces.exchanger.atmosphere.regridder.to_atmosphere
     ao_fluxes = coupled_model.interfaces.atmosphere_ocean_interface.fluxes
     ai_fluxes = coupled_model.interfaces.atmosphere_sea_ice_interface.fluxes
 

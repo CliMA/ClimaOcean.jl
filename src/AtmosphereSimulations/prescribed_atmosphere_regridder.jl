@@ -1,6 +1,6 @@
 function ComponentExchanger(atmosphere::PrescribedAtmosphere, grid) 
 
-    exchanger = atmosphere_exchanger(atmosphere, grid)
+    regridder = atmosphere_regridder(atmosphere, grid)
 
     state = (; u  = Field{Center, Center, Nothing}(grid),
                v  = Field{Center, Center, Nothing}(grid),
@@ -11,7 +11,7 @@ function ComponentExchanger(atmosphere::PrescribedAtmosphere, grid)
                Qℓ = Field{Center, Center, Nothing}(grid),
                Mp = Field{Center, Center, Nothing}(grid))
 
-    return ComponentExchanger(state, exchanger)
+    return ComponentExchanger(state, regridder)
 end
 
 # Note that Field location can also affect fractional index type.
@@ -19,7 +19,7 @@ end
 fractional_index_type(FT, Topo) = FT
 fractional_index_type(FT, ::Flat) = Nothing
 
-function atmosphere_exchanger(atmosphere::PrescribedAtmosphere, exchange_grid)
+function atmosphere_regridder(atmosphere::PrescribedAtmosphere, exchange_grid)
     atmos_grid = atmosphere.grid
     arch = architecture(exchange_grid)
     Nx, Ny, Nz = size(exchange_grid)
@@ -33,11 +33,17 @@ function atmosphere_exchanger(atmosphere::PrescribedAtmosphere, exchange_grid)
     fj = TY() isa Flat ? nothing : Field{Center, Center, Nothing}(exchange_grid, FT)
     frac_indices = (i=fi, j=fj) # no k needed, only horizontal interpolation
 
-    kernel_parameters = interface_kernel_parameters(exchange_grid)
-    launch!(arch, exchange_grid, kernel_parameters,
-            _compute_fractional_indices!, frac_indices, exchange_grid, atmos_grid)
-
     return frac_indices
+end
+
+function initialize!(exchanger::ComponentExchanger, grid, atmosphere::PrescribedAtmosphere)
+
+    frac_indices = exchanger.regridder
+    atmos_grid = atmosphere.grid
+    kernel_parameters = interface_kernel_parameters(grid)
+    launch!(arch, grid, kernel_parameters, _compute_fractional_indices!, frac_indices, grid, atmos_grid)
+
+    return nothing
 end
 
 @kernel function _compute_fractional_indices!(indices_tuple, exchange_grid, atmos_grid)

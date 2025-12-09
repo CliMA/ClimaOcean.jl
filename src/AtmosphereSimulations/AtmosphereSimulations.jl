@@ -30,7 +30,7 @@ function atmosphere_simulation end
 
 include("thermodynamic_parameters.jl")
 include("prescribed_atmosphere.jl")
-include("prescribed_atmosphere_exchanger.jl")
+include("prescribed_atmosphere_regridder.jl")
 include("interpolate_atmospheric_state.jl")
 
 net_fluxes(::PrescribedAtmosphere) = nothing

@@ -23,7 +23,7 @@ end
 
 struct ComponentExchanger{S, EX}
     state :: S
-    exchanger :: EX
+    regridder :: EX
 end
 
 # For ``nothing'' components, we don't need an exchanger

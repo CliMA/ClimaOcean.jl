@@ -99,7 +99,7 @@ end
     ΣQb = Qf + Qi
 
     # Mask fluxes over land for convenience
-    inactive = inactive_node(i, j, kᴺ, grid, c, c, c)
+    inactive = inactive_node(i, j, kᴺ, grid, Center(), Center(), Center())
 
     @inbounds top_fluxes.heat[i, j, 1]  = ifelse(inactive, zero(grid), ΣQt)
     @inbounds top_fluxes.u[i, j, 1]     = ifelse(inactive, zero(grid), ℑxᶠᵃᵃ(i, j, 1, grid, ρτx))

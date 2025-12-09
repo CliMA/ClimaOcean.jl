@@ -62,8 +62,6 @@ sea_ice_concentration(::Nothing) = ZeroField()
 ##### Functions extended by atmosphere models
 #####
 
-function downwelling_radiation end
-function freshwater_flux end
 function thermodynamics_parameters end
 function surface_layer_height end
 function boundary_layer_height end
