@@ -1,8 +1,8 @@
 using ClimaOcean.OceanSeaIceModels.InterfaceComputations: computed_fluxes, get_possibly_zero_flux
 
-compute_net_sea_ice_fluxes!(coupled_model, ::FreezingLimitedOceanTemperature) = nothing
+compute_net_fluxes!(coupled_model, ::FreezingLimitedOceanTemperature) = nothing
 
-function compute_net_sea_ice_fluxes!(coupled_model, sea_ice::Simulation{<:SeaIceModel})
+function compute_net_fluxes!(coupled_model, sea_ice::Simulation{<:SeaIceModel})
     ocean = coupled_model.ocean
     grid  = ocean.model.grid
     arch  = architecture(grid)

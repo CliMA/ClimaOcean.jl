@@ -75,6 +75,10 @@ function boundary_layer_height end
 function interpolate_state! end
 function compute_net_fluxes! end
 
+# Fallbacks for a ``Nothing`` component model
+compute_net_fluxes!(coupled_model, ::Nothing) = nothing
+interpolate_state!(exchanger, grid, ::Nothing, coupled_model) = nothing
+
 #####
 ##### The coupled model
 ##### 
@@ -97,11 +101,6 @@ const NoAtmosphereModel = OceanSeaIceModel{<:Any, Nothing}
 #####
 ##### Some implementation
 #####
-
-# Compute net fluxes:
-compute_net_sea_ice_fluxes!(coupled_model,    ::Nothing) = nothing
-compute_net_ocean_fluxes!(coupled_model,      ::Nothing) = nothing
-compute_net_atmosphere_fluxes!(coupled_model, ::Nothing) = nothing
 
 include("InterfaceComputations/InterfaceComputations.jl")
 
