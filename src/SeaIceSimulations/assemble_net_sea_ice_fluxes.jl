@@ -1,4 +1,6 @@
-using ClimaOcean.OceanSeaIceModels.InterfaceComputations: computed_fluxes, get_possibly_zero_flux
+using ClimaOcean.OceanSeaIceModels.InterfaceComputations: computed_fluxes, 
+                                                          get_possibly_zero_flux,
+                                                          interface_kernel_parameters
 
 compute_net_fluxes!(coupled_model, ::FreezingLimitedOceanTemperature) = nothing
 

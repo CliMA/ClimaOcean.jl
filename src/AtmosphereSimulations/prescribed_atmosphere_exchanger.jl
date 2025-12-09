@@ -1,5 +1,3 @@
-using Oceananigans.Architectures: architecture
-
 function ComponentExchanger(atmosphere::PrescribedAtmosphere, grid) 
 
     exchanger = atmosphere_exchanger(atmosphere, grid)
@@ -35,20 +33,11 @@ function atmosphere_exchanger(atmosphere::PrescribedAtmosphere, exchange_grid)
     fj = TY() isa Flat ? nothing : Field{Center, Center, Nothing}(exchange_grid, FT)
     frac_indices = (i=fi, j=fj) # no k needed, only horizontal interpolation
 
-    return frac_indices
-end
-
-function initialize!(exchanger::ComponentExchanger, 
-                     exchange_grid, 
-                     atmosphere::PrescribedAtmosphere)
-
-    atmos_grid = atmosphere.grid
-    arch = architecture(exchange_grid)
-    frac_indices = exchanger.exchanger
     kernel_parameters = interface_kernel_parameters(exchange_grid)
     launch!(arch, exchange_grid, kernel_parameters,
             _compute_fractional_indices!, frac_indices, exchange_grid, atmos_grid)
-    return nothing
+
+    return frac_indices
 end
 
 @kernel function _compute_fractional_indices!(indices_tuple, exchange_grid, atmos_grid)

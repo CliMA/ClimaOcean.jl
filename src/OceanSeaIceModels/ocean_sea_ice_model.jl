@@ -226,7 +226,7 @@ above_freezing_ocean_temperature!(ocean, ::Nothing) = nothing
 function above_freezing_ocean_temperature!(ocean, sea_ice)
     T = ocean.model.tracers.T
     S = ocean.model.tracers.S
-    ℵ = sea_ice_concentration(sea_ice.model)
+    ℵ = sea_ice_concentration(sea_ice)
     liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
 
     grid = ocean.model.grid

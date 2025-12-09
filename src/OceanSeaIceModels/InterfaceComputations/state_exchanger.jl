@@ -9,6 +9,7 @@ struct StateExchanger{G, A, O, S}
         ocean_exchanger      = ComponentExchanger(ocean, grid)
         sea_ice_exchanger    = ComponentExchanger(sea_ice, grid)
 
+        G = typeof(grid)
         A = typeof(atmosphere_exchanger)
         O = typeof(ocean_exchanger)
         S = typeof(sea_ice_exchanger)
@@ -34,3 +35,6 @@ function initialize!(exchanger::StateExchanger, model)
     initialize!(exchanger.sea_ice,    exchanger.grid, model.sea_ice)
     return nothing
 end
+
+# fallback
+initialize!(exchanger::ComponentExchanger, grid, component) = nothing

@@ -2,7 +2,10 @@ using Printf
 using Oceananigans.Operators: ℑxᶠᵃᵃ, ℑyᵃᶠᵃ
 using Oceananigans.Forcings: MultipleForcings
 
-using ClimaOcean.OceanSeaIceModels.InterfaceComputations: computed_fluxes, get_possibly_zero_flux, sea_ice_concentration
+using ClimaOcean.OceanSeaIceModels.InterfaceComputations: interface_kernel_parameters, 
+                                                          computed_fluxes, 
+                                                          get_possibly_zero_flux, 
+                                                          sea_ice_concentration
 
 @inline τᶜᶜᶜ(i, j, k, grid, ρₒ⁻¹, ℵ, ρτᶜᶜᶜ) = @inbounds ρₒ⁻¹ * (1 - ℵ[i, j, k]) * ρτᶜᶜᶜ[i, j, k]
 

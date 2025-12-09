@@ -3,8 +3,9 @@ module AtmosphereSimulations
 export atmosphere_simulation
 
 using Oceananigans
+using Oceananigans.Utils
 using Oceananigans.Fields: Center
-using Oceananigans.Grids: grid_name
+using Oceananigans.Grids: grid_name, architecture, topology, Flat
 using Oceananigans.OutputReaders: FieldTimeSeries, update_field_time_series!, extract_field_time_series
 using Oceananigans.TimeSteppers: Clock, tick!
 using Oceananigans.Utils: prettysummary, Time
@@ -12,6 +13,7 @@ using Oceananigans.Utils: prettysummary, Time
 using Adapt
 using Thermodynamics.Parameters: AbstractThermodynamicsParameters
 using KernelAbstractions: @kernel, @index
+using ClimaOcean.OceanSeaIceModels.InterfaceComputations: interface_kernel_parameters
 
 import Oceananigans.TimeSteppers: time_step!, update_state!
 
