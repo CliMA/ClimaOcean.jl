@@ -1,9 +1,6 @@
 using .InterfaceComputations:
     compute_atmosphere_ocean_fluxes!,
-    compute_sea_ice_ocean_fluxes!,
-    compute_net_ocean_fluxes!,
-    compute_net_sea_ice_fluxes!,
-    interpolate_atmosphere_state!
+    compute_sea_ice_ocean_fluxes!
 
 using ClimaSeaIce: SeaIceModel, SeaIceThermodynamics
 using Oceananigans.Grids: φnode

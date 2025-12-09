@@ -26,6 +26,8 @@ using ..OceanSeaIceModels: default_gravitational_acceleration,
 
 import ClimaOcean: stateindex
 
+import Oceananigans.Simulations: initialize!
+
 import ..OceanSeaIceModels:
     compute_net_atmosphere_fluxes!,
     compute_net_sea_ice_fluxes!,

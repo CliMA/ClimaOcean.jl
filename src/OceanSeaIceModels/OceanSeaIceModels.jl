@@ -105,10 +105,6 @@ include("InterfaceComputations/InterfaceComputations.jl")
 
 using .InterfaceComputations
 
-# "No atmosphere" implementation
-InterfaceComputations.compute_atmosphere_ocean_fluxes!(::NoAtmosphereModel) = nothing
-InterfaceComputations.compute_atmosphere_sea_ice_fluxes!(::NoAtmosphereModel) = nothing
-
 include("ocean_sea_ice_model.jl")
 include("time_step_ocean_sea_ice_model.jl")
 

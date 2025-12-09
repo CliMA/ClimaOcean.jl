@@ -8,7 +8,6 @@ using ..OceanSeaIceModels: reference_density,
                            sea_ice_thickness,
                            downwelling_radiation,
                            freshwater_flux,
-                           SeaIceSimulation,
                            thermodynamics_parameters
 
 using ClimaSeaIce: SeaIceModel
@@ -272,31 +271,27 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                                                 atmosphere_sea_ice_interface_temperature,
                                                 atmosphere_sea_ice_velocity_difference)
 
-    if sea_ice isa SeaIceSimulation
-        sea_ice_properties = (reference_density  = sea_ice_reference_density,
-                              heat_capacity      = sea_ice_heat_capacity,
-                              freshwater_density = freshwater_density,
-                              liquidus           = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus,
-                              temperature_units  = sea_ice_temperature_units)
+    # TODO: Generalize this to work with any sea ice model
+    sea_ice_properties = (reference_density  = sea_ice_reference_density,
+    heat_capacity      = sea_ice_heat_capacity,
+    freshwater_density = freshwater_density,
+    liquidus           = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus,
+    temperature_units  = sea_ice_temperature_units)
 
-        net_momentum_fluxes = if isnothing(sea_ice.model.dynamics)
-            u = Field{Face, Center, Nothing}(sea_ice.model.grid)
-            v = Field{Center, Face, Nothing}(sea_ice.model.grid)
-            (; u, v)
-        else
-            u = sea_ice.model.dynamics.external_momentum_stresses.top.u
-            v = sea_ice.model.dynamics.external_momentum_stresses.top.v
-            (; u, v)
-        end
-
-        net_top_sea_ice_fluxes = merge((; heat=sea_ice.model.external_heat_fluxes.top), net_momentum_fluxes)
-        net_bottom_sea_ice_fluxes = (; heat=sea_ice.model.external_heat_fluxes.bottom)
+    net_momentum_fluxes = if isnothing(sea_ice.model.dynamics)
+        u = Field{Face, Center, Nothing}(sea_ice.model.grid)
+        v = Field{Center, Face, Nothing}(sea_ice.model.grid)
+        (; u, v)
     else
-        sea_ice_properties = nothing
-        net_top_sea_ice_fluxes = nothing
-        net_bottom_sea_ice_fluxes = nothing
+        u = sea_ice.model.dynamics.external_momentum_stresses.top.u
+        v = sea_ice.model.dynamics.external_momentum_stresses.top.v
+        (; u, v)
     end
 
+    net_top_sea_ice_fluxes = merge((; heat=sea_ice.model.external_heat_fluxes.top), net_momentum_fluxes)
+    net_bottom_sea_ice_fluxes = (; heat=sea_ice.model.external_heat_fluxes.bottom)
+
+    # TODO: Generalize this to work with any ocean model
     τx = surface_flux(ocean.model.velocities.u)
     τy = surface_flux(ocean.model.velocities.v)
     tracers = ocean.model.tracers
