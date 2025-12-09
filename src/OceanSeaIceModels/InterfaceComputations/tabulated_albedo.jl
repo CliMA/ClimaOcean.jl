@@ -1,6 +1,6 @@
 using Oceananigans.Fields: interpolator
 using Oceananigans.Grids: on_architecture
-using Oceananigans.Utils: Time
+using Oceananigans.Units: Time
 using Base
 
 # Bilinear interpolation of the albedo α in α_table based on a
