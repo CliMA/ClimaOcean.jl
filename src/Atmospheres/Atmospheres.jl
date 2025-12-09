@@ -1,6 +1,6 @@
 module Atmospheres
 
-export atmosphere_simulation
+export atmosphere_simulation, PrescribedAtmosphere
 
 using Oceananigans
 using Oceananigans.Utils
