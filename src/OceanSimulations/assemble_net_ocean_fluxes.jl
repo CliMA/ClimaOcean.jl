@@ -5,7 +5,11 @@ using Oceananigans.Forcings: MultipleForcings
 using ClimaOcean.OceanSeaIceModels.InterfaceComputations: interface_kernel_parameters, 
                                                           computed_fluxes, 
                                                           get_possibly_zero_flux, 
-                                                          sea_ice_concentration
+                                                          sea_ice_concentration,
+                                                          convert_to_kelvin,
+                                                          emitted_longwave_radiation,
+                                                          absorbed_longwave_radiation,
+                                                          transmitted_shortwave_radiation
 
 @inline τᶜᶜᶜ(i, j, k, grid, ρₒ⁻¹, ℵ, ρτᶜᶜᶜ) = @inbounds ρₒ⁻¹ * (1 - ℵ[i, j, k]) * ρτᶜᶜᶜ[i, j, k]
 
@@ -20,7 +24,7 @@ function compute_net_fluxes!(coupled_model, ocean::Simulation{<:HydrostaticFreeS
     arch = architecture(grid)
     clock = coupled_model.clock
 
-    net_ocean_fluxes = coupled_model.interfaces.net_fluxes.ocean_surface
+    net_ocean_fluxes = coupled_model.interfaces.net_fluxes.ocean
     atmos_ocean_fluxes = computed_fluxes(coupled_model.interfaces.atmosphere_ocean_interface)
     sea_ice_ocean_fluxes = computed_fluxes(coupled_model.interfaces.sea_ice_ocean_interface)
 
@@ -32,7 +36,7 @@ function compute_net_fluxes!(coupled_model, ocean::Simulation{<:HydrostaticFreeS
 
     # Simplify NamedTuple to reduce parameter space consumption.
     # See https://github.com/CliMA/ClimaOcean.jl/issues/116.
-    atmosphere_fields = coupled_model.interfaces.exchanger.exchange_atmosphere_state
+    atmosphere_fields = coupled_model.interfaces.exchanger.atmosphere.state
 
     downwelling_radiation = (Qs = atmosphere_fields.Qs.data,
                              Qℓ = atmosphere_fields.Qℓ.data)

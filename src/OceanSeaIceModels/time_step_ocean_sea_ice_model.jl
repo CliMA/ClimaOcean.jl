@@ -39,7 +39,7 @@ function update_state!(coupled_model::OceanSeaIceModel, callbacks=[]; compute_te
 
     exchanger = coupled_model.interfaces.exchanger
     grid      = exchanger.grid
-
+    
     # This function needs to be specialized to allow different component models
     interpolate_state!(exchanger.atmosphere, grid, atmosphere, coupled_model)
     interpolate_state!(exchanger.ocean,      grid, ocean,      coupled_model)

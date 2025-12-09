@@ -4,6 +4,7 @@ export ocean_simulation
 
 using Oceananigans
 using Oceananigans.Units
+using Oceananigans.Utils
 using Oceananigans.Utils: with_tracers
 using Oceananigans.Advection: FluxFormAdvection
 using Oceananigans.BoundaryConditions: DefaultBoundaryCondition

@@ -299,7 +299,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                     sea_ice    = net_fluxes(sea_ice),
                     atmosphere = net_fluxes(atmosphere))
 
-    exchanger = StateExchanger(exchange_grid, ocean, atmosphere, sea_ice)
+    exchanger = StateExchanger(exchange_grid, atmosphere, ocean, sea_ice)
 
     properties = (; gravitational_acceleration)
 

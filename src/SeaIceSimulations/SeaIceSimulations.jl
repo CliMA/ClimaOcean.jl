@@ -4,8 +4,9 @@ export sea_ice_simulation
 
 using Oceananigans
 using Oceananigans.Units
+using Oceananigans.Utils
 using Oceananigans.Utils: with_tracers
-using Oceananigans.Advection: FluxFormAdvection
+using Oceananigans.Grids: architecture
 using Oceananigans.BoundaryConditions: DefaultBoundaryCondition
 using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node
 using Oceananigans.OrthogonalSphericalShellGrids

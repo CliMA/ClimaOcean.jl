@@ -1,6 +1,6 @@
 using Oceananigans.Operators: intrinsic_vector
 using Oceananigans.Grids: _node
-using Oceananigans.Fields: FractionalIndices
+using Oceananigans.Fields: FractionalIndices, interpolate
 using Oceananigans.OutputReaders: TimeInterpolator
 
 using ClimaOcean.OceanSimulations: forcing_barotropic_potential

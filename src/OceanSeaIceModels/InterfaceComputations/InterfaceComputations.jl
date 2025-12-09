@@ -22,17 +22,23 @@ export
     compute_sea_ice_ocean_flu
 
 using ..OceanSeaIceModels: default_gravitational_acceleration,
-                           default_freshwater_density
+                           default_freshwater_density,
+                           thermodynamics_parameters,
+                           surface_layer_height,
+                           boundary_layer_height
 
 import ClimaOcean: stateindex
 import Oceananigans.Simulations: initialize!
 
 #####
-##### Utilities
+##### Functions extended by component models
 #####
 
-const c = Center()
-const f = Face()
+net_fluxes(::Nothing) = nothing
+
+#####
+##### Utilities
+#####
 
 function interface_kernel_parameters(grid)
     Nx, Ny, Nz = size(grid)
@@ -47,9 +53,6 @@ function interface_kernel_parameters(grid)
 
     return kernel_parameters
 end
-
-# Needs to be extended by each component model
-net_fluxes(::Nothing) = nothing
 
 # Radiation
 include("radiation.jl")
