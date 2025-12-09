@@ -10,9 +10,12 @@ using ClimaOcean.OceanSeaIceModels: sea_ice_concentration
 # TODO: Implement conservative regridding when ready
 # using ConservativeRegridding 
 # using GeoInterface: Polygon, LinearRing
-import ClimaOcean.OceanSeaIceModels: compute_net_fluxes!
+import ClimaOcean.OceanSeaIceModels: compute_net_fluxes!, interpolate_state!
 import ClimaOcean.AtmosphereSimulations: atmosphere_regridder
-import ClimaOcean.OceanSeaIceModels.InterfaceComputations: interpolate_state!
+import ClimaOcean.OceanSeaIceModels.InterfaceComputations: net_fluxes
+
+# We do not need this...
+net_fluxes(::SpeedySimulation) = nothing
 
 # For the moment the workflow is:
 # 1. Perform the regridding on the CPU

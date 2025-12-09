@@ -5,10 +5,10 @@ export atmosphere_simulation
 using Oceananigans
 using Oceananigans.Utils
 using Oceananigans.Fields: Center
-using Oceananigans.Grids: grid_name, architecture, topology, Flat
+using Oceananigans.Grids: grid_name, architecture, topology, Flat, prettysummary
 using Oceananigans.OutputReaders: FieldTimeSeries, update_field_time_series!, extract_field_time_series
 using Oceananigans.TimeSteppers: Clock, tick!
-using Oceananigans.Utils: prettysummary, Time
+using Oceananigans.Units: Time
 
 using Adapt
 using Thermodynamics.Parameters: AbstractThermodynamicsParameters
