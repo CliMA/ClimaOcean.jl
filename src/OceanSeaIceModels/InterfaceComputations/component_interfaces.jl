@@ -217,7 +217,7 @@ end
                         gravitational_acceleration = default_gravitational_acceleration)
 """
 function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
-                             exchange_grid = choose_exchange_grid(atmosphere, ocean, sea_ice),
+                             exchange_grid = ocean.model.grid,
                              radiation = Radiation(),
                              freshwater_density = default_freshwater_density,
                              atmosphere_ocean_fluxes = SimilarityTheoryFluxes(eltype(ocean.model.grid)),
@@ -273,40 +273,15 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
 
     # TODO: Generalize this to work with any sea ice model
     sea_ice_properties = (reference_density  = sea_ice_reference_density,
-    heat_capacity      = sea_ice_heat_capacity,
-    freshwater_density = freshwater_density,
-    liquidus           = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus,
-    temperature_units  = sea_ice_temperature_units)
-
-    net_momentum_fluxes = if isnothing(sea_ice.model.dynamics)
-        u = Field{Face, Center, Nothing}(sea_ice.model.grid)
-        v = Field{Center, Face, Nothing}(sea_ice.model.grid)
-        (; u, v)
-    else
-        u = sea_ice.model.dynamics.external_momentum_stresses.top.u
-        v = sea_ice.model.dynamics.external_momentum_stresses.top.v
-        (; u, v)
-    end
-
-    net_top_sea_ice_fluxes = merge((; heat=sea_ice.model.external_heat_fluxes.top), net_momentum_fluxes)
-    net_bottom_sea_ice_fluxes = (; heat=sea_ice.model.external_heat_fluxes.bottom)
-
-    # TODO: Generalize this to work with any ocean model
-    τx = surface_flux(ocean.model.velocities.u)
-    τy = surface_flux(ocean.model.velocities.v)
-    tracers = ocean.model.tracers
-    ρₒ = ocean_reference_density
-    cₒ = ocean_heat_capacity
-    Qₒ = ρₒ * cₒ * surface_flux(ocean.model.tracers.T)
-    net_ocean_surface_fluxes = (u=τx, v=τy, Q=Qₒ)
-
-    ocean_surface_tracer_fluxes = NamedTuple(name => surface_flux(tracers[name]) for name in keys(tracers))
-    net_ocean_surface_fluxes = merge(ocean_surface_tracer_fluxes, net_ocean_surface_fluxes)
+                          heat_capacity      = sea_ice_heat_capacity,
+                          freshwater_density = freshwater_density,
+                          liquidus           = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus,
+                          temperature_units  = sea_ice_temperature_units)
 
     # Total interface fluxes
-    net_fluxes = (ocean_surface  = net_ocean_surface_fluxes,
-                  sea_ice_top    = net_top_sea_ice_fluxes,
-                  sea_ice_bottom = net_bottom_sea_ice_fluxes)
+    total_fluxes = (ocean      = net_fluxes(ocean),
+                    sea_ice    = net_fluxes(sea_ice),
+                    atmosphere = net_fluxes(atmosphere))
 
     exchanger = StateExchanger(exchange_grid, ocean, atmosphere, sea_ice)
 
@@ -319,20 +294,8 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                                ocean_properties,
                                sea_ice_properties,
                                exchanger,
-                               net_fluxes,
+                               total_fluxes,
                                properties)
-end
-
-sea_ice_similarity_theory(::Nothing) = nothing
-
-function sea_ice_similarity_theory(sea_ice)
-    # Here we need to make sure the interface temperature type is
-    # SkinTemperature. Also we need to pass the sea ice internal flux
-    # The thickness and salinity need to be passed as well,
-    # but the can be passed as state variables once we refactor the `StateValues` struct.
-    internal_flux = sea_ice.model.ice_thermodynamics.internal_heat_flux
-    interface_temperature_type = SkinTemperature(internal_flux)
-    return SimilarityTheoryFluxes(; interface_temperature_type)
 end
 
 @inline function air_sea_surface_specific_humidity(interfaces::ComponentInterfaces, ρₛ, Tₛ, Sₛ=zero(Tₛ))

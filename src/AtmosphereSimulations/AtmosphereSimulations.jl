@@ -14,11 +14,13 @@ using KernelAbstractions: @kernel, @index
 import Oceananigans.TimeSteppers: time_step!, update_state!
 
 import ClimaOcean.OceanSeaIceModels: interpolate_atmosphere_state!
-import ClimaOcean.OceanSeaIceModels.InterfaceComputations: ComponentExchanger, initialize!
+import ClimaOcean.OceanSeaIceModels.InterfaceComputations: ComponentExchanger, initialize!, net_fluxes
 
 include("thermodynamic_parameters.jl")
 include("prescribed_atmosphere.jl")
 include("prescribed_atmosphere_exchanger.jl")
 include("interpolate_atmospheric_state.jl")
+
+net_fluxes(::PrescribedAtmosphere) = nothing
 
 end # module AtmosphereSimulations

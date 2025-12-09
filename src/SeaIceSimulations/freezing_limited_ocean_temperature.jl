@@ -1,5 +1,6 @@
 using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus
 using ClimaOcean.OceanSeaIceModels: OceanSeaIceModel
+
 #####
 ##### A workaround when you don't have a sea ice model
 #####

@@ -54,6 +54,9 @@ function interface_kernel_parameters(grid)
     return kernel_parameters
 end
 
+# Needs to be extended by each component model
+net_fluxes(::Nothing) = nothing
+
 function surface_flux(f::AbstractField)
     top_bc = f.boundary_conditions.top
     if top_bc isa BoundaryCondition{<:Oceananigans.BoundaryConditions.Flux}

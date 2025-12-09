@@ -24,7 +24,7 @@ import ClimaOcean.OceanSeaIceModels: interpolate_ocean_state!,
                                      reference_density,
                                      heat_capacity
 
-import ClimaOcean.OceanSeaIceModels.InterfaceComputations: ComponentExchanger
+import ClimaOcean.OceanSeaIceModels.InterfaceComputations: ComponentExchanger, net_fluxes
 
 default_gravitational_acceleration = Oceananigans.defaults.gravitational_acceleration
 default_planet_rotation_rate = Oceananigans.defaults.planet_rotation_rate
@@ -73,6 +73,17 @@ function ComponentExchanger(ocean::Simulation{<:HydrostaticFreeSurfaceModel}, gr
     end
 
     return ComponentExchanger((; u, v, T, S), nothing)
+end
+
+function net_fluxes(ocean::Simulation{<:HydrostaticFreeSurfaceModel})
+    # TODO: Generalize this to work with any ocean model
+    τx = ocean.model.velocities.u.boundary_conditions.top.condition
+    τy = ocean.model.velocities.v.boundary_conditions.top.condition
+    net_ocean_surface_fluxes = (; u=τx, v=τy)
+
+    tracers = ocean.model.tracers
+    ocean_surface_tracer_fluxes = NamedTuple(name => tracers[name].boundary_conditions.top.condition for name in keys(tracers))
+    return merge(ocean_surface_tracer_fluxes, net_ocean_surface_fluxes)
 end
 
 end # module

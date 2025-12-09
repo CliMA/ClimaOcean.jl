@@ -117,3 +117,20 @@ sea_ice_concentration(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_co
 
 heat_capacity(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_thermodynamics.phase_transitions.ice_heat_capacity
 reference_density(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_thermodynamics.phase_transitions.ice_density
+
+function net_fluxes(sea_ice::Simulation{<:SeaIceModel}) 
+    net_momentum_fluxes = if isnothing(sea_ice.model.dynamics)
+        u = Field{Face, Center, Nothing}(sea_ice.model.grid)
+        v = Field{Center, Face, Nothing}(sea_ice.model.grid)
+        (; u, v)
+    else
+        u = sea_ice.model.dynamics.external_momentum_stresses.top.u
+        v = sea_ice.model.dynamics.external_momentum_stresses.top.v
+        (; u, v)
+    end
+
+    net_top_sea_ice_fluxes = merge((; heat=sea_ice.model.external_heat_fluxes.top), net_momentum_fluxes)
+    net_bottom_sea_ice_fluxes = (; heat=sea_ice.model.external_heat_fluxes.bottom)
+
+    return (; bottom = net_bottom_sea_ice_fluxes, top = net_top_sea_ice_fluxes)
+end
