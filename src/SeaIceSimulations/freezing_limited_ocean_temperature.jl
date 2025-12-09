@@ -1,5 +1,5 @@
 using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus
-
+using ClimaOcean.OceanSeaIceModels: OceanSeaIceModel
 #####
 ##### A workaround when you don't have a sea ice model
 #####
@@ -23,7 +23,7 @@ FreezingLimitedOceanTemperature(FT::DataType=Oceananigans.defaults.FloatType; li
 const FreezingLimitedCoupledModel = OceanSeaIceModel{<:FreezingLimitedOceanTemperature}
 
 # No need to compute fluxes for this "sea ice model"
-function OceanSeaIceModels.compute_sea_ice_ocean_fluxes!(cm::FreezingLimitedCoupledModel)
+function compute_sea_ice_ocean_fluxes!(cm::FreezingLimitedCoupledModel)
     ocean = cm.ocean
     liquidus = cm.sea_ice.liquidus
     grid = ocean.model.grid
@@ -35,6 +35,8 @@ function OceanSeaIceModels.compute_sea_ice_ocean_fluxes!(cm::FreezingLimitedCoup
 
     return nothing
 end
+
+compute_atmosphere_sea_ice_fluxes!(cm::FreezingLimitedCoupledModel) = nothing
 
 @kernel function _above_freezing_ocean_temperature!(Tₒ, Sₒ, liquidus)
 
@@ -53,10 +55,10 @@ end
 ##### Extending OceanSeaIceModels interface
 #####
 
-OceanSeaIceModels.sea_ice_concentration(::FreezingLimitedOceanTemperature) = ZeroField()
-OceanSeaIceModels.sea_ice_thickness(::FreezingLimitedOceanTemperature) = ZeroField()
+sea_ice_concentration(::FreezingLimitedOceanTemperature) = ZeroField()
+sea_ice_thickness(::FreezingLimitedOceanTemperature) = ZeroField()
 
 # does not matter
-OceanSeaIceModels.reference_density(::FreezingLimitedOceanTemperature) = 0
-OceanSeaIceModels.heat_capacity(::FreezingLimitedOceanTemperature) = 0
-OceanSeaIceModels.time_step!(::FreezingLimitedOceanTemperature, Δt) = nothing
+reference_density(::FreezingLimitedOceanTemperature) = 0
+heat_capacity(::FreezingLimitedOceanTemperature) = 0
+time_step!(::FreezingLimitedOceanTemperature, Δt) = nothing

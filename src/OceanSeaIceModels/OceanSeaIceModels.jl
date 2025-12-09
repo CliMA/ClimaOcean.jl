@@ -8,7 +8,10 @@ export
     Radiation,
     LatitudeDependentAlbedo,
     SkinTemperature,
-    BulkTemperature
+    BulkTemperature,
+    compute_atmosphere_ocean_fluxes!,
+    compute_atmosphere_sea_ice_fluxes!,
+    compute_sea_ice_ocean_fluxes!
 
 using SeawaterPolynomials
 
@@ -47,8 +50,9 @@ import Oceananigans.Utils: prettytime
 ##### Functions extended by sea-ice and ocean models
 #####
 
-function reference_density end
-function heat_capacity end
+reference_density(::Nothing) = 0
+heat_capacity(::Nothing) = 0
+function interpolate_ocean_state! end
 
 #####
 ##### Functions extended by sea-ice models
@@ -56,6 +60,7 @@ function heat_capacity end
 
 sea_ice_thickness(::Nothing) = ZeroField()
 sea_ice_concentration(::Nothing) = ZeroField()
+function interpolate_sea_ice_state! end
 
 #####
 ##### Functions extended by atmosphere models
@@ -66,12 +71,14 @@ function freshwater_flux end
 function thermodynamics_parameters end
 function surface_layer_height end
 function boundary_layer_height end
+function interpolate_atmosphere_state! end
+
+#####
+##### The coupled model
+##### 
 
 const default_gravitational_acceleration = Oceananigans.defaults.gravitational_acceleration
 const default_freshwater_density = 1000 # kg m⁻³
-
-# Our default ocean and sea ice models
-const OceananigansSimulation = Simulation{<:HydrostaticFreeSurfaceModel}
 
 mutable struct OceanSeaIceModel{I, A, O, F, C, Arch} <: AbstractModel{Nothing, Arch}
     architecture :: Arch
@@ -89,21 +96,18 @@ const NoAtmosphereModel = OceanSeaIceModel{<:Any, Nothing}
 ##### Some implementation
 #####
 
-# Atmosphere interface
-interpolate_atmosphere_state!(interfaces, atmosphere, coupled_model) = nothing
-
 # Compute net fluxes:
 compute_net_sea_ice_fluxes!(coupled_model,    ::Nothing) = nothing
 compute_net_ocean_fluxes!(coupled_model,      ::Nothing) = nothing
 compute_net_atmosphere_fluxes!(coupled_model, ::Nothing) = nothing
 
-# "No atmosphere" implementation
-compute_atmosphere_ocean_fluxes!(::NoAtmosphereModel) = nothing
-compute_atmosphere_sea_ice_fluxes!(::NoAtmosphereModel) = nothing
-
 include("InterfaceComputations/InterfaceComputations.jl")
 
 using .InterfaceComputations
+
+# "No atmosphere" implementation
+InterfaceComputations.compute_atmosphere_ocean_fluxes!(::NoAtmosphereModel) = nothing
+InterfaceComputations.compute_atmosphere_sea_ice_fluxes!(::NoAtmosphereModel) = nothing
 
 include("ocean_sea_ice_model.jl")
 include("time_step_ocean_sea_ice_model.jl")

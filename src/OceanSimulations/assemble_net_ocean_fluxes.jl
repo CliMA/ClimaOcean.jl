@@ -2,7 +2,7 @@ using Printf
 using Oceananigans.Operators: ℑxᶠᵃᵃ, ℑyᵃᶠᵃ
 using Oceananigans.Forcings: MultipleForcings
 
-using ClimaOcean.OceanSeaIceModels.InterfaceComputations: computed_fluxes, get_possibly_zero_flux
+using ClimaOcean.OceanSeaIceModels.InterfaceComputations: computed_fluxes, get_possibly_zero_flux, sea_ice_concentration
 
 @inline τᶜᶜᶜ(i, j, k, grid, ρₒ⁻¹, ℵ, ρτᶜᶜᶜ) = @inbounds ρₒ⁻¹ * (1 - ℵ[i, j, k]) * ρτᶜᶜᶜ[i, j, k]
 
@@ -11,7 +11,7 @@ using ClimaOcean.OceanSeaIceModels.InterfaceComputations: computed_fluxes, get_p
 #####
 
 # A generic ocean flux assembler for a coupled model with both an atmosphere and sea ice
-function OceanSeaIceModels.compute_net_ocean_fluxes!(coupled_model, ocean::Simulation{<:HydrostaticFreeSurfaceModel})
+function compute_net_ocean_fluxes!(coupled_model, ocean::Simulation{<:HydrostaticFreeSurfaceModel})
     sea_ice = coupled_model.sea_ice
     grid = ocean.model.grid
     arch = architecture(grid)
@@ -36,7 +36,7 @@ function OceanSeaIceModels.compute_net_ocean_fluxes!(coupled_model, ocean::Simul
 
     freshwater_flux = atmosphere_fields.Mp.data
 
-    ice_concentration = OceanSeaIceModels.sea_ice_concentration(sea_ice)
+    ice_concentration = sea_ice_concentration(sea_ice)
     ocean_salinity = ocean.model.tracers.S
     atmos_ocean_properties = coupled_model.interfaces.atmosphere_ocean_interface.properties
     ocean_properties = coupled_model.interfaces.ocean_properties

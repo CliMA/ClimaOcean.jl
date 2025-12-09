@@ -16,7 +16,10 @@ export
     SkinTemperature,
     BulkTemperature,
     atmosphere_ocean_stability_functions,
-    atmosphere_sea_ice_stability_functions
+    atmosphere_sea_ice_stability_functions,
+    compute_atmosphere_ocean_fluxes!,
+    compute_atmosphere_sea_ice_fluxes!,
+    compute_sea_ice_ocean_flu
 
 using ..OceanSeaIceModels: default_gravitational_acceleration,
                            default_freshwater_density
@@ -26,10 +29,7 @@ import ClimaOcean: stateindex
 import ..OceanSeaIceModels:
     compute_net_atmosphere_fluxes!,
     compute_net_sea_ice_fluxes!,
-    compute_net_ocean_fluxes!,
-    compute_atmosphere_ocean_fluxes!,
-    compute_atmosphere_sea_ice_fluxes!,
-    compute_sea_ice_ocean_fluxes!
+    compute_net_ocean_fluxes!
 
 #####
 ##### Utilities

@@ -17,8 +17,14 @@ using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities:
     CATKEEquation
 
 using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
+using KernelAbstractions: @kernel, @index
 
-using ClimaOcean.OceanSeaIceModels: OceanSeaIceModels
+import ClimaOcean.OceanSeaIceModels: interpolate_ocean_state!,
+                                     compute_net_ocean_fluxes!,
+                                     reference_density,
+                                     heat_capacity
+
+import ClimaOcean.OceanSeaIceModels.InterfaceComputations: ComponentExchanger
 
 default_gravitational_acceleration = Oceananigans.defaults.gravitational_acceleration
 default_planet_rotation_rate = Oceananigans.defaults.planet_rotation_rate
@@ -48,9 +54,9 @@ include("assemble_net_ocean_fluxes.jl")
 
 # When using an Oceananigans simulation, we assume that the exchange grid is the ocean grid
 # We need, however, to interpolate the surface pressure to the ocean grid
-OceanSeaIceModels.interpolate_ocean_state!(interfaces, ::Simulation{<:HydrostaticFreeSurfaceModel}, coupled_model) = nothing
+interpolate_ocean_state!(interfaces, ::Simulation{<:HydrostaticFreeSurfaceModel}, coupled_model) = nothing
 
-function OceanSeaIceModels.ComponentExchanger(ocean::Simulation{<:HydrostaticFreeSurfaceModel}, grid) 
+function ComponentExchanger(ocean::Simulation{<:HydrostaticFreeSurfaceModel}, grid) 
     ocean_grid = ocean.model.grid
     
     if ocean_grid == grid

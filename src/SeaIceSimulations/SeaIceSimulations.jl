@@ -10,8 +10,18 @@ using Oceananigans.BoundaryConditions: DefaultBoundaryCondition
 using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node
 using Oceananigans.OrthogonalSphericalShellGrids
 using Oceananigans.Operators
+using KernelAbstractions: @kernel, @index
 
-using ClimaOcean.OceanSeaIceModels: OceanSeaIceModel, OceanSeaIceModels
+import ClimaOcean.OceanSeaIceModels: interpolate_sea_ice_state!,
+                                     sea_ice_concentration,
+                                     sea_ice_thickness,
+                                     reference_density,
+                                     heat_capacity,
+                                     compute_net_sea_ice_fluxes!
+
+import ClimaOcean.OceanSeaIceModels.InterfaceComputations: ComponentExchanger,
+                                                           compute_atmosphere_sea_ice_fluxes!,
+                                                           compute_sea_ice_ocean_fluxes!
 
 import Oceananigans.TimeSteppers: time_step!
 
@@ -19,19 +29,14 @@ include("freezing_limited_ocean_temperature.jl")
 include("sea_ice_simulation.jl")
 include("assemble_net_sea_ice_fluxes.jl")
 
-const NoSeaIceModel = Union{OceanSeaIceModel{Nothing}, OceanSeaIceModel{<:FreezingLimitedOceanTemperature}}
-
-OceanSeaIceModels.compute_atmosphere_sea_ice_fluxes!(::NoSeaIceModel) = nothing
-
 # When using an ClimaSeaIce simulation, we assume that the exchange grid is the sea-ice grid
-OceanSeaIceModels.interpolate_sea_ice_state!(exchanger, ::Simulation{<:SeaIceModel},       coupled_model) = nothing
-OceanSeaIceModels.interpolate_sea_ice_state!(exchanger, ::FreezingLimitedOceanTemperature, coupled_model) = nothing
+interpolate_sea_ice_state!(exchanger, ::Simulation{<:SeaIceModel},       coupled_model) = nothing
+interpolate_sea_ice_state!(exchanger, ::FreezingLimitedOceanTemperature, coupled_model) = nothing
 
 # ComponentExchangers
+ComponentExchanger(sea_ice::FreezingLimitedOceanTemperature, grid) = nothing
 
-OceanSeaIceModels.ComponentExchanger(sea_ice::FreezingLimitedOceanTemperature, grid) = nothing
-
-function OceanSeaIceModels.ComponentExchanger(sea_ice::Simulation{<:SeaIceModel}, grid) 
+function ComponentExchanger(sea_ice::Simulation{<:SeaIceModel}, grid) 
     sea_ice_grid = sea_ice.model.grid
     
     if sea_ice_grid == grid
@@ -48,7 +53,7 @@ function OceanSeaIceModels.ComponentExchanger(sea_ice::Simulation{<:SeaIceModel}
         ℵ  = Field{Center, Center, Nothing}(grid)
     end
 
-    return OceanSeaIceModels.ComponentExchanger((; u, v, h, hc, ℵ), nothing)
+    return ComponentExchanger((; u, v, h, hc, ℵ), nothing)
 end
 
 end

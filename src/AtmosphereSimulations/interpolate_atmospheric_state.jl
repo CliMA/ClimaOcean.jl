@@ -3,14 +3,11 @@ using Oceananigans.Grids: _node
 using Oceananigans.Fields: FractionalIndices
 using Oceananigans.OutputReaders: TimeInterpolator
 
-using ...OceanSimulations: forcing_barotropic_potential
-
-using ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres: PrescribedAtmosphere
-import ClimaOcean.OceanSeaIceModels: interpolate_atmosphere_state!
+using ClimaOcean.OceanSimulations: forcing_barotropic_potential
 
 # TODO: move to PrescribedAtmospheres
 """Interpolate the atmospheric state onto the ocean / sea-ice grid."""
-function OceaSeaIceModels.interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosphere, coupled_model)
+function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosphere, coupled_model)
     ocean = coupled_model.ocean
     atmosphere_grid = atmosphere.grid
 

@@ -216,12 +216,12 @@ end
 end
 
 # Fallback
-above_freezing_ocean_temperature!(ocean, sea_ice) = nothing
+above_freezing_ocean_temperature!(ocean, ::Nothing) = nothing
 
-function above_freezing_ocean_temperature!(ocean, sea_ice::SeaIceSimulation)
+function above_freezing_ocean_temperature!(ocean, sea_ice)
     T = ocean.model.tracers.T
     S = ocean.model.tracers.S
-    ℵ = sea_ice.model.ice_concentration
+    ℵ = sea_ice_concentration(sea_ice.model)
     liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
 
     grid = ocean.model.grid

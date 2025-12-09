@@ -1,4 +1,4 @@
-function OceanSeaIceModels.ComponentExchanger(atmosphere::PrescribedAtmosphere, grid) 
+function ComponentExchanger(atmosphere::PrescribedAtmosphere, grid) 
 
     exchanger = prescribed_atmosphere_exchanger(atmosphere, grid)
 
@@ -11,7 +11,7 @@ function OceanSeaIceModels.ComponentExchanger(atmosphere::PrescribedAtmosphere, 
                Qℓ = Field{Center, Center, Nothing}(grid),
                Mp = Field{Center, Center, Nothing}(grid))
 
-    return OceanSeaIceModels.ComponentExchanger(state, exchanger)
+    return ComponentExchanger(state, exchanger)
 end
 
 # Note that Field location can also affect fractional index type.
@@ -36,7 +36,10 @@ function prescribed_atmosphere_exchanger(atmosphere::PrescribedAtmosphere, excha
     return frac_indices
 end
 
-function OceanSeaIceModels.initialize!(exchanger::ComponentExchanger, exchange_grid, atmosphere::PrescribedAtmosphere)
+function initialize!(exchanger::ComponentExchanger, 
+                                       exchange_grid, 
+                                       atmosphere::PrescribedAtmosphere)
+
     atmos_grid = atmosphere.grid
     arch = architecture(exchange_grid)
     frac_indices = exchanger.exchanger
