@@ -4,6 +4,17 @@ using Oceananigans: SeawaterBuoyancy
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 using KernelAbstractions: @kernel, @index
 
+mutable struct OceanSeaIceModel{I, A, O, F, C, Arch} <: AbstractModel{Nothing, Arch}
+    architecture :: Arch
+    clock :: C
+    atmosphere :: A
+    sea_ice :: I
+    ocean :: O
+    interfaces :: F
+end
+
+const OSIM = OceanSeaIceModel
+
 function Base.summary(model::OSIM)
     A = nameof(typeof(architecture(model)))
     return string("OceanSeaIceModel{$A}",

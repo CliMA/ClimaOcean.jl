@@ -4,7 +4,7 @@ using ClimaSeaIce.SeaIceThermodynamics: IceWaterThermalEquilibrium
 using ClimaSeaIce.SeaIceDynamics: SplitExplicitSolver, SemiImplicitStress, SeaIceMomentumEquation, StressBalanceFreeDrift
 using ClimaSeaIce.Rheologies: IceStrength, ElastoViscoPlasticRheology
 
-using ClimaOcean.OceanSimulations: Default
+using ClimaOcean.Oceans: Default
 
 g_Earth = Oceananigans.defaults.gravitational_acceleration
 Ω_Earth = Oceananigans.defaults.planet_rotation_rate

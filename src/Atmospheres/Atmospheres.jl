@@ -1,4 +1,4 @@
-module AtmosphereSimulations
+module Atmospheres
 
 export atmosphere_simulation
 
@@ -35,4 +35,4 @@ include("interpolate_atmospheric_state.jl")
 
 net_fluxes(::PrescribedAtmosphere) = nothing
 
-end # module AtmosphereSimulations
+end # module Atmospheres

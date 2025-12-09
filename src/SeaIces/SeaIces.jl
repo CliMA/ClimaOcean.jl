@@ -1,4 +1,4 @@
-module SeaIceSimulations
+module SeaIces
 
 export sea_ice_simulation
 

@@ -1,4 +1,4 @@
-import ClimaOcean.AtmosphereSimulations: atmosphere_simulation
+import ClimaOcean.Atmospheres: atmosphere_simulation
 
 # Make sure the atmospheric parameters from SpeedyWeather can be used in the compute fluxes function
 import ClimaOcean.OceanSeaIceModels:
@@ -8,7 +8,7 @@ import ClimaOcean.OceanSeaIceModels:
 
 const SpeedySimulation = SpeedyWeather.Simulation
 const SpeedyCoupledModel = ClimaOcean.OceanSeaIceModel{<:Any, <:SpeedySimulation}
-const SpeedyNoSeaIceCoupledModel = ClimaOcean.OceanSeaIceModel{<:Union{Nothing, ClimaOcean.SeaIceSimulations.FreezingLimitedOceanTemperature}, <:SpeedySimulation}
+const SpeedyNoSeaIceCoupledModel = ClimaOcean.OceanSeaIceModel{<:Union{Nothing, ClimaOcean.SeaIces.FreezingLimitedOceanTemperature}, <:SpeedySimulation}
 
 Base.summary(::SpeedySimulation) = "SpeedyWeather.Simulation"
 

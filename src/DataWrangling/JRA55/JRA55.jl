@@ -14,7 +14,7 @@ using Oceananigans.OutputReaders: Cyclical, TotallyInMemory, AbstractInMemoryBac
 
 using ClimaOcean
 
-using ClimaOcean.AtmosphereSimulations:
+using ClimaOcean.Atmospheres:
     PrescribedAtmosphere,
     TwoBandDownwellingRadiation
 

@@ -1,4 +1,4 @@
-module OceanSimulations
+module Oceans
 
 export ocean_simulation
 

@@ -11,7 +11,7 @@ using ClimaOcean.OceanSeaIceModels: sea_ice_concentration
 # using ConservativeRegridding 
 # using GeoInterface: Polygon, LinearRing
 import ClimaOcean.OceanSeaIceModels: compute_net_fluxes!, interpolate_state!
-import ClimaOcean.AtmosphereSimulations: atmosphere_regridder
+import ClimaOcean.Atmospheres: atmosphere_regridder
 import ClimaOcean.OceanSeaIceModels.InterfaceComputations: net_fluxes
 
 # We do not need this...
