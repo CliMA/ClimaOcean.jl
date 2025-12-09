@@ -1,7 +1,7 @@
-import ClimaOcean: atmosphere_simulation
+import ClimaOcean.AtmosphereSimulations: atmosphere_simulation
 
 # Make sure the atmospheric parameters from SpeedyWeather can be used in the compute fluxes function
-import ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres:
+import ClimaOcean.OceanSeaIceModels:
     thermodynamics_parameters,
     boundary_layer_height,
     surface_layer_height

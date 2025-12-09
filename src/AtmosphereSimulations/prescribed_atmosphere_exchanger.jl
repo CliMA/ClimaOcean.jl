@@ -1,3 +1,5 @@
+using Oceananigans.Architectures: architecture
+
 function ComponentExchanger(atmosphere::PrescribedAtmosphere, grid) 
 
     exchanger = atmosphere_exchanger(atmosphere, grid)
@@ -37,8 +39,8 @@ function atmosphere_exchanger(atmosphere::PrescribedAtmosphere, exchange_grid)
 end
 
 function initialize!(exchanger::ComponentExchanger, 
-                                       exchange_grid, 
-                                       atmosphere::PrescribedAtmosphere)
+                     exchange_grid, 
+                     atmosphere::PrescribedAtmosphere)
 
     atmos_grid = atmosphere.grid
     arch = architecture(exchange_grid)

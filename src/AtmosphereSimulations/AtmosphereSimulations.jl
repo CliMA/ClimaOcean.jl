@@ -1,5 +1,7 @@
 module AtmosphereSimulations
 
+export atmosphere_simulation
+
 using Oceananigans
 using Oceananigans.Fields: Center
 using Oceananigans.Grids: grid_name
@@ -18,8 +20,11 @@ import ClimaOcean.OceanSeaIceModels: interpolate_state!,
                                      thermodynamics_parameters, 
                                      surface_layer_height, 
                                      boundary_layer_height
-                                     
+
 import ClimaOcean.OceanSeaIceModels.InterfaceComputations: ComponentExchanger, initialize!, net_fluxes
+
+# Can be extended by atmosphere models
+function atmosphere_simulation end
 
 include("thermodynamic_parameters.jl")
 include("prescribed_atmosphere.jl")

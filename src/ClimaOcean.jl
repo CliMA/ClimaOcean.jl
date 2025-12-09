@@ -79,6 +79,10 @@ end
     return NamedTuple{names}(vals)
 end
 
+#####
+##### Source code
+#####
+
 include("OceanSeaIceModels/OceanSeaIceModels.jl")
 include("OceanSimulations/OceanSimulations.jl")
 include("AtmosphereSimulations/AtmosphereSimulations.jl")
