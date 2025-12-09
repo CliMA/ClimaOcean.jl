@@ -8,11 +8,8 @@ using ..OceanSeaIceModels: reference_density,
                            sea_ice_thickness,
                            downwelling_radiation,
                            freshwater_flux,
-                           SeaIceSimulation
-
-using ..OceanSeaIceModels.PrescribedAtmospheres:
-    PrescribedAtmosphere,
-    thermodynamics_parameters
+                           SeaIceSimulation,
+                           thermodynamics_parameters
 
 using ClimaSeaIce: SeaIceModel
 
@@ -42,6 +39,15 @@ mutable struct SeaIceOceanInterface{J, P}
     fluxes :: J
     properties :: P
 end
+
+# Get the computed fluxes
+@inline computed_fluxes(interface::AtmosphereInterface)  = interface.fluxes
+@inline computed_fluxes(interface::SeaIceOceanInterface) = interface.fluxes
+@inline computed_fluxes(::Nothing) = nothing
+
+@inline get_possibly_zero_flux(fluxes, name)    = getfield(fluxes, name)
+@inline get_possibly_zero_flux(::Nothing, name) = ZeroField()
+
 
 mutable struct ComponentInterfaces{AO, ASI, SIO, C, AP, OP, SIP, EX, P}
     atmosphere_ocean_interface :: AO
@@ -85,7 +91,6 @@ ExchangeAtmosphereState(grid) = ExchangeAtmosphereState(Field{Center, Center, No
 # Here we assume that we know the location of Fields that will be interpolated.
 fractional_index_type(FT, Topo) = FT
 fractional_index_type(FT, ::Flat) = Nothing
-
 
 StateExchanger(ocean::Simulation, ::Nothing) = nothing
 

@@ -80,9 +80,9 @@ end
 end
 
 include("OceanSeaIceModels/OceanSeaIceModels.jl")
+include("AtmosphereSimulations/AtmosphereSimulations.jl")
 include("OceanSimulations/OceanSimulations.jl")
 include("SeaIceSimulations/SeaIceSimulations.jl")
-include("AtmosphereSimulations/AtmosphereSimulations.jl")
 include("InitialConditions/InitialConditions.jl")
 include("DataWrangling/DataWrangling.jl")
 include("Bathymetry.jl")
@@ -93,10 +93,11 @@ using .DataWrangling: ETOPO, ECCO, Copernicus, EN4, JRA55
 using .Bathymetry
 using .InitialConditions
 using .OceanSeaIceModels
+using .AtmosphereSimulations
 using .OceanSimulations
 using .SeaIceSimulations
 
-using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere, ComponentInterfaces, MomentumRoughnessLength, ScalarRoughnessLength
+using ClimaOcean.OceanSeaIceModels: ComponentInterfaces, MomentumRoughnessLength, ScalarRoughnessLength
 using ClimaOcean.DataWrangling.ETOPO
 using ClimaOcean.DataWrangling.ECCO
 using ClimaOcean.DataWrangling.Copernicus

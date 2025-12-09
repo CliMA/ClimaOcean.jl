@@ -1,8 +1,5 @@
 using Oceananigans.Operators: intrinsic_vector
 using Oceananigans.Grids: inactive_node
-using ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres: thermodynamics_parameters,
-                                                          surface_layer_height,
-                                                          boundary_layer_height
 
 function compute_atmosphere_ocean_fluxes!(coupled_model)
     ocean = coupled_model.ocean

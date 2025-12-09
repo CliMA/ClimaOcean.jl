@@ -40,7 +40,7 @@ function update_state!(coupled_model::OceanSeaIceModel, callbacks=[]; compute_te
     sea_ice    = coupled_model.sea_ice
     atmosphere = coupled_model.atmosphere
 
-    # These functions needs to be specialized to allow different atmospheric models
+    # These functions needs to be specialized to allow different component models
     interpolate_atmosphere_state!(coupled_model.interfaces, atmosphere, coupled_model)
     interpolate_ocean_state!(coupled_model.interfaces, ocean, coupled_model)
     interpolate_sea_ice_state!(coupled_model.interfaces, sea_ice, coupled_model)

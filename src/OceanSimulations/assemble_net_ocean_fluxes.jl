@@ -2,25 +2,7 @@ using Printf
 using Oceananigans.Operators: ℑxᶠᵃᵃ, ℑyᵃᶠᵃ
 using Oceananigans.Forcings: MultipleForcings
 
-using ClimaOcean.OceanSeaIceModels: sea_ice_concentration, NoAtmosphereModel, NoSeaIceModel
-
-@inline shortwave_radiative_forcing(i, j, grid, Fᵀ, Qts, ocean_properties) = Qts
-
-@inline function shortwave_radiative_forcing(i, j, grid, tcr::TwoColorRadiation, Iˢʷ, ocean_properties)
-    ρₒ = ocean_properties.reference_density
-    cₒ = ocean_properties.heat_capacity
-    J₀ = tcr.surface_flux
-    @inbounds J₀[i, j,  1] = - Iˢʷ / (ρₒ * cₒ)
-    return zero(Iˢʷ)
-end
-
-get_radiative_forcing(FT) = FT
-function get_radiative_forcing(FT::MultipleForcings)
-    for forcing in FT.forcings
-        forcing isa TwoColorRadiation && return forcing
-    end
-    return nothing
-end
+using ClimaOcean.OceanSeaIceModels.InterfaceComputations: computed_fluxes, get_possibly_zero_flux
 
 @inline τᶜᶜᶜ(i, j, k, grid, ρₒ⁻¹, ℵ, ρτᶜᶜᶜ) = @inbounds ρₒ⁻¹ * (1 - ℵ[i, j, k]) * ρτᶜᶜᶜ[i, j, k]
 
@@ -28,19 +10,16 @@ end
 ##### Generic flux assembler
 #####
 
-computed_sea_ice_ocean_fluxes(sea_ice_ocean_interface) = sea_ice_ocean_interface.fluxes
-computed_sea_ice_ocean_fluxes(::Nothing) = nothing
-
 # A generic ocean flux assembler for a coupled model with both an atmosphere and sea ice
-function compute_net_ocean_fluxes!(coupled_model, ocean)
+function compute_net_ocean_fluxes!(coupled_model, ocean::Simulation{<:HydrostaticFreeSurfaceModel})
     sea_ice = coupled_model.sea_ice
     grid = ocean.model.grid
     arch = architecture(grid)
     clock = coupled_model.clock
 
     net_ocean_fluxes = coupled_model.interfaces.net_fluxes.ocean_surface
-    atmos_ocean_fluxes = coupled_model.interfaces.atmosphere_ocean_interface.fluxes
-    sea_ice_ocean_fluxes = computed_sea_ice_ocean_fluxes(coupled_model.interfaces.sea_ice_ocean_interface)
+    atmos_ocean_fluxes = computed_fluxes(coupled_model.interfaces.atmosphere_ocean_interface)
+    sea_ice_ocean_fluxes = computed_fluxes(coupled_model.interfaces.sea_ice_ocean_interface)
 
     # We remove the heat flux since does not need to be assembled and bloats the parameter space.
     net_ocean_fluxes = (u = net_ocean_fluxes.u,
@@ -84,9 +63,6 @@ function compute_net_ocean_fluxes!(coupled_model, ocean)
 
     return nothing
 end
-
-@inline get_possibly_zero_flux(fluxes, name)    = getfield(fluxes, name)
-@inline get_possibly_zero_flux(::Nothing, name) = ZeroField()
 
 @kernel function _assemble_net_ocean_fluxes!(net_ocean_fluxes,
                                              penetrating_radiation,

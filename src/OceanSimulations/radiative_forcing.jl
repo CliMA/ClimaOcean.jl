@@ -63,3 +63,33 @@ end
     # Net radiation flux divergence
     return ϵ₁ * dJ₁dz + (1 - ϵ₁) * dJ₂dz
 end
+
+compute_radiative_forcing!(T_forcing, downwelling_shortwave_radiation, coupled_model) = nothing # fallback
+
+function compute_radiative_forcing!(tcr::TwoColorRadiation, downwelling_shortwave_radiation, coupled_model)
+    ρₒ = coupled_model.interfaces.ocean_properties.reference_density
+    cₒ = coupled_model.interfaces.ocean_properties.heat_capacity
+    J⁰ = tcr.surface_flux
+    Qs = downwelling_shortwave_radiation
+    parent(J⁰) .= - parent(Qs) ./ (ρₒ * cₒ)
+    return nothing
+end
+
+@inline shortwave_radiative_forcing(i, j, grid, Fᵀ, Qts, ocean_properties) = Qts
+
+@inline function shortwave_radiative_forcing(i, j, grid, tcr::TwoColorRadiation, Iˢʷ, ocean_properties)
+    ρₒ = ocean_properties.reference_density
+    cₒ = ocean_properties.heat_capacity
+    J₀ = tcr.surface_flux
+    @inbounds J₀[i, j,  1] = - Iˢʷ / (ρₒ * cₒ)
+    return zero(Iˢʷ)
+end
+
+get_radiative_forcing(FT) = FT
+
+function get_radiative_forcing(FT::MultipleForcings)
+    for forcing in FT.forcings
+        forcing isa TwoColorRadiation && return forcing
+    end
+    return nothing
+end

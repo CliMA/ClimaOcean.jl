@@ -43,23 +43,35 @@ import Oceananigans.Simulations: reset!, initialize!, iteration
 import Oceananigans.TimeSteppers: time_step!, update_state!, time
 import Oceananigans.Utils: prettytime
 
-function downwelling_radiation end
-function freshwater_flux end
+#####
+##### Functions extended by sea-ice and ocean models
+#####
+
 function reference_density end
 function heat_capacity end
+
+#####
+##### Functions extended by sea-ice models
+#####
+
+sea_ice_thickness(::Nothing) = ZeroField()
+sea_ice_concentration(::Nothing) = ZeroField()
+
+#####
+##### Functions extended by atmosphere models
+#####
+
+function downwelling_radiation end
+function freshwater_flux end
+function thermodynamics_parameters end
+function surface_layer_height end
+function boundary_layer_height end
 
 const default_gravitational_acceleration = Oceananigans.defaults.gravitational_acceleration
 const default_freshwater_density = 1000 # kg m⁻³
 
 # Our default ocean and sea ice models
-const SeaIceSimulation = Simulation{<:SeaIceModel}
 const OceananigansSimulation = Simulation{<:HydrostaticFreeSurfaceModel}
-
-sea_ice_thickness(::Nothing) = ZeroField()
-sea_ice_thickness(sea_ice::SeaIceSimulation) = sea_ice.model.ice_thickness
-
-sea_ice_concentration(::Nothing) = ZeroField()
-sea_ice_concentration(sea_ice::SeaIceSimulation) = sea_ice.model.ice_concentration
 
 mutable struct OceanSeaIceModel{I, A, O, F, C, Arch} <: AbstractModel{Nothing, Arch}
     architecture :: Arch
@@ -105,14 +117,7 @@ compute_atmosphere_sea_ice_fluxes!(::OnlyOceanModel) = nothing
 compute_sea_ice_ocean_fluxes!(::OnlyOceanModel) = nothing
 compute_net_ocean_fluxes!(::OnlyOceanModel, ocean) = nothing
 
-include("freezing_limited_ocean_temperature.jl")
-
-# TODO: import this last
-include("PrescribedAtmospheres.jl")
-
-using .PrescribedAtmospheres:
-    PrescribedAtmosphere,
-    AtmosphereThermodynamicsParameters,
+using ClimaOcean.AtmosphereSimulations:
     TwoBandDownwellingRadiation
 
 include("InterfaceComputations/InterfaceComputations.jl")

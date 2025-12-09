@@ -8,17 +8,6 @@ using ...OceanSimulations: forcing_barotropic_potential, TwoColorRadiation
 using ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres: PrescribedAtmosphere
 import ClimaOcean.OceanSeaIceModels: interpolate_atmosphere_state!
 
-compute_radiative_forcing!(T_forcing, downwelling_shortwave_radiation, coupled_model) = nothing #fallback
-
-function compute_radiative_forcing!(tcr::TwoColorRadiation, downwelling_shortwave_radiation, coupled_model)
-    ρₒ = coupled_model.interfaces.ocean_properties.reference_density
-    cₒ = coupled_model.interfaces.ocean_properties.heat_capacity
-    J⁰ = tcr.surface_flux
-    Qs = downwelling_shortwave_radiation
-    parent(J⁰) .= - parent(Qs) ./ (ρₒ * cₒ)
-    return nothing
-end
-
 # TODO: move to PrescribedAtmospheres
 """Interpolate the atmospheric state onto the ocean / sea-ice grid."""
 function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosphere, coupled_model)
@@ -233,8 +222,7 @@ end
     interp_atmos_time_series(values(ΣJ), args...)
 
 @inline interp_atmos_time_series(ΣJ::Tuple{<:Any}, args...) =
-    interp_atmos_time_series(ΣJ[1], args...) +
-    interp_atmos_time_series(ΣJ[2], args...)
+    interp_atmos_time_series(ΣJ[1], args...) 
 
 @inline interp_atmos_time_series(ΣJ::Tuple{<:Any, <:Any}, args...) =
     interp_atmos_time_series(ΣJ[1], args...) +
@@ -250,3 +238,14 @@ end
     interp_atmos_time_series(ΣJ[2], args...) +
     interp_atmos_time_series(ΣJ[3], args...) +
     interp_atmos_time_series(ΣJ[4], args...)
+
+@inline interp_atmos_time_series(ΣJ::Tuple{<:Any, <:Any, <:Any, <:Any, <:Any}, args...) =
+    interp_atmos_time_series(ΣJ[1], args...) +
+    interp_atmos_time_series(ΣJ[2], args...) +
+    interp_atmos_time_series(ΣJ[3], args...) +
+    interp_atmos_time_series(ΣJ[4], args...) +
+    interp_atmos_time_series(ΣJ[5], args...)
+
+@inline interp_atmos_time_series(ΣJ::Tuple, args...) =
+    interp_atmos_time_series(ΣJ[1], args...) +
+    interp_atmos_time_series(ΣJ[2:end], args...) 

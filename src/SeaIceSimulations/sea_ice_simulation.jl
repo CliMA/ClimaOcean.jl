@@ -1,13 +1,3 @@
-
-using Oceananigans
-using Oceananigans.Units
-using Oceananigans.Utils: with_tracers
-using Oceananigans.Advection: FluxFormAdvection
-using Oceananigans.BoundaryConditions: DefaultBoundaryCondition
-using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node
-using Oceananigans.OrthogonalSphericalShellGrids
-using Oceananigans.Operators
-
 using ClimaSeaIce
 using ClimaSeaIce: SeaIceModel, SlabSeaIceThermodynamics, PhaseTransitions, ConductiveFlux
 using ClimaSeaIce.SeaIceThermodynamics: IceWaterThermalEquilibrium
@@ -117,3 +107,13 @@ function sea_ice_dynamics(grid, ocean=nothing;
                                   free_drift,
                                   solver)
 end
+
+#####
+##### Extending OceanSeaIceModels interface
+#####
+
+sea_ice_thickness(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_thickness
+sea_ice_concentration(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_concentration
+
+heat_capacity(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_thermodynamics.phase_transitions.ice_heat_capacity
+reference_density(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_thermodynamics.phase_transitions.ice_density

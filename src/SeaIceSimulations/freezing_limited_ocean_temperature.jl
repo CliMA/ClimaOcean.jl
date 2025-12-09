@@ -18,15 +18,6 @@ FreezingLimitedOceanTemperature(FT::DataType=Oceananigans.defaults.FloatType; li
 
 const FreezingLimitedCoupledModel = OceanSeaIceModel{<:FreezingLimitedOceanTemperature}
 
-# Extend interface methods to work with a `FreezingLimitedOceanTemperature`
-sea_ice_concentration(::FreezingLimitedOceanTemperature) = ZeroField()
-sea_ice_thickness(::FreezingLimitedOceanTemperature) = nothing
-
-# does not matter
-reference_density(::FreezingLimitedOceanTemperature) = 0
-heat_capacity(::FreezingLimitedOceanTemperature) = 0
-time_step!(::FreezingLimitedOceanTemperature, Δt) = nothing
-
 # No need to compute fluxes for this "sea ice model"
 compute_net_sea_ice_fluxes!(coupled_model, ::FreezingLimitedOceanTemperature) = nothing
 
@@ -55,3 +46,15 @@ end
     Tₘ = melting_temperature(liquidus, Sᵢ)
     @inbounds Tₒ[i, j, k] = ifelse(Tᵢ < Tₘ, Tₘ, Tᵢ)
 end
+
+#####
+##### Extending OceanSeaIceModels interface
+#####
+
+sea_ice_concentration(::FreezingLimitedOceanTemperature) = ZeroField()
+sea_ice_thickness(::FreezingLimitedOceanTemperature) = ZeroField()
+
+# does not matter
+reference_density(::FreezingLimitedOceanTemperature) = 0
+heat_capacity(::FreezingLimitedOceanTemperature) = 0
+time_step!(::FreezingLimitedOceanTemperature, Δt) = nothing

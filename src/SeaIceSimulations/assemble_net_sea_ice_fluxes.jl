@@ -1,4 +1,4 @@
-function compute_net_sea_ice_fluxes!(coupled_model, sea_ice::SeaIceSimulation)
+function compute_net_sea_ice_fluxes!(coupled_model, sea_ice::Simulation{<:SeaIceModel})
     ocean = coupled_model.ocean
     grid  = ocean.model.grid
     arch  = architecture(grid)
