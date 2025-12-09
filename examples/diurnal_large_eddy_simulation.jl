@@ -133,6 +133,7 @@ grid = RectilinearGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 5),
 
 coriolis = FPlane(; latitude)
 ocean = nonhydrostatic_ocean_simulation(grid; coriolis)
+conjure_time_step_wizard!(ocean, cfl=0.7)
 
 # Initial conditions: warm mixed layer with small perturbations
 
@@ -166,12 +167,15 @@ set!(atmosphere;
 # ## Coupled ocean–atmosphere model
 #
 # The ocean simulation has a `TimeStepWizard` callback (added by `nonhydrostatic_ocean_simulation`)
-# that adaptively adjusts `ocean.Δt` based on CFL constraints. The coupled model automatically
-# uses the minimum of the coupled simulation's `Δt` and the component time steps (ocean, sea ice,
-# atmosphere), so we can set a large initial `Δt` here and let the wizard handle the rest.
+# that adaptively adjusts `ocean.Δt` based on CFL constraints. We use the
+# `synchronize_coupled_time_step!` callback to synchronize the coupled simulation's time step
+# with the ocean's adaptive time step before each iteration.
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere)
 simulation = Simulation(coupled_model; Δt=10.0, stop_time=12hours)
+
+# Add callback to synchronize the coupled time step with the ocean's adaptive time step.
+add_callback!(simulation, ClimaOcean.OceanSeaIceModels.align_component_steps!) 
 
 # ## Output: snapshots and time-averages
 #

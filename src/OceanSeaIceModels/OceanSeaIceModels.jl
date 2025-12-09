@@ -8,7 +8,8 @@ export
     Radiation,
     LatitudeDependentAlbedo,
     SkinTemperature,
-    BulkTemperature
+    BulkTemperature,
+    align_component_steps!
 
 using SeawaterPolynomials
 

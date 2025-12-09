@@ -43,6 +43,7 @@ export
     ocean_simulation,
     nonhydrostatic_ocean_simulation,
     sea_ice_simulation,
+    synchronize_coupled_time_step!,
     initialize!
 
 using Oceananigans
