@@ -101,17 +101,6 @@ compute_net_atmosphere_fluxes!(coupled_model, ::Nothing) = nothing
 compute_atmosphere_ocean_fluxes!(::NoAtmosphereModel) = nothing
 compute_atmosphere_sea_ice_fluxes!(::NoAtmosphereModel) = nothing
 
-# "No sea ice" implementation
-compute_sea_ice_ocean_fluxes!(::OceanSeaIceModel{Nothing}) = nothing
-compute_atmosphere_sea_ice_fluxes!(::NoSeaIceModel) = nothing
-
-# "Only ocean" implementation
-const OnlyOceanModel = Union{OceanSeaIceModel{Nothing, Nothing}, OceanSeaIceModel{<:FreezingLimitedOceanTemperature, Nothing}}
-
-compute_atmosphere_sea_ice_fluxes!(::OnlyOceanModel) = nothing
-compute_sea_ice_ocean_fluxes!(::OnlyOceanModel) = nothing
-compute_net_ocean_fluxes!(::OnlyOceanModel, ocean) = nothing
-
 include("InterfaceComputations/InterfaceComputations.jl")
 
 using .InterfaceComputations

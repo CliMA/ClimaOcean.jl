@@ -11,8 +11,7 @@ using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node
 using Oceananigans.OrthogonalSphericalShellGrids
 using Oceananigans.Operators
 
-using ClimaOcean.OceanSeaIceModels: OceanSeaIceModel
-using ClimaOcean: OceanSeaIceModels
+using ClimaOcean.OceanSeaIceModels: OceanSeaIceModel, OceanSeaIceModels
 
 import Oceananigans.TimeSteppers: time_step!
 
@@ -22,9 +21,14 @@ include("assemble_net_sea_ice_fluxes.jl")
 
 const NoSeaIceModel = Union{OceanSeaIceModel{Nothing}, OceanSeaIceModel{<:FreezingLimitedOceanTemperature}}
 
+OceanSeaIceModels.compute_atmosphere_sea_ice_fluxes!(::NoSeaIceModel) = nothing
+
 # When using an ClimaSeaIce simulation, we assume that the exchange grid is the sea-ice grid
-OceanSeaIceModels.interpolate_sea_ice_state!(interfaces, ::Simulation{<:SeaIceModel}, coupled_model) = nothing
-OceanSeaIceModels.interpolate_sea_ice_state!(interfaces, ::FreezingLimitedOceanTemperature, coupled_model) = nothing
+OceanSeaIceModels.interpolate_sea_ice_state!(exchanger, ::Simulation{<:SeaIceModel},       coupled_model) = nothing
+OceanSeaIceModels.interpolate_sea_ice_state!(exchanger, ::FreezingLimitedOceanTemperature, coupled_model) = nothing
+
+# ComponentExchangers
+
 OceanSeaIceModels.ComponentExchanger(sea_ice::FreezingLimitedOceanTemperature, grid) = nothing
 
 function OceanSeaIceModels.ComponentExchanger(sea_ice::Simulation{<:SeaIceModel}, grid) 

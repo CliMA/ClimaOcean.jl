@@ -1,26 +1,32 @@
-struct StateExchanger{G, AS, OS, SS, AEX, OEX, SIE}
+struct StateExchanger{G, A, O, S}
     grid :: G
-    atmosphere :: AST
-    ocean :: OS
-    sea_ice :: SS
+    atmosphere :: A
+    ocean :: O
+    sea_ice :: S
+
+    function StateExchanger(grid, atmosphere, ocean, sea_ice)
+        atmosphere_exchanger = ComponentExchanger(atmosphere, grid)
+        ocean_exchanger      = ComponentExchanger(ocean, grid)
+        sea_ice_exchanger    = ComponentExchanger(sea_ice, grid)
+
+        A = typeof(atmosphere_exchanger)
+        O = typeof(ocean_exchanger)
+        S = typeof(sea_ice_exchanger)
+        
+        return new{G, A, O, S}(grid, 
+                               atmosphere_exchanger, 
+                               ocean_exchanger, 
+                               sea_ice_exchanger)
+    end
 end
 
-struct ComponentExchanger{AS, AEX}
-    state :: AS
-    exchanger :: AEX
+struct ComponentExchanger{S, EX}
+    state :: S
+    exchanger :: EX
 end
 
 # For ``nothing'' components, we don't need an exchanger
 ComponentExchanger(::Nothing, grid) = nothing
-
-function StateExchanger(grid, ocean, atmosphere, sea_ice)
-    # TODO: generalize this
-    atmosphere_state = ComponentExchanger(atmosphere, grid)
-    ocean_state      = ComponentExchanger(ocean, grid)
-    sea_ice_state    = ComponentExchanger(sea_ice, grid)
-
-    return StateExchanger(grid, atmosphere_state, ocean_state, sea_ice_state)
-end
 
 function initialize!(exchanger::StateExchanger, model)
     initialize!(exchanger.atmosphere, exchanger.grid, model.atmosphere)

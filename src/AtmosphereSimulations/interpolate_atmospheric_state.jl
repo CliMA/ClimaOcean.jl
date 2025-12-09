@@ -10,7 +10,7 @@ import ClimaOcean.OceanSeaIceModels: interpolate_atmosphere_state!
 
 # TODO: move to PrescribedAtmospheres
 """Interpolate the atmospheric state onto the ocean / sea-ice grid."""
-function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosphere, coupled_model)
+function OceaSeaIceModels.interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosphere, coupled_model)
     ocean = coupled_model.ocean
     atmosphere_grid = atmosphere.grid
 

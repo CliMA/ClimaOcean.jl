@@ -9,13 +9,10 @@ using Oceananigans.Utils: prettysummary, Time
 
 using Adapt
 using Thermodynamics.Parameters: AbstractThermodynamicsParameters
+using ClimaOcean.OceanSeaIceModels: OceanSeaIceModels
 
 import Oceananigans.TimeSteppers: time_step!, update_state!
 
-import ClimaOcean.OceanSeaIceModels: ExchangeAtmosphereState, 
-                                     interpolate_atmosphere_state!, 
-                                     compute_net_atmosphere_fluxes!,
-                                     initialize!
 
 include("thermodynamics_parameters.jl")
 include("prescribed_atmosphere.jl")

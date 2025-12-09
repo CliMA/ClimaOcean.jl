@@ -74,9 +74,12 @@ const celsius_to_kelvin = 273.15
 Base.summary(crf::ComponentInterfaces) = "ComponentInterfaces"
 Base.show(io::IO, crf::ComponentInterfaces) = print(io, summary(crf))
 
-atmosphere_ocean_interface(::Nothing, args...) = nothing
+atmosphere_ocean_interface(grid, ::Nothing,   ocean,    args...) = nothing
+atmosphere_ocean_interface(grid, ::Nothing,  ::Nothing, args...) = nothing
+atmosphere_ocean_interface(grid, atmosphere, ::Nothing, args...) = nothing
 
-function atmosphere_ocean_interface(atmos,
+function atmosphere_ocean_interface(grid, 
+                                    atmosphere,
                                     ocean,
                                     radiation,
                                     ao_flux_formulation,
@@ -84,17 +87,17 @@ function atmosphere_ocean_interface(atmos,
                                     velocity_formulation,
                                     specific_humidity_formulation)
 
-    water_vapor           = Field{Center, Center, Nothing}(ocean.model.grid)
-    latent_heat           = Field{Center, Center, Nothing}(ocean.model.grid)
-    sensible_heat         = Field{Center, Center, Nothing}(ocean.model.grid)
-    x_momentum            = Field{Center, Center, Nothing}(ocean.model.grid)
-    y_momentum            = Field{Center, Center, Nothing}(ocean.model.grid)
-    friction_velocity     = Field{Center, Center, Nothing}(ocean.model.grid)
-    temperature_scale     = Field{Center, Center, Nothing}(ocean.model.grid)
-    water_vapor_scale     = Field{Center, Center, Nothing}(ocean.model.grid)
-    upwelling_longwave    = Field{Center, Center, Nothing}(ocean.model.grid)
-    downwelling_longwave  = Field{Center, Center, Nothing}(ocean.model.grid)
-    downwelling_shortwave = Field{Center, Center, Nothing}(ocean.model.grid)
+    water_vapor           = Field{Center, Center, Nothing}(grid)
+    latent_heat           = Field{Center, Center, Nothing}(grid)
+    sensible_heat         = Field{Center, Center, Nothing}(grid)
+    x_momentum            = Field{Center, Center, Nothing}(grid)
+    y_momentum            = Field{Center, Center, Nothing}(grid)
+    friction_velocity     = Field{Center, Center, Nothing}(grid)
+    temperature_scale     = Field{Center, Center, Nothing}(grid)
+    water_vapor_scale     = Field{Center, Center, Nothing}(grid)
+    upwelling_longwave    = Field{Center, Center, Nothing}(grid)
+    downwelling_longwave  = Field{Center, Center, Nothing}(grid)
+    downwelling_shortwave = Field{Center, Center, Nothing}(grid)
 
     ao_fluxes = (; latent_heat,
                    sensible_heat,
@@ -118,31 +121,31 @@ function atmosphere_ocean_interface(atmos,
                                         temperature_formulation,
                                         velocity_formulation)
 
-    interface_temperature = Field{Center, Center, Nothing}(ocean.model.grid)
+    interface_temperature = Field{Center, Center, Nothing}(grid)
 
     return AtmosphereInterface(ao_fluxes, ao_flux_formulation, interface_temperature, ao_properties)
 end
 
-atmosphere_sea_ice_interface(atmos, sea_ice, args...) = nothing
-atmosphere_sea_ice_interface(::Nothing, args...) = nothing
-atmosphere_sea_ice_interface(::Nothing, ::Nothing, args...) = nothing
-atmosphere_sea_ice_interface(::Nothing, ::SeaIceSimulation, args...) = nothing
+atmosphere_sea_ice_interface(grid, atmos, ::Nothing,     args...) = nothing
+atmosphere_sea_ice_interface(grid, ::Nothing, sea_ice,   args...) = nothing
+atmosphere_sea_ice_interface(grid, ::Nothing, ::Nothing, args...) = nothing
 
-function atmosphere_sea_ice_interface(atmos,
-                                      sea_ice::SeaIceSimulation,
+function atmosphere_sea_ice_interface(grid, 
+                                      atmosphere,
+                                      sea_ice,
                                       radiation,
                                       ai_flux_formulation,
                                       temperature_formulation,
                                       velocity_formulation)
 
-    water_vapor   = Field{Center, Center, Nothing}(sea_ice.model.grid)
-    latent_heat   = Field{Center, Center, Nothing}(sea_ice.model.grid)
-    sensible_heat = Field{Center, Center, Nothing}(sea_ice.model.grid)
-    x_momentum    = Field{Center, Center, Nothing}(sea_ice.model.grid)
-    y_momentum    = Field{Center, Center, Nothing}(sea_ice.model.grid)
+    water_vapor   = Field{Center, Center, Nothing}(grid)
+    latent_heat   = Field{Center, Center, Nothing}(grid)
+    sensible_heat = Field{Center, Center, Nothing}(grid)
+    x_momentum    = Field{Center, Center, Nothing}(grid)
+    y_momentum    = Field{Center, Center, Nothing}(grid)
     fluxes = (; latent_heat, sensible_heat, water_vapor, x_momentum, y_momentum)
 
-    σ = radiation.stefan_boltzmann_constant
+    σ   = radiation.stefan_boltzmann_constant
     αₐᵢ = radiation.reflection.sea_ice
     ϵₐᵢ = radiation.emission.sea_ice
     radiation = (σ=σ, α=αₐᵢ, ϵ=ϵₐᵢ)
@@ -160,20 +163,17 @@ function atmosphere_sea_ice_interface(atmos,
     return AtmosphereInterface(fluxes, ai_flux_formulation, interface_temperature, properties)
 end
 
-sea_ice_ocean_interface(sea_ice, ocean) = nothing
+sea_ice_ocean_interface(grid, ::Nothing, ocean;     kwargs...) = nothing
+sea_ice_ocean_interface(grid, ::Nothing, ::Nothing; kwargs...) = nothing
+sea_ice_ocean_interface(grid, sea_ice,   ::Nothing; kwargs...) = nothing
 
-function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean;
-                                 characteristic_melting_speed = 1e-5)
+function sea_ice_ocean_interface(grid, sea_ice, ocean; characteristic_melting_speed = 1e-5)
 
-    io_bottom_heat_flux = Field{Center, Center, Nothing}(ocean.model.grid)
-    io_frazil_heat_flux = Field{Center, Center, Nothing}(ocean.model.grid)
-    io_salt_flux = Field{Center, Center, Nothing}(ocean.model.grid)
-    x_momentum = Field{Face, Center, Nothing}(ocean.model.grid)
-    y_momentum = Field{Center, Face, Nothing}(ocean.model.grid)
-
-    @assert io_frazil_heat_flux isa Field{Center, Center, Nothing}
-    @assert io_bottom_heat_flux isa Field{Center, Center, Nothing}
-    @assert io_salt_flux isa Field{Center, Center, Nothing}
+    io_bottom_heat_flux = Field{Center, Center, Nothing}(grid)
+    io_frazil_heat_flux = Field{Center, Center, Nothing}(grid)
+    io_salt_flux = Field{Center, Center, Nothing}(grid)
+    x_momentum = Field{Face, Center, Nothing}(grid)
+    y_momentum = Field{Center, Face, Nothing}(grid)
 
     io_fluxes = (interface_heat=io_bottom_heat_flux,
                  frazil_heat=io_frazil_heat_flux,
@@ -186,9 +186,9 @@ function sea_ice_ocean_interface(sea_ice::SeaIceSimulation, ocean;
     return SeaIceOceanInterface(io_fluxes, io_properties)
 end
 
-default_ai_temperature(sea_ice) = nothing
+default_ai_temperature(::Nothing) = nothing
 
-function default_ai_temperature(sea_ice::SeaIceSimulation)
+function default_ai_temperature(sea_ice)
     conductive_flux = sea_ice.model.ice_thermodynamics.internal_heat_flux.parameters.flux
     return SkinTemperature(conductive_flux)
 end
@@ -328,9 +328,9 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                                properties)
 end
 
-sea_ice_similarity_theory(sea_ice) = nothing
+sea_ice_similarity_theory(::Nothing) = nothing
 
-function sea_ice_similarity_theory(sea_ice::SeaIceSimulation)
+function sea_ice_similarity_theory(sea_ice)
     # Here we need to make sure the interface temperature type is
     # SkinTemperature. Also we need to pass the sea ice internal flux
     # The thickness and salinity need to be passed as well,
