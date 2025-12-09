@@ -5,7 +5,8 @@ using Oceananigans.Fields: Center
 using Oceananigans.Grids: grid_name
 using Oceananigans.OutputReaders: FieldTimeSeries, update_field_time_series!, extract_field_time_series
 using Oceananigans.TimeSteppers: Clock, tick!
-using Oceananigans.Utils: prettysummary, Time
+using Oceananigans.Grids: prettysummary
+using Oceananigans.Units: Time
 
 using Adapt
 using Thermodynamics.Parameters: AbstractThermodynamicsParameters
