@@ -29,7 +29,7 @@ import Thermodynamics.Parameters:
 import ..OceanSeaIceModels:
     downwelling_radiation,
     freshwater_flux,
-    compute_net_atmosphere_fluxes!
+    compute_net_fluxes!
 
 #####
 ##### Atmospheric thermodynamics parameters

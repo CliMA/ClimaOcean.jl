@@ -25,13 +25,7 @@ using ..OceanSeaIceModels: default_gravitational_acceleration,
                            default_freshwater_density
 
 import ClimaOcean: stateindex
-
 import Oceananigans.Simulations: initialize!
-
-import ..OceanSeaIceModels:
-    compute_net_atmosphere_fluxes!,
-    compute_net_sea_ice_fluxes!,
-    compute_net_ocean_fluxes!
 
 #####
 ##### Utilities

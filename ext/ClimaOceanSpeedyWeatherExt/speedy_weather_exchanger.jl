@@ -10,7 +10,7 @@ using ClimaOcean.OceanSeaIceModels: sea_ice_concentration
 # TODO: Implement conservative regridding when ready
 # using ConservativeRegridding 
 # using GeoInterface: Polygon, LinearRing
-import ClimaOcean.OceanSeaIceModels: compute_net_atmosphere_fluxes!
+import ClimaOcean.OceanSeaIceModels: compute_net_fluxes!
 import ClimaOcean.AtmosphereSimulations: atmosphere_exchanger
 import ClimaOcean.OceanSeaIceModels.InterfaceComputations: interpolate_state!
 
@@ -91,7 +91,7 @@ end
 # TODO: Fix the coupling with the sea ice model and make sure that 
 # the this function works also for sea_ice=nothing and on GPUs without
 # needing to allocate memory.
-function compute_net_atmosphere_fluxes!(coupled_model, atmos::SpeedySimulation)
+function compute_net_fluxes!(coupled_model, atmos::SpeedySimulation)
     regrid!   = coupled_model.interfaces.exchanger.atmosphere_exchanger.atmosphere_ocean_regridder
     ao_fluxes = coupled_model.interfaces.atmosphere_ocean_interface.fluxes
     ai_fluxes = coupled_model.interfaces.atmosphere_sea_ice_interface.fluxes
@@ -120,7 +120,7 @@ function compute_net_atmosphere_fluxes!(coupled_model, atmos::SpeedySimulation)
 end
 
 # Simple case -> there is no sea ice!
-function compute_net_atmosphere_fluxes!(coupled_model::SpeedyNoSeaIceCoupledModel, atmos::SpeedySimulation)
+function compute_net_fluxes!(coupled_model::SpeedyNoSeaIceCoupledModel, atmos::SpeedySimulation)
     regrid!   = coupled_model.interfaces.exchanger.atmosphere_exchanger.atmosphere_ocean_regridder
     ao_fluxes = coupled_model.interfaces.atmosphere_ocean_interface.fluxes
     Qco = ao_fluxes.sensible_heat
