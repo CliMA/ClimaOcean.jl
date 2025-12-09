@@ -23,5 +23,6 @@ import Oceananigans.TimeSteppers: time_step!
 
 include("freezing_limited_ocean_temperature.jl")
 include("sea_ice_simulation.jl")
+include("assemble_net_sea_ice_fluxes.jl")
 
 end

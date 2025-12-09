@@ -3,7 +3,7 @@ using Oceananigans.Grids: _node
 using Oceananigans.Fields: FractionalIndices
 using Oceananigans.OutputReaders: TimeInterpolator
 
-using ...OceanSimulations: forcing_barotropic_potential, TwoColorRadiation
+using ...OceanSimulations: forcing_barotropic_potential
 
 using ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres: PrescribedAtmosphere
 import ClimaOcean.OceanSeaIceModels: interpolate_atmosphere_state!

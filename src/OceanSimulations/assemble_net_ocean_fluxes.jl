@@ -81,8 +81,8 @@ end
     i, j = @index(Global, NTuple)
     kᴺ = size(grid, 3)
     time = Time(clock.time)
-    ρτxao = atmos_ocean_fluxes.x_momentum # atmosphere - ocean zonal momentum flux
-    ρτyao = atmos_ocean_fluxes.y_momentum # atmosphere - ocean meridional momentum flux
+    ρτxao = get_possibly_zero_flux(atmos_ocean_fluxes,   :x_momentum) # atmosphere - ocean zonal momentum flux
+    ρτyao = get_possibly_zero_flux(atmos_ocean_fluxes,   :y_momentum) # atmosphere - ocean meridional momentum flux
     ρτxio = get_possibly_zero_flux(sea_ice_ocean_fluxes, :x_momentum) # sea_ice - ocean zonal momentum flux
     ρτyio = get_possibly_zero_flux(sea_ice_ocean_fluxes, :y_momentum) # sea_ice - ocean meridional momentum flux
 
