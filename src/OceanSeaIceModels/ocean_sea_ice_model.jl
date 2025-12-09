@@ -62,22 +62,6 @@ reference_density(unsupported) =
 heat_capacity(unsupported) =
     throw(ArgumentError("Cannot deduce the heat capacity from $(typeof(unsupported))"))
 
-reference_density(ocean::Simulation) = reference_density(ocean.model.buoyancy.formulation)
-reference_density(buoyancy_formulation::SeawaterBuoyancy) = reference_density(buoyancy_formulation.equation_of_state)
-reference_density(eos::TEOS10EquationOfState) = eos.reference_density
-
-heat_capacity(ocean::Simulation) = heat_capacity(ocean.model.buoyancy.formulation)
-heat_capacity(buoyancy_formulation::SeawaterBuoyancy) = heat_capacity(buoyancy_formulation.equation_of_state)
-
-# Does not really matter if there is no model
-reference_density(::Nothing) = 0
-heat_capacity(::Nothing) = 0
-
-function heat_capacity(::TEOS10EquationOfState{FT}) where FT
-    cₚ⁰ = SeawaterPolynomials.TEOS10.teos10_reference_heat_capacity
-    return convert(FT, cₚ⁰)
-end
-
 """
     OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(ocean.model));
                      atmosphere = nothing,
