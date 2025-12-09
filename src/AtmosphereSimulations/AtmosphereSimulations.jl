@@ -12,8 +12,14 @@ using Thermodynamics.Parameters: AbstractThermodynamicsParameters
 
 import Oceananigans.TimeSteppers: time_step!, update_state!
 
+import ClimaOcean.OceanSeaIceModels: ExchangeAtmosphereState, 
+                                     interpolate_atmosphere_state!, 
+                                     compute_net_atmosphere_fluxes!,
+                                     initialize!
+
 include("thermodynamics_parameters.jl")
 include("prescribed_atmosphere.jl")
+include("prescribed_atmosphere_exchanger.jl")
 include("interpolate_atmospheric_state.jl")
 
 end # module AtmosphereSimulations

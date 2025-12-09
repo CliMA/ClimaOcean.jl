@@ -16,6 +16,7 @@ import ClimaOcean.OceanSeaIceModels:
     sea_ice_concentration,
     reference_density,
     heat_capacity, 
+    SeaIceExchanger,
     interpolate_sea_ice_state!,
     compute_net_sea_ice_fluxes!,
     compute_sea_ice_ocean_fluxes!
@@ -29,5 +30,26 @@ include("assemble_net_sea_ice_fluxes.jl")
 # When using an ClimaSeaIce simulation, we assume that the exchange grid is the sea-ice grid
 interpolate_sea_ice_state!(interfaces, ::Simulation{<:SeaIceModel}, coupled_model) = nothing
 interpolate_sea_ice_state!(interfaces, ::FreezingLimitedOceanTemperature, coupled_model) = nothing
+
+SeaIceExchanger(sea_ice::FreezingLimitedOceanTemperature, grid) = 
+    SeaIceExchanger(ZeroField(), ZeroField(), ZeroField(), ZeroField(), nothing)
+
+function SeaIceExchanger(sea_ice::Simulation{<:SeaIceModel}, grid) 
+    sea_ice_grid = sea_ice.model.grid
+    
+    if sea_ice_grid == grid
+        u = sea_ice.model.velocities.u
+        v = sea_ice.model.velocities.v
+        h = sea_ice.model.ice_thickness
+        ℵ = sea_ice.model.ice_concentration
+    else
+        u = Field{Center, Center, Nothing}(grid)
+        v = Field{Center, Center, Nothing}(grid)
+        h = Field{Center, Center, Nothing}(grid)
+        ℵ = Field{Center, Center, Nothing}(grid)
+    end
+
+    return SeaIceExchanger(u, v, h, ℵ, nothing)
+end
 
 end

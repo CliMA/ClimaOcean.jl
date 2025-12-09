@@ -45,14 +45,14 @@ end
 
 # Make sure to initialize the exchanger here
 function initialization_update_state!(model::OSIM)
-    initialize!(model.interfaces.exchanger, model.atmosphere)
+    initialize!(model.interfaces.exchanger, model)
     update_state!(model)
     return nothing
 end
 
 function initialize!(model::OSIM)
     initialize!(model.ocean)
-    initialize!(model.interfaces.exchanger, model.atmosphere)
+    initialize!(model.interfaces.exchanger, model)
     return nothing
 end
 

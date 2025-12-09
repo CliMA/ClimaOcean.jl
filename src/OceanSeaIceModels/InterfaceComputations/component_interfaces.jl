@@ -218,6 +218,7 @@ end
                         gravitational_acceleration = default_gravitational_acceleration)
 """
 function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
+                             exchange_grid = choose_exchange_grid(atmosphere, ocean, sea_ice),
                              radiation = Radiation(),
                              freshwater_density = default_freshwater_density,
                              atmosphere_ocean_fluxes = SimilarityTheoryFluxes(eltype(ocean.model.grid)),
@@ -252,7 +253,8 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                         freshwater_density = freshwater_density,
                         temperature_units  = ocean_temperature_units)
 
-    ao_interface = atmosphere_ocean_interface(atmosphere,
+    ao_interface = atmosphere_ocean_interface(exchange_grid,
+                                              atmosphere,
                                               ocean,
                                               radiation,
                                               atmosphere_ocean_fluxes,
@@ -260,9 +262,10 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                                               atmosphere_ocean_velocity_difference,
                                               atmosphere_ocean_interface_specific_humidity)
 
-    io_interface = sea_ice_ocean_interface(sea_ice, ocean)
+    io_interface = sea_ice_ocean_interface(exchange_grid, sea_ice, ocean)
 
-    ai_interface = atmosphere_sea_ice_interface(atmosphere,
+    ai_interface = atmosphere_sea_ice_interface(exchange_grid, 
+                                                atmosphere,
                                                 sea_ice,
                                                 radiation,
                                                 atmosphere_sea_ice_fluxes,
@@ -310,7 +313,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                   sea_ice_top    = net_top_sea_ice_fluxes,
                   sea_ice_bottom = net_bottom_sea_ice_fluxes)
 
-    exchanger = StateExchanger(ocean, atmosphere)
+    exchanger = StateExchanger(exchange_grid, ocean, atmosphere, sea_ice)
 
     properties = (; gravitational_acceleration)
 
