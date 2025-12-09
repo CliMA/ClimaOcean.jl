@@ -20,7 +20,7 @@ using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 
 import ClimaOcean.OceanSeaIceModels: reference_density,
                                      heat_capacity,
-                                     OceanExchanger,
+                                     ComponentExchanger,
                                      interpolate_ocean_state!,
                                      compute_net_ocean_fluxes!
 
@@ -54,7 +54,7 @@ include("assemble_net_ocean_fluxes.jl")
 # We need, however, to interpolate the surface pressure to the ocean grid
 interpolate_ocean_state!(interfaces, ::Simulation{<:HydrostaticFreeSurfaceModel}, coupled_model) = nothing
 
-function OceanExchanger(ocean::Simulation{<:HydrostaticFreeSurfaceModel}, grid) 
+function ComponentExchanger(ocean::Simulation{<:HydrostaticFreeSurfaceModel}, grid) 
     ocean_grid = ocean.model.grid
     
     if ocean_grid == grid
@@ -70,7 +70,7 @@ function OceanExchanger(ocean::Simulation{<:HydrostaticFreeSurfaceModel}, grid)
         S = Field{Center, Center, Nothing}(grid)
     end
 
-    return OceanExchanger(u, v, T, S, nothing)
+    return ComponentExchanger((; u, v, T, S), nothing)
 end
 
 end # module

@@ -2,16 +2,11 @@ using Oceananigans.Operators: intrinsic_vector
 using Oceananigans.Grids: inactive_node
 
 function compute_atmosphere_ocean_fluxes!(coupled_model)
-    ocean = coupled_model.ocean
-    atmosphere = coupled_model.atmosphere
-    grid = ocean.model.grid
+    exchanger = coupled_model.interfaces.exchanger
+    grid = exchanger.grid
     arch = architecture(grid)
     clock = coupled_model.clock
-
-    ocean_state = (u = ocean.model.velocities.u,
-                   v = ocean.model.velocities.v,
-                   T = ocean.model.tracers.T,
-                   S = ocean.model.tracers.S)
+    ocean_state = exchanger.ocean.state
 
     atmosphere_fields = coupled_model.interfaces.exchanger.exchange_atmosphere_state
 

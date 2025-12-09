@@ -1,18 +1,18 @@
-function AtmosphereExchanger(atmosphere::PrescribedAtmosphere, grid) 
+function ComponentExchanger(atmosphere::PrescribedAtmosphere, grid) 
 
     exchanger = prescribed_atmosphere_exchanger(atmosphere, grid)
 
-    return AtmosphereExchanger(Field{Center, Center, Nothing}(grid),
-                               Field{Center, Center, Nothing}(grid),
-                               Field{Center, Center, Nothing}(grid),
-                               Field{Center, Center, Nothing}(grid),
-                               Field{Center, Center, Nothing}(grid),
-                               Field{Center, Center, Nothing}(grid),
-                               Field{Center, Center, Nothing}(grid),
-                               Field{Center, Center, Nothing}(grid),
-                               exchanger)
-end
+    state = (; u  = Field{Center, Center, Nothing}(grid),
+               v  = Field{Center, Center, Nothing}(grid),
+               T  = Field{Center, Center, Nothing}(grid),
+               p  = Field{Center, Center, Nothing}(grid),
+               q  = Field{Center, Center, Nothing}(grid),
+               Qs = Field{Center, Center, Nothing}(grid),
+               Qℓ = Field{Center, Center, Nothing}(grid),
+               Mp = Field{Center, Center, Nothing}(grid))
 
+    return ComponentExchanger(state, exchanger)
+end
 
 # Note that Field location can also affect fractional index type.
 # Here we assume that we know the location of Fields that will be interpolated.
@@ -36,9 +36,8 @@ function prescribed_atmosphere_exchanger(atmosphere::PrescribedAtmosphere, excha
     return frac_indices
 end
 
-function initialize!(exchanger::AtmosphereExchanger, atmosphere::PrescribedAtmosphere)
+function initialize!(exchanger::ComponentExchanger, exchange_grid, atmosphere::PrescribedAtmosphere)
     atmos_grid = atmosphere.grid
-    exchange_grid = exchanger.exchange_grid
     arch = architecture(exchange_grid)
     frac_indices = exchanger.atmosphere_exchanger
     kernel_parameters = interface_kernel_parameters(exchange_grid)
