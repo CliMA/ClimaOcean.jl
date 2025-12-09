@@ -7,8 +7,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
     arch = architecture(grid)
     clock = coupled_model.clock
     ocean_state = exchanger.ocean.state
-
-    atmosphere_fields = coupled_model.interfaces.exchanger.exchange_atmosphere_state
+    atmosphere_fields = exchanger.atmosphere.state
 
     # Simplify NamedTuple to reduce parameter space consumption.
     # See https://github.com/CliMA/ClimaOcean.jl/issues/116.

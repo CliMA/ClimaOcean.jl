@@ -114,8 +114,8 @@ end
     downwelling_radiation = (; Qs, Qℓ)
     local_interior_state = (u=uᵢ, v=vᵢ, T=Tᵢ, S=Sᵢ, h=hᵢ)
 
-    # Estimate initial interface state
-    u★ = convert(FT, 1e-4)
+    # Estimate initial interface state (FP32 compatible)
+    u★ = convert(FT, 1f-4)
 
     # Estimate interface specific humidity using interior temperature
     q_formulation = interface_properties.specific_humidity_formulation
