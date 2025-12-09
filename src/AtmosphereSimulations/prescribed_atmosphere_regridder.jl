@@ -41,7 +41,7 @@ function initialize!(exchanger::ComponentExchanger, grid, atmosphere::Prescribed
     frac_indices = exchanger.regridder
     atmos_grid = atmosphere.grid
     kernel_parameters = interface_kernel_parameters(grid)
-    launch!(arch, grid, kernel_parameters, _compute_fractional_indices!, frac_indices, grid, atmos_grid)
+    launch!(architecture(grid), grid, kernel_parameters, _compute_fractional_indices!, frac_indices, grid, atmos_grid)
 
     return nothing
 end

@@ -26,10 +26,7 @@ import Thermodynamics.Parameters:
     pow_icenuc      # "Power parameter" that controls liquid/ice condensate partitioning
                     # during partial ice nucleation
 
-import ..OceanSeaIceModels:
-    downwelling_radiation,
-    freshwater_flux,
-    compute_net_fluxes!
+import ..OceanSeaIceModels: compute_net_fluxes!
 
 #####
 ##### Atmospheric thermodynamics parameters
