@@ -25,8 +25,8 @@ function boundary_layer_height end
 #####
 
 function interpolate_state! end
-function compute_net_fluxes! end
+function update_net_fluxes! end
 
 # Fallbacks for a ``Nothing`` component model
-compute_net_fluxes!(coupled_model, ::Nothing) = nothing
+update_net_fluxes!(coupled_model, ::Nothing) = nothing
 interpolate_state!(exchanger, grid, ::Nothing, coupled_model) = nothing

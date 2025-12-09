@@ -6,9 +6,9 @@ using ClimaOcean.OceanSeaIceModels.InterfaceComputations: computed_fluxes,
                                                           absorbed_longwave_radiation,
                                                           transmitted_shortwave_radiation
 
-compute_net_fluxes!(coupled_model, ::FreezingLimitedOceanTemperature) = nothing
+update_net_fluxes!(coupled_model, ::FreezingLimitedOceanTemperature) = nothing
 
-function compute_net_fluxes!(coupled_model, sea_ice::Simulation{<:SeaIceModel})
+function update_net_fluxes!(coupled_model, sea_ice::Simulation{<:SeaIceModel})
     ocean = coupled_model.ocean
     grid  = ocean.model.grid
     arch  = architecture(grid)

@@ -51,9 +51,9 @@ function update_state!(coupled_model::OceanSeaIceModel, callbacks=[]; compute_te
     compute_sea_ice_ocean_fluxes!(coupled_model)
 
     # This function needs to be specialized to allow different component models
-    compute_net_fluxes!(coupled_model, atmosphere)
-    compute_net_fluxes!(coupled_model, ocean)
-    compute_net_fluxes!(coupled_model, sea_ice)
+    update_net_fluxes!(coupled_model, atmosphere)
+    update_net_fluxes!(coupled_model, ocean)
+    update_net_fluxes!(coupled_model, sea_ice)
 
     return nothing
 end

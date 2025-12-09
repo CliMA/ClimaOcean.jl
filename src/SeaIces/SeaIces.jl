@@ -18,7 +18,7 @@ import ClimaOcean.OceanSeaIceModels: interpolate_state!,
                                      sea_ice_thickness,
                                      reference_density,
                                      heat_capacity,
-                                     compute_net_fluxes!
+                                     update_net_fluxes!
 
 import ClimaOcean.OceanSeaIceModels.InterfaceComputations: ComponentExchanger,
                                                            compute_atmosphere_sea_ice_fluxes!,

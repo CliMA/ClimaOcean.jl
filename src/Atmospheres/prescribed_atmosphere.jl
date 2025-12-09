@@ -89,7 +89,7 @@ end
 @inline boundary_layer_height(atmos::PrescribedAtmosphere) = atmos.boundary_layer_height
 
 # No need to compute anything here...
-compute_net_fluxes!(coupled_model, ::PrescribedAtmosphere) = nothing
+update_net_fluxes!(coupled_model, ::PrescribedAtmosphere) = nothing
 
 """
     PrescribedAtmosphere(grid, times=[zero(grid)];

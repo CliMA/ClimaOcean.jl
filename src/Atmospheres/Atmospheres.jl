@@ -18,7 +18,7 @@ using ClimaOcean.OceanSeaIceModels.InterfaceComputations: interface_kernel_param
 import Oceananigans.TimeSteppers: time_step!, update_state!
 
 import ClimaOcean.OceanSeaIceModels: interpolate_state!, 
-                                     compute_net_fluxes!, 
+                                     update_net_fluxes!, 
                                      thermodynamics_parameters, 
                                      surface_layer_height, 
                                      boundary_layer_height
