@@ -124,13 +124,8 @@ using Oceananigans.Units
 using Dates
 
 arch = CPU()
-grid = LatitudeLongitudeGrid(arch,
-                             size = (720, 360, 1),  # 1 degree resolution, single vertical level
-                             longitude = (0, 360),
-                             latitude = (-90, 90),
-                             z = (-50, 0))  # Single layer from -50m to 0m (surface)
-
-bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1)
+grid = RotatedLatitudeLongitudeGrid(arch, size=(360, 360, 1),  longitude=(140, 220), latitude=(-45, 45), z=(-50, 0), north_pole=(180, 0))
+bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1, interpolation_passes=10)
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
 slab_ocean = SlabOcean(grid)
@@ -145,7 +140,7 @@ set!(sea_ice.model, h=1, ℵ=1)
 interfaces = ComponentInterfaces(atmosphere, slab_ocean, sea_ice; exchange_grid=grid)
 coupled_model = ClimaOcean.OceanSeaIceModel(slab_ocean, sea_ice; atmosphere, interfaces)
 
-simulation = Simulation(coupled_model, Δt = 30minutes, stop_time = 100days)
+simulation = Simulation(coupled_model, Δt = 30minutes, stop_iteration = 100)
 run!(simulation)
 
 using CairoMakie
@@ -159,8 +154,6 @@ heatmap!(axT, slab_ocean.temperature)
 heatmap!(axS, slab_ocean.salinity)
 heatmap!(axh, sea_ice.model.ice_thickness)
 heatmap!(axℵ, sea_ice.model.ice_concentration)
-Colorbar(fig[2, 1], hmT, vertical=false)
-Colorbar(fig[2, 2], hmS, vertical=false)
 
 display(fig)
 
