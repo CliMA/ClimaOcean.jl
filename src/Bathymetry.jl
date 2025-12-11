@@ -204,10 +204,7 @@ end
 function interpolate_bathymetry_in_passes(native_z, target_grid;
                                           passes = 10)
 
-    gridtype = target_grid isa TripolarGrid ? "TripolarGrid" :
-               target_grid isa LatitudeLongitudeGrid ? "LatitudeLongitudeGrid" :
-               target_grid isa RectilinearGrid ? "RectilinearGrid" :
-               error("unknown target grid type")
+    gridtype = string(nameof(typeof(target_grid)))
 
     Nλt, Nφt = Nt = size(target_grid)
     Nλn, Nφn = Nn = size(native_z)
