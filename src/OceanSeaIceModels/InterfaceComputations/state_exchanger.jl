@@ -37,4 +37,5 @@ function initialize!(exchanger::StateExchanger, model)
 end
 
 # fallback
+initialize!(::Nothing, grid, component) = nothing
 initialize!(exchanger::ComponentExchanger, grid, component) = nothing

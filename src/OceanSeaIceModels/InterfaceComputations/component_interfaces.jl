@@ -268,11 +268,16 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                         freshwater_density = freshwater_density,
                         temperature_units  = ocean_temperature_units)
 
-    sea_ice_properties = (reference_density  = sea_ice_reference_density,
-                          heat_capacity      = sea_ice_heat_capacity,
-                          freshwater_density = freshwater_density,
-                          liquidus           = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus,
-                          temperature_units  = sea_ice_temperature_units)
+    # Only build sea_ice_properties if sea_ice is an actual Simulation with a model
+    if sea_ice isa Simulation
+        sea_ice_properties = (reference_density  = sea_ice_reference_density,
+                              heat_capacity      = sea_ice_heat_capacity,
+                              freshwater_density = freshwater_density,
+                              liquidus           = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus,
+                              temperature_units  = sea_ice_temperature_units)
+    else
+        sea_ice_properties = nothing
+    end
 
     # Component interfaces
     ao_interface = atmosphere_ocean_interface(exchange_grid,
