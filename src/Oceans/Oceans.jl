@@ -21,6 +21,8 @@ using SeawaterPolynomials
 using SeawaterPolynomials.TEOS10: TEOS10EquationOfState
 using KernelAbstractions: @kernel, @index
 
+using ClimaOcean.OceanSeaIceModels
+
 import ClimaOcean.OceanSeaIceModels: interpolate_state!,
                                      update_net_fluxes!,
                                      reference_density,

@@ -1,4 +1,5 @@
 using Oceananigans.Operators: Δzᶜᶜᶜ
+using ClimaOcean.OceanSeaIceModels: ocean_temperature, ocean_salinity
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 using ClimaSeaIce.SeaIceDynamics: x_momentum_stress, y_momentum_stress
 
@@ -16,7 +17,7 @@ function compute_sea_ice_ocean_fluxes!(coupled_model)
 end
 
 function compute_sea_ice_ocean_fluxes!(sea_ice_ocean_fluxes, ocean, sea_ice, melting_speed, ocean_properties)
-    Δt = ocean.Δt
+    Δt = sea_ice.Δt
     Tₒ = ocean_temperature(ocean)
     Sₒ = ocean_salinity(ocean)
     Sᵢ = sea_ice.model.tracers.S
@@ -25,8 +26,8 @@ function compute_sea_ice_ocean_fluxes!(sea_ice_ocean_fluxes, ocean, sea_ice, mel
     Gh = sea_ice.model.ice_thermodynamics.thermodynamic_tendency
 
     liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
-    grid  = ocean.model.grid
-    clock = ocean.model.clock
+    grid  = sea_ice.model.grid
+    clock = sea_ice.model.clock
     arch  = architecture(grid)
 
     uᵢ, vᵢ = sea_ice.model.velocities

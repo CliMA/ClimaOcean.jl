@@ -10,19 +10,25 @@
 # - Evolving temperature based on net heat fluxes from the atmosphere and sea ice
 # - Having no ocean dynamics (no velocities)
 #
-# To integrate a slab ocean into `OceanSeaIceModel`, we need to extend several methods from `OceanSeaIceModels.jl` and `InterfaceComputations.jl`:
+# To integrate a slab ocean into `OceanSeaIceModel`, we need to extend several methods from ClimaOcean's `OceanSeaIceModels.jl` and
+# `InterfaceComputations.jl` modules as well as Oceananigans' TimeSteppers.jl module
 #
 # 1. **ComponentExchanger**: Defines how to extract state from the component for flux computations
 # 2. **interpolate_state!**: Interpolates component state onto the exchange grid
 # 3. **update_net_fluxes!**: Computes net fluxes and applies them to the component
-# 4. **reference_density** and **heat_capacity**: Provide thermodynamic properties
-# 5. **net_fluxes**: Returns the flux fields that will be updated by the coupling system
+# 4. **reference_density**: of the ocean component
+# 5  **heat_capacity**: of the ocean component
+# 6. **ocean_salinity**: returns the entire salinity field of the ocean component
+# 7. **ocean_temperature**: returns the entire temperature field of the ocean component
+# 8. **ocean_surface_salinity**: returns the salinity at the surface of the ocean component
+# 8. **net_fluxes**: Returns the flux fields that will be updated by the coupling system
+# 6. **time_step!**: Advances the component forward in time
 #
 # ## Step 1: Define the Slab Ocean Type
 #
-# First, we define a struct to hold the slab ocean state:
+# First, we define a struct to hold the slab ocean state and its constructor. We also define a summary and show method for the slab ocean type.
 
-using Oceananigans
+using Oceananigans, Base
 
 struct SlabOcean{G, C, T, S, F}
     grid :: G
@@ -41,24 +47,41 @@ function SlabOcean(grid; clock =  Clock(time=0))
     return SlabOcean(grid, clock, temperature, salinity, fluxes)
 end
 
-# ## Step 2: Implement ComponentExchanger
+Base.summary(slab_ocean::SlabOcean) = "SlabOcean with Depth=$(slab_ocean.grid.Lz)"
+Base.show(io::IO, slab_ocean::SlabOcean) = print(io, Base.summary(slab_ocean))
+
+# ## Step 2: Extend the InterfaceComputations.jl module
 #
-# The `ComponentExchanger` extracts the state variables needed for flux computations.
-# For a slab ocean, we need to provide temperature and salinity (and dummy velocity fields since the slab has no dynamics):
+# The `ComponentExchanger` type contains the state variables needed for flux computations.
+# These are the ocean surface state on the `exchange_grid` and the "regridder" to interpolate data from the ocean onto the `exchange_grid`.
+# Here, we assume that the ocean is on the same grid as the exchange grid, so that the regridder is ``nothing'' and the state variables are the same as the ocean surface state.
+# The flux computation requires also ocean surface velocities to compute the turbulent fluxes. In this case, we use dummy zero velocity fields since the slab ocean has no dynamics.
 
 using ClimaOcean.OceanSeaIceModels.InterfaceComputations
 
-function InterfaceComputations.ComponentExchanger(slab_ocean::SlabOcean, grid)
+function InterfaceComputations.ComponentExchanger(slab_ocean::SlabOcean, exchange_grid)
     T = slab_ocean.temperature
     S = slab_ocean.salinity
     u = Oceananigans.Fields.ZeroField()
     v = Oceananigans.Fields.ZeroField()
-    return ComponentExchanger((; u, v, T, S), nothing)
+    return InterfaceComputations.ComponentExchanger((; u, v, T, S), nothing)
 end
 
-# ## Step 4: Implement reference_density and heat_capacity
+# The `net_fluxes` function returns the flux fields that will be updated by the coupling system. 
+# For a slab ocean, we need to return the containers for the temperature and freshwater (salinity) fluxes
+# stored in the `slab_ocean.fluxes` field as well as the dummy stress fields which will be unused since the slab ocean has no dynamics.
+
+function InterfaceComputations.net_fluxes(slab_ocean::SlabOcean)
+    grid = slab_ocean.grid
+    τx = Field{Center, Center, Nothing}(grid)
+    τy = Field{Center, Center, Nothing}(grid)
+    return merge(slab_ocean.fluxes, (; u=τx, v=τy))
+end 
+
+# ## Step 3: Extend the OceanSeaIceModels.jl module
 #
-# These functions provide thermodynamic properties needed for flux computations as well as...
+# In the OceanSeaIceModels.jl module, we define the thermodynamic properties of the ocean component as well as all the helper functions 
+# needed to retrieve the ocean state and surface state.
 
 using ClimaOcean.OceanSeaIceModels
 
@@ -68,29 +91,18 @@ OceanSeaIceModels.ocean_surface_salinity(slab_ocean::SlabOcean) = slab_ocean.sal
 OceanSeaIceModels.ocean_salinity(slab_ocean::SlabOcean) = slab_ocean.salinity
 OceanSeaIceModels.ocean_temperature(slab_ocean::SlabOcean) = slab_ocean.temperature
 
-# ## Step 5: Implement net_fluxes
-#
-# The `net_fluxes` function returns the flux fields that will be updated by the coupling system. For a slab ocean, we need heat and freshwater (salinity) fluxes:
-
-function InterfaceComputations.net_fluxes(slab_ocean::SlabOcean)
-    grid = slab_ocean.grid
-    τx = Field{Center, Center, Nothing}(grid)
-    τy = Field{Center, Center, Nothing}(grid)
-    return merge(slab_ocean.fluxes, (; u=τx, v=τy))
-end
-
-# ## Step 6: Implement update_net_fluxes!
-#
-# This is the core function that computes net fluxes and applies them to update the slab ocean temperature. Unlike a full ocean model where fluxes are applied as boundary conditions and the time-stepper handles updates, a slab ocean needs to update its temperature directly within `update_net_fluxes!`. The flux assembly follows the same pattern as the full ocean model:
+# The `update_net_fluxes!` function computes net fluxes and applies them to previously defined ``net_fluxes'' containers.
+# These will be used to update the ocean state in the `time_step!` method. In this case, we can use the `update_net_ocean_fluxes!` function from the Oceans.jl module.
 
 using ClimaOcean.Oceans
 
 OceanSeaIceModels.update_net_fluxes!(coupled_model, slab_ocean::SlabOcean) = 
     Oceans.update_net_ocean_fluxes!(coupled_model, slab_ocean, slab_ocean.grid)
 
-# ## Step 7: Implement time_step!
+# ## Step 4: Extend the TimeSteppers.jl module
 #
-# The `time_step!` method is called by the coupled model to advance the component forward in time. For a slab ocean, this method advances temperature and salinity through the computed fluxes:
+# The `time_step!` method is called by the coupled model to advance the component forward in time. 
+# For a slab ocean, this method advances temperature and salinity through the computed fluxes:
 
 import Oceananigans.TimeSteppers: time_step!
 using Oceananigans.TimeSteppers: tick!
@@ -102,7 +114,7 @@ function time_step!(slab_ocean::SlabOcean, Δt)
     return nothing
 end
 
-# ## Step 7: Complete Example: Coupling Slab Ocean with JRA55 and Sea Ice
+# ## Step 5: Complete Example: Coupling Slab Ocean with JRA55 and Sea Ice
 #
 # Here's a complete example showing how to use the slab ocean in a coupled simulation:
 
@@ -111,7 +123,6 @@ using Oceananigans
 using Oceananigans.Units
 using Dates
 
-# Create a horizontal grid with a single vertical level for slab ocean
 arch = CPU()
 grid = LatitudeLongitudeGrid(arch,
                              size = (720, 360, 1),  # 1 degree resolution, single vertical level
@@ -119,35 +130,43 @@ grid = LatitudeLongitudeGrid(arch,
                              latitude = (-90, 90),
                              z = (-50, 0))  # Single layer from -50m to 0m (surface)
 
-# Create slab ocean
-slab_ocean = SlabOcean(grid)
-set!(slab_ocean.tracers.T, Metadatum(:temperature, dataset=ECCO4Monthly()))
-set!(slab_ocean.tracers.S, Metadatum(:salinity,    dataset=ECCO4Monthly()))
+bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1)
+grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
-# Create prescribed atmosphere
+slab_ocean = SlabOcean(grid)
+set!(slab_ocean.temperature, Metadatum(:temperature, dataset=ECCO4Monthly()))
+set!(slab_ocean.salinity,    Metadatum(:salinity,    dataset=ECCO4Monthly()))
+
 atmosphere = ClimaOcean.JRA55PrescribedAtmosphere(arch)
 
-# Create sea ice simulation (on the same grid)
 sea_ice = ClimaOcean.sea_ice_simulation(grid, slab_ocean)
 set!(sea_ice.model, h=1, ℵ=1)
 
-# Create coupled model
-interfaces = ComponentInterfaces(atmosphere, ocean, sea_ice; exchange_grid=grid)
+interfaces = ComponentInterfaces(atmosphere, slab_ocean, sea_ice; exchange_grid=grid)
 coupled_model = ClimaOcean.OceanSeaIceModel(slab_ocean, sea_ice; atmosphere, interfaces)
 
-# Create and run simulation
 simulation = Simulation(coupled_model, Δt = 30minutes, stop_time = 100days)
 run!(simulation)
 
+using CairoMakie
+
+fig = Figure()
+axT = Axis(fig[1, 1])
+axS = Axis(fig[1, 2])
+axh = Axis(fig[2, 1])
+axℵ = Axis(fig[2, 2])
+heatmap!(axT, slab_ocean.temperature)
+heatmap!(axS, slab_ocean.salinity)
+heatmap!(axh, sea_ice.model.ice_thickness)
+heatmap!(axℵ, sea_ice.model.ice_concentration)
+Colorbar(fig[2, 1], hmT, vertical=false)
+Colorbar(fig[2, 2], hmS, vertical=false)
+
+display(fig)
+
 # ## Summary
 #
-# To implement a new ocean component for `OceanSeaIceModel`, you need to extend:
-#
-# 1. **`ComponentExchanger(component, grid)`**: Extract state variables for flux computations
-# 2. **`interpolate_state!(exchanger, grid, component, coupled_model)`**: Interpolate component state to exchange grid
-# 3. **`update_net_fluxes!(coupled_model, component)`**: Compute and apply net fluxes
-# 4. **`reference_density(component)`**: Return reference density (kg m⁻³)
-# 5. **`heat_capacity(component)`**: Return heat capacity (J m⁻² K⁻¹ for 2D, J m⁻³ K⁻¹ for 3D)
-# 6. **`net_fluxes(component)`**: Return NamedTuple of flux fields `(; u, v, T, S, ...)`
-#
-# The slab ocean example demonstrates how a simplified component can be integrated into the coupling framework while maintaining compatibility with the existing atmosphere and sea ice components. The key insight is that the coupling system handles flux computations generically; your component just needs to provide the right interface methods.
+# The slab ocean example demonstrates how a simplified component can be integrated into the coupling framework while maintaining compatibility 
+# with the existing atmosphere and sea ice components. 
+# The key insight is that the coupling system handles flux computations generically; 
+# your component just needs to provide the right interface methods.

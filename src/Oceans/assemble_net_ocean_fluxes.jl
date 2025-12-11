@@ -18,7 +18,7 @@ using ClimaOcean.OceanSeaIceModels.InterfaceComputations: interface_kernel_param
 #####
 
 update_net_fluxes!(coupled_model, ocean::Simulation{<:HydrostaticFreeSurfaceModel}) = 
-    update_net_ocean_fluxes!(coupled_model, ocean.model)
+    update_net_ocean_fluxes!(coupled_model, ocean, ocean.model.grid)
 
 # A generic ocean flux assembler for a coupled model with both an atmosphere and sea ice
 function update_net_ocean_fluxes!(coupled_model, ocean_model, grid)
@@ -30,12 +30,6 @@ function update_net_ocean_fluxes!(coupled_model, ocean_model, grid)
     atmos_ocean_fluxes = computed_fluxes(coupled_model.interfaces.atmosphere_ocean_interface)
     sea_ice_ocean_fluxes = computed_fluxes(coupled_model.interfaces.sea_ice_ocean_interface)
 
-    # We remove the heat flux since does not need to be assembled and bloats the parameter space.
-    net_ocean_fluxes = (u = net_ocean_fluxes.u,
-                        v = net_ocean_fluxes.v,
-                        T = net_ocean_fluxes.T,
-                        S = net_ocean_fluxes.S)
-
     # Simplify NamedTuple to reduce parameter space consumption.
     # See https://github.com/CliMA/ClimaOcean.jl/issues/116.
     atmosphere_fields = coupled_model.interfaces.exchanger.atmosphere.state
@@ -46,7 +40,7 @@ function update_net_ocean_fluxes!(coupled_model, ocean_model, grid)
     freshwater_flux = atmosphere_fields.Mp.data
 
     ice_concentration = sea_ice_concentration(sea_ice)
-    ocean_salinity = ocean_model.tracers.S
+    ocean_salinity = OceanSeaIceModels.ocean_salinity(ocean_model)
     atmos_ocean_properties = coupled_model.interfaces.atmosphere_ocean_interface.properties
     ocean_properties = coupled_model.interfaces.ocean_properties
     kernel_parameters = interface_kernel_parameters(grid)
