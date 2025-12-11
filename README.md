@@ -68,7 +68,7 @@ set!(ocean.model,
 # Build and run an OceanSeaIceModel (with no sea ice component) forced by JRA55 reanalysis
 atmosphere = ClimaOcean.JRA55PrescribedAtmosphere(arch)
 coupled_model = ClimaOcean.OceanSeaIceModel(ocean; atmosphere)
-simulation = Simulation(coupled_model, Δt=5minutes, stop_time=30days)
+simulation = Simulation(coupled_model, Δt=20minutes, stop_time=30days)
 run!(simulation)
 ```
 
@@ -107,20 +107,20 @@ if you give credit by citing the corresponding Zenodo record, e.g.,
 
 > Wagner, G. L. et al. (2025). CliMA/ClimaOcean.jl: v0.8.7 (v0.8.7). Zenodo. https://doi.org/10.5281/zenodo.7677442
 
-and also the recent [preprint submitted to the Journal of Advances in Modeling Earth Systems](https://arxiv.org/abs/2502.14148) that presents an overview of all the things that make Oceananigans unique:
+and also the recent [preprint submitted to the Journal of Advances in Modeling Earth Systems](https://doi.org/10.48550/arXiv.2502.14148) that presents an overview of all the things that make Oceananigans unique:
 
 > "High-level, high-resolution ocean modeling at all scales with Oceananigans"
 >
 > by Gregory L. Wagner, Simone Silvestri, Navid C. Constantinou, Ali Ramadhan, Jean-Michel Campin,
 > Chris Hill, Tomas Chor, Jago Strong-Wright, Xin Kai Lee, Francis Poulin, Andre Souza, Keaton J. Burns,
-> John Marshall, Raffaele Ferrari
+> Siddhartha Bishnu, John Marshall, and Raffaele Ferrari
 >
-> submitted to the Journal of Advances in Modeling Earth Systems, arXiv 2502.14148
+> submitted to the Journal of Advances in Modeling Earth Systems, arXiv:[2502.14148](https://doi.org/10.48550/arXiv.2502.14148)
 
 <details><summary>bibtex</summary>
   <pre><code>@article{Oceananigans-overview-paper-2025,
   title = {{High-level, high-resolution ocean modeling at all scales with Oceananigans}},
-  author = {G. L. Wagner and S. Silvestri and N. C. Constantinou and A. Ramadhan and J.-M. Campin and C. Hill and T. Chor and J. Strong-Wright and X. K. Lee and F. Poulin and A. Souza and K. J. Burns and J. Marshall and R. Ferrari},
+  author = {G. L. Wagner and S. Silvestri and N. C. Constantinou and A. Ramadhan and J.-M. Campin and C. Hill and T. Chor and J. Strong-Wright and X. K. Lee and F. Poulin and A. Souza and K. J. Burns and S. Bishnu and J. Marshall and R. Ferrari},
   journal = {arXiv preprint},
   year = {2025},
   archivePrefix = {arXiv},

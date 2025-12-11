@@ -2,7 +2,7 @@ using Oceananigans: location
 using Oceananigans.Grids: node
 using Oceananigans.Fields: interpolate, instantiated_location
 using Oceananigans.OutputReaders: Cyclical
-using Oceananigans.Utils: Time
+using Oceananigans.Units: Time
 using Oceananigans.Architectures: AbstractArchitecture
 
 using JLD2
@@ -11,7 +11,7 @@ using NCDatasets
 using Dates: Second
 
 import ClimaOcean: stateindex
-import Oceananigans.Forcings: regularize_forcing
+import Oceananigans.Forcings: materialize_forcing
 
 # Variable names for restorable data
 struct Temperature end
@@ -230,7 +230,7 @@ function Base.show(io::IO, dsr::DatasetRestoring)
               "└── native_grid: ", summary(dsr.native_grid))
 end
 
-regularize_forcing(forcing::DatasetRestoring, field, field_name, model_field_names) = forcing
+materialize_forcing(forcing::DatasetRestoring, field, field_name, model_field_names) = forcing
 
 #####
 ##### Masks for restoring

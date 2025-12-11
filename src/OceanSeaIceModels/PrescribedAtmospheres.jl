@@ -5,7 +5,8 @@ using Oceananigans.Fields: Center
 using Oceananigans.Grids: grid_name
 using Oceananigans.OutputReaders: FieldTimeSeries, update_field_time_series!, extract_field_time_series
 using Oceananigans.TimeSteppers: Clock, tick!
-using Oceananigans.Utils: prettysummary, Time
+using Oceananigans.Grids: prettysummary
+using Oceananigans.Units: Time
 
 using Adapt
 using Thermodynamics.Parameters: AbstractThermodynamicsParameters
@@ -42,7 +43,8 @@ import Thermodynamics.Parameters:
 
 import ..OceanSeaIceModels:
     downwelling_radiation,
-    freshwater_flux
+    freshwater_flux,
+    compute_net_atmosphere_fluxes!
 
 #####
 ##### Atmospheric thermodynamics parameters
@@ -375,6 +377,9 @@ end
 @inline thermodynamics_parameters(atmos::PrescribedAtmosphere) = atmos.thermodynamics_parameters
 @inline surface_layer_height(atmos::PrescribedAtmosphere) = atmos.surface_layer_height
 @inline boundary_layer_height(atmos::PrescribedAtmosphere) = atmos.boundary_layer_height
+
+# No need to compute anything here...
+compute_net_atmosphere_fluxes!(coupled_model, ::PrescribedAtmosphere) = nothing
 
 """
     PrescribedAtmosphere(grid, times=[zero(grid)];
