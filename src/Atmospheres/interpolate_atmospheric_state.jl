@@ -107,16 +107,11 @@ function interpolate_state!(exchanger, grid, atmosphere::PrescribedAtmosphere, c
     #
     # TODO: find a better design for this that doesn't have redundant
     # arrays for the barotropic potential
-    u_potential = forcing_barotropic_potential(coupled_model.ocean.model.forcing.u)
-    v_potential = forcing_barotropic_potential(coupled_model.ocean.model.forcing.v)
+    potential = forcing_barotropic_potential(coupled_model.ocean)
     ρₒ = coupled_model.interfaces.ocean_properties.reference_density
 
-    if !isnothing(u_potential)
-        parent(u_potential) .= parent(atmosphere_data.p) ./ ρₒ
-    end
-
-    if !isnothing(v_potential)
-        parent(v_potential) .= parent(atmosphere_data.p) ./ ρₒ
+    if !isnothing(potential)
+        parent(potential) .= parent(atmosphere_data.p) ./ ρₒ
     end
 end
 

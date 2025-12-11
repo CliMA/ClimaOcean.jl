@@ -24,7 +24,11 @@ using KernelAbstractions: @kernel, @index
 import ClimaOcean.OceanSeaIceModels: interpolate_state!,
                                      update_net_fluxes!,
                                      reference_density,
-                                     heat_capacity
+                                     heat_capacity,
+                                     ocean_temperature,
+                                     ocean_salinity,
+                                     ocean_surface_salinity,
+                                     ocean_surface_velocities
 
 import ClimaOcean.OceanSeaIceModels.InterfaceComputations: ComponentExchanger, net_fluxes
 
@@ -53,6 +57,23 @@ include("barotropic_potential_forcing.jl")
 include("radiative_forcing.jl")
 include("ocean_simulation.jl")
 include("assemble_net_ocean_fluxes.jl")
+
+#####
+##### Extend utility functions to grab the state of the ocean
+#####
+
+ocean_salinity(ocean::Simulation{<:HydrostaticFreeSurfaceModel})    = ocean.model.tracers.S
+ocean_temperature(ocean::Simulation{<:HydrostaticFreeSurfaceModel}) = ocean.model.tracers.T
+
+function ocean_surface_salinity(ocean::Simulation{<:HydrostaticFreeSurfaceModel})
+    kᴺ = size(ocean.model.grid, 3)
+    return interior(ocean.model.tracers.S, :, :, kᴺ:kᴺ)
+end
+
+function ocean_surface_velocities(ocean::Simulation{<:HydrostaticFreeSurfaceModel})
+    kᴺ = size(ocean.model.grid, 3)
+    return view(ocean.model.velocities.u, :, :, kᴺ), view(ocean.model.velocities.v, :, :, kᴺ)
+end
 
 # When using an Oceananigans simulation, we assume that the exchange grid is the ocean grid
 # We need, however, to interpolate the surface pressure to the ocean grid

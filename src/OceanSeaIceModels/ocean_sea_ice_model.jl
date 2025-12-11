@@ -30,7 +30,14 @@ function Base.show(io::IO, cm::OSIM)
     end
 
     print(io, summary(cm), "\n")
-    print(io, "├── ocean: ", summary(cm.ocean.model), "\n")
+
+    if cm.ocean isa Simulation
+        ocean_summary = summary(cm.ocean.model)
+    else
+        ocean_summary = summary(cm.ocean)
+    end
+
+    print(io, "├── ocean: ", ocean_summary, "\n")
     print(io, "├── atmosphere: ", summary(cm.atmosphere), "\n")
     print(io, "├── sea_ice: ", sea_ice_summary, "\n")
     print(io, "└── interfaces: ", summary(cm.interfaces))
@@ -38,8 +45,8 @@ function Base.show(io::IO, cm::OSIM)
 end
 
 # Assumption: We have an ocean!
-architecture(model::OSIM)           = architecture(model.ocean.model)
-Base.eltype(model::OSIM)            = Base.eltype(model.ocean.model)
+architecture(model::OSIM)           = model.architecture
+Base.eltype(model::OSIM)            = Base.eltype(model.interfaces.exchanger.grid)
 prettytime(model::OSIM)             = prettytime(model.clock.time)
 iteration(model::OSIM)              = model.clock.iteration
 timestepper(::OSIM)                 = nothing
@@ -61,7 +68,7 @@ function initialization_update_state!(model::OSIM)
 end
 
 function initialize!(model::OSIM)
-    initialize!(model.ocean)
+    # initialize!(model.ocean)
     initialize!(model.interfaces.exchanger, model)
     return nothing
 end
@@ -146,10 +153,10 @@ The available stability function options include:
 - Custom stability functions can be created by defining functions of the "stability parameter"
   (the flux Richardson number), `ζ`.
 """
-function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(ocean.model));
+function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature();
                           atmosphere = nothing,
-                          radiation = Radiation(architecture(ocean.model)),
-                          clock = deepcopy(ocean.model.clock),
+                          radiation = Radiation(),
+                          clock = Clock(time=0),
                           ocean_reference_density = reference_density(ocean),
                           ocean_heat_capacity = heat_capacity(ocean),
                           sea_ice_reference_density = reference_density(sea_ice),
@@ -189,7 +196,7 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(
                                          radiation)
     end
 
-    arch = architecture(ocean.model.grid)
+    arch = architecture(interfaces.exchanger.grid)
 
     ocean_sea_ice_model = OceanSeaIceModel(arch,
                                            clock,
@@ -200,7 +207,7 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(
 
     # Make sure the initial temperature of the ocean
     # is not below freezing and above melting near the surface
-    above_freezing_ocean_temperature!(ocean, sea_ice)
+    # above_freezing_ocean_temperature!(ocean, sea_ice)
     initialization_update_state!(ocean_sea_ice_model)
 
     return ocean_sea_ice_model
@@ -209,11 +216,13 @@ end
 time(coupled_model::OceanSeaIceModel) = coupled_model.clock.time
 
 # Check for NaNs in the first prognostic field (generalizes to prescribed velocities).
-function default_nan_checker(model::OceanSeaIceModel)
-    u_ocean = model.ocean.model.velocities.u
-    nan_checker = NaNChecker((; u_ocean))
-    return nan_checker
-end
+# function default_nan_checker(model::OceanSeaIceModel)
+#     u_ocean = model.ocean.model.velocities.u
+#     nan_checker = NaNChecker((; u_ocean))
+#     return nan_checker
+# end
+
+default_nan_checker(model::OceanSeaIceModel) = nothing
 
 @kernel function _above_freezing_ocean_temperature!(T, grid, S, ℵ, liquidus)
     i, j = @index(Global, NTuple)

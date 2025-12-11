@@ -85,7 +85,7 @@ end
     return zero(Iˢʷ)
 end
 
-get_radiative_forcing(FT) = FT
+get_radiative_forcing(something) = nothing
 
 function get_radiative_forcing(FT::MultipleForcings)
     for forcing in FT.forcings
@@ -93,3 +93,9 @@ function get_radiative_forcing(FT::MultipleForcings)
     end
     return nothing
 end
+
+get_radiative_forcing(sim::Simulation) = get_radiative_forcing(sim.model)
+
+get_radiative_forcing(model::HydrostaticFreeSurfaceModel) = 
+    get_radiative_forcing(model.forcing.T)
+    

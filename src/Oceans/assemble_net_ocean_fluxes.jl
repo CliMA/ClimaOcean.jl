@@ -18,12 +18,11 @@ using ClimaOcean.OceanSeaIceModels.InterfaceComputations: interface_kernel_param
 #####
 
 update_net_fluxes!(coupled_model, ocean::Simulation{<:HydrostaticFreeSurfaceModel}) = 
-    update_net_ocean_fluxes!(coupled_model, ocean)
+    update_net_ocean_fluxes!(coupled_model, ocean.model)
 
 # A generic ocean flux assembler for a coupled model with both an atmosphere and sea ice
-function update_net_ocean_fluxes!(coupled_model, ocean)
+function update_net_ocean_fluxes!(coupled_model, ocean_model, grid)
     sea_ice = coupled_model.sea_ice
-    grid = ocean.model.grid
     arch = architecture(grid)
     clock = coupled_model.clock
 
@@ -47,13 +46,13 @@ function update_net_ocean_fluxes!(coupled_model, ocean)
     freshwater_flux = atmosphere_fields.Mp.data
 
     ice_concentration = sea_ice_concentration(sea_ice)
-    ocean_salinity = ocean.model.tracers.S
+    ocean_salinity = ocean_model.tracers.S
     atmos_ocean_properties = coupled_model.interfaces.atmosphere_ocean_interface.properties
     ocean_properties = coupled_model.interfaces.ocean_properties
     kernel_parameters = interface_kernel_parameters(grid)
 
     ocean_surface_temperature = coupled_model.interfaces.atmosphere_ocean_interface.temperature
-    penetrating_radiation = get_radiative_forcing(ocean.model.forcing.T)
+    penetrating_radiation = get_radiative_forcing(ocean_model)
 
     launch!(arch, grid, kernel_parameters,
             _assemble_net_ocean_fluxes!,

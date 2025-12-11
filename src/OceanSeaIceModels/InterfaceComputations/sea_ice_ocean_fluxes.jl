@@ -17,8 +17,8 @@ end
 
 function compute_sea_ice_ocean_fluxes!(sea_ice_ocean_fluxes, ocean, sea_ice, melting_speed, ocean_properties)
     Δt = ocean.Δt
-    Tₒ = ocean.model.tracers.T
-    Sₒ = ocean.model.tracers.S
+    Tₒ = ocean_temperature(ocean)
+    Sₒ = ocean_salinity(ocean)
     Sᵢ = sea_ice.model.tracers.S
     ℵᵢ = sea_ice.model.ice_concentration
     hᵢ = sea_ice.model.ice_thickness

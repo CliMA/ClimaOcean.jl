@@ -208,7 +208,7 @@ function default_ai_temperature(sea_ice)
 end
 
 function default_ao_specific_humidity(ocean)
-    FT = eltype(ocean.model.grid)
+    FT    = eltype(ocean)
     phase = AtmosphericThermodynamics.Liquid()
     x_H₂O = convert(FT, 0.98)
     return ImpureSaturationSpecificHumidity(phase, x_H₂O)
@@ -235,8 +235,8 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              exchange_grid = ocean.model.grid,
                              radiation = Radiation(),
                              freshwater_density = default_freshwater_density,
-                             atmosphere_ocean_fluxes = SimilarityTheoryFluxes(eltype(ocean.model.grid)),
-                             atmosphere_sea_ice_fluxes = SimilarityTheoryFluxes(eltype(ocean.model.grid)),
+                             atmosphere_ocean_fluxes = SimilarityTheoryFluxes(eltype(exchange_grid)),
+                             atmosphere_sea_ice_fluxes = SimilarityTheoryFluxes(eltype(exchange_grid)),
                              atmosphere_ocean_interface_temperature = BulkTemperature(),
                              atmosphere_ocean_velocity_difference = RelativeVelocity(),
                              atmosphere_ocean_interface_specific_humidity = default_ao_specific_humidity(ocean),
@@ -250,8 +250,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              sea_ice_heat_capacity = heat_capacity(sea_ice),
                              gravitational_acceleration = default_gravitational_acceleration)
 
-    ocean_grid = ocean.model.grid
-    FT = eltype(ocean_grid)
+    FT = eltype(exchange_grid)
 
     ocean_reference_density    = convert(FT, ocean_reference_density)
     ocean_heat_capacity        = convert(FT, ocean_heat_capacity)

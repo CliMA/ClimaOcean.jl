@@ -4,6 +4,10 @@
 
 reference_density(::Nothing) = 0
 heat_capacity(::Nothing) = 0
+ocean_temperature(ocean) = ZeroField()
+ocean_salinity(::Nothing) = ZeroField()
+ocean_surface_salinity(ocean) = ZeroField()
+ocean_surface_velocities(ocean) = ZeroField(), ZeroField()
 
 #####
 ##### Functions extended by sea-ice models
@@ -27,6 +31,6 @@ function boundary_layer_height end
 function interpolate_state! end
 function update_net_fluxes! end
 
-# Fallbacks for a ``Nothing`` component model
-update_net_fluxes!(coupled_model, ::Nothing) = nothing
-interpolate_state!(exchanger, grid, ::Nothing, coupled_model) = nothing
+# Fallbacks for a  generic component model
+update_net_fluxes!(coupled_model, component) = nothing
+interpolate_state!(exchanger, grid, component, coupled_model) = nothing

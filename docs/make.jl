@@ -51,8 +51,8 @@ pages = [
         # "Global climate simulation" => "literated/global_climate_simulation.md",
         ],
 
-    "Tutorials" => [
-        "Implementing a Slab Ocean Component" => "tutorials/slab_ocean.md",
+    "Developers" => [
+        "OceanSeaIceModel interface" => "developers/slab_ocean.md",
         ],
 
     "Vertical grids" => "vertical_grids.md",

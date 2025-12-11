@@ -10,7 +10,7 @@ update_net_fluxes!(coupled_model, ::FreezingLimitedOceanTemperature) = nothing
 
 function update_net_fluxes!(coupled_model, sea_ice::Simulation{<:SeaIceModel})
     ocean = coupled_model.ocean
-    grid  = ocean.model.grid
+    grid  = sea_ice.model.grid
     arch  = architecture(grid)
     clock = coupled_model.clock
 

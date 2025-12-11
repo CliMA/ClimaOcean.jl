@@ -1,3 +1,8 @@
+struct ComponentExchanger{S, EX}
+    state :: S
+    regridder :: EX
+end
+
 struct StateExchanger{G, A, O, S}
     grid :: G
     atmosphere :: A
@@ -19,11 +24,6 @@ struct StateExchanger{G, A, O, S}
                                ocean_exchanger, 
                                sea_ice_exchanger)
     end
-end
-
-struct ComponentExchanger{S, EX}
-    state :: S
-    regridder :: EX
 end
 
 # For ``nothing'' components, we don't need an exchanger

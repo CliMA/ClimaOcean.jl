@@ -4,15 +4,10 @@ using ClimaSeaIce.SeaIceThermodynamics: IceWaterThermalEquilibrium
 using ClimaSeaIce.SeaIceDynamics: SplitExplicitSolver, SemiImplicitStress, SeaIceMomentumEquation, StressBalanceFreeDrift
 using ClimaSeaIce.Rheologies: IceStrength, ElastoViscoPlasticRheology
 
+using ClimaOcean.OceanSeaIceModels: ocean_surface_salinity, ocean_surface_velocities
 using ClimaOcean.Oceans: Default
 
-g_Earth = Oceananigans.defaults.gravitational_acceleration
-Ω_Earth = Oceananigans.defaults.planet_rotation_rate
-
-function ocean_surface_salinity(ocean::Simulation{<:HydrostaticFreeSurfaceModel})
-    kᴺ = size(ocean.model.grid, 3)
-    return interior(ocean.model.tracers.S, :, :, kᴺ:kᴺ)
-end
+default_rotation_rate = Oceananigans.defaults.planet_rotation_rate
 
 function sea_ice_simulation(grid, ocean=nothing;
                             Δt = 5minutes,
@@ -35,7 +30,7 @@ function sea_ice_simulation(grid, ocean=nothing;
 
     if isnothing(top_heat_boundary_condition)
         top_surface_temperature = Field{Center, Center, Nothing}(grid)
-        top_heat_boundary_condition = PrescribedTemperature(top_surface_temperature)
+        top_heat_boundary_condition = PrescribedTemperature(top_surface_temperature.data)
     end
 
     if isnothing(bottom_heat_boundary_condition)
@@ -79,21 +74,11 @@ end
 function sea_ice_dynamics(grid, ocean=nothing;
                           sea_ice_ocean_drag_coefficient = 5.5e-3,
                           rheology = ElastoViscoPlasticRheology(),
-                          coriolis = nothing,
+                          coriolis = HydrostaticSphericalCoriolis(; rotation_rate=default_rotation_rate),
                           free_drift = nothing,
                           solver = SplitExplicitSolver(120))
 
-    if isnothing(ocean)
-        SSU = Oceananigans.Fields.ZeroField()
-        SSV = Oceananigans.Fields.ZeroField()
-    else
-        SSU = view(ocean.model.velocities.u, :, :, grid.Nz)
-        SSV = view(ocean.model.velocities.v, :, :, grid.Nz)
-        if isnothing(coriolis)
-            coriolis = ocean.model.coriolis
-        end
-    end
-
+    SSU, SSV = ocean_surface_velocities(ocean)
     sea_ice_ocean_drag_coefficient = convert(eltype(grid), sea_ice_ocean_drag_coefficient)
 
     τo  = SemiImplicitStress(uₑ=SSU, vₑ=SSV, Cᴰ=sea_ice_ocean_drag_coefficient)
