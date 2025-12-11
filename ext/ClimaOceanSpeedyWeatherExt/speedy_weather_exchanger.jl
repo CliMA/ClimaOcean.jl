@@ -27,10 +27,9 @@ function ComponentExchanger(atmosphere::SpeedySimulation, exchange_grid)
 
     spectral_grid = atmosphere.model.spectral_grid
     # TODO: Implement a conservative regridder when ready
-    from_atmosphere_regridder = XESMF.Regridder(spectral_grid, exchange_grid)
-    to_atmosphere_regridder = XESMF.Regridder(exchange_grid, spectral_grid)
+    from_atmosphere = XESMF.Regridder(spectral_grid, exchange_grid)
+    to_atmosphere   = XESMF.Regridder(exchange_grid, spectral_grid)
     regridder = (; to_atmosphere, from_atmosphere)
-
     
     state = (; u  = Field{Center, Center, Nothing}(exchange_grid),
                v  = Field{Center, Center, Nothing}(exchange_grid),
