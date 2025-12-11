@@ -47,10 +47,9 @@ end
 @inline (regrid!::XESMF.Regridder)(data::AbstractArray, field::Oceananigans.Field) = regrid!(data, vec(interior(field)))
 
 # Regrid the atmospheric state on the exchange grid
-function interpolate_state!(interfaces, exchange_grid, atmos::SpeedySimulation, coupled_model)
-    atmosphere_exchanger = interfaces.exchanger.atmosphere
-    regrid!        = atmosphere_exchanger.regridder.from_atmosphere
-    exchange_state = atmosphere_exchanger.state
+function interpolate_state!(exchanger, exchange_grid, atmos::SpeedySimulation, coupled_model)
+    regrid!        = exchanger.regridder.from_atmosphere
+    exchange_state = exchanger.state
     surface_layer  = atmos.model.spectral_grid.nlayers
 
     ua  = RingGrids.field_view(atmos.diagnostic_variables.grid.u_grid,     :, surface_layer).data

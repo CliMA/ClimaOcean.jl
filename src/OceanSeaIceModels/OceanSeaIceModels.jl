@@ -62,4 +62,21 @@ include("ocean_sea_ice_model.jl")
 include("freezing_limited_ocean_temperature.jl")
 include("time_step_ocean_sea_ice_model.jl")
 
+#####
+#####  Fallbacks for a single-component model
+#####
+
+const NoSeaIce = Union{Nothing, FreezingLimitedOceanTemperature}
+
+#                                      Sea Ice   | Atmosphere | Ocean
+const OnlyOceanModel      = OceanSeaIceModel{<:NoSeaIce, <:Nothing, <:Any}
+const OnlyAtmosphereModel = OceanSeaIceModel{<:NoSeaIce, <:Any,     <:Nothing}
+const OnlySeaIceModel     = OceanSeaIceModel{<:Any,      <:Nothing, <:Nothing}
+
+SingleComponentModel = Union{OnlyOceanModel, OnlyAtmosphereModel, OnlySeaIceModel}
+
+InterfaceComputations.compute_atmosphere_ocean_fluxes!(::SingleComponentModel) = nothing
+InterfaceComputations.compute_atmosphere_sea_ice_fluxes!(::SingleComponentModel) = nothing
+InterfaceComputations.compute_sea_ice_ocean_fluxes!(::SingleComponentModel) = nothing
+
 end # module

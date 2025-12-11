@@ -102,15 +102,16 @@ OceanSeaIceModels.update_net_fluxes!(coupled_model, slab_ocean::SlabOcean) =
 # ## Step 4: Extend the TimeSteppers.jl module
 #
 # The `time_step!` method is called by the coupled model to advance the component forward in time. 
-# For a slab ocean, this method advances temperature and salinity through the computed fluxes:
+# For a slab ocean, this method advances temperature and salinity through the computed fluxes. Note the convention
+# that the fluxes are positive when they are leaving the ocean component.
 
 import Oceananigans.TimeSteppers: time_step!
 using Oceananigans.TimeSteppers: tick!
 
 function time_step!(slab_ocean::SlabOcean, Δt)
     tick!(slab_ocean.clock, Δt)    
-    parent(slab_ocean.temperature) .+= parent(slab_ocean.fluxes.T) .* Δt ./ size(slab_ocean.grid, 3)
-    parent(slab_ocean.salinity)    .+= parent(slab_ocean.fluxes.S) .* Δt ./ size(slab_ocean.grid, 3)
+    parent(slab_ocean.temperature) .-= parent(slab_ocean.fluxes.T) .* Δt ./ slab_ocean.grid.Lz
+    parent(slab_ocean.salinity)    .-= parent(slab_ocean.fluxes.S) .* Δt ./ slab_ocean.grid.Lz
     return nothing
 end
 
@@ -134,8 +135,8 @@ set!(slab_ocean.salinity,    Metadatum(:salinity,    dataset=ECCO4Monthly()))
 
 atmosphere = ClimaOcean.JRA55PrescribedAtmosphere(arch)
 
-sea_ice = ClimaOcean.sea_ice_simulation(grid, slab_ocean)
-set!(sea_ice.model, h=1, ℵ=1)
+sea_ice = ClimaOcean.sea_ice_simulation(grid, slab_ocean, advection=WENO(order=7))
+set!(sea_ice.model, h=10, ℵ=1)
 
 interfaces = ComponentInterfaces(atmosphere, slab_ocean, sea_ice; exchange_grid=grid)
 coupled_model = ClimaOcean.OceanSeaIceModel(slab_ocean, sea_ice; atmosphere, interfaces)
@@ -145,15 +146,15 @@ run!(simulation)
 
 using CairoMakie
 
-fig = Figure()
+fig = Figure(size = (1200, 800), fontsize = 10)
 axT = Axis(fig[1, 1])
 axS = Axis(fig[1, 2])
 axh = Axis(fig[2, 1])
 axℵ = Axis(fig[2, 2])
-heatmap!(axT, slab_ocean.temperature)
-heatmap!(axS, slab_ocean.salinity)
-heatmap!(axh, sea_ice.model.ice_thickness)
-heatmap!(axℵ, sea_ice.model.ice_concentration)
+heatmap!(axT, interior(slab_ocean.temperature, :, :, 1))
+heatmap!(axS, interior(slab_ocean.salinity, :, :, 1))
+heatmap!(axh, interior(sea_ice.model.ice_thickness, :, :, 1))
+heatmap!(axℵ, interior(sea_ice.model.ice_concentration, :, :, 1))
 
 display(fig)
 

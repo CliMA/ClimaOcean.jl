@@ -17,6 +17,11 @@ using ClimaOcean.OceanSeaIceModels.InterfaceComputations: interface_kernel_param
 ##### Generic flux assembler
 #####
 
+using ClimaOcean.OceanSeaIceModels: OnlyOceanModel
+
+# Fallback for an ocean-only model
+update_net_fluxes!(coupled_model::OnlyOceanModel, ocean::Simulation{<:HydrostaticFreeSurfaceModel}) = nothing
+
 update_net_fluxes!(coupled_model, ocean::Simulation{<:HydrostaticFreeSurfaceModel}) = 
     update_net_ocean_fluxes!(coupled_model, ocean, ocean.model.grid)
 
