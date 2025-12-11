@@ -1,27 +1,5 @@
-using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus
-using ClimaOcean.OceanSeaIceModels: OceanSeaIceModel
-
-#####
-##### A workaround when you don't have a sea ice model
-#####
-
-struct FreezingLimitedOceanTemperature{L}
-    liquidus :: L
-end
-
-"""
-    FreezingLimitedOceanTemperature(FT=Float64; liquidus=LinearLiquidus(FT))
-
-The minimal possible sea ice representation, clipping the temperature below to the freezing point.
-Not really a "model" per se, however, it is the most simple way to make sure that temperature
-does not dip below freezing.
-
-The melting temperature is a function of salinity and is controlled by the `liquidus`.
-"""
-FreezingLimitedOceanTemperature(FT::DataType=Oceananigans.defaults.FloatType; liquidus=LinearLiquidus(FT)) =
-    FreezingLimitedOceanTemperature(liquidus)
-
-const FreezingLimitedCoupledModel = OceanSeaIceModel{<:FreezingLimitedOceanTemperature}
+using ClimaOcean.OceanSeaIceModels: FreezingLimitedOceanTemperature, FreezingLimitedCoupledModel
+using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 
 # No need to compute fluxes for this "sea ice model"
 function compute_sea_ice_ocean_fluxes!(cm::FreezingLimitedCoupledModel)
@@ -51,15 +29,3 @@ compute_atmosphere_sea_ice_fluxes!(cm::FreezingLimitedCoupledModel) = nothing
     Tₘ = melting_temperature(liquidus, Sᵢ)
     @inbounds Tₒ[i, j, k] = ifelse(Tᵢ < Tₘ, Tₘ, Tᵢ)
 end
-
-#####
-##### Extending OceanSeaIceModels interface
-#####
-
-sea_ice_concentration(::FreezingLimitedOceanTemperature) = ZeroField()
-sea_ice_thickness(::FreezingLimitedOceanTemperature) = ZeroField()
-
-# does not matter
-reference_density(::FreezingLimitedOceanTemperature) = 0
-heat_capacity(::FreezingLimitedOceanTemperature) = 0
-time_step!(::FreezingLimitedOceanTemperature, Δt) = nothing

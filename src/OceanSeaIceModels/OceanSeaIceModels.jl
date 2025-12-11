@@ -59,6 +59,7 @@ include("InterfaceComputations/InterfaceComputations.jl")
 using .InterfaceComputations
 
 include("ocean_sea_ice_model.jl")
+include("freezing_limited_ocean_temperature.jl")
 include("time_step_ocean_sea_ice_model.jl")
 
 end # module
