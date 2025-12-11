@@ -134,8 +134,8 @@ function time_step!(slab_ocean::SlabOcean, Δt; callbacks=[], compute_tendencies
     # Tick the clock forward
     tick!(slab_ocean.clock, Δt)
     
-    parent(slab_ocean.tracers.T) .+= parent(slab_ocean.Jᵀ) .* Δt ./ slab_ocean.depth
-    parent(slab_ocean.tracers.S) .+= parent(slab_ocean.Jˢ) .* Δt ./ slab_ocean.depth
+    parent(slab_ocean.temperature) .+= parent(slab_ocean.fluxes.T) .* Δt ./ size(slab_ocean.grid, 3)
+    parent(slab_ocean.salinity)    .+= parent(slab_ocean.fluxes.S) .* Δt ./ size(slab_ocean.grid, 3)
 
     return nothing
 end
