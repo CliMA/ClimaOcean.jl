@@ -189,6 +189,7 @@ function ocean_simulation(grid;
                           rotation_rate = default_planet_rotation_rate,
                           gravitational_acceleration = default_gravitational_acceleration,
                           bottom_drag_coefficient = Default(0.003),
+                          use_barotropic_potential = true,
                           forcing = NamedTuple(),
                           biogeochemistry = nothing,
                           timestepper = :SplitRungeKutta3,
@@ -243,15 +244,17 @@ function ocean_simulation(grid;
         u_immersed_bc = ImmersedBoundaryCondition(bottom=u_immersed_drag)
         v_immersed_bc = ImmersedBoundaryCondition(bottom=v_immersed_drag)
 
-        # Forcing for u, v
-        u_barotropic_potential = Field{Center, Center, Nothing}(grid)
-        v_barotropic_potential = Field{Center, Center, Nothing}(grid)
-        u_forcing = BarotropicPotentialForcing(XDirection(), u_barotropic_potential)
-        v_forcing = BarotropicPotentialForcing(YDirection(), v_barotropic_potential)
+        if use_barotropic_potential
+            # Forcing for u, v
+            u_barotropic_potential = Field{Center, Center, Nothing}(grid)
+            v_barotropic_potential = Field{Center, Center, Nothing}(grid)
+            u_forcing = BarotropicPotentialForcing(XDirection(), u_barotropic_potential)
+            v_forcing = BarotropicPotentialForcing(YDirection(), v_barotropic_potential)
 
-        :u ∈ keys(forcing) && (u_forcing = (u_forcing, forcing[:u]))
-        :v ∈ keys(forcing) && (v_forcing = (v_forcing, forcing[:v]))
-        forcing = merge(forcing, (u=u_forcing, v=v_forcing))
+            :u ∈ keys(forcing) && (u_forcing = (u_forcing, forcing[:u]))
+            :v ∈ keys(forcing) && (v_forcing = (v_forcing, forcing[:v]))
+            forcing = merge(forcing, (u=u_forcing, v=v_forcing))
+        end
     end
 
     if !isnothing(radiative_forcing)
@@ -301,11 +304,8 @@ function ocean_simulation(grid;
         # Magically add :e to tracers
         if !(:e ∈ tracers)
             tracers = tuple(tracers..., :e)
+            tracer_advection = merge(tracer_advection, (; e = tracer_advection.S))
         end
-
-        # Turn off CATKE tracer advection
-        tke_advection = (; e=nothing)
-        tracer_advection = merge(tracer_advection, tke_advection)
     end
 
     ocean_model = HydrostaticFreeSurfaceModel(; grid,
