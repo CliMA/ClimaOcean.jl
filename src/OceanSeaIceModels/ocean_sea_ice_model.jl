@@ -160,7 +160,7 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature();
                           sea_ice_heat_capacity = heat_capacity(sea_ice),
                           interfaces = nothing)
 
-    try
+    if ocean isa Simulation
         if !isnothing(ocean.callbacks)
             # Remove some potentially irksome callbacks from the ocean simulation
             pop!(ocean.callbacks, :stop_time_exceeded, nothing)
@@ -168,19 +168,15 @@ function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature();
             pop!(ocean.callbacks, :wall_time_limit_exceeded, nothing)
             pop!(ocean.callbacks, :nan_checker, nothing)
         end
-    catch
-        @warn "Failed to pop callbacks from ocean simulation"
     end
 
-    try
+    if sea_ice isa Simulation
         if !isnothing(sea_ice.callbacks)
             pop!(sea_ice.callbacks, :stop_time_exceeded, nothing)
             pop!(sea_ice.callbacks, :stop_iteration_exceeded, nothing)
             pop!(sea_ice.callbacks, :wall_time_limit_exceeded, nothing)
             pop!(sea_ice.callbacks, :nan_checker, nothing)
         end
-    catch
-        @warn "Failed to pop callbacks from sea ice simulation"
     end
 
     # Contains information about flux contributions: bulk formula, prescribed fluxes, etc.
