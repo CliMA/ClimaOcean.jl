@@ -12,7 +12,7 @@ using ClimaOcean.OceanSeaIceModels: sea_ice_concentration
 # using GeoInterface: Polygon, LinearRing
 import ClimaOcean.OceanSeaIceModels: update_net_fluxes!, interpolate_state!
 import ClimaOcean.Atmospheres: atmosphere_regridder
-import ClimaOcean.OceanSeaIceModels.InterfaceComputations: net_fluxes
+import ClimaOcean.OceanSeaIceModels.InterfaceComputations: net_fluxes, ComponentExchanger
 
 # We do not need this...
 net_fluxes(::SpeedySimulation) = nothing
@@ -23,28 +23,35 @@ net_fluxes(::SpeedySimulation) = nothing
 # If this work we can
 # 1. Copy speedyweather gridarrays to the GPU
 # 2. Perform the regridding on the GPU
-function atmosphere_regridder(atmosphere::SpeedySimulation, exchange_grid)
+function ComponentExchanger(atmosphere::SpeedySimulation, exchange_grid) 
 
-    # Figure this out:
     spectral_grid = atmosphere.model.spectral_grid
-
     # TODO: Implement a conservative regridder when ready
     from_atmosphere_regridder = XESMF.Regridder(spectral_grid, exchange_grid)
     to_atmosphere_regridder = XESMF.Regridder(exchange_grid, spectral_grid)
     regridder = (; to_atmosphere, from_atmosphere)
 
-    return regridder
+    
+    state = (; u  = Field{Center, Center, Nothing}(exchange_grid),
+               v  = Field{Center, Center, Nothing}(exchange_grid),
+               T  = Field{Center, Center, Nothing}(exchange_grid),
+               p  = Field{Center, Center, Nothing}(exchange_grid),
+               q  = Field{Center, Center, Nothing}(exchange_grid),
+               Qs = Field{Center, Center, Nothing}(exchange_grid),
+               Qℓ = Field{Center, Center, Nothing}(exchange_grid),
+               Mp = Field{Center, Center, Nothing}(exchange_grid))
+    
+    return ComponentExchanger(state, regridder)
 end
 
 @inline (regrid!::XESMF.Regridder)(field::Oceananigans.Field, data::AbstractArray) = regrid!(vec(interior(field)), data)
 @inline (regrid!::XESMF.Regridder)(data::AbstractArray, field::Oceananigans.Field) = regrid!(data, vec(interior(field)))
 
 # Regrid the atmospheric state on the exchange grid
-function interpolate_state!(interfaces, atmos::SpeedySimulation, coupled_model)
+function interpolate_state!(interfaces, exchange_grid, atmos::SpeedySimulation, coupled_model)
     atmosphere_exchanger = interfaces.exchanger.atmosphere
     regrid!        = atmosphere_exchanger.regridder.from_atmosphere
     exchange_state = atmosphere_exchanger.state
-    exchange_grid  = interfaces.exchanger.grid
     surface_layer  = atmos.model.spectral_grid.nlayers
 
     ua  = RingGrids.field_view(atmos.diagnostic_variables.grid.u_grid,     :, surface_layer).data
