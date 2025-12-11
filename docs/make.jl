@@ -14,8 +14,9 @@ bib = CitationBibliography(bib_filepath, style=:authoryear)
 ##### Generate examples
 #####
 
-const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
-const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
+const EXAMPLES_DIR   = joinpath(@__DIR__, "..", "examples")
+const OUTPUT_DIR     = joinpath(@__DIR__, "src/literated")
+const DEVELOPERS_DIR = joinpath(@__DIR__, "src/developers")
 
 to_be_literated = [
     # "single_column_os_papa_simulation.jl",
@@ -31,6 +32,10 @@ for file in to_be_literated
     end
     GC.gc()
     CUDA.reclaim()
+end
+
+withenv("JULIA_DEBUG" => "Literate") do
+    Literate.markdown(joinpath(DEVELOPERS_DIR, "slab_ocean.jl"), OUTPUT_DIR; flavor = Literate.DocumenterFlavor(), execute = false)
 end
 
 #####
@@ -52,7 +57,7 @@ pages = [
         ],
 
     "Developers" => [
-        "OceanSeaIceModel interface" => "developers/slab_ocean.md",
+        "OceanSeaIceModel interface" => "literated/slab_ocean.md",
         ],
 
     "Vertical grids" => "vertical_grids.md",
