@@ -59,7 +59,7 @@ for arch in test_architectures, dataset in test_ecco_datasets
 
             @testset "Field utilities" begin
                 test_ocean_metadata_utilities(arch, dataset, dates, inpainting,
-                                            varnames=test_names[dataset])
+                                              varnames=test_names[dataset])
             end
 
             @testset "DatasetRestoring with LinearlyTaperedPolarMask" begin
