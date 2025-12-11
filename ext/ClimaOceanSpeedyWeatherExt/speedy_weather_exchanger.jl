@@ -124,7 +124,7 @@ end
 
 # Simple case -> there is no sea ice!
 function update_net_fluxes!(coupled_model::SpeedyNoSeaIceCoupledModel, atmos::SpeedySimulation)
-    regrid!   = coupled_model.interfaces.exchanger.atmosphere_exchanger.atmosphere_ocean_regridder
+    regrid!   = coupled_model.interfaces.exchanger.atmosphere.regridder.to_atmosphere
     ao_fluxes = coupled_model.interfaces.atmosphere_ocean_interface.fluxes
     Qco = ao_fluxes.sensible_heat
     Mvo = ao_fluxes.water_vapor

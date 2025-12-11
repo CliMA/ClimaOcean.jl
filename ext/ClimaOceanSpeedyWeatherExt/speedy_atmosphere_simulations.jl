@@ -40,7 +40,7 @@ boundary_layer_height(atmos::SpeedySimulation) = 600
 
 # This is a _hack_!! The parameters should be consistent with what is specified in SpeedyWeather
 thermodynamics_parameters(atmos::SpeedySimulation) =
-    ClimaOcean.OceanSeaIceModels.AtmosphereThermodynamicsParameters(Float32)
+    ClimaOcean.Atmospheres.AtmosphereThermodynamicsParameters(Float32)
 
 function initialize_atmospheric_state!(simulation::SpeedyWeather.Simulation)
     progn, diagn, model  = SpeedyWeather.unpack(simulation)
