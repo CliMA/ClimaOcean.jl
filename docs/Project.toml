@@ -16,6 +16,5 @@ XESMF = "2e0b0046-e7a1-486f-88de-807ee8ffabe5"
 [compat]
 Documenter = "1"
 DocumenterCitations = "1.3"
-Oceananigans = "0.101"
 XESMF = "0.1.6"
 Literate = "2.2"
