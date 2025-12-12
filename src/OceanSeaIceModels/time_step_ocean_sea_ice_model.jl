@@ -6,7 +6,7 @@ using ClimaSeaIce: SeaIceModel, SeaIceThermodynamics
 using Oceananigans.Grids: φnode
 using Printf
 
-function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_tendencies=true)
+function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[])
     ocean = coupled_model.ocean
     sea_ice = coupled_model.sea_ice
     atmosphere = coupled_model.atmosphere
@@ -25,12 +25,12 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
     # - Store fractional ice-free / ice-covered _time_ for more
     #   accurate flux computation?
     tick!(coupled_model.clock, Δt)
-    update_state!(coupled_model, callbacks; compute_tendencies)
+    update_state!(coupled_model)
 
     return nothing
 end
 
-function update_state!(coupled_model::OceanSeaIceModel, callbacks=[]; compute_tendencies=true)
+function update_state!(coupled_model::OceanSeaIceModel)
 
     # The three components
     ocean      = coupled_model.ocean
