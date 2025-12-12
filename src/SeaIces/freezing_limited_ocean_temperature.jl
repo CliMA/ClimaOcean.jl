@@ -1,8 +1,15 @@
+using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus
+using ClimaOcean.OceanSeaIceModels
+using ClimaOcean.OceanSeaIceModels.InterfaceComputations
 
 #####
 ##### A workaround when you don't have a sea ice model
 #####
+
+struct FreezingLimitedOceanTemperature{L}
+    liquidus :: L
+end
 
 """
     FreezingLimitedOceanTemperature(FT=Float64; liquidus=LinearLiquidus(FT))
@@ -20,16 +27,32 @@ const FreezingLimitedCoupledModel = OceanSeaIceModel{<:FreezingLimitedOceanTempe
 
 # Extend interface methods to work with a `FreezingLimitedOceanTemperature`
 sea_ice_concentration(::FreezingLimitedOceanTemperature) = ZeroField()
-sea_ice_thickness(::FreezingLimitedOceanTemperature) = nothing
+sea_ice_thickness(::FreezingLimitedOceanTemperature) = ZeroField()
 
 # does not matter
 reference_density(::FreezingLimitedOceanTemperature) = 0
 heat_capacity(::FreezingLimitedOceanTemperature) = 0
 time_step!(::FreezingLimitedOceanTemperature, Δt) = nothing
 
-# No need to compute fluxes for this "sea ice model"
-compute_net_sea_ice_fluxes!(coupled_model, ::FreezingLimitedOceanTemperature) = nothing
+# FreezingLimitedOceanTemperature handles temperature limiting in compute_sea_ice_ocean_fluxes!
+above_freezing_ocean_temperature!(ocean, ::FreezingLimitedOceanTemperature) = nothing
 
+# No atmosphere-sea ice or sea ice-ocean interface for FreezingLimitedOceanTemperature
+InterfaceComputations.default_ai_temperature(::FreezingLimitedOceanTemperature) = nothing
+InterfaceComputations.atmosphere_sea_ice_interface(grid, atmos, ::FreezingLimitedOceanTemperature, args...) = nothing
+InterfaceComputations.sea_ice_ocean_interface(grid, ::FreezingLimitedOceanTemperature, ocean; kwargs...) = nothing
+InterfaceComputations.net_fluxes(::FreezingLimitedOceanTemperature) = nothing
+
+const OnlyOceanwithFreezingLimited      = OceanSeaIceModel{<:FreezingLimitedOceanTemperature, <:Nothing, <:Any}
+const OnlyAtmospherewithFreezingLimited = OceanSeaIceModel{<:FreezingLimitedOceanTemperature, <:Any,     <:Nothing}
+
+const SingleComponentPlusFreezingLimited = Union{OnlyAtmospherewithFreezingLimited, OnlyOceanwithFreezingLimited}
+
+InterfaceComputations.compute_atmosphere_ocean_fluxes!(::SingleComponentPlusFreezingLimited) = nothing
+InterfaceComputations.compute_atmosphere_sea_ice_fluxes!(::SingleComponentPlusFreezingLimited) = nothing
+InterfaceComputations.compute_sea_ice_ocean_fluxes!(::SingleComponentPlusFreezingLimited) = nothing
+
+# No need to compute fluxes for this "sea ice model"
 function compute_sea_ice_ocean_fluxes!(cm::FreezingLimitedCoupledModel)
     ocean = cm.ocean
     liquidus = cm.sea_ice.liquidus
@@ -42,6 +65,8 @@ function compute_sea_ice_ocean_fluxes!(cm::FreezingLimitedCoupledModel)
 
     return nothing
 end
+
+compute_atmosphere_sea_ice_fluxes!(cm::FreezingLimitedCoupledModel) = nothing
 
 @kernel function _above_freezing_ocean_temperature!(Tₒ, Sₒ, liquidus)
 

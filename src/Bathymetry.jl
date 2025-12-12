@@ -204,11 +204,6 @@ end
 function interpolate_bathymetry_in_passes(native_z, target_grid;
                                           passes = 10)
 
-    gridtype = target_grid isa TripolarGrid ? "TripolarGrid" :
-               target_grid isa LatitudeLongitudeGrid ? "LatitudeLongitudeGrid" :
-               target_grid isa RectilinearGrid ? "RectilinearGrid" :
-               error("unknown target grid type")
-
     Nλt, Nφt = Nt = size(target_grid)
     Nλn, Nφn = Nn = size(native_z)
 
@@ -230,7 +225,7 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
 
     Hx, Hy, Hz = Oceananigans.halo_size(native_z.grid)
 
-    @info "Interpolation passes of bathymetry size $(size(old_z)) onto a $gridtype target grid of size $Nt:"
+    @info "Interpolation passes of bathymetry size $(size(old_z)) onto a $(typeof(target_grid).name.wrapper) target grid of size $Nt:"
     for pass = 1:passes - 1
         new_size = (Nλ[pass], Nφ[pass], 1)
         @info "    pass $pass to size $new_size"

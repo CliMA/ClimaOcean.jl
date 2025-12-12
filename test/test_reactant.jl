@@ -29,12 +29,13 @@ end
     coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 
     # Test that Reactant does _not_ initialize in the constructor for OceanSeaIceModel
-    exchange_state = coupled_model.interfaces.exchanger.exchange_atmosphere_state
-    atmos_exchanger = coupled_model.interfaces.exchanger.atmosphere_exchanger
-    @test all(atmos_exchanger.i .== 0)
-    @test all(atmos_exchanger.j .== 0)
+    exchanger = coupled_model.interfaces.exchanger.atmosphere
+    state     = exchanger.state
+    regridder = exchanger.regridder
+    @test all(regridder.i .== 0)
+    @test all(regridder.j .== 0)
 
     # This tests that update_state! is not called
-    ue = exchange_state.u
+    ue = state.u
     @test all(ue .== 0) # not initialized with Reactant
 end
