@@ -150,7 +150,7 @@ The available stability function options include:
 - Custom stability functions can be created by defining functions of the "stability parameter"
   (the flux Richardson number), `ζ`.
 """
-function OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature();
+function OceanSeaIceModel(ocean, sea_ice=default_sea_ice();
                           atmosphere = nothing,
                           radiation = Radiation(),
                           clock = Clock(time=0),

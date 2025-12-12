@@ -15,6 +15,7 @@ ocean_surface_velocities(ocean) = ZeroField(), ZeroField()
 
 sea_ice_thickness(::Nothing) = ZeroField()
 sea_ice_concentration(::Nothing) = ZeroField()
+function default_sea_ice end
 
 #####
 ##### Functions extended by atmosphere models

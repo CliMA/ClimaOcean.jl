@@ -7,6 +7,7 @@ using Oceananigans.Units
 using Oceananigans.Utils
 using Oceananigans.Utils: with_tracers
 using Oceananigans.Grids: architecture
+using Oceananigans.Fields: ZeroField
 using Oceananigans.BoundaryConditions: DefaultBoundaryCondition
 using Oceananigans.ImmersedBoundaries: immersed_peripheral_node, inactive_node
 using Oceananigans.OrthogonalSphericalShellGrids
@@ -18,7 +19,8 @@ import ClimaOcean.OceanSeaIceModels: interpolate_state!,
                                      sea_ice_thickness,
                                      reference_density,
                                      heat_capacity,
-                                     update_net_fluxes!
+                                     update_net_fluxes!,
+                                     default_sea_ice
 
 import ClimaOcean.OceanSeaIceModels.InterfaceComputations: ComponentExchanger,
                                                            compute_atmosphere_sea_ice_fluxes!,
@@ -30,6 +32,8 @@ import Oceananigans.TimeSteppers: time_step!
 include("freezing_limited_ocean_temperature.jl")
 include("sea_ice_simulation.jl")
 include("assemble_net_sea_ice_fluxes.jl")
+
+default_sea_ice() = FreezingLimitedOceanTemperature()
 
 # When using an ClimaSeaIce simulation, we assume that the exchange grid is the sea-ice grid
 interpolate_state!(exchanger, grid, ::Simulation{<:SeaIceModel},       coupled_model) = nothing
