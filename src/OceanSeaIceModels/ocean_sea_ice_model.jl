@@ -139,7 +139,7 @@ model = OceanSeaIceModel(ocean; interfaces)
 OceanSeaIceModel{CPU}(time = 0 seconds, iteration = 0)
 ├── ocean: HydrostaticFreeSurfaceModel{CPU, RectilinearGrid}(time = 0 seconds, iteration = 0)
 ├── atmosphere: Nothing
-├── sea_ice: ClimaSeaIce.SeaIces.FreezingLimitedOceanTemperature{ClimaSeaIce.SeaIceThermodynamics.LinearLiquidus{Float64}}
+├── sea_ice: ClimaOcean.SeaIces.FreezingLimitedOceanTemperature{ClimaSeaIce.SeaIceThermodynamics.LinearLiquidus{Float64}}
 └── interfaces: ComponentInterfaces
 ```
 
@@ -200,7 +200,7 @@ function OceanSeaIceModel(ocean, sea_ice=default_sea_ice();
 
     # Make sure the initial temperature of the ocean
     # is not below freezing and above melting near the surface
-    # above_freezing_ocean_temperature!(ocean, sea_ice)
+    above_freezing_ocean_temperature!(ocean, sea_ice)
     initialization_update_state!(ocean_sea_ice_model)
 
     return ocean_sea_ice_model
