@@ -40,7 +40,9 @@ above_freezing_ocean_temperature!(ocean, ::FreezingLimitedOceanTemperature) = no
 # No atmosphere-sea ice or sea ice-ocean interface for FreezingLimitedOceanTemperature
 InterfaceComputations.default_ai_temperature(::FreezingLimitedOceanTemperature) = nothing
 InterfaceComputations.atmosphere_sea_ice_interface(grid, atmos, ::FreezingLimitedOceanTemperature, args...) = nothing
+InterfaceComputations.atmosphere_sea_ice_interface(grid, ::Nothing, ::FreezingLimitedOceanTemperature, args...) = nothing
 InterfaceComputations.sea_ice_ocean_interface(grid, ::FreezingLimitedOceanTemperature, ocean; kwargs...) = nothing
+InterfaceComputations.sea_ice_ocean_interface(grid, ::FreezingLimitedOceanTemperature, ::Nothing; kwargs...) = nothing
 InterfaceComputations.net_fluxes(::FreezingLimitedOceanTemperature) = nothing
 
 const OnlyOceanwithFreezingLimited      = OceanSeaIceModel{<:FreezingLimitedOceanTemperature, <:Nothing, <:Any}
@@ -51,6 +53,9 @@ const SingleComponentPlusFreezingLimited = Union{OnlyAtmospherewithFreezingLimit
 InterfaceComputations.compute_atmosphere_ocean_fluxes!(::SingleComponentPlusFreezingLimited) = nothing
 InterfaceComputations.compute_atmosphere_sea_ice_fluxes!(::SingleComponentPlusFreezingLimited) = nothing
 InterfaceComputations.compute_sea_ice_ocean_fluxes!(::SingleComponentPlusFreezingLimited) = nothing
+
+# Also for the ocean nothing really happens here
+OceanSeaIceModels.update_net_fluxes!(::SingleComponentPlusFreezingLimited, ocean::Simulation{<:HydrostaticFreeSurfaceModel}) = nothing
 
 # No need to compute fluxes for this "sea ice model"
 function compute_sea_ice_ocean_fluxes!(cm::FreezingLimitedCoupledModel)
