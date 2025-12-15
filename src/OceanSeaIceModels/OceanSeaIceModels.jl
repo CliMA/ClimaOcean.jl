@@ -66,9 +66,9 @@ include("time_step_ocean_sea_ice_model.jl")
 #####
     
 #                                              AO        |  ASI       | SIO
-const NoSeaIceInterface = ComponentInterfaces{<:Any,     <:Nothing, <:Nothing}
-const NoAtmosInterface  = ComponentInterfaces{<:Nothing, <:Nothing, <:Any}
-const NoOceanInterface  = ComponentInterfaces{<:Nothing, <:Any,     <:Nothing}
+const NoSeaIceInterface = ComponentInterfaces{<:AtmosphereInterface,  <:Nothing, <:Nothing}
+const NoAtmosInterface  = ComponentInterfaces{<:Nothing, <:Nothing, <:SeaIceOceanInterface}
+const NoOceanInterface  = ComponentInterfaces{<:Nothing, <:AtmosphereInterface,  <:Nothing}
 
 const NoSeaIceInterfaceModel = OceanSeaIceModel{I, A, O, <:NoSeaIceInterface} where {I, A, O}
 const NoAtmosInterfaceModel  = OceanSeaIceModel{I, A, O, <:NoAtmosInterface}  where {I, A, O}
