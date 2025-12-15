@@ -62,17 +62,20 @@ include("ocean_sea_ice_model.jl")
 include("time_step_ocean_sea_ice_model.jl")
 
 #####
-#####  Fallbacks for a single-component model
+#####  Fallbacks for no-interface models
 #####
     
-#                                              AO        |  ASI       | SIO
+using .InterfaceComputations: ComponentInterfaces, AtmosphereInterface, SeaIceOceanInterface
+
 const NoSeaIceInterface = ComponentInterfaces{<:AtmosphereInterface,  <:Nothing, <:Nothing}
-const NoAtmosInterface  = ComponentInterfaces{<:Nothing, <:Nothing, <:SeaIceOceanInterface}
 const NoOceanInterface  = ComponentInterfaces{<:Nothing, <:AtmosphereInterface,  <:Nothing}
+const NoAtmosInterface  = ComponentInterfaces{<:Nothing, <:Nothing, <:SeaIceOceanInterface}
+const NoInterface       = ComponentInterfaces{<:Nothing, <:Nothing, <:Nothing}
 
 const NoSeaIceInterfaceModel = OceanSeaIceModel{I, A, O, <:NoSeaIceInterface} where {I, A, O}
 const NoAtmosInterfaceModel  = OceanSeaIceModel{I, A, O, <:NoAtmosInterface}  where {I, A, O}
 const NoOceanInterfaceModel  = OceanSeaIceModel{I, A, O, <:NoOceanInterface}  where {I, A, O}
+const NoInterfaceModel       = OceanSeaIceModel{I, A, O, <:NoInterface}  where {I, A, O}
 
 InterfaceComputations.compute_atmosphere_sea_ice_fluxes!(::NoSeaIceInterfaceModel) = nothing
 InterfaceComputations.compute_sea_ice_ocean_fluxes!(::NoSeaIceInterfaceModel) = nothing
@@ -82,5 +85,9 @@ InterfaceComputations.compute_atmosphere_sea_ice_fluxes!(::NoAtmosInterfaceModel
 
 InterfaceComputations.compute_atmosphere_ocean_fluxes!(::NoOceanInterfaceModel) = nothing
 InterfaceComputations.compute_sea_ice_ocean_fluxes!(::NoOceanInterfaceModel) = nothing
+
+InterfaceComputations.compute_atmosphere_ocean_fluxes!(::NoInterfaceModel) = nothing
+InterfaceComputations.compute_atmosphere_sea_ice_fluxes!(::NoInterfaceModel) = nothing
+InterfaceComputations.compute_sea_ice_ocean_fluxes!(::NoInterfaceModel) = nothing
 
 end # module
