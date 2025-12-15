@@ -70,17 +70,17 @@ const NoSeaIceInterface = ComponentInterfaces{<:Any,     <:Nothing, <:Nothing}
 const NoAtmosInterface  = ComponentInterfaces{<:Nothing, <:Nothing, <:Any}
 const NoOceanInterface  = ComponentInterfaces{<:Nothing, <:Any,     <:Nothing}
 
-const NoSeaIceModel = OceanSeaIceModel{I, A, O, <:NoSeaIceInterface} where {I, A, O}
-const NoAtmosModel  = OceanSeaIceModel{I, A, O, <:NoAtmosInterface}  where {I, A, O}
-const NoOceanModel  = OceanSeaIceModel{I, A, O, <:NoOceanInterface}  where {I, A, O}
+const NoSeaIceInterfaceModel = OceanSeaIceModel{I, A, O, <:NoSeaIceInterface} where {I, A, O}
+const NoAtmosInterfaceModel  = OceanSeaIceModel{I, A, O, <:NoAtmosInterface}  where {I, A, O}
+const NoOceanInterfaceModel  = OceanSeaIceModel{I, A, O, <:NoOceanInterface}  where {I, A, O}
 
-InterfaceComputations.compute_atmosphere_sea_ice_fluxes!(::NoSeaIceModel) = nothing
-InterfaceComputations.compute_sea_ice_ocean_fluxes!(::NoSeaIceModel) = nothing
+InterfaceComputations.compute_atmosphere_sea_ice_fluxes!(::NoSeaIceInterfaceModel) = nothing
+InterfaceComputations.compute_sea_ice_ocean_fluxes!(::NoSeaIceInterfaceModel) = nothing
 
-InterfaceComputations.compute_atmosphere_ocean_fluxes!(::NoAtmosModel) = nothing
-InterfaceComputations.compute_atmosphere_sea_ice_fluxes!(::NoAtmosModel) = nothing
+InterfaceComputations.compute_atmosphere_ocean_fluxes!(::NoAtmosInterfaceModel) = nothing
+InterfaceComputations.compute_atmosphere_sea_ice_fluxes!(::NoAtmosInterfaceModel) = nothing
 
-InterfaceComputations.compute_atmosphere_ocean_fluxes!(::NoOceanModel) = nothing
-InterfaceComputations.compute_sea_ice_ocean_fluxes!(::NoOceanModel) = nothing
+InterfaceComputations.compute_atmosphere_ocean_fluxes!(::NoOceanInterfaceModel) = nothing
+InterfaceComputations.compute_sea_ice_ocean_fluxes!(::NoOceanInterfaceModel) = nothing
 
 end # module

@@ -1,7 +1,7 @@
 using Printf
 using Oceananigans.Operators: ℑxᶠᵃᵃ, ℑyᵃᶠᵃ
 using Oceananigans.Forcings: MultipleForcings
-using ClimaOcean.OceanSeaIceModels: OceanSeaIceModel, NoOceanModel
+using ClimaOcean.OceanSeaIceModels: OceanSeaIceModel, NoOceanInterfaceModel
 
 using ClimaOcean.OceanSeaIceModels.InterfaceComputations: interface_kernel_parameters, 
                                                           computed_fluxes, 
@@ -19,7 +19,7 @@ using ClimaOcean.OceanSeaIceModels.InterfaceComputations: interface_kernel_param
 #####
 
 # Fallback for an ocean-only model (it has no interfaces!)
-update_net_fluxes!(coupled_model::NoOceanModel, ocean::Simulation{<:HydrostaticFreeSurfaceModel}) = nothing
+update_net_fluxes!(coupled_model::NoOceanInterfaceModel, ocean::Simulation{<:HydrostaticFreeSurfaceModel}) = nothing
 
 update_net_fluxes!(coupled_model, ocean::Simulation{<:HydrostaticFreeSurfaceModel}) = 
     update_net_ocean_fluxes!(coupled_model, ocean, ocean.model.grid)
