@@ -64,16 +64,23 @@ include("time_step_ocean_sea_ice_model.jl")
 #####
 #####  Fallbacks for a single-component model
 #####
+    
+#                                              AO        |  ASI       | SIO
+const NoSeaIceInterface = ComponentInterfaces{<:Any,     <:Nothing, <:Nothing}
+const NoAtmosInterface  = ComponentInterfaces{<:Nothing, <:Nothing, <:Any}
+const NoOceanInterface  = ComponentInterfaces{<:Nothing, <:Any,     <:Nothing}
 
-#                                      Sea Ice   | Atmosphere | Ocean
-const OnlyOceanModel      = OceanSeaIceModel{<:Nothing, <:Nothing, <:Any}
-const OnlyAtmosphereModel = OceanSeaIceModel{<:Nothing, <:Any,     <:Nothing}
-const OnlySeaIceModel     = OceanSeaIceModel{<:Any,     <:Nothing, <:Nothing}
+const NoSeaIceModel = OceanSeaIceModel{I, A, O, <:NoSeaIceInterface} where {I, A, O}
+const NoAtmosModel  = OceanSeaIceModel{I, A, O, <:NoAtmosInterface}  where {I, A, O}
+const NoOceanModel  = OceanSeaIceModel{I, A, O, <:NoOceanInterface}  where {I, A, O}
 
-SingleComponentModel = Union{OnlyOceanModel, OnlyAtmosphereModel, OnlySeaIceModel}
+InterfaceComputations.compute_atmosphere_sea_ice_fluxes!(::NoSeaIceModel) = nothing
+InterfaceComputations.compute_sea_ice_ocean_fluxes!(::NoSeaIceModel) = nothing
 
-InterfaceComputations.compute_atmosphere_ocean_fluxes!(::SingleComponentModel) = nothing
-InterfaceComputations.compute_atmosphere_sea_ice_fluxes!(::SingleComponentModel) = nothing
-InterfaceComputations.compute_sea_ice_ocean_fluxes!(::SingleComponentModel) = nothing
+InterfaceComputations.compute_atmosphere_ocean_fluxes!(::NoAtmosModel) = nothing
+InterfaceComputations.compute_atmosphere_sea_ice_fluxes!(::NoAtmosModel) = nothing
+
+InterfaceComputations.compute_atmosphere_ocean_fluxes!(::NoOceanModel) = nothing
+InterfaceComputations.compute_sea_ice_ocean_fluxes!(::NoOceanModel) = nothing
 
 end # module

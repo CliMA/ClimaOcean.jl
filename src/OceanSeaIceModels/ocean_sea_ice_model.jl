@@ -209,13 +209,11 @@ end
 time(coupled_model::OceanSeaIceModel) = coupled_model.clock.time
 
 # Check for NaNs in the first prognostic field (generalizes to prescribed velocities).
-# function default_nan_checker(model::OceanSeaIceModel)
-#     u_ocean = model.ocean.model.velocities.u
-#     nan_checker = NaNChecker((; u_ocean))
-#     return nan_checker
-# end
-
-default_nan_checker(model::OceanSeaIceModel) = nothing
+function default_nan_checker(model::OceanSeaIceModel)
+    T_ocean = ocean_temperature(model.ocean)
+    nan_checker = NaNChecker((; T_ocean))
+    return nan_checker
+end
 
 @kernel function _above_freezing_ocean_temperature!(T, grid, S, ℵ, liquidus)
     i, j = @index(Global, NTuple)
@@ -233,12 +231,9 @@ default_nan_checker(model::OceanSeaIceModel) = nothing
     end
 end
 
-# Fallback
-above_freezing_ocean_temperature!(ocean, ::Nothing) = nothing
-
 function above_freezing_ocean_temperature!(ocean, sea_ice)
-    T = ocean.model.tracers.T
-    S = ocean.model.tracers.S
+    T = ocean_temperature(ocean)
+    S = ocean_salinity(ocean)
     ℵ = sea_ice_concentration(sea_ice)
     liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
 
@@ -248,3 +243,6 @@ function above_freezing_ocean_temperature!(ocean, sea_ice)
 
     return nothing
 end
+
+# nothing sea-ice
+above_freezing_ocean_temperature!(ocean, ::Nothing) = nothing

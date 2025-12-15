@@ -1,6 +1,6 @@
 module SeaIces
 
-export sea_ice_simulation
+export sea_ice_simulation, FreezingLimitedOceanTemperature
 
 using Oceananigans
 using Oceananigans.Units
