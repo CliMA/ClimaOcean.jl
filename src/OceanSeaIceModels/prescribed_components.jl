@@ -2,9 +2,9 @@ using Oceananigans.TimeSteppers: tick!
 using Oceananigans.OutputReaders: extract_field_time_series, update_field_time_series!
 import Oceananigans.TimeSteppers: time_step!, update_state!
 
-abstract type PrescribedComponent end
+abstract type AbstractPrescribedComponent end
 
-@inline function update_state!(component::PrescribedOcean)
+@inline function update_state!(component::AbstractPrescribedComponent)
     time = Time(component.clock.time)
     ftses = extract_field_time_series(component)
 
@@ -14,7 +14,7 @@ abstract type PrescribedComponent end
     return nothing
 end
 
-@inline function time_step!(component::PrescribedOcean, Δt)
+@inline function time_step!(component::AbstractPrescribedComponent, Δt)
     tick!(component.clock, Δt)
 
     update_state!(component)
@@ -23,4 +23,5 @@ end
 end
 
 # No need to compute anything here...
-update_net_fluxes!(coupled_model, ::PrescribedAtmosphere) = nothing
+net_fluxes(::AbstractPrescribedComponent) = nothing
+update_net_fluxes!(coupled_model, ::AbstractPrescribedComponent) = nothing
