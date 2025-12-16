@@ -117,7 +117,10 @@ end
 
 # ## Complete Example: Coupling Slab Ocean with JRA55 and Sea Ice
 #
-# Here's a complete example showing how to use the slab ocean in a coupled simulation:
+# Here's a complete example showing how to use the slab ocean in a coupled simulation. We use the JRA55 reanalysis for the atmosphere and 
+# the ECCO4Monthly dataset to initialize our slab ocean. The grid is a rotated latitude-longitude grid that represents the arctic region.
+# We also initialize the sea ice as a very thick ice layer with 10 meters of ice and 100% concentration everywhere and see what happens when we couple it with the slab ocean
+# and a realistic atmosphere and evolve for a year.
 
 using ClimaOcean
 using Oceananigans
