@@ -144,7 +144,7 @@ set!(sea_ice.model, h=10, ℵ=1)
 interfaces = ComponentInterfaces(atmosphere, slab_ocean, sea_ice; exchange_grid=grid)
 coupled_model = ClimaOcean.OceanSeaIceModel(slab_ocean, sea_ice; atmosphere, interfaces)
 
-simulation = Simulation(coupled_model, Δt=1hour, stop_time=365days)
+simulation = Simulation(coupled_model, Δt=60minutes, stop_time=365days)
 run!(simulation)
 
 using CairoMakie
