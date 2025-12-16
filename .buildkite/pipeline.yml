@@ -17,10 +17,9 @@ steps:
     env:
       TEST_GROUP: "init"
     command:
+      - "echo '--- Clearing depot'"
+      - rm -rf ${JULIA_DEPOT_PATH}
       - "echo '--- Instantiate project'"
-      - |
-        echo "--- Clearing depot"
-        rm -rf ${JULIA_DEPOT_PATH}
       - "julia --project -e 'using Pkg; Pkg.instantiate(verbose=true)'"
 
       - "echo '--- Precompile project'"
