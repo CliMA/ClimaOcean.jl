@@ -17,7 +17,7 @@
 # 2. `interpolate_state!`: Interpolates component state onto the exchange grid
 # 3. `update_net_fluxes!`: Computes net fluxes and applies them to the component
 # 4. `reference_density`: of the ocean component
-# 5  `heat_capacity`: of the ocean component
+# 5. `heat_capacity`: of the ocean component
 # 6. `ocean_salinity`: returns the entire salinity field of the ocean component
 # 7. `ocean_temperature`: returns the entire temperature field of the ocean component
 # 8. `ocean_surface_salinity`: returns the salinity at the surface of the ocean component
