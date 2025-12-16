@@ -124,7 +124,7 @@ using Oceananigans
 using Oceananigans.Units
 using Dates
 
-arch = CPU()
+arch = GPU()
 grid = Oceananigans.OrthogonalSphericalShellGrids.RotatedLatitudeLongitudeGrid(arch, size=(360, 360, 1),  longitude=(140, 220), latitude=(-45, 45), z=(-50, 0), north_pole=(180, 0))
 bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1, interpolation_passes=10)
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
@@ -141,7 +141,7 @@ set!(sea_ice.model, h=10, ℵ=1)
 interfaces = ComponentInterfaces(atmosphere, slab_ocean, sea_ice; exchange_grid=grid)
 coupled_model = ClimaOcean.OceanSeaIceModel(slab_ocean, sea_ice; atmosphere, interfaces)
 
-simulation = Simulation(coupled_model, Δt = 30minutes, stop_iteration = 100)
+simulation = Simulation(coupled_model, Δt=1hour, stop_time=365days)
 run!(simulation)
 
 using CairoMakie
@@ -157,10 +157,10 @@ axS = Axis(fig[1, 2], title="Slab Ocean Salinity")
 axh = Axis(fig[2, 1], title="Sea Ice Thickness")
 axℵ = Axis(fig[2, 2], title="Sea Ice Concentration")
 
-heatmap!(axT, interior(slab_ocean.temperature, :, :, 1),          colormap=:thermal)
-heatmap!(axS, interior(slab_ocean.salinity, :, :, 1),             colormap=:haline)
-heatmap!(axh, interior(sea_ice.model.ice_thickness, :, :, 1),     colormap=:ice)
-heatmap!(axℵ, interior(sea_ice.model.ice_concentration, :, :, 1), colormap=:deep)
+heatmap!(axT, Array(interior(slab_ocean.temperature, :, :, 1)),          colormap=:thermal)
+heatmap!(axS, Array(interior(slab_ocean.salinity, :, :, 1)),             colormap=:haline)
+heatmap!(axh, Array(interior(sea_ice.model.ice_thickness, :, :, 1)),     colormap=:ice)
+heatmap!(axℵ, Array(interior(sea_ice.model.ice_concentration, :, :, 1)), colormap=:deep)
 hidedecorations!(axT)
 hidedecorations!(axS)
 hidedecorations!(axh)
