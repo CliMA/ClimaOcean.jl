@@ -8,7 +8,7 @@ end
 Base.summary(mldo::MixedLayerDepthOperand) = "MixedLayerDepthOperand"
 
 function MixedLayerDepthOperand(bm, grid, tracers; difference_criterion=1e-4)
-    buoyancy_perturbation = buoyancy(bm, grid, tracers)
+    buoyancy_perturbation = buoyancy_operation(bm, grid, tracers)
     difference_criterion = convert(eltype(grid), difference_criterion)
     return MixedLayerDepthOperand(buoyancy_perturbation, difference_criterion)
 end
@@ -16,7 +16,7 @@ end
 const MixedLayerDepthField = Field{<:Any, <:Any, <:Any, <:MixedLayerDepthOperand}
 
 """
-    MixedLayerDepthField(bm, grid, tracers; difference_criterion=1e-4)
+    MixedLayerDepthField(bm, grid, tracers; difference_criterion=3e-5)
 
 """
 function MixedLayerDepthField(bm, grid, tracers; difference_criterion=3e-5)
@@ -92,4 +92,3 @@ const f = Face()
 
     @inbounds mld[i, j, 1] = h
 end
-

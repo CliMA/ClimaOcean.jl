@@ -31,12 +31,12 @@ T = CenterField(grid)
 S = CenterField(grid)
 
 using SeawaterPolynomials: TEOS10EquationOfState
-using Oceananigans.BuoyancyFormulations: buoyancy
+using Oceananigans.Models: buoyancy_operation
 
 equation_of_state = TEOS10EquationOfState()
 sb = SeawaterBuoyancy(; equation_of_state)
 tracers = (T=T, S=S)
-b = Field(buoyancy(sb, grid, tracers))
+b = Field(buoyancy_operation(sb, grid, tracers))
 
 start_date = DateTime(1993, 1, 1)
 end_date   = DateTime(1999, 1, 1)

@@ -1,14 +1,15 @@
-import ClimaOcean: atmosphere_simulation
+import ClimaOcean.Atmospheres: atmosphere_simulation
 
 # Make sure the atmospheric parameters from SpeedyWeather can be used in the compute fluxes function
-import ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres:
+import ClimaOcean.OceanSeaIceModels:
     thermodynamics_parameters,
     boundary_layer_height,
     surface_layer_height
 
 const SpeedySimulation = SpeedyWeather.Simulation
 const SpeedyCoupledModel = ClimaOcean.OceanSeaIceModel{<:Any, <:SpeedySimulation}
-const SpeedyNoSeaIceCoupledModel = ClimaOcean.OceanSeaIceModel{<:Union{Nothing, ClimaOcean.FreezingLimitedOceanTemperature}, <:SpeedySimulation}
+const SpeedyNoSeaIceCoupledModel = ClimaOcean.OceanSeaIceModel{<:Union{Nothing, ClimaOcean.SeaIces.FreezingLimitedOceanTemperature}, <:SpeedySimulation}
+
 Base.summary(::SpeedySimulation) = "SpeedyWeather.Simulation"
 
 # Take one time-step or more depending on the global timestep
@@ -39,7 +40,7 @@ boundary_layer_height(atmos::SpeedySimulation) = 600
 
 # This is a _hack_!! The parameters should be consistent with what is specified in SpeedyWeather
 thermodynamics_parameters(atmos::SpeedySimulation) =
-    ClimaOcean.OceanSeaIceModels.AtmosphereThermodynamicsParameters(Float32)
+    ClimaOcean.Atmospheres.AtmosphereThermodynamicsParameters(Float32)
 
 function initialize_atmospheric_state!(simulation::SpeedyWeather.Simulation)
     progn, diagn, model  = SpeedyWeather.unpack(simulation)
