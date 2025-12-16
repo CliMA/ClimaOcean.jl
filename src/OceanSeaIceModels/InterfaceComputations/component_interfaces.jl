@@ -225,6 +225,8 @@ function ocean_surface_fluxes(ocean::OceananigansSimulation, ρₒ, cₒ)
     return merge(ocean_surface_tracer_fluxes, net_ocean_surface_fluxes)
 end
 
+default_exchange_grid(atmosphere, ocean, sea_ice) = ocean.model.grid
+
 """
     ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                         radiation = Radiation(),
@@ -243,7 +245,7 @@ end
                         gravitational_acceleration = default_gravitational_acceleration)
 """
 function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
-                             exchange_grid = ocean.model.grid,
+                             exchange_grid = default_exchange_grid(atmosphere, ocean, sea_ice),
                              radiation = Radiation(),
                              freshwater_density = default_freshwater_density,
                              atmosphere_ocean_fluxes = SimilarityTheoryFluxes(eltype(exchange_grid)),
