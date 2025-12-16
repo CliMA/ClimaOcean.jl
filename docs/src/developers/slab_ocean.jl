@@ -125,7 +125,7 @@ using Oceananigans.Units
 using Dates
 
 arch = GPU()
-grid = Oceananigans.OrthogonalSphericalShellGrids.RotatedLatitudeLongitudeGrid(arch, size=(360, 360, 1),  longitude=(140, 220), latitude=(-45, 45), z=(-50, 0), north_pole=(180, 0))
+grid = Oceananigans.OrthogonalSphericalShellGrids.RotatedLatitudeLongitudeGrid(arch, size=(720, 720, 1),  longitude=(140, 220), latitude=(-45, 45), z=(-50, 0), north_pole=(180, 0))
 bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1, interpolation_passes=10)
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
