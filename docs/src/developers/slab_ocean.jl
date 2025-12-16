@@ -146,15 +146,25 @@ run!(simulation)
 
 using CairoMakie
 
+Oceananigans.ImmersedBoundaries.mask_immersed_field!(slab_ocean.temperature, NaN)
+Oceananigans.ImmersedBoundaries.mask_immersed_field!(slab_ocean.salinity, NaN)
+Oceananigans.ImmersedBoundaries.mask_immersed_field!(sea_ice.model.ice_thickness, NaN)
+Oceananigans.ImmersedBoundaries.mask_immersed_field!(sea_ice.model.ice_concentration, NaN)
+
 fig = Figure(size = (1200, 800), fontsize = 10)
-axT = Axis(fig[1, 1])
-axS = Axis(fig[1, 2])
-axh = Axis(fig[2, 1])
-axℵ = Axis(fig[2, 2])
-heatmap!(axT, interior(slab_ocean.temperature, :, :, 1))
-heatmap!(axS, interior(slab_ocean.salinity, :, :, 1))
-heatmap!(axh, interior(sea_ice.model.ice_thickness, :, :, 1))
-heatmap!(axℵ, interior(sea_ice.model.ice_concentration, :, :, 1))
+axT = Axis(fig[1, 1], title="Slab OceanTemperature")
+axS = Axis(fig[1, 2], title="Slab Ocean Salinity")
+axh = Axis(fig[2, 1], title="Sea Ice Thickness")
+axℵ = Axis(fig[2, 2], title="Sea Ice Concentration")
+
+heatmap!(axT, interior(slab_ocean.temperature, :, :, 1),          colormap=:thermal)
+heatmap!(axS, interior(slab_ocean.salinity, :, :, 1),             colormap=:haline)
+heatmap!(axh, interior(sea_ice.model.ice_thickness, :, :, 1),     colormap=:ice)
+heatmap!(axℵ, interior(sea_ice.model.ice_concentration, :, :, 1), colormap=:deep)
+hidedecorations!(axT)
+hidedecorations!(axS)
+hidedecorations!(axh)
+hidedecorations!(axℵ)
 
 save("slab_ocean.png", fig)
 nothing #hide
