@@ -46,6 +46,7 @@ import Oceananigans.TimeSteppers: time_step!, update_state!, time
 import Oceananigans.Utils: prettytime
 
 include("components.jl")
+include("prescribed_components.jl")
 
 #####
 ##### The coupled model

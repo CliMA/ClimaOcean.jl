@@ -2,7 +2,7 @@
 ##### Prescribed atmosphere (as opposed to dynamically evolving / prognostic)
 #####
 
-mutable struct PrescribedAtmosphere{FT, G, T, U, P, C, F, I, R, TP, TI}
+mutable struct PrescribedAtmosphere{FT, G, T, U, P, C, F, I, R, TP, TI} <: ClimaOcean.OceanSeaIceModels.PrescribedComponent
     grid :: G
     clock :: Clock{T}
     velocities :: U
@@ -64,32 +64,10 @@ function default_atmosphere_pressure(grid, times)
     return pa
 end
 
-
-@inline function update_state!(atmos::PrescribedAtmosphere)
-    time = Time(atmos.clock.time)
-    ftses = extract_field_time_series(atmos)
-
-    for fts in ftses
-        update_field_time_series!(fts, time)
-    end
-    return nothing
-end
-
-@inline function time_step!(atmos::PrescribedAtmosphere, Δt)
-    tick!(atmos.clock, Δt)
-
-    update_state!(atmos)
-
-    return nothing
-end
-
 @inline thermodynamics_parameters(atmos::Nothing) = nothing
 @inline thermodynamics_parameters(atmos::PrescribedAtmosphere) = atmos.thermodynamics_parameters
 @inline surface_layer_height(atmos::PrescribedAtmosphere) = atmos.surface_layer_height
 @inline boundary_layer_height(atmos::PrescribedAtmosphere) = atmos.boundary_layer_height
-
-# No need to compute anything here...
-update_net_fluxes!(coupled_model, ::PrescribedAtmosphere) = nothing
 
 """
     PrescribedAtmosphere(grid, times=[zero(grid)];
