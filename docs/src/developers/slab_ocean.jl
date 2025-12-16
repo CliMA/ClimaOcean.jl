@@ -54,7 +54,7 @@ Base.show(io::IO, slab_ocean::SlabOcean) = print(io, Base.summary(slab_ocean))
 #
 # The `ComponentExchanger` type contains the state variables needed for flux computations.
 # These are the ocean surface state on the `exchange_grid` and the "regridder" to interpolate data from the ocean onto the `exchange_grid`.
-# Here, we assume that the ocean is on the same grid as the exchange grid, so that the regridder is ``nothing'' and the state variables are the same as the ocean surface state.
+# Here, we assume that the ocean is on the same grid as the exchange grid, so that the regridder is "nothing" and the state variables are the same as the ocean surface state.
 # The flux computation requires also ocean surface velocities to compute the turbulent fluxes. In this case, we use dummy zero velocity fields since the slab ocean has no dynamics.
 
 using ClimaOcean.OceanSeaIceModels.InterfaceComputations
