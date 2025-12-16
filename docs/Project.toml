@@ -14,6 +14,9 @@ SeawaterPolynomials = "d496a93d-167e-4197-9f49-d3af4ff8fe40"
 SpeedyWeather = "9e226e20-d153-4fed-8a5b-493def4f21a9"
 XESMF = "2e0b0046-e7a1-486f-88de-807ee8ffabe5"
 
+[sources]
+Oceananigans = {rev = "ss/bufgix-field-constructor", url = "https://github.com/CliMA/Oceananigans.jl.git"}
+
 [compat]
 Documenter = "1"
 DocumenterCitations = "1.3"
