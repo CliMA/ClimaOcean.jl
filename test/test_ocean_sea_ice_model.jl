@@ -86,7 +86,7 @@ using ClimaSeaIce.Rheologies
 
             # Set the ocean temperature and salinity
             set!(ocean.model, T=temperature_metadata[1], S=salinity_metadata[1])
-            above_freezing_ocean_temperature!(ocean, sea_ice)
+            above_freezing_ocean_temperature!(ocean, grid, sea_ice)
 
             # Test that ocean temperatures are above freezing
             T = on_architecture(CPU(), ocean.model.tracers.T)

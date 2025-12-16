@@ -200,7 +200,7 @@ function OceanSeaIceModel(ocean, sea_ice=default_sea_ice();
 
     # Make sure the initial temperature of the ocean
     # is not below freezing and above melting near the surface
-    above_freezing_ocean_temperature!(ocean, sea_ice)
+    above_freezing_ocean_temperature!(ocean, interfaces.exchanger.grid, sea_ice)
     initialization_update_state!(ocean_sea_ice_model)
 
     return ocean_sea_ice_model
@@ -231,13 +231,12 @@ end
     end
 end
 
-function above_freezing_ocean_temperature!(ocean, sea_ice)
+function above_freezing_ocean_temperature!(ocean, grid, sea_ice)
     T = ocean_temperature(ocean)
     S = ocean_salinity(ocean)
     ℵ = sea_ice_concentration(sea_ice)
     liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
 
-    grid = ocean.model.grid
     arch = architecture(grid)
     launch!(arch, grid, :xy, _above_freezing_ocean_temperature!, T, grid, S, ℵ, liquidus)
 
@@ -245,4 +244,4 @@ function above_freezing_ocean_temperature!(ocean, sea_ice)
 end
 
 # nothing sea-ice
-above_freezing_ocean_temperature!(ocean, ::Nothing) = nothing
+above_freezing_ocean_temperature!(ocean, grid, ::Nothing) = nothing

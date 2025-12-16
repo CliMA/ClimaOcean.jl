@@ -36,7 +36,7 @@ heat_capacity(::FreezingLimitedOceanTemperature) = 0
 time_step!(::FreezingLimitedOceanTemperature, Δt) = nothing
 
 # FreezingLimitedOceanTemperature handles temperature limiting in compute_sea_ice_ocean_fluxes!
-OceanSeaIceModels.above_freezing_ocean_temperature!(ocean, ::FreezingLimitedOceanTemperature) = nothing
+OceanSeaIceModels.above_freezing_ocean_temperature!(ocean, grid, ::FreezingLimitedOceanTemperature) = nothing
 
 # No atmosphere-sea ice or sea ice-ocean interface for FreezingLimitedOceanTemperature
 InterfaceComputations.default_ai_temperature(::FreezingLimitedOceanTemperature) = nothing
