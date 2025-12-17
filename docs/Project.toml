@@ -2,7 +2,6 @@
 CFTime = "179af706-886a-5703-950a-314cd64e0468"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
-ClimaOcean = "0376089a-ecfe-4b0e-a64f-9c555d74d754"
 DataDeps = "124859b0-ceae-595e-8997-d05f6a7a8dfe"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
@@ -13,9 +12,6 @@ Oceananigans = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
 SeawaterPolynomials = "d496a93d-167e-4197-9f49-d3af4ff8fe40"
 SpeedyWeather = "9e226e20-d153-4fed-8a5b-493def4f21a9"
 XESMF = "2e0b0046-e7a1-486f-88de-807ee8ffabe5"
-
-[sources]
-ClimaOcean = {path = "/Users/navid/Library/CloudStorage/OneDrive-TheUniversityofMelbourne/Documents/Research/ClimaOcean.jl-v5"}
 
 [compat]
 Documenter = "1"
