@@ -239,7 +239,7 @@ axez = Axis(fig[6:7, 5:6], xlabel="Turbulent kinetic energy (m² s⁻²)", ylabe
 title = @sprintf("Single-column simulation at %.2f, %.2f", φ★, λ★)
 Label(fig[0, 1:6], title)
 
-n = Observable(100)
+n = Observable(1)
 
 times = (times .- times[1]) ./days
 Nt = length(times)
