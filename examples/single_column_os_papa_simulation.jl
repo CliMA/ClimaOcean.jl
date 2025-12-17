@@ -2,7 +2,8 @@
 #
 # In this example, we simulate the evolution of an ocean water column
 # forced by an atmosphere derived from the JRA55 re-analysis.
-# The simulated column is located at ocean station Papa (144.9ᵒ W and 50.1ᵒ N).
+# The simulated column is located at ocean station
+# Papa (144.9ᵒ W and 50.1ᵒ N).
 #
 # ## Install dependencies
 #
@@ -168,6 +169,8 @@ simulation.output_writers[:jld2] = JLD2Writer(ocean.model, outputs; filename,
 
 run!(simulation)
 
+# Now let's load the saved output and visualise.
+
 filename *= ".jld2"
 
 u  = FieldTimeSeries(filename, "u")
@@ -208,13 +211,13 @@ Pt   = zeros(Nt)
 
 for n = 1:Nt
     t = times[n]
-    uat[n]  =  ua[1, 1, 1, Time(t)]
-    vat[n]  =  va[1, 1, 1, Time(t)]
-    Tat[n]  =  Ta[1, 1, 1, Time(t)]
-    qat[n]  =  qa[1, 1, 1, Time(t)]
-    Qswt[n] = Qsw[1, 1, 1, Time(t)]
-    Qlwt[n] = Qlw[1, 1, 1, Time(t)]
-    Pt[n]   =  Pr[1, 1, 1, Time(t)] + Ps[1, 1, 1, Time(t)]
+    uat[n]  =  ua[1, 1, 1, Oceananigans.Units.Time(t)]
+    vat[n]  =  va[1, 1, 1, Oceananigans.Units.Time(t)]
+    Tat[n]  =  Ta[1, 1, 1, Oceananigans.Units.Time(t)]
+    qat[n]  =  qa[1, 1, 1, Oceananigans.Units.Time(t)]
+    Qswt[n] = Qsw[1, 1, 1, Oceananigans.Units.Time(t)]
+    Qlwt[n] = Qlw[1, 1, 1, Oceananigans.Units.Time(t)]
+    Pt[n]   =  Pr[1, 1, 1, Oceananigans.Units.Time(t)] + Ps[1, 1, 1, Oceananigans.Units.Time(t)]
 end
 
 fig = Figure(size=(1800, 1800))
