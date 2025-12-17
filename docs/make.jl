@@ -19,10 +19,10 @@ const OUTPUT_DIR     = joinpath(@__DIR__, "src/literated")
 const DEVELOPERS_DIR = joinpath(@__DIR__, "src/developers")
 
 to_be_literated = [
-    # "single_column_os_papa_simulation.jl",
-    # "one_degree_simulation.jl",
-    # "near_global_ocean_simulation.jl",
-    # "global_climate_simulation.jl",
+    "single_column_os_papa_simulation.jl",
+    "one_degree_simulation.jl",
+    "near_global_ocean_simulation.jl",
+    "global_climate_simulation.jl",
 ]
 
 for file in to_be_literated
