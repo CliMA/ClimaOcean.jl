@@ -2,8 +2,7 @@
 #
 # In this example, we simulate the evolution of an ocean water column
 # forced by an atmosphere derived from the JRA55 re-analysis.
-# The simulated column is located at ocean station
-# Papa (144.9ᵒ W and 50.1ᵒ N)
+# The simulated column is located at ocean station Papa (144.9ᵒ W and 50.1ᵒ N).
 #
 # ## Install dependencies
 #
@@ -11,13 +10,13 @@
 
 # ```julia
 # using Pkg
-# pkg"add Oceananigans, ClimaOcean, CairoMakie"
+# pkg"add Oceananigans, ClimaOcean, Dates, CairoMakie"
 # ```
 
 using ClimaOcean
 using Oceananigans
 using Oceananigans.Units
-using Oceananigans.BuoyancyFormulations: buoyancy_frequency
+using Oceananigans.Models: buoyancy_frequency
 using Dates
 using Printf
 
@@ -54,7 +53,7 @@ set!(ocean.model, T=Metadatum(:temperature, dataset=ECCO4Monthly()),
 
 # # A prescribed atmosphere based on JRA55 re-analysis
 #
-# We build a PrescribedAtmosphere at the same location as the single-colunm grid
+# We build a `JRA55PrescribedAtmosphere` at the same location as the single-colunm grid
 # which is based on the JRA55 reanalysis.
 
 atmosphere = JRA55PrescribedAtmosphere(longitude = λ★,
@@ -72,7 +71,7 @@ ua = interior(atmosphere.velocities.u, 1, 1, 1, :)
 va = interior(atmosphere.velocities.v, 1, 1, 1, :)
 Ta = interior(atmosphere.tracers.T, 1, 1, 1, :)
 qa = interior(atmosphere.tracers.q, 1, 1, 1, :)
-t_days = atmosphere.times[1:length(ua)] / days
+t_days = atmosphere.times / days
 
 using CairoMakie
 
