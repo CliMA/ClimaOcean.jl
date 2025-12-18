@@ -26,6 +26,10 @@ to_be_literated = [
     # "global_climate_simulation.jl",
 ]
 
+to_be_literated = map(examples_pages) do (_, mdpath)
+    replace(basename(mdpath), ".md" => ".jl")
+end
+
 for file in to_be_literated
     filepath = joinpath(EXAMPLES_DIR, file)
     withenv("JULIA_DEBUG" => "Literate") do

@@ -5,7 +5,7 @@
 reference_density(::Nothing) = 0
 heat_capacity(::Nothing) = 0
 ocean_temperature(ocean) = ZeroField()
-ocean_salinity(::Nothing) = ZeroField()
+ocean_salinity(ocean) = ZeroField()
 ocean_surface_salinity(ocean) = ZeroField()
 ocean_surface_velocities(ocean) = ZeroField(), ZeroField()
 
