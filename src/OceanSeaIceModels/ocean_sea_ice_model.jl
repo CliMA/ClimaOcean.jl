@@ -138,8 +138,8 @@ model = OceanSeaIceModel(ocean; interfaces)
 
 # output
 ┌ Warning: Split barotropic-baroclinic time stepping with SplitRungeKutta3TimeStepper is experimental.
-│ Use at own risk, and report any issues encountered at [https://github.com/CliMA/Oceananigans.jl/issues](https://github.com/CliMA/Oceananigans.jl/issues).
-└ @ Oceananigans.TimeSteppers ~/.julia/packages/Oceananigans/fI8pm/src/TimeSteppers/split_hydrostatic_runge_kutta_3.jl:59
+│ Use at own risk, and report any issues encountered at https://github.com/CliMA/Oceananigans.jl/issues.
+└ @ Oceananigans.TimeSteppers ~/.julia/packages/Oceananigans/cQglC/src/TimeSteppers/split_hydrostatic_runge_kutta_3.jl:59
 OceanSeaIceModel{CPU}(time = 0 seconds, iteration = 0)
 ├── ocean: HydrostaticFreeSurfaceModel{CPU, RectilinearGrid}(time = 0 seconds, iteration = 0)
 ├── atmosphere: Nothing

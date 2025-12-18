@@ -3,7 +3,7 @@
 # In this example, we simulate the evolution of an ocean water column
 # forced by an atmosphere derived from the JRA55 re-analysis.
 # The simulated column is located at ocean station
-# Papa (144.9ᵒ W and 50.1ᵒ N)
+# Papa (144.9ᵒ W and 50.1ᵒ N).
 #
 # ## Install dependencies
 #
@@ -11,13 +11,13 @@
 
 # ```julia
 # using Pkg
-# pkg"add Oceananigans, ClimaOcean, CairoMakie"
+# pkg"add Oceananigans, ClimaOcean, Dates, CairoMakie"
 # ```
 
 using ClimaOcean
 using Oceananigans
 using Oceananigans.Units
-using Oceananigans.BuoyancyFormulations: buoyancy_frequency
+using Oceananigans.Models: buoyancy_frequency
 using Dates
 using Printf
 
@@ -54,7 +54,7 @@ set!(ocean.model, T=Metadatum(:temperature, dataset=ECCO4Monthly()),
 
 # # A prescribed atmosphere based on JRA55 re-analysis
 #
-# We build a PrescribedAtmosphere at the same location as the single-colunm grid
+# We build a `JRA55PrescribedAtmosphere` at the same location as the single-colunm grid
 # which is based on the JRA55 reanalysis.
 
 atmosphere = JRA55PrescribedAtmosphere(longitude = λ★,
@@ -72,7 +72,7 @@ ua = interior(atmosphere.velocities.u, 1, 1, 1, :)
 va = interior(atmosphere.velocities.v, 1, 1, 1, :)
 Ta = interior(atmosphere.tracers.T, 1, 1, 1, :)
 qa = interior(atmosphere.tracers.q, 1, 1, 1, :)
-t_days = atmosphere.times[1:length(ua)] / days
+t_days = atmosphere.times / days
 
 using CairoMakie
 
@@ -169,6 +169,8 @@ simulation.output_writers[:jld2] = JLD2Writer(ocean.model, outputs; filename,
 
 run!(simulation)
 
+# Now let's load the saved output and visualise.
+
 filename *= ".jld2"
 
 u  = FieldTimeSeries(filename, "u")
@@ -208,14 +210,14 @@ Qlwt = zeros(Nt)
 Pt   = zeros(Nt)
 
 for n = 1:Nt
-    t = times[n]
-    uat[n]  =  ua[1, 1, 1, Time(t)]
-    vat[n]  =  va[1, 1, 1, Time(t)]
-    Tat[n]  =  Ta[1, 1, 1, Time(t)]
-    qat[n]  =  qa[1, 1, 1, Time(t)]
-    Qswt[n] = Qsw[1, 1, 1, Time(t)]
-    Qlwt[n] = Qlw[1, 1, 1, Time(t)]
-    Pt[n]   =  Pr[1, 1, 1, Time(t)] + Ps[1, 1, 1, Time(t)]
+    t = Oceananigans.Units.Time(times[n])
+    uat[n]  =  ua[1, 1, 1, t]
+    vat[n]  =  va[1, 1, 1, t]
+    Tat[n]  =  Ta[1, 1, 1, t]
+    qat[n]  =  qa[1, 1, 1, t]
+    Qswt[n] = Qsw[1, 1, 1, t]
+    Qlwt[n] = Qlw[1, 1, 1, t]
+    Pt[n]   =  Pr[1, 1, 1, t] + Ps[1, 1, 1, t]
 end
 
 fig = Figure(size=(1800, 1800))
@@ -281,44 +283,40 @@ axislegend(axF)
 lines!(axS, times, interior(S, 1, 1, Nz, :))
 vlines!(axS, tn, linewidth=4, color=(:black, 0.5))
 
-zc = znodes(T)
-zf = znodes(κ)
-un  = @lift interior(u[$n],  1, 1, :)
-vn  = @lift interior(v[$n],  1, 1, :)
-Tn  = @lift interior(T[$n],  1, 1, :)
-Sn  = @lift interior(S[$n],  1, 1, :)
-κn  = @lift interior(κ[$n],  1, 1, :)
-en  = @lift interior(e[$n],  1, 1, :)
-N²n = @lift interior(N²[$n], 1, 1, :)
+un  = @lift u[$n]
+vn  = @lift v[$n]
+Tn  = @lift T[$n]
+Sn  = @lift S[$n]
+κn  = @lift κ[$n]
+en  = @lift e[$n]
+N²n = @lift N²[$n]
 
-scatterlines!(axuz, un,  zc, label="u")
-scatterlines!(axuz, vn,  zc, label="v")
-scatterlines!(axTz, Tn,  zc)
-scatterlines!(axSz, Sn,  zc)
-scatterlines!(axez, en,  zc)
-scatterlines!(axNz, N²n, zf)
-scatterlines!(axκz, κn,  zf)
+scatterlines!(axuz, un, label="u")
+scatterlines!(axuz, vn, label="v")
+scatterlines!(axTz, Tn)
+scatterlines!(axSz, Sn)
+scatterlines!(axez, en)
+scatterlines!(axNz, N²n)
+scatterlines!(axκz, κn)
 
 axislegend(axuz)
 
 ulim = max(maximum(abs, u), maximum(abs, v))
 xlims!(axuz, -ulim, ulim)
 
-Tmax = maximum(interior(T))
-Tmin = minimum(interior(T))
+Tmin, Tmax = extrema(T)
 xlims!(axTz, Tmin - 0.1, Tmax + 0.1)
 
-Nmax = maximum(interior(N²))
+Nmax = maximum(N²)
 xlims!(axNz, -Nmax/10, Nmax * 1.05)
 
-κmax = maximum(interior(κ))
+κmax = maximum(κ)
 xlims!(axκz, 1e-9, κmax * 1.1)
 
-emax = maximum(interior(e))
+emax = maximum(e)
 xlims!(axez, 1e-11, emax * 1.1)
 
-Smax = maximum(interior(S))
-Smin = minimum(interior(S))
+Smin, Smax = extrema(S)
 xlims!(axSz, Smin - 0.2, Smax + 0.2)
 
 CairoMakie.record(fig, "single_column_profiles.mp4", 1:Nt, framerate=24) do nn
