@@ -156,7 +156,7 @@ The available stability function options include:
 function OceanSeaIceModel(ocean, sea_ice=default_sea_ice();
                           atmosphere = nothing,
                           radiation = Radiation(),
-                          clock = Clock(time=0),
+                          clock = Clock{Float64}(time=0),
                           ocean_reference_density = reference_density(ocean),
                           ocean_heat_capacity = heat_capacity(ocean),
                           sea_ice_reference_density = reference_density(sea_ice),
