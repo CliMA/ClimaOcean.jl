@@ -313,9 +313,6 @@ function maybe_extend_longitude(zb_cpu, ::Periodic)
     return OffsetArray(zb_parent, xoffsets, yoffsets)
 end
 
-remove_major_basins!(zb::OffsetArray, keep_major_basins) = 
-    remove_minor_basins!(zb.parent, keep_major_basins, size(zb))
-
 function remove_minor_basins!(zb, keep_major_basins, core_size)
 
     if !isfinite(keep_major_basins)
