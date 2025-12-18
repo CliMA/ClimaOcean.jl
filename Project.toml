@@ -1,7 +1,7 @@
 name = "ClimaOcean"
 uuid = "0376089a-ecfe-4b0e-a64f-9c555d74d754"
 license = "MIT"
-version = "0.8.9"
+version = "0.8.10"
 authors = ["Climate Modeling Alliance and contributors"]
 
 [deps]
@@ -37,9 +37,6 @@ CopernicusMarine = "cd43e856-93a3-40c8-bc9e-6146cdce14fa"
 Reactant = "3c362404-f566-11ee-1572-e11a4b42c853"
 SpeedyWeather = "9e226e20-d153-4fed-8a5b-493def4f21a9"
 XESMF = "2e0b0046-e7a1-486f-88de-807ee8ffabe5"
-
-[sources]
-Oceananigans = {rev = "ss/bufgix-field-constructor", url = "https://github.com/CliMA/Oceananigans.jl.git"}
 
 [extensions]
 ClimaOceanCopernicusMarineExt = "CopernicusMarine"
