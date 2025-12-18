@@ -30,21 +30,17 @@
 
 using Oceananigans, Base
 
-struct SlabOcean{G, C, T, S, F}
+struct SlabOcean{G, C, T, F}
     grid :: G
     clock :: C
     temperature :: T   
-    salinity :: S
-    fluxes :: F
+    temperature_flux :: F
 end
 
 function SlabOcean(grid; clock =  Clock(time=0))
     temperature = CenterField(grid)
-    salinity = CenterField(grid)
-    fluxes = (T = CenterField(grid),
-              S = CenterField(grid))
-
-    return SlabOcean(grid, clock, temperature, salinity, fluxes)
+    temperature_flux = CenterField(grid)
+    return SlabOcean(grid, clock, temperature, temperature_flux)
 end
 
 Base.summary(slab_ocean::SlabOcean) = "SlabOcean with Depth=$(slab_ocean.grid.Lz)"
@@ -55,27 +51,28 @@ Base.show(io::IO, slab_ocean::SlabOcean) = print(io, Base.summary(slab_ocean))
 # The `ComponentExchanger` type contains the state variables needed for flux computations.
 # These are the ocean surface state on the `exchange_grid` and the "regridder" to interpolate data from the ocean onto the `exchange_grid`.
 # Here, we assume that the ocean is on the same grid as the exchange grid, so that the regridder is "nothing" and the state variables are the same as the ocean surface state.
-# The flux computation requires also ocean surface velocities to compute the turbulent fluxes. In this case, we use dummy zero velocity fields since the slab ocean has no dynamics.
+# The flux computation requires also ocean surface salinity and velocities to compute the turbulent fluxes. 
 
 using ClimaOcean.OceanSeaIceModels.InterfaceComputations
+using ClimaOcean.OceanSeaIceModels: ocean_surface_salinity, ocean_surface_velocities
 
 function InterfaceComputations.ComponentExchanger(slab_ocean::SlabOcean, exchange_grid)
     T = slab_ocean.temperature
-    S = slab_ocean.salinity
-    u = Oceananigans.Fields.ZeroField()
-    v = Oceananigans.Fields.ZeroField()
+    S = ocean_surface_salinity(slab_ocean) 
+    u, v = ocean_surface_velocities(slab_ocean)
     return InterfaceComputations.ComponentExchanger((; u, v, T, S), nothing)
 end
 
 # The `net_fluxes` function returns the flux fields that will be updated by the coupling system. 
-# For a slab ocean, we need to return the containers for the temperature and freshwater (salinity) fluxes
-# stored in the `slab_ocean.fluxes` field as well as the dummy stress fields which will be unused since the slab ocean has no dynamics.
+# For a slab ocean, we need to return the container for the temperature flux stored in the `slab_ocean` as well as
+# dummy salinity flux and dummy stress fields which will be unused since the slab ocean has no dynamics and a constant salinity.
 
 function InterfaceComputations.net_fluxes(slab_ocean::SlabOcean)
     grid = slab_ocean.grid
+    Jˢ = Field{Center, Center, Nothing}(grid)
     τx = Field{Center, Center, Nothing}(grid)
     τy = Field{Center, Center, Nothing}(grid)
-    return merge(slab_ocean.fluxes, (; u=τx, v=τy))
+    return (T=slab_ocean.temperature_flux, S=Jˢ, u=τx, v=τy)
 end 
 
 # ##  Extend the OceanSeaIceModels.jl module
@@ -87,8 +84,8 @@ using ClimaOcean.OceanSeaIceModels
 
 OceanSeaIceModels.reference_density(::SlabOcean) = 1025.0
 OceanSeaIceModels.heat_capacity(::SlabOcean) = 3990.0
-OceanSeaIceModels.ocean_surface_salinity(slab_ocean::SlabOcean) = slab_ocean.salinity
-OceanSeaIceModels.ocean_salinity(slab_ocean::SlabOcean) = slab_ocean.salinity
+OceanSeaIceModels.ocean_surface_salinity(slab_ocean::SlabOcean) = Oceananigans.Fields.ConstantField(35)
+OceanSeaIceModels.ocean_salinity(slab_ocean::SlabOcean) = Oceananigans.Fields.ConstantField(35)
 OceanSeaIceModels.ocean_temperature(slab_ocean::SlabOcean) = slab_ocean.temperature
 
 # The `update_net_fluxes!` function computes net fluxes and applies them to previously defined `net_fluxes` containers.
@@ -102,16 +99,15 @@ OceanSeaIceModels.update_net_fluxes!(coupled_model, slab_ocean::SlabOcean) =
 # ## Extend the TimeSteppers.jl module
 #
 # The `time_step!` method is called by the coupled model to advance the component forward in time. 
-# For a slab ocean, this method advances temperature and salinity through the computed fluxes. Note the convention
-# that the fluxes are positive when they are leaving the ocean component.
+# For a slab ocean, this method advances temperature through the computed flux. Note the convention
+# that the fluxes are positive when they are leaving the ocean component (cooling the ocean). 
 
 import Oceananigans.TimeSteppers: time_step!
 using Oceananigans.TimeSteppers: tick!
 
 function time_step!(slab_ocean::SlabOcean, Δt)
     tick!(slab_ocean.clock, Δt)    
-    parent(slab_ocean.temperature) .-= parent(slab_ocean.fluxes.T) .* Δt ./ slab_ocean.grid.Lz
-    parent(slab_ocean.salinity)    .-= parent(slab_ocean.fluxes.S) .* Δt ./ slab_ocean.grid.Lz
+    parent(slab_ocean.temperature) .-= parent(slab_ocean.temperature_flux) .* Δt ./ slab_ocean.grid.Lz
     return nothing
 end
 
@@ -134,7 +130,6 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_
 
 slab_ocean = SlabOcean(grid)
 set!(slab_ocean.temperature, Metadatum(:temperature, dataset=ECCO4Monthly()))
-set!(slab_ocean.salinity,    Metadatum(:salinity,    dataset=ECCO4Monthly()))
 
 atmosphere = ClimaOcean.JRA55PrescribedAtmosphere(arch)
 
@@ -150,22 +145,18 @@ run!(simulation)
 using CairoMakie
 
 Oceananigans.ImmersedBoundaries.mask_immersed_field!(slab_ocean.temperature, NaN)
-Oceananigans.ImmersedBoundaries.mask_immersed_field!(slab_ocean.salinity, NaN)
 Oceananigans.ImmersedBoundaries.mask_immersed_field!(sea_ice.model.ice_thickness, NaN)
 Oceananigans.ImmersedBoundaries.mask_immersed_field!(sea_ice.model.ice_concentration, NaN)
 
-fig = Figure(size = (1200, 800), fontsize = 16)
+fig = Figure(size = (800, 1000), fontsize = 16)
 axT = Axis(fig[1, 1], title="Slab Ocean Temperature")
-axS = Axis(fig[1, 2], title="Slab Ocean Salinity")
 axh = Axis(fig[2, 1], title="Sea Ice Thickness")
-axℵ = Axis(fig[2, 2], title="Sea Ice Concentration")
+axℵ = Axis(fig[3, 1], title="Sea Ice Concentration")
 
 heatmap!(axT, Array(interior(slab_ocean.temperature, :, :, 1)),          colormap=:thermal)
-heatmap!(axS, Array(interior(slab_ocean.salinity, :, :, 1)),             colormap=:haline)
 heatmap!(axh, Array(interior(sea_ice.model.ice_thickness, :, :, 1)),     colormap=:ice)
 heatmap!(axℵ, Array(interior(sea_ice.model.ice_concentration, :, :, 1)), colormap=:deep)
 hidedecorations!(axT)
-hidedecorations!(axS)
 hidedecorations!(axh)
 hidedecorations!(axℵ)
 
