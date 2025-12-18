@@ -331,7 +331,6 @@ function remove_minor_basins!(zb, keep_major_basins, core_size)
     nlabels = maximum(labels)
 
     # Rank labels by the number of elements they occupy within the *core* region.
-    # If `core_size === nothing`, the core is the whole array.
 
     Nx, Ny = core_size[1], core_size[2]
     core_view = labels[1:Nx, 1:Ny]
