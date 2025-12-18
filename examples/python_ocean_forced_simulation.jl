@@ -21,7 +21,7 @@ using Printf
 # Before importing the setup, we need to ensure that the Veros module is installed and loaded
 # and that every output is removed to avoid conflicts.
 
-VerosModule = Base.get_extension(ClimaOcean, :ClimaOceanPythonCallExt)
+VerosModule = Base.get_extension(ClimaOcean, :ClimaOceanVerosExt)
 
 VerosModule.install_veros()
 VerosModule.remove_outputs(:global_4deg)

@@ -42,7 +42,7 @@ XESMF = "2e0b0046-e7a1-486f-88de-807ee8ffabe5"
 
 [extensions]
 ClimaOceanCopernicusMarineExt = "CopernicusMarine"
-ClimaOceanPythonCallExt = ["PythonCall", "CondaPkg"]
+ClimaOceanVerosExt = ["PythonCall", "CondaPkg"]
 ClimaOceanReactantExt = "Reactant"
 ClimaOceanSpeedyWeatherExt = ["SpeedyWeather", "XESMF"]
 
@@ -86,4 +86,4 @@ MPIPreferences = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Coverage", "Test", "MPIPreferences", "CUDA_Runtime_jll", "Reactant", "CopernicusMarine", "XESMF", "SpeedyWeather" "PythonCall", "CondaPkg"]
+test = ["Coverage", "Test", "MPIPreferences", "CUDA_Runtime_jll", "Reactant", "CopernicusMarine", "XESMF", "SpeedyWeather", "PythonCall", "CondaPkg"]

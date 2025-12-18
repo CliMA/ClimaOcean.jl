@@ -333,12 +333,6 @@ def set_forcing_kernel(state):
     vs = state.variables
     settings = state.settings
 
-    t_rest = 30.0 * 86400.0
-    cp_0 = 3991.86795711963  # J/kg /K
-
-    year_in_seconds = veros.time.convert_time(1.0, "years", "seconds")
-    (n1, f1), (n2, f2) = veros.tools.get_periodic_interval(vs.time, year_in_seconds, year_in_seconds / 12.0, 12)
-
     return KernelOutput(
         surface_taux=vs.surface_taux,
         surface_tauy=vs.surface_tauy,

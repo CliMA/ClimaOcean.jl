@@ -214,17 +214,6 @@ function default_ao_specific_humidity(ocean)
     return ImpureSaturationSpecificHumidity(phase, x_H₂O)
 end
 
-function ocean_surface_fluxes(ocean::OceananigansSimulation, ρₒ, cₒ)
-    τx = surface_flux(ocean.model.velocities.u)
-    τy = surface_flux(ocean.model.velocities.v)
-    tracers = ocean.model.tracers
-    Qₒ = ρₒ * cₒ * surface_flux(ocean.model.tracers.T)
-    net_ocean_surface_fluxes = (u=τx, v=τy, Q=Qₒ)
-
-    ocean_surface_tracer_fluxes = NamedTuple(name => surface_flux(tracers[name]) for name in keys(tracers))
-    return merge(ocean_surface_tracer_fluxes, net_ocean_surface_fluxes)
-end
-
 default_exchange_grid(atmosphere, ocean, sea_ice) = ocean.model.grid
 
 """

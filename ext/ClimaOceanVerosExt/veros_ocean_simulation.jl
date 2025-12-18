@@ -1,3 +1,28 @@
+using CondaPkg
+
+using Oceananigans.Grids: topology
+using ClimaOcean.OceanSeaIceModels: reference_density, heat_capacity, SeaIceSimulation
+
+import Oceananigans.Fields: set!
+import Oceananigans.TimeSteppers: time_step!, initialize!
+
+import ClimaOcean.OceanSeaIceModels: OceanSeaIceModel, default_nan_checker
+import Oceananigans.Architectures: architecture
+
+import Base: eltype
+
+"""
+    install_veros()
+
+Install the Veros ocean model Marine CLI using CondaPkg.
+Returns a NamedTuple containing package information if successful.
+"""
+function install_veros()
+    CondaPkg.add_pip("veros")
+    cli = CondaPkg.which("veros")
+    @info "... the veros CLI has been installed at $(cli)."
+    return cli
+end
 
 struct VerosOceanSimulation{S}
     setup :: S
@@ -5,7 +30,7 @@ end
 
 default_nan_checker(model::OceanSeaIceModel{<:Any, <:Any, <:VerosOceanSimulation}) = nothing
 
-initialize!(::ClimaOceanPythonCallExt.VerosOceanSimulation{Py}) = nothing
+initialize!(::ClimaOceanVerosExt.VerosOceanSimulation{Py}) = nothing
 time_step!(ocean::VerosOceanSimulation, Δt) = ocean.setup.step(ocean.setup.state)
 architecture(model::OceanSeaIceModel{<:Any, <:Any, <:VerosOceanSimulation}) = CPU()
 eltype(model::OceanSeaIceModel{<:Any, <:Any, <:VerosOceanSimulation}) = Float64
@@ -129,49 +154,4 @@ function set!(ocean::VerosOceanSimulation, v, x; path = :variables)
     else
         error("path must be either :variable or :settings.")
     end
-end
-
-function OceanSeaIceModel(ocean::VerosOceanSimulation, sea_ice=nothing;
-                          atmosphere = nothing,
-                          radiation = Radiation(),
-                          clock = Clock(time=0),
-                          ocean_reference_density = 1020.0,
-                          ocean_heat_capacity = 3998.0, 
-                          sea_ice_reference_density = reference_density(sea_ice),
-                          sea_ice_heat_capacity = heat_capacity(sea_ice),
-                          interfaces = nothing)
-
-    if sea_ice isa SeaIceSimulation
-        if !isnothing(sea_ice.callbacks)
-            pop!(sea_ice.callbacks, :stop_time_exceeded, nothing)
-            pop!(sea_ice.callbacks, :stop_iteration_exceeded, nothing)
-            pop!(sea_ice.callbacks, :wall_time_limit_exceeded, nothing)
-            pop!(sea_ice.callbacks, :nan_checker, nothing)
-        end
-    end
-
-    # Contains information about flux contributions: bulk formula, prescribed fluxes, etc.
-    if isnothing(interfaces) && !(isnothing(atmosphere) && isnothing(sea_ice))
-        interfaces = ComponentInterfaces(atmosphere, ocean, sea_ice;
-                                         ocean_reference_density,
-                                         ocean_heat_capacity,
-                                         sea_ice_reference_density,
-                                         sea_ice_heat_capacity,
-                                         radiation)
-    end
-
-    arch = CPU()
-
-    ocean_sea_ice_model = OceanSeaIceModel(arch,
-                                           clock,
-                                           atmosphere,
-                                           sea_ice,
-                                           ocean,
-                                           interfaces)
-
-    # Make sure the initial temperature of the ocean
-    # is not below freezing and above melting near the surface
-    initialization_update_state!(ocean_sea_ice_model)
-
-    return ocean_sea_ice_model
 end
