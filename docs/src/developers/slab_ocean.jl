@@ -84,8 +84,8 @@ using ClimaOcean.OceanSeaIceModels
 
 OceanSeaIceModels.reference_density(::SlabOcean) = 1025.0
 OceanSeaIceModels.heat_capacity(::SlabOcean) = 3990.0
-OceanSeaIceModels.ocean_surface_salinity(slab_ocean::SlabOcean) = Oceananigans.Fields.ConstantField(35)
-OceanSeaIceModels.ocean_salinity(slab_ocean::SlabOcean) = Oceananigans.Fields.ConstantField(35)
+OceanSeaIceModels.ocean_surface_salinity(slab_ocean::SlabOcean) = Oceananigans.Fields.ConstantField(35.0)
+OceanSeaIceModels.ocean_salinity(slab_ocean::SlabOcean) = Oceananigans.Fields.ConstantField(35.0)
 OceanSeaIceModels.ocean_temperature(slab_ocean::SlabOcean) = slab_ocean.temperature
 
 # The `update_net_fluxes!` function computes net fluxes and applies them to previously defined `net_fluxes` containers.
@@ -123,7 +123,7 @@ using Oceananigans
 using Oceananigans.Units
 using Dates
 
-arch = GPU()
+arch = CPU()
 grid = TripolarGrid(arch, size=(720, 720, 1), z=(-50, 0))
 bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1, interpolation_passes=10)
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
