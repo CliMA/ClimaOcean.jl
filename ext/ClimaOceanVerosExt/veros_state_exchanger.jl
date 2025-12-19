@@ -1,33 +1,31 @@
-using Oceananigans.Models: initialization_update_state!
-
-using ClimaOcean.OceanSeaIceModels.InterfaceComputations: ExchangeAtmosphereState, 
-                                                          atmosphere_exchanger, 
-                                                          SimilarityTheoryFluxes, 
-                                                          Radiation
+using ClimaOcean.Oceans
 
 import ClimaOcean.OceanSeaIceModels.InterfaceComputations: 
+    net_fluxes,
     sea_ice_ocean_interface, 
     atmosphere_ocean_interface, 
     initialize!,
     ComponentExchanger,
     default_exchange_grid
 
-import ClimaOcean.Oceans:
-    ocean_salinity,
-    ocean_temperature,
+import ClimaOcean.OceanSeaIceModels:
     ocean_suface_salinity,
-    ocean_surface_temperature,
-    ocean_suface_velocity,
-    get_radiative_forcing
+    interpolate_state!,
+    update_net_fluxes!
+
+import ClimaOcean.Oceans: get_radiative_forcing
 
 function ComponentExchanger(ocean::VerosOceanSimulation, grid) 
-    state = (; u  = Field{Face, Center, Nothing}(grid),
-               v  = Field{Center, Face, Nothing}(grid),
-               T  = Field{Center, Center, Nothing}(grid),
-               S  = Field{Center, Center, Nothing}(grid))
+    state = (; u = Field{Face, Center, Nothing}(grid),
+               v = Field{Center, Face, Nothing}(grid),
+               T = Field{Center, Center, Nothing}(grid),
+               S = Field{Center, Center, Nothing}(grid))
 
     return ComponentExchanger(state, nothing)
 end
+
+# TODO: fix this simplification
+ocean_surface_salinity(ocean::VerosOceanSimulation) = Oceananigans.Fields.ConstantField(convert(eltype(ocean), 35))
 
 default_exchange_grid(atmosphere, ocean::VerosOceanSimulation, sea_ice) = surface_grid(ocean)
 
@@ -41,25 +39,31 @@ default_exchange_grid(atmosphere, ocean::VerosOceanSimulation, sea_ice) = surfac
     return (; u, v, T, S)
 end
 
-initialize!(exchanger, grid, ::VerosOceanSimulation) = nothing
-
-@inline function get_ocean_state(ocean::VerosOceanSimulation, exchanger::VerosStateExchanger)
-    u = exchanger.exchange_ocean_state.u
-    v = exchanger.exchange_ocean_state.v
-    T = exchanger.exchange_ocean_state.T
-    S = exchanger.exchange_ocean_state.S
+function interpolate_state!(exchanger, exchange_grid, ocean::VerosOceanSimulation, coupled_model)
+    u = exchanger.state.u
+    v = exchanger.state.v
+    T = exchanger.state.T
+    S = exchanger.state.S
 
     set!(u, ocean.setup.state.variables.u)
     set!(v, ocean.setup.state.variables.v)
     set!(T, ocean.setup.state.variables.temp)
     set!(S, ocean.setup.state.variables.salt)
 
-    return (; u, v, T, S)
+    return nothing
 end
 
-@inline get_radiative_forcing(ocean::VerosOceanSimulation) = nothing
+initialize!(exchanger::ComponentExchanger, grid, ::VerosOceanSimulation) = nothing
 
-function fill_net_fluxes!(ocean::VerosOceanSimulation, net_ocean_fluxes)
+get_radiative_forcing(ocean::VerosOceanSimulation) = nothing
+
+function update_net_fluxes!(coupled_model, ocean::VerosOceanSimulation)
+
+    # Update the flux containers
+    Oceans.update_net_ocean_fluxes!(coupled_model, ocean, coupled_model.interfaces.exchanger.grid)
+    net_ocean_fluxes = coupled_model.interfaces.net_fluxes.ocean
+   
+    # Pass the flxu values to the python ocean
     nx = pyconvert(Int, ocean.setup.state.settings.nx) + 4
     ny = pyconvert(Int, ocean.setup.state.settings.ny) + 4
 
@@ -67,8 +71,8 @@ function fill_net_fluxes!(ocean::VerosOceanSimulation, net_ocean_fluxes)
     taux = view(parent(net_ocean_fluxes.u), 1:nx, 1:ny, 1) .* ρₒ
     tauy = view(parent(net_ocean_fluxes.v), 1:nx, 1:ny, 1) .* ρₒ
 
-    set!(ocean, "surface_taux", tx; path=:variables)
-    set!(ocean, "surface_tauy", ty; path=:variables)
+    set!(ocean, "surface_taux", taux; path=:variables)
+    set!(ocean, "surface_tauy", tauy; path=:variables)
 
     temp_flux = view(parent(net_ocean_fluxes.T), 1:nx, 1:ny, 1)
     salt_flux = view(parent(net_ocean_fluxes.S), 1:nx, 1:ny, 1)

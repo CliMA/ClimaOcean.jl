@@ -10,7 +10,7 @@
 
 using ClimaOcean
 using PythonCall
-using Oceananigans
+using Oceananigans, Oceananigans.Units
 using CairoMakie
 using Printf
 
@@ -55,12 +55,16 @@ simulation = Simulation(coupled_model; Δt = 1800, stop_time = 60days)
 
 wall_time = Ref(time_ns())
 
-s  = []
+sp = []
+S  = []
+T  = []
 tx = []
 ty = []
+Js = []
+Jt = []
 
-us = coupled_model.interfaces.exchanger.exchange_ocean_state.u
-vs = coupled_model.interfaces.exchanger.exchange_ocean_state.v
+us = coupled_model.interfaces.exchanger.ocean.state.u
+vs = coupled_model.interfaces.exchanger.ocean.state.v
 
 stmp = Field(sqrt(us^2 + vs^2))
 
@@ -81,9 +85,13 @@ function progress(sim)
     wall_time[] = time_ns()
 
     compute!(stmp)
-    push!(s,  deepcopy(interior(stmp, :, :, 1)))
-    push!(tx, deepcopy(interior(coupled_model.interfaces.net_fluxes.ocean_surface.u, :, :, 1) .* 1020))
-    push!(ty, deepcopy(interior(coupled_model.interfaces.net_fluxes.ocean_surface.v, :, :, 1) .* 1020))
+    push!(sp, deepcopy(interior(stmp, :, :, 1)))
+    push!(S,  deepcopy(interior(coupled_model.interfaces.exchanger.ocean.state.S, :, :, 1)))
+    push!(T,  deepcopy(interior(coupled_model.interfaces.exchanger.ocean.state.T, :, :, 1)))
+    push!(tx, deepcopy(interior(coupled_model.interfaces.net_fluxes.ocean.u, :, :, 1)))
+    push!(ty, deepcopy(interior(coupled_model.interfaces.net_fluxes.ocean.v, :, :, 1)))
+    push!(Js, deepcopy(interior(coupled_model.interfaces.net_fluxes.ocean.S, :, :, 1)))
+    push!(Jt, deepcopy(interior(coupled_model.interfaces.net_fluxes.ocean.T, :, :, 1)))
 
     return nothing
 end
@@ -98,24 +106,33 @@ run!(simulation)
 # over the course of the simulation.
 
 iter = Observable(1)
-si   = @lift(s[$iter])
-txi  = @lift(tx[$iter])
-tyi  = @lift(ty[$iter])
-Nt   = length(s)
+spi  = @lift(sp[$iter])
+Jsi  = @lift(tx[$iter])
+Jti  = @lift(ty[$iter])
+Si   = @lift(S[$iter])
+Ti   = @lift(T[$iter])
+Nt   = length(sp)
 
-fig = Figure(resolution = (1200, 300))
+fig = Figure(resolution = (1200, 600))
 ax1 = Axis(fig[1, 1]; title = "Surface speed (m/s)", xlabel = "Longitude", ylabel = "Latitude")
 ax2 = Axis(fig[1, 2]; title = "Zonal wind stress (N/m²)", xlabel = "Longitude")
 ax3 = Axis(fig[1, 3]; title = "Meridional wind stress (N/m²)", xlabel = "Longitude")
+ax4 = Axis(fig[2, 1]; title = "Surface temperature (ᵒC)", xlabel = "Longitude", ylabel = "Latitude")
+ax5 = Axis(fig[2, 2]; title = "Surface salinity (psu)", xlabel = "Longitude")
+ax6 = Axis(fig[2, 3]; title = "Surface salinity flux", xlabel = "Longitude")
 
-grid = coupled_model.interfaces.exchanger.exchange_grid
+grid = coupled_model.interfaces.exchanger.grid
 
 λ = λnodes(grid, Center())
 φ = φnodes(grid, Center())
 
-heatmap!(ax1, λ, φ, si,  colormap = :ice, colorrange = (0, 0.15))
+heatmap!(ax1, λ, φ, spi, colormap = :ice, colorrange = (0, 0.15))
 heatmap!(ax2, λ, φ, txi, colormap = :bwr, colorrange = (-0.2, 0.2))
 heatmap!(ax3, λ, φ, tyi, colormap = :bwr, colorrange = (-0.2, 0.2))
+
+heatmap!(ax4, λ, φ, Ti,  colormap = :thermal, colorrange = (-1, 30))
+heatmap!(ax5, λ, φ, Si,  colormap = :haline,  colorrange = (32, 37))
+heatmap!(ax6, λ, φ, Jsi, colormap = :bwr)
 
 CairoMakie.record(fig, "veros_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
     iter[] = nn

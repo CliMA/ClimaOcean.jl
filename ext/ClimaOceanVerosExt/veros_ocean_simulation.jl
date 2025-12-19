@@ -1,12 +1,12 @@
 using CondaPkg
 
 using Oceananigans.Grids: topology
-using ClimaOcean.OceanSeaIceModels: reference_density, heat_capacity, SeaIceSimulation
 
 import Oceananigans.Fields: set!
 import Oceananigans.TimeSteppers: time_step!, initialize!
 
-import ClimaOcean.OceanSeaIceModels: OceanSeaIceModel, default_nan_checker
+import ClimaOcean.OceanSeaIceModels: default_nan_checker
+import ClimaOcean.OceanSeaIceModels: reference_density, heat_capacity
 import Oceananigans.Architectures: architecture
 
 import Base: eltype
@@ -34,6 +34,9 @@ initialize!(::ClimaOceanVerosExt.VerosOceanSimulation{Py}) = nothing
 time_step!(ocean::VerosOceanSimulation, Δt) = ocean.setup.step(ocean.setup.state)
 architecture(model::OceanSeaIceModel{<:Any, <:Any, <:VerosOceanSimulation}) = CPU()
 eltype(model::OceanSeaIceModel{<:Any, <:Any, <:VerosOceanSimulation}) = Float64
+
+reference_density(ocean::VerosOceanSimulation) = pyconvert(eltype(ocean), ocean.setup.state.settings.rho_0)
+heat_capacity(ocean::VerosOceanSimulation) = convert(eltype(ocean), 3995)
 
 function remove_outputs(setup::Symbol)
     rm("$(setup).averages.nc", force=true)
