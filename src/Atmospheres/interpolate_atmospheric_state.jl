@@ -1,32 +1,15 @@
 using Oceananigans.Operators: intrinsic_vector
 using Oceananigans.Grids: _node
-using Oceananigans.Fields: FractionalIndices
+using Oceananigans.Fields: FractionalIndices, interpolate
 using Oceananigans.OutputReaders: TimeInterpolator
 
-using ...OceanSimulations: forcing_barotropic_potential, TwoColorRadiation
+using ClimaOcean.Oceans: forcing_barotropic_potential
 
-using ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres: PrescribedAtmosphere
-import ClimaOcean.OceanSeaIceModels: interpolate_atmosphere_state!
-
-compute_radiative_forcing!(T_forcing, downwelling_shortwave_radiation, coupled_model) = nothing #fallback
-
-function compute_radiative_forcing!(tcr::TwoColorRadiation, downwelling_shortwave_radiation, coupled_model)
-    ρₒ = coupled_model.interfaces.ocean_properties.reference_density
-    cₒ = coupled_model.interfaces.ocean_properties.heat_capacity
-    J⁰ = tcr.surface_flux
-    Qs = downwelling_shortwave_radiation
-    parent(J⁰) .= - parent(Qs) ./ (ρₒ * cₒ)
-    return nothing
-end
-
-# TODO: move to PrescribedAtmospheres
 """Interpolate the atmospheric state onto the ocean / sea-ice grid."""
-function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosphere, coupled_model)
-    ocean = coupled_model.ocean
+function interpolate_state!(exchanger, grid, atmosphere::PrescribedAtmosphere, coupled_model)
     atmosphere_grid = atmosphere.grid
 
     # Basic model properties
-    grid = ocean.model.grid
     arch = architecture(grid)
     clock = coupled_model.clock
 
@@ -55,9 +38,8 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
     atmosphere_backend = u.backend
     atmosphere_time_indexing = u.time_indexing
 
-    atmosphere_fields = coupled_model.interfaces.exchanger.exchange_atmosphere_state
-    space_fractional_indices = coupled_model.interfaces.exchanger.atmosphere_exchanger
-    exchange_grid = coupled_model.interfaces.exchanger.exchange_grid
+    atmosphere_fields = exchanger.state
+    space_fractional_indices = exchanger.regridder
 
     # Simplify NamedTuple to reduce parameter space consumption.
     # See https://github.com/CliMA/ClimaOcean.jl/issues/116.
@@ -85,7 +67,7 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
             atmosphere_data,
             space_fractional_indices,
             time_interpolator,
-            exchange_grid,
+            grid,
             atmosphere_velocities,
             atmosphere_tracers,
             atmosphere_pressure,
@@ -125,16 +107,11 @@ function interpolate_atmosphere_state!(interfaces, atmosphere::PrescribedAtmosph
     #
     # TODO: find a better design for this that doesn't have redundant
     # arrays for the barotropic potential
-    u_potential = forcing_barotropic_potential(ocean.model.forcing.u)
-    v_potential = forcing_barotropic_potential(ocean.model.forcing.v)
+    potential = forcing_barotropic_potential(coupled_model.ocean)
     ρₒ = coupled_model.interfaces.ocean_properties.reference_density
 
-    if !isnothing(u_potential)
-        parent(u_potential) .= parent(atmosphere_data.p) ./ ρₒ
-    end
-
-    if !isnothing(v_potential)
-        parent(v_potential) .= parent(atmosphere_data.p) ./ ρₒ
+    if !isnothing(potential)
+        parent(potential) .= parent(atmosphere_data.p) ./ ρₒ
     end
 end
 
@@ -233,8 +210,7 @@ end
     interp_atmos_time_series(values(ΣJ), args...)
 
 @inline interp_atmos_time_series(ΣJ::Tuple{<:Any}, args...) =
-    interp_atmos_time_series(ΣJ[1], args...) +
-    interp_atmos_time_series(ΣJ[2], args...)
+    interp_atmos_time_series(ΣJ[1], args...) 
 
 @inline interp_atmos_time_series(ΣJ::Tuple{<:Any, <:Any}, args...) =
     interp_atmos_time_series(ΣJ[1], args...) +
@@ -250,3 +226,14 @@ end
     interp_atmos_time_series(ΣJ[2], args...) +
     interp_atmos_time_series(ΣJ[3], args...) +
     interp_atmos_time_series(ΣJ[4], args...)
+
+@inline interp_atmos_time_series(ΣJ::Tuple{<:Any, <:Any, <:Any, <:Any, <:Any}, args...) =
+    interp_atmos_time_series(ΣJ[1], args...) +
+    interp_atmos_time_series(ΣJ[2], args...) +
+    interp_atmos_time_series(ΣJ[3], args...) +
+    interp_atmos_time_series(ΣJ[4], args...) +
+    interp_atmos_time_series(ΣJ[5], args...)
+
+@inline interp_atmos_time_series(ΣJ::Tuple, args...) =
+    interp_atmos_time_series(ΣJ[1], args...) +
+    interp_atmos_time_series(ΣJ[2:end], args...) 
