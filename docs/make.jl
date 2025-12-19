@@ -30,15 +30,20 @@ bib = CitationBibliography(bib_filepath, style=:authoryear)
 ##### Generate examples
 #####
 
-const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
-const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
+const EXAMPLES_DIR   = joinpath(@__DIR__, "..", "examples")
+const OUTPUT_DIR     = joinpath(@__DIR__, "src/literated")
+const DEVELOPERS_DIR = joinpath(@__DIR__, "src/developers")
 
-to_be_literated = [
-    "single_column_os_papa_simulation.jl",
-    "one_degree_simulation.jl",
-    "near_global_ocean_simulation.jl",
-    "global_climate_simulation.jl",
+ examples_pages = [
+    "Single-column ocean simulation" => "literated/single_column_os_papa_simulation.md",
+    "One-degree ocean--sea ice simulation" => "literated/one_degree_simulation.md",
+    "Near-global ocean simulation" => "literated/near_global_ocean_simulation.md",
+    "Global climate simulation" => "literated/global_climate_simulation.md",
 ]
+
+to_be_literated = map(examples_pages) do (_, mdpath)
+    replace(basename(mdpath), ".md" => ".jl")
+end
 
 for file in to_be_literated
     filepath = joinpath(EXAMPLES_DIR, file)
@@ -47,6 +52,10 @@ for file in to_be_literated
     end
     GC.gc()
     CUDA.reclaim()
+end
+
+withenv("JULIA_DEBUG" => "Literate") do
+    Literate.markdown(joinpath(DEVELOPERS_DIR, "slab_ocean.jl"), OUTPUT_DIR; flavor = Literate.DocumenterFlavor(), execute = false)
 end
 
 #####
@@ -60,11 +69,10 @@ format = Documenter.HTML(collapselevel = 2,
 pages = [
     "Home" => "index.md",
 
-    "Examples" => [
-        "Single-column ocean simulation" => "literated/single_column_os_papa_simulation.md",
-        "One-degree ocean--sea ice simulation" => "literated/one_degree_simulation.md",
-        "Near-global ocean simulation" => "literated/near_global_ocean_simulation.md",
-        "Global climate simulation" => "literated/global_climate_simulation.md",
+    "Examples" => examples_pages,
+
+    "Developers" => [
+        "OceanSeaIceModel interface" => "literated/slab_ocean.md",
         ],
 
     "Vertical grids" => "vertical_grids.md",

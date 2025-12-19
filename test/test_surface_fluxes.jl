@@ -6,7 +6,6 @@ using ClimaOcean.OceanSeaIceModels.InterfaceComputations:
                                    convert_to_kelvin,
                                    SimilarityScales,
                                    surface_specific_humidity,
-                                   surface_flux,
                                    SkinTemperature,
                                    BulkTemperature,
                                    DiffusiveFlux

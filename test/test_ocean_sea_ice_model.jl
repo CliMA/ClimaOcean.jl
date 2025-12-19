@@ -13,7 +13,7 @@ using Oceananigans.TimeSteppers: Clock
 @testset "Time stepping test" begin
     for dataset in [ECCO4Monthly(), EN4Monthly()]
 
-        start = DateTimeProlepticGregorian(1993, 1, 1)
+        start_date = DateTimeProlepticGregorian(1993, 1, 1)
         time_resolution = dataset isa ECCO2Daily ? Day(1) : Month(1)
         end_date = DateTimeProlepticGregorian(1993, 2, 1)
         dates = start_date : time_resolution : end_date
@@ -87,7 +87,7 @@ using Oceananigans.TimeSteppers: Clock
 
             # Set the ocean temperature and salinity
             set!(ocean.model, T=temperature_metadata[1], S=salinity_metadata[1])
-            above_freezing_ocean_temperature!(ocean, sea_ice)
+            above_freezing_ocean_temperature!(ocean, grid, sea_ice)
 
             # Test that ocean temperatures are above freezing
             T = on_architecture(CPU(), ocean.model.tracers.T)

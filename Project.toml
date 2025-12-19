@@ -1,7 +1,7 @@
 name = "ClimaOcean"
 uuid = "0376089a-ecfe-4b0e-a64f-9c555d74d754"
 license = "MIT"
-version = "0.8.8"
+version = "0.9.0"
 authors = ["Climate Modeling Alliance and contributors"]
 
 [deps]
@@ -40,6 +40,7 @@ XESMF = "2e0b0046-e7a1-486f-88de-807ee8ffabe5"
 
 [sources]
 Oceananigans = {rev = "ss/reformulate-hydrostatic-model-2", url = "https://github.com/CliMA/Oceananigans.jl.git"}
+ClimaSeaIce = {rev = "ss/rk3-substep", url = "https://github.com/CliMA/ClimaSeaIce.jl.git"}
 
 [extensions]
 ClimaOceanCopernicusMarineExt = "CopernicusMarine"
@@ -63,7 +64,7 @@ KernelAbstractions = "0.9"
 MPI = "0.20"
 MeshArrays = "0.3, 0.4"
 NCDatasets = "0.12, 0.13, 0.14"
-Oceananigans = "0.102"
+Oceananigans = "0.102, 0.103, 0.104"
 OffsetArrays = "1.14"
 PrecompileTools = "1"
 Reactant = "0.2.45"
