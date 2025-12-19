@@ -126,7 +126,7 @@ using Oceananigans
 using Oceananigans.Units
 using Dates
 
-arch = CPU()
+arch = GPU()
 grid = TripolarGrid(arch, size=(720, 720, 1), z=(-50, 0))
 bottom_height = regrid_bathymetry(grid; minimum_depth=15, major_basins=1, interpolation_passes=10)
 grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map=true)
@@ -143,7 +143,7 @@ set!(sea_ice.model, h=Metadatum(:sea_ice_thickness,     dataset=ECCO4Monthly()),
 interfaces = ComponentInterfaces(atmosphere, slab_ocean, sea_ice; exchange_grid=grid)
 coupled_model = ClimaOcean.OceanSeaIceModel(slab_ocean, sea_ice; atmosphere, interfaces)
 
-simulation = Simulation(coupled_model, Δt=60minutes, stop_time=365days)
+simulation = Simulation(coupled_model, Δt=60minutes, stop_time=120days)
 run!(simulation)
 
 # And now visualize.
