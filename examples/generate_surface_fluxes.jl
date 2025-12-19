@@ -12,7 +12,7 @@
 using ClimaOcean
 using ClimaOcean.ECCO
 using ClimaOcean.JRA55
-using ClimaOcean.OceanSimulations
+using ClimaOcean.Oceans
 using Oceananigans
 using Dates
 using CairoMakie

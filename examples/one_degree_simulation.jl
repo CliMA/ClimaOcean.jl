@@ -56,7 +56,7 @@ using Oceananigans.TurbulenceClosures: IsopycnalSkewSymmetricDiffusivity, Advect
 eddy_closure = IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3, skew_flux_formulation=AdvectiveFormulation()) 
 @inline νhb(i, j, k, grid, ℓx, ℓy, ℓz, clock, fields, λ) = Oceananigans.Operators.Az(i, j, k, grid, ℓx, ℓy, ℓz)^2 / λ
 horizontal_viscosity = HorizontalScalarBiharmonicDiffusivity(ν=νhb, discrete_form=true, parameters=15days)
-vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
+vertical_mixing = ClimaOcean.Oceans.default_ocean_closure()
 
 # ### Ocean simulation
 # Now we bring everything together to construct the ocean simulation.
@@ -86,7 +86,7 @@ sea_ice = sea_ice_simulation(grid, ocean; advection=tracer_advection)
 
 date = DateTime(1993, 1, 1)
 dataset = ECCO4Monthly()
-ecco_temperature = Metadatum(:temperature; date, dataset)
+ecco_temperature           = Metadatum(:temperature; date, dataset)
 ecco_salinity              = Metadatum(:salinity; date, dataset)
 ecco_sea_ice_thickness     = Metadatum(:sea_ice_thickness; date, dataset)
 ecco_sea_ice_concentration = Metadatum(:sea_ice_concentration; date, dataset)

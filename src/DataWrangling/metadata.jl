@@ -1,7 +1,7 @@
 using CFTime
 using Dates
 using Base: @propagate_inbounds
-import Oceananigans.Grids: prettysummary
+import Oceananigans.Utils: prettysummary
 
 struct BoundingBox{X, Y, Z}
     longitude :: X

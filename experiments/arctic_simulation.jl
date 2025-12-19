@@ -4,7 +4,7 @@ using Oceananigans
 using Oceananigans.Grids
 using Oceananigans.Units
 using Oceananigans.OrthogonalSphericalShellGrids
-using ClimaOcean.OceanSimulations
+using ClimaOcean.Oceans
 using ClimaOcean.ECCO
 using ClimaOcean.DataWrangling
 using ClimaSeaIce.SeaIceThermodynamics: IceWaterThermalEquilibrium
@@ -42,7 +42,7 @@ momentum_advection = WENOVectorInvariant(order=3)
 tracer_advection   = WENO(order=3)
 
 free_surface = SplitExplicitFreeSurface(grid; cfl=0.7)
-closure = ClimaOcean.OceanSimulations.default_ocean_closure()
+closure = ClimaOcean.Oceans.default_ocean_closure()
 
 ocean = ocean_simulation(grid;
                          momentum_advection,
