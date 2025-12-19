@@ -134,7 +134,8 @@ set!(slab_ocean.temperature, Metadatum(:temperature, dataset=ECCO4Monthly()))
 atmosphere = ClimaOcean.JRA55PrescribedAtmosphere(arch)
 
 sea_ice = ClimaOcean.sea_ice_simulation(grid, slab_ocean, advection=WENO(order=7))
-set!(sea_ice.model, h=10, ℵ=1)
+set!(sea_ice.model, h=Metadatum(:sea_ice_thickness,     dataset=ECCO4Monthly()),
+                    ℵ=Metadatum(:sea_ice_concentration, dataset=ECCO4Monthly()))
 
 interfaces = ComponentInterfaces(atmosphere, slab_ocean, sea_ice; exchange_grid=grid)
 coupled_model = ClimaOcean.OceanSeaIceModel(slab_ocean, sea_ice; atmosphere, interfaces)
@@ -153,9 +154,9 @@ axT = Axis(fig[1, 1], title="Slab Ocean Temperature")
 axh = Axis(fig[2, 1], title="Sea Ice Thickness")
 axℵ = Axis(fig[3, 1], title="Sea Ice Concentration")
 
-heatmap!(axT, Array(interior(slab_ocean.temperature, :, :, 1)),          colormap=:thermal)
-heatmap!(axh, Array(interior(sea_ice.model.ice_thickness, :, :, 1)),     colormap=:ice)
-heatmap!(axℵ, Array(interior(sea_ice.model.ice_concentration, :, :, 1)), colormap=:deep)
+heatmap!(axT, Array(interior(slab_ocean.temperature, :, :, 1)),          colormap=:thermal, colorrange=(-1.8, -1.79))
+heatmap!(axh, Array(interior(sea_ice.model.ice_thickness, :, :, 1)),     colormap=:ice,     colorrange=(0, 1))
+heatmap!(axℵ, Array(interior(sea_ice.model.ice_concentration, :, :, 1)), colormap=:deep,    colorrange=(0, 0.1))
 hidedecorations!(axT)
 hidedecorations!(axh)
 hidedecorations!(axℵ)
