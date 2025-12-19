@@ -92,7 +92,8 @@ OceanSeaIceModels.ocean_salinity(slab_ocean::SlabOcean) = Oceananigans.Fields.Co
 OceanSeaIceModels.ocean_temperature(slab_ocean::SlabOcean) = slab_ocean.temperature
 
 # The `update_net_fluxes!` function computes net fluxes and applies them to previously defined `net_fluxes` containers.
-# These will be used to update the ocean state in the `time_step!` method. In this case, we can use the `update_net_ocean_fluxes!` function from the Oceans.jl module.
+# These will be used to update the ocean state in the `time_step!` method. In this case, we can use the
+# `update_net_ocean_fluxes!` function from the Oceans.jl module.
 
 using ClimaOcean.Oceans
 
@@ -116,8 +117,9 @@ end
 
 # ## Complete Example: Coupling Slab Ocean with JRA55 and Sea Ice
 #
-# Here's a complete example showing how to use the slab ocean in a coupled simulation. We use the JRA55 reanalysis for the atmosphere and
-# the ECCO4Monthly dataset to initialize our slab ocean. We also initialize the sea ice with climatological data and see how the ice evolves...
+# Here's a complete example showing how to use the slab ocean in a coupled simulation.
+# We use the JRA55 reanalysis for the atmosphere and the ECCO4Monthly dataset to initialize our slab ocean.
+# We also initialize the sea ice with climatological data and see how the sea ice evolves.
 
 using ClimaOcean
 using Oceananigans
@@ -143,6 +145,8 @@ coupled_model = ClimaOcean.OceanSeaIceModel(slab_ocean, sea_ice; atmosphere, int
 
 simulation = Simulation(coupled_model, Δt=60minutes, stop_time=365days)
 run!(simulation)
+
+# And now visualize.
 
 using CairoMakie
 
