@@ -43,6 +43,7 @@ export
     ocean_simulation,
     sea_ice_simulation,
     atmosphere_simulation,
+    sea_ice_dynamics,
     initialize!
 
 using Oceananigans

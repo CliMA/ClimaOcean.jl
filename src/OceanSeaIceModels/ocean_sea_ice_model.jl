@@ -136,9 +136,6 @@ interfaces = ClimaOcean.OceanSeaIceModels.ComponentInterfaces(nothing, ocean; at
 model = OceanSeaIceModel(ocean; interfaces)
 
 # output
-┌ Warning: Split barotropic-baroclinic time stepping with SplitRungeKutta3TimeStepper is experimental.
-│ Use at own risk, and report any issues encountered at https://github.com/CliMA/Oceananigans.jl/issues.
-└ @ Oceananigans.TimeSteppers ~/.julia/packages/Oceananigans/cQglC/src/TimeSteppers/split_hydrostatic_runge_kutta_3.jl:59
 OceanSeaIceModel{CPU}(time = 0 seconds, iteration = 0)
 ├── ocean: HydrostaticFreeSurfaceModel{CPU, RectilinearGrid}(time = 0 seconds, iteration = 0)
 ├── atmosphere: Nothing
@@ -156,7 +153,7 @@ The available stability function options include:
 function OceanSeaIceModel(ocean, sea_ice=default_sea_ice();
                           atmosphere = nothing,
                           radiation = Radiation(),
-                          clock = Clock(time=0),
+                          clock = Clock{Float64}(time=0),
                           ocean_reference_density = reference_density(ocean),
                           ocean_heat_capacity = heat_capacity(ocean),
                           sea_ice_reference_density = reference_density(sea_ice),

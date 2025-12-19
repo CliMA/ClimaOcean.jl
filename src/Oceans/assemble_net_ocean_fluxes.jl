@@ -13,9 +13,6 @@ using ClimaOcean.OceanSeaIceModels.InterfaceComputations: interface_kernel_param
                                                           transmitted_shortwave_radiation
                                                           
 
-# No need to do this for an Oceananigans Simulation
-fill_net_fluxes!(ocean, net_ocean_fluxes) = nothing
-
 @inline τᶜᶜᶜ(i, j, k, grid, ρₒ⁻¹, ℵ, ρτᶜᶜᶜ) = @inbounds ρₒ⁻¹ * (1 - ℵ[i, j, k]) * ρτᶜᶜᶜ[i, j, k]
 
 #####
@@ -71,8 +68,6 @@ function update_net_ocean_fluxes!(coupled_model, ocean_model, grid)
             freshwater_flux,
             atmos_ocean_properties,
             ocean_properties)
-
-    fill_net_fluxes!(coupled_model.ocean, net_ocean_fluxes)
 
     return nothing
 end

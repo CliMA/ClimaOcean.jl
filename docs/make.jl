@@ -66,6 +66,10 @@ pages = [
         "OceanSeaIceModel interface" => "literated/slab_ocean.md",
         ],
 
+    "Developers" => [
+        "OceanSeaIceModel interface" => "literated/slab_ocean.md",
+        ],
+
     "Vertical grids" => "vertical_grids.md",
 
     "Metadata" => [
