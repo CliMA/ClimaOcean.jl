@@ -84,14 +84,23 @@ Arguments
 - `setup::AbstractString`: The name of the Veros setup module to import (e.g., `"global_4deg"`).
 - `setup_name::Symbol`: The name of the setup class or function within the module to instantiate (e.g., `:GlobalFourDegreeSetup`).
 """
-function VerosOceanSimulation(setup, setup_name::Symbol)
+function VerosOceanSimulation(setup::String, setup_name::Symbol)
     setups = pyimport("veros.setups." * setup)
-    setup  = @eval $setups.$setup_name()
+    ocean  = @eval $setups.$setup_name()
 
     # instantiate the setup
-    setup.setup()
+    ocean.setup()
 
-    return VerosOceanSimulation(setup) 
+    return VerosOceanSimulation(ocean) 
+end
+
+# If we already pass a ocean configuration, call setup and build the type
+function VerosOceanSimulation(ocean::Py)
+
+    # instantiate the setup
+    ocean.setup()
+
+    return VerosOceanSimulation(ocean)
 end
 
 """
