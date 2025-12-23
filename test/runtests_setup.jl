@@ -18,6 +18,15 @@ using Dates
 
 using CUDA: @allowscalar
 
+
+arch_tag(arch) = arch isa Oceananigans.Architectures.GPU ? "gpu" : "cpu"
+
+function arch_data_dir(base::AbstractString, arch, dataset)
+    dir = joinpath(base, arch_tag(arch), string(typeof(dataset)))
+    isdir(dir) || mkpath(dir)
+    return dir
+end
+
 gpu_test = parse(Bool, get(ENV, "GPU_TEST", "false"))
 test_architectures = gpu_test ? [GPU()] : [CPU()]
 
@@ -97,8 +106,10 @@ function test_timestepping_with_dataset(arch, dataset, start_date, inpainting;
     field = CenterField(grid)
 
     @test begin
+        base = joinpath(pwd(), "test_data")
         for name in varnames
-            set!(field, Metadatum(name; dataset, date=start_date); inpainting)
+	    dir = arch_data_dir(base, arch, dataset)
+            set!(field, Metadatum(name; dataset, date=start_date, dir=dir); inpainting)
         end
         true
     end
