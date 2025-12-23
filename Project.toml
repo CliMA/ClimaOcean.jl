@@ -40,7 +40,7 @@ XESMF = "2e0b0046-e7a1-486f-88de-807ee8ffabe5"
 
 [sources]
 Oceananigans = {rev = "ss/reformulate-hydrostatic-model-2", url = "https://github.com/CliMA/Oceananigans.jl.git"}
-ClimaSeaIce = {rev = "ss/rk3-substep", url = "https://github.com/CliMA/ClimaSeaIce.jl.git"}
+ClimaSeaIce = {rev = "ss/rk-substep", url = "https://github.com/CliMA/ClimaSeaIce.jl.git"}
 
 [extensions]
 ClimaOceanCopernicusMarineExt = "CopernicusMarine"
