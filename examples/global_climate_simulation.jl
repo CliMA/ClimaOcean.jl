@@ -40,7 +40,7 @@ momentum_advection = VectorInvariant()
 tracer_advection   = WENO(order=5)
 free_surface       = SplitExplicitFreeSurface(grid; substeps=40)
 
-catke_closure   = ClimaOcean.OceanSimulations.default_ocean_closure()
+catke_closure   = ClimaOcean.Oceans.default_ocean_closure()
 viscous_closure = Oceananigans.TurbulenceClosures.HorizontalScalarBiharmonicDiffusivity(ν=1e12)
 eddy_closure    = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
 closures        = (catke_closure, eddy_closure, viscous_closure, VerticalScalarDiffusivity(ν=1e-4))
@@ -124,7 +124,7 @@ Qcai = earth.model.interfaces.atmosphere_sea_ice_interface.fluxes.sensible_heat
 Qvai = earth.model.interfaces.atmosphere_sea_ice_interface.fluxes.latent_heat
 τxai = earth.model.interfaces.atmosphere_sea_ice_interface.fluxes.x_momentum
 τyai = earth.model.interfaces.atmosphere_sea_ice_interface.fluxes.y_momentum
-Qoi  = earth.model.interfaces.net_fluxes.sea_ice_bottom.heat
+Qoi  = earth.model.interfaces.net_fluxes.sea_ice.bottom.heat
 Soi  = earth.model.interfaces.sea_ice_ocean_interface.fluxes.salt
 fluxes = (; Qcao, Qvao, τxao, τyao, Qcai, Qvai, τxai, τyai, Qoi, Soi)
 

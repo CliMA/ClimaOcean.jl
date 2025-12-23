@@ -67,10 +67,10 @@ Modules = [ClimaOcean.Bathymetry]
 Private = false
 ```
 
-## OceanSimulations
+## Oceans
 
 ```@autodocs
-Modules = [ClimaOcean.OceanSimulations]
+Modules = [ClimaOcean.Oceans]
 Private = false
 ```
 
