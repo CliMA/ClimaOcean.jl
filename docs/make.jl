@@ -2,12 +2,11 @@ using Distributed
 Distributed.addprocs(2)
 
 @everywhere begin
-    using
-        ClimaOcean,
-        CUDA,
-        Documenter,
-        DocumenterCitations,
-        Literate
+    using ClimaOcean
+    using CUDA
+    using Documenter
+    using DocumenterCitations
+    using Literate
 
     ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
 
