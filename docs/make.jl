@@ -46,8 +46,6 @@ end
 
 Distributed.rmprocs()
 
-# The slab ocean runs on device 0
-CUDA.device!(0)
 withenv("JULIA_DEBUG" => "Literate") do
     Literate.markdown(joinpath(DEVELOPERS_DIR, "slab_ocean.jl"), OUTPUT_DIR; flavor = Literate.DocumenterFlavor(), execute = true)
 end
