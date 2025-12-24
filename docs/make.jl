@@ -34,7 +34,9 @@ Distributed.addprocs(2)
 end
 
 Distributed.pmap(1:length(to_be_literated)) do n
-    CUDA.device!(Distributed.myid()-1) # Set the correct GPU, the used GPUs will be number 1 and 2
+    device = Distributed.myid()-1
+    @info "switching to device $(device)"
+    CUDA.device!(device) # Set the correct GPU, the used GPUs will be number 1 and 2
     file = to_be_literated[n]
     filepath = joinpath(EXAMPLES_DIR, file)
     withenv("JULIA_DEBUG" => "Literate") do
