@@ -1,7 +1,7 @@
 name = "ClimaOcean"
 uuid = "0376089a-ecfe-4b0e-a64f-9c555d74d754"
 license = "MIT"
-version = "0.9.1"
+version = "0.9.0"
 authors = ["Climate Modeling Alliance and contributors"]
 
 [deps]
