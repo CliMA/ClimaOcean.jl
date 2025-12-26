@@ -48,7 +48,7 @@ end
 
 format = Documenter.HTML(collapselevel = 2,
                          size_threshold = nothing,
-                         canonical = "https://clima.github.io/ClimaOceanDocumentation/dev/")
+                         canonical = "https://clima.github.io/ClimaOceanDocumentation/stable/")
 
 pages = [
     "Home" => "index.md",
