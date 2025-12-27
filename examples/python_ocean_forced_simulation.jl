@@ -32,6 +32,14 @@ VerosModule.remove_outputs(:global_4deg)
 
 ocean = VerosModule.VerosOceanSimulation("global_4deg", :GlobalFourDegreeSetup)
 
+# The loaded Veros setup contains a `set_forcing` method which computes the fluxes as restoring from climatology.
+# We need to disable the hardcoded forcing function from the loaded Veros so that our forcings are not overwritten
+
+ocean.setup.set_forcing = @pyeval("lambda state: None")
+
+# The loaded setup had different time-steps for tracer and momentum. ClimaOcean handles only oceans with the
+# same time steps, so we need to align the tracer variables' timestep with the momentum.
+
 set!(ocean, "dt_tracer", 1800.0; path=:settings)
 set!(ocean, "dt_mom",    1800.0; path=:settings)
 
@@ -54,18 +62,15 @@ simulation = Simulation(coupled_model; Δt = 1800, stop_time = 60days)
 
 wall_time = Ref(time_ns())
 
-sp = []
-S  = []
-T  = []
-tx = []
-ty = []
-Js = []
-Jt = []
-
 us = coupled_model.interfaces.exchanger.ocean.state.u
 vs = coupled_model.interfaces.exchanger.ocean.state.v
+τx = []
+τy = []
+JS = []
+JT = []
+sp = []
 
-stmp = Field(sqrt(us^2 + vs^2))
+sptemp = Field(sqrt(us^2 + vs^2))
 
 function progress(sim)
     ocean   = sim.model.ocean
@@ -83,14 +88,11 @@ function progress(sim)
 
     wall_time[] = time_ns()
 
-    compute!(stmp)
-    push!(sp, deepcopy(interior(stmp, :, :, 1)))
-    push!(S,  deepcopy(interior(coupled_model.interfaces.exchanger.ocean.state.S, :, :, 1)))
-    push!(T,  deepcopy(interior(coupled_model.interfaces.exchanger.ocean.state.T, :, :, 1)))
-    push!(tx, deepcopy(interior(coupled_model.interfaces.net_fluxes.ocean.u, :, :, 1)))
-    push!(ty, deepcopy(interior(coupled_model.interfaces.net_fluxes.ocean.v, :, :, 1)))
-    push!(Js, deepcopy(interior(coupled_model.interfaces.net_fluxes.ocean.S, :, :, 1)))
-    push!(Jt, deepcopy(interior(coupled_model.interfaces.net_fluxes.ocean.T, :, :, 1)))
+    push!(sp, compute!(sptemp))
+    push!(τx, deepcopy(coupled_model.interfaces.net_fluxes.ocean.u))
+    push!(τy, deepcopy(coupled_model.interfaces.net_fluxes.ocean.v))
+    push!(JS, deepcopy(coupled_model.interfaces.net_fluxes.ocean.S))
+    push!(JT, deepcopy(coupled_model.interfaces.net_fluxes.ocean.T))
 
     return nothing
 end
@@ -101,37 +103,37 @@ add_callback!(simulation, progress, IterationInterval(5))
 
 run!(simulation)
 
-# We can now visualize the surface speed and wind stress at the ocean surface
-# over the course of the simulation.
-
 iter = Observable(1)
-spi  = @lift(sp[$iter])
-Jsi  = @lift(tx[$iter])
-Jti  = @lift(ty[$iter])
-Si   = @lift(S[$iter])
-Ti   = @lift(T[$iter])
-Nt   = length(sp)
+spi = @lift(sp[$iter])
+τxi = @lift(τx[$iter])
+τyi = @lift(τy[$iter])
+JSi = @lift(JS[$iter])
+JTi = @lift(JT[$iter])
+Nt  = length(sp)
 
-fig = Figure(resolution = (1200, 600))
-ax1 = Axis(fig[1, 1]; title = "Surface speed (m/s)", xlabel = "Longitude", ylabel = "Latitude")
-ax2 = Axis(fig[1, 2]; title = "Zonal wind stress (N/m²)", xlabel = "Longitude")
-ax3 = Axis(fig[1, 3]; title = "Meridional wind stress (N/m²)", xlabel = "Longitude")
-ax4 = Axis(fig[2, 1]; title = "Surface temperature (ᵒC)", xlabel = "Longitude", ylabel = "Latitude")
-ax5 = Axis(fig[2, 2]; title = "Surface salinity (psu)", xlabel = "Longitude")
-ax6 = Axis(fig[2, 3]; title = "Surface salinity flux", xlabel = "Longitude")
+fig = Figure(resolution = (1000, 1500))
+ax1 = Axis(fig[1, 1]; title = "Surface speed (m/s)", xlabel = "", ylabel = "Latitude")
+ax2 = Axis(fig[2, 1]; title = "Zonal wind stress (N/m²)", xlabel = "", ylabel = "Latitude")
+ax3 = Axis(fig[3, 1]; title = "Meridional wind stress (N/m²)", xlabel = "", ylabel = "Latitude")
+ax4 = Axis(fig[4, 1]; title = "Temperature flux (ᵒC m/s)", xlabel = "", ylabel = "Latitude")
+ax5 = Axis(fig[5, 1]; title = "Surface flux (psu m/s)", xlabel = "Longitude", ylabel = "Latitude")
 
 grid = coupled_model.interfaces.exchanger.grid
 
 λ = λnodes(grid, Center())
 φ = φnodes(grid, Center())
 
-heatmap!(ax1, λ, φ, spi, colormap = :ice, colorrange = (0, 0.15))
-heatmap!(ax2, λ, φ, txi, colormap = :bwr, colorrange = (-0.2, 0.2))
-heatmap!(ax3, λ, φ, tyi, colormap = :bwr, colorrange = (-0.2, 0.2))
+hm1 = heatmap!(ax1, λ, φ, spi, colormap = :ice, colorrange = (0, 0.15))
+hm2 = heatmap!(ax2, λ, φ, τxi, colormap = :bwr, colorrange = (-0.2, 0.2))
+hm3 = heatmap!(ax3, λ, φ, τyi, colormap = :bwr, colorrange = (-0.2, 0.2))
+hm4 = heatmap!(ax4, λ, φ, JTi, colormap = :thermal)
+hm5 = heatmap!(ax5, λ, φ, JSi, colormap = :haline)
 
-heatmap!(ax4, λ, φ, Ti,  colormap = :thermal, colorrange = (-1, 30))
-heatmap!(ax5, λ, φ, Si,  colormap = :haline,  colorrange = (32, 37))
-heatmap!(ax6, λ, φ, Jsi, colormap = :bwr)
+Colorbar(fig[1, 2], hm1)
+Colorbar(fig[2, 2], hm2)
+Colorbar(fig[3, 2], hm3)
+Colorbar(fig[4, 2], hm4)
+Colorbar(fig[5, 2], hm5)
 
 CairoMakie.record(fig, "veros_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
     iter[] = nn
