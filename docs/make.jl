@@ -1,4 +1,9 @@
+using ClimaOcean
 using Distributed
+
+# Make sure the atmospheric data for the examples is downloaded
+JRA55PrescribedAtmosphere() # This command downloads the atmospheric data used by the examples
+
 Distributed.addprocs(2)
 
 @everywhere begin
