@@ -408,9 +408,9 @@ function materialize_tabulated_stability_functions(stability_function::AbstractS
 end
 
 """
-    create_tabulated_stability_functions(similarity_scales::SimilarityScales; 
-                                         ζ_range = (-15, 15), 
-                                         n_points = 1000)
+    materialize_tabulated_stability_functions(similarity_scales::SimilarityScales; 
+                                              ζ_range = (-15, 15), 
+                                              n_points = 1000)
 
 Create tabulated versions of all stability functions in `similarity_scales`.
 
@@ -423,9 +423,9 @@ Arguments
 function materialize_tabulated_stability_functions(similarity_scales::SimilarityScales; 
                                                    ζ_range = (-30, 30),
                                                    n_points = 10000)
-    ψu = TabulatedStabilityFunction(similarity_scales.momentum;    ζ_range, n_points)
-    ψθ = TabulatedStabilityFunction(similarity_scales.temperature; ζ_range, n_points)
-    ψq = TabulatedStabilityFunction(similarity_scales.water_vapor; ζ_range, n_points)
+    ψu = materialize_tabulated_stability_functions(similarity_scales.momentum;    ζ_range, n_points)
+    ψθ = materialize_tabulated_stability_functions(similarity_scales.temperature; ζ_range, n_points)
+    ψq = materialize_tabulated_stability_functions(similarity_scales.water_vapor; ζ_range, n_points)
     return SimilarityScales(ψu, ψθ, ψq)
 end
 
