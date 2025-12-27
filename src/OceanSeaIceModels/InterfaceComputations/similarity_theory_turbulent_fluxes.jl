@@ -117,7 +117,7 @@ function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
 
     # Optionally tabulate stability functions for performance
     if tabulate_stability_functions
-        stability_functions = materialize_tabulated_stability_functions(stability_functions;
+        stability_functions = materialize_tabulated_stability_functions(stability_functions, FT;
                                                                         ζ_range  = tabulation_ζ_range,
                                                                         n_points = tabulation_points)
     end
@@ -384,7 +384,7 @@ Adapt.adapt_structure(to, ψ::TabulatedStabilityFunction) =
 end
 
 """
-    materialize_tabulated_stability_functions(stability_function::AbstractStabilityFunction;
+    materialize_tabulated_stability_functions(stability_function::AbstractStabilityFunction, [FT::DataType = Oceananigans.defaults.FloatType];
                                                ζ_range = (-15, 15),
                                                n_points = 1000)
 
@@ -396,19 +396,19 @@ Arguments
 - `ζ_range`: Tuple of (minimum, maximum) zeta values. Default: (-15, 15)
 - `n_points`: Number of points in the lookup table. Default: 1000
 """
-function materialize_tabulated_stability_functions(stability_function::AbstractStabilityFunction;
+function materialize_tabulated_stability_functions(stability_function::AbstractStabilityFunction, FT::DataType = Oceananigans.defaults.FloatType;
                                                    ζ_range = (-30, 30),
                                                    n_points = 10000)
     ζ_min, ζ_max = ζ_range
     Δζ = (ζ_max - ζ_min) / (n_points - 1)
     inverse_Δζ = 1 / Δζ
     table = [stability_profile(stability_function, ζ_min + (i-1) * Δζ) for i in 1:n_points]
-
-    return TabulatedStabilityFunction(stability_function, table, ζ_min, ζ_max, inverse_Δζ)
+    table = convert.(Ref(FT), table)
+    return TabulatedStabilityFunction(stability_function, table, convert(FT, ζ_min), convert(FT, ζ_max), convert(FT, inverse_Δζ))
 end
 
 """
-    materialize_tabulated_stability_functions(similarity_scales::SimilarityScales; 
+    materialize_tabulated_stability_functions(similarity_scales::SimilarityScales, [FT::DataType = Oceananigans.defaults.FloatType]; 
                                               ζ_range = (-15, 15), 
                                               n_points = 1000)
 
@@ -420,12 +420,12 @@ Arguments
 - `ζ_range`: Tuple of (minimum, maximum) zeta values. Default: (-15, 15)
 - `n_points`: Number of points in each lookup table. Default: 1000
 """
-function materialize_tabulated_stability_functions(similarity_scales::SimilarityScales; 
+function materialize_tabulated_stability_functions(similarity_scales::SimilarityScales, FT::DataType = Oceananigans.defaults.FloatType; 
                                                    ζ_range = (-30, 30),
                                                    n_points = 10000)
-    ψu = materialize_tabulated_stability_functions(similarity_scales.momentum;    ζ_range, n_points)
-    ψθ = materialize_tabulated_stability_functions(similarity_scales.temperature; ζ_range, n_points)
-    ψq = materialize_tabulated_stability_functions(similarity_scales.water_vapor; ζ_range, n_points)
+    ψu = materialize_tabulated_stability_functions(similarity_scales.momentum,    FT; ζ_range, n_points)
+    ψθ = materialize_tabulated_stability_functions(similarity_scales.temperature, FT; ζ_range, n_points)
+    ψq = materialize_tabulated_stability_functions(similarity_scales.water_vapor, FT; ζ_range, n_points)
     return SimilarityScales(ψu, ψθ, ψq)
 end
 
