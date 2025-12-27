@@ -383,18 +383,20 @@ Adapt.adapt_structure(to, ψ::TabulatedStabilityFunction) =
     return (1 - ξ) * ψ⁻ + ξ * ψ⁺
 end
 
+materialize_tabulated_stability_functions(stability_function, FT=Oceananigans.defaults.FloatType; kwargs...) = stability_function 
+
 """
     materialize_tabulated_stability_functions(stability_function::AbstractStabilityFunction, [FT::DataType = Oceananigans.defaults.FloatType];
-                                               ζ_range = (-15, 15),
-                                               n_points = 1000)
+                                               ζ_range = (-30, 30),
+                                               n_points = 10000)
 
 Construct a `TabulatedStabilityFunction` by precomputing `n_points` values of `stability_function` over the range `ζ_range`.
 
 Arguments
 =========
 - `stability_function`: The stability function to tabulate
-- `ζ_range`: Tuple of (minimum, maximum) zeta values. Default: (-15, 15)
-- `n_points`: Number of points in the lookup table. Default: 1000
+- `ζ_range`: Tuple of (minimum, maximum) zeta values. Default: (-30, 30)
+- `n_points`: Number of points in the lookup table. Default: 10000
 """
 function materialize_tabulated_stability_functions(stability_function::AbstractStabilityFunction, FT::DataType = Oceananigans.defaults.FloatType;
                                                    ζ_range = (-30, 30),
@@ -409,16 +411,16 @@ end
 
 """
     materialize_tabulated_stability_functions(similarity_scales::SimilarityScales, [FT::DataType = Oceananigans.defaults.FloatType]; 
-                                              ζ_range = (-15, 15), 
-                                              n_points = 1000)
+                                              ζ_range = (-30, 30), 
+                                              n_points = 10000)
 
 Create tabulated versions of all stability functions in `similarity_scales`.
 
 Arguments
 =========
 - `similarity_scales`: A `SimilarityScales` object containing momentum, temperature, and water_vapor stability functions
-- `ζ_range`: Tuple of (minimum, maximum) zeta values. Default: (-15, 15)
-- `n_points`: Number of points in each lookup table. Default: 1000
+- `ζ_range`: Tuple of (minimum, maximum) zeta values. Default: (-30, 30)
+- `n_points`: Number of points in each lookup table. Default: 10000
 """
 function materialize_tabulated_stability_functions(similarity_scales::SimilarityScales, FT::DataType = Oceananigans.defaults.FloatType; 
                                                    ζ_range = (-30, 30),
