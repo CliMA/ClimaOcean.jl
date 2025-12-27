@@ -4,9 +4,9 @@ using Distributed
 # Make sure the atmospheric data for the examples is downloaded
 JRA55PrescribedAtmosphere() # This command downloads the atmospheric data used by the examples
 
-Distributed.addprocs(2)
+# Distributed.addprocs(2)
 
-@everywhere begin
+# @everywhere begin
     using ClimaOcean
     using CUDA
     using Documenter
@@ -37,12 +37,13 @@ Distributed.addprocs(2)
     to_be_literated = map(examples_pages) do (_, mdpath)
         replace(basename(mdpath), ".md" => ".jl")
     end
-end
+# end
 
-Distributed.pmap(1:length(to_be_literated)) do n
-    device = Distributed.myid()
-    @info "switching to device $(device)"
-    CUDA.device!(device) # Set the correct GPU, the used GPUs will be number 2 and 3
+# Distributed.pmap(1:length(to_be_literated)) do n
+for i in 1:length(to_be_literated)
+    # device = Distributed.myid()
+    # @info "switching to device $(device)"
+    # CUDA.device!(device) # Set the correct GPU, the used GPUs will be number 2 and 3
     file = to_be_literated[n]
     filepath = joinpath(EXAMPLES_DIR, file)
     withenv("JULIA_DEBUG" => "Literate") do
@@ -52,7 +53,7 @@ Distributed.pmap(1:length(to_be_literated)) do n
     CUDA.reclaim()
 end
 
-Distributed.rmprocs()
+# Distributed.rmprocs()
 
 withenv("JULIA_DEBUG" => "Literate") do
     Literate.markdown(joinpath(DEVELOPERS_DIR, "slab_ocean.jl"), OUTPUT_DIR; flavor = Literate.DocumenterFlavor(), execute = true)
