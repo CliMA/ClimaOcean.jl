@@ -15,7 +15,11 @@ ocean_surface_velocities(ocean) = ZeroField(), ZeroField()
 
 sea_ice_thickness(::Nothing) = ZeroField()
 sea_ice_concentration(::Nothing) = ZeroField()
+sea_ice_top_temperature(::Nothing) = nothing 
+liquidus(sea_ice) = LinearLiquidus()
+
 function default_sea_ice end
+function default_ai_temperature end
 
 #####
 ##### Functions extended by atmosphere models

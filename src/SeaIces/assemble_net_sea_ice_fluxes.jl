@@ -8,9 +8,11 @@ using ClimaOcean.OceanSeaIceModels.InterfaceComputations: computed_fluxes,
 
 update_net_fluxes!(coupled_model, ::FreezingLimitedOceanTemperature) = nothing
 
-function update_net_fluxes!(coupled_model, sea_ice::Simulation{<:SeaIceModel})
+update_net_fluxes!(coupled_model, sea_ice::Simulation{<:SeaIceModel}) = 
+    update_net_sea_ice_fluxes!(coupled_model, sea_ice, sea_ice.model.grid)
+
+function update_net_sea_ice_fluxes!(coupled_model, sea_ice, grid)
     ocean = coupled_model.ocean
-    grid  = sea_ice.model.grid
     arch  = architecture(grid)
     clock = coupled_model.clock
 

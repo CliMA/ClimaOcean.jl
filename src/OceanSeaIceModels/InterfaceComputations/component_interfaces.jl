@@ -164,7 +164,7 @@ function atmosphere_sea_ice_interface(grid,
                                      temperature_formulation,
                                      velocity_formulation)
 
-    interface_temperature = sea_ice.model.ice_thermodynamics.top_surface_temperature
+    interface_temperature = sea_ice_top_temperature(sea_ice)
 
     return AtmosphereInterface(fluxes, ai_flux_formulation, interface_temperature, properties)
 end
@@ -203,7 +203,7 @@ end
 default_ai_temperature(::Nothing) = nothing
 
 function default_ai_temperature(sea_ice)
-    conductive_flux = sea_ice.model.ice_thermodynamics.internal_heat_flux.parameters.flux
+    conductive_flux = DiffusiveFlux(0.5, 1e-6)
     return SkinTemperature(conductive_flux)
 end
 
@@ -250,6 +250,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              sea_ice_temperature_units = DegreesCelsius(),
                              sea_ice_reference_density = reference_density(sea_ice),
                              sea_ice_heat_capacity = heat_capacity(sea_ice),
+                             sea_ice_liquidus = liquidus(sea_ice),
                              gravitational_acceleration = default_gravitational_acceleration)
 
     FT   = eltype(exchange_grid)
@@ -274,15 +275,11 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                         temperature_units  = ocean_temperature_units)
 
     # Only build sea_ice_properties if sea_ice is an actual Simulation with a model
-    if sea_ice isa Simulation
-        sea_ice_properties = (reference_density  = sea_ice_reference_density,
-                              heat_capacity      = sea_ice_heat_capacity,
-                              freshwater_density = freshwater_density,
-                              liquidus           = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus,
-                              temperature_units  = sea_ice_temperature_units)
-    else
-        sea_ice_properties = nothing
-    end
+    sea_ice_properties = (reference_density  = sea_ice_reference_density,
+                          heat_capacity      = sea_ice_heat_capacity,
+                          freshwater_density = freshwater_density,
+                          liquidus           = sea_ice_liquidus,
+                          temperature_units  = sea_ice_temperature_units)
 
     # Component interfaces
     ao_interface = atmosphere_ocean_interface(exchange_grid,
