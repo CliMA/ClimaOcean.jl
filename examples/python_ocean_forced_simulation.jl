@@ -34,7 +34,9 @@ ocean = VerosModule.VerosOceanSimulation("global_4deg", :GlobalFourDegreeSetup)
 
 # The loaded Veros setup contains a `set_forcing` method which computes the fluxes as restoring from climatology.
 # We replace it with a custom function that only computes the TKE forcing (which depends on the wind stresses
-# that we set in ClimaOcean). This way our u, v, T, S forcings are not overwritten.
+# that we set in ClimaOcean). This way our u, v, T, S forcings are not overwritten. 
+# The `set_forcing_tke_only` method defined below is modified from the `set_forcing` method defined in 
+# https://github.com/team-ocean/veros/blob/main/veros/setups/global_4deg/global_4deg.py
 
 pyexec("""
 def set_forcing_tke_only(state):
