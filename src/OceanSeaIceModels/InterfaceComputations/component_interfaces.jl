@@ -6,7 +6,8 @@ using ..OceanSeaIceModels: reference_density,
                            heat_capacity,
                            sea_ice_concentration,
                            sea_ice_thickness,
-                           thermodynamics_parameters
+                           thermodynamics_parameters,
+                           liquidus
 
 using ClimaSeaIce: SeaIceModel
 
