@@ -12,7 +12,7 @@ using ClimaSeaIce: SeaIceModel
 
 using Oceananigans: HydrostaticFreeSurfaceModel, architecture
 using Oceananigans.Units: Time
-using Oceananigans.Grids: inactive_node, node, topology
+using Oceananigans.Grids: inactive_node, node, topology, architecture
 using Oceananigans.BoundaryConditions: fill_halo_regions!
 using Oceananigans.Fields: ConstantField, interpolate, FractionalIndices
 using Oceananigans.Utils: launch!, KernelParameters
@@ -250,10 +250,10 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              sea_ice_heat_capacity = heat_capacity(sea_ice),
                              gravitational_acceleration = default_gravitational_acceleration)
 
-    FT = eltype(exchange_grid)
-    arch = architecture(ocean)
+    FT   = eltype(exchange_grid)
+    arch = architecture(exchange_grid)
 
-    atmosphere_ocean_fluxes = on_architecture(arch, atmosphere_ocean_fluxes)
+    atmosphere_ocean_fluxes   = on_architecture(arch, atmosphere_ocean_fluxes)
     atmosphere_sea_ice_fluxes = on_architecture(arch, atmosphere_sea_ice_fluxes)
 
     ocean_reference_density    = convert(FT, ocean_reference_density)
