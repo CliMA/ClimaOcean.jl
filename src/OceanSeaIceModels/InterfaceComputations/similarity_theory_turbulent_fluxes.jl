@@ -1,4 +1,5 @@
 using Oceananigans.Grids: AbstractGrid, prettysummary
+using Oceananigans.Fields: interpolator
 
 using Adapt
 using Printf
@@ -6,6 +7,8 @@ using Thermodynamics: Liquid, PhasePartition
 using KernelAbstractions.Extras.LoopInfo: @unroll
 using Statistics: norm
 
+import Oceananigans.Utils: TabulatedFunction
+import Oceananigans.Architectures: on_architecture
 import Thermodynamics as AtmosphericThermodynamics
 import Thermodynamics.Parameters: Rv_over_Rd
 
@@ -57,7 +60,10 @@ end
                            similarity_form = LogarithmicSimilarityProfile(),
                            solver_stop_criteria = nothing,
                            solver_tolerance = 1e-8,
-                           solver_maxiter = 100)
+                           solver_maxiter = 100,
+                           tabulate_stability_functions = false,
+                           tabulation_ζ_range = (-15, 15),
+                           tabulation_points = 1000)
 
 `SimilarityTheoryFluxes` contains parameters and settings to calculate
 air-interface turbulent fluxes using Monin--Obukhov similarity theory.
@@ -76,6 +82,9 @@ Keyword Arguments
                              interface fluxes / characteristic scales.
 - `solver_tolerance`: The tolerance for convergence. Default: 1e-8.
 - `solver_maxiter`: The maximum number of iterations. Default: 100.
+- `tabulate_stability_functions`: If `true`, precompute stability functions in lookup tables for faster evaluation. Default: `false`.
+- `tabulation_ζ_range`: Range of zeta values for tabulation when `tabulate_stability_functions = true`. Default: `(-30, 30)`.
+- `tabulation_points`: Number of points in the lookup table when `tabulate_stability_functions = true`. Default: `10000`.
 """
 function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                 von_karman_constant = 0.4,
@@ -88,7 +97,10 @@ function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                 similarity_form = LogarithmicSimilarityProfile(),
                                 solver_stop_criteria = nothing,
                                 solver_tolerance = 1e-8,
-                                solver_maxiter = 100)
+                                solver_maxiter = 100,
+                                tabulate_stability_functions = true,
+                                tabulation_ζ_range = (-30, 30),
+                                tabulation_points = 10000)
 
     roughness_lengths = SimilarityScales(momentum_roughness_length,
                                          temperature_roughness_length,
@@ -104,6 +116,13 @@ function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
         stability_functions = SimilarityScales(returns_zero, returns_zero, returns_zero)
     end
 
+    # Optionally tabulate stability functions for performance
+    if tabulate_stability_functions
+        stability_functions = TabulatedFunction(stability_functions, CPU(), FT; 
+                                                range  = tabulation_ζ_range, 
+                                                points = tabulation_points)
+    end
+
     return SimilarityTheoryFluxes(convert(FT, von_karman_constant),
                                   convert(FT, turbulent_prandtl_number),
                                   convert(FT, gustiness_parameter),
@@ -112,6 +131,15 @@ function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                   similarity_form,
                                   solver_stop_criteria)
 end
+
+on_architecture(arch, ψ::SimilarityTheoryFluxes) = 
+    SimilarityTheoryFluxes(ψ.von_karman_constant,
+                           ψ.turbulent_prandtl_number,
+                           ψ.gustiness_parameter,
+                           on_architecture(arch, ψ.stability_functions),
+                           ψ.roughness_lengths,
+                           ψ.similarity_form,
+                           ψ.solver_stop_criteria)
 
 #####
 ##### Similarity profile types
@@ -279,11 +307,32 @@ Base.summary(ss::SimilarityScales) =
 
 Base.show(io::IO, ss::SimilarityScales) = print(io, summary(ss))
 
+Adapt.adapt_structure(to, ss::SimilarityScales) = 
+    SimilarityScales(adapt(to, ss.momentum),
+                     adapt(to, ss.temperature),
+                     adapt(to, ss.water_vapor))
+
+on_architecture(arch, ss::SimilarityScales) = 
+    SimilarityScales(on_architecture(arch, ss.momentum),
+                     on_architecture(arch, ss.temperature),
+                     on_architecture(arch, ss.water_vapor))
+
 @inline stability_profile(ψ, ζ) = ψ(ζ)
 
 # Convenience
 abstract type AbstractStabilityFunction end
+
 @inline (ψ::AbstractStabilityFunction)(ζ) = stability_profile(ψ, ζ)
+
+on_architecture(arch, ψ::AbstractStabilityFunction) = ψ
+
+# Extending TabulatedFunction for our similarity scales
+function TabulatedFunction(ss::SimilarityScales, args...; kwargs...) 
+    ψu = TabulatedFunction(ss.momentum,    args..; kwargs...)
+    ψθ = TabulatedFunction(ss.temperature, args..; kwargs...)
+    ψq = TabulatedFunction(ss.water_vapor, args..; kwargs...)
+    return SimilarityScales(ψu, ψθ, ψq)
+end
 
 """
     EdsonMomentumStabilityFunction{FT}
