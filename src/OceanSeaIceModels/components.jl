@@ -1,5 +1,5 @@
 #####
-##### Functions extended by sea-ice and ocean models
+##### Functions extended by ocean models
 #####
 
 reference_density(::Nothing) = 0
@@ -13,9 +13,12 @@ ocean_surface_velocities(ocean) = ZeroField(), ZeroField()
 ##### Functions extended by sea-ice models
 #####
 
-sea_ice_thickness(::Nothing) = ZeroField()
-sea_ice_concentration(::Nothing) = ZeroField()
-sea_ice_top_temperature(::Nothing) = nothing 
+sea_ice_thickness(sea_ice) = ZeroField()
+sea_ice_concentration(sea_ice) = ZeroField()
+sea_ice_top_temperature(sea_ice) = ZeroField()
+sea_ice_salinity(sea_ice) = ZeroField()
+sea_ice_ocean_stress(sea_ice) = nothing
+sea_ice_velocities(sea_ice) = ZeroField(), ZeroField()
 liquidus(sea_ice) = LinearLiquidus()
 
 function default_sea_ice end

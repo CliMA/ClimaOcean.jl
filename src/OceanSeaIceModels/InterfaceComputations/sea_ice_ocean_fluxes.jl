@@ -10,34 +10,29 @@ function compute_sea_ice_ocean_fluxes!(coupled_model)
     sea_ice_ocean_fluxes = coupled_model.interfaces.sea_ice_ocean_interface.fluxes
     melting_speed    = coupled_model.interfaces.sea_ice_ocean_interface.properties.characteristic_melting_speed
     ocean_properties = coupled_model.interfaces.ocean_properties
+    sea_ice_properties = coupled_model.interfaces.sea_ice_properties
 
-    compute_sea_ice_ocean_fluxes!(sea_ice_ocean_fluxes, ocean, sea_ice, melting_speed, ocean_properties)
+    compute_sea_ice_ocean_fluxes!(sea_ice_ocean_fluxes, ocean, sea_ice, melting_speed, ocean_properties, sea_ice_properties)
 
     return nothing
 end
 
-function compute_sea_ice_ocean_fluxes!(sea_ice_ocean_fluxes, ocean, sea_ice, melting_speed, ocean_properties)
+function compute_sea_ice_ocean_fluxes!(sea_ice_ocean_fluxes, ocean, sea_ice, melting_speed, ocean_properties, sea_ice_properties)
     Δt = sea_ice.Δt
     Tₒ = ocean_temperature(ocean)
     Sₒ = ocean_salinity(ocean)
-    Sᵢ = sea_ice.model.tracers.S
+    Sᵢ = sea_ice_salinity(sea_ice)
     ℵᵢ = sea_ice_concentration(sea_ice)
     hᵢ = sea_ice_thickness(sea_ice)
     Gh = sea_ice.model.ice_thermodynamics.thermodynamic_tendency
 
-    liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
+    liquidus = sea_ice_properties.liquidus
     grid  = sea_ice.model.grid
     clock = sea_ice.model.clock
     arch  = architecture(grid)
 
-    uᵢ, vᵢ = sea_ice.model.velocities
-    dynamics = sea_ice.model.dynamics
-
-    τs = if isnothing(dynamics)
-        nothing
-    else
-        dynamics.external_momentum_stresses.bottom
-    end
+    uᵢ, vᵢ = sea_ice_velocities(sea_ice)
+    τs = sea_ice_ocean_stress(sea_ice)
 
     # What about the latent heat removed from the ocean when ice forms?
     # Is it immediately removed from the ocean? Or is it stored in the ice?

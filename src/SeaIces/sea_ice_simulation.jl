@@ -105,6 +105,16 @@ end
 sea_ice_thickness(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_thickness
 sea_ice_concentration(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_concentration
 sea_ice_top_temperature(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_thermodynamics.top_surface_temperature
+sea_ice_velocities(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.velocities
+
+function sea_ice_ocean_stress(sea_ice::Simulation{<:SeaIceModel})
+    dynamics = sea_ice.model.dynamics
+    if isnothing(dynamics)
+        return nothing
+    else
+        return dynamics.external_momentum_stresses.bottom
+    end
+end
 
 heat_capacity(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_thermodynamics.phase_transitions.ice_heat_capacity
 reference_density(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_thermodynamics.phase_transitions.ice_density

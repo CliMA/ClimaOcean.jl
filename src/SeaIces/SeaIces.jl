@@ -17,6 +17,8 @@ using KernelAbstractions: @kernel, @index
 import ClimaOcean.OceanSeaIceModels: interpolate_state!,
                                      sea_ice_concentration,
                                      sea_ice_thickness,
+                                     sea_ice_velocities,
+                                     sea_ice_ocean_stress,
                                      reference_density,
                                      heat_capacity,
                                      update_net_fluxes!,
