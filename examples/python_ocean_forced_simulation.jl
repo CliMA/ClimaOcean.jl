@@ -57,18 +57,13 @@ coupled_model = OceanSeaIceModel(ocean, nothing; atmosphere=atmos, radiation)
 simulation = Simulation(coupled_model; Δt = 1800, stop_time = 60days)
 
 # We set up a progress callback that will print the current time, iteration, and maximum velocities
-# at every 5 iterations. It also collects the surface velocity fields and the net fluxes
-# into the arrays `s`, `tx`, and `ty` for later visualization.
+# every 10days. We also set up another callback that collects the surface velocity fields and the net fluxes
+# into arrays for later visualization.
 
 wall_time = Ref(time_ns())
 
 us = coupled_model.interfaces.exchanger.ocean.state.u
 vs = coupled_model.interfaces.exchanger.ocean.state.v
-τx = []
-τy = []
-JS = []
-JT = []
-sp = []
 
 sptemp = Field(sqrt(us^2 + vs^2))
 
@@ -88,16 +83,25 @@ function progress(sim)
 
     wall_time[] = time_ns()
 
-    push!(sp, compute!(sptemp))
-    push!(τx, deepcopy(coupled_model.interfaces.net_fluxes.ocean.u))
-    push!(τy, deepcopy(coupled_model.interfaces.net_fluxes.ocean.v))
-    push!(JS, deepcopy(coupled_model.interfaces.net_fluxes.ocean.S))
-    push!(JT, deepcopy(coupled_model.interfaces.net_fluxes.ocean.T))
-
     return nothing
 end
 
-add_callback!(simulation, progress, IterationInterval(5))
+τx = []
+τy = []
+JS = []
+JT = []
+sp = []
+
+function save_variables(sim)
+    push!(sp, compute!(sptemp))
+    push!(τx, deepcopy(sim.coupled_model.interfaces.net_fluxes.ocean.u))
+    push!(τy, deepcopy(sim.coupled_model.interfaces.net_fluxes.ocean.v))
+    push!(JS, deepcopy(sim.coupled_model.interfaces.net_fluxes.ocean.S))
+    push!(JT, deepcopy(sim.coupled_model.interfaces.net_fluxes.ocean.T))
+end
+
+add_callback!(simulation, progress, TimeInterval(10days))
+add_callback!(simulation, save_variables, IterationInterval(5))
 
 # Let's run the simulation!
 
