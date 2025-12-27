@@ -246,10 +246,9 @@ function ocean_simulation(grid;
 
         if use_barotropic_potential
             # Forcing for u, v
-            u_barotropic_potential = Field{Center, Center, Nothing}(grid)
-            v_barotropic_potential = Field{Center, Center, Nothing}(grid)
-            u_forcing = BarotropicPotentialForcing(XDirection(), u_barotropic_potential)
-            v_forcing = BarotropicPotentialForcing(YDirection(), v_barotropic_potential)
+            barotropic_potential = Field{Center, Center, Nothing}(grid)
+            u_forcing = BarotropicPotentialForcing(XDirection(), barotropic_potential)
+            v_forcing = BarotropicPotentialForcing(YDirection(), barotropic_potential)
 
             :u ∈ keys(forcing) && (u_forcing = (u_forcing, forcing[:u]))
             :v ∈ keys(forcing) && (v_forcing = (v_forcing, forcing[:v]))
@@ -293,7 +292,8 @@ function ocean_simulation(grid;
     # conditions even when a user-bc is supplied).
     boundary_conditions = merge(default_boundary_conditions, boundary_conditions)
     buoyancy = SeawaterBuoyancy(; gravitational_acceleration, equation_of_state)
-
+    buoyancy = Oceananigans.BuoyancyFormulations.BuoyancyForce(grid, buoyancy; materialize_gradients=true)
+    
     if tracer_advection isa NamedTuple
         tracer_advection = with_tracers(tracers, tracer_advection, default_tracer_advection())
     else
