@@ -135,7 +135,7 @@ ui = @lift(u[$iter])
 vi = @lift(v[$iter])
 Si = @lift(S[$iter])
 Ti = @lift(T[$iter])
-Nt  = length(u)
+Nt = length(u)
 
 fig = Figure(resolution = (1000, 1500))
 ax1 = Axis(fig[1, 1]; title = "Surface zonal velocity (m/s)", xlabel = "", ylabel = "Latitude")

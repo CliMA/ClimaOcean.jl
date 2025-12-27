@@ -25,12 +25,75 @@ import Base: eltype
 
 Install the Veros ocean model Marine CLI using CondaPkg.
 Returns a NamedTuple containing package information if successful.
+Also patches Veros's signal handling to work with PythonCall.
 """
 function install_veros()
     CondaPkg.add_pip("veros")
     cli = CondaPkg.which("veros")
+    
+    # Patch signal handling as early as possible
+    # This ensures it's patched before any Veros modules are used
+    patch_veros_signal_handling()
+    
     @info "... the veros CLI has been installed at $(cli)."
     return cli
+end
+
+"""
+    patch_veros_signal_handling()
+
+Patch Veros's signal handling to work with PythonCall.
+This prevents TypeError when Veros tries to set signal handlers from within Julia/PythonCall context.
+The issue is that Veros tries to set signal handlers, but PythonCall's wrapped Python objects aren't recognized 
+as valid callable handlers by Python's signal.signal() function. We work around this by monkey-patching
+signal.signal() to accept any handler and convert invalid ones to SIG_DFL.
+"""
+function patch_veros_signal_handling()
+    pyexec("""
+    import signal
+    
+    # Monkey-patch signal.signal() to handle invalid handlers gracefully
+    # This is needed because PythonCall-wrapped objects aren't recognized
+    # as valid callable handlers by Python's signal.signal()
+    if not hasattr(signal, '_climaocean_patched'):
+        _original_signal = signal.signal
+        
+        def _patched_signal(signum, handler):
+            # Check if handler is valid according to Python's rules
+            if handler in (signal.SIG_IGN, signal.SIG_DFL):
+                # Standard handlers are always valid
+                return _original_signal(signum, handler)
+            elif callable(handler):
+                # Try to use the original handler if it's callable
+                try:
+                    return _original_signal(signum, handler)
+                except TypeError:
+                    # If Python rejects it (e.g., PythonCall wrapper), use SIG_DFL
+                    return _original_signal(signum, signal.SIG_DFL)
+            else:
+                # Invalid handler type - use SIG_DFL instead
+                return _original_signal(signum, signal.SIG_DFL)
+        
+        signal.signal = _patched_signal
+        signal._climaocean_patched = True
+    
+    # Also patch Veros's signal wrapper to skip signal handling entirely
+    try:
+        import veros.signals
+        # Only patch if not already patched
+        if not hasattr(veros.signals, '_climaocean_patched'):
+            def _patched_dnd_wrapper():
+                # Skip signal handling entirely when running from PythonCall
+                # The signal handlers aren't needed when Veros is embedded in Julia
+                pass
+            
+            veros.signals.dnd_wrapper = _patched_dnd_wrapper
+            veros.signals._climaocean_patched = True
+    except (ImportError, AttributeError):
+        # If veros.signals doesn't exist or can't be patched, that's okay
+        # This might happen if Veros version doesn't have signal handling
+        pass
+    """, Main)
 end
 
 struct VerosOceanSimulation{S}
@@ -133,8 +196,15 @@ Arguments
 - `setup_name::Symbol`: The name of the setup class or function within the module to instantiate (e.g., `:GlobalFourDegreeSetup`).
 """
 function VerosOceanSimulation(setup::String, setup_name::Symbol)
+    # Patch signal handling BEFORE importing any Veros modules
+    # Veros may set up signal handlers during module import
+    patch_veros_signal_handling()
+    
     setups = pyimport("veros.setups." * setup)
     ocean  = @eval $setups.$setup_name()
+
+    # Patch again before setup() in case Veros imports more modules
+    patch_veros_signal_handling()
 
     # instantiate the setup
     ocean.setup()
@@ -144,6 +214,8 @@ end
 
 # We assume that if we pass a python object, this is a veros simulation
 function ocean_simulation(ocean::Py)
+    # Patch Veros's signal handling before initializing
+    patch_veros_signal_handling()
 
     # instantiate the setup
     ocean.setup()
