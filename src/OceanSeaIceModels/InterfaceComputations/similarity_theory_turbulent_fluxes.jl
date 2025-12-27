@@ -308,9 +308,9 @@ Base.summary(ss::SimilarityScales) =
 Base.show(io::IO, ss::SimilarityScales) = print(io, summary(ss))
 
 Adapt.adapt_structure(to, ss::SimilarityScales) = 
-    SimilarityScales(Adapt.adapt(to, ss.momentum),
-                     Adapt.adapt(to, ss.temperature),
-                     Adapt.adapt(to, ss.water_vapor))
+    SimilarityScales(adapt(to, ss.momentum),
+                     adapt(to, ss.temperature),
+                     adapt(to, ss.water_vapor))
 
 on_architecture(arch, ss::SimilarityScales) = 
     SimilarityScales(on_architecture(arch, ss.momentum),
