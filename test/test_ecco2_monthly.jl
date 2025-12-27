@@ -12,8 +12,8 @@ using Oceananigans.Units
 
 using CUDA: @allowscalar
 
-# Inpaint only the first two cells inside the missing mask
-inpainting = NearestNeighborInpainting(2)
+# Inpaint only the first ten cells inside the missing mask
+inpainting = NearestNeighborInpainting(10)
 
 test_ecco_datasets = tuple((ds for ds in test_datasets if occursin(r"^ECCO2.*Monthly",string(typeof(ds)),))...)
 
