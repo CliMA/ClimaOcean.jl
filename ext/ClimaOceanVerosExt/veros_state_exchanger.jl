@@ -59,7 +59,7 @@ function update_net_fluxes!(coupled_model, ocean::VerosOceanSimulation)
     Oceans.update_net_ocean_fluxes!(coupled_model, ocean, coupled_model.interfaces.exchanger.grid)
     net_ocean_fluxes = coupled_model.interfaces.net_fluxes.ocean
    
-    # Pass the flxu values to the python ocean
+    # Pass the flux values to the python ocean
     nx = pyconvert(Int, ocean.setup.state.settings.nx) + 4
     ny = pyconvert(Int, ocean.setup.state.settings.ny) + 4
 
