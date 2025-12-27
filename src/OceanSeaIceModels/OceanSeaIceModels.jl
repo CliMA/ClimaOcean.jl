@@ -26,7 +26,7 @@ using Oceananigans.Models: AbstractModel
 using Oceananigans.OutputReaders: FieldTimeSeries, GPUAdaptedFieldTimeSeries
 
 using ClimaSeaIce: SeaIceModel
-using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
+using ClimaSeaIce.SeaIceThermodynamics: melting_temperature, LinearLiquidus
 
 using ClimaOcean: stateindex
 
