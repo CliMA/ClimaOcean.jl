@@ -138,7 +138,7 @@ Qcai = earth.model.interfaces.atmosphere_sea_ice_interface.fluxes.sensible_heat
 Qvai = earth.model.interfaces.atmosphere_sea_ice_interface.fluxes.latent_heat
 τxai = earth.model.interfaces.atmosphere_sea_ice_interface.fluxes.x_momentum
 τyai = earth.model.interfaces.atmosphere_sea_ice_interface.fluxes.y_momentum
-Qoi  = earth.model.interfaces.net_fluxes.sea_ice_bottom.heat
+Qoi  = earth.model.interfaces.net_fluxes.sea_ice.bottom.heat
 Soi  = earth.model.interfaces.sea_ice_ocean_interface.fluxes.salt
 fluxes = (; Qcao, Qvao, τxao, τyao, Qcai, Qvai, τxai, τyai, Qoi, Soi)
 

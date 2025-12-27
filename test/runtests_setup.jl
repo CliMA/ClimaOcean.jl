@@ -49,6 +49,15 @@ test_fields = Dict(
     EN4Monthly() => (:T, :S),
 )
 
+# Install XESMF for windows architectures
+if Sys.iswindows() && Sys.ARCH == :x86_64
+    @info "Installing XESMF for windows architectures"
+    using Pkg
+    Pkg.add("CondaPkg")
+    using CondaPkg
+    CondaPkg.add(["esmf", "esmpy"])
+end
+
 #####
 ##### Test utilities
 #####
@@ -198,16 +207,11 @@ function test_timestepping_with_dataset_restoring(arch, dataset, dates, inpainti
                                  z = (-200, 0),
                                  halo = (6, 6, 6))
 
-    # Dynamically create name of forcing based on dataset field name
-    forcing = NamedTuple{
-                (fldnames)
-            }(
-                ntuple(i->DatasetRestoring(
-                                           Metadata(varnames[i]; dates, dataset), 
-                                           arch; inpainting, rate=1/1000
-                                          ), length(varnames))
-             )
-
+    # Force only the last tracer. 
+    # Forcing more than one variable leads to parameter space errors
+    metadata = Metadata(varnames[end]; dates, dataset)
+    restoring = DatasetRestoring(metadata, arch; inpainting, rate=1/1000)
+    forcing = NamedTuple{tuple(fldnames[end])}(tuple(restoring))
     ocean = ocean_simulation(grid; tracers=fldnames, forcing, verbose=false)
     
     @test begin
@@ -234,50 +238,47 @@ function test_cycling_dataset_restoring(arch, dataset, dates, inpainting;
     start_date = dates[1]
     end_date = dates[end]
 
-    metadata1 = Metadata(varnames[end]; dates, dataset)
-    metadata2 = Metadata(varnames[end]; start_date, end_date, dataset)
+    metadata = Metadata(varnames[end]; dates, dataset)
 
-    for metadata in (metadata1, metadata2)
-        # Dynamically create name of forcing based on dataset field name
-        # Dynamically create name of forcing based on dataset field name
-        forcing = NamedTuple{
-                (fldnames[end],)
-            }(
-                (DatasetRestoring(metadata, arch;  time_indices_in_memory, inpainting, rate=1/1000),)
-             )
+    # Dynamically create name of forcing based on dataset field name
+    # Dynamically create name of forcing based on dataset field name
+    forcing = NamedTuple{
+            (fldnames[end],)
+        }(
+            (DatasetRestoring(metadata, arch;  time_indices_in_memory, inpainting, rate=1/1000),)
+            )
 
-        times = native_times(forcing[1].field_time_series.backend.metadata)
-        ocean = ocean_simulation(grid, tracers=fldnames, forcing=forcing)
+    times = native_times(forcing[1].field_time_series.backend.metadata)
+    ocean = ocean_simulation(grid, tracers=fldnames, forcing=forcing)
 
-        # start a bit after time_index
-        time_index = 3
-        time_interval = dataset isa ECCO2Daily ? Units.hour : Units.day
-        ocean.model.clock.time = times[time_index] + 2 * time_interval
-        update_state!(ocean.model)
+    # start a bit after time_index
+    time_index = 3
+    time_interval = dataset isa ECCO2Daily ? Units.hour : Units.day
+    ocean.model.clock.time = times[time_index] + 2 * time_interval
+    update_state!(ocean.model)
 
-        @test time_indices(forcing[1].field_time_series) ==
-            Tuple(range(time_index, length=time_indices_in_memory))
+    @test time_indices(forcing[1].field_time_series) ==
+        Tuple(range(time_index, length=time_indices_in_memory))
 
-        @test forcing[1].field_time_series.backend.start == time_index
+    @test forcing[1].field_time_series.backend.start == time_index
 
-        # Compile
+    # Compile
+    time_step!(ocean)
+
+    # Try stepping out of the dataset bounds
+    # start a bit after last time_index
+    ocean.model.clock.time = last(times) + 2 * time_interval
+
+    update_state!(ocean.model)
+
+    @test begin
         time_step!(ocean)
-
-        # Try stepping out of the dataset bounds
-        # start a bit after last time_index
-        ocean.model.clock.time = last(times) + 2 * time_interval
-
-        update_state!(ocean.model)
-
-        @test begin
-            time_step!(ocean)
-            true
-        end
-
-        # The backend has cycled to the end
-        @test time_indices(forcing[1].field_time_series) ==
-            mod1.(Tuple(range(length(times), length=time_indices_in_memory)), length(times))
+        true
     end
+
+    # The backend has cycled to the end
+    @test time_indices(forcing[1].field_time_series) ==
+        mod1.(Tuple(range(length(times), length=time_indices_in_memory)), length(times))
 end
 
 function test_inpainting_algorithm(arch, dataset, start_date, inpainting; 

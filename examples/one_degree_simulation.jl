@@ -84,7 +84,7 @@ sea_ice = sea_ice_simulation(grid, ocean; advection=tracer_advection)
 
 date = DateTime(1993, 1, 1)
 dataset = ECCO4Monthly()
-ecco_temperature = Metadatum(:temperature; date, dataset)
+ecco_temperature           = Metadatum(:temperature; date, dataset)
 ecco_salinity              = Metadatum(:salinity; date, dataset)
 ecco_sea_ice_thickness     = Metadatum(:sea_ice_thickness; date, dataset)
 ecco_sea_ice_concentration = Metadatum(:sea_ice_concentration; date, dataset)
