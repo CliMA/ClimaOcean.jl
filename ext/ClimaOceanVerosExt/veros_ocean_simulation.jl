@@ -101,9 +101,17 @@ struct VerosOceanSimulation{S}
 end
 
 default_nan_checker(model::OceanSeaIceModel{<:Any, <:Any, <:VerosOceanSimulation}) = nothing
-
 initialize!(::ClimaOceanVerosExt.VerosOceanSimulation{Py}) = nothing
-time_step!(ocean::VerosOceanSimulation, Δt) = ocean.setup.step(ocean.setup.state)
+
+function time_step!(ocean::VerosOceanSimulation, Δt) 
+    # Align the timesteps
+    set!(ocean, "dt_tracer", Δt; path=:settings)
+    set!(ocean, "dt_mom",    Δt; path=:settings)
+
+    # Time-step
+    ocean.setup.step(ocean.setup.state)
+end
+
 architecture(model::OceanSeaIceModel{<:Any, <:Any, <:VerosOceanSimulation}) = CPU()
 eltype(model::OceanSeaIceModel{<:Any, <:Any, <:VerosOceanSimulation}) = Float64
 

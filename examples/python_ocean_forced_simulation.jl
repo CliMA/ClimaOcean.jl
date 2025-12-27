@@ -67,12 +67,6 @@ def set_forcing_tke_only(state):
 ocean.set_forcing = set_forcing_tke_only
 """, Main, (ocean=ocean.setup,))
 
-# The loaded setup had different time-steps for tracer and momentum. ClimaOcean handles only oceans with the
-# same time steps, so we need to align the tracer variables' timestep with the momentum.
-
-set!(ocean, "dt_tracer", 1800.0; path=:settings)
-set!(ocean, "dt_mom",    1800.0; path=:settings)
-
 # We force the 4-degree setup with a prescribed atmosphere based on the JRA-55 reanalysis data.
 # This includes 2-meter wind velocity, temperature, humidity, downwelling longwave and shortwave
 # radiation, as well as freshwater fluxes.
