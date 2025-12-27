@@ -183,7 +183,7 @@ end
     kᴺ = size(interface_grid, 3) # index of the top ocean cell
 
     @inbounds begin
-        X = _node(i, j, kᴺ + 1, interface_grid, c, c, f)
+        X = _node(i, j, kᴺ + 1, interface_grid, Center(), Center(), Face())
         time = Time(clock.time)
         Mr = interp_atmos_time_series(auxiliary_freshwater_flux, X, time,
                                       auxiliary_grid,
