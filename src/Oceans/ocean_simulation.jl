@@ -45,6 +45,7 @@ function estimate_maximum_Δt(grid)
 
     # The maximum Δt is roughly 1hours * Δθ, giving:
     # - 60 minutes for a 1 degree ocean
+    # - 30 minutes for a 0.5 degree ocean
     # - 15 minutes for a 1/4 degree ocean
     # - 7.5 minutes for a 1/8 degree ocean
     # - 3.75 minutes for a 1/16 degree ocean
