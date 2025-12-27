@@ -65,10 +65,24 @@ Modules = [ClimaOcean.Bathymetry]
 Public = false
 ```
 
+## Atmospheres
+
+```@autodocs
+Modules = [ClimaOcean.Atmospheres]
+Public = false
+```
+
 ## Oceans
 
 ```@autodocs
 Modules = [ClimaOcean.Oceans]
+Public = false
+```
+
+## SeaIces
+
+```@autodocs
+Modules = [ClimaOcean.SeaIces]
 Public = false
 ```
 
@@ -79,7 +93,7 @@ Modules = [ClimaOcean.OceanSeaIceModels]
 Public = false
 ```
 
-## InterfaceComputations
+## OceanSeaIceModels.InterfaceComputations
 
 ```@autodocs
 Modules = [ClimaOcean.OceanSeaIceModels.InterfaceComputations]
