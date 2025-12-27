@@ -4,16 +4,14 @@
 cff-version: 1.2.0
 title: ClimaOcean.jl
 message: >
-  If you use ClimaOcean.jl in your research, teaching, or for
-  fun, please cite it using the metadata below.
+  If you use ClimaOcean.jl in your research, teaching, or
+  for fun, please cite it using the metadata below.
 type: software
 authors:
   - family-names: Wagner
     given-names: Gregory L.
     orcid: 'https://orcid.org/0000-0001-5317-2445'
-    affiliation:
-      - Aeolus Labs
-      - Massachusetts Institute of Technology
+    affiliation: 'Aeolus Labs, Massachusetts Institute of Technology'
   - family-names: Constantinou
     given-names: Navid C.
     orcid: 'https://orcid.org/0000-0002-8149-4094'
@@ -37,6 +35,7 @@ authors:
 identifiers:
   - type: doi
     value: 10.5281/zenodo.7677442
+    description: The concept DOI of the work
 repository-code: 'https://github.com/CliMA/ClimaOcean.jl'
 url: 'https://github.com/CliMA/ClimaOcean.jl'
 keywords:
