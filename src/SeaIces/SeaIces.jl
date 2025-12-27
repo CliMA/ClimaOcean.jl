@@ -20,7 +20,9 @@ import ClimaOcean.OceanSeaIceModels: interpolate_state!,
                                      reference_density,
                                      heat_capacity,
                                      update_net_fluxes!,
-                                     default_sea_ice
+                                     default_sea_ice,
+                                     default_ai_temperature,
+                                     liquidus
 
 import ClimaOcean.OceanSeaIceModels.InterfaceComputations: ComponentExchanger,
                                                            compute_atmosphere_sea_ice_fluxes!,
@@ -38,6 +40,13 @@ default_sea_ice() = FreezingLimitedOceanTemperature()
 # When using an ClimaSeaIce simulation, we assume that the exchange grid is the sea-ice grid
 interpolate_state!(exchanger, grid, ::Simulation{<:SeaIceModel},       coupled_model) = nothing
 interpolate_state!(exchanger, grid, ::FreezingLimitedOceanTemperature, coupled_model) = nothing
+
+function default_ai_temperature(sea_ice::Simulation{<:SeaIceModel})
+    conductive_flux = sea_ice.model.ice_thermodynamics.internal_heat_flux.parameters.flux
+    return SkinTemperature(conductive_flux)
+end
+
+liquidus(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
 
 # ComponentExchangers
 ComponentExchanger(sea_ice::FreezingLimitedOceanTemperature, grid) = nothing

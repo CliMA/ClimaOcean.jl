@@ -21,8 +21,8 @@ function compute_sea_ice_ocean_fluxes!(sea_ice_ocean_fluxes, ocean, sea_ice, mel
     Tₒ = ocean_temperature(ocean)
     Sₒ = ocean_salinity(ocean)
     Sᵢ = sea_ice.model.tracers.S
-    ℵᵢ = sea_ice.model.ice_concentration
-    hᵢ = sea_ice.model.ice_thickness
+    ℵᵢ = sea_ice_concentration(sea_ice)
+    hᵢ = sea_ice_thickness(sea_ice)
     Gh = sea_ice.model.ice_thermodynamics.thermodynamic_tendency
 
     liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
