@@ -41,7 +41,8 @@ ocean = VerosModule.VerosOceanSimulation("global_4deg", :GlobalFourDegreeSetup)
 pyexec("""
 def set_forcing_tke_only(state):
     from veros.core.operators import numpy as npx, update, at
-    
+    from veros import KernelOutput
+
     vs = state.variables
     settings = state.settings
     
