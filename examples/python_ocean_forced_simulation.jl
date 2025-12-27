@@ -113,7 +113,7 @@ function save_variables(sim)
 end
 
 add_callback!(simulation, progress, TimeInterval(10days))
-add_callback!(simulation, save_variables, IterationInterval(5))
+add_callback!(simulation, save_variables, IterationInterval(10))
 
 # Let's run the simulation!
 
@@ -137,10 +137,10 @@ grid = coupled_model.interfaces.exchanger.grid
 λ = λnodes(grid, Center())
 φ = φnodes(grid, Center())
 
-hm2 = heatmap!(ax1, λ, φ, ui, colormap = :bwr, colorrange = (-0.2, 0.2))
-hm3 = heatmap!(ax2, λ, φ, vi, colormap = :bwr, colorrange = (-0.2, 0.2))
-hm4 = heatmap!(ax3, λ, φ, Ti, colormap = :thermal)
-hm5 = heatmap!(ax4, λ, φ, Si, colormap = :haline)
+hm2 = heatmap!(ax1, λ, φ, ui, colormap = :bwr,     colorrange = (-0.2, 0.2))
+hm3 = heatmap!(ax2, λ, φ, vi, colormap = :bwr,     colorrange = (-0.2, 0.2))
+hm4 = heatmap!(ax3, λ, φ, Ti, colormap = :thermal, colorrange = (-1, 30))
+hm5 = heatmap!(ax4, λ, φ, Si, colormap = :haline,  colorrange = (32, 37))
 
 Colorbar(fig[1, 2], hm1)
 Colorbar(fig[2, 2], hm2)
