@@ -63,7 +63,7 @@ end
                            solver_maxiter = 100,
                            tabulate_stability_functions = false,
                            tabulation_ζ_range = (-15, 15),
-                           tabulation_points = 1000)
+                           tabulation_points = 10000)
 
 `SimilarityTheoryFluxes` contains parameters and settings to calculate
 air-interface turbulent fluxes using Monin--Obukhov similarity theory.
