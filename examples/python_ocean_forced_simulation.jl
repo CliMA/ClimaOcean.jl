@@ -55,6 +55,14 @@ def set_forcing_tke_only(state):
             ) ** 1.5,
         )
 
+    return KernelOutput(
+        surface_taux=vs.surface_taux,
+        surface_tauy=vs.surface_tauy,
+        forc_tke_surface=vs.forc_tke_surface,
+        forc_temp_surface=vs.forc_temp_surface,
+        forc_salt_surface=vs.forc_salt_surface,
+    )
+
 ocean.set_forcing = set_forcing_tke_only
 """, Main, (ocean=ocean.setup,))
 
