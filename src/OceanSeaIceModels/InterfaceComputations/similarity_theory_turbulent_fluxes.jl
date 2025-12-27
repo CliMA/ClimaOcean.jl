@@ -1,4 +1,5 @@
 using Oceananigans.Grids: AbstractGrid, prettysummary
+using Oceananigans.Fields: interpolator
 
 using Adapt
 using Printf
@@ -6,6 +7,7 @@ using Thermodynamics: Liquid, PhasePartition
 using KernelAbstractions.Extras.LoopInfo: @unroll
 using Statistics: norm
 
+import Oceananigans.Architectures: on_architecture
 import Thermodynamics as AtmosphericThermodynamics
 import Thermodynamics.Parameters: Rv_over_Rd
 
@@ -57,7 +59,10 @@ end
                            similarity_form = LogarithmicSimilarityProfile(),
                            solver_stop_criteria = nothing,
                            solver_tolerance = 1e-8,
-                           solver_maxiter = 100)
+                           solver_maxiter = 100,
+                           tabulate_stability_functions = false,
+                           tabulation_ζ_range = (-15, 15),
+                           tabulation_points = 1000)
 
 `SimilarityTheoryFluxes` contains parameters and settings to calculate
 air-interface turbulent fluxes using Monin--Obukhov similarity theory.
@@ -76,6 +81,9 @@ Keyword Arguments
                              interface fluxes / characteristic scales.
 - `solver_tolerance`: The tolerance for convergence. Default: 1e-8.
 - `solver_maxiter`: The maximum number of iterations. Default: 100.
+- `tabulate_stability_functions`: If `true`, precompute stability functions in lookup tables for faster evaluation. Default: `false`.
+- `tabulation_ζ_range`: Range of zeta values for tabulation when `tabulate_stability_functions = true`. Default: `(-30, 30)`.
+- `tabulation_points`: Number of points in the lookup table when `tabulate_stability_functions = true`. Default: `10000`.
 """
 function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                 von_karman_constant = 0.4,
@@ -88,7 +96,10 @@ function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                 similarity_form = LogarithmicSimilarityProfile(),
                                 solver_stop_criteria = nothing,
                                 solver_tolerance = 1e-8,
-                                solver_maxiter = 100)
+                                solver_maxiter = 100,
+                                tabulate_stability_functions = true,
+                                tabulation_ζ_range = (-30, 30),
+                                tabulation_points = 10000)
 
     roughness_lengths = SimilarityScales(momentum_roughness_length,
                                          temperature_roughness_length,
@@ -104,6 +115,13 @@ function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
         stability_functions = SimilarityScales(returns_zero, returns_zero, returns_zero)
     end
 
+    # Optionally tabulate stability functions for performance
+    if tabulate_stability_functions
+        stability_functions = materialize_tabulated_stability_functions(stability_functions, FT;
+                                                                        ζ_range  = tabulation_ζ_range,
+                                                                        n_points = tabulation_points)
+    end
+
     return SimilarityTheoryFluxes(convert(FT, von_karman_constant),
                                   convert(FT, turbulent_prandtl_number),
                                   convert(FT, gustiness_parameter),
@@ -112,6 +130,15 @@ function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                   similarity_form,
                                   solver_stop_criteria)
 end
+
+on_architecture(arch, ψ::SimilarityTheoryFluxes) = 
+    SimilarityTheoryFluxes(ψ.von_karman_constant,
+                           ψ.turbulent_prandtl_number,
+                           ψ.gustiness_parameter,
+                           on_architecture(arch, ψ.stability_functions),
+                           ψ.roughness_lengths,
+                           ψ.similarity_form,
+                           ψ.solver_stop_criteria)
 
 #####
 ##### Similarity profile types
@@ -281,9 +308,129 @@ Base.show(io::IO, ss::SimilarityScales) = print(io, summary(ss))
 
 @inline stability_profile(ψ, ζ) = ψ(ζ)
 
+on_architecture(arch, s::SimilarityScales) = 
+    SimilarityScales(on_architecture(arch, s.momentum),
+                     on_architecture(arch, s.temperature),
+                     on_architecture(arch, s.water_vapor))
+
 # Convenience
 abstract type AbstractStabilityFunction end
+
 @inline (ψ::AbstractStabilityFunction)(ζ) = stability_profile(ψ, ζ)
+
+on_architecture(arch, ψ::AbstractStabilityFunction) = ψ
+
+#####
+##### Tabulated stability functions for performance optimization
+#####
+
+"""
+    TabulatedStabilityFunction{SF, T, FT}
+
+A wrapper around an `AbstractStabilityFunction` that precomputes values
+in a lookup table for fast linear interpolation. This avoids expensive
+log/exp/sqrt/cbrt/atan operations during the fixed-point iteration.
+
+Fields
+======
+- `underlying`: The original stability function being tabulated
+- `table`: Precomputed values (Vector or CuArray)
+- `ζ_min`: Minimum zeta value in table
+- `ζ_max`: Maximum zeta value in table
+- `inverse_Δζ`: 1 / (zeta spacing) for fast index computation
+"""
+struct TabulatedStabilityFunction{SF, T, FT} <: AbstractStabilityFunction
+    underlying :: SF  # Original stability function (for reference/fallback)
+    table :: T        # Precomputed values (AbstractVector)
+    ζ_min :: FT       # Minimum zeta value in table  
+    ζ_max :: FT       # Maximum zeta value in table
+    inverse_Δζ :: FT  # 1 / (zeta spacing) for fast index computation
+end
+
+on_architecture(arch, ψ::TabulatedStabilityFunction) = 
+    TabulatedStabilityFunction(ψ.underlying,
+                               on_architecture(arch, ψ.table),
+                               ψ.ζ_min,
+                               ψ.ζ_max,
+                               ψ.inverse_Δζ)
+
+Adapt.adapt_structure(to, ψ::TabulatedStabilityFunction) =
+    TabulatedStabilityFunction(nothing,
+                               adapt(to, ψ.table),
+                               ψ.ζ_min,
+                               ψ.ζ_max,
+                               ψ.inverse_Δζ)
+
+@inline function stability_profile(ψ::TabulatedStabilityFunction, ζ)
+    # Clamp zeta to table range
+    ζ_clamped = clamp(ζ, ψ.ζ_min, ψ.ζ_max)
+    
+    # Compute fractional index (uniform spacing)
+    fractional_idx = (ζ_clamped - ψ.ζ_min) * ψ.inverse_Δζ
+    
+    # Get interpolation indices and weight (interpolator returns 0-based indices)
+    i⁻, i⁺, ξ = interpolator(fractional_idx)
+    
+    # Convert to 1-based indices for Julia arrays and clamp upper bound
+    n  = length(ψ.table)
+    i⁻ = i⁻ + 1
+    i⁺ = min(i⁺ + 1, n)
+    
+    # Linear interpolation
+    ψ⁻ = @inbounds ψ.table[i⁻]
+    ψ⁺ = @inbounds ψ.table[i⁺]
+    
+    return (1 - ξ) * ψ⁻ + ξ * ψ⁺
+end
+
+"""
+    materialize_tabulated_stability_functions(stability_function::AbstractStabilityFunction, [FT::DataType = Oceananigans.defaults.FloatType];
+                                               ζ_range = (-15, 15),
+                                               n_points = 1000)
+
+Construct a `TabulatedStabilityFunction` by precomputing `n_points` values of `stability_function` over the range `ζ_range`.
+
+Arguments
+=========
+- `stability_function`: The stability function to tabulate
+- `ζ_range`: Tuple of (minimum, maximum) zeta values. Default: (-15, 15)
+- `n_points`: Number of points in the lookup table. Default: 1000
+"""
+function materialize_tabulated_stability_functions(stability_function::AbstractStabilityFunction, FT::DataType = Oceananigans.defaults.FloatType;
+                                                   ζ_range = (-30, 30),
+                                                   n_points = 10000)
+    ζ_min, ζ_max = ζ_range
+    Δζ = (ζ_max - ζ_min) / (n_points - 1)
+    inverse_Δζ = 1 / Δζ
+    table = [stability_profile(stability_function, ζ_min + (i-1) * Δζ) for i in 1:n_points]
+    table = convert.(Ref(FT), table)
+    return TabulatedStabilityFunction(stability_function, table, convert(FT, ζ_min), convert(FT, ζ_max), convert(FT, inverse_Δζ))
+end
+
+"""
+    materialize_tabulated_stability_functions(similarity_scales::SimilarityScales, [FT::DataType = Oceananigans.defaults.FloatType]; 
+                                              ζ_range = (-15, 15), 
+                                              n_points = 1000)
+
+Create tabulated versions of all stability functions in `similarity_scales`.
+
+Arguments
+=========
+- `similarity_scales`: A `SimilarityScales` object containing momentum, temperature, and water_vapor stability functions
+- `ζ_range`: Tuple of (minimum, maximum) zeta values. Default: (-15, 15)
+- `n_points`: Number of points in each lookup table. Default: 1000
+"""
+function materialize_tabulated_stability_functions(similarity_scales::SimilarityScales, FT::DataType = Oceananigans.defaults.FloatType; 
+                                                   ζ_range = (-30, 30),
+                                                   n_points = 10000)
+    ψu = materialize_tabulated_stability_functions(similarity_scales.momentum,    FT; ζ_range, n_points)
+    ψθ = materialize_tabulated_stability_functions(similarity_scales.temperature, FT; ζ_range, n_points)
+    ψq = materialize_tabulated_stability_functions(similarity_scales.water_vapor, FT; ζ_range, n_points)
+    return SimilarityScales(ψu, ψθ, ψq)
+end
+
+Base.summary(::TabulatedStabilityFunction{SF}) where SF = "TabulatedStabilityFunction{$(nameof(SF))}"
+Base.show(io::IO, tab::TabulatedStabilityFunction) = print(io, summary(tab))
 
 """
     EdsonMomentumStabilityFunction{FT}

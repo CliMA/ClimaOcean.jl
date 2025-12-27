@@ -19,7 +19,7 @@ export
     atmosphere_sea_ice_stability_functions,
     compute_atmosphere_ocean_fluxes!,
     compute_atmosphere_sea_ice_fluxes!,
-    compute_sea_ice_ocean_flu
+    compute_sea_ice_ocean_fluxes!
 
 using ..OceanSeaIceModels: default_gravitational_acceleration,
                            default_freshwater_density,
