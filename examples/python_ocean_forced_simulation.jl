@@ -142,10 +142,10 @@ grid = coupled_model.interfaces.exchanger.grid
 λ = λnodes(grid, Center())
 φ = φnodes(grid, Center())
 
-hm2 = heatmap!(ax1, λ, φ, ui, colormap = :bwr,     colorrange = (-0.2, 0.2))
-hm3 = heatmap!(ax2, λ, φ, vi, colormap = :bwr,     colorrange = (-0.2, 0.2))
-hm4 = heatmap!(ax3, λ, φ, Ti, colormap = :thermal, colorrange = (-1, 30))
-hm5 = heatmap!(ax4, λ, φ, Si, colormap = :haline,  colorrange = (32, 37))
+hm1 = heatmap!(ax1, λ, φ, ui, colormap = :bwr,     colorrange = (-0.2, 0.2))
+hm2 = heatmap!(ax2, λ, φ, vi, colormap = :bwr,     colorrange = (-0.2, 0.2))
+hm3 = heatmap!(ax3, λ, φ, Ti, colormap = :thermal, colorrange = (-1, 30))
+hm4 = heatmap!(ax4, λ, φ, Si, colormap = :haline,  colorrange = (32, 37))
 
 Colorbar(fig[1, 2], hm1)
 Colorbar(fig[2, 2], hm2)
