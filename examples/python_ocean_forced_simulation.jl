@@ -41,7 +41,6 @@ set!(ocean, "dt_mom",    1800.0; path=:settings)
 
 atmos = JRA55PrescribedAtmosphere(; backend = JRA55NetCDFBackend(10))
 
-
 # The coupled ocean--atmosphere model.
 # We use the default radiation model and we do not couple an ice model for simplicity.
 

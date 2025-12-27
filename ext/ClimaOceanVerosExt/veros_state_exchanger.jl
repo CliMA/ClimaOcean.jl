@@ -9,7 +9,6 @@ import ClimaOcean.OceanSeaIceModels.InterfaceComputations:
     default_exchange_grid
 
 import ClimaOcean.OceanSeaIceModels:
-    ocean_suface_salinity,
     interpolate_state!,
     update_net_fluxes!
 
@@ -23,9 +22,6 @@ function ComponentExchanger(ocean::VerosOceanSimulation, grid)
 
     return ComponentExchanger(state, nothing)
 end
-
-# TODO: fix this simplification
-ocean_surface_salinity(ocean::VerosOceanSimulation) = Oceananigans.Fields.ConstantField(convert(eltype(ocean), 35))
 
 default_exchange_grid(atmosphere, ocean::VerosOceanSimulation, sea_ice) = surface_grid(ocean)
 

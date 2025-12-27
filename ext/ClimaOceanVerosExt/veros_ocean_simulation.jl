@@ -1,13 +1,22 @@
 using CondaPkg
 
 using Oceananigans.Grids: topology
+using OffsetArrays: OffsetArray
 
 import Oceananigans.Fields: set!
 import Oceananigans.TimeSteppers: time_step!, initialize!
 
-import ClimaOcean.OceanSeaIceModels: default_nan_checker
-import ClimaOcean.OceanSeaIceModels: reference_density, heat_capacity
 import Oceananigans.Architectures: architecture
+
+import ClimaOcean.OceanSeaIceModels: default_nan_checker
+import ClimaOcean.OceanSeaIceModels: reference_density, 
+                                     heat_capacity, 
+                                     ocean_temperature, 
+                                     ocean_salinity, 
+                                     ocean_surface_salinity,
+                                     ocean_surface_velocities
+
+import ClimaOcean.Oceans: ocean_simulation
 
 import Base: eltype
 
@@ -37,6 +46,45 @@ eltype(model::OceanSeaIceModel{<:Any, <:Any, <:VerosOceanSimulation}) = Float64
 
 reference_density(ocean::VerosOceanSimulation) = pyconvert(eltype(ocean), ocean.setup.state.settings.rho_0)
 heat_capacity(ocean::VerosOceanSimulation) = convert(eltype(ocean), 3995)
+
+function ocean_surface_velocities(ocean::VerosOceanSimulation)
+    u = PyArray(ocean.setup.state.variables.u)
+    v = PyArray(ocean.setup.state.variables.v)
+    Nxu, Nyu, Nzu = size(u)
+    Nxv, Nyv, Nzv = size(v)
+    grid = surface_grid(ocean)
+    TX, TY, _  = topology(grid)
+    i_indices  = TX == Periodic ? UnitRange(3, Nxu-2) : UnitRange(2, Nxu-2)
+
+    u_view = view(u, i_indices, 3:Nyu-2, Nzu, 1)
+    v_view = view(v, 3:Nxv-2,   2:Nyv-2, Nzv, 1)
+
+    return u_view, v_view
+end
+
+function ocean_surface_salinity(ocean::VerosOceanSimulation) 
+    S = ocean_salinity(ocean)
+    Nx, Ny, Nz = size(S)
+    return view(S, :, :, Nz)
+end
+
+# Veros hardcodes 2 halos in the x and y direction,
+# and each prognostic variable is 4 dimensional, where the first three dimensions
+# are x, y, z, and the last index differentiate between variable, tendency at n and tendency at n-1
+function ocean_temperature(ocean::VerosOceanSimulation) 
+    T = PyArray(ocean.setup.state.variables.temp)
+    Nx, Ny, Nz = size(T)
+    return view(T, 3:Nx-2, 3:Ny-2, 1:Nz, 1)
+end
+
+# Veros hardcodes 2 halos in the x and y direction,
+# and each prognostic variable is 4 dimensional, where the first three dimensions
+# are x, y, z, and the last index differentiate between variable, tendency at n and tendency at n-1
+function ocean_salinity(ocean::VerosOceanSimulation) 
+    S = PyArray(ocean.setup.state.variables.salt)
+    Nx, Ny, Nz = size(S)
+    return view(S, 3:Nx-2, 3:Ny-2, 1:Nz, 1)
+end
 
 function remove_outputs(setup::Symbol)
     rm("$(setup).averages.nc", force=true)
@@ -94,8 +142,8 @@ function VerosOceanSimulation(setup::String, setup_name::Symbol)
     return VerosOceanSimulation(ocean) 
 end
 
-# If we already pass a ocean configuration, call setup and build the type
-function VerosOceanSimulation(ocean::Py)
+# We assume that if we pass a python object, this is a veros simulation
+function ocean_simulation(ocean::Py)
 
     # instantiate the setup
     ocean.setup()
