@@ -251,6 +251,10 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              gravitational_acceleration = default_gravitational_acceleration)
 
     FT = eltype(exchange_grid)
+    arch = architecture(ocean)
+
+    atmosphere_ocean_fluxes = on_architecture(arch, atmosphere_ocean_fluxes)
+    atmosphere_sea_ice_fluxes = on_architecture(arch, atmosphere_sea_ice_fluxes)
 
     ocean_reference_density    = convert(FT, ocean_reference_density)
     ocean_heat_capacity        = convert(FT, ocean_heat_capacity)
