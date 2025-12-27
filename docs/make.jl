@@ -43,7 +43,7 @@ Distributed.pmap(1:length(to_be_literated)) do n
     withenv("JULIA_DEBUG" => "Literate") do
         Literate.markdown(filepath, OUTPUT_DIR; flavor = Literate.DocumenterFlavor(), execute = true)
     end
-    GC.gc()
+    GC.gc(true)
     CUDA.reclaim()
 end
 

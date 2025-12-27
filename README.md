@@ -105,7 +105,7 @@ Note that though ClimaOcean is currently focused on hydrostatic modeling with `O
 If you use ClimaOcean for your research, teaching, or fun 🤩, everyone in our community will be grateful
 if you give credit by citing the corresponding Zenodo record, e.g.,
 
-> Wagner, G. L. et al. (2025). CliMA/ClimaOcean.jl: v0.8.7 (v0.8.7). Zenodo. https://doi.org/10.5281/zenodo.7677442
+> Wagner, G. L. et al. (2025). CliMA/ClimaOcean.jl: v0.8.10 (v0.8.10). Zenodo. https://doi.org/10.5281/zenodo.7677442
 
 and also the recent [preprint submitted to the Journal of Advances in Modeling Earth Systems](https://doi.org/10.48550/arXiv.2502.14148) that presents an overview of all the things that make Oceananigans unique:
 

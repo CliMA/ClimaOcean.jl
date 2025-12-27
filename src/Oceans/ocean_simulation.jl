@@ -295,11 +295,6 @@ function ocean_simulation(grid;
     end
 
     if hasclosure(closure, CATKEVerticalDiffusivity)
-        # Magically add :e to tracers
-        if !(:e ∈ tracers)
-            tracers = tuple(tracers..., :e)
-        end
-
         # Turn off CATKE tracer advection
         tke_advection = (; e=nothing)
         tracer_advection = merge(tracer_advection, tke_advection)
