@@ -326,7 +326,7 @@ abstract type AbstractStabilityFunction end
 
 on_architecture(arch, ψ::AbstractStabilityFunction) = ψ
 
-# Extending TabulatedFunction for our similarity scales
+# Extending TabulatedFunction's constructor for a `SimilarityScales` object
 function TabulatedFunction(ss::SimilarityScales, args...; kwargs...) 
     ψu = TabulatedFunction(ss.momentum,    args..; kwargs...)
     ψθ = TabulatedFunction(ss.temperature, args..; kwargs...)
