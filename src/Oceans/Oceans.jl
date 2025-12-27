@@ -69,7 +69,7 @@ ocean_temperature(ocean::Simulation{<:HydrostaticFreeSurfaceModel}) = ocean.mode
 
 function ocean_surface_salinity(ocean::Simulation{<:HydrostaticFreeSurfaceModel})
     kᴺ = size(ocean.model.grid, 3)
-    return interior(ocean.model.tracers.S, :, :, kᴺ:kᴺ)
+    return view(ocean.model.tracers.S, :, :, kᴺ)
 end
 
 function ocean_surface_velocities(ocean::Simulation{<:HydrostaticFreeSurfaceModel})

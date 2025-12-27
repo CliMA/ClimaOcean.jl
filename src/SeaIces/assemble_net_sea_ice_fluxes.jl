@@ -31,12 +31,10 @@ function update_net_fluxes!(coupled_model, sea_ice::Simulation{<:SeaIceModel})
     atmos_sea_ice_properties = coupled_model.interfaces.atmosphere_sea_ice_interface.properties
     sea_ice_properties = coupled_model.interfaces.sea_ice_properties
 
-    kernel_parameters = interface_kernel_parameters(grid)
-
     sea_ice_surface_temperature = coupled_model.interfaces.atmosphere_sea_ice_interface.temperature
     ice_concentration = sea_ice_concentration(sea_ice)
     
-    launch!(arch, grid, kernel_parameters,
+    launch!(arch, grid, :xy,
             _assemble_net_sea_ice_fluxes!,
             top_fluxes,
             bottom_heat_flux,

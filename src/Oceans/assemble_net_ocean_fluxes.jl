@@ -48,12 +48,11 @@ function update_net_ocean_fluxes!(coupled_model, ocean_model, grid)
     ocean_surface_salinity = OceanSeaIceModels.ocean_surface_salinity(ocean_model)
     atmos_ocean_properties = coupled_model.interfaces.atmosphere_ocean_interface.properties
     ocean_properties = coupled_model.interfaces.ocean_properties
-    kernel_parameters = interface_kernel_parameters(grid)
 
     ocean_surface_temperature = coupled_model.interfaces.atmosphere_ocean_interface.temperature
     penetrating_radiation = get_radiative_forcing(ocean_model)
 
-    launch!(arch, grid, kernel_parameters,
+    launch!(arch, grid, :xy,
             _assemble_net_ocean_fluxes!,
             net_ocean_fluxes,
             penetrating_radiation,
