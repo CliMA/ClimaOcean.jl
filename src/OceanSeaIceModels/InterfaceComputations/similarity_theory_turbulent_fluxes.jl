@@ -306,12 +306,17 @@ Base.summary(ss::SimilarityScales) =
 
 Base.show(io::IO, ss::SimilarityScales) = print(io, summary(ss))
 
-@inline stability_profile(ψ, ζ) = ψ(ζ)
+Adapt.adapt_structure(to, s::SimilarityScales) = 
+    SimilarityScales(Adapt.adapt(to, s.momentum),
+                     Adapt.adapt(to, s.temperature),
+                     Adapt.adapt(to, s.water_vapor))
 
 on_architecture(arch, s::SimilarityScales) = 
     SimilarityScales(on_architecture(arch, s.momentum),
                      on_architecture(arch, s.temperature),
                      on_architecture(arch, s.water_vapor))
+
+@inline stability_profile(ψ, ζ) = ψ(ζ)
 
 # Convenience
 abstract type AbstractStabilityFunction end
