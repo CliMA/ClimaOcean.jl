@@ -50,7 +50,8 @@ function estimate_maximum_Δt(grid)
     # - 3.75 minutes for a 1/16 degree ocean
     # - 1.875 minutes for a 1/32 degree ocean
 
-    Δt = 1hours * Δθ
+    # We set the maximum Δt to 1 hour
+    Δt = min(1hours, 1hours * Δθ)
 
     return all_reduce(min, Δt, arch)
 end
