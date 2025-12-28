@@ -327,9 +327,9 @@ on_architecture(arch, ψ::AbstractStabilityFunction) = ψ
 
 # Extending TabulatedFunction's constructor for a `SimilarityScales` object
 function TabulatedFunction(ss::SimilarityScales, args...; kwargs...) 
-    ψu = TabulatedFunction(ss.momentum,    args..; kwargs...)
-    ψθ = TabulatedFunction(ss.temperature, args..; kwargs...)
-    ψq = TabulatedFunction(ss.water_vapor, args..; kwargs...)
+    ψu = TabulatedFunction(ss.momentum,    args...; kwargs...)
+    ψθ = TabulatedFunction(ss.temperature, args...; kwargs...)
+    ψq = TabulatedFunction(ss.water_vapor, args...; kwargs...)
     return SimilarityScales(ψu, ψθ, ψq)
 end
 
