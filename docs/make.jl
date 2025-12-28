@@ -30,7 +30,7 @@ JRA55PrescribedAtmosphere() # This command downloads the atmospheric data used b
         "Python ocean forced simulation" => "literated/python_ocean_forced_simulation.md",
         "Single-column ocean simulation" => "literated/single_column_os_papa_simulation.md",
         "One-degree ocean--sea ice simulation" => "literated/one_degree_simulation.md",
-        "Near-global ocean simulation" => "literated/near_global_ocean_simulation.md",
+        # "Near-global ocean simulation" => "literated/near_global_ocean_simulation.md",
         "Global climate simulation" => "literated/global_climate_simulation.md",
     ]
 
