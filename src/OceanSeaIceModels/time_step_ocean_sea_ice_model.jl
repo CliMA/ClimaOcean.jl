@@ -1,14 +1,9 @@
 using .InterfaceComputations:
     compute_atmosphere_ocean_fluxes!,
-    compute_sea_ice_ocean_fluxes!,
-    compute_net_ocean_fluxes!,
-    compute_net_sea_ice_fluxes!,
-    interpolate_atmosphere_state!
+    compute_sea_ice_ocean_fluxes!
 
 using ClimaSeaIce: SeaIceModel, SeaIceThermodynamics
 using Oceananigans.Grids: φnode
-using Oceananigans.Simulations: Callback, TimeStepCallsite
-
 using Printf
 
 #####
@@ -18,8 +13,6 @@ using Printf
 # Get time step from component simulation, or return Inf if not applicable
 component_Δt(component) = Inf
 component_Δt(sim::Simulation) = sim.Δt
-component_Δt(::PrescribedAtmosphere) = Inf  # prescribed atmosphere has no CFL constraint
-component_Δt(::FreezingLimitedOceanTemperature) = Inf  # not a dynamical model
 
 """
     align_component_steps!(simulation)
@@ -65,7 +58,7 @@ function align_component_steps!(simulation)
     return nothing
 end
 
-function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_tendencies=true)
+function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[])
     ocean = coupled_model.ocean
     sea_ice = coupled_model.sea_ice
     atmosphere = coupled_model.atmosphere
@@ -75,34 +68,44 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[], compute_
     
     # TODO after ice time-step:
     #  - Adjust ocean heat flux if the ice completely melts?
-    time_step!(ocean, Δt)
+    !isnothing(ocean) && time_step!(ocean, Δt)
 
     # Time step the atmosphere
-    time_step!(atmosphere, Δt)
+    !isnothing(atmosphere) && time_step!(atmosphere, Δt)
 
     # TODO:
     # - Store fractional ice-free / ice-covered _time_ for more
     #   accurate flux computation?
     tick!(coupled_model.clock, Δt)
-    update_state!(coupled_model, callbacks; compute_tendencies)
+    update_state!(coupled_model)
 
     return nothing
 end
 
-function update_state!(coupled_model::OceanSeaIceModel, callbacks=[]; compute_tendencies=true)
+function update_state!(coupled_model::OceanSeaIceModel)
 
-    # This function needs to be specialized to allow different atmospheric models
-    interpolate_atmosphere_state!(coupled_model.interfaces, coupled_model.atmosphere, coupled_model)
+    # The three components
+    ocean      = coupled_model.ocean
+    sea_ice    = coupled_model.sea_ice
+    atmosphere = coupled_model.atmosphere
+
+    exchanger = coupled_model.interfaces.exchanger
+    grid      = exchanger.grid
+    
+    # This function needs to be specialized to allow different component models
+    interpolate_state!(exchanger.atmosphere, grid, atmosphere, coupled_model)
+    interpolate_state!(exchanger.ocean,      grid, ocean,      coupled_model)
+    interpolate_state!(exchanger.sea_ice,    grid, sea_ice,    coupled_model)
 
     # Compute interface states
     compute_atmosphere_ocean_fluxes!(coupled_model)
     compute_atmosphere_sea_ice_fluxes!(coupled_model)
     compute_sea_ice_ocean_fluxes!(coupled_model)
 
-    # This function needs to be specialized to allow different atmospheric models
-    compute_net_atmosphere_fluxes!(coupled_model)
-    compute_net_ocean_fluxes!(coupled_model)
-    compute_net_sea_ice_fluxes!(coupled_model)
+    # This function needs to be specialized to allow different component models
+    update_net_fluxes!(coupled_model, atmosphere)
+    update_net_fluxes!(coupled_model, ocean)
+    update_net_fluxes!(coupled_model, sea_ice)
 
     return nothing
 end

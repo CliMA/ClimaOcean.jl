@@ -9,9 +9,10 @@ export
     LatitudeDependentAlbedo,
     SkinTemperature,
     BulkTemperature,
+    compute_atmosphere_ocean_fluxes!,
+    compute_atmosphere_sea_ice_fluxes!,
+    compute_sea_ice_ocean_fluxes!,
     align_component_steps!
-
-using SeawaterPolynomials
 
 using Oceananigans
 using Oceananigans.Operators
@@ -33,71 +34,61 @@ using ClimaOcean: stateindex
 using KernelAbstractions: @kernel, @index
 using KernelAbstractions.Extras.LoopInfo: @unroll
 
-function downwelling_radiation end
-function freshwater_flux end
-function reference_density end
-function heat_capacity end
+import Thermodynamics as AtmosphericThermodynamics
+
+# Simulations interface
+import Oceananigans: fields, prognostic_fields
+import Oceananigans.Architectures: architecture
+import Oceananigans.Fields: set!
+import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker, initialization_update_state!
+import Oceananigans.OutputWriters: default_included_properties
+import Oceananigans.Simulations: reset!, initialize!, iteration
+import Oceananigans.TimeSteppers: time_step!, update_state!, time
+import Oceananigans.Utils: prettytime
+
+include("components.jl")
+
+#####
+##### The coupled model
+##### 
 
 const default_gravitational_acceleration = Oceananigans.defaults.gravitational_acceleration
 const default_freshwater_density = 1000 # kg m⁻³
-
-const SeaIceSimulation = Simulation{<:SeaIceModel}
-
-sea_ice_thickness(::Nothing) = ZeroField()
-sea_ice_thickness(sea_ice::SeaIceSimulation) = sea_ice.model.ice_thickness
-
-sea_ice_concentration(::Nothing) = ZeroField()
-sea_ice_concentration(sea_ice::SeaIceSimulation) = sea_ice.model.ice_concentration
-
-#####
-##### Some implementation
-#####
-
-# Atmosphere interface
-interpolate_atmosphere_state!(interfaces, atmosphere, coupled_model) = nothing
-compute_net_atmosphere_fluxes!(coupled_model) = nothing
-
-# TODO: import this last
-include("PrescribedAtmospheres.jl")
-
-using .PrescribedAtmospheres:
-    PrescribedAtmosphere,
-    AtmosphereThermodynamicsParameters,
-    TwoBandDownwellingRadiation
 
 include("InterfaceComputations/InterfaceComputations.jl")
 
 using .InterfaceComputations
 
-import .InterfaceComputations:
-    compute_atmosphere_ocean_fluxes!,
-    compute_atmosphere_sea_ice_fluxes!,
-    compute_net_ocean_fluxes!,
-    compute_sea_ice_ocean_fluxes!
-
 include("ocean_sea_ice_model.jl")
-include("freezing_limited_ocean_temperature.jl")
 include("time_step_ocean_sea_ice_model.jl")
 
-# "No atmosphere" implementation
-const NoAtmosphereModel = OceanSeaIceModel{<:Any, Nothing}
-compute_atmosphere_ocean_fluxes!(::NoAtmosphereModel) = nothing
-compute_atmosphere_sea_ice_fluxes!(::NoAtmosphereModel) = nothing
+#####
+#####  Fallbacks for no-interface models
+#####
+    
+using .InterfaceComputations: ComponentInterfaces, AtmosphereInterface, SeaIceOceanInterface
 
-const PrescribedAtmosphereModel = OceanSeaIceModel{<:Any, <:PrescribedAtmosphere}
-compute_net_atmosphere_fluxes!(::PrescribedAtmosphereModel) = nothing
+const NoSeaIceInterface = ComponentInterfaces{<:AtmosphereInterface,  <:Nothing, <:Nothing}
+const NoOceanInterface  = ComponentInterfaces{<:Nothing, <:AtmosphereInterface,  <:Nothing}
+const NoAtmosInterface  = ComponentInterfaces{<:Nothing, <:Nothing, <:SeaIceOceanInterface}
+const NoInterface       = ComponentInterfaces{<:Nothing, <:Nothing, <:Nothing}
 
-# "No sea ice" implementation
-const NoSeaIceModel = Union{OceanSeaIceModel{Nothing}, FreezingLimitedCoupledModel}
-compute_sea_ice_ocean_fluxes!(::OceanSeaIceModel{Nothing}) = nothing
-compute_atmosphere_sea_ice_fluxes!(::NoSeaIceModel) = nothing
+const NoSeaIceInterfaceModel = OceanSeaIceModel{I, A, O, <:NoSeaIceInterface} where {I, A, O}
+const NoAtmosInterfaceModel  = OceanSeaIceModel{I, A, O, <:NoAtmosInterface}  where {I, A, O}
+const NoOceanInterfaceModel  = OceanSeaIceModel{I, A, O, <:NoOceanInterface}  where {I, A, O}
+const NoInterfaceModel       = OceanSeaIceModel{I, A, O, <:NoInterface}  where {I, A, O}
 
-# "Only ocean" implementation
-const OnlyOceanModel = Union{OceanSeaIceModel{Nothing, Nothing},
-                             OceanSeaIceModel{<:FreezingLimitedOceanTemperature, Nothing}}
+InterfaceComputations.compute_atmosphere_sea_ice_fluxes!(::NoSeaIceInterfaceModel) = nothing
+InterfaceComputations.compute_sea_ice_ocean_fluxes!(::NoSeaIceInterfaceModel) = nothing
 
-compute_atmosphere_sea_ice_fluxes!(::OnlyOceanModel) = nothing
-compute_sea_ice_ocean_fluxes!(::OnlyOceanModel) = nothing
-compute_net_ocean_fluxes!(::OnlyOceanModel) = nothing
+InterfaceComputations.compute_atmosphere_ocean_fluxes!(::NoAtmosInterfaceModel) = nothing
+InterfaceComputations.compute_atmosphere_sea_ice_fluxes!(::NoAtmosInterfaceModel) = nothing
+
+InterfaceComputations.compute_atmosphere_ocean_fluxes!(::NoOceanInterfaceModel) = nothing
+InterfaceComputations.compute_sea_ice_ocean_fluxes!(::NoOceanInterfaceModel) = nothing
+
+InterfaceComputations.compute_atmosphere_ocean_fluxes!(::NoInterfaceModel) = nothing
+InterfaceComputations.compute_atmosphere_sea_ice_fluxes!(::NoInterfaceModel) = nothing
+InterfaceComputations.compute_sea_ice_ocean_fluxes!(::NoInterfaceModel) = nothing
 
 end # module

@@ -15,6 +15,11 @@ function restrict(bbox_interfaces, interfaces, N)
     return bbox_interfaces, rN
 end
 
+"""
+    native_grid(metadata::Metadata, arch=CPU(); halo = (3, 3, 3))
+
+Return a `LatitudeLongitudeGrid` on `arch` corresponding to the native grid of `metadata` with `halo` size.
+"""
 function native_grid(metadata::Metadata, arch=CPU(); halo = (3, 3, 3))
     Nx, Ny, Nz, _ = size(metadata)
     z = z_interfaces(metadata)
@@ -25,15 +30,15 @@ function native_grid(metadata::Metadata, arch=CPU(); halo = (3, 3, 3))
     latitude = latitude_interfaces(metadata)
 
     # Restrict with BoundingBox
+    # TODO: can we restrict in `z` as well?
     bbox = metadata.bounding_box
     if !isnothing(bbox)
         longitude, Nx = restrict(bbox.longitude, longitude, Nx)
         latitude, Ny = restrict(bbox.latitude, latitude, Ny)
-        # TODO: restrict in z too
     end
 
-    grid = LatitudeLongitudeGrid(arch, FT; halo, longitude, latitude, z,
-                                 size = (Nx, Ny, Nz))
+    grid = LatitudeLongitudeGrid(arch, FT; size = (Nx, Ny, Nz),
+                                 halo, longitude, latitude, z)
 
     return grid
 end
