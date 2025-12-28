@@ -46,7 +46,7 @@ function default_ai_temperature(sea_ice::Simulation{<:SeaIceModel})
     return SkinTemperature(conductive_flux)
 end
 
-liquidus(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus,
+liquidus(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
 
 # ComponentExchangers
 ComponentExchanger(sea_ice::FreezingLimitedOceanTemperature, grid) = nothing
