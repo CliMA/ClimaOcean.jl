@@ -5,6 +5,7 @@ export atmosphere_simulation, PrescribedAtmosphere
 using Oceananigans
 using Oceananigans.Utils
 using Oceananigans.Fields: Center
+using Oceananigans.BoundaryConditions: fill_halo_regions!
 using Oceananigans.Grids: grid_name, architecture, topology, Flat, prettysummary
 using Oceananigans.OutputReaders: FieldTimeSeries, update_field_time_series!, extract_field_time_series
 using Oceananigans.TimeSteppers: Clock, tick!
@@ -16,6 +17,7 @@ using KernelAbstractions: @kernel, @index
 using ClimaOcean.OceanSeaIceModels.InterfaceComputations: interface_kernel_parameters
 
 import Oceananigans.TimeSteppers: time_step!, update_state!
+import Oceananigans.Fields: set!
 
 import ClimaOcean.OceanSeaIceModels: interpolate_state!, 
                                      update_net_fluxes!, 

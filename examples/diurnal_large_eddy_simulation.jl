@@ -186,9 +186,9 @@ add_callback!(simulation, ClimaOcean.OceanSeaIceModels.align_component_steps!)
 
 u, v, w = ocean.model.velocities
 T = ocean.model.tracers.T
-Q = coupled_model.interfaces.net_fluxes.ocean_surface.Q
-τx = coupled_model.interfaces.net_fluxes.ocean_surface.u
-τy = coupled_model.interfaces.net_fluxes.ocean_surface.v
+Q = coupled_model.interfaces.net_fluxes.ocean.T
+τx = coupled_model.interfaces.net_fluxes.ocean.u
+τy = coupled_model.interfaces.net_fluxes.ocean.v
 
 # Snapshot output every 10 minutes
 
@@ -230,6 +230,7 @@ add_callback!(simulation, progress, IterationInterval(100))
 
 run!(simulation)
 
+#=
 # ## Animation
 #
 # Create a multi-panel animation showing:
@@ -341,3 +342,4 @@ record(fig, "diurnal_les_animation.mp4", 1:Nt; framerate = 12) do i
 end
 
 # ![Diurnal LES Animation](diurnal_les_animation.mp4)
+=#
