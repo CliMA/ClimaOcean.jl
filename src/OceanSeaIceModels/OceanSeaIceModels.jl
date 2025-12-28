@@ -11,7 +11,8 @@ export
     BulkTemperature,
     compute_atmosphere_ocean_fluxes!,
     compute_atmosphere_sea_ice_fluxes!,
-    compute_sea_ice_ocean_fluxes!
+    compute_sea_ice_ocean_fluxes!,
+    align_component_steps!
 
 using Oceananigans
 using Oceananigans.Operators

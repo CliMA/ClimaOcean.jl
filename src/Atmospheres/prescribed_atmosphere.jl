@@ -159,3 +159,49 @@ TwoBandDownwellingRadiation(; shortwave=nothing, longwave=nothing) =
 Adapt.adapt_structure(to, tsdr::TwoBandDownwellingRadiation) =
     TwoBandDownwellingRadiation(adapt(to, tsdr.shortwave),
                                 adapt(to, tsdr.longwave))
+
+#####
+##### set! for PrescribedAtmosphere with time-dependent functions
+#####
+
+"""
+    set!(atmos::PrescribedAtmosphere; kwargs...)
+
+Set fields of a `PrescribedAtmosphere` using functions of time.
+
+Each keyword argument should be a function that takes a single argument `t` (time in seconds)
+and returns the field value at that time. The function is evaluated at each time in
+`atmos.times` and the resulting values are used to fill the corresponding `FieldTimeSeries`.
+
+Available field names:
+- `:u`, `:v` - velocity components (m/s)
+- `:T` - temperature (K)
+- `:q` - specific humidity (kg/kg)
+- `:p` - pressure (Pa)
+- `:shortwave` - downwelling shortwave radiation (W/m²)
+- `:longwave` - downwelling longwave radiation (W/m²)
+- `:rain`, `:snow` - precipitation rates (m/s)
+"""
+function set!(atmos::PrescribedAtmosphere; kwargs...)
+    for (name, func) in pairs(kwargs)
+        fts = if name ∈ (:u, :v)
+            getproperty(atmos.velocities, name)
+        elseif name ∈ (:T, :q)
+            getproperty(atmos.tracers, name)
+        elseif name ∈ (:shortwave, :longwave)
+            getproperty(atmos.downwelling_radiation, name)
+        elseif name ∈ (:rain, :snow)
+            getproperty(atmos.freshwater_flux, name)
+        else
+            error("Unknown atmosphere field name: $name. " *
+                  "Available names: :u, :v, :T, :q, :p, :shortwave, :longwave, :rain, :snow")
+        end
+
+        set!(fts, func)
+        fill_halo_regions!(fts)
+    end
+
+    update_state!(atmos)
+
+    return nothing
+end
