@@ -25,7 +25,8 @@ using ..OceanSeaIceModels: default_gravitational_acceleration,
                            default_freshwater_density,
                            thermodynamics_parameters,
                            surface_layer_height,
-                           boundary_layer_height
+                           boundary_layer_height,
+                           sea_ice_top_temperature
 
 import ClimaOcean: stateindex
 import Oceananigans.Simulations: initialize!
