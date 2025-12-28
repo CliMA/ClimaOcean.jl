@@ -27,7 +27,7 @@ JRA55PrescribedAtmosphere() # This command downloads the atmospheric data used b
     const DEVELOPERS_DIR = joinpath(@__DIR__, "src/developers")
 
     examples_pages = [
-        "Python ocean forced simulation" => "literated/python_ocean_forced_simulation.md",
+        "Veros ocean simulation" => "literated/veros_ocean_simulation.md",
         "Single-column ocean simulation" => "literated/single_column_os_papa_simulation.md",
         "One-degree ocean--sea ice simulation" => "literated/one_degree_simulation.md",
         # "Near-global ocean simulation" => "literated/near_global_ocean_simulation.md",
