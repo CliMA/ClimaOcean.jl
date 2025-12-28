@@ -1,4 +1,4 @@
-# # A Python Ocean Simulation at 4ᵒ Resolution Forced by JRA55 Reanalysis and Initialized from ECCO
+# # A Veros Ocean Simulation at 4ᵒ Resolution Forced by JRA55 Reanalysis and Initialized from ECCO
 #
 # This example showcases the use of ClimaOcean's PythonCall extension to run a
 # near-global ocean simulation at 4-degree resolution using the Veros ocean model.
@@ -87,7 +87,7 @@ simulation = Simulation(coupled_model; Δt = 1800, stop_time = 60days)
 wall_time = Ref(time_ns())
 
 function progress(sim)
-    ocean   = sim.model.ocean
+    ocean = sim.model.ocean
     umax = maximum(PyArray(ocean.setup.state.variables.u))
     vmax = maximum(PyArray(ocean.setup.state.variables.v))
     wmax = maximum(PyArray(ocean.setup.state.variables.w))
@@ -107,14 +107,10 @@ end
 
 u = []
 v = []
-S = []
-T = []
 
 function save_variables(sim)
     push!(u, deepcopy(sim.model.interfaces.exchanger.ocean.state.u))
     push!(v, deepcopy(sim.model.interfaces.exchanger.ocean.state.v))
-    push!(S, deepcopy(sim.model.interfaces.exchanger.ocean.state.S))
-    push!(T, deepcopy(sim.model.interfaces.exchanger.ocean.state.T))
 end
 
 add_callback!(simulation, progress, TimeInterval(10days))
@@ -127,15 +123,11 @@ run!(simulation)
 iter = Observable(1)
 ui = @lift(u[$iter])
 vi = @lift(v[$iter])
-Si = @lift(S[$iter])
-Ti = @lift(T[$iter])
 Nt = length(u)
 
 fig = Figure(resolution = (1000, 1500))
 ax1 = Axis(fig[1, 1]; title = "Surface zonal velocity (m/s)", xlabel = "", ylabel = "Latitude")
 ax2 = Axis(fig[2, 1]; title = "Surface meridional velocity (m/s)", xlabel = "", ylabel = "Latitude")
-ax3 = Axis(fig[3, 1]; title = "Surface temperature (N/m²)", xlabel = "", ylabel = "Latitude")
-ax4 = Axis(fig[4, 1]; title = "Surface salinity (psu)", xlabel = "", ylabel = "Latitude")
 
 grid = coupled_model.interfaces.exchanger.grid
 
@@ -144,13 +136,9 @@ grid = coupled_model.interfaces.exchanger.grid
 
 hm1 = heatmap!(ax1, λ, φ, ui, colormap = :bwr,     colorrange = (-0.2, 0.2))
 hm2 = heatmap!(ax2, λ, φ, vi, colormap = :bwr,     colorrange = (-0.2, 0.2))
-hm3 = heatmap!(ax3, λ, φ, Ti, colormap = :thermal, colorrange = (-1, 30))
-hm4 = heatmap!(ax4, λ, φ, Si, colormap = :haline,  colorrange = (32, 37))
 
 Colorbar(fig[1, 2], hm1)
 Colorbar(fig[2, 2], hm2)
-Colorbar(fig[3, 2], hm3)
-Colorbar(fig[4, 2], hm4)
 
 CairoMakie.record(fig, "veros_ocean_surface.mp4", 1:Nt, framerate = 8) do nn
     iter[] = nn
