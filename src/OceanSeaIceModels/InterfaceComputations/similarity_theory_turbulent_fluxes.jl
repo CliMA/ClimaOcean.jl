@@ -1,5 +1,4 @@
 using Oceananigans.Grids: AbstractGrid, prettysummary
-using Oceananigans.Fields: interpolator
 
 using Adapt
 using Printf
