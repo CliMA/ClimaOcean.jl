@@ -301,11 +301,9 @@ function ocean_simulation(grid;
     end
 
     if hasclosure(closure, CATKEVerticalDiffusivity)
-        # Magically add :e to tracers
-        if !(:e ∈ tracers)
-            tracers = tuple(tracers..., :e)
-            tracer_advection = merge(tracer_advection, (; e = tracer_advection.S))
-        end
+        # Turn off CATKE tracer advection
+        tke_advection = (; e=nothing)
+        tracer_advection = merge(tracer_advection, tke_advection)
     end
 
     ocean_model = HydrostaticFreeSurfaceModel(; grid,
