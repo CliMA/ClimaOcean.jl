@@ -490,11 +490,11 @@ function atmosphere_ocean_stability_functions(FT=Oceananigans.defaults.FloatType
     ψc = EdsonScalarStabilityFunction{FT}()
 
     if tabulate_stability_functions
-        ψu = TabulatedFunction(ψu, CPU() FT; 
+        ψu = TabulatedFunction(ψu, CPU(), FT; 
                                range  = tabulation_ζ_range, 
                                points = tabulation_points)
 
-        ψc = TabulatedFunction(ψc, CPU() FT; 
+        ψc = TabulatedFunction(ψc, CPU(), FT; 
                                range  = tabulation_ζ_range, 
                                points = tabulation_points)
     end
@@ -616,11 +616,11 @@ function atmosphere_sea_ice_stability_functions(FT=Oceananigans.defaults.FloatTy
     scalar = SplitStabilityFunction(stable_scalar, unstable_scalar)
 
     if tabulate_stability_functions
-        ψu = TabulatedFunction(momentum, CPU() FT; 
+        ψu = TabulatedFunction(momentum, CPU(), FT; 
                                range  = tabulation_ζ_range, 
                                points = tabulation_points)
 
-        ψc = TabulatedFunction(scalar, CPU() FT; 
+        ψc = TabulatedFunction(scalar, CPU(), FT; 
                                range  = tabulation_ζ_range, 
                                points = tabulation_points)
     end
