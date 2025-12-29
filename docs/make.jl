@@ -33,7 +33,7 @@ CPU_to_be_literated = map(CPU_example_pages) do (_, mdpath)
     replace(basename(mdpath), ".md" => ".jl")
 end
 
-for n in 1:length(CPU_to_be_literated)) do n
+for n in 1:length(CPU_to_be_literated)) 
     file = CPU_to_be_literated[n]
     filepath = joinpath(EXAMPLES_DIR, file)
     withenv("JULIA_DEBUG" => "Literate") do
