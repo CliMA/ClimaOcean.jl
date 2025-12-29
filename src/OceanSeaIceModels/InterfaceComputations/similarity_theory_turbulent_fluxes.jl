@@ -479,7 +479,7 @@ end
 end
 
 # Edson et al. (2013)
-function atmosphere_ocean_stability_functions(FT=Oceananigans.defaults.FloatType,
+function atmosphere_ocean_stability_functions(FT=Oceananigans.defaults.FloatType;
                                               tabulate_stability_functions = true,
                                               tabulation_ζ_range = (-100, 100),
                                               tabulation_points = 100000)
@@ -601,7 +601,7 @@ Base.show(io::IO, ss::SplitStabilityFunction) = print(io, "SplitStabilityFunctio
     return ifelse(stable, Ψ_stable, Ψ_unstable)
 end
 
-function atmosphere_sea_ice_stability_functions(FT=Oceananigans.defaults.FloatType,
+function atmosphere_sea_ice_stability_functions(FT=Oceananigans.defaults.FloatType;
                                                 tabulate_stability_functions = true,
                                                 tabulation_ζ_range = (-100, 100),
                                                 tabulation_points = 100000)
