@@ -24,7 +24,7 @@ JRA55PrescribedAtmosphere() # This command downloads the atmospheric data used b
 
 # CPU examples do not benefit from Distributed
 CPU_example_pages = [
-    "Veros ocean simulation" => "literated/veros_ocean_simulation.md",
+    "Veros ocean simulation" => "literated/veros_ocean_forced_simulation.md",
     "Single-column ocean simulation" => "literated/single_column_os_papa_simulation.md",
     "Global climate simulation" => "literated/global_climate_simulation.md",
 ]
