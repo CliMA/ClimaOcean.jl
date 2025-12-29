@@ -216,12 +216,12 @@ end
 
 function default_ao_fluxes(FT)
     stability_functions = atmosphere_ocean_stability_functions(FT)
-    return SimilarityTheoryFluxes(FT; similarity_functions)
+    return SimilarityTheoryFluxes(FT; stability_functions)
 end
 
 function default_ai_fluxes(FT)
     stability_functions = atmosphere_sea_ice_stability_functions(FT)
-    return SimilarityTheoryFluxes(FT; similarity_functions)
+    return SimilarityTheoryFluxes(FT; stability_functions)
 end
 
 """
