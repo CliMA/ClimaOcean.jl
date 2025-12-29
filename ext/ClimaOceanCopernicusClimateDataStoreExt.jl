@@ -6,7 +6,7 @@ using CopernicusClimateDataStore
 using Oceananigans
 using Oceananigans.DistributedComputations: @root
 
-using Dates: DateTime, Year, Month
+using Dates
 using ClimaOcean.DataWrangling.ERA5: ERA5Metadata, ERA5Metadatum, ERA5_dataset_variable_names
 
 import ClimaOcean.DataWrangling: download_dataset
@@ -78,27 +78,28 @@ function download_dataset(meta::ERA5Metadatum;
 
     # Perform the download using era5cli via CopernicusClimateDataStore
     @root begin
-        # Change to output directory for download
-        original_dir = pwd()
-        cd(output_directory)
+        downloaded_files = CopernicusClimateDataStore.hourly(;
+            variables = variable_name,
+            startyear = year,
+            months = month,
+            days = day,
+            hours = hour,
+            area = area,
+            format = "netcdf",
+            outputprefix = output_prefix,
+            overwrite = !skip_existing,
+            threads = threads,
+            splitmonths = false,
+            directory = output_directory,
+            additional_kw...
+        )
 
-        try
-            CopernicusClimateDataStore.hourly(;
-                variables = variable_name,
-                startyear = year,
-                months = month,
-                days = day,
-                hours = hour,
-                area = area,
-                format = "netcdf",
-                outputprefix = output_prefix,
-                overwrite = !skip_existing,
-                threads = threads,
-                splitmonths = false,
-                additional_kw...
-            )
-        finally
-            cd(original_dir)
+        # era5cli generates its own filename suffix, so rename to our expected name
+        if !isempty(downloaded_files)
+            downloaded_file = first(downloaded_files)
+            if downloaded_file != output_path && isfile(downloaded_file)
+                mv(downloaded_file, output_path; force=true)
+            end
         end
     end
 
