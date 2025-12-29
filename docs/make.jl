@@ -1,9 +1,48 @@
 using ClimaOcean
 using Distributed
+using ClimaOcean
+using CUDA
+using Documenter
+using DocumenterCitations
+using Literate
+
+ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
+
+bib_filepath = joinpath(dirname(@__FILE__), "climaocean.bib")
+bib = CitationBibliography(bib_filepath, style=:authoryear)
+
+#####
+##### Generate examples
+#####
+
+const EXAMPLES_DIR   = joinpath(@__DIR__, "..", "examples")
+const OUTPUT_DIR     = joinpath(@__DIR__, "src/literated")
+const DEVELOPERS_DIR = joinpath(@__DIR__, "src/developers")
 
 # Make sure the atmospheric data for the examples is downloaded
 JRA55PrescribedAtmosphere() # This command downloads the atmospheric data used by the examples
 
+# CPU examples do not benefit from Distributed
+CPU_example_pages = [
+    "Veros ocean simulation" => "literated/veros_ocean_simulation.md",
+    "Single-column ocean simulation" => "literated/single_column_os_papa_simulation.md",
+    "Global climate simulation" => "literated/global_climate_simulation.md",
+]
+
+CPU_to_be_literated = map(CPU_example_pages) do (_, mdpath)
+    replace(basename(mdpath), ".md" => ".jl")
+end
+
+for n in 1:length(CPU_to_be_literated)) do n
+    file = CPU_to_be_literated[n]
+    filepath = joinpath(EXAMPLES_DIR, file)
+    withenv("JULIA_DEBUG" => "Literate") do
+        Literate.markdown(filepath, OUTPUT_DIR; flavor = Literate.DocumenterFlavor(), execute = true)
+    end
+    GC.gc(true)
+end
+
+# Using one GPU per example
 Distributed.addprocs(2)
 
 @everywhere begin
@@ -24,26 +63,22 @@ Distributed.addprocs(2)
 
     const EXAMPLES_DIR   = joinpath(@__DIR__, "..", "examples")
     const OUTPUT_DIR     = joinpath(@__DIR__, "src/literated")
-    const DEVELOPERS_DIR = joinpath(@__DIR__, "src/developers")
 
-    examples_pages = [
-        "Veros ocean simulation" => "literated/veros_ocean_simulation.md",
-        "Single-column ocean simulation" => "literated/single_column_os_papa_simulation.md",
+    GPU_examples_pages = [
         "One-degree ocean--sea ice simulation" => "literated/one_degree_simulation.md",
         "Near-global ocean simulation" => "literated/near_global_ocean_simulation.md",
-        "Global climate simulation" => "literated/global_climate_simulation.md",
     ]
 
-    to_be_literated = map(examples_pages) do (_, mdpath)
+    GPU_to_be_literated = map(GPU_examples_pages) do (_, mdpath)
         replace(basename(mdpath), ".md" => ".jl")
     end
 end
 
-Distributed.pmap(1:length(to_be_literated)) do n
+Distributed.pmap(1:length(GPU_to_be_literated)) do n
     device = Distributed.myid()
     @info "switching to device $(device)"
     CUDA.device!(device) # Set the correct GPU, the used GPUs will be number 2 and 3
-    file = to_be_literated[n]
+    file = GPU_to_be_literated[n]
     filepath = joinpath(EXAMPLES_DIR, file)
     withenv("JULIA_DEBUG" => "Literate") do
         Literate.markdown(filepath, OUTPUT_DIR; flavor = Literate.DocumenterFlavor(), execute = true)
@@ -69,7 +104,7 @@ format = Documenter.HTML(collapselevel = 2,
 pages = [
     "Home" => "index.md",
 
-    "Examples" => examples_pages,
+    "Examples" => [CPU_examples_pages..., GPU_examples_pages...],
 
     "Developers" => [
         "OceanSeaIceModel interface" => "literated/slab_ocean.md",
