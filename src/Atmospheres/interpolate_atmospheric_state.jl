@@ -204,7 +204,7 @@ end
     interpolate(x_itp, t_itp, J, args...)
 
 @inline interp_atmos_time_series(J::AbstractArray, X, time, grid, args...) =
-    interpolate(X, time, J, (c, c, nothing), grid, args...)
+    interpolate(X, time, J, (Center(), Center(), nothing), grid, args...)
 
 @inline interp_atmos_time_series(ΣJ::NamedTuple, args...) =
     interp_atmos_time_series(values(ΣJ), args...)

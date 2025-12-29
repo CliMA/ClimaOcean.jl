@@ -4,6 +4,8 @@ using .InterfaceComputations:
 
 using ClimaSeaIce: SeaIceModel, SeaIceThermodynamics
 using Oceananigans.Grids: φnode
+using Oceananigans.Simulations: TimeStepWizard
+
 using Printf
 
 function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[])
@@ -57,3 +59,27 @@ function update_state!(coupled_model::OceanSeaIceModel)
 
     return nothing
 end
+
+function (wizard::TimeStepWizard)(simulation::Simulation{<:OceanSeaIceModel}) 
+    model = simulation.model
+    ocean_Δt = wizard(model.ocean)
+    
+    sea_ice_Δt = if isnothing(model.sea_ice) 
+        Inf 
+    else
+        wizard(model.sea_ice)
+    end
+
+    atmosphere_Δt = if isnothing(model.atmosphere) 
+        Inf 
+    else
+        wizard(model.atmosphere)
+    end
+
+    Δt = min(ocean_Δt, sea_ice_Δt, atmosphere_Δt)
+
+    simulation.Δt = Δt
+    
+    return nothing
+end
+

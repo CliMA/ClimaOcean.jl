@@ -189,7 +189,6 @@ function set!(fts::JRA55NetCDFFTSMultipleYears, backend=fts.backend)
             LX, LY, LZ = location(fts)
             i₁, i₂, j₁, j₂, TX = compute_bounding_indices(nothing, nothing, fts.grid, LX, LY, λc, φc)
 
-
             if issorted(nn)
                 data = ds[name][i₁:i₂, j₁:j₂, nn]
             else
@@ -458,7 +457,7 @@ function JRA55FieldTimeSeries(metadata::JRA55Metadata, architecture=CPU(), FT=Fl
         ds = Dataset(filepath)
         data = ds[shortname][i₁:i₂, j₁:j₂, time_indices_in_memory]
         close(ds)
-
+        
         copyto!(interior(fts, :, :, 1, :), data)
         fill_halo_regions!(fts)
 
