@@ -1,9 +1,8 @@
-# # A Veros Ocean Simulation at 4ᵒ Resolution Forced by JRA55 Reanalysis and Initialized from ECCO
+# # An Ocean Simulation at 4ᵒ Resolution Forced by JRA55 Reanalysis 
 #
 # This example showcases the use of ClimaOcean's PythonCall extension to run a
 # near-global ocean simulation at 4-degree resolution using the Veros ocean model.
-# The ocean is forced by the JRA55 reanalysis data and initialized from the ECCO
-# state estimate.
+# The ocean is forced by the JRA55 reanalysis data
 #
 # For this example, we need Oceananigans, ClimaOcean, Dates, CUDA, and
 # CairoMakie to visualize the simulation.
