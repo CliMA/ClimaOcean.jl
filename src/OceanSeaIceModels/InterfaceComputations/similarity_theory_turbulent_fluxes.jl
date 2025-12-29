@@ -595,6 +595,8 @@ end
 Base.summary(ss::SplitStabilityFunction) = "SplitStabilityFunction"
 Base.show(io::IO, ss::SplitStabilityFunction) = print(io, "SplitStabilityFunction")
 
+@inline (ψ::SplitStabilityFunction)(ζ) = stability_profile(ψ, ζ)
+
 @inline function stability_profile(ψ::SplitStabilityFunction, ζ)
     Ψ_stable = stability_profile(ψ.stable, ζ)
     Ψ_unstable = stability_profile(ψ.unstable, ζ)
