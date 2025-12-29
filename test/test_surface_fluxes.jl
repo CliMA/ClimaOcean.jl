@@ -260,6 +260,46 @@ end
     end
 end
 
+@testset "Tabulated stability functions" begin
+    T_metadata = ECCOMetadatum(:temperature; date=DateTime(1993, 1, 1))
+    S_metadata = ECCOMetadatum(:salinity;    date=DateTime(1993, 1, 1))
+    grid  = Field(T_metadata).grid
+    ocean = ocean_simulation(grid, closure=nothing, momentum_advection=nothing, tracer_advection=nothing)
+
+    atmosphere = JRA55PrescribedAtmosphere(architecture(grid); backend = JRA55NetCDFBackend(2))
+
+    set!(ocean.model; T=T_metadata, S=S_metadata)
+
+    coupled_model_tabulated = OceanSeaIceModel(ocean; atmosphere)
+
+    exact_fluxes = SimilarityTheoryFluxes(eltype(grid); tabulate_stability_functions=false)
+    interfaces_exact = ComponentInterfaces(atmosphere, ocean; atmosphere_ocean_fluxes=exact_fluxes)            
+    coupled_model_exact = OceanSeaIceModel(ocean; atmosphere, interfaces=interfaces_exact)
+
+    update_state!(coupled_model_tabulated)
+    update_state!(coupled_model_exact)
+        
+    fluxes_tabulated = coupled_model_tabulated.interfaces.atmosphere_ocean_interface.fluxes
+    fluxes_exact = coupled_model_exact.interfaces.atmosphere_ocean_interface.fluxes
+
+    for flux_name in [:sensible_heat, :latent_heat, :water_vapor, :x_momentum, :y_momentum]
+        flux_tab   = getfield(fluxes_tabulated, flux_name)
+        flux_exact = getfield(fluxes_exact, flux_name)
+        
+        flux_tab_data   = interior(flux_tab, :, :, 1)
+        flux_exact_data = interior(flux_exact, :, :, 1)
+
+        absolute_error  = abs.(flux_tab_data  .- flux_exact_data)        
+        valid_mask      = isfinite.(flux_exact_data) .& isfinite.(flux_tab_data)
+        mean_flux_data  = mean(abs.(flux_exact_data[valid_mask]))
+
+        abs_err_valid = absolute_error[valid_mask]
+        max_abs_error = maximum(abs_err_valid)    
+        
+        @test max_abs_error  < 0.01 * mean_flux_data
+    end
+end
+
 @testset "Fluxes regression" begin
     for arch in test_architectures
         @info "Testing fluxes regression..."

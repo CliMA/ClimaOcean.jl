@@ -60,8 +60,8 @@ end
                            solver_stop_criteria = nothing,
                            solver_tolerance = 1e-8,
                            solver_maxiter = 100,
-                           tabulate_stability_functions = false,
-                           tabulation_ζ_range = (-15, 15),
+                           tabulate_stability_functions = true,
+                           tabulation_ζ_range = (-30, 30),
                            tabulation_points = 10000)
 
 `SimilarityTheoryFluxes` contains parameters and settings to calculate
@@ -98,8 +98,8 @@ function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                 solver_tolerance = 1e-8,
                                 solver_maxiter = 100,
                                 tabulate_stability_functions = true,
-                                tabulation_ζ_range = (-30, 30),
-                                tabulation_points = 10000)
+                                tabulation_ζ_range = (-100, 100),
+                                tabulation_points = 100000)
 
     roughness_lengths = SimilarityScales(momentum_roughness_length,
                                          temperature_roughness_length,
