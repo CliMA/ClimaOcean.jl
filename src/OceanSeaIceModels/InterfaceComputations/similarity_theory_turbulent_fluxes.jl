@@ -59,10 +59,7 @@ end
                            similarity_form = LogarithmicSimilarityProfile(),
                            solver_stop_criteria = nothing,
                            solver_tolerance = 1e-8,
-                           solver_maxiter = 100,
-                           tabulate_stability_functions = true,
-                           tabulation_ζ_range = (-30, 30),
-                           tabulation_points = 10000)
+                           solver_maxiter = 100)
 
 `SimilarityTheoryFluxes` contains parameters and settings to calculate
 air-interface turbulent fluxes using Monin--Obukhov similarity theory.
@@ -96,10 +93,7 @@ function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                 similarity_form = LogarithmicSimilarityProfile(),
                                 solver_stop_criteria = nothing,
                                 solver_tolerance = 1e-8,
-                                solver_maxiter = 100,
-                                tabulate_stability_functions = true,
-                                tabulation_ζ_range = (-100, 100),
-                                tabulation_points = 100000)
+                                solver_maxiter = 100)
 
     roughness_lengths = SimilarityScales(momentum_roughness_length,
                                          temperature_roughness_length,
@@ -113,13 +107,6 @@ function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
     if isnothing(stability_functions)
         returns_zero = Returns(zero(FT))
         stability_functions = SimilarityScales(returns_zero, returns_zero, returns_zero)
-    end
-
-    # Optionally tabulate stability functions for performance
-    if tabulate_stability_functions
-        stability_functions = TabulatedFunction(stability_functions, CPU(), FT; 
-                                                range  = tabulation_ζ_range, 
-                                                points = tabulation_points)
     end
 
     return SimilarityTheoryFluxes(convert(FT, von_karman_constant),
@@ -325,14 +312,6 @@ abstract type AbstractStabilityFunction end
 
 on_architecture(arch, ψ::AbstractStabilityFunction) = ψ
 
-# Extending TabulatedFunction's constructor for a `SimilarityScales` object
-function TabulatedFunction(ss::SimilarityScales, args...; kwargs...) 
-    ψu = TabulatedFunction(ss.momentum,    args...; kwargs...)
-    ψθ = TabulatedFunction(ss.temperature, args...; kwargs...)
-    ψq = TabulatedFunction(ss.water_vapor, args...; kwargs...)
-    return SimilarityScales(ψu, ψθ, ψq)
-end
-
 """
     EdsonMomentumStabilityFunction{FT}
 
@@ -503,9 +482,23 @@ end
 end
 
 # Edson et al. (2013)
-function atmosphere_ocean_stability_functions(FT=Oceananigans.defaults.FloatType)
+function atmosphere_ocean_stability_functions(FT=Oceananigans.defaults.FloatType,
+                                              tabulate_stability_functions = true,
+                                              tabulation_ζ_range = (-100, 100),
+                                              tabulation_points = 100000)
     ψu = EdsonMomentumStabilityFunction{FT}()
     ψc = EdsonScalarStabilityFunction{FT}()
+
+    if tabulate_stability_functions
+        ψu = TabulatedFunction(ψu, CPU() FT; 
+                               range  = tabulation_ζ_range, 
+                               points = tabulation_points)
+
+        ψc = TabulatedFunction(ψc, CPU() FT; 
+                               range  = tabulation_ζ_range, 
+                               points = tabulation_points)
+    end
+
     return SimilarityScales(ψu, ψc, ψc)
 end
 
@@ -609,7 +602,11 @@ Base.show(io::IO, ss::SplitStabilityFunction) = print(io, "SplitStabilityFunctio
     return ifelse(stable, Ψ_stable, Ψ_unstable)
 end
 
-function atmosphere_sea_ice_stability_functions(FT=Oceananigans.defaults.FloatType)
+function atmosphere_sea_ice_stability_functions(FT=Oceananigans.defaults.FloatType,
+                                                tabulate_stability_functions = true,
+                                                tabulation_ζ_range = (-100, 100),
+                                                tabulation_points = 100000)
+
     unstable_momentum = PaulsonMomentumStabilityFunction{FT}()
     stable_momentum = ShebaMomentumStabilityFunction{FT}()
     momentum = SplitStabilityFunction(stable_momentum, unstable_momentum)
@@ -618,5 +615,15 @@ function atmosphere_sea_ice_stability_functions(FT=Oceananigans.defaults.FloatTy
     stable_scalar = ShebaScalarStabilityFunction{FT}()
     scalar = SplitStabilityFunction(stable_scalar, unstable_scalar)
 
-    return SimilarityScales(momentum, scalar, scalar)
+    if tabulate_stability_functions
+        ψu = TabulatedFunction(momentum, CPU() FT; 
+                               range  = tabulation_ζ_range, 
+                               points = tabulation_points)
+
+        ψc = TabulatedFunction(scalar, CPU() FT; 
+                               range  = tabulation_ζ_range, 
+                               points = tabulation_points)
+    end
+
+    return SimilarityScales(ψu, ψc, ψc)
 end

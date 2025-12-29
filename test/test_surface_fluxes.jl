@@ -8,7 +8,9 @@ using ClimaOcean.OceanSeaIceModels.InterfaceComputations:
                                    surface_specific_humidity,
                                    SkinTemperature,
                                    BulkTemperature,
-                                   DiffusiveFlux
+                                   DiffusiveFlux,
+                                   atmosphere_ocean_stability_functions,
+                                   atmosphere_sea_ice_stability_functions
 
 using Thermodynamics
 using CUDA
@@ -262,7 +264,10 @@ end
 
 @testset "Tabulated stability functions" begin
     T_metadata = ECCOMetadatum(:temperature; date=DateTime(1993, 1, 1))
-    S_metadata = ECCOMetadatum(:salinity;    date=DateTime(1993, 1, 1))
+    S_metadata = ECCOMetadatum(:salinity; date=DateTime(1993, 1, 1))
+    h_metadata = ECCOMetadatum(:sea_ice_thickness; date=DateTime(1993, 1, 1))
+    ℵ_metadata = ECCOMetadatum(:sea_ice_concentration; date=DateTime(1993, 1, 1))
+
     grid  = Field(T_metadata).grid
     ocean = ocean_simulation(grid, closure=nothing, momentum_advection=nothing, tracer_advection=nothing)
 
@@ -270,17 +275,50 @@ end
 
     set!(ocean.model; T=T_metadata, S=S_metadata)
 
-    coupled_model_tabulated = OceanSeaIceModel(ocean; atmosphere)
+    sea_ice = sea_ice_simulation(grid, ocean)
 
-    exact_fluxes = SimilarityTheoryFluxes(eltype(grid); tabulate_stability_functions=false)
-    interfaces_exact = ComponentInterfaces(atmosphere, ocean; atmosphere_ocean_fluxes=exact_fluxes)            
-    coupled_model_exact = OceanSeaIceModel(ocean; atmosphere, interfaces=interfaces_exact)
+    set!(sea_ice.model, h=h_metadata, ℵ=ℵ_metadata)
+
+    coupled_model_tabulated = OceanSeaIceModel(ocean, sea_ice; atmosphere)
+
+    FT = eltype(grid)
+
+    ao_stability_functions = atmosphere_ocean_stability_functions(FT, tabulate_stability_functions=false) 
+    ai_stability_functions = atmosphere_sea_ice_stability_functions(FT, tabulate_stability_functions=false) 
+    ao_exact_fluxes = SimilarityTheoryFluxes(eltype(grid); stability_functions = ao_stability_functions)
+    ai_exact_fluxes = SimilarityTheoryFluxes(eltype(grid); stability_functions = ai_stability_functions)
+
+    interfaces_exact = ComponentInterfaces(atmosphere, ocean, sea_ice; 
+                                           atmosphere_ocean_fluxes = ao_exact_fluxes, 
+                                           atmosphere_sea_ice_fluxes = ai_exact_fluxes)     
+
+    coupled_model_exact = OceanSeaIceModel(ocean, sea_ice; atmosphere, interfaces=interfaces_exact)
 
     update_state!(coupled_model_tabulated)
     update_state!(coupled_model_exact)
         
     fluxes_tabulated = coupled_model_tabulated.interfaces.atmosphere_ocean_interface.fluxes
     fluxes_exact = coupled_model_exact.interfaces.atmosphere_ocean_interface.fluxes
+
+    for flux_name in [:sensible_heat, :latent_heat, :water_vapor, :x_momentum, :y_momentum]
+        flux_tab   = getfield(fluxes_tabulated, flux_name)
+        flux_exact = getfield(fluxes_exact, flux_name)
+        
+        flux_tab_data   = interior(flux_tab, :, :, 1)
+        flux_exact_data = interior(flux_exact, :, :, 1)
+
+        absolute_error  = abs.(flux_tab_data  .- flux_exact_data)        
+        valid_mask      = isfinite.(flux_exact_data) .& isfinite.(flux_tab_data)
+        mean_flux_data  = mean(abs.(flux_exact_data[valid_mask]))
+
+        abs_err_valid = absolute_error[valid_mask]
+        max_abs_error = maximum(abs_err_valid)    
+        
+        @test max_abs_error  < 0.01 * mean_flux_data
+    end
+
+    fluxes_tabulated = coupled_model_tabulated.interfaces.atmosphere_sea_ice_interface.fluxes
+    fluxes_exact = coupled_model_exact.interfaces.atmosphere_sea_ice_interface.fluxes
 
     for flux_name in [:sensible_heat, :latent_heat, :water_vapor, :x_momentum, :y_momentum]
         flux_tab   = getfield(fluxes_tabulated, flux_name)
