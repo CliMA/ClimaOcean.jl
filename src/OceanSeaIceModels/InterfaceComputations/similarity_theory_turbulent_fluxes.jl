@@ -608,18 +608,18 @@ function atmosphere_sea_ice_stability_functions(FT=Oceananigans.defaults.FloatTy
 
     unstable_momentum = PaulsonMomentumStabilityFunction{FT}()
     stable_momentum = ShebaMomentumStabilityFunction{FT}()
-    momentum = SplitStabilityFunction(stable_momentum, unstable_momentum)
+    ψu = SplitStabilityFunction(stable_momentum, unstable_momentum)
 
     unstable_scalar = PaulsonScalarStabilityFunction{FT}()
     stable_scalar = ShebaScalarStabilityFunction{FT}()
-    scalar = SplitStabilityFunction(stable_scalar, unstable_scalar)
+    ψc = SplitStabilityFunction(stable_scalar, unstable_scalar)
 
     if tabulate_stability_functions
-        ψu = TabulatedFunction(momentum, CPU(), FT; 
+        ψu = TabulatedFunction(ψu, CPU(), FT; 
                                range  = tabulation_ζ_range, 
                                points = tabulation_points)
 
-        ψc = TabulatedFunction(scalar, CPU(), FT; 
+        ψc = TabulatedFunction(ψc, CPU(), FT; 
                                range  = tabulation_ζ_range, 
                                points = tabulation_points)
     end
