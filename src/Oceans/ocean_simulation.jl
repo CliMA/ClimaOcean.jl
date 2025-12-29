@@ -301,8 +301,8 @@ function ocean_simulation(grid;
     end
 
     if hasclosure(closure, CATKEVerticalDiffusivity)
-        # Turn off CATKE tracer advection
-        tke_advection = (; e=nothing)
+        # Use the same advection as for temperature
+        tke_advection = (; e=tracer_advection[1])
         tracer_advection = merge(tracer_advection, tke_advection)
     end
 
