@@ -29,6 +29,7 @@ end
                                  Umax = 19, αmin = 0.011, ℂ₁ = 0.0017, ℂ₂ = -0.005)
 
 A gravity wave parameter based on the wind speed `ΔU` with the formula `max(αmin, ℂ₁ * min(ΔU, Umax) + ℂ₂`).
+[Bonino (2020)](@cite Bonino2020BulkNEMOv4)
 """
 WindDependentWaveFormulation(FT=Oceananigans.defaults.FloatType; Umax = 19, αmin = 0.011, ℂ₁ = 0.0017, ℂ₂ = -0.005) =
     WindDependentWaveFormulation(convert(FT, Umax),
