@@ -602,8 +602,8 @@ Base.show(io::IO, ss::SplitStabilityFunction) = print(io, "SplitStabilityFunctio
 end
 
 function atmosphere_sea_ice_stability_functions(FT=Oceananigans.defaults.FloatType;
-                                                tabulate_stability_functions = true,
-                                                tabulation_ζ_range = (-200, 200),
+                                                tabulate_stability_functions = false,
+                                                tabulation_ζ_range = (-100, 100),
                                                 tabulation_points = 100000)
 
     unstable_momentum = PaulsonMomentumStabilityFunction{FT}()
