@@ -78,9 +78,6 @@ Keyword Arguments
                              interface fluxes / characteristic scales.
 - `solver_tolerance`: The tolerance for convergence. Default: 1e-8.
 - `solver_maxiter`: The maximum number of iterations. Default: 100.
-- `tabulate_stability_functions`: If `true`, precompute stability functions in lookup tables for faster evaluation. Default: `false`.
-- `tabulation_ζ_range`: Range of zeta values for tabulation when `tabulate_stability_functions = true`. Default: `(-30, 30)`.
-- `tabulation_points`: Number of points in the lookup table when `tabulate_stability_functions = true`. Default: `10000` (leading to a maximum error of 0.2%).
 """
 function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                 von_karman_constant = 0.4,
