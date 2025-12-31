@@ -11,7 +11,7 @@ function restrict(bbox_interfaces, interfaces, N)
     Δ = interfaces[2] - interfaces[1]
     rΔ = bbox_interfaces[2] - bbox_interfaces[1]
     ϵ = rΔ / Δ
-    rN = Integer(ϵ * N)
+    rN = ceil(Int, ϵ * N)  # Round up to ensure bounding box is covered
     return bbox_interfaces, rN
 end
 
