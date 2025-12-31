@@ -242,10 +242,9 @@ function ocean_simulation(grid;
         v_immersed_bc = ImmersedBoundaryCondition(bottom=v_immersed_drag)
 
         # Forcing for u, v
-        u_barotropic_potential = Field{Center, Center, Nothing}(grid)
-        v_barotropic_potential = Field{Center, Center, Nothing}(grid)
-        u_forcing = BarotropicPotentialForcing(XDirection(), u_barotropic_potential)
-        v_forcing = BarotropicPotentialForcing(YDirection(), v_barotropic_potential)
+        barotropic_potential = Field{Center, Center, Nothing}(grid)
+        u_forcing = BarotropicPotentialForcing(XDirection(), barotropic_potential)
+        v_forcing = BarotropicPotentialForcing(YDirection(), barotropic_potential)
 
         :u ∈ keys(forcing) && (u_forcing = (u_forcing, forcing[:u]))
         :v ∈ keys(forcing) && (v_forcing = (v_forcing, forcing[:v]))
@@ -296,11 +295,6 @@ function ocean_simulation(grid;
     end
 
     if hasclosure(closure, CATKEVerticalDiffusivity)
-        # Magically add :e to tracers
-        if !(:e ∈ tracers)
-            tracers = tuple(tracers..., :e)
-        end
-
         # Turn off CATKE tracer advection
         tke_advection = (; e=nothing)
         tracer_advection = merge(tracer_advection, tke_advection)
@@ -326,3 +320,19 @@ end
 
 hasclosure(closure, ClosureType) = closure isa ClosureType
 hasclosure(closure_tuple::Tuple, ClosureType) = any(hasclosure(c, ClosureType) for c in closure_tuple)
+
+#####
+##### Extending ClimaOcean interface
+#####
+
+reference_density(ocean::Simulation{<:HydrostaticFreeSurfaceModel}) = reference_density(ocean.model.buoyancy.formulation)
+reference_density(buoyancy_formulation::SeawaterBuoyancy) = reference_density(buoyancy_formulation.equation_of_state)
+reference_density(eos::TEOS10EquationOfState) = eos.reference_density
+
+heat_capacity(ocean::Simulation{<:HydrostaticFreeSurfaceModel}) = heat_capacity(ocean.model.buoyancy.formulation)
+heat_capacity(buoyancy_formulation::SeawaterBuoyancy) = heat_capacity(buoyancy_formulation.equation_of_state)
+
+function heat_capacity(::TEOS10EquationOfState{FT}) where FT
+    cₚ⁰ = SeawaterPolynomials.TEOS10.teos10_reference_heat_capacity
+    return convert(FT, cₚ⁰)
+end

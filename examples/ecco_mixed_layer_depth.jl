@@ -6,7 +6,7 @@ using Printf
 using Dates
 
 using SeawaterPolynomials: TEOS10EquationOfState
-using Oceananigans.BuoyancyFormulations: buoyancy
+using Oceananigans.Models: buoyancy_operation
 
 arch = CPU()
 Nx = 360
@@ -44,7 +44,7 @@ Nt = length(ht)
 for n = 1:Nt-1
     local tracers
     tracers = (T=Tt[n], S=St[n])
-    h.operand.buoyancy_perturbation = buoyancy(sb, grid, tracers)
+    h.operand.buoyancy_perturbation = buoyancy_operation(sb, grid, tracers)
     @show n
     @time compute!(h)
     parent(ht[n]) .= parent(h)
