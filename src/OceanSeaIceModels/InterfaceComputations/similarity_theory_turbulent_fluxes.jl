@@ -6,6 +6,8 @@ using Thermodynamics: Liquid, PhasePartition
 using KernelAbstractions.Extras.LoopInfo: @unroll
 using Statistics: norm
 
+import Oceananigans.Utils: TabulatedFunction
+import Oceananigans.Architectures: on_architecture
 import Thermodynamics as AtmosphericThermodynamics
 import Thermodynamics.Parameters: Rv_over_Rd
 
@@ -112,6 +114,15 @@ function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                   similarity_form,
                                   solver_stop_criteria)
 end
+
+on_architecture(arch, ψ::SimilarityTheoryFluxes) = 
+    SimilarityTheoryFluxes(ψ.von_karman_constant,
+                           ψ.turbulent_prandtl_number,
+                           ψ.gustiness_parameter,
+                           on_architecture(arch, ψ.stability_functions),
+                           ψ.roughness_lengths,
+                           ψ.similarity_form,
+                           ψ.solver_stop_criteria)
 
 #####
 ##### Similarity profile types
@@ -279,11 +290,24 @@ Base.summary(ss::SimilarityScales) =
 
 Base.show(io::IO, ss::SimilarityScales) = print(io, summary(ss))
 
+Adapt.adapt_structure(to, ss::SimilarityScales) = 
+    SimilarityScales(adapt(to, ss.momentum),
+                     adapt(to, ss.temperature),
+                     adapt(to, ss.water_vapor))
+
+on_architecture(arch, ss::SimilarityScales) = 
+    SimilarityScales(on_architecture(arch, ss.momentum),
+                     on_architecture(arch, ss.temperature),
+                     on_architecture(arch, ss.water_vapor))
+
 @inline stability_profile(ψ, ζ) = ψ(ζ)
 
 # Convenience
 abstract type AbstractStabilityFunction end
+
 @inline (ψ::AbstractStabilityFunction)(ζ) = stability_profile(ψ, ζ)
+
+on_architecture(arch, ψ::AbstractStabilityFunction) = ψ
 
 """
     EdsonMomentumStabilityFunction{FT}
@@ -455,9 +479,23 @@ end
 end
 
 # Edson et al. (2013)
-function atmosphere_ocean_stability_functions(FT=Oceananigans.defaults.FloatType)
+function atmosphere_ocean_stability_functions(FT=Oceananigans.defaults.FloatType;
+                                              tabulate_stability_functions = true,
+                                              tabulation_ζ_range = (-100, 100),
+                                              tabulation_points = 100000)
     ψu = EdsonMomentumStabilityFunction{FT}()
     ψc = EdsonScalarStabilityFunction{FT}()
+
+    if tabulate_stability_functions
+        ψu = TabulatedFunction(ψu, CPU(), FT; 
+                               range  = tabulation_ζ_range, 
+                               points = tabulation_points)
+
+        ψc = TabulatedFunction(ψc, CPU(), FT; 
+                               range  = tabulation_ζ_range, 
+                               points = tabulation_points)
+    end
+
     return SimilarityScales(ψu, ψc, ψc)
 end
 
@@ -554,6 +592,8 @@ end
 Base.summary(ss::SplitStabilityFunction) = "SplitStabilityFunction"
 Base.show(io::IO, ss::SplitStabilityFunction) = print(io, "SplitStabilityFunction")
 
+@inline (ψ::SplitStabilityFunction)(ζ) = stability_profile(ψ, ζ)
+
 @inline function stability_profile(ψ::SplitStabilityFunction, ζ)
     Ψ_stable = stability_profile(ψ.stable, ζ)
     Ψ_unstable = stability_profile(ψ.unstable, ζ)
@@ -561,14 +601,28 @@ Base.show(io::IO, ss::SplitStabilityFunction) = print(io, "SplitStabilityFunctio
     return ifelse(stable, Ψ_stable, Ψ_unstable)
 end
 
-function atmosphere_sea_ice_stability_functions(FT=Oceananigans.defaults.FloatType)
+function atmosphere_sea_ice_stability_functions(FT=Oceananigans.defaults.FloatType;
+                                                tabulate_stability_functions = false,
+                                                tabulation_ζ_range = (-100, 100),
+                                                tabulation_points = 100000)
+
     unstable_momentum = PaulsonMomentumStabilityFunction{FT}()
     stable_momentum = ShebaMomentumStabilityFunction{FT}()
-    momentum = SplitStabilityFunction(stable_momentum, unstable_momentum)
+    ψu = SplitStabilityFunction(stable_momentum, unstable_momentum)
 
     unstable_scalar = PaulsonScalarStabilityFunction{FT}()
     stable_scalar = ShebaScalarStabilityFunction{FT}()
-    scalar = SplitStabilityFunction(stable_scalar, unstable_scalar)
+    ψc = SplitStabilityFunction(stable_scalar, unstable_scalar)
 
-    return SimilarityScales(momentum, scalar, scalar)
+    if tabulate_stability_functions
+        ψu = TabulatedFunction(ψu, CPU(), FT; 
+                               range  = tabulation_ζ_range, 
+                               points = tabulation_points)
+
+        ψc = TabulatedFunction(ψc, CPU(), FT; 
+                               range  = tabulation_ζ_range, 
+                               points = tabulation_points)
+    end
+
+    return SimilarityScales(ψu, ψc, ψc)
 end
