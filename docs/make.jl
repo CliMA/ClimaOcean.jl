@@ -64,12 +64,12 @@ Distributed.addprocs(2)
     const EXAMPLES_DIR   = joinpath(@__DIR__, "..", "examples")
     const OUTPUT_DIR     = joinpath(@__DIR__, "src/literated")
 
-    GPU_examples_pages = [
+    GPU_example_pages = [
         "One-degree ocean--sea ice simulation" => "literated/one_degree_simulation.md",
         "Near-global ocean simulation" => "literated/near_global_ocean_simulation.md",
     ]
 
-    GPU_to_be_literated = map(GPU_examples_pages) do (_, mdpath)
+    GPU_to_be_literated = map(GPU_example_pages) do (_, mdpath)
         replace(basename(mdpath), ".md" => ".jl")
     end
 end
@@ -104,7 +104,7 @@ format = Documenter.HTML(collapselevel = 2,
 pages = [
     "Home" => "index.md",
 
-    "Examples" => [CPU_examples_pages..., GPU_examples_pages...],
+    "Examples" => [CPU_example_pages..., GPU_example_pages...],
 
     "Developers" => [
         "OceanSeaIceModel interface" => "literated/slab_ocean.md",
@@ -130,8 +130,9 @@ pages = [
 
 modules = Module[]
 ClimaOceanSpeedyWeatherExt = isdefined(Base, :get_extension) ? Base.get_extension(ClimaOcean, :ClimaOceanSpeedyWeatherExt) : ClimaOcean.ClimaOceanSpeedyWeatherExt
+ClimaOceanVerosExt = isdefined(Base, :get_extension) ? Base.get_extension(ClimaOcean, :ClimaOceanVerosExt) : ClimaOcean.ClimaOceanVerosExt
 
-for m in [ClimaOcean, ClimaOceanSpeedyWeatherExt]
+for m in [ClimaOcean, ClimaOceanSpeedyWeatherExt, ClimaOceanVerosExt]
     if !isnothing(m)
         push!(modules, m)
     end
