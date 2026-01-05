@@ -1,5 +1,5 @@
-using Oceananigans.Operators: intrinsic_vector
 using Oceananigans.Grids: inactive_node
+using Oceananigans.Operators: intrinsic_vector
 
 function compute_atmosphere_ocean_fluxes!(coupled_model)
     exchanger = coupled_model.interfaces.exchanger
@@ -11,7 +11,7 @@ function compute_atmosphere_ocean_fluxes!(coupled_model)
 
     # Simplify NamedTuple to reduce parameter space consumption.
     # See https://github.com/CliMA/ClimaOcean.jl/issues/116.
-    atmosphere_data = merge(atmosphere_fields, 
+    atmosphere_data = merge(atmosphere_fields,
                             (; h_bℓ = boundary_layer_height(coupled_model.atmosphere)))
 
     flux_formulation = coupled_model.interfaces.atmosphere_ocean_interface.flux_formulation
@@ -147,7 +147,7 @@ end
     ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
     cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
     ℒv = AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
-    
+
 
     # Store fluxes
     Qv  = interface_fluxes.latent_heat
@@ -159,7 +159,7 @@ end
 
     @inbounds begin
         # +0: cooling, -0: heating
-        Qv[i, j, 1]  = - ρₐ * ℒv * u★ * q★ 
+        Qv[i, j, 1]  = - ρₐ * ℒv * u★ * q★
         Qc[i, j, 1]  = - ρₐ * cₚ * u★ * θ★
         Fv[i, j, 1]  = - ρₐ * u★ * q★
         ρτx[i, j, 1] = + ρₐ * τx

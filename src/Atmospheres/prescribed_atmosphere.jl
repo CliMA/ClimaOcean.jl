@@ -64,6 +64,11 @@ function default_atmosphere_pressure(grid, times)
     return pa
 end
 
+"""Default clock that starts at the first provided time."""
+function default_atmosphere_clock(times)
+    isempty(times) && return Clock{Float64}(time = 0)
+    return Clock(time = first(times))
+end
 
 @inline function update_state!(atmos::PrescribedAtmosphere)
     time = Time(atmos.clock.time)
@@ -93,7 +98,7 @@ update_net_fluxes!(coupled_model, ::PrescribedAtmosphere) = nothing
 
 """
     PrescribedAtmosphere(grid, times=[zero(grid)];
-                         clock = Clock{Float64}(time = 0),
+                         clock = default_atmosphere_clock(times),
                          surface_layer_height = 10, # meters
                          boundary_layer_height = 512 # meters,
                          thermodynamics_parameters = AtmosphereThermodynamicsParameters(eltype(grid)),
@@ -108,7 +113,7 @@ Return a representation of a prescribed time-evolving atmospheric
 state with data given at `times`.
 """
 function PrescribedAtmosphere(grid, times=[zero(grid)];
-                              clock = Clock{Float64}(time = 0),
+                              clock = default_atmosphere_clock(times),
                               surface_layer_height = 10,
                               boundary_layer_height = 512,
                               thermodynamics_parameters = AtmosphereThermodynamicsParameters(eltype(grid)),

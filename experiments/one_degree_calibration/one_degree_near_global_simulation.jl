@@ -1,12 +1,12 @@
 using ClimaOcean.NearGlobalSimulations: one_degree_near_global_simulation
 
 using Oceananigans
-using Oceananigans.Units
-using Oceananigans.Utils: WallTimeInterval
 using Oceananigans.Models: buoyancy_operation
 using Oceananigans.Models.HydrostaticFreeSurfaceModels: VerticalVorticityField
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities:
     MixingLength, TurbulentKineticEnergyEquation, CATKEVerticalDiffusivity
+using Oceananigans.Units
+using Oceananigans.Utils: WallTimeInterval
 
 #using ParameterEstimocean.Parameters: closure_with_parameters
 using JLD2

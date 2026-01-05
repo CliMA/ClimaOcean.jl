@@ -4,10 +4,10 @@ export MixedLayerDepthField, MixedLayerDepthOperand
 
 using Oceananigans
 using Oceananigans.Architectures: architecture
-using Oceananigans.Models: buoyancy_operation
-using Oceananigans.Grids: new_data, inactive_cell, znode
 using Oceananigans.BoundaryConditions: FieldBoundaryConditions, fill_halo_regions!
 using Oceananigans.Fields: FieldStatus
+using Oceananigans.Grids: new_data, inactive_cell, znode
+using Oceananigans.Models: buoyancy_operation
 using Oceananigans.Utils: launch!
 using KernelAbstractions: @index, @kernel
 
