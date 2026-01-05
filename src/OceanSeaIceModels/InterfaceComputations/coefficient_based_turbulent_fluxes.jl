@@ -61,7 +61,7 @@ using Oceananigans
 using ClimaOcean
 
 grid = RectilinearGrid(size=3, z=(-1, 0), topology=(Flat, Flat, Bounded))
-ocean = ocean_simulation(grid)
+ocean = ocean_simulation(grid; timestepper = :QuasiAdamsBashforth2)
 
 ao_fluxes = CoefficientBasedFluxes(drag_coefficient = 1e-2,
                                    heat_transfer_coefficient = 1e-3,
@@ -70,9 +70,6 @@ ao_fluxes = CoefficientBasedFluxes(drag_coefficient = 1e-2,
 interfaces = ComponentInterfaces(nothing, ocean; atmosphere_ocean_fluxes=ao_fluxes)
 
 # output
-┌ Warning: Split barotropic-baroclinic time stepping with SplitRungeKutta3TimeStepper is experimental.
-│ Use at own risk, and report any issues encountered at https://github.com/CliMA/Oceananigans.jl/issues.
-└ @ Oceananigans.TimeSteppers ~/.julia/packages/Oceananigans/src/TimeSteppers/split_hydrostatic_runge_kutta_3.jl:59
 ComponentInterfaces
 ```
 """

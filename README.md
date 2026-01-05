@@ -12,8 +12,8 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7677442.svg?style=flat-square)](https://doi.org/10.5281/zenodo.7677442)
 [![Build status](https://badge.buildkite.com/3113cca353b83df3b5855d3f0d69827124614aef7017c835d2.svg?style=flat-square)](https://buildkite.com/clima/climaocean-ci)
-[![Documentation](https://img.shields.io/badge/documentation-stable%20release-blue?style=flat-square)](https://clima.github.io/ClimaOceanDocumentation/stable)
-[![Documentation](https://img.shields.io/badge/documentation-in%20development-orange?style=flat-square)](https://clima.github.io/ClimaOceanDocumentation/dev)
+[![Documentation](https://img.shields.io/badge/documentation-stable%20release-blue?style=flat-square)](https://clima.github.io/ClimaOceanDocumentation/stable/)
+[![Documentation](https://img.shields.io/badge/documentation-in%20development-orange?style=flat-square)](https://clima.github.io/ClimaOceanDocumentation/dev/)
 
 ## Installation
 
@@ -92,7 +92,7 @@ which produces
 
 ### Additional features: a utility for `ocean_simulation`s and data wrangling
 
-A second core abstraction in ClimaOcean is `ocean_simulation`. `ocean_simulation` configures an Oceananigans model for realistic simulations including temperature and salinity, the TEOS-10 equation of state, boundary conditions to store computed air-sea fluxes, the automatically-calibrated turbulence closure `CATKEVerticalDiffusivity`, and the [`WENOVectorInvariant` advection scheme](http://doi.org/10.1029/2023MS004130) for mesoscale-turbulence-resolving simulations.
+A second core abstraction in ClimaOcean is `ocean_simulation`. `ocean_simulation` configures an Oceananigans model for realistic simulations including temperature and salinity, the TEOS-10 equation of state, boundary conditions to store computed air-sea fluxes, the automatically-calibrated turbulence closure `CATKEVerticalDiffusivity`, and the [`WENOVectorInvariant` advection scheme](https://doi.org/10.1029/2023MS004130) for mesoscale-turbulence-resolving simulations.
 
 ClimaOcean also provides convenience features for wrangling datasets of bathymetry, ocean temperature, salinity, ocean velocity fields, and prescribed atmospheric states.
 
@@ -105,7 +105,7 @@ Note that though ClimaOcean is currently focused on hydrostatic modeling with `O
 If you use ClimaOcean for your research, teaching, or fun 🤩, everyone in our community will be grateful
 if you give credit by citing the corresponding Zenodo record, e.g.,
 
-> Wagner, G. L. et al. (2025). CliMA/ClimaOcean.jl: v0.8.7 (v0.8.7). Zenodo. https://doi.org/10.5281/zenodo.7677442
+> Wagner, G. L. et al. (2025). CliMA/ClimaOcean.jl: v0.8.10 (v0.8.10). Zenodo. https://doi.org/10.5281/zenodo.7677442
 
 and also the recent [preprint submitted to the Journal of Advances in Modeling Earth Systems](https://doi.org/10.48550/arXiv.2502.14148) that presents an overview of all the things that make Oceananigans unique:
 
