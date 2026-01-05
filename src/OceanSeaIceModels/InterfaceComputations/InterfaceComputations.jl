@@ -1,10 +1,5 @@
 module InterfaceComputations
 
-using Oceananigans
-using Oceananigans.Fields: AbstractField
-using Oceananigans.Utils: KernelParameters
-using Adapt
-
 export
     Radiation,
     ComponentInterfaces,
@@ -20,6 +15,11 @@ export
     compute_atmosphere_ocean_fluxes!,
     compute_atmosphere_sea_ice_fluxes!,
     compute_sea_ice_ocean_flu
+
+using Adapt
+using Oceananigans
+using Oceananigans.Fields: AbstractField
+using Oceananigans.Utils: KernelParameters
 
 using ..OceanSeaIceModels: default_gravitational_acceleration,
                            default_freshwater_density,

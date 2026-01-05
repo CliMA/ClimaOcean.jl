@@ -15,15 +15,15 @@ export
 
 using Oceananigans
 using Oceananigans.Operators
-using Oceananigans.Utils: launch!, KernelParameters
-using Oceananigans.Units: Time
 using Oceananigans.Architectures: architecture
 using Oceananigans.BoundaryConditions: fill_halo_regions!, BoundaryCondition
-using Oceananigans.Grids: architecture
 using Oceananigans.Fields: ZeroField
-using Oceananigans.TimeSteppers: tick!
+using Oceananigans.Grids: architecture
 using Oceananigans.Models: AbstractModel
 using Oceananigans.OutputReaders: FieldTimeSeries, GPUAdaptedFieldTimeSeries
+using Oceananigans.TimeSteppers: tick!
+using Oceananigans.Units: Time
+using Oceananigans.Utils: launch!, KernelParameters
 
 using ClimaSeaIce: SeaIceModel
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
@@ -49,7 +49,7 @@ include("components.jl")
 
 #####
 ##### The coupled model
-##### 
+#####
 
 const default_gravitational_acceleration = Oceananigans.defaults.gravitational_acceleration
 const default_freshwater_density = 1000 # kg m⁻³
@@ -64,7 +64,7 @@ include("time_step_ocean_sea_ice_model.jl")
 #####
 #####  Fallbacks for no-interface models
 #####
-    
+
 using .InterfaceComputations: ComponentInterfaces, AtmosphereInterface, SeaIceOceanInterface
 
 const NoSeaIceInterface = ComponentInterfaces{<:AtmosphereInterface,  <:Nothing, <:Nothing}
