@@ -153,7 +153,7 @@ cₚ = simulation.model.interfaces.ocean_properties.heat_capacity
 Q = ρₒ * cₚ * JT
 ρτx = ρₒ * τx
 ρτy = ρₒ * τy
-N² = ∂z(buoyancy_operation(ocean.model))
+N² = buoyancy_frequency(ocean.model)
 κc = ocean.model.closure_fields.κc
 
 fluxes = (; ρτx, ρτy, E, Js, Qv, Qc)
