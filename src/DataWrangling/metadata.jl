@@ -84,7 +84,7 @@ function Metadata(variable_name;
                   start_date = nothing,
                   end_date = nothing)
 
-    # crop dates if _either_ a start date or an end date is proivided
+    # crop dates if _either_ a start date or an end date is provided
     if !isnothing(start_date) || !isnothing(end_date)
 
         # If one of the two is nothing, take the native limits
