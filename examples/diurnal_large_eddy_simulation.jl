@@ -123,9 +123,11 @@ diurnal_wind_v(x, y, t) = -1  # slight southward component
 # 3D grid with 4m spacing: 512m × 4m × 256m (Nx × Ny × Nz = 128 × 1 × 64).
 # The thin y-dimension makes this essentially a 2D slice for computational efficiency.
 
-arch = GPU()
+#arch = GPU()
+arch = CPU()
 Lx, Ly, Lz = 512, 512, 256  # meters
-Nx, Ny, Nz = 128, 128, 64   # 4m grid spacing
+#Nx, Ny, Nz = 128, 128, 64   # 4m grid spacing
+Nx, Ny, Nz = 32, 32, 32 # 4m grid spacing
 
 grid = RectilinearGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 5),
                        topology = (Periodic, Periodic, Bounded),
@@ -172,7 +174,7 @@ set!(atmosphere;
 # with the ocean's adaptive time step before each iteration.
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere)
-simulation = Simulation(coupled_model; Δt=10.0, stop_time=12hours)
+simulation = Simulation(coupled_model; Δt=10.0, stop_iteration=100)  # Short run for testing
 
 # Add callback to synchronize the coupled time step with the ocean's adaptive time step.
 add_callback!(simulation, ClimaOcean.OceanSeaIceModels.align_component_steps!) 
@@ -186,9 +188,14 @@ add_callback!(simulation, ClimaOcean.OceanSeaIceModels.align_component_steps!)
 
 u, v, w = ocean.model.velocities
 T = ocean.model.tracers.T
-Q = coupled_model.interfaces.net_fluxes.ocean.T
+Jᵀ = coupled_model.interfaces.net_fluxes.ocean.T # temperature tracer flux (K m/s)
 τx = coupled_model.interfaces.net_fluxes.ocean.u
 τy = coupled_model.interfaces.net_fluxes.ocean.v
+
+# Convert temperature flux to heat flux: Q = ρₒ * cₒ * Jᵀ (W/m²)
+ρₒ = coupled_model.interfaces.ocean_properties.reference_density
+cₒ = coupled_model.interfaces.ocean_properties.heat_capacity
+Q = ρₒ * cₒ * Jᵀ
 
 # Snapshot output every 10 minutes
 
@@ -218,13 +225,16 @@ function progress(sim)
     T = sim.model.ocean.model.tracers.T
     Tmax, Tmin = maximum(interior(T)), minimum(interior(T))
     umax, wmax = maximum(abs, u), maximum(abs, w)
-    Q = sim.model.interfaces.net_fluxes.ocean_surface.Q
-    Qmax, Qmin = maximum(Q), minimum(Q)
+    # Convert temperature flux Jᵀ to heat flux Q = ρₒ * cₒ * Jᵀ (W/m²)
+    Jᵀ = sim.model.interfaces.net_fluxes.ocean.T
+    ρₒ = sim.model.interfaces.ocean_properties.reference_density
+    cₒ = sim.model.interfaces.ocean_properties.heat_capacity
+    Qmax, Qmin = ρₒ * cₒ * maximum(Jᵀ), ρₒ * cₒ * minimum(Jᵀ)
     @info @sprintf("Hour %5.2f | Δt: %s (ocean: %s) | SST: %.2f–%.2f°C | Q: %.0f–%.0f W/m² | max|u|: %.2e, max|w|: %.2e",
                    hour, prettytime(sim.Δt), prettytime(ocean_Δt), Tmin, Tmax, Qmin, Qmax, umax, wmax)
 end
 
-add_callback!(simulation, progress, IterationInterval(100))
+add_callback!(simulation, progress, IterationInterval(10))
 
 # ## Run the simulation
 
