@@ -47,7 +47,7 @@ nothing #hide
 momentum_advection   = VectorInvariant()
 tracer_advection     = WENO(order=5)
 free_surface         = SplitExplicitFreeSurface(grid; substeps=40)
-catke_closure        = ClimaOcean.OceanSimulations.default_ocean_closure()
+catke_closure        = ClimaOcean.Oceans.default_ocean_closure()
 eddy_closure         = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
 viscous_closure      = Oceananigans.TurbulenceClosures.HorizontalScalarBiharmonicDiffusivity(ν=1e12)
 closures             = (catke_closure, eddy_closure, viscous_closure)
