@@ -75,8 +75,8 @@ Oceananigans.set!(sea_ice.model, h=Metadatum(:sea_ice_thickness, dataset=ECCO4Mo
 # The atmosphere is provided by SpeedyWeather.jl. Here, we configure a T63L4 model with a 3-hour output interval.
 # The `atmosphere_simulation` function takes care of building an atmosphere model with appropriate
 # hooks so that ClimaOcean can compute inter-component fluxes.
-
-spectral_grid = SpeedyWeather.SpectralGrid(trunc=63, nlayers=4, Grid=FullClenshawGrid)
+nlayers = 4
+spectral_grid = SpeedyWeather.SpectralGrid(; trunc=63, nlayers, Grid=FullClenshawGrid)
 atmosphere = atmosphere_simulation(spectral_grid, output=true)
 
 # The atmosphere model already includes some initial conditions as described above:
