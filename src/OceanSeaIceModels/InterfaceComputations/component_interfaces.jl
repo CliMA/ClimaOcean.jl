@@ -6,7 +6,9 @@ using ..OceanSeaIceModels: reference_density,
                            heat_capacity,
                            sea_ice_concentration,
                            sea_ice_thickness,
-                           thermodynamics_parameters
+                           thermodynamics_parameters,
+                           ocean_surface_temperature,
+                           ocean_surface_salinity
 
 using ClimaSeaIce: SeaIceModel
 
@@ -33,8 +35,25 @@ mutable struct AtmosphereInterface{J, F, ST, P}
     properties :: P
 end
 
-mutable struct SeaIceOceanInterface{J, P}
+"""
+    SeaIceOceanInterface{J, F, T, S, P}
+
+Container for sea ice-ocean interface data including fluxes, formulation, and interface state.
+
+Fields
+======
+
+- `fluxes::J`: named tuple of flux fields (interface_heat, frazil_heat, salt, x_momentum, y_momentum)
+- `flux_formulation::F`: heat flux formulation (`IceBathHeatFlux`, `TwoEquationHeatFlux`, or `ThreeEquationHeatFlux`)
+- `temperature::T`: interface temperature field (ocean surface view or computed field)
+- `salinity::S`: interface salinity field (ocean surface view or computed field)
+- `properties::P`: additional interface properties
+"""
+mutable struct SeaIceOceanInterface{J, F, T, S, P}
     fluxes :: J
+    flux_formulation :: F
+    temperature :: T
+    salinity :: S
     properties :: P
 end
 
@@ -173,11 +192,32 @@ end
 ##### Sea Ice-Ocean Interface
 #####
 
-sea_ice_ocean_interface(grid, ::Nothing, ocean;     kwargs...) = nothing
-sea_ice_ocean_interface(grid, ::Nothing, ::Nothing; kwargs...) = nothing
-sea_ice_ocean_interface(grid, sea_ice,   ::Nothing; kwargs...) = nothing
+sea_ice_ocean_interface(grid, ::Nothing, ocean,     flux_formulation; kwargs...) = nothing
+sea_ice_ocean_interface(grid, ::Nothing, ::Nothing, flux_formulation; kwargs...) = nothing
+sea_ice_ocean_interface(grid, sea_ice,   ::Nothing, flux_formulation; kwargs...) = nothing
 
-function sea_ice_ocean_interface(grid, sea_ice, ocean; characteristic_melting_speed = 1e-5)
+# Fallback for backward compatibility
+sea_ice_ocean_interface(grid, sea_ice, ocean; kwargs...) =
+    sea_ice_ocean_interface(grid, sea_ice, ocean, IceBathHeatFlux(); kwargs...)
+
+"""
+    sea_ice_ocean_interface(grid, sea_ice, ocean, flux_formulation)
+
+Construct a `SeaIceOceanInterface` with the specified flux formulation.
+
+For `IceBathHeatFlux` and `TwoEquationHeatFlux`, the interface temperature and salinity
+point to the ocean surface values. For `ThreeEquationHeatFlux`, dedicated fields are
+created to store the computed interface values.
+
+Arguments
+=========
+
+- `grid`: the computational grid
+- `sea_ice`: sea ice simulation
+- `ocean`: ocean simulation
+- `flux_formulation`: heat flux formulation (`IceBathHeatFlux`, `TwoEquationHeatFlux`, or `ThreeEquationHeatFlux`)
+"""
+function sea_ice_ocean_interface(grid, sea_ice, ocean, flux_formulation)
 
     io_bottom_heat_flux = Field{Center, Center, Nothing}(grid)
     io_frazil_heat_flux = Field{Center, Center, Nothing}(grid)
@@ -185,15 +225,42 @@ function sea_ice_ocean_interface(grid, sea_ice, ocean; characteristic_melting_sp
     x_momentum = Field{Face, Center, Nothing}(grid)
     y_momentum = Field{Center, Face, Nothing}(grid)
 
-    io_fluxes = (interface_heat=io_bottom_heat_flux,
-                 frazil_heat=io_frazil_heat_flux,
-                 salt=io_salt_flux,
-                 x_momentum=x_momentum,
-                 y_momentum=y_momentum)
+    io_fluxes = (interface_heat = io_bottom_heat_flux,
+                 frazil_heat = io_frazil_heat_flux,
+                 salt = io_salt_flux,
+                 x_momentum = x_momentum,
+                 y_momentum = y_momentum)
 
-    io_properties = (; characteristic_melting_speed)
+    # Interface temperature and salinity point to ocean surface
+    Tᵢ = ocean_surface_temperature(ocean)
+    Sᵢ = ocean_surface_salinity(ocean)
 
-    return SeaIceOceanInterface(io_fluxes, io_properties)
+    io_properties = NamedTuple()
+
+    return SeaIceOceanInterface(io_fluxes, flux_formulation, Tᵢ, Sᵢ, io_properties)
+end
+
+function sea_ice_ocean_interface(grid, sea_ice, ocean, flux_formulation::ThreeEquationHeatFlux)
+
+    io_bottom_heat_flux = Field{Center, Center, Nothing}(grid)
+    io_frazil_heat_flux = Field{Center, Center, Nothing}(grid)
+    io_salt_flux = Field{Center, Center, Nothing}(grid)
+    x_momentum = Field{Face, Center, Nothing}(grid)
+    y_momentum = Field{Center, Face, Nothing}(grid)
+
+    io_fluxes = (interface_heat = io_bottom_heat_flux,
+                 frazil_heat = io_frazil_heat_flux,
+                 salt = io_salt_flux,
+                 x_momentum = x_momentum,
+                 y_momentum = y_momentum)
+
+    # Interface temperature and salinity are computed fields
+    Tᵢ = Field{Center, Center, Nothing}(grid)
+    Sᵢ = Field{Center, Center, Nothing}(grid)
+
+    io_properties = NamedTuple()
+
+    return SeaIceOceanInterface(io_fluxes, flux_formulation, Tᵢ, Sᵢ, io_properties)
 end
 
 #####
@@ -215,21 +282,32 @@ function default_ao_specific_humidity(ocean)
 end
 
 """
-    ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
-                        radiation = Radiation(),
-                        freshwater_density = default_freshwater_density,
-                        atmosphere_ocean_fluxes = SimilarityTheoryFluxes(),
-                        atmosphere_sea_ice_fluxes = SimilarityTheoryFluxes(eltype(ocean.model.grid)),
-                        atmosphere_ocean_interface_temperature = BulkTemperature(),
-                        atmosphere_ocean_interface_specific_humidity = default_ao_specific_humidity(ocean),
-                        atmosphere_sea_ice_interface_temperature = default_ai_temperature(sea_ice),
-                        ocean_reference_density = reference_density(ocean),
-                        ocean_heat_capacity = heat_capacity(ocean),
-                        ocean_temperature_units = DegreesCelsius(),
-                        sea_ice_temperature_units = DegreesCelsius(),
-                        sea_ice_reference_density = reference_density(sea_ice),
-                        sea_ice_heat_capacity = heat_capacity(sea_ice),
-                        gravitational_acceleration = default_gravitational_acceleration)
+    ComponentInterfaces(atmosphere, ocean, sea_ice=nothing; kwargs...)
+
+Construct component interfaces for atmosphere-ocean-sea ice coupling.
+
+Keyword Arguments
+=================
+
+- `sea_ice_ocean_heat_flux`: formulation for sea ice-ocean heat flux. Options are:
+  - `IceBathHeatFlux()`: simple ice bath formulation
+  - `TwoEquationHeatFlux()`: bulk heat flux with interface at freezing point
+  - `ThreeEquationHeatFlux()`: coupled heat/salt/freezing point system (default)
+
+- `radiation`: radiation component. Default: `Radiation()`.
+- `freshwater_density`: reference density of freshwater. Default: `default_freshwater_density`.
+- `atmosphere_ocean_fluxes`: flux formulation for atmosphere-ocean interface. Default: `SimilarityTheoryFluxes()`.
+- `atmosphere_sea_ice_fluxes`: flux formulation for atmosphere-sea ice interface. Default: `SimilarityTheoryFluxes()`.
+- `atmosphere_ocean_interface_temperature`: temperature formulation for atmosphere-ocean interface. Default: `BulkTemperature()`.
+- `atmosphere_ocean_interface_specific_humidity`: specific humidity formulation. Default: `default_ao_specific_humidity(ocean)`.
+- `atmosphere_sea_ice_interface_temperature`: temperature formulation for atmosphere-sea ice interface. Default: `default_ai_temperature(sea_ice)`.
+- `ocean_reference_density`: reference density for the ocean. Default: `reference_density(ocean)`.
+- `ocean_heat_capacity`: heat capacity for the ocean. Default: `heat_capacity(ocean)`.
+- `ocean_temperature_units`: temperature units for the ocean. Default: `DegreesCelsius()`.
+- `sea_ice_temperature_units`: temperature units for sea ice. Default: `DegreesCelsius()`.
+- `sea_ice_reference_density`: reference density for sea ice. Default: `reference_density(sea_ice)`.
+- `sea_ice_heat_capacity`: heat capacity for sea ice. Default: `heat_capacity(sea_ice)`.
+- `gravitational_acceleration`: gravitational acceleration. Default: `default_gravitational_acceleration`.
 """
 function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              exchange_grid = ocean.model.grid,
@@ -237,6 +315,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              freshwater_density = default_freshwater_density,
                              atmosphere_ocean_fluxes = SimilarityTheoryFluxes(eltype(exchange_grid)),
                              atmosphere_sea_ice_fluxes = SimilarityTheoryFluxes(eltype(exchange_grid)),
+                             sea_ice_ocean_heat_flux = ThreeEquationHeatFlux(eltype(exchange_grid)),
                              atmosphere_ocean_interface_temperature = BulkTemperature(),
                              atmosphere_ocean_velocity_difference = RelativeVelocity(),
                              atmosphere_ocean_interface_specific_humidity = default_ao_specific_humidity(ocean),
@@ -288,7 +367,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                                               atmosphere_ocean_velocity_difference,
                                               atmosphere_ocean_interface_specific_humidity)
 
-    io_interface = sea_ice_ocean_interface(exchange_grid, sea_ice, ocean)
+    io_interface = sea_ice_ocean_interface(exchange_grid, sea_ice, ocean, sea_ice_ocean_heat_flux)
 
     ai_interface = atmosphere_sea_ice_interface(exchange_grid, 
                                                 atmosphere,

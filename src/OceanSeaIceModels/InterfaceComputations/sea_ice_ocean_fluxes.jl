@@ -3,52 +3,101 @@ using ClimaOcean.OceanSeaIceModels: ocean_temperature, ocean_salinity
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 using ClimaSeaIce.SeaIceDynamics: x_momentum_stress, y_momentum_stress
 
-function compute_sea_ice_ocean_fluxes!(coupled_model)
-    ocean   = coupled_model.ocean
-    sea_ice = coupled_model.sea_ice
+"""
+    compute_sea_ice_ocean_fluxes!(coupled_model)
 
-    sea_ice_ocean_fluxes = coupled_model.interfaces.sea_ice_ocean_interface.fluxes
-    melting_speed    = coupled_model.interfaces.sea_ice_ocean_interface.properties.characteristic_melting_speed
+Compute heat, salt, and momentum fluxes at the sea ice-ocean interface.
+
+This function computes:
+- Frazil heat flux: heat released when ocean temperature drops below freezing (all formulations)
+- Interface heat flux: heat flux from ocean to ice, computed using the specified formulation
+- Salt flux: salt exchange due to ice growth/melt
+- Momentum stresses: ice-ocean momentum transfer
+
+The interface heat flux formulation is determined by `coupled_model.interfaces.sea_ice_ocean_interface.flux_formulation`.
+"""
+function compute_sea_ice_ocean_fluxes!(coupled_model)
+    ocean = coupled_model.ocean
+    sea_ice = coupled_model.sea_ice
+    interface = coupled_model.interfaces.sea_ice_ocean_interface
     ocean_properties = coupled_model.interfaces.ocean_properties
 
-    compute_sea_ice_ocean_fluxes!(sea_ice_ocean_fluxes, ocean, sea_ice, melting_speed, ocean_properties)
+    compute_sea_ice_ocean_fluxes!(interface, ocean, sea_ice, ocean_properties)
 
     return nothing
 end
 
-function compute_sea_ice_ocean_fluxes!(sea_ice_ocean_fluxes, ocean, sea_ice, melting_speed, ocean_properties)
+function compute_sea_ice_ocean_fluxes!(interface, ocean, sea_ice, ocean_properties)
     Δt = sea_ice.Δt
     Tₒ = ocean_temperature(ocean)
     Sₒ = ocean_salinity(ocean)
-    Sᵢ = sea_ice.model.tracers.S
-    ℵᵢ = sea_ice.model.ice_concentration
+    Sⁱ = sea_ice.model.tracers.S
+    ℵ = sea_ice.model.ice_concentration
     hᵢ = sea_ice.model.ice_thickness
-    Gh = sea_ice.model.ice_thermodynamics.thermodynamic_tendency
+    Gₕ = sea_ice.model.ice_thermodynamics.thermodynamic_tendency
 
     liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
-    grid  = sea_ice.model.grid
+    grid = sea_ice.model.grid
     clock = sea_ice.model.clock
-    arch  = architecture(grid)
+    arch = architecture(grid)
 
     uᵢ, vᵢ = sea_ice.model.velocities
     dynamics = sea_ice.model.dynamics
 
-    τs = if isnothing(dynamics)
-        nothing
+    # Get interface data
+    fluxes = interface.fluxes
+    flux_formulation = interface.flux_formulation
+    Tᵢ = interface.temperature
+    Sᵢ = interface.salinity
+
+    if !isnothing(dynamics)
+        kernel_parameters = interface_kernel_parameters(grid)
+        τₛ = dynamics.external_momentum_stresses.bottom
+        launch!(arch, grid, kernel_parameters, _compute_sea_ice_ocean_stress!,
+                fluxes, grid, clock, hᵢ, ℵ, uᵢ, vᵢ, τₛ)
     else
-        dynamics.external_momentum_stresses.bottom
+        τₛ = nothing
     end
 
-    # What about the latent heat removed from the ocean when ice forms?
-    # Is it immediately removed from the ocean? Or is it stored in the ice?
     launch!(arch, grid, :xy, _compute_sea_ice_ocean_fluxes!,
-            sea_ice_ocean_fluxes, grid, clock, hᵢ, ℵᵢ, Sᵢ, Gh, Tₒ, Sₒ, uᵢ, vᵢ,
-            τs, liquidus, ocean_properties, melting_speed, Δt)
+            flux_formulation, fluxes, Tᵢ, Sᵢ, grid, clock,
+            hᵢ, ℵ, Sⁱ, Gₕ, Tₒ, Sₒ, uᵢ, vᵢ, τₛ,
+            liquidus, ocean_properties, Δt)
 
     return nothing
 end
 
-@kernel function _compute_sea_ice_ocean_fluxes!(sea_ice_ocean_fluxes,
+@kernel function _compute_sea_ice_ocean_stress!(fluxes, 
+                                                grid, 
+                                                clock, 
+                                                ice_thickness,
+                                                ice_concentration,
+                                                sea_ice_u_velocity,
+                                                sea_ice_v_velocity,
+                                                sea_ice_ocean_stress)
+    i, j = @index(Global, NTuple)
+
+    τˣ = fluxes.x_momentum
+    τʸ = fluxes.y_momentum
+    Nz = size(grid, 3)
+    
+    uᵢ = sea_ice_u_velocity
+    vᵢ = sea_ice_v_velocity
+    hᵢ = ice_thickness
+    ℵ = ice_concentration
+    sea_ice_fields = (; u = uᵢ, v = vᵢ, h = hᵢ, ℵ = ℵ)
+
+    # Momentum stresses
+    @inbounds begin
+        τˣ[i, j, 1] = x_momentum_stress(i, j, Nz, grid, sea_ice_ocean_stress, clock, sea_ice_fields)
+        τʸ[i, j, 1] = y_momentum_stress(i, j, Nz, grid, sea_ice_ocean_stress, clock, sea_ice_fields)
+    end
+end
+
+@kernel function _compute_sea_ice_ocean_fluxes!(flux_formulation,
+                                                fluxes,
+                                                interface_temperature,
+                                                interface_salinity,
                                                 grid,
                                                 clock,
                                                 ice_thickness,
@@ -62,93 +111,81 @@ end
                                                 sea_ice_ocean_stresses,
                                                 liquidus,
                                                 ocean_properties,
-                                                characteristic_melting_speed,
                                                 Δt)
 
     i, j = @index(Global, NTuple)
 
-    Nz  = size(grid, 3)
-    Qᶠₒ = sea_ice_ocean_fluxes.frazil_heat
-    Qᵢₒ = sea_ice_ocean_fluxes.interface_heat
-    Jˢ  = sea_ice_ocean_fluxes.salt
-    τx  = sea_ice_ocean_fluxes.x_momentum
-    τy  = sea_ice_ocean_fluxes.y_momentum
-    uᵢ  = sea_ice_u_velocity
-    vᵢ  = sea_ice_v_velocity
-    Tₒ  = ocean_temperature
-    Sₒ  = ocean_salinity
-    Sᵢ  = ice_salinity
-    hᵢ  = ice_thickness
-    ℵᵢ  = ice_concentration
-    ρₒ  = ocean_properties.reference_density
-    cₒ  = ocean_properties.heat_capacity
-    uₘ★ = characteristic_melting_speed
+    Nz = size(grid, 3)
+    Qᶠ = fluxes.frazil_heat
+    Qᵢ = fluxes.interface_heat
+    Jˢ = fluxes.salt
+    τˣ = fluxes.x_momentum
+    τʸ = fluxes.y_momentum
+    Tⁱ = interface_temperature
+    Sⁱ = interface_salinity
+    Tₒ = ocean_temperature
+    Sₒ = ocean_salinity
+    Sᵢ = ice_salinity
+    hᵢ = ice_thickness
+    ℵ  = ice_concentration
+    Gₕ = thermodynamic_tendency
+    uᵢ = sea_ice_u_velocity
+    vᵢ = sea_ice_v_velocity
 
-    δQ_frazil = zero(grid)
+    ρₒ = ocean_properties.reference_density
+    cₒ = ocean_properties.heat_capacity
+
+    # =============================================
+    # Part 1: Frazil ice formation (all formulations)
+    # =============================================
+    # When ocean temperature drops below freezing, frazil ice forms
+    # and heat is released to the ice component.
+
+    δQᶠ = zero(grid)
 
     for k = Nz:-1:1
         @inbounds begin
-            # Various quantities
             Δz = Δzᶜᶜᶜ(i, j, k, grid)
             Tᵏ = Tₒ[i, j, k]
             Sᵏ = Sₒ[i, j, k]
         end
 
-        # Melting / freezing temperature at the surface of the ocean
+        # Melting/freezing temperature at this depth
         Tₘ = melting_temperature(liquidus, Sᵏ)
         freezing = Tᵏ < Tₘ
 
         # Compute change in ocean heat energy due to freezing.
-        # When Tᵏ < Tₘ, we heat the ocean back to melting temperature by extracting heat from the ice.
-        # The energy used to heat the ocean is transported instantneously to the surface and captured
-        # by the sea ice componet (in reality, the formation of nascent ice crystals called frazil ice
-        # transfers heat into the ocean).
-        #
-        δE_frazil = freezing * ρₒ * cₒ * (Tₘ - Tᵏ)
+        # When Tᵏ < Tₘ, we heat the ocean back to melting temperature
+        # by extracting heat from the ice.
+        δE = freezing * ρₒ * cₒ * (Tₘ - Tᵏ)
 
         # Perform temperature adjustment
         @inbounds Tₒ[i, j, k] = ifelse(freezing, Tₘ, Tᵏ)
 
         # Compute the heat flux from ocean into ice during frazil formation.
-        #
-        # A negative value δQ_frazil < 0 implies that heat is fluxed from the ice into
-        # the ocean, cooling the ice and heating the ocean (δEₒ > 0). This occurs when
-        # frazil ice is formed within the ocean.
-        δQ_frazil -= δE_frazil * Δz / Δt
+        # A negative value δQᶠ < 0 implies heat is fluxed from the ice into
+        # the ocean (frazil ice formation).
+        δQᶠ -= δE * Δz / Δt
     end
 
+    # Store frazil heat flux
+    @inbounds Qᶠ[i, j, 1] = δQᶠ
+
+    # =============================================
+    # Part 2: Interface heat flux (formulation-specific)
+    # =============================================
+    Qᵢₒ = compute_interface_heat_flux(flux_formulation, i, j,
+                                       Tⁱ, Sⁱ, Tₒ, Sₒ, Sᵢ, ℵ, Gₕ, Nz,
+                                       liquidus, ρₒ, cₒ, τˣ, τʸ)
+
+    @inbounds Qᵢ[i, j, 1] = Qᵢₒ
+
+    # =============================================
+    # Part 3: Salt flux
+    # =============================================
     @inbounds begin
-        Tᴺ = Tₒ[i, j, Nz]
-        Sᴺ = Sₒ[i, j, Nz]
-        ℵ  = ℵᵢ[i, j, 1]
-    end
-
-    # Compute total heat associated with temperature adjustment
-    Tₘ = melting_temperature(liquidus, Sᴺ)
-    δE_ice_bath = ρₒ * cₒ *  (Tₘ - Tᴺ)
-
-    # Compute the heat flux from ocean into ice due to sea ice melting.
-    # A positive value δQ_melting > 0 corresponds to ocean cooling; ie
-    # is fluxing upwards, into the ice. This occurs when applying the
-    # ice bath equilibrium condition to cool down a warm ocean (δEₒ < 0).
-    Δz = Δzᶜᶜᶜ(i, j, Nz, grid)
-    δQ_melting = - δE_ice_bath * uₘ★
-
-    # Store column-integrated ice-ocean heat flux
-    @inbounds Qᶠₒ[i, j, 1] = δQ_frazil
-    @inbounds Qᵢₒ[i, j, 1] = δQ_melting * ℵ # Melting depends on concentration
-
-    sea_ice_fields = (; u = uᵢ, v = vᵢ, h = hᵢ, ℵ = ℵᵢ)
-    τₒᵢ = sea_ice_ocean_stresses
-
-    @inbounds begin
-        # Update surface salinity flux.
-        # Note: the Δt below is the ocean time-step, eg.
-        # ΔS = ⋯ - ∮ Jˢ dt ≈ ⋯ - Δtₒ * Jˢ
-        Jˢ[i, j, 1] = thermodynamic_tendency[i, j, 1] * (Sᵢ[i, j, 1] - Sₒ[i, j, Nz])
-
-        # Momentum stresses
-        τx[i, j, 1] = x_momentum_stress(i, j, Nz, grid, τₒᵢ, clock, sea_ice_fields)
-        τy[i, j, 1] = y_momentum_stress(i, j, Nz, grid, τₒᵢ, clock, sea_ice_fields)
+        # Salt flux uses interface salinity (for IceBath/TwoEquation this is ocean surface,
+        # for ThreeEquation this is the computed interface salinity)
+        Jˢ[i, j, 1] = Gₕ[i, j, 1] * (Sⁱ[i, j, 1] - Sᵢ[i, j, 1])
     end
 end
