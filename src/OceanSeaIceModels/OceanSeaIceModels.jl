@@ -39,7 +39,8 @@ import Thermodynamics as AtmosphericThermodynamics
 import Oceananigans: fields, prognostic_fields
 import Oceananigans.Architectures: architecture
 import Oceananigans.Fields: set!
-import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker, initialization_update_state!
+import Oceananigans.Models: NaNChecker, default_nan_checker, initialization_update_state!
+import Oceananigans.Simulations: timestepper
 import Oceananigans.OutputWriters: default_included_properties
 import Oceananigans.Simulations: reset!, initialize!, iteration
 import Oceananigans.TimeSteppers: time_step!, update_state!, time

@@ -14,8 +14,8 @@ struct CoefficientBasedFluxes{CD, CH, CQ, S}
     heat_transfer_coefficient :: CH
     "Coefficient for latent heat transfer"
     vapor_flux_coefficient :: CQ
-    "Criteria for iterative solver convergence"
-    solver_stop_criteria :: S
+    "Iterative solver for computing interface state"
+    solver :: S
 end
 
 Base.summary(flux_formulation::CoefficientBasedFluxes) = "CoefficientBasedFluxes"
@@ -24,7 +24,8 @@ function Base.show(io::IO, flux_formulation::CoefficientBasedFluxes)
     print(io, summary(flux_formulation), '\n')
     print(io, "├── drag_coefficient: ", prettysummary(flux_formulation.drag_coefficient), '\n')
     print(io, "├── heat_transfer_coefficient: ", prettysummary(flux_formulation.heat_transfer_coefficient), '\n')
-    print(io, "└── vapor_flux_coefficient: ", prettysummary(flux_formulation.vapor_flux_coefficient), '\n')
+    print(io, "├── vapor_flux_coefficient: ", prettysummary(flux_formulation.vapor_flux_coefficient), '\n')
+    print(io, "└── solver: ", summary(flux_formulation.solver), '\n')
 end
 
 convert_if_number(FT, a::Number) = convert(FT, a)
@@ -35,7 +36,7 @@ convert_if_number(FT, a) = a
                           drag_coefficient = 1e-3,
                           heat_transfer_coefficient = drag_coefficient,
                           vapor_flux_coefficient = drag_coefficient,
-                          solver_stop_criteria = nothing,
+                          solver = nothing,
                           solver_tolerance = 1e-8,
                           solver_maxiter = 20)
 
@@ -50,10 +51,10 @@ between the ocean/ice surface and the atmosphere using constant transfer coeffic
 - `drag_coefficient`: Coefficient for momentum transfer (`Cᵈ`), defaults to 1e-3.
 - `heat_transfer_coefficient`: Coefficient for heat transfer (`Cʰ`), defaults to `drag_coefficient`
 - `vapor_flux_coefficient`: Coefficient for moisture transfer (`Cᵍ`), defaults to `drag_coefficient`
-- `solver_stop_criteria`: Criteria for iterative solver convergence. If `nothing`,
-                          creates new criteria using `solver_tolerance` and `solver_maxiter`.
-- `solver_tolerance`: Tolerance for solver convergence when creating new stop criteria, defaults to 1e-8.
-- `solver_maxiter`: Maximum iterations for solver when creating new stop criteria, defaults to 20
+- `solver`: The iterative solver to use. Default: `FixedPointSolver`.
+            Can also use `BroydenSolver(Val(N))` for quasi-Newton acceleration.
+- `solver_tolerance`: Tolerance for solver convergence (used if `solver` is not specified), defaults to 1e-8.
+- `solver_maxiter`: Maximum iterations for solver (used if `solver` is not specified), defaults to 20
 
 # Example
 ```jldoctest
@@ -77,13 +78,18 @@ function CoefficientBasedFluxes(FT = Oceananigans.defaults.FloatType;
                                 drag_coefficient = 1e-3,
                                 heat_transfer_coefficient = drag_coefficient,
                                 vapor_flux_coefficient = drag_coefficient,
-                                solver_stop_criteria = nothing,
+                                solver = nothing,
+                                solver_stop_criteria = nothing,  # Deprecated, for backwards compatibility
                                 solver_tolerance = 1e-8,
                                 solver_maxiter = 20)
 
-    if isnothing(solver_stop_criteria)
-        solver_tolerance = convert(FT, solver_tolerance)
-        solver_stop_criteria = ConvergenceStopCriteria(solver_tolerance, solver_maxiter)
+    # Handle solver construction with backwards compatibility
+    if isnothing(solver)
+        if isnothing(solver_stop_criteria)
+            solver_tolerance = convert(FT, solver_tolerance)
+            solver_stop_criteria = ConvergenceStopCriteria(solver_tolerance, solver_maxiter)
+        end
+        solver = FixedPointSolver(solver_stop_criteria)
     end
 
     drag_coefficient = convert_if_number(FT, drag_coefficient)
@@ -93,8 +99,12 @@ function CoefficientBasedFluxes(FT = Oceananigans.defaults.FloatType;
     return CoefficientBasedFluxes(drag_coefficient,
                                   heat_transfer_coefficient,
                                   vapor_flux_coefficient,
-                                  solver_stop_criteria)
+                                  solver)
 end
+
+# Backwards compatibility: allow access to solver_stop_criteria
+Base.getproperty(f::CoefficientBasedFluxes, name::Symbol) =
+    name === :solver_stop_criteria ? getfield(f, :solver).stop_criteria : getfield(f, name)
 
 @inline function iterate_interface_fluxes(flux_formulation::CoefficientBasedFluxes,
                                           Tₛ, qₛ, Δθ, Δq, Δh,

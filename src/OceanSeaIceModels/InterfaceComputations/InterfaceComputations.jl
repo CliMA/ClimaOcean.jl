@@ -19,7 +19,13 @@ export
     atmosphere_sea_ice_stability_functions,
     compute_atmosphere_ocean_fluxes!,
     compute_atmosphere_sea_ice_fluxes!,
-    compute_sea_ice_ocean_flu
+    compute_sea_ice_ocean_fluxes!,
+    # Solver types
+    AbstractInterfaceSolver,
+    FixedPointSolver,
+    BroydenSolver,
+    ConvergenceStopCriteria,
+    FixedIterations
 
 using ..OceanSeaIceModels: default_gravitational_acceleration,
                            default_freshwater_density,
@@ -62,6 +68,8 @@ include("tabulated_albedo.jl")
 # Turbulent fluxes
 include("roughness_lengths.jl")
 include("interface_states.jl")
+include("solvers.jl")
+include("broyden_solver.jl")
 include("compute_interface_state.jl")
 include("similarity_theory_turbulent_fluxes.jl")
 include("coefficient_based_turbulent_fluxes.jl")

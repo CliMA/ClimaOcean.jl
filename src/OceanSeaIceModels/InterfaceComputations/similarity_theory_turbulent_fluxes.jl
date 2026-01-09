@@ -20,7 +20,7 @@ struct SimilarityTheoryFluxes{FT, UF, R, B, S}
     stability_functions :: UF        # functions for turbulent fluxes
     roughness_lengths :: R           # parameterization for turbulent fluxes
     similarity_form :: B             # similarity profile relating atmosphere to interface state
-    solver_stop_criteria :: S        # stop criteria for compute_interface_state
+    solver :: S                      # solver for compute_interface_state
 end
 
 Adapt.adapt_structure(to, fluxes::SimilarityTheoryFluxes) =
@@ -30,7 +30,7 @@ Adapt.adapt_structure(to, fluxes::SimilarityTheoryFluxes) =
                            adapt(to, fluxes.stability_functions),
                            adapt(to, fluxes.roughness_lengths),
                            adapt(to, fluxes.similarity_form),
-                           adapt(to, fluxes.solver_stop_criteria))
+                           adapt(to, fluxes.solver))
 
 
 Base.summary(::SimilarityTheoryFluxes{FT}) where FT = "SimilarityTheoryFluxes{$FT}"
@@ -43,7 +43,7 @@ function Base.show(io::IO, fluxes::SimilarityTheoryFluxes)
           "├── stability_functions: ",        summary(fluxes.stability_functions), '\n',
           "├── roughness_lengths: ",          summary(fluxes.roughness_lengths), '\n',
           "├── similarity_form: ",            summary(fluxes.similarity_form), '\n',
-          "└── solver_stop_criteria: ",       summary(fluxes.solver_stop_criteria))
+          "└── solver: ",                     summary(fluxes.solver))
 end
 
 """
@@ -55,7 +55,7 @@ end
                            stability_functions = default_stability_functions(FT),
                            roughness_lengths = default_roughness_lengths(FT),
                            similarity_form = LogarithmicSimilarityProfile(),
-                           solver_stop_criteria = nothing,
+                           solver = nothing,
                            solver_tolerance = 1e-8,
                            solver_maxiter = 100)
 
@@ -74,8 +74,10 @@ Keyword Arguments
                        water vapor. Default: `default_roughness_lengths(FT)`, formulation taken from [edson2013exchange](@citet).
 - `similarity_form`: The type of similarity profile used to relate the atmospheric state to the
                              interface fluxes / characteristic scales.
-- `solver_tolerance`: The tolerance for convergence. Default: 1e-8.
-- `solver_maxiter`: The maximum number of iterations. Default: 100.
+- `solver`: The iterative solver to use. Default: `FixedPointSolver`.
+            Can also use `BroydenSolver(Val(N))` for quasi-Newton acceleration.
+- `solver_tolerance`: The tolerance for convergence (used if `solver` is not specified). Default: 1e-8.
+- `solver_maxiter`: The maximum number of iterations (used if `solver` is not specified). Default: 100.
 """
 function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                 von_karman_constant = 0.4,
@@ -86,7 +88,8 @@ function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                 temperature_roughness_length = ScalarRoughnessLength(FT),
                                 water_vapor_roughness_length = ScalarRoughnessLength(FT),
                                 similarity_form = LogarithmicSimilarityProfile(),
-                                solver_stop_criteria = nothing,
+                                solver = nothing,
+                                solver_stop_criteria = nothing,  # Deprecated, for backwards compatibility
                                 solver_tolerance = 1e-8,
                                 solver_maxiter = 100)
 
@@ -94,9 +97,13 @@ function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                          temperature_roughness_length,
                                          water_vapor_roughness_length)
 
-    if isnothing(solver_stop_criteria)
-        solver_tolerance = convert(FT, solver_tolerance)
-        solver_stop_criteria = ConvergenceStopCriteria(solver_tolerance, solver_maxiter)
+    # Handle solver construction with backwards compatibility
+    if isnothing(solver)
+        if isnothing(solver_stop_criteria)
+            solver_tolerance = convert(FT, solver_tolerance)
+            solver_stop_criteria = ConvergenceStopCriteria(solver_tolerance, solver_maxiter)
+        end
+        solver = FixedPointSolver(solver_stop_criteria)
     end
 
     if isnothing(stability_functions)
@@ -110,8 +117,12 @@ function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                   stability_functions,
                                   roughness_lengths,
                                   similarity_form,
-                                  solver_stop_criteria)
+                                  solver)
 end
+
+# Backwards compatibility: allow access to solver_stop_criteria
+Base.getproperty(f::SimilarityTheoryFluxes, name::Symbol) =
+    name === :solver_stop_criteria ? getfield(f, :solver).stop_criteria : getfield(f, name)
 
 #####
 ##### Similarity profile types
