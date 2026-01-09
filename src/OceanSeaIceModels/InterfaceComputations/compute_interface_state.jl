@@ -152,6 +152,12 @@ For N=4 (SkinTemperature): solves for (u★, θ★, q★, Tₛ)
         # Update state: x_new = x + Δx
         x_new = add_tuples(x, Δx, valN)
 
+        # Clip to physical bounds (e.g., u★ must be positive)
+        x_new = clip_physical_bounds(x_new, valN)
+
+        # Recalculate actual step after clipping for consistent Jacobian update
+        Δx = subtract_tuples(x_new, x, valN)
+
         # Create new interface state from updated tuple
         Ψₛ = tuple_to_state(x_new, Ψₛ, valN)
 

@@ -271,6 +271,34 @@ and remaining fields from Ψ_template.
 end
 
 #####
+##### Physical bounds enforcement
+#####
+
+"""
+    clip_physical_bounds(x, ::Val{3})
+
+Clip the state variables to physical bounds for the 3-variable system (u★, θ★, q★).
+- u★ (friction velocity) must be positive
+"""
+@inline function clip_physical_bounds(x, ::Val{3})
+    u★_min = eps(typeof(x[1]))  # Small positive value to avoid division issues
+    u★_clipped = max(x[1], u★_min)
+    return (u★_clipped, x[2], x[3])
+end
+
+"""
+    clip_physical_bounds(x, ::Val{4})
+
+Clip the state variables to physical bounds for the 4-variable system (u★, θ★, q★, T).
+- u★ (friction velocity) must be positive
+"""
+@inline function clip_physical_bounds(x, ::Val{4})
+    u★_min = eps(typeof(x[1]))  # Small positive value to avoid division issues
+    u★_clipped = max(x[1], u★_min)
+    return (u★_clipped, x[2], x[3], x[4])
+end
+
+#####
 ##### Convergence check
 #####
 
