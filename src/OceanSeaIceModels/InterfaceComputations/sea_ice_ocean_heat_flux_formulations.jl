@@ -1,65 +1,13 @@
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 
 #####
-##### Ice Bath Heat Flux (simple formulation)
+##### Ice Bath Heat Flux (bulk formulation)
 #####
 
 """
-    IceBathHeatFlux{FT}
+    IceBathHeatFlux{FT, U}
 
-Simple ice bath formulation for sea ice-ocean heat flux.
-
-The heat flux is computed as:
-```math
-Q = -\\rho_o c_o (T_m - T) \\cdot u_m^*
-```
-where ``T_m`` is the melting temperature, ``T`` is the ocean surface temperature,
-and ``u_m^*`` is a characteristic melting speed.
-
-Fields
-======
-
-- `characteristic_melting_speed::FT`: velocity scale for melting (m/s)
-
-Example
-=======
-
-```jldoctest
-using ClimaOcean.OceanSeaIceModels: IceBathHeatFlux
-
-flux = IceBathHeatFlux(characteristic_melting_speed = 1e-4)
-
-# output
-IceBathHeatFlux{Float64}
-└── characteristic_melting_speed: 0.0001 m/s
-```
-"""
-struct IceBathHeatFlux{FT}
-    characteristic_melting_speed :: FT
-end
-
-"""
-    IceBathHeatFlux(FT::DataType = Float64; characteristic_melting_speed = 1e-5)
-
-Construct an `IceBathHeatFlux` with the specified characteristic melting speed.
-
-Keyword Arguments
-=================
-
-- `characteristic_melting_speed`: velocity scale for melting in m/s. Default: 1e-5.
-"""
-function IceBathHeatFlux(FT::DataType = Float64; characteristic_melting_speed = 1e-5)
-    return IceBathHeatFlux(convert(FT, characteristic_melting_speed))
-end
-
-#####
-##### Two-Equation Heat Flux (bulk formulation)
-#####
-
-"""
-    TwoEquationHeatFlux{FT, U}
-
-Two-equation (bulk) formulation for sea ice-ocean heat flux.
+Bulk formulation for sea ice-ocean heat flux.
 
 The interface temperature is fixed at the freezing point of the surface salinity,
 and the heat flux is computed using bulk transfer:
@@ -78,12 +26,12 @@ Example
 =======
 
 ```jldoctest
-using ClimaOcean.OceanSeaIceModels: TwoEquationHeatFlux
+using ClimaOcean.OceanSeaIceModels: IceBathHeatFlux
 
-flux = TwoEquationHeatFlux(heat_transfer_coefficient = 0.006, friction_velocity = 0.002)
+flux = IceBathHeatFlux(heat_transfer_coefficient = 0.006, friction_velocity = 0.002)
 
 # output
-TwoEquationHeatFlux{Float64}
+IceBathHeatFlux{Float64}
 ├── heat_transfer_coefficient: 0.006
 └── friction_velocity: 0.002
 ```
@@ -94,17 +42,17 @@ References
 - [holland1999modeling](@citet): Holland, D. M., & Jenkins, A. (1999). Modeling thermodynamic ice–ocean interactions
   at the base of an ice shelf. *Journal of Physical Oceanography*, 29(8), 1787-1800.
 """
-struct TwoEquationHeatFlux{FT, U}
+struct IceBathHeatFlux{FT, U}
     heat_transfer_coefficient :: FT
     friction_velocity :: U
 end
 
 """
-    TwoEquationHeatFlux(FT::DataType = Float64;
-                        heat_transfer_coefficient = 0.006,
-                        friction_velocity = 0.02)
+    IceBathHeatFlux(FT::DataType = Float64;
+                    heat_transfer_coefficient = 0.006,
+                    friction_velocity = 0.02)
 
-Construct a `TwoEquationHeatFlux` with the specified parameters.
+Construct an `IceBathHeatFlux` with the specified parameters.
 
 Keyword Arguments
 =================
@@ -112,10 +60,10 @@ Keyword Arguments
 - `heat_transfer_coefficient`: turbulent heat exchange coefficient. Default: 0.006.
 - `friction_velocity`: friction velocity value or formulation. Default: 0.02.
 """
-function TwoEquationHeatFlux(FT::DataType = Float64;
-                             heat_transfer_coefficient = convert(FT, 0.006),
-                             friction_velocity = convert(FT, 0.02))
-    return TwoEquationHeatFlux(convert(FT, heat_transfer_coefficient), friction_velocity)
+function IceBathHeatFlux(FT::DataType = Float64;
+                         heat_transfer_coefficient = convert(FT, 0.006),
+                         friction_velocity = convert(FT, 0.02))
+    return IceBathHeatFlux(convert(FT, heat_transfer_coefficient), friction_velocity)
 end
 
 #####
@@ -217,22 +165,6 @@ Returns the heat flux ``Q`` where ``Q > 0`` means heat flux from ocean to ice (o
         ℵᵢⱼ = ℵ[i, j, 1]
     end
 
-    Tₘ = melting_temperature(liquidus, Sᴺ)
-    δE = ρₒ * cₒ * (Tₘ - Tᴺ)
-    uₘ★ = flux.characteristic_melting_speed
-
-    return -δE * uₘ★ * ℵᵢⱼ
-end
-
-@inline function compute_interface_heat_flux(flux::TwoEquationHeatFlux, i, j,
-                                              Tᵢ, Sᵢ, Tₒ, Sₒ, Sⁱ, ℵ, Gₕ, Nz,
-                                              liquidus, ρₒ, cₒ, τx, τy)
-    @inbounds begin
-        Tᴺ  = Tᵢ[i, j, 1]
-        Sᴺ  = Sᵢ[i, j, 1]
-        ℵᵢⱼ = ℵ[i, j, 1]
-    end
-
     # Interface temperature is at the freezing point
     Tₘ = melting_temperature(liquidus, Sᴺ)
 
@@ -309,15 +241,9 @@ end
 #####
 
 Base.summary(::IceBathHeatFlux{FT}) where FT = "IceBathHeatFlux{$FT}"
-Base.summary(::TwoEquationHeatFlux{FT}) where FT = "TwoEquationHeatFlux{$FT}"
 Base.summary(::ThreeEquationHeatFlux{FT}) where FT = "ThreeEquationHeatFlux{$FT}"
 
 function Base.show(io::IO, flux::IceBathHeatFlux)
-    print(io, summary(flux), '\n')
-    print(io, "└── characteristic_melting_speed: ", flux.characteristic_melting_speed, " m/s")
-end
-
-function Base.show(io::IO, flux::TwoEquationHeatFlux)
     print(io, summary(flux), '\n')
     print(io, "├── heat_transfer_coefficient: ", flux.heat_transfer_coefficient, '\n')
     print(io, "└── friction_velocity: ", summary(flux.friction_velocity))

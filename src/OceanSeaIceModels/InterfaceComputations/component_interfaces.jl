@@ -44,7 +44,7 @@ Fields
 ======
 
 - `fluxes::J`: named tuple of flux fields (interface_heat, frazil_heat, salt, x_momentum, y_momentum)
-- `flux_formulation::F`: heat flux formulation (`IceBathHeatFlux`, `TwoEquationHeatFlux`, or `ThreeEquationHeatFlux`)
+- `flux_formulation::F`: heat flux formulation (`IceBathHeatFlux` or `ThreeEquationHeatFlux`)
 - `temperature::T`: interface temperature field (ocean surface view or computed field)
 - `salinity::S`: interface salinity field (ocean surface view or computed field)
 - `properties::P`: additional interface properties
@@ -205,7 +205,7 @@ sea_ice_ocean_interface(grid, sea_ice, ocean; kwargs...) =
 
 Construct a `SeaIceOceanInterface` with the specified flux formulation.
 
-For `IceBathHeatFlux` and `TwoEquationHeatFlux`, the interface temperature and salinity
+For `IceBathHeatFlux`, the interface temperature and salinity
 point to the ocean surface values. For `ThreeEquationHeatFlux`, dedicated fields are
 created to store the computed interface values.
 
@@ -215,7 +215,7 @@ Arguments
 - `grid`: the computational grid
 - `sea_ice`: sea ice simulation
 - `ocean`: ocean simulation
-- `flux_formulation`: heat flux formulation (`IceBathHeatFlux`, `TwoEquationHeatFlux`, or `ThreeEquationHeatFlux`)
+- `flux_formulation`: heat flux formulation (`IceBathHeatFlux` or `ThreeEquationHeatFlux`)
 """
 function sea_ice_ocean_interface(grid, sea_ice, ocean, flux_formulation)
 
@@ -290,8 +290,7 @@ Keyword Arguments
 =================
 
 - `sea_ice_ocean_heat_flux`: formulation for sea ice-ocean heat flux. Options are:
-  - `IceBathHeatFlux()`: simple ice bath formulation
-  - `TwoEquationHeatFlux()`: bulk heat flux with interface at freezing point
+  - `IceBathHeatFlux()`: bulk heat flux with interface at freezing point
   - `ThreeEquationHeatFlux()`: coupled heat/salt/freezing point system (default)
 
 - `radiation`: radiation component. Default: `Radiation()`.

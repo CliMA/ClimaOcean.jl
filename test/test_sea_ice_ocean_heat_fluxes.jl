@@ -1,7 +1,6 @@
 include("runtests_setup.jl")
 
 using ClimaOcean.OceanSeaIceModels: IceBathHeatFlux,
-                                     TwoEquationHeatFlux,
                                      ThreeEquationHeatFlux,
                                      MomentumBasedFrictionVelocity
 
@@ -17,26 +16,15 @@ using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus, melting_temperature
 
     @testset "IceBathHeatFlux construction" begin
         flux = IceBathHeatFlux()
-        @test flux.characteristic_melting_speed == 1e-5
-
-        flux2 = IceBathHeatFlux(characteristic_melting_speed = 1e-4)
-        @test flux2.characteristic_melting_speed == 1e-4
-
-        flux3 = IceBathHeatFlux(Float32)
-        @test flux3.characteristic_melting_speed isa Float32
-    end
-
-    @testset "TwoEquationHeatFlux construction" begin
-        flux = TwoEquationHeatFlux()
         @test flux.heat_transfer_coefficient == 0.006
 
-        flux2 = TwoEquationHeatFlux(heat_transfer_coefficient = 0.01,
-                                    friction_velocity = MomentumBasedFrictionVelocity())
+        flux2 = IceBathHeatFlux(heat_transfer_coefficient = 0.01,
+                                friction_velocity = MomentumBasedFrictionVelocity())
 
         @test flux2.heat_transfer_coefficient == 0.01
         @test flux2.friction_velocity isa MomentumBasedFrictionVelocity
 
-        flux3 = TwoEquationHeatFlux(Float32)
+        flux3 = IceBathHeatFlux(Float32)
         @test flux3.heat_transfer_coefficient isa Float32
     end
 
@@ -117,20 +105,8 @@ end
             flux_form isa IceBathHeatFlux
         end
 
-        # Test with TwoEquationHeatFlux via ComponentInterfaces
-        @test begin
-            flux = TwoEquationHeatFlux()
-            interfaces = ComponentInterfaces(atmosphere, ocean, sea_ice;
-                                             radiation,
-                                             sea_ice_ocean_heat_flux = flux)
-            coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation, interfaces)
-            flux_form = coupled_model.interfaces.sea_ice_ocean_interface.flux_formulation
-            flux_form isa TwoEquationHeatFlux
-        end
-
         # Test time stepping with each formulation
         for sea_ice_ocean_heat_flux in [IceBathHeatFlux(),
-                                        TwoEquationHeatFlux(),
                                         ThreeEquationHeatFlux()]
 
             @testset "Time stepping with $(nameof(typeof(sea_ice_ocean_heat_flux)))" begin

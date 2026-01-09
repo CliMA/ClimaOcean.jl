@@ -22,7 +22,6 @@ export
     compute_sea_ice_ocean_fluxes!,
     # Sea ice-ocean heat flux formulations
     IceBathHeatFlux,
-    TwoEquationHeatFlux,
     ThreeEquationHeatFlux,
     # Friction velocity formulations
     MomentumBasedFrictionVelocity
