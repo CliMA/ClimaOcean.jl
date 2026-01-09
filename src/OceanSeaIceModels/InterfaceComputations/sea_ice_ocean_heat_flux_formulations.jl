@@ -206,24 +206,7 @@ end
     compute_interface_heat_flux(flux, i, j, Tᵢ, Sᵢ, Tₒ, Sₒ, Sⁱ, ℵ, Gₕ, Nz, liquidus, ρₒ, cₒ, τx, τy)
 
 Compute the heat flux at the sea ice-ocean interface for grid point `(i, j)`.
-
 Returns the heat flux ``Q`` where ``Q > 0`` means heat flux from ocean to ice (ocean cooling).
-
-Arguments
-=========
-
-- `flux`: heat flux formulation (`IceBathHeatFlux`, `TwoEquationHeatFlux`, or `ThreeEquationHeatFlux`)
-- `i, j`: horizontal grid indices
-- `Tᵢ, Sᵢ`: interface temperature and salinity fields
-- `Tₒ, Sₒ`: ocean temperature and salinity fields
-- `Sⁱ`: ice salinity field
-- `ℵ`: ice concentration field
-- `Gₕ`: ice thermodynamic tendency (growth rate)
-- `Nz`: number of vertical levels
-- `liquidus`: liquidus parameterization for melting temperature
-- `ρₒ`: ocean reference density
-- `cₒ`: ocean heat capacity
-- `τx, τy`: momentum stress components (for momentum-based friction velocity)
 """
 @inline function compute_interface_heat_flux(flux::IceBathHeatFlux, i, j,
                                               Tᵢ, Sᵢ, Tₒ, Sₒ, Sⁱ, ℵ, Gₕ, Nz,
@@ -297,24 +280,6 @@ The system consists of:
 3. Freezing point constraint: ``T_b = T_m(S_b)``
 
 For a linear liquidus ``T_m(S) = \\lambda_1 S + \\lambda_2``, an analytical solution exists.
-
-Arguments
-=========
-
-- `Tₒ`: ocean (mixed layer) temperature
-- `Sₒ`: ocean (mixed layer) salinity
-- `Sᵢ`: ice salinity
-- `Gₕ`: ice thermodynamic tendency (growth/melt rate in m/s of ice equivalent)
-- `αₕ`: heat transfer coefficient
-- `αₛ`: salt transfer coefficient
-- `u★`: friction velocity
-- `liquidus`: liquidus parameterization
-
-Returns
-=======
-
-- `Tᵦ`: interface temperature
-- `Sᵦ`: interface salinity
 """
 @inline function solve_interface_conditions(Tₒ, Sₒ, Sᵢ, Gₕ, αₕ, αₛ, u★, liquidus)
     # For a linear liquidus: Tₘ(S) = λ₁ * S + λ₂
