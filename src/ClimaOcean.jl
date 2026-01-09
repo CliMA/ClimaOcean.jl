@@ -41,9 +41,11 @@ export
     LinearlyTaperedPolarMask,
     DatasetRestoring,
     ocean_simulation,
+    nonhydrostatic_ocean_simulation,
     sea_ice_simulation,
     atmosphere_simulation,
     sea_ice_dynamics,
+    synchronize_coupled_time_step!,
     initialize!
 
 using Oceananigans
