@@ -105,7 +105,7 @@ In both cases, computing turbulent fluxes requires:
     and atmospheric equation of state are
 
     ```@example interface_fluxes
-    using ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres: AtmosphereThermodynamicsParameters
+    using ClimaOcean.Atmospheres: AtmosphereThermodynamicsParameters
     AtmosphereThermodynamicsParameters()
     ```
 

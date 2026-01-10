@@ -1,36 +1,55 @@
-using
-  ClimaOcean,
-  CUDA,
-  Documenter,
-  DocumenterCitations,
-  Literate
+using Distributed
+Distributed.addprocs(2)
 
-ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
+@everywhere begin
+    using ClimaOcean
+    using CUDA
+    using Documenter
+    using DocumenterCitations
+    using Literate
 
-bib_filepath = joinpath(dirname(@__FILE__), "climaocean.bib")
-bib = CitationBibliography(bib_filepath, style=:authoryear)
+    ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
 
-#####
-##### Generate examples
-#####
+    bib_filepath = joinpath(dirname(@__FILE__), "climaocean.bib")
+    bib = CitationBibliography(bib_filepath, style=:authoryear)
 
-const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
-const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
+    #####
+    ##### Generate examples
+    #####
 
-to_be_literated = [
-    "single_column_os_papa_simulation.jl",
-    "one_degree_simulation.jl",
-    "near_global_ocean_simulation.jl",
-    "global_climate_simulation.jl",
-]
+    const EXAMPLES_DIR   = joinpath(@__DIR__, "..", "examples")
+    const OUTPUT_DIR     = joinpath(@__DIR__, "src/literated")
+    const DEVELOPERS_DIR = joinpath(@__DIR__, "src/developers")
 
-for file in to_be_literated
+    examples_pages = [
+        "Single-column ocean simulation" => "literated/single_column_os_papa_simulation.md",
+        "One-degree ocean--sea ice simulation" => "literated/one_degree_simulation.md",
+        "Near-global ocean simulation" => "literated/near_global_ocean_simulation.md",
+        "Global climate simulation" => "literated/global_climate_simulation.md",
+    ]
+
+    to_be_literated = map(examples_pages) do (_, mdpath)
+        replace(basename(mdpath), ".md" => ".jl")
+    end
+end
+
+Distributed.pmap(1:length(to_be_literated)) do n
+    device = Distributed.myid()
+    @info "switching to device $(device)"
+    CUDA.device!(device) # Set the correct GPU, the used GPUs will be number 2 and 3
+    file = to_be_literated[n]
     filepath = joinpath(EXAMPLES_DIR, file)
     withenv("JULIA_DEBUG" => "Literate") do
         Literate.markdown(filepath, OUTPUT_DIR; flavor = Literate.DocumenterFlavor(), execute = true)
     end
-    GC.gc()
+    GC.gc(true)
     CUDA.reclaim()
+end
+
+Distributed.rmprocs()
+
+withenv("JULIA_DEBUG" => "Literate") do
+    Literate.markdown(joinpath(DEVELOPERS_DIR, "slab_ocean.jl"), OUTPUT_DIR; flavor = Literate.DocumenterFlavor(), execute = true)
 end
 
 #####
@@ -39,16 +58,15 @@ end
 
 format = Documenter.HTML(collapselevel = 2,
                          size_threshold = nothing,
-                         canonical = "https://clima.github.io/ClimaOceanDocumentation/dev/")
+                         canonical = "https://clima.github.io/ClimaOceanDocumentation/stable/")
 
 pages = [
     "Home" => "index.md",
 
-    "Examples" => [
-        "Single-column ocean simulation" => "literated/single_column_os_papa_simulation.md",
-        "One-degree ocean--sea ice simulation" => "literated/one_degree_simulation.md",
-        "Near-global ocean simulation" => "literated/near_global_ocean_simulation.md",
-        "Global climate simulation" => "literated/global_climate_simulation.md",
+    "Examples" => examples_pages,
+
+    "Developers" => [
+        "OceanSeaIceModel interface" => "literated/slab_ocean.md",
         ],
 
     "Vertical grids" => "vertical_grids.md",
