@@ -117,12 +117,12 @@ end
 # TODO: add constructors for pacific ocean and arctic ocean
 
 const ATLANTIC_OCEAN_BARRIERS = [
-    LatitudeBand(-56.0, -54.0),   # Disconnect from Southern Ocean
+    Barrier(-180.0, 180.0, -56.0, -54.0),   # Disconnect from Southern Ocean
     Barrier(20.0, -60.0, -30.0),  # Cape Agulhas (meridional barrier)
 ]
 
 const INDIAN_OCEAN_BARRIERS = [
-    LatitudeBand(-56.0, -54.0),   # Disconnect from Southern Ocean
+    Barrier(-180.0, 180.0, -56.0, -54.0),   # Disconnect from Southern Ocean
     Barrier(141.0, -60.0, -3.0),    # Indonesian side (meridional)
     Barrier(20.0,  -60.0, -30.0),  # Cape Agulhas (meridional barrier)
     Barrier(105.0, 141.0, -4.0, -3.0),  # Cape Agulhas (meridional barrier)

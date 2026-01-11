@@ -3,7 +3,7 @@
 #####
 
 """
-    Barrier{T}
+    Barrier{FT}
 
 A rectangular geographic region used to separate ocean basins during labeling.
 All cells within this region are temporarily marked as land.
@@ -20,11 +20,11 @@ Constructors
 - `Barrier(west, east, south, north)`: Create a barrier with explicit bounds
 - `Barrier(; west, east, south, north)`: Keyword argument version
 """
-struct Barrier{T}
-    west  :: T
-    east  :: T
-    south :: T
-    north :: T
+struct Barrier{FT}
+    west  :: FT
+    east  :: FT
+    south :: FT
+    north :: FT
 end
 
 Barrier(; west, east, south, north) = Barrier(west, east, south, north)
@@ -36,14 +36,6 @@ Create a meridional (north-south) barrier at a given longitude.
 Useful for closing straits like Cape Agulhas or Indonesian passages.
 """
 Barrier(longitude, south, north; width=2.0) = Barrier(longitude - width/2, longitude + width/2, south, north)
-
-"""
-    LatitudeBand(south, north)
-
-Create a zonal barrier spanning all longitudes at a given latitude band.
-Useful for separating the Southern Ocean from other basins.
-"""
-LatitudeBand(south, north) = Barrier(-180.0, 180.0, Float64(south), Float64(north))
 
 #####
 ##### Barrier application functions
