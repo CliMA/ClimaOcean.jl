@@ -129,7 +129,7 @@ const INDIAN_OCEAN_BARRIERS = [
 ]
 
 const SOUTHERN_OCEAN_BARRIERS = [
-    LatitudeBand(-35.0, -33.0),
+    Barrier(-180.0, 180.0, -35.0, -33.0),
 ]
 
 # Seed points for Atlantic Ocean (definitely in the Atlantic)

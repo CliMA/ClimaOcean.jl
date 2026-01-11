@@ -62,7 +62,7 @@ end
     i, j = @index(Global, NTuple)
 
     # If the barrier spans all longitudes (360° or more), skip longitude check.
-    # This handles LatitudeBand barriers correctly regardless of grid longitude convention.
+    # This handles latitudinal barriers correctly regardless of grid longitude convention.
     full_longitude_span = (barrier.east - barrier.west) >= 360
 
     λ = λnode(i, j, 1, grid, Center(), Center(), Center())

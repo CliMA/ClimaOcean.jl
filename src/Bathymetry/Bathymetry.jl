@@ -4,7 +4,7 @@ export regrid_bathymetry
 export OceanBasinMask
 export AtlanticOceanMask, IndianOceanMask, SouthernOceanMask
 export label_ocean_basins
-export Barrier, LatitudeBand
+export Barrier
 
 using Downloads
 using ImageMorphology
