@@ -82,7 +82,6 @@ end
     @inbounds zb[i, j, 1] = ifelse(in_lon & in_lat, zero(grid), zb[i, j, 1])
 end
 
-
 # Since the strel algorithm in `remove_major_basins` does not recognize periodic boundaries,
 # before removing connected regions, we extend the longitude direction if it is periodic.
 # An extension of half the domain is enough.
@@ -121,6 +120,8 @@ function label_ocean_basins(zb_field, TX, size)
     connectivity = ImageMorphology.strel(water)
     labels = ImageMorphology.label_components(connectivity)
 
+    # TODO: Make sure labels are consistent with periodicity even if 
+    # there is a barrier in between. This is required for a PacificOceanMask
     Nx, Ny = size[1], size[2]
     return labels[1:Nx, 1:Ny]
 end
