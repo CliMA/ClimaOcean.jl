@@ -90,7 +90,7 @@ include("Atmospheres/Atmospheres.jl")
 include("SeaIces/SeaIces.jl")
 include("InitialConditions/InitialConditions.jl")
 include("DataWrangling/DataWrangling.jl")
-include("Bathymetry.jl")
+include("Bathymetry/Bathymetry.jl")
 include("Diagnostics/Diagnostics.jl")
 
 using .DataWrangling

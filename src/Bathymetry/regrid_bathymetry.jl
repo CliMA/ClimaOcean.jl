@@ -1,26 +1,3 @@
-module Bathymetry
-
-export regrid_bathymetry
-
-using Downloads
-using ImageMorphology
-using KernelAbstractions: @kernel, @index
-using Oceananigans
-using Oceananigans.Architectures: architecture, on_architecture
-using Oceananigans.BoundaryConditions
-using Oceananigans.DistributedComputations
-using Oceananigans.DistributedComputations: DistributedGrid, reconstruct_global_grid, all_reduce
-using Oceananigans.Fields: interpolate!
-using Oceananigans.Grids: x_domain, y_domain, topology
-using Oceananigans.Utils: launch!
-using OffsetArrays
-using NCDatasets
-using Printf
-using Scratch
-
-using ..DataWrangling: Metadatum, native_grid, metadata_path, download_dataset
-using ..DataWrangling.ETOPO: ETOPO2022
-
 # methods specific to bathymetric datasets live within dataset modules
 
 """
@@ -42,10 +19,8 @@ Keyword Arguments
 
 - `height_above_water`: limits the maximum height of above-water topography (where ``h > 0``) before interpolating.
                         Default: `nothing`, which implies that the original topography is retained.
-
 - `minimum_depth`: minimum depth for the shallow regions, defined as a positive value.
                    `h > - minimum_depth` is considered land. Default: 0.
-
 - `interpolation_passes`: regridding/interpolation passes. The bathymetry is interpolated in
                           `interpolation_passes - 1` intermediate steps. The more the interpolation
                           steps the smoother the final bathymetry becomes.
@@ -91,6 +66,7 @@ function _regrid_bathymetry(target_grid, metadata;
                             minimum_depth,
                             interpolation_passes,
                             major_basins)
+                            
     if isinteger(interpolation_passes)
         interpolation_passes = convert(Int, interpolation_passes)
     end
@@ -267,45 +243,6 @@ Arguments
 
 """
 function remove_minor_basins!(zb::Field, keep_major_basins)
-    zb_cpu = on_architecture(CPU(), zb)
-    TX     = topology(zb_cpu.grid, 1)
-
-    Nx, Ny, _ = size(zb_cpu.grid)
-    zb_data   = maybe_extend_longitude(zb_cpu, TX()) # Outputs a 2D AbstractArray
-
-    remove_minor_basins!(zb_data, keep_major_basins)
-    set!(zb, zb_data[1:Nx, 1:Ny])
-
-    return zb
-end
-
-maybe_extend_longitude(zb_cpu, tx) = interior(zb_cpu, :, :, 1)
-
-# Since the strel algorithm in `remove_major_basins` does not recognize periodic boundaries,
-# before removing connected regions, we extend the longitude direction if it is periodic.
-# An extension of half the domain is enough.
-function maybe_extend_longitude(zb_cpu, ::Periodic)
-    Nx = size(zb_cpu, 1)
-    nx = Nx ÷ 2
-
-    zb_data   = zb_cpu.data[1:Nx, :, 1]
-    zb_parent = zb_data.parent
-
-    # Add information on the LHS and to the RHS
-    zb_parent = vcat(zb_parent[nx:Nx, :], zb_parent, zb_parent[1:nx, :])
-
-    # Update offsets
-    yoffsets = zb_cpu.data.offsets[2]
-    xoffsets = - nx
-
-    return OffsetArray(zb_parent, xoffsets, yoffsets)
-end
-
-remove_major_basins!(zb::OffsetArray, keep_minor_basins) =
-    remove_minor_basins!(zb.parent, keep_minor_basins)
-
-function remove_minor_basins!(zb, keep_major_basins)
-
     if !isfinite(keep_major_basins)
         throw(ArgumentError("`keep_major_basins` must be a finite number!"))
     end
@@ -314,45 +251,58 @@ function remove_minor_basins!(zb, keep_major_basins)
         throw(ArgumentError("keep_major_basins must be larger than 0."))
     end
 
-    water = zb .< 0
+    zb_cpu = on_architecture(CPU(), zb)
+    TX     = topology(zb_cpu.grid, 1)
+    core_size = Nx, Ny, _ = size(zb_cpu.grid)
 
-    connectivity = ImageMorphology.strel(water)
-    labels = ImageMorphology.label_components(connectivity)
+    # Get labels for the core region (extension is handled internally by label_ocean_basins)
+    labels = label_ocean_basins(zb_cpu, TX, core_size)
+    nlabels = maximum(labels)
 
-    total_elements = zeros(maximum(labels))
-    label_elements = zeros(maximum(labels))
+    if nlabels == 0
+        return zb  # No basins found
+    end
 
-    for e in 1:lastindex(total_elements)
-        total_elements[e] = length(labels[labels .== e])
+    # Rank labels by the number of elements they occupy
+    total_elements = zeros(nlabels)
+    label_elements = zeros(Int, nlabels)
+
+    for e in 1:nlabels
+        cnt = count(==(e), labels)
+        total_elements[e] = cnt
         label_elements[e] = e
     end
 
-    mm_basins = [] # major basins indexes
+    # Find valid basins (those with at least one cell)
+    valid = findall(>(0), total_elements)
+
+    major_basins = Int[]  # indices of major basins to keep
     m = 1
 
-    # We add basin indexes until we reach the specified number (m == keep_major_basins) or
-    # we run out of basins to keep -> isempty(total_elements)
-    while (m <= keep_major_basins) && !isempty(total_elements)
-        next_maximum = findfirst(x -> x == maximum(total_elements), total_elements)
-        push!(mm_basins, label_elements[next_maximum])
-        deleteat!(total_elements, next_maximum)
-        deleteat!(label_elements, next_maximum)
+    # Keep the largest basins up to keep_major_basins
+    while (m <= keep_major_basins) && !isempty(valid)
+        _, idx = findmax(total_elements[valid])
+        next_label = label_elements[valid[idx]]
+        push!(major_basins, next_label)
+        deleteat!(valid, idx)
         m += 1
     end
 
-    labels = map(Float64, labels)
+    # Modify the bathymetry: set minor basin cells to 0 (land)
+    # Work on interior view which directly modifies the underlying data
+    zb_data = interior(zb_cpu, :, :, 1)
 
-    for ℓ = 1:maximum(labels)
-        remove_basin = all(ℓ != m for m in mm_basins)
-        if remove_basin
-            labels[labels .== ℓ] .= NaN # Regions to remove
+    for j in 1:Ny, i in 1:Nx
+        label = labels[i, j]
+        if label > 0 && !(label in major_basins)
+            zb_data[i, j] = 0  # Flatten this cell (make it land)
         end
     end
 
-    # Flatten minor basins, corresponding to regions where `labels == NaN`
-    zb[isnan.(labels)] .= 0
+    # If original field was on a different architecture, copy back
+    if zb !== zb_cpu
+        set!(zb, zb_cpu)
+    end
 
-    return nothing
+    return zb
 end
-
-end # module
