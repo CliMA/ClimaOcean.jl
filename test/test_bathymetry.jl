@@ -100,7 +100,7 @@ end
     @test meridional_wide.east == 22.0
 
     # Test LatitudeBand
-    band = Barrier(-180, 180, -60.0, -55.0)
+    band = Barrier(-180.0, 180.0, -60.0, -55.0)
     @test band.west == -180.0
     @test band.east == 180.0
     @test band.south == -60.0
