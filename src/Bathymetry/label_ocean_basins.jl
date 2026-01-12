@@ -87,9 +87,10 @@ function maybe_extend_longitude(zb_cpu::Field, ::Periodic)
     # Add information on the LHS and to the RHS
     zb_parent = vcat(zb_parent[nx:Nx, :], zb_parent, zb_parent[1:nx, :])
 
-    # Update offsets
+    # Update offsets: the original domain starts at parent index (Nx - nx + 2)
+    # For offset index 1 to map there, we need offset = -(nx + 1)
     yoffsets = zb_cpu.data.offsets[2]
-    xoffsets = - nx
+    xoffsets = - nx - 1
 
     return OffsetArray(zb_parent, xoffsets, yoffsets)
 end
@@ -112,11 +113,44 @@ function label_ocean_basins(zb_field, TX, size)
     connectivity = ImageMorphology.strel(water)
     labels = ImageMorphology.label_components(connectivity)
 
-    # TODO: Make sure labels are consistent with periodicity even if 
-    # there is a barrier in between. This is required for a PacificOceanMask
     Nx, Ny = size[1], size[2]
-    return labels[1:Nx, 1:Ny]
+    core_labels = labels[1:Nx, 1:Ny]
+
+    # Enforce periodicity: merge labels that should be connected across
+    # the periodic boundary. This handles cases where a barrier (e.g., blocking
+    # the Southern Ocean) prevents the extended domain from connecting basins
+    # that are actually periodic neighbors.
+    enforce_periodic_labels!(core_labels, TX())
+
+    return core_labels
 end
+
+"""
+    enforce_periodic_labels!(labels, ::Periodic)
+
+Merge labels that should be connected due to periodic boundary conditions.
+For each latitude, if the westernmost and easternmost cells are both water
+(non-zero labels), they are periodic neighbors and must have the same label.
+"""
+function enforce_periodic_labels!(labels, ::Periodic)
+    Nx, Ny = size(labels)
+
+    for j in 1:Ny
+        label_west = labels[1, j]
+        label_east = labels[Nx, j]
+
+        # Both cells are water and have different labels: merge them
+        if label_west != 0 && label_east != 0 && label_west != label_east
+            # Replace all occurrences of label_east with label_west
+            replace!(labels, label_east => label_west)
+        end
+    end
+
+    return labels
+end
+
+# No-op for non-periodic domains
+enforce_periodic_labels!(labels, tx) = labels
 
 # Utilities to label ocean basins passing only the grid
 function label_ocean_basins(grid::AbstractGrid; barriers=nothing)

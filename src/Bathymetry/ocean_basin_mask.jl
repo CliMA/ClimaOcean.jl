@@ -114,22 +114,27 @@ end
 ##### Some usefull Basin seeds and barriers
 #####
 
-# TODO: add constructors for pacific ocean and arctic ocean
-
 const ATLANTIC_OCEAN_BARRIERS = [
     Barrier(-180.0, 180.0, -56.0, -54.0),   # Disconnect from Southern Ocean
-    Barrier(20.0, -60.0, -30.0),  # Cape Agulhas (meridional barrier)
+    Barrier(-180.0, 180.0, 67.0, 69.0),     # Disconnect from Arctic Ocean
+    Barrier(20.0, -60.0, -30.0),            # Cape Agulhas (meridional barrier)
 ]
 
 const INDIAN_OCEAN_BARRIERS = [
-    Barrier(-180.0, 180.0, -56.0, -54.0),   # Disconnect from Southern Ocean
-    Barrier(141.0, -60.0, -3.0),    # Indonesian side (meridional)
-    Barrier(20.0,  -60.0, -30.0),  # Cape Agulhas (meridional barrier)
-    Barrier(105.0, 141.0, -4.0, -3.0),  # Cape Agulhas (meridional barrier)
+    Barrier(-180.0, 180.0, -56.0, -54.0),  # Disconnect from Southern Ocean
+    Barrier(141.0, -60.0, -3.0),           # Indonesian side (meridional)
+    Barrier(20.0,  -60.0, -30.0),          # Cape Agulhas (meridional barrier)
+    Barrier(105.0, 141.0, -4.0, -3.0),     # Indonesian/Asian seas (zonal barrier at 3.5ᵒ S)
 ]
 
 const SOUTHERN_OCEAN_BARRIERS = [
     Barrier(-180.0, 180.0, -35.0, -33.0),
+]
+
+const PACIFIC_OCEAN_BARRIERS = [
+    Barrier(-180.0, 180.0, -56.0, -54.0),  # Disconnect from Southern Ocean
+    Barrier(-180.0, 180.0, 67.0, 69.0),    # Disconnect from Arctic Ocean
+    Barrier(128.0, 132.0, -55.0, 70.0),    # Indonesian/Asian seas (meridional barrier at 130°E)
 ]
 
 # Seed points for Atlantic Ocean (definitely in the Atlantic)
@@ -156,6 +161,17 @@ const SOUTHERN_SEED_POINTS = [
     (90.0, -60.0),    # Indian Ocean sector
     (180.0, -60.0),   # Pacific sector (date line)
     (-90.0, -60.0),   # South Pacific sector
+]
+
+# Seed points for Pacific Ocean
+const PACIFIC_SEED_POINTS = [
+    (180.0, 0.0),     # Central equatorial Pacific (dateline)
+    (-150.0, 20.0),   # North Pacific (Hawaii region)
+    (-120.0, -20.0),  # South Pacific
+    # Same values but from 0 to 360
+    (180.0, 0.0),             # Central equatorial Pacific
+    (-150.0 + 360, 20.0),     # North Pacific
+    (-120.0 + 360, -20.0),    # South Pacific
 ]
 
 ##### 
@@ -279,5 +295,20 @@ function SouthernOceanMask(grid;
                            barriers = SOUTHERN_OCEAN_BARRIERS,
                            seed_points = SOUTHERN_SEED_POINTS,
                            kw...)
+    return OceanBasinMask(grid; south_boundary, north_boundary, barriers, seed_points, kw...)
+end
+
+"""
+    PacificOceanMask(grid; kw...)
+
+Create a mask for the Pacific Ocean with predefined barriers and seed points.
+Default boundaries: south=-50.0, north=65.0
+"""
+function PacificOceanMask(grid;
+                          south_boundary = -50.0,
+                          north_boundary = 65.0,
+                          barriers = PACIFIC_OCEAN_BARRIERS,
+                          seed_points = PACIFIC_SEED_POINTS,
+                          kw...)
     return OceanBasinMask(grid; south_boundary, north_boundary, barriers, seed_points, kw...)
 end
