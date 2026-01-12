@@ -54,6 +54,8 @@ const SingleComponentPlusFreezingLimited = Union{OnlyAtmospherewithFreezingLimit
 # Also for the ocean nothing really happens here
 OceanSeaIceModels.update_net_fluxes!(::SingleComponentPlusFreezingLimited, ocean::Simulation{<:HydrostaticFreeSurfaceModel}) = nothing
 
+InterfaceComputations.compute_atmosphere_sea_ice_fluxes!(cm::FreezingLimitedCoupledModel) = nothing
+
 # No need to compute fluxes for this "sea ice model"
 function InterfaceComputations.compute_sea_ice_ocean_fluxes!(cm::FreezingLimitedCoupledModel)
     ocean = cm.ocean
