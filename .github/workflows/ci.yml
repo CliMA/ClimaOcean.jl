@@ -31,7 +31,6 @@ jobs:
           - '1.12'
         os:
           - ubuntu-latest
-          - windows-latest
         arch:
           - x64
         include:

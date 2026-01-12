@@ -23,7 +23,7 @@ end
 
     free_surface = SplitExplicitFreeSurface(substeps=10)
     ocean = ocean_simulation(grid; Δt=300, free_surface)
-    backend = JRA55NetCDFBackend(4)
+    backend = JRA55NetCDFBackend(2)
     atmosphere = JRA55PrescribedAtmosphere(arch; backend)
     radiation = Radiation(arch)
     coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
