@@ -148,9 +148,10 @@ end
     @info "Testing OceanBasinMask creation..."
 
     for arch in test_architectures
-        # Create a global grid (coarse for speed)
+        # Create a global grid at 1° resolution (needed to properly resolve
+        # Central America and separate Atlantic from Pacific)
         grid = LatitudeLongitudeGrid(arch;
-                                     size = (90, 45, 10),
+                                     size = (360, 180, 10),
                                      longitude = (-180, 180),
                                      latitude = (-90, 90),
                                      z = (-6000, 0))
@@ -166,8 +167,8 @@ end
         # Test that the mask is properly bounded
         # Atlantic mask should not include cells in the Pacific
         # (seed point at -170°, 0° should be 0)
-        pacific_point_i = findfirst(i -> -175 < i < -165, range(-180, 180, length=90))
-        equator_j = 23  # approximately equator for 45 latitude points
+        pacific_point_i = findfirst(i -> -175 < i < -165, range(-180, 180, length=360))
+        equator_j = 90  # equator for 180 latitude points
         if !isnothing(pacific_point_i)
             @test atlantic.mask[pacific_point_i, equator_j, 1] == 0
         end
