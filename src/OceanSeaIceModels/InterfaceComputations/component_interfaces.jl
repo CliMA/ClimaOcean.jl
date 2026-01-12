@@ -194,9 +194,10 @@ sea_ice_ocean_interface(grid, ::Nothing, ocean,     flux_formulation; kwargs...)
 sea_ice_ocean_interface(grid, ::Nothing, ::Nothing, flux_formulation; kwargs...) = nothing
 sea_ice_ocean_interface(grid, sea_ice,   ::Nothing, flux_formulation; kwargs...) = nothing
 
-# Fallback for backward compatibility
-sea_ice_ocean_interface(grid, sea_ice, ocean; kwargs...) =
-    sea_ice_ocean_interface(grid, sea_ice, ocean, IceBathHeatFlux(); kwargs...)
+# Disambiguation
+sea_ice_ocean_interface(grid, ::Nothing,     ocean, ::ThreeEquationHeatFlux; kwargs...) = nothing
+sea_ice_ocean_interface(grid, sea_ice,   ::Nothing, ::ThreeEquationHeatFlux; kwargs...) = nothing
+sea_ice_ocean_interface(grid, ::Nothing, ::Nothing, ::ThreeEquationHeatFlux; kwargs...) = nothing
 
 """
     sea_ice_ocean_interface(grid, sea_ice, ocean, flux_formulation)
