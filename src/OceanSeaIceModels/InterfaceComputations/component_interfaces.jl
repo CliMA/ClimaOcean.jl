@@ -47,14 +47,12 @@ Fields
 - `flux_formulation::F`: heat flux formulation (`IceBathHeatFlux` or `ThreeEquationHeatFlux`)
 - `temperature::T`: interface temperature field (ocean surface view or computed field)
 - `salinity::S`: interface salinity field (ocean surface view or computed field)
-- `properties::P`: additional interface properties
 """
-mutable struct SeaIceOceanInterface{J, F, T, S, P}
+mutable struct SeaIceOceanInterface{J, F, T, S}
     fluxes :: J
     flux_formulation :: F
     temperature :: T
     salinity :: S
-    properties :: P
 end
 
 # Utilities to get the computed fluxes
@@ -231,13 +229,11 @@ function sea_ice_ocean_interface(grid, sea_ice, ocean, flux_formulation)
                  x_momentum = x_momentum,
                  y_momentum = y_momentum)
 
-    # Interface temperature and salinity point to ocean surface
+    # For default flux formulations, interface temperature and salinity point to ocean surface
     Tᵢ = ocean_surface_temperature(ocean)
     Sᵢ = ocean_surface_salinity(ocean)
 
-    io_properties = NamedTuple()
-
-    return SeaIceOceanInterface(io_fluxes, flux_formulation, Tᵢ, Sᵢ, io_properties)
+    return SeaIceOceanInterface(io_fluxes, flux_formulation, Tᵢ, Sᵢ)
 end
 
 function sea_ice_ocean_interface(grid, sea_ice, ocean, flux_formulation::ThreeEquationHeatFlux)
@@ -258,9 +254,7 @@ function sea_ice_ocean_interface(grid, sea_ice, ocean, flux_formulation::ThreeEq
     Tᵢ = Field{Center, Center, Nothing}(grid)
     Sᵢ = Field{Center, Center, Nothing}(grid)
 
-    io_properties = NamedTuple()
-
-    return SeaIceOceanInterface(io_fluxes, flux_formulation, Tᵢ, Sᵢ, io_properties)
+    return SeaIceOceanInterface(io_fluxes, flux_formulation, Tᵢ, Sᵢ)
 end
 
 #####
