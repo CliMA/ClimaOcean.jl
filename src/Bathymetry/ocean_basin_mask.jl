@@ -254,12 +254,12 @@ end
 #####
 
 """
-    AtlanticOceanMask(grid; kw...)
+    atlantic_ocean_mask(grid; kw...)
 
 Create a mask for the Atlantic Ocean with predefined barriers and seed points.
 Default boundaries: south=-34.0 (Cape of Good Hope), north=65.0
 """
-function AtlanticOceanMask(grid;
+function atlantic_ocean_mask(grid;
                            south_boundary = -50.0,
                            north_boundary = 75.0,
                            barriers = ATLANTIC_OCEAN_BARRIERS,
@@ -269,12 +269,12 @@ function AtlanticOceanMask(grid;
 end
 
 """
-    IndianOceanMask(grid; kw...)
+    indian_ocean_mask(grid; kw...)
 
 Create a mask for the Indian Ocean with predefined barriers and seed points.
 Default boundaries: south=-60.0 (Southern Ocean boundary), north=30.0
 """
-function IndianOceanMask(grid;
+function indian_ocean_mask(grid;
                          south_boundary = -60.0,
                          north_boundary = 30.0,
                          barriers = INDIAN_OCEAN_BARRIERS,
@@ -284,12 +284,12 @@ function IndianOceanMask(grid;
 end
 
 """
-    SouthernOceanMask(grid; kw...)
+    southern_ocean_mask(grid; kw...)
 
 Create a mask for the Southern Ocean with predefined barriers and seed points.
 Default boundaries: south=-90.0, north=-35.0
 """
-function SouthernOceanMask(grid;
+function southern_ocean_mask(grid;
                            south_boundary = -90.0,
                            north_boundary = -35.0,
                            barriers = SOUTHERN_OCEAN_BARRIERS,
@@ -299,12 +299,12 @@ function SouthernOceanMask(grid;
 end
 
 """
-    PacificOceanMask(grid; kw...)
+    pacific_ocean_mask(grid; kw...)
 
 Create a mask for the Pacific Ocean with predefined barriers and seed points.
 Default boundaries: south=-50.0, north=65.0
 """
-function PacificOceanMask(grid;
+function pacific_ocean_mask(grid;
                           south_boundary = -50.0,
                           north_boundary = 65.0,
                           barriers = PACIFIC_OCEAN_BARRIERS,

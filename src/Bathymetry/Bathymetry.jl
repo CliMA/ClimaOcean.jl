@@ -2,7 +2,7 @@ module Bathymetry
 
 export regrid_bathymetry
 export OceanBasinMask
-export AtlanticOceanMask, IndianOceanMask, SouthernOceanMask, PacificOceanMask
+export atlantic_ocean_mask, indian_ocean_mask, southern_ocean_mask, pacific_ocean_mask
 export label_ocean_basins
 export Barrier
 

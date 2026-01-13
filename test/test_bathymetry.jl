@@ -5,7 +5,7 @@ using Statistics
 using ClimaOcean
 
 using ClimaOcean.Bathymetry: remove_minor_basins!, label_ocean_basins, find_label_at_point
-using ClimaOcean.Bathymetry: OceanBasinMask, AtlanticOceanMask, PacificOceanMask
+using ClimaOcean.Bathymetry: OceanBasinMask, atlantic_ocean_mask, pacific_ocean_mask
 using ClimaOcean.Bathymetry: Barrier, LatitudeBand, ATLANTIC_OCEAN_BARRIERS
 using ClimaOcean.DataWrangling.ETOPO
 
@@ -159,8 +159,8 @@ end
         bottom_height = regrid_bathymetry(grid)
         ibg = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 
-        # Test AtlanticOceanMask creation
-        atlantic = AtlanticOceanMask(ibg)
+        # Test atlantic_ocean_mask creation
+        atlantic = atlantic_ocean_mask(ibg)
         @test atlantic isa OceanBasinMask
         @test sum(atlantic.mask) > 0  # Should have some ocean cells
 
