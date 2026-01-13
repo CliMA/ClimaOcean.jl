@@ -91,11 +91,10 @@ function ComponentExchanger(ocean::Simulation{<:HydrostaticFreeSurfaceModel}, gr
     ocean_grid = ocean.model.grid
     
     if ocean_grid == grid
-        kᴺ = grid.Nz
-        u = view(ocean.model.velocities.u, :, :, 1:kᴺ)
-        v = view(ocean.model.velocities.v, :, :, 1:kᴺ)
-        T = view(ocean.model.tracers.T,    :, :, 1:kᴺ)
-        S = view(ocean.model.tracers.S,    :, :, 1:kᴺ)
+        u = ocean.model.velocities.u 
+        v = ocean.model.velocities.v 
+        T = ocean.model.tracers.T      
+        S = ocean.model.tracers.S      
     else
         u = Field{Center, Center, Nothing}(grid)
         v = Field{Center, Center, Nothing}(grid)

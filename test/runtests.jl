@@ -22,7 +22,6 @@ function delete_inpainted_files(dir)
     end
 end
 
-
 if test_group == :init || test_group == :all
     #####
     ##### Delete inpainted files
