@@ -104,6 +104,7 @@ end
 if test_group == :ocean_sea_ice_model || test_group == :all
     include("test_ocean_sea_ice_model.jl")
     include("test_diagnostics.jl")
+    include("test_prescribed_atmosphere_set.jl")
 end
 
 if test_group == :distributed || test_group == :all

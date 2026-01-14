@@ -1,6 +1,6 @@
 module Oceans
 
-export ocean_simulation
+export ocean_simulation, nonhydrostatic_ocean_simulation
 
 using Oceananigans
 using Oceananigans.Units
@@ -58,30 +58,31 @@ default_or_override(override, alternative_default=nothing) = override
 include("barotropic_potential_forcing.jl")
 include("radiative_forcing.jl")
 include("ocean_simulation.jl")
+include("nonhydrostatic_ocean_simulation.jl")
 include("assemble_net_ocean_fluxes.jl")
 
 #####
 ##### Extend utility functions to grab the state of the ocean
 #####
 
-ocean_salinity(ocean::Simulation{<:HydrostaticFreeSurfaceModel})    = ocean.model.tracers.S
-ocean_temperature(ocean::Simulation{<:HydrostaticFreeSurfaceModel}) = ocean.model.tracers.T
+ocean_salinity(ocean::OceananigansModelSimulations)    = ocean.model.tracers.S
+ocean_temperature(ocean::OceananigansModelSimulations) = ocean.model.tracers.T
 
-function ocean_surface_salinity(ocean::Simulation{<:HydrostaticFreeSurfaceModel})
+function ocean_surface_salinity(ocean::OceananigansModelSimulations)
     kᴺ = size(ocean.model.grid, 3)
     return interior(ocean.model.tracers.S, :, :, kᴺ:kᴺ)
 end
 
-function ocean_surface_velocities(ocean::Simulation{<:HydrostaticFreeSurfaceModel})
+function ocean_surface_velocities(ocean::OceananigansModelSimulations)
     kᴺ = size(ocean.model.grid, 3)
     return view(ocean.model.velocities.u, :, :, kᴺ), view(ocean.model.velocities.v, :, :, kᴺ)
 end
 
 # When using an Oceananigans simulation, we assume that the exchange grid is the ocean grid
 # We need, however, to interpolate the surface pressure to the ocean grid
-interpolate_state!(exchanger, grid, ::Simulation{<:HydrostaticFreeSurfaceModel}, coupled_model) = nothing
+interpolate_state!(exchanger, grid, ::OceananigansModelSimulations, coupled_model) = nothing
 
-function ComponentExchanger(ocean::Simulation{<:HydrostaticFreeSurfaceModel}, grid) 
+function ComponentExchanger(ocean::OceananigansModelSimulations, grid) 
     ocean_grid = ocean.model.grid
     
     if ocean_grid == grid
@@ -99,7 +100,7 @@ function ComponentExchanger(ocean::Simulation{<:HydrostaticFreeSurfaceModel}, gr
     return ComponentExchanger((; u, v, T, S), nothing)
 end
 
-function net_fluxes(ocean::Simulation{<:HydrostaticFreeSurfaceModel})
+function net_fluxes(ocean::OceananigansModelSimulations)
     # TODO: Generalize this to work with any ocean model
     τx = ocean.model.velocities.u.boundary_conditions.top.condition
     τy = ocean.model.velocities.v.boundary_conditions.top.condition
