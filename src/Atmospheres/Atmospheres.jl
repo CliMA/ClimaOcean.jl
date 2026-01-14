@@ -28,9 +28,6 @@ import ClimaOcean.OceanSeaIceModels.InterfaceComputations: ComponentExchanger, i
 # Can be extended by atmosphere models
 function atmosphere_simulation end
 
-const c = Center()
-const f = Face()
-
 include("thermodynamic_parameters.jl")
 include("prescribed_atmosphere.jl")
 include("prescribed_atmosphere_regridder.jl")
