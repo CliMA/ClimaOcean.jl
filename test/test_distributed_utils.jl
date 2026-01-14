@@ -121,10 +121,10 @@ end
 
         grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
-        ocean = ocean_simulation(grid; free_surface = SplitExplicitFreeSurface(grid; substeps = 70))
+        ocean = ocean_simulation(grid; free_surface = SplitExplicitFreeSurface(grid; substeps = 40))
 
         radiation  = Radiation(arch)
-        atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(100), include_rivers_and_icebergs=true)
+        atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(10), include_rivers_and_icebergs=true)
 
         coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 
