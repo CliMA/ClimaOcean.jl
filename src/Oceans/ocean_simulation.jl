@@ -98,6 +98,7 @@ end
 """
     ocean_simulation(grid;
                      Δt = estimate_maximum_Δt(grid),
+                     clock = Clock(grid),
                      closure = default_ocean_closure(),
                      tracers = (:T, :S),
                      free_surface = default_free_surface(grid),
@@ -123,7 +124,6 @@ This function assembles an Oceananigans's `HydrostaticFreeSurfaceModel` with phy
 consistent defaults for advection, closures, the equation of state, surface fluxes, Coriolis,
 barotropic pressure–gradient forcing, boundary conditions, and optional biogeochemistry.
 It then wraps the model into an Oceananigans's `Simulation` with the specified timestepping options.
-
 
 ## Behaviour and automatic configuration
 
@@ -159,6 +159,7 @@ defaults on a per-field basis.
 ## Keyword Arguments
 
 - `Δt`: Timestep used by the `Simulation`. Defaults to the maximum stable timestep estimated from the `grid`.
+- `clock`: Clock object. Defaults to `Clock(grid)`.
 - `closure`: A turbulence or mixing closure. Defaults to `default_ocean_closure()`.
 - `tracers`: Tuple of tracer names. Defaults to `(:T, :S)`.
 - `free_surface`: Free–surface solver. Defaults to `default_free_surface(grid)`.
@@ -180,6 +181,7 @@ defaults on a per-field basis.
 """
 function ocean_simulation(grid;
                           Δt = estimate_maximum_Δt(grid),
+                          clock = Clock(grid),
                           closure = default_ocean_closure(),
                           tracers = (:T, :S),
                           free_surface = default_free_surface(grid),
@@ -301,6 +303,7 @@ function ocean_simulation(grid;
     end
 
     ocean_model = HydrostaticFreeSurfaceModel(; grid,
+                                              clock,
                                               buoyancy,
                                               closure,
                                               biogeochemistry,

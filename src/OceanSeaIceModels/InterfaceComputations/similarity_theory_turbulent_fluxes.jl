@@ -1,4 +1,5 @@
-using Oceananigans.Grids: AbstractGrid, prettysummary
+using Oceananigans.Grids: AbstractGrid
+using Oceananigans.Utils: prettysummary
 
 using Adapt
 using Printf

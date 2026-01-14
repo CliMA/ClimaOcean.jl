@@ -11,12 +11,12 @@ using ..OceanSeaIceModels: reference_density,
 using ClimaSeaIce: SeaIceModel
 
 using Oceananigans: HydrostaticFreeSurfaceModel, architecture
-using Oceananigans.Units: Time
-using Oceananigans.Grids: inactive_node, node, topology
 using Oceananigans.BoundaryConditions: fill_halo_regions!
 using Oceananigans.Fields: ConstantField, interpolate, FractionalIndices
-using Oceananigans.Utils: launch!, KernelParameters
+using Oceananigans.Grids: inactive_node, node, topology
 using Oceananigans.Operators: ℑxᶜᵃᵃ, ℑyᵃᶜᵃ, ℑxᶠᵃᵃ, ℑyᵃᶠᵃ
+using Oceananigans.Units: Time
+using Oceananigans.Utils: launch!, KernelParameters
 
 using KernelAbstractions: @kernel, @index
 
@@ -80,7 +80,7 @@ atmosphere_ocean_interface(grid, ::Nothing,   ocean,    args...) = nothing
 atmosphere_ocean_interface(grid, ::Nothing,  ::Nothing, args...) = nothing
 atmosphere_ocean_interface(grid, atmosphere, ::Nothing, args...) = nothing
 
-function atmosphere_ocean_interface(grid, 
+function atmosphere_ocean_interface(grid,
                                     atmosphere,
                                     ocean,
                                     radiation,
@@ -136,7 +136,7 @@ atmosphere_sea_ice_interface(grid, atmos, ::Nothing,     args...) = nothing
 atmosphere_sea_ice_interface(grid, ::Nothing, sea_ice,   args...) = nothing
 atmosphere_sea_ice_interface(grid, ::Nothing, ::Nothing, args...) = nothing
 
-function atmosphere_sea_ice_interface(grid, 
+function atmosphere_sea_ice_interface(grid,
                                       atmosphere,
                                       sea_ice,
                                       radiation,
@@ -290,7 +290,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
 
     io_interface = sea_ice_ocean_interface(exchange_grid, sea_ice, ocean)
 
-    ai_interface = atmosphere_sea_ice_interface(exchange_grid, 
+    ai_interface = atmosphere_sea_ice_interface(exchange_grid,
                                                 atmosphere,
                                                 sea_ice,
                                                 radiation,

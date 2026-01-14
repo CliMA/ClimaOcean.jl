@@ -55,6 +55,29 @@ prognostic_fields(cm::OSIM)         = nothing
 fields(::OSIM)                      = NamedTuple()
 default_clock(TT)                   = Oceananigans.TimeSteppers.Clock{TT}(0, 0, 1)
 
+"""Return a clock from a component if available."""
+function component_clock(component)
+    if component === nothing
+        return nothing
+    elseif hasproperty(component, :clock)
+        return component.clock
+    elseif hasproperty(component, :model) && hasproperty(component.model, :clock)
+        return component.model.clock
+    else
+        return nothing
+    end
+end
+
+"""Select a coupled clock based on the components, defaulting to a zero Float64 clock."""
+function default_coupled_clock(ocean, atmosphere, sea_ice)
+    for component in (ocean, atmosphere, sea_ice)
+        clock = component_clock(component)
+        !isnothing(clock) && return deepcopy(clock)
+    end
+
+    return Clock{Float64}(time=0)
+end
+
 function reset!(model::OSIM)
     reset!(model.ocean)
     return nothing
@@ -83,7 +106,7 @@ heat_capacity(unsupported) =
     OceanSeaIceModel(ocean, sea_ice=FreezingLimitedOceanTemperature(eltype(ocean.model));
                      atmosphere = nothing,
                      radiation = Radiation(architecture(ocean.model)),
-                     clock = deepcopy(ocean.model.clock),
+                     clock = default_coupled_clock(ocean, atmosphere, sea_ice),
                      ocean_reference_density = reference_density(ocean),
                      ocean_heat_capacity = heat_capacity(ocean),
                      sea_ice_reference_density = reference_density(sea_ice),
@@ -119,7 +142,7 @@ using ClimaOcean
 using Oceananigans
 
 grid = RectilinearGrid(size=10, z=(-100, 0), topology=(Flat, Flat, Bounded))
-ocean = ocean_simulation(grid, timestepper = :QuasiAdamsBashforth2)
+ocean = ocean_simulation(grid)
 
 # Three choices for stability function:
 # "No stability function", which also apply to neutral boundary layers
@@ -136,6 +159,9 @@ interfaces = ClimaOcean.OceanSeaIceModels.ComponentInterfaces(nothing, ocean; at
 model = OceanSeaIceModel(ocean; interfaces)
 
 # output
+┌ Warning: Split barotropic-baroclinic time stepping with SplitRungeKutta3TimeStepper is experimental.
+│ Use at own risk, and report any issues encountered at https://github.com/CliMA/Oceananigans.jl/issues.
+└ @ Oceananigans.TimeSteppers ~/Oceananigans/src/TimeSteppers/split_hydrostatic_runge_kutta_3.jl:59
 OceanSeaIceModel{CPU}(time = 0 seconds, iteration = 0)
 ├── ocean: HydrostaticFreeSurfaceModel{CPU, RectilinearGrid}(time = 0 seconds, iteration = 0)
 ├── atmosphere: Nothing
@@ -153,7 +179,7 @@ The available stability function options include:
 function OceanSeaIceModel(ocean, sea_ice=default_sea_ice();
                           atmosphere = nothing,
                           radiation = Radiation(),
-                          clock = Clock{Float64}(time=0),
+                          clock = default_coupled_clock(ocean, atmosphere, sea_ice),
                           ocean_reference_density = reference_density(ocean),
                           ocean_heat_capacity = heat_capacity(ocean),
                           sea_ice_reference_density = reference_density(sea_ice),
