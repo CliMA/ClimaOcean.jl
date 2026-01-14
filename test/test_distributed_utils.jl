@@ -106,7 +106,7 @@ end
 @testset "Distributed atmospheric halo filling" begin
     function create_sample_output(arch, filename)
 
-        Nx, Ny, Nz = 180, 100, 20
+        Nx, Ny, Nz = 80, 40, 10
 
         z = ExponentialDiscretization(Nz, -6000, 0, mutable=true)
         underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), z, halo = (7, 7, 4))
