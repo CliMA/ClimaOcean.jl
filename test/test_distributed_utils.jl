@@ -120,19 +120,17 @@ end
                                           major_basins = 1)
 
         grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); active_cells_map=true)
-
+        @info "Creating ocean simulation"
         ocean = ocean_simulation(grid; free_surface = SplitExplicitFreeSurface(grid; substeps = 40))
-
+        @info "Creating atmosphere and radiation models"
         radiation  = Radiation(arch)
-        atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(10), include_rivers_and_icebergs=true)
-
+        atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(4), include_rivers_and_icebergs=true)
+        @info "Creating coupled model"
         coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
-
+        @info "Creating simulation"
         simulation = Simulation(coupled_model; Δt=60, stop_time=11minutes)
-
-        dates = vcat(collect(DateTime(1991, 1, 1): Month(1): DateTime(1991, 5, 1)),
-                     collect(DateTime(1990, 5, 1): Month(1): DateTime(1990, 12, 1)))
-
+        @info "Setting dates"
+        dates = DateTime(1991, 1, 1): Month(1): DateTime(1991, 2, 1)
         dataset = EN4Monthly()
 
         temperature = Metadata(:temperature; dates, dataset = dataset)
@@ -140,7 +138,7 @@ end
 
         set!(ocean.model, T=Metadata(:temperature; dates=first(dates), dataset = dataset),
                           S=Metadata(:salinity;    dates=first(dates), dataset = dataset))
-
+        @info "Printing progress statistics:"
         ## Print a progress message
         progress_message(sim) = @printf("Iteration: %04d, time: %s, Δt: %s, max(|w|) = %.1e ms⁻¹, wall time: %s\n",
                                         iteration(sim), prettytime(sim), prettytime(sim.Δt),
@@ -152,7 +150,7 @@ end
         velocities = ocean.model.velocities
 
         outputs = merge(tracers, velocities)
-
+        @info "Creating output writer for distributed simulation"
         simulation.output_writers[:snapshot] = JLD2Writer(ocean.model, outputs;
                                                           schedule = TimeInterval(10minutes),
                                                           filename,
@@ -160,7 +158,7 @@ end
                                                           with_halos = false,
                                                           overwrite_existing = true,
                                                           array_type = Array{Float32})
-
+        @info "Running simulation"
         run!(simulation)
     end
 
