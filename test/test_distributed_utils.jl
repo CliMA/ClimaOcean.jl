@@ -104,35 +104,24 @@ end
 end
 
 @testset "Distributed atmospheric halo filling" begin
-    function create_sample_output(arch, fname)
+    function create_sample_output(arch, filename)
 
-        Nx, Ny, Nz = 360, 180, 50
-        @info "Defining vertical z faces"
-        depth = -6000.0 # Depth of the ocean in meters
-        z_faces = ExponentialDiscretization(Nz, depth, 0, mutable=true)
-        @info "Creating grid"
+        Nx, Ny, Nz = 180, 100, 20
 
-        underlying_grid = TripolarGrid(arch;
-                            size = (Nx, Ny, Nz),
-                            z = z_faces,
-                            halo = (7, 7, 4))
+        z = ExponentialDiscretization(Nz, -6000, 0, mutable=true)
+        underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), z, halo = (7, 7, 4))
 
         ETOPOmetadata = Metadatum(:bottom_height, dataset=ETOPO2022())
         ClimaOcean.DataWrangling.download_dataset(ETOPOmetadata)
 
         bottom_height = regrid_bathymetry(underlying_grid, ETOPOmetadata;
-                                        minimum_depth = 15,
-                                        interpolation_passes = 1, # 75 interpolation passes smooth the bathymetry near Florida so that the Gulf Stream is able to flow
-                                        major_basins = 1)
+                                          minimum_depth = 15,
+                                          interpolation_passes = 1,
+                                          major_basins = 1)
 
         grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
-        @info "Creating free surface"
-        free_surface = SplitExplicitFreeSurface(grid; substeps = 70)
-
-        @info "Creating model"
-
-        ocean = ocean_simulation(grid; Δt=10, free_surface)
+        ocean = ocean_simulation(grid; free_surface = SplitExplicitFreeSurface(grid; substeps = 70))
 
         radiation  = Radiation(arch)
         atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(100), include_rivers_and_icebergs=true)
@@ -142,19 +131,15 @@ end
         simulation = Simulation(coupled_model; Δt=60, stop_time=11minutes)
 
         dates = vcat(collect(DateTime(1991, 1, 1): Month(1): DateTime(1991, 5, 1)),
-                    collect(DateTime(1990, 5, 1): Month(1): DateTime(1990, 12, 1)))
+                     collect(DateTime(1990, 5, 1): Month(1): DateTime(1990, 12, 1)))
 
-        dataset = EN4Monthly() # Other options include ECCO2Monthly(), ECCO4Monthly() or ECCO2Daily()
+        dataset = EN4Monthly()
 
         temperature = Metadata(:temperature; dates, dataset = dataset)
         salinity    = Metadata(:salinity;    dates, dataset = dataset)
 
         set!(ocean.model, T=Metadata(:temperature; dates=first(dates), dataset = dataset),
-                        S=Metadata(:salinity;    dates=first(dates), dataset = dataset))
-
-        @info "Creating simulation"
-
-        # Nice progress messaging is helpful:
+                          S=Metadata(:salinity;    dates=first(dates), dataset = dataset))
 
         ## Print a progress message
         progress_message(sim) = @printf("Iteration: %04d, time: %s, Δt: %s, max(|w|) = %.1e ms⁻¹, wall time: %s\n",
@@ -168,39 +153,35 @@ end
 
         outputs = merge(tracers, velocities)
 
-        @time simulation.output_writers[:snapshot] = JLD2Writer(ocean.model, outputs;
-                                                    schedule = TimeInterval(10minutes),
-                                                    filename = fname,
-                                                    indices = (:, :, Nz),
-                                                    with_halos = false,
-                                                    overwrite_existing = true,
-                                                    array_type = Array{Float32})
+        simulation.output_writers[:snapshot] = JLD2Writer(ocean.model, outputs;
+                                                          schedule = TimeInterval(10minutes),
+                                                          filename,
+                                                          indices = (:, :, Nz),
+                                                          with_halos = false,
+                                                          overwrite_existing = true,
+                                                          array_type = Array{Float32})
 
-        @info "Running simulation"
         run!(simulation)
     end
 
+    filename1 = "snapshot_distributed"
     arch = Distributed(CPU(); partition = Partition(y = DistributedComputations.Equal()), synchronized_communication=true)
-    fname1 = "snapshot_distributed"
+    create_sample_output(arch, filename1)
 
-    create_sample_output(arch, fname1)
-
+    filename2 = "snapshot_serial"
     arch = CPU()
-    fname2 = "snapshot_serial"
+    create_sample_output(arch, filename2)
 
-    create_sample_output(arch, fname2)
+    distributed_files = filter(f -> occursin("_rank", f), glob("$(filename1)*.jld2"))
 
-    distributed_files = filter(f -> occursin("_rank", f),
-                        glob("snapshot_distributed*.jld2"))
-
-    serial_file = glob("snapshot_serial.jld2")
+    serial_file = glob("$(filename2).jld2")
 
     ranks = size(distributed_files)
     var = "T"
     T_rank_dist = []
 
     for rank in 0:ranks-1
-        fname_rank = "snapshot_distributed_rank$(rank).jld2"
+        fname_rank = "$(filename1)_rank$(rank).jld2"
         @info "Reconstructing global grid from $fname_rank"
         keys_iters= keys(jldopen(fname_rank)["timeseries"][var])[2:end]
         T_rank_full = jldopen(fname_rank)["timeseries"][var][keys_iters[lastindex(keys_iters)]][:,:,1]
@@ -212,7 +193,8 @@ end
     timesteps = keys(jldopen(serial_file[1])["timeseries"][var])[end]
     T_serial = field2["timeseries"][var][timesteps][:,:,1]
 
-    @test (maximum(abs.(T_serial .- T_rank_dist_all)) < 1e-5)
+    @show maximum(abs.(T_serial .- T_rank_dist_all)) # debug purposes; delete before merge
+    @test (maximum(abs.(T_serial .- T_rank_dist_all)) < 1e-10)
 end
 
 MPI.Finalize()
