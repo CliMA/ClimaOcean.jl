@@ -4,8 +4,9 @@ using MPI
 MPI.Init()
 
 using ClimaOcean.DataWrangling: metadata_path
+using Oceananigans.Units
 using Oceananigans.DistributedComputations
-using Oceananigans.DistributedComputations: reconstruct_global_grid
+using Oceananigans.DistributedComputations: reconstruct_global_grid, reconstruct_global_field
 using CFTime
 using Dates
 using NCDatasets
@@ -104,9 +105,8 @@ end
 end
 
 @testset "Distributed atmospheric halo filling" begin
-    function create_sample_output(arch, filename)
-
-        Nx, Ny, Nz = 80, 40, 10
+    function create_sample_output(arch)
+        Nx, Ny, Nz = 80, 40, 5
 
         z = ExponentialDiscretization(Nz, -6000, 0, mutable=true)
         underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), z, halo = (7, 7, 4))
@@ -120,82 +120,41 @@ end
                                           major_basins = 1)
 
         grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); active_cells_map=true)
-        @info "Creating ocean simulation"
         ocean = ocean_simulation(grid; free_surface = SplitExplicitFreeSurface(grid; substeps = 40))
-        @info "Creating atmosphere and radiation models"
         radiation  = Radiation(arch)
         atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(4), include_rivers_and_icebergs=true)
-        @info "Creating coupled model"
         coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
-        @info "Creating simulation"
         simulation = Simulation(coupled_model; Δt=60, stop_time=11minutes)
-        @info "Setting dates"
-        dates = DateTime(1991, 1, 1): Month(1): DateTime(1991, 2, 1)
-        dataset = EN4Monthly()
-
-        temperature = Metadata(:temperature; dates, dataset = dataset)
-        salinity    = Metadata(:salinity;    dates, dataset = dataset)
-
-        set!(ocean.model, T=Metadata(:temperature; dates=first(dates), dataset = dataset),
-                          S=Metadata(:salinity;    dates=first(dates), dataset = dataset))
-        @info "Printing progress statistics:"
-        ## Print a progress message
-        progress_message(sim) = @printf("Iteration: %04d, time: %s, Δt: %s, max(|w|) = %.1e ms⁻¹, wall time: %s\n",
-                                        iteration(sim), prettytime(sim), prettytime(sim.Δt),
-                                        maximum(abs, sim.model.ocean.model.velocities.w), prettytime(sim.run_wall_time))
-
-        add_callback!(simulation, progress_message, IterationInterval(1))
-
-        tracers = ocean.model.tracers
-        velocities = ocean.model.velocities
-
-        outputs = merge(tracers, velocities)
-        @info "Creating output writer for distributed simulation"
-        simulation.output_writers[:snapshot] = JLD2Writer(ocean.model, outputs;
-                                                          schedule = TimeInterval(10minutes),
-                                                          filename,
-                                                          indices = (:, :, Nz),
-                                                          with_halos = false,
-                                                          overwrite_existing = true,
-                                                          array_type = Array{Float32})
-        @info "Running simulation"
+        
+        set!(ocean.model, T=Metadatum(:temperature; date=DateTime(1991, 1, 1), dataset=EN4Monthly()),
+                          S=Metadatum(:salinity;    date=DateTime(1991, 1, 1), dataset=EN4Monthly()))
+        
         run!(simulation)
+
+        return ocean.model
     end
 
-    filename1 = "snapshot_distributed"
     arch = Distributed(CPU(); partition = Partition(y = DistributedComputations.Equal()), synchronized_communication=true)
-    create_sample_output(arch, filename1)
+    mp   = create_sample_output(arch)
+
+    Tp = reconstruct_global_field(mp.tracers.T)
+    Sp = reconstruct_global_field(mp.tracers.S)
+    up = reconstruct_global_field(mp.velocities.u)
+    vp = reconstruct_global_field(mp.velocities.v)
 
     MPI.Barrier()
 
     @root begin
-        filename2 = "snapshot_serial"
         arch = CPU()
-        create_sample_output(arch, filename2)
-    
-        distributed_files = filter(f -> occursin("_rank", f), glob("$(filename1)*.jld2"))
+        ms   = create_sample_output(arch)
 
-        serial_file = glob("$(filename2).jld2")
+        Ts = reconstruct_global_field(ms.tracers.T)
+        Ss = reconstruct_global_field(ms.tracers.S)
+        us = reconstruct_global_field(ms.velocities.u)
+        vs = reconstruct_global_field(ms.velocities.v)
 
-        ranks = size(distributed_files)
-        var = "T"
-        T_rank_dist = []
-
-        for rank in 0:ranks-1
-            fname_rank = "$(filename1)_rank$(rank).jld2"
-            @info "Reconstructing global grid from $fname_rank"
-            keys_iters= keys(jldopen(fname_rank)["timeseries"][var])[2:end]
-            T_rank_full = jldopen(fname_rank)["timeseries"][var][keys_iters[lastindex(keys_iters)]][:,:,1]
-            push!(T_rank_dist, T_rank_full)
-        end
-        T_rank_dist_all = cat(T_rank_dist...; dims = 2)
-
-        field2 = jldopen(serial_file[1])
-        timesteps = keys(jldopen(serial_file[1])["timeseries"][var])[end]
-        T_serial = field2["timeseries"][var][timesteps][:,:,1]
-
-        @show maximum(abs.(T_serial .- T_rank_dist_all)) # debug purposes; delete before merge
-        @test (maximum(abs.(T_serial .- T_rank_dist_all)) < 1e-10)
+        @show maximum(abs.(Ts .- Tp)) # debug purposes; delete before merge
+        @test (maximum(abs.(Ts .- Tp)) < 1e-10)
     end
 end
 
