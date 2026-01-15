@@ -306,7 +306,7 @@ end
 
     # If the ice is not consolidated, use the bottom temperature
     Tₛ⁺ = ifelse(h ≥ hc, Tₛ⁺, Tᵢ)
-
+    
     return Tₛ⁺
 end
 

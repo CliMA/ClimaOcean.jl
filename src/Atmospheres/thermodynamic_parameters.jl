@@ -1,7 +1,4 @@
 import Thermodynamics.Parameters:
-    gas_constant,   #
-    molmass_dryair, # Molar mass of dry air (without moisture)
-    molmass_water,  # Molar mass of gaseous water vapor
     Rv_over_Rd,     # Ratio of the specific gas constants of water vapor over dry air
     R_v,            # Specific gas constant for water vapor
     R_d,            # Specific gas constant for dry air

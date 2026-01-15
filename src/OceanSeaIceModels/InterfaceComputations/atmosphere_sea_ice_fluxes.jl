@@ -107,7 +107,7 @@ end
 
     downwelling_radiation = (; Qs, Qℓ)
     local_interior_state = (u=uᵢ, v=vᵢ, T=Tᵢ, S=Sᵢ, h=hᵢ, hc=hc)
-
+    
     # Estimate initial interface state (FP32 compatible)
     u★ = convert(FT, 1f-4)
 

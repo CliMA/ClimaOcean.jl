@@ -23,8 +23,16 @@ end
 
     free_surface = SplitExplicitFreeSurface(substeps=10)
     ocean = ocean_simulation(grid; Δt=300, free_surface)
-    backend = JRA55NetCDFBackend(4)
-    atmosphere = JRA55PrescribedAtmosphere(arch; backend)
+
+    # We use an idealized atmosphere to avoid downloading the whole JRA55 data
+    atmos_grid  = LatitudeLongitudeGrid(arch, Float32; size=(320, 200), 
+                                                       latitude=(-90, 90), 
+                                                       longitude=(0, 360), 
+                                                       topology=(Periodic, Bounded, Flat))
+
+    atmos_times = range(0, 360Oceananigans.Units.days, length=10)
+    atmosphere  = PrescribedAtmosphere(atmos_grid, atmos_times)
+
     radiation = Radiation(arch)
     coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 
