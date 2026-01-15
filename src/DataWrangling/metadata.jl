@@ -65,12 +65,12 @@ Keyword Arguments
            For a single date, use [`Metadatum`](@ref).
 
 - `start_date`: If `dates = nothing`, we can prescribe the first date of metadata as a date
-                (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`). `start_date` should lie
-                within the date range of the dataset. Default: nothing.
+                (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`). If outside the 
+                date range of the dataset, the first allowable date is chosen. Default: nothing.
 
 - `end_date`: If `dates = nothing`, we can prescribe the last date of metadata as a date
-              (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`). `end_date` should lie
-              within the date range of the dataset. Default: nothing.
+              (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`). If outside the 
+                date range of the dataset, the last allowable date is chosen. Default: nothing.
 
 - `bounding_box`: Specifies the bounds of the dataset. See [`BoundingBox`](@ref).
 
@@ -84,7 +84,14 @@ function Metadata(variable_name;
                   start_date = nothing,
                   end_date = nothing)
 
-    if !isnothing(start_date) && !isnothing(end_date)
+    # crop dates if _either_ a start date or an end date is provided
+    if !isnothing(start_date) || !isnothing(end_date)
+
+        # If one of the two is nothing, take the native limits
+        start_date = isnothing(start_date) ? dates[1]   : start_date
+        end_date   = isnothing(end_date)   ? dates[end] : end_date
+
+        # Crop the dates to fit start_date and end_date
         dates = compute_native_date_range(dates, start_date, end_date)
     end
 
