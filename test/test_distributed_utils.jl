@@ -166,33 +166,37 @@ end
     arch = Distributed(CPU(); partition = Partition(y = DistributedComputations.Equal()), synchronized_communication=true)
     create_sample_output(arch, filename1)
 
-    filename2 = "snapshot_serial"
-    arch = CPU()
-    create_sample_output(arch, filename2)
+    MPI.Barrier()
 
-    distributed_files = filter(f -> occursin("_rank", f), glob("$(filename1)*.jld2"))
+    @root begin
+        filename2 = "snapshot_serial"
+        arch = CPU()
+        create_sample_output(arch, filename2)
+    
+        distributed_files = filter(f -> occursin("_rank", f), glob("$(filename1)*.jld2"))
 
-    serial_file = glob("$(filename2).jld2")
+        serial_file = glob("$(filename2).jld2")
 
-    ranks = size(distributed_files)
-    var = "T"
-    T_rank_dist = []
+        ranks = size(distributed_files)
+        var = "T"
+        T_rank_dist = []
 
-    for rank in 0:ranks-1
-        fname_rank = "$(filename1)_rank$(rank).jld2"
-        @info "Reconstructing global grid from $fname_rank"
-        keys_iters= keys(jldopen(fname_rank)["timeseries"][var])[2:end]
-        T_rank_full = jldopen(fname_rank)["timeseries"][var][keys_iters[lastindex(keys_iters)]][:,:,1]
-        push!(T_rank_dist, T_rank_full)
+        for rank in 0:ranks-1
+            fname_rank = "$(filename1)_rank$(rank).jld2"
+            @info "Reconstructing global grid from $fname_rank"
+            keys_iters= keys(jldopen(fname_rank)["timeseries"][var])[2:end]
+            T_rank_full = jldopen(fname_rank)["timeseries"][var][keys_iters[lastindex(keys_iters)]][:,:,1]
+            push!(T_rank_dist, T_rank_full)
+        end
+        T_rank_dist_all = cat(T_rank_dist...; dims = 2)
+
+        field2 = jldopen(serial_file[1])
+        timesteps = keys(jldopen(serial_file[1])["timeseries"][var])[end]
+        T_serial = field2["timeseries"][var][timesteps][:,:,1]
+
+        @show maximum(abs.(T_serial .- T_rank_dist_all)) # debug purposes; delete before merge
+        @test (maximum(abs.(T_serial .- T_rank_dist_all)) < 1e-10)
     end
-    T_rank_dist_all = cat(T_rank_dist...; dims = 2)
-
-    field2 = jldopen(serial_file[1])
-    timesteps = keys(jldopen(serial_file[1])["timeseries"][var])[end]
-    T_serial = field2["timeseries"][var][timesteps][:,:,1]
-
-    @show maximum(abs.(T_serial .- T_rank_dist_all)) # debug purposes; delete before merge
-    @test (maximum(abs.(T_serial .- T_rank_dist_all)) < 1e-10)
 end
 
 MPI.Finalize()
