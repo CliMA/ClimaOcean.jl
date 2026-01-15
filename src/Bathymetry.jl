@@ -270,10 +270,17 @@ function remove_minor_basins!(zb::Field, keep_major_basins)
     zb_cpu = on_architecture(CPU(), zb)
     TX     = topology(zb_cpu.grid, 1)
 
-    Nx, Ny, _ = size(zb_cpu.grid)
+    core_size = Nx, Ny, _ = size(zb_cpu.grid)
     zb_data   = maybe_extend_longitude(zb_cpu, TX()) # Outputs a 2D AbstractArray
 
-    remove_minor_basins!(zb_data, keep_major_basins)
+    # For periodic grids, `zb_data` may include an extended longitude domain so that
+    # ImageMorphology can identify connected components correctly across periodic
+    # boundaries. However, we want `keep_major_basins` to refer to the number of
+    # major basins in the *physical* model domain only.
+    #
+    # To achieve this, we rank basins by their area within the core region
+    # `1:Nx, 1:Ny` of `zb_data`, rather than within the whole extended array.
+    remove_minor_basins!(zb_data, keep_major_basins, core_size)
     set!(zb, zb_data[1:Nx, 1:Ny])
 
     return zb
@@ -301,10 +308,7 @@ function maybe_extend_longitude(zb_cpu, ::Periodic)
     return OffsetArray(zb_parent, xoffsets, yoffsets)
 end
 
-remove_major_basins!(zb::OffsetArray, keep_minor_basins) =
-    remove_minor_basins!(zb.parent, keep_minor_basins)
-
-function remove_minor_basins!(zb, keep_major_basins)
+function remove_minor_basins!(zb, keep_major_basins, core_size)
 
     if !isfinite(keep_major_basins)
         throw(ArgumentError("`keep_major_basins` must be a finite number!"))
@@ -319,24 +323,37 @@ function remove_minor_basins!(zb, keep_major_basins)
     connectivity = ImageMorphology.strel(water)
     labels = ImageMorphology.label_components(connectivity)
 
-    total_elements = zeros(maximum(labels))
-    label_elements = zeros(maximum(labels))
+    nlabels = maximum(labels)
 
-    for e in 1:lastindex(total_elements)
-        total_elements[e] = length(labels[labels .== e])
+    # Rank labels by the number of elements they occupy within the *core* region.
+
+    Nx, Ny = core_size[1], core_size[2]
+    core_view = labels[1:Nx, 1:Ny]
+
+    total_elements = zeros(nlabels)
+    label_elements = zeros(Int, nlabels)
+
+    for e in 1:nlabels
+        cnt = count(==(e), core_view)
+        total_elements[e] = cnt
         label_elements[e] = e
     end
+
+    # Ignore labels that do not intersect the core at all.
+    # These correspond to basins that live only in the periodic extension.
+    valid = findall(>(0), total_elements)
 
     mm_basins = [] # major basins indexes
     m = 1
 
     # We add basin indexes until we reach the specified number (m == keep_major_basins) or
-    # we run out of basins to keep -> isempty(total_elements)
-    while (m <= keep_major_basins) && !isempty(total_elements)
-        next_maximum = findfirst(x -> x == maximum(total_elements), total_elements)
-        push!(mm_basins, label_elements[next_maximum])
-        deleteat!(total_elements, next_maximum)
-        deleteat!(label_elements, next_maximum)
+    # we run out of basins to keep -> isempty(valid)
+    while (m <= keep_major_basins) && !isempty(valid)
+        # Among the remaining valid labels, find the one with the largest core area.
+        _, idx = findmax(total_elements[valid])
+        next_label = label_elements[valid[idx]]
+        push!(mm_basins, next_label)
+        deleteat!(valid, idx)
         m += 1
     end
 

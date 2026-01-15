@@ -572,3 +572,8 @@ function atmosphere_sea_ice_stability_functions(FT=Oceananigans.defaults.FloatTy
 
     return SimilarityScales(momentum, scalar, scalar)
 end
+
+function atmosphere_sea_ice_similarity_theory(FT=Oceananigans.defaults.FloatType)
+    stability_functions = atmosphere_sea_ice_stability_functions(FT)
+    return SimilarityTheoryFluxes(FT; stability_functions)
+end

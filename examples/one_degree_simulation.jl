@@ -1,4 +1,4 @@
-# # One-degree global ocean--sea ice simulation
+# # [One-degree global ocean--sea ice simulation](@id one-degree-ocean-seaice)
 #
 # This example configures a global ocean--sea ice simulation at 1ᵒ horizontal resolution with
 # realistic bathymetry and a few closures including the "Gent-McWilliams" `IsopycnalSkewSymmetricDiffusivity`.
