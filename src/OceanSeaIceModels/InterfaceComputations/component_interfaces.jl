@@ -214,6 +214,8 @@ function default_ao_specific_humidity(ocean)
     return ImpureSaturationSpecificHumidity(phase, x_H₂O)
 end
 
+default_exchange_grid(atmosphere, ocean, sea_ice) = ocean.model.grid
+
 """
     ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                         radiation = Radiation(),
@@ -232,7 +234,7 @@ end
                         gravitational_acceleration = default_gravitational_acceleration)
 """
 function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
-                             exchange_grid = ocean.model.grid,
+                             exchange_grid = default_exchange_grid(atmosphere, ocean, sea_ice),
                              radiation = Radiation(),
                              freshwater_density = default_freshwater_density,
                              atmosphere_ocean_fluxes = SimilarityTheoryFluxes(eltype(exchange_grid)),
