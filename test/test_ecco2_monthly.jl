@@ -37,9 +37,7 @@ for arch in test_architectures, dataset in test_ecco_datasets
                 for name in test_names[dataset]
                     metadata = Metadata(name; dates, dataset)
 
-                    @show "I am downloading the dataset"
                     download_dataset(metadata) # just in case is not downloaded
-                    @show "dataset downloaded"
                     for datum in metadata
                         @test isfile(metadata_path(datum))
                     end

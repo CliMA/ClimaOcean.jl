@@ -49,6 +49,15 @@ test_fields = Dict(
     EN4Monthly() => (:T, :S),
 )
 
+# Install XESMF for windows architectures
+if Sys.iswindows() && Sys.ARCH == :x86_64
+    @info "Installing XESMF for windows architectures"
+    using Pkg
+    Pkg.add("CondaPkg")
+    using CondaPkg
+    CondaPkg.add(["esmf", "esmpy"])
+end
+
 #####
 ##### Test utilities
 #####

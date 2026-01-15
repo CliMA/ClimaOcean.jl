@@ -1,4 +1,4 @@
-# # One-degree global ocean--sea ice simulation
+# # [One-degree global ocean--sea ice simulation](@id one-degree-ocean-seaice)
 #
 # This example configures a global ocean--sea ice simulation at 1ᵒ horizontal resolution with
 # realistic bathymetry and a few closures including the "Gent-McWilliams" `IsopycnalSkewSymmetricDiffusivity`.
@@ -53,8 +53,8 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height);
 
 using Oceananigans.TurbulenceClosures: IsopycnalSkewSymmetricDiffusivity, AdvectiveFormulation
 
-eddy_closure = IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3, skew_flux_formulation=AdvectiveFormulation()) 
-vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
+eddy_closure = IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3, skew_flux_formulation=AdvectiveFormulation())
+vertical_mixing = ClimaOcean.Oceans.default_ocean_closure()
 
 # ### Ocean simulation
 # Now we bring everything together to construct the ocean simulation.
@@ -84,7 +84,7 @@ sea_ice = sea_ice_simulation(grid, ocean; advection=tracer_advection)
 
 date = DateTime(1993, 1, 1)
 dataset = ECCO4Monthly()
-ecco_temperature = Metadatum(:temperature; date, dataset)
+ecco_temperature           = Metadatum(:temperature; date, dataset)
 ecco_salinity              = Metadatum(:salinity; date, dataset)
 ecco_sea_ice_thickness     = Metadatum(:sea_ice_thickness; date, dataset)
 ecco_sea_ice_concentration = Metadatum(:sea_ice_concentration; date, dataset)
