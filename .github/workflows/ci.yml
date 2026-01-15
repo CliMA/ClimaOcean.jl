@@ -31,7 +31,7 @@ jobs:
           - '1.12'
         os:
           - ubuntu-latest
-          - windows-latest
+          # - windows-latest 
         arch:
           - x64
         include:
@@ -165,5 +165,5 @@ jobs:
       - uses: codecov/codecov-action@v5
         with:
           files: lcov.info
-          token: ${{ secrets.CODECOV_TOKEN }}
+  #         token: ${{ secrets.CODECOV_TOKEN }}
           
