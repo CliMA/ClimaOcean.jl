@@ -69,6 +69,67 @@ using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus, melting_temperature
     end
 end
 
+@testset "Salt flux sign conventions in coupled model" begin
+    # Test that computed salt fluxes have the correct sign:
+    # - Ice growth (Gₕ > 0) → brine rejection → Jˢ < 0 (salt added to ocean)
+    # - Ice melt (Gₕ < 0) → freshwater dilution → Jˢ > 0 (ocean freshens)
+    # Sign convention: Jˢ > 0 means salinity is extracted from ocean
+
+    for arch in test_architectures
+        A = typeof(arch)
+        @info "Testing salt flux sign conventions on $A"
+
+        grid = LatitudeLongitudeGrid(arch,
+                                     size = (4, 4, 1),
+                                     latitude = (-80, 80),
+                                     longitude = (0, 360),
+                                     z = (-100, 0))
+
+        ocean = ocean_simulation(grid, momentum_advection=nothing, closure=nothing, tracer_advection=nothing)
+        sea_ice = sea_ice_simulation(grid, ocean)
+
+        backend = JRA55NetCDFBackend(4)
+        atmosphere = JRA55PrescribedAtmosphere(arch; backend)
+        radiation = Radiation(arch)
+
+        for sea_ice_ocean_heat_flux in [IceBathHeatFlux(), ThreeEquationHeatFlux()]
+            @testset "Salt flux with $(nameof(typeof(sea_ice_ocean_heat_flux)))" begin
+                interfaces = ComponentInterfaces(atmosphere, ocean, sea_ice;
+                                                 radiation,
+                                                 sea_ice_ocean_heat_flux)
+                coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation, interfaces)
+
+                # Set up conditions: warm ocean (above freezing), ice present, positive growth rate
+                set!(ocean.model, T=10.0, S=35.0)
+                set!(sea_ice.model, h=1.0, ℵ=1.0, S=5.0)
+
+                # Force a positive growth rate (ice growth scenario)
+                Gₕ = sea_ice.model.ice_thermodynamics.thermodynamic_tendency
+                fill!(Gₕ, 1e-6)  # Positive = ice growth
+
+                # Compute the fluxes
+                time_step!(coupled_model, 60)
+
+                # Get the computed salt flux
+                Jˢ = coupled_model.interfaces.sea_ice_ocean_interface.fluxes.salt
+
+                # During ice growth, brine rejection should ADD salt to ocean → Jˢ < 0
+                Jˢ_cpu = Array(interior(Jˢ, :, :, 1))
+                @test all(Jˢ_cpu .< 0)
+
+                # Now test with ice melt (negative growth rate)
+                fill!(Gₕ, -1e-6)  # Negative = ice melt
+
+                time_step!(coupled_model, 60)
+
+                Jˢ_cpu = Array(interior(Jˢ, :, :, 1))
+                # During ice melt, freshwater should freshen ocean → Jˢ > 0
+                @test all(Jˢ_cpu .> 0)
+            end
+        end
+    end
+end
+
 @testset "Coupled model with different heat flux formulations" begin
     for arch in test_architectures
         A = typeof(arch)

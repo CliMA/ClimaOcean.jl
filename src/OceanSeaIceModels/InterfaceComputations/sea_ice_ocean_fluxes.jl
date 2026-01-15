@@ -184,8 +184,13 @@ end
     # Part 3: Salt flux
     # =============================================
     @inbounds begin
-        # Salt flux uses interface salinity (for IceBath/TwoEquation this is ocean surface,
-        # for ThreeEquation this is the computed interface salinity)
-        Jˢ[i, j, 1] = Gₕ[i, j, 1] * (Sⁱ[i, j, 1] - Sᵢ[i, j, 1])
+        # Salt flux due to ice growth/melt.
+        # Sign convention: Jˢ > 0 extracts salinity from ocean (ocean freshens).
+        # During ice growth (Gₕ > 0), brine rejection adds salt to ocean → Jˢ < 0
+        # During ice melt (Gₕ < 0), freshwater dilutes ocean → Jˢ > 0
+        # Formula: Jˢ = Gₕ × (ice_salinity - interface_salinity)
+        #   - For IceBath: interface_salinity ≈ ocean_salinity
+        #   - For ThreeEquation: interface_salinity is computed from salt balance
+        Jˢ[i, j, 1] = Gₕ[i, j, 1] * (Sᵢ[i, j, 1] - Sⁱ[i, j, 1])
     end
 end
