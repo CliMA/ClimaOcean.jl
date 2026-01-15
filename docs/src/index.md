@@ -62,7 +62,7 @@ set!(ocean.model,
 # Build and run an OceanSeaIceModel (with no sea ice component) forced by JRA55 reanalysis
 atmosphere = ClimaOcean.JRA55PrescribedAtmosphere(arch)
 coupled_model = ClimaOcean.OceanSeaIceModel(ocean; atmosphere)
-simulation = Simulation(coupled_model, Δt=5minutes, stop_time=30days)
+simulation = Simulation(coupled_model, Δt=20minutes, stop_time=30days)
 run!(simulation)
 ```
 
@@ -80,4 +80,3 @@ heatmap(view(speed, :, :, ocean.model.grid.Nz), colorrange=(0, 0.5), colormap=:m
 ```
 
 ![image](https://github.com/user-attachments/assets/4c484b93-38fe-4840-bf7d-63a3a59d29e1)
-

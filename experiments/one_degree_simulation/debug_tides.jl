@@ -4,8 +4,9 @@ using Oceananigans
 using Tidejinks
 using Dates
 using GLMakie
-import SPICE
 using Statistics
+
+import SPICE
 
 backend = JRA55NetCDFBackend(41)
 ρₒ = 1020
@@ -53,4 +54,3 @@ display(fig)
 =#
 
 # heatmap(Φ)
-

@@ -1,3 +1,7 @@
+"""
+Incorporate various datasets to be used for bathymetry, initialization, forcing,
+restoring, or validation.
+"""
 module DataWrangling
 
 export Metadata, Metadatum, ECCOMetadatum, EN4Metadatum, all_dates, first_date, last_date

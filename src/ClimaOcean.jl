@@ -42,6 +42,8 @@ export
     DatasetRestoring,
     ocean_simulation,
     sea_ice_simulation,
+    atmosphere_simulation,
+    sea_ice_dynamics,
     initialize!
 
 using Oceananigans
@@ -78,9 +80,14 @@ end
     return NamedTuple{names}(vals)
 end
 
-include("OceanSimulations/OceanSimulations.jl")
-include("SeaIceSimulations.jl")
+#####
+##### Source code
+#####
+
 include("OceanSeaIceModels/OceanSeaIceModels.jl")
+include("Oceans/Oceans.jl")
+include("Atmospheres/Atmospheres.jl")
+include("SeaIces/SeaIces.jl")
 include("InitialConditions/InitialConditions.jl")
 include("DataWrangling/DataWrangling.jl")
 include("Bathymetry.jl")
@@ -91,10 +98,11 @@ using .DataWrangling: ETOPO, ECCO, Copernicus, EN4, JRA55
 using .Bathymetry
 using .InitialConditions
 using .OceanSeaIceModels
-using .OceanSimulations
-using .SeaIceSimulations
+using .Atmospheres
+using .Oceans
+using .SeaIces
 
-using ClimaOcean.OceanSeaIceModels: PrescribedAtmosphere, ComponentInterfaces, MomentumRoughnessLength, ScalarRoughnessLength
+using ClimaOcean.OceanSeaIceModels: ComponentInterfaces, MomentumRoughnessLength, ScalarRoughnessLength
 using ClimaOcean.DataWrangling.ETOPO
 using ClimaOcean.DataWrangling.ECCO
 using ClimaOcean.DataWrangling.Copernicus

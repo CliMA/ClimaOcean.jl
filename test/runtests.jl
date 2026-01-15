@@ -22,7 +22,6 @@ function delete_inpainted_files(dir)
     end
 end
 
-
 if test_group == :init || test_group == :all
     #####
     ##### Delete inpainted files
@@ -113,4 +112,8 @@ end
 
 if test_group == :reactant || test_group == :all
     include("test_reactant.jl")
+end
+
+if test_group == :speedy_weather || test_group == :all
+    include("test_speedy_coupling.jl")
 end

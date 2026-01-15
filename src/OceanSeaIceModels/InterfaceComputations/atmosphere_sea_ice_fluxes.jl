@@ -3,33 +3,21 @@ using Oceananigans.Grids: inactive_node
 using Oceananigans.Fields: ZeroField
 
 function compute_atmosphere_sea_ice_fluxes!(coupled_model)
-    ocean = coupled_model.ocean
-    atmosphere = coupled_model.atmosphere
-    sea_ice = coupled_model.sea_ice
-    grid = ocean.model.grid
+    exchanger = coupled_model.interfaces.exchanger
+    grid = exchanger.grid
     arch = architecture(grid)
     clock = coupled_model.clock
 
-    interior_state = (u = ZeroField(),
-                      v = ZeroField(),
-                      h = sea_ice.model.ice_thickness,
-                      ℵ = sea_ice.model.ice_concentration,
-                      Tₒ = ocean.model.tracers.T,
-                      Sₒ = ocean.model.tracers.S)
+    interior_state = merge(exchanger.sea_ice.state,
+                           (; Tₒ = exchanger.ocean.state.T,
+                              Sₒ = exchanger.ocean.state.S))
 
-    atmosphere_fields = coupled_model.interfaces.exchanger.exchange_atmosphere_state
+    atmosphere_fields = exchanger.atmosphere.state
 
     # Simplify NamedTuple to reduce parameter space consumption.
     # See https://github.com/CliMA/ClimaOcean.jl/issues/116.
-    atmosphere_data = (u = atmosphere_fields.u.data,
-                       v = atmosphere_fields.v.data,
-                       T = atmosphere_fields.T.data,
-                       p = atmosphere_fields.p.data,
-                       q = atmosphere_fields.q.data,
-                       Qs = atmosphere_fields.Qs.data,
-                       Qℓ = atmosphere_fields.Qℓ.data,
-                       Mp = atmosphere_fields.Mp.data,
-                       h_bℓ = atmosphere.boundary_layer_height)
+    atmosphere_data = merge(atmosphere_fields, 
+                            (; h_bℓ = boundary_layer_height(coupled_model.atmosphere)))
 
     flux_formulation = coupled_model.interfaces.atmosphere_sea_ice_interface.flux_formulation
     interface_fluxes = coupled_model.interfaces.atmosphere_sea_ice_interface.fluxes
@@ -38,8 +26,8 @@ function compute_atmosphere_sea_ice_fluxes!(coupled_model)
     sea_ice_properties = coupled_model.interfaces.sea_ice_properties
     ocean_properties = coupled_model.interfaces.ocean_properties
 
-    atmosphere_properties = (thermodynamics_parameters = thermodynamics_parameters(atmosphere),
-                             surface_layer_height = surface_layer_height(atmosphere),
+    atmosphere_properties = (thermodynamics_parameters = thermodynamics_parameters(coupled_model.atmosphere),
+                             surface_layer_height = surface_layer_height(coupled_model.atmosphere),
                              gravitational_acceleration = coupled_model.interfaces.properties.gravitational_acceleration)
 
     kernel_parameters = interface_kernel_parameters(grid)
@@ -97,6 +85,7 @@ end
         uᵢ = zero(FT) # ℑxᶜᵃᵃ(i, j, 1, grid, interior_state.u)
         vᵢ = zero(FT) # ℑyᵃᶜᵃ(i, j, 1, grid, interior_state.v)
         hᵢ = interior_state.h[i, j, 1]
+        hc = interior_state.hc[i, j, 1]
         ℵᵢ = interior_state.ℵ[i, j, 1]
         Tₛ = interface_temperature[i, j, 1]
         Tₛ = convert_to_kelvin(sea_ice_properties.temperature_units, Tₛ)
@@ -117,10 +106,10 @@ end
                               h_bℓ = atmosphere_state.h_bℓ)
 
     downwelling_radiation = (; Qs, Qℓ)
-    local_interior_state = (u=uᵢ, v=vᵢ, T=Tᵢ, S=Sᵢ, h=hᵢ)
-
-    # Estimate initial interface state
-    u★ = convert(FT, 1e-4)
+    local_interior_state = (u=uᵢ, v=vᵢ, T=Tᵢ, S=Sᵢ, h=hᵢ, hc=hc)
+    
+    # Estimate initial interface state (FP32 compatible)
+    u★ = convert(FT, 1f-4)
 
     # Estimate interface specific humidity using interior temperature
     q_formulation = interface_properties.specific_humidity_formulation
@@ -180,4 +169,3 @@ end
         Ts[i, j, 1]  = convert_from_kelvin(sea_ice_properties.temperature_units, Ψₛ.T)
     end
 end
-
