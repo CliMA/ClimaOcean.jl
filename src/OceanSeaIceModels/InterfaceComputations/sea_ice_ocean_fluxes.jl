@@ -177,15 +177,14 @@ end
     # Part 2: Interface heat flux (formulation-specific)
     # =============================================
     # Returns heat flux Q and melt rate q
-    Qᵢₒ, q = compute_interface_heat_flux(flux_formulation, i, j,
+    Qᵢₒ, qᵐ = compute_interface_heat_flux(flux_formulation, i, j,
                                           Tⁱ, Sⁱ, Tₒ, Sₒ, Sᵢ, ℵ, Nz,
                                           liquidus, ρₒ, cₒ, ℰ, τˣ, τʸ)
 
     @inbounds Qᵢ[i, j, 1] = Qᵢₒ
 
-    # Add frazil ice formation to the melt rate, to compute the
-    # total salt rejection / meltwater input
-    q = q + δQᶠ / ℰ
+    # Freezing rate
+    qᶠ = δQᶠ / ℰ 
 
     # =============================================
     # Part 3: Salt flux
@@ -193,8 +192,6 @@ end
     # Salt flux from melting/freezing:
     # - When ice melts (q > 0), fresh meltwater dilutes the ocean
     # - When ice grows (q < 0), brine rejection adds salt to ocean
-    # Note: q is a mass flux (kg/m²/s), so we divide by the reference density
-    # to get a volume flux (m/s) consistent with the atmosphere-ocean salt flux.
-    # Formula: Jˢ = (q / ρₒ) × (interface_salinity - ice_salinity)
-    @inbounds Jˢ[i, j, 1] = (q / ρₒ) * (Sⁱ[i, j, 1] - Sᵢ[i, j, 1])
+    @inbounds Jˢ[i, j, 1] = (qᵐ / ρₒ) * (Sⁱ[i, j, 1] - Sᵢ[i, j, 1])
+                          + (qᶠ / ρₒ) * (Sₒ[i, j, 1] - Sᵢ[i, j, 1])
 end
