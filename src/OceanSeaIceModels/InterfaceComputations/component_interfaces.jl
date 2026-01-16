@@ -19,6 +19,7 @@ using Oceananigans.BoundaryConditions: fill_halo_regions!
 using Oceananigans.Fields: ConstantField, interpolate, FractionalIndices
 using Oceananigans.Utils: launch!, KernelParameters
 using Oceananigans.Operators: ℑxᶜᵃᵃ, ℑyᵃᶜᵃ, ℑxᶠᵃᵃ, ℑyᵃᶠᵃ
+using Oceananigans.Units: Time
 
 using KernelAbstractions: @kernel, @index
 

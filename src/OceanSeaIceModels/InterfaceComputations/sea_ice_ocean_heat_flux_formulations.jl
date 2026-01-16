@@ -211,8 +211,10 @@ Returns `(Q, q)` where:
     @inbounds Tᵢ[i, j, 1] = Tᵦ
     @inbounds Sᵢ[i, j, 1] = Sᵦ
 
-    # Heat flux: Q > 0 means heat flux from ocean to ice (ocean cooling)
+    # Scale by ice concentration (consistent with IceBathHeatFlux)
+    # When ℵ = 0, both heat flux and melt rate should be zero
     Qᵢₒ = ℰ * q * ℵᵢⱼ
+    q = q * ℵᵢⱼ
 
     return Qᵢₒ, q
 end
@@ -252,12 +254,19 @@ Returns `(Tᵦ, Sᵦ, q)` where q is the melt rate (positive for melting).
     b = -αₛu★ - η * (Tₒ - λ₂ + λ₁ * Sᵢ)
     c = αₛu★ * Sₒ + η * (Tₒ - λ₂) * Sᵢ
 
-    # Solve quadratic (smaller root is physically meaningful)
-    discriminant = b^2 - 4 * a * c
-    discriminant = max(discriminant, zero(discriminant))
+    # Pre-compute reciprocal with zero check (MITgcm approach).
+    # When a = 0 (e.g., u★ = 0), this avoids division by zero.
+    ξ = ifelse(a == zero(a), zero(a), one(a) / (2a))
 
-    # Note: a < 0 (since λ₁ < 0), so smaller root uses -sqrt
-    Sᵦ = (-b - sqrt(discriminant)) / (2 * a)
+    # Solve quadratic: Sᵦ = (-b ± √Δ) / (2a)
+    Δ = b^2 - 4a * c
+    Δ = max(Δ, zero(Δ))
+
+    # Try the root with -√Δ first (typically the physically meaningful one for a < 0)
+    Sᵦ = (-b - sqrt(Δ)) * ξ
+
+    # If this root yields negative salinity, use the other root (MITgcm approach)
+    Sᵦ = ifelse(Sᵦ < zero(Sᵦ), (-b + sqrt(Δ)) * ξ, Sᵦ)
 
     # Interface temperature from liquidus
     Tᵦ = λ₁ * Sᵦ + λ₂
