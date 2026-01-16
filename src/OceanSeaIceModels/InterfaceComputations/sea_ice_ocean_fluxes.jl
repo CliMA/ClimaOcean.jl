@@ -132,7 +132,7 @@ end
     ℵ  = ice_concentration
     uᵢ = sea_ice_u_velocity
     vᵢ = sea_ice_v_velocity
-    L  = latent_heat
+    ℰ  = latent_heat
 
     ρₒ = ocean_properties.reference_density
     cₒ = ocean_properties.heat_capacity
@@ -179,9 +179,13 @@ end
     # Returns heat flux Q and melt rate q
     Qᵢₒ, q = compute_interface_heat_flux(flux_formulation, i, j,
                                           Tⁱ, Sⁱ, Tₒ, Sₒ, Sᵢ, ℵ, Nz,
-                                          liquidus, ρₒ, cₒ, L, τˣ, τʸ)
+                                          liquidus, ρₒ, cₒ, ℰ, τˣ, τʸ)
 
     @inbounds Qᵢ[i, j, 1] = Qᵢₒ
+
+    # Add frazil ice formation to the melt rate, to compute the
+    # total salt rejection / meltwater input
+    q = q + δQᶠ / ℰ
 
     # =============================================
     # Part 3: Salt flux

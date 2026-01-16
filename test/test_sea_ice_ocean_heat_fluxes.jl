@@ -49,7 +49,7 @@ using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus, melting_temperature
         # Test parameters
         liquidus = LinearLiquidus(Float64)
         αₕ = 0.0095  # Heat transfer coefficient
-        αₛ = αₕ / 35 # Salt transfer coefficient (R = 35)
+        αₛ = αₕ / 35  # Salt transfer coefficient (R = 35)
         u★ = 0.002   # Friction velocity
         L  = 334e3   # Latent heat of fusion (J/kg)
         ρₒ = 1025.0  # Ocean reference density (kg/m³)
