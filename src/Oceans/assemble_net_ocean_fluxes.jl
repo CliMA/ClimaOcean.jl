@@ -155,7 +155,8 @@ end
 
     @inbounds begin
         Qio  = get_possibly_zero_flux(sea_ice_ocean_fluxes, :interface_heat)[i, j, 1]
-        Jˢio = get_possibly_zero_flux(sea_ice_ocean_fluxes, :salt)[i, j, 1] * ℵᵢ
+        # Salt flux is already scaled by ice concentration in compute_interface_heat_flux
+        Jˢio = get_possibly_zero_flux(sea_ice_ocean_fluxes, :salt)[i, j, 1]
 
         Jᵀao = ΣQao  * ρₒ⁻¹ / cₒ
         Jˢao = - Sₒ * ΣFao # salinity flux > 0 extracts salinity from the ocean --- the opposite of a water vapor flux
