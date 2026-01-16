@@ -1,4 +1,4 @@
-using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
+using ClimaSeaIce.SeaIceThermodynamics: melting_temperature, LinearLiquidus
 
 #####
 ##### Ice Bath Heat Flux (bulk formulation)
