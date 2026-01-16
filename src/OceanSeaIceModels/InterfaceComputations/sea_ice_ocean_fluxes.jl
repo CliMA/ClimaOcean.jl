@@ -34,9 +34,11 @@ function compute_sea_ice_ocean_fluxes!(interface, ocean, sea_ice, ocean_properti
     Sⁱ = sea_ice.model.tracers.S
     ℵ = sea_ice.model.ice_concentration
     hᵢ = sea_ice.model.ice_thickness
-    Gₕ = sea_ice.model.ice_thermodynamics.thermodynamic_tendency
 
-    liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
+    phase_transitions = sea_ice.model.ice_thermodynamics.phase_transitions
+    liquidus = phase_transitions.liquidus
+    L = phase_transitions.reference_latent_heat
+
     grid = sea_ice.model.grid
     clock = sea_ice.model.clock
     arch = architecture(grid)
@@ -61,8 +63,8 @@ function compute_sea_ice_ocean_fluxes!(interface, ocean, sea_ice, ocean_properti
 
     launch!(arch, grid, :xy, _compute_sea_ice_ocean_fluxes!,
             flux_formulation, fluxes, Tᵢ, Sᵢ, grid, clock,
-            hᵢ, ℵ, Sⁱ, Gₕ, Tₒ, Sₒ, uᵢ, vᵢ, τₛ,
-            liquidus, ocean_properties, Δt)
+            hᵢ, ℵ, Sⁱ, Tₒ, Sₒ, uᵢ, vᵢ, τₛ,
+            liquidus, ocean_properties, L, Δt)
 
     return nothing
 end
@@ -103,7 +105,6 @@ end
                                                 ice_thickness,
                                                 ice_concentration,
                                                 ice_salinity,
-                                                thermodynamic_tendency,
                                                 ocean_temperature,
                                                 ocean_salinity,
                                                 sea_ice_u_velocity,
@@ -111,6 +112,7 @@ end
                                                 sea_ice_ocean_stresses,
                                                 liquidus,
                                                 ocean_properties,
+                                                latent_heat,
                                                 Δt)
 
     i, j = @index(Global, NTuple)
@@ -128,9 +130,9 @@ end
     Sᵢ = ice_salinity
     hᵢ = ice_thickness
     ℵ  = ice_concentration
-    Gₕ = thermodynamic_tendency
     uᵢ = sea_ice_u_velocity
     vᵢ = sea_ice_v_velocity
+    ℰ  = latent_heat
 
     ρₒ = ocean_properties.reference_density
     cₒ = ocean_properties.heat_capacity
@@ -174,18 +176,23 @@ end
     # =============================================
     # Part 2: Interface heat flux (formulation-specific)
     # =============================================
-    Qᵢₒ = compute_interface_heat_flux(flux_formulation, i, j,
-                                       Tⁱ, Sⁱ, Tₒ, Sₒ, Sᵢ, ℵ, Gₕ, Nz,
-                                       liquidus, ρₒ, cₒ, τˣ, τʸ)
+    # Returns heat flux Q and melt rate q
+    Qᵢₒ, q = compute_interface_heat_flux(flux_formulation, i, j,
+                                          Tⁱ, Sⁱ, Tₒ, Sₒ, Sᵢ, ℵ, Nz,
+                                          liquidus, ρₒ, cₒ, ℰ, τˣ, τʸ)
 
     @inbounds Qᵢ[i, j, 1] = Qᵢₒ
+
+    # Add frazil ice formation to the melt rate, to compute the
+    # total salt rejection / meltwater input
+    q = q + δQᶠ / ℰ
 
     # =============================================
     # Part 3: Salt flux
     # =============================================
-    @inbounds begin
-        # Salt flux uses interface salinity (for IceBath/TwoEquation this is ocean surface,
-        # for ThreeEquation this is the computed interface salinity)
-        Jˢ[i, j, 1] = Gₕ[i, j, 1] * (Sⁱ[i, j, 1] - Sᵢ[i, j, 1])
-    end
+    # Salt flux from melting/freezing:
+    # - When ice melts (q > 0), fresh meltwater dilutes the ocean
+    # - When ice grows (q < 0), brine rejection adds salt to ocean
+    # Formula: Jˢ = q × (interface_salinity - ice_salinity)
+    @inbounds Jˢ[i, j, 1] = q * (Sⁱ[i, j, 1] - Sᵢ[i, j, 1])
 end

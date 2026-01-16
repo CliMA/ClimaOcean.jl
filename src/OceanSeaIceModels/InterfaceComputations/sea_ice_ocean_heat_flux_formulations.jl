@@ -1,4 +1,4 @@
-using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
+using ClimaSeaIce.SeaIceThermodynamics: melting_temperature, LinearLiquidus
 
 #####
 ##### Ice Bath Heat Flux (bulk formulation)
@@ -76,13 +76,13 @@ end
 Three-equation formulation for sea ice-ocean heat flux.
 
 This formulation solves a coupled system for the interface temperature and salinity:
-1. Heat balance: ``Q_o = \\rho_o c_o \\alpha_h u_* (T - T_b)``
-2. Salt balance: ``(S_b - S_i) G_h = \\alpha_s u_* (S - S_b)``
+1. Heat balance: ``\\rho c_p \\gamma_T (T - T_b) = ℰ q``
+2. Salt balance: ``\\gamma_S (S - S_b) = q (S_b - S_i)``
 3. Freezing point: ``T_b = T_m(S_b)``
 
 where ``T_b`` and ``S_b`` are the interface temperature and salinity,
-``\\alpha_h`` and ``\\alpha_s`` are heat and salt transfer coefficients,
-and ``G_h`` is the ice thermodynamic tendency (growth/melt rate).
+``\\gamma_T = \\alpha_h u_*`` and ``\\gamma_S = \\alpha_s u_*`` are turbulent exchange velocities,
+``L`` is the latent heat of fusion, and ``q`` is the melt rate (computed, not input).
 
 Fields
 ======
@@ -151,14 +151,16 @@ end
 #####
 
 """
-    compute_interface_heat_flux(flux, i, j, Tᵢ, Sᵢ, Tₒ, Sₒ, Sⁱ, ℵ, Gₕ, Nz, liquidus, ρₒ, cₒ, τx, τy)
+    compute_interface_heat_flux(flux::IceBathHeatFlux, ...)
 
-Compute the heat flux at the sea ice-ocean interface for grid point `(i, j)`.
-Returns the heat flux ``Q`` where ``Q > 0`` means heat flux from ocean to ice (ocean cooling).
+Compute the heat flux and melt rate at the sea ice-ocean interface using bulk formulation.
+Returns `(Q, q)` where:
+- `Q > 0` means heat flux from ocean to ice (ocean cooling)
+- `q > 0` means melting (ice volume loss)
 """
 @inline function compute_interface_heat_flux(flux::IceBathHeatFlux, i, j,
-                                              Tᵢ, Sᵢ, Tₒ, Sₒ, Sⁱ, ℵ, Gₕ, Nz,
-                                              liquidus, ρₒ, cₒ, τx, τy)
+                                              Tᵢ, Sᵢ, Tₒ, Sₒ, Sⁱ, ℵ, Nz,
+                                              liquidus, ρₒ, cₒ, ℰ, τx, τy)
     @inbounds begin
         Tᴺ  = Tᵢ[i, j, 1]
         Sᴺ  = Sᵢ[i, j, 1]
@@ -171,69 +173,99 @@ Returns the heat flux ``Q`` where ``Q > 0`` means heat flux from ocean to ice (o
     αₕ = flux.heat_transfer_coefficient
     u★ = get_friction_velocity(flux.friction_velocity, i, j, τx, τy, ρₒ)
 
-    # Q > 0 means heat flux from ocean to ice (ocean cooling)
-    return ρₒ * cₒ * αₕ * u★ * (Tᴺ - Tₘ) * ℵᵢⱼ
+    # Heat flux: Q > 0 means heat flux from ocean to ice (ocean cooling)
+    Qᵢₒ = ρₒ * cₒ * αₕ * u★ * (Tᴺ - Tₘ) * ℵᵢⱼ
+
+    # Melt rate: q = Q / L (positive for melting)
+    q = Qᵢₒ / ℰ
+
+    return Qᵢₒ, q
 end
 
+"""
+    compute_interface_heat_flux(flux::ThreeEquationHeatFlux, ...)
+
+Compute the heat flux and melt rate at the sea ice-ocean interface using three-equation formulation.
+Returns `(Q, q)` where:
+- `Q > 0` means heat flux from ocean to ice (ocean cooling)
+- `q > 0` means melting (ice volume loss)
+"""
 @inline function compute_interface_heat_flux(flux::ThreeEquationHeatFlux, i, j,
-                                              Tᵢ, Sᵢ, Tₒ, Sₒ, Sⁱ, ℵ, Gₕ, Nz,
-                                              liquidus, ρₒ, cₒ, τx, τy)
+                                              Tᵢ, Sᵢ, Tₒ, Sₒ, Sⁱ, ℵ, Nz,
+                                              liquidus, ρₒ, cₒ, ℰ, τx, τy)
     @inbounds begin
         Tᴺ   = Tₒ[i, j, Nz]   # Ocean surface temperature
         Sᴺ   = Sₒ[i, j, Nz]   # Ocean surface salinity
         Sᵢᶜᵉ = Sⁱ[i, j, 1]    # Ice salinity
         ℵᵢⱼ  = ℵ[i, j, 1]     # Ice concentration
-        gₕ   = Gₕ[i, j, 1]     # Ice growth rate
     end
 
     αₕ = flux.heat_transfer_coefficient
     αₛ = flux.salt_transfer_coefficient
     u★ = get_friction_velocity(flux.friction_velocity, i, j, τx, τy, ρₒ)
 
-    # Solve for interface temperature and salinity
-    Tᵦ, Sᵦ = solve_interface_conditions(Tᴺ, Sᴺ, Sᵢᶜᵉ, gₕ, αₕ, αₛ, u★, liquidus)
+    # Solve for interface temperature, salinity, and melt rate
+    Tᵦ, Sᵦ, q = solve_interface_conditions(Tᴺ, Sᴺ, Sᵢᶜᵉ, αₕ, αₛ, u★, ℰ, ρₒ, cₒ, liquidus)
 
     # Store interface values
     @inbounds Tᵢ[i, j, 1] = Tᵦ
     @inbounds Sᵢ[i, j, 1] = Sᵦ
 
-    # Q > 0 means heat flux from ocean to ice (ocean cooling)
-    return ρₒ * cₒ * αₕ * u★ * (Tᴺ - Tᵦ) * ℵᵢⱼ
+    # Heat flux: Q > 0 means heat flux from ocean to ice (ocean cooling)
+    Qᵢₒ = ℰ * q * ℵᵢⱼ
+
+    return Qᵢₒ, q
 end
 
 """
-    solve_interface_conditions(Tₒ, Sₒ, Sᵢ, Gₕ, αₕ, αₛ, u★, liquidus)
+    solve_interface_conditions(Tₒ, Sₒ, Sᵢ, αₕ, αₛ, u★, ℰ, ρₒ, cₒ, liquidus::LinearLiquidus)
 
-Solve the three-equation system for interface temperature and salinity.
+Solve the three-equation system for interface temperature, salinity, and melt rate.
 
-The system consists of:
-1. Heat balance at interface
-2. Salt balance at interface: ``(S_b - S_i) G_h = \\alpha_s u_* (S_o - S_b)``
-3. Freezing point constraint: ``T_b = T_m(S_b)``
+The three equations are:
+1. Heat balance: ``ρₒ cₒ αₕ u★ (Tₒ - Tᵦ) = ℰ q``
+2. Salt balance: ``αₛ u★ (Sₒ - Sᵦ) = q (Sᵦ - Sᵢ)``
+3. Freezing point: ``Tᵦ = Tₘ(Sᵦ)``
 
-For a linear liquidus ``T_m(S) = \\lambda_1 S + \\lambda_2``, an analytical solution exists.
+Returns `(Tᵦ, Sᵦ, q)` where q is the melt rate (positive for melting).
 """
-@inline function solve_interface_conditions(Tₒ, Sₒ, Sᵢ, Gₕ, αₕ, αₛ, u★, liquidus)
-    # For a linear liquidus: Tₘ(S) = λ₁ * S + λ₂
-    # The salt balance gives: (Sᵦ - Sᵢ) * Gₕ = αₛ * u★ * (Sₒ - Sᵦ)
-    # Solving for Sᵦ:
-    #   Sᵦ * Gₕ - Sᵢ * Gₕ = αₛ * u★ * Sₒ - αₛ * u★ * Sᵦ
-    #   Sᵦ * (Gₕ + αₛ * u★) = αₛ * u★ * Sₒ + Sᵢ * Gₕ
-    #   Sᵦ = (αₛ * u★ * Sₒ + Sᵢ * Gₕ) / (Gₕ + αₛ * u★)
+@inline function solve_interface_conditions(Tₒ, Sₒ, Sᵢ, αₕ, αₛ, u★, ℰ, ρₒ, cₒ, liquidus::LinearLiquidus)
+    # Liquidus: Tₘ(S) = Tₘ₀ - m * S where m = liquidus.slope
+    # So Tₘ(S) = λ₁ * S + λ₂ with λ₁ = -m, λ₂ = Tₘ₀
+    λ₁ = -liquidus.slope
+    λ₂ = liquidus.freshwater_melting_temperature
 
+    # Combine equations to get quadratic in Sᵦ:
+    # From heat balance: q = ρₒ * cₒ * αₕ * u★ * (Tₒ - Tᵦ) / L
+    # Substituting Tᵦ = λ₁ * Sᵦ + λ₂:
+    #   q = ρₒ * cₒ * αₕ * u★ * (Tₒ - λ₁ * Sᵦ - λ₂) / L
+    # Substituting into salt balance:
+    #   αₛ * u★ * (Sₒ - Sᵦ) = q * (Sᵦ - Sᵢ)
+    # This gives a quadratic: a * Sᵦ² + b * Sᵦ + c = 0
+
+    # Coefficient: η = ρₒ * cₒ * αₕ * u★ / L
+    η = ρₒ * cₒ * αₕ * u★ / ℰ
     αₛu★ = αₛ * u★
 
-    # Handle the case when Gₕ + αₛu★ ≈ 0 (no ice growth and no turbulent transfer)
-    denominator = Gₕ + αₛu★
+    # Quadratic coefficients
+    a = λ₁ * η
+    b = -αₛu★ - η * (Tₒ - λ₂ + λ₁ * Sᵢ)
+    c = αₛu★ * Sₒ + η * (Tₒ - λ₂) * Sᵢ
 
-    # If denominator is very small, fall back to ocean salinity
-    Sᵦ = ifelse(abs(denominator) < eps(typeof(denominator)), Sₒ,
-                (αₛu★ * Sₒ + Sᵢ * Gₕ) / denominator)
+    # Solve quadratic (smaller root is physically meaningful)
+    discriminant = b^2 - 4 * a * c
+    discriminant = max(discriminant, zero(discriminant))
+
+    # Note: a < 0 (since λ₁ < 0), so smaller root uses -sqrt
+    Sᵦ = (-b - sqrt(discriminant)) / (2 * a)
 
     # Interface temperature from liquidus
-    Tᵦ = melting_temperature(liquidus, Sᵦ)
+    Tᵦ = λ₁ * Sᵦ + λ₂
 
-    return Tᵦ, Sᵦ
+    # Melt rate from heat balance
+    q = η * (Tₒ - Tᵦ)
+
+    return Tᵦ, Sᵦ, q
 end
 
 #####
