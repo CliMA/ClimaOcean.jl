@@ -29,6 +29,7 @@ import ClimaOcean.OceanSeaIceModels: interpolate_state!,
                                      heat_capacity,
                                      ocean_temperature,
                                      ocean_salinity,
+                                     ocean_surface_temperature,
                                      ocean_surface_salinity,
                                      ocean_surface_velocities
 
@@ -70,6 +71,11 @@ ocean_temperature(ocean::Simulation{<:HydrostaticFreeSurfaceModel}) = ocean.mode
 function ocean_surface_salinity(ocean::Simulation{<:HydrostaticFreeSurfaceModel})
     kᴺ = size(ocean.model.grid, 3)
     return interior(ocean.model.tracers.S, :, :, kᴺ:kᴺ)
+end
+
+function ocean_surface_temperature(ocean::Simulation{<:HydrostaticFreeSurfaceModel})
+    kᴺ = size(ocean.model.grid, 3)
+    return interior(ocean.model.tracers.T, :, :, kᴺ:kᴺ)
 end
 
 function ocean_surface_velocities(ocean::Simulation{<:HydrostaticFreeSurfaceModel})
