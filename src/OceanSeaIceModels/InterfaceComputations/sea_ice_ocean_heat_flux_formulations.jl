@@ -211,8 +211,10 @@ Returns `(Q, q)` where:
     @inbounds Tᵢ[i, j, 1] = Tᵦ
     @inbounds Sᵢ[i, j, 1] = Sᵦ
 
-    # Heat flux: Q > 0 means heat flux from ocean to ice (ocean cooling)
+    # Scale by ice concentration (consistent with IceBathHeatFlux)
+    # When ℵ = 0, both heat flux and melt rate should be zero
     Qᵢₒ = ℰ * q * ℵᵢⱼ
+    q = q * ℵᵢⱼ
 
     return Qᵢₒ, q
 end
