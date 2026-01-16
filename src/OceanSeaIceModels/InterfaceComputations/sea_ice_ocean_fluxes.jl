@@ -136,7 +136,6 @@ end
 
     ρₒ = ocean_properties.reference_density
     cₒ = ocean_properties.heat_capacity
-    ρf = ocean_properties.freshwater_density
 
     # =============================================
     # Part 1: Frazil ice formation (all formulations)
@@ -194,8 +193,8 @@ end
     # Salt flux from melting/freezing:
     # - When ice melts (q > 0), fresh meltwater dilutes the ocean
     # - When ice grows (q < 0), brine rejection adds salt to ocean
-    # Note: q is a mass flux (kg/m²/s), so we divide by freshwater density
+    # Note: q is a mass flux (kg/m²/s), so we divide by the reference density
     # to get a volume flux (m/s) consistent with the atmosphere-ocean salt flux.
-    # Formula: Jˢ = (q / ρf) × (interface_salinity - ice_salinity)
-    @inbounds Jˢ[i, j, 1] = (q / ρf) * (Sⁱ[i, j, 1] - Sᵢ[i, j, 1])
+    # Formula: Jˢ = (q / ρₒ) × (interface_salinity - ice_salinity)
+    @inbounds Jˢ[i, j, 1] = (q / ρₒ) * (Sⁱ[i, j, 1] - Sᵢ[i, j, 1])
 end
