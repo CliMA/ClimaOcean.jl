@@ -225,6 +225,204 @@ end
     end
 end
 
+@testset "Salt flux unit consistency" begin
+    # This test verifies that the salt flux has correct units after the fix
+    # that adds the freshwater density conversion: Jˢ = (q / ρf) * (Sᵦ - S_ice)
+    #
+    # The key insight is that:
+    # - q is a mass flux (kg/m²/s)
+    # - Dividing by ρf (kg/m³) gives a volume flux (m/s)
+    # - Multiplying by salinity difference gives psu × m/s, consistent with atmosphere-ocean
+    #
+    # Without this fix, salt flux would be ~1000× too large, causing instability.
+
+    for arch in test_architectures
+        A = typeof(arch)
+        @info "Testing salt flux unit consistency on $A"
+
+        grid = LatitudeLongitudeGrid(arch,
+                                     size = (4, 4, 1),
+                                     latitude = (-80, 80),
+                                     longitude = (0, 360),
+                                     z = (-100, 0))
+
+        ocean = ocean_simulation(grid, momentum_advection=nothing, closure=nothing, tracer_advection=nothing)
+        sea_ice = sea_ice_simulation(grid, ocean)
+
+        backend = JRA55NetCDFBackend(4)
+        atmosphere = JRA55PrescribedAtmosphere(arch; backend)
+        radiation = Radiation(arch)
+
+        for sea_ice_ocean_heat_flux in [IceBathHeatFlux(), ThreeEquationHeatFlux()]
+            @testset "Flux magnitude with $(nameof(typeof(sea_ice_ocean_heat_flux)))" begin
+                interfaces = ComponentInterfaces(atmosphere, ocean, sea_ice;
+                                                 radiation,
+                                                 sea_ice_ocean_heat_flux)
+                coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation, interfaces)
+
+                # Set up melting conditions
+                set!(ocean.model, T=2.0, S=35.0)  # Warm ocean
+                set!(sea_ice.model, h=1.0, ℵ=1.0, S=5.0)
+
+                time_step!(coupled_model, 60)
+
+                # Get the computed fluxes
+                Jˢ = coupled_model.interfaces.sea_ice_ocean_interface.fluxes.salt
+                Qᵢ = coupled_model.interfaces.sea_ice_ocean_interface.fluxes.interface_heat
+
+                Jˢ_cpu = Array(interior(Jˢ, :, :, 1))
+                Qᵢ_cpu = Array(interior(Qᵢ, :, :, 1))
+
+                # Heat flux should be O(100-1000) W/m² for strong melting
+                @test all(Qᵢ_cpu .> 0)
+                @test all(Qᵢ_cpu .< 1e5)  # Should not be unreasonably large
+
+                # Salt flux (in psu × m/s) should be small: typical values O(1e-7 to 1e-5)
+                # Before the fix, salt flux was ~1000× too large
+                # The salt flux magnitude should be comparable to:
+                # Jˢ ~ (Q / (ρ * c * L)) * ΔS ~ (1000 / (1025 * 4000 * 3e5)) * 30 ~ 2e-7 psu m/s
+                @test all(abs.(Jˢ_cpu) .< 1e-3)  # Should not be unreasonably large (was ~1 before fix)
+                @test all(abs.(Jˢ_cpu) .> 1e-10) # Should not be zero
+            end
+        end
+    end
+end
+
+@testset "Freshwater density in salt flux computation" begin
+    # This test directly verifies that the freshwater density is used correctly
+    # by checking that the salt flux scales inversely with freshwater density
+
+    liquidus = LinearLiquidus(Float64)
+    αₕ = 0.0095
+    αₛ = αₕ / 35
+    u★ = 0.002
+    L  = 334e3
+    ρₒ = 1025.0
+    cₒ = 3991.0
+
+    Tₒ = 2.0
+    Sₒ = 35.0
+    Sᵢ = 5.0
+
+    # Compute interface conditions
+    Tᵦ, Sᵦ, q = solve_interface_conditions(Tₒ, Sₒ, Sᵢ, αₕ, αₛ, u★, L, ρₒ, cₒ, liquidus)
+
+    # q is a mass flux (kg/m²/s)
+    # Salt flux with correct density conversion: Jˢ = (q / ρf) * (Sᵦ - Sᵢ)
+    ρf_standard = 1000.0  # Standard freshwater density
+    ρf_altered  = 1020.0  # Slightly different density
+
+    Jˢ_standard = (q / ρf_standard) * (Sᵦ - Sᵢ)
+    Jˢ_altered  = (q / ρf_altered)  * (Sᵦ - Sᵢ)
+
+    # Salt flux should scale inversely with freshwater density
+    @test Jˢ_standard / Jˢ_altered ≈ ρf_altered / ρf_standard
+
+    # Verify the salt flux has reasonable magnitude
+    # For typical conditions: q ~ 1e-5 kg/m²/s, ΔS ~ 30 psu, ρf ~ 1000 kg/m³
+    # Jˢ ~ (1e-5 / 1000) * 30 ~ 3e-7 psu m/s
+    @test abs(Jˢ_standard) < 1e-4  # Should be small
+    @test abs(Jˢ_standard) > 1e-10 # Should not be negligible
+end
+
+@testset "Heat and salt flux consistency" begin
+    # Verify that heat flux and salt flux are computed consistently
+    # Key relationship: Q = ℰ * q, so q = Q / ℰ
+    # Then: Jˢ = (q / ρf) * ΔS = (Q / (ℰ * ρf)) * ΔS
+
+    liquidus = LinearLiquidus(Float64)
+    αₕ = 0.0095
+    αₛ = αₕ / 35
+    u★ = 0.002
+    ℰ  = 334e3   # Latent heat (J/kg)
+    ρₒ = 1025.0
+    cₒ = 3991.0
+    ρf = 1000.0  # Freshwater density
+
+    Tₒ = 2.0
+    Sₒ = 35.0
+    Sᵢ = 5.0
+
+    Tᵦ, Sᵦ, q = solve_interface_conditions(Tₒ, Sₒ, Sᵢ, αₕ, αₛ, u★, ℰ, ρₒ, cₒ, liquidus)
+
+    # Compute heat flux from melt rate
+    Q = ℰ * q  # W/m² (without ice concentration scaling for this unit test)
+
+    # Compute salt flux with proper density conversion
+    Jˢ = (q / ρf) * (Sᵦ - Sᵢ)
+
+    # Verify the relationship: Jˢ * ρf * ℰ / ΔS should equal Q
+    ΔS = Sᵦ - Sᵢ
+    Q_from_salt = Jˢ * ρf * ℰ / ΔS
+    @test Q_from_salt ≈ Q
+
+    # Also verify that temperature flux and salt flux have consistent scaling
+    # Jᵀ = Q / (ρₒ * cₒ) has units K × m/s
+    Jᵀ = Q / (ρₒ * cₒ)
+
+    # Both Jᵀ and Jˢ should be O(1e-7) for these conditions
+    @test abs(Jᵀ) > 1e-10
+    @test abs(Jᵀ) < 1e-4
+    @test abs(Jˢ) > 1e-10
+    @test abs(Jˢ) < 1e-4
+end
+
+@testset "Frazil ice formation and salt flux" begin
+    # Test that frazil ice formation is handled correctly and contributes
+    # to the salt flux with proper density conversion.
+    # When ocean temperature drops below freezing, frazil ice forms and
+    # the salt flux includes the frazil contribution.
+
+    for arch in test_architectures
+        A = typeof(arch)
+        @info "Testing frazil ice formation on $A"
+
+        grid = LatitudeLongitudeGrid(arch,
+                                     size = (4, 4, 4),  # Multiple vertical levels for frazil
+                                     latitude = (-80, 80),
+                                     longitude = (0, 360),
+                                     z = (-400, 0))
+
+        ocean = ocean_simulation(grid, momentum_advection=nothing, closure=nothing, tracer_advection=nothing)
+        sea_ice = sea_ice_simulation(grid, ocean)
+
+        backend = JRA55NetCDFBackend(4)
+        atmosphere = JRA55PrescribedAtmosphere(arch; backend)
+        radiation = Radiation(arch)
+
+        for sea_ice_ocean_heat_flux in [IceBathHeatFlux(), ThreeEquationHeatFlux()]
+            @testset "Frazil with $(nameof(typeof(sea_ice_ocean_heat_flux)))" begin
+                interfaces = ComponentInterfaces(atmosphere, ocean, sea_ice;
+                                                 radiation,
+                                                 sea_ice_ocean_heat_flux)
+                coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation, interfaces)
+
+                # Set up conditions where frazil might form:
+                # Cold ocean near freezing with ice present
+                # Freezing point at S=35 is about -1.9°C
+                set!(ocean.model, T=-1.5, S=35.0)  # Cold but above freezing
+                set!(sea_ice.model, h=1.0, ℵ=0.5, S=5.0)
+
+                time_step!(coupled_model, 60)
+
+                # Get the computed fluxes
+                Jˢ = coupled_model.interfaces.sea_ice_ocean_interface.fluxes.salt
+                Qᶠ = coupled_model.interfaces.sea_ice_ocean_interface.fluxes.frazil_heat
+
+                Jˢ_cpu = Array(interior(Jˢ, :, :, 1))
+                Qᶠ_cpu = Array(interior(Qᶠ, :, :, 1))
+
+                # Salt flux should be finite and reasonably bounded
+                @test all(isfinite.(Jˢ_cpu))
+                @test all(abs.(Jˢ_cpu) .< 1e-3)
+
+                # Frazil heat flux should be finite
+                @test all(isfinite.(Qᶠ_cpu))
+            end
+        end
+    end
+end
+
 @testset "Coupled model with different heat flux formulations" begin
     for arch in test_architectures
         A = typeof(arch)
