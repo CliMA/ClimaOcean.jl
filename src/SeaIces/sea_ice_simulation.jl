@@ -150,6 +150,9 @@ function ThreeEquationHeatFlux(sea_ice::Simulation{<:SeaIceModel}, FT::DataType 
                                salt_transfer_coefficient = heat_transfer_coefficient / 35,
                                friction_velocity = convert(FT, 0.002))
 
+    conductive_flux = sea_ice.model.ice_thermodynamics.internal_heat_flux.parameters.flux
+    ice_temperature = sea_ice.model.ice_thermodynamics.top_surface_temperature
+    
     return ThreeEquationHeatFlux(conductive_flux,
                                  ice_temperature,
                                  convert(FT, heat_transfer_coefficient),
