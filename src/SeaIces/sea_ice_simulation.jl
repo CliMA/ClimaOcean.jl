@@ -124,3 +124,24 @@ function net_fluxes(sea_ice::Simulation{<:SeaIceModel})
 
     return (; bottom = net_bottom_sea_ice_fluxes, top = net_top_sea_ice_fluxes)
 end
+
+function default_ai_temperature(sea_ice::Simulation{<:SeaIceModel})
+    conductive_flux = sea_ice.model.ice_thermodynamics.internal_heat_flux.parameters.flux
+    return SkinTemperature(conductive_flux)
+end
+
+# Constructor that accepts the sea-ice model
+function ThreeEquationHeatFlux(sea_ice::Simulation{<:SeaIceModel}, FT::DataType = Oceananigans.defaults.FloatType; 
+                               heat_transfer_coefficient = 0.0095,
+                               salt_transfer_coefficient = heat_transfer_coefficient / 35,
+                               friction_velocity = convert(FT, 0.002))
+
+    conductive_flux = sea_ice.model.ice_thermodynamics.internal_heat_flux.parameters.flux
+    ice_temperature = sea_ice.model.ice_thermodynamics.top_surface_temperature
+    
+    return ThreeEquationHeatFlux(conductive_flux,
+                                 ice_temperature,
+                                 convert(FT, heat_transfer_coefficient),
+                                 convert(FT, salt_transfer_coefficient),
+                                 friction_velocity) 
+end

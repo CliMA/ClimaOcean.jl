@@ -134,14 +134,14 @@ end
     end
 
     # Convert from a mass flux to a volume flux (aka velocity)
-    # by dividing with the density of freshwater.
+    # by dividing with the ocean reference density.
     # Also switch the sign, for some reason we are given freshwater flux as positive down.
-    ρf⁻¹ = 1 / ocean_properties.freshwater_density
-    ΣFao = - Mp * ρf⁻¹
+    ρₒ⁻¹ = 1 / ocean_properties.reference_density
+    ΣFao = - Mp * ρₒ⁻¹
 
     # Add the contribution from the turbulent water vapor flux, which has
     # a different sign convention as the prescribed water mass fluxes (positive upwards)
-    Fv = Mv * ρf⁻¹
+    Fv = Mv * ρₒ⁻¹
     ΣFao += Fv
 
     # Compute fluxes for u, v, T, and S from momentum, heat, and freshwater fluxes
@@ -149,17 +149,17 @@ end
     τy = net_ocean_fluxes.v
     Jᵀ = net_ocean_fluxes.T
     Jˢ = net_ocean_fluxes.S
-    ℵ = sea_ice_concentration
-    ρₒ⁻¹ = 1 / ocean_properties.reference_density
-    cₒ   = ocean_properties.heat_capacity
+    ℵ  = sea_ice_concentration
+    cₒ = ocean_properties.heat_capacity
 
     @inbounds begin
         Qio  = get_possibly_zero_flux(sea_ice_ocean_fluxes, :interface_heat)[i, j, 1]
-        Jˢio = get_possibly_zero_flux(sea_ice_ocean_fluxes, :salt)[i, j, 1] * ℵᵢ
-
+        Jˢio = get_possibly_zero_flux(sea_ice_ocean_fluxes, :salt)[i, j, 1]
         Jᵀao = ΣQao  * ρₒ⁻¹ / cₒ
-        Jˢao = - Sₒ * ΣFao # salinity flux > 0 extracts salinity from the ocean --- the opposite of a water vapor flux
         Jᵀio = Qio * ρₒ⁻¹ / cₒ
+    
+        # salinity flux > 0 extracts salinity from the ocean --- the opposite of a water vapor flux
+        Jˢao = - Sₒ * ΣFao
 
         τxao = ℑxᶠᵃᵃ(i, j, 1, grid, τᶜᶜᶜ, ρₒ⁻¹, ℵ, ρτxao)
         τyao = ℑyᵃᶠᵃ(i, j, 1, grid, τᶜᶜᶜ, ρₒ⁻¹, ℵ, ρτyao)
