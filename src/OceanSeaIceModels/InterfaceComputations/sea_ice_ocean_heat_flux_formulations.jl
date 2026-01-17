@@ -1,4 +1,5 @@
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature, LinearLiquidus, ConductiveFlux
+using Adapt
 
 #####
 ##### Ice Bath Heat Flux (bulk formulation)
@@ -122,6 +123,13 @@ struct ThreeEquationHeatFlux{F, T, FT, U}
     salt_transfer_coefficient :: FT
     friction_velocity :: U
 end
+
+Adapt.adapt_structure(to, f::ThreeEquationHeatFlux) = 
+    ThreeEquationHeatFlux(Adapt.adapt(to, f.conductive_flux),
+                          Adapt.adapt(to, f.internal_temperature),
+                          f.heat_transfer_coefficient,
+                          f.salt_transfer_coefficient,
+                          Adapt.adapt(to, f.friction_velocity))
 
 """
     ThreeEquationHeatFlux(FT::DataType = Oceananigans.defaults.FloatType;
