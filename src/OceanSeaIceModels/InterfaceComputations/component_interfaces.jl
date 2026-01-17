@@ -265,11 +265,6 @@ end
 
 default_ai_temperature(::Nothing) = nothing
 
-function default_ai_temperature(sea_ice)
-    conductive_flux = sea_ice.model.ice_thermodynamics.internal_heat_flux.parameters.flux
-    return SkinTemperature(conductive_flux)
-end
-
 function default_ao_specific_humidity(ocean)
     FT    = eltype(ocean)
     phase = AtmosphericThermodynamics.Liquid()
@@ -310,7 +305,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                              freshwater_density = default_freshwater_density,
                              atmosphere_ocean_fluxes = SimilarityTheoryFluxes(eltype(exchange_grid)),
                              atmosphere_sea_ice_fluxes = atmosphere_sea_ice_similarity_theory(eltype(exchange_grid)),
-                             sea_ice_ocean_heat_flux = ThreeEquationHeatFlux(eltype(exchange_grid)),
+                             sea_ice_ocean_heat_flux = ThreeEquationHeatFlux(sea_ice),
                              atmosphere_ocean_interface_temperature = BulkTemperature(),
                              atmosphere_ocean_velocity_difference = RelativeVelocity(),
                              atmosphere_ocean_interface_specific_humidity = default_ao_specific_humidity(ocean),

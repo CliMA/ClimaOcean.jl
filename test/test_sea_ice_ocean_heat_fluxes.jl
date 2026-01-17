@@ -55,12 +55,22 @@ using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus, melting_temperature
         ρₒ = 1025.0  # Ocean reference density (kg/m³)
         cₒ = 3991.0  # Ocean heat capacity (J/kg/K)
 
+        # Create a ThreeEquationHeatFlux without internal flux for testing
+        flux = ThreeEquationHeatFlux()
+
+        # Default ice state values (not used for NoInternalFluxTEF except for S)
+        default_h = 1.0
+        default_hc = 0.1
+        default_ℵ = 1.0
+        default_Tᵢₙₜ = 0.0
+
         @testset "Warm ocean (melting conditions)" begin
             Tₒ = 2.0    # Ocean temperature well above freezing
             Sₒ = 35.0   # Ocean salinity
             Sᵢ = 5.0    # Ice salinity
 
-            Tᵦ, Sᵦ, q = solve_interface_conditions(Tₒ, Sₒ, Sᵢ, αₕ, αₛ, u★, L, ρₒ, cₒ, liquidus)
+            ice_state = (; S = Sᵢ, h = default_h, hc = default_hc, ℵ = default_ℵ, Tᵢₙₜ = default_Tᵢₙₜ)
+            Tᵦ, Sᵦ, q = solve_interface_conditions(flux, Tₒ, Sₒ, ice_state, αₕ, αₛ, u★, L, ρₒ, cₒ, liquidus)
 
             # Interface salinity should be between ice and ocean salinity
             @test Sᵦ >= Sᵢ
@@ -81,7 +91,8 @@ using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus, melting_temperature
             Tₒ = Tₘ_ocean + 0.5  # Ocean 0.5°C above freezing
             Sᵢ = 5.0
 
-            Tᵦ, Sᵦ, q = solve_interface_conditions(Tₒ, Sₒ, Sᵢ, αₕ, αₛ, u★, L, ρₒ, cₒ, liquidus)
+            ice_state = (; S = Sᵢ, h = default_h, hc = default_hc, ℵ = default_ℵ, Tᵢₙₜ = default_Tᵢₙₜ)
+            Tᵦ, Sᵦ, q = solve_interface_conditions(flux, Tₒ, Sₒ, ice_state, αₕ, αₛ, u★, L, ρₒ, cₒ, liquidus)
 
             # Interface salinity should be between ice and ocean salinity
             @test Sᵦ >= Sᵢ
@@ -95,32 +106,26 @@ using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus, melting_temperature
             @test q > 0
         end
 
-        @testset "Ocean near freezing point" begin
+        @testset "Ocean at freezing point" begin
             Sₒ = 35.0
-            Tₘ_ocean = melting_temperature(liquidus, Sₒ)
-            Tₒ = Tₘ_ocean + 0.01  # Just slightly above freezing
+            Tₒ = melting_temperature(liquidus, Sₒ)
             Sᵢ = 5.0
 
-            Tᵦ, Sᵦ, q = solve_interface_conditions(Tₒ, Sₒ, Sᵢ, αₕ, αₛ, u★, L, ρₒ, cₒ, liquidus)
+            ice_state = (; S = Sᵢ, h = default_h, hc = default_hc, ℵ = default_ℵ, Tᵢₙₜ = default_Tᵢₙₜ)
+            Tᵦ, Sᵦ, q = solve_interface_conditions(flux, Tₒ, Sₒ, ice_state, αₕ, αₛ, u★, L, ρₒ, cₒ, liquidus)
 
-            # Interface salinity should still be bounded
-            @test Sᵦ >= Sᵢ
-            @test Sᵦ <= Sₒ
-
-            # Interface temperature should be at freezing point
-            Tₘ = melting_temperature(liquidus, Sᵦ)
-            @test Tᵦ ≈ Tₘ
-
-            # Very small melt rate expected
-            @test abs(q) < 1e-6
+            @test Sᵦ ≈ Sₒ
+            @test Tᵦ ≈ Tₒ
+            @test abs(q) < eps(eltype(q))
         end
 
         @testset "Various salinity conditions" begin
             Tₒ = 1.0  # Warm ocean
-            Sᵢ = 5.0  # Ice salinity
 
             for Sₒ in [30.0, 33.0, 35.0, 37.0, 40.0]
-                Tᵦ, Sᵦ, q = solve_interface_conditions(Tₒ, Sₒ, Sᵢ, αₕ, αₛ, u★, L, ρₒ, cₒ, liquidus)
+                Sᵢ = 5.0
+                ice_state = (; S = Sᵢ, h = default_h, hc = default_hc, ℵ = default_ℵ, Tᵢₙₜ = default_Tᵢₙₜ)
+                Tᵦ, Sᵦ, q = solve_interface_conditions(flux, Tₒ, Sₒ, ice_state, αₕ, αₛ, u★, L, ρₒ, cₒ, liquidus)
 
                 # Interface salinity must always be bounded
                 @test Sᵦ >= Sᵢ
@@ -137,7 +142,8 @@ using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus, melting_temperature
             Sₒ = 35.0
             Sᵢ = 0.0  # Fresh ice
 
-            Tᵦ, Sᵦ, q = solve_interface_conditions(Tₒ, Sₒ, Sᵢ, αₕ, αₛ, u★, L, ρₒ, cₒ, liquidus)
+            ice_state = (; S = Sᵢ, h = default_h, hc = default_hc, ℵ = default_ℵ, Tᵢₙₜ = default_Tᵢₙₜ)
+            Tᵦ, Sᵦ, q = solve_interface_conditions(flux, Tₒ, Sₒ, ice_state, αₕ, αₛ, u★, L, ρₒ, cₒ, liquidus)
 
             @test Sᵦ >= Sᵢ
             @test Sᵦ <= Sₒ
@@ -150,7 +156,8 @@ using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus, melting_temperature
             Sᵢ = 5.0
             u★_high = 0.1  # High turbulence
 
-            Tᵦ, Sᵦ, q = solve_interface_conditions(Tₒ, Sₒ, Sᵢ, αₕ, αₛ, u★_high, L, ρₒ, cₒ, liquidus)
+            ice_state = (; S = Sᵢ, h = default_h, hc = default_hc, ℵ = default_ℵ, Tᵢₙₜ = default_Tᵢₙₜ)
+            Tᵦ, Sᵦ, q = solve_interface_conditions(flux, Tₒ, Sₒ, ice_state, αₕ, αₛ, u★_high, L, ρₒ, cₒ, liquidus)
 
             @test Sᵦ >= Sᵢ
             @test Sᵦ <= Sₒ
@@ -163,7 +170,8 @@ using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus, melting_temperature
             Sᵢ = 5.0
             u★_low = 0.0001  # Very low turbulence
 
-            Tᵦ, Sᵦ, q = solve_interface_conditions(Tₒ, Sₒ, Sᵢ, αₕ, αₛ, u★_low, L, ρₒ, cₒ, liquidus)
+            ice_state = (; S = Sᵢ, h = default_h, hc = default_hc, ℵ = default_ℵ, Tᵢₙₜ = default_Tᵢₙₜ)
+            Tᵦ, Sᵦ, q = solve_interface_conditions(flux, Tₒ, Sₒ, ice_state, αₕ, αₛ, u★_low, L, ρₒ, cₒ, liquidus)
 
             @test Sᵦ >= Sᵢ
             @test Sᵦ <= Sₒ
@@ -288,9 +296,9 @@ end
     end
 end
 
-@testset "Freshwater density in salt flux computation" begin
-    # This test directly verifies that the freshwater density is used correctly
-    # by checking that the salt flux scales inversely with freshwater density
+@testset "Salt flux density scaling" begin
+    # This test verifies that the salt flux scales correctly with ocean reference density
+    # Salt flux formula: Jˢ = (q / ρₒ) * (Sₒ - Sᵢ)
 
     liquidus = LinearLiquidus(Float64)
     αₕ = 0.0095
@@ -304,23 +312,27 @@ end
     Sₒ = 35.0
     Sᵢ = 5.0
 
+    # Create a ThreeEquationHeatFlux without internal flux for testing
+    flux = ThreeEquationHeatFlux()
+
     # Compute interface conditions
-    Tᵦ, Sᵦ, q = solve_interface_conditions(Tₒ, Sₒ, Sᵢ, αₕ, αₛ, u★, L, ρₒ, cₒ, liquidus)
+    ice_state = (; S = Sᵢ, h = 1.0, hc = 0.1, ℵ = 1.0, Tᵢₙₜ = 0.0)
+    Tᵦ, Sᵦ, q = solve_interface_conditions(flux, Tₒ, Sₒ, ice_state, αₕ, αₛ, u★, L, ρₒ, cₒ, liquidus)
 
     # q is a mass flux (kg/m²/s)
-    # Salt flux with correct density conversion: Jˢ = (q / ρf) * (Sᵦ - Sᵢ)
-    ρf_standard = 1000.0  # Standard freshwater density
-    ρf_altered  = 1020.0  # Slightly different density
+    # Salt flux with density conversion: Jˢ = (q / ρₒ) * (Sₒ - Sᵢ)
+    ρₒ_standard = 1025.0
+    ρₒ_altered  = 1030.0
 
-    Jˢ_standard = (q / ρf_standard) * (Sᵦ - Sᵢ)
-    Jˢ_altered  = (q / ρf_altered)  * (Sᵦ - Sᵢ)
+    Jˢ_standard = (q / ρₒ_standard) * (Sₒ - Sᵢ)
+    Jˢ_altered  = (q / ρₒ_altered)  * (Sₒ - Sᵢ)
 
-    # Salt flux should scale inversely with freshwater density
-    @test Jˢ_standard / Jˢ_altered ≈ ρf_altered / ρf_standard
+    # Salt flux should scale inversely with ocean density
+    @test Jˢ_standard / Jˢ_altered ≈ ρₒ_altered / ρₒ_standard
 
     # Verify the salt flux has reasonable magnitude
-    # For typical conditions: q ~ 1e-5 kg/m²/s, ΔS ~ 30 psu, ρf ~ 1000 kg/m³
-    # Jˢ ~ (1e-5 / 1000) * 30 ~ 3e-7 psu m/s
+    # For typical conditions: q ~ 1e-5 kg/m²/s, ΔS ~ 30 psu, ρₒ ~ 1025 kg/m³
+    # Jˢ ~ (1e-5 / 1025) * 30 ~ 3e-7 psu m/s
     @test abs(Jˢ_standard) < 1e-4  # Should be small
     @test abs(Jˢ_standard) > 1e-10 # Should not be negligible
 end
@@ -328,7 +340,7 @@ end
 @testset "Heat and salt flux consistency" begin
     # Verify that heat flux and salt flux are computed consistently
     # Key relationship: Q = ℰ * q, so q = Q / ℰ
-    # Then: Jˢ = (q / ρf) * ΔS = (Q / (ℰ * ρf)) * ΔS
+    # Salt flux: Jˢ = (q / ρₒ) * (Sₒ - Sᵢ)
 
     liquidus = LinearLiquidus(Float64)
     αₕ = 0.0095
@@ -337,23 +349,26 @@ end
     ℰ  = 334e3   # Latent heat (J/kg)
     ρₒ = 1025.0
     cₒ = 3991.0
-    ρf = 1000.0  # Freshwater density
 
     Tₒ = 2.0
     Sₒ = 35.0
     Sᵢ = 5.0
 
-    Tᵦ, Sᵦ, q = solve_interface_conditions(Tₒ, Sₒ, Sᵢ, αₕ, αₛ, u★, ℰ, ρₒ, cₒ, liquidus)
+    # Create a ThreeEquationHeatFlux without internal flux for testing
+    flux = ThreeEquationHeatFlux()
+
+    ice_state = (; S = Sᵢ, h = 1.0, hc = 0.1, ℵ = 1.0, Tᵢₙₜ = 0.0)
+    Tᵦ, Sᵦ, q = solve_interface_conditions(flux, Tₒ, Sₒ, ice_state, αₕ, αₛ, u★, ℰ, ρₒ, cₒ, liquidus)
 
     # Compute heat flux from melt rate
     Q = ℰ * q  # W/m² (without ice concentration scaling for this unit test)
 
-    # Compute salt flux with proper density conversion
-    Jˢ = (q / ρf) * (Sᵦ - Sᵢ)
+    # Compute salt flux with ocean density conversion
+    ΔS = Sₒ - Sᵢ
+    Jˢ = (q / ρₒ) * ΔS
 
-    # Verify the relationship: Jˢ * ρf * ℰ / ΔS should equal Q
-    ΔS = Sᵦ - Sᵢ
-    Q_from_salt = Jˢ * ρf * ℰ / ΔS
+    # Verify the relationship: Jˢ * ρₒ * ℰ / ΔS should equal Q
+    Q_from_salt = Jˢ * ρₒ * ℰ / ΔS
     @test Q_from_salt ≈ Q
 
     # Also verify that temperature flux and salt flux have consistent scaling

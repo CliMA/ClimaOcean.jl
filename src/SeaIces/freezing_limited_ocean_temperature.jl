@@ -40,6 +40,7 @@ OceanSeaIceModels.above_freezing_ocean_temperature!(ocean, grid, ::FreezingLimit
 
 # No atmosphere-sea ice or sea ice-ocean interface for FreezingLimitedOceanTemperature
 InterfaceComputations.default_ai_temperature(::FreezingLimitedOceanTemperature) = nothing
+InterfaceComputations.ThreeEquationHeatFlux(::FreezingLimitedOceanTemperature) = nothing
 InterfaceComputations.atmosphere_sea_ice_interface(grid, atmos, ::FreezingLimitedOceanTemperature, args...) = nothing
 InterfaceComputations.atmosphere_sea_ice_interface(grid, ::Nothing, ::FreezingLimitedOceanTemperature, args...) = nothing
 InterfaceComputations.sea_ice_ocean_interface(grid, ::FreezingLimitedOceanTemperature, ocean, flux_formulation; kwargs...) = nothing
