@@ -195,7 +195,7 @@ const NoInternalFluxTEF{FT} = ThreeEquationHeatFlux{<:Nothing, <:Nothing, FT} wh
 const ConductiveFluxTEF{FT} = ThreeEquationHeatFlux{<:ConductiveFlux, <:AbstractField, FT} where FT
 
 # Helper for internal temperature extraction (used in kernel)
-@inline extract_internal_temperature(::NoInternalFluxTEF{FT}, i, j) = zero(FT)
+@inline extract_internal_temperature(::NoInternalFluxTEF{FT}, i, j) where FT = zero(FT)
 @inline extract_internal_temperature(flux::ConductiveFluxTEF, i, j) = @inbounds flux.internal_temperature[i, j, 1]
 
 """
