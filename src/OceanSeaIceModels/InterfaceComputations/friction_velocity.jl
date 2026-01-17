@@ -40,5 +40,5 @@ Return the friction velocity at grid point `(i, j)`.
 For a constant friction velocity (`u★::Number`), returns the value directly.
 For `MomentumBasedFrictionVelocity`, computes ``u_* = \\sqrt{|\\tau| / \\rho_o}`` from momentum stresses.
 """
-@inline get_friction_velocity(u★::Number, i, j, args...) = u★
+@inline get_friction_velocity(u★::Number, i, j, grid, τx, τy, ρₒ) = u★
 @inline get_friction_velocity(::MomentumBasedFrictionVelocity, i, j, grid, τx, τy, ρₒ) = sqrt(τᶜᶜᶜ(i, j, 1, grid, τx, τy) / ρₒ)
