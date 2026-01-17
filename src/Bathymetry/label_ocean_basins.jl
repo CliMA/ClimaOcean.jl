@@ -171,19 +171,22 @@ Keyword Arguments
               (e.g., separating Atlantic from Pacific via the Southern Ocean).
 """
 function label_ocean_basins(grid::ImmersedBoundaryGrid; barriers=nothing)
-    TX = topology(grid, 1)
-    zb = on_architecture(CPU(), grid.immersed_boundary.bottom_height)
-    underlying = grid.underlying_grid
+    
+    # The labelling algorithm works only on CPUs
+    cpu_grid = on_architecture(CPU(), grid)
+    
+    TX = topology(cpu_grid, 1)
+    zb = cpu_grid.immersed_boundary.bottom_height
 
     # If barriers are specified, apply them to a copy of the bathymetry
     if !isnothing(barriers)
         # Create a temporary field with the modified bathymetry
-        zb_modified = Field{Center, Center, Nothing}(underlying)
+        zb_modified = Field{Center, Center, Nothing}(cpu_grid)
         parent(zb_modified) .= parent(zb)
-        apply_barrier!(zb_modified, underlying, barriers)
+        apply_barrier!(zb, cpu_grid, barriers)
     else
         zb_modified = zb
     end
 
-    return label_ocean_basins(zb_modified, TX, size(grid))
+    return label_ocean_basins(zb_modified, TX, size(cpu_grid))
 end
