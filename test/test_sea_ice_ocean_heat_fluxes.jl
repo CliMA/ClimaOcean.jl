@@ -69,7 +69,7 @@ using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus, melting_temperature
             Sₒ = 35.0   # Ocean salinity
             Sᵢ = 5.0    # Ice salinity
 
-            ice_state = (; S = Sᵢ, h = default_h, hc = default_hc, ℵ = default_ℵ, Tᵢₙₜ = default_Tᵢₙₜ)
+            ice_state = (; S = Sᵢ, h = default_h, hc = default_hc, ℵ = default_ℵ, T = default_Tᵢₙₜ)
             Tᵦ, Sᵦ, q = solve_interface_conditions(flux, Tₒ, Sₒ, ice_state, αₕ, αₛ, u★, L, ρₒ, cₒ, liquidus)
 
             # Interface salinity should be between ice and ocean salinity
@@ -91,7 +91,7 @@ using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus, melting_temperature
             Tₒ = Tₘ_ocean + 0.5  # Ocean 0.5°C above freezing
             Sᵢ = 5.0
 
-            ice_state = (; S = Sᵢ, h = default_h, hc = default_hc, ℵ = default_ℵ, Tᵢₙₜ = default_Tᵢₙₜ)
+            ice_state = (; S = Sᵢ, h = default_h, hc = default_hc, ℵ = default_ℵ, T = default_Tᵢₙₜ)
             Tᵦ, Sᵦ, q = solve_interface_conditions(flux, Tₒ, Sₒ, ice_state, αₕ, αₛ, u★, L, ρₒ, cₒ, liquidus)
 
             # Interface salinity should be between ice and ocean salinity
@@ -111,7 +111,7 @@ using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus, melting_temperature
             Tₒ = melting_temperature(liquidus, Sₒ)
             Sᵢ = 5.0
 
-            ice_state = (; S = Sᵢ, h = default_h, hc = default_hc, ℵ = default_ℵ, Tᵢₙₜ = default_Tᵢₙₜ)
+            ice_state = (; S = Sᵢ, h = default_h, hc = default_hc, ℵ = default_ℵ, T = default_Tᵢₙₜ)
             Tᵦ, Sᵦ, q = solve_interface_conditions(flux, Tₒ, Sₒ, ice_state, αₕ, αₛ, u★, L, ρₒ, cₒ, liquidus)
 
             @test Sᵦ ≈ Sₒ
@@ -124,7 +124,7 @@ using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus, melting_temperature
 
             for Sₒ in [30.0, 33.0, 35.0, 37.0, 40.0]
                 Sᵢ = 5.0
-                ice_state = (; S = Sᵢ, h = default_h, hc = default_hc, ℵ = default_ℵ, Tᵢₙₜ = default_Tᵢₙₜ)
+                ice_state = (; S = Sᵢ, h = default_h, hc = default_hc, ℵ = default_ℵ, T = default_Tᵢₙₜ)
                 Tᵦ, Sᵦ, q = solve_interface_conditions(flux, Tₒ, Sₒ, ice_state, αₕ, αₛ, u★, L, ρₒ, cₒ, liquidus)
 
                 # Interface salinity must always be bounded
@@ -142,7 +142,7 @@ using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus, melting_temperature
             Sₒ = 35.0
             Sᵢ = 0.0  # Fresh ice
 
-            ice_state = (; S = Sᵢ, h = default_h, hc = default_hc, ℵ = default_ℵ, Tᵢₙₜ = default_Tᵢₙₜ)
+            ice_state = (; S = Sᵢ, h = default_h, hc = default_hc, ℵ = default_ℵ, T = default_Tᵢₙₜ)
             Tᵦ, Sᵦ, q = solve_interface_conditions(flux, Tₒ, Sₒ, ice_state, αₕ, αₛ, u★, L, ρₒ, cₒ, liquidus)
 
             @test Sᵦ >= Sᵢ
@@ -156,7 +156,7 @@ using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus, melting_temperature
             Sᵢ = 5.0
             u★_high = 0.1  # High turbulence
 
-            ice_state = (; S = Sᵢ, h = default_h, hc = default_hc, ℵ = default_ℵ, Tᵢₙₜ = default_Tᵢₙₜ)
+            ice_state = (; S = Sᵢ, h = default_h, hc = default_hc, ℵ = default_ℵ, T = default_Tᵢₙₜ)
             Tᵦ, Sᵦ, q = solve_interface_conditions(flux, Tₒ, Sₒ, ice_state, αₕ, αₛ, u★_high, L, ρₒ, cₒ, liquidus)
 
             @test Sᵦ >= Sᵢ
@@ -170,7 +170,7 @@ using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus, melting_temperature
             Sᵢ = 5.0
             u★_low = 0.0001  # Very low turbulence
 
-            ice_state = (; S = Sᵢ, h = default_h, hc = default_hc, ℵ = default_ℵ, Tᵢₙₜ = default_Tᵢₙₜ)
+            ice_state = (; S = Sᵢ, h = default_h, hc = default_hc, ℵ = default_ℵ, T = default_Tᵢₙₜ)
             Tᵦ, Sᵦ, q = solve_interface_conditions(flux, Tₒ, Sₒ, ice_state, αₕ, αₛ, u★_low, L, ρₒ, cₒ, liquidus)
 
             @test Sᵦ >= Sᵢ

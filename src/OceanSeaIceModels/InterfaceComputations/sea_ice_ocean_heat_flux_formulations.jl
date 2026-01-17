@@ -48,7 +48,7 @@ struct IceBathHeatFlux{FT, U}
 end
 
 """
-    IceBathHeatFlux(FT::DataType = Float64;
+    IceBathHeatFlux(FT::DataType = Oceananigans.defaults.FloatType;
                     heat_transfer_coefficient = 0.006,
                     friction_velocity = 0.02)
 
@@ -60,7 +60,7 @@ Keyword Arguments
 - `heat_transfer_coefficient`: turbulent heat exchange coefficient. Default: 0.006.
 - `friction_velocity`: friction velocity value or formulation. Default: 0.02.
 """
-function IceBathHeatFlux(FT::DataType = Float64;
+function IceBathHeatFlux(FT::DataType = Oceananigans.defaults.FloatType;
                          heat_transfer_coefficient = convert(FT, 0.006),
                          friction_velocity = convert(FT, 0.02))
     return IceBathHeatFlux(convert(FT, heat_transfer_coefficient), friction_velocity)
@@ -124,7 +124,7 @@ struct ThreeEquationHeatFlux{F, T, FT, U}
 end
 
 """
-    ThreeEquationHeatFlux(FT::DataType = Float64;
+    ThreeEquationHeatFlux(FT::DataType = Oceananigans.defaults.FloatType;
                           heat_transfer_coefficient = 0.0095,
                           salt_transfer_coefficient = heat_transfer_coefficient / 35,
                           friction_velocity = 0.002)
@@ -152,7 +152,7 @@ function ThreeEquationHeatFlux(FT::DataType = Oceananigans.defaults.FloatType;
 end
 
 # Constructor that accepts the sea-ice model
-ThreeEquationHeatFlux(nothing; kwargs...) = ThreeEquationHeatFlux(; kwargs...)
+ThreeEquationHeatFlux(::Nothing, FT::DataType = Oceananigans.defaults.FloatType; kwargs...) = ThreeEquationHeatFlux(FT; kwargs...)
 
 #####
 ##### Interface heat flux computation
@@ -191,11 +191,11 @@ Returns `(Q, q, Tᵦ, Sᵦ)` where:
     return Qᵢₒ, q, Tₘ, Sₒ
 end
 
-const NoInternalFluxTEF = ThreeEquationHeatFlux{<:Nothing}
-const ConductiveFluxTEF = ThreeEquationHeatFlux{<:ConductiveFlux, <:AbstractField}
+const NoInternalFluxTEF{FT} = ThreeEquationHeatFlux{<:Nothing, <:Nothing, FT} where FT
+const ConductiveFluxTEF{FT} = ThreeEquationHeatFlux{<:ConductiveFlux, <:AbstractField, FT} where FT
 
 # Helper for internal temperature extraction (used in kernel)
-@inline extract_internal_temperature(::NoInternalFluxTEF, i, j) = zero(Float64)
+@inline extract_internal_temperature(::NoInternalFluxTEF{FT}, i, j) = zero(FT)
 @inline extract_internal_temperature(flux::ConductiveFluxTEF, i, j) = @inbounds flux.internal_temperature[i, j, 1]
 
 """

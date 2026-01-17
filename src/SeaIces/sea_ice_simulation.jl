@@ -145,7 +145,7 @@ function default_ai_temperature(sea_ice::Simulation{<:SeaIceModel})
 end
 
 # Constructor that accepts the sea-ice model
-function ThreeEquationHeatFlux(sea_ice::Simulation{<:SeaIceModel}; 
+function ThreeEquationHeatFlux(sea_ice::Simulation{<:SeaIceModel}, FT::DataType = Oceananigans.defaults.FloatType; 
                                heat_transfer_coefficient = 0.0095,
                                salt_transfer_coefficient = heat_transfer_coefficient / 35,
                                friction_velocity = convert(FT, 0.002))
