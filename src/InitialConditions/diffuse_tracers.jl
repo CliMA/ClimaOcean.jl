@@ -46,7 +46,7 @@ function diffuse_tracers(initial_tracers;
     vertical_smoothing = VerticalScalarDiffusivity(vitd, κ=κz)
     horizontal_smoothing = HorizontalScalarDiffusivity(κ=κh)
 
-    smoothing_model = HydrostaticFreeSurfaceModel(grid; , tracers,
+    smoothing_model = HydrostaticFreeSurfaceModel(grid; tracers,
                                                   velocities = PrescribedVelocityFields(),
                                                   momentum_advection = nothing,
                                                   tracer_advection = nothing,
