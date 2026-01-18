@@ -104,7 +104,7 @@ for n = 1:2
     outputs[:u] = Field(model.velocities.u; indices)
     outputs[:v] = Field(model.velocities.v; indices)
     outputs[:w] = Field(model.velocities.w; indices)
-    outputs[:η] = model.free_surface.η
+    outputs[:η] = model.free_surface.displacement
     outputs[:ζ] = VerticalVorticityField(model.grid, model.velocities; indices)
 
     name = output_names[n]

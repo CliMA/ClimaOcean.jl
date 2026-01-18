@@ -96,7 +96,7 @@ s = sqrt(u^2 + v^2)
 
 h = sea_ice.model.ice_thickness
 ℵ = sea_ice.model.ice_concentration
-η = ocean.model.free_surface.η
+η = ocean.model.free_surface.displacement
 
 earth.output_writers[:surface_tracers] = JLD2Writer(ocean.model, (; T, S, s),
                                                     schedule = TimeInterval(12hours),
