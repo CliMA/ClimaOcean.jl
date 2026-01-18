@@ -696,7 +696,7 @@ for j in (1, 20, 50, 100, 150, 200)
     lines!(axC, uₐ, Cᴰ[:, j] ./ Cᴰ_default, label="ΔT = $(round(ΔT[j], digits=1)) K", alpha=0.8)
 end
 
-axislegend(axC, orientation=:horizontal, nbanks=2, label="navid")
+axislegend(axC, orientation=:horizontal, nbanks=2)
 
 xlims!(axC, 0, 10)
 ylims!(axC, 0, 4)
