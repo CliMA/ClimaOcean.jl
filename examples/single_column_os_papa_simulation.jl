@@ -167,7 +167,6 @@ filename = "single_column_omip_$(location_name)"
 
 simulation.output_writers[:jld2] = JLD2Writer(ocean.model, outputs; filename,
                                               schedule = TimeInterval(3hours),
-                                              including = [:grid],
                                               overwrite_existing = true)
 
 run!(simulation)
