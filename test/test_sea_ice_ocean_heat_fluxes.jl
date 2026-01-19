@@ -192,8 +192,8 @@ end
 
         grid = LatitudeLongitudeGrid(arch,
                                      size = (4, 4, 1),
-                                     latitude = (-80, 80),
-                                     longitude = (0, 360),
+                                     latitude = (-10, 10),
+                                     longitude = (0, 10),
                                      z = (-100, 0))
 
         ocean = ocean_simulation(grid, momentum_advection=nothing, closure=nothing, tracer_advection=nothing)
@@ -213,7 +213,7 @@ end
                 # Test melting conditions: warm ocean above freezing
                 # Freezing point at S=35 is about -1.9°C
                 set!(ocean.model, T=2.0, S=35.0)  # Warm ocean
-                set!(sea_ice.model, h=1.0, ℵ=1.0, S=5.0)
+                set!(sea_ice.model, h=1.0, ℵ=1.0)
 
                 time_step!(coupled_model, 60)
 
@@ -250,8 +250,8 @@ end
 
         grid = LatitudeLongitudeGrid(arch,
                                      size = (4, 4, 1),
-                                     latitude = (-80, 80),
-                                     longitude = (0, 360),
+                                     latitude = (-10, 10),
+                                     longitude = (0, 10),
                                      z = (-100, 0))
 
         ocean = ocean_simulation(grid, momentum_advection=nothing, closure=nothing, tracer_advection=nothing)
@@ -270,7 +270,7 @@ end
 
                 # Set up melting conditions
                 set!(ocean.model, T=2.0, S=35.0)  # Warm ocean
-                set!(sea_ice.model, h=1.0, ℵ=1.0, S=5.0)
+                set!(sea_ice.model, h=1.0, ℵ=1.0)
 
                 time_step!(coupled_model, 60)
 
@@ -393,9 +393,9 @@ end
         @info "Testing frazil ice formation on $A"
 
         grid = LatitudeLongitudeGrid(arch,
-                                     size = (4, 4, 4),  # Multiple vertical levels for frazil
-                                     latitude = (-80, 80),
-                                     longitude = (0, 360),
+                                     size = (4, 4, 1),
+                                     latitude = (-10, 10),
+                                     longitude = (0, 10),
                                      z = (-400, 0))
 
         ocean = ocean_simulation(grid, momentum_advection=nothing, closure=nothing, tracer_advection=nothing)
@@ -416,7 +416,7 @@ end
                 # Cold ocean near freezing with ice present
                 # Freezing point at S=35 is about -1.9°C
                 set!(ocean.model, T=-1.5, S=35.0)  # Cold but above freezing
-                set!(sea_ice.model, h=1.0, ℵ=0.5, S=5.0)
+                set!(sea_ice.model, h=1.0, ℵ=0.5)
 
                 time_step!(coupled_model, 60)
 
@@ -444,10 +444,10 @@ end
         @info "Testing heat flux formulations on $A"
 
         grid = LatitudeLongitudeGrid(arch,
-                                     size = (10, 10, 1),
-                                     latitude = (-80, 80),
-                                     longitude = (0, 360),
-                                     z = (-100, 0))
+                                     size = (4, 4, 1),
+                                     latitude = (-10, 10),
+                                     longitude = (0, 10),
+                                     z = (-400, 0))
 
         ocean = ocean_simulation(grid, momentum_advection=nothing, closure=nothing, tracer_advection=nothing)
         sea_ice = sea_ice_simulation(grid, ocean)

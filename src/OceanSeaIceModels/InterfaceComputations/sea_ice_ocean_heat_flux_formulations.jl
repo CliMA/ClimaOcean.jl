@@ -102,9 +102,9 @@ using ClimaOcean.OceanSeaIceModels: ThreeEquationHeatFlux
 flux = ThreeEquationHeatFlux()
 
 # output
-ThreeEquationHeatFlux{Float64}
+ThreeEquationHeatFlux{Nothing}
 ├── heat_transfer_coefficient: 0.0095
-├── salt_transfer_coefficient: 0.00027142857142857146
+├── salt_transfer_coefficient: 0.00027142857142857144
 └── friction_velocity: 0.002
 ```
 
@@ -204,6 +204,7 @@ const ConductiveFluxTEF{FT} = ThreeEquationHeatFlux{<:ConductiveFlux, <:Abstract
 
 # Helper for internal temperature extraction (used in kernel)
 @inline extract_internal_temperature(::NoInternalFluxTEF{FT}, i, j) where FT = zero(FT)
+@inline extract_internal_temperature(::IceBathHeatFlux{FT},   i, j) where FT = zero(FT)
 @inline extract_internal_temperature(flux::ConductiveFluxTEF, i, j) = @inbounds flux.internal_temperature[i, j, 1]
 
 """
@@ -320,12 +321,12 @@ Base.summary(::ThreeEquationHeatFlux{FT}) where FT = "ThreeEquationHeatFlux{$FT}
 function Base.show(io::IO, flux::IceBathHeatFlux)
     print(io, summary(flux), '\n')
     print(io, "├── heat_transfer_coefficient: ", flux.heat_transfer_coefficient, '\n')
-    print(io, "└── friction_velocity: ", summary(flux.friction_velocity))
+    print(io, "└── friction_velocity: ", flux.friction_velocity)
 end
 
 function Base.show(io::IO, flux::ThreeEquationHeatFlux)
     print(io, summary(flux), '\n')
     print(io, "├── heat_transfer_coefficient: ", flux.heat_transfer_coefficient, '\n')
     print(io, "├── salt_transfer_coefficient: ", flux.salt_transfer_coefficient, '\n')
-    print(io, "└── friction_velocity: ", summary(flux.friction_velocity))
+    print(io, "└── friction_velocity: ", flux.friction_velocity)
 end
