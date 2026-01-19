@@ -92,7 +92,9 @@ heat_capacity(unsupported) =
 
 Construct a coupled ocean-sea ice model that simulates the interaction between ocean and sea ice components.
 
-# Arguments
+Arguments
+==========
+
 - `ocean`: A representation of a possibly time-dependent ocean state. Currently, only `Oceananigans.Simulation`s
            of `Oceananigans.HydrostaticFreeSurfaceModel` are tested.
 - `sea_ice`: A representation of a possibly time-dependent sea ice state.
@@ -100,7 +102,9 @@ Construct a coupled ocean-sea ice model that simulates the interaction between o
              oceanic latent heating during freezing only, but does not evolve sea ice variables.
              For prognostic sea ice use an `Oceananigans.Simulation` of `ClimaSeaIce.SeaIceModel`.
 
-# Keyword Arguments
+Keyword Arguments
+==================
+
 - `atmosphere`: A representation of a possibly time-dependent atmospheric state. Default: `nothing`.
 - `radiation`: Radiation component used to compute surface fluxes at the bottom of the atmosphere.
 - `clock`: Keeps track of time.
@@ -108,9 +112,12 @@ Construct a coupled ocean-sea ice model that simulates the interaction between o
 - `ocean_heat_capacity`: Heat capacity for the ocean. Defaults to value from ocean model
 - `sea_ice_reference_density`: Reference density for sea ice. Defaults to value from sea ice model
 - `sea_ice_heat_capacity`: Heat capacity for sea ice. Defaults to value from sea ice model
-- `interfaces`: Component interfaces for coupling. Defaults to `nothing` and will be constructed automatically
+- `interfaces`: Component interfaces for coupling. Defaults to `nothing` and will be constructed automatically.
+  To customize the sea ice-ocean heat flux formulation, create interfaces manually using `ComponentInterfaces`.
 
-# Stability Functions
+Stability Functions
+====================
+
 The model uses similarity theory for turbulent fluxes between components. You can customize the stability functions
 by creating a new `SimilarityTheoryFluxes` object with your desired stability functions. For example:
 

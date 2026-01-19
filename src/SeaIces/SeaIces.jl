@@ -25,7 +25,9 @@ import ClimaOcean.OceanSeaIceModels: interpolate_state!,
 import ClimaOcean.OceanSeaIceModels.InterfaceComputations: ComponentExchanger,
                                                            compute_atmosphere_sea_ice_fluxes!,
                                                            compute_sea_ice_ocean_fluxes!,
-                                                           net_fluxes
+                                                           net_fluxes,
+                                                           ThreeEquationHeatFlux,
+                                                           default_ai_temperature
 
 import Oceananigans.TimeSteppers: time_step!
 
