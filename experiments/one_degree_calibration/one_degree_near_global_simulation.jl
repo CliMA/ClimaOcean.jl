@@ -85,6 +85,7 @@ model = simulation.model
 
 simulation.output_writers[:fields] = JLD2Writer(model, merge(model.velocities, model.tracers); dir,
                                                 schedule = TimeInterval(fields_save_interval),
+                                                including = [:grid],
                                                 filename = output_prefix * "_fields",
                                                 with_halos = true,
                                                 overwrite_existing = true)
@@ -110,6 +111,7 @@ for n = 1:2
     name = output_names[n]
     simulation.output_writers[name] = JLD2Writer(model, outputs; dir,
                                                        schedule = TimeInterval(slices_save_interval),
+                                                       including = [:grid],
                                                        filename = output_prefix * "_fields_$name",
                                                        with_halos = true,
                                                        overwrite_existing = true)
@@ -131,6 +133,7 @@ for name in keys(transects)
 
     simulation.output_writers[:name] = JLD2Writer(model, outputs; dir,
                                                         schedule = TimeInterval(slices_save_interval),
+                                                        including = [:grid],
                                                         filename = output_prefix * "_$name",
                                                         with_halos = true,
                                                         overwrite_existing = true)
