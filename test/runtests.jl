@@ -95,6 +95,7 @@ end
 
 if test_group == :fluxes || test_group == :all
     include("test_surface_fluxes.jl")
+    include("test_sea_ice_ocean_heat_fluxes.jl")
 end
 
 if test_group == :bathymetry || test_group == :all
