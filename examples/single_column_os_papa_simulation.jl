@@ -16,6 +16,7 @@
 
 using ClimaOcean
 using Oceananigans
+using Oceananigans: prognostic_fields
 using Oceananigans.Units
 using Oceananigans.Models: buoyancy_frequency
 using Dates
