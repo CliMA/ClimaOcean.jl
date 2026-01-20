@@ -196,9 +196,9 @@ ReynoldsScalingFunction(FT = Oceananigans.defaults.FloatType; A = 5.85e-5, b = 0
 @inline (s::ReynoldsScalingFunction)(R★, args...) = ifelse(R★ == 0, convert(eltype(R★), 0), s.A / R★ ^ s.b)
 
 # Edson 2013 formulation of scalar roughness length in terms of momentum roughness length ℓu
-@inline function roughness_length(ℓ::ScalarRoughnessLength{FT}, ℓu, u★, Uₐ, ℂ=nothing, Tₐ=nothing) where FT
+@inline function roughness_length(ℓ::ScalarRoughnessLength{FT}, ℓu, u★, Uₐ, ℂₐ=nothing, Tₐ=nothing) where FT
     # Roughness Reynolds number
-    ν = compute_air_kinematic_viscosity(ℓ.air_kinematic_viscosity, ℂ, Tₐ)
+    ν = compute_air_kinematic_viscosity(ℓ.air_kinematic_viscosity, ℂₐ, Tₐ)
     R★ = ℓu * u★ / ν
 
     # implementation of scalar roughness length
@@ -211,8 +211,9 @@ ReynoldsScalingFunction(FT = Oceananigans.defaults.FloatType; A = 5.85e-5, b = 0
 end
 
 # Convenience for users
-@inline (ℓ::MomentumRoughnessLength{FT})(u★, Uₐ=nothing, ℂ=nothing, Tₐ=nothing) where FT =
-roughness_length(ℓ, u★, ℂ, Tₐ)
+@inline (ℓ::MomentumRoughnessLength{FT})(u★, Uₐ=nothing, ℂₐ=nothing, Tₐ=nothing) where FT =
+    roughness_length(ℓ, u★, ℂₐ, Tₐ)
 
-@inline function (ℓ::ScalarRoughnessLength{FT})(u★, Uₐ=nothing, ℂ=nothing, Tₐ=nothing) where FT =
-    roughness_length(ℓ, u★, ℂ, Tₐ)
+@inline function (ℓ::ScalarRoughnessLength{FT})(u★, Uₐ=nothing, ℂₐ=nothing, Tₐ=nothing) where FT
+    roughness_length(ℓ, u★, ℂₐ, Tₐ)
+end
