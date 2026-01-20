@@ -148,9 +148,8 @@ end
 
 """ Calculate the air viscosity based on the temperature θ in Celsius. """
 @inline function compute_air_kinematic_viscosity(ν::TemperatureDependentAirViscosity, ℂ, T)
-    T₀ = T
     FT = eltype(ν.ℂ₀)
-    T′ = convert(FT, T₀ - celsius_to_kelvin)
+    T′ = convert(FT, T - celsius_to_kelvin)
     return ν.ℂ₀ + ν.ℂ₁ * T′ + ν.ℂ₂ * T′^2 + ν.ℂ₃ * T′^3
 end
 
@@ -160,10 +159,10 @@ end
 
 # Momentum roughness length should be different from scalar roughness length.
 # Temperature and water vapor can be considered the same (Edson et al. 2013)
-@inline function roughness_length(ℓ::MomentumRoughnessLength{FT}, u★, U, ℂₐ=nothing, T=nothing) where FT
-    ν = compute_air_kinematic_viscosity(ℓ.air_kinematic_viscosity, ℂₐ, T)
+@inline function roughness_length(ℓ::MomentumRoughnessLength{FT}, u★, Uₐ, ℂₐ=nothing, Tₐ=nothing) where FT
+    ν = compute_air_kinematic_viscosity(ℓ.air_kinematic_viscosity, ℂₐ, Tₐ)
     g = ℓ.gravitational_acceleration
-    ℂg = gravity_wave_parameter(ℓ.wave_formulation, U)
+    ℂg = gravity_wave_parameter(ℓ.wave_formulation, Uₐ)
     ℂν = ℓ.smooth_wall_parameter
 
     ℓᵂ = ℂg * u★^2 / g # gravity wave roughness length
@@ -197,9 +196,9 @@ ReynoldsScalingFunction(FT = Oceananigans.defaults.FloatType; A = 5.85e-5, b = 0
 @inline (s::ReynoldsScalingFunction)(R★, args...) = ifelse(R★ == 0, convert(eltype(R★), 0), s.A / R★ ^ s.b)
 
 # Edson 2013 formulation of scalar roughness length in terms of momentum roughness length ℓu
-@inline function roughness_length(ℓ::ScalarRoughnessLength{FT}, ℓu, u★, U, ℂ=nothing, T=nothing) where FT
+@inline function roughness_length(ℓ::ScalarRoughnessLength{FT}, ℓu, u★, Uₐ, ℂ=nothing, Tₐ=nothing) where FT
     # Roughness Reynolds number
-    ν = compute_air_kinematic_viscosity(ℓ.air_kinematic_viscosity, ℂ, T)
+    ν = compute_air_kinematic_viscosity(ℓ.air_kinematic_viscosity, ℂ, Tₐ)
     R★ = ℓu * u★ / ν
 
     # implementation of scalar roughness length
@@ -212,10 +211,8 @@ ReynoldsScalingFunction(FT = Oceananigans.defaults.FloatType; A = 5.85e-5, b = 0
 end
 
 # Convenience for users
-@inline function (ℓ::MomentumRoughnessLength{FT})(u★, U=nothing, ℂ=nothing, T=nothing) where FT
-    return roughness_length(ℓ, u★, ℂ, T)
-end
+@inline (ℓ::MomentumRoughnessLength{FT})(u★, Uₐ=nothing, ℂ=nothing, Tₐ=nothing) where FT =
+roughness_length(ℓ, u★, ℂ, Tₐ)
 
-@inline function (ℓ::ScalarRoughnessLength{FT})(u★, U=nothing, ℂ=nothing, T=nothing) where FT
-    return roughness_length(ℓ, u★, ℂ, T)
-end
+@inline function (ℓ::ScalarRoughnessLength{FT})(u★, Uₐ=nothing, ℂ=nothing, Tₐ=nothing) where FT =
+    roughness_length(ℓ, u★, ℂ, Tₐ)

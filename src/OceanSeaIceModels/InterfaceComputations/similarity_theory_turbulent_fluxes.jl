@@ -246,12 +246,12 @@ in terms of ``b_★`` and additionally the Von Karman constant ``ϰ``,
 L_★ = u_★² / ϰ b_★ .
 ```
 """
-@inline function buoyancy_scale(θ★, q★, ℂ, T, q, g)
-    𝒯ₐ = AtmosphericThermodynamics.virtual_temperature(ℂ, T, q)
+@inline function buoyancy_scale(θ★, q★, ℂ, Tₐ, qₐ, g)
+    𝒯ₐ = AtmosphericThermodynamics.virtual_temperature(ℂ, Tₐ, qₐ)
     ε  = AtmosphericThermodynamics.Parameters.Rv_over_Rd(ℂ)
     δ  = ε - 1 # typically equal to 0.608
 
-    b★ = g / 𝒯ₐ * (θ★ * (1 + δ * q) + δ * 𝒯ₐ * q★)
+    b★ = g / 𝒯ₐ * (θ★ * (1 + δ * qₐ) + δ * 𝒯ₐ * q★)
 
     return b★
 end
