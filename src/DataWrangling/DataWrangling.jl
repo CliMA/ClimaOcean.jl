@@ -210,7 +210,7 @@ function default_inpainting(metadata)
     if metadata.name in (:temperature, :salinity)
         return NearestNeighborInpainting(Inf)
     elseif metadata.name in (:sea_ice_thickness, :sea_ice_concentration)
-        return nothing
+        return ValueInpainting(0)
     else
         return NearestNeighborInpainting(5)
     end

@@ -216,6 +216,7 @@ function set_metadata_field!(field, data, metadatum)
     return nothing
 end
 
+# TODO: sort out elegant way to handle NaNs for sea ice data in GLORYS
 @kernel function _set_2d_metadata_field!(field, data, mangling, temp_units, conc_units)
     i, j = @index(Global, NTuple)
     d = mangle(i, j, data, mangling)
@@ -228,6 +229,8 @@ end
     elseif !isnothing(conc_units)
         d = convert_concentration(d, conc_units)
     end
+
+    d = convert_temperature(d, temp_units)
     @inbounds field[i, j, 1] = d
 end
 
@@ -246,6 +249,7 @@ end
     elseif !isnothing(conc_units)
         d = convert_concentration(d, conc_units)
     end
+
     @inbounds field[i, j, k] = d
 end
 
