@@ -22,7 +22,7 @@ end
                                  z = (-6000, 0))
 
     free_surface = SplitExplicitFreeSurface(substeps=10)
-    ocean = ocean_simulation(grid; Δt=300, free_surface)
+    ocean = ocean_simulation(grid; Δt=300, free_surface, timestepper = :QuasiAdamsBashforth2)
 
     # We use an idealized atmosphere to avoid downloading the whole JRA55 data
     atmos_grid  = LatitudeLongitudeGrid(arch, Float32; size=(320, 200), 
