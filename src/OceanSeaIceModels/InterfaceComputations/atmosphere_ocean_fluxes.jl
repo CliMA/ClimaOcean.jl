@@ -77,16 +77,16 @@ end
 
     # Build thermodynamic and dynamic states in the atmosphere and interface.
     # Notation:
-    #   ⋅ 𝒬 ≡ thermodynamic state vector
     #   ⋅ 𝒰 ≡ "dynamic" state vector (thermodynamics + reference height + velocity)
     ℂₐ = atmosphere_properties.thermodynamics_parameters
-    𝒬ₐ = thermodynamic_atmospheric_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₐ, qₐ)
     zₐ = atmosphere_properties.surface_layer_height # elevation of atmos variables relative to interface
 
     local_atmosphere_state = (z = zₐ,
                               u = uₐ,
                               v = vₐ,
-                              𝒬 = 𝒬ₐ,
+                              T = Tₐ,
+                              p = pₐ,
+                              q = qₐ,
                               h_bℓ = atmosphere_state.h_bℓ)
 
     local_interior_state = (u=uᵢ, v=vᵢ, T=Tᵢ, S=Sᵢ)
@@ -98,7 +98,7 @@ end
 
     # Estimate interface specific humidity using interior temperature
     q_formulation = interface_properties.specific_humidity_formulation
-    qₛ = surface_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ, Tᵢ, Sᵢ)
+    qₛ = surface_specific_humidity(q_formulation, ℂₐ, Tₐ, pₐ, qₐ, Tᵢ, Sᵢ)
     initial_interface_state = InterfaceState(u★, u★, u★, uᵢ, vᵢ, Tᵢ, Sᵢ, qₛ)
 
     # Don't use convergence criteria in an inactive cell
@@ -144,9 +144,9 @@ end
     τx = ifelse(ΔU == 0, zero(grid), - u★^2 * Δu / ΔU)
     τy = ifelse(ΔU == 0, zero(grid), - u★^2 * Δv / ΔU)
 
-    ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
-    cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
-    ℒv = AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
+    ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, Tₐ, pₐ, qₐ)
+    cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, qₐ) # moist heat capacity
+    ℒv = AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, Tₐ)
     
 
     # Store fluxes
