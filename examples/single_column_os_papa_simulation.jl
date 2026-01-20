@@ -159,7 +159,9 @@ N² = buoyancy_frequency(ocean.model)
 
 fluxes = (; ρτx, ρτy, E, Js, Qv, Qc)
 auxiliary_fields = (; N², κc)
-fields = merge(prognostic_fields(ocean.model), auxiliary_fields)
+u, v, w = ocean.model.velocities
+T, S, e = ocean.model.tracers
+fields = merge((; u, v, T, S, e), auxiliary_fields)
 
 # Slice fields at the surface
 outputs = merge(fields, fluxes)
