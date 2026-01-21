@@ -144,7 +144,7 @@ Qoi  = earth.model.interfaces.net_fluxes.sea_ice.bottom.heat
 Soi  = earth.model.interfaces.sea_ice_ocean_interface.fluxes.salt
 fluxes = (; Qcao, Qvao, τxao, τyao, Qcai, Qvai, τxai, τyai, Qoi, Soi)
 
-earth.output_writers[:fluxes] = JLD2Writer(earth.model.ocean.model, fluxes;
+ocean.output_writers[:fluxes] = JLD2Writer(earth.model.ocean.model, fluxes;
                                            overwrite_existing=true,
                                            schedule=TimeInterval(3hours),
                                            including = [:grid],
