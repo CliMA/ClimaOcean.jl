@@ -3,7 +3,7 @@ using Printf
 
 import ClimaSeaIce
 import Thermodynamics as AtmosphericThermodynamics
-using Thermodynamics: Liquid, Ice, PhaseEquil
+using Thermodynamics: Liquid, Ice
 
 #####
 ##### Interface properties
@@ -53,15 +53,14 @@ ImpureSaturationSpecificHumidity(phase) = ImpureSaturationSpecificHumidity(phase
 @inline compute_water_mole_fraction(x_H₂O::Number, salinity) = x_H₂O
 
 @inline function surface_specific_humidity(formulation::ImpureSaturationSpecificHumidity,
-                                            ℂₐ, 𝒬ₐ::PhaseEquil,
+                                            ℂₐ, Tₐ, pₐ, qₐ,
                                             Tₛ, Sₛ=zero(Tₛ))
     # Extrapolate air density to the surface temperature
     # following an adiabatic ideal gas transformation
-    cvₘ = Thermodynamics.cv_m(ℂₐ, 𝒬ₐ)
-    Rₐ = Thermodynamics.gas_constant_air(ℂₐ, 𝒬ₐ)
+    cvₘ = Thermodynamics.cv_m(ℂₐ, qₐ)
+    Rₐ = Thermodynamics.gas_constant_air(ℂₐ, qₐ)
     κₐ = cvₘ / Rₐ # 1 / (γ - 1)
-    ρₐ = Thermodynamics.air_density(ℂₐ, 𝒬ₐ)
-    Tₐ = Thermodynamics.air_temperature(ℂₐ, 𝒬ₐ)
+    ρₐ = Thermodynamics.air_density(ℂₐ, Tₐ, pₐ, qₐ)
     ρₛ = ρₐ * (Tₛ / Tₐ)^κₐ
     return surface_specific_humidity(formulation, ℂₐ, ρₛ, Tₛ, Sₛ)
 end
@@ -156,11 +155,11 @@ end
 function surface_atmosphere_temperature(Ψₐ, ℙₐ)
     ℂₐ = ℙₐ.thermodynamics_parameters
     g  = ℙₐ.gravitational_acceleration
-    𝒬ₐ = Ψₐ.𝒬
+    Tₐ = Ψₐ.T
+    qₐ = Ψₐ.q
     zₐ = Ψₐ.z
     Δh = zₐ # Assumption! The surface is at z = 0 -> Δh = zₐ - 0
-    Tₐ = AtmosphericThermodynamics.air_temperature(ℂₐ, 𝒬ₐ)
-    cₐ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ)
+    cₐ = AtmosphericThermodynamics.cp_m(ℂₐ, qₐ)
     return Tₐ + g * Δh / cₐ
 end
 
@@ -320,13 +319,15 @@ end
                                                interior_properties)
 
     ℂₐ = atmosphere_properties.thermodynamics_parameters
-    𝒬ₐ = atmosphere_state.𝒬
-    ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
-    cₐ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
+    Tₐ = atmosphere_state.T
+    pₐ = atmosphere_state.p
+    qₐ = atmosphere_state.q
+    ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, Tₐ, pₐ, qₐ)
+    cₐ = AtmosphericThermodynamics.cp_m(ℂₐ, qₐ) # moist heat capacity
 
     # TODO: this depends on the phase of the interface
-    #ℰv = 0 #AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
-    ℰs = AtmosphericThermodynamics.latent_heat_sublim(ℂₐ, 𝒬ₐ)
+    #ℰv = 0 #AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, Tₐ)
+    ℰs = AtmosphericThermodynamics.latent_heat_sublim(ℂₐ, Tₐ)
 
     # upwelling radiation is calculated explicitly
     Tₛ⁻ = interface_state.T # approximate interface temperature from previous iteration
