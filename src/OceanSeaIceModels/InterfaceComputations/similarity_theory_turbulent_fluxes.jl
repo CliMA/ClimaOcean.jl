@@ -217,41 +217,41 @@ function iterate_interface_fluxes(flux_formulation::SimilarityTheoryFluxes,
 end
 
 """
-    buoyancy_scale(θ★, q★, ℂ, T, q, g)
+    buoyancy_scale(θ★, q★, ℂₐ, Tₛ, qₛ, g)
 
 Return the characteristic buoyancy scale `b★` associated with
 the characteristic temperature `θ★`, specific humidity scale `q★`,
-surface temperature `T`, specific humidity `q`, thermodynamic parameters `ℂ`,
-and gravitational acceleration `g`.
+surface temperature `Tₛ`, surface specific humidity `qₛ`,
+atmosphere thermodynamic parameters `ℂₐ`, and gravitational acceleration `g`.
 
 The buoyancy scale is defined in terms of the interface buoyancy flux,
 
 ```math
-u_★ b_★ ≡ w'b',
+u★ b★ ≡ w'b',
 ```
 
 where `u_★` is the friction velocity.
 Using the definition of buoyancy for clear air without condensation, we find that
 
 ```math
-b_★ = (g / 𝒯ₛ) [θ_★ (1 + δ qₐ) + δ 𝒯ₛ q_★] ,
+b★ = (g / 𝒯ₛ) [θ★ (1 + δ qₛ) + δ 𝒯ₛ q★] ,
 ```
-where ``𝒯ₐ`` is the virtual temperature at the surface, and ``δ = Rᵥ / R_d - 1``,
-where ``Rᵥ`` is the molar mass of water vapor and ``R_d`` is the molar mass of dry air.
+where ``𝒯ₛ`` is the virtual temperature at the surface, and ``δ = Rᵛ / Rᵈ - 1``,
+where ``Rᵛ`` is the molar mass of water vapor and ``Rᵈ`` is the molar mass of dry air.
 
 Note that the Monin--Obukhov characteristic length scale is defined
-in terms of ``b_★`` and additionally the Von Karman constant ``ϰ``,
+in terms of ``b★`` and additionally the Von Karman constant ``ϰ``,
 
 ```math
-L_★ = u_★² / ϰ b_★ .
+L★ = u★² / ϰ b★ .
 ```
 """
-@inline function buoyancy_scale(θ★, q★, ℂ, Tₐ, qₐ, g)
-    𝒯ₐ = AtmosphericThermodynamics.virtual_temperature(ℂ, Tₐ, qₐ)
-    ε  = AtmosphericThermodynamics.Parameters.Rv_over_Rd(ℂ)
+@inline function buoyancy_scale(θ★, q★, ℂₐ, Tₛ, qₛ, g)
+    𝒯ₛ = AtmosphericThermodynamics.virtual_temperature(ℂₐ, Tₛ, qₛ)
+    ε  = AtmosphericThermodynamics.Parameters.Rv_over_Rd(ℂₐ)
     δ  = ε - 1 # typically equal to 0.608
 
-    b★ = g / 𝒯ₐ * (θ★ * (1 + δ * qₐ) + δ * 𝒯ₐ * q★)
+    b★ = g / 𝒯ₛ * (θ★ * (1 + δ * qₛ) + δ * 𝒯ₛ * q★)
 
     return b★
 end
