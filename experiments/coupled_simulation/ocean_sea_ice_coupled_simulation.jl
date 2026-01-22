@@ -107,10 +107,10 @@ earth.output_writers[:surface_tracers] = JLD2Writer(ocean.model, (; T, S, s),
 
 
 earth.output_writers[:sea_ice_variables] = JLD2Writer(sea_ice.model, (; h, ℵ),
-                                                            schedule = TimeInterval(12hours),
-                                                            overwrite_existing = true,
-                                                            including = [:grid],
-                                                            filename = "sea_ice_fields.jld2")
+                                                      schedule = TimeInterval(12hours),
+                                                      overwrite_existing = true,
+                                                      including = [:grid],
+                                                      filename = "sea_ice_fields.jld2")
 
 
 earth.output_writers[:free_surface] = JLD2Writer(ocean.model, (; η),
