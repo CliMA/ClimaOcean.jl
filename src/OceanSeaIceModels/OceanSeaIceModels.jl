@@ -41,7 +41,7 @@ using KernelAbstractions.Extras.LoopInfo: @unroll
 import Thermodynamics as AtmosphericThermodynamics
 
 # Simulations interface
-import Oceananigans: fields, prognostic_fields
+import Oceananigans: fields, prognostic_fields, prognostic_state, restore_prognostic_state!
 import Oceananigans.Architectures: architecture
 import Oceananigans.Fields: set!
 import Oceananigans.Models: NaNChecker, default_nan_checker, initialization_update_state!
