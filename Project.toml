@@ -38,8 +38,6 @@ Reactant = "3c362404-f566-11ee-1572-e11a4b42c853"
 SpeedyWeather = "9e226e20-d153-4fed-8a5b-493def4f21a9"
 XESMF = "2e0b0046-e7a1-486f-88de-807ee8ffabe5"
 
-ClimaSeaIce = {rev = "ss/rk-substep", url = "https://github.com/CliMA/ClimaSeaIce.jl.git"}
-
 [extensions]
 ClimaOceanCopernicusMarineExt = "CopernicusMarine"
 ClimaOceanReactantExt = "Reactant"
@@ -49,7 +47,7 @@ ClimaOceanSpeedyWeatherExt = ["SpeedyWeather", "XESMF"]
 Adapt = "4"
 CFTime = "0.1, 0.2"
 CUDA = "4, 5"
-ClimaSeaIce = "0.3.12"
+ClimaSeaIce = "0.4.0"
 CopernicusMarine = "0.1.1"
 CubicSplines = "0.2"
 DataDeps = "0.7"
