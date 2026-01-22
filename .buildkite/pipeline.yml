@@ -39,7 +39,7 @@ steps:
   ##### CPU tests
   #####
 
-  - label: "{{ matrix.group }} CPU tests"
+  - label: "{{ matrix.label }} CPU tests"
     key: "cpu_tests"
     command: |
       export TEST_GROUP="{{ matrix.test_group }}"
@@ -70,7 +70,7 @@ steps:
   ##### GPU tests
   #####
 
-  - label: "{{ matrix.group }} GPU tests"
+  - label: "{{ matrix.label }} GPU tests"
     key: "gpu_tests"
     env:
       GPU_TEST: "true"
