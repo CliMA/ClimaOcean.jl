@@ -140,7 +140,7 @@ ocean.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
 ocean.stop_iteration = Inf
 ocean.stop_time = 200days
 
-ocean.output_writers[:surface_fields] = JLD2Writer(model, merge(model.velocities, model.tracers);
+ocean.output_writers[:surface_fields] = JLD2Writer(ocean.model, merge(model.velocities, model.tracers);
                                                    indices = (:, :, Nz),
                                                    schedule = TimeInterval(1days),
                                                    overwrite_existing = true,
