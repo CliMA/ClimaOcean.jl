@@ -3,8 +3,8 @@ include("runtests_setup.jl")
 using Glob
 using Oceananigans.OutputWriters: Checkpointer
 
-# @testset "OceanSeaIceModel checkpointing" begin
-#     for arch in test_architectures
+@testset "OceanSeaIceModel checkpointing" begin
+    for arch in test_architectures
         arch = CPU()
         A = typeof(arch)
         @info "Testing OceanSeaIceModel checkpointing on $A"
@@ -95,5 +95,5 @@ using Oceananigans.OutputWriters: Checkpointer
 
         # Cleanup
         rm.(glob("$(prefix)_iteration*.jld2"), force=true)
-#     end
-# end
+    end
+end
