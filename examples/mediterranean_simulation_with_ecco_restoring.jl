@@ -144,6 +144,7 @@ ocean.output_writers[:surface_fields] = JLD2Writer(model, merge(model.velocities
                                                    indices = (:, :, Nz),
                                                    schedule = TimeInterval(1days),
                                                    overwrite_existing = true,
+                                                   including = [:grid],
                                                    filename = "med_surface_field")
 
 run!(ocean)
