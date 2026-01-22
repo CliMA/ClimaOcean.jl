@@ -157,14 +157,12 @@ sea_ice_outputs = merge((h = sea_ice.model.ice_thickness,
 
 ocean.output_writers[:surface] = JLD2Writer(ocean.model, ocean_outputs;
                                             schedule = TimeInterval(1days),
-                                            including = [:grid],
                                             filename = "ocean_one_degree_surface_fields",
                                             indices = (:, :, grid.Nz),
                                             overwrite_existing = true)
 
-sea_ice.output_writers[:surface] = JLD2Writer(ocean.model, sea_ice_outputs;
+sea_ice.output_writers[:surface] = JLD2Writer(sea_ice.model, sea_ice_outputs;
                                               schedule = TimeInterval(1days),
-                                              including = [:grid],
                                               filename = "sea_ice_one_degree_surface_fields",
                                               overwrite_existing = true)
 
