@@ -21,7 +21,7 @@ using CUDA
 
 # We start by constructing an underlying TripolarGrid at ~1 degree resolution,
 
-arch = CPU()
+arch = GPU()
 Nx = 360
 Ny = 180
 Nz = 50
