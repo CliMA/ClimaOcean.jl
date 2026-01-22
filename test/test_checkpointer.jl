@@ -19,10 +19,10 @@ using Oceananigans.OutputWriters: Checkpointer
         # Helper function to create fresh simulations
         function make_coupled_model(grid)
             @inline hi(λ, φ) = φ > 70 || φ < -70
-            
+
             # Create ocean and Sea ice
             ocean = ocean_simulation(grid, closure=nothing)
-            set!(ocean.model, T=20, S=35, u=0.01)
+            set!(ocean.model, T=20, S=35, u=0.01, v=-0.005)
             sea_ice = sea_ice_simulation(grid, ocean)
             set!(sea_ice.model, h=hi, ℵ=hi)
 
@@ -60,7 +60,7 @@ using Oceananigans.OutputWriters: Checkpointer
         simulation = Simulation(model, Δt=60, stop_iteration=3)
 
         prefix = "osm_checkpointer_test_$(typeof(arch))"
-        simulation.output_writers[:checkpointer] = Checkpointer(model;
+        simulation.output_writers[:checkpointer] = Checkpointer(simulation.model;
                                                                 schedule = IterationInterval(3),
                                                                 prefix = prefix)
 
@@ -77,6 +77,13 @@ using Oceananigans.OutputWriters: Checkpointer
                                                                 prefix = prefix)
 
         set!(simulation; checkpoint=:latest)
+
+        @test simulation.model.clock.iteration == 3
+
+        set!(simulation; iteration=3)
+
+        @test simulation.model.clock.iteration == 3
+
         run!(simulation)
 
         # Compare final states
