@@ -267,7 +267,10 @@ function restore_prognostic_state!(osm::OceanSeaIceModel, state)
     restore_prognostic_state!(osm.atmosphere, state.atmosphere)
     restore_prognostic_state!(osm.sea_ice, state.sea_ice)
     restore_prognostic_state!(osm.interfaces, state.interfaces)
-    update_state!(osm)
+    # Note: we do NOT call update_state! here because:
+    # 1. The checkpoint was saved AFTER update_state! was called at the end of that time step
+    # 2. Calling update_state! would recompute interface fluxes and overwrite restored state
+    #    (e.g., top_surface_temperature is overwritten by compute_atmosphere_sea_ice_fluxes!)
     return osm
 end
 
