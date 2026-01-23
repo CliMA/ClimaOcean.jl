@@ -9,6 +9,7 @@ Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 CFTime = "179af706-886a-5703-950a-314cd64e0468"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 ClimaSeaIce = "6ba0ff68-24e6-4315-936c-2e99227c95a4"
+CopernicusClimateDataStore = "bce3f73f-acea-4481-bd86-df89ecc2cb46"
 CubicSplines = "9c784101-8907-5a6d-9be6-98f00873c89b"
 DataDeps = "124859b0-ceae-595e-8997-d05f6a7a8dfe"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
@@ -39,6 +40,7 @@ SpeedyWeather = "9e226e20-d153-4fed-8a5b-493def4f21a9"
 XESMF = "2e0b0046-e7a1-486f-88de-807ee8ffabe5"
 
 [extensions]
+ClimaOceanCopernicusClimateDataStoreExt = "CopernicusClimateDataStore"
 ClimaOceanCopernicusMarineExt = "CopernicusMarine"
 ClimaOceanReactantExt = "Reactant"
 ClimaOceanSpeedyWeatherExt = ["SpeedyWeather", "XESMF"]
@@ -48,6 +50,7 @@ Adapt = "4"
 CFTime = "0.1, 0.2"
 CUDA = "4, 5"
 ClimaSeaIce = "0.4.2"
+CopernicusClimateDataStore = "0.1"
 CopernicusMarine = "0.1.1"
 CubicSplines = "0.2"
 DataDeps = "0.7"
@@ -76,9 +79,10 @@ julia = "1.10"
 
 [extras]
 CUDA_Runtime_jll = "76a88914-d11a-5bdc-97e0-2f5a05c973a2"
+CopernicusClimateDataStore = "bce3f73f-acea-4481-bd86-df89ecc2cb46"
 Coverage = "a2441757-f6aa-5fb2-8edb-039e3f45d037"
 MPIPreferences = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Coverage", "Test", "MPIPreferences", "CUDA_Runtime_jll", "Reactant", "CopernicusMarine", "XESMF", "SpeedyWeather"]
+test = ["Coverage", "Test", "MPIPreferences", "CUDA_Runtime_jll", "Reactant", "CopernicusClimateDataStore", "CopernicusMarine", "XESMF", "SpeedyWeather"]

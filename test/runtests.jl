@@ -88,9 +88,9 @@ if test_group == :downloading || test_group == :all
     include("test_downloading.jl")
 end
 
-# Tests that we can download JRA55 utilities
-if test_group == :copernicus_downloading || test_group == :all
-    include("test_copernicus_downloading.jl")
+# Tests that we can download from Copernicus Climate Data Store (ERA5, etc.)
+if test_group == :cds_downloading || test_group == :all
+    include("test_cds_downloading.jl")
 end
 
 if test_group == :fluxes || test_group == :all
