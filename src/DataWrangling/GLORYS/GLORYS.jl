@@ -1,4 +1,4 @@
-module Copernicus
+module GLORYS
 
 export GLORYSStatic, GLORYSDaily, GLORYSMonthly
 
@@ -26,26 +26,26 @@ import ClimaOcean.DataWrangling:
 
 using Scratch
 
-download_Copernicus_cache::String = ""
+download_GLORYS_cache::String = ""
 function __init__()
-    global download_Copernicus_cache = @get_scratch!("Copernicus")
+    global download_GLORYS_cache = @get_scratch!("GLORYS")
 end
 
 # Datasets
-abstract type CopernicusDataset end
+abstract type GLORYSDataset end
 
-default_download_directory(::CopernicusDataset) = download_Copernicus_cache
+default_download_directory(::GLORYSDataset) = download_GLORYS_cache
 
 # This contains "static" variables -- eg the grid
-struct GLORYSStatic <: CopernicusDataset end
-struct GLORYSDaily <: CopernicusDataset end
-struct GLORYSMonthly <: CopernicusDataset end
+struct GLORYSStatic <: GLORYSDataset end
+struct GLORYSDaily <: GLORYSDataset end
+struct GLORYSMonthly <: GLORYSDataset end
 
 dataset_name(::GLORYSStatic) = "GLORYSStatic"
 dataset_name(::GLORYSDaily) = "GLORYSDaily"
 dataset_name(::GLORYSMonthly) = "GLORYSMonthly"
 
-Base.size(::CopernicusDataset, variable) = (4320, 2040, 50)
+Base.size(::GLORYSDataset, variable) = (4320, 2040, 50)
 
 all_dates(::GLORYSStatic, var) = [nothing]
 all_dates(::GLORYSDaily, var) = range(DateTime("1993-01-01"), stop=DateTime("2021-06-30"), step=Day(1))
@@ -54,21 +54,20 @@ all_dates(::GLORYSMonthly, var) = range(DateTime("1993-01-01"), stop=DateTime("2
 copernicusmarine_dataset_id(::GLORYSStatic) = "cmems_mod_glo_phy_my_0.083deg_static"
 copernicusmarine_dataset_id(::GLORYSDaily) = "cmems_mod_glo_phy_my_0.083deg_P1D-m"
 copernicusmarine_dataset_id(::GLORYSMonthly) = "cmems_mod_glo_phy_my_0.083deg_P1M-m"
-# :static  => "cmems_mod_glo_phy_my_0.083deg_static",
 
-struct CMEMSHourlyAnalysis <: CopernicusDataset end
+struct CMEMSHourlyAnalysis <: GLORYSDataset end
 copernicusmarine_dataset_id(::CMEMSHourlyAnalysis) = "cmems_mod_glo_phy_anfc_0.083deg_PT1H-m"
 
-const CopernicusMetadata{D} = Metadata{<:CopernicusDataset, D}
-const CopernicusMetadatum = Metadatum{<:CopernicusDataset}
+const GLORYSMetadata{D} = Metadata{<:GLORYSDataset, D}
+const GLORYSMetadatum = Metadatum{<:GLORYSDataset}
 
-Base.size(::CopernicusMetadatum) = (4320, 2040, 50, 1)
+Base.size(::GLORYSMetadatum) = (4320, 2040, 50, 1)
 
-reversed_vertical_axis(::CopernicusDataset) = true
+reversed_vertical_axis(::GLORYSDataset) = true
 
-available_variables(::CopernicusDataset) = copernicus_dataset_variable_names
+available_variables(::GLORYSDataset) = GLORYS_dataset_variable_names
 
-copernicus_dataset_variable_names = Dict(
+GLORYS_dataset_variable_names = Dict(
     :temperature => "thetao",
     :depth => "deptho",
     :salinity => "so",
@@ -86,7 +85,7 @@ end_date_str(date) = string(date)
 start_date_str(dates::AbstractVector) = first(dates) |> string
 end_date_str(dates::AbstractVector) = last(dates) |> string
 
-dataset_variable_name(metadata::CopernicusMetadata) = copernicus_dataset_variable_names[metadata.name]
+dataset_variable_name(metadata::GLORYSMetadata) = GLORYS_dataset_variable_names[metadata.name]
 
 bbox_strs(::Nothing) = "_nothing", "_nothing"
 
@@ -98,8 +97,8 @@ end
 
 colon2dash(s::String) = replace(s, ":" => "-")
 
-function metadata_prefix(metadata::CopernicusMetadata)
-    var = copernicus_dataset_variable_names[metadata.name]
+function metadata_prefix(metadata::GLORYSMetadata)
+    var = GLORYS_dataset_variable_names[metadata.name]
     dataset = dataset_name(metadata.dataset)
     start_date = start_date_str(metadata.dates)
     end_date = end_date_str(metadata.dates)
@@ -117,23 +116,23 @@ function metadata_prefix(metadata::CopernicusMetadata)
                   end_date, suffix) |> colon2dash
 end
 
-function metadata_filename(metadata::CopernicusMetadata)
+function metadata_filename(metadata::GLORYSMetadata)
     prefix = metadata_prefix(metadata)
     return string(prefix, ".nc")
 end
 
-function inpainted_metadata_filename(metadata::CopernicusMetadata)
+function inpainted_metadata_filename(metadata::GLORYSMetadata)
     prefix = metadata_prefix(metadata)
     return string(prefix, "_inpainted.jld2")
 end
 
-inpainted_metadata_path(metadata::CopernicusMetadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
+inpainted_metadata_path(metadata::GLORYSMetadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
 
-location(::CopernicusMetadata) = (Center, Center, Center)
-longitude_interfaces(::CopernicusMetadata) = (0, 360)
-latitude_interfaces(::CopernicusMetadata) = (-80, 90)
+location(::GLORYSMetadata) = (Center, Center, Center)
+longitude_interfaces(::GLORYSMetadata) = (0, 360)
+latitude_interfaces(::GLORYSMetadata) = (-80, 90)
 
-function z_interfaces(metadata::CopernicusMetadata)
+function z_interfaces(metadata::GLORYSMetadata)
     path = metadata_path(metadata)
     ds = Dataset(path)
     zc = - reverse(ds["depth"][:])
@@ -145,4 +144,5 @@ function z_interfaces(metadata::CopernicusMetadata)
     return zf
 end
 
-end # module Copernicus
+end # module GLORYS
+

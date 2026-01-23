@@ -231,10 +231,6 @@ end
             Tm = melting_temperature(liquidus, S[i, j, k])
             T[i, j, k] = max(T[i, j, k], Tm)
         end
-
-        ℵi = ℵ[i, j, 1]
-        Tm = melting_temperature(liquidus, S[i, j, Nz])
-        T[i, j, Nz] = ifelse(ℵi > 0, Tm, T[i, j, Nz])
     end
 end
 
@@ -252,3 +248,30 @@ end
 
 # nothing sea-ice
 above_freezing_ocean_temperature!(ocean, grid, ::Nothing) = nothing
+
+#####
+##### Checkpointing
+#####
+
+function prognostic_state(osm::OceanSeaIceModel) 
+    return (clock = prognostic_state(osm.clock),
+            ocean = prognostic_state(osm.ocean),
+            atmosphere = prognostic_state(osm.atmosphere),
+            sea_ice = prognostic_state(osm.sea_ice),
+            interfaces = prognostic_state(osm.interfaces))
+end
+
+function restore_prognostic_state!(osm::OceanSeaIceModel, state)
+    restore_prognostic_state!(osm.clock, state.clock)
+    restore_prognostic_state!(osm.ocean, state.ocean)
+    restore_prognostic_state!(osm.atmosphere, state.atmosphere)
+    restore_prognostic_state!(osm.sea_ice, state.sea_ice)
+    restore_prognostic_state!(osm.interfaces, state.interfaces)
+    # Note: we do NOT call update_state! here because:
+    # 1. The checkpoint was saved AFTER update_state! was called at the end of that time step
+    # 2. Calling update_state! would recompute interface fluxes and overwrite restored state
+    #    (e.g., top_surface_temperature is overwritten by compute_atmosphere_sea_ice_fluxes!)
+    return osm
+end
+
+restore_prognostic_state!(osm::OceanSeaIceModel, ::Nothing) = osm

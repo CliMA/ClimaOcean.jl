@@ -103,6 +103,7 @@ function initialize_output_writers!(sim, save_indices, iteration, rank)
         prefix = output_prefix * "_eki_iteration" * string(iteration) * "_rank$(rank)"
         sim.output_writers[name] = JLD2Writer(model, (; T, S); dir,
                                               schedule = TimeInterval(44days),
+                                              including = [:grid],
                                               filename = prefix,
                                               indices = idx,
                                               overwrite_existing = true)
