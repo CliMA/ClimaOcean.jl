@@ -2,8 +2,8 @@ using Oceananigans: location
 using Oceananigans.Grids: node
 using Oceananigans.Fields: interpolate, instantiated_location
 using Oceananigans.OutputReaders: Cyclical
-using Oceananigans.Utils: Time
-using Oceananigans.Architectures: AbstractArchitecture
+using Oceananigans.Units: Time
+using Oceananigans.Architectures: AbstractArchitecture, on_architecture, architecture
 
 using JLD2
 using NCDatasets
@@ -11,28 +11,67 @@ using NCDatasets
 using Dates: Second
 
 import ClimaOcean: stateindex
-import Oceananigans.Forcings: regularize_forcing
+import Oceananigans.Forcings: materialize_forcing
 
 # Variable names for restorable data
 struct Temperature end
 struct Salinity end
 struct UVelocity end
 struct VVelocity end
+# Add ClimaOceanBiogeochemistry fields
+struct DissolvedInorganicCarbon end
+struct Alkalinity end
+struct Nitrate end
+struct Phosphate end
+struct DissolvedOrganicPhosphorus end
+struct ParticulateOrganicPhosphorus end
+struct DissolvedIron end
+struct DissolvedSilicate end
+struct DissolvedOxygen end
 
-const oceananigans_fieldnames = Dict(:temperature => Temperature(),
-                                     :salinity    => Salinity(),
-                                     :u_velocity  => UVelocity(),
-                                     :v_velocity  => VVelocity())
+const oceananigans_fieldnames = Dict(
+    :temperature                    => Temperature(),
+    :salinity                       => Salinity(),
+    :u_velocity                     => UVelocity(),
+    :v_velocity                     => VVelocity(),
+    :dissolved_inorganic_carbon     => DissolvedInorganicCarbon(),
+    :alkalinity                     => Alkalinity(),
+	:phosphate                      => Phosphate(),
+    :nitrate                        => Nitrate(),                                     
+    :dissolved_organic_phosphorus   => DissolvedOrganicPhosphorus(),
+    :particulate_organic_phosphorus => ParticulateOrganicPhosphorus(),
+    :dissolved_iron                 => DissolvedIron(),
+    :dissolved_silicate             => DissolvedSilicate(),
+    :dissolved_oxygen               => DissolvedOxygen(),
+    )
 
-@inline Base.getindex(fields, i, j, k, ::Temperature) = @inbounds fields.T[i, j, k]
-@inline Base.getindex(fields, i, j, k, ::Salinity)    = @inbounds fields.S[i, j, k]
-@inline Base.getindex(fields, i, j, k, ::UVelocity)   = @inbounds fields.u[i, j, k]
-@inline Base.getindex(fields, i, j, k, ::VVelocity)   = @inbounds fields.v[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::Temperature)                  = @inbounds fields.T[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::Salinity)                     = @inbounds fields.S[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::UVelocity)                    = @inbounds fields.u[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::VVelocity)                    = @inbounds fields.v[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::DissolvedInorganicCarbon)     = @inbounds fields.DIC[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::Alkalinity)                   = @inbounds fields.ALK[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::Phosphate)                    = @inbounds fields.PO₄[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::Nitrate)                      = @inbounds fields.NO₃[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::DissolvedOrganicPhosphorus)   = @inbounds fields.DOP[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::ParticulateOrganicPhosphorus) = @inbounds fields.POP[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::DissolvedIron)                = @inbounds fields.Fe[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::DissolvedSilicate)            = @inbounds fields.SiO₂[i, j, k]
+@inline Base.getindex(fields, i, j, k, ::DissolvedOxygen)              = @inbounds fields.O₂[i, j, k]
 
-Base.summary(::Temperature) = "temperature"
-Base.summary(::Salinity)    = "salinity"
-Base.summary(::UVelocity)   = "u_velocity"
-Base.summary(::VVelocity)   = "v_velocity"
+Base.summary(::Temperature)                  = "temperature"
+Base.summary(::Salinity)                     = "salinity"
+Base.summary(::UVelocity)                    = "u_velocity"
+Base.summary(::VVelocity)                    = "v_velocity"
+Base.summary(::DissolvedInorganicCarbon)     = "dissolved_inorganic_carbon"
+Base.summary(::Alkalinity)                   = "alkalinity"
+Base.summary(::Phosphate)                    = "phosphate"
+Base.summary(::Nitrate)                      = "nitrate"
+Base.summary(::DissolvedOrganicPhosphorus)   = "dissolved_organic_phosphorus"
+Base.summary(::ParticulateOrganicPhosphorus) = "particulate_organic_phosphorus"
+Base.summary(::DissolvedIron)                = "dissolved_iron"
+Base.summary(::DissolvedSilicate)            = "dissolved_silicate"
+Base.summary(::DissolvedOxygen)              = "dissolved_oxygen"
 
 struct DatasetRestoring{FTS, G, M, V, N}
     field_time_series :: FTS
@@ -115,7 +154,16 @@ Arguments
   * `:u_velocity`,
   * `:v_velocity`,
   * `:sea_ice_thickness`,
-  * `:sea_ice_area_fraction`.
+  * `:sea_ice_area_fraction`,
+  * `:dissolved_inorganic_carbon`,
+  * `:alkalinity`,
+  * `:nitrate`,
+  * `:phosphate`,
+  * `:dissolved_organic_phosphorus`,
+  * `:particulate_organic_phosphorus`,
+  * `:dissolved_iron`,
+  * `:dissolved_silicate`,
+  * `:dissolved_oxygen`.
 
 - `arch_or_grid`: Either the architecture of the simulation, or a grid on which the data
                   is pre-interpolated when loaded. If an `arch`itecture is provided, such as
@@ -157,6 +205,9 @@ function DatasetRestoring(metadata::Metadata,
                           inpainting,
                           cache_inpainted_data)
 
+    arch = architecture(fts)
+    mask = on_architecture(arch, mask)
+
     # Grab the correct Oceananigans field to restore
     variable_name = metadata.name
     field_name = oceananigans_fieldnames[variable_name]
@@ -182,7 +233,7 @@ function Base.show(io::IO, dsr::DatasetRestoring)
               "└── native_grid: ", summary(dsr.native_grid))
 end
 
-regularize_forcing(forcing::DatasetRestoring, field, field_name, model_field_names) = forcing
+materialize_forcing(forcing::DatasetRestoring, field, field_name, model_field_names) = forcing
 
 #####
 ##### Masks for restoring

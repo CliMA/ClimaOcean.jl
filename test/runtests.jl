@@ -2,8 +2,6 @@
 include("runtests_setup.jl")
 
 using CUDA
-using PythonCall
-using CondaPkg
 using Scratch
 
 test_group = get(ENV, "TEST_GROUP", :all)
@@ -23,7 +21,6 @@ function delete_inpainted_files(dir)
         end
     end
 end
-
 
 if test_group == :init || test_group == :all
     #####
@@ -61,6 +58,11 @@ if test_group == :init || test_group == :all
 
         download_dataset(temperature_metadata)
         download_dataset(salinity_metadata)
+
+        if dataset isa Union{ECCO2DarwinMonthly, ECCO4DarwinMonthly}
+            PO₄_metadata = Metadata(:phosphate; dataset, dates)
+            download_dataset(PO₄_metadata)
+        end
     end
 end
 
@@ -93,6 +95,7 @@ end
 
 if test_group == :fluxes || test_group == :all
     include("test_surface_fluxes.jl")
+    include("test_sea_ice_ocean_heat_fluxes.jl")
 end
 
 if test_group == :bathymetry || test_group == :all
@@ -110,4 +113,8 @@ end
 
 if test_group == :reactant || test_group == :all
     include("test_reactant.jl")
+end
+
+if test_group == :speedy_weather || test_group == :all
+    include("test_speedy_coupling.jl")
 end

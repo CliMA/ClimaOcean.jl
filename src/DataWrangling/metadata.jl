@@ -1,7 +1,7 @@
 using CFTime
 using Dates
 using Base: @propagate_inbounds
-using Oceananigans.Utils: prettysummary
+import Oceananigans.Utils: prettysummary
 
 struct BoundingBox{X, Y, Z}
     longitude :: X
@@ -65,12 +65,12 @@ Keyword Arguments
            For a single date, use [`Metadatum`](@ref).
 
 - `start_date`: If `dates = nothing`, we can prescribe the first date of metadata as a date
-                (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`). `start_date` should lie
-                within the date range of the dataset. Default: nothing.
+                (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`). If outside the 
+                date range of the dataset, the first allowable date is chosen. Default: nothing.
 
 - `end_date`: If `dates = nothing`, we can prescribe the last date of metadata as a date
-              (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`). `end_date` should lie
-              within the date range of the dataset. Default: nothing.
+              (`Dates.AbstractDateTime` or `CFTime.AbstractCFDateTime`). If outside the 
+                date range of the dataset, the last allowable date is chosen. Default: nothing.
 
 - `bounding_box`: Specifies the bounds of the dataset. See [`BoundingBox`](@ref).
 
@@ -84,7 +84,14 @@ function Metadata(variable_name;
                   start_date = nothing,
                   end_date = nothing)
 
-    if !isnothing(start_date) && !isnothing(end_date)
+    # crop dates if _either_ a start date or an end date is provided
+    if !isnothing(start_date) || !isnothing(end_date)
+
+        # If one of the two is nothing, take the native limits
+        start_date = isnothing(start_date) ? dates[1]   : start_date
+        end_date   = isnothing(end_date)   ? dates[end] : end_date
+
+        # Crop the dates to fit start_date and end_date
         dates = compute_native_date_range(dates, start_date, end_date)
     end
 
@@ -92,7 +99,7 @@ function Metadata(variable_name;
 end
 
 const AnyDateTime  = Union{AbstractCFDateTime, Dates.AbstractDateTime}
-const Metadatum{V} = Metadata{V, <:Union{AnyDateTime, Nothing}, <:Any} where V
+const Metadatum{V} = Metadata{V, <:Union{AnyDateTime, Nothing}} where V
 
 function Base.size(metadata::Metadata)
     Nx, Ny, Nz = size(metadata.dataset, metadata.name)
@@ -119,6 +126,16 @@ function Metadatum(variable_name;
                    bounding_box = nothing,
                    date = first_date(dataset, variable_name),
                    dir = default_download_directory(dataset))
+
+    if date isa Date
+        date = DateTime(date)
+    end
+
+    if !isnothing(date) && !(date isa AnyDateTime)
+        msg = "`date` must be `nothing`, a `Dates.AbstractDateTime`, or `CFTime.AbstractCFDateTime`, received $(typeof(date))"
+        throw(ArgumentError(msg))
+    end
+
     return Metadata(variable_name, dataset, date, bounding_box, dir)
 end
 
@@ -127,11 +144,22 @@ datestr(md::Metadatum) = string(md.dates)
 datasetstr(md::Metadata) = string(md.dataset)
 metaprefix(md::Metadata) = string("Metadata{", md.dataset, "}")
 
+prettysummary(dt::DateTime) = Dates.format(dt, "yyyy-mm-dd HH:MM:SS")
+
 function Base.show(io::IO, metadata::Metadata)
-    print(io, "Metadata:", '\n',
+    V = typeof(metadata.dataset)
+    D = typeof(metadata.dates)
+
+    name = if metadata isa Metadatum
+        "Metadatum"
+    else
+        "Metadata"
+    end
+
+    print(io, "$name{$V, $D}:", '\n',
     "├── name: $(metadata.name)", '\n',
-    "├── dataset: $(metadata.dataset)", '\n',
-    "├── dates: $(metadata.dates)", '\n')
+    "├── dataset: ", prettysummary(metadata.dataset), '\n',
+    "├── dates: ", prettysummary(metadata.dates), '\n')
 
     bbox = metadata.bounding_box
     if !isnothing(bbox)
@@ -260,6 +288,20 @@ struct Celsius end
 struct Kelvin end
 
 temperature_units(metadata) = Celsius()
+
+struct MolePerKilogram end
+struct MolePerLiter end
+struct MillimolePerKilogram end
+struct MillimolePerLiter end
+struct MicromolePerKilogram end
+struct MicromolePerLiter end
+struct NanomolePerKilogram end
+struct NanomolePerLiter end
+
+struct GramPerKilogramMinus35 end # Salinity anomaly
+struct MilliliterPerLiter end # Sometimes for disssolved_oxygen
+
+concentration_units(metadata) = nothing
 
 #####
 ##### Utilities

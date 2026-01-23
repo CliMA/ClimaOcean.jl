@@ -2,7 +2,7 @@ using Oceananigans
 using Oceananigans.Units
 using Oceananigans.Grids: on_architecture
 using Oceananigans.Utils: WallTimeInterval
-using Oceananigans.BuoyancyFormulations: buoyancy
+using Oceananigans.Models: buoyancy_operation
 using Oceananigans.Models.HydrostaticFreeSurfaceModels: VerticalVorticityField
 using ClimaOcean.NearGlobalSimulations: one_degree_near_global_simulation
 using ParameterEstimocean
@@ -103,6 +103,7 @@ function initialize_output_writers!(sim, save_indices, iteration, rank)
         prefix = output_prefix * "_eki_iteration" * string(iteration) * "_rank$(rank)"
         sim.output_writers[name] = JLD2Writer(model, (; T, S); dir,
                                               schedule = TimeInterval(44days),
+                                              including = [:grid],
                                               filename = prefix,
                                               indices = idx,
                                               overwrite_existing = true)

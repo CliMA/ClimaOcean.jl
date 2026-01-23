@@ -26,8 +26,8 @@ using Statistics: mean
 @inline v_quadratic_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, 1] * spᶜᶠᶜ(i, j, 1, grid, Φ)
 
 # Keep a constant linear drag parameter independent on vertical level
-@inline u_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.u[i, j, k] * spᶠᶜᶜ(i, j, k, grid, fields)
-@inline v_immersed_bottom_drag(i, j, k, grid, clock, fields, μ) = @inbounds - μ * fields.v[i, j, k] * spᶜᶠᶜ(i, j, k, grid, fields)
+@inline u_immersed_bottom_drag(i, j, k, grid, clock, Φ, μ) = @inbounds - μ * Φ.u[i, j, k] * spᶠᶜᶜ(i, j, k, grid, Φ)
+@inline v_immersed_bottom_drag(i, j, k, grid, clock, Φ, μ) = @inbounds - μ * Φ.v[i, j, k] * spᶜᶠᶜ(i, j, k, grid, Φ)
 
 #####
 ##### Defaults
@@ -102,12 +102,12 @@ end
                      tracers = (:T, :S),
                      free_surface = default_free_surface(grid),
                      reference_density = 1020,
-                     rotation_rate = Ω_Earth,
-                     gravitational_acceleration = g_Earth,
+                     rotation_rate = default_planet_rotation_rate,
+                     gravitational_acceleration = default_gravitational_acceleration,
                      bottom_drag_coefficient = Default(0.003),
                      forcing = NamedTuple(),
                      biogeochemistry = nothing,
-                     timestepper = :QuasiAdamsBashforth2,
+                     timestepper = :SplitRungeKutta3,
                      coriolis = Default(HydrostaticSphericalCoriolis(; rotation_rate)),
                      momentum_advection = WENOVectorInvariant(),
                      tracer_advection = WENO(order=7),
@@ -117,7 +117,66 @@ end
                      warn = true,
                      verbose = false)
 
-Return an ocean simulation.
+Construct and return a hydrostatic ocean simulation tailored to `grid`.
+
+This function assembles an Oceananigans's `HydrostaticFreeSurfaceModel` with physically
+consistent defaults for advection, closures, the equation of state, surface fluxes, Coriolis,
+barotropic pressure–gradient forcing, boundary conditions, and optional biogeochemistry.
+It then wraps the model into an Oceananigans's `Simulation` with the specified timestepping options.
+
+
+## Behaviour and automatic configuration
+
+### Coriolis
+- On spherical grids, a `HydrostaticSphericalCoriolis` object is used by default.
+- On rectilinear grids, Coriolis is disabled unless explicitly provided.
+
+### Single-column grids (`grid.Nx == 1 && grid.Ny == 1`)
+- Advection is turned off (`momentum_advection = nothing`, `tracer_advection = nothing`).
+- Users may override `bottom_drag_coefficient`, but its default is `0`.
+- Immersed boundaries are ignored.
+
+### Bottom drag and immersed boundaries
+For multi-column grids:
+- Quadratic bottom drag is automatically applied to both `u` and `v`.
+- Immersed-boundary bottom drag conditions are constructed for both velocity components.
+- Barotropic potential forcings for `u` and `v` are also added automatically, and
+  user forcing tuples (e.g. `forcing = (u = ..., v = ...)`) are appended if provided.
+
+### Radiative forcing
+By default, `radiative_forcing` is `TwoColorRadiation` scheme.
+
+### Tracers and closures
+- `tracers` defaults to `(:T, :S)`.
+- If the closure requires turbulent kinetic energy (e.g. `CATKEVerticalDiffusivity`),
+  the turbulent kinetic energy `:e` tracer is automatically added while its advection is disabled.
+
+### Boundary conditions
+Default boundary conditions are constructed for `u`, `v`, `T`, and `S`, including
+surface fluxes and bottom drag. User-provided boundary conditions override the
+defaults on a per-field basis.
+
+## Keyword Arguments
+
+- `Δt`: Timestep used by the `Simulation`. Defaults to the maximum stable timestep estimated from the `grid`.
+- `closure`: A turbulence or mixing closure. Defaults to `default_ocean_closure()`.
+- `tracers`: Tuple of tracer names. Defaults to `(:T, :S)`.
+- `free_surface`: Free–surface solver. Defaults to `default_free_surface(grid)`.
+- `reference_density`: Reference seawater density used by the equation of state.
+- `rotation_rate`: Planetary rotation rate used for Coriolis forcing.
+- `gravitational_acceleration`: Gravitational acceleration, passed to buoyancy.
+- `bottom_drag_coefficient`: Bottom drag coefficient. May be a `Default` wrapper.
+- `forcing`: Named tuple of additional forcing(s) for individual fields.
+- `biogeochemistry`: A biogeochemical model or `nothing`.
+- `timestepper`: Time-stepping scheme; options are `:SplitRungeKutta3` (default), or `:QuasiAdamsBashforth2`.
+- `coriolis`: Coriolis object or `Default(...)` wrapper.
+- `momentum_advection`: Momentum advection scheme. Defaults to `WENOVectorInvariant()`.
+- `tracer_advection`: Tracer advection scheme or named tuple of schemes. Defaults to `WENO(order=7)`.
+- `equation_of_state`: Equation of state object. Defaults to TEOS-10 (`TEOS10EquationOfState`).
+- `boundary_conditions`: User-supplied boundary conditions; merged with defaults.
+- `radiative_forcing`: Additional temperature forcing; merged into `forcing`.
+- `warn`: If `true`, warnings are emitted for potentially unintended setups.
+- `verbose`: If `true`, prints additional setup information.
 """
 function ocean_simulation(grid;
                           Δt = estimate_maximum_Δt(grid),
@@ -125,12 +184,12 @@ function ocean_simulation(grid;
                           tracers = (:T, :S),
                           free_surface = default_free_surface(grid),
                           reference_density = 1020,
-                          rotation_rate = Ω_Earth,
-                          gravitational_acceleration = g_Earth,
+                          rotation_rate = default_planet_rotation_rate,
+                          gravitational_acceleration = default_gravitational_acceleration,
                           bottom_drag_coefficient = Default(0.003),
                           forcing = NamedTuple(),
                           biogeochemistry = nothing,
-                          timestepper = :QuasiAdamsBashforth2,
+                          timestepper = :SplitRungeKutta3,
                           coriolis = Default(HydrostaticSphericalCoriolis(; rotation_rate)),
                           momentum_advection = WENOVectorInvariant(),
                           tracer_advection = WENO(order=7),
@@ -183,10 +242,9 @@ function ocean_simulation(grid;
         v_immersed_bc = ImmersedBoundaryCondition(bottom=v_immersed_drag)
 
         # Forcing for u, v
-        u_barotropic_potential = Field{Center, Center, Nothing}(grid)
-        v_barotropic_potential = Field{Center, Center, Nothing}(grid)
-        u_forcing = BarotropicPotentialForcing(XDirection(), u_barotropic_potential)
-        v_forcing = BarotropicPotentialForcing(YDirection(), v_barotropic_potential)
+        barotropic_potential = Field{Center, Center, Nothing}(grid)
+        u_forcing = BarotropicPotentialForcing(XDirection(), barotropic_potential)
+        v_forcing = BarotropicPotentialForcing(YDirection(), barotropic_potential)
 
         :u ∈ keys(forcing) && (u_forcing = (u_forcing, forcing[:u]))
         :v ∈ keys(forcing) && (v_forcing = (v_forcing, forcing[:v]))
@@ -237,17 +295,12 @@ function ocean_simulation(grid;
     end
 
     if hasclosure(closure, CATKEVerticalDiffusivity)
-        # Magically add :e to tracers
-        if !(:e ∈ tracers)
-            tracers = tuple(tracers..., :e)
-        end
-
         # Turn off CATKE tracer advection
         tke_advection = (; e=nothing)
         tracer_advection = merge(tracer_advection, tke_advection)
     end
 
-    ocean_model = HydrostaticFreeSurfaceModel(; grid,
+    ocean_model = HydrostaticFreeSurfaceModel(grid;
                                               buoyancy,
                                               closure,
                                               biogeochemistry,
@@ -267,3 +320,19 @@ end
 
 hasclosure(closure, ClosureType) = closure isa ClosureType
 hasclosure(closure_tuple::Tuple, ClosureType) = any(hasclosure(c, ClosureType) for c in closure_tuple)
+
+#####
+##### Extending ClimaOcean interface
+#####
+
+reference_density(ocean::Simulation{<:HydrostaticFreeSurfaceModel}) = reference_density(ocean.model.buoyancy.formulation)
+reference_density(buoyancy_formulation::SeawaterBuoyancy) = reference_density(buoyancy_formulation.equation_of_state)
+reference_density(eos::TEOS10EquationOfState) = eos.reference_density
+
+heat_capacity(ocean::Simulation{<:HydrostaticFreeSurfaceModel}) = heat_capacity(ocean.model.buoyancy.formulation)
+heat_capacity(buoyancy_formulation::SeawaterBuoyancy) = heat_capacity(buoyancy_formulation.equation_of_state)
+
+function heat_capacity(::TEOS10EquationOfState{FT}) where FT
+    cₚ⁰ = SeawaterPolynomials.TEOS10.teos10_reference_heat_capacity
+    return convert(FT, cₚ⁰)
+end

@@ -1,6 +1,11 @@
+"""
+Incorporate various datasets to be used for bathymetry, initialization, forcing,
+restoring, or validation.
+"""
 module DataWrangling
 
 export Metadata, Metadatum, ECCOMetadatum, EN4Metadatum, all_dates, first_date, last_date
+export metadata_time_step, metadata_epoch
 export LinearlyTaperedPolarMask
 export DatasetRestoring
 
@@ -183,6 +188,8 @@ function longitude_interfaces end
 function latitude_interfaces end
 function reversed_vertical_axis end
 function native_grid end
+function binary_data_grid end
+function binary_data_size end
 
 default_mask_value(dataset) = NaN
 
@@ -192,6 +199,9 @@ include("metadata_field.jl")
 include("metadata_field_time_series.jl")
 include("inpainting.jl")
 include("restoring.jl")
+
+function metadata_time_step end
+function metadata_epoch end
 
 # Only temperature and salinity need a thorough inpainting because of stability,
 # other variables can do with only a couple of passes. Sea ice variables

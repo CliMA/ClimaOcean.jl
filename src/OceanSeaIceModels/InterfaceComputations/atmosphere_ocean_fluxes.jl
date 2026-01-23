@@ -1,42 +1,26 @@
 using Oceananigans.Operators: intrinsic_vector
 using Oceananigans.Grids: inactive_node
-using ClimaOcean.OceanSeaIceModels.PrescribedAtmospheres: thermodynamics_parameters,
-                                                          surface_layer_height,
-                                                          boundary_layer_height
 
 function compute_atmosphere_ocean_fluxes!(coupled_model)
-    ocean = coupled_model.ocean
-    atmosphere = coupled_model.atmosphere
-    grid = ocean.model.grid
+    exchanger = coupled_model.interfaces.exchanger
+    grid = exchanger.grid
     arch = architecture(grid)
     clock = coupled_model.clock
-
-    ocean_state = (u = ocean.model.velocities.u,
-                   v = ocean.model.velocities.v,
-                   T = ocean.model.tracers.T,
-                   S = ocean.model.tracers.S)
-
-    atmosphere_fields = coupled_model.interfaces.exchanger.exchange_atmosphere_state
+    ocean_state = exchanger.ocean.state
+    atmosphere_fields = exchanger.atmosphere.state
 
     # Simplify NamedTuple to reduce parameter space consumption.
     # See https://github.com/CliMA/ClimaOcean.jl/issues/116.
-    atmosphere_data = (u = atmosphere_fields.u.data,
-                       v = atmosphere_fields.v.data,
-                       T = atmosphere_fields.T.data,
-                       p = atmosphere_fields.p.data,
-                       q = atmosphere_fields.q.data,
-                       Qs = atmosphere_fields.Qs.data,
-                       Qℓ = atmosphere_fields.Qℓ.data,
-                       Mp = atmosphere_fields.Mp.data,
-                       h_bℓ = boundary_layer_height(atmosphere))
+    atmosphere_data = merge(atmosphere_fields, 
+                            (; h_bℓ = boundary_layer_height(coupled_model.atmosphere)))
 
     flux_formulation = coupled_model.interfaces.atmosphere_ocean_interface.flux_formulation
     interface_fluxes = coupled_model.interfaces.atmosphere_ocean_interface.fluxes
     interface_temperature = coupled_model.interfaces.atmosphere_ocean_interface.temperature
     interface_properties = coupled_model.interfaces.atmosphere_ocean_interface.properties
     ocean_properties = coupled_model.interfaces.ocean_properties
-    atmosphere_properties = (thermodynamics_parameters = thermodynamics_parameters(atmosphere),
-                             surface_layer_height = surface_layer_height(atmosphere),
+    atmosphere_properties = (thermodynamics_parameters = thermodynamics_parameters(coupled_model.atmosphere),
+                             surface_layer_height = surface_layer_height(coupled_model.atmosphere),
                              gravitational_acceleration = coupled_model.interfaces.properties.gravitational_acceleration)
 
     kernel_parameters = interface_kernel_parameters(grid)
@@ -93,16 +77,16 @@ end
 
     # Build thermodynamic and dynamic states in the atmosphere and interface.
     # Notation:
-    #   ⋅ 𝒬 ≡ thermodynamic state vector
     #   ⋅ 𝒰 ≡ "dynamic" state vector (thermodynamics + reference height + velocity)
     ℂₐ = atmosphere_properties.thermodynamics_parameters
-    𝒬ₐ = thermodynamic_atmospheric_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₐ, qₐ)
     zₐ = atmosphere_properties.surface_layer_height # elevation of atmos variables relative to interface
 
     local_atmosphere_state = (z = zₐ,
                               u = uₐ,
                               v = vₐ,
-                              𝒬 = 𝒬ₐ,
+                              T = Tₐ,
+                              p = pₐ,
+                              q = qₐ,
                               h_bℓ = atmosphere_state.h_bℓ)
 
     local_interior_state = (u=uᵢ, v=vᵢ, T=Tᵢ, S=Sᵢ)
@@ -114,7 +98,7 @@ end
 
     # Estimate interface specific humidity using interior temperature
     q_formulation = interface_properties.specific_humidity_formulation
-    qₛ = surface_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ, Tᵢ, Sᵢ)
+    qₛ = surface_specific_humidity(q_formulation, ℂₐ, Tₐ, pₐ, qₐ, Tᵢ, Sᵢ)
     initial_interface_state = InterfaceState(u★, u★, u★, uᵢ, vᵢ, Tᵢ, Sᵢ, qₛ)
 
     # Don't use convergence criteria in an inactive cell
@@ -160,9 +144,9 @@ end
     τx = ifelse(ΔU == 0, zero(grid), - u★^2 * Δu / ΔU)
     τy = ifelse(ΔU == 0, zero(grid), - u★^2 * Δv / ΔU)
 
-    ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
-    cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
-    ℒv = AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
+    ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, Tₐ, pₐ, qₐ)
+    cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, qₐ) # moist heat capacity
+    ℒv = AtmosphericThermodynamics.latent_heat_vapor(ℂₐ, Tₐ)
     
 
     # Store fluxes

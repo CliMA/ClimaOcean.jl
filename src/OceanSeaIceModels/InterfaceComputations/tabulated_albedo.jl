@@ -1,11 +1,7 @@
 using Oceananigans.Fields: interpolator
 using Oceananigans.Grids: on_architecture
-using Oceananigans.Utils: Time
+using Oceananigans.Units: Time
 using Base
-
-using ClimaOcean.OceanSeaIceModels:
-    PrescribedAtmosphere,
-    TwoBandDownwellingRadiation
 
 # Bilinear interpolation of the albedo α in α_table based on a
 # transmissivity value (𝓉_values) and latitude (φ_values)
@@ -165,4 +161,3 @@ Base.show(io::IO, α::TabulatedAlbedo) = print(io, summary(α))
 
     return α
 end
-

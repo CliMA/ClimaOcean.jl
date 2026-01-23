@@ -1,4 +1,4 @@
-# # One-degree global ocean--sea ice simulation
+# # [One-degree global ocean--sea ice simulation](@id one-degree-ocean-seaice)
 #
 # This example configures a global ocean--sea ice simulation at 1ᵒ horizontal resolution with
 # realistic bathymetry and a few closures including the "Gent-McWilliams" `IsopycnalSkewSymmetricDiffusivity`.
@@ -27,7 +27,7 @@ Ny = 180
 Nz = 50
 
 depth = 5000meters
-z = ExponentialCoordinate(Nz, -depth, 0; scale = depth/4)
+z = ExponentialDiscretization(Nz, -depth, 0; scale = depth/4)
 
 underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), halo = (5, 5, 4), z)
 
@@ -51,8 +51,10 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height);
 # eddy fluxes. For vertical mixing at the upper-ocean boundary layer we include the CATKE
 # parameterization.
 
-eddy_closure = Oceananigans.TurbulenceClosures.IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3)
-vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
+using Oceananigans.TurbulenceClosures: IsopycnalSkewSymmetricDiffusivity, AdvectiveFormulation
+
+eddy_closure = IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3, skew_flux_formulation=AdvectiveFormulation())
+vertical_mixing = ClimaOcean.Oceans.default_ocean_closure()
 
 # ### Ocean simulation
 # Now we bring everything together to construct the ocean simulation.
@@ -63,7 +65,6 @@ momentum_advection = WENOVectorInvariant(order=5)
 tracer_advection   = WENO(order=5)
 
 ocean = ocean_simulation(grid; momentum_advection, tracer_advection, free_surface,
-                         timestepper = :SplitRungeKutta3,
                          closure=(eddy_closure, vertical_mixing))
 
 @info "We've built an ocean simulation with model:"
@@ -83,7 +84,7 @@ sea_ice = sea_ice_simulation(grid, ocean; advection=tracer_advection)
 
 date = DateTime(1993, 1, 1)
 dataset = ECCO4Monthly()
-ecco_temperature = Metadatum(:temperature; date, dataset)
+ecco_temperature           = Metadatum(:temperature; date, dataset)
 ecco_salinity              = Metadatum(:salinity; date, dataset)
 ecco_sea_ice_thickness     = Metadatum(:sea_ice_thickness; date, dataset)
 ecco_sea_ice_concentration = Metadatum(:sea_ice_concentration; date, dataset)
@@ -160,7 +161,7 @@ ocean.output_writers[:surface] = JLD2Writer(ocean.model, ocean_outputs;
                                             indices = (:, :, grid.Nz),
                                             overwrite_existing = true)
 
-sea_ice.output_writers[:surface] = JLD2Writer(ocean.model, sea_ice_outputs;
+sea_ice.output_writers[:surface] = JLD2Writer(sea_ice.model, sea_ice_outputs;
                                               schedule = TimeInterval(1days),
                                               filename = "sea_ice_one_degree_surface_fields",
                                               overwrite_existing = true)

@@ -1,7 +1,6 @@
 include("runtests_setup.jl")
 
-using PythonCall
-using CondaPkg
+using CopernicusMarine
 
 @testset "Downloading Copernicus data" begin
     bounding_box = ClimaOcean.DataWrangling.BoundingBox(longitude=(200, 202), latitude=(35, 37))

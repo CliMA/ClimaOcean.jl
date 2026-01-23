@@ -22,8 +22,7 @@ Ny = 128 # meridional direction -> same thing, 48 points is about 1.5ᵒ resolut
 Nz = 10
 depth = 1000meters
 
-z = ExponentialCoordinate(Nz, -depth, 0; scale=0.3*depth)
-z = MutableVerticalDiscretization(z)
+z = ExponentialDiscretization(Nz, -depth, 0; scale=0.3*depth, mutable=true)
 
 grid = TripolarGrid(arch, Float64; size=(Nx, Ny, Nz), z)
 sea_ice_grid = TripolarGrid(arch, Float64; size=(Nx, Ny, 1), z = (-10, 0))
@@ -51,7 +50,7 @@ using Oceananigans.TurbulenceClosures: IsopycnalSkewSymmetricDiffusivity,
 using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities: CATKEVerticalDiffusivity
 
 eddy_closure = IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3, skew_flux_formulation=DiffusiveFormulation())
-vertical_mixing = ClimaOcean.OceanSimulations.default_ocean_closure()
+vertical_mixing = ClimaOcean.Oceans.default_ocean_closure()
 
 closure = (eddy_closure, vertical_mixing)
 
@@ -97,25 +96,26 @@ s = sqrt(u^2 + v^2)
 
 h = sea_ice.model.ice_thickness
 ℵ = sea_ice.model.ice_concentration
-η = ocean.model.free_surface.η
+η = ocean.model.free_surface.displacement
 
 earth.output_writers[:surface_tracers] = JLD2Writer(ocean.model, (; T, S, s),
                                                     schedule = TimeInterval(12hours),
                                                     indices = (:, :, grid.Nz),
                                                     overwrite_existing = true,
+                                                    including = [:grid],
                                                     filename = "surface_fields.jld2")
 
 
 earth.output_writers[:sea_ice_variables] = JLD2Writer(sea_ice.model, (; h, ℵ),
-                                                            schedule = TimeInterval(12hours),
-                                                            overwrite_existing = true,
-                                                            filename = "sea_ice_fields.jld2")
+                                                      schedule = TimeInterval(12hours),
+                                                      overwrite_existing = true,
+                                                      filename = "sea_ice_fields.jld2")
 
 
 earth.output_writers[:free_surface] = JLD2Writer(ocean.model, (; η),
-                                                       schedule = TimeInterval(12hours),
-                                                       overwrite_existing = true,
-                                                       filename = "free_surface.jld2")
+                                                 schedule = TimeInterval(12hours),
+                                                 overwrite_existing = true,
+                                                 filename = "free_surface.jld2")
 
 Q  = earth.model.interfaces.net_fluxes.ocean_surface.T
 τx = earth.model.interfaces.net_fluxes.ocean_surface.u
@@ -125,6 +125,7 @@ PE = earth.model.interfaces.net_fluxes.ocean_surface.S
 earth.output_writers[:fluxes] = JLD2Writer(ocean.model, (; Q, τx, τy, PE),
                                                  schedule = TimeInterval(12hours),
                                                  overwrite_existing = true,
+                                                 including = [:grid],
                                                  filename = "surface_fluxes.jld2")
 
 # Also, we add a callback to print a message about how the simulation is going

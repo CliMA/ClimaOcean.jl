@@ -1,5 +1,4 @@
 using DocStringExtensions
-using Oceananigans.BuoyancyFormulations: g_Earth
 
 """
     struct CoefficientBasedFluxes{CD, CH, CQ, S}
@@ -62,7 +61,7 @@ using Oceananigans
 using ClimaOcean
 
 grid = RectilinearGrid(size=3, z=(-1, 0), topology=(Flat, Flat, Bounded))
-ocean = ocean_simulation(grid)
+ocean = ocean_simulation(grid; timestepper = :QuasiAdamsBashforth2)
 
 ao_fluxes = CoefficientBasedFluxes(drag_coefficient = 1e-2,
                                    heat_transfer_coefficient = 1e-3,

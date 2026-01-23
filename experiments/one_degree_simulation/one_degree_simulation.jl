@@ -8,12 +8,12 @@ using GLMakie
 
 Oceananigans.defaults.FloatType = Float64
 arch = CPU()
-Nx = 256
-Ny = 128
+Nx = 360
+Ny = 180
 Nz = 32
 
 depth = 6000meters
-z = ExponentialCoordinate(Nz, -depth, 0, scale=(34/Nz)*depth)
+z = ExponentialDiscretization(Nz, -depth, 0, scale=(34/Nz)*depth)
 underlying_grid = TripolarGrid(arch; size=(Nx, Ny, Nz), z)
 
 bottom_height = regrid_bathymetry(underlying_grid; minimum_depth=30, interpolation_passes=20, major_basins=1)
@@ -21,7 +21,7 @@ view(bottom_height, 73:78, 88:89, 1) .= -1000 # open Gibraltar strait
 
 grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); active_cells_map=true)
 
-catke = ClimaOcean.OceanSimulations.default_ocean_closure()
+catke = ClimaOcean.Oceans.default_ocean_closure()
 viscous_closure = Oceananigans.TurbulenceClosures.HorizontalScalarDiffusivity(ν=2000)
 closure = (catke, viscous_closure)
 

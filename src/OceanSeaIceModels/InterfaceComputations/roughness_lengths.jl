@@ -28,7 +28,8 @@ end
     WindDependentWaveFormulation(FT = Oceananigans.defaults.FloatType;
                                  Umax = 19, ℂ₁ = 0.0017, ℂ₂ = -0.005)
 
-A gravity wave parameter based on the wind speed `ΔU` with the formula `ℂ₁ * max(ΔU, Umax) + ℂ₂`.
+A gravity wave parameter based on the wind speed `ΔU` with the formula `ℂ₁ * max(ΔU, Umax) + ℂ₂`
+as shown in (Edson (2013)'s)[@cite Edson2013] equation (13) and surrounding text.
 """
 WindDependentWaveFormulation(FT=Oceananigans.defaults.FloatType; Umax = 19, ℂ₁ = 0.0017, ℂ₂ = -0.005) =
     WindDependentWaveFormulation(convert(FT, Umax),
@@ -36,7 +37,7 @@ WindDependentWaveFormulation(FT=Oceananigans.defaults.FloatType; Umax = 19, ℂ�
                                  convert(FT, ℂ₂))
 
 gravity_wave_parameter(α::Number, args...) = α
-gravity_wave_parameter(α::WindDependentWaveFormulation, ΔU) = α.ℂ₁ * max(ΔU, α.Umax) + α.ℂ₂
+gravity_wave_parameter(α::WindDependentWaveFormulation, ΔU) = α.ℂ₁ * min(ΔU, α.Umax) + α.ℂ₂
 
 """
     ScalarRoughnessLength(FT = Float64;
@@ -143,13 +144,12 @@ function TemperatureDependentAirViscosity(FT = Oceananigans.defaults.FloatType;
                                             convert(FT, ℂ₃))
 end
 
-@inline compute_air_kinematic_viscosity(ν::Number, ℂ, 𝒬) = ν
+@inline compute_air_kinematic_viscosity(ν::Number, ℂ, T) = ν
 
 """ Calculate the air viscosity based on the temperature θ in Celsius. """
-@inline function compute_air_kinematic_viscosity(ν::TemperatureDependentAirViscosity, ℂ, 𝒬)
-    T₀ = AtmosphericThermodynamics.air_temperature(ℂ, 𝒬)
+@inline function compute_air_kinematic_viscosity(ν::TemperatureDependentAirViscosity, ℂ, T)
     FT = eltype(ν.ℂ₀)
-    T′ = convert(FT, T₀ - celsius_to_kelvin)
+    T′ = convert(FT, T - celsius_to_kelvin)
     return ν.ℂ₀ + ν.ℂ₁ * T′ + ν.ℂ₂ * T′^2 + ν.ℂ₃ * T′^3
 end
 
@@ -159,10 +159,10 @@ end
 
 # Momentum roughness length should be different from scalar roughness length.
 # Temperature and water vapor can be considered the same (Edson et al. 2013)
-@inline function roughness_length(ℓ::MomentumRoughnessLength{FT}, u★, U, ℂₐ=nothing, 𝒬ₐ=nothing) where FT
-    ν = compute_air_kinematic_viscosity(ℓ.air_kinematic_viscosity, ℂₐ, 𝒬ₐ)
+@inline function roughness_length(ℓ::MomentumRoughnessLength{FT}, u★, Uₐ, ℂₐ=nothing, Tₐ=nothing) where FT
+    ν = compute_air_kinematic_viscosity(ℓ.air_kinematic_viscosity, ℂₐ, Tₐ)
     g = ℓ.gravitational_acceleration
-    ℂg = gravity_wave_parameter(ℓ.wave_formulation, U)
+    ℂg = gravity_wave_parameter(ℓ.wave_formulation, Uₐ)
     ℂν = ℓ.smooth_wall_parameter
 
     ℓᵂ = ℂg * u★^2 / g # gravity wave roughness length
@@ -196,9 +196,9 @@ ReynoldsScalingFunction(FT = Oceananigans.defaults.FloatType; A = 5.85e-5, b = 0
 @inline (s::ReynoldsScalingFunction)(R★, args...) = ifelse(R★ == 0, convert(eltype(R★), 0), s.A / R★ ^ s.b)
 
 # Edson 2013 formulation of scalar roughness length in terms of momentum roughness length ℓu
-@inline function roughness_length(ℓ::ScalarRoughnessLength{FT}, ℓu, u★, U, ℂ=nothing, 𝒬=nothing) where FT
+@inline function roughness_length(ℓ::ScalarRoughnessLength{FT}, ℓu, u★, Uₐ, ℂₐ=nothing, Tₐ=nothing) where FT
     # Roughness Reynolds number
-    ν = compute_air_kinematic_viscosity(ℓ.air_kinematic_viscosity, ℂ, 𝒬)
+    ν = compute_air_kinematic_viscosity(ℓ.air_kinematic_viscosity, ℂₐ, Tₐ)
     R★ = ℓu * u★ / ν
 
     # implementation of scalar roughness length
@@ -211,10 +211,9 @@ ReynoldsScalingFunction(FT = Oceananigans.defaults.FloatType; A = 5.85e-5, b = 0
 end
 
 # Convenience for users
-@inline function (ℓ::MomentumRoughnessLength{FT})(u★, U=nothing, ℂ=nothing, 𝒬=nothing) where FT
-    return roughness_length(ℓ, u★, ℂ, 𝒬)
-end
+@inline (ℓ::MomentumRoughnessLength{FT})(u★, Uₐ=nothing, ℂₐ=nothing, Tₐ=nothing) where FT =
+    roughness_length(ℓ, u★, ℂₐ, Tₐ)
 
-@inline function (ℓ::ScalarRoughnessLength{FT})(u★, U=nothing, ℂ=nothing, 𝒬=nothing) where FT
-    return roughness_length(ℓ, u★, ℂ, 𝒬)
+@inline function (ℓ::ScalarRoughnessLength{FT})(u★, Uₐ=nothing, ℂₐ=nothing, Tₐ=nothing) where FT
+    roughness_length(ℓ, u★, ℂₐ, Tₐ)
 end
