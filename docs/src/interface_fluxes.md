@@ -696,7 +696,7 @@ for j in (1, 20, 50, 100, 150, 200)
     lines!(axC, uₐ, Cᴰ[:, j] ./ Cᴰ_default, label="ΔT = $(round(ΔT[j], digits=1)) K", alpha=0.8)
 end
 
-axislegend(axC, orientation=:horizontal, nbanks=2, label="navid")
+axislegend(axC, orientation=:horizontal, nbanks=2)
 
 xlims!(axC, 0, 10)
 ylims!(axC, 0, 4)
@@ -711,3 +711,265 @@ u_\star = \sqrt{C_D | Δ \bm{u} | \, U} \\
 \theta_\star = \frac{C_θ}{\sqrt{C_D}} \, Δ θ \, \sqrt{\frac{U}{|Δ \bm{u} |}} \\
 q_\star = \frac{C_q}{\sqrt{C_D}} \, Δ q \, \sqrt{\frac{U}{| Δ \bm{u} |}} \\
 ```
+
+## Sea ice-ocean fluxes
+
+When sea ice is present, the exchange of heat, salt, and momentum between the ocean and ice is critical for both
+ocean circulation and sea ice evolution.
+ClimaOcean provides two formulations for computing sea ice-ocean heat fluxes:
+a simpler bulk formula (`IceBathHeatFlux`) and the full three-equation thermodynamic model (`ThreeEquationHeatFlux`).
+
+### Overview of sea ice-ocean coupling
+
+The sea ice-ocean interface involves three key flux components:
+
+1. **Heat fluxes**:
+   - *Frazil heat flux*: Heat released when ocean water supercools below the freezing point, forming frazil ice crystals.
+   - *Interface heat flux*: Turbulent heat exchange between the ocean mixed layer and ice bottom.
+
+2. **Salt flux**: Exchange due to ice formation (brine rejection) and melting (freshwater release).
+
+3. **Momentum flux**: Drag between moving sea ice and the underlying ocean.
+
+The total heat flux at the ice-ocean interface drives ice growth (when the ocean cools the ice) or melting (when
+the ocean warms the ice). The formulation used to compute this heat flux can significantly affect simulation results.
+
+### Frazil ice formation
+
+Both formulations handle frazil ice formation identically. When ocean temperature drops below the local freezing point
+``T_m(S)`` at any depth, the temperature is reset to the freezing point and the corresponding heat is extracted:
+
+```math
+Q_f = -\sum_{k=1}^{N_z} \rho_o c_o (T_m(S_k) - T_k) \frac{\Delta z_k}{\Delta t}
+```
+
+where the sum is over all vertical levels where ``T_k < T_m(S_k)``. This heat flux (negative, indicating heat transfer
+from ice to ocean) represents the latent heat released during frazil ice formation.
+
+### Bulk heat flux formulation (`IceBathHeatFlux`)
+
+The simplest formulation treats the ice-ocean interface as a turbulent boundary layer where the interface temperature
+is fixed at the freezing point of the surface ocean salinity. The heat flux is computed as:
+
+```math
+Q = \rho_o c_o \alpha_h u_* (T_o - T_m(S_o))
+```
+
+where:
+- ``\rho_o`` is the ocean reference density
+- ``c_o`` is the ocean heat capacity
+- ``\alpha_h`` is the turbulent heat transfer coefficient (dimensionless, default 0.006)
+- ``u_*`` is the friction velocity at the ice-ocean interface
+- ``T_o`` is the ocean surface temperature
+- ``T_m(S_o)`` is the freezing temperature at ocean surface salinity
+
+The melt rate follows directly from the heat flux: ``q = Q / \mathscr{L}`` where ``\mathscr{L}`` is the latent heat of fusion.
+
+```@example interface_fluxes
+using ClimaOcean.OceanSeaIceModels: IceBathHeatFlux
+
+# Default parameters
+flux = IceBathHeatFlux()
+```
+
+The friction velocity can be specified as a constant value or computed dynamically from the ice-ocean momentum stress:
+
+```@example interface_fluxes
+using ClimaOcean.OceanSeaIceModels: MomentumBasedFrictionVelocity
+
+# With momentum-based friction velocity
+flux = IceBathHeatFlux(heat_transfer_coefficient = 0.006,
+                       friction_velocity = MomentumBasedFrictionVelocity())
+```
+
+### Three-equation formulation (`ThreeEquationHeatFlux`)
+
+The three-equation formulation [holland1999modeling](@citep) solves a coupled system for the interface temperature
+``T_*``, interface salinity ``S_*``, and melt rate ``q``. This approach is more physically complete as it accounts
+for the salinity dependence of the freezing point at the actual interface (not the bulk ocean).
+
+The three equations are:
+
+1. **Heat balance**: The turbulent heat flux from the ocean must balance the latent heat of phase change plus
+   any conductive heat flux into the ice:
+   ```math
+   \rho_o c_o \gamma_T (T_o - T_*) + F_c = \mathscr{L} q
+   ```
+
+2. **Salt balance**: The turbulent salt flux must balance the salt rejected or absorbed during freezing/melting:
+   ```math
+   \rho_o \gamma_S (S_o - S_*) = q (S_* - S_i)
+   ```
+
+3. **Freezing point constraint**: The interface temperature equals the freezing point at interface salinity:
+   ```math
+   T_* = T_m(S_*) = \lambda_2 - \lambda_1 S_*
+   ```
+
+where:
+- ``\gamma_T = \alpha_h u_*`` is the turbulent heat exchange velocity
+- ``\gamma_S = \alpha_s u_*`` is the turbulent salt exchange velocity
+- ``F_c`` is the conductive heat flux through the ice (optional)
+- ``S_i`` is the ice salinity
+- ``\lambda_1, \lambda_2`` are liquidus coefficients
+
+The ratio ``R = \alpha_h / \alpha_s`` (typically around 35) reflects the different molecular diffusivities of heat and
+salt, with heat diffusing faster than salt [hieronymus2021comparison](@citep).
+
+```@example interface_fluxes
+using ClimaOcean.OceanSeaIceModels: ThreeEquationHeatFlux
+
+# Default parameters (αₕ = 0.0095, αₛ = αₕ/35)
+flux = ThreeEquationHeatFlux()
+```
+
+The three-equation system reduces to a quadratic equation in ``S_*``:
+
+```math
+a S_*^2 + b S_* + c = 0
+```
+
+where the coefficients depend on the ocean state, ice state, and transfer coefficients.
+The physical root (positive salinity) gives the interface salinity, from which the interface
+temperature and melt rate follow.
+
+### Conductive heat flux
+
+For thick, consolidated ice, heat conduction through the ice can significantly affect the energy balance.
+When ice internal temperature ``T_i`` differs from the interface temperature ``T_*``, a conductive flux exists:
+
+```math
+F_c = \frac{k_i}{h_i} (T_i - T_*)
+```
+
+where ``k_i`` is the ice thermal conductivity and ``h_i`` is the ice thickness. This flux is only activated when
+ice thickness exceeds the consolidation threshold. The conductive flux modifies the heat balance equation,
+coupling ice thermodynamics more tightly with the ocean.
+
+### Choosing a formulation
+
+| Feature | `IceBathHeatFlux` | `ThreeEquationHeatFlux` |
+|---------|-------------------|-------------------------|
+| Interface T, S | Fixed at bulk ocean values | Computed self-consistently |
+| Salt balance | Not explicitly solved | Fully coupled |
+| Computational cost | Lower | Higher |
+| Physical fidelity | Adequate for many applications | Higher accuracy near ice |
+| Default | No | Yes |
+
+For most coupled ocean-ice simulations, `ThreeEquationHeatFlux` (the default) provides better physical consistency.
+`IceBathHeatFlux` may be preferred for simplified experiments or when computational cost is critical.
+
+### Comparing the formulations
+
+To illustrate the differences between formulations, we compute the interface conditions across a range of
+ocean temperatures for fixed ocean salinity ``S_o = 34 \, \mathrm{g \, kg^{-1}}``.
+
+```@example interface_fluxes
+using CairoMakie
+using ClimaSeaIce.SeaIceThermodynamics: LinearLiquidus, melting_temperature, ConductiveFlux
+using ClimaOcean.OceanSeaIceModels.InterfaceComputations: compute_interface_heat_flux
+using Oceananigans.Fields: ZeroField, ConstantField
+
+# Formulations
+flux¹ = IceBathHeatFlux()
+flux² = ThreeEquationHeatFlux()
+flux³ = ThreeEquationHeatFlux(ConductiveFlux(2.0), ConstantField(-40.0), 0.0095, 0.0095/35, 0.02)
+
+# Parameters
+liquidus = LinearLiquidus()
+ocean_properties = (reference_density = 1026.0, heat_capacity = 3991.0)
+ℒ, u★, ρᵢ = 3.34e5, 0.02, 917.0
+Sₒ, Sᵢ, hᵢ, Tᵢ = 34.0, 5.0, 0.5, -40.0
+
+# Compute interface conditions
+Tₒ = range(melting_temperature(liquidus, Sₒ), stop=5.0, length=100)
+ice_state = (; S = Sᵢ, h = hᵢ, hc = 0.0, ℵ = 1.0, T = Tᵢ)
+
+data = map(Tₒ) do T
+    ocean_state = (; T, S = Sₒ)
+    _, q¹, T★¹, S★¹ = compute_interface_heat_flux(flux¹, ocean_state, ice_state, liquidus, ocean_properties, ℒ, u★)
+    _, q², T★², S★² = compute_interface_heat_flux(flux², ocean_state, ice_state, liquidus, ocean_properties, ℒ, u★)
+    _, q³, T★³, S★³ = compute_interface_heat_flux(flux³, ocean_state, ice_state, liquidus, ocean_properties, ℒ, u★)
+    (; T★¹, S★¹, q¹ = q¹ / ρᵢ * 86400e3, T★², S★², q² = q² / ρᵢ * 86400e3, T★³, S★³, q³ = q³ / ρᵢ * 86400e3)
+end
+
+fig = Figure(size=(900, 750))
+
+ax1 = Axis(fig[1, 1], xlabel="Ocean temperature Tₒ (°C)", ylabel="Interface temperature T★ (°C)")
+l1 = lines!(ax1, Tₒ, [d.T★¹ for d in data], linewidth=2)
+l2 = lines!(ax1, Tₒ, [d.T★² for d in data], linewidth=2)
+l3 = lines!(ax1, Tₒ, [d.T★³ for d in data], linewidth=2)
+hlines!(ax1, [melting_temperature(liquidus, Sₒ)], color=:gray, linestyle=:dash)
+
+ax2 = Axis(fig[1, 2], xlabel="Ocean temperature Tₒ (°C)", ylabel="Interface salinity S★ (g/kg)")
+lines!(ax2, Tₒ, [d.S★¹ for d in data], linewidth=2)
+lines!(ax2, Tₒ, [d.S★² for d in data], linewidth=2)
+lines!(ax2, Tₒ, [d.S★³ for d in data], linewidth=2)
+hlines!(ax2, [Sₒ], color=:gray, linestyle=:dash)
+hlines!(ax2, [Sᵢ], color=:gray, linestyle=:dot)
+
+ax3 = Axis(fig[2, 1:2], xlabel="Ocean temperature Tₒ (°C)", ylabel="Melt rate q (mm/day)")
+lines!(ax3, Tₒ, [d.q¹ for d in data], linewidth=2)
+lines!(ax3, Tₒ, [d.q² for d in data], linewidth=2)
+lines!(ax3, Tₒ, [d.q³ for d in data], linewidth=2)
+hlines!(ax3, [0], color=:gray, linestyle=:dash)
+
+Legend(fig[3, 1:2], [l1, l2, l3],
+       ["IceBathHeatFlux", "ThreeEquationHeatFlux", "ThreeEquationHeatFlux + conduction"],
+       orientation=:horizontal, framevisible=false)
+
+fig
+```
+
+The plots reveal key differences between the formulations:
+
+1. **Interface temperature**: `IceBathHeatFlux` fixes ``T_★`` at the freezing point of bulk ocean salinity (constant),
+   while `ThreeEquationHeatFlux` computes ``T_★`` from the self-consistently determined interface salinity.
+   With conductive flux (``k_i = 2 \, \mathrm{W \, m^{-1} \, K^{-1}}``, ``h_i = 0.5 \, \mathrm{m}``,
+   ``T_i = -40 \, \mathrm{°C}``), the interface temperature shifts toward colder values as heat is conducted
+   into the cold ice interior.
+
+2. **Interface salinity**: `IceBathHeatFlux` uses the bulk ocean salinity ``S_o``, while `ThreeEquationHeatFlux`
+   computes ``S_★`` that varies between ice salinity ``S_i`` (during rapid freezing) and ocean salinity ``S_o``
+   (during rapid melting). The conductive flux case shows enhanced freezing (lower ``S_★``) due to the
+   additional heat sink from the cold ice.
+
+3. **Melt rate**: The three-equation formulation captures the feedback between interface salinity, freezing point
+   depression, and heat flux. When conductive flux is included, the cold ice interior extracts heat from the
+   interface, shifting the melt rate toward freezing (more negative values) across all ocean temperatures.
+
+### Configuring sea ice-ocean fluxes
+
+Sea ice-ocean heat flux formulation is specified via the `sea_ice_ocean_heat_flux` keyword argument
+when constructing `ComponentInterfaces`. The default is `ThreeEquationHeatFlux()`.
+
+To use the bulk formulation instead:
+
+```@example interface_fluxes
+bulk_flux = IceBathHeatFlux(heat_transfer_coefficient = 0.005,
+                            friction_velocity = 0.01)
+```
+
+To customize the three-equation formulation with momentum-based friction velocity:
+
+```@example interface_fluxes
+custom_flux = ThreeEquationHeatFlux(heat_transfer_coefficient = 0.01,
+                                    salt_transfer_coefficient = 0.0003,
+                                    friction_velocity = MomentumBasedFrictionVelocity())
+```
+
+These formulations are then passed to `ComponentInterfaces`:
+
+```julia
+interfaces = ComponentInterfaces(atmosphere, ocean, sea_ice;
+                                 sea_ice_ocean_heat_flux = custom_flux)
+```
+
+Note: The `ComponentInterfaces` call above is illustrative; it requires fully constructed
+`atmosphere`, `ocean`, and `sea_ice` simulation objects.
+
+### References for sea ice-ocean fluxes
+
+The implementations follow:
+- [holland1999modeling](@citet): foundational three-equation model for ice shelf-ocean interaction
+- [hieronymus2021comparison](@citet): comparison of different ocean-ice flux parameterizations

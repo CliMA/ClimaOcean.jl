@@ -19,7 +19,12 @@ export
     atmosphere_sea_ice_stability_functions,
     compute_atmosphere_ocean_fluxes!,
     compute_atmosphere_sea_ice_fluxes!,
-    compute_sea_ice_ocean_fluxes!
+    compute_sea_ice_ocean_fluxes!,
+    # Sea ice-ocean heat flux formulations
+    IceBathHeatFlux,
+    ThreeEquationHeatFlux,
+    # Friction velocity formulations
+    MomentumBasedFrictionVelocity
 
 using ..OceanSeaIceModels: default_gravitational_acceleration,
                            default_freshwater_density,
@@ -68,6 +73,11 @@ include("coefficient_based_turbulent_fluxes.jl")
 
 # State exchanger and interfaces
 include("state_exchanger.jl")
+
+# Sea ice-ocean heat flux formulations
+include("friction_velocity.jl")
+include("sea_ice_ocean_heat_flux_formulations.jl")
+
 include("component_interfaces.jl")
 include("atmosphere_ocean_fluxes.jl")
 include("atmosphere_sea_ice_fluxes.jl")
