@@ -113,20 +113,23 @@ outputs = merge(ocean.model.velocities, ocean.model.tracers)
 sea_ice_fields = merge(sea_ice.model.velocities, sea_ice.model.dynamics.auxiliaries.fields,
                        (; h=sea_ice.model.ice_thickness, ℵ=sea_ice.model.ice_concentration))
 
-ocean.output_writers[:free_surf] = JLD2Writer(ocean.model, (; η=ocean.model.free_surface.η);
+ocean.output_writers[:free_surf] = JLD2Writer(ocean.model, (; η=ocean.model.free_surface.displacement);
                                               overwrite_existing=true,
                                               schedule=TimeInterval(3hours),
+                                              including = [:grid],
                                               filename="ocean_free_surface.jld2")
 
 ocean.output_writers[:surface] = JLD2Writer(ocean.model, outputs;
                                             overwrite_existing=true,
                                             schedule=TimeInterval(3hours),
+                                            including = [:grid],
                                             filename="ocean_surface_fields.jld2",
                                             indices=(:, :, grid.Nz))
 
 sea_ice.output_writers[:fields] = JLD2Writer(sea_ice.model, sea_ice_fields;
                                              overwrite_existing=true,
                                              schedule=TimeInterval(3hours),
+                                             including = [:grid],
                                              filename="sea_ice_fields.jld2")
 
 Qcao = earth.model.interfaces.atmosphere_ocean_interface.fluxes.sensible_heat
@@ -141,9 +144,10 @@ Qoi  = earth.model.interfaces.net_fluxes.sea_ice.bottom.heat
 Soi  = earth.model.interfaces.sea_ice_ocean_interface.fluxes.salt
 fluxes = (; Qcao, Qvao, τxao, τyao, Qcai, Qvai, τxai, τyai, Qoi, Soi)
 
-earth.output_writers[:fluxes] = JLD2Writer(earth.model.ocean.model, fluxes;
+ocean.output_writers[:fluxes] = JLD2Writer(earth.model.ocean.model, fluxes;
                                            overwrite_existing=true,
                                            schedule=TimeInterval(3hours),
+                                           including = [:grid],
                                            filename="intercomponent_fluxes.jld2")
 
 # We also add a callback function that prints out a helpful progress message while the simulation runs.
