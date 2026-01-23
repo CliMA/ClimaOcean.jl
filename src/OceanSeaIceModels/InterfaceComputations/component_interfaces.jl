@@ -385,3 +385,13 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
                                total_fluxes,
                                properties)
 end
+
+#####
+##### Chekpointing (not needed for ComponentInterfaces)
+#####
+
+import Oceananigans: prognostic_state, restore_prognostic_state!
+
+prognostic_state(::ComponentInterfaces) = nothing
+restore_prognostic_state!(ci::ComponentInterfaces, state) = ci
+restore_prognostic_state!(ci::ComponentInterfaces, ::Nothing) = ci
