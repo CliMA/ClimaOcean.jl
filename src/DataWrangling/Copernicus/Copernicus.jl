@@ -1,6 +1,6 @@
 module Copernicus
 
-export GLORYSStatic, GLORYSDaily, GLORYSMonthly
+export GLORYSStatic, GLORYSDaily, GLORYSMonthly, GLORYSBGCDaily, GLORYSBGCMonthly
 
 using NCDatasets
 using Printf
@@ -33,28 +33,37 @@ end
 
 # Datasets
 abstract type CopernicusDataset end
+abstract type GLORYSDataset <: CopernicusDataset end
 
 default_download_directory(::CopernicusDataset) = download_Copernicus_cache
 
+struct GLORYSDaily <: GLORYSDataset end
+struct GLORYSMonthly <: GLORYSDataset end
+struct GLORYSBGCDaily <: GLORYSDataset end
+struct GLORYSBGCMonthly <: GLORYSDataset end
+
 # This contains "static" variables -- eg the grid
-struct GLORYSStatic <: CopernicusDataset end
-struct GLORYSDaily <: CopernicusDataset end
-struct GLORYSMonthly <: CopernicusDataset end
+struct GLORYSStatic <: GLORYSDataset end
 
 dataset_name(::GLORYSStatic) = "GLORYSStatic"
 dataset_name(::GLORYSDaily) = "GLORYSDaily"
 dataset_name(::GLORYSMonthly) = "GLORYSMonthly"
+dataset_name(::GLORYSBGCDaily) = "GLORYSBGCDaily"
+dataset_name(::GLORYSBGCMonthly) = "GLORYSBGCMonthly"
 
 Base.size(::CopernicusDataset, variable) = (4320, 2040, 50)
 
 all_dates(::GLORYSStatic, var) = [nothing]
-all_dates(::GLORYSDaily, var) = range(DateTime("1993-01-01"), stop=DateTime("2021-06-30"), step=Day(1))
-all_dates(::GLORYSMonthly, var) = range(DateTime("1993-01-01"), stop=DateTime("2021-06-01"), step=Month(1))
+all_dates(::GLORYSDaily, var)      = range(DateTime("1993-01-01"), stop=DateTime("2021-06-30"), step=Day(1))
+all_dates(::GLORYSMonthly, var)    = range(DateTime("1993-01-01"), stop=DateTime("2024-12-01"), step=Month(1))
+all_dates(::GLORYSBGCDaily, var)   = range(DateTime("1993-01-01"), stop=DateTime("2022-12-30"), step=Day(1))
+all_dates(::GLORYSBGCMonthly, var) = range(DateTime("1993-01-01"), stop=DateTime("2022-11-30"), step=Month(1))
 
 copernicusmarine_dataset_id(::GLORYSStatic) = "cmems_mod_glo_phy_my_0.083deg_static"
 copernicusmarine_dataset_id(::GLORYSDaily) = "cmems_mod_glo_phy_my_0.083deg_P1D-m"
 copernicusmarine_dataset_id(::GLORYSMonthly) = "cmems_mod_glo_phy_my_0.083deg_P1M-m"
-# :static  => "cmems_mod_glo_phy_my_0.083deg_static",
+copernicusmarine_dataset_id(::GLORYSBGCDaily) = "cmems_mod_glo_bgc_my_0.25deg_P1D-m"
+copernicusmarine_dataset_id(::GLORYSBGCMonthly) = "cmems_mod_glo_bgc_my_0.25deg_P1M-m"
 
 struct CMEMSHourlyAnalysis <: CopernicusDataset end
 copernicusmarine_dataset_id(::CMEMSHourlyAnalysis) = "cmems_mod_glo_phy_anfc_0.083deg_PT1H-m"
@@ -62,11 +71,43 @@ copernicusmarine_dataset_id(::CMEMSHourlyAnalysis) = "cmems_mod_glo_phy_anfc_0.0
 const CopernicusMetadata{D} = Metadata{<:CopernicusDataset, D}
 const CopernicusMetadatum = Metadatum{<:CopernicusDataset}
 
-Base.size(::CopernicusMetadatum) = (4320, 2040, 50, 1)
+Base.size(::GLORYSStatic) = (4320, 2040, 50, 1)
+Base.size(::GLORYSDaily) = (4320, 2040, 50, 1)
+Base.size(::GLORYSMonthly) = (4320, 2040, 50, 1)
+Base.size(::GLORYSBGCDaily) = (1440, 680, 75, 1)
+Base.size(::GLORYSBGCMonthly) = (1440, 680, 75, 1)
 
 reversed_vertical_axis(::CopernicusDataset) = true
 
-available_variables(::CopernicusDataset) = copernicus_dataset_variable_names
+available_variables(::GLORYSDataset) = (
+    :temperature,
+    :depth,
+    :salinity,
+    :sea_ice_concentration,
+    :sea_ice_thickness,
+    :u_velocity,
+    :v_velocity,
+    :sea_ice_u_velocity,
+    :sea_ice_v_velocity,
+    :free_surface,
+)
+
+available_variables(::GLORYSBGCDaily) = ( 
+    :total_chlorophyll,
+    :primary_production,
+    :nitrate,
+    :phosphate,
+    :dissolved_silicate,
+    :dissolved_oxygen,
+)
+
+available_variables(::GLORYSBGCMonthly) = tuple(
+    available_variables(GLORYSBGCDaily())...,
+    :dissolved_iron,
+    :ph,
+    :surface_co2,
+    :total_phytoplankton,
+)
 
 copernicus_dataset_variable_names = Dict(
     :temperature => "thetao",
@@ -79,6 +120,16 @@ copernicus_dataset_variable_names = Dict(
     :sea_ice_u_velocity => "usi",
     :sea_ice_v_velocity => "vsi",
     :free_surface => "zos",
+    :total_chlorophyll => "chl",
+    :primary_production => "nppv",
+    :nitrate => "no3",
+    :phosphate => "po4",
+    :dissolved_silicate => "si",
+    :dissolved_oxygen => "o2",
+    :dissolved_iron => "fe",
+    :ph => "ph",
+    :surface_co2 => "spCO2",
+    :total_phytoplankton => "phyc",
 )
 
 start_date_str(date) = string(date)
