@@ -40,10 +40,13 @@ OceanSeaIceModels.above_freezing_ocean_temperature!(ocean, grid, ::FreezingLimit
 
 # No atmosphere-sea ice or sea ice-ocean interface for FreezingLimitedOceanTemperature
 InterfaceComputations.default_ai_temperature(::FreezingLimitedOceanTemperature) = nothing
+InterfaceComputations.ThreeEquationHeatFlux(::FreezingLimitedOceanTemperature) = nothing
 InterfaceComputations.atmosphere_sea_ice_interface(grid, atmos, ::FreezingLimitedOceanTemperature, args...) = nothing
 InterfaceComputations.atmosphere_sea_ice_interface(grid, ::Nothing, ::FreezingLimitedOceanTemperature, args...) = nothing
-InterfaceComputations.sea_ice_ocean_interface(grid, ::FreezingLimitedOceanTemperature, ocean; kwargs...) = nothing
-InterfaceComputations.sea_ice_ocean_interface(grid, ::FreezingLimitedOceanTemperature, ::Nothing; kwargs...) = nothing
+InterfaceComputations.sea_ice_ocean_interface(grid, ::FreezingLimitedOceanTemperature, ocean, flux_formulation; kwargs...) = nothing
+InterfaceComputations.sea_ice_ocean_interface(grid, ::FreezingLimitedOceanTemperature, ::Nothing, flux_formulation; kwargs...) = nothing
+InterfaceComputations.sea_ice_ocean_interface(grid, ::FreezingLimitedOceanTemperature, ocean, ::ThreeEquationHeatFlux; kwargs...) = nothing
+InterfaceComputations.sea_ice_ocean_interface(grid, ::FreezingLimitedOceanTemperature, ::Nothing, ::ThreeEquationHeatFlux; kwargs...) = nothing
 
 InterfaceComputations.net_fluxes(::FreezingLimitedOceanTemperature) = nothing
 
@@ -55,6 +58,9 @@ const SingleComponentPlusFreezingLimited = Union{OnlyAtmospherewithFreezingLimit
 OceanSeaIceModels.update_net_fluxes!(::SingleComponentPlusFreezingLimited, ocean::Simulation{<:HydrostaticFreeSurfaceModel}) = nothing
 
 # No need to compute fluxes for this "sea ice model"
+InterfaceComputations.compute_atmosphere_sea_ice_fluxes!(cm::FreezingLimitedCoupledModel) = nothing
+
+# Same for the sea_ice ocean fluxes
 function InterfaceComputations.compute_sea_ice_ocean_fluxes!(cm::FreezingLimitedCoupledModel)
     ocean = cm.ocean
     liquidus = cm.sea_ice.liquidus
@@ -80,3 +86,13 @@ end
     Tₘ = melting_temperature(liquidus, Sᵢ)
     @inbounds Tₒ[i, j, k] = ifelse(Tᵢ < Tₘ, Tₘ, Tᵢ)
 end
+
+#####
+##### Chekpointing (not needed for FreezingLimitedOceanTemperature)
+#####
+
+import Oceananigans: prognostic_state, restore_prognostic_state!
+
+prognostic_state(::FreezingLimitedOceanTemperature) = nothing
+restore_prognostic_state!(flt::FreezingLimitedOceanTemperature, state) = flt
+restore_prognostic_state!(flt::FreezingLimitedOceanTemperature, ::Nothing) = flt

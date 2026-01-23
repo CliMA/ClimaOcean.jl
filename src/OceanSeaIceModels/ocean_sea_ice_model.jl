@@ -92,7 +92,9 @@ heat_capacity(unsupported) =
 
 Construct a coupled ocean-sea ice model that simulates the interaction between ocean and sea ice components.
 
-# Arguments
+Arguments
+==========
+
 - `ocean`: A representation of a possibly time-dependent ocean state. Currently, only `Oceananigans.Simulation`s
            of `Oceananigans.HydrostaticFreeSurfaceModel` are tested.
 - `sea_ice`: A representation of a possibly time-dependent sea ice state.
@@ -100,7 +102,9 @@ Construct a coupled ocean-sea ice model that simulates the interaction between o
              oceanic latent heating during freezing only, but does not evolve sea ice variables.
              For prognostic sea ice use an `Oceananigans.Simulation` of `ClimaSeaIce.SeaIceModel`.
 
-# Keyword Arguments
+Keyword Arguments
+==================
+
 - `atmosphere`: A representation of a possibly time-dependent atmospheric state. Default: `nothing`.
 - `radiation`: Radiation component used to compute surface fluxes at the bottom of the atmosphere.
 - `clock`: Keeps track of time.
@@ -108,9 +112,12 @@ Construct a coupled ocean-sea ice model that simulates the interaction between o
 - `ocean_heat_capacity`: Heat capacity for the ocean. Defaults to value from ocean model
 - `sea_ice_reference_density`: Reference density for sea ice. Defaults to value from sea ice model
 - `sea_ice_heat_capacity`: Heat capacity for sea ice. Defaults to value from sea ice model
-- `interfaces`: Component interfaces for coupling. Defaults to `nothing` and will be constructed automatically
+- `interfaces`: Component interfaces for coupling. Defaults to `nothing` and will be constructed automatically.
+  To customize the sea ice-ocean heat flux formulation, create interfaces manually using `ComponentInterfaces`.
 
-# Stability Functions
+Stability Functions
+====================
+
 The model uses similarity theory for turbulent fluxes between components. You can customize the stability functions
 by creating a new `SimilarityTheoryFluxes` object with your desired stability functions. For example:
 
@@ -224,10 +231,6 @@ end
             Tm = melting_temperature(liquidus, S[i, j, k])
             T[i, j, k] = max(T[i, j, k], Tm)
         end
-
-        ℵi = ℵ[i, j, 1]
-        Tm = melting_temperature(liquidus, S[i, j, Nz])
-        T[i, j, Nz] = ifelse(ℵi > 0, Tm, T[i, j, Nz])
     end
 end
 
@@ -245,3 +248,30 @@ end
 
 # nothing sea-ice
 above_freezing_ocean_temperature!(ocean, grid, ::Nothing) = nothing
+
+#####
+##### Checkpointing
+#####
+
+function prognostic_state(osm::OceanSeaIceModel) 
+    return (clock = prognostic_state(osm.clock),
+            ocean = prognostic_state(osm.ocean),
+            atmosphere = prognostic_state(osm.atmosphere),
+            sea_ice = prognostic_state(osm.sea_ice),
+            interfaces = prognostic_state(osm.interfaces))
+end
+
+function restore_prognostic_state!(osm::OceanSeaIceModel, state)
+    restore_prognostic_state!(osm.clock, state.clock)
+    restore_prognostic_state!(osm.ocean, state.ocean)
+    restore_prognostic_state!(osm.atmosphere, state.atmosphere)
+    restore_prognostic_state!(osm.sea_ice, state.sea_ice)
+    restore_prognostic_state!(osm.interfaces, state.interfaces)
+    # Note: we do NOT call update_state! here because:
+    # 1. The checkpoint was saved AFTER update_state! was called at the end of that time step
+    # 2. Calling update_state! would recompute interface fluxes and overwrite restored state
+    #    (e.g., top_surface_temperature is overwritten by compute_atmosphere_sea_ice_fluxes!)
+    return osm
+end
+
+restore_prognostic_state!(osm::OceanSeaIceModel, ::Nothing) = osm

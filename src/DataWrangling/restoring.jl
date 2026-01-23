@@ -3,7 +3,7 @@ using Oceananigans.Grids: node
 using Oceananigans.Fields: interpolate, instantiated_location
 using Oceananigans.OutputReaders: Cyclical
 using Oceananigans.Units: Time
-using Oceananigans.Architectures: AbstractArchitecture
+using Oceananigans.Architectures: AbstractArchitecture, on_architecture, architecture
 
 using JLD2
 using NCDatasets
@@ -204,6 +204,9 @@ function DatasetRestoring(metadata::Metadata,
                           time_indexing,
                           inpainting,
                           cache_inpainted_data)
+
+    arch = architecture(fts)
+    mask = on_architecture(arch, mask)
 
     # Grab the correct Oceananigans field to restore
     variable_name = metadata.name

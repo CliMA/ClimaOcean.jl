@@ -64,7 +64,6 @@ function default_atmosphere_pressure(grid, times)
     return pa
 end
 
-
 @inline function update_state!(atmos::PrescribedAtmosphere)
     time = Time(atmos.clock.time)
     ftses = extract_field_time_series(atmos)
@@ -159,3 +158,21 @@ TwoBandDownwellingRadiation(; shortwave=nothing, longwave=nothing) =
 Adapt.adapt_structure(to, tsdr::TwoBandDownwellingRadiation) =
     TwoBandDownwellingRadiation(adapt(to, tsdr.shortwave),
                                 adapt(to, tsdr.longwave))
+
+#####
+##### Chekpointing
+#####
+
+import Oceananigans: prognostic_state, restore_prognostic_state!
+
+function prognostic_state(atmos::PrescribedAtmosphere) 
+    return (; clock = prognostic_state(atmos.clock))
+end
+
+function restore_prognostic_state!(atmos::PrescribedAtmosphere, state) 
+    restore_prognostic_state!(atmos.clock, state.clock)
+    update_state!(atmos)
+    return atmos
+end
+
+restore_prognostic_state!(atmos::PrescribedAtmosphere, ::Nothing) = atmos

@@ -13,11 +13,12 @@ using Adapt
 using Printf
 using KernelAbstractions: @index, @kernel
 
+import Oceananigans.Architectures: on_architecture
+import Oceananigans.Models: update_model_field_time_series!
 import Oceananigans.TimeSteppers: time_step!, update_state!, reset!, tick!
-import Oceananigans.Models: timestepper, update_model_field_time_series!
+import Oceananigans.Simulations: timestepper
 
 import ClimaOcean.OceanSeaIceModels: reference_density, heat_capacity
-import Oceananigans.Architectures: on_architecture
 
 #####
 ##### A Data structure that holds flux statistics
@@ -227,5 +228,3 @@ end
 add_callback!(earth, progress, IterationInterval(10))
 
 stats = compute_flux_climatology(earth)
-
-
