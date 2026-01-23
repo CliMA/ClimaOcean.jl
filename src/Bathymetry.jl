@@ -225,7 +225,9 @@ function interpolate_bathymetry_in_passes(native_z, target_grid;
 
     Hx, Hy, Hz = Oceananigans.halo_size(native_z.grid)
 
-    @info "Interpolation passes of bathymetry size $(size(old_z)) onto a $(typeof(target_grid).name.wrapper) target grid of size $Nt:"
+    gridtype = string(nameof(typeof(target_grid)))
+    
+    @info "Interpolation passes of bathymetry size $(size(old_z)) onto a $gridtype target grid of size $Nt:"
     for pass = 1:passes - 1
         new_size = (Nλ[pass], Nφ[pass], 1)
         @info "    pass $pass to size $new_size"
