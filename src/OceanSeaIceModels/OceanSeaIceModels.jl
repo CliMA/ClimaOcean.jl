@@ -11,7 +11,12 @@ export
     BulkTemperature,
     compute_atmosphere_ocean_fluxes!,
     compute_atmosphere_sea_ice_fluxes!,
-    compute_sea_ice_ocean_fluxes!
+    compute_sea_ice_ocean_fluxes!,
+    # Sea ice-ocean heat flux formulations
+    IceBathHeatFlux,
+    ThreeEquationHeatFlux,
+    # Friction velocity formulations
+    MomentumBasedFrictionVelocity
 
 using Oceananigans
 using Oceananigans.Operators
@@ -36,12 +41,12 @@ using KernelAbstractions.Extras.LoopInfo: @unroll
 import Thermodynamics as AtmosphericThermodynamics
 
 # Simulations interface
-import Oceananigans: fields, prognostic_fields
+import Oceananigans: fields, prognostic_fields, prognostic_state, restore_prognostic_state!
 import Oceananigans.Architectures: architecture
 import Oceananigans.Fields: set!
-import Oceananigans.Models: timestepper, NaNChecker, default_nan_checker, initialization_update_state!
+import Oceananigans.Models: NaNChecker, default_nan_checker, initialization_update_state!
 import Oceananigans.OutputWriters: default_included_properties
-import Oceananigans.Simulations: reset!, initialize!, iteration
+import Oceananigans.Simulations: timestepper, reset!, initialize!, iteration
 import Oceananigans.TimeSteppers: time_step!, update_state!, time
 import Oceananigans.Utils: prettytime
 
@@ -49,7 +54,7 @@ include("components.jl")
 
 #####
 ##### The coupled model
-##### 
+#####
 
 const default_gravitational_acceleration = Oceananigans.defaults.gravitational_acceleration
 const default_freshwater_density = 1000 # kg m⁻³
@@ -64,7 +69,7 @@ include("time_step_ocean_sea_ice_model.jl")
 #####
 #####  Fallbacks for no-interface models
 #####
-    
+
 using .InterfaceComputations: ComponentInterfaces, AtmosphereInterface, SeaIceOceanInterface
 
 const NoSeaIceInterface = ComponentInterfaces{<:AtmosphereInterface,  <:Nothing, <:Nothing}

@@ -93,16 +93,16 @@ end
 
     # Build thermodynamic and dynamic states in the atmosphere and interface.
     # Notation:
-    #   ⋅ 𝒬 ≡ thermodynamic state vector
     #   ⋅ 𝒰 ≡ "dynamic" state vector (thermodynamics + reference height + velocity)
     ℂₐ = atmosphere_properties.thermodynamics_parameters
-    𝒬ₐ = thermodynamic_atmospheric_state = AtmosphericThermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₐ, qₐ)
     zₐ = atmosphere_properties.surface_layer_height # elevation of atmos variables relative to interface
 
     local_atmosphere_state = (z = zₐ,
                               u = uₐ,
                               v = vₐ,
-                              𝒬 = 𝒬ₐ,
+                              T = Tₐ,
+                              p = pₐ,
+                              q = qₐ,
                               h_bℓ = atmosphere_state.h_bℓ)
 
     downwelling_radiation = (; Qs, Qℓ)
@@ -113,7 +113,7 @@ end
 
     # Estimate interface specific humidity using interior temperature
     q_formulation = interface_properties.specific_humidity_formulation
-    qₛ = surface_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ, Tₛ, Sᵢ)
+    qₛ = surface_specific_humidity(q_formulation, ℂₐ, Tₐ, pₐ, qₐ, Tₛ, Sᵢ)
 
     # Guess
     Sₛ = zero(FT) # what should we use for interface salinity?
@@ -147,9 +147,9 @@ end
     τx = - u★^2 * Δu / ΔU
     τy = - u★^2 * Δv / ΔU
 
-    ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, 𝒬ₐ)
-    cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, 𝒬ₐ) # moist heat capacity
-    ℰs = AtmosphericThermodynamics.latent_heat_sublim(ℂₐ, 𝒬ₐ)
+    ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, Tₐ, pₐ, qₐ)
+    cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, qₐ) # moist heat capacity
+    ℰs = AtmosphericThermodynamics.latent_heat_sublim(ℂₐ, Tₐ)
 
     # Store fluxes
     Qv = interface_fluxes.latent_heat

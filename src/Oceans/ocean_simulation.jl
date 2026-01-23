@@ -300,7 +300,7 @@ function ocean_simulation(grid;
         tracer_advection = merge(tracer_advection, tke_advection)
     end
 
-    ocean_model = HydrostaticFreeSurfaceModel(; grid,
+    ocean_model = HydrostaticFreeSurfaceModel(grid;
                                               buoyancy,
                                               closure,
                                               biogeochemistry,
