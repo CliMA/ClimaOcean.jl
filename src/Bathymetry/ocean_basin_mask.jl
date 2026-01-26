@@ -138,26 +138,22 @@ end
 ##### Some usefull Basin seeds and barriers
 #####
 
+const SOUTHERN_OCEAN_SEPARATION_BARRIER = Barrier(-180.0, 180.0, -56.0, -54.0)
+
 const ATLANTIC_OCEAN_BARRIERS = [
-    Barrier(-180.0, 180.0, -56.0, -54.0),   # Disconnect from Southern Ocean
     Barrier(-180.0, 180.0, 67.0, 69.0),     # Disconnect from Arctic Ocean
     Barrier(20.0, -60.0, -30.0),            # Cape Agulhas (meridional barrier)
 ]
 
 const INDIAN_OCEAN_BARRIERS = [
-    Barrier(-180.0, 180.0, -56.0, -54.0),  # Disconnect from Southern Ocean
     Barrier(141.0, -60.0, -3.0),           # Indonesian side (meridional)
     Barrier(20.0,  -60.0, -30.0),          # Cape Agulhas (meridional barrier)
     Barrier(105.0, 141.0, -4.0, -3.0),     # Indonesian/Asian seas (zonal barrier at 3.5ᵒ S)
 ]
 
-const SOUTHERN_OCEAN_BARRIERS = [
-    Barrier(-180.0, 180.0, -56.0, -54.0),  # Disconnect from Northern Oceans
-]
+const SOUTHERN_OCEAN_BARRIERS = [SOUTHERN_OCEAN_SEPARATION_BARRIER]
 
 const PACIFIC_OCEAN_BARRIERS = [
-    Barrier(-180.0, 180.0, -56.0, -54.0),  # Disconnect from Southern Ocean
-    Barrier(-180.0, 180.0, 67.0, 69.0),    # Disconnect from Arctic Ocean
     Barrier(141.0, -60.0, -3.0),           # Indonesian side (meridional)
     Barrier(20.0,  -60.0, -30.0),          # Cape Agulhas (meridional barrier)
     Barrier(105.0, 141.0, -4.0, -3.0),     # Indonesian/Asian seas (zonal barrier at 3.5ᵒ S)
@@ -199,34 +195,6 @@ const PACIFIC_SEED_POINTS = [
     (-150.0 + 360, 20.0),     # North Pacific
     (-120.0 + 360, -20.0),    # South Pacific
 ]
-
-"""
-    SOUTHERN_OCEAN_SEPARATION_BARRIER
-
-The barrier that separates the Southern Ocean from the northern ocean basins.
-Used internally to filter barriers when `include_southern_ocean=true`.
-"""
-const SOUTHERN_OCEAN_SEPARATION_BARRIER = Barrier(-180.0, 180.0, -56.0, -54.0)
-
-"""
-    is_southern_ocean_barrier(barrier::Barrier)
-
-Check if a barrier is the Southern Ocean separation barrier.
-"""
-function is_southern_ocean_barrier(barrier::Barrier)
-    return barrier.west == -180.0 &&
-           barrier.east == 180.0 &&
-           barrier.south == -56.0 &&
-           barrier.north == -54.0
-end
-
-"""
-    filter_southern_ocean_barrier(barriers)
-
-Remove the Southern Ocean separation barrier from a list of barriers.
-"""
-filter_southern_ocean_barrier(barriers::Nothing) = nothing
-filter_southern_ocean_barrier(barriers::AbstractVector) = filter(!is_southern_ocean_barrier, barriers)
 
 #####
 ##### OceanBasinMask
@@ -328,8 +296,8 @@ function atlantic_ocean_mask(grid;
                              seed_points = ATLANTIC_SEED_POINTS,
                              kw...)
 
-    if include_southern_ocean
-        barriers = filter_southern_ocean_barrier(barriers)
+    if !include_southern_ocean
+        barriers = [barriers..., SOUTHERN_OCEAN_SEPARATION_BARRIER]
     end
 
     return OceanBasinMask(grid; south_boundary, north_boundary, barriers, seed_points, kw...)
@@ -349,15 +317,15 @@ Keyword Arguments
 - Other keyword arguments are passed to `OceanBasinMask`.
 """
 function indian_ocean_mask(grid;
-                           include_southern_ocean = false,
+                           include_southern_ocean = true,
                            south_boundary = include_southern_ocean ? -90.0 : -50.0,
                            north_boundary = 30.0,
                            barriers = INDIAN_OCEAN_BARRIERS,
                            seed_points = INDIAN_SEED_POINTS,
                            kw...)
 
-    if include_southern_ocean
-        barriers = filter_southern_ocean_barrier(barriers)
+    if !include_southern_ocean
+        barriers = [barriers..., SOUTHERN_OCEAN_SEPARATION_BARRIER]
     end
 
     return OceanBasinMask(grid; south_boundary, north_boundary, barriers, seed_points, kw...)
@@ -392,15 +360,15 @@ Keyword Arguments
 - Other keyword arguments are passed to `OceanBasinMask`.
 """
 function pacific_ocean_mask(grid;
-                            include_southern_ocean = false,
+                            include_southern_ocean = true,
                             south_boundary = include_southern_ocean ? -90.0 : -50.0,
                             north_boundary = 65.0,
                             barriers = PACIFIC_OCEAN_BARRIERS,
                             seed_points = PACIFIC_SEED_POINTS,
                             kw...)
 
-    if include_southern_ocean
-        barriers = filter_southern_ocean_barrier(barriers)
+    if !include_southern_ocean
+        barriers = [barriers..., SOUTHERN_OCEAN_SEPARATION_BARRIER]
     end
 
     return OceanBasinMask(grid; south_boundary, north_boundary, barriers, seed_points, kw...)
