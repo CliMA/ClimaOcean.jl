@@ -183,7 +183,7 @@ function label_ocean_basins(grid::ImmersedBoundaryGrid; barriers=nothing)
         # Create a temporary field with the modified bathymetry
         zb_modified = Field{Center, Center, Nothing}(cpu_grid)
         parent(zb_modified) .= parent(zb)
-        apply_barrier!(zb, cpu_grid, barriers)
+        apply_barrier!(zb_modified, cpu_grid, barriers)
     else
         zb_modified = zb
     end
