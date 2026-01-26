@@ -86,3 +86,13 @@ end
     Tₘ = melting_temperature(liquidus, Sᵢ)
     @inbounds Tₒ[i, j, k] = ifelse(Tᵢ < Tₘ, Tₘ, Tᵢ)
 end
+
+#####
+##### Chekpointing (not needed for FreezingLimitedOceanTemperature)
+#####
+
+import Oceananigans: prognostic_state, restore_prognostic_state!
+
+prognostic_state(::FreezingLimitedOceanTemperature) = nothing
+restore_prognostic_state!(flt::FreezingLimitedOceanTemperature, state) = flt
+restore_prognostic_state!(flt::FreezingLimitedOceanTemperature, ::Nothing) = flt

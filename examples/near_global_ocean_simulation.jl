@@ -157,6 +157,7 @@ simulation.callbacks[:progress] = Callback(progress, TimeInterval(5days))
 outputs = merge(ocean.model.tracers, ocean.model.velocities)
 ocean.output_writers[:surface] = JLD2Writer(ocean.model, outputs;
                                             schedule = TimeInterval(1days),
+                                            including = [:grid],
                                             filename = "near_global_surface_fields",
                                             indices = (:, :, grid.Nz),
                                             with_halos = true,
