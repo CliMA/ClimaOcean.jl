@@ -71,10 +71,9 @@ end
             atmosphere_ocean_interface_specific_humidity = FixedSpecificHumidity(qₐ)
 
             # Thermodynamic parameters of the atmosphere
-            𝒬ₐ = Thermodynamics.PhaseEquil_pTq(ℂₐ, pₐ, Tₐ, qₐ)
-            cp = Thermodynamics.cp_m(ℂₐ, 𝒬ₐ)
-            ρₐ = Thermodynamics.air_density(ℂₐ, 𝒬ₐ)
-            ℰv = Thermodynamics.latent_heat_vapor(ℂₐ, 𝒬ₐ)
+            cp = Thermodynamics.cp_m(ℂₐ, qₐ)
+            ρₐ = Thermodynamics.air_density(ℂₐ, Tₐ, pₐ, qₐ)
+            ℰv = Thermodynamics.latent_heat_vapor(ℂₐ, Tₐ)
 
             # No radiation equivalent
             radiation = Radiation(ocean_emissivity=0, ocean_albedo=1)
@@ -144,7 +143,7 @@ end
 
             interface_properties = interfaces.atmosphere_ocean_interface.properties
             q_formulation = interface_properties.specific_humidity_formulation
-            qₒ = surface_specific_humidity(q_formulation, ℂₐ, 𝒬ₐ, Tₒ, Sₒ)
+            qₒ = surface_specific_humidity(q_formulation, ℂₐ, Tₐ, pₐ, qₐ, Tₒ, Sₒ)
             g  = ocean.model.buoyancy.formulation.gravitational_acceleration
 
             # Differences!
