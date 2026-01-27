@@ -6,7 +6,7 @@ using ClimaOcean
 
 using ClimaOcean.Bathymetry: remove_minor_basins!, label_ocean_basins, find_label_at_point
 using ClimaOcean.Bathymetry: OceanBasinMask, atlantic_ocean_mask, pacific_ocean_mask
-using ClimaOcean.Bathymetry: Barrier, LatitudeBand, ATLANTIC_OCEAN_BARRIERS
+using ClimaOcean.Bathymetry: Barrier, ATLANTIC_OCEAN_BARRIERS
 using ClimaOcean.DataWrangling.ETOPO
 
 @testset "Bathymetry construction and smoothing" begin
