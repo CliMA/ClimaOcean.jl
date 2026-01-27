@@ -93,20 +93,12 @@ function find_label_at_point(labels, grid, λs, φs; radius = 2)
 end
 
 """
-    create_basin_mask_from_label(grid, labels, basin_label;
-                                 south_boundary = nothing,
-                                 north_boundary = nothing,
-                                 west_boundary  = nothing,
-                                 east_boundary  = nothing)
+    create_basin_mask_from_label(grid, labels, basin_label)
 
 Create a mask field for all cells with the given label, optionally restricted to a latitude range 
 or a longitude range.
 """
-function create_basin_mask_from_label(grid, labels, basin_label;
-                                      south_boundary = nothing,
-                                      north_boundary = nothing,
-                                      west_boundary  = nothing,
-                                      east_boundary  = nothing)
+function create_basin_mask_from_label(grid, labels, basin_label)
     arch = architecture(grid)
     Nx, Ny, _ = size(grid)
     FT = eltype(grid)
@@ -114,33 +106,17 @@ function create_basin_mask_from_label(grid, labels, basin_label;
     mask = Field{Center, Center, Nothing}(grid)
 
     launch!(CPU(), grid, :xy, _compute_basin_mask!, 
-            mask, grid, labels, basin_label, 
-            south_boundary, north_boundary,
-            west_boundary, east_boundary)
+            mask, grid, labels, basin_label)
 
     fill_halo_regions!(mask)
 
     return mask
 end
 
-@kernel function _compute_basin_mask!(mask, grid, labels, basin_label, south_boundary, north_boundary, west_boundary, east_boundary)
+@kernel function _compute_basin_mask!(mask, grid, labels, basin_label)
     i, j = @index(Global, NTuple)
-
-    # Check longitude and latitude bounds if specified
-    λ = λnode(i, j, 1, grid, Center(), Center(), Center())
-    φ = φnode(i, j, 1, grid, Center(), Center(), Center())
-
-    outside_south_bounds = !isnothing(south_boundary) && (φ < south_boundary)
-    outside_north_bounds = !isnothing(north_boundary) && (φ > north_boundary)
-
-    outside_west_bounds = !isnothing(west_boundary) && (λ < west_boundary) 
-    outside_east_bounds = !isnothing(east_boundary) && (λ > east_boundary)
-
-    outside_bounds = outside_south_bounds | outside_north_bounds | outside_west_bounds | outside_east_bounds
-
     correct_basin = @inbounds labels[i, j] == basin_label
-
-    @inbounds mask[i, j, 1] = !outside_bounds & correct_basin
+    @inbounds mask[i, j, 1] = correct_basin
 end
 
 #####
@@ -150,8 +126,8 @@ end
 const SOUTHERN_OCEAN_SEPARATION_BARRIER = Barrier(-180.0, 180.0, -56.0, -54.0)
 
 const ATLANTIC_OCEAN_BARRIERS = [
-    Barrier(20.0, -90.0, -30.0),         # Cape Agulhas (meridional barrier)
-    Barrier(289.0, -90.0, -30.0)         # Drake passage (meridional barrier)       
+    Barrier(20.0, -90.0, -30.0),      # Cape Agulhas (meridional barrier)
+    Barrier(289.0, -90.0, -30.0)      # Drake passage (meridional barrier)       
 ]
 
 const INDIAN_OCEAN_BARRIERS = [
@@ -205,12 +181,14 @@ const PACIFIC_SEED_POINTS = [
 ##### OceanBasinMask
 #####
 
+add_barrier(v::AbstractVector, b::Barrier) = [v..., b]
+add_barrier(v::Barrier,        b::Barrier) = [v, b]
+add_barrier(::Nothing,         b::Barrier) = b
+
 """
     OceanBasinMask(grid;
-                   south_boundary = -34.0,
-                   north_boundary = 65.0,
-                   west_boundary = nothing,
-                   east_boundary = nothing,
+                   south_boundary = nothing,
+                   north_boundary = nothing,
                    seed_points = ATLANTIC_SEED_POINTS,
                    barriers = nothing)
 
@@ -225,10 +203,8 @@ Arguments
 
 Keyword Arguments
 =================
-- `south_boundary`: Southern latitude limit. Default: -34.0, at Cape of Good Hope
-- `north_boundary`: Northern latitude limit. Default: 65.0
-- `west_boundary`: Western longitude limit. Default: nothing
-- `east_boundary`: Eastern longitude limit. Default: nothing
+- `south_boundary`: Southern latitude limit. Default: nothing
+- `north_boundary`: Northern latitude limit. Default: nothing
 - `seed_points`: Known (λ, φ) points of the ocean basin to retrieve. Default: ATLANTIC_SEED_POINTS
 - `barriers`: Collection of barriers to apply before labeling. Barriers temporarily
               separate connected ocean basins (e.g., separating Atlantic from Pacific).
@@ -241,8 +217,6 @@ An `OceanBasinMask` with a 2D mask field.
 function OceanBasinMask(grid;
                         south_boundary = nothing,
                         north_boundary = nothing,
-                        west_boundary = nothing,
-                        east_boundary = nothing,
                         seed_points = [(0, 0)],
                         barriers = nothing)
 
@@ -251,7 +225,15 @@ function OceanBasinMask(grid;
     # to the GPU if the initial grid was a GPU grid
     cpu_grid = Oceananigans.on_architecture(CPU(), grid)
 
+    # Enforce north and south boundaries
+    if !isnothing(south_boundary) 
+        barriers = add_barrier(barriers, Barrier(nothing, nothing, -90, south_boundary))
+    end
 
+    if !isnothing(north_boundary) 
+        barriers = add_barrier(barriers, Barrier(nothing, nothing, north_boundary, 90))
+    end
+    
     # Compute connected component labels for all ocean cells
     # Barriers are applied to temporarily separate connected basins
     labels = label_ocean_basins(cpu_grid; barriers)
@@ -273,12 +255,7 @@ function OceanBasinMask(grid;
     end
 
     # Create mask from label with latitude bounds
-    mask = create_basin_mask_from_label(cpu_grid, labels, basin_label;
-                                        south_boundary,
-                                        north_boundary,
-                                        east_boundary,
-                                        west_boundary)
-
+    mask = create_basin_mask_from_label(cpu_grid, labels, basin_label)
     mask = Oceananigans.on_architecture(architecture(grid), mask)
 
     return OceanBasinMask(mask, grid, seed_points)
@@ -302,7 +279,7 @@ Keyword Arguments
 - Other keyword arguments are passed to `OceanBasinMask`.
 """
 function atlantic_ocean_mask(grid;
-                             include_southern_ocean = false,
+                             include_southern_ocean = true,
                              south_boundary = include_southern_ocean ? -90.0 : -50.0,
                              north_boundary = 65.0,
                              barriers = ATLANTIC_OCEAN_BARRIERS,

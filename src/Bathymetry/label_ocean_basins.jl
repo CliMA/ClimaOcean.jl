@@ -6,7 +6,7 @@ using Oceananigans.Fields: convert_to_0_360
 #####
 
 """
-    Barrier{FT}
+    Barrier{W, E, S, N}
 
 A rectangular geographic region used to separate ocean basins during labeling.
 All cells within this region are temporarily marked as land.
@@ -23,11 +23,11 @@ Constructors
 - `Barrier(west, east, south, north)`: Create a barrier with explicit bounds
 - `Barrier(; west, east, south, north)`: Keyword argument version
 """
-struct Barrier{FT}
-    west  :: FT
-    east  :: FT
-    south :: FT
-    north :: FT
+struct Barrier{W, E, S, N}
+    west  :: W
+    east  :: E
+    south :: S
+    north :: N
 end
 
 Barrier(; west, east, south, north) = Barrier(west, east, south, north)
@@ -64,18 +64,22 @@ end
 @kernel function _apply_barrier!(zb, grid, barrier::Barrier)
     i, j = @index(Global, NTuple)
 
-    bw = convert_to_0_360(barrier.west)
-    be = convert_to_0_360(barrier.east)
+    if isnothing(barrier.west)
+        in_lon = true
+    else
+        bw = convert_to_0_360(barrier.west)
+        be = convert_to_0_360(barrier.east)
     
-    # If the barrier spans all longitudes (360° or more), skip longitude check.
-    # This handles latitudinal barriers correctly regardless of grid longitude convention.
-    full_longitude_span = (be - bw) >= 360
+        # If the barrier spans all longitudes (360° or more), skip longitude check.
+        # This handles latitudinal barriers correctly regardless of grid longitude convention.
+        full_longitude_span = (be - bw) >= 360
 
-    λ = λnode(i, j, 1, grid, Center(), Center(), Center())
+        λ = λnode(i, j, 1, grid, Center(), Center(), Center())
+        λ = convert_to_0_360(λ)
+        in_lon = full_longitude_span | (bw <= λ <= be)
+    end    
+    
     φ = φnode(i, j, 1, grid, Center(), Center(), Center())
-    λ = convert_to_0_360(λ)
-
-    in_lon = full_longitude_span | (bw <= λ <= be)
     in_lat = barrier.south <= φ <= barrier.north
 
     @inbounds zb[i, j, 1] = ifelse(in_lon & in_lat, zero(grid), zb[i, j, 1])
