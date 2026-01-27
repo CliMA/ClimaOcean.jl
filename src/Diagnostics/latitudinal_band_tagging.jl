@@ -198,17 +198,17 @@ end
     valid_φ = isfinite(φ)
 
     if !in_basin || !is_wet || !valid_φ
-        @inbounds tag[i, j, 1] = Int32(-1)
+        @inbounds tag[i, j, 1] = -1
     else
         # Find which latitude band this cell belongs to
         # Tag = jl means latitudes[jl] <= φ < latitudes[jl+1]
         # Tag = 0 means φ < latitudes[1]
         # Tag = n_lats means φ >= latitudes[n_lats]
 
-        cell_tag = Int32(0)
+        cell_tag = 0
         for jl in 1:n_lats
             if φ >= latitudes[jl]
-                cell_tag = Int32(jl)
+                cell_tag = jl
             end
         end
 

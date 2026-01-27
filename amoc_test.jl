@@ -1,4 +1,4 @@
-using ClimaOcean, Oceananigans, JLD2
+using ClimaOcean, Oceananigans, JLD2, GLMakie
 
 arch = CPU()
 
@@ -39,9 +39,6 @@ alb = ClimaOcean.Diagnostics.BrokenLineSet(grid, 0:0.5:65; basin_mask = atlantic
 
 # Convert to Sverdrups
 ψ_Sv = ψ ./ 1e6
-
-# Get the latitudes for plotting
-lats = ClimaOcean.Diagnostics.band_latitudes(alb)
 
 # Print some diagnostics
 println("AMOC streamfunction computed")
