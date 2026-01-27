@@ -1,632 +1,573 @@
-using Oceananigans.Grids: φnode, inactive_cell, on_architecture
+using Oceananigans.Grids: φnode, λnode, inactive_cell, on_architecture, znode
 using Oceananigans.Operators: Δxᶜᶠᶜ, Δyᶠᶜᶜ, Δzᶜᶠᶜ, Δzᶠᶜᶜ
+using Oceananigans.Fields: interior
 using Oceananigans.Utils: launch!
 using Oceananigans.BoundaryConditions: fill_halo_regions!
-using Oceananigans.OrthogonalSphericalShellGrids: TripolarGrid
+using Oceananigans.OrthogonalSphericalShellGrids: TripolarGrid, TripolarGridOfSomeKind
 using KernelAbstractions: @index, @kernel
 
 # atlantic_ocean_mask is imported by the parent module (Diagnostics.jl)
 
 #####
-##### LatitudinalBandTags struct
+##### IsoLatitudeBrokenLine - MITgcm-style broken line representation
 #####
 
 """
-    LatitudinalBandTags{TC, G, M}
+    IsoLatitudeBrokenLine{I, F}
 
-A structure for tagging grid cells with latitudinal band numbers for computing
-meridional overturning circulation streamfunctions.
+Represents a broken line approximating an iso-latitude contour on a curvilinear grid.
 
-The tag field contains:
-- `-1`: untagged (land or outside basin)
-- `0, 1, 2, ...`: band number (distance from starting latitude)
+On non-lat-lon grids (tripolar, cubed-sphere), latitude circles don't align with
+grid cell edges. The broken line is constructed by finding all velocity points
+(U and V) that separate cells in different latitude bands.
 
-This is used to identify which velocity components contribute to transport
-across each latitudinal band.
+Fields
+======
+- `latitude`: Target latitude for this broken line
+- `n_points`: Number of velocity points on this broken line
+- `i_indices`: i-indices of velocity points (Vector{Int})
+- `j_indices`: j-indices of velocity points (Vector{Int})
+- `u_factor`: Weight for U-velocity: +1, -1, or 0 (Vector{Int8})
+- `v_factor`: Weight for V-velocity: +1, -1, or 0 (Vector{Int8})
+
+The factors encode both component and sign:
+- `u_factor = +1`: U-point, positive U = northward transport
+- `u_factor = -1`: U-point, negative U = northward transport
+- `v_factor = +1`: V-point, positive V = northward transport
+- `v_factor = -1`: V-point, negative V = northward transport
+- Factor = 0 means this velocity component doesn't contribute at this point
 """
-struct LatitudinalBandTags{TC, G, M, FT}
-    tag :: TC              # Field{Center, Center, Nothing} - band number at cell centers
-    grid :: G
-    basin_mask :: M        # Optional OceanBasinMask or mask field
-    starting_latitude :: FT
-    direction :: Symbol    # :northward or :southward
+struct IsoLatitudeBrokenLine{FT, I, F}
+    latitude  :: FT
+    n_points  :: Int
+    i_indices :: I
+    j_indices :: I
+    u_factor  :: F
+    v_factor  :: F
 end
 
-Base.summary(lbt::LatitudinalBandTags) = "LatitudinalBandTags"
+Base.summary(bl::IsoLatitudeBrokenLine) = "IsoLatitudeBrokenLine at $(bl.latitude)° with $(bl.n_points) points"
 
-function Base.show(io::IO, lbt::LatitudinalBandTags)
-    print(io, summary(lbt), '\n')
-    print(io, "├── grid: ", summary(lbt.grid), '\n')
-    print(io, "├── starting_latitude: ", lbt.starting_latitude, "°", '\n')
-    print(io, "├── direction: ", lbt.direction, '\n')
-    print(io, "└── basin_mask: ", isnothing(lbt.basin_mask) ? "nothing" : summary(lbt.basin_mask))
+#####
+##### BrokenLineSet - collection of broken lines for multiple latitudes
+#####
+
+"""
+    BrokenLineSet{FT, BL, TC, G, M}
+
+A collection of iso-latitude broken lines for computing meridional overturning
+streamfunctions using the MITgcm algorithm.
+
+This structure precomputes the broken line geometry once from the grid, then
+reuses it for all transport calculations.
+
+Fields
+======
+- `latitudes`: Vector of target latitudes
+- `lines`: Vector of IsoLatitudeBrokenLine objects
+- `tag`: 2D field of latitude band tags at cell centers
+- `grid`: The underlying grid
+- `basin_mask`: Optional mask for restricting to a specific basin
+"""
+struct BrokenLineSet{FT, BL, TC, G, M}
+    latitudes  :: Vector{FT}
+    lines      :: BL
+    tag        :: TC
+    grid       :: G
+    basin_mask :: M
 end
 
-# Forward getindex to tag field
-Base.getindex(lbt::LatitudinalBandTags, i, j, k) = lbt.tag[i, j, k]
+Base.summary(bls::BrokenLineSet) = "BrokenLineSet with $(length(bls.latitudes)) latitudes"
+
+function Base.show(io::IO, bls::BrokenLineSet)
+    print(io, summary(bls), '\n')
+    print(io, "├── grid: ", summary(bls.grid), '\n')
+    print(io, "├── latitude range: ", minimum(bls.latitudes), "° to ", maximum(bls.latitudes), "°", '\n')
+    print(io, "└── basin_mask: ", isnothing(bls.basin_mask) ? "nothing" : summary(bls.basin_mask))
+end
 
 #####
 ##### Constructor
 #####
 
 """
-    LatitudinalBandTags(grid;
-                        basin_mask = nothing,
-                        starting_latitude = 90.0,
-                        direction = :southward)
+    BrokenLineSet(grid, latitudes;
+                  basin_mask = nothing)
 
-Create latitudinal band tags for computing meridional overturning circulation.
+Create a set of iso-latitude broken lines for computing meridional overturning circulation.
 
-The algorithm uses wavefront propagation starting from `starting_latitude` and
-propagating in the specified `direction` (:northward or :southward). Each cell
-is tagged with a band number representing its distance from the starting latitude.
+This implements the MITgcm algorithm from `mk_isoLat_bkl.m`:
+1. Tag each cell center with a latitude band number based on its actual latitude
+2. For each target latitude, find all velocity points (U and V) that separate
+   cells in different latitude bands
+3. Store the sign indicating whether positive velocity = northward transport
 
 Arguments
 =========
 - `grid`: The ocean grid (LatitudeLongitudeGrid, TripolarGrid, or ImmersedBoundaryGrid)
+- `latitudes`: Vector of target latitudes for broken lines
 
 Keyword Arguments
 =================
-- `basin_mask`: Optional mask restricting tagging to a specific ocean basin.
+- `basin_mask`: Optional mask restricting computation to a specific ocean basin.
                 Can be an OceanBasinMask or any field-like object where
                 `basin_mask[i, j, 1] > 0` indicates a valid cell.
-- `starting_latitude`: Latitude to start the wavefront propagation. Default: 90.0
-- `direction`: Direction of propagation, either `:northward` or `:southward`. Default: :southward
 
 Returns
 =======
-A `LatitudinalBandTags` with a 2D tag field containing band numbers.
+A `BrokenLineSet` containing precomputed broken line geometry.
 
 Example
 =======
 ```julia
 using ClimaOcean
 
-grid = LatitudeLongitudeGrid(size=(360, 180, 50), latitude=(-90, 90), longitude=(0, 360), z=(-5000, 0))
+grid = TripolarGrid(size=(360, 180, 50), z=(-5000, 0))
 atlantic = atlantic_ocean_mask(grid)
-tags = LatitudinalBandTags(grid; basin_mask=atlantic, starting_latitude=65.0, direction=:southward)
+latitudes = collect(-34.0:1.0:65.0)
+broken_lines = BrokenLineSet(grid, latitudes; basin_mask=atlantic)
+ψ = compute_streamfunction(u, v, broken_lines)
 ```
 """
-function LatitudinalBandTags(grid;
-                              basin_mask = nothing,
-                              starting_latitude = 90.0,
-                              direction = :southward)
-
-    if direction ∉ (:northward, :southward)
-        throw(ArgumentError("direction must be :northward or :southward, got $direction"))
-    end
+function BrokenLineSet(grid, latitudes;
+                       basin_mask = nothing)
 
     FT = eltype(grid)
-    starting_latitude = convert(FT, starting_latitude)
+    latitudes = convert.(FT, latitudes)
+
+    # Sort latitudes for consistent ordering
+    latitudes = sort(latitudes)
+
+    # Step 1: Tag cell centers by latitude band
+    tag = compute_latitude_tags(grid, latitudes, basin_mask)
+
+    # Step 2: Generate broken lines for each latitude
+    lines = generate_broken_lines(grid, latitudes, tag)
+
+    return BrokenLineSet(latitudes, lines, tag, grid, basin_mask)
+end
+
+#####
+##### Latitude band tagging (MITgcm Step 1)
+#####
+
+"""
+    compute_latitude_tags(grid, latitudes, basin_mask)
+
+Tag each cell center with a latitude band number.
+
+Cell (i,j) gets tag `jl` if `latitudes[jl] <= φ[i,j] < latitudes[jl+1]`.
+Land cells and cells outside the basin mask get tag -1.
+Cells south of all latitudes get tag 0.
+Cells north of all latitudes get tag `length(latitudes)`.
+"""
+function compute_latitude_tags(grid, latitudes, basin_mask)
+    Nx, Ny, Nz = size(grid)
+    FT = eltype(grid)
+    n_lats = length(latitudes)
 
     # Create tag field (2D, at cell centers)
-    tag = Field{Center, Center, Nothing}(grid, Int32)
-    set!(tag, -1)  # Initialize all cells as untagged
+    tag = Field{Center, Center, Nothing}(grid)
 
-    tags = LatitudinalBandTags(tag, grid, basin_mask, starting_latitude, direction)
-
-    compute_latitudinal_tags!(tags)
-
-    return tags
-end
-
-#####
-##### Wavefront propagation algorithm
-#####
-
-"""
-    compute_latitudinal_tags!(tags::LatitudinalBandTags)
-
-Compute latitudinal band tags using wavefront propagation.
-
-The algorithm:
-1. Initialize starting band (cells near starting_latitude) with tag 0
-2. Iteratively propagate: for each untagged wet cell adjacent to current band,
-   tag with next band number
-3. Handle periodic longitude boundaries and tripolar fold
-4. Continue until no more cells can be tagged
-"""
-function compute_latitudinal_tags!(tags::LatitudinalBandTags)
-    grid = tags.grid
     arch = architecture(grid)
 
-    # Initialize starting band
-    initialize_starting_band!(tags)
-    fill_halo_regions!(tags.tag)
+    launch!(arch, grid, :xy, _compute_latitude_tags!,
+            tag, grid, latitudes, n_lats, basin_mask)
 
-    # Create a temporary field for double-buffering
-    tag_next = Field{Center, Center, Nothing}(grid, Int32)
-    parent(tag_next) .= parent(tags.tag)
+    fill_halo_regions!(tag)
 
-    # Iterative wavefront propagation
-    current_band = 0
-    max_iterations = sum(size(grid)[1:2])  # Upper bound on iterations
-    cells_tagged = 1  # Start with nonzero to enter loop
-
-    while cells_tagged > 0 && current_band < max_iterations
-        # Propagate to next band
-        launch!(arch, grid, :xy, _propagate_wavefront!,
-                tag_next, tags.tag, grid, tags.basin_mask,
-                Int32(current_band), tags.direction)
-
-        # Handle tripolar fold if applicable
-        propagate_across_tripolar_fold!(tag_next, tags.tag, grid, Int32(current_band))
-
-        fill_halo_regions!(tag_next)
-
-        # Count newly tagged cells
-        cells_tagged = count_newly_tagged(tag_next, tags.tag, grid)
-
-        # Swap buffers
-        parent(tags.tag) .= parent(tag_next)
-
-        current_band += 1
-    end
-
-    fill_halo_regions!(tags.tag)
-
-    return tags
+    return tag
 end
 
-"""
-    initialize_starting_band!(tags::LatitudinalBandTags)
-
-Initialize cells at the starting latitude with band number 0.
-"""
-function initialize_starting_band!(tags::LatitudinalBandTags)
-    grid = tags.grid
-    arch = architecture(grid)
-
-    # Compute latitude spacing for tolerance
-    Ny = size(grid, 2)
-    FT = eltype(grid)
-    Δφ = convert(FT, 180) / Ny
-
-    # Convert direction to boolean for kernel
-    is_southward = tags.direction == :southward
-
-    launch!(arch, grid, :xy, _initialize_starting_band!,
-            tags.tag, grid, tags.starting_latitude, Δφ,
-            tags.basin_mask, is_southward)
-
-    return nothing
-end
-
-@kernel function _initialize_starting_band!(tag, grid, starting_latitude, Δφ, basin_mask, is_southward)
+@kernel function _compute_latitude_tags!(tag, grid, latitudes, n_lats, basin_mask)
     i, j = @index(Global, NTuple)
 
+    Nz = size(grid, 3)
+
+    # Get cell center latitude
     φ = φnode(i, j, 1, grid, Center(), Center(), Center())
 
     # Check if cell is in basin (if mask provided)
     in_basin = isnothing(basin_mask) || basin_mask[i, j, 1] > 0
 
-    # Check if cell is wet (not land)
-    is_wet = !inactive_cell(i, j, 1, grid)
+    # Check if cell is wet (not land) - use surface level (Nz) since
+    # deeper levels may be underground in shallow regions
+    is_wet = !inactive_cell(i, j, Nz, grid)
 
-    # Check if cell is at starting latitude
-    # For southward: φ >= starting_latitude - Δφ
-    # For northward: φ <= starting_latitude + Δφ
-    is_starting_south = φ >= starting_latitude - Δφ
-    is_starting_north = φ <= starting_latitude + Δφ
-    is_starting = ifelse(is_southward, is_starting_south, is_starting_north)
+    # Check for valid latitude (guard against NaN at poles or special grid points)
+    valid_φ = isfinite(φ)
 
-    @inbounds tag[i, j, 1] = ifelse(in_basin & is_wet & is_starting, Int32(0), Int32(-1))
+    if !in_basin || !is_wet || !valid_φ
+        @inbounds tag[i, j, 1] = Int32(-1)
+    else
+        # Find which latitude band this cell belongs to
+        # Tag = jl means latitudes[jl] <= φ < latitudes[jl+1]
+        # Tag = 0 means φ < latitudes[1]
+        # Tag = n_lats means φ >= latitudes[n_lats]
+
+        cell_tag = Int32(0)
+        for jl in 1:n_lats
+            if φ >= latitudes[jl]
+                cell_tag = Int32(jl)
+            end
+        end
+
+        @inbounds tag[i, j, 1] = cell_tag
+    end
 end
 
-@kernel function _propagate_wavefront!(tag_next, tag, grid, basin_mask, current_band, direction)
-    i, j = @index(Global, NTuple)
+#####
+##### Broken line generation (MITgcm Step 2)
+#####
 
-    Nx, Ny = size(grid, 1), size(grid, 2)
+"""
+    generate_broken_lines(grid, latitudes, tag)
 
-    # Get current cell's tag
-    @inbounds current_tag = tag[i, j, 1]
+Generate broken lines for each target latitude.
 
-    # Check if cell is in basin (if mask provided)
-    in_basin = isnothing(basin_mask) || basin_mask[i, j, 1] > 0
+A velocity point lies on the broken line for latitude `jl` if it separates
+two cells whose tags straddle `jl`:
+- For U-points between (i-1,j) and (i,j): crosses if tags straddle jl
+- For V-points between (i,j-1) and (i,j): crosses if tags straddle jl
 
-    # Check if cell is wet
-    is_wet = !inactive_cell(i, j, 1, grid)
+The sign indicates whether positive velocity = northward transport.
+"""
+function generate_broken_lines(grid, latitudes, tag)
+    Nx, Ny, Nz = size(grid)
+    n_lats = length(latitudes)
 
-    # Check neighbors for current_band tag
-    # Periodic in longitude (i direction)
-    im1 = ifelse(i == 1, Nx, i - 1)
-    ip1 = ifelse(i == Nx, 1, i + 1)
+    # Move tag to CPU for line generation and get the interior data
+    tag_cpu = on_architecture(CPU(), tag)
+    # Use interior to ensure we get the actual data array
+    tag_data = interior(tag_cpu, :, :, 1)
 
-    # Not periodic in latitude (j direction) for standard grids
-    jm1 = max(1, j - 1)
-    jp1 = min(Ny, j + 1)
+    lines = IsoLatitudeBrokenLine[]
 
-    @inbounds begin
-        tag_west  = tag[im1, j, 1]
-        tag_east  = tag[ip1, j, 1]
-        tag_south = tag[i, jm1, 1]
-        tag_north = tag[i, jp1, 1]
+    for (jl, lat) in enumerate(latitudes)
+        i_indices = Int[]
+        j_indices = Int[]
+        u_factors = Int8[]
+        v_factors = Int8[]
+
+        # Check all U-points (between cells i-1,j and i,j)
+        # U-point at (i,j) is at Face location in x, Center in y
+        for j in 1:Ny
+            for i in 1:Nx
+                # Handle periodic boundary: i-1 wraps to Nx
+                im1 = i == 1 ? Nx : i - 1
+
+                tag_east = tag_data[i, j]
+                tag_west = tag_data[im1, j]
+
+                # Skip if either cell is land (tag = -1)
+                # But allow cells outside the latitude range (tag = 0 or tag = n_lats)
+                if tag_east == -1 || tag_west == -1
+                    continue
+                end
+
+                # U-point crosses latitude jl if cells straddle jl
+                # tag >= jl means cell is at or north of latitude jl
+                # tag < jl means cell is south of latitude jl
+
+                if tag_east >= jl && tag_west < jl
+                    # Positive U (eastward) moves water from west to east
+                    # West cell is south of jl, east cell is at/north of jl
+                    # So positive U contributes to northward transport
+                    push!(i_indices, i)
+                    push!(j_indices, j)
+                    push!(u_factors, Int8(+1))
+                    push!(v_factors, Int8(0))
+                elseif tag_east < jl && tag_west >= jl
+                    # Positive U moves water from at/north of jl to south of jl
+                    # So positive U contributes to southward transport (negative sign)
+                    push!(i_indices, i)
+                    push!(j_indices, j)
+                    push!(u_factors, Int8(-1))
+                    push!(v_factors, Int8(0))
+                end
+            end
+        end
+
+        # Check all V-points (between cells i,j-1 and i,j)
+        # V-point at (i,j) is at Center in x, Face in y
+        for j in 2:Ny  # j=1 has no j-1 neighbor (southern boundary)
+            for i in 1:Nx
+                tag_north = tag_data[i, j]
+                tag_south = tag_data[i, j-1]
+
+                # Skip if either cell is land (tag = -1)
+                if tag_north == -1 || tag_south == -1
+                    continue
+                end
+
+                # V-point crosses latitude jl if cells straddle jl
+                if tag_north >= jl && tag_south < jl
+                    # Positive V (northward) moves water from south to north
+                    # South cell is below jl, north cell is at/above jl
+                    # So positive V = northward transport
+                    push!(i_indices, i)
+                    push!(j_indices, j)
+                    push!(u_factors, Int8(0))
+                    push!(v_factors, Int8(+1))
+                elseif tag_north < jl && tag_south >= jl
+                    # Positive V moves water from at/above jl to below jl
+                    # So positive V = southward transport (negative sign)
+                    push!(i_indices, i)
+                    push!(j_indices, j)
+                    push!(u_factors, Int8(0))
+                    push!(v_factors, Int8(-1))
+                end
+            end
+        end
+
+        # Handle tripolar fold at j = Ny
+        add_tripolar_fold_points!(i_indices, j_indices, u_factors, v_factors,
+                                  grid, tag_data, jl, Ny)
+
+        n_points = length(i_indices)
+
+        push!(lines, IsoLatitudeBrokenLine(lat, n_points,
+                                           i_indices, j_indices,
+                                           u_factors, v_factors))
     end
 
-    # Check if any neighbor has current_band tag
-    neighbor_has_current = (tag_west == current_band) |
-                           (tag_east == current_band) |
-                           (tag_south == current_band) |
-                           (tag_north == current_band)
-
-    # Determine the new tag value:
-    # - If already tagged (>= 0), keep the tag
-    # - If not in basin or not wet, set to -1
-    # - If neighbor has current_band, set to current_band + 1
-    # - Otherwise, set to -1
-    already_tagged = current_tag >= 0
-    valid_cell = in_basin & is_wet
-    next_band = current_band + Int32(1)
-
-    new_tag = ifelse(already_tagged, current_tag,
-              ifelse(valid_cell & neighbor_has_current, next_band, Int32(-1)))
-
-    @inbounds tag_next[i, j, 1] = new_tag
+    return lines
 end
-
-#####
-##### Tripolar grid handling
-#####
 
 # Default: no tripolar fold handling
-propagate_across_tripolar_fold!(tag_next, tag, grid, current_band) = nothing
+add_tripolar_fold_points!(i_indices, j_indices, u_factors, v_factors, grid, tag_data, jl, Ny) = nothing
 
 # Specialization for TripolarGrid
-function propagate_across_tripolar_fold!(tag_next, tag, grid::TripolarGridOfSomeKind, current_band)
-    arch = architecture(grid)
-    launch!(arch, grid, :x, _propagate_tripolar_fold!, tag_next, tag, grid, current_band)
-    return nothing
-end
-
-@kernel function _propagate_tripolar_fold!(tag_next, tag, grid, current_band)
-    i = @index(Global)
-
-    Nx, Ny = size(grid, 1), size(grid, 2)
+function add_tripolar_fold_points!(i_indices, j_indices, u_factors, v_factors,
+                                   grid::TripolarGridOfSomeKind, tag_data, jl, Ny)
+    Nx = size(grid, 1)
 
     # At j = Ny, cells connect across the fold
-    # Cell (i, Ny) connects to cell (Nx - i + 1, Ny)
-    i_fold = Nx - i + 1
+    # Cell (i, Ny) connects to cell (Nx - i + 1, Ny) across the fold
+    # This creates additional V-like connections at the fold
 
-    @inbounds begin
-        tag_here = tag[i, Ny, 1]
-        tag_fold = tag[i_fold, Ny, 1]
-        current_tag_next = tag_next[i, Ny, 1]
-    end
+    for i in 1:Nx÷2  # Only check half to avoid double-counting
+        i_fold = Nx - i + 1
 
-    # If this cell is untagged but the fold partner has current_band
-    should_tag = (tag_here < 0) & (tag_fold == current_band)
-    new_tag = ifelse(should_tag, current_band + Int32(1), current_tag_next)
+        tag_here = tag_data[i, Ny]
+        tag_fold = tag_data[i_fold, Ny]
 
-    @inbounds tag_next[i, Ny, 1] = new_tag
-end
-
-#####
-##### Utility functions
-#####
-
-"""
-    count_newly_tagged(tag_next, tag, grid)
-
-Count cells that were newly tagged in this iteration.
-"""
-function count_newly_tagged(tag_next, tag, grid)
-    # Count cells that changed from -1 to >= 0
-    Nx, Ny = size(grid, 1), size(grid, 2)
-    count = 0
-
-    # Use field indexing which accounts for halos
-    for j in 1:Ny
-        for i in 1:Nx
-            if tag[i, j, 1] < 0 && tag_next[i, j, 1] >= 0
-                count += 1
-            end
-        end
-    end
-
-    return count
-end
-
-#####
-##### Velocity band-crossing functions
-#####
-
-"""
-    v_crosses_band(tags::LatitudinalBandTags, i, j, band)
-
-Check if v-velocity at (i, j) crosses the boundary of latitudinal `band`.
-
-V-velocity at (i, j) is located at (Center, Face) and represents transport
-between cells (i, j-1) and (i, j). It crosses a band boundary if these
-cells have different band tags.
-"""
-function v_crosses_band(tags::LatitudinalBandTags, i, j, band)
-    @inbounds begin
-        tag_north = tags.tag[i, j, 1]
-        tag_south = tags.tag[i, j-1, 1]
-    end
-
-    # V crosses band if it connects cells in adjacent bands
-    crosses_northward = (tag_north == band) && (tag_south == band - 1)
-    crosses_southward = (tag_south == band) && (tag_north == band - 1)
-
-    return crosses_northward || crosses_southward
-end
-
-"""
-    u_crosses_band(tags::LatitudinalBandTags, i, j, band)
-
-Check if u-velocity at (i, j) crosses the boundary of latitudinal `band`.
-
-U-velocity at (i, j) is located at (Face, Center) and represents transport
-between cells (i-1, j) and (i, j). It crosses a band boundary if these
-cells have different band tags.
-"""
-function u_crosses_band(tags::LatitudinalBandTags, i, j, band)
-    @inbounds begin
-        tag_east = tags.tag[i, j, 1]
-        tag_west = tags.tag[i-1, j, 1]
-    end
-
-    # U crosses band if it connects cells in adjacent bands
-    crosses_eastward = (tag_east == band) && (tag_west == band - 1)
-    crosses_westward = (tag_west == band) && (tag_east == band - 1)
-
-    return crosses_eastward || crosses_westward
-end
-
-"""
-    v_band_sign(tags::LatitudinalBandTags, i, j, band)
-
-Return the sign of v-velocity contribution at (i, j) to band transport.
-Returns +1 if velocity points from lower to higher band number,
--1 if from higher to lower, and 0 if not crossing the band.
-"""
-function v_band_sign(tags::LatitudinalBandTags, i, j, band)
-    @inbounds begin
-        tag_north = tags.tag[i, j, 1]
-        tag_south = tags.tag[i, j-1, 1]
-    end
-
-    if (tag_north == band) && (tag_south == band - 1)
-        return 1   # Positive v brings water into higher band
-    elseif (tag_south == band) && (tag_north == band - 1)
-        return -1  # Positive v takes water out of higher band
-    else
-        return 0   # Does not cross this band
-    end
-end
-
-"""
-    u_band_sign(tags::LatitudinalBandTags, i, j, band)
-
-Return the sign of u-velocity contribution at (i, j) to band transport.
-Returns +1 if velocity points from lower to higher band number,
--1 if from higher to lower, and 0 if not crossing the band.
-"""
-function u_band_sign(tags::LatitudinalBandTags, i, j, band)
-    @inbounds begin
-        tag_east = tags.tag[i, j, 1]
-        tag_west = tags.tag[i-1, j, 1]
-    end
-
-    if (tag_east == band) && (tag_west == band - 1)
-        return 1   # Positive u brings water into higher band
-    elseif (tag_west == band) && (tag_east == band - 1)
-        return -1  # Positive u takes water out of higher band
-    else
-        return 0   # Does not cross this band
-    end
-end
-
-#####
-##### Band transport computation
-#####
-
-"""
-    compute_band_transport(u, v, tags::LatitudinalBandTags, band_number)
-
-Compute the meridional volume transport across a specific latitudinal band.
-
-Returns a 1D array of transport at each depth level (positive = increasing band number).
-"""
-function compute_band_transport(u, v, tags::LatitudinalBandTags, band_number)
-    grid = tags.grid
-    arch = architecture(grid)
-    Nz = size(grid, 3)
-
-    # Transport at each depth level
-    transport = zeros(eltype(grid), Nz)
-    transport = on_architecture(arch, transport)
-
-    # GPU kernel would need atomic operations or reduction
-    # For now, implement CPU version
-    _compute_band_transport_cpu!(transport, u, v, tags, grid, Int32(band_number))
-
-    return Array(transport)
-end
-
-function _compute_band_transport_cpu!(transport, u, v, tags, grid, band_number)
-    Nx, Ny, Nz = size(grid)
-
-    for k in 1:Nz
-        total = zero(eltype(grid))
-
-        # V-velocity contributions
-        for j in 2:Ny  # j=1 has no j-1
-            for i in 1:Nx
-                sign = v_band_sign(tags, i, j, band_number)
-                if sign != 0
-                    # Transport = v * Δx * Δz
-                    Δx = Δxᶜᶠᶜ(i, j, k, grid)
-                    Δz = Δzᶜᶠᶜ(i, j, k, grid)
-                    total += sign * v[i, j, k] * Δx * Δz
-                end
-            end
+        # Skip if either cell is land
+        if tag_here == -1 || tag_fold == -1
+            continue
         end
 
-        # U-velocity contributions
-        for j in 1:Ny
-            for i in 2:Nx  # i=1 needs periodic handling
-                sign = u_band_sign(tags, i, j, band_number)
-                if sign != 0
-                    # Transport = u * Δy * Δz
-                    Δy = Δyᶠᶜᶜ(i, j, k, grid)
-                    Δz = Δzᶠᶜᶜ(i, j, k, grid)
-                    total += sign * u[i, j, k] * Δy * Δz
-                end
-            end
-            # Handle i=1 (periodic)
-            sign = u_band_sign(tags, 1, j, band_number)
-            if sign != 0
-                Δy = Δyᶠᶜᶜ(1, j, k, grid)
-                Δz = Δzᶠᶜᶜ(1, j, k, grid)
-                total += sign * u[1, j, k] * Δy * Δz
-            end
+        # Check if the fold connection crosses latitude jl
+        if tag_here >= jl && tag_fold < jl
+            push!(i_indices, i)
+            push!(j_indices, Ny)
+            push!(u_factors, Int8(0))
+            push!(v_factors, Int8(+1))  # Convention: positive = toward higher tag
+        elseif tag_here < jl && tag_fold >= jl
+            push!(i_indices, i)
+            push!(j_indices, Ny)
+            push!(u_factors, Int8(0))
+            push!(v_factors, Int8(-1))
         end
-
-        transport[k] = total
     end
 
     return nothing
 end
 
 #####
-##### AMOC streamfunction
+##### Angle computation for grid-to-geographic transformation
 #####
 
 """
-    compute_amoc_streamfunction(u, v, tags::LatitudinalBandTags)
+    compute_face_meridional_angle(grid, i, j, is_u_face)
 
-Compute the Atlantic Meridional Overturning Circulation streamfunction.
+Compute the cosine of the angle between a face normal and the northward direction.
 
-Returns a 2D array (n_bands × Nz) representing ψ(φ, z), where:
-- ψ[band, k] represents the cumulative transport from the surface to depth level k
-- Positive values indicate clockwise overturning (in standard view)
+For curvilinear grids (tripolar, cubed-sphere), the grid axes are not aligned with
+geographic directions. To compute true meridional transport, we need to project
+the face-normal transport onto the northward direction.
 
-The streamfunction is computed by:
-1. Computing transport across each band boundary at each depth
-2. Cumulatively summing from the surface downward
+Returns cos(θ) where θ is the angle between the face normal and north.
+- cos(θ) ≈ 1 for V-faces on a lat-lon grid (face normal is northward)
+- cos(θ) ≈ 0 for U-faces on a lat-lon grid (face normal is eastward)
+
+For `is_u_face=true`:  U-face at (i, j), normal points from cell (i-1, j) to (i, j)
+For `is_u_face=false`: V-face at (i, j), normal points from cell (i, j-1) to (i, j)
 """
-function compute_amoc_streamfunction(u, v, tags::LatitudinalBandTags)
-    grid = tags.grid
-    Nx, Ny, Nz = size(grid)
+function compute_face_meridional_angle(grid, i, j, is_u_face)
+    Nx, Ny = size(grid, 1), size(grid, 2)
 
-    # Find max band number using field indexing
-    max_band = 0
-    for j in 1:Ny
-        for i in 1:Nx
-            band = tags.tag[i, j, 1]
-            max_band = max(max_band, band)
+    if is_u_face
+        # U-face: normal from (i-1, j) to (i, j)
+        im1 = i == 1 ? Nx : i - 1
+        λ1 = λnode(im1, j, 1, grid, Center(), Center(), Center())
+        φ1 = φnode(im1, j, 1, grid, Center(), Center(), Center())
+        λ2 = λnode(i, j, 1, grid, Center(), Center(), Center())
+        φ2 = φnode(i, j, 1, grid, Center(), Center(), Center())
+    else
+        # V-face: normal from (i, j-1) to (i, j)
+        jm1 = max(1, j - 1)
+        λ1 = λnode(i, jm1, 1, grid, Center(), Center(), Center())
+        φ1 = φnode(i, jm1, 1, grid, Center(), Center(), Center())
+        λ2 = λnode(i, j, 1, grid, Center(), Center(), Center())
+        φ2 = φnode(i, j, 1, grid, Center(), Center(), Center())
+    end
+
+    # Handle NaN coordinates
+    if !isfinite(λ1) || !isfinite(φ1) || !isfinite(λ2) || !isfinite(φ2)
+        return is_u_face ? 0.0 : 1.0  # Default: U-faces are zonal, V-faces are meridional
+    end
+
+    # Compute direction in local Cartesian coordinates
+    # East component: proportional to Δλ * cos(φ_avg)
+    # North component: proportional to Δφ
+    Δλ = λ2 - λ1
+    Δφ = φ2 - φ1
+    φ_avg = 0.5 * (φ1 + φ2)
+
+    # Handle periodic longitude (Δλ should be small for adjacent cells)
+    if Δλ > 180
+        Δλ -= 360
+    elseif Δλ < -180
+        Δλ += 360
+    end
+
+    # Convert to approximate Cartesian (east, north) components
+    # Using cos(φ) to account for converging meridians
+    Δeast = Δλ * cosd(φ_avg)
+    Δnorth = Δφ
+
+    # Compute magnitude and angle
+    magnitude = sqrt(Δeast^2 + Δnorth^2)
+
+    if magnitude < 1e-10
+        return is_u_face ? 0.0 : 1.0  # Default for degenerate cases
+    end
+
+    # cos(angle from north) = Δnorth / magnitude
+    return Δnorth / magnitude
+end
+
+#####
+##### Transport computation (MITgcm Step 4 with angle correction)
+#####
+
+"""
+    compute_volume_transport(u, v, grid, broken_line, k)
+
+Compute meridional volume transport across a broken line at depth level k.
+
+This includes proper angle correction for curvilinear grids (tripolar, cubed-sphere).
+On these grids, the velocity components (u, v) are in grid coordinates, not
+geographic coordinates. To get true meridional transport:
+
+- For V-faces: transport_meridional = v * Δx * Δz * cos(θ_v)
+- For U-faces: transport_meridional = u * Δy * Δz * cos(θ_u)
+
+where θ is the angle between the face normal and the northward direction.
+
+Returns the total meridional volume transport in m³/s (positive = northward).
+"""
+function compute_volume_transport(u, v, grid, broken_line::IsoLatitudeBrokenLine, k)
+    transport = 0.0  # Use Float64 explicitly
+    Nx = size(grid, 1)
+
+    for n in 1:broken_line.n_points
+        i = broken_line.i_indices[n]
+        j = broken_line.j_indices[n]
+        uf = broken_line.u_factor[n]
+        vf = broken_line.v_factor[n]
+
+        if uf != 0
+            # U-face transport with angle correction
+            u_val = u[i, j, k]
+            Δy = Δyᶠᶜᶜ(i, j, k, grid)
+            Δz = Δzᶠᶜᶜ(i, j, k, grid)
+
+            if isfinite(u_val) && isfinite(Δy) && isfinite(Δz) && Δz > 0
+                # Angle correction: project onto northward direction
+                cos_angle = compute_face_meridional_angle(grid, i, j, true)
+                transport += uf * u_val * Δy * Δz * cos_angle
+            end
+        end
+
+        if vf != 0
+            # V-face transport with angle correction
+            v_val = v[i, j, k]
+            Δx = Δxᶜᶠᶜ(i, j, k, grid)
+            Δz = Δzᶜᶠᶜ(i, j, k, grid)
+
+            if isfinite(v_val) && isfinite(Δx) && isfinite(Δz) && Δz > 0
+                # Angle correction: project onto northward direction
+                cos_angle = compute_face_meridional_angle(grid, i, j, false)
+                transport += vf * v_val * Δx * Δz * cos_angle
+            end
         end
     end
 
-    if max_band < 1
-        error("No valid latitudinal bands found. Check basin_mask and starting_latitude.")
-    end
+    return transport
+end
 
-    # Initialize streamfunction array
-    FT = eltype(grid)
-    ψ = zeros(FT, max_band, Nz)
+#####
+##### Streamfunction computation (MITgcm Step 5)
+#####
 
-    # Compute transport for each band
-    for band in 1:max_band
-        transport = compute_band_transport(u, v, tags, band)
+"""
+    compute_streamfunction(u, v, broken_lines::BrokenLineSet)
 
-        # Cumulative sum from surface (k=Nz) downward
-        ψ[band, Nz] = transport[Nz]
-        for k in (Nz-1):-1:1
-            ψ[band, k] = ψ[band, k+1] + transport[k]
+Compute the meridional overturning streamfunction Ψ(φ, z).
+
+The streamfunction is defined at vertical faces (Nz+1 values) and computed by
+integrating transport from bottom to surface:
+
+    Ψ(z) = ∫_{-H}^{z} v̄ dz'
+
+Integration proceeds from bottom (k=1) upward to surface (k=Nz):
+
+    Ψ[k+1] = Ψ[k] + transport[k]
+
+Returns a 2D array (n_latitudes × (Nz+1)) where:
+- Ψ[jl, k] is the streamfunction at latitude `latitudes[jl]` and face k
+- Ψ[:, 1] = 0 at the bottom (boundary condition)
+- Ψ[:, Nz+1] should be ≈ 0 at the surface for mass conservation
+- Units: m³/s (divide by 1e6 for Sverdrups)
+
+For AMOC, the maximum |Ψ| typically occurs around 1000m depth with magnitude ~15-20 Sv.
+"""
+function compute_streamfunction(u, v, broken_lines::BrokenLineSet)
+    grid = broken_lines.grid
+    Nz = size(grid, 3)
+    n_lats = length(broken_lines.latitudes)
+
+    # Use Float64 explicitly to avoid potential issues with grid element types
+    FT = Float64
+
+    # Streamfunction at faces: Nz+1 values
+    # ψ[jl, k] is the streamfunction at face k for latitude jl
+    # Face 1 is at the bottom, face Nz+1 is at the surface
+    ψ = zeros(FT, n_lats, Nz + 1)
+
+    for (jl, line) in enumerate(broken_lines.lines)
+        # Skip empty broken lines
+        if line.n_points == 0
+            continue
+        end
+
+        # Bottom boundary condition: ψ = 0 at the bottom face
+        ψ[jl, 1] = zero(FT)
+
+        # Integrate from bottom (k=1) up to surface (k=Nz)
+        # ψ(z) = ∫_{-H}^{z} v̄ dz'
+        # In discrete form: ψ[k+1] = ψ[k] + transport[k]
+        for k in 1:Nz
+            transport_k = compute_volume_transport(u, v, grid, line, k)
+            # Guard against NaN propagation
+            if !isfinite(transport_k)
+                transport_k = zero(FT)
+            end
+            ψ[jl, k+1] = ψ[jl, k] + transport_k
         end
     end
 
     return ψ
-end
-
-#####
-##### Band latitude mapping
-#####
-
-"""
-    band_latitudes(tags::LatitudinalBandTags)
-
-Return the approximate latitude corresponding to each band number.
-
-Computes the mean latitude of all cells in each band.
-"""
-function band_latitudes(tags::LatitudinalBandTags)
-    grid = tags.grid
-    Nx, Ny = size(grid, 1), size(grid, 2)
-
-    # Find max band using field indexing
-    max_band = 0
-    for j in 1:Ny
-        for i in 1:Nx
-            band = tags.tag[i, j, 1]
-            max_band = max(max_band, band)
-        end
-    end
-
-    if max_band < 1
-        return Float64[]
-    end
-
-    # Sum latitudes and count cells for each band
-    lat_sum = zeros(max_band)
-    lat_count = zeros(Int, max_band)
-
-    for j in 1:Ny
-        for i in 1:Nx
-            band = tags.tag[i, j, 1]
-            if band >= 1  # Skip untagged (-1) and starting band (0)
-                φ = φnode(i, j, 1, grid, Center(), Center(), Center())
-                lat_sum[band] += φ
-                lat_count[band] += 1
-            end
-        end
-    end
-
-    # Compute mean latitudes
-    latitudes = similar(lat_sum)
-    for band in 1:max_band
-        latitudes[band] = lat_count[band] > 0 ? lat_sum[band] / lat_count[band] : NaN
-    end
-
-    return latitudes
-end
-
-#####
-##### Convenience functions
-#####
-
-"""
-    atlantic_latitudinal_bands(grid;
-                                south_boundary = -34.0,
-                                north_boundary = 65.0)
-
-Create latitudinal band tags for the Atlantic Ocean basin.
-
-This is a convenience function that creates an Atlantic basin mask and
-sets up appropriate tagging for AMOC computation.
-
-Arguments
-=========
-- `grid`: The ocean grid
-
-Keyword Arguments
-=================
-- `south_boundary`: Southern boundary of Atlantic mask. Default: -34.0
-- `north_boundary`: Northern boundary of Atlantic mask. Default: 65.0
-
-Returns
-=======
-A `LatitudinalBandTags` configured for Atlantic AMOC computation.
-"""
-function atlantic_latitudinal_bands(grid;
-                                     south_boundary = -34.0,
-                                     north_boundary = 65.0)
-    atlantic = atlantic_ocean_mask(grid; south_boundary, north_boundary)
-    return LatitudinalBandTags(grid;
-                                basin_mask = atlantic,
-                                starting_latitude = north_boundary,
-                                direction = :southward)
 end

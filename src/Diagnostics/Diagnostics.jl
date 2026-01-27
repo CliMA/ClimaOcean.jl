@@ -1,8 +1,11 @@
 module Diagnostics
 
 export MixedLayerDepthField, MixedLayerDepthOperand
-export LatitudinalBandTags, atlantic_latitudinal_bands
-export compute_band_transport, compute_amoc_streamfunction, band_latitudes
+export BrokenLineSet, IsoLatitudeBrokenLine
+export LatitudinalBandTags  # Alias for BrokenLineSet
+export atlantic_latitudinal_bands
+export compute_streamfunction, compute_amoc_streamfunction
+export band_latitudes, streamfunction_depths
 
 using Oceananigans
 using Oceananigans.Architectures: architecture
