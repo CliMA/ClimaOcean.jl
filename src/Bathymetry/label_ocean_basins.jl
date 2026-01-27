@@ -1,3 +1,6 @@
+using Oceananigans.OrthogonalSphericalShellGrids: TripolarGridOfSomeKind
+using Oceananigans.Fields: convert_to_0_360
+
 #####
 ##### Barrier type for separating ocean basins
 #####
@@ -61,14 +64,18 @@ end
 @kernel function _apply_barrier!(zb, grid, barrier::Barrier)
     i, j = @index(Global, NTuple)
 
+    bw = convert_to_0_360(barrier.west)
+    be = convert_to_0_360(barrier.east)
+    
     # If the barrier spans all longitudes (360° or more), skip longitude check.
     # This handles latitudinal barriers correctly regardless of grid longitude convention.
-    full_longitude_span = (barrier.east - barrier.west) >= 360
+    full_longitude_span = (be - bw) >= 360
 
     λ = λnode(i, j, 1, grid, Center(), Center(), Center())
     φ = φnode(i, j, 1, grid, Center(), Center(), Center())
+    λ = convert_to_0_360(λ)
 
-    in_lon = full_longitude_span | (barrier.west <= λ <= barrier.east)
+    in_lon = full_longitude_span | (bw <= λ <= be)
     in_lat = barrier.south <= φ <= barrier.north
 
     @inbounds zb[i, j, 1] = ifelse(in_lon & in_lat, zero(grid), zb[i, j, 1])
@@ -117,10 +124,11 @@ function label_ocean_basins(zb_field, TX, size)
     core_labels = labels[1:Nx, 1:Ny]
 
     # Enforce periodicity: merge labels that should be connected across
-    # the periodic boundary. This handles cases where a barrier (e.g., blocking
+    # the periodic boundaries. This handles cases where a barrier (e.g., blocking
     # the Southern Ocean) prevents the extended domain from connecting basins
     # that are actually periodic neighbors.
     enforce_periodic_labels!(core_labels, TX())
+    enforce_tripolar_labels!(core_labels, zb_field.grid)
 
     return core_labels
 end
@@ -151,6 +159,33 @@ end
 
 # No-op for non-periodic domains
 enforce_periodic_labels!(labels, tx) = labels
+
+"""
+    enforce_tripolar_labels!(labels, ::TripolarGridOfSomeKind)
+
+Merge labels that should be connected due to zipper boundary conditions.
+For each longitude, if cells reflected across the fold (Nx÷2) are water
+(non-zero labels), they are periodic neighbors and must have the same label.
+"""
+function enforce_tripolar_labels!(labels, ::TripolarGridOfSomeKind)
+    Nx, Ny = size(labels)
+
+    for i in 1:Nx÷2
+        label_west = labels[i,      Ny]
+        label_east = labels[Nx-i+1, Ny]
+
+        # Both cells are water and have different labels: merge them
+        if label_west != 0 && label_east != 0 && label_west != label_east
+            # Replace all occurrences of label_east with label_west
+            replace!(labels, label_east => label_west)
+        end
+    end
+
+    return labels
+end
+
+# No-op for non-tripolar grids
+enforce_tripolar_labels!(labels, grid) = labels
 
 # Utilities to label ocean basins passing only the grid
 function label_ocean_basins(grid::AbstractGrid; barriers=nothing)

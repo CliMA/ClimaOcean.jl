@@ -57,13 +57,13 @@ end
 #####
 
 """
-    find_label_at_point(labels, grid, λs, φs)
+    find_label_at_point(labels, grid, λs, φs; radius = 2)
 
 Find the connected component label at the given longitude/latitude seed point.
 Returns the label value, or 0 if the point is on land or outside the domain.
 Checks in a circular cap of radius `radius` degrees around the seed point
 """
-function find_label_at_point(labels, grid, λs, φs; radius = 4)
+function find_label_at_point(labels, grid, λs, φs; radius = 2)
     Nx, Ny, _ = size(grid)
 
     # Find grid cell containing the seed point
@@ -72,9 +72,18 @@ function find_label_at_point(labels, grid, λs, φs; radius = 4)
             λ = λnode(i, j, 1, grid, Center(), Center(), Center())
             φ = φnode(i, j, 1, grid, Center(), Center(), Center())
 
+            λ  = convert_to_0_360(λ)
+
+            Δλ = if isnothing(λs)
+                zero(λ)
+            else
+                λs = convert_to_0_360(λs)
+                λ - λs
+            end
+
             # Check if this cell contains the seed point (within a certain radius)
             # TODO: generalize this heuristic?
-            if (λ - λs)^2 + (φ - φs)^2 < radius # 2 degree circular cap (enough for a basin?)
+            if Δλ^2 + (φ - φs)^2 < radius^2 # 2 degree circular cap (enough for a basin?)
                 return labels[i, j]
             end
         end
@@ -141,22 +150,22 @@ end
 const SOUTHERN_OCEAN_SEPARATION_BARRIER = Barrier(-180.0, 180.0, -56.0, -54.0)
 
 const ATLANTIC_OCEAN_BARRIERS = [
-    Barrier(-180.0, 180.0, 67.0, 69.0),     # Disconnect from Arctic Ocean
-    Barrier(20.0, -60.0, -30.0),            # Cape Agulhas (meridional barrier)
+    Barrier(20.0, -90.0, -30.0),         # Cape Agulhas (meridional barrier)
+    Barrier(289.0, -90.0, -30.0)         # Drake passage (meridional barrier)       
 ]
 
 const INDIAN_OCEAN_BARRIERS = [
-    Barrier(141.0, -60.0, -3.0),           # Indonesian side (meridional)
-    Barrier(20.0,  -60.0, -30.0),          # Cape Agulhas (meridional barrier)
-    Barrier(105.0, 141.0, -4.0, -3.0),     # Indonesian/Asian seas (zonal barrier at 3.5ᵒ S)
+    Barrier(141.0, -90.0, -3.0),        # Indonesian side (meridional)
+    Barrier(20.0,  -90.0, -30.0),       # Cape Agulhas (meridional barrier)
+    Barrier(105.0, 141.0, -4.0, -3.0),  # Indonesian/Asian seas (zonal barrier at 3.5ᵒ S)
 ]
 
 const SOUTHERN_OCEAN_BARRIERS = [SOUTHERN_OCEAN_SEPARATION_BARRIER]
 
 const PACIFIC_OCEAN_BARRIERS = [
-    Barrier(141.0, -60.0, -3.0),           # Indonesian side (meridional)
-    Barrier(20.0,  -60.0, -30.0),          # Cape Agulhas (meridional barrier)
-    Barrier(105.0, 141.0, -4.0, -3.0),     # Indonesian/Asian seas (zonal barrier at 3.5ᵒ S)
+    Barrier(141.0, -90.0, -3.0),        # Indonesian side (meridional)
+    Barrier(20.0,  -90.0, -30.0),       # Cape Agulhas (meridional barrier)
+    Barrier(105.0, 141.0, -4.0, -3.0),  # Indonesian/Asian seas (zonal barrier at 3.5ᵒ S)
 ]
 
 # Seed points for Atlantic Ocean (definitely in the Atlantic)
@@ -164,10 +173,6 @@ const ATLANTIC_SEED_POINTS = [
     (-30.0, 0.0),    # Central equatorial Atlantic
     (-40.0, 30.0),   # North Atlantic
     (-25.0, -20.0),  # South Atlantic
-    # Same values but from 0 to 360
-    (-30.0 + 360, 0.0),    # Central equatorial Atlantic
-    (-40.0 + 360, 30.0),   # North Atlantic
-    (-25.0 + 360, -20.0),  # South Atlantic
 ]
 
 # Seed points for Indian Ocean
@@ -241,14 +246,20 @@ function OceanBasinMask(grid;
                         seed_points = [(0, 0)],
                         barriers = nothing)
 
+    # The computations are 2D and require serial algorithms, so
+    # we perform the computation on the CPU then move the output
+    # to the GPU if the initial grid was a GPU grid
+    cpu_grid = Oceananigans.on_architecture(CPU(), grid)
+
+
     # Compute connected component labels for all ocean cells
     # Barriers are applied to temporarily separate connected basins
-    labels = label_ocean_basins(grid; barriers)
+    labels = label_ocean_basins(cpu_grid; barriers)
 
     # Find the Basin label using seed points
     basin_label = 0
     for (λs, φs) in seed_points
-        label = find_label_at_point(labels, grid, λs, φs)
+        label = find_label_at_point(labels, cpu_grid, λs, φs)
         if label > 0
             basin_label = label
             break
@@ -262,11 +273,13 @@ function OceanBasinMask(grid;
     end
 
     # Create mask from label with latitude bounds
-    mask = create_basin_mask_from_label(grid, labels, basin_label;
+    mask = create_basin_mask_from_label(cpu_grid, labels, basin_label;
                                         south_boundary,
                                         north_boundary,
                                         east_boundary,
                                         west_boundary)
+
+    mask = Oceananigans.on_architecture(architecture(grid), mask)
 
     return OceanBasinMask(mask, grid, seed_points)
 end
@@ -291,7 +304,7 @@ Keyword Arguments
 function atlantic_ocean_mask(grid;
                              include_southern_ocean = false,
                              south_boundary = include_southern_ocean ? -90.0 : -50.0,
-                             north_boundary = 75.0,
+                             north_boundary = 65.0,
                              barriers = ATLANTIC_OCEAN_BARRIERS,
                              seed_points = ATLANTIC_SEED_POINTS,
                              kw...)
@@ -370,6 +383,30 @@ function pacific_ocean_mask(grid;
     if !include_southern_ocean
         barriers = [barriers..., SOUTHERN_OCEAN_SEPARATION_BARRIER]
     end
+
+    return OceanBasinMask(grid; south_boundary, north_boundary, barriers, seed_points, kw...)
+end
+
+"""
+    arctic_ocean_mask(grid; include_southern_ocean=false, kw...)
+
+Create a mask for the Arctic Ocean with predefined barriers and seed points.
+
+Keyword Arguments
+=================
+- `include_southern_ocean`: If `true`, extends the Pacific basin into the Southern Ocean
+                            sector below the standard separation latitude (~55°S). Default: `false`.
+- `south_boundary`: Southern latitude limit. Default: -50.0 (or -90.0 if `include_southern_ocean=true`)
+- `north_boundary`: Northern latitude limit. Default: 65.0
+- Other keyword arguments are passed to `OceanBasinMask`.
+"""
+function arctic_ocean_mask(grid;
+                           include_southern_ocean = true,
+                           south_boundary = 65.0,
+                           north_boundary = 91.0,
+                           barriers = nothing,
+                           seed_points = [(nothing, 90.0)],
+                           kw...)
 
     return OceanBasinMask(grid; south_boundary, north_boundary, barriers, seed_points, kw...)
 end
