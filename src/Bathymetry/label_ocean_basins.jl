@@ -64,19 +64,14 @@ end
 @kernel function _apply_barrier!(zb, grid, barrier::Barrier)
     i, j = @index(Global, NTuple)
 
-    if isnothing(barrier.west)
-        in_lon = true
+    in_lon = if isnothing(barrier.west) || (barrier.east - barrier.west >= 360)
+        true
     else
         bw = convert_to_0_360(barrier.west)
         be = convert_to_0_360(barrier.east)
-    
-        # If the barrier spans all longitudes (360° or more), skip longitude check.
-        # This handles latitudinal barriers correctly regardless of grid longitude convention.
-        full_longitude_span = (be - bw) >= 360
-
         λ = λnode(i, j, 1, grid, Center(), Center(), Center())
         λ = convert_to_0_360(λ)
-        in_lon = full_longitude_span | (bw <= λ <= be)
+        (bw <= λ <= be)
     end    
     
     φ = φnode(i, j, 1, grid, Center(), Center(), Center())
