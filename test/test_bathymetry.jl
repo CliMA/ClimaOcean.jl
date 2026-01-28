@@ -164,13 +164,15 @@ end
         @test atlantic isa OceanBasinMask
         @test sum(atlantic.mask) > 0  # Should have some ocean cells
 
+        mask = on_architecture(CPU(), atlantic.mask)
+
         # Test that the mask is properly bounded
         # Atlantic mask should not include cells in the Pacific
         # (seed point at -170°, 0° should be 0)
         pacific_point_i = findfirst(i -> -175 < i < -165, range(-180, 180, length=360))
         equator_j = 90  # equator for 180 latitude points
         if !isnothing(pacific_point_i)
-            @test atlantic.mask[pacific_point_i, equator_j, 1] == 0
+            @test mask[pacific_point_i, equator_j, 1] == 0
         end
     end
 end
