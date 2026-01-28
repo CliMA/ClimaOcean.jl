@@ -21,6 +21,6 @@ using ..Bathymetry: atlantic_ocean_mask
 import Oceananigans.Fields: compute!
 
 include("mixed_layer_depth.jl")
-include("latitudinal_band_tagging.jl")
+include("streamfunction_computation.jl")
 
 end # module
