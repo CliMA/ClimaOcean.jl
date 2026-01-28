@@ -6,6 +6,7 @@ using ClimaOcean.OceanSeaIceModels: above_freezing_ocean_temperature!
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 using ClimaSeaIce.SeaIceDynamics
 using ClimaSeaIce.Rheologies
+using Oceananigans.TimeSteppers: Clock
 
 @inline kernel_melting_temperature(i, j, k, grid, liquidus, S) = @inbounds melting_temperature(liquidus, S[i, j, k])
 
@@ -103,5 +104,54 @@ using ClimaSeaIce.Rheologies
                 true
             end
         end
+    end
+end
+
+@testset "Prescribed atmosphere with DateTime clock" begin
+    start_time = Dates.DateTime(1993, 2, 1)
+    Δt_seconds = 3050.0
+    Δt_period = Dates.Second(3050)
+    steps = 5
+    stop_time = start_time + steps * Δt_period
+    times = [start_time + m * Δt_period for m in 0:steps]
+
+    for arch in test_architectures
+        grid = LatitudeLongitudeGrid(arch;
+                                     size = (1, 1, 20),
+                                     longitude = (10, 11),
+                                     latitude = (20.2, 21.2),
+                                     z = (-200, 0),
+                                     topology = (Bounded, Bounded, Bounded))
+
+        ocean_clock = Clock(time=start_time)
+        ocean = ocean_simulation(grid; clock=ocean_clock, Δt=Δt_seconds, tracers=(:T, :S), verbose=false, closure=nothing)
+        atmosphere_clock = Clock(time=start_time)
+        atmosphere = PrescribedAtmosphere(grid, times; clock=atmosphere_clock)
+        radiation = Radiation(arch)
+        coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
+
+        for _ in 1:steps
+            time_step!(coupled_model, Δt_seconds)
+        end
+
+        @test coupled_model.clock.time == stop_time
+        @test coupled_model.clock.iteration == steps
+        @test atmosphere.clock.time == coupled_model.clock.time
+        @test coupled_model.clock.time isa Dates.DateTime
+
+        ocean_clock = Clock(time=start_time)
+        ocean = ocean_simulation(grid; clock=ocean_clock, Δt=Δt_seconds, tracers=(:T, :S), verbose=false, closure=nothing)
+        atmosphere_clock = Clock(time=start_time)
+        atmosphere = PrescribedAtmosphere(grid, times; clock=atmosphere_clock)
+        radiation = Radiation(arch)
+        coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
+        coupled_simulation = Simulation(coupled_model; Δt=Δt_seconds, stop_time)
+
+        run!(coupled_simulation)
+
+        @test coupled_simulation.model.clock.time == stop_time
+        @test coupled_simulation.model.clock.iteration == steps
+        @test coupled_simulation.model.atmosphere.clock.time == coupled_model.clock.time
+        @test coupled_simulation.model.clock.time isa Dates.DateTime
     end
 end
