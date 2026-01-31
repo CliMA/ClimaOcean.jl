@@ -18,6 +18,7 @@ function sea_ice_simulation(grid, ocean=nothing;
                             ice_consolidation_thickness = 0.05, # m
                             ice_density = 900, # kg m⁻³
                             dynamics = sea_ice_dynamics(grid, ocean),
+                            timestepper = :SplitRungeKutta3,
                             bottom_heat_boundary_condition = nothing,
                             top_heat_boundary_condition = nothing,
                             phase_transitions = PhaseTransitions(; ice_heat_capacity, ice_density),
@@ -61,7 +62,8 @@ function sea_ice_simulation(grid, ocean=nothing;
                                 ice_thermodynamics,
                                 dynamics,
                                 bottom_heat_flux,
-                                top_heat_flux)
+                                top_heat_flux,
+                                timestepper)
 
     verbose = false
 
