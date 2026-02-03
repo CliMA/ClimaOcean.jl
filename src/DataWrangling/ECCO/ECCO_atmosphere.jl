@@ -1,6 +1,6 @@
 using ClimaOcean.DataWrangling: DatasetBackend
 using Oceananigans.OutputReaders
-using ClimaOcean.OceanSeaIceModels: TwoBandDownwellingRadiation
+using ClimaOcean.Atmospheres: PrescribedAtmosphere, TwoBandDownwellingRadiation
 
 """
     ECCOPrescribedAtmosphere([architecture = CPU(), FT = Float32];

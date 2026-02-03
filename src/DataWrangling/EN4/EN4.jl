@@ -39,7 +39,7 @@ import ClimaOcean.DataWrangling:
     download_dataset,
     default_download_directory,
     metadata_path,
-    temperature_units,
+    conversion_units,
     dataset_variable_name,
     metaprefix,
     z_interfaces,
@@ -67,7 +67,6 @@ struct EN4Monthly end
 default_download_directory(::EN4Monthly) = download_EN4_cache
 Base.size(::EN4Monthly, variable) = (360, 173, 42)
 all_dates(::EN4Monthly, variable) = DateTime(1900, 1, 1) : Month(1) : DateTime(2024, 12, 1)
-temperature_units(::EN4Monthly) = Kelvin()
 reversed_vertical_axis(::EN4Monthly) = true
 
 longitude_interfaces(::EN4Monthly) = (0.5, 360.5)
@@ -122,6 +121,14 @@ z_interfaces(::EN4Monthly) = [
 
 const EN4Metadata{D} = Metadata{<:EN4Monthly, D}
 const EN4Metadatum   = Metadatum{<:EN4Monthly}
+
+function conversion_units(metadatum::EN4Metadatum)
+    if metadatum.name == :temperature
+        return Kelvin()
+    else
+        return nothing
+    end
+end
 
 const EN4_url_pre2021  = "http://www.metoffice.gov.uk/hadobs/en4/data/en4-2-1/EN.4.2.2/EN.4.2.2.analyses.g10."
 const EN4_url_post2021 = "http://www.metoffice.gov.uk/hadobs/en4/data/en4-2-1/EN.4.2.2.analyses.g10."

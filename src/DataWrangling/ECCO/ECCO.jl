@@ -2,6 +2,7 @@ module ECCO
 
 export ECCOMetadatum, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
+export ECCOPrescribedAtmosphere
 
 export ECCO2DarwinMonthly, ECCO4DarwinMonthly
 export retrieve_data
@@ -20,12 +21,12 @@ using ClimaOcean.DataWrangling:
     netrc_downloader,
     BoundingBox,
     metadata_path,
-    Celsius,
     GramPerKilogramMinus35,
     MicromolePerLiter,
     Metadata,
     Metadatum,
-    download_progress
+    download_progress,
+    InverseSign
 
 using KernelAbstractions: @kernel, @index
 
@@ -38,8 +39,7 @@ import ClimaOcean.DataWrangling:
     all_dates,
     metadata_filename,
     download_dataset,
-    temperature_units,
-    concentration_units,
+    conversion_units,
     dataset_variable_name,
     metaprefix,
     longitude_interfaces,
@@ -86,7 +86,6 @@ Base.size(::ECCO2Daily, variable)   = (1440, 720, 50)
 Base.size(::ECCO2Monthly, variable) = (1440, 720, 50)
 Base.size(::ECCO4Monthly, variable) = (720,  360, 50)
 
-temperature_units(::ECCODataset) = Celsius()
 default_mask_value(::ECCO4Monthly) = 0
 reversed_vertical_axis(::ECCODataset) = true
 
@@ -220,6 +219,15 @@ ECCO_location = Dict(
 
 const ECCOMetadata{D} = Metadata{<:ECCODataset, D}
 const ECCOMetadatum   = Metadatum{<:ECCODataset}
+
+# We switch the sign for the downwelling radiation
+function conversion_units(metadatum::ECCOMetadatum) 
+    if metadatum.name ∈ [:downwelling_longwave, :downwelling_shortwave]
+        return InverseSign()
+    else
+        return nothing
+    end
+end
 
 """
     ECCOMetadatum(name;
