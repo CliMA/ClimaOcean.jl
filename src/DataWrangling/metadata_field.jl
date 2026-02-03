@@ -215,7 +215,7 @@ end
     @inbounds field[i, j, 1] = d
 end
 
-@kernel function _set_3d_metadata_field!(field, data, mangling, temp_units, conc_units)
+@kernel function _set_3d_metadata_field!(field, data, mangling, conversion_units)
     i, j, k = @index(Global, NTuple)
     FT = eltype(field)
     d = mangle(i, j, k, data, mangling)
