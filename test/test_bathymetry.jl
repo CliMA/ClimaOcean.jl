@@ -4,7 +4,9 @@ using Oceananigans
 using Statistics
 using ClimaOcean
 
-using ClimaOcean.Bathymetry: remove_minor_basins!
+using ClimaOcean.Bathymetry: remove_minor_basins!, label_ocean_basins, find_label_at_point
+using ClimaOcean.Bathymetry: OceanBasinMask, atlantic_ocean_mask, pacific_ocean_mask
+using ClimaOcean.Bathymetry: Barrier, ATLANTIC_OCEAN_BARRIERS
 using ClimaOcean.DataWrangling.ETOPO
 
 @testset "Bathymetry construction and smoothing" begin
@@ -67,5 +69,110 @@ using ClimaOcean.DataWrangling.ETOPO
 
         # Testing that multiple passes _do_ change the solution when coarsening the grid
         @test parent(control_bottom_height) != parent(interpolated_bottom_height)
+    end
+end
+
+@testset "Barrier geometry" begin
+    @info "Testing barrier geometry utilities..."
+
+    # Test Barrier construction with explicit bounds
+    barrier = Barrier(-10.0, 10.0, -5.0, 5.0)
+    @test barrier.west == -10.0
+    @test barrier.east == 10.0
+    @test barrier.south == -5.0
+    @test barrier.north == 5.0
+
+    # Test Barrier with keyword arguments
+    barrier_kw = Barrier(west=-10.0, east=10.0, south=-5.0, north=5.0)
+    @test barrier_kw.west == -10.0
+    @test barrier_kw.east == 10.0
+
+    # Test meridional barrier constructor (3 args + width)
+    meridional = Barrier(20.0, -36.0, -30.0)  # longitude, south, north
+    @test meridional.west == 19.0   # 20 - 2/2
+    @test meridional.east == 21.0   # 20 + 2/2
+    @test meridional.south == -36.0
+    @test meridional.north == -30.0
+
+    # Test meridional barrier with custom width
+    meridional_wide = Barrier(20.0, -36.0, -30.0; width=4.0)
+    @test meridional_wide.west == 18.0
+    @test meridional_wide.east == 22.0
+
+    # Test LatitudeBand
+    band = Barrier(-180.0, 180.0, -60.0, -55.0)
+    @test band.west == -180.0
+    @test band.east == 180.0
+    @test band.south == -60.0
+    @test band.north == -55.0
+end
+
+@testset "Ocean basin labeling with barriers" begin
+    @info "Testing ocean basin labeling with barriers..."
+
+    for arch in test_architectures
+        # Create a global grid
+        grid = LatitudeLongitudeGrid(arch;
+                                     size = (90, 45, 10),
+                                     longitude = (-180, 180),
+                                     latitude = (-90, 90),
+                                     z = (-6000, 0))
+
+        # Regrid real bathymetry onto this grid
+        bottom_height = regrid_bathymetry(grid)
+        ibg = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
+
+        # Test labeling without barriers - all oceans should have the same label
+        # (they're connected via the Southern Ocean)
+        labels_no_barrier = label_ocean_basins(ibg)
+
+        # Find labels at Atlantic and Pacific seed points
+        atlantic_label = find_label_at_point(labels_no_barrier, ibg, -30.0, 0.0)
+        pacific_label = find_label_at_point(labels_no_barrier, ibg, -170.0, 0.0)
+
+        # Without barriers, Atlantic and Pacific should have the same label
+        # (connected via Southern Ocean)
+        @test atlantic_label == pacific_label
+        @test atlantic_label > 0  # Should find a valid basin
+
+        # Test labeling with barriers - oceans should be separated
+        labels_with_barrier = label_ocean_basins(ibg; barriers=ATLANTIC_OCEAN_BARRIERS)
+
+        # With barriers, Atlantic should still be found
+        atlantic_label_with_barrier = find_label_at_point(labels_with_barrier, ibg, -30.0, 0.0)
+        @test atlantic_label_with_barrier > 0
+    end
+end
+
+@testset "OceanBasinMask creation" begin
+    @info "Testing OceanBasinMask creation..."
+
+    for arch in test_architectures
+        # Create a global grid at 1° resolution (needed to properly resolve
+        # Central America and separate Atlantic from Pacific)
+        grid = LatitudeLongitudeGrid(arch;
+                                     size = (360, 180, 10),
+                                     longitude = (-180, 180),
+                                     latitude = (-90, 90),
+                                     z = (-6000, 0))
+
+        bottom_height = regrid_bathymetry(grid)
+        ibg = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
+
+        # Test atlantic_ocean_mask creation
+        atlantic = atlantic_ocean_mask(ibg)
+        @test atlantic isa OceanBasinMask
+        @test sum(atlantic.mask) > 0  # Should have some ocean cells
+
+        mask = on_architecture(CPU(), atlantic.mask)
+
+        # Test that the mask is properly bounded
+        # Atlantic mask should not include cells in the Pacific
+        # (seed point at -170°, 0° should be 0)
+        pacific_point_i = findfirst(i -> -175 < i < -165, range(-180, 180, length=360))
+        equator_j = 90  # equator for 180 latitude points
+        if !isnothing(pacific_point_i)
+            @test mask[pacific_point_i, equator_j, 1] == 0
+        end
     end
 end
