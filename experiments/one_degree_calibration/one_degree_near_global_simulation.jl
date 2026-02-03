@@ -3,7 +3,7 @@ using ClimaOcean.NearGlobalSimulations: one_degree_near_global_simulation
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.Utils: WallTimeInterval
-using Oceananigans.BuoyancyFormulations: buoyancy
+using Oceananigans.Models: buoyancy_operation
 using Oceananigans.Models.HydrostaticFreeSurfaceModels: VerticalVorticityField
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities:
     MixingLength, TurbulentKineticEnergyEquation, CATKEVerticalDiffusivity
@@ -85,6 +85,7 @@ model = simulation.model
 
 simulation.output_writers[:fields] = JLD2Writer(model, merge(model.velocities, model.tracers); dir,
                                                 schedule = TimeInterval(fields_save_interval),
+                                                including = [:grid],
                                                 filename = output_prefix * "_fields",
                                                 with_halos = true,
                                                 overwrite_existing = true)
@@ -104,12 +105,13 @@ for n = 1:2
     outputs[:u] = Field(model.velocities.u; indices)
     outputs[:v] = Field(model.velocities.v; indices)
     outputs[:w] = Field(model.velocities.w; indices)
-    outputs[:η] = model.free_surface.η
+    outputs[:η] = model.free_surface.displacement
     outputs[:ζ] = VerticalVorticityField(model.grid, model.velocities; indices)
 
     name = output_names[n]
     simulation.output_writers[name] = JLD2Writer(model, outputs; dir,
                                                        schedule = TimeInterval(slices_save_interval),
+                                                       including = [:grid],
                                                        filename = output_prefix * "_fields_$name",
                                                        with_halos = true,
                                                        overwrite_existing = true)
@@ -131,6 +133,7 @@ for name in keys(transects)
 
     simulation.output_writers[:name] = JLD2Writer(model, outputs; dir,
                                                         schedule = TimeInterval(slices_save_interval),
+                                                        including = [:grid],
                                                         filename = output_prefix * "_$name",
                                                         with_halos = true,
                                                         overwrite_existing = true)

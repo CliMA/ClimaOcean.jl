@@ -4,7 +4,7 @@ using Oceananigans
 using Oceananigans.Grids
 using Oceananigans.Units
 using Oceananigans.OrthogonalSphericalShellGrids
-using ClimaOcean.OceanSimulations
+using ClimaOcean.Oceans
 using ClimaOcean.ECCO
 using ClimaOcean.DataWrangling
 using ClimaSeaIce.SeaIceThermodynamics: IceWaterThermalEquilibrium
@@ -42,7 +42,7 @@ momentum_advection = WENOVectorInvariant(order=3)
 tracer_advection   = WENO(order=3)
 
 free_surface = SplitExplicitFreeSurface(grid; cfl=0.7)
-closure = ClimaOcean.OceanSimulations.default_ocean_closure()
+closure = ClimaOcean.Oceans.default_ocean_closure()
 
 ocean = ocean_simulation(grid;
                          momentum_advection,
@@ -118,11 +118,13 @@ Qᴮ = arctic.model.interfaces.net_fluxes.sea_ice_bottom.heat
 
 # Output writers
 arctic.output_writers[:vars] = JLD2Writer(sea_ice.model, (; h, ℵ, u, v, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ, τx, τy),
+                                          including = [:grid],
                                           filename = "sea_ice_quantities.jld2",
                                           schedule = IterationInterval(12),
                                           overwrite_existing=true)
 
 arctic.output_writers[:averages] = JLD2Writer(sea_ice.model, (; h, ℵ, Tu, Qˡ, Qˢ, Qⁱ, Qᶠ, Qᵗ, Qᴮ, u, v, τx, τy),
+                                              including = [:grid],
                                               filename = "averaged_sea_ice_quantities.jld2",
                                               schedule = AveragedTimeInterval(1days),
                                               overwrite_existing=true)

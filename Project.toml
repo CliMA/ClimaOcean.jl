@@ -1,14 +1,15 @@
 name = "ClimaOcean"
 uuid = "0376089a-ecfe-4b0e-a64f-9c555d74d754"
 license = "MIT"
+version = "0.9.0"
 authors = ["Climate Modeling Alliance and contributors"]
-version = "0.8.7"
 
 [deps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 CFTime = "179af706-886a-5703-950a-314cd64e0468"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 ClimaSeaIce = "6ba0ff68-24e6-4315-936c-2e99227c95a4"
+CopernicusClimateDataStore = "bce3f73f-acea-4481-bd86-df89ecc2cb46"
 CubicSplines = "9c784101-8907-5a6d-9be6-98f00873c89b"
 DataDeps = "124859b0-ceae-595e-8997-d05f6a7a8dfe"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
@@ -35,16 +36,21 @@ ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 [weakdeps]
 CopernicusMarine = "cd43e856-93a3-40c8-bc9e-6146cdce14fa"
 Reactant = "3c362404-f566-11ee-1572-e11a4b42c853"
+SpeedyWeather = "9e226e20-d153-4fed-8a5b-493def4f21a9"
+XESMF = "2e0b0046-e7a1-486f-88de-807ee8ffabe5"
 
 [extensions]
+ClimaOceanCopernicusClimateDataStoreExt = "CopernicusClimateDataStore"
 ClimaOceanCopernicusMarineExt = "CopernicusMarine"
 ClimaOceanReactantExt = "Reactant"
+ClimaOceanSpeedyWeatherExt = ["SpeedyWeather", "XESMF"]
 
 [compat]
 Adapt = "4"
 CFTime = "0.1, 0.2"
 CUDA = "4, 5"
-ClimaSeaIce = "0.3.9"
+ClimaSeaIce = "0.4.2"
+CopernicusClimateDataStore = "0.1"
 CopernicusMarine = "0.1.1"
 CubicSplines = "0.2"
 DataDeps = "0.7"
@@ -55,25 +61,28 @@ ImageMorphology = "0.4"
 JLD2 = "0.4, 0.5, 0.6"
 KernelAbstractions = "0.9"
 MPI = "0.20"
-MeshArrays = "0.3"
+MeshArrays = "0.3, 0.4, 0.5"
 NCDatasets = "0.12, 0.13, 0.14"
-Oceananigans = "0.101"
+Oceananigans = "0.104.2"
 OffsetArrays = "1.14"
 PrecompileTools = "1"
 Reactant = "0.2.45"
 Scratch = "1"
 SeawaterPolynomials = "0.3.5"
+SpeedyWeather = "0.17.4"
 StaticArrays = "1"
 Statistics = "1.9"
-Thermodynamics = "0.14, 0.15"
+Thermodynamics = "0.15.3"
+XESMF = "0.1.6"
 ZipFile = "0.10"
 julia = "1.10"
 
 [extras]
 CUDA_Runtime_jll = "76a88914-d11a-5bdc-97e0-2f5a05c973a2"
+CopernicusClimateDataStore = "bce3f73f-acea-4481-bd86-df89ecc2cb46"
 Coverage = "a2441757-f6aa-5fb2-8edb-039e3f45d037"
 MPIPreferences = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Coverage", "Test", "MPIPreferences", "CUDA_Runtime_jll", "Reactant", "CopernicusMarine"]
+test = ["Coverage", "Test", "MPIPreferences", "CUDA_Runtime_jll", "Reactant", "CopernicusClimateDataStore", "CopernicusMarine", "XESMF", "SpeedyWeather"]

@@ -114,10 +114,9 @@ atmosphere = JRA55PrescribedAtmosphere(arch; backend = JRA55NetCDFBackend(41),
 
 coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
 
-# We then create a coupled simulation. We start with a small-ish time step of 90 seconds.
-# We run the simulation for 10 days with this small-ish time step.
+# We then create a coupled simulation.
 
-simulation = Simulation(coupled_model; Δt=90, stop_time=10days)
+simulation = Simulation(coupled_model; Δt=25minutes, stop_time=60days)
 
 # We define a callback function to monitor the simulation's progress,
 
@@ -158,26 +157,15 @@ simulation.callbacks[:progress] = Callback(progress, TimeInterval(5days))
 outputs = merge(ocean.model.tracers, ocean.model.velocities)
 ocean.output_writers[:surface] = JLD2Writer(ocean.model, outputs;
                                             schedule = TimeInterval(1days),
+                                            including = [:grid],
                                             filename = "near_global_surface_fields",
                                             indices = (:, :, grid.Nz),
                                             with_halos = true,
                                             overwrite_existing = true,
                                             array_type = Array{Float32})
 
-# ### Spinning up the simulation
-#
-# We spin up the simulation with a small-ish time-step to resolve the "initialization shock"
-# associated with starting from ECCO2 initial conditions that are both interpolated and also
-# satisfy a different dynamical balance than our simulation.
+# ### Running the simulation
 
-run!(simulation)
-
-# ### Running the simulation for real
-
-# After the initial spin up of 10 days, we can increase the time-step and run for longer.
-
-simulation.stop_time = 60days
-simulation.Δt = 10minutes
 run!(simulation)
 
 # ## A pretty movie

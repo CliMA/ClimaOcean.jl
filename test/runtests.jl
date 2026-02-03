@@ -22,7 +22,6 @@ function delete_inpainted_files(dir)
     end
 end
 
-
 if test_group == :init || test_group == :all
     #####
     ##### Delete inpainted files
@@ -89,13 +88,14 @@ if test_group == :downloading || test_group == :all
     include("test_downloading.jl")
 end
 
-# Tests that we can download JRA55 utilities
-if test_group == :copernicus_downloading || test_group == :all
-    include("test_copernicus_downloading.jl")
+# Tests that we can download from Copernicus Climate Data Store (ERA5, etc.)
+if test_group == :cds_downloading || test_group == :all
+    include("test_cds_downloading.jl")
 end
 
 if test_group == :fluxes || test_group == :all
     include("test_surface_fluxes.jl")
+    include("test_sea_ice_ocean_heat_fluxes.jl")
 end
 
 if test_group == :bathymetry || test_group == :all
@@ -113,4 +113,8 @@ end
 
 if test_group == :reactant || test_group == :all
     include("test_reactant.jl")
+end
+
+if test_group == :speedy_weather || test_group == :all
+    include("test_speedy_coupling.jl")
 end
