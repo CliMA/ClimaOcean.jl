@@ -672,9 +672,12 @@ Tₐ = 273.15 .+ range(-40, stop=40, length=Ny)
 Tₐ = reshape(Tₐ, 1, Ny)
 interior(atmosphere.tracers.T) .= Tₐ
 
-Oceananigans.TimeSteppers.update_state!(default_model)
-u★ = default_model.interfaces.atmosphere_ocean_interface.fluxes.friction_velocity
-θ★ = default_model.interfaces.atmosphere_ocean_interface.fluxes.temperature_scale
+# Build a model with the default (Edson) stability functions to show non-neutral effects
+stability_interfaces = ComponentInterfaces(atmosphere, ocean)
+stability_model = OceanSeaIceModel(ocean; atmosphere, interfaces=stability_interfaces)
+
+u★ = stability_model.interfaces.atmosphere_ocean_interface.fluxes.friction_velocity
+θ★ = stability_model.interfaces.atmosphere_ocean_interface.fluxes.temperature_scale
 
 fig = Figure(size=(800, 600))
 axu = Axis(fig[2, 1], xlabel="Wind speed uₐ (m s⁻¹)", ylabel="Air-sea temperature difference (K)")

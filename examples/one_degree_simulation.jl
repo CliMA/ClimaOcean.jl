@@ -53,7 +53,9 @@ grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height);
 
 using Oceananigans.TurbulenceClosures: IsopycnalSkewSymmetricDiffusivity, AdvectiveFormulation
 
-eddy_closure = IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3, skew_flux_formulation=AdvectiveFormulation())
+eddy_closure = IsopycnalSkewSymmetricDiffusivity(κ_skew=1e3, κ_symmetric=1e3, skew_flux_formulation=AdvectiveFormulation()) 
+@inline νhb(i, j, k, grid, ℓx, ℓy, ℓz, clock, fields, λ) = Oceananigans.Operators.Az(i, j, k, grid, ℓx, ℓy, ℓz)^2 / λ
+horizontal_viscosity = HorizontalScalarBiharmonicDiffusivity(ν=νhb, discrete_form=true, parameters=15days)
 vertical_mixing = ClimaOcean.Oceans.default_ocean_closure()
 
 # ### Ocean simulation
@@ -65,7 +67,7 @@ momentum_advection = WENOVectorInvariant(order=5)
 tracer_advection   = WENO(order=5)
 
 ocean = ocean_simulation(grid; momentum_advection, tracer_advection, free_surface,
-                         closure=(eddy_closure, vertical_mixing))
+                         closure=(eddy_closure, horizontal_viscosity, vertical_mixing))
 
 @info "We've built an ocean simulation with model:"
 @show ocean.model
@@ -156,6 +158,7 @@ sea_ice_outputs = merge((h = sea_ice.model.ice_thickness,
                          sea_ice.model.velocities)
 
 ocean.output_writers[:surface] = JLD2Writer(ocean.model, ocean_outputs;
+                                            including = [:grid], # needed to avoid an avalanche of warnings 
                                             schedule = TimeInterval(1days),
                                             filename = "ocean_one_degree_surface_fields",
                                             indices = (:, :, grid.Nz),

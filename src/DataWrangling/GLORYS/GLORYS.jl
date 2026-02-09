@@ -129,7 +129,7 @@ end
 inpainted_metadata_path(metadata::GLORYSMetadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
 
 location(::GLORYSMetadata) = (Center, Center, Center)
-longitude_interfaces(::GLORYSMetadata) = (0, 360)
+longitude_interfaces(::GLORYSMetadata) = (-180, 180)
 latitude_interfaces(::GLORYSMetadata) = (-80, 90)
 
 function z_interfaces(metadata::GLORYSMetadata)
@@ -138,7 +138,7 @@ function z_interfaces(metadata::GLORYSMetadata)
     zc = - reverse(ds["depth"][:])
     close(ds)
     dz = zc[2] - zc[1]
-    zf = zc[1:end-1] .+ zc[2:end]
+    zf = (zc[1:end-1] .+ zc[2:end]) / 2
     push!(zf, 0)
     pushfirst!(zf, zf[1] - dz)
     return zf
