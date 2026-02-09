@@ -144,8 +144,8 @@ end
     Ψₐ = local_atmosphere_state
     Δu, Δv = velocity_difference(interface_properties.velocity_formulation, Ψₐ, Ψₛ)
     ΔU = sqrt(Δu^2 + Δv^2)
-    τx = - u★^2 * Δu / ΔU
-    τy = - u★^2 * Δv / ΔU
+    τx = ifelse(ΔU == 0, zero(ΔU), - u★^2 * Δu / ΔU)
+    τy = ifelse(ΔU == 0, zero(ΔU), - u★^2 * Δv / ΔU)
 
     ρₐ = AtmosphericThermodynamics.air_density(ℂₐ, Tₐ, pₐ, qₐ)
     cₚ = AtmosphericThermodynamics.cp_m(ℂₐ, qₐ) # moist heat capacity
