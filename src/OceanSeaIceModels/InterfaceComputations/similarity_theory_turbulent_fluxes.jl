@@ -17,7 +17,7 @@ struct SimilarityTheoryFluxes{FT, UF, R, B, S}
     von_karman_constant :: FT        # parameter
     turbulent_prandtl_number :: FT   # parameter
     gustiness_parameter :: FT        # bulk velocity parameter
-    minimum_gustiness :: FT         # minimum gustiness velocity [m/s]
+    minimum_gustiness :: FT          # minimum gustiness velocity [m/s]
     stability_functions :: UF        # functions for turbulent fluxes
     roughness_lengths :: R           # parameterization for turbulent fluxes
     similarity_form :: B             # similarity profile relating atmosphere to interface state
