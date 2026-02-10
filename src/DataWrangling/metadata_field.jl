@@ -211,7 +211,7 @@ end
     FT = eltype(field)
     d = mangle(i, j, data, mangling)
     d = nan_convert_missing(FT, d)    
-    d = convert(d, conversion_units)
+    d = convert_units(d, conversion_units)
     @inbounds field[i, j, 1] = d
 end
 
@@ -220,7 +220,7 @@ end
     FT = eltype(field)
     d = mangle(i, j, k, data, mangling)
     d = nan_convert_missing(FT, d)    
-    d = convert(d, conversion_units)
+    d = convert_units(d, conversion_units)
 
     @inbounds field[i, j, k] = d
 end
@@ -232,22 +232,22 @@ end
 @inline nan_convert_missing(FT, ::Missing) = convert(FT, NaN)
 @inline nan_convert_missing(FT, d::Number) = convert(FT, d)
 
-@inline convert(T, units) = T
+# No units conversion
+@inline convert_units(T, units) = T
 
 # Just switch sign!
-@inline convert(T::FT, ::InverseSign) where FT = - T
+@inline convert_units(T::FT, ::InverseSign) where FT = - T
 
 # Temperature units
-@inline convert(T::FT, ::Kelvin) where FT = T - convert(FT, 273.15)
+@inline convert_units(T::FT, ::Kelvin) where FT = T - convert(FT, 273.15)
 
 # Molar units
-@inline convert(C::FT, ::Union{MolePerLiter, MolePerKilogram})           where FT = C * convert(FT, 1e3)
-@inline convert(C::FT, ::Union{MillimolePerLiter, MillimolePerKilogram}) where FT = C * convert(FT, 1)
-@inline convert(C::FT, ::Union{MicromolePerLiter, MicromolePerKilogram}) where FT = C * convert(FT, 1e-3)
-@inline convert(C::FT, ::Union{NanomolePerLiter, NanomolePerKilogram})   where FT = C * convert(FT, 1e-6)
-@inline convert(C::FT, ::MilliliterPerLiter)                             where FT = C / convert(FT, 22.3916)
-@inline convert(C::FT, ::GramPerKilogramMinus35)                         where FT = C + convert(FT, 35)
-    
+@inline convert_units(C::FT, ::Union{MolePerLiter, MolePerKilogram})           where FT = C * convert(FT, 1e3)
+@inline convert_units(C::FT, ::Union{MillimolePerLiter, MillimolePerKilogram}) where FT = C * convert(FT, 1)
+@inline convert_units(C::FT, ::Union{MicromolePerLiter, MicromolePerKilogram}) where FT = C * convert(FT, 1e-3)
+@inline convert_units(C::FT, ::Union{NanomolePerLiter, NanomolePerKilogram})   where FT = C * convert(FT, 1e-6)
+@inline convert_units(C::FT, ::MilliliterPerLiter)                             where FT = C / convert(FT, 22.3916)
+@inline convert_units(C::FT, ::GramPerKilogramMinus35)                         where FT = C + convert(FT, 35)
 
 #####
 ##### Masking data for inpainting
