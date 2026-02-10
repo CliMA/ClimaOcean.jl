@@ -55,7 +55,7 @@ end
                            von_karman_constant = 0.4,
                            turbulent_prandtl_number = 1,
                            gustiness_parameter = 1.2,
-                           minimum_gustiness = 0.005,
+                           minimum_gustiness = 0.01,
                            stability_functions = default_stability_functions(FT),
                            roughness_lengths = default_roughness_lengths(FT),
                            similarity_form = LogarithmicSimilarityProfile(),
@@ -73,7 +73,7 @@ Keyword Arguments
 - `turbulent_prandtl_number`: The turbulent Prandtl number. Default: 1.
 - `gustiness_parameter`: Scaling factor for convective gustiness velocity. Default: 1.2.
 - `minimum_gustiness`: Minimum gustiness velocity [m/s], used as a floor in stable conditions
-                       where convective gustiness is zero. Default: 0.005.
+                       where convective gustiness is zero. Default: 0.01.
 - `stability_functions`: The stability functions. Default: `default_stability_functions(FT)` that follow the
                          formulation of [edson2013exchange](@citet).
 - `roughness_lengths`: The roughness lengths used to calculate the characteristic scales for momentum, temperature and
@@ -87,7 +87,7 @@ function SimilarityTheoryFluxes(FT::DataType = Oceananigans.defaults.FloatType;
                                 von_karman_constant = 0.4,
                                 turbulent_prandtl_number = 1,
                                 gustiness_parameter = 1.2,
-                                minimum_gustiness = 0.005,
+                                minimum_gustiness = 0.01,
                                 stability_functions = atmosphere_ocean_stability_functions(FT),
                                 momentum_roughness_length = MomentumRoughnessLength(FT),
                                 temperature_roughness_length = ScalarRoughnessLength(FT),
