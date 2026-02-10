@@ -201,26 +201,26 @@ function set_metadata_field!(field, data, metadatum)
     end
 
     data = on_architecture(arch, data)
-    Oceananigans.Utils.launch!(arch, grid, spec, _kernel, field, data, mangling, conversion_units)
+    Oceananigans.Utils.launch!(arch, grid, spec, _kernel, field, data, mangling, conversion)
 
     return nothing
 end
 
-@kernel function _set_2d_metadata_field!(field, data, mangling, conversion_units)
+@kernel function _set_2d_metadata_field!(field, data, mangling, conversion)
     i, j = @index(Global, NTuple)
     FT = eltype(field)
     d = mangle(i, j, data, mangling)
-    d = nan_convert_missing(FT, d)    
-    d = convert_units(d, conversion_units)
+    d = nan_convert_missing(FT, d)
+    d = convert_units(d, conversion)
     @inbounds field[i, j, 1] = d
 end
 
-@kernel function _set_3d_metadata_field!(field, data, mangling, conversion_units)
+@kernel function _set_3d_metadata_field!(field, data, mangling, conversion)
     i, j, k = @index(Global, NTuple)
     FT = eltype(field)
     d = mangle(i, j, k, data, mangling)
-    d = nan_convert_missing(FT, d)    
-    d = convert_units(d, conversion_units)
+    d = nan_convert_missing(FT, d)
+    d = convert_units(d, conversion)
 
     @inbounds field[i, j, k] = d
 end

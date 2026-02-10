@@ -220,14 +220,9 @@ ECCO_location = Dict(
 const ECCOMetadata{D} = Metadata{<:ECCODataset, D}
 const ECCOMetadatum   = Metadatum{<:ECCODataset}
 
-# We switch the sign for the downwelling radiation
-function conversion_units(metadatum::ECCOMetadatum) 
-    if metadatum.name ∈ [:downwelling_longwave, :downwelling_shortwave]
-        return InverseSign()
-    else
-        return nothing
-    end
-end
+# Note: ECCO downwelling radiation variables (oceQsw, EXFlwdn) are already
+# in positive-downwelling convention, so no sign conversion is needed.
+conversion_units(metadatum::ECCOMetadatum) = nothing
 
 """
     ECCOMetadatum(name;
