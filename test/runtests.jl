@@ -83,6 +83,10 @@ if test_group == :ecco4_en4 || test_group == :all
     include("test_ecco4_en4.jl")
 end
 
+if test_group == :ecco_atmosphere || test_group == :all
+    include("test_ecco_atmosphere.jl")
+end
+
 # Tests that we can download JRA55 utilities
 if test_group == :downloading || test_group == :all
     include("test_downloading.jl")

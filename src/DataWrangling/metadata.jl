@@ -287,8 +287,6 @@ available_variables(metadata) = available_variables(metadata.dataset)
 struct Celsius end
 struct Kelvin end
 
-temperature_units(metadata) = Celsius()
-
 struct MolePerKilogram end
 struct MolePerLiter end
 struct MillimolePerKilogram end
@@ -298,10 +296,13 @@ struct MicromolePerLiter end
 struct NanomolePerKilogram end
 struct NanomolePerLiter end
 
+struct InverseSign end
+
 struct GramPerKilogramMinus35 end # Salinity anomaly
 struct MilliliterPerLiter end # Sometimes for disssolved_oxygen
 
-concentration_units(metadata) = nothing
+# Fallback
+conversion_units(metadatum) = nothing
 
 #####
 ##### Utilities
