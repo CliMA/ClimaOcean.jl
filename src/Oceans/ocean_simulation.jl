@@ -98,6 +98,7 @@ end
 """
     ocean_simulation(grid;
                      Δt = estimate_maximum_Δt(grid),
+                     clock = Clock(grid),
                      closure = default_ocean_closure(),
                      tracers = (:T, :S),
                      free_surface = default_free_surface(grid),
@@ -123,7 +124,6 @@ This function assembles an Oceananigans's `HydrostaticFreeSurfaceModel` with phy
 consistent defaults for advection, closures, the equation of state, surface fluxes, Coriolis,
 barotropic pressure–gradient forcing, boundary conditions, and optional biogeochemistry.
 It then wraps the model into an Oceananigans's `Simulation` with the specified timestepping options.
-
 
 ## Behaviour and automatic configuration
 
@@ -159,6 +159,7 @@ defaults on a per-field basis.
 ## Keyword Arguments
 
 - `Δt`: Timestep used by the `Simulation`. Defaults to the maximum stable timestep estimated from the `grid`.
+- `clock`: Clock object. Defaults to `Clock(grid)`.
 - `closure`: A turbulence or mixing closure. Defaults to `default_ocean_closure()`.
 - `tracers`: Tuple of tracer names. Defaults to `(:T, :S)`.
 - `free_surface`: Free–surface solver. Defaults to `default_free_surface(grid)`.
@@ -180,6 +181,7 @@ defaults on a per-field basis.
 """
 function ocean_simulation(grid;
                           Δt = estimate_maximum_Δt(grid),
+                          clock = Clock(grid),
                           closure = default_ocean_closure(),
                           tracers = (:T, :S),
                           free_surface = default_free_surface(grid),
@@ -187,6 +189,7 @@ function ocean_simulation(grid;
                           rotation_rate = default_planet_rotation_rate,
                           gravitational_acceleration = default_gravitational_acceleration,
                           bottom_drag_coefficient = Default(0.003),
+                          use_barotropic_potential = true,
                           forcing = NamedTuple(),
                           biogeochemistry = nothing,
                           timestepper = :SplitRungeKutta3,
@@ -241,14 +244,16 @@ function ocean_simulation(grid;
         u_immersed_bc = ImmersedBoundaryCondition(bottom=u_immersed_drag)
         v_immersed_bc = ImmersedBoundaryCondition(bottom=v_immersed_drag)
 
-        # Forcing for u, v
-        barotropic_potential = Field{Center, Center, Nothing}(grid)
-        u_forcing = BarotropicPotentialForcing(XDirection(), barotropic_potential)
-        v_forcing = BarotropicPotentialForcing(YDirection(), barotropic_potential)
+        if use_barotropic_potential
+            # Forcing for u, v
+            barotropic_potential = Field{Center, Center, Nothing}(grid)
+            u_forcing = BarotropicPotentialForcing(XDirection(), barotropic_potential)
+            v_forcing = BarotropicPotentialForcing(YDirection(), barotropic_potential)
 
-        :u ∈ keys(forcing) && (u_forcing = (u_forcing, forcing[:u]))
-        :v ∈ keys(forcing) && (v_forcing = (v_forcing, forcing[:v]))
-        forcing = merge(forcing, (u=u_forcing, v=v_forcing))
+            :u ∈ keys(forcing) && (u_forcing = (u_forcing, forcing[:u]))
+            :v ∈ keys(forcing) && (v_forcing = (v_forcing, forcing[:v]))
+            forcing = merge(forcing, (u=u_forcing, v=v_forcing))
+        end
     end
 
     if !isnothing(radiative_forcing)
@@ -287,7 +292,8 @@ function ocean_simulation(grid;
     # conditions even when a user-bc is supplied).
     boundary_conditions = merge(default_boundary_conditions, boundary_conditions)
     buoyancy = SeawaterBuoyancy(; gravitational_acceleration, equation_of_state)
-
+    buoyancy = Oceananigans.BuoyancyFormulations.BuoyancyForce(grid, buoyancy; materialize_gradients=true)
+    
     if tracer_advection isa NamedTuple
         tracer_advection = with_tracers(tracers, tracer_advection, default_tracer_advection())
     else
@@ -295,8 +301,8 @@ function ocean_simulation(grid;
     end
 
     if hasclosure(closure, CATKEVerticalDiffusivity)
-        # Turn off CATKE tracer advection
-        tke_advection = (; e=nothing)
+        # Use the same advection as for temperature
+        tke_advection = (; e=tracer_advection[1])
         tracer_advection = merge(tracer_advection, tke_advection)
     end
 

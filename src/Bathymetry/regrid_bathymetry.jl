@@ -171,7 +171,8 @@ end
 
     # Fix active cells to be at least `-minimum_depth`.
     active = z < 0 # it's a wet cell
-    z = ifelse(active, min(z, -minimum_depth), z)
+    above_minimum_depth = z > -minimum_depth
+    z = ifelse(active, ifelse(above_minimum_depth, zero(z), z), z)
 
     @inbounds target_z[i, j, 1] = z
 end
