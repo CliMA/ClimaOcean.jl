@@ -113,8 +113,8 @@ end
     Cq = flux_formulation.vapor_flux_coefficient
 
     u★ = sqrt(Cd) * ΔU
-    θ★ = Ch / sqrt(Cd) * Δθ
-    q★ = Cq / sqrt(Cd) * Δq
+    θ★ = ifelse(Cd > 0, Ch / sqrt(Cd) * Δθ, zero(Cd))
+    q★ = ifelse(Cd > 0, Cq / sqrt(Cd) * Δq, zero(Cd))
 
     return u★, θ★, q★
 end
