@@ -1,7 +1,7 @@
 using Oceananigans.Operators: intrinsic_vector
 using Oceananigans.Grids: _node
 using Oceananigans.Fields: FractionalIndices, interpolate
-using Oceananigans.OutputReaders: TimeInterpolator
+using Oceananigans.OutputReaders: TimeInterpolator, cpu_interpolating_time_indices
 
 using ClimaOcean.Oceans: forcing_barotropic_potential
 
@@ -60,7 +60,7 @@ function interpolate_state!(exchanger, grid, atmosphere::PrescribedAtmosphere, c
     times = ua.times
     time_indexing = ua.time_indexing
     t = clock.time
-    time_interpolator = TimeInterpolator(ua.time_indexing, times, clock.time)
+    time_interpolator = cpu_interpolating_time_indices(arch, times, ua.time_indexing, clock.time)
 
     launch!(arch, grid, kernel_parameters,
             _interpolate_primary_atmospheric_state!,
