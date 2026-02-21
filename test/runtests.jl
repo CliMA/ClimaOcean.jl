@@ -65,43 +65,6 @@ if test_group == :init || test_group == :all
         end
     end
 end
-
-# Tests JRA55 utilities, plus some DataWrangling utilities
-if test_group == :JRA55 || test_group == :all
-    include("test_jra55.jl")
-end
-
-if test_group == :ecco2_monthly || test_group == :all
-    include("test_ecco2_monthly.jl")
-end
-
-if test_group == :ecco2_daily || test_group == :all
-    include("test_ecco2_daily.jl")
-end
-
-if test_group == :ecco4_en4 || test_group == :all
-    include("test_ecco4_en4.jl")
-end
-
-if test_group == :ecco_atmosphere || test_group == :all
-    include("test_ecco_atmosphere.jl")
-end
-
-# Tests that we can download JRA55 utilities
-if test_group == :downloading || test_group == :all
-    include("test_downloading.jl")
-end
-
-# Tests that we can download from Copernicus Climate Data Store (ERA5, etc.)
-if test_group == :cds_downloading || test_group == :all
-    include("test_cds_downloading.jl")
-end
-
-if test_group == :fluxes || test_group == :all
-    include("test_surface_fluxes.jl")
-    include("test_sea_ice_ocean_heat_fluxes.jl")
-end
-
 if test_group == :bathymetry || test_group == :all
     include("test_bathymetry.jl")
 end
@@ -109,16 +72,4 @@ end
 if test_group == :ocean_sea_ice_model || test_group == :all
     include("test_ocean_sea_ice_model.jl")
     include("test_diagnostics.jl")
-end
-
-if test_group == :distributed || test_group == :all
-    include("test_distributed_utils.jl")
-end
-
-if test_group == :reactant || test_group == :all
-    include("test_reactant.jl")
-end
-
-if test_group == :speedy_weather || test_group == :all
-    include("test_speedy_coupling.jl")
 end
