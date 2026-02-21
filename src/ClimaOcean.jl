@@ -50,78 +50,27 @@ using Oceananigans
 using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
 using DataDeps
 
-using Oceananigans.OutputReaders: GPUAdaptedFieldTimeSeries, FieldTimeSeries
-using Oceananigans.Grids: node
-
-const SomeKindOfFieldTimeSeries = Union{FieldTimeSeries,
-                                        GPUAdaptedFieldTimeSeries}
-
-const SKOFTS = SomeKindOfFieldTimeSeries
-
-@inline stateindex(a::Number, i, j, k, args...) = a
-@inline stateindex(a::AbstractArray, i, j, k, args...) = @inbounds a[i, j, k]
-@inline stateindex(a::SKOFTS, i, j, k, grid, time, args...) = @inbounds a[i, j, k, time]
-
-@inline function stateindex(a::Function, i, j, k, grid, time, (LX, LY, LZ), args...)
-    λ, φ, z = node(i, j, k, grid, LX(), LY(), LZ())
-    return a(λ, φ, z, time)
-end
-
-@inline function stateindex(a::Tuple, i, j, k, grid, time, args...)
-    N = length(a)
-    ntuple(Val(N)) do n
-        stateindex(a[n], i, j, k, grid, time, args...)
-    end
-end
-
-@inline function stateindex(a::NamedTuple, i, j, k, grid, time, args...)
-    vals = stateindex(values(a), i, j, k, grid, time, args...)
-    names = keys(a)
-    return NamedTuple{names}(vals)
-end
+@reexport using NumericalEarth
+@reexport using NumericalEarth.DataWrangling
+@reexport using NumericalEarth.EarthSystemModels
+@reexport using NumericalEarth.EarthSystemModels.InterfaceComputations
 
 #####
 ##### Source code
 #####
 
-include("OceanSeaIceModels/OceanSeaIceModels.jl")
 include("Oceans/Oceans.jl")
-include("Atmospheres/Atmospheres.jl")
 include("SeaIces/SeaIces.jl")
 include("InitialConditions/InitialConditions.jl")
-include("DataWrangling/DataWrangling.jl")
 include("Bathymetry/Bathymetry.jl")
 include("Diagnostics/Diagnostics.jl")
 
-using .DataWrangling
-using .DataWrangling: ETOPO, ECCO, GLORYS, EN4, JRA55
-using .Bathymetry
+using NumericalEarth.DataWrangling: ETOPO, ECCO, GLORYS, EN4, JRA55
+using NumericalEarth.Bathymetry
 using .InitialConditions
-using .OceanSeaIceModels
-using .Atmospheres
+using NumericalEarth.EarthSystemModels
+using NumericalEarth.Atmospheres
 using .Oceans
 using .SeaIces
-
-using ClimaOcean.OceanSeaIceModels: ComponentInterfaces, MomentumRoughnessLength, ScalarRoughnessLength
-using ClimaOcean.DataWrangling.ETOPO
-using ClimaOcean.DataWrangling.ECCO
-using ClimaOcean.DataWrangling.GLORYS
-using ClimaOcean.DataWrangling.EN4
-using ClimaOcean.DataWrangling.JRA55
-using ClimaOcean.DataWrangling.JRA55: JRA55NetCDFBackend
-
-using PrecompileTools: @setup_workload, @compile_workload
-
-@setup_workload begin
-    Nx, Ny, Nz = 32, 32, 10
-    @compile_workload begin
-        depth = 6000
-        z = Oceananigans.Grids.ExponentialDiscretization(Nz, -depth, 0)
-        grid = Oceananigans.OrthogonalSphericalShellGrids.TripolarGrid(CPU(); size=(Nx, Ny, Nz), halo=(7, 7, 7), z)
-        grid = ImmersedBoundaryGrid(grid, GridFittedBottom((x, y) -> -5000))
-        # ocean = ocean_simulation(grid)
-        # model = OceanSeaIceModel(ocean)
-    end
-end
 
 end # module
