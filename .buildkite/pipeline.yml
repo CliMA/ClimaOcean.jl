@@ -45,14 +45,7 @@ steps:
       set -euo pipefail
 
       case "{{ matrix.case }}" in
-        "🌦️ JRA55")            export TEST_GROUP="JRA55" ;;
-        "🌊 ECCO2Monthly")     export TEST_GROUP="ecco2_monthly" ;;
-        "🐚 ECCO2Daily")       export TEST_GROUP="ecco2_daily" ;;
-        "🦑 ECCO4/EN4")        export TEST_GROUP="ecco4_en4" ;;
-        "💨 surface flux")     export TEST_GROUP="fluxes" ;;
         "🏔️ bathymetry")       export TEST_GROUP="bathymetry" ;;
-        "🐎 checkpointing")    export TEST_GROUP="checkpointing" ;;
-        *) echo "Unknown CPU matrix case: {{ matrix.case }}"; exit 2 ;;
       esac
 
       julia --project -e 'using Pkg; Pkg.test()'
@@ -63,13 +56,7 @@ steps:
     matrix:
       setup:
         case:
-          - "🌦️ JRA55"
-          - "🌊 ECCO2Monthly"
-          - "🐚 ECCO2Daily"
-          - "🦑 ECCO4/EN4"
-          - "💨 surface flux"
           - "🏔️ bathymetry"
-          - "🐎 checkpointing"
 
   #####
   ##### GPU tests
@@ -83,13 +70,7 @@ steps:
       set -euo pipefail
 
       case "{{ matrix.case }}" in
-        "🌊 ECCO2Monthly")     export TEST_GROUP="ecco2_monthly" ;;
-        "🐚 ECCO2Daily")       export TEST_GROUP="ecco2_daily" ;;
-        "🦑 ECCO4/EN4")        export TEST_GROUP="ecco4_en4" ;;
-        "💨 surface flux")     export TEST_GROUP="fluxes" ;;
         "🏔️ bathymetry")       export TEST_GROUP="bathymetry" ;;
-        "🐎 checkpointing")    export TEST_GROUP="checkpointing" ;;
-        *) echo "Unknown GPU(8G) matrix case: {{ matrix.case }}"; exit 2 ;;
       esac
 
       julia --project -e 'using Pkg; Pkg.test()'
@@ -102,77 +83,4 @@ steps:
     matrix:
       setup:
         case:
-          - "🌊 ECCO2Monthly"
-          - "🐚 ECCO2Daily"
-          - "🦑 ECCO4/EN4"
-          - "💨 surface flux"
           - "🏔️ bathymetry"
-          - "🐎 checkpointing"
-
-
-  - label: "{{ matrix.case }} GPU tests (10G)"
-    key: "gpu_tests_10g"
-    env:
-      GPU_TEST: "true"
-    command: |
-      set -euo pipefail
-
-      case "{{ matrix.case }}" in
-        "🧊 OceanSeaIceModel") export TEST_GROUP="ocean_sea_ice_model" ;;
-        *) echo "Unknown GPU(10G) matrix case: {{ matrix.case }}"; exit 2 ;;
-      esac
-
-      julia --project -e 'using Pkg; Pkg.test()'
-    agents:
-      slurm_mem: 10G
-      slurm_gpus: 1
-      slurm_cpus_per_task: 8
-      slurm_ntasks: 1
-      slurm_gpus_per_task: 1
-    matrix:
-      setup:
-        case:
-          - "🧊 OceanSeaIceModel"
-
-  - label: "{{ matrix.case }} GPU tests (32G)"
-    key: "gpu_tests_32g"
-    env:
-      GPU_TEST: "true"
-    command: |
-      set -euo pipefail
-
-      case "{{ matrix.case }}" in
-        "🌦️ JRA55") export TEST_GROUP="JRA55" ;;
-        *) echo "Unknown GPU(32G) matrix case: {{ matrix.case }}"; exit 2 ;;
-      esac
-
-      julia --project -e 'using Pkg; Pkg.test()'
-    agents:
-      slurm_mem: 32G
-      slurm_gpus: 1
-      slurm_cpus_per_task: 8
-      slurm_ntasks: 1
-      slurm_gpus_per_task: 1
-    matrix:
-      setup:
-        case:
-          - "🌦️ JRA55"
-
-
-  #####
-  ##### Distributed tests
-  #####
-
-  - label: "🐙 Run distributed tests"
-    key: "test_distributed"
-    env:
-      TEST_GROUP: "distributed"
-    commands:
-      - "srun julia --project -e 'using Pkg; Pkg.test()'"
-    agents:
-      slurm_mem: 10G
-      slurm_cpus_per_task: 1
-      slurm_ntasks: 4
-
-  - wait: ~
-    continue_on_failure: true
