@@ -4,8 +4,9 @@ using MPI
 MPI.Init()
 
 using ClimaOcean.DataWrangling: metadata_path
+using Oceananigans.Units
 using Oceananigans.DistributedComputations
-using Oceananigans.DistributedComputations: reconstruct_global_grid
+using Oceananigans.DistributedComputations: reconstruct_global_grid, reconstruct_global_field
 using CFTime
 using Dates
 using NCDatasets
@@ -100,6 +101,60 @@ end
         begin
             @test interior(global_height, irange, jrange, 1) == interior(local_height, :, :, 1)
         end
+    end
+end
+
+@testset "Distributed atmospheric halo filling" begin
+    function create_sample_output(arch)
+        Nx, Ny, Nz = 80, 40, 5
+
+        z = ExponentialDiscretization(Nz, -6000, 0, mutable=true)
+        underlying_grid = TripolarGrid(arch; size = (Nx, Ny, Nz), z, halo = (7, 7, 4))
+
+        ETOPOmetadata = Metadatum(:bottom_height, dataset=ETOPO2022())
+        ClimaOcean.DataWrangling.download_dataset(ETOPOmetadata)
+
+        bottom_height = regrid_bathymetry(underlying_grid, ETOPOmetadata;
+                                          minimum_depth = 15,
+                                          interpolation_passes = 1,
+                                          major_basins = 1)
+
+        grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height); active_cells_map=true)
+        ocean = ocean_simulation(grid; free_surface = SplitExplicitFreeSurface(grid; substeps = 40))
+        radiation  = Radiation(arch)
+        atmosphere = JRA55PrescribedAtmosphere(arch; backend=JRA55NetCDFBackend(4), include_rivers_and_icebergs=true)
+        coupled_model = OceanSeaIceModel(ocean; atmosphere, radiation)
+        simulation = Simulation(coupled_model; Δt=60, stop_time=11minutes)
+        
+        set!(ocean.model, T=Metadatum(:temperature; date=DateTime(1991, 1, 1), dataset=EN4Monthly()),
+                          S=Metadatum(:salinity;    date=DateTime(1991, 1, 1), dataset=EN4Monthly()))
+        
+        run!(simulation)
+
+        return ocean.model
+    end
+
+    arch = Distributed(CPU(); partition = Partition(y = DistributedComputations.Equal()), synchronized_communication=true)
+    mp   = create_sample_output(arch)
+
+    Tp = reconstruct_global_field(mp.tracers.T)
+    Sp = reconstruct_global_field(mp.tracers.S)
+    up = reconstruct_global_field(mp.velocities.u)
+    vp = reconstruct_global_field(mp.velocities.v)
+
+    MPI.Barrier()
+
+    @root begin
+        arch = CPU()
+        ms   = create_sample_output(arch)
+
+        Ts = reconstruct_global_field(ms.tracers.T)
+        Ss = reconstruct_global_field(ms.tracers.S)
+        us = reconstruct_global_field(ms.velocities.u)
+        vs = reconstruct_global_field(ms.velocities.v)
+
+        @show maximum(abs.(Ts .- Tp)) # debug purposes; delete before merge
+        @test (maximum(abs.(Ts .- Tp)) < 1e-10)
     end
 end
 

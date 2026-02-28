@@ -30,7 +30,7 @@ function time_step!(coupled_model::OceanSeaIceModel, Δt; callbacks=[])
     return nothing
 end
 
-function update_state!(coupled_model::OceanSeaIceModel)
+function update_state!(coupled_model::OceanSeaIceModel; kwargs...)
 
     # The three components
     ocean      = coupled_model.ocean
