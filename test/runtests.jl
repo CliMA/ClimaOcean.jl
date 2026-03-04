@@ -1,5 +1,18 @@
 # Common test setup file to make stand-alone tests easy
-include("runtests_setup.jl")
+using ClimaOcean
+using Oceananigans
+using CUDA
+using Test
+
+using Oceananigans.Architectures: architecture, on_architecture
+using Oceananigans.OutputReaders: interpolate!
+using Dates
+
+using CUDA: @allowscalar
+
+gpu_test = parse(Bool, get(ENV, "GPU_TEST", "false"))
+test_architectures = gpu_test ? [GPU()] : [CPU()]
+start_date = DateTime(1993, 1, 1)
 
 using CUDA
 using Scratch
@@ -34,7 +47,7 @@ if test_group == :init || test_group == :all
     #####
 
     ETOPOmetadata = Metadatum(:bottom_height, dataset=ClimaOcean.ETOPO.ETOPO2022())
-    ClimaOcean.DataWrangling.download_dataset(ETOPOmetadata)
+    ClimaOcean.download_dataset(ETOPOmetadata)
 
 
     #####
@@ -56,50 +69,14 @@ if test_group == :init || test_group == :all
         temperature_metadata = Metadata(:temperature; dataset, dates)
         salinity_metadata    = Metadata(:salinity; dataset, dates)
 
-        download_dataset(temperature_metadata)
-        download_dataset(salinity_metadata)
+        ClimaOcean.download_dataset(temperature_metadata)
+        ClimaOcean.download_dataset(salinity_metadata)
 
         if dataset isa Union{ECCO2DarwinMonthly, ECCO4DarwinMonthly}
             PO₄_metadata = Metadata(:phosphate; dataset, dates)
-            download_dataset(PO₄_metadata)
+            ClimaOcean.download_dataset(PO₄_metadata)
         end
     end
-end
-
-# Tests JRA55 utilities, plus some DataWrangling utilities
-if test_group == :JRA55 || test_group == :all
-    include("test_jra55.jl")
-end
-
-if test_group == :ecco2_monthly || test_group == :all
-    include("test_ecco2_monthly.jl")
-end
-
-if test_group == :ecco2_daily || test_group == :all
-    include("test_ecco2_daily.jl")
-end
-
-if test_group == :ecco4_en4 || test_group == :all
-    include("test_ecco4_en4.jl")
-end
-
-if test_group == :ecco_atmosphere || test_group == :all
-    include("test_ecco_atmosphere.jl")
-end
-
-# Tests that we can download JRA55 utilities
-if test_group == :downloading || test_group == :all
-    include("test_downloading.jl")
-end
-
-# Tests that we can download from Copernicus Climate Data Store (ERA5, etc.)
-if test_group == :cds_downloading || test_group == :all
-    include("test_cds_downloading.jl")
-end
-
-if test_group == :fluxes || test_group == :all
-    include("test_surface_fluxes.jl")
-    include("test_sea_ice_ocean_heat_fluxes.jl")
 end
 
 if test_group == :bathymetry || test_group == :all
@@ -109,16 +86,4 @@ end
 if test_group == :ocean_sea_ice_model || test_group == :all
     include("test_ocean_sea_ice_model.jl")
     include("test_diagnostics.jl")
-end
-
-if test_group == :distributed || test_group == :all
-    include("test_distributed_utils.jl")
-end
-
-if test_group == :reactant || test_group == :all
-    include("test_reactant.jl")
-end
-
-if test_group == :speedy_weather || test_group == :all
-    include("test_speedy_coupling.jl")
 end

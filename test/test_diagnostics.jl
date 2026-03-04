@@ -4,6 +4,8 @@ using SeawaterPolynomials: TEOS10EquationOfState
 using Oceananigans: location
 using Oceananigans.Models: buoyancy_operation
 using ClimaOcean.Diagnostics: MixedLayerDepthField, MixedLayerDepthOperand
+using ClimaOcean.Diagnostics: MeridionalStreamfunction, compute_streamfunction
+using ConservativeRegridding
 
 for arch in test_architectures, dataset in (ECCO4Monthly(),)
     A = typeof(arch)
@@ -54,5 +56,44 @@ for arch in test_architectures, dataset in (ECCO4Monthly(),)
         if dataset isa ECCO4Monthly
             @test @allowscalar h[1, 1, 1] ≈ 9.2957298 # m
         end
+    end
+end
+
+for arch in test_architectures
+    A = typeof(arch)
+    @info "Testing MeridionalStreamfunction on $A"
+
+    @testset "MeridionalStreamfunction" begin
+        # Create a simple LatitudeLongitudeGrid
+        grid = LatitudeLongitudeGrid(arch;
+                                     size = (36, 18, 3),
+                                     longitude = (0, 360),
+                                     latitude = (-60, 60),
+                                     z = (-500, 0))
+
+        # Create a w field with a simple sinusoidal pattern
+        w = CenterField(grid)
+        set!(w, (λ, φ, z) -> sin(deg2rad(φ)))
+
+        # Test constructor
+        moc = MeridionalStreamfunction(w; resolution=5, latitude=(-50, 50))
+
+        @test moc.latitude_longitude_grid isa LatitudeLongitudeGrid
+        @test moc.regridded_w isa Field
+
+        # Test compute_streamfunction
+        result = compute_streamfunction(moc, w)
+
+        @test haskey(result, :ψ)
+        @test haskey(result, :latitude)
+        @test haskey(result, :depth)
+        @test size(result.ψ, 1) == length(result.latitude)
+        @test size(result.ψ, 2) == length(result.depth)
+
+        # Check that latitude and depth arrays have reasonable values
+        @test minimum(result.latitude) >= -50
+        @test maximum(result.latitude) <= 50
+        @test minimum(result.depth) >= -500
+        @test maximum(result.depth) <= 0
     end
 end
