@@ -1,5 +1,18 @@
 # Common test setup file to make stand-alone tests easy
-include("runtests_setup.jl")
+using ClimaOcean
+using Oceananigans
+using CUDA
+using Test
+
+using Oceananigans.Architectures: architecture, on_architecture
+using Oceananigans.OutputReaders: interpolate!
+using Dates
+
+using CUDA: @allowscalar
+
+gpu_test = parse(Bool, get(ENV, "GPU_TEST", "false"))
+test_architectures = gpu_test ? [GPU()] : [CPU()]
+start_date = DateTime(1993, 1, 1)
 
 using CUDA
 using Scratch
@@ -34,7 +47,7 @@ if test_group == :init || test_group == :all
     #####
 
     ETOPOmetadata = Metadatum(:bottom_height, dataset=ClimaOcean.ETOPO.ETOPO2022())
-    ClimaOcean.DataWrangling.download_dataset(ETOPOmetadata)
+    ClimaOcean.download_dataset(ETOPOmetadata)
 
 
     #####
@@ -56,15 +69,16 @@ if test_group == :init || test_group == :all
         temperature_metadata = Metadata(:temperature; dataset, dates)
         salinity_metadata    = Metadata(:salinity; dataset, dates)
 
-        download_dataset(temperature_metadata)
-        download_dataset(salinity_metadata)
+        ClimaOcean.download_dataset(temperature_metadata)
+        ClimaOcean.download_dataset(salinity_metadata)
 
         if dataset isa Union{ECCO2DarwinMonthly, ECCO4DarwinMonthly}
             PO₄_metadata = Metadata(:phosphate; dataset, dates)
-            download_dataset(PO₄_metadata)
+            ClimaOcean.download_dataset(PO₄_metadata)
         end
     end
 end
+
 if test_group == :bathymetry || test_group == :all
     include("test_bathymetry.jl")
 end
