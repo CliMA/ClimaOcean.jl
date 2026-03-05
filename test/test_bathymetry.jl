@@ -69,6 +69,17 @@ using ClimaOcean.DataWrangling.ETOPO
 
         # Testing that multiple passes _do_ change the solution when coarsening the grid
         @test parent(control_bottom_height) != parent(interpolated_bottom_height)
+
+
+        grid = TripolarGrid(arch; 
+                            size = (100, 100, 10),
+                            z = (-6000, 0),
+                            fold_topology = Oceananigans.Grids.RightFaceFolded)
+
+        @test begin
+            regrid_bathymetry(grid)
+            true
+        end
     end
 end
 
