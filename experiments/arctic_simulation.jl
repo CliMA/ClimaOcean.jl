@@ -78,7 +78,7 @@ dynamics = SeaIceMomentumEquation(grid;
                                   bottom_momentum_stress = τo,
                                   ocean_velocities = (u=0.1*SSU, v=0.1*SSV),
                                   rheology = ElastoViscoPlasticRheology(),
-                                  solver = SplitExplicitSolver(120))
+                                  solver = SplitExplicitSolver(grid; substeps=120))
 
 sea_ice = sea_ice_simulation(grid; bottom_heat_boundary_condition, dynamics, advection=WENO(order=7))
 
@@ -187,4 +187,3 @@ hm = FieldTimeSeries{Center, Center, Nothing}(grid, hE.times; backend=InMemory()
 
 hMe = [mean(h[t]) for t in 1:length(h.times)]
 ℵMe = [mean(ℵ[t]) for t in 1:length(ℵ.times)]
-
