@@ -10,6 +10,11 @@
 
 ###
 
+> [!IMPORTANT]
+> The generic coupling framework and data wrangling utilities originally developed in ClimaOcean are being moved to [**NumericalEarth.jl**](https://github.com/CliMA/NumericalEarth.jl), a new package for building coupled Earth system models with interchangeable components.
+> ClimaOcean.jl will continue to exist as a focused package for realistic ocean and ocean + sea-ice simulations built on [Oceananigans](https://github.com/CliMA/Oceananigans.jl) and [ClimaSeaIce](https://github.com/CliMA/ClimaSeaIce.jl), depending on NumericalEarth for shared functionality.
+> See the [discussion](https://github.com/CliMA/ClimaOcean.jl/discussions/675) for more details.
+
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7677442.svg?style=flat-square)](https://doi.org/10.5281/zenodo.7677442)
 [![Build status](https://badge.buildkite.com/3113cca353b83df3b5855d3f0d69827124614aef7017c835d2.svg?style=flat-square)](https://buildkite.com/clima/climaocean-ci)
 [![Documentation](https://img.shields.io/badge/documentation-stable%20release-blue?style=flat-square)](https://clima.github.io/ClimaOceanDocumentation/stable/)
