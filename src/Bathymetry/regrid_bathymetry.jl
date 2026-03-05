@@ -66,7 +66,7 @@ function _regrid_bathymetry(target_grid, metadata;
                             minimum_depth,
                             interpolation_passes,
                             major_basins)
-                            
+
     if isinteger(interpolation_passes)
         interpolation_passes = convert(Int, interpolation_passes)
     end
@@ -253,12 +253,12 @@ function remove_minor_basins!(zb::Field, keep_major_basins)
 
     zb_cpu    = on_architecture(CPU(), zb)
     TX, TY, _ = topology(zb_cpu.grid)
-    
+
     Nx = Base.length(Center(), TX(), zb_cpu.grid.Nx)
     Ny = Base.length(Center(), TY(), zb_cpu.grid.Ny)
 
     # Get labels for the core region (extension is handled internally by label_ocean_basins)
-    labels = label_ocean_basins(zb_cpu, TX, core_size)
+    labels = label_ocean_basins(zb_cpu, TX, (Nx, Ny))
     nlabels = maximum(labels)
 
     if nlabels == 0
