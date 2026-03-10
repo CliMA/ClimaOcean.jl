@@ -78,7 +78,7 @@ function sea_ice_dynamics(grid, ocean=nothing;
                           rheology = ElastoViscoPlasticRheology(),
                           coriolis = HydrostaticSphericalCoriolis(; rotation_rate=default_rotation_rate),
                           free_drift = nothing,
-                          solver = SplitExplicitSolver(120))
+                          solver = SplitExplicitSolver(grid; substeps=120))
 
     SSU, SSV = ocean_surface_velocities(ocean)
     sea_ice_ocean_drag_coefficient = convert(eltype(grid), sea_ice_ocean_drag_coefficient)
@@ -110,7 +110,7 @@ sea_ice_concentration(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_co
 heat_capacity(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_thermodynamics.phase_transitions.ice_heat_capacity
 reference_density(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_thermodynamics.phase_transitions.ice_density
 
-function net_fluxes(sea_ice::Simulation{<:SeaIceModel}) 
+function net_fluxes(sea_ice::Simulation{<:SeaIceModel})
     net_momentum_fluxes = if isnothing(sea_ice.model.dynamics)
         u = Field{Face, Center, Nothing}(sea_ice.model.grid)
         v = Field{Center, Face, Nothing}(sea_ice.model.grid)
@@ -133,17 +133,17 @@ function default_ai_temperature(sea_ice::Simulation{<:SeaIceModel})
 end
 
 # Constructor that accepts the sea-ice model
-function ThreeEquationHeatFlux(sea_ice::Simulation{<:SeaIceModel}, FT::DataType = Oceananigans.defaults.FloatType; 
+function ThreeEquationHeatFlux(sea_ice::Simulation{<:SeaIceModel}, FT::DataType = Oceananigans.defaults.FloatType;
                                heat_transfer_coefficient = 0.0095,
                                salt_transfer_coefficient = heat_transfer_coefficient / 35,
                                friction_velocity = convert(FT, 0.002))
 
     conductive_flux = sea_ice.model.ice_thermodynamics.internal_heat_flux.parameters.flux
     ice_temperature = sea_ice.model.ice_thermodynamics.top_surface_temperature
-    
+
     return ThreeEquationHeatFlux(conductive_flux,
                                  ice_temperature,
                                  convert(FT, heat_transfer_coefficient),
                                  convert(FT, salt_transfer_coefficient),
-                                 friction_velocity) 
+                                 friction_velocity)
 end

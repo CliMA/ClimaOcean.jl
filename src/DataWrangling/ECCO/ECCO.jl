@@ -2,6 +2,7 @@ module ECCO
 
 export ECCOMetadatum, ECCO_immersed_grid, adjusted_ECCO_tracers, initialize!
 export ECCO2Monthly, ECCO4Monthly, ECCO2Daily
+export ECCOPrescribedAtmosphere
 
 export ECCO2DarwinMonthly, ECCO4DarwinMonthly
 export retrieve_data
@@ -20,12 +21,12 @@ using ClimaOcean.DataWrangling:
     netrc_downloader,
     BoundingBox,
     metadata_path,
-    Celsius,
     GramPerKilogramMinus35,
     MicromolePerLiter,
     Metadata,
     Metadatum,
-    download_progress
+    download_progress,
+    InverseSign
 
 using KernelAbstractions: @kernel, @index
 
@@ -38,8 +39,7 @@ import ClimaOcean.DataWrangling:
     all_dates,
     metadata_filename,
     download_dataset,
-    temperature_units,
-    concentration_units,
+    conversion_units,
     dataset_variable_name,
     metaprefix,
     longitude_interfaces,
@@ -86,7 +86,6 @@ Base.size(::ECCO2Daily, variable)   = (1440, 720, 50)
 Base.size(::ECCO2Monthly, variable) = (1440, 720, 50)
 Base.size(::ECCO4Monthly, variable) = (720,  360, 50)
 
-temperature_units(::ECCODataset) = Celsius()
 default_mask_value(::ECCO4Monthly) = 0
 reversed_vertical_axis(::ECCODataset) = true
 
@@ -176,7 +175,13 @@ ECCO4_dataset_variable_names = Dict(
     :latent_heat_flux      => "EXFhl",
     :net_longwave          => "EXFlwnet",
     :downwelling_shortwave => "oceQsw",
-    :downwelling_longwave  => "EXFlwdn",
+    :downwelling_longwave  => "EXFlwdn",    
+    :air_temperature       => "EXFatemp",
+    :air_specific_humidity => "EXFaqh",
+    :sea_level_pressure    => "EXFpress",
+    :eastward_wind         => "EXFewind",
+    :northward_wind        => "EXFnwind",
+    :rain_freshwater_flux  => "EXFpreci",
 )
 
 ECCO2_dataset_variable_names = Dict(
@@ -187,27 +192,37 @@ ECCO2_dataset_variable_names = Dict(
     :free_surface          => "SSH",
     :sea_ice_thickness     => "SIheff",
     :sea_ice_concentration => "SIarea",
-    :net_heat_flux         => "oceQnet"
+    :net_heat_flux         => "oceQnet",
 )
 
 ECCO_location = Dict(
     :temperature           => (Center, Center, Center),
     :salinity              => (Center, Center, Center),
+    :u_velocity            => (Face,   Center, Center),
+    :v_velocity            => (Center, Face,   Center),
     :free_surface          => (Center, Center, Nothing),
     :sea_ice_thickness     => (Center, Center, Nothing),
     :sea_ice_concentration => (Center, Center, Nothing),
     :net_heat_flux         => (Center, Center, Nothing),
-    :u_velocity            => (Face,   Center, Center),
-    :v_velocity            => (Center, Face,   Center),
     :sensible_heat_flux    => (Center, Center, Nothing),
     :latent_heat_flux      => (Center, Center, Nothing),
     :net_longwave          => (Center, Center, Nothing),
-    :downwelling_shortwave => (Center, Center, Nothing),
     :downwelling_longwave  => (Center, Center, Nothing),
-)
+    :downwelling_shortwave => (Center, Center, Nothing),
+    :air_temperature       => (Center, Center, Nothing),
+    :air_specific_humidity => (Center, Center, Nothing),
+    :sea_level_pressure    => (Center, Center, Nothing),
+    :eastward_wind         => (Center, Center, Nothing),
+    :northward_wind        => (Center, Center, Nothing),
+    :rain_freshwater_flux  => (Center, Center, Nothing),
+)    
 
 const ECCOMetadata{D} = Metadata{<:ECCODataset, D}
 const ECCOMetadatum   = Metadatum{<:ECCODataset}
+
+# Note: ECCO downwelling radiation variables (oceQsw, EXFlwdn) are already
+# in positive-downwelling convention, so no sign conversion is needed.
+conversion_units(metadatum::ECCOMetadatum) = nothing
 
 """
     ECCOMetadatum(name;
@@ -315,5 +330,7 @@ function inpainted_metadata_filename(metadata::ECCOMetadata)
 end
 
 inpainted_metadata_path(metadata::ECCOMetadata) = joinpath(metadata.dir, inpainted_metadata_filename(metadata))
+
+include("ECCO_atmosphere.jl")
 
 end # Module

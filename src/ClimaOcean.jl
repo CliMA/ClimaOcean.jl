@@ -91,11 +91,11 @@ include("Atmospheres/Atmospheres.jl")
 include("SeaIces/SeaIces.jl")
 include("InitialConditions/InitialConditions.jl")
 include("DataWrangling/DataWrangling.jl")
-include("Bathymetry.jl")
+include("Bathymetry/Bathymetry.jl")
 include("Diagnostics/Diagnostics.jl")
 
 using .DataWrangling
-using .DataWrangling: ETOPO, ECCO, Copernicus, EN4, JRA55
+using .DataWrangling: ETOPO, ECCO, GLORYS, EN4, JRA55
 using .Bathymetry
 using .InitialConditions
 using .OceanSeaIceModels
@@ -106,7 +106,7 @@ using .SeaIces
 using ClimaOcean.OceanSeaIceModels: ComponentInterfaces, MomentumRoughnessLength, ScalarRoughnessLength
 using ClimaOcean.DataWrangling.ETOPO
 using ClimaOcean.DataWrangling.ECCO
-using ClimaOcean.DataWrangling.Copernicus
+using ClimaOcean.DataWrangling.GLORYS
 using ClimaOcean.DataWrangling.EN4
 using ClimaOcean.DataWrangling.JRA55
 using ClimaOcean.DataWrangling.JRA55: JRA55NetCDFBackend

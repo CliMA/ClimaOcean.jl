@@ -127,6 +127,7 @@ end
                                                          temperature_roughness_length = ℓ,
                                                          water_vapor_roughness_length = ℓ,
                                                          gustiness_parameter = 0,
+                                                         minimum_gustiness = 0,
                                                          stability_functions)
 
             interfaces = ComponentInterfaces(atmosphere, ocean;
