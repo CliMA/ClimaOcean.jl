@@ -301,10 +301,12 @@ function remove_minor_basins!(zb::Field, keep_major_basins)
         end
     end
 
-    # Flatten minor basins, corresponding to regions where `labels == NaN`
-    zb[isnan.(labels)] .= 0
+    # If original field was on a different architecture, copy back
+    if zb !== zb_cpu
+        set!(zb, zb_cpu)
+    end
 
-    return nothing
+    return zb
 end
 
 
