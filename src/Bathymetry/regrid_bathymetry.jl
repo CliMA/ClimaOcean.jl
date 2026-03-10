@@ -396,5 +396,3 @@ function modify_bathymetry_depth!(grid, bathymetry, lons, lats, target_lon, targ
 
     return nothing
 end
-
-end # module
