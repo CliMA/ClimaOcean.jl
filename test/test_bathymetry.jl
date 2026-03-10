@@ -188,11 +188,6 @@ end
 end
 
 # %%
-# using KernelAbstractions: get_backend, synchronize
-
-# Assuming the function is available via ClimaOcean or included directly
-# using ClimaOcean.Bathymetry: modify_bathymetry_depth!
-
 @testset "Manual Bathymetry Carving (modify_bathymetry_depth!)" begin
     @info "Testing manual bathymetry carving on a global 1-degree grid..."
     
