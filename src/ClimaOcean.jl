@@ -22,6 +22,7 @@ export
     PrescribedAtmosphere,
     JRA55PrescribedAtmosphere,
     JRA55NetCDFBackend,
+    modify_bathymetry_depth!,
     regrid_bathymetry,
     retrieve_bathymetry,
     Metadata,

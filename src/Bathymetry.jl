@@ -372,4 +372,94 @@ function remove_minor_basins!(zb, keep_major_basins, core_size)
     return nothing
 end
 
+
+@kernel function _modify_bathymetry_kernel!(bathymetry, lons, lats, 
+                                            target_lon, target_lat, target_depth, 
+                                            rx_km, ry_km, deg_buffer, R)
+    i, j = @index(Global, NTuple)
+
+    @inbounds begin
+        # 1. Bounding box check (fast rejection to avoid expensive trig)
+        lat_diff = abs(lats[i, j] - target_lat)
+        lon_diff = abs(mod(lons[i, j] - target_lon + 180, 360) - 180)
+
+        if lat_diff <= deg_buffer && lon_diff <= deg_buffer
+            
+            # 2. True physical distances in km
+            dy = R * deg2rad(lats[i, j] - target_lat)
+
+            # dx: East-West distance (accounting for convergence of meridians)
+            avg_lat = (lats[i, j] + target_lat) / 2.0
+            dλ = mod(lons[i, j] - target_lon + 180, 360) - 180
+            dx = R * cosd(avg_lat) * deg2rad(dλ)
+
+            # 3. Ellipsoidal distance (normalized)
+            dist_sq = (dx / rx_km)^2 + (dy / ry_km)^2
+
+            if dist_sq < 1.0
+                dist = sqrt(dist_sq)
+                
+                # Smooth taper (Cosine) blending
+                weight = 0.5 * (1.0 + cos(π * dist))
+
+                # Blend the original bathymetry with the target depth
+                original_depth = bathymetry[i, j, 1]
+                bathymetry[i, j, 1] = (weight * target_depth) + ((1.0 - weight) * original_depth)
+            end
+        end
+    end
+end
+
+"""
+    modify_bathymetry_depth!(grid, bathymetry, lons, lats, target_lon, target_lat, target_depth; rx_km=150.0, ry_km=150.0, R=6371.0)
+
+Sets all points of `bathymetry` within `rx_km` and `ry_km` (in kilometers) of the target longitude `target_lon` and target latitude `target_lat` to `target_depth` (in meters) over the coordinates `lons` and `lats`. The radius of the planet can be set with the keyword argument `R` (default is Earth's radius of 6371 km).
+
+Arguments
+=========
+
+- `grid`: The Oceananigans grid object.
+- `bathymetry`: 2D array (or interior view) of bathymetric depths (negative values).
+- `lons`: 2D array of longitudes corresponding to `bathymetry`.
+- `lats`: 2D array of latitudes corresponding to `bathymetry`.
+- `target_lon`: Longitude of the strait center.
+- `target_lat`: Latitude of the strait center.
+- `target_depth`: Depth to set within the strait (negative value, e.g., -500 for 500 m depth).
+
+Keyword Arguments
+=================
+- `rx_km`: Radius in kilometers in the east-west direction. Default: 150.0 km.
+- `ry_km`: Radius in kilometers in the north-south direction. Default: 150.0 km. 
+- `R`: Earth's radius in kilometers. Default: 6371.0 km.
+"""
+function modify_bathymetry_depth!(grid, bathymetry, lons, lats, target_lon, target_lat, target_depth; 
+                                  rx_km=150.0, ry_km=150.0, R=6371.0)
+    
+    arch = architecture(grid)
+    
+    # Ensure inputs are appropriate types for precision mapping
+    FT = eltype(grid)
+    t_lon, t_lat, t_depth = FT(target_lon), FT(target_lat), FT(target_depth)
+    rx, ry, R_ft = FT(rx_km), FT(ry_km), FT(R)
+
+    # CPU Buffer calculation (broad bounding box in degrees)
+    deg_buffer = (max(rx, ry) / 111.0) * 2.0
+
+    # SAFETY CHECK for halo trap:
+    # grid.Nx is interior size, grid.Hx is halo size
+    full_size_x = grid.Nx + 2 * grid.Hx
+    
+    if size(bathymetry, 1) == full_size_x && size(lons, 1) == grid.Nx
+        @warn "Mismatch detected: `bathymetry` includes halos but `lons` does not. " *
+              "The carving will be shifted! Pass `interior(bathymetry)` instead."
+    end
+
+    # Launch the kernel
+    launch!(arch, grid, :xy, _modify_bathymetry_kernel!, 
+            bathymetry, lons, lats, t_lon, t_lat, t_depth, 
+            rx, ry, deg_buffer, R_ft)
+
+    return nothing
+end
+
 end # module
