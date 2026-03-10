@@ -4,7 +4,9 @@ using Oceananigans
 using Statistics
 using ClimaOcean
 
-using ClimaOcean.Bathymetry: remove_minor_basins!
+using ClimaOcean.Bathymetry: remove_minor_basins!, label_ocean_basins, find_label_at_point
+using ClimaOcean.Bathymetry: OceanBasinMask, atlantic_ocean_mask, pacific_ocean_mask
+using ClimaOcean.Bathymetry: Barrier, ATLANTIC_OCEAN_BARRIERS
 using ClimaOcean.Bathymetry: modify_bathymetry_depth!
 using ClimaOcean.DataWrangling.ETOPO
 
@@ -187,7 +189,6 @@ end
     end
 end
 
-# %%
 @testset "Manual Bathymetry Carving (modify_bathymetry_depth!)" begin
     @info "Testing manual bathymetry carving on a global 1-degree grid..."
     
