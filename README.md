@@ -11,7 +11,7 @@
 ###
 
 > [!IMPORTANT]
-> The generic coupling framework and data wrangling utilities originally developed in ClimaOcean are being moved to [**NumericalEarth.jl**](https://github.com/CliMA/NumericalEarth.jl), a new package for building coupled Earth system models with interchangeable components.
+> The generic coupling framework and data wrangling utilities originally developed in ClimaOcean are being moved to [**NumericalEarth.jl**](https://github.com/NumericalEarth/NumericalEarth.jl), a new package for building coupled Earth system models with interchangeable components.
 > ClimaOcean.jl will continue to exist as a focused package for realistic ocean and ocean + sea-ice simulations built on [Oceananigans](https://github.com/CliMA/Oceananigans.jl) and [ClimaSeaIce](https://github.com/CliMA/ClimaSeaIce.jl), depending on NumericalEarth for shared functionality.
 > See the [discussion](https://github.com/CliMA/ClimaOcean.jl/discussions/675) for more details.
 
