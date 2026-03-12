@@ -10,7 +10,6 @@ end ClimaOcean
 using Reexport
 using Oceananigans
 using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
-using DataDeps
 
 @reexport using NumericalEarth
 @reexport using NumericalEarth.DataWrangling
