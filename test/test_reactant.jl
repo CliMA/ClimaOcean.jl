@@ -2,6 +2,7 @@ using Test
 using Reactant
 using Oceananigans.Models: initialization_update_state!
 using Oceananigans.Architectures: ReactantState
+using Oceananigans.Grids: Periodic, Bounded, Flat
 using ClimaOcean
 
 gpu_test = get(ENV, "GPU_TEST", "false") == "true"
@@ -25,9 +26,9 @@ end
     ocean = ocean_simulation(grid; Δt=300, free_surface)
 
     # We use an idealized atmosphere to avoid downloading the whole JRA55 data
-    atmos_grid  = LatitudeLongitudeGrid(arch, Float32; size=(320, 200), 
-                                                       latitude=(-90, 90), 
-                                                       longitude=(0, 360), 
+    atmos_grid  = LatitudeLongitudeGrid(arch, Float32; size=(320, 200),
+                                                       latitude=(-90, 90),
+                                                       longitude=(0, 360),
                                                        topology=(Periodic, Bounded, Flat))
 
     atmos_times = range(0, 360Oceananigans.Units.days, length=10)
