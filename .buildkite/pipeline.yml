@@ -3,7 +3,7 @@ agents:
   slurm_mem: 8G
   modules: climacommon/2026_02_18
 
-timeout_in_minutes: 1440
+timeout_in_minutes: 2880
 
 env:
   OPENBLAS_NUM_THREADS: 1
