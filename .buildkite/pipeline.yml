@@ -35,52 +35,56 @@ steps:
 
   - wait
 
-#####
-##### CPU tests
-#####
-
-  - label: "{{ matrix.case }} CPU tests"
-    key: "cpu_tests"
-    command: |
-      set -euo pipefail
-
-      case "{{ matrix.case }}" in
-        "🏔️ bathymetry")       export TEST_GROUP="bathymetry" ;;
-      esac
-
-      julia --project -e 'using Pkg; Pkg.test()'
-    agents:
-      slurm_mem: 32G
-      slurm_cpus_per_task: 8
-      slurm_ntasks: 1
-    matrix:
-      setup:
-        case:
-          - "🏔️ bathymetry"
-
   #####
-  ##### GPU tests
+  ##### Distributed simulation (1/6° on 4 GPUs, runs before docs so output is available)
   #####
 
-  - label: "{{ matrix.case }} GPU tests (8G)"
-    key: "gpu_tests_8g"
+  - label: "🌊 sixth-degree distributed simulation"
+    key: "sixth_degree"
     env:
       GPU_TEST: "true"
     command: |
       set -euo pipefail
 
-      case "{{ matrix.case }}" in
-        "🏔️ bathymetry")       export TEST_GROUP="bathymetry" ;;
-      esac
-
-      julia --project -e 'using Pkg; Pkg.test()'
+      # Only run on main, tags, or when commit message contains "[build all examples]"
+      if [[ "${BUILDKITE_BRANCH}" == "main" || "${BUILDKITE_TAG:-}" == v* || "${BUILDKITE_MESSAGE:-}" == *"[build all examples]"* ]]; then
+          srun -n 4 julia --project examples/sixth_degree_tripolar_ocean_sea_ice.jl
+      else
+          echo "Skipping distributed simulation (not on main/tag and no [build all examples] label)"
+      fi
     agents:
-      slurm_mem: 8G
+      slurm_mem: 32G
+      slurm_gpus: 4
+      slurm_cpus_per_task: 8
+      slurm_ntasks: 4
+      slurm_gpus_per_task: 1
+
+  - wait
+
+  #####
+  ##### Documentation
+  #####
+
+  - label: "📖 documentation"
+    key: "docs"
+    env:
+      CI: "true"
+    command: |
+      set -euo pipefail
+
+      # Build all examples on main, tags, or when the commit message contains "[build all examples]"
+      if [[ "${BUILDKITE_BRANCH}" == "main" || "${BUILDKITE_TAG:-}" == v* || "${BUILDKITE_MESSAGE:-}" == *"[build all examples]"* ]]; then
+          export CLIMAOCEAN_BUILD_ALL_EXAMPLES=true
+      else
+          export CLIMAOCEAN_BUILD_ALL_EXAMPLES=false
+      fi
+
+      echo "CLIMAOCEAN_BUILD_ALL_EXAMPLES=${CLIMAOCEAN_BUILD_ALL_EXAMPLES}"
+
+      julia --project=docs -e 'using Pkg; Pkg.instantiate(verbose=true)'
+      julia --project=docs docs/make.jl
+    agents:
+      slurm_mem: 32G
       slurm_gpus: 1
       slurm_cpus_per_task: 8
       slurm_ntasks: 1
-      slurm_gpus_per_task: 1
-    matrix:
-      setup:
-        case:
-          - "🏔️ bathymetry"
