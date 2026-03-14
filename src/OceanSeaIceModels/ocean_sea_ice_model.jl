@@ -61,9 +61,9 @@ function reset!(model::OSIM)
 end
 
 # Make sure to initialize the exchanger here
-function initialization_update_state!(model::OSIM)
+function initialization_update_state!(model::OSIM; kw...)
     initialize!(model.interfaces.exchanger, model)
-    update_state!(model)
+    update_state!(model; kw...)
     return nothing
 end
 
