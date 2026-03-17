@@ -179,6 +179,7 @@ defaults on a per-field basis.
 - `verbose`: If `true`, prints additional setup information.
 """
 function ocean_simulation(grid;
+                          clock = Clock(grid),
                           Δt = estimate_maximum_Δt(grid),
                           closure = default_ocean_closure(),
                           tracers = (:T, :S),
@@ -301,6 +302,7 @@ function ocean_simulation(grid;
     end
 
     ocean_model = HydrostaticFreeSurfaceModel(grid;
+                                              clock,
                                               buoyancy,
                                               closure,
                                               biogeochemistry,
