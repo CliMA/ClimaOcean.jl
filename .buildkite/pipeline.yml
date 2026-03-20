@@ -1,6 +1,6 @@
 agents:
   queue: central
-  slurm_mem: 8G
+  slurm_mem: 12G
   modules: climacommon/2026_02_18
 
 timeout_in_minutes: 1440
@@ -75,8 +75,8 @@ steps:
   ##### GPU tests
   #####
 
-  - label: "{{ matrix.case }} GPU tests (8G)"
-    key: "gpu_tests_8g"
+  - label: "{{ matrix.case }} GPU tests (12G)"
+    key: "gpu_tests_12g"
     env:
       GPU_TEST: "true"
     command: |
@@ -89,12 +89,13 @@ steps:
         "💨 surface flux")     export TEST_GROUP="fluxes" ;;
         "🏔️ bathymetry")       export TEST_GROUP="bathymetry" ;;
         "🐎 checkpointing")    export TEST_GROUP="checkpointing" ;;
-        *) echo "Unknown GPU(8G) matrix case: {{ matrix.case }}"; exit 2 ;;
+        "🧊 OceanSeaIceModel") export TEST_GROUP="ocean_sea_ice_model" ;;
+        *) echo "Unknown GPU(12G) matrix case: {{ matrix.case }}"; exit 2 ;;
       esac
 
       julia --project -e 'using Pkg; Pkg.test()'
     agents:
-      slurm_mem: 8G
+      slurm_mem: 12G
       slurm_gpus: 1
       slurm_cpus_per_task: 8
       slurm_ntasks: 1
@@ -108,34 +109,10 @@ steps:
           - "💨 surface flux"
           - "🏔️ bathymetry"
           - "🐎 checkpointing"
-
-
-  - label: "{{ matrix.case }} GPU tests (10G)"
-    key: "gpu_tests_10g"
-    env:
-      GPU_TEST: "true"
-    command: |
-      set -euo pipefail
-
-      case "{{ matrix.case }}" in
-        "🧊 OceanSeaIceModel") export TEST_GROUP="ocean_sea_ice_model" ;;
-        *) echo "Unknown GPU(10G) matrix case: {{ matrix.case }}"; exit 2 ;;
-      esac
-
-      julia --project -e 'using Pkg; Pkg.test()'
-    agents:
-      slurm_mem: 10G
-      slurm_gpus: 1
-      slurm_cpus_per_task: 8
-      slurm_ntasks: 1
-      slurm_gpus_per_task: 1
-    matrix:
-      setup:
-        case:
           - "🧊 OceanSeaIceModel"
 
-  - label: "{{ matrix.case }} GPU tests (32G)"
-    key: "gpu_tests_32g"
+  - label: "{{ matrix.case }} GPU tests (40G)"
+    key: "gpu_tests_40g"
     env:
       GPU_TEST: "true"
     command: |
@@ -143,12 +120,12 @@ steps:
 
       case "{{ matrix.case }}" in
         "🌦️ JRA55") export TEST_GROUP="JRA55" ;;
-        *) echo "Unknown GPU(32G) matrix case: {{ matrix.case }}"; exit 2 ;;
+        *) echo "Unknown GPU(40G) matrix case: {{ matrix.case }}"; exit 2 ;;
       esac
 
       julia --project -e 'using Pkg; Pkg.test()'
     agents:
-      slurm_mem: 32G
+      slurm_mem: 40G
       slurm_gpus: 1
       slurm_cpus_per_task: 8
       slurm_ntasks: 1
@@ -173,6 +150,8 @@ steps:
       slurm_mem: 10G
       slurm_cpus_per_task: 1
       slurm_ntasks: 4
+      modules: mpiwrapper/2024_05_27 climacommon/2026_02_18
+    soft_fail: true # remove this after library issues on central are fixed
 
   - wait: ~
     continue_on_failure: true
