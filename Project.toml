@@ -5,6 +5,7 @@ version = "0.10.0"
 authors = ["Climate Modeling Alliance and contributors"]
 
 [deps]
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 Glob = "c27321d9-0574-5035-807b-f59d2c89b15c"
 KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
@@ -23,6 +24,7 @@ Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 ClimaOceanMakieExt = "Makie"
 
 [compat]
+CUDA = "5.9.7"
 DocStringExtensions = "0.9"
 Glob = "1"
 KernelAbstractions = "0.9"
