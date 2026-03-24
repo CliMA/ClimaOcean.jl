@@ -5,7 +5,6 @@ version = "0.10.0"
 authors = ["Climate Modeling Alliance and contributors"]
 
 [deps]
-ConservativeRegridding = "4ad4f581-602c-c518-83be-5e1e65b8e587"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 Glob = "c27321d9-0574-5035-807b-f59d2c89b15c"
 KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
@@ -17,7 +16,6 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [compat]
-ConservativeRegridding = "0.3"
 DocStringExtensions = "0.9"
 Glob = "1"
 KernelAbstractions = "0.9"

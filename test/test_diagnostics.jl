@@ -5,7 +5,6 @@ using Oceananigans: location
 using Oceananigans.Models: buoyancy_operation
 using ClimaOcean.Diagnostics: MixedLayerDepthField, MixedLayerDepthOperand
 using ClimaOcean.Diagnostics: MeridionalStreamfunction, compute_streamfunction
-using ConservativeRegridding
 
 for arch in test_architectures, dataset in (ECCO4Monthly(),)
     A = typeof(arch)
