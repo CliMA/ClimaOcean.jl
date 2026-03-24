@@ -36,6 +36,30 @@ steps:
   - wait
 
   #####
+  ##### Very simple tests
+  #####
+
+  - label: "{{ matrix.case }} Unit tests"
+    key: "unit_tests"
+    command: |
+      set -euo pipefail
+
+      case "{{ matrix.case }}" in
+        "🌦️ Unit")            export TEST_GROUP="unit" ;;
+        *) echo "Unknown CPU matrix case: {{ matrix.case }}"; exit 2 ;;
+      esac
+
+      julia --project -e 'using Pkg; Pkg.test()'
+    agents:
+      slurm_mem: 32G
+      slurm_cpus_per_task: 8
+      slurm_ntasks: 1
+    matrix:
+      setup:
+        case:
+          - "🌦️ Unit"
+
+  #####
   ##### Distributed simulation (1/6° on 4 GPUs, runs before docs so output is available)
   #####
 
@@ -48,7 +72,7 @@ steps:
 
       # Only run on main, tags, or when commit message contains "[build all examples]"
       if [[ "${BUILDKITE_BRANCH}" == "main" || "${BUILDKITE_TAG:-}" == v* || "${BUILDKITE_MESSAGE:-}" == *"[build all examples]"* ]]; then
-          srun -n 4 julia --project examples/sixth_degree_tripolar_ocean_sea_ice.jl
+          julia --project examples/sixth_degree_tripolar_ocean_sea_ice.jl
       else
           echo "Skipping distributed simulation (not on main/tag and no [build all examples] label)"
       fi
