@@ -28,8 +28,6 @@ using Test
 
     # Diagnostics exports
     @test isdefined(ClimaOcean.Diagnostics, :MixedLayerDepthField)
-    @test isdefined(ClimaOcean.Diagnostics, :MeridionalStreamfunction)
-    @test isdefined(ClimaOcean.Diagnostics, :compute_streamfunction)
     @test isdefined(ClimaOcean.Diagnostics, :compute_report_fields)
 
     # OceanConfigurations exports
