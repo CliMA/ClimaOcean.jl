@@ -7,6 +7,7 @@ export one_degree_tripolar_ocean,
        Progress
 
 using Reexport
+using Printf
 using Oceananigans
 using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
 
