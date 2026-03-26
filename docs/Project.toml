@@ -20,4 +20,3 @@ ClimaOcean = {path = ".."}
 Documenter = "1"
 DocumenterCitations = "1.3"
 Literate = "2.2"
-XESMF = "0.1.6"

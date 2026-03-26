@@ -13,8 +13,14 @@ using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
 
 @reexport using NumericalEarth
 @reexport using NumericalEarth.DataWrangling
+@reexport using NumericalEarth.DataWrangling: ETOPO, ECCO, GLORYS, EN4, JRA55
 @reexport using NumericalEarth.EarthSystemModels
 @reexport using NumericalEarth.EarthSystemModels.InterfaceComputations
+@reexport using NumericalEarth.Bathymetry
+@reexport using NumericalEarth.EarthSystemModels
+@reexport using NumericalEarth.Atmospheres
+@reexport using NumericalEarth.Oceans
+@reexport using NumericalEarth.SeaIces
 
 #####
 ##### Source code
@@ -67,12 +73,6 @@ include("Diagnostics/Diagnostics.jl")
 include("OceanConfigurations/OceanConfigurations.jl")
 include("SeaIceConfigurations/SeaIceConfigurations.jl")
 
-@reexport using NumericalEarth.DataWrangling: ETOPO, ECCO, GLORYS, EN4, JRA55
-@reexport using NumericalEarth.Bathymetry
-@reexport using NumericalEarth.EarthSystemModels
-@reexport using NumericalEarth.Atmospheres
-@reexport using NumericalEarth.Oceans
-@reexport using NumericalEarth.SeaIces
 using .InitialConditions
 using .OceanConfigurations
 using .SeaIceConfigurations
