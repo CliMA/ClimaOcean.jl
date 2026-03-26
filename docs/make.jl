@@ -15,7 +15,7 @@ bib = CitationBibliography(bib_filepath, style=:authoryear)
 struct Example
     title::String
     basename::String
-    build_always::Bool
+    full_year::Bool
 end
 
 const EXAMPLES_DIR   = joinpath(@__DIR__, "..", "examples")
@@ -24,15 +24,9 @@ const OUTPUT_DIR     = joinpath(@__DIR__, "src/literated")
 mkpath(OUTPUT_DIR)
 
 # Examples from examples/ directory.
-# Set `build_always = false` for long-running examples that should only be built
-# when the `CLIMAOCEAN_BUILD_ALL_EXAMPLES` environment variable is set to "true".
-ocean_only_examples = [
-    Example("Latitude-longitude",   "latitude_longitude_ocean_only",       false),
-    Example("Half-degree tripolar", "half_degree_tripolar_ocean_only",     false),
-    Example("One-degree tripolar",  "one_degree_tripolar_ocean_only",      false),
-    Example("ORCA",                 "orca_ocean_only",                     false),
-]
-
+# Set `full_year = true` to run the full 2-year simulation.
+# Set `full_year = false` to run only 100 time steps (for quick CI).
+# Setting `CLIMAOCEAN_BUILD_ALL_EXAMPLES=true` overrides all examples to full year.
 coupled_examples = [
     Example("Latitude-longitude",   "latitude_longitude_ocean_sea_ice",    false),
     Example("Half-degree tripolar", "half_degree_tripolar_ocean_sea_ice",  false),
@@ -46,32 +40,33 @@ distributed_examples = [
     Example("Sixth-degree distributed", "visualize_sixth_degree_simulation", false),
 ]
 
-# Filter out long-running examples unless CLIMAOCEAN_BUILD_ALL_EXAMPLES is set
+# When CLIMAOCEAN_BUILD_ALL_EXAMPLES is set, override all examples to full year
 build_all = get(ENV, "CLIMAOCEAN_BUILD_ALL_EXAMPLES", "false") == "true"
-filter!(x -> x.build_always || build_all, ocean_only_examples)
-filter!(x -> x.build_always || build_all, coupled_examples)
-filter!(x -> x.build_always || build_all, distributed_examples)
-filter!(x -> x.build_always || build_all, developer_examples)
 
 #####
 ##### Generate examples using Literate (each in a subprocess for memory isolation)
 #####
 
-for example in vcat(ocean_only_examples, coupled_examples, distributed_examples)
+for example in vcat(coupled_examples, distributed_examples)
     script_path = joinpath(EXAMPLES_DIR, example.basename * ".jl")
-    run(`$(Base.julia_cmd()) --color=yes --project=$(dirname(Base.active_project())) $(joinpath(@__DIR__, "literate.jl")) $(script_path) $(OUTPUT_DIR)`)
+    full_simulation = example.full_year || build_all
+    withenv("CLIMAOCEAN_FULL_SIMULATION" => string(full_simulation)) do
+        run(`$(Base.julia_cmd()) --color=yes --project=$(dirname(Base.active_project())) $(joinpath(@__DIR__, "literate.jl")) $(script_path) $(OUTPUT_DIR)`)
+    end
 end
 
 for example in developer_examples
     script_path = joinpath(DEVELOPERS_DIR, example.basename * ".jl")
-    run(`$(Base.julia_cmd()) --color=yes --project=$(dirname(Base.active_project())) $(joinpath(@__DIR__, "literate.jl")) $(script_path) $(OUTPUT_DIR)`)
+    full_simulation = example.full_year || build_all
+    withenv("CLIMAOCEAN_FULL_SIMULATION" => string(full_simulation)) do
+        run(`$(Base.julia_cmd()) --color=yes --project=$(dirname(Base.active_project())) $(joinpath(@__DIR__, "literate.jl")) $(script_path) $(OUTPUT_DIR)`)
+    end
 end
 
 #####
 ##### Build and deploy docs
 #####
 
-ocean_only_pages    = [ex.title => joinpath("literated", ex.basename * ".md") for ex in ocean_only_examples]
 coupled_pages       = [ex.title => joinpath("literated", ex.basename * ".md") for ex in coupled_examples]
 distributed_pages   = [ex.title => joinpath("literated", ex.basename * ".md") for ex in distributed_examples]
 
@@ -82,7 +77,6 @@ format = Documenter.HTML(collapselevel = 2,
 pages = [
     "Home" => "index.md",
 
-    "Ocean-only simulations"      => ocean_only_pages,
     "Ocean--sea ice simulations"  => coupled_pages,
     "Distributed simulations"     => distributed_pages,
 
