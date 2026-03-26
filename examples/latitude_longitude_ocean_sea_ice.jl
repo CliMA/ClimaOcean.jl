@@ -35,7 +35,14 @@ radiation = Radiation(arch)
 # ### Simulation
 
 coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
-simulation = Simulation(coupled_model; Δt = 20minutes, stop_time = 2 * 365days)
+
+full_year = get(ENV, "CLIMAOCEAN_FULL_SIMULATION", "false") == "true"
+
+if full_year
+    simulation = Simulation(coupled_model; Δt = 20minutes, stop_time = 2 * 365days)
+else
+    simulation = Simulation(coupled_model; Δt = 20minutes, stop_iteration = 100)
+end
 
 # ### Progress messenger
 
