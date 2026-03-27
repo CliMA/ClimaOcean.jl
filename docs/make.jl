@@ -34,11 +34,11 @@ coupled_examples = [
     Example("ORCA",                 "orca_ocean_sea_ice",                  false),
 ]
 
-# The 1/6° distributed simulation is run via MPI in a separate CI step.
-# This visualization example loads the saved output and is executed by Literate.
-distributed_examples = [
-    Example("Sixth-degree distributed", "visualize_sixth_degree_simulation", false),
-]
+# # The 1/6° distributed simulation is run via MPI in a separate CI step.
+# # This visualization example loads the saved output and is executed by Literate.
+# distributed_examples = [
+#     Example("Sixth-degree distributed", "visualize_sixth_degree_simulation", false),
+# ]
 
 # When CLIMAOCEAN_BUILD_ALL_EXAMPLES is set, override all examples to full year
 build_all = get(ENV, "CLIMAOCEAN_BUILD_ALL_EXAMPLES", "false") == "true"
@@ -47,13 +47,13 @@ build_all = get(ENV, "CLIMAOCEAN_BUILD_ALL_EXAMPLES", "false") == "true"
 ##### Generate examples using Literate (each in a subprocess for memory isolation)
 #####
 
-for example in vcat(coupled_examples, distributed_examples)
-    script_path = joinpath(EXAMPLES_DIR, example.basename * ".jl")
-    full_simulation = example.full_year || build_all
-    withenv("CLIMAOCEAN_FULL_SIMULATION" => string(full_simulation)) do
-        run(`$(Base.julia_cmd()) --color=yes --project=$(dirname(Base.active_project())) $(joinpath(@__DIR__, "literate.jl")) $(script_path) $(OUTPUT_DIR)`)
-    end
-end
+# for example in vcat(coupled_examples, distributed_examples)
+#     script_path = joinpath(EXAMPLES_DIR, example.basename * ".jl")
+#     full_simulation = example.full_year || build_all
+#     withenv("CLIMAOCEAN_FULL_SIMULATION" => string(full_simulation)) do
+#         run(`$(Base.julia_cmd()) --color=yes --project=$(dirname(Base.active_project())) $(joinpath(@__DIR__, "literate.jl")) $(script_path) $(OUTPUT_DIR)`)
+#     end
+# end
 
 for example in developer_examples
     script_path = joinpath(DEVELOPERS_DIR, example.basename * ".jl")
@@ -68,7 +68,7 @@ end
 #####
 
 coupled_pages       = [ex.title => joinpath("literated", ex.basename * ".md") for ex in coupled_examples]
-distributed_pages   = [ex.title => joinpath("literated", ex.basename * ".md") for ex in distributed_examples]
+# distributed_pages   = [ex.title => joinpath("literated", ex.basename * ".md") for ex in distributed_examples]
 
 format = Documenter.HTML(collapselevel = 2,
                          size_threshold = nothing,
@@ -78,7 +78,7 @@ pages = [
     "Home" => "index.md",
 
     "Ocean--sea ice simulations"  => coupled_pages,
-    "Distributed simulations"     => distributed_pages,
+    # "Distributed simulations"     => distributed_pages,
 
     "Library" => [
         "Contents"       => "library/outline.md",

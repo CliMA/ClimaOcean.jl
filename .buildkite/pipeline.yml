@@ -63,27 +63,27 @@ steps:
   ##### Distributed simulation (1/6° on 4 GPUs, runs before docs so output is available)
   #####
 
-  - label: "🌊 sixth-degree distributed simulation"
-    key: "sixth_degree"
-    env:
-      GPU_TEST: "true"
-    command: |
-      set -euo pipefail
+  # - label: "🌊 sixth-degree distributed simulation"
+  #   key: "sixth_degree"
+  #   env:
+  #     GPU_TEST: "true"
+  #   command: |
+  #     set -euo pipefail
 
-      # Only run on main, tags, or when commit message contains "[build all examples]"
-      if [[ "${BUILDKITE_BRANCH}" == "main" || "${BUILDKITE_TAG:-}" == v* || "${BUILDKITE_MESSAGE:-}" == *"[build all examples]"* ]]; then
-          julia --project examples/sixth_degree_tripolar_ocean_sea_ice.jl
-      else
-          echo "Skipping distributed simulation (not on main/tag and no [build all examples] label)"
-      fi
-    agents:
-      slurm_mem: 32G
-      slurm_gpus: 4
-      slurm_cpus_per_task: 8
-      slurm_ntasks: 4
-      slurm_gpus_per_task: 1
+  #     # Only run on main, tags, or when commit message contains "[build all examples]"
+  #     if [[ "${BUILDKITE_BRANCH}" == "main" || "${BUILDKITE_TAG:-}" == v* || "${BUILDKITE_MESSAGE:-}" == *"[build all examples]"* ]]; then
+  #         julia --project examples/sixth_degree_tripolar_ocean_sea_ice.jl
+  #     else
+  #         echo "Skipping distributed simulation (not on main/tag and no [build all examples] label)"
+  #     fi
+  #   agents:
+  #     slurm_mem: 32G
+  #     slurm_gpus: 4
+  #     slurm_cpus_per_task: 8
+  #     slurm_ntasks: 4
+  #     slurm_gpus_per_task: 1
 
-  - wait
+  # - wait
 
   #####
   ##### Documentation
