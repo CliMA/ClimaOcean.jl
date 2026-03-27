@@ -1,60 +1,74 @@
-using Distributed
-Distributed.addprocs(2)
+using ClimaOcean
+using Documenter
+using DocumenterCitations
+using Literate
 
-@everywhere begin
-    using ClimaOcean
-    using CUDA
-    using Documenter
-    using DocumenterCitations
-    using Literate
+ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
 
-    ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
+bib_filepath = joinpath(dirname(@__FILE__), "climaocean.bib")
+bib = CitationBibliography(bib_filepath, style=:authoryear)
 
-    bib_filepath = joinpath(dirname(@__FILE__), "climaocean.bib")
-    bib = CitationBibliography(bib_filepath, style=:authoryear)
+#####
+##### Example definition and filtering
+#####
 
-    #####
-    ##### Generate examples
-    #####
-
-    const EXAMPLES_DIR   = joinpath(@__DIR__, "..", "examples")
-    const OUTPUT_DIR     = joinpath(@__DIR__, "src/literated")
-    const DEVELOPERS_DIR = joinpath(@__DIR__, "src/developers")
-
-    examples_pages = [
-        "Single-column ocean simulation" => "literated/single_column_os_papa_simulation.md",
-        "One-degree ocean--sea ice simulation" => "literated/one_degree_simulation.md",
-        "Near-global ocean simulation" => "literated/near_global_ocean_simulation.md",
-        "Global climate simulation" => "literated/global_climate_simulation.md",
-    ]
-
-    to_be_literated = map(examples_pages) do (_, mdpath)
-        replace(basename(mdpath), ".md" => ".jl")
-    end
+struct Example
+    title::String
+    basename::String
+    full_year::Bool
 end
 
-Distributed.pmap(1:length(to_be_literated)) do n
-    device = Distributed.myid()
-    @info "switching to device $(device)"
-    CUDA.device!(device) # Set the correct GPU, the used GPUs will be number 2 and 3
-    file = to_be_literated[n]
-    filepath = joinpath(EXAMPLES_DIR, file)
-    withenv("JULIA_DEBUG" => "Literate") do
-        Literate.markdown(filepath, OUTPUT_DIR; flavor = Literate.DocumenterFlavor(), execute = true)
+const EXAMPLES_DIR   = joinpath(@__DIR__, "..", "examples")
+const OUTPUT_DIR     = joinpath(@__DIR__, "src/literated")
+
+mkpath(OUTPUT_DIR)
+
+# Examples from examples/ directory.
+# Set `full_year = true` to run the full 2-year simulation.
+# Set `full_year = false` to run only 100 time steps (for quick CI).
+# Setting `CLIMAOCEAN_BUILD_ALL_EXAMPLES=true` overrides all examples to full year.
+coupled_examples = [
+    Example("Latitude-longitude",   "latitude_longitude_ocean_sea_ice",    false),
+    Example("Half-degree tripolar", "half_degree_tripolar_ocean_sea_ice",  false),
+    Example("One-degree tripolar",  "one_degree_tripolar_ocean_sea_ice",   false),
+    Example("ORCA",                 "orca_ocean_sea_ice",                  false),
+]
+
+# # The 1/6° distributed simulation is run via MPI in a separate CI step.
+# # This visualization example loads the saved output and is executed by Literate.
+# distributed_examples = [
+#     Example("Sixth-degree distributed", "visualize_sixth_degree_simulation", false),
+# ]
+
+# When CLIMAOCEAN_BUILD_ALL_EXAMPLES is set, override all examples to full year
+build_all = get(ENV, "CLIMAOCEAN_BUILD_ALL_EXAMPLES", "false") == "true"
+
+#####
+##### Generate examples using Literate (each in a subprocess for memory isolation)
+#####
+
+# for example in vcat(coupled_examples, distributed_examples)
+#     script_path = joinpath(EXAMPLES_DIR, example.basename * ".jl")
+#     full_simulation = example.full_year || build_all
+#     withenv("CLIMAOCEAN_FULL_SIMULATION" => string(full_simulation)) do
+#         run(`$(Base.julia_cmd()) --color=yes --project=$(dirname(Base.active_project())) $(joinpath(@__DIR__, "literate.jl")) $(script_path) $(OUTPUT_DIR)`)
+#     end
+# end
+
+for example in developer_examples
+    script_path = joinpath(DEVELOPERS_DIR, example.basename * ".jl")
+    full_simulation = example.full_year || build_all
+    withenv("CLIMAOCEAN_FULL_SIMULATION" => string(full_simulation)) do
+        run(`$(Base.julia_cmd()) --color=yes --project=$(dirname(Base.active_project())) $(joinpath(@__DIR__, "literate.jl")) $(script_path) $(OUTPUT_DIR)`)
     end
-    GC.gc(true)
-    CUDA.reclaim()
-end
-
-Distributed.rmprocs()
-
-withenv("JULIA_DEBUG" => "Literate") do
-    Literate.markdown(joinpath(DEVELOPERS_DIR, "slab_ocean.jl"), OUTPUT_DIR; flavor = Literate.DocumenterFlavor(), execute = true)
 end
 
 #####
 ##### Build and deploy docs
 #####
+
+coupled_pages       = [ex.title => joinpath("literated", ex.basename * ".md") for ex in coupled_examples]
+# distributed_pages   = [ex.title => joinpath("literated", ex.basename * ".md") for ex in distributed_examples]
 
 format = Documenter.HTML(collapselevel = 2,
                          size_threshold = nothing,
@@ -63,19 +77,8 @@ format = Documenter.HTML(collapselevel = 2,
 pages = [
     "Home" => "index.md",
 
-    "Examples" => examples_pages,
-
-    "Developers" => [
-        "OceanSeaIceModel interface" => "literated/slab_ocean.md",
-        ],
-
-    "Vertical grids" => "vertical_grids.md",
-
-    "Metadata" => [
-        "Overview" => "Metadata/metadata_overview.md",
-        "Supported variables" => "Metadata/supported_variables.md",
-    ],
-    "Interface fluxes" => "interface_fluxes.md",
+    "Ocean--sea ice simulations"  => coupled_pages,
+    # "Distributed simulations"     => distributed_pages,
 
     "Library" => [
         "Contents"       => "library/outline.md",
@@ -88,9 +91,8 @@ pages = [
 ]
 
 modules = Module[]
-ClimaOceanSpeedyWeatherExt = isdefined(Base, :get_extension) ? Base.get_extension(ClimaOcean, :ClimaOceanSpeedyWeatherExt) : ClimaOcean.ClimaOceanSpeedyWeatherExt
 
-for m in [ClimaOcean, ClimaOceanSpeedyWeatherExt]
+for m in [ClimaOcean]
     if !isnothing(m)
         push!(modules, m)
     end

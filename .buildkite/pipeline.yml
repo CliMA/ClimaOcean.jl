@@ -3,7 +3,7 @@ agents:
   slurm_mem: 16G
   modules: climacommon/2026_02_18
 
-timeout_in_minutes: 1440
+timeout_in_minutes: 2880
 
 env:
   OPENBLAS_NUM_THREADS: 1
@@ -35,23 +35,17 @@ steps:
 
   - wait
 
-#####
-##### CPU tests
-#####
+  #####
+  ##### Very simple tests
+  #####
 
-  - label: "{{ matrix.case }} CPU tests"
-    key: "cpu_tests"
+  - label: "{{ matrix.case }} Unit tests"
+    key: "unit_tests"
     command: |
       set -euo pipefail
 
       case "{{ matrix.case }}" in
-        "🌦️ JRA55")            export TEST_GROUP="JRA55" ;;
-        "🌊 ECCO2Monthly")     export TEST_GROUP="ecco2_monthly" ;;
-        "🐚 ECCO2Daily")       export TEST_GROUP="ecco2_daily" ;;
-        "🦑 ECCO4/EN4")        export TEST_GROUP="ecco4_en4" ;;
-        "💨 surface flux")     export TEST_GROUP="fluxes" ;;
-        "🏔️ bathymetry")       export TEST_GROUP="bathymetry" ;;
-        "🐎 checkpointing")    export TEST_GROUP="checkpointing" ;;
+        "🌦️ Unit")            export TEST_GROUP="unit" ;;
         *) echo "Unknown CPU matrix case: {{ matrix.case }}"; exit 2 ;;
       esac
 
@@ -63,95 +57,58 @@ steps:
     matrix:
       setup:
         case:
-          - "🌦️ JRA55"
-          - "🌊 ECCO2Monthly"
-          - "🐚 ECCO2Daily"
-          - "🦑 ECCO4/EN4"
-          - "💨 surface flux"
-          - "🏔️ bathymetry"
-          - "🐎 checkpointing"
+          - "🌦️ Unit"
 
   #####
-  ##### GPU tests
+  ##### Distributed simulation (1/6° on 4 GPUs, runs before docs so output is available)
   #####
 
-  - label: "{{ matrix.case }} GPU tests (16G)"
-    key: "gpu_tests_16G"
+  # - label: "🌊 sixth-degree distributed simulation"
+  #   key: "sixth_degree"
+  #   env:
+  #     GPU_TEST: "true"
+  #   command: |
+  #     set -euo pipefail
+
+  #     # Only run on main, tags, or when commit message contains "[build all examples]"
+  #     if [[ "${BUILDKITE_BRANCH}" == "main" || "${BUILDKITE_TAG:-}" == v* || "${BUILDKITE_MESSAGE:-}" == *"[build all examples]"* ]]; then
+  #         julia --project examples/sixth_degree_tripolar_ocean_sea_ice.jl
+  #     else
+  #         echo "Skipping distributed simulation (not on main/tag and no [build all examples] label)"
+  #     fi
+  #   agents:
+  #     slurm_mem: 32G
+  #     slurm_gpus: 4
+  #     slurm_cpus_per_task: 8
+  #     slurm_ntasks: 4
+  #     slurm_gpus_per_task: 1
+
+  # - wait
+
+  #####
+  ##### Documentation
+  #####
+
+  - label: "📖 documentation"
+    key: "docs"
     env:
-      GPU_TEST: "true"
+      CI: "true"
     command: |
       set -euo pipefail
 
-      case "{{ matrix.case }}" in
-        "🌊 ECCO2Monthly")     export TEST_GROUP="ecco2_monthly" ;;
-        "🐚 ECCO2Daily")       export TEST_GROUP="ecco2_daily" ;;
-        "🦑 ECCO4/EN4")        export TEST_GROUP="ecco4_en4" ;;
-        "💨 surface flux")     export TEST_GROUP="fluxes" ;;
-        "🏔️ bathymetry")       export TEST_GROUP="bathymetry" ;;
-        "🐎 checkpointing")    export TEST_GROUP="checkpointing" ;;
-        "🧊 OceanSeaIceModel") export TEST_GROUP="ocean_sea_ice_model" ;;
-        *) echo "Unknown GPU(16G) matrix case: {{ matrix.case }}"; exit 2 ;;
-      esac
+      # Build all examples on main, tags, or when the commit message contains "[build all examples]"
+      if [[ "${BUILDKITE_BRANCH}" == "main" || "${BUILDKITE_TAG:-}" == v* || "${BUILDKITE_MESSAGE:-}" == *"[build all examples]"* ]]; then
+          export CLIMAOCEAN_BUILD_ALL_EXAMPLES=true
+      else
+          export CLIMAOCEAN_BUILD_ALL_EXAMPLES=false
+      fi
 
-      julia --project -e 'using Pkg; Pkg.test()'
+      echo "CLIMAOCEAN_BUILD_ALL_EXAMPLES=${CLIMAOCEAN_BUILD_ALL_EXAMPLES}"
+
+      julia --project=docs -e 'using Pkg; Pkg.instantiate(verbose=true)'
+      julia --project=docs docs/make.jl
     agents:
-      slurm_mem: 16G
+      slurm_mem: 32G
       slurm_gpus: 1
       slurm_cpus_per_task: 8
       slurm_ntasks: 1
-      slurm_gpus_per_task: 1
-    matrix:
-      setup:
-        case:
-          - "🌊 ECCO2Monthly"
-          - "🐚 ECCO2Daily"
-          - "🦑 ECCO4/EN4"
-          - "💨 surface flux"
-          - "🏔️ bathymetry"
-          - "🐎 checkpointing"
-          - "🧊 OceanSeaIceModel"
-
-  - label: "{{ matrix.case }} GPU tests (48G)"
-    key: "gpu_tests_48G"
-    env:
-      GPU_TEST: "true"
-    command: |
-      set -euo pipefail
-
-      case "{{ matrix.case }}" in
-        "🌦️ JRA55") export TEST_GROUP="JRA55" ;;
-        *) echo "Unknown GPU(48G) matrix case: {{ matrix.case }}"; exit 2 ;;
-      esac
-
-      julia --project -e 'using Pkg; Pkg.test()'
-    agents:
-      slurm_mem: 48G
-      slurm_gpus: 1
-      slurm_cpus_per_task: 8
-      slurm_ntasks: 1
-      slurm_gpus_per_task: 1
-    matrix:
-      setup:
-        case:
-          - "🌦️ JRA55"
-
-
-  #####
-  ##### Distributed tests
-  #####
-
-  - label: "🐙 Run distributed tests"
-    key: "test_distributed"
-    env:
-      TEST_GROUP: "distributed"
-    commands:
-      - "srun julia --project -e 'using Pkg; Pkg.test()'"
-    agents:
-      slurm_mem: 10G
-      slurm_cpus_per_task: 1
-      slurm_ntasks: 4
-      modules: mpiwrapper/2024_05_27 climacommon/2026_02_18
-    soft_fail: true # remove this after library issues on central are fixed
-
-  - wait: ~
-    continue_on_failure: true

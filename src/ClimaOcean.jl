@@ -1,127 +1,80 @@
 module ClimaOcean
 
-# Use the README as the module docs
-@doc let
-    path = joinpath(dirname(@__DIR__), "README.md")
-    include_dependency(path)
-    read(path, String)
-end ClimaOcean
+export one_degree_tripolar_ocean, 
+       half_degree_tripolar_ocean, 
+       latitude_longitude_ocean, 
+       sixth_degree_tripolar_ocean,
+       Progress
 
-export
-    OceanSeaIceModel,
-    FreezingLimitedOceanTemperature,
-    Radiation,
-    LatitudeDependentAlbedo,
-    SimilarityTheoryFluxes,
-    CoefficientBasedFluxes,
-    MomentumRoughnessLength,
-    ScalarRoughnessLength,
-    ComponentInterfaces,
-    SkinTemperature,
-    BulkTemperature,
-    PrescribedAtmosphere,
-    JRA55PrescribedAtmosphere,
-    JRA55NetCDFBackend,
-    regrid_bathymetry,
-    retrieve_bathymetry,
-    Metadata,
-    Metadatum,
-    ECCOMetadatum,
-    EN4Metadatum,
-    ETOPO2022,
-    ECCO2Daily, ECCO2Monthly, ECCO4Monthly,
-    ECCO2DarwinMonthly, ECCO4DarwinMonthly,
-    EN4Monthly,
-    GLORYSDaily, GLORYSMonthly, GLORYSStatic,
-    RepeatYearJRA55, MultiYearJRA55,
-    first_date,
-    last_date,
-    all_dates,
-    JRA55FieldTimeSeries,
-    LinearlyTaperedPolarMask,
-    DatasetRestoring,
-    ocean_simulation,
-    sea_ice_simulation,
-    atmosphere_simulation,
-    sea_ice_dynamics,
-    initialize!
-
+using Reexport
+using Printf
 using Oceananigans
 using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
-using DataDeps
 
-using Oceananigans.OutputReaders: GPUAdaptedFieldTimeSeries, FieldTimeSeries
-using Oceananigans.Grids: node
-
-const SomeKindOfFieldTimeSeries = Union{FieldTimeSeries,
-                                        GPUAdaptedFieldTimeSeries}
-
-const SKOFTS = SomeKindOfFieldTimeSeries
-
-@inline stateindex(a::Number, i, j, k, args...) = a
-@inline stateindex(a::AbstractArray, i, j, k, args...) = @inbounds a[i, j, k]
-@inline stateindex(a::SKOFTS, i, j, k, grid, time, args...) = @inbounds a[i, j, k, time]
-
-@inline function stateindex(a::Function, i, j, k, grid, time, (LX, LY, LZ), args...)
-    λ, φ, z = node(i, j, k, grid, LX(), LY(), LZ())
-    return a(λ, φ, z, time)
-end
-
-@inline function stateindex(a::Tuple, i, j, k, grid, time, args...)
-    N = length(a)
-    ntuple(Val(N)) do n
-        stateindex(a[n], i, j, k, grid, time, args...)
-    end
-end
-
-@inline function stateindex(a::NamedTuple, i, j, k, grid, time, args...)
-    vals = stateindex(values(a), i, j, k, grid, time, args...)
-    names = keys(a)
-    return NamedTuple{names}(vals)
-end
+@reexport using NumericalEarth
+@reexport using NumericalEarth.DataWrangling
+@reexport using NumericalEarth.DataWrangling: ETOPO, ECCO, GLORYS, EN4, JRA55
+@reexport using NumericalEarth.EarthSystemModels
+@reexport using NumericalEarth.EarthSystemModels.InterfaceComputations
+@reexport using NumericalEarth.Bathymetry
+@reexport using NumericalEarth.EarthSystemModels
+@reexport using NumericalEarth.Atmospheres
+@reexport using NumericalEarth.Oceans
+@reexport using NumericalEarth.SeaIces
 
 #####
 ##### Source code
 #####
 
-include("OceanSeaIceModels/OceanSeaIceModels.jl")
-include("Oceans/Oceans.jl")
-include("Atmospheres/Atmospheres.jl")
-include("SeaIces/SeaIces.jl")
-include("InitialConditions/InitialConditions.jl")
-include("DataWrangling/DataWrangling.jl")
-include("Bathymetry/Bathymetry.jl")
-include("Diagnostics/Diagnostics.jl")
-
-using .DataWrangling
-using .DataWrangling: ETOPO, ECCO, GLORYS, EN4, JRA55
-using .Bathymetry
-using .InitialConditions
-using .OceanSeaIceModels
-using .Atmospheres
-using .Oceans
-using .SeaIces
-
-using ClimaOcean.OceanSeaIceModels: ComponentInterfaces, MomentumRoughnessLength, ScalarRoughnessLength
-using ClimaOcean.DataWrangling.ETOPO
-using ClimaOcean.DataWrangling.ECCO
-using ClimaOcean.DataWrangling.GLORYS
-using ClimaOcean.DataWrangling.EN4
-using ClimaOcean.DataWrangling.JRA55
-using ClimaOcean.DataWrangling.JRA55: JRA55NetCDFBackend
-
-using PrecompileTools: @setup_workload, @compile_workload
-
-@setup_workload begin
-    Nx, Ny, Nz = 32, 32, 10
-    @compile_workload begin
-        depth = 6000
-        z = Oceananigans.Grids.ExponentialDiscretization(Nz, -depth, 0)
-        grid = Oceananigans.OrthogonalSphericalShellGrids.TripolarGrid(CPU(); size=(Nx, Ny, Nz), halo=(7, 7, 7), z)
-        grid = ImmersedBoundaryGrid(grid, GridFittedBottom((x, y) -> -5000))
-        # ocean = ocean_simulation(grid)
-        # model = OceanSeaIceModel(ocean)
-    end
+struct Progress{W} <: Function
+    wall_time :: W
 end
+
+Progress() = Progress(Ref(time_ns()))
+
+function (p::Progress)(sim)
+    
+    sea_ice = sim.model.sea_ice
+    ocean   = sim.model.ocean
+
+    msg1 = @sprintf("time: %s, iteration: %d, Δt: %s, ", prettytime(sim), iteration(sim), prettytime(sim.Δt))
+
+    if sea_ice isa Simulation
+        hmax = maximum(sea_ice.model.ice_thickness)
+        ℵmax = maximum(sea_ice.model.ice_concentration)
+        msg2 = @sprintf("max(h): %.2e m, max(ℵ): %.2e ", hmax, ℵmax)
+    else
+        msg2 = @sprintf("")
+    end
+
+    Tmax = maximum(ocean.model.tracers.T)
+    Tmin = minimum(ocean.model.tracers.T)
+    Smax = maximum(ocean.model.tracers.S)
+    Smin = minimum(ocean.model.tracers.S)
+    umax = maximum(ocean.model.velocities.u)
+    vmax = maximum(ocean.model.velocities.v)
+    wmax = maximum(ocean.model.velocities.w)
+
+    step_time = 1e-9 * (time_ns() - p.wall_time[])
+
+    msg4 = @sprintf("extrema(T, S): (%.2f, %.2f) ᵒC, (%.2f, %.2f) psu, ", Tmax, Tmin)
+    msg5 = @sprintf("maximum(u): (%.2e, %.2e, %.2e) m/s, ", umax, vmax, wmax)
+    msg6 = @sprintf("wall time: %s \n", prettytime(step_time))
+
+    @info msg1 * msg2 * msg4 * msg5 * msg6
+
+    p.wall_time[] = time_ns()
+
+    return nothing
+end
+
+include("InitialConditions/InitialConditions.jl")
+include("Diagnostics/Diagnostics.jl")
+include("OceanConfigurations/OceanConfigurations.jl")
+include("SeaIceConfigurations/SeaIceConfigurations.jl")
+
+using .InitialConditions
+using .OceanConfigurations
+using .SeaIceConfigurations
 
 end # module
