@@ -1,7 +1,8 @@
 module ClimaOceanMakieExt
 
 using Makie
-using ClimaOcean.Diagnostics: simulation_report, compute_report_fields
+using ClimaOcean
+using ClimaOcean.Diagnostics: compute_report_fields
 
 using NumericalEarth.DataWrangling: WOAAnnual
 

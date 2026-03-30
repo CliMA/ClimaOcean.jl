@@ -55,14 +55,6 @@ build_all = get(ENV, "CLIMAOCEAN_BUILD_ALL_EXAMPLES", "false") == "true"
 #     end
 # end
 
-for example in developer_examples
-    script_path = joinpath(DEVELOPERS_DIR, example.basename * ".jl")
-    full_simulation = example.full_year || build_all
-    withenv("CLIMAOCEAN_FULL_SIMULATION" => string(full_simulation)) do
-        run(`$(Base.julia_cmd()) --color=yes --project=$(dirname(Base.active_project())) $(joinpath(@__DIR__, "literate.jl")) $(script_path) $(OUTPUT_DIR)`)
-    end
-end
-
 #####
 ##### Build and deploy docs
 #####
