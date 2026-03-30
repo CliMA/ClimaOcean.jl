@@ -52,7 +52,7 @@ jobs:
           ECCO_USERNAME: ${{ secrets.ECCO_USERNAME }} # To download ECCO data from the podaac website
           ECCO_WEBDAV_PASSWORD: ${{ secrets.ECCO_WEBDAV_PASSWORD }} # To download ECCO data from the podaac website
       - uses: julia-actions/julia-processcoverage@v1
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v6
         with:
           files: lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -97,7 +97,7 @@ jobs:
           CDSAPI_URL: "https://cds.climate.copernicus.eu/api"
           CDSAPI_KEY: ${{ secrets.CDS_API_KEY }}
       - uses: julia-actions/julia-processcoverage@v1
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v6
         with:
           files: lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -133,7 +133,7 @@ jobs:
           ECCO_USERNAME: ${{ secrets.ECCO_USERNAME }} # To download ECCO data from the podaac website
           ECCO_WEBDAV_PASSWORD: ${{ secrets.ECCO_WEBDAV_PASSWORD }} # To download ECCO data from the podaac website
       - uses: julia-actions/julia-processcoverage@v1
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v6
         with:
           files: lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
