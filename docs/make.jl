@@ -47,13 +47,16 @@ build_all = get(ENV, "CLIMAOCEAN_BUILD_ALL_EXAMPLES", "false") == "true"
 ##### Generate examples using Literate (each in a subprocess for memory isolation)
 #####
 
-# for example in vcat(coupled_examples, distributed_examples)
-#     script_path = joinpath(EXAMPLES_DIR, example.basename * ".jl")
-#     full_simulation = example.full_year || build_all
-#     withenv("CLIMAOCEAN_FULL_SIMULATION" => string(full_simulation)) do
-#         run(`$(Base.julia_cmd()) --color=yes --project=$(dirname(Base.active_project())) $(joinpath(@__DIR__, "literate.jl")) $(script_path) $(OUTPUT_DIR)`)
-#     end
-# end
+all_examples = coupled_examples
+# all_examples = vcat(coupled_examples, distributed_examples)
+
+for example in all_examples
+    script_path = joinpath(EXAMPLES_DIR, example.basename * ".jl")
+    full_simulation = example.full_year || build_all
+    withenv("CLIMAOCEAN_FULL_SIMULATION" => string(full_simulation)) do
+        run(`$(Base.julia_cmd()) --color=yes --project=$(dirname(Base.active_project())) $(joinpath(@__DIR__, "literate.jl")) $(script_path) $(OUTPUT_DIR)`)
+    end
+end
 
 #####
 ##### Build and deploy docs
