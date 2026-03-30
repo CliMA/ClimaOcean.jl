@@ -1,6 +1,5 @@
 using Test
 using Reactant
-using Oceananigans.Models: initialization_update_state!
 using Oceananigans.Architectures: ReactantState
 using Oceananigans.Grids: Periodic, Bounded, Flat
 using ClimaOcean
