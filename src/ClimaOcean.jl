@@ -1,9 +1,14 @@
 module ClimaOcean
 
-export one_degree_tripolar_ocean, 
-       half_degree_tripolar_ocean, 
-       latitude_longitude_ocean, 
+export one_degree_tripolar_ocean,
+       half_degree_tripolar_ocean,
+       latitude_longitude_ocean,
        sixth_degree_tripolar_ocean,
+       latitude_longitude_sea_ice,
+       half_degree_tripolar_sea_ice,
+       one_degree_tripolar_sea_ice,
+       sixth_degree_tripolar_sea_ice,
+       orca_sea_ice,
        Progress
 
 using Reexport
