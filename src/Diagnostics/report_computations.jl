@@ -1,3 +1,9 @@
+@inline function speedᶜᶜᶜ(i, j, k, grid, u, v)
+    û = ℑxᶜᵃᵃ(i, j, k, grid, u)
+    v̂ = ℑyᵃᶜᵃ(i, j, k, grid, v)
+    return sqrt(û^2 + v̂^2)
+end
+
 """
     compute_report_fields(ocean; dataset = WOAAnnual())
 
@@ -26,11 +32,10 @@ function compute_report_fields(ocean; dataset = WOAAnnual())
     SSS = Array(interior(S, :, :, Nz))
 
     # Surface speed
-    uₛ = Field(u; indices = (:, :, Nz))
-    vₛ = Field(v; indices = (:, :, Nz))
-    c = @at (Center, Center, Nothing) sqrt(uₛ^2 + vₛ^2)
-    compute!(Field(c))
-    spd = Array(interior(Field(c), :, :, 1))
+    spd_op = KernelFunctionOperation{Center, Center, Center}(speedᶜᶜᶜ, grid, u, v)
+    spd_field = Field(spd_op; indices = (:, :, Nz))
+    compute!(spd_field)
+    spd = Array(interior(spd_field, :, :, 1))
 
     # Surface vorticity
     ζ_op = KernelFunctionOperation{Face, Face, Center}(ζ₃ᶠᶠᶜ, grid, u, v)

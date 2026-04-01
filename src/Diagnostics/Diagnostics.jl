@@ -13,7 +13,7 @@ using Oceananigans.BoundaryConditions: FieldBoundaryConditions, fill_halo_region
 using Oceananigans.Fields: FieldStatus
 using Oceananigans.Utils: launch!
 using KernelAbstractions: @index, @kernel
-using Oceananigans.Operators: ζ₃ᶠᶠᶜ
+using Oceananigans.Operators: ζ₃ᶠᶠᶜ, ℑxᶜᵃᵃ, ℑyᵃᶜᵃ
 using Oceananigans.AbstractOperations: KernelFunctionOperation
 using Oceananigans.Grids: on_architecture
 using Oceananigans.Architectures: child_architecture
