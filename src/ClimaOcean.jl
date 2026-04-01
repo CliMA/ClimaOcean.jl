@@ -9,7 +9,9 @@ export one_degree_tripolar_ocean,
        one_degree_tripolar_sea_ice,
        sixth_degree_tripolar_sea_ice,
        orca_sea_ice,
-       Progress
+       Progress,
+       simulation_report,
+       compute_report_fields
 
 using Reexport
 using Printf
