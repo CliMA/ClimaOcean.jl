@@ -19,6 +19,7 @@ using Oceananigans.Grids: on_architecture
 using Oceananigans.Architectures: child_architecture
 using NumericalEarth.DataWrangling: Metadatum, WOAAnnual
 using NumericalEarth.InitialConditions: interpolate!
+using WorldOceanAtlasTools
 using Statistics: mean
 
 import Oceananigans.Fields: compute!
