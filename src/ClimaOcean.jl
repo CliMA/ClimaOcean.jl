@@ -62,7 +62,7 @@ function (p::Progress)(sim)
 
     step_time = 1e-9 * (time_ns() - p.wall_time[])
 
-    msg4 = @sprintf("extrema(T, S): (%.2f, %.2f) ᵒC, (%.2f, %.2f) psu, ", Tmax, Tmin)
+    msg4 = @sprintf("extrema(T, S): (%.2f, %.2f) ᵒC, (%.2f, %.2f) psu, ", Tmax, Tmin, Smax, Smin)
     msg5 = @sprintf("maximum(u): (%.2e, %.2e, %.2e) m/s, ", umax, vmax, wmax)
     msg6 = @sprintf("wall time: %s \n", prettytime(step_time))
 
