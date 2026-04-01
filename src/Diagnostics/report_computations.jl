@@ -71,12 +71,20 @@ end
 
 # Direct zonal average on LatitudeLongitudeGrid
 function compute_zonal_averages_on(::LLGrid, grid, T, S)
-    T̄ = compute!(Field(Average(T, dims = 1)))
-    S̄ = compute!(Field(Average(S, dims = 1)))
-    φ = Array(ynodes(T̄))
-    z = Array(znodes(T̄))
-    return dropdims(Array(interior(T̄)), dims = 1),
-           dropdims(Array(interior(S̄)), dims = 1), φ, z
+    # TODO: uncomment when Average parameter space is fixed for immersed grids
+    # T̄ = compute!(Field(Average(T, dims = 1)))
+    # S̄ = compute!(Field(Average(S, dims = 1)))
+    # φ = Array(ynodes(T̄))
+    # z = Array(znodes(T̄))
+    # return dropdims(Array(interior(T̄)), dims = 1),
+    #        dropdims(Array(interior(S̄)), dims = 1), φ, z
+
+    φ = Array(ynodes(T))
+    z = Array(znodes(T))
+    Ny, Nz = length(φ), length(z)
+    T̄ = zeros(Ny, Nz)
+    S̄ = zeros(Ny, Nz)
+    return T̄, S̄, φ, z
 end
 
 # For TripolarGrid (or any non-LatLon grid): regrid to lat-lon first,
