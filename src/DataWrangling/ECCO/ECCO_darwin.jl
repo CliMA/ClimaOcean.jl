@@ -9,10 +9,22 @@ struct ECCO4DarwinMonthly <:ECCODataset end
 const ECCO4Darwin_url = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/LLC90/ECCO-Darwin/"
 const ECCO2Darwin_url = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/LLC270/ECCO-Darwin_extension/"
 
-Base.size(data::Metadata{<:ECCO4DarwinMonthly}) = (720,  360, 50, length(data.dates))
-Base.size(::Metadatum{<:ECCO4DarwinMonthly})    = (720,  360, 50, 1)
-Base.size(data::Metadata{<:ECCO2DarwinMonthly}) = (1440, 720, 50, length(data.dates))
-Base.size(::Metadatum{<:ECCO2DarwinMonthly})    = (1440, 720, 50, 1)
+Base.size(data::Metadata{<:ECCO4DarwinMonthly}) = 
+    data.name == :aeolian_iron_deposition ? 
+    (720, 360,  1, length(data.dates)) : 
+    (720, 360, 50, length(data.dates))
+Base.size(data::Metadatum{<:ECCO4DarwinMonthly})= 
+    data.name == :aeolian_iron_deposition ? 
+    (720, 360,  1, 1) : 
+    (720, 360, 50, 1)
+Base.size(data::Metadata{<:ECCO2DarwinMonthly}) = 
+    data.name == :aeolian_iron_deposition ? 
+    (1440, 720,  1, length(data.dates)) : 
+    (1440, 720, 50, length(data.dates))
+Base.size(data::Metadatum{<:ECCO2DarwinMonthly})= 
+    data.name == :aeolian_iron_deposition ? 
+    (1440, 720,  1, 1) : 
+    (1440, 720, 50, 1)
 
 metadata_time_step(::Metadatum{<:ECCO4DarwinMonthly}) = 3600
 metadata_epoch(::Metadatum{<:ECCO4DarwinMonthly}) = DateTime(1992, 1, 1, 12, 0, 0)
@@ -33,17 +45,22 @@ Generate the filename for a given ECCO Darwin dataset and date.
 The filename is constructed using the dataset variable name, and the iteration number is calculated
 from the date and epoch.
 """
-function metadata_filename(metadata::Metadatum{<:Union{ECCO2DarwinMonthly, ECCO4DarwinMonthly}})
-    shortname = dataset_variable_name(metadata)
+function metadata_filename(data::Metadatum{<:Union{ECCO2DarwinMonthly, ECCO4DarwinMonthly}})
+    if data.name == :aeolian_iron_deposition
+        fname="llc" * string(binary_data_size(data)) * "_Mahowald_2009_soluble_iron_dust.bin"
+    else
+        shortname = dataset_variable_name(data)
 
-    reference_date = metadata_epoch(metadata)
-    timestep_size  = metadata_time_step(metadata)
+        reference_date = metadata_epoch(data)
+        timestep_size  = metadata_time_step(data)
 
-    # Explicitly convert to Int to avoid return of a float
-    iternum = Int(Dates.value((metadata.dates - reference_date) / (timestep_size * 1e3)))
-    iterstr = string(iternum, pad=10)
+        # Explicitly convert to Int to avoid return of a float
+        iternum = Int(Dates.value((data.dates - reference_date) / (timestep_size * 1e3)))
+        iterstr = string(iternum, pad=10)
 
-    return shortname * "." * iterstr * ".data"
+        fname=shortname * "." * iterstr * ".data"
+    end
+    return fname
 end
 
 # Convenience functions
@@ -52,9 +69,14 @@ default_mask_value(::ECCO2DarwinMonthly) = 0
 
 dataset_variable_name(data::Metadata{<:Union{ECCO2DarwinMonthly,ECCO4DarwinMonthly}}) = ECCO_darwin_dataset_variable_names[data.name]
 
-location(::Metadata{<:Union{ECCO2DarwinMonthly, ECCO4DarwinMonthly}}) = (Center, Center, Center)
+location(data::Metadata{<:Union{ECCO2DarwinMonthly, ECCO4DarwinMonthly}}) = 
+    data.name == :aeolian_iron_deposition ? 
+    (Center, Center, Nothing) : 
+    (Center, Center, Center)
 
-variable_is_three_dimensional(::Metadata{<:Union{ECCO2DarwinMonthly, ECCO4DarwinMonthly}}) = true
+variable_is_three_dimensional(
+    data::Metadata{<:Union{ECCO2DarwinMonthly, ECCO4DarwinMonthly}},
+) = !(data.name == :aeolian_iron_deposition)
 
 ECCO_darwin_dataset_variable_names = Dict(
     :temperature                    => "THETA",
@@ -68,6 +90,7 @@ ECCO_darwin_dataset_variable_names = Dict(
     :dissolved_iron                 => "FeT",
     :dissolved_silicate             => "SiO2",
     :dissolved_oxygen               => "O2",
+    :aeolian_iron_deposition        => "AeolianIron",
 )
 
 """
@@ -80,6 +103,8 @@ Set up conversion from the ECCODarwin output data to standard units
 function conversion_units(metadatum::Metadatum{<:Union{ECCO2DarwinMonthly, ECCO4DarwinMonthly}}) 
     if dataset_variable_name(metadatum) == "SALTanom"
         return GramPerKilogramMinus35()
+    elseif dataset_variable_name(metadatum) == "AeolianIron"
+        return NanomolePerSquareMeterPerSecond()
     elseif dataset_variable_name(metadatum) != "THETA"
         return MicromolePerLiter()
     else
@@ -97,8 +122,14 @@ function default_download_directory(::ECCO2DarwinMonthly)
     return mkpath(path)
 end
 
-metadata_url(m::Metadata{<:ECCO4DarwinMonthly}) = ECCO4Darwin_url * "monthly/" * dataset_variable_name(m) * "/" * metadata_filename(m)
-metadata_url(m::Metadata{<:ECCO2DarwinMonthly}) = ECCO2Darwin_url * "monthly/" * dataset_variable_name(m) * "/" * metadata_filename(m)
+metadata_url(data::Metadata{<:ECCO4DarwinMonthly}) = 
+    data.name == :aeolian_iron_deposition ? 
+    split(ECCO4Darwin_url,"ECCO-Darwin")[1] * "Release5/V4r5/" * metadata_filename(data) : 
+    ECCO4Darwin_url * "monthly/" * dataset_variable_name(data) * "/" * metadata_filename(data)
+metadata_url(data::Metadata{<:ECCO2DarwinMonthly}) = 
+    data.name == :aeolian_iron_deposition ? 
+    "https://data.nas.nasa.gov/ecco/llc_270/ecco_darwin_v5/input/darwin_forcing/" * metadata_filename(data) :
+    ECCO2Darwin_url * "monthly/" * dataset_variable_name(data) * "/" * metadata_filename(data)
 
 # Functions for reading the ECCO binary files using MeshArrays
 binary_data_grid(::ECCO4DarwinMonthly) = GridSpec(ID=:LLC90)
