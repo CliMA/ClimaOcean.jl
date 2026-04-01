@@ -79,6 +79,7 @@ include("OceanConfigurations/OceanConfigurations.jl")
 include("SeaIceConfigurations/SeaIceConfigurations.jl")
 
 using .InitialConditions
+using .Diagnostics
 using .OceanConfigurations
 using .SeaIceConfigurations
 
