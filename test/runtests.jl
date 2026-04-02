@@ -18,4 +18,5 @@ if test_group == :unit || test_group == :all
     include("test_module.jl")
     include("test_ocean_configurations.jl")
     include("test_sea_ice_configurations.jl")
+    include("test_omip_configurations.jl")
 end

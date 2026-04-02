@@ -28,8 +28,8 @@ export latitude_longitude_ocean,
 
 # Standard vertical coordinate for all configurations.
 # 60 levels, exponential spacing, 6000 m depth.
-function vertical_coordinate(; zstar=false)
-    return ExponentialDiscretization(60, -6000, 0; mutable=zstar)
+function vertical_coordinate(; Nz=60, depth=6000, zstar=false)
+    return ExponentialDiscretization(Nz, -depth, 0; mutable=zstar)
 end
 
 #####

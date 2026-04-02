@@ -9,6 +9,8 @@ export one_degree_tripolar_ocean,
        one_degree_tripolar_sea_ice,
        sixth_degree_tripolar_sea_ice,
        orca_sea_ice,
+       omip_simulation,
+       add_omip_diagnostics!,
        Progress,
        simulation_report,
        compute_report_fields
@@ -79,10 +81,12 @@ include("InitialConditions/InitialConditions.jl")
 include("Diagnostics/Diagnostics.jl")
 include("OceanConfigurations/OceanConfigurations.jl")
 include("SeaIceConfigurations/SeaIceConfigurations.jl")
+include("OMIPConfigurations/OMIPConfigurations.jl")
 
 using .InitialConditions
 using .Diagnostics
 using .OceanConfigurations
 using .SeaIceConfigurations
+using .OMIPConfigurations
 
 end # module

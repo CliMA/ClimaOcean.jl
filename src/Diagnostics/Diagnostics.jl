@@ -3,7 +3,7 @@ module Diagnostics
 export MixedLayerDepthField, MixedLayerDepthOperand
 export MeridionalStreamfunction, compute_streamfunction
 export compute_amoc, compute_broken_isolatitudes, BrokenIsoLatitude
-export simulation_report, compute_report_fields
+export simulation_report, compute_report_fields, compute_zonal_averages
 
 using Oceananigans
 using Oceananigans.Architectures: architecture
