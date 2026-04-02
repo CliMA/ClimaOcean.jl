@@ -4,6 +4,7 @@ export MixedLayerDepthField, MixedLayerDepthOperand
 export MeridionalStreamfunction, compute_streamfunction
 export compute_amoc, compute_broken_isolatitudes, BrokenIsoLatitude
 export simulation_report, compute_report_fields, compute_zonal_averages
+export add_omip_diagnostics!, OMIPScalarCallback
 
 using Oceananigans
 using Oceananigans.Architectures: architecture
@@ -26,6 +27,7 @@ import Oceananigans.Fields: compute!
 
 include("mixed_layer_depth.jl")
 include("report_computations.jl")
+include("omip_diagnostics.jl")
 
 function simulation_report end
 

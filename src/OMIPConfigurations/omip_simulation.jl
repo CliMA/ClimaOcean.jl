@@ -101,8 +101,14 @@ function omip_simulation(config::Symbol = :half_degree;
                               checkpoint_interval,
                               output_dir,
                               filename_prefix,
-                              file_splitting_interval,
-                              transports)
+                              file_splitting_interval)
+
+        if transports
+            add_omip_transport_diagnostics!(simulation;
+                                            output_dir,
+                                            filename_prefix,
+                                            field_averaging_interval)
+        end
     end
 
     return simulation

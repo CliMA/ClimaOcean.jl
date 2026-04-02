@@ -16,7 +16,8 @@ using NumericalEarth.DataWrangling: Metadatum, Metadata, DatasetRestoring,
 
 using ..OceanConfigurations: half_degree_tripolar_ocean, orca_ocean
 using ..SeaIceConfigurations: half_degree_tripolar_sea_ice, orca_sea_ice
-using ..Diagnostics: MixedLayerDepthField, compute_zonal_averages
+using ..Diagnostics: MixedLayerDepthField, compute_zonal_averages,
+                     add_omip_diagnostics!, OMIPScalarCallback
 
 export omip_simulation, add_omip_diagnostics!
 
