@@ -60,13 +60,6 @@ function reset!(model::OSIM)
     return nothing
 end
 
-# Make sure to initialize the exchanger here
-function initialization_update_state!(model::OSIM)
-    initialize!(model.interfaces.exchanger, model)
-    update_state!(model)
-    return nothing
-end
-
 function initialize!(model::OSIM)
     # initialize!(model.ocean)
     initialize!(model.interfaces.exchanger, model)
@@ -208,7 +201,10 @@ function OceanSeaIceModel(ocean, sea_ice=default_sea_ice();
     # Make sure the initial temperature of the ocean
     # is not below freezing and above melting near the surface
     above_freezing_ocean_temperature!(ocean, interfaces.exchanger.grid, sea_ice)
-    initialization_update_state!(ocean_sea_ice_model)
+
+
+    initialize!(ocean_sea_ice_model.interfaces.exchanger)
+    update_state!(ocean_sea_ice_model)
 
     return ocean_sea_ice_model
 end
@@ -253,7 +249,7 @@ above_freezing_ocean_temperature!(ocean, grid, ::Nothing) = nothing
 ##### Checkpointing
 #####
 
-function prognostic_state(osm::OceanSeaIceModel) 
+function prognostic_state(osm::OceanSeaIceModel)
     return (clock = prognostic_state(osm.clock),
             ocean = prognostic_state(osm.ocean),
             atmosphere = prognostic_state(osm.atmosphere),
