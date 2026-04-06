@@ -180,6 +180,7 @@ defaults on a per-field basis.
 """
 function ocean_simulation(grid;
                           clock = Clock(grid),
+                          stop_time = clock.time isa Number ? Inf : Dates.DateTime(9999, 12, 31, 23, 59, 59),
                           Δt = estimate_maximum_Δt(grid),
                           closure = default_ocean_closure(),
                           tracers = (:T, :S),
@@ -315,7 +316,7 @@ function ocean_simulation(grid;
                                               forcing,
                                               boundary_conditions)
 
-    ocean = Simulation(ocean_model; Δt, verbose)
+    ocean = Simulation(ocean_model; Δt, stop_time, verbose)
 
     return ocean
 end
