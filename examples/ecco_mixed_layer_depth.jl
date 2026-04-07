@@ -31,7 +31,7 @@ grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height))
 start_date = DateTime(1993, 1, 1)
 end_date   = DateTime(2003, 1, 1)
 
-Tt = ECCOFieldTimeSeries(:temprature, grid; start_date, end_date, time_indices_in_memory=2)
+Tt = ECCOFieldTimeSeries(:temperature, grid; start_date, end_date, time_indices_in_memory=2)
 St = ECCOFieldTimeSeries(:salinity,   grid; start_date, end_date, time_indices_in_memory=2)
 ht = FieldTimeSeries{Center, Center, Nothing}(grid, Tt.times)
 
