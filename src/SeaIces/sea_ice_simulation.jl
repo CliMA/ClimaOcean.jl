@@ -6,13 +6,14 @@ using ClimaSeaIce.Rheologies: IceStrength, ElastoViscoPlasticRheology
 
 using ClimaOcean.OceanSeaIceModels: ocean_surface_salinity, ocean_surface_velocities
 using ClimaOcean.Oceans: Default
+import Dates
 
 default_rotation_rate = Oceananigans.defaults.planet_rotation_rate
 
 function sea_ice_simulation(grid, ocean=nothing;
                             Δt = 5minutes,
                             clock = Clock(grid),
-                            stop_time = clock.time isa Number ? inf : Dates.DateTime(9999, 12, 31, 23, 59, 59),
+                            stop_time = clock.time isa Number ? Inf : Dates.DateTime(9999, 12, 31, 23, 59, 59),
                             ice_salinity = 4, # psu
                             advection = nothing, # for the moment
                             tracers = (),
