@@ -79,8 +79,8 @@ function compute_zonal_averages_on(::LLGrid, grid, T, S)
     # return dropdims(Array(interior(T̄)), dims = 1),
     #        dropdims(Array(interior(S̄)), dims = 1), φ, z
 
-    φ = Array(ynodes(T))
-    z = Array(znodes(T))
+    φ = Array(φnodes(grid, Center(), Center(), Center()))
+    z = Array(znodes(grid, Center(), Center(), Center()))
     Ny, Nz = length(φ), length(z)
     T̄ = zeros(Ny, Nz)
     S̄ = zeros(Ny, Nz)
@@ -115,8 +115,8 @@ function compute_zonal_averages_on(ug, grid, T, S)
         S̄[:, k] = dropdims(mean(interior(dst), dims = 1), dims = 1)
     end
 
-    φ = Array(ynodes(dst))
-    z = Array(znodes(T))
+    φ = Array(φnodes(φλ_grid, Center(), Center(), Center()))
+    z = Array(znodes(grid, Center(), Center(), Center()))
 
     return T̄, S̄, φ, z
 end
