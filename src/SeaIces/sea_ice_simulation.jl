@@ -12,7 +12,7 @@ default_rotation_rate = Oceananigans.defaults.planet_rotation_rate
 
 function sea_ice_simulation(grid, ocean=nothing;
                             Δt = 5minutes,
-                            clock = Clock(grid),
+                            clock = Clock{eltype(grid)}(time=0),
                             stop_time = clock.time isa Number ? Inf : Dates.DateTime(9999, 12, 31, 23, 59, 59),
                             ice_salinity = 4, # psu
                             advection = nothing, # for the moment
