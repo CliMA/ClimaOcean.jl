@@ -6,8 +6,10 @@ authors = ["Climate Modeling Alliance and contributors"]
 
 [deps]
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 Glob = "c27321d9-0574-5035-807b-f59d2c89b15c"
+JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
 KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
 NumericalEarth = "904d977b-046a-4731-8b86-9235c0d1ef02"
 Oceananigans = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
@@ -26,8 +28,10 @@ ClimaOceanMakieExt = "Makie"
 
 [compat]
 CUDA = "5.9.7"
+Dates = "1.11.0"
 DocStringExtensions = "0.9"
 Glob = "1"
+JLD2 = "0.6.4"
 KernelAbstractions = "0.9"
 Makie = "0.21, 0.22, 0.24"
 NumericalEarth = "0.2.3"
