@@ -11,14 +11,14 @@ function default_one_degree_closure(; κ_skew=500,
 end
 
 """
-    one_degree_tripolar_ocean(arch = CPU(); zstar=false, Nz=60, depth=6000, kwargs...)
+    one_degree_tripolar_ocean(arch = CPU(); zstar=true, Nz=60, depth=6000, kwargs...)
 
 Construct an ocean `Simulation` on a one-degree (360×180) `TripolarGrid` with
 realistic bathymetry and closures suitable for coarser resolution
 (CATKE + Gent-McWilliams + biharmonic viscosity).
 """
 function one_degree_tripolar_ocean(arch = CPU();
-                                   zstar = false,
+                                   zstar = true,
                                    Nz = 60,
                                    depth = 6000,
                                    momentum_advection = WENOVectorInvariant(order=5),

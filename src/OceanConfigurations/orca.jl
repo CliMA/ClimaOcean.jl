@@ -1,11 +1,11 @@
 """
-    orca_ocean(arch = CPU(); zstar=false, Nz=60, depth=6000, kwargs...)
+    orca_ocean(arch = CPU(); zstar=true, Nz=60, depth=6000, kwargs...)
 
 Construct an ocean `Simulation` on an ORCA grid (NEMO eORCA mesh) with
 realistic bathymetry loaded from NEMO mesh-mask files.
 """
 function orca_ocean(arch = CPU();
-                    zstar = false,
+                    zstar = true,
                     Nz = 60,
                     depth = 6000,
                     momentum_advection = WENOVectorInvariant(order=5),

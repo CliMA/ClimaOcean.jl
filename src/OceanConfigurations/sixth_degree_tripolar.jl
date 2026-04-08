@@ -1,20 +1,19 @@
 function default_sixth_degree_closure()
     catke = default_ocean_closure()
-    horizontal_viscosity = HorizontalScalarBiharmonicDiffusivity(ν=νhb, discrete_form=true, parameters=60days)
     vertical_diffusivity = VerticalScalarDiffusivity(ν=1e-5, κ=henyey_diffusivity)
-    return (catke, horizontal_viscosity, vertical_diffusivity)
+    return (catke, vertical_diffusivity)
 end
 
 """
-    sixth_degree_tripolar_ocean(arch = CPU(); zstar=false, kwargs...)
+    sixth_degree_tripolar_ocean(arch = CPU(); zstar=true, kwargs...)
 
 Construct an ocean `Simulation` on a 1/6° (2160×1080) `TripolarGrid` with
 realistic bathymetry. Designed for distributed multi-GPU runs
 (e.g. `Distributed(GPU(), partition=Partition(2, 2))` on 4 GPUs).
 """
 function sixth_degree_tripolar_ocean(arch = CPU();
-                                     zstar = false,
-                                     momentum_advection = WENOVectorInvariant(order=5),
+                                     zstar = true,
+                                     momentum_advection = WENOVectorInvariant(),
                                      tracer_advection = WENO(order=7),
                                      closure = default_sixth_degree_closure(),
                                      kwargs...)

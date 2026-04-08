@@ -6,13 +6,13 @@ function default_latlon_closure()
 end
 
 """
-    latitude_longitude_ocean(arch = CPU(); zstar=false, kwargs...)
+    latitude_longitude_ocean(arch = CPU(); zstar=true, kwargs...)
 
 Construct an ocean `Simulation` on a one-degree `LatitudeLongitudeGrid` (360×150)
 spanning 75°S–75°N with realistic bathymetry.
 """
 function latitude_longitude_ocean(arch = CPU();
-                                  zstar = false,
+                                  zstar = true,
                                   momentum_advection = VectorInvariant(),
                                   tracer_advection = WENO(order=7),
                                   closure = default_latlon_closure(),

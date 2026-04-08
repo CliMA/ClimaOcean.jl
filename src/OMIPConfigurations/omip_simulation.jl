@@ -300,10 +300,10 @@ function _load_restart!(coupled, atmosphere, ocean, sea_ice, checkpoint_path)
         atmosphere.clock.iteration -= 1
 
         @info "Restarted from checkpoint: $(checkpoint_path)"
-        @info "  Ocean clock:      $(ocean_model.clock)"
-        @info "  Sea-ice clock:    $(seaice_model.clock)"
-        @info "  Atmosphere clock: $(atmosphere.clock)"
-        @info "  Coupled clock:    $(coupled.clock)"
+        @info "  Ocean clock:       $(ocean_model.clock)"
+        @info "  Sea-ice clock:     $(seaice_model.clock)"
+        @info "  Atmosphere clock:  $(atmosphere.clock)"
+        @info "  Coupled clock:     $(coupled.clock)"
     finally
         close(file)
     end

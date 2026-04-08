@@ -30,7 +30,6 @@ mkpath(OUTPUT_DIR)
 coupled_examples = [
     Example("Latitude-longitude",   "latitude_longitude_ocean_sea_ice",    false),
     Example("Half-degree tripolar", "half_degree_tripolar_ocean_sea_ice",  false),
-    Example("One-degree tripolar",  "one_degree_tripolar_ocean_sea_ice",   false),
     Example("ORCA",                 "orca_ocean_sea_ice",                  false),
 ]
 

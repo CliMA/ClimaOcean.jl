@@ -1,8 +1,8 @@
 function default_half_degree_closure(; κ_skew=500,
-                                      κ_symmetric=200,
-                                      biharmonic_timescale=40days,
-                                      background_κ=henyey_diffusivity,
-                                      background_ν=1e-5)
+                                       κ_symmetric=200,
+                                       biharmonic_timescale=40days,
+                                       background_κ=henyey_diffusivity,
+                                       background_ν=1e-5)
     catke = default_ocean_closure()
     eddy  = IsopycnalSkewSymmetricDiffusivity(; κ_skew, κ_symmetric)
     horizontal_viscosity = HorizontalScalarBiharmonicDiffusivity(ν=νhb, discrete_form=true, parameters=biharmonic_timescale)
@@ -11,14 +11,14 @@ function default_half_degree_closure(; κ_skew=500,
 end
 
 """
-    half_degree_tripolar_ocean(arch = CPU(); zstar=false, Nz=60, depth=6000, kwargs...)
+    half_degree_tripolar_ocean(arch = CPU(); zstar=true, Nz=60, depth=6000, kwargs...)
 
 Construct an ocean `Simulation` on a half-degree (720×360) `TripolarGrid` with
 realistic bathymetry and production-ready closures (CATKE + Gent-McWilliams +
 biharmonic viscosity).
 """
 function half_degree_tripolar_ocean(arch = CPU();
-                                    zstar = false,
+                                    zstar = true,
                                     Nz = 60,
                                     depth = 6000,
                                     momentum_advection = WENOVectorInvariant(order=5),
