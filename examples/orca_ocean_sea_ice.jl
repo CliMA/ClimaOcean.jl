@@ -15,7 +15,8 @@ using CairoMakie
 # ### Build ocean and sea ice
 
 arch = GPU()
-ocean   = orca_ocean(arch; zstar=true)
+closure = simplified_ocean_closure()
+ocean   = orca_ocean(arch; zstar=true, closure)
 sea_ice = orca_sea_ice(ocean)
 
 # ### Initial conditions from ECCO

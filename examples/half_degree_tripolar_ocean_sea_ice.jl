@@ -15,7 +15,8 @@ using CairoMakie
 # ### Build ocean and sea ice
 
 arch = GPU()
-ocean   = half_degree_tripolar_ocean(arch; zstar=true)
+closure = simplified_ocean_closure()
+ocean   = half_degree_tripolar_ocean(arch; zstar=true, closure)
 sea_ice = half_degree_tripolar_sea_ice(ocean)
 
 # ### Initial conditions from ECCO

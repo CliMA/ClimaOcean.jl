@@ -32,7 +32,6 @@ steps:
     agents:
       slurm_gpus: 1
       slurm_cpus_per_task: 8
-      slurm_gres: gpu:v100:1
 
   - wait
 
@@ -112,5 +111,4 @@ steps:
       slurm_mem: 32G
       slurm_gpus: 1
       slurm_cpus_per_task: 8
-      slurm_gres: gpu:v100:1
       slurm_ntasks: 1

@@ -23,6 +23,7 @@ function half_degree_tripolar_ocean(arch = CPU();
                                     depth = 6000,
                                     momentum_advection = WENOVectorInvariant(order=5),
                                     tracer_advection = WENO(order=7),
+                                    closure = nothing,
                                     κ_skew = 500,
                                     κ_symmetric = 200,
                                     biharmonic_timescale = 40days,
@@ -36,7 +37,9 @@ function half_degree_tripolar_ocean(arch = CPU();
 
     z = vertical_coordinate(; Nz, depth, zstar)
 
-    closure = default_half_degree_closure(; κ_skew, κ_symmetric, biharmonic_timescale, background_κ, background_ν)
+    if isnothing(closure)
+        closure = default_half_degree_closure(; κ_skew, κ_symmetric, biharmonic_timescale, background_κ, background_ν)
+    end
 
     grid = TripolarGrid(arch;
                         size = (720, 360, Nz),

@@ -10,6 +10,7 @@ function orca_ocean(arch = CPU();
                     depth = 6000,
                     momentum_advection = WENOVectorInvariant(order=5),
                     tracer_advection = WENO(order=5),
+                    closure = nothing,
                     κ_skew = 500,
                     κ_symmetric = 200,
                     biharmonic_timescale = 15days,
@@ -21,7 +22,9 @@ function orca_ocean(arch = CPU();
 
     z = vertical_coordinate(; Nz, depth, zstar)
 
-    closure = default_one_degree_closure(; κ_skew, κ_symmetric, biharmonic_timescale, background_κ, background_ν)
+    if isnothing(closure)
+        closure = default_one_degree_closure(; κ_skew, κ_symmetric, biharmonic_timescale, background_κ, background_ν)
+    end
 
     grid = ORCAGrid(arch;
                     dataset = ORCA1(),

@@ -14,7 +14,8 @@ using CairoMakie
 # ### Build ocean and sea ice
 
 arch = GPU()
-ocean   = latitude_longitude_ocean(arch; zstar=true)
+closure = simplified_ocean_closure()
+ocean   = latitude_longitude_ocean(arch; zstar=true, closure)
 sea_ice = latitude_longitude_sea_ice(ocean)
 
 # ### Initial conditions from ECCO
