@@ -11,6 +11,7 @@ export one_degree_tripolar_ocean,
        orca_sea_ice,
        omip_simulation,
        add_omip_diagnostics!,
+       simplified_ocean_closure,
        Progress,
        simulation_report,
        compute_report_fields
