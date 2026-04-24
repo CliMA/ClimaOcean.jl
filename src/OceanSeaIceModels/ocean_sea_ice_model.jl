@@ -203,7 +203,7 @@ function OceanSeaIceModel(ocean, sea_ice=default_sea_ice();
     above_freezing_ocean_temperature!(ocean, interfaces.exchanger.grid, sea_ice)
 
 
-    initialize!(ocean_sea_ice_model.interfaces.exchanger)
+    initialize!(ocean_sea_ice_model.interfaces.exchanger, ocean_sea_ice_model)
     update_state!(ocean_sea_ice_model)
 
     return ocean_sea_ice_model
