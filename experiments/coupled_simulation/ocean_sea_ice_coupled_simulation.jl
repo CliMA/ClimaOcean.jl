@@ -102,7 +102,6 @@ earth.output_writers[:surface_tracers] = JLD2Writer(ocean.model, (; T, S, s),
                                                     schedule = TimeInterval(12hours),
                                                     indices = (:, :, grid.Nz),
                                                     overwrite_existing = true,
-                                                    including = [:grid],
                                                     filename = "surface_fields.jld2")
 
 
@@ -125,7 +124,6 @@ PE = earth.model.interfaces.net_fluxes.ocean_surface.S
 earth.output_writers[:fluxes] = JLD2Writer(ocean.model, (; Q, τx, τy, PE),
                                                  schedule = TimeInterval(12hours),
                                                  overwrite_existing = true,
-                                                 including = [:grid],
                                                  filename = "surface_fluxes.jld2")
 
 # Also, we add a callback to print a message about how the simulation is going

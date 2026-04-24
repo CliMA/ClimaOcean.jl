@@ -158,7 +158,6 @@ sea_ice_outputs = merge((h = sea_ice.model.ice_thickness,
                          sea_ice.model.velocities)
 
 ocean.output_writers[:surface] = JLD2Writer(ocean.model, ocean_outputs;
-                                            including = [:grid], # needed to avoid an avalanche of warnings 
                                             schedule = TimeInterval(1days),
                                             filename = "ocean_one_degree_surface_fields",
                                             indices = (:, :, grid.Nz),
