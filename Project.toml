@@ -48,7 +48,7 @@ ClimaOceanSpeedyWeatherExt = ["SpeedyWeather", "XESMF"]
 [compat]
 Adapt = "4"
 CFTime = "0.1, 0.2"
-CUDA = "4, 5"
+CUDA = "4, 5, 6"
 ClimaSeaIce = "0.4.2"
 CopernicusClimateDataStore = "0.1"
 CopernicusMarine = "0.1.1"
