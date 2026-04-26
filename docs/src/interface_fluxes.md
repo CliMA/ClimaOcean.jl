@@ -531,7 +531,7 @@ Monin and Obhukov's dimensional argument is also extended to potential temperatu
 \frac{κ \, z}{\theta_\star} \partial_z \bar{\theta} = \tilde{\psi}_\theta (\zeta) \, .
 ```
 
-Within the context of Monin--Obukhov stabilty theory, it can be shown that the neutral value ``\tilde{\psi}_\theta(0)`` is equal to the neutral turbulent Prandtl number,
+Within the context of Monin--Obukhov stability theory, it can be shown that the neutral value ``\tilde{\psi}_\theta(0)`` is equal to the neutral turbulent Prandtl number,
 
 ```math
 Pr(\zeta=0) \equiv \frac{\tilde{\psi}_\theta(0)}{\tilde{\psi}_u(0)} = \tilde{\psi}_\theta(0) \, ,
@@ -539,7 +539,7 @@ Pr(\zeta=0) \equiv \frac{\tilde{\psi}_\theta(0)}{\tilde{\psi}_u(0)} = \tilde{\ps
 
 and observations suggest that ``\tilde{\psi}_θ(0) ≈ 0.7``.
 Otherwise, the interpretation of variations in ``\tilde{\psi}_\theta`` (increased by stability, decreased by instability)is similar as for momentum.
-We typically use the same "scalar" stability function to scale the vertical profiles of both temperature and water vapor, but neverthless ClimaOcean retains the possibility of an independent ``\tilde{\psi}_q``.
+We typically use the same "scalar" stability function to scale the vertical profiles of both temperature and water vapor, but nevertheless ClimaOcean retains the possibility of an independent ``\tilde{\psi}_q``.
 
 ### The Monin--Obhukhov self-similar vertical profiles
 
@@ -564,7 +564,7 @@ u_a(h) - u_a(\ell_u) = Δ u = \frac{u_\star}{\kappa}
     \left [ \log \left (\frac{h}{\ell_u} \right ) - ψ_u \left ( \frac{h}{L_\star} \right ) + ψ_u \left (\frac{\ell_u}{L_\star} \right ) \right ] \, .
 ```
 
-The term ``\psi_u(\ell_u / L_\star)`` is often neglected because ``\ell_u / L_\star`` is miniscule and because by definition, ``\psi_u(0) = 0``.
+The term ``\psi_u(\ell_u / L_\star)`` is often neglected because ``\ell_u / L_\star`` is minuscule and because by definition, ``\psi_u(0) = 0``.
 Similar formulas hold for temperature and water vapor,
 
 ```math
