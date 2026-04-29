@@ -1,5 +1,5 @@
 using ClimaSeaIce
-using ClimaSeaIce: SeaIceModel, SlabSeaIceThermodynamics, PhaseTransitions, ConductiveFlux
+using ClimaSeaIce: SeaIceModel, SlabThermodynamics, PhaseTransitions, ConductiveFlux
 using ClimaSeaIce.SeaIceThermodynamics: IceWaterThermalEquilibrium
 using ClimaSeaIce.SeaIceDynamics: SplitExplicitSolver, SemiImplicitStress, SeaIceMomentumEquation, StressBalanceFreeDrift
 using ClimaSeaIce.Rheologies: IceStrength, ElastoViscoPlasticRheology
@@ -23,7 +23,7 @@ function sea_ice_simulation(grid, ocean=nothing;
                             dynamics = sea_ice_dynamics(grid, ocean),
                             bottom_heat_boundary_condition = nothing,
                             top_heat_boundary_condition = nothing,
-                            phase_transitions = PhaseTransitions(; ice_heat_capacity, ice_density),
+                            phase_transitions = PhaseTransitions(; heat_capacity=ice_heat_capacity, density=ice_density),
                             conductivity = 2, # kg m s⁻³ K⁻¹
                             internal_heat_flux = ConductiveFlux(; conductivity))
 
@@ -46,11 +46,11 @@ function sea_ice_simulation(grid, ocean=nothing;
         bottom_heat_boundary_condition = IceWaterThermalEquilibrium(surface_ocean_salinity)
     end
 
-    ice_thermodynamics = SlabSeaIceThermodynamics(grid;
-                                                  internal_heat_flux,
-                                                  phase_transitions,
-                                                  top_heat_boundary_condition,
-                                                  bottom_heat_boundary_condition)
+    ice_thermodynamics = SlabThermodynamics(grid;
+                                            internal_heat_flux,
+                                            phase_transitions,
+                                            top_heat_boundary_condition,
+                                            bottom_heat_boundary_condition)
 
     bottom_heat_flux = Field{Center, Center, Nothing}(grid)
     top_heat_flux    = Field{Center, Center, Nothing}(grid)
@@ -109,8 +109,8 @@ end
 sea_ice_thickness(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_thickness
 sea_ice_concentration(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_concentration
 
-heat_capacity(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_thermodynamics.phase_transitions.ice_heat_capacity
-reference_density(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_thermodynamics.phase_transitions.ice_density
+heat_capacity(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_thermodynamics.phase_transitions.heat_capacity
+reference_density(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_thermodynamics.phase_transitions.density
 
 function net_fluxes(sea_ice::Simulation{<:SeaIceModel})
     net_momentum_fluxes = if isnothing(sea_ice.model.dynamics)
