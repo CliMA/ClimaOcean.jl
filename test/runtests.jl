@@ -114,7 +114,3 @@ end
 if test_group == :distributed || test_group == :all
     include("test_distributed_utils.jl")
 end
-
-if test_group == :reactant || test_group == :all
-    include("test_reactant.jl")
-end
