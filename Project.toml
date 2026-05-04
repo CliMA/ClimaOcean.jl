@@ -45,7 +45,7 @@ ClimaOceanCopernicusMarineExt = "CopernicusMarine"
 [compat]
 Adapt = "4"
 CFTime = "0.1, 0.2"
-CUDA = "4, 5, 6"
+CUDA = "4, 5, ~6.0"
 ClimaSeaIce = "0.4.8"
 CopernicusClimateDataStore = "0.1"
 CopernicusMarine = "0.1.1"
