@@ -48,7 +48,6 @@ function sea_ice_simulation(grid, ocean=nothing;
 
     ice_thermodynamics = SlabThermodynamics(grid;
                                             internal_heat_flux,
-                                            phase_transitions,
                                             top_heat_boundary_condition,
                                             bottom_heat_boundary_condition)
 
@@ -65,7 +64,8 @@ function sea_ice_simulation(grid, ocean=nothing;
                                 ice_thermodynamics,
                                 dynamics,
                                 bottom_heat_flux,
-                                top_heat_flux)
+                                top_heat_flux,
+                                phase_transitions)
 
     verbose = false
 
@@ -109,8 +109,8 @@ end
 sea_ice_thickness(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_thickness
 sea_ice_concentration(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_concentration
 
-heat_capacity(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_thermodynamics.phase_transitions.heat_capacity
-reference_density(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.ice_thermodynamics.phase_transitions.density
+heat_capacity(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.phase_transitions.heat_capacity
+reference_density(sea_ice::Simulation{<:SeaIceModel}) = sea_ice.model.phase_transitions.density
 
 function net_fluxes(sea_ice::Simulation{<:SeaIceModel})
     net_momentum_fluxes = if isnothing(sea_ice.model.dynamics)
