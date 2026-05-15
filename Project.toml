@@ -1,7 +1,7 @@
 name = "ClimaOcean"
 uuid = "0376089a-ecfe-4b0e-a64f-9c555d74d754"
 license = "MIT"
-version = "0.9.7"
+version = "0.9.6"
 authors = ["Climate Modeling Alliance and contributors"]
 
 [deps]
@@ -46,7 +46,7 @@ ClimaOceanCopernicusMarineExt = "CopernicusMarine"
 Adapt = "4"
 CFTime = "0.1, 0.2"
 CUDA = "4, 5, ~6.0"
-ClimaSeaIce = "0.5"
+ClimaSeaIce = "0.4.8"
 CopernicusClimateDataStore = "0.1"
 CopernicusMarine = "0.1.1"
 CubicSplines = "0.2"
