@@ -130,7 +130,7 @@ function net_fluxes(sea_ice::Simulation{<:SeaIceModel})
 end
 
 function default_ai_temperature(sea_ice::Simulation{<:SeaIceModel})
-    conductive_flux = sea_ice.model.ice_thermodynamics.internal_heat_flux.parameters.flux
+    conductive_flux = sea_ice.model.ice_thermodynamics.internal_heat_flux.conductivity
     return SkinTemperature(conductive_flux)
 end
 
@@ -140,7 +140,7 @@ function ThreeEquationHeatFlux(sea_ice::Simulation{<:SeaIceModel}, FT::DataType 
                                salt_transfer_coefficient = heat_transfer_coefficient / 35,
                                friction_velocity = convert(FT, 0.002))
 
-    conductive_flux = sea_ice.model.ice_thermodynamics.internal_heat_flux.parameters.flux
+    conductive_flux = sea_ice.model.ice_thermodynamics.internal_heat_flux.conductivity
     ice_temperature = sea_ice.model.ice_thermodynamics.top_surface_temperature
 
     return ThreeEquationHeatFlux(conductive_flux,
