@@ -234,7 +234,7 @@ function above_freezing_ocean_temperature!(ocean, grid, sea_ice)
     T = ocean_temperature(ocean)
     S = ocean_salinity(ocean)
     ℵ = sea_ice_concentration(sea_ice)
-    liquidus = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus
+    liquidus = sea_ice.model.phase_transitions.liquidus
 
     arch = architecture(grid)
     launch!(arch, grid, :xy, _above_freezing_ocean_temperature!, T, grid, S, ℵ, liquidus)

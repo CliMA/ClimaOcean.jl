@@ -99,7 +99,7 @@ atmosphere_ocean_interface(grid, ::Nothing,   ocean,    args...) = nothing
 atmosphere_ocean_interface(grid, ::Nothing,  ::Nothing, args...) = nothing
 atmosphere_ocean_interface(grid, atmosphere, ::Nothing, args...) = nothing
 
-function atmosphere_ocean_interface(grid, 
+function atmosphere_ocean_interface(grid,
                                     atmosphere,
                                     ocean,
                                     radiation,
@@ -155,7 +155,7 @@ atmosphere_sea_ice_interface(grid, atmos, ::Nothing,     args...) = nothing
 atmosphere_sea_ice_interface(grid, ::Nothing, sea_ice,   args...) = nothing
 atmosphere_sea_ice_interface(grid, ::Nothing, ::Nothing, args...) = nothing
 
-function atmosphere_sea_ice_interface(grid, 
+function atmosphere_sea_ice_interface(grid,
                                       atmosphere,
                                       sea_ice,
                                       radiation,
@@ -342,7 +342,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
         sea_ice_properties = (reference_density  = sea_ice_reference_density,
                               heat_capacity      = sea_ice_heat_capacity,
                               freshwater_density = freshwater_density,
-                              liquidus           = sea_ice.model.ice_thermodynamics.phase_transitions.liquidus,
+                              liquidus           = sea_ice.model.phase_transitions.liquidus,
                               temperature_units  = sea_ice_temperature_units)
     else
         sea_ice_properties = nothing
@@ -360,7 +360,7 @@ function ComponentInterfaces(atmosphere, ocean, sea_ice=nothing;
 
     io_interface = sea_ice_ocean_interface(exchange_grid, sea_ice, ocean, sea_ice_ocean_heat_flux)
 
-    ai_interface = atmosphere_sea_ice_interface(exchange_grid, 
+    ai_interface = atmosphere_sea_ice_interface(exchange_grid,
                                                 atmosphere,
                                                 sea_ice,
                                                 radiation,

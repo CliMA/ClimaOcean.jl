@@ -36,7 +36,7 @@ function compute_sea_ice_ocean_fluxes!(interface, ocean, sea_ice, ocean_properti
     hᵢ = sea_ice.model.ice_thickness
     hc = sea_ice.model.ice_consolidation_thickness
 
-    phase_transitions = sea_ice.model.ice_thermodynamics.phase_transitions
+    phase_transitions = sea_ice.model.phase_transitions
     liquidus = phase_transitions.liquidus
     L = phase_transitions.reference_latent_heat
 
@@ -70,9 +70,9 @@ function compute_sea_ice_ocean_fluxes!(interface, ocean, sea_ice, ocean_properti
     return nothing
 end
 
-@kernel function _compute_sea_ice_ocean_stress!(fluxes, 
-                                                grid, 
-                                                clock, 
+@kernel function _compute_sea_ice_ocean_stress!(fluxes,
+                                                grid,
+                                                clock,
                                                 ice_thickness,
                                                 ice_concentration,
                                                 sea_ice_u_velocity,
@@ -83,7 +83,7 @@ end
     τˣ = fluxes.x_momentum
     τʸ = fluxes.y_momentum
     Nz = size(grid, 3)
-    
+
     uᵢ = sea_ice_u_velocity
     vᵢ = sea_ice_v_velocity
     hᵢ = ice_thickness
@@ -175,12 +175,12 @@ end
     qᶠ = δQᶠ / ℰ
 
     @inbounds begin
-        Tᴺ = Tₒ[i, j, Nz]               
-        Sᴺ = Sₒ[i, j, Nz]               
-        Sᵢ = ice_salinity[i, j, 1]      
-        hᵢ = ice_thickness[i, j, 1]     
-        ℵᵢ = ice_concentration[i, j, 1] 
-        hc = ice_consolidation_thickness[i, j, 1] 
+        Tᴺ = Tₒ[i, j, Nz]
+        Sᴺ = Sₒ[i, j, Nz]
+        Sᵢ = ice_salinity[i, j, 1]
+        hᵢ = ice_thickness[i, j, 1]
+        ℵᵢ = ice_concentration[i, j, 1]
+        hc = ice_consolidation_thickness[i, j, 1]
     end
 
     # Extract internal temperature (for ConductiveFluxTEF, zero otherwise)
