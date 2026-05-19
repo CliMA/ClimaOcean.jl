@@ -108,7 +108,7 @@ steps:
       julia --project=docs -e 'using Pkg; Pkg.instantiate(verbose=true)'
       julia --project=docs docs/make.jl
     agents:
+      slurm_gres: gpu:nvidia_l40s:1
       slurm_mem: 32G
-      slurm_gpus: 1
       slurm_cpus_per_task: 8
       slurm_ntasks: 1
