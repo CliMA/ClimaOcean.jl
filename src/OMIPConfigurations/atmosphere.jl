@@ -1,9 +1,10 @@
-# Shared atmosphere setup for OMIP simulations
+# Shared atmosphere / land / radiation setup for OMIP simulations
 
 """
     omip_atmosphere(arch; forcing_dir, start_date, end_date, backend_size=30)
 
-Set up JRA55 prescribed atmosphere with river and iceberg forcing.
+Set up JRA55 prescribed atmosphere, land (river runoff + iceberg calving),
+and radiation. Returns `(atmosphere, land, radiation)`.
 """
 function omip_atmosphere(arch;
                          forcing_dir,
@@ -12,17 +13,12 @@ function omip_atmosphere(arch;
                          backend_size = 30)
 
     dataset = MultiYearJRA55()
-    backend = JRA55NetCDFBackend(backend_size)
+    kw = (; dir = forcing_dir, dataset, start_date, end_date,
+            time_indices_in_memory = backend_size)
 
-    atmosphere = JRA55PrescribedAtmosphere(arch;
-                                           dir = forcing_dir,
-                                           dataset,
-                                           backend,
-                                           include_rivers_and_icebergs = true,
-                                           start_date,
-                                           end_date)
+    atmosphere = JRA55PrescribedAtmosphere(arch; kw...)
+    land       = JRA55PrescribedLand(arch; kw...)
+    radiation  = JRA55PrescribedRadiation(arch; kw...)
 
-    radiation = Radiation()
-
-    return atmosphere, radiation
+    return atmosphere, land, radiation
 end

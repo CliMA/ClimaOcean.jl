@@ -8,10 +8,13 @@ using Statistics: mean
 
 using NumericalEarth.Oceans: ocean_simulation
 using NumericalEarth.SeaIces: sea_ice_simulation
-using NumericalEarth.EarthSystemModels: OceanSeaIceModel, Radiation
+using NumericalEarth.EarthSystemModels: OceanSeaIceModel
 using NumericalEarth.DataWrangling: Metadatum, Metadata, DatasetRestoring,
                                     EN4Monthly, ECCO4Monthly, WOAMonthly
-using NumericalEarth.DataWrangling.JRA55: MultiYearJRA55, JRA55NetCDFBackend, JRA55PrescribedAtmosphere                            
+using NumericalEarth.DataWrangling.JRA55: MultiYearJRA55,
+                                          JRA55PrescribedAtmosphere,
+                                          JRA55PrescribedLand,
+                                          JRA55PrescribedRadiation
 
 using ..OceanConfigurations: half_degree_tripolar_ocean, orca_ocean
 using ..SeaIceConfigurations: half_degree_tripolar_sea_ice, orca_sea_ice

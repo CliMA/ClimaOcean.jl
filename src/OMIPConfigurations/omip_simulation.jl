@@ -72,14 +72,14 @@ function omip_simulation(config::Symbol = :half_degree;
     # 2. Build the sea-ice simulation and set initial conditions
     sea_ice = _build_sea_ice(cfg, grid, ocean; restoring_dir)
 
-    # 3. Build the prescribed atmosphere
-    atmosphere, radiation = omip_atmosphere(arch;
-                                           forcing_dir,
-                                           start_date,
-                                           end_date)
+    # 3. Build the prescribed atmosphere, land, and radiation
+    atmosphere, land, radiation = omip_atmosphere(arch;
+                                                  forcing_dir,
+                                                  start_date,
+                                                  end_date)
 
     # 4. Couple into an OceanSeaIceModel
-    coupled = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+    coupled = OceanSeaIceModel(sea_ice, ocean; atmosphere, land, radiation)
 
     # 5. Optionally load a restart checkpoint
     if !isnothing(restart)
