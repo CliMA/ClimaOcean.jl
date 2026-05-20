@@ -29,13 +29,12 @@ set!(sea_ice.model, h = Metadatum(:sea_ice_thickness;    date, dataset = ECCO4Mo
 
 # ### Atmospheric forcing
 
-atmosphere = JRA55PrescribedAtmosphere(arch; backend = JRA55NetCDFBackend(41),
-                                       include_rivers_and_icebergs = false)
-radiation = Radiation(arch)
+atmosphere = JRA55PrescribedAtmosphere(arch; time_indices_in_memory = 41)
+radiation  = JRA55PrescribedRadiation(arch; time_indices_in_memory = 41)
 
 # ### Simulation
 
-coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+coupled_model = OceanSeaIceModel(sea_ice, ocean; atmosphere, radiation)
 
 full_year = get(ENV, "CLIMAOCEAN_FULL_SIMULATION", "false") == "true"
 
