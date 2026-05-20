@@ -16,7 +16,7 @@ function orca_ocean(arch = CPU();
                     biharmonic_timescale = 15days,
                     background_κ = henyey_diffusivity,
                     background_ν = 1e-5,
-                    halo = (4, 4, 4),
+                    halo = (5, 5, 4),
                     substeps = 70,
                     kwargs...)
 
