@@ -284,6 +284,10 @@ function metadata_url(m::Metadata{<:ECCO4Monthly})
 end
 
 function download_dataset(metadata::ECCOMetadata)
+    # if all files are already downloaded, skip
+    @info "ECCO Metadata:" metadata
+    all(isfile(metadata_path(m)) for m in metadata) && return nothing
+
     username = get(ENV, "ECCO_USERNAME", nothing)
     password = get(ENV, "ECCO_WEBDAV_PASSWORD", nothing)
     dir = metadata.dir
