@@ -9,6 +9,7 @@ export one_degree_tripolar_ocean,
        half_degree_tripolar_sea_ice,
        one_degree_tripolar_sea_ice,
        sixth_degree_tripolar_sea_ice,
+       download_with_fallback,
        orca_ocean,
        orca_sea_ice,
        omip_simulation,
@@ -93,7 +94,6 @@ function (p::Progress)(sim)
 end
 
 include("download_with_fallback.jl")
-
 include("InitialConditions/InitialConditions.jl")
 include("Diagnostics/Diagnostics.jl")
 include("OceanConfigurations/OceanConfigurations.jl")
