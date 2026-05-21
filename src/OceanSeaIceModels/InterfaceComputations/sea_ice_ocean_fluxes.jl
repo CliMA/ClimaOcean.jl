@@ -1,4 +1,5 @@
 using Oceananigans.Operators: Δzᶜᶜᶜ
+using Oceananigans.ImmersedBoundaries: immersed_cell
 using ClimaOcean.OceanSeaIceModels: ocean_temperature, ocean_salinity
 using ClimaSeaIce.SeaIceThermodynamics: melting_temperature
 using ClimaSeaIce.SeaIceDynamics: x_momentum_stress, y_momentum_stress
@@ -160,12 +161,14 @@ end
         δE = freezing * ρₒ * cₒ * (Tₘ - Tᵏ)
 
         # Perform temperature adjustment
+        active = !immersed_cell(i, j, k, grid)
+
         @inbounds Tₒ[i, j, k] = ifelse(freezing, Tₘ, Tᵏ)
 
         # Compute the heat flux from ocean into ice during frazil formation.
         # A negative value δQᶠ < 0 implies heat is fluxed from the ice into
         # the ocean (frazil ice formation).
-        δQᶠ -= δE * Δz / Δt
+        δQᶠ -= δE * Δz / Δt * active
     end
 
     # Store frazil heat flux
