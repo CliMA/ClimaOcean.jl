@@ -733,7 +733,6 @@ function woa_teos10_pair(c)
     S = CenterField(grid)
     interpolate!(T, woaT)
     interpolate!(S, woaS)
-    woa_to_teos10!(T, S)
     return (Array(interior(T)), Array(interior(S)))
 end
 

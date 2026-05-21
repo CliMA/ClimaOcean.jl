@@ -50,20 +50,12 @@ using ..OceanConfigurations: half_degree_tripolar_ocean,
 
 export omip_simulation,
        add_omip_diagnostics!,
-       add_ke_spectrum_diagnostic!,
-       compute_report_fields,
        compute_woa_bias,
        strait_transports,
        strait_sections,
        StraitSection,
-       woa_to_teos10!,
-       woa_salinity_fts_to_teos10!,
        KPPVerticalDiffusivity, KPPParameters,
        NEMOTKEVerticalDiffusivity, NEMOTKEParameters,
-       NORiBaseVerticalDiffusivity
-
-# Patches to Oceananigans
-include("oceananigans_patches.jl")
 
 include("KPP/KPP.jl")
 
@@ -76,9 +68,7 @@ using .NEMOTKE: NEMOTKEVerticalDiffusivity, NEMOTKEParameters
 include("atmosphere.jl")
 include("jra55_data_staging.jl")
 include("omip_diagnostics.jl")
-include("ke_spectrum_diagnostic.jl")
 include("omip_simulation.jl")
-include("report_fields.jl")
 include("strait_transports.jl")
 
 end # module

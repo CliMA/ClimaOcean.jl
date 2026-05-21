@@ -36,8 +36,6 @@ ClimaOceanMakieExt = "Makie"
 
 [sources]
 NumericalEarth = {rev = "main", url = "https://github.com/NumericalEarth/NumericalEarth.jl.git"}
-Oceananigans = {rev = "ss/for-omip", url = "https://github.com/CliMA/Oceananigans.jl.git"}
-SeawaterPolynomials = {rev = "ss/conversion-functions", url = "https://github.com/CliMA/SeawaterPolynomials.jl.git"}
 
 [compat]
 AbstractFFTs = "1"
@@ -59,7 +57,7 @@ Oceananigans = "0.107, 0.108"
 PrecompileTools = "1"
 Printf = "1.11.0"
 Reexport = "1.2.2"
-SeawaterPolynomials = "0.4"
+SeawaterPolynomials = "0.3, 0.4"
 StaticArrays = "1"
 Statistics = "1.9"
 WorldOceanAtlasTools = "0.6"

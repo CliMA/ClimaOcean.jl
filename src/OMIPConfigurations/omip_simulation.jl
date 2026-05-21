@@ -440,68 +440,6 @@ end
 # Approximate hydrostatic pressure in dbar from depth z [m] (cell-center, negative for ocean).
 @inline approx_pressure_dbar(z) = max(zero(z), -z)
 
-"""
-    woa_to_teos10!(T_field, S_field)
-
-Convert WOA in-situ temperature `t [°C]` and Practical Salinity `S_P` to TEOS-10 Conservative Temperature `Θ`
-and Absolute Salinity `S_A`, in place. Both fields must live on the same grid. The conversion runs on the host;
-data is copied to/from the device automatically.
-"""
-function woa_to_teos10!(T_field, S_field)
-    grid = T_field.grid
-    cpu_arch = Oceananigans.DistributedComputations.cpu_architecture(architecture(grid))
-    cpu_grid = on_architecture(cpu_arch, grid)
-    Nx, Ny, Nz = size(grid)
-    T_h = Array(interior(T_field))
-    S_h = Array(interior(S_field))
-    for k in 1:Nz, j in 1:Ny, i in 1:Nx
-        t  = T_h[i, j, k]
-        SP = S_h[i, j, k]
-        (isnan(t) || isnan(SP)) && continue
-        λ = λnode(i, j, k, cpu_grid, Center(), Center(), Center())
-        φ = φnode(i, j, k, cpu_grid, Center(), Center(), Center())
-        z = znode(i, j, k, cpu_grid, Center(), Center(), Center())
-        p = approx_pressure_dbar(z)
-        SA = Sᴬ_from_Sᴾ(SP, p, λ, φ)
-        Θ  = Θ_from_T(SA, t, p)
-        T_h[i, j, k] = Θ
-        S_h[i, j, k] = SA
-    end
-    copyto!(interior(T_field), T_h)
-    copyto!(interior(S_field), S_h)
-    return T_field, S_field
-end
-
-"""
-    woa_salinity_fts_to_teos10!(fts)
-
-Convert each time slice of a WOA Practical Salinity `FieldTimeSeries` to TEOS-10
-Absolute Salinity, in place. Requires that all time indices be in memory
-(use `time_indices_in_memory = length(metadata)`).
-"""
-function woa_salinity_fts_to_teos10!(fts)
-    grid = fts.grid
-    cpu_arch = Oceananigans.DistributedComputations.cpu_architecture(architecture(grid))
-    cpu_grid = on_architecture(cpu_arch, grid)
-    Nx, Ny, Nz = size(grid)
-    Nt = length(fts.times)
-    for t_idx in 1:Nt
-        S_int = interior(fts[t_idx])
-        S_h   = Array(S_int)
-        for k in 1:Nz, j in 1:Ny, i in 1:Nx
-            SP = S_h[i, j, k]
-            isnan(SP) && continue
-            λ = λnode(i, j, k, cpu_grid, Center(), Center(), Center())
-            φ = φnode(i, j, k, cpu_grid, Center(), Center(), Center())
-            z = znode(i, j, k, cpu_grid, Center(), Center(), Center())
-            p = approx_pressure_dbar(z)
-            S_h[i, j, k] = Sᴬ_from_Sᴾ(SP, p, λ, φ)
-        end
-        copyto!(S_int, S_h)
-    end
-    return fts
-end
-
 #####
 ##### Shared closure utilities
 #####
@@ -602,8 +540,6 @@ function salinity_surface_restoring(grid, dataset;
                                  rate,
                                  time_indices_in_memory = length(Smetadata))
 
-    woa_salinity_fts_to_teos10!(restoring.field_time_series)
-
     return SurfaceFluxRestoring(restoring)
 end
 
@@ -698,7 +634,6 @@ function build_ocean(config, arch;
     S_init = CenterField(grid)
     set!(T_init, Metadatum(:temperature; dir=restoring_dir, dataset=WOAAnnual()))
     set!(S_init, Metadatum(:salinity;    dir=restoring_dir, dataset=WOAAnnual()))
-    woa_to_teos10!(T_init, S_init)
     set!(ocean.model, T=T_init, S=S_init)
 
     return ocean
