@@ -8,6 +8,8 @@ export one_degree_tripolar_ocean,
        half_degree_tripolar_sea_ice,
        one_degree_tripolar_sea_ice,
        sixth_degree_tripolar_sea_ice,
+       download_with_fallback,
+       orca_ocean,
        orca_sea_ice,
        omip_simulation,
        add_omip_diagnostics!,
@@ -27,10 +29,11 @@ using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
 @reexport using NumericalEarth.EarthSystemModels
 @reexport using NumericalEarth.EarthSystemModels.InterfaceComputations
 @reexport using NumericalEarth.Bathymetry
-@reexport using NumericalEarth.EarthSystemModels
 @reexport using NumericalEarth.Atmospheres
 @reexport using NumericalEarth.Oceans
 @reexport using NumericalEarth.SeaIces
+@reexport using NumericalEarth.Lands
+@reexport using NumericalEarth.Radiations
 
 #####
 ##### Source code
@@ -78,6 +81,7 @@ function (p::Progress)(sim)
     return nothing
 end
 
+include("download_with_fallback.jl")
 include("InitialConditions/InitialConditions.jl")
 include("Diagnostics/Diagnostics.jl")
 include("OceanConfigurations/OceanConfigurations.jl")

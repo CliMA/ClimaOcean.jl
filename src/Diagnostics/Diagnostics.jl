@@ -19,7 +19,7 @@ using Oceananigans.AbstractOperations: KernelFunctionOperation
 using Oceananigans.Grids: on_architecture
 using Oceananigans.Architectures: child_architecture
 using NumericalEarth.DataWrangling: Metadatum, WOAAnnual
-using NumericalEarth.InitialConditions: interpolate!
+using Oceananigans.Fields: interpolate!
 using WorldOceanAtlasTools
 using Statistics: mean
 

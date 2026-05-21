@@ -28,9 +28,7 @@ mkpath(OUTPUT_DIR)
 # Set `full_year = false` to run only 100 time steps (for quick CI).
 # Setting `CLIMAOCEAN_BUILD_ALL_EXAMPLES=true` overrides all examples to full year.
 coupled_examples = [
-    Example("Latitude-longitude",   "latitude_longitude_ocean_sea_ice",    false),
-    Example("Half-degree tripolar", "half_degree_tripolar_ocean_sea_ice",  false),
-    Example("ORCA",                 "orca_ocean_sea_ice",                  false),
+    Example("ORCA",  "orca_ocean_sea_ice", false),
 ]
 
 # # The 1/6° distributed simulation is run via MPI in a separate CI step.
