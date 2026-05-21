@@ -55,7 +55,7 @@ export omip_simulation,
        strait_sections,
        StraitSection,
        KPPVerticalDiffusivity, KPPParameters,
-       NEMOTKEVerticalDiffusivity, NEMOTKEParameters,
+       NEMOTKEVerticalDiffusivity, NEMOTKEParameters
 
 include("KPP/KPP.jl")
 
