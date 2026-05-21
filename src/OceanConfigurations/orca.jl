@@ -18,9 +18,13 @@ function orca_ocean(arch = CPU();
                     background_ν = 1e-5,
                     halo = (5, 5, 4),
                     substeps = 70,
+                    z = nothing,
+                    additional_surface_fluxes = nothing,
                     kwargs...)
 
-    z = vertical_coordinate(; Nz, depth, zstar)
+    if isnothing(z)
+        z = vertical_coordinate(; Nz, depth, zstar)
+    end
 
     if isnothing(closure)
         closure = default_one_degree_closure(; κ_skew, κ_symmetric, biharmonic_timescale, background_κ, background_ν)
@@ -36,10 +40,14 @@ function orca_ocean(arch = CPU();
 
     free_surface = SplitExplicitFreeSurface(grid; substeps)
 
+    asf = resolve_surface_fluxes(additional_surface_fluxes, arch, grid)
+    flux_kw = isnothing(asf) ? (;) : (; additional_surface_fluxes = asf)
+
     return ocean_simulation(grid;
                             momentum_advection,
                             tracer_advection,
                             free_surface,
                             closure,
+                            flux_kw...,
                             kwargs...)
 end

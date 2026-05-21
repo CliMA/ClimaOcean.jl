@@ -13,6 +13,7 @@ export latitude_longitude_ocean,
        half_degree_tripolar_ocean,
        one_degree_tripolar_ocean,
        sixth_degree_tripolar_ocean,
+       tenth_degree_tripolar_ocean,
        orca_ocean,
        simplified_ocean_closure
 
@@ -50,6 +51,15 @@ function vertical_coordinate(; Nz=60, depth=6000, zstar=false)
     return ExponentialDiscretization(Nz, -depth, 0; mutable=zstar)
 end
 
+# Resolve the `additional_surface_fluxes` kwarg of each setup.
+# Callers may pass either a NamedTuple of restoring objects (used as-is) or a
+# Function `(arch, grid) -> NamedTuple` to defer construction until the grid
+# has been built inside the setup (useful when the restoring rate depends on
+# the grid geometry, as for piston-velocity-based salinity restoring).
+@inline resolve_surface_fluxes(::Nothing, arch, grid) = nothing
+@inline resolve_surface_fluxes(asf::NamedTuple, arch, grid) = asf
+@inline resolve_surface_fluxes(asf, arch, grid) = asf(arch, grid)
+
 #####
 ##### Configuration constructors
 #####
@@ -58,6 +68,7 @@ include("latitude_longitude.jl")
 include("half_degree_tripolar.jl")
 include("one_degree_tripolar.jl")
 include("sixth_degree_tripolar.jl")
+include("tenth_degree_tripolar.jl")
 include("orca.jl")
 
 end # module

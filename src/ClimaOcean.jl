@@ -4,6 +4,7 @@ export one_degree_tripolar_ocean,
        half_degree_tripolar_ocean,
        latitude_longitude_ocean,
        sixth_degree_tripolar_ocean,
+       tenth_degree_tripolar_ocean,
        latitude_longitude_sea_ice,
        half_degree_tripolar_sea_ice,
        one_degree_tripolar_sea_ice,
@@ -12,10 +13,21 @@ export one_degree_tripolar_ocean,
        orca_sea_ice,
        omip_simulation,
        add_omip_diagnostics!,
+       add_ke_spectrum_diagnostic!,
+       compute_report_fields,
+       compute_woa_bias,
+       strait_transports,
+       strait_sections,
+       StraitSection,
+       woa_to_teos10!,
+       woa_salinity_fts_to_teos10!,
+       KPPVerticalDiffusivity, KPPParameters,
+       NEMOTKEVerticalDiffusivity, NEMOTKEParameters,
+       NORiBaseVerticalDiffusivity,
        simplified_ocean_closure,
        Progress,
        simulation_report,
-       compute_report_fields
+       download_with_fallback
 
 using Reexport
 using Printf
@@ -79,6 +91,8 @@ function (p::Progress)(sim)
 
     return nothing
 end
+
+include("download_with_fallback.jl")
 
 include("InitialConditions/InitialConditions.jl")
 include("Diagnostics/Diagnostics.jl")

@@ -3,8 +3,7 @@ module Diagnostics
 export MixedLayerDepthField, MixedLayerDepthOperand
 export MeridionalStreamfunction, compute_streamfunction
 export compute_amoc, compute_broken_isolatitudes, BrokenIsoLatitude
-export simulation_report, compute_report_fields, compute_zonal_averages
-export add_omip_diagnostics!, OMIPScalarCallback
+export simulation_report
 
 using Oceananigans
 using Oceananigans.Architectures: architecture
@@ -18,16 +17,11 @@ using Oceananigans.Operators: ζ₃ᶠᶠᶜ, ℑxᶜᵃᵃ, ℑyᵃᶜᵃ
 using Oceananigans.AbstractOperations: KernelFunctionOperation
 using Oceananigans.Grids: on_architecture
 using Oceananigans.Architectures: child_architecture
-using NumericalEarth.DataWrangling: Metadatum, WOAAnnual
-using Oceananigans.Fields: interpolate!
-using WorldOceanAtlasTools
 using Statistics: mean
 
 import Oceananigans.Fields: compute!
 
 include("mixed_layer_depth.jl")
-include("report_computations.jl")
-include("omip_diagnostics.jl")
 
 function simulation_report end
 
