@@ -42,12 +42,6 @@ simulation = omip_simulation(:half_degree;
 
 run!(simulation)
 
-# ### Diagnostic report
-
-simulation_report(simulation.model.ocean, filename = "omip_report.png")
-
-# ![](omip_report.png)
-
 # ### Custom diagnostics example
 #
 # You can also build the simulation without diagnostics and attach them manually:

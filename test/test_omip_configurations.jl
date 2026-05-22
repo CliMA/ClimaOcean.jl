@@ -3,8 +3,7 @@ using ClimaOcean.OceanConfigurations: default_half_degree_closure,
                                       default_one_degree_closure,
                                       vertical_coordinate,
                                       henyey_diffusivity
-using ClimaOcean.OMIPConfigurations: omip_simulation
-using ClimaOcean.Diagnostics: add_omip_diagnostics!, OMIPScalarCallback
+using ClimaOcean.OMIPConfigurations: omip_simulation, add_omip_diagnostics!
 using Oceananigans
 using Oceananigans.Units
 using Test
@@ -76,18 +75,5 @@ end
 
     @testset "add_omip_diagnostics! method signature" begin
         @test hasmethod(add_omip_diagnostics!, Tuple{Oceananigans.Simulation})
-    end
-
-    @testset "OMIPScalarCallback construction" begin
-        grid = RectilinearGrid(CPU(); size=(4, 4, 4), x=(0, 1), y=(0, 1), z=(-1, 0))
-        T = CenterField(grid)
-        S = CenterField(grid)
-        cb = OMIPScalarCallback(grid, T, S, "test_scalars.jld2")
-        @test cb.max_writes_per_file == 24
-        @test cb.part == 1
-        @test cb.initialized == false
-
-        cb2 = OMIPScalarCallback(grid, T, S, "test_scalars.jld2"; max_writes_per_file=12)
-        @test cb2.max_writes_per_file == 12
     end
 end

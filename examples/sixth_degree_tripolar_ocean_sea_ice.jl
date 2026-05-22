@@ -77,12 +77,3 @@ sea_ice.output_writers[:fields] = JLD2Writer(sea_ice.model, sea_ice_outputs;
 # ### Run!
 
 run!(simulation)
-
-# ### Diagnostic report (rank 0 only)
-
-if MPI.Comm_rank(MPI.COMM_WORLD) == 0
-    using CairoMakie
-    simulation_report(ocean, filename = "sixth_degree_coupled_report.png")
-end
-
-# ![](sixth_degree_coupled_report.png)

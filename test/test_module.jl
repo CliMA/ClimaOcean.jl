@@ -28,7 +28,6 @@ using Test
 
     # Diagnostics exports
     @test isdefined(ClimaOcean.Diagnostics, :MixedLayerDepthField)
-    @test isdefined(ClimaOcean.Diagnostics, :compute_report_fields)
 
     # OceanConfigurations exports
     @test isdefined(OceanConfigurations, :latitude_longitude_ocean)

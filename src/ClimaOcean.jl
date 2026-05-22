@@ -14,7 +14,6 @@ export one_degree_tripolar_ocean,
        orca_sea_ice,
        omip_simulation,
        add_omip_diagnostics!,
-       compute_woa_bias,
        strait_transports,
        strait_sections,
        StraitSection,
@@ -22,9 +21,7 @@ export one_degree_tripolar_ocean,
        NEMOTKEVerticalDiffusivity, NEMOTKEParameters,
        NORiBaseVerticalDiffusivity,
        simplified_ocean_closure,
-       Progress,
-       simulation_report,
-       download_with_fallback
+       Progress
 
 using Reexport
 using Printf

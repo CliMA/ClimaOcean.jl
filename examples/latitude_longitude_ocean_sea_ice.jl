@@ -9,7 +9,6 @@ using Oceananigans.Units
 using Dates
 using Printf
 using CUDA
-using CairoMakie
 
 # ### Build ocean and sea ice
 
@@ -76,9 +75,3 @@ sea_ice.output_writers[:fields] = JLD2Writer(sea_ice.model, sea_ice_outputs;
 # ### Run!
 
 run!(simulation)
-
-# ### Diagnostic report
-
-simulation_report(ocean, filename = "latlon_coupled_report.png")
-
-# ![](latlon_coupled_report.png)

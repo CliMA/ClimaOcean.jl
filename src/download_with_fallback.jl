@@ -1,5 +1,5 @@
 using Downloads: Downloads
-using NumericalEarth.DataWrangling: download_dataset, metadata_path
+using NumericalEarth.DataWrangling: DataWrangling
 
 const ARTIFACTS_BASE_URL = "https://github.com/NumericalEarth/NumericalEarthArtifacts/releases/download/data-v1/"
 
@@ -28,12 +28,12 @@ Use to make scripts and docs examples robust to upstream data-server outages
 finds the file locally and reads it normally.
 """
 function download_with_fallback(metadata; dataset_name = string(metadata.name))
-    filepaths = metadata_path(metadata)
+    filepaths = DataWrangling.metadata_path(metadata)
     try
-        return download_dataset(metadata)
+        return DataWrangling.download_dataset(metadata)
     catch e
         @warn "Primary download failed for $dataset_name; trying NumericalEarthArtifacts fallback…" exception=(e, catch_backtrace())
         download_from_artifacts(filepaths)
-        return download_dataset(metadata)
+        return DataWrangling.download_dataset(metadata)
     end
 end

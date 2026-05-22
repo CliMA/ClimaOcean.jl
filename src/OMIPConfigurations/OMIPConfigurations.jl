@@ -50,7 +50,6 @@ using ..OceanConfigurations: half_degree_tripolar_ocean,
 
 export omip_simulation,
        add_omip_diagnostics!,
-       compute_woa_bias,
        strait_transports,
        strait_sections,
        StraitSection,

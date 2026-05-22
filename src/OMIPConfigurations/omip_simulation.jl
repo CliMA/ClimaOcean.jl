@@ -414,13 +414,6 @@ function omip_simulation(config::Symbol = :halfdegree;
                               output_dir,
                               filename_prefix,
                               file_splitting_interval)
-
-        # Dispatches to the active method only for cfg == Val(:tenthdegree);
-        # other configurations get the no-op fallback.
-        add_ke_spectrum_diagnostic!(simulation, cfg;
-                                     output_dir,
-                                     filename_prefix,
-                                     flush_interval = field_averaging_interval)
     end
 
     return simulation
