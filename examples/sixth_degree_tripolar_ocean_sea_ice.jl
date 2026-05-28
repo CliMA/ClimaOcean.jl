@@ -48,7 +48,7 @@ radiation  = JRA55PrescribedRadiation(arch; time_indices_in_memory = 41)
 
 # ### Simulation
 
-coupled_model = OceanSeaIceModel(sea_ice, ocean; atmosphere, radiation)
+coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 simulation = Simulation(coupled_model; Δt = 5minutes, stop_time = 2 * 365days)
 
 # ### Progress messenger

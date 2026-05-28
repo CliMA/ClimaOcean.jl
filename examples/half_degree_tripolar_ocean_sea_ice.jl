@@ -40,7 +40,7 @@ radiation  = JRA55PrescribedRadiation(arch; time_indices_in_memory = 41)
 
 # ### Simulation
 
-coupled_model = OceanSeaIceModel(sea_ice, ocean; atmosphere, radiation)
+coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
 
 full_year = get(ENV, "CLIMAOCEAN_FULL_SIMULATION", "false") == "true"
 

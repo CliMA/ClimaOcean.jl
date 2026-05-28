@@ -8,7 +8,6 @@ using Oceananigans.BoundaryConditions: DiscreteBoundaryFunction, getbc
 using Oceananigans.Fields: CenterField, interior
 using Oceananigans.Utils: launch!
 using NumericalEarth.Oceans: MultipleFluxes
-using SeawaterPolynomials.TEOS10: Sᴬ_from_Sᴾ, Θ_from_T
 using Oceananigans.TurbulenceClosures: IsopycnalSkewSymmetricDiffusivity,
                                        ConvectiveAdjustmentVerticalDiffusivity
 using Oceananigans.Utils: NormalDivision
@@ -23,9 +22,7 @@ using NumericalEarth.EarthSystemModels.InterfaceComputations: COARELogarithmicSi
                                                               FixedIterations,
                                                               large_yeager_stability_functions,
                                                               RelativeVelocity,
-                                                              WindVelocity,
-                                                              ConstantGustiness,
-                                                              ShearAwareGustiness
+                                                              WindVelocity
 
 #####
 ##### Flux configurations
@@ -37,17 +34,14 @@ using NumericalEarth.EarthSystemModels.InterfaceComputations: COARELogarithmicSi
 COARE 3.6-consistent atmosphere-ocean flux formulation with:
 - Wind-dependent Charnock parameter (Edson et al. 2013, eq. 13)
 - COARE logarithmic similarity profile (no ψ(ℓ/L) term)
-- Minimum gustiness = 0.5 m/s (CICE / NCAR CORE-II convention)
-- `gustiness` kwarg accepts either a `ConstantGustiness(min_gust, β)` (default; constant floor)
-  or a `ShearAwareGustiness(c, min_gust, β)` (Mahrt-Sun 1995 / Edson 2013 form)
+- Minimum gustiness = 0.5 m/s (CICE / NCAR CORE-II convention), via the `minimum_gustiness` kwarg
 - Temperature-dependent air viscosity
 """
-function corrected_atmosphere_ocean_fluxes(FT = Float64;
-                                           gustiness = ConstantGustiness(FT; minimum_gustiness = 0.5))
+function corrected_atmosphere_ocean_fluxes(FT = Float64; minimum_gustiness = 0.5)
     air_kinematic_viscosity = TemperatureDependentAirViscosity(FT)
     return SimilarityTheoryFluxes(FT;
                                   similarity_form              = COARELogarithmicSimilarityProfile(),
-                                  gustiness                    = gustiness,
+                                  minimum_gustiness            = minimum_gustiness,
                                   momentum_roughness_length    = MomentumRoughnessLength(FT;
                                   wave_formulation             = WindDependentWaveFormulation(FT),
                                   air_kinematic_viscosity      = TemperatureDependentAirViscosity(FT)),
@@ -123,7 +117,7 @@ ncar_atmosphere_sea_ice_fluxes(FT = Float64) =
                         velocity_formulation = :relative)
 
 Build the `OceanSeaIceModel` with the specified flux configuration.
-Options for `flux_configuration`: `:default`, `:corrected`, `:shear_aware`, `:ncar`.
+Options for `flux_configuration`: `:default`, `:corrected`, `:ncar`.
 Options for `velocity_formulation`:  `:relative`, `:wind`
 """
 function build_coupled_model(ocean, sea_ice, atmosphere, radiation, land, flux_configuration;
@@ -135,21 +129,18 @@ function build_coupled_model(ocean, sea_ice, atmosphere, radiation, land, flux_c
                                          radiation,
                                          land,
                                          ocean_minimum_salinity = convert(FT, ocean_minimum_salinity))
-        return OceanSeaIceModel(sea_ice, ocean; atmosphere, land, interfaces)
+        return OceanSeaIceModel(ocean, sea_ice; atmosphere, land, interfaces)
     end
 
     velocity_difference_obj = velocity_formulation == :relative ? RelativeVelocity() :
                               velocity_formulation == :wind     ? WindVelocity()     :
                               error("Unknown velocity_formulation: $velocity_formulation. Options: :relative, :wind")
 
-    if flux_configuration == :corrected || flux_configuration == :shear_aware
-        gustiness = flux_configuration == :shear_aware ?
-                    ShearAwareGustiness(FT; shear_wind_scale = 0.04, minimum_gustiness = 0.5) :
-                    ConstantGustiness(FT;   minimum_gustiness = 0.5)
+    if flux_configuration == :corrected
         interfaces = ComponentInterfaces(atmosphere, ocean, sea_ice;
                                          radiation,
                                          land,
-                                         atmosphere_ocean_fluxes   = corrected_atmosphere_ocean_fluxes(FT; gustiness),
+                                         atmosphere_ocean_fluxes   = corrected_atmosphere_ocean_fluxes(FT),
                                          atmosphere_sea_ice_fluxes = corrected_atmosphere_sea_ice_fluxes(FT),
                                          sea_ice_ocean_heat_flux   = corrected_ice_ocean_heat_flux(),
                                          atmosphere_ocean_velocity_difference   = velocity_difference_obj,
@@ -166,10 +157,10 @@ function build_coupled_model(ocean, sea_ice, atmosphere, radiation, land, flux_c
                                          atmosphere_sea_ice_velocity_difference = velocity_difference_obj,
                                          ocean_minimum_salinity = convert(FT, ocean_minimum_salinity))
     else
-        error("Unknown flux_configuration: $flux_configuration. Options: :default, :corrected, :shear_aware, :ncar")
+        error("Unknown flux_configuration: $flux_configuration. Options: :default, :corrected, :ncar")
     end
 
-    return OceanSeaIceModel(sea_ice, ocean; atmosphere, land, interfaces)
+    return OceanSeaIceModel(ocean, sea_ice; atmosphere, land, interfaces)
 end
 
 #####
@@ -271,11 +262,6 @@ plumbing is needed because `NumericalEarth.EarthSystemModels` provides
 - `flux_configuration`: surface flux formulation. Options:
    * `:default` — current defaults (Edson/COARE with constant Charnock 0.02)
    * `:corrected` — COARE 3.6 with wind-dependent Charnock, fixed ice roughness, momentum-based u*
-   * `:shear_aware` — `:corrected` plus the Mahrt–Sun (1995) / Edson (2013)
-                      shear-aware gustiness form (`ShearAwareGustiness`),
-                      Uᴳ² = (β·w★)² + (c·|Δu|)² + Uᴳ₀². Designed to inject
-                      additional gustiness at moderate winds where convective
-                      gustiness is weak (e.g., the equator).
    * `:ncar` — OMIP-2 standard Large & Yeager (2004) bulk formulae
 - `vertical_closure::Symbol`: ocean vertical-mixing closure. Options:
    * `:catke` — CATKE TKE-based scheme (default).

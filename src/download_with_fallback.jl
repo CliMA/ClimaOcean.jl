@@ -30,10 +30,10 @@ finds the file locally and reads it normally.
 function download_with_fallback(metadata; dataset_name = string(metadata.name))
     filepaths = DataWrangling.metadata_path(metadata)
     try
-        return DataWrangling.download_dataset(metadata)
+        return Downloads.download(metadata)
     catch e
         @warn "Primary download failed for $dataset_name; trying NumericalEarthArtifacts fallback…" exception=(e, catch_backtrace())
         download_from_artifacts(filepaths)
-        return DataWrangling.download_dataset(metadata)
+        return Downloads.download(metadata)
     end
 end
