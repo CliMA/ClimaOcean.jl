@@ -107,6 +107,20 @@ Modules = [ClimaOcean.SeaIces]
 Public = false
 ```
 
+## Lands
+
+```@autodocs
+Modules = [ClimaOcean.Lands]
+Public = false
+```
+
+## Radiations
+
+```@autodocs
+Modules = [ClimaOcean.Radiations]
+Public = false
+```
+
 ## EarthSystemModels
 
 ```@autodocs
