@@ -11,6 +11,27 @@ Modules = [ClimaOcean]
 Private = false
 ```
 
+## OceanConfigurations
+
+```@autodocs
+Modules = [ClimaOcean.OceanConfigurations]
+Private = false
+```
+
+## SeaIceConfigurations
+
+```@autodocs
+Modules = [ClimaOcean.SeaIceConfigurations]
+Private = false
+```
+
+## OMIPConfigurations
+
+```@autodocs
+Modules = [ClimaOcean.OMIPConfigurations, ClimaOcean.OMIPConfigurations.KPP, ClimaOcean.OMIPConfigurations.NEMOTKE]
+Private = false
+```
+
 ## Diagnostics
 
 ```@autodocs
@@ -88,16 +109,16 @@ Modules = [ClimaOcean.SeaIces]
 Private = false
 ```
 
-## OceanSeaIceModels
+## EarthSystemModels
 
 ```@autodocs
-Modules = [ClimaOcean.OceanSeaIceModels]
+Modules = [ClimaOcean.EarthSystemModels]
 Private = false
 ```
 
-## OceanSeaIceModels.InterfaceComputations
+## EarthSystemModels.InterfaceComputations
 
 ```@autodocs
-Modules = [ClimaOcean.OceanSeaIceModels.InterfaceComputations]
+Modules = [ClimaOcean.EarthSystemModels.InterfaceComputations]
 Private = false
 ```
