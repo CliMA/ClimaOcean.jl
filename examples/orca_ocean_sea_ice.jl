@@ -13,17 +13,17 @@ using CUDA
 
 # ### Build ocean and sea ice
 
-arch = GPU()
+arch    = GPU()
 closure = simplified_ocean_closure()
 ocean   = orca_ocean(arch; zstar=true, closure)
 sea_ice = orca_sea_ice(ocean)
 
 # ### Initial conditions from ECCO
 
-date = DateTime(1993, 1, 1)
-T_meta = Metadatum(:temperature;          date, dataset = ECCO4Monthly())
-S_meta = Metadatum(:salinity;             date, dataset = ECCO4Monthly())
-h_meta = Metadatum(:sea_ice_thickness;    date, dataset = ECCO4Monthly())
+date   = DateTime(1993, 1, 1)
+T_meta = Metadatum(:temperature;           date, dataset = ECCO4Monthly())
+S_meta = Metadatum(:salinity;              date, dataset = ECCO4Monthly())
+h_meta = Metadatum(:sea_ice_thickness;     date, dataset = ECCO4Monthly())
 ℵ_meta = Metadatum(:sea_ice_concentration; date, dataset = ECCO4Monthly())
 
 # Pre-download via the NumericalEarthArtifacts mirror so the build survives
@@ -35,8 +35,8 @@ set!(sea_ice.model, h = h_meta, ℵ = ℵ_meta)
 
 # ### Atmospheric forcing
 
-atmosphere = JRA55PrescribedAtmosphere(arch; time_indices_in_memory = 41)
-radiation  = JRA55PrescribedRadiation(arch; time_indices_in_memory = 41)
+atmosphere = JRA55PrescribedAtmosphere(arch; time_indices_in_memory = 10)
+radiation  = JRA55PrescribedRadiation(arch; time_indices_in_memory = 10)
 
 # ### Simulation
 
