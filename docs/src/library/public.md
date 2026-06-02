@@ -11,10 +11,24 @@ Modules = [ClimaOcean]
 Private = false
 ```
 
-## Diagnostics
+## OceanConfigurations
 
 ```@autodocs
-Modules = [ClimaOcean.Diagnostics]
+Modules = [ClimaOcean.OceanConfigurations]
+Private = false
+```
+
+## SeaIceConfigurations
+
+```@autodocs
+Modules = [ClimaOcean.SeaIceConfigurations]
+Private = false
+```
+
+## OMIPConfigurations
+
+```@autodocs
+Modules = [ClimaOcean.OMIPConfigurations, ClimaOcean.OMIPConfigurations.KPP, ClimaOcean.OMIPConfigurations.NEMOTKE]
 Private = false
 ```
 
@@ -22,82 +36,5 @@ Private = false
 
 ```@autodocs
 Modules = [ClimaOcean.InitialConditions]
-Private = false
-```
-
-## DataWrangling
-
-```@autodocs
-Modules = [ClimaOcean.DataWrangling]
-Private = false
-```
-
-## ECCO
-
-```@autodocs
-Modules = [ClimaOcean.ECCO]
-Private = false
-```
-
-## EN4
-
-```@autodocs
-Modules = [ClimaOcean.EN4]
-Private = false
-```
-
-## ETOPO
-
-```@autodocs
-Modules = [ClimaOcean.ETOPO]
-Private = false
-```
-
-## JRA55
-
-```@autodocs
-Modules = [ClimaOcean.JRA55]
-Private = false
-```
-
-## Bathymetry
-
-```@autodocs
-Modules = [ClimaOcean.Bathymetry]
-Private = false
-```
-
-## Atmospheres
-
-```@autodocs
-Modules = [ClimaOcean.Atmospheres]
-Private = false
-```
-
-## Oceans
-
-```@autodocs
-Modules = [ClimaOcean.Oceans]
-Private = false
-```
-
-## SeaIces
-
-```@autodocs
-Modules = [ClimaOcean.SeaIces]
-Private = false
-```
-
-## OceanSeaIceModels
-
-```@autodocs
-Modules = [ClimaOcean.OceanSeaIceModels]
-Private = false
-```
-
-## OceanSeaIceModels.InterfaceComputations
-
-```@autodocs
-Modules = [ClimaOcean.OceanSeaIceModels.InterfaceComputations]
 Private = false
 ```

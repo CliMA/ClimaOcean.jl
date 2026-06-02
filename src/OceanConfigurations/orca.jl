@@ -1,0 +1,53 @@
+"""
+    orca_ocean(arch = CPU(); zstar=true, Nz=60, depth=6000, kwargs...)
+
+Construct an ocean `Simulation` on an ORCA grid (NEMO eORCA mesh) with
+realistic bathymetry loaded from NEMO mesh-mask files.
+"""
+function orca_ocean(arch = CPU();
+                    zstar = true,
+                    Nz = 60,
+                    depth = 6000,
+                    momentum_advection = WENOVectorInvariant(order=5, time_discretization=AdaptiveVerticallyImplicitDiscretization(cfl=0.4)),
+                    tracer_advection = WENO(order=5, time_discretization=AdaptiveVerticallyImplicitDiscretization(cfl=0.4)),
+                    closure = nothing,
+                    κ_skew = 500,
+                    κ_symmetric = 200,
+                    biharmonic_timescale = 15days,
+                    background_κ = henyey_diffusivity,
+                    background_ν = 1e-5,
+                    halo = (5, 5, 4),
+                    substeps = 70,
+                    z = nothing,
+                    additional_surface_fluxes = nothing,
+                    kwargs...)
+
+    if isnothing(z)
+        z = vertical_coordinate(; Nz, depth, zstar)
+    end
+
+    if isnothing(closure)
+        closure = default_one_degree_closure(; κ_skew, κ_symmetric, biharmonic_timescale, background_κ, background_ν)
+    end
+
+    grid = ORCAGrid(arch;
+                    dataset = ORCA1(),
+                    Nz,
+                    z,
+                    halo,
+                    with_bathymetry = true,
+                    active_cells_map = true)
+
+    free_surface = SplitExplicitFreeSurface(grid; substeps)
+
+    asf = resolve_surface_fluxes(additional_surface_fluxes, arch, grid)
+    flux_kw = isnothing(asf) ? (;) : (; additional_surface_fluxes = asf)
+
+    return ocean_simulation(grid;
+                            momentum_advection,
+                            tracer_advection,
+                            free_surface,
+                            closure,
+                            flux_kw...,
+                            kwargs...)
+end

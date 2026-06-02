@@ -20,6 +20,7 @@ deps/src/
 docs/build/
 docs/site/
 docs/src/literated/
+docs/plans/*
 
 # Output files
 *.nc
