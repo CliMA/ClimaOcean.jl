@@ -31,6 +31,7 @@ using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
 @reexport using NumericalEarth
 @reexport using NumericalEarth.DataWrangling
 @reexport using NumericalEarth.DataWrangling: ETOPO, ECCO, GLORYS, EN4, JRA55
+@reexport using NumericalEarth.Diagnostics
 @reexport using NumericalEarth.EarthSystemModels
 @reexport using NumericalEarth.EarthSystemModels.InterfaceComputations
 @reexport using NumericalEarth.Bathymetry
@@ -88,13 +89,11 @@ end
 
 include("download_with_fallback.jl")
 include("InitialConditions/InitialConditions.jl")
-include("Diagnostics/Diagnostics.jl")
 include("OceanConfigurations/OceanConfigurations.jl")
 include("SeaIceConfigurations/SeaIceConfigurations.jl")
 include("OMIPConfigurations/OMIPConfigurations.jl")
 
 using .InitialConditions
-using .Diagnostics
 using .OceanConfigurations
 using .SeaIceConfigurations
 using .OMIPConfigurations
