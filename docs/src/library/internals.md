@@ -30,13 +30,6 @@ Modules = [ClimaOcean.OMIPConfigurations, ClimaOcean.OMIPConfigurations.KPP, Cli
 Public = false
 ```
 
-## Diagnostics
-
-```@autodocs
-Modules = [ClimaOcean.Diagnostics]
-Public = false
-```
-
 ## InitialConditions
 
 ```@autodocs
