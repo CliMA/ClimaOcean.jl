@@ -106,7 +106,7 @@ steps:
       echo "CLIMAOCEAN_BUILD_ALL_EXAMPLES=${CLIMAOCEAN_BUILD_ALL_EXAMPLES}"
 
       julia --project=docs -e 'using Pkg; Pkg.instantiate(verbose=true)'
-      julia --project=docs docs/make.jl
+      julia --project=docs -O0 docs/make.jl
     agents:
       slurm_gres: gpu:nvidia_l40s:1
       slurm_mem: 32G
