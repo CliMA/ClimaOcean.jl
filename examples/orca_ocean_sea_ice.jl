@@ -52,7 +52,7 @@ end
 
 # ### Progress messenger
 
-add_callback!(simulation, Progress(), IterationInterval(100))
+add_callback!(simulation, Progress(), IterationInterval(10))
 
 # ### Output writers
 

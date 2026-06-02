@@ -4,7 +4,8 @@ using Oceananigans
 using Oceananigans.Units
 using Oceananigans.TimeSteppers: AdaptiveVerticallyImplicitDiscretization
 using Oceananigans.TurbulenceClosures: IsopycnalSkewSymmetricDiffusivity,
-                                       ConvectiveAdjustmentVerticalDiffusivity
+                                       ConvectiveAdjustmentVerticalDiffusivity,
+                                       VerticallyImplicitTimeDiscretization
 
 using NumericalEarth.Oceans: ocean_simulation, default_ocean_closure
 using NumericalEarth.Bathymetry: regrid_bathymetry, ORCAGrid
@@ -30,6 +31,13 @@ export latitude_longitude_ocean,
 # Pivot value κ = 1.5e-5 m²/s at ±30° latitude, equatorial value κ = 2e-6 m²/s.
 @inline henyey_diffusivity(x, y, z, t) = max(2e-6, 3e-5 * abs(sind(y)))
 
+# Step-function background diffusivity for the :simple closure.
+# Strong mixing in the upper 100 m, weak interior diffusivity below.
+@inline ν_step_simple(x, y, z, t) = ifelse(z >= -100, 1e-2, 1e-4)
+@inline κ_step_simple(x, y, z, t) = z >= -10  ? 5e-2 :    
+                                    z >= -100 ? 1e-2 :
+                                                1e-5
+
 """
     simplified_ocean_closure(FT=Oceananigans.defaults.FloatType)
 
@@ -40,12 +48,9 @@ Gent-McWilliams + biharmonic closures.
 """
 function simplified_ocean_closure(FT=Oceananigans.defaults.FloatType)
     horizontal_viscosity = HorizontalScalarBiharmonicDiffusivity(ν=νhb, discrete_form=true, parameters=10days)
-    vertical_mixing = ConvectiveAdjustmentVerticalDiffusivity(FT;
-                                                              convective_κz = 1.0,
-                                                              background_κz = 1e-5,
-                                                              convective_νz = 1.0,
-                                                              background_νz = 1e-4)
-    return (horizontal_viscosity, vertical_mixing)
+    convective_mixing = ConvectiveAdjustmentVerticalDiffusivity(FT; convective_κz = 1.0, convective_νz = 1.0)
+    vertical_mixing = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), FT; ν=ν_step_simple, κ=κ_step_simple)
+    return (horizontal_viscosity, convective_mixing, vertical_mixing)
 end
 
 # Standard vertical coordinate for all configurations.
