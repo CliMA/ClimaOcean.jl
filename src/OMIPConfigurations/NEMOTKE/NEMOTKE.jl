@@ -22,9 +22,9 @@ using Oceananigans.Utils: launch!, prettysummary
 
 import Oceananigans.TurbulenceClosures: viscosity, diffusivity,
                                         viscosity_location, diffusivity_location,
-                                        with_tracers, time_discretization,
+                                        with_tracers,
                                         compute_closure_fields!, build_closure_fields
-import Oceananigans.TimeSteppers: step_closure_prognostics!
+import Oceananigans.TimeSteppers: step_closure_prognostics!, time_discretization
 
 include("nemo_tke_parameters.jl")
 include("nemo_tke_vertical_diffusivity.jl")

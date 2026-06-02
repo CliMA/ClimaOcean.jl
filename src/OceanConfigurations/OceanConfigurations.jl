@@ -2,6 +2,7 @@ module OceanConfigurations
 
 using Oceananigans
 using Oceananigans.Units
+using Oceananigans.TimeSteppers: AdaptiveVerticallyImplicitDiscretization
 using Oceananigans.TurbulenceClosures: IsopycnalSkewSymmetricDiffusivity,
                                        ConvectiveAdjustmentVerticalDiffusivity
 
@@ -38,11 +39,13 @@ diffusivity and viscosity, avoiding the large parameter space of CATKE +
 Gent-McWilliams + biharmonic closures.
 """
 function simplified_ocean_closure(FT=Oceananigans.defaults.FloatType)
-    return ConvectiveAdjustmentVerticalDiffusivity(FT;
-               convective_κz = 1.0,
-               background_κz = 1e-5,
-               convective_νz = 1.0,
-               background_νz = 1e-4)
+    horizontal_viscosity = HorizontalScalarBiharmonicDiffusivity(ν=νhb, discrete_form=true, parameters=10days)
+    vertical_mixing = ConvectiveAdjustmentVerticalDiffusivity(FT;
+                                                              convective_κz = 1.0,
+                                                              background_κz = 1e-5,
+                                                              convective_νz = 1.0,
+                                                              background_νz = 1e-4)
+    return (horizontal_viscosity, vertical_mixing)
 end
 
 # Standard vertical coordinate for all configurations.

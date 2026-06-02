@@ -21,9 +21,9 @@ sea_ice = half_degree_tripolar_sea_ice(ocean)
 # ### Initial conditions from ECCO
 
 date = DateTime(1993, 1, 1)
-T_meta = Metadatum(:temperature;          date, dataset = ECCO4Monthly())
-S_meta = Metadatum(:salinity;             date, dataset = ECCO4Monthly())
-h_meta = Metadatum(:sea_ice_thickness;    date, dataset = ECCO4Monthly())
+T_meta = Metadatum(:temperature;           date, dataset = ECCO4Monthly())
+S_meta = Metadatum(:salinity;              date, dataset = ECCO4Monthly())
+h_meta = Metadatum(:sea_ice_thickness;     date, dataset = ECCO4Monthly())
 ℵ_meta = Metadatum(:sea_ice_concentration; date, dataset = ECCO4Monthly())
 
 # Pre-download via the NumericalEarthArtifacts mirror so the build survives
