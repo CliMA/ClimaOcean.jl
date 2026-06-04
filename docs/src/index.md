@@ -1,14 +1,14 @@
 # ClimaOcean.jl
 
-🌎 Realistic ocean-only and coupled ocean-sea ice simulations driven by prescribed atmospheres and based on [Oceananigans](https://github.com/CliMA/Oceananigans.jl) and [ClimaSeaIce](https://github.com/CliMA/ClimaSeaIce.jl).
+🌎 Ready-to-use ocean and ocean–sea ice configurations of the CliMA ocean model, for coupling with [ClimaCoupler](https://github.com/CliMA/ClimaCoupler.jl) and for OMIP simulations that verify the model's biases and prediction skill. Built on [Oceananigans](https://github.com/CliMA/Oceananigans.jl), [ClimaSeaIce](https://github.com/CliMA/ClimaSeaIce.jl), and [NumericalEarth](https://github.com/NumericalEarth/NumericalEarth.jl).
 
-ClimaOcean implements a framework for coupling prescribed or prognostic representations of the ocean, sea ice, and atmosphere state.
-Fluxes of heat, momentum, and freshwater are computed across the interfaces of its component models according to either Monin--Obukhov similarity theory,
-or coefficient-based "bulk formula".
-ClimaOcean builds off Oceananigans, which provides tools for gridded finite-volume computations on CPUs and GPUs and building ocean-flavored fluid dynamics simulations. ClimaSeaIce, which provides software for both stand-alone and coupled sea ice simulations, is also built with Oceananigans.
+ClimaOcean packages the CliMA ocean and sea-ice setups behind a small set of configuration constructors. The generic coupling framework, the air–sea/air–ice flux computations, and the dataset-wrangling utilities now live in [NumericalEarth](https://github.com/NumericalEarth/NumericalEarth.jl); ClimaOcean depends on it and re-exports its functionality (`OceanSeaIceModel`, `ocean_simulation`, the `Metadata`/`ECCO`/`JRA55` tooling, …), so scripts that use those names keep working.
 
-ClimaOcean's core abstraction is [`OceanSeaIceModel`](@ref), which encapsulates the ocean, sea ice, and atmosphere state, and interfacial flux parameterizations.
-ClimaOcean also implements [`ocean_simulation`](@ref), a utility for building realistic, hydrostatic ocean simulations with Oceananigans ensuring compatibility with `OceanSeaIceModel`.
+The package serves three purposes:
+
+1. **Ocean and sea-ice configurations** — turnkey ocean and sea-ice simulations at standard resolutions and grids.
+2. **Coupling with ClimaCoupler** — those configurations are the ocean and sea-ice components that ClimaCoupler couples to a prognostic atmosphere and land model.
+3. **OMIP simulations** — global ocean–sea ice runs following the OMIP protocol, with built-in diagnostics for verifying the mean state, biases, and prediction skill of the CliMA ocean model.
 
 ClimaOcean is written in Julia by the [Climate Modeling Alliance](https://clima.caltech.edu)
 and heroic external collaborators.
@@ -30,53 +30,52 @@ julia> Pkg.add("ClimaOcean")
 !!! compat "Julia 1.10 is required"
     ClimaOcean requires Julia 1.10 or later.
 
-## Quick start
+## Ocean and sea-ice configurations
 
-The following script implements a near-global ocean simulation initialized from the [ECCO state estimate](https://doi.org/10.5194/gmd-8-3071-2015) and coupled to a prescribed atmosphere derived from the [JRA55-do reanalysis](https://www.sciencedirect.com/science/article/pii/S146350031830235X):
+Each configuration returns an Oceananigans `Simulation` with realistic bathymetry, advection, closures, and air–sea flux boundary conditions already assembled. Building a coupled ocean + sea-ice setup is two lines:
 
 ```julia
-using Oceananigans
+using ClimaOcean
+
+arch    = GPU()
+ocean   = one_degree_tripolar_ocean(arch)
+sea_ice = one_degree_tripolar_sea_ice(ocean)
+```
+
+The ocean configurations are [`latitude_longitude_ocean`](@ref), [`one_degree_tripolar_ocean`](@ref), [`half_degree_tripolar_ocean`](@ref), [`sixth_degree_tripolar_ocean`](@ref), [`tenth_degree_tripolar_ocean`](@ref), and [`orca_ocean`](@ref) (the NEMO eORCA mesh). The matching sea-ice configurations ([`one_degree_tripolar_sea_ice`](@ref), …, [`orca_sea_ice`](@ref)) build a prognostic `ClimaSeaIce` simulation on the ocean's grid. For memory-limited testing, [`simplified_ocean_closure`](@ref) replaces the full CATKE + Gent-McWilliams + biharmonic closure with a lightweight one.
+
+Since `ocean.model` is an `Oceananigans.HydrostaticFreeSurfaceModel` and `sea_ice.model` is a `ClimaSeaIce.SeaIceModel`, the full Oceananigans/ClimaSeaIce toolset (initial conditions from `ECCO`/`EN4`, output writers, diagnostics) is available on the returned objects.
+
+## Coupling with ClimaCoupler
+
+The ocean and sea-ice configurations are the components that [ClimaCoupler](https://github.com/CliMA/ClimaCoupler.jl) couples to a prognostic atmosphere (e.g. ClimaAtmos) and land model. ClimaCoupler supplies the atmospheric state and drives the coupling clock, while ClimaOcean provides the ocean and sea ice together with the ocean ↔ sea-ice flux exchange (NumericalEarth's `compute_sea_ice_ocean_fluxes!`).
+
+The same components can also be combined locally into a stand-alone coupled model driven by a prescribed atmosphere:
+
+```julia
+using ClimaOcean
+
+arch       = GPU()
+ocean      = orca_ocean(arch; closure = simplified_ocean_closure())
+sea_ice    = orca_sea_ice(ocean)
+atmosphere = JRA55PrescribedAtmosphere(arch)   # re-exported from NumericalEarth
+radiation  = JRA55PrescribedRadiation(arch)
+
+coupled_model = OceanSeaIceModel(ocean, sea_ice; atmosphere, radiation)
+```
+
+See the *Ocean–sea ice simulations* examples for complete, runnable scripts.
+
+## OMIP simulations
+
+[`omip_simulation`](@ref) builds a turnkey global ocean–sea ice run following the OMIP protocol (Griffies et al. 2016): a tripolar (or ORCA) grid forced by JRA55 reanalysis with salinity restoring, sea-ice initial conditions, and OMIP-protocol diagnostics already attached. These simulations are how the CliMA ocean model's mean state, biases, and prediction skill are verified.
+
+```julia
+using ClimaOcean
 using Oceananigans.Units
-using Dates
-using CUDA
-import ClimaOcean
 
-arch = GPU()
-grid = LatitudeLongitudeGrid(arch,
-                             size = (1440, 560, 10),
-                             halo = (7, 7, 7),
-                             longitude = (0, 360),
-                             latitude = (-70, 70),
-                             z = (-3000, 0))
-
-bathymetry = ClimaOcean.regrid_bathymetry(grid) # builds gridded bathymetry based on ETOPO1
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bathymetry))
-
-# Build an ocean simulation initialized to the ECCO state estimate version 2 on Jan 1, 1993
-ocean = ClimaOcean.ocean_simulation(grid)
-start_date = DateTime(1993, 1, 1)
-set!(ocean.model,
-     T=ClimaOcean.Metadatum(:temperature; date=start_date, dataset=ClimaOcean.ECCO2Daily()),
-     S=ClimaOcean.Metadatum(:salinity;    date=start_date, dataset=ClimaOcean.ECCO2Daily()))
-
-# Build and run an OceanSeaIceModel (with no sea ice component) forced by JRA55 reanalysis
-atmosphere = ClimaOcean.JRA55PrescribedAtmosphere(arch)
-coupled_model = ClimaOcean.OceanOnlyModel(ocean; atmosphere)
-simulation = Simulation(coupled_model, Δt=20minutes, stop_time=30days)
+simulation = omip_simulation(:halfdegree; arch = GPU(), Δt = 30minutes, stop_time = 2 * 365days)
 run!(simulation)
 ```
 
-The simulation above achieves approximately 8 simulated years per day of wall time on an Nvidia H100 GPU.
-
-We can leverage `Oceananigans` features to plot the surface speed at the end of the simulation:
-
-```julia
-u, v, w = ocean.model.velocities
-speed = Field(sqrt(u^2 + v^2))
-compute!(speed)
-
-using GLMakie
-heatmap(view(speed, :, :, ocean.model.grid.Nz), colorrange=(0, 0.5), colormap=:magma, nan_color=:lightgray)
-```
-
-![image](https://github.com/user-attachments/assets/4c484b93-38fe-4840-bf7d-63a3a59d29e1)
+The available configurations are `:halfdegree`, `:tenthdegree`, and `:orca`. ClimaOcean ships the diagnostics used to quantify drift and biases — [`add_omip_diagnostics!`](@ref) (SST/SSS/SSH/MLD, surface fluxes, sea-ice extent, zonal means, checkpoints) and [`strait_transports`](@ref) — together with a suite of interchangeable vertical-mixing closures for diagnostic comparisons (CATKE, KPP, NEMO-TKE, NORi, and Oceananigans' `RiBasedVerticalDiffusivity`).
