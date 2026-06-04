@@ -12,7 +12,7 @@ using CUDA
 
 # ### Build the simulation
 #
-# `omip_simulation(:half_degree)` constructs the full coupled model:
+# `omip_simulation(:halfdegree)` constructs the full coupled model:
 # - Ocean: 720×360×100 TripolarGrid with CATKE, GM, biharmonic viscosity
 # - Sea ice: prognostic ClimaSeaIce model
 # - Atmosphere: JRA55 prescribed reanalysis with rivers and icebergs
@@ -20,7 +20,7 @@ using CUDA
 
 arch = GPU()
 
-simulation = omip_simulation(:half_degree;
+simulation = omip_simulation(:halfdegree;
     arch,
     forcing_dir = "forcing_data",
     restoring_dir = "climatology",
@@ -47,7 +47,7 @@ run!(simulation)
 # You can also build the simulation without diagnostics and attach them manually:
 #
 # ```julia
-# sim = omip_simulation(:half_degree; arch=GPU(), diagnostics=false)
+# sim = omip_simulation(:halfdegree; arch=GPU(), diagnostics=false)
 #
 # # Attach with custom intervals
 # add_omip_diagnostics!(sim;
