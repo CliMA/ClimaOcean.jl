@@ -1,8 +1,8 @@
 function default_one_degree_closure(; κ_skew=500,
-                                     κ_symmetric=200,
-                                     biharmonic_timescale=15days,
-                                     background_κ=henyey_diffusivity,
-                                     background_ν=1e-5)
+                                      κ_symmetric=200,
+                                      biharmonic_timescale=15days,
+                                      background_κ=henyey_diffusivity,
+                                      background_ν=1e-5)
     catke = default_ocean_closure()
     eddy  = IsopycnalSkewSymmetricDiffusivity(; κ_skew, κ_symmetric)
     horizontal_viscosity = HorizontalScalarBiharmonicDiffusivity(ν=νhb, discrete_form=true, parameters=biharmonic_timescale)
@@ -34,6 +34,7 @@ function one_degree_tripolar_ocean(arch = CPU();
                                    interpolation_passes = 10,
                                    substeps = 70,
                                    z = nothing,
+                                   active_cells_map = true,
                                    additional_surface_fluxes = nothing,
                                    kwargs...)
 
@@ -55,8 +56,7 @@ function one_degree_tripolar_ocean(arch = CPU();
                                       major_basins = 2,
                                       interpolation_passes)
 
-    grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height);
-                                active_cells_map = true)
+    grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom_height); active_cells_map)
 
     free_surface = SplitExplicitFreeSurface(grid; substeps)
 
