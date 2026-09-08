@@ -10,7 +10,7 @@ using KernelAbstractions: @index, @kernel
 
 using Oceananigans
 using Oceananigans.Architectures: architecture
-using Oceananigans.BoundaryConditions: getbc, FieldBoundaryConditions
+using Oceananigans.BoundaryConditions: getbc, total_boundary_flux, FieldBoundaryConditions
 using Oceananigans.BuoyancyFormulations: ∂z_b, top_buoyancy_flux,
                                           thermal_expansionᶜᶜᶜ, haline_contractionᶜᶜᶜ,
                                           buoyancy_perturbationᶜᶜᶜ
@@ -32,9 +32,8 @@ import Oceananigans.TurbulenceClosures: viscosity, diffusivity,
                                         with_tracers,
                                         compute_closure_fields!, build_closure_fields,
                                         diffusive_flux_z
-import Oceananigans.TimeSteppers: time_discretization
 
-using NumericalEarth.Oceans: get_radiative_forcing
+using NumericalEarth.Oceans: get_radiative_forcing, blue_green_absorption_coefficient
 
 const VITD = VerticallyImplicitTimeDiscretization
 

@@ -70,7 +70,7 @@ function _stage_jra55_year_files!(source_dir, staging_dir, year)
         for dst in filter(f -> contains(f, name) && contains(f, year_str) && endswith(f, ".nc"), readdir(staging_dir; join=true))
             if islink(dst)
                 src = joinpath(source_dir, basename(dst))
-                atomic_replace!(dst, tmp -> cp(src, tmp))
+                atomic_replace!(dst, tmp -> run(`cp $src $tmp`))
                 @debug "Staged $(basename(dst)) to scratch"
             end
         end
@@ -135,19 +135,23 @@ Each year of JRA55 data is ~15–25 GB, so scratch holds at most ~50 GB at any t
 
 # Async vs sync
 
-With `async = true` (default), the actual `cp` is launched on a Julia
-background thread via `Threads.@spawn` while the main task returns
-immediately. With Δt = 30 min, ~58 min of compute fits between year
-transitions, so a 20-min copy overlaps fully with compute. **Start Julia
-with `JULIA_NUM_THREADS ≥ 2`** for this to actually parallelise — with one
-thread, `@spawn` just runs the copy synchronously.
+With `async = true` (default), the callback returns immediately after
+`Threads.@spawn`, and the background task does the copy by launching an
+external `cp` process (`run(`cp …`)`), not `Base.cp`. This matters: the
+byte copy in `Base.cp` goes through a blocking `sendfile` ccall that is
+not gc-safe, so running it on a spawned thread parks that thread outside
+any safepoint and stalls the next stop-the-world GC — freezing the main
+loop for the entire copy. Shelling out keeps the byte-shuffling in a
+separate process and lets the Julia task wait on it cooperatively, so GC
+is never blocked. With Δt = 30 min, ~58 min of compute fits between year
+transitions, so a 20-min copy overlaps fully with compute.
 
 The atomic `mv(tmp, dst)` inside `atomic_replace!` is the only point where
 concurrent readers can observe the file change. They see either the old
 symlink (slow read) or the new real copy (fast read), never a partial
-file. On MPI runs, the cp itself runs only on rank 0 in a background
-thread; cross-rank consistency comes from filesystem atomicity rather than
-an explicit barrier, so no MPI calls happen on the background thread.
+file. On MPI runs, the copy runs only on rank 0 in a background thread;
+cross-rank consistency comes from filesystem atomicity rather than an
+explicit barrier, so no MPI calls happen on the background thread.
 
 Set `async = false` to fall back to the original blocking behaviour.
 """

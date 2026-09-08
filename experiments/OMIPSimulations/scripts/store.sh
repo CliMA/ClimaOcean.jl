@@ -6,8 +6,11 @@
 #
 # Logic (per run):
 #   - Part files (*_part<N>.jld2): the highest N per filename group is
-#     still being written by the running sim, so it is left in place;
-#     all older parts are moved.
+#     still being written by the running sim, so it is left in place, and
+#     so is any part modified within the last ACTIVE_MINUTES (default 120):
+#     a run resumed from an older checkpoint re-opens an earlier part and
+#     keeps appending to it, and moving that file kills the run.
+#     Everything else is moved.
 #   - Checkpoint files (*_checkpoint_iteration<N>.jld2): the highest
 #     iteration is kept locally so `run!(sim; pickup=true)` still works;
 #     older checkpoints are moved.
@@ -127,10 +130,15 @@ archive_run() {
     # ------------------------------------------------------------------
     # Part files: *_part<N>.jld2
     # The highest N per filename group is still being written, so it is
-    # left in place; everything older is moved.
+    # left in place, and so is anything touched within ACTIVE_MINUTES: a
+    # resumed run re-opens the part its checkpoint falls in, which is not
+    # the highest N when the killed attempt had already started a newer one.
     # ------------------------------------------------------------------
     local -A max_part
-    local f base tail n group current max
+    local f base tail n group current max age
+    local now active_minutes
+    now=$(date +%s)
+    active_minutes="${ACTIVE_MINUTES:-120}"
     for f in "$RUN_DIR"/*_part[0-9]*.jld2; do
         base=$(basename "$f")
         tail="${base##*_part}"
@@ -151,8 +159,14 @@ archive_run() {
         [[ "$n" =~ ^[0-9]+$ ]] || continue
         group="${base%_part${n}.jld2}"
         max="${max_part[$group]:-0}"
+        age=$(( (now - $(stat -c %Y -- "$f")) / 60 ))
         if (( n == max )); then
             echo "  skip (active):  ${base}"
+            kept_parts=$((kept_parts + 1))
+            continue
+        fi
+        if (( age < active_minutes )); then
+            echo "  skip (written ${age} min ago):  ${base}"
             kept_parts=$((kept_parts + 1))
             continue
         fi
@@ -207,7 +221,7 @@ while true; do
     done
 
     echo ""
-    echo "Sleeping for 1 hour"
-    sleep 3600
+    echo "Sleeping for 10 minutes"
+    sleep 600
 done
 EOF

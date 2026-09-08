@@ -50,15 +50,11 @@
 # ══════════════════════════════════════════════════════════════
 
 cases = [
-    (prefix = "orca_corrected_snow_rbvd_bih50days",             label = "ORCA RBVD",           years_from_end = 5),
-    # (prefix = "orca_ncar_snow",                                 label = "ORCA New NCAR",       years_from_end = 5),
-    # (prefix = "orca_corrected_snow_simple",                     label = "ORCA CADV",           years_from_end = 5),
-    # (prefix = "orca_corrected_snow_cb0.12_ksymm500",            label = "ORCA Redi500",        years_from_end = 5),
-    (prefix = "orca_corrected_snow_bih50days",           label = "ORCA CATKE",          years_from_end = 5),
-    # (prefix = "orca_ncar_snow_cb0.15_bih50days",                label = "ORCA NCAR LowDiss",   years_from_end = 5),
-    # (prefix = "halfdegree_corrected_snow_cb0.01_kskew0_ksymm0", label = "Half Degree CATKE",   years_from_end = 5),
-    # (prefix = "orca_corrected_snow_cb0.06_kskew0_ksymm0",       label = "ORCA NOGM",           years_from_end = 5),
-    (prefix = "orca_corrected_snow_kskew1000_ksymm1000_bih50days", label = "ORCA GM1000",         years_from_end = 5),
+(prefix = "orca_corrected_snow_fwnorm_pvel0.254", label = "O0", years_from_end = 10),
+(prefix = "orca_corrected_snow_noslip_landfast_cio5.5e-3_ah0.0057_ncat4_fwnorm_cb0.01_bgnu3e-5_pvel0.254",        label = "cb0.01",        years_from_end = 3),
+(prefix = "orca_corrected_snow_noslip_landfast_cio5.5e-3_ah0.0057_ncat4_fwnorm_cb0.1_bgnu3e-5_pvel0.254",         label = "cb0.1",         years_from_end = 3),
+(prefix = "orca_corrected_snow_noslip_landfast_cio5.5e-3_ah0.0057_ncat4_dsow10_fwnorm_cb0.01_bgnu3e-5_pvel0.254", label = "dsow10",        years_from_end = 3),
+(prefix = "orca_corrected_snow_noslip_landfast_cio5.5e-3_ah0.0057_ncat4_dsow10_fwnorm_cb0.01_dt5400_bgnu3e-5_pvel0.254", label = "dsow10-dt5400", years_from_end = 3),
 ]
 
 output_dir = length(ARGS) >= 1 ? ARGS[1] : "figures"
@@ -102,6 +98,10 @@ const FIG_REGISTRY = [
     (n = 24, file = "fig24_near_surface_currents.jl",     fn = :fig24),
     (n = 25, file = "fig25_equatorial_undercurrent.jl",   fn = :fig25),
     (n = 26, file = "fig26_amoc_rapid.jl",                fn = :fig26),
+    (n = 27, file = "fig27_ssh_drift.jl",                 fn = :fig27),
+    (n = 28, file = "fig28_content_conservation.jl",      fn = :fig28),
+    (n = 29, file = "fig29_barotropic_streamfunction.jl", fn = :fig29),
+    (n = 30, file = "fig30_arctic_freshwater.jl",         fn = :fig30),
 ]
 
 # ══════════════════════════════════════════════════════════════

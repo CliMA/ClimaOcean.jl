@@ -15,9 +15,12 @@ Adapt.adapt_structure(to, b::KPPTopBoundaryConditions) =
 ##### Friction velocity
 #####
 
+# u★ needs the stress the ocean actually feels, so a semi-implicit surface momentum flux must be
+# reconstructed as Fₑ + λ uᵒ rather than read as its explicit part alone.
 @inline function friction_velocity(i, j, grid, clock, fields, top_velocity_bcs, params)
-    τx = getbc(top_velocity_bcs.u, i, j, grid, clock, fields)
-    τy = getbc(top_velocity_bcs.v, i, j, grid, clock, fields)
+    kᴺ = size(grid, 3)
+    τx = total_boundary_flux(top_velocity_bcs.u, i, j, kᴺ, grid, clock, fields, fields.u)
+    τy = total_boundary_flux(top_velocity_bcs.v, i, j, kᴺ, grid, clock, fields, fields.v)
     return max(sqrt(sqrt(τx^2 + τy^2)), params.minimum_friction_velocity)
 end
 
@@ -32,13 +35,13 @@ end
 ##### Two-band SW penetration: fraction remaining at d, integrated buoyancy gain.
 #####
 
-@inline shortwave_fraction(d, ::Nothing) = zero(d)
+@inline shortwave_fraction(i, j, d, ::Nothing) = zero(d)
 
-@inline function shortwave_fraction(d, radiation)
+@inline function shortwave_fraction(i, j, d, radiation)
     FT = typeof(d)
     ϵ₁ = radiation.first_color_fraction
     κ₁ = radiation.first_absorption_coefficient
-    κ₂ = radiation.second_absorption_coefficient
+    κ₂ = blue_green_absorption_coefficient(radiation.second_absorption_coefficient, i, j)
     return ϵ₁ * exp(- κ₁ * d) + (one(FT) - ϵ₁) * exp(- κ₂ * d)
 end
 
@@ -47,7 +50,7 @@ end
 @inline function solar_buoyancy_above(i, j, d, radiation, α, g)
     FT = typeof(d)
     J₀ = @inbounds radiation.surface_flux[i, j, 1]
-    return - g * α * J₀ * (one(FT) - shortwave_fraction(d, radiation))
+    return - g * α * J₀ * (one(FT) - shortwave_fraction(i, j, d, radiation))
 end
 
 @inline buoyancy_forcing_above(i, j, d, Bo, radiation, α, g) =

@@ -1,3 +1,5 @@
+using Oceananigans.TimeSteppers: TimeSteppers
+
 # KPPVerticalDiffusivity closure type, dispatch interface, and closure-field allocation.
 
 # Wrapper that opts the per-tracer surface-BC NamedTuple out of recursive
@@ -69,7 +71,7 @@ const FlavorOfKPP = Union{KPPVD, KPPVDArray}
 
 with_tracers(tracers, closure::FlavorOfKPP) = closure
 
-@inline time_discretization(::KPPVerticalDiffusivity{TD}) where TD = TD()
+@inline TimeSteppers.time_discretization(::KPPVerticalDiffusivity{TD}) where TD = TD()
 
 #####
 ##### Closure-field allocation
@@ -106,7 +108,7 @@ end
 #####
 
 function Base.summary(closure::KPPVerticalDiffusivity)
-    TD = nameof(typeof(time_discretization(closure)))
+    TD = nameof(typeof(TimeSteppers.time_discretization(closure)))
     return string("KPPVerticalDiffusivity{", TD, "}")
 end
 

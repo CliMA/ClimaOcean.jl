@@ -2,7 +2,8 @@
 function fig12(caches, labels, cases)
     month_names = ["J","F","M","A","M","J","J","A","S","O","N","D"]
     m3_to_thousand_km3 = 1e-12
-    obs = piomas_monthly()
+    start_year, end_year = observation_year_window(caches, labels; record_first_year = PIOMAS_FIRST_YEAR)
+    obs = piomas_monthly(; start_year, end_year)
 
     fig = Figure(size = (400 + 200 * length(labels), 500), fontsize = 14)
     ax = Axis(fig[1, 1]; xlabel = "Month", ylabel = "Ice volume (10³ km³)",
@@ -13,7 +14,7 @@ function fig12(caches, labels, cases)
               obs.volume_monthly .+ obs.volume_monthly_std;
               color = (OBS_COLOR, 0.25))
         lines!(ax, 1:12, obs.volume_monthly;
-            color = OBS_COLOR, linewidth = OBS_LINEWIDTH, linestyle = OBS_LINESTYLE, label = "PIOMAS")
+            color = OBS_COLOR, linewidth = OBS_LINEWIDTH, linestyle = OBS_LINESTYLE, label = "PIOMAS $(window_label(obs))")
     end
     for (i, lab) in enumerate(labels)
         lines!(ax, 1:12,

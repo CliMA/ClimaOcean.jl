@@ -302,8 +302,10 @@ const FTS_VARS = (
                      (:sithick_fts, "sithick")),
     fields_file   = ((:to_fts, "to"), (:so_fts, "so"), (:bo_fts, "bo"),
                      (:uo_fts, "uo"), (:vo_fts, "vo"),
-                     (:uvol_fts, "uvol"), (:vvol_fts, "vvol")),
-    averages_file = ((:tosga_fts, "tosga"), (:soga_fts, "soga"),
+                     (:uvol_fts, "uvol"), (:vvol_fts, "vvol"),
+                     (:vvolgm_fts, "vvolgm")),
+    averages_file = ((:zosga_fts, "zosga"), (:voco_fts, "voco"),
+                     (:soco_fts,  "soco"),  (:hoco_fts, "hoco"), (:sivol_fts, "sivol"),
                      (:to_h_fts,  "to_h"),  (:so_h_fts,  "so_h")),
 )
 
@@ -733,6 +735,7 @@ function woa_teos10_pair(c)
     S = CenterField(grid)
     interpolate!(T, woaT)
     interpolate!(S, woaS)
+    woa_to_teos10!(T, S)
     return (Array(interior(T)), Array(interior(S)))
 end
 
@@ -788,18 +791,112 @@ LOADERS[:sea_ice_diagnostics] = disk_cached(:sea_ice_diagnostics; source_fts_sym
                             stop_time  = c.stop_time)
 end
 
+# JRA55-do span the OMIP runs are forced with. The forcing is `Cyclical`,
+# so a run that outlives the span keeps going on a folded calendar: O0's
+# model year 2037 is being forced by JRA55 1977. Override per case with a
+# `forcing_years` field in the `cases` entry.
+const OMIP_FORCING_YEARS = (1958, 2018)
+
+case_forcing_years(case_cache::CaseCache) = get(case_cache.case, :forcing_years, OMIP_FORCING_YEARS)
+
+"""
+    forcing_year(date, forcing_years) -> Int
+
+Calendar year of the forcing a model `date` actually sees, folding the
+model clock back onto the `Cyclical` JRA55 span.
+"""
+function forcing_year(date, forcing_years)
+    first_year, last_year = forcing_years
+    return first_year + mod(year(date) - first_year, last_year - first_year)
+end
+
+"""
+    observation_year_window(caches, labels; record_first_year) -> (start_year, end_year)
+
+Forcing years sampled by the plotted cases' averaging windows, clipped at
+the start of an observational record. NSIDC and PIOMAS both extend to the
+present day, so a full-record climatology is a mean over four decades of
+Arctic decline and is not the right reference for a run averaged over
+three years of the 1960s — the reference has to be built over the years
+the model is actually forced with.
+
+The model clock is not a calendar: the forcing is cyclical, so a long run
+keeps counting past 2018 while being forced by JRA55 all over again. The
+window therefore comes from `forcing_year`, not from the raw snapshot
+dates.
+
+Falls back to the record's first decade when the forcing window predates
+the satellite era, which is the closest the observations can get to a
+pre-1979 averaging window. The window ends up in the legend either way,
+so the figure always states which years it compares against.
+"""
+function observation_year_window(caches, labels; record_first_year)
+    years = Int[]
+    for lab in labels
+        dates = get_field(caches[lab], :sea_ice_diagnostics).snapshot_dates
+        append!(years, forcing_year.(dates, Ref(case_forcing_years(caches[lab]))))
+    end
+    model_first, model_last = extrema(years)
+    if model_last < record_first_year
+        @warn "Forcing window $(model_first)–$(model_last) predates the observational record " *
+              "($record_first_year onwards) — referencing its first decade instead."
+        return (record_first_year, record_first_year + 9)
+    end
+    return (max(model_first, record_first_year), model_last)
+end
+
 #####
 ##### Time-series scalars + horizontal-mean profiles
 #####
 
-LOADERS[:global_mean_temperature_timeseries] =
-    disk_cached(:global_mean_temperature_timeseries; source_fts_syms = :tosga_fts) do c
-    total_jld2_scalar_timeseries(get_field(c, :averages_file), "tosga")
+# Global volume-means as Integral/Volume (both z-star-live), not `Average` (frozen denominator).
+LOADERS[:ocean_volume_timeseries] = c ->
+    total_jld2_scalar_timeseries(get_field(c, :averages_file), "voco")
+LOADERS[:global_mean_temperature_timeseries] = c ->
+    total_jld2_scalar_timeseries(get_field(c, :averages_file), "hoco") ./
+    get_field(c, :ocean_volume_timeseries)
+LOADERS[:global_mean_salinity_timeseries] = c ->
+    total_jld2_scalar_timeseries(get_field(c, :averages_file), "soco") ./
+    get_field(c, :ocean_volume_timeseries)
+LOADERS[:global_mean_ssh_timeseries] =
+    disk_cached(:global_mean_ssh_timeseries; source_fts_syms = :zosga_fts) do c
+    total_jld2_scalar_timeseries(get_field(c, :averages_file), "zosga")
 end
-LOADERS[:global_mean_salinity_timeseries] =
-    disk_cached(:global_mean_salinity_timeseries; source_fts_syms = :soga_fts) do c
-    total_jld2_scalar_timeseries(get_field(c, :averages_file), "soga")
+
+# Conservation-check content timeseries. `soco = ∫S dV` [psu·m³] → salt mass via
+# ρ/1000; `sivol = ∫hℵ dA` [m³] → ice salt mass via ρ_ice·S_ice/1000. Their sum is
+# the ocean+ice total salt, which the freshwater mass-flux design should conserve.
+# `hoco = ∫Θ dV` [°C·m³] → ocean heat via ρ·cp.
+LOADERS[:ocean_salt_content_timeseries] = c ->
+    (ρ_ocean / 1000) .* total_jld2_scalar_timeseries(get_field(c, :averages_file), "soco")
+LOADERS[:sea_ice_salt_content_timeseries] = c ->
+    (ρ_ice * S_ice / 1000) .* total_jld2_scalar_timeseries(get_field(c, :averages_file), "sivol")
+LOADERS[:total_salt_content_timeseries] = c ->
+    get_field(c, :ocean_salt_content_timeseries) .+ get_field(c, :sea_ice_salt_content_timeseries)
+LOADERS[:ocean_heat_content_timeseries] = c ->
+    (ρ_ocean * cp_ocean) .* total_jld2_scalar_timeseries(get_field(c, :averages_file), "hoco")
+
+# Water-budget check. Freshwater normalization removes only the global mean of the *atmospheric*
+# flux, so `voco` is expected to move with the sea-ice exchange — the conserved quantity is
+# ocean + ice + snow in freshwater-equivalent volume. `snvol` is absent from runs predating the
+# snow diagnostic; those carry no snow reservoir, so a zero series is the correct stand-in.
+function optional_scalar_timeseries(path, name, fallback_length)
+    return try
+        total_jld2_scalar_timeseries(path, name)
+    catch
+        zeros(fallback_length)
+    end
 end
+
+LOADERS[:sea_ice_water_volume_timeseries] = c ->
+    (ρ_ice / ρ_ocean) .* total_jld2_scalar_timeseries(get_field(c, :averages_file), "sivol")
+LOADERS[:snow_water_volume_timeseries] = c ->
+    (ρ_snow / ρ_ocean) .* optional_scalar_timeseries(get_field(c, :averages_file), "snvol",
+                                                     length(get_field(c, :ocean_volume_timeseries)))
+LOADERS[:total_water_volume_timeseries] = c ->
+    get_field(c, :ocean_volume_timeseries)         .+
+    get_field(c, :sea_ice_water_volume_timeseries) .+
+    get_field(c, :snow_water_volume_timeseries)
 
 LOADERS[:time_in_years] = c ->
     total_jld2_timeseries_times(get_field(c, :averages_file)) ./ (365.25 * 24 * 3600)
@@ -939,7 +1036,7 @@ end
 # Session-level cache of `ConservativeRegridding.Regridder` keyed by a
 # content fingerprint of the source grid. Two cases that share the same
 # physical grid (typical: many cases run against the same config, e.g.
-# ORCA1) build the regridder exactly once and then share it. The
+# ORCAOne) build the regridder exactly once and then share it. The
 # `Regridder` constructor takes minutes per case at 1/10° because it
 # allocates sparse weight matrices over O(N²) candidate cell pairs, so
 # this cache saves wall-clock proportional to the case count.
@@ -954,7 +1051,7 @@ const REGRIDDER_CACHE = Dict{Any, Any}()
 function regridder_cache_key(grid)
     key = Any[string(nameof(typeof(grid))), size(grid)]
     if grid isa ImmersedBoundaryGrid
-        bh = Array(interior(grid.immersed_boundary.bottom_height, :, :, 1))
+        bh = Array(interior(Oceananigans.ImmersedBoundaries.bottom_height_field(grid), :, :, 1))
         push!(key, hash(bh))
     end
     return Tuple(key)
@@ -1033,6 +1130,7 @@ const SURFACE_LATLON_FIELDS = (
     :near_surface_zonal_velocity, :near_surface_meridional_velocity,
     :sic_mean, :sic_march, :sic_september,
     :mld_min, :mld_max, :mld_min_dbm, :mld_max_dbm,
+    :barotropic_streamfunction,
 )
 
 for sym in SURFACE_LATLON_FIELDS
@@ -1173,6 +1271,11 @@ LOADERS[:zonal_mld_max_dbm] = c -> zonal_mld(c, :mld_max_dbm)
 # Δz — no extra grid metrics needed offline. The Atlantic basin mask is
 # from `Bathymetry.atlantic_ocean_basin`, computed via flood-fill with
 # Cape Agulhas and Drake Passage barriers and a 65°N northern cap.
+#
+# `:amoc` is the residual streamfunction: the resolved (Eulerian) transport in
+# `vvol` plus the parameterized GM transport in `vvolgm`, which is what RAPID
+# and CMIP `msftmz` measure. Runs without GM, and runs predating the `vvolgm`
+# diagnostic, carry no bolus file and fall back to the Eulerian part alone.
 
 LOADERS[:atlantic_mask_2d] = disk_cached(:atlantic_mask_2d) do c
     basin = atlantic_ocean_basin(get_field(c, :grid))
@@ -1192,23 +1295,53 @@ LOADERS[:amoc_latitudes] = c -> begin
             for j in 1:Ny+1]
 end
 
-LOADERS[:amoc] = disk_cached(:amoc; source_fts_syms = :vvol_fts) do c
-    vvol_mean = compute_time_mean(get_field(c, :vvol_fts);
-                                   start_time = c.start_time,
-                                   stop_time  = c.stop_time)
-    atl = get_field(c, :atlantic_mask_2d)
-    Nx, Ny, Nz = size(vvol_mean)
+# `nothing` when the run carries no bolus flux, so the callers can fall back to
+# the Eulerian transport alone. Mirrors `optional_scalar_timeseries`.
+function optional_field(c, sym)
+    return try
+        get_field(c, sym)
+    catch
+        nothing
+    end
+end
+
+# ψ(j, z) = -∫_{-H}^{z} ∑_atl v dx dz'.
+# Oceananigans has k=1 at the bottom, so a cumulative sum along k integrates
+# from -H upward; the leading minus flips the sign so a positive value renders
+# the NADW cell as red on a balance colormap.
+# Sized from the basin mask, not the flux: a `(Center, Face, Center)` field carries Ny+1 rows on a
+# `Bounded` y-topology, against Ny for the mask. ORCA's fold gives Ny, so the two agree there.
+function overturning_streamfunction(volume_flux, atl)
+    Nx, Ny = size(atl)
+    Nz = size(volume_flux, 3)
     transport_per_layer = zeros(Ny, Nz)
     for k in 1:Nz, j in 1:Ny, i in 1:Nx
         atl[i, j] || continue
-        transport_per_layer[j, k] += vvol_mean[i, j, k]
+        transport_per_layer[j, k] += volume_flux[i, j, k]
     end
-    # ψ(j, z) = -∫_{-H}^{z} ∑_atl v dx dz'.
-    # Oceananigans has k=1 at the bottom, so a cumulative sum along k
-    # integrates from -H upward; the leading minus flips the sign so a
-    # positive value renders the NADW cell as red on a balance colormap.
     return -cumsum(transport_per_layer; dims = 2) ./ 1e6   # Sv
 end
+
+LOADERS[:amoc_eulerian] = disk_cached(:amoc_eulerian; source_fts_syms = :vvol_fts) do c
+    vvol_mean = compute_time_mean(get_field(c, :vvol_fts);
+                                   start_time = c.start_time,
+                                   stop_time  = c.stop_time)
+    return overturning_streamfunction(vvol_mean, get_field(c, :atlantic_mask_2d))
+end
+
+# Keyed on `:vvol_fts` rather than `:vvolgm_fts`: both live in the same `_fields`
+# file, so its stamp invalidates this too, and keying on a symbol that may not
+# resolve would throw for runs without GM.
+LOADERS[:amoc_bolus] = disk_cached(:amoc_bolus; source_fts_syms = :vvol_fts) do c
+    vvolgm_fts = optional_field(c, :vvolgm_fts)
+    isnothing(vvolgm_fts) && return zeros(size(get_field(c, :amoc_eulerian)))
+    vvolgm_mean = compute_time_mean(vvolgm_fts;
+                                     start_time = c.start_time,
+                                     stop_time  = c.stop_time)
+    return overturning_streamfunction(vvolgm_mean, get_field(c, :atlantic_mask_2d))
+end
+
+LOADERS[:amoc] = c -> get_field(c, :amoc_eulerian) .+ get_field(c, :amoc_bolus)
 
 #####
 ##### AMOC at 26.5°N (RAPID-MOCHA latitude)
@@ -1219,6 +1352,9 @@ end
 # latitudes to find the j closest to 26.5°N.
 
 const RAPID_LATITUDE = 26.5
+
+# Floor for the AMOC-index search, in metres.
+const AMOC_INDEX_MINIMUM_DEPTH = 500
 
 LOADERS[:amoc_26n_j] = c -> begin
     lats = get_field(c, :amoc_latitudes)
@@ -1237,21 +1373,26 @@ end
 # Cheap per snapshot (O(Nx·Nz)) so this covers the full record even on
 # tenth-degree grids. Disk-cached on vvol_fts so reruns are instant.
 LOADERS[:amoc_max_timeseries] = disk_cached(:amoc_max_timeseries; source_fts_syms = :vvol_fts) do c
-    vvol_fts = get_field(c, :vvol_fts)
-    atl      = get_field(c, :atlantic_mask_2d)
-    j        = get_field(c, :amoc_26n_j)
+    vvol_fts   = get_field(c, :vvol_fts)
+    vvolgm_fts = optional_field(c, :vvolgm_fts)
+    atl        = get_field(c, :atlantic_mask_2d)
+    j          = get_field(c, :amoc_26n_j)
     Nx, Ny, Nz = size(get_field(c, :grid))
+    # The index tracks the NADW cell, so the search skips the top 500 m: the GM streamfunction spikes
+    # to several Sv against the surface taper, and would otherwise win the maximum outright.
+    deep = findall(<(-AMOC_INDEX_MINIMUM_DEPTH), get_field(c, :depth))
     Nt = length(vvol_fts.times)
     ψ_max = zeros(Nt)
     for n in 1:Nt
         slice = Array(interior(vvol_fts[n]))
+        isnothing(vvolgm_fts) || (slice = slice .+ Array(interior(vvolgm_fts[n])))
         col = zeros(Nz)
         @inbounds for k in 1:Nz, i in 1:Nx
             atl[i, j] || continue
             col[k] += slice[i, j, k]
         end
         ψ_z = -cumsum(col) ./ 1e6   # Sv, sign matches :amoc
-        ψ_max[n] = maximum(ψ_z)
+        ψ_max[n] = maximum(view(ψ_z, deep))
     end
     # Convert to decimal calendar year using the JRA55-do epoch the rest
     # of the visualize pipeline assumes (`compute_monthly_means` uses
@@ -1262,26 +1403,114 @@ LOADERS[:amoc_max_timeseries] = disk_cached(:amoc_max_timeseries; source_fts_sym
 end
 
 #####
+##### Barotropic streamfunction
+#####
+#
+#     Ψ(i, j) = -∑_{j' ≤ j} ∑_k uvol(i, j', k)
+#
+# with `u = -∂Ψ/∂y`, `v = ∂Ψ/∂x` and `Ψ = 0` at the southern boundary. `uvol = u · Aˣ` already carries
+# Δy and Δz, so the vertical sum is the depth-integrated zonal transport and the meridional cumulative
+# sum closes the streamfunction — no offline metrics. Under this convention subtropical gyres are
+# positive, subpolar gyres negative, and the ACC comes out negative with magnitude equal to the Drake
+# Passage transport (its reference is the Antarctic coast, where Ψ = 0).
+#
+# The cumulation runs along model j-rows, so the result is only meaningful south of the tripolar fold.
+
+LOADERS[:barotropic_streamfunction] = disk_cached(:barotropic_streamfunction; source_fts_syms = :uvol_fts) do c
+    uvol_mean = compute_time_mean(get_field(c, :uvol_fts);
+                                   start_time = c.start_time,
+                                   stop_time  = c.stop_time)
+    depth_integrated = dropdims(sum(uvol_mean; dims = 3); dims = 3)
+    return masked!(c, -cumsum(depth_integrated; dims = 2) ./ 1e6)   # Sv
+end
+
+#####
 ##### Strait transports (offline; depends on per-case grid configuration)
 #####
 
 function strait_config_for(case)
     haskey(case, :config) && return case.config
     p = lowercase(case.prefix)
-    for cfg in (:tenthdegree, :halfdegree, :orca)
+    for cfg in (:twelfthdegree, :halfdegree, :orca)
         occursin(string(cfg), p) && return cfg
     end
     return nothing
 end
 
-LOADERS[:strait_transports] = c -> begin
-    config = strait_config_for(c.case)
-    if isnothing(config)
-        @warn "Cannot infer strait config for case '$(c.label)' — skipping."
-        return nothing
+# Reading a strait transport costs the whole compressed 3-D velocity history — hundreds of GB per
+# case — to extract a few hundred numbers per snapshot, so it is cached to disk like the other heavy
+# diagnostics and recomputed only when new snapshots land.
+
+# A case whose run is still in flight leaves its last JLD2 part truncated, and JLD2 throws
+# `EOFError` on read. One such case must not take down a render of eleven, so the whole loader is
+# guarded — including the disk-cache key, which counts snapshots and so reads the file too.
+guard_truncated_output(what::AbstractString, loader) = function (c::CaseCache)
+    return try
+        loader(c)
+    catch err
+        err isa EOFError || rethrow()
+        @warn "  $(c.label): output is truncated (run still writing?) — skipping $what."
+        nothing
     end
-    @info "  $(c.label): computing strait transports ($config)..."
-    return strait_transports(config, get_field(c, :fields_file);
-                              start_time = 0,
-                              stop_time  = Inf)
 end
+
+# Reading a strait transport costs the whole compressed 3-D velocity history — hundreds of GB per
+# case — to extract a few hundred numbers per snapshot, so it is cached to disk like the other heavy
+# diagnostics and recomputed only when new snapshots land.
+LOADERS[:strait_transports] = guard_truncated_output("strait transports",
+    disk_cached(:strait_transports; source_fts_syms = (:uo_fts, :vo_fts)) do c
+        config = strait_config_for(c.case)
+        if isnothing(config)
+            @warn "Cannot infer strait config for case '$(c.label)' — skipping."
+            return nothing
+        end
+        @info "  $(c.label): computing strait transports ($config)..."
+        return strait_transports(config, get_field(c, :fields_file);
+                                 start_time = 0,
+                                 stop_time  = Inf)
+    end)
+
+# Arctic freshwater gateways. Only the configurations that carry verified `fram`/`davis` section
+# indices can answer this, so the loader returns `nothing` rather than a wrong number elsewhere.
+# Restricted to the zonal sections that matter for the Arctic budget: that skips `uo` entirely,
+# leaving two 3-D fields to read instead of three.
+LOADERS[:strait_freshwater_transports] = guard_truncated_output("Arctic freshwater transports",
+    disk_cached(:strait_freshwater_transports; source_fts_syms = (:vo_fts, :so_fts)) do c
+        config = strait_config_for(c.case)
+        if isnothing(config)
+            @warn "Cannot infer strait config for case '$(c.label)' — skipping."
+            return nothing
+        end
+        if !haskey(strait_sections(config), :fram)
+            @warn "No Fram/Davis sections defined for config '$config' — skipping '$(c.label)'."
+            return nothing
+        end
+        @info "  $(c.label): computing Arctic freshwater transports ($config)..."
+        return strait_freshwater_transports(config,
+                                            get_field(c, :fields_file),
+                                            get_field(c, :surface_file);
+                                            sections = (:fram, :davis, :bering),
+                                            start_time = 0,
+                                            stop_time  = Inf)
+    end)
+
+# Denmark Strait overflow: the southward transport of water denser than σθ = 27.8, which is the
+# density class the observational estimate (~3.2 Sv) is quoted for. Needs `to` and `so` on top of
+# `vo`, so it is keyed on all three and disk-cached like the other section diagnostics.
+LOADERS[:denmark_overflow] = guard_truncated_output("Denmark Strait overflow",
+    disk_cached(:denmark_overflow; source_fts_syms = (:vo_fts, :to_fts, :so_fts)) do c
+        config = strait_config_for(c.case)
+        if isnothing(config)
+            @warn "Cannot infer strait config for case '$(c.label)' — skipping."
+            return nothing
+        end
+        if !haskey(strait_sections(config), :denmark)
+            @warn "No Denmark Strait section for config '$config' — skipping '$(c.label)'."
+            return nothing
+        end
+        @info "  $(c.label): computing Denmark Strait overflow ($config)..."
+        return strait_overflow_transports(config, get_field(c, :fields_file);
+                                          sections = (:denmark,),
+                                          start_time = 0,
+                                          stop_time  = Inf)
+    end)

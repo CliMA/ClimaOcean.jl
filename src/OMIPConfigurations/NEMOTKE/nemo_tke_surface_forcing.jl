@@ -6,8 +6,9 @@
 @inline function surface_stress_components(i, j, grid, clock, fields, top_velocity_bcs)
     # τ in the same units NEMO uses: kinematic (m²/s²) — the top BCs of u/v in
     # Oceananigans return tendency in m²/s² already.
-    τx = Oceananigans.BoundaryConditions.getbc(top_velocity_bcs.u, i, j, grid, clock, fields)
-    τy = Oceananigans.BoundaryConditions.getbc(top_velocity_bcs.v, i, j, grid, clock, fields)
+    kᴺ = size(grid, 3)
+    τx = Oceananigans.BoundaryConditions.total_boundary_flux(top_velocity_bcs.u, i, j, kᴺ, grid, clock, fields, fields.u)
+    τy = Oceananigans.BoundaryConditions.total_boundary_flux(top_velocity_bcs.v, i, j, kᴺ, grid, clock, fields, fields.v)
     return τx, τy
 end
 

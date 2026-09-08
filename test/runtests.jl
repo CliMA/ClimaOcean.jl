@@ -19,4 +19,7 @@ if test_group == :unit || test_group == :all
     include("test_ocean_configurations.jl")
     include("test_sea_ice_configurations.jl")
     include("test_omip_configurations.jl")
+    include("test_bottom_boundary_layer.jl")
+    include("test_advective_bottom_boundary_layer.jl")
+    include("test_overflow_restoring.jl")
 end
