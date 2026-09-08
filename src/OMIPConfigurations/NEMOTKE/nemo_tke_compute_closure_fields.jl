@@ -98,6 +98,10 @@ end
     h_τ   = wave_decay_length(φ_deg, p)
     h_LC  = _diagnose_langmuir_depth(i, j, grid, buoyancy, tracers, u_s², Nz, FT)
 
+    # Surface-relative depth `z_c` must be measured below the moving free surface η (top face),
+    # not z = 0; otherwise the wave-penetration source exp(-z_c/h_τ) blows up where η > 0 on z-star.
+    η_surf = znode(i, j, Nz+1, grid, Center(), Center(), Face())
+
     # TKE tridiagonal (Thomas, in-place on K.e; K.γ holds γ').
     # Row k = 1..Nz, with k = Nz the topmost cell:
     #     a_k · eⁿ⁺¹_{k-1} + b_k · eⁿ⁺¹_k + c_k · eⁿ⁺¹_{k+1} = d_k
@@ -128,7 +132,7 @@ end
 
         S²_k    = _shear_squared_centered(i, j, k, grid, velocities, FT)
         N²_k    = _N²_centered(i, j, k, grid, buoyancy, tracers, FT)
-        z_c     = -znode(i, j, k, grid, Center(), Center(), Center())
+        z_c     = η_surf - znode(i, j, k, grid, Center(), Center(), Center())
         LC_k    = ifelse(p.apply_langmuir_circulation,
                          langmuir_source(FT(z_c), h_LC, u_s, p), zero(FT))
         WP_k    = ifelse(p.apply_wave_penetration,
@@ -288,11 +292,12 @@ end
     cum       = zero(FT)
     h_LC      = zero(FT)
     hit       = false
+    η_surf    = znode(i, j, Nz+1, grid, Center(), Center(), Face())
     @inbounds for k in Nz:-1:1
         dry    = peripheral_node(i, j, k, grid, Center(), Center(), Center())
         N²_raw = ∂z_b(i, j, k, grid, buoyancy, tracers)
         N²_k   = ifelse(isfinite(N²_raw), max(N²_raw, zero(FT)), zero(FT))
-        z_c    = -znode(i, j, k, grid, Center(), Center(), Center())
+        z_c    = η_surf - znode(i, j, k, grid, Center(), Center(), Center())
         Δz_k   = Δzᶜᶜᶜ(i, j, k, grid)
         cum   += ifelse(dry, zero(FT), N²_k * z_c * Δz_k)
         crossed   = cum > threshold

@@ -8,6 +8,7 @@ authors = ["Climate Modeling Alliance and contributors"]
 AbstractFFTs = "621f4979-c628-5d54-868e-fcf4e3e8185c"
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+ClimaSeaIce = "6ba0ff68-24e6-4315-936c-2e99227c95a4"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
@@ -29,12 +30,16 @@ Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 WorldOceanAtlasTools = "04f20302-f1b9-11e8-29d9-7d841cb0a64a"
 
 [sources]
-NumericalEarth = {rev = "main", url = "https://github.com/NumericalEarth/NumericalEarth.jl.git"}
+NumericalEarth = {rev = "ss/omip-prototype", url = "https://github.com/NumericalEarth/NumericalEarth.jl.git"}
+Oceananigans = {rev = "ss/for-omip", url = "https://github.com/CliMA/Oceananigans.jl.git"}
+ClimaSeaIce = {rev = "ss/for-omip", url = "https://github.com/CliMA/ClimaSeaIce.jl.git"}
+SeawaterPolynomials = {rev = "ss/conversion-functions", url = "https://github.com/CliMA/SeawaterPolynomials.jl.git"}
 
 [compat]
 AbstractFFTs = "1"
 Adapt = "3, 4"
 CUDA = "5.9.7, ~6.0"
+ClimaSeaIce = "0.5, 0.6"
 Dates = "1"
 DocStringExtensions = "0.9"
 FFTW = "1"
@@ -45,12 +50,12 @@ KernelAbstractions = "0.9"
 LinearAlgebra = "1"
 MPI = "0.20"
 NCDatasets = "0.12, 0.13, 0.14"
-NumericalEarth = "0.4, 0.5, 0.6, 0.7, 0.8"
-Oceananigans = "0.107, 0.108, 0.109, 0.110, 0.111"
+NumericalEarth = "0.6, 0.7, 0.8"
+Oceananigans = "0.110, 0.111, 0.112"
 PrecompileTools = "1"
 Printf = "1"
 Reexport = "1.2.2"
-SeawaterPolynomials = "0.3, 0.4"
+SeawaterPolynomials = "0.4"
 StaticArrays = "1"
 Statistics = "1.9"
 WorldOceanAtlasTools = "0.6"

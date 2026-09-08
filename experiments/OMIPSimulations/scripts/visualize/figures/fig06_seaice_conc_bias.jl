@@ -19,7 +19,7 @@ function fig06(caches, labels, cases)
                      hemisphere,
                      title = "$lab: $season SIC bias ($(hemisphere == :north ? "NH" : "SH"))",
                      colormap = Reverse(:RdBu), colorrange = (-1, 1),
-                     label = "model − HadISST",
+                     label = "model − HadISST $(HADISST_CLIMATOLOGY_YEARS[1])–$(HADISST_CLIMATOLOGY_YEARS[2])",
                      obs_contour = obs,
                      obs_levels = [0.15], obs_color = :black, obs_linewidth = 2.5)
     end

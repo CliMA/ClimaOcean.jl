@@ -2,13 +2,12 @@
     omip_forcing(arch, sea_ice; forcing_dir, start_date, end_date,
                  repeat_year_forcing=false, backend_size=30)
 
-Build the prescribed forcing components for an OMIP-2 simulation:
-JRA55-do atmosphere, JRA55-do downwelling radiation (with OMIP-2 ocean
-surface properties and CCSM3 temperature/snow/thickness-dependent sea-ice
-albedo), and JRA55-do land freshwater forcing (river runoff + iceberg
-calving).
+Build the prescribed atmosphere forcing for an OMIP-2 simulation: JRA55-do atmosphere and
+JRA55-do downwelling radiation (with OMIP-2 ocean surface properties and CCSM3
+temperature/snow/thickness-dependent sea-ice albedo). The JRA55-do land freshwater forcing
+is built separately by [`omip_simulation`](@ref) so its river routing can seed river-mouth mixing.
 
-Returns the tuple `(atmosphere, radiation, land)`.
+Returns the tuple `(atmosphere, radiation)`.
 """
 function omip_forcing(arch, sea_ice;
                       forcing_dir,
@@ -43,7 +42,5 @@ function omip_forcing(arch, sea_ice;
                                          ocean_surface   = SurfaceRadiationProperties(0.06, 1.00),
                                          sea_ice_surface = SurfaceRadiationProperties(sea_ice_albedo, 1.0))
 
-    land = JRA55PrescribedLand(arch; kw...)
-
-    return atmosphere, radiation, land
+    return atmosphere, radiation
 end

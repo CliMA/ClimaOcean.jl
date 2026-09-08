@@ -2,8 +2,9 @@
 function fig10(caches, labels, cases)
     month_names = ["J","F","M","A","M","J","J","A","S","O","N","D"]
     m2_to_million_km2 = 1e-12
-    arctic_obs    = nsidc_arctic()
-    antarctic_obs = nsidc_antarctic()
+    start_year, end_year = observation_year_window(caches, labels; record_first_year = NSIDC_FIRST_YEAR)
+    arctic_obs    = nsidc_arctic(; start_year, end_year)
+    antarctic_obs = nsidc_antarctic(; start_year, end_year)
 
     fig = Figure(size = (600 + 200 * length(labels), 500), fontsize = 14)
     ax_arctic = Axis(fig[1, 1]; xlabel = "Month", ylabel = "SIE (Million km²)",
@@ -14,7 +15,7 @@ function fig10(caches, labels, cases)
               arctic_obs.extent_monthly .+ arctic_obs.extent_monthly_std;
               color = (OBS_COLOR, 0.25))
         lines!(ax_arctic, 1:12, arctic_obs.extent_monthly;
-            color = OBS_COLOR, linewidth = OBS_LINEWIDTH, linestyle = OBS_LINESTYLE, label = "NSIDC")
+            color = OBS_COLOR, linewidth = OBS_LINEWIDTH, linestyle = OBS_LINESTYLE, label = "NSIDC $(window_label(arctic_obs))")
     end
     for (i, lab) in enumerate(labels)
         lines!(ax_arctic, 1:12,
@@ -29,7 +30,7 @@ function fig10(caches, labels, cases)
               antarctic_obs.extent_monthly .+ antarctic_obs.extent_monthly_std;
               color = (OBS_COLOR, 0.25))
         lines!(ax_antarctic, 1:12, antarctic_obs.extent_monthly;
-            color = OBS_COLOR, linewidth = OBS_LINEWIDTH, linestyle = OBS_LINESTYLE, label = "NSIDC")
+            color = OBS_COLOR, linewidth = OBS_LINEWIDTH, linestyle = OBS_LINESTYLE, label = "NSIDC $(window_label(antarctic_obs))")
     end
     for (i, lab) in enumerate(labels)
         lines!(ax_antarctic, 1:12,

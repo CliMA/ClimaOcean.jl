@@ -1,5 +1,5 @@
 # NEMO 3.6 TKE vertical-mixing closure (zdftke + zdfevd) — Blanke & Delecluse 1993,
-# Gaspar et al. 1990, Madec et al. 2017. OMIP-2 ORCA1 preset; vendored as a submodule.
+# Gaspar et al. 1990, Madec et al. 2017. OMIP-2 ORCAOne preset; vendored as a submodule.
 
 module NEMOTKE
 
@@ -24,7 +24,7 @@ import Oceananigans.TurbulenceClosures: viscosity, diffusivity,
                                         viscosity_location, diffusivity_location,
                                         with_tracers,
                                         compute_closure_fields!, build_closure_fields
-import Oceananigans.TimeSteppers: step_closure_prognostics!, time_discretization
+import Oceananigans.TimeSteppers: step_closure_prognostics!
 
 include("nemo_tke_parameters.jl")
 include("nemo_tke_vertical_diffusivity.jl")

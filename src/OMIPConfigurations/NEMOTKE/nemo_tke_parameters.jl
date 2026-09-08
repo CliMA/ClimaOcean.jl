@@ -1,4 +1,4 @@
-# NEMO 3.6 zdftke namelist parameters with OMIP-2 ORCA1 defaults.
+# NEMO 3.6 zdftke namelist parameters with OMIP-2 ORCAOne defaults.
 # NEMO names appear as trailing comments for traceability.
 
 """
@@ -6,7 +6,7 @@
 
 Parameters of the NEMO 3.6 TKE vertical-mixing closure
 (Blanke & Delecluse 1993; Gaspar et al. 1990; Madec et al. 2017).
-Defaults reproduce the OMIP-2 ORCA1 NEMO preset (Tsujino 2020, Iovino 2023).
+Defaults reproduce the OMIP-2 ORCAOne NEMO preset (Tsujino 2020, Iovino 2023).
 """
 struct NEMOTKEParameters{FT}
     Cᴷ                                 :: FT     # rn_ediff  Kₘ = Cᴷ·ℓ·√e
@@ -37,7 +37,7 @@ end
 """
     NEMOTKEParameters(FT = Float64; kwargs...)
 
-Construct `NEMOTKEParameters{FT}` with NEMO 3.6 ORCA1 OMIP-2 defaults; override any field via keyword.
+Construct `NEMOTKEParameters{FT}` with NEMO 3.6 ORCAOne OMIP-2 defaults; override any field via keyword.
 """
 function NEMOTKEParameters(FT::DataType = Float64;
                            Cᴷ                                = 0.1,
