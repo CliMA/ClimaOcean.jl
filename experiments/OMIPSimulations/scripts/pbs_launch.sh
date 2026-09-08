@@ -10,7 +10,7 @@
 
 # Submit a tenth-degree OMIP simulation on Derecho (PBS + cray-mpich).
 #
-# Run from this directory (`experiments/ClimaOcean.OMIPConfigurations/scripts/`):
+# Run from this directory (`experiments/OMIPSimulations/scripts/`):
 #     qsub pbs_launch.sh
 #
 # Override defaults with env vars at submit time, e.g.:
