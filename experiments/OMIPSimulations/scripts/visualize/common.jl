@@ -47,12 +47,6 @@ using NumericalEarth: ECCO4Monthly
 using ClimaOcean.OMIPConfigurations: strait_transports, strait_freshwater_transports,
                        strait_overflow_transports, strait_sections, woa_to_teos10!
 
-# The Oceananigans monkey-patches that used to live here (split-file
-# `FieldTimeSeries` support and the matching `set!` extension), plus their
-# JLD2 helpers, now live in `src/oceananigans_patches.jl` of the
-# ClimaOcean.OMIPConfigurations module and load when `using ClimaOcean` runs above.
-# We re-bind the helper names below so the rest of this script and `cache.jl`
-# keep working unchanged.
 using ClimaOcean.OMIPConfigurations: jld2_output_part_paths, with_jld2, jld2_parts,
                        memoize_jld2_part,
                        total_jld2_timeseries_snapshot_count,
