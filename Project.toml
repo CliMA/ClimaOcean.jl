@@ -1,0 +1,57 @@
+name = "ClimaOcean"
+uuid = "0376089a-ecfe-4b0e-a64f-9c555d74d754"
+license = "MIT"
+version = "0.11.0"
+authors = ["Climate Modeling Alliance and contributors"]
+
+[workspace]
+projects = ["docs", "examples", "test"]
+
+[deps]
+Artifacts = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
+ClimaSeaIce = "6ba0ff68-24e6-4315-936c-2e99227c95a4"
+ConservativeRegridding = "8e50ac2c-eb48-49bc-a402-07c87b949343"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
+Downloads = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
+JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
+KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
+LazyArtifacts = "4af54fe1-eca0-43a8-85a7-787d91b784e3"
+NCDatasets = "85f8d34a-cbdd-5861-8df4-14fed0d494ab"
+NumericalEarth = "904d977b-046a-4731-8b86-9235c0d1ef02"
+Oceananigans = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+SeawaterPolynomials = "d496a93d-167e-4197-9f49-d3af4ff8fe40"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+WorldOceanAtlasTools = "04f20302-f1b9-11e8-29d9-7d841cb0a64a"
+
+[weakdeps]
+GeoMakie = "db073c08-6b98-4ee5-b6a4-5efafb3259c6"
+Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
+
+[extensions]
+ClimaOceanMakieExt = ["Makie", "GeoMakie"]
+
+[sources]
+NumericalEarth = {url = "https://github.com/NumericalEarth/NumericalEarth.jl", rev = "ss/omip-one-degree-example"} # TODO: remove once NumericalEarth.jl#789 is released
+
+[compat]
+Artifacts = "1"
+ClimaSeaIce = "0.7.2"
+ConservativeRegridding = "0.2"
+Dates = "1"
+DelimitedFiles = "1"
+Downloads = "1"
+GeoMakie = "0.7"
+JLD2 = "0.6"
+KernelAbstractions = "0.9"
+LazyArtifacts = "1"
+Makie = "0.24"
+NCDatasets = "0.12, 0.13, 0.14"
+NumericalEarth = "0.9.2"
+Oceananigans = "0.117.2"
+Printf = "1"
+SeawaterPolynomials = "0.3.11"
+Statistics = "1"
+WorldOceanAtlasTools = "0.6"
+julia = "1.10"

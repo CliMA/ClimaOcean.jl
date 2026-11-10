@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.12'
+      - uses: julia-actions/cache@v3
+      - name: Configurations, Absolute Salinity, total water and diagnostics
+        run: |
+          julia --project=test --color=yes -e 'using Pkg; Pkg.instantiate()'
+          julia --project=test --color=yes test/test_configurations.jl
+          julia --project=test --color=yes test/test_total_water_and_diagnostics.jl

@@ -1,0 +1,15 @@
+Manifest.toml
+Manifest-v*.toml
+.CondaPkg/
+.DS_Store
+.ipynb_checkpoints/
+
+docs/build/
+docs/src/literated/
+
+# Simulation output and local runs
+*.jld2
+*.nc
+*.mp4
+*.png
+run_*/
