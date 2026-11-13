@@ -40,7 +40,8 @@ function omip_ocean(grid, configuration; river_routing = nothing)
     ocean = configuration.ocean
 
     chlorophyll = FieldTimeSeries(Metadata(:chlorophyll; dataset = ocean.chlorophyll_dataset,
-                                           dates = (DateTime(2000, 1, 1), DateTime(2000, 12, 1))), grid)
+                                           dates = (DateTime(2000, 1, 1), DateTime(2000, 12, 1))), grid;
+                                  time_indices_in_memory = 12)
 
     top_cell_thickness = Δzᶜᶜᶜ(1, 1, size(grid, 3), host_grid(grid))
 
