@@ -20,6 +20,6 @@ jobs:
       - uses: julia-actions/cache@v3
       - name: Configurations, Absolute Salinity, total water and diagnostics
         run: |
-          julia --project=test --color=yes -e 'using Pkg; Pkg.instantiate()'
+          julia --project=test --color=yes -e 'using Pkg; Pkg.resolve(); Pkg.instantiate()'
           julia --project=test --color=yes test/test_configurations.jl
           julia --project=test --color=yes test/test_total_water_and_diagnostics.jl
