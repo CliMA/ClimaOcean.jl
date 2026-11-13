@@ -147,21 +147,23 @@ function add_omip_diagnostics!(simulation;
                                         :snvol => Integral(hˢ * ℵ))
 
     # The writers serialize against `simulation.model`, a coupled model that carries none of the ocean properties
-    writer_kw = (; including = Symbol[], dir = output_directory, overwrite_files = true,
-                   file_splitting = TimeInterval(file_splitting_interval))
+    writer_kw = (; including = Symbol[], dir = output_directory, overwrite_files = true)
 
     compressed = (; jld2_kw = Dict(:compress => ZstdFilter()))
 
     simulation.output_writers[:surface] = JLD2Writer(ocean, surface_outputs; writer_kw..., compressed...,
                                                      schedule = AveragedTimeInterval(surface_averaging_interval),
+                                                     file_splitting = TimeInterval(file_splitting_interval),
                                                      filename = prefix * "_surface")
 
     simulation.output_writers[:fields] = JLD2Writer(ocean, field_outputs; writer_kw..., compressed...,
                                                     schedule = AveragedTimeInterval(field_averaging_interval),
+                                                    file_splitting = TimeInterval(file_splitting_interval),
                                                     filename = prefix * "_fields")
 
     simulation.output_writers[:averages] = JLD2Writer(ocean, average_outputs; writer_kw...,
                                                       schedule = AveragedTimeInterval(averages_interval),
+                                                      file_splitting = TimeInterval(file_splitting_interval),
                                                       filename = prefix * "_averages")
 
     simulation.output_writers[:checkpointer] = Checkpointer(coupled_model;
