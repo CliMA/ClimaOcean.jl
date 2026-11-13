@@ -32,6 +32,8 @@ DataWrangling.averaging_window(metadatum::Metadatum{<:MonthlyObservation}) = Dat
 DataWrangling.is_three_dimensional(::Metadata{<:MonthlyObservation}) = false
 DataWrangling.longitude_interfaces(::Metadata{<:MonthlyObservation}) = (-180, 180)
 DataWrangling.latitude_interfaces(::Metadata{<:MonthlyObservation}) = (-90, 90)
+DataWrangling.longitude_name(::Metadata{<:MonthlyObservation}) = "lon"
+DataWrangling.latitude_name(::Metadata{<:MonthlyObservation}) = "lat"
 DataWrangling.dataset_variable_name(metadata::Metadata{<:MonthlyObservation}) =
     DataWrangling.available_variables(metadata.dataset)[metadata.name]
 
@@ -51,8 +53,8 @@ end
 # The record of `name` at the time index `n` of the file of `metadatum`, from -180ᵒ eastward and from the south pole
 function regular_record(metadatum, n)
     Dataset(metadata_path(metadatum)) do dataset
-        longitudes = mod.(Float64.(dataset["lon"][:]) .+ 180, 360) .- 180
-        latitudes = Float64.(dataset["lat"][:])
+        longitudes = mod.(Float64.(dataset[DataWrangling.longitude_name(metadatum)][:]) .+ 180, 360) .- 180
+        latitudes = Float64.(dataset[DataWrangling.latitude_name(metadatum)][:])
         record = Float32.(coalesce.(dataset[DataWrangling.dataset_variable_name(metadatum)][:, :, n], NaN32))
         record[sortperm(longitudes), sortperm(latitudes)]
     end
@@ -99,6 +101,8 @@ DataWrangling.available_variables(::HadISSTMonthly) = Dict(:sea_ice_concentratio
 Base.size(::HadISSTMonthly, variable) = (360, 180, 1)
 DataWrangling.metadata_filename(::HadISSTMonthly, name, date, region) = "HadISST_ice.nc"
 observation_url(::Metadatum{<:HadISSTMonthly}) = "https://www.metoffice.gov.uk/hadobs/hadisst/data/HadISST_ice.nc.gz"
+DataWrangling.longitude_name(::Metadata{<:HadISSTMonthly}) = "longitude"
+DataWrangling.latitude_name(::Metadata{<:HadISSTMonthly}) = "latitude"
 
 function Downloads.download(metadata::Metadata{<:HadISSTMonthly}; kwargs...)
     path = metadata_path(first(metadata))
@@ -111,10 +115,9 @@ end
 
 function DataWrangling.retrieve_data(metadatum::Metadatum{<:HadISSTMonthly})
     Dataset(metadata_path(metadatum)) do dataset
-        dates = dataset["time"][:]
-        n = findfirst(d -> year(d) == year(metadatum.dates) && month(d) == month(metadatum.dates), dates)
-        longitudes = mod.(Float64.(dataset["longitude"][:]) .+ 180, 360) .- 180
-        latitudes = Float64.(dataset["latitude"][:])
+        n = 12 * (year(metadatum.dates) - 1870) + month(metadatum.dates)
+        longitudes = mod.(Float64.(dataset[DataWrangling.longitude_name(metadatum)][:]) .+ 180, 360) .- 180
+        latitudes = Float64.(dataset[DataWrangling.latitude_name(metadatum)][:])
         concentration = Float32.(coalesce.(dataset["sic"][:, :, n], NaN32))
         concentration[(concentration .< 0) .| (concentration .> 1)] .= NaN32
         concentration[sortperm(longitudes), sortperm(latitudes)]
