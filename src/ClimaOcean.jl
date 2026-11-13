@@ -1,101 +1,73 @@
+"""
+ClimaOcean runs the Ocean Model Intercomparison Project (OMIP) simulations of NumericalEarth's ocean--sea ice model
+at one, one quarter and one twelfth of a degree, and evaluates them against observations.
+"""
 module ClimaOcean
 
-export one_degree_tripolar_ocean,
-       half_degree_tripolar_ocean,
-       latitude_longitude_ocean,
-       sixth_degree_tripolar_ocean,
-       tenth_degree_tripolar_ocean,
-       latitude_longitude_sea_ice,
-       half_degree_tripolar_sea_ice,
-       one_degree_tripolar_sea_ice,
-       sixth_degree_tripolar_sea_ice,
-       download_with_fallback,
-       orca_ocean,
-       orca_sea_ice,
-       omip_simulation,
-       add_omip_diagnostics!,
-       strait_transports,
-       strait_sections,
-       StraitSection,
-       KPPVerticalDiffusivity, KPPParameters,
-       NEMOTKEVerticalDiffusivity, NEMOTKEParameters,
-       NORiBaseVerticalDiffusivity,
-       simplified_ocean_closure,
-       Progress
+export OneDegree, QuarterDegree, TwelfthDegree, OMIPConfiguration,
+       omip_simulation, add_omip_diagnostics!,
+       TimeStepSchedule, TotalWaterNormalization, henyey_diffusivity,
+       OMIPOutput, omip_figures,
+       BoyerMontegutMonthly, HadISSTMonthly, NCEPMonthly
 
-using Reexport
-using Printf
+# Figures, implemented in the Makie extension
+export sea_surface_temperature_bias, sea_surface_salinity_bias, sea_surface_height, mixed_layer_depth,
+       sea_ice_concentration, sea_ice_concentration_bias, surface_fluxes, wind_stress,
+       sea_surface_height_variability, sea_ice_extent, sea_ice_area, arctic_sea_ice_volume,
+       sea_ice_area_time_series, arctic_sea_ice_volume_time_series, kinetic_energy, global_drift,
+       mean_profiles, zonal_mean_sections, zonal_mean_drift, zonal_mean_mixed_layer_depth, drift_profiles,
+       strait_transports, atlantic_overturning, near_surface_currents, equatorial_undercurrent,
+       atlantic_overturning_at_rapid, sea_level_drift, content_conservation, barotropic_streamfunction,
+       arctic_freshwater_transports, zonal_rms_bias, rms_bias_profiles
+
 using Oceananigans
-using Oceananigans.Operators: ℑxyᶠᶜᵃ, ℑxyᶜᶠᵃ
+using Oceananigans.Units
+using Oceananigans: fields
+using Oceananigans.Architectures: architecture, cpu_architecture, on_architecture
+using Oceananigans.Grids: λnode, φnode, znode
+using Oceananigans.ImmersedBoundaries: inactive_node
+using Oceananigans.Models: buoyancy_operation
+using Oceananigans.Operators: Az, Axᶠᶜᶜ, Ayᶜᶠᶜ, Δzᶜᶜᶜ, Δz⁻¹ᶜᶠᶜ, δzᵃᵃᶜ, ℑxᶜᵃᵃ, ℑxᶠᵃᵃ, ℑyᵃᶜᵃ, ℑyᵃᶠᵃ
+using Oceananigans.TurbulenceClosures: IsopycnalSkewSymmetricDiffusivity, κ_ϵSyᶜᶠᶠ
+using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities: CATKEMixingLength
+using Oceananigans.Utils: prettysummary
 
-@reexport using NumericalEarth
-@reexport using NumericalEarth.DataWrangling
-@reexport using NumericalEarth.DataWrangling: ETOPO, ECCO, GLORYS, EN4, JRA55
-@reexport using NumericalEarth.Diagnostics
-@reexport using NumericalEarth.EarthSystemModels
-@reexport using NumericalEarth.EarthSystemModels.InterfaceComputations
-@reexport using NumericalEarth.Bathymetry
-@reexport using NumericalEarth.Atmospheres
-@reexport using NumericalEarth.Oceans
-@reexport using NumericalEarth.SeaIces
-@reexport using NumericalEarth.Lands
-@reexport using NumericalEarth.Radiations
+using NumericalEarth
+using NumericalEarth.DataWrangling: SurfaceFluxRestoring, ConservativeSurfaceFluxRestoring,
+                                    ConservativeSurfaceFluxRestoringCallback
+using NumericalEarth.DataWrangling.SeaWiFS: SeaWiFSMonthly
+using NumericalEarth.Diagnostics: MixedLayerDepthField
+using NumericalEarth.EarthSystemModels: AtmosphericThermodynamics
+using NumericalEarth.EarthSystemModels.InterfaceComputations: LargeYeagerTransferCoefficients,
+                                                              COARELogarithmicSimilarityProfile,
+                                                              ConvectiveGustiness,
+                                                              ImpureSaturationSpecificHumidity,
+                                                              GillSaturationEnhancement,
+                                                              ThreeEquationHeatFlux,
+                                                              MomentumBasedFrictionVelocity,
+                                                              atmosphere_sea_ice_stability_functions
+using NumericalEarth.SeaIces: sea_ice_dynamics, default_snow_thermodynamics
 
-#####
-##### Source code
-#####
+using ClimaSeaIce: ConductiveFlux, IncrementalRemapping, UniformThicknessDistribution
+using ConservativeRegridding: ConservativeRegridding
+using SeawaterPolynomials.TEOS10: Θ_from_T
+using WorldOceanAtlasTools: WorldOceanAtlasTools
 
-struct Progress{W} <: Function
-    wall_time :: W
-end
+using Dates: DateTime
+using JLD2: ZstdFilter
+using LazyArtifacts: LazyArtifacts, @artifact_str
+using Printf: @sprintf
 
-Progress() = Progress(Ref(time_ns()))
+include("Observations/Observations.jl")
+using .Observations: BoyerMontegutMonthly, HadISSTMonthly, NCEPMonthly
 
-function (p::Progress)(sim)
-    
-    sea_ice = sim.model.sea_ice
-    ocean   = sim.model.ocean
-
-    msg1 = @sprintf("time: %s, iteration: %d, Δt: %s, ", prettytime(sim), iteration(sim), prettytime(sim.Δt))
-
-    if sea_ice isa Simulation
-        hmax = maximum(sea_ice.model.ice_thickness)
-        ℵmax = maximum(sea_ice.model.ice_concentration)
-        msg2 = @sprintf("max(h): %.2e m, max(ℵ): %.2e ", hmax, ℵmax)
-    else
-        msg2 = @sprintf("")
-    end
-
-    Tmax = maximum(ocean.model.tracers.T)
-    Tmin = minimum(ocean.model.tracers.T)
-    Smax = maximum(ocean.model.tracers.S)
-    Smin = minimum(ocean.model.tracers.S)
-    umax = maximum(ocean.model.velocities.u)
-    vmax = maximum(ocean.model.velocities.v)
-    wmax = maximum(ocean.model.velocities.w)
-
-    step_time = 1e-9 * (time_ns() - p.wall_time[])
-
-    msg4 = @sprintf("extrema(T, S): (%.2f, %.2f) ᵒC, (%.2f, %.2f) psu, ", Tmax, Tmin, Smax, Smin)
-    msg5 = @sprintf("maximum(u): (%.2e, %.2e, %.2e) m/s, ", umax, vmax, wmax)
-    msg6 = @sprintf("wall time: %s \n", prettytime(step_time))
-
-    @info msg1 * msg2 * msg4 * msg5 * msg6
-
-    p.wall_time[] = time_ns()
-
-    return nothing
-end
-
-include("download_with_fallback.jl")
-include("InitialConditions/InitialConditions.jl")
-include("OceanConfigurations/OceanConfigurations.jl")
-include("SeaIceConfigurations/SeaIceConfigurations.jl")
-include("OMIPConfigurations/OMIPConfigurations.jl")
-
-using .InitialConditions
-using .OceanConfigurations
-using .SeaIceConfigurations
-using .OMIPConfigurations
+include("absolute_salinity.jl")
+include("initial_conditions.jl")
+include("time_step_schedule.jl")
+include("configurations.jl")
+include("omip_simulation.jl")
+include("diagnostics.jl")
+include("omip_output.jl")
+include("figures.jl")
 
 end # module

@@ -3,7 +3,7 @@ agents:
   slurm_mem: 16G
   modules: climacommon/2026_02_18
 
-timeout_in_minutes: 2880
+timeout_in_minutes: 1440
 
 env:
   OPENBLAS_NUM_THREADS: 1
@@ -14,19 +14,11 @@ env:
 steps:
   - label: "🏕️ initialize"
     key: "init"
-    env:
-      TEST_GROUP: "init"
     command:
-      - "echo '--- Instantiate project'"
-      - "julia --project -e 'using Pkg; Pkg.instantiate(verbose=true)'"
-
-      - "echo '--- Precompile project'"
-      - "julia --project -e 'using Pkg; Pkg.precompile(strict=true)'"
-      - "julia --project -e 'using Pkg; Pkg.status()'"
-
-      - "echo '--- Initialize ClimaOcean test suite'"
-      - "julia --project -e 'using CUDA; CUDA.precompile_runtime()'"
-      - "julia --project -e 'using Pkg; Pkg.test()'"
+      - "echo '--- Instantiate the test environment'"
+      - "julia --project=test -e 'using Pkg; Pkg.instantiate(verbose=true)'"
+      - "julia --project=test -e 'using Pkg; Pkg.precompile(strict=true); Pkg.status()'"
+      - "julia --project=test -e 'using CUDA; CUDA.precompile_runtime()'"
     concurrency: 1
     concurrency_group: 'depot/climaocean-ci'
     agents:
@@ -35,80 +27,31 @@ steps:
 
   - wait
 
-  #####
-  ##### Very simple tests
-  #####
-
-  - label: "{{ matrix.case }} Unit tests"
+  - label: "🌦️ configurations, absolute salinity, total water and diagnostics"
     key: "unit_tests"
-    command: |
-      set -euo pipefail
-
-      case "{{ matrix.case }}" in
-        "🌦️ Unit")            export TEST_GROUP="unit" ;;
-        *) echo "Unknown CPU matrix case: {{ matrix.case }}"; exit 2 ;;
-      esac
-
-      julia --project -e 'using Pkg; Pkg.test()'
+    command:
+      - "julia --project=test test/test_configurations.jl"
+      - "julia --project=test test/test_total_water_and_diagnostics.jl"
     agents:
       slurm_mem: 32G
       slurm_cpus_per_task: 8
-      slurm_ntasks: 1
-    matrix:
-      setup:
-        case:
-          - "🌦️ Unit"
 
-  #####
-  ##### Distributed simulation (1/6° on 4 GPUs, runs before docs so output is available)
-  #####
-
-  # - label: "🌊 sixth-degree distributed simulation"
-  #   key: "sixth_degree"
-  #   env:
-  #     GPU_TEST: "true"
-  #   command: |
-  #     set -euo pipefail
-
-  #     # Only run on main, tags, or when commit message contains "[build all examples]"
-  #     if [[ "${BUILDKITE_BRANCH}" == "main" || "${BUILDKITE_TAG:-}" == v* || "${BUILDKITE_MESSAGE:-}" == *"[build all examples]"* ]]; then
-  #         julia --project examples/sixth_degree_tripolar_ocean_sea_ice.jl
-  #     else
-  #         echo "Skipping distributed simulation (not on main/tag and no [build all examples] label)"
-  #     fi
-  #   agents:
-  #     slurm_mem: 32G
-  #     slurm_gpus: 4
-  #     slurm_cpus_per_task: 8
-  #     slurm_ntasks: 4
-  #     slurm_gpus_per_task: 1
-
-  # - wait
-
-  #####
-  ##### Documentation
-  #####
+  - label: "🌊 one-degree regression"
+    key: "one_degree_regression"
+    env:
+      GPU_TEST: "true"
+    command:
+      - "julia --project=test test/test_one_degree_regression.jl"
+    agents:
+      slurm_mem: 64G
+      slurm_gpus: 1
+      slurm_cpus_per_task: 8
 
   - label: "📖 documentation"
     key: "docs"
-    env:
-      CI: "true"
-    command: |
-      set -euo pipefail
-
-      # Build all examples on main, tags, or when the commit message contains "[build all examples]"
-      if [[ "${BUILDKITE_BRANCH}" == "main" || "${BUILDKITE_TAG:-}" == v* || "${BUILDKITE_MESSAGE:-}" == *"[build all examples]"* ]]; then
-          export CLIMAOCEAN_BUILD_ALL_EXAMPLES=true
-      else
-          export CLIMAOCEAN_BUILD_ALL_EXAMPLES=false
-      fi
-
-      echo "CLIMAOCEAN_BUILD_ALL_EXAMPLES=${CLIMAOCEAN_BUILD_ALL_EXAMPLES}"
-
-      julia --project=docs -e 'using Pkg; Pkg.instantiate(verbose=true)'
-      julia --project=docs -O0 docs/make.jl
+    command:
+      - "julia --project=docs -e 'using Pkg; Pkg.instantiate(verbose=true)'"
+      - "julia --project=docs docs/make.jl"
     agents:
-      slurm_gres: gpu:nvidia_l40s:1
       slurm_mem: 32G
       slurm_cpus_per_task: 8
-      slurm_ntasks: 1

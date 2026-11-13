@@ -1,136 +1,60 @@
-<!-- Title -->
-<h1 align="center">
-  ClimaOcean.jl
-</h1>
+# ClimaOcean.jl
 
-<!-- description -->
-<p align="center">
-  <strong>🌎 A framework for realistic ocean-only and coupled ocean + sea-ice simulations driven by prescribed atmospheres and based on <a href=https://github.com/CliMA/Oceananigans.jl>Oceananigans</a> and <a href=https://github.com/CliMA/ClimaSeaIce.jl>ClimaSeaIce</a></strong>.
-</p>
-
-###
-
-> [!IMPORTANT]
-> The generic coupling framework and data wrangling utilities originally developed in ClimaOcean are being moved to [**NumericalEarth.jl**](https://github.com/NumericalEarth/NumericalEarth.jl), a new package for building coupled Earth system models with interchangeable components.
-> ClimaOcean.jl will continue to exist as a focused package for realistic ocean and ocean + sea-ice simulations built on [Oceananigans](https://github.com/CliMA/Oceananigans.jl) and [ClimaSeaIce](https://github.com/CliMA/ClimaSeaIce.jl), depending on NumericalEarth for shared functionality.
-> See the [discussion](https://github.com/CliMA/ClimaOcean.jl/discussions/675) for more details.
-
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7677442.svg?style=flat-square)](https://doi.org/10.5281/zenodo.7677442)
-[![Build status](https://badge.buildkite.com/3113cca353b83df3b5855d3f0d69827124614aef7017c835d2.svg?style=flat-square)](https://buildkite.com/clima/climaocean-ci)
-[![Documentation](https://img.shields.io/badge/documentation-stable%20release-blue?style=flat-square)](https://clima.github.io/ClimaOceanDocumentation/stable/)
-[![Documentation](https://img.shields.io/badge/documentation-in%20development-orange?style=flat-square)](https://clima.github.io/ClimaOceanDocumentation/dev/)
-
-## Installation
-
-ClimaOcean is a registered package. To install from a Julia REPL:
+ClimaOcean runs the global ocean--sea ice simulations of the Ocean Model Intercomparison Project (OMIP-2) with the
+ocean, sea ice and coupling of [NumericalEarth.jl](https://github.com/NumericalEarth/NumericalEarth.jl), forced by
+the multi-year JRA55-do reanalysis, on the NEMO eORCA meshes at one, one quarter and one twelfth of a degree.
 
 ```julia
-julia> using Pkg
-
-julia> Pkg.add("ClimaOcean")
-
-julia> Pkg.instantiate()
-```
-
-Use `Pkg.add(url="https://github.com/CliMA/ClimaOcean.jl.git", rev="main")` to install the latest version of `ClimaOcean`.
-For more information, see the [documentation for `Pkg.jl`](https://pkgdocs.julialang.org).
-
-## Why? What's the difference between ClimaOcean and [Oceananigans](https://github.com/CliMA/Oceananigans.jl)?
-
-Oceananigans is a general-purpose library for ocean-flavored fluid dynamics.
-ClimaOcean implements a framework for driving realistic Oceananigans simulations with prescribed atmospheres, and coupling them to prognostic sea ice simulations.
-
-### A core abstraction: `ClimaOcean.OceanSeaIceModel`
-
-Our system for realistic modeling is anchored by `ClimaOcean.OceanSeaIceModel`, which encapsulates the ocean simulation, sea ice simulation, prescribed atmospheric state, and specifies how the three communicate.
-To illustrate how `OceanSeaIceModel` works we set up a simulation on a grid with 10 vertical levels and 1/4-degree horizontal resolution:
-
-```julia
-using Oceananigans
+using ClimaOcean
 using Oceananigans.Units
-using Dates
-using CUDA
-import ClimaOcean
 
-arch = GPU()
-grid = LatitudeLongitudeGrid(arch,
-                             size = (1440, 560, 10),
-                             halo = (7, 7, 7),
-                             longitude = (0, 360),
-                             latitude = (-70, 70),
-                             z = (-3000, 0))
-
-bathymetry = ClimaOcean.regrid_bathymetry(grid) # builds gridded bathymetry based on ETOPO1
-grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bathymetry))
-
-# Build an ocean simulation initialized to the ECCO state estimate version 2 on Jan 1, 1993
-ocean = ClimaOcean.ocean_simulation(grid)
-start_date = DateTime(1993, 1, 1)
-set!(ocean.model,
-     T=ClimaOcean.Metadatum(:temperature; date=start_date, dataset=ClimaOcean.ECCO2Daily()),
-     S=ClimaOcean.Metadatum(:salinity;    date=start_date, dataset=ClimaOcean.ECCO2Daily()))
-
-# Build and run an OceanSeaIceModel (with no sea ice component) forced by JRA55 reanalysis
-atmosphere = ClimaOcean.JRA55PrescribedAtmosphere(arch)
-coupled_model = ClimaOcean.OceanSeaIceModel(ocean; atmosphere)
-simulation = Simulation(coupled_model, Δt=20minutes, stop_time=30days)
+simulation = omip_simulation(OneDegree())
+simulation.stop_time = 300 * 365days
 run!(simulation)
 ```
 
-The simulation above achieves approximately 8 simulated years per day of wall time on an Nvidia H100 GPU.
+`OneDegree()`, `QuarterDegree()` and `TwelfthDegree()` hold the resolution-dependent settings of the production runs:
 
-Since `ocean.model` is an `Oceananigans.HydrostaticFreeSurfaceModel`, we can leverage `Oceananigans` features in our scripts.
-For example, to plot the surface speed at the end of the simulation we write
+| Configuration     | Mesh     | Eddies                         | Background diffusivity | Time step                   |
+|:------------------|:---------|:-------------------------------|:-----------------------|:----------------------------|
+| `OneDegree()`     | eORCA1   | Gent-McWilliams and Redi       | 10⁻⁵ m² s⁻¹            | 90 minutes                  |
+| `QuarterDegree()` | eORCA025 | permitted                      | Henyey et al. (1986)   | 4, then 30, then 45 minutes |
+| `TwelfthDegree()` | eORCA12  | resolved                       | Henyey et al. (1986)   | 6, then 15 minutes          |
+
+Everything else is common to every resolution and documented in `?omip_simulation`: CATKE vertical mixing, two-band
+penetrating shortwave with the SeaWiFS chlorophyll climatology, conservative surface salinity restoring to the World
+Ocean Atlas, a closed water budget for the ocean, sea ice and snow, elastic--viscous--plastic sea ice with snow,
+Large and Yeager bulk formulae over the ocean, and an initial state from the World Ocean Atlas converted to
+Conservative Temperature and Absolute Salinity.
+
+The simulation writes surface fields, three-dimensional fields and global integrals, and checkpoints from which
+`run!(simulation; pickup = true)` restarts. The scripts in `examples/` run the three configurations.
+
+## Figures
+
+With Makie and GeoMakie loaded, 32 figures evaluate one or more runs against observations: surface biases against
+the World Ocean Atlas, sea surface height against ECCO, mixed-layer depth against de Boyer Montégut et al. (2004),
+sea ice against HadISST, NSIDC and PIOMAS, wind stress against NCEP, the Atlantic overturning against RAPID, strait
+and Arctic freshwater transports against observations, and the drift of the heat, salt and water content.
 
 ```julia
-u, v, w = ocean.model.velocities
-speed = Field(sqrt(u^2 + v^2))
-compute!(speed)
+using ClimaOcean, CairoMakie, GeoMakie
 
-using GLMakie
-heatmap(view(speed, :, :, ocean.model.grid.Nz), colorrange=(0, 0.5), colormap=:magma, nan_color=:lightgray)
+run = OMIPOutput("one_degree_omip"; prefix = "one_degree", averaging_window = (50, 60) .* 365days)
+sea_surface_temperature_bias(run)
+omip_figures(run; directory = "omip_figures")
 ```
 
-which produces
+Every setting of a configuration is a keyword argument of `OMIPConfiguration`, documented in `?OMIPConfiguration`;
+`OneDegree(sea_ice_thickness_categories = 1)` changes one and keeps the others.
 
-![image](https://github.com/user-attachments/assets/4c484b93-38fe-4840-bf7d-63a3a59d29e1)
+## Tests
 
-### Additional features: a utility for `ocean_simulation`s and data wrangling
+`test/test_configurations.jl` tests the configurations, the time-step schedule and the conversion to Absolute
+Salinity. `test/test_one_degree_regression.jl` runs the one-degree configuration for 100 steps and compares global
+means, variances and extrema with the reference of its architecture, generated by
 
-A second core abstraction in ClimaOcean is `ocean_simulation`. `ocean_simulation` configures an Oceananigans model for realistic simulations including temperature and salinity, the TEOS-10 equation of state, boundary conditions to store computed air-sea fluxes, the automatically-calibrated turbulence closure `CATKEVerticalDiffusivity`, and the [`WENOVectorInvariant` advection scheme](https://doi.org/10.1029/2023MS004130) for mesoscale-turbulence-resolving simulations.
-
-ClimaOcean also provides convenience features for wrangling datasets of bathymetry, ocean temperature, salinity, ocean velocity fields, and prescribed atmospheric states.
-
-ClimaOcean is built on top of Oceananigans and [ClimaSeaIce](https://github.com/CliMA/ClimaSeaIce.jl), so it's important that ClimaOcean users become proficient with [Oceananigans](https://github.com/CliMA/Oceananigans.jl).
-Note that though ClimaOcean is currently focused on hydrostatic modeling with `Oceananigans.HydrostaticFreeSurfaceModel`, realistic nonhydrostatic modeling is also within the scope of this package.
-
-
-### Citing
-
-If you use ClimaOcean for your research, teaching, or fun 🤩, everyone in our community will be grateful
-if you give credit by citing the corresponding Zenodo record, e.g.,
-
-> Wagner, G. L. et al. (2025). CliMA/ClimaOcean.jl: v0.8.10 (v0.8.10). Zenodo. https://doi.org/10.5281/zenodo.7677442
-
-and also the recent [preprint submitted to the Journal of Advances in Modeling Earth Systems](https://doi.org/10.48550/arXiv.2502.14148) that presents an overview of all the things that make Oceananigans unique:
-
-> "High-level, high-resolution ocean modeling at all scales with Oceananigans"
->
-> by Gregory L. Wagner, Simone Silvestri, Navid C. Constantinou, Ali Ramadhan, Jean-Michel Campin,
-> Chris Hill, Tomas Chor, Jago Strong-Wright, Xin Kai Lee, Francis Poulin, Andre Souza, Keaton J. Burns,
-> Siddhartha Bishnu, John Marshall, and Raffaele Ferrari
->
-> submitted to the Journal of Advances in Modeling Earth Systems, arXiv:[2502.14148](https://doi.org/10.48550/arXiv.2502.14148)
-
-<details><summary>bibtex</summary>
-  <pre><code>@article{Oceananigans-overview-paper-2025,
-  title = {{High-level, high-resolution ocean modeling at all scales with Oceananigans}},
-  author = {G. L. Wagner and S. Silvestri and N. C. Constantinou and A. Ramadhan and J.-M. Campin and C. Hill and T. Chor and J. Strong-Wright and X. K. Lee and F. Poulin and A. Souza and K. J. Burns and S. Bishnu and J. Marshall and R. Ferrari},
-  journal = {arXiv preprint},
-  year = {2025},
-  archivePrefix = {arXiv},
-  eprint = {2502.14148},
-  doi = {10.48550/arXiv.2502.14148},
-  notes = {submitted to the Journal of Advances in Modeling Earth Systems},
-}</code></pre>
-</details>
+```
+julia --project=test test/generate_one_degree_regression_reference.jl
+GPU_TEST=true julia --project=test test/generate_one_degree_regression_reference.jl
+```

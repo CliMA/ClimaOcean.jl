@@ -1,0 +1,7 @@
+[gsw_saar_data]
+git-tree-sha1 = "04526305c784cb0eed63fa50e43680e556bb813d"
+lazy = true
+
+    [[gsw_saar_data.download]]
+    sha256 = "6c567e465dbce7bbc4fa7898f47ecd3cd66e641416f9366068dd6777e82b2a4b"
+    url = "https://github.com/NumericalEarth/NumericalEarthArtifacts/releases/download/gsw_saar_data-v1/gsw_saar_data.tar.gz"
