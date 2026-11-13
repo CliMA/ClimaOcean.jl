@@ -33,7 +33,7 @@ Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 ClimaOceanMakieExt = ["Makie", "GeoMakie"]
 
 [sources]
-NumericalEarth = {url = "https://github.com/NumericalEarth/NumericalEarth.jl", rev = "ss/omip-one-degree-example"} # TODO: remove once NumericalEarth.jl#789 is released
+NumericalEarth = {url = "https://github.com/NumericalEarth/NumericalEarth.jl", rev = "main"} # TODO: remove once NumericalEarth.jl#789 is released
 
 [compat]
 Artifacts = "1"
