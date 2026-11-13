@@ -1,5 +1,5 @@
 using ClimaOcean
-using ClimaOcean: compute_total_water!
+using NumericalEarth.EarthSystemModels: compute_total_water!
 using NumericalEarth
 using Oceananigans
 using Oceananigans.Units

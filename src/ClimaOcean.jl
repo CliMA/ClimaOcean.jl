@@ -24,15 +24,13 @@ using Oceananigans
 using Oceananigans.Units
 using Oceananigans: fields
 using Oceananigans.Architectures: architecture, cpu_architecture, on_architecture
-using Oceananigans.Fields: ConstantField
-using Oceananigans.Grids: λnode, φnode, znode, static_column_depthᶜᶜᵃ
+using Oceananigans.Grids: λnode, φnode, znode
 using Oceananigans.ImmersedBoundaries: inactive_node
 using Oceananigans.Models: buoyancy_operation
-using Oceananigans.Models.HydrostaticFreeSurfaceModels: update_zstar_scaling!
 using Oceananigans.Operators: Az, Axᶠᶜᶜ, Ayᶜᶠᶜ, Δzᶜᶜᶜ, Δz⁻¹ᶜᶠᶜ, δzᵃᵃᶜ, ℑxᶜᵃᵃ, ℑxᶠᵃᵃ, ℑyᵃᶜᵃ, ℑyᵃᶠᵃ
 using Oceananigans.TurbulenceClosures: IsopycnalSkewSymmetricDiffusivity, κ_ϵSyᶜᶠᶠ
 using Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities: CATKEMixingLength
-using Oceananigans.Utils: KernelParameters, launch!, prettysummary
+using Oceananigans.Utils: prettysummary
 
 using NumericalEarth
 using NumericalEarth.DataWrangling: SurfaceFluxRestoring, ConservativeSurfaceFluxRestoring,
@@ -57,7 +55,6 @@ using WorldOceanAtlasTools: WorldOceanAtlasTools
 
 using Dates: DateTime
 using JLD2: ZstdFilter
-using KernelAbstractions: @index, @kernel
 using LazyArtifacts: LazyArtifacts, @artifact_str
 using Printf: @sprintf
 
@@ -67,7 +64,6 @@ using .Observations: BoyerMontegutMonthly, HadISSTMonthly, NCEPMonthly
 include("absolute_salinity.jl")
 include("initial_conditions.jl")
 include("time_step_schedule.jl")
-include("total_water.jl")
 include("configurations.jl")
 include("omip_simulation.jl")
 include("diagnostics.jl")
