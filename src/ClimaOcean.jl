@@ -58,7 +58,7 @@ using WorldOceanAtlasTools: WorldOceanAtlasTools
 using Dates: DateTime
 using JLD2: ZstdFilter
 using KernelAbstractions: @index, @kernel
-using LazyArtifacts: @artifact_str
+using LazyArtifacts: LazyArtifacts, @artifact_str
 using Printf: @sprintf
 
 include("Observations/Observations.jl")
