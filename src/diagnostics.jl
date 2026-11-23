@@ -168,7 +168,8 @@ function add_omip_diagnostics!(simulation;
 
     simulation.output_writers[:checkpointer] = Checkpointer(coupled_model;
                                                             schedule = TimeInterval(checkpoint_interval),
-                                                            prefix = joinpath(output_directory, prefix * "_checkpoint"),
+                                                            dir = output_directory,
+                                                            prefix = prefix * "_checkpoint",
                                                             cleanup = false)
 
     return simulation

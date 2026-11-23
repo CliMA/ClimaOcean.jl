@@ -46,6 +46,7 @@ using NumericalEarth.EarthSystemModels.InterfaceComputations: LargeYeagerTransfe
                                                               ThreeEquationHeatFlux,
                                                               MomentumBasedFrictionVelocity,
                                                               atmosphere_sea_ice_stability_functions
+using NumericalEarth.Lands: global_grid_size
 using NumericalEarth.SeaIces: sea_ice_dynamics, default_snow_thermodynamics
 
 using ClimaSeaIce: ConductiveFlux, IncrementalRemapping, UniformThicknessDistribution

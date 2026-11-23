@@ -59,6 +59,9 @@ Ocean
 - `salinity_restoring_piston_velocity`: [m s⁻¹]. Default: 0.254 m day⁻¹.
 - `total_water_normalization`: whether to hold the water of the ocean, sea ice and snow at its initial value.
   Default: `true`.
+- `river_mouth_diffusivity`: vertical tracer diffusivity [m² s⁻¹] added at the cells the rivers discharge into.
+  Default: 0.1.
+- `river_mouth_mixing_depth`: depth [m] over which `river_mouth_diffusivity` is added. Default: 10.
 
 Sea ice
 =======
@@ -128,6 +131,8 @@ function OMIPConfiguration(; name = "omip",
                              salinity_restoring_dataset = WOAMonthly(),
                              salinity_restoring_piston_velocity = 0.254 / days,
                              total_water_normalization = true,
+                             river_mouth_diffusivity = 0.1,
+                             river_mouth_mixing_depth = 10,
                              sea_ice_advection = IncrementalRemapping(),
                              sea_ice_ocean_drag_reference_depth = 6,
                              sea_ice_conductivity = 2,
@@ -161,7 +166,7 @@ function OMIPConfiguration(; name = "omip",
     ocean = (; vertical_mixing, background_diffusivity, background_viscosity, eddy_closure, biharmonic_timescale,
                momentum_advection, tracer_advection, barotropic_substeps, reference_density, chlorophyll_dataset,
                initial_condition_dataset, salinity_restoring_dataset, salinity_restoring_piston_velocity,
-               total_water_normalization)
+               total_water_normalization, river_mouth_diffusivity, river_mouth_mixing_depth)
 
     sea_ice = (; advection = sea_ice_advection, ocean_drag_reference_depth = sea_ice_ocean_drag_reference_depth,
                  conductivity = sea_ice_conductivity, thickness_categories = sea_ice_thickness_categories,

@@ -16,7 +16,7 @@ end
 
 # Search far enough for the river mouths to reach the ocean through about 3ᵒ of coastline at any resolution
 function maximum_river_search_radius(grid)
-    Nx, Ny, _ = size(grid)
+    Nx, Ny, _ = global_grid_size(architecture(grid), size(grid))
     return max(5, ceil(Int, 3 / ((360 / Nx + 180 / Ny) / 2)))
 end
 
@@ -41,7 +41,7 @@ function omip_ocean(grid, configuration; river_routing = nothing)
 
     chlorophyll = FieldTimeSeries(Metadata(:chlorophyll; dataset = ocean.chlorophyll_dataset,
                                            dates = (DateTime(2000, 1, 1), DateTime(2000, 12, 1))), grid;
-                                  time_indices_in_memory = 12)
+                                  time_indices_in_memory = 3)
 
     top_cell_thickness = Δzᶜᶜᶜ(1, 1, size(grid, 3), host_grid(grid))
 
@@ -61,6 +61,8 @@ function omip_ocean(grid, configuration; river_routing = nothing)
                                   reference_density = ocean.reference_density,
                                   radiative_forcing = TwoColorRadiation(grid; chlorophyll),
                                   river_routing,
+                                  river_mouth_diffusivity = ocean.river_mouth_diffusivity,
+                                  river_mouth_mixing_depth = ocean.river_mouth_mixing_depth,
                                   additional_surface_fluxes = (; S = salinity_flux))
 
     T = CenterField(grid)
