@@ -50,19 +50,16 @@ using NumericalEarth.Lands: global_grid_size
 using NumericalEarth.SeaIces: sea_ice_dynamics, default_snow_thermodynamics
 
 using ClimaSeaIce: ConductiveFlux, IncrementalRemapping, UniformThicknessDistribution
-using ConservativeRegridding: ConservativeRegridding
-using SeawaterPolynomials.TEOS10: Θ_from_T
+using GibbsSeaWater: gsw_ct_from_t, gsw_sa_from_sp
 using WorldOceanAtlasTools: WorldOceanAtlasTools
 
 using Dates: DateTime
 using JLD2: ZstdFilter
-using LazyArtifacts: LazyArtifacts, @artifact_str
 using Printf: @sprintf
 
 include("Observations/Observations.jl")
 using .Observations: BoyerMontegutMonthly, HadISSTMonthly, NCEPMonthly
 
-include("absolute_salinity.jl")
 include("initial_conditions.jl")
 include("time_step_schedule.jl")
 include("configurations.jl")

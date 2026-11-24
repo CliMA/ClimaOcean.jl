@@ -8,12 +8,12 @@ host_grid(grid) = on_architecture(cpu_architecture(architecture(grid)), grid)
 @inline sea_pressure(z) = max(0, -z)
 
 """
-    convert_to_teos10!(T, S, atlas = SAARAtlas())
+    convert_to_teos10!(T, S)
 
 Convert the in-situ temperature `T` [ᵒC] and Practical Salinity `S` of the World Ocean Atlas, set on an ocean grid,
 to Conservative Temperature [ᵒC] and Absolute Salinity [g kg⁻¹] in place.
 """
-function convert_to_teos10!(T, S, atlas = SAARAtlas())
+function convert_to_teos10!(T, S)
     grid = host_grid(T.grid)
     Nx, Ny, Nz = size(grid)
     Tʰ = Array(interior(T))
@@ -26,8 +26,8 @@ function convert_to_teos10!(T, S, atlas = SAARAtlas())
             λ = λnode(i, j, k, grid, Center(), Center(), Center())
             φ = φnode(i, j, k, grid, Center(), Center(), Center())
             p = sea_pressure(znode(i, j, k, grid, Center(), Center(), Center()))
-            Sᴬ = absolute_salinity(atlas, Sᴾ, p, λ, φ)
-            Tʰ[i, j, k] = Θ_from_T(Sᴬ, Tⁱ, p)
+            Sᴬ = gsw_sa_from_sp(Sᴾ, p, λ, φ)
+            Tʰ[i, j, k] = gsw_ct_from_t(Sᴬ, Tⁱ, p)
             Sʰ[i, j, k] = Sᴬ
         end
     end
@@ -39,11 +39,11 @@ function convert_to_teos10!(T, S, atlas = SAARAtlas())
 end
 
 """
-    convert_to_absolute_salinity!(S, atlas = SAARAtlas())
+    convert_to_absolute_salinity!(S)
 
 Convert every record of the Practical Salinity time series `S` to Absolute Salinity [g kg⁻¹] in place.
 """
-function convert_to_absolute_salinity!(S::FieldTimeSeries, atlas = SAARAtlas())
+function convert_to_absolute_salinity!(S::FieldTimeSeries)
     grid = host_grid(S.grid)
     Nx, Ny, Nz = size(grid)
 
@@ -56,7 +56,7 @@ function convert_to_absolute_salinity!(S::FieldTimeSeries, atlas = SAARAtlas())
                 λ = λnode(i, j, k, grid, Center(), Center(), Center())
                 φ = φnode(i, j, k, grid, Center(), Center(), Center())
                 p = sea_pressure(znode(i, j, k, grid, Center(), Center(), Center()))
-                Sʰ[i, j, k] = absolute_salinity(atlas, Sᴾ, p, λ, φ)
+                Sʰ[i, j, k] = gsw_sa_from_sp(Sᴾ, p, λ, φ)
             end
         end
         set!(S[n], Sʰ)

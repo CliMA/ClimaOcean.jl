@@ -1,5 +1,6 @@
 using ClimaOcean
 using Oceananigans
+using CUDA
 using Oceananigans.Units
 using Dates: DateTime
 using TOML
