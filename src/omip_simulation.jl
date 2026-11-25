@@ -121,8 +121,8 @@ Keyword arguments
 - `stop_time`: the stop time of the simulation.
 - `forcing_directory`: where the JRA55-do forcing is stored.
 - `backend_size`: number of forcing records held in memory.
-- `prefetch`: whether the next forcing records load on a background task while the model steps. Needs two Julia
-  threads and an `arch` that is not `Distributed`.
+- `prefetch`: whether the next forcing records load on a background task while the model steps, which needs a
+  second Julia thread and doubles the memory the forcing holds.
 - `diagnostics`: whether to attach the output of [`add_omip_diagnostics!`](@ref).
 - `output_directory`: where the output and checkpoints are written.
 - remaining keyword arguments go to [`add_omip_diagnostics!`](@ref).
