@@ -103,6 +103,7 @@ end
                     stop_time = Inf,
                     forcing_directory = NumericalEarth.DataWrangling.JRA55.download_JRA55_cache,
                     backend_size = 50,
+                    prefetch = false,
                     diagnostics = true,
                     output_directory = ".",
                     kwargs...)
@@ -120,6 +121,8 @@ Keyword arguments
 - `stop_time`: the stop time of the simulation.
 - `forcing_directory`: where the JRA55-do forcing is stored.
 - `backend_size`: number of forcing records held in memory.
+- `prefetch`: whether the next forcing records load on a background task while the model steps, which needs a
+  second Julia thread and doubles the memory the forcing holds.
 - `diagnostics`: whether to attach the output of [`add_omip_diagnostics!`](@ref).
 - `output_directory`: where the output and checkpoints are written.
 - remaining keyword arguments go to [`add_omip_diagnostics!`](@ref).
@@ -130,6 +133,7 @@ function omip_simulation(configuration = OneDegree();
                          stop_time = Inf,
                          forcing_directory = NumericalEarth.DataWrangling.JRA55.download_JRA55_cache,
                          backend_size = 50,
+                         prefetch = false,
                          diagnostics = true,
                          output_directory = ".",
                          diagnostics_kw...)
@@ -138,7 +142,7 @@ function omip_simulation(configuration = OneDegree();
     forcing = configuration.forcing
     interfaces = configuration.interfaces
     forcing_kw = (; dataset = forcing.dataset, start_date, end_date, dir = forcing_directory,
-                    time_indices_in_memory = backend_size)
+                    time_indices_in_memory = backend_size, prefetch)
 
     grid = omip_grid(configuration, arch)
 
